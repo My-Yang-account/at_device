@@ -1,0 +1,1388 @@
+/*
+ * Copyright (c) 2006-2021, RT-Thread Development Team
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Change Logs:
+ * Date           Author       Notes
+ * 2024-06-09     我的杨yang       the first version
+ */
+#include "ycp_message_send.h"
+#include "ycp_message_receive.h"
+#include "ycp_transceiver.h"
+#include "ycp_message_padding.h"
+
+#include "net_operation.h"
+
+#define DBG_TAG "ycp_send"
+#define DBG_LVL DBG_LOG
+#include <rtdbg.h>
+
+#ifdef NET_PACK_USING_YCP
+
+#define NET_YCP_LOGIN_OPERATION_INTERVAL                     30000       /* 登录操作间隔(单位ms:30 *1000 = 30s) */
+
+#define NET_YCP_REALTIME_DATA_IDLE_INTERVAL                  300000      /* 实时数据空闲上报间隔(单位ms:5 *60 *1000 = 5min) */
+#define NET_YCP_REALTIME_DATA_CHARGING_INTERVAL              15000       /* 实时数据充电中上报间隔(单位ms:15 *1000 = 15s) */
+#define NET_YCP_REALTIME_DATA_LINK_INTERVAL                  5000        /* 实时数据刚连上网时上报间隔(单位ms:5 *1000 = 5s) */
+#define NET_YCP_SAME_TRANSATION_REPORT_COUNT_MAX             10          /* 相同订单最大上报次数 */
+
+struct ycp_wait_response{
+    uint32_t message_wait_response_state[NET_SYSTEM_GUN_NUMBER];                       /* 报文已发送发送，等待响应状态 */
+    uint32_t message_repeat_time[NET_SYSTEM_GUN_NUMBER][NET_YCP_CHARGEPILE_PREQ_NUM];  /* 报文重发计时 */
+};
+
+uint8_t s_ycp_current_transaction_number[NET_SYSTEM_GUN_NUMBER][NET_YCP_SERIAL_NUMBER_LENGTH_DEFAULT];
+static uint8_t s_ycp_same_transaction_report_count[NET_SYSTEM_GUN_NUMBER];
+static uint8_t s_ycp_transaction_verify[NET_SYSTEM_GUN_NUMBER];
+static struct ycp_wait_response s_ycp_wait_response;
+static ycp_socket_info_t s_ycp_socket_info;
+static uint16_t s_ycp_message_serial_number[NET_SYSTEM_GUN_NUMBER];                      /* 报文序列号 */
+static uint32_t s_ycp_message_send_state[NET_SYSTEM_GUN_NUMBER];                        /* 报文发送状态 */
+static uint32_t s_ycp_chargepile_event[NET_YCP_EVENT_TYPE_SIZE][NET_SYSTEM_GUN_NUMBER];
+static uint32_t s_ycp_server_event[NET_YCP_EVENT_TYPE_SIZE][NET_SYSTEM_GUN_NUMBER];
+
+static struct rt_thread s_ycp_message_send_thread;
+static uint8_t s_ycp_message_send_thread_stack[NET_YCP_MESSAGE_SEND_THREAD_STACK_SIZE];
+static struct rt_thread s_ycp_server_message_pro_thread;
+static uint8_t s_ycp_server_message_pro_thread_stack[NET_YCP_SERVER_MESSAGE_PRO_THREAD_STACK_SIZE];
+static ycp_response_message_buf_t s_ycp_response_buff;
+static struct rt_mutex s_ycp_response_buff_mutex;
+
+/** 登录签到 */
+Net_YcpPro_PReq_LogIn_t g_ycp_preq_login;
+/** 对时 */
+Net_YcpPro_PReq_TimeSync_t g_ycp_preq_time_sync;  // OK
+/** 上报心跳 */
+Net_YcpPro_PReq_HeartBeat_t g_ycp_preq_heartbeat;   // OK
+/** 计费模型验证 */
+Net_YcpPro_PReq_BillingModel_Verify_t g_ycp_preq_billing_model_verify;   // OK
+/** 上报单枪状态数据 */
+Net_YcpPro_PRes_Query_PReq_Report_PileState_t g_ycp_preq_report_state_data[NET_SYSTEM_GUN_NUMBER];  // OK
+/** 充电桩主动申请启动充电 */
+Net_YcpPro_PReq_ApplyCharge_Active_t g_ycp_preq_apply_charge_active[NET_SYSTEM_GUN_NUMBER];  // OK
+/** 交易记录 */
+Net_YcpPro_PReq_TransactionRecords_t g_ycp_preq_transaction_records[NET_SYSTEM_GUN_NUMBER];
+/** 上报设备故障 */
+Net_YcpPro_PReq_Report_DeviceFault_t g_ycp_preq_report_device_fault;  // OK
+/** 充电握手 */
+Net_YcpPro_PReq_ShakeHand_t g_ycp_preq_shake_hand[NET_SYSTEM_GUN_NUMBER];   // OK
+/** 参数配置 */
+Net_YcpPro_PReq_ParameterConfig_t g_ycp_preq_parameter_config[NET_SYSTEM_GUN_NUMBER];   // OK
+/** 充电结束 */
+Net_YcpPro_PReq_ChargeFinish_t g_ycp_preq_charge_finish[NET_SYSTEM_GUN_NUMBER];   // OK
+/** 错误报文 */
+Net_YcpPro_PReq_ErrorMessage_t g_ycp_preq_error_message[NET_SYSTEM_GUN_NUMBER];   // OK
+/** 充电过程中 BMS 终止 */
+Net_YcpPro_PReq_BmsEnd_t g_ycp_preq_bms_end[NET_SYSTEM_GUN_NUMBER];   // OK
+/** 充电过程中充电机终止 */
+Net_YcpPro_PReq_ChargerEnd_t g_ycp_preq_charger_end[NET_SYSTEM_GUN_NUMBER];   // OK
+/** 充电过程 BMS 需求与充电机输出 */
+Net_YcpPro_PReq_BmsCommand_ChargerOut_t g_ycp_preq_bmscommand_chargerout[NET_SYSTEM_GUN_NUMBER];   // OK
+/** 充电过程 BMS 信息 */
+Net_YcpPro_PReq_BmsInfo_t g_ycp_preq_bms_info[NET_SYSTEM_GUN_NUMBER];   // OK
+/** 升级结果上送 */
+Net_YcpPro_PRes_RemoteUpdate_t g_ycp_pres_remote_update;  // OK
+
+/**************************************************************************
+ * 函数名                 ycp_get_socket_info
+ * 功能                     获取socket信息
+ * 说明
+ * ***********************************************************************/
+ycp_socket_info_t* ycp_get_socket_info(void)
+{
+    return &s_ycp_socket_info;
+}
+
+/**************************************************************************
+ * 函数名                 ycp_response_buff_take_mutex_forever
+ * 功能                     获取响应缓存互斥量
+ * 说明
+ * ***********************************************************************/
+static int32_t ycp_response_buff_take_mutex_forever(int32_t timeout)
+{
+    return rt_mutex_take(&s_ycp_response_buff_mutex, timeout);
+}
+/**************************************************************************
+ * 函数名                 ycp_response_buff_release_mutex
+ * 功能                     释放响应缓存互斥信号量
+ * 说明
+ * ***********************************************************************/
+void ycp_response_buff_release_mutex(void)
+{
+    rt_mutex_release(&s_ycp_response_buff_mutex);
+}
+/**************************************************************************
+ * 函数名                 ycp_get_response_buff
+ * 功能                     获取响应缓存
+ * 说明
+ * ***********************************************************************/
+ycp_response_message_buf_t* ycp_get_response_buff(int32_t timeout)
+{
+    if(ycp_response_buff_take_mutex_forever(timeout) < 0){
+        return NULL;
+    }
+    return &s_ycp_response_buff;
+}
+
+/**************************************************************************
+ * 函数名                 ycp_transaction_is_verify
+ * 功能                     查询交易是否已确认
+ * 说明
+ * ***********************************************************************/
+uint8_t ycp_transaction_is_verify(uint8_t gunno)
+{
+    if(gunno >= NET_SYSTEM_GUN_NUMBER){
+        return 0x00;
+    }
+    return s_ycp_transaction_verify[gunno];
+}
+
+/**************************************************************************
+ * 函数名                 ycp_set_transaction_verify_state
+ * 功能                     设置交易确认状态
+ * 说明
+ * ***********************************************************************/
+void ycp_set_transaction_verify_state(uint8_t gunno, uint8_t state)
+{
+    if(gunno >= NET_SYSTEM_GUN_NUMBER){
+        return;
+    }
+    if(state){
+        s_ycp_transaction_verify[gunno] = 0x01;
+    }else{
+        s_ycp_transaction_verify[gunno] = 0x00;
+    }
+}
+
+/**************************************************************************
+ * 函数名                 ycp_net_event_send
+ * 功能                     网络事件发送
+ * 说明
+ * ***********************************************************************/
+int32_t ycp_net_event_send(uint8_t event_handle, uint8_t event_type, uint8_t gunno, uint32_t event)
+{
+    if(event_handle >= NET_YCP_EVENT_HANDLE_SIZE){
+        return -1;
+    }
+    if(event_type >= NET_YCP_EVENT_TYPE_SIZE){
+        return -2;
+    }
+    if(gunno >= NET_SYSTEM_GUN_NUMBER){
+        return -3;
+    }
+
+    if(event_handle == NET_YCP_EVENT_HANDLE_CHARGEPILE){
+        s_ycp_chargepile_event[event_type][gunno] |= (1 <<event);
+    }else{
+        s_ycp_server_event[event_type][gunno] |= (1 <<event);
+    }
+
+    return 0;
+}
+/**************************************************************************
+ * 函数名                 ycp_net_event_receive
+ * 功能                     网络事件接收
+ * 说明                     若事件发生则对应位为 1，否则为0
+ * ***********************************************************************/
+int32_t ycp_net_event_receive(uint8_t event_handle, uint8_t event_type, uint8_t gunno, uint8_t option,
+        uint32_t event, uint32_t* event_buf)
+{
+    if(event_handle >= NET_YCP_EVENT_HANDLE_SIZE){
+        return -1;
+    }
+    if(event_type >= NET_YCP_EVENT_TYPE_SIZE){
+        return -2;
+    }
+    if(gunno >= NET_SYSTEM_GUN_NUMBER){
+        return -3;
+    }
+    uint32_t (*event_set)[NET_SYSTEM_GUN_NUMBER] = NULL;
+
+    if(event_handle == NET_YCP_EVENT_HANDLE_CHARGEPILE){
+        event_set = s_ycp_chargepile_event;
+    }else{
+        event_set = s_ycp_server_event;
+    }
+
+    if(event_buf){
+        (*event_buf) = event_set[event_type][gunno];
+    }
+
+    if(event_set[event_type][gunno] &(1 <<event)){
+        if(option &NET_YCP_EVENT_OPTION_AND){
+            if((event_set[event_type][gunno] &(1 <<event)) != (1 <<event)){
+                return -4;
+            }
+        }
+        if(option &NET_YCP_EVENT_OPTION_CLEAR){
+            event_set[event_type][gunno] &= (~(1 <<event));
+        }
+        return 1;
+    }
+    return 0;
+}
+
+/**************************************************************************
+ * 函数名                 ycp_get_message_send_state
+ * 功能                     获取报文发送状态
+ * 说明                     若报文正在发送则对应位为 1，否则为0
+ * ***********************************************************************/
+uint8_t ycp_get_message_send_state(uint8_t gunno, uint32_t message_bit)
+{
+    if(gunno >= NET_SYSTEM_GUN_NUMBER){
+        return 0x00;
+    }
+    if(s_ycp_message_send_state[gunno] &(1 <<message_bit)){
+        return 0x01;
+    }
+    return 0x00;
+}
+/**************************************************************************
+ * 函数名                 ycp_set_message_send_state
+ * 功能                     设置报文发送状态
+ * 说明                     若报文正在发送则对应位置 1，否则置0
+ * ***********************************************************************/
+void ycp_set_message_send_state(uint8_t gunno, uint8_t state, uint32_t message_bit)
+{
+    if(gunno >= NET_SYSTEM_GUN_NUMBER){
+        return;
+    }
+    if(state){
+        s_ycp_message_send_state[gunno] |= (1 <<message_bit);
+    }else{
+        s_ycp_message_send_state[gunno] &= (~(1 <<message_bit));
+    }
+}
+
+/**************************************************************************
+ * 函数名                 ycp_set_message_wait_response_state
+ * 功能                     设置报文已发送，等待响应状态
+ * 说明
+ * ***********************************************************************/
+static void ycp_set_message_wait_response_state(uint8_t gunno, uint32_t message_bit)
+{
+    if(gunno >= NET_SYSTEM_GUN_NUMBER){
+        return;
+    }
+    if(message_bit >= NET_YCP_CHARGEPILE_PREQ_NUM){
+        return;
+    }
+    s_ycp_wait_response.message_wait_response_state[gunno] |= (1 <<message_bit);
+    s_ycp_wait_response.message_repeat_time[gunno][message_bit] = rt_tick_get();
+}
+/**************************************************************************
+ * 函数名                 ycp_clear_message_wait_response_state
+ * 功能                     清除报文已发送，等待响应状态
+ * 说明
+ * ***********************************************************************/
+void ycp_clear_message_wait_response_state(uint8_t gunno, uint32_t message_bit)
+{
+    if(gunno >= NET_SYSTEM_GUN_NUMBER){
+        return;
+    }
+    if(message_bit >= NET_YCP_CHARGEPILE_PREQ_NUM){
+        return;
+    }
+    s_ycp_wait_response.message_wait_response_state[gunno] &= (~(1 <<message_bit));
+}
+/**************************************************************************
+ * 函数名                 ycp_exist_message_wait_response
+ * 功能                     检查是否存在已发送的报文等待响应
+ * 说明
+ * ***********************************************************************/
+uint8_t ycp_exist_message_wait_response(uint8_t gunno, uint32_t *state)
+{
+    if(gunno >= NET_SYSTEM_GUN_NUMBER){
+        return 0x00;
+    }
+    if(s_ycp_wait_response.message_wait_response_state[gunno]){
+        if(state){
+            *state = s_ycp_wait_response.message_wait_response_state[gunno];
+        }
+        return 0x01;
+    }
+    return 0x00;
+}
+/**************************************************************************
+ * 函数名                 ycp_get_message_wait_response_timeout_state
+ * 功能                     获取报文等待响应超时状态
+ * 说明
+ * ***********************************************************************/
+uint8_t ycp_get_message_wait_response_timeout_state(uint8_t gunno, uint32_t timeout, uint32_t message_bit)
+{
+    if(gunno >= NET_SYSTEM_GUN_NUMBER){
+        return 0x00;
+    }
+    if(message_bit >= NET_YCP_CHARGEPILE_PREQ_NUM){
+        return 0x00;
+    }
+    if(s_ycp_wait_response.message_wait_response_state[gunno] &(1 <<message_bit)){
+        if(s_ycp_wait_response.message_repeat_time[gunno][message_bit] > rt_tick_get()){
+            s_ycp_wait_response.message_repeat_time[gunno][message_bit] = rt_tick_get();
+        }
+        if((rt_tick_get() - s_ycp_wait_response.message_repeat_time[gunno][message_bit]) > timeout){
+            s_ycp_wait_response.message_wait_response_state[gunno] &= (~(1 <<message_bit));
+            return 0x01;
+        }
+    }
+    return 0x00;
+}
+
+/**************************************************************************
+ * 函数名                 ycp_ascii_to_bcd
+ * 功能                     将字符码转成BCD
+ * 说明
+ * ***********************************************************************/
+void ycp_ascii_to_bcd(uint8_t *ascii, uint8_t *bcd, uint8_t len)
+{
+    uint8_t index, c;
+
+    for(index = 0; index < len; index++) {
+        c  = (*ascii++) << 4;
+        c |= (*ascii++) & 0x0F;
+        *bcd++ = c;
+    }
+}
+
+/**************************************************************************
+ * 函数名                 ycp_timestamp_to_timebcd
+ * 功能                     将时间戳转成时间BCD码
+ * 说明
+ * ***********************************************************************/
+void ycp_timestamp_to_timebcd(uint32_t timestamp, uint8_t *bcd, uint8_t len)
+{
+    if(bcd == NULL || len < 0x07){
+        return;
+    }
+    struct tm *_tm;
+    uint8_t value, yhigh, ylow;
+
+    _tm = localtime((time_t*)(&timestamp));
+
+#if 0
+    /** 秒 */
+    value = 0x00;
+    value = ((_tm->tm_sec /10) &0x0F);
+    value <<= 0x04;
+    value |= ((_tm->tm_sec %10) &0x0F);
+    bcd[0x00] = value;
+
+    /** 分 */
+    value = 0x00;
+    value = ((_tm->tm_min /10) &0x0F);
+    value <<= 0x04;
+    value |= ((_tm->tm_min %10) &0x0F);
+    bcd[0x01] = value;
+
+    /** 时 */
+    value = 0x00;
+    value = ((_tm->tm_hour /10) &0x0F);
+    value <<= 0x04;
+    value |= ((_tm->tm_hour %10) &0x0F);
+    bcd[0x02] = value;
+
+    /** 日 */
+    value = 0x00;
+    value = ((_tm->tm_mday /10) &0x0F);
+    value <<= 0x04;
+    value |= ((_tm->tm_mday %10) &0x0F);
+    bcd[0x03] = value;
+
+    /** 月 */
+    _tm->tm_mon += 0x01;
+    value = 0x00;
+    value = ((_tm->tm_mon /10) &0x0F);
+    value <<= 0x04;
+    value |= ((_tm->tm_mon %10) &0x0F);
+    bcd[0x04] = value;
+
+    /** 年 */
+    _tm->tm_year += 1900;
+    yhigh = (uint8_t)((_tm->tm_year &0xFF00) >> 0x08);
+    ylow = (uint8_t)(_tm->tm_year &0x00FF);
+
+    rt_kprintf("tm_year(%x) yhigh(%x) ylow(%x)\n", _tm->tm_year, yhigh, ylow);
+
+    value = 0x00;
+    value = ((ylow /10) &0x0F);
+    rt_kprintf("00 year low value(%x)\n", value);
+    value <<= 0x04;
+    value |= ((ylow %10) &0x0F);
+    rt_kprintf("11 year low value(%x)\n", value);
+    bcd[0x05] = value;
+
+    value = 0x00;
+    value = ((yhigh /10) &0x0F);
+    rt_kprintf("00 year high value(%x)\n", value);
+    value <<= 0x04;
+    value |= ((yhigh %10) &0x0F);
+    rt_kprintf("11 year high value(%x)\n", value);
+    bcd[0x06] = value;
+
+#endif /* 0 */
+
+
+    /** 年 */
+    _tm->tm_year += 1900;
+    bcd[0x01] = (uint8_t)(_tm->tm_year %10);
+    _tm->tm_year /= 10;
+    bcd[0x01] |= (uint8_t)((_tm->tm_year %10) <<0x04);
+    _tm->tm_year /= 10;
+
+    bcd[0x00] = (uint8_t)(_tm->tm_year %10);
+    _tm->tm_year /= 10;
+    bcd[0x00] |= (uint8_t)((_tm->tm_year %10) <<0x04);
+
+    /** 月 */
+    _tm->tm_mon += 0x01;
+    bcd[0x02] = (uint8_t)(_tm->tm_mon %10);
+    _tm->tm_mon /= 10;
+    bcd[0x02] |= (uint8_t)((_tm->tm_mon %10) <<0x04);
+    _tm->tm_mon /= 10;
+
+    /** 日 */
+    bcd[0x03] = (uint8_t)(_tm->tm_mday %10);
+    _tm->tm_mday /= 10;
+    bcd[0x03] |= (uint8_t)((_tm->tm_mday %10) <<0x04);
+    _tm->tm_mday /= 10;
+
+    /** 时 */
+    bcd[0x04] = (uint8_t)(_tm->tm_hour %10);
+    _tm->tm_hour /= 10;
+    bcd[0x04] |= (uint8_t)((_tm->tm_hour %10) <<0x04);
+    _tm->tm_hour /= 10;
+
+    /** 分 */
+    bcd[0x05] = (uint8_t)(_tm->tm_min %10);
+    _tm->tm_min /= 10;
+    bcd[0x05] |= (uint8_t)((_tm->tm_min %10) <<0x04);
+    _tm->tm_min /= 10;
+
+    /** 秒 */
+    bcd[0x06] = (uint8_t)(_tm->tm_sec %10);
+    _tm->tm_sec /= 10;
+    bcd[0x06] |= (uint8_t)((_tm->tm_sec %10) <<0x04);
+    _tm->tm_sec /= 10;
+
+
+}
+
+/**************************************************************************
+ * 函数名                 ycp_ascii_to_bcd
+ * 功能                     将时间BCD码转成时间戳
+ * 说明
+ * ***********************************************************************/
+uint32_t ycp_timebcd_to_timestamp(uint8_t *bcd, uint8_t len)
+{
+    if(bcd == NULL || len < 0x07){
+        return time(NULL);
+    }
+    uint32_t timestamp;
+    uint8_t byteh, bytel;
+    struct tm t = { 0 };
+
+    /** 秒 */
+    byteh = (uint8_t)((bcd[0x00] &0xF0) >> 0x04);
+    bytel = (uint8_t)(bcd[0x00] &0x0F);
+    t.tm_sec = byteh *10 + bytel;
+
+    /**分 */
+    byteh = (uint8_t)((bcd[0x01] &0xF0) >> 0x04);
+    bytel = (uint8_t)(bcd[0x01] &0x0F);
+    t.tm_min = byteh *10 + bytel;
+
+    /** 时 */
+    byteh = (uint8_t)((bcd[0x02] &0xF0) >> 0x04);
+    bytel = (uint8_t)(bcd[0x02] &0x0F);
+    t.tm_hour = byteh *10 + bytel;
+
+    /** 日 */
+    byteh = (uint8_t)((bcd[0x03] &0xF0) >> 0x04);
+    bytel = (uint8_t)(bcd[0x03] &0x0F);
+    t.tm_mday = byteh *10 + bytel;
+
+    /** 月 */
+    byteh = (uint8_t)((bcd[0x04] &0xF0) >> 0x04);
+    bytel = (uint8_t)(bcd[0x04] &0x0F);
+    t.tm_mon = byteh *10 + bytel;
+    if(t.tm_mon > 0x00){
+        t.tm_mon -= 0x01;
+    }
+
+    /** 年 */
+    byteh = (uint8_t)((bcd[0x05] &0xF0) >> 0x04);
+    bytel = (uint8_t)(bcd[0x05] &0x0F);
+    t.tm_year = byteh *10 + bytel;
+
+    byteh = (uint8_t)((bcd[0x06] &0xF0) >> 0x04);
+    bytel = (uint8_t)(bcd[0x06] &0x0F);
+    t.tm_year += byteh *1000 + bytel *100;
+    if(t.tm_year > 1900){
+        t.tm_year -= 1900;
+    }else{
+        t.tm_year = 0x00;
+    }
+
+    timestamp = mktime(&t);
+    return timestamp;
+}
+
+static void net_ycp_message_send_thread_entry(void *parameter)
+{
+    uint8_t step = NET_YCP_NET_STATE_OPEN_SOCKET, is_power_on = 0x00;
+    uint32_t delay = 0x00;
+    uint32_t heartbeat_tick[NET_SYSTEM_GUN_NUMBER];
+
+    while(1)
+    {
+        if((net_get_ota_info()->state >= NET_OTA_STATE_LOGIN_WAIT) && (net_get_ota_info()->state <= NET_OTA_STATE_UPDATING)){
+            rt_thread_mdelay(5000);
+            continue;
+        }
+
+        net_get_net_handle()->data_updata();
+        if((net_get_net_handle()->net_fault) &NET_FAULT_PHYSICAL_LAYER){
+            s_ycp_socket_info.state = YCP_SOCKET_STATE_PHY;
+            s_ycp_socket_info.fd = -0x01;
+            step = NET_YCP_NET_STATE_OPEN_SOCKET;
+            if(rt_tick_get() > (delay + 30000)){
+                delay = (rt_tick_get() - 30000);
+            }
+
+            rt_thread_mdelay(1000);
+            continue;
+        }
+        if((net_get_net_handle()->net_fault) &NET_FAULT_DATA_LINK_LAYER){
+            s_ycp_socket_info.state = YCP_SOCKET_STATE_DATA_LINK;
+            s_ycp_socket_info.fd = -0x01;
+            step = NET_YCP_NET_STATE_OPEN_SOCKET;
+            if(rt_tick_get() > (delay + 30000)){
+                delay = (rt_tick_get() - 30000);
+            }
+
+            rt_thread_mdelay(1000);
+            continue;
+        }
+        /***************************************************** [登录认证] **********************************************************/
+        /***************************************************** [登录认证] **********************************************************/
+        if(s_ycp_socket_info.state != YCP_SOCKET_STATE_LOGIN_SUCCESS){
+            rt_kprintf("ycp state(%d, %d, %d)\n", s_ycp_socket_info.state, step, (rt_tick_get() - delay));
+            switch(step){
+            case NET_YCP_NET_STATE_OPEN_SOCKET:
+                s_ycp_socket_info.state = YCP_SOCKET_STATE_OPEN;
+                net_get_net_handle()->net_state = NET_SOCKET_STATE_OPEN;
+                if(delay > rt_tick_get()){
+                    delay = rt_tick_get();
+                }
+                if(((rt_tick_get() - delay) > 30000) || is_power_on){
+                    uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YCP |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
+                    int32_t result = 0x00;
+                    struct net_handle* handle = net_get_net_handle();
+                    char *host = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_DOMAIN, NULL, option));
+                    uint16_t port = *((uint16_t*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PORT, NULL, option)));
+
+                    result = ycp_socket_open(&(s_ycp_socket_info.fd), host, strlen(host), port);
+                    if(result >= 0){
+                        LOG_D("ycp socket open success with host[%s] port[%d] fd(%d)", host, port, s_ycp_socket_info.fd);
+                        s_ycp_socket_info.operate_fail.open_socket = 0;
+                        step = NET_YCP_NET_STATE_LOGIN;
+                    }else{
+                        LOG_W("ycp fail to open socket with host[%s] port[%d] num|%d", host, port, s_ycp_socket_info.operate_fail.open_socket);
+                        delay = rt_tick_get();
+                        s_ycp_socket_info.operate_fail.open_socket++;
+                    }
+                    for(uint8_t gunno = 0; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
+                        s_ycp_message_serial_number[gunno] = 0x00;
+                    }
+                    is_power_on = 0x00;
+                }
+                break;
+            case NET_YCP_NET_STATE_LOGIN:
+            {
+                uint8_t vaild_len = 0, rentry = 0;
+                uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YCP |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
+                struct net_handle* handle = net_get_net_handle();
+                uint8_t *sim_no = (uint8_t*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_ICCID, NULL, option));
+
+                g_ycp_preq_login.body.operators = *(uint8_t*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_OPERATOR, NULL, option));
+                memset(g_ycp_preq_login.body.sim_number, '\0', sizeof(g_ycp_preq_login.body.sim_number));
+                vaild_len = sizeof(g_ycp_preq_login.body.sim_number);
+                vaild_len = vaild_len > (strlen((char*)sim_no) /2)? strlen((char*)sim_no) : vaild_len;
+
+                ycp_ascii_to_bcd(sim_no, g_ycp_preq_login.body.sim_number, vaild_len);
+
+                switch (g_ycp_preq_login.body.operators) {
+                case NET_OPERATOR_NAME_CHINA_MOBILE:
+                    g_ycp_preq_login.body.operators = NET_YCP_OPERATOR_MOBILE;
+                    break;
+                case NET_OPERATOR_NAME_CHINA_TELECOM:
+                    g_ycp_preq_login.body.operators = NET_YCP_OPERATOR_TELECOM;
+                    break;
+                case NET_OPERATOR_NAME_CHINA_UNICOM:
+                    g_ycp_preq_login.body.operators = NET_YCP_OPERATOR_UNICOM;
+                    break;
+                default:
+                    g_ycp_preq_login.body.operators = NET_YCP_OPERATOR_OTHER;
+                    break;
+                }
+
+                ycp_net_event_receive(NET_YCP_EVENT_HANDLE_SERVER, NET_YCP_EVENT_TYPE_RESPONSE, 0x00,
+                        (NET_YCP_EVENT_OPTION_OR |NET_YCP_EVENT_OPTION_CLEAR), NET_YCP_SRES_EVENT_LOGIN, NULL);
+                s_ycp_socket_info.state = YCP_SOCKET_STATE_LOGIN_WAIT;
+                net_get_net_handle()->net_state = NET_SOCKET_STATE_LOGIN_WAIT;
+                ycp_message_send_port(NETYCP_PREQCMD_SINGIN, s_ycp_socket_info.fd, &g_ycp_preq_login,
+                        sizeof(g_ycp_preq_login));
+                while(rentry < 100){
+//                    if(ycp_net_event_receive(NET_YCP_EVENT_HANDLE_SERVER, NET_YCP_EVENT_TYPE_RESPONSE, 0x00,
+//                            (NET_YCP_EVENT_OPTION_OR |NET_YCP_EVENT_OPTION_CLEAR), NET_YCP_SRES_EVENT_LOGIN, NULL) > 0){
+                    if(ycp_net_event_receive(NET_YCP_EVENT_HANDLE_SERVER, NET_YCP_EVENT_TYPE_RESPONSE, 0x00,
+                            (NET_YCP_EVENT_OPTION_OR |NET_YCP_EVENT_OPTION_CLEAR), NET_YCP_SRES_EVENT_LOGIN, NULL) >= 0){
+                        LOG_D("ycp login success");
+                        s_ycp_socket_info.operate_fail.login = 0;
+                        step = NET_YCP_NET_STATE_MONITORING;
+
+                        s_ycp_socket_info.state = YCP_SOCKET_STATE_LOGIN_SUCCESS;
+                        net_get_net_handle()->net_state = NET_SOCKET_STATE_LOGIN_SUCCESS;
+                        s_ycp_socket_info.heartbeat = 0x00;
+                        break;
+                    }
+                    rt_thread_mdelay(100);
+                    rentry++;
+                }
+                if(rentry >= 100){
+                    delay = rt_tick_get();
+                    step = NET_YCP_NET_STATE_OPEN_SOCKET;
+                    ycp_socket_close(s_ycp_socket_info.fd);
+                    s_ycp_socket_info.fd = -0x01;
+                    s_ycp_socket_info.operate_fail.login++;
+                    LOG_D("ycp login fail(timeout) num|%d", s_ycp_socket_info.operate_fail.login);
+                }else{
+                    rt_thread_mdelay(250);
+                    ycp_net_event_send(NET_YCP_EVENT_HANDLE_CHARGEPILE, NET_YCP_EVENT_TYPE_REQUEST, 0x00, NET_YCP_PREQ_EVENT_BILLING_MODEL_VERIFY);
+                    rt_thread_mdelay(250);
+                    ycp_net_event_send(NET_YCP_EVENT_HANDLE_CHARGEPILE, NET_YCP_EVENT_TYPE_REQUEST, 0x00, NET_YCP_PREQ_EVENT_TIME_SYNC);
+                }
+                break;
+            }
+            case NET_YCP_NET_STATE_MONITORING:
+                s_ycp_socket_info.state = YCP_SOCKET_STATE_LOGIN_SUCCESS;
+                break;
+            default:
+                step = NET_YCP_NET_STATE_OPEN_SOCKET;
+                delay = rt_tick_get();
+                ycp_socket_close(s_ycp_socket_info.fd);
+                s_ycp_socket_info.fd = -0x01;
+                s_ycp_socket_info.state = YCP_SOCKET_STATE_OPEN;
+                net_get_net_handle()->net_state = NET_SOCKET_STATE_OPEN;
+                break;
+            }
+        }
+
+        if(s_ycp_socket_info.operate_fail.open_socket > 0x05){
+            s_ycp_socket_info.operate_fail.open_socket = 0x00;
+            LOG_W("ycp open socket rentry = 0x00");
+            net_set_clear_ndev_reset_state(NET_PLATFORM_MASK_TARGET, 0x00);
+        }
+        if(s_ycp_socket_info.operate_fail.login > 0x05){
+            s_ycp_socket_info.operate_fail.login = 0x00;
+            LOG_W("ycp login rentry = 0x00");
+            net_set_clear_ndev_reset_state(NET_PLATFORM_MASK_TARGET, 0x00);
+        }
+#if 0
+        if(s_ycp_socket_info.heartbeat > 0x03){
+            s_ycp_socket_info.heartbeat = 0x00;
+
+            delay = rt_tick_get();
+            ycp_socket_close(s_ycp_socket_info.fd);
+            s_ycp_socket_info.fd = -0x01;
+            s_ycp_socket_info.state = YCP_SOCKET_STATE_OPEN;
+            net_get_net_handle()->net_state = NET_SOCKET_STATE_OPEN;
+            step = NET_YCP_NET_STATE_OPEN_SOCKET;
+            LOG_D("ycp heartbeat timeout");
+        }
+#endif /* 0 */
+        if(s_ycp_socket_info.state != YCP_SOCKET_STATE_LOGIN_SUCCESS){   /* 未登录上服务器前不进行网络数据交互事件处理 */
+            for(uint8_t gunno = 0; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
+                heartbeat_tick[gunno] = rt_tick_get();
+                ycp_set_message_send_state(gunno, NET_YCP_SEND_STATE_ONGOING, NET_YCP_PREQ_EVENT_HEARTBEAT);
+                ycp_net_event_send(NET_YCP_EVENT_HANDLE_CHARGEPILE, NET_YCP_EVENT_TYPE_REQUEST, gunno, NET_YCP_PREQ_EVENT_HEARTBEAT);
+            }
+            rt_thread_mdelay(1000);
+            continue;
+        }
+        /***************************************************** [定时上报] **********************************************************/
+        /***************************************************** [定时上报] **********************************************************/
+        for(uint8_t gunno = 0; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
+            uint8_t overreturn = 0x00;
+            if(heartbeat_tick[gunno] > rt_tick_get()){
+                overreturn = 0x01;
+            }
+            /* 数据填报只能是连上网后才行 */
+            if((rt_tick_get() + overreturn *0xFFFFFFFF - heartbeat_tick[gunno]) >=  (1000 *g_ycp_sreq_set_para.body.heartbeat_interval)){
+                heartbeat_tick[gunno] = rt_tick_get();
+                ycp_set_message_send_state(gunno, NET_YCP_SEND_STATE_ONGOING, NET_YCP_PREQ_EVENT_HEARTBEAT);
+                ycp_net_event_send(NET_YCP_EVENT_HANDLE_CHARGEPILE, NET_YCP_EVENT_TYPE_REQUEST, gunno, NET_YCP_PREQ_EVENT_HEARTBEAT);
+            }
+        }
+        /***************************************************** [内部消耗事件] **********************************************************/
+        /***************************************************** [内部消耗事件] **********************************************************/
+        /***** [上报心跳响应] *****/
+        if(ycp_net_event_receive(NET_YCP_EVENT_HANDLE_SERVER, NET_YCP_EVENT_TYPE_RESPONSE, 0x00,
+                (NET_YCP_EVENT_OPTION_OR |NET_YCP_EVENT_OPTION_CLEAR), NET_YCP_SRES_EVENT_HEARTBEAT, NULL) > 0){
+            s_ycp_socket_info.heartbeat = 0x00;
+        }
+        /***************************************************** [数据请求] **********************************************************/
+        /***************************************************** [数据请求] **********************************************************/
+        for(uint8_t gunno = 0; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
+            uint32_t _event = 0;
+            ycp_net_event_receive(NET_YCP_EVENT_HANDLE_CHARGEPILE, NET_YCP_EVENT_TYPE_REQUEST, gunno, 0x00, 0x00, &_event);
+            if(!_event){
+                continue;   /* 此枪没有请求事件,不进行事件查询 */
+            }
+
+            /***** [上报心跳] *****/
+            if(ycp_net_event_receive(NET_YCP_EVENT_HANDLE_CHARGEPILE, NET_YCP_EVENT_TYPE_REQUEST, gunno,
+                    (NET_YCP_EVENT_OPTION_OR |NET_YCP_EVENT_OPTION_CLEAR), NET_YCP_PREQ_EVENT_HEARTBEAT, NULL) > 0){
+                if(s_ycp_socket_info.heartbeat < 0xFF){
+                    s_ycp_socket_info.heartbeat++;
+                }
+                ycp_request_padding_heartbeat();
+                g_ycp_preq_heartbeat.head.sequence = s_ycp_message_serial_number[gunno]++;
+                ycp_message_send_port(NETYCP_PREQCMD_HEARTBEAT, s_ycp_socket_info.fd, &g_ycp_preq_heartbeat,
+                        sizeof(g_ycp_preq_heartbeat));
+                ycp_set_message_send_state(gunno, NET_YCP_SEND_STATE_COMPLETE, NET_YCP_PREQ_EVENT_HEARTBEAT);
+
+//                LOG_D("ycp heartbeat timeout count(%d)\n", gunno, s_ycp_socket_info.heartbeat[gunno]);
+                rt_thread_mdelay(250);
+            }
+            /***** [计费模型验证] *****/
+            if(ycp_net_event_receive(NET_YCP_EVENT_HANDLE_CHARGEPILE, NET_YCP_EVENT_TYPE_REQUEST, gunno,
+                    (NET_YCP_EVENT_OPTION_OR |NET_YCP_EVENT_OPTION_CLEAR), NET_YCP_PREQ_EVENT_BILLING_MODEL_VERIFY, NULL) > 0){
+
+                ycp_set_message_send_state(gunno, NET_YCP_SEND_STATE_ONGOING, NET_YCP_PREQ_EVENT_BILLING_MODEL_VERIFY);
+                g_ycp_preq_billing_model_verify.head.sequence = s_ycp_message_serial_number[gunno]++;
+                ycp_message_send_port(NETYCP_PREQCMD_BILLING_MODEL_VERIFY, s_ycp_socket_info.fd, &g_ycp_preq_billing_model_verify,
+                        sizeof(g_ycp_preq_billing_model_verify));
+                ycp_set_message_wait_response_state(gunno, NET_YCP_PREQ_EVENT_BILLING_MODEL_VERIFY);
+                ycp_set_message_send_state(gunno, NET_YCP_SEND_STATE_COMPLETE, NET_YCP_PREQ_EVENT_BILLING_MODEL_VERIFY);
+                rt_thread_mdelay(250);
+            }
+            /***** [上报单枪状态数据] *****/
+            if(ycp_net_event_receive(NET_YCP_EVENT_HANDLE_CHARGEPILE, NET_YCP_EVENT_TYPE_REQUEST, gunno,
+                    (NET_YCP_EVENT_OPTION_OR |NET_YCP_EVENT_OPTION_CLEAR), NET_YCP_PREQ_EVENT_REPORT_STATE_DATA, NULL) > 0){
+
+                ycp_set_message_send_state(gunno, NET_YCP_SEND_STATE_ONGOING, NET_YCP_PREQ_EVENT_REPORT_STATE_DATA);
+                g_ycp_preq_report_state_data[gunno].head.sequence = s_ycp_message_serial_number[gunno]++;
+                ycp_message_send_port(NETYCP_PREQCMD_PRESCMD_REPORT_STATE_DATA, s_ycp_socket_info.fd, &g_ycp_preq_report_state_data[gunno],
+                        (g_ycp_preq_report_state_data[gunno].head.length + 0x04));
+                ycp_set_message_send_state(gunno, NET_YCP_SEND_STATE_COMPLETE, NET_YCP_PREQ_EVENT_REPORT_STATE_DATA);
+                rt_thread_mdelay(250);
+            }
+            /***** [充电桩主动申请启动充电] *****/
+            if(ycp_net_event_receive(NET_YCP_EVENT_HANDLE_CHARGEPILE, NET_YCP_EVENT_TYPE_REQUEST, gunno,
+                    (NET_YCP_EVENT_OPTION_OR |NET_YCP_EVENT_OPTION_CLEAR), NET_YCP_PREQ_EVENT_APPLY_START_CHARGE, NULL) > 0){
+
+                ycp_set_message_send_state(gunno, NET_YCP_SEND_STATE_ONGOING, NET_YCP_PREQ_EVENT_APPLY_START_CHARGE);
+                g_ycp_preq_apply_charge_active[gunno].head.sequence = s_ycp_message_serial_number[gunno]++;
+                ycp_message_send_port(NETYCP_PREQCMD_APPLY_START_CHARGE, s_ycp_socket_info.fd, &g_ycp_preq_apply_charge_active[gunno],
+                        sizeof(g_ycp_preq_apply_charge_active[gunno]));
+                ycp_set_message_wait_response_state(gunno, NET_YCP_PREQ_EVENT_APPLY_START_CHARGE);
+                ycp_set_message_send_state(gunno, NET_YCP_SEND_STATE_COMPLETE, NET_YCP_PREQ_EVENT_APPLY_START_CHARGE);
+                rt_thread_mdelay(250);
+            }
+            /***** [交易记录] *****/
+            if(ycp_net_event_receive(NET_YCP_EVENT_HANDLE_CHARGEPILE, NET_YCP_EVENT_TYPE_REQUEST, gunno,
+                    (NET_YCP_EVENT_OPTION_OR |NET_YCP_EVENT_OPTION_CLEAR), NET_YCP_PREQ_EVENT_TRANSACTION_RECORD, NULL) > 0){
+
+                ycp_set_message_send_state(gunno, NET_YCP_SEND_STATE_ONGOING, NET_YCP_PREQ_EVENT_TRANSACTION_RECORD);
+                g_ycp_preq_transaction_records[gunno].head.sequence = s_ycp_message_serial_number[gunno]++;
+                ycp_message_send_port(NETYCP_PREQCMD_TRANSACTION_RECORD, s_ycp_socket_info.fd, &g_ycp_preq_transaction_records[gunno],
+                        sizeof(g_ycp_preq_transaction_records[gunno]));
+                ycp_set_message_wait_response_state(gunno, NET_YCP_PREQ_EVENT_TRANSACTION_RECORD);
+                ycp_set_message_send_state(gunno, NET_YCP_SEND_STATE_COMPLETE, NET_YCP_PREQ_EVENT_TRANSACTION_RECORD);
+
+                ycp_set_transaction_verify_state(gunno, 0x00);
+                if(memcmp(g_ycp_preq_transaction_records[gunno].body.serial_number, s_ycp_current_transaction_number[gunno], NET_YCP_SERIAL_NUMBER_LENGTH_DEFAULT)){
+                    s_ycp_same_transaction_report_count[gunno] = 0x00;
+                    memcpy(s_ycp_current_transaction_number[gunno], g_ycp_preq_transaction_records[gunno].body.serial_number, NET_YCP_SERIAL_NUMBER_LENGTH_DEFAULT);
+                }else{
+                    if(++s_ycp_same_transaction_report_count[gunno] > NET_YCP_SAME_TRANSATION_REPORT_COUNT_MAX){
+                        ycp_set_transaction_verify_state(gunno, 0x01);
+                        s_ycp_same_transaction_report_count[gunno] = 0x00;
+                        ycp_clear_message_wait_response_state(gunno, NET_YCP_PREQ_EVENT_TRANSACTION_RECORD);
+                    }
+                }
+
+                rt_thread_mdelay(250);
+            }
+            /***** [充电握手] *****/
+            if(ycp_net_event_receive(NET_YCP_EVENT_HANDLE_CHARGEPILE, NET_YCP_EVENT_TYPE_REQUEST, gunno,
+                    (NET_YCP_EVENT_OPTION_OR |NET_YCP_EVENT_OPTION_CLEAR), NET_YCP_PREQ_EVENT_CHARGE_SHAKE_HAND, NULL) > 0){
+
+                ycp_set_message_send_state(gunno, NET_YCP_SEND_STATE_ONGOING, NET_YCP_PREQ_EVENT_CHARGE_SHAKE_HAND);
+                g_ycp_preq_shake_hand[gunno].head.sequence = s_ycp_message_serial_number[gunno]++;
+                ycp_message_send_port(NETYCP_PREQCMD_CHARGE_SHAKE_HAND, s_ycp_socket_info.fd, &g_ycp_preq_shake_hand[gunno],
+                        sizeof(g_ycp_preq_shake_hand[gunno]));
+                ycp_set_message_send_state(gunno, NET_YCP_SEND_STATE_COMPLETE, NET_YCP_PREQ_EVENT_CHARGE_SHAKE_HAND);
+                rt_thread_mdelay(250);
+            }
+            /***** [参数配置] *****/
+            if(ycp_net_event_receive(NET_YCP_EVENT_HANDLE_CHARGEPILE, NET_YCP_EVENT_TYPE_REQUEST, gunno,
+                    (NET_YCP_EVENT_OPTION_OR |NET_YCP_EVENT_OPTION_CLEAR), NET_YCP_PREQ_EVENT_PARA_CONFIG, NULL) > 0){
+
+                ycp_set_message_send_state(gunno, NET_YCP_SEND_STATE_ONGOING, NET_YCP_PREQ_EVENT_PARA_CONFIG);
+                g_ycp_preq_parameter_config[gunno].head.sequence = s_ycp_message_serial_number[gunno]++;
+                ycp_message_send_port(NETYCP_PREQCMD_PARA_CONFIG, s_ycp_socket_info.fd, &g_ycp_preq_parameter_config[gunno],
+                        sizeof(g_ycp_preq_parameter_config[gunno]));
+                ycp_set_message_send_state(gunno, NET_YCP_SEND_STATE_COMPLETE, NET_YCP_PREQ_EVENT_PARA_CONFIG);
+                rt_thread_mdelay(250);
+            }
+            /***** [充电结束] *****/
+            if(ycp_net_event_receive(NET_YCP_EVENT_HANDLE_CHARGEPILE, NET_YCP_EVENT_TYPE_REQUEST, gunno,
+                    (NET_YCP_EVENT_OPTION_OR |NET_YCP_EVENT_OPTION_CLEAR), NET_YCP_PREQ_EVENT_CHARGE_END, NULL) > 0){
+
+                ycp_set_message_send_state(gunno, NET_YCP_SEND_STATE_ONGOING, NET_YCP_PREQ_EVENT_CHARGE_END);
+                g_ycp_preq_charge_finish[gunno].head.sequence = s_ycp_message_serial_number[gunno]++;
+                ycp_message_send_port(NETYCP_PREQCMD_CHARGE_END, s_ycp_socket_info.fd, &g_ycp_preq_charge_finish[gunno],
+                        sizeof(g_ycp_preq_charge_finish[gunno]));
+                ycp_set_message_send_state(gunno, NET_YCP_SEND_STATE_COMPLETE, NET_YCP_PREQ_EVENT_CHARGE_END);
+                rt_thread_mdelay(250);
+            }
+            /***** [错误报文] *****/
+            if(ycp_net_event_receive(NET_YCP_EVENT_HANDLE_CHARGEPILE, NET_YCP_EVENT_TYPE_REQUEST, gunno,
+                    (NET_YCP_EVENT_OPTION_OR |NET_YCP_EVENT_OPTION_CLEAR), NET_YCP_PREQ_EVENT_ERROR_MESSAGE, NULL) > 0){
+
+                ycp_set_message_send_state(gunno, NET_YCP_SEND_STATE_ONGOING, NET_YCP_PREQ_EVENT_ERROR_MESSAGE);
+                g_ycp_preq_error_message[gunno].head.sequence = s_ycp_message_serial_number[gunno]++;
+                ycp_message_send_port(NETYCP_PREQCMD_ERROR_MESSAGE, s_ycp_socket_info.fd, &g_ycp_preq_error_message[gunno],
+                        sizeof(g_ycp_preq_error_message[gunno]));
+                ycp_set_message_send_state(gunno, NET_YCP_SEND_STATE_COMPLETE, NET_YCP_PREQ_EVENT_ERROR_MESSAGE);
+                rt_thread_mdelay(250);
+            }
+            /***** [充电过程中 BMS 终止] *****/
+            if(ycp_net_event_receive(NET_YCP_EVENT_HANDLE_CHARGEPILE, NET_YCP_EVENT_TYPE_REQUEST, gunno,
+                    (NET_YCP_EVENT_OPTION_OR |NET_YCP_EVENT_OPTION_CLEAR), NET_YCP_PREQ_EVENT_BMS_STOP, NULL) > 0){
+
+                ycp_set_message_send_state(gunno, NET_YCP_SEND_STATE_ONGOING, NET_YCP_PREQ_EVENT_BMS_STOP);
+                g_ycp_preq_bms_end[gunno].head.sequence = s_ycp_message_serial_number[gunno]++;
+                ycp_message_send_port(NETYCP_PREQCMD_BMS_STOP, s_ycp_socket_info.fd, &g_ycp_preq_bms_end[gunno],
+                        sizeof(g_ycp_preq_bms_end[gunno]));
+                ycp_set_message_send_state(gunno, NET_YCP_SEND_STATE_COMPLETE, NET_YCP_PREQ_EVENT_BMS_STOP);
+                rt_thread_mdelay(250);
+            }
+            /***** [充电过程中充电机终止] *****/
+            if(ycp_net_event_receive(NET_YCP_EVENT_HANDLE_CHARGEPILE, NET_YCP_EVENT_TYPE_REQUEST, gunno,
+                    (NET_YCP_EVENT_OPTION_OR |NET_YCP_EVENT_OPTION_CLEAR), NET_YCP_PREQ_EVENT_CHARGER_STOP, NULL) > 0){
+
+                ycp_set_message_send_state(gunno, NET_YCP_SEND_STATE_ONGOING, NET_YCP_PREQ_EVENT_CHARGER_STOP);
+                g_ycp_preq_charger_end[gunno].head.sequence = s_ycp_message_serial_number[gunno]++;
+                ycp_message_send_port(NETYCP_PREQCMD_CHARGER_STOP, s_ycp_socket_info.fd, &g_ycp_preq_charger_end[gunno],
+                        sizeof(g_ycp_preq_charger_end[gunno]));
+                ycp_set_message_send_state(gunno, NET_YCP_SEND_STATE_COMPLETE, NET_YCP_PREQ_EVENT_CHARGER_STOP);
+                rt_thread_mdelay(250);
+            }
+            /***** [充电过程 BMS 需求与充电机输出] *****/
+            if(ycp_net_event_receive(NET_YCP_EVENT_HANDLE_CHARGEPILE, NET_YCP_EVENT_TYPE_REQUEST, gunno,
+                    (NET_YCP_EVENT_OPTION_OR |NET_YCP_EVENT_OPTION_CLEAR), NET_YCP_PREQ_EVENT_CHARGER_OUTPUT_BMS_REQUIRE, NULL) > 0){
+
+                ycp_set_message_send_state(gunno, NET_YCP_SEND_STATE_ONGOING, NET_YCP_PREQ_EVENT_CHARGER_OUTPUT_BMS_REQUIRE);
+                g_ycp_preq_bmscommand_chargerout[gunno].head.sequence = s_ycp_message_serial_number[gunno]++;
+                ycp_message_send_port(NETYCP_PREQCMD_CHARGER_OUTPUT_BMS_REQUIRE, s_ycp_socket_info.fd, &g_ycp_preq_bmscommand_chargerout[gunno],
+                        sizeof(g_ycp_preq_bmscommand_chargerout[gunno]));
+                ycp_set_message_send_state(gunno, NET_YCP_SEND_STATE_COMPLETE, NET_YCP_PREQ_EVENT_CHARGER_OUTPUT_BMS_REQUIRE);
+                rt_thread_mdelay(250);
+            }
+            /***** [充电过程 BMS 信息] *****/
+            if(ycp_net_event_receive(NET_YCP_EVENT_HANDLE_CHARGEPILE, NET_YCP_EVENT_TYPE_REQUEST, gunno,
+                    (NET_YCP_EVENT_OPTION_OR |NET_YCP_EVENT_OPTION_CLEAR), NET_YCP_PREQ_EVENT_BMS_INFO, NULL) > 0){
+
+                ycp_set_message_send_state(gunno, NET_YCP_SEND_STATE_ONGOING, NET_YCP_PREQ_EVENT_BMS_INFO);
+                g_ycp_preq_bms_info[gunno].head.sequence = s_ycp_message_serial_number[gunno]++;
+                ycp_message_send_port(NETYCP_PREQCMD_BMS_INFO, s_ycp_socket_info.fd, &g_ycp_preq_bms_info[gunno],
+                        sizeof(g_ycp_preq_bms_info[gunno]));
+                ycp_set_message_send_state(gunno, NET_YCP_SEND_STATE_COMPLETE, NET_YCP_PREQ_EVENT_BMS_INFO);
+                rt_thread_mdelay(250);
+            }
+            /***** [对时设置响应] *****/
+            if(ycp_net_event_receive(NET_YCP_EVENT_HANDLE_CHARGEPILE, NET_YCP_EVENT_TYPE_REQUEST, gunno,
+                    (NET_YCP_EVENT_OPTION_OR |NET_YCP_EVENT_OPTION_CLEAR), NET_YCP_PREQ_EVENT_TIME_SYNC, NULL) > 0){
+
+                uint32_t timestamp = time(NULL);
+                ycp_set_message_send_state(gunno, NET_YCP_SEND_STATE_ONGOING, NET_YCP_PREQ_EVENT_TIME_SYNC);
+                g_ycp_preq_time_sync.head.sequence = s_ycp_message_serial_number[gunno]++;
+                ycp_timestamp_to_timebcd(timestamp, g_ycp_preq_time_sync.body.current_time, NET_YCP_TIME_BCD_LENGTH_DEFAULT);
+                ycp_message_send_port(NETYCP_PREQCMD_TIME_SYNC, s_ycp_socket_info.fd, &g_ycp_preq_time_sync,
+                        sizeof(g_ycp_preq_time_sync));
+                ycp_set_message_wait_response_state(gunno, NET_YCP_PREQ_EVENT_TIME_SYNC);
+                ycp_set_message_send_state(gunno, NET_YCP_SEND_STATE_COMPLETE, NET_YCP_PREQ_EVENT_TIME_SYNC);
+
+                LOG_D("ycp time sync request");
+                for(uint8_t count = 0x00; count < NET_YCP_TIME_BCD_LENGTH_DEFAULT; count++){
+                    if(g_ycp_preq_time_sync.body.current_time[count] < 0x10){
+                        rt_kprintf("0%x", g_ycp_preq_time_sync.body.current_time[count]);
+                    }else{
+                        rt_kprintf("%x", g_ycp_preq_time_sync.body.current_time[count]);
+                    }
+                }
+                rt_kprintf("\n");
+                rt_thread_mdelay(250);
+            }
+        }
+        /***************************************************** [数据响应] **********************************************************/
+        /***************************************************** [数据响应] **********************************************************/
+        for(uint8_t gunno = 0; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
+            uint32_t _event = 0;
+            ycp_net_event_receive(NET_YCP_EVENT_HANDLE_CHARGEPILE, NET_YCP_EVENT_TYPE_RESPONSE, gunno, 0x00, 0x00, &_event);
+            if(!_event){
+                continue;   /* 此枪没有响应事件,不进行事件查询 */
+            }
+            /***** [查询单枪状态数据响应] *****/
+            if(ycp_net_event_receive(NET_YCP_EVENT_HANDLE_CHARGEPILE, NET_YCP_EVENT_TYPE_RESPONSE, gunno,
+                    (NET_YCP_EVENT_OPTION_OR |NET_YCP_EVENT_OPTION_CLEAR), NET_YCP_PRES_EVENT_QUERY_STATE_DATA, NULL) > 0){
+
+                Net_YcpPro_PRes_Query_PReq_Report_PileState_t *state_data = (Net_YcpPro_PRes_Query_PReq_Report_PileState_t*)(s_ycp_response_buff.general_transmit_buff);
+                state_data->head.sequence = g_ycp_sreq_query_device_state[gunno].head.sequence;
+                ycp_message_send_port(NETYCP_SREQCMD_QUERY_STATE_DATA, s_ycp_socket_info.fd, s_ycp_response_buff.general_transmit_buff,
+                        s_ycp_response_buff.length);
+                ycp_response_buff_release_mutex();
+                rt_thread_mdelay(250);
+            }
+            /***** [查询所有枪状态数据响应] *****/
+            if(ycp_net_event_receive(NET_YCP_EVENT_HANDLE_CHARGEPILE, NET_YCP_EVENT_TYPE_RESPONSE, gunno,
+                    (NET_YCP_EVENT_OPTION_OR |NET_YCP_EVENT_OPTION_CLEAR), NET_YCP_PRES_EVENT_QUERY_STATE_DATA_ALL, NULL) > 0){
+
+                Net_YcpPro_PRes_Query_PReq_Report_PileState_All_t *state_data = (Net_YcpPro_PRes_Query_PReq_Report_PileState_All_t*)(s_ycp_response_buff.general_transmit_buff);
+                state_data->head.sequence = g_ycp_sreq_query_device_state_all.head.sequence;
+                ycp_message_send_port(NETYCP_SREQCMD_QUERY_STATE_DATA, s_ycp_socket_info.fd, s_ycp_response_buff.general_transmit_buff,
+                        s_ycp_response_buff.length);
+                ycp_response_buff_release_mutex();
+                rt_thread_mdelay(250);
+            }
+            /***** [运营平台远程控制启机响应] *****/
+            if(ycp_net_event_receive(NET_YCP_EVENT_HANDLE_CHARGEPILE, NET_YCP_EVENT_TYPE_RESPONSE, gunno,
+                    (NET_YCP_EVENT_OPTION_OR |NET_YCP_EVENT_OPTION_CLEAR), NET_YCP_PRES_EVENT_SERVER_START_CHARGE, NULL) > 0){
+
+                Net_YcpPro_PRes_Remote_StartCharge_t *start_charge = (Net_YcpPro_PRes_Remote_StartCharge_t*)(s_ycp_response_buff.general_transmit_buff);
+                start_charge->head.sequence = g_ycp_sreq_remote_start_charge[gunno].head.sequence;
+                ycp_message_send_port(NETYCP_PRESCMD_SERVER_START_CHARGE, s_ycp_socket_info.fd, s_ycp_response_buff.general_transmit_buff,
+                        s_ycp_response_buff.length);
+                ycp_response_buff_release_mutex();
+                rt_thread_mdelay(250);
+            }
+            /***** [运营平台远程停机响应] *****/
+            if(ycp_net_event_receive(NET_YCP_EVENT_HANDLE_CHARGEPILE, NET_YCP_EVENT_TYPE_RESPONSE, gunno,
+                    (NET_YCP_EVENT_OPTION_OR |NET_YCP_EVENT_OPTION_CLEAR), NET_YCP_PRES_EVENT_SERVER_STOP_CHARGE, NULL) > 0){
+
+                Net_YcpPro_PRes_Remote_StopCharge_t *stop_charge = (Net_YcpPro_PRes_Remote_StopCharge_t*)(s_ycp_response_buff.general_transmit_buff);
+
+                stop_charge->head.sequence = g_ycp_sreq_remote_stop_charge[gunno].head.sequence;
+                ycp_message_send_port(NETYCP_PRESCMD_SERVER_STOP_CHARGE, s_ycp_socket_info.fd, s_ycp_response_buff.general_transmit_buff,
+                        s_ycp_response_buff.length);
+                ycp_response_buff_release_mutex();
+                rt_thread_mdelay(250);
+            }
+            /***** [充电桩参数设置响应] *****/
+            if(ycp_net_event_receive(NET_YCP_EVENT_HANDLE_CHARGEPILE, NET_YCP_EVENT_TYPE_RESPONSE, gunno,
+                    (NET_YCP_EVENT_OPTION_OR |NET_YCP_EVENT_OPTION_CLEAR), NET_YCP_PRES_EVENT_SET_PARA, NULL) > 0){
+
+                Net_YcpPro_PRes_ParaSet_t *work_para = (Net_YcpPro_PRes_ParaSet_t*)(s_ycp_response_buff.general_transmit_buff);
+                work_para->head.sequence = g_ycp_sreq_set_para.head.sequence;
+                ycp_message_send_port(NETYCP_PRESCMD_SET_PARA, s_ycp_socket_info.fd, s_ycp_response_buff.general_transmit_buff,
+                        s_ycp_response_buff.length);
+                ycp_response_buff_release_mutex();
+                rt_thread_mdelay(250);
+            }
+            /***** [计费模型设置响应] *****/
+            if(ycp_net_event_receive(NET_YCP_EVENT_HANDLE_CHARGEPILE, NET_YCP_EVENT_TYPE_RESPONSE, gunno,
+                    (NET_YCP_EVENT_OPTION_OR |NET_YCP_EVENT_OPTION_CLEAR), NET_YCP_PRES_EVENT_SET_BILLING_MODEL, NULL) > 0){
+
+                Net_YcpPro_PRes_BillingModel_Set_t *billing_model = (Net_YcpPro_PRes_BillingModel_Set_t*)(s_ycp_response_buff.general_transmit_buff);
+                billing_model->head.sequence = g_ycp_sreq_billing_model_set.head.sequence;
+                ycp_message_send_port(NETYCP_SREQCMD_BILLING_MODEL_SET, s_ycp_socket_info.fd, s_ycp_response_buff.general_transmit_buff,
+                        s_ycp_response_buff.length);
+                ycp_response_buff_release_mutex();
+                rt_thread_mdelay(250);
+            }
+            /***** [远程重启响应] *****/
+            if(ycp_net_event_receive(NET_YCP_EVENT_HANDLE_CHARGEPILE, NET_YCP_EVENT_TYPE_RESPONSE, gunno,
+                    (NET_YCP_EVENT_OPTION_OR |NET_YCP_EVENT_OPTION_CLEAR), NET_YCP_PRES_EVENT_REMOTE_REBOOT, NULL) > 0){
+
+                Net_YcpPro_PRes_RemoteReboot_t *reboot = (Net_YcpPro_PRes_RemoteReboot_t*)(s_ycp_response_buff.general_transmit_buff);
+                reboot->head.sequence = g_ycp_sreq_remote_reboot.head.sequence;
+                ycp_message_send_port(NETYCP_PRESCMD_REMOTE_REBOOT, s_ycp_socket_info.fd, s_ycp_response_buff.general_transmit_buff,
+                        s_ycp_response_buff.length);
+                ycp_response_buff_release_mutex();
+                rt_thread_mdelay(250);
+            }
+            /***** [远程更新响应] *****/
+            if(ycp_net_event_receive(NET_YCP_EVENT_HANDLE_CHARGEPILE, NET_YCP_EVENT_TYPE_RESPONSE, gunno,
+                    (NET_YCP_EVENT_OPTION_OR |NET_YCP_EVENT_OPTION_CLEAR), NET_YCP_PRES_EVENT_REMOTE_UPDATE, NULL) > 0){
+
+                g_ycp_pres_remote_update.head.sequence = g_ycp_sreq_remote_update.head.sequence;
+                ycp_message_send_port(NETYCP_PRESCMD_REMOTE_UPDATE, s_ycp_socket_info.fd, &g_ycp_pres_remote_update,
+                        sizeof(g_ycp_pres_remote_update));
+                ycp_response_buff_release_mutex();
+                rt_thread_mdelay(250);
+            }
+            /***** [运营平台二维码配置响应] *****/
+            if(ycp_net_event_receive(NET_YCP_EVENT_HANDLE_CHARGEPILE, NET_YCP_EVENT_TYPE_RESPONSE, gunno,
+                    (NET_YCP_EVENT_OPTION_OR |NET_YCP_EVENT_OPTION_CLEAR), NET_YCP_SREQ_EVENT_QRCODE_CONFIG, NULL) > 0){
+
+                Net_YcpPro_PRes_Qrcode_Config_t *qrcode = (Net_YcpPro_PRes_Qrcode_Config_t*)(s_ycp_response_buff.general_transmit_buff);
+                qrcode->head.sequence = g_ycp_sreq_qrcode_config[gunno].head.sequence;
+                ycp_message_send_port(NETYCP_PRESCMD_QRCODE_CONFIG, s_ycp_socket_info.fd, s_ycp_response_buff.general_transmit_buff,
+                        s_ycp_response_buff.length);
+                ycp_response_buff_release_mutex();
+                rt_thread_mdelay(250);
+            }
+        }
+        rt_thread_mdelay(100);
+    }
+}
+
+static void net_ycp_server_message_pro_entry(void *parameter)
+{
+    int16_t result = 0x00;
+    uint32_t _event = 0x00;
+    ycp_response_message_buf_t *response = NULL;
+
+    while(1)
+    {
+        if(net_get_ota_info()->state >= NET_OTA_STATE_LOGIN_WAIT){
+            rt_thread_mdelay(5000);
+            continue;
+        }
+
+        for(uint8_t gunno = 0; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
+            ycp_net_event_receive(NET_YCP_EVENT_HANDLE_SERVER, NET_YCP_EVENT_TYPE_REQUEST, gunno, 0x00, 0x00, &_event);
+            if(_event){
+                /***** [读取实时数据请求] *****/ // OK
+                if(ycp_net_event_receive(NET_YCP_EVENT_HANDLE_SERVER, NET_YCP_EVENT_TYPE_REQUEST, gunno,
+                        (NET_YCP_EVENT_OPTION_OR |NET_YCP_EVENT_OPTION_CLEAR), NET_YCP_SREQ_EVENT_QUERY_DEVICE_STATE, NULL) > 0){
+                    response = ycp_get_response_buff(RT_WAITING_FOREVER);
+                    result = ycp_response_padding_query_state_data(gunno, response->general_transmit_buff, NET_YCP_GENERA_RESPONSE_BUFF_LENGTH, &(response->length));
+                    if(result >= 0x00){
+                        ycp_net_event_send(NET_YCP_EVENT_HANDLE_CHARGEPILE, NET_YCP_EVENT_TYPE_RESPONSE, gunno, NET_YCP_PRES_EVENT_QUERY_STATE_DATA);
+                    }else{
+                        ycp_response_buff_release_mutex();
+                    }
+                }
+                /***** [读取实时数据请求] *****/ // OK
+                if(ycp_net_event_receive(NET_YCP_EVENT_HANDLE_SERVER, NET_YCP_EVENT_TYPE_REQUEST, gunno,
+                        (NET_YCP_EVENT_OPTION_OR |NET_YCP_EVENT_OPTION_CLEAR), NET_YCP_SREQ_EVENT_QUERY_DEVICE_STATE_ALL, NULL) > 0){
+                    response = ycp_get_response_buff(RT_WAITING_FOREVER);
+                    result = ycp_response_padding_query_state_data_all(response->general_transmit_buff, NET_YCP_GENERA_RESPONSE_BUFF_LENGTH, &(response->length));
+                    if(result >= 0x00){
+                        ycp_net_event_send(NET_YCP_EVENT_HANDLE_CHARGEPILE, NET_YCP_EVENT_TYPE_RESPONSE, gunno, NET_YCP_PRES_EVENT_QUERY_STATE_DATA_ALL);
+                    }else{
+                        ycp_response_buff_release_mutex();
+                    }
+                }
+                /***** [远程开启充电] *****/
+                if(ycp_net_event_receive(NET_YCP_EVENT_HANDLE_SERVER, NET_YCP_EVENT_TYPE_REQUEST, gunno,
+                        (NET_YCP_EVENT_OPTION_OR |NET_YCP_EVENT_OPTION_CLEAR), NET_YCP_SREQ_EVENT_REMOTE_START_CHARGE, NULL) > 0){
+                    uint8_t pro_result, reason;
+                    uint16_t _fault;
+                    response = ycp_get_response_buff(RT_WAITING_FOREVER);
+                    result = ycp_message_pro_remote_start_charge_request(gunno, &g_ycp_sreq_remote_start_charge[gunno], sizeof(g_ycp_sreq_remote_start_charge[gunno]));
+                    if(result >= 0x00){
+                        pro_result = 0x00;
+                        if(result == 0x00){
+                            pro_result = 0x01;
+                            net_operation_set_event(gunno, NET_OPERATION_EVENT_START_CHARGE);
+                        }
+                        if(result == NET_YCP_FAULT_CODE_CHARGING){
+                            reason = 0x03;
+                        }else if(result == NET_YCP_FAULT_CODE_NO_GUN){
+                            reason = 0x01;
+                        }else{
+                            reason = 0x00;
+                        }
+                        _fault = result;
+                    }else{
+                        pro_result = 0x00;
+                        reason = 0x00;
+                        _fault = NET_YCP_FAULT_CODE_NO_GUN;
+                    }
+
+                    result = ycp_response_padding_remote_start_charge(gunno, response->general_transmit_buff, NET_YCP_GENERA_RESPONSE_BUFF_LENGTH, &(response->length));
+                    ((Net_YcpPro_PRes_Remote_StartCharge_t*)response->general_transmit_buff)->body.result = pro_result;
+                    ((Net_YcpPro_PRes_Remote_StartCharge_t*)response->general_transmit_buff)->body.reason = reason;
+                    ((Net_YcpPro_PRes_Remote_StartCharge_t*)response->general_transmit_buff)->body.fault = _fault;
+                    if(result >= 0x00){
+                        ycp_net_event_send(NET_YCP_EVENT_HANDLE_CHARGEPILE, NET_YCP_EVENT_TYPE_RESPONSE, gunno, NET_YCP_PRES_EVENT_SERVER_START_CHARGE);
+                    }else{
+                        ycp_response_buff_release_mutex();
+                    }
+                }
+                /***** [远程停机请求] *****/ // OK
+                if(ycp_net_event_receive(NET_YCP_EVENT_HANDLE_SERVER, NET_YCP_EVENT_TYPE_REQUEST, gunno,
+                        (NET_YCP_EVENT_OPTION_OR |NET_YCP_EVENT_OPTION_CLEAR), NET_YCP_SREQ_EVENT_REMOTE_STOP_CHARGE, NULL) > 0){
+                    uint8_t pro_result, reason;
+                    response = ycp_get_response_buff(RT_WAITING_FOREVER);
+                    result = ycp_message_pro_remote_stop_charge_request(gunno);
+                    if(result >= 0x00){
+                        pro_result = 0x00;
+                        if(result == 0x00){
+                            net_operation_set_event(gunno, NET_OPERATION_EVENT_STOP_CHARGE);
+                            pro_result = 0x01;
+                        }
+                        reason = result;
+                    }else{
+                        pro_result = 0x00;
+                        reason = 0x09;
+                    }
+
+                    result = ycp_response_padding_remote_stop_charge(gunno, response->general_transmit_buff, NET_YCP_GENERA_RESPONSE_BUFF_LENGTH, &(response->length));
+                    ((Net_YcpPro_PRes_Remote_StopCharge_t*)response->general_transmit_buff)->body.result = pro_result;
+                    ((Net_YcpPro_PRes_Remote_StopCharge_t*)response->general_transmit_buff)->body.reason = reason;
+                    if(result){
+                        ycp_net_event_send(NET_YCP_EVENT_HANDLE_CHARGEPILE, NET_YCP_EVENT_TYPE_RESPONSE, gunno, NET_YCP_PRES_EVENT_SERVER_STOP_CHARGE);
+                    }else{
+                        ycp_response_buff_release_mutex();
+                    }
+                }
+                /***** [充电桩参数设置请求] *****/
+                if(ycp_net_event_receive(NET_YCP_EVENT_HANDLE_SERVER, NET_YCP_EVENT_TYPE_REQUEST, gunno,
+                        (NET_YCP_EVENT_OPTION_OR |NET_YCP_EVENT_OPTION_CLEAR), NET_YCP_SREQ_EVENT_SET_PARA, NULL) > 0){
+                    if(ycp_message_pro_set_para_request(&g_ycp_sreq_set_para, sizeof(g_ycp_sreq_set_para)) < 0x00){
+                        response = ycp_get_response_buff(RT_WAITING_FOREVER);
+                        result = ycp_response_padding_set_work_para(response->general_transmit_buff, NET_YCP_GENERA_RESPONSE_BUFF_LENGTH, &(response->length));
+                        if(result >= 0x00){
+                            ((Net_YcpPro_PRes_ParaSet_t*)response->general_transmit_buff)->body.result = 0x00;
+                            ycp_net_event_send(NET_YCP_EVENT_HANDLE_CHARGEPILE, NET_YCP_EVENT_TYPE_RESPONSE, gunno, NET_YCP_PRES_EVENT_SET_PARA);
+                        }else{
+                            ycp_response_buff_release_mutex();
+                        }
+                    }else{
+                        net_operation_set_event(gunno, NET_OPERATION_EVENT_SET_CHARGE_POWER);
+                    }
+                }
+                /***** [计费模型设置请求] *****/
+                if(ycp_net_event_receive(NET_YCP_EVENT_HANDLE_SERVER, NET_YCP_EVENT_TYPE_REQUEST, gunno,
+                        (NET_YCP_EVENT_OPTION_OR |NET_YCP_EVENT_OPTION_CLEAR), NET_YCP_SREQ_EVENT_BILLING_MODEL_SET, NULL) > 0){
+                    uint8_t res = 0x00;
+                    response = ycp_get_response_buff(RT_WAITING_FOREVER);
+                    if(ycp_message_pro_billing_model_set_response(&g_ycp_sreq_billing_model_set, sizeof(g_ycp_sreq_billing_model_set)) < 0x00){
+                        res = 0x00;
+                    }else{
+                        res = 0x01;
+                    }
+                    result = ycp_response_padding_set_billing_model(response->general_transmit_buff, NET_YCP_GENERA_RESPONSE_BUFF_LENGTH, &(response->length));
+                    ((Net_YcpPro_PRes_BillingModel_Set_t*)response->general_transmit_buff)->body.result = res;
+                    if(result >= 0x00){
+                        ycp_net_event_send(NET_YCP_EVENT_HANDLE_CHARGEPILE, NET_YCP_EVENT_TYPE_RESPONSE, gunno, NET_YCP_PRES_EVENT_SET_BILLING_MODEL);
+                    }else{
+                        ycp_response_buff_release_mutex();
+                    }
+                }
+                /***** [远程重启请求] *****/
+                if(ycp_net_event_receive(NET_YCP_EVENT_HANDLE_SERVER, NET_YCP_EVENT_TYPE_REQUEST, gunno,
+                        (NET_YCP_EVENT_OPTION_OR |NET_YCP_EVENT_OPTION_CLEAR), NET_YCP_SREQ_EVENT_REMOTE_REBOOT, NULL) > 0){
+                    uint8_t res = 0x00;
+                    result = ycp_message_pro_remote_reset_request(&g_ycp_sreq_remote_reboot, sizeof(g_ycp_sreq_remote_reboot));
+                    if(result > 0x00){
+                        res = 0x01;
+                    }
+                    if(result >= 0x00){
+                        response = ycp_get_response_buff(RT_WAITING_FOREVER);
+                        result = ycp_response_padding_remote_reboot(response->general_transmit_buff, NET_YCP_GENERA_RESPONSE_BUFF_LENGTH, &(response->length));
+                        if(result >= 0x00){
+                            net_operation_set_event(0x00, NET_OPERATION_EVENT_REBOOT);
+                            ((Net_YcpPro_PRes_RemoteReboot_t*)response->general_transmit_buff)->body.result = res;
+                            ycp_net_event_send(NET_YCP_EVENT_HANDLE_CHARGEPILE, NET_YCP_EVENT_TYPE_RESPONSE, gunno, NET_YCP_PRES_EVENT_REMOTE_REBOOT);
+                        }else{
+                            ycp_response_buff_release_mutex();
+                        }
+                    }
+                }
+                /***** [远程更新请求] *****/
+                if(ycp_net_event_receive(NET_YCP_EVENT_HANDLE_SERVER, NET_YCP_EVENT_TYPE_REQUEST, gunno,
+                        (NET_YCP_EVENT_OPTION_OR |NET_YCP_EVENT_OPTION_CLEAR), NET_YCP_SREQ_EVENT_REMOTE_UPDATE, NULL) > 0){
+                    uint8_t pro_result, reason;
+                    if(g_ycp_sreq_remote_update.body.update_way == 0x01){
+                        if(net_get_ota_info()->state == NET_OTA_STATE_NULL){
+                            if(ycp_get_ota_was_requested_flag() == 0x00){
+                                ycp_set_ota_was_requested_flag();
+                                pro_result = 0x01;
+                                net_operation_set_event(gunno, NET_OPERATION_EVENT_START_UPDATE);
+                            }else{
+                                pro_result = 0x00;
+                                reason = 0x01;
+                            }
+                        }else{
+                            pro_result = 0x00;
+                            reason = 0x01;
+                        }
+                    }else{
+                        pro_result = 0x00;
+                        reason = 0x01;
+                    }
+                    if(pro_result == 0x00){
+                        response = ycp_get_response_buff(RT_WAITING_FOREVER);
+                        result = ycp_response_padding_remote_update(response->general_transmit_buff, NET_YCP_GENERA_RESPONSE_BUFF_LENGTH, &(response->length));
+                        ((Net_YcpPro_PRes_RemoteUpdate_t *)response->general_transmit_buff)->body.result = pro_result;
+                        ((Net_YcpPro_PRes_RemoteUpdate_t *)response->general_transmit_buff)->body.result = reason;
+                        if(result >= 0x00){
+                            ycp_net_event_send(NET_YCP_EVENT_HANDLE_CHARGEPILE, NET_YCP_EVENT_TYPE_RESPONSE, gunno, NET_YCP_PRES_EVENT_REMOTE_UPDATE);
+                        }else{
+                            ycp_response_buff_release_mutex();
+                        }
+                    }
+                }
+                /***** [运营平台二维码配置请求] *****/
+                if(ycp_net_event_receive(NET_YCP_EVENT_HANDLE_SERVER, NET_YCP_EVENT_TYPE_REQUEST, gunno,
+                        (NET_YCP_EVENT_OPTION_OR |NET_YCP_EVENT_OPTION_CLEAR), NET_YCP_SREQ_EVENT_QRCODE_CONFIG, NULL) > 0){
+                    uint8_t pro_result = 0x00;
+                    response = ycp_get_response_buff(RT_WAITING_FOREVER);
+                    if(g_ycp_sreq_qrcode_config[gunno].body.result == 0x00){
+                        pro_result = 0x01;
+                    }
+
+                    result = ycp_response_padding_qrcode_config(gunno, response->general_transmit_buff, NET_YCP_GENERA_RESPONSE_BUFF_LENGTH, &(response->length));
+                    ((Net_YcpPro_PRes_Qrcode_Config_t*)response->general_transmit_buff)->body.result = pro_result;
+                    if(result >= 0x00){
+                        ycp_net_event_send(NET_YCP_EVENT_HANDLE_CHARGEPILE, NET_YCP_EVENT_TYPE_RESPONSE, gunno, NET_YCP_PRES_EVENT_QRCODE_CONFIG);
+                    }else{
+                        ycp_response_buff_release_mutex();
+                    }
+                }
+            }
+
+            ycp_net_event_receive(NET_YCP_EVENT_HANDLE_SERVER, NET_YCP_EVENT_TYPE_RESPONSE, gunno, 0x00, 0x00, &_event);
+            if(_event){
+                /***** [计费模型请求响应] *****/
+                if(ycp_net_event_receive(NET_YCP_EVENT_HANDLE_SERVER, NET_YCP_EVENT_TYPE_RESPONSE, gunno,
+                        (NET_YCP_EVENT_OPTION_OR |NET_YCP_EVENT_OPTION_CLEAR), NET_YCP_SRES_EVENT_BILLING_MODEL_VERIFY, NULL) > 0){
+                    if(g_ycp_sres_billing_model_verify.body.result == 0x01){
+                        ycp_message_pro_billing_model_set_response(&g_ycp_sres_billing_model_verify, sizeof(g_ycp_sres_billing_model_verify));
+                    }else{
+                        /** 桩端验证计费模型的目的是为了获取计费模型 */
+                        g_ycp_preq_billing_model_verify.body.model_sn++;
+                        ycp_net_event_send(NET_YCP_EVENT_HANDLE_CHARGEPILE, NET_YCP_EVENT_TYPE_REQUEST, 0x00, NET_YCP_PREQ_EVENT_BILLING_MODEL_VERIFY);
+                    }
+                }
+                /***** [充电桩主动申请启动充电响应] *****/
+                if(ycp_net_event_receive(NET_YCP_EVENT_HANDLE_SERVER, NET_YCP_EVENT_TYPE_RESPONSE, gunno,
+                        (NET_YCP_EVENT_OPTION_OR |NET_YCP_EVENT_OPTION_CLEAR), NET_YCP_SRES_EVENT_APPLY_CHARGE_ACTIVE, NULL) > 0){
+                    if(g_ycp_sres_apply_charge_active[gunno].body.result == 0x01){
+                        ycp_message_pro_apply_charge_active_response(gunno, &g_ycp_sres_apply_charge_active[gunno], sizeof(g_ycp_sres_apply_charge_active[gunno]));
+                        if(g_ycp_preq_apply_charge_active[gunno].body.start_type == 0x01){
+                            net_operation_set_event(gunno, NET_OPERATION_EVENT_CARDAUTHORITY_SUCCESS);
+                        }else if(g_ycp_preq_apply_charge_active[gunno].body.start_type == 0x02){
+                            net_operation_set_event(gunno, NET_OPERATION_EVENT_PASSWORD_AUTHORITY_SUCCESS);
+                        }else{
+                            net_operation_set_event(gunno, NET_OPERATION_EVENT_VINAUTHORITY_SUCCESS);
+                        }
+                    }else{
+                        if(g_ycp_preq_apply_charge_active[gunno].body.start_type == 0x01){
+                            net_operation_set_event(gunno, NET_OPERATION_EVENT_CARDAUTHORITY_FAIL);
+                        }else if(g_ycp_preq_apply_charge_active[gunno].body.start_type == 0x02){
+                            net_operation_set_event(gunno, NET_OPERATION_EVENT_PASSWORD_AUTHORITY_FAIL);
+                        }else{
+                            net_operation_set_event(gunno, NET_OPERATION_EVENT_VINAUTHORITY_FAIL);
+                        }
+                        LOG_W("ycp chargepile apply charge active fail reason(%d, %d)", \
+                                g_ycp_sres_apply_charge_active[gunno].body.reason, g_ycp_sres_apply_charge_active[gunno].body.fault);
+                    }
+                }
+                /***** [交易记录响应响应] *****/
+                if(ycp_net_event_receive(NET_YCP_EVENT_HANDLE_SERVER, NET_YCP_EVENT_TYPE_RESPONSE, gunno,
+                        (NET_YCP_EVENT_OPTION_OR |NET_YCP_EVENT_OPTION_CLEAR), NET_YCP_SRES_EVENT_BILL_VERIFY, NULL) > 0){
+                    ycp_set_transaction_verify_state(gunno, 0x01);
+                }
+                /***** [对时设置响应] *****/
+                if(ycp_net_event_receive(NET_YCP_EVENT_HANDLE_SERVER, NET_YCP_EVENT_TYPE_REQUEST, gunno,
+                        (NET_YCP_EVENT_OPTION_OR |NET_YCP_EVENT_OPTION_CLEAR), NET_YCP_SRES_EVENT_TIME_SYNC, NULL) > 0){
+                    ycp_message_pro_time_sync_response(&g_ycp_sres_time_sync, sizeof(g_ycp_sres_time_sync));
+                }
+            }
+            /***** [启动充电异步响应] *****/
+            if(ycp_net_event_receive(NET_YCP_EVENT_HANDLE_CHARGEPILE, NET_YCP_EVENT_TYPE_RESPONSE, gunno,
+                    (NET_YCP_EVENT_OPTION_OR |NET_YCP_EVENT_OPTION_CLEAR), NET_YCP_PRES_EVENT_START_CHARGE_ASYNCHRONOUSLY, NULL) > 0){
+                response = ycp_get_response_buff(RT_WAITING_FOREVER);
+                result = ycp_response_padding_remote_start_charge(gunno, response->general_transmit_buff, NET_YCP_GENERA_RESPONSE_BUFF_LENGTH, &(response->length));
+                if(result >= 0x00){
+                    if(ycp_is_start_charge_success(gunno)){
+                        ((Net_YcpPro_PRes_Remote_StartCharge_t*)response->general_transmit_buff)->body.result = 0x01;
+                    }else{
+                        ((Net_YcpPro_PRes_Remote_StartCharge_t*)response->general_transmit_buff)->body.result = 0x00;
+                    }
+                    ycp_net_event_send(NET_YCP_EVENT_HANDLE_CHARGEPILE, NET_YCP_EVENT_TYPE_RESPONSE, gunno, NET_YCP_PRES_EVENT_SERVER_START_CHARGE);
+                }else{
+                    ycp_response_buff_release_mutex();
+                }
+            }
+            /***** [停止充电异步响应] *****/
+            if(ycp_net_event_receive(NET_YCP_EVENT_HANDLE_CHARGEPILE, NET_YCP_EVENT_TYPE_RESPONSE, gunno,
+                    (NET_YCP_EVENT_OPTION_OR |NET_YCP_EVENT_OPTION_CLEAR), NET_YCP_PRES_EVENT_STOP_CHARGE_ASYNCHRONOUSLY, NULL) > 0){
+                response = ycp_get_response_buff(RT_WAITING_FOREVER);
+                result = ycp_response_padding_remote_stop_charge(gunno, response->general_transmit_buff, NET_YCP_GENERA_RESPONSE_BUFF_LENGTH, &(response->length));
+                if(result >= 0x00){
+                    if(ycp_is_stop_charge_success(gunno)){
+                        ((Net_YcpPro_PRes_Remote_StopCharge_t*)response->general_transmit_buff)->body.result = 0x01;
+                    }else{
+                        ((Net_YcpPro_PRes_Remote_StopCharge_t*)response->general_transmit_buff)->body.result = 0x00;
+                    }
+                    ycp_net_event_send(NET_YCP_EVENT_HANDLE_CHARGEPILE, NET_YCP_EVENT_TYPE_RESPONSE, gunno, NET_YCP_PRES_EVENT_SERVER_STOP_CHARGE);
+                }else{
+                    ycp_response_buff_release_mutex();
+                }
+            }
+            /***** [设置功率百分比异步响应] *****/
+            if(ycp_net_event_receive(NET_YCP_EVENT_HANDLE_CHARGEPILE, NET_YCP_EVENT_TYPE_RESPONSE, gunno,
+                    (NET_YCP_EVENT_OPTION_OR |NET_YCP_EVENT_OPTION_CLEAR), NET_YCP_PRES_EVENT_SET_POWER_PERCENT_ASYNCHRONOUSLY, NULL) > 0){
+                response = ycp_get_response_buff(RT_WAITING_FOREVER);
+                result = ycp_response_padding_set_work_para(response->general_transmit_buff, NET_YCP_GENERA_RESPONSE_BUFF_LENGTH, &(response->length));
+                if(result >= 0x00){
+                    if(ycp_is_set_power_success()){
+                        ((Net_YcpPro_PRes_ParaSet_t*)response->general_transmit_buff)->body.result = 0x01;
+                    }else{
+                        ((Net_YcpPro_PRes_ParaSet_t*)response->general_transmit_buff)->body.result = 0x00;
+                    }
+                    ycp_net_event_send(NET_YCP_EVENT_HANDLE_CHARGEPILE, NET_YCP_EVENT_TYPE_RESPONSE, gunno, NET_YCP_PRES_EVENT_SET_PARA);
+                }else{
+                    ycp_response_buff_release_mutex();
+                }
+            }
+        }
+        rt_thread_mdelay(100);
+    }
+}
+
+int32_t ycp_message_send_init(void)
+{
+    for(uint8_t gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
+        s_ycp_same_transaction_report_count[gunno] = 0x00;
+        s_ycp_transaction_verify[gunno] = 0x00;
+    }
+
+    if(rt_thread_init(&s_ycp_message_send_thread, "ycp_send", net_ycp_message_send_thread_entry, NULL,
+            s_ycp_message_send_thread_stack, NET_YCP_MESSAGE_SEND_THREAD_STACK_SIZE, 16, 10) != RT_EOK){
+        LOG_E("ycp message send thread create fail, please check");
+        return -0x01;
+    }
+    if(rt_thread_startup(&s_ycp_message_send_thread) != RT_EOK){
+        LOG_E("ycp message send thread startup fail, please check");
+        return -0x01;
+    }
+
+    if(rt_thread_init(&s_ycp_server_message_pro_thread, "ycp_server", net_ycp_server_message_pro_entry, NULL,
+            s_ycp_server_message_pro_thread_stack, NET_YCP_SERVER_MESSAGE_PRO_THREAD_STACK_SIZE, 16, 10) != RT_EOK){
+        LOG_E("ycp server message process thread create fail, please check");
+        return -0x01;
+    }
+    if(rt_thread_startup(&s_ycp_server_message_pro_thread) != RT_EOK){
+        LOG_E("ycp server message process thread startup fail, please check");
+        return -0x01;
+    }
+
+    if(rt_mutex_init(&s_ycp_response_buff_mutex, "ycp_tbmutex", RT_IPC_FLAG_PRIO) != RT_EOK){
+        LOG_E("ycp response buff mutex create fail");
+    }
+    return 0x00;
+}
+
+#endif /* NET_PACK_USING_YCP */
+
