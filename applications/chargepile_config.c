@@ -193,6 +193,7 @@ static uint32_t s_config_info_address = SYSTEM_CONFIG_MAIN_ADDRESS;
 static uint32_t s_system_power_max = 0x00;
 static struct module_info s_module_info;
 
+/** 初始化排列必须要按照  enum config_name 枚举一致*/
 static struct config_item s_config_item_set[CONFIG_ITEM_SIZE] =
 {
         {CONFIG_ITEM_PILE_NUMBER,                                                             /* 配置项：桩号 */

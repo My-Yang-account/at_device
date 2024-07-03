@@ -267,6 +267,14 @@ int16_t thaisen_get_power_percent(void);
  * 添加VIN码白名单
  **/
 int32_t thaisen_vin_whitelists_add(uint8_t *data, uint8_t len);
+/**
+ * 获取充电方式
+ **/
+enum charge_way{
+    APP_CHARGE_WAY_SINGLEGUN,
+    APP_CHARGE_WAY_PARACHARGE,
+};
+enum charge_way thaisen_get_charge_way(void);
 
 #endif /* APPLICATIONS_INC_APP_DATA_INFO_INTERFACE_H_ */
 

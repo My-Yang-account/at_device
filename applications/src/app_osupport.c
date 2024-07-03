@@ -34,8 +34,6 @@
 static uint32_t s_system_fault_last[APP_SYSTEM_GUNNO_SIZE][APP_GENERAL_SYSTEM_FAULT_SET_NUM];
 static uint32_t s_system_fault_current[APP_SYSTEM_GUNNO_SIZE][APP_GENERAL_SYSTEM_FAULT_SET_NUM];
 static uint8_t s_charge_fault_last[APP_SYSTEM_GUNNO_SIZE][APP_GENERAL_CHARGE_FAULT_SET_NUM];   /* 由于当前充电故障数量小于8个，所以使用uint8_t 型 */
-static enum charge_fault_t s_charge_fault[APP_SYSTEM_GUNNO_SIZE];
-static enum system_fault_t s_system_fault[APP_SYSTEM_GUNNO_SIZE];
 
 static struct error_info s_system_error_info[APP_SYSTEM_GUNNO_SIZE];
 static struct error_info s_charge_error_info[APP_SYSTEM_GUNNO_SIZE];
@@ -80,7 +78,25 @@ enum charge_fault_t app_get_highest_priority_charge_fault(uint8_t gunno)
     if(gunno >= APP_SYSTEM_GUNNO_SIZE){
         return APP_CHARGE_FAULT_NO_ERROR;
     }
-    return s_charge_fault[gunno];
+
+    uint8_t bit = 0x00, start_bit = 0x00, end_bit = 0x00, remain_bit = 0x00, set = 0x00;
+
+    end_bit = APP_CHARGE_FAULT_NO_ERROR >= 32 ? 32 : APP_CHARGE_FAULT_NO_ERROR;
+    remain_bit = APP_CHARGE_FAULT_NO_ERROR - end_bit;
+
+    for(set = 0x00; set < APP_GENERAL_SYSTEM_FAULT_SET_NUM; set++){
+        for(bit = 0; bit < (end_bit - start_bit); bit++){
+            if(s_charge_fault_last[gunno][set] &(1 <<(bit + start_bit))){
+                return (enum charge_fault_t)(bit + start_bit);
+            }
+        }
+        start_bit = end_bit;
+        end_bit = remain_bit > 32 ? 32 : remain_bit;
+        end_bit += start_bit;
+        remain_bit = APP_CHARGE_FAULT_NO_ERROR - end_bit;
+    }
+
+    return APP_CHARGE_FAULT_NO_ERROR;
 }
 
 enum system_fault_t app_get_highest_priority_system_fault(uint8_t gunno)
@@ -88,7 +104,25 @@ enum system_fault_t app_get_highest_priority_system_fault(uint8_t gunno)
     if(gunno >= APP_SYSTEM_GUNNO_SIZE){
         return APP_SYS_FAULT_NO_ERROR;
     }
-    return s_system_fault[gunno];
+
+    uint8_t bit = 0x00, start_bit = 0x00, end_bit = 0x00, remain_bit = 0x00, set = 0x00;
+
+    end_bit = APP_SYS_FAULT_NO_ERROR >= 32 ? 32 : APP_SYS_FAULT_NO_ERROR;
+    remain_bit = APP_SYS_FAULT_NO_ERROR - end_bit;
+
+    for(set = 0x00; set < APP_GENERAL_SYSTEM_FAULT_SET_NUM; set++){
+        for(bit = 0; bit < (end_bit - start_bit); bit++){
+            if(s_system_fault_last[gunno][set] &(1 <<(bit + start_bit))){
+                return (enum system_fault_t)(bit + start_bit);
+            }
+        }
+        start_bit = end_bit;
+        end_bit = remain_bit > 32 ? 32 : remain_bit;
+        end_bit += start_bit;
+        remain_bit = APP_SYS_FAULT_NO_ERROR - end_bit;
+    }
+
+    return APP_SYS_FAULT_NO_ERROR;
 }
 
 uint8_t *app_get_charge_fault_set(uint8_t gunno)
@@ -187,12 +221,10 @@ static int32_t app_fault_storage(struct error_info *error_info, uint32_t resume_
 void app_osupport_thread_entry(void *parameter)
 {
     for(uint8_t gunno = 0x00; gunno < APP_SYSTEM_GUNNO_SIZE; gunno++){
-        s_charge_fault[gunno] = APP_CHARGE_FAULT_NO_ERROR;
-        s_system_fault[gunno] = APP_SYS_FAULT_NO_ERROR;
         s_system_fault_last[gunno][APP_GENERAL_SYSTEM_FAULT_SET_LOW] = 0x00;
         s_system_fault_current[gunno][APP_GENERAL_SYSTEM_FAULT_SET_LOW] = 0x00;
     }
-    uint8_t bit = 0x00, start_bit = 0x00, end_bit = 0x00, remain_bit = 0x00, no_fault = 0x00;
+    uint8_t bit = 0x00, start_bit = 0x00, end_bit = 0x00, remain_bit = 0x00;
     uint32_t fault_xor = 0x00, fault_temp = 0x00, *current_fault_ptr = NULL;
 
     rt_thread_mdelay(8000);     /* 忽略上电前8s故障 */
@@ -225,7 +257,6 @@ void app_osupport_thread_entry(void *parameter)
             start_bit = 0x00;
             end_bit = APP_SYS_FAULT_NO_ERROR >= 32 ? 32 : APP_SYS_FAULT_NO_ERROR;
             remain_bit = APP_SYS_FAULT_NO_ERROR - end_bit;
-            no_fault = 0x00;
             current_fault_ptr = mw_get_system_fault_set(gunno);
 
             for(uint8_t set = 0x00; set < APP_GENERAL_SYSTEM_FAULT_SET_NUM; set++){
@@ -236,9 +267,6 @@ void app_osupport_thread_entry(void *parameter)
                 s_system_fault_current[gunno][set] |= fault_temp;
 
                 fault_xor = s_system_fault_current[gunno][set] ^s_system_fault_last[gunno][set];
-                if(s_system_fault_current[gunno][set] == 0){
-                    no_fault++;
-                }
                 /*************************** 系统故障检测 **********************************/
                 if(fault_xor){
                     for(bit = 0; bit < (end_bit - start_bit); bit++){
@@ -313,7 +341,7 @@ void app_osupport_thread_entry(void *parameter)
                                 break;
                             }
 
-                            if(s_system_fault_last[gunno][set] &(1 <<bit)){
+                            if(s_system_fault_last[gunno][set] &(1 <<(bit + start_bit))){
                                 s_system_error_info[gunno].error_flag = 0x01;  /* 故障恢复 */
                                 s_system_error_info[gunno].resume_time = mw_get_current_timestamp();
                                 app_nsal_system_fault_report(gunno, s_system_error_info[gunno].error_code, s_system_error_info[gunno].resume_time, 0x01);
@@ -322,9 +350,6 @@ void app_osupport_thread_entry(void *parameter)
                                 memset(&s_system_error_info[gunno].resume_time, 0x00, sizeof(s_system_error_info[gunno].resume_time));
                                 s_system_error_info[gunno].occur_time = mw_get_current_timestamp();
 
-                                if(s_system_fault[gunno] > (bit + start_bit)){
-                                    s_system_fault[gunno] = (bit + start_bit);
-                                }
                                 app_nsal_system_fault_report(gunno, s_system_error_info[gunno].error_code, s_system_error_info[gunno].occur_time, 0x00);
                             }
                             app_fault_storage(&s_system_error_info[gunno], s_system_error_info[gunno].resume_time, gunno);
@@ -337,23 +362,17 @@ void app_osupport_thread_entry(void *parameter)
                 end_bit += start_bit;
                 remain_bit = APP_SYS_FAULT_NO_ERROR - end_bit;
             }
-            if(no_fault == APP_GENERAL_SYSTEM_FAULT_SET_NUM){
-                s_system_fault[gunno] = APP_SYS_FAULT_NO_ERROR;
-            }
 
             /*************************** 充电故障检测 **********************************/
             bit = 0,
             start_bit = 0,
             end_bit = APP_CHARGE_FAULT_NO_ERROR >= 32 ? 32 : APP_CHARGE_FAULT_NO_ERROR,
             remain_bit = APP_CHARGE_FAULT_NO_ERROR - end_bit,
-            no_fault = 0;
+
             current_fault_ptr = mw_get_charge_fault_set(gunno);
 
             for(uint8_t set = 0; set < APP_GENERAL_CHARGE_FAULT_SET_NUM; set++){
                 fault_xor = current_fault_ptr[set] ^s_charge_fault_last[gunno][set];
-                if(current_fault_ptr[set] == 0){
-                    no_fault++;
-                }
                 if(fault_xor){
                     for(bit = 0; bit < (end_bit - start_bit); bit++){
                         if(fault_xor &(1 <<bit)){
@@ -387,17 +406,13 @@ void app_osupport_thread_entry(void *parameter)
                                 break;
                             }
 
-                            if(s_charge_fault_last[gunno][set] &(1 <<bit)){
+                            if(s_charge_fault_last[gunno][set] &(1 <<(bit + start_bit))){
                                 s_charge_error_info[gunno].error_flag = 0x01;  /* 故障恢复 */
                                 s_charge_error_info[gunno].resume_time = mw_get_current_timestamp();
                             }else{
                                 s_charge_error_info[gunno].error_flag = 0x00;  /* 故障产生 */
                                 memset(&s_charge_error_info[gunno].resume_time, 0x00, sizeof(s_charge_error_info[gunno].resume_time));
                                 s_charge_error_info[gunno].occur_time = mw_get_current_timestamp();
-
-                                if(s_charge_fault[gunno] > (bit + start_bit)){
-                                    s_charge_fault[gunno] = (bit + start_bit);
-                                }
                             }
                             app_fault_storage(&s_charge_error_info[gunno], s_charge_error_info[gunno].resume_time, gunno);
                         }
@@ -408,9 +423,6 @@ void app_osupport_thread_entry(void *parameter)
                 end_bit = remain_bit > 32 ? 32 : remain_bit;
                 end_bit += start_bit;
                 remain_bit = APP_CHARGE_FAULT_NO_ERROR - end_bit;
-            }
-            if(no_fault == APP_GENERAL_CHARGE_FAULT_SET_NUM){
-                s_charge_fault[gunno] = APP_CHARGE_FAULT_NO_ERROR;
             }
         }
         rt_thread_mdelay(500);

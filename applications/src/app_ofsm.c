@@ -68,7 +68,7 @@ static void transaction_record_query_report(uint8_t gunno)
     if(gunno >= APP_SYSTEM_GUNNO_SIZE){   /* 枪号不对 */
         return;
     }
-    if((s_ofsm_info[gunno].state == APP_OFSM_STATE_STARTING) || (s_ofsm_info[gunno].state == APP_OFSM_STATE_CHARGING)){
+    if((s_ofsm_info[gunno].state >= APP_OFSM_STATE_STARTING) && (s_ofsm_info[gunno].state <= APP_OFSM_STATE_STOPING)){
         return;
     }
 
@@ -100,10 +100,10 @@ static void transaction_record_query_report(uint8_t gunno)
                     rtransaction.end_time = rtransaction.start_time + (15 *60);
                     rtransaction.charge_time += (15 *60);
 
-#ifdef APP_INCLUDE_YKC_PROTOCOL
+#if (defined (APP_INCLUDE_YKC_PROTOCOL) || defined (APP_INCLUDE_YKC_PROTOCOL_MONITOR))
                     rtransaction.rate_type_elect[APP_RATE_TYPE_FLAT] += loss_elect;
                     rtransaction.rate_type_amount[APP_RATE_TYPE_FLAT] += ((double)loss_elect *(double)1.05 *100);
-#endif /* APP_INCLUDE_YKC_PROTOCOL */
+#endif /* (defined (APP_INCLUDE_YKC_PROTOCOL) || defined (APP_INCLUDE_YKC_PROTOCOL_MONITOR)) */
 
 #ifdef APP_INCLUDE_SL_PROTOCOL
                     if(rtransaction.start_period_number > (APP_BILLING_RULE_PERIOD_MAX - 0x01)){
@@ -829,6 +829,15 @@ static void ofsm_readying_fun(uint8_t gunno)
             /* 开始充电 */
             mw_charge_start_cmd(gunno);
 
+            /* 启动前向屏幕对时 */
+            thaisen_request_screen_time();
+
+            s_ofsm_info[gunno].main_gunno = gunno;
+            s_ofsm_info[gunno].charge_way = thaisen_get_charge_way();
+            if(s_ofsm_info[gunno].charge_way == APP_CHARGE_WAY_PARACHARGE){
+
+            }
+
             s_ofsm_info[gunno].base.flag.start_result = APP_THA_ENUM_FALSE;
             s_ofsm_info[gunno].base.voltage_a = 0x00;
             s_ofsm_info[gunno].base.current_a = 0x00;
@@ -866,12 +875,15 @@ static void ofsm_readying_fun(uint8_t gunno)
             s_thaisen_transaction[gunno].charge_fee = 0x00;
             s_thaisen_transaction[gunno].service_fee = 0x00;
             s_thaisen_transaction[gunno].total_fee = 0x00;
-#ifdef APP_INCLUDE_YKC_PROTOCOL
-            memset(s_thaisen_transaction[gunno].rate_type_unit, 0x00, sizeof(s_thaisen_transaction[gunno].rate_type_unit));
+
+#if (defined (APP_INCLUDE_YKC_PROTOCOL) || defined (APP_INCLUDE_YKC_PROTOCOL_MONITOR))
+            for(uint8_t type = 0x00; type < APP_BILLING_RULE_RATE_TYPE_MAX; type++){
+                s_thaisen_transaction[gunno].rate_type_unit[type] = app_billingrule_get_rate_type_price(gunno, type);
+            }
             memset(s_thaisen_transaction[gunno].rate_type_elect, 0x00, sizeof(s_thaisen_transaction[gunno].rate_type_elect));
             memset(s_thaisen_transaction[gunno].rate_type_amount, 0x00, sizeof(s_thaisen_transaction[gunno].rate_type_amount));
             memset(s_thaisen_transaction[gunno].rate_type_loss_elect, 0x00, sizeof(s_thaisen_transaction[gunno].rate_type_loss_elect));
-#endif /* APP_INCLUDE_YKC_PROTOCOL */
+#endif /* (defined (APP_INCLUDE_YKC_PROTOCOL) || defined (APP_INCLUDE_YKC_PROTOCOL_MONITOR)) */
 
 #ifdef APP_INCLUDE_SL_PROTOCOL
             memset(s_thaisen_transaction[gunno].period_elect, 0x00, sizeof(s_thaisen_transaction[gunno].period_elect));
@@ -898,7 +910,6 @@ static void ofsm_readying_fun(uint8_t gunno)
 
             app_nsal_init_charge_data(gunno);
 
-            rt_kprintf("sssssssssssssssssssssss(%d)\n", gunno);
             mw_storage_record_create(&s_thaisen_transaction[gunno], sizeof(s_thaisen_transaction[gunno]), USER_DATA_TYPE_STORAGE,  \
                     0x00, gunno);
             s_current_order_index[MONITOR_PLATFORM_INDEX][gunno] = mw_storage_record_get_current_index(gunno);
@@ -958,8 +969,8 @@ static void ofsm_starting_fun(uint8_t gunno)
     case CC1_12V:
     case CC1_6V:
     {
-        s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_FINISHING];
-        s_ofsm_info[gunno].state = APP_OFSM_STATE_FINISHING;
+        s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_STOPING];
+        s_ofsm_info[gunno].state = APP_OFSM_STATE_STOPING;
 
         LOG_D("gunno(%d) charge stop deal to pull gun |%d |%d |%d |%d", gunno, system_fault, charge_fault, charge_state, mw_get_cc1_value(mw_get_cc1(gunno)));
 
@@ -977,10 +988,6 @@ static void ofsm_starting_fun(uint8_t gunno)
             s_ofsm_info[gunno].base.flag.connect_state = APP_CONNECT_STATE_DISCONNECT;
             break;
         }
-        app_nsal_report_bms_message_end(gunno);
-        app_nsal_report_bms_message_error(gunno);
-        app_nsal_report_bms_message_bmsend(gunno);
-        app_nsal_report_bms_message_chargerend(gunno);
 
         stop_way = mw_get_system_stop_way(gunno);
         if(stop_way != APP_SYSTEM_STOP_WAY_PASSIVE){
@@ -992,6 +999,15 @@ static void ofsm_starting_fun(uint8_t gunno)
         }
         s_thaisen_transaction[gunno].boot_result = s_ofsm_info[gunno].base.flag.start_result;
         s_thaisen_transaction[gunno].order_state.is_charging = APP_THA_ENUM_FALSE;
+
+        s_ofsm_info[gunno].base.start_time = s_ofsm_info[gunno].base.current_time;
+        s_ofsm_info[gunno].base.stop_time = s_ofsm_info[gunno].base.current_time;
+        s_ofsm_info[gunno].base.start_period = app_calculate_current_period(s_ofsm_info[gunno].base.start_time);
+        s_ofsm_info[gunno].base.current_period = s_ofsm_info[gunno].base.start_period;
+
+        s_thaisen_transaction[gunno].start_time = s_ofsm_info[gunno].base.start_time;
+        s_thaisen_transaction[gunno].end_time = s_thaisen_transaction[gunno].start_time;
+        s_thaisen_transaction[gunno].start_period_number = s_ofsm_info[gunno].base.start_period;
 
         /* 对时后时间要修改 */
         if(mw_get_time_sync_flag(gunno)){
@@ -1013,31 +1029,8 @@ static void ofsm_starting_fun(uint8_t gunno)
             /** 与时段有关的信息也要更新 */
             LOG_I("chargepile is synchronized, modify correlation time|%x\n", curr_time);
         }
-        struct thaisenBMS_Charger_struct *bms = mw_get_bms_data(gunno);
 
-        s_thaisen_transaction[gunno].bms_stop_reason.target_soc = bms->BST.SOCGetObj;
-        s_thaisen_transaction[gunno].bms_stop_reason.target_tvolt = bms->BST.VoltGetObj;
-        s_thaisen_transaction[gunno].bms_stop_reason.target_svolt = bms->BST.CeliVoltGetObj;
-        s_thaisen_transaction[gunno].bms_stop_reason.chargerend = bms->BST.ChargInitiStop;
-
-        s_thaisen_transaction[gunno].bms_fault_reason.insultion = bms->BST.InsltFault;
-        s_thaisen_transaction[gunno].bms_fault_reason.olink_ot = bms->BST.OutConectOVtemp;
-        s_thaisen_transaction[gunno].bms_fault_reason.bms_comp_olink_ot = bms->BST.BMSCompOVtemp;
-        s_thaisen_transaction[gunno].bms_fault_reason.clink_fault = bms->BST.Conectfault;
-        s_thaisen_transaction[gunno].bms_fault_reason.battery_ot = bms->BST.BatOVtemp;
-        s_thaisen_transaction[gunno].bms_fault_reason.hv_relay = bms->BST.HVRelaysFault;
-        s_thaisen_transaction[gunno].bms_fault_reason.detect_point2_volt = bms->BST.Check2Ft;
-        s_thaisen_transaction[gunno].bms_fault_reason.other = bms->BST.OtherFt;
-
-        mw_storage_record_designate_index_updated(&s_thaisen_transaction[gunno], sizeof(s_thaisen_transaction[gunno]), USER_DATA_TYPE_VERIFIED,  \
-                0x00, gunno, s_current_order_index[TARGET_PLATFORM_INDEX][gunno]);
-        memcpy(&(s_thaisen_transaction_report[TARGET_PLATFORM_INDEX][gunno]), &(s_thaisen_transaction[gunno]), sizeof(thaisen_transaction_t));
-        app_nsal_transaction_record_report_target(gunno, &(s_thaisen_transaction_report[TARGET_PLATFORM_INDEX][gunno]), 0x00);
-        s_transaction_sending[TARGET_PLATFORM_INDEX][gunno] = APP_THA_ENUM_TRUE;
-
-        memcpy(&(s_thaisen_transaction_report[MONITOR_PLATFORM_INDEX][gunno]), &(s_thaisen_transaction[gunno]), sizeof(thaisen_transaction_t));
-        app_nsal_transaction_record_report_monitor(gunno, &(s_thaisen_transaction_report[MONITOR_PLATFORM_INDEX][gunno]), 0x00);
-        s_transaction_sending[MONITOR_PLATFORM_INDEX][gunno] = APP_THA_ENUM_TRUE;
+        app_billing_info_init(s_ofsm_info[gunno].base.start_elect, gunno);
 
         memset(s_ofsm_info[gunno].base.transaction_number, 0x00, sizeof(s_ofsm_info[gunno].base.transaction_number));
         memset(s_ofsm_info[gunno].base.car_vin, 0x00, sizeof(s_ofsm_info[gunno].base.car_vin));
@@ -1061,18 +1054,13 @@ static void ofsm_starting_fun(uint8_t gunno)
         if(s_ofsm_info[gunno].charge_timeout > s_ofsm_info[gunno].base.current_time){
             s_ofsm_info[gunno].charge_timeout = s_ofsm_info[gunno].base.current_time;
         }
-        if(s_ofsm_info[gunno].base.current_time - s_ofsm_info[gunno].charge_timeout > 30){
-            s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_FINISHING];
-            s_ofsm_info[gunno].state = APP_OFSM_STATE_FINISHING;
+        if(s_ofsm_info[gunno].base.current_time - s_ofsm_info[gunno].charge_timeout > 90){
+            s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_STOPING];
+            s_ofsm_info[gunno].state = APP_OFSM_STATE_STOPING;
 
             s_ofsm_info[gunno].base.system_fault = system_fault;
             s_ofsm_info[gunno].base.charge_fault = charge_fault;
             s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
-
-            app_nsal_report_bms_message_end(gunno);
-            app_nsal_report_bms_message_error(gunno);
-            app_nsal_report_bms_message_bmsend(gunno);
-            app_nsal_report_bms_message_chargerend(gunno);
 
             stop_way = mw_get_system_stop_way(gunno);
 
@@ -1093,6 +1081,15 @@ static void ofsm_starting_fun(uint8_t gunno)
             s_ofsm_info[gunno].base.flag.start_result = APP_THA_ENUM_FALSE;
             s_thaisen_transaction[gunno].boot_result = s_ofsm_info[gunno].base.flag.start_result;
             s_thaisen_transaction[gunno].order_state.is_charging = APP_THA_ENUM_FALSE;
+
+            s_ofsm_info[gunno].base.start_time = s_ofsm_info[gunno].base.current_time;
+            s_ofsm_info[gunno].base.stop_time = s_ofsm_info[gunno].base.current_time;
+            s_ofsm_info[gunno].base.start_period = app_calculate_current_period(s_ofsm_info[gunno].base.start_time);
+            s_ofsm_info[gunno].base.current_period = s_ofsm_info[gunno].base.start_period;
+
+            s_thaisen_transaction[gunno].start_time = s_ofsm_info[gunno].base.start_time;
+            s_thaisen_transaction[gunno].end_time = s_thaisen_transaction[gunno].start_time;
+            s_thaisen_transaction[gunno].start_period_number = s_ofsm_info[gunno].base.start_period;
 
             /* 对时后时间要修改 */
             if(mw_get_time_sync_flag(gunno)){
@@ -1115,31 +1112,7 @@ static void ofsm_starting_fun(uint8_t gunno)
                 LOG_I("chargepile is synchronized, modify correlation time|%x\n", curr_time);
             }
 
-            struct thaisenBMS_Charger_struct *bms = mw_get_bms_data(gunno);
-
-            s_thaisen_transaction[gunno].bms_stop_reason.target_soc = bms->BST.SOCGetObj;
-            s_thaisen_transaction[gunno].bms_stop_reason.target_tvolt = bms->BST.VoltGetObj;
-            s_thaisen_transaction[gunno].bms_stop_reason.target_svolt = bms->BST.CeliVoltGetObj;
-            s_thaisen_transaction[gunno].bms_stop_reason.chargerend = bms->BST.ChargInitiStop;
-
-            s_thaisen_transaction[gunno].bms_fault_reason.insultion = bms->BST.InsltFault;
-            s_thaisen_transaction[gunno].bms_fault_reason.olink_ot = bms->BST.OutConectOVtemp;
-            s_thaisen_transaction[gunno].bms_fault_reason.bms_comp_olink_ot = bms->BST.BMSCompOVtemp;
-            s_thaisen_transaction[gunno].bms_fault_reason.clink_fault = bms->BST.Conectfault;
-            s_thaisen_transaction[gunno].bms_fault_reason.battery_ot = bms->BST.BatOVtemp;
-            s_thaisen_transaction[gunno].bms_fault_reason.hv_relay = bms->BST.HVRelaysFault;
-            s_thaisen_transaction[gunno].bms_fault_reason.detect_point2_volt = bms->BST.Check2Ft;
-            s_thaisen_transaction[gunno].bms_fault_reason.other = bms->BST.OtherFt;
-
-            mw_storage_record_designate_index_updated(&s_thaisen_transaction[gunno], sizeof(s_thaisen_transaction[gunno]), USER_DATA_TYPE_VERIFIED,  \
-                    0x00, gunno, s_current_order_index[TARGET_PLATFORM_INDEX][gunno]);
-            memcpy(&(s_thaisen_transaction_report[TARGET_PLATFORM_INDEX][gunno]), &(s_thaisen_transaction[gunno]), sizeof(thaisen_transaction_t));
-            app_nsal_transaction_record_report_target(gunno, &(s_thaisen_transaction_report[TARGET_PLATFORM_INDEX][gunno]), 0x00);
-            s_transaction_sending[TARGET_PLATFORM_INDEX][gunno] = APP_THA_ENUM_TRUE;
-
-            memcpy(&(s_thaisen_transaction_report[MONITOR_PLATFORM_INDEX][gunno]), &(s_thaisen_transaction[gunno]), sizeof(thaisen_transaction_t));
-            app_nsal_transaction_record_report_monitor(gunno, &(s_thaisen_transaction_report[MONITOR_PLATFORM_INDEX][gunno]), 0x00);
-            s_transaction_sending[MONITOR_PLATFORM_INDEX][gunno] = APP_THA_ENUM_TRUE;
+            app_billing_info_init(s_ofsm_info[gunno].base.start_elect, gunno);
 
             memset(s_ofsm_info[gunno].base.transaction_number, 0x00, sizeof(s_ofsm_info[gunno].base.transaction_number));
             memset(s_ofsm_info[gunno].base.car_vin, 0x00, sizeof(s_ofsm_info[gunno].base.car_vin));
@@ -1237,19 +1210,14 @@ static void ofsm_starting_fun(uint8_t gunno)
         }
 
         if(s_ofsm_info[gunno].base.flag.vin_authorization_success == APP_THA_ENUM_FALSE){
-            s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_FINISHING];
-            s_ofsm_info[gunno].state = APP_OFSM_STATE_FINISHING;
+            s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_STOPING];
+            s_ofsm_info[gunno].state = APP_OFSM_STATE_STOPING;
 
             mw_charge_stop_cmd(gunno);
 
             s_ofsm_info[gunno].base.system_fault = system_fault;
             s_ofsm_info[gunno].base.charge_fault = charge_fault;
             s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
-
-            app_nsal_report_bms_message_end(gunno);
-            app_nsal_report_bms_message_error(gunno);
-            app_nsal_report_bms_message_bmsend(gunno);
-            app_nsal_report_bms_message_chargerend(gunno);
 
             s_thaisen_transaction[gunno].stop_reason = APP_SYSTEM_STOP_WAY_AUTHEN_FAIL;
             s_ofsm_info[gunno].base.reason_code = APP_SYSTEM_STOP_WAY_AUTHEN_FAIL;
@@ -1259,6 +1227,15 @@ static void ofsm_starting_fun(uint8_t gunno)
             s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_FALSE;
             s_ofsm_info[gunno].base.flag.start_result = APP_THA_ENUM_FALSE;
             s_thaisen_transaction[gunno].boot_result = s_ofsm_info[gunno].base.flag.start_result;
+
+            s_ofsm_info[gunno].base.start_time = s_ofsm_info[gunno].base.current_time;
+            s_ofsm_info[gunno].base.stop_time = s_ofsm_info[gunno].base.current_time;
+            s_ofsm_info[gunno].base.start_period = app_calculate_current_period(s_ofsm_info[gunno].base.start_time);
+            s_ofsm_info[gunno].base.current_period = s_ofsm_info[gunno].base.start_period;
+
+            s_thaisen_transaction[gunno].start_time = s_ofsm_info[gunno].base.start_time;
+            s_thaisen_transaction[gunno].end_time = s_thaisen_transaction[gunno].start_time;
+            s_thaisen_transaction[gunno].start_period_number = s_ofsm_info[gunno].base.start_period;
 
             /* 对时后时间要修改 */
             if(mw_get_time_sync_flag(gunno)){
@@ -1280,31 +1257,7 @@ static void ofsm_starting_fun(uint8_t gunno)
                 LOG_I("chargepile is synchronized, modify correlation time|%x\n", curr_time);
             }
 
-            struct thaisenBMS_Charger_struct *bms = mw_get_bms_data(gunno);
-
-            s_thaisen_transaction[gunno].bms_stop_reason.target_soc = bms->BST.SOCGetObj;
-            s_thaisen_transaction[gunno].bms_stop_reason.target_tvolt = bms->BST.VoltGetObj;
-            s_thaisen_transaction[gunno].bms_stop_reason.target_svolt = bms->BST.CeliVoltGetObj;
-            s_thaisen_transaction[gunno].bms_stop_reason.chargerend = bms->BST.ChargInitiStop;
-
-            s_thaisen_transaction[gunno].bms_fault_reason.insultion = bms->BST.InsltFault;
-            s_thaisen_transaction[gunno].bms_fault_reason.olink_ot = bms->BST.OutConectOVtemp;
-            s_thaisen_transaction[gunno].bms_fault_reason.bms_comp_olink_ot = bms->BST.BMSCompOVtemp;
-            s_thaisen_transaction[gunno].bms_fault_reason.clink_fault = bms->BST.Conectfault;
-            s_thaisen_transaction[gunno].bms_fault_reason.battery_ot = bms->BST.BatOVtemp;
-            s_thaisen_transaction[gunno].bms_fault_reason.hv_relay = bms->BST.HVRelaysFault;
-            s_thaisen_transaction[gunno].bms_fault_reason.detect_point2_volt = bms->BST.Check2Ft;
-            s_thaisen_transaction[gunno].bms_fault_reason.other = bms->BST.OtherFt;
-
-            mw_storage_record_designate_index_updated(&s_thaisen_transaction[gunno], sizeof(s_thaisen_transaction[gunno]), USER_DATA_TYPE_VERIFIED,  \
-                    0x00, gunno, s_current_order_index[TARGET_PLATFORM_INDEX][gunno]);
-            memcpy(&(s_thaisen_transaction_report[TARGET_PLATFORM_INDEX][gunno]), &(s_thaisen_transaction[gunno]), sizeof(thaisen_transaction_t));
-            app_nsal_transaction_record_report_target(gunno, &(s_thaisen_transaction_report[TARGET_PLATFORM_INDEX][gunno]), 0x00);
-            s_transaction_sending[TARGET_PLATFORM_INDEX][gunno] = APP_THA_ENUM_TRUE;
-
-            memcpy(&(s_thaisen_transaction_report[MONITOR_PLATFORM_INDEX][gunno]), &(s_thaisen_transaction[gunno]), sizeof(thaisen_transaction_t));
-            app_nsal_transaction_record_report_monitor(gunno, &(s_thaisen_transaction_report[MONITOR_PLATFORM_INDEX][gunno]), 0x00);
-            s_transaction_sending[MONITOR_PLATFORM_INDEX][gunno] = APP_THA_ENUM_TRUE;
+            app_billing_info_init(s_ofsm_info[gunno].base.start_elect, gunno);
 
             memset(s_ofsm_info[gunno].base.transaction_number, 0x00, sizeof(s_ofsm_info[gunno].base.transaction_number));
             memset(s_ofsm_info[gunno].base.car_vin, 0x00, sizeof(s_ofsm_info[gunno].base.car_vin));
@@ -1322,12 +1275,21 @@ static void ofsm_starting_fun(uint8_t gunno)
         s_thaisen_transaction[gunno].boot_result = s_ofsm_info[gunno].base.flag.start_result;
         s_thaisen_transaction[gunno].order_state.is_start_fail = APP_THA_ENUM_FALSE;
 
+        s_ofsm_info[gunno].base.start_time = s_ofsm_info[gunno].base.current_time;
+        s_ofsm_info[gunno].base.stop_time = s_ofsm_info[gunno].base.current_time;
+        s_ofsm_info[gunno].base.start_period = app_calculate_current_period(s_ofsm_info[gunno].base.start_time);
+        s_ofsm_info[gunno].base.current_period = s_ofsm_info[gunno].base.start_period;
+        s_ofsm_info[gunno].timing_tick = rt_tick_get();
+        s_thaisen_transaction[gunno].start_time = s_ofsm_info[gunno].base.start_time;
+        s_thaisen_transaction[gunno].end_time = s_thaisen_transaction[gunno].start_time;
+        s_thaisen_transaction[gunno].start_period_number = s_ofsm_info[gunno].base.start_period;
+
         s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_CHARGING];
         s_ofsm_info[gunno].state = APP_OFSM_STATE_CHARGING;
 
         s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
 
-        app_billing_info_init((s_ofsm_info[gunno].base.start_elect *10), gunno);
+        app_billing_info_init(s_ofsm_info[gunno].base.start_elect, gunno);
 
         app_nsal_state_charged(gunno);
         app_nsal_event_occurded(gunno);
@@ -1339,17 +1301,12 @@ static void ofsm_starting_fun(uint8_t gunno)
     case APP_CHARGE_STATE_FAULTING:
     case APP_CHARGE_STATE_WAIT_PULL_GUN:
     {
-        s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_FINISHING];
-        s_ofsm_info[gunno].state = APP_OFSM_STATE_FINISHING;
+        s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_STOPING];
+        s_ofsm_info[gunno].state = APP_OFSM_STATE_STOPING;
 
         s_ofsm_info[gunno].base.system_fault = system_fault;
         s_ofsm_info[gunno].base.charge_fault = charge_fault;
         s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
-
-        app_nsal_report_bms_message_end(gunno);
-        app_nsal_report_bms_message_error(gunno);
-        app_nsal_report_bms_message_bmsend(gunno);
-        app_nsal_report_bms_message_chargerend(gunno);
 
         stop_way = mw_get_system_stop_way(gunno);
         s_thaisen_transaction[gunno].stop_reason = stop_way;
@@ -1369,6 +1326,15 @@ static void ofsm_starting_fun(uint8_t gunno)
         s_ofsm_info[gunno].base.flag.start_result = APP_THA_ENUM_FALSE;
         s_thaisen_transaction[gunno].boot_result = s_ofsm_info[gunno].base.flag.start_result;
         s_thaisen_transaction[gunno].order_state.is_charging = APP_THA_ENUM_FALSE;
+
+        s_ofsm_info[gunno].base.start_time = s_ofsm_info[gunno].base.current_time;
+        s_ofsm_info[gunno].base.stop_time = s_ofsm_info[gunno].base.current_time;
+        s_ofsm_info[gunno].base.start_period = app_calculate_current_period(s_ofsm_info[gunno].base.start_time);
+        s_ofsm_info[gunno].base.current_period = s_ofsm_info[gunno].base.start_period;
+
+        s_thaisen_transaction[gunno].start_time = s_ofsm_info[gunno].base.start_time;
+        s_thaisen_transaction[gunno].end_time = s_thaisen_transaction[gunno].start_time;
+        s_thaisen_transaction[gunno].start_period_number = s_ofsm_info[gunno].base.start_period;
 
         /* 对时后时间要修改 */
         if(mw_get_time_sync_flag(gunno)){
@@ -1391,31 +1357,7 @@ static void ofsm_starting_fun(uint8_t gunno)
             LOG_I("chargepile is synchronized, modify correlation time|%x\n", curr_time);
         }
 
-        struct thaisenBMS_Charger_struct *bms = mw_get_bms_data(gunno);
-
-        s_thaisen_transaction[gunno].bms_stop_reason.target_soc = bms->BST.SOCGetObj;
-        s_thaisen_transaction[gunno].bms_stop_reason.target_tvolt = bms->BST.VoltGetObj;
-        s_thaisen_transaction[gunno].bms_stop_reason.target_svolt = bms->BST.CeliVoltGetObj;
-        s_thaisen_transaction[gunno].bms_stop_reason.chargerend = bms->BST.ChargInitiStop;
-
-        s_thaisen_transaction[gunno].bms_fault_reason.insultion = bms->BST.InsltFault;
-        s_thaisen_transaction[gunno].bms_fault_reason.olink_ot = bms->BST.OutConectOVtemp;
-        s_thaisen_transaction[gunno].bms_fault_reason.bms_comp_olink_ot = bms->BST.BMSCompOVtemp;
-        s_thaisen_transaction[gunno].bms_fault_reason.clink_fault = bms->BST.Conectfault;
-        s_thaisen_transaction[gunno].bms_fault_reason.battery_ot = bms->BST.BatOVtemp;
-        s_thaisen_transaction[gunno].bms_fault_reason.hv_relay = bms->BST.HVRelaysFault;
-        s_thaisen_transaction[gunno].bms_fault_reason.detect_point2_volt = bms->BST.Check2Ft;
-        s_thaisen_transaction[gunno].bms_fault_reason.other = bms->BST.OtherFt;
-
-        mw_storage_record_designate_index_updated(&s_thaisen_transaction[gunno], sizeof(s_thaisen_transaction[gunno]), USER_DATA_TYPE_VERIFIED,  \
-                0x00, gunno, s_current_order_index[TARGET_PLATFORM_INDEX][gunno]);
-        memcpy(&(s_thaisen_transaction_report[TARGET_PLATFORM_INDEX][gunno]), &(s_thaisen_transaction[gunno]), sizeof(thaisen_transaction_t));
-        app_nsal_transaction_record_report_target(gunno, &(s_thaisen_transaction_report[TARGET_PLATFORM_INDEX][gunno]), 0x00);
-        s_transaction_sending[TARGET_PLATFORM_INDEX][gunno] = APP_THA_ENUM_TRUE;
-
-        memcpy(&(s_thaisen_transaction_report[MONITOR_PLATFORM_INDEX][gunno]), &(s_thaisen_transaction[gunno]), sizeof(thaisen_transaction_t));
-        app_nsal_transaction_record_report_monitor(gunno, &(s_thaisen_transaction_report[MONITOR_PLATFORM_INDEX][gunno]), 0x00);
-        s_transaction_sending[MONITOR_PLATFORM_INDEX][gunno] = APP_THA_ENUM_TRUE;
+        app_billing_info_init(s_ofsm_info[gunno].base.start_elect, gunno);
 
         memset(s_ofsm_info[gunno].base.transaction_number, 0x00, sizeof(s_ofsm_info[gunno].base.transaction_number));
         memset(s_ofsm_info[gunno].base.car_vin, 0x00, sizeof(s_ofsm_info[gunno].base.car_vin));
@@ -1459,20 +1401,33 @@ static void ofsm_charging_fun(uint8_t gunno)
         return;
     }
 
+    uint32_t current_tick = rt_tick_get(), increase_sec = 0;
     bool is_stop_charge_authorization = APP_THA_ENUM_FALSE;  /* 停充已授权 */
-
     enum system_stop_way stop_way = APP_SYSTEM_STOP_WAY_SIZE;
     enum charge_state_t charge_state = mw_get_charge_state(gunno);
     enum charge_fault_t charge_fault = app_get_highest_priority_system_fault(gunno);
     enum system_fault_t system_fault = app_get_highest_priority_charge_fault(gunno);
-
     struct thaisenBMS_Charger_struct* bms_info = (struct thaisenBMS_Charger_struct*)(s_ofsm_info[gunno].base.bms_data);
+
+    if (++s_debug_count[gunno] > (3000 + 500 *gunno) / 100) {
+        s_debug_count[gunno] = 0;
+        LOG_I("gunno(%d) charging state (%dV | S%d | E|%u, F|%u V|%d C|%d P|%d charge_time(%d))...", gunno, mw_get_cc1_value(s_ofsm_info[gunno].base.cc1_state), charge_state,
+                s_ofsm_info[gunno].base.elect_a, s_ofsm_info[gunno].base.fees_total, s_ofsm_info[gunno].base.voltage_a,
+                s_ofsm_info[gunno].base.current_a, s_ofsm_info[gunno].base.power_a, s_ofsm_info[gunno].base.charge_time);
+    }
+
+    if(s_ofsm_info[gunno].timing_tick > current_tick){
+        increase_sec = ((current_tick + 0xFFFFFFFF) - s_ofsm_info[gunno].timing_tick) /1000;
+    }else{
+        increase_sec = (current_tick - s_ofsm_info[gunno].timing_tick) /1000;
+    }
+    app_billing_info_calculate((s_ofsm_info[gunno].base.start_time + increase_sec), mw_get_meter_total_wh(gunno), gunno);
 
     s_ofsm_info[gunno].base.voltage_a = mw_get_meter_ua(gunno) *10;
     s_ofsm_info[gunno].base.current_a = mw_get_meter_ia(gunno) *10;
     s_ofsm_info[gunno].base.power_a = mw_get_meter_pa(gunno);
     s_ofsm_info[gunno].base.current_soc = bms_info->BCS.SOC;
-    s_ofsm_info[gunno].base.stop_time = s_ofsm_info[gunno].base.current_time;
+    s_ofsm_info[gunno].base.stop_time = (s_ofsm_info[gunno].base.start_time + increase_sec);
     s_ofsm_info[gunno].base.charge_time = s_ofsm_info[gunno].base.stop_time - s_ofsm_info[gunno].base.start_time;
     s_ofsm_info[gunno].base.current_elect = app_billingrule_get_stop_elcet(gunno);
     s_ofsm_info[gunno].base.fees_total = app_billingrule_get_fees_total(gunno);
@@ -1481,8 +1436,8 @@ static void ofsm_charging_fun(uint8_t gunno)
         s_ofsm_info[gunno].base.elect_fees_total = (s_ofsm_info[gunno].base.fees_total - s_ofsm_info[gunno].base.service_fees_total);
     }
     s_ofsm_info[gunno].base.elect_a = app_billingrule_get_elcet_total(gunno);
-    if(s_ofsm_info[gunno].base.current_period != app_calculate_current_period(s_ofsm_info[gunno].base.start_time)){
-        s_ofsm_info[gunno].base.current_period = app_calculate_current_period(s_ofsm_info[gunno].base.start_time);
+    if(s_ofsm_info[gunno].base.current_period != app_calculate_current_period((s_ofsm_info[gunno].base.start_time + increase_sec))){
+        s_ofsm_info[gunno].base.current_period = app_calculate_current_period((s_ofsm_info[gunno].base.start_time + increase_sec));
         if(s_ofsm_info[gunno].base.period_num < APP_BILLING_RULE_PERIOD_MAX){
             s_ofsm_info[gunno].base.period_num++;
         }
@@ -1491,20 +1446,20 @@ static void ofsm_charging_fun(uint8_t gunno)
     s_thaisen_transaction[gunno].end_time = s_ofsm_info[gunno].base.stop_time;
     s_thaisen_transaction[gunno].charge_time = s_ofsm_info[gunno].base.charge_time;
     s_thaisen_transaction[gunno].stop_soc = s_ofsm_info[gunno].base.current_soc;
-    s_thaisen_transaction[gunno].ammeter_stop = s_ofsm_info[gunno].base.current_elect /10;
+    s_thaisen_transaction[gunno].ammeter_stop = s_ofsm_info[gunno].base.current_elect;
     s_thaisen_transaction[gunno].total_elect = s_ofsm_info[gunno].base.elect_a;
     s_thaisen_transaction[gunno].total_loss_elect = 0x00;;
     s_thaisen_transaction[gunno].charge_fee = s_ofsm_info[gunno].base.elect_fees_total;
     s_thaisen_transaction[gunno].service_fee = s_ofsm_info[gunno].base.service_fees_total;
     s_thaisen_transaction[gunno].total_fee = s_ofsm_info[gunno].base.fees_total;
-#ifdef APP_INCLUDE_YKC_PROTOCOL
+
+#if (defined (APP_INCLUDE_YKC_PROTOCOL) || defined (APP_INCLUDE_YKC_PROTOCOL_MONITOR))
     for(uint8_t type = 0x00; type < APP_BILLING_RULE_RATE_TYPE_MAX; type++){
-        s_thaisen_transaction[gunno].rate_type_unit[type] = app_billingrule_get_rate_type_price(gunno, type);
         s_thaisen_transaction[gunno].rate_type_elect[type] = app_billingrule_get_rate_type_elect(gunno, type);
         s_thaisen_transaction[gunno].rate_type_amount[type] = app_billingrule_get_rate_type_fess(gunno, type);
         s_thaisen_transaction[gunno].rate_type_loss_elect[type] = 0x00;
     }
-#endif /* APP_INCLUDE_YKC_PROTOCOL */
+#endif /* (defined (APP_INCLUDE_YKC_PROTOCOL) || defined (APP_INCLUDE_YKC_PROTOCOL_MONITOR)) */
 
 #ifdef APP_INCLUDE_SL_PROTOCOL
     for(uint8_t period = s_ofsm_info[gunno].base.start_period; period <= s_ofsm_info[gunno].base.current_period; period++){
@@ -1514,16 +1469,6 @@ static void ofsm_charging_fun(uint8_t gunno)
     }
 #endif /* APP_INCLUDE_SL_PROTOCOL */
     s_thaisen_transaction[gunno].period_count = s_ofsm_info[gunno].base.period_num;
-
-    if (++s_debug_count[gunno] > (3000 + 500 *gunno) / 100) {
-        s_debug_count[gunno] = 0;
-        LOG_I("gunno(%d) charging state (%dV | S%d | E|%u, F|%u V|%d C|%d P|%d charge_time(%d))...", gunno, mw_get_cc1_value(s_ofsm_info[gunno].base.cc1_state), charge_state,
-                s_ofsm_info[gunno].base.elect_a, s_ofsm_info[gunno].base.fees_total, s_ofsm_info[gunno].base.voltage_a,
-                s_ofsm_info[gunno].base.current_a, s_ofsm_info[gunno].base.power_a, s_ofsm_info[gunno].base.charge_time);
-    }
-
-    /* 充电订单计费 */
-    app_billing_info_calculate(s_ofsm_info[gunno].base.current_time, (mw_get_meter_total_wh(gunno) *10), gunno);
 
     /* 对时后时间要修改 */
     if(mw_get_time_sync_flag(gunno)){
@@ -1553,17 +1498,12 @@ static void ofsm_charging_fun(uint8_t gunno)
     switch (charge_state){
     case APP_CHARGE_STATE_IDLE:
     {
-        s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_FINISHING];
-        s_ofsm_info[gunno].state = APP_OFSM_STATE_FINISHING;
+        s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_STOPING];
+        s_ofsm_info[gunno].state = APP_OFSM_STATE_STOPING;
 
         s_ofsm_info[gunno].base.system_fault = system_fault;
         s_ofsm_info[gunno].base.charge_fault = charge_fault;
         s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_FALSE;
-
-        app_nsal_report_bms_message_end(gunno);
-        app_nsal_report_bms_message_error(gunno);
-        app_nsal_report_bms_message_bmsend(gunno);
-        app_nsal_report_bms_message_chargerend(gunno);
 
         stop_way = mw_get_system_stop_way(gunno);
         if(stop_way != APP_SYSTEM_STOP_WAY_PASSIVE){
@@ -1597,33 +1537,7 @@ static void ofsm_charging_fun(uint8_t gunno)
             LOG_I("chargepile is synchronized, modify correlation time|%x\n", curr_time);
         }
 
-        struct thaisenBMS_Charger_struct *bms = mw_get_bms_data(gunno);
-
-        s_thaisen_transaction[gunno].bms_stop_reason.target_soc = bms->BST.SOCGetObj;
-        s_thaisen_transaction[gunno].bms_stop_reason.target_tvolt = bms->BST.VoltGetObj;
-        s_thaisen_transaction[gunno].bms_stop_reason.target_svolt = bms->BST.CeliVoltGetObj;
-        s_thaisen_transaction[gunno].bms_stop_reason.chargerend = bms->BST.ChargInitiStop;
-
-        s_thaisen_transaction[gunno].bms_fault_reason.insultion = bms->BST.InsltFault;
-        s_thaisen_transaction[gunno].bms_fault_reason.olink_ot = bms->BST.OutConectOVtemp;
-        s_thaisen_transaction[gunno].bms_fault_reason.bms_comp_olink_ot = bms->BST.BMSCompOVtemp;
-        s_thaisen_transaction[gunno].bms_fault_reason.clink_fault = bms->BST.Conectfault;
-        s_thaisen_transaction[gunno].bms_fault_reason.battery_ot = bms->BST.BatOVtemp;
-        s_thaisen_transaction[gunno].bms_fault_reason.hv_relay = bms->BST.HVRelaysFault;
-        s_thaisen_transaction[gunno].bms_fault_reason.detect_point2_volt = bms->BST.Check2Ft;
-        s_thaisen_transaction[gunno].bms_fault_reason.other = bms->BST.OtherFt;
-
         s_thaisen_transaction[gunno].order_state.is_charging = APP_THA_ENUM_FALSE;
-
-        mw_storage_record_designate_index_updated(&s_thaisen_transaction[gunno], sizeof(s_thaisen_transaction[gunno]), USER_DATA_TYPE_VERIFIED,  \
-                0x00, gunno, s_current_order_index[TARGET_PLATFORM_INDEX][gunno]);
-        memcpy(&(s_thaisen_transaction_report[TARGET_PLATFORM_INDEX][gunno]), &(s_thaisen_transaction[gunno]), sizeof(thaisen_transaction_t));
-        app_nsal_transaction_record_report_target(gunno, &(s_thaisen_transaction_report[TARGET_PLATFORM_INDEX][gunno]), 0x00);
-        s_transaction_sending[TARGET_PLATFORM_INDEX][gunno] = APP_THA_ENUM_TRUE;
-
-        memcpy(&(s_thaisen_transaction_report[MONITOR_PLATFORM_INDEX][gunno]), &(s_thaisen_transaction[gunno]), sizeof(thaisen_transaction_t));
-        app_nsal_transaction_record_report_monitor(gunno, &(s_thaisen_transaction_report[MONITOR_PLATFORM_INDEX][gunno]), 0x00);
-        s_transaction_sending[MONITOR_PLATFORM_INDEX][gunno] = APP_THA_ENUM_TRUE;
 
         memset(s_ofsm_info[gunno].base.transaction_number, 0x00, sizeof(s_ofsm_info[gunno].base.transaction_number));
         memset(s_ofsm_info[gunno].base.car_vin, 0x00, sizeof(s_ofsm_info[gunno].base.car_vin));
@@ -1642,16 +1556,11 @@ static void ofsm_charging_fun(uint8_t gunno)
     case APP_CHARGE_STATE_FAULTING:
     case APP_CHARGE_STATE_WAIT_PULL_GUN:
     {
-        s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_FINISHING];
-        s_ofsm_info[gunno].state = APP_OFSM_STATE_FINISHING;
+        s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_STOPING];
+        s_ofsm_info[gunno].state = APP_OFSM_STATE_STOPING;
 
         s_ofsm_info[gunno].base.system_fault = system_fault;
         s_ofsm_info[gunno].base.charge_fault = charge_fault;
-
-        app_nsal_report_bms_message_end(gunno);
-        app_nsal_report_bms_message_error(gunno);
-        app_nsal_report_bms_message_bmsend(gunno);
-        app_nsal_report_bms_message_chargerend(gunno);
 
         stop_way = mw_get_system_stop_way(gunno);
 
@@ -1691,39 +1600,14 @@ static void ofsm_charging_fun(uint8_t gunno)
             LOG_I("chargepile is synchronized, modify correlation time|%x\n", curr_time);
         }
 
-        struct thaisenBMS_Charger_struct *bms = mw_get_bms_data(gunno);
-
-        s_thaisen_transaction[gunno].bms_stop_reason.target_soc = bms->BST.SOCGetObj;
-        s_thaisen_transaction[gunno].bms_stop_reason.target_tvolt = bms->BST.VoltGetObj;
-        s_thaisen_transaction[gunno].bms_stop_reason.target_svolt = bms->BST.CeliVoltGetObj;
-        s_thaisen_transaction[gunno].bms_stop_reason.chargerend = bms->BST.ChargInitiStop;
-
-        s_thaisen_transaction[gunno].bms_fault_reason.insultion = bms->BST.InsltFault;
-        s_thaisen_transaction[gunno].bms_fault_reason.olink_ot = bms->BST.OutConectOVtemp;
-        s_thaisen_transaction[gunno].bms_fault_reason.bms_comp_olink_ot = bms->BST.BMSCompOVtemp;
-        s_thaisen_transaction[gunno].bms_fault_reason.clink_fault = bms->BST.Conectfault;
-        s_thaisen_transaction[gunno].bms_fault_reason.battery_ot = bms->BST.BatOVtemp;
-        s_thaisen_transaction[gunno].bms_fault_reason.hv_relay = bms->BST.HVRelaysFault;
-        s_thaisen_transaction[gunno].bms_fault_reason.detect_point2_volt = bms->BST.Check2Ft;
-        s_thaisen_transaction[gunno].bms_fault_reason.other = bms->BST.OtherFt;
-
         s_thaisen_transaction[gunno].order_state.is_charging = APP_THA_ENUM_FALSE;
-
-        mw_storage_record_designate_index_updated(&s_thaisen_transaction[gunno], sizeof(s_thaisen_transaction[gunno]), USER_DATA_TYPE_VERIFIED,  \
-                0x00, gunno, s_current_order_index[TARGET_PLATFORM_INDEX][gunno]);
-        memcpy(&(s_thaisen_transaction_report[TARGET_PLATFORM_INDEX][gunno]), &(s_thaisen_transaction[gunno]), sizeof(thaisen_transaction_t));
-        app_nsal_transaction_record_report_target(gunno, &(s_thaisen_transaction_report[TARGET_PLATFORM_INDEX][gunno]), 0x00);
-        s_transaction_sending[TARGET_PLATFORM_INDEX][gunno] = APP_THA_ENUM_TRUE;
-
-        memcpy(&(s_thaisen_transaction_report[MONITOR_PLATFORM_INDEX][gunno]), &(s_thaisen_transaction[gunno]), sizeof(thaisen_transaction_t));
-        app_nsal_transaction_record_report_monitor(gunno, &(s_thaisen_transaction_report[MONITOR_PLATFORM_INDEX][gunno]), 0x00);
-        s_transaction_sending[MONITOR_PLATFORM_INDEX][gunno] = APP_THA_ENUM_TRUE;
 
         memset(s_ofsm_info[gunno].base.transaction_number, 0x00, sizeof(s_ofsm_info[gunno].base.transaction_number));
         memset(s_ofsm_info[gunno].base.car_vin, 0x00, sizeof(s_ofsm_info[gunno].base.car_vin));
         memset(s_ofsm_info[gunno].base.card_number, 0x00, sizeof(s_ofsm_info[gunno].base.card_number));
         memset(s_ofsm_info[gunno].base.card_uid, 0x00, sizeof(s_ofsm_info[gunno].base.card_uid));
         memset(s_ofsm_info[gunno].base.user_number, 0x00, sizeof(s_ofsm_info[gunno].base.user_number));
+
         app_nsal_init_charge_data(gunno);
         app_nsal_state_charged(gunno);
         app_nsal_event_occurded(gunno);
@@ -1889,38 +1773,7 @@ static void ofsm_charging_fun(uint8_t gunno)
 
         mw_charge_stop_cmd(gunno);
 
-        app_nsal_report_bms_message_end(gunno);
-        app_nsal_report_bms_message_error(gunno);
-        app_nsal_report_bms_message_bmsend(gunno);
-        app_nsal_report_bms_message_chargerend(gunno);
-
-        struct thaisenBMS_Charger_struct *bms = mw_get_bms_data(gunno);
-
-        s_thaisen_transaction[gunno].bms_stop_reason.target_soc = bms->BST.SOCGetObj;
-        s_thaisen_transaction[gunno].bms_stop_reason.target_tvolt = bms->BST.VoltGetObj;
-        s_thaisen_transaction[gunno].bms_stop_reason.target_svolt = bms->BST.CeliVoltGetObj;
-        s_thaisen_transaction[gunno].bms_stop_reason.chargerend = bms->BST.ChargInitiStop;
-
-        s_thaisen_transaction[gunno].bms_fault_reason.insultion = bms->BST.InsltFault;
-        s_thaisen_transaction[gunno].bms_fault_reason.olink_ot = bms->BST.OutConectOVtemp;
-        s_thaisen_transaction[gunno].bms_fault_reason.bms_comp_olink_ot = bms->BST.BMSCompOVtemp;
-        s_thaisen_transaction[gunno].bms_fault_reason.clink_fault = bms->BST.Conectfault;
-        s_thaisen_transaction[gunno].bms_fault_reason.battery_ot = bms->BST.BatOVtemp;
-        s_thaisen_transaction[gunno].bms_fault_reason.hv_relay = bms->BST.HVRelaysFault;
-        s_thaisen_transaction[gunno].bms_fault_reason.detect_point2_volt = bms->BST.Check2Ft;
-        s_thaisen_transaction[gunno].bms_fault_reason.other = bms->BST.OtherFt;
-
         s_thaisen_transaction[gunno].order_state.is_charging = APP_THA_ENUM_FALSE;
-
-        mw_storage_record_designate_index_updated(&s_thaisen_transaction[gunno], sizeof(s_thaisen_transaction[gunno]), USER_DATA_TYPE_VERIFIED,  \
-                0x00, gunno, s_current_order_index[TARGET_PLATFORM_INDEX][gunno]);
-        memcpy(&(s_thaisen_transaction_report[TARGET_PLATFORM_INDEX][gunno]), &(s_thaisen_transaction[gunno]), sizeof(thaisen_transaction_t));
-        app_nsal_transaction_record_report_target(gunno, &(s_thaisen_transaction_report[TARGET_PLATFORM_INDEX][gunno]), 0x00);
-        s_transaction_sending[TARGET_PLATFORM_INDEX][gunno] = APP_THA_ENUM_TRUE;
-
-        memcpy(&(s_thaisen_transaction_report[MONITOR_PLATFORM_INDEX][gunno]), &(s_thaisen_transaction[gunno]), sizeof(thaisen_transaction_t));
-        app_nsal_transaction_record_report_monitor(gunno, &(s_thaisen_transaction_report[MONITOR_PLATFORM_INDEX][gunno]), 0x00);
-        s_transaction_sending[MONITOR_PLATFORM_INDEX][gunno] = APP_THA_ENUM_TRUE;
 
         s_ofsm_info[gunno].base.system_fault = APP_SYS_FAULT_NO_ERROR;
         s_ofsm_info[gunno].base.charge_fault = APP_CHARGE_FAULT_NO_ERROR;
@@ -1949,6 +1802,7 @@ static void ofsm_stoping_fun(uint8_t gunno)
         return;
     }
 
+    bool is_stop_complete = APP_THA_ENUM_FALSE;  /* 充电已停止完成 */
     enum charge_state_t charge_state = mw_get_charge_state(gunno);
 
     if (++s_debug_count[gunno] > (1000 + 500 *gunno) / 100) {
@@ -1958,22 +1812,106 @@ static void ofsm_stoping_fun(uint8_t gunno)
 
     switch (charge_state){
     case APP_CHARGE_STATE_IDLE:
-        s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_FINISHING];
-        s_ofsm_info[gunno].state = APP_OFSM_STATE_FINISHING;
+    case APP_CHARGE_STATE_SHAKE_HAND:
+    case APP_CHARGE_STATE_INSULATION:
+    case APP_CHARGE_STATE_CONFIGURE:
+        is_stop_complete = APP_THA_ENUM_TRUE;
         break;
     case APP_CHARGE_STATE_FAULTING:
-        s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_FINISHING];
-        s_ofsm_info[gunno].state = APP_OFSM_STATE_FINISHING;
+    case APP_CHARGE_STATE_SIZE:
+        is_stop_complete = APP_THA_ENUM_TRUE;
         break;
     case APP_CHARGE_STATE_FINISH:
     case APP_CHARGE_STATE_WAIT_PULL_GUN:
-        s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_FINISHING];
-        s_ofsm_info[gunno].state = APP_OFSM_STATE_FINISHING;
+        is_stop_complete = APP_THA_ENUM_TRUE;
         break;
     default:
+        break;
+    }
+
+    if(is_stop_complete){
+        switch (charge_state){
+        case APP_CHARGE_STATE_IDLE:
+        case APP_CHARGE_STATE_SHAKE_HAND:
+        case APP_CHARGE_STATE_INSULATION:
+        case APP_CHARGE_STATE_CONFIGURE:
+        case APP_CHARGE_STATE_FAULTING:
+        case APP_CHARGE_STATE_WAIT_PULL_GUN:
+        case APP_CHARGE_STATE_SIZE:
+            break;
+        default:
+            return;  /* 要等待充电结束相关报文交互完成 */
+        }
+
+        struct thaisenBMS_Charger_struct *bms = mw_get_bms_data(gunno);
+
+        s_thaisen_transaction[gunno].bms_stop_reason.target_soc = bms->BST.SOCGetObj;
+        s_thaisen_transaction[gunno].bms_stop_reason.target_tvolt = bms->BST.VoltGetObj;
+        s_thaisen_transaction[gunno].bms_stop_reason.target_svolt = bms->BST.CeliVoltGetObj;
+        s_thaisen_transaction[gunno].bms_stop_reason.chargerend = bms->BST.ChargInitiStop;
+
+        s_thaisen_transaction[gunno].bms_fault_reason.insultion = bms->BST.InsltFault;
+        s_thaisen_transaction[gunno].bms_fault_reason.olink_ot = bms->BST.OutConectOVtemp;
+        s_thaisen_transaction[gunno].bms_fault_reason.bms_comp_olink_ot = bms->BST.BMSCompOVtemp;
+        s_thaisen_transaction[gunno].bms_fault_reason.clink_fault = bms->BST.Conectfault;
+        s_thaisen_transaction[gunno].bms_fault_reason.battery_ot = bms->BST.BatOVtemp;
+        s_thaisen_transaction[gunno].bms_fault_reason.hv_relay = bms->BST.HVRelaysFault;
+        s_thaisen_transaction[gunno].bms_fault_reason.detect_point2_volt = bms->BST.Check2Ft;
+        s_thaisen_transaction[gunno].bms_fault_reason.other = bms->BST.OtherFt;
+
+        app_nsal_report_bms_message_end(gunno);
+        app_nsal_report_bms_message_error(gunno);
+        app_nsal_report_bms_message_bmsend(gunno);
+        app_nsal_report_bms_message_chargerend(gunno);
+
+        rt_thread_mdelay(2000);  /* 错峰上报订单 */
+
+        app_billing_info_calculate(s_ofsm_info[gunno].base.stop_time, mw_get_meter_total_wh(gunno), gunno);
+
+        s_ofsm_info[gunno].base.current_elect = app_billingrule_get_stop_elcet(gunno);
+        s_ofsm_info[gunno].base.elect_a = app_billingrule_get_elcet_total(gunno);
+        s_ofsm_info[gunno].base.fees_total = app_billingrule_get_fees_total(gunno);
+        s_ofsm_info[gunno].base.service_fees_total = app_billingrule_get_service_fees_total(gunno);
+        if(s_ofsm_info[gunno].base.fees_total > s_ofsm_info[gunno].base.service_fees_total){
+            s_ofsm_info[gunno].base.elect_fees_total = (s_ofsm_info[gunno].base.fees_total - s_ofsm_info[gunno].base.service_fees_total);
+        }
+
+        s_thaisen_transaction[gunno].ammeter_stop = s_ofsm_info[gunno].base.current_elect;
+        s_thaisen_transaction[gunno].total_elect = s_ofsm_info[gunno].base.elect_a;
+        s_thaisen_transaction[gunno].total_loss_elect = 0x00;;
+        s_thaisen_transaction[gunno].charge_fee = s_ofsm_info[gunno].base.elect_fees_total;
+        s_thaisen_transaction[gunno].service_fee = s_ofsm_info[gunno].base.service_fees_total;
+        s_thaisen_transaction[gunno].total_fee = s_ofsm_info[gunno].base.fees_total;
+
+#if (defined (APP_INCLUDE_YKC_PROTOCOL) || defined (APP_INCLUDE_YKC_PROTOCOL_MONITOR))
+        for(uint8_t type = 0x00; type < APP_BILLING_RULE_RATE_TYPE_MAX; type++){
+            s_thaisen_transaction[gunno].rate_type_elect[type] = app_billingrule_get_rate_type_elect(gunno, type);
+            s_thaisen_transaction[gunno].rate_type_amount[type] = app_billingrule_get_rate_type_fess(gunno, type);
+        }
+#endif /* (defined (APP_INCLUDE_YKC_PROTOCOL) || defined (APP_INCLUDE_YKC_PROTOCOL_MONITOR)) */
+
+#ifdef APP_INCLUDE_SL_PROTOCOL
+        for(uint8_t period = s_ofsm_info[gunno].base.start_period; period <= s_ofsm_info[gunno].base.current_period; period++){
+            s_thaisen_transaction[gunno].period_elect[period] = app_billingrule_get_period_elect(gunno, period);
+            s_thaisen_transaction[gunno].period_elect_fees[period] = app_billingrule_get_period_elect_fees(gunno, period);
+            s_thaisen_transaction[gunno].period_service_fees[period] = app_billingrule_get_period_service_fees(gunno, period);
+        }
+#endif /* APP_INCLUDE_SL_PROTOCOL */
+
+        mw_storage_record_designate_index_updated(&s_thaisen_transaction[gunno], sizeof(s_thaisen_transaction[gunno]), USER_DATA_TYPE_VERIFIED,  \
+                0x00, gunno, s_current_order_index[TARGET_PLATFORM_INDEX][gunno]);
+        memcpy(&(s_thaisen_transaction_report[TARGET_PLATFORM_INDEX][gunno]), &(s_thaisen_transaction[gunno]), sizeof(thaisen_transaction_t));
+        app_nsal_transaction_record_report_target(gunno, &(s_thaisen_transaction_report[TARGET_PLATFORM_INDEX][gunno]), 0x00);
+        s_transaction_sending[TARGET_PLATFORM_INDEX][gunno] = APP_THA_ENUM_TRUE;
+
+        memcpy(&(s_thaisen_transaction_report[MONITOR_PLATFORM_INDEX][gunno]), &(s_thaisen_transaction[gunno]), sizeof(thaisen_transaction_t));
+        app_nsal_transaction_record_report_monitor(gunno, &(s_thaisen_transaction_report[MONITOR_PLATFORM_INDEX][gunno]), 0x00);
+        s_transaction_sending[MONITOR_PLATFORM_INDEX][gunno] = APP_THA_ENUM_TRUE;
+
         s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_FINISHING];
         s_ofsm_info[gunno].state = APP_OFSM_STATE_FINISHING;
-        break;
+
+        rt_thread_mdelay(4000);  /* 等待电子锁解锁 */
     }
 
     mw_clear_time_sync_flag(gunno);
@@ -1996,6 +1934,7 @@ static void ofsm_finishing_fun(uint8_t gunno)
 
     bool is_charging_authorization = APP_THA_ENUM_FALSE;  /* 充电已授权 */
     enum charge_state_t charge_state = mw_get_charge_state(gunno);
+    enum system_fault_t fault = app_get_highest_priority_system_fault(gunno);
 
     if (++s_debug_count[gunno] > (3000 + 500 *gunno) / 100) {
         s_debug_count[gunno] = 0;
@@ -2004,7 +1943,7 @@ static void ofsm_finishing_fun(uint8_t gunno)
 
     s_ofsm_info[gunno].base.flag.is_charge_complete = APP_THA_ENUM_TRUE;
 
-    if(app_get_highest_priority_system_fault(gunno) != APP_SYS_FAULT_NO_ERROR){
+    if((fault != APP_SYS_FAULT_NO_ERROR) && (fault != APP_SYS_FAULT_ELOCK)){
         s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_FAULTING];
         s_ofsm_info[gunno].state = APP_OFSM_STATE_FAULTING;
 
@@ -2287,6 +2226,9 @@ static void ofsm_finishing_fun(uint8_t gunno)
             /* 开始充电 */
             mw_charge_start_cmd(gunno);
 
+            /* 启动前向屏幕对时 */
+            thaisen_request_screen_time();
+
             s_ofsm_info[gunno].base.flag.start_result = APP_THA_ENUM_FALSE;
             s_ofsm_info[gunno].base.voltage_a = 0x00;
             s_ofsm_info[gunno].base.current_a = 0x00;
@@ -2324,12 +2266,15 @@ static void ofsm_finishing_fun(uint8_t gunno)
             s_thaisen_transaction[gunno].charge_fee = 0x00;
             s_thaisen_transaction[gunno].service_fee = 0x00;
             s_thaisen_transaction[gunno].total_fee = 0x00;
-#ifdef APP_INCLUDE_YKC_PROTOCOL
-            memset(s_thaisen_transaction[gunno].rate_type_unit, 0x00, sizeof(s_thaisen_transaction[gunno].rate_type_unit));
+
+#if (defined (APP_INCLUDE_YKC_PROTOCOL) || defined (APP_INCLUDE_YKC_PROTOCOL_MONITOR))
+            for(uint8_t type = 0x00; type < APP_BILLING_RULE_RATE_TYPE_MAX; type++){
+                s_thaisen_transaction[gunno].rate_type_unit[type] = app_billingrule_get_rate_type_price(gunno, type);
+            }
             memset(s_thaisen_transaction[gunno].rate_type_elect, 0x00, sizeof(s_thaisen_transaction[gunno].rate_type_elect));
             memset(s_thaisen_transaction[gunno].rate_type_amount, 0x00, sizeof(s_thaisen_transaction[gunno].rate_type_amount));
             memset(s_thaisen_transaction[gunno].rate_type_loss_elect, 0x00, sizeof(s_thaisen_transaction[gunno].rate_type_loss_elect));
-#endif /* APP_INCLUDE_YKC_PROTOCOL */
+#endif /* (defined (APP_INCLUDE_YKC_PROTOCOL) || defined (APP_INCLUDE_YKC_PROTOCOL_MONITOR)) */
 
 #ifdef APP_INCLUDE_SL_PROTOCOL
             memset(s_thaisen_transaction[gunno].period_elect, 0x00, sizeof(s_thaisen_transaction[gunno].period_elect));
@@ -2707,6 +2652,9 @@ static void ofsm_faulting_fun(uint8_t gunno)
                     /* 开始充电 */
                     mw_charge_start_cmd(gunno);
 
+                    /* 启动前向屏幕对时 */
+                    thaisen_request_screen_time();
+
                     s_ofsm_info[gunno].base.flag.start_result = APP_THA_ENUM_FALSE;
                     s_ofsm_info[gunno].base.voltage_a = 0x00;
                     s_ofsm_info[gunno].base.current_a = 0x00;
@@ -2736,7 +2684,7 @@ static void ofsm_faulting_fun(uint8_t gunno)
                     memset(s_thaisen_transaction[gunno].car_vin, 0x00, sizeof(s_thaisen_transaction[gunno].car_vin));
                     s_thaisen_transaction[gunno].start_soc = 0x00;
                     s_thaisen_transaction[gunno].stop_soc = 0x00;
-                    s_thaisen_transaction[gunno].ammeter_start = s_ofsm_info[gunno].base.start_elect /10;
+                    s_thaisen_transaction[gunno].ammeter_start = s_ofsm_info[gunno].base.start_elect;
                     s_thaisen_transaction[gunno].ammeter_stop = s_ofsm_info[gunno].base.current_elect;
                     s_thaisen_transaction[gunno].stop_reason = APP_SYSTEM_STOP_WAY_POWER_OFF;
                     s_thaisen_transaction[gunno].total_elect = 0x00;
@@ -2744,12 +2692,15 @@ static void ofsm_faulting_fun(uint8_t gunno)
                     s_thaisen_transaction[gunno].charge_fee = 0x00;
                     s_thaisen_transaction[gunno].service_fee = 0x00;
                     s_thaisen_transaction[gunno].total_fee = 0x00;
-        #ifdef APP_INCLUDE_YKC_PROTOCOL
-                    memset(s_thaisen_transaction[gunno].rate_type_unit, 0x00, sizeof(s_thaisen_transaction[gunno].rate_type_unit));
-                    memset(s_thaisen_transaction[gunno].rate_type_elect, 0x00, sizeof(s_thaisen_transaction[gunno].rate_type_elect));
-                    memset(s_thaisen_transaction[gunno].rate_type_amount, 0x00, sizeof(s_thaisen_transaction[gunno].rate_type_amount));
-                    memset(s_thaisen_transaction[gunno].rate_type_loss_elect, 0x00, sizeof(s_thaisen_transaction[gunno].rate_type_loss_elect));
-        #endif /* APP_INCLUDE_YKC_PROTOCOL */
+
+#if (defined (APP_INCLUDE_YKC_PROTOCOL) || defined (APP_INCLUDE_YKC_PROTOCOL_MONITOR))
+            for(uint8_t type = 0x00; type < APP_BILLING_RULE_RATE_TYPE_MAX; type++){
+                s_thaisen_transaction[gunno].rate_type_unit[type] = app_billingrule_get_rate_type_price(gunno, type);
+            }
+            memset(s_thaisen_transaction[gunno].rate_type_elect, 0x00, sizeof(s_thaisen_transaction[gunno].rate_type_elect));
+            memset(s_thaisen_transaction[gunno].rate_type_amount, 0x00, sizeof(s_thaisen_transaction[gunno].rate_type_amount));
+            memset(s_thaisen_transaction[gunno].rate_type_loss_elect, 0x00, sizeof(s_thaisen_transaction[gunno].rate_type_loss_elect));
+#endif /* (defined (APP_INCLUDE_YKC_PROTOCOL) || defined (APP_INCLUDE_YKC_PROTOCOL_MONITOR)) */
 
         #ifdef APP_INCLUDE_SL_PROTOCOL
                     memset(s_thaisen_transaction[gunno].period_elect, 0x00, sizeof(s_thaisen_transaction[gunno].period_elect));

@@ -215,8 +215,15 @@ static uint8_t* app_nget_system_data(uint8_t name, uint32_t *dlen, uint32_t opti
     case NET_SYSTEM_DATA_NAME_HARDWARE_VERSION:
     {
         extern uint8_t *__thaisen_get_test_hard_version(void);
-        uint8_t *ver = __thaisen_get_test_hard_version();
-        return (ver + strlen("ver:000"));
+        uint16_t ver_data = 0x00;
+
+        sscanf(((char*)__thaisen_get_test_hard_version()), "ver:000%u", &ver_data);
+        rt_kprintf("__thaisen_get_test_hard_version(%s) ver_data(%d)\n", __thaisen_get_test_hard_version(), ver_data);
+        if(ver_data >= 7103){
+            return "-V10";
+        }else{
+            return "-V01";
+        }
     }
         break;
     default:

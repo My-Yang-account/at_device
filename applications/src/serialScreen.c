@@ -315,7 +315,7 @@ struct LCD_DISPLAY_SETDATA_TYPE{
 
 	struct in_addr NetMask;					//子网掩码[0][APPCFG_NO_LIMIT,0,APPCFG_NO_LIMIT]
 #endif
-	u8 svrIp[55];					//服务器IP[0][APPCFG_NO_LIMIT,0,APPCFG_NO_LIMIT]
+	u8 svrIp[20];					//服务器IP[0][APPCFG_NO_LIMIT,0,APPCFG_NO_LIMIT]
 	u16 svrPort; 						//服务器端口[0][APPCFG_NO_LIMIT,0,APPCFG_NO_LIMIT]
 //	u8 YuMing[256]; 
 
@@ -4288,6 +4288,9 @@ struct LCD_DATA_FIFO_TYPE *SerialScreen_Init(struct SerialScreenObj *cmd)
             }
         }
     }
+
+//    memset(LcdData.setData.UserPasswdShow, '\0', sizeof(LcdData.setData.UserPasswdShow));
+//    memcpy(LcdData.setData.UserPasswdShow, "0909", strlen("0909"));
 
     len = strlen((char*)(LcdData.setData.UserPasswdShow));
     memcpy(LcdData.setData.UserPasswd, LcdData.setData.UserPasswdShow, sizeof(LcdData.setData.UserPasswdShow));

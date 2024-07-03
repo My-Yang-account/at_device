@@ -308,7 +308,10 @@ typedef struct{
 struct ofsm_info {
     enum ofsm_state state;
     System_BaseData base;
+    uint8_t main_gunno;          /* 并充主枪枪号 */
+    uint8_t charge_way;          /* 充电方式 */
     uint32_t charge_timeout;     /* 启动超时退出 */
+    uint32_t timing_tick;        /* 计时tick(用于订单时段计算) */
 };
 /*******************************************************************************************/
 

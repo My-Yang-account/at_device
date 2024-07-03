@@ -899,3 +899,13 @@ int32_t thaisen_vin_whitelists_add(uint8_t *data, uint8_t len)
     return sys_vin_whitelists_add(data, len);
 }
 
+/********************************************
+ * 函数名      thaisen_get_charge_way
+ * 功能         获取充电方式
+* 返回           充电方式
+ *******************************************/
+enum charge_way thaisen_get_charge_way(void)
+{
+    return APP_CHARGE_WAY_PARACHARGE;
+}
+

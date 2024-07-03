@@ -1757,10 +1757,10 @@ uint8_t ykc_chargepile_request_padding_transaction_record(uint8_t gunno, void *t
         g_ykc_preq_transaction_records[gunno].body.valley_loss_elect = _transaction->rate_type_loss_elect[APP_RATE_TYPE_VALLEY];
         g_ykc_preq_transaction_records[gunno].body.valley_amount = _transaction->rate_type_amount[APP_RATE_TYPE_VALLEY];
 
-        elect = _transaction->ammeter_start *100;
+        elect = _transaction->ammeter_start *10;
         memset(g_ykc_preq_transaction_records[gunno].body.ammeter_start_val, 0x00, sizeof(g_ykc_preq_transaction_records[gunno].body.ammeter_start_val));
         memcpy(g_ykc_preq_transaction_records[gunno].body.ammeter_start_val, &elect, sizeof(g_ykc_preq_transaction_records[gunno].body.ammeter_start_val));
-        elect = _transaction->ammeter_stop *100;
+        elect = _transaction->ammeter_stop *10;
         memset(g_ykc_preq_transaction_records[gunno].body.ammeter_end_val, 0x00, sizeof(g_ykc_preq_transaction_records[gunno].body.ammeter_end_val));
         memcpy(g_ykc_preq_transaction_records[gunno].body.ammeter_end_val, &elect, sizeof(g_ykc_preq_transaction_records[gunno].body.ammeter_end_val));
 

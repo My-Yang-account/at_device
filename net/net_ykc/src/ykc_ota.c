@@ -75,7 +75,6 @@ static uint32_t s_ykc_ota_timeout = 0x00;
 static uint32_t s_ykc_crc, s_ykc_actual_crc;
 static uint32_t s_ykc_spiflash_addr;
 
-static uint8_t s_ykc_ota_file_ver[5];
 static uint8_t s_ykc_ota_file_flag[NET_YKC_OTA_FILE_FLAG_TOTAL_LEN];
 static uint32_t s_ykc_start_tick = 0;
 static int32_t ykc_parse_ota_data(const uint8_t *data, uint32_t len);
@@ -210,17 +209,9 @@ static void ykc_ota_thread_entry(void *parameter)
                     s_ykc_ota_storage_info.pack_len = pack_len;
                     s_ykc_ota_storage_info.check_sum = crc;
                     memset(s_ykc_ota_file_flag, '\0', NET_YKC_OTA_FILE_FLAG_TOTAL_LEN);
-                    memset(s_ykc_ota_file_ver, '\0', sizeof(s_ykc_ota_file_ver));
 
-                    sscanf(((char*)s_handle->get_system_data(NET_SYSTEM_DATA_NAME_HARDWARE_VERSION, NULL, NET_SYSTEM_DATA_OPTION_PLAT_YKC)), "%u", &ver_data);
-                    if(ver_data >= 7103){
-                        memcpy(s_ykc_ota_file_ver, "-V10", strlen("-V10"));
-                    }else{
-                        memcpy(s_ykc_ota_file_ver, "-V01", strlen("-V01"));
-                    }
-
-                    LOG_D("ykc ftp_file_size(%d)[%x, %x, %d][%s], OTA FTP link success\n", pack_len, s_ykc_spiflash_addr,
-                            NET_OTA_DATA_ADDR, s_ykc_ota_storage_info.pack_len, s_ykc_ota_file_ver);
+                    LOG_D("ykc ftp_file_size(%d)[%x, %x, %d], OTA FTP link success\n", pack_len, s_ykc_spiflash_addr,
+                            NET_OTA_DATA_ADDR, s_ykc_ota_storage_info.pack_len);
                     s_ykc_ota_info->state = NET_OTA_STATE_LOGIN_WAIT;
                 }else{
                     LOG_W("ykc ota state error(%d)", s_ykc_ota_info->state);
@@ -324,9 +315,10 @@ static int32_t ykc_parse_ota_data(const uint8_t *data, uint32_t len)
             s_ykc_ota_flag.file_correct = false;  /* 文件类型错误 */
         }
         if(s_ykc_ota_flag.file_correct == true){
-            if(memcmp((s_ykc_ota_file_flag + NET_YKC_OTA_FILE_FLAG_LEN), s_ykc_ota_file_ver, NET_YKC_OTA_FILE_VERSION_FLAG_LEN) != 0){
+            char *ver = ((char*)s_handle->get_system_data(NET_SYSTEM_DATA_NAME_HARDWARE_VERSION, NULL, NET_SYSTEM_DATA_OPTION_PLAT_YKC));
+            if(memcmp((s_ykc_ota_file_flag + NET_YKC_OTA_FILE_FLAG_LEN), ver, NET_YKC_OTA_FILE_VERSION_FLAG_LEN) != 0){
                 s_ykc_ota_flag.file_correct = false;   /* 文件版本错误 */
-                LOG_W("ykc ota file version error, is not allow update");
+                LOG_W("ykc ota file version error, is not allow update[%s, %s]", (s_ykc_ota_file_flag + NET_YKC_OTA_FILE_FLAG_LEN), ver);
             }
         }
         actual_data_len -= remain_ota_flag_len;
