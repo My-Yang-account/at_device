@@ -172,7 +172,8 @@ void SerialScreen_AcIsSupportOutSet(void);
 void SerialScreen_ElockIsSupportOutSet(void);
 void SerialScreen_FanIsSupportOutSet(void);
 
-
+u8 SerialScreen_GetChargeWay(void);
+void SerialScreen_SetChargeWay(u8 way);
 
 extern struct SerialScreenObj SerialScreen;		
 

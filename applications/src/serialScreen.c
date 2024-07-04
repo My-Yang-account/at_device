@@ -882,6 +882,16 @@ static void SerialScreen_RealTime_InfoGet(void)
     }
 }
 
+u8 SerialScreen_GetChargeWay(void)
+{
+    return 2;
+}
+
+void SerialScreen_SetChargeWay(u8 way)
+{
+
+}
+
 static void SerialScreen_TimeingRefrensh(void)
 {
     static uint8_t _time = 0;

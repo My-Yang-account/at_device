@@ -37,6 +37,12 @@ enum ofsm_state thaisen_app_get_ofsm_charge_state(uint8_t gunno)    // OK
     }
     struct ofsm_info *ofsm_temp = get_ofsm_info(gunno);
 
+    if((ofsm_temp->charge_way == APP_CHARGE_WAY_PARACHARGE) && (ofsm_temp->main_gunno != gunno) &&  \
+            (ofsm_temp->main_gunno < APP_SYSTEM_GUNNO_SIZE)){
+        uint8_t main_gunno = ofsm_temp->main_gunno;
+        ofsm_temp = get_ofsm_info(main_gunno);
+    }
+
     return ofsm_temp->state;
 }
 
@@ -236,7 +242,13 @@ enum system_stop_way thaisen_app_get_charge_stop_way(uint8_t gunno) // OK
 
     enum system_stop_way charge_stop_way;
     struct ofsm_info *ofsm_temp = get_ofsm_info(gunno);
-
+#if 0
+    if((ofsm_temp->charge_way == APP_CHARGE_WAY_PARACHARGE) && (ofsm_temp->main_gunno != gunno) &&  \
+            (ofsm_temp->main_gunno < APP_SYSTEM_GUNNO_SIZE)){
+        uint8_t main_gunno = ofsm_temp->main_gunno;
+        ofsm_temp = get_ofsm_info(main_gunno);
+    }
+#endif /* 0 */
     if(ofsm_temp->base.reason_code >= APP_SYSTEM_STOP_WAY_SIZE){
         charge_stop_way = APP_SYSTEM_STOP_WAY_SIZE;
     }else{
@@ -263,6 +275,13 @@ struct charge_data *thaisen_app_get_charge_info(uint8_t gunno) // OK
 
     struct ofsm_info *ofsm_temp = get_ofsm_info(gunno);
     struct thaisenBMS_Charger_struct* bms_data = mw_get_bms_data(gunno);
+
+    if((ofsm_temp->charge_way == APP_CHARGE_WAY_PARACHARGE) && (ofsm_temp->main_gunno != gunno) &&  \
+            (ofsm_temp->main_gunno < APP_SYSTEM_GUNNO_SIZE)){
+        uint8_t main_gunno = ofsm_temp->main_gunno;
+        ofsm_temp = get_ofsm_info(main_gunno);
+        bms_data = mw_get_bms_data(main_gunno);
+    }
 
     memcpy(s_data_of_charging.trade_number, ofsm_temp->base.transaction_number, sizeof(s_data_of_charging.trade_number));
     s_data_of_charging.charge_voltage = ofsm_temp->base.voltage_a;
@@ -294,7 +313,14 @@ struct battery_info *thaisen_app_get_battery_info(uint8_t gunno)    // OK
         return &s_battery_info;
     }
 
+    struct ofsm_info *ofsm_temp = get_ofsm_info(gunno);
     struct thaisenBMS_Charger_struct* bms_data = mw_get_bms_data(gunno);
+
+    if((ofsm_temp->charge_way == APP_CHARGE_WAY_PARACHARGE) && (ofsm_temp->main_gunno != gunno) &&  \
+            (ofsm_temp->main_gunno < APP_SYSTEM_GUNNO_SIZE)){
+        uint8_t main_gunno = ofsm_temp->main_gunno;
+        bms_data = mw_get_bms_data(main_gunno);
+    }
 
     s_battery_info.battery_type = bms_data->BRM.BatType;
 
@@ -314,7 +340,15 @@ struct bms_info *thaisen_app_get_bms_info(uint8_t gunno)    // OK
     if(gunno >= APP_SYSTEM_GUNNO_SIZE){
         return &s_bms_info;
     }
+
+    struct ofsm_info *ofsm_temp = get_ofsm_info(gunno);
     struct thaisenBMS_Charger_struct* bms_data = mw_get_bms_data(gunno);
+
+    if((ofsm_temp->charge_way == APP_CHARGE_WAY_PARACHARGE) && (ofsm_temp->main_gunno != gunno) &&  \
+            (ofsm_temp->main_gunno < APP_SYSTEM_GUNNO_SIZE)){
+        uint8_t main_gunno = ofsm_temp->main_gunno;
+        bms_data = mw_get_bms_data(main_gunno);
+    }
 
     s_bms_info.single_battery_max_voltage = bms_data->BCS.CellHigVolt;
     s_bms_info.bms_require_voltage = bms_data->BCL.BMSneedVolt;
@@ -673,8 +707,17 @@ void thaisen_app_set_screen_stop_charge(uint8_t gunno)
     if(gunno >= APP_SYSTEM_GUNNO_SIZE){
         return;
     }
-    rt_kprintf("screen_stop_charge gunno(%d)\n", gunno);
-    app_set_hci_event(gunno, HCI_EVENT_SCREEN_STOP);
+
+    uint8_t main_gunno = gunno;
+    struct ofsm_info *ofsm_temp = get_ofsm_info(gunno);
+
+    if((ofsm_temp->charge_way == APP_CHARGE_WAY_PARACHARGE) && (ofsm_temp->main_gunno != gunno) &&  \
+            (ofsm_temp->main_gunno < APP_SYSTEM_GUNNO_SIZE)){
+        main_gunno = ofsm_temp->main_gunno;
+    }
+
+    rt_kprintf("screen_stop_charge gunno(%d, %d)\n", gunno, main_gunno);
+    app_set_hci_event(main_gunno, HCI_EVENT_SCREEN_STOP);
 }
 
 /********************************************
@@ -725,6 +768,13 @@ struct temperature* get_battery_temp_info(uint8_t gunno)
         return &s_temp_info;
     }
     struct thaisenBMS_Charger_struct* bms_data = mw_get_bms_data(gunno);
+    struct ofsm_info *ofsm_temp = get_ofsm_info(gunno);
+
+    if((ofsm_temp->charge_way == APP_CHARGE_WAY_PARACHARGE) && (ofsm_temp->main_gunno != gunno) &&  \
+            (ofsm_temp->main_gunno < APP_SYSTEM_GUNNO_SIZE)){
+        uint8_t main_gunno = ofsm_temp->main_gunno;
+        bms_data = mw_get_bms_data(main_gunno);
+    }
 
     s_temp_info.temp = bms_data->BSM.HigTemp;
     s_temp_info.number = bms_data->BSM.HigTempNum;
@@ -866,7 +916,14 @@ int32_t thaisen_get_gun_temp(uint8_t gunno)
  *******************************************/
 uint32_t thaisen_get_ammeter_voltage(uint8_t gunno)
 {
-    return mw_get_meter_ua(gunno);
+    uint8_t main_gunno = gunno;
+    struct ofsm_info *ofsm_temp = get_ofsm_info(gunno);
+
+    if((ofsm_temp->charge_way == APP_CHARGE_WAY_PARACHARGE) && (ofsm_temp->main_gunno != gunno) &&  \
+            (ofsm_temp->main_gunno < APP_SYSTEM_GUNNO_SIZE)){
+        main_gunno = ofsm_temp->main_gunno;
+    }
+    return mw_get_meter_ua(main_gunno);
 }
 
 /********************************************
@@ -876,7 +933,14 @@ uint32_t thaisen_get_ammeter_voltage(uint8_t gunno)
  *******************************************/
 uint32_t thaisen_get_ammeter_current(uint8_t gunno)
 {
-    return mw_get_meter_ia(gunno);
+    uint8_t main_gunno = gunno;
+    struct ofsm_info *ofsm_temp = get_ofsm_info(gunno);
+
+    if((ofsm_temp->charge_way == APP_CHARGE_WAY_PARACHARGE) && (ofsm_temp->main_gunno != gunno) &&  \
+            (ofsm_temp->main_gunno < APP_SYSTEM_GUNNO_SIZE)){
+        main_gunno = ofsm_temp->main_gunno;
+    }
+    return mw_get_meter_ia(main_gunno);
 }
 
 /********************************************
@@ -906,6 +970,14 @@ int32_t thaisen_vin_whitelists_add(uint8_t *data, uint8_t len)
  *******************************************/
 enum charge_way thaisen_get_charge_way(void)
 {
-    return APP_CHARGE_WAY_PARACHARGE;
+    return SerialScreen_GetChargeWay();
 }
-
+/********************************************
+ * 函数名      thaisen_get_charge_way
+ * 功能         获取充电方式
+* 返回           充电方式
+ *******************************************/
+void thaisen_set_charge_way(uint8_t way)
+{
+    SerialScreen_SetChargeWay(way);
+}

@@ -262,14 +262,14 @@ typedef struct{
 
     uint8_t current_soc;              /* 当前SOC */
     uint32_t system_power_max;        /* 系统最大功率 */
-    uint16_t gun_set_curr;         /* 枪设置电流 */
+    uint16_t gun_set_curr;            /* 枪设置电流 */
 
     int32_t system_temperature;       /* 系统温度(精度：0.1) */
     int32_t gunline_temperature[2];   /* 枪线正负极温度(精度：0.1) */
     uint32_t voltage_a;               /* 电压A相(精度：0.1) */
     uint32_t current_a;               /* 电流A相(精度：0.1) */
     uint32_t power_a;                 /* 功率A相(精度：1) */
-    uint32_t elect_a;                 /* 电量A相(精度：0.01) */
+    uint32_t elect_a;                 /* 电量A相(精度：0.001) */
 #if 0
     uint32_t voltage_b;               /* 电压B相 */
     uint32_t current_b;               /* 电流B相 */
@@ -285,8 +285,8 @@ typedef struct{
     uint32_t fees_total;              /* 总费用(精度：0.0001) */
     uint32_t elect_fees_total;        /* 电费总费用(精度：0.0001) */
     uint32_t service_fees_total;      /* 服务费总费用(精度：0.0001) */
-    uint32_t start_elect;             /* 起始电量(精度：0.01) */
-    uint32_t current_elect;           /* 当前电量(精度：0.01) */
+    uint32_t start_elect;             /* 起始电量(精度：0.001) */
+    uint32_t current_elect;           /* 当前电量(精度：0.001) */
     uint32_t current_time;            /* 当前时间(时间戳) */
     uint32_t start_time;              /* 充电开始时间(时间戳) */
     uint32_t stop_time;               /* 充电结束时间(时间戳) */

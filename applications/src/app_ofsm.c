@@ -573,6 +573,15 @@ static void ofsm_readying_fun(uint8_t gunno)
     s_ofsm_info[gunno].base.card_ballance_after = 0x00;
 #endif /* (defined (APP_INCLUDE_SL_PROTOCOL) || defined (APP_INCLUDE_XJ_PROTOCOL)) */
 
+    if(s_ofsm_info[gunno].charge_way == APP_CHARGE_WAY_PARACHARGE){
+        if((gunno != s_ofsm_info[gunno].main_gunno) && (s_ofsm_info[gunno].state != s_ofsm_info[s_ofsm_info[gunno].main_gunno].state)){
+            if(s_ofsm_info[s_ofsm_info[gunno].main_gunno].state < APP_OFSM_STATE_SIZE){
+                s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][s_ofsm_info[s_ofsm_info[gunno].main_gunno].state];
+                s_ofsm_info[gunno].state = s_ofsm_info[s_ofsm_info[gunno].main_gunno].state;
+            }
+        }
+    }
+
     switch(mw_get_cc1(gunno)) {
     case CC1_12V:
     case CC1_6V:
@@ -824,6 +833,8 @@ static void ofsm_readying_fun(uint8_t gunno)
 
         /************** 【充电桩已授权】 *************/
         if(is_charging_authorization == true){
+            uint8_t deputy_gunno = APP_SYSTEM_GUNNOA;
+
             s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_STARTING];
             s_ofsm_info[gunno].state = APP_OFSM_STATE_STARTING;
             /* 开始充电 */
@@ -835,8 +846,21 @@ static void ofsm_readying_fun(uint8_t gunno)
             s_ofsm_info[gunno].main_gunno = gunno;
             s_ofsm_info[gunno].charge_way = thaisen_get_charge_way();
             if(s_ofsm_info[gunno].charge_way == APP_CHARGE_WAY_PARACHARGE){
-
+                if(APP_SYSTEM_GUNNO_SIZE < 0x02){
+                    s_ofsm_info[gunno].charge_way = APP_CHARGE_WAY_SINGLEGUN;  /** 单枪桩不支持并充 */
+                }else{
+                    if(gunno == APP_SYSTEM_GUNNOA){
+                        deputy_gunno = APP_SYSTEM_GUNNOA + 0x01;
+                    }
+                    if((s_ofsm_info[deputy_gunno].base.flag.connect_state != APP_CONNECT_STATE_CONNECT) ||
+                            (s_ofsm_info[deputy_gunno].state == APP_OFSM_STATE_FAULTING)){ /** 故障状态暂不支持并充 */
+                        s_ofsm_info[gunno].charge_way = APP_CHARGE_WAY_SINGLEGUN;  /** 并充时两把枪都要插上 */
+                    }
+                }
             }
+            s_ofsm_info[deputy_gunno].charge_way = s_ofsm_info[gunno].charge_way;
+            s_ofsm_info[deputy_gunno].main_gunno = s_ofsm_info[gunno].main_gunno;
+            thaisen_set_charge_way(s_ofsm_info[gunno].charge_way);
 
             s_ofsm_info[gunno].base.flag.start_result = APP_THA_ENUM_FALSE;
             s_ofsm_info[gunno].base.voltage_a = 0x00;
@@ -951,16 +975,32 @@ static void ofsm_starting_fun(uint8_t gunno)
         return;
     }
 
-    uint8_t vin_authentication_complete = APP_THA_ENUM_FALSE;
-    enum system_stop_way stop_way = APP_SYSTEM_STOP_WAY_SIZE;
     enum charge_state_t charge_state = mw_get_charge_state(gunno);
-    enum charge_fault_t charge_fault = app_get_highest_priority_charge_fault(gunno);
-    enum system_fault_t system_fault = app_get_highest_priority_system_fault(gunno);
 
     if (++s_debug_count[gunno] > (1000  + 500 *gunno) / 100) {
         s_debug_count[gunno] = 0;
         LOG_I("gunno(%d) starting state (%dV | S%d)...", gunno, mw_get_cc1_value(mw_get_cc1(gunno)), charge_state);
     }
+
+    if(s_ofsm_info[gunno].charge_way == APP_CHARGE_WAY_PARACHARGE){
+        if((gunno != s_ofsm_info[gunno].main_gunno) && (s_ofsm_info[gunno].state != s_ofsm_info[s_ofsm_info[gunno].main_gunno].state)){
+            if(s_ofsm_info[s_ofsm_info[gunno].main_gunno].state < APP_OFSM_STATE_SIZE){
+                s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][s_ofsm_info[s_ofsm_info[gunno].main_gunno].state];
+                s_ofsm_info[gunno].state = s_ofsm_info[s_ofsm_info[gunno].main_gunno].state;
+
+                app_nsal_state_charged(gunno);
+                app_nsal_event_occurded(gunno);
+            }
+        }
+        if(gunno != s_ofsm_info[gunno].main_gunno){
+            return;
+        }
+    }
+
+    uint8_t vin_authentication_complete = APP_THA_ENUM_FALSE;
+    enum system_stop_way stop_way = APP_SYSTEM_STOP_WAY_SIZE;
+    enum charge_fault_t charge_fault = app_get_highest_priority_charge_fault(gunno);
+    enum system_fault_t system_fault = app_get_highest_priority_system_fault(gunno);
 
     s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_FALSE;
     s_tiny_current_count[gunno] = rt_tick_get();
@@ -1401,13 +1441,7 @@ static void ofsm_charging_fun(uint8_t gunno)
         return;
     }
 
-    uint32_t current_tick = rt_tick_get(), increase_sec = 0;
-    bool is_stop_charge_authorization = APP_THA_ENUM_FALSE;  /* 停充已授权 */
-    enum system_stop_way stop_way = APP_SYSTEM_STOP_WAY_SIZE;
     enum charge_state_t charge_state = mw_get_charge_state(gunno);
-    enum charge_fault_t charge_fault = app_get_highest_priority_system_fault(gunno);
-    enum system_fault_t system_fault = app_get_highest_priority_charge_fault(gunno);
-    struct thaisenBMS_Charger_struct* bms_info = (struct thaisenBMS_Charger_struct*)(s_ofsm_info[gunno].base.bms_data);
 
     if (++s_debug_count[gunno] > (3000 + 500 *gunno) / 100) {
         s_debug_count[gunno] = 0;
@@ -1415,6 +1449,28 @@ static void ofsm_charging_fun(uint8_t gunno)
                 s_ofsm_info[gunno].base.elect_a, s_ofsm_info[gunno].base.fees_total, s_ofsm_info[gunno].base.voltage_a,
                 s_ofsm_info[gunno].base.current_a, s_ofsm_info[gunno].base.power_a, s_ofsm_info[gunno].base.charge_time);
     }
+
+    if(s_ofsm_info[gunno].charge_way == APP_CHARGE_WAY_PARACHARGE){
+        if((gunno != s_ofsm_info[gunno].main_gunno) && (s_ofsm_info[gunno].state != s_ofsm_info[s_ofsm_info[gunno].main_gunno].state)){
+            if(s_ofsm_info[s_ofsm_info[gunno].main_gunno].state < APP_OFSM_STATE_SIZE){
+                s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][s_ofsm_info[s_ofsm_info[gunno].main_gunno].state];
+                s_ofsm_info[gunno].state = s_ofsm_info[s_ofsm_info[gunno].main_gunno].state;
+
+                app_nsal_state_charged(gunno);
+                app_nsal_event_occurded(gunno);
+            }
+        }
+        if(gunno != s_ofsm_info[gunno].main_gunno){
+            return;
+        }
+    }
+
+    uint32_t current_tick = rt_tick_get(), increase_sec = 0;
+    bool is_stop_charge_authorization = APP_THA_ENUM_FALSE;  /* 停充已授权 */
+    enum system_stop_way stop_way = APP_SYSTEM_STOP_WAY_SIZE;
+    enum charge_fault_t charge_fault = app_get_highest_priority_system_fault(gunno);
+    enum system_fault_t system_fault = app_get_highest_priority_charge_fault(gunno);
+    struct thaisenBMS_Charger_struct* bms_info = (struct thaisenBMS_Charger_struct*)(s_ofsm_info[gunno].base.bms_data);
 
     if(s_ofsm_info[gunno].timing_tick > current_tick){
         increase_sec = ((current_tick + 0xFFFFFFFF) - s_ofsm_info[gunno].timing_tick) /1000;
@@ -1810,6 +1866,25 @@ static void ofsm_stoping_fun(uint8_t gunno)
         LOG_I("gunno(%d) stop state (%dV | S%d)...", gunno, mw_get_cc1_value(s_ofsm_info[gunno].base.cc1_state), charge_state);
     }
 
+    if(s_ofsm_info[gunno].charge_way == APP_CHARGE_WAY_PARACHARGE){
+        if((gunno != s_ofsm_info[gunno].main_gunno) && (s_ofsm_info[gunno].state != s_ofsm_info[s_ofsm_info[gunno].main_gunno].state)){
+            if(s_ofsm_info[s_ofsm_info[gunno].main_gunno].state < APP_OFSM_STATE_SIZE){
+                s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][s_ofsm_info[s_ofsm_info[gunno].main_gunno].state];
+                s_ofsm_info[gunno].state = s_ofsm_info[s_ofsm_info[gunno].main_gunno].state;
+            }
+            /** 在并充结束后要同步主枪信息给副枪用来在屏幕上显示 */
+            if((gunno != s_ofsm_info[gunno].main_gunno) && (s_ofsm_info[gunno].main_gunno < APP_SYSTEM_GUNNO_SIZE)){
+                s_ofsm_info[gunno].base.reason_code = s_ofsm_info[s_ofsm_info[gunno].main_gunno].base.reason_code;
+                s_ofsm_info[gunno].base.fees_total = s_ofsm_info[s_ofsm_info[gunno].main_gunno].base.fees_total;
+                s_ofsm_info[gunno].base.elect_a = s_ofsm_info[s_ofsm_info[gunno].main_gunno].base.elect_a;
+                s_ofsm_info[gunno].base.charge_time = s_ofsm_info[s_ofsm_info[gunno].main_gunno].base.charge_time;
+            }
+        }
+        if(gunno != s_ofsm_info[gunno].main_gunno){
+            return;
+        }
+    }
+
     switch (charge_state){
     case APP_CHARGE_STATE_IDLE:
     case APP_CHARGE_STATE_SHAKE_HAND:
@@ -1912,6 +1987,10 @@ static void ofsm_stoping_fun(uint8_t gunno)
         s_ofsm_info[gunno].state = APP_OFSM_STATE_FINISHING;
 
         rt_thread_mdelay(4000);  /* 等待电子锁解锁 */
+
+        for(uint8_t __gunno = 0x00; __gunno < APP_SYSTEM_GUNNO_SIZE; __gunno++){
+            s_ofsm_info[__gunno].charge_way = APP_CHARGE_WAY_NONE;
+        }
     }
 
     mw_clear_time_sync_flag(gunno);
@@ -1955,6 +2034,15 @@ static void ofsm_finishing_fun(uint8_t gunno)
     s_ofsm_info[gunno].base.card_ballance_before = 0x00;
     s_ofsm_info[gunno].base.card_ballance_after = 0x00;
 #endif /* (defined (APP_INCLUDE_SL_PROTOCOL) || defined (APP_INCLUDE_XJ_PROTOCOL)) */
+
+    if(s_ofsm_info[gunno].charge_way == APP_CHARGE_WAY_PARACHARGE){
+        if((gunno != s_ofsm_info[gunno].main_gunno) && (s_ofsm_info[gunno].state != s_ofsm_info[s_ofsm_info[gunno].main_gunno].state)){
+            if(s_ofsm_info[s_ofsm_info[gunno].main_gunno].state < APP_OFSM_STATE_SIZE){
+                s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][s_ofsm_info[s_ofsm_info[gunno].main_gunno].state];
+                s_ofsm_info[gunno].state = s_ofsm_info[s_ofsm_info[gunno].main_gunno].state;
+            }
+        }
+    }
 
     switch (s_ofsm_info[gunno].base.cc1_state) {
     case CC1_12V:
@@ -2221,6 +2309,8 @@ static void ofsm_finishing_fun(uint8_t gunno)
 
         /************** 【充电桩已授权】 *************/
         if(is_charging_authorization == true){
+            uint8_t deputy_gunno = APP_SYSTEM_GUNNOA;
+
             s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_STARTING];
             s_ofsm_info[gunno].state = APP_OFSM_STATE_STARTING;
             /* 开始充电 */
@@ -2228,6 +2318,25 @@ static void ofsm_finishing_fun(uint8_t gunno)
 
             /* 启动前向屏幕对时 */
             thaisen_request_screen_time();
+
+            s_ofsm_info[gunno].main_gunno = gunno;
+            s_ofsm_info[gunno].charge_way = thaisen_get_charge_way();
+            if(s_ofsm_info[gunno].charge_way == APP_CHARGE_WAY_PARACHARGE){
+                if(APP_SYSTEM_GUNNO_SIZE < 0x02){
+                    s_ofsm_info[gunno].charge_way = APP_CHARGE_WAY_SINGLEGUN;  /** 单枪桩不支持并充 */
+                }else{
+                    if(gunno == APP_SYSTEM_GUNNOA){
+                        deputy_gunno = APP_SYSTEM_GUNNOA + 0x01;
+                    }
+                    if((s_ofsm_info[deputy_gunno].base.flag.connect_state != APP_CONNECT_STATE_CONNECT) ||
+                            (s_ofsm_info[deputy_gunno].state == APP_OFSM_STATE_FAULTING)){ /** 故障状态暂不支持并充 */
+                        s_ofsm_info[gunno].charge_way = APP_CHARGE_WAY_SINGLEGUN;  /** 并充时两把枪都要插上 */
+                    }
+                }
+            }
+            s_ofsm_info[deputy_gunno].charge_way = s_ofsm_info[gunno].charge_way;
+            s_ofsm_info[deputy_gunno].main_gunno = s_ofsm_info[gunno].main_gunno;
+            thaisen_set_charge_way(s_ofsm_info[gunno].charge_way);
 
             s_ofsm_info[gunno].base.flag.start_result = APP_THA_ENUM_FALSE;
             s_ofsm_info[gunno].base.voltage_a = 0x00;
@@ -2412,6 +2521,16 @@ static void ofsm_faulting_fun(uint8_t gunno)
             s_ofsm_info[gunno].base.flag.is_charge_complete = APP_THA_ENUM_FALSE;
             switch (s_ofsm_info[gunno].base.cc1_state){
             case CC1_4V:
+#if 0
+                if(s_ofsm_info[gunno].charge_way == APP_CHARGE_WAY_PARACHARGE){
+                    if((gunno != s_ofsm_info[gunno].main_gunno) && (s_ofsm_info[gunno].state != s_ofsm_info[s_ofsm_info[gunno].main_gunno].state)){
+                        if(s_ofsm_info[s_ofsm_info[gunno].main_gunno].state < APP_OFSM_STATE_SIZE){
+                            s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][s_ofsm_info[s_ofsm_info[gunno].main_gunno].state];
+                            s_ofsm_info[gunno].state = s_ofsm_info[s_ofsm_info[gunno].main_gunno].state;
+                        }
+                    }
+                }
+#endif /* 0 */
                 if(app_nsal_is_remote_start(gunno)){
                     uint8_t valid_len = 0x00;
                     LOG_D("gunno(%d) start charge by APP", gunno);
@@ -2647,6 +2766,9 @@ static void ofsm_faulting_fun(uint8_t gunno)
 
                 /************** 【充电桩已授权】 *************/
                 if(is_charging_authorization == true){
+#if 0
+                    uint8_t deputy_gunno = APP_SYSTEM_GUNNOA;
+#endif /* 0 */
                     s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_STARTING];
                     s_ofsm_info[gunno].state = APP_OFSM_STATE_STARTING;
                     /* 开始充电 */
@@ -2654,7 +2776,26 @@ static void ofsm_faulting_fun(uint8_t gunno)
 
                     /* 启动前向屏幕对时 */
                     thaisen_request_screen_time();
-
+#if 0
+                    s_ofsm_info[gunno].main_gunno = gunno;
+                    s_ofsm_info[gunno].charge_way = thaisen_get_charge_way();
+                    if(s_ofsm_info[gunno].charge_way == APP_CHARGE_WAY_PARACHARGE){
+                        if(APP_SYSTEM_GUNNO_SIZE < 0x02){
+                            s_ofsm_info[gunno].charge_way = APP_CHARGE_WAY_SINGLEGUN;  /** 单枪桩不支持并充 */
+                        }else{
+                            if(gunno == APP_SYSTEM_GUNNOA){
+                                deputy_gunno = APP_SYSTEM_GUNNOA + 0x01;
+                            }
+                            if((s_ofsm_info[deputy_gunno].base.flag.connect_state != APP_CONNECT_STATE_CONNECT) ||
+                                    (s_ofsm_info[deputy_gunno].state == APP_OFSM_STATE_FAULTING)){ /** 故障状态暂不支持并充 */
+                                s_ofsm_info[gunno].charge_way = APP_CHARGE_WAY_SINGLEGUN;  /** 并充时两把枪都要插上 */
+                            }
+                        }
+                    }
+                    s_ofsm_info[deputy_gunno].charge_way = s_ofsm_info[gunno].charge_way;
+                    s_ofsm_info[deputy_gunno].main_gunno = s_ofsm_info[gunno].main_gunno;
+                    thaisen_set_charge_way(s_ofsm_info[gunno].charge_way);
+#endif /* 0 */
                     s_ofsm_info[gunno].base.flag.start_result = APP_THA_ENUM_FALSE;
                     s_ofsm_info[gunno].base.voltage_a = 0x00;
                     s_ofsm_info[gunno].base.current_a = 0x00;
