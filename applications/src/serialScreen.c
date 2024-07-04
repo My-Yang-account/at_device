@@ -889,7 +889,15 @@ u8 SerialScreen_GetChargeWay(void)
 
 void SerialScreen_SetChargeWay(u8 way)
 {
-
+    if(way <= APP_CHARGE_WAY_NONE){
+        thaisenModuleSetChargeWay(thaisenModuleChargeWay_singleGun);
+    }else if(way == APP_CHARGE_WAY_SINGLEGUN){
+        thaisenModuleSetChargeWay(thaisenModuleChargeWay_singleGun);
+    }else if(way == APP_CHARGE_WAY_PARACHARGE){
+        thaisenModuleSetChargeWay(thaisenModuleChargeWay_parallelCharge);
+    }else{
+        thaisenModuleSetChargeWay(thaisenModuleChargeWay_singleGun);
+    }
 }
 
 static void SerialScreen_TimeingRefrensh(void)

@@ -464,4 +464,59 @@ void thaisenSetAllocateStrategy(uint8_t Strategy);
  */
 uint8_t thaisenGetAllocateStrategy(void);
 
+typedef enum
+{
+    thaisenModuleChargeWay_singleGun,
+    thaisenModuleChargeWay_parallelCharge,
+    thaisenModuleChargeWay_size,
+}thaisenChargeWay;
+
+/* 功能说明:
+ *          thaisenModuleSetChargeWay:设置充电方式
+ *
+ * 输入参数:
+ *          way:充电方式
+ * 返回参数:  > 0：成功，<0：失败
+ *
+ * 调用方法:
+ *          可实时调用
+ */
+int32_t thaisenModuleSetChargeWay(uint8_t way);
+
+/* 功能说明:
+ *          thaisenModuleGetChargeWay:获取充电方式
+ *
+ * 输入参数:
+ *          gunNum:枪号
+ * 返回参数:  模块的输出电压
+ *
+ * 调用方法:
+ *          可实时调用
+ */
+uint8_t thaisenModuleGetChargeWay(void);
+
+
+/* 功能说明:
+ *          thaisenSetYouYouSlienceMode:设置是否使能优优模块静音模式
+ *
+ * 输入参数:
+ *          state:使能状态：1：使能，0：失能
+ * 返回参数:
+ *
+ * 调用方法:
+ *          可实时调用
+ */
+void thaisenSetYouYouSlienceMode(uint8_t state);
+/* 功能说明:
+ *          thaisenGetYouYouSlienceMode:获取是否使能优优模块静音模式
+ *
+ * 输入参数:
+ *
+ * 返回参数:  使能状态：1：使能，0：失能
+ *
+ * 调用方法:
+ *          可实时调用
+ */
+uint8_t thaisenGetYouYouSlienceMode(void);
+
 #endif /* APPLICATIONS_THAISENCHARGMODULELIB_H_ */

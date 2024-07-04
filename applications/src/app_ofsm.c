@@ -837,8 +837,6 @@ static void ofsm_readying_fun(uint8_t gunno)
 
             s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_STARTING];
             s_ofsm_info[gunno].state = APP_OFSM_STATE_STARTING;
-            /* 开始充电 */
-            mw_charge_start_cmd(gunno);
 
             /* 启动前向屏幕对时 */
             thaisen_request_screen_time();
@@ -861,6 +859,9 @@ static void ofsm_readying_fun(uint8_t gunno)
             s_ofsm_info[deputy_gunno].charge_way = s_ofsm_info[gunno].charge_way;
             s_ofsm_info[deputy_gunno].main_gunno = s_ofsm_info[gunno].main_gunno;
             thaisen_set_charge_way(s_ofsm_info[gunno].charge_way);
+
+            /* 开始充电 */
+            mw_charge_start_cmd(gunno);
 
             s_ofsm_info[gunno].base.flag.start_result = APP_THA_ENUM_FALSE;
             s_ofsm_info[gunno].base.voltage_a = 0x00;
@@ -2313,8 +2314,6 @@ static void ofsm_finishing_fun(uint8_t gunno)
 
             s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_STARTING];
             s_ofsm_info[gunno].state = APP_OFSM_STATE_STARTING;
-            /* 开始充电 */
-            mw_charge_start_cmd(gunno);
 
             /* 启动前向屏幕对时 */
             thaisen_request_screen_time();
@@ -2337,6 +2336,9 @@ static void ofsm_finishing_fun(uint8_t gunno)
             s_ofsm_info[deputy_gunno].charge_way = s_ofsm_info[gunno].charge_way;
             s_ofsm_info[deputy_gunno].main_gunno = s_ofsm_info[gunno].main_gunno;
             thaisen_set_charge_way(s_ofsm_info[gunno].charge_way);
+
+            /* 开始充电 */
+            mw_charge_start_cmd(gunno);
 
             s_ofsm_info[gunno].base.flag.start_result = APP_THA_ENUM_FALSE;
             s_ofsm_info[gunno].base.voltage_a = 0x00;
@@ -2771,8 +2773,6 @@ static void ofsm_faulting_fun(uint8_t gunno)
 #endif /* 0 */
                     s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_STARTING];
                     s_ofsm_info[gunno].state = APP_OFSM_STATE_STARTING;
-                    /* 开始充电 */
-                    mw_charge_start_cmd(gunno);
 
                     /* 启动前向屏幕对时 */
                     thaisen_request_screen_time();
@@ -2796,6 +2796,9 @@ static void ofsm_faulting_fun(uint8_t gunno)
                     s_ofsm_info[deputy_gunno].main_gunno = s_ofsm_info[gunno].main_gunno;
                     thaisen_set_charge_way(s_ofsm_info[gunno].charge_way);
 #endif /* 0 */
+                    /* 开始充电 */
+                    mw_charge_start_cmd(gunno);
+
                     s_ofsm_info[gunno].base.flag.start_result = APP_THA_ENUM_FALSE;
                     s_ofsm_info[gunno].base.voltage_a = 0x00;
                     s_ofsm_info[gunno].base.current_a = 0x00;
