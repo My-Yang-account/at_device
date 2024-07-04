@@ -524,7 +524,9 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
                     LOG_D("ykc monitor login fail(timeout) num|%d", s_ykc_monitor_socket_info.operate_fail.login);
                 }else{
                     rt_thread_mdelay(100);
+#ifndef NET_YKC_MONITOR_AS_MONITOR
                     ykc_monitor_net_event_send(NET_YKC_MONITOR_EVENT_HANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, 0x00, NET_YKC_MONITOR_PREQ_EVENT_BILLING_MODEL_REQUEST);
+#endif /* NET_YKC_MONITOR_AS_MONITOR */
                 }
                 break;
             }
@@ -632,7 +634,7 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
             /***** [计费模型验证] *****/
             if(ykc_monitor_net_event_receive(NET_YKC_MONITOR_EVENT_HANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, gunno,
                     (NET_YKC_MONITOR_EVENT_OPTION_OR |NET_YKC_MONITOR_EVENT_OPTION_CLEAR), NET_YKC_MONITOR_PREQ_EVENT_BILLING_MODEL_VERIFY, NULL) > 0){
-
+#ifndef NET_YKC_MONITOR_AS_MONITOR
                 ykc_monitor_set_message_send_state(gunno, NET_YKC_MONITOR_SEND_STATE_ONGOING, NET_YKC_MONITOR_PREQ_EVENT_BILLING_MODEL_VERIFY);
                 g_ykc_monitor_preq_billing_model_verify.head.sequence = s_ykc_monitor_message_serial_number[gunno]++;
                 ykc_monitor_message_send_port(NETYKC_MONITOR_PREQCMD_BILLING_MODEL_VERIFY, s_ykc_monitor_socket_info.fd, &g_ykc_monitor_preq_billing_model_verify,
@@ -640,11 +642,12 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
                 ykc_monitor_set_message_wait_response_state(gunno, NET_YKC_MONITOR_PREQ_EVENT_BILLING_MODEL_VERIFY);
                 ykc_monitor_set_message_send_state(gunno, NET_YKC_MONITOR_SEND_STATE_COMPLETE, NET_YKC_MONITOR_PREQ_EVENT_BILLING_MODEL_VERIFY);
                 rt_thread_mdelay(250);
+#endif /* NET_YKC_MONITOR_AS_MONITOR */
             }
             /***** [计费模型请求] *****/
             if(ykc_monitor_net_event_receive(NET_YKC_MONITOR_EVENT_HANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, gunno,
                     (NET_YKC_MONITOR_EVENT_OPTION_OR |NET_YKC_MONITOR_EVENT_OPTION_CLEAR), NET_YKC_MONITOR_PREQ_EVENT_BILLING_MODEL_REQUEST, NULL) > 0){
-
+#ifndef NET_YKC_MONITOR_AS_MONITOR
                 ykc_monitor_set_message_send_state(gunno, NET_YKC_MONITOR_SEND_STATE_ONGOING, NET_YKC_MONITOR_PREQ_EVENT_BILLING_MODEL_REQUEST);
                 g_ykc_monitor_preq_billing_model_request.head.sequence = s_ykc_monitor_message_serial_number[gunno]++;
                 ykc_monitor_message_send_port(NETYKC_MONITOR_PREQCMD_BILLING_MODEL_REQUEST, s_ykc_monitor_socket_info.fd, &g_ykc_monitor_preq_billing_model_request,
@@ -652,6 +655,7 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
                 ykc_monitor_set_message_wait_response_state(gunno, NET_YKC_MONITOR_PREQ_EVENT_BILLING_MODEL_REQUEST);
                 ykc_monitor_set_message_send_state(gunno, NET_YKC_MONITOR_SEND_STATE_COMPLETE, NET_YKC_MONITOR_PREQ_EVENT_BILLING_MODEL_REQUEST);
                 rt_thread_mdelay(250);
+#endif /* NET_YKC_MONITOR_AS_MONITOR */
             }
             /***** [上传实时监测数据] *****/
             if(ykc_monitor_net_event_receive(NET_YKC_MONITOR_EVENT_HANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, gunno,
@@ -1222,6 +1226,9 @@ static void net_ykc_monitor_server_message_pro_entry(void *parameter)
                         (NET_YKC_MONITOR_EVENT_OPTION_OR |NET_YKC_MONITOR_EVENT_OPTION_CLEAR), NET_YKC_MONITOR_SREQ_EVENT_ACCOUNT_BALLANCE_UPDATE, NULL) > 0){
                     result = 0x00;
                     response = ykc_monitor_get_response_buff(RT_WAITING_FOREVER);
+#ifdef NET_YKC_MONITOR_AS_MONITOR
+                    g_ykc_monitor_sreq_account_ballance_update[gunno].body.result = 0x01;
+#endif /* NET_YKC_MONITOR_AS_MONITOR */
                     if(g_ykc_monitor_sreq_account_ballance_update[gunno].body.result == 0x00){
                         result = ykc_monitor_message_pro_account_ballance_update_request(gunno, &g_ykc_monitor_sreq_account_ballance_update[gunno], sizeof(g_ykc_monitor_sreq_account_ballance_update[gunno]));
                         if(result >= 0x00){
@@ -1359,11 +1366,15 @@ static void net_ykc_monitor_server_message_pro_entry(void *parameter)
                         (NET_YKC_MONITOR_EVENT_OPTION_OR |NET_YKC_MONITOR_EVENT_OPTION_CLEAR), NET_YKC_MONITOR_SREQ_EVENT_BILLING_MODEL_SET, NULL) > 0){
                     uint8_t res = 0x00;
                     response = ykc_monitor_get_response_buff(RT_WAITING_FOREVER);
+#ifndef NET_YKC_MONITOR_AS_MONITOR
                     if(ykc_monitor_message_pro_billing_model_set_response(&g_ykc_monitor_sreq_billing_model_set, sizeof(g_ykc_monitor_sreq_billing_model_set)) < 0x00){
                         res = 0x00;
                     }else{
                         res = 0x01;
                     }
+#else
+                    res = 0x00;
+#endif /* NET_YKC_MONITOR_AS_MONITOR */
                     result = ykc_monitor_response_padding_set_billing_model(response->general_transmit_buff, NET_YKC_MONITOR_GENERA_RESPONSE_BUFF_LENGTH, &(response->length));
                     ((Net_YkcMonitorPro_PRes_BillingModel_Set_t*)response->general_transmit_buff)->body.result = res;
                     if(result >= 0x00){
@@ -1496,7 +1507,9 @@ static void net_ykc_monitor_server_message_pro_entry(void *parameter)
                 /***** [计费模型请求响应] *****/
                 if(ykc_monitor_net_event_receive(NET_YKC_MONITOR_EVENT_HANDLE_SERVER, NET_YKC_MONITOR_EVENT_TYPE_RESPONSE, gunno,
                         (NET_YKC_MONITOR_EVENT_OPTION_OR |NET_YKC_MONITOR_EVENT_OPTION_CLEAR), NET_YKC_MONITOR_PREQ_EVENT_BILLING_MODEL_REQUEST, NULL) > 0){
+#ifndef NET_YKC_MONITOR_AS_MONITOR
                     ykc_monitor_message_pro_billing_model_set_response(&g_ykc_monitor_sres_billing_model_request, sizeof(g_ykc_monitor_sres_billing_model_request));
+#endif /* NET_YKC_MONITOR_AS_MONITOR */
                 }
                 /***** [充电桩主动申请启动充电响应] *****/
                 if(ykc_monitor_net_event_receive(NET_YKC_MONITOR_EVENT_HANDLE_SERVER, NET_YKC_MONITOR_EVENT_TYPE_RESPONSE, gunno,

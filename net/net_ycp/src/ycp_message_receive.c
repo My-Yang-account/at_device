@@ -88,16 +88,16 @@ static void ycp_callback_response_login(uint8_t* data, uint16_t length)
         LOG_E("ycp login fail");
         return;
     }
-    if(length != (sizeof(Net_YcpPro_SRes_LogIn_t) + NET_YCP_PROTOCOL_CHECK_REGION_SIZE + response->body.device_sn_length)){
+    if(length != (sizeof(Net_YcpPro_SRes_LogIn_t) + NET_YCP_PROTOCOL_CHECK_REGION_SIZE + (response->body.device_sn_length /0x02))){
         LOG_E("ycp input length error when call tha_callback_response_login|%d, %d", length,
-                (sizeof(Net_YcpPro_SRes_LogIn_t) + NET_YCP_PROTOCOL_CHECK_REGION_SIZE + response->body.device_sn_length));
+                (sizeof(Net_YcpPro_SRes_LogIn_t) + NET_YCP_PROTOCOL_CHECK_REGION_SIZE + (response->body.device_sn_length /0x02)));
         return;
     }
 
     device_sn = (data + sizeof(Net_YcpPro_SRes_LogIn_t));
 
     LOG_D("ycp login device sn|%d", response->body.device_sn_length);
-    for(uint8_t count = 0x00; count < response->body.device_sn_length; count++){
+    for(uint8_t count = 0x00; count < (response->body.device_sn_length /0x02); count++){
         if(device_sn[count] < 0x10){
             rt_kprintf("0%x ", device_sn[count]);
         }else{
@@ -106,7 +106,7 @@ static void ycp_callback_response_login(uint8_t* data, uint16_t length)
     }
     rt_kprintf("\n");
 
-//    ycp_net_event_send(NET_YCP_EVENT_HANDLE_SERVER, NET_YCP_EVENT_TYPE_RESPONSE, 0x00, NET_YCP_SRES_EVENT_LOGIN);
+    ycp_net_event_send(NET_YCP_EVENT_HANDLE_SERVER, NET_YCP_EVENT_TYPE_RESPONSE, 0x00, NET_YCP_SRES_EVENT_LOGIN);
 }
 
 /*****************************************************************
@@ -339,9 +339,11 @@ static void ycp_callback_request_set_service_phone(uint8_t* data, uint16_t lengt
         LOG_E("ycp input data is null when call ycp_callback_request_set_service_phone");
         return;
     }
-    if(length != sizeof(Net_YcpPro_SReq_ServicePhone_t)){
-        LOG_E("ycp input length error when call ycp_callback_request_set_service_phone|%d, %d", length,
-                sizeof(Net_YcpPro_SReq_ServicePhone_t));
+    if(length != (sizeof(Net_YcpPro_SReq_ServicePhone_t) + NET_YCP_PROTOCOL_CHECK_REGION_SIZE + \
+            ((Net_YcpPro_SReq_ServicePhone_t*)data)->body.service_phone_len)){
+        LOG_E("ycp input length error when call ycp_callback_request_set_service_phone|%d, %d", length, \
+                (sizeof(Net_YcpPro_SReq_ServicePhone_t) + NET_YCP_PROTOCOL_CHECK_REGION_SIZE +   \
+                            ((Net_YcpPro_SReq_ServicePhone_t*)data)->body.service_phone_len));
         return;
     }
 

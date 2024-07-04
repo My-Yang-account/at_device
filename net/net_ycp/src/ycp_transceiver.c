@@ -55,6 +55,7 @@ static uint16_t ycp_get_check_code(uint16_t crc, uint8_t *data, uint32_t len)
     return crc;
 }
 
+
 static uint8_t ycp_readline_data(int fd)
 {
     uint16_t length = 0x00, rbyte = 0x01, rlen = 0x00, body_len = 0x00;
@@ -234,7 +235,7 @@ int32_t ycp_message_send_port(uint8_t cmd, int fd, void *data, uint16_t len)
     head->cmd = cmd;
     head->length = len - 0x04;
     check_code = ycp_get_check_code(0xFFFF, (uint8_t*)&(((Net_YcpPro_Head_t*)data)->sequence), \
-            (len - 0x04));
+            (len - 0x06));
 
     *((uint8_t*)data + len - 0x01) = (uint8_t)(check_code >>0x08);
     *((uint8_t*)data + len - 0x02) = check_code;

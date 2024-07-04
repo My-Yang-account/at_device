@@ -357,10 +357,12 @@ static int32_t net_operation_init(void)
     extern int32_t ykc_message_recv_init(void);
     extern int32_t ykc_transceiver_init(void);
     extern int32_t ykc_message_send_init(void);
+    extern int32_t ykc_realtime_process_init(void);
     ykc_ota_init();
     ykc_message_recv_init();
     ykc_transceiver_init();
     ykc_message_send_init();
+    ykc_realtime_process_init();
 #endif /* NET_PACK_USING_YKC */
 
 #ifdef NET_PACK_USING_YKC_MONITOR
@@ -368,10 +370,12 @@ static int32_t net_operation_init(void)
     extern int32_t ykc_monitor_message_recv_init(void);
     extern int32_t ykc_monitor_transceiver_init(void);
     extern int32_t ykc_monitor_message_send_init(void);
+    extern int32_t ykc_monitor_realtime_process_init(void);
     ykc_monitor_ota_init();
     ykc_monitor_message_recv_init();
     ykc_monitor_transceiver_init();
     ykc_monitor_message_send_init();
+    ykc_monitor_realtime_process_init();
 #endif /* NET_PACK_USING_YKC_MONITOR */
 
 #ifdef NET_PACK_USING_YCP

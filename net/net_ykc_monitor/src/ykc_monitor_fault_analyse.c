@@ -17,7 +17,7 @@
 #define YKC_MONITOR_REALTIME_FAULT_SCRAM                         (0x01 <<0)       /* 云快充实时故障：急停按钮动作故障 */
 #define YKC_MONITOR_REALTIME_FAULT_RECTIFIER                     (0x01 <<1)       /* 云快充实时故障：无可用整流模块 */
 #define YKC_MONITOR_REALTIME_FAULT_AIR_OUTLET_OVERTEMP           (0x01 <<2)       /* 云快充实时故障：出风口温度过高 */
-#define YKC_MONITOR_REALTIME_FAULT_AC_LIGHTNING ARRETER          (0x01 <<3)       /* 云快充实时故障：交流防雷故障 */
+#define YKC_MONITOR_REALTIME_FAULT_AC_LIGHTNING_ARRETER          (0x01 <<3)       /* 云快充实时故障：交流防雷故障 */
 #define YKC_MONITOR_REALTIME_FAULT_DC20_MODULE                   (0x01 <<4)       /* 云快充实时故障：交直流模块 DC20 通信中断 */
 #define YKC_MONITOR_REALTIME_FAULT_FC08_MODULE                   (0x01 <<5)       /* 云快充实时故障：绝缘检测模块 FC08 通信中断 */
 #define YKC_MONITOR_REALTIME_FAULT_AMMETER_COMMUNICATION         (0x01 <<6)       /* 云快充实时故障：电度表通信中断 */

@@ -15,6 +15,10 @@
 #include "app_billing_rule.h"
 #include "net_operation.h"
 
+#define DBG_TAG "ykc_rl"
+#define DBG_LVL DBG_LOG
+#include <rtdbg.h>
+
 #ifdef NET_PACK_USING_YKC
 
 #define YKC_DISPOSABLE_EVENT_STATE                0x00          /* 漏报事件：桩状态 */
@@ -23,6 +27,8 @@
 #define YKC_REALTIME_DATA_INTERVAL_INIT           0x05          /* 刚连上网时实时数据上报间隔 */
 #define YKC_REALTIME_DATA_INTERVAL_CHARGING       0x0F          /* 充电中实时数据上报间隔  */
 #define YKC_REALTIME_DATA_INTERVAL_IDLE           0x05 *60      /* 空闲实时数据上报间隔  */
+
+#define YKC_REALTIME_PROCESS_THREAD_STACK_SIZE    1536          /* 实时处理线程栈大小 */
 
 #pragma pack(1)
 
@@ -55,6 +61,8 @@ static uint16_t s_ykc_realtime_data_interval[NET_SYSTEM_GUN_NUMBER];
 static uint32_t s_ykc_realtime_data_count[NET_SYSTEM_GUN_NUMBER];
 static uint16_t s_ykc_local_start_sq;
 static struct ykc_disposable_info s_ykc_disposable_info[NET_SYSTEM_GUN_NUMBER];
+static struct rt_thread s_ykc_realtime_process_thread;
+static uint8_t s_ykc_realtime_process_thread_stack[YKC_REALTIME_PROCESS_THREAD_STACK_SIZE];
 static struct net_handle* s_ykc_handle = NULL;
 static System_BaseData *s_ykc_base = NULL;
 
@@ -2402,6 +2410,10 @@ static uint16_t ykc_chargepile_stop_reason_converted(uint8_t reason, uint8_t sto
     case APP_SYSTEM_STOP_WAY_NO_BALLANCE:
         _reason = NETYKC_AS_REASON6E_NO_BALLANCE;
         break;
+    /* 屏幕 */
+    case APP_SYSTEM_STOP_WAY_SCREEN_STOP:
+        _reason = NETYKC_CC_REASON45_MANUAL_STOP;
+        break;
     /* 到达设定电量 */
     case APP_SYSTEM_STOP_WAY_REACH_ELECT:
         _reason = NETYKC_CC_REASON42_TARGET_ELECT;
@@ -2457,7 +2469,7 @@ static void ykc_request_message_repeat(uint8_t gunno)
     }
 }
 
-void ykc_data_realtime_process(uint8_t gunno)
+static void ykc_data_realtime_process(uint8_t gunno)
 {
     if(gunno >= NET_SYSTEM_GUN_NUMBER){
         return;
@@ -2504,7 +2516,7 @@ void ykc_data_realtime_process(uint8_t gunno)
 /*
  * 用于检测只上报一次的报文是否有漏报
  * */
-void ykc_disposable_message_check(uint8_t gunno)
+static void ykc_disposable_message_check(uint8_t gunno)
 {
     if(gunno >= NET_SYSTEM_GUN_NUMBER){
         return;
@@ -2535,6 +2547,44 @@ void ykc_disposable_message_check(uint8_t gunno)
             }
         }
     }
+}
+
+static void ykc_realtime_process_thread_entry(void *parameter)
+{
+    uint8_t gunno = 0x00;
+
+    while(1){
+        if((net_get_ota_info()->state >= NET_OTA_STATE_LOGIN_WAIT) && (net_get_ota_info()->state <= NET_OTA_STATE_UPDATING)){
+            rt_thread_mdelay(5000);
+            continue;
+        }
+        if((s_ykc_handle == NULL) || (s_ykc_base == NULL)){
+            rt_thread_mdelay(100);
+            continue;
+        }
+
+        for(gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
+            ykc_fault_detect_report(gunno);
+            ykc_data_realtime_process(gunno);
+            ykc_disposable_message_check(gunno);
+        }
+
+        rt_thread_mdelay(100);
+    }
+}
+
+int32_t ykc_realtime_process_init(void)
+{
+    if(rt_thread_init(&s_ykc_realtime_process_thread, "ykc_rl_pro", ykc_realtime_process_thread_entry, NULL,
+            s_ykc_realtime_process_thread_stack, YKC_REALTIME_PROCESS_THREAD_STACK_SIZE, 16, 10) != RT_EOK){
+        LOG_E("ykc realtime process thread create fail, please check");
+        return -0x01;
+    }
+    if(rt_thread_startup(&s_ykc_realtime_process_thread) != RT_EOK){
+        LOG_E("ykc realtime process thread startup fail, please check");
+        return -0x01;
+    }
+    return 0x00;
 }
 
 #endif /* NET_PACK_USING_YKC */

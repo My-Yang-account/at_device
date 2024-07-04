@@ -80,8 +80,6 @@ int8_t ykc_chargepile_create_local_transaction_number(uint8_t gunno, void *vecto
 void ykc_chargepile_time_sync_revise(uint8_t gunno);
 uint8_t ykc_chargepile_fault_converted(uint8_t bit);
 uint8_t ykc_query_transaction_verify_state(uint8_t gunno);
-void ykc_data_realtime_process(uint8_t gunno);
-void ykc_disposable_message_check(uint8_t gunno);
 
 #endif /* NET_PACK_USING_YKC */
 #endif /* NET_PACK_NET_YKC_INC_YKC_MESSAGE_PADDING_H_ */

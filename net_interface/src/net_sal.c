@@ -26,6 +26,7 @@ int32_t app_nsal_operation_function_config(void)
  *****************************************/
 void app_nsal_realtime_process(uint8_t gunno)
 {
+#if 0
 #ifdef NET_PACK_USING_THA
     tha_fault_detect_report(gunno);
     tha_data_realtime_process(gunno);
@@ -49,6 +50,7 @@ void app_nsal_realtime_process(uint8_t gunno)
     ycp_data_realtime_process(gunno);
     ycp_disposable_message_check(gunno);
 #endif /* NET_PACK_USING_YCP */
+#endif /* 0 */
 }
 
 /*******************************************

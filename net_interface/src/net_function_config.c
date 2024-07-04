@@ -174,7 +174,10 @@ static uint8_t* app_nget_system_data(uint8_t name, uint32_t *dlen, uint32_t opti
 
         break;
     case NET_SYSTEM_DATA_NAME_ICCID:
-
+    {
+        extern char *get_at_device_appinfo_iccid(void);
+        return get_at_device_appinfo_iccid();
+    }
         break;
     case NET_SYSTEM_DATA_NAME_IMSI:
 

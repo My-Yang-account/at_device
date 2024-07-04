@@ -780,9 +780,9 @@ void ycp_message_info_init(void)  ///////// 这是网络部分外部调用的第
 
     g_ycp_preq_login.body.pile_type = NET_YCP_PILE_TYPE_DC;
     g_ycp_preq_login.body.gun_count = NET_SYSTEM_GUN_NUMBER;
-    g_ycp_preq_login.body.protocol_ver[0x00] = NET_YCP_PROTOCOL_VERSION_MAIN;
+    g_ycp_preq_login.body.protocol_ver[0x00] = NET_YCP_PROTOCOL_VERSION_REV;
     g_ycp_preq_login.body.protocol_ver[0x01] = NET_YCP_PROTOCOL_VERSION_SUB;
-    g_ycp_preq_login.body.protocol_ver[0x02] = NET_YCP_PROTOCOL_VERSION_REV;
+    g_ycp_preq_login.body.protocol_ver[0x02] = NET_YCP_PROTOCOL_VERSION_MAIN;
 
     memset(g_ycp_preq_login.body.software_ver, '\0', sizeof(g_ycp_preq_login.body.software_ver));
     g_ycp_preq_login.body.software_ver[0] = s_ycp_base->soft_ver_main + '0';
@@ -795,7 +795,10 @@ void ycp_message_info_init(void)  ///////// 这是网络部分外部调用的第
     memset(g_ycp_preq_login.body.communicate_module_sn, '\0', sizeof(g_ycp_preq_login.body.communicate_module_sn));
     memcpy(g_ycp_preq_login.body.communicate_module_sn, "EC800M", strlen("EC800M"));
 
-    memset(g_ycp_preq_login.body.network_keys, '\0', sizeof(g_ycp_preq_login.body.network_keys));
+    memset(g_ycp_preq_login.body.network_keys, 0, sizeof(g_ycp_preq_login.body.network_keys));
+    g_ycp_preq_login.body.network_keys[13] = 0x12;
+    g_ycp_preq_login.body.network_keys[14] = 0x34;
+    g_ycp_preq_login.body.network_keys[15] = 0x56;
 
     g_ycp_preq_login.body.transmit_type = NET_YCP_MESSAGE_ENCRYPT_DISABLE;
 

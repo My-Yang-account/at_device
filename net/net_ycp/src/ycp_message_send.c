@@ -575,6 +575,7 @@ static void net_ycp_message_send_thread_entry(void *parameter)
                 if(delay > rt_tick_get()){
                     delay = rt_tick_get();
                 }
+
                 if(((rt_tick_get() - delay) > 30000) || is_power_on){
                     uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YCP |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
                     int32_t result = 0x00;
@@ -634,10 +635,8 @@ static void net_ycp_message_send_thread_entry(void *parameter)
                 ycp_message_send_port(NETYCP_PREQCMD_SINGIN, s_ycp_socket_info.fd, &g_ycp_preq_login,
                         sizeof(g_ycp_preq_login));
                 while(rentry < 100){
-//                    if(ycp_net_event_receive(NET_YCP_EVENT_HANDLE_SERVER, NET_YCP_EVENT_TYPE_RESPONSE, 0x00,
-//                            (NET_YCP_EVENT_OPTION_OR |NET_YCP_EVENT_OPTION_CLEAR), NET_YCP_SRES_EVENT_LOGIN, NULL) > 0){
                     if(ycp_net_event_receive(NET_YCP_EVENT_HANDLE_SERVER, NET_YCP_EVENT_TYPE_RESPONSE, 0x00,
-                            (NET_YCP_EVENT_OPTION_OR |NET_YCP_EVENT_OPTION_CLEAR), NET_YCP_SRES_EVENT_LOGIN, NULL) >= 0){
+                            (NET_YCP_EVENT_OPTION_OR |NET_YCP_EVENT_OPTION_CLEAR), NET_YCP_SRES_EVENT_LOGIN, NULL) > 0){
                         LOG_D("ycp login success");
                         s_ycp_socket_info.operate_fail.login = 0;
                         step = NET_YCP_NET_STATE_MONITORING;

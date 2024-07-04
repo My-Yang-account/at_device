@@ -16,6 +16,10 @@
 #include "net_operation.h"
 #include "thaisenChargModuleLib.h"
 
+#define DBG_TAG "ykc_mrl"
+#define DBG_LVL DBG_LOG
+#include <rtdbg.h>
+
 #ifdef NET_PACK_USING_YKC_MONITOR
 
 #define YKC_MONITOR_DISPOSABLE_EVENT_STATE                0x00          /* 漏报事件：桩状态 */
@@ -24,6 +28,8 @@
 #define YKC_MONITOR_REALTIME_DATA_INTERVAL_INIT           0x05          /* 刚连上网时实时数据上报间隔 */
 #define YKC_MONITOR_REALTIME_DATA_INTERVAL_CHARGING       0x0F          /* 充电中实时数据上报间隔  */
 #define YKC_MONITOR_REALTIME_DATA_INTERVAL_IDLE           0x05 *60      /* 空闲实时数据上报间隔  */
+
+#define YKC_MONITOR_REALTIME_PROCESS_THREAD_STACK_SIZE    1536          /* 实时处理线程栈大小 */
 
 #pragma pack(1)
 
@@ -56,6 +62,8 @@ static uint16_t s_ykc_monitor_realtime_data_interval[NET_SYSTEM_GUN_NUMBER];
 static uint32_t s_ykc_monitor_realtime_data_count[NET_SYSTEM_GUN_NUMBER];
 static uint16_t s_ykc_monitor_local_start_sq;
 static struct ykc_monitor_disposable_info s_ykc_monitor_disposable_info[NET_SYSTEM_GUN_NUMBER];
+static struct rt_thread s_ykc_monitor_realtime_process_thread;
+static uint8_t s_ykc_monitor_realtime_process_thread_stack[YKC_MONITOR_REALTIME_PROCESS_THREAD_STACK_SIZE];
 static struct net_handle* s_ykc_monitor_handle = NULL;
 static System_BaseData *s_ykc_monitor_base = NULL;
 
@@ -470,7 +478,7 @@ int8_t ykc_monitor_response_padding_time_sync(uint8_t *buf, uint16_t ilen, uint1
     memcpy(response->body.pile_number, g_ykc_monitor_sreq_time_sync.body.pile_number, valid_len);
     response->body.current_time = ykc_monitor_get_cp56time2a_from_timestamp(time(NULL));
 
-    rt_kprintf("ykc_response_padding_time_sync(%d)[%d, %d, %d, %d, %d, %d]\n", time(NULL),
+    rt_kprintf("ykc_monitor_response_padding_time_sync(%d)[%d, %d, %d, %d, %d, %d]\n", time(NULL),
             response->body.current_time.cp56time2a_tm.year, response->body.current_time.cp56time2a_tm.month,
             response->body.current_time.cp56time2a_tm.mday, response->body.current_time.cp56time2a_tm.hour,
             response->body.current_time.cp56time2a_tm.min, response->body.current_time.cp56time2a_tm.msec /1000);
@@ -965,7 +973,7 @@ int8_t ykc_monitor_message_pro_time_sync_request(void *data, uint8_t len)
     uint32_t timestamp = ykc_monitor_get_timestamp_from_cp56time2a(request->body.current_time);
     s_ykc_monitor_handle->time_sync(timestamp + 28800);
 
-    rt_kprintf("ykc_message_pro_time_sync_request(%d)[%d, %d, %d, %d, %d, %d]\n", timestamp,
+    rt_kprintf("ykc_monitor_message_pro_time_sync_request(%d)[%d, %d, %d, %d, %d, %d]\n", timestamp,
             request->body.current_time.cp56time2a_tm.year, request->body.current_time.cp56time2a_tm.month,
             request->body.current_time.cp56time2a_tm.mday, request->body.current_time.cp56time2a_tm.hour,
             request->body.current_time.cp56time2a_tm.min, request->body.current_time.cp56time2a_tm.msec /1000);
@@ -2011,7 +2019,7 @@ void ykc_monitor_chargepile_state_changed(uint8_t gunno)
         return;
     }
     if(state != s_ykc_monitor_disposable_info[gunno].state.state){
-        if(state == NETYKC_DEVICE_STATE_FAULTING){
+        if(state == NETYKC_MONITOR_DEVICE_STATE_FAULTING){
             s_ykc_monitor_disposable_info[gunno].state.state = state;
             return;
         }
@@ -2397,6 +2405,10 @@ static uint16_t ykc_monitor_chargepile_stop_reason_converted(uint8_t reason, uin
     case APP_SYSTEM_STOP_WAY_NO_BALLANCE:
         _reason = NETYKC_MONITOR_AS_REASON6E_NO_BALLANCE;
         break;
+    /* 屏幕 */
+    case APP_SYSTEM_STOP_WAY_SCREEN_STOP:
+        _reason = NETYKC_MONITOR_CC_REASON45_MANUAL_STOP;
+        break;
     /* 到达设定电量 */
     case APP_SYSTEM_STOP_WAY_REACH_ELECT:
         _reason = NETYKC_MONITOR_CC_REASON42_TARGET_ELECT;
@@ -2530,6 +2542,43 @@ void ykc_monitor_disposable_message_check(uint8_t gunno)
     }
 }
 
+static void ykc_monitor_realtime_process_thread_entry(void *parameter)
+{
+    uint8_t gunno = 0x00;
+
+    while(1){
+        if((net_get_ota_info()->state >= NET_OTA_STATE_LOGIN_WAIT) && (net_get_ota_info()->state <= NET_OTA_STATE_UPDATING)){
+            rt_thread_mdelay(5000);
+            continue;
+        }
+        if((s_ykc_monitor_handle == NULL) || (s_ykc_monitor_base == NULL)){
+            rt_thread_mdelay(100);
+            continue;
+        }
+
+        for(gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
+            ykc_monitor_fault_detect_report(gunno);
+            ykc_monitor_data_realtime_process(gunno);
+            ykc_monitor_disposable_message_check(gunno);
+        }
+
+        rt_thread_mdelay(100);
+    }
+}
+
+int32_t ykc_monitor_realtime_process_init(void)
+{
+    if(rt_thread_init(&s_ykc_monitor_realtime_process_thread, "ykc_mrl_pro", ykc_monitor_realtime_process_thread_entry, NULL,
+            s_ykc_monitor_realtime_process_thread_stack, YKC_MONITOR_REALTIME_PROCESS_THREAD_STACK_SIZE, 16, 10) != RT_EOK){
+        LOG_E("ykc monitor realtime process thread create fail, please check");
+        return -0x01;
+    }
+    if(rt_thread_startup(&s_ykc_monitor_realtime_process_thread) != RT_EOK){
+        LOG_E("ykc monitor realtime process thread startup fail, please check");
+        return -0x01;
+    }
+    return 0x00;
+}
 
 /******************************** 以下是监控报文 *******************************/
 /******************************** 以下是监控报文 *******************************/
