@@ -145,7 +145,7 @@ void mw_set_time_sync_flag(void)
 
 int8_t mw_get_time_sync_flag(uint8_t gunno)
 {
-    if(gunno >= APP_SYSTEM_GUNNO_SIZE){
+    if(gunno > APP_SYSTEM_GUNNO_SIZE){
         return 0;
     }
 
@@ -154,7 +154,7 @@ int8_t mw_get_time_sync_flag(uint8_t gunno)
 
 void mw_clear_time_sync_flag(uint8_t gunno)
 {
-    if(gunno >= APP_SYSTEM_GUNNO_SIZE){
+    if(gunno > APP_SYSTEM_GUNNO_SIZE){
         return;
     }
     s_time_sync_flag &= (~(1 <<gunno));
