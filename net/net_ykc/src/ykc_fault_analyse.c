@@ -203,6 +203,31 @@ static int32_t ykc_get_fault_code(uint8_t bit, uint8_t gunno, uint8_t is_resume)
         break;
     case NET_GENERAL_FAULT_EEPROM:
         return 0x00;
+    case NET_GENERAL_FAULT_LIGHT_PRPTECT:
+        if(is_resume){
+            s_ykc_realtime_fault[gunno] &= ~YKC_REALTIME_FAULT_AC_LIGHTNING_ARRETER;
+        }else{
+            s_ykc_realtime_fault[gunno] |= YKC_REALTIME_FAULT_AC_LIGHTNING_ARRETER;
+        }
+        break;
+    case NET_GENERAL_FAULT_GUN_SITE:
+        return 0x00;
+    case NET_GENERAL_FAULT_CIRCUIT_BREAKER:
+        return 0x00;
+    case NET_GENERAL_FAULT_FLOODING:
+        return 0x00;
+    case NET_GENERAL_FAULT_SMOKE:
+        return 0x00;
+    case NET_GENERAL_FAULT_POUR:
+        return 0x00;
+    case NET_GENERAL_FAULT_LIQUID_COOLING:
+        return 0x00;
+    case NET_GENERAL_FAULT_FUSE:
+        if(is_resume){
+            s_ykc_realtime_fault[gunno] &= ~YKC_REALTIME_FAULT_DC_FUSE;
+        }else{
+            s_ykc_realtime_fault[gunno] |= YKC_REALTIME_FAULT_DC_FUSE;
+        }
         break;
     default:
         return 0x00;

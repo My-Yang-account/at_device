@@ -832,6 +832,11 @@ int8_t ykc_message_pro_remote_start_charge_request(uint8_t gunno, void *data, ui
     s_ykc_base = (System_BaseData*)(s_ykc_handle->get_base_data(gunno));
     Net_YkcPro_SReq_Remote_StartCharge_t *request = (Net_YkcPro_SReq_Remote_StartCharge_t*)data;
 
+    /** 并充时不能让平台启动副枪 */
+    if(s_ykc_base->charge_way == APP_CHARGE_WAY_PARACHARGE){
+        return NET_YKC_START_FAIL_REASON_IS_CHARGING;
+    }
+
     switch(s_ykc_base->state.current){
     case APP_OFSM_STATE_IDLEING:
         return NET_YKC_START_FAIL_REASON_NO_GUN;
@@ -890,6 +895,13 @@ int8_t ykc_message_pro_remote_stop_charge_request(uint8_t gunno)
     }
 
     s_ykc_base = (System_BaseData*)(s_ykc_handle->get_base_data(gunno));
+
+    /** 并充时不能让平台停止副枪 */
+    if(s_ykc_base->charge_way == APP_CHARGE_WAY_PARACHARGE){
+        if(gunno != s_ykc_base->main_gunno){
+            return NET_YKC_START_FAIL_REASON_IS_CHARGING;
+        }
+    }
 
     if(s_ykc_base->state.current != APP_OFSM_STATE_CHARGING){
         s_ykc_flag_info[gunno].is_stop_charge = 0x01;
@@ -1093,6 +1105,11 @@ int8_t ykc_message_pro_remote_start_merge_charge_request(uint8_t gunno, void *da
     uint8_t valid_len = 0x00;
     Net_YkcPro_SReq_Remote_StartMergeCharge_t *request = (Net_YkcPro_SReq_Remote_StartMergeCharge_t*)data;
     s_ykc_base = (System_BaseData*)(s_ykc_handle->get_base_data(gunno));
+
+    /** 并充时不能让平台启动副枪 */
+    if(s_ykc_base->charge_way == APP_CHARGE_WAY_PARACHARGE){
+        return NET_YKC_START_FAIL_REASON_IS_CHARGING;
+    }
 
     switch(s_ykc_base->state.current){
     case APP_OFSM_STATE_IDLEING:
@@ -2227,6 +2244,22 @@ uint8_t ykc_chargepile_fault_converted(uint8_t bit)
         return NET_GENERAL_FAULT_FLASH;
     case APP_SYS_FAULT_EEPROM :
         return NET_GENERAL_FAULT_EEPROM;
+    case APP_SYS_FAULT_LIGHT_PRPTECT :
+        return NET_GENERAL_FAULT_LIGHT_PRPTECT;
+    case APP_SYS_FAULT_GUN_SITE :
+        return NET_GENERAL_FAULT_GUN_SITE;
+    case APP_SYS_FAULT_CIRCUIT_BREAKER :
+        return NET_GENERAL_FAULT_CIRCUIT_BREAKER;
+    case APP_SYS_FAULT_FLOODING :
+        return NET_GENERAL_FAULT_FLOODING;
+    case APP_SYS_FAULT_SMOKE :
+        return NET_GENERAL_FAULT_SMOKE;
+    case APP_SYS_FAULT_POUR :
+        return NET_GENERAL_FAULT_POUR;
+    case APP_SYS_FAULT_LIQUID_COOLING :
+        return NET_GENERAL_FAULT_LIQUID_COOLING;
+    case APP_SYS_FAULT_FUSE :
+        return NET_GENERAL_FAULT_FUSE;
     default:
         return NET_GENERAL_FAULT_SIZE;
     }

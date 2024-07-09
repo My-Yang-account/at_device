@@ -112,18 +112,18 @@ void prepose_init(void)
 
     /**************************************************************************/
     /* 对终端串口进行初始化 */
-//    while (1) {
-//        if(0 > bsp_terminal_serial_init()) {
-//            LOG_E("terminal serial initialize failed, please check terminal serial!");
-//            break;
-//        } else {
-//            LOG_D("terminal serial initialize success");
-//            break;
-//        }
-//    }
-//
-//    /* 对终端的线程进行初始化 */
-//    app_terminal_init();
+    while (1) {
+        if(0 > bsp_terminal_serial_init()) {
+            LOG_E("terminal serial initialize failed, please check terminal serial!");
+            break;
+        } else {
+            LOG_D("terminal serial initialize success");
+            break;
+        }
+    }
+
+    /* 对终端的线程进行初始化 */
+    app_terminal_init();
 
     mw_iwdg_refresh();
 }

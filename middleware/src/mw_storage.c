@@ -18,7 +18,7 @@ int32_t mw_storage_init(void)
     return notfs_init();
 }
 
-int32_t mw_storage_record_create(const void *data, uint32_t data_len, uint8_t user_data, uint16_t verify_mask, uint8_t region)
+int32_t mw_storage_record_create(const void *data, uint32_t data_len, uint32_t user_data, uint16_t verify_mask, uint8_t region)
 {
     if ((NULL == data) || (0 == data_len)) {
         return -1;
@@ -53,7 +53,7 @@ int32_t mw_storage_record_create(const void *data, uint32_t data_len, uint8_t us
     return 0;
 }
 
-int32_t mw_storage_record_designate_index_updated(const void *data, uint32_t data_len, uint8_t user_data, uint16_t verify_mask, uint8_t region, int32_t index)
+int32_t mw_storage_record_designate_index_updated(const void *data, uint32_t data_len, uint32_t user_data, uint16_t verify_mask, uint8_t region, int32_t index)
 {
     if ((NULL == data) || (0 == data_len)) {
         return -1;
@@ -129,7 +129,7 @@ int32_t mw_storage_record_get_record_total_num(uint8_t region)
     return notfs_get_subregion_record_total_num((enum notfs_subregion)region);
 }
 
-int32_t mw_storage_record_get_userdata_record_num(uint8_t user_data, uint8_t region)
+int32_t mw_storage_record_get_userdata_record_num(uint32_t user_data, uint8_t region)
 {
     if (0xFF == user_data) {
         return -1; /* 不允许使用 0xFF 作为用户数据 */
@@ -147,7 +147,7 @@ int32_t mw_storage_record_clear_record_info(uint8_t region)
     return notfs_clear_subregion_record_info((enum notfs_subregion)region);
 }
 
-int32_t mw_storage_record_get_first_index_userdata(uint8_t user_data, uint8_t region)
+int32_t mw_storage_record_get_first_index_userdata(uint32_t user_data, uint8_t region)
 {
     if (0xFF == user_data) {
         return -1; /* 不允许使用 0xFF 作为用户数据 */

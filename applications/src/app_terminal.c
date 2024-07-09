@@ -207,12 +207,17 @@ void terminal_thread_entry(void *parameter)
                 }
                 data[j] = '\0';
 
-                if (0 > write_config_item_content(CONFIG_ITEM_PILE_NUMBER, data, j)) {
+                if (0 > sys_sync_config_item_content(CONFIG_ITEM_PILE_NUMBER, data, j)) {
                     terminal_send_data("ACUCWDpileNum ERROR\r\n");
                     LOG_D("terminal configure charging-pile number failed");
                 } else {
-                    terminal_send_data("ACUCWDpileNum OK\r\n");
-                    LOG_D("terminal configure charging-pile number success");
+                    if(0 > sys_storage_config_item()){
+                        terminal_send_data("ACUCWDpileNum ERROR\r\n");
+                        LOG_D("terminal configure charging-pile number failed");
+                    }else{
+                        terminal_send_data("ACUCWDpileNum OK\r\n");
+                        LOG_D("terminal configure charging-pile number success");
+                    }
                 }
             } else if (0 == memcmp(s_terminal_data.buffer, "UCACWDqrCode", count)) {
                 LOG_D("terminal write is UCACWDqrCode");
@@ -220,12 +225,17 @@ void terminal_thread_entry(void *parameter)
                     data[j++] = s_terminal_data.buffer[i];
                 }
                 data[j] = '\0';
-                if(write_config_item_content(CONFIG_ITEM_QRCODE_PRE, data, j) < 0){
+                if(sys_sync_config_item_content(CONFIG_ITEM_QRCODE_PRE, data, j) < 0){
                     terminal_send_data("ACUCWDqrCode ERROR\r\n");
                     LOG_D("terminal configure qrcode failed");
                 }else{
-                    terminal_send_data("ACUCWDqrCode OK\r\n");
-                    LOG_D("terminal configure qrcode success");
+                    if(0 > sys_storage_config_item()){
+                        terminal_send_data("ACUCWDqrCode ERROR\r\n");
+                        LOG_D("terminal configure qrcode failed");
+                    }else{
+                        terminal_send_data("ACUCWDqrCode OK\r\n");
+                        LOG_D("terminal configure qrcode success");
+                    }
                 }
             } else if (0 == memcmp(s_terminal_data.buffer, "UCACWDip", count)) {
                 LOG_D("terminal write is UCACWDip");
@@ -233,12 +243,17 @@ void terminal_thread_entry(void *parameter)
                     data[j++] = s_terminal_data.buffer[i]; /* 获取数据 */
                 }
                 data[j] = '\0';
-                if (0 > write_config_item_content(CONFIG_ITEM_IP_DOMAIN, data, j)) {
+                if (0 > sys_sync_config_item_content(CONFIG_ITEM_IP_DOMAIN, data, j)) {
                     terminal_send_data("ACUCWDip ERROR\r\n");
                     LOG_D("terminal configure ip addr failed");
                 } else {
-                    terminal_send_data("ACUCWDip OK\r\n");
-                    LOG_D("terminal configure ip addr success");
+                    if(0 > sys_storage_config_item()){
+                        terminal_send_data("ACUCWDip ERROR\r\n");
+                        LOG_D("terminal configure ip addr failed");
+                    }else{
+                        terminal_send_data("ACUCWDip OK\r\n");
+                        LOG_D("terminal configure ip addr success");
+                    }
                 }
             } else if (0 == memcmp(s_terminal_data.buffer, "UCACWDport", count)) {
                 uint32_t port = 0;
@@ -250,12 +265,17 @@ void terminal_thread_entry(void *parameter)
                 data[j] = '\0';
                 port = (uint32_t)(atoi((const char *)data));
 
-                if (0 > write_config_item_content(CONFIG_ITEM_PORT, &port, j)) {
+                if (0 > sys_sync_config_item_content(CONFIG_ITEM_PORT, &port, j)) {
                     terminal_send_data("ACUCWDport ERROR\r\n");
                     LOG_D("terminal configure port addr failed");
                 } else {
-                    terminal_send_data("ACUCWDport OK\r\n");
-                    LOG_D("terminal configure port addr success");
+                    if(0 > sys_storage_config_item()){
+                        terminal_send_data("ACUCWDport ERROR\r\n");
+                        LOG_D("terminal configure port addr failed");
+                    }else{
+                        terminal_send_data("ACUCWDport OK\r\n");
+                        LOG_D("terminal configure port addr success");
+                    }
                 }
             } else if (0 == memcmp(s_terminal_data.buffer, "UCACWDleakage", count)) {
                 LOG_D("terminal write is UCACWDleakage");

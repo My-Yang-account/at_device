@@ -291,6 +291,15 @@ typedef enum thaisenFaultEnum
   thaisenAuxPower,
   thaisenFaultFlash,
   thaisenFaultEeprom,
+  thaisenFaultLightProtect,
+  thaisenFaultGunSite,
+  thaisenFaultCircuitBreaker,
+  thaisenFaultFlooding,
+  thaisenFaultSmoke,
+  thaisenFaultPour,
+  thaisenFaultLiquidCooling,
+  thaisenFaultFuse,
+
   thaisenFaultSize,
 }thaisenFaultTy;
 
@@ -358,7 +367,17 @@ thaisenRelayEn thaisen_relay_K8_FB(void);
 thaisenRelayEn thaisen_relay_K9_FB(void);
 thaisenRelayEn thaisen_relay_K10_FB(void);
 
+void thaisenSetACRelayCloseStaus(uint8_t sta);
+uint8_t thaisenGetACRelayCloseStaus(void);
 
+void thaisenSetDCRelayACloseStaus(uint8_t sta);
+uint8_t thaisenGetDCRelayACloseStaus(void);
+
+void thaisenSetDCRelayBCloseStaus(uint8_t sta);
+uint8_t thaisenGetDCRelayBCloseStaus(void);
+
+void thaisenSetParaRelayCloseStaus(uint8_t sta);
+uint8_t thaisenGetParaRelayCloseStaus(void);
 /*****************************************************************************************************/
 /*************************************辅助电源函数******************************************************/
 
@@ -372,6 +391,12 @@ typedef enum thaisenAuxPowerEnum
     thaisen_auxPower_fail,
 }thaisenAuxPowerEn;
 
+typedef enum thaisenAuxPowerType
+{
+    thaisen_auxPowerType_12V,
+    thaisen_auxPowerType_24V,
+    thaisen_auxPowerType_size,
+}thaisenAuxPowerTypeEn;
 
 thaisenAuxPowerEn thaisen_auxPower_on_A(void);
 thaisenAuxPowerEn thaisen_auxPower_off_A(void);
@@ -382,6 +407,25 @@ thaisenAuxPowerEn thaisen_auxPower_off_B(void);
 
 thaisenAuxPowerEn thaisenGetAux_A_Status_debug(void);
 thaisenAuxPowerEn thaisenGetAux_B_Status_debug(void);
+
+void thaisenSetAuxPowerTypeA(uint8_t type);
+thaisenAuxPowerTypeEn thaisenGetAuxPowerTypeA(void);
+
+void thaisenSetAuxPowerTypeB(uint8_t type);
+thaisenAuxPowerTypeEn thaisenGetAuxPowerTypeB(void);
+
+thaisenAuxPowerEn thaisenAux_A_12V_Enable(void);
+thaisenAuxPowerEn thaisenAux_A_12V_Disable(void);
+
+thaisenAuxPowerEn thaisenAux_A_24V_Enable(void);
+thaisenAuxPowerEn thaisenAux_A_24V_Disable(void);
+
+thaisenAuxPowerEn thaisenAux_B_12V_Enable(void);
+thaisenAuxPowerEn thaisenAux_B_12V_Disable(void);
+
+thaisenAuxPowerEn thaisenAux_B_24V_Enable(void);
+thaisenAuxPowerEn thaisenAux_B_24V_Disable(void);
+
 /*****************************************************************************************************/
 
 /*************************************风机控制函数******************************************************/
@@ -623,6 +667,13 @@ can_msg_buf thaisen_get_can_bmsB_dat(void);
 
 
 /*****************************电表函数*****************************************/
+enum
+{
+    thaisenAmmeterModel_RuiYin,
+    thaisenAmmeterModel_YaDa,
+    thaisenAmmeterModel_Other,
+};
+
 /* 功能说明:
  *          thaisen_get_ammeterVolt:获取电表电压
  *                  分辨率:0.1
@@ -667,7 +718,7 @@ uint32_t thaisen_get_ammeterPower(uint8_t gunNum);
 
 /* 功能说明:
  *          thaisen_get_ammeterEnergy:获取电表总计电量
- *                  分辨率:0.01
+ *                  分辨率:0.001
  *                  单位:kW.h
  * 输入参数:
  *                  gunNum:充电枪号，填0
@@ -677,6 +728,28 @@ uint32_t thaisen_get_ammeterPower(uint8_t gunNum);
  *          实时调用
  */
 uint32_t thaisen_get_ammeterEnergy(uint8_t gunNum);
+
+/* 功能说明:
+ *          thaisen_set_ammnterModel:设置电表型号
+ * 输入参数:
+ *                  model:型号
+ * 返回参数:
+ *
+ * 调用方法:
+ *          实时调用
+ */
+void thaisen_set_ammnterModel(uint8_t model);
+
+/* 功能说明:
+ *          thaisen_get_ammnterModel:获取电表型号
+ * 输入参数:
+ *
+ * 返回参数:
+ *          电表型号
+ * 调用方法:
+ *          实时调用
+ */
+uint8_t thaisen_get_ammnterModel(void);
 
 /*****************************************************************************************************/
 
@@ -900,8 +973,8 @@ unsigned short thaisenW25qxxReadID(void);
    * 调用方法:
    *          实时
    */
- uint16_t TH_get_A_Insult_Positive_PE_Volt(void);
- uint16_t TH_get_B_Insult_Positive_PE_Volt(void);
+ int16_t TH_get_A_Insult_Positive_PE_Volt(void);
+ int16_t TH_get_B_Insult_Positive_PE_Volt(void);
  /* 功能说明:
     *          TH_get_A_Insult_Cathode_PE_Volt:A枪的负极对PE电压值
     *
@@ -912,8 +985,8 @@ unsigned short thaisenW25qxxReadID(void);
     * 调用方法:
     *          实时
     */
- uint16_t TH_get_A_Insult_Cathode_PE_Volt(void);
- uint16_t TH_get_B_Insult_Cathode_PE_Volt(void);
+ int16_t TH_get_A_Insult_Cathode_PE_Volt(void);
+ int16_t TH_get_B_Insult_Cathode_PE_Volt(void);
 
  /* 功能说明:
     *          TH_get_A_Insult_Volt:A枪的绝缘电压值
@@ -925,8 +998,9 @@ unsigned short thaisenW25qxxReadID(void);
     * 调用方法:
     *          实时
     */
- uint16_t TH_get_A_Insult_Volt(void);
- uint16_t TH_get_B_Insult_Volt(void);
+ int16_t TH_get_A_Insult_Volt(void);
+ int16_t TH_get_B_Insult_Volt(void);
+
 
 
 
@@ -1105,4 +1179,1187 @@ unsigned short thaisenW25qxxReadID(void);
   *             可实时调用
   */
  uint8_t *__thaisen_get_test_hard_version(void);
+
+ /*************************************输入、输出端口配置函数******************************************************/
+ /* 功能说明:
+  *          thaisenSetDCRelayOutPortA:设置A枪直流继电器输出端口
+  * 输入参数:
+  *         port:端口
+  * 返回参数:
+  *          无
+  * 调用方法:
+  *      实时调用
+  */
+void thaisenSetDCRelayOutPortA(uint8_t port);
+/* 功能说明:
+ *          thaisenGetDCRelayOutPortA:获取A枪直流继电器输出端口
+ * 输入参数:
+ *         无
+ * 返回参数:
+ *         A枪直流继电器输出端口
+ * 调用方法:
+ *     实时调用
+ */
+uint8_t thaisenGetDCRelayOutPortA(void);
+
+/* 功能说明:
+ *          thaisenSetDCRelayOutPortB:设置B枪直流继电器输出端口
+ * 输入参数:
+ *         port:端口
+ * 返回参数:
+ *          无
+ * 调用方法:
+ *      实时调用
+ */
+void thaisenSetDCRelayOutPortB(uint8_t port);
+/* 功能说明:
+ *          thaisenGetDCRelayOutPortB:获取B枪直流继电器输出端口
+ * 输入参数:
+ *         无
+ * 返回参数:
+ *         B枪直流继电器输出端口
+ * 调用方法:
+ *     实时调用
+ */
+uint8_t thaisenGetDCRelayOutPortB(void);
+
+/* 功能说明:
+ *          thaisenSetParaRelayOutPort:设置并联继电器输出端口
+ * 输入参数:
+ *         port:端口
+ * 返回参数:
+ *          无
+ * 调用方法:
+ *      实时调用
+ */
+void thaisenSetParaRelayOutPort(uint8_t port);
+/* 功能说明:
+ *          thaisenGetParaRelayOutPort:获取并联继电器输出端口
+ * 输入参数:
+ *         无
+ * 返回参数:
+ *         并联继电器输出端口
+ * 调用方法:
+ *     实时调用
+ */
+uint8_t thaisenGetParaRelayOutPort(void);
+
+/* 功能说明:
+ *          thaisenSetACRelayOutPort:设置交流继电器输出端口
+ * 输入参数:
+ *         port:端口
+ * 返回参数:
+ *          无
+ * 调用方法:
+ *      实时调用
+ */
+void thaisenSetACRelayOutPort(uint8_t port);
+/* 功能说明:
+ *          thaisenGetACRelayOutPort:获取交流继电器输出端口
+ * 输入参数:
+ *         无
+ * 返回参数:
+ *         交流继电器输出端口
+ * 调用方法:
+ *     实时调用
+ */
+uint8_t thaisenGetACRelayOutPort(void);
+
+
+/* 功能说明:
+ *          thaisenSetElectLockOutPortA:设置A枪电子锁输出端口
+ * 输入参数:
+ *         port:端口
+ * 返回参数:
+ *          无
+ * 调用方法:
+ *      实时调用
+ */
+void thaisenSetElectLockOutPortA(uint8_t port);
+/* 功能说明:
+ *          thaisenGetElectLockOutPortA:获取A枪电子锁输出端口
+ * 输入参数:
+ *         无
+ * 返回参数:
+ *         A枪电子锁输出端口
+ * 调用方法:
+ *     实时调用
+ */
+uint8_t thaisenGetElectLockOutPortA(void);
+
+/* 功能说明:
+ *          thaisenSetElectLockOutPortB:设置B枪电子锁输出端口
+ * 输入参数:
+ *         port:端口
+ * 返回参数:
+ *          无
+ * 调用方法:
+ *      实时调用
+ */
+void thaisenSetElectLockOutPortB(uint8_t port);
+/* 功能说明:
+ *          thaisenGetElectLockOutPortB:获取B枪电子锁输出端口
+ * 输入参数:
+ *         无
+ * 返回参数:
+ *         B枪电子锁输出端口
+ * 调用方法:
+ *     实时调用
+ */
+uint8_t thaisenGetElectLockOutPortB(void);
+
+/* 功能说明:
+ *          thaisenSetFanOutPort:设置风扇输出端口
+ * 输入参数:
+ *         port:端口
+ * 返回参数:
+ *          无
+ * 调用方法:
+ *      实时调用
+ */
+void thaisenSetFanOutPort(uint8_t port);
+/* 功能说明:
+ *          thaisenGetFanOutPort:获取风扇输出端口
+ * 输入参数:
+ *         无
+ * 返回参数:
+ *         风扇输出端口
+ * 调用方法:
+ *     实时调用
+ */
+uint8_t thaisenGetFanOutPort(void);
+
+/* 功能说明:
+ *          thaisenSetAuxPowerOutPortA_12V:设置A枪12V辅源输出端口
+ * 输入参数:
+ *         port:端口
+ * 返回参数:
+ *          无
+ * 调用方法:
+ *      实时调用
+ */
+void thaisenSetAuxPowerOutPortA_12V(uint8_t port);
+/* 功能说明:
+ *          thaisenGetAuxPowerOutPortA_12V:获取A枪12V辅源输出端口
+ * 输入参数:
+ *         无
+ * 返回参数:
+ *         A枪12V辅源输出端口
+ * 调用方法:
+ *     实时调用
+ */
+uint8_t thaisenGetAuxPowerOutPortA_12V(void);
+
+/* 功能说明:
+ *          thaisenSetAuxPowerOutPortB_12V:设置B枪12V辅源输出端口
+ * 输入参数:
+ *         port:端口
+ * 返回参数:
+ *          无
+ * 调用方法:
+ *      实时调用
+ */
+void thaisenSetAuxPowerOutPortB_12V(uint8_t port);
+/* 功能说明:
+ *          thaisenGetAuxPowerOutPortB_12V:获取B枪12V辅源输出端口
+ * 输入参数:
+ *         无
+ * 返回参数:
+ *         B枪12V辅源输出端口
+ * 调用方法:
+ *     实时调用
+ */
+uint8_t thaisenGetAuxPowerOutPortB_12V(void);
+
+/* 功能说明:
+ *          thaisenSetAuxPowerOutPortA_24V:设置A枪24V辅源输出端口
+ * 输入参数:
+ *         port:端口
+ * 返回参数:
+ *          无
+ * 调用方法:
+ *      实时调用
+ */
+void thaisenSetAuxPowerOutPortA_24V(uint8_t port);
+/* 功能说明:
+ *          thaisenGetAuxPowerOutPortA_24V:获取A枪24V辅源输出端口
+ * 输入参数:
+ *         无
+ * 返回参数:
+ *         A枪24V辅源输出端口
+ * 调用方法:
+ *     实时调用
+ */
+uint8_t thaisenGetAuxPowerOutPortA_24V(void);
+
+/* 功能说明:
+ *          thaisenSetAuxPowerOutPortB_24V:设置B枪24V辅源输出端口
+ * 输入参数:
+ *         port:端口
+ * 返回参数:
+ *          无
+ * 调用方法:
+ *      实时调用
+ */
+void thaisenSetAuxPowerOutPortB_24V(uint8_t port);
+/* 功能说明:
+ *          thaisenGetAuxPowerOutPortB_24V:获取B枪24V辅源输出端口
+ * 输入参数:
+ *         无
+ * 返回参数:
+ *         B枪24V辅源输出端口
+ * 调用方法:
+ *     实时调用
+ */
+uint8_t thaisenGetAuxPowerOutPortB_24V(void);
+
+/* 功能说明:
+ *          thaisenSetReliefOutPortA: 设置A枪泄放输出端口
+ * 输入参数:
+ *         port:端口
+ * 返回参数:
+ *          无
+ * 调用方法:
+ *      实时调用
+ */
+void thaisenSetReliefOutPortA(uint8_t port);
+/* 功能说明:
+ *          thaisenGetReliefOutPortA:获取A枪泄放输出端口
+ * 输入参数:
+ *         无
+ * 返回参数:
+ *         A枪泄放输出端口
+ * 调用方法:
+ *     实时调用
+ */
+uint8_t thaisenGetReliefOutPortA(void);
+
+/* 功能说明:
+ *          thaisenSetReliefOutPortB: 设置B枪泄放输出端口
+ * 输入参数:
+ *         port:端口
+ * 返回参数:
+ *          无
+ * 调用方法:
+ *      实时调用
+ */
+void thaisenSetReliefOutPortB(uint8_t port);
+/* 功能说明:
+ *          thaisenGetReliefOutPortB:获取B枪泄放输出端口
+ * 输入参数:
+ *         无
+ * 返回参数:
+ *         B枪泄放输出端口
+ * 调用方法:
+ *     实时调用
+ */
+uint8_t thaisenGetReliefOutPortB(void);
+
+/* 功能说明:
+ *          thaisenSetLiquidCoolingOutPortA: 设置A枪液冷输出端口
+ * 输入参数:
+ *         port:端口
+ * 返回参数:
+ *          无
+ * 调用方法:
+ *      实时调用
+ */
+void thaisenSetLiquidCoolingOutPortA(uint8_t port);
+/* 功能说明:
+ *          thaisenGetLiquidCoolingOutPortA:获取A枪液冷输出端口
+ * 输入参数:
+ *         无
+ * 返回参数:
+ *         A枪液冷输出端口
+ * 调用方法:
+ *     实时调用
+ */
+uint8_t thaisenGetLiquidCoolingOutPortA(void);
+
+/* 功能说明:
+ *          thaisenSetLiquidCoolingOutPortB: 设置B枪液冷输出端口
+ * 输入参数:
+ *         port:端口
+ * 返回参数:
+ *          无
+ * 调用方法:
+ *      实时调用
+ */
+void thaisenSetLiquidCoolingOutPortB(uint8_t port);
+/* 功能说明:
+ *          thaisenGetLiquidCoolingOutPortB:获取B枪液冷输出端口
+ * 输入参数:
+ *         无
+ * 返回参数:
+ *         B枪液冷输出端口
+ * 调用方法:
+ *     实时调用
+ */
+uint8_t thaisenGetLiquidCoolingOutPortB(void);
+
+ /******************************************** 输入口配置 **************************************************/
+ /******************************************** 输入口配置 **************************************************/
+/* 功能说明:
+ *          thaisenSetDCRelayInPortA:设置A枪直流继电器输入端口
+ * 输入参数:
+ *         port:端口
+ * 返回参数:
+ *          无
+ * 调用方法:
+ *      实时调用
+ */
+void thaisenSetDCRelayInPortA(uint8_t port);
+/* 功能说明:
+ *          thaisenGetDCRelayInPortA:获取A枪直流继电器输入端口
+ * 输入参数:
+ *         无
+ * 返回参数:
+ *         A枪直流继电器输入端口
+ * 调用方法:
+ *     实时调用
+ */
+uint8_t thaisenGetDCRelayInPortA(void);
+
+/* 功能说明:
+ *          thaisenSetDCRelayInPortB:设置B枪直流继电器输入端口
+ * 输入参数:
+ *         port:端口
+ * 返回参数:
+ *          无
+ * 调用方法:
+ *      实时调用
+ */
+void thaisenSetDCRelayInPortB(uint8_t port);
+/* 功能说明:
+ *          thaisenGetDCRelayInPortB:获取B枪直流继电器输入端口
+ * 输入参数:
+ *         无
+ * 返回参数:
+ *         B枪直流继电器输入端口
+ * 调用方法:
+ *     实时调用
+ */
+uint8_t thaisenGetDCRelayInPortB(void);
+
+/* 功能说明:
+ *          thaisenSetParaRelayInPort:设置并联继电器输入端口
+ * 输入参数:
+ *         port:端口
+ * 返回参数:
+ *          无
+ * 调用方法:
+ *      实时调用
+ */
+void thaisenSetParaRelayInPort(uint8_t port);
+/* 功能说明:
+ *          thaisenGetParaRelayInPort:获取并联继电器输入端口
+ * 输入参数:
+ *         无
+ * 返回参数:
+ *         并联继电器输入端口
+ * 调用方法:
+ *     实时调用
+ */
+uint8_t thaisenGetParaRelayInPort(void);
+
+/* 功能说明:
+ *          thaisenSetACRelayInPort:设置交流继电器输入端口
+ * 输入参数:
+ *         port:端口
+ * 返回参数:
+ *          无
+ * 调用方法:
+ *      实时调用
+ */
+void thaisenSetACRelayInPort(uint8_t port);
+/* 功能说明:
+ *          thaisenGetACRelayInPort:获取交流继电器输入端口
+ * 输入参数:
+ *         无
+ * 返回参数:
+ *         并联继电器输入端口
+ * 调用方法:
+ *     实时调用
+ */
+uint8_t thaisenGetACRelayInPort(void);
+
+/* 功能说明:
+ *          thaisenSetScramInPort:设置急停输入端口
+ * 输入参数:
+ *         port:端口
+ * 返回参数:
+ *          无
+ * 调用方法:
+ *      实时调用
+ */
+void thaisenSetScramInPort(uint8_t port);
+/* 功能说明:
+ *          thaisenGetScramInPort:获取急停输入端口
+ * 输入参数:
+ *         无
+ * 返回参数:
+ *         急停输入端口
+ * 调用方法:
+ *     实时调用
+ */
+uint8_t thaisenGetScramInPort(void);
+
+/* 功能说明:
+ *          thaisenSetElectLockInPortA:设置A枪电子锁输入端口
+ * 输入参数:
+ *         port:端口
+ * 返回参数:
+ *          无
+ * 调用方法:
+ *      实时调用
+ */
+void thaisenSetElectLockInPortA(uint8_t port);
+/* 功能说明:
+ *          thaisenGetElectLockInPortA:获取A枪电子锁输入端口
+ * 输入参数:
+ *         无
+ * 返回参数:
+ *         A枪电子锁输入端口
+ * 调用方法:
+ *     实时调用
+ */
+uint8_t thaisenGetElectLockInPortA(void);
+
+/* 功能说明:
+ *          thaisenSetElectLockInPortB:设置B枪电子锁输入端口
+ * 输入参数:
+ *         port:端口
+ * 返回参数:
+ *          无
+ * 调用方法:
+ *      实时调用
+ */
+void thaisenSetElectLockInPortB(uint8_t port);
+/* 功能说明:
+ *          thaisenGetElectLockInPortB:获取B枪电子锁输入端口
+ * 输入参数:
+ *         无
+ * 返回参数:
+ *         B枪电子锁输入端口
+ * 调用方法:
+ *     实时调用
+ */
+uint8_t thaisenGetElectLockInPortB(void);
+
+/* 功能说明:
+ *          thaisenSetGateInPort:设置门禁输入端口
+ * 输入参数:
+ *         port:端口
+ * 返回参数:
+ *          无
+ * 调用方法:
+ *      实时调用
+ */
+void thaisenSetGateInPort(uint8_t port);
+/* 功能说明:
+ *          thaisenGetGateInPort:获取门禁输入端口
+ * 输入参数:
+ *         无
+ * 返回参数:
+ *         门禁输入端口
+ * 调用方法:
+ *     实时调用
+ */
+uint8_t thaisenGetGateInPort(void);
+
+/* 功能说明:
+ *          thaisenSetTravelSwitchInPort:设置行程开关输入端口号
+ * 输入参数:
+ *         port:端口
+ * 返回参数:
+ *          无
+ * 调用方法:
+ *      实时调用
+ */
+void thaisenSetTravelSwitchInPort(uint8_t port);
+/* 功能说明:
+ *          thaisenGetTravelSwitchInPort:获取行程开关输入端口号
+ * 输入参数:
+ *         无
+ * 返回参数:
+ *         行程开关输入端口号
+ * 调用方法:
+ *     实时调用
+ */
+uint8_t thaisenGetTravelSwitchInPort(void);
+
+/* 功能说明:
+ *          thaisenSetLightProtectorInPort:设置防雷器输入端口
+ * 输入参数:
+ *         port:端口
+ * 返回参数:
+ *          无
+ * 调用方法:
+ *      实时调用
+ */
+void thaisenSetLightProtectorInPort(uint8_t port);
+/* 功能说明:
+ *          thaisenGetLightProtectorInPort:获取防雷器输入端口
+ * 输入参数:
+ *         无
+ * 返回参数:
+ *         防雷器输入端口
+ * 调用方法:
+ *     实时调用
+ */
+uint8_t thaisenGetLightProtectorInPort(void);
+
+/* 功能说明:
+ *          thaisenSetCircuitBreakerInPort:设置断路器输入端口
+ * 输入参数:
+ *         port:端口
+ * 返回参数:
+ *          无
+ * 调用方法:
+ *      实时调用
+ */
+void thaisenSetCircuitBreakerInPort(uint8_t port);
+/* 功能说明:
+ *          thaisenGetCircuitBreakerInPort:获取断路器输入端口
+ * 输入参数:
+ *         无
+ * 返回参数:
+ *         断路器输入端口
+ * 调用方法:
+ *     实时调用
+ */
+uint8_t thaisenGetCircuitBreakerInPort(void);
+
+/* 功能说明:
+ *          thaisenSetFanInPort:设置风扇输入端口
+ * 输入参数:
+ *         port:端口
+ * 返回参数:
+ *          无
+ * 调用方法:
+ *      实时调用
+ */
+void thaisenSetFanInPort(uint8_t port);
+/* 功能说明:
+ *          thaisenGetFanInPort:获取风扇输入端口
+ * 输入参数:
+ *         无
+ * 返回参数:
+ *         风扇输入端口
+ * 调用方法:
+ *     实时调用
+ */
+uint8_t thaisenGetFanInPort(void);
+
+/* 功能说明:
+ *          thaisenSetFloodingInPort:设置水浸输入端口
+ * 输入参数:
+ *         port:端口
+ * 返回参数:
+ *          无
+ * 调用方法:
+ *      实时调用
+ */
+void thaisenSetFloodingInPort(uint8_t port);
+/* 功能说明:
+ *          thaisenGetFloodingInPort:获取水浸输入端口
+ * 输入参数:
+ *         无
+ * 返回参数:
+ *         水浸输入端口
+ * 调用方法:
+ *     实时调用
+ */
+uint8_t thaisenGetFloodingInPort(void);
+
+/* 功能说明:
+ *          thaisenSetSmokeInPort:设置烟感输入端口
+ * 输入参数:
+ *         port:端口
+ * 返回参数:
+ *          无
+ * 调用方法:
+ *      实时调用
+ */
+void thaisenSetSmokeInPort(uint8_t port);
+/* 功能说明:
+ *          thaisenGetSmokeInPort:获取烟感输入端口
+ * 输入参数:
+ *         无
+ * 返回参数:
+ *         烟感输入端口
+ * 调用方法:
+ *     实时调用
+ */
+uint8_t thaisenGetSmokeInPort(void);
+
+/* 功能说明:
+ *          thaisenSetPourInPort:设置倾倒输入端口
+ * 输入参数:
+ *         port:端口
+ * 返回参数:
+ *          无
+ * 调用方法:
+ *      实时调用
+ */
+void thaisenSetPourInPort(uint8_t port);
+/* 功能说明:
+ *          thaisenGetPourInPort:获取倾倒输入端口
+ * 输入参数:
+ *         无
+ * 返回参数:
+ *         倾倒输入端口
+ * 调用方法:
+ *     实时调用
+ */
+uint8_t thaisenGetPourInPort(void);
+
+/* 功能说明:
+ *          thaisenSetGunMountInPortA:设置A枪枪座输入端口
+ * 输入参数:
+ *         port:端口
+ * 返回参数:
+ *          无
+ * 调用方法:
+ *      实时调用
+ */
+void thaisenSetGunMountInPortA(uint8_t port);
+/* 功能说明:
+ *          thaisenGetGunMountInPortA:获取A枪枪座输入端口
+ * 输入参数:
+ *         无
+ * 返回参数:
+ *         A枪枪座输入端口
+ * 调用方法:
+ *     实时调用
+ */
+uint8_t thaisenGetGunMountInPortA(void);
+
+/* 功能说明:
+ *          thaisenSetGunMountInPortB:设置B枪枪座输入端口
+ * 输入参数:
+ *         port:端口
+ * 返回参数:
+ *          无
+ * 调用方法:
+ *      实时调用
+ */
+void thaisenSetGunMountInPortB(uint8_t port);
+/* 功能说明:
+ *          thaisenGetGunMountInPortB:获取B枪枪座输入端口
+ * 输入参数:
+ *         无
+ * 返回参数:
+ *         B枪枪座输入端口
+ * 调用方法:
+ *     实时调用
+ */
+uint8_t thaisenGetGunMountInPortB(void);
+
+/* 功能说明:
+ *          thaisenSetFuseInPortA: 设置A枪熔断器输入端口
+ * 输入参数:
+ *         port:端口
+ * 返回参数:
+ *          无
+ * 调用方法:
+ *      实时调用
+ */
+void thaisenSetFuseInPortA(uint8_t port);
+/* 功能说明:
+ *          thaisenGetFuseInPortA:获取A枪熔断器输入端口
+ * 输入参数:
+ *         无
+ * 返回参数:
+ *         A枪熔断器输入端口
+ * 调用方法:
+ *     实时调用
+ */
+uint8_t thaisenGetFuseInPortA(void);
+
+/* 功能说明:
+ *          thaisenSetFuseInPortB: 设置B枪熔断器输入端口
+ * 输入参数:
+ *         port:端口
+ * 返回参数:
+ *          无
+ * 调用方法:
+ *      实时调用
+ */
+void thaisenSetFuseInPortB(uint8_t port);
+/* 功能说明:
+ *          thaisenGetFuseInPortB:获取B枪熔断器输入端口
+ * 输入参数:
+ *         无
+ * 返回参数:
+ *         B枪熔断器输入端口
+ * 调用方法:
+ *     实时调用
+ */
+uint8_t thaisenGetFuseInPortB(void);
+
+/* 功能说明:
+ *          thaisenSetLiquidCoolingInPortA: 设置A液冷输入端口
+ * 输入参数:
+ *         port:端口
+ * 返回参数:
+ *          无
+ * 调用方法:
+ *      实时调用
+ */
+void thaisenSetLiquidCoolingInPortA(uint8_t port);
+/* 功能说明:
+ *          thaisenGetLiquidCoolingInPortA:获取A液冷输入端口
+ * 输入参数:
+ *         无
+ * 返回参数:
+ *         A液冷输入端口
+ * 调用方法:
+ *     实时调用
+ */
+uint8_t thaisenGetLiquidCoolingInPortA(void);
+
+/* 功能说明:
+ *          thaisenSetLiquidCoolingInPortB: 设置B液冷输入端口
+ * 输入参数:
+ *         port:端口
+ * 返回参数:
+ *          无
+ * 调用方法:
+ *      实时调用
+ */
+void thaisenSetLiquidCoolingInPortB(uint8_t port);
+/* 功能说明:
+ *          thaisenGetLiquidCoolingInPortB:获取B液冷输入端口
+ * 输入参数:
+ *         无
+ * 返回参数:
+ *         B液冷输入端口
+ * 调用方法:
+ *     实时调用
+ */
+uint8_t thaisenGetLiquidCoolingInPortB(void);
+
+
+/******************************************** 预留输出口配置 **************************************************/
+/******************************************** 预留输出口配置 **************************************************/
+/* 功能说明:
+ *          thaisenSetReliefOutPortA: 设置A枪泄放输出端口
+ * 输入参数:
+ *         port:端口
+ * 返回参数:
+ *          无
+ * 调用方法:
+ *      实时调用
+ */
+void thaisenSetReliefOutPortA(uint8_t port);
+/* 功能说明:
+ *          thaisenGetReliefOutPortA:获取A枪泄放输出端口
+ * 输入参数:
+ *         无
+ * 返回参数:
+ *         A枪泄放输出端口
+ * 调用方法:
+ *     实时调用
+ */
+uint8_t thaisenGetReliefOutPortA(void);
+
+/* 功能说明:
+ *          thaisenSetReliefOutPortB: 设置B枪泄放输出端口
+ * 输入参数:
+ *         port:端口
+ * 返回参数:
+ *          无
+ * 调用方法:
+ *      实时调用
+ */
+/*******************************************
+ * 函数名   thaisenSetReliefOutPortB
+ * 功能       设置B枪泄放输出端口
+ ******************************************/
+void thaisenSetReliefOutPortB(uint8_t port);
+/* 功能说明:
+ *          thaisenGetReliefOutPortB:获取B枪泄放输出端口
+ * 输入参数:
+ *         无
+ * 返回参数:
+ *         B枪泄放输出端口
+ * 调用方法:
+ *     实时调用
+ */
+uint8_t thaisenGetReliefOutPortB(void);
+
+/* 功能说明:
+ *          thaisenSetLiquidCoolingOutPortA: 设置A枪液冷输出端口
+ * 输入参数:
+ *         port:端口
+ * 返回参数:
+ *          无
+ * 调用方法:
+ *      实时调用
+ */
+void thaisenSetLiquidCoolingOutPortA(uint8_t port);
+/* 功能说明:
+ *          thaisenGetLiquidCoolingOutPortA:获取A枪液冷输出端口
+ * 输入参数:
+ *         无
+ * 返回参数:
+ *         A枪液冷输出端口
+ * 调用方法:
+ *     实时调用
+ */
+uint8_t thaisenGetLiquidCoolingOutPortA(void);
+
+/* 功能说明:
+ *          thaisenSetLiquidCoolingOutPortB: 设置B枪液冷输出端口
+ * 输入参数:
+ *         port:端口
+ * 返回参数:
+ *          无
+ * 调用方法:
+ *      实时调用
+ */
+void thaisenSetLiquidCoolingOutPortB(uint8_t port);
+/* 功能说明:
+ *          thaisenGetLiquidCoolingOutPortB:获取B枪液冷输出端口
+ * 输入参数:
+ *         无
+ * 返回参数:
+ *         B枪液冷输出端口
+ * 调用方法:
+ *     实时调用
+ */
+uint8_t thaisenGetLiquidCoolingOutPortB(void);
+
+/******************************************** 预留输入口配置 **************************************************/
+/******************************************** 预留输入口配置 **************************************************/
+/* 功能说明:
+ *          thaisenSetLightProtectorInPort: 设置防雷器输入端口
+ * 输入参数:
+ *         port:端口
+ * 返回参数:
+ *          无
+ * 调用方法:
+ *      实时调用
+ */
+void thaisenSetLightProtectorInPort(uint8_t port);
+/* 功能说明:
+ *          thaisenGetLightProtectorInPort:获取防雷器输入端口
+ * 输入参数:
+ *         无
+ * 返回参数:
+ *         防雷器输入端口
+ * 调用方法:
+ *     实时调用
+ */
+uint8_t thaisenGetLightProtectorInPort(void);
+
+/* 功能说明:
+ *          thaisenSetCircuitBreakerInPort: 设置断路器输入端口
+ * 输入参数:
+ *         port:端口
+ * 返回参数:
+ *          无
+ * 调用方法:
+ *      实时调用
+ */
+void thaisenSetCircuitBreakerInPort(uint8_t port);
+/* 功能说明:
+ *          thaisenGetCircuitBreakerInPort:获取断路器输入端口
+ * 输入参数:
+ *         无
+ * 返回参数:
+ *         断路器输入端口
+ * 调用方法:
+ *     实时调用
+ */
+uint8_t thaisenGetCircuitBreakerInPort(void);
+
+/* 功能说明:
+ *          thaisenSetFanInPort: 设置风扇输入端口
+ * 输入参数:
+ *         port:端口
+ * 返回参数:
+ *          无
+ * 调用方法:
+ *      实时调用
+ */
+void thaisenSetFanInPort(uint8_t port);
+/* 功能说明:
+ *          thaisenGetFanInPort:获取风扇输入端口
+ * 输入参数:
+ *         无
+ * 返回参数:
+ *         风扇输入端口
+ * 调用方法:
+ *     实时调用
+ */
+uint8_t thaisenGetFanInPort(void);
+
+/* 功能说明:
+ *          thaisenSetFloodingInPort: 设置水浸输入端口
+ * 输入参数:
+ *         port:端口
+ * 返回参数:
+ *          无
+ * 调用方法:
+ *      实时调用
+ */
+void thaisenSetFloodingInPort(uint8_t port);
+/* 功能说明:
+ *          thaisenGetFloodingInPort:获取水浸输入端口
+ * 输入参数:
+ *         无
+ * 返回参数:
+ *         水浸输入端口
+ * 调用方法:
+ *     实时调用
+ */
+uint8_t thaisenGetFloodingInPort(void);
+
+/* 功能说明:
+ *          thaisenSetSmokeInPort: 设置烟感输入端口
+ * 输入参数:
+ *         port:端口
+ * 返回参数:
+ *          无
+ * 调用方法:
+ *      实时调用
+ */
+void thaisenSetSmokeInPort(uint8_t port);
+/* 功能说明:
+ *          thaisenGetSmokeInPort:获取烟感输入端口
+ * 输入参数:
+ *         无
+ * 返回参数:
+ *         烟感输入端口
+ * 调用方法:
+ *     实时调用
+ */
+uint8_t thaisenGetSmokeInPort(void);
+
+/* 功能说明:
+ *          thaisenSetPourInPort: 设置倾倒输入端口
+ * 输入参数:
+ *         port:端口
+ * 返回参数:
+ *          无
+ * 调用方法:
+ *      实时调用
+ */
+void thaisenSetPourInPort(uint8_t port);
+/* 功能说明:
+ *          thaisenGetPourInPort:获取倾倒输入端口
+ * 输入参数:
+ *         无
+ * 返回参数:
+ *         倾倒输入端口
+ * 调用方法:
+ *     实时调用
+ */
+uint8_t thaisenGetPourInPort(void);
+
+/* 功能说明:
+ *          thaisenSetGunMountInPortA: 设置A枪枪座输入端口
+ * 输入参数:
+ *         port:端口
+ * 返回参数:
+ *          无
+ * 调用方法:
+ *      实时调用
+ */
+void thaisenSetGunMountInPortA(uint8_t port);
+/* 功能说明:
+ *          thaisenGetGunMountInPortA:获取A枪枪座输入端口
+ * 输入参数:
+ *         无
+ * 返回参数:
+ *         A枪枪座输入端口
+ * 调用方法:
+ *     实时调用
+ */
+uint8_t thaisenGetGunMountInPortA(void);
+
+/* 功能说明:
+ *          thaisenSetGunMountInPortB: 设置B枪枪座输入端口
+ * 输入参数:
+ *         port:端口
+ * 返回参数:
+ *          无
+ * 调用方法:
+ *      实时调用
+ */
+void thaisenSetGunMountInPortB(uint8_t port);
+/* 功能说明:
+ *          thaisenGetGunMountInPortB:获取B枪枪座输入端口
+ * 输入参数:
+ *         无
+ * 返回参数:
+ *         B枪枪座输入端口
+ * 调用方法:
+ *     实时调用
+ */
+uint8_t thaisenGetGunMountInPortB(void);
+
+/* 功能说明:
+ *          thaisenSetFuseInPortA: 设置A枪熔断器输入端口
+ * 输入参数:
+ *         port:端口
+ * 返回参数:
+ *          无
+ * 调用方法:
+ *      实时调用
+ */
+void thaisenSetFuseInPortA(uint8_t port);
+/* 功能说明:
+ *          thaisenGetFuseInPortA:获取A枪熔断器输入端口
+ * 输入参数:
+ *         无
+ * 返回参数:
+ *         A枪熔断器输入端口
+ * 调用方法:
+ *     实时调用
+ */
+uint8_t thaisenGetFuseInPortA(void);
+
+/* 功能说明:
+ *          thaisenSetFuseInPortB: 设置B枪熔断器输入端口
+ * 输入参数:
+ *         port:端口
+ * 返回参数:
+ *          无
+ * 调用方法:
+ *      实时调用
+ */
+void thaisenSetFuseInPortB(uint8_t port);
+/* 功能说明:
+ *          thaisenGetFuseInPortB:获取B枪熔断器输入端口
+ * 输入参数:
+ *         无
+ * 返回参数:
+ *         B枪熔断器输入端口
+ * 调用方法:
+ *     实时调用
+ */
+uint8_t thaisenGetFuseInPortB(void);
+
+/* 功能说明:
+ *          thaisenSetLiquidCoolingInPortA: 设置A液冷输入端口
+ * 输入参数:
+ *         port:端口
+ * 返回参数:
+ *          无
+ * 调用方法:
+ *      实时调用
+ */
+void thaisenSetLiquidCoolingInPortA(uint8_t port);
+/* 功能说明:
+ *          thaisenGetLiquidCoolingInPortA:获取A液冷输入端口
+ * 输入参数:
+ *         无
+ * 返回参数:
+ *         A液冷输入端口
+ * 调用方法:
+ *     实时调用
+ */
+uint8_t thaisenGetLiquidCoolingInPortA(void);
+
+/* 功能说明:
+ *          thaisenSetLiquidCoolingInPortA: 设置A液冷输入端口
+ * 输入参数:
+ *         port:端口
+ * 返回参数:
+ *          无
+ * 调用方法:
+ *      实时调用
+ */
+void thaisenSetLiquidCoolingInPortB(uint8_t port);
+/* 功能说明:
+ *          thaisenGetLiquidCoolingInPortB:获取B液冷输入端口
+ * 输入参数:
+ *         无
+ * 返回参数:
+ *         B液冷输入端口
+ * 调用方法:
+ *     实时调用
+ */
+uint8_t thaisenGetLiquidCoolingInPortB(void);
+
+
+
+typedef enum
+{
+    thaisenSensorOutIn_Close,
+    thaisenSensorOutIn_Break,
+}thaisenSensorOutIn_State;
+
+void thaisenSetLightProNormalState(uint8_t state);
+uint8_t thaisenGetLightProNormalState(void);
+
+void thaisenSetFloodingNormalState(uint8_t port);
+uint8_t thaisenGetFloodingNormalState(void);
+
+void thaisenSetSmokeNormalState(uint8_t port);
+uint8_t thaisenGetSmokeNormalState(void);
+
+void thaisenSetPourNormalState(uint8_t port);
+uint8_t thaisenGetPourNormalState(void);
+
+void thaisenSetFuseNormalStateA(uint8_t state);
+uint8_t thaisenGetFuseNormalStateA(void);
+
+void thaisenSetFuseNormalStateB(uint8_t state);
+uint8_t thaisenGetFuseNormalStateB(void);
+
+void thaisenSetGunSiteNormalStateA(uint8_t state);
+uint8_t thaisenGetGunSiteNormalStateA(void);
+
+void thaisenSetGunSiteNormalStateB(uint8_t state);
+uint8_t thaisenGetGunSiteNormalStateB(void);
+
+void thaisenSetCircuitBreakerNormalState(uint8_t state);
+uint8_t thaisenGetCircuitBreakerNormalState(void);
+
+void thaisen_Relief_A_on(void);
+void thaisen_Relief_A_off(void);
+void thaisen_Relief_B_on(void);
+void thaisen_Relief_B_off(void);
+
+void thaisen_LiquidCooling_A_on(void);
+void thaisen_LiquidCooling_A_off(void);
+void thaisen_LiquidCooling_B_on(void);
+void thaisen_LiquidCooling_B_off(void);
+
+thaisenSensorOutIn_State thaisen_LightProtector_FB(void);
+thaisenSensorOutIn_State thaisen_CircuitBreaker_FB(void);
+thaisenSensorOutIn_State thaisen_Fan_FB(void);
+thaisenSensorOutIn_State thaisen_Flooding_FB(void);
+thaisenSensorOutIn_State thaisen_Smoke_FB(void);
+thaisenSensorOutIn_State thaisen_Pour_FB(void);
+thaisenSensorOutIn_State thaisen_GunMount_A_FB(void);
+thaisenSensorOutIn_State thaisen_GunMount_B_FB(void);
+thaisenSensorOutIn_State thaisen_Fuse_A_FB(void);
+thaisenSensorOutIn_State thaisen_Fuse_B_FB(void);
+thaisenSensorOutIn_State thaisen_LiquidCooling_A_FB(void);
+thaisenSensorOutIn_State thaisen_LiquidCooling_B_FB(void);
+
+/**********************************************************************************/
+/*****************************风机调速*****************************************/
+
+/* 功能说明:
+ *        thaisen_pwm_fan_duty:风机调整转速
+ * 输入参数:
+ *
+ *        duty:0~1000:
+ *        0.1分辨率
+ *        0:不转
+ *        1000:全速
+ * 返回参数:
+ *          无
+ * 调用方法:
+ *             可实时调用
+ */
+void thaisen_pwm_fan_duty(uint16_t duty);
+
+
 #endif /* APPLICATIONS_THAISEN7102PUBLIC_H_ */

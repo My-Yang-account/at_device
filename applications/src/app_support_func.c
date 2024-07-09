@@ -20,6 +20,7 @@
 #define DBG_LVL DBG_LOG
 #include <rtdbg.h>
 
+#if 0
 static const char* library_fault_str[] =
 {
      "scram",
@@ -38,6 +39,14 @@ static const char* library_fault_str[] =
      "auxiliary power",
      "flash chip",
      "eeprom chip",
+     "lighting pro",
+     "gun site",
+     "circuit breaker",
+     "flooding",
+     "smoke",
+     "pour",
+     "liquid cool",
+     "fuse"
      "shorts",
      "gun voltage",
      "insulation",
@@ -76,58 +85,122 @@ static const char* owner_fault_str[] =
  ********************************************/
 const char* get_stopway_string(uint16_t code)
 {
-#define STOPWAY_LIBRARY_MAX       0x001A       /* 库停止码最大值 */
-#define STOPWAY_OWNER_MAX         0x0039       /* 自定义停止码最大值 */
-#define STOPWAY_OWNER_MIN         0x002F       /* 自定义停止码最小值 */
+#define STOPWAY_LIBRARY_MAX       APP_SYSTEM_STOP_WAY_NULL - 1       /* 库停止码最大值 */
+#define STOPWAY_OWNER_MAX         APP_SYSTEM_STOP_WAY_SOC_LIMIT       /* 自定义停止码最大值 */
+#define STOPWAY_OWNER_MIN         APP_SYSTEM_STOP_WAY_APP_STOP       /* 自定义停止码最小值 */
 
-#define STOPWAY_CHARGE_MAX        0x0045       /* 充电故障码最大值 */
-#define STOPWAY_CHARGE_MIN        0x0040       /* 充电故障码最小值 */
+#define STOPWAY_LIBRARY_NONE_FAULT_MAX        APP_SYSTEM_STOP_WAY_NULL - 1       /* 库非故障停充码最大值 */
+#define STOPWAY_LIBRARY_NONE_FAULT_MIN        APP_SYSTEM_STOP_WAY_SHORTS       /* 库非故障停充码最大值 */
 
-/** 以下是充电故障码 */
-#define STOPWAY_GUN_VOLT          0x0040       /* 停充原因：枪头电压 */
-#define STOPWAY_INSULTA           0x0041       /* 停充原因：绝缘 */
-#define STOPWAY_COMMON            0x0042       /* 停充原因：BMS通信 */
-#define STOPWAY_BATTERY_VOLT      0x0043       /* 停充原因：电池电压 */
-#define STOPWAY_READY_VOLT        0x0044       /* 停充原因：预充电压 */
-#define STOPWAY_INSULT_VOLT       0x0045       /* 停充原因：绝缘电压 */
-
-    if(code <= (STOPWAY_LIBRARY_MAX + 1)){                                       /** 库停充原因 */
+    if(code <= STOPWAY_LIBRARY_MAX){                                       /** 库停充原因 */
+        if((code >= STOPWAY_LIBRARY_NONE_FAULT_MIN) && (code <= STOPWAY_LIBRARY_NONE_FAULT_MAX)){
+            return library_fault_str[code - STOPWAY_LIBRARY_NONE_FAULT_MIN];
+        }
         return library_fault_str[code];
-    }else if((code >= STOPWAY_OWNER_MIN) && (code <= (STOPWAY_OWNER_MAX + 1))){  /** 自定义停充原因 */
+    }else if((code >= STOPWAY_OWNER_MIN) && (code <= STOPWAY_OWNER_MAX)){  /** 自定义停充原因 */
         return owner_fault_str[code - STOPWAY_OWNER_MIN];
-    }else if((code >= STOPWAY_CHARGE_MIN) && (code <= STOPWAY_CHARGE_MAX)){      /** 充电故障码 */
-        switch(code - STOPWAY_CHARGE_MIN){
-        case (STOPWAY_GUN_VOLT - STOPWAY_CHARGE_MIN):
-                return library_fault_str[17];
-        break;
-        case (STOPWAY_INSULTA - STOPWAY_CHARGE_MIN):
-                return library_fault_str[18];
-        break;
-        case (STOPWAY_COMMON - STOPWAY_CHARGE_MIN):
-                return library_fault_str[19];
-        break;
-        case (STOPWAY_BATTERY_VOLT - STOPWAY_GUN_VOLT):
-                return library_fault_str[20];
-        break;
-        case (STOPWAY_READY_VOLT - STOPWAY_GUN_VOLT):
-                return library_fault_str[25];
-        break;
-        case (STOPWAY_INSULT_VOLT - STOPWAY_GUN_VOLT):
-                return library_fault_str[26];
-        break;
-        default:
-        {
-            uint8_t unknow_index = (sizeof(owner_fault_str) /4 - 1);
-            return owner_fault_str[unknow_index];
-            break;
-        }
-        }
     }else{
         uint8_t unknow_index = (sizeof(owner_fault_str) /4 - 1);
         return owner_fault_str[unknow_index];
     }
 }
+#endif /* 0 */
 
+static const char* system_fault_str[APP_SYS_FAULT_NO_ERROR] =
+{
+     "scram",
+     "card reader",
+     "door",
+     "ammeter",
+     "charge module",
+     "over temp",
+     "over voltage",
+     "under voltage",
+     "over current",
+     "dc relay",
+     "parallel relay",
+     "ac relay",
+     "electronic lock",
+     "auxiliary power",
+     "flash chip",
+     "eeprom chip",
+     "lighting pro",
+     "gun site",
+     "circuit breaker",
+     "flooding",
+     "smoke",
+     "pour",
+     "liquid cool",
+     "fuse"
+};
+
+static const char* charge_fault_str[APP_CHARGE_FAULT_NO_ERROR] =
+{
+    "gun voltage",
+    "insulation",
+    "bms commu",
+    "battery voltage",
+    "ready voltage",
+    "insult voltage",
+};
+
+/*********************************************
+ * 函数名             get_fault_string
+ * 功能                 根据故障码获取故障字符串
+ * 参数                code  故障码
+ * 返回                故障字符串
+ ********************************************/
+const char* get_fault_string(uint16_t code)
+{
+    if(code < APP_ORIGIN_SYSFAULT_MAX){
+        return system_fault_str[code];
+    }
+
+    if((code >= (APP_ORIGIN_SYSFAULT_MAX + APP_SYSFAULT_OFFSET_MIN)) &&
+            (code < (APP_ORIGIN_SYSFAULT_MAX + APP_SYSFAULT_OFFSET_MAX))){
+        uint16_t pos = (code - APP_SYSFAULT_OFFSET_MIN);
+        if(pos >= APP_SYS_FAULT_NO_ERROR){
+            return "unknow";
+        }else{
+            return system_fault_str[pos];
+        }
+    }
+
+    switch(code){
+    case APP_SYSTEM_STOP_WAY_GUNVOLT:
+        if(sizeof(charge_fault_str) > APP_CHARGE_FAULT_GUN_VOLT){
+            return charge_fault_str[APP_CHARGE_FAULT_GUN_VOLT];
+        }
+        break;
+    case APP_SYSTEM_STOP_WAY_INSULT:
+        if(sizeof(charge_fault_str) > APP_CHARGE_FAULT_INSULTA){
+            return charge_fault_str[APP_CHARGE_FAULT_INSULTA];
+        }
+        break;
+    case APP_SYSTEM_STOP_WAY_COMMINICATION:
+        if(sizeof(charge_fault_str) > APP_CHARGE_FAULT_COMMON){
+            return charge_fault_str[APP_CHARGE_FAULT_COMMON];
+        }
+        break;
+    case APP_SYSTEM_STOP_WAY_BATTERY_VOLT:
+        if(sizeof(charge_fault_str) > APP_CHARGE_FAULT_BATTERY_VOLT){
+            return charge_fault_str[APP_CHARGE_FAULT_BATTERY_VOLT];
+        }
+        break;
+    case APP_SYSTEM_STOP_WAY_READY_VOLT:
+        if(sizeof(charge_fault_str) > APP_CHARGE_FAULT_READY_VOLT){
+            return charge_fault_str[APP_CHARGE_FAULT_READY_VOLT];
+        }
+        break;
+    case APP_SYSTEM_STOP_WAY_INSULT_VOLT:
+        if(sizeof(charge_fault_str) > APP_CHARGE_FAULT_INSULT_VOLT){
+            return charge_fault_str[APP_CHARGE_FAULT_INSULT_VOLT];
+        }
+        break;
+    }
+
+    return "unknow";
+}
 
 /*************************************************************
  * 函数名           packing_data

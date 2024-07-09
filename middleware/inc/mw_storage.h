@@ -46,7 +46,7 @@ int32_t mw_storage_init(void);
  * @param user_data 用户数据（通常为数据的状态。如果状态为0xFF，则无效）
  * @return < 0: 失败，== 0：成功
  */
-int32_t mw_storage_record_create(const void *data, uint32_t data_len, uint8_t user_data, uint16_t verify_mask, uint8_t region);
+int32_t mw_storage_record_create(const void *data, uint32_t data_len, uint32_t user_data, uint16_t verify_mask, uint8_t region);
 
 /**
  * @brief 更新订单
@@ -56,7 +56,7 @@ int32_t mw_storage_record_create(const void *data, uint32_t data_len, uint8_t us
  * @param index
  * @return < 0: 失败，== 0：成功
  */
-int32_t mw_storage_record_designate_index_updated(const void *data, uint32_t data_len, uint8_t user_data, uint16_t verify_mask, uint8_t region, int32_t index);
+int32_t mw_storage_record_designate_index_updated(const void *data, uint32_t data_len, uint32_t user_data, uint16_t verify_mask, uint8_t region, int32_t index);
 
 /**
  * @brief 获取指定下标记录信息
@@ -82,7 +82,7 @@ int32_t mw_storage_record_get_record_total_num(uint8_t region);
  * @param user_data
  * @return < 0: 失败，== 0：成功
  */
-int32_t mw_storage_record_get_userdata_record_num(uint8_t user_data, uint8_t region);
+int32_t mw_storage_record_get_userdata_record_num(uint32_t user_data, uint8_t region);
 
 /**
  * @brief 获取指定区域当前记录下标
@@ -104,7 +104,7 @@ int32_t mw_storage_record_clear_record_info(uint8_t region);
  * @param user_data
  * @return < 0: 失败，== 0：成功
  */
-int32_t mw_storage_record_get_first_index_userdata(uint8_t user_data, uint8_t region);
+int32_t mw_storage_record_get_first_index_userdata(uint32_t user_data, uint8_t region);
 
 /**
  * @brief 获取指定区域与verify_mask匹配的总记录数

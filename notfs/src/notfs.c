@@ -197,7 +197,7 @@ notfs_err_e notfs_init(void)
     return err;
 }
 
-notfs_err_e notfs_subregion_append_record(enum notfs_subregion subregion, const void *buf, size_t size, uint8_t user_data, uint16_t verify_mask)
+notfs_err_e notfs_subregion_append_record(enum notfs_subregion subregion, const void *buf, size_t size, uint32_t user_data, uint16_t verify_mask)
 {
     if (NOTFS_SUBREGION_MAX < subregion) {
         return NOTFS_OUTRANGE_ERR;
@@ -297,7 +297,7 @@ notfs_err_e notfs_subregion_append_record(enum notfs_subregion subregion, const 
     return err;
 }
 
-notfs_err_e notfs_subregion_updated_designate_index_data(enum notfs_subregion subregion, const void *buf, size_t size, uint8_t user_data, uint16_t verify_mask, int32_t index)
+notfs_err_e notfs_subregion_updated_designate_index_data(enum notfs_subregion subregion, const void *buf, size_t size, uint32_t user_data, uint16_t verify_mask, int32_t index)
 {
     if (NOTFS_SUBREGION_MAX < subregion) {
         return NOTFS_OUTRANGE_ERR;
@@ -500,7 +500,7 @@ int32_t notfs_get_subregion_record_total_num(enum notfs_subregion subregion)
     return count;
 }
 
-int32_t notfs_get_subregion_userdata_record_num(enum notfs_subregion subregion, uint8_t user_data)
+int32_t notfs_get_subregion_userdata_record_num(enum notfs_subregion subregion, uint32_t user_data)
 {
     if (NOTFS_SUBREGION_MAX < subregion) {
         return NOTFS_OUTRANGE_ERR;
@@ -556,7 +556,7 @@ int32_t notfs_clear_subregion_record_info(enum notfs_subregion subregion)
     return err;
 }
 
-int32_t notfs_get_subregion_first_index_userdata(enum notfs_subregion subregion, uint8_t user_data)
+int32_t notfs_get_subregion_first_index_userdata(enum notfs_subregion subregion, uint32_t user_data)
 {
     if (NOTFS_SUBREGION_MAX < subregion) {
         return NOTFS_OUTRANGE_ERR;

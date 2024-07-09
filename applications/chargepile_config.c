@@ -143,7 +143,8 @@ struct _function_enable{
     uint8_t elock_in;              /* 电子锁反馈 */
     uint8_t temp_protect;          /* 温度保护 */
     uint8_t rfid_card_reader;      /* 读卡器 */
-    uint8_t reserve[64];
+    uint8_t auxpower_24V;          /* 24V辅源 */
+    uint8_t reserve[96];
 };
 
 struct _state_reversal{
@@ -154,7 +155,7 @@ struct _state_reversal{
     uint8_t parallel_relay;        /* 状态取反：直流继电器 */
     uint8_t fan;                   /* 状态取反：风扇 */
     uint8_t elock;                 /* 状态取反：电子锁反馈 */
-    uint8_t reserve[32];
+    uint8_t reserve[64];
 };
 
 struct _target_plat{
@@ -324,6 +325,11 @@ static struct config_item s_config_item_set[CONFIG_ITEM_SIZE] =
         {CONFIG_ITEM_SUPORT_BCS,                                                        /* 配置项：BCS功能 */
         (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.bcs)),
         (uint8_t*)&s_chargepile_config_info.function_enable.bcs,
+        NULL},
+
+        {CONFIG_ITEM_SUPORT_AUXPOWER24V,                                                /* 配置项：24V辅源 */
+        (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.auxpower_24V)),
+        (uint8_t*)&s_chargepile_config_info.function_enable.auxpower_24V,
         NULL},
 
         {CONFIG_ITEM_INPUT_OVERVOL,                                                     /* 配置项：输入过压 */

@@ -427,7 +427,9 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
             switch(step){
             case NET_YKC_MONITOR_NET_STATE_OPEN_SOCKET:
                 s_ykc_monitor_socket_info.state = YKC_MONITOR_SOCKET_STATE_OPEN;
+#ifndef NET_YKC_MONITOR_AS_MONITOR
                 net_get_net_handle()->net_state = NET_SOCKET_STATE_OPEN;
+#endif /* NET_YKC_MONITOR_AS_MONITOR */
                 if(delay > rt_tick_get()){
                     delay = rt_tick_get();
                 }
@@ -494,7 +496,9 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
                 ykc_monitor_net_event_receive(NET_YKC_MONITOR_EVENT_HANDLE_SERVER, NET_YKC_MONITOR_EVENT_TYPE_RESPONSE, 0x00,
                         (NET_YKC_MONITOR_EVENT_OPTION_OR |NET_YKC_MONITOR_EVENT_OPTION_CLEAR), NET_YKC_MONITOR_SRES_EVENT_LOGIN, NULL);
                 s_ykc_monitor_socket_info.state = YKC_MONITOR_SOCKET_STATE_LOGIN_WAIT;
-                net_get_net_handle()->net_state = NET_SOCKET_STATE_LOGIN_WAIT;
+#ifndef NET_YKC_MONITOR_AS_MONITOR
+                handle->net_state = NET_SOCKET_STATE_LOGIN_WAIT;
+#endif /* NET_YKC_MONITOR_AS_MONITOR */
                 ykc_monitor_message_send_port(NETYKC_MONITOR_PREQCMD_SINGIN, s_ykc_monitor_socket_info.fd, &g_ykc_monitor_preq_login,
                         sizeof(g_ykc_monitor_preq_login));
                 while(rentry < 100){
@@ -505,7 +509,9 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
                         step = NET_YKC_MONITOR_NET_STATE_MONITORING;
 
                         s_ykc_monitor_socket_info.state = YKC_MONITOR_SOCKET_STATE_LOGIN_SUCCESS;
-                        net_get_net_handle()->net_state = NET_SOCKET_STATE_LOGIN_SUCCESS;
+#ifndef NET_YKC_MONITOR_AS_MONITOR
+                        handle->net_state = NET_SOCKET_STATE_LOGIN_SUCCESS;
+#endif /* NET_YKC_MONITOR_AS_MONITOR */
                         for(uint8_t gunno = 0; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
                             s_ykc_monitor_message_serial_number[gunno]++;
                             s_ykc_monitor_socket_info.heartbeat[gunno] = 0x00;
@@ -539,7 +545,9 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
                 ykc_monitor_socket_close(s_ykc_monitor_socket_info.fd);
                 s_ykc_monitor_socket_info.fd = -0x01;
                 s_ykc_monitor_socket_info.state = YKC_MONITOR_SOCKET_STATE_OPEN;
+#ifndef NET_YKC_MONITOR_AS_MONITOR
                 net_get_net_handle()->net_state = NET_SOCKET_STATE_OPEN;
+#endif /* NET_YKC_MONITOR_AS_MONITOR */
                 break;
             }
         }
@@ -571,7 +579,9 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
                 ykc_monitor_socket_close(s_ykc_monitor_socket_info.fd);
                 s_ykc_monitor_socket_info.fd = -0x01;
                 s_ykc_monitor_socket_info.state = YKC_MONITOR_SOCKET_STATE_OPEN;
+#ifndef NET_YKC_MONITOR_AS_MONITOR
                 net_get_net_handle()->net_state = NET_SOCKET_STATE_OPEN;
+#endif /* NET_YKC_MONITOR_AS_MONITOR */
                 step = NET_YKC_MONITOR_NET_STATE_OPEN_SOCKET;
                 LOG_D("ykc monitor heartbeat timeout");
             }
@@ -1138,6 +1148,11 @@ static void net_ykc_monitor_server_message_pro_entry(void *parameter)
     {
         if(net_get_ota_info()->state >= NET_OTA_STATE_LOGIN_WAIT){
             rt_thread_mdelay(5000);
+            continue;
+        }
+
+        if(s_ykc_monitor_socket_info.state != YKC_MONITOR_SOCKET_STATE_LOGIN_SUCCESS){   /* 未登录上服务器前不进行网络数据交互事件处理 */
+            rt_thread_mdelay(500);
             continue;
         }
 

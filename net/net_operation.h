@@ -33,7 +33,15 @@
 #define NET_GENERAL_FAULT_AUXPOWER                     0x0D    /* 辅源故障 */
 #define NET_GENERAL_FAULT_FLASH                        0x0E    /* flash故障 */
 #define NET_GENERAL_FAULT_EEPROM                       0x0F    /* eeprom故障 */
-#define NET_GENERAL_FAULT_SIZE                         0x10    /* 无故障 */
+#define NET_GENERAL_FAULT_LIGHT_PRPTECT                0x10    /* 防雷器故障 */
+#define NET_GENERAL_FAULT_GUN_SITE                     0x11    /* 枪座故障 */
+#define NET_GENERAL_FAULT_CIRCUIT_BREAKER              0x12    /* 断路器故障 */
+#define NET_GENERAL_FAULT_FLOODING                     0x13    /* 水浸故障 */
+#define NET_GENERAL_FAULT_SMOKE                        0x14    /* 烟感故障 */
+#define NET_GENERAL_FAULT_POUR                         0x15    /* 倾倒故障 */
+#define NET_GENERAL_FAULT_LIQUID_COOLING               0x16    /* 液冷故障 */
+#define NET_GENERAL_FAULT_FUSE                         0x17    /* 熔断器故障 */
+#define NET_GENERAL_FAULT_SIZE                         0x18    /* 无故障 */
 
 /** system stop reason code */
 #define NET_STOP_REASON_SCRAM                          0x00    /* 急停故障 */

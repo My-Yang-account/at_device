@@ -194,6 +194,14 @@ typedef enum{
     thaisen_chargeCtl_stopWay_AuxPower,
     thaisen_chargeCtl_stopWay_flash,
     thaisen_chargeCtl_stopWay_eeprom,
+    thaisen_chargeCtl_stopWay_LightProtect,
+    thaisen_chargeCtl_stopWay_GunSite,
+    thaisen_chargeCtl_stopWay_CircuitBreaker,
+    thaisen_chargeCtl_stopWay_Flooding,
+    thaisen_chargeCtl_stopWay_Smoke,
+    thaisen_chargeCtl_stopWay_Pour,
+    thaisen_chargeCtl_stopWay_LiquidCooling,
+    thaisen_chargeCtl_stopWay_Fuse,
     thaisen_chargeCtl_stopWay_short,
     thaisen_chargeCtl_stopWay_GunVolt,
     thaisen_chargeCtl_stopWay_Insult,
@@ -206,6 +214,7 @@ typedef enum{
     thaisen_chargeCtl_stopWay_ReadyVolt,
     thaisen_chargeCtl_stopWay_InsultVolt,
     thaisen_chargeCtl_stopWay_BSM,
+
     thaisen_chargeCtl_stopWay_size,
 }thaisenChargeCtlStopWayEn;
 
@@ -277,5 +286,15 @@ void thaisen_set_ChargGunVolt(uint16_t volt,uint8_t gunNum);
 
 uint16_t thaisen_get_ChargGunVolt(uint8_t gunNum);
 
+/*****************************************************************************/
+/************************充电模式选择*********************************************/
+typedef enum thaisenChargModeEnum
+{
+  thaisenParallelCharging,
+  thaisenSingleChargeMode,
+}thaisenChargModeEn;
 
+
+void thaisen_set_charg_mode(thaisenChargModeEn mode);
+uint8_t thaisen_get_charg_mode(void);
 #endif

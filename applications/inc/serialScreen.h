@@ -71,6 +71,7 @@ struct SerialScreenObj
 s32 String2BCD(s8* pSrc, u8* pDest);
 int SerialScreen_IsCarConnect(int port);
 int SerialScreen_IsSupportLocal(int port);
+void SerialScreen_IsSupportParaChargeSet(void);
 void SerialScreen_IsSupportVINSet(void);
 void SerialScreen_IsSupportIsulationSet(void);
 struct charge_data *SerialScreen_GetChargeInfo(int port);
@@ -121,6 +122,8 @@ void SerialScreen_BtnAuxSet(u8 port);
 void SerialScreen_SysInfoGet(void);
 void SerialScreen_SetInputInfo(void);
 void SerialScreen_InputInfoGet(void);
+void SerialScreen_ParaChargeSet(void);
+void SerialScreen_SingleChargeSet(void);
 void SerialScreen_IsSupportSet(void);
 void SerialScreen_IsSupportReaderSet(void);
 void SerialScreen_IsSupportGet(void);

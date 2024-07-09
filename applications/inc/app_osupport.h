@@ -26,15 +26,16 @@ extern "C" {
 #define APP_GENERAL_CHARGE_FAULT_SET_LOW          0
 #define APP_GENERAL_CHARGE_FAULT_SET_HIGH         1
 
+#pragma pack(1)
 struct error_info
 {
-    uint32_t error_flag  : 1;   /* 故障产生、恢复标志，0：故障产生， 1：故障恢复 */
-    uint32_t error_index : 7;
-    uint32_t error_code  : 16;
-    uint32_t reserve     : 8;
+    uint8_t error_flag;    /* 故障产生、恢复标志，0：故障产生， 1：故障恢复 */
+    uint32_t error_index;
+    uint32_t error_code;
     uint32_t occur_time;   /* 故障发生时间 */
     uint32_t resume_time;  /* 故障发生时间 */
 };
+#pragma pack()
 
 uint8_t app_exist_forbid_charge_fault(uint8_t gunno);
 void app_shield_allow_charge_fautl(uint8_t gunno);

@@ -785,7 +785,7 @@ static void ykc_monitor_callback_request_clear_offline_card(uint8_t* data, uint1
         }
     }
     if(handle->system_data_storage(NET_SYSTEM_DATA_OPTION_CARD_WHITELIST) < 0x00){
-        ykc_clear_recv_card_whitelists_state(NET_SYSTEM_DATA_OPTION_CARD_WHITELIST);
+        ykc_monitor_clear_recv_card_whitelists_state(NET_SYSTEM_DATA_OPTION_CARD_WHITELIST);
     }
 
     ykc_monitor_net_event_send(NET_YKC_MONITOR_EVENT_HANDLE_SERVER, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, 0x00, NET_YKC_MONITOR_SREQ_EVENT_CLEAR_OFFLINE_CARD);

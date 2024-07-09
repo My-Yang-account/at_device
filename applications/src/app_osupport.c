@@ -146,7 +146,7 @@ void app_set_system_fault_enum(enum system_fault_t _fault, uint8_t set, uint8_t 
     if(set >= APP_GENERAL_SYSTEM_FAULT_SET_NUM){
         return;
     }
-    if(_fault >= APP_USER_INFO_DEVICE_ERROR_SIZE){
+    if(_fault >= APP_SYS_FAULT_NO_ERROR){
         return;
     }
     if(gunno < APP_SYSTEM_GUNNO_SIZE){
@@ -159,7 +159,7 @@ uint8_t app_get_system_fault_enum(enum system_fault_t _fault, uint8_t set, uint8
     if(set >= APP_GENERAL_SYSTEM_FAULT_SET_NUM){
         return 0x00;
     }
-    if(_fault >= APP_USER_INFO_DEVICE_ERROR_SIZE){
+    if(_fault >= APP_SYS_FAULT_NO_ERROR){
         return 0x00;
     }
     if(gunno >= APP_SYSTEM_GUNNO_SIZE){
@@ -176,7 +176,7 @@ void app_clear_system_fault_enum(enum system_fault_t _fault, uint8_t set, uint8_
     if(set >= APP_GENERAL_CHARGE_FAULT_SET_NUM){
         return;
     }
-    if(_fault >= APP_USER_INFO_DEVICE_ERROR_SIZE){
+    if(_fault >= APP_SYS_FAULT_NO_ERROR){
         return;
     }
     if(gunno < APP_SYSTEM_GUNNO_SIZE){
@@ -271,71 +271,105 @@ void app_osupport_thread_entry(void *parameter)
                 if(fault_xor){
                     for(bit = 0; bit < (end_bit - start_bit); bit++){
                         if(fault_xor &(1 <<bit)){
-                            switch((bit + start_bit))
+                            uint16_t __fault = mw_system_fault_convert(bit + start_bit);
+                            rt_kprintf("mw_system_fault_convert(%d)\n", __fault);
+                            switch(__fault)
                             {
                             case APP_SYS_FAULT_SCRAM:
-                                s_system_error_info[gunno].error_index = 0x00;
-                                s_system_error_info[gunno].error_code = 0x0000;
+                                s_system_error_info[gunno].error_index = 0x0000;
+                                s_system_error_info[gunno].error_code = APP_SYSTEM_STOP_WAY_SCRAM;
                                 break;
                             case APP_SYS_FAULT_CARD_READER:
-                                s_system_error_info[gunno].error_index = 0x01;
-                                s_system_error_info[gunno].error_code = 0x0001;
+                                s_system_error_info[gunno].error_index = 0x0001;
+                                s_system_error_info[gunno].error_code = APP_SYSTEM_STOP_WAY_CARDREADER;
                                 break;
                             case APP_SYS_FAULT_DOOR:
-                                s_system_error_info[gunno].error_index = 0x02;
-                                s_system_error_info[gunno].error_code = 0x0002;
+                                s_system_error_info[gunno].error_index = 0x0002;
+                                s_system_error_info[gunno].error_code = APP_SYSTEM_STOP_WAY_DOOR;
                                 break;
                             case APP_SYS_FAULT_AMMETER:
-                                s_system_error_info[gunno].error_index = 0x03;
-                                s_system_error_info[gunno].error_code = 0x0003;
+                                s_system_error_info[gunno].error_index = 0x0003;
+                                s_system_error_info[gunno].error_code = APP_SYSTEM_STOP_WAY_AMMETER;
                                 break;
                             case APP_SYS_FAULT_CHARGE_MODULE:
-                                s_system_error_info[gunno].error_index = 0x04;
-                                s_system_error_info[gunno].error_code = 0x0004;
+                                s_system_error_info[gunno].error_index = 0x0004;
+                                s_system_error_info[gunno].error_code = APP_SYSTEM_STOP_WAY_CHARGEMODULE;
                                 break;
                             case APP_SYS_FAULT_OVER_TEMP:
-                                s_system_error_info[gunno].error_index = 0x05;
-                                s_system_error_info[gunno].error_code = 0x0005;
+                                s_system_error_info[gunno].error_index = 0x0005;
+                                s_system_error_info[gunno].error_code = APP_SYSTEM_STOP_WAY_OVERTEMP;
                                 break;
                             case APP_SYS_FAULT_OVER_VOLT:
-                                s_system_error_info[gunno].error_index = 0x06;
-                                s_system_error_info[gunno].error_code = 0x0006;
+                                s_system_error_info[gunno].error_index = 0x0006;
+                                s_system_error_info[gunno].error_code = APP_SYSTEM_STOP_WAY_OVERVOLT;
                                 break;
                             case APP_SYS_FAULT_UNDER_VOLT:
-                                s_system_error_info[gunno].error_index = 0x07;
-                                s_system_error_info[gunno].error_code = 0x0007;
+                                s_system_error_info[gunno].error_index = 0x0007;
+                                s_system_error_info[gunno].error_code = APP_SYSTEM_STOP_WAY_UNDERVOLT;
                                 break;
                             case APP_SYS_FAULT_OVER_CURR:
-                                s_system_error_info[gunno].error_index = 0x08;
-                                s_system_error_info[gunno].error_code = 0x0008;
+                                s_system_error_info[gunno].error_index = 0x0008;
+                                s_system_error_info[gunno].error_code = APP_SYSTEM_STOP_WAY_OVERCURRENT;
                                 break;
                             case APP_SYS_FAULT_RELAY:
-                                s_system_error_info[gunno].error_index = 0x09;
-                                s_system_error_info[gunno].error_code = 0x0009;
+                                s_system_error_info[gunno].error_index = 0x0009;
+                                s_system_error_info[gunno].error_code = APP_SYSTEM_STOP_WAY_RELAY;
                                 break;
                             case APP_SYS_FAULT_PARALLEL_RELAY:
-                                s_system_error_info[gunno].error_index = 0x0A;
-                                s_system_error_info[gunno].error_code = 0x000A;
+                                s_system_error_info[gunno].error_index = 0x000A;
+                                s_system_error_info[gunno].error_code = APP_SYSTEM_STOP_WAY_PARALLEL_RELAY;
                                 break;
                             case APP_SYS_FAULT_AC_RELAY:
-                                s_system_error_info[gunno].error_index = 0x0B;
-                                s_system_error_info[gunno].error_code = 0x000B;
+                                s_system_error_info[gunno].error_index = 0x000B;
+                                s_system_error_info[gunno].error_code = APP_SYSTEM_STOP_WAY_AC_RELAY;
                                 break;
                             case APP_SYS_FAULT_ELOCK:
-                                s_system_error_info[gunno].error_index = 0x0C;
-                                s_system_error_info[gunno].error_code = 0x000C;
+                                s_system_error_info[gunno].error_index = 0x000C;
+                                s_system_error_info[gunno].error_code = APP_SYSTEM_STOP_WAY_ELECTRY_LOCK;
                                 break;
                             case APP_SYS_FAULT_AUXPOWER:
-                                s_system_error_info[gunno].error_index = 0x0D;
-                                s_system_error_info[gunno].error_code = 0x000D;
+                                s_system_error_info[gunno].error_index = 0x000D;
+                                s_system_error_info[gunno].error_code = APP_SYSTEM_STOP_WAY_AUXPOWER;
                                 break;
                             case APP_SYS_FAULT_FLASH:
-                                s_system_error_info[gunno].error_index = 0x0E;
-                                s_system_error_info[gunno].error_code = 0x000E;
+                                s_system_error_info[gunno].error_index = 0x000E;
+                                s_system_error_info[gunno].error_code = APP_SYSTEM_STOP_WAY_FLASH;
                                 break;
                             case APP_SYS_FAULT_EEPROM:
-                                s_system_error_info[gunno].error_index = 0x0F;
-                                s_system_error_info[gunno].error_code = 0x000F;
+                                s_system_error_info[gunno].error_index = 0x000F;
+                                s_system_error_info[gunno].error_code = APP_SYSTEM_STOP_WAY_EEPROM;
+                                break;
+                            case APP_SYS_FAULT_LIGHT_PRPTECT:
+                                s_system_error_info[gunno].error_index = 0x0010;
+                                s_system_error_info[gunno].error_code = APP_SYSTEM_STOP_WAY_LIGHTPROTECT;
+                                break;
+                            case APP_SYS_FAULT_GUN_SITE:
+                                s_system_error_info[gunno].error_index = 0x0011;
+                                s_system_error_info[gunno].error_code = APP_SYSTEM_STOP_WAY_GUNSITE;
+                                break;
+                            case APP_SYS_FAULT_CIRCUIT_BREAKER:
+                                s_system_error_info[gunno].error_index = 0x0012;
+                                s_system_error_info[gunno].error_code = APP_SYSTEM_STOP_WAY_CIRCUIT_BREAKER;
+                                break;
+                            case APP_SYS_FAULT_FLOODING:
+                                s_system_error_info[gunno].error_index = 0x0013;
+                                s_system_error_info[gunno].error_code = APP_SYSTEM_STOP_WAY_FLOODING;
+                                break;
+                            case APP_SYS_FAULT_SMOKE:
+                                s_system_error_info[gunno].error_index = 0x0014;
+                                s_system_error_info[gunno].error_code = APP_SYSTEM_STOP_WAY_SMOKE;
+                                break;
+                            case APP_SYS_FAULT_POUR:
+                                s_system_error_info[gunno].error_index = 0x0015;
+                                s_system_error_info[gunno].error_code = APP_SYSTEM_STOP_WAY_POUR;
+                                break;
+                            case APP_SYS_FAULT_LIQUID_COOLING:
+                                s_system_error_info[gunno].error_index = 0x0016;
+                                s_system_error_info[gunno].error_code = APP_SYSTEM_STOP_WAY_LIQUIDCOOLING;
+                                break;
+                            case APP_SYS_FAULT_FUSE:
+                                s_system_error_info[gunno].error_index = 0x0017;
+                                s_system_error_info[gunno].error_code = APP_SYSTEM_STOP_WAY_FUSE;
                                 break;
                             default:
                                 break;
@@ -379,28 +413,28 @@ void app_osupport_thread_entry(void *parameter)
                             switch((bit + start_bit))
                             {
                             case APP_CHARGE_FAULT_GUN_VOLT:
-                                s_charge_error_info[gunno].error_index = 0x40;
-                                s_charge_error_info[gunno].error_code = 0x0040;
+                                s_charge_error_info[gunno].error_index = 0x00FFFFFF;
+                                s_charge_error_info[gunno].error_code = APP_SYSTEM_STOP_WAY_GUNVOLT;
                                 break;
                             case APP_CHARGE_FAULT_INSULTA:
-                                s_charge_error_info[gunno].error_index = 0x41;
-                                s_charge_error_info[gunno].error_code = 0x0041;
+                                s_charge_error_info[gunno].error_index = 0x00FFFFFE;
+                                s_charge_error_info[gunno].error_code = APP_SYSTEM_STOP_WAY_INSULT;
                                 break;
                             case APP_CHARGE_FAULT_COMMON:
-                                s_charge_error_info[gunno].error_index = 0x42;
-                                s_charge_error_info[gunno].error_code = 0x0042;
+                                s_charge_error_info[gunno].error_index = 0x00FFFFFD;
+                                s_charge_error_info[gunno].error_code = APP_SYSTEM_STOP_WAY_COMMINICATION;
                                 break;
                             case APP_CHARGE_FAULT_BATTERY_VOLT:
-                                s_charge_error_info[gunno].error_index = 0x43;
-                                s_charge_error_info[gunno].error_code = 0x0043;
+                                s_charge_error_info[gunno].error_index = 0x00FFFFFC;
+                                s_charge_error_info[gunno].error_code = APP_SYSTEM_STOP_WAY_BATTERY_VOLT;
                                 break;
                             case APP_CHARGE_FAULT_READY_VOLT:
-                                s_charge_error_info[gunno].error_index = 0x44;
-                                s_charge_error_info[gunno].error_code = 0x0044;
+                                s_charge_error_info[gunno].error_index = 0x00FFFFFB;
+                                s_charge_error_info[gunno].error_code = APP_SYSTEM_STOP_WAY_READY_VOLT;
                                 break;
                             case APP_CHARGE_FAULT_INSULT_VOLT:
-                                s_charge_error_info[gunno].error_index = 0x45;
-                                s_charge_error_info[gunno].error_code = 0x0045;
+                                s_charge_error_info[gunno].error_index = 0x00FFFFFA;
+                                s_charge_error_info[gunno].error_code = APP_SYSTEM_STOP_WAY_INSULT_VOLT;
                                 break;
                             default:
                                 break;

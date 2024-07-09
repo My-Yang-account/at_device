@@ -37,9 +37,9 @@ enum ofsm_state thaisen_app_get_ofsm_charge_state(uint8_t gunno)    // OK
     }
     struct ofsm_info *ofsm_temp = get_ofsm_info(gunno);
 
-    if((ofsm_temp->charge_way == APP_CHARGE_WAY_PARACHARGE) && (ofsm_temp->main_gunno != gunno) &&  \
-            (ofsm_temp->main_gunno < APP_SYSTEM_GUNNO_SIZE)){
-        uint8_t main_gunno = ofsm_temp->main_gunno;
+    if((ofsm_temp->base.charge_way == APP_CHARGE_WAY_PARACHARGE) && (ofsm_temp->base.main_gunno != gunno) &&  \
+            (ofsm_temp->base.main_gunno < APP_SYSTEM_GUNNO_SIZE)){
+        uint8_t main_gunno = ofsm_temp->base.main_gunno;
         ofsm_temp = get_ofsm_info(main_gunno);
     }
 
@@ -276,9 +276,9 @@ struct charge_data *thaisen_app_get_charge_info(uint8_t gunno) // OK
     struct ofsm_info *ofsm_temp = get_ofsm_info(gunno);
     struct thaisenBMS_Charger_struct* bms_data = mw_get_bms_data(gunno);
 
-    if((ofsm_temp->charge_way == APP_CHARGE_WAY_PARACHARGE) && (ofsm_temp->main_gunno != gunno) &&  \
-            (ofsm_temp->main_gunno < APP_SYSTEM_GUNNO_SIZE)){
-        uint8_t main_gunno = ofsm_temp->main_gunno;
+    if((ofsm_temp->base.charge_way == APP_CHARGE_WAY_PARACHARGE) && (ofsm_temp->base.main_gunno != gunno) &&  \
+            (ofsm_temp->base.main_gunno < APP_SYSTEM_GUNNO_SIZE)){
+        uint8_t main_gunno = ofsm_temp->base.main_gunno;
         ofsm_temp = get_ofsm_info(main_gunno);
         bms_data = mw_get_bms_data(main_gunno);
     }
@@ -316,9 +316,9 @@ struct battery_info *thaisen_app_get_battery_info(uint8_t gunno)    // OK
     struct ofsm_info *ofsm_temp = get_ofsm_info(gunno);
     struct thaisenBMS_Charger_struct* bms_data = mw_get_bms_data(gunno);
 
-    if((ofsm_temp->charge_way == APP_CHARGE_WAY_PARACHARGE) && (ofsm_temp->main_gunno != gunno) &&  \
-            (ofsm_temp->main_gunno < APP_SYSTEM_GUNNO_SIZE)){
-        uint8_t main_gunno = ofsm_temp->main_gunno;
+    if((ofsm_temp->base.charge_way == APP_CHARGE_WAY_PARACHARGE) && (ofsm_temp->base.main_gunno != gunno) &&  \
+            (ofsm_temp->base.main_gunno < APP_SYSTEM_GUNNO_SIZE)){
+        uint8_t main_gunno = ofsm_temp->base.main_gunno;
         bms_data = mw_get_bms_data(main_gunno);
     }
 
@@ -344,9 +344,9 @@ struct bms_info *thaisen_app_get_bms_info(uint8_t gunno)    // OK
     struct ofsm_info *ofsm_temp = get_ofsm_info(gunno);
     struct thaisenBMS_Charger_struct* bms_data = mw_get_bms_data(gunno);
 
-    if((ofsm_temp->charge_way == APP_CHARGE_WAY_PARACHARGE) && (ofsm_temp->main_gunno != gunno) &&  \
-            (ofsm_temp->main_gunno < APP_SYSTEM_GUNNO_SIZE)){
-        uint8_t main_gunno = ofsm_temp->main_gunno;
+    if((ofsm_temp->base.charge_way == APP_CHARGE_WAY_PARACHARGE) && (ofsm_temp->base.main_gunno != gunno) &&  \
+            (ofsm_temp->base.main_gunno < APP_SYSTEM_GUNNO_SIZE)){
+        uint8_t main_gunno = ofsm_temp->base.main_gunno;
         bms_data = mw_get_bms_data(main_gunno);
     }
 
@@ -711,9 +711,9 @@ void thaisen_app_set_screen_stop_charge(uint8_t gunno)
     uint8_t main_gunno = gunno;
     struct ofsm_info *ofsm_temp = get_ofsm_info(gunno);
 
-    if((ofsm_temp->charge_way == APP_CHARGE_WAY_PARACHARGE) && (ofsm_temp->main_gunno != gunno) &&  \
-            (ofsm_temp->main_gunno < APP_SYSTEM_GUNNO_SIZE)){
-        main_gunno = ofsm_temp->main_gunno;
+    if((ofsm_temp->base.charge_way == APP_CHARGE_WAY_PARACHARGE) && (ofsm_temp->base.main_gunno != gunno) &&  \
+            (ofsm_temp->base.main_gunno < APP_SYSTEM_GUNNO_SIZE)){
+        main_gunno = ofsm_temp->base.main_gunno;
     }
 
     rt_kprintf("screen_stop_charge gunno(%d, %d)\n", gunno, main_gunno);
@@ -770,9 +770,9 @@ struct temperature* get_battery_temp_info(uint8_t gunno)
     struct thaisenBMS_Charger_struct* bms_data = mw_get_bms_data(gunno);
     struct ofsm_info *ofsm_temp = get_ofsm_info(gunno);
 
-    if((ofsm_temp->charge_way == APP_CHARGE_WAY_PARACHARGE) && (ofsm_temp->main_gunno != gunno) &&  \
-            (ofsm_temp->main_gunno < APP_SYSTEM_GUNNO_SIZE)){
-        uint8_t main_gunno = ofsm_temp->main_gunno;
+    if((ofsm_temp->base.charge_way == APP_CHARGE_WAY_PARACHARGE) && (ofsm_temp->base.main_gunno != gunno) &&  \
+            (ofsm_temp->base.main_gunno < APP_SYSTEM_GUNNO_SIZE)){
+        uint8_t main_gunno = ofsm_temp->base.main_gunno;
         bms_data = mw_get_bms_data(main_gunno);
     }
 
@@ -882,8 +882,8 @@ void thaisen_request_screen_time(void)
  ********************************************/
 const char* thaisen_get_stopway_string(uint16_t code)
 {
-    extern const char* get_stopway_string(uint16_t code);
-    return get_stopway_string(code);
+    extern const char* get_fault_string(uint16_t code);
+    return get_fault_string(code);
 }
 
 /********************************************
@@ -919,9 +919,9 @@ uint32_t thaisen_get_ammeter_voltage(uint8_t gunno)
     uint8_t main_gunno = gunno;
     struct ofsm_info *ofsm_temp = get_ofsm_info(gunno);
 
-    if((ofsm_temp->charge_way == APP_CHARGE_WAY_PARACHARGE) && (ofsm_temp->main_gunno != gunno) &&  \
-            (ofsm_temp->main_gunno < APP_SYSTEM_GUNNO_SIZE)){
-        main_gunno = ofsm_temp->main_gunno;
+    if((ofsm_temp->base.charge_way == APP_CHARGE_WAY_PARACHARGE) && (ofsm_temp->base.main_gunno != gunno) &&  \
+            (ofsm_temp->base.main_gunno < APP_SYSTEM_GUNNO_SIZE)){
+        main_gunno = ofsm_temp->base.main_gunno;
     }
     return mw_get_meter_ua(main_gunno);
 }
@@ -936,9 +936,9 @@ uint32_t thaisen_get_ammeter_current(uint8_t gunno)
     uint8_t main_gunno = gunno;
     struct ofsm_info *ofsm_temp = get_ofsm_info(gunno);
 
-    if((ofsm_temp->charge_way == APP_CHARGE_WAY_PARACHARGE) && (ofsm_temp->main_gunno != gunno) &&  \
-            (ofsm_temp->main_gunno < APP_SYSTEM_GUNNO_SIZE)){
-        main_gunno = ofsm_temp->main_gunno;
+    if((ofsm_temp->base.charge_way == APP_CHARGE_WAY_PARACHARGE) && (ofsm_temp->base.main_gunno != gunno) &&  \
+            (ofsm_temp->base.main_gunno < APP_SYSTEM_GUNNO_SIZE)){
+        main_gunno = ofsm_temp->base.main_gunno;
     }
     return mw_get_meter_ia(main_gunno);
 }

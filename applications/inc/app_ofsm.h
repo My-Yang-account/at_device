@@ -113,6 +113,12 @@ enum{
     APP_CONNECT_STATE_CONNECT,          /* 枪连接状态：已连接 */
 };
 
+enum charge_way{
+    APP_CHARGE_WAY_NONE,                /* 充电方式：无 */
+    APP_CHARGE_WAY_SINGLEGUN,           /* 充电方式：单枪 */
+    APP_CHARGE_WAY_PARACHARGE,          /* 充电方式：并充 */
+};
+
 #pragma pack(1)
 
 typedef struct{
@@ -302,14 +308,14 @@ typedef struct{
     uint32_t card_ballance_before;    /* 充电前卡余额 */
     uint32_t card_ballance_after;     /* 充电后卡余额 */
 #endif /* (defined (APP_INCLUDE_SL_PROTOCOL) || defined (APP_INCLUDE_XJ_PROTOCOL)) */
+    uint8_t main_gunno;              /* 并充主枪枪号 */
+    uint8_t charge_way;              /* 充电方式 */
     void *bms_data;                   /* BMS 数据 */
 }System_BaseData;
 
 struct ofsm_info {
     enum ofsm_state state;
     System_BaseData base;
-    uint8_t main_gunno;          /* 并充主枪枪号 */
-    uint8_t charge_way;          /* 充电方式 */
     uint32_t charge_timeout;     /* 启动超时退出 */
     uint32_t timing_tick;        /* 计时tick(用于订单时段计算) */
 };
