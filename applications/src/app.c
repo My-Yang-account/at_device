@@ -32,7 +32,7 @@ static rt_uint8_t card_thread_stack[2048];
 
 static uint8_t s_thread_gunno[APP_SYSTEM_GUNNO_SIZE];
 static struct rt_thread ofsm_thread[APP_SYSTEM_GUNNO_SIZE];
-static rt_uint8_t ofsm_thread_stack[APP_SYSTEM_GUNNO_SIZE][3072];
+static rt_uint8_t ofsm_thread_stack[APP_SYSTEM_GUNNO_SIZE][4096];
 
 static struct rt_thread osupport_thread;
 static rt_uint8_t osupport_thread_stack[4096];
