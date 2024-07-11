@@ -310,6 +310,7 @@ struct LCD_DISPLAY_SETDATA_TYPE{
 //	u8 chgcode[LCD_GUN_NUM][30];			//设备编码
 	u8 pileID[20];							//设备地址
 	u8 MeterAddr[LCD_GUN_NUM][13];
+    u16 MeterModel;
 	u8 ErWeiCode[LCD_GUN_NUM][QRCODE_LEN];
 	u8 ErWeiCodePre[128];
 	u8 SerialScreen_PassWordShow;           //屏幕密码显示
@@ -1063,27 +1064,24 @@ void SerialScreen_BtnChgInfoSet(int port)
 	         sizeof(LcdData.runData.pileID));
 	sSCREEN_EVENT_DEBUGMSG("##########pileID=%s helpnum:%s  qrcodefrex:%s###########\r\n",(char *)(LcdData.setData.pileID),(char *)(LcdData.setData.Help_Number),(char *)(LcdData.setData.ErWeiCodePre));
 }
-void SerialScreen_BtnMeterNoInfoSet()
-{
-	SerialScreen_MeterNoInfoSet(LCD_GUN_1);
-	SerialScreen_MeterNoInfoSet(LCD_GUN_2);
-	SerialScreen_SetMeterInfo();
-}
 
-
-void SerialScreen_MeterNoInfoSet(int port)
+void SerialScreen_BtnMeterNoInfoSet(void)
 {
+    u8 model = LcdData.setData.MeterModel;
     SerialScreen_JumpPage(&SerialScreen, LCD_PAGE_STORAGE_WAITING);
 
-	if(port == LCD_GUN_1)
-	UI_SYNC_SINGLE_CFG_STR(CONFIG_ITEM_METER_NOA,LcdData.setData.MeterAddr[port],str_len(LcdData.setData.MeterAddr[port]));
-	else if(port == LCD_GUN_2)
-	UI_SYNC_SINGLE_CFG_STR(CONFIG_ITEM_METER_NOB,LcdData.setData.MeterAddr[port],str_len(LcdData.setData.MeterAddr[port]));
-	else ;
+    if(model >= thaisenAmmeterModel_Other)
+        model = thaisenAmmeterModel_RuiYin;
+
+    UI_SYNC_SINGLE_CFG_STR(CONFIG_ITEM_METER_MODEL,&model,sizeof(model));
+    UI_SYNC_SINGLE_CFG_STR(CONFIG_ITEM_METER_NOA,LcdData.setData.MeterAddr[LCD_GUN_1],str_len(LcdData.setData.MeterAddr[LCD_GUN_1]));
+    UI_SYNC_SINGLE_CFG_STR(CONFIG_ITEM_METER_NOB,LcdData.setData.MeterAddr[LCD_GUN_2],str_len(LcdData.setData.MeterAddr[LCD_GUN_2]));
 
     UI_STORAGE_CFG_DATA;
 
-	sSCREEN_EVENT_DEBUGMSG("##########meter[%d] no =%s ###########\r\n",port,(char *)LcdData.setData.MeterAddr[port]);
+    SerialScreen_SetMeterInfo();
+
+    rt_kprintf("SerialScreen_BtnMeterNoInfoSet(%s, %s)\n", LcdData.setData.MeterAddr[LCD_GUN_1],LcdData.setData.MeterAddr[LCD_GUN_2]);
 }
 
 void SerialScreen_SetMeterInfo(void)
@@ -1114,6 +1112,11 @@ void SerialScreen_SetMeterInfo(void)
 #endif
 		thaisen_set_ammeterAddress(meterNo[i],i);
 	}
+
+    if(LcdData.setData.MeterModel >= thaisenAmmeterModel_Other)
+        LcdData.setData.MeterModel = thaisenAmmeterModel_RuiYin;
+
+    thaisen_set_ammnterModel(LcdData.setData.MeterModel);
 }
 
 
@@ -2390,7 +2393,7 @@ void SerialScreen_BtnBillGet(int port)
         }
 
         /** 电量 **/
-        MakeString(((char*)LcdData.billInfo[i] + used_len), ELECT_LEN, billBuf.total_elect /10, 1000);
+        MakeString(((char*)LcdData.billInfo[i] + used_len), ELECT_LEN, billBuf.total_elect, 1000);
         used_len += ELECT_LEN;
         if(used_len > strlen((char*)LcdData.billInfo[i])){    /* 未使用字节填充空格字符 */
             remain_len = used_len - strlen((char*)LcdData.billInfo[i]);
@@ -2579,7 +2582,7 @@ void SerialScreen_BtnBillUp(int port)
         }
 
         /** 电量 **/
-        MakeString(((char*)LcdData.billInfo[i] + used_len), ELECT_LEN, billBuf.total_elect /10, 1000);
+        MakeString(((char*)LcdData.billInfo[i] + used_len), ELECT_LEN, billBuf.total_elect, 1000);
         used_len += ELECT_LEN;
         if(used_len > strlen((char*)LcdData.billInfo[i])){    /* 未使用字节填充空格字符 */
             remain_len = used_len - strlen((char*)LcdData.billInfo[i]);
@@ -2731,7 +2734,7 @@ void SerialScreen_BtnBillDown(int port)
         }
 
         /** 电量 **/
-        MakeString(((char*)LcdData.billInfo[i] + used_len), ELECT_LEN, billBuf.total_elect /10, 1000);
+        MakeString(((char*)LcdData.billInfo[i] + used_len), ELECT_LEN, billBuf.total_elect, 1000);
         used_len += ELECT_LEN;
         if(used_len > strlen((char*)LcdData.billInfo[i])){    /* 未使用字节填充空格字符 */
             remain_len = used_len - strlen((char*)LcdData.billInfo[i]);
@@ -4005,6 +4008,13 @@ void SerialScreen_SendTxt(struct SerialScreenObj *cmd,u16 addr, u8 *buf, u8 len)
     LcdTxData.buf[7 + len] = 0XFF;
     LcdTxData.len = 8 + len;
 
+    if(addr == 0x4640 || addr == 0x1340){
+        rt_kprintf("SerialScreen_SendTxt(%d)\n", addr);
+        for(uint8_t count = 0; count < LcdTxData.len; count++){
+            rt_kprintf("%02X ", LcdTxData.buf[count]);
+        }
+        rt_kprintf("\n");
+    }
     cmd->SendData( cmd, LcdTxData.buf, LcdTxData.len);
 }
 
@@ -4305,6 +4315,7 @@ struct LCD_DATA_FIFO_TYPE *SerialScreen_Init(struct SerialScreenObj *cmd)
     LcdData.setData.AllocWay = *((u8*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_ALLOCATION_WAY, 0));
     LcdData.setData.GunVolt_LimitValue = *((u16*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_GUNVOLT_LIMIT, 0));
     LcdData.setData.sup_auxp_24V = *(UI_READ_SINGLE_CFG_STR(CONFIG_ITEM_SUPORT_AUXPOWER24V, 0));
+    LcdData.setData.MeterModel = *(UI_READ_SINGLE_CFG_STR(CONFIG_ITEM_METER_MODEL, 0));
     LcdData.setData.sup_parallelchg = *(UI_READ_SINGLE_CFG_STR(CONFIG_ITEM_SUPORT_PARALLEL, 0));
 
     memset(LcdData.setData.UserPasswdShow, '\0', sizeof(LcdData.setData.UserPasswdShow));
@@ -4367,6 +4378,12 @@ struct LCD_DATA_FIFO_TYPE *SerialScreen_Init(struct SerialScreenObj *cmd)
     LcdData.setData.AllocWay = POWER_ALLOCATION_WAY_AVERAGE;
     /* 此处要设置功率分配方式 */
 //    thaisenSetAllocateStrategy(LcdData.setData.AllocWay);
+
+    if(LcdData.setData.MeterModel >= thaisenAmmeterModel_Other)
+        LcdData.setData.MeterModel = thaisenAmmeterModel_RuiYin;
+
+    rt_kprintf("LcdData.setData.MeterModel(%d)\n", LcdData.setData.MeterModel);
+    thaisen_set_ammnterModel(LcdData.setData.MeterModel);
 
     if((LcdData.setData.GunVolt_LimitValue < GUNVOLT_LIMIT_VALUE_MIN) || (LcdData.setData.GunVolt_LimitValue > GUNVOLT_LIMIT_VALUE_MAX)){
         LcdData.setData.GunVolt_LimitValue = GUNVOLT_LIMIT_VALUE_MIN;
@@ -4846,7 +4863,6 @@ void SerialScreen_GetKeyProcess(struct SerialScreenObj *cmd)
 
 	sSCREEN_DEBUGKEYMSG("GetKey LcdData.CurrentPage[%d]=%d,KeyReg=%04x,KeyVal=%04x\r\n",LcdData.gunIndex,LcdData.CurrentPage,keyreg,keyval);
 
-	rt_kprintf("input data reg(%x) key(%x)\n", keyreg, keyval);
 	//当前页显示
     struct LCD_DISPLAY_PAGE_INDEX_TYPE *pPageIndex = LcdData.pPageIndex[LcdData.gunIndex];
 
@@ -5416,6 +5432,7 @@ int SerialScreen_DataProcess()
 		{
 			case APP_OFSM_STATE_WAIT_NET:
 			case APP_OFSM_STATE_IDLEING:
+	            thaisenSetAuxPowerTypeA(thaisen_auxPowerType_12V);
 				LcdData.gun[i].workState = SysMainStatus_StandBy;
 				break;
 			case APP_OFSM_STATE_READYING:
@@ -5436,6 +5453,7 @@ int SerialScreen_DataProcess()
 				LcdData.gun[i].workState = SysMainStatus_Account;
 				break;
 			case APP_OFSM_STATE_FAULTING:
+	            thaisenSetAuxPowerTypeA(thaisen_auxPowerType_12V);
 				LcdData.gun[i].workState = SysMainStatus_Err;
 				break;	
 			default:
@@ -5656,9 +5674,11 @@ int SerialScreen_DataProcess()
 	            else
 	                LcdData.setData.parallel_iocn = ICON_CHARGEWAY_SINGLECHARGE;
 	        }else{
+	            LcdAssistantData.Flag.ParaChargeSelect = 0;
 	            LcdData.setData.parallel_iocn = ICON_CHARGEWAY_NONE;
 	        }
 		}else{
+	        LcdAssistantData.Flag.ParaChargeSelect = 0;
             LcdData.setData.parallel_iocn = ICON_CHARGEWAY_NONE;
 		}
 	}
@@ -5993,6 +6013,7 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_3, NULL, "subok", LCD_BtnType, 0x0014, 0x1000, page_type, LCD_PAGE_ROOT_MAIN, (void *)SerialScreen_BtnMeterNoInfoSet);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_3, NULL, "cd up", LCD_BtnType, 0x0050, 0x1000, page_type, LCD_PAGE_ROOT_MAIN, (void *)NULL);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_3, NULL, "back", LCD_BtnHomeType, 0x0002, 0x1000, page_type, LCD_PAGE_NONE, (void *)NULL);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_3, NULL, "meter model", LCD_InputType, 0, 0x4640, menu_type, sizeof(LcdData.setData.MeterModel), (void *)&LcdData.setData.MeterModel);
 
     /** 系统信息-模块信息 [page:21] */
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_4, NULL, "menu sys", LCD_BtnType, 0x0025, 0x1000, page_type, LCD_PAGE_MENU_SYS, (void *)NULL);

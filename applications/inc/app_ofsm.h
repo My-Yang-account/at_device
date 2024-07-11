@@ -222,6 +222,9 @@ typedef struct
         uint16_t detect_point2_volt : 2;  /* 检测点2电压检测故障 */
         uint16_t other : 2;               /* 其他故障 */
     }bms_fault_reason;
+
+    uint8_t charge_way;                   /* 充电方式 */
+    uint8_t reserve[16];                  /* 预留 */
 }thaisen_transaction_t;
 /*******************************************************************************************/
 

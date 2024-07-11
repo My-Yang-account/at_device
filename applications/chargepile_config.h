@@ -57,8 +57,8 @@
 #define CP_ENCRYPT_SIGN_LEN_MAX            64                      /* 签名最大长度 */
 
 #define CP_INFO_PILE_NUMBER_LEN_MAX        32                      /* 桩号最大长度 */
-#define CP_INFO_SERIAL_NUMBER_LEN_MAX      20                      /* 序列号最大长度 */
-#define CP_INFO_HELP_NUMBER_LEN_MAX        20                      /* 帮组电话最大长度 */
+#define CP_INFO_SERIAL_NUMBER_LEN_MAX      32                      /* 序列号最大长度 */
+#define CP_INFO_HELP_NUMBER_LEN_MAX        32                      /* 帮组电话最大长度 */
 
 #define CP_INFO_QRCODE_PREFIX_LEN_MAX      256                     /* 二维码前醉最大长度 */
 #define CP_INFO_QRCODE_SUFFIX_LEN_MAX      128                     /* 二维码后醉最大长度 */
@@ -223,6 +223,7 @@ enum config_name{
     CONFIG_ITEM_QRCODE_SUF,
     CONFIG_ITEM_METER_NOA,
     CONFIG_ITEM_METER_NOB,
+    CONFIG_ITEM_METER_MODEL,
 
     CONFIG_ITEM_RATED_OUTPUT_VOLTAGE,
     CONFIG_ITEM_MAX_OUTPUT_VOLTAGE,
@@ -237,6 +238,9 @@ enum config_name{
     CONFIG_ITEM_CARD_WHITELIST,
     CONFIG_ITEM_SCREEN_PASSWORD,
     CONFIG_ITEM_HELP_PHONE,
+
+    CONFIG_ITEM_TARGET_PLATFORM,    /* 目标平台数据：为倒数第二项 */
+    CONFIG_ITEM_MONITOR_PLATFORM,   /* 监控平台数据：为倒数第一项 */
 
     CONFIG_ITEM_SIZE,
 };

@@ -59,7 +59,7 @@ struct _pile_info{
 
     uint32_t user_identity;                                           /* 用户识别码 */
 
-    uint8_t reserve[16];                                              /* 预留 */
+    uint8_t reserve[32];                                              /* 预留 */
 };
 
 struct _config_para{
@@ -106,6 +106,7 @@ struct _config_info{
     uint8_t card_whitelist[CP_INFO_CARD_WHITELIST_NUM_MAX][CARD_NUMBER_LENGTH_DEF + 0x01]; /* 卡 码白名单 */
 
     uint8_t meter_address[2][CP_INFO_METER_ADDRESS_LEN_MAX];          /* 电表地址 */
+    uint8_t meter_model;                                              /* 电表型号 */
 
     uint8_t card_type;                                                /* 卡类型 */
 
@@ -159,11 +160,15 @@ struct _state_reversal{
 };
 
 struct _target_plat{
-    uint8_t reserve[CP_INFO_TARGET_PLAT_LEN_MAX];
+    uint32_t storage_init_flag;    /* 存储初始化标志 */
+    uint8_t verify_result;         /* 数据校验结果 */
+    uint8_t reserve[CP_INFO_TARGET_PLAT_LEN_MAX - 0x05];
 };
 
 struct _monitor_plat{
-    uint8_t reserve[CP_INFO_MONITOR_PLAT_LEN_MAX];
+    uint32_t storage_init_flag;    /* 存储初始化标志 */
+    uint8_t verify_result;         /* 数据校验结果 */
+    uint8_t reserve[CP_INFO_MONITOR_PLAT_LEN_MAX - 0x05];
 };
 
 struct module_info{
@@ -180,8 +185,8 @@ struct chargepile_config_info{
     struct _config_info config_info;
     struct _function_enable function_enable;
     struct _state_reversal state_reversal;
-    struct _monitor_plat monitor_plat;
     struct _target_plat target_plat;
+    struct _monitor_plat monitor_plat;
     uint8_t reserve[512];
     uint32_t crc;
 };
@@ -482,6 +487,11 @@ static struct config_item s_config_item_set[CONFIG_ITEM_SIZE] =
         (uint8_t*)s_chargepile_config_info.config_info.meter_address[1],
         NULL},
 
+        {CONFIG_ITEM_METER_MODEL,
+        (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_info.meter_model)),
+        (uint8_t*)&s_chargepile_config_info.config_info.meter_model,
+        NULL},
+
         {CONFIG_ITEM_RATED_OUTPUT_VOLTAGE,                                                    /* 额定输出电压 */
         (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.module_rated_outvolt)),
         (uint8_t*)&s_chargepile_config_info.config_para.module_rated_outvolt,
@@ -546,6 +556,19 @@ static struct config_item s_config_item_set[CONFIG_ITEM_SIZE] =
         (1 <<(32 - 4))| (sizeof(s_chargepile_config_info.pile_info.help_number)),
         (uint8_t*)&s_chargepile_config_info.pile_info.help_number,
         &s_chargepile_config_info.pile_info.help_number_len},
+
+
+
+
+        {CONFIG_ITEM_TARGET_PLATFORM,                                                           /* 目标平台数据：为倒数第二项 */
+        (1 <<(32 - 4))| (sizeof(s_chargepile_config_info.target_plat)),
+        (uint8_t*)&s_chargepile_config_info.target_plat,
+        NULL},
+
+        {CONFIG_ITEM_MONITOR_PLATFORM,                                                           /* 监控平台数据：为倒数第一项 */
+        (1 <<(32 - 4))| (sizeof(s_chargepile_config_info.monitor_plat)),
+        (uint8_t*)&s_chargepile_config_info.monitor_plat,
+        NULL},
 };
 
 /******************************************************************************/
@@ -637,7 +660,7 @@ int32_t sys_storage_config_item(void)
     }
     LOG_D("system storage config in backup address");
     if((result = do_storage_config_content(SYSTEM_CONFIG_BACKUP_ADDRESS, _data_temp, sizeof(s_chargepile_config_info))) < 0){
-        LOG_E("chargepile config storage in backup address|%x", SYSTEM_CONFIG_BACKUP_ADDRESS);
+        LOG_E("chargepile config storage fail in backup address|%x", SYSTEM_CONFIG_BACKUP_ADDRESS);
     }
 
     free(_data_temp);
@@ -815,6 +838,9 @@ static void chargepile_config_data_reset(void)
     s_chargepile_config_info.state_reversal.parallel_relay = 0x00;
     s_chargepile_config_info.state_reversal.fan = 0x00;
     s_chargepile_config_info.state_reversal.elock = 0x00;
+
+    s_chargepile_config_info.target_plat.verify_result = 0x00;
+    s_chargepile_config_info.monitor_plat.verify_result = 0x00;
 }
 
 int32_t chargepile_config_init(void)
@@ -856,6 +882,10 @@ int32_t chargepile_config_init(void)
         mw_norflash_read(s_config_info_address, (uint8_t *)&s_chargepile_config_info, sizeof(s_chargepile_config_info));
 
         crc = crc32_ieee_update(0x00, (const uint8_t *)&s_chargepile_config_info, (sizeof(s_chargepile_config_info) - sizeof(s_chargepile_config_info.crc)));
+
+        s_chargepile_config_info.target_plat.verify_result = 0x01;
+        s_chargepile_config_info.monitor_plat.verify_result = 0x01;
+
         if (crc != s_chargepile_config_info.crc) {
             if(++s_storage_chip_entry > 0x03){
                 if(s_config_info_address == SYSTEM_CONFIG_MAIN_ADDRESS){
@@ -865,6 +895,8 @@ int32_t chargepile_config_init(void)
                     return -0x01;
                 }else{
                     LOG_E("system config crc error");
+                    s_chargepile_config_info.target_plat.verify_result = 0x00;
+                    s_chargepile_config_info.monitor_plat.verify_result = 0x00;
                     s_storage_chip_entry = 0x00;
                 }
             }else{

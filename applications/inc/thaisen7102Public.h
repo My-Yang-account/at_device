@@ -671,8 +671,13 @@ enum
 {
     thaisenAmmeterModel_RuiYin,
     thaisenAmmeterModel_YaDa,
+    thaisenAmmeterModel_KeDaRui,
+    thaisenAmmeterModel_YingLiDa,
+    thaisenAmmeterModel_AnKeRui,
+    thaisenAmmeterModel_KeWei,
     thaisenAmmeterModel_Other,
 };
+
 
 /* 功能说明:
  *          thaisen_get_ammeterVolt:获取电表电压

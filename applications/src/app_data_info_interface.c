@@ -276,6 +276,8 @@ struct charge_data *thaisen_app_get_charge_info(uint8_t gunno) // OK
     struct ofsm_info *ofsm_temp = get_ofsm_info(gunno);
     struct thaisenBMS_Charger_struct* bms_data = mw_get_bms_data(gunno);
 
+    s_data_of_charging.charge_voltage = ofsm_temp->base.voltage_a;
+
     if((ofsm_temp->base.charge_way == APP_CHARGE_WAY_PARACHARGE) && (ofsm_temp->base.main_gunno != gunno) &&  \
             (ofsm_temp->base.main_gunno < APP_SYSTEM_GUNNO_SIZE)){
         uint8_t main_gunno = ofsm_temp->base.main_gunno;
@@ -284,7 +286,6 @@ struct charge_data *thaisen_app_get_charge_info(uint8_t gunno) // OK
     }
 
     memcpy(s_data_of_charging.trade_number, ofsm_temp->base.transaction_number, sizeof(s_data_of_charging.trade_number));
-    s_data_of_charging.charge_voltage = ofsm_temp->base.voltage_a;
     s_data_of_charging.charge_current = ofsm_temp->base.current_a;
     s_data_of_charging.charge_power = ofsm_temp->base.power_a;
     s_data_of_charging.charge_elect = ofsm_temp->base.elect_a;

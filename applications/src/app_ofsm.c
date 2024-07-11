@@ -87,10 +87,19 @@ static void transaction_record_query_report(uint8_t gunno)
             save_rentry = 0;
 
             if(rtransaction.stop_reason == APP_ORIGIN_USER_STOPWAY_POWEROFF){
-                if(mw_get_meter_total_wh(gunno) >= rtransaction.ammeter_stop){
-                    uint32_t loss_elect = 0;
-                    loss_elect = mw_get_meter_total_wh(gunno) - rtransaction.ammeter_stop;
-                    rtransaction.ammeter_stop = mw_get_meter_total_wh(gunno);
+                uint32_t loss_elect = 0x00, _total_elect = 0x00;
+
+                if(rtransaction.charge_way == APP_CHARGE_WAY_PARACHARGE){
+                    for(uint8_t count = 0x00; count < APP_SYSTEM_GUNNO_SIZE; count++){
+                        _total_elect += mw_get_meter_total_wh(count);
+                    }
+                }else{
+                    _total_elect = mw_get_meter_total_wh(gunno);
+                }
+
+                if(_total_elect >= rtransaction.ammeter_stop){
+                    loss_elect = _total_elect - rtransaction.ammeter_stop;
+                    rtransaction.ammeter_stop = _total_elect;
 
                     rtransaction.total_elect = (rtransaction.ammeter_stop - rtransaction.ammeter_start);
                     rtransaction.total_loss_elect = rtransaction.total_elect;
@@ -137,7 +146,6 @@ static void transaction_record_query_report(uint8_t gunno)
     }
 
     if(app_nsal_query_transaction_verify_state(gunno, APP_TARGET_PLATFORM_ID) == APP_THA_ENUM_TRUE){
-        rt_kprintf("0000000000000000000aaaaaaaad(%d, %d)\n", gunno, s_current_order_index[TARGET_PLATFORM_INDEX][gunno]);
         if(s_transaction_sending[TARGET_PLATFORM_INDEX][gunno] == APP_THA_ENUM_TRUE){
             LOG_D("gunno(%d) target transaction verify", gunno);
             mw_storage_record_designate_index_updated(&(s_thaisen_transaction_report[TARGET_PLATFORM_INDEX][gunno]), sizeof(thaisen_transaction_t), \
@@ -162,7 +170,6 @@ static void transaction_record_query_report(uint8_t gunno)
     }
 
     if(app_nsal_query_transaction_verify_state(gunno, APP_MONITOR_PLATFORM_ID) == APP_THA_ENUM_TRUE){
-        rt_kprintf("monitor 0000000000000000000aaaaaaaad(%d, %d)\n", gunno, s_current_order_index[MONITOR_PLATFORM_INDEX][gunno]);
         if(s_transaction_sending[MONITOR_PLATFORM_INDEX][gunno] == APP_THA_ENUM_TRUE){
             LOG_D("gunno(%d) monitor transaction verify", gunno);
             mw_storage_record_designate_index_updated(&(s_thaisen_transaction_report[MONITOR_PLATFORM_INDEX][gunno]), sizeof(thaisen_transaction_t), \
@@ -445,6 +452,7 @@ static void ofsm_wait_net_fun(uint8_t gunno)
     s_ofsm_info[gunno].base.gun_set_curr = (*((uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_MAX_LIMIT_CURRENT, 0)))) *10;
 
     app_nsal_message_init();
+    app_nsal_init_charge_data(gunno);
 
     s_ofsm_info[gunno].base.flag.connect_state = APP_CONNECT_STATE_DISCONNECT;
     switch(s_ofsm_info[gunno].base.cc1_state){
@@ -865,6 +873,16 @@ static void ofsm_readying_fun(uint8_t gunno)
             /* 开始充电 */
             mw_charge_start_cmd(gunno);
 
+            if(s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE){
+                if(gunno == s_ofsm_info[gunno].base.main_gunno){
+                    s_ofsm_info[gunno].base.start_elect = (mw_get_meter_total_wh(gunno) + mw_get_meter_total_wh(deputy_gunno));
+                }
+                s_thaisen_transaction[gunno].charge_way = APP_CHARGE_WAY_PARACHARGE;
+            }else{
+                s_thaisen_transaction[gunno].charge_way = APP_CHARGE_WAY_SINGLEGUN;
+                s_ofsm_info[gunno].base.start_elect = mw_get_meter_total_wh(gunno);
+            }
+
             s_ofsm_info[gunno].base.flag.start_result = APP_THA_ENUM_FALSE;
             s_ofsm_info[gunno].base.voltage_a = 0x00;
             s_ofsm_info[gunno].base.current_a = 0x00;
@@ -873,7 +891,6 @@ static void ofsm_readying_fun(uint8_t gunno)
             s_ofsm_info[gunno].base.fees_total = 0x00;
             s_ofsm_info[gunno].base.elect_fees_total = 0x00;
             s_ofsm_info[gunno].base.service_fees_total = 0x00;
-            s_ofsm_info[gunno].base.start_elect = mw_get_meter_total_wh(gunno);
             s_ofsm_info[gunno].base.current_elect = mw_get_meter_total_wh(gunno);
             s_ofsm_info[gunno].base.start_time = s_ofsm_info[gunno].base.current_time;
             s_ofsm_info[gunno].base.stop_time = s_ofsm_info[gunno].base.current_time;
@@ -895,7 +912,7 @@ static void ofsm_readying_fun(uint8_t gunno)
             s_thaisen_transaction[gunno].start_soc = 0x00;
             s_thaisen_transaction[gunno].stop_soc = 0x00;
             s_thaisen_transaction[gunno].ammeter_start = s_ofsm_info[gunno].base.start_elect;
-            s_thaisen_transaction[gunno].ammeter_stop = s_ofsm_info[gunno].base.current_elect;
+            s_thaisen_transaction[gunno].ammeter_stop = s_thaisen_transaction[gunno].ammeter_start;
             s_thaisen_transaction[gunno].stop_reason = mw_system_stop_way_convert(APP_SYSTEM_STOP_WAY_POWER_OFF);
             s_thaisen_transaction[gunno].total_elect = 0x00;
             s_thaisen_transaction[gunno].total_loss_elect = 0x00;
@@ -1098,15 +1115,19 @@ static void ofsm_starting_fun(uint8_t gunno)
         if(s_ofsm_info[gunno].charge_timeout > s_ofsm_info[gunno].base.current_time){
             s_ofsm_info[gunno].charge_timeout = s_ofsm_info[gunno].base.current_time;
         }
-        if(s_ofsm_info[gunno].base.current_time - s_ofsm_info[gunno].charge_timeout > 90){
+        if(s_ofsm_info[gunno].base.current_time - s_ofsm_info[gunno].charge_timeout > 50){
+            stop_way = mw_get_system_stop_way(gunno);
+            if(stop_way != APP_SYSTEM_STOP_WAY_NULL){
+                /** 已有停充原因，充电已结束，充电失败，退出 */
+            }else if(s_ofsm_info[gunno].base.current_time - s_ofsm_info[gunno].charge_timeout <= 90){
+                break;
+            }
             s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_STOPING];
             s_ofsm_info[gunno].state = APP_OFSM_STATE_STOPING;
 
             s_ofsm_info[gunno].base.system_fault = system_fault;
             s_ofsm_info[gunno].base.charge_fault = charge_fault;
             s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
-
-            stop_way = mw_get_system_stop_way(gunno);
 
             LOG_D("gunno(%d) charge stop deal to stop way(boot timeout)|%d\n", gunno, stop_way);
 
@@ -1466,6 +1487,7 @@ static void ofsm_charging_fun(uint8_t gunno)
             }
         }
         if(gunno != s_ofsm_info[gunno].base.main_gunno){
+            s_ofsm_info[gunno].base.voltage_a = mw_get_meter_ua(gunno) *10;
             return;
         }
     }
@@ -1482,11 +1504,23 @@ static void ofsm_charging_fun(uint8_t gunno)
     }else{
         increase_sec = (current_tick - s_ofsm_info[gunno].timing_tick) /1000;
     }
-    app_billing_info_calculate((s_ofsm_info[gunno].base.start_time + increase_sec), mw_get_meter_total_wh(gunno), gunno);
+
+    if((s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE) && (gunno == s_ofsm_info[gunno].base.main_gunno)){
+        uint8_t deputy_gunno = APP_SYSTEM_GUNNOA;
+        if(gunno == APP_SYSTEM_GUNNOA){
+            deputy_gunno = APP_SYSTEM_GUNNOA + 0x01;
+        }
+        app_billing_info_calculate((s_ofsm_info[gunno].base.start_time + increase_sec),   \
+                (mw_get_meter_total_wh(gunno) + mw_get_meter_total_wh(deputy_gunno)), gunno);
+        s_ofsm_info[gunno].base.current_a = (mw_get_meter_ia(gunno) *10 + mw_get_meter_ia(deputy_gunno) *10);
+        s_ofsm_info[gunno].base.power_a = (mw_get_meter_pa(gunno) + mw_get_meter_pa(deputy_gunno));
+    }else{
+        app_billing_info_calculate((s_ofsm_info[gunno].base.start_time + increase_sec), mw_get_meter_total_wh(gunno), gunno);
+        s_ofsm_info[gunno].base.current_a = mw_get_meter_ia(gunno) *10;
+        s_ofsm_info[gunno].base.power_a = mw_get_meter_pa(gunno);
+    }
 
     s_ofsm_info[gunno].base.voltage_a = mw_get_meter_ua(gunno) *10;
-    s_ofsm_info[gunno].base.current_a = mw_get_meter_ia(gunno) *10;
-    s_ofsm_info[gunno].base.power_a = mw_get_meter_pa(gunno);
     s_ofsm_info[gunno].base.current_soc = bms_info->BCS.SOC;
     s_ofsm_info[gunno].base.stop_time = (s_ofsm_info[gunno].base.start_time + increase_sec);
     s_ofsm_info[gunno].base.charge_time = s_ofsm_info[gunno].base.stop_time - s_ofsm_info[gunno].base.start_time;
@@ -2346,6 +2380,16 @@ static void ofsm_finishing_fun(uint8_t gunno)
             /* 开始充电 */
             mw_charge_start_cmd(gunno);
 
+            if(s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE){
+                if(gunno == s_ofsm_info[gunno].base.main_gunno){
+                    s_ofsm_info[gunno].base.start_elect = (mw_get_meter_total_wh(gunno) + mw_get_meter_total_wh(deputy_gunno));
+                }
+                s_thaisen_transaction[gunno].charge_way = APP_CHARGE_WAY_PARACHARGE;
+            }else{
+                s_thaisen_transaction[gunno].charge_way = APP_CHARGE_WAY_SINGLEGUN;
+                s_ofsm_info[gunno].base.start_elect = mw_get_meter_total_wh(gunno);
+            }
+
             s_ofsm_info[gunno].base.flag.start_result = APP_THA_ENUM_FALSE;
             s_ofsm_info[gunno].base.voltage_a = 0x00;
             s_ofsm_info[gunno].base.current_a = 0x00;
@@ -2354,7 +2398,6 @@ static void ofsm_finishing_fun(uint8_t gunno)
             s_ofsm_info[gunno].base.fees_total = 0x00;
             s_ofsm_info[gunno].base.elect_fees_total = 0x00;
             s_ofsm_info[gunno].base.service_fees_total = 0x00;
-            s_ofsm_info[gunno].base.start_elect = mw_get_meter_total_wh(gunno);
             s_ofsm_info[gunno].base.current_elect = mw_get_meter_total_wh(gunno);
             s_ofsm_info[gunno].base.start_time = s_ofsm_info[gunno].base.current_time;
             s_ofsm_info[gunno].base.stop_time = s_ofsm_info[gunno].base.current_time;
@@ -2376,7 +2419,7 @@ static void ofsm_finishing_fun(uint8_t gunno)
             s_thaisen_transaction[gunno].start_soc = 0x00;
             s_thaisen_transaction[gunno].stop_soc = 0x00;
             s_thaisen_transaction[gunno].ammeter_start = s_ofsm_info[gunno].base.start_elect;
-            s_thaisen_transaction[gunno].ammeter_stop = s_ofsm_info[gunno].base.current_elect;
+            s_thaisen_transaction[gunno].ammeter_stop = s_thaisen_transaction[gunno].ammeter_start;
             s_thaisen_transaction[gunno].stop_reason = mw_system_stop_way_convert(APP_SYSTEM_STOP_WAY_POWER_OFF);
             s_thaisen_transaction[gunno].total_elect = 0x00;
             s_thaisen_transaction[gunno].total_loss_elect = 0x00;
@@ -2806,7 +2849,19 @@ static void ofsm_faulting_fun(uint8_t gunno)
 #endif /* 0 */
                     /* 开始充电 */
                     mw_charge_start_cmd(gunno);
-
+#if 0
+                    if(s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE){
+                        if(gunno == s_ofsm_info[gunno].base.main_gunno){
+                            s_ofsm_info[gunno].base.start_elect = (mw_get_meter_total_wh(gunno) + mw_get_meter_total_wh(deputy_gunno));
+                        }
+                        s_thaisen_transaction[gunno].charge_way = APP_CHARGE_WAY_PARACHARGE;
+                    }else{
+                        s_thaisen_transaction[gunno].charge_way = APP_CHARGE_WAY_SINGLEGUN;
+                        s_ofsm_info[gunno].base.start_elect = mw_get_meter_total_wh(gunno);
+                    }
+#else
+                    s_ofsm_info[gunno].base.start_elect = mw_get_meter_total_wh(gunno);
+#endif /* 0 */
                     s_ofsm_info[gunno].base.flag.start_result = APP_THA_ENUM_FALSE;
                     s_ofsm_info[gunno].base.voltage_a = 0x00;
                     s_ofsm_info[gunno].base.current_a = 0x00;
@@ -2815,7 +2870,6 @@ static void ofsm_faulting_fun(uint8_t gunno)
                     s_ofsm_info[gunno].base.fees_total = 0x00;
                     s_ofsm_info[gunno].base.elect_fees_total = 0x00;
                     s_ofsm_info[gunno].base.service_fees_total = 0x00;
-                    s_ofsm_info[gunno].base.start_elect = mw_get_meter_total_wh(gunno);
                     s_ofsm_info[gunno].base.current_elect = mw_get_meter_total_wh(gunno);
                     s_ofsm_info[gunno].base.start_time = s_ofsm_info[gunno].base.current_time;
                     s_ofsm_info[gunno].base.stop_time = s_ofsm_info[gunno].base.current_time;
@@ -2837,7 +2891,7 @@ static void ofsm_faulting_fun(uint8_t gunno)
                     s_thaisen_transaction[gunno].start_soc = 0x00;
                     s_thaisen_transaction[gunno].stop_soc = 0x00;
                     s_thaisen_transaction[gunno].ammeter_start = s_ofsm_info[gunno].base.start_elect;
-                    s_thaisen_transaction[gunno].ammeter_stop = s_ofsm_info[gunno].base.current_elect;
+                    s_thaisen_transaction[gunno].ammeter_stop = s_thaisen_transaction[gunno].ammeter_start;
                     s_thaisen_transaction[gunno].stop_reason = mw_system_stop_way_convert(APP_SYSTEM_STOP_WAY_POWER_OFF);
                     s_thaisen_transaction[gunno].total_elect = 0x00;
                     s_thaisen_transaction[gunno].total_loss_elect = 0x00;
