@@ -119,14 +119,14 @@ enum system_stop_way{
     APP_SYSTEM_STOP_WAY_FLASH = thaisen_chargeCtl_stopWay_flash,                      /* flash */
     APP_SYSTEM_STOP_WAY_EEPROM = thaisen_chargeCtl_stopWay_eeprom,                    /* eeprom */
 
-    APP_SYSTEM_STOP_WAY_LIGHTPROTECT = thaisen_chargeCtl_stopWay_LightProtect + APP_SYSFAULT_STOPWAY_OFFSET,        /* 防雷器 */
-    APP_SYSTEM_STOP_WAY_GUNSITE = thaisen_chargeCtl_stopWay_GunSite + APP_SYSFAULT_STOPWAY_OFFSET,                  /* 枪座 */
-    APP_SYSTEM_STOP_WAY_CIRCUIT_BREAKER = thaisen_chargeCtl_stopWay_CircuitBreaker + APP_SYSFAULT_STOPWAY_OFFSET,   /* 断路器 */
-    APP_SYSTEM_STOP_WAY_FLOODING = thaisen_chargeCtl_stopWay_Flooding + APP_SYSFAULT_STOPWAY_OFFSET,                /* 水浸 */
-    APP_SYSTEM_STOP_WAY_SMOKE = thaisen_chargeCtl_stopWay_Smoke + APP_SYSFAULT_STOPWAY_OFFSET,                      /* 烟感 */
-    APP_SYSTEM_STOP_WAY_POUR = thaisen_chargeCtl_stopWay_Pour + APP_SYSFAULT_STOPWAY_OFFSET,                        /* 倾倒 */
-    APP_SYSTEM_STOP_WAY_LIQUIDCOOLING = thaisen_chargeCtl_stopWay_LiquidCooling + APP_SYSFAULT_STOPWAY_OFFSET,      /* 液冷 */
-    APP_SYSTEM_STOP_WAY_FUSE = thaisen_chargeCtl_stopWay_Fuse + APP_SYSFAULT_STOPWAY_OFFSET,                        /* 熔断器 */
+//    APP_SYSTEM_STOP_WAY_LIGHTPROTECT = thaisen_chargeCtl_stopWay_LightProtect + APP_SYSFAULT_STOPWAY_OFFSET,        /* 防雷器 */
+//    APP_SYSTEM_STOP_WAY_GUNSITE = thaisen_chargeCtl_stopWay_GunSite + APP_SYSFAULT_STOPWAY_OFFSET,                  /* 枪座 */
+//    APP_SYSTEM_STOP_WAY_CIRCUIT_BREAKER = thaisen_chargeCtl_stopWay_CircuitBreaker + APP_SYSFAULT_STOPWAY_OFFSET,   /* 断路器 */
+//    APP_SYSTEM_STOP_WAY_FLOODING = thaisen_chargeCtl_stopWay_Flooding + APP_SYSFAULT_STOPWAY_OFFSET,                /* 水浸 */
+//    APP_SYSTEM_STOP_WAY_SMOKE = thaisen_chargeCtl_stopWay_Smoke + APP_SYSFAULT_STOPWAY_OFFSET,                      /* 烟感 */
+//    APP_SYSTEM_STOP_WAY_POUR = thaisen_chargeCtl_stopWay_Pour + APP_SYSFAULT_STOPWAY_OFFSET,                        /* 倾倒 */
+//    APP_SYSTEM_STOP_WAY_LIQUIDCOOLING = thaisen_chargeCtl_stopWay_LiquidCooling + APP_SYSFAULT_STOPWAY_OFFSET,      /* 液冷 */
+//    APP_SYSTEM_STOP_WAY_FUSE = thaisen_chargeCtl_stopWay_Fuse + APP_SYSFAULT_STOPWAY_OFFSET,                        /* 熔断器 */
 
     APP_SYSTEM_STOP_WAY_SHORTS = thaisen_chargeCtl_stopWay_short,              /* 短路 */
     APP_SYSTEM_STOP_WAY_GUNVOLT = thaisen_chargeCtl_stopWay_GunVolt,           /* 枪头电压 */
@@ -158,6 +158,15 @@ enum system_stop_way{
     APP_SYSTEM_STOP_WAY_POWER_OFF,              /* 断电 */
     APP_SYSTEM_STOP_WAY_CURRENT_ABNORMAL,       /* 电流异常 */
     APP_SYSTEM_STOP_WAY_SOC_LIMIT,              /* SOC限制 */
+
+    APP_SYSTEM_STOP_WAY_LIGHTPROTECT = thaisen_chargeCtl_stopWay_LightProtect + APP_SYSFAULT_STOPWAY_OFFSET,        /* 防雷器 */
+    APP_SYSTEM_STOP_WAY_GUNSITE = thaisen_chargeCtl_stopWay_GunSite + APP_SYSFAULT_STOPWAY_OFFSET,                  /* 枪座 */
+    APP_SYSTEM_STOP_WAY_CIRCUIT_BREAKER = thaisen_chargeCtl_stopWay_CircuitBreaker + APP_SYSFAULT_STOPWAY_OFFSET,   /* 断路器 */
+    APP_SYSTEM_STOP_WAY_FLOODING = thaisen_chargeCtl_stopWay_Flooding + APP_SYSFAULT_STOPWAY_OFFSET,                /* 水浸 */
+    APP_SYSTEM_STOP_WAY_SMOKE = thaisen_chargeCtl_stopWay_Smoke + APP_SYSFAULT_STOPWAY_OFFSET,                      /* 烟感 */
+    APP_SYSTEM_STOP_WAY_POUR = thaisen_chargeCtl_stopWay_Pour + APP_SYSFAULT_STOPWAY_OFFSET,                        /* 倾倒 */
+    APP_SYSTEM_STOP_WAY_LIQUIDCOOLING = thaisen_chargeCtl_stopWay_LiquidCooling + APP_SYSFAULT_STOPWAY_OFFSET,      /* 液冷 */
+    APP_SYSTEM_STOP_WAY_FUSE = thaisen_chargeCtl_stopWay_Fuse + APP_SYSFAULT_STOPWAY_OFFSET,                        /* 熔断器 */
 
     APP_SYSTEM_STOP_WAY_SIZE,
 };
