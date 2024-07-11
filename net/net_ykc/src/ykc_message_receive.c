@@ -103,7 +103,7 @@ static void ykc_set_recv_card_whitelists_data(uint8_t index, uint8_t state, uint
  * 函数名      ykc_get_recv_card_whitelists_count
 * 功能           根据信息项的指令码获取指定的接收信息项
  **********************************************/
-uint8_t ykc_get_recv_card_whitelists_count(uint8_t option)
+uint8_t ykc_get_recv_card_whitelists_count(uint32_t option)
 {
     if(option &NET_YKC_CARD_WHITELIST_QUERY){
         return s_ykc_card_query.count;
@@ -117,7 +117,7 @@ uint8_t ykc_get_recv_card_whitelists_count(uint8_t option)
  * 函数名      ykc_get_recv_card_whitelists_state
 * 功能           根据信息项的指令码获取指定的接收信息项
  **********************************************/
-uint32_t ykc_get_recv_card_whitelists_state(uint8_t option)
+uint32_t ykc_get_recv_card_whitelists_state(uint32_t option)
 {
     if(option &NET_YKC_CARD_WHITELIST_QUERY){
         return s_ykc_card_query.state;
@@ -131,7 +131,7 @@ uint32_t ykc_get_recv_card_whitelists_state(uint8_t option)
  * 函数名      ykc_clear_recv_card_whitelists_state
 * 功能           根据信息项的指令码清除指定的接收信息项
  **********************************************/
-void ykc_clear_recv_card_whitelists_state(uint8_t option)
+void ykc_clear_recv_card_whitelists_state(uint32_t option)
 {
     if(option &NET_YKC_CARD_WHITELIST_QUERY){
         s_ykc_card_query.state = 0x00;

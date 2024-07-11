@@ -167,8 +167,6 @@ typedef struct{
 }ykc_socket_info_t;
 
 ykc_socket_info_t* ykc_get_socket_info(void);
-void ykc_response_buff_release_mutex(void);
-ykc_response_message_buf_t* ykc_get_response_buff(int32_t timeout);
 
 uint8_t ykc_transaction_is_verify(uint8_t gunno);
 void ykc_set_transaction_verify_state(uint8_t gunno, uint8_t state);

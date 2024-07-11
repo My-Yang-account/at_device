@@ -48,7 +48,7 @@ static uint8_t s_ykc_message_send_thread_stack[NET_YKC_MESSAGE_SEND_THREAD_STACK
 static struct rt_thread s_ykc_server_message_pro_thread;
 static uint8_t s_ykc_server_message_pro_thread_stack[NET_YKC_SERVER_MESSAGE_PRO_THREAD_STACK_SIZE];
 static ykc_response_message_buf_t s_ykc_response_buff;
-static struct rt_mutex s_ykc_response_buff_mutex;
+static struct rt_semaphore s_ykc_response_buff_sem;
 
 /** 登录签到 */
 Net_YkcPro_PReq_LogIn_t g_ykc_preq_login;
@@ -99,31 +99,31 @@ ykc_socket_info_t* ykc_get_socket_info(void)
 }
 
 /**************************************************************************
- * 函数名                 ykc_response_buff_take_mutex_forever
+ * 函数名                 ykc_response_buff_take_sem_forever
  * 功能                     获取响应缓存互斥量
  * 说明
  * ***********************************************************************/
-static int32_t ykc_response_buff_take_mutex_forever(int32_t timeout)
+static int32_t ykc_response_buff_take_sem_forever(int32_t timeout)
 {
-    return rt_mutex_take(&s_ykc_response_buff_mutex, timeout);
+    return rt_sem_take(&s_ykc_response_buff_sem, timeout);
 }
 /**************************************************************************
- * 函数名                 ykc_response_buff_release_mutex
+ * 函数名                 ykc_response_buff_release_sem
  * 功能                     释放响应缓存互斥信号量
  * 说明
  * ***********************************************************************/
-void ykc_response_buff_release_mutex(void)
+static void ykc_response_buff_release_sem(void)
 {
-    rt_mutex_release(&s_ykc_response_buff_mutex);
+    rt_sem_release(&s_ykc_response_buff_sem);
 }
 /**************************************************************************
  * 函数名                 ykc_get_response_buff
  * 功能                     获取响应缓存
  * 说明
  * ***********************************************************************/
-ykc_response_message_buf_t* ykc_get_response_buff(int32_t timeout)
+static ykc_response_message_buf_t* ykc_get_response_buff(int32_t timeout)
 {
-    if(ykc_response_buff_take_mutex_forever(timeout) < 0){
+    if(ykc_response_buff_take_sem_forever(timeout) < 0){
         return NULL;
     }
     return &s_ykc_response_buff;
@@ -784,7 +784,7 @@ static void net_ykc_message_send_thread_entry(void *parameter)
                 realtime_data->head.sequence = g_ykc_sreq_query_realtime_data[gunno].head.sequence;
                 ykc_message_send_port(NETYKC_PREQCMD_PRESCMD_REPORT_REALTIME_DATA, s_ykc_socket_info.fd, s_ykc_response_buff.general_transmit_buff,
                         s_ykc_response_buff.length);
-                ykc_response_buff_release_mutex();
+                ykc_response_buff_release_sem();
                 rt_thread_mdelay(250);
             }
             /***** [运营平台远程控制启机响应] *****/
@@ -795,7 +795,7 @@ static void net_ykc_message_send_thread_entry(void *parameter)
                 start_charge->head.sequence = g_ykc_sreq_remote_start_charge[gunno].head.sequence;
                 ykc_message_send_port(NETYKC_PRESCMD_SERVER_START_CHARGE, s_ykc_socket_info.fd, s_ykc_response_buff.general_transmit_buff,
                         s_ykc_response_buff.length);
-                ykc_response_buff_release_mutex();
+                ykc_response_buff_release_sem();
                 rt_thread_mdelay(250);
             }
             /***** [运营平台远程停机响应] *****/
@@ -807,7 +807,7 @@ static void net_ykc_message_send_thread_entry(void *parameter)
                 stop_charge->head.sequence = g_ykc_sreq_remote_stop_charge[gunno].head.sequence;
                 ykc_message_send_port(NETYKC_PRESCMD_SERVER_STOP_CHARGE, s_ykc_socket_info.fd, s_ykc_response_buff.general_transmit_buff,
                         s_ykc_response_buff.length);
-                ykc_response_buff_release_mutex();
+                ykc_response_buff_release_sem();
                 rt_thread_mdelay(250);
             }
             /***** [远程账户余额更新响应] *****/
@@ -817,7 +817,7 @@ static void net_ykc_message_send_thread_entry(void *parameter)
                 ballance_update->head.sequence = g_ykc_sreq_account_ballance_update[gunno].head.sequence;
                 ykc_message_send_port(NETYKC_PRESCMD_ACCOUNT_BALLANCE_UPDATE, s_ykc_socket_info.fd, s_ykc_response_buff.general_transmit_buff,
                         s_ykc_response_buff.length);
-                ykc_response_buff_release_mutex();
+                ykc_response_buff_release_sem();
                 rt_thread_mdelay(250);
             }
             /***** [离线卡数据同步响应] *****/
@@ -828,7 +828,7 @@ static void net_ykc_message_send_thread_entry(void *parameter)
                 sync_card->head.sequence = g_ykc_sreq_sync_offline_card.head.sequence;
                 ykc_message_send_port(NETYKC_PRESCMD_SYNC_OFFLINECARD, s_ykc_socket_info.fd, s_ykc_response_buff.general_transmit_buff,
                         s_ykc_response_buff.length);
-                ykc_response_buff_release_mutex();
+                ykc_response_buff_release_sem();
                 rt_thread_mdelay(250);
             }
             /***** [离线卡数据清除响应] *****/
@@ -839,7 +839,7 @@ static void net_ykc_message_send_thread_entry(void *parameter)
                 clear_card->head.sequence = g_ykc_sreq_clear_offline_card.head.sequence;
                 ykc_message_send_port(NETYKC_PRESCMD_CLEAR_OFFLINECARD, s_ykc_socket_info.fd, s_ykc_response_buff.general_transmit_buff,
                         s_ykc_response_buff.length);
-                ykc_response_buff_release_mutex();
+                ykc_response_buff_release_sem();
                 rt_thread_mdelay(250);
             }
             /***** [离线卡数据查询响应] *****/
@@ -850,7 +850,7 @@ static void net_ykc_message_send_thread_entry(void *parameter)
                 query_card->head.sequence = g_ykc_sreq_query_offline_card.head.sequence;
                 ykc_message_send_port(NETYKC_PRESCMD_QUERY_OFFLINECARD, s_ykc_socket_info.fd, s_ykc_response_buff.general_transmit_buff,
                         s_ykc_response_buff.length);
-                ykc_response_buff_release_mutex();
+                ykc_response_buff_release_sem();
                 rt_thread_mdelay(250);
             }
             /***** [充电桩工作参数设置响应] *****/
@@ -861,7 +861,7 @@ static void net_ykc_message_send_thread_entry(void *parameter)
                 work_para->head.sequence = g_ykc_sreq_set_work_para.head.sequence;
                 ykc_message_send_port(NETYKC_PRESCMD_SET_WORK_PARA, s_ykc_socket_info.fd, s_ykc_response_buff.general_transmit_buff,
                         s_ykc_response_buff.length);
-                ykc_response_buff_release_mutex();
+                ykc_response_buff_release_sem();
                 rt_thread_mdelay(250);
             }
             /***** [对时设置响应] *****/
@@ -872,7 +872,7 @@ static void net_ykc_message_send_thread_entry(void *parameter)
                 time_sync->head.sequence = g_ykc_sreq_time_sync.head.sequence;
                 ykc_message_send_port(NETYKC_PRESCMD_TIME_SYNC, s_ykc_socket_info.fd, s_ykc_response_buff.general_transmit_buff,
                         s_ykc_response_buff.length);
-                ykc_response_buff_release_mutex();
+                ykc_response_buff_release_sem();
                 rt_thread_mdelay(250);
             }
             /***** [计费模型设置响应] *****/
@@ -883,7 +883,7 @@ static void net_ykc_message_send_thread_entry(void *parameter)
                 billing_model->head.sequence = g_ykc_sreq_billing_model_set.head.sequence;
                 ykc_message_send_port(NETYKC_PRESCMD_SET_BILLING_MODEL, s_ykc_socket_info.fd, s_ykc_response_buff.general_transmit_buff,
                         s_ykc_response_buff.length);
-                ykc_response_buff_release_mutex();
+                ykc_response_buff_release_sem();
                 rt_thread_mdelay(250);
             }
             /***** [遥控地锁升锁与降锁命令响应] *****/
@@ -894,7 +894,7 @@ static void net_ykc_message_send_thread_entry(void *parameter)
                 ground_lock->head.sequence = g_ykc_sreq_ground_lock_lifting[gunno].head.sequence;
                 ykc_message_send_port(NETYKC_PRESCMD_GROUNDLOCK_LIFTING, s_ykc_socket_info.fd, s_ykc_response_buff.general_transmit_buff,
                         s_ykc_response_buff.length);
-                ykc_response_buff_release_mutex();
+                ykc_response_buff_release_sem();
                 rt_thread_mdelay(250);
             }
             /***** [远程重启响应] *****/
@@ -905,7 +905,7 @@ static void net_ykc_message_send_thread_entry(void *parameter)
                 reboot->head.sequence = g_ykc_sreq_remote_reboot.head.sequence;
                 ykc_message_send_port(NETYKC_PRESCMD_REMOTE_REBOOT, s_ykc_socket_info.fd, s_ykc_response_buff.general_transmit_buff,
                         s_ykc_response_buff.length);
-                ykc_response_buff_release_mutex();
+                ykc_response_buff_release_sem();
                 rt_thread_mdelay(250);
             }
             /***** [远程更新响应] *****/
@@ -925,7 +925,7 @@ static void net_ykc_message_send_thread_entry(void *parameter)
                 merge_charge->head.sequence = g_ykc_sreq_remote_start_merge_charge[gunno].head.sequence;
                 ykc_message_send_port(NETYKC_PRESCMD_SERVER_START_MERGECHARGE, s_ykc_socket_info.fd, s_ykc_response_buff.general_transmit_buff,
                         s_ykc_response_buff.length);
-                ykc_response_buff_release_mutex();
+                ykc_response_buff_release_sem();
                 rt_thread_mdelay(250);
             }
             /***** [运营平台二维码配置响应] *****/
@@ -936,7 +936,7 @@ static void net_ykc_message_send_thread_entry(void *parameter)
                 qrcode->head.sequence = g_ykc_sreq_qrcode_config[gunno].head.sequence;
                 ykc_message_send_port(NETYKC_PRESCMD_QRCODE_CONFIG, s_ykc_socket_info.fd, s_ykc_response_buff.general_transmit_buff,
                         s_ykc_response_buff.length);
-                ykc_response_buff_release_mutex();
+                ykc_response_buff_release_sem();
                 rt_thread_mdelay(250);
             }
         }
@@ -968,7 +968,7 @@ static void net_ykc_server_message_pro_entry(void *parameter)
                     if(result >= 0x00){
                         ykc_net_event_send(NET_YKC_EVENT_HANDLE_CHARGEPILE, NET_YKC_EVENT_TYPE_RESPONSE, gunno, NET_YKC_PRES_EVENT_READ_REALTIME_DATA);
                     }else{
-                        ykc_response_buff_release_mutex();
+                        ykc_response_buff_release_sem();
                     }
                 }
                 /***** [运营平台远程控制启机请求] *****/
@@ -998,10 +998,10 @@ static void net_ykc_server_message_pro_entry(void *parameter)
                         if(result >= 0x00){
                             ykc_net_event_send(NET_YKC_EVENT_HANDLE_CHARGEPILE, NET_YKC_EVENT_TYPE_RESPONSE, gunno, NET_YKC_PRES_EVENT_SERVER_START_CHARGE);
                         }else{
-                            ykc_response_buff_release_mutex();
+                            ykc_response_buff_release_sem();
                         }
                     }else{
-                        ykc_response_buff_release_mutex();
+                        ykc_response_buff_release_sem();
                     }
                 }
                 /***** [运营平台远程停机请求] *****/ // OK
@@ -1031,10 +1031,10 @@ static void net_ykc_server_message_pro_entry(void *parameter)
                         if(result){
                             ykc_net_event_send(NET_YKC_EVENT_HANDLE_CHARGEPILE, NET_YKC_EVENT_TYPE_RESPONSE, gunno, NET_YKC_PRES_EVENT_SERVER_STOP_CHARGE);
                         }else{
-                            ykc_response_buff_release_mutex();
+                            ykc_response_buff_release_sem();
                         }
                     }else{
-                        ykc_response_buff_release_mutex();
+                        ykc_response_buff_release_sem();
                     }
                 }
                 /***** [远程账户余额更新请求] *****/ // OK
@@ -1059,10 +1059,10 @@ static void net_ykc_server_message_pro_entry(void *parameter)
                         if(result >= 0x00){
                             ykc_net_event_send(NET_YKC_EVENT_HANDLE_CHARGEPILE, NET_YKC_EVENT_TYPE_RESPONSE, gunno, NET_YKC_PRES_EVENT_ACCOUNT_BALLANCE_UPDATE);
                         }else{
-                            ykc_response_buff_release_mutex();
+                            ykc_response_buff_release_sem();
                         }
                     }else{
-                        ykc_response_buff_release_mutex();
+                        ykc_response_buff_release_sem();
                     }
                 }
                 /***** [离线卡数据同步请求] *****/ // OK
@@ -1080,7 +1080,7 @@ static void net_ykc_server_message_pro_entry(void *parameter)
                         }
                         ykc_net_event_send(NET_YKC_EVENT_HANDLE_CHARGEPILE, NET_YKC_EVENT_TYPE_RESPONSE, gunno, NET_YKC_PRES_EVENT_SYNC_OFFLINECARD);
                     }else{
-                        ykc_response_buff_release_mutex();
+                        ykc_response_buff_release_sem();
                     }
                 }
                 /***** [离线卡数据清除请求] *****/ // OK
@@ -1108,10 +1108,10 @@ static void net_ykc_server_message_pro_entry(void *parameter)
                             response->length += (sizeof(struct clear_card_block) *count);
                             ykc_net_event_send(NET_YKC_EVENT_HANDLE_CHARGEPILE, NET_YKC_EVENT_TYPE_RESPONSE, gunno, NET_YKC_PRES_EVENT_CLEAR_OFFLINECARD);
                         }else{
-                            ykc_response_buff_release_mutex();
+                            ykc_response_buff_release_sem();
                         }
                     }else{
-                        ykc_response_buff_release_mutex();
+                        ykc_response_buff_release_sem();
                     }
                 }
                 /***** [离线卡数据查询请求] *****/ // OK
@@ -1137,10 +1137,10 @@ static void net_ykc_server_message_pro_entry(void *parameter)
                             response->length += (sizeof(struct query_card_block) *count);
                             ykc_net_event_send(NET_YKC_EVENT_HANDLE_CHARGEPILE, NET_YKC_EVENT_TYPE_RESPONSE, gunno, NET_YKC_PRES_EVENT_QUERY_OFFLINECARD);
                         }else{
-                            ykc_response_buff_release_mutex();
+                            ykc_response_buff_release_sem();
                         }
                     }else{
-                        ykc_response_buff_release_mutex();
+                        ykc_response_buff_release_sem();
                     }
                 }
                 /***** [充电桩工作参数设置请求] *****/
@@ -1153,7 +1153,7 @@ static void net_ykc_server_message_pro_entry(void *parameter)
                             ((Net_YkcPro_PRes_Set_WorkPara_t*)response->general_transmit_buff)->body.result = 0x00;
                             ykc_net_event_send(NET_YKC_EVENT_HANDLE_CHARGEPILE, NET_YKC_EVENT_TYPE_RESPONSE, gunno, NET_YKC_PRES_EVENT_SET_WORK_PARA);
                         }else{
-                            ykc_response_buff_release_mutex();
+                            ykc_response_buff_release_sem();
                         }
                     }else{
                         net_operation_set_event(gunno, NET_OPERATION_EVENT_SET_CHARGE_POWER);
@@ -1171,7 +1171,7 @@ static void net_ykc_server_message_pro_entry(void *parameter)
                     if(result >= 0x00){
                         ykc_net_event_send(NET_YKC_EVENT_HANDLE_CHARGEPILE, NET_YKC_EVENT_TYPE_RESPONSE, gunno, NET_YKC_PRES_EVENT_TIME_SYNC);
                     }else{
-                        ykc_response_buff_release_mutex();
+                        ykc_response_buff_release_sem();
                     }
                 }
                 /***** [计费模型设置请求] *****/
@@ -1189,7 +1189,7 @@ static void net_ykc_server_message_pro_entry(void *parameter)
                     if(result >= 0x00){
                         ykc_net_event_send(NET_YKC_EVENT_HANDLE_CHARGEPILE, NET_YKC_EVENT_TYPE_RESPONSE, gunno, NET_YKC_PRES_EVENT_SET_BILLING_MODEL);
                     }else{
-                        ykc_response_buff_release_mutex();
+                        ykc_response_buff_release_sem();
                     }
                 }
                 /***** [遥控地锁升锁与降锁命令请求] *****/
@@ -1206,7 +1206,7 @@ static void net_ykc_server_message_pro_entry(void *parameter)
                             ((Net_YkcPro_PRes_Set_WorkPara_t*)response->general_transmit_buff)->body.result = 0x00;
                             ykc_net_event_send(NET_YKC_EVENT_HANDLE_CHARGEPILE, NET_YKC_EVENT_TYPE_RESPONSE, gunno, NET_YKC_PRES_EVENT_GROUNDLOCK_LIFTING);
                         }else{
-                            ykc_response_buff_release_mutex();
+                            ykc_response_buff_release_sem();
                         }
                     }
                 }
@@ -1226,7 +1226,7 @@ static void net_ykc_server_message_pro_entry(void *parameter)
                             ((Net_YkcPro_PRes_RemoteReboot_t*)response->general_transmit_buff)->body.result = res;
                             ykc_net_event_send(NET_YKC_EVENT_HANDLE_CHARGEPILE, NET_YKC_EVENT_TYPE_RESPONSE, gunno, NET_YKC_PRES_EVENT_REMOTE_REBOOT);
                         }else{
-                            ykc_response_buff_release_mutex();
+                            ykc_response_buff_release_sem();
                         }
                     }
                 }
@@ -1256,7 +1256,7 @@ static void net_ykc_server_message_pro_entry(void *parameter)
                         if(result >= 0x00){
                             ykc_net_event_send(NET_YKC_EVENT_HANDLE_CHARGEPILE, NET_YKC_EVENT_TYPE_RESPONSE, gunno, NET_YKC_PRES_EVENT_REMOTE_UPDATE);
                         }else{
-                            ykc_response_buff_release_mutex();
+                            ykc_response_buff_release_sem();
                         }
                     }
                 }
@@ -1284,10 +1284,10 @@ static void net_ykc_server_message_pro_entry(void *parameter)
                         if(result){
                             ykc_net_event_send(NET_YKC_EVENT_HANDLE_CHARGEPILE, NET_YKC_EVENT_TYPE_RESPONSE, gunno, NET_YKC_PRES_EVENT_SERVER_START_MERGECHARGE);
                         }else{
-                            ykc_response_buff_release_mutex();
+                            ykc_response_buff_release_sem();
                         }
                     }else{
-                        ykc_response_buff_release_mutex();
+                        ykc_response_buff_release_sem();
                     }
                 }
                 /***** [运营平台二维码配置请求] *****/
@@ -1306,7 +1306,7 @@ static void net_ykc_server_message_pro_entry(void *parameter)
                     if(result >= 0x00){
                         ykc_net_event_send(NET_YKC_EVENT_HANDLE_CHARGEPILE, NET_YKC_EVENT_TYPE_RESPONSE, gunno, NET_YKC_PRES_EVENT_QRCODE_CONFIG);
                     }else{
-                        ykc_response_buff_release_mutex();
+                        ykc_response_buff_release_sem();
                     }
                 }
             }
@@ -1380,7 +1380,7 @@ static void net_ykc_server_message_pro_entry(void *parameter)
                     }
                     ykc_net_event_send(NET_YKC_EVENT_HANDLE_CHARGEPILE, NET_YKC_EVENT_TYPE_RESPONSE, gunno, NET_YKC_PRES_EVENT_SERVER_START_CHARGE);
                 }else{
-                    ykc_response_buff_release_mutex();
+                    ykc_response_buff_release_sem();
                 }
             }
             /***** [停止充电异步响应] *****/
@@ -1396,7 +1396,7 @@ static void net_ykc_server_message_pro_entry(void *parameter)
                     }
                     ykc_net_event_send(NET_YKC_EVENT_HANDLE_CHARGEPILE, NET_YKC_EVENT_TYPE_RESPONSE, gunno, NET_YKC_PRES_EVENT_SERVER_STOP_CHARGE);
                 }else{
-                    ykc_response_buff_release_mutex();
+                    ykc_response_buff_release_sem();
                 }
             }
             /***** [启动充电(并充)异步响应] *****/
@@ -1412,7 +1412,7 @@ static void net_ykc_server_message_pro_entry(void *parameter)
                     }
                     ykc_net_event_send(NET_YKC_EVENT_HANDLE_CHARGEPILE, NET_YKC_EVENT_TYPE_RESPONSE, gunno, NET_YKC_PRES_EVENT_SERVER_START_MERGECHARGE);
                 }else{
-                    ykc_response_buff_release_mutex();
+                    ykc_response_buff_release_sem();
                 }
             }
             /***** [设置功率百分比异步响应] *****/
@@ -1428,7 +1428,7 @@ static void net_ykc_server_message_pro_entry(void *parameter)
                     }
                     ykc_net_event_send(NET_YKC_EVENT_HANDLE_CHARGEPILE, NET_YKC_EVENT_TYPE_RESPONSE, gunno, NET_YKC_PRES_EVENT_SET_WORK_PARA);
                 }else{
-                    ykc_response_buff_release_mutex();
+                    ykc_response_buff_release_sem();
                 }
             }
         }
@@ -1463,8 +1463,8 @@ int32_t ykc_message_send_init(void)
         return -0x01;
     }
 
-    if(rt_mutex_init(&s_ykc_response_buff_mutex, "ykc_tbmutex", RT_IPC_FLAG_PRIO) != RT_EOK){
-        LOG_E("ykc response buff mutex create fail");
+    if(rt_sem_init(&s_ykc_response_buff_sem, "ykc_tbsem", 0x01, RT_IPC_FLAG_PRIO) != RT_EOK){
+        LOG_E("ykc response buff sem create fail");
     }
     return 0x00;
 }

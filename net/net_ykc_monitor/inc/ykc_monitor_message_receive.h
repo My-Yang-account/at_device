@@ -118,9 +118,9 @@ void ykc_monitor_clear_recv_message_item(uint8_t cmd, uint8_t gunno);
 uint16_t ykc_monitor_get_recv_message_item_serial_number(uint8_t cmd, uint8_t gunno);
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
 
-uint8_t ykc_monitor_get_recv_card_whitelists_count(uint8_t option);
-uint32_t ykc_monitor_get_recv_card_whitelists_state(uint8_t option);
-void ykc_monitor_clear_recv_card_whitelists_state(uint8_t option);
+uint8_t ykc_monitor_get_recv_card_whitelists_count(uint32_t option);
+uint32_t ykc_monitor_get_recv_card_whitelists_state(uint32_t option);
+void ykc_monitor_clear_recv_card_whitelists_state(uint32_t option);
 
 int32_t ykcV_message_recv_init(void);
 

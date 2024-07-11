@@ -97,9 +97,9 @@ extern Net_YkcPro_SRes_ApplyCharge_Active_t g_ykc_sres_apply_charge_active[NET_S
 /** 充电桩主动申请并充充电响应 */
 extern Net_YkcPro_SRes_ApplyMergeCharge_Active_t g_ykc_sres_apply_merge_charge_active[NET_SYSTEM_GUN_NUMBER];   // OK
 
-uint8_t ykc_get_recv_card_whitelists_count(uint8_t option);
-uint32_t ykc_get_recv_card_whitelists_state(uint8_t option);
-void ykc_clear_recv_card_whitelists_state(uint8_t option);
+uint8_t ykc_get_recv_card_whitelists_count(uint32_t option);
+uint32_t ykc_get_recv_card_whitelists_state(uint32_t option);
+void ykc_clear_recv_card_whitelists_state(uint32_t option);
 
 int32_t ykc_message_recv_init(void);
 

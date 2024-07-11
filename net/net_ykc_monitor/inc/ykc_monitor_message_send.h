@@ -191,8 +191,6 @@ typedef struct{
 }ykc_monitor_socket_info_t;
 
 ykc_monitor_socket_info_t* ykc_monitor_get_socket_info(void);
-void ykc_monitor_response_buff_release_mutex(void);
-ykc_monitor_response_message_buf_t* ykc_monitor_get_response_buff(int32_t timeout);
 
 uint8_t ykc_monitor_transaction_is_verify(uint8_t gunno);
 void ykc_monitor_set_transaction_verify_state(uint8_t gunno, uint8_t state);

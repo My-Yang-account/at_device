@@ -55,7 +55,7 @@ static uint16_t ykc_get_check_code(uint16_t crc, uint8_t *data, uint32_t len)
     return crc;
 }
 
-static uint8_t ykc_readline_data(int fd)
+static uint16_t ykc_readline_data(int fd)
 {
     uint16_t length = 0x00, rbyte = 0x01, rlen = 0x00, body_len = 0x00;
     while(1)
