@@ -146,6 +146,7 @@ static uint8_t* app_nget_system_data(uint8_t name, uint32_t *dlen, uint32_t opti
         }
         return sys_read_config_item_content(CONFIG_ITEM_PILE_NUMBER, 0x00);
         break;
+#if 0
     case NET_SYSTEM_DATA_NAME_NETWORKED_WAY:
 
         break;
@@ -173,24 +174,28 @@ static uint8_t* app_nget_system_data(uint8_t name, uint32_t *dlen, uint32_t opti
     case NET_SYSTEM_DATA_NAME_MAC:
 
         break;
+#endif /* 0 */
     case NET_SYSTEM_DATA_NAME_ICCID:
     {
         extern char *get_at_device_appinfo_iccid(void);
         return get_at_device_appinfo_iccid();
     }
         break;
+#if 0
     case NET_SYSTEM_DATA_NAME_IMSI:
 
         break;
     case NET_SYSTEM_DATA_NAME_OPERATOR:
 
         break;
+#endif /* 0 */
     case NET_SYSTEM_DATA_NAME_DOMAIN:
         return sys_read_config_item_content(CONFIG_ITEM_IP_DOMAIN, 0x00);
         break;
     case NET_SYSTEM_DATA_NAME_PORT:
         return sys_read_config_item_content(CONFIG_ITEM_PORT, 0x00);
         break;
+#if 0
     case NET_SYSTEM_DATA_NAME_VOLTAGE_MAX:
 
         break;
@@ -215,6 +220,7 @@ static uint8_t* app_nget_system_data(uint8_t name, uint32_t *dlen, uint32_t opti
     case NET_SYSTEM_DATA_NAME_EXPAND_VOLTAGE_MIN:
 
         break;
+#endif /* 0 */
     case NET_SYSTEM_DATA_NAME_HARDWARE_VERSION:
     {
         extern uint8_t *__thaisen_get_test_hard_version(void);
@@ -228,6 +234,12 @@ static uint8_t* app_nget_system_data(uint8_t name, uint32_t *dlen, uint32_t opti
             return "-V01";
         }
     }
+        break;
+    case NET_SYSTEM_DATA_NAME_PLATFORM_DATA:
+        if(option &NET_SYSTEM_DATA_OPTION_PLAT_YCP){
+            return sys_read_config_item_content(CONFIG_ITEM_TARGET_PLATFORM, 0x00);
+        }
+        return NULL;
         break;
     default:
         break;
@@ -254,6 +266,7 @@ static int32_t app_nset_system_data(uint8_t name, uint8_t *data, uint16_t len, u
 //        }
 //        return sys_read_config_item_content(CONFIG_ITEM_PILE_NUMBER, 0x00);
         break;
+#if 0
     case NET_SYSTEM_DATA_NAME_NETWORKED_WAY:
 
         break;
@@ -320,6 +333,7 @@ static int32_t app_nset_system_data(uint8_t name, uint8_t *data, uint16_t len, u
     case NET_SYSTEM_DATA_NAME_EXPAND_VOLTAGE_MIN:
 
         break;
+#endif /* 0 */
     case NET_SYSTEM_DATA_NAME_QRCODE:
         rt_kprintf("NET_SYSTEM_DATA_NAME_QRCODE qrcode config(%s)\n", data);
         if(sys_sync_config_item_content(CONFIG_ITEM_QRCODE_PRE, data, len) < 0x00){
@@ -332,6 +346,12 @@ static int32_t app_nset_system_data(uint8_t name, uint8_t *data, uint16_t len, u
             return -0x01;
         }
         return sys_storage_config_item();
+        break;
+    case NET_SYSTEM_DATA_NAME_PLATFORM_DATA:
+        if(option &NET_SYSTEM_DATA_OPTION_PLAT_YCP){
+            return sys_storage_config_item();
+        }
+        return -0x01;
         break;
     default:
         break;

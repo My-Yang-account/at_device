@@ -25,9 +25,10 @@
 #define NET_INCLUDE_OTA
 
 //#define NET_PACK_USING_THA                                    /* 使用钛享协议 */
-#define NET_PACK_USING_YKC                                    /* 使用云快充协议 */
+//#define NET_PACK_USING_YKC                                    /* 使用云快充协议 */
 #define NET_PACK_USING_YKC_MONITOR                              /* 使用云快充协议(监控) */
-//#define NET_PACK_USING_YCP                                     /* 使用越城协议 */
+#define NET_PACK_USING_YCP                                     /* 使用越城协议 */
+//#define NET_PACK_USING_YND                                     /* 使用一电、南电协议 */
 //#define NET_PACK_USING_XJ                                     /* 使用小桔协议 */
 //#define NET_PACK_USING_SL                                     /* 使用阳光乐通协议 */
 
@@ -58,6 +59,13 @@
 #define NET_YCP_PRO_USING_DC                                       /* 越城协议使用直流部分 */
 #define NET_YCP_PRO_USING_AC                                       /* 越城协议使用交流部分 */
 #endif /* NET_PACK_USING_YCP */
+
+#ifdef NET_PACK_USING_YND
+//#define NET_YND_AS_MONITOR                                        /* 一电、南电平台作为监控平台 */
+#define NET_YND_AS_TARGET                                         /* 一电、南电平台作为目标平台 */
+#define NET_YND_PRO_USING_DC                                       /* 一电、南电协议使用直流部分 */
+#define NET_YND_PRO_USING_AC                                       /* 一电、南电协议使用交流部分 */
+#endif /* NET_PACK_USING_YND */
 
 #ifdef NET_PACK_USING_XJ
 //#define NET_XJ_AS_MONITOR                                        /* 小桔平台作为监控平台 */

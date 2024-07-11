@@ -45,7 +45,7 @@
 /** 充电桩参数设置 */
 extern Net_YcpPro_SReq_ParaSet_t g_ycp_sreq_set_para;   // OK
 /** 运营平台下发二维码配置 */
-extern Net_YcpPro_SReq_Qrcode_Config_t g_ycp_sreq_qrcode_config[NET_SYSTEM_GUN_NUMBER];
+extern Net_YcpPro_SReq_Qrcode_Config_t g_ycp_sreq_qrcode_config;
 /** 客服电话设置 */
 extern Net_YcpPro_SReq_ServicePhone_t g_ycp_sreq_set_service_phone;
 /** 计费模型下发 */

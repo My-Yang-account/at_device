@@ -30,6 +30,7 @@ int8_t ycp_response_padding_remote_reboot(uint8_t *buf, uint16_t ilen, uint16_t 
 int8_t ycp_response_padding_set_billing_model(uint8_t *buf, uint16_t ilen, uint16_t *olen);
 int8_t ycp_response_padding_remote_update(uint8_t *buf, uint16_t ilen, uint16_t *olen);
 int8_t ycp_response_padding_qrcode_config(uint8_t gunno, uint8_t *buf, uint16_t ilen, uint16_t *olen);
+int8_t ycp_response_padding_set_service_phone(uint8_t gunno, uint8_t *buf, uint16_t ilen, uint16_t *olen);
 void ycp_request_padding_heartbeat(void);
 
 int8_t ycp_message_pro_billing_model_set_response(void *data, uint8_t len);
@@ -67,8 +68,6 @@ int8_t ycp_chargepile_create_local_transaction_number(uint8_t gunno, void *vecto
 void ycp_chargepile_time_sync_revise(uint8_t gunno);
 uint8_t ycp_chargepile_fault_converted(uint8_t bit);
 uint8_t ycp_query_transaction_verify_state(uint8_t gunno);
-void ycp_data_realtime_process(uint8_t gunno);
-void ycp_disposable_message_check(uint8_t gunno);
 
 #endif /* NET_PACK_USING_YCP */
 

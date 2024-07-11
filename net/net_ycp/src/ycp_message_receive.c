@@ -25,7 +25,7 @@ extern uint8_t s_ycp_current_transaction_number[NET_SYSTEM_GUN_NUMBER][NET_YCP_S
 /** 充电桩参数设置 */
 Net_YcpPro_SReq_ParaSet_t g_ycp_sreq_set_para;
 /** 运营平台下发二维码配置 */
-Net_YcpPro_SReq_Qrcode_Config_t g_ycp_sreq_qrcode_config[NET_SYSTEM_GUN_NUMBER];
+Net_YcpPro_SReq_Qrcode_Config_t g_ycp_sreq_qrcode_config;
 /** 客服电话设置 */
 Net_YcpPro_SReq_ServicePhone_t g_ycp_sreq_set_service_phone;
 /** 计费模型下发 */
@@ -129,8 +129,8 @@ static void ycp_callback_response_time_sync(uint8_t* data, uint16_t length)
     }
 
     memcpy(&g_ycp_sres_time_sync, data, (length - NET_YCP_PROTOCOL_CHECK_REGION_SIZE));
-//    ycp_clear_message_wait_response_state(0x00, NET_YCP_PREQ_EVENT_BILLING_MODEL_VERIFY);
-//    ycp_net_event_send(NET_YCP_EVENT_HANDLE_SERVER, NET_YCP_EVENT_TYPE_REQUEST, 0x00, NET_YCP_SREQ_EVENT_TIME_SYNC);
+    ycp_clear_message_wait_response_state(0x00, NET_YCP_PREQ_EVENT_TIME_SYNC);
+    ycp_net_event_send(NET_YCP_EVENT_HANDLE_SERVER, NET_YCP_EVENT_TYPE_RESPONSE, 0x00, NET_YCP_SRES_EVENT_TIME_SYNC);
 }
 
 /*****************************************************************
@@ -152,7 +152,7 @@ static void ycp_callback_response_heartbeat(uint8_t* data, uint16_t length)
         return;
     }
 
-//    ycp_net_event_send(NET_YCP_EVENT_HANDLE_SERVER, NET_YCP_EVENT_TYPE_RESPONSE, 0x00, NET_YCP_SRES_EVENT_HEARTBEAT);
+    ycp_net_event_send(NET_YCP_EVENT_HANDLE_SERVER, NET_YCP_EVENT_TYPE_RESPONSE, 0x00, NET_YCP_SRES_EVENT_HEARTBEAT);
 }
 
 /*****************************************************************
@@ -181,8 +181,8 @@ static void ycp_callback_response_billing_model_verify(uint8_t* data, uint16_t l
     }
 
     memcpy(&g_ycp_sres_billing_model_verify, data, (length - NET_YCP_PROTOCOL_CHECK_REGION_SIZE));
-//        ycp_clear_message_wait_response_state(0x00, NET_YCP_PREQ_EVENT_BILLING_MODEL_VERIFY);
-//        ycp_net_event_send(NET_YCP_EVENT_HANDLE_SERVER, NET_YCP_EVENT_TYPE_RESPONSE, 0x00, NET_YCP_PREQ_EVENT_BILLING_MODEL_VERIFY);
+    ycp_clear_message_wait_response_state(0x00, NET_YCP_PREQ_EVENT_BILLING_MODEL_VERIFY);
+    ycp_net_event_send(NET_YCP_EVENT_HANDLE_SERVER, NET_YCP_EVENT_TYPE_RESPONSE, 0x00, NET_YCP_PREQ_EVENT_BILLING_MODEL_VERIFY);
 }
 
 
@@ -206,15 +206,15 @@ static void ycp_callback_response_apply_charge_active(uint8_t* data, uint16_t le
     }
     Net_YcpPro_SRes_ApplyCharge_Active_t *response = (Net_YcpPro_SRes_ApplyCharge_Active_t*)data;
 
-    if((response->body.gunno < 0x00) || (response->body.gunno >= NET_SYSTEM_GUN_NUMBER)){
+    if((response->body.gunno <= 0x00) || (response->body.gunno > NET_SYSTEM_GUN_NUMBER)){
         LOG_E("ycp gunno error when call ycp_callback_response_apply_charge_active|%d, %d", response->body.gunno,
                 NET_SYSTEM_GUN_NUMBER);
         return;
     }
 
     memcpy(&g_ycp_sres_apply_charge_active[response->body.gunno], data, length - NET_YCP_PROTOCOL_CHECK_REGION_SIZE);
-//    ycp_clear_message_wait_response_state(response->body.gunno, NET_YCP_PREQ_EVENT_APPLY_START_CHARGE);
-//    ycp_net_event_send(NET_YCP_EVENT_HANDLE_SERVER, NET_YCP_EVENT_TYPE_RESPONSE, response->body.gunno, NET_YCP_SRES_EVENT_APPLY_CHARGE_ACTIVE);
+    ycp_clear_message_wait_response_state(response->body.gunno, NET_YCP_PREQ_EVENT_APPLY_START_CHARGE);
+    ycp_net_event_send(NET_YCP_EVENT_HANDLE_SERVER, NET_YCP_EVENT_TYPE_RESPONSE, (response->body.gunno - 0x01), NET_YCP_SRES_EVENT_APPLY_CHARGE_ACTIVE);
 }
 
 /*****************************************************************
@@ -267,8 +267,8 @@ static void ycp_callback_response_transaction_records(uint8_t* data, uint16_t le
         return;
     }
 
-//    ycp_clear_message_wait_response_state(gunno, NET_YCP_PREQ_EVENT_TRANSACTION_RECORD);
-//    ycp_net_event_send(NET_YCP_EVENT_HANDLE_SERVER, NET_YCP_EVENT_TYPE_RESPONSE, gunno, NET_YCP_SRES_EVENT_BILL_VERIFY);
+    ycp_clear_message_wait_response_state(gunno, NET_YCP_PREQ_EVENT_TRANSACTION_RECORD);
+    ycp_net_event_send(NET_YCP_EVENT_HANDLE_SERVER, NET_YCP_EVENT_TYPE_RESPONSE, gunno, NET_YCP_SRES_EVENT_BILL_VERIFY);
 }
 
 /*****************************************************************
@@ -291,7 +291,7 @@ static void ycp_callback_request_set_para(uint8_t* data, uint16_t length)
     }
 
     memcpy(&g_ycp_sreq_set_para, data, (length - NET_YCP_PROTOCOL_CHECK_REGION_SIZE));
-//    ycp_net_event_send(NET_YCP_EVENT_HANDLE_SERVER, NET_YCP_EVENT_TYPE_REQUEST, 0x00, NET_YCP_SREQ_EVENT_SET_WORK_PARA);
+    ycp_net_event_send(NET_YCP_EVENT_HANDLE_SERVER, NET_YCP_EVENT_TYPE_REQUEST, 0x00, NET_YCP_SREQ_EVENT_SET_PARA);
 }
 
 /*****************************************************************
@@ -317,13 +317,13 @@ static void ycp_callback_request_qrcode_config(uint8_t* data, uint16_t length)
     uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YCP |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
     struct net_handle* handle = net_get_net_handle();
 
-    request->body.result = 0x00;
+    g_ycp_sreq_qrcode_config.body.result = 0x00;
     if(handle->set_system_data(NET_SYSTEM_DATA_NAME_QRCODE, (data + sizeof(Net_YcpPro_SReq_Qrcode_Config_t) - 0x02),
             request->body.qrcode_len, option) < 0x00){
-        request->body.result = 0x01;
+        g_ycp_sreq_qrcode_config.body.result = 0x01;
     }
 
-//    ycp_net_event_send(NET_YCP_EVENT_HANDLE_SERVER, NET_YCP_EVENT_TYPE_REQUEST, (gunno - 0x01), NET_YCP_SREQ_EVENT_QRCODE_CONFIG);
+    ycp_net_event_send(NET_YCP_EVENT_HANDLE_SERVER, NET_YCP_EVENT_TYPE_REQUEST, 0x00, NET_YCP_SREQ_EVENT_QRCODE_CONFIG);
 }
 
 /*****************************************************************
@@ -339,11 +339,9 @@ static void ycp_callback_request_set_service_phone(uint8_t* data, uint16_t lengt
         LOG_E("ycp input data is null when call ycp_callback_request_set_service_phone");
         return;
     }
-    if(length != (sizeof(Net_YcpPro_SReq_ServicePhone_t) + NET_YCP_PROTOCOL_CHECK_REGION_SIZE + \
-            ((Net_YcpPro_SReq_ServicePhone_t*)data)->body.service_phone_len)){
+    if(length != (sizeof(Net_YcpPro_SReq_ServicePhone_t) + ((Net_YcpPro_SReq_ServicePhone_t*)data)->body.service_phone_len)){
         LOG_E("ycp input length error when call ycp_callback_request_set_service_phone|%d, %d", length, \
-                (sizeof(Net_YcpPro_SReq_ServicePhone_t) + NET_YCP_PROTOCOL_CHECK_REGION_SIZE +   \
-                            ((Net_YcpPro_SReq_ServicePhone_t*)data)->body.service_phone_len));
+                (sizeof(Net_YcpPro_SReq_ServicePhone_t) + ((Net_YcpPro_SReq_ServicePhone_t*)data)->body.service_phone_len));
         return;
     }
 
@@ -351,13 +349,13 @@ static void ycp_callback_request_set_service_phone(uint8_t* data, uint16_t lengt
     uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YCP |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
     struct net_handle* handle = net_get_net_handle();
 
-    request->body.result = 0x00;
+    g_ycp_sreq_set_service_phone.body.result = 0x00;
     if(handle->set_system_data(NET_SYSTEM_DATA_NAME_HELP_PHONE, (data + sizeof(Net_YcpPro_SReq_ServicePhone_t) - 0x02),
             request->body.service_phone_len, option) < 0x00){
-        request->body.result = 0x01;
+        g_ycp_sreq_set_service_phone.body.result = 0x01;
     }
 
-//    ycp_net_event_send(NET_YCP_EVENT_HANDLE_SERVER, NET_YCP_EVENT_TYPE_REQUEST, (gunno - 0x01), NET_YCP_SREQ_EVENT_QRCODE_CONFIG);
+    ycp_net_event_send(NET_YCP_EVENT_HANDLE_SERVER, NET_YCP_EVENT_TYPE_REQUEST, 0x00, NET_YCP_SREQ_EVENT_SET_SERVICE_PHONE);
 }
 
 /*****************************************************************
@@ -380,7 +378,7 @@ static void ycp_callback_request_billing_model_set(uint8_t* data, uint16_t lengt
     }
 
     memcpy(&g_ycp_sreq_billing_model_set, data, (length - NET_YCP_PROTOCOL_CHECK_REGION_SIZE));
-//    ycp_net_event_send(NET_YCP_EVENT_HANDLE_SERVER, NET_YCP_EVENT_TYPE_REQUEST, 0x00, NET_YCP_SREQ_EVENT_BILLING_MODEL_SET);
+    ycp_net_event_send(NET_YCP_EVENT_HANDLE_SERVER, NET_YCP_EVENT_TYPE_REQUEST, 0x00, NET_YCP_SREQ_EVENT_BILLING_MODEL_SET);
 }
 
 /*****************************************************************
@@ -404,14 +402,14 @@ static void ycp_callback_request_query_state_data(uint8_t* data, uint16_t length
 
     Net_YcpPro_SReq_Query_PileState_t *request = (Net_YcpPro_SReq_Query_PileState_t*)data;
 
-    if((request->body.gunno < 0x00) || (request->body.gunno >= NET_SYSTEM_GUN_NUMBER)){
+    if((request->body.gunno <= 0x00) || (request->body.gunno > NET_SYSTEM_GUN_NUMBER)){
         LOG_E("ycp gunno error when call ycp_callback_request_query_state_data|%d, %d", request->body.gunno,
                 NET_SYSTEM_GUN_NUMBER);
         return;
     }
 
     memcpy(&g_ycp_sreq_query_device_state[request->body.gunno], data, (length - NET_YCP_PROTOCOL_CHECK_REGION_SIZE));
-//    ycp_net_event_send(NET_YCP_EVENT_HANDLE_SERVER, NET_YCP_EVENT_TYPE_REQUEST, gunno, NET_YCP_SREQ_EVENT_QUERY_REALTIME_DATA);
+    ycp_net_event_send(NET_YCP_EVENT_HANDLE_SERVER, NET_YCP_EVENT_TYPE_REQUEST, (request->body.gunno - 0x01), NET_YCP_SREQ_EVENT_QUERY_DEVICE_STATE);
 }
 
 /*****************************************************************
@@ -458,14 +456,14 @@ static void ycp_callback_request_remote_start_charge(uint8_t* data, uint16_t len
 
     Net_YcpPro_SReq_Remote_StartCharge_t *request = (Net_YcpPro_SReq_Remote_StartCharge_t*)data;
 
-    if((request->body.gunno < 0x00) || (request->body.gunno >= NET_SYSTEM_GUN_NUMBER)){
+    if((request->body.gunno <= 0x00) || (request->body.gunno > NET_SYSTEM_GUN_NUMBER)){
         LOG_E("ycp gunno error when call tha_callback_request_remote_start_charge|%d, %d", request->body.gunno,
                 NET_SYSTEM_GUN_NUMBER);
         return;
     }
 
     memcpy(&g_ycp_sreq_remote_start_charge[request->body.gunno], data, (length - NET_YCP_PROTOCOL_CHECK_REGION_SIZE));
-//    ycp_net_event_send(NET_YCP_EVENT_HANDLE_SERVER, NET_YCP_EVENT_TYPE_REQUEST, request->body.gunno, NET_YCP_SREQ_EVENT_REMOTE_START_CHARGE);
+    ycp_net_event_send(NET_YCP_EVENT_HANDLE_SERVER, NET_YCP_EVENT_TYPE_REQUEST, (request->body.gunno - 0x01), NET_YCP_SREQ_EVENT_REMOTE_START_CHARGE);
 }
 
 /*****************************************************************
@@ -489,14 +487,14 @@ static void ycp_callback_request_remote_stop_charge(uint8_t* data, uint16_t leng
 
     Net_YcpPro_SReq_Remote_StopCharge_t *request = (Net_YcpPro_SReq_Remote_StopCharge_t*)data;
 
-    if((request->body.gunno < 0x00) || (request->body.gunno >= NET_SYSTEM_GUN_NUMBER)){
+    if((request->body.gunno <= 0x00) || (request->body.gunno > NET_SYSTEM_GUN_NUMBER)){
         LOG_E("ycp gunno error when call tha_callback_request_remote_stop_charge|%d, %d", request->body.gunno,
                 NET_SYSTEM_GUN_NUMBER);
         return;
     }
 
     memcpy(&g_ycp_sreq_remote_stop_charge[request->body.gunno], data, (length - NET_YCP_PROTOCOL_CHECK_REGION_SIZE));
-//    ycp_net_event_send(NET_YCP_EVENT_HANDLE_SERVER, NET_YCP_EVENT_TYPE_REQUEST, request->body.gunno, NET_YCP_SREQ_EVENT_REMOTE_STOP_CHARGE);
+    ycp_net_event_send(NET_YCP_EVENT_HANDLE_SERVER, NET_YCP_EVENT_TYPE_REQUEST, (request->body.gunno - 0x01), NET_YCP_SREQ_EVENT_REMOTE_STOP_CHARGE);
 }
 
 /*****************************************************************
@@ -519,7 +517,7 @@ static void ycp_callback_request_remote_update(uint8_t* data, uint16_t length)
     }
 
     memcpy(&g_ycp_sreq_remote_update, data, (length - NET_YCP_PROTOCOL_CHECK_REGION_SIZE));
-//    ycp_net_event_send(NET_YCP_EVENT_HANDLE_SERVER, NET_YCP_EVENT_TYPE_REQUEST, 0x00, NET_YCP_SREQ_EVENT_REMOTE_UPDATE);
+    ycp_net_event_send(NET_YCP_EVENT_HANDLE_SERVER, NET_YCP_EVENT_TYPE_REQUEST, 0x00, NET_YCP_SREQ_EVENT_REMOTE_UPDATE);
 }
 
 /*****************************************************************
@@ -542,7 +540,7 @@ static void ycp_callback_request_remote_reboot(uint8_t* data, uint16_t length)
     }
 
     memcpy(&g_ycp_sreq_remote_reboot, data, (length - NET_YCP_PROTOCOL_CHECK_REGION_SIZE));
-//    ycp_net_event_send(NET_YCP_EVENT_HANDLE_SERVER, NET_YCP_EVENT_TYPE_REQUEST, 0x00, NET_YCP_SREQ_EVENT_REMOTE_REBOOT);
+    ycp_net_event_send(NET_YCP_EVENT_HANDLE_SERVER, NET_YCP_EVENT_TYPE_REQUEST, 0x00, NET_YCP_SREQ_EVENT_REMOTE_REBOOT);
 }
 
 /*****************************************************************

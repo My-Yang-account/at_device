@@ -56,6 +56,16 @@
 #define NET_YCP_FAULT_NUM_MAX_DEFAULT                          0x0A        /* 默认上报故障数目最大值 */
 #define NET_YCP_QRCODE_LENGTH_DEFAULT                          0x96        /* 默认二维码长度 */
 
+#define NET_YCP_STORAGE_INIT_FLAG                              0x12345678  /* 平台数据存储标志 */
+#define NET_YCP_HEARTBEAT_INTERVAL_DEFAULT                     0x3C        /* 默认心跳上报间隔 */
+#define NET_YCP_VOICE_VOLUME_DEFAULT                           0x32        /* 默认语音音量 */
+#define NET_YCP_DEVICE_PASSWORD_DEFAULT                        0x00B2      /* 默认设备密码 */
+#define NET_YCP_TEMP_PROTECT_DEFAULT                           0xFF        /* 默认温度保护值 */
+#define NET_YCP_CHARGEDATA_TYPE_DEFAULT                        0x02        /* 默认充电数据上报类型 */
+#define NET_YCP_BMSDATA_SWITCH_DEFAULT                         0x01        /* 默认BMS 数据上报开关 */
+#define NET_YCP_POWER_PERCENT_DEFAULT                          0x64        /* 默认输出功率百分比 */
+#define NET_YCP_MODEL_NUMBER_DEFAULT                           0x00        /* 默认计费模型编号 */
+
 enum ycp_cmd{
     NETYCP_PREQCMD_SINGIN = 0x01,                            /* 指令：桩登录请求 */
     NETYCP_SRESCMD_SINGIN = 0x02,                            /* 指令：服务器响应登录 */
@@ -145,6 +155,32 @@ enum ycp_cmd{
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 #pragma pack(1)
 
+/** 越城平台数据存储体 */
+typedef struct{
+    uint32_t storage_init_flag;              /* 存储初始化标志 */
+    uint8_t verify_result;                   /* 数据校验结果 */
+
+    uint16_t heartbeat_interval;             /* 心跳上报间隔 */
+    uint8_t voice_volume;                    /* 语音音量 */
+    uint16_t device_password;                /* 设备密码 */
+    uint8_t temp_protect;                    /* 温度保护值 */
+    uint8_t chargedata_type;                 /* 充电数据上报类型 */
+    uint8_t bmsdata_switch;                  /* BMS 数据上报开关 */
+    uint8_t power_percent;                   /* 输出功率 */
+
+    uint16_t model_number;                   /* 计费模型编号 */
+    uint32_t tip_elect_rate;                 /* 尖电费费率 */
+    uint32_t tip_service_rate;               /* 尖服务费费率 */
+    uint32_t peak_elect_rate;                /* 峰电费费率 */
+    uint32_t peak_service_rate;              /* 峰服务费费率 */
+    uint32_t flat_elect_rate;                /* 平电费费率 */
+    uint32_t flat_service_rate;              /* 平服务费费率 */
+    uint32_t valley_elect_rate;              /* 谷电费费率 */
+    uint32_t valley_service_rate;            /* 谷服务费费率 */
+    uint8_t loss_proportion;                 /* 计损比例 */
+    uint8_t rate_number[NET_YCP_RATE_PERIOD_COUNT_MAX];     /* 费率号 */
+}ycp_storage_struct;
+
 /** 协议头部 */
 typedef struct{
     uint8_t start_code;                           /* 起始码 */
@@ -195,7 +231,8 @@ typedef struct{
 typedef struct{
     Net_YcpPro_Head_t head;
     struct{
-        uint8_t login_result;                        /* 登录结果 */
+        /** 报文已修改，去除了登录结果字段 */
+//        uint8_t login_result;                        /* 登录结果 */
         uint8_t current_time[NET_YCP_TIME_BCD_LENGTH_DEFAULT];  /* 当前时间 */
     }body;
 }Net_YcpPro_SRes_TimeSync_t;

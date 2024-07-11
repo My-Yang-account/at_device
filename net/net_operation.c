@@ -383,10 +383,12 @@ static int32_t net_operation_init(void)
     extern int32_t ycp_message_recv_init(void);
     extern int32_t ycp_transceiver_init(void);
     extern int32_t ycp_message_send_init(void);
+    extern int32_t ycp_realtime_process_init(void);
     ycp_ota_init();
     ycp_message_recv_init();
     ycp_transceiver_init();
     ycp_message_send_init();
+    ycp_realtime_process_init();
 #endif /* NET_PACK_USING_YCP */
 
 #ifdef NET_PACK_USING_XJ

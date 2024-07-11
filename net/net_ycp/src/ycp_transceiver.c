@@ -22,7 +22,7 @@
 #define DBG_LVL DBG_LOG
 #include <rtdbg.h>
 
-#define YCP_MESSAGE_FIX_LEN_DEFAULT        0x04
+#define YCP_MESSAGE_FIX_LEN_DEFAULT        0x06
 
 typedef struct
 {
@@ -56,7 +56,7 @@ static uint16_t ycp_get_check_code(uint16_t crc, uint8_t *data, uint32_t len)
 }
 
 
-static uint8_t ycp_readline_data(int fd)
+static uint16_t ycp_readline_data(int fd)
 {
     uint16_t length = 0x00, rbyte = 0x01, rlen = 0x00, body_len = 0x00;
     while(1)
@@ -113,17 +113,6 @@ static uint8_t ycp_readline_data(int fd)
     }
 }
 
-//uint8_t ggk[] = {0x68, 0x62, 0x0D, 0xD6, 0x00, 0x94, 0x32, 0x01, 0x06, 0x00, 0x20, 0x83, 0x16, 0x02, 0x1E, 0x00,
-//        0x31, 0x31, 0x34, 0x2E, 0x35, 0x35, 0x2E, 0x31, 0x31, 0x34, 0x2E, 0x31, 0x37, 0x34, 0x00, 0x00,
-//        0x15, 0x00, 0x73, 0x72, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-//        0x00, 0x00, 0x73, 0x72, 0x31, 0x32, 0x33, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-//        0x00, 0x00, 0x2F, 0x31, 0x37, 0x31, 0x36, 0x38, 0x30, 0x35, 0x39, 0x32, 0x34, 0x37, 0x39, 0x31,
-//        0x2F, 0x34, 0x44, 0x41, 0x38, 0x38, 0x30, 0x46, 0x37, 0x2E, 0x62, 0x69, 0x6E, 0x00, 0x00, 0x00,
-//        0x00, 0x00, 0x02, 0x3C, 0xE2, 0x07};
-//
-//uint8_t hdj, hk, lld=  0;
-//
-//uint8_t power_data[40];
 static void ycp_message_recv_thread_entry(void *parameter)
 {
     uint8_t ycp_id[5];
@@ -134,56 +123,7 @@ static void ycp_message_recv_thread_entry(void *parameter)
     {
         if(net_get_ota_info()->state < NET_OTA_STATE_LOGIN_WAIT){
             if((socket->state >= YCP_SOCKET_STATE_LOGIN_WAIT) && (socket->fd >= 0x00)){
-                if(socket->state == YCP_SOCKET_STATE_LOGIN_SUCCESS){
-//                    if(hdj == 0){
-//                        if(++hk > 90){
-//                            hdj = 1;
-//                            lld = 1;
-//                            memset(power_data, 0x00, sizeof(power_data));
-//                            power_data[0] = 0x68;
-//                            power_data[1] = 0x24;
-//                            power_data[2] = 0x00;
-//                            power_data[3] = 0x41;
-//                            power_data[5] = 0x48;
-//
-//                            power_data[6] = 0x32;
-//                            power_data[7] = 0x01;
-//                            power_data[8] = 0x06;
-//                            power_data[9] = 0x00;
-//                            power_data[10] = 0x30;
-//                            power_data[11] = 0x23;
-//                            power_data[12] = 0x41;
-//
-//                            power_data[13] = 0x03;
-//
-//
-////                            memcpy(&power_data[14], "12345678", strlen("12345678"));
-////                            memcpy(&power_data[14], "23456789", strlen("23456789"));\
-////                            memcpy(&power_data[30], "3456789a", strlen("3456789a"));
-//
-////                            power_data[15] = 0xB7;
-////                            power_data[19] = 0x03;
-////
-////                            power_data[23] = 0xB7;
-////                            power_data[27] = 0x03;
-////
-////                            power_data[31] = 0xB7;
-////                            power_data[35] = 0x03;
-////
-////                            power_data[39] = 0xB7;
-////                            power_data[43] = 0x03;
-//                        }
-//                    }
-                }
-                if((length = ycp_readline_data(socket->fd))/* || lld*/){
-//                    if(lld){
-//                        lld = 0;
-////                        length=  sizeof(ggk);
-////                        memcpy(s_ycp_message_recv_buff, ggk, sizeof(ggk));
-//                        length=  sizeof(power_data);
-//                        memcpy(s_ycp_message_recv_buff, power_data, sizeof(power_data));
-//                        rt_kprintf("zhfFH(%d)\n",((Net_YcpPro_Head_t*)s_ycp_message_recv_buff)->type);
-//                    }
+                if(length = ycp_readline_data(socket->fd)){
 
                     sprintf((char*)ycp_id, "%s", "YCP");
                     NETDATA_DEBUG((const char*)ycp_id, s_ycp_message_recv_buff, length, NETDATA_DEBUG_DIR_RECV);
@@ -192,12 +132,13 @@ static void ycp_message_recv_thread_entry(void *parameter)
                     callback = ycp_get_service_callback(((Net_YcpPro_Head_t*)s_ycp_message_recv_buff)->cmd);
                     if(callback){
                         uint16_t recv_check = 0x00, cal_check = 0x00;
-                        cal_check = ycp_get_check_code(0xFFFF, (uint8_t*)&(((Net_YcpPro_Head_t*)s_ycp_message_recv_buff)->sequence), \
+                        cal_check = ycp_get_check_code(0xFFFF, (uint8_t*)(&(((Net_YcpPro_Head_t*)s_ycp_message_recv_buff)->sequence)), \
                                 (length - YCP_MESSAGE_FIX_LEN_DEFAULT));
                         recv_check = *(s_ycp_message_recv_buff + length - 0x01);
                         recv_check <<=0x08;
                         recv_check |= *(s_ycp_message_recv_buff + length - 0x02);
-                        if(1/*recv_check == cal_check*/){
+                        if(recv_check == cal_check){
+                            LOG_D("find callback cmd(%d)", ((Net_YcpPro_Head_t*)s_ycp_message_recv_buff)->cmd);
                             ((void (*)(uint8_t*, uint16_t))callback)(s_ycp_message_recv_buff, length);
                         }else{
                             LOG_E("ycp service id|%x check error|%x, %x", ((Net_YcpPro_Head_t*)s_ycp_message_recv_buff)->cmd, recv_check, cal_check);

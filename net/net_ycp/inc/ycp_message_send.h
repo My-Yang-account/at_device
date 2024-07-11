@@ -185,8 +185,6 @@ typedef struct{
 }ycp_socket_info_t;
 
 ycp_socket_info_t* ycp_get_socket_info(void);
-void ycp_response_buff_release_mutex(void);
-ycp_response_message_buf_t* ycp_get_response_buff(int32_t timeout);
 
 uint8_t ycp_transaction_is_verify(uint8_t gunno);
 void ycp_set_transaction_verify_state(uint8_t gunno, uint8_t state);
