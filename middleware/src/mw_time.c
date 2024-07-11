@@ -123,9 +123,6 @@ void mw_set_datetime_from_timestamp(uint32_t timestamp)
     t.thaisenGetTime.Minutes = (uint8_t)(smin);
     t.thaisenGetTime.Seconds = (uint8_t)(ssec);
 
-    rt_kprintf("mw_set_datetime_from_timestamp(%d)[%d, %d, %d, %d, %d, %d]\n", timestamp,
-            t.thaisenGetData.Year, t.thaisenGetData.Month, t.thaisenGetData.Date,
-            t.thaisenGetTime.Hours, t.thaisenGetTime.Minutes, t.thaisenGetTime.Seconds);
     thaisenSetRTC(t);
 }
 

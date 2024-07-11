@@ -65,7 +65,6 @@ notfs_err_e notfs_init(void)
             memset(&(s_notfs_sb[i]), 0x00, sizeof(notfs_super_block_t));
             /* 读出分区的超级块信息 */
             err = notfs_port_read(subregion_start_addr, (uint8_t *)&(s_notfs_sb[i]), sizeof(notfs_super_block_t));
-            rt_kprintf("notfs_init(%d, %x, %d, %d, %d)\n", i, s_notfs_sb[i].key, s_check_failed[i], s_init_flag_check[i], err);
             if (NOTFS_NO_ERR != err) {
                 break;
             }
@@ -122,7 +121,6 @@ notfs_err_e notfs_init(void)
                 s_notfs_inode[i].inode = (notfs_inode_t *)(malloc(isize));
                 if (NULL == s_notfs_inode[i].inode) {
                     err = NOTFS_MALLOC_ERR;
-//                    rt_kprintf("NOTFS_MALLOC_ERR(%d)\n", isize);
                     break;
                 }
                 memset(s_notfs_inode[i].inode, 0x00, isize); /* 对内存块进行清0 */
@@ -131,33 +129,9 @@ notfs_err_e notfs_init(void)
                 (void)notfs_port_read(s_notfs_sb[i].inode_start_addr, (uint8_t *)&(s_notfs_inode[i].header), sizeof(struct nofs_header));
                 (void)notfs_port_read(s_notfs_sb[i].inode_start_addr + sizeof(struct nofs_header), (uint8_t *)(s_notfs_inode[i].inode), isize);
 
-
-//                extern void thaisenW25qxxRead(unsigned char* pBuffer,unsigned int ReadAddr,unsigned short NumByteToRead);
-//                thaisenW25qxxRead((uint8_t *)&(s_notfs_inode[i].header), s_notfs_sb[i].inode_start_addr, sizeof(struct nofs_header));
-//                thaisenW25qxxRead((uint8_t *)(s_notfs_inode[i].inode), s_notfs_sb[i].inode_start_addr + sizeof(struct nofs_header), isize);
-
-//                printf("thaisenW25qxxRead(%d)\n", isize);
-//                for(uint16_t count = 0; count < isize; count++){
-//                    if(*((uint8_t*)(s_notfs_inode[i].inode) + count) < 0x10){
-//                        printf("0%X ", *((uint8_t*)(s_notfs_inode[i].inode) + count));
-//                    }else{
-//                        printf("%X ", *((uint8_t*)(s_notfs_inode[i].inode) + count));
-//                    }
-//                    if(count%16 == 0 && count != 0){
-//                        printf("\n");
-//                    }
-//                }
-//                printf("\n----------------------------------------------------\n");
-
                 crc = notfs_crc32(0, (const uint8_t *)(s_notfs_inode[i].inode), isize);
                 if (crc != s_notfs_inode[i].header.crc) {
                     /* 从备份索引区读数据 */
-//
-//
-//                    thaisenW25qxxRead((uint8_t *)&(s_notfs_inode[i].header), (s_notfs_sb[i].inode_start_addr + s_notfs_sb[i].inode_addr_offset), sizeof(struct nofs_header));
-//                    thaisenW25qxxRead((uint8_t *)(s_notfs_inode[i].inode), (s_notfs_sb[i].inode_start_addr + s_notfs_sb[i].inode_addr_offset + sizeof(struct nofs_header)), isize);
-//
-
                     (void)notfs_port_read(s_notfs_sb[i].inode_start_addr + s_notfs_sb[i].inode_addr_offset,
                             (uint8_t *)&(s_notfs_inode[i].header), sizeof(struct nofs_header));
                     (void)notfs_port_read(s_notfs_sb[i].inode_start_addr + s_notfs_sb[i].inode_addr_offset + sizeof(struct nofs_header),
@@ -189,7 +163,6 @@ notfs_err_e notfs_init(void)
                     }
                     s_notfs_current_index[i] = ((0 == ((tmp + 1) % s_notfs_sb[i].file_max_count)) ? NOTFS_NOT_VALID_INDEX : k); /* 对一块分区刚好写满了或者分区至少写满过的处理 */
                 }
-                rt_kprintf("s_notfs_current_index[%d] = %x\n", i, s_notfs_current_index[i]);
             }
         }
     }
@@ -256,36 +229,10 @@ notfs_err_e notfs_subregion_append_record(enum notfs_subregion subregion, const 
     /* 存储 INODE 到主索引区 */
     address = s_notfs_sb[subregion].inode_start_addr;
 
-//    printf("0000000000 s_notfs_inode main(%d, %d, %x, %d)\n", isize, subregion, address, s_notfs_inode[subregion].inode[index].index);
-//    for(uint16_t count = 0; count < isize; count++){
-//        if(*((uint8_t*)(s_notfs_inode[subregion].inode) + count) < 0x10){
-//            printf("0%X ", *((uint8_t*)(s_notfs_inode[subregion].inode) + count));
-//        }else{
-//            printf("%X ", *((uint8_t*)(s_notfs_inode[subregion].inode) + count));
-//        }
-//        if(count%16 == 0 && count != 0){
-//            printf("\n");
-//        }
-//    }
-//    printf("\n----------------------------------------------------\n");
-
     (void)notfs_port_erase(address, NOTFS_FILE_ADDR_STEP - NOTFS_INODE_ADDR_OFFSET);
     (void)notfs_port_write(address, (const uint8_t *)&(s_notfs_inode[subregion].header), sizeof(struct nofs_header));
     (void)notfs_port_write(address + sizeof(struct nofs_header), (const uint8_t *)(s_notfs_inode[subregion].inode), isize);
     /* 存储 INODE 到备份索引区 */
-
-//    printf("0000000000 s_notfs_inode backup(%d, %d, %x, %d)\n", isize, subregion, address, s_notfs_inode[subregion].inode[index].index);
-//    for(uint16_t count = 0; count < isize; count++){
-//        if(*((uint8_t*)(s_notfs_inode[subregion].inode) + count) < 0x10){
-//            printf("0%X ", *((uint8_t*)(s_notfs_inode[subregion].inode) + count));
-//        }else{
-//            printf("%X ", *((uint8_t*)(s_notfs_inode[subregion].inode) + count));
-//        }
-//        if(count%16 == 0 && count != 0){
-//            printf("\n");
-//        }
-//    }
-//    printf("\n----------------------------------------------------\n");
     address = address + s_notfs_sb[subregion].inode_addr_offset;
     (void)notfs_port_erase(address, NOTFS_INODE_ADDR_OFFSET);
     (void)notfs_port_write(address, (const uint8_t *)&(s_notfs_inode[subregion].header), sizeof(struct nofs_header));
@@ -354,46 +301,13 @@ notfs_err_e notfs_subregion_updated_designate_index_data(enum notfs_subregion su
     s_notfs_inode[subregion].inode[index].user_data = user_data;
     s_notfs_inode[subregion].inode[index].record_verify |= verify_mask;
 
-    rt_kprintf("111notfs_subregion_updated_designate_index_data(%d, %d, %x, %x)\n", subregion, index,
-            s_notfs_inode[subregion].inode[index].record_verify, verify_mask);
-
     /* 初始化 INODE HANDER */
     s_notfs_inode[subregion].header.crc = notfs_crc32(0, (const uint8_t *)(s_notfs_inode[subregion].inode), isize);
-
-//    printf("1111111111 s_notfs_inode main(%d, %d, %x)\n", isize, subregion, address);
-//    for(uint16_t count = 0; count < isize; count++){
-//        if(*((uint8_t*)(s_notfs_inode[subregion].inode) + count) < 0x10){
-//            printf("0%X ", *((uint8_t*)(s_notfs_inode[subregion].inode) + count));
-//        }else{
-//            printf("%X ", *((uint8_t*)(s_notfs_inode[subregion].inode) + count));
-//        }
-//        if(count%16 == 0 && count != 0){
-//            printf("\n");
-//        }
-//    }
-//    printf("\n----------------------------------------------------\n");
-
     /* 存储 INODE 到主索引区 */
     address = s_notfs_sb[subregion].inode_start_addr;
     (void)notfs_port_erase(address, NOTFS_FILE_ADDR_STEP - NOTFS_INODE_ADDR_OFFSET);
     (void)notfs_port_write(address, (const uint8_t *)&(s_notfs_inode[subregion].header), sizeof(struct nofs_header));
     (void)notfs_port_write(address + sizeof(struct nofs_header), (const uint8_t *)(s_notfs_inode[subregion].inode), isize);
-
-
-
-//    printf("11111111 s_notfs_inode backup(%d, %d, %x)\n", isize, subregion, address);
-//    for(uint16_t count = 0; count < isize; count++){
-//        if(*((uint8_t*)(s_notfs_inode[subregion].inode) + count) < 0x10){
-//            printf("0%X ", *((uint8_t*)(s_notfs_inode[subregion].inode) + count));
-//        }else{
-//            printf("%X ", *((uint8_t*)(s_notfs_inode[subregion].inode) + count));
-//        }
-//        if(count%16 == 0 && count != 0){
-//            printf("\n");
-//        }
-//    }
-//    printf("\n----------------------------------------------------\n");
-
     /* 存储 INODE 到备份索引区 */
     address = address + s_notfs_sb[subregion].inode_addr_offset;
     (void)notfs_port_erase(address, NOTFS_INODE_ADDR_OFFSET);
@@ -446,23 +360,8 @@ notfs_err_e notfs_get_subregion_designate_index_record_data(enum notfs_subregion
     (void)notfs_port_read(addr, (uint8_t *)&(file_header), sizeof(file_header));
     (void)notfs_port_read(addr + sizeof(struct nofs_header), buf, size);
 
-//    printf("\n----------------------------------------------------\n");
-//    printf("notfs_record_get_designate_index_record(%d, %d, %d)\n", size, subregion, index);
-//    for(uint16_t count = 0; count < size; count++){
-//        if(buf[count] < 0x10){
-//            printf("0%X ", buf[count]);
-//        }else{
-//            printf("%X ", buf[count]);
-//        }
-//        if(count%16 == 0 && count != 0){
-//            printf("\n");
-//        }
-//    }
-//    printf("\n----------------------------------------------------\n");
-
     crc = notfs_crc32(0, buf, size);
     if (crc != file_header.crc) {
-        rt_kprintf("file_header.crc(%x, %x)\n", crc, file_header.crc);
         addr = s_notfs_sb[subregion].file_start_addr + index * s_notfs_sb[subregion].file_addr_step + s_notfs_sb[subregion].file_addr_offset;
         (void)notfs_port_read(addr, (uint8_t *)&(file_header), sizeof(file_header));
         (void)notfs_port_read(addr + sizeof(struct nofs_header), buf, size);
