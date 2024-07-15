@@ -10,13 +10,22 @@
 #include "chargepile_config.h"
 #include "mw_norflash.h"
 
+#include <rtthread.h>
+
 #define DBG_TAG "config"
 #define DBG_LVL DBG_LOG
 #include <rtdbg.h>
 
 #define SYSTEM_INIT_KEY    ((uint32_t)(0x12345678))
 
+static struct rt_mutex s_sys_config_mutex;
+
 #pragma pack(1)
+
+struct card_whitelist_info{
+    uint8_t card_number[CP_INFO_CARD_NUMBER_WHITELIST_NUM_MAX][CARD_NUMBER_LENGTH_DEF + 0x01];
+    uint8_t card_uid[CP_INFO_CARD_UID_WHITELIST_NUM_MAX][CARD_UID_LENGTH_DEF];
+};
 
 struct _network{
     uint8_t domain[CP_NETWORK_DOMAIN_LEN_MAX];                        /* 域名 */
@@ -103,7 +112,7 @@ struct _config_info{
     uint8_t suffix_length;                                            /* 二维码后缀实际长度 */
 
     uint8_t vin_whitelist[CP_INFO_VIN_WHITELIST_NUM_MAX][VIN_CODE_LENGTH_DEF + 0x01];      /* VIN 码白名单 */
-    uint8_t card_whitelist[CP_INFO_CARD_WHITELIST_NUM_MAX][CARD_NUMBER_LENGTH_DEF + 0x01]; /* 卡 码白名单 */
+    struct card_whitelist_info card_whitelist;                        /* 卡 白名单 */
 
     uint8_t meter_address[2][CP_INFO_METER_ADDRESS_LEN_MAX];          /* 电表地址 */
     uint8_t meter_model;                                              /* 电表型号 */
@@ -543,8 +552,8 @@ static struct config_item s_config_item_set[CONFIG_ITEM_SIZE] =
         NULL},
 
         {CONFIG_ITEM_CARD_WHITELIST,                                                       /* 卡号白名单 */
-        (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_info.card_whitelist)),
-        (uint8_t*)&s_chargepile_config_info.config_info.card_whitelist,
+        (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_info.card_whitelist.card_number)),
+        (uint8_t*)&s_chargepile_config_info.config_info.card_whitelist.card_number,
         NULL},
 
         {CONFIG_ITEM_SCREEN_PASSWORD,                                                       /* 屏幕密码 */
@@ -593,6 +602,26 @@ static uint32_t crc32_ieee_update(uint32_t crc, const uint8_t *data, size_t len)
     }
 
     return (~crc);
+}
+
+int32_t sys_config_mutex_init(void)
+{
+    if(rt_mutex_init(&s_sys_config_mutex, "config mutex", RT_IPC_FLAG_PRIO) < RT_EOK){
+        LOG_E("system config mutex init fail, please check");
+        return -RT_ERROR;
+    }
+
+    return RT_EOK;
+}
+
+static int32_t take_sys_config_mutex(uint32_t timeout)
+{
+    return rt_mutex_take(&s_sys_config_mutex, timeout);
+}
+
+static int32_t release_sys_config_mutex(void)
+{
+    return rt_mutex_release(&s_sys_config_mutex);
 }
 
 /************************************************************************************
@@ -647,9 +676,12 @@ int32_t sys_storage_config_item(void)
     uint8_t* _data_temp = NULL;
     int32_t result = 0;
 
+    take_sys_config_mutex(RT_WAITING_FOREVER);
+
     _data_temp = (uint8_t*)(malloc(sizeof(s_chargepile_config_info)));
     if(_data_temp == NULL){
         LOG_E("no enough memery for charge pile config buff|%d\n", sizeof(s_chargepile_config_info));
+        release_sys_config_mutex();
         return -0x01;
     }
     memset(_data_temp, 0x00, sizeof(s_chargepile_config_info));
@@ -666,8 +698,11 @@ int32_t sys_storage_config_item(void)
     free(_data_temp);
 
     if(result < 0){
+        release_sys_config_mutex();
         return -0x01;
     }
+
+    release_sys_config_mutex();
     return 0;
 }
 
@@ -688,15 +723,19 @@ int32_t sys_sync_config_item_content(enum config_name name, void* data, uint32_t
         return -0x02;
     }
 
+    take_sys_config_mutex(RT_WAITING_FOREVER);
+
     LOG_D("sys_sync_config_item_content name(%d, %d)[%s]\n", name, len, (char*)data);
 
     uint8_t user_data_len = s_config_item_set[name].user_section >>(32 - 4);
     uint16_t config_item_len = s_config_item_set[name].user_section &0x3ff;     /** 低10位保存着该配置项的最大长度 */
 
     if(len > config_item_len){
+        release_sys_config_mutex();
         return -0x03;
     }
     if(s_config_item_set[name].config_index == NULL){   /** 未初始化配置的配置项不予处理 */
+        release_sys_config_mutex();
         return -0x04;
     }
 
@@ -720,11 +759,13 @@ int32_t sys_sync_config_item_content(enum config_name name, void* data, uint32_t
             *((uint32_t*)(s_config_item_set[name].user_data)) = len;
             break;
         default:
+            release_sys_config_mutex();
             return -0x04;
             break;
         }
     }
 
+    release_sys_config_mutex();
     return 0;
 }
 
@@ -797,7 +838,8 @@ static void chargepile_config_data_reset(void)
     s_chargepile_config_info.config_info.suffix_length = 0x00;
     memset(s_chargepile_config_info.config_info.qrcode_suffix, '\0', sizeof(s_chargepile_config_info.config_info.qrcode_suffix));
     memset(s_chargepile_config_info.config_info.vin_whitelist, '\0', sizeof(s_chargepile_config_info.config_info.vin_whitelist));
-    memset(s_chargepile_config_info.config_info.card_whitelist, '\0', sizeof(s_chargepile_config_info.config_info.card_whitelist));
+    memset(s_chargepile_config_info.config_info.card_whitelist.card_number, '\0', sizeof(s_chargepile_config_info.config_info.card_whitelist.card_number));
+    memset(s_chargepile_config_info.config_info.card_whitelist.card_uid, '\0', sizeof(s_chargepile_config_info.config_info.card_whitelist.card_uid));
     memset(s_chargepile_config_info.config_info.meter_address, '\0', sizeof(s_chargepile_config_info.config_info.meter_address));
     memset(s_chargepile_config_info.config_info.screen_password, '\0', sizeof(s_chargepile_config_info.config_info.screen_password));
     memcpy(s_chargepile_config_info.config_info.screen_password, "0909", strlen("0909"));
@@ -1091,6 +1133,15 @@ int32_t sys_vin_whitelists_storage(void)
     return sys_storage_config_item();;
 }
 
+uint8_t *sys_vin_code_get(uint8_t index)
+{
+    if(index >= CP_INFO_VIN_WHITELIST_NUM_MAX){
+        return NULL;
+    }
+
+    return s_chargepile_config_info.config_info.vin_whitelist[index];
+}
+
 int32_t sys_vin_whitelists_add(uint8_t *data, uint8_t len)
 {
     if(data == NULL){
@@ -1133,7 +1184,7 @@ int32_t sys_vin_whitelists_add(uint8_t *data, uint8_t len)
         memcpy(s_chargepile_config_info.config_info.vin_whitelist[index], data, len); /* 将卡号放入列表中 */
     }
 
-    return 0x00;
+    return index;
 }
 
 int32_t sys_vin_whitelists_query(uint8_t *data, uint8_t len)
@@ -1144,12 +1195,15 @@ int32_t sys_vin_whitelists_query(uint8_t *data, uint8_t len)
     if((len < VIN_CODE_LENGTH_MIN) || (len > VIN_CODE_LENGTH_MAX)){
         return -0x01;
     }
+    if(strlen((char*)data) < VIN_CODE_LENGTH_MIN){
+        return -0x01;
+    }
 
     uint8_t index = 0x00, valid_len = sizeof(s_chargepile_config_info.config_info.vin_whitelist[0x00]);
     valid_len = valid_len > len ? len : valid_len;
     for(index = 0x00; index < CP_INFO_VIN_WHITELIST_NUM_MAX; index++){
         if(memcmp(data, s_chargepile_config_info.config_info.vin_whitelist[index], valid_len) == 0x00){
-            return 0x00;
+            return index;
         }
     }
     return -0x01;
@@ -1179,19 +1233,33 @@ int32_t sys_vin_whitelists_delete(uint8_t *data, uint8_t len)
                 }
             }
             memset(s_chargepile_config_info.config_info.vin_whitelist[count], '\0', (VIN_CODE_LENGTH_DEF + 0x01));
+            break;
         }
     }
-    return 0x00;
+
+    if(index >= CP_INFO_VIN_WHITELIST_NUM_MAX){
+        return -0x01;
+    }
+    return index;
 }
 
-/**********************************************[卡白名单相关]********************************************************/
-/**********************************************[卡白名单相关]********************************************************/
-int32_t sys_card_whitelists_storage(void)
+/**********************************************[卡号白名单相关]********************************************************/
+/**********************************************[卡号白名单相关]********************************************************/
+int32_t sys_card_number_whitelists_storage(void)
 {
     return sys_storage_config_item();
 }
 
-int32_t sys_card_whitelists_add(uint8_t *data, uint8_t len)
+uint8_t *sys_card_number_get(uint8_t index)
+{
+    if(index >= CP_INFO_CARD_NUMBER_WHITELIST_NUM_MAX){
+        return NULL;
+    }
+
+    return s_chargepile_config_info.config_info.card_whitelist.card_number[index];
+}
+
+int32_t sys_card_number_whitelists_add(uint8_t *data, uint8_t len)
 {
     if(data == NULL){
         return -0x01;
@@ -1199,45 +1267,47 @@ int32_t sys_card_whitelists_add(uint8_t *data, uint8_t len)
     if((len < CARD_NUMBER_LENGTH_MIN) || (len > CARD_NUMBER_LENGTH_MAX)){
         return -0x01;
     }
+    if(strlen((const char *)data) < CARD_NUMBER_LENGTH_MIN){
+        return -0x01;
+    }
 
-    rt_kprintf("sys_card_whitelists_add(%d)[%s]\n", len, data);
-    uint8_t index = 0x00, free_index = 0x00, valid_len = sizeof(s_chargepile_config_info.config_info.card_whitelist[0x00]);
+    uint8_t index = 0x00, free_index = 0x00, valid_len = sizeof(s_chargepile_config_info.config_info.card_whitelist.card_number[0x00]);
     valid_len = valid_len > len ? len : valid_len;
-    for(index = 0x00; index < CP_INFO_CARD_WHITELIST_NUM_MAX; index++){
-        if(memcmp(data, s_chargepile_config_info.config_info.card_whitelist[index], valid_len) == 0x00){
-            for(free_index = (index + 0x01); free_index < CP_INFO_CARD_WHITELIST_NUM_MAX; free_index++){
-                if(strlen((const char *)&(s_chargepile_config_info.config_info.card_whitelist[free_index])) < CARD_NUMBER_LENGTH_MIN){
+    for(index = 0x00; index < CP_INFO_CARD_NUMBER_WHITELIST_NUM_MAX; index++){
+        if(memcmp(data, s_chargepile_config_info.config_info.card_whitelist.card_number[index], valid_len) == 0x00){
+            for(free_index = (index + 0x01); free_index < CP_INFO_CARD_NUMBER_WHITELIST_NUM_MAX; free_index++){
+                if(strlen((const char *)&(s_chargepile_config_info.config_info.card_whitelist.card_number[free_index])) < CARD_NUMBER_LENGTH_MIN){
                     break;
                 }
-                memcpy(s_chargepile_config_info.config_info.card_whitelist[free_index - 0x01],  \
-                        s_chargepile_config_info.config_info.card_whitelist[free_index], CARD_NUMBER_LENGTH_DEF);
+                memcpy(s_chargepile_config_info.config_info.card_whitelist.card_number[free_index - 0x01],  \
+                        s_chargepile_config_info.config_info.card_whitelist.card_number[free_index], CARD_NUMBER_LENGTH_DEF);
             }
-            memset(s_chargepile_config_info.config_info.card_whitelist[free_index - 0x01], '\0', (CARD_NUMBER_LENGTH_DEF + 0x01));
+            memset(s_chargepile_config_info.config_info.card_whitelist.card_number[free_index - 0x01], '\0', (CARD_NUMBER_LENGTH_DEF + 0x01));
         }
     }
 
-    for(index = 0x00; index < CP_INFO_CARD_WHITELIST_NUM_MAX; index++){
-        if(strlen((const char *)&(s_chargepile_config_info.config_info.card_whitelist[index])) < CARD_NUMBER_LENGTH_MIN){
+    for(index = 0x00; index < CP_INFO_CARD_NUMBER_WHITELIST_NUM_MAX; index++){
+        if(strlen((const char *)&(s_chargepile_config_info.config_info.card_whitelist.card_number[index])) < CARD_NUMBER_LENGTH_MIN){
             break; /* 不足 最小长度不算 */
         }
     }
-    if(index == CP_INFO_CARD_WHITELIST_NUM_MAX){
+    if(index == CP_INFO_CARD_NUMBER_WHITELIST_NUM_MAX){
         /* 列表已经满了，把最旧的卡号移出去，把最新的位置让出来放入最新的卡号 */
-        for(index = 0x00; index < (CP_INFO_CARD_WHITELIST_NUM_MAX - 0x01); index++){
-            memcpy(s_chargepile_config_info.config_info.card_whitelist[index],  \
-                    s_chargepile_config_info.config_info.card_whitelist[index + 0x01], (CARD_NUMBER_LENGTH_DEF + 0x01));
+        for(index = 0x00; index < (CP_INFO_CARD_NUMBER_WHITELIST_NUM_MAX - 0x01); index++){
+            memcpy(s_chargepile_config_info.config_info.card_whitelist.card_number[index],  \
+                    s_chargepile_config_info.config_info.card_whitelist.card_number[index + 0x01], (CARD_NUMBER_LENGTH_DEF + 0x01));
         }
-        memset(s_chargepile_config_info.config_info.card_whitelist[index], '\0', (CARD_NUMBER_LENGTH_DEF + 0x01));
-        memcpy(s_chargepile_config_info.config_info.card_whitelist[index], data, len); /* 将卡号放入列表中 */
+        memset(s_chargepile_config_info.config_info.card_whitelist.card_number[index], '\0', (CARD_NUMBER_LENGTH_DEF + 0x01));
+        memcpy(s_chargepile_config_info.config_info.card_whitelist.card_number[index], data, len); /* 将卡号放入列表中 */
     }else{
-        memset(s_chargepile_config_info.config_info.card_whitelist[index], '\0', (CARD_NUMBER_LENGTH_DEF + 0x01));
-        memcpy(s_chargepile_config_info.config_info.card_whitelist[index], data, len); /* 将卡号放入列表中 */
+        memset(s_chargepile_config_info.config_info.card_whitelist.card_number[index], '\0', (CARD_NUMBER_LENGTH_DEF + 0x01));
+        memcpy(s_chargepile_config_info.config_info.card_whitelist.card_number[index], data, len); /* 将卡号放入列表中 */
     }
 
-    return 0x00;
+    return index;
 }
 
-int32_t sys_card_whitelists_query(uint8_t *data, uint8_t len)
+int32_t sys_card_number_whitelists_query(uint8_t *data, uint8_t len)
 {
     if(data == NULL){
         return -0x01;
@@ -1245,18 +1315,21 @@ int32_t sys_card_whitelists_query(uint8_t *data, uint8_t len)
     if((len < CARD_NUMBER_LENGTH_MIN) || (len > CARD_NUMBER_LENGTH_MAX)){
         return -0x01;
     }
-    rt_kprintf("sys_card_whitelists_query(%d)[%s]\n", len, data);
-    uint8_t index = 0x00, valid_len = sizeof(s_chargepile_config_info.config_info.card_whitelist[0x00]);
+    if(strlen((char*)data) < CARD_NUMBER_LENGTH_MIN){
+        return -0x01;
+    }
+
+    uint8_t index = 0x00, valid_len = sizeof(s_chargepile_config_info.config_info.card_whitelist.card_number[0x00]);
     valid_len = valid_len > len ? len : valid_len;
-    for(index = 0x00; index < CP_INFO_CARD_WHITELIST_NUM_MAX; index++){
-        if(memcmp(data, s_chargepile_config_info.config_info.card_whitelist[index], valid_len) == 0x00){
-            return 0x00;
+    for(index = 0x00; index < CP_INFO_CARD_NUMBER_WHITELIST_NUM_MAX; index++){
+        if(memcmp(data, s_chargepile_config_info.config_info.card_whitelist.card_number[index], valid_len) == 0x00){
+            return index;
         }
     }
     return -0x01;
 }
 
-int32_t sys_card_whitelists_delete(uint8_t *data, uint8_t len)
+int32_t sys_card_number_whitelists_delete(uint8_t *data, uint8_t len)
 {
     if(data == NULL){
         return -0x01;
@@ -1264,23 +1337,144 @@ int32_t sys_card_whitelists_delete(uint8_t *data, uint8_t len)
     if((len < CARD_NUMBER_LENGTH_MIN) || (len > CARD_NUMBER_LENGTH_MAX)){
         return -0x01;
     }
-    rt_kprintf("sys_card_whitelists_delete(%d)[%s]\n", len, data);
-    uint8_t index = 0x00, count = 0x00, valid_len = sizeof(s_chargepile_config_info.config_info.card_whitelist[0x00]);
+
+    uint8_t index = 0x00, count = 0x00, valid_len = sizeof(s_chargepile_config_info.config_info.card_whitelist.card_number[0x00]);
     valid_len = valid_len > len ? len : valid_len;
-    for(index = 0x00; index < CP_INFO_CARD_WHITELIST_NUM_MAX; index++){
-        if(memcmp(data, s_chargepile_config_info.config_info.card_whitelist[index], valid_len) == 0x00){
+    for(index = 0x00; index < CP_INFO_CARD_NUMBER_WHITELIST_NUM_MAX; index++){
+        if(memcmp(data, s_chargepile_config_info.config_info.card_whitelist.card_number[index], valid_len) == 0x00){
             count = index;
-            if(index != (CP_INFO_CARD_WHITELIST_NUM_MAX - 0x01)){
-                for(count = index; count < (CP_INFO_CARD_WHITELIST_NUM_MAX - 0x01); count++){
-                    if(strlen((const char *)&(s_chargepile_config_info.config_info.card_whitelist[count])) < CARD_NUMBER_LENGTH_MIN){
+            if(index != (CP_INFO_CARD_NUMBER_WHITELIST_NUM_MAX - 0x01)){
+                for(count = index; count < (CP_INFO_CARD_NUMBER_WHITELIST_NUM_MAX - 0x01); count++){
+                    if(strlen((const char *)&(s_chargepile_config_info.config_info.card_whitelist.card_number[count])) < CARD_NUMBER_LENGTH_MIN){
                         break;
                     }
-                    memcpy(s_chargepile_config_info.config_info.card_whitelist[count],
-                            s_chargepile_config_info.config_info.card_whitelist[count + 0x01], CARD_NUMBER_LENGTH_DEF);
+                    memcpy(s_chargepile_config_info.config_info.card_whitelist.card_number[count],
+                            s_chargepile_config_info.config_info.card_whitelist.card_number[count + 0x01], CARD_NUMBER_LENGTH_DEF);
                 }
             }
-            memset(s_chargepile_config_info.config_info.card_whitelist[count], '\0', (CARD_NUMBER_LENGTH_DEF + 0x01));
+            memset(s_chargepile_config_info.config_info.card_whitelist.card_number[count], '\0', (CARD_NUMBER_LENGTH_DEF + 0x01));
+            break;
         }
     }
-    return 0x00;
+
+    if(index >= CP_INFO_CARD_NUMBER_WHITELIST_NUM_MAX){
+        return -0x01;
+    }
+    return index;
 }
+
+
+/**********************************************[卡UID白名单相关]********************************************************/
+/**********************************************[卡UID白名单相关]********************************************************/
+int32_t sys_card_uid_whitelists_storage(void)
+{
+    return sys_storage_config_item();
+}
+
+uint8_t *sys_card_uid_get(uint8_t index)
+{
+    if(index >= CP_INFO_CARD_UID_WHITELIST_NUM_MAX){
+        return NULL;
+    }
+
+    return s_chargepile_config_info.config_info.card_whitelist.card_uid[index];
+}
+
+int32_t sys_card_uid_whitelists_add(uint8_t *data, uint8_t len)
+{
+    if(data == NULL){
+        return -0x01;
+    }
+    if((len < CARD_UID_LENGTH_MIN) || (len > CARD_UID_LENGTH_MAX)){
+        return -0x01;
+    }
+
+    uint8_t index = 0x00, free_index = 0x00, valid_len = sizeof(s_chargepile_config_info.config_info.card_whitelist.card_uid[0x00]);
+    valid_len = valid_len > len ? len : valid_len;
+    for(index = 0x00; index < CP_INFO_CARD_UID_WHITELIST_NUM_MAX; index++){
+        if(memcmp(data, s_chargepile_config_info.config_info.card_whitelist.card_uid[index], valid_len) == 0x00){
+            for(free_index = (index + 0x01); free_index < CP_INFO_CARD_UID_WHITELIST_NUM_MAX; free_index++){
+                if(strlen((const char *)&(s_chargepile_config_info.config_info.card_whitelist.card_uid[free_index])) < CARD_UID_LENGTH_MIN){
+                    break;
+                }
+                memcpy(s_chargepile_config_info.config_info.card_whitelist.card_uid[free_index - 0x01],  \
+                        s_chargepile_config_info.config_info.card_whitelist.card_uid[free_index], CARD_UID_LENGTH_DEF);
+            }
+            memset(s_chargepile_config_info.config_info.card_whitelist.card_uid[free_index - 0x01], '\0', CARD_UID_LENGTH_DEF);
+        }
+    }
+
+    for(index = 0x00; index < CP_INFO_CARD_UID_WHITELIST_NUM_MAX; index++){
+        if(strlen((const char *)&(s_chargepile_config_info.config_info.card_whitelist.card_uid[index])) < CARD_UID_LENGTH_MIN){
+            break; /* 不足 最小长度不算 */
+        }
+    }
+    if(index == CP_INFO_CARD_UID_WHITELIST_NUM_MAX){
+        /* 列表已经满了，把最旧的卡号移出去，把最新的位置让出来放入最新的卡号 */
+        for(index = 0x00; index < (CP_INFO_CARD_UID_WHITELIST_NUM_MAX - 0x01); index++){
+            memcpy(s_chargepile_config_info.config_info.card_whitelist.card_uid[index],  \
+                    s_chargepile_config_info.config_info.card_whitelist.card_uid[index + 0x01], CARD_UID_LENGTH_DEF);
+        }
+        memset(s_chargepile_config_info.config_info.card_whitelist.card_uid[index], '\0', CARD_UID_LENGTH_DEF);
+        memcpy(s_chargepile_config_info.config_info.card_whitelist.card_uid[index], data, len); /* 将卡号放入列表中 */
+    }else{
+        memset(s_chargepile_config_info.config_info.card_whitelist.card_uid[index], '\0', CARD_UID_LENGTH_DEF);
+        memcpy(s_chargepile_config_info.config_info.card_whitelist.card_uid[index], data, len); /* 将卡号放入列表中 */
+    }
+
+    return index;
+}
+
+int32_t sys_card_uid_whitelists_query(uint8_t *data, uint8_t len)
+{
+    if(data == NULL){
+        return -0x01;
+    }
+    if((len < CARD_UID_LENGTH_MIN) || (len > CARD_UID_LENGTH_MAX)){
+        return -0x01;
+    }
+
+    uint8_t index = 0x00, valid_len = sizeof(s_chargepile_config_info.config_info.card_whitelist.card_uid[0x00]);
+    valid_len = valid_len > len ? len : valid_len;
+    for(index = 0x00; index < CP_INFO_CARD_UID_WHITELIST_NUM_MAX; index++){
+        if(memcmp(data, s_chargepile_config_info.config_info.card_whitelist.card_uid[index], valid_len) == 0x00){
+            return index;
+        }
+    }
+    return -0x01;
+}
+
+int32_t sys_card_uid_whitelists_delete(uint8_t *data, uint8_t len)
+{
+    if(data == NULL){
+        return -0x01;
+    }
+    if((len < CARD_UID_LENGTH_MIN) || (len > CARD_UID_LENGTH_MAX)){
+        return -0x01;
+    }
+
+    uint8_t index = 0x00, count = 0x00, valid_len = sizeof(s_chargepile_config_info.config_info.card_whitelist.card_uid[0x00]);
+    valid_len = valid_len > len ? len : valid_len;
+    for(index = 0x00; index < CP_INFO_CARD_UID_WHITELIST_NUM_MAX; index++){
+        if(memcmp(data, s_chargepile_config_info.config_info.card_whitelist.card_uid[index], valid_len) == 0x00){
+            count = index;
+            if(index != (CP_INFO_CARD_UID_WHITELIST_NUM_MAX - 0x01)){
+                for(count = index; count < (CP_INFO_CARD_UID_WHITELIST_NUM_MAX - 0x01); count++){
+                    if(strlen((const char *)&(s_chargepile_config_info.config_info.card_whitelist.card_uid[count])) < CARD_UID_LENGTH_MIN){
+                        break;
+                    }
+                    memcpy(s_chargepile_config_info.config_info.card_whitelist.card_uid[count],
+                            s_chargepile_config_info.config_info.card_whitelist.card_uid[count + 0x01], CARD_UID_LENGTH_DEF);
+                }
+            }
+            memset(s_chargepile_config_info.config_info.card_whitelist.card_uid[count], '\0', CARD_UID_LENGTH_DEF);
+            break;
+        }
+    }
+
+    if(index >= CP_INFO_CARD_UID_WHITELIST_NUM_MAX){
+        return -0x01;
+    }
+    return index;
+}
+

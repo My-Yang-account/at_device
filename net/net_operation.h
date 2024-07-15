@@ -118,10 +118,13 @@
 #define NET_SYSTEM_DATA_OPTION_PLAT_SL                 (0x01 <<0x05)    /* 系统数据选项：阳光乐通平台数据 */
 #define NET_SYSTEM_DATA_OPTION_PLAT_YCP                (0x01 <<0x06)    /* 系统数据选项：越城平台数据 */
 #define NET_SYSTEM_DATA_OPTION_SELECT_ALL              (0x01 <<0x07)    /* 系统数据选项：选择所有 */
-#define NET_SYSTEM_DATA_OPTION_CARD_WHITELIST          (0x01 <<0x08)    /* 系统数据选项：卡白名单数据 */
-#define NET_SYSTEM_DATA_OPTION_VIN_WHITELIST           (0x01 <<0x09)    /* 系统数据选项：VIN码白名单数据 */
-#define NET_SYSTEM_DATA_OPTION_PLAT_RE3                (0x01 <<0x0A)    /* 系统数据选项：保留平台数据 */
-#define NET_SYSTEM_DATA_OPTION_PLAT_RE4                (0x01 <<0x0B)    /* 系统数据选项：保留平台数据 */
+#define NET_SYSTEM_DATA_OPTION_CARD_NUMBER_WHITELIST   (0x01 <<0x08)    /* 系统数据选项：卡号白名单数据 */
+#define NET_SYSTEM_DATA_OPTION_CARD_NUMBER_JOINT       (0x01 <<0x09)    /* 系统数据选项：连带卡号白名单数据 */
+#define NET_SYSTEM_DATA_OPTION_CARD_UID_WHITELIST      (0x01 <<0x0A)    /* 系统数据选项：卡UID白名单数据 */
+#define NET_SYSTEM_DATA_OPTION_CARD_UID_JOINT          (0x01 <<0x0B)    /* 系统数据选项：连带卡UID白名单数据 */
+#define NET_SYSTEM_DATA_OPTION_VIN_WHITELIST           (0x01 <<0x0C)    /* 系统数据选项：VIN码白名单数据 */
+#define NET_SYSTEM_DATA_OPTION_PLAT_RE3                (0x01 <<0x0D)    /* 系统数据选项：保留平台数据 */
+#define NET_SYSTEM_DATA_OPTION_PLAT_RE4                (0x01 <<0x0E)    /* 系统数据选项：保留平台数据 */
 
 /** net device operate option */
 #define NET_DEV_OPERATE_OPTION_RESET                   (0x01 <<0x00)    /* 网络设备操作选项：重启 */
@@ -130,6 +133,16 @@
 #define NET_PLATFORM_MASK_MONITOR                      (0x01 <<0x00)    /* 监控平台掩码(用于网络设备操作) */
 #define NET_PLATFORM_MASK_TARGET                       (0x01 <<0x01)    /* 目标平台掩码(用于网络设备操作) */
 #define NET_PLATFORM_MASK_ALL                          (0x03 <<0x00)    /* 双平台掩码(用于网络设备操作) */
+
+#define NET_SET_QRCODE_FORMAT_PREFIX                   0x01             /* 平台下发的二维码格式类型：前缀 */
+#define NET_SET_QRCODE_FORMAT_PREFIX_DEVICE_SN         0x02             /* 平台下发的二维码格式类型 ：前缀+设备号*/
+#define NET_SET_QRCODE_FORMAT_PREFIX_DEVICE_SN_PORT    0x03             /* 平台下发的二维码格式类型 ：前缀+设备号+枪号 */
+#define NET_SET_QRCODE_FORMAT_PORT                     0x04             /* 平台下发的二维码格式类型 ：枪号*/
+
+#define NET_GENERATE_QRCODE_FORMAT_PREFIX              0x01             /* 终端生成的二维码格式类型：前缀 */
+#define NET_GENERATE_QRCODE_FORMAT_PREFIX_DEVICE_SN    0x02             /* 终端生成的二维码格式类型：前缀+设备号 */
+#define NET_GENERATE_QRCODE_FORMAT_PREFIX_DEVICE_SN_PORT  0x03          /* 终端生成的二维码格式类型：前缀+设备号+枪号 */
+#define NET_GENERATE_QRCODE_FORMAT_PORT                0x04             /* 终端生成的二维码格式类型：枪号 */
 
 /** net parameter config */
 enum para_config{

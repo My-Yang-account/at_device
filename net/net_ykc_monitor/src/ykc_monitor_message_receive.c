@@ -18,11 +18,6 @@
 
 #ifdef NET_PACK_USING_YKC_MONITOR
 
-struct ykc_monitor_card_operate_result{
-    uint8_t count;
-    uint32_t state;
-};
-
 #ifdef NET_YKC_MONITOR_AS_MONITOR
 #define YKC_RECV_MONITOR_MESSAGE_ITEM_NUM       0x03
 
@@ -36,8 +31,8 @@ struct ykc_monitor_recv_message{
 static struct ykc_monitor_recv_message s_ykc_monitor_recv_message[YKC_RECV_MONITOR_MESSAGE_ITEM_NUM];
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
 
-static struct ykc_monitor_card_operate_result s_ykc_monitor_card_query;
-static struct ykc_monitor_card_operate_result s_ykc_monitor_card_delete;
+static ykc_monitor_qrcode_buf_t s_ykc_monitor_qrcode_buf;
+static ykc_monitor_card_vin_buf_t s_ykc_monitor_card_vin_buf;
 
 extern uint8_t s_ykc_monitor_current_transaction_number[NET_SYSTEM_GUN_NUMBER][NET_YKC_MONITOR_SERIAL_NUMBER_LENGTH_DEFAULT];
 
@@ -71,8 +66,10 @@ Net_YkcMonitorPro_SReq_RemoteReboot_t g_ykc_monitor_sreq_remote_reboot;
 Net_YkcMonitorPro_SReq_RemoteUpdate_t g_ykc_monitor_sreq_remote_update;
 /** 运营平台远程控制并充启机 */
 Net_YkcMonitorPro_SReq_Remote_StartMergeCharge_t g_ykc_monitor_sreq_remote_start_merge_charge[NET_SYSTEM_GUN_NUMBER];
-/** 运营平台下发二维码配置 */
-Net_YkcMonitorPro_SReq_Qrcode_Config_t g_ykc_monitor_sreq_qrcode_config[NET_SYSTEM_GUN_NUMBER];
+/** 运营平台下发二维码配置(国充) */
+Net_YkcMonitorPro_SReq_Qrcode_Config_GC_t g_ykc_monitor_sreq_qrcode_config_gc[NET_SYSTEM_GUN_NUMBER];
+/** 运营平台下发二维码配置(云快充1.5) */
+Net_YkcMonitorPro_SReq_Qrcode_Config_Ykc15_t g_ykc_monitor_sreq_qrcode_config_ykc15;
 
 /**=======================================[服务器响应报文]=======================================*/
 /**=======================================[服务器响应报文]=======================================*/
@@ -180,65 +177,21 @@ static int8_t ykc_monitor_input_recv_message_item(uint8_t cmd, uint8_t serial_nu
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
 
 /***********************************************
- * 函数名      ykc_monitor_set_recv_card_whitelists_data
-* 功能           根据信息项的指令码设置指定的接收信息项
+ * 函数名      ykc_monitor_get_qrcode_info
+* 功能           获取平台下发的二维码信息
  **********************************************/
-static void ykc_monitor_set_recv_card_whitelists_data(uint8_t index, uint8_t state, uint8_t option)
+void* ykc_monitor_get_qrcode_info(void)
 {
-    if(option &NET_YKC_MONITOR_CARD_WHITELIST_QUERY){
-        if(state){
-            s_ykc_monitor_card_query.state |= (1 <<index);
-        }else{
-            s_ykc_monitor_card_query.state &= (~(1 <<index));
-        }
-    }else if(option &NET_YKC_MONITOR_CARD_WHITELIST_DELETE){
-        if(state){
-            s_ykc_monitor_card_delete.state |= (1 <<index);
-        }else{
-            s_ykc_monitor_card_delete.state &= (~(1 <<index));
-        }
-    }
+    return &s_ykc_monitor_qrcode_buf;
 }
 
 /***********************************************
- * 函数名      ykc_monitor_get_recv_card_whitelists_count
-* 功能           根据信息项的指令码获取指定的接收信息项
+ * 函数名      ykc_monitor_get_card_vin_whitelists_info
+* 功能           获取平台下发的卡、VIN码白名单信息
  **********************************************/
-uint8_t ykc_monitor_get_recv_card_whitelists_count(uint32_t option)
+void* ykc_monitor_get_card_vin_whitelists_info(void)
 {
-    if(option &NET_YKC_MONITOR_CARD_WHITELIST_QUERY){
-        return s_ykc_monitor_card_query.count;
-    }else if(option &NET_YKC_MONITOR_CARD_WHITELIST_DELETE){
-        return s_ykc_monitor_card_delete.count;
-    }
-    return 0x00;
-}
-
-/***********************************************
- * 函数名      ykc_monitor_get_recv_card_whitelists_state
-* 功能           根据信息项的指令码获取指定的接收信息项
- **********************************************/
-uint32_t ykc_monitor_get_recv_card_whitelists_state(uint32_t option)
-{
-    if(option &NET_YKC_MONITOR_CARD_WHITELIST_QUERY){
-        return s_ykc_monitor_card_query.state;
-    }else if(option &NET_YKC_MONITOR_CARD_WHITELIST_DELETE){
-        return s_ykc_monitor_card_delete.state;
-    }
-    return 0xFFFFFFFF;
-}
-
-/***********************************************
- * 函数名      ykc_monitor_clear_recv_card_whitelists_state
-* 功能           根据信息项的指令码清除指定的接收信息项
- **********************************************/
-void ykc_monitor_clear_recv_card_whitelists_state(uint32_t option)
-{
-    if(option &NET_YKC_MONITOR_CARD_WHITELIST_QUERY){
-        s_ykc_monitor_card_query.state = 0x00;
-    }else if(option &NET_YKC_MONITOR_CARD_WHITELIST_DELETE){
-        s_ykc_monitor_card_delete.state = 0x00;
-    }
+    return &s_ykc_monitor_card_vin_buf;
 }
 
 /*****************************************************************
@@ -353,8 +306,8 @@ static void ykc_monitor_callback_response_billing_model_verify(uint8_t* data, ui
 /*****************************************************************
  * 函数名                   ykc_monitor_callback_response_billing_model_request
  * 功能                       处理计费模型请求响应
- *           data       数据
- *           length     数据长度
+ *             data       数据
+ *             length     数据长度
  * 返回                        无
  ****************************************************************/
 static void ykc_monitor_callback_response_billing_model_request(uint8_t* data, uint16_t length)
@@ -694,7 +647,8 @@ static void ykc_monitor_callback_request_sync_offline_card(uint8_t* data, uint16
         LOG_E("ykc monitor input data is null when call tha_callback_request_sync_offline_card");
         return;
     }
-    uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC_MONITOR |NET_SYSTEM_DATA_OPTION_DATA_CONTENT), count = 0x00, total_len = 0x00, *card = NULL;
+    uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC_MONITOR |NET_SYSTEM_DATA_OPTION_DATA_CONTENT), count = 0x00, total_len = 0x00;
+    uint8_t *card = NULL;
     struct net_handle* handle = net_get_net_handle();
     char *pile_number = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, option));
     uint8_t pile_numberbcd[NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT];
@@ -707,7 +661,7 @@ static void ykc_monitor_callback_request_sync_offline_card(uint8_t* data, uint16
 
     card = (uint8_t*)(&(((Net_YkcMonitorPro_SReq_Sync_OfflineCard_t*)data)->body.result));
     count = ((Net_YkcMonitorPro_SReq_Sync_OfflineCard_t*)data)->body.count;
-    total_len = sizeof(Net_YkcMonitorPro_SReq_Sync_OfflineCard_t) + count *NET_YKC_MONITOR_CARD_NUMBER_LENGTH_MAX;
+    total_len = sizeof(Net_YkcMonitorPro_SReq_Sync_OfflineCard_t) + (2 *count *NET_YKC_MONITOR_CARD_NUMBER_LENGTH_MAX);
     if(length != total_len){
         LOG_E("ykc monitor input length error when call tha_callback_request_sync_offline_card|%d, %d", length, total_len);
         return;
@@ -717,20 +671,25 @@ static void ykc_monitor_callback_request_sync_offline_card(uint8_t* data, uint16
         return;
     }
 
-    memcpy(&g_ykc_monitor_sreq_sync_offline_card, data, sizeof(Net_YkcMonitorPro_SReq_Sync_OfflineCard_t) - NET_YKC_MONITOR_PROTOCOL_CHECK_REGION_SIZE);
     g_ykc_monitor_sreq_sync_offline_card.body.result = 0x00;
-    for(uint8_t i = 0x00; i < count; i++){
-        if(handle->card_vin_whitelists_set(card, NET_YKC_MONITOR_CARD_NUMBER_LENGTH_MAX, NET_SYSTEM_DATA_OPTION_CARD_WHITELIST) < 0x00){
-            g_ykc_monitor_sreq_sync_offline_card.body.result = 0x01;
-            break;
-        }
-        if(i < (count - 0x01)){
-            card += NET_YKC_MONITOR_CARD_NUMBER_LENGTH_MAX;
-        }
-    }
-    if(handle->system_data_storage(NET_SYSTEM_DATA_OPTION_CARD_WHITELIST) < 0x00){
+    if(sizeof(s_ykc_monitor_card_vin_buf.whitlelist) < (2 *count *NET_YKC_MONITOR_CARD_NUMBER_LENGTH_MAX)){
         g_ykc_monitor_sreq_sync_offline_card.body.result = 0x01;
+        LOG_E("ykc monitor message data too long when call tha_callback_request_sync_offline_card");
+        ykc_monitor_net_event_send(NET_YKC_MONITOR_EVENT_HANDLE_SERVER, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, 0x00, NET_YKC_MONITOR_SREQ_EVENT_SYNC_OFFLINE_CARD);
+        return;
     }
+    if(s_ykc_monitor_card_vin_buf.flag.is_used){
+        g_ykc_monitor_sreq_sync_offline_card.body.result = 0x02;
+        LOG_E("ykc monitor card vin whitelist is used when call tha_callback_request_sync_offline_card");
+        ykc_monitor_net_event_send(NET_YKC_MONITOR_EVENT_HANDLE_SERVER, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, 0x00, NET_YKC_MONITOR_SREQ_EVENT_SYNC_OFFLINE_CARD);
+        return;
+    }
+
+    s_ykc_monitor_card_vin_buf.flag.is_used = 0x01;
+    s_ykc_monitor_card_vin_buf.length = (2 *count *NET_YKC_MONITOR_CARD_NUMBER_LENGTH_MAX);
+    s_ykc_monitor_card_vin_buf.type = NET_YKC_MONITOR_WHITELIST_TYPE_CARD;
+    memcpy(s_ykc_monitor_card_vin_buf.whitlelist, card, s_ykc_monitor_card_vin_buf.length);
+    memcpy(&g_ykc_monitor_sreq_sync_offline_card, data, (sizeof(Net_YkcMonitorPro_SReq_Sync_OfflineCard_t) - NET_YKC_MONITOR_PROTOCOL_CHECK_REGION_SIZE));
 
     ykc_monitor_net_event_send(NET_YKC_MONITOR_EVENT_HANDLE_SERVER, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, 0x00, NET_YKC_MONITOR_SREQ_EVENT_SYNC_OFFLINE_CARD);
 }
@@ -748,7 +707,8 @@ static void ykc_monitor_callback_request_clear_offline_card(uint8_t* data, uint1
         LOG_E("ykc monitor input data is null when call tha_callback_request_clear_offline_card");
         return;
     }
-    uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC_MONITOR |NET_SYSTEM_DATA_OPTION_DATA_CONTENT), count = 0x00, total_len = 0x00, *card = NULL;
+    uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC_MONITOR |NET_SYSTEM_DATA_OPTION_DATA_CONTENT), count = 0x00, total_len = 0x00;
+    uint8_t *card = NULL;
     struct net_handle* handle = net_get_net_handle();
     char *pile_number = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, option));
     uint8_t pile_numberbcd[NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT];
@@ -760,10 +720,9 @@ static void ykc_monitor_callback_request_clear_offline_card(uint8_t* data, uint1
         return;
     }
 
-    card = (uint8_t*)&(request->body.card_number);
+    card = (uint8_t*)&(request->body.result);
     count = request->body.count;
-    total_len = (uint32_t)(&request->body.count) - (uint32_t)(&request->head.start_code) + 0x01 +    \
-            count *NET_YKC_MONITOR_CARD_NUMBER_LENGTH_MAX + NET_YKC_MONITOR_PROTOCOL_CHECK_REGION_SIZE;
+    total_len = sizeof(Net_YkcMonitorPro_SReq_Clear_OfflineCard_t) + count *NET_YKC_MONITOR_CARD_NUMBER_LENGTH_MAX;
     if(length != total_len){
         LOG_E("ykc monitor input length error when call tha_callback_request_clear_offline_card|%d, %d", length, total_len);
         return;
@@ -772,21 +731,24 @@ static void ykc_monitor_callback_request_clear_offline_card(uint8_t* data, uint1
         LOG_E("ykc monitor message data error when call tha_callback_request_clear_offline_card");
         return;
     }
-
-    memcpy(&g_ykc_monitor_sreq_clear_offline_card, data, length);
-    for(uint8_t i = 0x00; i < count; i++){
-        if(handle->card_vin_whitelists_delete(card, NET_YKC_MONITOR_CARD_NUMBER_LENGTH_MAX, NET_SYSTEM_DATA_OPTION_CARD_WHITELIST) < 0x00){
-            ykc_monitor_set_recv_card_whitelists_data(i, 0x00, NET_YKC_MONITOR_CARD_WHITELIST_DELETE);
-        }else{
-            ykc_monitor_set_recv_card_whitelists_data(i, 0x01, NET_YKC_MONITOR_CARD_WHITELIST_DELETE);
-        }
-        if(i < (count - 0x01)){
-            card += NET_YKC_MONITOR_CARD_NUMBER_LENGTH_MAX;
-        }
+    g_ykc_monitor_sreq_clear_offline_card.body.result = 0x00;
+    if(sizeof(s_ykc_monitor_card_vin_buf.whitlelist) < (count *NET_YKC_MONITOR_CARD_NUMBER_LENGTH_MAX)){
+        g_ykc_monitor_sreq_clear_offline_card.body.result = 0x01;
+        LOG_E("ykc monitor message data too long when call tha_callback_request_clear_offline_card");
+        ykc_monitor_net_event_send(NET_YKC_MONITOR_EVENT_HANDLE_SERVER, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, 0x00, NET_YKC_MONITOR_SREQ_EVENT_CLEAR_OFFLINE_CARD);
+        return;
     }
-    if(handle->system_data_storage(NET_SYSTEM_DATA_OPTION_CARD_WHITELIST) < 0x00){
-        ykc_monitor_clear_recv_card_whitelists_state(NET_SYSTEM_DATA_OPTION_CARD_WHITELIST);
+    if(s_ykc_monitor_card_vin_buf.flag.is_used){
+        g_ykc_monitor_sreq_clear_offline_card.body.result = 0x02;
+        LOG_E("ykc monitor card vin whitelist is used when call tha_callback_request_clear_offline_card");
+        ykc_monitor_net_event_send(NET_YKC_MONITOR_EVENT_HANDLE_SERVER, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, 0x00, NET_YKC_MONITOR_SREQ_EVENT_CLEAR_OFFLINE_CARD);
+        return;
     }
+    s_ykc_monitor_card_vin_buf.flag.is_used = 0x01;
+    s_ykc_monitor_card_vin_buf.length = count *NET_YKC_MONITOR_CARD_NUMBER_LENGTH_MAX;
+    s_ykc_monitor_card_vin_buf.type = NET_YKC_MONITOR_WHITELIST_TYPE_CARD;
+    memcpy(s_ykc_monitor_card_vin_buf.whitlelist, card, s_ykc_monitor_card_vin_buf.length);
+    memcpy(&g_ykc_monitor_sreq_clear_offline_card, data, (sizeof(g_ykc_monitor_sreq_clear_offline_card) - NET_YKC_MONITOR_PROTOCOL_CHECK_REGION_SIZE));
 
     ykc_monitor_net_event_send(NET_YKC_MONITOR_EVENT_HANDLE_SERVER, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, 0x00, NET_YKC_MONITOR_SREQ_EVENT_CLEAR_OFFLINE_CARD);
 }
@@ -804,7 +766,8 @@ static void ykc_monitor_callback_request_query_offline_card(uint8_t* data, uint1
         LOG_E("ykc monitor input data is null when call tha_callback_request_query_offline_card");
         return;
     }
-    uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC_MONITOR |NET_SYSTEM_DATA_OPTION_DATA_CONTENT), count = 0x00, total_len = 0x00, *card = NULL;
+    uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC_MONITOR |NET_SYSTEM_DATA_OPTION_DATA_CONTENT), count = 0x00, total_len = 0x00;
+    uint8_t *card = NULL;
     struct net_handle* handle = net_get_net_handle();
     char *pile_number = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, option));
     uint8_t pile_numberbcd[NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT];
@@ -816,11 +779,9 @@ static void ykc_monitor_callback_request_query_offline_card(uint8_t* data, uint1
         return;
     }
 
-    card = ((uint8_t*)&(request->body.count) + 0x01);
+    card = (uint8_t*)&(request->body.result);
     count = request->body.count;
-    total_len = (uint32_t)(&request->body.count) - (uint32_t)(&request->head.start_code) + 0x01 +    \
-            count *NET_YKC_MONITOR_CARD_NUMBER_LENGTH_MAX + NET_YKC_MONITOR_PROTOCOL_CHECK_REGION_SIZE;
-//    total_len = sizeof(Net_YkcMonitorPro_SReq_Query_OfflineCard_t) + count *NET_YKC_MONITOR_CARD_NUMBER_LENGTH_MAX + NET_YKC_MONITOR_PROTOCOL_CHECK_REGION_SIZE;
+    total_len = sizeof(Net_YkcMonitorPro_SReq_Query_OfflineCard_t) + count *NET_YKC_MONITOR_CARD_NUMBER_LENGTH_MAX;
     if(length != total_len){
         LOG_E("ykc monitor input length error when call tha_callback_request_query_offline_card|%d, %d", length, total_len);
         return;
@@ -829,18 +790,26 @@ static void ykc_monitor_callback_request_query_offline_card(uint8_t* data, uint1
         LOG_E("ykc monitor message data error when call tha_callback_request_query_offline_card");
         return;
     }
-
-    memcpy(&g_ykc_monitor_sreq_query_offline_card, data, length);
-    for(uint8_t i = 0x00; i < count; i++){
-        if(handle->card_vin_whitelists_query(card, NET_YKC_MONITOR_CARD_NUMBER_LENGTH_MAX, NET_SYSTEM_DATA_OPTION_CARD_WHITELIST) < 0x00){
-            ykc_monitor_set_recv_card_whitelists_data(i, 0x00, NET_YKC_MONITOR_CARD_WHITELIST_QUERY);
-        }else{
-            ykc_monitor_set_recv_card_whitelists_data(i, 0x01, NET_YKC_MONITOR_CARD_WHITELIST_QUERY);
-        }
-        if(i < (count - 0x01)){
-            card += NET_YKC_MONITOR_CARD_NUMBER_LENGTH_MAX;
-        }
+    g_ykc_monitor_sreq_query_offline_card.body.result = 0x00;
+    if(sizeof(s_ykc_monitor_card_vin_buf.whitlelist) < (count *NET_YKC_MONITOR_CARD_NUMBER_LENGTH_MAX)){
+        g_ykc_monitor_sreq_query_offline_card.body.result = 0x01;
+        LOG_E("ykc monitor message data too long when call tha_callback_request_query_offline_card");
+        ykc_monitor_net_event_send(NET_YKC_MONITOR_EVENT_HANDLE_SERVER, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, 0x00, NET_YKC_MONITOR_SREQ_EVENT_QUERY_OFFLINE_CARD);
+        return;
     }
+    if(s_ykc_monitor_card_vin_buf.flag.is_used){
+        g_ykc_monitor_sreq_query_offline_card.body.result = 0x02;
+        LOG_E("ykc monitor card vin whitelist is used when call tha_callback_request_query_offline_card");
+        ykc_monitor_net_event_send(NET_YKC_MONITOR_EVENT_HANDLE_SERVER, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, 0x00, NET_YKC_MONITOR_SREQ_EVENT_QUERY_OFFLINE_CARD);
+        return;
+    }
+    rt_kprintf("ykc_monitor_callback_request_query_offline_card(%d, %s)\n", count *NET_YKC_MONITOR_CARD_NUMBER_LENGTH_MAX,
+            card);
+    s_ykc_monitor_card_vin_buf.flag.is_used = 0x01;
+    s_ykc_monitor_card_vin_buf.length = count *NET_YKC_MONITOR_CARD_NUMBER_LENGTH_MAX;
+    s_ykc_monitor_card_vin_buf.type = NET_YKC_MONITOR_WHITELIST_TYPE_CARD;
+    memcpy(s_ykc_monitor_card_vin_buf.whitlelist, card, s_ykc_monitor_card_vin_buf.length);
+    memcpy(&g_ykc_monitor_sreq_query_offline_card, data, (sizeof(g_ykc_monitor_sreq_query_offline_card) - NET_YKC_MONITOR_PROTOCOL_CHECK_REGION_SIZE));
 
     ykc_monitor_net_event_send(NET_YKC_MONITOR_EVENT_HANDLE_SERVER, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, 0x00, NET_YKC_MONITOR_SREQ_EVENT_QUERY_OFFLINE_CARD);
 }
@@ -1095,45 +1064,159 @@ static void ykc_monitor_callback_request_remote_start_merge_charge(uint8_t* data
 }
 
 /*****************************************************************
- * 函数名                   ykc_monitor_callback_request_qrcode_config
- * 功能                       处理运营平台二维码配置请求
+ * 函数名                   ykc_monitor_callback_request_qrcode_config_gc
+ * 功能                       处理运营平台二维码配置请求(国充)
  *           data       数据
  *           length     数据长度
  * 返回                        无
  ****************************************************************/
-static void ykc_monitor_callback_request_qrcode_config(uint8_t* data, uint16_t length)
+static void ykc_monitor_callback_request_qrcode_config_gc(uint8_t* data, uint16_t length)
 {
     if(data == NULL){
-        LOG_E("ykc monitor input data is null when call ykc_monitor_callback_request_qrcode_config");
+        LOG_E("ykc monitor input data is null when call ykc_monitor_callback_request_qrcode_config_gc");
         return;
     }
-    if(length != sizeof(Net_YkcMonitorPro_SReq_Qrcode_Config_t)){
-        LOG_E("ykc monitor input length error when call ykc_monitor_callback_request_qrcode_config|%d, %d", length,
-                sizeof(Net_YkcMonitorPro_SReq_Qrcode_Config_t));
+    if(length < sizeof(Net_YkcMonitorPro_SReq_Qrcode_Config_GC_t)){
+        LOG_E("ykc monitor input length too short when call ykc_monitor_callback_request_qrcode_config_gc|%d, %d", length,
+                sizeof(Net_YkcMonitorPro_SReq_Qrcode_Config_GC_t));
         return;
     }
-    uint8_t gunno = ((Net_YkcMonitorPro_SReq_Qrcode_Config_t*)data)->body.gunno;
+
+    uint8_t gunno = ((Net_YkcMonitorPro_SReq_Qrcode_Config_GC_t*)data)->body.gunno;
     uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC_MONITOR |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
     struct net_handle* handle = net_get_net_handle();
     char *pile_number = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, option));
     uint8_t pile_numberbcd[NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT];
+    uint8_t qrcode_len = (length - sizeof(Net_YkcMonitorPro_SReq_Qrcode_Config_GC_t));
 
     if(!((gunno > 0x00) && (gunno <= NET_SYSTEM_GUN_NUMBER))){
-        LOG_E("ykc monitor gunno error when call ykc_monitor_callback_request_qrcode_config|%d", gunno);
+        LOG_E("ykc monitor gunno error when call ykc_monitor_callback_request_qrcode_config_gc|%d", gunno);
         return;
     }
     ykc_monitor_ascii_to_bcd((uint8_t*)pile_number, pile_numberbcd, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
-    if(memcmp(pile_numberbcd, ((Net_YkcMonitorPro_SReq_Qrcode_Config_t*)data)->body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT)){
-        LOG_E("ykc monitor chargepile number error when call ykc_monitor_callback_request_qrcode_config");
-        g_ykc_monitor_sreq_qrcode_config[gunno - 0x01].body.result = 0x01;
-        memcpy(&g_ykc_monitor_sreq_qrcode_config[gunno - 0x01], data, length - NET_YKC_MONITOR_PROTOCOL_CHECK_REGION_SIZE);
-        ykc_monitor_net_event_send(NET_YKC_MONITOR_EVENT_HANDLE_SERVER, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, (gunno - 0x01), NET_YKC_MONITOR_SREQ_EVENT_QRCODE_CONFIG);
+    if(memcmp(pile_numberbcd, ((Net_YkcMonitorPro_SReq_Qrcode_Config_GC_t*)data)->body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT)){
+        LOG_E("ykc monitor chargepile number error when call ykc_monitor_callback_request_qrcode_config_gc");
+        g_ykc_monitor_sreq_qrcode_config_gc[gunno - 0x01].body.result = 0x01;
+        memcpy(&g_ykc_monitor_sreq_qrcode_config_gc[gunno - 0x01], data, (length - NET_YKC_MONITOR_PROTOCOL_CHECK_REGION_SIZE));
+        ykc_monitor_net_event_send(NET_YKC_MONITOR_EVENT_HANDLE_SERVER, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, (gunno - 0x01), NET_YKC_MONITOR_SREQ_EVENT_QRCODE_CONFIG_GC);
         return;
     }
 
-    g_ykc_monitor_sreq_qrcode_config[gunno - 0x01].body.result = 0x00;
-    memcpy(&g_ykc_monitor_sreq_qrcode_config[gunno - 0x01], data, length - NET_YKC_MONITOR_PROTOCOL_CHECK_REGION_SIZE);
-    ykc_monitor_net_event_send(NET_YKC_MONITOR_EVENT_HANDLE_SERVER, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, (gunno - 0x01), NET_YKC_MONITOR_SREQ_EVENT_QRCODE_CONFIG);
+    if(qrcode_len == 0x00){
+        LOG_E("ykc monitor qrcode content is NULL when call ykc_monitor_callback_request_qrcode_config_gc");
+        return;
+    }
+    if(length > (sizeof(Net_YkcMonitorPro_SReq_Qrcode_Config_GC_t) + NET_YKC_MONITOR_QRCODE_BUF_MAX)){
+        LOG_E("ykc monitor input length error when call ykc_monitor_callback_request_qrcode_config_gc|%d, %d", length,
+                (sizeof(Net_YkcMonitorPro_SReq_Qrcode_Config_GC_t) + NET_YKC_MONITOR_QRCODE_BUF_MAX));
+        g_ykc_monitor_sreq_qrcode_config_gc[gunno - 0x01].body.result = 0x01;
+        memcpy(&g_ykc_monitor_sreq_qrcode_config_gc[gunno - 0x01], data, (length - NET_YKC_MONITOR_PROTOCOL_CHECK_REGION_SIZE));
+        ykc_monitor_net_event_send(NET_YKC_MONITOR_EVENT_HANDLE_SERVER, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, (gunno - 0x01), NET_YKC_MONITOR_SREQ_EVENT_QRCODE_CONFIG_GC);
+        return;
+    }
+
+    g_ykc_monitor_sreq_qrcode_config_gc[gunno - 0x01].body.result = 0x00;
+    if(sizeof(s_ykc_monitor_qrcode_buf.qrcode) < qrcode_len){
+        g_ykc_monitor_sreq_qrcode_config_gc[gunno - 0x01].body.result = 0x01;
+        LOG_E("ykc monitor message data too long when call ykc_monitor_callback_request_qrcode_config_gc");
+        ykc_monitor_net_event_send(NET_YKC_MONITOR_EVENT_HANDLE_SERVER, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, 0x00, NET_YKC_MONITOR_SREQ_EVENT_QRCODE_CONFIG_GC);
+        return;
+    }
+    if(s_ykc_monitor_qrcode_buf.flag.is_used){
+        g_ykc_monitor_sreq_qrcode_config_gc[gunno - 0x01].body.result = 0x02;
+        LOG_E("ykc monitor qrcode buff is used when call ykc_monitor_callback_request_qrcode_config_gc");
+        ykc_monitor_net_event_send(NET_YKC_MONITOR_EVENT_HANDLE_SERVER, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, 0x00, NET_YKC_MONITOR_SREQ_EVENT_QRCODE_CONFIG_GC);
+        return;
+    }
+    s_ykc_monitor_qrcode_buf.flag.is_used = 0x01;
+    s_ykc_monitor_qrcode_buf.length = qrcode_len;
+    s_ykc_monitor_qrcode_buf.set_type = NET_SET_QRCODE_FORMAT_PREFIX;
+    s_ykc_monitor_qrcode_buf.general_type = NET_GENERATE_QRCODE_FORMAT_PREFIX_DEVICE_SN_PORT;
+
+    s_ykc_monitor_qrcode_buf.qrcode[0x00] = s_ykc_monitor_qrcode_buf.set_type;
+    s_ykc_monitor_qrcode_buf.qrcode[0x01] = s_ykc_monitor_qrcode_buf.general_type;
+    memcpy(&(s_ykc_monitor_qrcode_buf.qrcode[0x02]), &(((Net_YkcMonitorPro_SReq_Qrcode_Config_GC_t*)data)->body.result), s_ykc_monitor_qrcode_buf.length);
+    memcpy(&(g_ykc_monitor_sreq_qrcode_config_gc[gunno - 0x01]), data, (sizeof(g_ykc_monitor_sreq_qrcode_config_gc[gunno - 0x01]) - NET_YKC_MONITOR_PROTOCOL_CHECK_REGION_SIZE));
+
+    ykc_monitor_net_event_send(NET_YKC_MONITOR_EVENT_HANDLE_SERVER, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, (gunno - 0x01), NET_YKC_MONITOR_SREQ_EVENT_QRCODE_CONFIG_GC);
+}
+
+/*****************************************************************
+ * 函数名                   ykc_monitor_callback_request_qrcode_config_ykc15
+ * 功能                       处理运营平台二维码配置请求(云快充1.5)
+ *             data       数据
+ *             length     数据长度
+ * 返回                        无
+ ****************************************************************/
+static void ykc_monitor_callback_request_qrcode_config_ykc15(uint8_t* data, uint16_t length)
+{
+    if(data == NULL){
+        LOG_E("ykc monitor input data is null when call ykc_monitor_callback_request_qrcode_config_ykc15");
+        return;
+    }
+    if(length < sizeof(Net_YkcMonitorPro_SReq_Qrcode_Config_Ykc15_t)){
+        LOG_E("ykc monitor input length too short when call ykc_monitor_callback_request_qrcode_config_ykc15|%d, %d", length,
+                sizeof(Net_YkcMonitorPro_SReq_Qrcode_Config_Ykc15_t));
+        return;
+    }
+
+    uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC_MONITOR |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
+    struct net_handle* handle = net_get_net_handle();
+    char *pile_number = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, option));
+    uint8_t pile_numberbcd[NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT];
+    uint8_t qrcode_len = ((Net_YkcMonitorPro_SReq_Qrcode_Config_Ykc15_t*)data)->body.length;
+
+    ykc_monitor_ascii_to_bcd((uint8_t*)pile_number, pile_numberbcd, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
+    if(memcmp(pile_numberbcd, ((Net_YkcMonitorPro_SReq_Qrcode_Config_Ykc15_t*)data)->body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT)){
+        LOG_E("ykc monitor chargepile number error when call ykc_monitor_callback_request_qrcode_config_ykc15");
+        g_ykc_monitor_sreq_qrcode_config_ykc15.body.result = 0x01;
+        memcpy(&g_ykc_monitor_sreq_qrcode_config_ykc15, data, (length - NET_YKC_MONITOR_PROTOCOL_CHECK_REGION_SIZE));
+        ykc_monitor_net_event_send(NET_YKC_MONITOR_EVENT_HANDLE_SERVER, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, 0x00, NET_YKC_MONITOR_SREQ_EVENT_QRCODE_CONFIG_YKC15);
+        return;
+    }
+
+    if(qrcode_len == 0x00){
+        LOG_E("ykc monitor qrcode content is NULL when call ykc_monitor_callback_request_qrcode_config_ykc15");
+        return;
+    }
+    if(length > (sizeof(Net_YkcMonitorPro_SReq_Qrcode_Config_Ykc15_t) + NET_YKC_MONITOR_QRCODE_BUF_MAX)){
+        LOG_E("ykc monitor input length error when call ykc_monitor_callback_request_qrcode_config_ykc15|%d, %d", length,
+                (sizeof(Net_YkcMonitorPro_SReq_Qrcode_Config_Ykc15_t) + NET_YKC_MONITOR_QRCODE_BUF_MAX));
+        g_ykc_monitor_sreq_qrcode_config_ykc15.body.result = 0x01;
+        memcpy(&g_ykc_monitor_sreq_qrcode_config_ykc15, data, (length - NET_YKC_MONITOR_PROTOCOL_CHECK_REGION_SIZE));
+        ykc_monitor_net_event_send(NET_YKC_MONITOR_EVENT_HANDLE_SERVER, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, 0x00, NET_YKC_MONITOR_SREQ_EVENT_QRCODE_CONFIG_YKC15);
+        return;
+    }
+
+    g_ykc_monitor_sreq_qrcode_config_ykc15.body.result = 0x00;
+    if(sizeof(s_ykc_monitor_qrcode_buf.qrcode) < qrcode_len){
+        g_ykc_monitor_sreq_qrcode_config_ykc15.body.result = 0x01;
+        LOG_E("ykc monitor message data too long when call ykc_monitor_callback_request_qrcode_config_ykc15");
+        ykc_monitor_net_event_send(NET_YKC_MONITOR_EVENT_HANDLE_SERVER, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, 0x00, NET_YKC_MONITOR_SREQ_EVENT_QRCODE_CONFIG_YKC15);
+        return;
+    }
+    if(s_ykc_monitor_qrcode_buf.flag.is_used){
+        g_ykc_monitor_sreq_qrcode_config_ykc15.body.result = 0x02;
+        LOG_E("ykc monitor qrcode buff is used when call ykc_monitor_callback_request_qrcode_config_ykc15");
+        ykc_monitor_net_event_send(NET_YKC_MONITOR_EVENT_HANDLE_SERVER, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, 0x00, NET_YKC_MONITOR_SREQ_EVENT_QRCODE_CONFIG_YKC15);
+        return;
+    }
+    s_ykc_monitor_qrcode_buf.flag.is_used = 0x01;
+    s_ykc_monitor_qrcode_buf.length = qrcode_len;
+    if(g_ykc_monitor_sreq_qrcode_config_ykc15.body.format == 0x00){
+        s_ykc_monitor_qrcode_buf.set_type = NET_SET_QRCODE_FORMAT_PREFIX;
+        s_ykc_monitor_qrcode_buf.general_type = NET_GENERATE_QRCODE_FORMAT_PREFIX_DEVICE_SN;
+    }else{
+        s_ykc_monitor_qrcode_buf.set_type = NET_SET_QRCODE_FORMAT_PREFIX;
+        s_ykc_monitor_qrcode_buf.general_type = NET_GENERATE_QRCODE_FORMAT_PREFIX_DEVICE_SN_PORT;
+    }
+
+    s_ykc_monitor_qrcode_buf.qrcode[0x00] = s_ykc_monitor_qrcode_buf.set_type;
+    s_ykc_monitor_qrcode_buf.qrcode[0x01] = s_ykc_monitor_qrcode_buf.general_type;
+    memcpy(&(s_ykc_monitor_qrcode_buf.qrcode[0x02]), &(((Net_YkcMonitorPro_SReq_Qrcode_Config_Ykc15_t*)data)->body.result), s_ykc_monitor_qrcode_buf.length);
+    memcpy(&(g_ykc_monitor_sreq_qrcode_config_ykc15), data, (sizeof(g_ykc_monitor_sreq_qrcode_config_ykc15) - NET_YKC_MONITOR_PROTOCOL_CHECK_REGION_SIZE));
+
+    ykc_monitor_net_event_send(NET_YKC_MONITOR_EVENT_HANDLE_SERVER, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, 0x00, NET_YKC_MONITOR_SREQ_EVENT_QRCODE_CONFIG_YKC15);
 }
 
 /******************************** 以下是监控服务回调 *******************************/
@@ -1419,7 +1502,8 @@ int32_t ykc_monitor_message_recv_init(void)
     ykc_monitor_service_callback_register(NETYKC_MONITOR_SREQCMD_REMOTE_REBOOT,              ykc_monitor_callback_request_remote_reboot);
     ykc_monitor_service_callback_register(NETYKC_MONITOR_SREQCMD_REMOTE_UPDATE,              ykc_monitor_callback_request_remote_update);
     ykc_monitor_service_callback_register(NETYKC_MONITOR_SREQCMD_SERVER_START_MERGECHARGE,   ykc_monitor_callback_request_remote_start_merge_charge);
-    ykc_monitor_service_callback_register(NETYKC_MONITOR_SREQCMD_QRCODE_CONFIG,              ykc_monitor_callback_request_qrcode_config);
+    ykc_monitor_service_callback_register(NETYKC_MONITOR_SREQCMD_QRCODE_CONFIG_GC,           ykc_monitor_callback_request_qrcode_config_gc);
+    ykc_monitor_service_callback_register(NETYKC_MONITOR_SREQCMD_QRCODE_CONFIG_YKC15,        ykc_monitor_callback_request_qrcode_config_ykc15);
 #ifdef NET_YKC_MONITOR_AS_MONITOR
     ykc_monitor_service_callback_register(NETYKC_MONITOR_SREQCMD_QUERY_MODULE_INFO,          ykc_monitor_callback_request_query_module_info);
     ykc_monitor_service_callback_register(NETYKC_MONITOR_SREQCMD_QUERY_MODULE_SETUPINFO,     ykc_monitor_callback_request_query_module_setupinfo);
@@ -1429,6 +1513,10 @@ int32_t ykc_monitor_message_recv_init(void)
     ykc_monitor_service_callback_register(NETYKC_MONITOR_SREQCMD_QUERY_PROTECTINFO_SETUP,    ykc_monitor_callback_request_query_protectinfo_setup);
     ykc_monitor_service_callback_register(NETYKC_MONITOR_SREQCMD_QUERY_FUNCTION_SETUP,       ykc_monitor_callback_request_query_function_setup);
 #endif /* #ifdef NET_YKC_MONITOR_AS_MONITOR */
+
+    s_ykc_monitor_qrcode_buf.flag.is_used = 0x00;
+    s_ykc_monitor_card_vin_buf.flag.is_used = 0x00;
+
     return 0x00;
 }
 

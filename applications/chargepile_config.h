@@ -66,8 +66,9 @@
 #define CP_INFO_TARGET_PLAT_LEN_MAX        1024                    /* 目标平台存储信息最大长度 */
 #define CP_INFO_MONITOR_PLAT_LEN_MAX       512                     /* 监控平台存储信息最大长度 */
 
-#define CP_INFO_VIN_WHITELIST_NUM_MAX      16                      /* VIN 码白名单最大数量 */
-#define CP_INFO_CARD_WHITELIST_NUM_MAX     16                      /* 卡 码白名单最大数量 */
+#define CP_INFO_VIN_WHITELIST_NUM_MAX      25                      /* VIN 码白名单最大数量 */
+#define CP_INFO_CARD_NUMBER_WHITELIST_NUM_MAX  25                  /* 卡 号码白名单最大数量 */
+#define CP_INFO_CARD_UID_WHITELIST_NUM_MAX 25                      /* 卡 UID白名单最大数量 */
 
 #define CP_INFO_METER_ADDRESS_LEN_MAX      13                      /* 电表地址最大长度 */
 #define CP_INFO_SCREEN_PASSWORD_LEN_MAX    15                      /* 屏幕密码最大长度 */
@@ -75,6 +76,10 @@
 #define CARD_NUMBER_LENGTH_DEF             0x10                    /* 卡号长度默认值 */
 #define CARD_NUMBER_LENGTH_MIN             0x06                    /* 卡号长度最小值 */
 #define CARD_NUMBER_LENGTH_MAX             0x10                    /* 卡号长度最大值 */
+
+#define CARD_UID_LENGTH_DEF                0x08                    /* 卡UID长度默认值 */
+#define CARD_UID_LENGTH_MIN                0x08                    /* 卡UID长度最小值 */
+#define CARD_UID_LENGTH_MAX                0x08                    /* 卡UID长度最大值 */
 
 #define VIN_CODE_LENGTH_DEF                0x11                    /* VIN码长度默认值 */
 #define VIN_CODE_LENGTH_MIN                0x11                    /* VIN码长度最小值 */
@@ -257,6 +262,8 @@ struct config_item{
 int32_t chargepile_config_init(void);
 int32_t chargepile_check_config(void);
 
+int32_t sys_config_mutex_init(void);
+
 int32_t sys_storage_config_item(void);
 int32_t sys_sync_config_item_content(enum config_name name, void* data, uint32_t len);
 uint8_t* sys_read_config_item_content(enum config_name name, uint8_t is_user_content);
@@ -268,13 +275,21 @@ uint8_t sys_get_module_group_num(void);
 uint8_t* sys_get_module_num_single_group(void);
 
 int32_t sys_vin_whitelists_storage(void);
+uint8_t *sys_vin_code_get(uint8_t index);
 int32_t sys_vin_whitelists_add(uint8_t *data, uint8_t len);
 int32_t sys_vin_whitelists_query(uint8_t *data, uint8_t len);
 int32_t sys_vin_whitelists_delete(uint8_t *data, uint8_t len);
 
-int32_t sys_card_whitelists_storage(void);
-int32_t sys_card_whitelists_add(uint8_t *data, uint8_t len);
-int32_t sys_card_whitelists_query(uint8_t *data, uint8_t len);
-int32_t sys_card_whitelists_delete(uint8_t *data, uint8_t len);
+int32_t sys_card_number_whitelists_storage(void);
+uint8_t *sys_card_number_get(uint8_t index);
+int32_t sys_card_number_whitelists_add(uint8_t *data, uint8_t len);
+int32_t sys_card_number_whitelists_query(uint8_t *data, uint8_t len);
+int32_t sys_card_number_whitelists_delete(uint8_t *data, uint8_t len);
+
+int32_t sys_card_uid_whitelists_storage(void);
+uint8_t *sys_card_uid_get(uint8_t index);
+int32_t sys_card_uid_whitelists_add(uint8_t *data, uint8_t len);
+int32_t sys_card_uid_whitelists_query(uint8_t *data, uint8_t len);
+int32_t sys_card_uid_whitelists_delete(uint8_t *data, uint8_t len);
 
 #endif /* APPLICATIONS_CHARGEPILE_CONFIG_H_ */

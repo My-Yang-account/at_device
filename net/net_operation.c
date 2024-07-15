@@ -119,7 +119,7 @@ void net_set_clear_ndev_reset_state(uint8_t plat_mask, uint8_t is_clear)
         s_net_ndev_reset |= plat_mask;
     }
 
-    if(s_net_ndev_reset &NET_PLATFORM_MASK_ALL){
+    if((s_net_ndev_reset &NET_PLATFORM_MASK_ALL) == NET_PLATFORM_MASK_ALL){
         s_net_ndev_reset &= (~NET_PLATFORM_MASK_ALL);
         (void)s_net_handle.ndev_operate(NET_DEV_OPERATE_OPTION_RESET);
     }
@@ -259,7 +259,7 @@ static void net_start_function(void* handle)
     NET_MY_ASSERT(s_net_handle.card_vin_whitelists_query, NET_PARA_CONFIG_INDEX_QUERY_CARD_VIN);
     NET_MY_ASSERT(s_net_handle.card_vin_whitelists_delete, NET_PARA_CONFIG_INDEX_DELETE_CARD_VIN);
     NET_MY_ASSERT(s_net_handle.system_data_storage, NET_PARA_CONFIG_INDEX_SYSTEM_DATA_STORAGE);
-    NET_MY_ASSERT(s_net_handle.system_data_storage, NET_PARA_CONFIG_INDEX_NDEV_OPERATE);
+    NET_MY_ASSERT(s_net_handle.ndev_operate, NET_PARA_CONFIG_INDEX_NDEV_OPERATE);
     NET_MY_ASSERT(s_net_handle.crc32_updtae, NET_PARA_CONFIG_INDEX_CRC32_UPDATE);
 
     NET_MY_ASSERT(s_net_handle.flash_erase, NET_PARA_CONFIG_INDEX_FLASH_ERASE);

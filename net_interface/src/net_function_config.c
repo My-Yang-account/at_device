@@ -74,8 +74,10 @@ static void* app_nget_base_data(uint8_t gunno)
 
 static int32_t app_nsystem_data_storage(uint32_t option)
 {
-    if(option &NET_SYSTEM_DATA_OPTION_CARD_WHITELIST){
-        return sys_card_whitelists_storage();
+    if(option &NET_SYSTEM_DATA_OPTION_CARD_NUMBER_WHITELIST){
+        return sys_card_number_whitelists_storage();
+    }else if(option &NET_SYSTEM_DATA_OPTION_CARD_UID_WHITELIST){
+        return sys_card_uid_whitelists_storage();
     }else if(option &NET_SYSTEM_DATA_OPTION_VIN_WHITELIST){
         return sys_vin_whitelists_storage();
     }
@@ -398,8 +400,10 @@ static int32_t app_nflash_write_directly(uint32_t addr, uint8_t* data, uint32_t 
  **********************************************/
 static int32_t app_ncard_vin_whitelists_set(uint8_t* data, uint8_t len, uint32_t option)
 {
-    if(option &NET_SYSTEM_DATA_OPTION_CARD_WHITELIST){
-        return sys_card_whitelists_add(data, len);
+    if(option &NET_SYSTEM_DATA_OPTION_CARD_NUMBER_WHITELIST){
+        return sys_card_number_whitelists_add(data, len);
+    }else if(option &NET_SYSTEM_DATA_OPTION_CARD_UID_WHITELIST){
+        return sys_card_uid_whitelists_add(data, len);
     }else if(option &NET_SYSTEM_DATA_OPTION_VIN_WHITELIST){
         return sys_vin_whitelists_add(data, len);
     }
@@ -412,8 +416,10 @@ static int32_t app_ncard_vin_whitelists_set(uint8_t* data, uint8_t len, uint32_t
  **********************************************/
 static int32_t app_ncard_vin_whitelists_query(uint8_t* data, uint8_t len, uint32_t option)
 {
-    if(option &NET_SYSTEM_DATA_OPTION_CARD_WHITELIST){
-        return sys_card_whitelists_query(data, len);
+    if(option &NET_SYSTEM_DATA_OPTION_CARD_NUMBER_WHITELIST){
+        return sys_card_number_whitelists_query(data, len);
+    }else if(option &NET_SYSTEM_DATA_OPTION_CARD_UID_WHITELIST){
+        return sys_card_uid_whitelists_query(data, len);
     }else if(option &NET_SYSTEM_DATA_OPTION_VIN_WHITELIST){
         return sys_vin_whitelists_query(data, len);
     }
@@ -426,8 +432,36 @@ static int32_t app_ncard_vin_whitelists_query(uint8_t* data, uint8_t len, uint32
  **********************************************/
 static int32_t app_ncard_vin_whitelists_delete(uint8_t* data, uint8_t len, uint32_t option)
 {
-    if(option &NET_SYSTEM_DATA_OPTION_CARD_WHITELIST){
-        return sys_card_whitelists_delete(data, len);
+    if(option &NET_SYSTEM_DATA_OPTION_CARD_NUMBER_WHITELIST){
+        if(option &NET_SYSTEM_DATA_OPTION_CARD_UID_JOINT){
+            uint8_t *card_uid = NULL;
+            int32_t index = sys_card_number_whitelists_delete(data, len);
+
+            if(index < 0x00){
+                return index;
+            }
+            card_uid = sys_card_uid_get(index);
+            if(card_uid == NULL){
+                return -0x01;
+            }
+            return sys_card_uid_whitelists_delete(card_uid, len);
+        }
+        return sys_card_number_whitelists_delete(data, len);
+    }else if(option &NET_SYSTEM_DATA_OPTION_CARD_UID_WHITELIST){
+        if(option &NET_SYSTEM_DATA_OPTION_CARD_NUMBER_JOINT){
+            uint8_t *card_number = NULL;
+            int32_t index = sys_card_uid_whitelists_delete(data, len);
+
+            if(index < 0x00){
+                return index;
+            }
+            card_number = sys_card_number_get(index);
+            if(card_number == NULL){
+                return -0x01;
+            }
+            return sys_card_number_whitelists_delete(card_number, len);
+        }
+        return sys_card_uid_whitelists_delete(data, len);
     }else if(option &NET_SYSTEM_DATA_OPTION_VIN_WHITELIST){
         return sys_vin_whitelists_delete(data, len);
     }

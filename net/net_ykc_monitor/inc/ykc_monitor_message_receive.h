@@ -14,6 +14,12 @@
 
 #ifdef NET_PACK_USING_YKC_MONITOR
 
+#define NET_YKC_MONITOR_CARD_VIN_WHITELIST_MAX                       (17 *25)  /* 卡、VIN码白名单最大数量 */
+#define NET_YKC_MONITOR_QRCODE_BUF_MAX                               256       /* 二维码缓存长度 */
+
+#define NET_YKC_MONITOR_WHITELIST_TYPE_CARD                          0x00      /* 白名单类型：卡白名单 */
+#define NET_YKC_MONITOR_WHITELIST_TYPE_VIN                           0x01      /* 白名单类型：VIN码白名单 */
+
 #define NET_YKC_MONITOR_CARD_WHITELIST_QUERY                         (1 <<0)
 #define NET_YKC_MONITOR_CARD_WHITELIST_DELETE                        (1 <<1)
 
@@ -26,7 +32,7 @@
 #define NET_YKC_MONITOR_SRES_EVENT_APPLY_CHARGE_ACTIVE                 5    /* 服务器响应事件：充电桩主动申请启动充电响应 */
 #define NET_YKC_MONITOR_SRES_EVENT_APPLY_MERGE_CHARGE_ACTIVE           6    /* 服务器响应事件： 停止完成上报订单响应 */
 
-#define NET_YKC_SERVER_SRES_NUM                                7    /* 服务器响应事件总数 */
+#define NET_YKC_SERVER_SRES_NUM                                        7    /* 服务器响应事件总数 */
 
 /** server request event */
 #define NET_YKC_MONITOR_SREQ_EVENT_QUERY_REALTIME_DATA                 0    /* 服务器请求事件：读取实时数据*/
@@ -43,9 +49,10 @@
 #define NET_YKC_MONITOR_SREQ_EVENT_REMOTE_REBOOT                       11   /* 服务器请求事件：远程重启*/
 #define NET_YKC_MONITOR_SREQ_EVENT_REMOTE_UPDATE                       12   /* 服务器请求事件：远程更新*/
 #define NET_YKC_MONITOR_SREQ_EVENT_REMOTE_START_MERGE_CHARGE           13   /* 服务器请求事件：运营平台远程控制并充启机*/
-#define NET_YKC_MONITOR_SREQ_EVENT_QRCODE_CONFIG                       14   /* 服务器请求事件：二维码配置*/
+#define NET_YKC_MONITOR_SREQ_EVENT_QRCODE_CONFIG_GC                    14   /* 服务器请求事件：二维码配置(国充)*/
+#define NET_YKC_MONITOR_SREQ_EVENT_QRCODE_CONFIG_YKC15                 15   /* 服务器请求事件：二维码配置(云快充1.5)*/
 
-#define NET_YKC_MONITOR_SERVER_SREQ_NUM                                15   /* 服务器请求事件总数 */
+#define NET_YKC_MONITOR_SERVER_SREQ_NUM                                16   /* 服务器请求事件总数 */
 
 /******************************** 以下是监控报文事件 *******************************/
 /******************************** 以下是监控报文事件 *******************************/
@@ -93,9 +100,10 @@ extern Net_YkcMonitorPro_SReq_RemoteReboot_t g_ykc_monitor_sreq_remote_reboot;
 extern Net_YkcMonitorPro_SReq_RemoteUpdate_t g_ykc_monitor_sreq_remote_update;
 /** 运营平台远程控制并充启机 */
 extern Net_YkcMonitorPro_SReq_Remote_StartMergeCharge_t g_ykc_monitor_sreq_remote_start_merge_charge[NET_SYSTEM_GUN_NUMBER];
-/** 运营平台下发二维码配置 */
-extern Net_YkcMonitorPro_SReq_Qrcode_Config_t g_ykc_monitor_sreq_qrcode_config[NET_SYSTEM_GUN_NUMBER];
-
+/** 运营平台下发二维码配置(国充) */
+extern Net_YkcMonitorPro_SReq_Qrcode_Config_GC_t g_ykc_monitor_sreq_qrcode_config_gc[NET_SYSTEM_GUN_NUMBER];
+/** 运营平台下发二维码配置(云快充1.5) */
+extern Net_YkcMonitorPro_SReq_Qrcode_Config_Ykc15_t g_ykc_monitor_sreq_qrcode_config_ykc15;
 /**=======================================[服务器响应报文]=======================================*/
 /**=======================================[服务器响应报文]=======================================*/
 /** 登录签到响应 */
@@ -113,14 +121,32 @@ extern Net_YkcMonitorPro_SRes_ApplyCharge_Active_t g_ykc_monitor_sres_apply_char
 /** 充电桩主动申请并充充电响应 */
 extern Net_YkcMonitorPro_SRes_ApplyMergeCharge_Active_t g_ykc_monitor_sres_apply_merge_charge_active[NET_SYSTEM_GUN_NUMBER];   // OK
 
+typedef struct{
+    struct{
+        uint8_t is_used : 1;
+    }flag;
+    uint8_t set_type;
+    uint8_t general_type;
+    uint16_t length;
+    uint8_t qrcode[NET_YKC_MONITOR_QRCODE_BUF_MAX];
+}ykc_monitor_qrcode_buf_t;
+
+typedef struct{
+    struct{
+        uint8_t is_used : 1;
+    }flag;
+    uint8_t type;
+    uint16_t length;
+    uint8_t whitlelist[NET_YKC_MONITOR_CARD_VIN_WHITELIST_MAX];
+}ykc_monitor_card_vin_buf_t;
+
 #ifdef NET_YKC_MONITOR_AS_MONITOR
 void ykc_monitor_clear_recv_message_item(uint8_t cmd, uint8_t gunno);
 uint16_t ykc_monitor_get_recv_message_item_serial_number(uint8_t cmd, uint8_t gunno);
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
 
-uint8_t ykc_monitor_get_recv_card_whitelists_count(uint32_t option);
-uint32_t ykc_monitor_get_recv_card_whitelists_state(uint32_t option);
-void ykc_monitor_clear_recv_card_whitelists_state(uint32_t option);
+void* ykc_monitor_get_qrcode_info(void);
+void* ykc_monitor_get_card_vin_whitelists_info(void);
 
 int32_t ykcV_message_recv_init(void);
 

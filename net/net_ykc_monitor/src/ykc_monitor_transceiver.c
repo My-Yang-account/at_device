@@ -112,17 +112,17 @@ static uint16_t ykc_monitor_readline_data(int fd)
     }
 }
 
-uint8_t ggk[] = {0x68, 0x62, 0x0D, 0xD6, 0x00, 0x94, 0x32, 0x01, 0x06, 0x00, 0x20, 0x83, 0x16, 0x02, 0x1E, 0x00,
-        0x31, 0x31, 0x34, 0x2E, 0x35, 0x35, 0x2E, 0x31, 0x31, 0x34, 0x2E, 0x31, 0x37, 0x34, 0x00, 0x00,
-        0x15, 0x00, 0x73, 0x72, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x73, 0x72, 0x31, 0x32, 0x33, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x2F, 0x31, 0x37, 0x31, 0x36, 0x38, 0x30, 0x35, 0x39, 0x32, 0x34, 0x37, 0x39, 0x31,
-        0x2F, 0x34, 0x44, 0x41, 0x38, 0x38, 0x30, 0x46, 0x37, 0x2E, 0x62, 0x69, 0x6E, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x02, 0x3C, 0xE2, 0x07};
+//uint8_t ggk[] = {0x68, 0x62, 0x0D, 0xD6, 0x00, 0x94, 0x32, 0x01, 0x06, 0x00, 0x20, 0x83, 0x16, 0x02, 0x1E, 0x00,
+//        0x31, 0x31, 0x34, 0x2E, 0x35, 0x35, 0x2E, 0x31, 0x31, 0x34, 0x2E, 0x31, 0x37, 0x34, 0x00, 0x00,
+//        0x15, 0x00, 0x73, 0x72, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+//        0x00, 0x00, 0x73, 0x72, 0x31, 0x32, 0x33, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+//        0x00, 0x00, 0x2F, 0x31, 0x37, 0x31, 0x36, 0x38, 0x30, 0x35, 0x39, 0x32, 0x34, 0x37, 0x39, 0x31,
+//        0x2F, 0x34, 0x44, 0x41, 0x38, 0x38, 0x30, 0x46, 0x37, 0x2E, 0x62, 0x69, 0x6E, 0x00, 0x00, 0x00,
+//        0x00, 0x00, 0x02, 0x3C, 0xE2, 0x07};
 
-uint8_t hdj, hk, lld=  0;
-
-uint8_t power_data[15];
+//uint8_t hdj, hk, lld=  0;
+//
+//uint8_t power_data[166];
 static void ykc_monitor_message_recv_thread_entry(void *parameter)
 {
     uint8_t ykc_monitor_id[5];
@@ -133,57 +133,7 @@ static void ykc_monitor_message_recv_thread_entry(void *parameter)
     {
         if(net_get_ota_info()->state < NET_OTA_STATE_LOGIN_WAIT){
             if((socket->state >= YKC_MONITOR_SOCKET_STATE_LOGIN_WAIT) && (socket->fd >= 0x00)){
-                if(socket->state == YKC_MONITOR_SOCKET_STATE_LOGIN_SUCCESS){
-//                    if(hdj == 0){
-//                        if(++hk > 100){
-//                            hdj = 1;
-//                            lld = 1;
-//                            memset(power_data, 0x00, sizeof(power_data));
-//                            power_data[0] = 0x68;
-//                            power_data[1] = 0x11;
-//                            power_data[2] = 0x00;
-//                            power_data[3] = 0x41;
-//                            power_data[5] = 0xB0;
-//
-//                            power_data[6] = 0x32;
-//                            power_data[7] = 0x01;
-//                            power_data[8] = 0x06;
-//                            power_data[9] = 0x00;
-//                            power_data[10] = 0x30;
-//                            power_data[11] = 0x23;
-//                            power_data[12] = 0x41;
-//
-//                            power_data[13] = 0x03;
-//
-//
-//                            memcpy(&power_data[14], "12345678", strlen("12345678"));
-//                            memcpy(&power_data[22], "23456789", strlen("23456789"));\
-//                            memcpy(&power_data[30], "345678a", strlen("345678a"));
-//
-////                            power_data[15] = 0xB7;
-////                            power_data[19] = 0x03;
-////
-////                            power_data[23] = 0xB7;
-////                            power_data[27] = 0x03;
-////
-////                            power_data[31] = 0xB7;
-////                            power_data[35] = 0x03;
-////
-////                            power_data[39] = 0xB7;
-////                            power_data[43] = 0x03;
-//                        }
-//                    }
-                }
-                if((length = ykc_monitor_readline_data(socket->fd))/* || lld*/){
-//                    if(lld){
-//                        lld = 0;
-////                        length=  sizeof(ggk);
-////                        memcpy(s_ykc_message_recv_buff, ggk, sizeof(ggk));
-//                        length=  sizeof(power_data);
-//                        memcpy(s_ykc_monitor_message_recv_buff, power_data, sizeof(power_data));
-//                        rt_kprintf("zhfFH(%d)\n",((Net_YkcMonitorPro_Head_t*)s_ykc_monitor_message_recv_buff)->type);
-//                    }
-
+                if((length = ykc_monitor_readline_data(socket->fd))){
                     sprintf((char*)ykc_monitor_id, "%s", "MYKC");
                     NETDATA_DEBUG((const char*)ykc_monitor_id, s_ykc_monitor_message_recv_buff, length, NETDATA_DEBUG_DIR_RECV);
 
