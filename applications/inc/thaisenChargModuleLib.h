@@ -519,4 +519,35 @@ void thaisenSetYouYouSlienceMode(uint8_t state);
  */
 uint8_t thaisenGetYouYouSlienceMode(void);
 
+typedef enum
+{
+    thaisenFunction_enable,
+    thaisenFunction_disable,
+    thaisenFunction_size,
+}thaisenFunction;
+
+/* 功能说明:
+ *          thaisenModuleSetParallelEnable:设置是否使能并联
+ *
+ * 输入参数:
+ *          state:使能状态：0：使能，1：失能
+ * 返回参数:
+ *
+ * 调用方法:
+ *          可实时调用
+ */
+int32_t thaisenModuleSetParallelEnable(uint8_t state);
+
+/* 功能说明:
+ *          thaisenModuleGetParallelEnable: 获取是否使能并联
+ *
+ * 输入参数:
+ *
+ * 返回参数:
+ *          是否使能并联
+ * 调用方法:
+ *          可实时调用
+ */
+uint8_t thaisenModuleGetParallelEnable(void);
+
 #endif /* APPLICATIONS_THAISENCHARGMODULELIB_H_ */

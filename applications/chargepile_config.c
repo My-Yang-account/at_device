@@ -154,7 +154,8 @@ struct _function_enable{
     uint8_t temp_protect;          /* 温度保护 */
     uint8_t rfid_card_reader;      /* 读卡器 */
     uint8_t auxpower_24V;          /* 24V辅源 */
-    uint8_t reserve[96];
+    uint8_t parallel_relay;        /* 并联 */
+    uint8_t reserve[95];
 };
 
 struct _state_reversal{
@@ -284,6 +285,11 @@ static struct config_item s_config_item_set[CONFIG_ITEM_SIZE] =
         {CONFIG_ITEM_SUPORT_PARALLEL,                                                           /* 配置项：并充支持*/
         (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.parallel_charge)),
         (uint8_t*)&s_chargepile_config_info.function_enable.parallel_charge,
+        NULL},
+
+        {CONFIG_ITEM_SUPORT_PARALLELRELAY,                                                      /* 配置项：并联支持*/
+        (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.parallel_relay)),
+        (uint8_t*)&s_chargepile_config_info.function_enable.parallel_relay,
         NULL},
 
         {CONFIG_ITEM_SUPORT_PLUGCHARGE,
@@ -872,6 +878,7 @@ static void chargepile_config_data_reset(void)
     s_chargepile_config_info.function_enable.elock_in = 0x01;
     s_chargepile_config_info.function_enable.temp_protect = 0x01;
     s_chargepile_config_info.function_enable.rfid_card_reader = 0x00;
+    s_chargepile_config_info.function_enable.parallel_relay = 0x00;
 
     s_chargepile_config_info.state_reversal.emergency_stop = 0x00;
     s_chargepile_config_info.state_reversal.gate = 0x00;
@@ -1026,6 +1033,11 @@ int32_t chargepile_check_config(void)
     }
     if(s_chargepile_config_info.function_enable.rfid_card_reader > 0x01){   /* 读卡器默认关闭 */
         s_chargepile_config_info.function_enable.rfid_card_reader = 0x00;
+    }
+
+    rt_kprintf("s_chargepile_config_info.function_enable.parallel_relay(%d)\n", s_chargepile_config_info.function_enable.parallel_relay);
+    if(s_chargepile_config_info.function_enable.parallel_relay > 0x01){    /* 并联默认启用 */
+        s_chargepile_config_info.function_enable.parallel_relay = 0x01;
     }
 
     if(s_chargepile_config_info.state_reversal.emergency_stop > 0x01){   /* 急停默认不取反 */

@@ -393,6 +393,7 @@ struct LCD_DISPLAY_SETDATA_TYPE{
 
     u8 sup_auxp_24V;                        //24V辅源支持
 	u8 sup_parallelchg;						//并充支持
+	u8 sup_parallelrelay;                   //支持并联
 	u8 fan_type;							//风扇类型
 	u8 fan_frequency;						//风扇频率
 	u8 FanCtrlPulse;						//风扇占空比
@@ -1563,6 +1564,14 @@ void SerialScreen_IsSupportParaChargeSet(void)
         LcdData.setData.sup_parallelchg = FALSE;
 }
 
+void SerialScreen_IsSupportParaRelaySet(void)
+{
+    if(LcdData.setData.sup_parallelrelay != TRUE)
+        LcdData.setData.sup_parallelrelay = TRUE;
+    else
+        LcdData.setData.sup_parallelrelay = FALSE;
+}
+
 void SerialScreen_IsSupportVINSet(void)
 {
 	sSCREEN_EVENT_DEBUGMSG("##########IsSupportVINSet = %d###########\r\n",LcdData.setData.sup_VIN);	
@@ -1756,6 +1765,7 @@ void SerialScreen_IsSupportSetFlash(void)
     UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_CARD, (u8 *)&(LcdData.setData.sup_usecard), sizeof(LcdData.setData.sup_usecard));
     UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_AUXPOWER24V, (u8 *)&(LcdData.setData.sup_auxp_24V), sizeof(LcdData.setData.sup_auxp_24V));
     UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_PARALLEL, (u8 *)&(LcdData.setData.sup_parallelchg), sizeof(LcdData.setData.sup_parallelchg));
+    UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_PARALLELRELAY, (u8 *)&(LcdData.setData.sup_parallelrelay), sizeof(LcdData.setData.sup_parallelrelay));
 
     for(u8 i = 0; i < sizeof(LcdData.setData.UserPasswdShow); i++){
         if((LcdData.setData.UserPasswdShow[i] < 0x20) ||  \
@@ -1787,6 +1797,12 @@ void SerialScreen_IsSupportSetFlash(void)
     }
     thaisen_set_insult_mode(function_disable, 0);
     thaisen_set_insult_mode(function_disable, 1);
+
+    if(LcdData.setData.sup_parallelrelay == FALSE){
+        thaisenModuleSetParallelEnable(thaisenFunction_disable);
+    }else{
+        thaisenModuleSetParallelEnable(thaisenFunction_enable);
+    }
 
     LcdAssistantData.Flag.IsEnableParaCharge = LcdData.setData.sup_parallelchg;
     LcdAssistantData.Flag.IsEnableAuxPower24V = LcdData.setData.sup_auxp_24V;
@@ -1881,6 +1897,8 @@ void SerialScreen_IsSupportGet(void)
         LcdData.setData.sup_auxp_24V = FALSE;
     if(TRUE != *(u8 *)(UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_PARALLEL, 0)))         /* 并充配置默认不启用 */
         LcdData.setData.sup_parallelchg = FALSE;
+    if(FALSE != *(u8 *)(UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_PARALLELRELAY, 0)))    /* 并联配置默认启用 */
+        LcdData.setData.sup_parallelrelay = TRUE;
 
     if(LcdData.setData.sup_insulation == FALSE){
         function_disable = 1;
@@ -4317,6 +4335,7 @@ struct LCD_DATA_FIFO_TYPE *SerialScreen_Init(struct SerialScreenObj *cmd)
     LcdData.setData.sup_auxp_24V = *(UI_READ_SINGLE_CFG_STR(CONFIG_ITEM_SUPORT_AUXPOWER24V, 0));
     LcdData.setData.MeterModel = *(UI_READ_SINGLE_CFG_STR(CONFIG_ITEM_METER_MODEL, 0));
     LcdData.setData.sup_parallelchg = *(UI_READ_SINGLE_CFG_STR(CONFIG_ITEM_SUPORT_PARALLEL, 0));
+    LcdData.setData.sup_parallelrelay = *(UI_READ_SINGLE_CFG_STR(CONFIG_ITEM_SUPORT_PARALLELRELAY, 0));
 
     memset(LcdData.setData.UserPasswdShow, '\0', sizeof(LcdData.setData.UserPasswdShow));
     memcpy(LcdData.setData.UserPasswdShow, data, sizeof(LcdData.setData.UserPasswdShow));
@@ -4368,6 +4387,9 @@ struct LCD_DATA_FIFO_TYPE *SerialScreen_Init(struct SerialScreenObj *cmd)
 
     if(LcdData.setData.sup_insulation > TRUE)    /* 绝缘配置默认启用 */
         LcdData.setData.sup_insulation = TRUE;
+
+    if(LcdData.setData.sup_parallelrelay > TRUE)    /* 并联配置默认启用 */
+        LcdData.setData.sup_parallelrelay = TRUE;
 
     if(LcdData.setData.sup_usecard > TRUE)           /* 读卡器配置默认不启用 */
         LcdData.setData.sup_usecard = FALSE;
@@ -4424,12 +4446,20 @@ struct LCD_DATA_FIFO_TYPE *SerialScreen_Init(struct SerialScreenObj *cmd)
 	LcdData.setData.SerialScreen_PassWordShow = 0;
 	LcdData.setData.manufacturer = 1;//NULL
 
+	thaisenModuleSetParallelEnable(thaisenFunction_disable);
+
 	LcdAssistantData.Flag.IsEnableParaCharge = 0;
 	LcdData.setData.parallel_iocn = ICON_CHARGEWAY_NONE;
 	LcdAssistantData.Flag.ParaChargeSelect = 0;
 	if(LcdData.setData.sup_parallelchg == TRUE){
 	    LcdAssistantData.Flag.IsEnableParaCharge = 1;
 	}
+
+    if(LcdData.setData.sup_parallelrelay == FALSE){
+        thaisenModuleSetParallelEnable(thaisenFunction_disable);
+    }else{
+        thaisenModuleSetParallelEnable(thaisenFunction_enable);
+    }
 
 	Q_INIT(LcdData.List, u8, 250);
 //	SerialScreen_RtcShow(cmd);
@@ -6222,6 +6252,7 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_CONFIG, NULL, "locoal set", LCD_BtnType, 0x003d, 0x1000, page_type, LCD_PAGE_MENU_CONFIG, (void *)SerialScreen_IsSupportSet);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_CONFIG, NULL, "auxp24v set", LCD_BtnType, 0x0006, 0x1007, page_type, LCD_PAGE_MENU_CONFIG, (void *)SerialScreen_IsSupportAuxp24VSet);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_CONFIG, NULL, "paracharge set", LCD_BtnType, 0x0005, 0x1007, page_type, LCD_PAGE_MENU_CONFIG, (void *)SerialScreen_IsSupportParaChargeSet);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_CONFIG, NULL, "pararelay set", LCD_BtnType, 0x0002, 0x1001, page_type, LCD_PAGE_MENU_CONFIG, (void *)SerialScreen_IsSupportParaRelaySet);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_CONFIG, NULL, "reader set", LCD_BtnType, 0x003C, 0x1000, page_type, LCD_PAGE_MENU_CONFIG, (void *)SerialScreen_IsSupportReaderSet);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_CONFIG, NULL, "vin set", LCD_BtnType, 0x0039, 0x1000, page_type, LCD_PAGE_MENU_CONFIG, (void *)SerialScreen_IsSupportVINSet);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_CONFIG, NULL, "insulation set", LCD_BtnType, 0x0038, 0x1000, page_type, LCD_PAGE_MENU_CONFIG, (void *)SerialScreen_IsSupportIsulationSet);
@@ -6230,6 +6261,7 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_CONFIG, NULL, "locoal charge", LCD_IconType, LCD_10sReflash, 0x412E, pu8_type, sizeof(LcdData.setData.sup_Local), (void *)&LcdData.setData.sup_Local);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_CONFIG, NULL, "auxp24v", LCD_IconType, LCD_10sReflash, 0x465A, pu8_type, sizeof(LcdData.setData.sup_auxp_24V), (void *)&LcdData.setData.sup_auxp_24V);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_CONFIG, NULL, "paracharge", LCD_IconType, LCD_10sReflash, 0x4658, pu8_type, sizeof(LcdData.setData.sup_parallelchg), (void *)&LcdData.setData.sup_parallelchg);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_CONFIG, NULL, "pararelay", LCD_IconType, LCD_10sReflash, 0x465C, pu8_type, sizeof(LcdData.setData.sup_parallelrelay), (void *)&LcdData.setData.sup_parallelrelay);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_CONFIG, NULL, "reader enable", LCD_IconType, LCD_10sReflash, 0x412C, pu8_type, sizeof(LcdData.setData.sup_usecard), (void *)&LcdData.setData.sup_usecard);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_CONFIG, NULL, "insulation set", LCD_IconType, LCD_10sReflash, 0x4124, pu8_type, sizeof(LcdData.setData.sup_insulation), (void *)&LcdData.setData.sup_insulation);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_CONFIG, NULL, "vin set", LCD_IconType, LCD_10sReflash, 0x4126, pu8_type, sizeof(LcdData.setData.sup_VIN), (void *)&LcdData.setData.sup_VIN);
