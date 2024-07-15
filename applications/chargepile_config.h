@@ -78,7 +78,7 @@
 #define CARD_NUMBER_LENGTH_MAX             0x10                    /* 卡号长度最大值 */
 
 #define CARD_UID_LENGTH_DEF                0x08                    /* 卡UID长度默认值 */
-#define CARD_UID_LENGTH_MIN                0x08                    /* 卡UID长度最小值 */
+#define CARD_UID_LENGTH_MIN                0x01                    /* 卡UID长度最小值 */
 #define CARD_UID_LENGTH_MAX                0x08                    /* 卡UID长度最大值 */
 
 #define VIN_CODE_LENGTH_DEF                0x11                    /* VIN码长度默认值 */

@@ -1292,11 +1292,13 @@ static void net_ykc_monitor_server_message_pro_entry(void *parameter)
 
                         if(g_ykc_monitor_sreq_sync_offline_card.body.result == 0x00){
                             for(uint8_t i = 0x00; i < g_ykc_monitor_sreq_sync_offline_card.body.count; i++){
+#if 0
                                 if(handle->card_vin_whitelists_set(card, NET_YKC_MONITOR_CARD_NUMBER_LENGTH_MAX, NET_SYSTEM_DATA_OPTION_CARD_NUMBER_WHITELIST) < 0x00){
                                     pro_result = 0x00;
                                     reason = 0x02;
                                     break;
                                 }
+#endif /* 0 */
                                 if(handle->card_vin_whitelists_set((card + NET_YKC_MONITOR_CARD_NUMBER_LENGTH_MAX), NET_YKC_MONITOR_CARD_NUMBER_LENGTH_MAX, \
                                         NET_SYSTEM_DATA_OPTION_CARD_UID_WHITELIST) < 0x00){
                                     pro_result = 0x00;

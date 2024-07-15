@@ -654,12 +654,12 @@ int8_t ykc_response_padding_remote_start_merge_charge(uint8_t gunno, uint8_t *bu
 }
 
 /*************************************************
- * 函数名      ykc_response_padding_qrcode_config
- * 功能          组包：二维码配置响应
+ * 函数名      ykc_response_padding_qrcode_config_gc
+ * 功能          组包：二维码配置响应(国充)
  * **********************************************/
-int8_t ykc_response_padding_qrcode_config(uint8_t gunno, uint8_t *buf, uint16_t ilen, uint16_t *olen)
+int8_t ykc_response_padding_qrcode_config_gc(uint8_t gunno, uint8_t *buf, uint16_t ilen, uint16_t *olen)
 {
-    uint8_t data_len = sizeof(Net_YkcPro_PRes_Qrcode_Config_t);
+    uint8_t data_len = sizeof(Net_YkcPro_PRes_Qrcode_Config_GC_t);
 
     if(buf == NULL){
         return -0x01;
@@ -672,15 +672,45 @@ int8_t ykc_response_padding_qrcode_config(uint8_t gunno, uint8_t *buf, uint16_t 
     }
 
     uint8_t valid_len = 0x00;
-    Net_YkcPro_PRes_Qrcode_Config_t *response = NULL;
-    response = ((Net_YkcPro_PRes_Qrcode_Config_t*)buf);
+    Net_YkcPro_PRes_Qrcode_Config_GC_t *response = NULL;
+    response = ((Net_YkcPro_PRes_Qrcode_Config_GC_t*)buf);
     memset(response, 0x00, data_len);
 
-    valid_len = sizeof(g_ykc_sreq_qrcode_config[gunno].body.pile_number);
+    valid_len = sizeof(g_ykc_sreq_qrcode_config_gc[gunno].body.pile_number);
     valid_len = valid_len > sizeof(response->body.pile_number) ? sizeof(response->body.pile_number) : valid_len;
-    memcpy(response->body.pile_number, g_ykc_sreq_qrcode_config[gunno].body.pile_number, valid_len);
+    memcpy(response->body.pile_number, g_ykc_sreq_qrcode_config_gc[gunno].body.pile_number, valid_len);
 
     response->body.gunno = gunno + 0x01;
+
+    if(olen){
+        *olen = data_len;
+    }
+    return 0x00;
+}
+
+/*************************************************
+ * 函数名      ykc_response_padding_qrcode_config_ykc15
+ * 功能          组包：二维码配置响应(云快充1.5)
+ * **********************************************/
+int8_t ykc_response_padding_qrcode_config_ykc15(uint8_t *buf, uint16_t ilen, uint16_t *olen)
+{
+    uint8_t data_len = sizeof(Net_YkcPro_PRes_Qrcode_Config_Ykc15_t);
+
+    if(buf == NULL){
+        return -0x01;
+    }
+    if(data_len > ilen){
+        return -0x02;
+    }
+
+    uint8_t valid_len = 0x00;
+    Net_YkcPro_PRes_Qrcode_Config_Ykc15_t *response = NULL;
+    response = ((Net_YkcPro_PRes_Qrcode_Config_Ykc15_t*)buf);
+    memset(response, 0x00, data_len);
+
+    valid_len = sizeof(g_ykc_sreq_qrcode_config_ykc15.body.pile_number);
+    valid_len = valid_len > sizeof(response->body.pile_number) ? sizeof(response->body.pile_number) : valid_len;
+    memcpy(response->body.pile_number, g_ykc_sreq_qrcode_config_ykc15.body.pile_number, valid_len);
 
     if(olen){
         *olen = data_len;
@@ -1155,21 +1185,6 @@ int8_t ykc_message_pro_remote_start_merge_charge_request(uint8_t gunno, void *da
         break;
     }
     return NET_YKC_START_FAIL_REASON_NO;
-}
-
-/*************************************************
- * 函数名      ykc_message_pro_qrcode_config_request
- * 功能          处理服务器下发的二维码配置
- * **********************************************/
-int8_t ykc_message_pro_qrcode_config_request(uint8_t gunno)
-{
-    if(gunno >= NET_SYSTEM_GUN_NUMBER){
-        return -0x02;
-    }
-
-    uint8_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
-    return s_ykc_handle->set_system_data(NET_SYSTEM_DATA_NAME_QRCODE, g_ykc_sreq_qrcode_config[gunno].body.qrcode,
-            sizeof(g_ykc_sreq_qrcode_config[gunno].body.qrcode), option);
 }
 
 /*************************************************

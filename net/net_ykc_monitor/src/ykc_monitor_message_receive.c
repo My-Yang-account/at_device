@@ -644,7 +644,7 @@ static void ykc_monitor_callback_request_account_ballance_update(uint8_t* data, 
 static void ykc_monitor_callback_request_sync_offline_card(uint8_t* data, uint16_t length)
 {
     if(data == NULL){
-        LOG_E("ykc monitor input data is null when call tha_callback_request_sync_offline_card");
+        LOG_E("ykc monitor input data is null when call ykc_monitor_callback_request_sync_offline_card");
         return;
     }
     uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC_MONITOR |NET_SYSTEM_DATA_OPTION_DATA_CONTENT), count = 0x00, total_len = 0x00;
@@ -655,7 +655,7 @@ static void ykc_monitor_callback_request_sync_offline_card(uint8_t* data, uint16
 
     ykc_monitor_ascii_to_bcd((uint8_t*)pile_number, pile_numberbcd, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
     if(memcmp(pile_numberbcd, ((Net_YkcMonitorPro_SReq_Sync_OfflineCard_t*)data)->body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT)){
-        LOG_E("ykc monitor chargepile number error when call tha_callback_request_sync_offline_card");
+        LOG_E("ykc monitor chargepile number error when call ykc_monitor_callback_request_sync_offline_card");
         return;
     }
 
@@ -663,24 +663,24 @@ static void ykc_monitor_callback_request_sync_offline_card(uint8_t* data, uint16
     count = ((Net_YkcMonitorPro_SReq_Sync_OfflineCard_t*)data)->body.count;
     total_len = sizeof(Net_YkcMonitorPro_SReq_Sync_OfflineCard_t) + (2 *count *NET_YKC_MONITOR_CARD_NUMBER_LENGTH_MAX);
     if(length != total_len){
-        LOG_E("ykc monitor input length error when call tha_callback_request_sync_offline_card|%d, %d", length, total_len);
+        LOG_E("ykc monitor input length error when call ykc_monitor_callback_request_sync_offline_card|%d, %d", length, total_len);
         return;
     }
     if(count <= 0x00){
-        LOG_E("ykc monitor message data error when call tha_callback_request_sync_offline_card");
+        LOG_E("ykc monitor message data error when call ykc_monitor_callback_request_sync_offline_card");
         return;
     }
 
     g_ykc_monitor_sreq_sync_offline_card.body.result = 0x00;
     if(sizeof(s_ykc_monitor_card_vin_buf.whitlelist) < (2 *count *NET_YKC_MONITOR_CARD_NUMBER_LENGTH_MAX)){
         g_ykc_monitor_sreq_sync_offline_card.body.result = 0x01;
-        LOG_E("ykc monitor message data too long when call tha_callback_request_sync_offline_card");
+        LOG_E("ykc monitor message data too long when call ykc_monitor_callback_request_sync_offline_card");
         ykc_monitor_net_event_send(NET_YKC_MONITOR_EVENT_HANDLE_SERVER, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, 0x00, NET_YKC_MONITOR_SREQ_EVENT_SYNC_OFFLINE_CARD);
         return;
     }
     if(s_ykc_monitor_card_vin_buf.flag.is_used){
         g_ykc_monitor_sreq_sync_offline_card.body.result = 0x02;
-        LOG_E("ykc monitor card vin whitelist is used when call tha_callback_request_sync_offline_card");
+        LOG_E("ykc monitor card vin whitelist is used when call ykc_monitor_callback_request_sync_offline_card");
         ykc_monitor_net_event_send(NET_YKC_MONITOR_EVENT_HANDLE_SERVER, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, 0x00, NET_YKC_MONITOR_SREQ_EVENT_SYNC_OFFLINE_CARD);
         return;
     }
@@ -704,7 +704,7 @@ static void ykc_monitor_callback_request_sync_offline_card(uint8_t* data, uint16
 static void ykc_monitor_callback_request_clear_offline_card(uint8_t* data, uint16_t length)
 {
     if(data == NULL){
-        LOG_E("ykc monitor input data is null when call tha_callback_request_clear_offline_card");
+        LOG_E("ykc monitor input data is null when call ykc_monitor_callback_request_clear_offline_card");
         return;
     }
     uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC_MONITOR |NET_SYSTEM_DATA_OPTION_DATA_CONTENT), count = 0x00, total_len = 0x00;
@@ -716,7 +716,7 @@ static void ykc_monitor_callback_request_clear_offline_card(uint8_t* data, uint1
 
     ykc_monitor_ascii_to_bcd((uint8_t*)pile_number, pile_numberbcd, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
     if(memcmp(pile_numberbcd, request->body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT)){
-        LOG_E("ykc monitor chargepile number error when call tha_callback_request_clear_offline_card");
+        LOG_E("ykc monitor chargepile number error when call ykc_monitor_callback_request_clear_offline_card");
         return;
     }
 
@@ -724,23 +724,23 @@ static void ykc_monitor_callback_request_clear_offline_card(uint8_t* data, uint1
     count = request->body.count;
     total_len = sizeof(Net_YkcMonitorPro_SReq_Clear_OfflineCard_t) + count *NET_YKC_MONITOR_CARD_NUMBER_LENGTH_MAX;
     if(length != total_len){
-        LOG_E("ykc monitor input length error when call tha_callback_request_clear_offline_card|%d, %d", length, total_len);
+        LOG_E("ykc monitor input length error when call ykc_monitor_callback_request_clear_offline_card|%d, %d", length, total_len);
         return;
     }
     if(count <= 0x00){
-        LOG_E("ykc monitor message data error when call tha_callback_request_clear_offline_card");
+        LOG_E("ykc monitor message data error when call ykc_monitor_callback_request_clear_offline_card");
         return;
     }
     g_ykc_monitor_sreq_clear_offline_card.body.result = 0x00;
     if(sizeof(s_ykc_monitor_card_vin_buf.whitlelist) < (count *NET_YKC_MONITOR_CARD_NUMBER_LENGTH_MAX)){
         g_ykc_monitor_sreq_clear_offline_card.body.result = 0x01;
-        LOG_E("ykc monitor message data too long when call tha_callback_request_clear_offline_card");
+        LOG_E("ykc monitor message data too long when call ykc_monitor_callback_request_clear_offline_card");
         ykc_monitor_net_event_send(NET_YKC_MONITOR_EVENT_HANDLE_SERVER, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, 0x00, NET_YKC_MONITOR_SREQ_EVENT_CLEAR_OFFLINE_CARD);
         return;
     }
     if(s_ykc_monitor_card_vin_buf.flag.is_used){
         g_ykc_monitor_sreq_clear_offline_card.body.result = 0x02;
-        LOG_E("ykc monitor card vin whitelist is used when call tha_callback_request_clear_offline_card");
+        LOG_E("ykc monitor card vin whitelist is used when call ykc_monitor_callback_request_clear_offline_card");
         ykc_monitor_net_event_send(NET_YKC_MONITOR_EVENT_HANDLE_SERVER, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, 0x00, NET_YKC_MONITOR_SREQ_EVENT_CLEAR_OFFLINE_CARD);
         return;
     }
@@ -763,7 +763,7 @@ static void ykc_monitor_callback_request_clear_offline_card(uint8_t* data, uint1
 static void ykc_monitor_callback_request_query_offline_card(uint8_t* data, uint16_t length)
 {
     if(data == NULL){
-        LOG_E("ykc monitor input data is null when call tha_callback_request_query_offline_card");
+        LOG_E("ykc monitor input data is null when call ykc_monitor_callback_request_query_offline_card");
         return;
     }
     uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC_MONITOR |NET_SYSTEM_DATA_OPTION_DATA_CONTENT), count = 0x00, total_len = 0x00;
@@ -775,7 +775,7 @@ static void ykc_monitor_callback_request_query_offline_card(uint8_t* data, uint1
 
     ykc_monitor_ascii_to_bcd((uint8_t*)pile_number, pile_numberbcd, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
     if(memcmp(pile_numberbcd, request->body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT)){
-        LOG_E("ykc monitor chargepile number error when call tha_callback_request_query_offline_card");
+        LOG_E("ykc monitor chargepile number error when call ykc_monitor_callback_request_query_offline_card");
         return;
     }
 
@@ -783,28 +783,27 @@ static void ykc_monitor_callback_request_query_offline_card(uint8_t* data, uint1
     count = request->body.count;
     total_len = sizeof(Net_YkcMonitorPro_SReq_Query_OfflineCard_t) + count *NET_YKC_MONITOR_CARD_NUMBER_LENGTH_MAX;
     if(length != total_len){
-        LOG_E("ykc monitor input length error when call tha_callback_request_query_offline_card|%d, %d", length, total_len);
+        LOG_E("ykc monitor input length error when call ykc_monitor_callback_request_query_offline_card|%d, %d", length, total_len);
         return;
     }
     if(count <= 0x00){
-        LOG_E("ykc monitor message data error when call tha_callback_request_query_offline_card");
+        LOG_E("ykc monitor message data error when call ykc_monitor_callback_request_query_offline_card");
         return;
     }
     g_ykc_monitor_sreq_query_offline_card.body.result = 0x00;
     if(sizeof(s_ykc_monitor_card_vin_buf.whitlelist) < (count *NET_YKC_MONITOR_CARD_NUMBER_LENGTH_MAX)){
         g_ykc_monitor_sreq_query_offline_card.body.result = 0x01;
-        LOG_E("ykc monitor message data too long when call tha_callback_request_query_offline_card");
+        LOG_E("ykc monitor message data too long when call ykc_monitor_callback_request_query_offline_card");
         ykc_monitor_net_event_send(NET_YKC_MONITOR_EVENT_HANDLE_SERVER, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, 0x00, NET_YKC_MONITOR_SREQ_EVENT_QUERY_OFFLINE_CARD);
         return;
     }
     if(s_ykc_monitor_card_vin_buf.flag.is_used){
         g_ykc_monitor_sreq_query_offline_card.body.result = 0x02;
-        LOG_E("ykc monitor card vin whitelist is used when call tha_callback_request_query_offline_card");
+        LOG_E("ykc monitor card vin whitelist is used when call ykc_monitor_callback_request_query_offline_card");
         ykc_monitor_net_event_send(NET_YKC_MONITOR_EVENT_HANDLE_SERVER, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, 0x00, NET_YKC_MONITOR_SREQ_EVENT_QUERY_OFFLINE_CARD);
         return;
     }
-    rt_kprintf("ykc_monitor_callback_request_query_offline_card(%d, %s)\n", count *NET_YKC_MONITOR_CARD_NUMBER_LENGTH_MAX,
-            card);
+
     s_ykc_monitor_card_vin_buf.flag.is_used = 0x01;
     s_ykc_monitor_card_vin_buf.length = count *NET_YKC_MONITOR_CARD_NUMBER_LENGTH_MAX;
     s_ykc_monitor_card_vin_buf.type = NET_YKC_MONITOR_WHITELIST_TYPE_CARD;

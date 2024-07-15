@@ -14,7 +14,7 @@
 
 #ifdef NET_PACK_USING_YKC
 
-#define YKC_SERVICE_CALLBACK_ITEM_MAX                           22                          /* 服务回调项数量 */
+#define YKC_SERVICE_CALLBACK_ITEM_MAX                           23                          /* 服务回调项数量 */
 #define YKC_RECV_BUFF_SIZE                                      16 + NET_OTA_SEGMENT_LEN    /* 接收缓存大小 */
 #define YKC_RECV_THREAD_STACK_SIZE                              2048                        /* 报文接收线程栈大小 */
 

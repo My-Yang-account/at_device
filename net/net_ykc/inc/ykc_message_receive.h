@@ -14,6 +14,12 @@
 
 #ifdef NET_PACK_USING_YKC
 
+#define NET_YKC_CARD_VIN_WHITELIST_MAX                               (17 *25)  /* 卡、VIN码白名单最大数量 */
+#define NET_YKC_QRCODE_BUF_MAX                                       256       /* 二维码缓存长度 */
+
+#define NET_YKC_WHITELIST_TYPE_CARD                          0x00      /* 白名单类型：卡白名单 */
+#define NET_YKC_WHITELIST_TYPE_VIN                           0x01      /* 白名单类型：VIN码白名单 */
+
 #define NET_YKC_CARD_WHITELIST_QUERY                         (1 <<0)
 #define NET_YKC_CARD_WHITELIST_DELETE                        (1 <<1)
 
@@ -43,9 +49,10 @@
 #define NET_YKC_SREQ_EVENT_REMOTE_REBOOT                       11   /* 服务器请求事件：远程重启*/
 #define NET_YKC_SREQ_EVENT_REMOTE_UPDATE                       12   /* 服务器请求事件：远程更新*/
 #define NET_YKC_SREQ_EVENT_REMOTE_START_MERGE_CHARGE           13   /* 服务器请求事件：运营平台远程控制并充启机*/
-#define NET_YKC_SREQ_EVENT_QRCODE_CONFIG                       14   /* 服务器请求事件：二维码配置*/
+#define NET_YKC_SREQ_EVENT_QRCODE_CONFIG_GC                    14   /* 服务器请求事件：二维码配置(国充)*/
+#define NET_YKC_SREQ_EVENT_QRCODE_CONFIG_YKC15                 15   /* 服务器请求事件：二维码配置(云快充1.5)*/
 
-#define NET_YKC_SERVER_SREQ_NUM                                15   /* 服务器请求事件总数 */
+#define NET_YKC_SERVER_SREQ_NUM                                16   /* 服务器请求事件总数 */
 
 /**=======================================[服务器请求报文]=======================================*/
 /**=======================================[服务器请求报文]=======================================*/
@@ -77,8 +84,10 @@ extern Net_YkcPro_SReq_RemoteReboot_t g_ykc_sreq_remote_reboot;
 extern Net_YkcPro_SReq_RemoteUpdate_t g_ykc_sreq_remote_update;
 /** 运营平台远程控制并充启机 */
 extern Net_YkcPro_SReq_Remote_StartMergeCharge_t g_ykc_sreq_remote_start_merge_charge[NET_SYSTEM_GUN_NUMBER];
-/** 运营平台下发二维码配置 */
-extern Net_YkcPro_SReq_Qrcode_Config_t g_ykc_sreq_qrcode_config[NET_SYSTEM_GUN_NUMBER];
+/** 运营平台下发二维码配置(国充) */
+extern Net_YkcPro_SReq_Qrcode_Config_GC_t g_ykc_sreq_qrcode_config_gc[NET_SYSTEM_GUN_NUMBER];
+/** 运营平台下发二维码配置(云快充1.5) */
+extern Net_YkcPro_SReq_Qrcode_Config_Ykc15_t g_ykc_sreq_qrcode_config_ykc15;
 
 /**=======================================[服务器响应报文]=======================================*/
 /**=======================================[服务器响应报文]=======================================*/
@@ -97,9 +106,27 @@ extern Net_YkcPro_SRes_ApplyCharge_Active_t g_ykc_sres_apply_charge_active[NET_S
 /** 充电桩主动申请并充充电响应 */
 extern Net_YkcPro_SRes_ApplyMergeCharge_Active_t g_ykc_sres_apply_merge_charge_active[NET_SYSTEM_GUN_NUMBER];   // OK
 
-uint8_t ykc_get_recv_card_whitelists_count(uint32_t option);
-uint32_t ykc_get_recv_card_whitelists_state(uint32_t option);
-void ykc_clear_recv_card_whitelists_state(uint32_t option);
+typedef struct{
+    struct{
+        uint8_t is_used : 1;
+    }flag;
+    uint8_t set_type;
+    uint8_t general_type;
+    uint16_t length;
+    uint8_t qrcode[NET_YKC_QRCODE_BUF_MAX];
+}ykc_qrcode_buf_t;
+
+typedef struct{
+    struct{
+        uint8_t is_used : 1;
+    }flag;
+    uint8_t type;
+    uint16_t length;
+    uint8_t whitlelist[NET_YKC_CARD_VIN_WHITELIST_MAX];
+}ykc_card_vin_buf_t;
+
+void* ykc_get_qrcode_info(void);
+void* ykc_get_card_vin_whitelists_info(void);
 
 int32_t ykc_message_recv_init(void);
 

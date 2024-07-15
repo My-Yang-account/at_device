@@ -36,7 +36,8 @@ int8_t ykc_response_padding_set_billing_model(uint8_t *buf, uint16_t ilen, uint1
 int8_t ykc_response_padding_ground_lock_lifting(uint8_t gunno, uint8_t *buf, uint16_t ilen, uint16_t *olen);
 int8_t ykc_response_padding_remote_update(uint8_t *buf, uint16_t ilen, uint16_t *olen);
 int8_t ykc_response_padding_remote_start_merge_charge(uint8_t gunno, uint8_t *buf, uint16_t ilen, uint16_t *olen);
-int8_t ykc_response_padding_qrcode_config(uint8_t gunno, uint8_t *buf, uint16_t ilen, uint16_t *olen);
+int8_t ykc_response_padding_qrcode_config_gc(uint8_t gunno, uint8_t *buf, uint16_t ilen, uint16_t *olen);
+int8_t ykc_response_padding_qrcode_config_ykc15(uint8_t *buf, uint16_t ilen, uint16_t *olen);
 
 int8_t ykc_message_pro_billing_model_set_response(void *data, uint8_t len);
 int8_t ykc_message_pro_apply_charge_active_response(uint8_t gunno, void *data, uint8_t len);
@@ -48,7 +49,6 @@ int8_t ykc_message_pro_set_work_para_request(void *data, uint8_t len);
 int8_t ykc_message_pro_apply_merge_charge_active_response(uint8_t gunno, void *data, uint8_t len);
 int8_t ykc_message_pro_remote_reset_request(void *data, uint8_t len);
 int8_t ykc_message_pro_remote_start_merge_charge_request(uint8_t gunno, void *data, uint8_t len);
-int8_t ykc_message_pro_qrcode_config_request(uint8_t gunno);
 
 void ykc_message_info_init(void);
 

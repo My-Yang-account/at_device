@@ -48,7 +48,6 @@
 #define NET_YKC_SOFT_VERSION_LENGTH_DEFAULT                    0x08        /* 默认软件版本长度 */
 #define NET_YKC_SIM_BCD_LENGTH_DEFAULT                         0x0A        /* 默认sim卡卡号BCD码长度 */
 #define NET_YKC_CARD_NUMBER_COUNT_MAX                          0x18        /* 卡号最大个数 */
-#define NET_YKC_QRCODE_LENGTH_DEFAULT                          0x96        /* 默认二维码长度 */
 
 enum ykc_device_state{
     NETYKC_DEVICE_STATE_OFFLINE = 0x00,                      /* 设备状态：离线 */
@@ -219,8 +218,8 @@ enum ykc_cmd{
     NETYKC_SREQCMD_SET_BILLING_MODEL = 0x58,                 /* 指令：服务器设置计费模型 */
     NETYKC_PRESCMD_SET_BILLING_MODEL = 0x57,                 /* 指令：桩响应设置计费模型 */
 
-    NETYKC_SREQCMD_QRCODE_CONFIG = 0x5A,                     /* 指令：服务器设置二维码 */
-    NETYKC_PRESCMD_QRCODE_CONFIG = 0x59,                     /* 指令：桩响应设置二维码 */
+    NETYKC_SREQCMD_QRCODE_CONFIG_GC = 0x5A,                  /* 指令：服务器设置二维码(国充) */
+    NETYKC_PRESCMD_QRCODE_CONFIG_GC = 0x59,                  /* 指令：桩响应设置二维码(国充) */
 
     NETYKC_PREQCMD_GROUNDLOCK_INFO = 0x61,                   /* 指令：桩上报地锁数据 */
 
@@ -238,6 +237,10 @@ enum ykc_cmd{
 
     NETYKC_SREQCMD_SERVER_START_MERGECHARGE = 0xA4,          /* 指令：运营平台远程控制并充启机 */
     NETYKC_PRESCMD_SERVER_START_MERGECHARGE = 0xA3,          /* 指令：远程并充启动充电命令回复 */
+
+    NETYKC_SREQCMD_QRCODE_CONFIG_YKC15 = 0xF0,               /* 指令：服务器设置二维码(云快充1.5) */
+    NETYKC_PRESCMD_QRCODE_CONFIG_YKC15 = 0xF1,               /* 指令：桩响应设置二维码(云快充1.5) */
+
 };
 
 
@@ -786,7 +789,7 @@ typedef struct{
         uint8_t pile_number[NET_YKC_CHARGEPILE_LENGTH_DEFAULT];  /* 桩号*/
         uint8_t count;                                   /* 下发卡个数 */
         uint16_t result;
-        /* 以下为卡的物理卡号数据 */
+        /** 以下为卡的物理卡号数据 */
     }body;
 }Net_YkcPro_SReq_Sync_OfflineCard_t;
 
@@ -807,7 +810,8 @@ typedef struct{
     struct{
         uint8_t pile_number[NET_YKC_CHARGEPILE_LENGTH_DEFAULT];  /* 桩号*/
         uint8_t count;                                   /* 清除离线卡的个数 */
-        uint8_t card_number[NET_YKC_CARD_NUMBER_COUNT_MAX][NET_YKC_CARD_NUMBER_LENGTH_MAX];
+        uint16_t result;
+        /** 以下为卡的物理卡号数据 */
     }body;
 }Net_YkcPro_SReq_Clear_OfflineCard_t;
 
@@ -822,7 +826,7 @@ typedef struct{
     Net_YkcPro_Head_t head;
     struct{
         uint8_t pile_number[NET_YKC_CHARGEPILE_LENGTH_DEFAULT];  /* 桩号*/
-        /* 以下为离线卡清除结果信息 */
+        /** 以下为离线卡清除结果信息 */
     }body;
     uint16_t check_sum;                          /* 校验码 */
 }Net_YkcPro_PRes_Clear_OfflineCard_t;
@@ -833,7 +837,8 @@ typedef struct{
     struct{
         uint8_t pile_number[NET_YKC_CHARGEPILE_LENGTH_DEFAULT];  /* 桩号*/
         uint8_t count;                                   /* 查询的离线卡个数 */
-        uint8_t card_number[NET_YKC_CARD_NUMBER_COUNT_MAX + 0x02][NET_YKC_CARD_NUMBER_LENGTH_MAX];
+        uint16_t result;
+        /** 卡数据 */
     }body;
 }Net_YkcPro_SReq_Query_OfflineCard_t;
 
@@ -1067,18 +1072,18 @@ typedef struct{
     uint16_t check_sum;                          /* 校验码 */
 }Net_YkcPro_PRes_Remote_StartMergeCharge_t;
 
-/** 0x5A 云服务器二维码配置请求帧 */
+/** 0x5A 云服务器二维码配置请求帧(国充) */
 typedef struct{
     Net_YkcPro_Head_t head;
     struct{
         uint8_t pile_number[NET_YKC_CHARGEPILE_LENGTH_DEFAULT];  /* 桩号*/
         uint8_t gunno;                           /* 枪号 */
-        uint8_t qrcode[NET_YKC_QRCODE_LENGTH_DEFAULT]; /* 二维码 */
+        /** 二维码数据 */
         uint16_t result;
     }body;
-}Net_YkcPro_SReq_Qrcode_Config_t;
+}Net_YkcPro_SReq_Qrcode_Config_GC_t;
 
-/** 0x59 充电桩二维码配置应答帧 */
+/** 0x59 充电桩二维码配置应答帧(国充) */
 typedef struct{
     Net_YkcPro_Head_t head;
     struct{
@@ -1087,7 +1092,29 @@ typedef struct{
         uint8_t result;                          /* 结果 */
     }body;
     uint16_t check_sum;                          /* 校验码 */
-}Net_YkcPro_PRes_Qrcode_Config_t;
+}Net_YkcPro_PRes_Qrcode_Config_GC_t;
+
+/** 0xF0 云服务器二维码配置请求帧(云快充1.5) */
+typedef struct{
+    Net_YkcPro_Head_t head;
+    struct{
+        uint8_t pile_number[NET_YKC_CHARGEPILE_LENGTH_DEFAULT];  /* 桩号*/
+        uint8_t format;                          /* 格式 */
+        uint8_t length;                          /* 长度 */
+        /** 二维码数据 */
+        uint16_t result;
+    }body;
+}Net_YkcPro_SReq_Qrcode_Config_Ykc15_t;
+
+/** 0xF1 充电桩二维码配置应答帧(云快充1.5) */
+typedef struct{
+    Net_YkcPro_Head_t head;
+    struct{
+        uint8_t pile_number[NET_YKC_CHARGEPILE_LENGTH_DEFAULT];  /* 桩号*/
+        uint8_t result;                          /* 结果 */
+    }body;
+    uint16_t check_sum;                          /* 校验码 */
+}Net_YkcPro_PRes_Qrcode_Config_Ykc15_t;
 
 #pragma pack()
 
