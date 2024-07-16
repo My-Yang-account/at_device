@@ -1594,16 +1594,17 @@ static void net_ykc_monitor_server_message_pro_entry(void *parameter)
                 if(ykc_monitor_net_event_receive(NET_YKC_MONITOR_EVENT_HANDLE_SERVER, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, gunno,
                         (NET_YKC_MONITOR_EVENT_OPTION_OR |NET_YKC_MONITOR_EVENT_OPTION_CLEAR), NET_YKC_MONITOR_SREQ_EVENT_QRCODE_CONFIG_GC, NULL) > 0){
                     uint8_t pro_result = 0x00;
+                    ykc_monitor_qrcode_buf_t *info = (ykc_monitor_qrcode_buf_t*)(ykc_monitor_get_qrcode_info());
+
                     response = ykc_monitor_get_response_buff(RT_WAITING_FOREVER);
 #ifdef NET_YKC_MONITOR_AS_MONITOR
                     g_ykc_monitor_sreq_qrcode_config_gc[gunno].body.result = 0x01;
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
+                    info->flag.is_used = 0x00;
                     if(g_ykc_monitor_sreq_qrcode_config_gc[gunno].body.result == 0x00){
                         uint8_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC_MONITOR |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
                         struct net_handle* handle = net_get_net_handle();
-                        ykc_monitor_qrcode_buf_t *info = (ykc_monitor_qrcode_buf_t*)(ykc_monitor_get_qrcode_info());
 
-                        info->flag.is_used = 0x00;
                         if(handle->set_system_data(NET_SYSTEM_DATA_NAME_QRCODE, info->qrcode, info->length, option) >= 0x00){
                             pro_result = 0x01;
                         }
@@ -1621,16 +1622,17 @@ static void net_ykc_monitor_server_message_pro_entry(void *parameter)
                 if(ykc_monitor_net_event_receive(NET_YKC_MONITOR_EVENT_HANDLE_SERVER, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, gunno,
                         (NET_YKC_MONITOR_EVENT_OPTION_OR |NET_YKC_MONITOR_EVENT_OPTION_CLEAR), NET_YKC_MONITOR_SREQ_EVENT_QRCODE_CONFIG_YKC15, NULL) > 0){
                     uint8_t pro_result = 0x00;
+                    ykc_monitor_qrcode_buf_t *info = (ykc_monitor_qrcode_buf_t*)(ykc_monitor_get_qrcode_info());
+
                     response = ykc_monitor_get_response_buff(RT_WAITING_FOREVER);
 #ifdef NET_YKC_MONITOR_AS_MONITOR
-                    g_ykc_monitor_sreq_qrcode_config_ykc15.body.result = 0x01;
+//                    g_ykc_monitor_sreq_qrcode_config_ykc15.body.result = 0x01;
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
+                    info->flag.is_used = 0x00;
                     if(g_ykc_monitor_sreq_qrcode_config_ykc15.body.result == 0x00){
                         uint8_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC_MONITOR |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
                         struct net_handle* handle = net_get_net_handle();
-                        ykc_monitor_qrcode_buf_t *info = (ykc_monitor_qrcode_buf_t*)(ykc_monitor_get_qrcode_info());
 
-                        info->flag.is_used = 0x00;
                         if(handle->set_system_data(NET_SYSTEM_DATA_NAME_QRCODE, info->qrcode, info->length, option) >= 0x00){
                             pro_result = 0x01;
                         }

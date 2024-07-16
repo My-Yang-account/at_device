@@ -992,6 +992,8 @@ static void ykc_callback_request_qrcode_config_gc(uint8_t* data, uint16_t length
         LOG_E("ykc gunno error when call ykc_monitor_callback_request_qrcode_config_gc|%d", gunno);
         return;
     }
+
+    memcpy(&(g_ykc_sreq_qrcode_config_gc[gunno - 0x01]), data, (sizeof(g_ykc_sreq_qrcode_config_gc[gunno - 0x01]) - NET_YKC_PROTOCOL_CHECK_REGION_SIZE));
     ykc_ascii_to_bcd((uint8_t*)pile_number, pile_numberbcd, NET_YKC_CHARGEPILE_LENGTH_DEFAULT);
     if(memcmp(pile_numberbcd, ((Net_YkcPro_SReq_Qrcode_Config_GC_t*)data)->body.pile_number, NET_YKC_CHARGEPILE_LENGTH_DEFAULT)){
         LOG_E("ykc chargepile number error when call ykc_monitor_callback_request_qrcode_config_gc");
@@ -1028,14 +1030,13 @@ static void ykc_callback_request_qrcode_config_gc(uint8_t* data, uint16_t length
         return;
     }
     s_ykc_qrcode_buf.flag.is_used = 0x01;
-    s_ykc_qrcode_buf.length = qrcode_len;
-    s_ykc_qrcode_buf.set_type = NET_SET_QRCODE_FORMAT_PREFIX;
+    s_ykc_qrcode_buf.length = qrcode_len + 0x02;
+    s_ykc_qrcode_buf.set_type = NET_SET_QRCODE_FORMAT_PREFIX_DEVICE_SN_PORT;
     s_ykc_qrcode_buf.general_type = NET_GENERATE_QRCODE_FORMAT_PREFIX_DEVICE_SN_PORT;
 
     s_ykc_qrcode_buf.qrcode[0x00] = s_ykc_qrcode_buf.set_type;
     s_ykc_qrcode_buf.qrcode[0x01] = s_ykc_qrcode_buf.general_type;
     memcpy(&(s_ykc_qrcode_buf.qrcode[0x02]), &(((Net_YkcPro_SReq_Qrcode_Config_GC_t*)data)->body.result), s_ykc_qrcode_buf.length);
-    memcpy(&(g_ykc_sreq_qrcode_config_gc[gunno - 0x01]), data, (sizeof(g_ykc_sreq_qrcode_config_gc[gunno - 0x01]) - NET_YKC_PROTOCOL_CHECK_REGION_SIZE));
 
     ykc_net_event_send(NET_YKC_EVENT_HANDLE_SERVER, NET_YKC_EVENT_TYPE_REQUEST, (gunno - 0x01), NET_YKC_SREQ_EVENT_QRCODE_CONFIG_GC);
 }
@@ -1065,6 +1066,7 @@ static void ykc_callback_request_qrcode_config_ykc15(uint8_t* data, uint16_t len
     uint8_t pile_numberbcd[NET_YKC_CHARGEPILE_LENGTH_DEFAULT];
     uint8_t qrcode_len = ((Net_YkcPro_SReq_Qrcode_Config_Ykc15_t*)data)->body.length;
 
+    memcpy(&(g_ykc_sreq_qrcode_config_ykc15), data, (sizeof(g_ykc_sreq_qrcode_config_ykc15) - NET_YKC_PROTOCOL_CHECK_REGION_SIZE));
     ykc_ascii_to_bcd((uint8_t*)pile_number, pile_numberbcd, NET_YKC_CHARGEPILE_LENGTH_DEFAULT);
     if(memcmp(pile_numberbcd, ((Net_YkcPro_SReq_Qrcode_Config_Ykc15_t*)data)->body.pile_number, NET_YKC_CHARGEPILE_LENGTH_DEFAULT)){
         LOG_E("ykc chargepile number error when call ykc_callback_request_qrcode_config_ykc15");
@@ -1101,7 +1103,7 @@ static void ykc_callback_request_qrcode_config_ykc15(uint8_t* data, uint16_t len
         return;
     }
     s_ykc_qrcode_buf.flag.is_used = 0x01;
-    s_ykc_qrcode_buf.length = qrcode_len;
+    s_ykc_qrcode_buf.length = qrcode_len + 0x02;
     if(g_ykc_sreq_qrcode_config_ykc15.body.format == 0x00){
         s_ykc_qrcode_buf.set_type = NET_SET_QRCODE_FORMAT_PREFIX;
         s_ykc_qrcode_buf.general_type = NET_GENERATE_QRCODE_FORMAT_PREFIX_DEVICE_SN;
@@ -1113,7 +1115,6 @@ static void ykc_callback_request_qrcode_config_ykc15(uint8_t* data, uint16_t len
     s_ykc_qrcode_buf.qrcode[0x00] = s_ykc_qrcode_buf.set_type;
     s_ykc_qrcode_buf.qrcode[0x01] = s_ykc_qrcode_buf.general_type;
     memcpy(&(s_ykc_qrcode_buf.qrcode[0x02]), &(((Net_YkcPro_SReq_Qrcode_Config_Ykc15_t*)data)->body.result), s_ykc_qrcode_buf.length);
-    memcpy(&(g_ykc_sreq_qrcode_config_ykc15), data, (sizeof(g_ykc_sreq_qrcode_config_ykc15) - NET_YKC_PROTOCOL_CHECK_REGION_SIZE));
 
     ykc_net_event_send(NET_YKC_EVENT_HANDLE_SERVER, NET_YKC_EVENT_TYPE_REQUEST, 0x00, NET_YKC_SREQ_EVENT_QRCODE_CONFIG_YKC15);
 }

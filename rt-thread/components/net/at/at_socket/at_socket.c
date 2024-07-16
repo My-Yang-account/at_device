@@ -823,7 +823,7 @@ static void at_recv_notice_cb(struct at_socket *sock, at_socket_evt_t event, con
         return;
     }
 
-    printf("4G module recv(%d)\n", bfsz);
+//    printf("4G module recv(%d)\n", bfsz);
 //    for(uint16_t count = 0; count < bfsz; count++){
 //        if(buff[count] < 0x10){
 //            printf("0%X ", buff[count]);

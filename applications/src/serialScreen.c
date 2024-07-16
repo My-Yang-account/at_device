@@ -1037,6 +1037,9 @@ void SerialScreen_StopCharge(int port)
 
 void SerialScreen_BtnChgInfoGet(int port)
 {
+    char *qrcode_pre = NULL;
+    u8 valid_len = sizeof(LcdData.setData.ErWeiCodePre);
+
 	sSCREEN_EVENT_DEBUGMSG("##########ChgInfo###########\r\n");
 	mem_set(LcdData.setData.pileID, 0, sizeof(LcdData.setData.pileID));
 	mem_set(LcdData.setData.Help_Number, 0, sizeof(LcdData.setData.Help_Number));
@@ -1044,20 +1047,33 @@ void SerialScreen_BtnChgInfoGet(int port)
 	str_ncpy((char *)(LcdData.setData.pileID), (char *)(UI_READ_SINGLE_CFG_STR(CONFIG_ITEM_PILE_NUMBER, 0)), \
 	         sizeof(LcdData.setData.pileID));
 	str_ncpy((char *)(LcdData.setData.Help_Number), (char *)(UI_READ_SINGLE_CFG_STR(OCONFIG_ITEM_HELP_NUMBER, 0)), \
-					 sizeof(LcdData.setData.Help_Number));	
-	str_ncpy((char *)(LcdData.setData.ErWeiCodePre), (char *)(UI_READ_SINGLE_CFG_STR(CONFIG_ITEM_QRCODE_PRE, 0)), \
-						 sizeof(LcdData.setData.ErWeiCodePre));	
+					 sizeof(LcdData.setData.Help_Number));
+
+	qrcode_pre = (char *)(UI_READ_SINGLE_CFG_STR(CONFIG_ITEM_QRCODE_PRE, 0));
+    valid_len = (valid_len + 2) > strlen(qrcode_pre) ? strlen(qrcode_pre) : (valid_len + 2);
+	str_ncpy((char *)(LcdData.setData.ErWeiCodePre), (qrcode_pre + 2), (valid_len - 2));
 	sSCREEN_EVENT_DEBUGMSG("##########pileID=%s helpnum:%s  qrcodefrex:%s###########\r\n",(char *)(LcdData.setData.pileID),(char *)(LcdData.setData.Help_Number),(char *)(LcdData.setData.ErWeiCodePre));
 }
 
 void SerialScreen_BtnChgInfoSet(int port)
 {
-	/*检查桩号合法性*/
+    u8 len = sizeof(LcdData.setData.ErWeiCodePre), i, j;
+    u8 temp[len];
+
+    mem_set(temp, 0, len);
+
+    for(i = 2, j = 0; (i < len) && (j < len); i++, j++){
+        temp[i] = LcdData.setData.ErWeiCodePre[j];
+    }
+
+    temp[0] = CP_SET_QRCODE_FORMAT_PREFIX;
+    temp[1] = CP_GENERATE_QRCODE_FORMAT_PREFIX_DEVICE_SN_PORT;
+
     SerialScreen_JumpPage(&SerialScreen, LCD_PAGE_STORAGE_WAITING);
 
 	UI_SYNC_SINGLE_CFG_STR(CONFIG_ITEM_PILE_NUMBER,LcdData.setData.pileID,str_len(LcdData.setData.pileID));
 	UI_SYNC_SINGLE_CFG_STR(OCONFIG_ITEM_HELP_NUMBER,LcdData.setData.Help_Number,str_len(LcdData.setData.Help_Number));
-	UI_SYNC_SINGLE_CFG_STR(CONFIG_ITEM_QRCODE_PRE,LcdData.setData.ErWeiCodePre,str_len(LcdData.setData.ErWeiCodePre));
+	UI_SYNC_SINGLE_CFG_STR(CONFIG_ITEM_QRCODE_PRE,temp,str_len(temp));
 
 	UI_STORAGE_CFG_DATA;
 
@@ -4310,9 +4326,12 @@ struct LCD_DATA_FIFO_TYPE *SerialScreen_Init(struct SerialScreenObj *cmd)
 	         sizeof(LcdData.runData.pileID));
 	str_ncpy((char *)LcdData.setData.pileID,(char *)(LcdData.runData.pileID),sizeof(LcdData.setData.pileID));
 	sSCREEN_DEBUGPROMSG("LcdData.setData.pileID==%s\r\n",LcdData.runData.pileID);
-	str_ncpy((char *)(LcdData.setData.ErWeiCodePre), (char *)(UI_READ_SINGLE_CFG_STR(CONFIG_ITEM_QRCODE_PRE, 0)), \
-				 sizeof(LcdData.setData.ErWeiCodePre));
 	
+	data = UI_READ_SINGLE_CFG_STR(CONFIG_ITEM_QRCODE_PRE, 0);
+	len = sizeof(LcdData.setData.ErWeiCodePre);
+	len = len > str_len((char*)(data + 2)) ? str_len((char*)(data + 2)) : len;
+	str_ncpy((char *)(LcdData.setData.ErWeiCodePre), (data + 2), len);
+
     for(int i=0;i<LCD_GUN_NUM;i++)
     {
         thaisen_get_device_sn(LcdData.runData.chgcode[i], sizeof(LcdData.runData.chgcode[i]), i);
@@ -5643,11 +5662,12 @@ int SerialScreen_DataProcess()
             sprintf((char *)LcdData.gun[i].BatType,SerialScreen_BatType[temp]);
 			#endif
 			sSCREEN_DEBUGMSG(" qrcode %d = %s ",thaisen_app_get_gunno_qrcode(i)->qrcode_len,thaisen_app_get_gunno_qrcode(i)->qrcode);
+
+            mem_set(LcdData.setData.ErWeiCode[i],0,sizeof(LcdData.setData.ErWeiCode[i]));
 			if((LcdData.gun[i].portState == GUN_CONNECT_STATE_YES)&&(LcdData.gun[i].workState==SysMainStatus_PlugIn)){
 				str_ncpy(LcdData.setData.ErWeiCode[i],thaisen_app_get_gunno_qrcode(i)->qrcode,thaisen_app_get_gunno_qrcode(i)->qrcode_len);
                 LcdAssistantData.OccupyGunNum++;
 			}else{
-                mem_set(LcdData.setData.ErWeiCode[i],0,sizeof(LcdData.setData.ErWeiCode[i]));
                 LcdData.setData.s_selectaux[i] = ICON_AUXPOWER_NONE;
 		    }
 
@@ -5730,7 +5750,6 @@ void SerialScreen_Process(struct SerialScreenObj *cmd)
 	SerialScreen_GetKeyProcess(cmd);
 	SerialScreen_CheckKey();//按键间隔
 	SerialScreen_CheckPageReset();//触发界面自动消失
-	
 	//返回或页面重置
 	if(LcdData.CurrentPage==0)
 	{
@@ -5743,7 +5762,6 @@ void SerialScreen_Process(struct SerialScreenObj *cmd)
 	SerialScreen_PageReset(LcdData.gunIndex);
 	//sSCREEN_DEBUGMSG("**************SerialScreen_DataProcess*******************\r\n");
 	SerialScreen_DataProcess();
-	
     if(s_ota_info->start_flag){
         LcdData.CurrentPage = LCD_PAGE_SYS_UPDATE;
     }
@@ -5816,8 +5834,6 @@ void SerialScreen_Process(struct SerialScreenObj *cmd)
 			SerialScreen_CurrentPageShow(cmd,1);
 		}
 	}
-
-	
 	
 }
 
@@ -6009,7 +6025,7 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_1, NULL, "ver_software", LCD_TextType, LCD_NoReflash, 0x1300, pstr_type, sizeof(LcdData.setData.App_SoftWareVersion), (void *)&LcdData.setData.App_SoftWareVersion[0]);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_1, NULL, "pileID", LCD_InputType, 0, 0x1310, pstr_type, sizeof(LcdData.setData.pileID), (void *)LcdData.setData.pileID);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_1, NULL, "help number", LCD_InputType, 0, 0x11A0, pstr_type, sizeof(LcdData.setData.Help_Number), (void *)LcdData.setData.Help_Number);
-    SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_1, NULL, "Qrcode pre", LCD_InputType, 0, 0x10A0, pstr_type, sizeof(LcdData.setData.ErWeiCodePre), (void *)LcdData.setData.ErWeiCodePre);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_1, NULL, "Qrcode pre", LCD_InputType, 0, 0x10A0, pstr_type, (sizeof(LcdData.setData.ErWeiCodePre) - 1), (void *)LcdData.setData.ErWeiCodePre);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_1, NULL, "COM_2", LCD_BtnType, 0x000B, 0x1000, page_type, LCD_PAGE_MENU_COM_2, (void *)SerialScreen_BtnServerGet);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_1, NULL, "COM_3", LCD_BtnType, 0x000C, 0x1000, page_type, LCD_PAGE_MENU_COM_3, (void *)SerialScreen_BtnMeterNoInfoGet);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_1, NULL, "COM_4", LCD_BtnType, 0x000D, 0x1000, page_type, LCD_PAGE_MENU_COM_4, (void *)SerialScreen_BtnModuleGet);

@@ -86,42 +86,93 @@ struct qrcode_info *thaisen_app_get_gunno_qrcode(uint8_t gunno) // OK
 {
 #define QRCODE_FEFAULT    "http://www.ykccn.com/MPAGE/index.html?pNum="          /* 云快充默认二维码 */
 
-    uint8_t i, *p = NULL, qrcode_len = 0;
+    uint8_t i, *p = NULL, qrcode_len = 0, storage_len = (*(sys_read_config_item_content(CONFIG_ITEM_QRCODE_PRE, 1))),
+            set_type = CP_SET_QRCODE_FORMAT_PREFIX, generate_type = CP_GENERATE_QRCODE_FORMAT_PREFIX_DEVICE_SN_PORT;
 
     memset(&s_qrcode, 0x00, sizeof(s_qrcode));
     if(gunno >= APP_SYSTEM_GUNNO_SIZE){
         return &s_qrcode;
     }
 
-    if((*(sys_read_config_item_content(CONFIG_ITEM_QRCODE_PRE, 1))) == 0){
+    if(storage_len == 0){
         memcpy(s_qrcode.qrcode, QRCODE_FEFAULT, strlen(QRCODE_FEFAULT));
         qrcode_len = strlen(QRCODE_FEFAULT);
         s_qrcode.qrcode_len = qrcode_len;
     }else{
-        if(sizeof(s_qrcode.qrcode) < (*(sys_read_config_item_content(CONFIG_ITEM_QRCODE_PRE, 1)))){
+        if(storage_len <= 0x02){
             return &s_qrcode;
         }
-        for (i = 0, p = sys_read_config_item_content(CONFIG_ITEM_QRCODE_PRE, 0); i < (*(sys_read_config_item_content(CONFIG_ITEM_QRCODE_PRE, 1))); i++) {
-            s_qrcode.qrcode[i] = (*(p + i));
+        storage_len -= 0x02;
+
+        if(sizeof(s_qrcode.qrcode) < storage_len){
+            return &s_qrcode;
+        }
+        p = sys_read_config_item_content(CONFIG_ITEM_QRCODE_PRE, 0);
+        set_type = p[0];
+        generate_type = p[1];
+        if(set_type >= CP_SET_QRCODE_FORMAT_SIZE){
+            set_type = CP_SET_QRCODE_FORMAT_PREFIX;
+        }
+        if(generate_type >= CP_GENERATE_QRCODE_FORMAT_SIZE){
+            generate_type = CP_GENERATE_QRCODE_FORMAT_PREFIX_DEVICE_SN_PORT;
+        }
+
+        for (i = 0; i < storage_len; i++) {
+            s_qrcode.qrcode[i] = (*(p + 2 + i));
         }
         qrcode_len = i;
         s_qrcode.qrcode_len = qrcode_len;
     }
 
-#ifndef USING_DAQI
-    if(sizeof(s_qrcode.qrcode) < (*(sys_read_config_item_content(CONFIG_ITEM_PILE_NUMBER, 1)) + qrcode_len)){
-        return &s_qrcode;
-    }
-    sprintf((char*)(s_qrcode.qrcode + qrcode_len), "%s", sys_read_config_item_content(CONFIG_ITEM_PILE_NUMBER, 0));
-    qrcode_len = qrcode_len + (*(sys_read_config_item_content(CONFIG_ITEM_PILE_NUMBER, 1)));
-    s_qrcode.qrcode_len = qrcode_len;
+    switch(set_type){
+    /** 配置的二维码格式是：二维码前缀 */
+    case CP_SET_QRCODE_FORMAT_PREFIX:
+        switch(generate_type){
+        /** 生成的二维码格式是：二维码前缀 + 桩号 */
+        case CP_GENERATE_QRCODE_FORMAT_PREFIX_DEVICE_SN:
+            if(sizeof(s_qrcode.qrcode) < (*(sys_read_config_item_content(CONFIG_ITEM_PILE_NUMBER, 1)) + qrcode_len)){
+                return &s_qrcode;
+            }
+            sprintf((char*)(s_qrcode.qrcode + qrcode_len), "%s", sys_read_config_item_content(CONFIG_ITEM_PILE_NUMBER, 0));
+            qrcode_len = qrcode_len + (*(sys_read_config_item_content(CONFIG_ITEM_PILE_NUMBER, 1)));
+            break;
+        /** 生成的二维码格式是：二维码前缀 + 桩号 + 枪号 */
+        case CP_GENERATE_QRCODE_FORMAT_PREFIX_DEVICE_SN_PORT:
+            if(sizeof(s_qrcode.qrcode) < (*(sys_read_config_item_content(CONFIG_ITEM_PILE_NUMBER, 1)) + qrcode_len)){
+                return &s_qrcode;
+            }
 
-    if(sizeof(s_qrcode.qrcode) < (3 + qrcode_len)){
-        return &s_qrcode;
+            sprintf((char*)(s_qrcode.qrcode + qrcode_len), "%s", sys_read_config_item_content(CONFIG_ITEM_PILE_NUMBER, 0));
+            qrcode_len = qrcode_len + (*(sys_read_config_item_content(CONFIG_ITEM_PILE_NUMBER, 1)));
+            s_qrcode.qrcode_len = qrcode_len;
+
+            if(sizeof(s_qrcode.qrcode) < (3 + qrcode_len)){
+                return &s_qrcode;
+            }
+            sprintf((char*)(s_qrcode.qrcode + qrcode_len), "%c%u", '0', gunno + 1);
+            qrcode_len = qrcode_len + 2;
+            break;
+        default:
+            break;
+        }
+        break;
+    /** 配置的二维码格式是：二维码前缀 + 桩号 */
+    case CP_SET_QRCODE_FORMAT_PREFIX_DEVICE_SN:
+        switch(generate_type){
+        case CP_GENERATE_QRCODE_FORMAT_PREFIX_DEVICE_SN_PORT:
+            if(sizeof(s_qrcode.qrcode) < (3 + qrcode_len)){
+                return &s_qrcode;
+            }
+            sprintf((char*)(s_qrcode.qrcode + qrcode_len), "%c%u", '0', gunno + 1);
+            qrcode_len = qrcode_len + 2;
+            break;
+        default:
+            break;
+        }
+        break;
+    default:
+        break;
     }
-    sprintf((char*)(s_qrcode.qrcode + qrcode_len), "%c%u", '0', gunno + 1);
-    qrcode_len = qrcode_len + 2;
-#endif /* USING_DAQI */
 
     s_qrcode.qrcode_len = qrcode_len;
     return &s_qrcode;

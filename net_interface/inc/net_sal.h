@@ -58,7 +58,7 @@
 #define APP_PLATFORM_ID_YKC_MONITOR                   0x0010   /* 云快充监控平台ID */
 /**************************** 越城平台 ***************************/
 #ifdef NET_PACK_USING_YCP
-#define APP_MONITOR_PLATFORM_ID                       0x0020   /* 监控平台ID */
+//#define APP_MONITOR_PLATFORM_ID                       0x0020   /* 监控平台ID */
 #define APP_TARGET_PLATFORM_ID                        0x0020   /* 目标平台ID */
 
 #define APP_INCLUDE_YCP_PROTOCOL

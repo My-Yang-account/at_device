@@ -161,6 +161,18 @@
 #define CHARGEPILE_CC4V_MAX                       45        /* CC1 4V上限 */
 #define CHARGEPILE_CC4V_MIN                       35        /* CC1 4V下限 */
 
+#define CP_SET_QRCODE_FORMAT_PREFIX                   0x01             /* 平台下发的二维码格式类型：前缀 */
+#define CP_SET_QRCODE_FORMAT_PREFIX_DEVICE_SN         0x02             /* 平台下发的二维码格式类型 ：前缀+设备号*/
+#define CP_SET_QRCODE_FORMAT_PREFIX_DEVICE_SN_PORT    0x03             /* 平台下发的二维码格式类型 ：前缀+设备号+枪号 */
+#define CP_SET_QRCODE_FORMAT_PORT                     0x04             /* 平台下发的二维码格式类型 ：枪号*/
+#define CP_SET_QRCODE_FORMAT_SIZE                     0x05
+
+#define CP_GENERATE_QRCODE_FORMAT_PREFIX              0x01             /* 终端生成的二维码格式类型：前缀 */
+#define CP_GENERATE_QRCODE_FORMAT_PREFIX_DEVICE_SN    0x02             /* 终端生成的二维码格式类型：前缀+设备号 */
+#define CP_GENERATE_QRCODE_FORMAT_PREFIX_DEVICE_SN_PORT  0x03          /* 终端生成的二维码格式类型：前缀+设备号+枪号 */
+#define CP_GENERATE_QRCODE_FORMAT_PORT                0x04             /* 终端生成的二维码格式类型：枪号 */
+#define CP_GENERATE_QRCODE_FORMAT_SIZE                0x05
+
 enum config_name{
     CONFIG_ITEM_PILE_NUMBER,
     CONFIG_ITEM_IP_DOMAIN,
