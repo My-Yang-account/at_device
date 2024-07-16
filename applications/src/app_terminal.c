@@ -221,8 +221,10 @@ void terminal_thread_entry(void *parameter)
                 }
             } else if (0 == memcmp(s_terminal_data.buffer, "UCACWDqrCode", count)) {
                 LOG_D("terminal write is UCACWDqrCode");
+                data[0] = CP_SET_QRCODE_FORMAT_PREFIX;
+                data[1] = CP_GENERATE_QRCODE_FORMAT_PREFIX_DEVICE_SN_PORT;
                 for (i = count + 1, j = 0; i < s_terminal_data.length - 2; i++) {
-                    data[j++] = s_terminal_data.buffer[i];
+                    data[2 + j++] = s_terminal_data.buffer[i];
                 }
                 data[j] = '\0';
                 if(sys_sync_config_item_content(CONFIG_ITEM_QRCODE_PRE, data, j) < 0){
