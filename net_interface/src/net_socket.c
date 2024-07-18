@@ -103,10 +103,12 @@ int app_socket_open_port(int *socket_fd, char* host, uint16_t host_len, uint16_t
             result = select(fd + 1, NULL, &writefds, NULL, &timeselect);
             if (result == 0x00){
                 freeaddrinfo(addr_list);
+                closesocket(fd);
                 LOG_E("fail to establish link with host[%s:%d] fd|%d timeot", host, port, fd);
                 return -0x04;
             }else if (result < 0x00){
                 freeaddrinfo(addr_list);
+                closesocket(fd);
                 LOG_E("fail to establish link with host[%s:%d] fd|%d", host, port, fd);
                 return -0x04;
             }else{
@@ -116,17 +118,20 @@ int app_socket_open_port(int *socket_fd, char* host, uint16_t host_len, uint16_t
 
                     }else{
                         freeaddrinfo(addr_list);
+                        closesocket(fd);
                         LOG_E("fail to establish link with host[%s:%d] fd|%d error", host, port, fd);
                         return -0x06;
                     }
                 }else{
                     freeaddrinfo(addr_list);
+                    closesocket(fd);
                     LOG_E("fail to establish link with host[%s:%d] fd|%d timeot", host, port, fd);
                     return -0x05;
                 }
             }
         }else if(result != 0x00){
             freeaddrinfo(addr_list);
+            closesocket(fd);
             LOG_E("fail to establish link with host[%s:%d] fd|%d", host, port, fd);
             return -0x03;
         }
@@ -134,6 +139,7 @@ int app_socket_open_port(int *socket_fd, char* host, uint16_t host_len, uint16_t
         result = connect(fd, addr_list->ai_addr, addr_list->ai_addrlen);
         if(result != 0x00){
             freeaddrinfo(addr_list);
+            closesocket(fd);
             LOG_E("fail to establish link with host[%s:%d] fd|%d", host, port, fd);
             return -0x03;
         }
@@ -363,6 +369,7 @@ int app_socket_recv_port(int socket_fd, void *buff, uint16_t len)
 
 int app_socket_close_port(int socket_fd)
 {
+    rt_kprintf("00000 app_socket_close_port(%d)\n", socket_fd);
     return closesocket(socket_fd);
 }
 
