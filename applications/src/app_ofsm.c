@@ -934,7 +934,7 @@ static void ofsm_readying_fun(uint8_t gunno)
             s_ofsm_info[gunno].base.start_period = app_calculate_current_period(s_ofsm_info[gunno].base.start_time);
             s_ofsm_info[gunno].base.current_period = s_ofsm_info[gunno].base.start_period;
             s_ofsm_info[gunno].base.period_num = 0x01;
-            s_ofsm_info[gunno].charge_timeout = s_ofsm_info[gunno].base.current_time;
+            s_ofsm_info[gunno].charge_timeout = rt_tick_get();
             s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
             s_ofsm_info[gunno].base.start_charge_tick = rt_tick_get();
 
@@ -1062,14 +1062,14 @@ static void ofsm_starting_fun(uint8_t gunno)
 
     switch(charge_state){
     case APP_CHARGE_STATE_IDLE:
-        if(s_ofsm_info[gunno].charge_timeout > s_ofsm_info[gunno].base.current_time){
-            s_ofsm_info[gunno].charge_timeout = s_ofsm_info[gunno].base.current_time;
+        if(s_ofsm_info[gunno].charge_timeout > rt_tick_get()){
+            s_ofsm_info[gunno].charge_timeout = rt_tick_get();
         }
-        if(s_ofsm_info[gunno].base.current_time - s_ofsm_info[gunno].charge_timeout > 50){
+        if((rt_tick_get() - s_ofsm_info[gunno].charge_timeout) > 50000){
             stop_way = mw_get_system_stop_way(gunno);
             if(stop_way != APP_SYSTEM_STOP_WAY_NULL){
                 /** 已有停充原因，充电已结束，充电失败，退出 */
-            }else if(s_ofsm_info[gunno].base.current_time - s_ofsm_info[gunno].charge_timeout <= 90){
+            }else if((rt_tick_get() - s_ofsm_info[gunno].charge_timeout) <= 90000){
                 break;
             }
             s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_STOPING];
@@ -2449,7 +2449,7 @@ static void ofsm_finishing_fun(uint8_t gunno)
             s_ofsm_info[gunno].base.start_period = app_calculate_current_period(s_ofsm_info[gunno].base.start_time);
             s_ofsm_info[gunno].base.current_period = s_ofsm_info[gunno].base.start_period;
             s_ofsm_info[gunno].base.period_num = 0x01;
-            s_ofsm_info[gunno].charge_timeout = s_ofsm_info[gunno].base.current_time;
+            s_ofsm_info[gunno].charge_timeout = rt_tick_get();
             s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
             s_ofsm_info[gunno].base.start_charge_tick = rt_tick_get();
 
@@ -2955,7 +2955,7 @@ static void ofsm_faulting_fun(uint8_t gunno)
                     s_ofsm_info[gunno].base.start_period = app_calculate_current_period(s_ofsm_info[gunno].base.start_time);
                     s_ofsm_info[gunno].base.current_period = s_ofsm_info[gunno].base.start_period;
                     s_ofsm_info[gunno].base.period_num = 0x01;
-                    s_ofsm_info[gunno].charge_timeout = s_ofsm_info[gunno].base.current_time;
+                    s_ofsm_info[gunno].charge_timeout = rt_tick_get();
                     s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
                     s_ofsm_info[gunno].base.start_charge_tick = rt_tick_get();
 
@@ -3087,7 +3087,7 @@ void ofsm_fun_list_init(void)
         s_ofsm_fun_list[gunno][APP_OFSM_STATE_FINISHING] = ofsm_finishing_fun;
         s_ofsm_fun_list[gunno][APP_OFSM_STATE_FAULTING] = ofsm_faulting_fun;
 
-        s_ofsm_info[gunno].charge_timeout = 0x00;
+        s_ofsm_info[gunno].charge_timeout = rt_tick_get();
         memset(&(s_thaisen_transaction[gunno]), 0x00, sizeof(s_thaisen_transaction[gunno]));
         memset(&(s_ofsm_info[gunno].base), 0x00, sizeof(s_ofsm_info[gunno].base));
     }
