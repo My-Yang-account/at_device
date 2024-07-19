@@ -22,7 +22,25 @@ SECTIONS
         . = ALIGN(4);
         _stext = .;
         KEEP(*(.isr_vector))            /* Startup code */
-
+        KEEP(*thaisenBMS.o(.text .text.*))
+	    KEEP(*thaisenBMSTask.o(.text .text.*))
+	    KEEP(*thaisenChargFault.o(.text .text.*))
+		KEEP(*thaisenChargFlow.o(.text .text.*))
+		KEEP(*thaisenChargStopWay.o(.text .text.*))
+		KEEP(*thaisenFan.o(.text .text.*))
+	    KEEP(*thaisenGunDef.o(.text .text.*))
+	    KEEP(*thaisenInsult.o(.text .text.*))
+		
+		KEEP(*thaisenAuxPower.o(.text .text.*))
+		KEEP(*thaisenBoard.o(.text .text.*))
+	    KEEP(*thaisenCCVolt.o(.text .text.*))
+	    KEEP(*thaisenDoor.o(.text .text.*))
+	    KEEP(*thaisenElectLock.o(.text .text.*))
+		KEEP(*thaisenFan.o(.text .text.*))
+		KEEP(*thaisenInsuleD.o(.text .text.*))
+		KEEP(*thaisenLed.o(.text .text.*))
+	    KEEP(*thaisenW25QXX.o(.text .text.*))
+		
         . = ALIGN(4);
         *(.text)                        /* remaining code */
         *(.text.*)                      /* remaining code */
@@ -68,7 +86,7 @@ SECTIONS
         KEEP (*(.init_array))
         PROVIDE(__ctors_end__ = .);
 
-        . = ALIGN(0x80000);
+        . = ALIGN(0x40000);
         *(.rodata*)
         *(.rodata)                      /* read-only data (constants) */        
 
