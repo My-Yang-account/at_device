@@ -117,10 +117,10 @@ void check_simcard_signal_strength(void)
 
 void ec20_at_device_reset(void)
 {
-    LOG_D("ec20 AT device close");
+    LOG_E("ec20 AT device close");
     netdev_set_down(netdev_default);
     rt_thread_mdelay(5000);
-    LOG_D("ec20 AT device open");
+    LOG_E("ec20 AT device open");
     netdev_set_up(netdev_default);
 }
 ///////////////////////////////////////////////////////////////////////////////
