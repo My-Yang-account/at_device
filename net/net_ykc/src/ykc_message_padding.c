@@ -794,7 +794,7 @@ int8_t ykc_message_pro_billing_model_set_response(void *data, uint8_t len)
 int8_t ykc_message_pro_apply_charge_active_response(uint8_t gunno, void *data, uint8_t len)
 {
 #ifndef NET_YKC_AS_MONITOR
-    uint8_t data_len = sizeof(Net_YkcPro_SRes_ApplyCharge_Active_t) + NET_YKC_PROTOCOL_CHECK_REGION_SIZE;
+    uint8_t data_len = sizeof(Net_YkcPro_SRes_ApplyCharge_Active_t);
 
     if(data == NULL){
         return -0x01;
@@ -1069,7 +1069,7 @@ int8_t ykc_message_pro_remote_reset_request(void *data, uint8_t len)
 int8_t ykc_message_pro_apply_merge_charge_active_response(uint8_t gunno, void *data, uint8_t len)
 {
 #ifndef NET_YKC_AS_MONITOR
-    uint8_t data_len = sizeof(Net_YkcPro_SRes_ApplyMergeCharge_Active_t) + NET_YKC_PROTOCOL_CHECK_REGION_SIZE;
+    uint8_t data_len = sizeof(Net_YkcPro_SRes_ApplyMergeCharge_Active_t);
 
     if(data == NULL){
         return -0x01;
