@@ -131,7 +131,9 @@ struct _config_info{
     uint8_t system_function;                                          /* 本机功能 */
     uint8_t gun_num;                                                  /* 枪数量 */
 
-    uint8_t reserve[256];                                              /* 保留 */
+    uint16_t teminal_addrA;                                           /* A枪终端地址 */
+    uint16_t teminal_addrB;                                           /* B枪终端地址 */
+    uint8_t reserve[256 - 4];                                         /* 保留 */
 };
 
 struct _function_enable{
@@ -545,6 +547,11 @@ static struct config_item s_config_item_set[CONFIG_ITEM_SIZE] =
         {CONFIG_ITEM_ALLOCATION_WAY,                                                       /* 分配方式 */
         (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_info.power_alloc_way)),
         (uint8_t*)&s_chargepile_config_info.config_info.power_alloc_way,
+        NULL},
+
+        {CONFIG_ITEM_DEVICE_TYPE,                                                        /* 设备类型 */
+        (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_info.system_function)),
+        (uint8_t*)&s_chargepile_config_info.config_info.system_function,
         NULL},
 
         {CONFIG_ITEM_GUNVOLT_LIMIT,                                                       /* 枪头电压限值 */
@@ -961,23 +968,44 @@ int32_t chargepile_config_init(void)
 
 int32_t chargepile_check_config(void)
 {
-    uint8_t group = s_chargepile_config_info.config_info.module_group_num, num[8];
     uint32_t single_module_power = 0x00;       /* 单个模块能输出的最大(额定)功率 */
+    s_system_power_max = 0x00;
 
-    memcpy(num, s_chargepile_config_info.config_info.module_num_singlegroup, sizeof(num));
-    if(group > MODULE_GROUP_NUMBER_MAX){
-        group = MODULE_GROUP_NUMBER_DEFAULT;
+    if(s_chargepile_config_info.config_info.module_group_num > MODULE_GROUP_NUMBER_MAX){
+        s_chargepile_config_info.config_info.module_group_num = MODULE_GROUP_NUMBER_DEFAULT;
     }
-    for(uint8_t count = 0; count < group; count++){
-        if(num[count] > MODULE_NUMBER_SINGLE_MAX){
-            num[count] = MODULE_NUMBER_SINGLE_DEFAULT;
+    if(s_chargepile_config_info.config_info.module_model > MODULE_MODEL_NUMBER){
+        s_chargepile_config_info.config_info.module_model = MODULE_MODEL_DEFAULT;
+    }
+    for(uint8_t count = 0; count < s_module_info.module_group_num; count++){
+        if(s_chargepile_config_info.config_info.module_num_singlegroup[count] > MODULE_NUMBER_SINGLE_MAX){
+            s_chargepile_config_info.config_info.module_num_singlegroup[count] = MODULE_NUMBER_SINGLE_DEFAULT;
         }
     }
 
-    s_system_power_max = 0x00;
-    single_module_power = s_chargepile_config_info.config_para.module_rated_outvolt *s_chargepile_config_info.config_para.module_rated_limit_curr;
-    for(uint8_t count = 0; count < group; count++){
-        s_system_power_max += single_module_power *num[count];
+    if((s_chargepile_config_info.config_para.module_rated_outvolt < MODULE_RATED_OUTVOLT_MIN) ||
+            (s_chargepile_config_info.config_para.module_rated_outvolt > MODULE_RATED_OUTVOLT_MAX)){
+        s_chargepile_config_info.config_para.module_rated_outvolt = MODULE_RATED_OUTVOLT_DEF;
+    }
+    if((s_chargepile_config_info.config_para.pile_max_outvolt < CHARGEPILE_MAX_OUTVOLT_MIN) ||
+            (s_chargepile_config_info.config_para.pile_max_outvolt > CHARGEPILE_MAX_OUTVOLT_MAX)){
+        s_chargepile_config_info.config_para.pile_max_outvolt = CHARGEPILE_MAX_OUTVOLT_DEF;
+    }
+    if((s_chargepile_config_info.config_para.pile_min_outvolt < CHARGEPILE_MIN_OUTVOLT_MIN) ||
+            (s_chargepile_config_info.config_para.pile_min_outvolt > CHARGEPILE_MIN_OUTVOLT_MAX)){
+        s_chargepile_config_info.config_para.pile_min_outvolt = CHARGEPILE_MIN_OUTVOLT_DEF;
+    }
+    if((s_chargepile_config_info.config_para.module_rated_limit_curr < MODULE_RATED_LIMIT_CURR_MIN) ||
+            (s_chargepile_config_info.config_para.module_rated_limit_curr > MODULE_RATED_LIMIT_CURR_MAX)){
+        s_chargepile_config_info.config_para.module_rated_limit_curr = MODULE_RATED_LIMIT_CURR_DEF;
+    }
+    if((s_chargepile_config_info.config_para.pile_max_limit_curr < MODULE_MAX_LIMIT_CURR_MIN) ||
+            (s_chargepile_config_info.config_para.pile_max_limit_curr > MODULE_MAX_LIMIT_CURR_MAX)){
+        s_chargepile_config_info.config_para.pile_max_limit_curr = MODULE_MAX_LIMIT_CURR_DEF;
+    }
+    if((s_chargepile_config_info.config_para.pile_min_limit_curr < MODULE_MIN_LIMIT_CURR_MIN) ||
+            (s_chargepile_config_info.config_para.pile_min_limit_curr > MODULE_MIN_LIMIT_CURR_MAX)){
+        s_chargepile_config_info.config_para.pile_min_limit_curr = MODULE_MIN_LIMIT_CURR_DEF;
     }
 
     if((s_chargepile_config_info.config_para.soc_stop < PROTECT_STOP_SOC_VALUE_MIN) ||
@@ -1035,7 +1063,6 @@ int32_t chargepile_check_config(void)
         s_chargepile_config_info.function_enable.rfid_card_reader = 0x00;
     }
 
-    rt_kprintf("s_chargepile_config_info.function_enable.parallel_relay(%d)\n", s_chargepile_config_info.function_enable.parallel_relay);
     if(s_chargepile_config_info.function_enable.parallel_relay > 0x01){    /* 并联默认启用 */
         s_chargepile_config_info.function_enable.parallel_relay = 0x01;
     }
@@ -1062,23 +1089,16 @@ int32_t chargepile_check_config(void)
         s_chargepile_config_info.state_reversal.elock = 0x00;
     }
 
+    single_module_power = s_chargepile_config_info.config_para.module_rated_outvolt *s_chargepile_config_info.config_para.module_rated_limit_curr;
+    for(uint8_t count = 0; count < s_chargepile_config_info.config_info.module_group_num; count++){
+        s_system_power_max += single_module_power *s_chargepile_config_info.config_info.module_num_singlegroup[count];
+    }
+
     if((s_chargepile_config_info.config_info.system_power_total > s_system_power_max) ||
             (s_chargepile_config_info.config_info.system_power_total < 1000)){
         s_chargepile_config_info.config_info.system_power_total = s_system_power_max;
     }
     rt_kprintf("system_power_total(%d, %d)\n", s_chargepile_config_info.config_info.system_power_total, s_system_power_max);
-
-    if(s_chargepile_config_info.config_info.module_group_num > MODULE_GROUP_NUMBER_MAX){
-        s_chargepile_config_info.config_info.module_group_num = MODULE_GROUP_NUMBER_DEFAULT;
-    }
-    if(s_chargepile_config_info.config_info.module_model > MODULE_MODEL_NUMBER){
-        s_chargepile_config_info.config_info.module_model = MODULE_MODEL_DEFAULT;
-    }
-    for(uint8_t count = 0; count < s_module_info.module_group_num; count++){
-        if(s_chargepile_config_info.config_info.module_num_singlegroup[count] > MODULE_NUMBER_SINGLE_MAX){
-            s_chargepile_config_info.config_info.module_num_singlegroup[count] = MODULE_NUMBER_SINGLE_DEFAULT;
-        }
-    }
 
     return 0;
 }

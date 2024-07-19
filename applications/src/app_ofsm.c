@@ -1918,15 +1918,18 @@ static void ofsm_stoping_fun(uint8_t gunno)
             if(s_ofsm_info[s_ofsm_info[gunno].base.main_gunno].state < APP_OFSM_STATE_SIZE){
                 s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][s_ofsm_info[s_ofsm_info[gunno].base.main_gunno].state];
                 s_ofsm_info[gunno].state = s_ofsm_info[s_ofsm_info[gunno].base.main_gunno].state;
-            }
-            /** 在并充结束后要同步主枪信息给副枪用来在屏幕上显示 */
-            if((gunno != s_ofsm_info[gunno].base.main_gunno) && (s_ofsm_info[gunno].base.main_gunno < APP_SYSTEM_GUNNO_SIZE)){
-                s_ofsm_info[gunno].base.reason_code = s_ofsm_info[s_ofsm_info[gunno].base.main_gunno].base.reason_code;
-                s_ofsm_info[gunno].base.fees_total = s_ofsm_info[s_ofsm_info[gunno].base.main_gunno].base.fees_total;
-                s_ofsm_info[gunno].base.elect_a = s_ofsm_info[s_ofsm_info[gunno].base.main_gunno].base.elect_a;
-                s_ofsm_info[gunno].base.charge_time = s_ofsm_info[s_ofsm_info[gunno].base.main_gunno].base.charge_time;
+
+                s_ofsm_info[gunno].base.charge_way = APP_CHARGE_WAY_NONE;
             }
         }
+        /** 在并充结束后要同步主枪信息给副枪用来在屏幕上显示 */
+        if((gunno != s_ofsm_info[gunno].base.main_gunno) && (s_ofsm_info[gunno].base.main_gunno < APP_SYSTEM_GUNNO_SIZE)){
+            s_ofsm_info[gunno].base.reason_code = s_ofsm_info[s_ofsm_info[gunno].base.main_gunno].base.reason_code;
+            s_ofsm_info[gunno].base.fees_total = s_ofsm_info[s_ofsm_info[gunno].base.main_gunno].base.fees_total;
+            s_ofsm_info[gunno].base.elect_a = s_ofsm_info[s_ofsm_info[gunno].base.main_gunno].base.elect_a;
+            s_ofsm_info[gunno].base.charge_time = s_ofsm_info[s_ofsm_info[gunno].base.main_gunno].base.charge_time;
+        }
+
         if(gunno != s_ofsm_info[gunno].base.main_gunno){
             return;
         }
@@ -1988,7 +1991,15 @@ static void ofsm_stoping_fun(uint8_t gunno)
 
         rt_thread_mdelay(2000);  /* 错峰上报订单 */
 
-        app_billing_info_calculate(s_ofsm_info[gunno].base.stop_time, mw_get_meter_total_wh(gunno), gunno);
+        if((s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE) && (gunno == s_ofsm_info[gunno].base.main_gunno)){
+            uint8_t deputy_gunno = APP_SYSTEM_GUNNOA;
+            if(gunno == APP_SYSTEM_GUNNOA){
+                deputy_gunno = APP_SYSTEM_GUNNOA + 0x01;
+            }
+            app_billing_info_calculate(s_ofsm_info[gunno].base.stop_time, (mw_get_meter_total_wh(gunno) + mw_get_meter_total_wh(deputy_gunno)), gunno);
+        }else{
+            app_billing_info_calculate(s_ofsm_info[gunno].base.stop_time, mw_get_meter_total_wh(gunno), gunno);
+        }
 
         s_ofsm_info[gunno].base.current_elect = app_billingrule_get_stop_elcet(gunno);
         s_ofsm_info[gunno].base.elect_a = app_billingrule_get_elcet_total(gunno);
@@ -2035,9 +2046,7 @@ static void ofsm_stoping_fun(uint8_t gunno)
         s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_FINISHING];
         s_ofsm_info[gunno].state = APP_OFSM_STATE_FINISHING;
 
-        for(uint8_t __gunno = 0x00; __gunno < APP_SYSTEM_GUNNO_SIZE; __gunno++){
-            s_ofsm_info[__gunno].base.charge_way = APP_CHARGE_WAY_NONE;
-        }
+        s_ofsm_info[gunno].base.charge_way = APP_CHARGE_WAY_NONE;
     }
 
     mw_clear_time_sync_flag(gunno);

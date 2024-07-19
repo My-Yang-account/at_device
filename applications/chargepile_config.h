@@ -98,6 +98,13 @@
 #define POWER_ALLOCATION_WAY_POWER_PRIORITY     2           /* 功率分配方式:功率优先 */
 #define POWER_ALLOCATION_WAY_SIZE               3           /* 功率分配方式 */
 
+#define SYSTEM_FUNCTION_SINGLE_TERMINAL         0           /* 单枪终端 */
+#define SYSTEM_FUNCTION_DOUBLE_TERMINAL         1           /* 双枪终端 */
+#define SYSTEM_FUNCTION_DOUBLE_WHOLE            2           /* 双枪一体 */
+#define SYSTEM_FUNCTION_RECTIFIER_CABINET       3           /* 整流柜 */
+#define SYSTEM_FUNCTION_DYNAMIC_SWITCH          4           /* 动态切换 */
+#define SYSTEM_FUNCTION_SIZE                    5           /* 系统功能 */
+
 /* protect info config */
 #define PROTECT_STOP_SOC_VALUE_DEFAULT            100       /* 保护信息：默认SOC停充值 */
 #define PROTECT_STOP_SOC_VALUE_MAX                100       /* 保护信息：SOC停充值最大值 */
@@ -123,28 +130,36 @@
 #define GUNVOLT_LIMIT_VALUE_MAX                   600 *100  /* 枪头电压最大值 */
 
 #define MODULE_RATED_OUTVOLT_DEF                  750       /* 模块额定输出电压默认值值 */
-#define MODULE_RATED_OUTVOLT_MAX                  500       /* 模块额定输出电压最大值 */
-#define MODULE_RATED_OUTVOLT_MIN                  1200      /* 模块额定输出电压最小值 */
+#define MODULE_RATED_OUTVOLT_MAX                  1200      /* 模块额定输出电压最大值 */
+#define MODULE_RATED_OUTVOLT_MIN                  500       /* 模块额定输出电压最小值 */
 
 #define CHARGEPILE_MAX_OUTVOLT_DEF                750       /* 桩最大输出电压默认值值 */
-#define CHARGEPILE_MAX_OUTVOLT_MAX                500       /* 桩最大输出电压最大值 */
-#define CHARGEPILE_MAX_OUTVOLT_MIN                1200      /* 桩最大输出电压最小值 */
+#define CHARGEPILE_MAX_OUTVOLT_MAX                1200      /* 桩最大输出电压最大值 */
+#define CHARGEPILE_MAX_OUTVOLT_MIN                500       /* 桩最大输出电压最小值 */
 
 #define CHARGEPILE_MIN_OUTVOLT_DEF                200       /* 桩最小输出电压默认值值 */
-#define CHARGEPILE_MIN_OUTVOLT_MAX                100       /* 桩最小输出电压最大值 */
-#define CHARGEPILE_MIN_OUTVOLT_MIN                300       /* 桩最小输出电压最小值 */
+#define CHARGEPILE_MIN_OUTVOLT_MAX                300       /* 桩最小输出电压最大值 */
+#define CHARGEPILE_MIN_OUTVOLT_MIN                100       /* 桩最小输出电压最小值 */
 
 #define MODULE_RATED_LIMIT_CURR_DEF               30        /* 模块额定限电流默认值值 */
-#define MODULE_RATED_LIMIT_CURR_MAX               10        /* 模块额定限电流最大值 */
-#define MODULE_RATED_LIMIT_CURR_MIN               150       /* 模块额定限电流最小值 */
+#define MODULE_RATED_LIMIT_CURR_MAX               150       /* 模块额定限电流最大值 */
+#define MODULE_RATED_LIMIT_CURR_MIN               10        /* 模块额定限电流最小值 */
 
 #define MODULE_MAX_LIMIT_CURR_DEF                 500       /* 模块最大限电流默认值值 */
-#define MODULE_MAX_LIMIT_CURR_MAX                 10        /* 模块最大限电流最大值 */
-#define MODULE_MAX_LIMIT_CURR_MIN                 1500      /* 模块最大限电流最小值 */
+#define MODULE_MAX_LIMIT_CURR_MAX                 1500      /* 模块最大限电流最大值 */
+#define MODULE_MAX_LIMIT_CURR_MIN                 10        /* 模块最大限电流最小值 */
 
 #define MODULE_MIN_LIMIT_CURR_DEF                 2         /* 模块最小限电流默认值值 */
-#define MODULE_MIN_LIMIT_CURR_MAX                 2         /* 模块最小限电流最大值 */
-#define MODULE_MIN_LIMIT_CURR_MIN                 5         /* 模块最小限电流最小值 */
+#define MODULE_MIN_LIMIT_CURR_MAX                 5         /* 模块最小限电流最大值 */
+#define MODULE_MIN_LIMIT_CURR_MIN                 2         /* 模块最小限电流最小值 */
+
+#define COMPULSION_SET_VOLTAGE_DEF                750       /* 强制启动设定电压默认值 */
+#define COMPULSION_SET_VOLTAGE_MAX                1200      /* 强制启动设定电压最大值 */
+#define COMPULSION_SET_VOLTAGE_MIN                100       /* 强制启动设定电压最小值 */
+
+#define COMPULSION_SET_CURRENT_DEF                0         /* 强制启动设定电流默认值 */
+#define COMPULSION_SET_CURRENT_MAX                1500      /* 强制启动设定电流最大值 */
+#define COMPULSION_SET_CURRENT_MIN                10        /* 强制启动设定电流最小值 */
 
 #define CHARGEPILE_INPUT_OVERVOLT_DEF             550       /* 充电桩输入过压默认值值 */
 #define CHARGEPILE_INPUT_UNDERVOLT_DEF            150       /* 充电桩输入欠压默认值值 */
@@ -251,6 +266,7 @@ enum config_name{
     CONFIG_ITEM_MIN_LIMIT_CURRENT,
     CONFIG_ITEM_SYSTEM_POWER_TOTAL,
     CONFIG_ITEM_ALLOCATION_WAY,
+    CONFIG_ITEM_DEVICE_TYPE,
     CONFIG_ITEM_GUNVOLT_LIMIT,
     CONFIG_ITEM_VIN_WHITELIST,
     CONFIG_ITEM_CARD_WHITELIST,

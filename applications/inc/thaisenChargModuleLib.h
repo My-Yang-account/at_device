@@ -550,4 +550,61 @@ int32_t thaisenModuleSetParallelEnable(uint8_t state);
  */
 uint8_t thaisenModuleGetParallelEnable(void);
 
+typedef enum
+{
+    thaisenDeviceType_doubleGun,           /* 双枪终端 */
+    thaisenDeviceType_singleGun,           /* 单枪终端 */
+    thaisenDeviceType_average,             /* 动态切换 */
+    thaisenDeviceType_Rectifier_cabinet,   /* 整流柜 */
+    thaisenDeviceType_size,
+}thaisenDeviceType;
+
+/* 功能说明:
+ *          thaisenModuleSetDeviceType:设置设备类型
+ *
+ * 输入参数:
+ *          type:类型
+ * 返回参数:
+ *
+ * 调用方法:
+ *          可实时调用
+ */
+int32_t thaisenModuleSetDeviceType(uint8_t type);
+
+/* 功能说明:
+ *          thaisenModuleGetDeviceType: 获取设备类型
+ *
+ * 输入参数:
+ *
+ * 返回参数:
+ *          设备类型
+ * 调用方法:
+ *          可实时调用
+ */
+uint8_t thaisenModuleGetDeviceType(void);
+
+/* 功能说明:
+ *          thaisenModuleSetOpsModuleGroup:设置所操作的模块组
+ *
+ * 输入参数:
+ *          group:模块组
+ * 返回参数:
+ *
+ * 调用方法:
+ *          可实时调用
+ */
+int32_t thaisenModuleSetOpsModuleGroup(uint8_t group);
+
+/* 功能说明:
+ *          thaisenModuleGetOpsModuleGroup: 获取所操作的模块组
+ *
+ * 输入参数:
+ *
+ * 返回参数:
+ *          模块组
+ * 调用方法:
+ *          可实时调用
+ */
+uint8_t thaisenModuleGetOpsModuleGroup(void);
+
 #endif /* APPLICATIONS_THAISENCHARGMODULELIB_H_ */

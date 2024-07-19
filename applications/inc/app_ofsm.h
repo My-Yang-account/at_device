@@ -48,7 +48,7 @@ enum system_gunno_enum{
 
 enum charge_strategy_enum{
     APP_CHARGE_STRATEGY_TIME,                          /* 充电策略：按时间(单位是s) */
-    APP_CHARGE_STRATEGY_ELECT,                         /* 充电策略：按电量(单位0.01度) */
+    APP_CHARGE_STRATEGY_ELECT,                         /* 充电策略：按电量(单位0.001度) */
     APP_CHARGE_STRATEGY_MONEY,                         /* 充电策略：按金额(单位0.0001元) */
     APP_CHARGE_STRATEGY_RESERVATION,                   /* 充电策略：预约 */
     APP_CHARGE_STRATEGY_FULL,                          /* 充电策略：充满 */
