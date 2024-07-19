@@ -1801,7 +1801,7 @@ static void ofsm_charging_fun(uint8_t gunno)
     }else if((s_ofsm_info[gunno].base.charge_strategy != APP_CHARGE_STRATEGY_FULL) &&   \
             (s_ofsm_info[gunno].base.charge_strategy != APP_CHARGE_STRATEGY_RESERVATION)){
         if(s_ofsm_info[gunno].base.charge_strategy == APP_CHARGE_STRATEGY_TIME){
-            if((s_ofsm_info[gunno].base.current_time - s_ofsm_info[gunno].base.start_time) >= s_ofsm_info[gunno].base.charge_strategy_para){
+            if(increase_sec >= s_ofsm_info[gunno].base.charge_strategy_para){
                 s_thaisen_transaction[gunno].stop_reason = mw_system_stop_way_convert(APP_SYSTEM_STOP_WAY_REACH_TIME);
                 s_ofsm_info[gunno].base.reason_code = s_thaisen_transaction[gunno].stop_reason;
                 s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_FALSE;
@@ -1819,7 +1819,7 @@ static void ofsm_charging_fun(uint8_t gunno)
                 LOG_D("gunno(%d) charge finish deal to reach target elect\n", gunno, s_ofsm_info[gunno].base.charge_strategy_para);
             }
         }else if(s_ofsm_info[gunno].base.charge_strategy == APP_CHARGE_STRATEGY_MONEY){
-            if(s_ofsm_info[gunno].base.fees_total >= s_ofsm_info[gunno].base.charge_strategy_para){
+            if((s_ofsm_info[gunno].base.fees_total + 10000) > s_ofsm_info[gunno].base.charge_strategy_para){
                 s_thaisen_transaction[gunno].stop_reason = mw_system_stop_way_convert(APP_SYSTEM_STOP_WAY_REACH_MONEY);
                 s_ofsm_info[gunno].base.reason_code = s_thaisen_transaction[gunno].stop_reason;
                 s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_FALSE;
