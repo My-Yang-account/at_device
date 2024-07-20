@@ -586,6 +586,17 @@ static void ofsm_readying_fun(uint8_t gunno)
             if(s_ofsm_info[s_ofsm_info[gunno].base.main_gunno].state < APP_OFSM_STATE_SIZE){
                 s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][s_ofsm_info[s_ofsm_info[gunno].base.main_gunno].state];
                 s_ofsm_info[gunno].state = s_ofsm_info[s_ofsm_info[gunno].base.main_gunno].state;
+
+                clear_swipe_card_state(gunno);
+                app_get_hci_event(gunno, HCI_EVENT_SCREEN_START, 1);
+                app_get_hci_event(gunno, HCI_EVENT_VIN_START, 1);
+                app_nsal_clear_remote_start(gunno);
+                app_nsal_clear_remote_card_authorize(gunno);
+                mw_clear_time_sync_flag(gunno);
+                app_get_hci_event(gunno, HCI_EVENT_SCREEN_STOP, 1);
+                app_nsal_clear_remote_stop(gunno);
+
+                return;
             }
         }
     }
@@ -650,34 +661,24 @@ static void ofsm_readying_fun(uint8_t gunno)
         }else if(get_swipe_card_state(gunno)){
             uint8_t need_authorize_online = 0x00;
             clear_swipe_card_state(gunno);
-            if(thaisen_get_hci_page_pos() == gunno){
-                if(get_card_info_type() == CARD_INFO_TYPE_CARD_NUMBER){
-                    uint8_t pile_number_len = APP_CARD_NUMBER_COMPARE_LEN, card_number_len = get_card_number_len(),
-                            compare_len = 0, count = 0;
-                    uint8_t *pile_number, *card_number;
-                    compare_len = pile_number_len > card_number_len ? card_number_len : pile_number_len;
-                    pile_number = sys_read_config_item_content(CONFIG_ITEM_PILE_NUMBER, 0);
-                    card_number = get_card_number();
+            if(get_card_info_type() == CARD_INFO_TYPE_CARD_NUMBER){
+                uint8_t pile_number_len = APP_CARD_NUMBER_COMPARE_LEN, card_number_len = get_card_number_len(),
+                        compare_len = 0, count = 0;
+                uint8_t *pile_number, *card_number;
+                compare_len = pile_number_len > card_number_len ? card_number_len : pile_number_len;
+                pile_number = sys_read_config_item_content(CONFIG_ITEM_PILE_NUMBER, 0);
+                card_number = get_card_number();
 
-                    if(compare_len >= CARD_NUMBER_COMPARE_LEN_MIN){
-                        for(; count < CARD_NUMBER_COMPARE_LEN_MIN; count++){
-                            if(pile_number[count] != card_number[count]){
-                                break;
-                            }
+                if(compare_len >= CARD_NUMBER_COMPARE_LEN_MIN){
+                    for(; count < CARD_NUMBER_COMPARE_LEN_MIN; count++){
+                        if(pile_number[count] != card_number[count]){
+                            break;
                         }
-                        if(count == CARD_NUMBER_COMPARE_LEN_MIN){
-                            s_buzzon_state = BUZZON_STATE_OK;
-                            rt_mq_send(&g_buzzon_mq, &s_buzzon_state, sizeof(s_buzzon_state));
-                            LOG_D("gunno(%d) start charge by local pile number card", gunno);
-                        }else{
-                            if(sys_card_number_whitelists_query(card_number, card_number_len) >= 0x00){
-                                s_buzzon_state = BUZZON_STATE_OK;
-                                rt_mq_send(&g_buzzon_mq, &s_buzzon_state, sizeof(s_buzzon_state));
-                                LOG_D("gunno(%d) start charge by local whitelist card", gunno);
-                            }else{
-                                need_authorize_online = 0x01;
-                            }
-                        }
+                    }
+                    if(count == CARD_NUMBER_COMPARE_LEN_MIN){
+                        s_buzzon_state = BUZZON_STATE_OK;
+                        rt_mq_send(&g_buzzon_mq, &s_buzzon_state, sizeof(s_buzzon_state));
+                        LOG_D("gunno(%d) start charge by local pile number card", gunno);
                     }else{
                         if(sys_card_number_whitelists_query(card_number, card_number_len) >= 0x00){
                             s_buzzon_state = BUZZON_STATE_OK;
@@ -687,97 +688,105 @@ static void ofsm_readying_fun(uint8_t gunno)
                             need_authorize_online = 0x01;
                         }
                     }
-
-                    compare_len = sizeof(s_ofsm_info[gunno].base.card_number);
-                    compare_len = compare_len > card_number_len ? card_number_len : compare_len;
-                    memset(s_ofsm_info[gunno].base.card_number, 0x00, sizeof(s_ofsm_info[gunno].base.card_number));
-                    memcpy(s_ofsm_info[gunno].base.card_number, card_number, compare_len);
-
-                    s_ofsm_info[gunno].base.flag.card_info_is_uid = APP_THA_ENUM_FALSE;
-
-                    if(need_authorize_online == 0x00){
-                        s_ofsm_info[gunno].base.flag.is_local_charging = APP_THA_ENUM_TRUE;
-                        s_ofsm_info[gunno].base.start_type = APP_CHARGE_START_WAY_OFFLINE_CARD;
-                        s_ofsm_info[gunno].base.account_balance = 0x00;
-                        s_ofsm_info[gunno].base.charge_strategy = APP_CHARGE_STRATEGY_FULL;
-                        s_ofsm_info[gunno].base.charge_strategy_para = 0x00;
-
-                        app_nsal_create_local_transaction_number(gunno, &(s_ofsm_info[gunno].base.transaction_number),  \
-                                sizeof(s_ofsm_info[gunno].base.transaction_number));
-
-                        memset(s_ofsm_info[gunno].base.card_uid, 0x00, sizeof(s_ofsm_info[gunno].base.card_uid));
-                        memset(s_ofsm_info[gunno].base.user_number, 0x00, sizeof(s_ofsm_info[gunno].base.user_number));
-
-                        compare_len = sizeof(s_ofsm_info[gunno].base.transaction_number);
-                        compare_len = compare_len > sizeof(s_thaisen_transaction[gunno].serial_number) ? sizeof(s_thaisen_transaction[gunno].serial_number) : compare_len;
-                        memset(s_thaisen_transaction[gunno].serial_number, 0x00, sizeof(s_thaisen_transaction[gunno].serial_number));
-                        memcpy(s_thaisen_transaction[gunno].serial_number, s_ofsm_info[gunno].base.transaction_number, compare_len);
-
-                        compare_len = sizeof(s_ofsm_info[gunno].base.card_number);
-                        compare_len = compare_len > sizeof(s_thaisen_transaction[gunno].logic_card_number) ? sizeof(s_thaisen_transaction[gunno].logic_card_number) : compare_len;
-                        memset(s_thaisen_transaction[gunno].logic_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].logic_card_number));
-                        memcpy(s_thaisen_transaction[gunno].logic_card_number, s_ofsm_info[gunno].base.card_number, compare_len);
-
-                        memset(s_thaisen_transaction[gunno].physics_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].physics_card_number));
-                        memset(s_thaisen_transaction[gunno].user_number, 0x00, sizeof(s_thaisen_transaction[gunno].user_number));
-                        s_thaisen_transaction[gunno].start_type = APP_CHARGE_START_WAY_OFFLINE_CARD;
-
-                        is_charging_authorization = true;
-                    }
-                }else if(get_card_info_type() == CARD_INFO_TYPE_CARD_UID){
-                    uint8_t uid_len = get_card_uid_len(), compare_len = 0x00;
-
-                    if(sys_card_uid_whitelists_query(get_card_uid(), uid_len) >= 0x00){
+                }else{
+                    if(sys_card_number_whitelists_query(card_number, card_number_len) >= 0x00){
                         s_buzzon_state = BUZZON_STATE_OK;
                         rt_mq_send(&g_buzzon_mq, &s_buzzon_state, sizeof(s_buzzon_state));
-                        LOG_D("gunno(%d) start charge by local whitelist card uid", gunno);
+                        LOG_D("gunno(%d) start charge by local whitelist card", gunno);
                     }else{
                         need_authorize_online = 0x01;
                     }
+                }
 
-                    uid_len = uid_len > sizeof(s_ofsm_info[gunno].base.card_uid) ? sizeof(s_ofsm_info[gunno].base.card_uid) : uid_len;
+                compare_len = sizeof(s_ofsm_info[gunno].base.card_number);
+                compare_len = compare_len > card_number_len ? card_number_len : compare_len;
+                memset(s_ofsm_info[gunno].base.card_number, 0x00, sizeof(s_ofsm_info[gunno].base.card_number));
+                memcpy(s_ofsm_info[gunno].base.card_number, card_number, compare_len);
+
+                s_ofsm_info[gunno].base.flag.card_info_is_uid = APP_THA_ENUM_FALSE;
+
+                if(need_authorize_online == 0x00){
+                    s_ofsm_info[gunno].base.flag.is_local_charging = APP_THA_ENUM_TRUE;
+                    s_ofsm_info[gunno].base.start_type = APP_CHARGE_START_WAY_OFFLINE_CARD;
+                    s_ofsm_info[gunno].base.account_balance = 0x00;
+                    s_ofsm_info[gunno].base.charge_strategy = APP_CHARGE_STRATEGY_FULL;
+                    s_ofsm_info[gunno].base.charge_strategy_para = 0x00;
+
+                    app_nsal_create_local_transaction_number(gunno, &(s_ofsm_info[gunno].base.transaction_number),  \
+                            sizeof(s_ofsm_info[gunno].base.transaction_number));
+
                     memset(s_ofsm_info[gunno].base.card_uid, 0x00, sizeof(s_ofsm_info[gunno].base.card_uid));
-                    memcpy(s_ofsm_info[gunno].base.card_uid, get_card_uid(), uid_len);
-                    s_ofsm_info[gunno].base.card_uid_len = uid_len;
-                    s_ofsm_info[gunno].base.flag.card_info_is_uid = APP_THA_ENUM_TRUE;
+                    memset(s_ofsm_info[gunno].base.user_number, 0x00, sizeof(s_ofsm_info[gunno].base.user_number));
 
-                    if(need_authorize_online == 0x00){
-                        s_ofsm_info[gunno].base.flag.is_local_charging = APP_THA_ENUM_TRUE;
-                        s_ofsm_info[gunno].base.start_type = APP_CHARGE_START_WAY_OFFLINE_CARD;
-                        s_ofsm_info[gunno].base.account_balance = 0x00;
-                        s_ofsm_info[gunno].base.charge_strategy = APP_CHARGE_STRATEGY_FULL;
-                        s_ofsm_info[gunno].base.charge_strategy_para = 0x00;
+                    compare_len = sizeof(s_ofsm_info[gunno].base.transaction_number);
+                    compare_len = compare_len > sizeof(s_thaisen_transaction[gunno].serial_number) ? sizeof(s_thaisen_transaction[gunno].serial_number) : compare_len;
+                    memset(s_thaisen_transaction[gunno].serial_number, 0x00, sizeof(s_thaisen_transaction[gunno].serial_number));
+                    memcpy(s_thaisen_transaction[gunno].serial_number, s_ofsm_info[gunno].base.transaction_number, compare_len);
 
-                        app_nsal_create_local_transaction_number(gunno, &(s_ofsm_info[gunno].base.transaction_number),  \
-                                sizeof(s_ofsm_info[gunno].base.transaction_number));
+                    compare_len = sizeof(s_ofsm_info[gunno].base.card_number);
+                    compare_len = compare_len > sizeof(s_thaisen_transaction[gunno].logic_card_number) ? sizeof(s_thaisen_transaction[gunno].logic_card_number) : compare_len;
+                    memset(s_thaisen_transaction[gunno].logic_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].logic_card_number));
+                    memcpy(s_thaisen_transaction[gunno].logic_card_number, s_ofsm_info[gunno].base.card_number, compare_len);
 
-                        compare_len = sizeof(s_ofsm_info[gunno].base.transaction_number);
-                        compare_len = compare_len > sizeof(s_thaisen_transaction[gunno].serial_number) ? sizeof(s_thaisen_transaction[gunno].serial_number) : compare_len;
-                        memset(s_thaisen_transaction[gunno].serial_number, 0x00, sizeof(s_thaisen_transaction[gunno].serial_number));
-                        memcpy(s_thaisen_transaction[gunno].serial_number, s_ofsm_info[gunno].base.transaction_number, compare_len);
+                    memset(s_thaisen_transaction[gunno].physics_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].physics_card_number));
+                    memset(s_thaisen_transaction[gunno].user_number, 0x00, sizeof(s_thaisen_transaction[gunno].user_number));
+                    s_thaisen_transaction[gunno].start_type = APP_CHARGE_START_WAY_OFFLINE_CARD;
 
-                        compare_len = sizeof(s_ofsm_info[gunno].base.card_number);
-                        compare_len = compare_len > sizeof(s_thaisen_transaction[gunno].logic_card_number) ? sizeof(s_thaisen_transaction[gunno].logic_card_number) : compare_len;
-                        memset(s_thaisen_transaction[gunno].logic_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].logic_card_number));
-                        memcpy(s_thaisen_transaction[gunno].logic_card_number, s_ofsm_info[gunno].base.card_number, compare_len);
+                    is_charging_authorization = true;
+                }
+            }else if(get_card_info_type() == CARD_INFO_TYPE_CARD_UID){
+                uint8_t uid_len = get_card_uid_len(), compare_len = 0x00;
 
-                        memset(s_thaisen_transaction[gunno].physics_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].physics_card_number));
-                        memset(s_thaisen_transaction[gunno].user_number, 0x00, sizeof(s_thaisen_transaction[gunno].user_number));
-                        s_thaisen_transaction[gunno].start_type = APP_CHARGE_START_WAY_OFFLINE_CARD;
-
-                        is_charging_authorization = true;
-                    }
+                if(sys_card_uid_whitelists_query(get_card_uid(), uid_len) >= 0x00){
+                    s_buzzon_state = BUZZON_STATE_OK;
+                    rt_mq_send(&g_buzzon_mq, &s_buzzon_state, sizeof(s_buzzon_state));
+                    LOG_D("gunno(%d) start charge by local whitelist card uid", gunno);
+                }else{
+                    need_authorize_online = 0x01;
                 }
 
-                if(need_authorize_online){
-                    if(app_nsal_card_authorize(gunno) < 0x00){
-                        s_buzzon_state = BUZZON_STATE_FAILED;
-                        rt_mq_send(&g_buzzon_mq, &s_buzzon_state, sizeof(s_buzzon_state));
-                        LOG_W("gunno(%d) swip card authorize fail", gunno);
-                        return;
-                    }
-                    s_ofsm_info[gunno].base.flag.card_authorization = APP_THA_ENUM_TRUE;
+                uid_len = uid_len > sizeof(s_ofsm_info[gunno].base.card_uid) ? sizeof(s_ofsm_info[gunno].base.card_uid) : uid_len;
+                memset(s_ofsm_info[gunno].base.card_uid, 0x00, sizeof(s_ofsm_info[gunno].base.card_uid));
+                memcpy(s_ofsm_info[gunno].base.card_uid, get_card_uid(), uid_len);
+                s_ofsm_info[gunno].base.card_uid_len = uid_len;
+                s_ofsm_info[gunno].base.flag.card_info_is_uid = APP_THA_ENUM_TRUE;
+
+                if(need_authorize_online == 0x00){
+                    s_ofsm_info[gunno].base.flag.is_local_charging = APP_THA_ENUM_TRUE;
+                    s_ofsm_info[gunno].base.start_type = APP_CHARGE_START_WAY_OFFLINE_CARD;
+                    s_ofsm_info[gunno].base.account_balance = 0x00;
+                    s_ofsm_info[gunno].base.charge_strategy = APP_CHARGE_STRATEGY_FULL;
+                    s_ofsm_info[gunno].base.charge_strategy_para = 0x00;
+
+                    app_nsal_create_local_transaction_number(gunno, &(s_ofsm_info[gunno].base.transaction_number),  \
+                            sizeof(s_ofsm_info[gunno].base.transaction_number));
+
+                    compare_len = sizeof(s_ofsm_info[gunno].base.transaction_number);
+                    compare_len = compare_len > sizeof(s_thaisen_transaction[gunno].serial_number) ? sizeof(s_thaisen_transaction[gunno].serial_number) : compare_len;
+                    memset(s_thaisen_transaction[gunno].serial_number, 0x00, sizeof(s_thaisen_transaction[gunno].serial_number));
+                    memcpy(s_thaisen_transaction[gunno].serial_number, s_ofsm_info[gunno].base.transaction_number, compare_len);
+
+                    compare_len = sizeof(s_ofsm_info[gunno].base.card_number);
+                    compare_len = compare_len > sizeof(s_thaisen_transaction[gunno].logic_card_number) ? sizeof(s_thaisen_transaction[gunno].logic_card_number) : compare_len;
+                    memset(s_thaisen_transaction[gunno].logic_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].logic_card_number));
+                    memcpy(s_thaisen_transaction[gunno].logic_card_number, s_ofsm_info[gunno].base.card_number, compare_len);
+
+                    memset(s_thaisen_transaction[gunno].physics_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].physics_card_number));
+                    memset(s_thaisen_transaction[gunno].user_number, 0x00, sizeof(s_thaisen_transaction[gunno].user_number));
+                    s_thaisen_transaction[gunno].start_type = APP_CHARGE_START_WAY_OFFLINE_CARD;
+
+                    is_charging_authorization = true;
                 }
+            }
+
+            if(need_authorize_online){
+                if(app_nsal_card_authorize(gunno) < 0x00){
+                    s_buzzon_state = BUZZON_STATE_FAILED;
+                    rt_mq_send(&g_buzzon_mq, &s_buzzon_state, sizeof(s_buzzon_state));
+                    LOG_W("gunno(%d) swip card authorize fail", gunno);
+                    return;
+                }
+                s_ofsm_info[gunno].base.flag.card_authorization = APP_THA_ENUM_TRUE;
             }
         }else if(app_nsal_is_card_authorize_success(gunno)){
             uint8_t valid_len = 0x00;
@@ -1733,63 +1742,59 @@ static void ofsm_charging_fun(uint8_t gunno)
 
     }else if(get_swipe_card_state(gunno)){
         clear_swipe_card_state(gunno);
-        if((thaisen_get_hci_page_pos() == gunno) &&
-                ((s_ofsm_info[gunno].base.start_type == APP_CHARGE_START_WAY_ONLINE_CARD) ||
-                 (s_ofsm_info[gunno].base.start_type == APP_CHARGE_START_WAY_OFFLINE_CARD))){
-            if(get_card_info_type() == CARD_INFO_TYPE_CARD_NUMBER){
-                uint8_t compare_len = sizeof(s_ofsm_info[gunno].base.card_number);
-                compare_len = compare_len > get_card_number_len() ? get_card_number_len() : compare_len;
-                if(compare_len < CARD_NUMBER_COMPARE_LEN_MIN){
-                    s_buzzon_state = BUZZON_STATE_FAILED;
-                    rt_mq_send(&g_buzzon_mq, &s_buzzon_state, sizeof(s_buzzon_state));
-                    LOG_W("card number length is not enough|%d, %d", CARD_NUMBER_COMPARE_LEN_MIN, compare_len);
-                    return;
-                }
-                if(memcmp(s_ofsm_info[gunno].base.card_number, get_card_number(), compare_len)){
-                    s_buzzon_state = BUZZON_STATE_FAILED;
-                    rt_mq_send(&g_buzzon_mq, &s_buzzon_state, sizeof(s_buzzon_state));
-                    return;
-                }
-                s_buzzon_state = BUZZON_STATE_OK;
+        if(get_card_info_type() == CARD_INFO_TYPE_CARD_NUMBER){
+            uint8_t compare_len = sizeof(s_ofsm_info[gunno].base.card_number);
+            compare_len = compare_len > get_card_number_len() ? get_card_number_len() : compare_len;
+            if(compare_len < CARD_NUMBER_COMPARE_LEN_MIN){
+                s_buzzon_state = BUZZON_STATE_FAILED;
                 rt_mq_send(&g_buzzon_mq, &s_buzzon_state, sizeof(s_buzzon_state));
+                LOG_W("card number length is not enough|%d, %d", CARD_NUMBER_COMPARE_LEN_MIN, compare_len);
+                return;
+            }
+            if(memcmp(s_ofsm_info[gunno].base.card_number, get_card_number(), compare_len)){
+                s_buzzon_state = BUZZON_STATE_FAILED;
+                rt_mq_send(&g_buzzon_mq, &s_buzzon_state, sizeof(s_buzzon_state));
+                return;
+            }
+            s_buzzon_state = BUZZON_STATE_OK;
+            rt_mq_send(&g_buzzon_mq, &s_buzzon_state, sizeof(s_buzzon_state));
 
-                if(s_ofsm_info[gunno].base.start_type == APP_CHARGE_START_WAY_ONLINE_CARD){
-                    s_thaisen_transaction[gunno].stop_reason = mw_system_stop_way_convert(APP_SYSTEM_STOP_WAY_ONLINECARD_STOP);
-                    s_ofsm_info[gunno].base.reason_code = s_thaisen_transaction[gunno].stop_reason;
-                    LOG_D("gunno(%d) charge finish deal to online card stop\n", gunno);
-                }else{
-                    s_thaisen_transaction[gunno].stop_reason = mw_system_stop_way_convert(APP_SYSTEM_STOP_WAY_OFFLINECARD_STOP);
-                    s_ofsm_info[gunno].base.reason_code = s_thaisen_transaction[gunno].stop_reason;
-                    LOG_D("gunno(%d) charge finish deal to offline card stop\n", gunno);
-                }
-                s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_FALSE;
-                is_stop_charge_authorization = true;
+            if(s_ofsm_info[gunno].base.start_type == APP_CHARGE_START_WAY_ONLINE_CARD){
+                s_thaisen_transaction[gunno].stop_reason = mw_system_stop_way_convert(APP_SYSTEM_STOP_WAY_ONLINECARD_STOP);
+                s_ofsm_info[gunno].base.reason_code = s_thaisen_transaction[gunno].stop_reason;
+                LOG_D("gunno(%d) charge finish deal to online card stop\n", gunno);
+            }else{
+                s_thaisen_transaction[gunno].stop_reason = mw_system_stop_way_convert(APP_SYSTEM_STOP_WAY_OFFLINECARD_STOP);
+                s_ofsm_info[gunno].base.reason_code = s_thaisen_transaction[gunno].stop_reason;
+                LOG_D("gunno(%d) charge finish deal to offline card stop\n", gunno);
+            }
+            s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_FALSE;
+            is_stop_charge_authorization = true;
 
-            }else if(get_card_info_type() == CARD_INFO_TYPE_CARD_UID){
-                uint8_t* uid = get_card_uid(), valid_len = sizeof(s_ofsm_info[gunno].base.card_uid);
-                if(uid){
-                    valid_len = valid_len > get_card_uid_len() ? get_card_uid_len() : valid_len;
-                    if(memcmp(s_ofsm_info[gunno].base.card_uid, uid, valid_len) == 0){
-                        if(s_ofsm_info[gunno].base.start_type == APP_CHARGE_START_WAY_ONLINE_CARD){
-                            s_thaisen_transaction[gunno].stop_reason = mw_system_stop_way_convert(APP_SYSTEM_STOP_WAY_ONLINECARD_STOP);
-                            s_ofsm_info[gunno].base.reason_code = s_thaisen_transaction[gunno].stop_reason;
-                            LOG_D("gunno(%d) charge finish deal to online card(uid) stop\n", gunno);
-                        }else{
-                            s_thaisen_transaction[gunno].stop_reason = mw_system_stop_way_convert(APP_SYSTEM_STOP_WAY_OFFLINECARD_STOP);
-                            s_ofsm_info[gunno].base.reason_code = s_thaisen_transaction[gunno].stop_reason;
-                            LOG_D("gunno(%d) charge finish deal to offline card(uid) stop\n", gunno);
-                        }
-                        s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_FALSE;
-                        is_stop_charge_authorization = true;
-
+        }else if(get_card_info_type() == CARD_INFO_TYPE_CARD_UID){
+            uint8_t* uid = get_card_uid(), valid_len = sizeof(s_ofsm_info[gunno].base.card_uid);
+            if(uid){
+                valid_len = valid_len > get_card_uid_len() ? get_card_uid_len() : valid_len;
+                if(memcmp(s_ofsm_info[gunno].base.card_uid, uid, valid_len) == 0){
+                    if(s_ofsm_info[gunno].base.start_type == APP_CHARGE_START_WAY_ONLINE_CARD){
+                        s_thaisen_transaction[gunno].stop_reason = mw_system_stop_way_convert(APP_SYSTEM_STOP_WAY_ONLINECARD_STOP);
+                        s_ofsm_info[gunno].base.reason_code = s_thaisen_transaction[gunno].stop_reason;
+                        LOG_D("gunno(%d) charge finish deal to online card(uid) stop\n", gunno);
                     }else{
-                        s_buzzon_state = BUZZON_STATE_FAILED;
-                        rt_mq_send(&g_buzzon_mq, &s_buzzon_state, sizeof(s_buzzon_state));
-                        LOG_W("this is not the card of start charge on this gun(%d)", gunno);
+                        s_thaisen_transaction[gunno].stop_reason = mw_system_stop_way_convert(APP_SYSTEM_STOP_WAY_OFFLINECARD_STOP);
+                        s_ofsm_info[gunno].base.reason_code = s_thaisen_transaction[gunno].stop_reason;
+                        LOG_D("gunno(%d) charge finish deal to offline card(uid) stop\n", gunno);
                     }
+                    s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_FALSE;
+                    is_stop_charge_authorization = true;
+
                 }else{
-                    LOG_W("gunno error when get card uid in ready state");
+                    s_buzzon_state = BUZZON_STATE_FAILED;
+                    rt_mq_send(&g_buzzon_mq, &s_buzzon_state, sizeof(s_buzzon_state));
+                    LOG_W("this is not the card of start charge on this gun(%d)", gunno);
                 }
+            }else{
+                LOG_W("gunno error when get card uid in ready state");
             }
         }
     }else if(app_get_hci_event(gunno, HCI_EVENT_SCREEN_STOP, 1)){
@@ -2176,34 +2181,24 @@ static void ofsm_finishing_fun(uint8_t gunno)
         }else if(get_swipe_card_state(gunno)){
             uint8_t need_authorize_online = 0x00;
             clear_swipe_card_state(gunno);
-            if(thaisen_get_hci_page_pos() == gunno){
-                if(get_card_info_type() == CARD_INFO_TYPE_CARD_NUMBER){
-                    uint8_t pile_number_len = APP_CARD_NUMBER_COMPARE_LEN, card_number_len = get_card_number_len(),
-                            compare_len = 0, count = 0;
-                    uint8_t *pile_number, *card_number;
-                    compare_len = pile_number_len > card_number_len ? card_number_len : pile_number_len;
-                    pile_number = sys_read_config_item_content(CONFIG_ITEM_PILE_NUMBER, 0);
-                    card_number = get_card_number();
+            if(get_card_info_type() == CARD_INFO_TYPE_CARD_NUMBER){
+                uint8_t pile_number_len = APP_CARD_NUMBER_COMPARE_LEN, card_number_len = get_card_number_len(),
+                        compare_len = 0, count = 0;
+                uint8_t *pile_number, *card_number;
+                compare_len = pile_number_len > card_number_len ? card_number_len : pile_number_len;
+                pile_number = sys_read_config_item_content(CONFIG_ITEM_PILE_NUMBER, 0);
+                card_number = get_card_number();
 
-                    if(compare_len >= CARD_NUMBER_COMPARE_LEN_MIN){
-                        for(; count < CARD_NUMBER_COMPARE_LEN_MIN; count++){
-                            if(pile_number[count] != card_number[count]){
-                                break;
-                            }
+                if(compare_len >= CARD_NUMBER_COMPARE_LEN_MIN){
+                    for(; count < CARD_NUMBER_COMPARE_LEN_MIN; count++){
+                        if(pile_number[count] != card_number[count]){
+                            break;
                         }
-                        if(count == CARD_NUMBER_COMPARE_LEN_MIN){
-                            s_buzzon_state = BUZZON_STATE_OK;
-                            rt_mq_send(&g_buzzon_mq, &s_buzzon_state, sizeof(s_buzzon_state));
-                            LOG_D("gunno(%d) start charge by local pile number card", gunno);
-                        }else{
-                            if(sys_card_number_whitelists_query(card_number, card_number_len) >= 0x00){
-                                s_buzzon_state = BUZZON_STATE_OK;
-                                rt_mq_send(&g_buzzon_mq, &s_buzzon_state, sizeof(s_buzzon_state));
-                                LOG_D("gunno(%d) start charge by local whitelist card", gunno);
-                            }else{
-                                need_authorize_online = 0x01;
-                            }
-                        }
+                    }
+                    if(count == CARD_NUMBER_COMPARE_LEN_MIN){
+                        s_buzzon_state = BUZZON_STATE_OK;
+                        rt_mq_send(&g_buzzon_mq, &s_buzzon_state, sizeof(s_buzzon_state));
+                        LOG_D("gunno(%d) start charge by local pile number card", gunno);
                     }else{
                         if(sys_card_number_whitelists_query(card_number, card_number_len) >= 0x00){
                             s_buzzon_state = BUZZON_STATE_OK;
@@ -2213,97 +2208,105 @@ static void ofsm_finishing_fun(uint8_t gunno)
                             need_authorize_online = 0x01;
                         }
                     }
-
-                    compare_len = sizeof(s_ofsm_info[gunno].base.card_number);
-                    compare_len = compare_len > card_number_len ? card_number_len : compare_len;
-                    memset(s_ofsm_info[gunno].base.card_number, 0x00, sizeof(s_ofsm_info[gunno].base.card_number));
-                    memcpy(s_ofsm_info[gunno].base.card_number, card_number, compare_len);
-
-                    s_ofsm_info[gunno].base.flag.card_info_is_uid = APP_THA_ENUM_FALSE;
-
-                    if(need_authorize_online == 0x00){
-                        s_ofsm_info[gunno].base.flag.is_local_charging = APP_THA_ENUM_TRUE;
-                        s_ofsm_info[gunno].base.start_type = APP_CHARGE_START_WAY_OFFLINE_CARD;
-                        s_ofsm_info[gunno].base.account_balance = 0x00;
-                        s_ofsm_info[gunno].base.charge_strategy = APP_CHARGE_STRATEGY_FULL;
-                        s_ofsm_info[gunno].base.charge_strategy_para = 0x00;
-
-                        app_nsal_create_local_transaction_number(gunno, &(s_ofsm_info[gunno].base.transaction_number),  \
-                                sizeof(s_ofsm_info[gunno].base.transaction_number));
-
-                        memset(s_ofsm_info[gunno].base.card_uid, 0x00, sizeof(s_ofsm_info[gunno].base.card_uid));
-                        memset(s_ofsm_info[gunno].base.user_number, 0x00, sizeof(s_ofsm_info[gunno].base.user_number));
-
-                        compare_len = sizeof(s_ofsm_info[gunno].base.transaction_number);
-                        compare_len = compare_len > sizeof(s_thaisen_transaction[gunno].serial_number) ? sizeof(s_thaisen_transaction[gunno].serial_number) : compare_len;
-                        memset(s_thaisen_transaction[gunno].serial_number, 0x00, sizeof(s_thaisen_transaction[gunno].serial_number));
-                        memcpy(s_thaisen_transaction[gunno].serial_number, s_ofsm_info[gunno].base.transaction_number, compare_len);
-
-                        compare_len = sizeof(s_ofsm_info[gunno].base.card_number);
-                        compare_len = compare_len > sizeof(s_thaisen_transaction[gunno].logic_card_number) ? sizeof(s_thaisen_transaction[gunno].logic_card_number) : compare_len;
-                        memset(s_thaisen_transaction[gunno].logic_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].logic_card_number));
-                        memcpy(s_thaisen_transaction[gunno].logic_card_number, s_ofsm_info[gunno].base.card_number, compare_len);
-
-                        memset(s_thaisen_transaction[gunno].physics_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].physics_card_number));
-                        memset(s_thaisen_transaction[gunno].user_number, 0x00, sizeof(s_thaisen_transaction[gunno].user_number));
-                        s_thaisen_transaction[gunno].start_type = APP_CHARGE_START_WAY_OFFLINE_CARD;
-
-                        is_charging_authorization = true;
-                    }
-                }else if(get_card_info_type() == CARD_INFO_TYPE_CARD_UID){
-                    uint8_t uid_len = get_card_uid_len(), compare_len = 0x00;
-
-                    if(sys_card_uid_whitelists_query(get_card_uid(), uid_len) >= 0x00){
+                }else{
+                    if(sys_card_number_whitelists_query(card_number, card_number_len) >= 0x00){
                         s_buzzon_state = BUZZON_STATE_OK;
                         rt_mq_send(&g_buzzon_mq, &s_buzzon_state, sizeof(s_buzzon_state));
-                        LOG_D("gunno(%d) start charge by local whitelist card uid", gunno);
+                        LOG_D("gunno(%d) start charge by local whitelist card", gunno);
                     }else{
                         need_authorize_online = 0x01;
                     }
+                }
 
-                    uid_len = uid_len > sizeof(s_ofsm_info[gunno].base.card_uid) ? sizeof(s_ofsm_info[gunno].base.card_uid) : uid_len;
+                compare_len = sizeof(s_ofsm_info[gunno].base.card_number);
+                compare_len = compare_len > card_number_len ? card_number_len : compare_len;
+                memset(s_ofsm_info[gunno].base.card_number, 0x00, sizeof(s_ofsm_info[gunno].base.card_number));
+                memcpy(s_ofsm_info[gunno].base.card_number, card_number, compare_len);
+
+                s_ofsm_info[gunno].base.flag.card_info_is_uid = APP_THA_ENUM_FALSE;
+
+                if(need_authorize_online == 0x00){
+                    s_ofsm_info[gunno].base.flag.is_local_charging = APP_THA_ENUM_TRUE;
+                    s_ofsm_info[gunno].base.start_type = APP_CHARGE_START_WAY_OFFLINE_CARD;
+                    s_ofsm_info[gunno].base.account_balance = 0x00;
+                    s_ofsm_info[gunno].base.charge_strategy = APP_CHARGE_STRATEGY_FULL;
+                    s_ofsm_info[gunno].base.charge_strategy_para = 0x00;
+
+                    app_nsal_create_local_transaction_number(gunno, &(s_ofsm_info[gunno].base.transaction_number),  \
+                            sizeof(s_ofsm_info[gunno].base.transaction_number));
+
                     memset(s_ofsm_info[gunno].base.card_uid, 0x00, sizeof(s_ofsm_info[gunno].base.card_uid));
-                    memcpy(s_ofsm_info[gunno].base.card_uid, get_card_uid(), uid_len);
-                    s_ofsm_info[gunno].base.card_uid_len = uid_len;
-                    s_ofsm_info[gunno].base.flag.card_info_is_uid = APP_THA_ENUM_TRUE;
+                    memset(s_ofsm_info[gunno].base.user_number, 0x00, sizeof(s_ofsm_info[gunno].base.user_number));
 
-                    if(need_authorize_online == 0x00){
-                        s_ofsm_info[gunno].base.flag.is_local_charging = APP_THA_ENUM_TRUE;
-                        s_ofsm_info[gunno].base.start_type = APP_CHARGE_START_WAY_OFFLINE_CARD;
-                        s_ofsm_info[gunno].base.account_balance = 0x00;
-                        s_ofsm_info[gunno].base.charge_strategy = APP_CHARGE_STRATEGY_FULL;
-                        s_ofsm_info[gunno].base.charge_strategy_para = 0x00;
+                    compare_len = sizeof(s_ofsm_info[gunno].base.transaction_number);
+                    compare_len = compare_len > sizeof(s_thaisen_transaction[gunno].serial_number) ? sizeof(s_thaisen_transaction[gunno].serial_number) : compare_len;
+                    memset(s_thaisen_transaction[gunno].serial_number, 0x00, sizeof(s_thaisen_transaction[gunno].serial_number));
+                    memcpy(s_thaisen_transaction[gunno].serial_number, s_ofsm_info[gunno].base.transaction_number, compare_len);
 
-                        app_nsal_create_local_transaction_number(gunno, &(s_ofsm_info[gunno].base.transaction_number),  \
-                                sizeof(s_ofsm_info[gunno].base.transaction_number));
+                    compare_len = sizeof(s_ofsm_info[gunno].base.card_number);
+                    compare_len = compare_len > sizeof(s_thaisen_transaction[gunno].logic_card_number) ? sizeof(s_thaisen_transaction[gunno].logic_card_number) : compare_len;
+                    memset(s_thaisen_transaction[gunno].logic_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].logic_card_number));
+                    memcpy(s_thaisen_transaction[gunno].logic_card_number, s_ofsm_info[gunno].base.card_number, compare_len);
 
-                        compare_len = sizeof(s_ofsm_info[gunno].base.transaction_number);
-                        compare_len = compare_len > sizeof(s_thaisen_transaction[gunno].serial_number) ? sizeof(s_thaisen_transaction[gunno].serial_number) : compare_len;
-                        memset(s_thaisen_transaction[gunno].serial_number, 0x00, sizeof(s_thaisen_transaction[gunno].serial_number));
-                        memcpy(s_thaisen_transaction[gunno].serial_number, s_ofsm_info[gunno].base.transaction_number, compare_len);
+                    memset(s_thaisen_transaction[gunno].physics_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].physics_card_number));
+                    memset(s_thaisen_transaction[gunno].user_number, 0x00, sizeof(s_thaisen_transaction[gunno].user_number));
+                    s_thaisen_transaction[gunno].start_type = APP_CHARGE_START_WAY_OFFLINE_CARD;
 
-                        compare_len = sizeof(s_ofsm_info[gunno].base.card_number);
-                        compare_len = compare_len > sizeof(s_thaisen_transaction[gunno].logic_card_number) ? sizeof(s_thaisen_transaction[gunno].logic_card_number) : compare_len;
-                        memset(s_thaisen_transaction[gunno].logic_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].logic_card_number));
-                        memcpy(s_thaisen_transaction[gunno].logic_card_number, s_ofsm_info[gunno].base.card_number, compare_len);
+                    is_charging_authorization = true;
+                }
+            }else if(get_card_info_type() == CARD_INFO_TYPE_CARD_UID){
+                uint8_t uid_len = get_card_uid_len(), compare_len = 0x00;
 
-                        memset(s_thaisen_transaction[gunno].physics_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].physics_card_number));
-                        memset(s_thaisen_transaction[gunno].user_number, 0x00, sizeof(s_thaisen_transaction[gunno].user_number));
-                        s_thaisen_transaction[gunno].start_type = APP_CHARGE_START_WAY_OFFLINE_CARD;
-
-                        is_charging_authorization = true;
-                    }
+                if(sys_card_uid_whitelists_query(get_card_uid(), uid_len) >= 0x00){
+                    s_buzzon_state = BUZZON_STATE_OK;
+                    rt_mq_send(&g_buzzon_mq, &s_buzzon_state, sizeof(s_buzzon_state));
+                    LOG_D("gunno(%d) start charge by local whitelist card uid", gunno);
+                }else{
+                    need_authorize_online = 0x01;
                 }
 
-                if(need_authorize_online){
-                    if(app_nsal_card_authorize(gunno) < 0x00){
-                        s_buzzon_state = BUZZON_STATE_FAILED;
-                        rt_mq_send(&g_buzzon_mq, &s_buzzon_state, sizeof(s_buzzon_state));
-                        LOG_W("gunno(%d) swip card authorize fail", gunno);
-                        return;
-                    }
-                    s_ofsm_info[gunno].base.flag.card_authorization = APP_THA_ENUM_TRUE;
+                uid_len = uid_len > sizeof(s_ofsm_info[gunno].base.card_uid) ? sizeof(s_ofsm_info[gunno].base.card_uid) : uid_len;
+                memset(s_ofsm_info[gunno].base.card_uid, 0x00, sizeof(s_ofsm_info[gunno].base.card_uid));
+                memcpy(s_ofsm_info[gunno].base.card_uid, get_card_uid(), uid_len);
+                s_ofsm_info[gunno].base.card_uid_len = uid_len;
+                s_ofsm_info[gunno].base.flag.card_info_is_uid = APP_THA_ENUM_TRUE;
+
+                if(need_authorize_online == 0x00){
+                    s_ofsm_info[gunno].base.flag.is_local_charging = APP_THA_ENUM_TRUE;
+                    s_ofsm_info[gunno].base.start_type = APP_CHARGE_START_WAY_OFFLINE_CARD;
+                    s_ofsm_info[gunno].base.account_balance = 0x00;
+                    s_ofsm_info[gunno].base.charge_strategy = APP_CHARGE_STRATEGY_FULL;
+                    s_ofsm_info[gunno].base.charge_strategy_para = 0x00;
+
+                    app_nsal_create_local_transaction_number(gunno, &(s_ofsm_info[gunno].base.transaction_number),  \
+                            sizeof(s_ofsm_info[gunno].base.transaction_number));
+
+                    compare_len = sizeof(s_ofsm_info[gunno].base.transaction_number);
+                    compare_len = compare_len > sizeof(s_thaisen_transaction[gunno].serial_number) ? sizeof(s_thaisen_transaction[gunno].serial_number) : compare_len;
+                    memset(s_thaisen_transaction[gunno].serial_number, 0x00, sizeof(s_thaisen_transaction[gunno].serial_number));
+                    memcpy(s_thaisen_transaction[gunno].serial_number, s_ofsm_info[gunno].base.transaction_number, compare_len);
+
+                    compare_len = sizeof(s_ofsm_info[gunno].base.card_number);
+                    compare_len = compare_len > sizeof(s_thaisen_transaction[gunno].logic_card_number) ? sizeof(s_thaisen_transaction[gunno].logic_card_number) : compare_len;
+                    memset(s_thaisen_transaction[gunno].logic_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].logic_card_number));
+                    memcpy(s_thaisen_transaction[gunno].logic_card_number, s_ofsm_info[gunno].base.card_number, compare_len);
+
+                    memset(s_thaisen_transaction[gunno].physics_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].physics_card_number));
+                    memset(s_thaisen_transaction[gunno].user_number, 0x00, sizeof(s_thaisen_transaction[gunno].user_number));
+                    s_thaisen_transaction[gunno].start_type = APP_CHARGE_START_WAY_OFFLINE_CARD;
+
+                    is_charging_authorization = true;
                 }
+            }
+
+            if(need_authorize_online){
+                if(app_nsal_card_authorize(gunno) < 0x00){
+                    s_buzzon_state = BUZZON_STATE_FAILED;
+                    rt_mq_send(&g_buzzon_mq, &s_buzzon_state, sizeof(s_buzzon_state));
+                    LOG_W("gunno(%d) swip card authorize fail", gunno);
+                    return;
+                }
+                s_ofsm_info[gunno].base.flag.card_authorization = APP_THA_ENUM_TRUE;
             }
         }else if(app_nsal_is_card_authorize_success(gunno)){
             uint8_t valid_len = 0x00;
@@ -2679,34 +2682,24 @@ static void ofsm_faulting_fun(uint8_t gunno)
                 }else if(get_swipe_card_state(gunno)){
                     uint8_t need_authorize_online = 0x00;
                     clear_swipe_card_state(gunno);
-                    if(thaisen_get_hci_page_pos() == gunno){
-                        if(get_card_info_type() == CARD_INFO_TYPE_CARD_NUMBER){
-                            uint8_t pile_number_len = APP_CARD_NUMBER_COMPARE_LEN, card_number_len = get_card_number_len(),
-                                    compare_len = 0, count = 0;
-                            uint8_t *pile_number, *card_number;
-                            compare_len = pile_number_len > card_number_len ? card_number_len : pile_number_len;
-                            pile_number = sys_read_config_item_content(CONFIG_ITEM_PILE_NUMBER, 0);
-                            card_number = get_card_number();
+                    if(get_card_info_type() == CARD_INFO_TYPE_CARD_NUMBER){
+                        uint8_t pile_number_len = APP_CARD_NUMBER_COMPARE_LEN, card_number_len = get_card_number_len(),
+                                compare_len = 0, count = 0;
+                        uint8_t *pile_number, *card_number;
+                        compare_len = pile_number_len > card_number_len ? card_number_len : pile_number_len;
+                        pile_number = sys_read_config_item_content(CONFIG_ITEM_PILE_NUMBER, 0);
+                        card_number = get_card_number();
 
-                            if(compare_len >= CARD_NUMBER_COMPARE_LEN_MIN){
-                                for(; count < CARD_NUMBER_COMPARE_LEN_MIN; count++){
-                                    if(pile_number[count] != card_number[count]){
-                                        break;
-                                    }
+                        if(compare_len >= CARD_NUMBER_COMPARE_LEN_MIN){
+                            for(; count < CARD_NUMBER_COMPARE_LEN_MIN; count++){
+                                if(pile_number[count] != card_number[count]){
+                                    break;
                                 }
-                                if(count == CARD_NUMBER_COMPARE_LEN_MIN){
-                                    s_buzzon_state = BUZZON_STATE_OK;
-                                    rt_mq_send(&g_buzzon_mq, &s_buzzon_state, sizeof(s_buzzon_state));
-                                    LOG_D("gunno(%d) start charge by local pile number card", gunno);
-                                }else{
-                                    if(sys_card_number_whitelists_query(card_number, card_number_len) >= 0x00){
-                                        s_buzzon_state = BUZZON_STATE_OK;
-                                        rt_mq_send(&g_buzzon_mq, &s_buzzon_state, sizeof(s_buzzon_state));
-                                        LOG_D("gunno(%d) start charge by local whitelist card", gunno);
-                                    }else{
-                                        need_authorize_online = 0x01;
-                                    }
-                                }
+                            }
+                            if(count == CARD_NUMBER_COMPARE_LEN_MIN){
+                                s_buzzon_state = BUZZON_STATE_OK;
+                                rt_mq_send(&g_buzzon_mq, &s_buzzon_state, sizeof(s_buzzon_state));
+                                LOG_D("gunno(%d) start charge by local pile number card", gunno);
                             }else{
                                 if(sys_card_number_whitelists_query(card_number, card_number_len) >= 0x00){
                                     s_buzzon_state = BUZZON_STATE_OK;
@@ -2716,97 +2709,105 @@ static void ofsm_faulting_fun(uint8_t gunno)
                                     need_authorize_online = 0x01;
                                 }
                             }
-
-                            compare_len = sizeof(s_ofsm_info[gunno].base.card_number);
-                            compare_len = compare_len > card_number_len ? card_number_len : compare_len;
-                            memset(s_ofsm_info[gunno].base.card_number, 0x00, sizeof(s_ofsm_info[gunno].base.card_number));
-                            memcpy(s_ofsm_info[gunno].base.card_number, card_number, compare_len);
-
-                            s_ofsm_info[gunno].base.flag.card_info_is_uid = APP_THA_ENUM_FALSE;
-
-                            if(need_authorize_online == 0x00){
-                                s_ofsm_info[gunno].base.flag.is_local_charging = APP_THA_ENUM_TRUE;
-                                s_ofsm_info[gunno].base.start_type = APP_CHARGE_START_WAY_OFFLINE_CARD;
-                                s_ofsm_info[gunno].base.account_balance = 0x00;
-                                s_ofsm_info[gunno].base.charge_strategy = APP_CHARGE_STRATEGY_FULL;
-                                s_ofsm_info[gunno].base.charge_strategy_para = 0x00;
-
-                                app_nsal_create_local_transaction_number(gunno, &(s_ofsm_info[gunno].base.transaction_number),  \
-                                        sizeof(s_ofsm_info[gunno].base.transaction_number));
-
-                                memset(s_ofsm_info[gunno].base.card_uid, 0x00, sizeof(s_ofsm_info[gunno].base.card_uid));
-                                memset(s_ofsm_info[gunno].base.user_number, 0x00, sizeof(s_ofsm_info[gunno].base.user_number));
-
-                                compare_len = sizeof(s_ofsm_info[gunno].base.transaction_number);
-                                compare_len = compare_len > sizeof(s_thaisen_transaction[gunno].serial_number) ? sizeof(s_thaisen_transaction[gunno].serial_number) : compare_len;
-                                memset(s_thaisen_transaction[gunno].serial_number, 0x00, sizeof(s_thaisen_transaction[gunno].serial_number));
-                                memcpy(s_thaisen_transaction[gunno].serial_number, s_ofsm_info[gunno].base.transaction_number, compare_len);
-
-                                compare_len = sizeof(s_ofsm_info[gunno].base.card_number);
-                                compare_len = compare_len > sizeof(s_thaisen_transaction[gunno].logic_card_number) ? sizeof(s_thaisen_transaction[gunno].logic_card_number) : compare_len;
-                                memset(s_thaisen_transaction[gunno].logic_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].logic_card_number));
-                                memcpy(s_thaisen_transaction[gunno].logic_card_number, s_ofsm_info[gunno].base.card_number, compare_len);
-
-                                memset(s_thaisen_transaction[gunno].physics_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].physics_card_number));
-                                memset(s_thaisen_transaction[gunno].user_number, 0x00, sizeof(s_thaisen_transaction[gunno].user_number));
-                                s_thaisen_transaction[gunno].start_type = APP_CHARGE_START_WAY_OFFLINE_CARD;
-
-                                is_charging_authorization = true;
-                            }
-                        }else if(get_card_info_type() == CARD_INFO_TYPE_CARD_UID){
-                            uint8_t uid_len = get_card_uid_len(), compare_len = 0x00;
-
-                            if(sys_card_uid_whitelists_query(get_card_uid(), uid_len) >= 0x00){
+                        }else{
+                            if(sys_card_number_whitelists_query(card_number, card_number_len) >= 0x00){
                                 s_buzzon_state = BUZZON_STATE_OK;
                                 rt_mq_send(&g_buzzon_mq, &s_buzzon_state, sizeof(s_buzzon_state));
-                                LOG_D("gunno(%d) start charge by local whitelist card uid", gunno);
+                                LOG_D("gunno(%d) start charge by local whitelist card", gunno);
                             }else{
                                 need_authorize_online = 0x01;
                             }
+                        }
 
-                            uid_len = uid_len > sizeof(s_ofsm_info[gunno].base.card_uid) ? sizeof(s_ofsm_info[gunno].base.card_uid) : uid_len;
+                        compare_len = sizeof(s_ofsm_info[gunno].base.card_number);
+                        compare_len = compare_len > card_number_len ? card_number_len : compare_len;
+                        memset(s_ofsm_info[gunno].base.card_number, 0x00, sizeof(s_ofsm_info[gunno].base.card_number));
+                        memcpy(s_ofsm_info[gunno].base.card_number, card_number, compare_len);
+
+                        s_ofsm_info[gunno].base.flag.card_info_is_uid = APP_THA_ENUM_FALSE;
+
+                        if(need_authorize_online == 0x00){
+                            s_ofsm_info[gunno].base.flag.is_local_charging = APP_THA_ENUM_TRUE;
+                            s_ofsm_info[gunno].base.start_type = APP_CHARGE_START_WAY_OFFLINE_CARD;
+                            s_ofsm_info[gunno].base.account_balance = 0x00;
+                            s_ofsm_info[gunno].base.charge_strategy = APP_CHARGE_STRATEGY_FULL;
+                            s_ofsm_info[gunno].base.charge_strategy_para = 0x00;
+
+                            app_nsal_create_local_transaction_number(gunno, &(s_ofsm_info[gunno].base.transaction_number),  \
+                                    sizeof(s_ofsm_info[gunno].base.transaction_number));
+
                             memset(s_ofsm_info[gunno].base.card_uid, 0x00, sizeof(s_ofsm_info[gunno].base.card_uid));
-                            memcpy(s_ofsm_info[gunno].base.card_uid, get_card_uid(), uid_len);
-                            s_ofsm_info[gunno].base.card_uid_len = uid_len;
-                            s_ofsm_info[gunno].base.flag.card_info_is_uid = APP_THA_ENUM_TRUE;
+                            memset(s_ofsm_info[gunno].base.user_number, 0x00, sizeof(s_ofsm_info[gunno].base.user_number));
 
-                            if(need_authorize_online == 0x00){
-                                s_ofsm_info[gunno].base.flag.is_local_charging = APP_THA_ENUM_TRUE;
-                                s_ofsm_info[gunno].base.start_type = APP_CHARGE_START_WAY_OFFLINE_CARD;
-                                s_ofsm_info[gunno].base.account_balance = 0x00;
-                                s_ofsm_info[gunno].base.charge_strategy = APP_CHARGE_STRATEGY_FULL;
-                                s_ofsm_info[gunno].base.charge_strategy_para = 0x00;
+                            compare_len = sizeof(s_ofsm_info[gunno].base.transaction_number);
+                            compare_len = compare_len > sizeof(s_thaisen_transaction[gunno].serial_number) ? sizeof(s_thaisen_transaction[gunno].serial_number) : compare_len;
+                            memset(s_thaisen_transaction[gunno].serial_number, 0x00, sizeof(s_thaisen_transaction[gunno].serial_number));
+                            memcpy(s_thaisen_transaction[gunno].serial_number, s_ofsm_info[gunno].base.transaction_number, compare_len);
 
-                                app_nsal_create_local_transaction_number(gunno, &(s_ofsm_info[gunno].base.transaction_number),  \
-                                        sizeof(s_ofsm_info[gunno].base.transaction_number));
+                            compare_len = sizeof(s_ofsm_info[gunno].base.card_number);
+                            compare_len = compare_len > sizeof(s_thaisen_transaction[gunno].logic_card_number) ? sizeof(s_thaisen_transaction[gunno].logic_card_number) : compare_len;
+                            memset(s_thaisen_transaction[gunno].logic_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].logic_card_number));
+                            memcpy(s_thaisen_transaction[gunno].logic_card_number, s_ofsm_info[gunno].base.card_number, compare_len);
 
-                                compare_len = sizeof(s_ofsm_info[gunno].base.transaction_number);
-                                compare_len = compare_len > sizeof(s_thaisen_transaction[gunno].serial_number) ? sizeof(s_thaisen_transaction[gunno].serial_number) : compare_len;
-                                memset(s_thaisen_transaction[gunno].serial_number, 0x00, sizeof(s_thaisen_transaction[gunno].serial_number));
-                                memcpy(s_thaisen_transaction[gunno].serial_number, s_ofsm_info[gunno].base.transaction_number, compare_len);
+                            memset(s_thaisen_transaction[gunno].physics_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].physics_card_number));
+                            memset(s_thaisen_transaction[gunno].user_number, 0x00, sizeof(s_thaisen_transaction[gunno].user_number));
+                            s_thaisen_transaction[gunno].start_type = APP_CHARGE_START_WAY_OFFLINE_CARD;
 
-                                compare_len = sizeof(s_ofsm_info[gunno].base.card_number);
-                                compare_len = compare_len > sizeof(s_thaisen_transaction[gunno].logic_card_number) ? sizeof(s_thaisen_transaction[gunno].logic_card_number) : compare_len;
-                                memset(s_thaisen_transaction[gunno].logic_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].logic_card_number));
-                                memcpy(s_thaisen_transaction[gunno].logic_card_number, s_ofsm_info[gunno].base.card_number, compare_len);
+                            is_charging_authorization = true;
+                        }
+                    }else if(get_card_info_type() == CARD_INFO_TYPE_CARD_UID){
+                        uint8_t uid_len = get_card_uid_len(), compare_len = 0x00;
 
-                                memset(s_thaisen_transaction[gunno].physics_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].physics_card_number));
-                                memset(s_thaisen_transaction[gunno].user_number, 0x00, sizeof(s_thaisen_transaction[gunno].user_number));
-                                s_thaisen_transaction[gunno].start_type = APP_CHARGE_START_WAY_OFFLINE_CARD;
-
-                                is_charging_authorization = true;
-                            }
+                        if(sys_card_uid_whitelists_query(get_card_uid(), uid_len) >= 0x00){
+                            s_buzzon_state = BUZZON_STATE_OK;
+                            rt_mq_send(&g_buzzon_mq, &s_buzzon_state, sizeof(s_buzzon_state));
+                            LOG_D("gunno(%d) start charge by local whitelist card uid", gunno);
+                        }else{
+                            need_authorize_online = 0x01;
                         }
 
-                        if(need_authorize_online){
-                            if(app_nsal_card_authorize(gunno) < 0x00){
-                                s_buzzon_state = BUZZON_STATE_FAILED;
-                                rt_mq_send(&g_buzzon_mq, &s_buzzon_state, sizeof(s_buzzon_state));
-                                LOG_W("gunno(%d) swip card authorize fail", gunno);
-                                return;
-                            }
-                            s_ofsm_info[gunno].base.flag.card_authorization = APP_THA_ENUM_TRUE;
+                        uid_len = uid_len > sizeof(s_ofsm_info[gunno].base.card_uid) ? sizeof(s_ofsm_info[gunno].base.card_uid) : uid_len;
+                        memset(s_ofsm_info[gunno].base.card_uid, 0x00, sizeof(s_ofsm_info[gunno].base.card_uid));
+                        memcpy(s_ofsm_info[gunno].base.card_uid, get_card_uid(), uid_len);
+                        s_ofsm_info[gunno].base.card_uid_len = uid_len;
+                        s_ofsm_info[gunno].base.flag.card_info_is_uid = APP_THA_ENUM_TRUE;
+
+                        if(need_authorize_online == 0x00){
+                            s_ofsm_info[gunno].base.flag.is_local_charging = APP_THA_ENUM_TRUE;
+                            s_ofsm_info[gunno].base.start_type = APP_CHARGE_START_WAY_OFFLINE_CARD;
+                            s_ofsm_info[gunno].base.account_balance = 0x00;
+                            s_ofsm_info[gunno].base.charge_strategy = APP_CHARGE_STRATEGY_FULL;
+                            s_ofsm_info[gunno].base.charge_strategy_para = 0x00;
+
+                            app_nsal_create_local_transaction_number(gunno, &(s_ofsm_info[gunno].base.transaction_number),  \
+                                    sizeof(s_ofsm_info[gunno].base.transaction_number));
+
+                            compare_len = sizeof(s_ofsm_info[gunno].base.transaction_number);
+                            compare_len = compare_len > sizeof(s_thaisen_transaction[gunno].serial_number) ? sizeof(s_thaisen_transaction[gunno].serial_number) : compare_len;
+                            memset(s_thaisen_transaction[gunno].serial_number, 0x00, sizeof(s_thaisen_transaction[gunno].serial_number));
+                            memcpy(s_thaisen_transaction[gunno].serial_number, s_ofsm_info[gunno].base.transaction_number, compare_len);
+
+                            compare_len = sizeof(s_ofsm_info[gunno].base.card_number);
+                            compare_len = compare_len > sizeof(s_thaisen_transaction[gunno].logic_card_number) ? sizeof(s_thaisen_transaction[gunno].logic_card_number) : compare_len;
+                            memset(s_thaisen_transaction[gunno].logic_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].logic_card_number));
+                            memcpy(s_thaisen_transaction[gunno].logic_card_number, s_ofsm_info[gunno].base.card_number, compare_len);
+
+                            memset(s_thaisen_transaction[gunno].physics_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].physics_card_number));
+                            memset(s_thaisen_transaction[gunno].user_number, 0x00, sizeof(s_thaisen_transaction[gunno].user_number));
+                            s_thaisen_transaction[gunno].start_type = APP_CHARGE_START_WAY_OFFLINE_CARD;
+
+                            is_charging_authorization = true;
                         }
+                    }
+
+                    if(need_authorize_online){
+                        if(app_nsal_card_authorize(gunno) < 0x00){
+                            s_buzzon_state = BUZZON_STATE_FAILED;
+                            rt_mq_send(&g_buzzon_mq, &s_buzzon_state, sizeof(s_buzzon_state));
+                            LOG_W("gunno(%d) swip card authorize fail", gunno);
+                            return;
+                        }
+                        s_ofsm_info[gunno].base.flag.card_authorization = APP_THA_ENUM_TRUE;
                     }
                 }else if(app_nsal_is_card_authorize_success(gunno)){
                     uint8_t valid_len = 0x00;
@@ -3303,6 +3304,8 @@ void ofsm_thread_entry(void *parameter)
 
         transaction_record_query_report(thread_gunno);
         app_nsal_realtime_process(thread_gunno);
+
+        set_current_port(thaisen_get_hci_page_pos());
 
         rt_thread_mdelay(100);
     }

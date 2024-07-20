@@ -23,6 +23,8 @@ struct card{
     uint8_t card_numbe_len;
     uint8_t info_type;
     uint8_t state;
+
+    uint8_t port;
 };
 static struct card s_card_info;
 static uint8_t s_reader_error_count;
@@ -248,7 +250,9 @@ void card_thread_entry(void *parameter)
             }else{
                 s_card_info.info_type = CARD_INFO_TYPE_CARD_UID;
                 for(uint8_t gunno = 0; gunno < APP_SYSTEM_GUNNO_SIZE; gunno++){
-                    s_card_info.state |= (1 <<gunno);
+                    if(get_current_port() == gunno){
+                        s_card_info.state |= (1 <<gunno);
+                    }
                 }
                 s_card_state = CARD_STATE_OFFFIELD;
                 LOG_D("card key authen fail");
@@ -267,7 +271,9 @@ void card_thread_entry(void *parameter)
                 s_card_info.info_type = CARD_INFO_TYPE_CARD_NUMBER;
                 s_card_info.card_numbe_len = 16;
                 for(uint8_t gunno = 0; gunno < APP_SYSTEM_GUNNO_SIZE; gunno++){
-                    s_card_info.state |= (1 <<gunno);
+                    if(get_current_port() == gunno){
+                        s_card_info.state |= (1 <<gunno);
+                    }
                 }
             }else{
                 LOG_E("read card number fail!!");
@@ -380,6 +386,25 @@ void clear_swipe_card_state(uint8_t gunno)
     s_card_info.state &= (~(1 <<gunno));
 }
 
+/*************************************
+ * 函数名            get_current_port
+ * 功能               获取当前端口
+ ************************************/
+uint8_t get_current_port(void)
+{
+    return s_card_info.port;
+}
+/*************************************
+ * 函数名          set_current_port
+ * 功能              设置当前端口
+ ************************************/
+void set_current_port(uint8_t port)
+{
+    if(port >= APP_SYSTEM_GUNNO_SIZE){
+        return;
+    }
+    s_card_info.port = port;
+}
 
 
 

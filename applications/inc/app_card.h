@@ -105,6 +105,9 @@ uint8_t get_card_info_type(void);
 uint8_t get_swipe_card_state(uint8_t gunno);
 void clear_swipe_card_state(uint8_t gunno);
 
+uint8_t get_current_port(void);
+void set_current_port(uint8_t port);
+
 #ifdef __cplusplus
 }
 #endif
