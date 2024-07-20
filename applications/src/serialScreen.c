@@ -2330,8 +2330,6 @@ static void SerialScreen_BtnModuleStateShow(int port)
                     memset(((char*)LcdData.ModuleStateString[count + base] + (used_len - remain_len)), ' ', remain_len);
                 }
             }
-            rt_kprintf("count + base(%d) ModuleStateString(%s)\n", (count + base),
-                    (char*)LcdData.ModuleStateString[count + base]);
         }
 
         base += length;
@@ -5539,7 +5537,10 @@ int SerialScreen_DataProcess()
 		{
 			case APP_OFSM_STATE_WAIT_NET:
 			case APP_OFSM_STATE_IDLEING:
-	            thaisenSetAuxPowerTypeA(thaisen_auxPowerType_12V);
+			    if(i == LCD_GUN_1)
+	                thaisenSetAuxPowerTypeA(thaisen_auxPowerType_12V);
+			    else
+			        thaisenSetAuxPowerTypeB(thaisen_auxPowerType_12V);
 				LcdData.gun[i].workState = SysMainStatus_StandBy;
 				break;
 			case APP_OFSM_STATE_READYING:
@@ -5554,13 +5555,20 @@ int SerialScreen_DataProcess()
 				LcdData.gun[i].workState = SysMainStatus_Chrging;
 				break;
 			case APP_OFSM_STATE_STOPING:
+                if(i == LCD_GUN_1)
+                    thaisenSetAuxPowerTypeA(thaisen_auxPowerType_12V);
+                else
+                    thaisenSetAuxPowerTypeB(thaisen_auxPowerType_12V);
 				LcdData.gun[i].workState = SysMainStatus_StopChg;
 				break;	
 			case APP_OFSM_STATE_FINISHING:
 				LcdData.gun[i].workState = SysMainStatus_Account;
 				break;
 			case APP_OFSM_STATE_FAULTING:
-	            thaisenSetAuxPowerTypeA(thaisen_auxPowerType_12V);
+                if(i == LCD_GUN_1)
+                    thaisenSetAuxPowerTypeA(thaisen_auxPowerType_12V);
+                else
+                    thaisenSetAuxPowerTypeB(thaisen_auxPowerType_12V);
 				LcdData.gun[i].workState = SysMainStatus_Err;
 				break;	
 			default:
