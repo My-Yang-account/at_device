@@ -369,7 +369,6 @@ int app_socket_recv_port(int socket_fd, void *buff, uint16_t len)
 
 int app_socket_close_port(int socket_fd)
 {
-    rt_kprintf("00000 app_socket_close_port(%d)\n", socket_fd);
     return closesocket(socket_fd);
 }
 

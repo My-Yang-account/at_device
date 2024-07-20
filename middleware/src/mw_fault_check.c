@@ -40,10 +40,6 @@ uint16_t mw_get_system_stop_way(uint8_t gunno)
     return APP_SYSTEM_STOP_WAY_SIZE;
 }
 
-uint16_t hhhh(uint8_t gunno){
-    return mw_get_system_stop_way(gunno);
-}
-
 
 uint16_t mw_system_fault_convert(uint16_t code)
 {
