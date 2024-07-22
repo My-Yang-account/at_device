@@ -571,6 +571,16 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
         }
 
+        if(s_ykc_monitor_socket_info.state != YKC_MONITOR_SOCKET_STATE_LOGIN_SUCCESS){   /* 未登录上服务器前不进行网络数据交互事件处理 */
+            for(uint8_t gunno = 0; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
+                heartbeat_tick[gunno] = rt_tick_get();
+                ykc_monitor_set_message_send_state(gunno, NET_YKC_MONITOR_SEND_STATE_ONGOING, NET_YKC_MONITOR_PREQ_EVENT_HEARTBEAT);
+                ykc_monitor_net_event_send(NET_YKC_MONITOR_EVENT_HANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, gunno, NET_YKC_MONITOR_PREQ_EVENT_HEARTBEAT);
+            }
+            rt_thread_mdelay(1000);
+            continue;
+        }
+
         for(uint8_t gunno = 0; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
             if(s_ykc_monitor_socket_info.heartbeat[gunno] > 0x03){
                 s_ykc_monitor_socket_info.heartbeat[gunno] = 0x00;
@@ -587,15 +597,6 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
             }
         }
 
-        if(s_ykc_monitor_socket_info.state != YKC_MONITOR_SOCKET_STATE_LOGIN_SUCCESS){   /* 未登录上服务器前不进行网络数据交互事件处理 */
-            for(uint8_t gunno = 0; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
-                heartbeat_tick[gunno] = rt_tick_get();
-                ykc_monitor_set_message_send_state(gunno, NET_YKC_MONITOR_SEND_STATE_ONGOING, NET_YKC_MONITOR_PREQ_EVENT_HEARTBEAT);
-                ykc_monitor_net_event_send(NET_YKC_MONITOR_EVENT_HANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, gunno, NET_YKC_MONITOR_PREQ_EVENT_HEARTBEAT);
-            }
-            rt_thread_mdelay(1000);
-            continue;
-        }
         /***************************************************** [定时上报] **********************************************************/
         /***************************************************** [定时上报] **********************************************************/
         for(uint8_t gunno = 0; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
