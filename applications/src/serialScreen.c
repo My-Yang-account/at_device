@@ -249,6 +249,7 @@ struct LCD_ASSISTANT_DATA{
     }SeveralGunFlag[LCD_GUN_NUM];
 
     u8 OccupyGunNum;                    //处于占用但未充电的枪数量
+    u8 DeviceType;                      //设备类型
 };
 
 struct LCD_RXDATA_VALUE_TYPE{
@@ -932,19 +933,19 @@ void SerialScreen_SetChargeWay(u8 way)
     if(way <= APP_CHARGE_WAY_NONE){
         thaisen_set_charg_mode(thaisenSingleChargeMode);
         thaisenModuleSetChargeWay(thaisenModuleChargeWay_singleGun);
-        LcdAssistantData.Flag.ParaChargeSelect = 0;
+        LcdAssistantData.Flag.ParaChargeSelect = FALSE;
     }else if(way == APP_CHARGE_WAY_SINGLEGUN){
         thaisen_set_charg_mode(thaisenSingleChargeMode);
         thaisenModuleSetChargeWay(thaisenModuleChargeWay_singleGun);
-        LcdAssistantData.Flag.ParaChargeSelect = 0;
+        LcdAssistantData.Flag.ParaChargeSelect = FALSE;
     }else if(way == APP_CHARGE_WAY_PARACHARGE){
         thaisen_set_charg_mode(thaisenParallelCharging);
         thaisenModuleSetChargeWay(thaisenModuleChargeWay_parallelCharge);
-        LcdAssistantData.Flag.ParaChargeSelect = 1;
+        LcdAssistantData.Flag.ParaChargeSelect = TRUE;
     }else{
         thaisen_set_charg_mode(thaisenSingleChargeMode);
         thaisenModuleSetChargeWay(thaisenModuleChargeWay_singleGun);
-        LcdAssistantData.Flag.ParaChargeSelect = 0;
+        LcdAssistantData.Flag.ParaChargeSelect = FALSE;
     }
 }
 
@@ -1395,7 +1396,6 @@ void SerialScreen_BtnSystemFuncSet(void)
     u8 way = LcdData.setData.AllocWay;
     u8 type = LcdData.setData.DevType;
 
-    rt_kprintf("SerialScreen_BtnSystemFuncSet(%d, %d)\n", type, LcdData.setData.DevType);
     SerialScreen_JumpPage(&SerialScreen, LCD_PAGE_STORAGE_WAITING);
 
     if(way >= POWER_ALLOCATION_WAY_SIZE){
@@ -1408,13 +1408,20 @@ void SerialScreen_BtnSystemFuncSet(void)
 
     switch(type){
     case SYSTEM_FUNCTION_DYNAMIC_SWITCH:
-        thaisenModuleSetDeviceType(thaisenDeviceType_average);
+        if(LcdAssistantData.Flag.ParaChargeSelect == FALSE){
+            thaisenModuleSetDeviceType(thaisenDeviceType_average);
+            LcdData.setData.DevType = type;
+            LcdAssistantData.DeviceType = type;
+        }else{
+            LcdData.setData.DevType = LcdAssistantData.DeviceType;
+        }
         break;
     default:
+        LcdData.setData.DevType = SYSTEM_FUNCTION_DOUBLE_WHOLE;
+        LcdAssistantData.DeviceType = SYSTEM_FUNCTION_DOUBLE_WHOLE;
         thaisenModuleSetDeviceType(thaisenDeviceType_doubleGun);
         break;
     }
-    LcdData.setData.DevType = type;
 
     /* 此处要设置功率分配方式 */
 //    thaisenSetAllocateStrategy(LcdData.setData.AllocWay);
@@ -1555,10 +1562,10 @@ void SerialScreen_BtnProtectInfoSet(void)
 void SerialScreen_ParaChargeSet(void)
 {
     if(LcdAssistantData.Flag.IsEnableParaCharge == TRUE){
-        LcdAssistantData.Flag.ParaChargeSelect = TRUE;
+        if(LcdAssistantData.DeviceType != SYSTEM_FUNCTION_DYNAMIC_SWITCH){
+            LcdAssistantData.Flag.ParaChargeSelect = TRUE;
+        }
     }
-    rt_kprintf("SerialScreen_ParaChargeSet(%d, %d)\n", LcdAssistantData.Flag.IsEnableParaCharge,
-            LcdAssistantData.Flag.ParaChargeSelect);
 }
 
 void SerialScreen_SingleChargeSet(void)
@@ -1566,8 +1573,6 @@ void SerialScreen_SingleChargeSet(void)
     if(LcdAssistantData.Flag.IsEnableParaCharge  == TRUE){
         LcdAssistantData.Flag.ParaChargeSelect = FALSE;
     }
-    rt_kprintf("SerialScreen_SingleChargeSet(%d, %d)\n", LcdAssistantData.Flag.IsEnableParaCharge,
-            LcdAssistantData.Flag.ParaChargeSelect);
 }
 
 void SerialScreen_IsSupportSet(void)
@@ -4464,20 +4469,6 @@ struct LCD_DATA_FIFO_TYPE *SerialScreen_Init(struct SerialScreenObj *cmd)
     /* 此处要设置功率分配方式 */
 //    thaisenSetAllocateStrategy(LcdData.setData.AllocWay);
 
-    if(LcdData.setData.DevType >= SYSTEM_FUNCTION_SIZE){        /* 设备类型默认双枪一体 */
-        LcdData.setData.DevType = SYSTEM_FUNCTION_DOUBLE_WHOLE;
-    }
-
-
-    switch(LcdData.setData.DevType){
-    case SYSTEM_FUNCTION_DYNAMIC_SWITCH:
-        thaisenModuleSetDeviceType(thaisenDeviceType_average);
-        break;
-    default:
-        thaisenModuleSetDeviceType(thaisenDeviceType_doubleGun);
-        break;
-    }
-
     if(LcdData.setData.MeterModel >= thaisenAmmeterModel_Other)
         LcdData.setData.MeterModel = thaisenAmmeterModel_RuiYin;
 
@@ -4523,11 +4514,27 @@ struct LCD_DATA_FIFO_TYPE *SerialScreen_Init(struct SerialScreenObj *cmd)
 	LcdData.setData.SerialScreen_PassWordShow = 0;
 	LcdData.setData.manufacturer = 1;//NULL
 
-	LcdAssistantData.Flag.IsEnableParaCharge = 0;
+	if(LcdData.setData.DevType >= SYSTEM_FUNCTION_SIZE){        /* 设备类型默认双枪一体 */
+        LcdData.setData.DevType = SYSTEM_FUNCTION_DOUBLE_WHOLE;
+    }
+    LcdAssistantData.DeviceType = LcdData.setData.DevType;
+
+    switch(LcdData.setData.DevType){
+    case SYSTEM_FUNCTION_DYNAMIC_SWITCH:
+        thaisenModuleSetDeviceType(thaisenDeviceType_average);
+        break;
+    default:
+        LcdData.setData.DevType = SYSTEM_FUNCTION_DOUBLE_WHOLE;
+        LcdAssistantData.DeviceType = SYSTEM_FUNCTION_DOUBLE_WHOLE;
+        thaisenModuleSetDeviceType(thaisenDeviceType_doubleGun);
+        break;
+    }
+
+	LcdAssistantData.Flag.IsEnableParaCharge = FALSE;
 	LcdData.setData.parallel_iocn = ICON_CHARGEWAY_NONE;
-	LcdAssistantData.Flag.ParaChargeSelect = 0;
+	LcdAssistantData.Flag.ParaChargeSelect = FALSE;
 	if(LcdData.setData.sup_parallelchg == TRUE){
-	    LcdAssistantData.Flag.IsEnableParaCharge = 1;
+	    LcdAssistantData.Flag.IsEnableParaCharge = TRUE;
 	}
 
     if(LcdData.setData.sup_parallelrelay == FALSE){
@@ -5789,11 +5796,11 @@ int SerialScreen_DataProcess()
 	            else
 	                LcdData.setData.parallel_iocn = ICON_CHARGEWAY_SINGLECHARGE;
 	        }else{
-	            LcdAssistantData.Flag.ParaChargeSelect = 0;
+	            LcdAssistantData.Flag.ParaChargeSelect = FALSE;
 	            LcdData.setData.parallel_iocn = ICON_CHARGEWAY_NONE;
 	        }
 		}else{
-	        LcdAssistantData.Flag.ParaChargeSelect = 0;
+	        LcdAssistantData.Flag.ParaChargeSelect = FALSE;
             LcdData.setData.parallel_iocn = ICON_CHARGEWAY_NONE;
 		}
 	}
