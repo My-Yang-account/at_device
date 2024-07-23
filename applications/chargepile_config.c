@@ -874,6 +874,8 @@ static void chargepile_config_data_reset(void)
     s_chargepile_config_info.function_enable.plug_charge = 0x01;
     s_chargepile_config_info.function_enable.bcs = 0x01;
     s_chargepile_config_info.function_enable.bsm = 0x01;
+    s_chargepile_config_info.function_enable.auxpower_24V = 0x00;
+    s_chargepile_config_info.function_enable.parallel_charge = 0x00;
     s_chargepile_config_info.function_enable.acrelay_out = 0x01;
     s_chargepile_config_info.function_enable.elock_out = 0x01;
     s_chargepile_config_info.function_enable.fan_out = 0x01;
@@ -1062,9 +1064,14 @@ int32_t chargepile_check_config(void)
     if(s_chargepile_config_info.function_enable.rfid_card_reader > 0x01){   /* 读卡器默认关闭 */
         s_chargepile_config_info.function_enable.rfid_card_reader = 0x00;
     }
-
     if(s_chargepile_config_info.function_enable.parallel_relay > 0x01){    /* 并联默认启用 */
         s_chargepile_config_info.function_enable.parallel_relay = 0x01;
+    }
+    if(s_chargepile_config_info.function_enable.auxpower_24V > 0x01){   /* 24V辅源默认关闭 */
+        s_chargepile_config_info.function_enable.auxpower_24V = 0x00;
+    }
+    if(s_chargepile_config_info.function_enable.parallel_charge > 0x01){   /* 并充默认关闭 */
+        s_chargepile_config_info.function_enable.parallel_charge = 0x00;
     }
 
     if(s_chargepile_config_info.state_reversal.emergency_stop > 0x01){   /* 急停默认不取反 */

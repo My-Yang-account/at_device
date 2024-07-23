@@ -248,12 +248,10 @@ void card_thread_entry(void *parameter)
                 s_card_state = CARD_STATE_ACTIVATION;
                 LOG_D("card key authen success");
             }else{
+                uint8_t port = get_current_port();
                 s_card_info.info_type = CARD_INFO_TYPE_CARD_UID;
-                for(uint8_t gunno = 0; gunno < APP_SYSTEM_GUNNO_SIZE; gunno++){
-                    if(get_current_port() == gunno){
-                        s_card_info.state |= (1 <<gunno);
-                    }
-                }
+                s_card_info.state |= (1 <<port);
+
                 s_card_state = CARD_STATE_OFFFIELD;
                 LOG_D("card key authen fail");
             }
@@ -267,14 +265,11 @@ void card_thread_entry(void *parameter)
             operation_state = calculate_data_from_byte(&s_card_info.data[RESPONSE_FRAME_REGION_STATE], 2, START_FROM_HIGH_BYTE);
             /* 已成功获取到卡信息 */
             if(operation_state == OPERATION_STATE_SUCCESS){
+                uint8_t port = get_current_port();
                 memcpy(s_card_info.card_numbe, s_card_info.data + 8, 16);  /* 获取卡号 */
                 s_card_info.info_type = CARD_INFO_TYPE_CARD_NUMBER;
                 s_card_info.card_numbe_len = 16;
-                for(uint8_t gunno = 0; gunno < APP_SYSTEM_GUNNO_SIZE; gunno++){
-                    if(get_current_port() == gunno){
-                        s_card_info.state |= (1 <<gunno);
-                    }
-                }
+                s_card_info.state |= (1 <<port);
             }else{
                 LOG_E("read card number fail!!");
             }

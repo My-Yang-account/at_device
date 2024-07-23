@@ -71,6 +71,7 @@ struct SerialScreenObj
 s32 String2BCD(s8* pSrc, u8* pDest);
 int SerialScreen_IsCarConnect(int port);
 int SerialScreen_IsSupportLocal(int port);
+void SerialScreen_IsSupportAuxp24VSet(void);
 void SerialScreen_IsSupportParaChargeSet(void);
 void SerialScreen_IsSupportParaRelaySet(void);
 void SerialScreen_IsSupportVINSet(void);
