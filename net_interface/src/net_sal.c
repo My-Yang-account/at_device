@@ -539,7 +539,7 @@ int8_t app_nsal_vin_authorize(uint8_t gunno)
     result = ykc_chargepile_request_padding_vin_authority(gunno);
 #endif /* NET_YKC_AS_MONITOR */
 #endif /* NET_PACK_USING_YKC */
-    if(result){
+    if(result > 0x00){
         return result;
     }
 
