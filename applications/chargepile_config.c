@@ -1142,7 +1142,7 @@ int16_t sys_get_power_percent(void)
 {
     int16_t percent = s_chargepile_config_info.config_info.system_power_total /s_system_power_max;
     if(s_chargepile_config_info.config_info.system_power_total >= s_system_power_max){
-        percent = 100;
+        percent = 1000;
     }else{
         percent = s_chargepile_config_info.config_info.system_power_total *1000 /s_system_power_max;
     }
