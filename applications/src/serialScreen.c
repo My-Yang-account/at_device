@@ -5782,7 +5782,7 @@ int SerialScreen_DataProcess()
             }
 		}
 		ret = 1;
-		if(LcdAssistantData.OccupyGunNum != 0){
+		if(LcdAssistantData.OccupyGunNum == LCD_GUN_NUM){
 	        if(LcdAssistantData.Flag.IsEnableParaCharge){
 	            if(LcdAssistantData.Flag.ParaChargeSelect)
 	                LcdData.setData.parallel_iocn = ICON_CHARGEWAY_PARACHARGE;
