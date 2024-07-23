@@ -933,7 +933,8 @@ int8_t ykc_monitor_message_pro_remote_stop_charge_request(uint8_t gunno)
         }
     }
 
-    if(s_ykc_monitor_base->state.current != APP_OFSM_STATE_CHARGING){
+    if((s_ykc_monitor_base->state.current != APP_OFSM_STATE_CHARGING) ||
+            (s_ykc_monitor_base->state.current != APP_OFSM_STATE_STARTING)){
         s_ykc_monitor_flag_info[gunno].is_stop_charge = 0x01;
         return NET_YKC_MONITOR_STOP_FAIL_REASON_NOT_CHARGING;
     }
