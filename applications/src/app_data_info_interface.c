@@ -288,7 +288,7 @@ uint8_t thaisen_app_get_connect_state(uint8_t gunno) // OK
 enum system_stop_way thaisen_app_get_charge_stop_way(uint8_t gunno) // OK
 {
     if(gunno >= APP_SYSTEM_GUNNO_SIZE){
-        return APP_SYSTEM_STOP_WAY_SIZE;
+        return mw_system_stop_way_convert(APP_SYSTEM_STOP_WAY_SIZE);
     }
 
     enum system_stop_way charge_stop_way;
@@ -306,7 +306,7 @@ enum system_stop_way thaisen_app_get_charge_stop_way(uint8_t gunno) // OK
         charge_stop_way = (enum system_stop_way)ofsm_temp->base.reason_code;
     }
 
-    return charge_stop_way;
+    return mw_system_stop_way_convert(charge_stop_way);
 }
 
 
@@ -927,12 +927,12 @@ void thaisen_request_screen_time(void)
 }
 
 /*********************************************
- * 函数名             thaisen_get_stopway_string
+ * 函数名             thaisen_get_fault_string
  * 功能                 根据停充码获取停充原因字符串
  * 参数                code  停充码
  * 返回                停充原因字符串
  ********************************************/
-const char* thaisen_get_stopway_string(uint16_t code)
+const char* thaisen_get_fault_string(uint16_t code)
 {
     extern const char* get_fault_string(uint16_t code);
     return get_fault_string(code);

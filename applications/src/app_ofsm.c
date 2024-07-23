@@ -86,7 +86,7 @@ static void transaction_record_query_report(uint8_t gunno)
             mw_storage_record_get_designate_index_record((uint8_t*)(&rtransaction), sizeof(rtransaction), gunno, index);
             save_rentry = 0;
 
-            if(rtransaction.stop_reason == APP_ORIGIN_USER_STOPWAY_POWEROFF){
+            if(rtransaction.stop_reason == APP_SYSTEM_STOP_WAY_POWER_OFF){
                 uint32_t loss_elect = 0x00, _total_elect = 0x00;
 
                 if(rtransaction.charge_way == APP_CHARGE_WAY_PARACHARGE){
@@ -109,10 +109,10 @@ static void transaction_record_query_report(uint8_t gunno)
                     rtransaction.end_time = rtransaction.start_time + (15 *60);
                     rtransaction.charge_time += (15 *60);
 
-#if (defined (APP_INCLUDE_YKC_PROTOCOL) || defined (APP_INCLUDE_YKC_PROTOCOL_MONITOR))
+#if (defined (APP_INCLUDE_YKC_PROTOCOL) || defined (APP_INCLUDE_YKC_PROTOCOL_MONITOR) || defined (APP_INCLUDE_YCP_PROTOCOL))
                     rtransaction.rate_type_elect[APP_RATE_TYPE_FLAT] += loss_elect;
                     rtransaction.rate_type_amount[APP_RATE_TYPE_FLAT] += ((double)loss_elect *(double)1.05 *100);
-#endif /* (defined (APP_INCLUDE_YKC_PROTOCOL) || defined (APP_INCLUDE_YKC_PROTOCOL_MONITOR)) */
+#endif /* (defined (APP_INCLUDE_YKC_PROTOCOL) || defined (APP_INCLUDE_YKC_PROTOCOL_MONITOR) || defined (APP_INCLUDE_YCP_PROTOCOL)) */
 
 #ifdef APP_INCLUDE_SL_PROTOCOL
                     if(rtransaction.start_period_number > (APP_BILLING_RULE_PERIOD_MAX - 0x01)){
@@ -467,6 +467,7 @@ static void ofsm_wait_net_fun(uint8_t gunno)
     if(app_get_highest_priority_system_fault(gunno) != APP_SYS_FAULT_NO_ERROR){
         s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_FAULTING];
         s_ofsm_info[gunno].state = APP_OFSM_STATE_FAULTING;
+
         s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
 
         app_nsal_state_charged(gunno);
@@ -476,6 +477,8 @@ static void ofsm_wait_net_fun(uint8_t gunno)
 
     s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_IDLEING];
     s_ofsm_info[gunno].state = APP_OFSM_STATE_IDLEING;
+
+    s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
 
     app_nsal_state_charged(gunno);
     app_nsal_event_occurded(gunno);
@@ -586,6 +589,8 @@ static void ofsm_readying_fun(uint8_t gunno)
             if(s_ofsm_info[s_ofsm_info[gunno].base.main_gunno].state < APP_OFSM_STATE_SIZE){
                 s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][s_ofsm_info[s_ofsm_info[gunno].base.main_gunno].state];
                 s_ofsm_info[gunno].state = s_ofsm_info[s_ofsm_info[gunno].base.main_gunno].state;
+
+                s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
 
                 clear_swipe_card_state(gunno);
                 app_get_hci_event(gunno, HCI_EVENT_SCREEN_START, 1);
@@ -956,21 +961,21 @@ static void ofsm_readying_fun(uint8_t gunno)
             s_thaisen_transaction[gunno].stop_soc = 0x00;
             s_thaisen_transaction[gunno].ammeter_start = s_ofsm_info[gunno].base.start_elect;
             s_thaisen_transaction[gunno].ammeter_stop = s_thaisen_transaction[gunno].ammeter_start;
-            s_thaisen_transaction[gunno].stop_reason = mw_system_stop_way_convert(APP_SYSTEM_STOP_WAY_POWER_OFF);
+            s_thaisen_transaction[gunno].stop_reason = APP_SYSTEM_STOP_WAY_POWER_OFF;
             s_thaisen_transaction[gunno].total_elect = 0x00;
             s_thaisen_transaction[gunno].total_loss_elect = 0x00;
             s_thaisen_transaction[gunno].charge_fee = 0x00;
             s_thaisen_transaction[gunno].service_fee = 0x00;
             s_thaisen_transaction[gunno].total_fee = 0x00;
 
-#if (defined (APP_INCLUDE_YKC_PROTOCOL) || defined (APP_INCLUDE_YKC_PROTOCOL_MONITOR))
+#if (defined (APP_INCLUDE_YKC_PROTOCOL) || defined (APP_INCLUDE_YKC_PROTOCOL_MONITOR) || defined (APP_INCLUDE_YCP_PROTOCOL))
             for(uint8_t type = 0x00; type < APP_BILLING_RULE_RATE_TYPE_MAX; type++){
                 s_thaisen_transaction[gunno].rate_type_unit[type] = app_billingrule_get_rate_type_price(gunno, type);
             }
             memset(s_thaisen_transaction[gunno].rate_type_elect, 0x00, sizeof(s_thaisen_transaction[gunno].rate_type_elect));
             memset(s_thaisen_transaction[gunno].rate_type_amount, 0x00, sizeof(s_thaisen_transaction[gunno].rate_type_amount));
             memset(s_thaisen_transaction[gunno].rate_type_loss_elect, 0x00, sizeof(s_thaisen_transaction[gunno].rate_type_loss_elect));
-#endif /* (defined (APP_INCLUDE_YKC_PROTOCOL) || defined (APP_INCLUDE_YKC_PROTOCOL_MONITOR)) */
+#endif /* (defined (APP_INCLUDE_YKC_PROTOCOL) || defined (APP_INCLUDE_YKC_PROTOCOL_MONITOR) || defined (APP_INCLUDE_YCP_PROTOCOL)) */
 
 #ifdef APP_INCLUDE_SL_PROTOCOL
             memset(s_thaisen_transaction[gunno].period_elect, 0x00, sizeof(s_thaisen_transaction[gunno].period_elect));
@@ -1014,7 +1019,7 @@ static void ofsm_readying_fun(uint8_t gunno)
         s_ofsm_info[gunno].base.flag.connect_state = APP_CONNECT_STATE_CONNECT;
         app_nsal_event_occurded(gunno);
     }
-    if(s_ofsm_info[gunno].base.state.current != APP_OFSM_STATE_READYING){
+    if((s_ofsm_info[gunno].base.state.current != APP_OFSM_STATE_READYING) && (is_charging_authorization == false)){
         s_ofsm_info[gunno].base.state.current = APP_OFSM_STATE_READYING;
         app_nsal_state_charged(gunno);
     }
@@ -1050,6 +1055,8 @@ static void ofsm_starting_fun(uint8_t gunno)
             if(s_ofsm_info[s_ofsm_info[gunno].base.main_gunno].state < APP_OFSM_STATE_SIZE){
                 s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][s_ofsm_info[s_ofsm_info[gunno].base.main_gunno].state];
                 s_ofsm_info[gunno].state = s_ofsm_info[s_ofsm_info[gunno].base.main_gunno].state;
+
+                s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
 #if 0
                 app_nsal_state_charged(gunno);
                 app_nsal_event_occurded(gunno);
@@ -1152,13 +1159,6 @@ static void ofsm_starting_fun(uint8_t gunno)
 
             app_billing_info_init(s_ofsm_info[gunno].base.start_elect, gunno);
 
-            memset(s_ofsm_info[gunno].base.transaction_number, 0x00, sizeof(s_ofsm_info[gunno].base.transaction_number));
-            memset(s_ofsm_info[gunno].base.car_vin, 0x00, sizeof(s_ofsm_info[gunno].base.car_vin));
-            memset(s_ofsm_info[gunno].base.card_number, 0x00, sizeof(s_ofsm_info[gunno].base.card_number));
-            memset(s_ofsm_info[gunno].base.card_uid, 0x00, sizeof(s_ofsm_info[gunno].base.card_uid));
-            memset(s_ofsm_info[gunno].base.user_number, 0x00, sizeof(s_ofsm_info[gunno].base.user_number));
-
-            app_nsal_init_charge_data(gunno);
             app_nsal_state_charged(gunno);
             app_nsal_event_occurded(gunno);
             return;
@@ -1231,9 +1231,11 @@ static void ofsm_starting_fun(uint8_t gunno)
                 memset(s_thaisen_transaction[gunno].serial_number, 0x00, sizeof(s_thaisen_transaction[gunno].serial_number));
                 memcpy(s_thaisen_transaction[gunno].serial_number, s_ofsm_info[gunno].base.transaction_number, valid_len);
 
+                app_nsal_clear_remote_vin_authorize(gunno);
                 app_nsal_init_charge_data(gunno);  /* 重新赋值流水号 */
                 vin_authentication_complete = APP_THA_ENUM_TRUE;
             }else if(app_nsal_is_vin_authorize_fail(gunno)){
+                app_nsal_clear_remote_vin_authorize(gunno);
                 LOG_W("gunno(%d) vin charge authentication fail", gunno);
                 vin_authentication_complete = APP_THA_ENUM_TRUE;
             }
@@ -1259,7 +1261,7 @@ static void ofsm_starting_fun(uint8_t gunno)
             s_ofsm_info[gunno].base.charge_fault = charge_fault;
             s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
 
-            s_thaisen_transaction[gunno].stop_reason = mw_system_stop_way_convert(APP_SYSTEM_STOP_WAY_AUTHEN_FAIL);
+            s_thaisen_transaction[gunno].stop_reason = APP_SYSTEM_STOP_WAY_AUTHEN_FAIL;
             s_ofsm_info[gunno].base.reason_code = s_thaisen_transaction[gunno].stop_reason;
 
             LOG_D("gunno(%d) charge stop deal to vin authorization fail", gunno);
@@ -1299,13 +1301,6 @@ static void ofsm_starting_fun(uint8_t gunno)
 
             app_billing_info_init(s_ofsm_info[gunno].base.start_elect, gunno);
 
-            memset(s_ofsm_info[gunno].base.transaction_number, 0x00, sizeof(s_ofsm_info[gunno].base.transaction_number));
-            memset(s_ofsm_info[gunno].base.car_vin, 0x00, sizeof(s_ofsm_info[gunno].base.car_vin));
-            memset(s_ofsm_info[gunno].base.card_number, 0x00, sizeof(s_ofsm_info[gunno].base.card_number));
-            memset(s_ofsm_info[gunno].base.card_uid, 0x00, sizeof(s_ofsm_info[gunno].base.card_uid));
-            memset(s_ofsm_info[gunno].base.user_number, 0x00, sizeof(s_ofsm_info[gunno].base.user_number));
-
-            app_nsal_init_charge_data(gunno);
             app_nsal_state_charged(gunno);
             app_nsal_event_occurded(gunno);
             return;
@@ -1414,13 +1409,6 @@ static void ofsm_starting_fun(uint8_t gunno)
 
         app_billing_info_init(s_ofsm_info[gunno].base.start_elect, gunno);
 
-        memset(s_ofsm_info[gunno].base.transaction_number, 0x00, sizeof(s_ofsm_info[gunno].base.transaction_number));
-        memset(s_ofsm_info[gunno].base.car_vin, 0x00, sizeof(s_ofsm_info[gunno].base.car_vin));
-        memset(s_ofsm_info[gunno].base.card_number, 0x00, sizeof(s_ofsm_info[gunno].base.card_number));
-        memset(s_ofsm_info[gunno].base.card_uid, 0x00, sizeof(s_ofsm_info[gunno].base.card_uid));
-        memset(s_ofsm_info[gunno].base.user_number, 0x00, sizeof(s_ofsm_info[gunno].base.user_number));
-
-        app_nsal_init_charge_data(gunno);
         app_nsal_state_charged(gunno);
         app_nsal_event_occurded(gunno);
         return;
@@ -1463,6 +1451,8 @@ static void ofsm_charging_fun(uint8_t gunno)
         LOG_I("gunno(%d) charging state (%dV | S%d | E|%u, F|%u V|%d C|%d P|%d charge_time(%d))...", gunno, mw_get_cc1_value(s_ofsm_info[gunno].base.cc1_state), charge_state,
                 s_ofsm_info[gunno].base.elect_a, s_ofsm_info[gunno].base.fees_total, s_ofsm_info[gunno].base.voltage_a,
                 s_ofsm_info[gunno].base.current_a, s_ofsm_info[gunno].base.power_a, s_ofsm_info[gunno].base.charge_time);
+
+        LOG_D("charge strategy(%d, %d)\n", increase_sec, s_ofsm_info[gunno].base.charge_strategy_para);
     }
 
     if(s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE){
@@ -1470,6 +1460,8 @@ static void ofsm_charging_fun(uint8_t gunno)
             if(s_ofsm_info[s_ofsm_info[gunno].base.main_gunno].state < APP_OFSM_STATE_SIZE){
                 s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][s_ofsm_info[s_ofsm_info[gunno].base.main_gunno].state];
                 s_ofsm_info[gunno].state = s_ofsm_info[s_ofsm_info[gunno].base.main_gunno].state;
+
+                s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
 #if 0
                 app_nsal_state_charged(gunno);
                 app_nsal_event_occurded(gunno);
@@ -1538,13 +1530,13 @@ static void ofsm_charging_fun(uint8_t gunno)
     s_thaisen_transaction[gunno].service_fee = s_ofsm_info[gunno].base.service_fees_total;
     s_thaisen_transaction[gunno].total_fee = s_ofsm_info[gunno].base.fees_total;
 
-#if (defined (APP_INCLUDE_YKC_PROTOCOL) || defined (APP_INCLUDE_YKC_PROTOCOL_MONITOR))
+#if (defined (APP_INCLUDE_YKC_PROTOCOL) || defined (APP_INCLUDE_YKC_PROTOCOL_MONITOR) || defined (APP_INCLUDE_YCP_PROTOCOL))
     for(uint8_t type = 0x00; type < APP_BILLING_RULE_RATE_TYPE_MAX; type++){
         s_thaisen_transaction[gunno].rate_type_elect[type] = app_billingrule_get_rate_type_elect(gunno, type);
         s_thaisen_transaction[gunno].rate_type_amount[type] = app_billingrule_get_rate_type_fess(gunno, type);
         s_thaisen_transaction[gunno].rate_type_loss_elect[type] = 0x00;
     }
-#endif /* (defined (APP_INCLUDE_YKC_PROTOCOL) || defined (APP_INCLUDE_YKC_PROTOCOL_MONITOR)) */
+#endif /* (defined (APP_INCLUDE_YKC_PROTOCOL) || defined (APP_INCLUDE_YKC_PROTOCOL_MONITOR) || defined (APP_INCLUDE_YCP_PROTOCOL)) */
 
 #ifdef APP_INCLUDE_SL_PROTOCOL
     for(uint8_t period = s_ofsm_info[gunno].base.start_period; period <= s_ofsm_info[gunno].base.current_period; period++){
@@ -1589,6 +1581,7 @@ static void ofsm_charging_fun(uint8_t gunno)
         s_ofsm_info[gunno].base.system_fault = system_fault;
         s_ofsm_info[gunno].base.charge_fault = charge_fault;
         s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_FALSE;
+        s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
 
         stop_way = mw_get_system_stop_way(gunno);
 
@@ -1610,7 +1603,7 @@ static void ofsm_charging_fun(uint8_t gunno)
             s_thaisen_transaction[gunno].stop_reason = stop_way;
             s_ofsm_info[gunno].base.reason_code = stop_way;
         }else{
-            s_thaisen_transaction[gunno].stop_reason = mw_system_stop_way_convert(APP_SYSTEM_STOP_WAY_PULL_GUN);
+            s_thaisen_transaction[gunno].stop_reason = APP_SYSTEM_STOP_WAY_PULL_GUN;
             s_ofsm_info[gunno].base.reason_code = s_thaisen_transaction[gunno].stop_reason;
         }
 
@@ -1639,13 +1632,6 @@ static void ofsm_charging_fun(uint8_t gunno)
 
         s_thaisen_transaction[gunno].order_state.is_charging = APP_THA_ENUM_FALSE;
 
-        memset(s_ofsm_info[gunno].base.transaction_number, 0x00, sizeof(s_ofsm_info[gunno].base.transaction_number));
-        memset(s_ofsm_info[gunno].base.car_vin, 0x00, sizeof(s_ofsm_info[gunno].base.car_vin));
-        memset(s_ofsm_info[gunno].base.card_number, 0x00, sizeof(s_ofsm_info[gunno].base.card_number));
-        memset(s_ofsm_info[gunno].base.card_uid, 0x00, sizeof(s_ofsm_info[gunno].base.card_uid));
-        memset(s_ofsm_info[gunno].base.user_number, 0x00, sizeof(s_ofsm_info[gunno].base.user_number));
-
-        app_nsal_init_charge_data(gunno);
         app_nsal_state_charged(gunno);
         app_nsal_event_occurded(gunno);
         return;
@@ -1661,6 +1647,7 @@ static void ofsm_charging_fun(uint8_t gunno)
 
         s_ofsm_info[gunno].base.system_fault = system_fault;
         s_ofsm_info[gunno].base.charge_fault = charge_fault;
+        s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
 
         stop_way = mw_get_system_stop_way(gunno);
 
@@ -1716,13 +1703,6 @@ static void ofsm_charging_fun(uint8_t gunno)
 
         s_thaisen_transaction[gunno].order_state.is_charging = APP_THA_ENUM_FALSE;
 
-        memset(s_ofsm_info[gunno].base.transaction_number, 0x00, sizeof(s_ofsm_info[gunno].base.transaction_number));
-        memset(s_ofsm_info[gunno].base.car_vin, 0x00, sizeof(s_ofsm_info[gunno].base.car_vin));
-        memset(s_ofsm_info[gunno].base.card_number, 0x00, sizeof(s_ofsm_info[gunno].base.card_number));
-        memset(s_ofsm_info[gunno].base.card_uid, 0x00, sizeof(s_ofsm_info[gunno].base.card_uid));
-        memset(s_ofsm_info[gunno].base.user_number, 0x00, sizeof(s_ofsm_info[gunno].base.user_number));
-
-        app_nsal_init_charge_data(gunno);
         app_nsal_state_charged(gunno);
         app_nsal_event_occurded(gunno);
         return;
@@ -1733,7 +1713,7 @@ static void ofsm_charging_fun(uint8_t gunno)
     }
 
     if(app_nsal_is_remote_stop(gunno)) {
-        s_thaisen_transaction[gunno].stop_reason = mw_system_stop_way_convert(APP_SYSTEM_STOP_WAY_APP_STOP);
+        s_thaisen_transaction[gunno].stop_reason = APP_SYSTEM_STOP_WAY_APP_STOP;
         s_ofsm_info[gunno].base.reason_code = s_thaisen_transaction[gunno].stop_reason;
         s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_FALSE;
 
@@ -1760,11 +1740,11 @@ static void ofsm_charging_fun(uint8_t gunno)
             rt_mq_send(&g_buzzon_mq, &s_buzzon_state, sizeof(s_buzzon_state));
 
             if(s_ofsm_info[gunno].base.start_type == APP_CHARGE_START_WAY_ONLINE_CARD){
-                s_thaisen_transaction[gunno].stop_reason = mw_system_stop_way_convert(APP_SYSTEM_STOP_WAY_ONLINECARD_STOP);
+                s_thaisen_transaction[gunno].stop_reason = APP_SYSTEM_STOP_WAY_ONLINECARD_STOP;
                 s_ofsm_info[gunno].base.reason_code = s_thaisen_transaction[gunno].stop_reason;
                 LOG_D("gunno(%d) charge finish deal to online card stop\n", gunno);
             }else{
-                s_thaisen_transaction[gunno].stop_reason = mw_system_stop_way_convert(APP_SYSTEM_STOP_WAY_OFFLINECARD_STOP);
+                s_thaisen_transaction[gunno].stop_reason = APP_SYSTEM_STOP_WAY_OFFLINECARD_STOP;
                 s_ofsm_info[gunno].base.reason_code = s_thaisen_transaction[gunno].stop_reason;
                 LOG_D("gunno(%d) charge finish deal to offline card stop\n", gunno);
             }
@@ -1777,11 +1757,11 @@ static void ofsm_charging_fun(uint8_t gunno)
                 valid_len = valid_len > get_card_uid_len() ? get_card_uid_len() : valid_len;
                 if(memcmp(s_ofsm_info[gunno].base.card_uid, uid, valid_len) == 0){
                     if(s_ofsm_info[gunno].base.start_type == APP_CHARGE_START_WAY_ONLINE_CARD){
-                        s_thaisen_transaction[gunno].stop_reason = mw_system_stop_way_convert(APP_SYSTEM_STOP_WAY_ONLINECARD_STOP);
+                        s_thaisen_transaction[gunno].stop_reason = APP_SYSTEM_STOP_WAY_ONLINECARD_STOP;
                         s_ofsm_info[gunno].base.reason_code = s_thaisen_transaction[gunno].stop_reason;
                         LOG_D("gunno(%d) charge finish deal to online card(uid) stop\n", gunno);
                     }else{
-                        s_thaisen_transaction[gunno].stop_reason = mw_system_stop_way_convert(APP_SYSTEM_STOP_WAY_OFFLINECARD_STOP);
+                        s_thaisen_transaction[gunno].stop_reason = APP_SYSTEM_STOP_WAY_OFFLINECARD_STOP;
                         s_ofsm_info[gunno].base.reason_code = s_thaisen_transaction[gunno].stop_reason;
                         LOG_D("gunno(%d) charge finish deal to offline card(uid) stop\n", gunno);
                     }
@@ -1798,7 +1778,7 @@ static void ofsm_charging_fun(uint8_t gunno)
             }
         }
     }else if(app_get_hci_event(gunno, HCI_EVENT_SCREEN_STOP, 1)){
-        s_thaisen_transaction[gunno].stop_reason = mw_system_stop_way_convert(APP_SYSTEM_STOP_WAY_SCREEN_STOP);
+        s_thaisen_transaction[gunno].stop_reason = APP_SYSTEM_STOP_WAY_SCREEN_STOP;
         s_ofsm_info[gunno].base.reason_code = s_thaisen_transaction[gunno].stop_reason;
         s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_FALSE;
 
@@ -1809,40 +1789,41 @@ static void ofsm_charging_fun(uint8_t gunno)
             (s_ofsm_info[gunno].base.charge_strategy != APP_CHARGE_STRATEGY_RESERVATION)){
         if(s_ofsm_info[gunno].base.charge_strategy == APP_CHARGE_STRATEGY_TIME){
             if(increase_sec >= s_ofsm_info[gunno].base.charge_strategy_para){
-                s_thaisen_transaction[gunno].stop_reason = mw_system_stop_way_convert(APP_SYSTEM_STOP_WAY_REACH_TIME);
+                s_thaisen_transaction[gunno].stop_reason = APP_SYSTEM_STOP_WAY_REACH_TIME;
                 s_ofsm_info[gunno].base.reason_code = s_thaisen_transaction[gunno].stop_reason;
                 s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_FALSE;
 
                 is_stop_charge_authorization = true;
-                LOG_D("gunno(%d) charge finish deal to reach target time(%d)\n", gunno, s_ofsm_info[gunno].base.charge_strategy_para);
+                LOG_D("gunno(%d) charge finish deal to reach target time(%d, %d)\n", gunno, increase_sec, s_ofsm_info[gunno].base.charge_strategy_para);
             }
         }else if(s_ofsm_info[gunno].base.charge_strategy == APP_CHARGE_STRATEGY_ELECT){
             if(s_ofsm_info[gunno].base.elect_a >= s_ofsm_info[gunno].base.charge_strategy_para){
-                s_thaisen_transaction[gunno].stop_reason = mw_system_stop_way_convert(APP_SYSTEM_STOP_WAY_REACH_ELECT);
+                s_thaisen_transaction[gunno].stop_reason = APP_SYSTEM_STOP_WAY_REACH_ELECT;
                 s_ofsm_info[gunno].base.reason_code = s_thaisen_transaction[gunno].stop_reason;
                 s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_FALSE;
 
                 is_stop_charge_authorization = true;
-                LOG_D("gunno(%d) charge finish deal to reach target elect\n", gunno, s_ofsm_info[gunno].base.charge_strategy_para);
+                LOG_D("gunno(%d) charge finish deal to reach target elect(%d, %d)\n", gunno, s_ofsm_info[gunno].base.elect_a, s_ofsm_info[gunno].base.charge_strategy_para);
             }
         }else if(s_ofsm_info[gunno].base.charge_strategy == APP_CHARGE_STRATEGY_MONEY){
             if((s_ofsm_info[gunno].base.fees_total + 10000) > s_ofsm_info[gunno].base.charge_strategy_para){
-                s_thaisen_transaction[gunno].stop_reason = mw_system_stop_way_convert(APP_SYSTEM_STOP_WAY_REACH_MONEY);
+                s_thaisen_transaction[gunno].stop_reason = APP_SYSTEM_STOP_WAY_NO_BALLANCE;
                 s_ofsm_info[gunno].base.reason_code = s_thaisen_transaction[gunno].stop_reason;
                 s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_FALSE;
 
                 is_stop_charge_authorization = true;
-                LOG_D("gunno(%d) charge finish deal to reach target money\n", gunno, s_ofsm_info[gunno].base.charge_strategy_para);
+                LOG_D("gunno(%d) charge finish deal to reach target money(%d, %d)\n", gunno, s_ofsm_info[gunno].base.charge_strategy_para, \
+                        s_ofsm_info[gunno].base.fees_total);
             }
         }else if(s_ofsm_info[gunno].base.charge_strategy == APP_CHARGE_STRATEGY_SOC){
             if((bms_info->BCS.SOC >= s_ofsm_info[gunno].base.charge_strategy_para) &&
                     (s_ofsm_info[gunno].base.charge_strategy_para != 100)){
-                s_thaisen_transaction[gunno].stop_reason = mw_system_stop_way_convert(APP_SYSTEM_STOP_WAY_SOC_LIMIT);
+                s_thaisen_transaction[gunno].stop_reason = APP_SYSTEM_STOP_WAY_SOC_LIMIT;
                 s_ofsm_info[gunno].base.reason_code = s_thaisen_transaction[gunno].stop_reason;
                 s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_FALSE;
 
                 is_stop_charge_authorization = true;
-                LOG_D("gunno(%d) charge finish deal to reach target SOC\n", gunno, s_ofsm_info[gunno].base.charge_strategy_para);
+                LOG_D("gunno(%d) charge finish deal to reach target SOC(%d, %d)\n", gunno, bms_info->BCS.SOC, s_ofsm_info[gunno].base.charge_strategy_para);
             }
         }
     }
@@ -1854,7 +1835,7 @@ static void ofsm_charging_fun(uint8_t gunno)
         if((rt_tick_get() - s_tiny_current_count[gunno]) > TINY_CURRENT_ABNOAMAL_TIMEOUT){
             s_tiny_current_count[gunno] = rt_tick_get();
             if(is_stop_charge_authorization == false){
-                s_thaisen_transaction[gunno].stop_reason = mw_system_stop_way_convert(APP_SYSTEM_STOP_WAY_CURRENT_ABNORMAL);
+                s_thaisen_transaction[gunno].stop_reason = APP_SYSTEM_STOP_WAY_CURRENT_ABNORMAL;
                 s_ofsm_info[gunno].base.reason_code = s_thaisen_transaction[gunno].stop_reason;
                 s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_TRUE;
 
@@ -1868,7 +1849,7 @@ static void ofsm_charging_fun(uint8_t gunno)
 
     if(bms_info->BCS.SOC >= *(sys_read_config_item_content(CONFIG_ITEM_SOC_STOP, 0))){
         if(*(sys_read_config_item_content(CONFIG_ITEM_SOC_STOP, 0)) < 100){
-            s_thaisen_transaction[gunno].stop_reason = mw_system_stop_way_convert(APP_SYSTEM_STOP_WAY_SOC_LIMIT);
+            s_thaisen_transaction[gunno].stop_reason = APP_SYSTEM_STOP_WAY_SOC_LIMIT;
             s_ofsm_info[gunno].base.reason_code = s_thaisen_transaction[gunno].stop_reason;
             s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_FALSE;
 
@@ -1887,20 +1868,14 @@ static void ofsm_charging_fun(uint8_t gunno)
 
         s_ofsm_info[gunno].base.system_fault = APP_SYS_FAULT_NO_ERROR;
         s_ofsm_info[gunno].base.charge_fault = APP_CHARGE_FAULT_NO_ERROR;
+        s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
 
-        memset(s_ofsm_info[gunno].base.transaction_number, 0x00, sizeof(s_ofsm_info[gunno].base.transaction_number));
-        memset(s_ofsm_info[gunno].base.car_vin, 0x00, sizeof(s_ofsm_info[gunno].base.car_vin));
-        memset(s_ofsm_info[gunno].base.card_number, 0x00, sizeof(s_ofsm_info[gunno].base.card_number));
-        memset(s_ofsm_info[gunno].base.card_uid, 0x00, sizeof(s_ofsm_info[gunno].base.card_uid));
-        memset(s_ofsm_info[gunno].base.user_number, 0x00, sizeof(s_ofsm_info[gunno].base.user_number));
-
-        app_nsal_init_charge_data(gunno);
         app_nsal_state_charged(gunno);
         app_nsal_event_occurded(gunno);
         return;
     }
 
-    if(s_ofsm_info[gunno].base.state.current != APP_OFSM_STATE_CHARGING){
+    if((s_ofsm_info[gunno].base.state.current != APP_OFSM_STATE_CHARGING) && (is_stop_charge_authorization == false)){
         s_ofsm_info[gunno].base.state.current = APP_OFSM_STATE_CHARGING;
         app_nsal_state_charged(gunno);
     }
@@ -1924,6 +1899,7 @@ static void ofsm_stoping_fun(uint8_t gunno)
         if((gunno != s_ofsm_info[gunno].base.main_gunno) && (s_ofsm_info[gunno].state != s_ofsm_info[s_ofsm_info[gunno].base.main_gunno].state)){
             if(s_ofsm_info[s_ofsm_info[gunno].base.main_gunno].state < APP_OFSM_STATE_SIZE){
                 s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][s_ofsm_info[s_ofsm_info[gunno].base.main_gunno].state];
+
                 s_ofsm_info[gunno].state = s_ofsm_info[s_ofsm_info[gunno].base.main_gunno].state;
 
                 s_ofsm_info[gunno].base.charge_way = APP_CHARGE_WAY_NONE;
@@ -1996,6 +1972,14 @@ static void ofsm_stoping_fun(uint8_t gunno)
         app_nsal_report_bms_message_bmsend(gunno);
         app_nsal_report_bms_message_chargerend(gunno);
 
+        memset(s_ofsm_info[gunno].base.transaction_number, 0x00, sizeof(s_ofsm_info[gunno].base.transaction_number));
+        memset(s_ofsm_info[gunno].base.car_vin, 0x00, sizeof(s_ofsm_info[gunno].base.car_vin));
+        memset(s_ofsm_info[gunno].base.card_number, 0x00, sizeof(s_ofsm_info[gunno].base.card_number));
+        memset(s_ofsm_info[gunno].base.card_uid, 0x00, sizeof(s_ofsm_info[gunno].base.card_uid));
+        memset(s_ofsm_info[gunno].base.user_number, 0x00, sizeof(s_ofsm_info[gunno].base.user_number));
+
+        app_nsal_init_charge_data(gunno);
+
         rt_thread_mdelay(2000);  /* 错峰上报订单 */
 
         if((s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE) && (gunno == s_ofsm_info[gunno].base.main_gunno)){
@@ -2023,12 +2007,12 @@ static void ofsm_stoping_fun(uint8_t gunno)
         s_thaisen_transaction[gunno].service_fee = s_ofsm_info[gunno].base.service_fees_total;
         s_thaisen_transaction[gunno].total_fee = s_ofsm_info[gunno].base.fees_total;
 
-#if (defined (APP_INCLUDE_YKC_PROTOCOL) || defined (APP_INCLUDE_YKC_PROTOCOL_MONITOR))
+#if (defined (APP_INCLUDE_YKC_PROTOCOL) || defined (APP_INCLUDE_YKC_PROTOCOL_MONITOR) || defined (APP_INCLUDE_YCP_PROTOCOL))
         for(uint8_t type = 0x00; type < APP_BILLING_RULE_RATE_TYPE_MAX; type++){
             s_thaisen_transaction[gunno].rate_type_elect[type] = app_billingrule_get_rate_type_elect(gunno, type);
             s_thaisen_transaction[gunno].rate_type_amount[type] = app_billingrule_get_rate_type_fess(gunno, type);
         }
-#endif /* (defined (APP_INCLUDE_YKC_PROTOCOL) || defined (APP_INCLUDE_YKC_PROTOCOL_MONITOR)) */
+#endif /* (defined (APP_INCLUDE_YKC_PROTOCOL) || defined (APP_INCLUDE_YKC_PROTOCOL_MONITOR) || defined (APP_INCLUDE_YCP_PROTOCOL)) */
 
 #ifdef APP_INCLUDE_SL_PROTOCOL
         for(uint8_t period = s_ofsm_info[gunno].base.start_period; period <= s_ofsm_info[gunno].base.current_period; period++){
@@ -2052,6 +2036,8 @@ static void ofsm_stoping_fun(uint8_t gunno)
 
         s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_FINISHING];
         s_ofsm_info[gunno].state = APP_OFSM_STATE_FINISHING;
+
+        s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
 
         s_ofsm_info[gunno].base.charge_way = APP_CHARGE_WAY_NONE;
     }
@@ -2103,6 +2089,19 @@ static void ofsm_finishing_fun(uint8_t gunno)
             if(s_ofsm_info[s_ofsm_info[gunno].base.main_gunno].state < APP_OFSM_STATE_SIZE){
                 s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][s_ofsm_info[s_ofsm_info[gunno].base.main_gunno].state];
                 s_ofsm_info[gunno].state = s_ofsm_info[s_ofsm_info[gunno].base.main_gunno].state;
+
+                s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
+
+                clear_swipe_card_state(gunno);
+                app_get_hci_event(gunno, HCI_EVENT_SCREEN_START, 1);
+                app_get_hci_event(gunno, HCI_EVENT_VIN_START, 1);
+                app_nsal_clear_remote_start(gunno);
+                app_nsal_clear_remote_card_authorize(gunno);
+                mw_clear_time_sync_flag(gunno);
+                app_get_hci_event(gunno, HCI_EVENT_SCREEN_STOP, 1);
+                app_nsal_clear_remote_stop(gunno);
+
+                return;
             }
         }
     }
@@ -2476,21 +2475,21 @@ static void ofsm_finishing_fun(uint8_t gunno)
             s_thaisen_transaction[gunno].stop_soc = 0x00;
             s_thaisen_transaction[gunno].ammeter_start = s_ofsm_info[gunno].base.start_elect;
             s_thaisen_transaction[gunno].ammeter_stop = s_thaisen_transaction[gunno].ammeter_start;
-            s_thaisen_transaction[gunno].stop_reason = mw_system_stop_way_convert(APP_SYSTEM_STOP_WAY_POWER_OFF);
+            s_thaisen_transaction[gunno].stop_reason = APP_SYSTEM_STOP_WAY_POWER_OFF;
             s_thaisen_transaction[gunno].total_elect = 0x00;
             s_thaisen_transaction[gunno].total_loss_elect = 0x00;
             s_thaisen_transaction[gunno].charge_fee = 0x00;
             s_thaisen_transaction[gunno].service_fee = 0x00;
             s_thaisen_transaction[gunno].total_fee = 0x00;
 
-#if (defined (APP_INCLUDE_YKC_PROTOCOL) || defined (APP_INCLUDE_YKC_PROTOCOL_MONITOR))
+#if (defined (APP_INCLUDE_YKC_PROTOCOL) || defined (APP_INCLUDE_YKC_PROTOCOL_MONITOR) || defined (APP_INCLUDE_YCP_PROTOCOL))
             for(uint8_t type = 0x00; type < APP_BILLING_RULE_RATE_TYPE_MAX; type++){
                 s_thaisen_transaction[gunno].rate_type_unit[type] = app_billingrule_get_rate_type_price(gunno, type);
             }
             memset(s_thaisen_transaction[gunno].rate_type_elect, 0x00, sizeof(s_thaisen_transaction[gunno].rate_type_elect));
             memset(s_thaisen_transaction[gunno].rate_type_amount, 0x00, sizeof(s_thaisen_transaction[gunno].rate_type_amount));
             memset(s_thaisen_transaction[gunno].rate_type_loss_elect, 0x00, sizeof(s_thaisen_transaction[gunno].rate_type_loss_elect));
-#endif /* (defined (APP_INCLUDE_YKC_PROTOCOL) || defined (APP_INCLUDE_YKC_PROTOCOL_MONITOR)) */
+#endif /* (defined (APP_INCLUDE_YKC_PROTOCOL) || defined (APP_INCLUDE_YKC_PROTOCOL_MONITOR) || defined (APP_INCLUDE_YCP_PROTOCOL)) */
 
 #ifdef APP_INCLUDE_SL_PROTOCOL
             memset(s_thaisen_transaction[gunno].period_elect, 0x00, sizeof(s_thaisen_transaction[gunno].period_elect));
@@ -2553,7 +2552,7 @@ static void ofsm_finishing_fun(uint8_t gunno)
         break;
     }
 
-    if(s_ofsm_info[gunno].base.state.current != APP_OFSM_STATE_FINISHING){
+    if((s_ofsm_info[gunno].base.state.current != APP_OFSM_STATE_FINISHING) && (is_charging_authorization == false)){
         s_ofsm_info[gunno].base.state.current = APP_OFSM_STATE_FINISHING;
         app_nsal_state_charged(gunno);
     }
@@ -2592,9 +2591,13 @@ static void ofsm_faulting_fun(uint8_t gunno)
         if(s_ofsm_info[gunno].base.flag.is_charge_complete == APP_THA_ENUM_TRUE){
             s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_FINISHING];
             s_ofsm_info[gunno].state = APP_OFSM_STATE_FINISHING;
+
+            s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
         }else{
             s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_IDLEING];
             s_ofsm_info[gunno].state = APP_OFSM_STATE_IDLEING;
+
+            s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
         }
 
         switch(s_ofsm_info[gunno].base.cc1_state){
@@ -2634,6 +2637,19 @@ static void ofsm_faulting_fun(uint8_t gunno)
                         if(s_ofsm_info[s_ofsm_info[gunno].main_gunno].state < APP_OFSM_STATE_SIZE){
                             s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][s_ofsm_info[s_ofsm_info[gunno].main_gunno].state];
                             s_ofsm_info[gunno].state = s_ofsm_info[s_ofsm_info[gunno].main_gunno].state;
+
+                            s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
+
+                            clear_swipe_card_state(gunno);
+                            app_get_hci_event(gunno, HCI_EVENT_SCREEN_START, 1);
+                            app_get_hci_event(gunno, HCI_EVENT_VIN_START, 1);
+                            app_nsal_clear_remote_start(gunno);
+                            app_nsal_clear_remote_card_authorize(gunno);
+                            mw_clear_time_sync_flag(gunno);
+                            app_get_hci_event(gunno, HCI_EVENT_SCREEN_STOP, 1);
+                            app_nsal_clear_remote_stop(gunno);
+
+                            return;
                         }
                     }
                 }
@@ -2980,21 +2996,21 @@ static void ofsm_faulting_fun(uint8_t gunno)
                     s_thaisen_transaction[gunno].stop_soc = 0x00;
                     s_thaisen_transaction[gunno].ammeter_start = s_ofsm_info[gunno].base.start_elect;
                     s_thaisen_transaction[gunno].ammeter_stop = s_thaisen_transaction[gunno].ammeter_start;
-                    s_thaisen_transaction[gunno].stop_reason = mw_system_stop_way_convert(APP_SYSTEM_STOP_WAY_POWER_OFF);
+                    s_thaisen_transaction[gunno].stop_reason = APP_SYSTEM_STOP_WAY_POWER_OFF;
                     s_thaisen_transaction[gunno].total_elect = 0x00;
                     s_thaisen_transaction[gunno].total_loss_elect = 0x00;
                     s_thaisen_transaction[gunno].charge_fee = 0x00;
                     s_thaisen_transaction[gunno].service_fee = 0x00;
                     s_thaisen_transaction[gunno].total_fee = 0x00;
 
-#if (defined (APP_INCLUDE_YKC_PROTOCOL) || defined (APP_INCLUDE_YKC_PROTOCOL_MONITOR))
+#if (defined (APP_INCLUDE_YKC_PROTOCOL) || defined (APP_INCLUDE_YKC_PROTOCOL_MONITOR) || defined (APP_INCLUDE_YCP_PROTOCOL))
             for(uint8_t type = 0x00; type < APP_BILLING_RULE_RATE_TYPE_MAX; type++){
                 s_thaisen_transaction[gunno].rate_type_unit[type] = app_billingrule_get_rate_type_price(gunno, type);
             }
             memset(s_thaisen_transaction[gunno].rate_type_elect, 0x00, sizeof(s_thaisen_transaction[gunno].rate_type_elect));
             memset(s_thaisen_transaction[gunno].rate_type_amount, 0x00, sizeof(s_thaisen_transaction[gunno].rate_type_amount));
             memset(s_thaisen_transaction[gunno].rate_type_loss_elect, 0x00, sizeof(s_thaisen_transaction[gunno].rate_type_loss_elect));
-#endif /* (defined (APP_INCLUDE_YKC_PROTOCOL) || defined (APP_INCLUDE_YKC_PROTOCOL_MONITOR)) */
+#endif /* (defined (APP_INCLUDE_YKC_PROTOCOL) || defined (APP_INCLUDE_YKC_PROTOCOL_MONITOR) || defined (APP_INCLUDE_YCP_PROTOCOL)) */
 
         #ifdef APP_INCLUDE_SL_PROTOCOL
                     memset(s_thaisen_transaction[gunno].period_elect, 0x00, sizeof(s_thaisen_transaction[gunno].period_elect));
@@ -3080,7 +3096,7 @@ static void ofsm_faulting_fun(uint8_t gunno)
             break;
         }
 
-        if(s_ofsm_info[gunno].base.state.current != APP_OFSM_STATE_FAULTING){
+        if((s_ofsm_info[gunno].base.state.current != APP_OFSM_STATE_FAULTING) && (is_charging_authorization == false)){
             s_ofsm_info[gunno].base.state.current = APP_OFSM_STATE_FAULTING;
             app_nsal_state_charged(gunno);
         }
@@ -3127,6 +3143,8 @@ void ofsm_thread_entry(void *parameter)
     s_transaction_sending[MONITOR_PLATFORM_INDEX][thread_gunno] = APP_THA_ENUM_FALSE;
     s_ofsm_fun[thread_gunno] = s_ofsm_fun_list[thread_gunno][APP_OFSM_STATE_WAIT_NET];
     s_ofsm_info[thread_gunno].state = APP_OFSM_STATE_WAIT_NET;
+
+    rt_thread_mdelay(6000);  /** 等待底层驱动正常(电表要获取到电量) */
 
     while(1){
         uint16_t singlegun_curr = s_ofsm_info[thread_gunno].base.gun_set_curr;

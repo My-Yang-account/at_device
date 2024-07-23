@@ -2465,9 +2465,9 @@ void SerialScreen_BtnBillGet(int port)
         /** 停充原因 **/
         if(billBuf.order_state.is_charging == 0x00){
             if(billBuf.order_state.verify_fail == 0x01){
-                sprintf(((char*)LcdData.billInfo[i] + used_len), "%c%c%02ud", ' ', 'A', billBuf.stop_reason);
+                sprintf(((char*)LcdData.billInfo[i] + used_len), "%c%c%02ud", ' ', 'A', mw_system_stop_way_convert(billBuf.stop_reason));
             }else{
-                sprintf(((char*)LcdData.billInfo[i] + used_len), "%c%03ud", ' ', billBuf.stop_reason);
+                sprintf(((char*)LcdData.billInfo[i] + used_len), "%c%03ud", ' ', mw_system_stop_way_convert(billBuf.stop_reason));
             }
             used_len += STOP_R_LEN;
             if(used_len > strlen((char*)LcdData.billInfo[i])){    /* 未使用字节填充空格字符 */
@@ -2654,9 +2654,9 @@ void SerialScreen_BtnBillUp(int port)
         /** 停充原因 **/
         if(billBuf.order_state.is_charging == 0x00){
             if(billBuf.order_state.verify_fail == 0x01){
-                sprintf(((char*)LcdData.billInfo[i] + used_len), "%c%c%02ud", ' ', 'A', billBuf.stop_reason);
+                sprintf(((char*)LcdData.billInfo[i] + used_len), "%c%c%02ud", ' ', 'A', mw_system_stop_way_convert(billBuf.stop_reason));
             }else{
-                sprintf(((char*)LcdData.billInfo[i] + used_len), "%c%03ud", ' ', billBuf.stop_reason);
+                sprintf(((char*)LcdData.billInfo[i] + used_len), "%c%03ud", ' ', mw_system_stop_way_convert(billBuf.stop_reason));
             }
             used_len += STOP_R_LEN;
             if(used_len > strlen((char*)LcdData.billInfo[i])){    /* 未使用字节填充空格字符 */
@@ -2806,9 +2806,9 @@ void SerialScreen_BtnBillDown(int port)
         /** 停充原因 **/
         if(billBuf.order_state.is_charging == 0x00){
             if(billBuf.order_state.verify_fail == 0x01){
-                sprintf(((char*)LcdData.billInfo[i] + used_len), "%c%c%02ud", ' ', 'A', billBuf.stop_reason);
+                sprintf(((char*)LcdData.billInfo[i] + used_len), "%c%c%02ud", ' ', 'A', mw_system_stop_way_convert(billBuf.stop_reason));
             }else{
-                sprintf(((char*)LcdData.billInfo[i] + used_len), "%c%03ud", ' ', billBuf.stop_reason);
+                sprintf(((char*)LcdData.billInfo[i] + used_len), "%c%03ud", ' ', mw_system_stop_way_convert(billBuf.stop_reason));
             }
             used_len += STOP_R_LEN;
             if(used_len > strlen((char*)LcdData.billInfo[i])){    /* 未使用字节填充空格字符 */
@@ -2935,7 +2935,7 @@ void SerialScreen_BtnErrGet(int port)
             }
         }
 
-        sprintf(((char*)LcdData.ErrInfo[i] + used_len), "%04d", errBuf.error_code); /* 故障代码 4位 */
+        sprintf(((char*)LcdData.ErrInfo[i] + used_len), "%04d", mw_system_fault_convert(errBuf.error_code)); /* 故障代码 4位 */
         used_len += FAULT_CODE_LEN;
         if(used_len > strlen((char*)LcdData.ErrInfo[i])){    /* 未使用字节填充空格字符 */
             remain_len = used_len - strlen((char*)LcdData.ErrInfo[i]);
@@ -2977,7 +2977,7 @@ void SerialScreen_BtnErrGet(int port)
             }
         }
 
-        sprintf(((char*)LcdData.ErrInfo[i] + used_len), "%s", thaisen_get_stopway_string(errBuf.error_code));     /* 故障原因 */
+        sprintf(((char*)LcdData.ErrInfo[i] + used_len), "%s", thaisen_get_fault_string(errBuf.error_code));     /* 故障原因 */
 
         if(LcdData.ErrIndex[port] > 0){
             if(LcdData.ErrIndex_Overreturn[port] == 1){
@@ -3085,7 +3085,7 @@ void SerialScreen_BtnErrUp(int port)
             }
         }
 
-        sprintf(((char*)LcdData.ErrInfo[i] + used_len), "%04d", errBuf.error_code); /* 故障代码 4位 */
+        sprintf(((char*)LcdData.ErrInfo[i] + used_len), "%04d", mw_system_fault_convert(errBuf.error_code)); /* 故障代码 4位 */
         used_len += FAULT_CODE_LEN;
         if(used_len > strlen((char*)LcdData.ErrInfo[i])){    /* 未使用字节填充空格字符 */
             remain_len = used_len - strlen((char*)LcdData.ErrInfo[i]);
@@ -3127,7 +3127,7 @@ void SerialScreen_BtnErrUp(int port)
             }
         }
 
-        sprintf(((char*)LcdData.ErrInfo[i] + used_len), "%s", thaisen_get_stopway_string(errBuf.error_code));     /* 故障原因 */
+        sprintf(((char*)LcdData.ErrInfo[i] + used_len), "%s", thaisen_get_fault_string(errBuf.error_code));     /* 故障原因 */
 
         if(LcdData.ErrIndex[port] > 0){
             LcdData.ErrLable[port]++;
@@ -3196,7 +3196,7 @@ void SerialScreen_BtnErrDown(int port)
             }
         }
 
-        sprintf(((char*)LcdData.ErrInfo[i] + used_len), "%04d", errBuf.error_code); /* 故障代码 4位 */
+        sprintf(((char*)LcdData.ErrInfo[i] + used_len), "%04d", mw_system_fault_convert(errBuf.error_code)); /* 故障代码 4位 */
         used_len += FAULT_CODE_LEN;
         if(used_len > strlen((char*)LcdData.ErrInfo[i])){    /* 未使用字节填充空格字符 */
             remain_len = used_len - strlen((char*)LcdData.ErrInfo[i]);
@@ -3238,7 +3238,7 @@ void SerialScreen_BtnErrDown(int port)
             }
         }
 
-        sprintf(((char*)LcdData.ErrInfo[i] + used_len), "%s", thaisen_get_stopway_string(errBuf.error_code));     /* 故障原因 */
+        sprintf(((char*)LcdData.ErrInfo[i] + used_len), "%s", thaisen_get_fault_string(errBuf.error_code));     /* 故障原因 */
 
         LcdData.ErrLable[port]++;
         if(LcdData.ErrIndex[port] > 0){

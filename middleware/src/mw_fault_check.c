@@ -28,13 +28,11 @@ uint32_t* mw_get_charge_fault_set(uint8_t gunno)
 
 uint16_t mw_get_system_stop_way(uint8_t gunno)
 {
-    enum system_stop_way __way;
     if(gunno < APP_SYSTEM_GUNNO_SIZE){
         uint16_t stop_way;
-        __way = thaisenGetChargCtlStopWay(gunno);
-        stop_way = mw_system_stop_way_convert(__way);
+        stop_way = thaisenGetChargCtlStopWay(gunno);
 
-        rt_kprintf("gunno(%d) stop charge, reason is(%d, %d)\n", gunno, stop_way, __way);
+        rt_kprintf("gunno(%d) stop charge, reason is(%d)\n", gunno, stop_way);
         return stop_way;
     }
     return APP_SYSTEM_STOP_WAY_SIZE;

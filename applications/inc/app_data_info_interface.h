@@ -240,9 +240,9 @@ void thaisen_get_screen_timesync_time(uint16_t* buf, uint8_t len);
  **/
 void thaisen_request_screen_time(void);
 /**
- * 根据停充码获取停充原因字符串
+ * 根据停充码获取故障字符串
  **/
-const char* thaisen_get_stopway_string(uint16_t code);
+const char* thaisen_get_fault_string(uint16_t code);
 /**
  * 获取CC1电压
  **/

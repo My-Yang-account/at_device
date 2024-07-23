@@ -271,9 +271,7 @@ void app_osupport_thread_entry(void *parameter)
                 if(fault_xor){
                     for(bit = 0; bit < (end_bit - start_bit); bit++){
                         if(fault_xor &(1 <<bit)){
-                            uint16_t __fault = mw_system_fault_convert(bit + start_bit);
-                            rt_kprintf("mw_system_fault_convert(%d)\n", __fault);
-                            switch(__fault)
+                            switch((bit + start_bit))
                             {
                             case APP_SYS_FAULT_SCRAM:
                                 s_system_error_info[gunno].error_index = 0x0000;
