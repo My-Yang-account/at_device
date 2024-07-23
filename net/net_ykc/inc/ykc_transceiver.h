@@ -18,6 +18,8 @@
 #define YKC_RECV_BUFF_SIZE                                      16 + NET_OTA_SEGMENT_LEN    /* 接收缓存大小 */
 #define YKC_RECV_THREAD_STACK_SIZE                              2048                        /* 报文接收线程栈大小 */
 
+uint8_t ykc_socket_is_lock(void);
+
 int ykc_socket_open(int *fd, char* host, uint16_t host_len, uint16_t port);
 int ykc_socket_close(int fd);
 int ykc_socket_send(int fd, void *data, uint16_t len);

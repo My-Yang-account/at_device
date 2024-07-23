@@ -24,12 +24,17 @@
 
 #define YKC_MONITOR_MESSAGE_FIX_LEN_DEFAULT        0x04
 
+typedef struct{
+    uint8_t socket_lock : 1;          /* socket正被操作：上锁 */
+}ykc_monitor_transceiver_flag_set;
+
 typedef struct
 {
     uint8_t service_id;
     void *service_cb;
 }ykc_monitor_service_callback_map;
 
+static ykc_monitor_transceiver_flag_set s_ykc_monitor_transceiver_flag_set;
 static uint8_t s_ykc_monitor_service_number = 0;
 static ykc_monitor_service_callback_map s_ykc_monitor_service_callback_map[YKC_MONITOR_SERVICE_CALLBACK_ITEM_MAX];
 
@@ -53,6 +58,11 @@ static uint16_t ykc_monitor_get_check_code(uint16_t crc, uint8_t *data, uint32_t
         crc = crc_talbe[((ch >> 4) ^ crc) & 15] ^ (crc >> 4);
     }
     return crc;
+}
+
+uint8_t ykc_monitor_socket_is_lock(void)
+{
+    return s_ykc_monitor_transceiver_flag_set.socket_lock;
 }
 
 static uint16_t ykc_monitor_readline_data(int fd)
@@ -112,17 +122,6 @@ static uint16_t ykc_monitor_readline_data(int fd)
     }
 }
 
-//uint8_t ggk[] = {0x68, 0x62, 0x0D, 0xD6, 0x00, 0x94, 0x32, 0x01, 0x06, 0x00, 0x20, 0x83, 0x16, 0x02, 0x1E, 0x00,
-//        0x31, 0x31, 0x34, 0x2E, 0x35, 0x35, 0x2E, 0x31, 0x31, 0x34, 0x2E, 0x31, 0x37, 0x34, 0x00, 0x00,
-//        0x15, 0x00, 0x73, 0x72, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-//        0x00, 0x00, 0x73, 0x72, 0x31, 0x32, 0x33, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-//        0x00, 0x00, 0x2F, 0x31, 0x37, 0x31, 0x36, 0x38, 0x30, 0x35, 0x39, 0x32, 0x34, 0x37, 0x39, 0x31,
-//        0x2F, 0x34, 0x44, 0x41, 0x38, 0x38, 0x30, 0x46, 0x37, 0x2E, 0x62, 0x69, 0x6E, 0x00, 0x00, 0x00,
-//        0x00, 0x00, 0x02, 0x3C, 0xE2, 0x07};
-
-//uint8_t hdj, hk, lld=  0;
-//
-//uint8_t power_data[166];
 static void ykc_monitor_message_recv_thread_entry(void *parameter)
 {
     uint8_t ykc_monitor_id[5];
@@ -133,6 +132,8 @@ static void ykc_monitor_message_recv_thread_entry(void *parameter)
     {
         if(net_get_ota_info()->state < NET_OTA_STATE_LOGIN_WAIT){
             if((socket->state >= YKC_MONITOR_SOCKET_STATE_LOGIN_WAIT) && (socket->fd >= 0x00)){
+                s_ykc_monitor_transceiver_flag_set.socket_lock = 0x01;
+
                 if((length = ykc_monitor_readline_data(socket->fd))){
                     sprintf((char*)ykc_monitor_id, "%s", "MYKC");
                     NETDATA_DEBUG((const char*)ykc_monitor_id, s_ykc_monitor_message_recv_buff, length, NETDATA_DEBUG_DIR_RECV);
@@ -155,8 +156,12 @@ static void ykc_monitor_message_recv_thread_entry(void *parameter)
                         LOG_E("ykc monitor service id|%x cb is not register", ((Net_YkcMonitorPro_Head_t*)s_ykc_monitor_message_recv_buff)->type);
                     }
                 }
+                s_ykc_monitor_transceiver_flag_set.socket_lock = 0x00;
+            }else{
+                s_ykc_monitor_transceiver_flag_set.socket_lock = 0x00;
             }
         }else{
+            s_ykc_monitor_transceiver_flag_set.socket_lock = 0x00;
             rt_thread_mdelay(5000);
             continue;
         }
