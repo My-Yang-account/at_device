@@ -20,7 +20,6 @@
 #include "app_osupport.h"
 #include "app_hci.h"
 #include "app_card.h"
-#include "app_flash.h"
 
 #include "mw_fault_check.h"
 #include "mw_led.h"
@@ -36,7 +35,6 @@ void prepose_init(void)
     /* 对指示灯进行初始化 */
     mw_led_init();
 
-    app_flash_ipc_init();
     sys_config_mutex_init();
 
     rt_thread_mdelay(1000);
