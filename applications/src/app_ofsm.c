@@ -1451,8 +1451,6 @@ static void ofsm_charging_fun(uint8_t gunno)
         LOG_I("gunno(%d) charging state (%dV | S%d | E|%u, F|%u V|%d C|%d P|%d charge_time(%d))...", gunno, mw_get_cc1_value(s_ofsm_info[gunno].base.cc1_state), charge_state,
                 s_ofsm_info[gunno].base.elect_a, s_ofsm_info[gunno].base.fees_total, s_ofsm_info[gunno].base.voltage_a,
                 s_ofsm_info[gunno].base.current_a, s_ofsm_info[gunno].base.power_a, s_ofsm_info[gunno].base.charge_time);
-
-        LOG_D("charge strategy(%d, %d)\n", increase_sec, s_ofsm_info[gunno].base.charge_strategy_para);
     }
 
     if(s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE){
