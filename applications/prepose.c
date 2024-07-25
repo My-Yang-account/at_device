@@ -35,8 +35,6 @@ void prepose_init(void)
     /* 对指示灯进行初始化 */
     mw_led_init();
 
-    sys_config_mutex_init();
-
     rt_thread_mdelay(1000);
     /* 对HCI串口进行初始化 */
     while (1)

@@ -18,7 +18,7 @@
 
 #define SYSTEM_INIT_KEY    ((uint32_t)(0x12345678))
 
-static struct rt_mutex s_sys_config_mutex;
+static uint8_t s_sys_config_lock = 0x01;
 
 #pragma pack(1)
 
@@ -617,24 +617,21 @@ static uint32_t crc32_ieee_update(uint32_t crc, const uint8_t *data, size_t len)
     return (~crc);
 }
 
-int32_t sys_config_mutex_init(void)
+static void sys_config_lock(void)
 {
-    if(rt_mutex_init(&s_sys_config_mutex, "config mutex", RT_IPC_FLAG_PRIO) < RT_EOK){
-        LOG_E("system config mutex init fail, please check");
-        return -RT_ERROR;
+    s_sys_config_lock = 0x00;
+}
+
+static void sys_config_unlock(void)
+{
+    s_sys_config_lock = 0x01;
+}
+
+static void sys_config_wait_unlock(void)
+{
+    while(s_sys_config_lock == 0x00){
+        SYS_CONFIG_OSDELAY(50);
     }
-
-    return RT_EOK;
-}
-
-static int32_t take_sys_config_mutex(uint32_t timeout)
-{
-    return rt_mutex_take(&s_sys_config_mutex, timeout);
-}
-
-static int32_t release_sys_config_mutex(void)
-{
-    return rt_mutex_release(&s_sys_config_mutex);
 }
 
 /************************************************************************************
@@ -689,12 +686,13 @@ int32_t sys_storage_config_item(void)
     uint8_t* _data_temp = NULL;
     int32_t result = 0;
 
-    take_sys_config_mutex(RT_WAITING_FOREVER);
+    sys_config_wait_unlock();
+    sys_config_lock();
 
     _data_temp = (uint8_t*)(malloc(sizeof(s_chargepile_config_info)));
     if(_data_temp == NULL){
         LOG_E("no enough memery for charge pile config buff|%d\n", sizeof(s_chargepile_config_info));
-        release_sys_config_mutex();
+        sys_config_unlock();
         return -0x01;
     }
     memset(_data_temp, 0x00, sizeof(s_chargepile_config_info));
@@ -711,11 +709,11 @@ int32_t sys_storage_config_item(void)
     free(_data_temp);
 
     if(result < 0){
-        release_sys_config_mutex();
+        sys_config_unlock();
         return -0x01;
     }
 
-    release_sys_config_mutex();
+    sys_config_unlock();
     return 0;
 }
 
@@ -736,7 +734,8 @@ int32_t sys_sync_config_item_content(enum config_name name, void* data, uint32_t
         return -0x02;
     }
 
-    take_sys_config_mutex(RT_WAITING_FOREVER);
+    sys_config_wait_unlock();
+    sys_config_lock();
 
     LOG_D("sys_sync_config_item_content name(%d, %d)[%s]\n", name, len, (char*)data);
 
@@ -744,11 +743,11 @@ int32_t sys_sync_config_item_content(enum config_name name, void* data, uint32_t
     uint16_t config_item_len = s_config_item_set[name].user_section &0x3ff;     /** 低10位保存着该配置项的最大长度 */
 
     if(len > config_item_len){
-        release_sys_config_mutex();
+        sys_config_unlock();
         return -0x03;
     }
     if(s_config_item_set[name].config_index == NULL){   /** 未初始化配置的配置项不予处理 */
-        release_sys_config_mutex();
+        sys_config_unlock();
         return -0x04;
     }
 
@@ -772,13 +771,13 @@ int32_t sys_sync_config_item_content(enum config_name name, void* data, uint32_t
             *((uint32_t*)(s_config_item_set[name].user_data)) = len;
             break;
         default:
-            release_sys_config_mutex();
+            sys_config_unlock();
             return -0x04;
             break;
         }
     }
 
-    release_sys_config_mutex();
+    sys_config_unlock();
     return 0;
 }
 

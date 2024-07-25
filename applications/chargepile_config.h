@@ -291,8 +291,6 @@ struct config_item{
 int32_t chargepile_config_init(void);
 int32_t chargepile_check_config(void);
 
-int32_t sys_config_mutex_init(void);
-
 int32_t sys_storage_config_item(void);
 int32_t sys_sync_config_item_content(enum config_name name, void* data, uint32_t len);
 uint8_t* sys_read_config_item_content(enum config_name name, uint8_t is_user_content);
