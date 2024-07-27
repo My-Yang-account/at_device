@@ -80,7 +80,7 @@ void ykc_monitor_fault_event_detect_callback(uint8_t gunno, uint8_t code, uint8_
         s_ykc_monitor_current_fault_set[gunno] |= (0x01 <<code);
         s_ykc_monitor_fault_info[gunno].body[index].flag.is_resume = 0x00;
     }
-    s_ykc_monitor_fault_info[gunno].body[index].flag.onging = 0x00;
+    s_ykc_monitor_fault_info[gunno].body[index].flag.onging = 0x01;
     s_ykc_monitor_fault_info[gunno].body[index].code = code;
     s_ykc_monitor_fault_info[gunno].head.count++;
 
@@ -276,7 +276,10 @@ void ykc_monitor_fault_detect_report(uint8_t gunno)
         }
         memcpy(&(s_ykc_monitor_fault_info[gunno].body[count]), &(s_ykc_monitor_fault_info[gunno].body[count - 0x01]), sizeof(struct ykc_monitor_fault_body));
     }
-    s_ykc_monitor_fault_info[gunno].head.count--;
+
+    if(s_ykc_monitor_fault_info[gunno].head.count > 0x00){
+        s_ykc_monitor_fault_info[gunno].head.count--;
+    }
 
     rt_exit_critical();
 }
