@@ -1274,7 +1274,7 @@ static void net_ykc_monitor_server_message_pro_entry(void *parameter)
                         result = ykc_monitor_response_padding_remote_stop_charge(gunno, response->general_transmit_buff, NET_YKC_MONITOR_GENERA_RESPONSE_BUFF_LENGTH, &(response->length));
                         ((Net_YkcMonitorPro_PRes_Remote_StopCharge_t*)response->general_transmit_buff)->body.result = pro_result;
                         ((Net_YkcMonitorPro_PRes_Remote_StopCharge_t*)response->general_transmit_buff)->body.fail_reason = reason;
-                        if(result){
+                        if(result >= 0x00){
                             ykc_monitor_net_event_send(NET_YKC_MONITOR_EVENT_HANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_RESPONSE, gunno, NET_YKC_MONITOR_PRES_EVENT_SERVER_STOP_CHARGE);
                         }else{
                             ykc_monitor_response_buff_release_sem();
@@ -1617,7 +1617,7 @@ static void net_ykc_monitor_server_message_pro_entry(void *parameter)
                     }
                     if(result > 0x00){
                         result = ykc_monitor_response_padding_remote_start_merge_charge(gunno, response->general_transmit_buff, NET_YKC_MONITOR_GENERA_RESPONSE_BUFF_LENGTH, &(response->length));
-                        if(result){
+                        if(result >= 0x00){
                             ykc_monitor_net_event_send(NET_YKC_MONITOR_EVENT_HANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_RESPONSE, gunno, NET_YKC_MONITOR_PRES_EVENT_SERVER_START_MERGECHARGE);
                         }else{
                             ykc_monitor_response_buff_release_sem();

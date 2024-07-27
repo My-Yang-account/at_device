@@ -929,16 +929,16 @@ int8_t ykc_message_pro_remote_stop_charge_request(uint8_t gunno)
     /** 并充时不能让平台停止副枪 */
     if(s_ykc_base->charge_way == APP_CHARGE_WAY_PARACHARGE){
         if(gunno != s_ykc_base->main_gunno){
-            return NET_YKC_START_FAIL_REASON_IS_CHARGING;
+            return NET_YKC_STOP_FAIL_REASON_NOT_CHARGING;
         }
     }
-
     if((s_ykc_base->state.current == APP_OFSM_STATE_CHARGING) ||
             (s_ykc_base->state.current == APP_OFSM_STATE_STARTING)){
         s_ykc_flag_info[gunno].is_stop_charge = 0x01;
-        return NET_YKC_STOP_FAIL_REASON_NOT_CHARGING;
+        return NET_YKC_STOP_FAIL_REASON_NO;
     }
-    return NET_YKC_STOP_FAIL_REASON_NO;
+
+    return NET_YKC_STOP_FAIL_REASON_NOT_CHARGING;
 }
 
 /*************************************************
@@ -1778,22 +1778,22 @@ uint8_t ykc_chargepile_request_padding_transaction_record(uint8_t gunno, void *t
         g_ykc_preq_transaction_records[gunno].body.start_time = ykc_get_cp56time2a_from_timestamp(_transaction->start_time);
         g_ykc_preq_transaction_records[gunno].body.stop_time = ykc_get_cp56time2a_from_timestamp(_transaction->end_time);
 
-        g_ykc_preq_transaction_records[gunno].body.tip_unit_price = _transaction->rate_type_unit[APP_RATE_TYPE_SHARP];
+        g_ykc_preq_transaction_records[gunno].body.tip_unit_price = _transaction->rate_type_unit[APP_RATE_TYPE_SHARP] *10;
         g_ykc_preq_transaction_records[gunno].body.tip_elect = _transaction->rate_type_elect[APP_RATE_TYPE_SHARP] *10;
         g_ykc_preq_transaction_records[gunno].body.tip_loss_elect = _transaction->rate_type_loss_elect[APP_RATE_TYPE_SHARP];
         g_ykc_preq_transaction_records[gunno].body.tip_amount = _transaction->rate_type_amount[APP_RATE_TYPE_SHARP];
 
-        g_ykc_preq_transaction_records[gunno].body.peak_unit_price = _transaction->rate_type_unit[APP_RATE_TYPE_PEAK];
+        g_ykc_preq_transaction_records[gunno].body.peak_unit_price = _transaction->rate_type_unit[APP_RATE_TYPE_PEAK] *10;
         g_ykc_preq_transaction_records[gunno].body.peak_elect = _transaction->rate_type_elect[APP_RATE_TYPE_PEAK] *10;
         g_ykc_preq_transaction_records[gunno].body.peak_loss_elect = _transaction->rate_type_loss_elect[APP_RATE_TYPE_PEAK];
         g_ykc_preq_transaction_records[gunno].body.peak_amount = _transaction->rate_type_amount[APP_RATE_TYPE_PEAK];
 
-        g_ykc_preq_transaction_records[gunno].body.flat_unit_price = _transaction->rate_type_unit[APP_RATE_TYPE_FLAT];
+        g_ykc_preq_transaction_records[gunno].body.flat_unit_price = _transaction->rate_type_unit[APP_RATE_TYPE_FLAT] *10;
         g_ykc_preq_transaction_records[gunno].body.flat_elect = _transaction->rate_type_elect[APP_RATE_TYPE_FLAT] *10;
         g_ykc_preq_transaction_records[gunno].body.flat_loss_elect = _transaction->rate_type_loss_elect[APP_RATE_TYPE_FLAT];
         g_ykc_preq_transaction_records[gunno].body.flat_amount = _transaction->rate_type_amount[APP_RATE_TYPE_FLAT];
 
-        g_ykc_preq_transaction_records[gunno].body.valley_unit_price = _transaction->rate_type_unit[APP_RATE_TYPE_VALLEY];
+        g_ykc_preq_transaction_records[gunno].body.valley_unit_price = _transaction->rate_type_unit[APP_RATE_TYPE_VALLEY] *10;
         g_ykc_preq_transaction_records[gunno].body.valley_elect = _transaction->rate_type_elect[APP_RATE_TYPE_VALLEY] *10;
         g_ykc_preq_transaction_records[gunno].body.valley_loss_elect = _transaction->rate_type_loss_elect[APP_RATE_TYPE_VALLEY];
         g_ykc_preq_transaction_records[gunno].body.valley_amount = _transaction->rate_type_amount[APP_RATE_TYPE_VALLEY];
