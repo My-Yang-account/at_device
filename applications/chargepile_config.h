@@ -98,12 +98,12 @@
 #define POWER_ALLOCATION_WAY_POWER_PRIORITY     2           /* 功率分配方式:功率优先 */
 #define POWER_ALLOCATION_WAY_SIZE               3           /* 功率分配方式 */
 
-#define SYSTEM_FUNCTION_SINGLE_TERMINAL         0           /* 单枪终端 */
-#define SYSTEM_FUNCTION_DOUBLE_TERMINAL         1           /* 双枪终端 */
-#define SYSTEM_FUNCTION_DOUBLE_WHOLE            2           /* 双枪一体 */
-#define SYSTEM_FUNCTION_RECTIFIER_CABINET       3           /* 整流柜 */
-#define SYSTEM_FUNCTION_DYNAMIC_SWITCH          4           /* 动态切换 */
-#define SYSTEM_FUNCTION_SIZE                    5           /* 系统功能 */
+#define SYSTEM_FUNCTION_SINGLE_TERMINAL           0           /* 单枪终端 */
+#define SYSTEM_FUNCTION_AVERAGE_DOUBLE            1           /* 均充双枪 */
+#define SYSTEM_FUNCTION_DOUBLE_WHOLE              2           /* 双枪终端 */
+#define SYSTEM_FUNCTION_RECTIFIER_CABINET         3           /* 整流柜 */
+#define SYSTEM_FUNCTION_DYNAMIC_SWITCH            4           /* 动态切换 */
+#define SYSTEM_FUNCTION_SIZE                      5           /* 系统功能 */
 
 /* protect info config */
 #define PROTECT_STOP_SOC_VALUE_DEFAULT            100       /* 保护信息：默认SOC停充值 */

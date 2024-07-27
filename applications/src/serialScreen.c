@@ -1403,7 +1403,7 @@ void SerialScreen_BtnSystemFuncSet(void)
     }
 
     if(type >= SYSTEM_FUNCTION_SIZE){        /* 设备类型默认双枪一体 */
-        type = SYSTEM_FUNCTION_DOUBLE_WHOLE;
+        type = SYSTEM_FUNCTION_AVERAGE_DOUBLE;
     }
 
     switch(type){
@@ -1417,8 +1417,8 @@ void SerialScreen_BtnSystemFuncSet(void)
         }
         break;
     default:
-        LcdData.setData.DevType = SYSTEM_FUNCTION_DOUBLE_WHOLE;
-        LcdAssistantData.DeviceType = SYSTEM_FUNCTION_DOUBLE_WHOLE;
+        LcdData.setData.DevType = SYSTEM_FUNCTION_AVERAGE_DOUBLE;
+        LcdAssistantData.DeviceType = SYSTEM_FUNCTION_AVERAGE_DOUBLE;
         thaisenModuleSetDeviceType(thaisenDeviceType_doubleGun);
         break;
     }
@@ -4515,7 +4515,7 @@ struct LCD_DATA_FIFO_TYPE *SerialScreen_Init(struct SerialScreenObj *cmd)
 	LcdData.setData.manufacturer = 1;//NULL
 
 	if(LcdData.setData.DevType >= SYSTEM_FUNCTION_SIZE){        /* 设备类型默认双枪一体 */
-        LcdData.setData.DevType = SYSTEM_FUNCTION_DOUBLE_WHOLE;
+        LcdData.setData.DevType = SYSTEM_FUNCTION_AVERAGE_DOUBLE;
     }
     LcdAssistantData.DeviceType = LcdData.setData.DevType;
 
@@ -4524,8 +4524,8 @@ struct LCD_DATA_FIFO_TYPE *SerialScreen_Init(struct SerialScreenObj *cmd)
         thaisenModuleSetDeviceType(thaisenDeviceType_average);
         break;
     default:
-        LcdData.setData.DevType = SYSTEM_FUNCTION_DOUBLE_WHOLE;
-        LcdAssistantData.DeviceType = SYSTEM_FUNCTION_DOUBLE_WHOLE;
+        LcdData.setData.DevType = SYSTEM_FUNCTION_AVERAGE_DOUBLE;
+        LcdAssistantData.DeviceType = SYSTEM_FUNCTION_AVERAGE_DOUBLE;
         thaisenModuleSetDeviceType(thaisenDeviceType_doubleGun);
         break;
     }
@@ -5789,7 +5789,7 @@ int SerialScreen_DataProcess()
             }
 		}
 		ret = 1;
-		if(LcdAssistantData.OccupyGunNum == LCD_GUN_NUM){
+        if((LcdAssistantData.OccupyGunNum == LCD_GUN_NUM) && (LcdAssistantData.DeviceType != SYSTEM_FUNCTION_DYNAMIC_SWITCH)){
 	        if(LcdAssistantData.Flag.IsEnableParaCharge){
 	            if(LcdAssistantData.Flag.ParaChargeSelect)
 	                LcdData.setData.parallel_iocn = ICON_CHARGEWAY_PARACHARGE;
