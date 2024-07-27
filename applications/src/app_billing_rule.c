@@ -515,7 +515,12 @@ void app_billing_info_init(uint32_t init_elect, uint8_t gunno)
         s_billing_info[gunno].period_fees[period].service = 0x00;
         s_billing_info[gunno].period_fees[period].delay = 0x00;
     }
+    for(uint8_t type = 0; type < APP_BILLING_RULE_RATE_TYPE_MAX; type++){
+        s_billing_info[gunno].rate_type_elect[type] = 0x00;
+        s_billing_info[gunno].rate_type_fess[type] = 0x00;
+    }
 }
+
 /*******************************************************
  * 函数名              app_billing_info_calculate
  * 功能                  计算费率信息
