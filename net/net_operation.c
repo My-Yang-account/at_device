@@ -260,6 +260,7 @@ static void net_start_function(void* handle)
     NET_MY_ASSERT(s_net_handle.card_vin_whitelists_delete, NET_PARA_CONFIG_INDEX_DELETE_CARD_VIN);
     NET_MY_ASSERT(s_net_handle.system_data_storage, NET_PARA_CONFIG_INDEX_SYSTEM_DATA_STORAGE);
     NET_MY_ASSERT(s_net_handle.ndev_operate, NET_PARA_CONFIG_INDEX_NDEV_OPERATE);
+    NET_MY_ASSERT(s_net_handle.crc16_8005, NET_PARA_CONFIG_INDEX_CRC16_8005);
     NET_MY_ASSERT(s_net_handle.crc32_updtae, NET_PARA_CONFIG_INDEX_CRC32_UPDATE);
 
     NET_MY_ASSERT(s_net_handle.flash_erase, NET_PARA_CONFIG_INDEX_FLASH_ERASE);
@@ -318,6 +319,9 @@ static int32_t net_para_config_function(uint8_t platform, uint8_t index, void* p
         break;
     case NET_PARA_CONFIG_INDEX_DELETE_CARD_VIN :
         s_net_handle.card_vin_whitelists_delete = (int32_t (*)(uint8_t*, uint8_t, uint32_t))para;
+        break;
+    case NET_PARA_CONFIG_INDEX_CRC16_8005 :
+        s_net_handle.crc16_8005 = (uint16_t (*)(uint16_t, const uint8_t*, uint32_t))para;
         break;
     case NET_PARA_CONFIG_INDEX_CRC32_UPDATE :
         s_net_handle.crc32_updtae = (uint32_t (*)(uint32_t, const uint8_t*, uint32_t))para;

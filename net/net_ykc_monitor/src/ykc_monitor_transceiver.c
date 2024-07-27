@@ -42,6 +42,7 @@ static uint8_t s_ykc_monitor_message_recv_buff[YKC_MONITOR_RECV_BUFF_SIZE];
 static struct rt_thread s_ykc_monitor_message_recv_thread;
 static uint8_t s_ykc_monitor_message_recv_thread_stack[YKC_MONITOR_RECV_THREAD_STACK_SIZE];
 
+#if 0
 static uint16_t ykc_monitor_get_check_code(uint16_t crc, uint8_t *data, uint32_t len)
 {
     static uint16_t crc_talbe[] = {
@@ -59,6 +60,7 @@ static uint16_t ykc_monitor_get_check_code(uint16_t crc, uint8_t *data, uint32_t
     }
     return crc;
 }
+#endif
 
 uint8_t ykc_monitor_socket_is_lock(void)
 {
@@ -142,7 +144,7 @@ static void ykc_monitor_message_recv_thread_entry(void *parameter)
                     callback = ykc_monitor_get_service_callback(((Net_YkcMonitorPro_Head_t*)s_ykc_monitor_message_recv_buff)->type);
                     if(callback){
                         uint16_t recv_check = 0x00, cal_check = 0x00;
-                        cal_check = ykc_monitor_get_check_code(0xFFFF, (uint8_t*)&(((Net_YkcMonitorPro_Head_t*)s_ykc_monitor_message_recv_buff)->sequence), \
+                        cal_check = net_get_net_handle()->crc16_8005(0xFFFF, (uint8_t*)&(((Net_YkcMonitorPro_Head_t*)s_ykc_monitor_message_recv_buff)->sequence), \
                                 (length - YKC_MONITOR_MESSAGE_FIX_LEN_DEFAULT));
                         recv_check = *(s_ykc_monitor_message_recv_buff + length - 0x01);
                         recv_check <<=0x08;
@@ -188,7 +190,7 @@ int32_t ykc_monitor_message_send_port(uint8_t cmd, int fd, void *data, uint16_t 
     head->start_code = NET_YKC_MONITOR_MESSAGE_START_CODE;
     head->type = cmd;
     head->length = len - 0x04;
-    check_code = ykc_monitor_get_check_code(0xFFFF, (uint8_t*)&(((Net_YkcMonitorPro_Head_t*)data)->sequence), \
+    check_code = net_get_net_handle()->crc16_8005(0xFFFF, (uint8_t*)&(((Net_YkcMonitorPro_Head_t*)data)->sequence), \
             (len - 0x04));
 
     *((uint8_t*)data + len - 0x01) = (uint8_t)(check_code >>0x08);

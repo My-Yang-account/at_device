@@ -157,11 +157,12 @@ enum para_config{
     NET_PARA_CONFIG_INDEX_SET_CARD_VIN = 9,            /* 参数配置下标：设置卡、VIN白名单 */
     NET_PARA_CONFIG_INDEX_QUERY_CARD_VIN = 10,         /* 参数配置下标：查询卡、VIN白名单 */
     NET_PARA_CONFIG_INDEX_DELETE_CARD_VIN = 11,        /* 参数配置下标：删除卡、VIN白名单 */
-    NET_PARA_CONFIG_INDEX_CRC32_UPDATE = 12,           /* 参数配置下标：CRC32 校验 */
-    NET_PARA_CONFIG_INDEX_GET_BASE_DATA = 13,          /* 参数配置下标：设置基本数据 */
-    NET_PARA_CONFIG_INDEX_SYSTEM_DATA_STORAGE = 14,    /* 参数配置下标：系统数据存储 */
-    NET_PARA_CONFIG_INDEX_NDEV_OPERATE = 15,           /* 参数配置下标：网络设备操作 */
-    NET_PARA_CONFIG_INDEX_SIZE = 16,
+    NET_PARA_CONFIG_INDEX_CRC16_8005 = 12,             /* 参数配置下标：CRC16 校验 */
+    NET_PARA_CONFIG_INDEX_CRC32_UPDATE = 13,           /* 参数配置下标：CRC32 校验 */
+    NET_PARA_CONFIG_INDEX_GET_BASE_DATA = 14,          /* 参数配置下标：设置基本数据 */
+    NET_PARA_CONFIG_INDEX_SYSTEM_DATA_STORAGE = 15,    /* 参数配置下标：系统数据存储 */
+    NET_PARA_CONFIG_INDEX_NDEV_OPERATE = 16,           /* 参数配置下标：网络设备操作 */
+    NET_PARA_CONFIG_INDEX_SIZE = 17,
 };
 
 #define NET_MY_ASSERT(para, index)                             \
@@ -257,6 +258,7 @@ struct net_handle{
     int32_t (*card_vin_whitelists_delete)(uint8_t* data, uint8_t len, uint32_t option);
     int32_t (*system_data_storage)(uint32_t option);
     int32_t (*ndev_operate)(uint8_t option);
+    uint16_t (*crc16_8005)(uint16_t init, const uint8_t *data, uint32_t len);
     uint32_t (*crc32_updtae)(uint32_t init, const uint8_t *data, uint32_t len);
 };
 

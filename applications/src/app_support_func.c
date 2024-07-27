@@ -312,5 +312,21 @@ uint32_t crc32_ieee(uint32_t crc, const uint8_t *data, uint32_t len)
     return (~crc);
 }
 
+uint16_t get_crc16_modbus(uint16_t crc, uint8_t *data, uint32_t len)
+{
+    static uint16_t crc_talbe[] = {
+        0x0000, 0xCC01, 0xD801, 0x1400, 0xF001, 0x3C00, 0x2800, 0xE401,
+        0xA001, 0x6C00, 0x7800, 0xB401, 0x5000, 0x9C01, 0x8801, 0x4400,
+    };
 
+    uint32_t i = 0;
+    uint8_t ch;
+
+    for (i = 0; i < len; i++){
+        ch = *data++;
+        crc = crc_talbe[(ch ^ crc) & 15] ^ (crc >> 4);
+        crc = crc_talbe[((ch >> 4) ^ crc) & 15] ^ (crc >> 4);
+    }
+    return crc;
+}
 

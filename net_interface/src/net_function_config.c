@@ -469,7 +469,17 @@ static int32_t app_ncard_vin_whitelists_delete(uint8_t* data, uint8_t len, uint3
 }
 
 /***********************************************
- * 函数名     app_ncard_vin_whitelists_query
+ * 函数名     app_ncrc16_modbus
+ * 功能         CRC16 校验
+ **********************************************/
+static uint16_t app_ncrc16_modbus(uint16_t init, const uint8_t *data, uint32_t len)
+{
+    extern uint16_t get_crc16_modbus(uint16_t crc, const uint8_t *data, uint32_t len);
+    return get_crc16_modbus(init, data, len);
+}
+
+/***********************************************
+ * 函数名     app_ncrc32_updtae
  * 功能         CRC32 校验
  **********************************************/
 static uint32_t app_ncrc32_updtae(uint32_t init, const uint8_t *data, uint32_t len)
@@ -500,6 +510,7 @@ int32_t app_nfunc_config_init(void)
     handle->para_config(0x00, NET_PARA_CONFIG_INDEX_DELETE_CARD_VIN,       app_ncard_vin_whitelists_delete, handle);
     handle->para_config(0x00, NET_PARA_CONFIG_INDEX_SYSTEM_DATA_STORAGE,   app_nsystem_data_storage, handle);
     handle->para_config(0x00, NET_PARA_CONFIG_INDEX_NDEV_OPERATE,          app_ndevice_operate, handle);
+    handle->para_config(0x00, NET_PARA_CONFIG_INDEX_CRC16_8005,            app_ncrc16_modbus, handle);
     handle->para_config(0x00, NET_PARA_CONFIG_INDEX_CRC32_UPDATE,          app_ncrc32_updtae, handle);
 
     handle->start_func(handle);

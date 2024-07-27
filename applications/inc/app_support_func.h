@@ -24,5 +24,6 @@ uint32_t calculate_data_from_byte(uint8_t* data, uint8_t len, uint8_t flag);
 int8_t packing_data(uint8_t* buff, uint8_t buff_free_len, uint32_t data, uint8_t data_len, uint8_t flag);
 uint32_t get_check_sum(uint8_t* data, uint32_t len);
 uint32_t crc32_ieee(uint32_t crc, const uint8_t *data, uint32_t len);
+uint16_t get_crc16_modbus(uint16_t crc, uint8_t *data, uint32_t len);
 
 #endif /* APPLICATIONS_INC_APP_SUPPORT_FUNC_H_ */
