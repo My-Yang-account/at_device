@@ -9,6 +9,7 @@
  */
 #include "chargepile_config.h"
 #include "mw_norflash.h"
+#include "net_sal.h"
 
 #include <rtthread.h>
 
@@ -1100,10 +1101,14 @@ int32_t chargepile_check_config(void)
         s_system_power_max += single_module_power *s_chargepile_config_info.config_info.module_num_singlegroup[count];
     }
 
+#ifdef APP_INCLUDE_NET
     if((s_chargepile_config_info.config_info.system_power_total > s_system_power_max) ||
             (s_chargepile_config_info.config_info.system_power_total < 1000)){
         s_chargepile_config_info.config_info.system_power_total = s_system_power_max;
     }
+#else
+    s_chargepile_config_info.config_info.system_power_total = s_system_power_max;
+#endif /* APP_INCLUDE_NET */
     rt_kprintf("system_power_total(%d, %d)\n", s_chargepile_config_info.config_info.system_power_total, s_system_power_max);
 
     return 0;

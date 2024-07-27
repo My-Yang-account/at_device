@@ -1151,7 +1151,7 @@ typedef struct{
 }Net_YkcMonitorPro_SReq_General_t;
 
 /** 0xB1 上报充电模块信息、查询充电模块信息应答帧 */
-struct module_info{
+struct single_module_info{
     uint16_t address;
     uint16_t voltage;
     uint16_t current;

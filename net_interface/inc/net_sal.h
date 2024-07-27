@@ -18,6 +18,7 @@
 
 /**************************** 钛昕平台 ***************************/
 #ifdef NET_PACK_USING_THA
+#define APP_INCLUDE_NET
 //#define APP_MONITOR_PLATFORM_ID                       0x0001   /* 监控平台ID */
 #define APP_TARGET_PLATFORM_ID                        0x0001   /* 目标平台ID */
 
@@ -26,6 +27,7 @@
 #define APP_PLATFORM_ID_THA                           0x0001   /* 钛昕平台ID */
 /**************************** 云快充平台 ***************************/
 #ifdef NET_PACK_USING_YKC
+#define APP_INCLUDE_NET
 //#define APP_MONITOR_PLATFORM_ID                       0x0002   /* 监控平台ID */
 #define APP_TARGET_PLATFORM_ID                        0x0002   /* 目标平台ID */
 
@@ -34,6 +36,7 @@
 #define APP_PLATFORM_ID_YKC                           0x0002   /* 云快充平台ID */
 /**************************** 小桔平台 ***************************/
 #ifdef NET_PACK_USING_XJ
+#define APP_INCLUDE_NET
 //#define APP_MONITOR_PLATFORM_ID                       0x0004   /* 监控平台ID */
 //#define APP_TARGET_PLATFORM_ID                        0x0004   /* 目标平台ID */
 
@@ -42,6 +45,7 @@
 #define APP_PLATFORM_ID_XJ                            0x0004   /* 小桔平台ID */
 /**************************** 阳光乐通平台 ***************************/
 #ifdef NET_PACK_USING_SL
+#define APP_INCLUDE_NET
 //#define APP_MONITOR_PLATFORM_ID                       0x0008   /* 监控平台ID */
 //#define APP_TARGET_PLATFORM_ID                        0x0008   /* 目标平台ID */
 
@@ -50,6 +54,7 @@
 #define APP_PLATFORM_ID_SL                            0x0008   /* 阳光乐通平台ID */
 /**************************** 云快充监控平台 ***************************/
 #ifdef NET_PACK_USING_YKC_MONITOR
+#define APP_INCLUDE_NET
 #define APP_MONITOR_PLATFORM_ID                       0x0010   /* 监控平台ID */
 //#define APP_TARGET_PLATFORM_ID                        0x0010   /* 目标平台ID */
 
@@ -58,6 +63,7 @@
 #define APP_PLATFORM_ID_YKC_MONITOR                   0x0010   /* 云快充监控平台ID */
 /**************************** 越城平台 ***************************/
 #ifdef NET_PACK_USING_YCP
+#define APP_INCLUDE_NET
 //#define APP_MONITOR_PLATFORM_ID                       0x0020   /* 监控平台ID */
 #define APP_TARGET_PLATFORM_ID                        0x0020   /* 目标平台ID */
 

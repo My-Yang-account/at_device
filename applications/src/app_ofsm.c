@@ -144,7 +144,7 @@ static void transaction_record_query_report(uint8_t gunno)
         }
         return;
     }
-
+#if 0
     if(app_nsal_query_transaction_verify_state(gunno, APP_TARGET_PLATFORM_ID) == APP_THA_ENUM_TRUE){
         if(s_transaction_sending[TARGET_PLATFORM_INDEX][gunno] == APP_THA_ENUM_TRUE){
             LOG_D("gunno(%d) target transaction verify", gunno);
@@ -191,6 +191,7 @@ static void transaction_record_query_report(uint8_t gunno)
             }
         }
     }
+#endif
 }
 
 static void temperature_protect_limitcurr(uint8_t gunno, uint16_t *set_curr)

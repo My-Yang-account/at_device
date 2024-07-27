@@ -2644,7 +2644,7 @@ int8_t ykc_monitor_message_padding_module_info(uint8_t *buf, uint16_t ilen, uint
     uint8_t num = 0x00, padding_num = 0x00, group_num = 0x00, *module_num = NULL;
     thaisenModuleVoltCurrStruct * voltcurr = NULL;
     Net_YkcMonitorPro_PRes_Preq_ModuleInfo_t *message = (Net_YkcMonitorPro_PRes_Preq_ModuleInfo_t*)buf;
-    struct module_info *_info = NULL;
+    struct single_module_info *_info = NULL;
 
     extern uint8_t sys_get_module_model(void);
     extern uint8_t sys_get_module_group_num(void);
@@ -2657,7 +2657,7 @@ int8_t ykc_monitor_message_padding_module_info(uint8_t *buf, uint16_t ilen, uint
     message->body.num = 0x00;
     memcpy(message->body.pile_number, g_ykc_monitor_preq_login.body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
 
-    _info = (struct module_info*)(buf + (total - 0x02));
+    _info = (struct single_module_info*)(buf + (total - 0x02));
 
     for(uint8_t group = 0x00; group < group_num; group++){
         voltcurr = thaisenGetModuleVoltCurrInfo(&num, group);
@@ -2676,7 +2676,7 @@ int8_t ykc_monitor_message_padding_module_info(uint8_t *buf, uint16_t ilen, uint
                     _info[padding_num + count].current, _info[padding_num + count].state);
         }
         padding_num += num;
-        total += (num *sizeof(struct module_info));
+        total += (num *sizeof(struct single_module_info));
     }
 
     if(olen){
