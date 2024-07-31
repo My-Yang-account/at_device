@@ -1004,6 +1004,11 @@ static void net_ykc_server_message_pro_entry(void *parameter)
             continue;
         }
 
+        if(s_ykc_socket_info.state != YKC_SOCKET_STATE_LOGIN_SUCCESS){   /* 未登录上服务器前不进行网络数据交互事件处理 */
+            rt_thread_mdelay(500);
+            continue;
+        }
+
         for(uint8_t gunno = 0; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
             ykc_net_event_receive(NET_YKC_EVENT_HANDLE_SERVER, NET_YKC_EVENT_TYPE_REQUEST, gunno, 0x00, 0x00, &_event);
             if(_event){
@@ -1424,13 +1429,15 @@ static void net_ykc_server_message_pro_entry(void *parameter)
                 if(ykc_net_event_receive(NET_YKC_EVENT_HANDLE_SERVER, NET_YKC_EVENT_TYPE_REQUEST, gunno,
                         (NET_YKC_EVENT_OPTION_OR |NET_YKC_EVENT_OPTION_CLEAR), NET_YKC_SREQ_EVENT_QRCODE_CONFIG_GC, NULL) > 0){
                     uint8_t pro_result = 0x00;
+                    ykc_qrcode_buf_t *info = (ykc_qrcode_buf_t*)(ykc_get_qrcode_info());
+
+                    info->flag.is_used = 0x00;
                     response = ykc_get_response_buff(RT_WAITING_FOREVER);
+
                     if(g_ykc_sreq_qrcode_config_gc[gunno].body.result == 0x00){
                         uint8_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC_MONITOR |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
                         struct net_handle* handle = net_get_net_handle();
-                        ykc_qrcode_buf_t *info = (ykc_qrcode_buf_t*)(ykc_get_qrcode_info());
 
-                        info->flag.is_used = 0x00;
                         if(handle->set_system_data(NET_SYSTEM_DATA_NAME_QRCODE, info->qrcode, info->length, option) >= 0x00){
                             pro_result = 0x01;
                         }
@@ -1448,13 +1455,15 @@ static void net_ykc_server_message_pro_entry(void *parameter)
                 if(ykc_net_event_receive(NET_YKC_EVENT_HANDLE_SERVER, NET_YKC_EVENT_TYPE_REQUEST, gunno,
                         (NET_YKC_EVENT_OPTION_OR |NET_YKC_EVENT_OPTION_CLEAR), NET_YKC_SREQ_EVENT_QRCODE_CONFIG_YKC15, NULL) > 0){
                     uint8_t pro_result = 0x00;
+                    ykc_qrcode_buf_t *info = (ykc_qrcode_buf_t*)(ykc_get_qrcode_info());
+
+                    info->flag.is_used = 0x00;
                     response = ykc_get_response_buff(RT_WAITING_FOREVER);
+
                     if(g_ykc_sreq_qrcode_config_ykc15.body.result == 0x00){
                         uint8_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC_MONITOR |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
                         struct net_handle* handle = net_get_net_handle();
-                        ykc_qrcode_buf_t *info = (ykc_qrcode_buf_t*)(ykc_get_qrcode_info());
 
-                        info->flag.is_used = 0x00;
                         if(handle->set_system_data(NET_SYSTEM_DATA_NAME_QRCODE, info->qrcode, info->length, option) >= 0x00){
                             pro_result = 0x01;
                         }

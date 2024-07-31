@@ -121,6 +121,8 @@ extern Net_YkcMonitorPro_SRes_ApplyCharge_Active_t g_ykc_monitor_sres_apply_char
 /** 充电桩主动申请并充充电响应 */
 extern Net_YkcMonitorPro_SRes_ApplyMergeCharge_Active_t g_ykc_monitor_sres_apply_merge_charge_active[NET_SYSTEM_GUN_NUMBER];   // OK
 
+#pragma pack(1)
+
 typedef struct{
     struct{
         uint8_t is_used : 1;
@@ -139,6 +141,8 @@ typedef struct{
     uint16_t length;
     uint8_t whitlelist[NET_YKC_MONITOR_CARD_VIN_WHITELIST_MAX];
 }ykc_monitor_card_vin_buf_t;
+
+#pragma pack()
 
 #ifdef NET_YKC_MONITOR_AS_MONITOR
 void ykc_monitor_clear_recv_message_item(uint8_t cmd, uint8_t gunno);

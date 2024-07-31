@@ -19,8 +19,14 @@
 /**************************** 钛昕平台 ***************************/
 #ifdef NET_PACK_USING_THA
 #define APP_INCLUDE_NET
-//#define APP_MONITOR_PLATFORM_ID                       0x0001   /* 监控平台ID */
+
+#ifdef NET_THA_AS_MONITOR
+#define APP_INCLUDE_MONITOR_PLATFORM                           /* 包含监控平台 */
+#define APP_MONITOR_PLATFORM_ID                       0x0001   /* 监控平台ID */
+#else
+#define APP_INCLUDE_TARGET_PLATFORM                            /* 包含目标平台 */
 #define APP_TARGET_PLATFORM_ID                        0x0001   /* 目标平台ID */
+#endif /* NET_THA_AS_MONITOR */
 
 #define APP_INCLUDE_THA_PROTOCOL
 #endif /* NET_PACK_USING_THA */
@@ -28,8 +34,14 @@
 /**************************** 云快充平台 ***************************/
 #ifdef NET_PACK_USING_YKC
 #define APP_INCLUDE_NET
-//#define APP_MONITOR_PLATFORM_ID                       0x0002   /* 监控平台ID */
+
+#ifdef NET_YKC_AS_MONITOR
+#define APP_INCLUDE_MONITOR_PLATFORM                           /* 包含监控平台 */
+#define APP_MONITOR_PLATFORM_ID                       0x0002   /* 监控平台ID */
+#else
+#define APP_INCLUDE_TARGET_PLATFORM                            /* 包含目标平台 */
 #define APP_TARGET_PLATFORM_ID                        0x0002   /* 目标平台ID */
+#endif /* NET_YKC_AS_MONITOR */
 
 #define APP_INCLUDE_YKC_PROTOCOL
 #endif /* NET_PACK_USING_YKC */
@@ -37,8 +49,14 @@
 /**************************** 小桔平台 ***************************/
 #ifdef NET_PACK_USING_XJ
 #define APP_INCLUDE_NET
-//#define APP_MONITOR_PLATFORM_ID                       0x0004   /* 监控平台ID */
-//#define APP_TARGET_PLATFORM_ID                        0x0004   /* 目标平台ID */
+
+#ifdef NET_XJ_AS_MONITOR
+#define APP_INCLUDE_MONITOR_PLATFORM                           /* 包含监控平台 */
+#define APP_MONITOR_PLATFORM_ID                       0x0004   /* 监控平台ID */
+#else
+#define APP_INCLUDE_TARGET_PLATFORM                            /* 包含目标平台 */
+#define APP_TARGET_PLATFORM_ID                        0x0004   /* 目标平台ID */
+#endif /* NET_XJ_AS_MONITOR */
 
 #define APP_INCLUDE_XJ_PROTOCOL
 #endif /* NET_PACK_USING_XJ */
@@ -46,8 +64,14 @@
 /**************************** 阳光乐通平台 ***************************/
 #ifdef NET_PACK_USING_SL
 #define APP_INCLUDE_NET
-//#define APP_MONITOR_PLATFORM_ID                       0x0008   /* 监控平台ID */
-//#define APP_TARGET_PLATFORM_ID                        0x0008   /* 目标平台ID */
+
+#ifdef NET_SL_AS_MONITOR
+#define APP_INCLUDE_MONITOR_PLATFORM                           /* 包含监控平台 */
+#define APP_MONITOR_PLATFORM_ID                       0x0008   /* 监控平台ID */
+#else
+#define APP_INCLUDE_TARGET_PLATFORM                            /* 包含目标平台 */
+#define APP_TARGET_PLATFORM_ID                        0x0008   /* 目标平台ID */
+#endif /* NET_SL_AS_MONITOR */
 
 #define APP_INCLUDE_SL_PROTOCOL
 #endif /* NET_PACK_USING_SL */
@@ -55,8 +79,14 @@
 /**************************** 云快充监控平台 ***************************/
 #ifdef NET_PACK_USING_YKC_MONITOR
 #define APP_INCLUDE_NET
+
+#ifdef NET_YKC_MONITOR_AS_MONITOR
+#define APP_INCLUDE_MONITOR_PLATFORM                           /* 包含监控平台 */
 #define APP_MONITOR_PLATFORM_ID                       0x0010   /* 监控平台ID */
-//#define APP_TARGET_PLATFORM_ID                        0x0010   /* 目标平台ID */
+#else
+#define APP_INCLUDE_TARGET_PLATFORM                            /* 包含目标平台 */
+#define APP_TARGET_PLATFORM_ID                        0x0010   /* 目标平台ID */
+#endif /* NET_YKC_MONITOR_AS_MONITOR */
 
 #define APP_INCLUDE_YKC_PROTOCOL_MONITOR
 #endif /* NET_PACK_USING_YKC_MONITOR */
@@ -64,8 +94,14 @@
 /**************************** 越城平台 ***************************/
 #ifdef NET_PACK_USING_YCP
 #define APP_INCLUDE_NET
-//#define APP_MONITOR_PLATFORM_ID                       0x0020   /* 监控平台ID */
+
+#ifdef NET_YCP_AS_MONITOR
+#define APP_INCLUDE_MONITOR_PLATFORM                           /* 包含监控平台 */
+#define APP_MONITOR_PLATFORM_ID                       0x0020   /* 监控平台ID */
+#else
+#define APP_INCLUDE_TARGET_PLATFORM                            /* 包含目标平台 */
 #define APP_TARGET_PLATFORM_ID                        0x0020   /* 目标平台ID */
+#endif /* NET_YCP_AS_MONITOR */
 
 #define APP_INCLUDE_YCP_PROTOCOL
 #endif /* NET_PACK_USING_YCP */

@@ -152,10 +152,10 @@ static void ykc_message_recv_thread_entry(void *parameter)
                         if(recv_check == cal_check){
                             ((void (*)(uint8_t*, uint16_t))callback)(s_ykc_message_recv_buff, length);
                         }else{
-                            LOG_E("ykc service id|%x check error|%x, %x", ((Net_YkcPro_Head_t*)s_ykc_message_recv_buff)->type, recv_check, cal_check);
+                            LOG_E("ykc service id|%02X check error|%x, %x", ((Net_YkcPro_Head_t*)s_ykc_message_recv_buff)->type, recv_check, cal_check);
                         }
                     }else{
-                        LOG_E("ykc service id|%x cb is not register", ((Net_YkcPro_Head_t*)s_ykc_message_recv_buff)->type);
+                        LOG_E("ykc service id|%02X cb is not register", ((Net_YkcPro_Head_t*)s_ykc_message_recv_buff)->type);
                     }
                 }
                 s_ykc_transceiver_flag_set.socket_lock = 0x00;

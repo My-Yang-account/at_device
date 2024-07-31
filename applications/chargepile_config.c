@@ -1173,7 +1173,7 @@ uint8_t* sys_get_module_num_single_group(void)
 /**********************************************[VIN白名单相关]********************************************************/
 int32_t sys_vin_whitelists_storage(void)
 {
-    return sys_storage_config_item();;
+    return sys_storage_config_item();
 }
 
 uint8_t *sys_vin_code_get(uint8_t index)

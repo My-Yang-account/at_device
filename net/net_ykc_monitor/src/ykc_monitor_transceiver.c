@@ -152,10 +152,10 @@ static void ykc_monitor_message_recv_thread_entry(void *parameter)
                         if(recv_check == cal_check){
                             ((void (*)(uint8_t*, uint16_t))callback)(s_ykc_monitor_message_recv_buff, length);
                         }else{
-                            LOG_E("ykc monitor service id|%x check error|%x, %x", ((Net_YkcMonitorPro_Head_t*)s_ykc_monitor_message_recv_buff)->type, recv_check, cal_check);
+                            LOG_E("ykc monitor service id|%02X check error|%x, %x", ((Net_YkcMonitorPro_Head_t*)s_ykc_monitor_message_recv_buff)->type, recv_check, cal_check);
                         }
                     }else{
-                        LOG_E("ykc monitor service id|%x cb is not register", ((Net_YkcMonitorPro_Head_t*)s_ykc_monitor_message_recv_buff)->type);
+                        LOG_E("ykc monitor service id|%02X cb is not register", ((Net_YkcMonitorPro_Head_t*)s_ykc_monitor_message_recv_buff)->type);
                     }
                 }
                 s_ykc_monitor_transceiver_flag_set.socket_lock = 0x00;

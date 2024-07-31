@@ -25,9 +25,9 @@
 #define NET_INCLUDE_OTA
 
 //#define NET_PACK_USING_THA                                    /* 使用钛享协议 */
-//#define NET_PACK_USING_YKC                                    /* 使用云快充协议 */
+#define NET_PACK_USING_YKC                                    /* 使用云快充协议 */
 #define NET_PACK_USING_YKC_MONITOR                              /* 使用云快充协议(监控) */
-#define NET_PACK_USING_YCP                                     /* 使用越城协议 */
+//#define NET_PACK_USING_YCP                                     /* 使用越城协议 */
 //#define NET_PACK_USING_YND                                     /* 使用一电、南电协议 */
 //#define NET_PACK_USING_XJ                                     /* 使用小桔协议 */
 //#define NET_PACK_USING_SL                                     /* 使用阳光乐通协议 */
@@ -73,6 +73,13 @@
 #define NET_XJ_PRO_USING_DC                                       /* 小桔协议使用直流部分 */
 #define NET_XJ_PRO_USING_AC                                       /* 小桔协议使用交流部分 */
 #endif /* NET_PACK_USING_XJ */
+
+#ifdef NET_PACK_USING_SL
+//#define NET_SL_AS_MONITOR                                        /* 阳光乐通平台作为监控平台 */
+//#define NET_SL_AS_TARGET                                        /* 阳光乐通平台作为目标平台 */
+#define NET_SL_PRO_USING_DC                                       /* 阳光乐通协议使用直流部分 */
+#define NET_SL_PRO_USING_AC                                       /* 阳光乐通协议使用交流部分 */
+#endif /* NET_PACK_USING_SL */
 
 /* OTA 相关配置 */
 #ifdef NET_INCLUDE_OTA

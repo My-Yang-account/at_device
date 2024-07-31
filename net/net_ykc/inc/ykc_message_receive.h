@@ -106,6 +106,8 @@ extern Net_YkcPro_SRes_ApplyCharge_Active_t g_ykc_sres_apply_charge_active[NET_S
 /** 充电桩主动申请并充充电响应 */
 extern Net_YkcPro_SRes_ApplyMergeCharge_Active_t g_ykc_sres_apply_merge_charge_active[NET_SYSTEM_GUN_NUMBER];   // OK
 
+#pragma pack(1)
+
 typedef struct{
     struct{
         uint8_t is_used : 1;
@@ -124,6 +126,8 @@ typedef struct{
     uint16_t length;
     uint8_t whitlelist[NET_YKC_CARD_VIN_WHITELIST_MAX];
 }ykc_card_vin_buf_t;
+
+#pragma pack()
 
 void* ykc_get_qrcode_info(void);
 void* ykc_get_card_vin_whitelists_info(void);
