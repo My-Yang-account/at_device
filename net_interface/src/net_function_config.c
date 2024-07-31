@@ -80,6 +80,8 @@ static int32_t app_nsystem_data_storage(uint32_t option)
         return sys_card_uid_whitelists_storage();
     }else if(option &NET_SYSTEM_DATA_OPTION_VIN_WHITELIST){
         return sys_vin_whitelists_storage();
+    }else{
+        return sys_storage_config_item();
     }
     return -0x01;
 }
@@ -305,12 +307,20 @@ static int32_t app_nset_system_data(uint8_t name, uint8_t *data, uint16_t len, u
     case NET_SYSTEM_DATA_NAME_OPERATOR:
 
         break;
+#endif /* 0 */
     case NET_SYSTEM_DATA_NAME_DOMAIN:
-//        return sys_read_config_item_content(CONFIG_ITEM_IP_DOMAIN, 0x00);
+        if(sys_sync_config_item_content(CONFIG_ITEM_IP_DOMAIN, data, len) < 0x00){
+            return -0x01;
+        }
+        return sys_storage_config_item();
         break;
     case NET_SYSTEM_DATA_NAME_PORT:
-//        return sys_read_config_item_content(CONFIG_ITEM_PORT, 0x00);
+        if(sys_sync_config_item_content(CONFIG_ITEM_PORT, data, len) < 0x00){
+            return -0x01;
+        }
+        return sys_storage_config_item();
         break;
+#if 0
     case NET_SYSTEM_DATA_NAME_VOLTAGE_MAX:
 
         break;
@@ -337,13 +347,11 @@ static int32_t app_nset_system_data(uint8_t name, uint8_t *data, uint16_t len, u
         break;
 #endif /* 0 */
     case NET_SYSTEM_DATA_NAME_QRCODE:
-        rt_kprintf("NET_SYSTEM_DATA_NAME_QRCODE qrcode config(%s)\n", data);
         if(sys_sync_config_item_content(CONFIG_ITEM_QRCODE_PRE, data, len) < 0x00){
             return -0x01;
         }
         return sys_storage_config_item();
     case NET_SYSTEM_DATA_NAME_HELP_PHONE:
-        rt_kprintf("NET_SYSTEM_DATA_NAME_HELP_PHONE help phone config(%s)\n", data);
         if(sys_sync_config_item_content(CONFIG_ITEM_HELP_PHONE, data, len) < 0x00){
             return -0x01;
         }
