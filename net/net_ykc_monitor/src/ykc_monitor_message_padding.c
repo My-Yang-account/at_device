@@ -1353,22 +1353,36 @@ void ykc_monitor_chargepile_request_padding_realtime_data(uint8_t gunno, uint8_t
         ykc_monitor_chargepile_request_padding_bmsinfo_duringcharge(gunno, NET_ENUM_TRUE);
     }else{
         if(ykc_monitor_get_message_send_state(gunno, NET_YKC_MONITOR_PREQ_EVENT_TRANSACTION_RECORD) == NET_YKC_MONITOR_SEND_STATE_COMPLETE){
-            struct thaisenBMS_Charger_struct *bms = (struct thaisenBMS_Charger_struct*)(s_ykc_monitor_base->bms_data);
+            if((s_ykc_monitor_base->state.current == APP_OFSM_STATE_CHARGING) || (s_ykc_monitor_base->state.current == APP_OFSM_STATE_STARTING)){
+                struct thaisenBMS_Charger_struct *bms = (struct thaisenBMS_Charger_struct*)(s_ykc_monitor_base->bms_data);
 
-            g_ykc_monitor_preq_report_realtime_data[gunno].body.output_voltage = s_ykc_monitor_base->voltage_a /10;
-            g_ykc_monitor_preq_report_realtime_data[gunno].body.output_current = s_ykc_monitor_base->current_a /10;
-            if(s_ykc_monitor_base->gunline_temperature[0] > s_ykc_monitor_base->gunline_temperature[1]){
-                g_ykc_monitor_preq_report_realtime_data[gunno].body.gun_temperature = (s_ykc_monitor_base->gunline_temperature[0] /10 + 50);
+                g_ykc_monitor_preq_report_realtime_data[gunno].body.output_voltage = s_ykc_monitor_base->voltage_a /10;
+                g_ykc_monitor_preq_report_realtime_data[gunno].body.output_current = s_ykc_monitor_base->current_a /10;
+                if(s_ykc_monitor_base->gunline_temperature[0] > s_ykc_monitor_base->gunline_temperature[1]){
+                    g_ykc_monitor_preq_report_realtime_data[gunno].body.gun_temperature = (s_ykc_monitor_base->gunline_temperature[0] /10 + 50);
+                }else{
+                    g_ykc_monitor_preq_report_realtime_data[gunno].body.gun_temperature = (s_ykc_monitor_base->gunline_temperature[1] /10 + 50);
+                }
+                g_ykc_monitor_preq_report_realtime_data[gunno].body.soc = s_ykc_monitor_base->current_soc;
+                g_ykc_monitor_preq_report_realtime_data[gunno].body.battery_group_temp_max = (bms->BSM.HigTemp + 50);
+                g_ykc_monitor_preq_report_realtime_data[gunno].body.charge_time = s_ykc_monitor_base->charge_time /60;
+                g_ykc_monitor_preq_report_realtime_data[gunno].body.remain_time = bms->BCS.SurplChgTime;
+                g_ykc_monitor_preq_report_realtime_data[gunno].body.charge_elect = s_ykc_monitor_base->elect_a *10;
+                g_ykc_monitor_preq_report_realtime_data[gunno].body.loss_elect = 0x00;
+                g_ykc_monitor_preq_report_realtime_data[gunno].body.consume_amount = s_ykc_monitor_base->fees_total;
             }else{
-                g_ykc_monitor_preq_report_realtime_data[gunno].body.gun_temperature = (s_ykc_monitor_base->gunline_temperature[1] /10 + 50);
+                g_ykc_monitor_preq_report_realtime_data[gunno].body.homing = 0x02;
+                g_ykc_monitor_preq_report_realtime_data[gunno].body.output_voltage = 0x00;
+                g_ykc_monitor_preq_report_realtime_data[gunno].body.output_current = 0x00;
+                g_ykc_monitor_preq_report_realtime_data[gunno].body.gun_temperature = 0x00;
+                g_ykc_monitor_preq_report_realtime_data[gunno].body.soc = 0x00;
+                g_ykc_monitor_preq_report_realtime_data[gunno].body.battery_group_temp_max = 0x00;
+                g_ykc_monitor_preq_report_realtime_data[gunno].body.charge_time = 0x00;
+                g_ykc_monitor_preq_report_realtime_data[gunno].body.remain_time = 0x00;
+                g_ykc_monitor_preq_report_realtime_data[gunno].body.charge_elect = 0x00;
+                g_ykc_monitor_preq_report_realtime_data[gunno].body.loss_elect = 0x00;
+                g_ykc_monitor_preq_report_realtime_data[gunno].body.consume_amount = 0x00;
             }
-            g_ykc_monitor_preq_report_realtime_data[gunno].body.soc = s_ykc_monitor_base->current_soc;
-            g_ykc_monitor_preq_report_realtime_data[gunno].body.battery_group_temp_max = (bms->BSM.HigTemp + 50);
-            g_ykc_monitor_preq_report_realtime_data[gunno].body.charge_time = s_ykc_monitor_base->charge_time /60;
-            g_ykc_monitor_preq_report_realtime_data[gunno].body.remain_time = bms->BCS.SurplChgTime;
-            g_ykc_monitor_preq_report_realtime_data[gunno].body.charge_elect = s_ykc_monitor_base->elect_a *10;
-            g_ykc_monitor_preq_report_realtime_data[gunno].body.loss_elect = 0x00;
-            g_ykc_monitor_preq_report_realtime_data[gunno].body.consume_amount = s_ykc_monitor_base->fees_total;
         }
     }
 }
