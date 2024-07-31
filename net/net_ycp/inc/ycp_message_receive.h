@@ -14,6 +14,9 @@
 
 #ifdef NET_PACK_USING_YCP
 
+#define NET_YCP_QRCODE_BUF_MAX                                 256  /* 二维码缓存长度 */
+#define NET_YCP_SERVICE_PHONE_BUF_MAX                          32   /* 客服电话缓存长度 */
+
 /** server response event */
 #define NET_YCP_SRES_EVENT_LOGIN                               0    /* 服务器响应事件：登录响应 */
 #define NET_YCP_SRES_EVENT_TIME_SYNC                           1    /* 服务器请求事件：对时响应*/
@@ -82,6 +85,26 @@ extern Net_YcpPro_SRes_ApplyCharge_Active_t g_ycp_sres_apply_charge_active[NET_S
 /** 充电结束报告应答 */
 extern Net_YcpPro_SRes_TransactionRecords_t g_ycp_sres_transaction_records[NET_SYSTEM_GUN_NUMBER];
 
+#pragma pack(1)
+
+typedef struct{
+    struct{
+        uint8_t is_used : 1;
+    }flag;
+    uint8_t set_type;
+    uint8_t general_type;
+    uint16_t length;
+    uint8_t qrcode[NET_YCP_QRCODE_BUF_MAX];
+}ycp_qrcode_buf_t;
+
+typedef struct{
+    uint8_t service_phone[NET_YCP_SERVICE_PHONE_BUF_MAX];
+}ycp_service_phone_buf_t;
+
+#pragma pack()
+
+void* ycp_get_qrcode_info(void);
+void* ycp_get_service_phone_info(void);
 int32_t ycp_message_recv_init(void);
 
 #endif /* NET_PACK_USING_YCP */

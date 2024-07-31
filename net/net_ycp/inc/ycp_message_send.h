@@ -43,47 +43,61 @@
 #define NET_YCP_EVENT_OPTION_OR                              (1 <<1)    /* 事件或 */
 #define NET_YCP_EVENT_OPTION_CLEAR                           (1 <<2)    /* 清除事件 */
 
+/** start fail code */
+#define NET_YCP_START_FAIL_CODE_NONE                         0x00       /* 启动失败码：无 */
+#define NET_YCP_START_FAIL_CODE_DEVICE_SN                    0x01       /* 启动失败码：设备编号不匹配 */
+#define NET_YCP_START_FAIL_CODE_IS_CHARGING                  0x02       /* 启动失败码：枪已在充电 */
+#define NET_YCP_START_FAIL_CODE_DEVICE_FAULT                 0x03       /* 启动失败码：设备故障 */
+#define NET_YCP_START_FAIL_CODE_DEVICE_OFFLINE               0x04       /* 启动失败码：设备离线 */
+#define NET_YCP_START_FAIL_CODE_NO_GUN                       0x05       /* 启动失败码：未插枪 */
+#define NET_YCP_START_FAIL_CODE_IS_BUSY                      0x06       /* 启动失败码：系统忙，插枪的时候不是待机页面 */
+#define NET_YCP_START_FAIL_CODE_NO_BALLANCE                  0x07       /* 启动失败码：余额不足 */
+
+/** stop fail code */
+#define NET_YCP_STOP_FAIL_CODE_NONE                          0x00       /* 停止失败码：无 */
+#define NET_YCP_STOP_FAIL_CODE_NO_CHARGING                   0x01       /* 停止失败码：枪未充电 */
+#define NET_YCP_STOP_FAIL_CODE_GUNNO_ERROR                   0x03       /* 停止失败码：枪号不对 */
+#define NET_YCP_STOP_FAIL_CODE_UNKNOW                        0x09       /* 停止失败码：未知原因 */
+
+/** fautl code type */
+#define NET_YCP_FAULT_CODE_TYPE_DEVICE                       0x00     /* 故障码类型：设备整机故障 */
+#define NET_YCP_FAULT_CODE_TYPE_PORT                         0x01     /* 故障码类型：枪口故障 */
+
 /** fautl code */
-#define NET_YCP_FAULT_CODE_EMERGENCY                        1000     /* 故障码：急停按下 */
-#define NET_YCP_FAULT_CODE_GROUND                           1001     /* 故障码：接地 */
-#define NET_YCP_FAULT_CODE_RELAY_ADH                        1002     /* 故障码：继电器黏连 */
-#define NET_YCP_FAULT_CODE_GATE                             1003     /* 故障码：门禁 */
-#define NET_YCP_FAULT_CODE_CARD_READER                      1004     /* 故障码：读卡器 */
-#define NET_YCP_FAULT_CODE_FUMES                            1005     /* 故障码：烟雾告警 */
-#define NET_YCP_FAULT_CODE_OVERCURR                         1006     /* 故障码：过流 */
-#define NET_YCP_FAULT_CODE_AMMETER                          1007     /* 故障码：电表 */
-#define NET_YCP_FAULT_CODE_CP                               1008     /* 故障码：CP */
-#define NET_YCP_FAULT_CODE_COMMUNICATION_MODULE             1009     /* 故障码：通信模块 */
-#define NET_YCP_FAULT_CODE_AC_RELAY                         1010     /* 故障码：交流接触器异常 */
-#define NET_YCP_FAULT_CODE_ENVIRO_TEMP_HIGH                 1011     /* 故障码：环境高温告警 */
-#define NET_YCP_FAULT_CODE_ENVIRO_TEMP_LOW                  1012     /* 故障码：环境低温告警 */
-#define NET_YCP_FAULT_CODE_FUSE                             1013     /* 故障码：熔断器 */
-#define NET_YCP_FAULT_CODE_CIRCUIT_BREAKER                  1014     /* 故障码：断路器 */
-#define NET_YCP_FAULT_CODE_LIGHTNING_PROTECTOR              1015     /* 故障码：防雷器 */
-#define NET_YCP_FAULT_CODE_BATTERY_REVERSE                  1016     /* 故障码：电池反接 */
-#define NET_YCP_FAULT_CODE_INPUT_OVERVOLT                   1017     /* 故障码：输入过压 */
-#define NET_YCP_FAULT_CODE_INPUT_UNDERVOLT                  1018     /* 故障码：输入欠压 */
-#define NET_YCP_FAULT_CODE_OUTPUT_OVERVOLT                  1019     /* 故障码：输出过压 */
-#define NET_YCP_FAULT_CODE_POWER_GRID_VOLT_HIGH             1020     /* 故障码：电网电压高 */
-#define NET_YCP_FAULT_CODE_POWER_GRID_VOLT_LOW              1021     /* 故障码：电网电压低 */
-#define NET_YCP_FAULT_CODE_POWER_GRID_FREQ_HIGH             1022     /* 故障码：电网频率高 */
-#define NET_YCP_FAULT_CODE_POWER_GRID_FREQ_LOW              1023     /* 故障码：电网频率低 */
-#define NET_YCP_FAULT_CODE_GUN_OVERTEMP                     1024     /* 故障码：充电枪头过温 */
-#define NET_YCP_FAULT_CODE_OUTPUT_OVERCURR                  1025     /* 故障码：输出过流故障 */
-#define NET_YCP_FAULT_CODE_MAIN_SWITCH                      1026     /* 故障码：主开关及熔断器故障 */
-#define NET_YCP_FAULT_CODE_MISSING_PHASE_A                  1027     /* 故障码：AC 输入-A 相缺相 */
-#define NET_YCP_FAULT_CODE_MISSING_PHASE_B                  1028     /* 故障码：AC 输入-B 相缺相 */
-#define NET_YCP_FAULT_CODE_MISSING_PHASE_C                  1029     /* 故障码：AC 输入-C 相缺相 */
-#define NET_YCP_FAULT_CODE_AIR_INLEY_TEMP_HIGH              1030     /* 故障码：进风口过温 */
-#define NET_YCP_FAULT_CODE_AIR_INLEY_TEMP_LOW               1031     /* 故障码：进风口低温 */
-#define NET_YCP_FAULT_CODE_AIR_OUTLEY_TEMP_HIGH             1032     /* 故障码：出风口过温 */
-#define NET_YCP_FAULT_CODE_AIR_OUTLEY_TEMP_LOW              1033     /* 故障码：出风口低温 */
-
-#define NET_YCP_FAULT_CODE_NO_GUN                           1034     /* 故障码：未插枪 */
-#define NET_YCP_FAULT_CODE_CHARGING                         1035     /* 故障码：充电中启动 */
-#define NET_YCP_FAULT_CODE_NO_CHARGE                        1036     /* 故障码：未充电停止 */
-#define NET_YCP_FAULT_CODE_BILLING                          1037     /* 故障码：无效计费规则 */
-
+#define NET_YCP_FAULT_CODE_EMERGENCY                         0x1000   /* 故障码：急停按下 */
+#define NET_YCP_FAULT_CODE_GROUND                            0x1001   /* 故障码：接地 */
+#define NET_YCP_FAULT_CODE_RELAY_ADH                         0x1002   /* 故障码：继电器黏连 */
+#define NET_YCP_FAULT_CODE_GATE                              0x1003   /* 故障码：门禁 */
+#define NET_YCP_FAULT_CODE_CARD_READER                       0x1004   /* 故障码：读卡器 */
+#define NET_YCP_FAULT_CODE_FUMES                             0x1005   /* 故障码：烟雾告警 */
+#define NET_YCP_FAULT_CODE_OVERCURR                          0x1006   /* 故障码：过流 */
+#define NET_YCP_FAULT_CODE_AMMETER                           0x1007   /* 故障码：电表 */
+#define NET_YCP_FAULT_CODE_CP                                0x1008   /* 故障码：CP */
+#define NET_YCP_FAULT_CODE_COMMUNICATION_MODULE              0x1009   /* 故障码：通信模块 */
+#define NET_YCP_FAULT_CODE_AC_RELAY                          0x1010   /* 故障码：交流接触器异常 */
+#define NET_YCP_FAULT_CODE_ENVIRO_TEMP_HIGH                  0x1011   /* 故障码：环境高温告警 */
+#define NET_YCP_FAULT_CODE_ENVIRO_TEMP_LOW                   0x1012   /* 故障码：环境低温告警 */
+#define NET_YCP_FAULT_CODE_FUSE                              0x1013   /* 故障码：熔断器 */
+#define NET_YCP_FAULT_CODE_CIRCUIT_BREAKER                   0x1014   /* 故障码：断路器 */
+#define NET_YCP_FAULT_CODE_LIGHTNING_PROTECTOR               0x1015   /* 故障码：防雷器 */
+#define NET_YCP_FAULT_CODE_BATTERY_REVERSE                   0x1016   /* 故障码：电池反接 */
+#define NET_YCP_FAULT_CODE_INPUT_OVERVOLT                    0x1017   /* 故障码：输入过压 */
+#define NET_YCP_FAULT_CODE_INPUT_UNDERVOLT                   0x1018   /* 故障码：输入欠压 */
+#define NET_YCP_FAULT_CODE_OUTPUT_OVERVOLT                   0x1019   /* 故障码：输出过压 */
+#define NET_YCP_FAULT_CODE_POWER_GRID_VOLT_HIGH              0x1020   /* 故障码：电网电压高 */
+#define NET_YCP_FAULT_CODE_POWER_GRID_VOLT_LOW               0x1021   /* 故障码：电网电压低 */
+#define NET_YCP_FAULT_CODE_POWER_GRID_FREQ_HIGH              0x1022   /* 故障码：电网频率高 */
+#define NET_YCP_FAULT_CODE_POWER_GRID_FREQ_LOW               0x1023   /* 故障码：电网频率低 */
+#define NET_YCP_FAULT_CODE_GUN_OVERTEMP                      0x1024   /* 故障码：充电枪头过温 */
+#define NET_YCP_FAULT_CODE_OUTPUT_OVERCURR                   0x1025   /* 故障码：输出过流故障 */
+#define NET_YCP_FAULT_CODE_MAIN_SWITCH                       0x1026   /* 故障码：主开关及熔断器故障 */
+#define NET_YCP_FAULT_CODE_MISSING_PHASE_A                   0x1027   /* 故障码：AC 输入-A 相缺相 */
+#define NET_YCP_FAULT_CODE_MISSING_PHASE_B                   0x1028   /* 故障码：AC 输入-B 相缺相 */
+#define NET_YCP_FAULT_CODE_MISSING_PHASE_C                   0x1029   /* 故障码：AC 输入-C 相缺相 */
+#define NET_YCP_FAULT_CODE_AIR_INLEY_TEMP_HIGH               0x1030   /* 故障码：进风口过温 */
+#define NET_YCP_FAULT_CODE_AIR_INLEY_TEMP_LOW                0x1031   /* 故障码：进风口低温 */
+#define NET_YCP_FAULT_CODE_AIR_OUTLEY_TEMP_HIGH              0x1032   /* 故障码：出风口过温 */
+#define NET_YCP_FAULT_CODE_AIR_OUTLEY_TEMP_LOW               0x1033   /* 故障码：出风口低温 */
 
 /** chargepile request event */
 #define NET_YCP_PREQ_EVENT_SIGNIN                            0    /* 充电桩请求事件：登录 */

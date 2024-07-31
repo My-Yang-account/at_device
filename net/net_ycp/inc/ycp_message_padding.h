@@ -31,9 +31,11 @@ int8_t ycp_response_padding_set_billing_model(uint8_t *buf, uint16_t ilen, uint1
 int8_t ycp_response_padding_remote_update(uint8_t *buf, uint16_t ilen, uint16_t *olen);
 int8_t ycp_response_padding_qrcode_config(uint8_t gunno, uint8_t *buf, uint16_t ilen, uint16_t *olen);
 int8_t ycp_response_padding_set_service_phone(uint8_t gunno, uint8_t *buf, uint16_t ilen, uint16_t *olen);
+int8_t ycp_response_padding_modify_server_addr(uint8_t *buf, uint16_t ilen, uint16_t *olen);
+int8_t ycp_response_padding_query_device_fault(uint8_t *buf, uint16_t ilen, uint16_t *olen);
 void ycp_request_padding_heartbeat(void);
 
-int8_t ycp_message_pro_billing_model_set_response(void *data, uint8_t len);
+int8_t ycp_message_pro_billing_model_set_response(void *data, uint8_t len, uint8_t is_init);
 int8_t ycp_message_pro_apply_charge_active_response(uint8_t gunno, void *data, uint8_t len);
 int16_t ycp_message_pro_remote_start_charge_request(uint8_t gunno, void *data, uint8_t len);
 int16_t ycp_message_pro_remote_stop_charge_request(uint8_t gunno);
@@ -62,7 +64,7 @@ void ycp_set_power_percent_response_asynchronously(uint8_t result);
 
 void ycp_chargepile_state_changed(uint8_t gunno);
 void ycp_chargepile_update_result_report(uint8_t result, uint8_t reason);
-void ycp_chargepile_fault_report(uint8_t gunno, uint16_t code);
+int8_t  ycp_chargepile_fault_report(uint8_t gunno, uint16_t code, uint8_t is_resume);
 void ycp_chargepile_state_detect(uint8_t gunno);
 int8_t ycp_chargepile_create_local_transaction_number(uint8_t gunno, void *vector, uint8_t len);
 void ycp_chargepile_time_sync_revise(uint8_t gunno);

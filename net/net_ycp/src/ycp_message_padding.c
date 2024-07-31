@@ -23,12 +23,11 @@
 #ifdef NET_PACK_USING_YCP
 
 #define YCP_DISPOSABLE_EVENT_STATE                0x00          /* 漏报事件：桩状态 */
-#define YCP_DISPOSABLE_EVENT_FAULT                0x01          /* 漏报事件：故障上报 */
 
 #define YCP_STATE_DATA_INTERVAL_INIT              0x05          /* 刚连上网时状态数据上报间隔 */
 #define YCP_STATE_DATA_INTERVAL_CHARGING          0x0F          /* 充电中状态数据上报间隔  */
 #define YCP_STATE_DATA_INTERVAL_IDLE              0x05 *60      /* 空闲状态数据上报间隔  */
-//#define YCP_STATE_DATA_INTERVAL_IDLE              0x0F      /* 空闲状态数据上报间隔  */
+#define YCP_FAULT_INFO_INTERVAL                   0x05 *60      /* 故障信息上报间隔  */
 
 #define YCP_REALTIME_PROCESS_THREAD_STACK_SIZE    1536          /* 实时处理线程栈大小 */
 
@@ -40,7 +39,6 @@ struct ycp_disposable_info{
         uint8_t connect : 2;
         uint8_t reserve : 2;
     }state;                                       /* 桩状态 */
-    uint16_t fault_code;                          /* 故障码 */
     uint8_t disposable_event;
 };
 
@@ -52,13 +50,15 @@ struct ycp_flag_info{
     uint8_t start_success : 1;                    /*  启机成功 */
     uint8_t stop_success : 1;                     /*  停机成功 */
     uint8_t set_power_success : 1;                /*  设置功率百分比成功 */
+
+    uint8_t chargedata_mode_last : 2;             /*  前一次的充电数据模式 */
 };
 
 #pragma pack()
 
 static struct ycp_flag_info s_ycp_flag_info[NET_SYSTEM_GUN_NUMBER];
 static uint16_t s_ycp_state_data_interval[NET_SYSTEM_GUN_NUMBER];
-static uint32_t s_ycp_state_data_count[NET_SYSTEM_GUN_NUMBER];
+static uint32_t s_ycp_state_data_count[NET_SYSTEM_GUN_NUMBER], s_ycp_fault_report;
 static uint16_t s_ycp_local_start_sq;
 static struct ycp_disposable_info s_ycp_disposable_info[NET_SYSTEM_GUN_NUMBER];
 static struct rt_thread s_ycp_realtime_process_thread;
@@ -180,7 +180,7 @@ static void ycp_storage_data_check(void)
         }
         g_ycp_preq_billing_model_verify.body.model_sn = config->model_number;
 
-        ycp_message_pro_billing_model_set_response(&g_ycp_sreq_billing_model_set, sizeof(g_ycp_sreq_billing_model_set));
+        ycp_message_pro_billing_model_set_response(&g_ycp_sreq_billing_model_set, sizeof(g_ycp_sreq_billing_model_set), 0x01);
     }else{
         g_ycp_sreq_set_para.body.heartbeat_interval = NET_YCP_HEARTBEAT_INTERVAL_DEFAULT;
         g_ycp_sreq_set_para.body.voice_volume = NET_YCP_VOICE_VOLUME_DEFAULT;
@@ -245,14 +245,21 @@ int8_t ycp_response_padding_query_state_data(uint8_t gunno, uint8_t *buf, uint16
             return -0x02;
         }
         memset(response, 0x00, length);
-        memcpy(response, &g_ycp_sreq_query_device_state[gunno], length);
+        memcpy(response, &g_ycp_preq_report_state_data[gunno], length);
     }else{
+        uint8_t valid_len = 0x00;
+
         length = sizeof(Net_YcpPro_PRes_Query_PReq_Report_PileState_t);
         if(length > ilen){
             return -0x02;
         }
         memset(response, 0x00, length);
-        memcpy(response, &g_ycp_sreq_query_device_state[gunno], length);
+        memcpy(response, &g_ycp_preq_report_state_data[gunno], length);
+
+        valid_len = sizeof(response->body.serial_number);
+        valid_len = valid_len > sizeof(s_ycp_base->transaction_number) ? sizeof(s_ycp_base->transaction_number) : valid_len;
+        memset(response->body.serial_number, 0x00, sizeof(response->body.serial_number));
+        memcpy(response->body.serial_number, s_ycp_base->transaction_number, valid_len);
     }
 
     if(olen){
@@ -271,62 +278,76 @@ int8_t ycp_response_padding_query_state_data_all(uint8_t *buf, uint16_t ilen, ui
         return -0x01;
     }
 
-    uint8_t length = 0x00;
+    uint8_t valid_len = 0x00;
+    uint8_t length = 0x00, *charging_gun_number = NULL;
     Net_YcpPro_PRes_Query_PReq_Report_PileState_All_t *response = NULL;
 
     response = ((Net_YcpPro_PRes_Query_PReq_Report_PileState_All_t*)buf);
     if(g_ycp_sreq_query_device_state_all.body.data_type == 0x01){
-        length = ((uint8_t)((uint32_t)&g_ycp_preq_report_state_data[0x00].body.gunno - (uint32_t)&g_ycp_preq_report_state_data[0x00]) + \
-                 NET_YCP_PROTOCOL_CHECK_REGION_SIZE + NET_SYSTEM_GUN_NUMBER *sizeof(struct gun_state));
+        length = sizeof(Net_YcpPro_PRes_Query_PReq_Report_PileState_All_t) + NET_SYSTEM_GUN_NUMBER *sizeof(struct gun_state);
         if(length > ilen){
             return -0x02;
         }
         struct gun_state *_gunno_state = (struct gun_state*)((uint8_t*)&(response->body.gun_num) + 0x01);
 
         memset(response, 0x00, length);
+        response->body.data_type = g_ycp_sreq_query_device_state_all.body.data_type;
         response->body.gun_num = NET_SYSTEM_GUN_NUMBER;
+        charging_gun_number = (uint8_t*)(&_gunno_state[NET_SYSTEM_GUN_NUMBER]);
         for(uint8_t gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
-            _gunno_state[gunno].gunno = gunno;
+            s_ycp_base = (System_BaseData*)(s_ycp_handle->get_base_data(gunno));
+            _gunno_state[gunno].gunno = gunno + 0x01;
             _gunno_state[gunno].state = g_ycp_preq_report_state_data[gunno].body.state;
             _gunno_state[gunno].homing = g_ycp_preq_report_state_data[gunno].body.homing;
             _gunno_state[gunno].plug_gun = g_ycp_preq_report_state_data[gunno].body.plug_gun;
+            if(s_ycp_base->state.current == APP_OFSM_STATE_CHARGING){
+                (*charging_gun_number)++;
+            }
         }
     }else{
-        length = ((uint8_t)((uint32_t)&g_ycp_preq_report_state_data[0x00].body.gunno - (uint32_t)&g_ycp_preq_report_state_data[0x00]) + \
-                 NET_YCP_PROTOCOL_CHECK_REGION_SIZE + NET_SYSTEM_GUN_NUMBER *(sizeof(struct gun_data) + sizeof(struct gun_state)));
+        length = sizeof(Net_YcpPro_PRes_Query_PReq_Report_PileState_All_t) + NET_SYSTEM_GUN_NUMBER *(sizeof(struct gun_data) + sizeof(struct gun_state));
         if(length > ilen){
             return -0x02;
         }
-        uint8_t gun_state_begin = (uint8_t)((uint32_t)&g_ycp_preq_report_state_data[0x00].body.gunno - (uint32_t)&g_ycp_preq_report_state_data[0x00]) + 0x01;
-        uint8_t data_info_begin = ((uint8_t)((uint32_t)&g_ycp_preq_report_state_data[0x00].body.gunno - (uint32_t)&g_ycp_preq_report_state_data[0x00])
-                + 0x01 + sizeof(struct gun_state));
-        uint8_t single_info_len = (sizeof(struct gun_data) + sizeof(struct gun_state));
-        struct gun_state *_gunno_state = NULL;
+
+        struct gun_state *_gunno_state = (struct gun_state*)((uint8_t*)&(response->body.gun_num) + 0x01);
         struct gun_data *_gun_data = NULL;
 
         memset(response, 0x00, length);
+        response->body.data_type = g_ycp_sreq_query_device_state_all.body.data_type;
         response->body.gun_num = NET_SYSTEM_GUN_NUMBER;
+        charging_gun_number = (uint8_t*)(&_gunno_state[NET_SYSTEM_GUN_NUMBER]);
         for(uint8_t gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
-            _gunno_state = (struct gun_state*)(buf + gun_state_begin + gunno *single_info_len);
-            _gun_data = (struct gun_data*)(buf + data_info_begin + gunno *single_info_len);
+            s_ycp_base = (System_BaseData*)(s_ycp_handle->get_base_data(gunno));
+            _gunno_state[gunno].gunno = gunno + 0x01;
+            _gunno_state[gunno].state = g_ycp_preq_report_state_data[gunno].body.state;
+            _gunno_state[gunno].homing = g_ycp_preq_report_state_data[gunno].body.homing;
+            _gunno_state[gunno].plug_gun = g_ycp_preq_report_state_data[gunno].body.plug_gun;
+            if(s_ycp_base->state.current == APP_OFSM_STATE_CHARGING){
+                (*charging_gun_number)++;
+            }
+        }
 
-            _gunno_state->gunno = gunno;
-            _gunno_state->state = g_ycp_preq_report_state_data[gunno].body.state;
-            _gunno_state->homing = g_ycp_preq_report_state_data[gunno].body.homing;
-            _gunno_state->plug_gun = g_ycp_preq_report_state_data[gunno].body.plug_gun;
+        _gun_data = (struct gun_data*)(charging_gun_number + 0x01);
 
-            memcpy(_gun_data->serial_number, g_ycp_preq_report_state_data[gunno].body.serial_number, NET_YCP_SERIAL_NUMBER_LENGTH_DEFAULT);
-            _gun_data->output_voltage = g_ycp_preq_report_state_data[gunno].body.output_voltage;
-            _gun_data->output_current = g_ycp_preq_report_state_data[gunno].body.output_current;
-            memcpy(_gun_data->gunline_number, g_ycp_preq_report_state_data[gunno].body.gunline_number, NET_YCP_GUNLINE_NUMBER_LENGTH_DEFAULT);
-            _gun_data->gun_temperature = g_ycp_preq_report_state_data[gunno].body.gun_temperature;
-            _gun_data->soc = g_ycp_preq_report_state_data[gunno].body.soc;
-            _gun_data->battery_group_temp_max = g_ycp_preq_report_state_data[gunno].body.battery_group_temp_max;
-            _gun_data->charge_time = g_ycp_preq_report_state_data[gunno].body.charge_time;
-            _gun_data->remain_time = g_ycp_preq_report_state_data[gunno].body.remain_time;
-            _gun_data->charge_elect = g_ycp_preq_report_state_data[gunno].body.charge_elect;
-            _gun_data->loss_elect = g_ycp_preq_report_state_data[gunno].body.loss_elect;
-            _gun_data->consume_amount = g_ycp_preq_report_state_data[gunno].body.consume_amount;
+        for(uint8_t gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
+            valid_len = sizeof(_gun_data[gunno].serial_number);
+            valid_len = valid_len > sizeof(s_ycp_base->transaction_number) ? sizeof(s_ycp_base->transaction_number) : valid_len;
+            memset(_gun_data[gunno].serial_number, 0x00, sizeof(_gun_data[gunno].serial_number));
+            memcpy(_gun_data[gunno].serial_number, s_ycp_base->transaction_number, valid_len);
+
+            _gun_data[gunno].gunno = gunno + 0x01;
+            _gun_data[gunno].output_voltage = g_ycp_preq_report_state_data[gunno].body.output_voltage;
+            _gun_data[gunno].output_current = g_ycp_preq_report_state_data[gunno].body.output_current;
+            memcpy(_gun_data[gunno].gunline_number, g_ycp_preq_report_state_data[gunno].body.gunline_number, NET_YCP_GUNLINE_NUMBER_LENGTH_DEFAULT);
+            _gun_data[gunno].gun_temperature = g_ycp_preq_report_state_data[gunno].body.gun_temperature;
+            _gun_data[gunno].soc = g_ycp_preq_report_state_data[gunno].body.soc;
+            _gun_data[gunno].battery_group_temp_max = g_ycp_preq_report_state_data[gunno].body.battery_group_temp_max;
+            _gun_data[gunno].charge_time = g_ycp_preq_report_state_data[gunno].body.charge_time;
+            _gun_data[gunno].remain_time = g_ycp_preq_report_state_data[gunno].body.remain_time;
+            _gun_data[gunno].charge_elect = g_ycp_preq_report_state_data[gunno].body.charge_elect;
+            _gun_data[gunno].loss_elect = g_ycp_preq_report_state_data[gunno].body.loss_elect;
+            _gun_data[gunno].consume_amount = g_ycp_preq_report_state_data[gunno].body.consume_amount;
         }
     }
 
@@ -559,6 +580,59 @@ int8_t ycp_response_padding_set_service_phone(uint8_t gunno, uint8_t *buf, uint1
 }
 
 /*************************************************
+ * 函数名      ycp_response_padding_modify_server_addr
+ * 功能          组包：修改联网地址响应
+ * **********************************************/
+int8_t ycp_response_padding_modify_server_addr(uint8_t *buf, uint16_t ilen, uint16_t *olen)
+{
+    uint8_t data_len = sizeof(Net_YcpPro_PRes_Modify_ServerAddr_t);
+
+    if(buf == NULL){
+        return -0x01;
+    }
+    if(data_len > ilen){
+        return -0x02;
+    }
+
+    Net_YcpPro_PRes_Modify_ServerAddr_t *response = NULL;
+    response = ((Net_YcpPro_PRes_Modify_ServerAddr_t*)buf);
+    memset(response, 0x00, data_len);
+
+    if(olen){
+        *olen = data_len;
+    }
+    return 0x00;
+}
+
+/*************************************************
+ * 函数名      ycp_response_padding_query_device_fault
+ * 功能          组包：查询设备故障响应
+ * **********************************************/
+int8_t ycp_response_padding_query_device_fault(uint8_t *buf, uint16_t ilen, uint16_t *olen)
+{
+    uint8_t data_len = (g_ycp_preq_report_device_fault.head.length + 0x04);
+
+    if(buf == NULL){
+        return -0x01;
+    }
+    if(data_len > ilen){
+        return -0x02;
+    }
+
+    Net_YcpPro_PReq_Report_DeviceFault_t *response = NULL;
+    response = ((Net_YcpPro_PReq_Report_DeviceFault_t*)buf);
+    memset(response, 0x00, data_len);
+
+    response->body.fault_num = g_ycp_preq_report_device_fault.body.fault_num;
+    memcpy(response->body.fault ,g_ycp_preq_report_device_fault.body.fault, sizeof(struct faut_info) *response->body.fault_num);
+
+    if(olen){
+        *olen = data_len;
+    }
+    return 0x00;
+}
+
+/*************************************************
  * 函数名      ycp_request_padding_heartbeat
  * 功能          组包：心跳请求
  * **********************************************/
@@ -571,11 +645,7 @@ void ycp_request_padding_heartbeat(void)
         temperature = temperature > s_ycp_base->gunline_temperature[0x01] ? temperature : s_ycp_base->gunline_temperature[0x01];
     }
     g_ycp_preq_heartbeat.body.signal_value = 0x16;
-    g_ycp_preq_heartbeat.body.state = 0x00;
-    g_ycp_preq_heartbeat.body.temp = 0x00;
-    if(temperature > 0x00){
-        g_ycp_preq_heartbeat.body.temp = temperature /10;
-    }
+    g_ycp_preq_heartbeat.body.temp = 0xFF;
     g_ycp_preq_heartbeat.body.output_voltage = 0x17c;
     g_ycp_preq_heartbeat.body.output_current = 0x00;
     g_ycp_preq_heartbeat.body.input_voltage = 0x00;
@@ -587,7 +657,7 @@ void ycp_request_padding_heartbeat(void)
  * 函数名      ycp_message_pro_billing_model_set_response
  * 功能          处理服务器响应(下发)的计费模型
  * **********************************************/
-int8_t ycp_message_pro_billing_model_set_response(void *data, uint8_t len)
+int8_t ycp_message_pro_billing_model_set_response(void *data, uint8_t len, uint8_t is_init)
 {
     uint8_t data_len = sizeof(Net_YcpPro_SReq_BillingModel_Set_t);
 
@@ -599,31 +669,33 @@ int8_t ycp_message_pro_billing_model_set_response(void *data, uint8_t len)
     }
 
     ycp_storage_struct *config = (ycp_storage_struct*)(s_ycp_handle->get_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, NET_SYSTEM_DATA_OPTION_PLAT_YCP));
-    Net_YcpPro_SReq_BillingModel_Set_t *request = (Net_YcpPro_SReq_BillingModel_Set_t*)data;
+    Net_YcpPro_SReq_BillingModel_Set_t *response = (Net_YcpPro_SReq_BillingModel_Set_t*)data;
 
-    if(config == NULL){
-        return -0x04;
-    }
+    if(is_init == 0x00){
+        if(config == NULL){
+            return -0x04;
+        }
 
-    config->storage_init_flag = NET_YCP_STORAGE_INIT_FLAG;
+        config->storage_init_flag = NET_YCP_STORAGE_INIT_FLAG;
 
-    config->model_number = request->body.model_number;
-    config->tip_elect_rate = request->body.tip_elect_rate;
-    config->tip_service_rate = request->body.tip_service_rate;
-    config->peak_elect_rate = request->body.peak_elect_rate;
-    config->peak_service_rate = request->body.peak_service_rate;
-    config->flat_elect_rate = request->body.flat_elect_rate;
-    config->flat_service_rate = request->body.flat_service_rate;
-    config->valley_elect_rate = request->body.valley_elect_rate;
-    config->valley_service_rate = request->body.valley_service_rate;
-    config->loss_proportion = request->body.loss_proportion;
-    for(uint8_t count = 0x00; count < NET_YCP_RATE_PERIOD_COUNT_MAX; count++){
-        config->rate_number[count] = request->body.rate_number[count];
-    }
+        config->model_number = response->body.model_number;
+        config->tip_elect_rate = response->body.tip_elect_rate;
+        config->tip_service_rate = response->body.tip_service_rate;
+        config->peak_elect_rate = response->body.peak_elect_rate;
+        config->peak_service_rate = response->body.peak_service_rate;
+        config->flat_elect_rate = response->body.flat_elect_rate;
+        config->flat_service_rate = response->body.flat_service_rate;
+        config->valley_elect_rate = response->body.valley_elect_rate;
+        config->valley_service_rate = response->body.valley_service_rate;
+        config->loss_proportion = response->body.loss_proportion;
+        for(uint8_t count = 0x00; count < NET_YCP_RATE_PERIOD_COUNT_MAX; count++){
+            config->rate_number[count] = response->body.rate_number[count];
+        }
 
-    if(s_ycp_handle->set_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, 0x00, NET_SYSTEM_DATA_OPTION_PLAT_YCP) < 0x00){
-        config->storage_init_flag = NET_YCP_STORAGE_INIT_FLAG - 0x01;
-        return -0x04;
+        if(s_ycp_handle->set_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, 0x00, NET_SYSTEM_DATA_OPTION_PLAT_YCP) < 0x00){
+            config->storage_init_flag = NET_YCP_STORAGE_INIT_FLAG - 0x01;
+            return -0x04;
+        }
     }
 
     for(uint8_t _gunno = 0x00; _gunno < NET_SYSTEM_GUN_NUMBER; _gunno++){
@@ -635,37 +707,37 @@ int8_t ycp_message_pro_billing_model_set_response(void *data, uint8_t len)
         }
 
         rt_kprintf("gunno(%d) billingrule info\n", gunno);
-        rt_kprintf("ter(%d) tsr(%d) per(%d) psr(%d) fer(%d) fsr(%d) ver(%d) vsr(%d)\n", request->body.tip_elect_rate,
-                request->body.tip_service_rate, request->body.peak_elect_rate, request->body.peak_service_rate,
-                request->body.flat_elect_rate, request->body.flat_service_rate, request->body.valley_elect_rate,
-                request->body.valley_service_rate);
+        rt_kprintf("ter(%d) tsr(%d) per(%d) psr(%d) fer(%d) fsr(%d) ver(%d) vsr(%d)\n", response->body.tip_elect_rate,
+                response->body.tip_service_rate, response->body.peak_elect_rate, response->body.peak_service_rate,
+                response->body.flat_elect_rate, response->body.flat_service_rate, response->body.valley_elect_rate,
+                response->body.valley_service_rate);
 
-        app_billingrule_set_rate_price(gunno, APP_RATE_TYPE_SHARP, (request->body.tip_elect_rate + request->body.tip_service_rate) /10);
-        app_billingrule_set_rate_price(gunno, APP_RATE_TYPE_PEAK, (request->body.peak_elect_rate + request->body.peak_service_rate) /10);
-        app_billingrule_set_rate_price(gunno, APP_RATE_TYPE_FLAT, (request->body.flat_elect_rate + request->body.flat_service_rate) /10);
-        app_billingrule_set_rate_price(gunno, APP_RATE_TYPE_VALLEY, (request->body.valley_elect_rate + request->body.valley_service_rate) /10);
+        app_billingrule_set_rate_price(gunno, APP_RATE_TYPE_SHARP, (response->body.tip_elect_rate + response->body.tip_service_rate) /10);
+        app_billingrule_set_rate_price(gunno, APP_RATE_TYPE_PEAK, (response->body.peak_elect_rate + response->body.peak_service_rate) /10);
+        app_billingrule_set_rate_price(gunno, APP_RATE_TYPE_FLAT, (response->body.flat_elect_rate + response->body.flat_service_rate) /10);
+        app_billingrule_set_rate_price(gunno, APP_RATE_TYPE_VALLEY, (response->body.valley_elect_rate + response->body.valley_service_rate) /10);
 
         for(uint8_t period = 0x00, count = 0x00; period < APP_BILLING_RULE_PERIOD_MAX; period++, count++){
-            app_billingrule_set_period_rate_number(gunno, period, request->body.rate_number[period]);
-            switch(request->body.rate_number[period]){
+            app_billingrule_set_period_rate_number(gunno, period, response->body.rate_number[period]);
+            switch(response->body.rate_number[period]){
             case APP_RATE_TYPE_SHARP :
-                app_billingrule_set_period_service_price(gunno, period, request->body.tip_elect_rate /10);
-                app_billingrule_set_period_elect_price(gunno, period, request->body.tip_service_rate /10);
+                app_billingrule_set_period_service_price(gunno, period, response->body.tip_elect_rate /10);
+                app_billingrule_set_period_elect_price(gunno, period, response->body.tip_service_rate /10);
                 app_billingrule_set_period_delay_price(gunno, period, 0x00);
                 break;
             case APP_RATE_TYPE_PEAK :
-                app_billingrule_set_period_service_price(gunno, period, request->body.peak_elect_rate /10);
-                app_billingrule_set_period_elect_price(gunno, period, request->body.peak_service_rate /10);
+                app_billingrule_set_period_service_price(gunno, period, response->body.peak_elect_rate /10);
+                app_billingrule_set_period_elect_price(gunno, period, response->body.peak_service_rate /10);
                 app_billingrule_set_period_delay_price(gunno, period, 0x00);
                 break;
             case APP_RATE_TYPE_FLAT :
-                app_billingrule_set_period_service_price(gunno, period, request->body.flat_elect_rate /10);
-                app_billingrule_set_period_elect_price(gunno, period, request->body.flat_service_rate /10);
+                app_billingrule_set_period_service_price(gunno, period, response->body.flat_elect_rate /10);
+                app_billingrule_set_period_elect_price(gunno, period, response->body.flat_service_rate /10);
                 app_billingrule_set_period_delay_price(gunno, period, 0x00);
                 break;
             case APP_RATE_TYPE_VALLEY :
-                app_billingrule_set_period_service_price(gunno, period, request->body.valley_elect_rate /10);
-                app_billingrule_set_period_elect_price(gunno, period, request->body.valley_service_rate /10);
+                app_billingrule_set_period_service_price(gunno, period, response->body.valley_elect_rate /10);
+                app_billingrule_set_period_elect_price(gunno, period, response->body.valley_service_rate /10);
                 app_billingrule_set_period_delay_price(gunno, period, 0x00);
                 break;
             default:
@@ -684,7 +756,7 @@ int8_t ycp_message_pro_billing_model_set_response(void *data, uint8_t len)
 int8_t ycp_message_pro_apply_charge_active_response(uint8_t gunno, void *data, uint8_t len)
 {
 #ifndef NET_YCP_AS_MONITOR
-    uint8_t data_len = sizeof(Net_YcpPro_SRes_ApplyCharge_Active_t) + NET_YCP_PROTOCOL_CHECK_REGION_SIZE;
+    uint8_t data_len = sizeof(Net_YcpPro_SRes_ApplyCharge_Active_t);
 
     if(data == NULL){
         return -0x01;
@@ -696,20 +768,24 @@ int8_t ycp_message_pro_apply_charge_active_response(uint8_t gunno, void *data, u
         return -0x03;
     }
 
+    if(app_billingrule_is_valid(gunno) == 0x00){
+        return NET_YCP_START_FAIL_CODE_IS_BUSY;
+    }
+
     uint8_t valid_len = 0x00;
     s_ycp_base = (System_BaseData*)(s_ycp_handle->get_base_data(gunno));
-    Net_YcpPro_SRes_ApplyCharge_Active_t *request = (Net_YcpPro_SRes_ApplyCharge_Active_t*)data;
+    Net_YcpPro_SRes_ApplyCharge_Active_t *response = (Net_YcpPro_SRes_ApplyCharge_Active_t*)data;
 
-    valid_len = sizeof(request->body.logic_card_number);
+    valid_len = sizeof(response->body.logic_card_number);
     valid_len = valid_len > sizeof(s_ycp_base->card_number) ? sizeof(s_ycp_base->card_number) : valid_len;
     memset(s_ycp_base->card_number, 0x00, sizeof(s_ycp_base->card_number));
-    memcpy(s_ycp_base->card_number, request->body.logic_card_number, valid_len);
+    memcpy(s_ycp_base->card_number, response->body.logic_card_number, valid_len);
     memset(s_ycp_base->card_uid, 0x00, sizeof(s_ycp_base->card_uid));
 
-    valid_len = sizeof(request->body.serial_number);
+    valid_len = sizeof(response->body.serial_number);
     valid_len = valid_len > sizeof(s_ycp_base->transaction_number) ? sizeof(s_ycp_base->transaction_number) : valid_len;
     memset(s_ycp_base->transaction_number, 0x00, sizeof(s_ycp_base->transaction_number));
-    memcpy(s_ycp_base->transaction_number, request->body.serial_number, valid_len);
+    memcpy(s_ycp_base->transaction_number, response->body.serial_number, valid_len);
 
     valid_len = sizeof(s_ycp_base->card_number);
     valid_len = valid_len > sizeof(s_ycp_base->user_number) ? sizeof(s_ycp_base->user_number) : valid_len;
@@ -718,8 +794,29 @@ int8_t ycp_message_pro_apply_charge_active_response(uint8_t gunno, void *data, u
 
     s_ycp_base->account_balance = 0x00;
 
-    s_ycp_base->charge_strategy = request->body.strategy;
-    s_ycp_base->charge_strategy_para = request->body.strategy_para;
+    switch(response->body.strategy){
+    case NET_YCP_CHARGE_STRATEGY_TIME:
+        s_ycp_base->charge_strategy = APP_CHARGE_STRATEGY_TIME;
+        s_ycp_base->charge_strategy_para = response->body.strategy_para *60 /100;
+        break;
+    case NET_YCP_CHARGE_STRATEGY_ELECT:
+        s_ycp_base->charge_strategy = APP_CHARGE_STRATEGY_ELECT;
+        s_ycp_base->charge_strategy_para = response->body.strategy_para *10;
+        break;
+    case NET_YCP_CHARGE_STRATEGY_MONEY:
+        s_ycp_base->charge_strategy = APP_CHARGE_STRATEGY_MONEY;
+        s_ycp_base->charge_strategy_para = response->body.strategy_para *100;
+        break;
+    case NET_YCP_CHARGE_STRATEGY_FULL:
+        s_ycp_base->charge_strategy = APP_CHARGE_STRATEGY_FULL;
+        s_ycp_base->charge_strategy_para = response->body.strategy_para;
+        break;
+    default:
+        s_ycp_base->charge_strategy = APP_CHARGE_STRATEGY_FULL;
+        s_ycp_base->charge_strategy_para = response->body.strategy_para;
+        break;
+    }
+
     return 0x00;
 #else
     return -0x01;
@@ -732,7 +829,7 @@ int8_t ycp_message_pro_apply_charge_active_response(uint8_t gunno, void *data, u
  * **********************************************/
 int16_t ycp_message_pro_remote_start_charge_request(uint8_t gunno, void *data, uint8_t len)
 {
-    uint8_t data_len = sizeof(Net_YcpPro_SReq_Remote_StartCharge_t) + NET_YCP_PROTOCOL_CHECK_REGION_SIZE;
+    uint8_t data_len = sizeof(Net_YcpPro_SReq_Remote_StartCharge_t);
 
     if(data == NULL){
         return -0x01;
@@ -743,9 +840,8 @@ int16_t ycp_message_pro_remote_start_charge_request(uint8_t gunno, void *data, u
     if(data_len > len){
         return -0x03;
     }
-
     if(app_billingrule_is_valid(gunno) == 0x00){
-        return NET_YCP_FAULT_CODE_BILLING;
+        return NET_YCP_START_FAIL_CODE_IS_BUSY;
     }
 
     uint8_t valid_len = 0x00;
@@ -754,7 +850,7 @@ int16_t ycp_message_pro_remote_start_charge_request(uint8_t gunno, void *data, u
 
     switch(s_ycp_base->state.current){
     case APP_OFSM_STATE_IDLEING:
-        return NET_YCP_FAULT_CODE_NO_GUN;
+        return NET_YCP_START_FAIL_CODE_NO_GUN;
         break;
     case APP_OFSM_STATE_READYING:
     case APP_OFSM_STATE_FINISHING:
@@ -770,22 +866,45 @@ int16_t ycp_message_pro_remote_start_charge_request(uint8_t gunno, void *data, u
 
         s_ycp_base->account_balance = 0x00;
 
-        s_ycp_base->charge_strategy = request->body.strategy;
-        s_ycp_base->charge_strategy_para = request->body.strategy_para;
+        switch(request->body.strategy){
+        case NET_YCP_CHARGE_STRATEGY_TIME:
+            s_ycp_base->charge_strategy = APP_CHARGE_STRATEGY_TIME;
+            s_ycp_base->charge_strategy_para = request->body.strategy_para *60 /100;
+            break;
+        case NET_YCP_CHARGE_STRATEGY_ELECT:
+            s_ycp_base->charge_strategy = APP_CHARGE_STRATEGY_ELECT;
+            s_ycp_base->charge_strategy_para = request->body.strategy_para *10;
+            break;
+        case NET_YCP_CHARGE_STRATEGY_MONEY:
+            s_ycp_base->charge_strategy = APP_CHARGE_STRATEGY_MONEY;
+            s_ycp_base->charge_strategy_para = request->body.strategy_para *100;
+            break;
+        case NET_YCP_CHARGE_STRATEGY_FULL:
+            s_ycp_base->charge_strategy = APP_CHARGE_STRATEGY_FULL;
+            s_ycp_base->charge_strategy_para = request->body.strategy_para;
+            break;
+        default:
+            s_ycp_base->charge_strategy = APP_CHARGE_STRATEGY_FULL;
+            s_ycp_base->charge_strategy_para = request->body.strategy_para;
+            break;
+        }
 
-        s_ycp_flag_info[gunno].is_start_charge = 0x01;
+        rt_kprintf("ycp_message_pro_remote_start_charge_request(%d, %d, %d)\n", gunno,
+                s_ycp_base->charge_strategy, s_ycp_base->charge_strategy_para);
 
-        return 0x00;
+        s_ycp_flag_info[gunno].is_start_charge = NET_ENUM_TRUE;
+
+        return NET_YCP_START_FAIL_CODE_NONE;
         break;
     case APP_OFSM_STATE_STARTING:
     case APP_OFSM_STATE_CHARGING:
-        return NET_YCP_FAULT_CODE_CHARGING;
+        return NET_YCP_START_FAIL_CODE_IS_CHARGING;
         break;
     default:
-        return NET_YCP_FAULT_CODE_NO_GUN;
+        return NET_YCP_START_FAIL_CODE_NO_GUN;
         break;
     }
-    return NET_YCP_FAULT_CODE_NO_GUN;
+    return NET_YCP_START_FAIL_CODE_NO_GUN;
 }
 
 /*************************************************
@@ -795,16 +914,17 @@ int16_t ycp_message_pro_remote_start_charge_request(uint8_t gunno, void *data, u
 int16_t ycp_message_pro_remote_stop_charge_request(uint8_t gunno)
 {
     if(gunno >= NET_SYSTEM_GUN_NUMBER){
-        return -0x02;
+        return -0x01;
     }
 
     s_ycp_base = (System_BaseData*)(s_ycp_handle->get_base_data(gunno));
 
-    if(s_ycp_base->state.current != APP_OFSM_STATE_CHARGING){
-        s_ycp_flag_info[gunno].is_stop_charge = 0x01;
-        return 0x00;
+    if((s_ycp_base->state.current == APP_OFSM_STATE_CHARGING) ||
+            (s_ycp_base->state.current == APP_OFSM_STATE_STARTING)){
+        s_ycp_flag_info[gunno].is_stop_charge = NET_ENUM_TRUE;
+        return NET_YCP_STOP_FAIL_CODE_NONE;
     }
-    return NET_YCP_FAULT_CODE_NO_CHARGE;
+    return NET_YCP_STOP_FAIL_CODE_NO_CHARGING;
 }
 
 /*************************************************
@@ -840,10 +960,13 @@ int8_t ycp_message_pro_set_para_request(void *data, uint8_t len)
     config->bmsdata_switch = request->body.bmsdata_switch;
     config->power_percent = request->body.power_percent;
 
+#if 0
     if(s_ycp_handle->set_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, 0x00, NET_SYSTEM_DATA_OPTION_PLAT_YCP) < 0x00){
         config->storage_init_flag = NET_YCP_STORAGE_INIT_FLAG - 0x01;
         return -0x04;
     }
+    /* 此数据由功率设置部分统一调接口存储 */
+#endif
 
     rt_kprintf("ycp_message_pro_set_work_para_request(%d, %d, %d)\n", request->body.power_percent,
             s_ycp_base->system_power_max, (s_ycp_base->system_power_max * request->body.power_percent /100));
@@ -913,7 +1036,7 @@ int8_t ycp_message_pro_remote_reset_request(void *data, uint8_t len)
                 break;
             }
         }
-    }else if(request->body.control_cmd == 0x02){
+    }else if(request->body.control_cmd == 0x00){
         return 0x01;
     }
 
@@ -934,7 +1057,7 @@ void ycp_message_info_init(void)  ///////// 这是网络部分外部调用的第
     if(ycp_is_init){
         return;
     }
-
+    uint8_t communication_sn[5] = {0x82, 0x10, 0x12, 0x77, 0x85};
     s_ycp_handle = net_get_net_handle();
     s_ycp_base = (System_BaseData*)(s_ycp_handle->get_base_data(0x00));
     ycp_is_init = 0x01;
@@ -964,7 +1087,14 @@ void ycp_message_info_init(void)  ///////// 这是网络部分外部调用的第
 
     g_ycp_preq_login.body.net_link_type = NET_YCP_NET_LINK_TYPE_SIM;
     memset(g_ycp_preq_login.body.communicate_module_sn, '\0', sizeof(g_ycp_preq_login.body.communicate_module_sn));
-    memcpy(g_ycp_preq_login.body.communicate_module_sn, "EC800M", strlen("EC800M"));
+    g_ycp_preq_login.body.communicate_module_sn[0x00] = 0x86;
+    g_ycp_preq_login.body.communicate_module_sn[0x01] = 0x79;
+    g_ycp_preq_login.body.communicate_module_sn[0x02] = 0x48;
+    g_ycp_preq_login.body.communicate_module_sn[0x03] = 0x07;
+    g_ycp_preq_login.body.communicate_module_sn[0x04] = 0x25;
+    g_ycp_preq_login.body.communicate_module_sn[0x05] = 0x90;
+    g_ycp_preq_login.body.communicate_module_sn[0x06] = 0x54;
+    g_ycp_preq_login.body.communicate_module_sn[0x07] = 0x20;
 
     memset(g_ycp_preq_login.body.network_keys, 0, sizeof(g_ycp_preq_login.body.network_keys));
     g_ycp_preq_login.body.network_keys[13] = 0x12;
@@ -1029,9 +1159,8 @@ void ycp_message_info_init(void)  ///////// 这是网络部分外部调用的第
 
     /** 初始化心跳请求 */
     g_ycp_preq_heartbeat.head.flag = NET_YCP_MESSAGE_ENCRYPT_DISABLE;
-    g_ycp_preq_heartbeat.body.state = 0x00;     /* 心跳状态默认正常 */
     g_ycp_preq_heartbeat.body.signal_value = 0x00;
-    g_ycp_preq_heartbeat.body.temp = 250;
+    g_ycp_preq_heartbeat.body.temp = 0xFF;
     g_ycp_preq_heartbeat.body.output_voltage = 0x00;
     g_ycp_preq_heartbeat.body.output_current = 0x00;
     g_ycp_preq_heartbeat.body.input_voltage = 0x00;
@@ -1084,23 +1213,52 @@ void ycp_chargepile_request_padding_state_data(uint8_t gunno, uint8_t is_init)
         ycp_chargepile_request_padding_bmsinfo_duringcharge(gunno, 0x01);
     }else{
         if(ycp_get_message_send_state(gunno, NET_YCP_PREQ_EVENT_TRANSACTION_RECORD) == NET_YCP_SEND_STATE_COMPLETE){
-            struct thaisenBMS_Charger_struct *bms = (struct thaisenBMS_Charger_struct*)(s_ycp_base->bms_data);
+            if((s_ycp_base->state.current == APP_OFSM_STATE_CHARGING) || (s_ycp_base->state.current == APP_OFSM_STATE_STARTING)){
+                struct thaisenBMS_Charger_struct *bms = (struct thaisenBMS_Charger_struct*)(s_ycp_base->bms_data);
 
-            g_ycp_preq_report_state_data[gunno].body.output_voltage = s_ycp_base->voltage_a /10;
-            g_ycp_preq_report_state_data[gunno].body.output_current = s_ycp_base->current_a /10;
-            if(s_ycp_base->gunline_temperature[0] > s_ycp_base->gunline_temperature[1]){
-                g_ycp_preq_report_state_data[gunno].body.gun_temperature = (s_ycp_base->gunline_temperature[0] /10 + 0x00);
+                if(s_ycp_flag_info[gunno].chargedata_mode_last == 0x01){
+                    uint8_t valid_len = sizeof(g_ycp_preq_report_state_data[gunno].body.serial_number);
+                    valid_len = valid_len > sizeof(s_ycp_base->transaction_number) ? sizeof(s_ycp_base->transaction_number) : valid_len;
+                    memset(g_ycp_preq_report_state_data[gunno].body.serial_number, 0x00, sizeof(g_ycp_preq_report_state_data[gunno].body.serial_number));
+                    memcpy(g_ycp_preq_report_state_data[gunno].body.serial_number, s_ycp_base->transaction_number, valid_len);
+                }
+                g_ycp_preq_report_state_data[gunno].body.output_voltage = s_ycp_base->voltage_a /10;
+                g_ycp_preq_report_state_data[gunno].body.output_current = s_ycp_base->current_a /10;
+                g_ycp_preq_report_state_data[gunno].body.gun_temperature = 0x00;
+                if(s_ycp_base->state.current == APP_OFSM_STATE_CHARGING){
+                    if(s_ycp_base->gunline_temperature[0] > s_ycp_base->gunline_temperature[1]){
+                        g_ycp_preq_report_state_data[gunno].body.gun_temperature = (s_ycp_base->gunline_temperature[0] /10 + 0x00);
+                    }else{
+                        g_ycp_preq_report_state_data[gunno].body.gun_temperature = (s_ycp_base->gunline_temperature[1] /10 + 0x00);
+                    }
+                }
+                g_ycp_preq_report_state_data[gunno].body.soc = s_ycp_base->current_soc *10;
+                g_ycp_preq_report_state_data[gunno].body.battery_group_temp_max = bms->BSM.HigTemp;
+                g_ycp_preq_report_state_data[gunno].body.charge_time = s_ycp_base->charge_time /60;
+                g_ycp_preq_report_state_data[gunno].body.remain_time = bms->BCS.SurplChgTime;
+                g_ycp_preq_report_state_data[gunno].body.charge_elect = s_ycp_base->elect_a *10;
+                g_ycp_preq_report_state_data[gunno].body.loss_elect = 0x00;
+                g_ycp_preq_report_state_data[gunno].body.consume_amount = s_ycp_base->fees_total;
             }else{
-                g_ycp_preq_report_state_data[gunno].body.gun_temperature = (s_ycp_base->gunline_temperature[1] /10 + 0x00);
+                g_ycp_preq_report_state_data[gunno].body.homing = 0x02;
+                g_ycp_preq_report_state_data[gunno].body.output_voltage = 0x00;
+                g_ycp_preq_report_state_data[gunno].body.output_current = 0x00;
+                g_ycp_preq_report_state_data[gunno].body.gun_temperature = 0x00;
+                g_ycp_preq_report_state_data[gunno].body.soc = 0x00;
+                g_ycp_preq_report_state_data[gunno].body.battery_group_temp_max = 0x00;
+                g_ycp_preq_report_state_data[gunno].body.charge_time = 0x00;
+                g_ycp_preq_report_state_data[gunno].body.remain_time = 0x00;
+                g_ycp_preq_report_state_data[gunno].body.charge_elect = 0x00;
+                g_ycp_preq_report_state_data[gunno].body.loss_elect = 0x00;
+                g_ycp_preq_report_state_data[gunno].body.consume_amount = 0x00;
             }
-            g_ycp_preq_report_state_data[gunno].body.soc = s_ycp_base->current_soc;
-            g_ycp_preq_report_state_data[gunno].body.battery_group_temp_max = bms->BSM.HigTemp;
-            g_ycp_preq_report_state_data[gunno].body.charge_time = s_ycp_base->charge_time /60;
-            g_ycp_preq_report_state_data[gunno].body.remain_time = bms->BCS.SurplChgTime;
-            g_ycp_preq_report_state_data[gunno].body.charge_elect = s_ycp_base->elect_a *10;
-            g_ycp_preq_report_state_data[gunno].body.loss_elect = 0x00;
-            g_ycp_preq_report_state_data[gunno].body.consume_amount = s_ycp_base->fees_total;
         }
+    }
+
+    if(g_ycp_sreq_set_para.body.chargedata_type == 0x01){
+        s_ycp_flag_info[gunno].chargedata_mode_last = 0x01;
+    }else{
+        s_ycp_flag_info[gunno].chargedata_mode_last = 0x02;
     }
 }
 
@@ -1131,6 +1289,7 @@ void ycp_chargepile_request_padding_bms_shakehand(uint8_t gunno)
     g_ycp_preq_shake_hand[gunno].body.bms_bat_type = bms->BRM.BatType;
     g_ycp_preq_shake_hand[gunno].body.bms_bat_rated_capacity = bms->BRM.BatRateCap;
     g_ycp_preq_shake_hand[gunno].body.bms_bat_rated_volt = bms->BRM.BatRateVolt;
+    memset(g_ycp_preq_shake_hand[gunno].body.bms_bat_maker_name, '0', sizeof(g_ycp_preq_shake_hand[gunno].body.bms_bat_maker_name));
     memcpy(g_ycp_preq_shake_hand[gunno].body.bms_bat_maker_name, bms->BRM.BatFirm, sizeof(bms->BRM.BatFirm));
     memcpy(g_ycp_preq_shake_hand[gunno].body.bms_bat_sn, bms->BRM.SerialNum, sizeof(bms->BRM.SerialNum));
 
@@ -1156,7 +1315,9 @@ void ycp_chargepile_request_padding_bms_shakehand(uint8_t gunno)
 
     memcpy(g_ycp_preq_shake_hand[gunno].body.bms_bat_charge_num, bms->BRM.Chagtimer, sizeof(bms->BRM.Chagtimer));
     g_ycp_preq_shake_hand[gunno].body.bms_bat_title_identification = bms->BRM.BatProperty;
-    memcpy(g_ycp_preq_shake_hand[gunno].body.vin, bms->BRM.CarDiscern, NET_YCP_CAR_VIN_NUMBER_LENGTH_MAX);
+    for(uint8_t count = 0x00; count < NET_YCP_CAR_VIN_NUMBER_LENGTH_MAX; count++){
+        g_ycp_preq_shake_hand[gunno].body.vin[count] = bms->BRM.CarDiscern[NET_YCP_CAR_VIN_NUMBER_LENGTH_MAX - count - 0x01];
+    }
     memcpy(g_ycp_preq_shake_hand[gunno].body.bms_software_ver, bms->BRM.BMSVerNum, sizeof(bms->BRM.BMSVerNum));
 
     ycp_net_event_send(NET_YCP_EVENT_HANDLE_CHARGEPILE, NET_YCP_EVENT_TYPE_REQUEST, gunno, NET_YCP_PREQ_EVENT_CHARGE_SHAKE_HAND);
@@ -1193,8 +1354,17 @@ void ycp_chargepile_request_padding_bms_paraconfig(uint8_t gunno)
 
     g_ycp_preq_parameter_config[gunno].body.pile_output_volt_max = bms->CML.ChagHigOutVolt;
     g_ycp_preq_parameter_config[gunno].body.pile_output_volt_min = bms->CML.ChagLowOutVolt;
-    g_ycp_preq_parameter_config[gunno].body.pile_output_curr_max = bms->CML.ChagHigOutCurlt;
-    g_ycp_preq_parameter_config[gunno].body.pile_output_curr_min = bms->CML.ChagLowOutCurlt;
+
+    if(bms->CML.ChagHigOutCurlt > 4000){
+        g_ycp_preq_parameter_config[gunno].body.pile_output_curr_max = 0x00;
+    }else{
+        g_ycp_preq_parameter_config[gunno].body.pile_output_curr_max = (4000 - bms->CML.ChagHigOutCurlt);
+    }
+    if(bms->CML.ChagLowOutCurlt > 4000){
+        g_ycp_preq_parameter_config[gunno].body.pile_output_curr_min = 0x00;
+    }else{
+        g_ycp_preq_parameter_config[gunno].body.pile_output_curr_min = (4000 - bms->CML.ChagLowOutCurlt);
+    }
 
     ycp_net_event_send(NET_YCP_EVENT_HANDLE_CHARGEPILE, NET_YCP_EVENT_TYPE_REQUEST, gunno, NET_YCP_PREQ_EVENT_PARA_CONFIG);
 }
@@ -1432,8 +1602,8 @@ void ycp_chargepile_request_padding_bmscommand_chargerout(uint8_t gunno, uint8_t
             g_ycp_preq_bmscommand_chargerout[gunno].body.bms_curr_measure_value = bms->BCS.ChargCurlt;
             g_ycp_preq_bmscommand_chargerout[gunno].body.bms_max_single_bat_volt = bms->BCS.CellHigVolt;
             g_ycp_preq_bmscommand_chargerout[gunno].body.max_single_bat_volt_gn = bms->BCS.HigVoltCellNum;
-            g_ycp_preq_bmscommand_chargerout[gunno].body.bms_current_soc = bms->BCS.SOC;
-            g_ycp_preq_bmscommand_chargerout[gunno].body.bms_remain_charge_time = bms->BCS.SurplChgTime;
+            g_ycp_preq_bmscommand_chargerout[gunno].body.bms_current_soc = bms->BCS.SOC *10;
+            g_ycp_preq_bmscommand_chargerout[gunno].body.bms_remain_charge_time = bms->BCS.SurplChgTime *60;
             g_ycp_preq_bmscommand_chargerout[gunno].body.pile_output_volt = (s_ycp_base->voltage_a /10);
             g_ycp_preq_bmscommand_chargerout[gunno].body.pile_output_curr = (s_ycp_base->current_a /10);
             g_ycp_preq_bmscommand_chargerout[gunno].body.charge_time = s_ycp_base->charge_time;
@@ -1468,9 +1638,9 @@ void ycp_chargepile_request_padding_bmsinfo_duringcharge(uint8_t gunno, uint8_t 
             struct thaisenBMS_Charger_struct *bms = (struct thaisenBMS_Charger_struct*)(s_ycp_base->bms_data);
 
             g_ycp_preq_bms_info[gunno].body.bms_max_single_volt_bat_number = bms->BSM.HigVoltCellNum;
-            g_ycp_preq_bms_info[gunno].body.bms_bat_temp_max = (bms->BSM.HigTemp + 0x00);
+            g_ycp_preq_bms_info[gunno].body.bms_bat_temp_max = bms->BSM.HigTemp *10;
             g_ycp_preq_bms_info[gunno].body.bat_temp_max_measure_number = bms->BSM.HigTempNum;
-            g_ycp_preq_bms_info[gunno].body.bms_bat_temp_min = (bms->BSM.LowTemp + 0x00);
+            g_ycp_preq_bms_info[gunno].body.bms_bat_temp_min = bms->BSM.LowTemp *10;
             g_ycp_preq_bms_info[gunno].body.bat_temp_min_measure_number = bms->BSM.LowTempNum;
             g_ycp_preq_bms_info[gunno].body.bms_single_volt = bms->BSM.CellOverVolt;
             g_ycp_preq_bms_info[gunno].body.bms_bat_soc = bms->BSM.SOCState;
@@ -1502,15 +1672,18 @@ int8_t ycp_chargepile_request_padding_card_authority(uint8_t gunno)
     uint8_t valid_len = 0x00;
     s_ycp_base = (System_BaseData*)(s_ycp_handle->get_base_data(gunno));
 
-    if(s_ycp_base->flag.card_info_is_uid){
+    if(!s_ycp_base->flag.card_info_is_uid){
         return -0x01;
     }
     g_ycp_preq_apply_charge_active[gunno].body.start_type = 0x01;
 
-    valid_len = sizeof(s_ycp_base->card_number);
-    valid_len = valid_len > NET_YCP_PHYCARD_NUMBER_LENGTH_MAX ? NET_YCP_PHYCARD_NUMBER_LENGTH_MAX : valid_len;
-    memset(g_ycp_preq_apply_charge_active[gunno].body.phycard_number, 0x00, NET_YCP_PHYCARD_NUMBER_LENGTH_MAX);
-    memcpy(g_ycp_preq_apply_charge_active[gunno].body.phycard_number, s_ycp_base->card_number, valid_len);
+    valid_len = s_ycp_base->card_uid_len;
+    valid_len = valid_len > (NET_YCP_PHYCARD_NUMBER_LENGTH_MAX + 0x01) ? (NET_YCP_PHYCARD_NUMBER_LENGTH_MAX + 0x01) : valid_len;
+    memset(g_ycp_preq_apply_charge_active[gunno].body.phycard_number, 0x00, (NET_YCP_PHYCARD_NUMBER_LENGTH_MAX + 0x01));
+
+    for(uint8_t count = 0x00; count < valid_len; count++){
+        g_ycp_preq_apply_charge_active[gunno].body.phycard_number[count] = s_ycp_base->card_uid[valid_len - 0x01 - count];
+    }
 
     memset(g_ycp_preq_apply_charge_active[gunno].body.password, 0x00, NET_YCP_PASSWORD_LENGTH_DEFAULT);
 
@@ -1529,9 +1702,6 @@ int8_t ycp_chargepile_request_padding_card_authority(uint8_t gunno)
 int8_t ycp_chargepile_request_padding_vin_authority(uint8_t gunno)
 {
 #ifndef NET_YCP_AS_MONITOR
-    /* 该协议暂时不支持VIN请求充电 */
-    return -0x01;
-
     if(gunno >= NET_SYSTEM_GUN_NUMBER){
         return -0x01;
     }
@@ -1544,11 +1714,11 @@ int8_t ycp_chargepile_request_padding_vin_authority(uint8_t gunno)
     s_ycp_base = (System_BaseData*)(s_ycp_handle->get_base_data(gunno));
 
     g_ycp_preq_apply_charge_active[gunno].body.start_type = 0x03;
-    memset(g_ycp_preq_apply_charge_active[gunno].body.phycard_number, 0x00, NET_YCP_PHYCARD_NUMBER_LENGTH_MAX);
+    memset(g_ycp_preq_apply_charge_active[gunno].body.phycard_number, 0x00, (NET_YCP_PHYCARD_NUMBER_LENGTH_MAX + 0x01));
     memset(g_ycp_preq_apply_charge_active[gunno].body.password, 0x00, NET_YCP_PASSWORD_LENGTH_DEFAULT);
-//    for(uint8_t count = 0x00; count < NET_YCP_CAR_VIN_NUMBER_LENGTH_MAX; count++){
-//        g_ycp_preq_apply_charge_active[gunno].body.vin[count] = s_ycp_base->car_vin[NET_YCP_CAR_VIN_NUMBER_LENGTH_MAX - count - 0x01];
-//    }
+    for(uint8_t count = 0x00; count < NET_YCP_CAR_VIN_NUMBER_LENGTH_MAX; count++){
+        g_ycp_preq_apply_charge_active[gunno].body.phycard_number[count] = s_ycp_base->car_vin[NET_YCP_CAR_VIN_NUMBER_LENGTH_MAX - count - 0x01];
+    }
 
     ycp_net_event_send(NET_YCP_EVENT_HANDLE_CHARGEPILE, NET_YCP_EVENT_TYPE_REQUEST, gunno, NET_YCP_PREQ_EVENT_APPLY_START_CHARGE);
 
@@ -1581,19 +1751,19 @@ uint8_t ycp_chargepile_request_padding_transaction_record(uint8_t gunno, void *t
         ycp_timestamp_to_timebcd(_transaction->start_time, g_ycp_preq_transaction_records[gunno].body.start_time, NET_YCP_TIME_BCD_LENGTH_DEFAULT);
         ycp_timestamp_to_timebcd(_transaction->end_time, g_ycp_preq_transaction_records[gunno].body.end_time, NET_YCP_TIME_BCD_LENGTH_DEFAULT);
 
-        g_ycp_preq_transaction_records[gunno].body.tip_unit_price = _transaction->rate_type_unit[APP_RATE_TYPE_SHARP];
+        g_ycp_preq_transaction_records[gunno].body.tip_unit_price = _transaction->rate_type_unit[APP_RATE_TYPE_SHARP] *10;
         g_ycp_preq_transaction_records[gunno].body.tip_elect = _transaction->rate_type_elect[APP_RATE_TYPE_SHARP] *10;
         g_ycp_preq_transaction_records[gunno].body.tip_loss_elect = _transaction->rate_type_loss_elect[APP_RATE_TYPE_SHARP];
 
-        g_ycp_preq_transaction_records[gunno].body.peak_unit_price = _transaction->rate_type_unit[APP_RATE_TYPE_PEAK];
+        g_ycp_preq_transaction_records[gunno].body.peak_unit_price = _transaction->rate_type_unit[APP_RATE_TYPE_PEAK] *10;
         g_ycp_preq_transaction_records[gunno].body.peak_elect = _transaction->rate_type_elect[APP_RATE_TYPE_PEAK] *10;
         g_ycp_preq_transaction_records[gunno].body.peak_loss_elect = _transaction->rate_type_loss_elect[APP_RATE_TYPE_PEAK];
 
-        g_ycp_preq_transaction_records[gunno].body.flat_unit_price = _transaction->rate_type_unit[APP_RATE_TYPE_FLAT];
+        g_ycp_preq_transaction_records[gunno].body.flat_unit_price = _transaction->rate_type_unit[APP_RATE_TYPE_FLAT] *10;
         g_ycp_preq_transaction_records[gunno].body.flat_elect = _transaction->rate_type_elect[APP_RATE_TYPE_FLAT] *10;
         g_ycp_preq_transaction_records[gunno].body.flat_loss_elect = _transaction->rate_type_loss_elect[APP_RATE_TYPE_FLAT];
 
-        g_ycp_preq_transaction_records[gunno].body.valley_unit_price = _transaction->rate_type_unit[APP_RATE_TYPE_VALLEY];
+        g_ycp_preq_transaction_records[gunno].body.valley_unit_price = _transaction->rate_type_unit[APP_RATE_TYPE_VALLEY] *10;
         g_ycp_preq_transaction_records[gunno].body.valley_elect = _transaction->rate_type_elect[APP_RATE_TYPE_VALLEY] *10;
         g_ycp_preq_transaction_records[gunno].body.valley_loss_elect = _transaction->rate_type_loss_elect[APP_RATE_TYPE_VALLEY];
 
@@ -1601,10 +1771,12 @@ uint8_t ycp_chargepile_request_padding_transaction_record(uint8_t gunno, void *t
 
         valid_len = sizeof(_transaction->car_vin);
         valid_len = valid_len > NET_YCP_CAR_VIN_NUMBER_LENGTH_MAX ? NET_YCP_CAR_VIN_NUMBER_LENGTH_MAX : valid_len;
-        memcpy(g_ycp_preq_transaction_records[gunno].body.vin, &(_transaction->car_vin), valid_len);
+        for(uint8_t count = 0x00; count < NET_YCP_CAR_VIN_NUMBER_LENGTH_MAX; count++){
+            g_ycp_preq_transaction_records[gunno].body.vin[count] = _transaction->car_vin[NET_YCP_CAR_VIN_NUMBER_LENGTH_MAX - count - 0x01];
+        }
 
-        g_ycp_preq_transaction_records[gunno].body.pay_way = 0x00;        /* 待确认 *///////////////////////////////////
-        g_ycp_preq_transaction_records[gunno].body.stop_reason = 0x00;    /* 待确认 *///////////////////////////////////
+        g_ycp_preq_transaction_records[gunno].body.start_way = ycp_chargepile_transaction_identity_converted(_transaction->start_type);
+        g_ycp_preq_transaction_records[gunno].body.stop_reason = ycp_chargepile_stop_reason_converted(_transaction->stop_reason, _transaction->order_state.is_start_fail);
 
         ycp_net_event_send(NET_YCP_EVENT_HANDLE_CHARGEPILE, NET_YCP_EVENT_TYPE_REQUEST, gunno, NET_YCP_PREQ_EVENT_TRANSACTION_RECORD);
         return 0x01;
@@ -1731,10 +1903,8 @@ void ycp_chargepile_state_changed(uint8_t gunno)
     g_ycp_preq_report_state_data[gunno].body.state = s_ycp_disposable_info[gunno].state.state;
 
     ycp_set_clear_disposable_event(gunno, YCP_DISPOSABLE_EVENT_STATE, 0x01);
-    if(1/*g_ycp_preq_report_state_data[gunno].body.state != 0x01*/){
-        s_ycp_state_data_count[gunno] = rt_tick_get();
-        ycp_net_event_send(NET_YCP_EVENT_HANDLE_CHARGEPILE, NET_YCP_EVENT_TYPE_REQUEST, gunno, NET_YCP_PREQ_EVENT_REPORT_STATE_DATA);
-    }
+    s_ycp_state_data_count[gunno] = rt_tick_get();
+    ycp_net_event_send(NET_YCP_EVENT_HANDLE_CHARGEPILE, NET_YCP_EVENT_TYPE_REQUEST, gunno, NET_YCP_PREQ_EVENT_REPORT_STATE_DATA);
 }
 
 void ycp_chargepile_update_result_report(uint8_t result, uint8_t reason)
@@ -1744,24 +1914,76 @@ void ycp_chargepile_update_result_report(uint8_t result, uint8_t reason)
     ycp_net_event_send(NET_YCP_EVENT_HANDLE_CHARGEPILE, NET_YCP_EVENT_TYPE_RESPONSE, 0x00, NET_YCP_PRES_EVENT_REMOTE_UPDATE);
 }
 
-void ycp_chargepile_fault_report(uint8_t gunno, uint16_t code)
+int8_t ycp_chargepile_fault_report(uint8_t gunno, uint16_t code, uint8_t is_resume)
 {
-#if 0
     if(gunno >= NET_SYSTEM_GUN_NUMBER){
-        return;
+        return -0x01;
     }
-    s_ycp_disposable_info[gunno].fault_code = code;
 
-    if(ycp_get_message_send_state(gunno, NET_YCP_PREQ_EVENT_REPORT_REALTIME_DATA) == NET_YCP_SEND_STATE_ONGOING){
-        ycp_set_clear_disposable_event(gunno, YCP_DISPOSABLE_EVENT_FAULT, 0x00);
-        return;
+    for(uint8_t i = 0x00; i < NET_SYSTEM_GUN_NUMBER; i++){
+        if(ycp_get_message_send_state(i, NET_YCP_PREQ_EVENT_REPORT_DEVICE_FAULT) == NET_YCP_SEND_STATE_ONGOING){
+            return -0x01;
+        }
     }
-    ycp_set_clear_disposable_event(gunno, YCP_DISPOSABLE_EVENT_FAULT, 0x01);
-    g_ycp_preq_report_realtime_data[gunno].body.hardware_fault = code;
-    s_ycp_realtime_data_count[gunno] = rt_tick_get();
-    rt_kprintf("1111111111111111nnnnnnnnnnnnn(%d, %d)\n", gunno, code);
-    ycp_net_event_send(NET_YCP_EVENT_HANDLE_CHARGEPILE, NET_YCP_EVENT_TYPE_REQUEST, gunno, NET_YCP_PREQ_EVENT_REPORT_REALTIME_DATA);
-#endif /* 0 */
+
+    if(is_resume){
+        uint8_t pos = 0x00;
+        uint16_t temp = (uint8_t)((code &0xff00) >>0x08);
+        temp |= (uint16_t)(code <<0x08);
+
+        for(pos = 0x00; pos < g_ycp_preq_report_device_fault.body.fault_num; pos++){
+            if(temp == g_ycp_preq_report_device_fault.body.fault[pos].fault_code){
+                for(uint8_t i = pos; i < g_ycp_preq_report_device_fault.body.fault_num; i++){
+                    if((i + 0x01) < g_ycp_preq_report_device_fault.body.fault_num){
+                        g_ycp_preq_report_device_fault.body.fault[i].fault_type = g_ycp_preq_report_device_fault.body.fault[i + 0x01].fault_type;
+                        g_ycp_preq_report_device_fault.body.fault[i].gunno = g_ycp_preq_report_device_fault.body.fault[i + 0x01].gunno;
+                        g_ycp_preq_report_device_fault.body.fault[i].fault_code = g_ycp_preq_report_device_fault.body.fault[i + 0x01].fault_code;
+                    }
+                }
+
+                if(g_ycp_preq_report_device_fault.body.fault_num > 0x00){
+                    memset(&(g_ycp_preq_report_device_fault.body.fault[g_ycp_preq_report_device_fault.body.fault_num - 0x01]), 0x00, \
+                            sizeof(g_ycp_preq_report_device_fault.body.fault[g_ycp_preq_report_device_fault.body.fault_num - 0x01]));
+                }else{
+                    memset(&(g_ycp_preq_report_device_fault.body.fault[0x00]), 0x00, \
+                            sizeof(g_ycp_preq_report_device_fault.body.fault[0x00]));
+                }
+
+                if(g_ycp_preq_report_device_fault.body.fault_num > 0x00){
+                    g_ycp_preq_report_device_fault.body.fault_num--;
+                }
+                break;
+            }
+        }
+    }else{
+        uint16_t temp = (uint8_t)((code &0xff00) >>0x08);
+        uint8_t index = g_ycp_preq_report_device_fault.body.fault_num;
+
+        temp |= (uint16_t)(code <<0x08);
+
+        for(uint8_t pos = 0x00; pos < g_ycp_preq_report_device_fault.body.fault_num; pos++){
+            if((temp == g_ycp_preq_report_device_fault.body.fault[pos].fault_code) &&
+                    ((gunno + 0x01) == g_ycp_preq_report_device_fault.body.fault[pos].gunno)){
+                return 0x00;
+            }
+        }
+        if(index >= NET_YCP_FAULT_NUM_MAX_DEFAULT){
+            return -0x01;
+        }
+
+        g_ycp_preq_report_device_fault.body.fault[index].fault_type = NET_YCP_FAULT_CODE_TYPE_PORT;
+        g_ycp_preq_report_device_fault.body.fault[index].gunno = gunno + 0x01;
+        g_ycp_preq_report_device_fault.body.fault[index].fault_code = temp;
+        g_ycp_preq_report_device_fault.body.fault_num++;
+    }
+
+    g_ycp_preq_report_device_fault.head.length = 0x04 + 0x01 + sizeof(struct faut_info) *g_ycp_preq_report_device_fault.body.fault_num;
+
+    s_ycp_fault_report = rt_tick_get();
+
+    ycp_net_event_send(NET_YCP_EVENT_HANDLE_CHARGEPILE, NET_YCP_EVENT_TYPE_REQUEST, gunno, NET_YCP_PREQ_EVENT_REPORT_DEVICE_FAULT);
+
+    return 0x00;
 }
 
 /*************************************************
@@ -1832,18 +2054,23 @@ int8_t ycp_chargepile_create_local_transaction_number(uint8_t gunno, void *vecto
         return -0x03;
     }
 
+    uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YCP |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
+    uint8_t *pile_number = NULL;
     uint8_t sn_len = 0x00, *ptr = (uint8_t*)vector;
     struct tm *_tm = NULL;
 
+    s_ycp_handle = net_get_net_handle();
+    pile_number = (uint8_t*)(s_ycp_handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, option));
+    ycp_ascii_to_bcd(pile_number, ptr, NET_YCP_CHARGEPILE_LENGTH_DEFAULT);
+
     s_ycp_local_start_sq++;
-//    sn_len = sizeof(g_ycp_preq_transaction_records[gunno].body.pile_number);
-    sn_len = 0x07;  /* 需要确认本地流水号创建规则 */////////////////////////////////////////////
+    sn_len = 0x07;
     s_ycp_base = (System_BaseData*)(s_ycp_handle->get_base_data(gunno));
     _tm = localtime((const time_t*)&(s_ycp_base->current_time));
 
     rt_kprintf("ycp_chargepile_create_local_transaction_number[%d](%d, %d, %d, %d, %d)\n", s_ycp_base->current_time, _tm->tm_year, _tm->tm_mon,
             _tm->tm_mday, _tm->tm_hour, _tm->tm_min, _tm->tm_sec);
-//    memcpy(ptr, g_ycp_preq_transaction_records[gunno].body.pile_number, sn_len);   /* 桩号 */
+
     ptr[sn_len++] = gunno + 1;                                                     /* 枪号 */
     ptr[sn_len++] = (((_tm->tm_year - 100) /10) *16) + ((_tm->tm_year - 100) %10); /* 年 */
     ptr[sn_len++] = (((_tm->tm_mon + 0x01) /10) *16) + ((_tm->tm_mon + 0x01) %10); /* 月 */
@@ -1926,21 +2153,19 @@ static uint8_t ycp_chargepile_transaction_identity_converted(uint8_t identity)
 {
     switch(identity){
     case APP_CHARGE_START_WAY_APP:
-        return 0x01;
+        return NETYCP_START_WAY_APP;
         break;
     case APP_CHARGE_START_WAY_ONLINE_CARD:
-        return 0x02;
-        break;
     case APP_CHARGE_START_WAY_OFFLINE_CARD:
-        return 0x04;
+        return NETYCP_START_WAY_SWIP_CARD;
         break;
     case APP_CHARGE_START_WAY_VIN:
-        return 0x05;
+        return NETYCP_START_WAY_VIN;
         break;
     default:
         break;
     }
-    return 0x04;
+    return NETYCP_START_WAY_SWIP_CARD;
 }
 
 /*************************************************
@@ -1949,173 +2174,188 @@ static uint8_t ycp_chargepile_transaction_identity_converted(uint8_t identity)
  * **********************************************/
 static uint16_t ycp_chargepile_stop_reason_converted(uint8_t reason, uint8_t stop_in_starting)
 {
-#if 0
-    uint16_t _reason = DEV_ABORT_CHARGING_CODE_90;
+    uint16_t _reason = NETYCP_AS_REASONFF_UNKNOW;
 
     switch(reason){
     /* 急停 */
     case APP_SYSTEM_STOP_WAY_SCRAM:
         if(stop_in_starting){
-            _reason = DEV_START_CHARGING_FAILED_CODE_50;
+            _reason = NETYCP_SF_REASON16_EMERGENCY_STOP;
         }else{
-            _reason = DEV_ABORT_CHARGING_CODE_72;
+            _reason = NETYCP_AS_REASON57_EMERGENCY_STOP;
         }
         break;
     /* 读卡器、门禁 */
     case APP_SYSTEM_STOP_WAY_CARDREADER:
     case APP_SYSTEM_STOP_WAY_DOOR:
-        _reason = DEV_START_CHARGING_FAILED_CODE_4A;
+        _reason = NETYCP_AS_REASON6F_CARDREADER;
         break;
     /* 电表 */
     case APP_SYSTEM_STOP_WAY_AMMETER:
         if(stop_in_starting){
-            _reason = DEV_START_CHARGING_FAILED_CODE_4D;
+            _reason = NETYCP_SF_REASON13_AMMETER_COMMUNICATION;
         }else{
-            _reason = DEV_ABORT_CHARGING_CODE_6D;
+            _reason = NETYCP_AS_REASON53_AMMETER_COMMUNICATE;
         }
         break;
     /* 充电模块 */
     case APP_SYSTEM_STOP_WAY_CHARGEMODULE:
         if(stop_in_starting){
-            _reason = DEV_START_CHARGING_FAILED_CODE_4F;
+            _reason = NETYCP_SF_REASON15_CHARGE_MODULE;
         }else{
-            _reason = DEV_ABORT_CHARGING_CODE_71;
+            _reason = NETYCP_AS_REASON56_CHARGE_MODULE;
         }
         break;
     /* 过温 */
     case APP_SYSTEM_STOP_WAY_OVERTEMP:
         if(stop_in_starting){
-            _reason = DEV_START_CHARGING_FAILED_CODE_53;
+            _reason = NETYCP_SF_REASON19_ABNORMAL_TEMP;
         }else{
-            _reason = DEV_ABORT_CHARGING_CODE_74;
+            _reason = NETYCP_AS_REASON59_TEMPERATURE_ABNORMAL;
         }
         break;
     /* 过、欠压 */
     case APP_SYSTEM_STOP_WAY_OVERVOLT:
     case APP_SYSTEM_STOP_WAY_UNDERVOLT:
-        _reason = DEV_ABORT_CHARGING_CODE_79;
+        _reason = NETYCP_AS_REASON5D_CHARGE_TVOLTAGE_ABNORMAL;
         break;
     /* 过流 */
     case APP_SYSTEM_STOP_WAY_OVERCURRENT:
-        _reason = DEV_ABORT_CHARGING_CODE_7A;
+        _reason = NETYCP_AS_REASON5E_CHARGE_TCURRENT_ABNORMAL;
         break;
-    /* 继电器 */
+    /* DC 继电器 */
     case APP_SYSTEM_STOP_WAY_RELAY:
+        _reason = NETYCP_AS_REASON70_DC_RELAY;
+        break;
+    /* 并联 继电器 */
     case APP_SYSTEM_STOP_WAY_PARALLEL_RELAY:
+        _reason = NETYCP_AS_REASON72_PARALLEL_RELAY;
+        break;
+    /* AC 继电器 */
     case APP_SYSTEM_STOP_WAY_AC_RELAY:
-        _reason = DEV_ABORT_CHARGING_CODE_6C;
+        _reason = NETYCP_AS_REASON71_AC_RELAY;
         break;
     /* 充满 */
     case APP_SYSTEM_STOP_WAY_CHARGE_FULL:
-        _reason = DEV_STOP_CHARGING_CODE_41;
+        _reason = NETYCP_CC_REASON02_CHARGE_FULL;
         break;
     /* 拔枪 */
     case APP_SYSTEM_STOP_WAY_PULL_GUN:
         if(stop_in_starting){
-            _reason = DEV_START_CHARGING_FAILED_CODE_4B;
+            _reason = NETYCP_SF_REASON11_GUIDE_DISCONNECT;
         }else{
-            _reason = DEV_ABORT_CHARGING_CODE_6B;
+            _reason = NETYCP_AS_REASON51_GUIDANCE_DISCONNECT;
         }
         break;
     /* 电子锁 */
     case APP_SYSTEM_STOP_WAY_ELECTRY_LOCK:
         if(stop_in_starting){
-            _reason = DEV_START_CHARGING_FAILED_CODE_55;
+            _reason = NETYCP_SF_REASON1B_ELECT_LOCK;
         }else{
-            _reason = DEV_ABORT_CHARGING_CODE_77;
+            _reason = NETYCP_AS_REASON5C_ELOCK_ABNORMAL;
         }
         break;
     /* 通讯 */
     case APP_SYSTEM_STOP_WAY_COMMINICATION:
         if(stop_in_starting){
-            _reason = DEV_START_CHARGING_FAILED_CODE_59;
+            _reason = NETYCP_SF_REASON1F_RECV_BRM_TIMEOUT;
         }else{
-            _reason = DEV_ABORT_CHARGING_CODE_84;
+            _reason = NETYCP_AS_REASON68_RECV_BCS_TIMEOUT;
         }
         break;
     /* 辅源 */
     case APP_SYSTEM_STOP_WAY_AUXPOWER:
-        _reason = DEV_START_CHARGING_FAILED_CODE_56;
+        _reason = NETYCP_SF_REASON2B_AUXPOWER;
         break;
     /* 断电 */
     case APP_SYSTEM_STOP_WAY_POWER_OFF:
-        _reason = DEV_ABORT_CHARGING_CODE_83;
+        _reason = NETYCP_AS_REASON67_POWER_OFF;
         break;
     /* 存储芯片 */
     case APP_SYSTEM_STOP_WAY_FLASH:
     case APP_SYSTEM_STOP_WAY_EEPROM:
-        _reason = DEV_START_CHARGING_FAILED_CODE_4A;
+        _reason = NETYCP_AS_REASON73_STORAGE_CHIP;
         break;
     /* 短路 */
     case APP_SYSTEM_STOP_WAY_SHORTS:
-        _reason = DEV_ABORT_CHARGING_CODE_6C;
+        _reason = NETYCP_AS_REASON52_CIRCUIT_BREAKER_ACTION;
         break;
     /* 枪电压 */
     case APP_SYSTEM_STOP_WAY_GUNVOLT:
-        _reason = DEV_START_CHARGING_FAILED_CODE_60;
+        _reason = NETYCP_SF_REASON25_BHM_STAGE_VOLT_OVERRANGE;
         break;
     /* 绝缘 */
     case APP_SYSTEM_STOP_WAY_INSULT:
-        _reason = DEV_START_CHARGING_FAILED_CODE_57;
+        _reason = NETYCP_SF_REASON1D_INSULATION_ABNORMAL;
         break;
     /* 电池电压 */
     case APP_SYSTEM_STOP_WAY_BATTERY_VOLT:
-        _reason = DEV_START_CHARGING_FAILED_CODE_61;
+        if(stop_in_starting){
+            _reason = NETYCP_SF_REASON26_BRO_AA_STAGE_VOLT_OVERRANGE;
+        }else{
+            _reason = NETYCP_AS_REASON65_BSTATE_ABNORMAL;
+        }
         break;
     /* 车机停止 */
     case APP_SYSTEM_STOP_WAY_BST:
-        _reason = DEV_ABORT_CHARGING_CODE_8A;
+        _reason = NETYCP_AS_REASON66_CAR_COMMAND_STOP;
         break;
     /* 准备电压 */
     case APP_SYSTEM_STOP_WAY_READY_VOLT:
-        _reason = DEV_ABORT_CHARGING_CODE_8B;
+        _reason = NETYCP_SF_REASON2C_READY_VOLTAGE;
         break;
     /* 绝缘电压 */
     case APP_SYSTEM_STOP_WAY_INSULT_VOLT:
-        _reason = DEV_START_CHARGING_FAILED_CODE_65;
+        _reason = NETYCP_SF_REASON2D_INSULT_VOLTAGE;
         break;
-//    /* BSM */
-//    case APP_SYSTEM_STOP_WAY_BSM:
-//        _reason = DEV_START_CHARGING_FAILED_CODE_66;
-//        break;
+    /* BSM */
+    case APP_SYSTEM_STOP_WAY_BSM:
+        _reason = NETYCP_AS_REASON74_BSM_WARNNING;
+        break;
     /* APP */
     case APP_SYSTEM_STOP_WAY_APP_STOP:
-        _reason = DEV_STOP_CHARGING_CODE_40;
+        _reason = NETYCP_CC_REASON01_APP;
         break;
     /* 刷卡 */
     case APP_SYSTEM_STOP_WAY_ONLINECARD_STOP:
-        _reason = DEV_STOP_CHARGING_CODE_45;
+        _reason = NETYCP_CC_REASON06_SWIP_CARD;
         break;
     /* 余额不足 */
     case APP_SYSTEM_STOP_WAY_NO_BALLANCE:
-        _reason = DEV_ABORT_CHARGING_CODE_6E;
+        if(stop_in_starting){
+            _reason = NETYCP_SF_REASON14_NO_BALLANCE;
+        }else{
+            _reason = NETYCP_CC_REASON04_TARGET_MONEY;
+        }
+        break;
+    /* 屏幕 */
+    case APP_SYSTEM_STOP_WAY_SCREEN_STOP:
+        _reason = NETYCP_CC_REASON06_SWIP_CARD;
         break;
     /* 到达设定电量 */
     case APP_SYSTEM_STOP_WAY_REACH_ELECT:
-        _reason = DEV_STOP_CHARGING_CODE_42;
+        _reason = NETYCP_CC_REASON03_TARGET_ELECT;
         break;
     /* 到达设定时间 */
     case APP_SYSTEM_STOP_WAY_REACH_TIME:
-        _reason = DEV_STOP_CHARGING_CODE_44;
+        _reason = NETYCP_CC_REASON05_TARGET_TIME;
         break;
     /* 到达设定余额 */
     case APP_SYSTEM_STOP_WAY_REACH_MONEY:
-        _reason = DEV_STOP_CHARGING_CODE_43;
+        _reason = NETYCP_CC_REASON04_TARGET_MONEY;
         break;
     /* 充电电流异常 */
     case APP_SYSTEM_STOP_WAY_CURRENT_ABNORMAL:
-        _reason = DEV_ABORT_CHARGING_CODE_8C;
+        _reason = NETYCP_AS_REASON5B_CURRENT_ABNORMAL;
         break;
     /* 达到SOC 限定值 */
     case APP_SYSTEM_STOP_WAY_SOC_LIMIT:
-        _reason = DEV_STOP_CHARGING_CODE_46;
+        _reason = NETYCP_CC_REASON07_RESERVE;
         break;
     default:
         break;
     }
     return _reason;
-#endif /* 0 */
-    return 0x00;
 }
 
 /*************************************************
@@ -2185,9 +2425,18 @@ static void ycp_data_realtime_process(uint8_t gunno)
                 ycp_net_event_send(NET_YCP_EVENT_HANDLE_CHARGEPILE, NET_YCP_EVENT_TYPE_REQUEST, gunno, NET_YCP_PREQ_EVENT_REPORT_STATE_DATA);
             }
         }
+
+        if(s_ycp_fault_report > rt_tick_get()){
+            s_ycp_fault_report = rt_tick_get();
+        }
+
+        if((rt_tick_get() - s_ycp_fault_report) > YCP_FAULT_INFO_INTERVAL *1000){
+            s_ycp_fault_report = rt_tick_get();
+            ycp_net_event_send(NET_YCP_EVENT_HANDLE_CHARGEPILE, NET_YCP_EVENT_TYPE_REQUEST, 0x00, NET_YCP_PREQ_EVENT_REPORT_DEVICE_FAULT);
+        }
     }else{
+        s_ycp_fault_report = rt_tick_get();
         s_ycp_state_data_count[gunno] = rt_tick_get();
-//        s_ycp_state_data_interval[gunno] = YCP_STATE_DATA_INTERVAL_INIT;
         s_ycp_state_data_interval[gunno] = YCP_STATE_DATA_INTERVAL_IDLE;
         ycp_chargepile_request_padding_state_data(gunno, 0x00);
         ycp_net_event_send(NET_YCP_EVENT_HANDLE_CHARGEPILE, NET_YCP_EVENT_TYPE_REQUEST, gunno, NET_YCP_PREQ_EVENT_REPORT_STATE_DATA);
@@ -2216,16 +2465,6 @@ static void ycp_disposable_message_check(uint8_t gunno)
                 g_ycp_preq_report_state_data[gunno].body.state = s_ycp_disposable_info[gunno].state.state;
 
                 ycp_set_clear_disposable_event(gunno, YCP_DISPOSABLE_EVENT_STATE, 0x01);
-                s_ycp_state_data_count[gunno] = rt_tick_get();
-                ycp_chargepile_request_padding_state_data(gunno, 0x00);
-                ycp_net_event_send(NET_YCP_EVENT_HANDLE_CHARGEPILE, NET_YCP_EVENT_TYPE_REQUEST, gunno, NET_YCP_PREQ_EVENT_REPORT_STATE_DATA);
-            }
-        }
-        if(_event &(1 <<YCP_DISPOSABLE_EVENT_FAULT)){
-            if(ycp_get_message_send_state(gunno, NET_YCP_PREQ_EVENT_REPORT_STATE_DATA) == NET_YCP_SEND_STATE_COMPLETE){
-//                g_ycp_preq_report_state_data[gunno].body.hardware_fault = s_ycp_disposable_info[gunno].fault_code;
-
-                ycp_set_clear_disposable_event(gunno, YCP_DISPOSABLE_EVENT_FAULT, 0x01);
                 s_ycp_state_data_count[gunno] = rt_tick_get();
                 ycp_chargepile_request_padding_state_data(gunno, 0x00);
                 ycp_net_event_send(NET_YCP_EVENT_HANDLE_CHARGEPILE, NET_YCP_EVENT_TYPE_REQUEST, gunno, NET_YCP_PREQ_EVENT_REPORT_STATE_DATA);

@@ -14,23 +14,6 @@
 
 #define YCP_FAULT_MSG_NUM_MAX                            0x05
 
-#define YCP_REALTIME_FAULT_SCRAM                         (0x01 <<0)       /* 云快充实时故障：急停按钮动作故障 */
-#define YCP_REALTIME_FAULT_RECTIFIER                     (0x01 <<1)       /* 云快充实时故障：无可用整流模块 */
-#define YCP_REALTIME_FAULT_AIR_OUTLET_OVERTEMP           (0x01 <<2)       /* 云快充实时故障：出风口温度过高 */
-#define YCP_REALTIME_FAULT_AC_LIGHTNING ARRETER          (0x01 <<3)       /* 云快充实时故障：交流防雷故障 */
-#define YCP_REALTIME_FAULT_DC20_MODULE                   (0x01 <<4)       /* 云快充实时故障：交直流模块 DC20 通信中断 */
-#define YCP_REALTIME_FAULT_FC08_MODULE                   (0x01 <<5)       /* 云快充实时故障：绝缘检测模块 FC08 通信中断 */
-#define YCP_REALTIME_FAULT_AMMETER_COMMUNICATION         (0x01 <<6)       /* 云快充实时故障：电度表通信中断 */
-#define YCP_REALTIME_FAULT_CARD_READER_COMMUNICATION     (0x01 <<7)       /* 云快充实时故障：读卡器通信中断 */
-#define YCP_REALTIME_FAULT_RC10_COMMUNICATION            (0x01 <<8)       /* 云快充实时故障：RC10 通信中断 */
-#define YCP_REALTIME_FAULT_FAN_SPEED_PLATE               (0x01 <<9)       /* 云快充实时故障：风扇调速板故障 */
-#define YCP_REALTIME_FAULT_DC_FUSE                       (0x01 <<10)      /* 云快充实时故障：直流熔断器故障 */
-#define YCP_REALTIME_FAULT_HV_RELAY                      (0x01 <<11)      /* 云快充实时故障：高压接触器故障 */
-#define YCP_REALTIME_FAULT_DOOR                          (0x01 <<12)      /* 云快充实时故障：门打开 */
-#define YCP_REALTIME_FAULT_FLASH                         (0x01 <<13)      /* 云快充实时故障：flash */
-#define YCP_REALTIME_FAULT_OVER_VOLTAGE                  (0x01 <<14)      /* 云快充实时故障：过压 */
-#define YCP_REALTIME_FAULT_UNDER_VOLTAGE                 (0x01 <<15)      /* 云快充实时故障：欠压 */
-
 #pragma pack(1)
 struct ycp_fault_head{
     uint8_t count;
@@ -80,7 +63,7 @@ void ycp_fault_event_detect_callback(uint8_t gunno, uint8_t code, uint8_t is_res
         s_ycp_current_fault_set[gunno] |= (0x01 <<code);
         s_ycp_fault_info[gunno].body[index].flag.is_resume = 0x00;
     }
-    s_ycp_fault_info[gunno].body[index].flag.onging = 0x00;
+    s_ycp_fault_info[gunno].body[index].flag.onging = 0x01;
     s_ycp_fault_info[gunno].body[index].code = code;
     s_ycp_fault_info[gunno].head.count++;
 
@@ -107,86 +90,51 @@ static void ycp_clear_fault_event(uint8_t gunno, uint8_t code)
     s_ycp_current_fault_set[gunno] &= (~(0x01 <<code));
 }
 
-static int32_t ycp_get_fault_code(uint8_t bit, uint8_t gunno, uint8_t is_resume)
+static int32_t ycp_get_fault_code(uint8_t bit, uint8_t gunno)
 {
     if(gunno >= NET_SYSTEM_GUN_NUMBER){
         return -0x01;
     }
 
+    extern uint8_t ycp_chargepile_fault_converted(uint8_t bit);
     bit = ycp_chargepile_fault_converted(bit);
 
     switch(bit){
     case NET_GENERAL_FAULT_SCRAM:
-        if(is_resume){
-            s_ycp_realtime_fault[gunno] &= ~YCP_REALTIME_FAULT_SCRAM;
-        }else{
-            s_ycp_realtime_fault[gunno] |= YCP_REALTIME_FAULT_SCRAM;
-        }
+        s_ycp_realtime_fault[gunno] = NET_YCP_FAULT_CODE_EMERGENCY;
         break;
     case NET_GENERAL_FAULT_CARD_READER:
-        if(is_resume){
-            s_ycp_realtime_fault[gunno] &= ~YCP_REALTIME_FAULT_CARD_READER_COMMUNICATION;
-        }else{
-            s_ycp_realtime_fault[gunno] |= YCP_REALTIME_FAULT_CARD_READER_COMMUNICATION;
-        }
+        s_ycp_realtime_fault[gunno] = NET_YCP_FAULT_CODE_CARD_READER;
         break;
     case NET_GENERAL_FAULT_DOOR:
-        if(is_resume){
-            s_ycp_realtime_fault[gunno] &= ~YCP_REALTIME_FAULT_DOOR;
-        }else{
-            s_ycp_realtime_fault[gunno] |= YCP_REALTIME_FAULT_DOOR;
-        }
+        s_ycp_realtime_fault[gunno] = NET_YCP_FAULT_CODE_GATE;
         break;
     case NET_GENERAL_FAULT_AMMETER:
-        if(is_resume){
-            s_ycp_realtime_fault[gunno] &= ~YCP_REALTIME_FAULT_AMMETER_COMMUNICATION;
-        }else{
-            s_ycp_realtime_fault[gunno] |= YCP_REALTIME_FAULT_AMMETER_COMMUNICATION;
-        }
+        s_ycp_realtime_fault[gunno] = NET_YCP_FAULT_CODE_AMMETER;
         break;
     case NET_GENERAL_FAULT_CHARGE_MODULE:
-        if(is_resume){
-            s_ycp_realtime_fault[gunno] &= ~YCP_REALTIME_FAULT_RECTIFIER;
-        }else{
-            s_ycp_realtime_fault[gunno] |= YCP_REALTIME_FAULT_RECTIFIER;
-        }
+        s_ycp_realtime_fault[gunno] = NET_YCP_FAULT_CODE_COMMUNICATION_MODULE;
         break;
     case NET_GENERAL_FAULT_OVER_TEMP:
-        if(is_resume){
-            s_ycp_realtime_fault[gunno] &= ~YCP_REALTIME_FAULT_AIR_OUTLET_OVERTEMP;
-        }else{
-            s_ycp_realtime_fault[gunno] |= YCP_REALTIME_FAULT_AIR_OUTLET_OVERTEMP;
-        }
+        s_ycp_realtime_fault[gunno] = NET_YCP_FAULT_CODE_GUN_OVERTEMP;
         break;
     case NET_GENERAL_FAULT_OVER_VOLT:
-        if(is_resume){
-            s_ycp_realtime_fault[gunno] &= ~YCP_REALTIME_FAULT_OVER_VOLTAGE;
-        }else{
-            s_ycp_realtime_fault[gunno] |= YCP_REALTIME_FAULT_OVER_VOLTAGE;
-        }
+        s_ycp_realtime_fault[gunno] = NET_YCP_FAULT_CODE_INPUT_OVERVOLT;
         break;
     case NET_GENERAL_FAULT_UNDER_VOLT:
-        if(is_resume){
-            s_ycp_realtime_fault[gunno] &= ~YCP_REALTIME_FAULT_UNDER_VOLTAGE;
-        }else{
-            s_ycp_realtime_fault[gunno] |= YCP_REALTIME_FAULT_UNDER_VOLTAGE;
-        }
+        s_ycp_realtime_fault[gunno] = NET_YCP_FAULT_CODE_INPUT_UNDERVOLT;
         break;
     case NET_GENERAL_FAULT_OVER_CURR:
-        return 0x00;
+        s_ycp_realtime_fault[gunno] = NET_YCP_FAULT_CODE_OVERCURR;
         break;
     case NET_GENERAL_FAULT_MAIN_RELAY:
-        if(is_resume){
-            s_ycp_realtime_fault[gunno] &= ~YCP_REALTIME_FAULT_HV_RELAY;
-        }else{
-            s_ycp_realtime_fault[gunno] |= YCP_REALTIME_FAULT_HV_RELAY;
-        }
+        s_ycp_realtime_fault[gunno] = NET_YCP_FAULT_CODE_RELAY_ADH;
         break;
     case NET_GENERAL_FAULT_PARALLEL_RELAY:
-        return 0x00;
+        s_ycp_realtime_fault[gunno] = NET_YCP_FAULT_CODE_RELAY_ADH;
         break;
     case NET_GENERAL_FAULT_AC_RELAY:
-        return 0x00;
+        s_ycp_realtime_fault[gunno] = NET_YCP_FAULT_CODE_AC_RELAY;
         break;
     case NET_GENERAL_FAULT_ELOCK:
         return 0x00;
@@ -195,14 +143,34 @@ static int32_t ycp_get_fault_code(uint8_t bit, uint8_t gunno, uint8_t is_resume)
         return 0x00;
         break;
     case NET_GENERAL_FAULT_FLASH:
-        if(is_resume){
-            s_ycp_realtime_fault[gunno] &= ~YCP_REALTIME_FAULT_FLASH;
-        }else{
-            s_ycp_realtime_fault[gunno] |= YCP_REALTIME_FAULT_FLASH;
-        }
+        return 0x00;
         break;
     case NET_GENERAL_FAULT_EEPROM:
         return 0x00;
+        break;
+    case NET_GENERAL_FAULT_LIGHT_PRPTECT:
+        s_ycp_realtime_fault[gunno] = NET_YCP_FAULT_CODE_LIGHTNING_PROTECTOR;
+        break;
+    case NET_GENERAL_FAULT_GUN_SITE:
+        return 0x00;
+        break;
+    case NET_GENERAL_FAULT_CIRCUIT_BREAKER:
+        s_ycp_realtime_fault[gunno] = NET_YCP_FAULT_CODE_CIRCUIT_BREAKER;
+        break;
+    case NET_GENERAL_FAULT_FLOODING:
+        return 0x00;
+        break;
+    case NET_GENERAL_FAULT_SMOKE:
+        s_ycp_realtime_fault[gunno] = NET_YCP_FAULT_CODE_FUMES;
+        break;
+    case NET_GENERAL_FAULT_POUR:
+        return 0x00;
+        break;
+    case NET_GENERAL_FAULT_LIQUID_COOLING:
+        return 0x00;
+        break;
+    case NET_GENERAL_FAULT_FUSE:
+        s_ycp_realtime_fault[gunno] = NET_YCP_FAULT_CODE_FUSE;
         break;
     default:
         return 0x00;
@@ -225,7 +193,7 @@ void ycp_fault_detect_report(uint8_t gunno)
     }
     uint32_t event;
     if(ycp_exist_message_wait_response(gunno, &event) > 0x00){
-        if(event &(0x01 <<NET_YCP_PREQ_EVENT_REPORT_STATE_DATA)){
+        if(event &(0x01 <<NET_YCP_PREQ_EVENT_REPORT_DEVICE_FAULT)){
             return;
         }
     }
@@ -234,23 +202,27 @@ void ycp_fault_detect_report(uint8_t gunno)
 
     rt_enter_critical();
 
-    if((result = ycp_get_fault_code(s_ycp_fault_info[gunno].body[index].code, gunno, s_ycp_fault_info[gunno].body[index].flag.is_resume)) >= 0x00){
+    if((result = ycp_get_fault_code(s_ycp_fault_info[gunno].body[index].code, gunno)) >= 0x00){
         if(result > 0x00){
-            ycp_chargepile_fault_report(gunno, s_ycp_realtime_fault[gunno]);
-        }
-        if(s_ycp_fault_info[gunno].body[index].flag.is_resume){
-            ycp_clear_fault_event(gunno, s_ycp_fault_info[gunno].body[index].code);
-        }
-    }
+            extern int8_t  ycp_chargepile_fault_report(uint8_t gunno, uint16_t code, uint8_t is_resume);
+            if(ycp_chargepile_fault_report(gunno, s_ycp_realtime_fault[gunno], s_ycp_fault_info[gunno].body[index].flag.is_resume) >= 0x00){
+                if(s_ycp_fault_info[gunno].body[index].flag.is_resume){
+                    ycp_clear_fault_event(gunno, s_ycp_fault_info[gunno].body[index].code);
+                }
 
-    s_ycp_fault_info[gunno].body[index].flag.onging = 0x00;
-    for(int8_t count = (YCP_FAULT_MSG_NUM_MAX - 0x01); count > 0x00; count--){
-        if(s_ycp_fault_info[gunno].body[count - 0x01].flag.onging == 0x00){
-            break;
+                s_ycp_fault_info[gunno].body[index].flag.onging = 0x00;
+                for(int8_t count = (YCP_FAULT_MSG_NUM_MAX - 0x01); count > 0x00; count--){
+                    if(s_ycp_fault_info[gunno].body[count - 0x01].flag.onging == 0x00){
+                        break;
+                    }
+                    memcpy(&(s_ycp_fault_info[gunno].body[count]), &(s_ycp_fault_info[gunno].body[count - 0x01]), sizeof(struct ycp_fault_body));
+                }
+                if(s_ycp_fault_info[gunno].head.count > 0x00){
+                    s_ycp_fault_info[gunno].head.count--;
+                }
+            }
         }
-        memcpy(&(s_ycp_fault_info[gunno].body[count]), &(s_ycp_fault_info[gunno].body[count - 0x01]), sizeof(struct ycp_fault_body));
     }
-    s_ycp_fault_info[gunno].head.count--;
 
     rt_exit_critical();
 }

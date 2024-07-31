@@ -77,7 +77,6 @@ static uint32_t s_ycp_ota_timeout = 0x00;
 static uint32_t s_ycp_crc, s_ycp_actual_crc;
 static uint32_t s_ycp_spiflash_addr;
 
-static uint8_t s_ycp_ota_file_ver[5];
 static uint8_t s_ycp_ota_file_flag[NET_YCP_OTA_FILE_FLAG_TOTAL_LEN];
 static uint32_t s_ycp_start_tick = 0;
 static int32_t ycp_parse_ota_data(const uint8_t *data, uint32_t len);
@@ -113,8 +112,10 @@ static void ycp_ota_thread_entry(void *parameter)
                 break;
             case NET_OTA_STATE_READY:
                 if(g_ycp_sreq_remote_update.body.control_cmd == NET_YCP_UPDATE_CONTROL_EXECUTE_IDLE_STATE){
-                    while(s_ycp_ota_info->flag.permit_ota == 0x00){
-                        if((time(NULL) - s_ycp_ota_timeout) > g_ycp_sreq_remote_update.body.timeout_value *60){
+//                    while(s_ycp_ota_info->flag.permit_ota == 0x00){
+                    if(s_ycp_ota_info->flag.permit_ota == 0x00){
+//                        if((time(NULL) - s_ycp_ota_timeout) > g_ycp_sreq_remote_update.body.timeout_value *60){
+                        if(0x01){
                             s_ycp_ota_flag.is_parse = 0x00;
                             s_ycp_ota_flag.file_correct = 0x00;
                             s_ycp_ota_info->flag.start_ota = 0x00;
@@ -141,11 +142,6 @@ static void ycp_ota_thread_entry(void *parameter)
                         break;
                     }
                 }
-                if(g_ycp_sreq_remote_update.body.update_way != 0x01){
-                    s_ycp_ota_info->state = NET_OTA_STATE_NULL;
-                    LOG_W("ycp chargepile is not support this update way");
-                    ycp_chargepile_update_result_report(NET_YCP_UPDATE_RESULT_FAIL, NET_YCP_UPDATE_REASON_TIMEOUT);
-                }
                 s_ycp_ota_storage_info.app_is_update = 0xAA;
                 s_ycp_ota_storage_info.boot_is_update = 0x00;
                 s_ycp_ota_storage_info.update_addr = NET_OTA_DATA_ADDR;
@@ -162,10 +158,6 @@ static void ycp_ota_thread_entry(void *parameter)
                 if(s_ycp_ota_info->flag.start_ota){
                     /* 提取服务器信息 */
                     memcpy(s_ycp_server_info.host, g_ycp_sreq_remote_update.body.server_addr, strlen((const char *)&(g_ycp_sreq_remote_update.body.server_addr)));
-                    len = strlen(s_ycp_server_info.host);
-                    s_ycp_server_info.host[len] = ':';
-    //                sprintf((char *)&(port_str), "%u", g_ycp_sreq_remote_update.body.server_port);
-                    strcat(s_ycp_server_info.host, (const char *)&(port_str));
                     memcpy(s_ycp_server_info.user, g_ycp_sreq_remote_update.body.user_name, strlen((const char *)&(g_ycp_sreq_remote_update.body.user_name)));
                     memcpy(s_ycp_server_info.password, g_ycp_sreq_remote_update.body.password, strlen((const char *)&(g_ycp_sreq_remote_update.body.password)));
                     memcpy(s_ycp_server_info.path, g_ycp_sreq_remote_update.body.path, strlen((const char *)&(g_ycp_sreq_remote_update.body.path)));
@@ -174,8 +166,8 @@ static void ycp_ota_thread_entry(void *parameter)
                     crc_start_addr = strlen((const char *)&(g_ycp_sreq_remote_update.body.path)) - 4 - 8;
                     crc = strtoul((const char *)&(g_ycp_sreq_remote_update.body.path[crc_start_addr]), NULL, 16);
 
-                    LOG_D("ycp OTA info|%d  |%d  |0x%x  |0x%x\n", s_ycp_ota_storage_info.app_is_update,  s_ycp_ota_storage_info.boot_is_update,
-                            crc, s_ycp_ota_storage_info.update_addr);
+                    LOG_D("ycp OTA info|%d  |%d  |0x%x  |0x%x|%s\n", s_ycp_ota_storage_info.app_is_update,  s_ycp_ota_storage_info.boot_is_update,
+                            crc, s_ycp_ota_storage_info.update_addr, s_ycp_server_info.host);
 
                     s_ycp_crc = 0x00;
                     s_ycp_spiflash_addr = NET_OTA_DATA_ADDR;
@@ -216,17 +208,9 @@ static void ycp_ota_thread_entry(void *parameter)
                     s_ycp_ota_storage_info.pack_len = pack_len;
                     s_ycp_ota_storage_info.check_sum = crc;
                     memset(s_ycp_ota_file_flag, '\0', NET_YCP_OTA_FILE_FLAG_TOTAL_LEN);
-                    memset(s_ycp_ota_file_ver, '\0', sizeof(s_ycp_ota_file_ver));
 
-                    sscanf(((char*)s_handle->get_system_data(NET_SYSTEM_DATA_NAME_HARDWARE_VERSION, NULL, NET_SYSTEM_DATA_OPTION_PLAT_YCP)), "%u", &ver_data);
-                    if(ver_data >= 7103){
-                        memcpy(s_ycp_ota_file_ver, "-V10", strlen("-V10"));
-                    }else{
-                        memcpy(s_ycp_ota_file_ver, "-V01", strlen("-V01"));
-                    }
-
-                    LOG_D("ycp ftp_file_size(%d)[%x, %x, %d][%s], OTA FTP link success\n", pack_len, s_ycp_spiflash_addr,
-                            NET_OTA_DATA_ADDR, s_ycp_ota_storage_info.pack_len, s_ycp_ota_file_ver);
+                    LOG_D("ykc ftp_file_size(%d)[%x, %x, %d], OTA FTP link success\n", pack_len, s_ycp_spiflash_addr,
+                            NET_OTA_DATA_ADDR, s_ycp_ota_storage_info.pack_len);
                     s_ycp_ota_info->state = NET_OTA_STATE_LOGIN_WAIT;
                 }else{
                     LOG_W("ycp ota state error(%d)", s_ycp_ota_info->state);
@@ -330,9 +314,10 @@ static int32_t ycp_parse_ota_data(const uint8_t *data, uint32_t len)
             s_ycp_ota_flag.file_correct = false;  /* 文件类型错误 */
         }
         if(s_ycp_ota_flag.file_correct == true){
-            if(memcmp((s_ycp_ota_file_flag + NET_YCP_OTA_FILE_FLAG_LEN), s_ycp_ota_file_ver, NET_YCP_OTA_FILE_VERSION_FLAG_LEN) != 0){
+            char *ver = ((char*)s_handle->get_system_data(NET_SYSTEM_DATA_NAME_HARDWARE_VERSION, NULL, NET_SYSTEM_DATA_OPTION_PLAT_YCP));
+            if(memcmp((s_ycp_ota_file_flag + NET_YCP_OTA_FILE_FLAG_LEN), ver, NET_YCP_OTA_FILE_VERSION_FLAG_LEN) != 0){
                 s_ycp_ota_flag.file_correct = false;   /* 文件版本错误 */
-                LOG_W("ycp ota file version error, is not allow update");
+                LOG_W("ycp ota file version error, is not allow update[%s, %s]", (s_ycp_ota_file_flag + NET_YCP_OTA_FILE_FLAG_LEN), ver);
             }
         }
         actual_data_len -= remain_ota_flag_len;
