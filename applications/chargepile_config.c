@@ -1190,7 +1190,7 @@ int32_t sys_vin_whitelists_add(uint8_t *data, uint8_t len)
     if(data == NULL){
         return -0x01;
     }
-    if((len < VIN_CODE_LENGTH_MIN) || (len > VIN_CODE_LENGTH_MAX)){
+    if((len < VIN_CODE_LENGTH_MIN) || (len > VIN_CODE_LENGTH_MAX + 0x01)){
         return -0x01;
     }
 
@@ -1235,7 +1235,7 @@ int32_t sys_vin_whitelists_query(uint8_t *data, uint8_t len)
     if(data == NULL){
         return -0x01;
     }
-    if((len < VIN_CODE_LENGTH_MIN) || (len > VIN_CODE_LENGTH_MAX)){
+    if((len < VIN_CODE_LENGTH_MIN) || (len > VIN_CODE_LENGTH_MAX + 0x01)){
         return -0x01;
     }
     if(strlen((char*)data) < VIN_CODE_LENGTH_MIN){
@@ -1249,6 +1249,7 @@ int32_t sys_vin_whitelists_query(uint8_t *data, uint8_t len)
             return index;
         }
     }
+
     return -0x01;
 }
 
@@ -1257,7 +1258,7 @@ int32_t sys_vin_whitelists_delete(uint8_t *data, uint8_t len)
     if(data == NULL){
         return -0x01;
     }
-    if((len < VIN_CODE_LENGTH_MIN) || (len > VIN_CODE_LENGTH_MAX)){
+    if((len < VIN_CODE_LENGTH_MIN) || (len > VIN_CODE_LENGTH_MAX + 0x01)){
         return -0x01;
     }
 
@@ -1307,7 +1308,7 @@ int32_t sys_card_number_whitelists_add(uint8_t *data, uint8_t len)
     if(data == NULL){
         return -0x01;
     }
-    if((len < CARD_NUMBER_LENGTH_MIN) || (len > CARD_NUMBER_LENGTH_MAX)){
+    if((len < CARD_NUMBER_LENGTH_MIN) || (len > CARD_NUMBER_LENGTH_MAX + 0x01)){
         return -0x01;
     }
     if(strlen((const char *)data) < CARD_NUMBER_LENGTH_MIN){
@@ -1355,7 +1356,7 @@ int32_t sys_card_number_whitelists_query(uint8_t *data, uint8_t len)
     if(data == NULL){
         return -0x01;
     }
-    if((len < CARD_NUMBER_LENGTH_MIN) || (len > CARD_NUMBER_LENGTH_MAX)){
+    if((len < CARD_NUMBER_LENGTH_MIN) || (len > CARD_NUMBER_LENGTH_MAX + 0x01)){
         return -0x01;
     }
     if(strlen((char*)data) < CARD_NUMBER_LENGTH_MIN){
@@ -1377,7 +1378,7 @@ int32_t sys_card_number_whitelists_delete(uint8_t *data, uint8_t len)
     if(data == NULL){
         return -0x01;
     }
-    if((len < CARD_NUMBER_LENGTH_MIN) || (len > CARD_NUMBER_LENGTH_MAX)){
+    if((len < CARD_NUMBER_LENGTH_MIN) || (len > CARD_NUMBER_LENGTH_MAX + 0x01)){
         return -0x01;
     }
 
