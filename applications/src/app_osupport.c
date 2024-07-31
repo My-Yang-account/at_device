@@ -271,7 +271,7 @@ void app_osupport_thread_entry(void *parameter)
                 if(fault_xor){
                     for(bit = 0; bit < (end_bit - start_bit); bit++){
                         if(fault_xor &(1 <<bit)){
-                            switch((bit + start_bit))
+                            switch(mw_system_fault_convert(bit + start_bit))
                             {
                             case APP_SYS_FAULT_SCRAM:
                                 s_system_error_info[gunno].error_index = 0x0000;
@@ -368,6 +368,9 @@ void app_osupport_thread_entry(void *parameter)
                             case APP_SYS_FAULT_FUSE:
                                 s_system_error_info[gunno].error_index = 0x0017;
                                 s_system_error_info[gunno].error_code = APP_SYSTEM_STOP_WAY_FUSE;
+                            case APP_SYS_FAULT_MAIN_CABINET:
+                                s_system_error_info[gunno].error_index = 0x0018;
+                                s_system_error_info[gunno].error_code = APP_SYSTEM_STOP_WAY_MAIN_CABINET;
                                 break;
                             default:
                                 break;

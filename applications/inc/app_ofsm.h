@@ -244,7 +244,9 @@ typedef struct{
         uint16_t card_info_is_uid : 1;                       /* 卡信息是UID */
         uint16_t is_overtemp : 1;                            /* 过温 */
         uint16_t is_curr_decreased : 1;                      /* 过温已降流 */
-        uint16_t reserve : 5;
+        uint16_t permit_judge_complete : 1;                  /* 判断是否允许充电的过程已完成 */
+        uint16_t is_starting : 1;                            /* 已发指令启动充电 */
+        uint16_t reserve : 1;
     }flag;
 
     uint8_t cc1_state;                /* CC1 状态 */

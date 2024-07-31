@@ -131,7 +131,8 @@ static const char* system_fault_str[APP_SYS_FAULT_NO_ERROR] =
      "smoke",
      "pour",
      "liquid cool",
-     "fuse"
+     "fuse",
+     "main cabinet",
 };
 
 static const char* charge_fault_str[APP_CHARGE_FAULT_NO_ERROR] =
@@ -152,8 +153,6 @@ static const char* charge_fault_str[APP_CHARGE_FAULT_NO_ERROR] =
  ********************************************/
 const char* get_fault_string(uint16_t code)
 {
-    code = mw_system_fault_convert(code);
-
     if(code < APP_ORIGIN_SYSFAULT_MAX){
         return system_fault_str[code];
     }

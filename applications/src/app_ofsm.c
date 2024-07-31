@@ -24,6 +24,7 @@
 #include "mw_meter.h"
 #include "mw_temp.h"
 #include "mw_time.h"
+#include "mw_module_control.h"
 
 #include "chargepile_config.h"
 
@@ -922,9 +923,6 @@ static void ofsm_readying_fun(uint8_t gunno)
             s_ofsm_info[deputy_gunno].base.main_gunno = s_ofsm_info[gunno].base.main_gunno;
             thaisen_set_charge_way(s_ofsm_info[gunno].base.charge_way);
 
-            /* 开始充电 */
-            mw_charge_start_cmd(gunno);
-
             if(s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE){
                 if(gunno == s_ofsm_info[gunno].base.main_gunno){
                     s_ofsm_info[gunno].base.start_elect = (mw_get_meter_total_wh(gunno) + mw_get_meter_total_wh(deputy_gunno));
@@ -935,6 +933,8 @@ static void ofsm_readying_fun(uint8_t gunno)
                 s_ofsm_info[gunno].base.start_elect = mw_get_meter_total_wh(gunno);
             }
 
+            s_ofsm_info[gunno].base.flag.is_starting = APP_THA_ENUM_FALSE;
+            s_ofsm_info[gunno].base.flag.permit_judge_complete = APP_THA_ENUM_FALSE;
             s_ofsm_info[gunno].base.flag.start_result = APP_THA_ENUM_FALSE;
             s_ofsm_info[gunno].base.voltage_a = 0x00;
             s_ofsm_info[gunno].base.current_a = 0x00;
@@ -1079,6 +1079,89 @@ static void ofsm_starting_fun(uint8_t gunno)
 
     s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_FALSE;
     s_tiny_current_count[gunno] = rt_tick_get();
+
+    if(s_ofsm_info[gunno].base.flag.permit_judge_complete == APP_THA_ENUM_FALSE){
+        if(mw_module_get_permit_charge_state() == APP_MODULE_CHARGE_SIZE){
+            if(s_ofsm_info[gunno].charge_timeout > rt_tick_get()){
+                s_ofsm_info[gunno].charge_timeout = rt_tick_get();
+            }
+
+            if((rt_tick_get() - s_ofsm_info[gunno].charge_timeout) > 15000){
+                s_ofsm_info[gunno].base.flag.permit_judge_complete = APP_THA_ENUM_TRUE;
+                s_ofsm_info[gunno].charge_timeout = rt_tick_get();
+            }
+        }else if(mw_module_get_permit_charge_state() == APP_MODULE_FORBID_CHARGE){
+            s_ofsm_info[gunno].base.flag.permit_judge_complete = APP_THA_ENUM_TRUE;
+            s_ofsm_info[gunno].charge_timeout = rt_tick_get();
+        }else{
+            s_ofsm_info[gunno].base.flag.permit_judge_complete = APP_THA_ENUM_TRUE;
+            s_ofsm_info[gunno].charge_timeout = rt_tick_get();
+        }
+    }
+
+    if(s_ofsm_info[gunno].base.flag.permit_judge_complete == APP_THA_ENUM_TRUE){
+        if(mw_module_get_permit_charge_state() != APP_MODULE_ALLOW_CHARGE){
+            s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_STOPING];
+            s_ofsm_info[gunno].state = APP_OFSM_STATE_STOPING;
+
+            s_ofsm_info[gunno].base.system_fault = APP_SYS_FAULT_NO_ERROR;
+            s_ofsm_info[gunno].base.charge_fault = APP_CHARGE_FAULT_NO_ERROR;
+            s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
+
+            LOG_D("gunno(%d) charge stop deal to stop way(main cabinet forbid)|%d\n", gunno, APP_SYSTEM_STOP_WAY_MAIN_CABINET_FORBID);
+
+            s_thaisen_transaction[gunno].stop_reason = APP_SYSTEM_STOP_WAY_MAIN_CABINET_FORBID;
+            s_ofsm_info[gunno].base.reason_code = APP_SYSTEM_STOP_WAY_MAIN_CABINET_FORBID;
+
+            s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_FALSE;
+
+            s_ofsm_info[gunno].base.flag.start_result = APP_THA_ENUM_FALSE;
+            s_thaisen_transaction[gunno].boot_result = s_ofsm_info[gunno].base.flag.start_result;
+            s_thaisen_transaction[gunno].order_state.is_charging = APP_THA_ENUM_FALSE;
+
+            s_ofsm_info[gunno].base.start_time = s_ofsm_info[gunno].base.current_time;
+            s_ofsm_info[gunno].base.stop_time = s_ofsm_info[gunno].base.current_time;
+            s_ofsm_info[gunno].base.start_period = app_calculate_current_period(s_ofsm_info[gunno].base.start_time);
+            s_ofsm_info[gunno].base.current_period = s_ofsm_info[gunno].base.start_period;
+
+            s_thaisen_transaction[gunno].start_time = s_ofsm_info[gunno].base.start_time;
+            s_thaisen_transaction[gunno].end_time = s_thaisen_transaction[gunno].start_time;
+            s_thaisen_transaction[gunno].start_period_number = s_ofsm_info[gunno].base.start_period;
+
+            /* 对时后时间要修改 */
+            if(mw_get_time_sync_flag(gunno)){
+                mw_clear_time_sync_flag(gunno);
+                uint32_t curr_time = mw_get_current_timestamp();
+
+                s_ofsm_info[gunno].base.stop_time = curr_time;
+                if(s_ofsm_info[gunno].base.stop_time >= s_ofsm_info[gunno].base.charge_time){
+                    s_ofsm_info[gunno].base.start_time = (s_ofsm_info[gunno].base.stop_time - s_ofsm_info[gunno].base.charge_time);
+                }else{
+                    /* 这种情况是不对的 */
+                    s_ofsm_info[gunno].base.start_time = s_ofsm_info[gunno].base.stop_time;
+                }
+                s_thaisen_transaction[gunno].end_time = s_ofsm_info[gunno].base.stop_time;
+                s_thaisen_transaction[gunno].start_time = s_ofsm_info[gunno].base.start_time;
+
+                app_nsal_time_sync_revise(gunno);
+
+                /** 与时段有关的信息也要更新 */
+                LOG_I("chargepile is synchronized, modify correlation time|%x\n", curr_time);
+            }
+
+            app_billing_info_init(s_ofsm_info[gunno].base.start_elect, gunno);
+
+            app_nsal_state_charged(gunno);
+            app_nsal_event_occurded(gunno);
+            return;
+        }else{
+            if(s_ofsm_info[gunno].base.flag.is_starting == APP_THA_ENUM_FALSE){
+                s_ofsm_info[gunno].base.flag.is_starting = APP_THA_ENUM_TRUE;
+                /* 开始充电 */
+                mw_charge_start_cmd(gunno);
+            }
+        }
+    }
 
     switch(charge_state){
     case APP_CHARGE_STATE_IDLE:
@@ -2434,9 +2517,6 @@ static void ofsm_finishing_fun(uint8_t gunno)
             s_ofsm_info[deputy_gunno].base.main_gunno = s_ofsm_info[gunno].base.main_gunno;
             thaisen_set_charge_way(s_ofsm_info[gunno].base.charge_way);
 
-            /* 开始充电 */
-            mw_charge_start_cmd(gunno);
-
             if(s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE){
                 if(gunno == s_ofsm_info[gunno].base.main_gunno){
                     s_ofsm_info[gunno].base.start_elect = (mw_get_meter_total_wh(gunno) + mw_get_meter_total_wh(deputy_gunno));
@@ -2447,6 +2527,8 @@ static void ofsm_finishing_fun(uint8_t gunno)
                 s_ofsm_info[gunno].base.start_elect = mw_get_meter_total_wh(gunno);
             }
 
+            s_ofsm_info[gunno].base.flag.is_starting = APP_THA_ENUM_FALSE;
+            s_ofsm_info[gunno].base.flag.permit_judge_complete = APP_THA_ENUM_FALSE;
             s_ofsm_info[gunno].base.flag.start_result = APP_THA_ENUM_FALSE;
             s_ofsm_info[gunno].base.voltage_a = 0x00;
             s_ofsm_info[gunno].base.current_a = 0x00;
@@ -2953,8 +3035,7 @@ static void ofsm_faulting_fun(uint8_t gunno)
                     s_ofsm_info[deputy_gunno].main_gunno = s_ofsm_info[gunno].main_gunno;
                     thaisen_set_charge_way(s_ofsm_info[gunno].charge_way);
 #endif /* 0 */
-                    /* 开始充电 */
-                    mw_charge_start_cmd(gunno);
+
 #if 0
                     if(s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE){
                         if(gunno == s_ofsm_info[gunno].base.main_gunno){
@@ -2968,6 +3049,8 @@ static void ofsm_faulting_fun(uint8_t gunno)
 #else
                     s_ofsm_info[gunno].base.start_elect = mw_get_meter_total_wh(gunno);
 #endif /* 0 */
+                    s_ofsm_info[gunno].base.flag.is_starting = APP_THA_ENUM_FALSE;
+                    s_ofsm_info[gunno].base.flag.permit_judge_complete = APP_THA_ENUM_FALSE;
                     s_ofsm_info[gunno].base.flag.start_result = APP_THA_ENUM_FALSE;
                     s_ofsm_info[gunno].base.voltage_a = 0x00;
                     s_ofsm_info[gunno].base.current_a = 0x00;

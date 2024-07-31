@@ -202,6 +202,7 @@ typedef enum{
     thaisen_chargeCtl_stopWay_Pour,
     thaisen_chargeCtl_stopWay_LiquidCooling,
     thaisen_chargeCtl_stopWay_Fuse,
+    tthaisen_chargeCtl_stopWay_MainCabinet,
     thaisen_chargeCtl_stopWay_short,
     thaisen_chargeCtl_stopWay_GunVolt,
     thaisen_chargeCtl_stopWay_Insult,

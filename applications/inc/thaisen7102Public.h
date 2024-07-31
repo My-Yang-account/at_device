@@ -299,6 +299,7 @@ typedef enum thaisenFaultEnum
   thaisenFaultPour,
   thaisenFaultLiquidCooling,
   thaisenFaultFuse,
+  thaisenFaultMainCabinet,
 
   thaisenFaultSize,
 }thaisenFaultTy;

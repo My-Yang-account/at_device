@@ -41,8 +41,8 @@ uint16_t mw_get_system_stop_way(uint8_t gunno)
 
 uint16_t mw_system_fault_convert(uint16_t code)
 {
-    if(code >= APP_SYS_FAULT_NO_ERROR){
-        return APP_SYS_FAULT_NO_ERROR;
+    if(code >= APP_SYS_FAULT_MAX){
+        return APP_SYS_FAULT_MAX;
     }
     if(code < APP_ORIGIN_SYSFAULT_MAX){
         return code;

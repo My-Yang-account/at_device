@@ -461,8 +461,8 @@ struct fault_info *thaisen_app_get_fault_info(uint8_t gunno)
         return &s_fault_info;
     }
 
-    s_fault_info.charge_fault = app_get_highest_priority_charge_fault(gunno);
-    s_fault_info.system_fault = app_get_highest_priority_system_fault(gunno);
+    s_fault_info.charge_fault = mw_system_fault_convert(app_get_highest_priority_charge_fault(gunno));
+    s_fault_info.system_fault = mw_system_fault_convert(app_get_highest_priority_system_fault(gunno));
 
     return &s_fault_info;
 }

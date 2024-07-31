@@ -10,6 +10,8 @@
 #ifndef APPLICATIONS_THAISENCHARGMODULELIB_H_
 #define APPLICATIONS_THAISENCHARGMODULELIB_H_
 
+#include "stdio.h"
+
 /* 通用模块故障 */
 typedef struct
 {
@@ -606,5 +608,36 @@ int32_t thaisenModuleSetOpsModuleGroup(uint8_t group);
  *          可实时调用
  */
 uint8_t thaisenModuleGetOpsModuleGroup(void);
+
+typedef enum
+{
+    thaisenAllowCharge_allow,               /* 允许充电 */
+    thaisenAllowCharge_forbid,              /* 禁止充电 */
+    thaisenAllowCharge_size,
+}thaisenAllowCharge;
+
+/* 功能说明:
+ *          thaisenModuleSetAllowChargeState:设置是否允许充电
+ *
+ * 输入参数:
+ *          state:状态
+ * 返回参数:
+ *
+ * 调用方法:
+ *          可实时调用
+ */
+int32_t thaisenModuleSetAllowChargeState(uint8_t state);
+
+/* 功能说明:
+ *          thaisenModuleGetAllowChargeState: 获取是否允许充电
+ *
+ * 输入参数:
+ *
+ * 返回参数:
+ *          状态
+ * 调用方法:
+ *          可实时调用
+ */
+uint8_t thaisenModuleGetAllowChargeState(void);
 
 #endif /* APPLICATIONS_THAISENCHARGMODULELIB_H_ */
