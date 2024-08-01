@@ -1081,16 +1081,16 @@ static void ofsm_starting_fun(uint8_t gunno)
     s_tiny_current_count[gunno] = rt_tick_get();
 
     if(s_ofsm_info[gunno].base.flag.permit_judge_complete == APP_THA_ENUM_FALSE){
-        if(mw_module_get_permit_charge_state() == APP_MODULE_CHARGE_SIZE){
+        if(mw_module_get_permit_charge_state(gunno) == APP_MODULE_CHARGE_SIZE){
             if(s_ofsm_info[gunno].charge_timeout > rt_tick_get()){
                 s_ofsm_info[gunno].charge_timeout = rt_tick_get();
             }
 
-            if((rt_tick_get() - s_ofsm_info[gunno].charge_timeout) > 15000){
+            if((rt_tick_get() - s_ofsm_info[gunno].charge_timeout) > 20000){
                 s_ofsm_info[gunno].base.flag.permit_judge_complete = APP_THA_ENUM_TRUE;
                 s_ofsm_info[gunno].charge_timeout = rt_tick_get();
             }
-        }else if(mw_module_get_permit_charge_state() == APP_MODULE_FORBID_CHARGE){
+        }else if(mw_module_get_permit_charge_state(gunno) == APP_MODULE_FORBID_CHARGE){
             s_ofsm_info[gunno].base.flag.permit_judge_complete = APP_THA_ENUM_TRUE;
             s_ofsm_info[gunno].charge_timeout = rt_tick_get();
         }else{
@@ -1100,7 +1100,7 @@ static void ofsm_starting_fun(uint8_t gunno)
     }
 
     if(s_ofsm_info[gunno].base.flag.permit_judge_complete == APP_THA_ENUM_TRUE){
-        if(mw_module_get_permit_charge_state() != APP_MODULE_ALLOW_CHARGE){
+        if(mw_module_get_permit_charge_state(gunno) != APP_MODULE_ALLOW_CHARGE){
             s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_STOPING];
             s_ofsm_info[gunno].state = APP_OFSM_STATE_STOPING;
 

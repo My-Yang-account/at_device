@@ -621,23 +621,25 @@ typedef enum
  *
  * 输入参数:
  *          state:状态
+ *          gunNum:枪号
  * 返回参数:
  *
  * 调用方法:
  *          可实时调用
  */
-int32_t thaisenModuleSetAllowChargeState(uint8_t state);
+int32_t thaisenModuleSetAllowChargeState(uint8_t state, uint8_t gunNum);
 
 /* 功能说明:
  *          thaisenModuleGetAllowChargeState: 获取是否允许充电
  *
  * 输入参数:
+ *          gunNum：枪号
  *
  * 返回参数:
  *          状态
  * 调用方法:
  *          可实时调用
  */
-uint8_t thaisenModuleGetAllowChargeState(void);
+uint8_t thaisenModuleGetAllowChargeState(uint8_t gunNum);
 
 #endif /* APPLICATIONS_THAISENCHARGMODULELIB_H_ */

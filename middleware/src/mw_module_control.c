@@ -10,14 +10,14 @@
 #include "mw_module_control.h"
 #include "app_ofsm.h"
 
-void mw_module_set_permit_charge_state(uint8_t state)
+void mw_module_set_permit_charge_state(uint8_t state, uint8_t gunno)
 {
-    thaisenModuleSetAllowChargeState(state);
+    thaisenModuleSetAllowChargeState(state, gunno);
 }
 
-uint8_t mw_module_get_permit_charge_state(void)
+uint8_t mw_module_get_permit_charge_state(uint8_t gunno)
 {
-    uint8_t state = thaisenModuleGetAllowChargeState();
+    uint8_t state = thaisenModuleGetAllowChargeState(gunno);
     if(state > thaisenAllowCharge_size){
         return thaisenAllowCharge_size;
     }else{
