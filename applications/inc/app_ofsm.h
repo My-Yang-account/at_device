@@ -143,6 +143,8 @@ struct _order_state{
     uint8_t verify_fail : 1;              /* 上报确认失败 */
     uint8_t is_start_fail : 1;            /* 启动失败 */
     uint8_t is_charging : 1;              /* 正在充电 */
+    uint8_t online_order : 1;             /* 在线订单 */
+    uint8_t reserve : 4;
 };
 
 typedef struct
@@ -186,13 +188,17 @@ typedef struct
     uint32_t rate_type_loss_elect[APP_BILLING_RULE_RATE_TYPE_MAX];  /* 费率类型计损电量 */
 #endif /* (defined (APP_INCLUDE_YKC_PROTOCOL) || defined (APP_INCLUDE_YKC_PROTOCOL_MONITOR)) */
 
-#ifdef APP_INCLUDE_SL_PROTOCOL
+#if (defined (APP_INCLUDE_SL_PROTOCOL) || defined (APP_INCLUDE_SGCC_PROTOCOL))
     uint16_t period_elect[APP_BILLING_RULE_PERIOD_MAX];            /* 时段电量 */
     uint16_t period_elect_fees[APP_BILLING_RULE_PERIOD_MAX];       /* 时段电费 */
     uint16_t period_service_fees[APP_BILLING_RULE_PERIOD_MAX];     /* 时段服务费 */
     uint16_t period_occupy_fees[APP_BILLING_RULE_PERIOD_MAX];      /* 时段占位费 */
     struct billing_rule rule;             /* 计费规则 */
-#endif /* APP_INCLUDE_SL_PROTOCOL */
+#endif /* (defined (APP_INCLUDE_SL_PROTOCOL) || defined (APP_INCLUDE_SGCC_PROTOCOL)) */
+
+#ifdef APP_INCLUDE_SGCC_PROTOCOL
+    uint32_t device_serial_number[40 + 1];                         /* 设备流水号 */
+#endif /* APP_INCLUDE_SGCC_PROTOCOL */
 
 #ifdef APP_INCLUDE_XJ_PROTOCOL
     uint32_t delay_fee;                   /* 延迟费用 */
@@ -224,7 +230,7 @@ typedef struct
     }bms_fault_reason;
 
     uint8_t charge_way;                   /* 充电方式 */
-    uint8_t reserve[16];                  /* 预留 */
+    uint8_t reserve[128];                 /* 预留 */
 }thaisen_transaction_t;
 /*******************************************************************************************/
 
@@ -264,7 +270,7 @@ typedef struct{
     uint8_t soft_ver_sub;             /* 次版本号 */
     uint8_t soft_ver_revise;          /* 修订版本号 */
 
-    uint8_t transaction_number[32];   /* 流水号 */
+    uint8_t transaction_number[40 + 1]; /* 流水号 */
     uint8_t car_vin[17];              /* VIN 码 */
     uint8_t card_number[16];          /* 卡号 */
     uint8_t card_uid[8];              /* 卡UID */
@@ -277,8 +283,8 @@ typedef struct{
 
     int32_t system_temperature;       /* 系统温度(精度：0.1) */
     int32_t gunline_temperature[2];   /* 枪线正负极温度(精度：0.1) */
-    uint32_t voltage_a;               /* 电压A相(精度：0.1) */
-    uint32_t current_a;               /* 电流A相(精度：0.1) */
+    uint32_t voltage_a;               /* 电压A相(精度：0.01) */
+    uint32_t current_a;               /* 电流A相(精度：0.01) */
     uint32_t power_a;                 /* 功率A相(精度：1) */
     uint32_t elect_a;                 /* 电量A相(精度：0.001) */
 #if 0
@@ -313,6 +319,10 @@ typedef struct{
     uint32_t card_ballance_before;    /* 充电前卡余额 */
     uint32_t card_ballance_after;     /* 充电后卡余额 */
 #endif /* (defined (APP_INCLUDE_SL_PROTOCOL) || defined (APP_INCLUDE_XJ_PROTOCOL)) */
+
+#ifdef APP_INCLUDE_SGCC_PROTOCOL
+    uint32_t device_transaction_number[40 + 1];  /* 设备流水号 */
+#endif /* APP_INCLUDE_SGCC_PROTOCOL */
     uint8_t main_gunno;              /* 并充主枪枪号 */
     uint8_t charge_way;              /* 充电方式 */
     void *bms_data;                   /* BMS 数据 */

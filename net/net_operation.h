@@ -117,14 +117,15 @@
 #define NET_SYSTEM_DATA_OPTION_PLAT_XJ                 (0x01 <<0x04)    /* 系统数据选项：小桔平台数据 */
 #define NET_SYSTEM_DATA_OPTION_PLAT_SL                 (0x01 <<0x05)    /* 系统数据选项：阳光乐通平台数据 */
 #define NET_SYSTEM_DATA_OPTION_PLAT_YCP                (0x01 <<0x06)    /* 系统数据选项：越城平台数据 */
-#define NET_SYSTEM_DATA_OPTION_SELECT_ALL              (0x01 <<0x07)    /* 系统数据选项：选择所有 */
-#define NET_SYSTEM_DATA_OPTION_CARD_NUMBER_WHITELIST   (0x01 <<0x08)    /* 系统数据选项：卡号白名单数据 */
-#define NET_SYSTEM_DATA_OPTION_CARD_NUMBER_JOINT       (0x01 <<0x09)    /* 系统数据选项：连带卡号白名单数据 */
-#define NET_SYSTEM_DATA_OPTION_CARD_UID_WHITELIST      (0x01 <<0x0A)    /* 系统数据选项：卡UID白名单数据 */
-#define NET_SYSTEM_DATA_OPTION_CARD_UID_JOINT          (0x01 <<0x0B)    /* 系统数据选项：连带卡UID白名单数据 */
-#define NET_SYSTEM_DATA_OPTION_VIN_WHITELIST           (0x01 <<0x0C)    /* 系统数据选项：VIN码白名单数据 */
-#define NET_SYSTEM_DATA_OPTION_PLAT_RE3                (0x01 <<0x0D)    /* 系统数据选项：保留平台数据 */
-#define NET_SYSTEM_DATA_OPTION_PLAT_RE4                (0x01 <<0x0E)    /* 系统数据选项：保留平台数据 */
+#define NET_SYSTEM_DATA_OPTION_PLAT_GW                 (0x01 <<0x07)    /* 系统数据选项：国网平台数据 */
+#define NET_SYSTEM_DATA_OPTION_SELECT_ALL              (0x01 <<0x08)    /* 系统数据选项：选择所有 */
+#define NET_SYSTEM_DATA_OPTION_CARD_NUMBER_WHITELIST   (0x01 <<0x09)    /* 系统数据选项：卡号白名单数据 */
+#define NET_SYSTEM_DATA_OPTION_CARD_NUMBER_JOINT       (0x01 <<0x0A)    /* 系统数据选项：连带卡号白名单数据 */
+#define NET_SYSTEM_DATA_OPTION_CARD_UID_WHITELIST      (0x01 <<0x0B)    /* 系统数据选项：卡UID白名单数据 */
+#define NET_SYSTEM_DATA_OPTION_CARD_UID_JOINT          (0x01 <<0x0C)    /* 系统数据选项：连带卡UID白名单数据 */
+#define NET_SYSTEM_DATA_OPTION_VIN_WHITELIST           (0x01 <<0x0D)    /* 系统数据选项：VIN码白名单数据 */
+#define NET_SYSTEM_DATA_OPTION_TARGET_PLAT             (0x01 <<0x0E)    /* 系统数据选项：目标平台数据 */
+#define NET_SYSTEM_DATA_OPTION_MONITOR_PLAT            (0x01 <<0x0F)    /* 系统数据选项：监控平台数据 */
 
 /** net device operate option */
 #define NET_DEV_OPERATE_OPTION_RESET                   (0x01 <<0x00)    /* 网络设备操作选项：重启 */

@@ -1,0 +1,666 @@
+/*
+ * Copyright (c) 2006-2021, RT-Thread Development Team
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Change Logs:
+ * Date           Author       Notes
+ * 2024-07-19     leven       the first version
+ */
+#include "sgcc_message_send.h"
+#include "sgcc_message_receive.h"
+#include "sgcc_message_padding.h"
+
+#include "net_operation.h"
+
+#define DBG_TAG "gw_send"
+#define DBG_LVL DBG_LOG
+#include <rtdbg.h>
+
+#ifdef NET_PACK_USING_SGCC
+
+#define NET_SGCC_HEARTBEAT_TIMEOUT_RENTRY                     3           /* 心跳超时次数 */
+#define NET_SGCC_OPEN_SOCKET_RENTRY                           5           /* 打开socket尝试次数 */
+#define NET_SGCC_LOGIN_RENTRY                                 5           /* 登录尝试次数 */
+#define NET_SGCC_WAIT_LOGIN_RENTRY                            100         /* 等待登录结果尝试次数 */
+#define NET_SGCC_WAIT_UNLOCK_TIMEOUT                          (10 *1000)  /* 等待socket 解锁超时时间(单位：ms) */
+
+#define NET_SGCC_LOGIN_OPERATION_INTERVAL                     30000       /* 登录操作间隔(单位ms:30 *1000 = 30s) */
+#define NET_SGCC_HEARTBEAT_REPORT_INTERVAL                    10000       /* 心跳间隔(单位ms:10 *1000 = 10s) */
+
+#define NET_SGCC_REALTIME_DATA_IDLE_INTERVAL                  300000      /* 实时数据空闲上报间隔(单位ms:5 *60 *1000 = 5min) */
+#define NET_SGCC_REALTIME_DATA_CHARGING_INTERVAL              15000       /* 实时数据充电中上报间隔(单位ms:15 *1000 = 15s) */
+#define NET_SGCC_REALTIME_DATA_LINK_INTERVAL                  5000        /* 实时数据刚连上网时上报间隔(单位ms:5 *1000 = 5s) */
+#define NET_SGCC_SAME_TRANSATION_REPORT_COUNT_MAX             10          /* 相同订单最大上报次数 */
+
+/** 标志集 */
+struct sgcc_flag_set{
+    uint8_t disconnect;    /** 断网或刚开始连上网 */
+};
+
+struct sgcc_wait_response{
+    uint32_t message_wait_response_state[NET_SYSTEM_GUN_NUMBER];                        /* 报文已发送发送，等待响应状态 */
+    uint32_t message_repeat_time[NET_SYSTEM_GUN_NUMBER][NET_SGCC_CHARGEPILE_PREQ_NUM];  /* 报文重发计时 */
+};
+
+static struct sgcc_flag_set s_sgcc_flag_set;
+static uint32_t s_sgcc_chargepile_event[NET_SGCC_EVENT_TYPE_SIZE][NET_SYSTEM_GUN_NUMBER];
+static uint32_t s_sgcc_server_event[NET_SGCC_EVENT_TYPE_SIZE][NET_SYSTEM_GUN_NUMBER];
+
+static struct rt_thread s_sgcc_message_send_thread;
+static uint8_t s_sgcc_message_send_thread_stack[NET_SGCC_MESSAGE_SEND_THREAD_STACK_SIZE];
+static struct rt_thread s_sgcc_message_server_thread;
+static uint8_t s_sgcc_message_service_thread_stack[NET_SGCC_SERVER_MESSAGE_PRO_THREAD_STACK_SIZE];
+static struct rt_thread s_sgcc_connect_thread;
+static uint8_t s_sgcc_connect_thread_stack[NET_SGCC_CONNECT_THREAD_STACK_SIZE];
+static sgcc_socket_info_t s_sgcc_socket_info;
+
+/**=======================================[充电桩公共请求报文]=======================================*/
+///设备固件信息
+evs_event_firmware_info evs_event_firmware_infos;
+///设备版本信息
+evs_event_ver_info evs_event_ver_infos[NET_SYSTEM_GUN_NUMBER];
+///设备组件信息
+evs_event_devmdu_info evs_event_devmdu_infos[NET_SYSTEM_GUN_NUMBER];
+///智能卡信息
+evs_event_card_info evs_event_card_infos[NET_SYSTEM_GUN_NUMBER];
+///智能卡鉴权
+evs_event_card_auth evs_event_card_auths[NET_SYSTEM_GUN_NUMBER];
+///智能卡鉴权结果
+evs_event_card_auth_result evs_event_card_auth_results[NET_SYSTEM_GUN_NUMBER];
+///计费模型请求
+evs_event_ask_feeModel evs_event_ask_feeModels[NET_SYSTEM_GUN_NUMBER];
+///启动充电结果
+evs_event_startResult evs_event_startResults[NET_SYSTEM_GUN_NUMBER];
+///启动充电鉴权
+evs_event_startCharge evs_event_startCharges[NET_SYSTEM_GUN_NUMBER];
+///停止充电结果
+evs_event_stopCharge evs_event_stopCharges[NET_SYSTEM_GUN_NUMBER];
+///交易记录
+evs_event_tradeInfo evs_event_tradeInfos[NET_SYSTEM_GUN_NUMBER];
+///故障告警
+evs_event_alarm evs_event_alarms[NET_SYSTEM_GUN_NUMBER];
+///地锁状态变化
+evs_event_groundLock_change evs_event_groundLock_changes[NET_SYSTEM_GUN_NUMBER];
+///智能门锁状态变化
+evs_event_gateLock_change evs_event_gateLock_changes[NET_SYSTEM_GUN_NUMBER];
+///充电枪状态变化
+evs_event_pile_stutus_change evs_event_pile_stutus_changes[NET_SYSTEM_GUN_NUMBER];
+///车辆信息
+evs_event_car_info evs_event_car_infos[NET_SYSTEM_GUN_NUMBER];
+///VIN码白名单查询结果
+evs_event_vinList_result evs_event_vinList_results[NET_SYSTEM_GUN_NUMBER];
+///时间同步结果
+evs_event_time_sync_result evs_event_time_sync_results[NET_SYSTEM_GUN_NUMBER];
+///充电中的连接状态
+evs_event_charge_connect_change evs_event_charge_connect_changes[NET_SYSTEM_GUN_NUMBER];
+///卡异常检测信息
+evs_event_card_check_error evs_event_card_check_errors[NET_SYSTEM_GUN_NUMBER];
+///蓝牙信息
+evs_event_ble_plug_charge_info evs_event_ble_plug_charge_infos[NET_SYSTEM_GUN_NUMBER];
+///蓝牙连接状态变化
+evs_event_ble_conn_change evs_event_ble_conn_changes[NET_SYSTEM_GUN_NUMBER];
+///日志查询结果
+evs_event_logQuery_Result evs_event_logQuery_Results[NET_SYSTEM_GUN_NUMBER];
+///智能枪参数信息
+evs_smart_gun_auth_param evs_smart_gun_auth_params[NET_SYSTEM_GUN_NUMBER];
+
+/**=======================================[直流充电桩请求报文]=======================================*/
+evs_event_ccu_info evs_event_ccu_infos[NET_SYSTEM_GUN_NUMBER];
+evs_event_pcu_info evs_event_pcu_infos[NET_SYSTEM_GUN_NUMBER];
+evs_event_cu_info evs_event_cu_infos[NET_SYSTEM_GUN_NUMBER];
+evs_event_switch_info evs_event_switch_infos[NET_SYSTEM_GUN_NUMBER];
+evs_event_edas_info evs_event_edas_infos[NET_SYSTEM_GUN_NUMBER];
+evs_event_cu_work_info evs_event_cu_work_infos[NET_SYSTEM_GUN_NUMBER];
+
+/**=======================================[充电桩公共请求报文]=======================================*/
+///输出电表底值
+evs_property_meter evs_property_meters[NET_SYSTEM_GUN_NUMBER];
+
+/**=======================================[交流充电桩请求报文]=======================================*/
+evs_property_acPile evs_property_acPiles[NET_SYSTEM_GUN_NUMBER];
+evs_property_ac_work evs_property_ac_works[NET_SYSTEM_GUN_NUMBER];
+evs_property_ac_nonWork evs_property_ac_nonWorks[NET_SYSTEM_GUN_NUMBER];
+
+/**=======================================[直流充电桩请求报文]=======================================*/
+evs_property_dcPile evs_property_dcPiles[NET_SYSTEM_GUN_NUMBER];
+evs_property_BMS evs_property_BMSs[NET_SYSTEM_GUN_NUMBER];
+evs_property_dc_work evs_property_dc_works[NET_SYSTEM_GUN_NUMBER];
+evs_property_dc_nonWork evs_property_dc_nonWorks[NET_SYSTEM_GUN_NUMBER];
+///输入电表低值
+evs_property_dc_input_meter evs_property_dc_input_meters[NET_SYSTEM_GUN_NUMBER];
+
+/**************************************************************************
+ * 函数名                 sgcc_get_socket_info
+ * 功能                     获取socket信息
+ * 说明
+ * ***********************************************************************/
+sgcc_socket_info_t* sgcc_get_socket_info(void)
+{
+    return &s_sgcc_socket_info;
+}
+
+/**************************************************************************
+ * 函数名                 sgcc_response_buff_take_sem_forever
+ * 功能                     获取响应缓存互斥量
+ * 说明
+ * ***********************************************************************/
+static int32_t sgcc_response_buff_take_sem_forever(int32_t timeout)
+{
+//    return rt_sem_take(&s_sgcc_response_buff_sem, timeout);
+}
+/**************************************************************************
+ * 函数名                 sgcc_response_buff_release_sem
+ * 功能                     释放响应缓存互斥信号量
+ * 说明
+ * ***********************************************************************/
+static void sgcc_response_buff_release_sem(void)
+{
+//    rt_sem_release(&s_sgcc_response_buff_sem);
+}
+/**************************************************************************
+ * 函数名                 sgcc_get_response_buff
+ * 功能                     获取响应缓存
+ * 说明
+ * ***********************************************************************/
+//static sgcc_response_message_buf_t* sgcc_get_response_buff(int32_t timeout)
+//{
+//    if(sgcc_response_buff_take_sem_forever(timeout) < 0){
+//        return NULL;
+//    }
+//    return &s_sgcc_response_buff;
+//}
+
+/**************************************************************************
+ * 函数名                 sgcc_transaction_is_verify
+ * 功能                     查询交易是否已确认
+ * 说明
+ * ***********************************************************************/
+uint8_t sgcc_transaction_is_verify(uint8_t gunno)
+{
+    if(gunno >= NET_SYSTEM_GUN_NUMBER){
+        return 0x00;
+    }
+//    return s_sgcc_transaction_verify[gunno];
+}
+
+/**************************************************************************
+ * 函数名                 sgcc_set_transaction_verify_state
+ * 功能                     设置交易确认状态
+ * 说明
+ * ***********************************************************************/
+void sgcc_set_transaction_verify_state(uint8_t gunno, uint8_t state)
+{
+    if(gunno >= NET_SYSTEM_GUN_NUMBER){
+        return;
+    }
+//    if(state){
+//        s_sgcc_transaction_verify[gunno] = 0x01;
+//    }else{
+//        s_sgcc_transaction_verify[gunno] = 0x00;
+//    }
+}
+
+/**************************************************************************
+ * 函数名                 sgcc_net_event_send
+ * 功能                     网络事件发送
+ * 说明
+ * ***********************************************************************/
+int32_t sgcc_net_event_send(uint8_t event_handle, uint8_t event_type, uint8_t gunno, uint32_t event)
+{
+    if(event_handle >= NET_SGCC_EVENT_HANDLE_SIZE){
+        return -1;
+    }
+    if(event_type >= NET_SGCC_EVENT_TYPE_SIZE){
+        return -2;
+    }
+    if(gunno >= NET_SYSTEM_GUN_NUMBER){
+        return -3;
+    }
+
+    if(event_handle == NET_SGCC_EVENT_HANDLE_CHARGEPILE){
+        s_sgcc_chargepile_event[event_type][gunno] |= (1 <<event);
+    }else{
+        s_sgcc_server_event[event_type][gunno] |= (1 <<event);
+    }
+
+    return 0;
+}
+/**************************************************************************
+ * 函数名                 sgcc_net_event_receive
+ * 功能                     网络事件接收
+ * 说明                     若事件发生则对应位为 1，否则为0
+ * ***********************************************************************/
+int32_t sgcc_net_event_receive(uint8_t event_handle, uint8_t event_type, uint8_t gunno, uint8_t option,
+        uint32_t event, uint32_t* event_buf)
+{
+    if(event_handle >= NET_SGCC_EVENT_HANDLE_SIZE){
+        return -1;
+    }
+    if(event_type >= NET_SGCC_EVENT_TYPE_SIZE){
+        return -2;
+    }
+    if(gunno >= NET_SYSTEM_GUN_NUMBER){
+        return -3;
+    }
+    uint32_t (*event_set)[NET_SYSTEM_GUN_NUMBER] = NULL;
+
+    if(event_handle == NET_SGCC_EVENT_HANDLE_CHARGEPILE){
+        event_set = s_sgcc_chargepile_event;
+    }else{
+        event_set = s_sgcc_server_event;
+    }
+
+    if(event_buf){
+        (*event_buf) = event_set[event_type][gunno];
+    }
+
+    if(event_set[event_type][gunno] &(1 <<event)){
+        if(option &NET_SGCC_EVENT_OPTION_AND){
+            if((event_set[event_type][gunno] &(1 <<event)) != (1 <<event)){
+                return -4;
+            }
+        }
+        if(option &NET_SGCC_EVENT_OPTION_CLEAR){
+            event_set[event_type][gunno] &= (~(1 <<event));
+        }
+        return 1;
+    }
+    return 0;
+}
+
+/**************************************************************************
+ * 函数名                 sgcc_get_message_send_state
+ * 功能                     获取报文发送状态
+ * 说明                     若报文正在发送则对应位为 1，否则为0
+ * ***********************************************************************/
+uint8_t sgcc_get_message_send_state(uint8_t gunno, uint32_t message_bit)
+{
+    if(gunno >= NET_SYSTEM_GUN_NUMBER){
+        return 0x00;
+    }
+//    if(s_sgcc_message_send_state[gunno] &(1 <<message_bit)){
+//        return 0x01;
+//    }
+    return 0x00;
+}
+/**************************************************************************
+ * 函数名                 sgcc_set_message_send_state
+ * 功能                     设置报文发送状态
+ * 说明                     若报文正在发送则对应位置 1，否则置0
+ * ***********************************************************************/
+void sgcc_set_message_send_state(uint8_t gunno, uint8_t state, uint32_t message_bit)
+{
+    if(gunno >= NET_SYSTEM_GUN_NUMBER){
+        return;
+    }
+//    if(state){
+//        s_sgcc_message_send_state[gunno] |= (1 <<message_bit);
+//    }else{
+//        s_sgcc_message_send_state[gunno] &= (~(1 <<message_bit));
+//    }
+}
+
+/**************************************************************************
+ * 函数名                 sgcc_set_message_wait_response_state
+ * 功能                     设置报文已发送，等待响应状态
+ * 说明
+ * ***********************************************************************/
+static void sgcc_set_message_wait_response_state(uint8_t gunno, uint32_t message_bit)
+{
+    if(gunno >= NET_SYSTEM_GUN_NUMBER){
+        return;
+    }
+//    if(message_bit >= NET_SGCC_CHARGEPILE_PREQ_NUM){
+//        return;
+//    }
+//    s_sgcc_wait_response.message_wait_response_state[gunno] |= (1 <<message_bit);
+//    s_sgcc_wait_response.message_repeat_time[gunno][message_bit] = rt_tick_get();
+}
+/**************************************************************************
+ * 函数名                 sgcc_clear_message_wait_response_state
+ * 功能                     清除报文已发送，等待响应状态
+ * 说明
+ * ***********************************************************************/
+void sgcc_clear_message_wait_response_state(uint8_t gunno, uint32_t message_bit)
+{
+    if(gunno >= NET_SYSTEM_GUN_NUMBER){
+        return;
+    }
+//    if(message_bit >= NET_SGCC_CHARGEPILE_PREQ_NUM){
+//        return;
+//    }
+//    s_sgcc_wait_response.message_wait_response_state[gunno] &= (~(1 <<message_bit));
+}
+/**************************************************************************
+ * 函数名                 sgcc_exist_message_wait_response
+ * 功能                     检查是否存在已发送的报文等待响应
+ * 说明
+ * ***********************************************************************/
+uint8_t sgcc_exist_message_wait_response(uint8_t gunno, uint32_t *state)
+{
+    if(gunno >= NET_SYSTEM_GUN_NUMBER){
+        return 0x00;
+    }
+//    if(s_sgcc_wait_response.message_wait_response_state[gunno]){
+//        if(state){
+//            *state = s_sgcc_wait_response.message_wait_response_state[gunno];
+//        }
+//        return 0x01;
+//    }
+    return 0x00;
+}
+/**************************************************************************
+ * 函数名                 sgcc_get_message_wait_response_timeout_state
+ * 功能                     获取报文等待响应超时状态
+ * 说明
+ * ***********************************************************************/
+uint8_t sgcc_get_message_wait_response_timeout_state(uint8_t gunno, uint32_t timeout, uint32_t message_bit)
+{
+    if(gunno >= NET_SYSTEM_GUN_NUMBER){
+        return 0x00;
+    }
+//    if(message_bit >= NET_SGCC_CHARGEPILE_PREQ_NUM){
+//        return 0x00;
+//    }
+//    if(s_sgcc_wait_response.message_wait_response_state[gunno] &(1 <<message_bit)){
+//        if(s_sgcc_wait_response.message_repeat_time[gunno][message_bit] > rt_tick_get()){
+//            s_sgcc_wait_response.message_repeat_time[gunno][message_bit] = rt_tick_get();
+//        }
+//        if((rt_tick_get() - s_sgcc_wait_response.message_repeat_time[gunno][message_bit]) > timeout){
+//            s_sgcc_wait_response.message_wait_response_state[gunno] &= (~(1 <<message_bit));
+//            return 0x01;
+//        }
+//    }
+    return 0x00;
+}
+
+static void sgcc_connect_thread_entry(void *parameter)
+{
+    uint8_t step = NET_SGCC_NET_STATE_OPEN_RESOURCE, is_power_on = 0x01, link_open_step = 0x00, gunno = 0x00;
+    uint32_t delay = 0x00;
+    int32_t result = 0x00;
+
+    while(1)
+    {
+        if((net_get_ota_info()->state >= NET_OTA_STATE_LOGIN_WAIT) && (net_get_ota_info()->state <= NET_OTA_STATE_UPDATING)){
+            rt_thread_mdelay(5000);
+            continue;
+        }
+
+        net_get_net_handle()->data_updata();
+        if((net_get_net_handle()->net_fault) &NET_FAULT_PHYSICAL_LAYER){
+            s_sgcc_socket_info.state = SGCC_SOCKET_STATE_PHY;
+            net_get_net_handle()->net_state = NET_SOCKET_STATE_PHY;
+            s_sgcc_socket_info.fd = -0x01;
+            step = NET_SGCC_NET_STATE_OPEN_RESOURCE;
+            link_open_step = 0x00;
+            if(rt_tick_get() > (delay + NET_SGCC_LOGIN_OPERATION_INTERVAL)){
+                delay = (rt_tick_get() - NET_SGCC_LOGIN_OPERATION_INTERVAL);
+            }
+
+            rt_thread_mdelay(1000);
+            continue;
+        }
+        if((net_get_net_handle()->net_fault) &NET_FAULT_DATA_LINK_LAYER){
+            s_sgcc_socket_info.state = SGCC_SOCKET_STATE_DATA_LINK;
+            net_get_net_handle()->net_state = NET_SOCKET_STATE_DATA_LINK;
+            s_sgcc_socket_info.fd = -0x01;
+            step = NET_SGCC_NET_STATE_OPEN_RESOURCE;
+            link_open_step = 0x00;
+            if(rt_tick_get() > (delay + NET_SGCC_LOGIN_OPERATION_INTERVAL)){
+                delay = (rt_tick_get() - NET_SGCC_LOGIN_OPERATION_INTERVAL);
+            }
+
+            rt_thread_mdelay(1000);
+            continue;
+        }
+
+        extern int get_at_device_appinfo_is_complete(void);
+        while (1) {
+            if (get_at_device_appinfo_is_complete()) {
+//                LOG_D("net init complete \n");
+                break;
+            }else{
+                LOG_D("net wait init... \n");
+
+                rt_thread_mdelay(1000);
+            }
+        }
+
+        if(link_open_step == 0x00){
+            link_open_step = 0x01;
+        }
+        if(link_open_step == 0x01){
+            if((result = evs_linkkit_new(0x01, 0x00)) < 0x00){
+                LOG_D("linkkit new failed, res code: %d \n", result);
+                return RT_ERROR;  /** 是否需要 return,有待考虑*/
+            }else{
+                LOG_D("linkkit new success \n");
+            }
+
+            link_open_step = 0x02;
+        }
+
+        for(gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
+            if(s_sgcc_socket_info.heartbeat[gunno] > NET_SGCC_HEARTBEAT_TIMEOUT_RENTRY){
+                s_sgcc_socket_info.heartbeat[gunno] = 0x00;
+
+                delay = rt_tick_get();
+                step = NET_SGCC_NET_STATE_OPEN_RESOURCE;
+                s_sgcc_socket_info.state = SGCC_SOCKET_STATE_DATA_LINK;
+                net_get_net_handle()->net_state = NET_SOCKET_STATE_DATA_LINK;
+
+                LOG_D("ykc heartbeat timeout");
+                break;
+            }
+        }
+
+        /***************************************************** [登录认证] **********************************************************/
+        /***************************************************** [登录认证] **********************************************************/
+        switch(step){
+        case NET_SGCC_NET_STATE_OPEN_RESOURCE:
+            if(delay > rt_tick_get()){
+                delay = rt_tick_get();
+            }
+            if(((rt_tick_get() - delay) > NET_SGCC_LOGIN_OPERATION_INTERVAL) || is_power_on){
+                if(evs_mainopen() >= 0x00){
+                    LOG_D("linkkit open resource success \n");
+                    step = NET_SGCC_NET_STATE_LOGIN;
+                }
+                is_power_on = 0x01;
+            }
+            break;
+        case NET_SGCC_NET_STATE_LOGIN:
+        {
+            uint8_t vaild_len = 0, rentry = 0;
+            uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_GW |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
+            struct net_handle* handle = net_get_net_handle();
+            uint8_t *sim_no = (uint8_t*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_ICCID, NULL, option));
+
+            memset(evs_event_firmware_infos.simNo, '\0', sizeof(evs_event_firmware_infos.simNo));
+            vaild_len = sizeof(evs_event_firmware_infos.simNo);
+            vaild_len = vaild_len > (strlen((char*)sim_no))? strlen((char*)sim_no) : vaild_len;
+            memcpy(evs_event_firmware_infos.simNo, sim_no, vaild_len);
+
+            result = evs_mainconnect();
+            if(result >= 0x00){
+                LOG_D("linkkit connect success \n");
+                step = NET_SGCC_NET_STATE_MONITORING;
+                s_sgcc_socket_info.operate_fail.login = 0x00;
+                sgcc_net_event_send(NET_SGCC_EVENT_HANDLE_CHARGEPILE, NET_SGCC_EVENT_TYPE_REQUEST, 0x00, NET_SGCC_PREQ_EVENT_REPORT_FIRMWARE_INFO);
+            }else{
+                evs_mainclose();
+                s_sgcc_socket_info.operate_fail.login++;
+                delay = rt_tick_get();
+                step = NET_SGCC_NET_STATE_OPEN_RESOURCE;
+                s_sgcc_socket_info.state = SGCC_SOCKET_STATE_OPEN;
+                net_get_net_handle()->net_state = NET_SOCKET_STATE_OPEN;
+                LOG_D("linkkit connect failed num(%d)\n", s_sgcc_socket_info.operate_fail.login);
+            }
+            break;
+        }
+        case NET_SGCC_NET_STATE_MONITORING:
+            s_sgcc_socket_info.state = SGCC_SOCKET_STATE_LOGIN_SUCCESS;
+            net_get_net_handle()->net_state = NET_SOCKET_STATE_LOGIN_SUCCESS;
+            result = evs_mainyield();
+            if(result < 0x00){
+                evs_mainclose();
+                LOG_D("linkkit yield failed res(%d) \n", result);
+                delay = rt_tick_get();
+                step = NET_SGCC_NET_STATE_OPEN_RESOURCE;
+                s_sgcc_socket_info.state = SGCC_SOCKET_STATE_DATA_LINK;
+                net_get_net_handle()->net_state = NET_SOCKET_STATE_DATA_LINK;
+            }
+            break;
+        default:
+            delay = rt_tick_get();
+            step = NET_SGCC_NET_STATE_OPEN_RESOURCE;
+            s_sgcc_socket_info.state = SGCC_SOCKET_STATE_DATA_LINK;
+            net_get_net_handle()->net_state = NET_SOCKET_STATE_DATA_LINK;
+            break;
+        }
+        if(s_sgcc_socket_info.operate_fail.login > NET_SGCC_LOGIN_RENTRY){
+            s_sgcc_socket_info.operate_fail.login = 0x00;
+            LOG_W("gw login rentry = 0x00");
+            net_set_clear_ndev_reset_state(NET_PLATFORM_MASK_TARGET, 0x00);
+        }
+
+        rt_thread_mdelay(100);
+    }
+}
+
+static void sgcc_message_send_thread_entry(void *parameter)
+{
+    s_sgcc_flag_set.disconnect = 0x00;
+    uint32_t heartbeat_tick[NET_SYSTEM_GUN_NUMBER];
+
+    while(1)
+    {
+        if((net_get_ota_info()->state >= NET_OTA_STATE_LOGIN_WAIT) && (net_get_ota_info()->state <= NET_OTA_STATE_UPDATING)){
+            rt_thread_mdelay(5000);
+            continue;
+        }
+
+        if(s_sgcc_socket_info.state != SGCC_SOCKET_STATE_LOGIN_SUCCESS){   /* 未登录上服务器前不进行网络数据交互事件处理 */
+            for(uint8_t gunno = 0; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
+                heartbeat_tick[gunno] = rt_tick_get();
+                s_sgcc_socket_info.heartbeat[gunno] = 0x00;
+//                s_gw_message_serial_number[gunno]++;
+//                ykc_set_message_send_state(gunno, NET_YKC_SEND_STATE_ONGOING, NET_YKC_PREQ_EVENT_HEARTBEAT);
+//                ykc_net_event_send(NET_YKC_EVENT_HANDLE_CHARGEPILE, NET_YKC_EVENT_TYPE_REQUEST, gunno, NET_YKC_PREQ_EVENT_HEARTBEAT);
+            }
+            s_sgcc_flag_set.disconnect = 0x01;
+            rt_thread_mdelay(1000);
+            continue;
+        }
+
+        if(s_sgcc_flag_set.disconnect){
+            s_sgcc_flag_set.disconnect = 0x00;
+            rt_thread_mdelay(3000);
+        }
+
+        /***************************************************** [数据请求] **********************************************************/
+        /***************************************************** [数据请求] **********************************************************/
+        for(uint8_t gunno = 0; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
+            uint32_t _event = 0;
+            sgcc_net_event_receive(NET_SGCC_EVENT_HANDLE_CHARGEPILE, NET_SGCC_EVENT_TYPE_REQUEST, gunno, 0x00, 0x00, &_event);
+            if(!_event){
+                continue;   /* 此枪没有请求事件,不进行事件查询 */
+            }
+
+            /***** [上送固件信息] *****/
+            if(sgcc_net_event_receive(NET_SGCC_EVENT_HANDLE_CHARGEPILE, NET_SGCC_EVENT_TYPE_REQUEST, gunno,
+                    (NET_SGCC_EVENT_OPTION_OR |NET_SGCC_EVENT_OPTION_CLEAR), NET_SGCC_PREQ_EVENT_REPORT_FIRMWARE_INFO, NULL) > 0){
+                sgcc_set_message_send_state(gunno, NET_SGCC_SEND_STATE_ONGOING, NET_SGCC_PREQ_EVENT_REPORT_FIRMWARE_INFO);
+                evs_send_event(EVS_CMD_EVENT_FIRMWARE_INFO, &evs_event_firmware_infos);
+//                sgcc_set_message_wait_response_state(gunno, NET_SGCC_PREQ_EVENT_REPORT_STATE_DATA_NONCHARGING);
+                sgcc_set_message_send_state(gunno, NET_SGCC_SEND_STATE_COMPLETE, NET_SGCC_PREQ_EVENT_REPORT_FIRMWARE_INFO);
+                rt_thread_mdelay(250);
+            }
+            /***** [充电枪状态变更] *****/
+            if(sgcc_net_event_receive(NET_SGCC_EVENT_HANDLE_CHARGEPILE, NET_SGCC_EVENT_TYPE_REQUEST, gunno,
+                    (NET_SGCC_EVENT_OPTION_OR |NET_SGCC_EVENT_OPTION_CLEAR), NET_SGCC_PREQ_EVENT_GUNSTATE_CHANGED, NULL) > 0){
+                sgcc_set_message_send_state(gunno, NET_SGCC_SEND_STATE_ONGOING, NET_SGCC_PREQ_EVENT_GUNSTATE_CHANGED);
+                evs_send_event(EVS_CMD_EVENT_DCPILE_CHANGE, &evs_event_pile_stutus_changes[gunno]);
+//                sgcc_set_message_wait_response_state(gunno, NET_SGCC_PREQ_EVENT_GUNSTATE_CHANGED);
+                sgcc_set_message_send_state(gunno, NET_SGCC_SEND_STATE_COMPLETE, NET_SGCC_PREQ_EVENT_GUNSTATE_CHANGED);
+                rt_thread_mdelay(250);
+            }
+            /***** [上送实时数据(非充电中)] *****/
+            if(sgcc_net_event_receive(NET_SGCC_EVENT_HANDLE_CHARGEPILE, NET_SGCC_EVENT_TYPE_REQUEST, gunno,
+                    (NET_SGCC_EVENT_OPTION_OR |NET_SGCC_EVENT_OPTION_CLEAR), NET_SGCC_PREQ_EVENT_REPORT_STATE_DATA_NONCHARGING, NULL) > 0){
+                sgcc_set_message_send_state(gunno, NET_SGCC_SEND_STATE_ONGOING, NET_SGCC_PREQ_EVENT_REPORT_STATE_DATA_NONCHARGING);
+                evs_send_property(EVS_CMD_PROPERTY_DC_NONWORK, &evs_property_dc_nonWorks[gunno]);
+//                sgcc_set_message_wait_response_state(gunno, NET_SGCC_PREQ_EVENT_REPORT_STATE_DATA_NONCHARGING);
+                sgcc_set_message_send_state(gunno, NET_SGCC_SEND_STATE_COMPLETE, NET_SGCC_PREQ_EVENT_REPORT_STATE_DATA_NONCHARGING);
+                rt_thread_mdelay(250);
+            }
+            /***** [上送实时数据(充电中)] *****/
+            if(sgcc_net_event_receive(NET_SGCC_EVENT_HANDLE_CHARGEPILE, NET_SGCC_EVENT_TYPE_REQUEST, gunno,
+                    (NET_SGCC_EVENT_OPTION_OR |NET_SGCC_EVENT_OPTION_CLEAR), NET_SGCC_PREQ_EVENT_REPORT_STATE_DATA_CHARGING, NULL) > 0){
+                sgcc_set_message_send_state(gunno, NET_SGCC_SEND_STATE_ONGOING, NET_SGCC_PREQ_EVENT_REPORT_STATE_DATA_CHARGING);
+                evs_send_property(EVS_CMD_PROPERTY_DC_WORK, &evs_property_dc_works[gunno]);
+//                sgcc_set_message_wait_response_state(gunno, NET_SGCC_PREQ_EVENT_REPORT_STATE_DATA_CHARGING);
+                sgcc_set_message_send_state(gunno, NET_SGCC_SEND_STATE_COMPLETE, NET_SGCC_PREQ_EVENT_REPORT_STATE_DATA_CHARGING);
+                rt_thread_mdelay(250);
+            }
+            /***** [上送交易记录] *****/
+            if(sgcc_net_event_receive(NET_SGCC_EVENT_HANDLE_CHARGEPILE, NET_SGCC_EVENT_TYPE_REQUEST, gunno,
+                    (NET_SGCC_EVENT_OPTION_OR |NET_SGCC_EVENT_OPTION_CLEAR), NET_SGCC_PREQ_EVENT_TRANSACTION_RECORD, NULL) > 0){
+                sgcc_set_message_send_state(gunno, NET_SGCC_SEND_STATE_ONGOING, NET_SGCC_PREQ_EVENT_TRANSACTION_RECORD);
+                evs_send_event(EVS_CMD_EVENT_TRADEINFO, &evs_event_tradeInfos[gunno]);
+                sgcc_set_message_wait_response_state(gunno, NET_SGCC_PREQ_EVENT_TRANSACTION_RECORD);
+                sgcc_set_message_send_state(gunno, NET_SGCC_SEND_STATE_COMPLETE, NET_SGCC_PREQ_EVENT_TRANSACTION_RECORD);
+                rt_thread_mdelay(250);
+            }
+        }
+
+        rt_thread_mdelay(100);
+    }
+}
+
+static void sgcc_message_server_thread_entry(void *parameter)
+{
+    while(1)
+    {
+        rt_thread_mdelay(100);
+    }
+}
+
+int sgcc_message_send_init(void)
+{
+    if(rt_thread_init(&s_sgcc_message_send_thread, "sgcc_send", sgcc_message_send_thread_entry, NULL,
+            s_sgcc_message_send_thread_stack, NET_SGCC_MESSAGE_SEND_THREAD_STACK_SIZE, 16, 10) != RT_EOK){
+        LOG_E("sgcc message send thread create fail, please check");
+        return -0x01;
+    }
+    if(rt_thread_startup(&s_sgcc_message_send_thread) != RT_EOK){
+        LOG_E("sgcc message send thread startup fail, please check");
+        return -0x01;
+    }
+
+    if(rt_thread_init(&s_sgcc_message_server_thread, "sgcc_server", sgcc_message_server_thread_entry, NULL,
+            s_sgcc_message_service_thread_stack, NET_SGCC_SERVER_MESSAGE_PRO_THREAD_STACK_SIZE, 16, 10) != RT_EOK){
+        LOG_E("sgcc message pro thread create fail, please check");
+        return -0x01;
+    }
+    if(rt_thread_startup(&s_sgcc_message_server_thread) != RT_EOK){
+        LOG_E("gw message pro thread startup fail, please check");
+        return -0x01;
+    }
+
+    if(rt_thread_init(&s_sgcc_connect_thread, "sgcc_conn", sgcc_connect_thread_entry, NULL,
+            s_sgcc_connect_thread_stack, NET_SGCC_CONNECT_THREAD_STACK_SIZE, 5, 10) != RT_EOK){
+        LOG_E("sgcc connect thread create fail, please check");
+        return -0x01;
+    }
+    if(rt_thread_startup(&s_sgcc_connect_thread) != RT_EOK){
+        LOG_E("sgcc connect thread startup fail, please check");
+        return -0x01;
+    }
+
+    return 0;
+}
+
+#endif /* NET_PACK_USING_SGCC */

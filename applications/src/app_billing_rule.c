@@ -93,6 +93,22 @@ uint32_t app_billingrule_get_rate_type_price(uint8_t gunno, uint8_t type)
     return s_billing_rule[gunno].rate_price[type];
 }
 
+/*******************************************
+ * 函数名            app_billingrule_get_rate_type_price
+ * 功能                设置计费模型编号
+ ******************************************/
+void app_billingrule_set_model_sn(uint8_t gunno, uint8_t *sn, uint8_t len)
+{
+    if(gunno >= APP_SYSTEM_GUNNO_SIZE){
+        return 0x00;
+    }
+    uint8_t valid_len = len;
+    valid_len = valid_len > (APP_BILLING_MODEL_SN_LEN + 0x01) ? (APP_BILLING_MODEL_SN_LEN + 0x01) : valid_len;
+
+    memset(s_billing_rule[gunno].model_sn, 0x00, (APP_BILLING_MODEL_SN_LEN + 0x01));
+    memcpy(s_billing_rule[gunno].model_sn, sn, valid_len);
+}
+
 /****************************************************[计费规则信息]**********************************************************/
 /****************************************************[计费规则信息]**********************************************************/
 /*****************************************************************************

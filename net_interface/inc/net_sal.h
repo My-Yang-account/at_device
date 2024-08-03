@@ -15,6 +15,7 @@
 #include "ykc_message_padding.h"
 #include "ykc_monitor_message_padding.h"
 #include "ycp_message_padding.h"
+#include "sgcc_message_padding.h"
 
 /**************************** 钛昕平台 ***************************/
 #ifdef NET_PACK_USING_THA
@@ -105,7 +106,22 @@
 
 #define APP_INCLUDE_YCP_PROTOCOL
 #endif /* NET_PACK_USING_YCP */
-#define APP_PLATFORM_ID_YCP                           0x0020   /* 云快充监控平台ID */
+#define APP_PLATFORM_ID_YCP                           0x0020   /* 越城平台ID */
+/**************************** 国网平台 ***************************/
+#ifdef NET_PACK_USING_SGCC
+#define APP_INCLUDE_NET
+
+#ifdef NET_SGCC_AS_MONITOR
+#define APP_INCLUDE_MONITOR_PLATFORM                           /* 包含监控平台 */
+#define APP_MONITOR_PLATFORM_ID                       0x0040   /* 监控平台ID */
+#else
+#define APP_INCLUDE_TARGET_PLATFORM                            /* 包含目标平台 */
+#define APP_TARGET_PLATFORM_ID                        0x0040   /* 目标平台ID */
+#endif /* NET_SGCC_AS_MONITOR */
+
+#define APP_INCLUDE_SGCC_PROTOCOL
+#endif /* NET_PACK_USING_SGCC */
+#define APP_PLATFORM_ID_SGCC                          0x0040   /* 国网平台ID */
 /****************************************************************/
 
 void app_nsal_realtime_process(uint8_t gunno);

@@ -1435,7 +1435,7 @@ static void net_ykc_server_message_pro_entry(void *parameter)
                     response = ykc_get_response_buff(RT_WAITING_FOREVER);
 
                     if(g_ykc_sreq_qrcode_config_gc[gunno].body.result == 0x00){
-                        uint8_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC_MONITOR |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
+                        uint8_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
                         struct net_handle* handle = net_get_net_handle();
 
                         if(handle->set_system_data(NET_SYSTEM_DATA_NAME_QRCODE, info->qrcode, info->length, option) >= 0x00){
@@ -1461,7 +1461,7 @@ static void net_ykc_server_message_pro_entry(void *parameter)
                     response = ykc_get_response_buff(RT_WAITING_FOREVER);
 
                     if(g_ykc_sreq_qrcode_config_ykc15.body.result == 0x00){
-                        uint8_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC_MONITOR |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
+                        uint8_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
                         struct net_handle* handle = net_get_net_handle();
 
                         if(handle->set_system_data(NET_SYSTEM_DATA_NAME_QRCODE, info->qrcode, info->length, option) >= 0x00){

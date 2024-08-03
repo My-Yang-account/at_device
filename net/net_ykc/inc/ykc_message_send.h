@@ -152,6 +152,8 @@ enum{
     YKC_SOCKET_STATE_LOGIN_SUCCESS,
 };
 
+#pragma pack(1)
+
 typedef struct{
      uint16_t length;
      uint8_t general_transmit_buff[NET_YKC_GENERA_RESPONSE_BUFF_LENGTH];
@@ -166,6 +168,8 @@ typedef struct{
         uint8_t login : 4;
     }operate_fail;
 }ykc_socket_info_t;
+
+#pragma pack()
 
 ykc_socket_info_t* ykc_get_socket_info(void);
 

@@ -240,8 +240,10 @@ static uint8_t* app_nget_system_data(uint8_t name, uint32_t *dlen, uint32_t opti
     }
         break;
     case NET_SYSTEM_DATA_NAME_PLATFORM_DATA:
-        if(option &NET_SYSTEM_DATA_OPTION_PLAT_YCP){
+        if((option &NET_SYSTEM_DATA_OPTION_TARGET_PLAT)){
             return sys_read_config_item_content(CONFIG_ITEM_TARGET_PLATFORM, 0x00);
+        }else{
+            return sys_read_config_item_content(CONFIG_ITEM_MONITOR_PLATFORM, 0x00);
         }
         return NULL;
         break;
@@ -358,7 +360,7 @@ static int32_t app_nset_system_data(uint8_t name, uint8_t *data, uint16_t len, u
         return sys_storage_config_item();
         break;
     case NET_SYSTEM_DATA_NAME_PLATFORM_DATA:
-        if(option &NET_SYSTEM_DATA_OPTION_PLAT_YCP){
+        if((option &NET_SYSTEM_DATA_OPTION_TARGET_PLAT) || (option &NET_SYSTEM_DATA_OPTION_MONITOR_PLAT)){
             return sys_storage_config_item();
         }
         return -0x01;

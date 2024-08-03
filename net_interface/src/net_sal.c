@@ -201,6 +201,11 @@ void app_nsal_message_init(void)
 #ifdef NET_PACK_USING_YCP
     ycp_message_info_init();
 #endif /* NET_PACK_USING_YCP */
+
+#ifdef NET_PACK_USING_SGCC
+    extern void sgcc_message_info_init(void);
+    sgcc_message_info_init();
+#endif /* NET_PACK_USING_SGCC */
 }
 /*******************************************
  * 函数名    app_nsal_state_charged
@@ -223,6 +228,10 @@ void app_nsal_state_charged(uint8_t gunno)
 #ifdef NET_PACK_USING_YCP
     ycp_chargepile_state_changed(gunno);
 #endif /* NET_PACK_USING_YCP */
+
+#ifdef NET_PACK_USING_SGCC
+    sgcc_chargepile_state_changed(gunno);
+#endif /* NET_PACK_USING_SGCC */
 }
 /*******************************************
  * 函数名    app_nsal_event_occurded
@@ -396,6 +405,10 @@ void app_nsal_init_charge_data(uint8_t gunno)
 #ifdef NET_PACK_USING_YCP
     ycp_chargepile_request_padding_state_data(gunno, 0x01);
 #endif /* NET_PACK_USING_YCP */
+
+#ifdef NET_PACK_USING_SGCC
+    sgcc_chargepile_request_padding_state_data(gunno, 0x01);
+#endif /* NET_PACK_USING_SGCC */
 }
 
 /*******************************************
@@ -419,6 +432,10 @@ void app_nsal_padding_charge_data(uint8_t gunno)
 #ifdef NET_PACK_USING_YCP
     ycp_chargepile_request_padding_state_data(gunno, 0x00);
 #endif /* NET_PACK_USING_YCP */
+
+#ifdef NET_PACK_USING_SGCC
+    sgcc_chargepile_request_padding_state_data(gunno, 0x00);
+#endif /* NET_PACK_USING_SGCC */
 }
 
 /*******************************************
@@ -454,6 +471,12 @@ void app_nsal_transaction_record_report_monitor(uint8_t gunno, void *transaction
     ycp_chargepile_request_padding_transaction_record(gunno, transaction, is_repeat);
 #endif /* NET_YCP_AS_MONITOR */
 #endif /* NET_PACK_USING_YCP */
+
+#ifdef NET_PACK_USING_SGCC
+#ifdef NET_SGCC_AS_MONITOR
+    sgcc_chargepile_request_padding_transaction_record(gunno, transaction, is_repeat);
+#endif /* NET_SGCC_AS_MONITOR */
+#endif /* NET_PACK_USING_SGCC */
 }
 
 /*******************************************
@@ -489,6 +512,12 @@ void app_nsal_transaction_record_report_target(uint8_t gunno, void *transaction,
     ycp_chargepile_request_padding_transaction_record(gunno, transaction, is_repeat);
 #endif /* NET_YCP_AS_TARGET */
 #endif /* NET_PACK_USING_YCP */
+
+#ifdef NET_PACK_USING_SGCC
+#ifdef NET_SGCC_AS_TARGET
+    sgcc_chargepile_request_padding_transaction_record(gunno, transaction, is_repeat);
+#endif /* NET_SGCC_AS_TARGET */
+#endif /* NET_PACK_USING_SGCC */
 }
 
 

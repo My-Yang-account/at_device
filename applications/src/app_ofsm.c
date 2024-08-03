@@ -115,13 +115,13 @@ static void transaction_record_query_report(uint8_t gunno)
                     rtransaction.rate_type_amount[APP_RATE_TYPE_FLAT] += ((double)loss_elect *(double)1.05 *100);
 #endif /* (defined (APP_INCLUDE_YKC_PROTOCOL) || defined (APP_INCLUDE_YKC_PROTOCOL_MONITOR) || defined (APP_INCLUDE_YCP_PROTOCOL)) */
 
-#ifdef APP_INCLUDE_SL_PROTOCOL
+#if (defined (APP_INCLUDE_SL_PROTOCOL) || defined (APP_INCLUDE_SGCC_PROTOCOL))
                     if(rtransaction.start_period_number > (APP_BILLING_RULE_PERIOD_MAX - 0x01)){
                         rtransaction.start_period_number = (APP_BILLING_RULE_PERIOD_MAX - 0x01);
                     }
                     rtransaction.period_elect[rtransaction.start_period_number] += loss_elect;
                     rtransaction.period_elect_fees[rtransaction.start_period_number] += ((double)loss_elect *(double)1.05 *100);
-#endif /* APP_INCLUDE_SL_PROTOCOL */
+#endif /* (defined (APP_INCLUDE_SL_PROTOCOL) || defined (APP_INCLUDE_SGCC_PROTOCOL)) */
                     need_check = 1;
                 }
                 rtransaction.order_state.is_charging = APP_THA_ENUM_FALSE;
@@ -665,6 +665,7 @@ static void ofsm_readying_fun(uint8_t gunno)
             memcpy(s_thaisen_transaction[gunno].user_number, s_ofsm_info[gunno].base.user_number, valid_len);
 
             s_thaisen_transaction[gunno].start_type = APP_CHARGE_START_WAY_APP;
+            s_thaisen_transaction[gunno].order_state.online_order = APP_THA_ENUM_TRUE;
 
             is_charging_authorization = true;
 
@@ -741,6 +742,7 @@ static void ofsm_readying_fun(uint8_t gunno)
                     memset(s_thaisen_transaction[gunno].physics_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].physics_card_number));
                     memset(s_thaisen_transaction[gunno].user_number, 0x00, sizeof(s_thaisen_transaction[gunno].user_number));
                     s_thaisen_transaction[gunno].start_type = APP_CHARGE_START_WAY_OFFLINE_CARD;
+                    s_thaisen_transaction[gunno].order_state.online_order = APP_THA_ENUM_FALSE;
 
                     is_charging_authorization = true;
                 }
@@ -784,6 +786,7 @@ static void ofsm_readying_fun(uint8_t gunno)
                     memset(s_thaisen_transaction[gunno].physics_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].physics_card_number));
                     memset(s_thaisen_transaction[gunno].user_number, 0x00, sizeof(s_thaisen_transaction[gunno].user_number));
                     s_thaisen_transaction[gunno].start_type = APP_CHARGE_START_WAY_OFFLINE_CARD;
+                    s_thaisen_transaction[gunno].order_state.online_order = APP_THA_ENUM_FALSE;
 
                     is_charging_authorization = true;
                 }
@@ -824,6 +827,7 @@ static void ofsm_readying_fun(uint8_t gunno)
             memset(s_thaisen_transaction[gunno].user_number, 0x00, sizeof(s_thaisen_transaction[gunno].user_number));
             memcpy(s_thaisen_transaction[gunno].user_number, s_ofsm_info[gunno].base.user_number, valid_len);
             s_thaisen_transaction[gunno].start_type = APP_CHARGE_START_WAY_ONLINE_CARD;
+            s_thaisen_transaction[gunno].order_state.online_order = APP_THA_ENUM_TRUE;
 
             is_charging_authorization = true;
 
@@ -858,6 +862,7 @@ static void ofsm_readying_fun(uint8_t gunno)
             memset(s_thaisen_transaction[gunno].physics_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].physics_card_number));
             memset(s_thaisen_transaction[gunno].user_number, 0x00, sizeof(s_thaisen_transaction[gunno].user_number));
             s_thaisen_transaction[gunno].start_type = APP_CHARGE_START_WAY_SCREEN;
+            s_thaisen_transaction[gunno].order_state.online_order = APP_THA_ENUM_FALSE;
 
             is_charging_authorization = true;
 
@@ -888,6 +893,7 @@ static void ofsm_readying_fun(uint8_t gunno)
             memset(s_thaisen_transaction[gunno].physics_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].physics_card_number));
             memset(s_thaisen_transaction[gunno].user_number, 0x00, sizeof(s_thaisen_transaction[gunno].user_number));
             s_thaisen_transaction[gunno].start_type = APP_CHARGE_START_WAY_VIN;
+            s_thaisen_transaction[gunno].order_state.online_order = APP_THA_ENUM_FALSE;
 
             is_charging_authorization = true;
         }
@@ -981,13 +987,13 @@ static void ofsm_readying_fun(uint8_t gunno)
             memset(s_thaisen_transaction[gunno].rate_type_loss_elect, 0x00, sizeof(s_thaisen_transaction[gunno].rate_type_loss_elect));
 #endif /* (defined (APP_INCLUDE_YKC_PROTOCOL) || defined (APP_INCLUDE_YKC_PROTOCOL_MONITOR) || defined (APP_INCLUDE_YCP_PROTOCOL)) */
 
-#ifdef APP_INCLUDE_SL_PROTOCOL
+#if (defined (APP_INCLUDE_SL_PROTOCOL) || defined (APP_INCLUDE_SGCC_PROTOCOL))
             memset(s_thaisen_transaction[gunno].period_elect, 0x00, sizeof(s_thaisen_transaction[gunno].period_elect));
             memset(s_thaisen_transaction[gunno].period_elect_fees, 0x00, sizeof(s_thaisen_transaction[gunno].period_elect_fees));
             memset(s_thaisen_transaction[gunno].period_service_fees, 0x00, sizeof(s_thaisen_transaction[gunno].period_service_fees));
             memset(s_thaisen_transaction[gunno].period_occupy_fees, 0x00, sizeof(s_thaisen_transaction[gunno].period_occupy_fees));
             s_thaisen_transaction[gunno].rule = app_billingrule_get_rule(gunno);
-#endif /* APP_INCLUDE_SL_PROTOCOL */
+#endif /* (defined (APP_INCLUDE_SL_PROTOCOL) || defined (APP_INCLUDE_SGCC_PROTOCOL)) */
 
 #ifdef APP_INCLUDE_XJ_PROTOCOL
             s_thaisen_transaction[gunno].delay_fee = 0x00;
@@ -997,6 +1003,14 @@ static void ofsm_readying_fun(uint8_t gunno)
             s_thaisen_transaction[gunno].card_ballance_before = 0x00;
             s_thaisen_transaction[gunno].card_ballance_after = 0x00;
 #endif /* (defined (APP_INCLUDE_SL_PROTOCOL) || defined (APP_INCLUDE_XJ_PROTOCOL)) */
+
+#ifdef APP_INCLUDE_SGCC_PROTOCOL
+            app_nsal_create_local_transaction_number(gunno, &(s_ofsm_info[gunno].base.device_transaction_number),  \
+                    sizeof(s_ofsm_info[gunno].base.device_transaction_number));
+            memcpy(s_thaisen_transaction[gunno].device_serial_number, s_ofsm_info[gunno].base.device_transaction_number, \
+                    sizeof(s_ofsm_info[gunno].base.device_transaction_number));
+#endif /* APP_INCLUDE_SGCC_PROTOCOL */
+
             s_thaisen_transaction[gunno].start_period_number = s_ofsm_info[gunno].base.start_period;
             s_thaisen_transaction[gunno].period_count = s_ofsm_info[gunno].base.period_num;
 
@@ -1317,6 +1331,7 @@ static void ofsm_starting_fun(uint8_t gunno)
                 valid_len = valid_len > sizeof(s_thaisen_transaction[gunno].serial_number) ? sizeof(s_thaisen_transaction[gunno].serial_number) : valid_len;
                 memset(s_thaisen_transaction[gunno].serial_number, 0x00, sizeof(s_thaisen_transaction[gunno].serial_number));
                 memcpy(s_thaisen_transaction[gunno].serial_number, s_ofsm_info[gunno].base.transaction_number, valid_len);
+                s_thaisen_transaction[gunno].order_state.online_order = APP_THA_ENUM_TRUE;
 
                 app_nsal_clear_remote_vin_authorize(gunno);
                 app_nsal_init_charge_data(gunno);  /* 重新赋值流水号 */
@@ -1623,13 +1638,13 @@ static void ofsm_charging_fun(uint8_t gunno)
     }
 #endif /* (defined (APP_INCLUDE_YKC_PROTOCOL) || defined (APP_INCLUDE_YKC_PROTOCOL_MONITOR) || defined (APP_INCLUDE_YCP_PROTOCOL)) */
 
-#ifdef APP_INCLUDE_SL_PROTOCOL
+#if (defined (APP_INCLUDE_SL_PROTOCOL) || defined (APP_INCLUDE_SGCC_PROTOCOL))
     for(uint8_t period = s_ofsm_info[gunno].base.start_period; period <= s_ofsm_info[gunno].base.current_period; period++){
         s_thaisen_transaction[gunno].period_elect[period] = app_billingrule_get_period_elect(gunno, period);
         s_thaisen_transaction[gunno].period_elect_fees[period] = app_billingrule_get_period_elect_fees(gunno, period);
         s_thaisen_transaction[gunno].period_service_fees[period] = app_billingrule_get_period_service_fees(gunno, period);
     }
-#endif /* APP_INCLUDE_SL_PROTOCOL */
+#endif /* (defined (APP_INCLUDE_SL_PROTOCOL) || defined (APP_INCLUDE_SGCC_PROTOCOL)) */
     s_thaisen_transaction[gunno].period_count = s_ofsm_info[gunno].base.period_num;
 
     /* 对时后时间要修改 */
@@ -2099,13 +2114,13 @@ static void ofsm_stoping_fun(uint8_t gunno)
         }
 #endif /* (defined (APP_INCLUDE_YKC_PROTOCOL) || defined (APP_INCLUDE_YKC_PROTOCOL_MONITOR) || defined (APP_INCLUDE_YCP_PROTOCOL)) */
 
-#ifdef APP_INCLUDE_SL_PROTOCOL
+#if (defined (APP_INCLUDE_SL_PROTOCOL) || defined (APP_INCLUDE_SGCC_PROTOCOL))
         for(uint8_t period = s_ofsm_info[gunno].base.start_period; period <= s_ofsm_info[gunno].base.current_period; period++){
             s_thaisen_transaction[gunno].period_elect[period] = app_billingrule_get_period_elect(gunno, period);
             s_thaisen_transaction[gunno].period_elect_fees[period] = app_billingrule_get_period_elect_fees(gunno, period);
             s_thaisen_transaction[gunno].period_service_fees[period] = app_billingrule_get_period_service_fees(gunno, period);
         }
-#endif /* APP_INCLUDE_SL_PROTOCOL */
+#endif /* (defined (APP_INCLUDE_SL_PROTOCOL) || defined (APP_INCLUDE_SGCC_PROTOCOL)) */
 
         mw_storage_record_designate_index_updated(&s_thaisen_transaction[gunno], sizeof(s_thaisen_transaction[gunno]), USER_DATA_TYPE_VERIFIED,  \
                 0x00, gunno, s_current_order_index[TARGET_PLATFORM_INDEX][gunno]);
@@ -2259,6 +2274,7 @@ static void ofsm_finishing_fun(uint8_t gunno)
             memcpy(s_thaisen_transaction[gunno].user_number, s_ofsm_info[gunno].base.user_number, valid_len);
 
             s_thaisen_transaction[gunno].start_type = APP_CHARGE_START_WAY_APP;
+            s_thaisen_transaction[gunno].order_state.online_order = APP_THA_ENUM_TRUE;
 
             is_charging_authorization = true;
 
@@ -2335,6 +2351,7 @@ static void ofsm_finishing_fun(uint8_t gunno)
                     memset(s_thaisen_transaction[gunno].physics_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].physics_card_number));
                     memset(s_thaisen_transaction[gunno].user_number, 0x00, sizeof(s_thaisen_transaction[gunno].user_number));
                     s_thaisen_transaction[gunno].start_type = APP_CHARGE_START_WAY_OFFLINE_CARD;
+                    s_thaisen_transaction[gunno].order_state.online_order = APP_THA_ENUM_FALSE;
 
                     is_charging_authorization = true;
                 }
@@ -2378,6 +2395,7 @@ static void ofsm_finishing_fun(uint8_t gunno)
                     memset(s_thaisen_transaction[gunno].physics_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].physics_card_number));
                     memset(s_thaisen_transaction[gunno].user_number, 0x00, sizeof(s_thaisen_transaction[gunno].user_number));
                     s_thaisen_transaction[gunno].start_type = APP_CHARGE_START_WAY_OFFLINE_CARD;
+                    s_thaisen_transaction[gunno].order_state.online_order = APP_THA_ENUM_FALSE;
 
                     is_charging_authorization = true;
                 }
@@ -2418,6 +2436,7 @@ static void ofsm_finishing_fun(uint8_t gunno)
             memset(s_thaisen_transaction[gunno].user_number, 0x00, sizeof(s_thaisen_transaction[gunno].user_number));
             memcpy(s_thaisen_transaction[gunno].user_number, s_ofsm_info[gunno].base.user_number, valid_len);
             s_thaisen_transaction[gunno].start_type = APP_CHARGE_START_WAY_ONLINE_CARD;
+            s_thaisen_transaction[gunno].order_state.online_order = APP_THA_ENUM_TRUE;
 
             is_charging_authorization = true;
 
@@ -2452,6 +2471,7 @@ static void ofsm_finishing_fun(uint8_t gunno)
             memset(s_thaisen_transaction[gunno].physics_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].physics_card_number));
             memset(s_thaisen_transaction[gunno].user_number, 0x00, sizeof(s_thaisen_transaction[gunno].user_number));
             s_thaisen_transaction[gunno].start_type = APP_CHARGE_START_WAY_SCREEN;
+            s_thaisen_transaction[gunno].order_state.online_order = APP_THA_ENUM_FALSE;
 
             is_charging_authorization = true;
 
@@ -2482,6 +2502,7 @@ static void ofsm_finishing_fun(uint8_t gunno)
             memset(s_thaisen_transaction[gunno].physics_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].physics_card_number));
             memset(s_thaisen_transaction[gunno].user_number, 0x00, sizeof(s_thaisen_transaction[gunno].user_number));
             s_thaisen_transaction[gunno].start_type = APP_CHARGE_START_WAY_VIN;
+            s_thaisen_transaction[gunno].order_state.online_order = APP_THA_ENUM_FALSE;
 
             is_charging_authorization = true;
         }
@@ -2575,13 +2596,13 @@ static void ofsm_finishing_fun(uint8_t gunno)
             memset(s_thaisen_transaction[gunno].rate_type_loss_elect, 0x00, sizeof(s_thaisen_transaction[gunno].rate_type_loss_elect));
 #endif /* (defined (APP_INCLUDE_YKC_PROTOCOL) || defined (APP_INCLUDE_YKC_PROTOCOL_MONITOR) || defined (APP_INCLUDE_YCP_PROTOCOL)) */
 
-#ifdef APP_INCLUDE_SL_PROTOCOL
+#if (defined (APP_INCLUDE_SL_PROTOCOL) || defined (APP_INCLUDE_SGCC_PROTOCOL))
             memset(s_thaisen_transaction[gunno].period_elect, 0x00, sizeof(s_thaisen_transaction[gunno].period_elect));
             memset(s_thaisen_transaction[gunno].period_elect_fees, 0x00, sizeof(s_thaisen_transaction[gunno].period_elect_fees));
             memset(s_thaisen_transaction[gunno].period_service_fees, 0x00, sizeof(s_thaisen_transaction[gunno].period_service_fees));
             memset(s_thaisen_transaction[gunno].period_occupy_fees, 0x00, sizeof(s_thaisen_transaction[gunno].period_occupy_fees));
             s_thaisen_transaction[gunno].rule = app_billingrule_get_rule(gunno);
-#endif /* APP_INCLUDE_SL_PROTOCOL */
+#endif /* (defined (APP_INCLUDE_SL_PROTOCOL) || defined (APP_INCLUDE_SGCC_PROTOCOL)) */
 
 #ifdef APP_INCLUDE_XJ_PROTOCOL
             s_thaisen_transaction[gunno].delay_fee = 0x00;
@@ -2591,6 +2612,14 @@ static void ofsm_finishing_fun(uint8_t gunno)
             s_thaisen_transaction[gunno].card_ballance_before = 0x00;
             s_thaisen_transaction[gunno].card_ballance_after = 0x00;
 #endif /* (defined (APP_INCLUDE_SL_PROTOCOL) || defined (APP_INCLUDE_XJ_PROTOCOL)) */
+
+#ifdef APP_INCLUDE_SGCC_PROTOCOL
+            app_nsal_create_local_transaction_number(gunno, &(s_ofsm_info[gunno].base.device_transaction_number),  \
+                    sizeof(s_ofsm_info[gunno].base.device_transaction_number));
+            memcpy(s_thaisen_transaction[gunno].device_serial_number, s_ofsm_info[gunno].base.device_transaction_number, \
+                    sizeof(s_ofsm_info[gunno].base.device_transaction_number));
+#endif /* APP_INCLUDE_SGCC_PROTOCOL */
+
             s_thaisen_transaction[gunno].start_period_number = s_ofsm_info[gunno].base.start_period;
             s_thaisen_transaction[gunno].period_count = s_ofsm_info[gunno].base.period_num;
 
@@ -2776,6 +2805,7 @@ static void ofsm_faulting_fun(uint8_t gunno)
                     memcpy(s_thaisen_transaction[gunno].user_number, s_ofsm_info[gunno].base.user_number, valid_len);
 
                     s_thaisen_transaction[gunno].start_type = APP_CHARGE_START_WAY_APP;
+                    s_thaisen_transaction[gunno].order_state.online_order = APP_THA_ENUM_TRUE;
 
                     is_charging_authorization = true;
 
@@ -2852,6 +2882,7 @@ static void ofsm_faulting_fun(uint8_t gunno)
                             memset(s_thaisen_transaction[gunno].physics_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].physics_card_number));
                             memset(s_thaisen_transaction[gunno].user_number, 0x00, sizeof(s_thaisen_transaction[gunno].user_number));
                             s_thaisen_transaction[gunno].start_type = APP_CHARGE_START_WAY_OFFLINE_CARD;
+                            s_thaisen_transaction[gunno].order_state.online_order = APP_THA_ENUM_FALSE;
 
                             is_charging_authorization = true;
                         }
@@ -2895,6 +2926,7 @@ static void ofsm_faulting_fun(uint8_t gunno)
                             memset(s_thaisen_transaction[gunno].physics_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].physics_card_number));
                             memset(s_thaisen_transaction[gunno].user_number, 0x00, sizeof(s_thaisen_transaction[gunno].user_number));
                             s_thaisen_transaction[gunno].start_type = APP_CHARGE_START_WAY_OFFLINE_CARD;
+                            s_thaisen_transaction[gunno].order_state.online_order = APP_THA_ENUM_FALSE;
 
                             is_charging_authorization = true;
                         }
@@ -2935,6 +2967,7 @@ static void ofsm_faulting_fun(uint8_t gunno)
                     memset(s_thaisen_transaction[gunno].user_number, 0x00, sizeof(s_thaisen_transaction[gunno].user_number));
                     memcpy(s_thaisen_transaction[gunno].user_number, s_ofsm_info[gunno].base.user_number, valid_len);
                     s_thaisen_transaction[gunno].start_type = APP_CHARGE_START_WAY_ONLINE_CARD;
+                    s_thaisen_transaction[gunno].order_state.online_order = APP_THA_ENUM_TRUE;
 
                     is_charging_authorization = true;
 
@@ -2969,6 +3002,7 @@ static void ofsm_faulting_fun(uint8_t gunno)
                     memset(s_thaisen_transaction[gunno].physics_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].physics_card_number));
                     memset(s_thaisen_transaction[gunno].user_number, 0x00, sizeof(s_thaisen_transaction[gunno].user_number));
                     s_thaisen_transaction[gunno].start_type = APP_CHARGE_START_WAY_SCREEN;
+                    s_thaisen_transaction[gunno].order_state.online_order = APP_THA_ENUM_FALSE;
 
                     is_charging_authorization = true;
 
@@ -2999,6 +3033,7 @@ static void ofsm_faulting_fun(uint8_t gunno)
                     memset(s_thaisen_transaction[gunno].physics_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].physics_card_number));
                     memset(s_thaisen_transaction[gunno].user_number, 0x00, sizeof(s_thaisen_transaction[gunno].user_number));
                     s_thaisen_transaction[gunno].start_type = APP_CHARGE_START_WAY_VIN;
+                    s_thaisen_transaction[gunno].order_state.online_order = APP_THA_ENUM_FALSE;
 
                     is_charging_authorization = true;
                 }
@@ -3089,30 +3124,38 @@ static void ofsm_faulting_fun(uint8_t gunno)
                     s_thaisen_transaction[gunno].total_fee = 0x00;
 
 #if (defined (APP_INCLUDE_YKC_PROTOCOL) || defined (APP_INCLUDE_YKC_PROTOCOL_MONITOR) || defined (APP_INCLUDE_YCP_PROTOCOL))
-            for(uint8_t type = 0x00; type < APP_BILLING_RULE_RATE_TYPE_MAX; type++){
-                s_thaisen_transaction[gunno].rate_type_unit[type] = app_billingrule_get_rate_type_price(gunno, type);
-            }
-            memset(s_thaisen_transaction[gunno].rate_type_elect, 0x00, sizeof(s_thaisen_transaction[gunno].rate_type_elect));
-            memset(s_thaisen_transaction[gunno].rate_type_amount, 0x00, sizeof(s_thaisen_transaction[gunno].rate_type_amount));
-            memset(s_thaisen_transaction[gunno].rate_type_loss_elect, 0x00, sizeof(s_thaisen_transaction[gunno].rate_type_loss_elect));
+                    for(uint8_t type = 0x00; type < APP_BILLING_RULE_RATE_TYPE_MAX; type++){
+                        s_thaisen_transaction[gunno].rate_type_unit[type] = app_billingrule_get_rate_type_price(gunno, type);
+                    }
+                    memset(s_thaisen_transaction[gunno].rate_type_elect, 0x00, sizeof(s_thaisen_transaction[gunno].rate_type_elect));
+                    memset(s_thaisen_transaction[gunno].rate_type_amount, 0x00, sizeof(s_thaisen_transaction[gunno].rate_type_amount));
+                    memset(s_thaisen_transaction[gunno].rate_type_loss_elect, 0x00, sizeof(s_thaisen_transaction[gunno].rate_type_loss_elect));
 #endif /* (defined (APP_INCLUDE_YKC_PROTOCOL) || defined (APP_INCLUDE_YKC_PROTOCOL_MONITOR) || defined (APP_INCLUDE_YCP_PROTOCOL)) */
 
-        #ifdef APP_INCLUDE_SL_PROTOCOL
+#if (defined (APP_INCLUDE_SL_PROTOCOL) || defined (APP_INCLUDE_SGCC_PROTOCOL))
                     memset(s_thaisen_transaction[gunno].period_elect, 0x00, sizeof(s_thaisen_transaction[gunno].period_elect));
                     memset(s_thaisen_transaction[gunno].period_elect_fees, 0x00, sizeof(s_thaisen_transaction[gunno].period_elect_fees));
                     memset(s_thaisen_transaction[gunno].period_service_fees, 0x00, sizeof(s_thaisen_transaction[gunno].period_service_fees));
                     memset(s_thaisen_transaction[gunno].period_occupy_fees, 0x00, sizeof(s_thaisen_transaction[gunno].period_occupy_fees));
                     s_thaisen_transaction[gunno].rule = app_billingrule_get_rule(gunno);
-        #endif /* APP_INCLUDE_SL_PROTOCOL */
+#endif /* (defined (APP_INCLUDE_SL_PROTOCOL) || defined (APP_INCLUDE_SGCC_PROTOCOL)) */
 
-        #ifdef APP_INCLUDE_XJ_PROTOCOL
+#ifdef APP_INCLUDE_XJ_PROTOCOL
                     s_thaisen_transaction[gunno].delay_fee = 0x00;
-        #endif /* APP_INCLUDE_XJ_PROTOCOL */
+#endif /* APP_INCLUDE_XJ_PROTOCOL */
 
-        #if (defined (APP_INCLUDE_SL_PROTOCOL) || defined (APP_INCLUDE_XJ_PROTOCOL))
+#if (defined (APP_INCLUDE_SL_PROTOCOL) || defined (APP_INCLUDE_XJ_PROTOCOL))
                     s_thaisen_transaction[gunno].card_ballance_before = 0x00;
                     s_thaisen_transaction[gunno].card_ballance_after = 0x00;
-        #endif /* (defined (APP_INCLUDE_SL_PROTOCOL) || defined (APP_INCLUDE_XJ_PROTOCOL)) */
+#endif /* (defined (APP_INCLUDE_SL_PROTOCOL) || defined (APP_INCLUDE_XJ_PROTOCOL)) */
+
+#ifdef APP_INCLUDE_SGCC_PROTOCOL
+            app_nsal_create_local_transaction_number(gunno, &(s_ofsm_info[gunno].base.device_transaction_number),  \
+                    sizeof(s_ofsm_info[gunno].base.device_transaction_number));
+            memcpy(s_thaisen_transaction[gunno].device_serial_number, s_ofsm_info[gunno].base.device_transaction_number, \
+                    sizeof(s_ofsm_info[gunno].base.device_transaction_number));
+#endif /* APP_INCLUDE_SGCC_PROTOCOL */
+
                     s_thaisen_transaction[gunno].start_period_number = s_ofsm_info[gunno].base.start_period;
                     s_thaisen_transaction[gunno].period_count = s_ofsm_info[gunno].base.period_num;
 

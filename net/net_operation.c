@@ -395,6 +395,21 @@ static int32_t net_operation_init(void)
     ycp_realtime_process_init();
 #endif /* NET_PACK_USING_YCP */
 
+#ifdef NET_PACK_USING_SGCC
+//    extern int32_t ycp_ota_init(void);
+    extern int sgcc_message_recvive_init(void);
+//    extern int32_t ycp_transceiver_init(void);
+    extern int sgcc_message_send_init(void);
+    extern int sgcc_realtime_process_init(void);
+    extern void sgcc_device_register_init(void);
+//    ycp_ota_init();
+    sgcc_message_recvive_init();
+//    ycp_transceiver_init();
+    sgcc_message_send_init();
+    sgcc_realtime_process_init();
+    sgcc_device_register_init();
+#endif /* NET_PACK_USING_SGCC */
+
 #ifdef NET_PACK_USING_XJ
 
 #endif /* NET_PACK_USING_XJ */
