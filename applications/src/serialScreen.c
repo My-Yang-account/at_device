@@ -4359,7 +4359,8 @@ u8 SerialScreen_Read(void)
 
 struct LCD_DATA_FIFO_TYPE *SerialScreen_Init(struct SerialScreenObj *cmd)
 {
-    u8 len = 0, count = 0, *data;
+    u32 _tick = 0;
+    u8 len = 0, count = 0, *data, entry = 0;
 	memset(&LcdRxData,0,sizeof(LcdRxData));
 	//LcdData init
     LcdData.gunIndex = 0;
@@ -4549,6 +4550,15 @@ struct LCD_DATA_FIFO_TYPE *SerialScreen_Init(struct SerialScreenObj *cmd)
 
 	LcdRxData.rstep = LCD_DATA_STEP_HEAD;
 	LcdRxData.pDataFifo = LCD_FifoOpen();
+
+	while(entry <= 3){
+	    if((thaisen_app_get_system_tick() - _tick) > 100){
+	        _tick = thaisen_app_get_system_tick();
+	        SerialScreen_JumpPage(cmd,LcdData.CurrentPage);
+	        entry++;
+	    }
+	}
+
 	return LcdRxData.pDataFifo;
 }
 

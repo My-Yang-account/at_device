@@ -98,6 +98,8 @@ void app_hci_req_thread_entry(void *parameter)
         return;
     }
 
+    rt_thread_mdelay(5000);   /** 等待屏幕初始化完成 */
+
     while (1)
     {
         /* 调取屏幕处理函数 */
