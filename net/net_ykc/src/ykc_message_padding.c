@@ -21,9 +21,6 @@
 
 #ifdef NET_PACK_USING_YKC
 
-#define YKC_DISPOSABLE_EVENT_STATE                0x00          /* 漏报事件：桩状态 */
-#define YKC_DISPOSABLE_EVENT_FAULT                0x01          /* 漏报事件：故障上报 */
-
 #define YKC_REALTIME_DATA_INTERVAL_INIT           0x05          /* 刚连上网时实时数据上报间隔 */
 #define YKC_REALTIME_DATA_INTERVAL_CHARGING       0x0F          /* 充电中实时数据上报间隔  */
 #define YKC_REALTIME_DATA_INTERVAL_IDLE           0x05 *60      /* 空闲实时数据上报间隔  */
@@ -32,14 +29,13 @@
 
 #pragma pack(1)
 
-struct ykc_disposable_info{
+struct ykc_state_info{
     struct{
         uint8_t state : 4;
         uint8_t connect : 2;
         uint8_t reserve : 2;
     }state;                                       /* 桩状态 */
     uint16_t fault_code;                          /* 故障码 */
-    uint8_t disposable_event;
 };
 
 struct ykc_flag_info{
@@ -60,7 +56,7 @@ static struct ykc_flag_info s_ykc_flag_info[NET_SYSTEM_GUN_NUMBER];
 static uint16_t s_ykc_realtime_data_interval[NET_SYSTEM_GUN_NUMBER];
 static uint32_t s_ykc_realtime_data_count[NET_SYSTEM_GUN_NUMBER];
 static uint16_t s_ykc_local_start_sq;
-static struct ykc_disposable_info s_ykc_disposable_info[NET_SYSTEM_GUN_NUMBER];
+static struct ykc_state_info s_ykc_state_info[NET_SYSTEM_GUN_NUMBER];
 static struct rt_thread s_ykc_realtime_process_thread;
 static uint8_t s_ykc_realtime_process_thread_stack[YKC_REALTIME_PROCESS_THREAD_STACK_SIZE];
 static struct net_handle* s_ykc_handle = NULL;
@@ -109,40 +105,6 @@ uint32_t ykc_get_timestamp_from_cp56time2a(cp56time2a_t _cp56time2a)
     timestamp = mktime(&_tm);
 
     return (timestamp - 28800);
-}
-
-/*************************************************
- * 函数名      ykc_set_clear_disposable_event
- * 功能          设置漏报报文事件
- * **********************************************/
-static void ykc_set_clear_disposable_event(uint8_t gunno, uint8_t event, uint8_t is_clear)
-{
-    if(gunno >= NET_SYSTEM_GUN_NUMBER){
-        return;
-    }
-    if(is_clear){
-        s_ykc_disposable_info[gunno].disposable_event &= (~(1 <<event));
-    }else{
-        s_ykc_disposable_info[gunno].disposable_event |= (1 <<event);
-    }
-}
-
-/*************************************************
- * 函数名      ykc_get_disposable_event
- * 功能          获取漏报报文事件
- * **********************************************/
-static uint8_t ykc_get_disposable_event(uint8_t gunno, uint8_t event, uint8_t *buf)
-{
-    if(gunno >= NET_SYSTEM_GUN_NUMBER){
-        return 0x00;
-    }
-    if(buf){
-        *buf = s_ykc_disposable_info[gunno].disposable_event;
-    }
-    if(s_ykc_disposable_info[gunno].disposable_event &(1 <<event)){
-        return 0x01;
-    }
-    return 0x00;
 }
 
 /*************************************************
@@ -2031,66 +1993,34 @@ void ykc_chargepile_state_changed(uint8_t gunno)
     if(gunno >= NET_SYSTEM_GUN_NUMBER){
         return;
     }
-    uint8_t state = 0xFF;
+
     s_ykc_base = (System_BaseData*)(s_ykc_handle->get_base_data(gunno));
 
     if(s_ykc_base->flag.connect_state == APP_CONNECT_STATE_CONNECT){
-        s_ykc_disposable_info[gunno].state.connect = NET_ENUM_TRUE;
+        s_ykc_state_info[gunno].state.connect = NET_ENUM_TRUE;
     }else{
-        s_ykc_disposable_info[gunno].state.connect = NET_ENUM_FALSE;
+        s_ykc_state_info[gunno].state.connect = NET_ENUM_FALSE;
     }
 
     switch(s_ykc_base->state.current){
     case APP_OFSM_STATE_IDLEING:
     case APP_OFSM_STATE_READYING:
     case APP_OFSM_STATE_STARTING:
-        state = NETYKC_DEVICE_STATE_IDLE;
+        s_ykc_state_info[gunno].state.state = NETYKC_DEVICE_STATE_IDLE;
         break;
     case APP_OFSM_STATE_CHARGING:
-        state = NETYKC_DEVICE_STATE_CHARGING;
+        s_ykc_state_info[gunno].state.state = NETYKC_DEVICE_STATE_CHARGING;
         break;
     case APP_OFSM_STATE_STOPING:
     case APP_OFSM_STATE_FINISHING:
-        state = NETYKC_DEVICE_STATE_IDLE;
+        s_ykc_state_info[gunno].state.state = NETYKC_DEVICE_STATE_IDLE;
         break;
     case APP_OFSM_STATE_FAULTING:
-        state = NETYKC_DEVICE_STATE_FAULTING;
+        s_ykc_state_info[gunno].state.state = NETYKC_DEVICE_STATE_FAULTING;
         break;
     default:
         break;
     }
-
-    if(state == 0xFF){
-        rt_kprintf("6666666666666(%d)\n", gunno);
-        return;
-    }
-    if(state != s_ykc_disposable_info[gunno].state.state){
-        if(state == NETYKC_DEVICE_STATE_FAULTING){
-            s_ykc_disposable_info[gunno].state.state = state;
-            return;
-        }
-    }
-
-    s_ykc_disposable_info[gunno].state.state = state;
-    if((s_ykc_disposable_info[gunno].state.state == g_ykc_preq_report_realtime_data[gunno].body.state) &&
-            (s_ykc_disposable_info[gunno].state.connect == g_ykc_preq_report_realtime_data[gunno].body.plug_gun)){
-        ykc_set_clear_disposable_event(gunno, YKC_DISPOSABLE_EVENT_STATE, NET_ENUM_TRUE);
-        rt_kprintf("77777777777(%d)\n", gunno);
-        return;
-    }
-    if(ykc_get_message_send_state(gunno, NET_YKC_PREQ_EVENT_REPORT_REALTIME_DATA) == NET_YKC_SEND_STATE_ONGOING){
-        ykc_set_clear_disposable_event(gunno, YKC_DISPOSABLE_EVENT_STATE, NET_ENUM_FALSE);
-        rt_kprintf("88888888888888(%d)\n", gunno);
-        return;
-    }
-    rt_kprintf("111111111111111(%d)\n", gunno);
-    g_ykc_preq_report_realtime_data[gunno].body.plug_gun = s_ykc_disposable_info[gunno].state.connect;
-    g_ykc_preq_report_realtime_data[gunno].body.state = s_ykc_disposable_info[gunno].state.state;
-
-    ykc_set_clear_disposable_event(gunno, YKC_DISPOSABLE_EVENT_STATE, NET_ENUM_TRUE);
-
-    s_ykc_realtime_data_count[gunno] = rt_tick_get();
-    ykc_net_event_send(NET_YKC_EVENT_HANDLE_CHARGEPILE, NET_YKC_EVENT_TYPE_REQUEST, gunno, NET_YKC_PREQ_EVENT_REPORT_REALTIME_DATA);
 }
 
 void ykc_chargepile_update_result_report(uint8_t result)
@@ -2104,79 +2034,8 @@ void ykc_chargepile_fault_report(uint8_t gunno, uint16_t code)
     if(gunno >= NET_SYSTEM_GUN_NUMBER){
         return;
     }
-    if(g_ykc_preq_report_realtime_data[gunno].body.hardware_fault == code){
-        rt_kprintf("4444444444444444(%d, %d)\n", gunno, code);
-        return;
-    }
-    s_ykc_disposable_info[gunno].fault_code = code;
 
-    if(ykc_get_message_send_state(gunno, NET_YKC_PREQ_EVENT_REPORT_REALTIME_DATA) == NET_YKC_SEND_STATE_ONGOING){
-        ykc_set_clear_disposable_event(gunno, YKC_DISPOSABLE_EVENT_FAULT, NET_ENUM_FALSE);
-        rt_kprintf("555555555555555(%d, %d)\n", gunno, code);
-        return;
-    }
-    if(code == 0x00){
-        if(g_ykc_preq_report_realtime_data[gunno].body.state == NETYKC_DEVICE_STATE_FAULTING){
-            g_ykc_preq_report_realtime_data[gunno].body.state = NETYKC_DEVICE_STATE_IDLE;
-        }
-    }
-    rt_kprintf("00000000000(%d, %d)\n", gunno, code);
-    ykc_set_clear_disposable_event(gunno, YKC_DISPOSABLE_EVENT_FAULT, NET_ENUM_TRUE);
-    g_ykc_preq_report_realtime_data[gunno].body.hardware_fault = code;
-    s_ykc_realtime_data_count[gunno] = rt_tick_get();
-    ykc_net_event_send(NET_YKC_EVENT_HANDLE_CHARGEPILE, NET_YKC_EVENT_TYPE_REQUEST, gunno, NET_YKC_PREQ_EVENT_REPORT_REALTIME_DATA);
-}
-
-/*************************************************
- * 函数名      ykc_chargepile_state_detect
- * 功能          桩状态检测并修正
- * **********************************************/
-void ykc_chargepile_state_detect(uint8_t gunno)
-{
-    if(gunno >= NET_SYSTEM_GUN_NUMBER){
-        return;
-    }
-    uint8_t cstate = NETYKC_DEVICE_STATE_IDLE, cconnect = NET_ENUM_FALSE;
-    s_ykc_base = (System_BaseData*)(s_ykc_handle->get_base_data(gunno));
-
-    switch(s_ykc_base->state.current){
-    case APP_OFSM_STATE_IDLEING:
-        cconnect = NET_ENUM_FALSE;
-        cstate = NETYKC_DEVICE_STATE_IDLE;
-        break;
-    case APP_OFSM_STATE_READYING:
-        cconnect = NET_ENUM_TRUE;
-        cstate = NETYKC_DEVICE_STATE_IDLE;
-        break;
-    case APP_OFSM_STATE_STARTING:
-        cconnect = NET_ENUM_TRUE;
-        cstate = NETYKC_DEVICE_STATE_IDLE;
-        break;
-    case APP_OFSM_STATE_CHARGING:
-        cconnect = NET_ENUM_TRUE;
-        cstate = NETYKC_DEVICE_STATE_CHARGING;
-        break;
-    case APP_OFSM_STATE_STOPING:
-        cconnect = NET_ENUM_TRUE;
-        cstate = NETYKC_DEVICE_STATE_IDLE;
-        break;
-    case APP_OFSM_STATE_FINISHING:
-        cconnect = NET_ENUM_TRUE;
-        cstate = NETYKC_DEVICE_STATE_IDLE;
-        break;
-    case APP_OFSM_STATE_FAULTING:
-        cconnect = NET_ENUM_FALSE;
-        if(s_ykc_base->flag.connect_state == APP_CONNECT_STATE_CONNECT){
-            cconnect = NET_ENUM_TRUE;
-        }
-        cstate = NETYKC_DEVICE_STATE_FAULTING;
-        break;
-    default:
-        break;
-    }
-    if((s_ykc_disposable_info[gunno].state.connect != cconnect) || (s_ykc_disposable_info[gunno].state.state != cstate)){
-        ykc_chargepile_state_changed(gunno);
-    }
+    s_ykc_state_info[gunno].fault_code = code;
 }
 
 /*************************************************
@@ -2239,7 +2098,7 @@ void ykc_chargepile_time_sync_revise(uint8_t gunno)
  * 函数名      ykc_chargepile_fault_converted
  * 功能          故障转换
  * **********************************************/
-uint8_t ykc_chargepile_fault_converted(uint8_t bit)
+uint16_t ykc_chargepile_fault_converted(uint16_t bit)
 {
     switch(bit){
     case APP_SYS_FAULT_SCRAM :
@@ -2577,36 +2436,44 @@ static void ykc_data_realtime_process(uint8_t gunno)
 }
 
 /*
- * 用于检测只上报一次的报文是否有漏报
+ * 用于检测到状态有变化时上报
  * */
-static void ykc_disposable_message_check(uint8_t gunno)
+static void ykc_state_changed_check(uint8_t gunno)
 {
     if(gunno >= NET_SYSTEM_GUN_NUMBER){
         return;
     }
 
-    uint8_t _event = 0x00;
-    ykc_get_disposable_event(gunno, 0x00, &_event);
-    if(_event){
-        if(_event &(1 <<YKC_DISPOSABLE_EVENT_STATE)){
-            if(ykc_get_message_send_state(gunno, NET_YKC_PREQ_EVENT_REPORT_REALTIME_DATA) == NET_YKC_SEND_STATE_COMPLETE){
-                g_ykc_preq_report_realtime_data[gunno].body.plug_gun = s_ykc_disposable_info[gunno].state.connect;
-                g_ykc_preq_report_realtime_data[gunno].body.state = s_ykc_disposable_info[gunno].state.state;
+    if((g_ykc_preq_report_realtime_data[gunno].body.plug_gun != s_ykc_state_info[gunno].state.connect) ||
+            (g_ykc_preq_report_realtime_data[gunno].body.state != s_ykc_state_info[gunno].state.state) ||
+            (g_ykc_preq_report_realtime_data[gunno].body.hardware_fault != s_ykc_state_info[gunno].fault_code)){
 
-                rt_kprintf("2222222222222(%d)\n", gunno);
-                ykc_set_clear_disposable_event(gunno, YKC_DISPOSABLE_EVENT_STATE, NET_ENUM_TRUE);
-                s_ykc_realtime_data_count[gunno] = rt_tick_get();
-                ykc_net_event_send(NET_YKC_EVENT_HANDLE_CHARGEPILE, NET_YKC_EVENT_TYPE_REQUEST, gunno, NET_YKC_PREQ_EVENT_REPORT_REALTIME_DATA);
-            }
-        }
-        if(_event &(1 <<YKC_DISPOSABLE_EVENT_FAULT)){
-            if(ykc_get_message_send_state(gunno, NET_YKC_PREQ_EVENT_REPORT_REALTIME_DATA) == NET_YKC_SEND_STATE_COMPLETE){
-                g_ykc_preq_report_realtime_data[gunno].body.hardware_fault = s_ykc_disposable_info[gunno].fault_code;
+        if(ykc_get_message_send_state(gunno, NET_YKC_PREQ_EVENT_REPORT_REALTIME_DATA) == NET_YKC_SEND_STATE_ONGOING){
+            /** 由于 s_ykc_state_info[gunno].state.connect 和 s_ykc_state_info[gunno].state.state 和
+             *  s_ykc_state_info[gunno].fault_code 会在其它线程被赋值，为了防止用这几个值做判断时和赋值时可能存在的不一致而导致
+                            *     状态错乱问题，将这几个值进行临时存储用于判断和赋值*/
+            uint8_t _connect = s_ykc_state_info[gunno].state.connect;
+            uint8_t _state = s_ykc_state_info[gunno].state.state;
+            uint16_t _fault = s_ykc_state_info[gunno].fault_code;
 
-                rt_kprintf("3333333333333(%d)\n", gunno);
-                ykc_set_clear_disposable_event(gunno, YKC_DISPOSABLE_EVENT_FAULT, NET_ENUM_TRUE);
-                s_ykc_realtime_data_count[gunno] = rt_tick_get();
-                ykc_net_event_send(NET_YKC_EVENT_HANDLE_CHARGEPILE, NET_YKC_EVENT_TYPE_REQUEST, gunno, NET_YKC_PREQ_EVENT_REPORT_REALTIME_DATA);
+            if(_state == APP_OFSM_STATE_FAULTING){
+                if(_fault != 0x00){
+                    g_ykc_preq_report_realtime_data[gunno].body.hardware_fault = _fault;
+                    g_ykc_preq_report_realtime_data[gunno].body.plug_gun = _connect;
+                    g_ykc_preq_report_realtime_data[gunno].body.state = _state;
+
+                    s_ykc_realtime_data_count[gunno] = rt_tick_get();
+                    ykc_net_event_send(NET_YKC_EVENT_HANDLE_CHARGEPILE, NET_YKC_EVENT_TYPE_REQUEST, gunno, NET_YKC_PREQ_EVENT_REPORT_REALTIME_DATA);
+                }
+            }else{
+                if(_fault == 0x00){
+                    g_ykc_preq_report_realtime_data[gunno].body.hardware_fault = _fault;
+                    g_ykc_preq_report_realtime_data[gunno].body.plug_gun = _connect;
+                    g_ykc_preq_report_realtime_data[gunno].body.state = _state;
+
+                    s_ykc_realtime_data_count[gunno] = rt_tick_get();
+                    ykc_net_event_send(NET_YKC_EVENT_HANDLE_CHARGEPILE, NET_YKC_EVENT_TYPE_REQUEST, gunno, NET_YKC_PREQ_EVENT_REPORT_REALTIME_DATA);
+                }
             }
         }
     }
@@ -2629,7 +2496,7 @@ static void ykc_realtime_process_thread_entry(void *parameter)
         for(gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
             ykc_fault_detect_report(gunno);
             ykc_data_realtime_process(gunno);
-            ykc_disposable_message_check(gunno);
+            ykc_state_changed_check(gunno);
         }
 
         rt_thread_mdelay(100);

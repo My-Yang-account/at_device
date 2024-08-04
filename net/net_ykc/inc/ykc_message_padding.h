@@ -75,10 +75,9 @@ void ykc_set_power_percent_response_asynchronously(uint8_t result);
 void ykc_chargepile_state_changed(uint8_t gunno);
 void ykc_chargepile_update_result_report(uint8_t result);
 void ykc_chargepile_fault_report(uint8_t gunno, uint16_t code);
-void ykc_chargepile_state_detect(uint8_t gunno);
 int8_t ykc_chargepile_create_local_transaction_number(uint8_t gunno, void *vector, uint8_t len);
 void ykc_chargepile_time_sync_revise(uint8_t gunno);
-uint8_t ykc_chargepile_fault_converted(uint8_t bit);
+uint16_t ykc_chargepile_fault_converted(uint16_t bit);
 uint8_t ykc_query_transaction_verify_state(uint8_t gunno);
 
 #endif /* NET_PACK_USING_YKC */
