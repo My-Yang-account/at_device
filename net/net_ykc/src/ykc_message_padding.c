@@ -2448,7 +2448,7 @@ static void ykc_state_changed_check(uint8_t gunno)
             (g_ykc_preq_report_realtime_data[gunno].body.state != s_ykc_state_info[gunno].state.state) ||
             (g_ykc_preq_report_realtime_data[gunno].body.hardware_fault != s_ykc_state_info[gunno].fault_code)){
 
-        if(ykc_get_message_send_state(gunno, NET_YKC_PREQ_EVENT_REPORT_REALTIME_DATA) == NET_YKC_SEND_STATE_ONGOING){
+        if(ykc_get_message_send_state(gunno, NET_YKC_PREQ_EVENT_REPORT_REALTIME_DATA) == NET_YKC_SEND_STATE_COMPLETE){
             /** 由于 s_ykc_state_info[gunno].state.connect 和 s_ykc_state_info[gunno].state.state 和
              *  s_ykc_state_info[gunno].fault_code 会在其它线程被赋值，为了防止用这几个值做判断时和赋值时可能存在的不一致而导致
                             *     状态错乱问题，将这几个值进行临时存储用于判断和赋值*/
@@ -2456,7 +2456,7 @@ static void ykc_state_changed_check(uint8_t gunno)
             uint8_t _state = s_ykc_state_info[gunno].state.state;
             uint16_t _fault = s_ykc_state_info[gunno].fault_code;
 
-            if(_state == APP_OFSM_STATE_FAULTING){
+            if(_state == NETYKC_DEVICE_STATE_FAULTING){
                 if(_fault != 0x00){
                     g_ykc_preq_report_realtime_data[gunno].body.hardware_fault = _fault;
                     g_ykc_preq_report_realtime_data[gunno].body.plug_gun = _connect;
