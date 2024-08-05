@@ -1154,10 +1154,14 @@ int8_t ykc_monitor_message_pro_remote_start_merge_charge_request(uint8_t gunno, 
  * 函数名      ykc_monitor_message_info_init
  * 功能          云快充报文信息初始化
  * **********************************************/
-void ykc_monitor_message_info_init(void)  ///////// 这是网络部分外部调用的第一个函数(可以在里面进行相关初始化)
+void ykc_monitor_message_info_init(uint8_t gunno)  ///////// 这是网络部分外部调用的第一个函数(可以在里面进行相关初始化)
 {
-    static uint8_t ykc_is_init = NET_ENUM_FALSE;
-    if(ykc_is_init){
+    static uint8_t ykc_monitor_is_init = NET_ENUM_FALSE;
+    if(gunno >= NET_SYSTEM_GUN_NUMBER){
+        return;
+    }
+
+    if(ykc_monitor_is_init){
         return;
     }
 
@@ -1165,9 +1169,9 @@ void ykc_monitor_message_info_init(void)  ///////// 这是网络部分外部调�
     uint8_t *pile_number = NULL;
     s_ykc_monitor_handle = net_get_net_handle();
     pile_number = (uint8_t*)(s_ykc_monitor_handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, option));
-    s_ykc_monitor_base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(0x00));
+    s_ykc_monitor_base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
 
-    ykc_is_init = NET_ENUM_TRUE;
+    ykc_monitor_is_init = NET_ENUM_TRUE;
 
     for(uint8_t gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
         s_ykc_monitor_realtime_data_interval[gunno] = YKC_MONITOR_REALTIME_DATA_INTERVAL_INIT;

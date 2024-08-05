@@ -456,7 +456,7 @@ static void ofsm_wait_net_fun(uint8_t gunno)
 
     s_ofsm_info[gunno].base.gun_set_curr = (*((uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_MAX_LIMIT_CURRENT, 0)))) *10;
 
-    app_nsal_message_init();
+    app_nsal_message_init(gunno);
     app_nsal_init_charge_data(gunno);
 
     s_ofsm_info[gunno].base.flag.connect_state = APP_CONNECT_STATE_DISCONNECT;
@@ -663,7 +663,10 @@ static void ofsm_readying_fun(uint8_t gunno)
             valid_len = valid_len > sizeof(s_thaisen_transaction[gunno].user_number) ? sizeof(s_thaisen_transaction[gunno].user_number) : valid_len;
             memset(s_thaisen_transaction[gunno].user_number, 0x00, sizeof(s_thaisen_transaction[gunno].user_number));
             memcpy(s_thaisen_transaction[gunno].user_number, s_ofsm_info[gunno].base.user_number, valid_len);
-
+#ifdef APP_INCLUDE_SGCC_PROTOCOL
+            memcpy(s_thaisen_transaction[gunno].device_serial_number, s_ofsm_info[gunno].base.device_transaction_number, \
+                    sizeof(s_ofsm_info[gunno].base.device_transaction_number));
+#endif /* APP_INCLUDE_SGCC_PROTOCOL */
             s_thaisen_transaction[gunno].start_type = APP_CHARGE_START_WAY_APP;
             s_thaisen_transaction[gunno].order_state.online_order = APP_THA_ENUM_TRUE;
 
@@ -725,6 +728,10 @@ static void ofsm_readying_fun(uint8_t gunno)
 
                     app_nsal_create_local_transaction_number(gunno, &(s_ofsm_info[gunno].base.transaction_number),  \
                             sizeof(s_ofsm_info[gunno].base.transaction_number));
+#ifdef APP_INCLUDE_SGCC_PROTOCOL
+                    memcpy(s_ofsm_info[gunno].base.device_transaction_number, s_ofsm_info[gunno].base.transaction_number, \
+                            sizeof(s_ofsm_info[gunno].base.transaction_number));
+#endif /* APP_INCLUDE_SGCC_PROTOCOL */
 
                     memset(s_ofsm_info[gunno].base.card_uid, 0x00, sizeof(s_ofsm_info[gunno].base.card_uid));
                     memset(s_ofsm_info[gunno].base.user_number, 0x00, sizeof(s_ofsm_info[gunno].base.user_number));
@@ -741,6 +748,10 @@ static void ofsm_readying_fun(uint8_t gunno)
 
                     memset(s_thaisen_transaction[gunno].physics_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].physics_card_number));
                     memset(s_thaisen_transaction[gunno].user_number, 0x00, sizeof(s_thaisen_transaction[gunno].user_number));
+#ifdef APP_INCLUDE_SGCC_PROTOCOL
+                    memcpy(s_thaisen_transaction[gunno].device_serial_number, s_ofsm_info[gunno].base.device_transaction_number, \
+                            sizeof(s_ofsm_info[gunno].base.device_transaction_number));
+#endif /* APP_INCLUDE_SGCC_PROTOCOL */
                     s_thaisen_transaction[gunno].start_type = APP_CHARGE_START_WAY_OFFLINE_CARD;
                     s_thaisen_transaction[gunno].order_state.online_order = APP_THA_ENUM_FALSE;
 
@@ -772,6 +783,10 @@ static void ofsm_readying_fun(uint8_t gunno)
 
                     app_nsal_create_local_transaction_number(gunno, &(s_ofsm_info[gunno].base.transaction_number),  \
                             sizeof(s_ofsm_info[gunno].base.transaction_number));
+#ifdef APP_INCLUDE_SGCC_PROTOCOL
+                    memcpy(s_ofsm_info[gunno].base.device_transaction_number, s_ofsm_info[gunno].base.transaction_number, \
+                            sizeof(s_ofsm_info[gunno].base.transaction_number));
+#endif /* APP_INCLUDE_SGCC_PROTOCOL */
 
                     compare_len = sizeof(s_ofsm_info[gunno].base.transaction_number);
                     compare_len = compare_len > sizeof(s_thaisen_transaction[gunno].serial_number) ? sizeof(s_thaisen_transaction[gunno].serial_number) : compare_len;
@@ -785,6 +800,10 @@ static void ofsm_readying_fun(uint8_t gunno)
 
                     memset(s_thaisen_transaction[gunno].physics_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].physics_card_number));
                     memset(s_thaisen_transaction[gunno].user_number, 0x00, sizeof(s_thaisen_transaction[gunno].user_number));
+#ifdef APP_INCLUDE_SGCC_PROTOCOL
+                    memcpy(s_thaisen_transaction[gunno].device_serial_number, s_ofsm_info[gunno].base.device_transaction_number, \
+                            sizeof(s_ofsm_info[gunno].base.device_transaction_number));
+#endif /* APP_INCLUDE_SGCC_PROTOCOL */
                     s_thaisen_transaction[gunno].start_type = APP_CHARGE_START_WAY_OFFLINE_CARD;
                     s_thaisen_transaction[gunno].order_state.online_order = APP_THA_ENUM_FALSE;
 
@@ -826,6 +845,10 @@ static void ofsm_readying_fun(uint8_t gunno)
             valid_len = valid_len > sizeof(s_thaisen_transaction[gunno].user_number) ? sizeof(s_thaisen_transaction[gunno].user_number) : valid_len;
             memset(s_thaisen_transaction[gunno].user_number, 0x00, sizeof(s_thaisen_transaction[gunno].user_number));
             memcpy(s_thaisen_transaction[gunno].user_number, s_ofsm_info[gunno].base.user_number, valid_len);
+#ifdef APP_INCLUDE_SGCC_PROTOCOL
+            memcpy(s_thaisen_transaction[gunno].device_serial_number, s_ofsm_info[gunno].base.device_transaction_number, \
+                    sizeof(s_ofsm_info[gunno].base.device_transaction_number));
+#endif /* APP_INCLUDE_SGCC_PROTOCOL */
             s_thaisen_transaction[gunno].start_type = APP_CHARGE_START_WAY_ONLINE_CARD;
             s_thaisen_transaction[gunno].order_state.online_order = APP_THA_ENUM_TRUE;
 
@@ -849,6 +872,10 @@ static void ofsm_readying_fun(uint8_t gunno)
 
             app_nsal_create_local_transaction_number(gunno, &(s_ofsm_info[gunno].base.transaction_number),  \
                     sizeof(s_ofsm_info[gunno].base.transaction_number));
+#ifdef APP_INCLUDE_SGCC_PROTOCOL
+            memcpy(s_ofsm_info[gunno].base.device_transaction_number, s_ofsm_info[gunno].base.transaction_number, \
+                    sizeof(s_ofsm_info[gunno].base.transaction_number));
+#endif /* APP_INCLUDE_SGCC_PROTOCOL */
 
             memset(s_ofsm_info[gunno].base.card_number, 0x00, sizeof(s_ofsm_info[gunno].base.card_number));
             memset(&(s_ofsm_info[gunno].base.card_uid), 0x00, sizeof(s_ofsm_info[gunno].base.card_uid));
@@ -861,6 +888,10 @@ static void ofsm_readying_fun(uint8_t gunno)
             memset(s_thaisen_transaction[gunno].logic_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].logic_card_number));
             memset(s_thaisen_transaction[gunno].physics_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].physics_card_number));
             memset(s_thaisen_transaction[gunno].user_number, 0x00, sizeof(s_thaisen_transaction[gunno].user_number));
+#ifdef APP_INCLUDE_SGCC_PROTOCOL
+            memcpy(s_thaisen_transaction[gunno].device_serial_number, s_ofsm_info[gunno].base.device_transaction_number, \
+                    sizeof(s_ofsm_info[gunno].base.device_transaction_number));
+#endif /* APP_INCLUDE_SGCC_PROTOCOL */
             s_thaisen_transaction[gunno].start_type = APP_CHARGE_START_WAY_SCREEN;
             s_thaisen_transaction[gunno].order_state.online_order = APP_THA_ENUM_FALSE;
 
@@ -879,6 +910,10 @@ static void ofsm_readying_fun(uint8_t gunno)
 
             app_nsal_create_local_transaction_number(gunno, &(s_ofsm_info[gunno].base.transaction_number),  \
                     sizeof(s_ofsm_info[gunno].base.transaction_number));
+#ifdef APP_INCLUDE_SGCC_PROTOCOL
+            memcpy(s_ofsm_info[gunno].base.device_transaction_number, s_ofsm_info[gunno].base.transaction_number, \
+                    sizeof(s_ofsm_info[gunno].base.transaction_number));
+#endif /* APP_INCLUDE_SGCC_PROTOCOL */
 
             memset(s_ofsm_info[gunno].base.car_vin, 0x00, sizeof(s_ofsm_info[gunno].base.car_vin));
             memset(s_ofsm_info[gunno].base.card_number, 0x00, sizeof(s_ofsm_info[gunno].base.card_number));
@@ -892,6 +927,10 @@ static void ofsm_readying_fun(uint8_t gunno)
             memset(s_thaisen_transaction[gunno].logic_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].logic_card_number));
             memset(s_thaisen_transaction[gunno].physics_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].physics_card_number));
             memset(s_thaisen_transaction[gunno].user_number, 0x00, sizeof(s_thaisen_transaction[gunno].user_number));
+#ifdef APP_INCLUDE_SGCC_PROTOCOL
+            memcpy(s_thaisen_transaction[gunno].device_serial_number, s_ofsm_info[gunno].base.device_transaction_number, \
+                    sizeof(s_ofsm_info[gunno].base.device_transaction_number));
+#endif /* APP_INCLUDE_SGCC_PROTOCOL */
             s_thaisen_transaction[gunno].start_type = APP_CHARGE_START_WAY_VIN;
             s_thaisen_transaction[gunno].order_state.online_order = APP_THA_ENUM_FALSE;
 
@@ -1003,13 +1042,6 @@ static void ofsm_readying_fun(uint8_t gunno)
             s_thaisen_transaction[gunno].card_ballance_before = 0x00;
             s_thaisen_transaction[gunno].card_ballance_after = 0x00;
 #endif /* (defined (APP_INCLUDE_SL_PROTOCOL) || defined (APP_INCLUDE_XJ_PROTOCOL)) */
-
-#ifdef APP_INCLUDE_SGCC_PROTOCOL
-            app_nsal_create_local_transaction_number(gunno, &(s_ofsm_info[gunno].base.device_transaction_number),  \
-                    sizeof(s_ofsm_info[gunno].base.device_transaction_number));
-            memcpy(s_thaisen_transaction[gunno].device_serial_number, s_ofsm_info[gunno].base.device_transaction_number, \
-                    sizeof(s_ofsm_info[gunno].base.device_transaction_number));
-#endif /* APP_INCLUDE_SGCC_PROTOCOL */
 
             s_thaisen_transaction[gunno].start_period_number = s_ofsm_info[gunno].base.start_period;
             s_thaisen_transaction[gunno].period_count = s_ofsm_info[gunno].base.period_num;
@@ -1331,6 +1363,10 @@ static void ofsm_starting_fun(uint8_t gunno)
                 valid_len = valid_len > sizeof(s_thaisen_transaction[gunno].serial_number) ? sizeof(s_thaisen_transaction[gunno].serial_number) : valid_len;
                 memset(s_thaisen_transaction[gunno].serial_number, 0x00, sizeof(s_thaisen_transaction[gunno].serial_number));
                 memcpy(s_thaisen_transaction[gunno].serial_number, s_ofsm_info[gunno].base.transaction_number, valid_len);
+#ifdef APP_INCLUDE_SGCC_PROTOCOL
+            memcpy(s_thaisen_transaction[gunno].device_serial_number, s_ofsm_info[gunno].base.device_transaction_number, \
+                    sizeof(s_ofsm_info[gunno].base.device_transaction_number));
+#endif /* APP_INCLUDE_SGCC_PROTOCOL */
                 s_thaisen_transaction[gunno].order_state.online_order = APP_THA_ENUM_TRUE;
 
                 app_nsal_clear_remote_vin_authorize(gunno);
@@ -2272,7 +2308,10 @@ static void ofsm_finishing_fun(uint8_t gunno)
             valid_len = valid_len > sizeof(s_thaisen_transaction[gunno].user_number) ? sizeof(s_thaisen_transaction[gunno].user_number) : valid_len;
             memset(s_thaisen_transaction[gunno].user_number, 0x00, sizeof(s_thaisen_transaction[gunno].user_number));
             memcpy(s_thaisen_transaction[gunno].user_number, s_ofsm_info[gunno].base.user_number, valid_len);
-
+#ifdef APP_INCLUDE_SGCC_PROTOCOL
+            memcpy(s_thaisen_transaction[gunno].device_serial_number, s_ofsm_info[gunno].base.device_transaction_number, \
+                    sizeof(s_ofsm_info[gunno].base.device_transaction_number));
+#endif /* APP_INCLUDE_SGCC_PROTOCOL */
             s_thaisen_transaction[gunno].start_type = APP_CHARGE_START_WAY_APP;
             s_thaisen_transaction[gunno].order_state.online_order = APP_THA_ENUM_TRUE;
 
@@ -2334,6 +2373,10 @@ static void ofsm_finishing_fun(uint8_t gunno)
 
                     app_nsal_create_local_transaction_number(gunno, &(s_ofsm_info[gunno].base.transaction_number),  \
                             sizeof(s_ofsm_info[gunno].base.transaction_number));
+#ifdef APP_INCLUDE_SGCC_PROTOCOL
+                    memcpy(s_ofsm_info[gunno].base.device_transaction_number, s_ofsm_info[gunno].base.transaction_number, \
+                            sizeof(s_ofsm_info[gunno].base.transaction_number));
+#endif /* APP_INCLUDE_SGCC_PROTOCOL */
 
                     memset(s_ofsm_info[gunno].base.card_uid, 0x00, sizeof(s_ofsm_info[gunno].base.card_uid));
                     memset(s_ofsm_info[gunno].base.user_number, 0x00, sizeof(s_ofsm_info[gunno].base.user_number));
@@ -2350,6 +2393,10 @@ static void ofsm_finishing_fun(uint8_t gunno)
 
                     memset(s_thaisen_transaction[gunno].physics_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].physics_card_number));
                     memset(s_thaisen_transaction[gunno].user_number, 0x00, sizeof(s_thaisen_transaction[gunno].user_number));
+#ifdef APP_INCLUDE_SGCC_PROTOCOL
+                    memcpy(s_thaisen_transaction[gunno].device_serial_number, s_ofsm_info[gunno].base.device_transaction_number, \
+                            sizeof(s_ofsm_info[gunno].base.device_transaction_number));
+#endif /* APP_INCLUDE_SGCC_PROTOCOL */
                     s_thaisen_transaction[gunno].start_type = APP_CHARGE_START_WAY_OFFLINE_CARD;
                     s_thaisen_transaction[gunno].order_state.online_order = APP_THA_ENUM_FALSE;
 
@@ -2381,6 +2428,10 @@ static void ofsm_finishing_fun(uint8_t gunno)
 
                     app_nsal_create_local_transaction_number(gunno, &(s_ofsm_info[gunno].base.transaction_number),  \
                             sizeof(s_ofsm_info[gunno].base.transaction_number));
+#ifdef APP_INCLUDE_SGCC_PROTOCOL
+                    memcpy(s_ofsm_info[gunno].base.device_transaction_number, s_ofsm_info[gunno].base.transaction_number, \
+                            sizeof(s_ofsm_info[gunno].base.transaction_number));
+#endif /* APP_INCLUDE_SGCC_PROTOCOL */
 
                     compare_len = sizeof(s_ofsm_info[gunno].base.transaction_number);
                     compare_len = compare_len > sizeof(s_thaisen_transaction[gunno].serial_number) ? sizeof(s_thaisen_transaction[gunno].serial_number) : compare_len;
@@ -2394,6 +2445,10 @@ static void ofsm_finishing_fun(uint8_t gunno)
 
                     memset(s_thaisen_transaction[gunno].physics_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].physics_card_number));
                     memset(s_thaisen_transaction[gunno].user_number, 0x00, sizeof(s_thaisen_transaction[gunno].user_number));
+#ifdef APP_INCLUDE_SGCC_PROTOCOL
+                    memcpy(s_thaisen_transaction[gunno].device_serial_number, s_ofsm_info[gunno].base.device_transaction_number, \
+                            sizeof(s_ofsm_info[gunno].base.device_transaction_number));
+#endif /* APP_INCLUDE_SGCC_PROTOCOL */
                     s_thaisen_transaction[gunno].start_type = APP_CHARGE_START_WAY_OFFLINE_CARD;
                     s_thaisen_transaction[gunno].order_state.online_order = APP_THA_ENUM_FALSE;
 
@@ -2435,6 +2490,10 @@ static void ofsm_finishing_fun(uint8_t gunno)
             valid_len = valid_len > sizeof(s_thaisen_transaction[gunno].user_number) ? sizeof(s_thaisen_transaction[gunno].user_number) : valid_len;
             memset(s_thaisen_transaction[gunno].user_number, 0x00, sizeof(s_thaisen_transaction[gunno].user_number));
             memcpy(s_thaisen_transaction[gunno].user_number, s_ofsm_info[gunno].base.user_number, valid_len);
+#ifdef APP_INCLUDE_SGCC_PROTOCOL
+            memcpy(s_thaisen_transaction[gunno].device_serial_number, s_ofsm_info[gunno].base.device_transaction_number, \
+                    sizeof(s_ofsm_info[gunno].base.device_transaction_number));
+#endif /* APP_INCLUDE_SGCC_PROTOCOL */
             s_thaisen_transaction[gunno].start_type = APP_CHARGE_START_WAY_ONLINE_CARD;
             s_thaisen_transaction[gunno].order_state.online_order = APP_THA_ENUM_TRUE;
 
@@ -2458,6 +2517,10 @@ static void ofsm_finishing_fun(uint8_t gunno)
 
             app_nsal_create_local_transaction_number(gunno, &(s_ofsm_info[gunno].base.transaction_number),  \
                     sizeof(s_ofsm_info[gunno].base.transaction_number));
+#ifdef APP_INCLUDE_SGCC_PROTOCOL
+            memcpy(s_ofsm_info[gunno].base.device_transaction_number, s_ofsm_info[gunno].base.transaction_number, \
+                    sizeof(s_ofsm_info[gunno].base.transaction_number));
+#endif /* APP_INCLUDE_SGCC_PROTOCOL */
 
             memset(s_ofsm_info[gunno].base.card_number, 0x00, sizeof(s_ofsm_info[gunno].base.card_number));
             memset(&(s_ofsm_info[gunno].base.card_uid), 0x00, sizeof(s_ofsm_info[gunno].base.card_uid));
@@ -2470,6 +2533,10 @@ static void ofsm_finishing_fun(uint8_t gunno)
             memset(s_thaisen_transaction[gunno].logic_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].logic_card_number));
             memset(s_thaisen_transaction[gunno].physics_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].physics_card_number));
             memset(s_thaisen_transaction[gunno].user_number, 0x00, sizeof(s_thaisen_transaction[gunno].user_number));
+#ifdef APP_INCLUDE_SGCC_PROTOCOL
+            memcpy(s_thaisen_transaction[gunno].device_serial_number, s_ofsm_info[gunno].base.device_transaction_number, \
+                    sizeof(s_ofsm_info[gunno].base.device_transaction_number));
+#endif /* APP_INCLUDE_SGCC_PROTOCOL */
             s_thaisen_transaction[gunno].start_type = APP_CHARGE_START_WAY_SCREEN;
             s_thaisen_transaction[gunno].order_state.online_order = APP_THA_ENUM_FALSE;
 
@@ -2488,6 +2555,10 @@ static void ofsm_finishing_fun(uint8_t gunno)
 
             app_nsal_create_local_transaction_number(gunno, &(s_ofsm_info[gunno].base.transaction_number),  \
                     sizeof(s_ofsm_info[gunno].base.transaction_number));
+#ifdef APP_INCLUDE_SGCC_PROTOCOL
+            memcpy(s_ofsm_info[gunno].base.device_transaction_number, s_ofsm_info[gunno].base.transaction_number, \
+                    sizeof(s_ofsm_info[gunno].base.transaction_number));
+#endif /* APP_INCLUDE_SGCC_PROTOCOL */
 
             memset(s_ofsm_info[gunno].base.car_vin, 0x00, sizeof(s_ofsm_info[gunno].base.car_vin));
             memset(s_ofsm_info[gunno].base.card_number, 0x00, sizeof(s_ofsm_info[gunno].base.card_number));
@@ -2501,6 +2572,10 @@ static void ofsm_finishing_fun(uint8_t gunno)
             memset(s_thaisen_transaction[gunno].logic_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].logic_card_number));
             memset(s_thaisen_transaction[gunno].physics_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].physics_card_number));
             memset(s_thaisen_transaction[gunno].user_number, 0x00, sizeof(s_thaisen_transaction[gunno].user_number));
+#ifdef APP_INCLUDE_SGCC_PROTOCOL
+            memcpy(s_thaisen_transaction[gunno].device_serial_number, s_ofsm_info[gunno].base.device_transaction_number, \
+                    sizeof(s_ofsm_info[gunno].base.device_transaction_number));
+#endif /* APP_INCLUDE_SGCC_PROTOCOL */
             s_thaisen_transaction[gunno].start_type = APP_CHARGE_START_WAY_VIN;
             s_thaisen_transaction[gunno].order_state.online_order = APP_THA_ENUM_FALSE;
 
@@ -2612,13 +2687,6 @@ static void ofsm_finishing_fun(uint8_t gunno)
             s_thaisen_transaction[gunno].card_ballance_before = 0x00;
             s_thaisen_transaction[gunno].card_ballance_after = 0x00;
 #endif /* (defined (APP_INCLUDE_SL_PROTOCOL) || defined (APP_INCLUDE_XJ_PROTOCOL)) */
-
-#ifdef APP_INCLUDE_SGCC_PROTOCOL
-            app_nsal_create_local_transaction_number(gunno, &(s_ofsm_info[gunno].base.device_transaction_number),  \
-                    sizeof(s_ofsm_info[gunno].base.device_transaction_number));
-            memcpy(s_thaisen_transaction[gunno].device_serial_number, s_ofsm_info[gunno].base.device_transaction_number, \
-                    sizeof(s_ofsm_info[gunno].base.device_transaction_number));
-#endif /* APP_INCLUDE_SGCC_PROTOCOL */
 
             s_thaisen_transaction[gunno].start_period_number = s_ofsm_info[gunno].base.start_period;
             s_thaisen_transaction[gunno].period_count = s_ofsm_info[gunno].base.period_num;
@@ -2803,7 +2871,10 @@ static void ofsm_faulting_fun(uint8_t gunno)
                     valid_len = valid_len > sizeof(s_thaisen_transaction[gunno].user_number) ? sizeof(s_thaisen_transaction[gunno].user_number) : valid_len;
                     memset(s_thaisen_transaction[gunno].user_number, 0x00, sizeof(s_thaisen_transaction[gunno].user_number));
                     memcpy(s_thaisen_transaction[gunno].user_number, s_ofsm_info[gunno].base.user_number, valid_len);
-
+#ifdef APP_INCLUDE_SGCC_PROTOCOL
+                    memcpy(s_thaisen_transaction[gunno].device_serial_number, s_ofsm_info[gunno].base.device_transaction_number, \
+                            sizeof(s_ofsm_info[gunno].base.device_transaction_number));
+#endif /* APP_INCLUDE_SGCC_PROTOCOL */
                     s_thaisen_transaction[gunno].start_type = APP_CHARGE_START_WAY_APP;
                     s_thaisen_transaction[gunno].order_state.online_order = APP_THA_ENUM_TRUE;
 
@@ -2865,6 +2936,10 @@ static void ofsm_faulting_fun(uint8_t gunno)
 
                             app_nsal_create_local_transaction_number(gunno, &(s_ofsm_info[gunno].base.transaction_number),  \
                                     sizeof(s_ofsm_info[gunno].base.transaction_number));
+#ifdef APP_INCLUDE_SGCC_PROTOCOL
+                            memcpy(s_ofsm_info[gunno].base.device_transaction_number, s_ofsm_info[gunno].base.transaction_number, \
+                                    sizeof(s_ofsm_info[gunno].base.transaction_number));
+#endif /* APP_INCLUDE_SGCC_PROTOCOL */
 
                             memset(s_ofsm_info[gunno].base.card_uid, 0x00, sizeof(s_ofsm_info[gunno].base.card_uid));
                             memset(s_ofsm_info[gunno].base.user_number, 0x00, sizeof(s_ofsm_info[gunno].base.user_number));
@@ -2881,6 +2956,10 @@ static void ofsm_faulting_fun(uint8_t gunno)
 
                             memset(s_thaisen_transaction[gunno].physics_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].physics_card_number));
                             memset(s_thaisen_transaction[gunno].user_number, 0x00, sizeof(s_thaisen_transaction[gunno].user_number));
+#ifdef APP_INCLUDE_SGCC_PROTOCOL
+                            memcpy(s_thaisen_transaction[gunno].device_serial_number, s_ofsm_info[gunno].base.device_transaction_number, \
+                                    sizeof(s_ofsm_info[gunno].base.device_transaction_number));
+#endif /* APP_INCLUDE_SGCC_PROTOCOL */
                             s_thaisen_transaction[gunno].start_type = APP_CHARGE_START_WAY_OFFLINE_CARD;
                             s_thaisen_transaction[gunno].order_state.online_order = APP_THA_ENUM_FALSE;
 
@@ -2912,6 +2991,10 @@ static void ofsm_faulting_fun(uint8_t gunno)
 
                             app_nsal_create_local_transaction_number(gunno, &(s_ofsm_info[gunno].base.transaction_number),  \
                                     sizeof(s_ofsm_info[gunno].base.transaction_number));
+#ifdef APP_INCLUDE_SGCC_PROTOCOL
+                            memcpy(s_ofsm_info[gunno].base.device_transaction_number, s_ofsm_info[gunno].base.transaction_number, \
+                                    sizeof(s_ofsm_info[gunno].base.transaction_number));
+#endif /* APP_INCLUDE_SGCC_PROTOCOL */
 
                             compare_len = sizeof(s_ofsm_info[gunno].base.transaction_number);
                             compare_len = compare_len > sizeof(s_thaisen_transaction[gunno].serial_number) ? sizeof(s_thaisen_transaction[gunno].serial_number) : compare_len;
@@ -2925,6 +3008,10 @@ static void ofsm_faulting_fun(uint8_t gunno)
 
                             memset(s_thaisen_transaction[gunno].physics_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].physics_card_number));
                             memset(s_thaisen_transaction[gunno].user_number, 0x00, sizeof(s_thaisen_transaction[gunno].user_number));
+#ifdef APP_INCLUDE_SGCC_PROTOCOL
+                            memcpy(s_thaisen_transaction[gunno].device_serial_number, s_ofsm_info[gunno].base.device_transaction_number, \
+                                    sizeof(s_ofsm_info[gunno].base.device_transaction_number));
+#endif /* APP_INCLUDE_SGCC_PROTOCOL */
                             s_thaisen_transaction[gunno].start_type = APP_CHARGE_START_WAY_OFFLINE_CARD;
                             s_thaisen_transaction[gunno].order_state.online_order = APP_THA_ENUM_FALSE;
 
@@ -2966,6 +3053,10 @@ static void ofsm_faulting_fun(uint8_t gunno)
                     valid_len = valid_len > sizeof(s_thaisen_transaction[gunno].user_number) ? sizeof(s_thaisen_transaction[gunno].user_number) : valid_len;
                     memset(s_thaisen_transaction[gunno].user_number, 0x00, sizeof(s_thaisen_transaction[gunno].user_number));
                     memcpy(s_thaisen_transaction[gunno].user_number, s_ofsm_info[gunno].base.user_number, valid_len);
+#ifdef APP_INCLUDE_SGCC_PROTOCOL
+                    memcpy(s_thaisen_transaction[gunno].device_serial_number, s_ofsm_info[gunno].base.device_transaction_number, \
+                            sizeof(s_ofsm_info[gunno].base.device_transaction_number));
+#endif /* APP_INCLUDE_SGCC_PROTOCOL */
                     s_thaisen_transaction[gunno].start_type = APP_CHARGE_START_WAY_ONLINE_CARD;
                     s_thaisen_transaction[gunno].order_state.online_order = APP_THA_ENUM_TRUE;
 
@@ -2989,6 +3080,10 @@ static void ofsm_faulting_fun(uint8_t gunno)
 
                     app_nsal_create_local_transaction_number(gunno, &(s_ofsm_info[gunno].base.transaction_number),  \
                             sizeof(s_ofsm_info[gunno].base.transaction_number));
+#ifdef APP_INCLUDE_SGCC_PROTOCOL
+                    memcpy(s_ofsm_info[gunno].base.device_transaction_number, s_ofsm_info[gunno].base.transaction_number, \
+                            sizeof(s_ofsm_info[gunno].base.transaction_number));
+#endif /* APP_INCLUDE_SGCC_PROTOCOL */
 
                     memset(s_ofsm_info[gunno].base.card_number, 0x00, sizeof(s_ofsm_info[gunno].base.card_number));
                     memset(&(s_ofsm_info[gunno].base.card_uid), 0x00, sizeof(s_ofsm_info[gunno].base.card_uid));
@@ -3001,6 +3096,10 @@ static void ofsm_faulting_fun(uint8_t gunno)
                     memset(s_thaisen_transaction[gunno].logic_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].logic_card_number));
                     memset(s_thaisen_transaction[gunno].physics_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].physics_card_number));
                     memset(s_thaisen_transaction[gunno].user_number, 0x00, sizeof(s_thaisen_transaction[gunno].user_number));
+#ifdef APP_INCLUDE_SGCC_PROTOCOL
+                    memcpy(s_thaisen_transaction[gunno].device_serial_number, s_ofsm_info[gunno].base.device_transaction_number, \
+                            sizeof(s_ofsm_info[gunno].base.device_transaction_number));
+#endif /* APP_INCLUDE_SGCC_PROTOCOL */
                     s_thaisen_transaction[gunno].start_type = APP_CHARGE_START_WAY_SCREEN;
                     s_thaisen_transaction[gunno].order_state.online_order = APP_THA_ENUM_FALSE;
 
@@ -3019,6 +3118,10 @@ static void ofsm_faulting_fun(uint8_t gunno)
 
                     app_nsal_create_local_transaction_number(gunno, &(s_ofsm_info[gunno].base.transaction_number),  \
                             sizeof(s_ofsm_info[gunno].base.transaction_number));
+#ifdef APP_INCLUDE_SGCC_PROTOCOL
+                    memcpy(s_ofsm_info[gunno].base.device_transaction_number, s_ofsm_info[gunno].base.transaction_number, \
+                            sizeof(s_ofsm_info[gunno].base.transaction_number));
+#endif /* APP_INCLUDE_SGCC_PROTOCOL */
 
                     memset(s_ofsm_info[gunno].base.car_vin, 0x00, sizeof(s_ofsm_info[gunno].base.car_vin));
                     memset(s_ofsm_info[gunno].base.card_number, 0x00, sizeof(s_ofsm_info[gunno].base.card_number));
@@ -3032,6 +3135,10 @@ static void ofsm_faulting_fun(uint8_t gunno)
                     memset(s_thaisen_transaction[gunno].logic_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].logic_card_number));
                     memset(s_thaisen_transaction[gunno].physics_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].physics_card_number));
                     memset(s_thaisen_transaction[gunno].user_number, 0x00, sizeof(s_thaisen_transaction[gunno].user_number));
+#ifdef APP_INCLUDE_SGCC_PROTOCOL
+                    memcpy(s_thaisen_transaction[gunno].device_serial_number, s_ofsm_info[gunno].base.device_transaction_number, \
+                            sizeof(s_ofsm_info[gunno].base.device_transaction_number));
+#endif /* APP_INCLUDE_SGCC_PROTOCOL */
                     s_thaisen_transaction[gunno].start_type = APP_CHARGE_START_WAY_VIN;
                     s_thaisen_transaction[gunno].order_state.online_order = APP_THA_ENUM_FALSE;
 
@@ -3148,13 +3255,6 @@ static void ofsm_faulting_fun(uint8_t gunno)
                     s_thaisen_transaction[gunno].card_ballance_before = 0x00;
                     s_thaisen_transaction[gunno].card_ballance_after = 0x00;
 #endif /* (defined (APP_INCLUDE_SL_PROTOCOL) || defined (APP_INCLUDE_XJ_PROTOCOL)) */
-
-#ifdef APP_INCLUDE_SGCC_PROTOCOL
-            app_nsal_create_local_transaction_number(gunno, &(s_ofsm_info[gunno].base.device_transaction_number),  \
-                    sizeof(s_ofsm_info[gunno].base.device_transaction_number));
-            memcpy(s_thaisen_transaction[gunno].device_serial_number, s_ofsm_info[gunno].base.device_transaction_number, \
-                    sizeof(s_ofsm_info[gunno].base.device_transaction_number));
-#endif /* APP_INCLUDE_SGCC_PROTOCOL */
 
                     s_thaisen_transaction[gunno].start_period_number = s_ofsm_info[gunno].base.start_period;
                     s_thaisen_transaction[gunno].period_count = s_ofsm_info[gunno].base.period_num;

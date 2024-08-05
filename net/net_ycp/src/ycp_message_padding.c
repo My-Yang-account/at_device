@@ -143,7 +143,7 @@ uint8_t ycp_is_set_power_success(void)
 static void ycp_storage_data_check(void)
 {
     uint8_t verify_success = 0x01;
-    ycp_storage_struct *config = (ycp_storage_struct*)(s_ycp_handle->get_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, NET_SYSTEM_DATA_OPTION_PLAT_YCP));
+    ycp_storage_struct *config = (ycp_storage_struct*)(s_ycp_handle->get_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, NET_SYSTEM_DATA_OPTION_TARGET_PLAT));
 
     if(config == NULL){
         verify_success = 0x00;
@@ -668,7 +668,7 @@ int8_t ycp_message_pro_billing_model_set_response(void *data, uint8_t len, uint8
         return -0x02;
     }
 
-    ycp_storage_struct *config = (ycp_storage_struct*)(s_ycp_handle->get_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, NET_SYSTEM_DATA_OPTION_PLAT_YCP));
+    ycp_storage_struct *config = (ycp_storage_struct*)(s_ycp_handle->get_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, NET_SYSTEM_DATA_OPTION_TARGET_PLAT));
     Net_YcpPro_SReq_BillingModel_Set_t *response = (Net_YcpPro_SReq_BillingModel_Set_t*)data;
 
     if(is_init == 0x00){
@@ -692,7 +692,7 @@ int8_t ycp_message_pro_billing_model_set_response(void *data, uint8_t len, uint8
             config->rate_number[count] = response->body.rate_number[count];
         }
 
-        if(s_ycp_handle->set_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, 0x00, NET_SYSTEM_DATA_OPTION_PLAT_YCP) < 0x00){
+        if(s_ycp_handle->set_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, 0x00, NET_SYSTEM_DATA_OPTION_TARGET_PLAT) < 0x00){
             config->storage_init_flag = NET_YCP_STORAGE_INIT_FLAG - 0x01;
             return -0x04;
         }
@@ -942,7 +942,7 @@ int8_t ycp_message_pro_set_para_request(void *data, uint8_t len)
         return -0x02;
     }
 
-    ycp_storage_struct *config = (ycp_storage_struct*)(s_ycp_handle->get_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, NET_SYSTEM_DATA_OPTION_PLAT_YCP));
+    ycp_storage_struct *config = (ycp_storage_struct*)(s_ycp_handle->get_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, NET_SYSTEM_DATA_OPTION_TARGET_PLAT));
     Net_YcpPro_SReq_ParaSet_t *request = (Net_YcpPro_SReq_ParaSet_t*)data;
     s_ycp_base = (System_BaseData*)(s_ycp_handle->get_base_data(0x00));
 
@@ -1051,15 +1051,18 @@ int8_t ycp_message_pro_remote_reset_request(void *data, uint8_t len)
  * 函数名      ycp_message_info_init
  * 功能          越城报文信息初始化
  * **********************************************/
-void ycp_message_info_init(void)  ///////// 这是网络部分外部调用的第一个函数(可以在里面进行相关初始化)
+void ycp_message_info_init(uint8_t gunno)  ///////// 这是网络部分外部调用的第一个函数(可以在里面进行相关初始化)
 {
     static uint8_t ycp_is_init = 0x00;
+    if(gunno >= NET_SYSTEM_GUN_NUMBER){
+        return;
+    }
     if(ycp_is_init){
         return;
     }
     uint8_t communication_sn[5] = {0x82, 0x10, 0x12, 0x77, 0x85};
     s_ycp_handle = net_get_net_handle();
-    s_ycp_base = (System_BaseData*)(s_ycp_handle->get_base_data(0x00));
+    s_ycp_base = (System_BaseData*)(s_ycp_handle->get_base_data(gunno));
     ycp_is_init = 0x01;
 
     for(uint8_t gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){

@@ -1154,9 +1154,12 @@ int8_t ykc_message_pro_remote_start_merge_charge_request(uint8_t gunno, void *da
  * 函数名      ykc_message_info_init
  * 功能          云快充报文信息初始化
  * **********************************************/
-void ykc_message_info_init(void)  ///////// 这是网络部分外部调用的第一个函数(可以在里面进行相关初始化)
+void ykc_message_info_init(uint8_t gunno)  ///////// 这是网络部分外部调用的第一个函数(可以在里面进行相关初始化)
 {
     static uint8_t ykc_is_init = NET_ENUM_FALSE;
+    if(gunno >= NET_SYSTEM_GUN_NUMBER){
+        return;
+    }
     if(ykc_is_init){
         return;
     }
@@ -1165,7 +1168,7 @@ void ykc_message_info_init(void)  ///////// 这是网络部分外部调用的第
     uint8_t *pile_number = NULL;
     s_ykc_handle = net_get_net_handle();
     pile_number = (uint8_t*)(s_ykc_handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, option));
-    s_ykc_base = (System_BaseData*)(s_ykc_handle->get_base_data(0x00));
+    s_ykc_base = (System_BaseData*)(s_ykc_handle->get_base_data(gunno));
 
     ykc_is_init = NET_ENUM_TRUE;
 

@@ -127,7 +127,7 @@
 void app_nsal_realtime_process(uint8_t gunno);
 void app_nsal_system_fault_report(uint8_t gunno, uint8_t code, uint32_t timestamp, uint8_t is_resume);
 
-void app_nsal_message_init(void);
+void app_nsal_message_init(uint8_t gunno);
 void app_nsal_state_charged(uint8_t gunno);
 void app_nsal_event_occurded(uint8_t gunno);
 void app_nsal_clear_remote_start(uint8_t gunno);

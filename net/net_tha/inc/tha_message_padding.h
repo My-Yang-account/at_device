@@ -39,7 +39,7 @@ int8_t tha_message_pro_authority_response(uint8_t gunno, void *data, uint8_t len
 int8_t tha_message_pro_vin_authority_response(uint8_t gunno, void *data, uint8_t len);
 int8_t tha_message_pro_set_power_request(uint8_t gunno, void *data, uint8_t len);
 
-void tha_message_info_init(void);
+void tha_message_info_init(uint8_t gunno);
 
 int8_t tha_chargepile_request_padding_card_authority(uint8_t gunno);
 void tha_chargepile_request_padding_charge_data(uint8_t gunno, uint8_t is_init);

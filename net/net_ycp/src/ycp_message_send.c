@@ -20,8 +20,7 @@
 
 #ifdef NET_PACK_USING_YCP
 
-#define NET_YCP_LOGIN_OPERATION_INTERVAL                     15000       /* 登录操作间隔(单位ms:30 *1000 = 30s) */
-//#define NET_YCP_LOGIN_OPERATION_INTERVAL                     30000       /* 登录操作间隔(单位ms:30 *1000 = 30s) */
+#define NET_YCP_LOGIN_OPERATION_INTERVAL                     30000       /* 登录操作间隔(单位ms:30 *1000 = 30s) */
 
 #define NET_YCP_REALTIME_DATA_IDLE_INTERVAL                  300000      /* 实时数据空闲上报间隔(单位ms:5 *60 *1000 = 5min) */
 #define NET_YCP_REALTIME_DATA_CHARGING_INTERVAL              15000       /* 实时数据充电中上报间隔(单位ms:15 *1000 = 15s) */
@@ -1440,7 +1439,6 @@ static void net_ycp_server_message_pro_entry(void *parameter)
                 /***** [充电桩主动申请启动充电响应] *****/
                 if(ycp_net_event_receive(NET_YCP_EVENT_HANDLE_SERVER, NET_YCP_EVENT_TYPE_RESPONSE, gunno,
                         (NET_YCP_EVENT_OPTION_OR |NET_YCP_EVENT_OPTION_CLEAR), NET_YCP_SRES_EVENT_APPLY_CHARGE_ACTIVE, NULL) > 0){
-                    rt_kprintf("g_ycp_sres_apply_charge_active[gunno].body.result(%d)\n", g_ycp_sres_apply_charge_active[gunno].body.result);
                     if(g_ycp_sres_apply_charge_active[gunno].body.result == 0x01){
                         if(ycp_message_pro_apply_charge_active_response(gunno, &g_ycp_sres_apply_charge_active[gunno], sizeof(g_ycp_sres_apply_charge_active[gunno])) >= 0x00){
                             if(g_ycp_preq_apply_charge_active[gunno].body.start_type == 0x01){

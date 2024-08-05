@@ -776,9 +776,12 @@ int8_t tha_message_pro_set_power_request(uint8_t gunno, void *data, uint8_t len)
  * 函数名      tha_message_info_init
  * 功能          钛享报文信息初始化
  * **********************************************/
-void tha_message_info_init(void)  ///////// 这是网络部分外部调用的第一个函数(可以在里面进行相关初始化)
+void tha_message_info_init(uint8_t gunno)  ///////// 这是网络部分外部调用的第一个函数(可以在里面进行相关初始化)
 {
     static uint8_t tha_is_init = 0x00;
+    if(gunno >= NET_SYSTEM_GUN_NUMBER){
+        return;
+    }
     if(tha_is_init){
         return;
     }
@@ -787,7 +790,7 @@ void tha_message_info_init(void)  ///////// 这是网络部分外部调用的第
     char *pile_number = NULL;
     uint32_t length = 0x00, option = (NET_SYSTEM_DATA_OPTION_PLAT_THA |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
     s_tha_handle = net_get_net_handle();
-    s_tha_base = (System_BaseData*)(s_tha_handle->get_base_data(0x00));
+    s_tha_base = (System_BaseData*)(s_tha_handle->get_base_data(gunno));
     pile_number = (char*)(s_tha_handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, &length, option));
 
     tha_is_init = 0x01;

@@ -43,7 +43,7 @@ int8_t ycp_message_pro_time_sync_response(void *data, uint8_t len);
 int8_t ycp_message_pro_set_para_request(void *data, uint8_t len);
 int8_t ycp_message_pro_remote_reset_request(void *data, uint8_t len);
 
-void ycp_message_info_init(void);
+void ycp_message_info_init(uint8_t gunno);
 
 void ycp_chargepile_request_padding_state_data(uint8_t gunno, uint8_t is_init);
 void ycp_chargepile_request_padding_bms_shakehand(uint8_t gunno);

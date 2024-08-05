@@ -184,27 +184,26 @@ uint8_t app_nsal_is_remote_reset(void)
  * 函数名   app_nsal_message_init
  * 功能        初始化网络报文
  *****************************************/
-void app_nsal_message_init(void)
+void app_nsal_message_init(uint8_t gunno)
 {
 #ifdef NET_PACK_USING_THA
-    tha_message_info_init();
+    tha_message_info_init(gunno);
 #endif /* NET_PACK_USING_THA */
 
 #ifdef NET_PACK_USING_YKC
-    ykc_message_info_init();
+    ykc_message_info_init(gunno);
 #endif /* NET_PACK_USING_YKC */
 
 #ifdef NET_PACK_USING_YKC_MONITOR
-    ykc_monitor_message_info_init();
+    ykc_monitor_message_info_init(gunno);
 #endif /* NET_PACK_USING_YKC_MONITOR */
 
 #ifdef NET_PACK_USING_YCP
-    ycp_message_info_init();
+    ycp_message_info_init(gunno);
 #endif /* NET_PACK_USING_YCP */
 
 #ifdef NET_PACK_USING_SGCC
-    extern void sgcc_message_info_init(void);
-    sgcc_message_info_init();
+    sgcc_message_info_init(gunno);
 #endif /* NET_PACK_USING_SGCC */
 }
 /*******************************************
