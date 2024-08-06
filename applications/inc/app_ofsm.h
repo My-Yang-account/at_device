@@ -230,7 +230,7 @@ typedef struct
     }bms_fault_reason;
 
     uint8_t charge_way;                   /* 充电方式 */
-    uint8_t reserve[128];                 /* 预留 */
+    uint8_t reserve[16];                  /* 预留 */
 }thaisen_transaction_t;
 /*******************************************************************************************/
 
@@ -304,6 +304,7 @@ typedef struct{
     uint32_t service_fees_total;      /* 服务费总费用(精度：0.0001) */
     uint32_t start_elect;             /* 起始电量(精度：0.001) */
     uint32_t current_elect;           /* 当前电量(精度：0.001) */
+    uint32_t ammeter_elect;           /* 电表电量(精度：0.001) */
     uint32_t current_time;            /* 当前时间(时间戳) */
     uint32_t start_time;              /* 充电开始时间(时间戳) */
     uint32_t stop_time;               /* 充电结束时间(时间戳) */

@@ -3538,6 +3538,7 @@ void ofsm_thread_entry(void *parameter)
         extern void thaisenSetModuleMaxChargCurrGroup(uint8_t groupNum, uint16_t curr);
         thaisenSetModuleMaxChargCurrGroup(thread_gunno, singlegun_curr);
 
+        s_ofsm_info[thread_gunno].base.ammeter_elect = mw_get_meter_total_wh(thread_gunno);
         s_ofsm_info[thread_gunno].base.net_state = app_nsal_get_link_state();
         s_ofsm_info[thread_gunno].base.cc1_state = mw_get_cc1(thread_gunno);
         s_ofsm_info[thread_gunno].base.current_time = mw_get_current_timestamp();
