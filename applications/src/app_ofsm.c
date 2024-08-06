@@ -1336,7 +1336,7 @@ static void ofsm_starting_fun(uint8_t gunno)
                 if(sys_vin_whitelists_query(bms->BRM.CarDiscern, sizeof(bms->BRM.CarDiscern)) >= 0x00){
                     vin_authentication_complete = APP_THA_ENUM_TRUE;
                     s_ofsm_info[gunno].base.flag.vin_authorization_success = APP_THA_ENUM_TRUE;
-                    LOG_D("gunno(%d) local VIN(%s) start", bms->BRM.CarDiscern);
+                    LOG_D("gunno(%d) local VIN(%s) start", gunno, bms->BRM.CarDiscern);
                 }else{
                     if(s_ofsm_info[gunno].base.net_state != APP_NET_STATE_AUTH_SECCESS){
                         vin_authentication_complete = APP_THA_ENUM_TRUE;
@@ -1407,6 +1407,7 @@ static void ofsm_starting_fun(uint8_t gunno)
             s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_FALSE;
             s_ofsm_info[gunno].base.flag.start_result = APP_THA_ENUM_FALSE;
             s_thaisen_transaction[gunno].boot_result = s_ofsm_info[gunno].base.flag.start_result;
+            s_thaisen_transaction[gunno].order_state.is_charging = APP_THA_ENUM_FALSE;
 
             s_ofsm_info[gunno].base.start_time = s_ofsm_info[gunno].base.current_time;
             s_ofsm_info[gunno].base.stop_time = s_ofsm_info[gunno].base.current_time;
@@ -2043,10 +2044,17 @@ static void ofsm_stoping_fun(uint8_t gunno)
         }
         /** 在并充结束后要同步主枪信息给副枪用来在屏幕上显示 */
         if((gunno != s_ofsm_info[gunno].base.main_gunno) && (s_ofsm_info[gunno].base.main_gunno < APP_SYSTEM_GUNNO_SIZE)){
-            s_ofsm_info[gunno].base.reason_code = s_ofsm_info[s_ofsm_info[gunno].base.main_gunno].base.reason_code;
-            s_ofsm_info[gunno].base.fees_total = s_ofsm_info[s_ofsm_info[gunno].base.main_gunno].base.fees_total;
-            s_ofsm_info[gunno].base.elect_a = s_ofsm_info[s_ofsm_info[gunno].base.main_gunno].base.elect_a;
-            s_ofsm_info[gunno].base.charge_time = s_ofsm_info[s_ofsm_info[gunno].base.main_gunno].base.charge_time;
+            if(s_ofsm_info[s_ofsm_info[gunno].base.main_gunno].base.reason_code == APP_SYSTEM_STOP_WAY_AUTHEN_FAIL){
+                s_ofsm_info[gunno].base.reason_code = s_ofsm_info[s_ofsm_info[gunno].base.main_gunno].base.reason_code;
+                s_ofsm_info[gunno].base.fees_total = 0x00;
+                s_ofsm_info[gunno].base.elect_a = 0x00;
+                s_ofsm_info[gunno].base.charge_time = 0x00;
+            }else{
+                s_ofsm_info[gunno].base.reason_code = s_ofsm_info[s_ofsm_info[gunno].base.main_gunno].base.reason_code;
+                s_ofsm_info[gunno].base.fees_total = s_ofsm_info[s_ofsm_info[gunno].base.main_gunno].base.fees_total;
+                s_ofsm_info[gunno].base.elect_a = s_ofsm_info[s_ofsm_info[gunno].base.main_gunno].base.elect_a;
+                s_ofsm_info[gunno].base.charge_time = s_ofsm_info[s_ofsm_info[gunno].base.main_gunno].base.charge_time;
+            }
         }
 
         if(gunno != s_ofsm_info[gunno].base.main_gunno){
@@ -2118,45 +2126,77 @@ static void ofsm_stoping_fun(uint8_t gunno)
 
         rt_thread_mdelay(2000);  /* 错峰上报订单 */
 
-        if((s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE) && (gunno == s_ofsm_info[gunno].base.main_gunno)){
-            uint8_t deputy_gunno = APP_SYSTEM_GUNNOA;
-            if(gunno == APP_SYSTEM_GUNNOA){
-                deputy_gunno = APP_SYSTEM_GUNNOA + 0x01;
-            }
-            app_billing_info_calculate(s_ofsm_info[gunno].base.stop_time, (mw_get_meter_total_wh(gunno) + mw_get_meter_total_wh(deputy_gunno)), gunno);
-        }else{
-            app_billing_info_calculate(s_ofsm_info[gunno].base.stop_time, mw_get_meter_total_wh(gunno), gunno);
-        }
+        if(s_ofsm_info[s_ofsm_info[gunno].base.main_gunno].base.reason_code == APP_SYSTEM_STOP_WAY_AUTHEN_FAIL){
+            s_ofsm_info[gunno].base.current_elect = s_ofsm_info[gunno].base.start_elect;
+            s_ofsm_info[gunno].base.elect_a = 0x00;
+            s_ofsm_info[gunno].base.fees_total = 0x00;
+            s_ofsm_info[gunno].base.service_fees_total = 0x00;
+            s_ofsm_info[gunno].base.elect_fees_total = 0x00;
 
-        s_ofsm_info[gunno].base.current_elect = app_billingrule_get_stop_elcet(gunno);
-        s_ofsm_info[gunno].base.elect_a = app_billingrule_get_elcet_total(gunno);
-        s_ofsm_info[gunno].base.fees_total = app_billingrule_get_fees_total(gunno);
-        s_ofsm_info[gunno].base.service_fees_total = app_billingrule_get_service_fees_total(gunno);
-        if(s_ofsm_info[gunno].base.fees_total > s_ofsm_info[gunno].base.service_fees_total){
-            s_ofsm_info[gunno].base.elect_fees_total = (s_ofsm_info[gunno].base.fees_total - s_ofsm_info[gunno].base.service_fees_total);
-        }
-
-        s_thaisen_transaction[gunno].ammeter_stop = s_ofsm_info[gunno].base.current_elect;
-        s_thaisen_transaction[gunno].total_elect = s_ofsm_info[gunno].base.elect_a;
-        s_thaisen_transaction[gunno].total_loss_elect = 0x00;;
-        s_thaisen_transaction[gunno].charge_fee = s_ofsm_info[gunno].base.elect_fees_total;
-        s_thaisen_transaction[gunno].service_fee = s_ofsm_info[gunno].base.service_fees_total;
-        s_thaisen_transaction[gunno].total_fee = s_ofsm_info[gunno].base.fees_total;
+            s_thaisen_transaction[gunno].ammeter_stop = s_ofsm_info[gunno].base.current_elect;
+            s_thaisen_transaction[gunno].total_elect = s_ofsm_info[gunno].base.elect_a;
+            s_thaisen_transaction[gunno].total_loss_elect = 0x00;;
+            s_thaisen_transaction[gunno].charge_fee = s_ofsm_info[gunno].base.elect_fees_total;
+            s_thaisen_transaction[gunno].service_fee = s_ofsm_info[gunno].base.service_fees_total;
+            s_thaisen_transaction[gunno].total_fee = s_ofsm_info[gunno].base.fees_total;
 
 #if (defined (APP_INCLUDE_YKC_PROTOCOL) || defined (APP_INCLUDE_YKC_PROTOCOL_MONITOR) || defined (APP_INCLUDE_YCP_PROTOCOL))
-        for(uint8_t type = 0x00; type < APP_BILLING_RULE_RATE_TYPE_MAX; type++){
-            s_thaisen_transaction[gunno].rate_type_elect[type] = app_billingrule_get_rate_type_elect(gunno, type);
-            s_thaisen_transaction[gunno].rate_type_amount[type] = app_billingrule_get_rate_type_fess(gunno, type);
-        }
+            for(uint8_t type = 0x00; type < APP_BILLING_RULE_RATE_TYPE_MAX; type++){
+                s_thaisen_transaction[gunno].rate_type_elect[type] = 0x00;
+                s_thaisen_transaction[gunno].rate_type_amount[type] = 0x00;
+            }
 #endif /* (defined (APP_INCLUDE_YKC_PROTOCOL) || defined (APP_INCLUDE_YKC_PROTOCOL_MONITOR) || defined (APP_INCLUDE_YCP_PROTOCOL)) */
 
 #if (defined (APP_INCLUDE_SL_PROTOCOL) || defined (APP_INCLUDE_SGCC_PROTOCOL))
-        for(uint8_t period = s_ofsm_info[gunno].base.start_period; period <= s_ofsm_info[gunno].base.current_period; period++){
-            s_thaisen_transaction[gunno].period_elect[period] = app_billingrule_get_period_elect(gunno, period);
-            s_thaisen_transaction[gunno].period_elect_fees[period] = app_billingrule_get_period_elect_fees(gunno, period);
-            s_thaisen_transaction[gunno].period_service_fees[period] = app_billingrule_get_period_service_fees(gunno, period);
-        }
+            for(uint8_t period = s_ofsm_info[gunno].base.start_period; period <= s_ofsm_info[gunno].base.current_period; period++){
+                s_thaisen_transaction[gunno].period_elect[period] = 0x00;
+                s_thaisen_transaction[gunno].period_elect_fees[period] = 0x00;
+                s_thaisen_transaction[gunno].period_service_fees[period] = 0x00;
+            }
 #endif /* (defined (APP_INCLUDE_SL_PROTOCOL) || defined (APP_INCLUDE_SGCC_PROTOCOL)) */
+
+        }else{
+            if((s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE) && (gunno == s_ofsm_info[gunno].base.main_gunno)){
+                uint8_t deputy_gunno = APP_SYSTEM_GUNNOA;
+                if(gunno == APP_SYSTEM_GUNNOA){
+                    deputy_gunno = APP_SYSTEM_GUNNOA + 0x01;
+                }
+                app_billing_info_calculate(s_ofsm_info[gunno].base.stop_time, (mw_get_meter_total_wh(gunno) + mw_get_meter_total_wh(deputy_gunno)), gunno);
+            }else{
+                app_billing_info_calculate(s_ofsm_info[gunno].base.stop_time, mw_get_meter_total_wh(gunno), gunno);
+            }
+
+            s_ofsm_info[gunno].base.current_elect = app_billingrule_get_stop_elcet(gunno);
+            s_ofsm_info[gunno].base.elect_a = app_billingrule_get_elcet_total(gunno);
+            s_ofsm_info[gunno].base.fees_total = app_billingrule_get_fees_total(gunno);
+            s_ofsm_info[gunno].base.service_fees_total = app_billingrule_get_service_fees_total(gunno);
+            if(s_ofsm_info[gunno].base.fees_total > s_ofsm_info[gunno].base.service_fees_total){
+                s_ofsm_info[gunno].base.elect_fees_total = (s_ofsm_info[gunno].base.fees_total - s_ofsm_info[gunno].base.service_fees_total);
+            }
+
+            s_thaisen_transaction[gunno].ammeter_stop = s_ofsm_info[gunno].base.current_elect;
+            s_thaisen_transaction[gunno].total_elect = s_ofsm_info[gunno].base.elect_a;
+            s_thaisen_transaction[gunno].total_loss_elect = 0x00;;
+            s_thaisen_transaction[gunno].charge_fee = s_ofsm_info[gunno].base.elect_fees_total;
+            s_thaisen_transaction[gunno].service_fee = s_ofsm_info[gunno].base.service_fees_total;
+            s_thaisen_transaction[gunno].total_fee = s_ofsm_info[gunno].base.fees_total;
+
+#if (defined (APP_INCLUDE_YKC_PROTOCOL) || defined (APP_INCLUDE_YKC_PROTOCOL_MONITOR) || defined (APP_INCLUDE_YCP_PROTOCOL))
+            for(uint8_t type = 0x00; type < APP_BILLING_RULE_RATE_TYPE_MAX; type++){
+                s_thaisen_transaction[gunno].rate_type_elect[type] = app_billingrule_get_rate_type_elect(gunno, type);
+                s_thaisen_transaction[gunno].rate_type_amount[type] = app_billingrule_get_rate_type_fess(gunno, type);
+            }
+#endif /* (defined (APP_INCLUDE_YKC_PROTOCOL) || defined (APP_INCLUDE_YKC_PROTOCOL_MONITOR) || defined (APP_INCLUDE_YCP_PROTOCOL)) */
+
+#if (defined (APP_INCLUDE_SL_PROTOCOL) || defined (APP_INCLUDE_SGCC_PROTOCOL))
+            for(uint8_t period = s_ofsm_info[gunno].base.start_period; period <= s_ofsm_info[gunno].base.current_period; period++){
+                s_thaisen_transaction[gunno].period_elect[period] = app_billingrule_get_period_elect(gunno, period);
+                s_thaisen_transaction[gunno].period_elect_fees[period] = app_billingrule_get_period_elect_fees(gunno, period);
+                s_thaisen_transaction[gunno].period_service_fees[period] = app_billingrule_get_period_service_fees(gunno, period);
+            }
+#endif /* (defined (APP_INCLUDE_SL_PROTOCOL) || defined (APP_INCLUDE_SGCC_PROTOCOL)) */
+
+        }
 
         mw_storage_record_designate_index_updated(&s_thaisen_transaction[gunno], sizeof(s_thaisen_transaction[gunno]), USER_DATA_TYPE_VERIFIED,  \
                 0x00, gunno, s_current_order_index[TARGET_PLATFORM_INDEX][gunno]);
