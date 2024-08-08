@@ -776,7 +776,6 @@ int8_t ykc_monitor_message_pro_apply_charge_active_response(uint8_t gunno, void 
     valid_len = valid_len > sizeof(s_ykc_monitor_base->card_number) ? sizeof(s_ykc_monitor_base->card_number) : valid_len;
     memset(s_ykc_monitor_base->card_number, 0x00, sizeof(s_ykc_monitor_base->card_number));
     memcpy(s_ykc_monitor_base->card_number, request->body.logic_card_number, valid_len);
-    memset(s_ykc_monitor_base->card_uid, 0x00, sizeof(s_ykc_monitor_base->card_uid));
 
     valid_len = sizeof(request->body.serial_number);
     valid_len = valid_len > sizeof(s_ykc_monitor_base->transaction_number) ? sizeof(s_ykc_monitor_base->transaction_number) : valid_len;
@@ -1048,7 +1047,6 @@ int8_t ykc_monitor_message_pro_apply_merge_charge_active_response(uint8_t gunno,
     valid_len = valid_len > sizeof(s_ykc_monitor_base->card_number) ? sizeof(s_ykc_monitor_base->card_number) : valid_len;
     memset(&(s_ykc_monitor_base->card_number), 0x00, sizeof(s_ykc_monitor_base->card_number));
     memcpy(&(s_ykc_monitor_base->card_number), request->body.logic_card_number, valid_len);
-    memset(&(s_ykc_monitor_base->card_uid), 0x00, sizeof(s_ykc_monitor_base->card_uid));
 
     valid_len = sizeof(request->body.serial_number);
     valid_len = valid_len > sizeof(s_ykc_monitor_base->transaction_number) ? sizeof(s_ykc_monitor_base->transaction_number) : valid_len;
