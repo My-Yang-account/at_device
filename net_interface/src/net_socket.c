@@ -37,7 +37,8 @@
 static void _port_uint2str(uint16_t input, char *output)
 {
     uint8_t i = 0, j = 0;
-    char temp[6] = {0};
+    char temp[6];
+    memset(temp, 0, sizeof(temp));
 
     do {
         temp[i++] = input % 10 + '0';
@@ -56,6 +57,7 @@ int app_socket_open_port(int *socket_fd, char* host, uint16_t host_len, uint16_t
     struct addrinfo hints;
     struct addrinfo *addr_list;
 
+    memset(port_str, 0x00, sizeof(port_str));
     memset(&hints, 0x00, sizeof(struct addrinfo));
     hints.ai_family = AF_INET;         /* only IPv4 */
     hints.ai_socktype = SOCK_STREAM;   /* socket 类型 */
