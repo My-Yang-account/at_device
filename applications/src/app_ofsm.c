@@ -374,11 +374,11 @@ void chargepile_power_adjust(void)
         }
     }
 #else
-    if(get_ofsm_info(APP_SYSTEM_GUNNOA)->state != CHARGING_OFSM_STATE){
+    if(get_ofsm_info(APP_SYSTEM_GUNNOA)->state != APP_OFSM_STATE_CHARGING){
         set_volt[APP_SYSTEM_GUNNOA] = thaisenGetModuleMaxChargVolt();
         gun_idle[APP_SYSTEM_GUNNOA] = 1;
-    }else if(get_ofsm_info(APP_SYSTEM_GUNNOA)->state == CHARGING_OFSM_STATE){
-        set_volt[APP_SYSTEM_GUNNOA] = get_meter_ua(APP_SYSTEM_GUNNOA);
+    }else if(get_ofsm_info(APP_SYSTEM_GUNNOA)->state == APP_OFSM_STATE_CHARGING){
+        set_volt[APP_SYSTEM_GUNNOA] = mw_get_meter_ua(APP_SYSTEM_GUNNOA);
     }
 #endif /* APP_USING_DOUBLEGUN */
 
