@@ -1078,7 +1078,9 @@ void SerialScreen_BtnChgInfoSet(int port)
 
 	UI_SYNC_SINGLE_CFG_STR(CONFIG_ITEM_PILE_NUMBER,LcdData.setData.pileID,str_len(LcdData.setData.pileID));
 	UI_SYNC_SINGLE_CFG_STR(OCONFIG_ITEM_HELP_NUMBER,LcdData.setData.Help_Number,str_len(LcdData.setData.Help_Number));
-	UI_SYNC_SINGLE_CFG_STR(CONFIG_ITEM_QRCODE_PRE,temp,str_len(temp));
+	if(str_len(temp) > 0x02){
+	    UI_SYNC_SINGLE_CFG_STR(CONFIG_ITEM_QRCODE_PRE,temp,str_len(temp));
+	}
 
 	UI_STORAGE_CFG_DATA;
 
