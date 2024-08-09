@@ -3362,6 +3362,7 @@ void SerialScreen_GetIOStatus(int port)
         else
             LcdData.setData.g_paraRely = REALAY_CLOSE;
 
+        LcdData.setData.g_paraRely = REALAY_OFF;
         LcdData.setData.s_paraRely = LcdData.setData.g_paraRely;
 
 
@@ -3371,6 +3372,7 @@ void SerialScreen_GetIOStatus(int port)
         else
             LcdData.setData.g_acRely = REALAY_CLOSE;
 
+        LcdData.setData.g_acRely = REALAY_OFF;
         LcdData.setData.s_acRely  = LcdData.setData.g_acRely;
     }
 	
@@ -3383,6 +3385,7 @@ void SerialScreen_GetIOStatus(int port)
 	else
 		LcdData.setData.g_dcRelay[port] = REALAY_CLOSE;
 			
+    LcdData.setData.g_dcRelay[port] = REALAY_OFF;
 	LcdData.setData.s_dcRelay[port]  = LcdData.setData.g_dcRelay[port];
 
 #if 0
@@ -3395,10 +3398,10 @@ void SerialScreen_GetIOStatus(int port)
 	else
 		LcdData.setData.g_elElock[port] = REALAY_CLOSE;	
 #endif
-	if(port == LCD_GUN_1)
-		thaisenElectUnlockA_debug();
-	else if(port == LCD_GUN_2)
-		thaisenElectUnlockB_debug();
+//	if(port == LCD_GUN_1)
+//		thaisenElectUnlockA_debug();
+//	else if(port == LCD_GUN_2)
+//		thaisenElectUnlockB_debug();
 	LcdData.setData.g_elElock[port]= REALAY_OFF;
 	LcdData.setData.s_elElock[port]  = LcdData.setData.g_elElock[port];
 
@@ -3411,6 +3414,7 @@ void SerialScreen_GetIOStatus(int port)
 	else
 		LcdData.setData.g_auxRelay[port] = REALAY_OFF;
 
+    LcdData.setData.g_auxRelay[port] = REALAY_OFF;
 	LcdData.setData.g_auxRelay[port] = LcdData.setData.s_auxRelay[port];
 
 	return ;
