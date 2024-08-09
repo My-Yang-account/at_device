@@ -1321,7 +1321,13 @@ static void ofsm_starting_fun(uint8_t gunno)
             break;
         case APP_BOOTING_STEP_INSULT:
         case APP_BOOTING_STEP_CONFIG:
-            app_nsal_report_bms_message_bmsparameter(gunno);
+            if(s_ofsm_info[gunno].base.start_type == APP_CHARGE_START_WAY_VIN){
+                if(s_ofsm_info[gunno].base.flag.vin_is_authorized == APP_THA_ENUM_FALSE){
+                    app_nsal_report_bms_message_bmsparameter(gunno);
+                }
+            }else{
+                app_nsal_report_bms_message_bmsparameter(gunno);
+            }
             break;
         default:
             break;
