@@ -143,31 +143,31 @@ static int32_t ycp_get_fault_code(uint8_t bit, uint8_t gunno)
         return 0x00;
         break;
     case NET_GENERAL_FAULT_FLASH:
-        return 0x00;
+        s_ycp_realtime_fault[gunno] = NET_YCP_FAULT_CODE_STORAGE_CHIP;
         break;
     case NET_GENERAL_FAULT_EEPROM:
-        return 0x00;
+        s_ycp_realtime_fault[gunno] = NET_YCP_FAULT_CODE_STORAGE_CHIP;
         break;
     case NET_GENERAL_FAULT_LIGHT_PRPTECT:
         s_ycp_realtime_fault[gunno] = NET_YCP_FAULT_CODE_LIGHTNING_PROTECTOR;
         break;
     case NET_GENERAL_FAULT_GUN_SITE:
-        return 0x00;
+        s_ycp_realtime_fault[gunno] = NET_YCP_FAULT_CODE_GUN_SITE;
         break;
     case NET_GENERAL_FAULT_CIRCUIT_BREAKER:
         s_ycp_realtime_fault[gunno] = NET_YCP_FAULT_CODE_CIRCUIT_BREAKER;
         break;
     case NET_GENERAL_FAULT_FLOODING:
-        return 0x00;
+        s_ycp_realtime_fault[gunno] = NET_YCP_FAULT_CODE_FLOODING;
         break;
     case NET_GENERAL_FAULT_SMOKE:
         s_ycp_realtime_fault[gunno] = NET_YCP_FAULT_CODE_FUMES;
         break;
     case NET_GENERAL_FAULT_POUR:
-        return 0x00;
+        s_ycp_realtime_fault[gunno] = NET_YCP_FAULT_CODE_POUR;
         break;
     case NET_GENERAL_FAULT_LIQUID_COOLING:
-        return 0x00;
+        s_ycp_realtime_fault[gunno] = NET_YCP_FAULT_CODE_LIQUID_COOLING;
         break;
     case NET_GENERAL_FAULT_FUSE:
         s_ycp_realtime_fault[gunno] = NET_YCP_FAULT_CODE_FUSE;

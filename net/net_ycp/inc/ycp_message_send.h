@@ -99,6 +99,12 @@
 #define NET_YCP_FAULT_CODE_AIR_OUTLEY_TEMP_HIGH              0x1032   /* 故障码：出风口过温 */
 #define NET_YCP_FAULT_CODE_AIR_OUTLEY_TEMP_LOW               0x1033   /* 故障码：出风口低温 */
 
+#define NET_YCP_FAULT_CODE_STORAGE_CHIP                      0x1034   /* 故障码：存储芯片故障 */
+#define NET_YCP_FAULT_CODE_GUN_SITE                          0x1035   /* 故障码：枪座故障 */
+#define NET_YCP_FAULT_CODE_FLOODING                          0x1036   /* 故障码：水浸故障 */
+#define NET_YCP_FAULT_CODE_POUR                              0x1037   /* 故障码：倾倒检测故障 */
+#define NET_YCP_FAULT_CODE_LIQUID_COOLING                    0x1038   /* 故障码：液冷故障 */
+
 /** chargepile request event */
 #define NET_YCP_PREQ_EVENT_SIGNIN                            0    /* 充电桩请求事件：登录 */
 #define NET_YCP_PREQ_EVENT_TIME_SYNC                         1    /* 充电桩请求事件：对时 */

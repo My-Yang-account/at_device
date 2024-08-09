@@ -43,15 +43,16 @@ struct ycp_disposable_info{
 };
 
 struct ycp_flag_info{
-    uint8_t is_start_charge : 1;                  /*  已启动充电 */
-    uint8_t is_stop_charge : 1;                   /*  已停止充电 */
-    uint8_t is_set_power : 1;                     /*  已设置功率百分比 */
+    uint16_t is_start_charge : 1;                  /*  已启动充电 */
+    uint16_t is_stop_charge : 1;                   /*  已停止充电 */
+    uint16_t is_set_power : 1;                     /*  已设置功率百分比 */
 
-    uint8_t start_success : 1;                    /*  启机成功 */
-    uint8_t stop_success : 1;                     /*  停机成功 */
-    uint8_t set_power_success : 1;                /*  设置功率百分比成功 */
+    uint16_t start_success : 1;                    /*  启机成功 */
+    uint16_t stop_success : 1;                     /*  停机成功 */
+    uint16_t set_power_success : 1;                /*  设置功率百分比成功 */
 
-    uint8_t chargedata_mode_last : 2;             /*  前一次的充电数据模式 */
+    uint16_t chargedata_mode_last : 2;             /*  前一次的充电数据模式 */
+    uint16_t is_vin_authorized : 1;                /*  已进行了VIN鉴权 */
 };
 
 #pragma pack()
@@ -780,7 +781,6 @@ int8_t ycp_message_pro_apply_charge_active_response(uint8_t gunno, void *data, u
     valid_len = valid_len > sizeof(s_ycp_base->card_number) ? sizeof(s_ycp_base->card_number) : valid_len;
     memset(s_ycp_base->card_number, 0x00, sizeof(s_ycp_base->card_number));
     memcpy(s_ycp_base->card_number, response->body.logic_card_number, valid_len);
-    memset(s_ycp_base->card_uid, 0x00, sizeof(s_ycp_base->card_uid));
 
     valid_len = sizeof(response->body.serial_number);
     valid_len = valid_len > sizeof(s_ycp_base->transaction_number) ? sizeof(s_ycp_base->transaction_number) : valid_len;
@@ -1672,7 +1672,7 @@ int8_t ycp_chargepile_request_padding_card_authority(uint8_t gunno)
     if(ycp_get_socket_info()->state != YCP_SOCKET_STATE_LOGIN_SUCCESS){
         return -0x01;
     }
-    uint8_t valid_len = 0x00;
+    uint8_t valid_len = 0x00, ascii_valid_len = 0x00, value = 0x00;
     s_ycp_base = (System_BaseData*)(s_ycp_handle->get_base_data(gunno));
 
     if(!s_ycp_base->flag.card_info_is_uid){
@@ -1680,12 +1680,30 @@ int8_t ycp_chargepile_request_padding_card_authority(uint8_t gunno)
     }
     g_ycp_preq_apply_charge_active[gunno].body.start_type = 0x01;
 
+    ascii_valid_len = s_ycp_base->card_uid_len *0x02;
+    ascii_valid_len = ascii_valid_len > (NET_YCP_PHYCARD_NUMBER_LENGTH_MAX + 0x01) ? (NET_YCP_PHYCARD_NUMBER_LENGTH_MAX + 0x01) : ascii_valid_len;
+    ascii_valid_len -= (ascii_valid_len %0x02);
+
     valid_len = s_ycp_base->card_uid_len;
     valid_len = valid_len > (NET_YCP_PHYCARD_NUMBER_LENGTH_MAX + 0x01) ? (NET_YCP_PHYCARD_NUMBER_LENGTH_MAX + 0x01) : valid_len;
-    memset(g_ycp_preq_apply_charge_active[gunno].body.phycard_number, 0x00, (NET_YCP_PHYCARD_NUMBER_LENGTH_MAX + 0x01));
+    memset(g_ycp_preq_apply_charge_active[gunno].body.phycard_number, ' ', (NET_YCP_PHYCARD_NUMBER_LENGTH_MAX + 0x01));
 
-    for(uint8_t count = 0x00; count < valid_len; count++){
-        g_ycp_preq_apply_charge_active[gunno].body.phycard_number[count] = s_ycp_base->card_uid[valid_len - 0x01 - count];
+    for(uint8_t i = 0x00, j = 0x00; (i < valid_len) && (j < ascii_valid_len); i++, j += 0x02){
+        value = ((s_ycp_base->card_uid[valid_len - 0x01 - i]) &0x0F);
+        if(value > 0x09){
+            value += ('A' - (0x09 + 0x01));
+        }else{
+            value += '0';
+        }
+        g_ycp_preq_apply_charge_active[gunno].body.phycard_number[j] = value;
+
+        value = (((s_ycp_base->card_uid[valid_len - 0x01 - i]) &0xF0) >>0x04);
+        if(value > 0x09){
+            value += ('A' - (0x09 + 0x01));
+        }else{
+            value += '0';
+        }
+        g_ycp_preq_apply_charge_active[gunno].body.phycard_number[j + 0x01] = value;
     }
 
     memset(g_ycp_preq_apply_charge_active[gunno].body.password, 0x00, NET_YCP_PASSWORD_LENGTH_DEFAULT);
@@ -1722,6 +1740,8 @@ int8_t ycp_chargepile_request_padding_vin_authority(uint8_t gunno)
     for(uint8_t count = 0x00; count < NET_YCP_CAR_VIN_NUMBER_LENGTH_MAX; count++){
         g_ycp_preq_apply_charge_active[gunno].body.phycard_number[count] = s_ycp_base->car_vin[NET_YCP_CAR_VIN_NUMBER_LENGTH_MAX - count - 0x01];
     }
+
+    s_ycp_flag_info[gunno].is_vin_authorized = NET_ENUM_TRUE;
 
     ycp_net_event_send(NET_YCP_EVENT_HANDLE_CHARGEPILE, NET_YCP_EVENT_TYPE_REQUEST, gunno, NET_YCP_PREQ_EVENT_APPLY_START_CHARGE);
 
@@ -2447,6 +2467,10 @@ static void ycp_data_realtime_process(uint8_t gunno)
 
     if((s_ycp_base->state.current == APP_OFSM_STATE_STARTING) || (s_ycp_base->state.current == APP_OFSM_STATE_CHARGING)){
         ycp_clear_message_wait_response_state(gunno, NET_YCP_PREQ_EVENT_TRANSACTION_RECORD);
+    }else{
+        if(s_ycp_flag_info[gunno].is_vin_authorized == NET_ENUM_TRUE){
+            ycp_clear_message_wait_response_state(gunno, NET_YCP_PREQ_EVENT_APPLY_START_CHARGE);
+        }
     }
 }
 
