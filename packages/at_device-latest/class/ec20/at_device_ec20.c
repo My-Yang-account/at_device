@@ -42,6 +42,7 @@ struct at_device_appinfo {
     int  mnc;             /* 网络运营商 */
     int  init_complete;   /* 4G模块初始化完成 */
     char iccid[21];       /* SIM卡号码 */
+    char imei[18];        /* IMEI码 */
 };
 
 struct dev_control{
@@ -928,7 +929,7 @@ static void ec20_init_thread_entry(void *parameter)
 #define CGREG_RETRY                    99
 #define CPIN_RETRY                     20
 
-    int i, qi_arg[3] = {0};
+    int i, qi_arg[3] = {0}, is_digit = 0;
     int retry_num = INIT_RETRY;
     char parsed_data[20] = {0};
     rt_err_t result = RT_EOK;
@@ -947,10 +948,12 @@ static void ec20_init_thread_entry(void *parameter)
 
     while (retry_num--)
     {
+        is_digit = 0;
         s_at_device_appinfo.boot = 0;
         s_at_device_appinfo.at = 0;
         s_at_device_appinfo.card = 0;
         rt_memset(s_at_device_appinfo.iccid, 0x00, sizeof(s_at_device_appinfo.iccid));
+        rt_memset(s_at_device_appinfo.imei, 0x00, sizeof(s_at_device_appinfo.imei));
         s_at_device_appinfo.signal_strength = 0;
         s_at_device_appinfo.cgreg = 0;
         s_at_device_appinfo.mnc = -1;
@@ -992,6 +995,22 @@ static void ec20_init_thread_entry(void *parameter)
         /* Use AT+GSN to query the IMEI of module */
         AT_SEND_CMD(client, resp, 0, 300, "AT+GSN");
 
+        for(uint8_t count = 0, valid_i = 0; count < resp->buf_size; count++){
+            if(is_digit == 0){
+                if(isdigit(resp->buf[count])){
+                    is_digit = 1;
+                    s_at_device_appinfo.imei[valid_i] = resp->buf[count];
+                    valid_i++;
+                }
+            }else{
+                if(isdigit(resp->buf[count]) == 0){
+                    break;
+                }
+                s_at_device_appinfo.imei[valid_i] = resp->buf[count];
+                valid_i++;
+            }
+        }
+        rt_kprintf("s_at_device_appinfo.imei(%s)\n", s_at_device_appinfo.imei);
         /* check SIM card */
         rt_thread_mdelay(5000);
         for (i = 0; i < CPIN_RETRY; i++)
