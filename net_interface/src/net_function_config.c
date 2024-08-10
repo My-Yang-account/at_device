@@ -166,9 +166,6 @@ static uint8_t* app_nget_system_data(uint8_t name, uint32_t *dlen, uint32_t opti
     case NET_SYSTEM_DATA_NAME_CI:
 
         break;
-    case NET_SYSTEM_DATA_NAME_IMEI:
-
-        break;
     case NET_SYSTEM_DATA_NAME_RAM:
 
         break;
@@ -179,6 +176,12 @@ static uint8_t* app_nget_system_data(uint8_t name, uint32_t *dlen, uint32_t opti
 
         break;
 #endif /* 0 */
+    case NET_SYSTEM_DATA_NAME_IMEI:
+    {
+        extern char *get_at_device_appinfo_imei(void);
+        return get_at_device_appinfo_imei();
+    }
+        break;
     case NET_SYSTEM_DATA_NAME_ICCID:
     {
         extern char *get_at_device_appinfo_iccid(void);
@@ -227,6 +230,7 @@ static uint8_t* app_nget_system_data(uint8_t name, uint32_t *dlen, uint32_t opti
 #endif /* 0 */
     case NET_SYSTEM_DATA_NAME_HARDWARE_VERSION:
     {
+#if 0
         extern uint8_t *__thaisen_get_test_hard_version(void);
         uint16_t ver_data = 0x00;
 
@@ -237,6 +241,8 @@ static uint8_t* app_nget_system_data(uint8_t name, uint32_t *dlen, uint32_t opti
         }else{
             return "-V01";
         }
+#endif
+        return "-V10";
     }
         break;
     case NET_SYSTEM_DATA_NAME_PLATFORM_DATA:
