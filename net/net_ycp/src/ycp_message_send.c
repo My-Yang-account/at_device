@@ -349,14 +349,46 @@ uint8_t ycp_get_message_wait_response_timeout_state(uint8_t gunno, uint32_t time
  * 功能                     将字符码转成BCD
  * 说明
  * ***********************************************************************/
-void ycp_ascii_to_bcd(uint8_t *ascii, uint8_t *bcd, uint8_t len)
+void ycp_ascii_to_bcd(uint8_t *ascii, uint8_t alen, uint8_t *bcd, uint8_t blen, uint8_t is_order)
 {
     uint8_t index, c;
 
-    for(index = 0; index < len; index++) {
-        c  = (*ascii++) << 4;
-        c |= (*ascii++) & 0x0F;
-        *bcd++ = c;
+    if(is_order){
+        if(alen %0x02){
+            for(index = 0; index < (alen /0x02); index++) {
+                c  = (*ascii++) << 4;
+                c |= (*ascii++) & 0x0F;
+                *bcd++ = c;
+            }
+            if(blen > (alen %0x02)){
+                *bcd  = (*ascii) << 4;
+            }
+        }else{
+            for(index = 0; index < blen; index++) {
+                c  = (*ascii++) << 4;
+                c |= (*ascii++) & 0x0F;
+                *bcd++ = c;
+            }
+        }
+    }else{
+        ascii += (alen - 0x01);
+        bcd += (blen - 0x01);
+        if(alen %0x02){
+            for(index = 0; index < (alen /0x02); index++) {
+                c  = (*ascii--) & 0x0F;
+                c |= (*ascii--) << 4;
+                *bcd-- = c;
+            }
+            if(blen > (alen %0x02)){
+                *bcd  = (*ascii) & 0x0F;
+            }
+        }else{
+            for(index = 0; index < blen; index++) {
+                c  = (*ascii--) & 0x0F;
+                c |= (*ascii--) << 4;
+                *bcd-- = c;
+            }
+        }
     }
 }
 
@@ -558,13 +590,11 @@ static void net_ycp_message_send_thread_entry(void *parameter)
                 uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YCP |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
                 struct net_handle* handle = net_get_net_handle();
                 uint8_t *sim_no = (uint8_t*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_ICCID, NULL, option));
+                uint8_t *imei = (uint8_t*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_IMEI, NULL, option));
 
                 g_ycp_preq_login.body.operators = *(uint8_t*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_OPERATOR, NULL, option));
-                memset(g_ycp_preq_login.body.sim_number, '\0', sizeof(g_ycp_preq_login.body.sim_number));
-                vaild_len = sizeof(g_ycp_preq_login.body.sim_number);
-                vaild_len = vaild_len > (strlen((char*)sim_no) /2)? strlen((char*)sim_no) : vaild_len;
-
-                ycp_ascii_to_bcd(sim_no, g_ycp_preq_login.body.sim_number, vaild_len);
+                memset(g_ycp_preq_login.body.sim_number, '\0', NET_YCP_SIM_BCD_LENGTH_DEFAULT);
+                ycp_ascii_to_bcd(sim_no, strlen((char*)sim_no), g_ycp_preq_login.body.sim_number, NET_YCP_SIM_BCD_LENGTH_DEFAULT, 0x01);
 
                 switch (g_ycp_preq_login.body.operators) {
                 case NET_OPERATOR_NAME_CHINA_MOBILE:
@@ -580,6 +610,9 @@ static void net_ycp_message_send_thread_entry(void *parameter)
                     g_ycp_preq_login.body.operators = NET_YCP_OPERATOR_OTHER;
                     break;
                 }
+
+                memset(g_ycp_preq_login.body.communicate_module_sn, '\0', NET_YCP_COMMUNICATE_MODULE_SN_LENGTH_DEFAULT);
+                ycp_ascii_to_bcd(imei, strlen((char*)imei), g_ycp_preq_login.body.communicate_module_sn, NET_YCP_COMMUNICATE_MODULE_SN_LENGTH_DEFAULT, 0x00);
 
                 ycp_net_event_receive(NET_YCP_EVENT_HANDLE_SERVER, NET_YCP_EVENT_TYPE_RESPONSE, 0x00,
                         (NET_YCP_EVENT_OPTION_OR |NET_YCP_EVENT_OPTION_CLEAR), NET_YCP_SRES_EVENT_LOGIN, NULL);

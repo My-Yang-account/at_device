@@ -2084,7 +2084,7 @@ int8_t ycp_chargepile_create_local_transaction_number(uint8_t gunno, void *vecto
 
     s_ycp_handle = net_get_net_handle();
     pile_number = (uint8_t*)(s_ycp_handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, option));
-    ycp_ascii_to_bcd(pile_number, ptr, NET_YCP_CHARGEPILE_LENGTH_DEFAULT);
+    ycp_ascii_to_bcd(pile_number, strlen(pile_number), ptr, NET_YCP_CHARGEPILE_LENGTH_DEFAULT, 0x01);
 
     s_ycp_local_start_sq++;
     sn_len = 0x07;

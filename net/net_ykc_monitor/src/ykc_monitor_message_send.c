@@ -378,14 +378,25 @@ uint8_t ykc_monitor_get_message_wait_response_timeout_state(uint8_t gunno, uint3
  * 功能                     将字符码转成BCD
  * 说明
  * ***********************************************************************/
-void ykc_monitor_ascii_to_bcd(uint8_t *ascii, uint8_t *bcd, uint8_t len)
+void ykc_monitor_ascii_to_bcd(uint8_t *ascii, uint8_t alen, uint8_t *bcd, uint8_t blen)
 {
     uint8_t index, c;
 
-    for(index = 0; index < len; index++) {
-        c  = (*ascii++) << 4;
-        c |= (*ascii++) & 0x0F;
-        *bcd++ = c;
+    if(alen %0x02){
+        for(index = 0; index < (alen /0x02); index++) {
+            c  = (*ascii++) << 4;
+            c |= (*ascii++) & 0x0F;
+            *bcd++ = c;
+        }
+        if(blen > (alen %0x02)){
+            *bcd  = (*ascii) << 4;
+        }
+    }else{
+        for(index = 0; index < blen; index++) {
+            c  = (*ascii++) << 4;
+            c |= (*ascii++) & 0x0F;
+            *bcd++ = c;
+        }
     }
 }
 
@@ -483,7 +494,7 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
                 vaild_len = sizeof(g_ykc_monitor_preq_login.body.sim_number);
                 vaild_len = vaild_len > (strlen((char*)sim_no) /2)? strlen((char*)sim_no) : vaild_len;
 
-                ykc_monitor_ascii_to_bcd(sim_no, g_ykc_monitor_preq_login.body.sim_number, vaild_len);
+                ykc_monitor_ascii_to_bcd(sim_no, strlen((char*)sim_no), g_ykc_monitor_preq_login.body.sim_number, vaild_len);
 
                 switch (g_ykc_monitor_preq_login.body.operators) {
                 case NET_OPERATOR_NAME_CHINA_MOBILE:

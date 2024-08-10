@@ -1180,7 +1180,7 @@ void ykc_message_info_init(uint8_t gunno)  ///////// 这是网络部分外部调
     g_ykc_preq_login.head.encrypt = NET_YKC_MESSAGE_ENCRYPT_DISABLE;
     g_ykc_preq_login.head.sequence = 0x00;
 
-    ykc_ascii_to_bcd(pile_number, g_ykc_preq_login.body.pile_number, NET_YKC_CHARGEPILE_LENGTH_DEFAULT);
+    ykc_ascii_to_bcd(pile_number, strlen((char*)pile_number), g_ykc_preq_login.body.pile_number, NET_YKC_CHARGEPILE_LENGTH_DEFAULT);
     g_ykc_preq_login.body.pile_type = NET_YKC_PILE_TYPE_DC;
     g_ykc_preq_login.body.gun_count = NET_SYSTEM_GUN_NUMBER;
     g_ykc_preq_login.body.protocol_ver = NET_YKC_PROTOCOL_VERSION;

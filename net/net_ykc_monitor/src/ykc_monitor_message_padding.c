@@ -1181,7 +1181,7 @@ void ykc_monitor_message_info_init(uint8_t gunno)  ///////// 这是网络部分�
     g_ykc_monitor_preq_login.head.encrypt = NET_YKC_MONITOR_MESSAGE_ENCRYPT_DISABLE;
     g_ykc_monitor_preq_login.head.sequence = 0x00;
 
-    ykc_monitor_ascii_to_bcd(pile_number, g_ykc_monitor_preq_login.body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
+    ykc_monitor_ascii_to_bcd(pile_number, strlen((char*)pile_number), g_ykc_monitor_preq_login.body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
     g_ykc_monitor_preq_login.body.pile_type = NET_YKC_MONITOR_PILE_TYPE_DC;
     g_ykc_monitor_preq_login.body.gun_count = NET_SYSTEM_GUN_NUMBER;
     g_ykc_monitor_preq_login.body.protocol_ver = NET_YKC_MONITOR_PROTOCOL_VERSION;

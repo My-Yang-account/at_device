@@ -85,6 +85,10 @@ char *get_at_device_appinfo_iccid(void)
     s_at_device_appinfo.iccid[sizeof(s_at_device_appinfo.iccid) - 1] = '\0';
     return s_at_device_appinfo.iccid;
 }
+char *get_at_device_appinfo_imei(void)
+{
+    return s_at_device_appinfo.imei;
+}
 int get_at_device_appinfo_is_complete(void)
 {
     return s_at_device_appinfo.init_complete;
@@ -1010,7 +1014,7 @@ static void ec20_init_thread_entry(void *parameter)
                 valid_i++;
             }
         }
-        rt_kprintf("s_at_device_appinfo.imei(%s)\n", s_at_device_appinfo.imei);
+
         /* check SIM card */
         rt_thread_mdelay(5000);
         for (i = 0; i < CPIN_RETRY; i++)
