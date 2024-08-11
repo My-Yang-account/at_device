@@ -20,6 +20,12 @@
 
 #ifdef NET_PACK_USING_YCP
 
+#define NET_YCP_HEARTBEAT_TIMEOUT_RENTRY                     3           /* 心跳超时次数 */
+#define NET_YCP_OPEN_SOCKET_RENTRY                           5           /* 打开socket尝试次数 */
+#define NET_YCP_LOGIN_RENTRY                                 5           /* 登录尝试次数 */
+#define NET_YCP_WAIT_LOGIN_RENTRY                            100         /* 等待登录结果尝试次数 */
+#define NET_YCP_WAIT_UNLOCK_TIMEOUT                          (10 *1000)  /* 等待socket 解锁超时时间(单位：ms) */
+
 #define NET_YCP_LOGIN_OPERATION_INTERVAL                     30000       /* 登录操作间隔(单位ms:30 *1000 = 30s) */
 
 #define NET_YCP_REALTIME_DATA_IDLE_INTERVAL                  300000      /* 实时数据空闲上报间隔(单位ms:5 *60 *1000 = 5min) */
@@ -515,7 +521,7 @@ uint32_t ycp_timebcd_to_timestamp(uint8_t *bcd, uint8_t len)
 static void net_ycp_message_send_thread_entry(void *parameter)
 {
     uint8_t step = NET_YCP_NET_STATE_OPEN_SOCKET, is_power_on = 0x00;
-    uint32_t delay = 0x00;
+    uint32_t delay = 0x00, wait_unlock = 0x00;
     uint32_t heartbeat_tick;
 
     while(1)
@@ -530,8 +536,8 @@ static void net_ycp_message_send_thread_entry(void *parameter)
             s_ycp_socket_info.state = YCP_SOCKET_STATE_PHY;
             s_ycp_socket_info.fd = -0x01;
             step = NET_YCP_NET_STATE_OPEN_SOCKET;
-            if(rt_tick_get() > (delay + 30000)){
-                delay = (rt_tick_get() - 30000);
+            if(rt_tick_get() > (delay + NET_YCP_LOGIN_OPERATION_INTERVAL)){
+                delay = (rt_tick_get() - NET_YCP_LOGIN_OPERATION_INTERVAL);
             }
 
             rt_thread_mdelay(1000);
@@ -541,8 +547,8 @@ static void net_ycp_message_send_thread_entry(void *parameter)
             s_ycp_socket_info.state = YCP_SOCKET_STATE_DATA_LINK;
             s_ycp_socket_info.fd = -0x01;
             step = NET_YCP_NET_STATE_OPEN_SOCKET;
-            if(rt_tick_get() > (delay + 30000)){
-                delay = (rt_tick_get() - 30000);
+            if(rt_tick_get() > (delay + NET_YCP_LOGIN_OPERATION_INTERVAL)){
+                delay = (rt_tick_get() - NET_YCP_LOGIN_OPERATION_INTERVAL);
             }
 
             rt_thread_mdelay(1000);
@@ -559,8 +565,7 @@ static void net_ycp_message_send_thread_entry(void *parameter)
                 if(delay > rt_tick_get()){
                     delay = rt_tick_get();
                 }
-
-                if(((rt_tick_get() - delay) > 30000) || is_power_on){
+                if(((rt_tick_get() - delay) > NET_YCP_LOGIN_OPERATION_INTERVAL) || is_power_on){
                     uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YCP |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
                     int32_t result = 0x00;
                     struct net_handle* handle = net_get_net_handle();
@@ -620,7 +625,7 @@ static void net_ycp_message_send_thread_entry(void *parameter)
                 net_get_net_handle()->net_state = NET_SOCKET_STATE_LOGIN_WAIT;
                 ycp_message_send_port(NETYCP_PREQCMD_SINGIN, s_ycp_socket_info.fd, &g_ycp_preq_login,
                         sizeof(g_ycp_preq_login));
-                while(rentry < 100){
+                while(rentry < NET_YCP_WAIT_LOGIN_RENTRY){
                     if(ycp_net_event_receive(NET_YCP_EVENT_HANDLE_SERVER, NET_YCP_EVENT_TYPE_RESPONSE, 0x00,
                             (NET_YCP_EVENT_OPTION_OR |NET_YCP_EVENT_OPTION_CLEAR), NET_YCP_SRES_EVENT_LOGIN, NULL) > 0){
                         LOG_D("ycp login success");
@@ -635,9 +640,19 @@ static void net_ycp_message_send_thread_entry(void *parameter)
                     rt_thread_mdelay(100);
                     rentry++;
                 }
-                if(rentry >= 100){
+                if(rentry >= NET_YCP_WAIT_LOGIN_RENTRY){
                     delay = rt_tick_get();
+                    wait_unlock = rt_tick_get();
                     step = NET_YCP_NET_STATE_OPEN_SOCKET;
+                    s_ycp_socket_info.state = YCP_SOCKET_STATE_OPEN;
+                    net_get_net_handle()->net_state = NET_SOCKET_STATE_OPEN;
+                    while(ycp_socket_is_lock()){
+                        if((rt_tick_get() - wait_unlock) > NET_YCP_WAIT_UNLOCK_TIMEOUT){
+                            break;
+                        }
+                        rt_thread_mdelay(50);
+                    }
+
                     ycp_socket_close(s_ycp_socket_info.fd);
                     s_ycp_socket_info.fd = -0x01;
                     s_ycp_socket_info.operate_fail.login++;
@@ -654,22 +669,30 @@ static void net_ycp_message_send_thread_entry(void *parameter)
                 s_ycp_socket_info.state = YCP_SOCKET_STATE_LOGIN_SUCCESS;
                 break;
             default:
-                step = NET_YCP_NET_STATE_OPEN_SOCKET;
                 delay = rt_tick_get();
-                ycp_socket_close(s_ycp_socket_info.fd);
-                s_ycp_socket_info.fd = -0x01;
+                wait_unlock = rt_tick_get();
+                step = NET_YCP_NET_STATE_OPEN_SOCKET;
                 s_ycp_socket_info.state = YCP_SOCKET_STATE_OPEN;
                 net_get_net_handle()->net_state = NET_SOCKET_STATE_OPEN;
+                while(ycp_socket_is_lock()){
+                    if((rt_tick_get() - wait_unlock) > NET_YCP_WAIT_UNLOCK_TIMEOUT){
+                        break;
+                    }
+                    rt_thread_mdelay(50);
+                }
+
+                ycp_socket_close(s_ycp_socket_info.fd);
+                s_ycp_socket_info.fd = -0x01;
                 break;
             }
         }
 
-        if(s_ycp_socket_info.operate_fail.open_socket > 0x05){
+        if(s_ycp_socket_info.operate_fail.open_socket > NET_YCP_OPEN_SOCKET_RENTRY){
             s_ycp_socket_info.operate_fail.open_socket = 0x00;
             LOG_W("ycp open socket rentry = 0x00");
             net_set_clear_ndev_reset_state(NET_PLATFORM_MASK_TARGET, 0x00);
         }
-        if(s_ycp_socket_info.operate_fail.login > 0x05){
+        if(s_ycp_socket_info.operate_fail.login > NET_YCP_OPEN_SOCKET_RENTRY){
             s_ycp_socket_info.operate_fail.login = 0x00;
             LOG_W("ycp login rentry = 0x00");
             net_set_clear_ndev_reset_state(NET_PLATFORM_MASK_TARGET, 0x00);
@@ -683,15 +706,25 @@ static void net_ycp_message_send_thread_entry(void *parameter)
         }
 
 
-        if(s_ycp_socket_info.heartbeat > 0x03){
+        if(s_ycp_socket_info.heartbeat > NET_YCP_HEARTBEAT_TIMEOUT_RENTRY){
             s_ycp_socket_info.heartbeat = 0x00;
 
             delay = rt_tick_get();
-            ycp_socket_close(s_ycp_socket_info.fd);
-            s_ycp_socket_info.fd = -0x01;
+            wait_unlock = rt_tick_get();
+
+            step = NET_YCP_NET_STATE_OPEN_SOCKET;
             s_ycp_socket_info.state = YCP_SOCKET_STATE_OPEN;
             net_get_net_handle()->net_state = NET_SOCKET_STATE_OPEN;
-            step = NET_YCP_NET_STATE_OPEN_SOCKET;
+            while(ycp_socket_is_lock()){
+                if((rt_tick_get() - wait_unlock) > NET_YCP_WAIT_UNLOCK_TIMEOUT){
+                    break;
+                }
+                rt_thread_mdelay(50);
+            }
+
+            ycp_socket_close(s_ycp_socket_info.fd);
+            s_ycp_socket_info.fd = -0x01;
+
             LOG_D("ycp heartbeat timeout");
         }
 
