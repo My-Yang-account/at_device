@@ -848,6 +848,11 @@ int16_t ycp_message_pro_remote_start_charge_request(uint8_t gunno, void *data, u
     s_ycp_base = (System_BaseData*)(s_ycp_handle->get_base_data(gunno));
     Net_YcpPro_SReq_Remote_StartCharge_t *request = (Net_YcpPro_SReq_Remote_StartCharge_t*)data;
 
+    /** 并充时不能让平台启动副枪 */
+    if(s_ycp_base->charge_way == APP_CHARGE_WAY_PARACHARGE){
+        return NET_YCP_START_FAIL_CODE_IS_CHARGING;
+    }
+
     switch(s_ycp_base->state.current){
     case APP_OFSM_STATE_IDLEING:
         return NET_YCP_START_FAIL_CODE_NO_GUN;
@@ -918,6 +923,13 @@ int16_t ycp_message_pro_remote_stop_charge_request(uint8_t gunno)
     }
 
     s_ycp_base = (System_BaseData*)(s_ycp_handle->get_base_data(gunno));
+
+    /** 并充时不能让平台停止副枪 */
+    if(s_ycp_base->charge_way == APP_CHARGE_WAY_PARACHARGE){
+        if(gunno != s_ycp_base->main_gunno){
+            return NET_YCP_START_FAIL_CODE_IS_CHARGING;
+        }
+    }
 
     if((s_ycp_base->state.current == APP_OFSM_STATE_CHARGING) ||
             (s_ycp_base->state.current == APP_OFSM_STATE_STARTING)){
