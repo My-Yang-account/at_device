@@ -325,7 +325,6 @@ static void ykc_callback_response_transaction_records(uint8_t* data, uint16_t le
         return;
     }
 
-    rt_kprintf("SDBFBvzXvDS's(%d)\n", gunno);
     ykc_clear_message_wait_response_state(gunno, NET_YKC_PREQ_EVENT_TRANSACTION_RECORD);
     ykc_net_event_send(NET_YKC_EVENT_HANDLE_SERVER, NET_YKC_EVENT_TYPE_RESPONSE, gunno, NET_YKC_SRES_EVENT_BILL_VERIFY);
 }

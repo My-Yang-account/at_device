@@ -453,7 +453,7 @@ static void net_ykc_message_send_thread_entry(void *parameter)
                 vaild_len = sizeof(g_ykc_preq_login.body.sim_number);
                 vaild_len = vaild_len > (strlen((char*)sim_no) /2)? strlen((char*)sim_no) : vaild_len;
 
-                ykc_ascii_to_bcd(sim_no, strlen((char*)sim_no), g_ykc_preq_login.body.sim_number, vaild_len);
+                ykc_ascii_to_bcd(sim_no, strlen((char*)sim_no), g_ykc_preq_login.body.sim_number, NET_YKC_SIM_BCD_LENGTH_DEFAULT);
 
                 switch (g_ykc_preq_login.body.operators) {
                 case NET_OPERATOR_NAME_CHINA_MOBILE:
