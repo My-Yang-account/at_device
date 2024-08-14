@@ -1114,8 +1114,8 @@ static void ykc_callback_request_qrcode_config_ykc15(uint8_t* data, uint16_t len
     s_ykc_qrcode_buf.qrcode[0x00] = s_ykc_qrcode_buf.set_type;
     s_ykc_qrcode_buf.qrcode[0x01] = s_ykc_qrcode_buf.general_type;
 
-    char_ptr = strchr((const char*)(&(((Net_YkcPro_SReq_Qrcode_Config_Ykc15_t*)data)->body.result)), '=');
-    qrcode_actual_len = ((uint32_t)char_ptr - (uint32_t)(&(((Net_YkcPro_SReq_Qrcode_Config_Ykc15_t*)data)->body.result))) + 0x01;
+    char_ptr = strstr((const char*)(&(((Net_YkcPro_SReq_Qrcode_Config_Ykc15_t*)data)->body.result)), "code=");
+    qrcode_actual_len = ((uint32_t)char_ptr - (uint32_t)(&(((Net_YkcPro_SReq_Qrcode_Config_Ykc15_t*)data)->body.result))) + strlen("code=");
 
     if((char_ptr != NULL) && (qrcode_actual_len > 0x00)){
         memcpy(&(s_ykc_qrcode_buf.qrcode[0x02]), &(((Net_YkcPro_SReq_Qrcode_Config_Ykc15_t*)data)->body.result), qrcode_actual_len);

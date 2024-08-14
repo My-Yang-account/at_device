@@ -1203,6 +1203,9 @@ static void ykc_monitor_callback_request_qrcode_config_ykc15(uint8_t* data, uint
         return;
     }
 
+    s_ykc_monitor_qrcode_buf.flag.is_used = 0x01;
+    s_ykc_monitor_qrcode_buf.length = qrcode_len + 0x02;
+
     if(g_ykc_monitor_sreq_qrcode_config_ykc15.body.format == 0x00){
         s_ykc_monitor_qrcode_buf.set_type = NET_SET_QRCODE_FORMAT_PREFIX;
         s_ykc_monitor_qrcode_buf.general_type = NET_GENERATE_QRCODE_FORMAT_PREFIX_DEVICE_SN;
@@ -1213,7 +1216,7 @@ static void ykc_monitor_callback_request_qrcode_config_ykc15(uint8_t* data, uint
 
     s_ykc_monitor_qrcode_buf.qrcode[0x00] = s_ykc_monitor_qrcode_buf.set_type;
     s_ykc_monitor_qrcode_buf.qrcode[0x01] = s_ykc_monitor_qrcode_buf.general_type;
-
+#if 0
     char_ptr = strchr((const char*)(&(((Net_YkcMonitorPro_SReq_Qrcode_Config_Ykc15_t*)data)->body.result)), '=');
     qrcode_actual_len = ((uint32_t)char_ptr - (uint32_t)(&(((Net_YkcMonitorPro_SReq_Qrcode_Config_Ykc15_t*)data)->body.result))) + 0x01;
 
@@ -1227,6 +1230,9 @@ static void ykc_monitor_callback_request_qrcode_config_ykc15(uint8_t* data, uint
         g_ykc_monitor_sreq_qrcode_config_ykc15.body.result = 0x02;
         LOG_E("ykc qrcode format error when call ykc_callback_request_qrcode_config_ykc15");
     }
+#else
+    memcpy(&(s_ykc_monitor_qrcode_buf.qrcode[0x02]), &(((Net_YkcMonitorPro_SReq_Qrcode_Config_Ykc15_t*)data)->body.result), s_ykc_monitor_qrcode_buf.length);
+#endif
 
     ykc_monitor_net_event_send(NET_YKC_MONITOR_EVENT_HANDLE_SERVER, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, 0x00, NET_YKC_MONITOR_SREQ_EVENT_QRCODE_CONFIG_YKC15);
 }
