@@ -101,7 +101,8 @@
 #define NET_SYSTEM_DATA_NAME_HELP_PHONE                0x18    /* 系统数据名： 帮助电话*/
 #define NET_SYSTEM_DATA_NAME_HARDWARE_VERSION          0x19    /* 系统数据名： 硬件版本*/
 #define NET_SYSTEM_DATA_NAME_PLATFORM_DATA             0x1A    /* 系统数据名： 平台存储数据*/
-#define NET_SYSTEM_DATA_NAME_SIZE                      0x1B
+#define NET_SYSTEM_DATA_NAME_SIGNAL_STRENGTH           0x1B    /* 系统数据名： 信号强度*/
+#define NET_SYSTEM_DATA_NAME_SIZE                      0x1C
 
 /** operator name */
 #define NET_OPERATOR_NAME_CHINA_MOBILE                 0x00    /* 运营商名称：中国移动*/
