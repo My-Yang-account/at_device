@@ -230,19 +230,22 @@ static uint8_t* app_nget_system_data(uint8_t name, uint32_t *dlen, uint32_t opti
 #endif /* 0 */
     case NET_SYSTEM_DATA_NAME_HARDWARE_VERSION:
     {
-#if 0
         extern uint8_t *__thaisen_get_test_hard_version(void);
         uint16_t ver_data = 0x00;
 
         sscanf(((char*)__thaisen_get_test_hard_version()), "ver:000%u", &ver_data);
-        rt_kprintf("__thaisen_get_test_hard_version(%s) ver_data(%d)\n", __thaisen_get_test_hard_version(), ver_data);
         if(ver_data >= 7103){
             return "-V10";
         }else{
             return "-V01";
         }
-#endif
-        return "-V10";
+    }
+        break;
+    case NET_SYSTEM_DATA_NAME_SIGNAL_STRENGTH:
+    {
+        extern int get_at_device_appinfo_signal_strength(void);
+        uint8_t signal = get_at_device_appinfo_signal_strength();
+        return (uint8_t*)((uint32_t)signal);
     }
         break;
     case NET_SYSTEM_DATA_NAME_PLATFORM_DATA:
