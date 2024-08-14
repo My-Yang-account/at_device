@@ -978,7 +978,7 @@ static void net_ykc_message_send_thread_entry(void *parameter)
             }
             /***** [运营平台二维码配置响应(国充)] *****/
             if(ykc_net_event_receive(NET_YKC_EVENT_HANDLE_CHARGEPILE, NET_YKC_EVENT_TYPE_RESPONSE, gunno,
-                    (NET_YKC_EVENT_OPTION_OR |NET_YKC_EVENT_OPTION_CLEAR), NET_YKC_SREQ_EVENT_QRCODE_CONFIG_GC, NULL) > 0){
+                    (NET_YKC_EVENT_OPTION_OR |NET_YKC_EVENT_OPTION_CLEAR), NET_YKC_PRES_EVENT_QRCODE_CONFIG_GC, NULL) > 0){
 
                 Net_YkcPro_PRes_Qrcode_Config_GC_t *qrcode = (Net_YkcPro_PRes_Qrcode_Config_GC_t*)(s_ykc_response_buff.general_transmit_buff);
                 qrcode->head.sequence = g_ykc_sreq_qrcode_config_gc[gunno].head.sequence;
@@ -989,7 +989,7 @@ static void net_ykc_message_send_thread_entry(void *parameter)
             }
             /***** [运营平台二维码配置响应(云快充1.5)] *****/
             if(ykc_net_event_receive(NET_YKC_EVENT_HANDLE_CHARGEPILE, NET_YKC_EVENT_TYPE_RESPONSE, gunno,
-                    (NET_YKC_EVENT_OPTION_OR |NET_YKC_EVENT_OPTION_CLEAR), NET_YKC_SREQ_EVENT_QRCODE_CONFIG_YKC15, NULL) > 0){
+                    (NET_YKC_EVENT_OPTION_OR |NET_YKC_EVENT_OPTION_CLEAR), NET_YKC_PRES_EVENT_QRCODE_CONFIG_YKC15, NULL) > 0){
 
                 Net_YkcPro_PRes_Qrcode_Config_Ykc15_t *qrcode = (Net_YkcPro_PRes_Qrcode_Config_Ykc15_t*)(s_ykc_response_buff.general_transmit_buff);
                 qrcode->head.sequence = g_ykc_sreq_qrcode_config_ykc15.head.sequence;
@@ -1466,7 +1466,7 @@ static void net_ykc_server_message_pro_entry(void *parameter)
                 /***** [运营平台二维码配置请求(云快充)] *****/
                 if(ykc_net_event_receive(NET_YKC_EVENT_HANDLE_SERVER, NET_YKC_EVENT_TYPE_REQUEST, gunno,
                         (NET_YKC_EVENT_OPTION_OR |NET_YKC_EVENT_OPTION_CLEAR), NET_YKC_SREQ_EVENT_QRCODE_CONFIG_YKC15, NULL) > 0){
-                    uint8_t pro_result = 0x00;
+                    uint8_t pro_result = 0x01;
                     ykc_qrcode_buf_t *info = (ykc_qrcode_buf_t*)(ykc_get_qrcode_info());
 
                     info->flag.is_used = 0x00;
@@ -1477,7 +1477,7 @@ static void net_ykc_server_message_pro_entry(void *parameter)
                         struct net_handle* handle = net_get_net_handle();
 
                         if(handle->set_system_data(NET_SYSTEM_DATA_NAME_QRCODE, info->qrcode, info->length, option) >= 0x00){
-                            pro_result = 0x01;
+                            pro_result = 0x00;
                         }
                     }
 
