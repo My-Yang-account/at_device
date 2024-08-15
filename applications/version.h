@@ -21,9 +21,9 @@ extern "C" {
 /*
  * V8-Software version information
  */
-#define SOFTWARE_VERSION       1L   // 6
-#define SOFTWARE_SUBVERSION    2L   // 5
-#define SOFTWARE_REVISION      4L   // 6    (7.1.5 版本仅是在7.1.4基础上更换充电库和驱动库【测试协议一致性】)
+#define SOFTWARE_VERSION       1L
+#define SOFTWARE_SUBVERSION    2L
+#define SOFTWARE_REVISION      6L   //  ([1.2.5 (修复四组模块的柔性切换模式下，一组继电器被误断问题)])
 
 #ifdef HMI_T5UIC1_ENABLE
 #define SOFTWARE_HMIION       'B'
