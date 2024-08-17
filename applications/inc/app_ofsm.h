@@ -90,16 +90,29 @@ enum ota_state{
 };
 
 enum ofsm_state {
-    APP_OFSM_STATE_WAIT_NET,  /* 等待网络 */
-    APP_OFSM_STATE_IDLEING,   /* 空闲中 */
-    APP_OFSM_STATE_READYING,  /* 准备中 */
-    APP_OFSM_STATE_STARTING,  /* 开始中 */
-    APP_OFSM_STATE_CHARGING,  /* 充电中 */
-    APP_OFSM_STATE_STOPING,   /* 停止中 */
-    APP_OFSM_STATE_FINISHING, /* 充电完成未拔枪 */
-    APP_OFSM_STATE_FAULTING,  /* 故障 */
+    APP_OFSM_STATE_WAIT_NET,  /** 状态机状态：等待网络 */
+    APP_OFSM_STATE_IDLEING,   /** 状态机状态： 空闲中 */
+    APP_OFSM_STATE_READYING,  /** 状态机状态： 准备中 */
+    APP_OFSM_STATE_STARTING,  /** 状态机状态： 开始中 */
+    APP_OFSM_STATE_CHARGING,  /** 状态机状态： 充电中 */
+    APP_OFSM_STATE_STOPING,   /** 状态机状态： 停止中 */
+    APP_OFSM_STATE_FINISHING, /** 状态机状态： 充电完成未拔枪 */
+    APP_OFSM_STATE_FAULTING,  /** 状态机状态： 故障 */
 
     APP_OFSM_STATE_SIZE,
+};
+
+/** charge control state */
+enum char_ctrl_state{
+    APP_CHARGE_CTRL_STATE_IDLE,            /** 充电控制状态： 空闲 */
+    APP_CHARGE_CTRL_STATE_SHAKE_HAND,      /** 充电控制状态：握手 */
+    APP_CHARGE_CTRL_STATE_INSULATION,      /** 充电控制状态：绝缘 */
+    APP_CHARGE_CTRL_STATE_CONFIGURE,       /** 充电控制状态：配置 */
+    APP_CHARGE_CTRL_STATE_CHARGING,        /** 充电控制状态：充电 */
+    APP_CHARGE_CTRL_STATE_FINISH,          /** 充电控制状态：结束 */
+    APP_CHARGE_CTRL_STATE_FAULTING,        /** 充电控制状态：故障 */
+    APP_CHARGE_CTRL_STATE_WAIT_PULL_GUN,   /** 充电控制状态：等待拔枪 */
+    APP_CHARGE_CTRL_STATE_SIZE,            /** 充电控制状态：空 */
 };
 
 enum{
@@ -155,7 +168,8 @@ typedef struct
     uint8_t logic_card_number[20];        /* 逻辑卡号 ascii */
     uint8_t physics_card_number[8];       /* 物理卡号 ascii */
     uint8_t serial_number[40];            /* 流水号 */
-    uint32_t user_number[32];             /* 用户号 */
+    uint8_t user_number[32];             /* 用户号 */
+    uint8_t reserve0[96];
 
     uint32_t start_time;                  /* 充电开始时间 */
     uint32_t end_time;                    /* 充电结束时间 */
@@ -181,7 +195,8 @@ typedef struct
     uint32_t service_fee;                 /* 服务费用 */
     uint32_t total_fee;                   /* 总费用 */
 
-#if (defined (APP_INCLUDE_YKC_PROTOCOL) || defined (APP_INCLUDE_YKC_PROTOCOL_MONITOR) || defined (APP_INCLUDE_YCP_PROTOCOL))
+#if (defined (APP_INCLUDE_YKC_PROTOCOL) || defined (APP_INCLUDE_YKC_PROTOCOL_MONITOR) || \
+    defined (APP_INCLUDE_YCP_PROTOCOL) || defined (APP_INCLUDE_SGCC_PROTOCOL))
     uint32_t rate_type_unit[APP_BILLING_RULE_RATE_TYPE_MAX];        /* 费率类型单价 */
     uint32_t rate_type_elect[APP_BILLING_RULE_RATE_TYPE_MAX];       /* 费率类型电量 */
     uint32_t rate_type_amount[APP_BILLING_RULE_RATE_TYPE_MAX];      /* 费率类型金额  */
@@ -197,7 +212,7 @@ typedef struct
 #endif /* (defined (APP_INCLUDE_SL_PROTOCOL) || defined (APP_INCLUDE_SGCC_PROTOCOL)) */
 
 #ifdef APP_INCLUDE_SGCC_PROTOCOL
-    uint32_t device_serial_number[40 + 1];                         /* 设备流水号 */
+    uint8_t device_serial_number[40 + 1];                         /* 设备流水号 */
 #endif /* APP_INCLUDE_SGCC_PROTOCOL */
 
 #ifdef APP_INCLUDE_XJ_PROTOCOL
@@ -230,6 +245,10 @@ typedef struct
     }bms_fault_reason;
 
     uint8_t charge_way;                   /* 充电方式 */
+#if (defined (APP_INCLUDE_SGCC_PROTOCOL))
+    uint32_t rate_type_elect_amount[APP_BILLING_RULE_RATE_TYPE_MAX];      /* 费率类型电费金额  */
+    uint32_t rate_type_service_amount[APP_BILLING_RULE_RATE_TYPE_MAX];    /* 费率类型服务费金额  */
+#endif /* (defined (APP_INCLUDE_SGCC_PROTOCOL) */
     uint8_t reserve[16];                  /* 预留 */
 }thaisen_transaction_t;
 /*******************************************************************************************/
@@ -263,9 +282,15 @@ typedef struct{
     uint8_t system_fault;             /* 系统故障代码  */
     uint8_t charge_fault;             /* 充电故障代码  */
     struct{
-        uint8_t last;                 /* 前一次充电状态码 */
-        uint8_t current;              /* 当前充电状态码 */
+        uint8_t last;                 /* 前一次状态机状态码 */
+        uint8_t current;              /* 当前状态机状态码 */
     }state;
+
+    struct{
+        uint8_t last;                 /* 前一次充电控制状态码 */
+        uint8_t current;              /* 当前充电控制状态码 */
+    }charctrl_state;
+
     uint8_t soft_ver_main;            /* 主版本号 */
     uint8_t soft_ver_sub;             /* 次版本号 */
     uint8_t soft_ver_revise;          /* 修订版本号 */
@@ -275,7 +300,7 @@ typedef struct{
     uint8_t card_number[16];          /* 卡号 */
     uint8_t card_uid[8];              /* 卡UID */
     uint8_t card_uid_len;             /* 卡UID长度 */
-    uint32_t user_number[32];         /* 用户号 */
+    uint8_t user_number[32];         /* 用户号 */
 
     uint8_t current_soc;              /* 当前SOC */
     uint32_t system_power_max;        /* 系统最大功率 */
@@ -287,7 +312,6 @@ typedef struct{
     uint32_t current_a;               /* 电流A相(精度：0.01) */
     uint32_t power_a;                 /* 功率A相(精度：1) */
     uint32_t elect_a;                 /* 电量A相(精度：0.001) */
-#if 0
     uint32_t voltage_b;               /* 电压B相 */
     uint32_t current_b;               /* 电流B相 */
     uint32_t power_b;                 /* 功率B相 */
@@ -296,7 +320,6 @@ typedef struct{
     uint32_t current_c;               /* 电流C相 */
     uint32_t power_c;                 /* 功率C相 */
     uint32_t elect_c;                 /* 电量C相 */
-#endif
     uint32_t account_balance;         /* 账户余额(精度：0.001) */
     uint32_t card_balance;            /* 卡内余额(精度：0.001) */
     uint32_t fees_total;              /* 总费用(精度：0.0001) */
@@ -322,7 +345,7 @@ typedef struct{
 #endif /* (defined (APP_INCLUDE_SL_PROTOCOL) || defined (APP_INCLUDE_XJ_PROTOCOL)) */
 
 #ifdef APP_INCLUDE_SGCC_PROTOCOL
-    uint32_t device_transaction_number[40 + 1];  /* 设备流水号 */
+    uint8_t device_transaction_number[40 + 1];  /* 设备流水号 */
 #endif /* APP_INCLUDE_SGCC_PROTOCOL */
     uint8_t main_gunno;              /* 并充主枪枪号 */
     uint8_t charge_way;              /* 充电方式 */
