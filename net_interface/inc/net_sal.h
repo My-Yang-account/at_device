@@ -17,6 +17,7 @@
 #include "ycp_message_padding.h"
 #include "sgcc_message_padding.h"
 
+#define  NET_OCPP_PLATFORM_ID                         0x0080   /* 目标平台(OCPP)ID */
 /**************************** 钛昕平台 ***************************/
 #ifdef NET_PACK_USING_THA
 #define APP_INCLUDE_NET

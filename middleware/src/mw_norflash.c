@@ -9,6 +9,8 @@
 #include "mw_norflash.h"
 #include "thaisen7102Public.h"
 
+#define MW_SYSTEM_CHIP_RW_SINGLE_SIZE          4096      /* 单次读写大小 */
+
 static uint8_t s_flash_lock = 1;
 
 int32_t mw_norflash_init(void)
@@ -22,12 +24,21 @@ int32_t mw_norflash_read(uint32_t address, uint8_t *buffer, int32_t size)
         return -1;
     }
 
+    uint32_t remain_len = size, used_len = 0x00;
+
     while(s_flash_lock == 0){
         rt_thread_mdelay(200);
     }
     s_flash_lock = 0;
 
-    thaisenW25qxxRead((unsigned char *)buffer, (unsigned int)address, (unsigned short)size);
+    while((remain_len > 0x00) && (remain_len /MW_SYSTEM_CHIP_RW_SINGLE_SIZE)){
+        thaisenW25qxxRead((uint8_t *)(buffer + used_len), (address + used_len), MW_SYSTEM_CHIP_RW_SINGLE_SIZE);
+        remain_len -= MW_SYSTEM_CHIP_RW_SINGLE_SIZE;
+        used_len += MW_SYSTEM_CHIP_RW_SINGLE_SIZE;
+    }
+    if(remain_len > 0x00){
+        thaisenW25qxxRead((uint8_t *)(buffer + used_len), (address + used_len), remain_len);
+    }
 
     s_flash_lock = 1;
 
@@ -40,12 +51,21 @@ int32_t mw_norflash_write(uint32_t address, const uint8_t *buffer, int32_t size)
         return -1;
     }
 
+    uint32_t remain_len = size, used_len = 0x00;
+
     while(s_flash_lock == 0){
         rt_thread_mdelay(200);
     }
     s_flash_lock = 0;
 
-    thaisenW25qxxWrite((unsigned char *)buffer, (unsigned int)address, (unsigned short)size);
+    while((remain_len > 0x00) && (remain_len /MW_SYSTEM_CHIP_RW_SINGLE_SIZE)){
+        thaisenW25qxxWrite((uint8_t *)(buffer + used_len), (address + used_len), MW_SYSTEM_CHIP_RW_SINGLE_SIZE);
+        remain_len -= MW_SYSTEM_CHIP_RW_SINGLE_SIZE;
+        used_len += MW_SYSTEM_CHIP_RW_SINGLE_SIZE;
+    }
+    if(remain_len > 0x00){
+        thaisenW25qxxWrite((uint8_t *)(buffer + used_len), (address + used_len), remain_len);
+    }
 
     s_flash_lock = 1;
 
@@ -58,12 +78,21 @@ int32_t mw_norflash_write_directly(uint32_t address, const uint8_t *buffer, int3
         return -1;
     }
 
+    uint32_t remain_len = size, used_len = 0x00;
+
     while(s_flash_lock == 0){
         rt_thread_mdelay(200);
     }
     s_flash_lock = 0;
 
-    thaisenW25qxxWriteNoCheck((unsigned char *)buffer, (unsigned int)address, (unsigned short)size);
+    while((remain_len > 0x00) && (remain_len /MW_SYSTEM_CHIP_RW_SINGLE_SIZE)){
+        thaisenW25qxxWriteNoCheck((uint8_t *)(buffer + used_len), (address + used_len), MW_SYSTEM_CHIP_RW_SINGLE_SIZE);
+        remain_len -= MW_SYSTEM_CHIP_RW_SINGLE_SIZE;
+        used_len += MW_SYSTEM_CHIP_RW_SINGLE_SIZE;
+    }
+    if(remain_len > 0x00){
+        thaisenW25qxxWriteNoCheck((uint8_t *)(buffer + used_len), (address + used_len), remain_len);
+    }
 
     s_flash_lock = 1;
 

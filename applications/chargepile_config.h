@@ -17,6 +17,8 @@
 #include <stdbool.h>
 #include <rtthread.h>
 
+#include "net_sal.h"
+
 /******************************************************************************/
 #define FLASH_BASE_ADDRESS                ((uint32_t)(0x00000000))
 #define W25Q64_SECTOR_SIZE                4096
@@ -42,9 +44,17 @@
 #define GUNNOB_FAULT_RECORD_REGION_SIZE   0x100000                                                      /* B枪故障记录信息区大小：1M */
 
 #define SYSTEM_CONFIG_INIT_FLAG_ADDRESS   ((uint32_t)(FLASH_BASE_ADDRESS + 0x00640000))                 /* 系统配置信息初始标志地址(0x00640000 - 0x00641000)*/
-#define SYSTEM_CONFIG_MAIN_ADDRESS        ((uint32_t)(FLASH_BASE_ADDRESS + 0x00641000))                 /* 系统配置信息地址(0x00641000 - 0x00645000) */
-#define SYSTEM_CONFIG_BACKUP_ADDRESS      ((uint32_t)(FLASH_BASE_ADDRESS + 0x00644000))                 /* 系统配置信息备份区地址 (0x00645000 - 0x00649000)*/
+#define SYSTEM_CONFIG_MAIN_ADDRESS        ((uint32_t)(FLASH_BASE_ADDRESS + 0x00641000))                 /* 系统配置信息地址(0x00641000 - 0x00644000) */
+#define SYSTEM_CONFIG_BACKUP_ADDRESS      ((uint32_t)(FLASH_BASE_ADDRESS + 0x00644000))                 /* 系统配置信息备份区地址 (0x00644000 - 0x00647000)*/
 
+#ifdef APP_INCLUDE_NET
+#if (APP_TARGET_PLATFORM_ID == NET_OCPP_PLATFORM_ID)
+#define SYSTEM_CONFIG_TP_ADDITIONALREGION_ADDRESS      ((uint32_t)(FLASH_BASE_ADDRESS + 0x00647000))    /* 系统配置信息备份区地址 (0x00647000 - (0x00647000 + APP_TARGET_PLATFORM_ADDITIONAL_REGION_SIZE))*/
+#endif /* (APP_TARGET_PLATFORM_ID == NET_OCPP_PLATFORM_ID) */
+#endif /* #ifdef APP_INCLUDE_NET */
+
+/** internal flash */
+#define SYSTEM_CONFIG_INFO_ADDR_IF        0x00000000
 /******************************************************************************/
 
 #define CP_NETWORK_DOMAIN_LEN_MAX          256                     /* 域名最大长度 */
@@ -276,6 +286,12 @@ enum config_name{
     CONFIG_ITEM_TARGET_PLATFORM,    /* 目标平台数据：为倒数第二项 */
     CONFIG_ITEM_MONITOR_PLATFORM,   /* 监控平台数据：为倒数第一项 */
 
+#ifdef APP_INCLUDE_NET
+#if (APP_TARGET_PLATFORM_ID == NET_OCPP_PLATFORM_ID)
+    CONFIG_ITEM_TARGET_PLATFORM_ADDITIONAL,   /* 目标平台数据(额外存储区)：为倒数第一项 */
+#endif /* (APP_TARGET_PLATFORM_ID == NET_OCPP_PLATFORM_ID) */
+#endif /* #ifdef APP_INCLUDE_NET */
+
     CONFIG_ITEM_SIZE,
 };
 
@@ -290,6 +306,14 @@ struct config_item{
 
 int32_t chargepile_config_init(void);
 int32_t chargepile_check_config(void);
+
+#ifdef APP_INCLUDE_NET
+#if (APP_TARGET_PLATFORM_ID == NET_OCPP_PLATFORM_ID)
+int32_t sys_storage_config_tp_additional_region(void);
+int32_t sys_tp_additional_check_config(void);
+int32_t sys_tp_additional_config_init(void);
+#endif /* (APP_TARGET_PLATFORM_ID == NET_OCPP_PLATFORM_ID) */
+#endif /* #ifdef APP_INCLUDE_NET */
 
 int32_t sys_storage_config_item(void);
 int32_t sys_sync_config_item_content(enum config_name name, void* data, uint32_t len);

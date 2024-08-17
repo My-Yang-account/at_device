@@ -9,7 +9,6 @@
  */
 #include "chargepile_config.h"
 #include "mw_norflash.h"
-#include "net_sal.h"
 
 #include <rtthread.h>
 
@@ -22,6 +21,35 @@
 static uint8_t s_sys_config_lock = 0x01;
 
 #pragma pack(1)
+
+#ifdef APP_INCLUDE_NET
+#if (APP_TARGET_PLATFORM_ID == NET_OCPP_PLATFORM_ID)
+
+#define APP_TARGET_PLATFORM_ADDITIONAL_REGION_SIZE            (100 *1024)
+struct system_config_tp_additional{
+    uint32_t init_flag;
+    uint8_t verify_result;         /* 数据校验结果 */
+    uint8_t reserve[APP_TARGET_PLATFORM_ADDITIONAL_REGION_SIZE - 0x09];
+    uint32_t crc;
+};
+
+static uint8_t s_config_tp_additional_lock = 0x01;
+
+#endif /* (APP_TARGET_PLATFORM_ID == NET_OCPP_PLATFORM_ID) */
+#endif /* #ifdef APP_INCLUDE_NET */
+
+struct system_qrcode_config_if{
+    uint8_t set_type;
+    uint8_t generate_type;
+    uint8_t qrcode[150];
+};
+
+struct system_config_if{
+    uint32_t init_flag;
+    struct system_qrcode_config_if qrcode;
+    uint8_t reserve[4096 - 160];
+    uint32_t crc;
+};
 
 struct card_whitelist_info{
     uint8_t card_number[CP_INFO_CARD_NUMBER_WHITELIST_NUM_MAX][CARD_NUMBER_LENGTH_DEF + 0x01];
@@ -206,6 +234,13 @@ struct chargepile_config_info{
 
 #pragma pack()
 
+#ifdef APP_INCLUDE_NET
+#if (APP_TARGET_PLATFORM_ID == NET_OCPP_PLATFORM_ID)
+static struct system_config_tp_additional s_system_config_tp_additional;
+#endif /* (APP_TARGET_PLATFORM_ID == NET_OCPP_PLATFORM_ID) */
+#endif /* #ifdef APP_INCLUDE_NET */
+
+static struct system_config_if s_system_config_if;
 static struct chargepile_config_info s_chargepile_config_info;
 static uint8_t s_storage_chip_entry = 0x00;
 static uint32_t s_config_info_address = SYSTEM_CONFIG_MAIN_ADDRESS;
@@ -588,10 +623,19 @@ static struct config_item s_config_item_set[CONFIG_ITEM_SIZE] =
         (uint8_t*)&s_chargepile_config_info.target_plat,
         NULL},
 
-        {CONFIG_ITEM_MONITOR_PLATFORM,                                                           /* 监控平台数据：为倒数第一项 */
+        {CONFIG_ITEM_MONITOR_PLATFORM,                                                          /* 监控平台数据：为倒数第一项 */
         (1 <<(32 - 4))| (sizeof(s_chargepile_config_info.monitor_plat)),
         (uint8_t*)&s_chargepile_config_info.monitor_plat,
         NULL},
+
+#ifdef APP_INCLUDE_NET
+#if (APP_TARGET_PLATFORM_ID == NET_OCPP_PLATFORM_ID)
+        {CONFIG_ITEM_TARGET_PLATFORM_ADDITIONAL,                                                /* 目标平台数据：为倒数第一项 */
+        (1 <<(32 - 4))| (sizeof(s_system_config_tp_additional)),
+        (uint8_t*)&s_system_config_tp_additional,
+        NULL},
+#endif /* (APP_TARGET_PLATFORM_ID == NET_OCPP_PLATFORM_ID) */
+#endif /* #ifdef APP_INCLUDE_NET */
 };
 
 /******************************************************************************/
@@ -617,6 +661,164 @@ static uint32_t crc32_ieee_update(uint32_t crc, const uint8_t *data, size_t len)
 
     return (~crc);
 }
+
+/***************************************************************************************************************/
+/***************************************************************************************************************/
+/***************************************************************************************************************/
+#ifdef APP_INCLUDE_NET
+#if (APP_TARGET_PLATFORM_ID == NET_OCPP_PLATFORM_ID)
+
+static void sys_config_tp_additional_lock(void)
+{
+    s_config_tp_additional_lock = 0x00;
+}
+
+static void sys_config_tp_additional_unlock(void)
+{
+    s_config_tp_additional_lock = 0x01;
+}
+
+static void sys_config_tp_additional_wait_unlock(void)
+{
+    while(s_config_tp_additional_lock == 0x00){
+        SYS_CONFIG_OSDELAY(50);
+    }
+}
+
+/************************************************************************************
+ * 函数名：      do_storage_config_tp_additional_content
+ * 功能              执行配置数据存储操作
+ * 参数             addr：存储地址
+ *       buff：数据检验缓存
+ *       blen：数据检验缓存长度
+ * 返回            < 0：失败，= 0：成功
+ ***********************************************************************************/
+static int32_t do_storage_config_tp_additional_content(uint32_t addr, uint8_t *buff, uint32_t blen)
+{
+    if((buff == NULL) || (blen < sizeof(s_system_config_tp_additional))){
+        return -1;
+    }
+
+    uint32_t crc = 0;
+    int8_t rentry = 3;
+
+    while(rentry > 0){
+        s_system_config_tp_additional.crc = crc32_ieee_update(0, (const uint8_t *)&s_system_config_tp_additional, (sizeof(s_system_config_tp_additional) - sizeof(s_system_config_tp_additional.crc)));
+
+        mw_norflash_write(addr, (uint8_t *)&s_system_config_tp_additional, sizeof(s_system_config_tp_additional));
+
+        SYS_CONFIG_OSDELAY(10);
+
+        mw_norflash_read(addr, (uint8_t *)buff, blen);
+
+        crc = crc32_ieee_update(0, (const uint8_t *)buff, (sizeof(s_system_config_tp_additional) - sizeof(s_system_config_tp_additional.crc)));
+
+        if((memcmp(buff, &s_system_config_tp_additional, sizeof(s_system_config_tp_additional))) || (s_system_config_tp_additional.crc != crc)){
+            rentry--;
+            LOG_W("target platform additional storage_config_content fail, rentry(%d) crc(%x, %x)", rentry, crc, s_system_config_tp_additional.crc);
+            SYS_CONFIG_OSDELAY(100);
+
+            crc = 0x00;
+
+            continue;
+        }
+        break;
+    }
+
+    if(rentry <= 0){
+        return -1;
+    }
+
+    return 0;
+}
+
+/************************************************************************************
+ * 函数名：      sys_storage_config_tp_additional_item
+ * 功能              触发存储配置项数据
+ * 参数             无
+ * 返回            < 0：失败，= 0：成功
+ ***********************************************************************************/
+int32_t sys_storage_config_tp_additional_region(void)
+{
+    uint8_t* _data_temp = NULL;
+    int32_t result = 0;
+
+    sys_config_tp_additional_wait_unlock();
+    sys_config_tp_additional_lock();
+
+    _data_temp = (uint8_t*)(malloc(sizeof(s_system_config_tp_additional)));
+    if(_data_temp == NULL){
+        LOG_E("no enough memery for target platform config buff|%d\n", sizeof(s_system_config_tp_additional));
+        sys_config_tp_additional_unlock();
+        return -0x01;
+    }
+    memset(_data_temp, 0x00, sizeof(s_system_config_tp_additional));
+
+    if((result = do_storage_config_tp_additional_content(SYSTEM_CONFIG_TP_ADDITIONALREGION_ADDRESS, _data_temp, sizeof(s_system_config_tp_additional))) < 0){
+        LOG_E("chargepile config target platform storage failed|%x", SYSTEM_CONFIG_TP_ADDITIONALREGION_ADDRESS);
+    }
+
+    free(_data_temp);
+
+    if(result < 0){
+        sys_config_tp_additional_unlock();
+        return -0x01;
+    }
+
+    sys_config_tp_additional_unlock();
+    return 0;
+}
+
+static void sys_tp_additional_config_data_reset(void)
+{
+
+}
+
+int32_t sys_tp_additional_config_init(void)
+{
+    uint32_t crc = 0x00, init_flag = 0x00;
+
+    mw_norflash_read(SYSTEM_CONFIG_TP_ADDITIONALREGION_ADDRESS, (uint8_t *)&init_flag, sizeof(init_flag));
+    rt_kprintf("sys_tp_additional_config_init(%x)\n", init_flag);
+    if (init_flag != SYSTEM_INIT_KEY) {
+        sys_tp_additional_config_data_reset();
+        s_system_config_tp_additional.init_flag = SYSTEM_INIT_KEY;
+        s_system_config_tp_additional.verify_result = 0x00;
+    }else{
+        mw_norflash_read(SYSTEM_CONFIG_TP_ADDITIONALREGION_ADDRESS, (uint8_t *)&s_system_config_tp_additional, sizeof(s_system_config_tp_additional));
+
+        crc = crc32_ieee_update(0x00, (const uint8_t *)&s_system_config_tp_additional, (sizeof(s_system_config_tp_additional) - sizeof(s_system_config_tp_additional.crc)));
+
+        s_system_config_tp_additional.verify_result = 0x01;
+
+        if (crc != s_system_config_tp_additional.crc) {
+            if(++s_storage_chip_entry > 0x03){
+                LOG_E("target platform additional config crc error");
+                s_storage_chip_entry = 0x00;
+                s_system_config_tp_additional.verify_result = 0x00;
+            }else{
+                return -0x01;
+            }
+        }
+        s_storage_chip_entry = 0x00;
+    }
+
+    s_storage_chip_entry = 0x00;
+    LOG_D("target platform additional config success");
+
+    return 0x00;
+}
+
+int32_t sys_tp_additional_check_config(void)
+{
+    return 0x00;
+}
+
+#endif /* (APP_TARGET_PLATFORM_ID == NET_OCPP_PLATFORM_ID) */
+#endif /* #ifdef APP_INCLUDE_NET */
+/***************************************************************************************************************/
+/***************************************************************************************************************/
+/***************************************************************************************************************/
 
 static void sys_config_lock(void)
 {
@@ -848,6 +1050,8 @@ static void chargepile_config_data_reset(void)
 
     s_chargepile_config_info.config_info.prefix_length = 0x00;
     memset(s_chargepile_config_info.config_info.qrcode_prefix, '\0', sizeof(s_chargepile_config_info.config_info.qrcode_prefix));
+    s_chargepile_config_info.config_info.qrcode_prefix[0x00] = CP_SET_QRCODE_FORMAT_PREFIX;
+    s_chargepile_config_info.config_info.qrcode_prefix[0x01] = CP_GENERATE_QRCODE_FORMAT_PREFIX_DEVICE_SN_PORT;
     s_chargepile_config_info.config_info.suffix_length = 0x00;
     memset(s_chargepile_config_info.config_info.qrcode_suffix, '\0', sizeof(s_chargepile_config_info.config_info.qrcode_suffix));
     memset(s_chargepile_config_info.config_info.vin_whitelist, '\0', sizeof(s_chargepile_config_info.config_info.vin_whitelist));
@@ -899,6 +1103,12 @@ static void chargepile_config_data_reset(void)
 
     s_chargepile_config_info.target_plat.verify_result = 0x00;
     s_chargepile_config_info.monitor_plat.verify_result = 0x00;
+
+#ifdef APP_INCLUDE_NET
+#if (APP_TARGET_PLATFORM_ID == NET_OCPP_PLATFORM_ID)
+    s_system_config_tp_additional.verify_result = 0x00;
+#endif /* (APP_TARGET_PLATFORM_ID == NET_OCPP_PLATFORM_ID) */
+#endif /* #ifdef APP_INCLUDE_NET */
 }
 
 int32_t chargepile_config_init(void)
@@ -924,6 +1134,9 @@ int32_t chargepile_config_init(void)
                 if(init_flag != 0x00){
                     LOG_D("config init flag error, configure start initialization(%d)", sizeof(s_chargepile_config_info));
                     chargepile_config_data_reset();
+
+                    crc = crc32_ieee_update(0x00, (const uint8_t *)&s_chargepile_config_info, (sizeof(s_chargepile_config_info) - sizeof(s_chargepile_config_info.crc)));
+                    s_chargepile_config_info.crc = crc;
 
                     init_flag = SYSTEM_INIT_KEY;
                     mw_norflash_write(SYSTEM_CONFIG_INIT_FLAG_ADDRESS, (uint8_t *)&init_flag, sizeof(init_flag));
@@ -964,7 +1177,72 @@ int32_t chargepile_config_init(void)
         s_storage_chip_entry = 0x00;
     }
 
+    s_storage_chip_entry = 0x00;
     LOG_D("system config success");
+
+    return 0x00;
+}
+
+static void system_config_data_reset_if(void)
+{
+    s_system_config_if.qrcode.set_type = CP_SET_QRCODE_FORMAT_PREFIX;
+    s_system_config_if.qrcode.generate_type = CP_GENERATE_QRCODE_FORMAT_PREFIX_DEVICE_SN_PORT;
+    memset(s_system_config_if.qrcode.qrcode, '\0', sizeof(s_system_config_if.qrcode.qrcode));
+}
+
+int32_t system_config_init_if(void)
+{
+    uint32_t crc = 0x00, init_flag = 0x00;
+
+    mw_norflash_read(SYSTEM_CONFIG_INFO_ADDR_IF, (uint8_t *)&init_flag, sizeof(init_flag));
+    if (init_flag != SYSTEM_INIT_KEY) {
+        if(init_flag == 0xFFFFFFFF){
+            LOG_D("new board system configure if start initialization(%d)", sizeof(s_system_config_if));
+            system_config_data_reset_if();
+
+            crc = crc32_ieee_update(0x00, (const uint8_t *)&s_system_config_if, (sizeof(s_system_config_if) - sizeof(s_system_config_if.crc)));
+            s_system_config_if.crc = crc;
+
+            s_system_config_if.init_flag = SYSTEM_INIT_KEY;
+            mw_norflash_write(SYSTEM_CONFIG_INFO_ADDR_IF, (uint8_t *)&s_system_config_if, sizeof(s_system_config_if));
+            s_storage_chip_entry = 0x00;
+        }else{
+            if(++s_storage_chip_entry > 0x03){
+                if(init_flag != 0x00){
+                    LOG_D("system config if init flag error, configure start initialization(%d)", sizeof(s_system_config_if));
+                    system_config_data_reset_if();
+
+                    crc = crc32_ieee_update(0x00, (const uint8_t *)&s_system_config_if, (sizeof(s_system_config_if) - sizeof(s_system_config_if.crc)));
+                    s_system_config_if.crc = crc;
+
+                    s_system_config_if.init_flag = SYSTEM_INIT_KEY;
+                    mw_norflash_write(SYSTEM_CONFIG_INFO_ADDR_IF, (uint8_t *)&s_system_config_if, sizeof(s_system_config_if));
+                    s_storage_chip_entry = 0x00;
+                }
+            }
+        }
+        return -0x01;
+    }else{
+        memset(&s_system_config_if, 0x00, sizeof(s_system_config_if));
+        mw_norflash_read((SYSTEM_CONFIG_INFO_ADDR_IF + sizeof(s_system_config_if.init_flag)), (uint8_t *)&s_system_config_if, \
+                (sizeof(s_system_config_if) - sizeof(s_system_config_if.init_flag)));
+
+        crc = crc32_ieee_update(0x00, (const uint8_t *)&s_system_config_if, (sizeof(s_system_config_if) - sizeof(s_system_config_if.crc)));
+
+        if (crc != s_system_config_if.crc) {
+            if(++s_storage_chip_entry > 0x03){
+                LOG_E("system config if crc error");
+                s_storage_chip_entry = 0x00;
+            }else{
+                return -0x01;
+            }
+        }
+        s_storage_chip_entry = 0x00;
+    }
+
+    s_storage_chip_entry = 0x00;
+    LOG_D("system config success");
+
     return 0x00;
 }
 
