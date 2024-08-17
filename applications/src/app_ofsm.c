@@ -1663,7 +1663,6 @@ static void ofsm_starting_fun(uint8_t gunno)
     app_get_hci_event(gunno, HCI_EVENT_VIN_START, 1);
 
     app_nsal_clear_remote_start(gunno);
-    app_nsal_clear_remote_stop(gunno);
     app_nsal_clear_remote_card_authorize(gunno);
     app_nsal_clear_remote_vin_authorize(gunno);
 }
