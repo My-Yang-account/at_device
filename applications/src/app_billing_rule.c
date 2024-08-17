@@ -22,6 +22,8 @@ struct billing_info{
     uint32_t period_elect[APP_BILLING_RULE_PERIOD_MAX];        /** 时段电量(精度：0.001) */
     uint32_t rate_type_elect[APP_BILLING_RULE_RATE_TYPE_MAX];  /** 尖、峰、平、谷费率内消耗的电量(精度：0.001) */
     uint32_t rate_type_fess[APP_BILLING_RULE_RATE_TYPE_MAX];   /** 尖、峰、平、谷费率内消耗的费用(精度：0.0001) */
+    uint32_t rate_type_service_fess[APP_BILLING_RULE_RATE_TYPE_MAX];   /** 尖、峰、平、谷费率内消耗的服务费费用(精度：0.0001) */
+    uint32_t rate_type_elect_fess[APP_BILLING_RULE_RATE_TYPE_MAX];     /** 尖、峰、平、谷费率内消耗的电费费用(精度：0.0001) */
     uint32_t elect_total;                                      /** 充电总电量(精度：0.001) */
     uint32_t fees_total;                                       /** 充电总费用(精度：0.0001) */
     uint32_t service_fees_total;                               /** 充电总服务费(精度：0.0001) */
@@ -94,10 +96,10 @@ uint32_t app_billingrule_get_rate_type_price(uint8_t gunno, uint8_t type)
 }
 
 /*******************************************
- * 函数名            app_billingrule_get_rate_type_price
- * 功能                设置计费模型编号
+ * 函数名            app_billingrule_set_elect_model_sn
+ * 功能                设置电费计费模型编号
  ******************************************/
-void app_billingrule_set_model_sn(uint8_t gunno, uint8_t *sn, uint8_t len)
+void app_billingrule_set_elect_model_sn(uint8_t gunno, uint8_t *sn, uint8_t len)
 {
     if(gunno >= APP_SYSTEM_GUNNO_SIZE){
         return 0x00;
@@ -105,8 +107,50 @@ void app_billingrule_set_model_sn(uint8_t gunno, uint8_t *sn, uint8_t len)
     uint8_t valid_len = len;
     valid_len = valid_len > (APP_BILLING_MODEL_SN_LEN + 0x01) ? (APP_BILLING_MODEL_SN_LEN + 0x01) : valid_len;
 
-    memset(s_billing_rule[gunno].model_sn, 0x00, (APP_BILLING_MODEL_SN_LEN + 0x01));
-    memcpy(s_billing_rule[gunno].model_sn, sn, valid_len);
+    memset(s_billing_rule[gunno].elect_model_sn, 0x00, (APP_BILLING_MODEL_SN_LEN + 0x01));
+    memcpy(s_billing_rule[gunno].elect_model_sn, sn, valid_len);
+}
+
+/*******************************************
+ * 函数名            app_billingrule_get_elect_model_sn
+ * 功能                获取电费计费模型编号
+ ******************************************/
+uint8_t *app_billingrule_get_elect_model_sn(uint8_t gunno)
+{
+    if(gunno >= APP_SYSTEM_GUNNO_SIZE){
+        return 0x00;
+    }
+
+    return s_billing_rule[gunno].elect_model_sn;
+}
+
+/*******************************************
+ * 函数名            app_billingrule_set_service_model_sn
+ * 功能                设置服务费计费模型编号
+ ******************************************/
+void app_billingrule_set_service_model_sn(uint8_t gunno, uint8_t *sn, uint8_t len)
+{
+    if(gunno >= APP_SYSTEM_GUNNO_SIZE){
+        return 0x00;
+    }
+    uint8_t valid_len = len;
+    valid_len = valid_len > (APP_BILLING_MODEL_SN_LEN + 0x01) ? (APP_BILLING_MODEL_SN_LEN + 0x01) : valid_len;
+
+    memset(s_billing_rule[gunno].service_model_sn, 0x00, (APP_BILLING_MODEL_SN_LEN + 0x01));
+    memcpy(s_billing_rule[gunno].service_model_sn, sn, valid_len);
+}
+
+/*******************************************
+ * 函数名            app_billingrule_get_service_model_sn
+ * 功能                获取服务费计费模型编号
+ ******************************************/
+uint8_t *app_billingrule_get_service_model_sn(uint8_t gunno)
+{
+    if(gunno >= APP_SYSTEM_GUNNO_SIZE){
+        return 0x00;
+    }
+
+    return s_billing_rule[gunno].service_model_sn;
 }
 
 /****************************************************[计费规则信息]**********************************************************/
@@ -400,6 +444,42 @@ uint32_t app_billingrule_get_rate_type_fess(uint8_t gunno, uint8_t type)
     return s_billing_info[gunno].rate_type_fess[type] /100;
 }
 /*******************************************************
+ * 函数名               app_billingrule_get_rate_type_elect_fess
+ * 功能                  获取指定费率类型电费费用
+ * 参数                  gunno     枪号
+ *           type      费率类型
+ * 返回                  指定费率类型电费费用
+ ******************************************************/
+uint32_t app_billingrule_get_rate_type_elect_fess(uint8_t gunno, uint8_t type)
+{
+    if(gunno >= APP_SYSTEM_GUNNO_SIZE){
+        return 0x00;
+    }
+    if(type > APP_BILLING_RULE_RATE_TYPE_MAX){
+        return 0x00;
+    }
+
+    return s_billing_info[gunno].rate_type_elect_fess[type] /100;
+}
+/*******************************************************
+ * 函数名               app_billingrule_get_rate_type_service_fess
+ * 功能                  获取指定费率类型服务费费用
+ * 参数                  gunno     枪号
+ *           type      费率类型
+ * 返回                  指定费率类型服务费费用
+ ******************************************************/
+uint32_t app_billingrule_get_rate_type_service_fess(uint8_t gunno, uint8_t type)
+{
+    if(gunno >= APP_SYSTEM_GUNNO_SIZE){
+        return 0x00;
+    }
+    if(type > APP_BILLING_RULE_RATE_TYPE_MAX){
+        return 0x00;
+    }
+
+    return s_billing_info[gunno].rate_type_service_fess[type] /100;
+}
+/*******************************************************
  * 函数名               app_billingrule_get_period_elect
  * 功能                  获取指定时段总电量
  * 参数                  gunno     枪号
@@ -534,6 +614,8 @@ void app_billing_info_init(uint32_t init_elect, uint8_t gunno)
     for(uint8_t type = 0; type < APP_BILLING_RULE_RATE_TYPE_MAX; type++){
         s_billing_info[gunno].rate_type_elect[type] = 0x00;
         s_billing_info[gunno].rate_type_fess[type] = 0x00;
+        s_billing_info[gunno].rate_type_elect_fess[type] = 0x00;
+        s_billing_info[gunno].rate_type_service_fess[type] = 0x00;
     }
 }
 
@@ -577,9 +659,12 @@ void app_billing_info_calculate(uint32_t current_time, uint32_t current_elect, u
             s_billing_rule[gunno].period_price[period].service + elect_inc *s_billing_rule[gunno].period_price[period].delay) /10);
     s_billing_info[gunno].rate_type_elect[rate_number] += elect_inc;
     s_billing_info[gunno].rate_type_fess[rate_number] += (elect_inc *s_billing_rule[gunno].rate_price[rate_number] /10);
+    s_billing_info[gunno].rate_type_elect_fess[rate_number] += (elect_inc *s_billing_rule[gunno].period_price[period].elect /10);
+    s_billing_info[gunno].rate_type_service_fess[rate_number] += (elect_inc *s_billing_rule[gunno].period_price[period].service /10);
 
-    rt_kprintf("gunno(%d)  period(%d) rate_number(%d) elect_inc(%d) rate_price(%d, %d, %d)\n", gunno, period, rate_number, elect_inc,
+    rt_kprintf("gunno(%d)  period(%d) rate_number(%d) elect_inc(%d) rate_price(%d, %d, %d)[%d, %d]\n", gunno, period, rate_number, elect_inc,
             s_billing_rule[gunno].rate_price[rate_number], s_billing_info[gunno].rate_type_fess[rate_number],
-            s_billing_info[gunno].rate_type_elect[rate_number]);
+            s_billing_info[gunno].rate_type_elect[rate_number],
+            s_billing_info[gunno].rate_type_elect_fess[rate_number], s_billing_info[gunno].rate_type_service_fess[rate_number]);
 }
 

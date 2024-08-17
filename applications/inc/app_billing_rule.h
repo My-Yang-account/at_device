@@ -32,14 +32,18 @@ struct billing_rule{
     }period_price[APP_BILLING_RULE_PERIOD_MAX];            /** 时段价格 */
     uint8_t rate_number[APP_BILLING_RULE_PERIOD_MAX];      /** 时段费率号 */
     uint32_t rate_price[APP_BILLING_RULE_RATE_TYPE_MAX];   /** 尖、峰、平、谷费率价格(精度：0.0001) */
-    uint8_t model_sn[APP_BILLING_MODEL_SN_LEN + 1];        /** 计费模型编号 */
+    uint8_t elect_model_sn[APP_BILLING_MODEL_SN_LEN + 1];  /** 电费计费模型编号 */
+    uint8_t service_model_sn[APP_BILLING_MODEL_SN_LEN + 1];/** 服务费计费模型编号 */
 };
 
 uint8_t app_billingrule_is_valid(uint8_t gunno);
 struct billing_rule app_billingrule_get_rule(uint8_t gunno);
 void app_billingrule_update_billingrule_info(uint8_t gunno);
 uint32_t app_billingrule_get_rate_type_price(uint8_t gunno, uint8_t type);
-void app_billingrule_set_model_sn(uint8_t gunno, uint8_t *sn, uint8_t len);
+void app_billingrule_set_elect_model_sn(uint8_t gunno, uint8_t *sn, uint8_t len);
+uint8_t *app_billingrule_get_elect_model_sn(uint8_t gunno);
+void app_billingrule_set_service_model_sn(uint8_t gunno, uint8_t *sn, uint8_t len);
+uint8_t *app_billingrule_get_service_model_sn(uint8_t gunno);
 
 void app_billingrule_set_period_elect_price(uint8_t gunno, uint8_t period, uint32_t price);
 void app_billingrule_set_period_service_price(uint8_t gunno, uint8_t period, uint32_t price);
@@ -65,6 +69,8 @@ uint32_t app_billingrule_get_fees_total(uint8_t gunno);
 uint32_t app_billingrule_get_service_fees_total(uint8_t gunno);
 uint32_t app_billingrule_get_rate_type_elect(uint8_t gunno, uint8_t type);
 uint32_t app_billingrule_get_rate_type_fess(uint8_t gunno, uint8_t type);
+uint32_t app_billingrule_get_rate_type_elect_fess(uint8_t gunno, uint8_t type);
+uint32_t app_billingrule_get_rate_type_service_fess(uint8_t gunno, uint8_t type);
 uint32_t app_billingrule_get_period_elect(uint8_t gunno, uint8_t period);
 uint32_t app_billingrule_get_period_elect_fees(uint8_t gunno, uint8_t period);
 uint32_t app_billingrule_get_period_service_fees(uint8_t gunno, uint8_t period);
