@@ -96,7 +96,7 @@ static int32_t ycp_get_fault_code(uint8_t bit, uint8_t gunno)
         return -0x01;
     }
 
-    extern uint8_t ycp_chargepile_fault_converted(uint8_t bit);
+    extern uint16_t ycp_chargepile_fault_converted(uint16_t bit);
     bit = ycp_chargepile_fault_converted(bit);
 
     switch(bit){

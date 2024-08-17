@@ -645,9 +645,9 @@ void ycp_request_padding_heartbeat(void)
         temperature = temperature > s_ycp_base->gunline_temperature[0x00] ? temperature : s_ycp_base->gunline_temperature[0x00];
         temperature = temperature > s_ycp_base->gunline_temperature[0x01] ? temperature : s_ycp_base->gunline_temperature[0x01];
     }
-    g_ycp_preq_heartbeat.body.signal_value = 0x16;
+    g_ycp_preq_heartbeat.body.signal_value = (uint8_t)(s_ycp_handle->get_system_data(NET_SYSTEM_DATA_NAME_SIGNAL_STRENGTH, NULL, NET_SYSTEM_DATA_OPTION_TARGET_PLAT));
     g_ycp_preq_heartbeat.body.temp = 0xFF;
-    g_ycp_preq_heartbeat.body.output_voltage = 0x17c;
+    g_ycp_preq_heartbeat.body.output_voltage = 0x00;
     g_ycp_preq_heartbeat.body.output_current = 0x00;
     g_ycp_preq_heartbeat.body.input_voltage = 0x00;
     g_ycp_preq_heartbeat.body.input_current = 0x00;
@@ -1102,14 +1102,6 @@ void ycp_message_info_init(uint8_t gunno)  ///////// 这是网络部分外部调
 
     g_ycp_preq_login.body.net_link_type = NET_YCP_NET_LINK_TYPE_SIM;
     memset(g_ycp_preq_login.body.communicate_module_sn, '\0', sizeof(g_ycp_preq_login.body.communicate_module_sn));
-    g_ycp_preq_login.body.communicate_module_sn[0x00] = 0x86;
-    g_ycp_preq_login.body.communicate_module_sn[0x01] = 0x79;
-    g_ycp_preq_login.body.communicate_module_sn[0x02] = 0x48;
-    g_ycp_preq_login.body.communicate_module_sn[0x03] = 0x07;
-    g_ycp_preq_login.body.communicate_module_sn[0x04] = 0x25;
-    g_ycp_preq_login.body.communicate_module_sn[0x05] = 0x90;
-    g_ycp_preq_login.body.communicate_module_sn[0x06] = 0x54;
-    g_ycp_preq_login.body.communicate_module_sn[0x07] = 0x20;
 
     memset(g_ycp_preq_login.body.network_keys, 0, sizeof(g_ycp_preq_login.body.network_keys));
     g_ycp_preq_login.body.network_keys[13] = 0x12;
@@ -1308,25 +1300,38 @@ void ycp_chargepile_request_padding_bms_shakehand(uint8_t gunno)
     memcpy(g_ycp_preq_shake_hand[gunno].body.bms_bat_maker_name, bms->BRM.BatFirm, sizeof(bms->BRM.BatFirm));
     memcpy(g_ycp_preq_shake_hand[gunno].body.bms_bat_sn, bms->BRM.SerialNum, sizeof(bms->BRM.SerialNum));
 
-    byteh = (uint8_t)((bms->BRM.BatBuldday &0xF0) >> 0x04);
-    bytel = (uint8_t)(bms->BRM.BatBuldday &0x0F);
-    g_ycp_preq_shake_hand[gunno].body.bms_bat_date[0x00] = byteh *10 + bytel;
+    if(bms->BRM.BatBuldday == 0xFF){
+        g_ycp_preq_shake_hand[gunno].body.bms_bat_date[0x00] = 0xFF;
+    }else{
+        byteh = (uint8_t)(bms->BRM.BatBuldday /10);
+        bytel = (uint8_t)(bms->BRM.BatBuldday %10);
+        g_ycp_preq_shake_hand[gunno].body.bms_bat_date[0x00] = (uint8_t)(byteh <<0x04) |bytel;
+    }
 
-    byteh = (uint8_t)((bms->BRM.BatBuldmonth &0xF0) >> 0x04);
-    bytel = (uint8_t)(bms->BRM.BatBuldmonth &0x0F);
-    g_ycp_preq_shake_hand[gunno].body.bms_bat_date[0x01] = byteh *10 + bytel;
+    if(bms->BRM.BatBuldday == 0xFF){
+        g_ycp_preq_shake_hand[gunno].body.bms_bat_date[0x01] = 0xFF;
+    }else{
+        byteh = (uint8_t)(bms->BRM.BatBuldmonth /10);
+        bytel = (uint8_t)(bms->BRM.BatBuldmonth %10);
+        g_ycp_preq_shake_hand[gunno].body.bms_bat_date[0x01] = (uint8_t)(byteh <<0x04) |bytel;
+    }
 
-    year = bms->BRM.BatBuldyear + 1985;
-    yearh = year %100;
-    yearl = year /100;
+    if(bms->BRM.BatBuldyear == 0xFF){
+        g_ycp_preq_shake_hand[gunno].body.bms_bat_date[0x02] = 0xFF;
+        g_ycp_preq_shake_hand[gunno].body.bms_bat_date[0x03] = 0xFF;
+    }else{
+        year = bms->BRM.BatBuldyear + 1985;
+        yearh = year /100;
+        yearl = year %100;
 
-    byteh = (uint8_t)((yearl &0xF0) >> 0x04);
-    bytel = (uint8_t)(yearl &0x0F);
-    g_ycp_preq_shake_hand[gunno].body.bms_bat_date[0x02] = byteh *10 + bytel;
+        byteh = (uint8_t)(yearl /10);
+        bytel = (uint8_t)(yearl %10);
+        g_ycp_preq_shake_hand[gunno].body.bms_bat_date[0x02] = (uint8_t)(byteh <<0x04) |bytel;
 
-    byteh = (uint8_t)((yearh &0xF0) >> 0x04);
-    bytel = (uint8_t)(yearh &0x0F);
-    g_ycp_preq_shake_hand[gunno].body.bms_bat_date[0x03] = byteh *10 + bytel;
+        byteh = (uint8_t)(yearh /10);
+        bytel = (uint8_t)(yearh %10);
+        g_ycp_preq_shake_hand[gunno].body.bms_bat_date[0x03] = (uint8_t)(byteh <<0x04) |bytel;
+    }
 
     memcpy(g_ycp_preq_shake_hand[gunno].body.bms_bat_charge_num, bms->BRM.Chagtimer, sizeof(bms->BRM.Chagtimer));
     g_ycp_preq_shake_hand[gunno].body.bms_bat_title_identification = bms->BRM.BatProperty;
@@ -2022,58 +2027,6 @@ int8_t ycp_chargepile_fault_report(uint8_t gunno, uint16_t code, uint8_t is_resu
 }
 
 /*************************************************
- * 函数名      ycp_chargepile_state_detect
- * 功能          桩状态检测并修正
- * **********************************************/
-void ycp_chargepile_state_detect(uint8_t gunno)
-{
-    if(gunno >= NET_SYSTEM_GUN_NUMBER){
-        return;
-    }
-    uint8_t cstate = 0x02, cconnect = 0x00;
-    s_ycp_base = (System_BaseData*)(s_ycp_handle->get_base_data(gunno));
-
-    switch(s_ycp_base->state.current){
-    case APP_OFSM_STATE_IDLEING:
-        cconnect = 0x00;
-        cstate = 0x02;
-        break;
-    case APP_OFSM_STATE_READYING:
-        cconnect = 0x01;
-        cstate = 0x02;
-        break;
-    case APP_OFSM_STATE_STARTING:
-        cconnect = 0x01;
-        cstate = 0x02;
-        break;
-    case APP_OFSM_STATE_CHARGING:
-        cconnect = 0x01;
-        cstate = 0x03;
-        break;
-    case APP_OFSM_STATE_STOPING:
-        cconnect = 0x01;
-        cstate = 0x02;
-        break;
-    case APP_OFSM_STATE_FINISHING:
-        cconnect = 0x01;
-        cstate = 0x02;
-        break;
-    case APP_OFSM_STATE_FAULTING:
-        cconnect = 0x00;
-        if(s_ycp_base->flag.connect_state == APP_CONNECT_STATE_CONNECT){
-            cconnect = 0x01;
-        }
-        cstate = 0x01;
-        break;
-    default:
-        break;
-    }
-    if((s_ycp_disposable_info[gunno].state.connect != cconnect) || (s_ycp_disposable_info[gunno].state.state != cstate)){
-        ycp_chargepile_state_changed(gunno);
-    }
-}
-
-/*************************************************
  * 函数名      ycp_chargepile_create_local_transaction_number
  * 功能          创建本地交易号
  * **********************************************/
@@ -2139,7 +2092,7 @@ void ycp_chargepile_time_sync_revise(uint8_t gunno)
  * 函数名      ycp_chargepile_fault_converted
  * 功能          故障转换
  * **********************************************/
-uint8_t ycp_chargepile_fault_converted(uint8_t bit)
+uint16_t ycp_chargepile_fault_converted(uint16_t bit)
 {
     switch(bit){
     case APP_SYS_FAULT_SCRAM :
@@ -2174,6 +2127,22 @@ uint8_t ycp_chargepile_fault_converted(uint8_t bit)
         return NET_GENERAL_FAULT_FLASH;
     case APP_SYS_FAULT_EEPROM :
         return NET_GENERAL_FAULT_EEPROM;
+    case APP_SYS_FAULT_LIGHT_PRPTECT :
+        return NET_GENERAL_FAULT_LIGHT_PRPTECT;
+    case APP_SYS_FAULT_GUN_SITE :
+        return NET_GENERAL_FAULT_GUN_SITE;
+    case APP_SYS_FAULT_CIRCUIT_BREAKER :
+        return NET_GENERAL_FAULT_CIRCUIT_BREAKER;
+    case APP_SYS_FAULT_FLOODING :
+        return NET_GENERAL_FAULT_FLOODING;
+    case APP_SYS_FAULT_SMOKE :
+        return NET_GENERAL_FAULT_SMOKE;
+    case APP_SYS_FAULT_POUR :
+        return NET_GENERAL_FAULT_POUR;
+    case APP_SYS_FAULT_LIQUID_COOLING :
+        return NET_GENERAL_FAULT_LIQUID_COOLING;
+    case APP_SYS_FAULT_FUSE :
+        return NET_GENERAL_FAULT_FUSE;
     default:
         return NET_GENERAL_FAULT_SIZE;
     }

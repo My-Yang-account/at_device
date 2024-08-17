@@ -591,7 +591,7 @@ static void net_ycp_message_send_thread_entry(void *parameter)
                 break;
             case NET_YCP_NET_STATE_LOGIN:
             {
-                uint8_t vaild_len = 0, rentry = 0;
+                uint8_t rentry = 0x00;
                 uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YCP |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
                 struct net_handle* handle = net_get_net_handle();
                 uint8_t *sim_no = (uint8_t*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_ICCID, NULL, option));
