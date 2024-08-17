@@ -158,7 +158,7 @@ uint8_t ykc_is_set_power_success(void)
  * **********************************************/
 int8_t ykc_response_padding_query_realtime_data(uint8_t gunno, uint8_t *buf, uint16_t ilen, uint16_t *olen)
 {
-    uint8_t data_len = sizeof(Net_YkcPro_PRes_Query_PReq_Report_RealTimeData_t) + NET_YKC_PROTOCOL_CHECK_REGION_SIZE;
+    uint8_t data_len = sizeof(Net_YkcPro_PRes_Query_PReq_Report_RealTimeData_t);
 
     if(buf == NULL){
         return -0x01;
@@ -228,7 +228,7 @@ int8_t ykc_response_padding_remote_start_charge(uint8_t gunno, uint8_t *buf, uin
  * **********************************************/
 int8_t ykc_response_padding_remote_stop_charge(uint8_t gunno, uint8_t *buf, uint16_t ilen, uint16_t *olen)
 {
-    uint8_t data_len = sizeof(Net_YkcPro_PRes_Remote_StopCharge_t) + NET_YKC_PROTOCOL_CHECK_REGION_SIZE;
+    uint8_t data_len = sizeof(Net_YkcPro_PRes_Remote_StopCharge_t);
 
     if(buf == NULL){
         return -0x01;
@@ -263,7 +263,7 @@ int8_t ykc_response_padding_remote_stop_charge(uint8_t gunno, uint8_t *buf, uint
  * **********************************************/
 int8_t ykc_response_padding_account_ballance_update(uint8_t gunno, uint8_t *buf, uint16_t ilen, uint16_t *olen)
 {
-    uint8_t data_len = sizeof(Net_YkcPro_PRes_AccountBallance_Update_t) + NET_YKC_PROTOCOL_CHECK_REGION_SIZE;
+    uint8_t data_len = sizeof(Net_YkcPro_PRes_AccountBallance_Update_t);
 
     if(buf == NULL){
         return -0x01;
@@ -516,7 +516,7 @@ int8_t ykc_response_padding_set_billing_model(uint8_t *buf, uint16_t ilen, uint1
  * **********************************************/
 int8_t ykc_response_padding_ground_lock_lifting(uint8_t gunno, uint8_t *buf, uint16_t ilen, uint16_t *olen)
 {
-    uint8_t data_len = sizeof(Net_YkcPro_PRes_GroundLock_Lifting_t) + NET_YKC_PROTOCOL_CHECK_REGION_SIZE;
+    uint8_t data_len = sizeof(Net_YkcPro_PRes_GroundLock_Lifting_t);
 
     if(buf == NULL){
         return -0x01;
@@ -549,7 +549,7 @@ int8_t ykc_response_padding_ground_lock_lifting(uint8_t gunno, uint8_t *buf, uin
  * **********************************************/
 int8_t ykc_response_padding_remote_update(uint8_t *buf, uint16_t ilen, uint16_t *olen)
 {
-    uint8_t data_len = sizeof(Net_YkcPro_PRes_RemoteUpdate_t) + NET_YKC_PROTOCOL_CHECK_REGION_SIZE;
+    uint8_t data_len = sizeof(Net_YkcPro_PRes_RemoteUpdate_t);
 
     if(buf == NULL){
         return -0x01;
@@ -579,7 +579,7 @@ int8_t ykc_response_padding_remote_update(uint8_t *buf, uint16_t ilen, uint16_t 
  * **********************************************/
 int8_t ykc_response_padding_remote_start_merge_charge(uint8_t gunno, uint8_t *buf, uint16_t ilen, uint16_t *olen)
 {
-    uint8_t data_len = sizeof(Net_YkcPro_PRes_Remote_StartMergeCharge_t) + NET_YKC_PROTOCOL_CHECK_REGION_SIZE;
+    uint8_t data_len = sizeof(Net_YkcPro_PRes_Remote_StartMergeCharge_t);
 
     if(buf == NULL){
         return -0x01;
