@@ -147,6 +147,15 @@
 #define NET_GENERATE_QRCODE_FORMAT_PREFIX_DEVICE_SN_PORT  0x03          /* 终端生成的二维码格式类型：前缀+设备号+枪号 */
 #define NET_GENERATE_QRCODE_FORMAT_PORT                0x04             /* 终端生成的二维码格式类型：枪号 */
 
+/** system control option */
+#define NET_SYSTEM_CTRL_OPTION_ACTION                  0x00             /* 系统控制选项：动作 */
+#define NET_SYSTEM_CTRL_OPTION_RELEASE                 0x01             /* 系统控制选项：释放 */
+#define NET_SYSTEM_CTRL_OPTION_STATE                   0x02             /* 系统控制选项：获取状态 */
+
+/** system control item */
+#define NET_SYSTEM_CTRL_ITEM_ELOCK                     0x00             /* 系统控制项：电子锁 */
+#define NET_SYSTEM_CTRL_ITEM_SIZE                      0x01             /* 系统控制项 */
+
 /** net parameter config */
 enum para_config{
     NET_PARA_CONFIG_INDEX_FLASH_ERASE = 1,             /* 参数配置下标：flash擦除函数 */
@@ -164,8 +173,9 @@ enum para_config{
     NET_PARA_CONFIG_INDEX_CRC32_UPDATE = 13,           /* 参数配置下标：CRC32 校验 */
     NET_PARA_CONFIG_INDEX_GET_BASE_DATA = 14,          /* 参数配置下标：设置基本数据 */
     NET_PARA_CONFIG_INDEX_SYSTEM_DATA_STORAGE = 15,    /* 参数配置下标：系统数据存储 */
-    NET_PARA_CONFIG_INDEX_NDEV_OPERATE = 16,           /* 参数配置下标：网络设备操作 */
-    NET_PARA_CONFIG_INDEX_SIZE = 17,
+    NET_PARA_CONFIG_INDEX_SYSTEM_CONTROL = 16,         /* 参数配置下标：系统控制 */
+    NET_PARA_CONFIG_INDEX_NDEV_OPERATE = 17,           /* 参数配置下标：网络设备操作 */
+    NET_PARA_CONFIG_INDEX_SIZE = 18,
 };
 
 #define NET_MY_ASSERT(para, index)                             \
@@ -260,6 +270,7 @@ struct net_handle{
     int32_t (*card_vin_whitelists_query)(uint8_t* data, uint8_t len, uint32_t option);
     int32_t (*card_vin_whitelists_delete)(uint8_t* data, uint8_t len, uint32_t option);
     int32_t (*system_data_storage)(uint32_t option);
+    int32_t (*system_control)(uint16_t item, uint8_t *para, uint32_t option);
     int32_t (*ndev_operate)(uint8_t option);
     uint16_t (*crc16_8005)(uint16_t init, const uint8_t *data, uint32_t len);
     uint32_t (*crc32_updtae)(uint32_t init, const uint8_t *data, uint32_t len);

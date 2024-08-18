@@ -259,6 +259,7 @@ static void net_start_function(void* handle)
     NET_MY_ASSERT(s_net_handle.card_vin_whitelists_query, NET_PARA_CONFIG_INDEX_QUERY_CARD_VIN);
     NET_MY_ASSERT(s_net_handle.card_vin_whitelists_delete, NET_PARA_CONFIG_INDEX_DELETE_CARD_VIN);
     NET_MY_ASSERT(s_net_handle.system_data_storage, NET_PARA_CONFIG_INDEX_SYSTEM_DATA_STORAGE);
+    NET_MY_ASSERT(s_net_handle.system_control, NET_PARA_CONFIG_INDEX_SYSTEM_CONTROL);
     NET_MY_ASSERT(s_net_handle.ndev_operate, NET_PARA_CONFIG_INDEX_NDEV_OPERATE);
     NET_MY_ASSERT(s_net_handle.crc16_8005, NET_PARA_CONFIG_INDEX_CRC16_8005);
     NET_MY_ASSERT(s_net_handle.crc32_updtae, NET_PARA_CONFIG_INDEX_CRC32_UPDATE);
@@ -332,6 +333,9 @@ static int32_t net_para_config_function(uint8_t platform, uint8_t index, void* p
     case NET_PARA_CONFIG_INDEX_SYSTEM_DATA_STORAGE :
         s_net_handle.system_data_storage = (int32_t (*)(uint32_t))para;
         break;
+    case NET_PARA_CONFIG_INDEX_SYSTEM_CONTROL :
+        s_net_handle.system_control = (int32_t (*)(uint16_t, uint8_t*, uint32_t))para;
+        break;
     case NET_PARA_CONFIG_INDEX_NDEV_OPERATE :
         s_net_handle.ndev_operate = (int32_t (*)(uint8_t))para;
         break;
@@ -396,15 +400,14 @@ static int32_t net_operation_init(void)
 #endif /* NET_PACK_USING_YCP */
 
 #ifdef NET_PACK_USING_SGCC
-//    extern int32_t ycp_ota_init(void);
+    extern int sgcc_ota_init(void);
     extern int sgcc_message_recvive_init(void);
-//    extern int32_t ycp_transceiver_init(void);
     extern int sgcc_message_send_init(void);
     extern int sgcc_realtime_process_init(void);
     extern void sgcc_device_register_init(void);
-//    ycp_ota_init();
+
+    sgcc_ota_init();
     sgcc_message_recvive_init();
-//    ycp_transceiver_init();
     sgcc_message_send_init();
     sgcc_realtime_process_init();
     sgcc_device_register_init();
