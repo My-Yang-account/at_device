@@ -34,6 +34,7 @@ int8_t sgcc_message_pro_config_query_request(uint8_t *buf, uint16_t ilen, uint16
 int8_t sgcc_message_pro_ctrl_elock_request(uint8_t gunno, void *data, uint8_t len);
 int8_t sgcc_message_pro_dev_maintain_request(void *data, uint8_t len);
 int8_t sgcc_message_pro_query_maintain_info_request(uint8_t *buf, uint16_t ilen, uint16_t *olen);
+int8_t sgcc_message_pro_time_sync_request(void *data, uint8_t len);
 
 void sgcc_start_charge_response_asynchronously(uint8_t gunno, uint8_t result, uint8_t reason, uint8_t fault);
 void sgcc_stop_charge_response_asynchronously(uint8_t gunno, uint8_t result, uint8_t reason, uint8_t fault);

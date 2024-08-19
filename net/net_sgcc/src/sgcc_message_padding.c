@@ -1073,6 +1073,29 @@ int8_t sgcc_message_pro_query_maintain_info_request(uint8_t *buf, uint16_t ilen,
 }
 
 /*************************************************
+ * 函数名      sgcc_message_pro_time_sync_request
+ * 功能          处理服务器下发的时间同步请求
+ * **********************************************/
+int8_t sgcc_message_pro_time_sync_request(void *data, uint8_t len)
+{
+    uint8_t data_len = sizeof(uint32_t);
+
+    rt_kprintf("sgcc_message_pro_time_sync_request(%d, %d, %d)\n", data_len, len, *(uint32_t*)data);
+    if(data == NULL){
+        return -0x01;
+    }
+
+    if(data_len > len){
+        return -0x03;
+    }
+
+    s_sgcc_handle->time_sync(*(uint32_t*)data);
+
+    rt_kprintf("ppppppppppppppppppp(%d)\n", time(NULL));
+    return 0x00;
+}
+
+/*************************************************
  * 函数名      sgcc_message_info_init
  * 功能          国网报文信息初始化
  * **********************************************/

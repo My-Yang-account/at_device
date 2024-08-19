@@ -624,8 +624,11 @@ static int callback_service_EVS_OTA_UPDATE(const char *request)
     return 0;
 }
 
-static int callback_service_EVS_TIME_SYNC(const unsigned int request)
+static int callback_evs_service_time_sync(const unsigned int request)
 {
+    if(sgcc_message_pro_time_sync_request((void*)&request, sizeof(request)) >= 0x00){
+        sgcc_net_event_send(NET_SGCC_EVENT_HANDLE_SERVER, NET_SGCC_EVENT_TYPE_REQUEST, 0x00, NET_SGCC_SREQ_EVENT_TIME_SYNC);
+    }
     return 0;
 }
 
@@ -686,7 +689,7 @@ int sgcc_message_recvive_init(void)
     EVS_RegisterCallback(EVS_QUE_DATA_SRV, callback_service_EVS_QUE_DATA_SRV);
     EVS_RegisterCallback(EVS_ORDERLY_CHARGE_SRV, callback_service_EVS_ORDERLY_CHARGE_SRV);
     EVS_RegisterCallback(EVS_OTA_UPDATE, callback_service_EVS_OTA_UPDATE);
-    EVS_RegisterCallback(EVS_TIME_SYNC, callback_service_EVS_TIME_SYNC);
+    EVS_RegisterCallback(EVS_TIME_SYNC, callback_evs_service_time_sync);
     EVS_RegisterCallback(EVS_CONNECT_SUCC, callback_service_EVS_CONNECT_SUCC);
     EVS_RegisterCallback(EVS_DISCONNECTED, callback_service_EVS_DISCONNECTED);
     EVS_RegisterCallback(EVS_REPORT_REPLY, callback_service_EVS_REPORT_REPLY);

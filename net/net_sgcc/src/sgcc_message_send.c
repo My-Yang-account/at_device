@@ -42,6 +42,7 @@ struct sgcc_flag_set{
     uint8_t disconnect : 1;            /** 断网或刚开始连上网 */
     uint8_t start_responsed : 1;       /** 启动充电已异步响应 */
     uint8_t stop_responsed : 1;        /** 停止充电已异步响应 */
+    uint8_t is_time_sync;              /** 已进行时间同步 */
 };
 
 struct sgcc_wait_response{
@@ -49,6 +50,7 @@ struct sgcc_wait_response{
     uint32_t message_repeat_time[NET_SYSTEM_GUN_NUMBER][NET_SGCC_CHARGEPILE_PREQ_NUM];  /* 报文重发计时 */
 };
 
+static uint8_t s_sgcc_time_sync_count = 0x00;
 static struct sgcc_flag_set s_sgcc_flag_set;
 static uint32_t s_sgcc_chargepile_event[NET_SGCC_EVENT_TYPE_SIZE][NET_SYSTEM_GUN_NUMBER];
 static uint32_t s_sgcc_server_event[NET_SGCC_EVENT_TYPE_SIZE][NET_SYSTEM_GUN_NUMBER];
@@ -576,7 +578,20 @@ static void sgcc_message_send_thread_entry(void *parameter)
 
         if(s_sgcc_flag_set.disconnect){
             s_sgcc_flag_set.disconnect = 0x00;
+            s_sgcc_flag_set.is_time_sync = NET_ENUM_FALSE;
+            s_sgcc_time_sync_count = (5 *1000) /100;
             rt_thread_mdelay(3000);
+        }
+
+        if(s_sgcc_flag_set.is_time_sync == NET_ENUM_FALSE){
+            if(++s_sgcc_time_sync_count > (5 *1000) /100){
+                s_sgcc_time_sync_count = 0x00;
+                evs_linkkit_time_sync();
+            }
+        }
+        if(sgcc_net_event_receive(NET_SGCC_EVENT_HANDLE_SERVER, NET_SGCC_EVENT_TYPE_REQUEST, 0x00,
+                (NET_SGCC_EVENT_OPTION_OR |NET_SGCC_EVENT_OPTION_CLEAR), NET_SGCC_SREQ_EVENT_TIME_SYNC, NULL) > 0){
+            s_sgcc_flag_set.is_time_sync = NET_ENUM_TRUE;
         }
 
         /***************************************************** [数据请求] **********************************************************/
