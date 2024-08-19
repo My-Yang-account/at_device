@@ -162,14 +162,23 @@ struct _order_state{
 
 typedef struct
 {
+#ifndef APP_INCLUDE_SGCC_PROTOCOL
     uint8_t chargepile_id[20];            /* 充电桩ID */
+#else
+    uint8_t reserve2[20];
+#endif /* APP_INCLUDE_SGCC_PROTOCOL */
     uint8_t gunno;                        /* 枪口号 */
 
     uint8_t logic_card_number[20];        /* 逻辑卡号 ascii */
     uint8_t physics_card_number[8];       /* 物理卡号 ascii */
     uint8_t serial_number[40];            /* 流水号 */
     uint8_t user_number[32];             /* 用户号 */
+#ifdef APP_INCLUDE_SGCC_PROTOCOL
+    uint8_t chargepile_id[64];            /* 充电桩ID */
+    uint8_t reserve0[32];
+#else
     uint8_t reserve0[96];
+#endif /* APP_INCLUDE_SGCC_PROTOCOL */
 
     uint32_t start_time;                  /* 充电开始时间 */
     uint32_t end_time;                    /* 充电结束时间 */
