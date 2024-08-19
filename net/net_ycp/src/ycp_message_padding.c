@@ -1706,7 +1706,8 @@ int8_t ycp_chargepile_request_padding_card_authority(uint8_t gunno)
     memset(g_ycp_preq_apply_charge_active[gunno].body.phycard_number, ' ', (NET_YCP_PHYCARD_NUMBER_LENGTH_MAX + 0x01));
 
     for(uint8_t i = 0x00, j = 0x00; (i < valid_len) && (j < ascii_valid_len); i++, j += 0x02){
-        value = ((s_ycp_base->card_uid[valid_len - 0x01 - i]) &0x0F);
+//        value = ((s_ycp_base->card_uid[valid_len - 0x01 - i]) &0x0F);
+        value = ((s_ycp_base->card_uid[i]) &0x0F);
         if(value > 0x09){
             value += ('A' - (0x09 + 0x01));
         }else{
@@ -1714,7 +1715,8 @@ int8_t ycp_chargepile_request_padding_card_authority(uint8_t gunno)
         }
         g_ycp_preq_apply_charge_active[gunno].body.phycard_number[j] = value;
 
-        value = (((s_ycp_base->card_uid[valid_len - 0x01 - i]) &0xF0) >>0x04);
+//        value = (((s_ycp_base->card_uid[valid_len - 0x01 - i]) &0xF0) >>0x04);
+        value = (((s_ycp_base->card_uid[i]) &0xF0) >>0x04);
         if(value > 0x09){
             value += ('A' - (0x09 + 0x01));
         }else{

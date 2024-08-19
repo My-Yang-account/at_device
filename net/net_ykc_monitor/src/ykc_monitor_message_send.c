@@ -457,9 +457,6 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
                     /** 正式 */
                     char *host = "139.198.163.108";
                     uint16_t port = 9003;
-                    /** 本地 */
-//                    char *host = "58.39.94.246";
-//                    uint16_t port = 8009;
 #else
                     uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC_MONITOR |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
                     struct net_handle* handle = net_get_net_handle();
@@ -510,6 +507,23 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
                     g_ykc_monitor_preq_login.body.operators = NET_YKC_MONITOR_OPERATOR_OTHER;
                     break;
                 }
+
+#ifdef NET_INCLUDE_TARGET_PLATFORM
+#if (NET_TARGET_PLATFORM_ID == NET_YCP_PRO_ID)
+                char *imei = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_IMEI, NULL, option));
+                char *pile_number = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, option));
+                vaild_len = strlen(imei);
+                vaild_len = vaild_len > (NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT *0x02)? (NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT *0x02) : vaild_len;
+
+                if(memcmp(imei, pile_number, vaild_len)){
+                    if(handle->set_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, (uint8_t*)imei, strlen(imei), option) >= 0x00){
+                        handle->system_data_storage(0x00);
+                    }
+                }
+
+                ykc_monitor_ascii_to_bcd((uint8_t*)imei, strlen((char*)imei), g_ykc_monitor_preq_login.body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
+#endif /* NET_TARGET_PLATFORM_ID == NET_YCP_PRO_ID */
+#endif /* NET_INCLUDE_TARGET_PLATFORM */
 
                 ykc_monitor_net_event_receive(NET_YKC_MONITOR_EVENT_HANDLE_SERVER, NET_YKC_MONITOR_EVENT_TYPE_RESPONSE, 0x00,
                         (NET_YKC_MONITOR_EVENT_OPTION_OR |NET_YKC_MONITOR_EVENT_OPTION_CLEAR), NET_YKC_MONITOR_SRES_EVENT_LOGIN, NULL);
