@@ -866,7 +866,7 @@ int8_t sgcc_message_pro_config_update_request(void *data, uint16_t len)
         return -0x04;
     }
 
-    if(s_sgcc_handle->set_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, 0x00, NET_SYSTEM_DATA_OPTION_PLAT_SGCC) < 0x00){
+    if(s_sgcc_handle->set_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, 0x00, NET_SYSTEM_DATA_OPTION_TARGET_PLAT) < 0x00){
         config->storage_init_flag = NET_SGCC_STORAGE_INIT_FLAG - 0x01;
         return -0x05;
     }
@@ -1014,7 +1014,7 @@ int8_t sgcc_message_pro_dev_maintain_request(void *data, uint8_t len)
             config->storage_init_flag = NET_SGCC_STORAGE_INIT_FLAG;
             config->dev_state = SGCC_DEV_STATE_REBOOT;
 
-            if(s_sgcc_handle->set_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, 0x00, NET_SYSTEM_DATA_OPTION_PLAT_SGCC) < 0x00){
+            if(s_sgcc_handle->set_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, 0x00, NET_SYSTEM_DATA_OPTION_TARGET_PLAT) < 0x00){
                 config->storage_init_flag = NET_SGCC_STORAGE_INIT_FLAG - 0x01;
                 return 0x01;
             }
@@ -1030,7 +1030,7 @@ int8_t sgcc_message_pro_dev_maintain_request(void *data, uint8_t len)
         config->storage_init_flag = NET_SGCC_STORAGE_INIT_FLAG;
         config->dev_state = SGCC_DEV_STATE_COMMISSIONING;
 
-        if(s_sgcc_handle->set_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, 0x00, NET_SYSTEM_DATA_OPTION_PLAT_SGCC) < 0x00){
+        if(s_sgcc_handle->set_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, 0x00, NET_SYSTEM_DATA_OPTION_TARGET_PLAT) < 0x00){
             config->storage_init_flag = NET_SGCC_STORAGE_INIT_FLAG - 0x01;
             return 0x01;
         }
