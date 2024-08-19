@@ -144,11 +144,7 @@ static int _http_send_header(httpclient_t *client, const char *host, const char 
     int len;
     char send_buf[HTTPCLIENT_SEND_BUF_SIZE] = {0};
     char buf[HTTPCLIENT_SEND_BUF_SIZE] = {0};
-    char *meth = (method == HTTPCLIENT_GET) ? "GET" : (method == HTTPCLIENT_POST) ? "POST"
-                                                  : (method == HTTPCLIENT_PUT)    ? "PUT"
-                                                  : (method == HTTPCLIENT_DELETE) ? "DELETE"
-                                                  : (method == HTTPCLIENT_HEAD)   ? "HEAD"
-                                                                                  : "";
+    char *meth = (method == HTTPCLIENT_GET) ? "GET" : (method == HTTPCLIENT_POST) ? "POST" : (method == HTTPCLIENT_PUT) ? "PUT" : (method == HTTPCLIENT_DELETE) ? "DELETE" : (method == HTTPCLIENT_HEAD) ? "HEAD" : "";
     int ret;
 
     /* Send request */
@@ -609,15 +605,14 @@ static int _http_send(httpclient_t *client, const char *url, int port, const cha
             httpclient_close(client);
             return ret;
         }
-    }
 
-    ret = _http_send_request(client, host, path, method, client_data);
-    if (ret != STATE_SUCCESS)
-    {
-        httpc_err("_http_send_request is error, ret = %d", ret);
-        return ret;
+        ret = _http_send_request(client, host, path, method, client_data);
+        if (ret != STATE_SUCCESS)
+        {
+            httpc_err("_http_send_request is error, ret = %d", ret);
+            return ret;
+        }
     }
-
     return STATE_SUCCESS;
 }
 

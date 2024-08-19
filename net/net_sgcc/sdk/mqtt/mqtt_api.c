@@ -304,7 +304,7 @@ void *IOT_MQTT_Construct(iotx_mqtt_param_t *pInitParams)
 
 #ifdef SUPPORT_TLS
     {
-        extern char *iotx_ca_crt;
+        extern const char *iotx_ca_crt;
         if (enable_itls == 0)
         {
             mqtt_params.pub_key = iotx_ca_crt;

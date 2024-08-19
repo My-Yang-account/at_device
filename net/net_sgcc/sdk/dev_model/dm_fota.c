@@ -41,36 +41,27 @@ static int _dm_fota_send_new_config_to_user(void *ota_handle)
 
     IOT_OTA_Ioctl(ota_handle, IOT_OTAG_VERSION, version, 128);
     IOT_OTA_Ioctl(ota_handle, IOT_OTAG_MODULE, module, 128);
-    if (strlen(module) == 0)
-    {
+    if (strlen(module) == 0) {
         message_len = strlen(fota_new_config_fmt) + strlen(version) + 1;
-    }
-    else
-    {
+    } else {
         message_len = strlen(fota_new_config_with_module_fmt) + strlen(version) + strlen(module) + 1;
     }
 
     message = DM_malloc(message_len);
-    if (message == NULL)
-    {
+    if (message == NULL) {
         return STATE_SYS_DEPEND_MALLOC;
     }
     memset(message, 0, message_len);
 
-    if (strlen(module) == 0)
-    {
+    if (strlen(module) == 0) {
         HAL_Snprintf(message, message_len, fota_new_config_fmt, version);
-    }
-    else
-    {
+    } else {
         HAL_Snprintf(message, message_len, fota_new_config_with_module_fmt, version, module);
     }
 
     res = _dm_msg_send_to_user(IOTX_DM_EVENT_FOTA_NEW_FIRMWARE, message);
-    if (res != SUCCESS_RETURN)
-    {
-        if (message)
-        {
+    if (res != SUCCESS_RETURN) {
+        if (message) {
             DM_free(message);
         }
         return res;
@@ -90,42 +81,36 @@ int dm_fota_perform_sync(_OU_ char *output, _IN_ int output_len)
     uint32_t ota_type = IOT_OTAT_NONE;
     int ret = 0;
 
-    if (output == NULL || output_len <= 0)
-    {
+    if (output == NULL || output_len <= 0) {
         return STATE_USER_INPUT_INVALID;
     }
 
     /* Get Ota Handle */
     res = dm_ota_get_ota_handle(&ota_handle);
-    if (res != SUCCESS_RETURN)
-    {
+    if (res != SUCCESS_RETURN) {
         return res;
     }
 
     IOT_OTA_Ioctl(ota_handle, IOT_OTAG_OTA_TYPE, &ota_type, 4);
 
-    if (ota_type != IOT_OTAT_FOTA)
-    {
+    if (ota_type != IOT_OTAT_FOTA) {
         return STATE_DEV_MODEL_OTA_TYPE_ERROR;
     }
-
-    IOT_OTA_Ioctl(ota_handle, IOT_OTAG_FILE_SIZE, &file_size, 4);
 
     /* reset the size_fetched in ota_handle to be 0 */
     IOT_OTA_Ioctl(ota_handle, IOT_OTAG_RESET_FETCHED_SIZE, ota_handle, 4);
     /* Prepare Write Data To Storage */
-    HAL_Firmware_Persistence_Start(file_size);
-    while (1)
-    {
-        file_download = IOT_OTA_FetchYield(ota_handle, output, output_len, 3);
-        if (file_download < 0)
-        {
+
+    HAL_Firmware_File_Size(((OTA_Struct_pt)ota_handle)->size_file);
+    HAL_Firmware_Persistence_Start();
+    while (1) {
+        file_download = IOT_OTA_FetchYield(ota_handle, output, output_len, 1);
+        if (file_download < 0) {
             res = dm_opt_get(DM_OPT_FOTA_RETRY_TIMEOUT_MS, &retry_max_timeout);
-            if (res == SUCCESS_RETURN && retry_timeout >= retry_max_timeout)
-            {
+            if (res == SUCCESS_RETURN && retry_timeout >= retry_max_timeout) {
                 IOT_OTA_ReportProgress(ota_handle, IOT_OTAP_FETCH_FAILED, NULL);
                 IOT_OTA_Ioctl(ota_handle, IOT_OTAG_RESET_STATE, NULL, 0);
-                HAL_Firmware_Persistence_Stop(IOT_OTAP_FETCH_FAILED);
+                HAL_Firmware_Persistence_Stop();
                 ctx->is_report_new_config = 0;
                 return STATE_DEV_MODEL_OTA_FETCH_FAILED;
             }
@@ -138,12 +123,11 @@ int dm_fota_perform_sync(_OU_ char *output, _IN_ int output_len)
 
         /* Write Config File Into Stroage */
         ret = HAL_Firmware_Persistence_Write(output, file_download);
-        if (ret < 0)
-        {
+        if (ret < 0) {
             IOT_OTA_ReportProgress(ota_handle, IOT_OTAP_BURN_FAILED, NULL);
             IOT_OTA_Ioctl(ota_handle, IOT_OTAG_RESET_STATE, NULL, 0);
             iotx_state_event(ITE_STATE_DEV_MODEL, STATE_SYS_DEPEND_FIRMWAIRE_WIRTE, "write f/w ran into %d", ret);
-            HAL_Firmware_Persistence_Stop(IOT_OTAP_BURN_FAILED);
+            HAL_Firmware_Persistence_Stop();
             ctx->is_report_new_config = 0;
             return STATE_SYS_DEPEND_FIRMWAIRE_WIRTE;
         }
@@ -157,40 +141,33 @@ int dm_fota_perform_sync(_OU_ char *output, _IN_ int output_len)
         report_now = HAL_UptimeMs();
 
         /* Report Download Process To Cloud */
-        if (report_now < report_pre)
-        {
+        if (report_now < report_pre) {
             report_pre = report_now;
         }
         if ((((percent_now - percent_pre) > 5) &&
-             ((report_now - report_pre) > 50)) ||
-            (percent_now >= IOT_OTAP_FETCH_PERCENTAGE_MAX))
-        {
+             ((report_now - report_pre) > 50)) || (percent_now >= IOT_OTAP_FETCH_PERCENTAGE_MAX)) {
             IOT_OTA_ReportProgress(ota_handle, percent_now, NULL);
             percent_pre = percent_now;
             report_pre = report_now;
         }
 
         /* Check If OTA Finished */
-        if (IOT_OTA_IsFetchFinish(ota_handle))
-        {
+        if (IOT_OTA_IsFetchFinish(ota_handle)) {
             uint32_t file_isvalid = 0;
             IOT_OTA_Ioctl(ota_handle, IOT_OTAG_CHECK_FIRMWARE, &file_isvalid, 4);
-            if (file_isvalid == 0)
-            {
+            if (file_isvalid == 0) {
                 IOT_OTA_ReportProgress(ota_handle, IOT_OTAP_CHECK_FALIED, NULL);
                 IOT_OTA_Ioctl(ota_handle, IOT_OTAG_RESET_STATE, NULL, 0);
-                HAL_Firmware_Persistence_Stop(IOT_OTAP_CHECK_FALIED);
+                HAL_Firmware_Persistence_Stop();
                 ctx->is_report_new_config = 0;
                 return STATE_DEV_MODEL_OTA_IMAGE_CHECK_FAILED;
-            }
-            else
-            {
+            } else {
                 break;
             }
         }
     }
 
-    HAL_Firmware_Persistence_Stop(0);
+    HAL_Firmware_Persistence_Stop();
     ctx->is_report_new_config = 0;
 
     return SUCCESS_RETURN;
@@ -204,25 +181,20 @@ int dm_fota_status_check(void)
 
     /* Get Ota Handle */
     res = dm_ota_get_ota_handle(&ota_handle);
-    if (res != SUCCESS_RETURN)
-    {
+    if (res != SUCCESS_RETURN) {
         return STATE_DEV_MODEL_OTA_NOT_INITED;
     }
 
-    if (IOT_OTA_IsFetching(ota_handle))
-    {
+    if (IOT_OTA_IsFetching(ota_handle)) {
         uint32_t ota_type = IOT_OTAT_NONE;
 
         IOT_OTA_Ioctl(ota_handle, IOT_OTAG_OTA_TYPE, &ota_type, 4);
 
-        if (ota_type == IOT_OTAT_FOTA)
-        {
+        if (ota_type == IOT_OTAT_FOTA) {
             /* Send New Config Information To User */
-            if (ctx->is_report_new_config == 0)
-            {
+            if (ctx->is_report_new_config == 0) {
                 res = _dm_fota_send_new_config_to_user(ota_handle);
-                if (res == SUCCESS_RETURN)
-                {
+                if (res == SUCCESS_RETURN) {
                     ctx->is_report_new_config = 1;
                 }
             }
@@ -238,21 +210,18 @@ int dm_fota_request_image(const char *version, int buffer_len)
     void *ota_handle = NULL;
     char *version_str = NULL;
 
-    if (NULL == version || buffer_len <= 0)
-    {
+    if (NULL == version || buffer_len <= 0) {
         return STATE_USER_INPUT_INVALID;
     }
 
     /* Get Ota Handle */
     res = dm_ota_get_ota_handle(&ota_handle);
-    if (res != SUCCESS_RETURN)
-    {
+    if (res != SUCCESS_RETURN) {
         return STATE_DEV_MODEL_OTA_NOT_INITED;
     }
 
     version_str = DM_malloc(buffer_len + 1);
-    if (NULL == version_str)
-    {
+    if (NULL == version_str) {
         return STATE_SYS_DEPEND_MALLOC;
     }
     memset(version_str, 0, buffer_len + 1);

@@ -9,10 +9,10 @@
 #include "protocol.h"
 #include "interface.h"
 #include "protocol_data_def.h"
-#include "mqtt_api.h"
-#include "dynreg_api.h"
-#include "dev_sign_api.h"
-#include "dev_model_api.h"
-#include "ota_api.h"
+#include "eng\dev_model\dev_model_api.h"
+#include "eng\dev_sign\dev_sign_api.h"
+#include "eng\dynamic_register\dynreg_api.h"
+#include "eng\mqtt\mqtt_api.h"
+#include "eng\ota\ota_api.h"
 
 #endif

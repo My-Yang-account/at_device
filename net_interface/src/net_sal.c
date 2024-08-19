@@ -74,6 +74,10 @@ void app_nsal_system_fault_report(uint8_t gunno, uint8_t code, uint32_t timestam
 #ifdef NET_PACK_USING_YCP
     ycp_fault_event_detect_callback(gunno, code, is_resume);
 #endif /* NET_PACK_USING_YCP */
+
+#ifdef NET_PACK_USING_SGCC
+    sgcc_fault_event_detect_callback(gunno, code, is_resume);
+#endif /* NET_PACK_USING_SGCC */
 }
 
 /*******************************************
@@ -297,46 +301,54 @@ uint8_t app_nsal_is_remote_stop(uint8_t gunno)
  * 函数名    app_nsal_report_remote_start_result
  * 功能        上报远程启动结果
  *****************************************/
-void app_nsal_report_remote_start_result(uint8_t gunno, uint8_t result, uint8_t reason)
+void app_nsal_report_remote_start_result(uint8_t gunno, uint8_t result, uint8_t reason, uint8_t fault)
 {
 #ifdef NET_PACK_USING_YKC
-    ykc_start_charge_response_asynchronously(gunno, result);
+//    ykc_start_charge_response_asynchronously(gunno, result);
 #endif /* NET_PACK_USING_YKC */
 
 #ifdef NET_PACK_USING_THA
-    tha_start_charge_response_asynchronously(gunno, result);
+//    tha_start_charge_response_asynchronously(gunno, result);
 #endif /* NET_PACK_USING_THA */
 
 #ifdef NET_PACK_USING_YKC_MONITOR
-    ykc_monitor_start_charge_response_asynchronously(gunno, result);
+//    ykc_monitor_start_charge_response_asynchronously(gunno, result);
 #endif /* NET_PACK_USING_YKC_MONITOR */
 
 #ifdef NET_PACK_USING_YCP
-    ycp_start_charge_response_asynchronously(gunno, result);
+//    ycp_start_charge_response_asynchronously(gunno, result);
 #endif /* NET_PACK_USING_YCP */
+
+#ifdef NET_PACK_USING_SGCC
+    sgcc_start_charge_response_asynchronously(gunno, result, reason, fault);
+#endif /* NET_PACK_USING_SGCC */
 }
 
 /*******************************************
  * 函数名    app_nsal_report_remote_stop_result
  * 功能        上报远程停止结果
  *****************************************/
-void app_nsal_report_remote_stop_result(uint8_t gunno, uint8_t result, uint8_t reason)
+void app_nsal_report_remote_stop_result(uint8_t gunno, uint8_t result, uint8_t reason, uint8_t fault)
 {
 #ifdef NET_PACK_USING_YKC
-    ykc_stop_charge_response_asynchronously(gunno, result);
+//    ykc_stop_charge_response_asynchronously(gunno, result);
 #endif /* NET_PACK_USING_YKC */
 
 #ifdef NET_PACK_USING_THA
-    tha_stop_charge_response_asynchronously(gunno, result);
+//    tha_stop_charge_response_asynchronously(gunno, result);
 #endif /* NET_PACK_USING_THA */
 
 #ifdef NET_PACK_USING_YKC_MONITOR
-    ykc_monitor_stop_charge_response_asynchronously(gunno, result);
+//    ykc_monitor_stop_charge_response_asynchronously(gunno, result);
 #endif /* NET_PACK_USING_YKC_MONITOR */
 
 #ifdef NET_PACK_USING_YCP
-    ycp_stop_charge_response_asynchronously(gunno, result);
+//    ycp_stop_charge_response_asynchronously(gunno, result);
 #endif /* NET_PACK_USING_YCP */
+
+#ifdef NET_PACK_USING_SGCC
+    sgcc_stop_charge_response_asynchronously(gunno, result, reason, fault);
+#endif /* NET_PACK_USING_SGCC */
 }
 
 /*********************************************** [计费相关] **************************************/
@@ -553,6 +565,12 @@ int8_t app_nsal_card_authorize(uint8_t gunno)
     result = ycp_chargepile_request_padding_card_authority(gunno);
 #endif /* NET_YCP_AS_MONITOR */
 #endif /* NET_PACK_USING_YCP */
+
+#ifdef NET_PACK_USING_SGCC
+#ifndef NET_SGCC_AS_MONITOR
+    result = sgcc_chargepile_request_padding_card_authority(gunno);
+#endif /* NET_SGCC_AS_MONITOR */
+#endif /* NET_PACK_USING_SGCC */
     return result;
 }
 /*******************************************
@@ -586,6 +604,12 @@ int8_t app_nsal_vin_authorize(uint8_t gunno)
     result = ycp_chargepile_request_padding_vin_authority(gunno);
 #endif /* NET_YCP_AS_MONITOR */
 #endif /* NET_PACK_USING_YCP */
+
+#ifdef NET_PACK_USING_SGCC
+#ifndef NET_SGCC_AS_MONITOR
+    result = sgcc_chargepile_request_padding_vin_authority(gunno);
+#endif /* NET_SGCC_AS_MONITOR */
+#endif /* NET_PACK_USING_SGCC */
     return result;
 }
 
@@ -829,6 +853,10 @@ void app_nsal_create_local_transaction_number(uint8_t gunno, void *vector, uint8
 #ifdef NET_PACK_USING_YCP
     ycp_chargepile_create_local_transaction_number(gunno, vector, len);
 #endif /* NET_PACK_USING_YCP */
+
+#ifdef NET_PACK_USING_SGCC
+    sgcc_chargepile_create_local_transaction_number(gunno, vector, len);
+#endif /* NET_PACK_USING_SGCC */
 }
 
 /*******************************************
@@ -868,6 +896,11 @@ uint8_t app_nsal_query_transaction_verify_state(uint8_t gunno, uint16_t platform
 #ifdef NET_PACK_USING_YCP
         state = ycp_query_transaction_verify_state(gunno);
 #endif /* NET_PACK_USING_YCP */
+        break;
+    case APP_PLATFORM_ID_SGCC:
+#ifdef NET_PACK_USING_SGCC
+        state = sgcc_query_transaction_verify_state(gunno);
+#endif /* NET_PACK_USING_SGCC */
         break;
     default:
         break;

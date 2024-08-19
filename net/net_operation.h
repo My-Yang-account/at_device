@@ -147,6 +147,10 @@
 #define NET_GENERATE_QRCODE_FORMAT_PREFIX_DEVICE_SN_PORT  0x03          /* 终端生成的二维码格式类型：前缀+设备号+枪号 */
 #define NET_GENERATE_QRCODE_FORMAT_PORT                0x04             /* 终端生成的二维码格式类型：枪号 */
 
+/** system control state option */
+#define NET_SYSTEM_CTRL_STATE_ACTION                   0x00             /* 系统控制项状态选项：动作时对应的反馈状态 */
+#define NET_SYSTEM_CTRL_STATE_RELEASE                  0x01             /* 系统控制项状态选项：释放时对应的反馈状态 */
+
 /** system control option */
 #define NET_SYSTEM_CTRL_OPTION_ACTION                  0x00             /* 系统控制选项：动作 */
 #define NET_SYSTEM_CTRL_OPTION_RELEASE                 0x01             /* 系统控制选项：释放 */
@@ -270,7 +274,7 @@ struct net_handle{
     int32_t (*card_vin_whitelists_query)(uint8_t* data, uint8_t len, uint32_t option);
     int32_t (*card_vin_whitelists_delete)(uint8_t* data, uint8_t len, uint32_t option);
     int32_t (*system_data_storage)(uint32_t option);
-    int32_t (*system_control)(uint16_t item, uint8_t *para, uint32_t option);
+    int32_t (*system_control)(uint8_t gunno, uint16_t item, uint8_t *para, uint32_t option);
     int32_t (*ndev_operate)(uint8_t option);
     uint16_t (*crc16_8005)(uint16_t init, const uint8_t *data, uint32_t len);
     uint32_t (*crc32_updtae)(uint32_t init, const uint8_t *data, uint32_t len);

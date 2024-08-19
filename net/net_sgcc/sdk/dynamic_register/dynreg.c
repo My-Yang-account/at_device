@@ -30,7 +30,6 @@ typedef struct
 } dynreg_http_response_t;
 
 static int dynamic_register = 0;
-static int dynamic_register_region = 0;
 
 #if !defined(MQTT_DYNAMIC_REGISTER)
 static int _parse_string_value(char *payload, int *pos, int *start, int *end)
@@ -235,8 +234,8 @@ static int _fetch_dynreg_http_resp(char *request_payload, char *response_payload
     response.payload_len = HTTP_RESPONSE_PAYLOAD_LEN;
 #ifdef SUPPORT_TLS
     {
-        // extern char *iotx_ca_crt;
-        // pub_key = iotx_ca_crt;
+        //extern const char *iotx_ca_crt;
+        //pub_key = iotx_ca_crt;
     }
 #endif
 
@@ -291,33 +290,22 @@ static int _fetch_custom_reg_http_resp(char *request_payload, char *response_pay
                                        iotx_http_region_types_t region, char product_key[IOTX_PRODUCT_KEY_LEN], char device_name[IOTX_DEVICE_NAME_LEN], char device_secret[IOTX_DEVICE_SECRET_LEN])
 {
     int res = 0;
-    int port = 0;
     const char *domain = NULL;
-    char url_format[128] = {0};
 
-    if (dynamic_register_region == ACCESS_IS_FORMAL) // 生产环境
-    {
-        memcpy(url_format, "http://10.111.186.1/asset-web-api/registerService/getCertificateInfo", strlen("http://10.111.186.1/asset-web-api/registerService/getCertificateInfo"));
-        port = 11901;
-    }
-
-    if (dynamic_register_region == ACCESS_IS_DEBUG) // 接入环境
-    {
-        memcpy(url_format, "http://121.196.185.161/api/access/pile/getCertificateInfo", strlen("http://121.196.185.161/api/access/pile/getCertificateInfo"));
-        port = 8081;
-    }
-
-    if (dynamic_register_region == ACCESS_IS_TEST) // 测试环境
-    {
-        memcpy(url_format, "http://124.126.19.5/asset-web-serv-v5.3.0/registerService/getCertificateInfo", strlen("http://124.126.19.5/asset-web-serv-v5.3.0/registerService/getCertificateInfo"));
-        port = 19849;
-    }
-
+#if defined(PLATFORM_IS_DEBUG)
+    const char *url_format = "http://%s/asset-web-serv-v5.3.0/registerService/getCertificateInfo";
+#else
+    const char *url_format = "http://%s/asset-web-api/registerService/getCertificateInfo";
+#endif
     char *url = NULL;
     int url_len = 0;
     const char *pub_key = NULL;
     void *http_handle = NULL;
-
+#if defined(PLATFORM_IS_DEBUG)
+    int port = 19849;
+#else
+    int port = 11901;
+#endif
     iotx_http_method_t method = IOTX_HTTP_POST;
     int timeout_ms = 10000;
     char *header = "Accept: text/xml,text/javascript,text/html,application/json\r\n"
@@ -326,18 +314,32 @@ static int _fetch_custom_reg_http_resp(char *request_payload, char *response_pay
     dynreg_http_response_t response;
     int start = 0, end = 0, data_start = 0, data_end = 0;
 
+    domain = g_infra_http_domain[region];
+    if (NULL == domain)
+    {
+        return STATE_USER_INPUT_HTTP_DOMAIN;
+    }
+    url_len = strlen(url_format) + strlen(domain) + 1;
+    url = (char *)dynreg_malloc(url_len);
+    if (NULL == url)
+    {
+        return STATE_SYS_DEPEND_MALLOC;
+    }
+    memset(url, 0, url_len);
+    HAL_Snprintf(url, url_len, url_format, domain);
+
     memset(&response, 0, sizeof(dynreg_http_response_t));
     response.payload = response_payload;
     response.payload_len = HTTP_RESPONSE_PAYLOAD_LEN;
 #ifdef SUPPORT_TLS
     {
-        // extern char *iotx_ca_crt;
-        // pub_key = iotx_ca_crt;
+        //extern const char *iotx_ca_crt;
+        //pub_key = iotx_ca_crt;
     }
 #endif
 
     http_handle = wrapper_http_init();
-    wrapper_http_setopt(http_handle, IOTX_HTTPOPT_URL, (void *)url_format);
+    wrapper_http_setopt(http_handle, IOTX_HTTPOPT_URL, (void *)url);
     wrapper_http_setopt(http_handle, IOTX_HTTPOPT_PORT, (void *)&port);
     wrapper_http_setopt(http_handle, IOTX_HTTPOPT_METHOD, (void *)&method);
     wrapper_http_setopt(http_handle, IOTX_HTTPOPT_HEADER, (void *)header);
@@ -370,8 +372,7 @@ static int _fetch_custom_reg_http_resp(char *request_payload, char *response_pay
     _parse_dynreg_result(response_payload, "data", &data_start, &data_end);
     /*  dynreg_info("value: %.*s\n",data_end - data_start + 1,&response_payload[data_start]); */
 
-    if (_parse_dynreg_result(&response_payload[data_start + 1], "productKey", &start, &end) < 0)
-        return STATE_HTTP_DYNREG_FAIL_RESP;
+    _parse_dynreg_result(&response_payload[data_start + 1], "productKey", &start, &end);
     dynreg_info("Dynamic Register Product Key: %.*s", end - start + 1, &response_payload[data_start + 1 + start]);
     if (end - start + 1 > IOTX_PRODUCT_KEY_LEN)
     {
@@ -379,8 +380,7 @@ static int _fetch_custom_reg_http_resp(char *request_payload, char *response_pay
     }
     memcpy(product_key, &response_payload[data_start + 1 + start], end - start + 1);
 
-    if (_parse_dynreg_result(&response_payload[data_start + 1], "deviceName", &start, &end) < 0)
-        return STATE_HTTP_DYNREG_FAIL_RESP;
+    _parse_dynreg_result(&response_payload[data_start + 1], "deviceName", &start, &end);
     dynreg_info("Dynamic Register Device Name: %.*s", end - start + 1, &response_payload[data_start + 1 + start]);
     if (end - start + 1 > IOTX_DEVICE_NAME_LEN)
     {
@@ -388,8 +388,7 @@ static int _fetch_custom_reg_http_resp(char *request_payload, char *response_pay
     }
     memcpy(device_name, &response_payload[data_start + 1 + start], end - start + 1);
 
-    if (_parse_dynreg_result(&response_payload[data_start + 1], "deviceSecret", &start, &end) < 0)
-        return STATE_HTTP_DYNREG_FAIL_RESP;
+    _parse_dynreg_result(&response_payload[data_start + 1], "deviceSecret", &start, &end);
     dynreg_info("Dynamic Register Device Secret: %.*s", end - start + 1, &response_payload[data_start + 1 + start]);
     if (end - start + 1 > IOTX_DEVICE_SECRET_LEN)
     {
@@ -403,33 +402,22 @@ static int _fetch_get_reg_code_http_resp(char *request_payload, char *response_p
                                          iotx_http_region_types_t region, char reg_code[IOTX_DEVICE_REG_CODE_LEN])
 {
     int res = 0;
-    int port = 0;
     const char *domain = NULL;
-    char url_format[128] = {0};
-
-    if (dynamic_register_region == ACCESS_IS_FORMAL) // 生产环境
-    {
-        memcpy(url_format, "http://10.111.186.1/asset-web-api/registerService/getRegisterCode", strlen("http://10.111.186.1/asset-web-api/registerService/getRegisterCode"));
-        port = 11901;
-    }
-
-    if (dynamic_register_region == ACCESS_IS_DEBUG) // 接入环境
-    {
-        memcpy(url_format, "http://121.196.185.161/api/access/pile/getRegisterCode", strlen("http://121.196.185.161/api/access/pile/getRegisterCode"));
-        port = 8081;
-    }
-
-    if (dynamic_register_region == ACCESS_IS_TEST) // 测试环境
-    {
-        memcpy(url_format, "http://124.126.19.5/asset-web-serv-v5.3.0/registerService/getRegisterCode", strlen("http://124.126.19.5/asset-web-serv-v5.3.0/registerService/getRegisterCode"));
-        port = 19849;
-    }
+#if defined(PLATFORM_IS_DEBUG)
+    const char *url_format = "http://%s/asset-web-serv-v5.3.0/registerService/getRegisterCode";
+#else
+    const char *url_format = "http://%s/asset-web-api/registerService/getRegisterCode";
+#endif
 
     char *url = NULL;
     int url_len = 0;
     const char *pub_key = NULL;
     void *http_handle = NULL;
-
+#if defined(PLATFORM_IS_DEBUG)
+    int port = 19849;
+#else
+    int port = 11901;
+#endif
     iotx_http_method_t method = IOTX_HTTP_POST;
     int timeout_ms = 10000;
     char *header = "Accept: text/xml,text/javascript,text/html,application/json\r\n"
@@ -438,18 +426,32 @@ static int _fetch_get_reg_code_http_resp(char *request_payload, char *response_p
     dynreg_http_response_t response;
     int start = 0, end = 0, data_start = 0, data_end = 0;
 
+    domain = g_infra_http_domain[region];
+    if (NULL == domain)
+    {
+        return STATE_USER_INPUT_HTTP_DOMAIN;
+    }
+    url_len = strlen(url_format) + strlen(domain) + 1;
+    url = (char *)dynreg_malloc(url_len);
+    if (NULL == url)
+    {
+        return STATE_SYS_DEPEND_MALLOC;
+    }
+    memset(url, 0, url_len);
+    HAL_Snprintf(url, url_len, url_format, domain);
+
     memset(&response, 0, sizeof(dynreg_http_response_t));
     response.payload = response_payload;
     response.payload_len = HTTP_RESPONSE_PAYLOAD_LEN;
 #ifdef SUPPORT_TLS
     {
-        // extern char *iotx_ca_crt;
-        // pub_key = iotx_ca_crt;
+        //extern const char *iotx_ca_crt;
+        //pub_key = iotx_ca_crt;
     }
 #endif
 
     http_handle = wrapper_http_init();
-    wrapper_http_setopt(http_handle, IOTX_HTTPOPT_URL, (void *)url_format);
+    wrapper_http_setopt(http_handle, IOTX_HTTPOPT_URL, (void *)url);
     wrapper_http_setopt(http_handle, IOTX_HTTPOPT_PORT, (void *)&port);
     wrapper_http_setopt(http_handle, IOTX_HTTPOPT_METHOD, (void *)&method);
     wrapper_http_setopt(http_handle, IOTX_HTTPOPT_HEADER, (void *)header);
@@ -482,8 +484,7 @@ static int _fetch_get_reg_code_http_resp(char *request_payload, char *response_p
     _parse_dynreg_result(response_payload, "data", &data_start, &data_end);
     /*  dynreg_info("value: %.*s\n",data_end - data_start + 1,&response_payload[data_start]); */
 
-    if (_parse_dynreg_result(&response_payload[data_start + 1], "registerCode", &start, &end) < 0)
-        return STATE_HTTP_DYNREG_FAIL_RESP;
+    _parse_dynreg_result(&response_payload[data_start + 1], "registerCode", &start, &end);
     dynreg_info("device code get registerCode is: %.*s", end - start + 1, &response_payload[data_start + 1 + start]);
     if (end - start + 1 > IOTX_DEVICE_REG_CODE_LEN)
     {
@@ -493,7 +494,6 @@ static int _fetch_get_reg_code_http_resp(char *request_payload, char *response_p
 
     return STATE_SUCCESS;
 }
-
 int32_t _http_dynamic_register(iotx_http_region_types_t region, iotx_dev_meta_info_t *meta)
 {
     int res = 0, dynamic_register_request_len = 0;
@@ -566,8 +566,8 @@ int32_t _http_dynamic_register(iotx_http_region_types_t region, iotx_dev_meta_in
 int32_t _http_custom_register(iotx_http_region_types_t region, iotx_dev_meta_info_t *meta)
 {
     int res = 0, custom_register_request_len = 0;
-    // char            sign[DYNREG_SIGN_LENGTH] = {0};
-    // char            random[DYNREG_RANDOM_KEY_LENGTH + 1] = {0};
+    //char            sign[DYNREG_SIGN_LENGTH] = {0};
+    //char            random[DYNREG_RANDOM_KEY_LENGTH + 1] = {0};
     const char *custom_register_format = "deviceCode=%s&registerCode=%s&gunNo=%s";
     char *custom_register_request = NULL;
     char *custom_register_response = NULL;
@@ -616,8 +616,8 @@ int32_t _http_custom_register(iotx_http_region_types_t region, iotx_dev_meta_inf
 int32_t _http_get_regcode(iotx_http_region_types_t region, iotx_dev_meta_info_t *meta)
 {
     int res = 0, custom_register_request_len = 0;
-    // char            sign[DYNREG_SIGN_LENGTH] = {0};
-    // char            random[DYNREG_RANDOM_KEY_LENGTH + 1] = {0};
+    //char            sign[DYNREG_SIGN_LENGTH] = {0};
+    //char            random[DYNREG_RANDOM_KEY_LENGTH + 1] = {0};
     const char *custom_register_format = "deviceCode=%s";
     char *custom_register_request = NULL;
     char *custom_register_response = NULL;
@@ -645,7 +645,7 @@ int32_t _http_get_regcode(iotx_http_region_types_t region, iotx_dev_meta_info_t 
     memset(custom_register_response, 0, HTTP_RESPONSE_PAYLOAD_LEN);
 
     /* Send Http Request For Getting Device Secret */
-    // res = _fetch_custom_reg_http_resp(custom_register_request, custom_register_response, region, meta->product_key,meta->device_name,meta->device_secret);
+    //res = _fetch_custom_reg_http_resp(custom_register_request, custom_register_response, region, meta->product_key,meta->device_name,meta->device_secret);
     res = _fetch_get_reg_code_http_resp(custom_register_request, custom_register_response, region, meta->device_reg_code);
 #ifdef INFRA_LOG_NETWORK_PAYLOAD
     dynreg_dbg("Downstream Payload:");
@@ -839,8 +839,8 @@ int32_t _mqtt_dynamic_register(iotx_http_region_types_t region, iotx_dev_meta_in
 
 #ifdef SUPPORT_TLS
     {
-        // extern char *iotx_ca_crt;
-        // mqtt_params.pub_key = iotx_ca_crt;
+        //extern const char *iotx_ca_crt;
+        //mqtt_params.pub_key = iotx_ca_crt;
     }
 #endif
 
@@ -901,17 +901,17 @@ int32_t IOT_Dynamic_Register(iotx_http_region_types_t region, iotx_dev_meta_info
 #ifdef MQTT_DYNAMIC_REGISTER
     return _mqtt_dynamic_register(region, meta);
 #else
-    // return _http_dynamic_register(region, meta);
+    //return _http_dynamic_register(region, meta);
     return _http_custom_register(region, meta);
 #endif
 }
-// 设备唯一码换取注册码
+//设备唯一码换取注册码
 int32_t IOT_Get_Regcode(iotx_http_region_types_t region, iotx_dev_meta_info_t *meta)
 {
 #ifdef MQTT_DYNAMIC_REGISTER
     return _mqtt_dynamic_register(region, meta);
 #else
-    // return _http_dynamic_register(region, meta);
+    //return _http_dynamic_register(region, meta);
     return _http_get_regcode(region, meta);
 #endif
 }
@@ -934,15 +934,5 @@ int IOCTL_FUNC(IOTX_IOCTL_GET_DYNAMIC_REGISTER, void *data)
     }
 
     *(int *)data = dynamic_register;
-    return SUCCESS_RETURN;
-}
-
-int IOCTL_FUNC(IOTX_IOCTL_SET_REGISTER_REGION, void *data)
-{
-    if (data == NULL)
-    {
-        return FAIL_RETURN;
-    }
-    dynamic_register_region = *(int *)data;
     return SUCCESS_RETURN;
 }

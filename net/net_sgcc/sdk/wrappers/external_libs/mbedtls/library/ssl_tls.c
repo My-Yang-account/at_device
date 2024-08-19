@@ -6519,13 +6519,18 @@ int mbedtls_ssl_read( mbedtls_ssl_context *ssl, unsigned char *buf, size_t len )
     if( ssl->conf->transport == MBEDTLS_SSL_TRANSPORT_DATAGRAM )
     {
         if( ( ret = mbedtls_ssl_flush_output( ssl ) ) != 0 )
+        {
             return( ret );
+        }
+
 
         if( ssl->handshake != NULL &&
             ssl->handshake->retransmit_state == MBEDTLS_SSL_RETRANS_SENDING )
         {
             if( ( ret = mbedtls_ssl_resend( ssl ) ) != 0 )
-                return( ret );
+            {
+               return( ret );
+            }
         }
     }
 #endif
@@ -6569,7 +6574,8 @@ int mbedtls_ssl_read( mbedtls_ssl_context *ssl, unsigned char *buf, size_t len )
                     return( 0 );
 
                 MBEDTLS_SSL_DEBUG_RET( 1, "mbedtls_ssl_read_record", ret );
-                return( ret );
+               return( ret );
+
             }
         }
 
@@ -6585,7 +6591,9 @@ int mbedtls_ssl_read( mbedtls_ssl_context *ssl, unsigned char *buf, size_t len )
                     return( 0 );
 
                 MBEDTLS_SSL_DEBUG_RET( 1, "mbedtls_ssl_read_record", ret );
-                return( ret );
+                {
+                               return( ret );
+                            }
             }
         }
 

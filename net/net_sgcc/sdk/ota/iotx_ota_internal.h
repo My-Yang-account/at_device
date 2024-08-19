@@ -87,7 +87,6 @@ int otalib_GenInfoMsg(char *buf, size_t buf_len, uint32_t id, const char *versio
 int otalib_GenReportMsg(char *buf, size_t buf_len, uint32_t id, int progress, const char *msg_detail);
 
 void *ofc_Init(char *url, int offset);
-void *ofc_Init_new(void *handle);
 int32_t ofc_Fetch(void *handle, char *buf, uint32_t buf_len, uint32_t timeout_s);
 int ofc_Deinit(void **handle);
 

@@ -1276,7 +1276,6 @@ static int _iotx_linkkit_master_connect(void)
 #endif
 
     ctx->yield_running = 1;
-
     return SUCCESS_RETURN;
 }
 
@@ -1581,7 +1580,6 @@ int IOT_Linkkit_Yield(int timeout_ms)
     }
 
     ctx->is_yield_running = 1;
-
     if (timeout_ms <= 0) {
         ctx->is_yield_running = 0;
         return STATE_USER_INPUT_INVALID;
@@ -1598,7 +1596,6 @@ int IOT_Linkkit_Yield(int timeout_ms)
 #ifdef DEV_BIND_ENABLED
     IOT_Bind_Yield();
 #endif
-
     ctx->is_yield_running = 0;
 
     return res;

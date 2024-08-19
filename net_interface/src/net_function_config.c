@@ -94,11 +94,51 @@ static int32_t app_nsystem_data_storage(uint32_t option)
  * 函数名     app_nsystem_control
  * 功能         系统控制
  **********************************************/
-static int32_t app_nsystem_control(uint16_t item, uint8_t *para, uint32_t option)
+static int32_t app_nsystem_control(uint8_t gunno, uint16_t item, uint8_t *para, uint32_t option)
 {
     switch(item){
     case NET_SYSTEM_CTRL_ITEM_ELOCK:
-
+        switch(option){
+        case NET_SYSTEM_CTRL_OPTION_ACTION:
+            if(gunno == 0x00){
+                if(thaisenElectLock() != thaisen_elect_lock_ok){
+                    return -0x01;
+                }
+            }else{
+                if(thaisenElectLockB() != thaisen_elect_lock_ok){
+                    return -0x01;
+                }
+            }
+            break;
+        case NET_SYSTEM_CTRL_OPTION_RELEASE:
+            if(gunno == 0x00){
+                if(thaisenElectUnlock() != thaisen_elect_lock_ok){
+                    return -0x01;
+                }
+            }else{
+                if(thaisenElectUnlockB() != thaisen_elect_lock_ok){
+                    return -0x01;
+                }
+            }
+            break;
+        case NET_SYSTEM_CTRL_OPTION_STATE:
+            if(gunno == 0x00){
+                if(thaisenGetElectLockStaA() == thaisen_elect_lock_ok){
+                    return NET_SYSTEM_CTRL_STATE_ACTION;
+                }else{
+                    return NET_SYSTEM_CTRL_STATE_RELEASE;
+                }
+            }else{
+                if(thaisenGetElectLockStaB() == thaisen_elect_lock_ok){
+                    return NET_SYSTEM_CTRL_STATE_ACTION;
+                }else{
+                    return NET_SYSTEM_CTRL_STATE_RELEASE;
+                }
+            }
+            break;
+        default:
+            break;
+        }
     default:
 
         break;

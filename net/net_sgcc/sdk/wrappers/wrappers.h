@@ -13,6 +13,11 @@ extern "C" {
 #include "stdarg.h"
 
 #define HAL_Printf printf
+
+/**
+ * 获取升级文件大小
+ */
+void HAL_Firmware_File_Size(uint32_t file_size);
 /**
  *
  * 函数 HAL_Firmware_Persistence_Start() 需要SDK的使用者针对SDK将运行的硬件平台填充实现, 供SDK调用
@@ -31,7 +36,7 @@ extern "C" {
  * 注意! 参考示例实现仅用于解释各个 HAL_XXX() 系列函数的语义!
  * 
  */
-void HAL_Firmware_Persistence_Start(uint64_t file_size);
+void HAL_Firmware_Persistence_Start(void);
 
 
 /**
@@ -52,7 +57,7 @@ void HAL_Firmware_Persistence_Start(uint64_t file_size);
  * 注意! 参考示例实现仅用于解释各个 HAL_XXX() 系列函数的语义!
  * 
  */
-int HAL_Firmware_Persistence_Stop(int process);
+int HAL_Firmware_Persistence_Stop(void);
 
 
 /**
@@ -342,141 +347,6 @@ uint32_t HAL_Random(uint32_t region);
 
 /**
  *
- * 函数 HAL_Read() 需要SDK的使用者针对SDK将运行的硬件平台填充实现, 供SDK调用
- * ---
- * Interface of HAL_Read() requires to be implemented by user of SDK, according to target device platform
- *
- * 如果需要参考如何实现函数 HAL_Read(), 可以查阅SDK移植到 Ubuntu Linux 上时的示例代码
- * ---
- * If you need guidance about how to implement HAL_Read, you can check its reference implementation for Ubuntu platform
- *
- * https://code.aliyun.com/linkkit/c-sdk/blob/v3.0.1/wrappers/HAL_OS_linux.c
- *
- *
- * 注意! HAL_XXX() 系列的函数虽然有阿里提供的对应参考实现, 但不建议您不做任何修改/检视的应用于您的商用设备!
- * 
- * 注意! 参考示例实现仅用于解释各个 HAL_XXX() 系列函数的语义!
- * 
- */
-/**
- * @brief write data to terminal
- *
- * @param[in] fd @n device descriptor.
- * @param[out]  data pointer to the buffer which will store incoming data
- * @param[out]  count number of bytes received
- * @return count number of bytes received.
- * @see None.
- * @note None.
- */
-int HAL_Read(int fd, void *buf, int len);
-
-
-/**
- *
- * 函数 HAL_SetFirmwareVersion() 需要SDK的使用者针对SDK将运行的硬件平台填充实现, 供SDK调用
- * ---
- * Interface of HAL_SetFirmwareVersion() requires to be implemented by user of SDK, according to target device platform
- *
- * 如果需要参考如何实现函数 HAL_SetFirmwareVersion(), 可以查阅SDK移植到 Ubuntu Linux 上时的示例代码
- * ---
- * If you need guidance about how to implement HAL_SetFirmwareVersion, you can check its reference implementation for Ubuntu platform
- *
- * https://code.aliyun.com/linkkit/c-sdk/blob/v3.0.1/wrappers/HAL_OS_linux.c
- *
- *
- * 注意! HAL_XXX() 系列的函数虽然有阿里提供的对应参考实现, 但不建议您不做任何修改/检视的应用于您的商用设备!
- * 
- * 注意! 参考示例实现仅用于解释各个 HAL_XXX() 系列函数的语义!
- * 
- */
-int HAL_SetFirmwareVersion(const char *version);
-
-
-/**
- *
- * 函数 HAL_SleepMs() 需要SDK的使用者针对SDK将运行的硬件平台填充实现, 供SDK调用
- * ---
- * Interface of HAL_SleepMs() requires to be implemented by user of SDK, according to target device platform
- *
- * 如果需要参考如何实现函数 HAL_SleepMs(), 可以查阅SDK移植到 Ubuntu Linux 上时的示例代码
- * ---
- * If you need guidance about how to implement HAL_SleepMs, you can check its reference implementation for Ubuntu platform
- *
- * https://code.aliyun.com/linkkit/c-sdk/blob/v3.0.1/wrappers/HAL_OS_linux.c
- *
- *
- * 注意! HAL_XXX() 系列的函数虽然有阿里提供的对应参考实现, 但不建议您不做任何修改/检视的应用于您的商用设备!
- * 
- * 注意! 参考示例实现仅用于解释各个 HAL_XXX() 系列函数的语义!
- * 
- */
-/**
- * @brief Sleep thread itself.
- *
- * @param [in] ms @n the time interval for which execution is to be suspended, in milliseconds.
- * @return None.
- * @see None.
- * @note None.
- */
-void HAL_SleepMs(uint32_t ms);
-
-
-/**
- *
- * 函数 HAL_Snprintf() 需要SDK的使用者针对SDK将运行的硬件平台填充实现, 供SDK调用
- * ---
- * Interface of HAL_Snprintf() requires to be implemented by user of SDK, according to target device platform
- *
- * 如果需要参考如何实现函数 HAL_Snprintf(), 可以查阅SDK移植到 Ubuntu Linux 上时的示例代码
- * ---
- * If you need guidance about how to implement HAL_Snprintf, you can check its reference implementation for Ubuntu platform
- *
- * https://code.aliyun.com/linkkit/c-sdk/blob/v3.0.1/wrappers/HAL_OS_linux.c
- *
- *
- * 注意! HAL_XXX() 系列的函数虽然有阿里提供的对应参考实现, 但不建议您不做任何修改/检视的应用于您的商用设备!
- * 
- * 注意! 参考示例实现仅用于解释各个 HAL_XXX() 系列函数的语义!
- * 
- */
-/**
- * @brief Writes formatted data to string.
- *
- * @param [out] str: @n String that holds written text.
- * @param [in] len: @n Maximum length of character will be written
- * @param [in] fmt: @n Format that contains the text to be written, it can optionally contain embedded format specifiers
-     that specifies how subsequent arguments are converted for output.
- * @param [in] ...: @n the variable argument list, for formatted and inserted in the resulting string replacing their respective specifiers.
- * @return bytes of character successfully written into string.
- * @see None.
- * @note None.
- */
-int HAL_Snprintf(char *str, const int len, const char *fmt, ...);
-
-
-/**
- *
- * 函数 HAL_Srandom() 需要SDK的使用者针对SDK将运行的硬件平台填充实现, 供SDK调用
- * ---
- * Interface of HAL_Srandom() requires to be implemented by user of SDK, according to target device platform
- *
- * 如果需要参考如何实现函数 HAL_Srandom(), 可以查阅SDK移植到 Ubuntu Linux 上时的示例代码
- * ---
- * If you need guidance about how to implement HAL_Srandom, you can check its reference implementation for Ubuntu platform
- *
- * https://code.aliyun.com/linkkit/c-sdk/blob/v3.0.1/wrappers/HAL_OS_linux.c
- *
- *
- * 注意! HAL_XXX() 系列的函数虽然有阿里提供的对应参考实现, 但不建议您不做任何修改/检视的应用于您的商用设备!
- * 
- * 注意! 参考示例实现仅用于解释各个 HAL_XXX() 系列函数的语义!
- * 
- */
-void HAL_Srandom(uint32_t seed);
-
-
-/**
- *
  * 函数 HAL_SSL_Destroy() 需要SDK的使用者针对SDK将运行的硬件平台填充实现, 供SDK调用
  * ---
  * Interface of HAL_SSL_Destroy() requires to be implemented by user of SDK, according to target device platform
@@ -560,6 +430,89 @@ int HAL_SSL_Read(uintptr_t handle, char *buf, int len, int timeout_ms);
  * 
  */
 int HAL_SSL_Write(uintptr_t handle, const char *buf, int len, int timeout_ms);
+
+
+/**
+ *
+ * 函数 HAL_SleepMs() 需要SDK的使用者针对SDK将运行的硬件平台填充实现, 供SDK调用
+ * ---
+ * Interface of HAL_SleepMs() requires to be implemented by user of SDK, according to target device platform
+ *
+ * 如果需要参考如何实现函数 HAL_SleepMs(), 可以查阅SDK移植到 Ubuntu Linux 上时的示例代码
+ * ---
+ * If you need guidance about how to implement HAL_SleepMs, you can check its reference implementation for Ubuntu platform
+ *
+ * https://code.aliyun.com/linkkit/c-sdk/blob/v3.0.1/wrappers/HAL_OS_linux.c
+ *
+ *
+ * 注意! HAL_XXX() 系列的函数虽然有阿里提供的对应参考实现, 但不建议您不做任何修改/检视的应用于您的商用设备!
+ * 
+ * 注意! 参考示例实现仅用于解释各个 HAL_XXX() 系列函数的语义!
+ * 
+ */
+/**
+ * @brief Sleep thread itself.
+ *
+ * @param [in] ms @n the time interval for which execution is to be suspended, in milliseconds.
+ * @return None.
+ * @see None.
+ * @note None.
+ */
+void HAL_SleepMs(uint32_t ms);
+
+
+/**
+ *
+ * 函数 HAL_Snprintf() 需要SDK的使用者针对SDK将运行的硬件平台填充实现, 供SDK调用
+ * ---
+ * Interface of HAL_Snprintf() requires to be implemented by user of SDK, according to target device platform
+ *
+ * 如果需要参考如何实现函数 HAL_Snprintf(), 可以查阅SDK移植到 Ubuntu Linux 上时的示例代码
+ * ---
+ * If you need guidance about how to implement HAL_Snprintf, you can check its reference implementation for Ubuntu platform
+ *
+ * https://code.aliyun.com/linkkit/c-sdk/blob/v3.0.1/wrappers/HAL_OS_linux.c
+ *
+ *
+ * 注意! HAL_XXX() 系列的函数虽然有阿里提供的对应参考实现, 但不建议您不做任何修改/检视的应用于您的商用设备!
+ * 
+ * 注意! 参考示例实现仅用于解释各个 HAL_XXX() 系列函数的语义!
+ * 
+ */
+/**
+ * @brief Writes formatted data to string.
+ *
+ * @param [out] str: @n String that holds written text.
+ * @param [in] len: @n Maximum length of character will be written
+ * @param [in] fmt: @n Format that contains the text to be written, it can optionally contain embedded format specifiers
+     that specifies how subsequent arguments are converted for output.
+ * @param [in] ...: @n the variable argument list, for formatted and inserted in the resulting string replacing their respective specifiers.
+ * @return bytes of character successfully written into string.
+ * @see None.
+ * @note None.
+ */
+int HAL_Snprintf(char *str, const int len, const char *fmt, ...);
+
+
+/**
+ *
+ * 函数 HAL_Srandom() 需要SDK的使用者针对SDK将运行的硬件平台填充实现, 供SDK调用
+ * ---
+ * Interface of HAL_Srandom() requires to be implemented by user of SDK, according to target device platform
+ *
+ * 如果需要参考如何实现函数 HAL_Srandom(), 可以查阅SDK移植到 Ubuntu Linux 上时的示例代码
+ * ---
+ * If you need guidance about how to implement HAL_Srandom, you can check its reference implementation for Ubuntu platform
+ *
+ * https://code.aliyun.com/linkkit/c-sdk/blob/v3.0.1/wrappers/HAL_OS_linux.c
+ *
+ *
+ * 注意! HAL_XXX() 系列的函数虽然有阿里提供的对应参考实现, 但不建议您不做任何修改/检视的应用于您的商用设备!
+ * 
+ * 注意! 参考示例实现仅用于解释各个 HAL_XXX() 系列函数的语义!
+ * 
+ */
+void HAL_Srandom(uint32_t seed);
 
 
 /**
@@ -698,34 +651,6 @@ int32_t HAL_TCP_Write(uintptr_t fd, const char *buf, uint32_t len, uint32_t time
 
 /**
  *
- * 函数 HAL_UptimeMs() 需要SDK的使用者针对SDK将运行的硬件平台填充实现, 供SDK调用
- * ---
- * Interface of HAL_UptimeMs() requires to be implemented by user of SDK, according to target device platform
- *
- * 如果需要参考如何实现函数 HAL_UptimeMs(), 可以查阅SDK移植到 Ubuntu Linux 上时的示例代码
- * ---
- * If you need guidance about how to implement HAL_UptimeMs, you can check its reference implementation for Ubuntu platform
- *
- * https://code.aliyun.com/linkkit/c-sdk/blob/v3.0.1/wrappers/HAL_OS_linux.c
- *
- *
- * 注意! HAL_XXX() 系列的函数虽然有阿里提供的对应参考实现, 但不建议您不做任何修改/检视的应用于您的商用设备!
- * 
- * 注意! 参考示例实现仅用于解释各个 HAL_XXX() 系列函数的语义!
- * 
- */
-/**
- * @brief Retrieves the number of milliseconds that have elapsed since the system was boot.
- *
- * @return the number of milliseconds.
- * @see None.
- * @note None.
- */
-uint64_t HAL_UptimeMs(void);
-
-
-/**
- *
  * 函数 HAL_UTC_Get() 需要SDK的使用者针对SDK将运行的硬件平台填充实现, 供SDK调用
  * ---
  * Interface of HAL_UTC_Get() requires to be implemented by user of SDK, according to target device platform
@@ -768,6 +693,34 @@ int HAL_UTC_Set(long s);
 
 /**
  *
+ * 函数 HAL_UptimeMs() 需要SDK的使用者针对SDK将运行的硬件平台填充实现, 供SDK调用
+ * ---
+ * Interface of HAL_UptimeMs() requires to be implemented by user of SDK, according to target device platform
+ *
+ * 如果需要参考如何实现函数 HAL_UptimeMs(), 可以查阅SDK移植到 Ubuntu Linux 上时的示例代码
+ * ---
+ * If you need guidance about how to implement HAL_UptimeMs, you can check its reference implementation for Ubuntu platform
+ *
+ * https://code.aliyun.com/linkkit/c-sdk/blob/v3.0.1/wrappers/HAL_OS_linux.c
+ *
+ *
+ * 注意! HAL_XXX() 系列的函数虽然有阿里提供的对应参考实现, 但不建议您不做任何修改/检视的应用于您的商用设备!
+ * 
+ * 注意! 参考示例实现仅用于解释各个 HAL_XXX() 系列函数的语义!
+ * 
+ */
+/**
+ * @brief Retrieves the number of milliseconds that have elapsed since the system was boot.
+ *
+ * @return the number of milliseconds.
+ * @see None.
+ * @note None.
+ */
+uint64_t HAL_UptimeMs(void);
+
+
+/**
+ *
  * 函数 HAL_Vsnprintf() 需要SDK的使用者针对SDK将运行的硬件平台填充实现, 供SDK调用
  * ---
  * Interface of HAL_Vsnprintf() requires to be implemented by user of SDK, according to target device platform
@@ -785,37 +738,6 @@ int HAL_UTC_Set(long s);
  * 
  */
 int HAL_Vsnprintf(char *str, const int len, const char *format, va_list ap);
-
-
-/**
- *
- * 函数 HAL_Write() 需要SDK的使用者针对SDK将运行的硬件平台填充实现, 供SDK调用
- * ---
- * Interface of HAL_Write() requires to be implemented by user of SDK, according to target device platform
- *
- * 如果需要参考如何实现函数 HAL_Write(), 可以查阅SDK移植到 Ubuntu Linux 上时的示例代码
- * ---
- * If you need guidance about how to implement HAL_Write, you can check its reference implementation for Ubuntu platform
- *
- * https://code.aliyun.com/linkkit/c-sdk/blob/v3.0.1/wrappers/HAL_OS_linux.c
- *
- *
- * 注意! HAL_XXX() 系列的函数虽然有阿里提供的对应参考实现, 但不建议您不做任何修改/检视的应用于您的商用设备!
- * 
- * 注意! 参考示例实现仅用于解释各个 HAL_XXX() 系列函数的语义!
- * 
- */
-/**
- * @brief write data to terminal
- *
- * @param[in] fd @n device descriptor.
- * @param[in] data pointer to the start of data
- * @param[in] size number of bytes to transmit
- * @return count number of bytes received.
- * @see None.
- * @note None.
- */
-int HAL_Write(int fd, const void *buf, int len);
 
 
 

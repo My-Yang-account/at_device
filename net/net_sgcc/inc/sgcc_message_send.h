@@ -46,93 +46,108 @@
 #define NET_SGCC_EVENT_OPTION_CLEAR                           (1 <<2)    /* 清除事件 */
 
 /** chargepile request event */
-#define NET_SGCC_PREQ_EVENT_REPORT_FIRMWARE_INFO              0    /* 充电桩请求事件：上报固件信息 */
-#define NET_SGCC_PREQ_EVENT_REPORT_STATE_DATA_NONCHARGING     1    /* 充电桩请求事件：上报枪状态数据(非充电中) */
-#define NET_SGCC_PREQ_EVENT_REPORT_STATE_DATA_CHARGING        2    /* 充电桩请求事件：上报枪状态数据(充电中) */
-#define NET_SGCC_PREQ_EVENT_GUNSTATE_CHANGED                  3    /* 充电桩请求事件：充电枪状态发生变化 */
-#define NET_SGCC_PREQ_EVENT_TRANSACTION_RECORD                4    /* 充电桩请求事件：交易记录 */
+#define NET_SGCC_PREQ_EVENT_REPORT_SDK_VERSION                0    /* 充电桩请求事件：上报SDK版本信息 */
+#define NET_SGCC_PREQ_EVENT_REPORT_FIRMWARE_INFO              1    /* 充电桩请求事件：上报固件信息 */
+#define NET_SGCC_PREQ_EVENT_REQUEST_BILLING_MODE              2    /* 充电桩请求事件：请求计费模型 */
+#define NET_SGCC_PREQ_EVENT_REPORT_STATE_DATA_NONCHARGING     3    /* 充电桩请求事件：上报枪状态数据(非充电中) */
+#define NET_SGCC_PREQ_EVENT_REPORT_STATE_DATA_CHARGING        4    /* 充电桩请求事件：上报枪状态数据(充电中) */
+#define NET_SGCC_PREQ_EVENT_GUNSTATE_CHANGED                  5    /* 充电桩请求事件：充电枪状态发生变化 */
+#define NET_SGCC_PREQ_EVENT_TRANSACTION_RECORD                6    /* 充电桩请求事件：上报交易记录 */
+#define NET_SGCC_PREQ_EVENT_REPORT_AMMETER_VALUE              7    /* 充电桩请求事件：上报电表底值 */
+#define NET_SGCC_PREQ_EVENT_REPORT_BMS_DATA                   8    /* 充电桩请求事件：上报BMS数据 */
+#define NET_SGCC_PREQ_EVENT_REPORT_MONITOR_PROPERTY           9    /* 充电桩请求事件：上送实时监测属性 */
+#define NET_SGCC_PREQ_EVENT_REPORT_FAULT_WARNNING             10   /* 充电桩请求事件：上送故障告警信息 */
+#define NET_SGCC_PREQ_EVENT_REPORT_CONFIG_UPDATE              11   /* 充电桩请求事件：配置更新请求 */
+#define NET_SGCC_PREQ_EVENT_APPLY_START_CHARGE                12    /* 充电桩请求事件：主动申请启动充电 */
 
-#define NET_SGCC_PREQ_EVENT_APPLY_START_CHARGE                5    /* 充电桩请求事件：主动申请启动充电 */
-#define NET_SGCC_PREQ_EVENT_REPORT_DEVICE_FAULT               7    /* 充电桩请求事件：上报设备故障 */
-#define NET_SGCC_PREQ_EVENT_CHARGE_SHAKE_HAND                 8    /* 充电桩请求事件：充电握手 */
-#define NET_SGCC_PREQ_EVENT_PARA_CONFIG                       9    /* 充电桩请求事件：参数配置 */
-#define NET_SGCC_PREQ_EVENT_CHARGE_END                        10   /* 充电桩请求事件：充电结束 */
-#define NET_SGCC_PREQ_EVENT_ERROR_MESSAGE                     11   /* 充电桩请求事件：错误报文 */
-#define NET_SGCC_PREQ_EVENT_BMS_STOP                          12   /* 充电桩请求事件：充电阶段 BMS 中止 */
-#define NET_SGCC_PREQ_EVENT_CHARGER_STOP                      13   /* 充电桩请求事件：充电阶段充电机中止 */
-#define NET_SGCC_PREQ_EVENT_CHARGER_OUTPUT_BMS_REQUIRE        14   /* 充电桩请求事件：充电过程 BMS 需求与充电机输出 */
-#define NET_SGCC_PREQ_EVENT_BMS_INFO                          15   /* 充电桩请求事件：充电过程 BMS 信息 */
 
-#define NET_SGCC_CHARGEPILE_PREQ_NUM                          16   /* 充电桩请求事件总数 */
+//#define NET_SGCC_PREQ_EVENT_APPLY_START_CHARGE                5    /* 充电桩请求事件：主动申请启动充电 */
+//#define NET_SGCC_PREQ_EVENT_REPORT_DEVICE_FAULT               7    /* 充电桩请求事件：上报设备故障 */
+//#define NET_SGCC_PREQ_EVENT_CHARGE_SHAKE_HAND                 8    /* 充电桩请求事件：充电握手 */
+//#define NET_SGCC_PREQ_EVENT_PARA_CONFIG                       9    /* 充电桩请求事件：参数配置 */
+//#define NET_SGCC_PREQ_EVENT_CHARGE_END                        10   /* 充电桩请求事件：充电结束 */
+//#define NET_SGCC_PREQ_EVENT_ERROR_MESSAGE                     11   /* 充电桩请求事件：错误报文 */
+//#define NET_SGCC_PREQ_EVENT_BMS_STOP                          12   /* 充电桩请求事件：充电阶段 BMS 中止 */
+//#define NET_SGCC_PREQ_EVENT_CHARGER_STOP                      13   /* 充电桩请求事件：充电阶段充电机中止 */
+//#define NET_SGCC_PREQ_EVENT_CHARGER_OUTPUT_BMS_REQUIRE        14   /* 充电桩请求事件：充电过程 BMS 需求与充电机输出 */
+//#define NET_SGCC_PREQ_EVENT_BMS_INFO                          15   /* 充电桩请求事件：充电过程 BMS 信息 */
+
+#define NET_SGCC_CHARGEPILE_PREQ_NUM                          14   /* 充电桩请求事件总数 */
 
 /** chargepile response event */
-#define NET_SGCC_PRES_EVENT_SET_PARA                          0    /* 充电桩响应事件：设置充电桩参数 */
-#define NET_SGCC_PRES_EVENT_QRCODE_CONFIG                     1    /* 充电桩响应事件：二维码配置命令回复 */
-#define NET_SGCC_PRES_EVENT_SET_SERVICE_PHONE                 2    /* 充电桩响应事件：设置客服电话命令回复 */
-#define NET_SGCC_PRES_EVENT_SET_BILLING_MODEL                 3    /* 充电桩响应事件：设置计费模型 */
-#define NET_SGCC_PRES_EVENT_QUERY_STATE_DATA                  4    /* 充电桩响应事件：查询单枪状态数据 */
-#define NET_SGCC_PRES_EVENT_QUERY_STATE_DATA_ALL              5    /* 充电桩响应事件：查询所有枪状态数据 */
-#define NET_SGCC_PRES_EVENT_SERVER_START_CHARGE               6    /* 充电桩响应事件：远程启动充电命令回复 */
-#define NET_SGCC_PRES_EVENT_SERVER_STOP_CHARGE                7    /* 充电桩响应事件：远程停机命令回复 */
-#define NET_SGCC_PRES_EVENT_REMOTE_REBOOT                     8    /* 充电桩响应事件：远程重启 */
-#define NET_SGCC_PRES_EVENT_REMOTE_UPDATE                     9    /* 充电桩响应事件：远程更新 */
-#define NET_SGCC_PRES_EVENT_MODIFY_SERVER_ADDR                10   /* 充电桩响应事件：修改服务器地址 */
-#define NET_SGCC_PRES_EVENT_QUERY_DEVICE_FAULT                11   /* 充电桩响应事件：查询设备故障 */
+#define NET_SGCC_PRES_EVENT_SERVER_START_CHARGE               0    /* 充电桩响应事件：远程启动充电命令回复 */
+#define NET_SGCC_PRES_EVENT_SERVER_STOP_CHARGE                1    /* 充电桩响应事件：远程停机命令回复 */
+#define NET_SGCC_PRES_EVENT_APPLY_CHARGE_RESULT               2    /* 充电桩响应事件：申请充电启动结果回复 */
+//#define NET_SGCC_PRES_EVENT_ELOCK_CTRL_RESULT                 3    /* 充电桩响应事件：电子锁控制结果回复 */
+
+//#define NET_SGCC_PRES_EVENT_SET_PARA                          0    /* 充电桩响应事件：设置充电桩参数 */
+//#define NET_SGCC_PRES_EVENT_QRCODE_CONFIG                     1    /* 充电桩响应事件：二维码配置命令回复 */
+//#define NET_SGCC_PRES_EVENT_SET_SERVICE_PHONE                 2    /* 充电桩响应事件：设置客服电话命令回复 */
+//#define NET_SGCC_PRES_EVENT_SET_BILLING_MODEL                 3    /* 充电桩响应事件：设置计费模型 */
+//#define NET_SGCC_PRES_EVENT_QUERY_STATE_DATA                  4    /* 充电桩响应事件：查询单枪状态数据 */
+//#define NET_SGCC_PRES_EVENT_QUERY_STATE_DATA_ALL              5    /* 充电桩响应事件：查询所有枪状态数据 */
+//#define NET_SGCC_PRES_EVENT_SERVER_START_CHARGE               6    /* 充电桩响应事件：远程启动充电命令回复 */
+//#define NET_SGCC_PRES_EVENT_SERVER_STOP_CHARGE                7    /* 充电桩响应事件：远程停机命令回复 */
+//#define NET_SGCC_PRES_EVENT_REMOTE_REBOOT                     8    /* 充电桩响应事件：远程重启 */
+//#define NET_SGCC_PRES_EVENT_REMOTE_UPDATE                     9    /* 充电桩响应事件：远程更新 */
+//#define NET_SGCC_PRES_EVENT_MODIFY_SERVER_ADDR                10   /* 充电桩响应事件：修改服务器地址 */
+//#define NET_SGCC_PRES_EVENT_QUERY_DEVICE_FAULT                11   /* 充电桩响应事件：查询设备故障 */
 
 #define NET_SGCC_PRES_EVENT_START_CHARGE_ASYNCHRONOUSLY       12   /* 充电桩响应事件：远程启机异步响应 */
 #define NET_SGCC_PRES_EVENT_STOP_CHARGE_ASYNCHRONOUSLY        13   /* 充电桩响应事件：远程停机异步响应 */
 #define NET_SGCC_PRES_EVENT_SET_POWER_PERCENT_ASYNCHRONOUSLY  14   /* 充电桩响应事件：设置功率百分比异步响应 */
+#define NET_SGCC_PRES_EVENT_APPLY_CHARGE_ASYNCHRONOUSLY       15   /* 充电桩响应事件：申请充电启动结果异步响应 */
 
-#define NET_SGCC_CHARGEPILE_PRES_NUM                          15   /* 充电桩响应事件总数 */
+#define NET_SGCC_CHARGEPILE_PRES_NUM                          16   /* 充电桩响应事件总数 */
 
 /**=======================================[充电桩公共请求报文]=======================================*/
-extern evs_event_firmware_info evs_event_firmware_infos;
-extern evs_event_ver_info evs_event_ver_infos[EVS_MAX_PORT_NUM];
-extern evs_event_devmdu_info evs_event_devmdu_infos[EVS_MAX_PORT_NUM];
-extern evs_event_card_info evs_event_card_infos[EVS_MAX_PORT_NUM];
-extern evs_event_card_auth evs_event_card_auths[EVS_MAX_PORT_NUM];
-extern evs_event_card_auth_result evs_event_card_auth_results[EVS_MAX_PORT_NUM];
-extern evs_event_ask_feeModel evs_event_ask_feeModels[EVS_MAX_PORT_NUM];
-extern evs_event_startResult evs_event_startResults[EVS_MAX_PORT_NUM];
-extern evs_event_startCharge evs_event_startCharges[EVS_MAX_PORT_NUM];
-extern evs_event_stopCharge evs_event_stopCharges[EVS_MAX_PORT_NUM];
-extern evs_event_tradeInfo evs_event_tradeInfos[EVS_MAX_PORT_NUM];
-extern evs_event_alarm evs_event_alarms[EVS_MAX_PORT_NUM];
-extern evs_event_groundLock_change evs_event_groundLock_changes[EVS_MAX_PORT_NUM];
-extern evs_event_gateLock_change evs_event_gateLock_changes[EVS_MAX_PORT_NUM];
-extern evs_event_pile_stutus_change evs_event_pile_stutus_changes[EVS_MAX_PORT_NUM];
-extern evs_event_car_info evs_event_car_infos[EVS_MAX_PORT_NUM];
-extern evs_event_vinList_result evs_event_vinList_results[EVS_MAX_PORT_NUM];
-extern evs_event_time_sync_result evs_event_time_sync_results[EVS_MAX_PORT_NUM];
-extern evs_event_charge_connect_change evs_event_charge_connect_changes[EVS_MAX_PORT_NUM];
-extern evs_event_card_check_error evs_event_card_check_errors[EVS_MAX_PORT_NUM];
-extern evs_event_ble_plug_charge_info evs_event_ble_plug_charge_infos[EVS_MAX_PORT_NUM];
-extern evs_event_ble_conn_change evs_event_ble_conn_changes[EVS_MAX_PORT_NUM];
-extern evs_event_logQuery_Result evs_event_logQuery_Results[EVS_MAX_PORT_NUM];
+extern evs_event_fireware_info evs_event_firmware_infos;
+extern evs_event_ver_info evs_event_ver_infos;
+//extern evs_event_devmdu_info evs_event_devmdu_infos[NET_SYSTEM_GUN_NUMBER];
+//extern evs_event_card_info evs_event_card_infos[NET_SYSTEM_GUN_NUMBER];
+//extern evs_event_card_auth evs_event_card_auths[NET_SYSTEM_GUN_NUMBER];
+//extern evs_event_card_auth_result evs_event_card_auth_results[NET_SYSTEM_GUN_NUMBER];
+extern evs_event_ask_feeModel evs_event_ask_feeModels[NET_SYSTEM_GUN_NUMBER];
+extern evs_event_startResult evs_event_startResults[NET_SYSTEM_GUN_NUMBER];
+extern evs_event_startCharge evs_event_startCharges[NET_SYSTEM_GUN_NUMBER];
+extern evs_event_stopCharge evs_event_stopCharges[NET_SYSTEM_GUN_NUMBER];
+extern evs_event_tradeInfo evs_event_tradeInfos[NET_SYSTEM_GUN_NUMBER];
+extern evs_event_alarm evs_event_alarms[NET_SYSTEM_GUN_NUMBER];
+extern evs_event_groundLock_change evs_event_groundLock_changes[NET_SYSTEM_GUN_NUMBER];
+extern evs_event_gateLock_change evs_event_gateLock_changes[NET_SYSTEM_GUN_NUMBER];
+extern evs_event_pile_stutus_change evs_event_pile_stutus_changes[NET_SYSTEM_GUN_NUMBER];
+extern evs_event_car_info evs_event_car_infos[NET_SYSTEM_GUN_NUMBER];
+//extern evs_event_vinList_result evs_event_vinList_results[NET_SYSTEM_GUN_NUMBER];
+//extern evs_event_time_sync_result evs_event_time_sync_results[NET_SYSTEM_GUN_NUMBER];
+//extern evs_event_charge_connect_change evs_event_charge_connect_changes[NET_SYSTEM_GUN_NUMBER];
+//extern evs_event_card_check_error evs_event_card_check_errors[NET_SYSTEM_GUN_NUMBER];
+//extern evs_event_ble_plug_charge_info evs_event_ble_plug_charge_infos[NET_SYSTEM_GUN_NUMBER];
+//extern evs_event_ble_conn_change evs_event_ble_conn_changes[NET_SYSTEM_GUN_NUMBER];
+extern evs_event_logQuery_Result evs_event_logQuery_Results[NET_SYSTEM_GUN_NUMBER];
 
 /**=======================================[直流充电桩请求报文]=======================================*/
-extern evs_event_ccu_info evs_event_ccu_infos[EVS_MAX_PORT_NUM];
-extern evs_event_pcu_info evs_event_pcu_infos[EVS_MAX_PORT_NUM];
-extern evs_event_cu_info evs_event_cu_infos[EVS_MAX_PORT_NUM];
-extern evs_event_switch_info evs_event_switch_infos[EVS_MAX_PORT_NUM];
-extern evs_event_edas_info evs_event_edas_infos[EVS_MAX_PORT_NUM];
-extern evs_event_cu_work_info evs_event_cu_work_infos[EVS_MAX_PORT_NUM];
-extern evs_smart_gun_auth_param evs_smart_gun_auth_params[EVS_MAX_PORT_NUM];
+//extern evs_event_ccu_info evs_event_ccu_infos[NET_SYSTEM_GUN_NUMBER];
+//extern evs_event_pcu_info evs_event_pcu_infos[NET_SYSTEM_GUN_NUMBER];
+//extern evs_event_cu_info evs_event_cu_infos[NET_SYSTEM_GUN_NUMBER];
+//extern evs_event_switch_info evs_event_switch_infos[NET_SYSTEM_GUN_NUMBER];
+//extern evs_event_edas_info evs_event_edas_infos[NET_SYSTEM_GUN_NUMBER];
+//extern evs_event_cu_work_info evs_event_cu_work_infos[NET_SYSTEM_GUN_NUMBER];
+//extern evs_smart_gun_auth_param evs_smart_gun_auth_params[NET_SYSTEM_GUN_NUMBER];
 
 /**=======================================[充电桩公共请求报文]=======================================*/
-extern evs_property_meter evs_property_meters[EVS_MAX_PORT_NUM];
+extern evs_property_meter evs_property_meters[NET_SYSTEM_GUN_NUMBER];
 
 /**=======================================[交流充电桩请求报文]=======================================*/
-extern evs_property_acPile evs_property_acPiles[EVS_MAX_PORT_NUM];
-extern evs_property_ac_work evs_property_ac_works[EVS_MAX_PORT_NUM];
-extern evs_property_ac_nonWork evs_property_ac_nonWorks[EVS_MAX_PORT_NUM];
+extern evs_property_acPile evs_property_acPiles[NET_SYSTEM_GUN_NUMBER];
+extern evs_property_ac_work evs_property_ac_works[NET_SYSTEM_GUN_NUMBER];
+extern evs_property_ac_nonWork evs_property_ac_nonWorks[NET_SYSTEM_GUN_NUMBER];
 
 /**=======================================[直流充电桩请求报文]=======================================*/
-extern evs_property_dcPile evs_property_dcPiles[EVS_MAX_PORT_NUM];
-extern evs_property_BMS evs_property_BMSs[EVS_MAX_PORT_NUM];
-extern evs_property_dc_work evs_property_dc_works[EVS_MAX_PORT_NUM];
-extern evs_property_dc_nonWork evs_property_dc_nonWorks[EVS_MAX_PORT_NUM];
-extern evs_property_dc_input_meter evs_property_dc_input_meters[EVS_MAX_PORT_NUM];
+extern evs_property_dcPile evs_property_dcPiles;
+extern evs_property_BMS evs_property_BMSs[NET_SYSTEM_GUN_NUMBER];
+extern evs_property_dc_work evs_property_dc_works[NET_SYSTEM_GUN_NUMBER];
+extern evs_property_dc_nonWork evs_property_dc_nonWorks[NET_SYSTEM_GUN_NUMBER];
+extern evs_property_dc_input_meter evs_property_dc_input_meters[NET_SYSTEM_GUN_NUMBER];
 
 /** 网络状态 */
 enum{
@@ -144,6 +159,11 @@ enum{
 };
 
 #pragma pack(1)
+
+typedef struct{
+     uint16_t length;
+     uint8_t general_transmit_buff[NET_SGCC_GENERA_RESPONSE_BUFF_LENGTH];
+}sgcc_response_message_buf_t;
 
 typedef struct{
     int fd;

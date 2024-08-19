@@ -1508,7 +1508,6 @@ static int iotx_mc_cycle(iotx_mc_client_t *c, iotx_time_t *timer)
 
     if (IOTX_MC_KEEPALIVE_PROBE_MAX < c->keepalive_probes) {
         iotx_mc_set_client_state(c, IOTX_MC_STATE_DISCONNECTED);
-
         c->keepalive_probes = 0;
         mqtt_debug("keepalive_probes more than %u, disconnected\n", IOTX_MC_KEEPALIVE_PROBE_MAX);
         return STATE_MQTT_IN_OFFLINE_STATUS;
@@ -2770,6 +2769,7 @@ int wrapper_mqtt_connect(void *client)
         if (strlen(product_key) != 0 && strlen(device_name) != 0) {
             break;
         }
+
         _mqtt_cycle(client);
     } while (++try_count < RETRY_TIME_LIMIT);
 #endif
@@ -2907,7 +2907,8 @@ int wrapper_mqtt_subscribe(void *client,
 
     if (!wrapper_mqtt_check_state(c)) {
         mqtt_err("mqtt client state is error,state = %d", iotx_mc_get_client_state(c));
-        return STATE_MQTT_IN_OFFLINE_STATUS;
+        rt_kprintf("dddddddddddddddd mmmmm(%d)\n", wrapper_mqtt_check_state(c));
+//        return STATE_MQTT_IN_OFFLINE_STATUS;
     }
 
     rc = iotx_mc_check_topic(topicFilter, TOPIC_FILTER_TYPE);

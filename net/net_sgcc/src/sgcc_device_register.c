@@ -134,7 +134,7 @@ int callback_service_EVS_DEVICE_UID_GET(char *device_uid)
     if(s_sgcc_storage_struct == NULL){
         return -1;
     }
-    uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_GW |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
+    uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_SGCC |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
     struct net_handle* handle = net_get_net_handle();
     char *pile_number = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, option));
     int len = strlen(pile_number);
@@ -161,7 +161,7 @@ int sgcc_device_uid_set(char *device_uid)
     if(s_sgcc_storage_struct == NULL){
         return -1;
     }
-    uint8_t option = (NET_SYSTEM_DATA_OPTION_PLAT_GW |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
+    uint8_t option = (NET_SYSTEM_DATA_OPTION_PLAT_SGCC |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
     struct net_handle* handle = net_get_net_handle();
     int len = strlen(device_uid);
 

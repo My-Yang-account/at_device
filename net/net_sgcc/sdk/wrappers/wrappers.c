@@ -52,10 +52,22 @@ static uint64_t time_left(uint64_t t_end, uint64_t t_now)
  * 远程升级开始的实现
  * 
  */
-void HAL_Firmware_Persistence_Start(uint64_t file_size)
+void HAL_Firmware_File_Size(unsigned int file_size)
 {
-    extern void sgcc_firmware_start(uint64_t file_size);
-    sgcc_firmware_start(file_size);
+    extern void sgcc_firmware_file_size(uint32_t file_size);
+    sgcc_firmware_file_size(file_size);
+}
+
+/**
+ *
+ * 函数 HAL_Firmware_Persistence_Start() 需要SDK的使用者针对SDK将运行的硬件平台填充实现, 供SDK调用
+ * ---
+ * 远程升级开始的实现
+ * 
+ */
+void HAL_Firmware_Persistence_Start(void)
+{
+
 }
 
 /**
@@ -65,7 +77,7 @@ void HAL_Firmware_Persistence_Start(uint64_t file_size)
  * 远程升级完成的实现
  * 
  */
-int HAL_Firmware_Persistence_Write(char *buffer, uint32_t length)
+int HAL_Firmware_Persistence_Write(char *buffer, unsigned int length)
 {
     extern int sgcc_firmware_write(char *buffer, uint32_t length);
     return sgcc_firmware_write(buffer, length);
@@ -112,7 +124,7 @@ int HAL_GetFirmwareVersion(char *version)
  */
 int HAL_Kv_Get(const char *key, void *val, int *buffer_len)
 {
-	return (int)1;
+    return (int)1;
 }
 
 /**
@@ -124,12 +136,12 @@ int HAL_Kv_Get(const char *key, void *val, int *buffer_len)
  */
 int HAL_Kv_Set(const char *key, const void *val, int len, int sync)
 {
-	return (int)1;
+    return (int)1;
 }
 
-void *HAL_Malloc(uint32_t size)
+void *HAL_Malloc(unsigned int size)
 {
-	return rt_malloc(size);
+    return rt_malloc(size);
 }
 
 void HAL_Free(void *ptr)
@@ -149,7 +161,7 @@ void *HAL_MutexCreate(void)
 {
     rt_mutex_t mutex = rt_mutex_create("sdk_mutex", RT_IPC_FLAG_FIFO);
 
-	return mutex;
+    return mutex;
 }
 
 /**
@@ -162,11 +174,11 @@ void *HAL_MutexCreate(void)
  */
 void HAL_MutexDestroy(void *mutex)
 {
-	if (NULL == mutex) {
-	    return;
-	}
+    if (NULL == mutex) {
+        return;
+    }
 
-	rt_mutex_delete((rt_mutex_t)mutex);
+    rt_mutex_delete((rt_mutex_t)mutex);
 }
 
 /**
@@ -205,7 +217,7 @@ void HAL_MutexUnlock(void *mutex)
 
 uint32_t HAL_Random(uint32_t region)
 {
-	return (region > 0) ? (uint32_t)(rand() % region) : (uint32_t)(0);
+    return (region > 0) ? (uint32_t)(rand() % region) : (uint32_t)(0);
 }
 
 void HAL_Srandom(uint32_t seed)
@@ -226,7 +238,7 @@ int HAL_SetFirmwareVersion(const char *version)
     //在此处实现。。。
     //-------------------------//
 
-	return (int)1;
+    return (int)1;
 }
 
 /**
@@ -455,8 +467,8 @@ static int network_ssl_connect(TLSDataParams_t *pTlsData, const char *addr, cons
 
     mbedtls_net_init(&(pTlsData->fd));
     rt_kprintf("network_ssl_connect(%d, %s, %s)\n", pTlsData->fd, addr, port);
-//    if (0 != (ret = mbedtls_net_connect(&(pTlsData->fd), addr, port, MBEDTLS_NET_PROTO_TCP))) {
-    if (0 != (ret = mbedtls_net_connect(&(pTlsData->fd), "47.100.6.214", port, MBEDTLS_NET_PROTO_TCP))) {
+    if (0 != (ret = mbedtls_net_connect(&(pTlsData->fd), addr, port, MBEDTLS_NET_PROTO_TCP))) {
+//    if (0 != (ret = mbedtls_net_connect(&(pTlsData->fd), "47.100.6.214", port, MBEDTLS_NET_PROTO_TCP))) {
         mbedtls_net_free(&(pTlsData->fd));
         LOG_E("failed! ssl connect failed, returned -0x%04x \n", -ret);
         return ret;
@@ -917,7 +929,7 @@ int32_t HAL_TCP_Write(uintptr_t fd, const char *buf, uint32_t len, uint32_t time
  */
 long HAL_UTC_Get(void)
 {
-	return (long)1;
+    return (long)1;
 }
 
 /**
@@ -931,7 +943,7 @@ int HAL_UTC_Set(long s)
 {
     (void)s;
 
-	return (int)1;
+    return (int)1;
 }
 
 /**
@@ -979,5 +991,5 @@ int HAL_Write(int fd, const void *buf, int len)
 {
     (void)fd, (void)buf, (void)len;
 
-	return (int)1;
+    return (int)1;
 }

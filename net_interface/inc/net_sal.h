@@ -167,8 +167,8 @@ uint8_t app_nsal_get_ota_result(void);
 uint32_t app_nsal_get_ota_progress(void);
 uint8_t app_nsal_is_remote_start(uint8_t gunno);
 uint8_t app_nsal_is_remote_stop(uint8_t gunno);
-void app_nsal_report_remote_start_result(uint8_t gunno, uint8_t result, uint8_t reason);
-void app_nsal_report_remote_stop_result(uint8_t gunno, uint8_t result, uint8_t reason);
+void app_nsal_report_remote_start_result(uint8_t gunno, uint8_t result, uint8_t reason, uint8_t fault);
+void app_nsal_report_remote_stop_result(uint8_t gunno, uint8_t result, uint8_t reason, uint8_t fault);
 
 uint8_t app_nsal_is_card_authorize_success(uint8_t gunno);
 uint8_t app_nsal_is_vin_authorize_success(uint8_t gunno);

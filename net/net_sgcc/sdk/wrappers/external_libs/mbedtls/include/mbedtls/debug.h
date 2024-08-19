@@ -52,6 +52,9 @@
 
 #else /* MBEDTLS_DEBUG_C */
 
+//#define MBEDTLS_SSL_DEBUG_MSG( level, args )            do { printf("%d,%s\r\n",level,args);} while( 0 )
+//#define MBEDTLS_SSL_DEBUG_RET( level, text, ret )       do {printf("%d,%s,%d\r\n",level,text,ret); } while( 0 )
+//#define MBEDTLS_SSL_DEBUG_BUF( level, text, buf, len )  do {printf("%d,%s,%s,%d\r\n",level,text,buf,len); } while( 0 )
 #define MBEDTLS_SSL_DEBUG_MSG( level, args )            do { } while( 0 )
 #define MBEDTLS_SSL_DEBUG_RET( level, text, ret )       do { } while( 0 )
 #define MBEDTLS_SSL_DEBUG_BUF( level, text, buf, len )  do { } while( 0 )

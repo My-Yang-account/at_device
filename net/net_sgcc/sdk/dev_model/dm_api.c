@@ -417,6 +417,7 @@ int iotx_dm_post_event(_IN_ int devid, _IN_ char *identifier, _IN_ int identifie
     }
 
     _dm_api_lock();
+
     method_len = strlen(method_fmt) + strlen(identifier) + 1;
     method = DM_malloc(method_len);
     if (method == NULL) {
@@ -425,6 +426,7 @@ int iotx_dm_post_event(_IN_ int devid, _IN_ char *identifier, _IN_ int identifie
     }
     memset(method, 0, method_len);
     HAL_Snprintf(method, method_len, method_fmt, identifier_len, identifier);
+
     res = dm_mgr_upstream_thing_event_post(devid, identifier, identifier_len, method, payload, payload_len);
     DM_free(method);
     _dm_api_unlock();

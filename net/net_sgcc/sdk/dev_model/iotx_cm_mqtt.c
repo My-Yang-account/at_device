@@ -258,7 +258,6 @@ static void iotx_cloud_conn_mqtt_event_handle(void *pcontext, void *pclient, iot
 
 static int _mqtt_connect(uint32_t timeout)
 {
-    rt_kprintf("bcccccccccccccccc\n");
     void *pclient;
     iotx_time_t timer;
     iotx_cm_event_msg_t event;

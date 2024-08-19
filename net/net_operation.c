@@ -334,7 +334,7 @@ static int32_t net_para_config_function(uint8_t platform, uint8_t index, void* p
         s_net_handle.system_data_storage = (int32_t (*)(uint32_t))para;
         break;
     case NET_PARA_CONFIG_INDEX_SYSTEM_CONTROL :
-        s_net_handle.system_control = (int32_t (*)(uint16_t, uint8_t*, uint32_t))para;
+        s_net_handle.system_control = (int32_t (*)(uint8_t, uint16_t, uint8_t*, uint32_t))para;
         break;
     case NET_PARA_CONFIG_INDEX_NDEV_OPERATE :
         s_net_handle.ndev_operate = (int32_t (*)(uint8_t))para;
