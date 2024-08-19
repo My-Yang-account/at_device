@@ -719,26 +719,26 @@ int8_t ycp_message_pro_billing_model_set_response(void *data, uint8_t len, uint8
         app_billingrule_set_rate_price(gunno, APP_RATE_TYPE_VALLEY, (response->body.valley_elect_rate + response->body.valley_service_rate) /10);
 
         for(uint8_t period = 0x00, count = 0x00; period < APP_BILLING_RULE_PERIOD_MAX; period++, count++){
-            app_billingrule_set_period_rate_number(gunno, period, response->body.rate_number[period]);
-            switch(response->body.rate_number[period]){
+            app_billingrule_set_period_rate_number(gunno, period, response->body.rate_number[period /0x02]);
+            switch(response->body.rate_number[period /0x02]){
             case APP_RATE_TYPE_SHARP :
-                app_billingrule_set_period_service_price(gunno, period, response->body.tip_elect_rate /10);
-                app_billingrule_set_period_elect_price(gunno, period, response->body.tip_service_rate /10);
+                app_billingrule_set_period_elect_price(gunno, period, response->body.tip_elect_rate /10);
+                app_billingrule_set_period_service_price(gunno, period, response->body.tip_service_rate /10);
                 app_billingrule_set_period_delay_price(gunno, period, 0x00);
                 break;
             case APP_RATE_TYPE_PEAK :
-                app_billingrule_set_period_service_price(gunno, period, response->body.peak_elect_rate /10);
-                app_billingrule_set_period_elect_price(gunno, period, response->body.peak_service_rate /10);
+                app_billingrule_set_period_elect_price(gunno, period, response->body.peak_elect_rate /10);
+                app_billingrule_set_period_service_price(gunno, period, response->body.peak_service_rate /10);
                 app_billingrule_set_period_delay_price(gunno, period, 0x00);
                 break;
             case APP_RATE_TYPE_FLAT :
-                app_billingrule_set_period_service_price(gunno, period, response->body.flat_elect_rate /10);
-                app_billingrule_set_period_elect_price(gunno, period, response->body.flat_service_rate /10);
+                app_billingrule_set_period_elect_price(gunno, period, response->body.flat_elect_rate /10);
+                app_billingrule_set_period_service_price(gunno, period, response->body.flat_service_rate /10);
                 app_billingrule_set_period_delay_price(gunno, period, 0x00);
                 break;
             case APP_RATE_TYPE_VALLEY :
-                app_billingrule_set_period_service_price(gunno, period, response->body.valley_elect_rate /10);
-                app_billingrule_set_period_elect_price(gunno, period, response->body.valley_service_rate /10);
+                app_billingrule_set_period_elect_price(gunno, period, response->body.valley_elect_rate /10);
+                app_billingrule_set_period_service_price(gunno, period, response->body.valley_service_rate /10);
                 app_billingrule_set_period_delay_price(gunno, period, 0x00);
                 break;
             default:

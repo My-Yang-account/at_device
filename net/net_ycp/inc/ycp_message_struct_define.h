@@ -100,7 +100,7 @@ enum ycp_charge_complete{
 };
 
 /* SF as START FAIL */
-enum ykc_start_fail{
+enum ycp_start_fail{
     NETYCP_SF_REASON10_SYSCONTROL_FAULT = 0x10,              /* 充电启动失败，充电桩控制系统故障(需要重启或自动恢复) */
     NETYCP_SF_REASON11_GUIDE_DISCONNECT = 0x11,              /* 充电启动失败，控制导引断开 */
     NETYCP_SF_REASON12_CIRCUIT_BREAKER = 0x12,               /* 充电启动失败，断路器跳位 */

@@ -12,7 +12,7 @@
 
 #include "stdio.h"
 
-#define APP_BILLING_RULE_PERIOD_MAX               0x30           /* 时段总数 */
+#define APP_BILLING_RULE_PERIOD_MAX               0x60           /* 时段总数 */
 #define APP_BILLING_RULE_RATE_TYPE_MAX            0x04           /* 费率类型总数 */
 
 #define APP_RATE_TYPE_SHARP                       0x00           /* 费率类型：尖 */

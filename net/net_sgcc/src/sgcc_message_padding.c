@@ -785,23 +785,23 @@ int8_t sgcc_message_pro_billing_model_request_response(void *data, uint8_t len)
                 app_billingrule_set_period_rate_number(gunno, period, rate_type);
                 switch(rate_type){
                 case APP_RATE_TYPE_SHARP :
-                    app_billingrule_set_period_service_price(gunno, period, request->chargeFee[APP_RATE_TYPE_SHARP]);
-                    app_billingrule_set_period_elect_price(gunno, period, request->serviceFee[APP_RATE_TYPE_SHARP]);
+                    app_billingrule_set_period_elect_price(gunno, period, request->chargeFee[APP_RATE_TYPE_SHARP]);
+                    app_billingrule_set_period_service_price(gunno, period, request->serviceFee[APP_RATE_TYPE_SHARP]);
                     app_billingrule_set_period_delay_price(gunno, period, 0x00);
                     break;
                 case APP_RATE_TYPE_PEAK :
-                    app_billingrule_set_period_service_price(gunno, period, request->chargeFee[APP_RATE_TYPE_PEAK]);
-                    app_billingrule_set_period_elect_price(gunno, period, request->serviceFee[APP_RATE_TYPE_PEAK]);
+                    app_billingrule_set_period_elect_price(gunno, period, request->chargeFee[APP_RATE_TYPE_PEAK]);
+                    app_billingrule_set_period_service_price(gunno, period, request->serviceFee[APP_RATE_TYPE_PEAK]);
                     app_billingrule_set_period_delay_price(gunno, period, 0x00);
                     break;
                 case APP_RATE_TYPE_FLAT :
-                    app_billingrule_set_period_service_price(gunno, period, request->chargeFee[APP_RATE_TYPE_FLAT]);
-                    app_billingrule_set_period_elect_price(gunno, period, request->serviceFee[APP_RATE_TYPE_FLAT]);
+                    app_billingrule_set_period_elect_price(gunno, period, request->chargeFee[APP_RATE_TYPE_FLAT]);
+                    app_billingrule_set_period_service_price(gunno, period, request->serviceFee[APP_RATE_TYPE_FLAT]);
                     app_billingrule_set_period_delay_price(gunno, period, 0x00);
                     break;
                 case APP_RATE_TYPE_VALLEY :
-                    app_billingrule_set_period_service_price(gunno, period, request->chargeFee[APP_RATE_TYPE_VALLEY]);
-                    app_billingrule_set_period_elect_price(gunno, period, request->serviceFee[APP_RATE_TYPE_VALLEY]);
+                    app_billingrule_set_period_elect_price(gunno, period, request->chargeFee[APP_RATE_TYPE_VALLEY]);
+                    app_billingrule_set_period_service_price(gunno, period, request->serviceFee[APP_RATE_TYPE_VALLEY]);
                     app_billingrule_set_period_delay_price(gunno, period, 0x00);
                     break;
                 default:
