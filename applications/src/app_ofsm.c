@@ -3630,7 +3630,9 @@ void ofsm_thread_entry(void *parameter)
             record_store = rt_tick_get();
         }
 
-        if((s_ofsm_info[thread_gunno].state != APP_OFSM_STATE_STARTING) && (s_ofsm_info[thread_gunno].state != APP_OFSM_STATE_CHARGING)){
+        if(!((s_ofsm_info[thread_gunno].state == APP_OFSM_STATE_STARTING) ||      \
+                (s_ofsm_info[thread_gunno].state == APP_OFSM_STATE_CHARGING) ||   \
+                (s_ofsm_info[thread_gunno].state == APP_OFSM_STATE_STOPING))){
             if(app_nsal_need_update_billingrule(thread_gunno)){
                 app_nsal_clear_update_billingrule_event(thread_gunno);
                 app_billingrule_update_billingrule_info(thread_gunno);
