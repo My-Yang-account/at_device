@@ -338,10 +338,11 @@ void chargepile_power_adjust(void)
     if(s_power_on == 0 && server_adjust_power == false){
         uint32_t power = *((uint32_t*)(sys_read_config_item_content(CONFIG_ITEM_SYSTEM_POWER_TOTAL, 0)));
         uint32_t sys_power_max = 0x00, single_module_power = 0x00;
+        uint8_t group = *(sys_read_config_item_content(CONFIG_ITEM_MODULE_GROUP_NUM, 0));
 
         single_module_power = ((*((uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_RATED_OUTPUT_VOLTAGE, 0)))) *  \
                 (*((uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_RATED_LIMIT_CURRENT, 0)))));
-        for(uint8_t count = 0; count < APP_SYSTEM_GUNNO_SIZE; count++){
+        for(uint8_t count = 0; count < group; count++){
             sys_power_max += (sys_get_single_group_module_num(count) *single_module_power);
         }
 
@@ -434,6 +435,8 @@ static void ofsm_wait_net_fun(uint8_t gunno)
 
     uint32_t single_module_power = 0x00;
     uint8_t valid_len = sizeof(s_thaisen_transaction[gunno].chargepile_id), *pile_number = sys_read_config_item_content(CONFIG_ITEM_PILE_NUMBER, 0x00);
+    uint8_t group = *(sys_read_config_item_content(CONFIG_ITEM_MODULE_GROUP_NUM, 0));
+
     valid_len = valid_len > strlen((char*)pile_number) ? strlen((char*)pile_number) : valid_len;
     memset(s_thaisen_transaction[gunno].chargepile_id, 0x00, sizeof(s_thaisen_transaction[gunno].chargepile_id));
     memcpy(s_thaisen_transaction[gunno].chargepile_id, pile_number, valid_len);
@@ -448,7 +451,7 @@ static void ofsm_wait_net_fun(uint8_t gunno)
     s_ofsm_info[gunno].base.system_power_max = 0x00;
     single_module_power = ((*((uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_RATED_OUTPUT_VOLTAGE, 0)))) *  \
             (*((uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_RATED_LIMIT_CURRENT, 0)))));
-    for(uint8_t count = 0; count < APP_SYSTEM_GUNNO_SIZE; count++){
+    for(uint8_t count = 0; count < group; count++){
         s_ofsm_info[gunno].base.system_power_max += (sys_get_single_group_module_num(count) *single_module_power);
     }
     LOG_D("gunno(%d) system_power_max(%d) get_single_group_module_num(%d)(%d)\n\n", gunno, s_ofsm_info[gunno].base.system_power_max, \
