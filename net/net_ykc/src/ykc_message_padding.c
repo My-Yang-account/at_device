@@ -1609,7 +1609,7 @@ void ykc_chargepile_request_padding_bmscommand_chargerout(uint8_t gunno, uint8_t
             g_ykc_preq_bmscommand_chargerout[gunno].body.bms_remain_charge_time = bms->BCS.SurplChgTime;
             g_ykc_preq_bmscommand_chargerout[gunno].body.pile_output_volt = (s_ykc_base->voltage_a /10);
             g_ykc_preq_bmscommand_chargerout[gunno].body.pile_output_curr = (4000 - (s_ykc_base->current_a /10));
-            g_ykc_preq_bmscommand_chargerout[gunno].body.charge_time = s_ykc_base->charge_time;
+            g_ykc_preq_bmscommand_chargerout[gunno].body.charge_time = s_ykc_base->charge_time /60;
         }
     }
 }
