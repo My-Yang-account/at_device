@@ -55,6 +55,19 @@ enum charge_strategy_enum{
     APP_CHARGE_STRATEGY_SOC,                           /* 充电策略：按SOC */
 };
 
+/** 预约策略，按位操作 */
+enum reservation_strategy{
+    APP_RESERVATE_STRATEGY_PULLGUN_CANCEL = 0x00,      /* 预约策略：拔枪取消 */
+    APP_RESERVATE_STRATEGY_TIMEOUT_CANCEL = 0x01,      /* 预约策略：预约超时取消(最大超时时间有预约策略参数规定[单位：s]) */
+};
+
+/** 调功率策略 */
+enum power_strategy{
+    APP_POWER_STRATEGY_ORDER = 0x01,                   /* 调功率策略：有序充电 */
+    APP_POWER_STRATEGY_SET_LIMIT = 0x02,               /* 调功率策略：设置功率限值 */
+    APP_POWER_STRATEGY_SIZE = 0x03,                    /* 调功率策略 */
+};
+
 enum system_start_way{
     APP_CHARGE_START_WAY_APP,                          /* 启动方式：APP */
     APP_CHARGE_START_WAY_ONLINE_CARD,                  /* 启动方式：在线卡 */
@@ -266,21 +279,22 @@ typedef struct
 /****************************************** 系统状态、数据信息 *************************************************/
 typedef struct{
     struct{
-        uint16_t is_local_charging : 1;                      /* 是否本地启动标志 */
-        uint16_t is_charge_complete : 1;                     /* 是否充电完成标志 */
-        uint16_t vin_authorization_success : 1;              /* 是否VIN鉴权成功标志 */
-        uint16_t vin_is_authorized : 1;                      /* 已进行VIN鉴权上报 */
-        uint16_t card_authorization : 1;                     /* 是否进行刷卡鉴权标志 */
-        uint16_t is_fault_stop : 1;                          /* 是否故障停充标志 */
-        uint16_t connect_state : 2;                          /* 枪连接状态 */
-        uint16_t is_pay_by_card : 1;                         /* 卡结算标志 */
-        uint16_t start_result : 1;                           /* 启动结果 */
-        uint16_t card_info_is_uid : 1;                       /* 卡信息是UID */
-        uint16_t is_overtemp : 1;                            /* 过温 */
-        uint16_t is_curr_decreased : 1;                      /* 过温已降流 */
-        uint16_t permit_judge_complete : 1;                  /* 判断是否允许充电的过程已完成 */
-        uint16_t is_starting : 1;                            /* 已发指令启动充电 */
-        uint16_t reserve : 1;
+        uint32_t is_local_charging : 1;                      /* 是否本地启动标志 */
+        uint32_t is_charge_complete : 1;                     /* 是否充电完成标志 */
+        uint32_t vin_authorization_success : 1;              /* 是否VIN鉴权成功标志 */
+        uint32_t vin_is_authorized : 1;                      /* 已进行VIN鉴权上报 */
+        uint32_t card_authorization : 1;                     /* 是否进行刷卡鉴权标志 */
+        uint32_t is_fault_stop : 1;                          /* 是否故障停充标志 */
+        uint32_t connect_state : 2;                          /* 枪连接状态 */
+        uint32_t is_pay_by_card : 1;                         /* 卡结算标志 */
+        uint32_t start_result : 1;                           /* 启动结果 */
+        uint32_t card_info_is_uid : 1;                       /* 卡信息是UID */
+        uint32_t is_overtemp : 1;                            /* 过温 */
+        uint32_t is_curr_decreased : 1;                      /* 过温已降流 */
+        uint32_t permit_judge_complete : 1;                  /* 判断是否允许充电的过程已完成 */
+        uint32_t is_starting : 1;                            /* 已发指令启动充电 */
+        uint32_t is_adjust_power : 1;                        /* 已进行功率调整 */
+        uint32_t is_resume_power : 1;                        /* 需要恢复功率 */
     }flag;
 
     uint8_t cc1_state;                /* CC1 状态 */
@@ -352,6 +366,13 @@ typedef struct{
     uint32_t card_ballance_before;    /* 充电前卡余额 */
     uint32_t card_ballance_after;     /* 充电后卡余额 */
 #endif /* (defined (APP_INCLUDE_SL_PROTOCOL) || defined (APP_INCLUDE_XJ_PROTOCOL)) */
+
+    uint8_t reservation_strategy;     /* 预约策略 */
+    uint8_t reservation_strategy_para;/* 预约策略参数 */
+    uint8_t reservation_time_sec;     /* 预约时间(单位:s) */
+
+    uint8_t power_strategy;           /* 调功率策略 */
+    uint8_t power_strategy_para;      /* 调功率策略参数 */
 
 #ifdef APP_INCLUDE_SGCC_PROTOCOL
     uint8_t device_transaction_number[40 + 1];  /* 设备流水号 */

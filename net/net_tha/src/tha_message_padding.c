@@ -765,6 +765,8 @@ int8_t tha_message_pro_set_power_request(uint8_t gunno, void *data, uint8_t len)
     if(s_tha_base->system_power_max >= (request->body.charge_power *1000)){
         net_operation_set_total_power(request->body.charge_power *1000);
         s_tha_flag_info[gunno].is_set_power = 0x01;
+        s_tha_base->power_strategy = APP_POWER_STRATEGY_SET_LIMIT;
+        s_tha_base->power_strategy_para = 0x00;
     }else{
         return -0x03;
     }

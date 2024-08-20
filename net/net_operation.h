@@ -211,6 +211,8 @@ enum net_event{
     NET_OPERATION_EVENT_VINAUTHORITY_MERGE_SUCCESS,     /* VIN码权限认证并充成功事件 */
     NET_OPERATION_EVENT_CARDAUTHORITY_MERGE_FAIL,       /* 刷卡权限认证并充失败事件 */
     NET_OPERATION_EVENT_VINAUTHORITY_MERGE_FAIL,        /* VIN码权限认证并充失败事件 */
+    NET_OPERATION_EVENT_SET_RESERVATION,                /* 设置预约事件 */
+    NET_OPERATION_EVENT_CANCEL_RESERVATION,             /* 取消预约事件 */
 };
 
 enum net_ota_state{

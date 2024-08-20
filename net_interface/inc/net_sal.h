@@ -183,4 +183,10 @@ uint32_t app_nsal_get_setup_power(void);
 uint8_t app_nsal_is_time_sync(void);
 void app_nsal_clear_time_sync(void);
 
+uint8_t app_nsal_is_set_reservation(uint8_t gunno);
+void app_nsal_clear_set_reservation(uint8_t gunno);
+uint8_t app_nsal_is_cancel_reservation(uint8_t gunno);
+void app_nsal_clear_cancel_reservation(uint8_t gunno);
+
+
 #endif /* NET_INTERFACE_INC_NET_SAL_H_ */

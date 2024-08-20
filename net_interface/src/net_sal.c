@@ -991,3 +991,48 @@ void app_nsal_clear_time_sync(void)
     net_operation_clear_event(0x00, NET_OPERATION_EVENT_TIME_SYNC);
 }
 
+/*******************************************
+ * 函数名    app_nsal_is_set_reservation
+ * 功能        检查是否有设置预约事件
+ *****************************************/
+uint8_t app_nsal_is_set_reservation(uint8_t gunno)
+{
+    for(uint8_t count = 0x00; count < APP_SYSTEM_GUNNO_SIZE; count++){
+        if(net_operation_get_event(gunno, NET_OPERATION_EVENT_SET_RESERVATION)){
+            return 0x01;
+        }
+    }
+    return 0x00;
+}
+
+/*******************************************
+ * 函数名    app_nsal_clear_set_reservation
+ * 功能        清除设置预约事件
+ *****************************************/
+void app_nsal_clear_set_reservation(uint8_t gunno)
+{
+    net_operation_clear_event(gunno, NET_OPERATION_EVENT_SET_RESERVATION);
+}
+
+/*******************************************
+ * 函数名    app_nsal_is_cancel_reservation
+ * 功能        检查是否有取消预约事件
+ *****************************************/
+uint8_t app_nsal_is_cancel_reservation(uint8_t gunno)
+{
+    for(uint8_t count = 0x00; count < APP_SYSTEM_GUNNO_SIZE; count++){
+        if(net_operation_get_event(gunno, NET_OPERATION_EVENT_CANCEL_RESERVATION)){
+            return 0x01;
+        }
+    }
+    return 0x00;
+}
+
+/*******************************************
+ * 函数名    app_nsal_clear_cancel_reservation
+ * 功能        清除设取消预约事件
+ *****************************************/
+void app_nsal_clear_cancel_reservation(uint8_t gunno)
+{
+    net_operation_clear_event(gunno, NET_OPERATION_EVENT_CANCEL_RESERVATION);
+}

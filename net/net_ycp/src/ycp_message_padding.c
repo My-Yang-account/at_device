@@ -986,6 +986,8 @@ int8_t ycp_message_pro_set_para_request(void *data, uint8_t len)
         uint32_t power = (s_ycp_base->system_power_max * request->body.power_percent /100);
         net_operation_set_total_power(power);
         s_ycp_flag_info[0x00].is_set_power = 0x01;
+        s_ycp_base->power_strategy = APP_POWER_STRATEGY_SET_LIMIT;
+        s_ycp_base->power_strategy_para = 0x00;
     }else{
         return -0x03;
     }
