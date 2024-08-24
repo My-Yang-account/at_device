@@ -530,7 +530,7 @@ static int ec20_socket_send(struct at_socket *socket, const char *buff, size_t b
 
     RT_ASSERT(buff);
 
-    resp = at_create_resp(128, 2, 5 * RT_TICK_PER_SECOND);
+    resp = at_create_resp(128, 0, 5 * RT_TICK_PER_SECOND);
     if (resp == RT_NULL)
     {
         LOG_E("no memory for resp create.");
@@ -578,8 +578,10 @@ static int ec20_socket_send(struct at_socket *socket, const char *buff, size_t b
         /* waiting result event from AT URC */
         if (ec20_socket_event_recv(device, SET_EVENT(device_socket, 0), 10 * RT_TICK_PER_SECOND, RT_EVENT_FLAG_OR) < 0)
         {
+#if 0
             result = -RT_ETIMEOUT;
             goto __exit;
+#endif
         }
         /* waiting OK or failed result */
         event_result = ec20_socket_event_recv(device,
@@ -587,15 +589,19 @@ static int ec20_socket_send(struct at_socket *socket, const char *buff, size_t b
         if (event_result < 0)
         {
             LOG_E("%s device socket(%d) wait sned OK|FAIL timeout.", device->name, device_socket);
+#if 0
             result = -RT_ETIMEOUT;
             goto __exit;
+#endif
         }
         /* check result */
         if (event_result & EC20_EVENT_SEND_FAIL)
         {
             LOG_E("%s device socket(%d) send failed.", device->name, device_socket);
+#if 0
             result = -RT_ERROR;
             goto __exit;
+#endif
         }
 
         if (type == AT_SOCKET_TCP)

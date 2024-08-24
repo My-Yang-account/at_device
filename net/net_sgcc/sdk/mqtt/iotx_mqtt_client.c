@@ -1602,7 +1602,11 @@ void _mqtt_cycle(void *client)
     iotx_mc_client_t *pClient = (iotx_mc_client_t *)client;
 
     iotx_time_init(&time);
-    utils_time_countdown_ms(&time, pClient->cycle_timeout_ms);
+#if 0
+    utils_time_countdown_ms(&time, pClient->cycle_timeout_ms);   /* 暂时这么改，在正确性有待确认 */
+#else
+    utils_time_countdown_ms(&time, 0);
+#endif
 
     do {
         unsigned int left_t;

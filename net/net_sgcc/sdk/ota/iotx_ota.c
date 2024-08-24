@@ -673,7 +673,7 @@ int IOT_OTA_FetchYield(void *handle, char *buf, uint32_t buf_len, uint32_t timeo
             return -1;
         }
         /* force report status in the first */
-        IOT_OTA_ReportProgress(h_ota, IOT_OTAP_FETCH_PERCENTAGE_MIN, "Enter in downloading state");
+        IOT_OTA_ReportProgress(h_ota, IOT_OTAP_FETCH_PERCENTAGE_MIN, "Enter in downloading state");  /* 首次上报进度(按需屏蔽) */
     }
 
     otalib_MD5Update(h_ota->md5, buf, ret);

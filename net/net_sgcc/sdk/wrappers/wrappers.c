@@ -67,7 +67,8 @@ void HAL_Firmware_File_Size(unsigned int file_size)
  */
 void HAL_Firmware_Persistence_Start(void)
 {
-
+    extern int sgcc_firmware_start(void);
+    return sgcc_firmware_start();
 }
 
 /**
@@ -92,7 +93,7 @@ int HAL_Firmware_Persistence_Write(char *buffer, unsigned int length)
  */
 int HAL_Firmware_Persistence_Stop(int process)
 {
-    extern int sgcc_firmware_stop(process);
+    extern int sgcc_firmware_stop(void);
     return sgcc_firmware_stop();
 }
 
@@ -468,7 +469,6 @@ static int network_ssl_connect(TLSDataParams_t *pTlsData, const char *addr, cons
     mbedtls_net_init(&(pTlsData->fd));
     rt_kprintf("network_ssl_connect(%d, %s, %s)\n", pTlsData->fd, addr, port);
     if (0 != (ret = mbedtls_net_connect(&(pTlsData->fd), addr, port, MBEDTLS_NET_PROTO_TCP))) {
-//    if (0 != (ret = mbedtls_net_connect(&(pTlsData->fd), "47.100.6.214", port, MBEDTLS_NET_PROTO_TCP))) {
         mbedtls_net_free(&(pTlsData->fd));
         LOG_E("failed! ssl connect failed, returned -0x%04x \n", -ret);
         return ret;
@@ -631,6 +631,7 @@ int HAL_SSL_Read(uintptr_t handle, char *buf, int len, int timeout_ms)
         return 0;
     }
 
+    mbedtls_ssl_conf_read_timeout(&(h->conf), timeout_ms);
     do {
         t_left = time_left(t_end, HAL_UptimeMs());
         if (0 == t_left) {

@@ -1128,9 +1128,18 @@ int at_recvfrom(int socket, void *mem, size_t len, int flags, struct sockaddr *f
             {
                 /* we have no data to receive but are woken up,
                     which means the socket have been closed. */
+#if 0
                 errno = EIO;
                 result = -1;
                 goto __exit;
+#else
+                if (sock->state == AT_SOCKET_CLOSED){
+                    result = 0;
+                    break;
+                }
+
+                continue;
+#endif
             }
         }
     }
