@@ -122,6 +122,16 @@ int32_t mw_storage_record_get_recordverify_record_num(uint16_t verify_mask, uint
  */
 int32_t mw_storage_record_get_first_index_recordverify(uint16_t verify_mask, uint8_t region);
 
+/**
+ * @brief 获取指定区域与verify_mask匹配的记录信息的第一个下标
+ * @param region 区域
+ * @param sindex 起始下标
+ * @param stime 开始时间戳
+ * @param etime 结束时间戳
+ * @return < 0: 失败，== 0：成功
+ */
+int32_t mw_storage_record_query_findex_with_time_period(uint16_t sindex, uint32_t stime, uint32_t etime, uint8_t region);
+
 #ifdef __cplusplus
 }
 #endif

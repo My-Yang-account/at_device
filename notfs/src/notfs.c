@@ -545,4 +545,24 @@ int32_t notfs_get_subregion_first_index_record_verify(enum notfs_subregion subre
     return index;
 }
 
+int32_t notfs_query_subregion_findex_with_time_period(enum notfs_subregion subregion, uint16_t sindex, uint32_t stime, uint32_t etime)
+{
+    if (NOTFS_SUBREGION_MAX < subregion) {
+        return NOTFS_OUTRANGE_ERR;
+    }
+    if (NULL == s_notfs_inode[subregion].inode) {
+        return NOTFS_ILLEGAL_ERR;
+    }
+
+    int32_t index;
+
+    for (index = sindex; index < s_notfs_sb[subregion].file_max_count; index++) {
+        if((s_notfs_inode[subregion].inode[index].timestamp >= stime) && (s_notfs_inode[subregion].inode[index].timestamp <= etime)){
+            break;
+        }
+    }
+
+    return (index == s_notfs_sb[subregion].file_max_count ? NOTFS_OUTRANGE_ERR : index);
+}
+
 /*****************************(C)COPYRIGHT(c) 2022 Thaisen *****END OF FILE****/

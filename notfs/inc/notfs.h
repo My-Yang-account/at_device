@@ -39,6 +39,8 @@ int32_t notfs_get_subregion_first_index_userdata(enum notfs_subregion subregion,
 int32_t notfs_get_subregion_first_index_record_verify(enum notfs_subregion subregion, uint16_t verify_mask);
 /* 获取指定区域与 verify_mask 匹配的记录总数 */
 int32_t notfs_get_subregion_record_verify_record_num(enum notfs_subregion subregion, uint16_t verify_mask);
+/* 获取指定区域在指定时间段内的第一条记录的下标 */
+int32_t notfs_query_subregion_findex_with_time_period(enum notfs_subregion subregion, uint16_t sindex, uint32_t stime, uint32_t etime);
 
 /* notfs_utils.c */
 uint32_t notfs_timestamp(void);

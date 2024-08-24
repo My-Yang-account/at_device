@@ -23,7 +23,7 @@
 #pragma pack(1)
 
 struct setup_para{
-    uint32_t total_power;          /* 系统总功率，单位W */
+    uint32_t total_power[NET_SYSTEM_GUN_NUMBER];          /* 系统总功率，单位W */
 };
 
 #pragma pack()
@@ -195,18 +195,21 @@ void net_operation_set_net_fault(uint8_t event)
  * 函数名     net_operation_set_total_power
  * 功能         设置系统总功率
  * ***************************************/
-void net_operation_set_total_power(uint32_t power)
+void net_operation_set_total_power(uint32_t power, uint8_t gunno)
 {
-    s_setup_para.total_power = power;
+    if(gunno >= NET_SYSTEM_GUN_NUMBER){
+        return;
+    }
+    s_setup_para.total_power[gunno] = power;
 }
 
 /******************************************
  * 函数名     net_operation_get_total_power
  * 功能         获取系统总功率
  * ***************************************/
-uint32_t net_operation_get_total_power(void)
+uint32_t net_operation_get_total_power(uint8_t gunno)
 {
-    return s_setup_para.total_power;
+    return s_setup_para.total_power[gunno];
 }
 
 /******************************************
@@ -260,6 +263,7 @@ static void net_start_function(void* handle)
     NET_MY_ASSERT(s_net_handle.card_vin_whitelists_delete, NET_PARA_CONFIG_INDEX_DELETE_CARD_VIN);
     NET_MY_ASSERT(s_net_handle.system_data_storage, NET_PARA_CONFIG_INDEX_SYSTEM_DATA_STORAGE);
     NET_MY_ASSERT(s_net_handle.system_control, NET_PARA_CONFIG_INDEX_SYSTEM_CONTROL);
+    NET_MY_ASSERT(s_net_handle.query_system_record, NET_PARA_CONFIG_INDEX_QUERY_SYSTEM_RECORD);
     NET_MY_ASSERT(s_net_handle.ndev_operate, NET_PARA_CONFIG_INDEX_NDEV_OPERATE);
     NET_MY_ASSERT(s_net_handle.crc16_8005, NET_PARA_CONFIG_INDEX_CRC16_8005);
     NET_MY_ASSERT(s_net_handle.crc32_updtae, NET_PARA_CONFIG_INDEX_CRC32_UPDATE);
@@ -335,6 +339,9 @@ static int32_t net_para_config_function(uint8_t platform, uint8_t index, void* p
         break;
     case NET_PARA_CONFIG_INDEX_SYSTEM_CONTROL :
         s_net_handle.system_control = (int32_t (*)(uint8_t, uint16_t, uint8_t*, uint32_t))para;
+        break;
+    case NET_PARA_CONFIG_INDEX_QUERY_SYSTEM_RECORD :
+        s_net_handle.query_system_record = (int32_t (*)(net_record_info_t*))para;
         break;
     case NET_PARA_CONFIG_INDEX_NDEV_OPERATE :
         s_net_handle.ndev_operate = (int32_t (*)(uint8_t))para;

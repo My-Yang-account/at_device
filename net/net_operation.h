@@ -102,7 +102,8 @@
 #define NET_SYSTEM_DATA_NAME_HARDWARE_VERSION          0x19    /* 系统数据名： 硬件版本*/
 #define NET_SYSTEM_DATA_NAME_PLATFORM_DATA             0x1A    /* 系统数据名： 平台存储数据*/
 #define NET_SYSTEM_DATA_NAME_SIGNAL_STRENGTH           0x1B    /* 系统数据名： 信号强度*/
-#define NET_SYSTEM_DATA_NAME_SIZE                      0x1C
+#define NET_SYSTEM_DATA_NAME_AMMETER_ADDRESS           0x1C    /* 系统数据名： 电表地址*/
+#define NET_SYSTEM_DATA_NAME_SIZE                      0x1D
 
 /** operator name */
 #define NET_OPERATOR_NAME_CHINA_MOBILE                 0x00    /* 运营商名称：中国移动*/
@@ -160,6 +161,12 @@
 #define NET_SYSTEM_CTRL_ITEM_ELOCK                     0x00             /* 系统控制项：电子锁 */
 #define NET_SYSTEM_CTRL_ITEM_SIZE                      0x01             /* 系统控制项 */
 
+/** system record option */
+#define NET_SYSTEM_RECORD_OPTION_CHARGE                0x00             /* 系统数据选项：充电记录 */
+#define NET_SYSTEM_RECORD_OPTION_FAULT                 0x01             /* 系统数据选项：故障记录 */
+#define NET_SYSTEM_RECORD_OPTION_CNUM                  0x02             /* 系统数据选项：充电记录总数 */
+#define NET_SYSTEM_RECORD_OPTION_FNUM                  0x03             /* 系统数据选项：故障记录总数 */
+
 /** net parameter config */
 enum para_config{
     NET_PARA_CONFIG_INDEX_FLASH_ERASE = 1,             /* 参数配置下标：flash擦除函数 */
@@ -178,8 +185,9 @@ enum para_config{
     NET_PARA_CONFIG_INDEX_GET_BASE_DATA = 14,          /* 参数配置下标：设置基本数据 */
     NET_PARA_CONFIG_INDEX_SYSTEM_DATA_STORAGE = 15,    /* 参数配置下标：系统数据存储 */
     NET_PARA_CONFIG_INDEX_SYSTEM_CONTROL = 16,         /* 参数配置下标：系统控制 */
-    NET_PARA_CONFIG_INDEX_NDEV_OPERATE = 17,           /* 参数配置下标：网络设备操作 */
-    NET_PARA_CONFIG_INDEX_SIZE = 18,
+    NET_PARA_CONFIG_INDEX_QUERY_SYSTEM_RECORD = 17,    /* 参数配置下标：查询系统数据 */
+    NET_PARA_CONFIG_INDEX_NDEV_OPERATE = 18,           /* 参数配置下标：网络设备操作 */
+    NET_PARA_CONFIG_INDEX_SIZE = 19,
 };
 
 #define NET_MY_ASSERT(para, index)                             \
@@ -258,6 +266,16 @@ typedef struct{
     }flag;
 }net_ota_info_t;
 
+typedef struct{
+    uint8_t gunno;
+    uint8_t sindex;
+    uint32_t stime;
+    uint32_t etime;
+    void* buf;
+    uint16_t len;
+    uint32_t option;
+}net_record_info_t;
+
 struct net_handle{
     uint8_t net_fault;
     uint8_t net_state;
@@ -265,7 +283,7 @@ struct net_handle{
     void (*data_updata)(void);
     void (*time_sync)(uint32_t timestamp);
     void* (*get_base_data)(uint8_t gunno);
-    uint8_t* (*get_system_data)(uint8_t name, uint32_t *dlen, uint32_t option);
+    uint8_t* (*get_system_data)(uint8_t name, uint32_t *vector, uint32_t option);
     int32_t (*set_system_data)(uint8_t name, uint8_t *data, uint16_t len, uint32_t option);
     int32_t (*para_config)(uint8_t platform, uint8_t config_index, void* para, void* handle);
     int32_t (*flash_erase)(uint32_t addr, uint32_t size);
@@ -276,6 +294,7 @@ struct net_handle{
     int32_t (*card_vin_whitelists_query)(uint8_t* data, uint8_t len, uint32_t option);
     int32_t (*card_vin_whitelists_delete)(uint8_t* data, uint8_t len, uint32_t option);
     int32_t (*system_data_storage)(uint32_t option);
+    int32_t (*query_system_record)(net_record_info_t *info);
     int32_t (*system_control)(uint8_t gunno, uint16_t item, uint8_t *para, uint32_t option);
     int32_t (*ndev_operate)(uint8_t option);
     uint16_t (*crc16_8005)(uint16_t init, const uint8_t *data, uint32_t len);
@@ -294,8 +313,8 @@ void net_operation_clear_event(uint8_t gunno, uint8_t event);
 void net_operation_clear_net_fault(uint8_t event);
 void net_operation_set_net_fault(uint8_t event);
 
-void net_operation_set_total_power(uint32_t power);
-uint32_t net_operation_get_total_power(void);
+void net_operation_set_total_power(uint32_t power, uint8_t gunno);
+uint32_t net_operation_get_total_power(uint8_t gunno);
 
 struct net_handle* net_get_net_handle(void);
 net_ota_info_t *net_get_ota_info(void);

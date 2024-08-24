@@ -164,3 +164,8 @@ int32_t mw_storage_record_get_first_index_recordverify(uint16_t verify_mask, uin
 {
     return notfs_get_subregion_first_index_record_verify((enum notfs_subregion)region, verify_mask);
 }
+
+int32_t mw_storage_record_query_findex_with_time_period(uint16_t sindex, uint32_t stime, uint32_t etime, uint8_t region)
+{
+    return notfs_query_subregion_findex_with_time_period((enum notfs_subregion)region, sindex, stime, etime);
+}

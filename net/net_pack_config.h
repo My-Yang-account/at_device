@@ -169,6 +169,7 @@
 //#define NET_SGCC_PRO_USING_AC                                      /* 国网协议使用交流部分 */
 #endif /* NET_PACK_USING_SGCC */
 #define NET_SGCC_PRO_ID                               0x00000080 /* 国网协议ID */
+/***********************************************************************************************************************/
 
 /* OTA 相关配置 */
 #ifdef NET_INCLUDE_OTA
@@ -188,6 +189,7 @@
 
 #endif /* NET_INCLUDE_OTA */
 
+#define NET_SYSTEM_RECORD_STORAGE_NUM_MAX             100        /* 系统存储记录数量最大值 */
 #endif /* NET_USING_NET_PACK */
 
 #endif /* NET_PACK_NET_PACK_CONFIG_H_ */

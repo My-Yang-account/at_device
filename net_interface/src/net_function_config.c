@@ -11,6 +11,7 @@
 #include "net_operation.h"
 #include "app_ofsm.h"
 #include "mw_norflash.h"
+#include "mw_storage.h"
 
 #include "chargepile_config.h"
 
@@ -150,7 +151,7 @@ static int32_t app_nsystem_control(uint8_t gunno, uint16_t item, uint8_t *para, 
  * 函数名     app_nget_system_data
  * 功能         获取系统数据
  **********************************************/
-static uint8_t* app_nget_system_data(uint8_t name, uint32_t *dlen, uint32_t option)
+static uint8_t* app_nget_system_data(uint8_t name, uint32_t *vector, uint32_t option)
 {
     uint8_t is_content = (option &0x01), platform = 0x00;
     for(uint8_t bit = 0x01; bit < 0x08; bit++){
@@ -161,8 +162,8 @@ static uint8_t* app_nget_system_data(uint8_t name, uint32_t *dlen, uint32_t opti
 
     switch(name){
     case NET_SYSTEM_DATA_NAME_PILE_NUMBER:
-        if(dlen){
-            *dlen = strlen((char*)(sys_read_config_item_content(CONFIG_ITEM_PILE_NUMBER, 0x00)));
+        if(vector){
+            *vector = strlen((char*)(sys_read_config_item_content(CONFIG_ITEM_PILE_NUMBER, 0x00)));
         }
         return sys_read_config_item_content(CONFIG_ITEM_PILE_NUMBER, 0x00);
         break;
@@ -221,16 +222,16 @@ static uint8_t* app_nget_system_data(uint8_t name, uint32_t *dlen, uint32_t opti
     case NET_SYSTEM_DATA_NAME_PORT:
         return sys_read_config_item_content(CONFIG_ITEM_PORT, 0x00);
         break;
-#if 0
     case NET_SYSTEM_DATA_NAME_VOLTAGE_MAX:
-
+        return sys_read_config_item_content(CONFIG_ITEM_MAX_OUTPUT_VOLTAGE, 0x00);
         break;
     case NET_SYSTEM_DATA_NAME_VOLTAGE_MIN:
-
+        return sys_read_config_item_content(CONFIG_ITEM_MIN_OUTPUT_VOLTAGE, 0x00);
         break;
     case NET_SYSTEM_DATA_NAME_CURRENT_MAX:
-
+        return sys_read_config_item_content(CONFIG_ITEM_MAX_LIMIT_CURRENT, 0x00);
         break;
+#if 0
     case NET_SYSTEM_DATA_NAME_MODULE_NUM:
 
         break;
@@ -281,9 +282,21 @@ static uint8_t* app_nget_system_data(uint8_t name, uint32_t *dlen, uint32_t opti
         }
         return NULL;
         break;
+    case NET_SYSTEM_DATA_NAME_AMMETER_ADDRESS:
+    {
+        uint8_t gunno = *((uint8_t*)vector);
+        if(gunno == 0x00){
+            return sys_read_config_item_content(CONFIG_ITEM_METER_NOA, 0x00);
+        }else{
+            return sys_read_config_item_content(CONFIG_ITEM_METER_NOB, 0x00);
+        }
+    }
+        break;
     default:
         break;
     }
+
+    return NULL;
 }
 
 /***********************************************
@@ -517,6 +530,69 @@ static int32_t app_ncard_vin_whitelists_delete(uint8_t* data, uint8_t len, uint3
 }
 
 /***********************************************
+ * 函数名     app_nquery_system_record
+ * 功能         查询指定时间段内的系统记录
+ **********************************************/
+static int32_t app_nquery_system_record(net_record_info_t *info)
+{
+    if(info->gunno >= NET_SYSTEM_GUN_NUMBER){
+        return -0x02;
+    }
+
+    uint8_t region = 0x00;
+    int32_t index = 0x00;
+
+    switch(info->option){
+    case NET_SYSTEM_RECORD_OPTION_CHARGE:
+        if(info->buf == NULL){
+            return -0x01;
+        }
+        region = RECORD_REGION_CHARGE_RECORDA;
+        if(info->gunno){
+            region = RECORD_REGION_CHARGE_RECORDB;
+        }
+        index = mw_storage_record_query_findex_with_time_period(info->sindex, info->stime, info->etime, region);
+        if(index < 0x00){
+            return -0x04;
+        }
+        return mw_storage_record_get_designate_index_record((uint8_t*)(info->buf), info->len, region, index);
+        break;
+    case NET_SYSTEM_RECORD_OPTION_FAULT:
+        if(info->buf == NULL){
+            return -0x01;
+        }
+        region = RECORD_REGION_FAULT_RECORDA;
+        if(info->gunno){
+            region = RECORD_REGION_FAULT_RECORDB;
+        }
+        index = mw_storage_record_query_findex_with_time_period(info->sindex, info->stime, info->etime, region);
+        if(index < 0x00){
+            return -0x04;
+        }
+        return mw_storage_record_get_designate_index_record((uint8_t*)(info->buf), info->len, region, index);
+        break;
+    case NET_SYSTEM_RECORD_OPTION_CNUM:
+        region = RECORD_REGION_CHARGE_RECORDA;
+        if(info->gunno){
+            region = RECORD_REGION_CHARGE_RECORDB;
+        }
+        return mw_storage_record_get_record_total_num(region);
+        break;
+    case NET_SYSTEM_RECORD_OPTION_FNUM:
+        region = RECORD_REGION_FAULT_RECORDA;
+        if(info->gunno){
+            region = RECORD_REGION_FAULT_RECORDB;
+        }
+        return mw_storage_record_get_record_total_num(region);
+        break;
+    default:
+        return -0x03;
+        break;
+    }
+    return -0x04;
+}
+
+/***********************************************
  * 函数名     app_ncrc16_modbus
  * 功能         CRC16 校验
  **********************************************/
@@ -558,6 +634,7 @@ int32_t app_nfunc_config_init(void)
     handle->para_config(0x00, NET_PARA_CONFIG_INDEX_DELETE_CARD_VIN,       app_ncard_vin_whitelists_delete, handle);
     handle->para_config(0x00, NET_PARA_CONFIG_INDEX_SYSTEM_DATA_STORAGE,   app_nsystem_data_storage, handle);
     handle->para_config(0x00, NET_PARA_CONFIG_INDEX_SYSTEM_CONTROL,        app_nsystem_control, handle);
+    handle->para_config(0x00, NET_PARA_CONFIG_INDEX_QUERY_SYSTEM_RECORD,   app_nquery_system_record, handle);
     handle->para_config(0x00, NET_PARA_CONFIG_INDEX_NDEV_OPERATE,          app_ndevice_operate, handle);
     handle->para_config(0x00, NET_PARA_CONFIG_INDEX_CRC16_8005,            app_ncrc16_modbus, handle);
     handle->para_config(0x00, NET_PARA_CONFIG_INDEX_CRC32_UPDATE,          app_ncrc32_updtae, handle);
