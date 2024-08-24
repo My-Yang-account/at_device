@@ -31,6 +31,12 @@ extern "C" {
 #define APP_CARD_NUMBER_COMPARE_LEN          16        /* 卡号对比长度 */
 #define OVERTEMP_DECREASE_CURR_PERCENT       5 /10     /* 过温降流百分比 */
 
+#define APP_RESERVATE_STRATEGY_PULLGUN_CANCEL  (0x01 <<0x00)     /* 预约策略：拔枪取消 */
+#define APP_RESERVATE_STRATEGY_FAULT_CANCEL    (0x01 <<0x01)     /* 预约策略：故障取消取消 */
+#define APP_RESERVATE_STRATEGY_TIMEOUT_CANCEL  (0x01 <<0x02)     /* 预约策略：预约超时取消(最大超时时间有预约策略参数规定[单位：s]) */
+#define APP_RESERVATE_STRATEGY_VIN_AUTH        (0x01 <<0x03)     /* 预约策略：预约时间到后需要VIN码鉴权启动 */
+#define APP_RESERVATE_STRATEGY_START_DIRECTLY  (0x01 <<0x04)     /* 预约策略：预约时间到后直接启动 */
+
 enum booting_step_t{
     APP_BOOTING_STEP_IDLE,
     APP_BOOTING_STEP_HAND,
@@ -53,12 +59,6 @@ enum charge_strategy_enum{
     APP_CHARGE_STRATEGY_RESERVATION,                   /* 充电策略：预约 */
     APP_CHARGE_STRATEGY_FULL,                          /* 充电策略：充满 */
     APP_CHARGE_STRATEGY_SOC,                           /* 充电策略：按SOC */
-};
-
-/** 预约策略，按位操作 */
-enum reservation_strategy{
-    APP_RESERVATE_STRATEGY_PULLGUN_CANCEL = 0x00,      /* 预约策略：拔枪取消 */
-    APP_RESERVATE_STRATEGY_TIMEOUT_CANCEL = 0x01,      /* 预约策略：预约超时取消(最大超时时间有预约策略参数规定[单位：s]) */
 };
 
 /** 调功率策略 */
@@ -103,14 +103,15 @@ enum ota_state{
 };
 
 enum ofsm_state {
-    APP_OFSM_STATE_WAIT_NET,  /** 状态机状态：等待网络 */
-    APP_OFSM_STATE_IDLEING,   /** 状态机状态： 空闲中 */
-    APP_OFSM_STATE_READYING,  /** 状态机状态： 准备中 */
-    APP_OFSM_STATE_STARTING,  /** 状态机状态： 开始中 */
-    APP_OFSM_STATE_CHARGING,  /** 状态机状态： 充电中 */
-    APP_OFSM_STATE_STOPING,   /** 状态机状态： 停止中 */
-    APP_OFSM_STATE_FINISHING, /** 状态机状态： 充电完成未拔枪 */
-    APP_OFSM_STATE_FAULTING,  /** 状态机状态： 故障 */
+    APP_OFSM_STATE_WAIT_NET,    /** 状态机状态：等待网络 */
+    APP_OFSM_STATE_IDLEING,     /** 状态机状态： 空闲中 */
+    APP_OFSM_STATE_READYING,    /** 状态机状态： 准备中 */
+    APP_OFSM_STATE_RESERVATION, /** 状态机状态： 预约中 */
+    APP_OFSM_STATE_STARTING,    /** 状态机状态： 开始中 */
+    APP_OFSM_STATE_CHARGING,    /** 状态机状态： 充电中 */
+    APP_OFSM_STATE_STOPING,     /** 状态机状态： 停止中 */
+    APP_OFSM_STATE_FINISHING,   /** 状态机状态： 充电完成未拔枪 */
+    APP_OFSM_STATE_FAULTING,    /** 状态机状态： 故障 */
 
     APP_OFSM_STATE_SIZE,
 };
@@ -295,6 +296,7 @@ typedef struct{
         uint32_t is_starting : 1;                            /* 已发指令启动充电 */
         uint32_t is_adjust_power : 1;                        /* 已进行功率调整 */
         uint32_t is_resume_power : 1;                        /* 需要恢复功率 */
+        uint32_t is_reservation : 1;                         /* 预约中 */
     }flag;
 
     uint8_t cc1_state;                /* CC1 状态 */

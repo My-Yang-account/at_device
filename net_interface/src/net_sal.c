@@ -301,7 +301,7 @@ uint8_t app_nsal_is_remote_stop(uint8_t gunno)
  * 函数名    app_nsal_report_remote_start_result
  * 功能        上报远程启动结果
  *****************************************/
-void app_nsal_report_remote_start_result(uint8_t gunno, uint8_t result, uint8_t reason, uint8_t fault)
+void app_nsal_report_remote_start_result(uint8_t gunno, uint8_t result, uint16_t reason, uint16_t fault)
 {
 #ifdef NET_PACK_USING_YKC
 //    ykc_start_charge_response_asynchronously(gunno, result);
@@ -328,7 +328,7 @@ void app_nsal_report_remote_start_result(uint8_t gunno, uint8_t result, uint8_t 
  * 函数名    app_nsal_report_remote_stop_result
  * 功能        上报远程停止结果
  *****************************************/
-void app_nsal_report_remote_stop_result(uint8_t gunno, uint8_t result, uint8_t reason, uint8_t fault)
+void app_nsal_report_remote_stop_result(uint8_t gunno, uint8_t result, uint16_t reason, uint16_t fault)
 {
 #ifdef NET_PACK_USING_YKC
 //    ykc_stop_charge_response_asynchronously(gunno, result);
@@ -968,9 +968,9 @@ void app_nsal_clear_set_power(uint8_t gunno)
  * 函数名    app_nsal_get_setup_power
  * 功能        获取设置的总功率
  *****************************************/
-uint32_t app_nsal_get_setup_power(void)
+uint32_t app_nsal_get_setup_power(uint8_t gunno)
 {
-    return net_operation_get_total_power();
+    return net_operation_get_total_power(gunno);
 }
 
 /*******************************************

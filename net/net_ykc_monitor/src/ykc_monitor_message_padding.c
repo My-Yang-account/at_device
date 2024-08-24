@@ -950,7 +950,7 @@ int8_t ykc_monitor_message_pro_set_work_para_request(void *data, uint8_t len)
             s_ykc_monitor_base->system_power_max, (s_ykc_monitor_base->system_power_max * request->body.power_max_percent /100));
     if((request->body.power_max_percent > 0x00) && (request->body.power_max_percent <= 0x64)){
         uint32_t power = (s_ykc_monitor_base->system_power_max * request->body.power_max_percent /100);
-        net_operation_set_total_power(power);
+        net_operation_set_total_power(power, 0x00);
         s_ykc_monitor_flag_info[0x00].is_set_power = NET_ENUM_TRUE;
         s_ykc_monitor_base->power_strategy = APP_POWER_STRATEGY_SET_LIMIT;
         s_ykc_monitor_base->power_strategy_para = 0x00;

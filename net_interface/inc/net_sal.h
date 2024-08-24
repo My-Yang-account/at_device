@@ -166,8 +166,8 @@ uint8_t app_nsal_get_ota_result(void);
 uint32_t app_nsal_get_ota_progress(void);
 uint8_t app_nsal_is_remote_start(uint8_t gunno);
 uint8_t app_nsal_is_remote_stop(uint8_t gunno);
-void app_nsal_report_remote_start_result(uint8_t gunno, uint8_t result, uint8_t reason, uint8_t fault);
-void app_nsal_report_remote_stop_result(uint8_t gunno, uint8_t result, uint8_t reason, uint8_t fault);
+void app_nsal_report_remote_start_result(uint8_t gunno, uint8_t result, uint16_t reason, uint16_t fault);
+void app_nsal_report_remote_stop_result(uint8_t gunno, uint8_t result, uint16_t reason, uint16_t fault);
 
 uint8_t app_nsal_is_card_authorize_success(uint8_t gunno);
 uint8_t app_nsal_is_vin_authorize_success(uint8_t gunno);
@@ -179,7 +179,7 @@ void app_nsal_is_permit_ota(uint8_t state);
 void app_nsal_report_set_power_result(uint8_t gunno, uint8_t result, uint8_t reason);
 uint8_t app_nsal_is_set_power(uint8_t gunno);
 void app_nsal_clear_set_power(uint8_t gunno);
-uint32_t app_nsal_get_setup_power(void);
+uint32_t app_nsal_get_setup_power(uint8_t gunno);
 uint8_t app_nsal_is_time_sync(void);
 void app_nsal_clear_time_sync(void);
 
