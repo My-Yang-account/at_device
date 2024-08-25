@@ -10,6 +10,7 @@
 
 #include "sgcc_fault_analyse.h"
 #include "sgcc_message_send.h"
+#include "sgcc_device_register.h"
 
 #ifdef NET_PACK_USING_SGCC
 
@@ -91,6 +92,7 @@ static void sgcc_clear_fault_event(uint8_t gunno, uint8_t code)
     s_sgcc_current_fault_set[gunno] &= (~(0x01 <<code));
 }
 
+#ifdef NET_SGCC_PRO_USING_DC
 static int32_t sgcc_get_fault_code(uint8_t bit, uint8_t gunno, uint8_t *rank)
 {
     if(gunno >= NET_SYSTEM_GUN_NUMBER){
@@ -102,85 +104,85 @@ static int32_t sgcc_get_fault_code(uint8_t bit, uint8_t gunno, uint8_t *rank)
 
     switch(bit){
     case NET_GENERAL_FAULT_SCRAM:
-        s_sgcc_realtime_fault[gunno] = 3033;
+        s_sgcc_realtime_fault[gunno] = NETSGCC_DCA_REASON3033_CRASH_STOP;
         if(rank){
             *rank = 0x01;
         }
         break;
     case NET_GENERAL_FAULT_CARD_READER:
-        s_sgcc_realtime_fault[gunno] = 3035;
+        s_sgcc_realtime_fault[gunno] = NETSGCC_DCA_REASON3037_CARD_READER;
         if(rank){
             *rank = 0x00;
         }
         break;
     case NET_GENERAL_FAULT_DOOR:
-        s_sgcc_realtime_fault[gunno] = 3032;
+        s_sgcc_realtime_fault[gunno] = NETSGCC_DCA_REASON3032_OPNE_DOOR;
         if(rank){
             *rank = 0x01;
         }
         break;
     case NET_GENERAL_FAULT_AMMETER:
-        s_sgcc_realtime_fault[gunno] = 3043;
+        s_sgcc_realtime_fault[gunno] = NETSGCC_DCA_REASON3043_AMMETER_COMM;
         if(rank){
             *rank = 0x01;
         }
         break;
     case NET_GENERAL_FAULT_CHARGE_MODULE:
-        s_sgcc_realtime_fault[gunno] = 3038;
+        s_sgcc_realtime_fault[gunno] = NETSGCC_DCA_REASON3038_MODULE_COMM;
         if(rank){
             *rank = 0x01;
         }
         break;
     case NET_GENERAL_FAULT_OVER_TEMP:
-        s_sgcc_realtime_fault[gunno] = 3053;
+        s_sgcc_realtime_fault[gunno] = NETSGCC_DCA_REASON3053_CHARGE_PORT_OVERTEMP;
         if(rank){
             *rank = 0x00;
         }
         break;
     case NET_GENERAL_FAULT_OVER_VOLT:
-        s_sgcc_realtime_fault[gunno] = 4009;
+        s_sgcc_realtime_fault[gunno] = NETSGCC_DCPA_REASON4009_OUTPUT_OVERVOLT;
         if(rank){
             *rank = 0x01;
         }
         break;
     case NET_GENERAL_FAULT_UNDER_VOLT:
-        s_sgcc_realtime_fault[gunno] = 4011;
+        s_sgcc_realtime_fault[gunno] = NETSGCC_DCPA_REASON4011_OUTPUT_UNDERVOLT;
         if(rank){
             *rank = 0x01;
         }
         break;
     case NET_GENERAL_FAULT_OVER_CURR:
-        s_sgcc_realtime_fault[gunno] = 4010;
+        s_sgcc_realtime_fault[gunno] = NETSGCC_DCPA_REASON4010_OUTPUT_OVERCURR;
         if(rank){
             *rank = 0x01;
         }
         break;
     case NET_GENERAL_FAULT_MAIN_RELAY:
-        s_sgcc_realtime_fault[gunno] = 3046;
+        s_sgcc_realtime_fault[gunno] = NETSGCC_DCA_REASON3046_DC_RELAY;
         if(rank){
             *rank = 0x01;
         }
         break;
     case NET_GENERAL_FAULT_PARALLEL_RELAY:
-        s_sgcc_realtime_fault[gunno] = 3068;
+        s_sgcc_realtime_fault[gunno] = NETSGCC_DCA_REASON3068_PARALLEL_RELAY_ADH;
         if(rank){
             *rank = 0x01;
         }
         break;
     case NET_GENERAL_FAULT_AC_RELAY:
-        s_sgcc_realtime_fault[gunno] = 3065;
+        s_sgcc_realtime_fault[gunno] = NETSGCC_DCA_REASON3065_AC_RELAY;
         if(rank){
             *rank = 0x01;
         }
         break;
     case NET_GENERAL_FAULT_ELOCK:
-        s_sgcc_realtime_fault[gunno] = 3054;
+        s_sgcc_realtime_fault[gunno] = NETSGCC_DCA_REASON3054_ELOCK;
         if(rank){
             *rank = 0x01;
         }
         break;
     case NET_GENERAL_FAULT_AUXPOWER:
-        s_sgcc_realtime_fault[gunno] = 3049;
+        s_sgcc_realtime_fault[gunno] = NETSGCC_DCA_REASON3049_AUXPOWER;
         if(rank){
             *rank = 0x01;
         }
@@ -192,7 +194,7 @@ static int32_t sgcc_get_fault_code(uint8_t bit, uint8_t gunno, uint8_t *rank)
         return 0x00;
         break;
     case NET_GENERAL_FAULT_LIGHT_PRPTECT:
-        s_sgcc_realtime_fault[gunno] = 3084;
+        s_sgcc_realtime_fault[gunno] = NETSGCC_DCA_REASON3084_LIGHTING_PROTECTORS;
         if(rank){
             *rank = 0x01;
         }
@@ -201,19 +203,19 @@ static int32_t sgcc_get_fault_code(uint8_t bit, uint8_t gunno, uint8_t *rank)
         return 0x00;
         break;
     case NET_GENERAL_FAULT_CIRCUIT_BREAKER:
-        s_sgcc_realtime_fault[gunno] = 4013;
+        s_sgcc_realtime_fault[gunno] = NETSGCC_DCPA_REASON4013_AC_CIRCUIT_BREAKER;
         if(rank){
             *rank = 0x01;
         }
         break;
     case NET_GENERAL_FAULT_FLOODING:
-        s_sgcc_realtime_fault[gunno] = 3055;
+        s_sgcc_realtime_fault[gunno] = NETSGCC_DCA_REASON3055_FLOODING;
         if(rank){
             *rank = 0x01;
         }
         break;
     case NET_GENERAL_FAULT_SMOKE:
-        s_sgcc_realtime_fault[gunno] = 3085;
+        s_sgcc_realtime_fault[gunno] = NETSGCC_DCA_REASON3085_SMOKING;
         if(rank){
             *rank = 0x01;
         }
@@ -225,7 +227,7 @@ static int32_t sgcc_get_fault_code(uint8_t bit, uint8_t gunno, uint8_t *rank)
         return 0x00;
         break;
     case NET_GENERAL_FAULT_FUSE:
-        s_sgcc_realtime_fault[gunno] = 3047;
+        s_sgcc_realtime_fault[gunno] = NETSGCC_DCA_REASON3047_DC_FUSE;
         if(rank){
             *rank = 0x01;
         }
@@ -236,6 +238,24 @@ static int32_t sgcc_get_fault_code(uint8_t bit, uint8_t gunno, uint8_t *rank)
     }
     return 0x01;
 }
+#else
+static int32_t sgcc_get_fault_code(uint8_t bit, uint8_t gunno, uint8_t *rank)
+{
+    if(gunno >= NET_SYSTEM_GUN_NUMBER){
+        return -0x01;
+    }
+
+    extern uint16_t sgcc_chargepile_fault_converted(uint16_t bit);
+    bit = sgcc_chargepile_fault_converted(bit);
+
+    switch(bit){
+    default:
+        break;
+    }
+
+    return 0x00;
+}
+#endif /* NET_SGCC_PRO_USING_DC */
 
 /*************************************************
  * 函数名      sgcc_fault_detect_report

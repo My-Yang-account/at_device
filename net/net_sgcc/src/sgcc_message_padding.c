@@ -2038,9 +2038,7 @@ uint8_t sgcc_chargepile_request_padding_transaction_record(uint8_t gunno, void *
         evs_event_tradeInfos[gunno].startSoc = _transaction->start_soc;
         evs_event_tradeInfos[gunno].endSoc = _transaction->stop_soc;
 
-        ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-        evs_event_tradeInfos[gunno].reason = sgcc_chargepile_stop_reason_converted(_transaction->stop_reason, _transaction->order_state.is_start_fail);                            // 11 停止充电原因
-        //////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        evs_event_tradeInfos[gunno].reason = sgcc_chargepile_stop_reason_converted(_transaction->stop_reason, _transaction->order_state.is_start_fail);
 
         valid_len = sizeof(_transaction->rule.elect_model_sn);
         valid_len = valid_len > EVS_MAX_MODEL_ID_LEN ? EVS_MAX_MODEL_ID_LEN : valid_len;
@@ -2102,13 +2100,13 @@ void sgcc_start_charge_response_asynchronously(uint8_t gunno, uint8_t result, ui
         s_agcc_remotecharge_result[gunno] = 11;
     }
 
-#if 0
-    s_agcc_remotecharge_fault_reason[gunno] = reason;   /* 需要进行启动原因原因转换 */
-    s_agcc_remotecharge_fail_reason[gunno] = fault;     /* 需要进行故障原因原因转换 */
-#else
-    s_agcc_remotecharge_fault_reason[gunno] = 0x00;   /* 需要进行启动原因原因转换 */
-    s_agcc_remotecharge_fail_reason[gunno] = 0x00;     /* 需要进行故障原因原因转换 */
-#endif
+    if(s_agcc_remotecharge_result[gunno] == 10){
+        s_agcc_remotecharge_fail_reason[gunno] = 0x00;
+    }else{
+        s_agcc_remotecharge_fail_reason[gunno] = sgcc_chargepile_stop_reason_converted(reason, NET_ENUM_TRUE);
+    }
+
+    s_agcc_remotecharge_fault_reason[gunno] = s_agcc_remotecharge_fail_reason[gunno];
     s_sgcc_flag_info[gunno].is_start_charge = NET_ENUM_FALSE;
 
     sgcc_net_event_send(NET_SGCC_EVENT_HANDLE_CHARGEPILE, NET_SGCC_EVENT_TYPE_RESPONSE, gunno, NET_SGCC_PRES_EVENT_START_CHARGE_ASYNCHRONOUSLY);
@@ -2135,14 +2133,10 @@ void sgcc_stop_charge_response_asynchronously(uint8_t gunno, uint8_t result, uin
         s_agcc_remotestop_result[gunno] = 11;
     }
 
-#if 0
-    s_agcc_remotestop_fault_reason[gunno] = reason;   /* 需要进行启动原因原因转换 */
-    s_agcc_remotestop_fail_reason[gunno] = fault;     /* 需要进行故障原因原因转换 */
-#else
-    s_agcc_remotestop_fault_reason[gunno] = 11;   /* 需要进行启动原因原因转换 */
-    s_agcc_remotestop_fail_reason[gunno] = 1002;     /* 需要进行故障原因原因转换 */
-#endif
+    s_agcc_remotestop_fail_reason[gunno] = sgcc_chargepile_stop_reason_converted(reason, NET_ENUM_TRUE);
+    s_agcc_remotestop_fault_reason[gunno] = 11;
     s_sgcc_flag_info[gunno].is_stop_charge = NET_ENUM_FALSE;
+
     sgcc_net_event_send(NET_SGCC_EVENT_HANDLE_CHARGEPILE, NET_SGCC_EVENT_TYPE_RESPONSE, gunno, NET_SGCC_PRES_EVENT_STOP_CHARGE_ASYNCHRONOUSLY);
 }
 
@@ -2510,6 +2504,7 @@ static uint8_t sgcc_chargepile_transaction_identity_converted(uint8_t identity, 
  * 函数名      sgcc_chargepile_fault_converted
  * 功能          故障转换
  * **********************************************/
+#ifdef NET_SGCC_PRO_USING_DC
 uint16_t sgcc_chargepile_fault_converted(uint16_t bit)
 {
     switch(bit){
@@ -2566,192 +2561,177 @@ uint16_t sgcc_chargepile_fault_converted(uint16_t bit)
     }
     return NET_GENERAL_FAULT_SIZE;
 }
+#else
+uint16_t sgcc_chargepile_fault_converted(uint16_t bit)
+{
+    return NET_GENERAL_FAULT_SIZE;
+}
+#endif /* NET_SGCC_PRO_USING_DC */
 
 /*************************************************
  * 函数名      sgcc_chargepile_stop_reason_converted
  * 功能          停充原因转换
  * **********************************************/
+#ifdef NET_SGCC_PRO_USING_DC
 static uint16_t sgcc_chargepile_stop_reason_converted(uint8_t reason, uint8_t stop_in_starting)
 {
-    return 1002;
-#if 0
-    uint16_t _reason = NETYKC_AS_REASON90_UNKNOW;
+    uint16_t _reason = NETSGCC_DCA_REASON3092_UNKNOW;
 
     switch(reason){
     /* 急停 */
     case APP_SYSTEM_STOP_WAY_SCRAM:
-        if(stop_in_starting){
-            _reason = NETYKC_SF_REASON50_EMERGENCY_STOP;
-        }else{
-            _reason = NETYKC_AS_REASON72_EMERGENCY_STOP;
-        }
+        _reason = NETSGCC_DCA_REASON3033_CRASH_STOP;
         break;
-    /* 读卡器、门禁 */
+    /* 读卡器 */
     case APP_SYSTEM_STOP_WAY_CARDREADER:
+        _reason = NETSGCC_DCA_REASON3037_CARD_READER;
+        break;
+    /* 门禁 */
     case APP_SYSTEM_STOP_WAY_DOOR:
-        _reason = NETYKC_AS_REASON8A_CARDREADER;
+        _reason = NETSGCC_DCA_REASON3032_OPNE_DOOR;
         break;
     /* 电表 */
     case APP_SYSTEM_STOP_WAY_AMMETER:
-        if(stop_in_starting){
-            _reason = NETYKC_SF_REASON4D_AMMETER_COMMUNICATION;
-        }else{
-            _reason = NETYKC_AS_REASON6D_AMMETER_COMMUNICATE;
-        }
+        _reason = NETSGCC_DCA_REASON3043_AMMETER_COMM;
         break;
     /* 充电模块 */
     case APP_SYSTEM_STOP_WAY_CHARGEMODULE:
-        if(stop_in_starting){
-            _reason = NETYKC_SF_REASON4F_CHARGE_MODULE;
-        }else{
-            _reason = NETYKC_AS_REASON71_CHARGE_MODULE;
-        }
+        _reason = NETSGCC_DCA_REASON3038_MODULE_COMM;
         break;
     /* 过温 */
     case APP_SYSTEM_STOP_WAY_OVERTEMP:
-        if(stop_in_starting){
-            _reason = NETYKC_SF_REASON53_ABNORMAL_TEMP;
-        }else{
-            _reason = NETYKC_AS_REASON74_TEMPERATURE_ABNORMAL;
-        }
+        _reason = NETSGCC_DCA_REASON3053_CHARGE_PORT_OVERTEMP;
         break;
     /* 过、欠压 */
     case APP_SYSTEM_STOP_WAY_OVERVOLT:
     case APP_SYSTEM_STOP_WAY_UNDERVOLT:
-        _reason = NETYKC_AS_REASON79_CHARGE_TVOLTAGE_ABNORMAL;
+        _reason = NETSGCC_DCPA_REASON4008_INPUT_POWER;
         break;
     /* 过流 */
     case APP_SYSTEM_STOP_WAY_OVERCURRENT:
-        _reason = NETYKC_AS_REASON7A_CHARGE_TCURRENT_ABNORMAL;
+        _reason = NETSGCC_DCPA_REASON4010_OUTPUT_OVERCURR;
         break;
     /* DC 继电器 */
     case APP_SYSTEM_STOP_WAY_RELAY:
-        _reason = NETYKC_AS_REASON8B_DC_RELAY;
+        _reason = NETSGCC_DCA_REASON3046_DC_RELAY;
         break;
     /* 并联 继电器 */
     case APP_SYSTEM_STOP_WAY_PARALLEL_RELAY:
-        _reason = NETYKC_AS_REASON8D_PARALLEL_RELAY;
+        _reason = NETSGCC_DCA_REASON3068_PARALLEL_RELAY_ADH;
         break;
     /* AC 继电器 */
     case APP_SYSTEM_STOP_WAY_AC_RELAY:
-        _reason = NETYKC_AS_REASON8C_AC_RELAY;
+        _reason = NETSGCC_DCA_REASON3065_AC_RELAY;
         break;
     /* 充满 */
     case APP_SYSTEM_STOP_WAY_CHARGE_FULL:
-        _reason = NETYKC_CC_REASON41_CHARGE_FULL;
+        _reason = NETSGCC_GS_REASON1000_CHARGE_FULL;
         break;
     /* 拔枪 */
     case APP_SYSTEM_STOP_WAY_PULL_GUN:
-        if(stop_in_starting){
-            _reason = NETYKC_SF_REASON4B_GUIDE_DISCONNECT;
-        }else{
-            _reason = NETYKC_AS_REASON6B_GUIDANCE_DISCONNECT;
-        }
-        break;
+        _reason = NETSGCC_GS_REASON1008_PULL_GUN;
     /* 电子锁 */
     case APP_SYSTEM_STOP_WAY_ELECTRY_LOCK:
-        if(stop_in_starting){
-            _reason = NETYKC_SF_REASON55_ELECT_LOCK;
-        }else{
-            _reason = NETYKC_AS_REASON77_ELOCK_ABNORMAL;
-        }
+        _reason = NETSGCC_DCA_REASON3054_ELOCK;
         break;
     /* 通讯 */
     case APP_SYSTEM_STOP_WAY_COMMINICATION:
-        if(stop_in_starting){
-            _reason = NETYKC_SF_REASON5A_RECV_BRM_TIMEOUT;
-        }else{
-            _reason = NETYKC_AS_REASON84_RECV_BCS_TIMEOUT;
-        }
+        _reason = NETSGCC_DCCA_REASON5001_BMS_COMM;
         break;
     /* 辅源 */
     case APP_SYSTEM_STOP_WAY_AUXPOWER:
-        _reason = NETYKC_SF_REASON66_AUXPOWER;
+        _reason = NETSGCC_DCA_REASON3049_AUXPOWER;
         break;
     /* 断电 */
     case APP_SYSTEM_STOP_WAY_POWER_OFF:
-        _reason = NETYKC_AS_REASON83_POWER_OFF;
+        _reason = NETSGCC_DCA_REASON3087_POWER_OFF;
         break;
     /* 存储芯片 */
     case APP_SYSTEM_STOP_WAY_FLASH:
     case APP_SYSTEM_STOP_WAY_EEPROM:
-        _reason = NETYKC_AS_REASON8E_STORAGE_CHIP;
+        _reason = NETSGCC_DCA_REASON3088_STORAGE_CHIP;
         break;
     /* 短路 */
     case APP_SYSTEM_STOP_WAY_SHORTS:
-        _reason = NETYKC_AS_REASON6C_CIRCUIT_BREAKER_ACTION;
+        _reason = NETSGCC_DCPA_REASON4012_OUTPUT_SHORTS;
         break;
     /* 枪电压 */
     case APP_SYSTEM_STOP_WAY_GUNVOLT:
-        _reason = NETYKC_SF_REASON60_BHM_STAGE_VOLT_OVERRANGE;
+        _reason = NETSGCC_DCPA_REASON4014_RELAY_OUTSIDE_OVER10V;
         break;
     /* 绝缘 */
     case APP_SYSTEM_STOP_WAY_INSULT:
-        _reason = NETYKC_SF_REASON57_INSULATION_ABNORMAL;
+        _reason = NETSGCC_DCA_REASON3050_INSULATION;
         break;
     /* 电池电压 */
     case APP_SYSTEM_STOP_WAY_BATTERY_VOLT:
-        _reason = NETYKC_SF_REASON61_BRO_AA_STAGE_VOLT_OVERRANGE;
+        _reason = NETSGCC_DCCA_REASON5029_BATTERY_VOLT_ABNORMAL;
         break;
     /* 车机停止 */
     case APP_SYSTEM_STOP_WAY_BST:
-        _reason = NETYKC_AS_REASON82_CAR_COMMAND_STOP;
+        _reason = NETSGCC_GS_REASON1011_BMS_STOP;
         break;
     /* 准备电压 */
     case APP_SYSTEM_STOP_WAY_READY_VOLT:
-        _reason = NETYKC_SF_REASON67_READY_VOLTAGE;
+        _reason = NETSGCC_DCCA_REASON5017_BMS_READY_VOLT_NOMATCH;
         break;
     /* 绝缘电压 */
     case APP_SYSTEM_STOP_WAY_INSULT_VOLT:
-        _reason = NETYKC_SF_REASON68_INSULT_VOLTAGE;
+        _reason = NETSGCC_DCA_REASON3089_INSULT_VOLT;
         break;
     /* BSM */
     case APP_SYSTEM_STOP_WAY_BSM:
-        _reason = NETYKC_AS_REASON8F_BSM_WARNNING;
+        _reason = NETSGCC_DCCA_REASON5038_BMS_ABNORMAL_STOP;
         break;
     /* APP */
     case APP_SYSTEM_STOP_WAY_APP_STOP:
-        _reason = NETYKC_CC_REASON40_APP;
+        _reason = NETSGCC_GS_REASON1002_SERVER;
         break;
     /* 刷卡 */
     case APP_SYSTEM_STOP_WAY_ONLINECARD_STOP:
-        _reason = NETYKC_CC_REASON45_MANUAL_STOP;
+        _reason = NETSGCC_GS_REASON1012_SWIP_CARD;
         break;
     /* 余额不足 */
     case APP_SYSTEM_STOP_WAY_NO_BALLANCE:
-        _reason = NETYKC_AS_REASON6E_NO_BALLANCE;
+        _reason = NETSGCC_DCA_REASON3090_NOBALLANCE;
         break;
     /* 屏幕 */
     case APP_SYSTEM_STOP_WAY_SCREEN_STOP:
-        _reason = NETYKC_CC_REASON45_MANUAL_STOP;
+        _reason = NETSGCC_GS_REASON1001_SCREEN;
         break;
     /* 到达设定电量 */
     case APP_SYSTEM_STOP_WAY_REACH_ELECT:
-        _reason = NETYKC_CC_REASON42_TARGET_ELECT;
+        _reason = NETSGCC_GS_REASON1004_TARGET_ELECT;
         break;
     /* 到达设定时间 */
     case APP_SYSTEM_STOP_WAY_REACH_TIME:
-        _reason = NETYKC_CC_REASON44_TARGET_TIME;
+        _reason = NETSGCC_GS_REASON1003_TARGET_TIME;
         break;
     /* 到达设定余额 */
     case APP_SYSTEM_STOP_WAY_REACH_MONEY:
-        _reason = NETYKC_CC_REASON43_TARGET_MONEY;
+        _reason = NETSGCC_GS_REASON1005_TARGET_MONEY;
         break;
     /* 充电电流异常 */
     case APP_SYSTEM_STOP_WAY_CURRENT_ABNORMAL:
-        _reason = NETYKC_AS_REASON76_CURRENT_ABNORMAL;
+        _reason = NETSGCC_DCA_REASON3091_ABNORMAL_CURRENT;
         break;
     /* 达到SOC 限定值 */
     case APP_SYSTEM_STOP_WAY_SOC_LIMIT:
-        _reason = NETYKC_CC_REASON46_RESERVE;
+        _reason = NETSGCC_GS_REASON1007_TARGET_SOC;
         break;
     default:
         break;
     }
     return _reason;
-#endif
-    return 0x00;
 }
+#else
+static uint16_t sgcc_chargepile_stop_reason_converted(uint8_t reason, uint8_t stop_in_starting)
+{
+    uint16_t _reason = NETYKC_AS_REASON90_UNKNOW;
+
+    return _reason;
+}
+#endif /* NET_SGCC_PRO_USING_DC */
 
 /*************************************************
  * 函数名      sgcc_query_transaction_verify_state
