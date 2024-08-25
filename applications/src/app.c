@@ -32,7 +32,7 @@ static rt_uint8_t card_thread_stack[2048];
 
 static uint8_t s_thread_gunno[APP_SYSTEM_GUNNO_SIZE];
 static struct rt_thread ofsm_thread[APP_SYSTEM_GUNNO_SIZE];
-static rt_uint8_t ofsm_thread_stack[APP_SYSTEM_GUNNO_SIZE][4096];
+static rt_uint8_t ofsm_thread_stack[APP_SYSTEM_GUNNO_SIZE][6144];
 
 static struct rt_thread osupport_thread;
 static rt_uint8_t osupport_thread_stack[4096];
@@ -41,7 +41,7 @@ static struct rt_thread led_thread;
 static rt_uint8_t led_thread_stack[512];
 
 static struct rt_thread hci_req_thread;
-static rt_uint8_t hci_req_thread_stack[1024*3];
+static rt_uint8_t hci_req_thread_stack[4096];
 
 static struct rt_thread hci_res_thread;
 static rt_uint8_t hci_res_thread_stack[512];
