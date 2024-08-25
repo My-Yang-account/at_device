@@ -103,45 +103,87 @@ static int32_t sgcc_get_fault_code(uint8_t bit, uint8_t gunno, uint8_t *rank)
     switch(bit){
     case NET_GENERAL_FAULT_SCRAM:
         s_sgcc_realtime_fault[gunno] = 3033;
+        if(rank){
+            *rank = 0x01;
+        }
         break;
     case NET_GENERAL_FAULT_CARD_READER:
-        s_sgcc_realtime_fault[gunno] = 3037;
+        s_sgcc_realtime_fault[gunno] = 3035;
+        if(rank){
+            *rank = 0x00;
+        }
         break;
     case NET_GENERAL_FAULT_DOOR:
         s_sgcc_realtime_fault[gunno] = 3032;
+        if(rank){
+            *rank = 0x01;
+        }
         break;
     case NET_GENERAL_FAULT_AMMETER:
         s_sgcc_realtime_fault[gunno] = 3043;
+        if(rank){
+            *rank = 0x01;
+        }
         break;
     case NET_GENERAL_FAULT_CHARGE_MODULE:
         s_sgcc_realtime_fault[gunno] = 3038;
+        if(rank){
+            *rank = 0x01;
+        }
         break;
     case NET_GENERAL_FAULT_OVER_TEMP:
         s_sgcc_realtime_fault[gunno] = 3053;
+        if(rank){
+            *rank = 0x00;
+        }
         break;
     case NET_GENERAL_FAULT_OVER_VOLT:
         s_sgcc_realtime_fault[gunno] = 4009;
+        if(rank){
+            *rank = 0x01;
+        }
         break;
     case NET_GENERAL_FAULT_UNDER_VOLT:
         s_sgcc_realtime_fault[gunno] = 4011;
+        if(rank){
+            *rank = 0x01;
+        }
         break;
     case NET_GENERAL_FAULT_OVER_CURR:
         s_sgcc_realtime_fault[gunno] = 4010;
+        if(rank){
+            *rank = 0x01;
+        }
         break;
     case NET_GENERAL_FAULT_MAIN_RELAY:
         s_sgcc_realtime_fault[gunno] = 3046;
+        if(rank){
+            *rank = 0x01;
+        }
         break;
     case NET_GENERAL_FAULT_PARALLEL_RELAY:
         s_sgcc_realtime_fault[gunno] = 3068;
+        if(rank){
+            *rank = 0x01;
+        }
         break;
     case NET_GENERAL_FAULT_AC_RELAY:
         s_sgcc_realtime_fault[gunno] = 3065;
+        if(rank){
+            *rank = 0x01;
+        }
         break;
     case NET_GENERAL_FAULT_ELOCK:
         s_sgcc_realtime_fault[gunno] = 3054;
+        if(rank){
+            *rank = 0x01;
+        }
         break;
     case NET_GENERAL_FAULT_AUXPOWER:
         s_sgcc_realtime_fault[gunno] = 3049;
+        if(rank){
+            *rank = 0x01;
+        }
         break;
     case NET_GENERAL_FAULT_FLASH:
         return 0x00;
@@ -151,18 +193,30 @@ static int32_t sgcc_get_fault_code(uint8_t bit, uint8_t gunno, uint8_t *rank)
         break;
     case NET_GENERAL_FAULT_LIGHT_PRPTECT:
         s_sgcc_realtime_fault[gunno] = 3084;
+        if(rank){
+            *rank = 0x01;
+        }
         break;
     case NET_GENERAL_FAULT_GUN_SITE:
         return 0x00;
         break;
     case NET_GENERAL_FAULT_CIRCUIT_BREAKER:
         s_sgcc_realtime_fault[gunno] = 4013;
+        if(rank){
+            *rank = 0x01;
+        }
         break;
     case NET_GENERAL_FAULT_FLOODING:
         s_sgcc_realtime_fault[gunno] = 3055;
+        if(rank){
+            *rank = 0x01;
+        }
         break;
     case NET_GENERAL_FAULT_SMOKE:
         s_sgcc_realtime_fault[gunno] = 3085;
+        if(rank){
+            *rank = 0x01;
+        }
         break;
     case NET_GENERAL_FAULT_POUR:
         return 0x00;
@@ -172,6 +226,9 @@ static int32_t sgcc_get_fault_code(uint8_t bit, uint8_t gunno, uint8_t *rank)
         break;
     case NET_GENERAL_FAULT_FUSE:
         s_sgcc_realtime_fault[gunno] = 3047;
+        if(rank){
+            *rank = 0x01;
+        }
         break;
     default:
         return 0x00;

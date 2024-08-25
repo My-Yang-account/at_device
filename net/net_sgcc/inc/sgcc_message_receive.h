@@ -35,6 +35,7 @@
 #define NET_SGCC_SREQ_EVENT_SET_DEV_MAINTAIN                   4    /* 服务器请求事件：设备维护 */
 #define NET_SGCC_SREQ_EVENT_QUERY_DEV_MAINTAIN                 5    /* 服务器请求事件：查询设备维护信息 */
 #define NET_SGCC_SREQ_EVENT_TIME_SYNC                          6    /* 服务器请求事件：时间同步 */
+#define NET_SGCC_SREQ_EVENT_QUERY_DEV_RECORD                   7    /* 服务器请求事件：查询设备记录 */
 //#define NET_SGCC_SREQ_EVENT_ELOCK_CONTROL                      4    /* 服务器请求事件：电子锁控制 */
 
 //#define NET_YKC_SREQ_EVENT_REMOTE_START_CHARGE                 1    /* 服务器请求事件：运营平台远程控制启机*/

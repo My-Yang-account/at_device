@@ -472,8 +472,30 @@ static int callback_service_EVS_ORDER_CHECK_SRV(evs_service_confirmTrade *respon
     return 0x00;
 }
 
-static int callback_service_EVS_RSV_CHARGE_SRV(evs_service_rsvCharge *request, evs_service_feedback_rsvCharge *feedback)
+static int callback_evs_service_reservation_charge(evs_service_rsvCharge *request, evs_service_feedback_rsvCharge *feedback)
 {
+    if(request == NULL || feedback == NULL){
+        return -0x01;
+    }
+    LOG_D("sgcc reservation_charge-> gunno: %d", request->gunNo);
+
+    uint8_t gunno = request->gunNo;
+
+    feedback->gunNo = gunno;
+    feedback->appomathod = request->appomathod;
+    feedback->ret = 10;
+    feedback->reason = 10;
+
+    if(!((gunno > 0x00) && (gunno <= NET_SYSTEM_GUN_NUMBER))){
+        feedback->ret = 12;
+        feedback->reason = 12;
+    }else{
+        if(sgcc_message_pro_reservation_request((gunno - 0x01), request, sizeof(evs_service_rsvCharge)) < 0x00){
+            feedback->ret = 12;
+            feedback->reason = 12;
+        }
+    }
+
     return 0;
 }
 
@@ -593,13 +615,72 @@ static int callback_service_EVS_Meter_ASK_SRV(evs_service_meter_get *request, ev
     return 0;
 }
 #endif
-static int callback_service_EVS_QUE_DATA_SRV(evs_service_query_log *request, evs_service_feedback_query_log *feedback)
+
+static int callback_evs_service_query_record(evs_service_query_log *request, evs_service_feedback_query_log *feedback)
 {
+    if(request == NULL || feedback == NULL){
+        return -0x01;
+    }
+    LOG_D("sgcc query_record-> gunNo: %d", request->gunNo);
+    LOG_D("sgcc query_record-> startDate: %d", request->startDate);
+    LOG_D("sgcc query_record-> stopDate: %d", request->stopDate);
+    LOG_D("sgcc query_record-> askType: %d", request->askType);
+    LOG_D("sgcc query_record-> logQueryNo: %s", request->logQueryNo);
+
+    int result = 0x00;
+    uint8_t gunno = request->gunNo;
+
+    feedback->gunNo = request->gunNo;
+    feedback->startDate = request->startDate;
+    feedback->stopDate = request->stopDate;
+    feedback->askType = request->askType;
+    feedback->result = 11;
+    memcpy(feedback->logQueryNo, request->logQueryNo, EVS_MAX_LOGQUERY_LEN);
+
+    if(!((gunno > 0x00) && (gunno <= NET_SYSTEM_GUN_NUMBER))){
+        feedback->result = 10;
+        LOG_E("gunno error when call callback_evs_service_query_record(%d)", gunno);
+        return -0x01;
+    }
+    if((result = sgcc_message_pro_query_dev_record_request((gunno - 0x01), request, sizeof(evs_service_query_log))) < 0x00){
+        feedback->result = 10;
+        if(result == -0x03){
+            feedback->result = 12;
+        }
+    }
+
+    memcpy(&evs_service_query_logs[gunno - 0x01], request, sizeof(evs_service_query_log));
+    sgcc_net_event_send(NET_SGCC_EVENT_HANDLE_SERVER, NET_SGCC_EVENT_TYPE_REQUEST, (gunno - 0x01), NET_SGCC_SREQ_EVENT_QUERY_DEV_RECORD);
+
     return 0;
 }
 
-static int callback_service_EVS_ORDERLY_CHARGE_SRV(evs_service_orderCharge *request, evs_service_feedback_orderCharge *feedback)
+static int callback_evs_service_orderly_charge(evs_service_orderCharge *request, evs_service_feedback_orderCharge *feedback)
 {
+    if(request == NULL || feedback == NULL){
+        return -0x01;
+    }
+    LOG_D("sgcc orderly_charge-> preTradeNo: %s", request->preTradeNo);
+    LOG_D("sgcc orderly_charge-> num: %s", request->num);
+    LOG_D("sgcc orderly_charge-> validTime0: %s", request->validTime[0]);
+    LOG_D("sgcc orderly_charge-> validTime1: %s", request->validTime[1]);
+    LOG_D("sgcc orderly_charge-> validTime2: %s", request->validTime[2]);
+    LOG_D("sgcc orderly_charge-> validTime3: %s", request->validTime[3]);
+    LOG_D("sgcc orderly_charge-> validTime4: %s", request->validTime[4]);
+    LOG_D("sgcc orderly_charge-> kw: %d, %d, %d, %d, %d", request->kw[0], request->kw[1], request->kw[2], request->kw[3], request->kw[4]);
+
+    int result = 0x00;
+    memcpy(feedback->preTradeNo, request->preTradeNo, EVS_MAX_TRADE_LEN);
+    feedback->result = 10;
+    feedback->reason = 10;
+    if((result = sgcc_message_pro_orderly_charge_request(request, sizeof(evs_service_orderCharge))) < 0x00){
+        feedback->result = 11;
+        feedback->reason = 11;
+        if(result == -0x04){
+            feedback->reason = 12;
+        }
+    }
+
     return 0;
 }
 
@@ -613,13 +694,15 @@ static int callback_service_EVS_OTA_UPDATE(const char *request)
     memset(sgcc_firmware_version, 0x00, NET_SGCC_FIRMWARE_VERSION_LEN);
     memcpy(sgcc_firmware_version, request, valid_len);
 
-    rt_kprintf("1111111 ccccccc\n");
+    if(net_get_ota_info()->state != NET_OTA_STATE_NULL){
+        LOG_E("sgcc system is updating, quit");
+        return -0x01;
+    }
 
-    uint8_t ota_buf[1024];
-    extern int evs_linkkit_fota(unsigned char *buffer, int buffer_length);
-    evs_linkkit_fota(ota_buf, 1024);
-
-//    sgcc_net_event_send(NET_SGCC_EVENT_HANDLE_SERVER, NET_SGCC_EVENT_TYPE_REQUEST, 0x00, NET_SGCC_SREQ_EVENT_FIRMWARE_UPDATE);
+//    sgcc_set_ota_was_requested_flag();
+//
+//    extern int evs_linkkit_fota(unsigned char *buffer, int buffer_length);
+//    evs_linkkit_fota(sgcc_get_ota_buff(), sgcc_get_ota_blen());
 
     return 0;
 }
@@ -667,7 +750,7 @@ int sgcc_message_recvive_init(void)
     EVS_RegisterCallback(EVS_AUTH_RESULT_SRV, callback_service_EVS_AUTH_RESULT_SRV);
     EVS_RegisterCallback(EVS_STOP_CHARGE_SRV, callback_service_EVS_STOP_CHARGE_SRV);
     EVS_RegisterCallback(EVS_ORDER_CHECK_SRV, callback_service_EVS_ORDER_CHECK_SRV);
-    EVS_RegisterCallback(EVS_RSV_CHARGE_SRV, callback_service_EVS_RSV_CHARGE_SRV);
+    EVS_RegisterCallback(EVS_RSV_CHARGE_SRV, callback_evs_service_reservation_charge);
     EVS_RegisterCallback(EVS_GROUND_LOCK_SRV, callback_service_EVS_GROUND_LOCK_SRV);
     EVS_RegisterCallback(EVS_GATE_LOCK_SRV, callback_service_EVS_GATE_LOCK_SRV);
     EVS_RegisterCallback(EVS_CONF_UPDATE_SRV, callback_service_EVS_CONF_UPDATE_SRV);
@@ -686,8 +769,8 @@ int sgcc_message_recvive_init(void)
 //    EVS_RegisterCallback(EVS_VIN_LIST_UPDATE_SRV, callback_service_EVS_VIN_LIST_UPDATE_SRV);
 //    EVS_RegisterCallback(EVS_ORDER_ASK_SRV, callback_service_EVS_ORDER_ASK_SRV);
 //    EVS_RegisterCallback(EVS_Meter_ASK_SRV, callback_service_EVS_Meter_ASK_SRV);
-    EVS_RegisterCallback(EVS_QUE_DATA_SRV, callback_service_EVS_QUE_DATA_SRV);
-    EVS_RegisterCallback(EVS_ORDERLY_CHARGE_SRV, callback_service_EVS_ORDERLY_CHARGE_SRV);
+    EVS_RegisterCallback(EVS_QUE_DATA_SRV, callback_evs_service_query_record);
+    EVS_RegisterCallback(EVS_ORDERLY_CHARGE_SRV, callback_evs_service_orderly_charge);
     EVS_RegisterCallback(EVS_OTA_UPDATE, callback_service_EVS_OTA_UPDATE);
     EVS_RegisterCallback(EVS_TIME_SYNC, callback_evs_service_time_sync);
     EVS_RegisterCallback(EVS_CONNECT_SUCC, callback_service_EVS_CONNECT_SUCC);

@@ -57,8 +57,9 @@
 #define NET_SGCC_PREQ_EVENT_REPORT_BMS_DATA                   8    /* 充电桩请求事件：上报BMS数据 */
 #define NET_SGCC_PREQ_EVENT_REPORT_MONITOR_PROPERTY           9    /* 充电桩请求事件：上送实时监测属性 */
 #define NET_SGCC_PREQ_EVENT_REPORT_FAULT_WARNNING             10   /* 充电桩请求事件：上送故障告警信息 */
-#define NET_SGCC_PREQ_EVENT_REPORT_CONFIG_UPDATE              11   /* 充电桩请求事件：配置更新请求 */
-#define NET_SGCC_PREQ_EVENT_APPLY_START_CHARGE                12    /* 充电桩请求事件：主动申请启动充电 */
+#define NET_SGCC_PREQ_EVENT_APPLY_START_CHARGE                11   /* 充电桩请求事件：主动申请启动充电 */
+#define NET_SGCC_PREQ_EVENT_REPORT_DEV_RECORD                 12   /* 充电桩请求事件：上报设备记录 */
+#define NET_SGCC_PREQ_EVENT_REPORT_CAR_INFO                   13   /* 充电桩请求事件：上报车辆信息 */
 
 
 //#define NET_SGCC_PREQ_EVENT_APPLY_START_CHARGE                5    /* 充电桩请求事件：主动申请启动充电 */
@@ -138,7 +139,7 @@ extern evs_event_logQuery_Result evs_event_logQuery_Results[NET_SYSTEM_GUN_NUMBE
 extern evs_property_meter evs_property_meters[NET_SYSTEM_GUN_NUMBER];
 
 /**=======================================[交流充电桩请求报文]=======================================*/
-extern evs_property_acPile evs_property_acPiles[NET_SYSTEM_GUN_NUMBER];
+extern evs_property_acPile evs_property_acPiles;
 extern evs_property_ac_work evs_property_ac_works[NET_SYSTEM_GUN_NUMBER];
 extern evs_property_ac_nonWork evs_property_ac_nonWorks[NET_SYSTEM_GUN_NUMBER];
 
@@ -191,6 +192,7 @@ int32_t sgcc_net_event_receive(uint8_t event_handle, uint8_t event_type, uint8_t
 uint8_t sgcc_exist_message_wait_response(uint8_t gunno, uint32_t *state);
 void sgcc_clear_message_wait_response_state(uint8_t gunno, uint32_t message_bit);
 uint8_t sgcc_get_message_wait_response_timeout_state(uint8_t gunno, uint32_t timeout, uint32_t message_bit);
+void sgcc_ascii_to_bcd(uint8_t *ascii, uint8_t alen, uint8_t *bcd, uint8_t blen, uint8_t is_order);
 
 int sgcc_message_send_init(void);
 

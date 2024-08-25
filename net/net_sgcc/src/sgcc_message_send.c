@@ -86,11 +86,11 @@ evs_event_ver_info evs_event_ver_infos;
 ///计费模型请求
 evs_event_ask_feeModel evs_event_ask_feeModels[NET_SYSTEM_GUN_NUMBER];
 ///启动充电结果
-//evs_event_startResult evs_event_startResults[NET_SYSTEM_GUN_NUMBER];
+evs_event_startResult evs_event_startResults[NET_SYSTEM_GUN_NUMBER];
 ///启动充电鉴权
 evs_event_startCharge evs_event_startCharges[NET_SYSTEM_GUN_NUMBER];
 ///停止充电结果
-//evs_event_stopCharge evs_event_stopCharges[NET_SYSTEM_GUN_NUMBER];
+evs_event_stopCharge evs_event_stopCharges[NET_SYSTEM_GUN_NUMBER];
 ///交易记录
 evs_event_tradeInfo evs_event_tradeInfos[NET_SYSTEM_GUN_NUMBER];
 ///故障告警
@@ -119,7 +119,10 @@ evs_event_car_info evs_event_car_infos[NET_SYSTEM_GUN_NUMBER];
 evs_event_logQuery_Result evs_event_logQuery_Results[NET_SYSTEM_GUN_NUMBER];
 /////智能枪参数信息
 //evs_smart_gun_auth_param evs_smart_gun_auth_params[NET_SYSTEM_GUN_NUMBER];
+///输出电表底值
+evs_property_meter evs_property_meters[NET_SYSTEM_GUN_NUMBER];
 
+#ifdef NET_SGCC_PRO_USING_DC
 /**=======================================[直流充电桩请求报文]=======================================*/
 //evs_event_ccu_info evs_event_ccu_infos[NET_SYSTEM_GUN_NUMBER];
 //evs_event_pcu_info evs_event_pcu_infos[NET_SYSTEM_GUN_NUMBER];
@@ -128,22 +131,19 @@ evs_event_logQuery_Result evs_event_logQuery_Results[NET_SYSTEM_GUN_NUMBER];
 //evs_event_edas_info evs_event_edas_infos[NET_SYSTEM_GUN_NUMBER];
 //evs_event_cu_work_info evs_event_cu_work_infos[NET_SYSTEM_GUN_NUMBER];
 
-/**=======================================[充电桩公共请求报文]=======================================*/
-///输出电表底值
-evs_property_meter evs_property_meters[NET_SYSTEM_GUN_NUMBER];
-
-/**=======================================[交流充电桩请求报文]=======================================*/
-evs_property_acPile evs_property_acPiles[NET_SYSTEM_GUN_NUMBER];
-evs_property_ac_work evs_property_ac_works[NET_SYSTEM_GUN_NUMBER];
-evs_property_ac_nonWork evs_property_ac_nonWorks[NET_SYSTEM_GUN_NUMBER];
-
-/**=======================================[直流充电桩请求报文]=======================================*/
 evs_property_dcPile evs_property_dcPiles;
 evs_property_BMS evs_property_BMSs[NET_SYSTEM_GUN_NUMBER];
 evs_property_dc_work evs_property_dc_works[NET_SYSTEM_GUN_NUMBER];
 evs_property_dc_nonWork evs_property_dc_nonWorks[NET_SYSTEM_GUN_NUMBER];
 ///输入电表低值
 evs_property_dc_input_meter evs_property_dc_input_meters[NET_SYSTEM_GUN_NUMBER];
+
+#else
+/**=======================================[交流充电桩请求报文]=======================================*/
+evs_property_acPile evs_property_acPiles;
+evs_property_ac_work evs_property_ac_works[NET_SYSTEM_GUN_NUMBER];
+evs_property_ac_nonWork evs_property_ac_nonWorks[NET_SYSTEM_GUN_NUMBER];
+#endif /* NET_SGCC_PRO_USING_DC */
 
 /**************************************************************************
  * 函数名                 sgcc_get_socket_info
@@ -392,6 +392,55 @@ uint8_t sgcc_get_message_wait_response_timeout_state(uint8_t gunno, uint32_t tim
     return 0x00;
 }
 
+/**************************************************************************
+ * 函数名                 sgcc_ascii_to_bcd
+ * 功能                     将字符码转成BCD
+ * 说明
+ * ***********************************************************************/
+void sgcc_ascii_to_bcd(uint8_t *ascii, uint8_t alen, uint8_t *bcd, uint8_t blen, uint8_t is_order)
+{
+    uint8_t index, c;
+
+    if(is_order){
+        if(alen %0x02){
+            for(index = 0; index < (alen /0x02); index++) {
+                c  = (*ascii++) << 4;
+                c |= (*ascii++) & 0x0F;
+                *bcd++ = c;
+            }
+            if(blen > (alen %0x02)){
+                *bcd  = (*ascii) << 4;
+            }
+        }else{
+            for(index = 0; index < blen; index++) {
+                c  = (*ascii++) << 4;
+                c |= (*ascii++) & 0x0F;
+                *bcd++ = c;
+            }
+        }
+    }else{
+        ascii += (alen - 0x01);
+        bcd += (blen - 0x01);
+        if(alen %0x02){
+            for(index = 0; index < (alen /0x02); index++) {
+                c  = (*ascii--) & 0x0F;
+                c |= (*ascii--) << 4;
+                *bcd-- = c;
+            }
+            if(blen > (alen %0x02)){
+                *bcd  = (*ascii) & 0x0F;
+            }
+        }else{
+            for(index = 0; index < blen; index++) {
+                c  = (*ascii--) & 0x0F;
+                c |= (*ascii--) << 4;
+                *bcd-- = c;
+            }
+        }
+    }
+}
+
+
 static void sgcc_connect_thread_entry(void *parameter)
 {
     uint8_t step = NET_SGCC_NET_STATE_OPEN_RESOURCE, is_power_on = 0x01, link_open_step = 0x00, gunno = 0x00;
@@ -550,6 +599,9 @@ static void sgcc_connect_thread_entry(void *parameter)
             net_set_clear_ndev_reset_state(NET_PLATFORM_MASK_TARGET, 0x00);
         }
 
+        s_sgcc_socket_info.state = SGCC_SOCKET_STATE_LOGIN_SUCCESS;
+        net_get_net_handle()->net_state = NET_SOCKET_STATE_LOGIN_SUCCESS;
+
         rt_thread_mdelay(100);
     }
 }
@@ -648,11 +700,11 @@ static void sgcc_message_send_thread_entry(void *parameter)
                     (NET_SGCC_EVENT_OPTION_OR |NET_SGCC_EVENT_OPTION_CLEAR), NET_SGCC_PREQ_EVENT_GUNSTATE_CHANGED, NULL) > 0){
                 sgcc_set_message_send_state(gunno, NET_SGCC_SEND_STATE_ONGOING, NET_SGCC_PREQ_EVENT_GUNSTATE_CHANGED);
                 rt_kprintf("GUNSTATE_CHANGED 00000000000000000000000000(%d)\n", gunno);
-//                for(uint8_t count = 0; count < sizeof(evs_event_pile_stutus_changes[gunno]); count++){
-//                    rt_kprintf("%02d ", *((uint8_t*)&evs_event_pile_stutus_changes[gunno] + count));
-//                }
-//                rt_kprintf("\n");
+#ifdef NET_SGCC_PRO_USING_DC
                 evs_send_event(EVS_CMD_EVENT_DCPILE_CHANGE, &evs_event_pile_stutus_changes[gunno]);
+#else
+                evs_send_event(EVS_CMD_EVENT_ACPILE_CHANGE, &evs_event_pile_stutus_changes[gunno]);
+#endif /* NET_SGCC_PRO_USING_DC */
 //                sgcc_set_message_wait_response_state(gunno, NET_SGCC_PREQ_EVENT_GUNSTATE_CHANGED);
                 sgcc_set_message_send_state(gunno, NET_SGCC_SEND_STATE_COMPLETE, NET_SGCC_PREQ_EVENT_GUNSTATE_CHANGED);
                 rt_thread_mdelay(250);
@@ -660,13 +712,14 @@ static void sgcc_message_send_thread_entry(void *parameter)
             /***** [上送实时数据(非充电中)] *****/
             if(sgcc_net_event_receive(NET_SGCC_EVENT_HANDLE_CHARGEPILE, NET_SGCC_EVENT_TYPE_REQUEST, gunno,
                     (NET_SGCC_EVENT_OPTION_OR |NET_SGCC_EVENT_OPTION_CLEAR), NET_SGCC_PREQ_EVENT_REPORT_STATE_DATA_NONCHARGING, NULL) > 0){
-                rt_kprintf("STATE_DATA_NONCHARGING 00000000000000000000000000(%d, %d)\n", gunno, evs_property_dc_nonWorks[gunno].workStatus);
+                rt_kprintf("STATE_DATA_NONCHARGING 00000000000000000000000000(%d, %d)[%d, %d]\n", gunno, evs_property_dc_nonWorks[gunno].workStatus,
+                        evs_property_dc_nonWorks[gunno].conTemp1, evs_property_dc_nonWorks[gunno].conTemp2);
                 sgcc_set_message_send_state(gunno, NET_SGCC_SEND_STATE_ONGOING, NET_SGCC_PREQ_EVENT_REPORT_STATE_DATA_NONCHARGING);
-//                for(uint8_t count = 0; count < sizeof(evs_property_dc_nonWorks[gunno]); count++){
-//                    rt_kprintf("%02d ", *((uint8_t*)&evs_property_dc_nonWorks[gunno] + count));
-//                }
-//                rt_kprintf("\n");
+#ifdef NET_SGCC_PRO_USING_DC
                 evs_send_property(EVS_CMD_PROPERTY_DC_NONWORK, &evs_property_dc_nonWorks[gunno]);
+#else
+                evs_send_property(EVS_CMD_PROPERTY_AC_NONWORK, &evs_property_ac_nonWorks[gunno]);
+#endif /* NET_SGCC_PRO_USING_DC */
 //                sgcc_set_message_wait_response_state(gunno, NET_SGCC_PREQ_EVENT_REPORT_STATE_DATA_NONCHARGING);
                 sgcc_set_message_send_state(gunno, NET_SGCC_SEND_STATE_COMPLETE, NET_SGCC_PREQ_EVENT_REPORT_STATE_DATA_NONCHARGING);
                 rt_thread_mdelay(250);
@@ -677,10 +730,6 @@ static void sgcc_message_send_thread_entry(void *parameter)
                 rt_kprintf("STATE_DATA_CHARGING 00000000000000000000000000(%d, %d)\n", gunno, evs_property_dc_works[gunno].workStatus);
 
                 sgcc_set_message_send_state(gunno, NET_SGCC_SEND_STATE_ONGOING, NET_SGCC_PREQ_EVENT_REPORT_STATE_DATA_CHARGING);
-//                for(uint8_t count = 0; count < sizeof(evs_property_dc_works[gunno]); count++){
-//                    rt_kprintf("%02d ", *((uint8_t*)&evs_property_dc_works[gunno] + count));
-//                }
-//                rt_kprintf("\n");
                 evs_send_property(EVS_CMD_PROPERTY_DC_WORK, &evs_property_dc_works[gunno]);
 //                sgcc_set_message_wait_response_state(gunno, NET_SGCC_PREQ_EVENT_REPORT_STATE_DATA_CHARGING);
                 sgcc_set_message_send_state(gunno, NET_SGCC_SEND_STATE_COMPLETE, NET_SGCC_PREQ_EVENT_REPORT_STATE_DATA_CHARGING);
@@ -720,10 +769,6 @@ static void sgcc_message_send_thread_entry(void *parameter)
                         evs_property_meters[gunno].lastTrade, evs_property_meters[gunno].acqTime);
 
                 sgcc_set_message_send_state(gunno, NET_SGCC_SEND_STATE_ONGOING, NET_SGCC_PREQ_EVENT_REPORT_AMMETER_VALUE);
-//                for(uint8_t count = 0; count < sizeof(evs_property_meters[gunno]); count++){
-//                    rt_kprintf("%02d ", *((uint8_t*)&evs_property_meters[gunno] + count));
-//                }
-//                rt_kprintf("\n");
                 evs_send_property(EVS_CMD_PROPERTY_DC_OUTMETER, &evs_property_meters[gunno]);
 //                sgcc_set_message_wait_response_state(gunno, NET_SGCC_PREQ_EVENT_REPORT_AMMETER_VALUE);
                 sgcc_set_message_send_state(gunno, NET_SGCC_SEND_STATE_COMPLETE, NET_SGCC_PREQ_EVENT_REPORT_AMMETER_VALUE);
@@ -732,14 +777,10 @@ static void sgcc_message_send_thread_entry(void *parameter)
             /***** [上送BMS数据] *****/
             if(sgcc_net_event_receive(NET_SGCC_EVENT_HANDLE_CHARGEPILE, NET_SGCC_EVENT_TYPE_REQUEST, gunno,
                     (NET_SGCC_EVENT_OPTION_OR |NET_SGCC_EVENT_OPTION_CLEAR), NET_SGCC_PREQ_EVENT_REPORT_BMS_DATA, NULL) > 0){
-                rt_kprintf("BMS_DATA 00000000000000000000000000(%d)[%s, %s]\n", gunno,
-                        evs_property_BMSs[gunno].tradeNo, evs_property_BMSs[gunno].preTradeNo);
+                rt_kprintf("BMS_DATA 00000000000000000000000000(%d)[%d, %d]\n", gunno, evs_property_BMSs[gunno].maxAllowCur,
+                        evs_property_BMSs[gunno].socVal);
 
                 sgcc_set_message_send_state(gunno, NET_SGCC_SEND_STATE_ONGOING, NET_SGCC_PREQ_EVENT_REPORT_BMS_DATA);
-//                for(uint8_t count = 0; count < sizeof(evs_property_BMSs[gunno]); count++){
-//                    rt_kprintf("%02d ", *((uint8_t*)&evs_property_BMSs[gunno] + count));
-//                }
-//                rt_kprintf("\n");
                 evs_send_property(EVS_CMD_PROPERTY_BMS, &evs_property_BMSs[gunno]);
 //                sgcc_set_message_wait_response_state(gunno, NET_SGCC_PREQ_EVENT_REPORT_BMS_DATA);
                 sgcc_set_message_send_state(gunno, NET_SGCC_SEND_STATE_COMPLETE, NET_SGCC_PREQ_EVENT_REPORT_BMS_DATA);
@@ -751,11 +792,11 @@ static void sgcc_message_send_thread_entry(void *parameter)
                 rt_kprintf("MONITOR_PROPERTY 00000000000000000000000000(%d)\n", gunno);
 
                 sgcc_set_message_send_state(gunno, NET_SGCC_SEND_STATE_ONGOING, NET_SGCC_PREQ_EVENT_REPORT_MONITOR_PROPERTY);
-//                for(uint8_t count = 0; count < sizeof(evs_property_dcPiles); count++){
-//                    rt_kprintf("%02d ", *((uint8_t*)&evs_property_dcPiles + count));
-//                }
-//                rt_kprintf("\n");
+#ifdef NET_SGCC_PRO_USING_DC
                 evs_send_property(EVS_CMD_PROPERTY_DCPILE, &evs_property_dcPiles);
+#else
+                evs_send_property(EVS_CMD_PROPERTY_ACPILE, &evs_property_acPiles);
+#endif /* NET_SGCC_PRO_USING_DC */
 //                sgcc_set_message_wait_response_state(gunno, NET_SGCC_PREQ_EVENT_REPORT_MONITOR_PROPERTY);
                 sgcc_set_message_send_state(gunno, NET_SGCC_SEND_STATE_COMPLETE, NET_SGCC_PREQ_EVENT_REPORT_MONITOR_PROPERTY);
                 rt_thread_mdelay(250);
@@ -766,28 +807,9 @@ static void sgcc_message_send_thread_entry(void *parameter)
                 rt_kprintf("FAULT_WARNNING 00000000000000000000000000(%d)\n", gunno);
 
                 sgcc_set_message_send_state(gunno, NET_SGCC_SEND_STATE_ONGOING, NET_SGCC_PREQ_EVENT_REPORT_FAULT_WARNNING);
-//                for(uint8_t count = 0; count < sizeof(evs_event_alarms[gunno]); count++){
-//                    rt_kprintf("%02d ", *((uint8_t*)&evs_event_alarms[gunno] + count));
-//                }
-//                rt_kprintf("\n");
                 evs_send_event(EVS_CMD_EVENT_ALARM, &evs_event_alarms[gunno]);
 //                sgcc_set_message_wait_response_state(gunno, NET_SGCC_PREQ_EVENT_REPORT_FAULT_WARNNING);
                 sgcc_set_message_send_state(gunno, NET_SGCC_SEND_STATE_COMPLETE, NET_SGCC_PREQ_EVENT_REPORT_FAULT_WARNNING);
-                rt_thread_mdelay(250);
-            }
-            /***** [配置更新请求] *****/
-            if(sgcc_net_event_receive(NET_SGCC_EVENT_HANDLE_CHARGEPILE, NET_SGCC_EVENT_TYPE_REQUEST, gunno,
-                    (NET_SGCC_EVENT_OPTION_OR |NET_SGCC_EVENT_OPTION_CLEAR), NET_SGCC_PREQ_EVENT_REPORT_CONFIG_UPDATE, NULL) > 0){
-                rt_kprintf("CONFIG_UPDATE 00000000000000000000000000(%d)\n", gunno);
-
-                sgcc_set_message_send_state(gunno, NET_SGCC_SEND_STATE_ONGOING, NET_SGCC_PREQ_EVENT_REPORT_CONFIG_UPDATE);
-//                for(uint8_t count = 0; count < sizeof(evs_event_alarms[gunno]); count++){
-//                    rt_kprintf("%02d ", *((uint8_t*)&evs_event_alarms[gunno] + count));
-//                }
-//                rt_kprintf("\n");
-                evs_send_event(EVS_CMD_EVENT_ALARM, &evs_event_alarms[gunno]);
-//                sgcc_set_message_wait_response_state(gunno, NET_SGCC_PREQ_EVENT_REPORT_CONFIG_UPDATE);
-                sgcc_set_message_send_state(gunno, NET_SGCC_SEND_STATE_COMPLETE, NET_SGCC_PREQ_EVENT_REPORT_CONFIG_UPDATE);
                 rt_thread_mdelay(250);
             }
             /***** [启动鉴权请求] *****/
@@ -796,17 +818,41 @@ static void sgcc_message_send_thread_entry(void *parameter)
                 rt_kprintf("APPLY_START_CHARGE 00000000000000000000000000(%d)\n", gunno);
 
                 sgcc_set_message_send_state(gunno, NET_SGCC_SEND_STATE_ONGOING, NET_SGCC_PREQ_EVENT_APPLY_START_CHARGE);
-//                for(uint8_t count = 0; count < sizeof(evs_event_alarms[gunno]); count++){
-//                    rt_kprintf("%02d ", *((uint8_t*)&evs_event_alarms[gunno] + count));
-//                }
-//                rt_kprintf("\n");
                 evs_send_event(EVS_CMD_EVENT_STARTCHARGE, &evs_event_startCharges[gunno]);
 //                sgcc_set_message_wait_response_state(gunno, NET_SGCC_PREQ_EVENT_APPLY_START_CHARGE);
                 sgcc_set_message_send_state(gunno, NET_SGCC_SEND_STATE_COMPLETE, NET_SGCC_PREQ_EVENT_APPLY_START_CHARGE);
                 rt_thread_mdelay(250);
             }
+            /***** [上报日志数据请求] *****/
+            if(sgcc_net_event_receive(NET_SGCC_EVENT_HANDLE_CHARGEPILE, NET_SGCC_EVENT_TYPE_REQUEST, gunno,
+                    (NET_SGCC_EVENT_OPTION_OR |NET_SGCC_EVENT_OPTION_CLEAR), NET_SGCC_PREQ_EVENT_REPORT_DEV_RECORD, NULL) > 0){
+                rt_kprintf("REPORT_DEV_RECORD 00000000000000000000000000(%d)\n", gunno);
 
+                sgcc_set_message_send_state(gunno, NET_SGCC_SEND_STATE_ONGOING, NET_SGCC_PREQ_EVENT_REPORT_DEV_RECORD);
+                evs_send_event(EVS_CMD_EVENT_LOGQUERY_RESULT, &evs_event_logQuery_Results[gunno]);
+//                sgcc_set_message_wait_response_state(gunno, NET_SGCC_PREQ_EVENT_REPORT_DEV_RECORD);
+                sgcc_set_message_send_state(gunno, NET_SGCC_SEND_STATE_COMPLETE, NET_SGCC_PREQ_EVENT_REPORT_DEV_RECORD);
+                rt_thread_mdelay(250);
+            }
+            /***** [上报车辆信息请求] *****/
+            if(sgcc_net_event_receive(NET_SGCC_EVENT_HANDLE_CHARGEPILE, NET_SGCC_EVENT_TYPE_REQUEST, gunno,
+                    (NET_SGCC_EVENT_OPTION_OR |NET_SGCC_EVENT_OPTION_CLEAR), NET_SGCC_PREQ_EVENT_REPORT_CAR_INFO, NULL) > 0){
+                rt_kprintf("CAR_INFO 00000000000000000000000000(%d)\n", gunno);
+
+                sgcc_set_message_send_state(gunno, NET_SGCC_SEND_STATE_ONGOING, NET_SGCC_PREQ_EVENT_REPORT_CAR_INFO);
+                evs_send_event(EVS_CMD_EVENT_CAR_INFO, &evs_event_car_infos[gunno]);
+//                sgcc_set_message_wait_response_state(gunno, NET_SGCC_PREQ_EVENT_REPORT_CAR_INFO);
+                sgcc_set_message_send_state(gunno, NET_SGCC_SEND_STATE_COMPLETE, NET_SGCC_PREQ_EVENT_REPORT_CAR_INFO);
+                rt_thread_mdelay(250);
+            }
+        }
+
+        /***************************************************** [数据响应] **********************************************************/
+        /***************************************************** [数据响应] **********************************************************/
+        for(uint8_t gunno = 0; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
+            uint32_t _event = 0;
             sgcc_net_event_receive(NET_SGCC_EVENT_HANDLE_CHARGEPILE, NET_SGCC_EVENT_TYPE_RESPONSE, gunno, 0x00, 0x00, &_event);
+
             if(!_event){
                 continue;   /* 此枪没有请求事件,不进行事件查询 */
             }
@@ -814,11 +860,6 @@ static void sgcc_message_send_thread_entry(void *parameter)
             if(sgcc_net_event_receive(NET_SGCC_EVENT_HANDLE_CHARGEPILE, NET_SGCC_EVENT_TYPE_RESPONSE, gunno,
                     (NET_SGCC_EVENT_OPTION_OR |NET_SGCC_EVENT_OPTION_CLEAR), NET_SGCC_PRES_EVENT_SERVER_START_CHARGE, NULL) > 0){
                 rt_kprintf("START_CHARGE 00000000000000000000000000(%d)\n", gunno);
-
-                for(uint8_t count = 0; count < s_sgcc_response_buff.length; count++){
-                    rt_kprintf("%02d ", s_sgcc_response_buff.general_transmit_buff[count]);
-                }
-                rt_kprintf("\n");
                 evs_send_event(EVS_CMD_EVENT_STARTRESULT, s_sgcc_response_buff.general_transmit_buff);
                 sgcc_response_buff_release_sem();
                 rt_thread_mdelay(250);
@@ -827,11 +868,6 @@ static void sgcc_message_send_thread_entry(void *parameter)
             if(sgcc_net_event_receive(NET_SGCC_EVENT_HANDLE_CHARGEPILE, NET_SGCC_EVENT_TYPE_RESPONSE, gunno,
                     (NET_SGCC_EVENT_OPTION_OR |NET_SGCC_EVENT_OPTION_CLEAR), NET_SGCC_PRES_EVENT_SERVER_STOP_CHARGE, NULL) > 0){
                 rt_kprintf("STOP_CHARGE 00000000000000000000000000(%d)\n", gunno);
-
-                for(uint8_t count = 0; count < s_sgcc_response_buff.length; count++){
-                    rt_kprintf("%02d ", s_sgcc_response_buff.general_transmit_buff[count]);
-                }
-                rt_kprintf("\n");
                 evs_send_event(EVS_CMD_EVENT_STOPCHARGE, s_sgcc_response_buff.general_transmit_buff);
                 sgcc_response_buff_release_sem();
                 rt_thread_mdelay(250);
@@ -840,28 +876,10 @@ static void sgcc_message_send_thread_entry(void *parameter)
             if(sgcc_net_event_receive(NET_SGCC_EVENT_HANDLE_CHARGEPILE, NET_SGCC_EVENT_TYPE_RESPONSE, gunno,
                     (NET_SGCC_EVENT_OPTION_OR |NET_SGCC_EVENT_OPTION_CLEAR), NET_SGCC_PRES_EVENT_APPLY_CHARGE_RESULT, NULL) > 0){
                 rt_kprintf("APPLY_CHARGE_RESULT 00000000000000000000000000(%d)\n", gunno);
-
-                for(uint8_t count = 0; count < s_sgcc_response_buff.length; count++){
-                    rt_kprintf("%02d ", s_sgcc_response_buff.general_transmit_buff[count]);
-                }
-                rt_kprintf("\n");
                 evs_send_event(EVS_CMD_EVENT_STARTRESULT, s_sgcc_response_buff.general_transmit_buff);
                 sgcc_response_buff_release_sem();
                 rt_thread_mdelay(250);
             }
-//            /***** [电子锁控制结果响应] *****/
-//            if(sgcc_net_event_receive(NET_SGCC_EVENT_HANDLE_CHARGEPILE, NET_SGCC_EVENT_TYPE_RESPONSE, gunno,
-//                    (NET_SGCC_EVENT_OPTION_OR |NET_SGCC_EVENT_OPTION_CLEAR), NET_SGCC_PRES_EVENT_ELOCK_CTRL_RESULT, NULL) > 0){
-//                rt_kprintf("ELOCK_CTRL_RESULT 00000000000000000000000000(%d)\n", gunno);
-//
-//                for(uint8_t count = 0; count < s_sgcc_response_buff.length; count++){
-//                    rt_kprintf("%02d ", s_sgcc_response_buff.general_transmit_buff[count]);
-//                }
-//                rt_kprintf("\n");
-//                evs_send_event(EVS_CMD_EVENT_STARTRESULT, s_sgcc_response_buff.general_transmit_buff);
-//                sgcc_response_buff_release_sem();
-//                rt_thread_mdelay(250);
-//            }
         }
 
         rt_thread_mdelay(100);
@@ -901,8 +919,8 @@ static void sgcc_message_server_thread_entry(void *parameter)
                     }
                     if(pro_result == 0x01){
                         result = sgcc_message_pro_remote_start_charge_request(gunno, &evs_service_startCharges[gunno], sizeof(evs_service_startCharges[gunno]));
+                        pro_result = 0x00;
                         if(result >= 0x00){
-                            pro_result = 0x00;
                             if(result == 0x00){
                                 net_operation_set_event(gunno, NET_OPERATION_EVENT_START_CHARGE);
                                 pro_result = 0x01;
@@ -936,8 +954,8 @@ static void sgcc_message_server_thread_entry(void *parameter)
                     }
                     if(pro_result == 0x01){
                         result = sgcc_message_pro_remote_stop_charge_request(gunno, &evs_service_stopCharges[gunno], sizeof(evs_service_stopCharges[gunno]));
+                        pro_result = 0x00;
                         if(result >= 0x00){
-                            pro_result = 0x00;
                             if(result == 0x00){
                                 net_operation_set_event(gunno, NET_OPERATION_EVENT_STOP_CHARGE);
                                 pro_result = 0x01;
@@ -963,18 +981,17 @@ static void sgcc_message_server_thread_entry(void *parameter)
                 if(sgcc_net_event_receive(NET_SGCC_EVENT_HANDLE_SERVER, NET_SGCC_EVENT_TYPE_REQUEST, gunno,
                         (NET_SGCC_EVENT_OPTION_OR |NET_SGCC_EVENT_OPTION_CLEAR), NET_SGCC_SREQ_EVENT_FIRMWARE_UPDATE, NULL) > 0){
                     uint8_t pro_result = 0x01;
-                    rt_kprintf("00000 ccccccc\n");
-                    if(net_get_ota_info()->state == NET_OTA_STATE_NULL){
-                        if(sgcc_get_ota_was_requested_flag() == 0x00){
-                            sgcc_set_ota_was_requested_flag();
-                            pro_result = 0x00;
-                            net_operation_set_event(gunno, NET_OPERATION_EVENT_START_UPDATE);
-                        }else{
-                            pro_result = 0x03;
-                        }
-                    }else{
-                        pro_result = 0x03;
-                    }
+//                    if(net_get_ota_info()->state == NET_OTA_STATE_NULL){
+//                        if(sgcc_get_ota_was_requested_flag() == 0x00){
+//                            sgcc_set_ota_was_requested_flag();
+//                            pro_result = 0x00;
+//                            net_operation_set_event(gunno, NET_OPERATION_EVENT_START_UPDATE);
+//                        }else{
+//                            pro_result = 0x03;
+//                        }
+//                    }else{
+//                        pro_result = 0x03;
+//                    }
 #if 0
                     if(pro_result != 0x00){
                         response = ykc_get_response_buff(RT_WAITING_FOREVER);
@@ -1102,19 +1119,30 @@ static void sgcc_message_server_thread_entry(void *parameter)
                 }
             }
 
-            /***** [启动充电结果异步响应] *****/
+            /***** [启动充电异步响应] *****/
             if(sgcc_net_event_receive(NET_SGCC_EVENT_HANDLE_CHARGEPILE, NET_SGCC_EVENT_TYPE_RESPONSE, gunno,
                     (NET_SGCC_EVENT_OPTION_OR |NET_SGCC_EVENT_OPTION_CLEAR), NET_SGCC_PRES_EVENT_START_CHARGE_ASYNCHRONOUSLY, NULL) > 0){
                 response = sgcc_get_response_buff(RT_WAITING_FOREVER);
                 result = sgcc_response_padding_remote_start_charge(gunno, response->general_transmit_buff, NET_SGCC_GENERA_RESPONSE_BUFF_LENGTH, &(response->length));
                 if(result >= 0x00){
-                    if(sgcc_get_remotecharge_result(gunno)){
-                        ((evs_event_startResult*)response->general_transmit_buff)->startResult = SGCC_OPSCTL_ACTION;
-                    }else{
-                        /* 此处需要进行原因码转换 */
-                        ((evs_event_startResult*)response->general_transmit_buff)->faultCode = 0x00;
-                    }
+                    ((evs_event_startResult*)response->general_transmit_buff)->startResult = sgcc_get_remotecharge_result(gunno);
+                    ((evs_event_startResult*)response->general_transmit_buff)->faultCode = sgcc_get_remotecharge_fail_reason(gunno);
+
                     sgcc_net_event_send(NET_SGCC_EVENT_HANDLE_CHARGEPILE, NET_SGCC_EVENT_TYPE_RESPONSE, gunno, NET_SGCC_PRES_EVENT_SERVER_START_CHARGE);
+                }else{
+                    sgcc_response_buff_release_sem();
+                }
+            }
+            /***** [停止充电异步响应] *****/
+            if(sgcc_net_event_receive(NET_SGCC_EVENT_HANDLE_CHARGEPILE, NET_SGCC_EVENT_TYPE_RESPONSE, gunno,
+                    (NET_SGCC_EVENT_OPTION_OR |NET_SGCC_EVENT_OPTION_CLEAR), NET_SGCC_PRES_EVENT_STOP_CHARGE_ASYNCHRONOUSLY, NULL) > 0){
+                response = sgcc_get_response_buff(RT_WAITING_FOREVER);
+                result = sgcc_response_padding_remote_stop_charge(gunno, response->general_transmit_buff, NET_SGCC_GENERA_RESPONSE_BUFF_LENGTH, &(response->length));
+                if(result >= 0x00){
+                    ((evs_event_stopCharge*)response->general_transmit_buff)->stopResult = sgcc_get_remotestop_result(gunno);
+                    ((evs_event_stopCharge*)response->general_transmit_buff)->resultCode = sgcc_get_remotestop_fail_reason(gunno);
+                    ((evs_event_stopCharge*)response->general_transmit_buff)->stopFailReson = sgcc_get_remotestop_fault_reason(gunno);
+                    sgcc_net_event_send(NET_SGCC_EVENT_HANDLE_CHARGEPILE, NET_SGCC_EVENT_TYPE_RESPONSE, gunno, NET_SGCC_PRES_EVENT_SERVER_STOP_CHARGE);
                 }else{
                     sgcc_response_buff_release_sem();
                 }
@@ -1136,40 +1164,6 @@ static void sgcc_message_server_thread_entry(void *parameter)
                     sgcc_response_buff_release_sem();
                 }
             }
-
-
-//            /***** [启动充电异步响应] *****/
-//            if(sgcc_net_event_receive(NET_SGCC_EVENT_HANDLE_CHARGEPILE, NET_SGCC_EVENT_TYPE_RESPONSE, gunno,
-//                    (NET_SGCC_EVENT_OPTION_OR |NET_SGCC_EVENT_OPTION_CLEAR), NET_SGCC_PRES_EVENT_START_CHARGE_ASYNCHRONOUSLY, NULL) > 0){
-//                response = sgcc_get_response_buff(RT_WAITING_FOREVER);
-//                result = sgcc_response_padding_remote_start_charge(gunno, response->general_transmit_buff, NET_YKC_GENERA_RESPONSE_BUFF_LENGTH, &(response->length));
-//                if(result >= NET_YKC_START_FAIL_REASON_NO){
-//                    if(ykc_is_start_charge_success(gunno)){
-//                        ((Net_YkcPro_PRes_Remote_StartCharge_t*)response->general_transmit_buff)->body.result = 0x01;
-//                    }else{
-//                        ((Net_YkcPro_PRes_Remote_StartCharge_t*)response->general_transmit_buff)->body.result = 0x00;
-//                    }
-//                    sgcc_net_event_send(NET_YKC_EVENT_HANDLE_CHARGEPILE, NET_YKC_EVENT_TYPE_RESPONSE, gunno, NET_YKC_PRES_EVENT_SERVER_START_CHARGE);
-//                }else{
-//                    sgcc_response_buff_release_sem();
-//                }
-//            }
-//            /***** [停止充电异步响应] *****/
-//            if(sgcc_net_event_receive(NET_SGCC_EVENT_HANDLE_CHARGEPILE, NET_SGCC_EVENT_TYPE_RESPONSE, gunno,
-//                    (NET_SGCC_EVENT_OPTION_OR |NET_SGCC_EVENT_OPTION_CLEAR), NET_SGCC_PRES_EVENT_STOP_CHARGE_ASYNCHRONOUSLY, NULL) > 0){
-//                response = sgcc_get_response_buff(RT_WAITING_FOREVER);
-//                result = sgcc_response_padding_remote_stop_charge(gunno, response->general_transmit_buff, NET_YKC_GENERA_RESPONSE_BUFF_LENGTH, &(response->length));
-//                if(result >= NET_YKC_START_FAIL_REASON_NO){
-//                    if(ykc_is_stop_charge_success(gunno)){
-//                        ((Net_YkcPro_PRes_Remote_StopCharge_t*)response->general_transmit_buff)->body.result = 0x01;
-//                    }else{
-//                        ((Net_YkcPro_PRes_Remote_StopCharge_t*)response->general_transmit_buff)->body.result = 0x00;
-//                    }
-//                    sgcc_net_event_send(NET_YKC_EVENT_HANDLE_CHARGEPILE, NET_YKC_EVENT_TYPE_RESPONSE, gunno, NET_YKC_PRES_EVENT_SERVER_STOP_CHARGE);
-//                }else{
-//                    sgcc_response_buff_release_sem();
-//                }
-//            }
         }
 
         rt_thread_mdelay(100);
@@ -1199,7 +1193,7 @@ int sgcc_message_send_init(void)
     }
 
     if(rt_thread_init(&s_sgcc_connect_thread, "sgcc_conn", sgcc_connect_thread_entry, NULL,
-            s_sgcc_connect_thread_stack, NET_SGCC_CONNECT_THREAD_STACK_SIZE, 15, 10) != RT_EOK){
+            s_sgcc_connect_thread_stack, NET_SGCC_CONNECT_THREAD_STACK_SIZE, 5, 10) != RT_EOK){
         LOG_E("sgcc connect thread create fail, please check");
         return -0x01;
     }
