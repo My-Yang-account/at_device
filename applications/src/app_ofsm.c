@@ -186,7 +186,6 @@ static void transaction_record_query_report(uint8_t gunno)
         if(s_transaction_sending[MONITOR_PLATFORM_INDEX][gunno] == APP_THA_ENUM_FALSE){
             if(mw_storage_record_get_recordverify_record_num(APP_MONITOR_PLATFORM_ID, gunno) > 0x00){
                 int32_t index = mw_storage_record_get_first_index_recordverify(APP_MONITOR_PLATFORM_ID, gunno), result = STORAGE_ERR_NONE;
-                int32_t result = mw_storage_record_get_first_index_recordverify(APP_MONITOR_PLATFORM_ID, gunno);
                 if(index >= 0x00){
                     result = mw_storage_record_get_designate_index_record((uint8_t*)&(s_thaisen_transaction_report[MONITOR_PLATFORM_INDEX][gunno]), sizeof(thaisen_transaction_t), gunno, index);
                     if((result == STORAGE_ERR_NONE) || (result == STORAGE_ERR_CHECK_ERROR)){

@@ -41,14 +41,28 @@ uint16_t mw_get_system_stop_way(uint8_t gunno)
 
 uint16_t mw_system_fault_convert(uint16_t code)
 {
+    uint16_t diff = 0x00;
+
     if(code >= APP_SYS_FAULT_MAX){
         return APP_SYS_FAULT_MAX;
     }
-    if(code < APP_ORIGIN_SYSFAULT_MAX){
+    if((code < APP_ORIGIN_SYSFAULT_MAX) || (code >= APP_USER_SYSFAULT_MIN_NEW_DEF)){
         return code;
     }
 
-    return (code + APP_SYSFAULT_OFFSET_MIN);
+    if((code >= APP_SYS_FAULT_NO_ERROR)){  /** 这里的 APP_SYS_FAULT_NO_ERROR相当于当前的因系统故障停充的停充原因最大值 */
+        if((code - APP_SYS_FAULT_NO_ERROR) <= (APP_ORIGIN_NONE_SYSFAULT_STOPWAY_MAX - APP_ORIGIN_NONE_SYSFAULT_STOPWAY_MIN)){
+            diff = (code - APP_SYS_FAULT_NO_ERROR);
+            return (diff + APP_ORIGIN_NONE_SYSFAULT_STOPWAY_MIN);
+        }else if((code < APP_SYSTEM_STOP_WAY_NULL)){ /** 若 stopway == APP_SYSTEM_STOP_WAY_NULL，则返回APP_SYSTEM_STOP_WAY_SIZE */
+            diff = ((code - APP_SYS_FAULT_NO_ERROR) - (APP_ORIGIN_NONE_SYSFAULT_STOPWAY_MAX + 0x01 - APP_ORIGIN_NONE_SYSFAULT_STOPWAY_MIN));
+            return (diff + APP_NONE_SYSFAULT_STOPWAY_OFFSET + APP_ORIGIN_NONE_SYSFAULT_STOPWAY_MAX);
+        }else if(code == APP_SYSTEM_STOP_WAY_NULL){
+            return (APP_ORIGIN_NONE_SYSFAULT_STOPWAY_MAX + 0x01);
+        }
+    }
+
+    return APP_SYS_FAULT_NO_ERROR;
 }
 
 uint16_t mw_system_stop_way_convert(uint16_t stopway)

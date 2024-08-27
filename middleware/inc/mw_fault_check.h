@@ -22,9 +22,11 @@ extern "C" {
 #define APP_NEW_SYSFAULT_NUM                      500           /* 新系统故障数量 */
 #define APP_SYSFAULT_OFFSET_MIN                   (360 - APP_ORIGIN_SYSFAULT_MAX)                     /* 系统故障偏移最小值 */
 #define APP_SYSFAULT_OFFSET_MAX                   (APP_SYSFAULT_OFFSET_MIN + APP_NEW_SYSFAULT_NUM)  /* 系统故障偏移最大值 */
+#define APP_USER_SYSFAULT_MIN_NEW_DEF             360           /* 新定义的系统故障最小值 */
 
 #define APP_ORIGIN_SYSFAULT_STOPWAY_MAX           16            /* 原来因系统故障停充的停充原因最大值(为边界值) */
 #define APP_SYSFAULT_STOPWAY_OFFSET               APP_SYSFAULT_OFFSET_MIN       /* 因系统故障停充的停充原因偏移 */
+#define APP_USER_NONE_SYSFAULT_STOPWAY_MIN_NEW_DEF     860      /* 新定义的不是因系统故障停充的停充原因最小值 */
 
 #define APP_ORIGIN_NONE_SYSFAULT_STOPWAY_MAX      27            /* 原来不是因系统故障停充的停充原因最大值(为边界值) */
 #define APP_ORIGIN_NONE_SYSFAULT_STOPWAY_MIN      16            /* 原来不是因系统故障停充的停充原因最小值(为边界值) */
@@ -148,6 +150,7 @@ enum system_stop_way{
     APP_SYSTEM_STOP_WAY_CURRENT_ABNORMAL,       /* 电流异常 */
     APP_SYSTEM_STOP_WAY_SOC_LIMIT,              /* SOC限制 */
     APP_SYSTEM_STOP_WAY_MAIN_CABINET_FORBID,    /* 主机柜禁止充电 */
+//    APP_SYSTEM_STOP_WAY_OFFLINE_CHARGE_TIME,    /* 达到离线可充电最长时间 */
 
     APP_SYSTEM_STOP_WAY_LIGHTPROTECT = thaisen_chargeCtl_stopWay_LightProtect + APP_SYSFAULT_STOPWAY_OFFSET,        /* 防雷器 */
     APP_SYSTEM_STOP_WAY_GUNSITE = thaisen_chargeCtl_stopWay_GunSite + APP_SYSFAULT_STOPWAY_OFFSET,                  /* 枪座 */

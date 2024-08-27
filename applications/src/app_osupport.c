@@ -368,6 +368,7 @@ void app_osupport_thread_entry(void *parameter)
                             case APP_SYS_FAULT_FUSE:
                                 s_system_error_info[gunno].error_index = 0x0017;
                                 s_system_error_info[gunno].error_code = APP_SYSTEM_STOP_WAY_FUSE;
+                                break;
                             case APP_SYS_FAULT_MAIN_CABINET:
                                 s_system_error_info[gunno].error_index = 0x0018;
                                 s_system_error_info[gunno].error_code = APP_SYSTEM_STOP_WAY_MAIN_CABINET;
