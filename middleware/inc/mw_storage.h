@@ -37,6 +37,14 @@ enum record_region{
     RECORD_REGION_FAULT_RECORDB,                   /* 创建B枪故障记录 */
 };
 
+enum storage_err{
+    STORAGE_ERR_NONE = 0x00,                       /* 无错误 */
+    STORAGE_ERR_INVALID_DATA = -0x01,              /* 无效数据 */
+    STORAGE_ERR_OUT_OF_RANGE = -0x02,              /* 超过范围 */
+    STORAGE_ERR_OPERATE_FAIL = -0x03,              /* 操作失败 */
+    STORAGE_ERR_CHECK_ERROR = -0x04,               /* 校验失败 */
+};
+
 int32_t mw_storage_init(void);
 
 /**

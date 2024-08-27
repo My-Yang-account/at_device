@@ -160,12 +160,12 @@ static void transaction_record_query_report(uint8_t gunno)
         int32_t resylt = 0;
         if(s_transaction_sending[TARGET_PLATFORM_INDEX][gunno] == APP_THA_ENUM_FALSE){
             if((resylt = mw_storage_record_get_recordverify_record_num(APP_TARGET_PLATFORM_ID, gunno)) > 0x00){
-                int32_t result = mw_storage_record_get_first_index_recordverify(APP_TARGET_PLATFORM_ID, gunno);
-                if(result >= 0x00){
-                    if(mw_storage_record_get_designate_index_record((uint8_t*)&(s_thaisen_transaction_report[TARGET_PLATFORM_INDEX][gunno]), sizeof(thaisen_transaction_t), \
-                            gunno, result) >= 0x00){
+                int32_t index = mw_storage_record_get_first_index_recordverify(APP_TARGET_PLATFORM_ID, gunno), result = STORAGE_ERR_NONE;
+                if(index >= 0x00){
+                    result = mw_storage_record_get_designate_index_record((uint8_t*)&(s_thaisen_transaction_report[TARGET_PLATFORM_INDEX][gunno]), sizeof(thaisen_transaction_t), gunno, index);
+                    if((result == STORAGE_ERR_NONE) || (result == STORAGE_ERR_CHECK_ERROR)){
                         s_transaction_sending[TARGET_PLATFORM_INDEX][gunno] = APP_THA_ENUM_TRUE;
-                        s_current_order_index[TARGET_PLATFORM_INDEX][gunno] = result;
+                        s_current_order_index[TARGET_PLATFORM_INDEX][gunno] = index;
                         app_nsal_transaction_record_report_target(gunno, &(s_thaisen_transaction_report[TARGET_PLATFORM_INDEX][gunno]), 0x01);
                     }
                 }
@@ -185,13 +185,14 @@ static void transaction_record_query_report(uint8_t gunno)
     }else{
         if(s_transaction_sending[MONITOR_PLATFORM_INDEX][gunno] == APP_THA_ENUM_FALSE){
             if(mw_storage_record_get_recordverify_record_num(APP_MONITOR_PLATFORM_ID, gunno) > 0x00){
+                int32_t index = mw_storage_record_get_first_index_recordverify(APP_MONITOR_PLATFORM_ID, gunno), result = STORAGE_ERR_NONE;
                 int32_t result = mw_storage_record_get_first_index_recordverify(APP_MONITOR_PLATFORM_ID, gunno);
-                if(result >= 0x00){
-                    if(mw_storage_record_get_designate_index_record((uint8_t*)&(s_thaisen_transaction_report[MONITOR_PLATFORM_INDEX][gunno]), sizeof(thaisen_transaction_t), \
-                            gunno, result) >= 0x00){
-                    s_transaction_sending[MONITOR_PLATFORM_INDEX][gunno] = APP_THA_ENUM_TRUE;
-                    s_current_order_index[MONITOR_PLATFORM_INDEX][gunno] = result;
-                    app_nsal_transaction_record_report_monitor(gunno, &(s_thaisen_transaction_report[MONITOR_PLATFORM_INDEX][gunno]), 0x01);
+                if(index >= 0x00){
+                    result = mw_storage_record_get_designate_index_record((uint8_t*)&(s_thaisen_transaction_report[MONITOR_PLATFORM_INDEX][gunno]), sizeof(thaisen_transaction_t), gunno, index);
+                    if((result == STORAGE_ERR_NONE) || (result == STORAGE_ERR_CHECK_ERROR)){
+                        s_transaction_sending[MONITOR_PLATFORM_INDEX][gunno] = APP_THA_ENUM_TRUE;
+                        s_current_order_index[MONITOR_PLATFORM_INDEX][gunno] = index;
+                        app_nsal_transaction_record_report_monitor(gunno, &(s_thaisen_transaction_report[MONITOR_PLATFORM_INDEX][gunno]), 0x01);
                     }
                 }
             }
@@ -554,6 +555,16 @@ static void ofsm_idleing_fun(uint8_t gunno)
     s_ofsm_info[gunno].base.flag.card_authorization = APP_THA_ENUM_FALSE;
     s_ofsm_info[gunno].base.flag.start_result = APP_THA_ENUM_FALSE;
 
+    if((s_ofsm_info[gunno].base.device_state == APP_DEVICE_STATE_OVERHAUL) ||
+            (s_ofsm_info[gunno].base.device_state == APP_DEVICE_STATE_FREEZE)){
+        s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_FAULTING];
+        s_ofsm_info[gunno].state = APP_OFSM_STATE_FAULTING;
+
+        s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
+        app_nsal_state_charged(gunno);
+        return;
+    }
+
     if(app_get_highest_priority_system_fault(gunno) != APP_SYS_FAULT_NO_ERROR){
         s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_FAULTING];
         s_ofsm_info[gunno].state = APP_OFSM_STATE_FAULTING;
@@ -620,6 +631,16 @@ static void ofsm_readying_fun(uint8_t gunno)
     if(++s_debug_count[gunno] > (3000 + 500 *gunno) / 100) {
         s_debug_count[gunno] = 0;
         LOG_I("gunno(%d) readying state (%dV, S%d)...", gunno, mw_get_cc1_value(mw_get_cc1(gunno)), charge_state);
+    }
+
+    if((s_ofsm_info[gunno].base.device_state == APP_DEVICE_STATE_OVERHAUL) ||
+            (s_ofsm_info[gunno].base.device_state == APP_DEVICE_STATE_FREEZE)){
+        s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_FAULTING];
+        s_ofsm_info[gunno].state = APP_OFSM_STATE_FAULTING;
+
+        s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
+        app_nsal_state_charged(gunno);
+        return;
     }
 
     if(app_get_highest_priority_system_fault(gunno) != APP_SYS_FAULT_NO_ERROR){
@@ -689,7 +710,8 @@ static void ofsm_readying_fun(uint8_t gunno)
              * base->charge_strategy_para
              * base->card_ballance_before
              * base->card_ballance_after
-             * base->device_transaction_number*/
+             * base->device_transaction_number
+             * base->offline_chargetime */
 
             valid_len = sizeof(s_ofsm_info[gunno].base.transaction_number);
             valid_len = valid_len > sizeof(s_thaisen_transaction[gunno].serial_number) ? sizeof(s_thaisen_transaction[gunno].serial_number) : valid_len;
@@ -1169,6 +1191,16 @@ static void ofsm_reservation_fun(uint8_t gunno)
     if (++s_debug_count[gunno] > (1000  + 500 *gunno) / 100) {
         s_debug_count[gunno] = 0;
         LOG_I("gunno(%d) reservation state (%dV | S%d)...", gunno, mw_get_cc1_value(mw_get_cc1(gunno)), charge_state);
+    }
+
+    if((s_ofsm_info[gunno].base.device_state == APP_DEVICE_STATE_OVERHAUL) ||
+            (s_ofsm_info[gunno].base.device_state == APP_DEVICE_STATE_FREEZE)){
+        s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_FAULTING];
+        s_ofsm_info[gunno].state = APP_OFSM_STATE_FAULTING;
+
+        s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
+        app_nsal_state_charged(gunno);
+        return;
     }
 
     if(app_nsal_is_cancel_reservation(gunno)){
@@ -1656,6 +1688,7 @@ static void ofsm_starting_fun(uint8_t gunno)
         s_ofsm_info[gunno].base.start_period = app_calculate_current_period(s_ofsm_info[gunno].base.start_time);
         s_ofsm_info[gunno].base.current_period = s_ofsm_info[gunno].base.start_period;
         s_ofsm_info[gunno].timing_tick = rt_tick_get();
+        s_ofsm_info[gunno].base.offline_tick = rt_tick_get();
         s_thaisen_transaction[gunno].start_time = s_ofsm_info[gunno].base.start_time;
         s_thaisen_transaction[gunno].end_time = s_thaisen_transaction[gunno].start_time;
         s_thaisen_transaction[gunno].start_period_number = s_ofsm_info[gunno].base.start_period;
@@ -2214,6 +2247,26 @@ static void ofsm_charging_fun(uint8_t gunno)
         }
     }
 
+#ifdef APP_INCLUDE_NET
+    if((s_ofsm_info[gunno].base.flag.is_local_charging == APP_THA_ENUM_FALSE) && app_nsal_offlinecharge_is_limit(gunno)){
+        if(app_nsal_get_link_state() == APP_NET_STATE_AUTH_SECCESS){
+            s_ofsm_info[gunno].base.offline_tick = rt_tick_get();
+        }else{
+            if(s_ofsm_info[gunno].base.offline_tick > rt_tick_get()){
+                s_ofsm_info[gunno].base.offline_tick = rt_tick_get();
+            }
+            if((rt_tick_get() - s_ofsm_info[gunno].base.offline_tick) > s_ofsm_info[gunno].base.offline_chargetime *1000){
+                s_thaisen_transaction[gunno].stop_reason = APP_SYSTEM_STOP_WAY_OFFLINE_CHARGE_TIME;
+                s_ofsm_info[gunno].base.reason_code = s_thaisen_transaction[gunno].stop_reason;
+                s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_FALSE;
+
+                is_stop_charge_authorization = true;
+                LOG_D("gunno(%d) charge finish deal to reach offline charge time(%d)\n", gunno, *(sys_read_config_item_content(CONFIG_ITEM_SOC_STOP, 0)));
+            }
+        }
+    }
+#endif /* APP_INCLUDE_NET */
+
     if(is_stop_charge_authorization == true){
         s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_STOPING];
         s_ofsm_info[gunno].state = APP_OFSM_STATE_STOPING;
@@ -2451,6 +2504,7 @@ static void ofsm_stoping_fun(uint8_t gunno)
         s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
 
         s_ofsm_info[gunno].base.charge_way = APP_CHARGE_WAY_NONE;
+        app_nsal_clear_offlinecharge_limit(gunno);
     }
 
     mw_clear_time_sync_flag(gunno);
@@ -2481,6 +2535,16 @@ static void ofsm_finishing_fun(uint8_t gunno)
     }
 
     s_ofsm_info[gunno].base.flag.is_charge_complete = APP_THA_ENUM_TRUE;
+
+    if((s_ofsm_info[gunno].base.device_state == APP_DEVICE_STATE_OVERHAUL) ||
+            (s_ofsm_info[gunno].base.device_state == APP_DEVICE_STATE_FREEZE)){
+        s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_FAULTING];
+        s_ofsm_info[gunno].state = APP_OFSM_STATE_FAULTING;
+
+        s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
+        app_nsal_state_charged(gunno);
+        return;
+    }
 
     if(fault != APP_SYS_FAULT_NO_ERROR){
         s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_FAULTING];
@@ -2563,7 +2627,8 @@ static void ofsm_finishing_fun(uint8_t gunno)
              * base->charge_strategy_para
              * base->card_ballance_before
              * base->card_ballance_after
-             * base->device_transaction_number*/
+             * base->device_transaction_number
+             * base->offline_chargetime */
 
             valid_len = sizeof(s_ofsm_info[gunno].base.transaction_number);
             valid_len = valid_len > sizeof(s_thaisen_transaction[gunno].serial_number) ? sizeof(s_thaisen_transaction[gunno].serial_number) : valid_len;
@@ -3059,6 +3124,10 @@ static void ofsm_faulting_fun(uint8_t gunno)
     }
 
     if(system_fault == APP_SYS_FAULT_NO_ERROR){
+        if((s_ofsm_info[gunno].base.device_state == APP_DEVICE_STATE_OVERHAUL) ||
+                (s_ofsm_info[gunno].base.device_state == APP_DEVICE_STATE_FREEZE)){
+            return;
+        }
         if(s_ofsm_info[gunno].base.flag.is_charge_complete == APP_THA_ENUM_TRUE){
             s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_FINISHING];
             s_ofsm_info[gunno].state = APP_OFSM_STATE_FINISHING;
@@ -3141,7 +3210,8 @@ static void ofsm_faulting_fun(uint8_t gunno)
                      * base->charge_strategy_para
                      * base->card_ballance_before
                      * base->card_ballance_after
-                     * base->device_transaction_number*/
+                     * base->device_transaction_number
+                     * base->offline_chargetime */
 
                     valid_len = sizeof(s_ofsm_info[gunno].base.transaction_number);
                     valid_len = valid_len > sizeof(s_thaisen_transaction[gunno].serial_number) ? sizeof(s_thaisen_transaction[gunno].serial_number) : valid_len;

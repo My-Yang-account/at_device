@@ -89,28 +89,17 @@ int32_t mw_storage_record_designate_index_updated(const void *data, uint32_t dat
 int32_t mw_storage_record_get_designate_index_record(uint8_t *buf, uint32_t data_len, uint8_t region, int32_t index)
 {
     if ((NULL == buf) || (0 == data_len)) {
-        return -1;
+        return STORAGE_ERR_INVALID_DATA;
     }
 
-//    printf("mw_storage_record_get_designate_index_record(%d, %d, %d)\n", data_len, region, index);
-//    for(uint16_t count = 0; count < data_len; count++){
-//        if(buf[count] < 0x10){
-//            printf("0%X ", buf[count]);
-//        }else{
-//            printf("%X ", buf[count]);
-//        }
-//        if(count%16 == 0 && count != 0){
-//            printf("\n");
-//        }
-//    }
-//    printf("\n----------------------------------------------------\n");
-
-
     uint8_t check_rentry = 0;
+    int32_t result = STORAGE_ERR_NONE;
+
     while(check_rentry < STORAGE_READ_RENTRY_MAX){
         rt_kprintf("vvvvvvvvvvvvvvvv(%d, %d)\n", check_rentry, index);
-        if(notfs_get_subregion_designate_index_record_data((enum notfs_subregion)region, buf, data_len, index) < 0x00){
-            rt_kprintf("fffffffsssssssss(%d)\n", check_rentry);
+        result = notfs_get_subregion_designate_index_record_data((enum notfs_subregion)region, buf, data_len, index);
+        if(result != STORAGE_ERR_NONE){
+            rt_kprintf("fffffffsssssssss(%d, %d)\n", check_rentry, result);
             OS_MDELAY_PORT(STORAGE_OPERATE_WAIT_TIME);
             check_rentry++;
         }else{
@@ -119,9 +108,17 @@ int32_t mw_storage_record_get_designate_index_record(uint8_t *buf, uint32_t data
     }
 
     if(check_rentry >= STORAGE_READ_RENTRY_MAX){
-        return -1;
+        if(result == NOTFS_CHECK_ERR){
+            return STORAGE_ERR_CHECK_ERROR;
+        }else if(result == NOTFS_OUTRANGE_ERR){
+            return STORAGE_ERR_OUT_OF_RANGE;
+        }else if(result == NOTFS_ILLEGAL_ERR){
+            return STORAGE_ERR_INVALID_DATA;
+        }else{
+            return STORAGE_ERR_OPERATE_FAIL;
+        }
     }
-    return 0;
+    return STORAGE_ERR_NONE;
 }
 
 int32_t mw_storage_record_get_record_total_num(uint8_t region)
