@@ -735,6 +735,22 @@ static void ec20_socket_set_event_cb(at_socket_evt_t event, at_evt_cb_t cb)
     }
 }
 
+int ec20_socket_modify_state_close(int fd)
+{
+    struct at_socket *atsock = RT_NULL;
+
+    atsock = at_get_socket(fd);
+    if(atsock == RT_NULL) {
+        return -1;
+    }
+    if(at_evt_cb_set[AT_SOCKET_EVT_CLOSED])
+    {
+        at_evt_cb_set[AT_SOCKET_EVT_CLOSED](atsock, AT_SOCKET_EVT_CLOSED, NULL, 0);
+    }
+
+    return 0;
+}
+
 static void urc_connect_func(struct at_client *client, const char *data, rt_size_t size)
 {
     int device_socket = 0, result = 0;
@@ -889,15 +905,37 @@ static void urc_recv_func(struct at_client *client, const char *data, rt_size_t 
 
 static void urc_pdpdeact_func(struct at_client *client, const char *data, rt_size_t size)
 {
+    rt_uint8_t count = 0;
     int connectID = 0;
+    struct at_socket *socket = RT_NULL;
+    struct at_device *device = RT_NULL;
+    char *client_name = client->device->parent.name;
 
     RT_ASSERT(data && size);
+
+    device = at_device_get_by_name(AT_DEVICE_NAMETYPE_CLIENT, client_name);
+    if (device == RT_NULL)
+    {
+        LOG_E("get device(%s) failed.", client_name);
+        return;
+    }
 
     sscanf(data, "+QIURC: \"pdpdeact\",%d", &connectID);
 
     LOG_E("context (%d) is deactivated.", connectID);
 
     s_at_socket_deactivated = true; /* ����ʧЧ�� */
+
+    for(count = 0; count < device->class->socket_num; count++){
+        if(device->sockets[count].magic == AT_SOCKET_MAGIC){
+            socket = &(device->sockets[count]);
+            /* notice the socket is disconnect by remote */
+            if (at_evt_cb_set[AT_SOCKET_EVT_CLOSED])
+            {
+                at_evt_cb_set[AT_SOCKET_EVT_CLOSED](socket, AT_SOCKET_EVT_CLOSED, NULL, 0);
+            }
+        }
+    }
 }
 
 static void urc_dnsqip_func(struct at_client *client, const char *data, rt_size_t size)

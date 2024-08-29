@@ -66,6 +66,10 @@
 #define NET_FAULT_PHYSICAL_LAYER                       (1 <<0) /* 物理层故障 */
 #define NET_FAULT_DATA_LINK_LAYER                      (1 <<1) /* 数据链路层故障 */
 
+/** external socket state */
+#define NET_ESOCKET_STATE_OPEN                         0x00    /* 外部socket 状态：打开 */
+#define NET_ESOCKET_STATE_CLOSE                        0x01    /* 外部socket 状态：关闭 */
+
 /** boot result */
 #define NET_CHARGE_BOOT_RESULT_SUCCESS                 0x00    /* 充电启动结果：成功 */
 #define NET_CHARGE_BOOT_RESULT_NO_GUN                  0x01    /* 充电启动结果：未插枪 */
@@ -132,6 +136,7 @@
 
 /** net device operate option */
 #define NET_DEV_OPERATE_OPTION_RESET                   (0x01 <<0x00)    /* 网络设备操作选项：重启 */
+#define NET_DEV_OPERATE_OPTION_CLOSE_SOCKET            (0x01 <<0x01)    /* 网络设备操作选项：关闭socket(修改外部socket状态为：关闭) */
 
 /** platform mask */
 #define NET_PLATFORM_MASK_MONITOR                      (0x01 <<0x00)    /* 监控平台掩码(用于网络设备操作) */
@@ -221,6 +226,7 @@ enum net_event{
     NET_OPERATION_EVENT_VINAUTHORITY_MERGE_FAIL,        /* VIN码权限认证并充失败事件 */
     NET_OPERATION_EVENT_SET_RESERVATION,                /* 设置预约事件 */
     NET_OPERATION_EVENT_CANCEL_RESERVATION,             /* 取消预约事件 */
+    NET_OPERATION_EVENT_OFFLINECHARGE_LIMIT,            /* 离线可充电时长限制事件 */
 };
 
 enum net_ota_state{
@@ -239,6 +245,12 @@ enum network_state{
     NET_SOCKET_STATE_OPEN,
     NET_SOCKET_STATE_LOGIN_WAIT,
     NET_SOCKET_STATE_LOGIN_SUCCESS,
+};
+
+enum net_external_socket_state{
+    NET_ESOCKET_CLOSE,
+    NET_ESOCKET_UP,
+    NET_ESOCKET_OPEN,
 };
 
 enum net_enum{
@@ -279,6 +291,7 @@ typedef struct{
 struct net_handle{
     uint8_t net_fault;
     uint8_t net_state;
+    uint8_t esocket_state;
     void (*start_func)(void* handle);
     void (*data_updata)(void);
     void (*time_sync)(uint32_t timestamp);
@@ -296,7 +309,7 @@ struct net_handle{
     int32_t (*system_data_storage)(uint32_t option);
     int32_t (*query_system_record)(net_record_info_t *info);
     int32_t (*system_control)(uint8_t gunno, uint16_t item, uint8_t *para, uint32_t option);
-    int32_t (*ndev_operate)(uint8_t option);
+    int32_t (*ndev_operate)(void* para, uint32_t option);
     uint16_t (*crc16_8005)(uint16_t init, const uint8_t *data, uint32_t len);
     uint32_t (*crc32_updtae)(uint32_t init, const uint8_t *data, uint32_t len);
 };
@@ -312,6 +325,9 @@ void net_operation_clear_event(uint8_t gunno, uint8_t event);
 
 void net_operation_clear_net_fault(uint8_t event);
 void net_operation_set_net_fault(uint8_t event);
+
+void net_operation_set_esock_state(uint8_t state);
+uint8_t net_operation_get_esock_state(void);
 
 void net_operation_set_total_power(uint32_t power, uint8_t gunno);
 uint32_t net_operation_get_total_power(uint8_t gunno);

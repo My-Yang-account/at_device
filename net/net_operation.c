@@ -121,7 +121,7 @@ void net_set_clear_ndev_reset_state(uint8_t plat_mask, uint8_t is_clear)
 
     if((s_net_ndev_reset &NET_PLATFORM_MASK_ALL) == NET_PLATFORM_MASK_ALL){
         s_net_ndev_reset &= (~NET_PLATFORM_MASK_ALL);
-        (void)s_net_handle.ndev_operate(NET_DEV_OPERATE_OPTION_RESET);
+        (void)s_net_handle.ndev_operate(NULL, NET_DEV_OPERATE_OPTION_RESET);
     }
 }
 
@@ -189,6 +189,24 @@ void net_operation_clear_net_fault(uint8_t event)
 void net_operation_set_net_fault(uint8_t event)
 {
     s_net_handle.net_fault |= event;
+}
+
+/******************************************
+ * 函数名     net_operation_set_esock_state
+ * 功能         设置外部socket 状态(用于外部调用)
+ * ***************************************/
+void net_operation_set_esock_state(uint8_t state)
+{
+    s_net_handle.esocket_state = state;
+}
+
+/******************************************
+ * 函数名     net_operation_get_esock_state
+ * 功能         获取外部socket 状态(用于外部调用)
+ * ***************************************/
+uint8_t net_operation_get_esock_state(void)
+{
+    return s_net_handle.esocket_state;
 }
 
 /******************************************
@@ -344,7 +362,7 @@ static int32_t net_para_config_function(uint8_t platform, uint8_t index, void* p
         s_net_handle.query_system_record = (int32_t (*)(net_record_info_t*))para;
         break;
     case NET_PARA_CONFIG_INDEX_NDEV_OPERATE :
-        s_net_handle.ndev_operate = (int32_t (*)(uint8_t))para;
+        s_net_handle.ndev_operate = (int32_t (*)(void*, uint32_t))para;
         break;
     default:
         return -0x06;

@@ -24,6 +24,8 @@ static void app_ndata_update(void)
 {
     extern int get_at_device_appinfo_at(void);
     extern int get_at_device_appinfo_is_complete(void);
+    extern bool get_at_socket_deactivated(void);
+
     if(get_at_device_appinfo_at()){
         net_operation_clear_net_fault(NET_FAULT_PHYSICAL_LAYER);
     }else{
@@ -35,13 +37,19 @@ static void app_ndata_update(void)
     }else{
         net_operation_set_net_fault(NET_FAULT_DATA_LINK_LAYER);
     }
+
+    if(get_at_socket_deactivated()){
+        net_operation_set_esock_state(NET_ESOCKET_STATE_CLOSE);
+    }else{
+        net_operation_set_esock_state(NET_ESOCKET_STATE_OPEN);
+    }
 }
 
 /***********************************************
  * 函数名     app_ndevice_operate
  * 功能         操作网络设备
  **********************************************/
-static int32_t app_ndevice_operate(uint8_t option)
+static int32_t app_ndevice_operate(void *para, uint32_t option)
 {
     if(option &NET_DEV_OPERATE_OPTION_RESET){
         extern void ec20_at_device_reset(void);
@@ -50,6 +58,13 @@ static int32_t app_ndevice_operate(uint8_t option)
         net_operation_set_net_fault(NET_FAULT_DATA_LINK_LAYER);
         ec20_at_device_reset();
         return 0x00;
+    }else if(option &NET_DEV_OPERATE_OPTION_CLOSE_SOCKET){
+        if(para == NULL){
+            return -0x01;
+        }
+        extern int sal_modify_socket_close(int fd);
+
+        return sal_modify_socket_close(*((int32_t*)para));
     }
     return -0x01;
 }

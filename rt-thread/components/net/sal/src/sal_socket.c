@@ -1177,3 +1177,14 @@ void sal_freeaddrinfo(struct addrinfo *ai)
         pf->netdb_ops->freeaddrinfo(ai);
     }
 }
+
+int sal_modify_socket_close(int fd)
+{
+    struct sal_socket *sock;
+
+    extern int dfs_net_getsocket(int fd);
+    extern int ec20_socket_modify_state_close(int fd);
+
+    SAL_SOCKET_OBJ_GET(sock, dfs_net_getsocket(fd));
+    return ec20_socket_modify_state_close((int)sock->user_data);
+}
