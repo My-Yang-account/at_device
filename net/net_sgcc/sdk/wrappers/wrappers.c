@@ -762,7 +762,8 @@ __exit:
         LOG_D("tcp establish --- failed, code: %d \n", rc);
     }
 
-    return (0 == rc) ? 0 : (-1);
+    return fd;
+//    return (0 == rc) ? 0 : (-1);
 }
 
 /**
@@ -993,4 +994,11 @@ int HAL_Write(int fd, const void *buf, int len)
     (void)fd, (void)buf, (void)len;
 
     return (int)1;
+}
+
+int HAL_Get_SocketFd(uintptr_t handle)
+{
+    TLSDataParams_pt p = (TLSDataParams_pt)handle;
+
+    return p->fd.fd;
 }

@@ -454,4 +454,14 @@ static void _set_common_handlers()
         _mqtt_conncection->close_func = _mqtt_close;
     }
 }
+
+int _get_mqtt_socketfd(void)
+{
+    if(_mqtt_conncection->context){
+        extern int wrapper_mqtt_get_socketfd(void *client);
+        return wrapper_mqtt_get_socketfd(_mqtt_conncection->context);
+    }
+    return -1;
+}
+
 #endif

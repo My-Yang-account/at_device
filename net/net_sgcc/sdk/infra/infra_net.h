@@ -46,6 +46,8 @@ int iotx_net_disconnect(utils_network_pt pNetwork);
 int iotx_net_connect(utils_network_pt pNetwork);
 int iotx_net_init(utils_network_pt pNetwork, const char *host, uint16_t port, const char *ca_crt);
 
+int iotx_net_get_socketfd(utils_network_pt pNetwork);
+
 #endif /* IOTX_COMMON_NET_H */
 
 

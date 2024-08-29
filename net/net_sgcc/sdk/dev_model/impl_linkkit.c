@@ -113,6 +113,11 @@ static iotx_linkkit_ctx_t *_iotx_linkkit_get_ctx(void)
     return &g_iotx_linkkit_ctx;
 }
 
+void iotx_linkkit_ctx_close(void)
+{
+    g_iotx_linkkit_ctx.is_yield_running = 0;
+}
+
 static void _iotx_linkkit_mutex_lock(void)
 {
     iotx_linkkit_ctx_t *ctx = _iotx_linkkit_get_ctx();

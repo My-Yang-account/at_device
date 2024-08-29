@@ -25,4 +25,4 @@ int wrapper_mqtt_publish(void *client, const char *topicName, iotx_mqtt_topic_in
 int wrapper_mqtt_release(void **pclient);
 int wrapper_mqtt_nwk_event_handler(void *client, iotx_mqtt_nwk_event_t event, iotx_mqtt_nwk_param_t *param);
 
-
+int wrapper_mqtt_get_socketfd(void *client);

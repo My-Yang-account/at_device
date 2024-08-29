@@ -3222,3 +3222,7 @@ int wrapper_mqtt_nwk_event_handler(void *client, iotx_mqtt_nwk_event_t event, io
 }
 #endif
 
+int wrapper_mqtt_get_socketfd(void *client)
+{
+    return iotx_net_get_socketfd(&(((iotx_mc_client_t *)client)->ipstack));
+}

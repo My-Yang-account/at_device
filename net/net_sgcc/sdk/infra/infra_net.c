@@ -371,4 +371,10 @@ int iotx_net_init(utils_network_pt pNetwork, const char *host, uint16_t port, co
 
     return STATE_SUCCESS;
 }
+
+int iotx_net_get_socketfd(utils_network_pt pNetwork)
+{
+    return HAL_Get_SocketFd(pNetwork->handle);
+}
+
 #endif

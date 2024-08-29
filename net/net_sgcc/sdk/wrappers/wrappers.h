@@ -740,6 +740,7 @@ uint64_t HAL_UptimeMs(void);
 int HAL_Vsnprintf(char *str, const int len, const char *format, va_list ap);
 
 
+int HAL_Get_SocketFd(uintptr_t handle);
 
 #if defined(__cplusplus)
 }
