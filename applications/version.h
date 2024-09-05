@@ -23,7 +23,7 @@ extern "C" {
  */
 #define SOFTWARE_VERSION       1L
 #define SOFTWARE_SUBVERSION    3L
-#define SOFTWARE_REVISION      0L   //  ([1.2.5 (修复四组模块的柔性切换模式下，一组继电器被误断问题)])
+#define SOFTWARE_REVISION      1L   //  ([1.2.5 (修复四组模块的柔性切换模式下，一组继电器被误断问题)])
 
 #ifdef HMI_T5UIC1_ENABLE
 #define SOFTWARE_HMIION       'B'
