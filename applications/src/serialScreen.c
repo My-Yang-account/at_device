@@ -4592,7 +4592,7 @@ void SerialScreen_SaveKey(u16 regaddr,u16 regvalue,u8 *ptr,u16 len)
 		{
 			LcdData.KeyReg = regaddr;
 			LcdData.KeyVal = regvalue;
-			LcdData.KeyTimer = 10;
+			LcdData.KeyTimer = 0;
 
 			sSCREEN_DEBUGPROMSG("KeyReg=%04x,KeyVal=%04x\r\n",LcdData.KeyReg,LcdData.KeyVal);
 		}
