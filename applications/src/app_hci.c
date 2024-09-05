@@ -70,6 +70,8 @@ void app_hci_res_thread_entry(void *parameter)
             rt_sem_take(&g_hci_rx_sem, RT_WAITING_FOREVER);
         }
 
+        rt_enter_critical();
+
         (*ptr).buffer[(*ptr).put_index] = ch;
 
         (*ptr).put_index += 1;
@@ -82,6 +84,8 @@ void app_hci_res_thread_entry(void *parameter)
             (*ptr).get_index += 1;
             LOG_E("hci queue is full, please get data in time|%d", queue_size);
         }
+
+        rt_exit_critical();
     }
 }
 
