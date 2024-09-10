@@ -1571,6 +1571,7 @@ static void net_tha_server_message_pro_entry(void *parameter)
                             g_tha_sreq_unlock_charge[gunno].head.status = NET_THA_STATUS_CODE_EXECUTE_FAIL;
                         }else{
                             net_operation_set_event(gunno, NET_OPERATION_EVENT_START_CHARGE);
+                            net_operation_clear_event(gunno, NET_OPERATION_EVENT_OFFLINECHARGE_LIMIT);
                         }
                     }
                     result = tha_response_padding_general_message(gunno, response->general_transmit_buff, NET_THA_GENERA_RESPONSE_BUFF_LENGTH, &(response->length));
@@ -1632,6 +1633,7 @@ static void net_tha_server_message_pro_entry(void *parameter)
                     }else{
                         net_operation_set_event(gunno, NET_OPERATION_EVENT_CARDAUTHORITY_FAIL);
                     }
+                    net_operation_clear_event(gunno, NET_OPERATION_EVENT_OFFLINECHARGE_LIMIT);
 #endif /* NET_THA_AS_MONITOR */
                 }
                 /***** [上报历史订单响应] *****/
@@ -1656,6 +1658,7 @@ static void net_tha_server_message_pro_entry(void *parameter)
                     }else{
                         net_operation_set_event(gunno, NET_OPERATION_EVENT_VINAUTHORITY_FAIL);
                     }
+                    net_operation_clear_event(gunno, NET_OPERATION_EVENT_OFFLINECHARGE_LIMIT);
 #endif /* NET_THA_AS_MONITOR */
                 }
 #if 0

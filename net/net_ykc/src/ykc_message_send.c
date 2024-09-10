@@ -1047,6 +1047,7 @@ static void net_ykc_server_message_pro_entry(void *parameter)
                             pro_result = 0x00;
                             if(result == NET_YKC_START_FAIL_REASON_NO){
                                 net_operation_set_event(gunno, NET_OPERATION_EVENT_START_CHARGE);
+                                net_operation_clear_event(gunno, NET_OPERATION_EVENT_OFFLINECHARGE_LIMIT);
                                 pro_result = 0x01;
                             }
                             reason = result;
@@ -1418,6 +1419,7 @@ static void net_ykc_server_message_pro_entry(void *parameter)
                             ((Net_YkcPro_PRes_Remote_StartMergeCharge_t*)response->general_transmit_buff)->body.result = 0x00;
                             if(result == NET_YKC_START_FAIL_REASON_NO){
                                 net_operation_set_event(gunno, NET_OPERATION_EVENT_START_MERGE_CHARGE);
+                                net_operation_clear_event(gunno, NET_OPERATION_EVENT_OFFLINECHARGE_LIMIT);
                                 ((Net_YkcPro_PRes_Remote_StartMergeCharge_t*)response->general_transmit_buff)->body.result = 0x01;
                             }
                             ((Net_YkcPro_PRes_Remote_StartMergeCharge_t*)response->general_transmit_buff)->body.fail_reason = result;
@@ -1516,6 +1518,7 @@ static void net_ykc_server_message_pro_entry(void *parameter)
                         }
                         LOG_W("ykc chargepile apply charge active fail reason(%d)", g_ykc_sres_apply_charge_active[gunno].body.fail_reason);
                     }
+                    net_operation_clear_event(gunno, NET_OPERATION_EVENT_OFFLINECHARGE_LIMIT);
                 }
                 /***** [交易记录响应响应] *****/
                 if(ykc_net_event_receive(NET_YKC_EVENT_HANDLE_SERVER, NET_YKC_EVENT_TYPE_RESPONSE, gunno,
@@ -1545,6 +1548,7 @@ static void net_ykc_server_message_pro_entry(void *parameter)
                         }
                         LOG_W("ykc chargepile apply merge charge active fail reason(%d)", g_ykc_sres_apply_charge_active[gunno].body.fail_reason);
                     }
+                    net_operation_clear_event(gunno, NET_OPERATION_EVENT_OFFLINECHARGE_LIMIT);
                 }
             }
             /***** [启动充电异步响应] *****/

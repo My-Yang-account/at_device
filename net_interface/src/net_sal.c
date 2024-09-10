@@ -1036,3 +1036,22 @@ void app_nsal_clear_cancel_reservation(uint8_t gunno)
 {
     net_operation_clear_event(gunno, NET_OPERATION_EVENT_CANCEL_RESERVATION);
 }
+
+/*******************************************
+ * 函数名    app_nsal_offlinecharge_is_limit
+ * 功能        查询是否有离线充电时长限制事件
+ *****************************************/
+uint8_t app_nsal_offlinecharge_is_limit(uint8_t gunno)
+{
+    net_operation_get_event(gunno, NET_OPERATION_EVENT_OFFLINECHARGE_LIMIT);
+}
+
+/*******************************************
+ * 函数名    app_nsal_clear_offlinecharge_limit
+ * 功能        清除离线充电时长限制事件
+ *****************************************/
+void app_nsal_clear_offlinecharge_limit(uint8_t gunno)
+{
+    net_operation_clear_event(gunno, NET_OPERATION_EVENT_OFFLINECHARGE_LIMIT);
+}
+

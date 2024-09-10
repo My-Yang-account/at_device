@@ -1245,6 +1245,7 @@ static void net_ycp_server_message_pro_entry(void *parameter)
                         if(result == NET_YCP_START_FAIL_CODE_NONE){
                             pro_result = 0x01;
                             net_operation_set_event(gunno, NET_OPERATION_EVENT_START_CHARGE);
+                            net_operation_clear_event(gunno, NET_OPERATION_EVENT_OFFLINECHARGE_LIMIT);
                         }
                         reason = result;
                     }else{
@@ -1525,6 +1526,7 @@ static void net_ycp_server_message_pro_entry(void *parameter)
                         }
                         LOG_W("ycp chargepile apply charge active fail reason(%d)", g_ycp_sres_apply_charge_active[gunno].body.reason);
                     }
+                    net_operation_clear_event(gunno, NET_OPERATION_EVENT_OFFLINECHARGE_LIMIT);
                 }
                 /***** [交易记录响应响应] *****/
                 if(ycp_net_event_receive(NET_YCP_EVENT_HANDLE_SERVER, NET_YCP_EVENT_TYPE_RESPONSE, gunno,

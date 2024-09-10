@@ -129,6 +129,16 @@ enum char_ctrl_state{
     APP_CHARGE_CTRL_STATE_SIZE,            /** 充电控制状态：空 */
 };
 
+enum device_state {
+    APP_DEVICE_STATE_COMMISSIONING,        /** 设备状态： 投运 */
+    APP_DEVICE_STATE_OVERHAUL,             /** 设备状态：检修 */
+    APP_DEVICE_STATE_FREEZE,               /** 设备状态： 冻结 */
+    APP_DEVICE_STATE_OUTAGE,               /** 设备状态： 停运 */
+    APP_DEVICE_STATE_RETURNS,              /** 设备状态： 退运 */
+
+    APP_DEVICE_STATE_SIZE,
+};
+
 enum{
     APP_THA_ENUM_FALSE,
     APP_THA_ENUM_TRUE,
@@ -376,6 +386,10 @@ typedef struct{
     uint8_t power_strategy;           /* 调功率策略 */
     uint8_t power_strategy_para;      /* 调功率策略参数 */
 
+    uint16_t offline_chargetime;      /* 离线可充电时长(单位s) */
+    uint32_t offline_tick;            /* 离线时基 */
+
+    uint8_t device_state;             /* 设备状态 */
 #ifdef APP_INCLUDE_SGCC_PROTOCOL
     uint8_t device_transaction_number[40 + 1];  /* 设备流水号 */
 #endif /* APP_INCLUDE_SGCC_PROTOCOL */
