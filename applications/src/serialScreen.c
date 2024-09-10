@@ -2251,37 +2251,37 @@ static void SerialScreen_BtnModuleStateShow(int port)
             }
 
             if(fault[count].state.fault.fault_val != 0){
-                if(fault[count].state.fault.OverCurr){
+                if(fault[count].state.fault.bit.OverCurr){
                     warnning |= OVERCURR_INDEX;
                 }
-                if(fault[count].state.fault.InputOverVolt){
+                if(fault[count].state.fault.bit.InputOverVolt){
                     warnning |= INOVERVOLT_INDEX;
                 }
-                if(fault[count].state.fault.InputUnderVolt){
+                if(fault[count].state.fault.bit.InputUnderVolt){
                     warnning |= INUNDERVOLT_INDEX;
                 }
-                if(fault[count].state.fault.OutputOverVolt){
+                if(fault[count].state.fault.bit.OutputOverVolt){
                     warnning |= OUTOVERVOLT_INDEX;
                 }
-                if(fault[count].state.fault.OutputUnderVolt){
+                if(fault[count].state.fault.bit.OutputUnderVolt){
                     warnning |= OUTUNDERVOLT_INDEX;
                 }
-                if(fault[count].state.fault.ModuleFault){
+                if(fault[count].state.fault.bit.ModuleFault){
                     warnning |= MODULEFAULT_INDEX;
                 }
-                if(fault[count].state.fault.SameId){
+                if(fault[count].state.fault.bit.SameId){
                     warnning |= SAMEID_INDEX;
                 }
             }
             if(fault[count].state.warn.warn_val != 0){
-                if(fault[count].state.fault.OverTemp){
+                if(fault[count].state.fault.bit.OverTemp){
                     warnning |= OVERTEMP_INDEX;
                 }
-                if(fault[count].state.warn.Fan){
+                if(fault[count].state.warn.bit.Fan){
                     warnning |= FAN_INDEX;
                 }
             }
-            sprintf((char*)(LcdData.ModuleStateString[count + base] + used_len), "%2d", fault[count].state.state.BootState);
+            sprintf((char*)(LcdData.ModuleStateString[count + base] + used_len), "%2d", fault[count].state.state.bit.BootState);
             used_len += 4;
             if(used_len > strlen((char*)LcdData.ModuleStateString[count + base])){    /* 未使用字节填充空格字符 */
                 remain_len = used_len - strlen((char*)LcdData.ModuleStateString[count + base]);
@@ -2290,7 +2290,6 @@ static void SerialScreen_BtnModuleStateShow(int port)
                 }
             }
 
-            rt_kprintf("kkkdsaafndfjkfjdlksl>>>>>>(%d, %d, %d)\n", count, base, voltcurr[count].voltage);
             if(voltcurr[count].voltage <= 150){
                 voltcurr[count].voltage = 0;
             }

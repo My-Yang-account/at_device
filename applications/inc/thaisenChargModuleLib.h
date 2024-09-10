@@ -25,22 +25,23 @@ typedef struct
             uint8_t ModuleFault            : 1;       /* 模块故障 */
             uint8_t OverCurr               : 1;       /* 过流 */
             uint8_t OverTemp               : 1;       /* 过温 */
-        };
+        }bit;
         uint8_t fault_val;
     }fault;   /* 故障 */
     union{
         struct{
             uint8_t Fan                    : 1;       /* 风扇 */
-        };
+        }bit;
         uint8_t warn_val;
     }warn;   /* 警告 */
     union{
         struct{
             uint8_t BootState              : 1;       /* 开机状态(1:开机) */
-        };
+        }bit;
         uint8_t state_val;
     }state;   /* 状态 */
     int16_t temperature;
+    uint8_t addr;                                    /* 模块地址 */
 }thaisenModuleGeneralFaultStruct;
 
 /* 模块当前故障信息 */
@@ -62,7 +63,7 @@ typedef struct thasienModuleSetStruct
 {
     uint8_t moduleProNo;//模块类型
     uint8_t moduleGroupNum;//模块组数
-    uint8_t moduleSingleGroupNum[2];//模块组内个数
+    uint8_t moduleSingleGroupNum[4];//模块组内个数
 }thasienModuleSetStruct;
 
 
@@ -445,27 +446,6 @@ uint8_t thaisenGetNormalModuleNum(uint8_t gunNum);
  */
 uint32_t thaisenGetModuleOutputVoltage(uint8_t gunNum);
 
-/* 功能说明:
- *          thaisenSetAllocateStrategy:设置功率分配策略
- *
- * 输入参数:
- *          Strategy:策略
- *
- * 调用方法:
- *          可实时调用
- */
-void thaisenSetAllocateStrategy(uint8_t Strategy);
-
-/* 功能说明:
- *          thaisenGetAllocateStrategy:获取功率分配策略
- *
- * 返回参数:  功率分配策略
- *
- * 调用方法:
- *          可实时调用
- */
-uint8_t thaisenGetAllocateStrategy(void);
-
 typedef enum
 {
     thaisenModuleChargeWay_singleGun,
@@ -496,6 +476,27 @@ int32_t thaisenModuleSetChargeWay(uint8_t way);
  *          可实时调用
  */
 uint8_t thaisenModuleGetChargeWay(void);
+
+/* 功能说明:
+ *          thaisenSetAllocateStrategy:设置功率分配策略
+ *
+ * 输入参数:
+ *          Strategy:策略
+ *
+ * 调用方法:
+ *          可实时调用
+ */
+void thaisenSetAllocateStrategy(uint8_t Strategy);
+
+/* 功能说明:
+ *          thaisenGetAllocateStrategy:获取功率分配策略
+ *
+ * 返回参数:  功率分配策略
+ *
+ * 调用方法:
+ *          可实时调用
+ */
+uint8_t thaisenGetAllocateStrategy(void);
 
 
 /* 功能说明:
