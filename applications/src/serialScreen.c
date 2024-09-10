@@ -6229,8 +6229,8 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_6B, NULL, "COM_6", LCD_BtnType, 0x0015, 0x1000, page_type, LCD_PAGE_MENU_COM_6, (void *)SerialScreen_BtnBillGetA);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_6B, NULL, "sys info", LCD_BtnType, 0x0018, 0x1000, page_type, LCD_PAGE_SYS_INFO, (void *)SerialScreen_SysInfoGet);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_6B, NULL, "root paswd", LCD_BtnType, 0x0017, 0x1000, page_type, LCD_PAGE_ADMIN_PASWD, (void *)SerialScreen_NeedPageReset);
-    SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_6B, NULL, "up", LCD_TrigType, 0x0009, 0x1003, page_type, LCD_GUN_2, (void *)SerialScreen_BtnBillUp);
-    SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_6B, NULL, "down", LCD_TrigType, 0x000E, 0x1004, page_type, LCD_GUN_2, (void *)SerialScreen_BtnBillDown);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_6B, NULL, "up", LCD_TrigType, 0x0009, 0x1000, page_type, LCD_GUN_2, (void *)SerialScreen_BtnBillUp);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_6B, NULL, "down", LCD_TrigType, 0x000E, 0x1000, page_type, LCD_GUN_2, (void *)SerialScreen_BtnBillDown);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_6B, NULL, "back", LCD_BtnHomeType, 0x0002, 0x1000, page_type, LCD_PAGE_NONE, (void *)NULL);
 
     /** B枪故障记录信息 [page:28] */
