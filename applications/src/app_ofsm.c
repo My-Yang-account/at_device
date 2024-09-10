@@ -1455,7 +1455,7 @@ static void ofsm_starting_fun(uint8_t gunno)
             mw_charge_stop_cmd(gunno);
             if(stop_way == APP_SYSTEM_STOP_WAY_NULL){
                 uint8_t rentry = 0x00;
-                while(rentry <= 200){  /** 最多等待 10s，等下层赋值完停充原因 */
+                while(rentry <= 20){  /** 最多等待 10s，等下层赋值完停充原因 */
                     rt_thread_mdelay(500);
                     stop_way = mw_get_system_stop_way(gunno);
                     if(stop_way != APP_SYSTEM_STOP_WAY_NULL){
@@ -1724,7 +1724,7 @@ static void ofsm_starting_fun(uint8_t gunno)
         mw_charge_stop_cmd(gunno);
         if(stop_way == APP_SYSTEM_STOP_WAY_NULL){
             uint8_t rentry = 0x00;
-            while(rentry <= 200){  /** 最多等待 10s，等下层赋值完停充原因 */
+            while(rentry <= 20){  /** 最多等待 10s，等下层赋值完停充原因 */
                 rt_thread_mdelay(500);
                 stop_way = mw_get_system_stop_way(gunno);
                 if(stop_way != APP_SYSTEM_STOP_WAY_NULL){
@@ -1976,7 +1976,7 @@ static void ofsm_charging_fun(uint8_t gunno)
         mw_charge_stop_cmd(gunno);
         if(stop_way == APP_SYSTEM_STOP_WAY_NULL){
             uint8_t rentry = 0x00;
-            while(rentry <= 200){  /** 最多等待 10s，等下层赋值完停充原因 */
+            while(rentry <= 20){  /** 最多等待 10s，等下层赋值完停充原因 */
                 rt_thread_mdelay(500);
                 stop_way = mw_get_system_stop_way(gunno);
                 if(stop_way != APP_SYSTEM_STOP_WAY_NULL){
@@ -2042,7 +2042,7 @@ static void ofsm_charging_fun(uint8_t gunno)
         mw_charge_stop_cmd(gunno);
         if(stop_way == APP_SYSTEM_STOP_WAY_NULL){
             uint8_t rentry = 0x00;
-            while(rentry <= 200){  /** 最多等待 10s，等下层赋值完停充原因 */
+            while(rentry <= 20){  /** 最多等待 10s，等下层赋值完停充原因 */
                 rt_thread_mdelay(500);
                 stop_way = mw_get_system_stop_way(gunno);
                 if(stop_way != APP_SYSTEM_STOP_WAY_NULL){
@@ -2247,6 +2247,7 @@ static void ofsm_charging_fun(uint8_t gunno)
     }
 
 #ifdef APP_INCLUDE_NET
+#if 0
     if((s_ofsm_info[gunno].base.flag.is_local_charging == APP_THA_ENUM_FALSE) && app_nsal_offlinecharge_is_limit(gunno)){
         if(app_nsal_get_link_state() == APP_NET_STATE_AUTH_SECCESS){
             s_ofsm_info[gunno].base.offline_tick = rt_tick_get();
@@ -2264,6 +2265,7 @@ static void ofsm_charging_fun(uint8_t gunno)
             }
         }
     }
+#endif
 #endif /* APP_INCLUDE_NET */
 
     if(is_stop_charge_authorization == true){
