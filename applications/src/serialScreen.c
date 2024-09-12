@@ -236,10 +236,11 @@ extern struct SerialScreenObj SerialScreen;
 //辅组数据
 struct LCD_ASSISTANT_DATA{
     struct{
-        u8 IsLongLiSerialScreen : 1;    //龙立屏幕
-        u8 IsEnableParaCharge : 1;      //已打开并充使能
+        u8 IsLongLiSerialScreen : 1;     //龙立屏幕
+        u8 IsEnableParaCharge : 1;       //已打开并充使能
         u8 IsEnableAuxPower24V : 1;      //已打开并充使能
-        u8 ParaChargeSelect : 1;        //已选择并充
+        u8 ParaChargeSelect : 1;         //已选择并充
+        u8 IsSetPowerPercent : 1;        //已设置功率百分比
     }Flag;
 
     struct{
@@ -248,8 +249,8 @@ struct LCD_ASSISTANT_DATA{
         u8 IsPowerOn : 1;                //上电开机
     }SeveralGunFlag[LCD_GUN_NUM];
 
-    u8 OccupyGunNum;                    //处于占用但未充电的枪数量
-    u8 DeviceType;                      //设备类型
+    u8 OccupyGunNum;                     //处于占用但未充电的枪数量
+    u8 DeviceType;                       //设备类型
 };
 
 struct LCD_RXDATA_VALUE_TYPE{
@@ -878,10 +879,19 @@ void SerialScreen_ScreenGet_TimeSync(u16* buf, u8 len)
 s8 SerialScreen_Get_ScreenTimeSync_Flag(void)
 {
     if(LcdData.setData.TimeSync_Flag){
-        LcdData.setData.TimeSync_Flag = 0;
-        return 1;
+        LcdData.setData.TimeSync_Flag = FALSE;
+        return TRUE;
     }
-    return 0;
+    return FALSE;
+}
+
+s8 SerialScreen_Get_SetPowerPercent_Flag(void)
+{
+    if(LcdAssistantData.Flag.IsSetPowerPercent){
+        LcdAssistantData.Flag.IsSetPowerPercent = FALSE;
+        return TRUE;
+    }
+    return FALSE;
 }
 
 static void SerialScreen_ScreenSet_TimeSync_Flag(void)
@@ -893,7 +903,6 @@ static void SerialScreen_RealTime_InfoGet(void)
 {
     LcdData.setData.SIM_Strength = thaisen_app_get_signal_strength();
     memcpy(LcdData.setData.SIM_card, thaisen_app_get_sim_number(), 21);
-    LcdData.setData.PowerPercent = thaisen_get_power_percent();
     LcdData.setData.ota_progress = s_ota_info->progress;
 
     for(u8 gunno = 0; gunno < LCD_GUN_NUM; gunno++){
@@ -1455,6 +1464,7 @@ void SerialScreen_BtnProtectInfoGet(void)
     LcdData.setData.OverTemp_Resume = *(u16 *)(UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_OVERTEMP_RECOVER, 0));
     LcdData.setData.OverTemp_LimitCurr = *(u16 *)(UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_OVERTEMP_SETCUR, 0));
     LcdData.setData.GunVolt_LimitValue = *(u16 *)(UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_GUNVOLT_LIMIT, 0));
+    LcdData.setData.PowerPercent = thaisen_get_power_percent();
 
 #if 0
     LcdData.setData.Input_OverVolt = SerialScreen_GetPara_ValidValue(LcdData.setData.Input_OverVolt,
@@ -1499,6 +1509,7 @@ void SerialScreen_BtnProtectInfoGet(void)
 
 void SerialScreen_BtnProtectInfoSet(void)
 {
+    u32 power = 0;
     SerialScreen_JumpPage(&SerialScreen, LCD_PAGE_STORAGE_WAITING);
 
 #if 0
@@ -1538,6 +1549,14 @@ void SerialScreen_BtnProtectInfoSet(void)
     thaisen_set_ChargGunVolt((LcdData.setData.GunVolt_LimitValue /10), 0);
     thaisen_set_ChargGunVolt((LcdData.setData.GunVolt_LimitValue /10), 1);
 
+    LcdData.setData.PowerPercent /= 10;    // 一位小数
+    if(LcdData.setData.PowerPercent < PROTECT_POWER_PERCENT_VALUE_MIN){
+        LcdData.setData.PowerPercent = PROTECT_POWER_PERCENT_VALUE_MIN;
+    }else if(LcdData.setData.PowerPercent > PROTECT_POWER_PERCENT_VALUE_MAX){
+        LcdData.setData.PowerPercent = PROTECT_POWER_PERCENT_VALUE_MAX;
+    }
+    power = thaisen_get_power_from_percent(LcdData.setData.PowerPercent);
+
 #if 0
     UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_INPUT_OVERVOL, &LcdData.setData.Input_OverVolt, sizeof(LcdData.setData.Input_OverVolt));
     UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_INPUT_UNDERVOL, &LcdData.setData.Input_UnderVolt, sizeof(LcdData.setData.Input_UnderVolt));
@@ -1546,6 +1565,7 @@ void SerialScreen_BtnProtectInfoSet(void)
     UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_OUTPUT_OVERCUR, &LcdData.setData.Onput_OverCurr, sizeof(LcdData.setData.Onput_OverCurr));
 #endif
 
+    UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_SYSTEM_POWER_TOTAL, &power, sizeof(power));
     UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_SOC_STOP, &LcdData.setData.Stop_SOC, sizeof(LcdData.setData.Stop_SOC) - 0x02);
     UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_OVERTEMP_WARN, &LcdData.setData.OverTemp_Warnning, sizeof(LcdData.setData.OverTemp_Warnning) - 0x02);
     UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_OVERTEMP_STOP, &LcdData.setData.OverTemp_Stop, sizeof(LcdData.setData.OverTemp_Stop) - 0x02);
@@ -1555,7 +1575,9 @@ void SerialScreen_BtnProtectInfoSet(void)
 
     UI_STORAGE_CFG_DATA;
 
-    rt_kprintf("GunVolt_LimitValue Limit|%d\n", LcdData.setData.GunVolt_LimitValue);
+    LcdAssistantData.Flag.IsSetPowerPercent = TRUE;
+
+    rt_kprintf("GunVolt_LimitValue Limit|%d   PowerPercent|%d\n", LcdData.setData.GunVolt_LimitValue, LcdData.setData.PowerPercent);
     rt_kprintf("Stop_SOC|%d    OverTemp_Warnning|%d\n", LcdData.setData.Stop_SOC, LcdData.setData.OverTemp_Warnning);
     rt_kprintf("OverTemp_Stop|%d    OverTemp_Resume|%d\n", LcdData.setData.OverTemp_Stop, LcdData.setData.OverTemp_Resume);
     rt_kprintf("OverTemp_LimitCurr|%d    OverTemp_LimitCurr|%d\n", LcdData.setData.OverTemp_LimitCurr, LcdData.setData.OverTemp_LimitCurr);
@@ -6326,14 +6348,14 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INPUT, NULL, "cd up", LCD_BtnType, 0x0050, 0x1000, page_type, LCD_PAGE_ROOT_MAIN, (void *)NULL);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INPUT, NULL, "Home", LCD_BtnHomeType, 0x0002, 0x1000, page_type, LCD_PAGE_NONE, (void *)NULL);
 
-    /** 出厂设置-保护信息 [page:42] */
+    /** 出厂设置-输出信息 [page:42] */
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_OUTPUT, NULL, "menu input", LCD_BtnType, 0x001E, 0x1000, page_type, LCD_PAGE_MENU_INPUT, (void *)SerialScreen_InputInfoGet);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_OUTPUT, NULL, "menu protect", LCD_BtnType, 0x0020, 0x1000, page_type, LCD_PAGE_MENU_PROTECT, (void *)SerialScreen_BtnProtectInfoGet);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_OUTPUT, NULL, "menu config", LCD_BtnType, 0x0021, 0x1000, page_type, LCD_PAGE_MENU_CONFIG, (void *)SerialScreen_IsSupportGet);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_OUTPUT, NULL, "cd up", LCD_BtnType, 0x0050, 0x1000, page_type, LCD_PAGE_ROOT_MAIN, (void *)NULL);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_OUTPUT, NULL, "Home", LCD_BtnHomeType, 0x0002, 0x1000, page_type, LCD_PAGE_NONE, (void *)NULL);
 
-    /** 出厂设置-输出信息 [page:43] */
+    /** 出厂设置-保护信息 [page:43] */
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_PROTECT, NULL, "menu input", LCD_BtnType, 0x001E, 0x1000, page_type, LCD_PAGE_MENU_INPUT, (void *)SerialScreen_InputInfoGet);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_PROTECT, NULL, "menu config", LCD_BtnType, 0x0021, 0x1000, page_type, LCD_PAGE_MENU_CONFIG, (void *)SerialScreen_IsSupportGet);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_PROTECT, NULL, "cd up", LCD_BtnType, 0x0050, 0x1000, page_type, LCD_PAGE_ROOT_MAIN, (void *)NULL);

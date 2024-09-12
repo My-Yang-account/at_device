@@ -996,6 +996,16 @@ uint32_t thaisen_get_ammeter_current(uint8_t gunno)
 }
 
 /********************************************
+ * 函数名      thaisen_is_set_power_percent
+ * 功能         判断是否已经设置了功率百分比
+* 返回           > 0：是，其它：否
+ *******************************************/
+uint8_t thaisen_is_set_power_percent(void)
+{
+    return SerialScreen_Get_SetPowerPercent_Flag();
+}
+
+/********************************************
  * 函数名      thaisen_get_power_percent
  * 功能         获取功率百分比
 * 返回           功率百分比(0-100), 负值的话是没有配置，默认100
@@ -1003,6 +1013,16 @@ uint32_t thaisen_get_ammeter_current(uint8_t gunno)
 int16_t thaisen_get_power_percent(void)
 {
     return sys_get_power_percent();
+}
+
+/********************************************
+ * 函数名      thaisen_get_power_from_percent
+ * 功能         根据功率百分比获取功率值
+* 返回           功率(单位W)
+ *******************************************/
+uint32_t thaisen_get_power_from_percent(uint8_t percent)
+{
+    return sys_percent_convert_to_power(percent);
 }
 
 /********************************************

@@ -108,14 +108,18 @@
 #define POWER_ALLOCATION_WAY_POWER_PRIORITY     2           /* 功率分配方式:功率优先 */
 #define POWER_ALLOCATION_WAY_SIZE               3           /* 功率分配方式 */
 
-#define SYSTEM_FUNCTION_SINGLE_TERMINAL           0           /* 单枪终端 */
-#define SYSTEM_FUNCTION_AVERAGE_DOUBLE            1           /* 均充双枪 */
-#define SYSTEM_FUNCTION_DOUBLE_WHOLE              2           /* 双枪终端 */
-#define SYSTEM_FUNCTION_RECTIFIER_CABINET         3           /* 整流柜 */
-#define SYSTEM_FUNCTION_DYNAMIC_SWITCH            4           /* 动态切换 */
-#define SYSTEM_FUNCTION_SIZE                      5           /* 系统功能 */
+#define SYSTEM_FUNCTION_SINGLE_TERMINAL           0         /* 单枪终端 */
+#define SYSTEM_FUNCTION_AVERAGE_DOUBLE            1         /* 均充双枪 */
+#define SYSTEM_FUNCTION_DOUBLE_WHOLE              2         /* 双枪终端 */
+#define SYSTEM_FUNCTION_RECTIFIER_CABINET         3         /* 整流柜 */
+#define SYSTEM_FUNCTION_DYNAMIC_SWITCH            4         /* 动态切换 */
+#define SYSTEM_FUNCTION_SIZE                      5         /* 系统功能 */
 
 /* protect info config */
+#define PROTECT_POWER_PERCENT_VALUE_DEFAULT       100       /* 保护信息：默认功率百分比值 */
+#define PROTECT_POWER_PERCENT_VALUE_MAX           100       /* 保护信息：功率百分比最大值 */
+#define PROTECT_POWER_PERCENT_VALUE_MIN           1         /* 保护信息：功率百分比最小值 */
+
 #define PROTECT_STOP_SOC_VALUE_DEFAULT            100       /* 保护信息：默认SOC停充值 */
 #define PROTECT_STOP_SOC_VALUE_MAX                100       /* 保护信息：SOC停充值最大值 */
 #define PROTECT_STOP_SOC_VALUE_MIN                1         /* 保护信息：SOC停充值最小值 */
@@ -321,6 +325,7 @@ uint8_t* sys_read_config_item_content(enum config_name name, uint8_t is_user_con
 
 uint8_t sys_get_single_group_module_num(uint8_t group);
 int16_t sys_get_power_percent(void);
+uint32_t sys_percent_convert_to_power(uint8_t percent);
 uint8_t sys_get_module_model(void);
 uint8_t sys_get_module_group_num(void);
 uint8_t* sys_get_module_num_single_group(void);

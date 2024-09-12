@@ -1381,7 +1381,7 @@ int32_t chargepile_check_config(void)
 
 #ifdef APP_INCLUDE_NET
     if((s_chargepile_config_info.config_info.system_power_total > s_system_power_max) ||
-            (s_chargepile_config_info.config_info.system_power_total < 1000)){
+            (s_chargepile_config_info.config_info.system_power_total < (s_system_power_max /100))){   /** 最小为总功率的1% */
         s_chargepile_config_info.config_info.system_power_total = s_system_power_max;
     }
 #else
@@ -1430,6 +1430,11 @@ int16_t sys_get_power_percent(void)
     }
 
     return percent;
+}
+
+uint32_t sys_percent_convert_to_power(uint8_t percent)
+{
+    return (s_system_power_max *percent /100);
 }
 
 uint8_t sys_get_module_model(void)

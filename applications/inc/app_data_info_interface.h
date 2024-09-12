@@ -260,9 +260,17 @@ uint32_t thaisen_get_ammeter_voltage(uint8_t gunno);
  **/
 uint32_t thaisen_get_ammeter_current(uint8_t gunno);
 /**
+ * 判断是否已经设置了功率百分比
+ **/
+uint8_t thaisen_is_set_power_percent(void);
+/**
  * 获取功率百分比
  **/
 int16_t thaisen_get_power_percent(void);
+/**
+ * 根据功率百分比获取功率值
+ **/
+uint32_t thaisen_get_power_from_percent(uint8_t percent);
 /**
  * 添加VIN码白名单
  **/

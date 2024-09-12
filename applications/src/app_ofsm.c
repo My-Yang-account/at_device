@@ -370,7 +370,7 @@ void chargepile_power_adjust(void)
         }
     }
     /** 上电判断之前桩是否被设置过功率，如果是则需要进行功率调节 */
-    if(s_power_on == 0 && server_adjust_power == false){
+    if((thaisen_is_set_power_percent() || s_power_on == 0) && server_adjust_power == false){
         uint32_t power = *((uint32_t*)(sys_read_config_item_content(CONFIG_ITEM_SYSTEM_POWER_TOTAL, 0)));
         uint32_t sys_power_max = 0x00, single_module_power = 0x00;
         uint8_t group = *(sys_read_config_item_content(CONFIG_ITEM_MODULE_GROUP_NUM, 0));
