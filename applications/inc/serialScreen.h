@@ -76,6 +76,7 @@ void SerialScreen_IsSupportParaChargeSet(void);
 void SerialScreen_IsSupportParaRelaySet(void);
 void SerialScreen_IsSupportVINSet(void);
 void SerialScreen_IsSupportIsulationSet(void);
+void SerialScreen_IsSupportModuleSlienceSet(void);
 struct charge_data *SerialScreen_GetChargeInfo(int port);
 struct bms_info *SerialScreen_GetBmsInfo(int port);
 struct temperature* SerialScreen_GetBatTemp(int port);

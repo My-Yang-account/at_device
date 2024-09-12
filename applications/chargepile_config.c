@@ -186,7 +186,8 @@ struct _function_enable{
     uint8_t rfid_card_reader;      /* 读卡器 */
     uint8_t auxpower_24V;          /* 24V辅源 */
     uint8_t parallel_relay;        /* 并联 */
-    uint8_t reserve[95];
+    uint8_t module_slience;        /* 模块静音 */
+    uint8_t reserve[94];
 };
 
 struct _state_reversal{
@@ -338,6 +339,11 @@ static struct config_item s_config_item_set[CONFIG_ITEM_SIZE] =
         {CONFIG_ITEM_SUPORT_CARD,
         (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.rfid_card_reader)),       /*配置项：读卡器*/
         (uint8_t*)&s_chargepile_config_info.function_enable.rfid_card_reader,
+        NULL},
+
+        {CONFIG_ITEM_SUPORT_MODULE_SLIENCE,
+        (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.module_slience)),       /*配置项：模块静音*/
+        (uint8_t*)&s_chargepile_config_info.function_enable.module_slience,
         NULL},
 
         {CONFIG_ITEM_CARD_TYPE,
@@ -1092,6 +1098,7 @@ static void chargepile_config_data_reset(void)
     s_chargepile_config_info.function_enable.temp_protect = 0x01;
     s_chargepile_config_info.function_enable.rfid_card_reader = 0x00;
     s_chargepile_config_info.function_enable.parallel_relay = 0x00;
+    s_chargepile_config_info.function_enable.module_slience = 0x00;
 
     s_chargepile_config_info.state_reversal.emergency_stop = 0x00;
     s_chargepile_config_info.state_reversal.gate = 0x00;
@@ -1350,6 +1357,9 @@ int32_t chargepile_check_config(void)
     }
     if(s_chargepile_config_info.function_enable.parallel_charge > 0x01){   /* 并充默认关闭 */
         s_chargepile_config_info.function_enable.parallel_charge = 0x00;
+    }
+    if(s_chargepile_config_info.function_enable.module_slience > 0x01){   /* 模块静音默认关闭 */
+        s_chargepile_config_info.function_enable.module_slience = 0x00;
     }
 
     if(s_chargepile_config_info.state_reversal.emergency_stop > 0x01){   /* 急停默认不取反 */
