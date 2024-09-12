@@ -1133,8 +1133,6 @@ int32_t chargepile_config_init(void)
 
             init_flag = SYSTEM_INIT_KEY;
             mw_norflash_write(SYSTEM_CONFIG_INIT_FLAG_ADDRESS, (uint8_t *)&init_flag, sizeof(init_flag));
-            mw_norflash_write(SYSTEM_CONFIG_MAIN_ADDRESS, (uint8_t *)&s_chargepile_config_info, sizeof(s_chargepile_config_info));
-            mw_norflash_write(SYSTEM_CONFIG_BACKUP_ADDRESS, (uint8_t *)&s_chargepile_config_info, sizeof(s_chargepile_config_info));
             s_storage_chip_entry = 0x00;
         }else{
             if(++s_storage_chip_entry > 0x03){
@@ -1147,8 +1145,6 @@ int32_t chargepile_config_init(void)
 
                     init_flag = SYSTEM_INIT_KEY;
                     mw_norflash_write(SYSTEM_CONFIG_INIT_FLAG_ADDRESS, (uint8_t *)&init_flag, sizeof(init_flag));
-                    mw_norflash_write(SYSTEM_CONFIG_MAIN_ADDRESS, (uint8_t *)&s_chargepile_config_info, sizeof(s_chargepile_config_info));
-                    mw_norflash_write(SYSTEM_CONFIG_BACKUP_ADDRESS, (uint8_t *)&s_chargepile_config_info, sizeof(s_chargepile_config_info));
                     s_storage_chip_entry = 0x00;
                 }
             }
