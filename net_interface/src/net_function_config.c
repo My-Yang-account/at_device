@@ -23,19 +23,34 @@
 static void app_ndata_update(void)
 {
     extern int get_at_device_appinfo_at(void);
+    extern int get_at_device_appinfo_check_card(void);
+    extern int get_at_device_appinfo_check_gprs_registered(void);
     extern int get_at_device_appinfo_is_complete(void);
     extern bool get_at_socket_deactivated(void);
 
+    /** 4G模块故障 */
     if(get_at_device_appinfo_at()){
         net_operation_clear_net_fault(NET_FAULT_PHYSICAL_LAYER);
     }else{
         net_operation_set_net_fault(NET_FAULT_PHYSICAL_LAYER);
     }
-
-    if(get_at_device_appinfo_is_complete()){
+    /** SIM卡故障 */
+    if(get_at_device_appinfo_check_card()){
+        net_operation_clear_net_fault(NET_FAULT_SIM_CARD);
+    }else{
+        net_operation_set_net_fault(NET_FAULT_SIM_CARD);
+    }
+    /** 注网失败 */
+    if(get_at_device_appinfo_check_gprs_registered()){
         net_operation_clear_net_fault(NET_FAULT_DATA_LINK_LAYER);
     }else{
         net_operation_set_net_fault(NET_FAULT_DATA_LINK_LAYER);
+    }
+    /** 4G模块初始化 */
+    if(get_at_device_appinfo_is_complete()){
+        net_operation_clear_net_fault(NET_FAULT_MODULE_INIT);
+    }else{
+        net_operation_set_net_fault(NET_FAULT_MODULE_INIT);
     }
 
     if(get_at_socket_deactivated()){

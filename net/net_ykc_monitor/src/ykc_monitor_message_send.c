@@ -416,6 +416,23 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
         net_get_net_handle()->data_updata();
         if((net_get_net_handle()->net_fault) &NET_FAULT_PHYSICAL_LAYER){
             s_ykc_monitor_socket_info.state = YKC_MONITOR_SOCKET_STATE_PHY;
+#ifndef NET_YKC_MONITOR_AS_MONITOR
+            net_get_net_handle()->net_state = NET_SOCKET_STATE_MODULE_INIT;
+#endif /* NET_YKC_MONITOR_AS_MONITOR */
+            s_ykc_monitor_socket_info.fd = -0x01;
+            step = NET_YKC_MONITOR_NET_STATE_OPEN_SOCKET;
+            if(rt_tick_get() > (delay + NET_YKC_MONITOR_LOGIN_OPERATION_INTERVAL)){
+                delay = (rt_tick_get() - NET_YKC_MONITOR_LOGIN_OPERATION_INTERVAL);
+            }
+
+            rt_thread_mdelay(1000);
+            continue;
+        }
+        if((net_get_net_handle()->net_fault) &NET_FAULT_SIM_CARD){
+            s_ykc_monitor_socket_info.state = YKC_MONITOR_SOCKET_STATE_SIM;
+#ifndef NET_YKC_MONITOR_AS_MONITOR
+            net_get_net_handle()->net_state = NET_SOCKET_STATE_MODULE_SIM;
+#endif /* NET_YKC_MONITOR_AS_MONITOR */
             s_ykc_monitor_socket_info.fd = -0x01;
             step = NET_YKC_MONITOR_NET_STATE_OPEN_SOCKET;
             if(rt_tick_get() > (delay + NET_YKC_MONITOR_LOGIN_OPERATION_INTERVAL)){
@@ -427,6 +444,23 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
         }
         if((net_get_net_handle()->net_fault) &NET_FAULT_DATA_LINK_LAYER){
             s_ykc_monitor_socket_info.state = YKC_MONITOR_SOCKET_STATE_DATA_LINK;
+#ifndef NET_YKC_MONITOR_AS_MONITOR
+            net_get_net_handle()->net_state = NET_SOCKET_STATE_MODULE_DATA_LINK;
+#endif /* NET_YKC_MONITOR_AS_MONITOR */
+            s_ykc_monitor_socket_info.fd = -0x01;
+            step = NET_YKC_MONITOR_NET_STATE_OPEN_SOCKET;
+            if(rt_tick_get() > (delay + NET_YKC_MONITOR_LOGIN_OPERATION_INTERVAL)){
+                delay = (rt_tick_get() - NET_YKC_MONITOR_LOGIN_OPERATION_INTERVAL);
+            }
+
+            rt_thread_mdelay(1000);
+            continue;
+        }
+        if((net_get_net_handle()->net_fault) &NET_FAULT_MODULE_INIT){
+            s_ykc_monitor_socket_info.state = YKC_MONITOR_SOCKET_STATE_MODULE_INIT;
+#ifndef NET_YKC_MONITOR_AS_MONITOR
+            net_get_net_handle()->net_state = NET_SOCKET_STATE_MODULE_INIT;
+#endif /* NET_YKC_MONITOR_AS_MONITOR */
             s_ykc_monitor_socket_info.fd = -0x01;
             step = NET_YKC_MONITOR_NET_STATE_OPEN_SOCKET;
             if(rt_tick_get() > (delay + NET_YKC_MONITOR_LOGIN_OPERATION_INTERVAL)){
@@ -943,7 +977,7 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
                 Net_YkcMonitorPro_PRes_Query_PReq_Report_RealTimeData_t *realtime_data = (Net_YkcMonitorPro_PRes_Query_PReq_Report_RealTimeData_t*)(s_ykc_monitor_response_buff.general_transmit_buff);
 
                 realtime_data->head.sequence = g_ykc_monitor_sreq_query_realtime_data[gunno].head.sequence;
-                ykc_monitor_message_send_port(NETYKC_MONITOR_SREQCMD_READ_REALTIME_DATA, s_ykc_monitor_socket_info.fd, s_ykc_monitor_response_buff.general_transmit_buff,
+                ykc_monitor_message_send_port(NETYKC_MONITOR_PREQCMD_PRESCMD_REPORT_REALTIME_DATA, s_ykc_monitor_socket_info.fd, s_ykc_monitor_response_buff.general_transmit_buff,
                         s_ykc_monitor_response_buff.length);
                 ykc_monitor_response_buff_release_sem();
                 rt_thread_mdelay(250);

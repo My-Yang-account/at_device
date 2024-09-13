@@ -183,7 +183,9 @@ extern Net_YcpPro_PRes_RemoteUpdate_t g_ycp_pres_remote_update;
 /** 网络状态 */
 enum{
     YCP_SOCKET_STATE_PHY,
+    YCP_SOCKET_STATE_SIM,
     YCP_SOCKET_STATE_DATA_LINK,
+    YCP_SOCKET_STATE_MODULE_INIT,
     YCP_SOCKET_STATE_OPEN,
     YCP_SOCKET_STATE_LOGIN_WAIT,
     YCP_SOCKET_STATE_LOGIN_SUCCESS,

@@ -146,7 +146,9 @@ extern Net_YkcPro_PRes_RemoteUpdate_t g_ykc_pres_remote_update;
 /** 网络状态 */
 enum{
     YKC_SOCKET_STATE_PHY,
+    YKC_SOCKET_STATE_SIM,
     YKC_SOCKET_STATE_DATA_LINK,
+    YKC_SOCKET_STATE_MODULE_INIT,
     YKC_SOCKET_STATE_OPEN,
     YKC_SOCKET_STATE_LOGIN_WAIT,
     YKC_SOCKET_STATE_LOGIN_SUCCESS,

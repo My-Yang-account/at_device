@@ -64,7 +64,9 @@
 
 /** net fault */
 #define NET_FAULT_PHYSICAL_LAYER                       (1 <<0) /* 物理层故障 */
-#define NET_FAULT_DATA_LINK_LAYER                      (1 <<1) /* 数据链路层故障 */
+#define NET_FAULT_SIM_CARD                             (1 <<1) /* SIM卡故障 */
+#define NET_FAULT_DATA_LINK_LAYER                      (1 <<2) /* 数据链路层故障 */
+#define NET_FAULT_MODULE_INIT                          (1 <<3) /* 模块初始化故障 */
 
 /** external socket state */
 #define NET_ESOCKET_STATE_OPEN                         0x00    /* 外部socket 状态：打开 */
@@ -241,7 +243,9 @@ enum net_ota_state{
 
 enum network_state{
     NET_SOCKET_STATE_PHY,
+    NET_SOCKET_STATE_SIM,
     NET_SOCKET_STATE_DATA_LINK,
+    NET_SOCKET_STATE_MODULE_INIT,
     NET_SOCKET_STATE_OPEN,
     NET_SOCKET_STATE_LOGIN_WAIT,
     NET_SOCKET_STATE_LOGIN_SUCCESS,

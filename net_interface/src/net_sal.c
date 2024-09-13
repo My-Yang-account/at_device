@@ -90,14 +90,20 @@ uint8_t app_nsal_get_link_state(void)
     case NET_SOCKET_STATE_PHY:
         return APP_NET_STATE_NULL;
         break;
+    case NET_SOCKET_STATE_SIM:
+        return APP_NET_STATE_CARD;
+        break;
     case NET_SOCKET_STATE_DATA_LINK:
+        return APP_NET_STATE_UP;
+        break;
+    case NET_SOCKET_STATE_MODULE_INIT:
         return APP_NET_STATE_UP;
         break;
     case NET_SOCKET_STATE_OPEN:
         return APP_NET_STATE_INTERNET_UP;
         break;
     case NET_SOCKET_STATE_LOGIN_WAIT:
-        return APP_OTA_STATE_UP;
+        return APP_NET_STATE_INTERNET_UP;
         break;
     case NET_SOCKET_STATE_LOGIN_SUCCESS:
         return APP_NET_STATE_AUTH_SECCESS;

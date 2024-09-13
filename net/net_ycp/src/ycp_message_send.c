@@ -534,6 +534,19 @@ static void net_ycp_message_send_thread_entry(void *parameter)
         net_get_net_handle()->data_updata();
         if((net_get_net_handle()->net_fault) &NET_FAULT_PHYSICAL_LAYER){
             s_ycp_socket_info.state = YCP_SOCKET_STATE_PHY;
+            net_get_net_handle()->net_state = NET_SOCKET_STATE_PHY;
+            s_ycp_socket_info.fd = -0x01;
+            step = NET_YCP_NET_STATE_OPEN_SOCKET;
+            if(rt_tick_get() > (delay + NET_YCP_LOGIN_OPERATION_INTERVAL)){
+                delay = (rt_tick_get() - NET_YCP_LOGIN_OPERATION_INTERVAL);
+            }
+
+            rt_thread_mdelay(1000);
+            continue;
+        }
+        if((net_get_net_handle()->net_fault) &NET_FAULT_SIM_CARD){
+            s_ycp_socket_info.state = YCP_SOCKET_STATE_SIM;
+            net_get_net_handle()->net_state = NET_SOCKET_STATE_SIM;
             s_ycp_socket_info.fd = -0x01;
             step = NET_YCP_NET_STATE_OPEN_SOCKET;
             if(rt_tick_get() > (delay + NET_YCP_LOGIN_OPERATION_INTERVAL)){
@@ -545,6 +558,19 @@ static void net_ycp_message_send_thread_entry(void *parameter)
         }
         if((net_get_net_handle()->net_fault) &NET_FAULT_DATA_LINK_LAYER){
             s_ycp_socket_info.state = YCP_SOCKET_STATE_DATA_LINK;
+            net_get_net_handle()->net_state = NET_SOCKET_STATE_DATA_LINK;
+            s_ycp_socket_info.fd = -0x01;
+            step = NET_YCP_NET_STATE_OPEN_SOCKET;
+            if(rt_tick_get() > (delay + NET_YCP_LOGIN_OPERATION_INTERVAL)){
+                delay = (rt_tick_get() - NET_YCP_LOGIN_OPERATION_INTERVAL);
+            }
+
+            rt_thread_mdelay(1000);
+            continue;
+        }
+        if((net_get_net_handle()->net_fault) &NET_FAULT_MODULE_INIT){
+            s_ycp_socket_info.state = YCP_SOCKET_STATE_MODULE_INIT;
+            net_get_net_handle()->net_state = NET_SOCKET_STATE_MODULE_INIT;
             s_ycp_socket_info.fd = -0x01;
             step = NET_YCP_NET_STATE_OPEN_SOCKET;
             if(rt_tick_get() > (delay + NET_YCP_LOGIN_OPERATION_INTERVAL)){

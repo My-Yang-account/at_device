@@ -162,7 +162,9 @@ extern Net_ThaPro_PReq_BatteryState_Expand_t g_tha_preq_battery_state_expand[NET
 /** 网络状态 */
 enum{
     THA_SOCKET_STATE_PHY,
+    THA_SOCKET_STATE_SIM,
     THA_SOCKET_STATE_DATA_LINK,
+    THA_SOCKET_STATE_MODULE_INIT,
     THA_SOCKET_STATE_OPEN,
     THA_SOCKET_STATE_LOGIN_WAIT,
     THA_SOCKET_STATE_LOGIN_SUCCESS,
