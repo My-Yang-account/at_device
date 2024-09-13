@@ -135,26 +135,29 @@ time_t mw_get_current_timestamp(void)
 
 void mw_set_time_sync_flag(void)
 {
-    for(uint8_t gunno = 0; gunno <= APP_SYSTEM_GUNNO_SIZE; gunno++){
-        s_time_sync_flag |= (1 <<gunno);
+    for(uint8_t count = 0; count < APP_TIME_SYNC_FLAG_SIZE; count++){
+        s_time_sync_flag |= (1 <<count);
     }
 }
 
-int8_t mw_get_time_sync_flag(uint8_t gunno)
+int8_t mw_get_time_sync_flag(uint8_t index)
 {
-    if(gunno > APP_SYSTEM_GUNNO_SIZE){
+    if(index >= APP_TIME_SYNC_FLAG_SIZE){
         return 0;
     }
 
-    return (s_time_sync_flag &(1 <<gunno));
+    if(s_time_sync_flag &(1 <<index)){
+        return 1;
+    }
+    return 0;
 }
 
-void mw_clear_time_sync_flag(uint8_t gunno)
+void mw_clear_time_sync_flag(uint8_t index)
 {
-    if(gunno > APP_SYSTEM_GUNNO_SIZE){
+    if(index >= APP_TIME_SYNC_FLAG_SIZE){
         return;
     }
-    s_time_sync_flag &= (~(1 <<gunno));
+    s_time_sync_flag &= (~(1 <<index));
 }
 
 

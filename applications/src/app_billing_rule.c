@@ -33,6 +33,18 @@ struct billing_info{
 
 static struct billing_info s_billing_info[APP_SYSTEM_GUNNO_SIZE];
 static struct billing_rule s_billing_rule[APP_SYSTEM_GUNNO_SIZE + 1];
+static uint8_t s_billing_rule_update_gunno = 0x00;
+
+/*******************************************************
+ * 函数名               app_billingrule_query_rule_update_gunno
+ * 功能                  查询最新计费规则已更新的枪号
+ * 参数
+ * 返回                   最新计费规则已更新的枪号
+ ******************************************************/
+uint8_t app_billingrule_query_rule_update_gunno(void)
+{
+    return s_billing_rule_update_gunno;
+}
 
 /*******************************************************
  * 函数名               app_billingrule_is_valid
@@ -172,6 +184,7 @@ void app_billingrule_set_period_elect_price(uint8_t gunno, uint8_t period, uint3
         return;
     }
     s_billing_rule[gunno].period_price[period].elect = price;
+    s_billing_rule_update_gunno = gunno;
 }
 /*****************************************************************************
  * 函数名               app_billingrule_set_period_service_price
@@ -190,6 +203,7 @@ void app_billingrule_set_period_service_price(uint8_t gunno, uint8_t period, uin
         return;
     }
     s_billing_rule[gunno].period_price[period].service = price;
+    s_billing_rule_update_gunno = gunno;
 }
 /*****************************************************************************
  * 函数名               app_billingrule_set_period_delay_price
@@ -208,6 +222,7 @@ void app_billingrule_set_period_delay_price(uint8_t gunno, uint8_t period, uint3
         return;
     }
     s_billing_rule[gunno].period_price[period].delay = price;
+    s_billing_rule_update_gunno = gunno;
 }
 /*****************************************************************************
  * 函数名               app_billingrule_set_rate_price
@@ -226,6 +241,7 @@ void app_billingrule_set_rate_price(uint8_t gunno, uint8_t type, uint32_t price)
         return;
     }
     s_billing_rule[gunno].rate_price[type] = price;
+    s_billing_rule_update_gunno = gunno;
 }
 /*****************************************************************************
  * 函数名               app_billingrule_set_period_rate_number
@@ -247,6 +263,7 @@ void app_billingrule_set_period_rate_number(uint8_t gunno, uint8_t period, uint8
         return;
     }
     s_billing_rule[gunno].rate_number[period] = number;
+    s_billing_rule_update_gunno = gunno;
 }
 
 /****************************************************[计费信息]**********************************************************/

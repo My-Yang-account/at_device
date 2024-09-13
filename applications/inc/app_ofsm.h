@@ -410,6 +410,9 @@ struct ofsm_info {
 
 void ofsm_fun_list_init(void);
 struct ofsm_info *get_ofsm_info(uint8_t gunno);
+uint8_t ofsm_get_current_period(void);
+uint32_t ofsm_get_period_price(uint8_t gunno, uint8_t period);
+int32_t ofsm_get_current_period_time_hm(uint8_t period, uint8_t *buf, uint8_t blen);
 
 void ofsm_thread_entry(void *parameter);
 

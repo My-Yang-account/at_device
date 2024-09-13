@@ -1053,3 +1053,30 @@ void thaisen_set_charge_way(uint8_t way)
 {
     SerialScreen_SetChargeWay(way);
 }
+
+/********************************************
+ * 函数名      thaisen_get_current_period_time_hm
+ * 功能         获取当前时段时间
+* 返回           当前时段
+ *******************************************/
+int32_t thaisen_get_current_period_time_hm(uint8_t *buf, uint8_t blen)
+{
+    if((buf == NULL) || (blen < 0x04)){    /** 时间格式：小时：分钟-小时：分钟，缓存最小长度是4 */
+        return -0x01;
+    }
+    uint8_t period = ofsm_get_current_period();
+    return ofsm_get_current_period_time_hm((period + 0x01), buf, blen);
+}
+
+/********************************************
+ * 函数名      thaisen_get_current_period_price
+ * 功能         获取时段电费单价
+* 返回           时段电费单价
+ *******************************************/
+uint32_t thaisen_get_period_price(uint8_t gunno, uint8_t period)
+{
+    uint8_t _period = ofsm_get_current_period();
+    return ofsm_get_period_price(gunno, _period);
+}
+
+

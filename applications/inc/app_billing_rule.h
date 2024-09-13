@@ -36,6 +36,7 @@ struct billing_rule{
     uint8_t service_model_sn[APP_BILLING_MODEL_SN_LEN + 1];/** 服务费计费模型编号 */
 };
 
+uint8_t app_billingrule_query_rule_update_gunno(void);
 uint8_t app_billingrule_is_valid(uint8_t gunno);
 struct billing_rule app_billingrule_get_rule(uint8_t gunno);
 void app_billingrule_update_billingrule_info(uint8_t gunno);
@@ -57,11 +58,6 @@ uint32_t app_billingrule_get_period_delay_price(uint8_t gunno, uint8_t period);
 uint32_t app_billingrule_get_rate_price(uint8_t gunno, uint8_t type);
 uint8_t app_billingrule_get_period_rate_number(uint8_t gunno, uint8_t period);
 
-uint32_t app_billingrule_get_period_elect_price(uint8_t gunno, uint8_t period);
-uint32_t app_billingrule_get_period_service_price(uint8_t gunno, uint8_t period);
-uint32_t app_billingrule_get_period_delay_price(uint8_t gunno, uint8_t period);
-uint32_t app_billingrule_get_rate_price(uint8_t gunno, uint8_t type);
-uint8_t app_billingrule_get_period_rate_number(uint8_t gunno, uint8_t period);
 uint32_t app_billingrule_get_start_elcet(uint8_t gunno);
 uint32_t app_billingrule_get_stop_elcet(uint8_t gunno);
 uint32_t app_billingrule_get_elcet_total(uint8_t gunno);

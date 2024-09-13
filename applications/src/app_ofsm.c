@@ -58,12 +58,97 @@ static uint32_t s_request_screen_time_tick = 0x00;
 static uint8_t s_request_screen_time_step = 0x00;
 static uint8_t s_transaction_sending[LINK_PLATFORM_MAX][APP_SYSTEM_GUNNO_SIZE];
 static uint8_t s_chargegun_idle_count = 0x00;
+static uint32_t s_timestamp_base = 0x00, s_tick_base = 0x00;
 
 static uint8_t s_issue_power_adjust = false, s_chargepile_output_steady[APP_SYSTEM_GUNNO_SIZE];
 static uint8_t s_charge_steady_delay[APP_SYSTEM_GUNNO_SIZE], s_power_adjust_delay = 0, s_power_on = 0;
 static uint32_t s_system_power_output = 0x00;
 static uint16_t s_gun_charging_curr[APP_SYSTEM_GUNNO_SIZE];
 
+/*************************************
+ * 函数名       ofsm_get_current_period
+ * 功能           获取当前时段号
+ * 参数
+ * 返回           当前时段号
+ ************************************/
+uint8_t ofsm_get_current_period(void)
+{
+    uint8_t period;
+    uint32_t current_time = s_timestamp_base, tick = rt_tick_get();
+    struct tm *_tm;
+
+    if(s_tick_base > tick){
+        current_time += ((tick + 0xFFFFFFFF - s_tick_base) /1000);
+    }else{
+        current_time += ((tick - s_tick_base) /1000);
+    }
+    _tm = localtime((time_t*)&current_time);
+    current_time = _tm->tm_hour *60 *60 + _tm->tm_min *60 + _tm->tm_sec;
+    period = current_time / (24 * 60 / APP_BILLING_RULE_PERIOD_MAX * 60);
+
+    return (period + 0x01);
+}
+
+/**********************************************************************************
+ * 函数名       ofsm_get_current_period_time_hm
+ * 功能           获取当前时段对应时间
+ * 参数           period     时段
+ *        buf        缓存
+ *        blen       缓存长度
+ * 返回           >=0:成功，<0:失败
+ *********************************************************************************/
+int32_t ofsm_get_current_period_time_hm(uint8_t period, uint8_t *buf, uint8_t blen)
+{
+    if((period == 0x00) || (period > APP_BILLING_RULE_PERIOD_MAX)){   /** 时段号从1开始 */
+        return -0x01;
+    }
+    if((buf == NULL) || (blen < 0x04)){    /** 时间格式：小时：分钟-小时：分钟，缓存最小长度是4 */
+        return -0x01;
+    }
+
+    uint8_t hour, min;
+    hour = (period - 0x01) /0x04;          /** 每个小时分为4个时段 */
+    min = ((period - 0x01) %0x04) *15;     /** 每个时段15分钟 */
+
+    buf[0x00] = hour;                      /** 开始时间：小时 */
+    buf[0x01] = min;                       /** 开始时间：分钟 */
+    buf[0x02] = hour;                      /** 结束时间：小时 */
+    buf[0x03] = min + 15;                  /** 结束时间：分钟 */
+
+    return 0x00;
+}
+
+/************************************************************
+ * 函数名       ofsm_get_period_price
+ * 功能           获取指定枪时段电费单价
+ * 参数           gunno      枪号(此时传入的枪号参数不使用，枪号按更新了最新计费规则的来)
+ *        period     时段
+ * 返回           >=0:成功，<0:失败
+ ***********************************************************/
+uint32_t ofsm_get_period_price(uint8_t gunno, uint8_t period)
+{
+    gunno = app_billingrule_query_rule_update_gunno();
+
+    if(gunno >= APP_SYSTEM_GUNNO_SIZE){   /* 枪号不对 */
+        return 0x00;
+    }
+    if(period >= APP_BILLING_RULE_PERIOD_MAX){   /* 时段号不对 */
+        return 0x00;
+    }
+
+    uint32_t price = app_billingrule_get_period_elect_price(gunno, period) + \
+            app_billingrule_get_period_service_price(gunno, period) + \
+            app_billingrule_get_period_delay_price(gunno, period);
+
+    return price;
+}
+
+/************************************************************
+ * 函数名       transaction_record_query_report
+ * 功能           查询指定枪号订单并上报
+ * 参数           gunno      枪号
+ * 返回
+ ***********************************************************/
 static void transaction_record_query_report(uint8_t gunno)
 {
     if(gunno >= APP_SYSTEM_GUNNO_SIZE){   /* 枪号不对 */
@@ -200,6 +285,13 @@ static void transaction_record_query_report(uint8_t gunno)
 #endif /* APP_INCLUDE_MONITOR_PLATFORM */
 }
 
+/***************************************************************************
+ * 函数名       temperature_protect_limitcurr
+ * 功能           检查是否过温并降流
+ * 参数           gunno      枪号
+ *        set_curr   被修改电流值指针
+ * 返回
+ **************************************************************************/
 static void temperature_protect_limitcurr(uint8_t gunno, uint16_t *set_curr)
 {
     if(gunno >= APP_SYSTEM_GUNNO_SIZE){
@@ -288,6 +380,12 @@ static void temperature_protect_limitcurr(uint8_t gunno, uint16_t *set_curr)
     }
 }
 
+/***************************************************************************
+ * 函数名       chargepile_power_adjust
+ * 功能           功率调整
+ * 参数
+ * 返回
+ **************************************************************************/
 void chargepile_power_adjust(void)
 {
 #define RUNNING_PERIOD      200
@@ -3815,6 +3913,13 @@ void ofsm_thread_entry(void *parameter)
                 s_request_screen_time_step = 2;
                 LOG_D("time sync :%d, %d, %d, %d, %d, %d", _time[0], _time[1], _time[2], _time[3], _time[4], _time[5]);
             }
+        }
+
+        if(mw_get_time_sync_flag(APP_TIME_SYNC_FLAG_FEES)){
+            mw_clear_time_sync_flag(APP_TIME_SYNC_FLAG_FEES);
+
+            s_timestamp_base = mw_get_current_timestamp();
+            s_tick_base = rt_tick_get();
         }
 
         if(s_request_screen_time_step == 1){
