@@ -996,6 +996,16 @@ uint32_t thaisen_get_ammeter_current(uint8_t gunno)
 }
 
 /********************************************
+ * 函数名      thaisen_is_set_eloss_proportion
+ * 功能         判断是否已经设置了电损比分比
+* 返回           > 0：是，其它：否
+ *******************************************/
+uint8_t thaisen_is_set_eloss_proportion(void)
+{
+    return SerialScreen_Get_SetELossProportion_Flag();
+}
+
+/********************************************
  * 函数名      thaisen_is_set_power_percent
  * 功能         判断是否已经设置了功率百分比
 * 返回           > 0：是，其它：否
@@ -1076,7 +1086,10 @@ int32_t thaisen_get_current_period_time_hm(uint8_t *buf, uint8_t blen)
 uint32_t thaisen_get_period_price(uint8_t gunno, uint8_t period)
 {
     uint8_t _period = ofsm_get_current_period();
-    return ofsm_get_period_price(gunno, _period);
+    if(_period != 0x00){
+        return ofsm_get_period_price(gunno, (_period - 0x01));
+    }
+    return ofsm_get_period_price(gunno, 0x00);
 }
 
 

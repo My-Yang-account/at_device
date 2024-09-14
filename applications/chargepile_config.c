@@ -131,7 +131,8 @@ struct _config_para{
     uint16_t overtemp_recovery;                                       /* 过温恢复值 */
     uint16_t overtemp_limitcur;                                       /* 过温限流值 */
 
-    uint8_t reserve1[256];                                             /* 预留 */
+    uint16_t eloss_proportion;                                        /* 电损比 */
+    uint8_t reserve1[256 - 2];                                        /* 预留 */
 };
 
 struct _config_info{
@@ -444,6 +445,11 @@ static struct config_item s_config_item_set[CONFIG_ITEM_SIZE] =
         {CONFIG_ITEM_OVERTEMP_SETCUR,                                               /* 配置项：过温限流*/
         (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.overtemp_limitcur)),
         (uint8_t*)&s_chargepile_config_info.config_para.overtemp_limitcur,
+        NULL},
+
+        {CONFIG_ITEM_ELOSS_PROPORTION,                                              /* 配置项：电损比*/
+        (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.eloss_proportion)),
+        (uint8_t*)&s_chargepile_config_info.config_para.eloss_proportion,
         NULL},
 
         {CONFIG_ITEM_OUTEN_AC,                                                      /* 配置项：交流接触器输出*/
@@ -1047,6 +1053,7 @@ static void chargepile_config_data_reset(void)
     s_chargepile_config_info.config_para.overtemp_stop = PROTECT_OVERTEMP_STOP_VALUE_DEFAULT;
     s_chargepile_config_info.config_para.overtemp_recovery = PROTECT_OVERTEMP_RESUME_VALUE_DEFAULT;
     s_chargepile_config_info.config_para.overtemp_limitcur = PROTECT_OVERTEMP_LIMITCURR_VALUE_DEFAULT;
+    s_chargepile_config_info.config_para.eloss_proportion = CHARGEPILE_ELOSS_PROPORTION_DEF;
 
     s_chargepile_config_info.config_para.input_overvol = CHARGEPILE_INPUT_OVERVOLT_DEF;
     s_chargepile_config_info.config_para.input_undervol = CHARGEPILE_INPUT_UNDERVOLT_DEF;
@@ -1310,6 +1317,11 @@ int32_t chargepile_check_config(void)
     if((s_chargepile_config_info.config_para.overtemp_limitcur < PROTECT_OVERTEMP_LIMITCURR_VALUE_MIN) ||
             (s_chargepile_config_info.config_para.overtemp_limitcur > PROTECT_OVERTEMP_LIMITCURR_VALUE_MAX)){
         s_chargepile_config_info.config_para.overtemp_limitcur = PROTECT_OVERTEMP_LIMITCURR_VALUE_DEFAULT;
+    }
+
+    if((s_chargepile_config_info.config_para.eloss_proportion < CHARGEPILE_ELOSS_PROPORTION_MIN) ||
+            (s_chargepile_config_info.config_para.eloss_proportion > CHARGEPILE_ELOSS_PROPORTION_MAX)){
+        s_chargepile_config_info.config_para.eloss_proportion = CHARGEPILE_ELOSS_PROPORTION_DEF;
     }
 
     if(s_chargepile_config_info.function_enable.emergency_stop > 0x01){    /* 急停故障检测默认开启 */

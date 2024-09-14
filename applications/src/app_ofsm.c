@@ -2497,7 +2497,7 @@ static void ofsm_stoping_fun(uint8_t gunno)
 
         rt_thread_mdelay(2000);  /* 错峰上报订单 */
 
-        if(s_ofsm_info[s_ofsm_info[gunno].base.main_gunno].base.reason_code == APP_SYSTEM_STOP_WAY_AUTHEN_FAIL){
+        if(s_ofsm_info[gunno].base.flag.start_result == APP_THA_ENUM_FALSE){
             s_ofsm_info[gunno].base.current_elect = s_ofsm_info[gunno].base.start_elect;
             s_ofsm_info[gunno].base.elect_a = 0x00;
             s_ofsm_info[gunno].base.fees_total = 0x00;
@@ -3847,6 +3847,8 @@ void ofsm_thread_entry(void *parameter)
     s_ofsm_fun[thread_gunno] = s_ofsm_fun_list[thread_gunno][APP_OFSM_STATE_WAIT_NET];
     s_ofsm_info[thread_gunno].state = APP_OFSM_STATE_WAIT_NET;
 
+    app_billingrule_set_eloss_proportion(*((uint16_t*)sys_read_config_item_content(CONFIG_ITEM_ELOSS_PROPORTION, 0x00)));
+
     rt_thread_mdelay(6000);  /** 等待底层驱动正常(电表要获取到电量) */
 
     while(1){
@@ -4037,6 +4039,9 @@ void ofsm_thread_entry(void *parameter)
         app_nsal_realtime_process(thread_gunno);
 
         set_current_port(thaisen_get_hci_page_pos());
+        if(thaisen_is_set_eloss_proportion()){
+            app_billingrule_set_eloss_proportion(*((uint16_t*)sys_read_config_item_content(CONFIG_ITEM_ELOSS_PROPORTION, 0x00)));
+        }
 
         rt_thread_mdelay(100);
     }

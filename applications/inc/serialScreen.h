@@ -175,6 +175,7 @@ void SerialScreen_ElockNegIsSupportSet(void);
 void SerialScreen_ScreenRequest_Time(void);
 s8 SerialScreen_Get_ScreenTimeSync_Flag(void);
 s8 SerialScreen_Get_SetPowerPercent_Flag(void);
+s8 SerialScreen_Get_SetELossProportion_Flag(void);
 void SerialScreen_ScreenGet_TimeSync(u16* buf, u8 len);
 /********************************输出信息*******************************************/
 void SerialScreen_AcIsSupportOutSet(void);

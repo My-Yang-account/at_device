@@ -10,6 +10,7 @@
 #include "app_billing_rule.h"
 #include "app_ofsm.h"
 
+#pragma pack(1)
 /** [计费信息] */
 struct billing_info{
     struct{
@@ -20,7 +21,9 @@ struct billing_info{
     }period_fees[APP_BILLING_RULE_PERIOD_MAX];                 /** 时段费用 */
     uint8_t period_number;                                     /** 当前时段号 */
     uint32_t period_elect[APP_BILLING_RULE_PERIOD_MAX];        /** 时段电量(精度：0.001) */
+    uint32_t last_period_elect[APP_BILLING_RULE_PERIOD_MAX];   /** 上一次计算的时段电量(精度：0.001)[没有电损比] */
     uint32_t rate_type_elect[APP_BILLING_RULE_RATE_TYPE_MAX];  /** 尖、峰、平、谷费率内消耗的电量(精度：0.001) */
+    uint32_t last_rate_type_elect[APP_BILLING_RULE_RATE_TYPE_MAX];  /** 上一次计算的尖、峰、平、谷费率内消耗的电量(精度：0.001)[没有电损比] */
     uint32_t rate_type_fess[APP_BILLING_RULE_RATE_TYPE_MAX];   /** 尖、峰、平、谷费率内消耗的费用(精度：0.0001) */
     uint32_t rate_type_service_fess[APP_BILLING_RULE_RATE_TYPE_MAX];   /** 尖、峰、平、谷费率内消耗的服务费费用(精度：0.0001) */
     uint32_t rate_type_elect_fess[APP_BILLING_RULE_RATE_TYPE_MAX];     /** 尖、峰、平、谷费率内消耗的电费费用(精度：0.0001) */
@@ -29,11 +32,19 @@ struct billing_info{
     uint32_t service_fees_total;                               /** 充电总服务费(精度：0.0001) */
     uint32_t start_elect;                                      /** 充电起始电量(精度：0.001) */
     uint32_t stop_elect;                                       /** 充电结束电量(精度：0.001) */
+    uint32_t last_elect;                                       /** 上一次计算的止电量(精度：0.001)[没有电损比] */
 };
+
+struct billing_assistant_info{
+    uint8_t billing_rule_update_gunno;                         /** 更新了最新计费规则的枪号 */
+    uint16_t eloss_proportion;                                 /** 电损比(一位小数) */
+};
+#pragma pack()
 
 static struct billing_info s_billing_info[APP_SYSTEM_GUNNO_SIZE];
 static struct billing_rule s_billing_rule[APP_SYSTEM_GUNNO_SIZE + 1];
-static uint8_t s_billing_rule_update_gunno = 0x00;
+struct billing_assistant_info s_billing_assistant_info;
+
 
 /*******************************************************
  * 函数名               app_billingrule_query_rule_update_gunno
@@ -43,7 +54,29 @@ static uint8_t s_billing_rule_update_gunno = 0x00;
  ******************************************************/
 uint8_t app_billingrule_query_rule_update_gunno(void)
 {
-    return s_billing_rule_update_gunno;
+    return s_billing_assistant_info.billing_rule_update_gunno;
+}
+
+/*******************************************************
+ * 函数名               app_billingrule_set_eloss_proportion
+ * 功能                  设置电损比例
+ * 参数                  proportion   比例
+ * 返回
+ ******************************************************/
+void app_billingrule_set_eloss_proportion(uint16_t proportion)
+{
+    s_billing_assistant_info.eloss_proportion = proportion;
+}
+
+/*******************************************************
+ * 函数名               app_billingrule_query_eloss_proportion
+ * 功能                  查询电损比例
+ * 参数
+ * 返回                   电损比例
+ ******************************************************/
+uint16_t app_billingrule_query_eloss_proportion(void)
+{
+    return s_billing_assistant_info.eloss_proportion;
 }
 
 /*******************************************************
@@ -114,7 +147,7 @@ uint32_t app_billingrule_get_rate_type_price(uint8_t gunno, uint8_t type)
 void app_billingrule_set_elect_model_sn(uint8_t gunno, uint8_t *sn, uint8_t len)
 {
     if(gunno >= APP_SYSTEM_GUNNO_SIZE){
-        return 0x00;
+        return;
     }
     uint8_t valid_len = len;
     valid_len = valid_len > (APP_BILLING_MODEL_SN_LEN + 0x01) ? (APP_BILLING_MODEL_SN_LEN + 0x01) : valid_len;
@@ -143,7 +176,7 @@ uint8_t *app_billingrule_get_elect_model_sn(uint8_t gunno)
 void app_billingrule_set_service_model_sn(uint8_t gunno, uint8_t *sn, uint8_t len)
 {
     if(gunno >= APP_SYSTEM_GUNNO_SIZE){
-        return 0x00;
+        return;
     }
     uint8_t valid_len = len;
     valid_len = valid_len > (APP_BILLING_MODEL_SN_LEN + 0x01) ? (APP_BILLING_MODEL_SN_LEN + 0x01) : valid_len;
@@ -184,7 +217,7 @@ void app_billingrule_set_period_elect_price(uint8_t gunno, uint8_t period, uint3
         return;
     }
     s_billing_rule[gunno].period_price[period].elect = price;
-    s_billing_rule_update_gunno = gunno;
+    s_billing_assistant_info.billing_rule_update_gunno = gunno;
 }
 /*****************************************************************************
  * 函数名               app_billingrule_set_period_service_price
@@ -203,7 +236,7 @@ void app_billingrule_set_period_service_price(uint8_t gunno, uint8_t period, uin
         return;
     }
     s_billing_rule[gunno].period_price[period].service = price;
-    s_billing_rule_update_gunno = gunno;
+    s_billing_assistant_info.billing_rule_update_gunno = gunno;
 }
 /*****************************************************************************
  * 函数名               app_billingrule_set_period_delay_price
@@ -222,7 +255,7 @@ void app_billingrule_set_period_delay_price(uint8_t gunno, uint8_t period, uint3
         return;
     }
     s_billing_rule[gunno].period_price[period].delay = price;
-    s_billing_rule_update_gunno = gunno;
+    s_billing_assistant_info.billing_rule_update_gunno = gunno;
 }
 /*****************************************************************************
  * 函数名               app_billingrule_set_rate_price
@@ -241,7 +274,7 @@ void app_billingrule_set_rate_price(uint8_t gunno, uint8_t type, uint32_t price)
         return;
     }
     s_billing_rule[gunno].rate_price[type] = price;
-    s_billing_rule_update_gunno = gunno;
+    s_billing_assistant_info.billing_rule_update_gunno = gunno;
 }
 /*****************************************************************************
  * 函数名               app_billingrule_set_period_rate_number
@@ -263,7 +296,7 @@ void app_billingrule_set_period_rate_number(uint8_t gunno, uint8_t period, uint8
         return;
     }
     s_billing_rule[gunno].rate_number[period] = number;
-    s_billing_rule_update_gunno = gunno;
+    s_billing_assistant_info.billing_rule_update_gunno = gunno;
 }
 
 /****************************************************[计费信息]**********************************************************/
@@ -619,17 +652,20 @@ void app_billing_info_init(uint32_t init_elect, uint8_t gunno)
     }
     s_billing_info[gunno].start_elect = init_elect;
     s_billing_info[gunno].stop_elect = s_billing_info[gunno].start_elect;
+    s_billing_info[gunno].last_elect = s_billing_info[gunno].stop_elect;
     s_billing_info[gunno].elect_total = 0x00;
     s_billing_info[gunno].fees_total = 0x00;
     s_billing_info[gunno].service_fees_total = 0x00;
     for(uint8_t period = 0; period < APP_BILLING_RULE_PERIOD_MAX; period++){
         s_billing_info[gunno].period_elect[period] = 0x00;
+        s_billing_info[gunno].last_period_elect[period] = 0x00;
         s_billing_info[gunno].period_fees[period].elect = 0x00;
         s_billing_info[gunno].period_fees[period].service = 0x00;
         s_billing_info[gunno].period_fees[period].delay = 0x00;
     }
     for(uint8_t type = 0; type < APP_BILLING_RULE_RATE_TYPE_MAX; type++){
         s_billing_info[gunno].rate_type_elect[type] = 0x00;
+        s_billing_info[gunno].last_rate_type_elect[type] = 0x00;
         s_billing_info[gunno].rate_type_fess[type] = 0x00;
         s_billing_info[gunno].rate_type_elect_fess[type] = 0x00;
         s_billing_info[gunno].rate_type_service_fess[type] = 0x00;
@@ -651,37 +687,51 @@ void app_billing_info_calculate(uint32_t current_time, uint32_t current_elect, u
     }
 
     uint8_t period = 0x00, rate_number = 0x00;
-    uint32_t elect_inc = 0x00;
+    uint32_t elect_inc = 0x00, service_fees_total = 0x00, fees_total = 0x00;
 
-    if((current_elect <= s_billing_info[gunno].stop_elect) || (current_elect <= s_billing_info[gunno].start_elect)){
+    if((current_elect <= s_billing_info[gunno].last_elect) || (current_elect <= s_billing_info[gunno].start_elect)){
         return;
     }
 
     period = app_calculate_current_period(current_time);
     rate_number = s_billing_rule[gunno].rate_number[period];
-    elect_inc = current_elect - s_billing_info[gunno].stop_elect;
+    elect_inc = current_elect - s_billing_info[gunno].last_elect;   /** 未计算电损比 */
 
     s_billing_info[gunno].period_number = period;
-    s_billing_info[gunno].stop_elect = current_elect;
+    s_billing_info[gunno].last_elect = current_elect;               /** 未计算电损比 */
 
-    if(s_billing_info[gunno].stop_elect > s_billing_info[gunno].start_elect){
-        s_billing_info[gunno].elect_total = s_billing_info[gunno].stop_elect - s_billing_info[gunno].start_elect;
+    /** 总电量、金额信息 */
+    if(s_billing_info[gunno].last_elect > s_billing_info[gunno].start_elect){
+        s_billing_info[gunno].elect_total = s_billing_info[gunno].last_elect - s_billing_info[gunno].start_elect;   /** 未计算电损比 */
+        s_billing_info[gunno].elect_total += (s_billing_info[gunno].elect_total *s_billing_assistant_info.eloss_proportion /1000);
     }
-    s_billing_info[gunno].period_elect[period] += elect_inc;
-    s_billing_info[gunno].period_fees[period].elect += (elect_inc *s_billing_rule[gunno].period_price[period].elect /10);
-    s_billing_info[gunno].period_fees[period].service += (elect_inc *s_billing_rule[gunno].period_price[period].service /10);
-    s_billing_info[gunno].period_fees[period].delay += (elect_inc *s_billing_rule[gunno].period_price[period].delay /10);
-    s_billing_info[gunno].service_fees_total += (elect_inc *s_billing_rule[gunno].period_price[period].service /10);
-    s_billing_info[gunno].fees_total += (elect_inc *(s_billing_rule[gunno].period_price[period].elect +
-            s_billing_rule[gunno].period_price[period].service + elect_inc *s_billing_rule[gunno].period_price[period].delay) /10);
-    s_billing_info[gunno].rate_type_elect[rate_number] += elect_inc;
-    s_billing_info[gunno].rate_type_fess[rate_number] += (elect_inc *s_billing_rule[gunno].rate_price[rate_number] /10);
-    s_billing_info[gunno].rate_type_elect_fess[rate_number] += (elect_inc *s_billing_rule[gunno].period_price[period].elect /10);
-    s_billing_info[gunno].rate_type_service_fess[rate_number] += (elect_inc *s_billing_rule[gunno].period_price[period].service /10);
+    s_billing_info[gunno].stop_elect = s_billing_info[gunno].start_elect + s_billing_info[gunno].elect_total;
 
-    rt_kprintf("gunno(%d)  period(%d) rate_number(%d) elect_inc(%d) rate_price(%d, %d, %d)[%d, %d]\n", gunno, period, rate_number, elect_inc,
-            s_billing_rule[gunno].rate_price[rate_number], s_billing_info[gunno].rate_type_fess[rate_number],
-            s_billing_info[gunno].rate_type_elect[rate_number],
-            s_billing_info[gunno].rate_type_elect_fess[rate_number], s_billing_info[gunno].rate_type_service_fess[rate_number]);
+    /** 时段电量、金额信息 */
+    s_billing_info[gunno].last_period_elect[period] += elect_inc;  /** 未计算电损比 */
+    s_billing_info[gunno].period_elect[period] = s_billing_info[gunno].last_period_elect[period] +  \
+            (s_billing_info[gunno].last_period_elect[period] *s_billing_assistant_info.eloss_proportion /1000);
+
+    s_billing_info[gunno].period_fees[period].elect = (s_billing_info[gunno].period_elect[period] *s_billing_rule[gunno].period_price[period].elect /10);
+    s_billing_info[gunno].period_fees[period].service = (s_billing_info[gunno].period_elect[period] *s_billing_rule[gunno].period_price[period].service /10);
+    s_billing_info[gunno].period_fees[period].delay = (s_billing_info[gunno].period_elect[period] *s_billing_rule[gunno].period_price[period].delay /10);
+
+    /** 总电量、金额信息 */
+    for(uint8_t count = 0x00; count < APP_BILLING_RULE_PERIOD_MAX; count++){
+        service_fees_total += s_billing_info[gunno].period_fees[count].service;
+        fees_total += (s_billing_info[gunno].period_fees[count].elect + s_billing_info[gunno].period_fees[count].service + \
+                s_billing_info[gunno].period_fees[count].delay);
+    }
+    s_billing_info[gunno].service_fees_total = service_fees_total;
+    s_billing_info[gunno].fees_total = fees_total;
+
+    /** 费率类型电量、金额信息 */
+    s_billing_info[gunno].last_rate_type_elect[rate_number] += elect_inc;   /** 未计算电损比 */
+    s_billing_info[gunno].rate_type_elect[rate_number] = s_billing_info[gunno].last_rate_type_elect[rate_number] +  \
+            (s_billing_info[gunno].last_rate_type_elect[rate_number] *s_billing_assistant_info.eloss_proportion /1000);
+
+    s_billing_info[gunno].rate_type_fess[rate_number] = (s_billing_info[gunno].rate_type_elect[rate_number] *s_billing_rule[gunno].rate_price[rate_number] /10);
+    s_billing_info[gunno].rate_type_elect_fess[rate_number] = (s_billing_info[gunno].rate_type_elect[rate_number] *s_billing_rule[gunno].period_price[period].elect /10);
+    s_billing_info[gunno].rate_type_service_fess[rate_number] = (s_billing_info[gunno].rate_type_elect[rate_number] *s_billing_rule[gunno].period_price[period].service /10);
 }
 

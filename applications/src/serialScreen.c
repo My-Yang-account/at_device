@@ -241,6 +241,7 @@ struct LCD_ASSISTANT_DATA{
         u8 IsEnableAuxPower24V : 1;      //已打开并充使能
         u8 ParaChargeSelect : 1;         //已选择并充
         u8 IsSetPowerPercent : 1;        //已设置功率百分比
+        u8 IsSetELossProportion : 1;     //已设置电损比
     }Flag;
 
     struct{
@@ -420,7 +421,8 @@ struct LCD_DISPLAY_SETDATA_TYPE{
     u32 OverTemp_Stop;                      // 过温停充
     u32 OverTemp_Resume;                    // 过温恢复
     u32 OverTemp_LimitCurr;                 // 过温限流
-    u16  PowerPercent;                      // 功率百分比
+    u16 PowerPercent;                       // 功率百分比
+    u16 ElossProprotion;                    // 电损比
     u16 GunVolt_LimitValue;                 // 枪头电压限值
 	/***********************factory debug***************************/
 	u8 s_elElock[LCD_GUN_NUM];				//电磁锁设置
@@ -898,6 +900,15 @@ s8 SerialScreen_Get_SetPowerPercent_Flag(void)
 {
     if(LcdAssistantData.Flag.IsSetPowerPercent){
         LcdAssistantData.Flag.IsSetPowerPercent = FALSE;
+        return TRUE;
+    }
+    return FALSE;
+}
+
+s8 SerialScreen_Get_SetELossProportion_Flag(void)
+{
+    if(LcdAssistantData.Flag.IsSetELossProportion){
+        LcdAssistantData.Flag.IsSetELossProportion = FALSE;
         return TRUE;
     }
     return FALSE;
@@ -1483,6 +1494,7 @@ void SerialScreen_BtnProtectInfoGet(void)
     LcdData.setData.OverTemp_Resume = *(u16 *)(UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_OVERTEMP_RECOVER, 0));
     LcdData.setData.OverTemp_LimitCurr = *(u16 *)(UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_OVERTEMP_SETCUR, 0));
     LcdData.setData.GunVolt_LimitValue = *(u16 *)(UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_GUNVOLT_LIMIT, 0));
+    LcdData.setData.ElossProprotion = *(u16 *)(UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_ELOSS_PROPORTION, 0));
     LcdData.setData.PowerPercent = thaisen_get_power_percent();
 
 #if 0
@@ -1576,6 +1588,10 @@ void SerialScreen_BtnProtectInfoSet(void)
     }
     power = thaisen_get_power_from_percent(LcdData.setData.PowerPercent);
 
+    if((LcdData.setData.ElossProprotion < CHARGEPILE_ELOSS_PROPORTION_MIN) || (LcdData.setData.ElossProprotion > CHARGEPILE_ELOSS_PROPORTION_MAX)){
+        LcdData.setData.ElossProprotion = CHARGEPILE_ELOSS_PROPORTION_DEF;
+    }
+
 #if 0
     UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_INPUT_OVERVOL, &LcdData.setData.Input_OverVolt, sizeof(LcdData.setData.Input_OverVolt));
     UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_INPUT_UNDERVOL, &LcdData.setData.Input_UnderVolt, sizeof(LcdData.setData.Input_UnderVolt));
@@ -1591,12 +1607,14 @@ void SerialScreen_BtnProtectInfoSet(void)
     UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_OVERTEMP_RECOVER, &LcdData.setData.OverTemp_Resume, sizeof(LcdData.setData.OverTemp_Resume) - 0x02);
     UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_OVERTEMP_SETCUR, &LcdData.setData.OverTemp_LimitCurr, sizeof(LcdData.setData.OverTemp_LimitCurr) - 0x02);
     UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_GUNVOLT_LIMIT, &LcdData.setData.GunVolt_LimitValue, sizeof(LcdData.setData.GunVolt_LimitValue));
+    UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_ELOSS_PROPORTION, &LcdData.setData.ElossProprotion, sizeof(LcdData.setData.ElossProprotion));
 
     UI_STORAGE_CFG_DATA;
 
     LcdAssistantData.Flag.IsSetPowerPercent = TRUE;
+    LcdAssistantData.Flag.IsSetELossProportion = TRUE;
 
-    rt_kprintf("GunVolt_LimitValue Limit|%d   PowerPercent|%d\n", LcdData.setData.GunVolt_LimitValue, LcdData.setData.PowerPercent);
+    rt_kprintf("GunVolt_LimitValue Limit|%d   PowerPercent|%d  ElossProprotion|%d\n", LcdData.setData.GunVolt_LimitValue, LcdData.setData.PowerPercent, LcdData.setData.ElossProprotion);
     rt_kprintf("Stop_SOC|%d    OverTemp_Warnning|%d\n", LcdData.setData.Stop_SOC, LcdData.setData.OverTemp_Warnning);
     rt_kprintf("OverTemp_Stop|%d    OverTemp_Resume|%d\n", LcdData.setData.OverTemp_Stop, LcdData.setData.OverTemp_Resume);
     rt_kprintf("OverTemp_LimitCurr|%d    OverTemp_LimitCurr|%d\n", LcdData.setData.OverTemp_LimitCurr, LcdData.setData.OverTemp_LimitCurr);
@@ -6462,6 +6480,7 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_PROTECT, NULL, "OT_L", LCD_InputType, 0, 0x4140, pu32_type, sizeof(LcdData.setData.OverTemp_LimitCurr), (void *)&LcdData.setData.OverTemp_LimitCurr);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_PROTECT, NULL, "GunVolt", LCD_InputType, 0, 0x4144, pu16_type, sizeof(LcdData.setData.GunVolt_LimitValue), (void *)&LcdData.setData.GunVolt_LimitValue);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_PROTECT, NULL, "powerP", LCD_InputType, 0, 0x4148, pu16_type, sizeof(LcdData.setData.PowerPercent), (void *)&LcdData.setData.PowerPercent);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_PROTECT, NULL, "ElossP", LCD_InputType, 0, 0x4660, pu16_type, sizeof(LcdData.setData.ElossProprotion), (void *)&LcdData.setData.ElossProprotion);
 
     /** 出厂设置-功能配置 [page:44] */
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_CONFIG, NULL, "locoal set", LCD_BtnType, 0x003d, 0x1000, page_type, LCD_PAGE_MENU_CONFIG, (void *)SerialScreen_IsSupportSet);

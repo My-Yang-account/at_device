@@ -260,6 +260,10 @@ uint32_t thaisen_get_ammeter_voltage(uint8_t gunno);
  **/
 uint32_t thaisen_get_ammeter_current(uint8_t gunno);
 /**
+ * 判断是否已经设置了电损比
+ **/
+uint8_t thaisen_is_set_eloss_proportion(void);
+/**
  * 判断是否已经设置了功率百分比
  **/
 uint8_t thaisen_is_set_power_percent(void);

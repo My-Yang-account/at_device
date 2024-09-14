@@ -128,7 +128,7 @@
 #define PROTECT_OVERTEMP_WARNNING_VALUE_MAX       300       /* 保护信息：过温告警值最大值 */
 #define PROTECT_OVERTEMP_WARNNING_VALUE_MIN       1         /* 保护信息：过温告警值最小值 */
 
-#define PROTECT_OVERTEMP_STOP_VALUE_DEFAULT       105        /* 保护信息：默认过温停充值 */
+#define PROTECT_OVERTEMP_STOP_VALUE_DEFAULT       105       /* 保护信息：默认过温停充值 */
 #define PROTECT_OVERTEMP_STOP_VALUE_MAX           300       /* 保护信息：过温停充值最大值 */
 #define PROTECT_OVERTEMP_STOP_VALUE_MIN           1         /* 保护信息：过温停充值最小值 */
 
@@ -190,6 +190,10 @@
 #define CHARGEPILE_CC4V_MAX                       45        /* CC1 4V上限 */
 #define CHARGEPILE_CC4V_MIN                       35        /* CC1 4V下限 */
 
+#define CHARGEPILE_ELOSS_PROPORTION_MIN           0         /* 电损比最小值(一位小数) */
+#define CHARGEPILE_ELOSS_PROPORTION_MAX           100       /* 电损比最大值(一位小数) */
+#define CHARGEPILE_ELOSS_PROPORTION_DEF           50        /* 电损比默认值(一位小数) */
+
 #define CP_SET_QRCODE_FORMAT_PREFIX                   0x01             /* 平台下发的二维码格式类型：前缀 */
 #define CP_SET_QRCODE_FORMAT_PREFIX_DEVICE_SN         0x02             /* 平台下发的二维码格式类型 ：前缀+设备号*/
 #define CP_SET_QRCODE_FORMAT_PREFIX_DEVICE_SN_PORT    0x03             /* 平台下发的二维码格式类型 ：前缀+设备号+枪号 */
@@ -246,6 +250,7 @@ enum config_name{
     CONFIG_ITEM_OVERTEMP_STOP,
     CONFIG_ITEM_OVERTEMP_RECOVER,
     CONFIG_ITEM_OVERTEMP_SETCUR,
+    CONFIG_ITEM_ELOSS_PROPORTION,
 
     /**************out***************/
     CONFIG_ITEM_OUTEN_AC,
