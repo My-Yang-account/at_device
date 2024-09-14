@@ -109,6 +109,7 @@ extern "C"
 #define BSP_USING_UART2
 #define BSP_UART2_TX_PIN       "PA2"
 #define BSP_UART2_RX_PIN       "PA3"
+#define BSP_UART2_RX_USING_DMA
 
 /* 控制台 - Auto config */
 #define BSP_USING_UART3
