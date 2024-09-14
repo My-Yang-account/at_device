@@ -138,7 +138,7 @@ int32_t bsp_hci_serial_init(void)
     }
 
     /* step4：打开串口设备。以中断接收及轮询发送模式打开串口设备 */
-    if (RT_EOK != rt_device_open(g_hci_serial, RT_DEVICE_FLAG_INT_RX)) {
+    if (RT_EOK != rt_device_open(g_hci_serial, RT_DEVICE_FLAG_DMA_RX)) {
         LOG_D("open hci device failed");
         return -1;
     }
