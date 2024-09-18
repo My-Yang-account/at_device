@@ -192,17 +192,16 @@ static void transaction_record_query_report(uint8_t gunno)
                     rtransaction.ammeter_stop = _total_elect;
 
                     rtransaction.total_elect = (rtransaction.ammeter_stop - rtransaction.ammeter_start);
-                    rtransaction.total_loss_elect = rtransaction.total_elect;
-                    rtransaction.charge_fee += ((double)loss_elect *(double)1.05 *100);
-                    rtransaction.total_fee += ((double)loss_elect *(double)1.05 *100);
+                    rtransaction.charge_fee += ((double)loss_elect *(double)1.05 *10);
+                    rtransaction.total_fee += ((double)loss_elect *(double)1.05 *10);
 
-                    rtransaction.end_time = rtransaction.start_time + (15 *60);
+                    rtransaction.end_time += (15 *60);
                     rtransaction.charge_time += (15 *60);
 
 #if (defined (APP_INCLUDE_YKC_PROTOCOL) || defined (APP_INCLUDE_YKC_PROTOCOL_MONITOR) || defined (APP_INCLUDE_YCP_PROTOCOL) ||  \
                     defined (APP_INCLUDE_SGCC_PROTOCOL))
                     rtransaction.rate_type_elect[APP_RATE_TYPE_FLAT] += loss_elect;
-                    rtransaction.rate_type_amount[APP_RATE_TYPE_FLAT] += ((double)loss_elect *(double)1.05 *100);
+                    rtransaction.rate_type_amount[APP_RATE_TYPE_FLAT] += ((double)loss_elect *(double)1.05 *10);
 #endif /* (defined (APP_INCLUDE_YKC_PROTOCOL) || defined (APP_INCLUDE_YKC_PROTOCOL_MONITOR) || defined (APP_INCLUDE_YCP_PROTOCOL) ||
                     defined (APP_INCLUDE_SGCC_PROTOCOL)) */
 
@@ -211,7 +210,7 @@ static void transaction_record_query_report(uint8_t gunno)
                         rtransaction.start_period_number = (APP_BILLING_RULE_PERIOD_MAX - 0x01);
                     }
                     rtransaction.period_elect[rtransaction.start_period_number] += loss_elect;
-                    rtransaction.period_elect_fees[rtransaction.start_period_number] += ((double)loss_elect *(double)1.05 *100);
+                    rtransaction.period_elect_fees[rtransaction.start_period_number] += ((double)loss_elect *(double)1.05 *10);
 #endif /* (defined (APP_INCLUDE_SL_PROTOCOL) || defined (APP_INCLUDE_SGCC_PROTOCOL)) */
                     need_check = 1;
                 }
