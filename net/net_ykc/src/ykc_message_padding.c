@@ -1759,22 +1759,22 @@ uint8_t ykc_chargepile_request_padding_transaction_record(uint8_t gunno, void *t
 
         g_ykc_preq_transaction_records[gunno].body.tip_unit_price = _transaction->rate_type_unit[APP_RATE_TYPE_SHARP] *10;
         g_ykc_preq_transaction_records[gunno].body.tip_elect = _transaction->rate_type_elect[APP_RATE_TYPE_SHARP] *10;
-        g_ykc_preq_transaction_records[gunno].body.tip_loss_elect = _transaction->rate_type_loss_elect[APP_RATE_TYPE_SHARP];
+        g_ykc_preq_transaction_records[gunno].body.tip_loss_elect = _transaction->rate_type_loss_elect[APP_RATE_TYPE_SHARP] *10;
         g_ykc_preq_transaction_records[gunno].body.tip_amount = _transaction->rate_type_amount[APP_RATE_TYPE_SHARP];
 
         g_ykc_preq_transaction_records[gunno].body.peak_unit_price = _transaction->rate_type_unit[APP_RATE_TYPE_PEAK] *10;
         g_ykc_preq_transaction_records[gunno].body.peak_elect = _transaction->rate_type_elect[APP_RATE_TYPE_PEAK] *10;
-        g_ykc_preq_transaction_records[gunno].body.peak_loss_elect = _transaction->rate_type_loss_elect[APP_RATE_TYPE_PEAK];
+        g_ykc_preq_transaction_records[gunno].body.peak_loss_elect = _transaction->rate_type_loss_elect[APP_RATE_TYPE_PEAK] *10;
         g_ykc_preq_transaction_records[gunno].body.peak_amount = _transaction->rate_type_amount[APP_RATE_TYPE_PEAK];
 
         g_ykc_preq_transaction_records[gunno].body.flat_unit_price = _transaction->rate_type_unit[APP_RATE_TYPE_FLAT] *10;
         g_ykc_preq_transaction_records[gunno].body.flat_elect = _transaction->rate_type_elect[APP_RATE_TYPE_FLAT] *10;
-        g_ykc_preq_transaction_records[gunno].body.flat_loss_elect = _transaction->rate_type_loss_elect[APP_RATE_TYPE_FLAT];
+        g_ykc_preq_transaction_records[gunno].body.flat_loss_elect = _transaction->rate_type_loss_elect[APP_RATE_TYPE_FLAT] *10;
         g_ykc_preq_transaction_records[gunno].body.flat_amount = _transaction->rate_type_amount[APP_RATE_TYPE_FLAT];
 
         g_ykc_preq_transaction_records[gunno].body.valley_unit_price = _transaction->rate_type_unit[APP_RATE_TYPE_VALLEY] *10;
         g_ykc_preq_transaction_records[gunno].body.valley_elect = _transaction->rate_type_elect[APP_RATE_TYPE_VALLEY] *10;
-        g_ykc_preq_transaction_records[gunno].body.valley_loss_elect = _transaction->rate_type_loss_elect[APP_RATE_TYPE_VALLEY];
+        g_ykc_preq_transaction_records[gunno].body.valley_loss_elect = _transaction->rate_type_loss_elect[APP_RATE_TYPE_VALLEY] *10;
         g_ykc_preq_transaction_records[gunno].body.valley_amount = _transaction->rate_type_amount[APP_RATE_TYPE_VALLEY];
 
         elect = _transaction->ammeter_start *10;
@@ -1785,7 +1785,7 @@ uint8_t ykc_chargepile_request_padding_transaction_record(uint8_t gunno, void *t
         memcpy(g_ykc_preq_transaction_records[gunno].body.ammeter_end_val, &elect, sizeof(g_ykc_preq_transaction_records[gunno].body.ammeter_end_val));
 
         g_ykc_preq_transaction_records[gunno].body.total_elect = _transaction->total_elect *10;
-        g_ykc_preq_transaction_records[gunno].body.total_loss_elect = _transaction->total_loss_elect;
+        g_ykc_preq_transaction_records[gunno].body.total_loss_elect = _transaction->total_loss_elect *10;
         g_ykc_preq_transaction_records[gunno].body.consume_amount = _transaction->total_fee;
 
         valid_len = sizeof(_transaction->car_vin);
