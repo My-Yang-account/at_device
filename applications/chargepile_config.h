@@ -192,7 +192,7 @@
 
 #define CHARGEPILE_ELOSS_PROPORTION_MIN           0         /* 电损比最小值(一位小数) */
 #define CHARGEPILE_ELOSS_PROPORTION_MAX           100       /* 电损比最大值(一位小数) */
-#define CHARGEPILE_ELOSS_PROPORTION_DEF           50        /* 电损比默认值(一位小数) */
+#define CHARGEPILE_ELOSS_PROPORTION_DEF           0         /* 电损比默认值(一位小数) */
 
 #define CP_SET_QRCODE_FORMAT_PREFIX                   0x01             /* 平台下发的二维码格式类型：前缀 */
 #define CP_SET_QRCODE_FORMAT_PREFIX_DEVICE_SN         0x02             /* 平台下发的二维码格式类型 ：前缀+设备号*/
