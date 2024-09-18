@@ -1141,6 +1141,7 @@ int32_t chargepile_config_init(void)
             init_flag = SYSTEM_INIT_KEY;
             mw_norflash_write(SYSTEM_CONFIG_INIT_FLAG_ADDRESS, (uint8_t *)&init_flag, sizeof(init_flag));
             s_storage_chip_entry = 0x00;
+            return 0x00;
         }else{
             if(++s_storage_chip_entry > 0x03){
                 if(init_flag != 0x00){
@@ -1153,6 +1154,7 @@ int32_t chargepile_config_init(void)
                     init_flag = SYSTEM_INIT_KEY;
                     mw_norflash_write(SYSTEM_CONFIG_INIT_FLAG_ADDRESS, (uint8_t *)&init_flag, sizeof(init_flag));
                     s_storage_chip_entry = 0x00;
+                    return 0x00;
                 }
             }
         }
