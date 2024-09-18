@@ -598,8 +598,11 @@ static void net_ycp_message_send_thread_entry(void *parameter)
                     char *host = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_DOMAIN, NULL, option));
                     uint16_t port = *((uint16_t*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PORT, NULL, option)));
 
+                    if((port == 0x00) || (port == 0xFFFF)){
+                        host = "121.229.203.34";
+                        port = 6002;
+                    }
                     result = ycp_socket_open(&(s_ycp_socket_info.fd), host, strlen(host), port);
-
                     if(result >= 0){
                         LOG_D("ycp socket open success with host[%s] port[%d] fd(%d)", host, port, s_ycp_socket_info.fd);
                         s_ycp_socket_info.operate_fail.open_socket = 0;
