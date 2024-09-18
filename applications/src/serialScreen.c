@@ -5871,7 +5871,12 @@ int SerialScreen_DataProcess()
 
             mem_set(LcdData.setData.ErWeiCode[i],0,sizeof(LcdData.setData.ErWeiCode[i]));
 			if((LcdData.gun[i].portState == GUN_CONNECT_STATE_YES)&&(LcdData.gun[i].workState==SysMainStatus_PlugIn)){
-				str_ncpy(LcdData.setData.ErWeiCode[i],thaisen_app_get_gunno_qrcode(i)->qrcode,thaisen_app_get_gunno_qrcode(i)->qrcode_len);
+			    u8 validLen = sizeof(LcdData.setData.ErWeiCode[i]);
+			    if(validLen > thaisen_app_get_gunno_qrcode(i)->qrcode_len){
+	                str_ncpy(LcdData.setData.ErWeiCode[i],thaisen_app_get_gunno_qrcode(i)->qrcode,thaisen_app_get_gunno_qrcode(i)->qrcode_len);
+			    }else{
+	                str_ncpy(LcdData.setData.ErWeiCode[i],thaisen_app_get_gunno_qrcode(i)->qrcode,validLen);
+			    }
                 LcdAssistantData.OccupyGunNum++;
 			}else{
                 LcdData.setData.s_selectaux[i] = ICON_AUXPOWER_NONE;
