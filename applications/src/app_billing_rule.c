@@ -123,6 +123,7 @@ void app_billingrule_update_billingrule_info(uint8_t gunno)
         return;
     }
     memcpy(&s_billing_rule[gunno], &s_billing_rule[APP_SYSTEM_GUNNO_SIZE], sizeof(s_billing_rule[gunno]));
+    s_billing_assistant_info.billing_rule_update_gunno = gunno;
 }
 
 /*******************************************
@@ -154,6 +155,7 @@ void app_billingrule_set_elect_model_sn(uint8_t gunno, uint8_t *sn, uint8_t len)
 
     memset(s_billing_rule[gunno].elect_model_sn, 0x00, (APP_BILLING_MODEL_SN_LEN + 0x01));
     memcpy(s_billing_rule[gunno].elect_model_sn, sn, valid_len);
+    s_billing_assistant_info.billing_rule_update_gunno = gunno;
 }
 
 /*******************************************
@@ -183,6 +185,7 @@ void app_billingrule_set_service_model_sn(uint8_t gunno, uint8_t *sn, uint8_t le
 
     memset(s_billing_rule[gunno].service_model_sn, 0x00, (APP_BILLING_MODEL_SN_LEN + 0x01));
     memcpy(s_billing_rule[gunno].service_model_sn, sn, valid_len);
+    s_billing_assistant_info.billing_rule_update_gunno = gunno;
 }
 
 /*******************************************
