@@ -55,7 +55,7 @@ static thaisen_transaction_t s_thaisen_transaction[APP_SYSTEM_GUNNO_SIZE];
 static thaisen_transaction_t s_thaisen_transaction_report[LINK_PLATFORM_MAX][APP_SYSTEM_GUNNO_SIZE];
 static enum booting_step_t s_booting_step[APP_SYSTEM_GUNNO_SIZE];
 static uint32_t s_request_screen_time_tick = 0x00;
-static uint8_t s_request_screen_time_step = 0x00;
+static uint8_t s_request_screen_time_step = 0x01;
 static uint8_t s_transaction_sending[LINK_PLATFORM_MAX][APP_SYSTEM_GUNNO_SIZE];
 static uint8_t s_chargegun_idle_count = 0x00;
 static uint32_t s_timestamp_base = 0x00, s_tick_base = 0x00;
@@ -110,10 +110,14 @@ int32_t ofsm_get_current_period_time_hm(uint8_t period, uint8_t *buf, uint8_t bl
     hour = (period - 0x01) /0x04;          /** 每个小时分为4个时段 */
     min = ((period - 0x01) %0x04) *15;     /** 每个时段15分钟 */
 
-    buf[0x00] = hour;                      /** 开始时间：小时 */
-    buf[0x01] = min;                       /** 开始时间：分钟 */
-    buf[0x02] = hour;                      /** 结束时间：小时 */
-    buf[0x03] = min + 15;                  /** 结束时间：分钟 */
+    buf[0x00] = (hour %24);                /** 开始时间：小时 */
+    buf[0x01] = (min %60);                 /** 开始时间：分钟 */
+    if((min + 15) /60){
+        buf[0x02] = ((hour + 0x01) %24);   /** 结束时间：小时 */
+    }else{
+        buf[0x02] = (hour %24);            /** 结束时间：小时 */
+    }
+    buf[0x03] = (min + 15) %60;            /** 结束时间：分钟 */
 
     return 0x00;
 }
@@ -1375,6 +1379,34 @@ static void ofsm_starting_fun(uint8_t gunno)
     s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_FALSE;
     s_tiny_current_count[gunno] = rt_tick_get();
 
+    /* 对时后时间要修改 */
+    if(mw_get_time_sync_flag(gunno)){
+        mw_clear_time_sync_flag(gunno);
+        uint32_t curr_time = mw_get_current_timestamp();
+
+        s_ofsm_info[gunno].base.stop_time = curr_time;
+        if(s_ofsm_info[gunno].base.stop_time >= s_ofsm_info[gunno].base.charge_time){
+            s_ofsm_info[gunno].base.start_time = (s_ofsm_info[gunno].base.stop_time - s_ofsm_info[gunno].base.charge_time);
+        }else{
+            /* 这种情况是不对的 */
+            s_ofsm_info[gunno].base.start_time = s_ofsm_info[gunno].base.stop_time;
+        }
+        s_thaisen_transaction[gunno].end_time = s_ofsm_info[gunno].base.stop_time;
+        s_thaisen_transaction[gunno].start_time = s_ofsm_info[gunno].base.start_time;
+
+        s_ofsm_info[gunno].base.start_period = app_calculate_current_period(s_ofsm_info[gunno].base.start_time);
+        s_ofsm_info[gunno].base.current_period = s_ofsm_info[gunno].base.start_period;
+
+        s_thaisen_transaction[gunno].start_period_number = s_ofsm_info[gunno].base.start_period;
+
+        app_nsal_time_sync_revise(gunno);
+
+        mw_storage_record_designate_index_updated(&s_thaisen_transaction[gunno], sizeof(s_thaisen_transaction[gunno]), USER_DATA_TYPE_STORAGE,  \
+                0x00, gunno, s_current_order_index[TARGET_PLATFORM_INDEX][gunno]);
+        /** 与时段有关的信息也要更新 */
+        LOG_I("chargepile is synchronized, modify correlation time|%x\n", curr_time);
+    }
+
     if(s_ofsm_info[gunno].base.flag.permit_judge_complete == APP_THA_ENUM_FALSE){
         if(mw_module_get_permit_charge_state(gunno) == APP_MODULE_CHARGE_SIZE){
             if(s_ofsm_info[gunno].charge_timeout > rt_tick_get()){
@@ -1414,15 +1446,6 @@ static void ofsm_starting_fun(uint8_t gunno)
             s_thaisen_transaction[gunno].boot_result = s_ofsm_info[gunno].base.flag.start_result;
             s_thaisen_transaction[gunno].order_state.is_charging = APP_THA_ENUM_FALSE;
 
-            s_ofsm_info[gunno].base.start_time = s_ofsm_info[gunno].base.current_time;
-            s_ofsm_info[gunno].base.stop_time = s_ofsm_info[gunno].base.current_time;
-            s_ofsm_info[gunno].base.start_period = app_calculate_current_period(s_ofsm_info[gunno].base.start_time);
-            s_ofsm_info[gunno].base.current_period = s_ofsm_info[gunno].base.start_period;
-
-            s_thaisen_transaction[gunno].start_time = s_ofsm_info[gunno].base.start_time;
-            s_thaisen_transaction[gunno].end_time = s_thaisen_transaction[gunno].start_time;
-            s_thaisen_transaction[gunno].start_period_number = s_ofsm_info[gunno].base.start_period;
-
             /* 对时后时间要修改 */
             if(mw_get_time_sync_flag(gunno)){
                 mw_clear_time_sync_flag(gunno);
@@ -1437,6 +1460,11 @@ static void ofsm_starting_fun(uint8_t gunno)
                 }
                 s_thaisen_transaction[gunno].end_time = s_ofsm_info[gunno].base.stop_time;
                 s_thaisen_transaction[gunno].start_time = s_ofsm_info[gunno].base.start_time;
+
+                s_ofsm_info[gunno].base.start_period = app_calculate_current_period(s_ofsm_info[gunno].base.start_time);
+                s_ofsm_info[gunno].base.current_period = s_ofsm_info[gunno].base.start_period;
+
+                s_thaisen_transaction[gunno].start_period_number = s_ofsm_info[gunno].base.start_period;
 
                 app_nsal_time_sync_revise(gunno);
 
@@ -1489,15 +1517,6 @@ static void ofsm_starting_fun(uint8_t gunno)
                 s_thaisen_transaction[gunno].boot_result = s_ofsm_info[gunno].base.flag.start_result;
                 s_thaisen_transaction[gunno].order_state.is_charging = APP_THA_ENUM_FALSE;
 
-                s_ofsm_info[gunno].base.start_time = s_ofsm_info[gunno].base.current_time;
-                s_ofsm_info[gunno].base.stop_time = s_ofsm_info[gunno].base.current_time;
-                s_ofsm_info[gunno].base.start_period = app_calculate_current_period(s_ofsm_info[gunno].base.start_time);
-                s_ofsm_info[gunno].base.current_period = s_ofsm_info[gunno].base.start_period;
-
-                s_thaisen_transaction[gunno].start_time = s_ofsm_info[gunno].base.start_time;
-                s_thaisen_transaction[gunno].end_time = s_thaisen_transaction[gunno].start_time;
-                s_thaisen_transaction[gunno].start_period_number = s_ofsm_info[gunno].base.start_period;
-
                 /* 对时后时间要修改 */
                 if(mw_get_time_sync_flag(gunno)){
                     mw_clear_time_sync_flag(gunno);
@@ -1514,6 +1533,11 @@ static void ofsm_starting_fun(uint8_t gunno)
                     s_thaisen_transaction[gunno].start_time = s_ofsm_info[gunno].base.start_time;
 
                     app_nsal_time_sync_revise(gunno);
+
+                    s_ofsm_info[gunno].base.start_period = app_calculate_current_period(s_ofsm_info[gunno].base.start_time);
+                    s_ofsm_info[gunno].base.current_period = s_ofsm_info[gunno].base.start_period;
+
+                    s_thaisen_transaction[gunno].start_period_number = s_ofsm_info[gunno].base.start_period;
 
                     /** 与时段有关的信息也要更新 */
                     LOG_I("chargepile is synchronized, modify correlation time|%x\n", curr_time);
@@ -1581,15 +1605,6 @@ static void ofsm_starting_fun(uint8_t gunno)
             s_thaisen_transaction[gunno].boot_result = s_ofsm_info[gunno].base.flag.start_result;
             s_thaisen_transaction[gunno].order_state.is_charging = APP_THA_ENUM_FALSE;
 
-            s_ofsm_info[gunno].base.start_time = s_ofsm_info[gunno].base.current_time;
-            s_ofsm_info[gunno].base.stop_time = s_ofsm_info[gunno].base.current_time;
-            s_ofsm_info[gunno].base.start_period = app_calculate_current_period(s_ofsm_info[gunno].base.start_time);
-            s_ofsm_info[gunno].base.current_period = s_ofsm_info[gunno].base.start_period;
-
-            s_thaisen_transaction[gunno].start_time = s_ofsm_info[gunno].base.start_time;
-            s_thaisen_transaction[gunno].end_time = s_thaisen_transaction[gunno].start_time;
-            s_thaisen_transaction[gunno].start_period_number = s_ofsm_info[gunno].base.start_period;
-
             /* 对时后时间要修改 */
             if(mw_get_time_sync_flag(gunno)){
                 mw_clear_time_sync_flag(gunno);
@@ -1606,6 +1621,11 @@ static void ofsm_starting_fun(uint8_t gunno)
                 s_thaisen_transaction[gunno].start_time = s_ofsm_info[gunno].base.start_time;
 
                 app_nsal_time_sync_revise(gunno);
+
+                s_ofsm_info[gunno].base.start_period = app_calculate_current_period(s_ofsm_info[gunno].base.start_time);
+                s_ofsm_info[gunno].base.current_period = s_ofsm_info[gunno].base.start_period;
+
+                s_thaisen_transaction[gunno].start_period_number = s_ofsm_info[gunno].base.start_period;
 
                 /** 与时段有关的信息也要更新 */
                 LOG_I("chargepile is synchronized, modify correlation time|%x\n", curr_time);
@@ -1738,15 +1758,6 @@ static void ofsm_starting_fun(uint8_t gunno)
             s_thaisen_transaction[gunno].boot_result = s_ofsm_info[gunno].base.flag.start_result;
             s_thaisen_transaction[gunno].order_state.is_charging = APP_THA_ENUM_FALSE;
 
-            s_ofsm_info[gunno].base.start_time = s_ofsm_info[gunno].base.current_time;
-            s_ofsm_info[gunno].base.stop_time = s_ofsm_info[gunno].base.current_time;
-            s_ofsm_info[gunno].base.start_period = app_calculate_current_period(s_ofsm_info[gunno].base.start_time);
-            s_ofsm_info[gunno].base.current_period = s_ofsm_info[gunno].base.start_period;
-
-            s_thaisen_transaction[gunno].start_time = s_ofsm_info[gunno].base.start_time;
-            s_thaisen_transaction[gunno].end_time = s_thaisen_transaction[gunno].start_time;
-            s_thaisen_transaction[gunno].start_period_number = s_ofsm_info[gunno].base.start_period;
-
             /* 对时后时间要修改 */
             if(mw_get_time_sync_flag(gunno)){
                 mw_clear_time_sync_flag(gunno);
@@ -1764,6 +1775,11 @@ static void ofsm_starting_fun(uint8_t gunno)
 
                 app_nsal_time_sync_revise(gunno);
 
+                s_ofsm_info[gunno].base.start_period = app_calculate_current_period(s_ofsm_info[gunno].base.start_time);
+                s_ofsm_info[gunno].base.current_period = s_ofsm_info[gunno].base.start_period;
+
+                s_thaisen_transaction[gunno].start_period_number = s_ofsm_info[gunno].base.start_period;
+
                 LOG_I("chargepile is synchronized, modify correlation time|%x\n", curr_time);
             }
 
@@ -1780,15 +1796,8 @@ static void ofsm_starting_fun(uint8_t gunno)
         s_thaisen_transaction[gunno].boot_result = s_ofsm_info[gunno].base.flag.start_result;
         s_thaisen_transaction[gunno].order_state.is_start_fail = APP_THA_ENUM_FALSE;
 
-        s_ofsm_info[gunno].base.start_time = s_ofsm_info[gunno].base.current_time;
-        s_ofsm_info[gunno].base.stop_time = s_ofsm_info[gunno].base.current_time;
-        s_ofsm_info[gunno].base.start_period = app_calculate_current_period(s_ofsm_info[gunno].base.start_time);
-        s_ofsm_info[gunno].base.current_period = s_ofsm_info[gunno].base.start_period;
         s_ofsm_info[gunno].timing_tick = rt_tick_get();
         s_ofsm_info[gunno].base.offline_tick = rt_tick_get();
-        s_thaisen_transaction[gunno].start_time = s_ofsm_info[gunno].base.start_time;
-        s_thaisen_transaction[gunno].end_time = s_thaisen_transaction[gunno].start_time;
-        s_thaisen_transaction[gunno].start_period_number = s_ofsm_info[gunno].base.start_period;
 
         s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_CHARGING];
         s_ofsm_info[gunno].state = APP_OFSM_STATE_CHARGING;
@@ -1850,15 +1859,6 @@ static void ofsm_starting_fun(uint8_t gunno)
         s_thaisen_transaction[gunno].boot_result = s_ofsm_info[gunno].base.flag.start_result;
         s_thaisen_transaction[gunno].order_state.is_charging = APP_THA_ENUM_FALSE;
 
-        s_ofsm_info[gunno].base.start_time = s_ofsm_info[gunno].base.current_time;
-        s_ofsm_info[gunno].base.stop_time = s_ofsm_info[gunno].base.current_time;
-        s_ofsm_info[gunno].base.start_period = app_calculate_current_period(s_ofsm_info[gunno].base.start_time);
-        s_ofsm_info[gunno].base.current_period = s_ofsm_info[gunno].base.start_period;
-
-        s_thaisen_transaction[gunno].start_time = s_ofsm_info[gunno].base.start_time;
-        s_thaisen_transaction[gunno].end_time = s_thaisen_transaction[gunno].start_time;
-        s_thaisen_transaction[gunno].start_period_number = s_ofsm_info[gunno].base.start_period;
-
         /* 对时后时间要修改 */
         if(mw_get_time_sync_flag(gunno)){
             mw_clear_time_sync_flag(gunno);
@@ -1875,6 +1875,11 @@ static void ofsm_starting_fun(uint8_t gunno)
             s_thaisen_transaction[gunno].start_time = s_ofsm_info[gunno].base.start_time;
 
             app_nsal_time_sync_revise(gunno);
+
+            s_ofsm_info[gunno].base.start_period = app_calculate_current_period(s_ofsm_info[gunno].base.start_time);
+            s_ofsm_info[gunno].base.current_period = s_ofsm_info[gunno].base.start_period;
+
+            s_thaisen_transaction[gunno].start_period_number = s_ofsm_info[gunno].base.start_period;
 
             /** 与时段有关的信息也要更新 */
             LOG_I("chargepile is synchronized, modify correlation time|%x\n", curr_time);
@@ -2049,6 +2054,8 @@ static void ofsm_charging_fun(uint8_t gunno)
 
         app_nsal_time_sync_revise(gunno);
 
+        mw_storage_record_designate_index_updated(&s_thaisen_transaction[gunno], sizeof(s_thaisen_transaction[gunno]), USER_DATA_TYPE_STORAGE,  \
+                0x00, gunno, s_current_order_index[TARGET_PLATFORM_INDEX][gunno]);
         /** 与时段有关的信息也要更新 */
         LOG_I("chargepile is synchronized, modify correlation time|%x\n", curr_time);
     }
@@ -3850,6 +3857,7 @@ void ofsm_thread_entry(void *parameter)
     app_billingrule_set_eloss_proportion(*((uint16_t*)sys_read_config_item_content(CONFIG_ITEM_ELOSS_PROPORTION, 0x00)));
 
     rt_thread_mdelay(6000);  /** 等待底层驱动正常(电表要获取到电量) */
+    s_request_screen_time_tick = rt_tick_get();
 
     while(1){
         uint16_t singlegun_curr = s_ofsm_info[thread_gunno].base.gun_set_curr;
