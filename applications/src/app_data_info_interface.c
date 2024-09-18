@@ -13,6 +13,9 @@
 #include "mw_temp.h"
 #include "mw_meter.h"
 
+#define APP_QRCODE_CONFIG_XXCD_PILENUMBER_VALID_LEN          0x08            /** 星星充电二维码配置桩号部分有效长度 */
+#define APP_QRCODE_CONFIG_TLD_MANUFACTURE_ID                 ".395815801/"   /** 特来电二维码配置厂商ID */
+
 static struct temperature s_temp_info;
 static ota_info s_ota_info;
 
@@ -84,8 +87,13 @@ struct app_version *thaisen_app_get_app_version(void)
  *******************************************/
 struct qrcode_info *thaisen_app_get_gunno_qrcode(uint8_t gunno) // OK
 {
-#define QRCODE_FEFAULT    "http://www.ykccn.com/MPAGE/index.html?pNum="          /* 云快充默认二维码 */
-
+#ifdef APP_QRCODE_CONFIG_USING_XXCD
+#define QRCODE_FEFAULT    "https://qrcode.starcharge.com/#/"                     /* 星星充电默认二维码前缀 */
+#elif defined(APP_QRCODE_CONFIG_USING_TLD)
+#define QRCODE_FEFAULT    "hlht://"                                              /* 特来电默认二维码前缀 */
+#else
+#define QRCODE_FEFAULT    "http://www.ykccn.com/MPAGE/index.html?pNum="          /* 云快充默认二维码前缀 */
+#endif
     uint8_t i, *p = NULL, qrcode_len = 0, storage_len = (*(sys_read_config_item_content(CONFIG_ITEM_QRCODE_PRE, 1))),
             set_type = CP_SET_QRCODE_FORMAT_PREFIX, generate_type = CP_GENERATE_QRCODE_FORMAT_PREFIX_DEVICE_SN_PORT;
 
@@ -138,6 +146,45 @@ struct qrcode_info *thaisen_app_get_gunno_qrcode(uint8_t gunno) // OK
             break;
         /** 生成的二维码格式是：二维码前缀 + 桩号 + 枪号 */
         case CP_GENERATE_QRCODE_FORMAT_PREFIX_DEVICE_SN_PORT:
+        {
+#ifdef APP_QRCODE_CONFIG_USING_XXCD
+            if(sizeof(s_qrcode.qrcode) < (APP_QRCODE_CONFIG_XXCD_PILENUMBER_VALID_LEN + qrcode_len)){
+                return &s_qrcode;
+            }
+            p = sys_read_config_item_content(CONFIG_ITEM_PILE_NUMBER, 0);
+            memcpy((s_qrcode.qrcode + qrcode_len), p, APP_QRCODE_CONFIG_XXCD_PILENUMBER_VALID_LEN);
+
+            qrcode_len = qrcode_len + APP_QRCODE_CONFIG_XXCD_PILENUMBER_VALID_LEN;
+            s_qrcode.qrcode_len = qrcode_len;
+
+            if(sizeof(s_qrcode.qrcode) < (3 + qrcode_len)){
+                return &s_qrcode;
+            }
+            sprintf((char*)(s_qrcode.qrcode + qrcode_len), "%c%u", '0', gunno + 1);
+            qrcode_len = qrcode_len + 2;
+
+#elif defined(APP_QRCODE_CONFIG_USING_TLD)
+            if(sizeof(s_qrcode.qrcode) < (*(sys_read_config_item_content(CONFIG_ITEM_PILE_NUMBER, 1)) + qrcode_len)){
+                return &s_qrcode;
+            }
+
+            sprintf((char*)(s_qrcode.qrcode + qrcode_len), "%s", sys_read_config_item_content(CONFIG_ITEM_PILE_NUMBER, 0));
+            qrcode_len = qrcode_len + (*(sys_read_config_item_content(CONFIG_ITEM_PILE_NUMBER, 1)));
+            s_qrcode.qrcode_len = qrcode_len;
+
+            if(sizeof(s_qrcode.qrcode) < (2 + qrcode_len)){
+                return &s_qrcode;
+            }
+            sprintf((char*)(s_qrcode.qrcode + qrcode_len), "%c", (gunno + 'A'));
+            qrcode_len = qrcode_len + 1;
+
+            if(sizeof(s_qrcode.qrcode) < (strlen(APP_QRCODE_CONFIG_TLD_MANUFACTURE_ID) + qrcode_len)){
+                return &s_qrcode;
+            }
+            sprintf((char*)(s_qrcode.qrcode + qrcode_len), "%s", APP_QRCODE_CONFIG_TLD_MANUFACTURE_ID);
+            qrcode_len = qrcode_len + strlen(APP_QRCODE_CONFIG_TLD_MANUFACTURE_ID);
+#else
+
             if(sizeof(s_qrcode.qrcode) < (*(sys_read_config_item_content(CONFIG_ITEM_PILE_NUMBER, 1)) + qrcode_len)){
                 return &s_qrcode;
             }
@@ -151,6 +198,8 @@ struct qrcode_info *thaisen_app_get_gunno_qrcode(uint8_t gunno) // OK
             }
             sprintf((char*)(s_qrcode.qrcode + qrcode_len), "%c%u", '0', gunno + 1);
             qrcode_len = qrcode_len + 2;
+#endif
+        }
             break;
         default:
             break;
@@ -1075,7 +1124,7 @@ int32_t thaisen_get_current_period_time_hm(uint8_t *buf, uint8_t blen)
         return -0x01;
     }
     uint8_t period = ofsm_get_current_period();
-    return ofsm_get_current_period_time_hm((period + 0x01), buf, blen);
+    return ofsm_get_current_period_time_hm(period, buf, blen);
 }
 
 /********************************************
