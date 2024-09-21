@@ -33,6 +33,8 @@
 #define NET_YCP_REALTIME_DATA_LINK_INTERVAL                  5000        /* 实时数据刚连上网时上报间隔(单位ms:5 *1000 = 5s) */
 #define NET_YCP_SAME_TRANSATION_REPORT_COUNT_MAX             10          /* 相同订单最大上报次数 */
 
+#define NET_YCP_TIME_SYNC_PERIOD_DEF                         (43200000)  /* 向平台对时的时间间隔(12 *60 *60 *1000) */
+
 struct ycp_wait_response{
     uint32_t message_wait_response_state[NET_SYSTEM_GUN_NUMBER];                       /* 报文已发送发送，等待响应状态 */
     uint32_t message_repeat_time[NET_SYSTEM_GUN_NUMBER][NET_YCP_CHARGEPILE_PREQ_NUM];  /* 报文重发计时 */
@@ -522,7 +524,7 @@ static void net_ycp_message_send_thread_entry(void *parameter)
 {
     uint8_t step = NET_YCP_NET_STATE_OPEN_SOCKET, is_power_on = 0x00;
     uint32_t delay = 0x00, wait_unlock = 0x00;
-    uint32_t heartbeat_tick;
+    uint32_t heartbeat_tick, time_sync_tick;
 
     while(1)
     {
@@ -755,6 +757,24 @@ static void net_ycp_message_send_thread_entry(void *parameter)
             s_ycp_socket_info.fd = -0x01;
 
             LOG_D("ycp heartbeat timeout");
+        }
+
+        if(s_ycp_assistant_flag.is_timesync){
+            if(time_sync_tick > rt_tick_get()){
+                if((rt_tick_get() + 0xFFFFFFFF - time_sync_tick) > NET_YCP_TIME_SYNC_PERIOD_DEF){
+                    ycp_net_event_send(NET_YCP_EVENT_HANDLE_CHARGEPILE, NET_YCP_EVENT_TYPE_REQUEST, 0x00, NET_YCP_PREQ_EVENT_TIME_SYNC);
+                    time_sync_tick = rt_tick_get();
+                    s_ycp_assistant_flag.is_timesync = 0x00;
+                }
+            }else{
+                if((rt_tick_get() - time_sync_tick) > NET_YCP_TIME_SYNC_PERIOD_DEF){
+                    ycp_net_event_send(NET_YCP_EVENT_HANDLE_CHARGEPILE, NET_YCP_EVENT_TYPE_REQUEST, 0x00, NET_YCP_PREQ_EVENT_TIME_SYNC);
+                    time_sync_tick = rt_tick_get();
+                    s_ycp_assistant_flag.is_timesync = 0x00;
+                }
+            }
+        }else{
+            time_sync_tick = rt_tick_get();
         }
 
         /***************************************************** [数据请求] **********************************************************/
