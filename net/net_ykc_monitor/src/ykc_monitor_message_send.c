@@ -544,6 +544,7 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
 
 #ifdef NET_INCLUDE_TARGET_PLATFORM
 #if (NET_TARGET_PLATFORM_ID == NET_YCP_PRO_ID)
+#if 0
                 char *imei = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_IMEI, NULL, option));
                 char *pile_number = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, option));
                 vaild_len = strlen(imei);
@@ -556,6 +557,7 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
                 }
 
                 ykc_monitor_ascii_to_bcd((uint8_t*)imei, strlen((char*)imei), g_ykc_monitor_preq_login.body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
+#endif
 #endif /* NET_TARGET_PLATFORM_ID == NET_YCP_PRO_ID */
 #endif /* NET_INCLUDE_TARGET_PLATFORM */
 
