@@ -368,6 +368,17 @@ thaisenRelayEn thaisen_relay_K8_FB(void);
 thaisenRelayEn thaisen_relay_K9_FB(void);
 thaisenRelayEn thaisen_relay_K10_FB(void);
 
+thaisenRelayEn thaisen_dcrelayA_pfeedback(void);
+thaisenRelayEn thaisen_dcrelayA_nfeedback(void);
+thaisenRelayEn thaisen_dcrelayB_pfeedback(void);
+thaisenRelayEn thaisen_dcrelayB_nfeedback(void);
+thaisenRelayEn thaisen_parallel_relay_pfeedback(void);
+thaisenRelayEn thaisen_parallel_relay_nfeedback(void);
+thaisenRelayEn thaisen_relayK7_feedback(void);
+thaisenRelayEn thaisen_relayK8_feedback(void);
+thaisenRelayEn thaisen_relayK9_feedback(void);
+thaisenRelayEn thaisen_relayK10_feedback(void);
+
 void thaisenSetACRelayCloseStaus(uint8_t sta);
 uint8_t thaisenGetACRelayCloseStaus(void);
 
