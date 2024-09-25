@@ -252,7 +252,8 @@ static void ycp_callback_response_transaction_records(uint8_t* data, uint16_t le
 
     uint8_t count = 0x00, gunno = 0x00;
     Net_YcpPro_SRes_TransactionRecords_t *response = (Net_YcpPro_SRes_TransactionRecords_t*)data;
-
+    /** 只要回复了就是确认了，不管成功还是失败 */
+#if 0
     if(response->body.result != 0x01){
         LOG_E("ycp response bill report error(%d)", response->body.result);
         for(count = 0x00; count < NET_YCP_SERIAL_NUMBER_LENGTH_DEFAULT; count++){
@@ -263,7 +264,7 @@ static void ycp_callback_response_transaction_records(uint8_t* data, uint16_t le
         rt_kprintf("\n");
         return;
     }
-
+#endif
     for(gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
         if(memcmp(s_ycp_current_transaction_number[gunno], response->body.serial_number, NET_YCP_SERIAL_NUMBER_LENGTH_DEFAULT) == 0x00){
             break;

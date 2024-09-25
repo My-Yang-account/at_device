@@ -29,6 +29,7 @@
 #define NET_YCP_SEND_STATE_COMPLETE                          0x00       /* 报文发送完成 */
 #define NET_YCP_SEND_STATE_ONGOING                           0x01       /* 报文正在发送中 */
 #define NET_YCP_WAIT_RESPONSE_TIMEOUT                        5000       /* 报文等待响应超时时间 */
+#define NET_YCP_WAIT_TRANSACTION_RESPONSE_TIMEOUT            120000     /* 交易记录确认报文等待响应超时时间 */
 
 /** 事件类型(请求或响应) */
 #define NET_YCP_EVENT_TYPE_REQUEST                           0x00       /* 请求事件 */

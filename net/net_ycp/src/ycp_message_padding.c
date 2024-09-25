@@ -2388,8 +2388,14 @@ static void ycp_request_message_repeat(uint8_t gunno)
     uint8_t event = 0;
     if(ycp_exist_message_wait_response(gunno, NULL)){
         for(event = 0; event < NET_YCP_CHARGEPILE_PREQ_NUM; event++){
-            if(ycp_get_message_wait_response_timeout_state(gunno, NET_YCP_WAIT_RESPONSE_TIMEOUT, event)){
-                ycp_net_event_send(NET_YCP_EVENT_HANDLE_CHARGEPILE, NET_YCP_EVENT_TYPE_REQUEST, gunno, event);
+            if(event == NET_YCP_PREQ_EVENT_TRANSACTION_RECORD){
+                if(ycp_get_message_wait_response_timeout_state(gunno, NET_YCP_WAIT_TRANSACTION_RESPONSE_TIMEOUT, event)){
+                    ycp_net_event_send(NET_YCP_EVENT_HANDLE_CHARGEPILE, NET_YCP_EVENT_TYPE_REQUEST, gunno, event);
+                }
+            }else{
+                if(ycp_get_message_wait_response_timeout_state(gunno, NET_YCP_WAIT_RESPONSE_TIMEOUT, event)){
+                    ycp_net_event_send(NET_YCP_EVENT_HANDLE_CHARGEPILE, NET_YCP_EVENT_TYPE_REQUEST, gunno, event);
+                }
             }
         }
     }
