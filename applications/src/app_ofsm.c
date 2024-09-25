@@ -2346,12 +2346,14 @@ static void ofsm_charging_fun(uint8_t gunno)
 
     if(bms_info->BCS.SOC >= *(sys_read_config_item_content(CONFIG_ITEM_SOC_STOP, 0))){
         if(*(sys_read_config_item_content(CONFIG_ITEM_SOC_STOP, 0)) < 100){
-            s_thaisen_transaction[gunno].stop_reason = APP_SYSTEM_STOP_WAY_SOC_LIMIT;
-            s_ofsm_info[gunno].base.reason_code = s_thaisen_transaction[gunno].stop_reason;
-            s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_FALSE;
+            if(is_stop_charge_authorization == false){
+                s_thaisen_transaction[gunno].stop_reason = APP_SYSTEM_STOP_WAY_SOC_LIMIT;
+                s_ofsm_info[gunno].base.reason_code = s_thaisen_transaction[gunno].stop_reason;
+                s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_FALSE;
 
-            is_stop_charge_authorization = true;
-            LOG_D("gunno(%d) charge finish deal to reach soc protect value(%d)\n", gunno, *(sys_read_config_item_content(CONFIG_ITEM_SOC_STOP, 0)));
+                is_stop_charge_authorization = true;
+                LOG_D("gunno(%d) charge finish deal to reach soc protect value(%d)\n", gunno, *(sys_read_config_item_content(CONFIG_ITEM_SOC_STOP, 0)));
+            }
         }
     }
 
@@ -2364,12 +2366,14 @@ static void ofsm_charging_fun(uint8_t gunno)
             s_compare_ccs_bcl_count[gunno] = rt_tick_get();
         }
         if((rt_tick_get() - s_compare_ccs_bcl_count[gunno]) > APP_CURR_CCSBCL_ABNORMAL_TIMEOUT){
-            s_thaisen_transaction[gunno].stop_reason = APP_SYSTEM_STOP_WAY_CURRENT_ABNORMAL;
-            s_ofsm_info[gunno].base.reason_code = s_thaisen_transaction[gunno].stop_reason;
-            s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_TRUE;
+            if(is_stop_charge_authorization == false){
+                s_thaisen_transaction[gunno].stop_reason = APP_SYSTEM_STOP_WAY_CURRENT_ABNORMAL;
+                s_ofsm_info[gunno].base.reason_code = s_thaisen_transaction[gunno].stop_reason;
+                s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_TRUE;
 
-            is_stop_charge_authorization = true;
-            LOG_D("gunno(%d) charge finish deal to CCS BCL current abnormal(%d, %d)\n", gunno, bms_ccs_curr, bms_info->BCL.BMSneedCurlt);
+                is_stop_charge_authorization = true;
+                LOG_D("gunno(%d) charge finish deal to CCS BCL current abnormal(%d, %d)\n", gunno, bms_ccs_curr, bms_info->BCL.BMSneedCurlt);
+            }
         }
     }else{
         s_compare_ccs_bcl_count[gunno] = rt_tick_get();
@@ -2380,12 +2384,14 @@ static void ofsm_charging_fun(uint8_t gunno)
             s_compare_ccs_bcs_count[gunno] = rt_tick_get();
         }
         if((rt_tick_get() - s_compare_ccs_bcs_count[gunno]) > APP_CURR_CCSBCS_ABNORMAL_TIMEOUT){
-            s_thaisen_transaction[gunno].stop_reason = APP_SYSTEM_STOP_WAY_CURRENT_ABNORMAL;
-            s_ofsm_info[gunno].base.reason_code = s_thaisen_transaction[gunno].stop_reason;
-            s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_TRUE;
+            if(is_stop_charge_authorization == false){
+                s_thaisen_transaction[gunno].stop_reason = APP_SYSTEM_STOP_WAY_CURRENT_ABNORMAL;
+                s_ofsm_info[gunno].base.reason_code = s_thaisen_transaction[gunno].stop_reason;
+                s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_TRUE;
 
-            is_stop_charge_authorization = true;
-            LOG_D("gunno(%d) charge finish deal to CCS BCS current abnormal(%d, %d)\n", gunno, bms_ccs_curr, bms_info->BCS.ChargCurlt);
+                is_stop_charge_authorization = true;
+                LOG_D("gunno(%d) charge finish deal to CCS BCS current abnormal(%d, %d)\n", gunno, bms_ccs_curr, bms_info->BCS.ChargCurlt);
+            }
         }
     }else{
         s_compare_ccs_bcs_count[gunno] = rt_tick_get();

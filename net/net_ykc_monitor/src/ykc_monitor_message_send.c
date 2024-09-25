@@ -489,8 +489,7 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
                     int32_t result = 0x00;
 #ifdef NET_YKC_MONITOR_AS_MONITOR
                     /** 正式 */
-//                    char *host = "device.thaisen.cn";
-                    char *host = "139.198.163.108";
+                    char *host = "device.thaisen.cn";
                     uint16_t port = 9003;
 #else
                     uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC_MONITOR |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
