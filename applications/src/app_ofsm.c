@@ -65,6 +65,9 @@ static uint8_t s_charge_steady_delay[APP_SYSTEM_GUNNO_SIZE], s_power_adjust_dela
 static uint32_t s_system_power_output = 0x00;
 static uint16_t s_gun_charging_curr[APP_SYSTEM_GUNNO_SIZE];
 
+static uint32_t s_compare_ccs_bcl_count[APP_SYSTEM_GUNNO_SIZE];
+static uint32_t s_compare_ccs_bcs_count[APP_SYSTEM_GUNNO_SIZE];
+
 /*************************************
  * 函数名       ofsm_get_current_period
  * 功能           获取当前时段号
@@ -1352,6 +1355,11 @@ static void ofsm_starting_fun(uint8_t gunno)
         LOG_I("gunno(%d) starting state (%dV | S%d)...", gunno, mw_get_cc1_value(mw_get_cc1(gunno)), charge_state);
     }
 
+    s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_FALSE;
+    s_compare_ccs_bcl_count[gunno] = rt_tick_get();
+    s_compare_ccs_bcs_count[gunno] = rt_tick_get();
+    s_tiny_current_count[gunno] = rt_tick_get();
+
     if(s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE){
         if((gunno != s_ofsm_info[gunno].base.main_gunno) && (s_ofsm_info[gunno].state != s_ofsm_info[s_ofsm_info[gunno].base.main_gunno].state)){
             if(s_ofsm_info[s_ofsm_info[gunno].base.main_gunno].state < APP_OFSM_STATE_SIZE){
@@ -1374,9 +1382,6 @@ static void ofsm_starting_fun(uint8_t gunno)
     enum system_stop_way stop_way = APP_SYSTEM_STOP_WAY_SIZE;
     enum charge_fault_t charge_fault = app_get_highest_priority_charge_fault(gunno);
     enum system_fault_t system_fault = app_get_highest_priority_system_fault(gunno);
-
-    s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_FALSE;
-    s_tiny_current_count[gunno] = rt_tick_get();
 
     /* 对时后时间要修改 */
     if(mw_get_time_sync_flag(gunno)){
@@ -1954,7 +1959,7 @@ static void ofsm_charging_fun(uint8_t gunno)
         }
     }
 
-    uint32_t current_tick = rt_tick_get(), increase_sec = 0;
+    uint32_t current_tick = rt_tick_get(), increase_sec = 0, bms_ccs_curr = 0x00;
     bool is_stop_charge_authorization = APP_THA_ENUM_FALSE;  /* 停充已授权 */
     enum system_stop_way stop_way = APP_SYSTEM_STOP_WAY_SIZE;
     enum charge_fault_t charge_fault = app_get_highest_priority_system_fault(gunno);
@@ -2348,6 +2353,42 @@ static void ofsm_charging_fun(uint8_t gunno)
             is_stop_charge_authorization = true;
             LOG_D("gunno(%d) charge finish deal to reach soc protect value(%d)\n", gunno, *(sys_read_config_item_content(CONFIG_ITEM_SOC_STOP, 0)));
         }
+    }
+
+    if(bms_info->CCS.OutputCurlt <= 4000){
+        bms_ccs_curr = (4000 - bms_info->CCS.OutputCurlt);    /** 目前国标电流偏移是 -400 */
+    }
+
+    if(bms_ccs_curr *10 > (bms_info->BCL.BMSneedCurlt *10 + APP_CURR_COMPARE_CCSBCL_MAX)){
+        if(s_compare_ccs_bcl_count[gunno] > rt_tick_get()){
+            s_compare_ccs_bcl_count[gunno] = rt_tick_get();
+        }
+        if((rt_tick_get() - s_compare_ccs_bcl_count[gunno]) > APP_CURR_CCSBCL_ABNORMAL_TIMEOUT){
+            s_thaisen_transaction[gunno].stop_reason = APP_SYSTEM_STOP_WAY_CURRENT_ABNORMAL;
+            s_ofsm_info[gunno].base.reason_code = s_thaisen_transaction[gunno].stop_reason;
+            s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_TRUE;
+
+            is_stop_charge_authorization = true;
+            LOG_D("gunno(%d) charge finish deal to CCS BCL current abnormal(%d, %d)\n", gunno, bms_ccs_curr, bms_info->BCL.BMSneedCurlt);
+        }
+    }else{
+        s_compare_ccs_bcl_count[gunno] = rt_tick_get();
+    }
+
+    if(abs(bms_ccs_curr *10 - bms_info->BCS.ChargCurlt *10) > APP_CURR_COMPARE_CCSBCS_MAX){
+        if(s_compare_ccs_bcs_count[gunno] > rt_tick_get()){
+            s_compare_ccs_bcs_count[gunno] = rt_tick_get();
+        }
+        if((rt_tick_get() - s_compare_ccs_bcs_count[gunno]) > APP_CURR_CCSBCS_ABNORMAL_TIMEOUT){
+            s_thaisen_transaction[gunno].stop_reason = APP_SYSTEM_STOP_WAY_CURRENT_ABNORMAL;
+            s_ofsm_info[gunno].base.reason_code = s_thaisen_transaction[gunno].stop_reason;
+            s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_TRUE;
+
+            is_stop_charge_authorization = true;
+            LOG_D("gunno(%d) charge finish deal to CCS BCS current abnormal(%d, %d)\n", gunno, bms_ccs_curr, bms_info->BCS.ChargCurlt);
+        }
+    }else{
+        s_compare_ccs_bcs_count[gunno] = rt_tick_get();
     }
 
 #ifdef APP_INCLUDE_NET

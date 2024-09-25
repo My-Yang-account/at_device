@@ -451,6 +451,10 @@ static void net_ykc_message_send_thread_entry(void *parameter)
                         host = "121.43.69.62";
                         port = 8767;
                     }
+
+//                    host = "47.98.137.199";
+//                    port = 9350;
+
                     result = ykc_socket_open(&(s_ykc_socket_info.fd), host, strlen(host), port);
                     if(result >= 0){
                         LOG_D("ykc socket open success with host[%s] port[%d] fd(%d)", host, port, s_ykc_socket_info.fd);
