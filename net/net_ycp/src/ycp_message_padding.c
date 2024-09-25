@@ -1336,7 +1336,11 @@ void ycp_chargepile_request_padding_bms_shakehand(uint8_t gunno)
     }
 
     memcpy(g_ycp_preq_shake_hand[gunno].body.bms_bat_charge_num, bms->BRM.Chagtimer, sizeof(bms->BRM.Chagtimer));
-    g_ycp_preq_shake_hand[gunno].body.bms_bat_title_identification = bms->BRM.BatProperty;
+    if(bms->BRM.BatProperty <= 0x01){
+        g_ycp_preq_shake_hand[gunno].body.bms_bat_title_identification = bms->BRM.BatProperty;
+    }else{
+        g_ycp_preq_shake_hand[gunno].body.bms_bat_title_identification = 0x01;
+    }
     for(uint8_t count = 0x00; count < NET_YCP_CAR_VIN_NUMBER_LENGTH_MAX; count++){
         g_ycp_preq_shake_hand[gunno].body.vin[count] = bms->BRM.CarDiscern[NET_YCP_CAR_VIN_NUMBER_LENGTH_MAX - count - 0x01];
     }
