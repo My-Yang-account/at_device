@@ -5688,26 +5688,16 @@ int SerialScreen_DataProcess()
 			case APP_OFSM_STATE_STARTING:
 				LcdData.gun[i].workState = SysMainStatus_StartReady;
 				break;	
-				//LcdData.gun[i].workState = SysMainStatus_SelfCheck;
-				//break;
 			case APP_OFSM_STATE_CHARGING:
 				LcdData.gun[i].workState = SysMainStatus_Chrging;
 				break;
 			case APP_OFSM_STATE_STOPING:
-                if(i == LCD_GUN_1)
-                    thaisenSetAuxPowerTypeA(thaisen_auxPowerType_12V);
-                else
-                    thaisenSetAuxPowerTypeB(thaisen_auxPowerType_12V);
 				LcdData.gun[i].workState = SysMainStatus_StopChg;
 				break;	
 			case APP_OFSM_STATE_FINISHING:
 				LcdData.gun[i].workState = SysMainStatus_Account;
 				break;
 			case APP_OFSM_STATE_FAULTING:
-                if(i == LCD_GUN_1)
-                    thaisenSetAuxPowerTypeA(thaisen_auxPowerType_12V);
-                else
-                    thaisenSetAuxPowerTypeB(thaisen_auxPowerType_12V);
 				LcdData.gun[i].workState = SysMainStatus_Err;
 				break;	
 			default:
