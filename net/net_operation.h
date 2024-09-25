@@ -109,7 +109,9 @@
 #define NET_SYSTEM_DATA_NAME_PLATFORM_DATA             0x1A    /* 系统数据名： 平台存储数据*/
 #define NET_SYSTEM_DATA_NAME_SIGNAL_STRENGTH           0x1B    /* 系统数据名： 信号强度*/
 #define NET_SYSTEM_DATA_NAME_AMMETER_ADDRESS           0x1C    /* 系统数据名： 电表地址*/
-#define NET_SYSTEM_DATA_NAME_SIZE                      0x1D
+#define NET_SYSTEM_DATA_NAME_TEMP_PROTECT_SWITCH       0x1D    /* 系统数据名： 温度保护开关*/
+#define NET_SYSTEM_DATA_NAME_TEMP_PROTECT_STOP_VAL     0x1E    /* 系统数据名： 温度保护：停充温度*/
+#define NET_SYSTEM_DATA_NAME_SIZE                      0x1F
 
 /** operator name */
 #define NET_OPERATOR_NAME_CHINA_MOBILE                 0x00    /* 运营商名称：中国移动*/

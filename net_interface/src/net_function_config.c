@@ -446,6 +446,24 @@ static int32_t app_nset_system_data(uint8_t name, uint8_t *data, uint16_t len, u
 #endif /* #ifdef APP_INCLUDE_NET */
         return -0x01;
         break;
+    case NET_SYSTEM_DATA_NAME_TEMP_PROTECT_SWITCH:
+    {
+        uint8_t function = *data;
+        if(function > 0x01){
+            function = 0x01;
+        }
+        return sys_sync_config_item_content(CONFIG_ITEM_INEN_TEMPPRO, &function, sizeof(function));
+    }
+        break;
+    case NET_SYSTEM_DATA_NAME_TEMP_PROTECT_STOP_VAL:
+    {
+        uint16_t value = *((uint16_t*)data);
+        if((value > PROTECT_OVERTEMP_STOP_VALUE_MAX) || (value < PROTECT_OVERTEMP_STOP_VALUE_MIN)){
+            value = PROTECT_OVERTEMP_STOP_VALUE_DEFAULT;
+        }
+        return sys_sync_config_item_content(CONFIG_ITEM_OVERTEMP_STOP, &value, sizeof(value));
+    }
+        break;
     default:
         break;
     }

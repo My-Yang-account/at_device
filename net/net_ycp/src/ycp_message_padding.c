@@ -954,6 +954,7 @@ int8_t ycp_message_pro_set_para_request(void *data, uint8_t len)
         return -0x02;
     }
 
+    uint8_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YCP |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
     ycp_storage_struct *config = (ycp_storage_struct*)(s_ycp_handle->get_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, NET_SYSTEM_DATA_OPTION_TARGET_PLAT));
     Net_YcpPro_SReq_ParaSet_t *request = (Net_YcpPro_SReq_ParaSet_t*)data;
     s_ycp_base = (System_BaseData*)(s_ycp_handle->get_base_data(0x00));
@@ -979,6 +980,22 @@ int8_t ycp_message_pro_set_para_request(void *data, uint8_t len)
     }
     /* 此数据由功率设置部分统一调接口存储 */
 #endif
+
+    if(request->body.temp_protect == 0xFF){
+        uint8_t function = 0x00;
+        if(s_ycp_handle->set_system_data(NET_SYSTEM_DATA_NAME_TEMP_PROTECT_SWITCH, &function, sizeof(function), option) < 0x00){
+            return -0x04;
+        }
+    }else{
+        uint8_t function = 0x01;
+        uint16_t value = request->body.temp_protect;
+        if(s_ycp_handle->set_system_data(NET_SYSTEM_DATA_NAME_TEMP_PROTECT_SWITCH, &function, sizeof(function), option) < 0x00){
+            return -0x04;
+        }
+        if(s_ycp_handle->set_system_data(NET_SYSTEM_DATA_NAME_TEMP_PROTECT_STOP_VAL, (uint8_t*)&value, sizeof(value), option) < 0x00){
+            return -0x04;
+        }
+    }
 
     rt_kprintf("ycp_message_pro_set_work_para_request(%d, %d, %d)\n", request->body.power_percent,
             s_ycp_base->system_power_max, (s_ycp_base->system_power_max * request->body.power_percent /100));
@@ -1310,7 +1327,7 @@ void ycp_chargepile_request_padding_bms_shakehand(uint8_t gunno)
         g_ycp_preq_shake_hand[gunno].body.bms_bat_date[0x00] = (uint8_t)(byteh <<0x04) |bytel;
     }
 
-    if(bms->BRM.BatBuldday == 0xFF){
+    if(bms->BRM.BatBuldmonth == 0xFF){
         g_ycp_preq_shake_hand[gunno].body.bms_bat_date[0x01] = 0xFF;
     }else{
         byteh = (uint8_t)(bms->BRM.BatBuldmonth /10);
