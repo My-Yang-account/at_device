@@ -245,9 +245,9 @@ int8_t ykc_response_padding_remote_stop_charge(uint8_t gunno, uint8_t *buf, uint
     response = ((Net_YkcPro_PRes_Remote_StopCharge_t*)buf);
     memset(response, 0x00, data_len);
 
-    valid_len = sizeof(g_ykc_sreq_remote_start_charge[gunno].body.pile_number);
+    valid_len = sizeof(g_ykc_sreq_remote_stop_charge[gunno].body.pile_number);
     valid_len = valid_len > sizeof(response->body.pile_number) ? sizeof(response->body.pile_number) : valid_len;
-    memcpy(response->body.pile_number, g_ykc_sreq_remote_start_charge[gunno].body.pile_number, valid_len);
+    memcpy(response->body.pile_number, g_ykc_sreq_remote_stop_charge[gunno].body.pile_number, valid_len);
 
     response->body.gunno = gunno + 0x01;
 
