@@ -71,7 +71,7 @@ enum ykc_monitor_charge_complete{
     NETYKC_MONITOR_CC_REASON43_TARGET_MONEY = 0x43,                  /* 充电完成原因：充电金额满足设定条件 */
     NETYKC_MONITOR_CC_REASON44_TARGET_TIME = 0x44,                   /* 充电完成原因：充电时间满足设定条件 */
     NETYKC_MONITOR_CC_REASON45_MANUAL_STOP = 0x45,                   /* 充电完成原因：手动停止充电 */
-    NETYKC_MONITOR_CC_REASON46_RESERVE = 0x46,                       /* 充电完成原因：其他方式（预留） */
+    NETYKC_MONITOR_CC_REASON46_RESERVE = 0x46,                       /* 充电完成原因：其他方式（达到SOC 限定值） */
 };
 
 /* SF as START FAIL */

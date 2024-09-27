@@ -86,6 +86,8 @@
 #define FTPLIB_DEFMODE FTPLIB_PASSIVE
 #endif
 
+#define FTP_COMPATIBLE_MODIFY
+
 struct NetBuf
 {
     char *cput, *cget;
@@ -108,6 +110,7 @@ struct NetBuf
 GLOBALDEF int ftplib_debug = 0;
 
 #if defined(__unix__) || defined(VMS) || defined(RTTHREAD)
+#ifndef FTP_COMPATIBLE_MODIFY
 int net_read(int fd, char *buf, size_t len)
 {
     while (1)
@@ -127,6 +130,34 @@ int net_read(int fd, char *buf, size_t len)
         }
     }
 }
+#else
+int net_read(int fd, char *buf, size_t len)
+{
+    extern int app_socket_recv_port(int socket_fd, void *buff, uint16_t len);
+    while (1)
+    {
+        /* 使用 read() 函数无法读取数据，改用 recv() 函数
+        int c = read(fd, buf, len); */
+        int c = 0;
+        while (1)
+        {
+            c = app_socket_recv_port(fd, buf, len);
+            if((c == -1) || (c >= 0))
+                break;
+        }
+
+        if (c == -1)
+        {
+            if ( errno != EINTR && errno != EAGAIN)
+                return -1;
+        }
+        else
+        {
+            return c;
+        }
+    }
+}
+#endif /* FTP_COMPATIBLE_MODIFY */
 
 int net_write(int fd, const char *buf, size_t len)
 {
@@ -203,6 +234,7 @@ char *strdup(const char *src)
  * return 1 if no user callback, otherwise, return value returned by
  * user callback
  */
+#ifndef FTP_COMPATIBLE_MODIFY
 static int socket_wait(netbuf *ctl)
 {
     fd_set fd, *rfd = NULL, *wfd = NULL;
@@ -234,12 +266,47 @@ static int socket_wait(netbuf *ctl)
     } while ((rv = ctl->idlecb(ctl, ctl->xfered, ctl->idlearg)));
     return rv;
 }
+#else
+static int socket_wait(netbuf *ctl)
+{
+    extern int app_socket_data_comein_port(int socket_fd, uint32_t timeout);
+    fd_set fd, *rfd = NULL, *wfd = NULL;
+    int rv = 0;
+    unsigned int timeout = ctl->idletime.tv_sec *1000;
+    timeout += ctl->idletime.tv_usec /1000;
+
+    if ((ctl->dir == FTPLIB_CONTROL) || (ctl->idlecb == NULL))
+        return 1;
+    if (ctl->dir == FTPLIB_WRITE)
+        wfd = &fd;
+    else
+        rfd = &fd;
+    FD_ZERO(&fd);
+    do
+    {
+        rv = app_socket_data_comein_port(ctl->handle, timeout);
+        if (rv == -1)
+        {
+            rv = 0;
+            strncpy(ctl->ctrl->response, strerror(errno), sizeof(ctl->ctrl->response));
+            break;
+        }
+        else if (rv > 0)
+        {
+            rv = 1;
+            break;
+        }
+    } while ((rv = ctl->idlecb(ctl, ctl->xfered, ctl->idlearg)));
+    return rv;
+}
+#endif /* FTP_COMPATIBLE_MODIFY */
 
 /*
  * read a line of text
  *
  * return -1 on error or bytecount
  */
+#ifndef FTP_COMPATIBLE_MODIFY
 static int readline(char *buf, int max, netbuf *ctl)
 {
     int x, retval = 0;
@@ -310,7 +377,85 @@ static int readline(char *buf, int max, netbuf *ctl)
     } while (1);
     return retval;
 }
+#else
+static int readline(char *buf, int max, netbuf *ctl)
+{
+    extern int app_socket_recv_port(int socket_fd, void *buff, uint16_t len);
+    int x, retval = 0;
+    char *end, *bp = buf;
+    int eof = 0;
 
+    if ((ctl->dir != FTPLIB_CONTROL) && (ctl->dir != FTPLIB_READ))
+        return -1;
+    if (max == 0)
+        return 0;
+    do
+    {
+        if (ctl->cavail > 0)
+        {
+            x = (max >= ctl->cavail) ? ctl->cavail : max - 1;
+            end = memccpy(bp, ctl->cget, '\n', x);
+            if (end != NULL)
+                x = end - bp;
+            retval += x;
+            bp += x;
+            *bp = '\0';
+            max -= x;
+            ctl->cget += x;
+            ctl->cavail -= x;
+            if (end != NULL)
+            {
+                bp -= 2;
+                if (strcmp(bp, "\r\n") == 0)
+                {
+                    *bp++ = '\n';
+                    *bp++ = '\0';
+                    --retval;
+                }
+                break;
+            }
+        }
+        if (max == 1)
+        {
+            *buf = '\0';
+            break;
+        }
+        if (ctl->cput == ctl->cget)
+        {
+            ctl->cput = ctl->cget = ctl->buf;
+            ctl->cavail = 0;
+            ctl->cleft = FTPLIB_BUFSIZ;
+        }
+        if (eof)
+        {
+            if (retval == 0)
+                retval = -1;
+            break;
+        }
+        if (!socket_wait(ctl))
+            return retval;
+        while (1)
+        {
+            x = app_socket_recv_port(ctl->handle, ctl->cput, ctl->cleft);
+            if((x == -1) || (x >= 0))
+                break;
+        }
+        if (x  == -1)
+        {
+            if (ftplib_debug)
+                perror("read");
+            retval = -1;
+            break;
+        }
+        if (x == 0)
+            eof = 1;
+        ctl->cleft -= x;
+        ctl->cavail += x;
+        ctl->cput += x;
+    } while (1);
+    return retval;
+}
+#endif /* FTP_COMPATIBLE_MODIFY */
 /*
  * write lines of text
  *
@@ -444,6 +589,7 @@ GLOBALDEF char *FtpLastResponse(netbuf *nControl)
  *
  * return 1 if connected, 0 if not
  */
+#ifndef FTP_COMPATIBLE_MODIFY
 GLOBALDEF int FtpConnect(const char *host, netbuf **nControl)
 {
     int sControl;
@@ -552,6 +698,71 @@ GLOBALDEF int FtpConnect(const char *host, netbuf **nControl)
     *nControl = ctrl;
     return 1;
 }
+#else
+GLOBALDEF int FtpConnect(const char *host, netbuf **nControl)
+{
+    extern int app_socket_open_port(int *socket_fd, char* host, uint16_t host_len, uint16_t port);
+    extern int app_socket_close_port(int socket_fd);
+    int sControl;
+    netbuf *ctrl;
+    char *lhost;
+    char *pnum;
+
+#if (RTTHREAD_VERSION >= 40100)
+    lhost = rt_strdup(host);
+#else
+    lhost = strdup(host);
+#endif
+    pnum = strchr(lhost, ':');
+    if (pnum == NULL)
+        pnum = "ftp";
+    else
+        *pnum++ = '\0';
+    if(app_socket_open_port(&sControl, lhost, strlen(lhost), atoi(pnum)) < 0)
+    {
+        ftplib_free(lhost);
+        return 0;
+    }
+    ftplib_free(lhost);
+    ctrl = ftplib_calloc(1, sizeof(netbuf));
+    if (ctrl == NULL)
+    {
+        if (ftplib_debug)
+            perror("calloc");
+        app_socket_close_port(sControl);
+        return 0;
+    }
+    ctrl->buf = ftplib_malloc(FTPLIB_BUFSIZ);
+    if (ctrl->buf == NULL)
+    {
+        if (ftplib_debug)
+            perror("calloc");
+        app_socket_close_port(sControl);
+        ftplib_free(ctrl);
+        return 0;
+    }
+    ctrl->handle = sControl;
+    ctrl->dir = FTPLIB_CONTROL;
+    ctrl->ctrl = NULL;
+    ctrl->data = NULL;
+    ctrl->cmode = FTPLIB_DEFMODE;
+    ctrl->idlecb = NULL;
+    ctrl->idletime.tv_sec = ctrl->idletime.tv_usec = 0;
+    ctrl->idlearg = NULL;
+    ctrl->xfered = 0;
+    ctrl->xfered1 = 0;
+    ctrl->cbbytes = 0;
+    if (readresp('2', ctrl) == 0)
+    {
+        app_socket_close_port(sControl);
+        ftplib_free(ctrl->buf);
+        ftplib_free(ctrl);
+        return 0;
+    }
+    *nControl = ctrl;
+    return 1;
+}
+#endif /* FTP_COMPATIBLE_MODIFY */
 
 GLOBALDEF int FtpSetCallback(const FtpCallbackOptions *opt, netbuf *nControl)
 {
@@ -616,6 +827,7 @@ GLOBALDEF int FtpOptions(int opt, long val, netbuf *nControl)
  *
  * return 1 if proper response received, 0 otherwise
  */
+#ifndef FTP_COMPATIBLE_MODIFY
 static int FtpSendCmd(const char *cmd, char expresp, netbuf *nControl)
 {
     char buf[TMP_BUFSIZ];
@@ -640,7 +852,31 @@ static int FtpSendCmd(const char *cmd, char expresp, netbuf *nControl)
 
     return readresp(expresp, nControl);
 }
-
+#else
+static int FtpSendCmd(const char *cmd, char expresp, netbuf *nControl)
+{
+    extern int app_socket_send_port(int socket_fd, void *data, uint16_t len);
+    char buf[TMP_BUFSIZ];
+    if (nControl->dir != FTPLIB_CONTROL)
+        return 0;
+    if (ftplib_debug > 2)
+        fprintf(stderr, "%s\n", cmd);
+    if ((strlen(cmd) + 3) > sizeof(buf))
+        return 0;
+    sprintf(buf, "%s\r\n", cmd);
+    if (app_socket_send_port(nControl->handle, buf, strlen(buf)) <= 0)
+    {
+        if (ftplib_debug)
+            perror("write");
+        return 0;
+    }
+    /* 详见 CHANGE.TXT */
+    if (expresp == '1') {
+        return 1;
+    }
+    return readresp(expresp, nControl);
+}
+#endif /* FTP_COMPATIBLE_MODIFY */
 /*
  * FtpLogin - log in to remote server
  *
@@ -668,6 +904,7 @@ GLOBALDEF int FtpLogin(const char *user, const char *pass, netbuf *nControl)
  *
  * return 1 if successful, 0 otherwise
  */
+#ifndef FTP_COMPATIBLE_MODIFY
 static int FtpOpenPort(netbuf *nControl, netbuf **nData, int mode, int dir)
 {
     int sData;
@@ -809,7 +1046,126 @@ static int FtpOpenPort(netbuf *nControl, netbuf **nData, int mode, int dir)
     *nData = ctrl;
     return 1;
 }
+#else
+static int FtpOpenPort(netbuf *nControl, netbuf **nData, int mode, int dir)
+{
+    extern int app_socket_close_port(int socket_fd);
+    extern int app_socket_open_port(int *socket_fd, char* host, uint16_t host_len, uint16_t port);
+    int sData;
+    unsigned char host[16];
+    unsigned short port = 0;
+    unsigned int ip_byte[4], port_byte[2];
 
+    /* 当前环境不支持此选项的配置
+    int on = 1; */
+    netbuf *ctrl;
+    char *cp;
+
+    memset(host, 0, sizeof(host));
+
+    if (nControl->dir != FTPLIB_CONTROL)
+        return -1;
+    if ((dir != FTPLIB_READ) && (dir != FTPLIB_WRITE))
+    {
+        sprintf(nControl->response, "Invalid direction %d\n", dir);
+        return -1;
+    }
+    if ((mode != FTPLIB_ASCII) && (mode != FTPLIB_IMAGE))
+    {
+        sprintf(nControl->response, "Invalid mode %c\n", mode);
+        return -1;
+    }
+    if (nControl->cmode == FTPLIB_PASSIVE)
+    {
+        if (!FtpSendCmd("PASV", '2', nControl))
+            return -1;
+        cp = strchr(nControl->response, '(');
+        if (cp == NULL)
+            return -1;
+        cp++;
+    }
+    else
+    {
+
+    }
+
+    if (nControl->cmode == FTPLIB_PASSIVE)
+    {
+        sscanf(cp, "%u,%u,%u,%u,%u,%u", &ip_byte[0], &ip_byte[1], &ip_byte[2], &ip_byte[3], &port_byte[0], &port_byte[1]);
+        sprintf((char*)host, "%u.%u.%u.%u", ip_byte[0], ip_byte[1], ip_byte[2], ip_byte[3]);
+        port = (unsigned short)((port_byte[0] <<8) |(port_byte[1] &0xFF));
+
+        if(app_socket_open_port(&sData, (char*)host, strlen((char*)host), port) < 0)
+        {
+            if (ftplib_debug)
+                perror("connect");
+            app_socket_close_port(sData);
+            return -1;
+        }
+    }
+    else
+    {
+#if 0
+        sin.in.sin_port = 0;
+        if (bind(sData, &sin.sa, sizeof(sin)) == -1)
+        {
+            if (ftplib_debug)
+                perror("bind");
+            app_socket_close_port(sData);
+            return -1;
+        }
+        if (listen(sData, 1) < 0)
+        {
+            if (ftplib_debug)
+                perror("listen");
+            app_socket_close_port(sData);
+            return -1;
+        }
+        if (getsockname(sData, &sin.sa, &l) < 0)
+            return -1;
+        sprintf(buf, "PORT %d,%d,%d,%d,%d,%d", (unsigned char) sin.sa.sa_data[2], (unsigned char) sin.sa.sa_data[3],
+                (unsigned char) sin.sa.sa_data[4], (unsigned char) sin.sa.sa_data[5], (unsigned char) sin.sa.sa_data[0],
+                (unsigned char) sin.sa.sa_data[1]);
+        if (!FtpSendCmd(buf, '2', nControl))
+        {
+            app_socket_close_port(sData);
+            return -1;
+        }
+#endif
+    }
+    ctrl = ftplib_calloc(1, sizeof(netbuf));
+    if (ctrl == NULL)
+    {
+        if (ftplib_debug)
+            perror("calloc");
+        app_socket_close_port(sData);
+        return -1;
+    }
+    if ((mode == 'A') && ((ctrl->buf = ftplib_malloc(FTPLIB_BUFSIZ)) == NULL))
+    {
+        if (ftplib_debug)
+            perror("calloc");
+        app_socket_close_port(sData);
+        ftplib_free(ctrl);
+        return -1;
+    }
+    ctrl->handle = sData;
+    ctrl->dir = dir;
+    ctrl->idletime = nControl->idletime;
+    ctrl->idlearg = nControl->idlearg;
+    ctrl->xfered = 0;
+    ctrl->xfered1 = 0;
+    ctrl->cbbytes = nControl->cbbytes;
+    ctrl->ctrl = nControl;
+    if (ctrl->idletime.tv_sec || ctrl->idletime.tv_usec || ctrl->cbbytes)
+        ctrl->idlecb = nControl->idlecb;
+    else
+        ctrl->idlecb = NULL;
+    nControl->data = ctrl;
+    *nData = ctrl;
+    return 1;
+}
+#endif /* FTP_COMPATIBLE_MODIFY */
 /*
  * FtpAcceptConnection - accept connection from server
  *
@@ -1013,6 +1369,7 @@ GLOBALDEF int FtpWrite(const void *buf, int len, netbuf *nData)
 /*
  * FtpClose - close a data connection
  */
+#ifndef FTP_COMPATIBLE_MODIFY
 GLOBALDEF int FtpClose(netbuf *nData)
 {
     netbuf *ctrl;
@@ -1047,7 +1404,42 @@ GLOBALDEF int FtpClose(netbuf *nData)
     }
     return 1;
 }
-
+#else
+GLOBALDEF int FtpClose(netbuf *nData)
+{
+    extern int app_socket_close_port(int socket_fd);
+    netbuf *ctrl;
+    switch (nData->dir)
+    {
+    case FTPLIB_WRITE:
+        /* potential problem - if buffer flush fails, how to notify user? */
+        if (nData->buf != NULL)
+            writeline(NULL, 0, nData);
+    case FTPLIB_READ:
+        if (nData->buf)
+            ftplib_free(nData->buf);
+        app_socket_close_port(nData->handle);
+        ctrl = nData->ctrl;
+        ftplib_free(nData);
+        ctrl->data = NULL;
+        if (ctrl && ctrl->response[0] != '4' && ctrl->response[0] != '5')
+        {
+            return (readresp('2', ctrl));
+        }
+        return 1;
+    case FTPLIB_CONTROL:
+        if (nData->data)
+        {
+            nData->ctrl = NULL;
+            FtpClose(nData->data);
+        }
+        app_socket_close_port(nData->handle);
+        ftplib_free(nData);
+        return 0;
+    }
+    return 1;
+}
+#endif /* FTP_COMPATIBLE_MODIFY */
 /*
  * FtpSite - send a SITE command
  *

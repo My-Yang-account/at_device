@@ -16,9 +16,9 @@
 extern "C" {
 #endif
 
-//#define USING_DOUBLE_PLATFORM    /* 使用双平台 */
-#define USING_DOUBLE_GUN         /* 使用双枪 */
-//#define USING_DAQI               /* 启用大气版本 */
+#define USING_DOUBLE_GUN                     /* 使用双枪 */
+//#define APP_QRCODE_CONFIG_USING_XXCD         /* 二维码配置使用星星充电 */
+//#define APP_QRCODE_CONFIG_USING_TLD          /* 二维码配置使用特来电 */
 
 void app_led_init(void);
 void app_hci_init(void);

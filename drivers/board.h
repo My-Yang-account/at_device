@@ -97,6 +97,13 @@ extern "C"
 #define BSP_UART6_TX_USING_DMA
 #define BSP_UART6_RX_USING_DMA
 
+/* 以太网 */
+#define BSP_USING_UART7
+#define BSP_UART7_TX_PIN       "PF7"
+#define BSP_UART7_RX_PIN       "PF6"
+#define BSP_UART7_TX_USING_DMA
+#define BSP_UART7_RX_USING_DMA
+
 #else
 
 /* 4G - Auto config */

@@ -19,7 +19,6 @@
 #include "mw_time.h"
 #include "mw_storage.h"
 
-#include "net_interface.h"
 #include "net_operation.h"
 
 #include "thaisen7102Public.h"

@@ -24,6 +24,7 @@ int ycp_socket_send(int fd, void *data, uint16_t len);
 int ycp_socket_recv(int fd, void *buff, uint16_t len);
 int ycp_socket_data_comein(int fd, uint32_t timeout);
 int ycp_socket_wait_data_write(int fd, uint32_t timeout);
+int ycp_socket_modify_recv_timeout(int fd, int32_t timeout);
 
 uint8_t ycp_socket_is_lock(void);
 

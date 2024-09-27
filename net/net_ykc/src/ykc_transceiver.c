@@ -79,7 +79,7 @@ static uint16_t ykc_readline_data(int fd)
 
             uint8_t rentry = 0x00;
             while(rentry < 50){
-                if(net_socket_data_comein(fd, 0x01)){
+                if(net_socket_data_comein(fd, 0x01) > 0x00){
                     break;
                 }
                 rt_thread_mdelay(10);
@@ -132,7 +132,7 @@ static void ykc_message_recv_thread_entry(void *parameter)
     memset(ykc_id, 0x00, sizeof(ykc_id));
     while(1)
     {
-        if(net_get_ota_info()->state < NET_OTA_STATE_LOGIN_WAIT){
+        if(net_get_ota_info()->state < NET_OTA_STATE_OPEN_LINK){
             if((socket->state >= YKC_SOCKET_STATE_LOGIN_WAIT) && (socket->fd >= 0x00)){
                 s_ykc_transceiver_flag_set.socket_lock = 0x01;
 
@@ -240,6 +240,11 @@ int ykc_socket_data_comein(int fd, uint32_t timeout)
 int ykc_socket_wait_data_write(int fd, uint32_t timeout)
 {
     return net_socket_wait_data_write(fd, timeout);
+}
+
+int ykc_socket_modify_recv_timeout(int fd, int32_t timeout)
+{
+    return net_socket_control(fd, NET_SOCKET_CONTROL_RECV_TIMEOUT, &timeout);
 }
 
 void ykc_service_callback_register(uint8_t id, void *cb)

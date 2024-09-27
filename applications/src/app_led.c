@@ -56,7 +56,6 @@ void app_led_thread_entry(void *parameter)
         }
 
         for(gunno = 0; gunno < APP_SYSTEM_GUNNO_SIZE; gunno++){
-//#ifndef USING_DAQI
 #if 1
             switch(get_ofsm_info(gunno)->base.state.current)
             {
@@ -122,7 +121,7 @@ void app_led_thread_entry(void *parameter)
                 mw_led_on_single(BLUE_LED, gunno);
                 break;
             }
-#endif /*USING_DAQI*/
+#endif
         }
         rt_thread_mdelay(100);
     }

@@ -15,6 +15,8 @@
 
 #include "chargepile_config.h"
 
+#include "net_netdev.h"
+
 
 /***********************************************
  * 函数名     app_ndata_update
@@ -28,35 +30,70 @@ static void app_ndata_update(void)
     extern int get_at_device_appinfo_is_complete(void);
     extern bool get_at_socket_deactivated(void);
 
-    /** 4G模块故障 */
-    if(get_at_device_appinfo_at()){
-        net_operation_clear_net_fault(NET_FAULT_PHYSICAL_LAYER);
+    if(net_query_netdev_init_status(NET_NETDEV_TYPE_ETHERNET)){
+        if(net_query_netdev_type() == NET_NETDEV_TYPE_4G){
+            /** 4G模块故障 */
+            if(get_at_device_appinfo_at()){
+                net_operation_clear_net_fault(NET_FAULT_PHYSICAL_LAYER);
+            }else{
+                net_operation_set_net_fault(NET_FAULT_PHYSICAL_LAYER);
+            }
+            /** SIM卡故障 */
+            if(get_at_device_appinfo_check_card()){
+                net_operation_clear_net_fault(NET_FAULT_SIM_CARD);
+            }else{
+                net_operation_set_net_fault(NET_FAULT_SIM_CARD);
+            }
+            /** 注网失败 */
+            if(get_at_device_appinfo_check_gprs_registered()){
+                net_operation_clear_net_fault(NET_FAULT_DATA_LINK_LAYER);
+            }else{
+                net_operation_set_net_fault(NET_FAULT_DATA_LINK_LAYER);
+            }
+            /** 4G模块初始化 */
+            if(get_at_device_appinfo_is_complete()){
+                net_operation_clear_net_fault(NET_FAULT_MODULE_INIT);
+            }else{
+                net_operation_set_net_fault(NET_FAULT_MODULE_INIT);
+            }
+            /** 场景失效 */
+            if(get_at_socket_deactivated()){
+                net_operation_set_esock_state(NET_ESOCKET_STATE_CLOSE);
+            }else{
+                net_operation_set_esock_state(NET_ESOCKET_STATE_OPEN);
+            }
+        }else{
+            net_operation_clear_net_fault(NET_FAULT_PHYSICAL_LAYER);
+            net_operation_clear_net_fault(NET_FAULT_SIM_CARD);
+            net_operation_clear_net_fault(NET_FAULT_DATA_LINK_LAYER);
+            net_operation_clear_net_fault(NET_FAULT_MODULE_INIT);
+            net_operation_set_esock_state(NET_ESOCKET_STATE_OPEN);
+        }
     }else{
         net_operation_set_net_fault(NET_FAULT_PHYSICAL_LAYER);
-    }
-    /** SIM卡故障 */
-    if(get_at_device_appinfo_check_card()){
-        net_operation_clear_net_fault(NET_FAULT_SIM_CARD);
-    }else{
         net_operation_set_net_fault(NET_FAULT_SIM_CARD);
-    }
-    /** 注网失败 */
-    if(get_at_device_appinfo_check_gprs_registered()){
-        net_operation_clear_net_fault(NET_FAULT_DATA_LINK_LAYER);
-    }else{
         net_operation_set_net_fault(NET_FAULT_DATA_LINK_LAYER);
-    }
-    /** 4G模块初始化 */
-    if(get_at_device_appinfo_is_complete()){
-        net_operation_clear_net_fault(NET_FAULT_MODULE_INIT);
-    }else{
         net_operation_set_net_fault(NET_FAULT_MODULE_INIT);
+        net_operation_set_esock_state(NET_ESOCKET_STATE_CLOSE);
+    }
+}
+
+/*********************************************************
+ * 函数名     ethernet_init_hook
+ * 功能         以太网初始化钩子函数
+ ********************************************************/
+void ethernet_init_hook(uint8_t complete, uint8_t success)
+{
+    if(success){
+        net_set_netdev_type(NET_NETDEV_TYPE_ETHERNET, 0x00);
+    }else{
+        net_clear_netdev_type(NET_NETDEV_TYPE_ETHERNET);
     }
 
-    if(get_at_socket_deactivated()){
-        net_operation_set_esock_state(NET_ESOCKET_STATE_CLOSE);
+    if(complete){
+        net_set_netdev_init_status(NET_NETDEV_TYPE_ETHERNET, 0x01);
     }else{
-        net_operation_set_esock_state(NET_ESOCKET_STATE_OPEN);
+        net_set_netdev_init_status(NET_NETDEV_TYPE_ETHERNET, 0x00);
     }
 }
 
@@ -663,10 +700,15 @@ static uint32_t app_ncrc32_updtae(uint32_t init, const uint8_t *data, uint32_t l
 int32_t app_nfunc_config_init(void)
 {
     struct net_handle* handle = net_get_net_handle();
+    extern int32_t net_netdev_init(void);
+    extern void ethch395_set_init_hook(void *hook);
 
     if(handle == NULL){
         return -0x01;
     }
+
+    ethch395_set_init_hook(ethernet_init_hook);
+    net_netdev_init();
 
     handle->para_config(0x00, NET_PARA_CONFIG_INDEX_DATA_UPDATA,           app_ndata_update, handle);
     handle->para_config(0x00, NET_PARA_CONFIG_INDEX_TIME_SYNC,             app_ntime_sync, handle);
@@ -690,4 +732,5 @@ int32_t app_nfunc_config_init(void)
     handle->start_func(handle);
     return 0x00;
 }
+
 

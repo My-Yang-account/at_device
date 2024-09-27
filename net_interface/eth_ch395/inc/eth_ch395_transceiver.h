@@ -1,0 +1,34 @@
+/*
+ * Copyright (c) 2006-2021, RT-Thread Development Team
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Change Logs:
+ * Date           Author       Notes
+ * 2024-09-05     我的杨yang       the first version
+ */
+#ifndef NET_INTERFACE_ETH_395_INC_ETH_395_TRANSCEIVER_H_
+#define NET_INTERFACE_ETH_395_INC_ETH_395_TRANSCEIVER_H_
+
+#include "eth_ch395_config.h"
+
+enum{
+    NETDEV_ETHCH395_SOCKET_CONTROL_RECV_TIMEOUT,                   /** 以太网 ch395 socket 控制指令：修改数据接收等待时间 */
+};
+
+void ethch395_set_init_hook(void *hook);
+
+int netdev_ethch395_socket_open_port(int *socket_fd, char* host, uint16_t host_len, uint16_t port);
+int netdev_ethch395_socket_send_port(int socket_fd, void *data, uint32_t len);
+int netdev_ethch395_socket_recv_port(int socket_fd, void *buff, uint32_t len);
+int netdev_ethch395_socket_close_port(int socket_fd);
+int netdev_ethch395_socket_query_state_port(int socket_fd);
+int netdev_ethch395_socket_data_comein_port(int socket_fd, uint32_t timeout);
+int netdev_ethch395_socket_control(int socket_fd, uint8_t cmd, void *para);
+
+void ethch395_cmd_data_clear(void);
+int32_t ethch395_cmd_data_recv(uint8_t *buf, uint8_t len);
+
+int32_t net_ethch395_transceiver_init(void);
+
+#endif /* NET_INTERFACE_ETH_395_INC_ETH_395_TRANSCEIVER_H_ */

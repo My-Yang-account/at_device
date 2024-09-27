@@ -59,7 +59,7 @@ static uint16_t tha_readline_data(int fd)
 
             uint8_t rentry = 0x00;
             while(rentry < 50){
-                if(net_socket_data_comein(fd, 0x01)){
+                if(net_socket_data_comein(fd, 0x01) > 0x00){
                     break;
                 }
                 rt_thread_mdelay(10);
@@ -114,7 +114,7 @@ static void tha_message_recv_thread_entry(void *parameter)
     memset(tha_id, 0x00, sizeof(tha_id));
     while(1)
     {
-        if(net_get_ota_info()->state < NET_OTA_STATE_LOGIN_WAIT){
+        if(net_get_ota_info()->state < NET_OTA_STATE_OPEN_LINK){
             for(gunno = 0; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
                 if((socket->state[gunno] >= THA_SOCKET_STATE_LOGIN_WAIT) && (socket->fd[gunno] >= 0x00)){
                     if((length = tha_readline_data(socket->fd[gunno]))){

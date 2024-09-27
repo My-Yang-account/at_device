@@ -8,7 +8,7 @@
  * 2024-02-02     我的杨yang       the first version
  */
 #include "net_socket_interface.h"
-#include "net_socket.h"
+#include "net_netdev.h"
 
 int net_socket_open(int *fd, char* host, uint16_t host_len, uint16_t port)
 {
@@ -38,5 +38,10 @@ int net_socket_get_state(int fd)
 int net_socket_data_comein(int fd, uint32_t timeout)
 {
     return app_socket_data_comein_port(fd, timeout);
+}
+
+int net_socket_control(int fd, uint8_t cmd, void* para)
+{
+    return app_socket_control_port(fd, cmd, para);
 }
 

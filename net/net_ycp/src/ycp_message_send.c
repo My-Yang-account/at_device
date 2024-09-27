@@ -528,7 +528,7 @@ static void net_ycp_message_send_thread_entry(void *parameter)
 
     while(1)
     {
-        if((net_get_ota_info()->state >= NET_OTA_STATE_LOGIN_WAIT) && (net_get_ota_info()->state <= NET_OTA_STATE_UPDATING)){
+        if((net_get_ota_info()->state >= NET_OTA_STATE_OPEN_LINK) && (net_get_ota_info()->state <= NET_OTA_STATE_UPDATING)){
             rt_thread_mdelay(5000);
             continue;
         }
@@ -659,6 +659,8 @@ static void net_ycp_message_send_thread_entry(void *parameter)
                 while(rentry < NET_YCP_WAIT_LOGIN_RENTRY){
                     if(ycp_net_event_receive(NET_YCP_EVENT_HANDLE_SERVER, NET_YCP_EVENT_TYPE_RESPONSE, 0x00,
                             (NET_YCP_EVENT_OPTION_OR |NET_YCP_EVENT_OPTION_CLEAR), NET_YCP_SRES_EVENT_LOGIN, NULL) > 0){
+                        int32_t recv_timeout = 0x0A;
+
                         LOG_D("ycp login success");
                         s_ycp_socket_info.operate_fail.login = 0;
                         step = NET_YCP_NET_STATE_MONITORING;
@@ -666,6 +668,8 @@ static void net_ycp_message_send_thread_entry(void *parameter)
                         s_ycp_socket_info.state = YCP_SOCKET_STATE_LOGIN_SUCCESS;
                         net_get_net_handle()->net_state = NET_SOCKET_STATE_LOGIN_SUCCESS;
                         s_ycp_socket_info.heartbeat = 0x00;
+
+                        ycp_socket_modify_recv_timeout(s_ycp_socket_info.fd, recv_timeout);
                         break;
                     }
                     rt_thread_mdelay(100);
@@ -1158,7 +1162,7 @@ static void net_ycp_server_message_pro_entry(void *parameter)
 
     while(1)
     {
-        if(net_get_ota_info()->state >= NET_OTA_STATE_LOGIN_WAIT){
+        if((net_get_ota_info()->state >= NET_OTA_STATE_OPEN_LINK) && (net_get_ota_info()->state <= NET_OTA_STATE_UPDATING)){
             rt_thread_mdelay(5000);
             continue;
         }
