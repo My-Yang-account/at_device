@@ -375,7 +375,7 @@ static void net_ykc_message_send_thread_entry(void *parameter)
 
     while(1)
     {
-        if((net_get_ota_info()->state >= NET_OTA_STATE_LOGIN_WAIT) && (net_get_ota_info()->state <= NET_OTA_STATE_UPDATING)){
+        if((net_get_ota_info()->state >= NET_OTA_STATE_OPEN_LINK) && (net_get_ota_info()->state <= NET_OTA_STATE_UPDATING)){
             rt_thread_mdelay(5000);
             continue;
         }
@@ -452,14 +452,15 @@ static void net_ykc_message_send_thread_entry(void *parameter)
                         port = 8767;
                     }
 
-//                    host = "47.98.137.199";
-//                    port = 9350;
-
                     result = ykc_socket_open(&(s_ykc_socket_info.fd), host, strlen(host), port);
                     if(result >= 0){
+                        int32_t recv_timeout = 0x0A;
+
                         LOG_D("ykc socket open success with host[%s] port[%d] fd(%d)", host, port, s_ykc_socket_info.fd);
                         s_ykc_socket_info.operate_fail.open_socket = 0;
                         step = NET_YKC_NET_STATE_LOGIN;
+
+                        ykc_socket_modify_recv_timeout(s_ykc_socket_info.fd, recv_timeout);
                     }else{
                         LOG_W("ykc fail to open socket with host[%s] port[%d] num|%d", host, port, s_ykc_socket_info.operate_fail.open_socket);
                         delay = rt_tick_get();
@@ -1041,7 +1042,7 @@ static void net_ykc_server_message_pro_entry(void *parameter)
 
     while(1)
     {
-        if(net_get_ota_info()->state >= NET_OTA_STATE_LOGIN_WAIT){
+        if((net_get_ota_info()->state >= NET_OTA_STATE_OPEN_LINK) && (net_get_ota_info()->state <= NET_OTA_STATE_UPDATING)){
             rt_thread_mdelay(5000);
             continue;
         }

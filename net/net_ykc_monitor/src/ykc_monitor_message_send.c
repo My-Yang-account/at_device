@@ -499,9 +499,13 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
                     result = ykc_monitor_socket_open(&(s_ykc_monitor_socket_info.fd), host, strlen(host), port);
                     if(result >= 0){
+                        int32_t recv_timeout = 0x0A;
+
                         LOG_D("ykc monitor socket open success with host[%s] port[%d] fd(%d)", host, port, s_ykc_monitor_socket_info.fd);
                         s_ykc_monitor_socket_info.operate_fail.open_socket = 0;
                         step = NET_YKC_MONITOR_NET_STATE_LOGIN;
+
+                        ykc_monitor_socket_modify_recv_timeout(s_ykc_monitor_socket_info.fd, recv_timeout);
                     }else{
                         LOG_W("ykc monitor fail to open socket with host[%s] port[%d] num|%d", host, port, s_ykc_monitor_socket_info.operate_fail.open_socket);
                         delay = rt_tick_get();
@@ -572,8 +576,6 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
                 while(rentry < NET_YKC_MONITOR_WAIT_LOGIN_RENTRY){
                     if(ykc_monitor_net_event_receive(NET_YKC_MONITOR_EVENT_HANDLE_SERVER, NET_YKC_MONITOR_EVENT_TYPE_RESPONSE, 0x00,
                             (NET_YKC_MONITOR_EVENT_OPTION_OR |NET_YKC_MONITOR_EVENT_OPTION_CLEAR), NET_YKC_MONITOR_SRES_EVENT_LOGIN, NULL) > 0){
-                        int32_t recv_timeout = 0x0A;
-
                         LOG_D("ykc monitor login success");
                         s_ykc_monitor_socket_info.operate_fail.login = 0;
                         step = NET_YKC_MONITOR_NET_STATE_MONITORING;
@@ -586,8 +588,6 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
                             s_ykc_monitor_message_serial_number[gunno]++;
                             s_ykc_monitor_socket_info.heartbeat[gunno] = 0x00;
                         }
-
-                        ykc_monitor_socket_modify_recv_timeout(s_ykc_monitor_socket_info.fd, recv_timeout);
                         break;
                     }
                     rt_thread_mdelay(100);
