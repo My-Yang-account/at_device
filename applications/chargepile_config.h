@@ -164,8 +164,8 @@
 #define MODULE_MAX_LIMIT_CURR_MIN                 10        /* 模块最大限电流最小值 */
 
 #define MODULE_MIN_LIMIT_CURR_DEF                 2         /* 模块最小限电流默认值值 */
-#define MODULE_MIN_LIMIT_CURR_MAX                 5         /* 模块最小限电流最大值 */
-#define MODULE_MIN_LIMIT_CURR_MIN                 2         /* 模块最小限电流最小值 */
+#define MODULE_MIN_LIMIT_CURR_MAX                 2         /* 模块最小限电流最大值 */
+#define MODULE_MIN_LIMIT_CURR_MIN                 0         /* 模块最小限电流最小值 */
 
 #define COMPULSION_SET_VOLTAGE_DEF                750       /* 强制启动设定电压默认值 */
 #define COMPULSION_SET_VOLTAGE_MAX                1200      /* 强制启动设定电压最大值 */
