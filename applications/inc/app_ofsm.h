@@ -30,7 +30,7 @@ extern "C" {
 #define APP_CURR_CCSBCL_ABNORMAL_TIMEOUT     15000     /* CCS 和 BCL 电流异常停充超时时间 */
 #define APP_CURR_CCSBCS_ABNORMAL_TIMEOUT     15000     /* CCS 和 BCS 电流异常停充超时时间 */
 #define APP_CURR_COMPARE_CCSBCL_MAX          500       /* CCS 和 BCL 电流比较最大差值 */
-#define APP_CURR_COMPARE_CCSBCS_MAX          1000      /* CCS 和 BCS 电流比较最大差值 */
+#define APP_CURR_COMPARE_CCSBCS_MAX          1500      /* CCS 和 BCS 电流比较最大差值 */
 
 #define APP_STORAGE_TRANSATION_INTERVAL      (30 *60 *1000)   /* 充电中保存交易记录间隔 */
 #define APP_CARD_NUMBER_COMPARE_LEN          16        /* 卡号对比长度 */
