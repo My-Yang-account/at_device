@@ -23,7 +23,7 @@ extern "C" {
  */
 #define SOFTWARE_VERSION       1L
 #define SOFTWARE_SUBVERSION    3L
-#define SOFTWARE_REVISION      6L   /*  ([1.2.5 (修复四组模块的柔性切换模式下，一组继电器被误断问题)]) */
+#define SOFTWARE_REVISION      9L   /*  ([1.2.5 (修复四组模块的柔性切换模式下，一组继电器被误断问题)] [1.3.7 为能佳新板子将能佳默认IP、端口、二维码前缀写入flash][1.3.8为能佳修改并充时CCS输出电流值]) */
 
 #ifdef HMI_T5UIC1_ENABLE
 #define SOFTWARE_HMIION       'B'
