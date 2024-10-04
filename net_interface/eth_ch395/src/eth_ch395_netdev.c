@@ -14,8 +14,8 @@
 #define DBG_LVL DBG_LOG
 #include <rtdbg.h>
 
-#define ETHCH395_RST_PIN      GET_PIN(E, 4)
-#define ETHCH395_CFG_PIN      GET_PIN(E, 3)
+#define ETHCH395_RST_PIN      GET_PIN(A, 3)
+#define ETHCH395_CFG_PIN      GET_PIN(A, 2)
 
 static uint32_t s_ethch395_irq_notice = 0x00;
 static struct rt_semaphore s_ethch395_netdev_sem;
