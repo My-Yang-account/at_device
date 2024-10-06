@@ -265,6 +265,55 @@ void thaisenSetModuleMaxChargCurrGroup(uint8_t groupNum, uint16_t curr);
  */
 uint16_t thaisenGetModuleMaxChargCurrGroup(uint8_t groupNum);
 
+/* 功能说明:
+ *          thaisenStorageModuleSetVoltage:按组保存给模块设置的输出电压
+ *
+ * 输入参数:           groupNum 组号
+ *          volt     电压 (0.1)
+ *
+ * 返回参数:
+ *
+ * 调用方法:
+ *          可实时调用
+ */
+void thaisenStorageModuleSetVoltage(uint8_t groupNum, uint32_t volt);
+
+/* 功能说明:
+ *          thaisenGetModuleSetVoltage:按组获取给模块设置的输出电压
+ *
+ * 输入参数:           groupNum 组号
+ *
+ * 返回参数:           给模块设置的输出电压
+ *
+ * 调用方法:
+ *          可实时调用
+ */
+uint32_t thaisenGetModuleSetVoltage(uint8_t groupNum);
+
+/* 功能说明:
+ *          thaisenStorageModuleSetCurrent:按组保存给模块设置的输出电流
+ *
+ * 输入参数:           groupNum 组号
+ *          curr     电流 (0.01)
+ *
+ * 返回参数:
+ *
+ * 调用方法:
+ *          可实时调用
+ */
+void thaisenStorageModuleSetCurrent(uint8_t groupNum, uint32_t curr);
+
+/* 功能说明:
+ *          thaisenGetModuleSetVoltage:按组获取给模块设置的输出电流
+ *
+ * 输入参数:           groupNum 组号
+ *
+ * 返回参数:           给模块设置的输出电流
+ *
+ * 调用方法:
+ *          可实时调用
+ */
+uint32_t thaisenGetModuleSetCurrent(uint8_t groupNum);
 
 /* 功能说明:
  *          thaisenSetModuleGroupNum:设置模块组数
