@@ -341,11 +341,11 @@ static uint8_t* app_nget_system_data(uint8_t name, uint32_t *vector, uint32_t op
         }else if((option &NET_SYSTEM_DATA_OPTION_MONITOR_PLAT)){
             return sys_read_config_item_content(CONFIG_ITEM_MONITOR_PLATFORM, 0x00);
         }else if((option &NET_SYSTEM_DATA_OPTION_TARGET_PLAT_ADDITIONAL) != 0x00){
-#ifdef APP_INCLUDE_NET
+#ifdef APP_INCLUDE_TARGET_PLATFORM
 #if (APP_TARGET_PLATFORM_ID == NET_OCPP_PLATFORM_ID)
             return sys_read_config_item_content(CONFIG_ITEM_TARGET_PLATFORM_ADDITIONAL, 0x00);
 #endif /* (APP_TARGET_PLATFORM_ID == NET_OCPP_PLATFORM_ID) */
-#endif /* #ifdef APP_INCLUDE_NET */
+#endif /* #ifdef APP_INCLUDE_TARGET_PLATFORM */
         }
         return NULL;
         break;
@@ -474,13 +474,13 @@ static int32_t app_nset_system_data(uint8_t name, uint8_t *data, uint16_t len, u
         if((option &NET_SYSTEM_DATA_OPTION_TARGET_PLAT) || (option &NET_SYSTEM_DATA_OPTION_MONITOR_PLAT)){
             return sys_storage_config_item();
         }
-#ifdef APP_INCLUDE_NET
+#ifdef APP_INCLUDE_TARGET_PLATFORM
 #if (APP_TARGET_PLATFORM_ID == NET_OCPP_PLATFORM_ID)
         else if((option &NET_SYSTEM_DATA_OPTION_TARGET_PLAT_ADDITIONAL)){
             return sys_storage_config_tp_additional_region();
         }
 #endif /* (APP_TARGET_PLATFORM_ID == NET_OCPP_PLATFORM_ID) */
-#endif /* #ifdef APP_INCLUDE_NET */
+#endif /* #ifdef APP_INCLUDE_TARGET_PLATFORM */
         return -0x01;
         break;
     case NET_SYSTEM_DATA_NAME_TEMP_PROTECT_SWITCH:

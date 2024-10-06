@@ -72,17 +72,20 @@ void prepose_init(void)
 
     app_led_init();
 
-    while (1) {
-        if(0 > chargepile_config_init()){
-            rt_thread_mdelay(1000);
-            mw_iwdg_refresh();
+    if(system_config_init_if() < 0x00){
+        while (1) {
+            if(0 > chargepile_config_init()){
+                rt_thread_mdelay(1000);
+                mw_iwdg_refresh();
 
-        }else{
-            LOG_D("configure initialize success");
-            break;
+            }else{
+                LOG_D("configure initialize success");
+                break;
+            }
         }
     }
-#ifdef APP_INCLUDE_NET
+
+#ifdef APP_INCLUDE_TARGET_PLATFORM
 #if (APP_TARGET_PLATFORM_ID == NET_OCPP_PLATFORM_ID)
     while (1) {
         if(0 > sys_tp_additional_config_init()){
@@ -95,7 +98,7 @@ void prepose_init(void)
         }
     }
 #endif /* (APP_TARGET_PLATFORM_ID == NET_OCPP_PLATFORM_ID) */
-#endif /* #ifdef APP_INCLUDE_NET */
+#endif /* #ifdef APP_INCLUDE_TARGET_PLATFORM */
 
     while (1) {
         if(0 > chargepile_check_config()) {
@@ -106,7 +109,7 @@ void prepose_init(void)
         }
     }
 
-#ifdef APP_INCLUDE_NET
+#ifdef APP_INCLUDE_TARGET_PLATFORM
 #if (APP_TARGET_PLATFORM_ID == NET_OCPP_PLATFORM_ID)
     while (1) {
         if(0 > sys_tp_additional_check_config()) {
@@ -117,7 +120,7 @@ void prepose_init(void)
         }
     }
 #endif /* (APP_TARGET_PLATFORM_ID == NET_OCPP_PLATFORM_ID) */
-#endif /* #ifdef APP_INCLUDE_NET */
+#endif /* #ifdef APP_INCLUDE_TARGET_PLATFORM */
 
     rt_thread_mdelay(1000);
 

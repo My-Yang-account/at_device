@@ -47,14 +47,14 @@
 #define SYSTEM_CONFIG_MAIN_ADDRESS        ((uint32_t)(FLASH_BASE_ADDRESS + 0x00641000))                 /* 系统配置信息地址(0x00641000 - 0x00644000) */
 #define SYSTEM_CONFIG_BACKUP_ADDRESS      ((uint32_t)(FLASH_BASE_ADDRESS + 0x00644000))                 /* 系统配置信息备份区地址 (0x00644000 - 0x00647000)*/
 
-#ifdef APP_INCLUDE_NET
+#ifdef APP_INCLUDE_TARGET_PLATFORM
 #if (APP_TARGET_PLATFORM_ID == NET_OCPP_PLATFORM_ID)
 #define SYSTEM_CONFIG_TP_ADDITIONALREGION_ADDRESS      ((uint32_t)(FLASH_BASE_ADDRESS + 0x00647000))    /* 系统配置信息备份区地址 (0x00647000 - (0x00647000 + APP_TARGET_PLATFORM_ADDITIONAL_REGION_SIZE))*/
 #endif /* (APP_TARGET_PLATFORM_ID == NET_OCPP_PLATFORM_ID) */
-#endif /* #ifdef APP_INCLUDE_NET */
+#endif /* #ifdef APP_INCLUDE_TARGET_PLATFORM */
 
 /** internal flash */
-#define SYSTEM_CONFIG_INFO_ADDR_IF        0x00000000
+#define SYSTEM_CONFIG_INFO_ADDR_IF        0x081E0000
 /******************************************************************************/
 
 #define CP_NETWORK_DOMAIN_LEN_MAX          256                     /* 域名最大长度 */
@@ -296,11 +296,11 @@ enum config_name{
     CONFIG_ITEM_TARGET_PLATFORM,    /* 目标平台数据：为倒数第二项 */
     CONFIG_ITEM_MONITOR_PLATFORM,   /* 监控平台数据：为倒数第一项 */
 
-#ifdef APP_INCLUDE_NET
+#ifdef APP_INCLUDE_TARGET_PLATFORM
 #if (APP_TARGET_PLATFORM_ID == NET_OCPP_PLATFORM_ID)
     CONFIG_ITEM_TARGET_PLATFORM_ADDITIONAL,   /* 目标平台数据(额外存储区)：为倒数第一项 */
 #endif /* (APP_TARGET_PLATFORM_ID == NET_OCPP_PLATFORM_ID) */
-#endif /* #ifdef APP_INCLUDE_NET */
+#endif /* #ifdef APP_INCLUDE_TARGET_PLATFORM */
 
     CONFIG_ITEM_SIZE,
 };
@@ -316,14 +316,15 @@ struct config_item{
 
 int32_t chargepile_config_init(void);
 int32_t chargepile_check_config(void);
+int32_t system_config_init_if(void);
 
-#ifdef APP_INCLUDE_NET
+#ifdef APP_INCLUDE_TARGET_PLATFORM
 #if (APP_TARGET_PLATFORM_ID == NET_OCPP_PLATFORM_ID)
 int32_t sys_storage_config_tp_additional_region(void);
 int32_t sys_tp_additional_check_config(void);
 int32_t sys_tp_additional_config_init(void);
 #endif /* (APP_TARGET_PLATFORM_ID == NET_OCPP_PLATFORM_ID) */
-#endif /* #ifdef APP_INCLUDE_NET */
+#endif /* #ifdef APP_INCLUDE_TARGET_PLATFORM */
 
 int32_t sys_storage_config_item(void);
 int32_t sys_sync_config_item_content(enum config_name name, void* data, uint32_t len);

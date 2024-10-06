@@ -887,6 +887,64 @@ unsigned short thaisenW25qxxReadID(void);
   */
  void thaisenW25qxxErase(unsigned int Addr,unsigned int NumByte);
 
+ /* 功能说明:
+  *          thaisenIflashWriteDirectly：写入内部FLASH数据,无擦除环节
+  *
+  * 输入参数:
+  *         buffer:写入数据的缓冲区
+  *         address:写入FLASH地址
+  *         size:写入的字节数
+  *         nesting:是否与内部flah操作接口嵌套使用(涉及到解锁问题)
+  * 返回参数:
+  *         >= 0:成功，<0: 失败
+  * 调用方法:
+  *          读取时调用
+  */
+ int thaisenIflashWriteDirectly(unsigned int address, const unsigned char *buffer, int size, unsigned char nesting);
+
+ /* 功能说明:
+  *          thaisenIflashRead :内部FLASH数据读出
+  *
+  * 输入参数:
+  *         buffer:读出数据的缓冲区
+  *         address:读出FLASH地址
+  *         size:读出的字节数
+  * 返回参数:
+  *         >= 0:成功，<0: 失败
+  * 调用方法:
+  *          读取时调用
+  */
+ int thaisenIflashRead(unsigned int address, unsigned char *buffer, int size);
+
+ /* 功能说明:
+  *          thaienIflashWrite:内部FLASH写数据
+  *
+  * 输入参数:
+  *         address:写入数据的缓冲区
+  *         buffer:写入FLASH地址
+  *         size:写入的字节数
+  * 返回参数:
+  *         >= 0:成功，<0: 失败
+  * 调用方法:
+  *          写入时调用
+  */
+ int thaienIflashWrite(unsigned int address, const unsigned char *buffer, int size);
+
+ /* 功能说明:
+  *          thaisenIflashEraseSector：内部flash擦除数据
+  *
+  * 输入参数:
+  *         address:擦除的地址
+  *         size:擦除的字节数
+  *         nesting:是否与内部flah操作接口嵌套使用(涉及到解锁问题)
+  *
+  * 返回参数:
+  *         >= 0:成功，<0: 失败
+  * 调用方法:
+  *          读取时调用
+  */
+ int thaisenIflashEraseSector(unsigned int address, unsigned int size, unsigned char nesting);
+
  /******************************************************************************/
 
 

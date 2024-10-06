@@ -22,7 +22,7 @@ static uint8_t s_sys_config_lock = 0x01;
 
 #pragma pack(1)
 
-#ifdef APP_INCLUDE_NET
+#ifdef APP_INCLUDE_TARGET_PLATFORM
 #if (APP_TARGET_PLATFORM_ID == NET_OCPP_PLATFORM_ID)
 
 #define APP_TARGET_PLATFORM_ADDITIONAL_REGION_SIZE            (100 *1024)
@@ -36,20 +36,7 @@ struct system_config_tp_additional{
 static uint8_t s_config_tp_additional_lock = 0x01;
 
 #endif /* (APP_TARGET_PLATFORM_ID == NET_OCPP_PLATFORM_ID) */
-#endif /* #ifdef APP_INCLUDE_NET */
-
-struct system_qrcode_config_if{
-    uint8_t set_type;
-    uint8_t generate_type;
-    uint8_t qrcode[150];
-};
-
-struct system_config_if{
-    uint32_t init_flag;
-    struct system_qrcode_config_if qrcode;
-    uint8_t reserve[4096 - 160];
-    uint32_t crc;
-};
+#endif /* #ifdef APP_INCLUDE_TARGET_PLATFORM */
 
 struct card_whitelist_info{
     uint8_t card_number[CP_INFO_CARD_NUMBER_WHITELIST_NUM_MAX][CARD_NUMBER_LENGTH_DEF + 0x01];
@@ -236,13 +223,12 @@ struct chargepile_config_info{
 
 #pragma pack()
 
-#ifdef APP_INCLUDE_NET
+#ifdef APP_INCLUDE_TARGET_PLATFORM
 #if (APP_TARGET_PLATFORM_ID == NET_OCPP_PLATFORM_ID)
 static struct system_config_tp_additional s_system_config_tp_additional;
 #endif /* (APP_TARGET_PLATFORM_ID == NET_OCPP_PLATFORM_ID) */
-#endif /* #ifdef APP_INCLUDE_NET */
+#endif /* #ifdef APP_INCLUDE_TARGET_PLATFORM */
 
-static struct system_config_if s_system_config_if;
 static struct chargepile_config_info s_chargepile_config_info;
 static uint8_t s_storage_chip_entry = 0x00;
 static uint32_t s_config_info_address = SYSTEM_CONFIG_MAIN_ADDRESS;
@@ -640,14 +626,14 @@ static struct config_item s_config_item_set[CONFIG_ITEM_SIZE] =
         (uint8_t*)&s_chargepile_config_info.monitor_plat,
         NULL},
 
-#ifdef APP_INCLUDE_NET
+#ifdef APP_INCLUDE_TARGET_PLATFORM
 #if (APP_TARGET_PLATFORM_ID == NET_OCPP_PLATFORM_ID)
         {CONFIG_ITEM_TARGET_PLATFORM_ADDITIONAL,                                                /* 目标平台数据：为倒数第一项 */
         (1 <<(32 - 4))| (sizeof(s_system_config_tp_additional)),
         (uint8_t*)&s_system_config_tp_additional,
         NULL},
 #endif /* (APP_TARGET_PLATFORM_ID == NET_OCPP_PLATFORM_ID) */
-#endif /* #ifdef APP_INCLUDE_NET */
+#endif /* #ifdef APP_INCLUDE_TARGET_PLATFORM */
 };
 
 /******************************************************************************/
@@ -677,7 +663,7 @@ static uint32_t crc32_ieee_update(uint32_t crc, const uint8_t *data, size_t len)
 /***************************************************************************************************************/
 /***************************************************************************************************************/
 /***************************************************************************************************************/
-#ifdef APP_INCLUDE_NET
+#ifdef APP_INCLUDE_TARGET_PLATFORM
 #if (APP_TARGET_PLATFORM_ID == NET_OCPP_PLATFORM_ID)
 
 static void sys_config_tp_additional_lock(void)
@@ -827,7 +813,7 @@ int32_t sys_tp_additional_check_config(void)
 }
 
 #endif /* (APP_TARGET_PLATFORM_ID == NET_OCPP_PLATFORM_ID) */
-#endif /* #ifdef APP_INCLUDE_NET */
+#endif /* #ifdef APP_INCLUDE_TARGET_PLATFORM */
 /***************************************************************************************************************/
 /***************************************************************************************************************/
 /***************************************************************************************************************/
@@ -891,6 +877,58 @@ static int32_t do_storage_config_content(uint32_t addr, uint8_t *buff, uint32_t 
 }
 
 /************************************************************************************
+ * 函数名：      do_storage_if_config_content
+ * 功能              执行配置数据存储操作(内部flash)
+ * 参数             addr：存储地址
+ *       buff：数据检验缓存
+ *       blen：数据检验缓存长度
+ * 返回            < 0：失败，= 0：成功
+ ***********************************************************************************/
+static int32_t do_storage_if_config_content(uint32_t addr, uint8_t *buff, uint32_t blen)
+{
+    if((buff == NULL) || (blen < sizeof(s_chargepile_config_info))){
+        return -1;
+    }
+    uint32_t crc = 0, init_flag = SYSTEM_INIT_KEY;
+    int8_t rentry = 3;
+
+    while(rentry > 0){
+        if(mw_iflash_erase_sector(addr, blen, 0x00) < 0x00){
+            LOG_E("execute flash erase fail when call do_storage_if_config_content");
+//            return -1;
+        }
+
+        if(mw_iflash_write_directly(addr, (const uint8_t*)&init_flag , sizeof(init_flag), 0x00) < 0x00){
+            LOG_E("execute write init flag fail when call do_storage_if_config_content");
+//            return -1;
+        }
+
+        s_chargepile_config_info.crc = crc32_ieee_update(0, (const uint8_t *)&s_chargepile_config_info, (sizeof(s_chargepile_config_info) - sizeof(s_chargepile_config_info.crc)));
+        mw_iflash_write_directly((addr + sizeof(init_flag)), (uint8_t *)&s_chargepile_config_info, sizeof(s_chargepile_config_info), 0x00);
+
+        SYS_CONFIG_OSDELAY(10);
+
+        mw_iflash_read((addr + sizeof(init_flag)), buff, sizeof(s_chargepile_config_info));
+
+        crc = crc32_ieee_update(0, (const uint8_t *)buff, (sizeof(s_chargepile_config_info) - sizeof(s_chargepile_config_info.crc)));
+
+        if((memcmp(buff, &s_chargepile_config_info, sizeof(s_chargepile_config_info))) || (s_chargepile_config_info.crc != crc)){
+            rentry--;
+            LOG_W("storage_if_config_content fail, rentry(%d) crc(%x, %x)", rentry, crc, s_chargepile_config_info.crc);
+            SYS_CONFIG_OSDELAY(100);
+            continue;
+        }
+        break;
+    }
+
+    if(rentry <= 0){
+        return -1;
+    }
+
+    return 0;
+}
+
+/************************************************************************************
  * 函数名：      sys_storage_config_item
  * 功能              触发存储配置项数据
  * 参数             无
@@ -916,9 +954,9 @@ int32_t sys_storage_config_item(void)
     if((result = do_storage_config_content(SYSTEM_CONFIG_MAIN_ADDRESS, _data_temp, sizeof(s_chargepile_config_info))) < 0){
         LOG_E("chargepile config storage failed in main address|%x", SYSTEM_CONFIG_MAIN_ADDRESS);
     }
-    LOG_D("system storage config in backup address");
-    if((result = do_storage_config_content(SYSTEM_CONFIG_BACKUP_ADDRESS, _data_temp, sizeof(s_chargepile_config_info))) < 0){
-        LOG_E("chargepile config storage fail in backup address|%x", SYSTEM_CONFIG_BACKUP_ADDRESS);
+    LOG_D("system storage config in internal flash");
+    if((result = do_storage_if_config_content(SYSTEM_CONFIG_INFO_ADDR_IF, _data_temp, sizeof(s_chargepile_config_info))) < 0){
+        LOG_E("chargepile config storage fail in internal flash|%x", SYSTEM_CONFIG_INFO_ADDR_IF);
     }
 
     free(_data_temp);
@@ -1012,7 +1050,7 @@ static void chargepile_config_data_reset(void)
 {
     s_chargepile_config_info.network.domain_len = 0x00;
     memset(s_chargepile_config_info.network.domain, '\0', sizeof(s_chargepile_config_info.network.domain));
-    s_chargepile_config_info.network.port = 0xFF;
+    s_chargepile_config_info.network.port = 0x00;
     memset(s_chargepile_config_info.network.mac, '\0', sizeof(s_chargepile_config_info.network.mac));
     memset(s_chargepile_config_info.network.gateway, '\0', sizeof(s_chargepile_config_info.network.gateway));
 
@@ -1118,11 +1156,11 @@ static void chargepile_config_data_reset(void)
     s_chargepile_config_info.target_plat.verify_result = 0x00;
     s_chargepile_config_info.monitor_plat.verify_result = 0x00;
 
-#ifdef APP_INCLUDE_NET
+#ifdef APP_INCLUDE_TARGET_PLATFORM
 #if (APP_TARGET_PLATFORM_ID == NET_OCPP_PLATFORM_ID)
     s_system_config_tp_additional.verify_result = 0x00;
 #endif /* (APP_TARGET_PLATFORM_ID == NET_OCPP_PLATFORM_ID) */
-#endif /* #ifdef APP_INCLUDE_NET */
+#endif /* #ifdef APP_INCLUDE_TARGET_PLATFORM */
 }
 
 int32_t chargepile_config_init(void)
@@ -1171,7 +1209,8 @@ int32_t chargepile_config_init(void)
 
         if (crc != s_chargepile_config_info.crc) {
             if(++s_storage_chip_entry > 0x03){
-                if(s_config_info_address == SYSTEM_CONFIG_MAIN_ADDRESS){
+//                if(s_config_info_address == SYSTEM_CONFIG_MAIN_ADDRESS){
+                if(0){
                     s_config_info_address = SYSTEM_CONFIG_BACKUP_ADDRESS;
                     s_storage_chip_entry = 0x00;
                     LOG_W("config info check error in main addr, read backup addr");
@@ -1195,65 +1234,56 @@ int32_t chargepile_config_init(void)
     return 0x00;
 }
 
-static void system_config_data_reset_if(void)
-{
-    s_system_config_if.qrcode.set_type = CP_SET_QRCODE_FORMAT_PREFIX;
-    s_system_config_if.qrcode.generate_type = CP_GENERATE_QRCODE_FORMAT_PREFIX_DEVICE_SN_PORT;
-    memset(s_system_config_if.qrcode.qrcode, '\0', sizeof(s_system_config_if.qrcode.qrcode));
-}
-
 int32_t system_config_init_if(void)
 {
+    uint8_t init_flag_is_correct = 0x00;
     uint32_t crc = 0x00, init_flag = 0x00;
 
-    mw_norflash_read(SYSTEM_CONFIG_INFO_ADDR_IF, (uint8_t *)&init_flag, sizeof(init_flag));
-    if (init_flag != SYSTEM_INIT_KEY) {
-        if(init_flag == 0xFFFFFFFF){
-            LOG_D("new board system configure if start initialization(%d)", sizeof(s_system_config_if));
-            system_config_data_reset_if();
-
-            crc = crc32_ieee_update(0x00, (const uint8_t *)&s_system_config_if, (sizeof(s_system_config_if) - sizeof(s_system_config_if.crc)));
-            s_system_config_if.crc = crc;
-
-            s_system_config_if.init_flag = SYSTEM_INIT_KEY;
-            mw_norflash_write(SYSTEM_CONFIG_INFO_ADDR_IF, (uint8_t *)&s_system_config_if, sizeof(s_system_config_if));
-            s_storage_chip_entry = 0x00;
-        }else{
-            if(++s_storage_chip_entry > 0x03){
-                if(init_flag != 0x00){
-                    LOG_D("system config if init flag error, configure start initialization(%d)", sizeof(s_system_config_if));
-                    system_config_data_reset_if();
-
-                    crc = crc32_ieee_update(0x00, (const uint8_t *)&s_system_config_if, (sizeof(s_system_config_if) - sizeof(s_system_config_if.crc)));
-                    s_system_config_if.crc = crc;
-
-                    s_system_config_if.init_flag = SYSTEM_INIT_KEY;
-                    mw_norflash_write(SYSTEM_CONFIG_INFO_ADDR_IF, (uint8_t *)&s_system_config_if, sizeof(s_system_config_if));
-                    s_storage_chip_entry = 0x00;
+    while(1){
+        mw_iflash_read(SYSTEM_CONFIG_INFO_ADDR_IF, (uint8_t *)&init_flag, sizeof(init_flag));
+        if(init_flag != SYSTEM_INIT_KEY) {
+            if(init_flag == 0xFFFFFFFF){
+                LOG_D("new board system configure if(%d)", sizeof(s_chargepile_config_info));
+                return -0x01;
+            }else{
+                if(++s_storage_chip_entry > 0x03){
+                    break;
                 }
             }
+            rt_thread_mdelay(1000);
+            mw_iwdg_refresh();
+            continue;
         }
-        return -0x01;
-    }else{
-        memset(&s_system_config_if, 0x00, sizeof(s_system_config_if));
-        mw_norflash_read((SYSTEM_CONFIG_INFO_ADDR_IF + sizeof(s_system_config_if.init_flag)), (uint8_t *)&s_system_config_if, \
-                (sizeof(s_system_config_if) - sizeof(s_system_config_if.init_flag)));
-
-        crc = crc32_ieee_update(0x00, (const uint8_t *)&s_system_config_if, (sizeof(s_system_config_if) - sizeof(s_system_config_if.crc)));
-
-        if (crc != s_system_config_if.crc) {
-            if(++s_storage_chip_entry > 0x03){
-                LOG_E("system config if crc error");
-                s_storage_chip_entry = 0x00;
-            }else{
-                return -0x01;
-            }
-        }
-        s_storage_chip_entry = 0x00;
+        init_flag_is_correct = 0x01;
+        break;
     }
 
     s_storage_chip_entry = 0x00;
-    LOG_D("system config success");
+    while(1){
+        memset(&s_chargepile_config_info, 0x00, sizeof(s_chargepile_config_info));
+        mw_iflash_read((SYSTEM_CONFIG_INFO_ADDR_IF + sizeof(init_flag)), (uint8_t *)&s_chargepile_config_info, sizeof(s_chargepile_config_info));
+
+        crc = crc32_ieee_update(0x00, (const uint8_t *)&s_chargepile_config_info, (sizeof(s_chargepile_config_info) - sizeof(s_chargepile_config_info.crc)));
+        if(crc != s_chargepile_config_info.crc){
+            if(++s_storage_chip_entry > 0x03){
+                LOG_E("system config if crc error");
+                if(init_flag_is_correct){
+                    s_storage_chip_entry = 0x00; /** 只有初始标志和校验码都不对时才认为里面的数据不对 */
+                }
+            }else{
+                rt_thread_mdelay(1000);
+                mw_iwdg_refresh();
+                continue;
+            }
+        }
+        break;
+    }
+
+    if(s_storage_chip_entry > 0x03){
+        return -0x01;
+    }
+
+    LOG_D("system config if success");
 
     return 0x00;
 }
@@ -1408,6 +1438,25 @@ int32_t chargepile_check_config(void)
     s_chargepile_config_info.config_info.system_power_total = s_system_power_max;
 #endif /* APP_INCLUDE_NET */
     rt_kprintf("system_power_total(%d, %d)\n", s_chargepile_config_info.config_info.system_power_total, s_system_power_max);
+
+    for(uint8_t count = 0x00; count < CP_INFO_VIN_WHITELIST_NUM_MAX; count++){
+        for(uint8_t index = 0x00; index < VIN_CODE_LENGTH_MAX; index++){
+            if(!(((s_chargepile_config_info.config_info.vin_whitelist[count][index] >= '0') && (s_chargepile_config_info.config_info.vin_whitelist[count][index] <= '9')) ||
+                    ((s_chargepile_config_info.config_info.vin_whitelist[count][index] >= 'a') && (s_chargepile_config_info.config_info.vin_whitelist[count][index] <= 'z')) ||
+                    ((s_chargepile_config_info.config_info.vin_whitelist[count][index] >= 'A') && (s_chargepile_config_info.config_info.vin_whitelist[count][index] <= 'Z')))){
+                memset(s_chargepile_config_info.config_info.vin_whitelist[count], 0x00, sizeof(s_chargepile_config_info.config_info.vin_whitelist[count]));
+                break;
+            }
+        }
+    }
+    for(uint8_t count = 0x00; count < CP_INFO_CARD_NUMBER_WHITELIST_NUM_MAX; count++){
+        for(uint8_t index = 0x00; index < CARD_NUMBER_LENGTH_MAX; index++){
+            if(!((s_chargepile_config_info.config_info.card_whitelist.card_number[count][index] >= 0x20) && (s_chargepile_config_info.config_info.card_whitelist.card_number[count][index] < 0x7F))){
+                memset(s_chargepile_config_info.config_info.card_whitelist.card_number[count], 0x00, sizeof(s_chargepile_config_info.config_info.card_whitelist.card_number[count]));
+                break;
+            }
+        }
+    }
 
     return 0;
 }

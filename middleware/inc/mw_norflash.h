@@ -48,6 +48,12 @@ int32_t mw_norflash_write_directly(uint32_t address, const uint8_t *buffer, int3
 
 int32_t mw_norflash_erase(uint32_t address, int32_t size);
 
+int32_t mw_iflash_init(void);
+int32_t mw_iflash_read(uint32_t address, uint8_t *buffer, int32_t size);
+int32_t mw_iflash_write(uint32_t address, const uint8_t *buffer, int32_t size);
+int32_t mw_iflash_write_directly(uint32_t address, const uint8_t *buffer, int32_t size, uint8_t nesting);
+int32_t mw_iflash_erase_sector(uint32_t address, uint32_t size, uint8_t nesting);
+
 #ifdef __cplusplus
 }
 #endif
