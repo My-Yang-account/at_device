@@ -51,8 +51,9 @@
 #define NET_YKC_SREQ_EVENT_REMOTE_START_MERGE_CHARGE           13   /* 服务器请求事件：运营平台远程控制并充启机*/
 #define NET_YKC_SREQ_EVENT_QRCODE_CONFIG_GC                    14   /* 服务器请求事件：二维码配置(国充)*/
 #define NET_YKC_SREQ_EVENT_QRCODE_CONFIG_YKC15                 15   /* 服务器请求事件：二维码配置(云快充1.5)*/
+#define NET_YKC_SREQ_EVENT_QRCODE_CONFIG_TLD                   16   /* 服务器请求事件：二维码配置(特来电)*/
 
-#define NET_YKC_SERVER_SREQ_NUM                                16   /* 服务器请求事件总数 */
+#define NET_YKC_SERVER_SREQ_NUM                                17   /* 服务器请求事件总数 */
 
 /**=======================================[服务器请求报文]=======================================*/
 /**=======================================[服务器请求报文]=======================================*/
@@ -88,6 +89,8 @@ extern Net_YkcPro_SReq_Remote_StartMergeCharge_t g_ykc_sreq_remote_start_merge_c
 extern Net_YkcPro_SReq_Qrcode_Config_GC_t g_ykc_sreq_qrcode_config_gc[NET_SYSTEM_GUN_NUMBER];
 /** 运营平台下发二维码配置(云快充1.5) */
 extern Net_YkcPro_SReq_Qrcode_Config_Ykc15_t g_ykc_sreq_qrcode_config_ykc15;
+/** 运营平台下发二维码配置(特来电) */
+extern Net_YkcPro_SReq_Qrcode_Config_Tld_t g_ykc_sreq_qrcode_config_tld[NET_SYSTEM_GUN_NUMBER];
 
 /**=======================================[服务器响应报文]=======================================*/
 /**=======================================[服务器响应报文]=======================================*/

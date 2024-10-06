@@ -38,6 +38,7 @@ int8_t ykc_monitor_response_padding_remote_update(uint8_t *buf, uint16_t ilen, u
 int8_t ykc_monitor_response_padding_remote_start_merge_charge(uint8_t gunno, uint8_t *buf, uint16_t ilen, uint16_t *olen);
 int8_t ykc_monitor_response_padding_qrcode_config_gc(uint8_t gunno, uint8_t *buf, uint16_t ilen, uint16_t *olen);
 int8_t ykc_monitor_response_padding_qrcode_config_ykc15(uint8_t *buf, uint16_t ilen, uint16_t *olen);
+int8_t ykc_monitor_response_padding_qrcode_config_tld(uint8_t gunno, uint8_t *buf, uint16_t ilen, uint16_t *olen);
 
 int8_t ykc_monitor_message_pro_billing_model_set_response(void *data, uint8_t len);
 int8_t ykc_monitor_message_pro_apply_charge_active_response(uint8_t gunno, void *data, uint8_t len);

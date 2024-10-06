@@ -643,7 +643,40 @@ int8_t ykc_monitor_response_padding_qrcode_config_gc(uint8_t gunno, uint8_t *buf
     valid_len = valid_len > sizeof(response->body.pile_number) ? sizeof(response->body.pile_number) : valid_len;
     memcpy(response->body.pile_number, g_ykc_monitor_sreq_qrcode_config_gc[gunno].body.pile_number, valid_len);
 
-    response->body.gunno = gunno + 0x01;
+    response->body.gunno = g_ykc_monitor_sreq_qrcode_config_gc[gunno].body.gunno;
+
+    if(olen){
+        *olen = data_len;
+    }
+    return 0x00;
+}
+
+/*************************************************
+ * 函数名      ykc_monitor_response_padding_qrcode_config_tld
+ * 功能          组包：二维码配置响应(特来电)
+ * **********************************************/
+int8_t ykc_monitor_response_padding_qrcode_config_tld(uint8_t gunno, uint8_t *buf, uint16_t ilen, uint16_t *olen)
+{
+    uint8_t data_len = sizeof(Net_YkcMonitorPro_PRes_Qrcode_Config_Tld_t);
+
+    if(buf == NULL){
+        return -0x01;
+    }
+    if(data_len > ilen){
+        return -0x02;
+    }
+    if(gunno >= NET_SYSTEM_GUN_NUMBER){
+        return -0x03;
+    }
+
+    uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC_MONITOR |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
+    uint8_t *pile_number = (uint8_t*)(s_ykc_monitor_handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, option));
+    Net_YkcMonitorPro_PRes_Qrcode_Config_Tld_t *response = NULL;
+    response = ((Net_YkcMonitorPro_PRes_Qrcode_Config_Tld_t*)buf);
+    memset(response, 0x00, data_len);
+
+    ykc_monitor_ascii_to_bcd(pile_number, strlen((char*)pile_number), response->body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
+    response->body.gunno = g_ykc_monitor_sreq_qrcode_config_tld[gunno].body.gunno;
 
     if(olen){
         *olen = data_len;

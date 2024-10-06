@@ -232,6 +232,9 @@ enum ykc_cmd{
     NETYKC_SREQCMD_REMOTE_UPDATE = 0x94,                     /* 指令：服务器远程更新 */
     NETYKC_PRESCMD_REMOTE_UPDATE = 0x93,                     /* 指令：桩响应远程更新 */
 
+    NETYKC_SREQCMD_QRCODE_CONFIG_TLD = 0x9C,                 /* 指令：服务器设置二维码(特来电) */
+    NETYKC_PRESCMD_QRCODE_CONFIG_TLD = 0x9B,                 /* 指令：桩响应设置二维码(特来电) */
+
     NETYKC_PREQCMD_APPLY_START_MERGECHARGE = 0xA1,           /* 指令：充电桩主动申请启动并充充电 */
     NETYKC_SRESCMD_APPLY_START_MERGECHARGE = 0xA2,           /* 指令：运营平台确认启动并充充电 */
 
@@ -1115,6 +1118,28 @@ typedef struct{
     }body;
     uint16_t check_sum;                          /* 校验码 */
 }Net_YkcPro_PRes_Qrcode_Config_Ykc15_t;
+
+/** 0x9C 云服务器二维码配置请求帧(特来电) */
+typedef struct{
+    Net_YkcPro_Head_t head;
+    struct{
+        uint8_t gunno;                           /* 枪号*/
+        uint16_t length;                         /* 长度 */
+        /** 二维码数据 */
+        uint16_t result;
+    }body;
+}Net_YkcPro_SReq_Qrcode_Config_Tld_t;
+
+/** 0x9B 充电桩二维码配置应答帧(特来电) */
+typedef struct{
+    Net_YkcPro_Head_t head;
+    struct{
+        uint8_t pile_number[NET_YKC_CHARGEPILE_LENGTH_DEFAULT];  /* 桩号*/
+        uint8_t gunno;                           /* 枪号*/
+        uint8_t result;                          /* 结果 */
+    }body;
+    uint16_t check_sum;                          /* 校验码 */
+}Net_YkcPro_PRes_Qrcode_Config_Tld_t;
 
 #pragma pack()
 

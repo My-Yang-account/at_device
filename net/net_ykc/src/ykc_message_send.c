@@ -1029,6 +1029,17 @@ static void net_ykc_message_send_thread_entry(void *parameter)
                 ykc_response_buff_release_sem();
                 rt_thread_mdelay(250);
             }
+            /***** [运营平台二维码配置响应(特来电)] *****/
+            if(ykc_net_event_receive(NET_YKC_EVENT_HANDLE_CHARGEPILE, NET_YKC_EVENT_TYPE_RESPONSE, gunno,
+                    (NET_YKC_EVENT_OPTION_OR |NET_YKC_EVENT_OPTION_CLEAR), NET_YKC_PRES_EVENT_QRCODE_CONFIG_TLD, NULL) > 0){
+
+                Net_YkcPro_PRes_Qrcode_Config_Tld_t *qrcode = (Net_YkcPro_PRes_Qrcode_Config_Tld_t*)(s_ykc_response_buff.general_transmit_buff);
+                qrcode->head.sequence = g_ykc_sreq_qrcode_config_tld[gunno].head.sequence;
+                ykc_message_send_port(NETYKC_PRESCMD_QRCODE_CONFIG_TLD, s_ykc_socket_info.fd, s_ykc_response_buff.general_transmit_buff,
+                        s_ykc_response_buff.length);
+                ykc_response_buff_release_sem();
+                rt_thread_mdelay(250);
+            }
         }
         rt_thread_mdelay(100);
     }
@@ -1518,6 +1529,32 @@ static void net_ykc_server_message_pro_entry(void *parameter)
                     ((Net_YkcPro_PRes_Qrcode_Config_Ykc15_t*)response->general_transmit_buff)->body.result = pro_result;
                     if(result >= 0x00){
                         ykc_net_event_send(NET_YKC_EVENT_HANDLE_CHARGEPILE, NET_YKC_EVENT_TYPE_RESPONSE, gunno, NET_YKC_PRES_EVENT_QRCODE_CONFIG_YKC15);
+                    }else{
+                        ykc_response_buff_release_sem();
+                    }
+                }
+                /***** [运营平台二维码配置请求(特来电)] *****/
+                if(ykc_net_event_receive(NET_YKC_EVENT_HANDLE_SERVER, NET_YKC_EVENT_TYPE_REQUEST, gunno,
+                        (NET_YKC_EVENT_OPTION_OR |NET_YKC_EVENT_OPTION_CLEAR), NET_YKC_SREQ_EVENT_QRCODE_CONFIG_TLD, NULL) > 0){
+                    uint8_t pro_result = 0x00;
+                    ykc_qrcode_buf_t *info = (ykc_qrcode_buf_t*)(ykc_get_qrcode_info());
+
+                    info->flag.is_used = 0x00;
+                    response = ykc_get_response_buff(RT_WAITING_FOREVER);
+
+                    if(g_ykc_sreq_qrcode_config_tld[gunno].body.result == 0x00){
+                        uint8_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
+                        struct net_handle* handle = net_get_net_handle();
+
+                        if(handle->set_system_data(NET_SYSTEM_DATA_NAME_QRCODE, info->qrcode, info->length, option) >= 0x00){
+                            pro_result = 0x01;
+                        }
+                    }
+
+                    result = ykc_response_padding_qrcode_config_tld(gunno, response->general_transmit_buff, NET_YKC_GENERA_RESPONSE_BUFF_LENGTH, &(response->length));
+                    ((Net_YkcPro_PRes_Qrcode_Config_Tld_t*)response->general_transmit_buff)->body.result = pro_result;
+                    if(result >= 0x00){
+                        ykc_net_event_send(NET_YKC_EVENT_HANDLE_CHARGEPILE, NET_YKC_EVENT_TYPE_RESPONSE, gunno, NET_YKC_PRES_EVENT_QRCODE_CONFIG_TLD);
                     }else{
                         ykc_response_buff_release_sem();
                     }

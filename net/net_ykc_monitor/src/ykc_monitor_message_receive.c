@@ -70,6 +70,8 @@ Net_YkcMonitorPro_SReq_Remote_StartMergeCharge_t g_ykc_monitor_sreq_remote_start
 Net_YkcMonitorPro_SReq_Qrcode_Config_GC_t g_ykc_monitor_sreq_qrcode_config_gc[NET_SYSTEM_GUN_NUMBER];
 /** 运营平台下发二维码配置(云快充1.5) */
 Net_YkcMonitorPro_SReq_Qrcode_Config_Ykc15_t g_ykc_monitor_sreq_qrcode_config_ykc15;
+/** 运营平台下发二维码配置(特来电) */
+Net_YkcMonitorPro_SReq_Qrcode_Config_Tld_t g_ykc_monitor_sreq_qrcode_config_tld[NET_SYSTEM_GUN_NUMBER];
 
 /**=======================================[服务器响应报文]=======================================*/
 /**=======================================[服务器响应报文]=======================================*/
@@ -1089,6 +1091,9 @@ static void ykc_monitor_callback_request_qrcode_config_gc(uint8_t* data, uint16_
     uint8_t qrcode_len = (length - sizeof(Net_YkcMonitorPro_SReq_Qrcode_Config_GC_t));
 
     if(!((gunno > 0x00) && (gunno <= NET_SYSTEM_GUN_NUMBER))){
+        memcpy(&(g_ykc_monitor_sreq_qrcode_config_gc[0x00]), data, (sizeof(g_ykc_monitor_sreq_qrcode_config_gc[0x00]) - NET_YKC_MONITOR_PROTOCOL_CHECK_REGION_SIZE));
+        g_ykc_monitor_sreq_qrcode_config_gc[0x00].body.result = 0x01;
+        ykc_monitor_net_event_send(NET_YKC_MONITOR_EVENT_HANDLE_SERVER, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, 0x00, NET_YKC_MONITOR_SREQ_EVENT_QRCODE_CONFIG_GC);
         LOG_E("ykc monitor gunno error when call ykc_monitor_callback_request_qrcode_config_gc|%d", gunno);
         return;
     }
@@ -1235,6 +1240,75 @@ static void ykc_monitor_callback_request_qrcode_config_ykc15(uint8_t* data, uint
 #endif
 
     ykc_monitor_net_event_send(NET_YKC_MONITOR_EVENT_HANDLE_SERVER, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, 0x00, NET_YKC_MONITOR_SREQ_EVENT_QRCODE_CONFIG_YKC15);
+}
+
+/*****************************************************************
+ * 函数名                   ykc_monitor_callback_request_qrcode_config_tld
+ * 功能                       处理运营平台二维码配置请求(特来电)
+ *           data       数据
+ *           length     数据长度
+ * 返回                        无
+ ****************************************************************/
+static void ykc_monitor_callback_request_qrcode_config_tld(uint8_t* data, uint16_t length)
+{
+    if(data == NULL){
+        LOG_E("ykc input data is null when call ykc_monitor_callback_request_qrcode_config_tld");
+        return;
+    }
+    if(length < sizeof(Net_YkcMonitorPro_SReq_Qrcode_Config_Tld_t)){
+        LOG_E("ykc input length too short when call ykc_monitor_callback_request_qrcode_config_tld|%d, %d", length,
+                sizeof(Net_YkcMonitorPro_SReq_Qrcode_Config_Tld_t));
+        return;
+    }
+
+    uint8_t gunno = ((Net_YkcMonitorPro_SReq_Qrcode_Config_Tld_t*)data)->body.gunno;
+    uint8_t qrcode_len = (length - sizeof(Net_YkcMonitorPro_SReq_Qrcode_Config_Tld_t));
+
+    if(!((gunno > 0x00) && (gunno <= NET_SYSTEM_GUN_NUMBER))){
+        LOG_E("ykc gunno error when call ykc_monitor_callback_request_qrcode_config_tld|%d", gunno);
+        memcpy(&(g_ykc_monitor_sreq_qrcode_config_tld[0x00]), data, (sizeof(g_ykc_monitor_sreq_qrcode_config_tld[0x00]) - NET_YKC_MONITOR_PROTOCOL_CHECK_REGION_SIZE));
+        g_ykc_monitor_sreq_qrcode_config_tld[0x00].body.result = 0x01;
+        ykc_monitor_net_event_send(NET_YKC_MONITOR_EVENT_HANDLE_SERVER, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, 0x00, NET_YKC_MONITOR_SREQ_EVENT_QRCODE_CONFIG_TLD);
+        return;
+    }
+
+    memcpy(&(g_ykc_monitor_sreq_qrcode_config_tld[gunno - 0x01]), data, (sizeof(g_ykc_monitor_sreq_qrcode_config_tld[gunno - 0x01]) - NET_YKC_MONITOR_PROTOCOL_CHECK_REGION_SIZE));
+
+    if(qrcode_len == 0x00){
+        LOG_E("ykc qrcode content is NULL when call ykc_monitor_callback_request_qrcode_config_tld");
+        return;
+    }
+    if(length > (sizeof(Net_YkcMonitorPro_SReq_Qrcode_Config_Tld_t) + NET_YKC_MONITOR_QRCODE_BUF_MAX)){
+        LOG_E("ykc input length error when call ykc_monitor_callback_request_qrcode_config_tld|%d, %d", length,
+                (sizeof(Net_YkcMonitorPro_SReq_Qrcode_Config_Tld_t) + NET_YKC_MONITOR_QRCODE_BUF_MAX));
+        g_ykc_monitor_sreq_qrcode_config_tld[gunno - 0x01].body.result = 0x01;
+        ykc_monitor_net_event_send(NET_YKC_MONITOR_EVENT_HANDLE_SERVER, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, (gunno - 0x01), NET_YKC_MONITOR_SREQ_EVENT_QRCODE_CONFIG_TLD);
+        return;
+    }
+
+    g_ykc_monitor_sreq_qrcode_config_tld[gunno - 0x01].body.result = 0x00;
+    if(sizeof(s_ykc_monitor_qrcode_buf.qrcode) < qrcode_len){
+        g_ykc_monitor_sreq_qrcode_config_tld[gunno - 0x01].body.result = 0x01;
+        LOG_E("ykc message data too long when call ykc_monitor_callback_request_qrcode_config_tld");
+        ykc_monitor_net_event_send(NET_YKC_MONITOR_EVENT_HANDLE_SERVER, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, 0x00, NET_YKC_MONITOR_SREQ_EVENT_QRCODE_CONFIG_TLD);
+        return;
+    }
+    if(s_ykc_monitor_qrcode_buf.flag.is_used){
+        g_ykc_monitor_sreq_qrcode_config_tld[gunno - 0x01].body.result = 0x02;
+        LOG_E("ykc qrcode buff is used when call ykc_monitor_callback_request_qrcode_config_tld");
+        ykc_monitor_net_event_send(NET_YKC_MONITOR_EVENT_HANDLE_SERVER, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, 0x00, NET_YKC_MONITOR_SREQ_EVENT_QRCODE_CONFIG_TLD);
+        return;
+    }
+    s_ykc_monitor_qrcode_buf.flag.is_used = 0x01;
+    s_ykc_monitor_qrcode_buf.length = qrcode_len + 0x02;
+    s_ykc_monitor_qrcode_buf.set_type = NET_SET_QRCODE_FORMAT_PREFIX_DEVICE_SN_PORT;
+    s_ykc_monitor_qrcode_buf.general_type = NET_GENERATE_QRCODE_FORMAT_PREFIX_DEVICE_SN_PORT;
+
+    s_ykc_monitor_qrcode_buf.qrcode[0x00] = s_ykc_monitor_qrcode_buf.set_type;
+    s_ykc_monitor_qrcode_buf.qrcode[0x01] = s_ykc_monitor_qrcode_buf.general_type;
+    memcpy(&(s_ykc_monitor_qrcode_buf.qrcode[0x02]), &(((Net_YkcMonitorPro_SReq_Qrcode_Config_Tld_t*)data)->body.result), s_ykc_monitor_qrcode_buf.length);
+
+    ykc_monitor_net_event_send(NET_YKC_MONITOR_EVENT_HANDLE_SERVER, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, (gunno - 0x01), NET_YKC_MONITOR_SREQ_EVENT_QRCODE_CONFIG_TLD);
 }
 
 /******************************** 以下是监控服务回调 *******************************/

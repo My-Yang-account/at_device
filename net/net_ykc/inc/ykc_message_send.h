@@ -97,13 +97,14 @@
 #define NET_YKC_PRES_EVENT_SERVER_START_MERGECHARGE          13   /* 充电桩响应事件：远程并充启动充电命令回复 */
 #define NET_YKC_PRES_EVENT_QRCODE_CONFIG_GC                  14   /* 充电桩响应事件：二维码配置命令回复(国充) */
 #define NET_YKC_PRES_EVENT_QRCODE_CONFIG_YKC15               15   /* 充电桩响应事件：二维码配置命令回复(云快充1.5) */
+#define NET_YKC_PRES_EVENT_QRCODE_CONFIG_TLD                 16   /* 充电桩响应事件：二维码配置命令回复(特来电) */
 
-#define NET_YKC_PRES_EVENT_START_CHARGE_ASYNCHRONOUSLY       16   /* 充电桩响应事件：远程启机异步响应 */
-#define NET_YKC_PRES_EVENT_STOP_CHARGE_ASYNCHRONOUSLY        17   /* 充电桩响应事件：远程停机异步响应 */
-#define NET_YKC_PRES_EVENT_START_MERGECHARGE_ASYNCHRONOUSLY  18   /* 充电桩响应事件：远程并充启机异步响应 */
-#define NET_YKC_PRES_EVENT_SET_POWER_PERCENT_ASYNCHRONOUSLY  19   /* 充电桩响应事件：设置功率百分比异步响应 */
+#define NET_YKC_PRES_EVENT_START_CHARGE_ASYNCHRONOUSLY       17   /* 充电桩响应事件：远程启机异步响应 */
+#define NET_YKC_PRES_EVENT_STOP_CHARGE_ASYNCHRONOUSLY        18   /* 充电桩响应事件：远程停机异步响应 */
+#define NET_YKC_PRES_EVENT_START_MERGECHARGE_ASYNCHRONOUSLY  19   /* 充电桩响应事件：远程并充启机异步响应 */
+#define NET_YKC_PRES_EVENT_SET_POWER_PERCENT_ASYNCHRONOUSLY  20   /* 充电桩响应事件：设置功率百分比异步响应 */
 
-#define NET_YKC_CHARGEPILE_PRES_NUM                          20   /* 充电桩响应事件总数 */
+#define NET_YKC_CHARGEPILE_PRES_NUM                          21   /* 充电桩响应事件总数 */
 
 /** 登录签到 */
 extern Net_YkcPro_PReq_LogIn_t g_ykc_preq_login;
