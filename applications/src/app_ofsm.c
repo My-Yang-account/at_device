@@ -2356,7 +2356,7 @@ static void ofsm_charging_fun(uint8_t gunno)
             }
         }
     }
-
+#if 0
     if(bms_info->CCS.OutputCurlt <= 4000){
         bms_ccs_curr = (4000 - bms_info->CCS.OutputCurlt);    /** 目前国标电流偏移是 -400 */
     }
@@ -2378,7 +2378,8 @@ static void ofsm_charging_fun(uint8_t gunno)
     }else{
         s_compare_ccs_bcl_count[gunno] = rt_tick_get();
     }
-
+#endif
+#if 0
     if(abs(bms_ccs_curr *10 - bms_info->BCS.ChargCurlt *10) > APP_CURR_COMPARE_CCSBCS_MAX){
         if(s_compare_ccs_bcs_count[gunno] > rt_tick_get()){
             s_compare_ccs_bcs_count[gunno] = rt_tick_get();
@@ -2396,6 +2397,7 @@ static void ofsm_charging_fun(uint8_t gunno)
     }else{
         s_compare_ccs_bcs_count[gunno] = rt_tick_get();
     }
+#endif
 
 #ifdef APP_INCLUDE_NET
 #if 0
