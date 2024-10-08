@@ -14,10 +14,9 @@
 /** [计费信息] */
 struct billing_info{
     struct{
-        uint32_t elect : 20;                                   /** 时段电费费用(精度：0.0001) */
-        uint32_t service : 20;                                 /** 时段服务费费用(精度：0.0001) */
-        uint32_t delay : 20;                                   /** 时段延迟费费用(精度：0.0001) */
-        uint32_t reserve : 4;
+        uint32_t elect;                                        /** 时段电费费用(精度：0.0001) */
+        uint32_t service;                                      /** 时段服务费费用(精度：0.0001) */
+        uint32_t delay;                                        /** 时段延迟费费用(精度：0.0001) */
     }period_fees[APP_BILLING_RULE_PERIOD_MAX];                 /** 时段费用 */
     uint8_t period_number;                                     /** 当前时段号 */
     uint32_t period_elect[APP_BILLING_RULE_PERIOD_MAX];        /** 时段电量(精度：0.001) */

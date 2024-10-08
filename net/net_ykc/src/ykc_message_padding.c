@@ -734,7 +734,8 @@ int8_t ykc_message_pro_billing_model_set_response(void *data, uint8_t len)
     for(uint8_t _gunno = 0x00; _gunno < NET_SYSTEM_GUN_NUMBER; _gunno++){
         uint8_t gunno = _gunno;
         s_ykc_base = (System_BaseData*)(s_ykc_handle->get_base_data(gunno));
-        if((s_ykc_base->state.current == APP_OFSM_STATE_CHARGING) || (s_ykc_base->state.current == APP_OFSM_STATE_STARTING)){
+        if((s_ykc_base->state.current == APP_OFSM_STATE_CHARGING) || (s_ykc_base->state.current == APP_OFSM_STATE_STARTING) ||
+                (s_ykc_base->state.current == APP_OFSM_STATE_STOPING)){
             net_operation_set_event(gunno, NET_OPERATION_EVENT_UPDATE_BILLING_RULE);
             gunno = NET_SYSTEM_GUN_NUMBER;
         }
@@ -1349,7 +1350,7 @@ void ykc_chargepile_request_padding_realtime_data(uint8_t gunno, uint8_t is_init
         ykc_chargepile_request_padding_bmscommand_chargerout(gunno, NET_ENUM_TRUE);
         ykc_chargepile_request_padding_bmsinfo_duringcharge(gunno, NET_ENUM_TRUE);
     }else{
-        if(ykc_get_message_send_state(gunno, NET_YKC_PREQ_EVENT_TRANSACTION_RECORD) == NET_YKC_SEND_STATE_COMPLETE){
+        if(ykc_get_message_send_state(gunno, NET_YKC_PREQ_EVENT_REPORT_REALTIME_DATA) == NET_YKC_SEND_STATE_COMPLETE){
             if((s_ykc_base->state.current == APP_OFSM_STATE_CHARGING) || (s_ykc_base->state.current == APP_OFSM_STATE_STARTING)){
                 struct thaisenBMS_Charger_struct *bms = (struct thaisenBMS_Charger_struct*)(s_ykc_base->bms_data);
 
@@ -1781,7 +1782,7 @@ uint8_t ykc_chargepile_request_padding_transaction_record(uint8_t gunno, void *t
 
     s_ykc_base = (System_BaseData*)(s_ykc_handle->get_base_data(gunno));
     ykc_set_transaction_verify_state(gunno, 0x00);
-    if((ykc_get_message_send_state(gunno, NET_YKC_PREQ_EVENT_TRANSACTION_RECORD) == NET_YKC_SEND_STATE_COMPLETE) || !is_repeat){
+    if((ykc_get_message_send_state(gunno, NET_YKC_PREQ_EVENT_TRANSACTION_RECORD) == NET_YKC_SEND_STATE_COMPLETE)){
         valid_len = sizeof(g_ykc_preq_transaction_records[gunno].body.serial_number);
         valid_len = valid_len > sizeof(_transaction->serial_number) ? sizeof(_transaction->serial_number) : valid_len;
         memset(g_ykc_preq_transaction_records[gunno].body.serial_number, 0x00, sizeof(g_ykc_preq_transaction_records[gunno].body.serial_number));
