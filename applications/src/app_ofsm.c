@@ -65,8 +65,11 @@ static uint8_t s_charge_steady_delay[APP_SYSTEM_GUNNO_SIZE], s_power_adjust_dela
 static uint32_t s_system_power_output = 0x00;
 static uint16_t s_gun_charging_curr[APP_SYSTEM_GUNNO_SIZE];
 
-static uint32_t s_compare_ccs_bcl_count[APP_SYSTEM_GUNNO_SIZE];
-static uint32_t s_compare_ccs_bcs_count[APP_SYSTEM_GUNNO_SIZE];
+static uint32_t s_compare_module_bcl_count[APP_SYSTEM_GUNNO_SIZE];
+static uint32_t s_compare_ccs_module_count[APP_SYSTEM_GUNNO_SIZE];
+
+static uint32_t s_bms_require_curr_last[APP_SYSTEM_GUNNO_SIZE];
+static uint8_t s_bms_reqcurr_changed_count[APP_SYSTEM_GUNNO_SIZE];
 
 /*************************************
  * 函数名       ofsm_get_current_period
@@ -485,7 +488,7 @@ void chargepile_power_adjust(void)
             sys_power_max += (sys_get_single_group_module_num(count) *single_module_power);
         }
 
-        if((power >= 1000) && (power <= sys_power_max)){
+        if((power >= sys_power_max /100) && (power <= sys_power_max)){
             s_system_power_output = power *10;
         }else{
             s_system_power_output = sys_power_max *10;
@@ -1356,9 +1359,12 @@ static void ofsm_starting_fun(uint8_t gunno)
     }
 
     s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_FALSE;
-    s_compare_ccs_bcl_count[gunno] = rt_tick_get();
-    s_compare_ccs_bcs_count[gunno] = rt_tick_get();
+    s_ofsm_info[gunno].base.flag.bms_require_decrease = APP_THA_ENUM_FALSE;
+    s_compare_module_bcl_count[gunno] = rt_tick_get();
+    s_compare_ccs_module_count[gunno] = rt_tick_get();
     s_tiny_current_count[gunno] = rt_tick_get();
+    s_bms_require_curr_last[gunno] = 0x00;
+    s_bms_reqcurr_changed_count[gunno] = 0x00;
 
     if(s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE){
         if((gunno != s_ofsm_info[gunno].base.main_gunno) && (s_ofsm_info[gunno].state != s_ofsm_info[s_ofsm_info[gunno].base.main_gunno].state)){
@@ -1931,6 +1937,7 @@ static void ofsm_charging_fun(uint8_t gunno)
         return;
     }
 
+    extern uint32_t thaisen_get_module_curr(uint8_t gunNum);
     enum charge_state_t charge_state = mw_get_charge_state(gunno);
 
     if (++s_debug_count[gunno] > (3000 + 500 *gunno) / 100) {
@@ -1959,7 +1966,7 @@ static void ofsm_charging_fun(uint8_t gunno)
         }
     }
 
-    uint32_t current_tick = rt_tick_get(), increase_sec = 0, bms_ccs_curr = 0x00;
+    uint32_t current_tick = rt_tick_get(), increase_sec = 0, bms_ccs_curr = 4000;
     bool is_stop_charge_authorization = APP_THA_ENUM_FALSE;  /* 停充已授权 */
     enum system_stop_way stop_way = APP_SYSTEM_STOP_WAY_SIZE;
     enum charge_fault_t charge_fault = app_get_highest_priority_system_fault(gunno);
@@ -2356,46 +2363,77 @@ static void ofsm_charging_fun(uint8_t gunno)
             }
         }
     }
+
 #if 0
     if(bms_info->CCS.OutputCurlt <= 4000){
         bms_ccs_curr = (4000 - bms_info->CCS.OutputCurlt);    /** 目前国标电流偏移是 -400 */
     }
 
-    if(bms_ccs_curr *10 > (bms_info->BCL.BMSneedCurlt *10 + APP_CURR_COMPARE_CCSBCL_MAX)){
-        if(s_compare_ccs_bcl_count[gunno] > rt_tick_get()){
-            s_compare_ccs_bcl_count[gunno] = rt_tick_get();
-        }
-        if((rt_tick_get() - s_compare_ccs_bcl_count[gunno]) > APP_CURR_CCSBCL_ABNORMAL_TIMEOUT){
-            if(is_stop_charge_authorization == false){
-                s_thaisen_transaction[gunno].stop_reason = APP_SYSTEM_STOP_WAY_CURRENT_ABNORMAL;
-                s_ofsm_info[gunno].base.reason_code = s_thaisen_transaction[gunno].stop_reason;
-                s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_TRUE;
-
-                is_stop_charge_authorization = true;
-                LOG_D("gunno(%d) charge finish deal to CCS BCL current abnormal(%d, %d)\n", gunno, bms_ccs_curr, bms_info->BCL.BMSneedCurlt);
+    if(s_ofsm_info[gunno].base.flag.bms_require_decrease == APP_THA_ENUM_FALSE){
+        if((s_bms_require_curr_last[gunno]) > ((bms_info->BCL.BMSneedCurlt *10) + APP_CURR_COMPARE_CCSBCL_MAX)){
+            s_bms_reqcurr_changed_count[gunno] = 0x00;
+            s_bms_require_curr_last[gunno] = (bms_info->BCL.BMSneedCurlt *10);
+            s_ofsm_info[gunno].base.flag.bms_require_decrease = APP_THA_ENUM_TRUE;
+        }else{
+            if(++s_bms_reqcurr_changed_count[gunno] > 10){  /** 防止1s内多次变化，每次变化都小于APP_CURR_COMPARE_CCSBCL_MAX */
+                s_bms_reqcurr_changed_count[gunno] = 0x00;
+                s_bms_require_curr_last[gunno] = (bms_info->BCL.BMSneedCurlt *10);
             }
         }
     }else{
-        s_compare_ccs_bcl_count[gunno] = rt_tick_get();
+        s_bms_reqcurr_changed_count[gunno] = 0x00;
+        s_bms_require_curr_last[gunno] = (bms_info->BCL.BMSneedCurlt *10);
+    }
+
+    if(thaisen_get_module_curr(gunno) *10 > (bms_info->BCL.BMSneedCurlt *10 + APP_CURR_COMPARE_CCSBCL_MAX)){
+        if(s_compare_module_bcl_count[gunno] > rt_tick_get()){
+            s_compare_module_bcl_count[gunno] = rt_tick_get();
+        }
+        if(s_ofsm_info[gunno].base.flag.bms_require_decrease == APP_THA_ENUM_TRUE){
+            if((rt_tick_get() - s_compare_module_bcl_count[gunno]) > 2 *APP_CURR_CCSBCL_ABNORMAL_TIMEOUT){
+                if(is_stop_charge_authorization == false){
+                    s_thaisen_transaction[gunno].stop_reason = APP_SYSTEM_STOP_WAY_CURRENT_ABNORMAL;
+                    s_ofsm_info[gunno].base.reason_code = s_thaisen_transaction[gunno].stop_reason;
+                    s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_TRUE;
+
+                    is_stop_charge_authorization = true;
+                    LOG_D("gunno(%d) charge finish deal to module BCL current abnormal(%d, %d)\n", gunno, thaisen_get_module_curr(gunno), bms_info->BCL.BMSneedCurlt);
+                }
+            }
+        }else{
+            if((rt_tick_get() - s_compare_module_bcl_count[gunno]) > APP_CURR_CCSBCL_ABNORMAL_TIMEOUT){
+                if(is_stop_charge_authorization == false){
+                    s_thaisen_transaction[gunno].stop_reason = APP_SYSTEM_STOP_WAY_CURRENT_ABNORMAL;
+                    s_ofsm_info[gunno].base.reason_code = s_thaisen_transaction[gunno].stop_reason;
+                    s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_TRUE;
+
+                    is_stop_charge_authorization = true;
+                    LOG_D("gunno(%d) charge finish deal to module BCL current abnormal(%d, %d)\n", gunno, thaisen_get_module_curr(gunno), bms_info->BCL.BMSneedCurlt);
+                }
+            }
+        }
+    }else{
+        s_compare_module_bcl_count[gunno] = rt_tick_get();
+        s_ofsm_info[gunno].base.flag.bms_require_decrease = APP_THA_ENUM_FALSE;
     }
 #endif
 #if 0
-    if(abs(bms_ccs_curr *10 - bms_info->BCS.ChargCurlt *10) > APP_CURR_COMPARE_CCSBCS_MAX){
-        if(s_compare_ccs_bcs_count[gunno] > rt_tick_get()){
-            s_compare_ccs_bcs_count[gunno] = rt_tick_get();
+    if(abs(bms_ccs_curr *10 - thaisen_get_module_curr(gunno) *10) > APP_CURR_COMPARE_CCSBCS_MAX){
+        if(s_compare_ccs_module_count[gunno] > rt_tick_get()){
+            s_compare_ccs_module_count[gunno] = rt_tick_get();
         }
-        if((rt_tick_get() - s_compare_ccs_bcs_count[gunno]) > APP_CURR_CCSBCS_ABNORMAL_TIMEOUT){
+        if((rt_tick_get() - s_compare_ccs_module_count[gunno]) > APP_CURR_CCSBCS_ABNORMAL_TIMEOUT){
             if(is_stop_charge_authorization == false){
                 s_thaisen_transaction[gunno].stop_reason = APP_SYSTEM_STOP_WAY_CURRENT_ABNORMAL;
                 s_ofsm_info[gunno].base.reason_code = s_thaisen_transaction[gunno].stop_reason;
                 s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_TRUE;
 
                 is_stop_charge_authorization = true;
-                LOG_D("gunno(%d) charge finish deal to CCS BCS current abnormal(%d, %d)\n", gunno, bms_ccs_curr, bms_info->BCS.ChargCurlt);
+                LOG_D("gunno(%d) charge finish deal to CCS module current abnormal(%d, %d)\n", gunno, bms_ccs_curr, thaisen_get_module_curr(gunno));
             }
         }
     }else{
-        s_compare_ccs_bcs_count[gunno] = rt_tick_get();
+        s_compare_ccs_module_count[gunno] = rt_tick_get();
     }
 #endif
 
@@ -3893,7 +3931,9 @@ void ofsm_thread_entry(void *parameter)
     uint32_t record_store = 0;
     uint8_t thread_gunno = *((uint8_t*)parameter);
     enum temp_check result = TCHECK_RESULT_NORMAL;
+    thaisenChargeGunInfo info;
 
+    memset(&info, 0x00, sizeof(thaisenChargeGunInfo));
     if(thread_gunno >= APP_SYSTEM_GUNNO_SIZE){
         thread_gunno = APP_SYSTEM_GUNNO_SIZE;
     }
@@ -3992,6 +4032,62 @@ void ofsm_thread_entry(void *parameter)
             extern void mw_set_time_sync_flag(void);
             mw_set_time_sync_flag();
         }
+
+        info.soc = 0x00;
+        info.voltage = 0x00;
+        info.current = 0x00;
+        info.fault_code = 0x00;
+        info.chargeElect = 0x00;
+        info.chargeTime = 0x00;
+
+        switch (s_ofsm_info[thread_gunno].base.state.current){
+        case APP_OFSM_STATE_WAIT_NET:
+            info.state = THAISEN_GUNSTATE_SELFCHECK;
+            break;
+        case APP_OFSM_STATE_IDLEING:
+            info.state = THAISEN_GUNSTATE_IDLE;
+            break;
+        case APP_OFSM_STATE_READYING:
+            info.state = THAISEN_GUNSTATE_READY;
+            break;
+        case APP_OFSM_STATE_RESERVATION:
+            info.state = THAISEN_GUNSTATE_READY;
+            break;
+        case APP_OFSM_STATE_STARTING:
+            info.state = THAISEN_GUNSTATE_STARTING;
+            break;
+        case APP_OFSM_STATE_CHARGING:
+            info.soc = s_ofsm_info[thread_gunno].base.current_soc *10;
+            info.voltage = s_ofsm_info[thread_gunno].base.voltage_a /10;
+            info.current = s_ofsm_info[thread_gunno].base.current_a /10;
+            info.chargeElect = s_ofsm_info[thread_gunno].base.elect_a /100;
+            info.chargeTime = s_ofsm_info[thread_gunno].base.charge_time /60;
+            info.state = THAISEN_GUNSTATE_CHARGING;
+            break;
+        case APP_OFSM_STATE_STOPING:
+            info.state = THAISEN_GUNSTATE_STOPING;
+            break;
+        case APP_OFSM_STATE_FINISHING:
+            info.state = THAISEN_GUNSTATE_FINISH;
+            break;
+        case APP_OFSM_STATE_FAULTING:
+            info.fault_code = app_get_highest_priority_system_fault(thread_gunno) + 0x01;  /** + 1是因为急停故障码是0 */
+            info.state = THAISEN_GUNSTATE_FAULTING;
+            break;
+        default:
+            info.fault_code = app_get_highest_priority_system_fault(thread_gunno) + 0x01;
+            info.state = THAISEN_GUNSTATE_FAULTING;
+            break;
+        }
+
+        info.gunTemp = s_ofsm_info[thread_gunno].base.gunline_temperature[0x00];
+        info.gunLineTemp = s_ofsm_info[thread_gunno].base.gunline_temperature[0x00];
+        if(s_ofsm_info[thread_gunno].base.gunline_temperature[0x01] > s_ofsm_info[thread_gunno].base.gunline_temperature[0x00]){
+            info.gunTemp = s_ofsm_info[thread_gunno].base.gunline_temperature[0x01];
+            info.gunLineTemp = s_ofsm_info[thread_gunno].base.gunline_temperature[0x01];
+        }
+
+        thaisenSetGunState(thread_gunno, info);
 
         if(s_ofsm_info[thread_gunno].state == APP_OFSM_STATE_CHARGING){
             if(record_store > rt_tick_get()){

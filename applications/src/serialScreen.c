@@ -1450,7 +1450,7 @@ void SerialScreen_BtnSystemFuncSet(void)
     switch(type){
     case SYSTEM_FUNCTION_DYNAMIC_SWITCH:
         if(LcdAssistantData.Flag.ParaChargeSelect == FALSE){
-            thaisenModuleSetDeviceType(thaisenDeviceType_average);
+            thaisenSetChargGunRunType(thaisenDeviceType_average);
             LcdData.setData.DevType = type;
             LcdAssistantData.DeviceType = type;
         }else{
@@ -1460,7 +1460,7 @@ void SerialScreen_BtnSystemFuncSet(void)
     default:
         LcdData.setData.DevType = SYSTEM_FUNCTION_AVERAGE_DOUBLE;
         LcdAssistantData.DeviceType = SYSTEM_FUNCTION_AVERAGE_DOUBLE;
-        thaisenModuleSetDeviceType(thaisenDeviceType_doubleGun);
+        thaisenSetChargGunRunType(thaisenDeviceType_doubleGun);
         break;
     }
 
@@ -2303,7 +2303,7 @@ static void SerialScreen_BtnModuleStateShow(int port)
     thaisenModuleFaultInfoStruct * fault = NULL;
     thaisenModuleVoltCurrStruct * voltcurr = NULL;
 
-    if(thaisenModuleGetDeviceType() == thaisenDeviceType_average){
+    if(thaisenGetChargGunRunType() == thaisenDeviceType_average){
         extern void *sys_get_module_config_info(void);
         group_max = ((struct thasienModuleSetStruct *)(sys_get_module_config_info()))->moduleGroupNum;
     }else{
@@ -2311,7 +2311,7 @@ static void SerialScreen_BtnModuleStateShow(int port)
     }
 
     for(u8 group = 0; group < group_max; group++){
-        if(thaisenModuleGetDeviceType() == thaisenDeviceType_average){
+        if(thaisenGetChargGunRunType() == thaisenDeviceType_average){
             voltcurr = thaisenGetModuleVoltCurrInfo(&length, group);
             fault = thaisenGetModuleFaultInfo(&length, group);
         }else{
@@ -4644,12 +4644,12 @@ struct LCD_DATA_FIFO_TYPE *SerialScreen_Init(struct SerialScreenObj *cmd)
 
     switch(LcdData.setData.DevType){
     case SYSTEM_FUNCTION_DYNAMIC_SWITCH:
-        thaisenModuleSetDeviceType(thaisenDeviceType_average);
+        thaisenSetChargGunRunType(thaisenDeviceType_average);
         break;
     default:
         LcdData.setData.DevType = SYSTEM_FUNCTION_AVERAGE_DOUBLE;
         LcdAssistantData.DeviceType = SYSTEM_FUNCTION_AVERAGE_DOUBLE;
-        thaisenModuleSetDeviceType(thaisenDeviceType_doubleGun);
+        thaisenSetChargGunRunType(thaisenDeviceType_doubleGun);
         break;
     }
 
@@ -6587,7 +6587,7 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT_B, NULL, "ElockB set", LCD_BtnType, 0x0048, 0x1000, page_type, LCD_PAGE_MENU_INOUT_B, (void *)SerialScreen_BtnElockSetB);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT_B, NULL, "FanB set", LCD_BtnType, 0x0049, 0x1000, page_type, LCD_PAGE_MENU_INOUT_B, (void *)SerialScreen_BtnFanSetB);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT_B, NULL, "aux set", LCD_BtnType, 0x0054, 0x1000, page_type, LCD_PAGE_MENU_INOUT_B, (void *)SerialScreen_BtnAuxSetB);
-    SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT_B, NULL, "b gun", LCD_BtnType, 0x0026, 0x1000, page_type, LCD_PAGE_MENU_INOUT, (void *)SerialScreen_GetIOStatusA);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT_B, NULL, "a gun", LCD_BtnType, 0x0026, 0x1000, page_type, LCD_PAGE_MENU_INOUT, (void *)SerialScreen_GetIOStatusA);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT_B, NULL, "monitor info", LCD_BtnType, 0x0022, 0x1000, page_type, LCD_PAGE_MENU_MONITOR_B, (void *)NULL);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT_B, NULL, "Relay AC", LCD_TextType, LCD_1sReflash, 0x5164, pu32_type, sizeof(LcdData.setData.g_acRely), (void *)&LcdData.setData.g_acRely);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT_B, NULL, "Relay B", LCD_TextType, LCD_1sReflash, 0x5166, pu8_nH_type, 1, (void *)&LcdData.setData.g_dcRelay[LCD_GUN_2]);
@@ -6638,7 +6638,7 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     /** 出厂调试-B枪模块信息 [page:50] */
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_STATE_MODULE_B, NULL, "a gun", LCD_BtnType, 0x0026, 0x1000, page_type, LCD_PAGE_MENU_STATE_MODULE, (void *)SerialScreen_BtnModuleStateA);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_STATE_MODULE_B, NULL, "monitor info", LCD_BtnType, 0x0022, 0x1000, page_type, LCD_PAGE_MENU_MONITOR_B, (void *)NULL);
-    SerialScreen_ItemSetUp(LCD_PAGE_MENU_STATE_MODULE_B, NULL, "in out", LCD_BtnType, 0x0023, 0x1000, page_type, LCD_PAGE_MENU_INOUT_B, (void *)SerialScreen_GetIOStatusA);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_STATE_MODULE_B, NULL, "in out", LCD_BtnType, 0x0023, 0x1000, page_type, LCD_PAGE_MENU_INOUT_B, (void *)SerialScreen_GetIOStatusB);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_STATE_MODULE_B, NULL, "cd up", LCD_BtnType, 0x0050, 0x1000, page_type, LCD_PAGE_ROOT_MAIN, (void *)SerialScreen_QuitDebugIO);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_STATE_MODULE_B, NULL, "Home", LCD_BtnHomeType, 0x0002, 0x1000, page_type, LCD_PAGE_NONE, (void *)SerialScreen_QuitDebugIO);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_STATE_MODULE_B, NULL, "modulestate", LCD_TextType, LCD_NoReflash, 0x5200, pstr_type, sizeof(LcdData.ModuleStateString[0]), (void *)LcdData.ModuleStateString[0]);

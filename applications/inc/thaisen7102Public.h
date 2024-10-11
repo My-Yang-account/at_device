@@ -2436,5 +2436,81 @@ thaisenSensorOutIn_State thaisen_LiquidCooling_B_FB(void);
  */
 void thaisen_pwm_fan_duty(uint16_t duty);
 
+/**********************************************************************************/
+/*****************************充电枪模式*******************************************/
+
+typedef enum
+{
+    thaisenDeviceType_doubleGun,           /* 双枪终端 */
+    thaisenDeviceType_singleGun,           /* 单枪终端 */
+    thaisenDeviceType_average,             /* 动态切换 */
+    thaisenDeviceType_Rectifier_cabinet,   /* 整流柜 */
+    thaisenDeviceType_size,
+}thaisenDeviceType;
+
+/* 功能说明:
+ *          thaisenSetChargGunRunType:设置设备类型
+ *
+ * 输入参数:
+ *          type:类型
+ * 返回参数:
+ *
+ * 调用方法:
+ *          可实时调用
+ */
+void thaisenSetChargGunRunType(uint8_t type);
+
+/* 功能说明:
+ *          thaisenGetChargGunRunType: 获取设备类型
+ *
+ * 输入参数:
+ *
+ * 返回参数:
+ *          设备类型
+ * 调用方法:
+ *          可实时调用
+ */
+uint8_t thaisenGetChargGunRunType(void);
+
+typedef enum
+{
+    THAISEN_GUNSTATE_SELFCHECK,
+    THAISEN_GUNSTATE_IDLE,
+    THAISEN_GUNSTATE_READY,
+    THAISEN_GUNSTATE_STARTING,
+    THAISEN_GUNSTATE_CHARGING,
+    THAISEN_GUNSTATE_STOPING,
+    THAISEN_GUNSTATE_FINISH,
+    THAISEN_GUNSTATE_FAULTING,
+}thaisenLedGunState;
+
+#pragma pack(1)
+/* 充电枪信息 */
+typedef struct
+{
+    uint8_t state;                        /* 充电状态 */
+    uint16_t fault_code;                  /* 故障码 */
+    uint16_t reason_code;                 /* 停止原因码 */
+    uint16_t soc;                         /* SOC(精度：0.1) */
+    uint16_t voltage;                     /* 充电电压(精度：0.1) */
+    uint16_t current;                     /* 充电电流(精度：0.1)  */
+    uint16_t gunTemp;                     /* 枪头温度(精度：0.1)  */
+    uint16_t gunLineTemp;                 /* 枪线温度(精度：0.1)  */
+    uint16_t chargeElect;                 /* 已充电量(精度：0.1)  */
+    uint16_t chargeTime;                  /* 充电时长(精度：1min)  */
+}thaisenChargeGunInfo;
+#pragma pack()
+/* 功能说明:
+ *          thaisenSetGunState: 设置枪状态信息(用于灯带、数码管处理)
+ *
+ * 输入参数:
+ *         gunNum:枪号
+ *         info：枪信息
+ * 返回参数:
+ *          设备类型
+ * 调用方法:
+ *          可实时调用
+ */
+void thaisenSetGunState(uint8_t gunNum, thaisenChargeGunInfo info);
 
 #endif /* APPLICATIONS_THAISEN7102PUBLIC_H_ */

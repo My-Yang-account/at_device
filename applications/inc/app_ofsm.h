@@ -28,7 +28,7 @@ extern "C" {
 #define TINY_CURRENT_ABNOAMAL_TIMEOUT        1800000   /* 小电流异常持续时间 30 *60 *1000  */
 
 #define APP_CURR_CCSBCL_ABNORMAL_TIMEOUT     15000     /* CCS 和 BCL 电流异常停充超时时间 */
-#define APP_CURR_CCSBCS_ABNORMAL_TIMEOUT     15000     /* CCS 和 BCS 电流异常停充超时时间 */
+#define APP_CURR_CCSBCS_ABNORMAL_TIMEOUT     30000     /* CCS 和 BCS 电流异常停充超时时间 */
 #define APP_CURR_COMPARE_CCSBCL_MAX          500       /* CCS 和 BCL 电流比较最大差值 */
 #define APP_CURR_COMPARE_CCSBCS_MAX          1500      /* CCS 和 BCS 电流比较最大差值 */
 
@@ -312,6 +312,7 @@ typedef struct{
         uint32_t is_adjust_power : 1;                        /* 已进行功率调整 */
         uint32_t is_resume_power : 1;                        /* 需要恢复功率 */
         uint32_t is_reservation : 1;                         /* 预约中 */
+        uint32_t bms_require_decrease : 1;                   /* BMS 需求减小 */
     }flag;
 
     uint8_t cc1_state;                /* CC1 状态 */
