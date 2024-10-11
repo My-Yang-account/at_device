@@ -1450,7 +1450,7 @@ int32_t chargepile_check_config(void)
         }
     }
     for(uint8_t count = 0x00; count < CP_INFO_CARD_NUMBER_WHITELIST_NUM_MAX; count++){
-        for(uint8_t index = 0x00; index < CARD_NUMBER_LENGTH_MAX; index++){
+        for(uint8_t index = 0x00; index < strlen((char*)s_chargepile_config_info.config_info.card_whitelist.card_number[count]); index++){
             if(!((s_chargepile_config_info.config_info.card_whitelist.card_number[count][index] >= 0x20) && (s_chargepile_config_info.config_info.card_whitelist.card_number[count][index] < 0x7F))){
                 memset(s_chargepile_config_info.config_info.card_whitelist.card_number[count], 0x00, sizeof(s_chargepile_config_info.config_info.card_whitelist.card_number[count]));
                 break;
