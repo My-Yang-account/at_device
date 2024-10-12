@@ -133,6 +133,13 @@ extern "C"
 #define BSP_UART6_TX_PIN       "PC6"
 #define BSP_UART6_RX_PIN       "PC7"
 
+/* 以太网 */
+#define BSP_USING_UART7
+#define BSP_UART7_TX_PIN       "PF7"
+#define BSP_UART7_RX_PIN       "PF6"
+#define BSP_UART7_TX_USING_DMA
+#define BSP_UART7_RX_USING_DMA
+
 #endif /* USING_DOUBLE_GUN */
 /*-------------------------- UART CONFIG END --------------------------*/
 
