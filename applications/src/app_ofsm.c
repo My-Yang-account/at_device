@@ -4065,9 +4065,15 @@ void ofsm_thread_entry(void *parameter)
             info.state = THAISEN_GUNSTATE_CHARGING;
             break;
         case APP_OFSM_STATE_STOPING:
+            info.soc = s_ofsm_info[thread_gunno].base.current_soc *10;
+            info.chargeElect = s_ofsm_info[thread_gunno].base.elect_a /100;
+            info.chargeTime = s_ofsm_info[thread_gunno].base.charge_time /60;
             info.state = THAISEN_GUNSTATE_STOPING;
             break;
         case APP_OFSM_STATE_FINISHING:
+            info.soc = s_ofsm_info[thread_gunno].base.current_soc *10;
+            info.chargeElect = s_ofsm_info[thread_gunno].base.elect_a /100;
+            info.chargeTime = s_ofsm_info[thread_gunno].base.charge_time /60;
             info.state = THAISEN_GUNSTATE_FINISH;
             break;
         case APP_OFSM_STATE_FAULTING:
