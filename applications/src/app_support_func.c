@@ -167,37 +167,18 @@ const char* get_fault_string(uint16_t code)
         }
     }
 
-    switch(code){
-    case APP_SYSTEM_STOP_WAY_GUNVOLT:
-        if(sizeof(charge_fault_str) > APP_CHARGE_FAULT_GUN_VOLT){
-            return charge_fault_str[APP_CHARGE_FAULT_GUN_VOLT];
-        }
-        break;
-    case APP_SYSTEM_STOP_WAY_INSULT:
-        if(sizeof(charge_fault_str) > APP_CHARGE_FAULT_INSULTA){
-            return charge_fault_str[APP_CHARGE_FAULT_INSULTA];
-        }
-        break;
-    case APP_SYSTEM_STOP_WAY_COMMINICATION:
-        if(sizeof(charge_fault_str) > APP_CHARGE_FAULT_COMMON){
-            return charge_fault_str[APP_CHARGE_FAULT_COMMON];
-        }
-        break;
-    case APP_SYSTEM_STOP_WAY_BATTERY_VOLT:
-        if(sizeof(charge_fault_str) > APP_CHARGE_FAULT_BATTERY_VOLT){
-            return charge_fault_str[APP_CHARGE_FAULT_BATTERY_VOLT];
-        }
-        break;
-    case APP_SYSTEM_STOP_WAY_READY_VOLT:
-        if(sizeof(charge_fault_str) > APP_CHARGE_FAULT_READY_VOLT){
-            return charge_fault_str[APP_CHARGE_FAULT_READY_VOLT];
-        }
-        break;
-    case APP_SYSTEM_STOP_WAY_INSULT_VOLT:
-        if(sizeof(charge_fault_str) > APP_CHARGE_FAULT_INSULT_VOLT){
-            return charge_fault_str[APP_CHARGE_FAULT_INSULT_VOLT];
-        }
-        break;
+    if(code == mw_system_stop_way_convert(APP_SYSTEM_STOP_WAY_GUNVOLT)){
+        return charge_fault_str[APP_CHARGE_FAULT_GUN_VOLT];
+    }else if(code == mw_system_stop_way_convert(APP_SYSTEM_STOP_WAY_INSULT)){
+        return charge_fault_str[APP_CHARGE_FAULT_INSULTA];
+    }else if(code == mw_system_stop_way_convert(APP_SYSTEM_STOP_WAY_COMMINICATION)){
+        return charge_fault_str[APP_CHARGE_FAULT_COMMON];
+    }else if(code == mw_system_stop_way_convert(APP_SYSTEM_STOP_WAY_BATTERY_VOLT)){
+        return charge_fault_str[APP_CHARGE_FAULT_BATTERY_VOLT];
+    }else if(code == mw_system_stop_way_convert(APP_SYSTEM_STOP_WAY_READY_VOLT)){
+        return charge_fault_str[APP_CHARGE_FAULT_READY_VOLT];
+    }else if(code == mw_system_stop_way_convert(APP_SYSTEM_STOP_WAY_INSULT_VOLT)){
+        return charge_fault_str[APP_CHARGE_FAULT_INSULT_VOLT];
     }
 
     return "unknow";

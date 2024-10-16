@@ -11,7 +11,6 @@
 uint32_t* mw_get_system_fault_set(uint8_t gunno)
 {
     if(gunno < APP_SYSTEM_GUNNO_SIZE){
-//        rt_kprintf("mw_get_system_fault_set gunno(%d)(%x)\n", gunno, *thaisenGetSysFault(gunno));
         return thaisenGetSysFault(gunno);
     }
     return NULL;
@@ -20,7 +19,6 @@ uint32_t* mw_get_system_fault_set(uint8_t gunno)
 uint32_t* mw_get_charge_fault_set(uint8_t gunno)
 {
     if(gunno < APP_SYSTEM_GUNNO_SIZE){
-//        rt_kprintf("mw_get_charge_fault_set gunno(%d)(%x)\n", gunno, *thaisenGetChargFault(gunno));
         return thaisenGetChargFault(gunno);
     }
     return NULL;

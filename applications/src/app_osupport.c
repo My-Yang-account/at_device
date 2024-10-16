@@ -415,27 +415,27 @@ void app_osupport_thread_entry(void *parameter)
                             {
                             case APP_CHARGE_FAULT_GUN_VOLT:
                                 s_charge_error_info[gunno].error_index = 0x00FFFFFF;
-                                s_charge_error_info[gunno].error_code = APP_SYSTEM_STOP_WAY_GUNVOLT;
+                                s_charge_error_info[gunno].error_code = mw_system_stop_way_convert(APP_SYSTEM_STOP_WAY_GUNVOLT);
                                 break;
                             case APP_CHARGE_FAULT_INSULTA:
                                 s_charge_error_info[gunno].error_index = 0x00FFFFFE;
-                                s_charge_error_info[gunno].error_code = APP_SYSTEM_STOP_WAY_INSULT;
+                                s_charge_error_info[gunno].error_code = mw_system_stop_way_convert(APP_SYSTEM_STOP_WAY_INSULT);
                                 break;
                             case APP_CHARGE_FAULT_COMMON:
                                 s_charge_error_info[gunno].error_index = 0x00FFFFFD;
-                                s_charge_error_info[gunno].error_code = APP_SYSTEM_STOP_WAY_COMMINICATION;
+                                s_charge_error_info[gunno].error_code = mw_system_stop_way_convert(APP_SYSTEM_STOP_WAY_COMMINICATION);
                                 break;
                             case APP_CHARGE_FAULT_BATTERY_VOLT:
                                 s_charge_error_info[gunno].error_index = 0x00FFFFFC;
-                                s_charge_error_info[gunno].error_code = APP_SYSTEM_STOP_WAY_BATTERY_VOLT;
+                                s_charge_error_info[gunno].error_code = mw_system_stop_way_convert(APP_SYSTEM_STOP_WAY_BATTERY_VOLT);
                                 break;
                             case APP_CHARGE_FAULT_READY_VOLT:
                                 s_charge_error_info[gunno].error_index = 0x00FFFFFB;
-                                s_charge_error_info[gunno].error_code = APP_SYSTEM_STOP_WAY_READY_VOLT;
+                                s_charge_error_info[gunno].error_code = mw_system_stop_way_convert(APP_SYSTEM_STOP_WAY_READY_VOLT);
                                 break;
                             case APP_CHARGE_FAULT_INSULT_VOLT:
                                 s_charge_error_info[gunno].error_index = 0x00FFFFFA;
-                                s_charge_error_info[gunno].error_code = APP_SYSTEM_STOP_WAY_INSULT_VOLT;
+                                s_charge_error_info[gunno].error_code = mw_system_stop_way_convert(APP_SYSTEM_STOP_WAY_INSULT_VOLT);
                                 break;
                             default:
                                 break;
