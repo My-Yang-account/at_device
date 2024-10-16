@@ -206,7 +206,7 @@ struct qrcode_info *thaisen_app_get_gunno_qrcode(uint8_t gunno) // OK
         if((charptr != NULL) && ((uint32_t)charptr > (uint32_t)s_qrcode.qrcode)){
             clen = ((uint32_t)charptr - (uint32_t)s_qrcode.qrcode);
             if((clen > 0x02) && (clen < sizeof(s_qrcode.qrcode))){    /** 0x02 是因为要根据枪号修改二维码中的端口号，占2位 */
-#if 0
+#if 1
                 s_qrcode.qrcode[clen - 0x01] = ('A' + gunno);      /** 这是终端 */
 #else
                 s_qrcode.qrcode[clen - 0x02] = '0';
@@ -1016,6 +1016,9 @@ int32_t thaisen_get_gun_temp(uint8_t gunno)
  *******************************************/
 uint32_t thaisen_get_ammeter_voltage(uint8_t gunno)
 {
+    if(gunno >= APP_SYSTEM_GUNNO_SIZE){
+        return 0x00;
+    }
     uint8_t main_gunno = gunno;
     struct ofsm_info *ofsm_temp = get_ofsm_info(gunno);
 
@@ -1033,6 +1036,9 @@ uint32_t thaisen_get_ammeter_voltage(uint8_t gunno)
  *******************************************/
 uint32_t thaisen_get_ammeter_current(uint8_t gunno)
 {
+    if(gunno >= APP_SYSTEM_GUNNO_SIZE){
+        return 0x00;
+    }
     uint8_t main_gunno = gunno;
     struct ofsm_info *ofsm_temp = get_ofsm_info(gunno);
 

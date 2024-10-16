@@ -31,7 +31,7 @@ void app_led_thread_entry(void *parameter)
 
     while (1)
     {
-        switch (get_ofsm_info(gunno)->base.ota_state) {
+        switch (get_ofsm_info(0x00)->base.ota_state) {
         case APP_OTA_STATE_NULL:
             break;
         case APP_OTA_STATE_UP:

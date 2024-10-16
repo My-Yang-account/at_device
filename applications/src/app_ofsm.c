@@ -3919,7 +3919,7 @@ void ofsm_fun_list_init(void)
 
 struct ofsm_info *get_ofsm_info(uint8_t gunno)
 {
-    if(gunno > APP_SYSTEM_GUNNO_SIZE){
+    if(gunno >= APP_SYSTEM_GUNNO_SIZE){
         return &(s_ofsm_info[0x00]);
     }
     return &(s_ofsm_info[gunno]);
