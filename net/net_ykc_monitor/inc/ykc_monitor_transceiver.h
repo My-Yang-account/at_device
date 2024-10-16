@@ -15,7 +15,7 @@
 #ifdef NET_PACK_USING_YKC_MONITOR
 
 #ifdef NET_YKC_MONITOR_AS_MONITOR
-#define YKC_USER_MONITOR_SERVICE_CALLBACK_NUM    7
+#define YKC_USER_MONITOR_SERVICE_CALLBACK_NUM    11
 #else
 #define YKC_USER_MONITOR_SERVICE_CALLBACK_NUM    0
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
@@ -38,7 +38,7 @@ void ykc_monitor_service_callback_register(uint8_t id, void *cb);
 void *ykc_monitor_get_service_callback(uint8_t id);
 
 int32_t ykc_monitor_transceiver_init(void);
-int32_t ykc_monitor_message_send_port(uint8_t cmd, int fd, void *data, uint16_t len);
+int32_t ykc_monitor_message_send_port(uint8_t cmd, int fd, void *data, uint16_t len, char* lable);
 
 #endif /* NET_PACK_USING_YKC_MONITOR */
 #endif /* NET_NET_YKC_MONITOR_INC_YKC_MONITOR_TRANSCEIVER_H_ */

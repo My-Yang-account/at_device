@@ -62,6 +62,18 @@
 #define NET_STOP_REASON_EEPROM                         0x0F    /* eeprom故障 */
 #define NET_STOP_REASON_SIZE                           0x10    /* 无故障 */
 
+/** networked way */
+#define NET_NETWORKED_WAY_4G                           "1"     /* 联网方式：4G */
+#define NET_NETWORKED_WAY_ETH                          "2"     /* 联网方式：以太网 */
+
+/** device type */
+#define NET_DEV_TYPE_AVERAGE_DOUBLEGUN                 "1"     /* 设备类型：均充双枪 */
+#define NET_DEV_TYPE_DYNAMIC_DOUBLEGUN                 "2"     /* 设备类型：动态双枪 */
+#define NET_DEV_TYPE_SINGLEGUN_TERMINAL                "3"     /* 设备类型：单枪终端 */
+#define NET_DEV_TYPE_DOUBLEGUN_TERMINAL                "4"     /* 设备类型：双枪终端 */
+#define NET_DEV_TYPE_MAIN_CABINET                      "5"     /* 设备类型：主机柜 */
+#define NET_DEV_TYPE_SUPER_SINGLEGUN                   "6"     /* 设备类型：单枪超充 */
+
 /** net fault */
 #define NET_FAULT_PHYSICAL_LAYER                       (1 <<0) /* 物理层故障 */
 #define NET_FAULT_SIM_CARD                             (1 <<1) /* SIM卡故障 */
@@ -81,7 +93,7 @@
 
 /** system data name */
 #define NET_SYSTEM_DATA_NAME_PILE_NUMBER               0x00    /* 系统数据名：桩号 */
-#define NET_SYSTEM_DATA_NAME_NETWORKED_WAY             0x01    /* 系统数据名：联网方式 0 为2G， 1为3G，2为4G，3为5G,4为wifi, 5为eth */
+#define NET_SYSTEM_DATA_NAME_NETWORKED_WAY             0x01    /* 系统数据名：联网方式 '1'为4G， '2'为以太网 */
 #define NET_SYSTEM_DATA_NAME_MCC                       0x02    /* 系统数据名：国家码，中国代码460即0x0C1C */
 #define NET_SYSTEM_DATA_NAME_MNC                       0x03    /* 系统数据名：0移动，1联通(电信对应sid) 2非sim卡方式 */
 #define NET_SYSTEM_DATA_NAME_LAC                       0x04    /* 系统数据名：lac(电信对应nid) 非sim卡方式时全0 */
@@ -105,13 +117,16 @@
 #define NET_SYSTEM_DATA_NAME_EXPAND_VOLTAGE_MIN        0x16    /* 系统数据名： 扩充最小电压*/
 #define NET_SYSTEM_DATA_NAME_QRCODE                    0x17    /* 系统数据名： 二维码*/
 #define NET_SYSTEM_DATA_NAME_HELP_PHONE                0x18    /* 系统数据名： 帮助电话*/
-#define NET_SYSTEM_DATA_NAME_HARDWARE_VERSION          0x19    /* 系统数据名： 硬件版本*/
-#define NET_SYSTEM_DATA_NAME_PLATFORM_DATA             0x1A    /* 系统数据名： 平台存储数据*/
-#define NET_SYSTEM_DATA_NAME_SIGNAL_STRENGTH           0x1B    /* 系统数据名： 信号强度*/
-#define NET_SYSTEM_DATA_NAME_AMMETER_ADDRESS           0x1C    /* 系统数据名： 电表地址*/
-#define NET_SYSTEM_DATA_NAME_TEMP_PROTECT_SWITCH       0x1D    /* 系统数据名： 温度保护开关*/
-#define NET_SYSTEM_DATA_NAME_TEMP_PROTECT_STOP_VAL     0x1E    /* 系统数据名： 温度保护：停充温度*/
-#define NET_SYSTEM_DATA_NAME_SIZE                      0x1F
+#define NET_SYSTEM_DATA_NAME_HARDWARE_VERSION          0x19    /* 系统数据名： 硬件版本(只用于OTA)*/
+#define NET_SYSTEM_DATA_NAME_HARDWARE_INFO             0x1A    /* 系统数据名： 硬件信息(实际硬件版本)*/
+#define NET_SYSTEM_DATA_NAME_PLATFORM_DATA             0x1B    /* 系统数据名： 平台存储数据*/
+#define NET_SYSTEM_DATA_NAME_SIGNAL_STRENGTH           0x1C    /* 系统数据名： 信号强度*/
+#define NET_SYSTEM_DATA_NAME_AMMETER_ADDRESS           0x1D    /* 系统数据名： 电表地址*/
+#define NET_SYSTEM_DATA_NAME_TEMP_PROTECT_SWITCH       0x1E    /* 系统数据名： 温度保护开关*/
+#define NET_SYSTEM_DATA_NAME_TEMP_PROTECT_STOP_VAL     0x1F    /* 系统数据名： 温度保护：停充温度*/
+#define NET_SYSTEM_DATA_NAME_SOFTWARE_MODEL            0x20    /* 系统数据名： 温度保护：软件型号*/
+#define NET_SYSTEM_DATA_NAME_DEV_TYPE                  0x21    /* 系统数据名： 温度保护：设备类型*/
+#define NET_SYSTEM_DATA_NAME_SIZE                      0x22
 
 /** operator name */
 #define NET_OPERATOR_NAME_CHINA_MOBILE                 0x00    /* 运营商名称：中国移动*/
@@ -271,6 +286,8 @@ typedef struct{
     uint8_t state;
     uint8_t open_count;
     uint8_t login_count;
+    uint8_t domain[64];
+    uint16_t port;
 }net_plat_socket_info_t;
 
 typedef struct{
@@ -340,6 +357,9 @@ uint32_t net_operation_get_total_power(uint8_t gunno);
 
 struct net_handle* net_get_net_handle(void);
 net_ota_info_t *net_get_ota_info(void);
-net_plat_socket_info_t net_operation_get_target_socket_state(void);
+net_plat_socket_info_t *net_operation_get_target_socket_info(void);
+void net_operation_set_target_socket_domain(char* domain, uint8_t domain_len);
+void net_operation_set_target_socket_port(uint16_t port);
+void net_operation_insert_tplat_log(void *data, uint16_t len, uint8_t verify_result, const char* label);
 
 #endif /* NET_PACK_NET_OPERATION_H_ */

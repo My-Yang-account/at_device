@@ -604,6 +604,10 @@ static void net_ycp_message_send_thread_entry(void *parameter)
                         host = "121.229.203.34";
                         port = 6002;
                     }
+
+                    net_operation_set_target_socket_domain(host, strlen(host));
+                    net_operation_set_target_socket_port(port);
+
                     result = ycp_socket_open(&(s_ycp_socket_info.fd), host, strlen(host), port);
                     if(result >= 0){
                         int32_t recv_timeout = 0x0A;

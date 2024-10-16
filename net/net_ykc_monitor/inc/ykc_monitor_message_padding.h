@@ -93,6 +93,9 @@ int8_t ykc_monitor_message_padding_charge_record(uint8_t gunno, uint8_t *buf, ui
 int8_t ykc_monitor_message_padding_input_info_setup(uint8_t *buf, uint16_t ilen, uint16_t *olen);
 int8_t ykc_monitor_message_padding_protect_info_setup(uint8_t *buf, uint16_t ilen, uint16_t *olen);
 int8_t ykc_monitor_message_padding_function_setup(uint8_t *buf, uint16_t ilen, uint16_t *olen);
+int8_t ykc_monitor_message_padding_tsocket_info(uint8_t *buf, uint16_t ilen, uint16_t *olen);
+int8_t ykc_monitor_message_padding_log_info(uint8_t *buf, uint16_t ilen, uint16_t *olen);
+int8_t ykc_monitor_message_padding_dev_info(uint8_t *buf, uint16_t ilen, uint16_t *olen);
 
 #endif /* NET_PACK_USING_YKC_MONITOR */
 

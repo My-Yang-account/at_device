@@ -89,6 +89,10 @@ Net_YkcMonitorPro_SRes_TransactionRecords_t g_ykc_monitor_sres_transaction_recor
 Net_YkcMonitorPro_SRes_ApplyCharge_Active_t g_ykc_monitor_sres_apply_charge_active[NET_SYSTEM_GUN_NUMBER];   // OK
 /** 充电桩主动申请并充充电响应 */
 Net_YkcMonitorPro_SRes_ApplyMergeCharge_Active_t g_ykc_monitor_sres_apply_merge_charge_active[NET_SYSTEM_GUN_NUMBER];   // OK
+/** 充电桩目标平台日志上报响应 */
+Net_YkcMonitorPro_Sres_TargetPlat_Log_t g_ykc_monitor_sres_target_plat_log;
+/** 充电桩设备信息上报响应 */
+Net_YkcMonitorPro_Sres_DevInfo_t g_ykc_monitor_sres_dev_info;
 
 #ifdef NET_YKC_MONITOR_AS_MONITOR
 
@@ -1569,6 +1573,158 @@ static void ykc_monitor_callback_request_query_function_setup(uint8_t* data, uin
     ykc_monitor_net_event_send(NET_YKC_MONITOR_USER_EVENT_HANDLE_SERVER, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, 0x00, NET_YKC_MONITOR_USER_SREQ_EVENT_QUERY_FUNCTION_SETUP);
 }
 
+/*****************************************************************
+ * 函数名                   ykc_monitor_callback_request_query_tsocket_info
+ * 功能                       处理运营平台查询目标socket信息请求
+ *           data       数据
+ *           length     数据长度
+ * 返回                        无
+ ****************************************************************/
+static void ykc_monitor_callback_request_query_tsocket_info(uint8_t* data, uint16_t length)
+{
+    if(data == NULL){
+        LOG_E("ykc monitor input data is null when call ykc_monitor_callback_request_query_tsocket_info");
+        return;
+    }
+    if(length != (sizeof(Net_YkcMonitorPro_SReq_General_t) + NET_YKC_MONITOR_PROTOCOL_CHECK_REGION_SIZE - 0x01)){
+        LOG_E("ykc monitor input length error when call ykc_monitor_callback_request_query_tsocket_info|%d, %d", length,
+                (sizeof(Net_YkcMonitorPro_SReq_General_t) + NET_YKC_MONITOR_PROTOCOL_CHECK_REGION_SIZE - 0x01));
+        return;
+    }
+
+    uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC_MONITOR |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
+    struct net_handle* handle = net_get_net_handle();
+    char *pile_number = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, option));
+    uint8_t pile_numberbcd[NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT];
+    Net_YkcMonitorPro_SReq_General_t *request = (Net_YkcMonitorPro_SReq_General_t*)data;
+
+    ykc_monitor_ascii_to_bcd((uint8_t*)pile_number, strlen((char*)pile_number), pile_numberbcd, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
+    if(memcmp(pile_numberbcd, request->body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT)){
+        LOG_E("ykc monitor chargepile number error when call ykc_monitor_callback_request_query_tsocket_info");
+        return;
+    }
+
+    ykc_monitor_input_recv_message_item(NETYKC_MONITOR_SREQCMD_QUERY_TSOCKET_INFO, request->head.sequence, 0x01, 0x00);
+    ykc_monitor_net_event_send(NET_YKC_MONITOR_USER_EVENT_HANDLE_SERVER, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, 0x00, NET_YKC_MONITOR_USER_SREQ_EVENT_QUERY_TSOCKET_INFO);
+}
+
+/*****************************************************************
+ * 函数名                   ykc_monitor_callback_response_report_tplat_log
+ * 功能                       处理运营平台上报目标平台日志响应
+ *           data       数据
+ *           length     数据长度
+ * 返回                        无
+ ****************************************************************/
+static void ykc_monitor_callback_response_report_tplat_log(uint8_t* data, uint16_t length)
+{
+    if(data == NULL){
+        LOG_E("ykc monitor input data is null when call ykc_monitor_callback_response_report_log");
+        return;
+    }
+    if(length != sizeof(Net_YkcMonitorPro_Sres_TargetPlat_Log_t)){
+        LOG_E("ykc monitor input length error when call ykc_monitor_callback_response_report_log|%d, %d", length,
+                sizeof(Net_YkcMonitorPro_Sres_TargetPlat_Log_t));
+        return;
+    }
+
+    uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC_MONITOR |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
+    struct net_handle* handle = net_get_net_handle();
+    char *pile_number = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, option));
+    uint8_t pile_numberbcd[NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT], valid_len = 0x00;
+    Net_YkcMonitorPro_Sres_TargetPlat_Log_t *response = (Net_YkcMonitorPro_Sres_TargetPlat_Log_t*)data;
+
+    ykc_monitor_ascii_to_bcd((uint8_t*)pile_number, strlen((char*)pile_number), pile_numberbcd, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
+    if(memcmp(pile_numberbcd, response->body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT)){
+        LOG_E("ykc monitor chargepile number error when call ykc_monitor_callback_response_report_log");
+        return;
+    }
+    valid_len = sizeof(response->body.pile_number_whole);
+    valid_len = valid_len > strlen(pile_number) ? strlen(pile_number) : valid_len;
+    if(memcmp(pile_number, response->body.pile_number_whole, valid_len)){
+        LOG_E("ykc monitor whole chargepile number error when call ykc_monitor_callback_response_report_log");
+        return;
+    }
+
+    memcpy(&g_ykc_monitor_sres_target_plat_log, data, length);
+    ykc_monitor_net_event_send(NET_YKC_MONITOR_USER_EVENT_HANDLE_SERVER, NET_YKC_MONITOR_EVENT_TYPE_RESPONSE, 0x00, NET_YKC_MONITOR_USER_SRES_EVENT_REPORT_TPLAT_LOG);
+}
+
+/*****************************************************************
+ * 函数名                   ykc_monitor_callback_request_query_dev_info
+ * 功能                       处理运营平台查询设备信息请求
+ *           data       数据
+ *           length     数据长度
+ * 返回                        无
+ ****************************************************************/
+static void ykc_monitor_callback_request_query_dev_info(uint8_t* data, uint16_t length)
+{
+    if(data == NULL){
+        LOG_E("ykc monitor input data is null when call ykc_monitor_callback_request_query_dev_info");
+        return;
+    }
+    if(length != (sizeof(Net_YkcMonitorPro_SReq_General_t) + NET_YKC_MONITOR_PROTOCOL_CHECK_REGION_SIZE - 0x01)){
+        LOG_E("ykc monitor input length error when call ykc_monitor_callback_request_query_dev_info|%d, %d", length,
+                (sizeof(Net_YkcMonitorPro_SReq_General_t) + NET_YKC_MONITOR_PROTOCOL_CHECK_REGION_SIZE - 0x01));
+        return;
+    }
+
+    uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC_MONITOR |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
+    struct net_handle* handle = net_get_net_handle();
+    char *pile_number = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, option));
+    uint8_t pile_numberbcd[NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT];
+    Net_YkcMonitorPro_SReq_General_t *request = (Net_YkcMonitorPro_SReq_General_t*)data;
+
+    ykc_monitor_ascii_to_bcd((uint8_t*)pile_number, strlen((char*)pile_number), pile_numberbcd, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
+    if(memcmp(pile_numberbcd, request->body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT)){
+        LOG_E("ykc monitor chargepile number error when call ykc_monitor_callback_request_query_dev_info");
+        return;
+    }
+
+    ykc_monitor_input_recv_message_item(NETYKC_MONITOR_SREQCMD_QUERY_DVE_INFO, request->head.sequence, 0x01, 0x00);
+    ykc_monitor_net_event_send(NET_YKC_MONITOR_USER_EVENT_HANDLE_SERVER, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, 0x00, NET_YKC_MONITOR_USER_SREQ_EVENT_QUERY_DEV_INFO);
+}
+
+/*****************************************************************
+ * 函数名                   ykc_monitor_callback_response_report_dev_info
+ * 功能                       处理运营平台上报设备信息响应
+ *           data       数据
+ *           length     数据长度
+ * 返回                        无
+ ****************************************************************/
+static void ykc_monitor_callback_response_report_dev_info(uint8_t* data, uint16_t length)
+{
+    if(data == NULL){
+        LOG_E("ykc monitor input data is null when call ykc_monitor_callback_response_report_dev_info");
+        return;
+    }
+    if(length != sizeof(Net_YkcMonitorPro_Sres_DevInfo_t)){
+        LOG_E("ykc monitor input length error when call ykc_monitor_callback_response_report_dev_info|%d, %d", length,
+                sizeof(Net_YkcMonitorPro_Sres_DevInfo_t));
+        return;
+    }
+
+    uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC_MONITOR |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
+    struct net_handle* handle = net_get_net_handle();
+    char *pile_number = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, option));
+    uint8_t pile_numberbcd[NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT], valid_len = 0x00;
+    Net_YkcMonitorPro_Sres_DevInfo_t *response = (Net_YkcMonitorPro_Sres_DevInfo_t*)data;
+
+    ykc_monitor_ascii_to_bcd((uint8_t*)pile_number, strlen((char*)pile_number), pile_numberbcd, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
+    if(memcmp(pile_numberbcd, response->body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT)){
+        LOG_E("ykc monitor chargepile number error when call ykc_monitor_callback_response_report_dev_info");
+        return;
+    }
+    valid_len = sizeof(response->body.pile_number_whole);
+    valid_len = valid_len > strlen(pile_number) ? strlen(pile_number) : valid_len;
+    if(memcmp(pile_number, response->body.pile_number_whole, valid_len)){
+        LOG_E("ykc monitor whole chargepile number error when call ykc_monitor_callback_response_report_log");
+        return;
+    }
+
+    memcpy(&g_ykc_monitor_sres_dev_info, data, length);
+    ykc_monitor_net_event_send(NET_YKC_MONITOR_USER_EVENT_HANDLE_SERVER, NET_YKC_MONITOR_EVENT_TYPE_RESPONSE, 0x00, NET_YKC_MONITOR_USER_SRES_EVENT_REPORT_DEV_INFO);
+}
+
 #endif /* NET_PACK_USING_YKC_MONITOR */
 
 int32_t ykc_monitor_message_recv_init(void)
@@ -1604,6 +1760,10 @@ int32_t ykc_monitor_message_recv_init(void)
     ykc_monitor_service_callback_register(NETYKC_MONITOR_SREQCMD_QUERY_INPUTINFO_SETUP,      ykc_monitor_callback_request_query_inputinfo_setup);
     ykc_monitor_service_callback_register(NETYKC_MONITOR_SREQCMD_QUERY_PROTECTINFO_SETUP,    ykc_monitor_callback_request_query_protectinfo_setup);
     ykc_monitor_service_callback_register(NETYKC_MONITOR_SREQCMD_QUERY_FUNCTION_SETUP,       ykc_monitor_callback_request_query_function_setup);
+    ykc_monitor_service_callback_register(NETYKC_MONITOR_SREQCMD_QUERY_TSOCKET_INFO,         ykc_monitor_callback_request_query_tsocket_info);
+    ykc_monitor_service_callback_register(NETYKC_MONITOR_SRESCMD_TARGET_PLAT_LOG,            ykc_monitor_callback_response_report_tplat_log);
+    ykc_monitor_service_callback_register(NETYKC_MONITOR_SREQCMD_QUERY_DVE_INFO,             ykc_monitor_callback_request_query_dev_info);
+    ykc_monitor_service_callback_register(NETYKC_MONITOR_SRESCMD_REPORT_DVE_INFO,            ykc_monitor_callback_response_report_dev_info);
 #endif /* #ifdef NET_YKC_MONITOR_AS_MONITOR */
 
     s_ykc_monitor_qrcode_buf.flag.is_used = 0x00;

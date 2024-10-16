@@ -172,7 +172,7 @@ static void ykc_monitor_message_recv_thread_entry(void *parameter)
     }
 }
 
-int32_t ykc_monitor_message_send_port(uint8_t cmd, int fd, void *data, uint16_t len)
+int32_t ykc_monitor_message_send_port(uint8_t cmd, int fd, void *data, uint16_t len, char* lable)
 {
     if(data == NULL){
         return -0x01;
@@ -198,7 +198,11 @@ int32_t ykc_monitor_message_send_port(uint8_t cmd, int fd, void *data, uint16_t 
 
     memset(ykc_monitor_id, 0x00, sizeof(ykc_monitor_id));
     sprintf((char*)ykc_monitor_id, "%s", "MYKC");
-    NETDATA_DEBUG((const char*)ykc_monitor_id, data, len, NETDATA_DEBUG_DIR_SEND);
+    if(lable){
+        NETDATA_DEBUG((const char*)lable, data, len, NETDATA_DEBUG_DIR_SEND);
+    }else{
+        NETDATA_DEBUG((const char*)ykc_monitor_id, data, len, NETDATA_DEBUG_DIR_SEND);
+    }
 
     return ykc_monitor_socket_send(fd, data, len);
 }

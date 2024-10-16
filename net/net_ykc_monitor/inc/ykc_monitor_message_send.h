@@ -120,6 +120,10 @@
 /** chargepile user request event */
 #define NET_YKC_MONITOR_USER_PREQ_EVENT_REPORT_MODULE_INFO           0    /* 充电桩监控请求事件：上报模块信息 */
 #define NET_YKC_MONITOR_USER_PREQ_EVENT_REPORT_MODULE_SETUPINFO      1    /* 充电桩监控请求事件：上报模块配置信息 */
+#define NET_YKC_MONITOR_USER_PREQ_EVENT_REPORT_TPLAT_LOG             2    /* 充电桩监控请求事件：上报目标平台日志 */
+#define NET_YKC_MONITOR_USER_PREQ_EVENT_REPORT_DEV_INFO              3    /* 充电桩监控请求事件：上报设备信息 */
+
+#define NET_YKC_MONITOR_USER_PREQ_EVENT_REPORT_DEV_INFO_ASYNCHRONOUSLY  4    /* 充电桩监控请求事件：上报设备信息异步(用于填充数据) */
 
 /** chargepile user response event */
 #define NET_YKC_MONITOR_USER_PRES_EVENT_QUERY_MODULE_INFO            0    /* 充电桩监控响应事件：查询模块信息 */
@@ -129,6 +133,8 @@
 #define NET_YKC_MONITOR_USER_PRES_EVENT_QUERY_ININFO_SETUP           4    /* 充电桩监控响应事件：查询输入信息配置 */
 #define NET_YKC_MONITOR_USER_PRES_EVENT_QUERY_PROTECTINFO_SETUP      5    /* 充电桩监控响应事件：询保护信息配置  */
 #define NET_YKC_MONITOR_USER_PRES_EVENT_QUERY_FUNCTION_SETUP         6    /* 充电桩监控响应事件：查询功能配置 */
+#define NET_YKC_MONITOR_USER_PRES_EVENT_QUERY_TSOCKET_INFO           7    /* 充电桩监控响应事件：查询目标socket信息 */
+#define NET_YKC_MONITOR_USER_PRES_EVENT_QUERY_DEV_INFO               8    /* 充电桩监控响应事件：查询设备信息 */
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
 
 /** 登录签到 */
@@ -211,6 +217,8 @@ void ykc_monitor_clear_message_wait_response_state(uint8_t gunno, uint32_t messa
 uint8_t ykc_monitor_get_message_wait_response_timeout_state(uint8_t gunno, uint32_t timeout, uint32_t message_bit);
 
 void ykc_monitor_ascii_to_bcd(uint8_t *ascii, uint8_t alen, uint8_t *bcd, uint8_t blen);
+
+void ykc_monitor_platlog_data_insert(void *data, uint16_t len, uint8_t verify_result, const char* label);
 
 int32_t ykc_monitor_message_send_init(void);
 

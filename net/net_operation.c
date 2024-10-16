@@ -231,18 +231,17 @@ uint32_t net_operation_get_total_power(uint8_t gunno)
 }
 
 /******************************************
- * 函数名     net_operation_get_target_socket_state
+ * 函数名     net_operation_get_target_socket_info
  * 功能         获取目标平台 socket 信息
  * ***************************************/
-net_plat_socket_info_t net_operation_get_target_socket_state(void)
+net_plat_socket_info_t *net_operation_get_target_socket_info(void)
 {
-    memset(&s_plat_socket_info, 0x00, sizeof(s_plat_socket_info));
 #ifdef NET_YKC_AS_TARGET
     s_plat_socket_info.state = ykc_get_socket_info()->state;
     s_plat_socket_info.open_count = ykc_get_socket_info()->operate_fail.open_socket;
     s_plat_socket_info.login_count = ykc_get_socket_info()->operate_fail.login;
 
-    return s_plat_socket_info;
+    return &s_plat_socket_info;
 #endif /* NET_YKC_AS_TARGET */
 
 #ifdef NET_YKC_MONITOR_AS_TARGET
@@ -250,7 +249,7 @@ net_plat_socket_info_t net_operation_get_target_socket_state(void)
     s_plat_socket_info.open_count = ykc_monitor_get_socket_info()->operate_fail.open_socket;
     s_plat_socket_info.login_count = ykc_monitor_get_socket_info()->operate_fail.login;
 
-    return s_plat_socket_info;
+    return &s_plat_socket_info;
 #endif /* NET_YKC_MONITOR_AS_TARGET */
 
 #ifdef NET_YCP_AS_TARGET
@@ -258,10 +257,46 @@ net_plat_socket_info_t net_operation_get_target_socket_state(void)
     s_plat_socket_info.open_count = ycp_get_socket_info()->operate_fail.open_socket;
     s_plat_socket_info.login_count = ycp_get_socket_info()->operate_fail.login;
 
-    return s_plat_socket_info;
+    return &s_plat_socket_info;
 #endif /* NET_YCP_AS_TARGET */
 
-    return s_plat_socket_info;
+    return &s_plat_socket_info;
+}
+
+/******************************************
+ * 函数名     net_operation_set_target_socket_domain
+ * 功能         设置目标平台 socket 域名
+ * ***************************************/
+void net_operation_set_target_socket_domain(char* domain, uint8_t domain_len)
+{
+#if 0
+    uint8_t valid_len = sizeof(s_plat_socket_info.domain);
+    valid_len = valid_len > domain_len ? domain_len : valid_len;
+
+    memset(s_plat_socket_info.domain, 0x00, sizeof(s_plat_socket_info.domain));
+    memcpy(s_plat_socket_info.domain, domain, valid_len);
+#endif
+
+}
+
+/******************************************
+ * 函数名     net_operation_set_target_socket_port
+ * 功能         设置目标平台 socket 端口
+ * ***************************************/
+void net_operation_set_target_socket_port(uint16_t port)
+{
+#if 0
+    s_plat_socket_info.port = port;
+#endif
+}
+
+/******************************************
+ * 函数名     net_operation_insert_tplat_log
+ * 功能         保存目标平台日志
+ * ***************************************/
+void net_operation_insert_tplat_log(void *data, uint16_t len, uint8_t verify_result, const char* label)
+{
+    ykc_monitor_platlog_data_insert(data, len, verify_result, label);
 }
 
 static void net_start_function(void* handle)
@@ -445,6 +480,8 @@ static int32_t net_operation_init(void)
 #ifdef NET_PACK_USING_SL
 
 #endif /* NET_PACK_USING_SL */
+
+    memset(&s_plat_socket_info, 0x00, sizeof(s_plat_socket_info));
 
     return 0x00;
 }

@@ -10,6 +10,7 @@
 #include "net_function_config.h"
 #include "net_operation.h"
 #include "app_ofsm.h"
+#include "version.h"
 #include "mw_norflash.h"
 #include "mw_storage.h"
 
@@ -234,10 +235,14 @@ static uint8_t* app_nget_system_data(uint8_t name, uint32_t *vector, uint32_t op
         }
         return sys_read_config_item_content(CONFIG_ITEM_PILE_NUMBER, 0x00);
         break;
-#if 0
     case NET_SYSTEM_DATA_NAME_NETWORKED_WAY:
-
+        if(net_query_netdev_type() == NET_NETDEV_TYPE_4G){
+            return (uint8_t *)(NET_NETWORKED_WAY_4G);
+        }else{
+            return (uint8_t *)(NET_NETWORKED_WAY_ETH);
+        }
         break;
+#if 0
     case NET_SYSTEM_DATA_NAME_MCC:
 
         break;
@@ -328,6 +333,12 @@ static uint8_t* app_nget_system_data(uint8_t name, uint32_t *vector, uint32_t op
         }
     }
         break;
+    case NET_SYSTEM_DATA_NAME_HARDWARE_INFO:
+    {
+        extern uint8_t *__thaisen_get_test_hard_version(void);
+        return __thaisen_get_test_hard_version();
+    }
+        break;
     case NET_SYSTEM_DATA_NAME_SIGNAL_STRENGTH:
     {
         extern int get_at_device_appinfo_signal_strength(void);
@@ -358,6 +369,25 @@ static uint8_t* app_nget_system_data(uint8_t name, uint32_t *vector, uint32_t op
             return sys_read_config_item_content(CONFIG_ITEM_METER_NOB, 0x00);
         }
     }
+
+        break;
+    case NET_SYSTEM_DATA_NAME_SOFTWARE_MODEL:
+        return (uint8_t*)(SOFTWARE_MODULE);
+        break;
+    case NET_SYSTEM_DATA_NAME_DEV_TYPE:
+    {
+        uint8_t dev_type = thaisenGetChargGunRunType();
+        if(dev_type == thaisenDeviceType_singleGun){
+            return (uint8_t *)(NET_DEV_TYPE_SINGLEGUN_TERMINAL);
+        }else if(dev_type == thaisenDeviceType_average){
+            return (uint8_t *)(NET_DEV_TYPE_DYNAMIC_DOUBLEGUN);
+        }else if(dev_type == thaisenDeviceType_Rectifier_cabinet){
+            return (uint8_t *)(NET_DEV_TYPE_MAIN_CABINET);
+        }else{
+            return (uint8_t *)(NET_DEV_TYPE_AVERAGE_DOUBLEGUN);
+        }
+    }
+
         break;
     default:
         break;

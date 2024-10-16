@@ -34,6 +34,32 @@
 #define NET_YKC_MONITOR_REALTIME_DATA_LINK_INTERVAL                  5000        /* 实时数据刚连上网时上报间隔(单位ms:5 *1000 = 5s) */
 #define NET_YKC_MONITOR_SAME_TRANSATION_REPORT_COUNT_MAX             10          /* 相同订单最大上报次数 */
 
+#ifdef NET_YKC_MONITOR_AS_MONITOR
+
+#define NET_YKC_MONITOR_LOG_STEP_NULL                                0x00        /* 目标平台日志上报步骤：开始上报 */
+#define NET_YKC_MONITOR_LOG_STEP_COMPLETE                            0x01        /* 目标平台日志上报步骤：上报完成 */
+#define NET_YKC_MONITOR_LOG_STEP_REPEAT                              0x02        /* 目标平台日志上报步骤：上报失败，重新上报 */
+#define NET_YKC_MONITOR_LOG_STEP_ONGOING                             0x03        /* 目标平台日志上报步骤：上报中 */
+
+#define NET_YKC_MONITOR_LOG_RESPONSE_DELAY                           5000        /* 目标平台日志上报等待响应最长时间(ms) */
+
+#define NET_YKC_MONITOR_LOG_NUM_MAX                                  20          /* 目标平台日志缓存最大条数 */
+#pragma pack(1)
+/** 目标平台日志数据节点 */
+struct ykc_monitor_lognode{
+    char label[8];                                                                  /* 平台 */
+    uint16_t log_size;                                                           /* 日志数据大小 */
+    uint8_t *log;                                                                /* 日志数据 */
+    struct ykc_monitor_lognode *node;                                            /* 下一个日志数据节点 */
+};
+/** 目标平台日志数据头 */
+struct ykc_monitor_loghead{
+    uint8_t log_num;                                                             /* 日志条数 */
+    struct ykc_monitor_lognode node;                                             /* 下一个日志数据节点 */
+};
+#pragma pack()
+#endif /* NET_YKC_MONITOR_AS_MONITOR */
+
 struct ykc_monitor_wait_response{
     uint32_t message_wait_response_state[NET_SYSTEM_GUN_NUMBER];                       /* 报文已发送发送，等待响应状态 */
     uint32_t message_repeat_time[NET_SYSTEM_GUN_NUMBER][NET_YKC_MONITOR_CHARGEPILE_PREQ_NUM];  /* 报文重发计时 */
@@ -50,6 +76,15 @@ static uint32_t s_ykc_monitor_chargepile_event[NET_YKC_MONITOR_EVENT_TYPE_SIZE][
 static uint32_t s_ykc_monitor_server_event[NET_YKC_MONITOR_EVENT_TYPE_SIZE][NET_SYSTEM_GUN_NUMBER];
 
 #ifdef NET_YKC_MONITOR_AS_MONITOR
+static uint32_t s_ykc_monitor_current_log_id = 0x00;
+static uint32_t s_ykc_monitor_log_tick = 0x00;
+static uint8_t s_ykc_monitor_log_step = NET_YKC_MONITOR_LOG_STEP_NULL;
+static struct ykc_monitor_loghead s_ykc_monitor_loghead;
+
+static uint32_t s_ykc_monitor_dev_info_tick = 0x00;
+static uint8_t s_ykc_monitor_dev_info_flag = 0x00;
+static uint8_t s_ykc_monitor_dev_info_count = 0x00;
+
 static uint32_t s_ykc_monitor_user_chargepile_event[NET_YKC_MONITOR_EVENT_TYPE_SIZE][NET_SYSTEM_GUN_NUMBER];
 static uint32_t s_ykc_monitor_user_server_event[NET_YKC_MONITOR_EVENT_TYPE_SIZE][NET_SYSTEM_GUN_NUMBER];
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
@@ -400,6 +435,102 @@ void ykc_monitor_ascii_to_bcd(uint8_t *ascii, uint8_t alen, uint8_t *bcd, uint8_
     }
 }
 
+/**************************************************************************
+ * 函数名                 ykc_monitor_platlog_data_insert
+ * 功能                     插入目标平台报文数据节点
+ * 说明
+ * ***********************************************************************/
+void ykc_monitor_platlog_data_insert(void *data, uint16_t len, uint8_t verify_result, const char* label)
+{
+#ifdef NET_YKC_MONITOR_AS_MONITOR
+    if((data == NULL) || (len == 0x00)){
+        return;
+    }
+    if(s_ykc_monitor_loghead.log_num >= NET_YKC_MONITOR_LOG_NUM_MAX){
+        return;
+    }
+
+    struct ykc_monitor_lognode *n = &(s_ykc_monitor_loghead.node);
+
+    verify_result = verify_result == 0x00 ? verify_result : 0x01;
+    for(uint8_t count = 0x00; count < NET_YKC_MONITOR_LOG_NUM_MAX; count++){
+        if(n->node == NULL){
+            uint8_t *d = rt_malloc(len + 0x01), valid_len = 0x00;
+            struct ykc_monitor_lognode *node = rt_malloc(sizeof(struct ykc_monitor_lognode));
+            if((node == NULL) || (d == NULL)){
+                return;
+            }
+
+            memset(d, 0x00, (len + 0x01));
+            memset(node, 0x00, sizeof(struct ykc_monitor_lognode));
+
+            *d = verify_result;
+            memcpy((d + 0x01), data, len);
+
+            valid_len = (sizeof(node->label) - 0x01);
+            valid_len = valid_len > strlen(label) ? strlen(label) : valid_len;
+            memcpy(node->label, label, valid_len);
+
+            node->log_size = len + 0x01;
+            node->log = d;
+            node->node = NULL;
+
+            n->node = node;
+            s_ykc_monitor_loghead.log_num++;
+
+            break;
+        }
+        n = n->node;
+    }
+#endif /* NET_YKC_MONITOR_AS_MONITOR */
+}
+
+/**************************************************************************
+ * 函数名                 ykc_monitor_platlog_data_remove
+ * 功能                     将目标平台报文数据节点移除
+ * 说明
+ * ***********************************************************************/
+static void ykc_monitor_platlog_data_remove(void)
+{
+#ifdef NET_YKC_MONITOR_AS_MONITOR
+    if(s_ykc_monitor_loghead.log_num == 0x00){
+        return;
+    }
+
+    struct ykc_monitor_lognode *n = NULL;
+    if(s_ykc_monitor_loghead.node.node != NULL){
+        n = s_ykc_monitor_loghead.node.node;
+        s_ykc_monitor_loghead.node.node = NULL;
+        if(n->node){
+            s_ykc_monitor_loghead.node.node = n->node;
+        }
+
+        rt_free(n->log);
+        rt_free(n);
+        if(s_ykc_monitor_loghead.log_num){
+            s_ykc_monitor_loghead.log_num--;
+        }
+    }
+#endif /* NET_YKC_MONITOR_AS_MONITOR */
+}
+
+/**************************************************************************
+ * 函数名                 ykc_monitor_platlog_data_query
+ * 功能                     查询是否有目标平台报文未上报
+ * 说明
+ * ***********************************************************************/
+static struct ykc_monitor_lognode *ykc_monitor_platlog_data_query(void)
+{
+#ifdef NET_YKC_MONITOR_AS_MONITOR
+    if(s_ykc_monitor_loghead.log_num == 0x00){
+        return NULL;
+    }
+
+    return s_ykc_monitor_loghead.node.node;
+#endif /* NET_YKC_MONITOR_AS_MONITOR */
+    return NULL;
+}
+
 static void net_ykc_monitor_message_send_thread_entry(void *parameter)
 {
     uint8_t step = NET_YKC_MONITOR_NET_STATE_OPEN_SOCKET, is_power_on = 0x00;
@@ -572,7 +703,7 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
                 handle->net_state = NET_SOCKET_STATE_LOGIN_WAIT;
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
                 ykc_monitor_message_send_port(NETYKC_MONITOR_PREQCMD_SINGIN, s_ykc_monitor_socket_info.fd, &g_ykc_monitor_preq_login,
-                        sizeof(g_ykc_monitor_preq_login));
+                        sizeof(g_ykc_monitor_preq_login), NULL);
                 while(rentry < NET_YKC_MONITOR_WAIT_LOGIN_RENTRY){
                     if(ykc_monitor_net_event_receive(NET_YKC_MONITOR_EVENT_HANDLE_SERVER, NET_YKC_MONITOR_EVENT_TYPE_RESPONSE, 0x00,
                             (NET_YKC_MONITOR_EVENT_OPTION_OR |NET_YKC_MONITOR_EVENT_OPTION_CLEAR), NET_YKC_MONITOR_SRES_EVENT_LOGIN, NULL) > 0){
@@ -588,6 +719,12 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
                             s_ykc_monitor_message_serial_number[gunno]++;
                             s_ykc_monitor_socket_info.heartbeat[gunno] = 0x00;
                         }
+#ifdef NET_YKC_MONITOR_AS_MONITOR
+                        ykc_monitor_net_event_send(NET_YKC_MONITOR_USER_EVENT_HANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, 0x00, NET_YKC_MONITOR_USER_PREQ_EVENT_REPORT_DEV_INFO_ASYNCHRONOUSLY);
+                        s_ykc_monitor_dev_info_tick = rt_tick_get();
+                        s_ykc_monitor_dev_info_flag = 0x00;
+                        s_ykc_monitor_dev_info_count = 0x00;
+#endif /* NET_YKC_MONITOR_AS_MONITOR */
                         break;
                     }
                     rt_thread_mdelay(100);
@@ -670,6 +807,19 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
             continue;
         }
 
+#ifdef NET_YKC_MONITOR_AS_MONITOR
+        if(s_ykc_monitor_dev_info_flag == 0x00){
+            if(s_ykc_monitor_log_tick > rt_tick_get()){
+                s_ykc_monitor_log_tick = rt_tick_get();
+            }
+            if((rt_tick_get() - s_ykc_monitor_log_tick) > 5000){
+                s_ykc_monitor_log_tick = rt_tick_get();
+                ykc_monitor_net_event_send(NET_YKC_MONITOR_USER_EVENT_HANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, 0x00, NET_YKC_MONITOR_USER_PREQ_EVENT_REPORT_DEV_INFO_ASYNCHRONOUSLY);
+            }
+        }
+
+#endif /* NET_YKC_MONITOR_AS_MONITOR */
+
         for(uint8_t gunno = 0; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
             if(s_ykc_monitor_socket_info.heartbeat[gunno] > NET_YKC_MONITOR_HEARTBEAT_TIMEOUT_RENTRY){
                 s_ykc_monitor_socket_info.heartbeat[gunno] = 0x00;
@@ -736,7 +886,7 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
                 }
                 g_ykc_monitor_preq_heartbeat[gunno].head.sequence = s_ykc_monitor_message_serial_number[gunno]++;
                 ykc_monitor_message_send_port(NETYKC_MONITOR_PREQCMD_HEARTBEAT, s_ykc_monitor_socket_info.fd, &g_ykc_monitor_preq_heartbeat[gunno],
-                        sizeof(g_ykc_monitor_preq_heartbeat[gunno]));
+                        sizeof(g_ykc_monitor_preq_heartbeat[gunno]), NULL);
                 ykc_monitor_set_message_send_state(gunno, NET_YKC_MONITOR_SEND_STATE_COMPLETE, NET_YKC_MONITOR_PREQ_EVENT_HEARTBEAT);
 
 //                LOG_D("ykc monitor gunno(%d) heartbeat timeout count(%d)\n", gunno, s_ykc_monitor_socket_info.heartbeat[gunno]);
@@ -749,7 +899,7 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
                 ykc_monitor_set_message_send_state(gunno, NET_YKC_MONITOR_SEND_STATE_ONGOING, NET_YKC_MONITOR_PREQ_EVENT_BILLING_MODEL_VERIFY);
                 g_ykc_monitor_preq_billing_model_verify.head.sequence = s_ykc_monitor_message_serial_number[gunno]++;
                 ykc_monitor_message_send_port(NETYKC_MONITOR_PREQCMD_BILLING_MODEL_VERIFY, s_ykc_monitor_socket_info.fd, &g_ykc_monitor_preq_billing_model_verify,
-                        sizeof(g_ykc_monitor_preq_billing_model_verify));
+                        sizeof(g_ykc_monitor_preq_billing_model_verify), NULL);
                 ykc_monitor_set_message_wait_response_state(gunno, NET_YKC_MONITOR_PREQ_EVENT_BILLING_MODEL_VERIFY);
                 ykc_monitor_set_message_send_state(gunno, NET_YKC_MONITOR_SEND_STATE_COMPLETE, NET_YKC_MONITOR_PREQ_EVENT_BILLING_MODEL_VERIFY);
                 rt_thread_mdelay(250);
@@ -762,7 +912,7 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
                 ykc_monitor_set_message_send_state(gunno, NET_YKC_MONITOR_SEND_STATE_ONGOING, NET_YKC_MONITOR_PREQ_EVENT_BILLING_MODEL_REQUEST);
                 g_ykc_monitor_preq_billing_model_request.head.sequence = s_ykc_monitor_message_serial_number[gunno]++;
                 ykc_monitor_message_send_port(NETYKC_MONITOR_PREQCMD_BILLING_MODEL_REQUEST, s_ykc_monitor_socket_info.fd, &g_ykc_monitor_preq_billing_model_request,
-                        sizeof(g_ykc_monitor_preq_billing_model_request));
+                        sizeof(g_ykc_monitor_preq_billing_model_request), NULL);
                 ykc_monitor_set_message_wait_response_state(gunno, NET_YKC_MONITOR_PREQ_EVENT_BILLING_MODEL_REQUEST);
                 ykc_monitor_set_message_send_state(gunno, NET_YKC_MONITOR_SEND_STATE_COMPLETE, NET_YKC_MONITOR_PREQ_EVENT_BILLING_MODEL_REQUEST);
                 rt_thread_mdelay(250);
@@ -775,7 +925,7 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
                 ykc_monitor_set_message_send_state(gunno, NET_YKC_MONITOR_SEND_STATE_ONGOING, NET_YKC_MONITOR_PREQ_EVENT_REPORT_REALTIME_DATA);
                 g_ykc_monitor_preq_report_realtime_data[gunno].head.sequence = s_ykc_monitor_message_serial_number[gunno]++;
                 ykc_monitor_message_send_port(NETYKC_MONITOR_PREQCMD_PRESCMD_REPORT_REALTIME_DATA, s_ykc_monitor_socket_info.fd, &g_ykc_monitor_preq_report_realtime_data[gunno],
-                        sizeof(g_ykc_monitor_preq_report_realtime_data[gunno]));
+                        sizeof(g_ykc_monitor_preq_report_realtime_data[gunno]), NULL);
                 ykc_monitor_set_message_send_state(gunno, NET_YKC_MONITOR_SEND_STATE_COMPLETE, NET_YKC_MONITOR_PREQ_EVENT_REPORT_REALTIME_DATA);
                 rt_thread_mdelay(250);
             }
@@ -786,7 +936,7 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
                 ykc_monitor_set_message_send_state(gunno, NET_YKC_MONITOR_SEND_STATE_ONGOING, NET_YKC_MONITOR_PREQ_EVENT_CHARGE_SHAKE_HAND);
                 g_ykc_monitor_preq_shake_hand[gunno].head.sequence = s_ykc_monitor_message_serial_number[gunno]++;
                 ykc_monitor_message_send_port(NETYKC_MONITOR_PREQCMD_CHARGE_SHAKE_HAND, s_ykc_monitor_socket_info.fd, &g_ykc_monitor_preq_shake_hand[gunno],
-                        sizeof(g_ykc_monitor_preq_shake_hand[gunno]));
+                        sizeof(g_ykc_monitor_preq_shake_hand[gunno]), NULL);
                 ykc_monitor_set_message_send_state(gunno, NET_YKC_MONITOR_SEND_STATE_COMPLETE, NET_YKC_MONITOR_PREQ_EVENT_CHARGE_SHAKE_HAND);
                 rt_thread_mdelay(250);
             }
@@ -797,7 +947,7 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
                 ykc_monitor_set_message_send_state(gunno, NET_YKC_MONITOR_SEND_STATE_ONGOING, NET_YKC_MONITOR_PREQ_EVENT_PARA_CONFIG);
                 g_ykc_monitor_preq_parameter_config[gunno].head.sequence = s_ykc_monitor_message_serial_number[gunno]++;
                 ykc_monitor_message_send_port(NETYKC_MONITOR_PREQCMD_PARA_CONFIG, s_ykc_monitor_socket_info.fd, &g_ykc_monitor_preq_parameter_config[gunno],
-                        sizeof(g_ykc_monitor_preq_parameter_config[gunno]));
+                        sizeof(g_ykc_monitor_preq_parameter_config[gunno]), NULL);
                 ykc_monitor_set_message_send_state(gunno, NET_YKC_MONITOR_SEND_STATE_COMPLETE, NET_YKC_MONITOR_PREQ_EVENT_PARA_CONFIG);
                 rt_thread_mdelay(250);
             }
@@ -808,7 +958,7 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
                 ykc_monitor_set_message_send_state(gunno, NET_YKC_MONITOR_SEND_STATE_ONGOING, NET_YKC_MONITOR_PREQ_EVENT_CHARGE_END);
                 g_ykc_monitor_preq_charge_finish[gunno].head.sequence = s_ykc_monitor_message_serial_number[gunno]++;
                 ykc_monitor_message_send_port(NETYKC_MONITOR_PREQCMD_CHARGE_END, s_ykc_monitor_socket_info.fd, &g_ykc_monitor_preq_charge_finish[gunno],
-                        sizeof(g_ykc_monitor_preq_charge_finish[gunno]));
+                        sizeof(g_ykc_monitor_preq_charge_finish[gunno]), NULL);
                 ykc_monitor_set_message_send_state(gunno, NET_YKC_MONITOR_SEND_STATE_COMPLETE, NET_YKC_MONITOR_PREQ_EVENT_CHARGE_END);
                 rt_thread_mdelay(250);
             }
@@ -819,7 +969,7 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
                 ykc_monitor_set_message_send_state(gunno, NET_YKC_MONITOR_SEND_STATE_ONGOING, NET_YKC_MONITOR_PREQ_EVENT_ERROR_MESSAGE);
                 g_ykc_monitor_preq_error_message[gunno].head.sequence = s_ykc_monitor_message_serial_number[gunno]++;
                 ykc_monitor_message_send_port(NETYKC_MONITOR_PREQCMD_ERROR_MESSAGE, s_ykc_monitor_socket_info.fd, &g_ykc_monitor_preq_error_message[gunno],
-                        sizeof(g_ykc_monitor_preq_error_message[gunno]));
+                        sizeof(g_ykc_monitor_preq_error_message[gunno]), NULL);
                 ykc_monitor_set_message_send_state(gunno, NET_YKC_MONITOR_SEND_STATE_COMPLETE, NET_YKC_MONITOR_PREQ_EVENT_ERROR_MESSAGE);
                 rt_thread_mdelay(250);
             }
@@ -830,7 +980,7 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
                 ykc_monitor_set_message_send_state(gunno, NET_YKC_MONITOR_SEND_STATE_ONGOING, NET_YKC_MONITOR_PREQ_EVENT_BMS_STOP);
                 g_ykc_monitor_preq_bms_end[gunno].head.sequence = s_ykc_monitor_message_serial_number[gunno]++;
                 ykc_monitor_message_send_port(NETYKC_MONITOR_PREQCMD_BMS_STOP, s_ykc_monitor_socket_info.fd, &g_ykc_monitor_preq_bms_end[gunno],
-                        sizeof(g_ykc_monitor_preq_bms_end[gunno]));
+                        sizeof(g_ykc_monitor_preq_bms_end[gunno]), NULL);
                 ykc_monitor_set_message_send_state(gunno, NET_YKC_MONITOR_SEND_STATE_COMPLETE, NET_YKC_MONITOR_PREQ_EVENT_BMS_STOP);
                 rt_thread_mdelay(250);
             }
@@ -841,7 +991,7 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
                 ykc_monitor_set_message_send_state(gunno, NET_YKC_MONITOR_SEND_STATE_ONGOING, NET_YKC_MONITOR_PREQ_EVENT_CHARGER_STOP);
                 g_ykc_monitor_preq_charger_end[gunno].head.sequence = s_ykc_monitor_message_serial_number[gunno]++;
                 ykc_monitor_message_send_port(NETYKC_MONITOR_PREQCMD_CHARGER_STOP, s_ykc_monitor_socket_info.fd, &g_ykc_monitor_preq_charger_end[gunno],
-                        sizeof(g_ykc_monitor_preq_charger_end[gunno]));
+                        sizeof(g_ykc_monitor_preq_charger_end[gunno]), NULL);
                 ykc_monitor_set_message_send_state(gunno, NET_YKC_MONITOR_SEND_STATE_COMPLETE, NET_YKC_MONITOR_PREQ_EVENT_CHARGER_STOP);
                 rt_thread_mdelay(250);
             }
@@ -852,7 +1002,7 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
                 ykc_monitor_set_message_send_state(gunno, NET_YKC_MONITOR_SEND_STATE_ONGOING, NET_YKC_MONITOR_PREQ_EVENT_CHARGER_OUTPUT_BMS_REQUIRE);
                 g_ykc_monitor_preq_bmscommand_chargerout[gunno].head.sequence = s_ykc_monitor_message_serial_number[gunno]++;
                 ykc_monitor_message_send_port(NETYKC_MONITOR_PREQCMD_CHARGER_OUTPUT_BMS_REQUIRE, s_ykc_monitor_socket_info.fd, &g_ykc_monitor_preq_bmscommand_chargerout[gunno],
-                        sizeof(g_ykc_monitor_preq_bmscommand_chargerout[gunno]));
+                        sizeof(g_ykc_monitor_preq_bmscommand_chargerout[gunno]), NULL);
                 ykc_monitor_set_message_send_state(gunno, NET_YKC_MONITOR_SEND_STATE_COMPLETE, NET_YKC_MONITOR_PREQ_EVENT_CHARGER_OUTPUT_BMS_REQUIRE);
                 rt_thread_mdelay(250);
             }
@@ -863,7 +1013,7 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
                 ykc_monitor_set_message_send_state(gunno, NET_YKC_MONITOR_SEND_STATE_ONGOING, NET_YKC_MONITOR_PREQ_EVENT_BMS_INFO);
                 g_ykc_monitor_preq_bms_info[gunno].head.sequence = s_ykc_monitor_message_serial_number[gunno]++;
                 ykc_monitor_message_send_port(NETYKC_MONITOR_PREQCMD_BMS_INFO, s_ykc_monitor_socket_info.fd, &g_ykc_monitor_preq_bms_info[gunno],
-                        sizeof(g_ykc_monitor_preq_bms_info[gunno]));
+                        sizeof(g_ykc_monitor_preq_bms_info[gunno]), NULL);
                 ykc_monitor_set_message_send_state(gunno, NET_YKC_MONITOR_SEND_STATE_COMPLETE, NET_YKC_MONITOR_PREQ_EVENT_BMS_INFO);
                 rt_thread_mdelay(250);
             }
@@ -874,7 +1024,7 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
                 ykc_monitor_set_message_send_state(gunno, NET_YKC_MONITOR_SEND_STATE_ONGOING, NET_YKC_MONITOR_PREQ_EVENT_APPLY_START_CHARGE);
                 g_ykc_monitor_preq_apply_charge_active[gunno].head.sequence = s_ykc_monitor_message_serial_number[gunno]++;
                 ykc_monitor_message_send_port(NETYKC_MONITOR_PREQCMD_APPLY_START_CHARGE, s_ykc_monitor_socket_info.fd, &g_ykc_monitor_preq_apply_charge_active[gunno],
-                        sizeof(g_ykc_monitor_preq_apply_charge_active[gunno]));
+                        sizeof(g_ykc_monitor_preq_apply_charge_active[gunno]), NULL);
                 ykc_monitor_set_message_wait_response_state(gunno, NET_YKC_MONITOR_PREQ_EVENT_APPLY_START_CHARGE);
                 ykc_monitor_set_message_send_state(gunno, NET_YKC_MONITOR_SEND_STATE_COMPLETE, NET_YKC_MONITOR_PREQ_EVENT_APPLY_START_CHARGE);
                 rt_thread_mdelay(250);
@@ -886,7 +1036,7 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
                 ykc_monitor_set_message_send_state(gunno, NET_YKC_MONITOR_SEND_STATE_ONGOING, NET_YKC_MONITOR_PREQ_EVENT_TRANSACTION_RECORD);
                 g_ykc_monitor_preq_transaction_records[gunno].head.sequence = s_ykc_monitor_message_serial_number[gunno]++;
                 ykc_monitor_message_send_port(NETYKC_MONITOR_PREQCMD_TRANSACTION_RECORD, s_ykc_monitor_socket_info.fd, &g_ykc_monitor_preq_transaction_records[gunno],
-                        sizeof(g_ykc_monitor_preq_transaction_records[gunno]));
+                        sizeof(g_ykc_monitor_preq_transaction_records[gunno]), NULL);
                 ykc_monitor_set_message_wait_response_state(gunno, NET_YKC_MONITOR_PREQ_EVENT_TRANSACTION_RECORD);
                 ykc_monitor_set_message_send_state(gunno, NET_YKC_MONITOR_SEND_STATE_COMPLETE, NET_YKC_MONITOR_PREQ_EVENT_TRANSACTION_RECORD);
 
@@ -911,7 +1061,7 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
                 ykc_monitor_set_message_send_state(gunno, NET_YKC_MONITOR_SEND_STATE_ONGOING, NET_YKC_MONITOR_PREQ_EVENT_GROUNDLOCK_INFO);
                 g_ykc_monitor_preq_ground_lock_info[gunno].head.sequence = s_ykc_monitor_message_serial_number[gunno]++;
                 ykc_monitor_message_send_port(NETYKC_MONITOR_PREQCMD_GROUNDLOCK_INFO, s_ykc_monitor_socket_info.fd, &g_ykc_monitor_preq_ground_lock_info[gunno],
-                        sizeof(g_ykc_monitor_preq_ground_lock_info[gunno]));
+                        sizeof(g_ykc_monitor_preq_ground_lock_info[gunno]), NULL);
                 ykc_monitor_set_message_wait_response_state(gunno, NET_YKC_MONITOR_PREQ_EVENT_GROUNDLOCK_INFO);
                 ykc_monitor_set_message_send_state(gunno, NET_YKC_MONITOR_SEND_STATE_COMPLETE, NET_YKC_MONITOR_PREQ_EVENT_GROUNDLOCK_INFO);
                 rt_thread_mdelay(250);
@@ -923,7 +1073,7 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
                 ykc_monitor_set_message_send_state(gunno, NET_YKC_MONITOR_SEND_STATE_ONGOING, NET_YKC_MONITOR_PREQ_EVENT_APPLY_START_MERGECHARGE);
                 g_ykc_monitor_preq_apply_merge_charge_active[gunno].head.sequence = s_ykc_monitor_message_serial_number[gunno]++;
                 ykc_monitor_message_send_port(NETYKC_MONITOR_PREQCMD_APPLY_START_MERGECHARGE, s_ykc_monitor_socket_info.fd, &g_ykc_monitor_preq_apply_merge_charge_active[gunno],
-                        sizeof(g_ykc_monitor_preq_apply_merge_charge_active[gunno]));
+                        sizeof(g_ykc_monitor_preq_apply_merge_charge_active[gunno]), NULL);
                 ykc_monitor_set_message_wait_response_state(gunno, NET_YKC_MONITOR_PREQ_EVENT_APPLY_START_MERGECHARGE);
                 ykc_monitor_set_message_send_state(gunno, NET_YKC_MONITOR_SEND_STATE_COMPLETE, NET_YKC_MONITOR_PREQ_EVENT_APPLY_START_MERGECHARGE);
                 rt_thread_mdelay(250);
@@ -934,7 +1084,7 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
         /***************************************************** [监控数据请求] **********************************************************/
         for(uint8_t gunno = 0; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
             uint32_t _event = 0;
-            ykc_monitor_net_event_receive(NET_YKC_MONITOR_USER_EVENT_HANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_RESPONSE, gunno, 0x00, 0x00, &_event);
+            ykc_monitor_net_event_receive(NET_YKC_MONITOR_USER_EVENT_HANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, gunno, 0x00, 0x00, &_event);
             if(!_event){
                 continue;   /* 此枪没有响应事件,不进行事件查询 */
             }
@@ -946,7 +1096,7 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
                 ykc_monitor_set_message_send_state(gunno, NET_YKC_MONITOR_SEND_STATE_ONGOING, NET_YKC_MONITOR_USER_PREQ_EVENT_REPORT_MODULE_INFO);
                 module_info->head.sequence = s_ykc_monitor_message_serial_number[gunno]++;
                 ykc_monitor_message_send_port(NETYKC_MONITOR_SREQCMD_QUERY_MODULE_INFO, s_ykc_monitor_socket_info.fd, s_ykc_monitor_response_buff.general_transmit_buff,
-                        s_ykc_monitor_response_buff.length);
+                        s_ykc_monitor_response_buff.length, NULL);
 //                ykc_monitor_set_message_wait_response_state(gunno, NET_YKC_MONITOR_USER_PREQ_EVENT_REPORT_MODULE_INFO);
                 ykc_monitor_set_message_send_state(gunno, NET_YKC_MONITOR_SEND_STATE_COMPLETE, NET_YKC_MONITOR_USER_PREQ_EVENT_REPORT_MODULE_INFO);
                 ykc_monitor_response_buff_release_sem();
@@ -960,9 +1110,24 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
                 ykc_monitor_set_message_send_state(gunno, NET_YKC_MONITOR_SEND_STATE_ONGOING, NET_YKC_MONITOR_USER_PREQ_EVENT_REPORT_MODULE_SETUPINFO);
                 module_setup->head.sequence = s_ykc_monitor_message_serial_number[gunno]++;
                 ykc_monitor_message_send_port(NETYKC_MONITOR_SREQCMD_QUERY_MODULE_SETUPINFO, s_ykc_monitor_socket_info.fd, s_ykc_monitor_response_buff.general_transmit_buff,
-                        s_ykc_monitor_response_buff.length);
+                        s_ykc_monitor_response_buff.length, NULL);
 //                ykc_monitor_set_message_wait_response_state(gunno, NET_YKC_MONITOR_USER_PREQ_EVENT_REPORT_MODULE_SETUPINFO);
                 ykc_monitor_set_message_send_state(gunno, NET_YKC_MONITOR_SEND_STATE_COMPLETE, NET_YKC_MONITOR_USER_PREQ_EVENT_REPORT_MODULE_SETUPINFO);
+                ykc_monitor_response_buff_release_sem();
+                rt_thread_mdelay(250);
+            }
+            /***** [充电桩上报目标平台日志] *****/
+            if(ykc_monitor_net_event_receive(NET_YKC_MONITOR_USER_EVENT_HANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, gunno,
+                    (NET_YKC_MONITOR_EVENT_OPTION_OR |NET_YKC_MONITOR_EVENT_OPTION_CLEAR), NET_YKC_MONITOR_USER_PREQ_EVENT_REPORT_TPLAT_LOG, NULL) > 0){
+                Net_YkcMonitorPro_Preq_TargetPlat_Log_t *log = (Net_YkcMonitorPro_Preq_TargetPlat_Log_t*)(s_ykc_monitor_response_buff.general_transmit_buff);
+                struct ykc_monitor_lognode *log_info = ykc_monitor_platlog_data_query();
+
+                ykc_monitor_set_message_send_state(gunno, NET_YKC_MONITOR_SEND_STATE_ONGOING, NET_YKC_MONITOR_USER_PREQ_EVENT_REPORT_TPLAT_LOG);
+                log->head.sequence = s_ykc_monitor_message_serial_number[gunno]++;
+                ykc_monitor_message_send_port(NETYKC_MONITOR_PREQCMD_TARGET_PLAT_LOG, s_ykc_monitor_socket_info.fd, s_ykc_monitor_response_buff.general_transmit_buff,
+                        s_ykc_monitor_response_buff.length, log_info->label);
+//                ykc_monitor_set_message_wait_response_state(gunno, NET_YKC_MONITOR_USER_PREQ_EVENT_REPORT_MODULE_SETUPINFO);
+                ykc_monitor_set_message_send_state(gunno, NET_YKC_MONITOR_SEND_STATE_COMPLETE, NET_YKC_MONITOR_USER_PREQ_EVENT_REPORT_TPLAT_LOG);
                 ykc_monitor_response_buff_release_sem();
                 rt_thread_mdelay(250);
             }
@@ -984,7 +1149,7 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
 
                 realtime_data->head.sequence = g_ykc_monitor_sreq_query_realtime_data[gunno].head.sequence;
                 ykc_monitor_message_send_port(NETYKC_MONITOR_PREQCMD_PRESCMD_REPORT_REALTIME_DATA, s_ykc_monitor_socket_info.fd, s_ykc_monitor_response_buff.general_transmit_buff,
-                        s_ykc_monitor_response_buff.length);
+                        s_ykc_monitor_response_buff.length, NULL);
                 ykc_monitor_response_buff_release_sem();
                 rt_thread_mdelay(250);
             }
@@ -995,7 +1160,7 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
                 Net_YkcMonitorPro_PRes_Remote_StartCharge_t *start_charge = (Net_YkcMonitorPro_PRes_Remote_StartCharge_t*)(s_ykc_monitor_response_buff.general_transmit_buff);
                 start_charge->head.sequence = g_ykc_monitor_sreq_remote_start_charge[gunno].head.sequence;
                 ykc_monitor_message_send_port(NETYKC_MONITOR_PRESCMD_SERVER_START_CHARGE, s_ykc_monitor_socket_info.fd, s_ykc_monitor_response_buff.general_transmit_buff,
-                        s_ykc_monitor_response_buff.length);
+                        s_ykc_monitor_response_buff.length, NULL);
                 ykc_monitor_response_buff_release_sem();
                 rt_thread_mdelay(250);
             }
@@ -1007,7 +1172,7 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
 
                 stop_charge->head.sequence = g_ykc_monitor_sreq_remote_stop_charge[gunno].head.sequence;
                 ykc_monitor_message_send_port(NETYKC_MONITOR_PRESCMD_SERVER_STOP_CHARGE, s_ykc_monitor_socket_info.fd, s_ykc_monitor_response_buff.general_transmit_buff,
-                        s_ykc_monitor_response_buff.length);
+                        s_ykc_monitor_response_buff.length, NULL);
                 ykc_monitor_response_buff_release_sem();
                 rt_thread_mdelay(250);
             }
@@ -1017,7 +1182,7 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
                 Net_YkcMonitorPro_PRes_AccountBallance_Update_t *ballance_update = (Net_YkcMonitorPro_PRes_AccountBallance_Update_t*)(s_ykc_monitor_response_buff.general_transmit_buff);
                 ballance_update->head.sequence = g_ykc_monitor_sreq_account_ballance_update[gunno].head.sequence;
                 ykc_monitor_message_send_port(NETYKC_MONITOR_PRESCMD_ACCOUNT_BALLANCE_UPDATE, s_ykc_monitor_socket_info.fd, s_ykc_monitor_response_buff.general_transmit_buff,
-                        s_ykc_monitor_response_buff.length);
+                        s_ykc_monitor_response_buff.length, NULL);
                 ykc_monitor_response_buff_release_sem();
                 rt_thread_mdelay(250);
             }
@@ -1027,7 +1192,7 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
                 Net_YkcMonitorPro_PRes_Sync_OfflineCard_t *sync_card = (Net_YkcMonitorPro_PRes_Sync_OfflineCard_t*)(s_ykc_monitor_response_buff.general_transmit_buff);
                 sync_card->head.sequence = g_ykc_monitor_sreq_sync_offline_card.head.sequence;
                 ykc_monitor_message_send_port(NETYKC_MONITOR_PRESCMD_SYNC_OFFLINECARD, s_ykc_monitor_socket_info.fd, s_ykc_monitor_response_buff.general_transmit_buff,
-                        s_ykc_monitor_response_buff.length);
+                        s_ykc_monitor_response_buff.length, NULL);
                 ykc_monitor_response_buff_release_sem();
                 rt_thread_mdelay(250);
             }
@@ -1037,7 +1202,7 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
                 Net_YkcMonitorPro_PRes_Clear_OfflineCard_t *clear_card = (Net_YkcMonitorPro_PRes_Clear_OfflineCard_t*)(s_ykc_monitor_response_buff.general_transmit_buff);
                 clear_card->head.sequence = g_ykc_monitor_sreq_clear_offline_card.head.sequence;
                 ykc_monitor_message_send_port(NETYKC_MONITOR_PRESCMD_CLEAR_OFFLINECARD, s_ykc_monitor_socket_info.fd, s_ykc_monitor_response_buff.general_transmit_buff,
-                        s_ykc_monitor_response_buff.length);
+                        s_ykc_monitor_response_buff.length, NULL);
                 ykc_monitor_response_buff_release_sem();
                 rt_thread_mdelay(250);
             }
@@ -1048,7 +1213,7 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
                 Net_YkcMonitorPro_PRes_Query_OfflineCard_t *query_card = (Net_YkcMonitorPro_PRes_Query_OfflineCard_t*)(s_ykc_monitor_response_buff.general_transmit_buff);
                 query_card->head.sequence = g_ykc_monitor_sreq_query_offline_card.head.sequence;
                 ykc_monitor_message_send_port(NETYKC_MONITOR_PRESCMD_QUERY_OFFLINECARD, s_ykc_monitor_socket_info.fd, s_ykc_monitor_response_buff.general_transmit_buff,
-                        s_ykc_monitor_response_buff.length);
+                        s_ykc_monitor_response_buff.length, NULL);
                 ykc_monitor_response_buff_release_sem();
                 rt_thread_mdelay(250);
             }
@@ -1059,7 +1224,7 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
                 Net_YkcMonitorPro_PRes_Set_WorkPara_t *work_para = (Net_YkcMonitorPro_PRes_Set_WorkPara_t*)(s_ykc_monitor_response_buff.general_transmit_buff);
                 work_para->head.sequence = g_ykc_monitor_sreq_set_work_para.head.sequence;
                 ykc_monitor_message_send_port(NETYKC_MONITOR_PRESCMD_SET_WORK_PARA, s_ykc_monitor_socket_info.fd, s_ykc_monitor_response_buff.general_transmit_buff,
-                        s_ykc_monitor_response_buff.length);
+                        s_ykc_monitor_response_buff.length, NULL);
                 ykc_monitor_response_buff_release_sem();
                 rt_thread_mdelay(250);
             }
@@ -1070,7 +1235,7 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
                 Net_YkcMonitorPro_PRes_TimeSync_t *time_sync = (Net_YkcMonitorPro_PRes_TimeSync_t*)(s_ykc_monitor_response_buff.general_transmit_buff);
                 time_sync->head.sequence = g_ykc_monitor_sreq_time_sync.head.sequence;
                 ykc_monitor_message_send_port(NETYKC_MONITOR_PRESCMD_TIME_SYNC, s_ykc_monitor_socket_info.fd, s_ykc_monitor_response_buff.general_transmit_buff,
-                        s_ykc_monitor_response_buff.length);
+                        s_ykc_monitor_response_buff.length, NULL);
                 ykc_monitor_response_buff_release_sem();
                 rt_thread_mdelay(250);
             }
@@ -1081,7 +1246,7 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
                 Net_YkcMonitorPro_PRes_BillingModel_Set_t *billing_model = (Net_YkcMonitorPro_PRes_BillingModel_Set_t*)(s_ykc_monitor_response_buff.general_transmit_buff);
                 billing_model->head.sequence = g_ykc_monitor_sreq_billing_model_set.head.sequence;
                 ykc_monitor_message_send_port(NETYKC_MONITOR_PRESCMD_SET_BILLING_MODEL, s_ykc_monitor_socket_info.fd, s_ykc_monitor_response_buff.general_transmit_buff,
-                        s_ykc_monitor_response_buff.length);
+                        s_ykc_monitor_response_buff.length, NULL);
                 ykc_monitor_response_buff_release_sem();
                 rt_thread_mdelay(250);
             }
@@ -1092,7 +1257,7 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
                 Net_YkcMonitorPro_PRes_GroundLock_Lifting_t *ground_lock = (Net_YkcMonitorPro_PRes_GroundLock_Lifting_t*)(s_ykc_monitor_response_buff.general_transmit_buff);
                 ground_lock->head.sequence = g_ykc_monitor_sreq_ground_lock_lifting[gunno].head.sequence;
                 ykc_monitor_message_send_port(NETYKC_MONITOR_PRESCMD_GROUNDLOCK_LIFTING, s_ykc_monitor_socket_info.fd, s_ykc_monitor_response_buff.general_transmit_buff,
-                        s_ykc_monitor_response_buff.length);
+                        s_ykc_monitor_response_buff.length, NULL);
                 ykc_monitor_response_buff_release_sem();
                 rt_thread_mdelay(250);
             }
@@ -1103,7 +1268,7 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
                 Net_YkcMonitorPro_PRes_RemoteReboot_t *reboot = (Net_YkcMonitorPro_PRes_RemoteReboot_t*)(s_ykc_monitor_response_buff.general_transmit_buff);
                 reboot->head.sequence = g_ykc_monitor_sreq_remote_reboot.head.sequence;
                 ykc_monitor_message_send_port(NETYKC_MONITOR_PRESCMD_REMOTE_REBOOT, s_ykc_monitor_socket_info.fd, s_ykc_monitor_response_buff.general_transmit_buff,
-                        s_ykc_monitor_response_buff.length);
+                        s_ykc_monitor_response_buff.length, NULL);
                 ykc_monitor_response_buff_release_sem();
                 rt_thread_mdelay(250);
             }
@@ -1113,7 +1278,7 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
 
                 g_ykc_monitor_pres_remote_update.head.sequence = g_ykc_monitor_sreq_remote_update.head.sequence;
                 ykc_monitor_message_send_port(NETYKC_MONITOR_PRESCMD_REMOTE_UPDATE, s_ykc_monitor_socket_info.fd, &g_ykc_monitor_pres_remote_update,
-                        sizeof(g_ykc_monitor_pres_remote_update));
+                        sizeof(g_ykc_monitor_pres_remote_update), NULL);
                 rt_thread_mdelay(250);
             }
             /***** [运营平台远程控制并充启机响应] *****/
@@ -1123,7 +1288,7 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
                 Net_YkcMonitorPro_PRes_Remote_StartMergeCharge_t *merge_charge = (Net_YkcMonitorPro_PRes_Remote_StartMergeCharge_t*)(s_ykc_monitor_response_buff.general_transmit_buff);
                 merge_charge->head.sequence = g_ykc_monitor_sreq_remote_start_merge_charge[gunno].head.sequence;
                 ykc_monitor_message_send_port(NETYKC_MONITOR_PRESCMD_SERVER_START_MERGECHARGE, s_ykc_monitor_socket_info.fd, s_ykc_monitor_response_buff.general_transmit_buff,
-                        s_ykc_monitor_response_buff.length);
+                        s_ykc_monitor_response_buff.length, NULL);
                 ykc_monitor_response_buff_release_sem();
                 rt_thread_mdelay(250);
             }
@@ -1134,7 +1299,7 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
                 Net_YkcMonitorPro_PRes_Qrcode_Config_GC_t *qrcode = (Net_YkcMonitorPro_PRes_Qrcode_Config_GC_t*)(s_ykc_monitor_response_buff.general_transmit_buff);
                 qrcode->head.sequence = g_ykc_monitor_sreq_qrcode_config_gc[gunno].head.sequence;
                 ykc_monitor_message_send_port(NETYKC_MONITOR_PRESCMD_QRCODE_CONFIG_GC, s_ykc_monitor_socket_info.fd, s_ykc_monitor_response_buff.general_transmit_buff,
-                        s_ykc_monitor_response_buff.length);
+                        s_ykc_monitor_response_buff.length, NULL);
                 ykc_monitor_response_buff_release_sem();
                 rt_thread_mdelay(250);
             }
@@ -1145,7 +1310,7 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
                 Net_YkcMonitorPro_PRes_Qrcode_Config_Ykc15_t *qrcode = (Net_YkcMonitorPro_PRes_Qrcode_Config_Ykc15_t*)(s_ykc_monitor_response_buff.general_transmit_buff);
                 qrcode->head.sequence = g_ykc_monitor_sreq_qrcode_config_ykc15.head.sequence;
                 ykc_monitor_message_send_port(NETYKC_MONITOR_PRESCMD_QRCODE_CONFIG_YKC15, s_ykc_monitor_socket_info.fd, s_ykc_monitor_response_buff.general_transmit_buff,
-                        s_ykc_monitor_response_buff.length);
+                        s_ykc_monitor_response_buff.length, NULL);
                 ykc_monitor_response_buff_release_sem();
                 rt_thread_mdelay(250);
             }
@@ -1156,15 +1321,15 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
                 Net_YkcMonitorPro_PRes_Qrcode_Config_Tld_t *qrcode = (Net_YkcMonitorPro_PRes_Qrcode_Config_Tld_t*)(s_ykc_monitor_response_buff.general_transmit_buff);
                 qrcode->head.sequence = g_ykc_monitor_sreq_qrcode_config_tld[gunno].head.sequence;
                 ykc_monitor_message_send_port(NETYKC_MONITOR_PRESCMD_QRCODE_CONFIG_TLD, s_ykc_monitor_socket_info.fd, s_ykc_monitor_response_buff.general_transmit_buff,
-                        s_ykc_monitor_response_buff.length);
+                        s_ykc_monitor_response_buff.length, NULL);
                 ykc_monitor_response_buff_release_sem();
                 rt_thread_mdelay(250);
             }
         }
 
 #ifdef NET_YKC_MONITOR_AS_MONITOR
-        /***************************************************** [监控数据响应] **********************************************************/
-        /***************************************************** [监控数据响应] **********************************************************/
+        /***************************************************** [充电桩监控数据响应] **********************************************************/
+        /***************************************************** [充电桩监控数据响应] **********************************************************/
         for(uint8_t gunno = 0; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
             uint32_t _event = 0;
             ykc_monitor_net_event_receive(NET_YKC_MONITOR_USER_EVENT_HANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_RESPONSE, gunno, 0x00, 0x00, &_event);
@@ -1179,7 +1344,7 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
                 module_info->head.sequence = ykc_monitor_get_recv_message_item_serial_number(NETYKC_MONITOR_SREQCMD_QUERY_MODULE_INFO, gunno);
                 ykc_monitor_clear_recv_message_item(NETYKC_MONITOR_SREQCMD_QUERY_MODULE_INFO, gunno);
                 ykc_monitor_message_send_port(NETYKC_MONITOR_PRES_PREQCMD_QUERY_MODULE_INFO, s_ykc_monitor_socket_info.fd, s_ykc_monitor_response_buff.general_transmit_buff,
-                        s_ykc_monitor_response_buff.length);
+                        s_ykc_monitor_response_buff.length, NULL);
                 ykc_monitor_response_buff_release_sem();
                 rt_thread_mdelay(250);
             }
@@ -1191,7 +1356,7 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
                 module_setup->head.sequence = ykc_monitor_get_recv_message_item_serial_number(NETYKC_MONITOR_SREQCMD_QUERY_MODULE_SETUPINFO, gunno);
                 ykc_monitor_clear_recv_message_item(NETYKC_MONITOR_SREQCMD_QUERY_MODULE_SETUPINFO, gunno);
                 ykc_monitor_message_send_port(NETYKC_MONITOR_PRES_PREQCMD_QUERY_MODULE_SETUPINFO, s_ykc_monitor_socket_info.fd, s_ykc_monitor_response_buff.general_transmit_buff,
-                        s_ykc_monitor_response_buff.length);
+                        s_ykc_monitor_response_buff.length, NULL);
                 ykc_monitor_response_buff_release_sem();
                 rt_thread_mdelay(250);
             }
@@ -1203,7 +1368,7 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
                 module_setup->head.sequence = ykc_monitor_get_recv_message_item_serial_number(NETYKC_MONITOR_SREQCMD_QUERY_FAULT_RECORD, gunno);
                 ykc_monitor_clear_recv_message_item(NETYKC_MONITOR_SREQCMD_QUERY_FAULT_RECORD, gunno);
                 ykc_monitor_message_send_port(NETYKC_MONITOR_PRESCMD_QUERY_FAULT_RECORD, s_ykc_monitor_socket_info.fd, s_ykc_monitor_response_buff.general_transmit_buff,
-                        s_ykc_monitor_response_buff.length);
+                        s_ykc_monitor_response_buff.length, NULL);
                 ykc_monitor_response_buff_release_sem();
                 rt_thread_mdelay(250);
             }
@@ -1215,7 +1380,7 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
                 module_setup->head.sequence = ykc_monitor_get_recv_message_item_serial_number(NETYKC_MONITOR_SREQCMD_QUERY_CHARGE_RECORD, gunno);
                 ykc_monitor_clear_recv_message_item(NETYKC_MONITOR_SREQCMD_QUERY_CHARGE_RECORD, gunno);
                 ykc_monitor_message_send_port(NETYKC_MONITOR_PRESCMD_QUERY_CHARGE_RECORD, s_ykc_monitor_socket_info.fd, s_ykc_monitor_response_buff.general_transmit_buff,
-                        s_ykc_monitor_response_buff.length);
+                        s_ykc_monitor_response_buff.length, NULL);
                 ykc_monitor_response_buff_release_sem();
                 rt_thread_mdelay(250);
             }
@@ -1227,7 +1392,7 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
                 module_setup->head.sequence = ykc_monitor_get_recv_message_item_serial_number(NETYKC_MONITOR_SREQCMD_QUERY_INPUTINFO_SETUP, gunno);
                 ykc_monitor_clear_recv_message_item(NETYKC_MONITOR_SREQCMD_QUERY_INPUTINFO_SETUP, gunno);
                 ykc_monitor_message_send_port(NETYKC_MONITOR_PRESCMD_QUERY_INPUTINFO_SETUP, s_ykc_monitor_socket_info.fd, s_ykc_monitor_response_buff.general_transmit_buff,
-                        s_ykc_monitor_response_buff.length);
+                        s_ykc_monitor_response_buff.length, NULL);
                 ykc_monitor_response_buff_release_sem();
                 rt_thread_mdelay(250);
             }
@@ -1239,7 +1404,7 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
                 module_setup->head.sequence = ykc_monitor_get_recv_message_item_serial_number(NETYKC_MONITOR_SREQCMD_QUERY_PROTECTINFO_SETUP, gunno);
                 ykc_monitor_clear_recv_message_item(NETYKC_MONITOR_SREQCMD_QUERY_PROTECTINFO_SETUP, gunno);
                 ykc_monitor_message_send_port(NETYKC_MONITOR_PRESCMD_QUERY_PROTECTINFO_SETUP, s_ykc_monitor_socket_info.fd, s_ykc_monitor_response_buff.general_transmit_buff,
-                        s_ykc_monitor_response_buff.length);
+                        s_ykc_monitor_response_buff.length, NULL);
                 ykc_monitor_response_buff_release_sem();
                 rt_thread_mdelay(250);
             }
@@ -1251,7 +1416,53 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
                 module_setup->head.sequence = ykc_monitor_get_recv_message_item_serial_number(NETYKC_MONITOR_SREQCMD_QUERY_FUNCTION_SETUP, gunno);
                 ykc_monitor_clear_recv_message_item(NETYKC_MONITOR_SREQCMD_QUERY_FUNCTION_SETUP, gunno);
                 ykc_monitor_message_send_port(NETYKC_MONITOR_PRESCMD_QUERY_FUNCTION_SETUP, s_ykc_monitor_socket_info.fd, s_ykc_monitor_response_buff.general_transmit_buff,
-                        s_ykc_monitor_response_buff.length);
+                        s_ykc_monitor_response_buff.length, NULL);
+                ykc_monitor_response_buff_release_sem();
+                rt_thread_mdelay(250);
+            }
+            /***** [服务器查询目标socket信息响应] *****/
+            if(ykc_monitor_net_event_receive(NET_YKC_MONITOR_USER_EVENT_HANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_RESPONSE, gunno,
+                    (NET_YKC_MONITOR_EVENT_OPTION_OR |NET_YKC_MONITOR_EVENT_OPTION_CLEAR), NET_YKC_MONITOR_USER_PRES_EVENT_QUERY_TSOCKET_INFO, NULL) > 0){
+                Net_YkcMonitorPro_Preq_Pres_TsocketInfo_t *tsocket = (Net_YkcMonitorPro_Preq_Pres_TsocketInfo_t*)(s_ykc_monitor_response_buff.general_transmit_buff);
+
+                tsocket->head.sequence = ykc_monitor_get_recv_message_item_serial_number(NETYKC_MONITOR_SREQCMD_QUERY_TSOCKET_INFO, gunno);
+                ykc_monitor_clear_recv_message_item(NETYKC_MONITOR_SREQCMD_QUERY_TSOCKET_INFO, gunno);
+                ykc_monitor_message_send_port(NETYKC_MONITOR_PRESCMD_QUERY_TSOCKET_INFO, s_ykc_monitor_socket_info.fd, s_ykc_monitor_response_buff.general_transmit_buff,
+                        s_ykc_monitor_response_buff.length, NULL);
+                ykc_monitor_response_buff_release_sem();
+                rt_thread_mdelay(250);
+            }
+            /***** [服务器查询设备信息响应] *****/
+            if(ykc_monitor_net_event_receive(NET_YKC_MONITOR_USER_EVENT_HANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_RESPONSE, gunno,
+                    (NET_YKC_MONITOR_EVENT_OPTION_OR |NET_YKC_MONITOR_EVENT_OPTION_CLEAR), NET_YKC_MONITOR_USER_PRES_EVENT_QUERY_DEV_INFO, NULL) > 0){
+                Net_YkcMonitorPro_Preq_PRes_DevInfo_t *dev_info = (Net_YkcMonitorPro_Preq_PRes_DevInfo_t*)(s_ykc_monitor_response_buff.general_transmit_buff);
+
+                dev_info->head.sequence = ykc_monitor_get_recv_message_item_serial_number(NETYKC_MONITOR_SREQCMD_QUERY_DVE_INFO, gunno);
+                ykc_monitor_clear_recv_message_item(NETYKC_MONITOR_SREQCMD_QUERY_DVE_INFO, gunno);
+                ykc_monitor_message_send_port(NETYKC_MONITOR_PRES_PREQCMD_QUERY_REPORT_DVE_INFO, s_ykc_monitor_socket_info.fd, s_ykc_monitor_response_buff.general_transmit_buff,
+                        s_ykc_monitor_response_buff.length, NULL);
+                ykc_monitor_response_buff_release_sem();
+                rt_thread_mdelay(250);
+            }
+        }
+
+        /***************************************************** [充电桩监控数据请求] **********************************************************/
+        /***************************************************** [充电桩监控数据请求] **********************************************************/
+        for(uint8_t gunno = 0; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
+            uint32_t _event = 0;
+            ykc_monitor_net_event_receive(NET_YKC_MONITOR_USER_EVENT_HANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, gunno, 0x00, 0x00, &_event);
+            if(!_event){
+                continue;   /* 此枪没有请求事件,不进行事件查询 */
+            }
+            /***** [上报设备信息请求] *****/
+            if(ykc_monitor_net_event_receive(NET_YKC_MONITOR_USER_EVENT_HANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, gunno,
+                    (NET_YKC_MONITOR_EVENT_OPTION_OR |NET_YKC_MONITOR_EVENT_OPTION_CLEAR), NET_YKC_MONITOR_USER_PREQ_EVENT_REPORT_DEV_INFO, NULL) > 0){
+                Net_YkcMonitorPro_Preq_PRes_DevInfo_t *dev_info = (Net_YkcMonitorPro_Preq_PRes_DevInfo_t*)(s_ykc_monitor_response_buff.general_transmit_buff);
+
+                dev_info->head.sequence = s_ykc_monitor_message_serial_number[gunno]++;
+                ykc_monitor_message_send_port(NETYKC_MONITOR_PRES_PREQCMD_QUERY_REPORT_DVE_INFO, s_ykc_monitor_socket_info.fd, s_ykc_monitor_response_buff.general_transmit_buff,
+                        s_ykc_monitor_response_buff.length, NULL);
+//                ykc_monitor_set_message_wait_response_state(gunno, NET_YKC_MONITOR_USER_PREQ_EVENT_REPORT_MODULE_SETUPINFO);
                 ykc_monitor_response_buff_release_sem();
                 rt_thread_mdelay(250);
             }
@@ -1474,12 +1685,7 @@ static void net_ykc_monitor_server_message_pro_entry(void *parameter)
                                         + NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
                                 for(uint8_t i = 0x00; i < count; i++){
                                     memcpy(info[i].physics_card_number, card, NET_YKC_MONITOR_CARD_NUMBER_LENGTH_MAX);
-#if 0
-                                    if(handle->card_vin_whitelists_delete(card, NET_YKC_MONITOR_CARD_NUMBER_LENGTH_MAX,  \
-                                            (NET_SYSTEM_DATA_OPTION_CARD_UID_WHITELIST |NET_SYSTEM_DATA_OPTION_CARD_NUMBER_JOINT)) < 0x00){
-#else
                                     if(handle->card_vin_whitelists_delete(card, NET_YKC_MONITOR_CARD_NUMBER_LENGTH_MAX, NET_SYSTEM_DATA_OPTION_CARD_UID_WHITELIST) < 0x00){
-#endif /* 0 */
                                         info[i].result = 0x00;
                                         info[i].fail_reason = 0x01;
                                     }else{
@@ -1850,6 +2056,25 @@ static void net_ykc_monitor_server_message_pro_entry(void *parameter)
                     net_operation_clear_event(gunno, NET_OPERATION_EVENT_OFFLINECHARGE_LIMIT);
                 }
             }
+#ifdef NET_YKC_MONITOR_AS_MONITOR
+/***************************************************** [服务器监控数据响应] **********************************************************/
+/***************************************************** [服务器监控数据响应] **********************************************************/
+            ykc_monitor_net_event_receive(NET_YKC_MONITOR_USER_EVENT_HANDLE_SERVER, NET_YKC_MONITOR_EVENT_TYPE_RESPONSE, gunno, 0x00, 0x00, &_event);
+            if(_event){
+                /***** [上报目标平台日志响应] *****/
+                if(ykc_monitor_net_event_receive(NET_YKC_MONITOR_USER_EVENT_HANDLE_SERVER, NET_YKC_MONITOR_EVENT_TYPE_RESPONSE, gunno,
+                        (NET_YKC_MONITOR_EVENT_OPTION_OR |NET_YKC_MONITOR_EVENT_OPTION_CLEAR), NET_YKC_MONITOR_USER_SRES_EVENT_REPORT_TPLAT_LOG, NULL) > 0){
+                    if(g_ykc_monitor_sres_target_plat_log.body.id == s_ykc_monitor_current_log_id){
+                        s_ykc_monitor_log_step = NET_YKC_MONITOR_LOG_STEP_COMPLETE;
+                    }
+                }
+                /***** [上报设备信息响应] *****/
+                if(ykc_monitor_net_event_receive(NET_YKC_MONITOR_USER_EVENT_HANDLE_SERVER, NET_YKC_MONITOR_EVENT_TYPE_RESPONSE, gunno,
+                        (NET_YKC_MONITOR_EVENT_OPTION_OR |NET_YKC_MONITOR_EVENT_OPTION_CLEAR), NET_YKC_MONITOR_USER_SRES_EVENT_REPORT_DEV_INFO, NULL) > 0){
+                    s_ykc_monitor_dev_info_flag = 0x01;
+                }
+            }
+#endif /* NET_YKC_MONITOR_AS_MONITOR */
             /***** [启动充电异步响应] *****/
             if(ykc_monitor_net_event_receive(NET_YKC_MONITOR_EVENT_HANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_RESPONSE, gunno,
                     (NET_YKC_MONITOR_EVENT_OPTION_OR |NET_YKC_MONITOR_EVENT_OPTION_CLEAR), NET_YKC_MONITOR_PRES_EVENT_START_CHARGE_ASYNCHRONOUSLY, NULL) > 0){
@@ -1916,8 +2141,8 @@ static void net_ykc_monitor_server_message_pro_entry(void *parameter)
             }
         }
 #ifdef NET_YKC_MONITOR_AS_MONITOR
-        /***************************************************** [监控数据请求] **********************************************************/
-        /***************************************************** [监控数据请求] **********************************************************/
+        /***************************************************** [服务器监控数据请求] **********************************************************/
+        /***************************************************** [服务器监控数据请求] **********************************************************/
         for(uint8_t gunno = 0; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
             uint32_t _event = 0;
             ykc_monitor_net_event_receive(NET_YKC_MONITOR_USER_EVENT_HANDLE_SERVER, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, gunno, 0x00, 0x00, &_event);
@@ -2001,6 +2226,92 @@ static void net_ykc_monitor_server_message_pro_entry(void *parameter)
                     ykc_monitor_response_buff_release_sem();
                 }
             }
+            /***** [查询目标socket信息请求] *****/
+            if(ykc_monitor_net_event_receive(NET_YKC_MONITOR_USER_EVENT_HANDLE_SERVER, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, gunno,
+                    (NET_YKC_MONITOR_EVENT_OPTION_OR |NET_YKC_MONITOR_EVENT_OPTION_CLEAR), NET_YKC_MONITOR_USER_SREQ_EVENT_QUERY_TSOCKET_INFO, NULL) > 0){
+                response = ykc_monitor_get_response_buff(RT_WAITING_FOREVER);
+                result = ykc_monitor_message_padding_tsocket_info(response->general_transmit_buff, NET_YKC_MONITOR_GENERA_RESPONSE_BUFF_LENGTH, &(response->length));
+                if(result >= 0x00){
+                    ykc_monitor_net_event_send(NET_YKC_MONITOR_USER_EVENT_HANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_RESPONSE, gunno, NET_YKC_MONITOR_USER_PRES_EVENT_QUERY_TSOCKET_INFO);
+                }else{
+                    ykc_monitor_response_buff_release_sem();
+                }
+            }
+            /***** [查询设备信息请求] *****/
+            if(ykc_monitor_net_event_receive(NET_YKC_MONITOR_USER_EVENT_HANDLE_SERVER, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, gunno,
+                    (NET_YKC_MONITOR_EVENT_OPTION_OR |NET_YKC_MONITOR_EVENT_OPTION_CLEAR), NET_YKC_MONITOR_USER_SREQ_EVENT_QUERY_DEV_INFO, NULL) > 0){
+                response = ykc_monitor_get_response_buff(RT_WAITING_FOREVER);
+                result = ykc_monitor_message_padding_dev_info(response->general_transmit_buff, NET_YKC_MONITOR_GENERA_RESPONSE_BUFF_LENGTH, &(response->length));
+                if(result >= 0x00){
+                    ykc_monitor_net_event_send(NET_YKC_MONITOR_USER_EVENT_HANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, 0x00, NET_YKC_MONITOR_USER_PRES_EVENT_QUERY_DEV_INFO);
+                }else{
+                    ykc_monitor_response_buff_release_sem();
+                }
+            }
+        }
+
+        /** 目标平台日志上报 */
+        if(s_ykc_monitor_log_step != NET_YKC_MONITOR_LOG_STEP_ONGOING){
+            if(s_ykc_monitor_log_step == NET_YKC_MONITOR_LOG_STEP_COMPLETE){
+                s_ykc_monitor_log_step = NET_YKC_MONITOR_LOG_STEP_NULL;
+                ykc_monitor_platlog_data_remove();
+            }
+            if(s_ykc_monitor_loghead.log_num){
+                uint16_t valid_len = 0x00;
+                struct ykc_monitor_lognode *log = ykc_monitor_platlog_data_query();
+                if(log){
+                    response = ykc_monitor_get_response_buff(RT_WAITING_FOREVER);
+                    if(NET_YKC_MONITOR_GENERA_RESPONSE_BUFF_LENGTH > (sizeof(Net_YkcMonitorPro_Preq_TargetPlat_Log_t) + NET_YKC_MONITOR_PROTOCOL_CHECK_REGION_SIZE)){
+                        if(log->log_size){
+                            log->log_size--;     /** 长度减去数据部分的第一字节(数据是否校验正确字段) */
+                        }
+                        valid_len = (NET_YKC_MONITOR_GENERA_RESPONSE_BUFF_LENGTH - (sizeof(Net_YkcMonitorPro_Preq_TargetPlat_Log_t) + NET_YKC_MONITOR_PROTOCOL_CHECK_REGION_SIZE));
+                        valid_len = valid_len > log->log_size ? log->log_size : valid_len;
+                        if(ykc_monitor_message_padding_log_info(response->general_transmit_buff, NET_YKC_MONITOR_GENERA_RESPONSE_BUFF_LENGTH, NULL) >= 0x00){
+                            Net_YkcMonitorPro_Preq_TargetPlat_Log_t *log_data = (Net_YkcMonitorPro_Preq_TargetPlat_Log_t*)response->general_transmit_buff;
+                            if(s_ykc_monitor_log_step != NET_YKC_MONITOR_LOG_STEP_REPEAT){
+                                s_ykc_monitor_current_log_id = rt_tick_get();
+                            }
+                            s_ykc_monitor_log_step = NET_YKC_MONITOR_LOG_STEP_ONGOING;
+
+                            log_data->body.data_verify = log->log[0x00];
+                            log_data->body.id = s_ykc_monitor_current_log_id;
+                            memcpy((&(log_data->body.id) + 0x01), &(log->log[0x01]), valid_len);
+                            response->length = sizeof(Net_YkcMonitorPro_Preq_TargetPlat_Log_t) + NET_YKC_MONITOR_PROTOCOL_CHECK_REGION_SIZE + valid_len;
+
+                            s_ykc_monitor_log_tick = rt_tick_get();
+                            ykc_monitor_net_event_send(NET_YKC_MONITOR_USER_EVENT_HANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, 0x00, NET_YKC_MONITOR_USER_PREQ_EVENT_REPORT_TPLAT_LOG);
+                        }else{
+                            ykc_monitor_response_buff_release_sem();
+                        }
+                    }else{
+                        ykc_monitor_response_buff_release_sem();
+                    }
+                }
+            }
+        }else{
+            /* 超时重报处理 */
+            if(s_ykc_monitor_log_tick > rt_tick_get()){
+                s_ykc_monitor_log_tick = rt_tick_get();
+            }
+            if((rt_tick_get() - s_ykc_monitor_log_tick) > NET_YKC_MONITOR_LOG_RESPONSE_DELAY){
+                s_ykc_monitor_log_tick = rt_tick_get();
+                if(s_ykc_monitor_loghead.log_num){
+                    s_ykc_monitor_log_step = NET_YKC_MONITOR_LOG_STEP_REPEAT;
+                }
+            }
+        }
+
+        /** 设备信息填充 */
+        if(ykc_monitor_net_event_receive(NET_YKC_MONITOR_USER_EVENT_HANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, 0x00,
+                (NET_YKC_MONITOR_EVENT_OPTION_OR |NET_YKC_MONITOR_EVENT_OPTION_CLEAR), NET_YKC_MONITOR_USER_PREQ_EVENT_REPORT_DEV_INFO_ASYNCHRONOUSLY, NULL) > 0){
+            response = ykc_monitor_get_response_buff(RT_WAITING_FOREVER);
+            result = ykc_monitor_message_padding_dev_info(response->general_transmit_buff, NET_YKC_MONITOR_GENERA_RESPONSE_BUFF_LENGTH, &(response->length));
+            if(result >= 0x00){
+                ykc_monitor_net_event_send(NET_YKC_MONITOR_USER_EVENT_HANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, 0x00, NET_YKC_MONITOR_USER_PREQ_EVENT_REPORT_DEV_INFO);
+            }else{
+                ykc_monitor_response_buff_release_sem();
+            }
         }
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
         rt_thread_mdelay(100);
@@ -2009,6 +2320,11 @@ static void net_ykc_monitor_server_message_pro_entry(void *parameter)
 
 int32_t ykc_monitor_message_send_init(void)
 {
+#ifdef NET_YKC_MONITOR_AS_MONITOR
+    s_ykc_monitor_loghead.log_num = 0x00;
+    s_ykc_monitor_loghead.node.node = NULL;
+#endif /* NET_YKC_MONITOR_AS_MONITOR */
+
     for(uint8_t gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
         s_ykc_monitor_same_transaction_report_count[gunno] = 0x00;
         s_ykc_monitor_transaction_verify[gunno] = 0x00;

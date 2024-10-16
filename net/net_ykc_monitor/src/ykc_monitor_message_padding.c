@@ -2822,4 +2822,171 @@ int8_t ykc_monitor_message_padding_function_setup(uint8_t *buf, uint16_t ilen, u
     return 0x00;
 }
 
+/*************************************************
+ * 函数名      ykc_monitor_message_padding_tsocket_info
+ * 功能          组包：目标socket信息
+ * **********************************************/
+int8_t ykc_monitor_message_padding_tsocket_info(uint8_t *buf, uint16_t ilen, uint16_t *olen)
+{
+    uint16_t total = sizeof(Net_YkcMonitorPro_Preq_Pres_TsocketInfo_t);
+
+    if(buf == NULL){
+        return -0x01;
+    }
+    if(ilen < total){
+        return -0x02;
+    }
+
+    uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC_MONITOR |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
+    uint8_t valid_len = 0x00, *pile_number = NULL;
+    net_plat_socket_info_t *socket = net_operation_get_target_socket_info();
+    Net_YkcMonitorPro_Preq_Pres_TsocketInfo_t *message = (Net_YkcMonitorPro_Preq_Pres_TsocketInfo_t*)buf;
+    memcpy(message->body.pile_number, g_ykc_monitor_preq_login.body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
+
+    pile_number = (uint8_t*)(s_ykc_monitor_handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, option));
+
+    valid_len = sizeof(message->body.pile_number_whole);
+    valid_len = valid_len > strlen((char*)pile_number) ? strlen((char*)pile_number) : valid_len;
+    memset(message->body.pile_number_whole, 0x00, sizeof(message->body.pile_number_whole));
+    memcpy(message->body.pile_number_whole, pile_number, valid_len);
+
+    valid_len = sizeof(message->body.domain);
+    valid_len = valid_len > sizeof(socket->domain) ? sizeof(socket->domain) : valid_len;
+    memcpy(message->body.domain, socket->domain, valid_len);
+
+    message->body.port = socket->port;
+    message->body.state = socket->state;
+    message->body.open_count = socket->open_count;
+    message->body.login_count = socket->login_count;
+
+    if(olen){
+        *olen = total;
+    }
+
+    return 0x00;
+}
+
+/*************************************************
+ * 函数名      ykc_monitor_message_padding_log_info
+ * 功能          组包：目标平台日志信息
+ * **********************************************/
+int8_t ykc_monitor_message_padding_log_info(uint8_t *buf, uint16_t ilen, uint16_t *olen)
+{
+    uint16_t total = sizeof(Net_YkcMonitorPro_Preq_TargetPlat_Log_t);
+
+    if(buf == NULL){
+        return -0x01;
+    }
+    if(ilen < total){
+        return -0x02;
+    }
+
+    uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC_MONITOR |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
+    uint8_t *pile_number = NULL, valid_len;
+    Net_YkcMonitorPro_Preq_TargetPlat_Log_t *message = (Net_YkcMonitorPro_Preq_TargetPlat_Log_t*)buf;
+    memcpy(message->body.pile_number, g_ykc_monitor_preq_login.body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
+
+    pile_number = (uint8_t*)(s_ykc_monitor_handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, option));
+
+    valid_len = sizeof(message->body.pile_number_whole);
+    valid_len = valid_len > strlen((char*)pile_number) ? strlen((char*)pile_number) : valid_len;
+    memset(message->body.pile_number_whole, 0x00, sizeof(message->body.pile_number_whole));
+    memcpy(message->body.pile_number_whole, pile_number, valid_len);
+
+    if(olen){
+        *olen = total;
+    }
+
+    return 0x00;
+}
+
+/*************************************************
+ * 函数名      ykc_monitor_message_padding_dev_info
+ * 功能          组包：设备信息
+ * **********************************************/
+int8_t ykc_monitor_message_padding_dev_info(uint8_t *buf, uint16_t ilen, uint16_t *olen)
+{
+    uint16_t total = sizeof(Net_YkcMonitorPro_Preq_PRes_DevInfo_t);
+
+    if(buf == NULL){
+        return -0x01;
+    }
+    if(ilen < total){
+        return -0x02;
+    }
+
+    uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC_MONITOR |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
+    uint8_t valid_len = 0x00, *data = NULL;
+    Net_YkcMonitorPro_Preq_PRes_DevInfo_t *message = (Net_YkcMonitorPro_Preq_PRes_DevInfo_t*)buf;
+    memcpy(message->body.pile_number, g_ykc_monitor_preq_login.body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
+
+    data = (uint8_t*)(s_ykc_monitor_handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, option));
+
+    valid_len = sizeof(message->body.pile_number_whole);
+    valid_len = valid_len > strlen((char*)data) ? strlen((char*)data) : valid_len;
+    memset(message->body.pile_number_whole, 0x00, sizeof(message->body.pile_number_whole));
+    memcpy(message->body.pile_number_whole, data, valid_len);
+
+    data = (uint8_t*)(s_ykc_monitor_handle->get_system_data(NET_SYSTEM_DATA_NAME_NETWORKED_WAY, NULL, option));
+    if(*data == *(uint8_t*)(NET_NETWORKED_WAY_4G)){
+        message->body.interconnecting_way = 0x01;
+    }else{
+        message->body.interconnecting_way = 0x02;
+    }
+
+    data = (uint8_t*)(s_ykc_monitor_handle->get_system_data(NET_SYSTEM_DATA_NAME_HARDWARE_INFO, NULL, option));
+    valid_len = sizeof(message->body.hardware);
+    valid_len = valid_len > strlen((char*)data) ? strlen((char*)data) : valid_len;
+    memset(message->body.hardware, 0x00, sizeof(message->body.hardware));
+    memcpy(message->body.hardware, data, valid_len);
+
+    data = (uint8_t*)(s_ykc_monitor_handle->get_system_data(NET_SYSTEM_DATA_NAME_SOFTWARE_MODEL, NULL, option));
+    valid_len = sizeof(message->body.soft_model);
+    valid_len = valid_len > strlen((char*)data) ? strlen((char*)data) : valid_len;
+    memset(message->body.soft_model, 0x00, sizeof(message->body.soft_model));
+    memcpy(message->body.soft_model, data, valid_len);
+
+    data = (uint8_t*)(s_ykc_monitor_handle->get_system_data(NET_SYSTEM_DATA_NAME_DEV_TYPE, NULL, option));
+    if(*data == *(uint8_t*)(NET_DEV_TYPE_DYNAMIC_DOUBLEGUN)){
+        message->body.dev_type = 0x02;
+    }else if(*data == *(uint8_t*)(NET_DEV_TYPE_SINGLEGUN_TERMINAL)){
+        message->body.dev_type = 0x03;
+    }else if(*data == *(uint8_t*)(NET_DEV_TYPE_DOUBLEGUN_TERMINAL)){
+        message->body.dev_type = 0x04;
+    }else if(*data == *(uint8_t*)(NET_DEV_TYPE_MAIN_CABINET)){
+        message->body.dev_type = 0x05;
+    }else if(*data == *(uint8_t*)(NET_DEV_TYPE_SUPER_SINGLEGUN)){
+        message->body.dev_type = 0x03;
+    }else{
+        message->body.dev_type = 0x01;
+    }
+
+#ifdef NET_INCLUDE_TARGET_PLATFORM
+#if (NET_TARGET_PLATFORM_ID == NET_YKC_PRO_ID)
+    message->body.target_plat_protocol = 0x01;
+#elif (NET_TARGET_PLATFORM_ID == NET_YCP_PRO_ID)
+    message->body.target_plat_protocol = 0x02;
+#elif (NET_TARGET_PLATFORM_ID == NET_YND_PRO_ID)
+    message->body.target_plat_protocol = 0x04;
+#elif (NET_TARGET_PLATFORM_ID == NET_XJ_PRO_ID)
+    message->body.target_plat_protocol = 0x05;
+#elif (NET_TARGET_PLATFORM_ID == NET_SL_PRO_ID)
+    message->body.target_plat_protocol = 0x06;
+#elif (NET_TARGET_PLATFORM_ID == NET_SGCC_PRO_ID)
+    message->body.target_plat_protocol = 0x03;
+#else
+    message->body.target_plat_protocol = 0x01;
+#endif
+
+#else
+    message->body.target_plat_protocol = 0x01;
+#endif /* NET_INCLUDE_TARGET_PLATFORM */
+
+    if(olen){
+        *olen = total;
+    }
+
+    return 0x00;
+}
+
 #endif /* NET_PACK_USING_YKC_MONITOR */

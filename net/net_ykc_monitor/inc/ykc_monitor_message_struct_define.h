@@ -265,6 +265,19 @@ enum ykc_monitor_cmd{
 
     NETYKC_MONITOR_SREQCMD_QUERY_FUNCTION_SETUP = 0xBC,              /* 指令：运营平台查询功能配置 */
     NETYKC_MONITOR_PRESCMD_QUERY_FUNCTION_SETUP = 0xBD,              /* 指令：远程查询功能配置命令回复 */
+
+    NETYKC_MONITOR_SREQCMD_QUERY_DVE_INFO = 0xBE,                    /* 指令：运营平台查询设备信息 */
+    NETYKC_MONITOR_PRES_PREQCMD_QUERY_REPORT_DVE_INFO = 0xBF,        /* 指令：远程查询设备信息命令回复/设备信息上报 */
+    NETYKC_MONITOR_SRESCMD_REPORT_DVE_INFO = 0xC0,                   /* 指令：远程设备信息上报命令回复 */
+
+    NETYKC_MONITOR_PREQCMD_TARGET_PLAT_LOG = 0xC1,                   /* 指令：上报目标平台日志 */
+    NETYKC_MONITOR_SRESCMD_TARGET_PLAT_LOG = 0xC2,                   /* 指令：上报目标平台日志响应 */
+
+    NETYKC_MONITOR_SREQCMD_QUERY_BILLING_RULE = 0xC3,                /* 指令：运营平台查询计费规则 */
+    NETYKC_MONITOR_PRESCMD_QUERY_BILLING_RULE = 0xC4,                /* 指令：远程查询计费规则命令回复 */
+
+    NETYKC_MONITOR_SREQCMD_QUERY_TSOCKET_INFO = 0xC5,                /* 指令：运营平台查询目标socket信息 */
+    NETYKC_MONITOR_PRESCMD_QUERY_TSOCKET_INFO = 0xC6,                /* 指令：远程查询目标socket信息命令回复 */
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
 };
 
@@ -1254,7 +1267,7 @@ typedef struct{
     uint16_t check_sum;                          /* 校验码 */
 }Net_YkcMonitorPro_PRes_ProtectInfo_Setup_t;
 
-/** 0xBB 功能配置查询响应帧 */
+/** 0xBD 功能配置查询响应帧 */
 typedef struct{
     Net_YkcMonitorPro_Head_t head;
     struct{
@@ -1273,6 +1286,88 @@ typedef struct{
     }body;
     uint16_t check_sum;                          /* 校验码 */
 }Net_YkcMonitorPro_PRes_FunctionSetup_t;
+
+/** 0xBF 设备信息响应(上报)帧 */
+typedef struct{
+    Net_YkcMonitorPro_Head_t head;
+    struct{
+        uint8_t pile_number[NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT];  /* 桩号*/
+        uint8_t pile_number_whole[48];           /* 真正的桩号*/
+        uint8_t interconnecting_way;             /* 联网方式 */
+        uint8_t hardware[16];                    /* 硬件版本 */
+        uint8_t soft_model[16];                  /* 软件型号 */
+        uint8_t dev_type;                        /* 设备类型 */
+        uint8_t target_plat_protocol;            /* 目标平台协议 */
+        uint16_t customer;                       /* 客户代码 */
+    }body;
+    uint16_t check_sum;                          /* 校验码 */
+}Net_YkcMonitorPro_Preq_PRes_DevInfo_t;
+
+/** 0xC0 服务器设备信息响应帧 */
+typedef struct{
+    Net_YkcMonitorPro_Head_t head;
+    struct{
+        uint8_t pile_number[NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT];  /* 桩号*/
+        uint8_t pile_number_whole[48];           /* 真正的桩号*/
+    }body;
+    uint16_t check_sum;                          /* 校验码 */
+}Net_YkcMonitorPro_Sres_DevInfo_t;
+
+/** 0xC1 目标平台日志上报帧 */
+typedef struct{
+    Net_YkcMonitorPro_Head_t head;
+    struct{
+        uint8_t pile_number[NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT];  /* 桩号*/
+        uint8_t pile_number_whole[48];           /* 真正的桩号*/
+        uint8_t data_verify;                     /* 日志数据校验是否正确(1:正确，0：错误) */
+        uint32_t id;                             /* 报文ID */
+        /** 以下为数据部分 */
+    }body;
+}Net_YkcMonitorPro_Preq_TargetPlat_Log_t;
+
+/** 0xC2 服务器目标平台日志上报响应帧 */
+typedef struct{
+    Net_YkcMonitorPro_Head_t head;
+    struct{
+        uint8_t pile_number[NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT];  /* 桩号*/
+        uint8_t pile_number_whole[48];           /* 真正的桩号*/
+        uint32_t id;                             /* 报文ID */
+    }body;
+    uint16_t check_sum;                          /* 校验码 */
+}Net_YkcMonitorPro_Sres_TargetPlat_Log_t;
+
+/** 0xC4 计费策略响应(上报)帧 */
+struct fees_info{
+    uint32_t elect_fees : 20;                    /* 电费 */
+    uint32_t service_fees : 20;                  /* 服务费 */
+    uint32_t delay_fees : 20;                    /* 延迟费 */
+    uint32_t reserve : 4;                        /* 预留 */
+};
+
+typedef struct{
+    Net_YkcMonitorPro_Head_t head;
+    struct{
+        uint8_t pile_number[NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT];  /* 桩号*/
+        uint8_t pile_number_whole[48];           /* 真正的桩号*/
+        struct fees_info fees[96];               /* 费率信息 */
+    }body;
+    uint16_t check_sum;                          /* 校验码 */
+}Net_YkcMonitorPro_Preq_Pres_BillingRule_t;
+
+/** 0xC6 目标平台socket信息响应(上报)帧 */
+typedef struct{
+    Net_YkcMonitorPro_Head_t head;
+    struct{
+        uint8_t pile_number[NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT];  /* 桩号*/
+        uint8_t pile_number_whole[48];           /* 真正的桩号*/
+        uint8_t domain[128];                     /* 域名 */
+        uint16_t port;                           /* 域名 */
+        uint8_t state;                           /* 域名 */
+        uint8_t open_count;                      /* 域名 */
+        uint8_t login_count;                     /* 域名 */
+    }body;
+    uint16_t check_sum;                          /* 校验码 */
+}Net_YkcMonitorPro_Preq_Pres_TsocketInfo_t;
 
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
 

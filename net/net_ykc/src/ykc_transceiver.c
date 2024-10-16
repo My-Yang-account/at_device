@@ -151,10 +151,13 @@ static void ykc_message_recv_thread_entry(void *parameter)
                         recv_check |= *(s_ykc_message_recv_buff + length - 0x02);
                         if(recv_check == cal_check){
                             ((void (*)(uint8_t*, uint16_t))callback)(s_ykc_message_recv_buff, length);
+                            net_operation_insert_tplat_log(s_ykc_message_recv_buff, length, 0x01, "LOGYKC");
                         }else{
+                            net_operation_insert_tplat_log(s_ykc_message_recv_buff, length, 0x00, "LOGYKC");
                             LOG_E("ykc service id|%02X check error|%x, %x", ((Net_YkcPro_Head_t*)s_ykc_message_recv_buff)->type, recv_check, cal_check);
                         }
                     }else{
+                        net_operation_insert_tplat_log(s_ykc_message_recv_buff, length, 0x00, "LOGYKC");
                         LOG_E("ykc service id|%02X cb is not register", ((Net_YkcPro_Head_t*)s_ykc_message_recv_buff)->type);
                     }
                 }
@@ -199,6 +202,8 @@ int32_t ykc_message_send_port(uint8_t cmd, int fd, void *data, uint16_t len)
     memset(ykc_id, 0x00, sizeof(ykc_id));
     sprintf((char*)ykc_id, "%s", "YKC");
     NETDATA_DEBUG((const char*)ykc_id, data, len, NETDATA_DEBUG_DIR_SEND);
+
+    net_operation_insert_tplat_log(data, len, 0x01, "LOGYKC");
 
     return ykc_socket_send(fd, data, len);
 }
