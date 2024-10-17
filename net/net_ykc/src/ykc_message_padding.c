@@ -1225,7 +1225,7 @@ void ykc_message_info_init(uint8_t gunno)  ///////// 这是网络部分外部调
     g_ykc_preq_login.body.software_ver[1] = '.';
     g_ykc_preq_login.body.software_ver[2] = s_ykc_base->soft_ver_sub + '0';
     g_ykc_preq_login.body.software_ver[3] = '.';
-    sprintf((char *)&g_ykc_preq_login.body.software_ver[3 + 1], "%2d", s_ykc_base->soft_ver_revise);
+    sprintf((char *)&g_ykc_preq_login.body.software_ver[3 + 1], "%02d", s_ykc_base->soft_ver_revise);
 
     g_ykc_preq_login.body.net_link_type = NET_YKC_NET_LINK_TYPE_SIM;
 
