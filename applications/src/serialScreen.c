@@ -944,7 +944,7 @@ static void SerialScreen_RealTime_InfoGet(void)
             LcdData.setData.g_chargeVol[gunno] = thaisenGetModuleOutputVoltage(gunno);
         }
         LcdData.setData.g_chargeCur[gunno] = thaisen_get_ammeter_current(gunno);
-
+#if 0
         if(thaisen_get_InsultInfo(gunno) == thaisenInsultAnomaly){
             LcdData.setData.warnning[gunno] = SYSTEM_WARNNING_INFO_INSULT_PROPERTIES;
         }else if(thaisen_get_InsultVoltInfo(gunno) == thaisenInsultVoltAlarm){
@@ -954,7 +954,9 @@ static void SerialScreen_RealTime_InfoGet(void)
         }else{
             LcdData.setData.warnning[gunno] = SYSTEM_WARNNING_INFO_NORMAL;
         }
-
+#else
+        LcdData.setData.warnning[gunno] = SYSTEM_WARNNING_INFO_NORMAL;
+#endif
         LcdData.setData.period_price = thaisen_get_period_price(gunno, 0x00);
     }
 }
