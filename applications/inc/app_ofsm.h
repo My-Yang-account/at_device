@@ -295,7 +295,7 @@ typedef struct
 /****************************************** 系统状态、数据信息 *************************************************/
 typedef struct{
     struct{
-        uint32_t is_local_charging : 1;                      /* 是否本地启动标志 */
+        uint32_t is_local_charging : 1;                      /* 是否本地启动标志(对于需要平台鉴权的启动方式：在未接收到平台允许前都认为是本地启动) */
         uint32_t is_charge_complete : 1;                     /* 是否充电完成标志 */
         uint32_t vin_authorization_success : 1;              /* 是否VIN鉴权成功标志 */
         uint32_t vin_is_authorized : 1;                      /* 已进行VIN鉴权上报 */

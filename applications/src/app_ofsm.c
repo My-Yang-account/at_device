@@ -893,9 +893,9 @@ static void ofsm_readying_fun(uint8_t gunno)
                 memcpy(s_ofsm_info[gunno].base.card_number, card_number, compare_len);
 
                 s_ofsm_info[gunno].base.flag.card_info_is_uid = APP_THA_ENUM_FALSE;
+                s_ofsm_info[gunno].base.flag.is_local_charging = APP_THA_ENUM_TRUE;
 
                 if(need_authorize_online == 0x00){
-                    s_ofsm_info[gunno].base.flag.is_local_charging = APP_THA_ENUM_TRUE;
                     s_ofsm_info[gunno].base.start_type = APP_CHARGE_START_WAY_OFFLINE_CARD;
                     s_ofsm_info[gunno].base.account_balance = 0x00;
                     s_ofsm_info[gunno].base.charge_strategy = APP_CHARGE_STRATEGY_FULL;
@@ -948,9 +948,9 @@ static void ofsm_readying_fun(uint8_t gunno)
                 memcpy(s_ofsm_info[gunno].base.card_uid, get_card_uid(), uid_len);
                 s_ofsm_info[gunno].base.card_uid_len = uid_len;
                 s_ofsm_info[gunno].base.flag.card_info_is_uid = APP_THA_ENUM_TRUE;
+                s_ofsm_info[gunno].base.flag.is_local_charging = APP_THA_ENUM_TRUE;
 
                 if(need_authorize_online == 0x00){
-                    s_ofsm_info[gunno].base.flag.is_local_charging = APP_THA_ENUM_TRUE;
                     s_ofsm_info[gunno].base.start_type = APP_CHARGE_START_WAY_OFFLINE_CARD;
                     s_ofsm_info[gunno].base.account_balance = 0x00;
                     s_ofsm_info[gunno].base.charge_strategy = APP_CHARGE_STRATEGY_FULL;
