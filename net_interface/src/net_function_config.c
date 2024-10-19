@@ -326,11 +326,19 @@ static uint8_t* app_nget_system_data(uint8_t name, uint32_t *vector, uint32_t op
         uint16_t ver_data = 0x00;
 
         sscanf(((char*)__thaisen_get_test_hard_version()), "ver:000%u", &ver_data);
+#ifdef APP_USING_DOUBLEGUN
         if(ver_data >= 7103){
             return "-V10";
         }else{
             return "-V01";
         }
+#else
+        if(ver_data >= 7101){
+            return "-V10";
+        }else{
+            return "-V01";
+        }
+#endif /* APP_USING_DOUBLEGUN */
     }
         break;
     case NET_SYSTEM_DATA_NAME_HARDWARE_INFO:
