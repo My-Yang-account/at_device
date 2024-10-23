@@ -404,8 +404,8 @@ static void net_tha_message_send_thread_entry(void *parameter)
 #ifndef NET_THA_AS_MONITOR
                         uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_THA |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
                         struct net_handle* handle = net_get_net_handle();
-                        char *host = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_DOMAIN, NULL, option));
-                        uint16_t port = *((uint16_t*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PORT, NULL, option)));
+                        char *host = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_DOMAIN, NULL, 0x00, option));
+                        uint16_t port = *((uint16_t*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PORT, NULL, 0x00, option)));
 
                         result = tha_socket_open(&(s_tha_socket_info.fd[gunno]), host, strlen(host), port);
                         if(result >= 0){

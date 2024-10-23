@@ -115,7 +115,7 @@ static void ykc_callback_response_login(uint8_t* data, uint16_t length)
     }
     uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
     struct net_handle* handle = net_get_net_handle();
-    char *pile_number = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, option));
+    char *pile_number = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, 0x00, option));
     uint8_t pile_numberbcd[NET_YKC_CHARGEPILE_LENGTH_DEFAULT];
 
     ykc_ascii_to_bcd((uint8_t*)pile_number, strlen((char*)pile_number), pile_numberbcd, NET_YKC_CHARGEPILE_LENGTH_DEFAULT);
@@ -150,7 +150,7 @@ static void ykc_callback_response_heartbeat(uint8_t* data, uint16_t length)
     uint8_t gunno = response->body.gunno;
     uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
     struct net_handle* handle = net_get_net_handle();
-    char *pile_number = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, option));
+    char *pile_number = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, 0x00, option));
     uint8_t pile_numberbcd[NET_YKC_CHARGEPILE_LENGTH_DEFAULT];
 
     ykc_ascii_to_bcd((uint8_t*)pile_number, strlen((char*)pile_number), pile_numberbcd, NET_YKC_CHARGEPILE_LENGTH_DEFAULT);
@@ -190,7 +190,7 @@ static void ykc_callback_response_billing_model_verify(uint8_t* data, uint16_t l
     }
     uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
     struct net_handle* handle = net_get_net_handle();
-    char *pile_number = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, option));
+    char *pile_number = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, 0x00, option));
     uint8_t pile_numberbcd[NET_YKC_CHARGEPILE_LENGTH_DEFAULT];
 
     ykc_ascii_to_bcd((uint8_t*)pile_number, strlen((char*)pile_number), pile_numberbcd, NET_YKC_CHARGEPILE_LENGTH_DEFAULT);
@@ -224,7 +224,7 @@ static void ykc_callback_response_billing_model_request(uint8_t* data, uint16_t 
     }
     uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
     struct net_handle* handle = net_get_net_handle();
-    char *pile_number = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, option));
+    char *pile_number = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, 0x00, option));
     uint8_t pile_numberbcd[NET_YKC_CHARGEPILE_LENGTH_DEFAULT];
 
     ykc_ascii_to_bcd((uint8_t*)pile_number, strlen((char*)pile_number), pile_numberbcd, NET_YKC_CHARGEPILE_LENGTH_DEFAULT);
@@ -259,7 +259,7 @@ static void ykc_callback_response_apply_charge_active(uint8_t* data, uint16_t le
     uint8_t gunno = ((Net_YkcPro_SRes_ApplyCharge_Active_t*)data)->body.gunno;
     uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
     struct net_handle* handle = net_get_net_handle();
-    char *pile_number = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, option));
+    char *pile_number = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, 0x00, option));
     uint8_t pile_numberbcd[NET_YKC_CHARGEPILE_LENGTH_DEFAULT];
 
     ykc_ascii_to_bcd((uint8_t*)pile_number, strlen((char*)pile_number), pile_numberbcd, NET_YKC_CHARGEPILE_LENGTH_DEFAULT);
@@ -352,7 +352,7 @@ static void ykc_callback_response_apply_merge_charge_active(uint8_t* data, uint1
     uint8_t gunno = ((Net_YkcPro_SRes_ApplyMergeCharge_Active_t*)data)->body.gunno;
     uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
     struct net_handle* handle = net_get_net_handle();
-    char *pile_number = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, option));
+    char *pile_number = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, 0x00, option));
     uint8_t pile_numberbcd[NET_YKC_CHARGEPILE_LENGTH_DEFAULT];
 
     ykc_ascii_to_bcd((uint8_t*)pile_number, strlen((char*)pile_number), pile_numberbcd, NET_YKC_CHARGEPILE_LENGTH_DEFAULT);
@@ -390,7 +390,7 @@ static void ykc_callback_request_query_realtime_data(uint8_t* data, uint16_t len
     uint8_t gunno = ((Net_YkcPro_SReq_Query_RealTimeData_t*)data)->body.gunno;
     uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
     struct net_handle* handle = net_get_net_handle();
-    char *pile_number = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, option));
+    char *pile_number = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, 0x00, option));
     uint8_t pile_numberbcd[NET_YKC_CHARGEPILE_LENGTH_DEFAULT];
 
     ykc_ascii_to_bcd((uint8_t*)pile_number, strlen((char*)pile_number), pile_numberbcd, NET_YKC_CHARGEPILE_LENGTH_DEFAULT);
@@ -428,7 +428,7 @@ static void ykc_callback_request_remote_start_charge(uint8_t* data, uint16_t len
     uint8_t gunno = ((Net_YkcPro_SReq_Remote_StartCharge_t*)data)->body.gunno;
     uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
     struct net_handle* handle = net_get_net_handle();
-    char *pile_number = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, option));
+    char *pile_number = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, 0x00, option));
     Net_YkcPro_SReq_Remote_StartCharge_t *request = (Net_YkcPro_SReq_Remote_StartCharge_t*)data;
     uint8_t pile_numberbcd[NET_YKC_CHARGEPILE_LENGTH_DEFAULT];
 
@@ -471,7 +471,7 @@ static void ykc_callback_request_remote_stop_charge(uint8_t* data, uint16_t leng
     uint8_t gunno = ((Net_YkcPro_SReq_Remote_StopCharge_t*)data)->body.gunno;
     uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
     struct net_handle* handle = net_get_net_handle();
-    char *pile_number = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, option));
+    char *pile_number = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, 0x00, option));
     uint8_t pile_numberbcd[NET_YKC_CHARGEPILE_LENGTH_DEFAULT];
 
     ykc_ascii_to_bcd((uint8_t*)pile_number, strlen((char*)pile_number), pile_numberbcd, NET_YKC_CHARGEPILE_LENGTH_DEFAULT);
@@ -513,7 +513,7 @@ static void ykc_callback_request_account_ballance_update(uint8_t* data, uint16_t
     uint8_t gunno = ((Net_YkcPro_SReq_AccountBallance_Update_t*)data)->body.gunno;
     uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
     struct net_handle* handle = net_get_net_handle();
-    char *pile_number = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, option));
+    char *pile_number = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, 0x00, option));
     uint8_t pile_numberbcd[NET_YKC_CHARGEPILE_LENGTH_DEFAULT];
 
     ykc_ascii_to_bcd((uint8_t*)pile_number, strlen((char*)pile_number), pile_numberbcd, NET_YKC_CHARGEPILE_LENGTH_DEFAULT);
@@ -550,7 +550,7 @@ static void ykc_callback_request_sync_offline_card(uint8_t* data, uint16_t lengt
     uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC_MONITOR |NET_SYSTEM_DATA_OPTION_DATA_CONTENT), count = 0x00, total_len = 0x00;
     uint8_t *card = NULL;
     struct net_handle* handle = net_get_net_handle();
-    char *pile_number = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, option));
+    char *pile_number = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, 0x00, option));
     uint8_t pile_numberbcd[NET_YKC_CHARGEPILE_LENGTH_DEFAULT];
 
     ykc_ascii_to_bcd((uint8_t*)pile_number, strlen((char*)pile_number), pile_numberbcd, NET_YKC_CHARGEPILE_LENGTH_DEFAULT);
@@ -610,7 +610,7 @@ static void ykc_callback_request_clear_offline_card(uint8_t* data, uint16_t leng
     uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC_MONITOR |NET_SYSTEM_DATA_OPTION_DATA_CONTENT), count = 0x00, total_len = 0x00;
     uint8_t *card = NULL;
     struct net_handle* handle = net_get_net_handle();
-    char *pile_number = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, option));
+    char *pile_number = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, 0x00, option));
     uint8_t pile_numberbcd[NET_YKC_CHARGEPILE_LENGTH_DEFAULT];
     Net_YkcPro_SReq_Clear_OfflineCard_t *request = (Net_YkcPro_SReq_Clear_OfflineCard_t*)data;
 
@@ -669,7 +669,7 @@ static void ykc_callback_request_query_offline_card(uint8_t* data, uint16_t leng
     uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC_MONITOR |NET_SYSTEM_DATA_OPTION_DATA_CONTENT), count = 0x00, total_len = 0x00;
     uint8_t *card = NULL;
     struct net_handle* handle = net_get_net_handle();
-    char *pile_number = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, option));
+    char *pile_number = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, 0x00, option));
     uint8_t pile_numberbcd[NET_YKC_CHARGEPILE_LENGTH_DEFAULT];
     Net_YkcPro_SReq_Query_OfflineCard_t *request = (Net_YkcPro_SReq_Query_OfflineCard_t*)data;
 
@@ -733,7 +733,7 @@ static void ykc_callback_request_set_work_para(uint8_t* data, uint16_t length)
     }
     uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
     struct net_handle* handle = net_get_net_handle();
-    char *pile_number = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, option));
+    char *pile_number = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, 0x00, option));
     uint8_t pile_numberbcd[NET_YKC_CHARGEPILE_LENGTH_DEFAULT];
 
     ykc_ascii_to_bcd((uint8_t*)pile_number, strlen((char*)pile_number), pile_numberbcd, NET_YKC_CHARGEPILE_LENGTH_DEFAULT);
@@ -766,7 +766,7 @@ static void ykc_callback_request_time_sync(uint8_t* data, uint16_t length)
     }
     uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
     struct net_handle* handle = net_get_net_handle();
-    char *pile_number = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, option));
+    char *pile_number = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, 0x00, option));
     uint8_t pile_numberbcd[NET_YKC_CHARGEPILE_LENGTH_DEFAULT];
 
     ykc_ascii_to_bcd((uint8_t*)pile_number, strlen((char*)pile_number), pile_numberbcd, NET_YKC_CHARGEPILE_LENGTH_DEFAULT);
@@ -799,7 +799,7 @@ static void ykc_callback_request_billing_model_set(uint8_t* data, uint16_t lengt
     }
     uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
     struct net_handle* handle = net_get_net_handle();
-    char *pile_number = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, option));
+    char *pile_number = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, 0x00, option));
     uint8_t pile_numberbcd[NET_YKC_CHARGEPILE_LENGTH_DEFAULT];
 
     ykc_ascii_to_bcd((uint8_t*)pile_number, strlen((char*)pile_number), pile_numberbcd, NET_YKC_CHARGEPILE_LENGTH_DEFAULT);
@@ -833,7 +833,7 @@ static void ykc_callback_request_ground_lock_lifting(uint8_t* data, uint16_t len
     uint8_t gunno = ((Net_YkcPro_SReq_GroundLock_Lifting_t*)data)->body.gunno;
     uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
     struct net_handle* handle = net_get_net_handle();
-    char *pile_number = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, option));
+    char *pile_number = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, 0x00, option));
     uint8_t pile_numberbcd[NET_YKC_CHARGEPILE_LENGTH_DEFAULT];
 
     ykc_ascii_to_bcd((uint8_t*)pile_number, strlen((char*)pile_number), pile_numberbcd, NET_YKC_CHARGEPILE_LENGTH_DEFAULT);
@@ -870,7 +870,7 @@ static void ykc_callback_request_remote_reboot(uint8_t* data, uint16_t length)
     }
     uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
     struct net_handle* handle = net_get_net_handle();
-    char *pile_number = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, option));
+    char *pile_number = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, 0x00, option));
     uint8_t pile_numberbcd[NET_YKC_CHARGEPILE_LENGTH_DEFAULT];
 
     ykc_ascii_to_bcd((uint8_t*)pile_number, strlen((char*)pile_number), pile_numberbcd, NET_YKC_CHARGEPILE_LENGTH_DEFAULT);
@@ -903,7 +903,7 @@ static void ykc_callback_request_remote_update(uint8_t* data, uint16_t length)
     }
     uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
     struct net_handle* handle = net_get_net_handle();
-    char *pile_number = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, option));
+    char *pile_number = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, 0x00, option));
     uint8_t pile_numberbcd[NET_YKC_CHARGEPILE_LENGTH_DEFAULT];
 
     ykc_ascii_to_bcd((uint8_t*)pile_number, strlen((char*)pile_number), pile_numberbcd, NET_YKC_CHARGEPILE_LENGTH_DEFAULT);
@@ -941,7 +941,7 @@ static void ykc_callback_request_remote_start_merge_charge(uint8_t* data, uint16
     uint8_t gunno = ((Net_YkcPro_SReq_Remote_StartMergeCharge_t*)data)->body.gunno;
     uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
     struct net_handle* handle = net_get_net_handle();
-    char *pile_number = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, option));
+    char *pile_number = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, 0x00, option));
     uint8_t pile_numberbcd[NET_YKC_CHARGEPILE_LENGTH_DEFAULT];
 
     if(!((gunno > 0x00) && (gunno <= NET_SYSTEM_GUN_NUMBER))){
@@ -985,7 +985,7 @@ static void ykc_callback_request_qrcode_config_gc(uint8_t* data, uint16_t length
     uint8_t gunno = ((Net_YkcPro_SReq_Qrcode_Config_GC_t*)data)->body.gunno;
     uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC_MONITOR |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
     struct net_handle* handle = net_get_net_handle();
-    char *pile_number = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, option));
+    char *pile_number = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, 0x00, option));
     uint8_t pile_numberbcd[NET_YKC_CHARGEPILE_LENGTH_DEFAULT];
     uint8_t qrcode_len = (length - sizeof(Net_YkcPro_SReq_Qrcode_Config_GC_t));
 
@@ -1064,7 +1064,7 @@ static void ykc_callback_request_qrcode_config_ykc15(uint8_t* data, uint16_t len
 
     uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC_MONITOR |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
     struct net_handle* handle = net_get_net_handle();
-    char *pile_number = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, option)), *char_ptr = NULL;
+    char *pile_number = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, 0x00, option)), *char_ptr = NULL;
     uint8_t pile_numberbcd[NET_YKC_CHARGEPILE_LENGTH_DEFAULT];
     uint8_t qrcode_len = ((Net_YkcPro_SReq_Qrcode_Config_Ykc15_t*)data)->body.length;
     int16_t qrcode_actual_len = 0x00;

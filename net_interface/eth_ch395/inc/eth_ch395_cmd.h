@@ -259,12 +259,13 @@ int32_t ethch395_cmd_query_socket_int(uint8_t fd);
 int32_t ethch395_cmd_query_socket_status(uint8_t fd);
 int32_t ethch395_cmd_test_communication_status(void);
 int32_t ethch395_cmd_set_phy(uint8_t mode);
-int32_t ethch395_cmd_query_cmd_status(uint8_t nesting);
+int32_t ethch395_cmd_query_cmd_status(void);
 int32_t ethch395_cmd_set_func_para(uint8_t para);
 int32_t ethch395_cmd_init(void);
 int32_t ethch395_cmd_set_dhcp_status(uint8_t status);
 int32_t ethch395_cmd_query_dhcp_status(void);
 int32_t ethch395_cmd_query_ip_info(uint8_t *buf, uint8_t len);
+int32_t ethch395_cmd_query_dev_mac(uint8_t *buf, uint8_t len);
 int32_t ethch395_cmd_set_socket_protocol(uint8_t fd, uint8_t is_mode);
 int32_t ethch395_cmd_set_dev_ip(void);
 int32_t ethch395_cmd_set_dev_gateway_ip(void);
@@ -283,6 +284,8 @@ int32_t ethch395_cmd_disconnect_tcp(uint8_t fd);
 int32_t ethch395_cmd_set_tcp_mss(uint16_t mss);
 int32_t ethch395_cmd_set_send_buf(uint8_t fd);
 int32_t ethch395_cmd_set_recv_buf(uint8_t fd);
+
+int32_t ethch395_cmd_set_socket_keeplive(uint8_t fd, uint8_t state);
 
 int32_t ethch395_socket(uint8_t protocol);
 int32_t ethch395_socket_free(int s);

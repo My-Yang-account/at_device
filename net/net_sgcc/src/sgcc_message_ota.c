@@ -157,8 +157,8 @@ struct sgcc_ota_storage_info{
 struct sgcc_ota_flag{
     uint8_t is_parse : 1;
     uint8_t file_correct : 1;
-    uint8_t ota_login : 1;
     uint8_t was_requested : 1;
+    uint8_t ota_login : 1;
 };
 
 static net_ota_info_t *s_sgcc_ota_info = NULL;
@@ -186,6 +186,16 @@ uint8_t sgcc_get_ota_was_requested_flag(void)
     return s_sgcc_ota_flag.was_requested;
 }
 
+uint8_t *sgcc_get_ota_buff(void)
+{
+    return s_sgcc_ota_buff;
+}
+
+uint32_t sgcc_get_ota_blen(void)
+{
+    return NET_SGCC_OTA_BUFF_SIZE;
+}
+
 void sgcc_firmware_file_size(uint32_t file_size)
 {
     s_sgcc_ota_storage_info.pack_len = file_size;
@@ -194,17 +204,70 @@ void sgcc_firmware_file_size(uint32_t file_size)
     LOG_D("sgcc firmware file size(%d)", s_sgcc_ota_storage_info.pack_len);
 }
 
+int sgcc_firmware_start(void)
+{
+    s_sgcc_spiflash_addr = NET_OTA_DATA_ADDR;
+    memset(s_sgcc_ota_file_flag, '\0', NET_SGCC_OTA_FILE_FLAG_TOTAL_LEN);
+
+    s_sgcc_ota_storage_info.app_is_update = 0xAA;
+    s_sgcc_ota_storage_info.boot_is_update = 0x00;
+    s_sgcc_ota_storage_info.update_addr = NET_OTA_DATA_ADDR;
+
+    s_sgcc_ota_info->progress = 0x00;
+    s_handle->flash_erase(NET_OTA_DATA_ADDR, NET_OTA_DATA_REGION_SIZE);
+
+    s_sgcc_ota_info->state = NET_OTA_STATE_UPDATING;
+
+    return 0;
+}
+
 int sgcc_firmware_write(char *buffer, uint32_t length)
 {
     sgcc_parse_ota_data(buffer, length);
     return 0;
 }
 
-int sgcc_firmware_stop(int process)
+int sgcc_firmware_stop(void)
 {
+    rt_kprintf("sgcc_firmware_stop\n");
+//    if(s_sgcc_spiflash_addr >= NET_OTA_DATA_ADDR + s_sgcc_ota_storage_info.pack_len){
+//        if(s_sgcc_ota_flag.file_correct != true){
+//            LOG_W("sgcc ota file incorrect|%s", s_sgcc_ota_file_flag);
+//            s_sgcc_ota_info->state = NET_OTA_STATE_FAIL;
+//        }else if (s_sgcc_crc == s_sgcc_ota_storage_info.check_sum) {
+//            if(s_sgcc_ota_storage_info.pack_len > NET_SGCC_OTA_FILE_FLAG_TOTAL_LEN){
+//                s_sgcc_ota_storage_info.pack_len -= NET_SGCC_OTA_FILE_FLAG_TOTAL_LEN;
+//            }else{
+//                s_sgcc_ota_storage_info.pack_len = 0x00;
+//            }
+//            s_sgcc_ota_storage_info.check_sum = s_sgcc_actual_crc;
+//            s_sgcc_ota_info->state = NET_OTA_STATE_SUCCESS;
+//            LOG_I("sgcc ota check success(%x, %d)\n", s_sgcc_ota_storage_info.check_sum, s_sgcc_ota_storage_info.check_sum);
+//        }else{
+//            LOG_W("sgcc ota check failed, crc is 0x%X", s_sgcc_crc);
+//            s_sgcc_ota_info->state = NET_OTA_STATE_FAIL;
+//        }
+//    }else{
+//        LOG_W("sgcc ota fail, is remain length(%x, %x)", s_sgcc_spiflash_addr, (NET_OTA_DATA_ADDR + s_sgcc_ota_storage_info.pack_len));
+//        s_sgcc_ota_info->state = NET_OTA_STATE_FAIL;
+//    }
+//
+//    if(s_sgcc_ota_info->state == NET_OTA_STATE_SUCCESS){
+//        s_handle->flash_erase(NET_OTA_INFO_ADDR, NET_OTA_INFO_REGION_SIZE);
+//        s_handle->flash_write_directly(NET_OTA_INFO_ADDR, (uint8_t*)(&s_sgcc_ota_storage_info), sizeof(s_sgcc_ota_storage_info));
+//    }else{
+//        s_sgcc_ota_storage_info.app_is_update = 0x00;
+//        s_sgcc_ota_storage_info.pack_len = 0x00;
+//        s_sgcc_ota_storage_info.check_sum = 0x00;
+//    }
+//
+//    rt_thread_mdelay(5000);
+//    __set_FAULTMASK(1);  /* 关闭所有中断 */
+//    NVIC_SystemReset();  /* 重启 */
+
     return 0;
 }
-
+//#if 0
 static void sgcc_ota_thread_entry(void *parameter)
 {
     (void)parameter;
@@ -337,43 +400,43 @@ static void sgcc_ota_thread_entry(void *parameter)
         }
     }
 }
-
+//#endif
 static uint8_t sgcc_parse_ota_data(const uint8_t *data, uint32_t len)
 {
     uint16_t actual_data_len = len;
     float progress_flaot = 0;
 
-//    /** 对升级包进行文件类型判定：正确文件类型是文件最后 11字节 为 THAISEN-V01 **/
-//    if (s_sgcc_spiflash_addr + len >= NET_OTA_DATA_ADDR + s_sgcc_ota_storage_info.pack_len) {
-//        uint8_t remain_ota_flag_len = NET_SGCC_OTA_FILE_FLAG_TOTAL_LEN -  strlen((char*)s_sgcc_ota_file_flag);
-//        memcpy((s_sgcc_ota_file_flag + strlen((char*)s_sgcc_ota_file_flag)), &data[len - remain_ota_flag_len], remain_ota_flag_len);
-//        if(memcmp(s_sgcc_ota_file_flag, NET_SGCC_OTA_FILE_FLAG, NET_SGCC_OTA_FILE_FLAG_LEN) == 0){
-//            s_sgcc_ota_flag.file_correct = true;   /* 文件类型正确 */
-//        }else{
-//            s_sgcc_ota_flag.file_correct = false;  /* 文件类型错误 */
-//        }
-//        if(s_sgcc_ota_flag.file_correct == true){
-//            char *ver = ((char*)s_handle->get_system_data(NET_SYSTEM_DATA_NAME_HARDWARE_VERSION, NULL, NET_SYSTEM_DATA_OPTION_PLAT_SGCC));
-//            if(memcmp((s_sgcc_ota_file_flag + NET_SGCC_OTA_FILE_FLAG_LEN), ver, NET_SGCC_OTA_FILE_VERSION_FLAG_LEN) != 0){
-//                s_sgcc_ota_flag.file_correct = false;   /* 文件版本错误 */
-//                LOG_W("sgcc ota file version error, is not allow update[%s, %s]", (s_sgcc_ota_file_flag + NET_SGCC_OTA_FILE_FLAG_LEN), ver);
-//            }
-//        }
-//        actual_data_len -= remain_ota_flag_len;
-//    }else if((s_sgcc_spiflash_addr + len) > (NET_OTA_DATA_ADDR + s_sgcc_ota_storage_info.pack_len - NET_SGCC_OTA_FILE_FLAG_TOTAL_LEN)){
-//        uint8_t rec_ota_flag_len = (s_sgcc_spiflash_addr + len + NET_SGCC_OTA_FILE_FLAG_TOTAL_LEN) - (NET_OTA_DATA_ADDR + s_sgcc_ota_storage_info.pack_len);
-//        memcpy((s_sgcc_ota_file_flag + strlen((char*)s_sgcc_ota_file_flag)), &data[len - rec_ota_flag_len], rec_ota_flag_len);
-//        actual_data_len -= rec_ota_flag_len;
-//    }
+    /** 对升级包进行文件类型判定：正确文件类型是文件最后 11字节 为 THAISEN-V01 **/
+    if (s_sgcc_spiflash_addr + len >= NET_OTA_DATA_ADDR + s_sgcc_ota_storage_info.pack_len) {
+        uint8_t remain_ota_flag_len = NET_SGCC_OTA_FILE_FLAG_TOTAL_LEN -  strlen((char*)s_sgcc_ota_file_flag);
+        memcpy((s_sgcc_ota_file_flag + strlen((char*)s_sgcc_ota_file_flag)), &data[len - remain_ota_flag_len], remain_ota_flag_len);
+        if(memcmp(s_sgcc_ota_file_flag, NET_SGCC_OTA_FILE_FLAG, NET_SGCC_OTA_FILE_FLAG_LEN) == 0){
+            s_sgcc_ota_flag.file_correct = true;   /* 文件类型正确 */
+        }else{
+            s_sgcc_ota_flag.file_correct = false;  /* 文件类型错误 */
+        }
+        if(s_sgcc_ota_flag.file_correct == true){
+            char *ver = ((char*)s_handle->get_system_data(NET_SYSTEM_DATA_NAME_HARDWARE_VERSION, NULL, 0x00, NET_SYSTEM_DATA_OPTION_PLAT_SGCC));
+            if(memcmp((s_sgcc_ota_file_flag + NET_SGCC_OTA_FILE_FLAG_LEN), ver, NET_SGCC_OTA_FILE_VERSION_FLAG_LEN) != 0){
+                s_sgcc_ota_flag.file_correct = false;   /* 文件版本错误 */
+                LOG_W("sgcc ota file version error, is not allow update[%s, %s]", (s_sgcc_ota_file_flag + NET_SGCC_OTA_FILE_FLAG_LEN), ver);
+            }
+        }
+        actual_data_len -= remain_ota_flag_len;
+    }else if((s_sgcc_spiflash_addr + len) > (NET_OTA_DATA_ADDR + s_sgcc_ota_storage_info.pack_len - NET_SGCC_OTA_FILE_FLAG_TOTAL_LEN)){
+        uint8_t rec_ota_flag_len = (s_sgcc_spiflash_addr + len + NET_SGCC_OTA_FILE_FLAG_TOTAL_LEN) - (NET_OTA_DATA_ADDR + s_sgcc_ota_storage_info.pack_len);
+        memcpy((s_sgcc_ota_file_flag + strlen((char*)s_sgcc_ota_file_flag)), &data[len - rec_ota_flag_len], rec_ota_flag_len);
+        actual_data_len -= rec_ota_flag_len;
+    }
 
-//    /** 文件最后 11 字节不属于升级数据，需要处理掉 **/
-//    if(actual_data_len){
+    /** 文件最后 11 字节不属于升级数据，需要处理掉 **/
+    if(actual_data_len){
 //        s_handle->flash_write_directly(s_sgcc_spiflash_addr, (uint8_t*)data, actual_data_len);
-//        s_sgcc_actual_crc = s_handle->crc32_updtae(s_sgcc_actual_crc, data, actual_data_len);
-//    }
+        s_sgcc_actual_crc = s_handle->crc32_updtae(s_sgcc_actual_crc, data, actual_data_len);
+    }
 
     s_sgcc_spiflash_addr += len;
-//    s_sgcc_crc = s_handle->crc32_updtae(s_sgcc_crc, data, len);
+    s_sgcc_crc = s_handle->crc32_updtae(s_sgcc_crc, data, len);
 
     /* 计算下载进度 */
     progress_flaot = (float)(((float)(s_sgcc_spiflash_addr - s_sgcc_ota_storage_info.update_addr)) / (float)(s_sgcc_ota_storage_info.pack_len));
@@ -394,6 +457,7 @@ static uint8_t sgcc_parse_ota_data(const uint8_t *data, uint32_t len)
 
 int sgcc_ota_init(void)
 {
+//#if 0
     if(rt_thread_init(&s_sgcc_ota_thread, "sgcc_ota", sgcc_ota_thread_entry, NULL,
             s_sgcc_ota_thread_stack, NET_SGCC_OTA_THREAD_STACK_SIZE, NET_OTA_THREAD_PRIORITY, 10) != RT_EOK){
         LOG_E("sgcc ota thread create fail, please check");
@@ -403,6 +467,7 @@ int sgcc_ota_init(void)
         LOG_E("sgcc ota thread startup fail, please check");
         return -0x01;
     }
+//#endif
     s_sgcc_ota_info = net_get_ota_info();
     s_handle = net_get_net_handle();
 
@@ -420,7 +485,8 @@ int sgcc_firmware_version(char *version)
     int len = strlen(firmware_version);
 
     memset(version, 0x0, sizeof(firmware_version));
-    strncpy(version, firmware_version, sizeof(firmware_version));
+    strncpy(version, "V1.3.2", strlen("V1.3.2"));
+
     version[len] = '\0';
 
     LOG_D("gw firmware version: %s", version);

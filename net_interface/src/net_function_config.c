@@ -25,57 +25,51 @@
  **********************************************/
 static void app_ndata_update(void)
 {
-    extern int get_at_device_appinfo_at(void);
-    extern int get_at_device_appinfo_check_card(void);
-    extern int get_at_device_appinfo_check_gprs_registered(void);
-    extern int get_at_device_appinfo_is_complete(void);
-    extern bool get_at_socket_deactivated(void);
+    uint8_t state = net_netdev_query_devstate();
 
-    if(net_query_netdev_init_status(NET_NETDEV_TYPE_ETHERNET)){
-        if(net_query_netdev_type() == NET_NETDEV_TYPE_4G){
-            /** 4G模块故障 */
-            if(get_at_device_appinfo_at()){
-                net_operation_clear_net_fault(NET_FAULT_PHYSICAL_LAYER);
-            }else{
-                net_operation_set_net_fault(NET_FAULT_PHYSICAL_LAYER);
-            }
-            /** SIM卡故障 */
-            if(get_at_device_appinfo_check_card()){
-                net_operation_clear_net_fault(NET_FAULT_SIM_CARD);
-            }else{
-                net_operation_set_net_fault(NET_FAULT_SIM_CARD);
-            }
-            /** 注网失败 */
-            if(get_at_device_appinfo_check_gprs_registered()){
-                net_operation_clear_net_fault(NET_FAULT_DATA_LINK_LAYER);
-            }else{
-                net_operation_set_net_fault(NET_FAULT_DATA_LINK_LAYER);
-            }
-            /** 4G模块初始化 */
-            if(get_at_device_appinfo_is_complete()){
-                net_operation_clear_net_fault(NET_FAULT_MODULE_INIT);
-            }else{
-                net_operation_set_net_fault(NET_FAULT_MODULE_INIT);
-            }
-            /** 场景失效 */
-            if(get_at_socket_deactivated()){
-                net_operation_set_esock_state(NET_ESOCKET_STATE_CLOSE);
-            }else{
-                net_operation_set_esock_state(NET_ESOCKET_STATE_OPEN);
-            }
-        }else{
-            net_operation_clear_net_fault(NET_FAULT_PHYSICAL_LAYER);
-            net_operation_clear_net_fault(NET_FAULT_SIM_CARD);
-            net_operation_clear_net_fault(NET_FAULT_DATA_LINK_LAYER);
-            net_operation_clear_net_fault(NET_FAULT_MODULE_INIT);
-            net_operation_set_esock_state(NET_ESOCKET_STATE_OPEN);
-        }
-    }else{
+    switch(state){
+    case NET_NETDEV_STATE_PHY:
+        net_operation_set_net_fault(NET_FAULT_PHYSICAL_LAYER);
+        break;
+    case NET_NETDEV_STATE_DATA_LINK_MAC:
+        net_operation_clear_net_fault(NET_FAULT_PHYSICAL_LAYER);
+        net_operation_set_net_fault(NET_FAULT_SIM_CARD);
+        break;
+    case NET_NETDEV_STATE_DATA_LINK_LCC:
+        net_operation_clear_net_fault(NET_FAULT_PHYSICAL_LAYER);
+        net_operation_clear_net_fault(NET_FAULT_SIM_CARD);
+        net_operation_set_net_fault(NET_FAULT_DATA_LINK_LAYER);
+        break;
+    case NET_NETDEV_STATE_NET_REGISTERED:
+        net_operation_clear_net_fault(NET_FAULT_PHYSICAL_LAYER);
+        net_operation_clear_net_fault(NET_FAULT_SIM_CARD);
+        net_operation_set_net_fault(NET_FAULT_DATA_LINK_LAYER);
+        break;
+    case NET_NETDEV_STATE_MODULE_INIT:
+        net_operation_clear_net_fault(NET_FAULT_PHYSICAL_LAYER);
+        net_operation_clear_net_fault(NET_FAULT_SIM_CARD);
+        net_operation_clear_net_fault(NET_FAULT_DATA_LINK_LAYER);
+        net_operation_set_net_fault(NET_FAULT_MODULE_INIT);
+        break;
+    case NET_NETDEV_STATE_NORMAL:
+        net_operation_clear_net_fault(NET_FAULT_PHYSICAL_LAYER);
+        net_operation_clear_net_fault(NET_FAULT_SIM_CARD);
+        net_operation_clear_net_fault(NET_FAULT_DATA_LINK_LAYER);
+        net_operation_clear_net_fault(NET_FAULT_MODULE_INIT);
+        break;
+    default:
         net_operation_set_net_fault(NET_FAULT_PHYSICAL_LAYER);
         net_operation_set_net_fault(NET_FAULT_SIM_CARD);
         net_operation_set_net_fault(NET_FAULT_DATA_LINK_LAYER);
         net_operation_set_net_fault(NET_FAULT_MODULE_INIT);
+        break;
+    }
+
+    /** 场景失效 */
+    if(get_at_socket_deactivated()){
         net_operation_set_esock_state(NET_ESOCKET_STATE_CLOSE);
+    }else{
+        net_operation_set_esock_state(NET_ESOCKET_STATE_OPEN);
     }
 }
 
@@ -88,7 +82,7 @@ void ethernet_init_hook(uint8_t complete, uint8_t success)
     if(success){
         net_set_netdev_type(NET_NETDEV_TYPE_ETHERNET, 0x00);
     }else{
-        net_clear_netdev_type(NET_NETDEV_TYPE_ETHERNET);
+//        net_clear_netdev_type(NET_NETDEV_TYPE_ETHERNET);
     }
 
     if(complete){
@@ -105,12 +99,12 @@ void ethernet_init_hook(uint8_t complete, uint8_t success)
 static int32_t app_ndevice_operate(void *para, uint32_t option)
 {
     if(option &NET_DEV_OPERATE_OPTION_RESET){
-        extern void ec20_at_device_reset(void);
-
         net_operation_set_net_fault(NET_FAULT_PHYSICAL_LAYER);
+        net_operation_set_net_fault(NET_FAULT_SIM_CARD);
         net_operation_set_net_fault(NET_FAULT_DATA_LINK_LAYER);
-        ec20_at_device_reset();
-        return 0x00;
+        net_operation_set_net_fault(NET_FAULT_MODULE_INIT);
+
+        return net_netdev_dev_control(NET_NETDEV_CTRL_CMD_RESET, NULL, 0x00, NULL, 0x00);
     }else if(option &NET_DEV_OPERATE_OPTION_CLOSE_SOCKET){
         if(para == NULL){
             return -0x01;
@@ -219,7 +213,7 @@ static int32_t app_nsystem_control(uint8_t gunno, uint16_t item, uint8_t *para, 
  * 函数名     app_nget_system_data
  * 功能         获取系统数据
  **********************************************/
-static uint8_t* app_nget_system_data(uint8_t name, uint32_t *vector, uint32_t option)
+static uint8_t* app_nget_system_data(uint8_t name, void *vector, uint32_t vlen, uint32_t option)
 {
     uint8_t is_content = (option &0x01), platform = 0x00;
     for(uint8_t bit = 0x01; bit < 0x08; bit++){
@@ -230,9 +224,6 @@ static uint8_t* app_nget_system_data(uint8_t name, uint32_t *vector, uint32_t op
 
     switch(name){
     case NET_SYSTEM_DATA_NAME_PILE_NUMBER:
-        if(vector){
-            *vector = strlen((char*)(sys_read_config_item_content(CONFIG_ITEM_PILE_NUMBER, 0x00)));
-        }
         return sys_read_config_item_content(CONFIG_ITEM_PILE_NUMBER, 0x00);
         break;
     case NET_SYSTEM_DATA_NAME_NETWORKED_WAY:
@@ -266,16 +257,14 @@ static uint8_t* app_nget_system_data(uint8_t name, uint32_t *vector, uint32_t op
         break;
 #endif /* 0 */
     case NET_SYSTEM_DATA_NAME_IMEI:
-    {
-        extern char *get_at_device_appinfo_imei(void);
-        return get_at_device_appinfo_imei();
-    }
+        if(vector){
+            net_netdev_dev_control(NET_NETDEV_CTRL_CMD_QUERY_IMEI, NULL, 0x00, vector, vlen);
+        }
         break;
     case NET_SYSTEM_DATA_NAME_ICCID:
-    {
-        extern char *get_at_device_appinfo_iccid(void);
-        return get_at_device_appinfo_iccid();
-    }
+        if(vector){
+            net_netdev_dev_control(NET_NETDEV_CTRL_CMD_QUERY_SIM, NULL, 0x00, vector, vlen);
+        }
         break;
 #if 0
     case NET_SYSTEM_DATA_NAME_IMSI:
@@ -348,11 +337,9 @@ static uint8_t* app_nget_system_data(uint8_t name, uint32_t *vector, uint32_t op
     }
         break;
     case NET_SYSTEM_DATA_NAME_SIGNAL_STRENGTH:
-    {
-        extern int get_at_device_appinfo_signal_strength(void);
-        uint8_t signal = get_at_device_appinfo_signal_strength();
-        return (uint8_t*)((uint32_t)signal);
-    }
+        if(vector){
+            net_netdev_dev_control(NET_NETDEV_CTRL_CMD_QUERY_STRENGTH, NULL, 0x00, vector, vlen);
+        }
         break;
     case NET_SYSTEM_DATA_NAME_PLATFORM_DATA:
         if((option &NET_SYSTEM_DATA_OPTION_TARGET_PLAT)){
@@ -395,7 +382,6 @@ static uint8_t* app_nget_system_data(uint8_t name, uint32_t *vector, uint32_t op
             return (uint8_t *)(NET_DEV_TYPE_AVERAGE_DOUBLEGUN);
         }
     }
-
         break;
     default:
         break;

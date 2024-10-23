@@ -14,8 +14,20 @@
 
 enum{
     NETDEV_ETHCH395_SOCKET_CONTROL_RECV_TIMEOUT,                   /** 以太网 ch395 socket 控制指令：修改数据接收等待时间 */
+    NETDEV_ETHCH395_SOCKET_CONTROL_DOMAIN_PARSE,                   /** 以太网 ch395 socket 控制指令：域名解析 */
 };
 
+enum{
+    NETDEV_ETHCH395_STATE_PHY,                                     /** 以太网 ch395状态：物理层 */
+    NETDEV_ETHCH395_STATE_LINK_MAC,                                /** 以太网 ch395状态：数据链路MAC层 */
+    NETDEV_ETHCH395_STATE_LINK_LCC,                                /** 以太网 ch395状态：数据链路LCC层 */
+    NETDEV_ETHCH395_STATE_NET_REGISTERED,                          /** 以太网 ch395状态： 网络层*/
+    NETDEV_ETHCH395_STATE_MODULE_INIT,                             /** 以太网 ch395状态： 模块初始化*/
+    NETDEV_ETHCH395_STATE_NORMAL,                                  /** 以太网 ch395状态：正常 */
+    NETDEV_ETHCH395_STATE_SIZE,                                    /** 以太网 ch395状态： */
+};
+
+uint8_t ethch395_query_state(void);
 void ethch395_set_init_hook(void *hook);
 
 int netdev_ethch395_socket_open_port(int *socket_fd, char* host, uint16_t host_len, uint16_t port);
@@ -24,11 +36,12 @@ int netdev_ethch395_socket_recv_port(int socket_fd, void *buff, uint32_t len);
 int netdev_ethch395_socket_close_port(int socket_fd);
 int netdev_ethch395_socket_query_state_port(int socket_fd);
 int netdev_ethch395_socket_data_comein_port(int socket_fd, uint32_t timeout);
-int netdev_ethch395_socket_control(int socket_fd, uint8_t cmd, void *para);
+int netdev_ethch395_socket_control(int socket_fd, uint8_t cmd, void *para, uint8_t para_len, void *ret, uint8_t ret_len);
 
 void ethch395_cmd_data_clear(void);
 int32_t ethch395_cmd_data_recv(uint8_t *buf, uint8_t len);
 
+int32_t ethch395_device_reset(void);
 int32_t net_ethch395_transceiver_init(void);
 
 #endif /* NET_INTERFACE_ETH_395_INC_ETH_395_TRANSCEIVER_H_ */

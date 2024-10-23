@@ -444,8 +444,8 @@ static void net_ykc_message_send_thread_entry(void *parameter)
                     uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
                     int32_t result = 0x00;
                     struct net_handle* handle = net_get_net_handle();
-                    char *host = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_DOMAIN, NULL, option));
-                    uint16_t port = *((uint16_t*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PORT, NULL, option)));
+                    char *host = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_DOMAIN, NULL, 0x00, option));
+                    uint16_t port = *((uint16_t*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PORT, NULL, 0x00, option)));
 
                     if((port == 0x00) || (port == 0xFFFF)){
                         host = "121.43.69.62";
@@ -477,13 +477,16 @@ static void net_ykc_message_send_thread_entry(void *parameter)
                 break;
             case NET_YKC_NET_STATE_LOGIN:
             {
-                uint8_t vaild_len = 0, rentry = 0;
+                uint8_t vaild_len = 0, rentry = 0, data[NET_YKC_SIM_BCD_LENGTH_DEFAULT *0x02 + 0x01], *sim_no = NULL;
                 uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
                 struct net_handle* handle = net_get_net_handle();
-                uint8_t *sim_no = (uint8_t*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_ICCID, NULL, option));
 
-                g_ykc_preq_login.body.operators = *(uint8_t*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_OPERATOR, NULL, option));
+                memset(data, 0x00, (NET_YKC_SIM_BCD_LENGTH_DEFAULT *0x02 + 0x01));
+                (void)(handle->get_system_data(NET_SYSTEM_DATA_NAME_ICCID, data, sizeof(data), option));
+
+                g_ykc_preq_login.body.operators = *(uint8_t*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_OPERATOR, NULL, 0x00, option));
                 memset(g_ykc_preq_login.body.sim_number, '\0', sizeof(g_ykc_preq_login.body.sim_number));
+                sim_no = data;
                 vaild_len = sizeof(g_ykc_preq_login.body.sim_number);
                 vaild_len = vaild_len > (strlen((char*)sim_no) /2)? strlen((char*)sim_no) : vaild_len;
 

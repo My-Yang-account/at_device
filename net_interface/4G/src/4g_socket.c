@@ -289,7 +289,7 @@ int netdev_4g_socket_data_comein_port(int socket_fd, uint32_t timeout)
  *  功能       socket 控制指令
  *  返回      > =0 : 成功，< 0 ：失败
  *************************************************/
-int netdev_4g_socket_control(int socket_fd, uint8_t cmd, void *para)
+int netdev_4g_socket_control(int socket_fd, uint8_t cmd, void *para, uint8_t para_len, void *ret, uint8_t ret_len)
 {
     if(socket_fd < 0x00){
         return -0x01;
@@ -306,6 +306,9 @@ int netdev_4g_socket_control(int socket_fd, uint8_t cmd, void *para)
         }
         break;
     }
+    case NETDEV_4G_SOCKET_CONTROL_DOMAIN_PARSE:
+
+        break;
     default:
         break;
     }

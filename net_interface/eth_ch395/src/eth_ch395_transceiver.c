@@ -13,6 +13,8 @@
 #include "eth_ch395_dns.h"
 
 #include "net_netdev.h"
+#include <ctype.h>
+#include <stdlib.h>
 
 #ifdef NET_INCLUDE_ETHERNET_PACK
 
@@ -31,7 +33,7 @@
 #define ETHCH395_QUERY_DLEN_RENTRY_MAX                              3                 /* 查询接收缓冲区数据长度最大尝试次数 */
 
 #define ETHCH395_EVENT_PRO_THREAD_STACK_SIZE                        1024              /* 以太网事件处理线程栈大小 */
-#define ETHCH395_RECV_THREAD_STACK_SIZE                             1024              /* 以太网数据接收线程栈大小 */
+#define ETHCH395_RECV_THREAD_STACK_SIZE                             2048              /* 以太网数据接收线程栈大小 */
 
 #ifdef ETHCH395_CHIP_VER_MORE_ADVANCED_THAN_0X44
 #define ETHCH395_SOCKET_INT_MASK                                    0xFF0             /* 全局中断中socket中断部分掩码 */
@@ -41,6 +43,8 @@
 
 #define ethch395_container_of(ptr, type, member) \
     ((type *)((char *)(ptr) - (unsigned long)(&((type *)0)->member)))
+
+#pragma pack(1)
 
 /** socket 链表点 */
 typedef struct slist{
@@ -69,15 +73,19 @@ struct ethch395_socket_info{
 };
 
 struct ethch395_assistant{
-    uint8_t recv_lock : 1;                         /** socket 信息：接收锁 */
-    uint8_t cmd_lock : 1;                          /** socket 信息：指令锁 */
-    uint8_t operate_lock : 1;                      /** socket 信息：操作锁 */
-
-    uint8_t recv_complete : 1;                     /** 数据接收线程已执行完成 */
-    uint8_t error : 1;                             /** 发生了错误 */
-    uint8_t init_complete : 1;                     /** ethch395 初始化已完成 */
+    struct{
+        uint8_t error : 1;                             /** 发生了错误 */
+        uint8_t init_complete : 1;                     /** ethch395 初始化已完成 */
+    }flag;
 };
 
+struct ethch395_access_lock{
+    uint8_t lock;
+    void *owner;
+};
+#pragma pack()
+
+static struct ethch395_access_lock s_ethch395_access_lock;
 static void (*ethch395_init_hook)(uint8_t, uint8_t);           /** ethch395 初始化 钩子函数 参数1：是否已初始化， 参数2：初始化成功与否*/
 static struct ethch395_assistant s_ethch395_assistant_info;
 union ethch395_globe_int *s_ethch395_globe_int = NULL;
@@ -87,8 +95,32 @@ static uint8_t s_ethch395_event_pro_thread_stack[ETHCH395_EVENT_PRO_THREAD_STACK
 static struct rt_thread s_ethch395_recv_thread;
 static uint8_t s_ethch395_recv_thread_stack[ETHCH395_RECV_THREAD_STACK_SIZE];
 static struct rt_event s_ethch395_event;
+static uint8_t s_ethch395_state = NETDEV_ETHCH395_STATE_PHY;
 
-static int32_t ethch395_netdev_phylayer_init(void);
+static void ethch395_device_init(void);
+
+/**************************************************
+ *  函数名   ethch395_get_thread_handle
+ *  参数       hook        函数入口
+ *  功能       配置 ethch395 初始化钩子函数
+ *  返回
+ *************************************************/
+uint8_t ethch395_query_state(void)
+{
+    return s_ethch395_state;
+}
+
+/**************************************************
+ *  函数名   ethch395_get_thread_handle
+ *  参数       hook        函数入口
+ *  功能       配置 ethch395 初始化钩子函数
+ *  返回
+ *************************************************/
+void *ethch395_get_thread_handle(void)
+{
+    struct rt_thread *handle = rt_thread_self();
+    return (void *)handle;
+}
 
 /**************************************************
  *  函数名   ethch395_set_init_hook
@@ -241,14 +273,16 @@ static int32_t ethch395_recvpkt_get(ethch395_slist *rlist, char *mem, uint32_t l
  * **************************************** 数据链表 *****************************************
  ********************************************************************************************/
 
-/******************************************************
- ********************** 接收锁  **************************
- *****************************************************/
-static uint8_t ethch395_wait_recv_lock(int32_t timeout)
+uint8_t ethch395_wait_operate_lock(int32_t timeout, void *handle)
 {
     uint32_t tick = rt_tick_get();
 
-    while(s_ethch395_assistant_info.recv_lock){
+    if((s_ethch395_access_lock.owner == handle) && (s_ethch395_access_lock.owner != NULL)){
+        s_ethch395_access_lock.lock = ETHCH395_ENUM_TRUE;
+        return ETHCH395_ENUM_TRUE;
+    }
+
+    while(s_ethch395_access_lock.lock){
         if(timeout < 0x00){
             rt_thread_mdelay(10);
             continue;
@@ -262,85 +296,29 @@ static uint8_t ethch395_wait_recv_lock(int32_t timeout)
         rt_thread_mdelay(10);
     }
 
-    return ETHCH395_ENUM_TRUE;
-}
+    rt_enter_critical();
+    if(s_ethch395_access_lock.lock == ETHCH395_ENUM_FALSE){
+        s_ethch395_access_lock.lock = ETHCH395_ENUM_TRUE;
+        s_ethch395_access_lock.owner = handle;
 
-static void ethch395_lock_recv_lock(void)
-{
-    s_ethch395_assistant_info.recv_lock = 0x01;
-}
-
-static void ethch395_unlock_recv_lock(void)
-{
-    s_ethch395_assistant_info.recv_lock = 0x00;
-}
-
-/******************************************************
- ********************** 指令锁  **************************
- *****************************************************/
-static uint8_t ethch395_wait_cmd_lock(int32_t timeout)
-{
-    uint32_t tick = rt_tick_get();
-
-    while(s_ethch395_assistant_info.cmd_lock){
-        if(timeout < 0x00){
-            rt_thread_mdelay(10);
-            continue;
-        }
-        if(tick > rt_tick_get()){
-            tick = rt_tick_get();
-        }
-        if((rt_tick_get() - tick) >= timeout){
-            return ETHCH395_ENUM_FALSE;
-        }
-        rt_thread_mdelay(10);
+        rt_exit_critical();
+        return ETHCH395_ENUM_TRUE;
     }
 
-    return ETHCH395_ENUM_TRUE;
+    rt_exit_critical();
+    return ETHCH395_ENUM_FALSE;
 }
 
-static void ethch395_lock_cmd_lock(void)
+uint8_t ethch395_unlock_operate_lock(void *handle)
 {
-    s_ethch395_assistant_info.cmd_lock = 0x01;
-}
+    if((s_ethch395_access_lock.owner == handle) && (s_ethch395_access_lock.owner != NULL)){
+        s_ethch395_access_lock.lock = ETHCH395_ENUM_FALSE;
+        s_ethch395_access_lock.owner = NULL;
 
-static void ethch395_unlock_cmd_lock(void)
-{
-    s_ethch395_assistant_info.cmd_lock = 0x00;
-}
-
-/******************************************************
- ********************** 操作锁  **************************
- *****************************************************/
-static uint8_t ethch395_wait_operate_lock(int32_t timeout)
-{
-    uint32_t tick = rt_tick_get();
-
-    while(s_ethch395_assistant_info.operate_lock){
-        if(timeout < 0x00){
-            rt_thread_mdelay(10);
-            continue;
-        }
-        if(tick > rt_tick_get()){
-            tick = rt_tick_get();
-        }
-        if((rt_tick_get() - tick) >= timeout){
-            return ETHCH395_ENUM_FALSE;
-        }
-        rt_thread_mdelay(10);
+        rt_kprintf("ethch395_unlock_operate_lock\n");
+        return ETHCH395_ENUM_TRUE;
     }
-
-    return ETHCH395_ENUM_TRUE;
-}
-
-static void ethch395_lock_operate_lock(void)
-{
-    s_ethch395_assistant_info.operate_lock = 0x01;
-}
-
-static void ethch395_unlock_operate_lock(void)
-{
-    s_ethch395_assistant_info.operate_lock = 0x00;
+    return ETHCH395_ENUM_FALSE;
 }
 
 /**************************************************
@@ -379,12 +357,12 @@ static int32_t host_is_pure_digital(char* host, uint16_t host_len, uint8_t *ipbu
                 return ETHCH395_ENUM_FALSE;
             }
             for(j = 0x00; j < clen; j++){
-                if(!isdigit((char*)ptr[j])){
+                if(!isdigit(ptr[j])){
                     return ETHCH395_ENUM_FALSE;
                 }
                 strbuf[j] = ptr[j];
             }
-            digit = atoi(strbuf);
+            digit = atoi((const char*)strbuf);
             if((digit > 0xFF) || (digit < 0x00)){
                 return ETHCH395_ENUM_FALSE;
             }
@@ -405,12 +383,12 @@ static int32_t host_is_pure_digital(char* host, uint16_t host_len, uint8_t *ipbu
         return ETHCH395_ENUM_FALSE;
     }
     for(j = 0x00; j < clen; j++){
-        if(!isdigit((char*)ptr[j])){
+        if(!isdigit(ptr[j])){
             return ETHCH395_ENUM_FALSE;
         }
         strbuf[j] = ptr[j];
     }
-    digit = atoi(strbuf);
+    digit = atoi((const char*)strbuf);
     if((digit > 0xFF) || (digit < 0x00)){
         return ETHCH395_ENUM_FALSE;
     }
@@ -443,38 +421,39 @@ int netdev_ethch395_socket_open_port(int *socket_fd, char* host, uint16_t host_l
     uint8_t _ip[0x04];           /** 点分十进制式IP */
     uint32_t wait_tick = 0x00;
     ethch395_slist *node = NULL;
+    void *handle = ethch395_get_thread_handle();
 
     memset(_ip, 0x00, sizeof(_ip));
+
     if(host_is_pure_digital(host, host_len, _ip, sizeof(_ip)) == ETHCH395_ENUM_FALSE){
         if(ethch395_domain_parse(host, host_len, _ip, sizeof(_ip)) < 0x00){
-            LOG_E("ethch395 DNS domain parse fail(%d)n", host);
+            LOG_E("ethch395 DNS domain parse fail(%s)n", host);
         }
     }
 
-    ethch395_wait_recv_lock(-0x01);                               /** 要等待已有数据接收完成 */
-    ethch395_lock_operate_lock();
+    while(ethch395_wait_operate_lock(-0x01, handle) == ETHCH395_ENUM_FALSE);
 
     /** 申请一个 socket */
     res = ethch395_socket(0);
     _fd = res;
     if(res < 0x00){
         LOG_E("ethch395 get socket info fail(%d)", res);
-        ethch395_unlock_operate_lock();
+        ethch395_unlock_operate_lock(handle);
         return -0x01;
     }
 
     s_ethch395_socket_info[_fd].flag.connected = ETHCH395_ENUM_FALSE;      /** 清除已连接标志 */
     memset(&s_ethch395_socket_info[_fd], 0x00, sizeof(s_ethch395_socket_info[_fd]));
-    ethch395_slist_init(&s_ethch395_socket_info[_fd].list);                /** 初始化socket 数据链表 */
     for(node = s_ethch395_socket_info[_fd].list.next; node; node = node->next){
         ethch395_recvpkt_node_delete(&s_ethch395_socket_info[_fd].list, node);
     }
+    ethch395_slist_init(&s_ethch395_socket_info[_fd].list);                /** 初始化socket 数据链表 */
 
     /** 保存目的端口 */
     res = ethch395_config_socket_dest_port(_fd, port);
     if(res < 0x00){
         LOG_E("ethch395 config socket dest port fail(%d, %d)", res, _fd);
-        ethch395_unlock_operate_lock();
+        ethch395_unlock_operate_lock(handle);
         ethch395_socket_free(_fd);
         return -0x01;
     }
@@ -482,7 +461,7 @@ int netdev_ethch395_socket_open_port(int *socket_fd, char* host, uint16_t host_l
     res = ethch395_config_socket_dest_ip(_fd, _ip, sizeof(_ip));
     if(res < 0x00){
         LOG_E("ethch395 config socket dest ip fail(%d, %d)", res, _fd);
-        ethch395_unlock_operate_lock();
+        ethch395_unlock_operate_lock(handle);
         ethch395_socket_free(_fd);
         return -0x01;
     }
@@ -491,7 +470,7 @@ int netdev_ethch395_socket_open_port(int *socket_fd, char* host, uint16_t host_l
     res = ethch395_cmd_set_socket_protocol(_fd, ETHCH395_WORK_MODE_SIZE);
     if(res < 0x00){
         LOG_E("ethch395 set socket protocol type fail(%d, %d)", res, _fd);
-        ethch395_unlock_operate_lock();
+        ethch395_unlock_operate_lock(handle);
         ethch395_socket_free(_fd);
         return -0x01;
     }
@@ -499,7 +478,7 @@ int netdev_ethch395_socket_open_port(int *socket_fd, char* host, uint16_t host_l
     res = ethch395_cmd_set_remote_ip(_fd);
     if(res < 0x00){
         LOG_E("ethch395 set dest ip fail(%d, %d)", res, _fd);
-        ethch395_unlock_operate_lock();
+        ethch395_unlock_operate_lock(handle);
         ethch395_socket_free(_fd);
         return -0x01;
     }
@@ -507,7 +486,7 @@ int netdev_ethch395_socket_open_port(int *socket_fd, char* host, uint16_t host_l
     res = ethch395_cmd_set_remote_port(_fd);
     if(res < 0x00){
         LOG_E("ethch395 set dest port fail(%d, %d)", res, _fd);
-        ethch395_unlock_operate_lock();
+        ethch395_unlock_operate_lock(handle);
         ethch395_socket_free(_fd);
         return -0x01;
     }
@@ -515,7 +494,7 @@ int netdev_ethch395_socket_open_port(int *socket_fd, char* host, uint16_t host_l
     res = ethch395_cmd_set_source_port(_fd);
     if(res < 0x00){
         LOG_E("ethch395 set sour port fail(%d, %d)", res, _fd);
-        ethch395_unlock_operate_lock();
+        ethch395_unlock_operate_lock(handle);
         ethch395_socket_free(_fd);
         return -0x01;
     }
@@ -524,7 +503,7 @@ int netdev_ethch395_socket_open_port(int *socket_fd, char* host, uint16_t host_l
     res = ethch395_cmd_set_send_buf(_fd);
     if(res < 0x00){
         LOG_E("ethch395 set send buff fail(%d, %d)", res, _fd);
-        ethch395_unlock_operate_lock();
+        ethch395_unlock_operate_lock(handle);
         ethch395_socket_free(_fd);
         return -0x01;
     }
@@ -532,7 +511,7 @@ int netdev_ethch395_socket_open_port(int *socket_fd, char* host, uint16_t host_l
     res = ethch395_cmd_set_recv_buf(_fd);
     if(res < 0x00){
         LOG_E("ethch395 set send buff fail(%d, %d)", res, _fd);
-        ethch395_unlock_operate_lock();
+        ethch395_unlock_operate_lock(handle);
         ethch395_socket_free(_fd);
         return -0x01;
     }
@@ -541,7 +520,7 @@ int netdev_ethch395_socket_open_port(int *socket_fd, char* host, uint16_t host_l
     res = ethch395_cmd_open_socket(_fd);
     if(res < 0x00){
         LOG_E("ethch395 open socket fail(%d, %d)", res, _fd);
-        ethch395_unlock_operate_lock();
+        ethch395_unlock_operate_lock(handle);
         ethch395_socket_free(_fd);
         return -0x01;
     }
@@ -549,12 +528,15 @@ int netdev_ethch395_socket_open_port(int *socket_fd, char* host, uint16_t host_l
     res = ethch395_cmd_connect_socket(_fd);
     if(res < 0x00){
         LOG_E("ethch395 connect socket fail(%d, %d)", res, _fd);
-        ethch395_unlock_operate_lock();
+        ethch395_unlock_operate_lock(handle);
         ethch395_socket_free(_fd);
         return -0x01;
     }
 
-    ethch395_unlock_operate_lock();
+    /** 设置 socket keeplive */
+    ethch395_cmd_set_socket_keeplive(_fd, 0x00);
+
+    ethch395_unlock_operate_lock(handle);
 
     /** 等待连接结果 */
     wait_tick = rt_tick_get();
@@ -603,6 +585,8 @@ int netdev_ethch395_socket_send_port(int socket_fd, void *data, uint32_t len)
     uint8_t *idata = (uint8_t*)data;
     int32_t ssize = 0x00, rsize = 0x00, msize = ethch395_get_socket_sbuf_szie(socket_fd);
     uint32_t ethch395_send_time_tick = 0x00;
+    void *handle = ethch395_get_thread_handle();
+
     if(msize == 0x00){
         return -0x01;
     }
@@ -636,10 +620,14 @@ int netdev_ethch395_socket_send_port(int socket_fd, void *data, uint32_t len)
         s_ethch395_socket_info[socket_fd].flag.sbuf_free = ETHCH395_ENUM_FALSE;
         s_ethch395_socket_info[socket_fd].flag.send_ok = ETHCH395_ENUM_FALSE;
 
+        while(ethch395_wait_operate_lock(-0x01, handle) == ETHCH395_ENUM_FALSE);
+
         if(ethch395_cmd_padding_data_sbuf(socket_fd, idata, ssize) < 0x00){
+            ethch395_unlock_operate_lock(handle);
             LOG_E("ethch395 data send fail(%d)", socket_fd);
             return -0x01;
         }
+        ethch395_unlock_operate_lock(handle);
 
         idata += ssize;
         rsize -= ssize;
@@ -701,22 +689,22 @@ int netdev_ethch395_socket_close_port(int socket_fd)
 
     uint32_t wait_tick = 0x00;
     ethch395_slist *node = NULL;
+    void *handle = ethch395_get_thread_handle();
 
-    ethch395_wait_recv_lock(-0x01);                               /** 要等待已有数据接收完成 */
-    ethch395_lock_operate_lock();
+    while(ethch395_wait_operate_lock(-0x01, handle) == ETHCH395_ENUM_FALSE);
 
     if(ethch395_cmd_close_socket(socket_fd) < 0x00){
         LOG_E("ethch395 close socket fail(%d)", socket_fd);
-        ethch395_unlock_operate_lock();
+        ethch395_unlock_operate_lock(handle);
         return -0x01;
     }
     if(ethch395_cmd_disconnect_tcp(socket_fd) < 0x00){
         LOG_E("ethch395 disconnect tcp fail(%d)", socket_fd);
-        ethch395_unlock_operate_lock();
+        ethch395_unlock_operate_lock(handle);
         return -0x01;
     }
 
-    ethch395_unlock_operate_lock();
+    ethch395_unlock_operate_lock(handle);
 
     /** 针对于OTA FTP 传输完成连接被关掉的情况 */
 #if 0
@@ -771,17 +759,17 @@ int netdev_ethch395_socket_query_state_port(int socket_fd)
 
     uint8_t status = 0x00;
     int32_t res = 0x00;
+    void *handle = ethch395_get_thread_handle();
 
-    ethch395_wait_recv_lock(-0x01);                                     /** 要等待已有数据接收完成 */
-    ethch395_lock_operate_lock();
+    while(ethch395_wait_operate_lock(-0x01, handle) == ETHCH395_ENUM_FALSE);
 
     if((status = ethch395_cmd_query_socket_status(socket_fd)) < 0x00){
         LOG_E("ethch395 disconnect tcp fail(%d)", socket_fd);
-        ethch395_unlock_operate_lock();
+        ethch395_unlock_operate_lock(handle);
         return -0x01;
     }
 
-    ethch395_unlock_operate_lock();
+    ethch395_unlock_operate_lock(handle);
 
     status = (uint8_t)res;
     if(status){
@@ -827,7 +815,7 @@ int netdev_ethch395_socket_data_comein_port(int socket_fd, uint32_t timeout)
  *  功能       socket 控制指令
  *  返回      > =0 : 成功，< 0 ：失败
  *************************************************/
-int netdev_ethch395_socket_control(int socket_fd, uint8_t cmd, void *para)
+int netdev_ethch395_socket_control(int socket_fd, uint8_t cmd, void *para, uint8_t para_len, void *ret, uint8_t ret_len)
 {
     if((socket_fd < 0x00) || (socket_fd >= ETHCH395_SOCKET_NUM_MAX)){
         return -0x01;
@@ -836,6 +824,9 @@ int netdev_ethch395_socket_control(int socket_fd, uint8_t cmd, void *para)
     switch(cmd){
     case NETDEV_ETHCH395_SOCKET_CONTROL_RECV_TIMEOUT:
         s_ethch395_socket_info[socket_fd].recv_timeout = *((int32_t*)para);
+        break;
+    case NETDEV_ETHCH395_SOCKET_CONTROL_DOMAIN_PARSE:
+
         break;
     default:
         break;
@@ -865,9 +856,8 @@ int32_t ethch395_cmd_data_recv(uint8_t *buf, uint8_t len)
         return -0x01;
     }
 
-    ethch395_wait_recv_lock(ETHCH395_WAIT_RECV_TIME_DEF);    /** 由于有两个线程会调用网络设备接收函数，为了避免接收冲突，在此需要等待另一个线程接收完成 */
-
     if(take_ethch395_data_sem(ETHCH395_WAIT_CMD_RESDATA_TIMEOUT) < 0x00){
+        LOG_D("000 ethch395 wait serial data timeout");
         return -0x02;
     }
 
@@ -876,12 +866,14 @@ int32_t ethch395_cmd_data_recv(uint8_t *buf, uint8_t len)
     {
         if(ethch395_netdev_recv(&ch, 0x01) != 0x01){
             if(take_ethch395_data_sem(ETHCH395_WAIT_CMD_RESDATA_TIMEOUT) < 0x00){
+                LOG_D("111 ethch395 wait serial data timeout");
                 return 0x00;
             }else{
                 continue;
             }
         }
 
+        rt_kprintf("recv(%02X, %d, %d)\n", ch, rlen, len);
         buf[rlen] = ch;
         rlen++;
 
@@ -900,33 +892,40 @@ int32_t ethch395_cmd_data_recv(uint8_t *buf, uint8_t len)
 static void ethch395_recv_thread_entry(void* parameter)
 {
     uint8_t socket = 0x00, count = 0x00;
-    if(s_ethch395_assistant_info.error == ETHCH395_ENUM_TRUE){
-        return;
-    }
-    if(ethch395_netdev_phylayer_init() < 0x00){
-        return;
-    }
+    void *handle = ethch395_get_thread_handle();
+
+    rt_thread_mdelay(1000);
+    ethch395_device_init();
 
     while(1)
     {
+        if(s_ethch395_assistant_info.flag.init_complete == ETHCH395_ENUM_FALSE){
+            ethch395_device_init();
+        }
+        if(s_ethch395_assistant_info.flag.error == ETHCH395_ENUM_TRUE){
+            ethch395_unlock_operate_lock(handle);
+            rt_thread_mdelay(5000);
+            continue;
+        }
+
         count = 0x00;
-        ethch395_wait_operate_lock(-0x01);
 
         for(socket = 0x00; socket < ETHCH395_SOCKET_NUM_MAX; socket++){
             if(s_ethch395_socket_info[socket].flag.recv == ETHCH395_ENUM_TRUE){
-                ethch395_lock_recv_lock();     /** 上锁 */
 
-                ethch395_wait_operate_lock(-0x01);       /** 要等待外部操作完成才能接收数据 */
+                while(ethch395_wait_operate_lock(-0x01, handle) == ETHCH395_ENUM_FALSE);
 
                 if(ethch395_cmd_read_rbuf_data(socket, s_ethch395_socket_info[socket].recv_size) < 0x00){
                     LOG_E("ethch395 read socket rbuf data fail(%d, %d)", socket, s_ethch395_socket_info[socket].recv_size);
-//                    s_ethch395_socket_info[socket].flag.recv = ETHCH395_ENUM_FALSE;
+                    s_ethch395_socket_info[socket].flag.recv = ETHCH395_ENUM_FALSE;
+                    rt_thread_mdelay(10);
                     continue;
                 }
 
                 if(take_ethch395_data_sem(ETHCH395_WAIT_CMD_RESDATA_TIMEOUT) < 0x00){
                     LOG_E("ethch395 wait socket data sem fail(%d)", socket);
                     s_ethch395_socket_info[socket].flag.recv = ETHCH395_ENUM_FALSE;
+                    rt_thread_mdelay(10);
                     continue;
                 }
 
@@ -936,11 +935,13 @@ static void ethch395_recv_thread_entry(void* parameter)
 
                 buf = (uint8_t*)rt_malloc(s_ethch395_socket_info[socket].recv_size);
                 if(buf == NULL){
+                    rt_thread_mdelay(10);
                     continue;
                 }
                 pack = (ethch395_recv_pkt*)rt_malloc(sizeof(ethch395_recv_pkt));
                 if(pack == NULL){
                     rt_free(buf);
+                    rt_thread_mdelay(10);
                     continue;
                 }
                 pack->bfsz_totle = s_ethch395_socket_info[socket].recv_size;
@@ -997,7 +998,7 @@ static void ethch395_recv_thread_entry(void* parameter)
             }
         }
         if(count == ETHCH395_SOCKET_NUM_MAX){
-            ethch395_unlock_recv_lock();   /** 解锁 */
+            ethch395_unlock_operate_lock(handle);
         }
 
         rt_thread_mdelay(10);
@@ -1012,262 +1013,318 @@ static void ethch395_recv_thread_entry(void* parameter)
  *************************************************/
 static void ethch395_event_pro_thread_entry(void* parameter)
 {
-    uint8_t count = 0x00;
     union ethch395_socket_int *s_ethch395_socket_int = NULL;
     memset(s_ethch395_socket_info, 0x00, sizeof(s_ethch395_socket_info));
+    void *handle = ethch395_get_thread_handle();
 
     while(1)
     {
-        if(s_ethch395_assistant_info.error == ETHCH395_ENUM_TRUE){
+        if(s_ethch395_assistant_info.flag.error == ETHCH395_ENUM_TRUE){
+            ethch395_unlock_operate_lock(handle);
             rt_thread_mdelay(5000);
             continue;
         }
 
-        if(ethch395_wait_cmd_lock(0x00) == ETHCH395_ENUM_TRUE){
-            if(is_ethch395_irq_coming()){   /* 中断管脚产生了中断 */
-                if(ethch395_cmd_query_globe_int_status() < 0x00){
-                    LOG_E("ethch395 get globe int status fail");
-                    rt_thread_mdelay(20);
-                    continue;
-                }
-            }
+        if(is_ethch395_irq_coming()){   /* 中断管脚产生了中断 */
 
-            /** 不可达中断 */
-            if(s_ethch395_globe_int->bit.not_reachable == ETHCH395_ENUM_TRUE){
-                s_ethch395_globe_int->bit.not_reachable = ETHCH395_ENUM_FALSE;
+            while(ethch395_wait_operate_lock(-0x01, handle) == ETHCH395_ENUM_FALSE);
+
+            if(ethch395_cmd_query_globe_int_status() < 0x00){
+                ethch395_unlock_operate_lock(ethch395_get_thread_handle());
+                LOG_E("ethch395 get globe int status fail");
+                rt_thread_mdelay(20);
+                continue;
             }
-            /** IP 冲突 */
-            if(s_ethch395_globe_int->bit.ip_conflict == ETHCH395_ENUM_TRUE){
-                s_ethch395_globe_int->bit.ip_conflict = ETHCH395_ENUM_FALSE;
-            }
-            /** PHY 状态改变 */
-            if(s_ethch395_globe_int->bit.phy_changed == ETHCH395_ENUM_TRUE){
+        }else{
+            rt_thread_mdelay(20);
+            continue;
+        }
+
+        /** 不可达中断 */
+        if(s_ethch395_globe_int->bit.not_reachable == ETHCH395_ENUM_TRUE){
+            s_ethch395_globe_int->bit.not_reachable = ETHCH395_ENUM_FALSE;
+        }
+        /** IP 冲突 */
+        if(s_ethch395_globe_int->bit.ip_conflict == ETHCH395_ENUM_TRUE){
+            s_ethch395_globe_int->bit.ip_conflict = ETHCH395_ENUM_FALSE;
+        }
+        /** PHY 状态改变 */
+        if(s_ethch395_globe_int->bit.phy_changed == ETHCH395_ENUM_TRUE){
 //                s_ethch395_globe_int->bit.phy_changed = ETHCH395_ENUM_FALSE;
-            }
-            /** DHCP */
-            if(s_ethch395_globe_int->bit.dhcp == ETHCH395_ENUM_TRUE){
+        }
+        /** DHCP */
+        if(s_ethch395_globe_int->bit.dhcp == ETHCH395_ENUM_TRUE){
 //                s_ethch395_globe_int->bit.dhcp = ETHCH395_ENUM_FALSE;
-            }
+        }
 
-            /** socket 中断 */
-            if(s_ethch395_globe_int->value &ETHCH395_SOCKET_INT_MASK){
-                uint8_t int_base = 0x04;     /** socket 中断从第 4位开始 */
-                for(uint8_t socket = 0x00; socket < ETHCH395_SOCKET_NUM_MAX; socket++){
+        /** socket 中断 */
+        if(s_ethch395_globe_int->value &ETHCH395_SOCKET_INT_MASK){
+            uint8_t int_base = 0x04;     /** socket 中断从第 4位开始 */
+            for(uint8_t socket = 0x00; socket < ETHCH395_SOCKET_NUM_MAX; socket++){
+                if(s_ethch395_globe_int->value &(0x01 <<(int_base + socket))){
+                    s_ethch395_globe_int->value &= (~(0x01 <<(int_base + socket)));
 
-                    while(ethch395_wait_recv_lock(0x00) == ETHCH395_ENUM_FALSE);
+                    if(ethch395_cmd_query_socket_int(socket) < 0x00){
+                        LOG_E("ethch395 query socket init fail(%d)", socket);
+                        continue;
+                    }
 
-                    if(s_ethch395_globe_int->value &(0x01 <<(int_base + socket))){
-                        s_ethch395_globe_int->value &= (~(0x01 <<(int_base + socket)));
+                    s_ethch395_socket_int = ethch395_get_socket_int_info(socket);
+                    if(s_ethch395_socket_info[socket].flag.connected == ETHCH395_ENUM_FALSE){
+                        if(s_ethch395_socket_int->bit.tcp_connect){
+                            LOG_D("socket(%d) connect interrupt", socket);
+                            s_ethch395_socket_info[socket].flag.connected = ETHCH395_ENUM_TRUE;
+                        }
+                    }else{
+                        if(s_ethch395_socket_int->bit.tcp_disconnect){
+                            LOG_D("socket(%d) disconnect interrupt", socket);
+                            s_ethch395_socket_info[socket].flag.connected = ETHCH395_ENUM_FALSE;
+                        }
+                    }
 
-                        if(ethch395_cmd_query_socket_int(socket) < 0x00){
-                            LOG_E("ethch395 query socket init fail(%d)", socket);
+                    if(s_ethch395_socket_int->bit.sbuf_free){
+                        LOG_D("socket(%d) send free interrupt", socket);
+                        s_ethch395_socket_info[socket].flag.sbuf_free = ETHCH395_ENUM_TRUE;
+                    }
+
+                    if(s_ethch395_socket_int->bit.send_ok){
+                        LOG_D("socket(%d) send ok interrupt", socket);
+                        s_ethch395_socket_info[socket].flag.send_ok = ETHCH395_ENUM_TRUE;
+                    }
+
+                    if(s_ethch395_socket_int->bit.timeout){
+                        LOG_D("socket(%d) send timeout interrupt", socket);
+                        s_ethch395_socket_info[socket].flag.timeout = ETHCH395_ENUM_TRUE;
+                    }
+
+                    if(s_ethch395_socket_int->bit.recv || s_ethch395_socket_int->bit.tcp_disconnect){
+                        int8_t rentry = ETHCH395_QUERY_DLEN_RENTRY_MAX;
+                        uint16_t size = 0x00;
+                        while((size == 0x00) && (rentry >= 0x00)){
+                            ethch395_cmd_query_rbuf_data_len(socket, (uint8_t*)&size, sizeof(size));
+                            rentry--;
+                        }
+
+                        if(rentry < 0x00){
+                            LOG_E("ethch395 query socket rbuf data len fail(%d)", socket);
+                            s_ethch395_socket_info[socket].flag.recv = ETHCH395_ENUM_FALSE;
                             continue;
                         }
 
-                        s_ethch395_socket_int = ethch395_get_socket_int_info(socket);
-                        if(s_ethch395_socket_info[socket].flag.connected == ETHCH395_ENUM_FALSE){
-                            if(s_ethch395_socket_int->bit.tcp_connect){
-                                s_ethch395_socket_info[socket].flag.connected = ETHCH395_ENUM_TRUE;
-                            }
-                        }else{
-                            if(s_ethch395_socket_int->bit.tcp_disconnect){
-                                s_ethch395_socket_info[socket].flag.connected = ETHCH395_ENUM_FALSE;
-                            }
-                        }
-
-                        if(s_ethch395_socket_int->bit.sbuf_free){
-                            s_ethch395_socket_info[socket].flag.sbuf_free = ETHCH395_ENUM_TRUE;
-                        }
-
-                        if(s_ethch395_socket_int->bit.send_ok){
-                            s_ethch395_socket_info[socket].flag.send_ok = ETHCH395_ENUM_TRUE;
-                        }
-
-                        if(s_ethch395_socket_int->bit.timeout){
-                            s_ethch395_socket_info[socket].flag.timeout = ETHCH395_ENUM_TRUE;
-                        }
-
-                        if(s_ethch395_socket_int->bit.recv || s_ethch395_socket_int->bit.tcp_disconnect){
-                            int8_t rentry = ETHCH395_QUERY_DLEN_RENTRY_MAX;
-                            uint16_t size = 0x00;
-                            while((size == 0x00) && (rentry >= 0x00)){
-                                ethch395_cmd_query_rbuf_data_len(socket, (uint8_t*)&size, sizeof(size));
-                                rentry--;
-                            }
-
-                            if(rentry < 0x00){
-                                LOG_E("ethch395 query socket rbuf data len fail(%d)", socket);
-                                s_ethch395_socket_info[socket].flag.recv = ETHCH395_ENUM_FALSE;
-                                continue;
-                            }
-
-                            ethch395_lock_cmd_lock();
-                            s_ethch395_socket_info[socket].recv_size = size;
-                            s_ethch395_socket_info[socket].flag.recv = ETHCH395_ENUM_TRUE;
-                        }
+                        s_ethch395_socket_info[socket].recv_size = size;
+                        s_ethch395_socket_info[socket].flag.recv = ETHCH395_ENUM_TRUE;
                     }
-                }
-            }
-        }else{
-            if(ethch395_wait_recv_lock(0x00) == ETHCH395_ENUM_TRUE){
-                count = 0x00;
-                for(uint8_t socket = 0x00; socket < ETHCH395_SOCKET_NUM_MAX; socket++){
-                    if(s_ethch395_socket_info[socket].flag.recv == ETHCH395_ENUM_FALSE){
-                        count++;
-                    }
-                }
-                if(count == ETHCH395_SOCKET_NUM_MAX){
-                    ethch395_unlock_cmd_lock();
                 }
             }
         }
+        ethch395_unlock_operate_lock(handle);
 
         rt_thread_mdelay(20);
     }
 }
 
 /**************************************************
- *  函数名   ethch395_netdev_phylayer_init
+ *  函数名   ethch395_device_init
  *  参数
- *  功能        初始化 ethch395 相关配置
- *  返回      >= 0 : 成功，< 0 ：失败
+ *  功能       ethch395 设备初始化线程
+ *  返回
  *************************************************/
-static int32_t ethch395_netdev_phylayer_init(void)
+static void ethch395_device_init(void)
 {
     uint8_t resp[32], rentry = 0x00;
     int32_t res = 0x00;
-    uint32_t baudrate = ETHCH395_NETDEV_BAUDRATE_115200, wait_tick;
+    uint32_t baudrate = ETHCH395_NETDEV_BAUDRATE_9600, wait_tick;
     memset(resp, 0x00, sizeof(resp));
+    ethch395_slist *node = NULL;
+    void *handle = ethch395_get_thread_handle();
 
-    /** 查询  ethch395 通信状态 */
-    if(ethch395_cmd_test_communication_status() < 0x00){
-        LOG_E("ethch395 communication status abnormal");
-        res = -0x01;
-        goto _is_end;
-    }
-    /** 查询  ethch395 版本 */
-    if(ethch395_cmd_query_ic_version(resp, sizeof(resp)) < 0x00){
-        LOG_E("ethch395 query chip version fail");
-        res = -0x01;
-        goto _is_end;
-    }
-    LOG_D("ethch395 version:%s", resp);
+    while(1){
+        s_ethch395_assistant_info.flag.error = ETHCH395_ENUM_FALSE;
+        s_ethch395_assistant_info.flag.init_complete = ETHCH395_ENUM_FALSE;
+        s_ethch395_state = NETDEV_ETHCH395_STATE_PHY;    /** 芯片状态：初始化物理层 */
 
-    /** 命令复位  ethch395 */
-    ethch395_cmd_hard_reset();
-
-    /** 设置 ethch395 TCP MSS */
-    if(ethch395_cmd_set_tcp_mss(ETHCH395_TCP_MSS_DEF) < 0x00){
-        LOG_E("ethch395 set tcp mss fail");
-        res = -0x01;
-        goto _is_end;
-    }
-
-    /** 修改 ethch395 通信波特率 */
-    if(ethch395_cmd_set_baudrate(ETHCH395_CMD_BAUDRATE_115200) < 0x00){
-        LOG_E("ethch395 modify baudrate fail(%d)", ETHCH395_CMD_BAUDRATE_115200);
-        res = -0x01;
-        goto _is_end;
-    }
-    ethch395_netdev_ctrl(ETHCH395_NETDEV_CTRL_BAUDRATE, &baudrate, sizeof(baudrate));
-    rt_thread_mdelay(100);
-
-    /**  查询 ethch395 版本(只是为了验证波特率修改是否成功) */
-    memset(resp, 0x00, sizeof(resp));
-    if(ethch395_cmd_query_ic_version(resp, sizeof(resp)) < 0x00){
-        LOG_E("ethch395 query chip version fail when detect new baudrate");
-        res = -0x01;
-        goto _is_end;
-    }
-
-    rt_thread_mdelay(10);
-#if 0
-    ethch395_cmd_set_func_para(0);
-
-    /** 设置  ethch395 PHY 模式为自动协商 */
-    ethch395_cmd_set_phy(ETHCH395_PHY_TYPE_AUTO);
-#endif
-
-    /** 命令初始化  ethch395 */
-    if(ethch395_cmd_init() < 0x00){
-        LOG_E("ethch395 init fail");
-        res = -0x01;
-        goto _is_end;
-    }
-
-    /** 等待 PHY 中断( ethch395 连接上以太网后就会产生此中断) */
-    wait_tick = rt_tick_get();
-    while(s_ethch395_globe_int->bit.phy_changed == ETHCH395_ENUM_FALSE){  /** 等待PHY中断产生 */
-        if(wait_tick > rt_tick_get()){
-            wait_tick = rt_tick_get();
+        for(uint8_t socket = 0x00; socket < ETHCH395_SOCKET_NUM_MAX; socket++){
+            s_ethch395_socket_info[socket].flag.recv = ETHCH395_ENUM_FALSE;
+            for(node = s_ethch395_socket_info[socket].list.next; node; node = node->next){
+                ethch395_recvpkt_node_delete(&s_ethch395_socket_info[socket].list, node);
+            }
         }
-        if((rt_tick_get() - wait_tick) > 30000){
-            LOG_E("ethch395 wait PHY interrupt timeout");
+
+        while(ethch395_wait_operate_lock(-0x01, handle) == ETHCH395_ENUM_FALSE);
+
+        baudrate = ETHCH395_NETDEV_BAUDRATE_9600;
+        ethch395_netdev_ctrl(ETHCH395_NETDEV_CTRL_BAUDRATE, &baudrate, sizeof(baudrate));
+        rt_thread_mdelay(100);
+
+        /** 查询  ethch395 通信状态 */
+        if(ethch395_cmd_test_communication_status() < 0x00){
+            LOG_E("ethch395 communication status abnormal");
             res = -0x01;
             goto _is_end;
         }
-        rt_thread_mdelay(10);
-    }
-
-    /** 启动 DHCP，IP动态分配，但socket 原端口还需配置 */
-    if(ethch395_cmd_set_dhcp_status(0x01) < 0x00){
-        LOG_E("ethch395 set dhcp status fail(%d)", 0x01);
-        res = -0x01;
-        goto _is_end;
-    }
-
-    /** 等待 DHCP 中断，主要用于获取DNS 服务器信息，如果不需要则不等待即可 */
-    wait_tick = rt_tick_get();
-    while(s_ethch395_globe_int->bit.dhcp == ETHCH395_ENUM_FALSE){  /** 等待DHCP中断产生 */
-        if(wait_tick > rt_tick_get()){
-            wait_tick = rt_tick_get();
-        }
-        if((rt_tick_get() - wait_tick) > 30000){
-            LOG_E("ethch395 wait dhcp interrupt timeout");
+        /** 查询  ethch395 版本 */
+        if(ethch395_cmd_query_ic_version(resp, sizeof(resp)) < 0x00){
+            LOG_E("ethch395 query chip version fail");
             res = -0x01;
             goto _is_end;
         }
-        rt_thread_mdelay(10);
-    }
+        LOG_D("ethch395 version:%s", resp);
 
-    /** 查询 DHCP 是否启动成功 */
-    while(rentry < 100){
-        if(ethch395_cmd_query_dhcp_status() != 0x00){    /** 发送命令 CMD_GET_DHCP_STATUS 获取 DHCP 状态，如果状态码为 0 则表示成功 */
-            LOG_E("ethch395 query dhcp status fail(%d)", rentry);
-            rentry++;
-            rt_thread_mdelay(100);
-            continue;
+        /** 命令复位  ethch395 */
+        ethch395_cmd_hard_reset();
+
+        /** 设置 ethch395 TCP MSS */
+        if(ethch395_cmd_set_tcp_mss(ETHCH395_TCP_MSS_DEF) < 0x00){
+            LOG_E("ethch395 set tcp mss fail");
+            res = -0x01;
+            goto _is_end;
         }
+
+        s_ethch395_state = NETDEV_ETHCH395_STATE_LINK_MAC;    /** 芯片状态：初始化链路MAC层 */
+        /** 修改 ethch395 通信波特率 */
+        if(ethch395_cmd_set_baudrate(ETHCH395_CMD_BAUDRATE_115200) < 0x00){
+            LOG_E("ethch395 modify baudrate fail(%d)", ETHCH395_CMD_BAUDRATE_115200);
+            res = -0x01;
+            goto _is_end;
+        }
+
+        baudrate = ETHCH395_NETDEV_BAUDRATE_115200;
+        ethch395_netdev_ctrl(ETHCH395_NETDEV_CTRL_BAUDRATE, &baudrate, sizeof(baudrate));
+        rt_thread_mdelay(100);
+        /**  查询 ethch395 版本(只是为了验证波特率修改是否成功) */
+        memset(resp, 0x00, sizeof(resp));
+        if(ethch395_cmd_query_ic_version(resp, sizeof(resp)) < 0x00){
+            LOG_E("ethch395 query chip version fail when detect new baudrate");
+            res = -0x01;
+            goto _is_end;
+        }
+
+        rt_thread_mdelay(10);
+
+    #if 0
+        ethch395_cmd_set_func_para(0);
+
+        /** 设置  ethch395 PHY 模式为自动协商 */
+        ethch395_cmd_set_phy(ETHCH395_PHY_TYPE_AUTO);
+    #endif
+
+        s_ethch395_state = NETDEV_ETHCH395_STATE_LINK_LCC;    /** 芯片状态：初始化链路LCC层 */
+        /** 命令初始化  ethch395 */
+        if(ethch395_cmd_init() < 0x00){
+            LOG_E("ethch395 init fail");
+            res = -0x01;
+            goto _is_end;
+        }
+
+        ethch395_unlock_operate_lock(handle);
+
+        /** 等待 PHY 中断( ethch395 连接上以太网后就会产生此中断) */
+        wait_tick = rt_tick_get();
+        while(s_ethch395_globe_int->bit.phy_changed == ETHCH395_ENUM_FALSE){  /** 等待PHY中断产生 */
+            if(wait_tick > rt_tick_get()){
+                wait_tick = rt_tick_get();
+            }
+            if((rt_tick_get() - wait_tick) > 30000){
+                LOG_E("ethch395 wait PHY interrupt timeout");
+                res = -0x01;
+                goto _is_end;
+            }
+            rt_thread_mdelay(10);
+        }
+
+        while(ethch395_wait_operate_lock(-0x01, handle) == ETHCH395_ENUM_FALSE);
+
+        /** 启动 DHCP，IP动态分配，但socket 原端口还需配置 */
+        if(ethch395_cmd_set_dhcp_status(0x01) < 0x00){
+            LOG_E("ethch395 set dhcp status fail(%d)", 0x01);
+            res = -0x01;
+            goto _is_end;
+        }
+
+        s_ethch395_state = NETDEV_ETHCH395_STATE_NET_REGISTERED;    /** 芯片状态：等待网络注册 */
+        ethch395_unlock_operate_lock(handle);
+
+        /** 等待 DHCP 中断，主要用于获取DNS 服务器信息，如果不需要则不等待即可 */
+        wait_tick = rt_tick_get();
+        while(s_ethch395_globe_int->bit.dhcp == ETHCH395_ENUM_FALSE){  /** 等待DHCP中断产生 */
+            if(wait_tick > rt_tick_get()){
+                wait_tick = rt_tick_get();
+            }
+            if((rt_tick_get() - wait_tick) > 30000){
+                LOG_E("ethch395 wait dhcp interrupt timeout");
+                res = -0x01;
+                goto _is_end;
+            }
+            rt_thread_mdelay(10);
+        }
+
+        while(ethch395_wait_operate_lock(-0x01, handle) == ETHCH395_ENUM_FALSE);
+
+        /** 查询 DHCP 是否启动成功 */
+        while(rentry < 100){
+            if(ethch395_cmd_query_dhcp_status() != 0x00){    /** 发送命令 CMD_GET_DHCP_STATUS 获取 DHCP 状态，如果状态码为 0 则表示成功 */
+                LOG_E("ethch395 query dhcp status fail(%d)", rentry);
+                rentry++;
+                rt_thread_mdelay(100);
+                continue;
+            }
+            break;
+        }
+        if(rentry >= 100){
+            res = -0x01;                                 /** DHCP 有时会出现返回失败，但是后续交互正常的情况，故如果返回失败暂时不认为是失败 */
+            goto _is_end;
+        }
+
+        /** 获取DHCP相关信息 */
+        if(ethch395_cmd_query_ip_info(resp, sizeof(resp)) < 0x00){
+            LOG_E("ethch395 query ip info fail");
+            res = -0x01;
+            goto _is_end;
+        }
+
+        ethch395_config_dns_ip(ethch395_get_dev_gatewayip(), 0x04);
+
+        s_ethch395_state = NETDEV_ETHCH395_STATE_MODULE_INIT;    /** 芯片状态：芯片相关信息初始化 */
+        /** 查询设备MAC地址 */
+        if(ethch395_cmd_query_dev_mac(resp, sizeof(resp)) < 0x00){
+            LOG_E("ethch395 query device MAC fail");
+            res = -0x01;
+            goto _is_end;
+        }
+
+        s_ethch395_state = NETDEV_ETHCH395_STATE_NORMAL;         /** 芯片状态：正常 */
+        s_ethch395_assistant_info.flag.init_complete = ETHCH395_ENUM_TRUE;
+        ethch395_unlock_operate_lock(handle);
+
+        LOG_D("ethch395 device init success");
         break;
-    }
-    if(rentry >= 100){
-        res = -0x01;                                 /** DHCP 有时会出现返回失败，但是后续交互正常的情况，故如果返回失败暂时不认为是失败 */
-        goto _is_end;
-    }
-
-    /** 获取DHCP相关信息 */
-    if(ethch395_cmd_query_ip_info(resp, sizeof(resp)) < 0x00){
-        LOG_E("ethch395 query ip info fail");
-        res = -0x01;
-        goto _is_end;
-    }
-
-    ethch395_config_dns_ip(ethch395_get_dev_gatewayip(), 0x04);
 
 _is_end:
 
-    if(ethch395_init_hook){
-        if(res >= 0x00){
-            ethch395_init_hook(ETHCH395_ENUM_TRUE, ETHCH395_ENUM_TRUE);
-        }else{
-            ethch395_init_hook(ETHCH395_ENUM_TRUE, ETHCH395_ENUM_FALSE);
-            s_ethch395_assistant_info.error = ETHCH395_ENUM_TRUE;
-        }
+        ethch395_unlock_operate_lock(handle);
+        s_ethch395_assistant_info.flag.error = ETHCH395_ENUM_TRUE;
+        s_ethch395_assistant_info.flag.init_complete = ETHCH395_ENUM_FALSE;
+
+        ethch395_device_reset();
+        rt_thread_mdelay(10000);
+        LOG_D("ethch395 device init repeat");
     }
+}
 
-    s_ethch395_assistant_info.init_complete = ETHCH395_ENUM_TRUE;
+/**************************************************
+ *  函数名   ethch395_device_reset
+ *  参数
+ *  功能       复位ethch395
+ *  返回
+ *************************************************/
+int32_t ethch395_device_reset(void)
+{
+    LOG_D("ethch395_device_reset");
+    s_ethch395_state = NETDEV_ETHCH395_STATE_PHY;    /** 芯片状态：初始化物理层 */
+    s_ethch395_assistant_info.flag.error = ETHCH395_ENUM_FALSE;
+    s_ethch395_assistant_info.flag.init_complete = ETHCH395_ENUM_FALSE;
 
-    return res;
+    return ethch395_netdev_ctrl(ETHCH395_NETDEV_CTRL_HARDRESET, NULL, 0x00);
 }
 
 /**************************************************
@@ -1284,8 +1341,8 @@ int32_t net_ethch395_transceiver_init(void)
         ethch395_init_hook(ETHCH395_ENUM_FALSE, ETHCH395_ENUM_FALSE);
     }
 
-    s_ethch395_assistant_info.error = ETHCH395_ENUM_FALSE;
-    s_ethch395_assistant_info.init_complete = ETHCH395_ENUM_FALSE;
+    s_ethch395_assistant_info.flag.error = ETHCH395_ENUM_FALSE;
+    s_ethch395_assistant_info.flag.init_complete = ETHCH395_ENUM_FALSE;
 
     s_ethch395_globe_int = ethch395_get_globe_int_info();
     for(uint8_t socket = 0x00; socket < ETHCH395_SOCKET_NUM_MAX; socket++){
@@ -1312,19 +1369,19 @@ int32_t net_ethch395_transceiver_init(void)
     }
 
     if(rt_thread_init(&s_ethch395_recv_thread, "395recv", ethch395_recv_thread_entry, NULL,
-            s_ethch395_recv_thread_stack, ETHCH395_RECV_THREAD_STACK_SIZE, 10, 5) != RT_EOK){
+            s_ethch395_recv_thread_stack, ETHCH395_RECV_THREAD_STACK_SIZE, 14, 5) != RT_EOK){
         LOG_E("ethch395 recv thread init fail");
-        res = -0x01;
-        goto _init_end;
-    }
-    if(rt_thread_startup(&s_ethch395_recv_thread) != RT_EOK){
-        LOG_E("ethch395 recv thread startup fail");
         res = -0x01;
         goto _init_end;
     }
 
     if(rt_event_init(&s_ethch395_event, "395event", RT_IPC_FLAG_PRIO) != RT_EOK){
         LOG_E("ethch395 event set init fail");
+        res = -0x01;
+        goto _init_end;
+    }
+    if(rt_thread_startup(&s_ethch395_recv_thread) != RT_EOK){
+        LOG_E("ethch395 recv thread startup fail");
         res = -0x01;
         goto _init_end;
     }
@@ -1336,9 +1393,11 @@ _init_end:
             ethch395_init_hook(ETHCH395_ENUM_FALSE, ETHCH395_ENUM_FALSE);
         }else{
             ethch395_init_hook(ETHCH395_ENUM_TRUE, ETHCH395_ENUM_FALSE);
-            s_ethch395_assistant_info.error = ETHCH395_ENUM_TRUE;
-            s_ethch395_assistant_info.init_complete = ETHCH395_ENUM_TRUE;
         }
+    }
+    if(res < 0x00){
+        s_ethch395_assistant_info.flag.error = ETHCH395_ENUM_TRUE;
+        s_ethch395_assistant_info.flag.init_complete = ETHCH395_ENUM_TRUE;
     }
 
     return res;

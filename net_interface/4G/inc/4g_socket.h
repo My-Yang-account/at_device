@@ -14,6 +14,7 @@
 
 enum{
     NETDEV_4G_SOCKET_CONTROL_RECV_TIMEOUT,                   /** 4G socket 控制指令：修改数据接收等待时间 */
+    NETDEV_4G_SOCKET_CONTROL_DOMAIN_PARSE,                   /** 4G socket 控制指令:域名解析 */
 };
 
 int netdev_4g_socket_open_port(int *socket_fd, char* host, uint16_t host_len, uint16_t port);
@@ -22,6 +23,6 @@ int netdev_4g_socket_recv_port(int socket_fd, void *buff, uint16_t len);
 int netdev_4g_socket_close_port(int socket_fd);
 int netdev_4g_socket_get_state_port(int socket_fd);
 int netdev_4g_socket_data_comein_port(int socket_fd, uint32_t timeout);
-int netdev_4g_socket_control(int socket_fd, uint8_t cmd, void *para);
+int netdev_4g_socket_control(int socket_fd, uint8_t cmd, void *para, uint8_t para_len, void *ret, uint8_t ret_len);
 
 #endif /* NET_INTERFACE_4G_INC_4G_SOCKET_H_ */

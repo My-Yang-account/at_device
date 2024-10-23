@@ -40,8 +40,8 @@ int net_socket_data_comein(int fd, uint32_t timeout)
     return app_socket_data_comein_port(fd, timeout);
 }
 
-int net_socket_control(int fd, uint8_t cmd, void* para)
+int net_socket_control(int fd, uint8_t cmd, void* para, uint8_t para_len, void *ret, uint8_t ret_len)
 {
-    return app_socket_control_port(fd, cmd, para);
+    return app_socket_control_port(fd, cmd, para, para_len, ret, ret_len);
 }
 

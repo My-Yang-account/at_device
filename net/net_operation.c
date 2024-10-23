@@ -119,10 +119,14 @@ void net_set_clear_ndev_reset_state(uint8_t plat_mask, uint8_t is_clear)
         s_net_ndev_reset |= plat_mask;
     }
 
+#if 0
     if((s_net_ndev_reset &NET_PLATFORM_MASK_ALL) == NET_PLATFORM_MASK_ALL){
         s_net_ndev_reset &= (~NET_PLATFORM_MASK_ALL);
         (void)s_net_handle.ndev_operate(NULL, NET_DEV_OPERATE_OPTION_RESET);
     }
+#else
+    (void)s_net_handle.ndev_operate(NULL, NET_DEV_OPERATE_OPTION_RESET);
+#endif
 }
 
 /******************************************
@@ -296,7 +300,9 @@ void net_operation_set_target_socket_port(uint16_t port)
  * ***************************************/
 void net_operation_insert_tplat_log(void *data, uint16_t len, uint8_t verify_result, const char* label)
 {
+#ifdef NET_INCLUDE_MONITOR_PLATFORM
     ykc_monitor_platlog_data_insert(data, len, verify_result, label);
+#endif /* NET_INCLUDE_MONITOR_PLATFORM */
 }
 
 static void net_start_function(void* handle)
@@ -364,7 +370,7 @@ static int32_t net_para_config_function(uint8_t platform, uint8_t index, void* p
         s_net_handle.time_sync = (void (*)(uint32_t))para;
         break;
     case NET_PARA_CONFIG_INDEX_GET_SYSTEM_DATA :
-        s_net_handle.get_system_data = (uint8_t* (*)(uint8_t, uint32_t*, uint32_t))para;
+        s_net_handle.get_system_data = (uint8_t* (*)(uint8_t, void *, uint32_t*, uint32_t))para;
         break;
     case NET_PARA_CONFIG_INDEX_SET_SYSTEM_DATA :
         s_net_handle.set_system_data = (int32_t (*)(uint8_t, uint8_t*, uint16_t, uint32_t))para;

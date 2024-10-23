@@ -14,6 +14,7 @@
 
 enum {
     NET_SOCKET_CONTROL_RECV_TIMEOUT,                    /** socket 控制指令：修改数据接收等待时间 */
+    NET_SOCKET_CONTROL_DOMAIN_PARSE,                    /** socket 控制指令：域名解析 */
 };
 
 int net_socket_open(int *fd, char* host, uint16_t host_len, uint16_t port);
@@ -22,6 +23,6 @@ int net_socket_recv(int fd, void *buff, uint16_t len);
 int net_socket_close(int fd);
 int net_socket_get_state(int fd);
 int net_socket_data_comein(int fd, uint32_t timeout);
-int net_socket_control(int fd, uint8_t cmd, void* para);
+int net_socket_control(int fd, uint8_t cmd, void* para, uint8_t para_len, void *ret, uint8_t ret_len);
 
 #endif /* NET_PACK_NET_SOCKET_INTERFACE_H_ */

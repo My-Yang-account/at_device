@@ -121,12 +121,14 @@ int callback_service_EVS_DEVICE_REG_CODE_GET(char *device_reg_code)
     }
     int len = strlen(s_sgcc_storage_struct->device_reg_code);
     memset(device_reg_code, 0x0, IOTX_DEVICE_REG_CODE_LEN);
-    strncpy(device_reg_code, s_sgcc_storage_struct->device_reg_code, IOTX_DEVICE_REG_CODE_LEN);
-    device_reg_code[len] = '\0';
+    memcpy(device_reg_code, "2172483253812700000000000060", strlen("2172483253812700000000000060"));
+//    strncpy(device_reg_code, s_sgcc_storage_struct->device_reg_code, IOTX_DEVICE_REG_CODE_LEN);
+//    device_reg_code[len] = '\0';
 
     LOG_I("reg code get: %s", device_reg_code);
 
-    return strlen(s_sgcc_storage_struct->device_reg_code);
+//    return strlen(s_sgcc_storage_struct->device_reg_code);
+    return strlen("2172483253812700000000000060");
 }
 
 int callback_service_EVS_DEVICE_UID_GET(char *device_uid)
@@ -136,12 +138,14 @@ int callback_service_EVS_DEVICE_UID_GET(char *device_uid)
     }
     uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_SGCC |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
     struct net_handle* handle = net_get_net_handle();
-    char *pile_number = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, option));
+    char *pile_number = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, 0x00, option));
     int len = strlen(pile_number);
 
     memset(device_uid, 0x0, IOTX_DEVICE_UID_LEN);
-    strncpy(device_uid, pile_number, IOTX_DEVICE_UID_LEN);
-    device_uid[len] = '\0';
+    memcpy(device_uid, "1001240828010815", strlen("1001240828010815"));
+//    strncpy(device_uid, pile_number, IOTX_DEVICE_UID_LEN);
+
+//    device_uid[len] = '\0';
 
     LOG_I("uid get: %s", device_uid);
 

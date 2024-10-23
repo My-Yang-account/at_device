@@ -12,9 +12,12 @@
 
 #include <stdint.h>
 
-void sgcc_firmware_start(uint64_t file_size);
+int sgcc_firmware_start(void);
 int sgcc_firmware_write(char *buffer, uint32_t length);
-int sgcc_firmware_stop(int process);
+int sgcc_firmware_stop(void);
 int sgcc_firmware_version(char *version);
+
+uint8_t *sgcc_get_ota_buff(void);
+uint32_t sgcc_get_ota_blen(void);
 
 #endif /* NET_NET_SGCC_INC_SGCC_OTA_H_ */

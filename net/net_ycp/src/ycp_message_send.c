@@ -597,8 +597,8 @@ static void net_ycp_message_send_thread_entry(void *parameter)
                     uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YCP |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
                     int32_t result = 0x00;
                     struct net_handle* handle = net_get_net_handle();
-                    char *host = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_DOMAIN, NULL, option));
-                    uint16_t port = *((uint16_t*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PORT, NULL, option)));
+                    char *host = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_DOMAIN, NULL, 0x00, option));
+                    uint16_t port = *((uint16_t*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PORT, NULL, 0x00, option)));
 
                     if((port == 0x00) || (port == 0xFFFF)){
                         host = "121.229.203.34";
@@ -630,14 +630,16 @@ static void net_ycp_message_send_thread_entry(void *parameter)
                 break;
             case NET_YCP_NET_STATE_LOGIN:
             {
-                uint8_t rentry = 0x00;
+                uint8_t rentry = 0x00, data[NET_YCP_SIM_BCD_LENGTH_DEFAULT *0x02 + 0x01], *sim_no = NULL, *imei = NULL;
                 uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YCP |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
                 struct net_handle* handle = net_get_net_handle();
-                uint8_t *sim_no = (uint8_t*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_ICCID, NULL, option));
-                uint8_t *imei = (uint8_t*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_IMEI, NULL, option));
 
-                g_ycp_preq_login.body.operators = *(uint8_t*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_OPERATOR, NULL, option));
+                memset(data, 0x00, (NET_YCP_SIM_BCD_LENGTH_DEFAULT *0x02 + 0x01));
+                (void)(handle->get_system_data(NET_SYSTEM_DATA_NAME_ICCID, data, sizeof(data), option));
+
+                g_ycp_preq_login.body.operators = *(uint8_t*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_OPERATOR, NULL, 0x00, option));
                 memset(g_ycp_preq_login.body.sim_number, '\0', NET_YCP_SIM_BCD_LENGTH_DEFAULT);
+                sim_no = data;
                 ycp_ascii_to_bcd(sim_no, strlen((char*)sim_no), g_ycp_preq_login.body.sim_number, NET_YCP_SIM_BCD_LENGTH_DEFAULT, 0x01);
 
                 switch (g_ycp_preq_login.body.operators) {
@@ -656,6 +658,9 @@ static void net_ycp_message_send_thread_entry(void *parameter)
                 }
 
                 memset(g_ycp_preq_login.body.communicate_module_sn, '\0', NET_YCP_COMMUNICATE_MODULE_SN_LENGTH_DEFAULT);
+                memset(data, 0x00, (NET_YCP_SIM_BCD_LENGTH_DEFAULT *0x02 + 0x01));
+                (void)(handle->get_system_data(NET_SYSTEM_DATA_NAME_IMEI, data, sizeof(data), option));
+                imei = data;
                 ycp_ascii_to_bcd(imei, strlen((char*)imei), g_ycp_preq_login.body.communicate_module_sn, NET_YCP_COMMUNICATE_MODULE_SN_LENGTH_DEFAULT, 0x00);
 
                 ycp_net_event_receive(NET_YCP_EVENT_HANDLE_SERVER, NET_YCP_EVENT_TYPE_RESPONSE, 0x00,

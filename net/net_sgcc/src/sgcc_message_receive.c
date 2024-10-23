@@ -278,7 +278,7 @@ static int callback_service_EVS_FEE_MODEL_UPDATE_SRV(evs_service_issue_feeModel 
     memset(feedback->serModelId, 0x00, EVS_MAX_MODEL_ID_LEN);
     memcpy(feedback->serModelId, request->serModelId, EVS_MAX_MODEL_ID_LEN);
 
-    if(sgcc_message_pro_billing_model_request_response(request, sizeof(evs_service_issue_feeModel)) >= 0x00){
+    if(sgcc_message_pro_billing_model_request_response(request, sizeof(evs_service_issue_feeModel), 0x00) >= 0x00){
         feedback->result = SGCC_OPSCTL_ACTION;
         for(uint8_t gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
             sgcc_net_event_send(NET_SGCC_EVENT_HANDLE_SERVER, NET_SGCC_EVENT_TYPE_REQUEST, gunno, NET_SGCC_SREQ_EVENT_BILLING_MODEL_SET);
@@ -335,7 +335,7 @@ static int callback_service_EVS_START_CHARGE_SRV(evs_service_startCharge *reques
 
     sgcc_chargepile_create_local_transaction_number((gunno - 0x01), request->tradeNo, EVS_MAX_TRADE_LEN);
 
-    sgcc_input_recv_message_item(EVS_START_CHARGE_SRV, 0x00, 0x00);
+    sgcc_input_recv_message_item(EVS_START_CHARGE_SRV, 0x00, (gunno - 0x01));
     memcpy(&(evs_service_startCharges[(gunno - 0x01)]), request, sizeof(evs_service_startCharge));
 
     memset(feedback, 0x00, sizeof(evs_service_feedback_startCharge));
@@ -354,49 +354,38 @@ static int callback_service_EVS_AUTH_RESULT_SRV(evs_service_authCharge *request,
         return -0x01;
     }
     LOG_D("sgcc authenty start charge-> no: %d", request->gunNo);
-    LOG_D("sgcc authenty startType-> no: %d", request->chargeMode);
     LOG_D("sgcc authenty chargeMode-> no: %d", request->chargeMode);
+    LOG_D("sgcc authenty result-> no: %d", request->result);
     LOG_D("sgcc authenty limitData-> no: %d", request->limitData);
     LOG_D("sgcc authenty stopCode-> no: %d", request->stopCode);
     LOG_D("sgcc authenty startMode-> no: %d", request->startMode);
     LOG_D("sgcc authenty insertGunTime-> no: %d", request->insertGunTime);
-    for(uint8_t count = 0x00; count < sizeof(evs_service_authCharge); count++){
-        rt_kprintf("%02X ", *((uint8_t*)(request) + count));
-        if((count %16 == 0x00) && count != 0x00){
-            rt_kprintf("\n");
-        }
-    }
-    rt_kprintf("\n");
 
     uint8_t gunno = request->gunNo;
 
     if(!((gunno > 0x00) && (gunno <= NET_SYSTEM_GUN_NUMBER))){
-        sgcc_chargepile_create_local_transaction_number(0x00, request->tradeNo, EVS_MAX_TRADE_LEN);
-
         sgcc_input_recv_message_item(EVS_AUTH_RESULT_SRV, 0x01, 0x00);
         memcpy(&(evs_service_authCharges[0x00]), request, sizeof(evs_service_authCharge));
 
         memset(feedback, 0x00, sizeof(evs_service_feedback_authCharge));
         feedback->gunNo = request->gunNo;
         memcpy(feedback->preTradeNo, request->preTradeNo, EVS_MAX_TRADE_LEN);
-        memcpy(feedback->tradeNo, request->tradeNo, EVS_MAX_TRADE_LEN);
+        memcpy(feedback->tradeNo, evs_event_startCharges[0x00].tradeNo, EVS_MAX_TRADE_LEN);
 
-        sgcc_net_event_send(NET_SGCC_EVENT_HANDLE_SERVER, NET_SGCC_EVENT_TYPE_REQUEST, 0x00, NET_SGCC_SRES_EVENT_APPLY_CHARGE_ACTIVE);
+        sgcc_net_event_send(NET_SGCC_EVENT_HANDLE_SERVER, NET_SGCC_EVENT_TYPE_RESPONSE, 0x00, NET_SGCC_SRES_EVENT_APPLY_CHARGE_ACTIVE);
 
         LOG_E("gunno error when call callback_service_EVS_AUTH_RESULT_SRV(%d)", gunno);
     }
 
-    sgcc_chargepile_create_local_transaction_number((gunno - 0x01), request->tradeNo, EVS_MAX_TRADE_LEN);
-
-    sgcc_input_recv_message_item(EVS_AUTH_RESULT_SRV, 0x00, 0x00);
+    sgcc_input_recv_message_item(EVS_AUTH_RESULT_SRV, 0x00, (gunno - 0x01));
     memcpy(&(evs_service_authCharges[(gunno - 0x01)]), request, sizeof(evs_service_authCharge));
 
     memset(feedback, 0x00, sizeof(evs_service_feedback_authCharge));
     feedback->gunNo = request->gunNo;
     memcpy(feedback->preTradeNo, request->preTradeNo, EVS_MAX_TRADE_LEN);
-    memcpy(feedback->tradeNo, request->tradeNo, EVS_MAX_TRADE_LEN);
+    memcpy(feedback->tradeNo, evs_event_startCharges[gunno - 0x01].tradeNo, EVS_MAX_TRADE_LEN);
 
-    sgcc_net_event_send(NET_SGCC_EVENT_HANDLE_SERVER, NET_SGCC_EVENT_TYPE_REQUEST, (gunno - 0x01), NET_SGCC_SRES_EVENT_APPLY_CHARGE_ACTIVE);
+    sgcc_net_event_send(NET_SGCC_EVENT_HANDLE_SERVER, NET_SGCC_EVENT_TYPE_RESPONSE, (gunno - 0x01), NET_SGCC_SRES_EVENT_APPLY_CHARGE_ACTIVE);
 
     return 0;
 }
@@ -418,8 +407,7 @@ static int callback_service_EVS_STOP_CHARGE_SRV(evs_service_stopCharge *request,
     uint8_t gunno = request->gunNo;
 
     if(!((gunno > 0x00) && (gunno <= NET_SYSTEM_GUN_NUMBER))){
-        sgcc_chargepile_create_local_transaction_number(0x00, request->tradeNo, EVS_MAX_TRADE_LEN);
-
+        memcpy(request->tradeNo, evs_service_startCharges[0x00].tradeNo, EVS_MAX_TRADE_LEN);
         sgcc_input_recv_message_item(EVS_STOP_CHARGE_SRV, 0x01, 0x00);
         memcpy(&(evs_service_stopCharges[0x00]), request, sizeof(evs_service_stopCharge));
 
@@ -433,9 +421,9 @@ static int callback_service_EVS_STOP_CHARGE_SRV(evs_service_stopCharge *request,
         LOG_E("gunno error when call callback_service_EVS_STOP_CHARGE_SRV(%d)", gunno);
     }
 
-    sgcc_chargepile_create_local_transaction_number((gunno - 0x01), request->tradeNo, EVS_MAX_TRADE_LEN);
+    memcpy(request->tradeNo, evs_service_startCharges[(gunno - 0x01)].tradeNo, EVS_MAX_TRADE_LEN);
 
-    sgcc_input_recv_message_item(EVS_STOP_CHARGE_SRV, 0x00, 0x00);
+    sgcc_input_recv_message_item(EVS_STOP_CHARGE_SRV, 0x00, (gunno - 0x01));
     memcpy(&(evs_service_stopCharges[(gunno - 0x01)]), request, sizeof(evs_service_stopCharge));
 
     memset(feedback, 0x00, sizeof(evs_service_feedback_stopCharge));
@@ -699,10 +687,15 @@ static int callback_service_EVS_OTA_UPDATE(const char *request)
         return -0x01;
     }
 
+    net_get_ota_info()->state = NET_OTA_STATE_UPDATING;
+
 //    sgcc_set_ota_was_requested_flag();
-//
-//    extern int evs_linkkit_fota(unsigned char *buffer, int buffer_length);
-//    evs_linkkit_fota(sgcc_get_ota_buff(), sgcc_get_ota_blen());
+
+    extern int evs_linkkit_fota(unsigned char *buffer, int buffer_length);
+    evs_linkkit_fota(sgcc_get_ota_buff(), sgcc_get_ota_blen());
+
+    net_get_ota_info()->state = NET_OTA_STATE_SUCCESS;
+//    sgcc_net_event_send(NET_SGCC_EVENT_HANDLE_SERVER, NET_SGCC_EVENT_TYPE_REQUEST, 0x00, NET_SGCC_SREQ_EVENT_FIRMWARE_UPDATE);
 
     return 0;
 }
@@ -717,6 +710,10 @@ static int callback_evs_service_time_sync(const unsigned int request)
 
 static int callback_service_EVS_CONNECT_SUCC(void)
 {
+    extern int _get_mqtt_socketfd(void);
+    sgcc_get_socket_info()->fd = _get_mqtt_socketfd();
+
+    LOG_D("sgcc server connected, socket fd(%d)", sgcc_get_socket_info()->fd);
     return 0;
 }
 

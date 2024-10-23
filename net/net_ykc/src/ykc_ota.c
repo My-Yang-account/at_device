@@ -315,7 +315,7 @@ static int32_t ykc_parse_ota_data(const uint8_t *data, uint32_t len)
             s_ykc_ota_flag.file_correct = false;  /* 文件类型错误 */
         }
         if(s_ykc_ota_flag.file_correct == true){
-            char *ver = ((char*)s_handle->get_system_data(NET_SYSTEM_DATA_NAME_HARDWARE_VERSION, NULL, NET_SYSTEM_DATA_OPTION_PLAT_YKC));
+            char *ver = ((char*)s_handle->get_system_data(NET_SYSTEM_DATA_NAME_HARDWARE_VERSION, NULL, 0x00, NET_SYSTEM_DATA_OPTION_PLAT_YKC));
             if(memcmp((s_ykc_ota_file_flag + NET_YKC_OTA_FILE_FLAG_LEN), ver, NET_YKC_OTA_FILE_VERSION_FLAG_LEN) != 0){
                 s_ykc_ota_flag.file_correct = false;   /* 文件版本错误 */
                 LOG_W("ykc ota file version error, is not allow update[%s, %s]", (s_ykc_ota_file_flag + NET_YKC_OTA_FILE_FLAG_LEN), ver);

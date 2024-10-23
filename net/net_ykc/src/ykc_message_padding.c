@@ -699,7 +699,7 @@ int8_t ykc_response_padding_qrcode_config_tld(uint8_t gunno, uint8_t *buf, uint1
     }
 
     uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
-    uint8_t *pile_number = (uint8_t*)(s_ykc_handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, option));
+    uint8_t *pile_number = (uint8_t*)(s_ykc_handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, 0x00, option));
     Net_YkcPro_PRes_Qrcode_Config_Tld_t *response = NULL;
     response = ((Net_YkcPro_PRes_Qrcode_Config_Tld_t*)buf);
     memset(response, 0x00, data_len);
@@ -1200,7 +1200,7 @@ void ykc_message_info_init(uint8_t gunno)  ///////// 这是网络部分外部调
     uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
     uint8_t *pile_number = NULL;
     s_ykc_handle = net_get_net_handle();
-    pile_number = (uint8_t*)(s_ykc_handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, option));
+    pile_number = (uint8_t*)(s_ykc_handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, 0x00, option));
     s_ykc_base = (System_BaseData*)(s_ykc_handle->get_base_data(gunno));
 
     ykc_is_init = NET_ENUM_TRUE;

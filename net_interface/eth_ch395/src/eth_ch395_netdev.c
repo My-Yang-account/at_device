@@ -77,6 +77,8 @@ int32_t ethch395_netdev_send(void *data, uint32_t len)
         return 0x00;
     }
 
+    rt_kprintf("send:%02X\n", *((uint8_t*)data + 0));
+
     return rt_device_write(s_ethch395_netdev, 0, data, len);
 }
 
@@ -108,6 +110,14 @@ int32_t ethch395_netdev_ctrl(uint8_t cmd, void *para, uint8_t plen)
             LOG_E("ethch395 net device modify baudrate fail, please check(%d)!", baudrate);
             return -2;
         }
+        break;
+    }
+    case ETHCH395_NETDEV_CTRL_HARDRESET:
+    {
+        rt_pin_write(ETHCH395_RST_PIN,PIN_LOW);                                                   /* 硬件复位 */
+        rt_thread_mdelay(10);
+        rt_pin_write(ETHCH395_RST_PIN,PIN_HIGH);
+        rt_thread_mdelay(500);
     }
         break;
     default:

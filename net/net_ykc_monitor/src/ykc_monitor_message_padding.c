@@ -670,7 +670,7 @@ int8_t ykc_monitor_response_padding_qrcode_config_tld(uint8_t gunno, uint8_t *bu
     }
 
     uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC_MONITOR |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
-    uint8_t *pile_number = (uint8_t*)(s_ykc_monitor_handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, option));
+    uint8_t *pile_number = (uint8_t*)(s_ykc_monitor_handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, 0x00, option));
     Net_YkcMonitorPro_PRes_Qrcode_Config_Tld_t *response = NULL;
     response = ((Net_YkcMonitorPro_PRes_Qrcode_Config_Tld_t*)buf);
     memset(response, 0x00, data_len);
@@ -1202,7 +1202,7 @@ void ykc_monitor_message_info_init(uint8_t gunno)  ///////// 这是网络部分�
     uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC_MONITOR |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
     uint8_t *pile_number = NULL;
     s_ykc_monitor_handle = net_get_net_handle();
-    pile_number = (uint8_t*)(s_ykc_monitor_handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, option));
+    pile_number = (uint8_t*)(s_ykc_monitor_handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, 0x00, option));
     s_ykc_monitor_base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
 
     ykc_monitor_is_init = NET_ENUM_TRUE;
@@ -2843,7 +2843,7 @@ int8_t ykc_monitor_message_padding_tsocket_info(uint8_t *buf, uint16_t ilen, uin
     Net_YkcMonitorPro_Preq_Pres_TsocketInfo_t *message = (Net_YkcMonitorPro_Preq_Pres_TsocketInfo_t*)buf;
     memcpy(message->body.pile_number, g_ykc_monitor_preq_login.body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
 
-    pile_number = (uint8_t*)(s_ykc_monitor_handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, option));
+    pile_number = (uint8_t*)(s_ykc_monitor_handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, 0x00, option));
 
     valid_len = sizeof(message->body.pile_number_whole);
     valid_len = valid_len > strlen((char*)pile_number) ? strlen((char*)pile_number) : valid_len;
@@ -2886,7 +2886,7 @@ int8_t ykc_monitor_message_padding_log_info(uint8_t *buf, uint16_t ilen, uint16_
     Net_YkcMonitorPro_Preq_TargetPlat_Log_t *message = (Net_YkcMonitorPro_Preq_TargetPlat_Log_t*)buf;
     memcpy(message->body.pile_number, g_ykc_monitor_preq_login.body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
 
-    pile_number = (uint8_t*)(s_ykc_monitor_handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, option));
+    pile_number = (uint8_t*)(s_ykc_monitor_handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, 0x00, option));
 
     valid_len = sizeof(message->body.pile_number_whole);
     valid_len = valid_len > strlen((char*)pile_number) ? strlen((char*)pile_number) : valid_len;
@@ -2920,33 +2920,33 @@ int8_t ykc_monitor_message_padding_dev_info(uint8_t *buf, uint16_t ilen, uint16_
     Net_YkcMonitorPro_Preq_PRes_DevInfo_t *message = (Net_YkcMonitorPro_Preq_PRes_DevInfo_t*)buf;
     memcpy(message->body.pile_number, g_ykc_monitor_preq_login.body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
 
-    data = (uint8_t*)(s_ykc_monitor_handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, option));
+    data = (uint8_t*)(s_ykc_monitor_handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, 0x00, option));
 
     valid_len = sizeof(message->body.pile_number_whole);
     valid_len = valid_len > strlen((char*)data) ? strlen((char*)data) : valid_len;
     memset(message->body.pile_number_whole, 0x00, sizeof(message->body.pile_number_whole));
     memcpy(message->body.pile_number_whole, data, valid_len);
 
-    data = (uint8_t*)(s_ykc_monitor_handle->get_system_data(NET_SYSTEM_DATA_NAME_NETWORKED_WAY, NULL, option));
+    data = (uint8_t*)(s_ykc_monitor_handle->get_system_data(NET_SYSTEM_DATA_NAME_NETWORKED_WAY, NULL, 0x00, option));
     if(*data == *(uint8_t*)(NET_NETWORKED_WAY_4G)){
         message->body.interconnecting_way = 0x01;
     }else{
         message->body.interconnecting_way = 0x02;
     }
 
-    data = (uint8_t*)(s_ykc_monitor_handle->get_system_data(NET_SYSTEM_DATA_NAME_HARDWARE_INFO, NULL, option));
+    data = (uint8_t*)(s_ykc_monitor_handle->get_system_data(NET_SYSTEM_DATA_NAME_HARDWARE_INFO, NULL, 0x00, option));
     valid_len = sizeof(message->body.hardware);
     valid_len = valid_len > strlen((char*)data) ? strlen((char*)data) : valid_len;
     memset(message->body.hardware, 0x00, sizeof(message->body.hardware));
     memcpy(message->body.hardware, data, valid_len);
 
-    data = (uint8_t*)(s_ykc_monitor_handle->get_system_data(NET_SYSTEM_DATA_NAME_SOFTWARE_MODEL, NULL, option));
+    data = (uint8_t*)(s_ykc_monitor_handle->get_system_data(NET_SYSTEM_DATA_NAME_SOFTWARE_MODEL, NULL, 0x00, option));
     valid_len = sizeof(message->body.soft_model);
     valid_len = valid_len > strlen((char*)data) ? strlen((char*)data) : valid_len;
     memset(message->body.soft_model, 0x00, sizeof(message->body.soft_model));
     memcpy(message->body.soft_model, data, valid_len);
 
-    data = (uint8_t*)(s_ykc_monitor_handle->get_system_data(NET_SYSTEM_DATA_NAME_DEV_TYPE, NULL, option));
+    data = (uint8_t*)(s_ykc_monitor_handle->get_system_data(NET_SYSTEM_DATA_NAME_DEV_TYPE, NULL, 0x00, option));
     if(*data == *(uint8_t*)(NET_DEV_TYPE_DYNAMIC_DOUBLEGUN)){
         message->body.dev_type = 0x02;
     }else if(*data == *(uint8_t*)(NET_DEV_TYPE_SINGLEGUN_TERMINAL)){

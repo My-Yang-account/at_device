@@ -17,7 +17,7 @@
 #include "net_operation.h"
 #include "protocol.h"
 
-#define DBG_TAG "gw_send"
+#define DBG_TAG "sgcc_send"
 #define DBG_LVL DBG_LOG
 #include <rtdbg.h>
 
@@ -43,6 +43,7 @@ struct sgcc_flag_set{
     uint8_t start_responsed : 1;       /** 启动充电已异步响应 */
     uint8_t stop_responsed : 1;        /** 停止充电已异步响应 */
     uint8_t is_time_sync;              /** 已进行时间同步 */
+    uint8_t socket_lock;               /** socket已锁 */
 };
 
 struct sgcc_wait_response{
@@ -50,7 +51,7 @@ struct sgcc_wait_response{
     uint32_t message_repeat_time[NET_SYSTEM_GUN_NUMBER][NET_SGCC_CHARGEPILE_PREQ_NUM];  /* 报文重发计时 */
 };
 
-static uint8_t s_sgcc_time_sync_count = 0x00;
+static uint32_t s_sgcc_time_sync_count = 0x00;
 static struct sgcc_flag_set s_sgcc_flag_set;
 static uint32_t s_sgcc_chargepile_event[NET_SGCC_EVENT_TYPE_SIZE][NET_SYSTEM_GUN_NUMBER];
 static uint32_t s_sgcc_server_event[NET_SGCC_EVENT_TYPE_SIZE][NET_SYSTEM_GUN_NUMBER];
@@ -66,6 +67,9 @@ static struct rt_thread s_sgcc_message_server_thread;
 static uint8_t s_sgcc_message_service_thread_stack[NET_SGCC_SERVER_MESSAGE_PRO_THREAD_STACK_SIZE];
 static struct rt_thread s_sgcc_connect_thread;
 static uint8_t s_sgcc_connect_thread_stack[NET_SGCC_CONNECT_THREAD_STACK_SIZE];
+static struct rt_thread s_sgcc_yield_thread;
+static uint8_t s_sgcc_yield_thread_stack[NET_SGCC_YIELD_THREAD_STACK_SIZE];
+
 static sgcc_response_message_buf_t s_sgcc_response_buff;
 static struct rt_semaphore s_sgcc_response_buff_sem;
 static sgcc_socket_info_t s_sgcc_socket_info;
@@ -440,11 +444,10 @@ void sgcc_ascii_to_bcd(uint8_t *ascii, uint8_t alen, uint8_t *bcd, uint8_t blen,
     }
 }
 
-
 static void sgcc_connect_thread_entry(void *parameter)
 {
     uint8_t step = NET_SGCC_NET_STATE_OPEN_RESOURCE, is_power_on = 0x01, link_open_step = 0x00, gunno = 0x00;
-    uint32_t delay = 0x00;
+    uint32_t delay = 0x00, wait_unlock;
     int32_t result = 0x00;
 
     while(1)
@@ -468,9 +471,35 @@ static void sgcc_connect_thread_entry(void *parameter)
             rt_thread_mdelay(1000);
             continue;
         }
+        if((net_get_net_handle()->net_fault) &NET_FAULT_SIM_CARD){
+            s_sgcc_socket_info.state = SGCC_SOCKET_STATE_SIM;
+            net_get_net_handle()->net_state = NET_SOCKET_STATE_SIM;
+            s_sgcc_socket_info.fd = -0x01;
+            step = NET_SGCC_NET_STATE_OPEN_RESOURCE;
+            link_open_step = 0x00;
+            if(rt_tick_get() > (delay + NET_SGCC_LOGIN_OPERATION_INTERVAL)){
+                delay = (rt_tick_get() - NET_SGCC_LOGIN_OPERATION_INTERVAL);
+            }
+
+            rt_thread_mdelay(1000);
+            continue;
+        }
         if((net_get_net_handle()->net_fault) &NET_FAULT_DATA_LINK_LAYER){
             s_sgcc_socket_info.state = SGCC_SOCKET_STATE_DATA_LINK;
             net_get_net_handle()->net_state = NET_SOCKET_STATE_DATA_LINK;
+            s_sgcc_socket_info.fd = -0x01;
+            step = NET_SGCC_NET_STATE_OPEN_RESOURCE;
+            link_open_step = 0x00;
+            if(rt_tick_get() > (delay + NET_SGCC_LOGIN_OPERATION_INTERVAL)){
+                delay = (rt_tick_get() - NET_SGCC_LOGIN_OPERATION_INTERVAL);
+            }
+
+            rt_thread_mdelay(1000);
+            continue;
+        }
+        if((net_get_net_handle()->net_fault) &NET_FAULT_MODULE_INIT){
+            s_sgcc_socket_info.state = SGCC_SOCKET_STATE_MODULE_INIT;
+            net_get_net_handle()->net_state = NET_SOCKET_STATE_MODULE_INIT;
             s_sgcc_socket_info.fd = -0x01;
             step = NET_SGCC_NET_STATE_OPEN_RESOURCE;
             link_open_step = 0x00;
@@ -509,20 +538,6 @@ static void sgcc_connect_thread_entry(void *parameter)
             link_open_step = 0x02;
         }
 
-        for(gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
-            if(s_sgcc_socket_info.heartbeat[gunno] > NET_SGCC_HEARTBEAT_TIMEOUT_RENTRY){
-                s_sgcc_socket_info.heartbeat[gunno] = 0x00;
-
-                delay = rt_tick_get();
-                step = NET_SGCC_NET_STATE_OPEN_RESOURCE;
-                s_sgcc_socket_info.state = SGCC_SOCKET_STATE_DATA_LINK;
-                net_get_net_handle()->net_state = NET_SOCKET_STATE_DATA_LINK;
-
-                LOG_D("ykc heartbeat timeout");
-                break;
-            }
-        }
-
         /***************************************************** [登录认证] **********************************************************/
         /***************************************************** [登录认证] **********************************************************/
         switch(step){
@@ -536,16 +551,19 @@ static void sgcc_connect_thread_entry(void *parameter)
                     LOG_D("linkkit open resource success \n");
                     step = NET_SGCC_NET_STATE_LOGIN;
                 }
-                is_power_on = 0x01;
+                is_power_on = 0x00;
             }
             break;
         case NET_SGCC_NET_STATE_LOGIN:
         {
-            uint8_t vaild_len = 0, rentry = 0;
+            uint8_t vaild_len = 0, rentry = 0, data[21], *sim_no = NULL;
             uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_SGCC |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
             struct net_handle* handle = net_get_net_handle();
-            uint8_t *sim_no = (uint8_t*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_ICCID, NULL, option));
 
+            memset(data, 0x00, 21);
+            (void)(handle->get_system_data(NET_SYSTEM_DATA_NAME_ICCID, data, sizeof(data), option));
+
+            sim_no = data;
             memset(evs_event_firmware_infos.simNo, '\0', sizeof(evs_event_firmware_infos.simNo));
             vaild_len = sizeof(evs_event_firmware_infos.simNo);
             vaild_len = vaild_len > (strlen((char*)sim_no))? strlen((char*)sim_no) : vaild_len;
@@ -574,42 +592,147 @@ static void sgcc_connect_thread_entry(void *parameter)
         case NET_SGCC_NET_STATE_MONITORING:
             s_sgcc_socket_info.state = SGCC_SOCKET_STATE_LOGIN_SUCCESS;
             net_get_net_handle()->net_state = NET_SOCKET_STATE_LOGIN_SUCCESS;
-            LOG_D("sgcc main yied start");
-            result = evs_mainyield();
-            LOG_D("sgcc main yied stop");
-            if(result < 0x00){
-                evs_mainclose();
-                LOG_D("linkkit yield failed res(%d) \n", result);
+            if(net_get_net_handle()->esocket_state == NET_ESOCKET_STATE_CLOSE){
+                extern void iotx_linkkit_ctx_close(void);
+
+                iotx_linkkit_ctx_close();
+
                 delay = rt_tick_get();
+                wait_unlock = rt_tick_get();
                 step = NET_SGCC_NET_STATE_OPEN_RESOURCE;
                 s_sgcc_socket_info.state = SGCC_SOCKET_STATE_DATA_LINK;
                 net_get_net_handle()->net_state = NET_SOCKET_STATE_DATA_LINK;
+                while(s_sgcc_flag_set.socket_lock == NET_ENUM_TRUE){
+                    if((rt_tick_get() - wait_unlock) > NET_SGCC_WAIT_UNLOCK_TIMEOUT){
+                        break;
+                    }
+                    rt_thread_mdelay(50);
+                }
+
+                evs_mainclose();
+
+                s_sgcc_socket_info.fd = -0x01;
+                s_sgcc_socket_info.operate_fail.login = 0x00;
+                s_sgcc_socket_info.sync_repeat = 0x00;
+                s_sgcc_socket_info.operate_fail.sync = NET_ENUM_FALSE;
+
+                LOG_W("sgcc login rentry = 0x00");
+                net_set_clear_ndev_reset_state(NET_PLATFORM_MASK_ALL, 0x00);
             }
             break;
         default:
+        {
+            extern void iotx_linkkit_ctx_close(void);
+
+            iotx_linkkit_ctx_close();
+
             delay = rt_tick_get();
+            wait_unlock = rt_tick_get();
             step = NET_SGCC_NET_STATE_OPEN_RESOURCE;
             s_sgcc_socket_info.state = SGCC_SOCKET_STATE_DATA_LINK;
             net_get_net_handle()->net_state = NET_SOCKET_STATE_DATA_LINK;
+            while(s_sgcc_flag_set.socket_lock == NET_ENUM_TRUE){
+                if((rt_tick_get() - wait_unlock) > NET_SGCC_WAIT_UNLOCK_TIMEOUT){
+                    break;
+                }
+                rt_thread_mdelay(50);
+            }
+
+            evs_mainclose();
+
+            s_sgcc_socket_info.fd = -0x01;
+            s_sgcc_socket_info.sync_repeat = 0x00;
+            s_sgcc_socket_info.operate_fail.sync = NET_ENUM_FALSE;
+        }
             break;
         }
+
         if(s_sgcc_socket_info.operate_fail.login > NET_SGCC_LOGIN_RENTRY){
+            extern void iotx_linkkit_ctx_close(void);
+
+            iotx_linkkit_ctx_close();
+
+            delay = rt_tick_get();
+            wait_unlock = rt_tick_get();
+            step = NET_SGCC_NET_STATE_OPEN_RESOURCE;
+            s_sgcc_socket_info.state = SGCC_SOCKET_STATE_DATA_LINK;
+            net_get_net_handle()->net_state = NET_SOCKET_STATE_DATA_LINK;
+            while(s_sgcc_flag_set.socket_lock == NET_ENUM_TRUE){
+                if((rt_tick_get() - wait_unlock) > NET_SGCC_WAIT_UNLOCK_TIMEOUT){
+                    break;
+                }
+                rt_thread_mdelay(50);
+            }
+
+            evs_mainclose();
+
+            s_sgcc_socket_info.fd = -0x01;
             s_sgcc_socket_info.operate_fail.login = 0x00;
-            LOG_W("gw login rentry = 0x00");
-            net_set_clear_ndev_reset_state(NET_PLATFORM_MASK_TARGET, 0x00);
+            s_sgcc_socket_info.sync_repeat = 0x00;
+            s_sgcc_socket_info.operate_fail.sync = NET_ENUM_FALSE;
+
+            LOG_W("sgcc login rentry = 0x00");
+            net_set_clear_ndev_reset_state(NET_PLATFORM_MASK_ALL, 0x00);
         }
 
-        s_sgcc_socket_info.state = SGCC_SOCKET_STATE_LOGIN_SUCCESS;
-        net_get_net_handle()->net_state = NET_SOCKET_STATE_LOGIN_SUCCESS;
+        if(s_sgcc_socket_info.state == SGCC_SOCKET_STATE_LOGIN_SUCCESS){
+            if(s_sgcc_socket_info.operate_fail.sync == NET_ENUM_TRUE){      /* 相当于心跳超时 */
+                extern void iotx_linkkit_ctx_close(void);
+
+                iotx_linkkit_ctx_close();
+
+                delay = rt_tick_get();
+                wait_unlock = rt_tick_get();
+                step = NET_SGCC_NET_STATE_OPEN_RESOURCE;
+                s_sgcc_socket_info.state = SGCC_SOCKET_STATE_DATA_LINK;
+                net_get_net_handle()->net_state = NET_SOCKET_STATE_DATA_LINK;
+                while(s_sgcc_flag_set.socket_lock == NET_ENUM_TRUE){
+                    if((rt_tick_get() - wait_unlock) > NET_SGCC_WAIT_UNLOCK_TIMEOUT){
+                        break;
+                    }
+                    rt_thread_mdelay(50);
+                }
+
+                evs_mainclose();
+
+                s_sgcc_socket_info.fd = -0x01;
+                s_sgcc_socket_info.sync_repeat = 0x00;
+                s_sgcc_socket_info.operate_fail.sync = NET_ENUM_FALSE;
+
+                LOG_D("sgcc sync timeout");
+            }
+        }
 
         rt_thread_mdelay(100);
+    }
+}
+
+static void sgcc_yield_thread_entry(void *parameter)
+{
+    int32_t result = 0x00;
+
+    while(1)
+    {
+        if((net_get_ota_info()->state >= NET_OTA_STATE_LOGIN_WAIT) && (net_get_ota_info()->state <= NET_OTA_STATE_UPDATING)){
+            rt_thread_mdelay(5000);
+            continue;
+        }
+
+        if(s_sgcc_socket_info.state == SGCC_SOCKET_STATE_LOGIN_SUCCESS){
+            LOG_D("sgcc main yied start");
+            s_sgcc_flag_set.socket_lock = NET_ENUM_TRUE;
+            result = evs_mainyield();
+            s_sgcc_flag_set.socket_lock = NET_ENUM_FALSE;
+            LOG_D("sgcc main yied stop(%d)", result);
+        }
+
+        rt_thread_mdelay(10);
     }
 }
 
 static void sgcc_message_send_thread_entry(void *parameter)
 {
     s_sgcc_flag_set.disconnect = 0x00;
-    uint32_t heartbeat_tick[NET_SYSTEM_GUN_NUMBER];
 
     while(1)
     {
@@ -619,10 +742,6 @@ static void sgcc_message_send_thread_entry(void *parameter)
         }
 
         if(s_sgcc_socket_info.state != SGCC_SOCKET_STATE_LOGIN_SUCCESS){   /* 未登录上服务器前不进行网络数据交互事件处理 */
-            for(uint8_t gunno = 0; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
-                heartbeat_tick[gunno] = rt_tick_get();
-                s_sgcc_socket_info.heartbeat[gunno] = 0x00;
-            }
             s_sgcc_flag_set.disconnect = 0x01;
             rt_thread_mdelay(1000);
             continue;
@@ -631,19 +750,42 @@ static void sgcc_message_send_thread_entry(void *parameter)
         if(s_sgcc_flag_set.disconnect){
             s_sgcc_flag_set.disconnect = 0x00;
             s_sgcc_flag_set.is_time_sync = NET_ENUM_FALSE;
-            s_sgcc_time_sync_count = (5 *1000) /100;
+            s_sgcc_time_sync_count = rt_tick_get();
             rt_thread_mdelay(3000);
         }
 
+        if(s_sgcc_time_sync_count > rt_tick_get()){
+            s_sgcc_time_sync_count = rt_tick_get();
+        }
         if(s_sgcc_flag_set.is_time_sync == NET_ENUM_FALSE){
-            if(++s_sgcc_time_sync_count > (5 *1000) /100){
-                s_sgcc_time_sync_count = 0x00;
+            if((rt_tick_get() - s_sgcc_time_sync_count) > 5000){
+                s_sgcc_time_sync_count = rt_tick_get();
                 evs_linkkit_time_sync();
+
+                s_sgcc_socket_info.sync_repeat++;
+                if(s_sgcc_socket_info.sync_repeat >= 30){
+                    s_sgcc_socket_info.sync_repeat = 30;
+                    s_sgcc_socket_info.operate_fail.sync = NET_ENUM_TRUE;
+                }
+            }
+        }else{
+            if((rt_tick_get() - s_sgcc_time_sync_count) > 50000){
+                s_sgcc_time_sync_count = rt_tick_get();
+                evs_linkkit_time_sync();
+
+                s_sgcc_socket_info.sync_repeat++;
+                if(s_sgcc_socket_info.sync_repeat > 3){
+                    s_sgcc_socket_info.sync_repeat = 3;
+                    s_sgcc_socket_info.operate_fail.sync = NET_ENUM_TRUE;
+                }
             }
         }
+
         if(sgcc_net_event_receive(NET_SGCC_EVENT_HANDLE_SERVER, NET_SGCC_EVENT_TYPE_REQUEST, 0x00,
                 (NET_SGCC_EVENT_OPTION_OR |NET_SGCC_EVENT_OPTION_CLEAR), NET_SGCC_SREQ_EVENT_TIME_SYNC, NULL) > 0){
             s_sgcc_flag_set.is_time_sync = NET_ENUM_TRUE;
+            s_sgcc_socket_info.sync_repeat = 0x00;
+            s_sgcc_socket_info.operate_fail.sync = NET_ENUM_FALSE;
         }
 
         /***************************************************** [数据请求] **********************************************************/
@@ -914,26 +1056,37 @@ static void sgcc_message_server_thread_entry(void *parameter)
                 /***** [[开始充电请求] *****/
                 if(sgcc_net_event_receive(NET_SGCC_EVENT_HANDLE_SERVER, NET_SGCC_EVENT_TYPE_REQUEST, gunno,
                         (NET_SGCC_EVENT_OPTION_OR |NET_SGCC_EVENT_OPTION_CLEAR), NET_SGCC_SREQ_EVENT_START_CHARGE, NULL) > 0){
-                    uint8_t pro_result = 0x01, reason = 0x00;
+                    uint8_t pro_result = NET_SGCC_START_RESULT_SUCCESS;
+                    uint16_t reason = 0x00;
                     result = 0x00;
 
                     if(!((evs_service_startCharges[gunno].gunNo > 0x00) && (evs_service_startCharges[gunno].gunNo <= NET_SYSTEM_GUN_NUMBER))){
-                        pro_result = 0x00;
-                        reason = 0x01;
+                        pro_result = NET_SGCC_START_RESULT_FAULTING;
+#ifdef NET_SGCC_PRO_USING_DC
+                        reason = NETSGCC_DCA_REASON3058_GUN_PORT;
+#else
+                        reason = NETSGCC_ACA_REASON3015_PORT_ABNORMAL;
+#endif /* #ifdef NET_SGCC_PRO_USING_DC */
                     }
-                    if(pro_result == 0x01){
-                        result = sgcc_message_pro_remote_start_charge_request(gunno, &evs_service_startCharges[gunno], sizeof(evs_service_startCharges[gunno]));
-                        pro_result = 0x00;
+                    if(pro_result == NET_SGCC_START_RESULT_SUCCESS){
+                        result = sgcc_message_pro_remote_start_charge_request(gunno, &evs_service_startCharges[gunno], sizeof(evs_service_startCharges[gunno]), &reason);
                         if(result >= 0x00){
-                            if(result == 0x00){
+                            pro_result = result;
+                            if(result == NET_SGCC_START_RESULT_SUCCESS){
                                 net_operation_set_event(gunno, NET_OPERATION_EVENT_START_CHARGE);
-                                pro_result = 0x01;
+                                net_operation_set_event(gunno, NET_OPERATION_EVENT_OFFLINECHARGE_LIMIT);
                             }
-                            reason = result;
+                        }else{
+                            pro_result = NET_SGCC_START_RESULT_FAULTING;
+#ifdef NET_SGCC_PRO_USING_DC
+                            reason = NETSGCC_DCA_REASON3058_GUN_PORT;
+#else
+                            reason = NETSGCC_ACA_REASON3015_PORT_ABNORMAL;
+#endif /* #ifdef NET_SGCC_PRO_USING_DC */
                         }
                     }
 
-                    if(pro_result != 0x01){
+                    if(pro_result != NET_SGCC_START_RESULT_SUCCESS){
                         response = sgcc_get_response_buff(RT_WAITING_FOREVER);
 
                         result = sgcc_response_padding_remote_start_charge(gunno, response->general_transmit_buff, NET_SGCC_GENERA_RESPONSE_BUFF_LENGTH, &(response->length));
@@ -972,8 +1125,9 @@ static void sgcc_message_server_thread_entry(void *parameter)
                         response = sgcc_get_response_buff(RT_WAITING_FOREVER);
 
                         result = sgcc_response_padding_remote_stop_charge(gunno, response->general_transmit_buff, NET_SGCC_GENERA_RESPONSE_BUFF_LENGTH, &(response->length));
-                        ((evs_event_startResult*)response->general_transmit_buff)->startResult = pro_result;
-                        ((evs_event_startResult*)response->general_transmit_buff)->faultCode = reason;
+                        ((evs_event_stopCharge*)response->general_transmit_buff)->stopResult = 11;
+                        ((evs_event_stopCharge*)response->general_transmit_buff)->resultCode = 0x00;
+                        ((evs_event_stopCharge*)response->general_transmit_buff)->stopFailReson = 10;
                         if(result >= 0x00){
                             sgcc_net_event_send(NET_SGCC_EVENT_HANDLE_CHARGEPILE, NET_SGCC_EVENT_TYPE_RESPONSE, gunno, NET_SGCC_PRES_EVENT_SERVER_STOP_CHARGE);
                         }else{
@@ -985,17 +1139,17 @@ static void sgcc_message_server_thread_entry(void *parameter)
                 if(sgcc_net_event_receive(NET_SGCC_EVENT_HANDLE_SERVER, NET_SGCC_EVENT_TYPE_REQUEST, gunno,
                         (NET_SGCC_EVENT_OPTION_OR |NET_SGCC_EVENT_OPTION_CLEAR), NET_SGCC_SREQ_EVENT_FIRMWARE_UPDATE, NULL) > 0){
                     uint8_t pro_result = 0x01;
-//                    if(net_get_ota_info()->state == NET_OTA_STATE_NULL){
-//                        if(sgcc_get_ota_was_requested_flag() == 0x00){
-//                            sgcc_set_ota_was_requested_flag();
-//                            pro_result = 0x00;
-//                            net_operation_set_event(gunno, NET_OPERATION_EVENT_START_UPDATE);
-//                        }else{
-//                            pro_result = 0x03;
-//                        }
-//                    }else{
-//                        pro_result = 0x03;
-//                    }
+                    if(net_get_ota_info()->state == NET_OTA_STATE_NULL){
+                        if(sgcc_get_ota_was_requested_flag() == 0x00){
+                            sgcc_set_ota_was_requested_flag();
+                            pro_result = 0x00;
+                            net_operation_set_event(gunno, NET_OPERATION_EVENT_START_UPDATE);
+                        }else{
+                            pro_result = 0x03;
+                        }
+                    }else{
+                        pro_result = 0x03;
+                    }
 #if 0
                     if(pro_result != 0x00){
                         response = ykc_get_response_buff(RT_WAITING_FOREVER);
@@ -1068,7 +1222,7 @@ static void sgcc_message_server_thread_entry(void *parameter)
                 /***** [[启动鉴权响应] *****/
                 if(sgcc_net_event_receive(NET_SGCC_EVENT_HANDLE_SERVER, NET_SGCC_EVENT_TYPE_RESPONSE, gunno,
                         (NET_SGCC_EVENT_OPTION_OR |NET_SGCC_EVENT_OPTION_CLEAR), NET_SGCC_SRES_EVENT_APPLY_CHARGE_ACTIVE, NULL) > 0){
-                    uint8_t pro_result = SGCC_OPSCTL_ACTION, reason = 0x00;
+                    uint8_t pro_result = SGCC_OPSCTL_SILENT, reason = 0x00;
                     result = 0x01;
 
                     if(evs_service_authCharges[gunno].result == SGCC_OPSCTL_ACTION){
@@ -1078,17 +1232,28 @@ static void sgcc_message_server_thread_entry(void *parameter)
                             result = 0x01;
                             if(evs_event_startCharges[gunno].startType == SGCC_OPSCTL_SILENT){
                                 net_operation_set_event(gunno, NET_OPERATION_EVENT_VINAUTHORITY_FAIL);
+                            }
+#if 0
+                            if(evs_event_startCharges[gunno].startType == SGCC_OPSCTL_SILENT){
+                                net_operation_set_event(gunno, NET_OPERATION_EVENT_VINAUTHORITY_FAIL);
                             }else{
                                 net_operation_set_event(gunno, NET_OPERATION_EVENT_CARDAUTHORITY_FAIL);
                             }
+
+#endif
                             LOG_W("sgcc there is no this message item(%d, %d)\n", gunno, EVS_AUTH_RESULT_SRV);
                         }
                     }else{
                         if(evs_event_startCharges[gunno].startType == SGCC_OPSCTL_SILENT){
                             net_operation_set_event(gunno, NET_OPERATION_EVENT_VINAUTHORITY_FAIL);
+                        }
+#if 0
+                        if(evs_event_startCharges[gunno].startType == SGCC_OPSCTL_SILENT){
+                            net_operation_set_event(gunno, NET_OPERATION_EVENT_VINAUTHORITY_FAIL);
                         }else{
                             net_operation_set_event(gunno, NET_OPERATION_EVENT_CARDAUTHORITY_FAIL);
                         }
+#endif
                         LOG_W("sgcc chargepile apply charge fail(%d, %d)\n", gunno, evs_service_authCharges[gunno].result);
                     }
 
@@ -1097,12 +1262,10 @@ static void sgcc_message_server_thread_entry(void *parameter)
                         if(result >= 0x00){
                             if(result == 0x00){
                                 if(evs_event_startCharges[gunno].startType == SGCC_OPSCTL_SILENT){
-                                    net_operation_set_event(gunno, NET_OPERATION_EVENT_CARDAUTHORITY_SUCCESS);
-                                }else{
                                     net_operation_set_event(gunno, NET_OPERATION_EVENT_VINAUTHORITY_SUCCESS);
+                                    net_operation_set_event(gunno, NET_OPERATION_EVENT_OFFLINECHARGE_LIMIT);
+                                    pro_result = SGCC_OPSCTL_ACTION;
                                 }
-                            }else{
-                                pro_result = SGCC_OPSCTL_SILENT;
                             }
                             reason = result;
                         }
@@ -1197,12 +1360,22 @@ int sgcc_message_send_init(void)
     }
 
     if(rt_thread_init(&s_sgcc_connect_thread, "sgcc_conn", sgcc_connect_thread_entry, NULL,
-            s_sgcc_connect_thread_stack, NET_SGCC_CONNECT_THREAD_STACK_SIZE, 5, 10) != RT_EOK){
+            s_sgcc_connect_thread_stack, NET_SGCC_CONNECT_THREAD_STACK_SIZE, 10, 10) != RT_EOK){
         LOG_E("sgcc connect thread create fail, please check");
         return -0x01;
     }
     if(rt_thread_startup(&s_sgcc_connect_thread) != RT_EOK){
         LOG_E("sgcc connect thread startup fail, please check");
+        return -0x01;
+    }
+
+    if(rt_thread_init(&s_sgcc_yield_thread, "sgcc_yield", sgcc_yield_thread_entry, NULL,
+            s_sgcc_yield_thread_stack, NET_SGCC_YIELD_THREAD_STACK_SIZE, 9, 10) != RT_EOK){
+        LOG_E("sgcc yield thread create fail, please check");
+        return -0x01;
+    }
+    if(rt_thread_startup(&s_sgcc_yield_thread) != RT_EOK){
+        LOG_E("sgcc yield thread startup fail, please check");
         return -0x01;
     }
 

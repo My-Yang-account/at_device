@@ -319,7 +319,7 @@ struct net_handle{
     void (*data_updata)(void);
     void (*time_sync)(uint32_t timestamp);
     void* (*get_base_data)(uint8_t gunno);
-    uint8_t* (*get_system_data)(uint8_t name, uint32_t *vector, uint32_t option);
+    uint8_t* (*get_system_data)(uint8_t name, void *vector, uint32_t vlen, uint32_t option);
     int32_t (*set_system_data)(uint8_t name, uint8_t *data, uint16_t len, uint32_t option);
     int32_t (*para_config)(uint8_t platform, uint8_t config_index, void* para, void* handle);
     int32_t (*flash_erase)(uint32_t addr, uint32_t size);

@@ -144,7 +144,7 @@ uint8_t ycp_is_set_power_success(void)
 static void ycp_storage_data_check(void)
 {
     uint8_t verify_success = 0x01;
-    ycp_storage_struct *config = (ycp_storage_struct*)(s_ycp_handle->get_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, NET_SYSTEM_DATA_OPTION_TARGET_PLAT));
+    ycp_storage_struct *config = (ycp_storage_struct*)(s_ycp_handle->get_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, 0x00, NET_SYSTEM_DATA_OPTION_TARGET_PLAT));
 
     if(config == NULL){
         verify_success = 0x00;
@@ -639,13 +639,16 @@ int8_t ycp_response_padding_query_device_fault(uint8_t *buf, uint16_t ilen, uint
  * **********************************************/
 void ycp_request_padding_heartbeat(void)
 {
+    uint8_t signal = 0x00;
     int32_t temperature = 0x00;
     for(uint8_t gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
         s_ycp_base = (System_BaseData*)(s_ycp_handle->get_base_data(gunno));
         temperature = temperature > s_ycp_base->gunline_temperature[0x00] ? temperature : s_ycp_base->gunline_temperature[0x00];
         temperature = temperature > s_ycp_base->gunline_temperature[0x01] ? temperature : s_ycp_base->gunline_temperature[0x01];
     }
-    g_ycp_preq_heartbeat.body.signal_value = (uint8_t)(s_ycp_handle->get_system_data(NET_SYSTEM_DATA_NAME_SIGNAL_STRENGTH, NULL, NET_SYSTEM_DATA_OPTION_TARGET_PLAT));
+    (void)(s_ycp_handle->get_system_data(NET_SYSTEM_DATA_NAME_SIGNAL_STRENGTH, &signal, sizeof(signal), NET_SYSTEM_DATA_OPTION_TARGET_PLAT));
+    g_ycp_preq_heartbeat.body.signal_value = signal;
+
     g_ycp_preq_heartbeat.body.temp = 0xFF;
     g_ycp_preq_heartbeat.body.output_voltage = 0x00;
     g_ycp_preq_heartbeat.body.output_current = 0x00;
@@ -669,7 +672,7 @@ int8_t ycp_message_pro_billing_model_set_response(void *data, uint8_t len, uint8
         return -0x02;
     }
 
-    ycp_storage_struct *config = (ycp_storage_struct*)(s_ycp_handle->get_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, NET_SYSTEM_DATA_OPTION_TARGET_PLAT));
+    ycp_storage_struct *config = (ycp_storage_struct*)(s_ycp_handle->get_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, 0x00, NET_SYSTEM_DATA_OPTION_TARGET_PLAT));
     Net_YcpPro_SReq_BillingModel_Set_t *response = (Net_YcpPro_SReq_BillingModel_Set_t*)data;
 
     if(is_init == 0x00){
@@ -956,7 +959,7 @@ int8_t ycp_message_pro_set_para_request(void *data, uint8_t len)
     }
 
     uint8_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YCP |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
-    ycp_storage_struct *config = (ycp_storage_struct*)(s_ycp_handle->get_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, NET_SYSTEM_DATA_OPTION_TARGET_PLAT));
+    ycp_storage_struct *config = (ycp_storage_struct*)(s_ycp_handle->get_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, 0x00, NET_SYSTEM_DATA_OPTION_TARGET_PLAT));
     Net_YcpPro_SReq_ParaSet_t *request = (Net_YcpPro_SReq_ParaSet_t*)data;
     s_ycp_base = (System_BaseData*)(s_ycp_handle->get_base_data(0x00));
 
@@ -2074,7 +2077,7 @@ int8_t ycp_chargepile_create_local_transaction_number(uint8_t gunno, void *vecto
     struct tm *_tm = NULL;
 
     s_ycp_handle = net_get_net_handle();
-    pile_number = (uint8_t*)(s_ycp_handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, option));
+    pile_number = (uint8_t*)(s_ycp_handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, 0x00, option));
     ycp_ascii_to_bcd(pile_number, strlen(pile_number), ptr, NET_YCP_CHARGEPILE_LENGTH_DEFAULT, 0x01);
 
     s_ycp_local_start_sq++;

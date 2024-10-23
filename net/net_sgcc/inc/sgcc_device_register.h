@@ -16,6 +16,16 @@
 
 #define NET_SGCC_STORAGE_INIT_FLAG                              0x12345678  /* 平台数据存储标志 */
 
+/** start charge result */
+#define NET_SGCC_START_RESULT_SUCCESS                           10          /* 启动充电结果：成功 */
+#define NET_SGCC_START_RESULT_FAULTING                          11          /* 启动充电结果：设备故障 */
+#define NET_SGCC_START_RESULT_START_TIMEOUT                     12          /* 启动充电结果：启动超时 */
+#define NET_SGCC_START_RESULT_DISCONNECT                        13          /* 启动充电结果：车桩连接失败 */
+#define NET_SGCC_START_RESULT_CHARGING                          14          /* 启动充电结果：正在充电 */
+
+/** stop charge result */
+#define NET_SGCC_STOP_RESULT_SUCCESS                            10          /* 启动充电结果：成功 */
+
 /** order verify result */
 #define NET_SGCC_ORDER_VERIFY_RESULT_SUCCESS                    10          /* 订单确认结果：成功 */
 #define NET_SGCC_ORDER_VERIFY_RESULT_DATA_ERROR                 11          /* 订单确认结果：数据错误 */
@@ -148,6 +158,10 @@ enum sgcc_ac_abnormal{
     NETSGCC_ACA_REASON3027_LIGHTNING_PROTECTORS = 3027, /* 交流充电设备异常代码：避雷器故障 */
     NETSGCC_ACA_REASON3028_SMOKING = 3028,              /* 交流充电设备异常代码：烟雾故障 */
     NETSGCC_ACA_REASON3029_TRANSACTION_RECORD_FULL = 3029, /* 交流充电设备异常代码：交易记录已满告警 */
+
+    NETSGCC_ACA_REASON6000_BILLING_RULE_INVALID = 6000, /* 交流充电设备异常代码：计费规则无效 */
+    NETSGCC_ACA_REASON6001_INSERT_GUN_TIME = 6001,      /* 交流充电设备异常代码：插枪时间不匹配 */
+    NETSGCC_ACA_REASON6002_UNKNOW = 6002,               /* 交流充电设备异常代码：未知 */
 };
 
 /** ACPA as AC power abnormal (交流充电电源异常代码)*/
@@ -227,12 +241,16 @@ enum sgcc_dc_abnormal{
     NETSGCC_DCA_REASON3085_SMOKING = 3085,              /* 直流充电设备异常代码：烟雾故障 */
     NETSGCC_DCA_REASON3086_TRANSACTION_RECORD_FULL = 3086,  /* 直流充电设备异常代码：交易记录已满告警  */
 
-    NETSGCC_DCA_REASON3087_POWER_OFF = 3087,            /* 直流充电设备异常代码：断电  */
-    NETSGCC_DCA_REASON3088_STORAGE_CHIP = 3088,         /* 直流充电设备异常代码：存储芯片  */
-    NETSGCC_DCA_REASON3089_INSULT_VOLT = 3089,          /* 直流充电设备异常代码：绝缘电压  */
-    NETSGCC_DCA_REASON3090_NOBALLANCE = 3090,           /* 直流充电设备异常代码：余额不足  */
-    NETSGCC_DCA_REASON3091_ABNORMAL_CURRENT = 3091,     /* 直流充电设备异常代码：异常电流  */
-    NETSGCC_DCA_REASON3092_UNKNOW = 3092,               /* 直流充电设备异常代码：未知  */
+    NETSGCC_DCA_REASON7000_POWER_OFF = 7000,            /* 直流充电设备异常代码：断电  */
+    NETSGCC_DCA_REASON7001_STORAGE_CHIP = 7001,         /* 直流充电设备异常代码：存储芯片  */
+    NETSGCC_DCA_REASON7002_INSULT_VOLT = 7002,          /* 直流充电设备异常代码：绝缘电压  */
+    NETSGCC_DCA_REASON7003_NOBALLANCE = 7003,           /* 直流充电设备异常代码：余额不足  */
+    NETSGCC_DCA_REASON7004_ABNORMAL_CURRENT = 7004,     /* 直流充电设备异常代码：异常电流  */
+    NETSGCC_DCA_REASON7005_CABINET_FORBID = 7005,       /* 直流充电设备异常代码：主机柜禁止充电  */
+    NETSGCC_DCA_REASON7006_OFFLINE_CHARGE_TIME = 7006,  /* 直流充电设备异常代码：达到离线可充电最长时间 */
+    NETSGCC_DCA_REASON7007_BILLING_RULE_INVALID = 7007, /* 直流充电设备异常代码：计费规则无效 */
+    NETSGCC_DCA_REASON7008_INSERT_GUN_TIME = 7008,      /* 直流充电设备异常代码：插枪时间不匹配 */
+    NETSGCC_DCA_REASON7009_UNKNOW = 7009,               /* 直流充电设备异常代码：未知  */
 };
 
 /** DCPA as DC power abnormal (直流充电电源异常代码)*/
@@ -321,6 +339,8 @@ typedef struct{
     uint32_t doorlock_interval;                         /* 网门锁监测上送频率(单位：分钟) */
     uint32_t encode_con;                                /* 报文加密 */
     uint8_t dev_state;                                  /* 设备状态 */
+
+    evs_service_issue_feeModel billing_rule;            /* 计费规则 */
 }sgcc_storage_struct;
 
 #pragma pack()

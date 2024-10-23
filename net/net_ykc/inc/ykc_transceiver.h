@@ -27,6 +27,7 @@ int ykc_socket_recv(int fd, void *buff, uint16_t len);
 int ykc_socket_data_comein(int fd, uint32_t timeout);
 int ykc_socket_wait_data_write(int fd, uint32_t timeout);
 int ykc_socket_modify_recv_timeout(int fd, int32_t timeout);
+int ykc_socket_domain_parse(int fd, char *domain, uint8_t dlen, void *ret, uint8_t ret_len);
 
 void ykc_service_callback_register(uint8_t id, void *cb);
 void *ykc_get_service_callback(uint8_t id);

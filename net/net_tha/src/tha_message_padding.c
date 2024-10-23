@@ -264,7 +264,7 @@ int8_t tha_response_padding_query_system_info(uint8_t *buf, uint16_t ilen, uint1
     uint8_t *data = NULL;
     uint32_t length = 0x00, option = (NET_SYSTEM_DATA_OPTION_PLAT_THA |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
     s_tha_base = (System_BaseData*)(s_tha_handle->get_base_data(0x00));
-    data = s_tha_handle->get_system_data(NET_SYSTEM_DATA_NAME_DOMAIN, &length, option);
+    data = s_tha_handle->get_system_data(NET_SYSTEM_DATA_NAME_DOMAIN, NULL, 0x00, option);
 
     data_len = (sizeof(Net_ThaPro_PRes_Query_SystemInfo_t) + strlen((char*)(data)));
     if(data_len > ilen){
@@ -280,19 +280,19 @@ int8_t tha_response_padding_query_system_info(uint8_t *buf, uint16_t ilen, uint1
     response->body.server_domain_length = length;
     memcpy((response->body.operator_name + sizeof(response->body.operator_name)), data, response->body.server_domain_length);
 
-    data = s_tha_handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, &length, option);
+    data = s_tha_handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, 0x00, option);
     response->body.pile_name_length = length;
     valid_len = sizeof(response->body.pile_name);
     valid_len = valid_len > response->body.pile_name_length ? response->body.pile_name_length : valid_len;
     memcpy(response->body.pile_name, data, valid_len);
 
-    data = s_tha_handle->get_system_data(NET_SYSTEM_DATA_NAME_OPERATOR, &length, option);
+    data = s_tha_handle->get_system_data(NET_SYSTEM_DATA_NAME_OPERATOR, NULL, 0x00, option);
     response->body.operator_name_length = length;
     valid_len = sizeof(response->body.operator_name);
     valid_len = valid_len > response->body.operator_name_length ? response->body.operator_name_length : valid_len;
     memcpy(response->body.operator_name, data, valid_len);
 
-    response->body.port = *(uint16_t*)(s_tha_handle->get_system_data(NET_SYSTEM_DATA_NAME_PORT, &length, option));
+    response->body.port = *(uint16_t*)(s_tha_handle->get_system_data(NET_SYSTEM_DATA_NAME_PORT, NULL, 0x00, option));
 
     if(olen){
         *olen = data_len;
@@ -362,15 +362,15 @@ int8_t tha_response_padding_query_charge_system_set(uint8_t *buf, uint16_t ilen,
     response = ((Net_ThaPro_SReq_Updated_PRes_Query_ChargeSystem_Config_t*)buf);
     memset(response, 0x00, data_len);
 
-    response->body.voltage_max = *(uint16_t*)(s_tha_handle->get_system_data(NET_SYSTEM_DATA_NAME_VOLTAGE_MAX, &length, option));
-    response->body.voltage_min = *(uint16_t*)(s_tha_handle->get_system_data(NET_SYSTEM_DATA_NAME_VOLTAGE_MIN, &length, option));
-    response->body.current_max = *(uint16_t*)(s_tha_handle->get_system_data(NET_SYSTEM_DATA_NAME_CURRENT_MAX, &length, option));
-    response->body.power_module_num = *(s_tha_handle->get_system_data(NET_SYSTEM_DATA_NAME_MODULE_NUM, &length, option));
-    response->body.power_of_single_module = *(uint16_t*)(s_tha_handle->get_system_data(NET_SYSTEM_DATA_NAME_SINGLE_MODULE_POWER, &length, option));
+    response->body.voltage_max = *(uint16_t*)(s_tha_handle->get_system_data(NET_SYSTEM_DATA_NAME_VOLTAGE_MAX, NULL, 0x00, option));
+    response->body.voltage_min = *(uint16_t*)(s_tha_handle->get_system_data(NET_SYSTEM_DATA_NAME_VOLTAGE_MIN, NULL, 0x00, option));
+    response->body.current_max = *(uint16_t*)(s_tha_handle->get_system_data(NET_SYSTEM_DATA_NAME_CURRENT_MAX, NULL, 0x00, option));
+    response->body.power_module_num = *(s_tha_handle->get_system_data(NET_SYSTEM_DATA_NAME_MODULE_NUM, NULL, 0x00, option));
+    response->body.power_of_single_module = *(uint16_t*)(s_tha_handle->get_system_data(NET_SYSTEM_DATA_NAME_SINGLE_MODULE_POWER, NULL, 0x00, option));
     response->body.power_limit_of_ac_charge = 0x00;
 #ifdef USING_EXPAND_SECTION
-    response->body.expand_voltage_max = *(uint32_t*)(s_tha_handle->get_system_data(NET_SYSTEM_DATA_NAME_EXPAND_VOLTAGE_MAX, &length, option));
-    response->body.expand_current_min = *(uint32_t*)(s_tha_handle->get_system_data(NET_SYSTEM_DATA_NAME_EXPAND_VOLTAGE_MIN, &length, option));
+    response->body.expand_voltage_max = *(uint32_t*)(s_tha_handle->get_system_data(NET_SYSTEM_DATA_NAME_EXPAND_VOLTAGE_MAX, NULL, 0x00, option));
+    response->body.expand_current_min = *(uint32_t*)(s_tha_handle->get_system_data(NET_SYSTEM_DATA_NAME_EXPAND_VOLTAGE_MIN, NULL, 0x00, option));
 #endif /* USING_EXPAND_SECTION */
 
     if(olen){
@@ -793,7 +793,7 @@ void tha_message_info_init(uint8_t gunno)  ///////// 这是网络部分外部调
     uint32_t length = 0x00, option = (NET_SYSTEM_DATA_OPTION_PLAT_THA |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
     s_tha_handle = net_get_net_handle();
     s_tha_base = (System_BaseData*)(s_tha_handle->get_base_data(gunno));
-    pile_number = (char*)(s_tha_handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, &length, option));
+    pile_number = (char*)(s_tha_handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, 0x00, option));
 
     tha_is_init = 0x01;
 
@@ -1193,52 +1193,52 @@ void tha_chargepile_request_padding_net_info(uint8_t gunno)
     uint8_t valid_len = 0x00, *data;
     uint32_t length = 0x00, option = (NET_SYSTEM_DATA_OPTION_PLAT_THA |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
 
-    data = (s_tha_handle->get_system_data(NET_SYSTEM_DATA_NAME_NETWORKED_WAY, &length, option));
+    data = (s_tha_handle->get_system_data(NET_SYSTEM_DATA_NAME_NETWORKED_WAY, NULL, 0x00, option));
     g_pile_request_net_info[gunno].body.networked_way = *data;                          /* 联网方式 */
 
-    data = (s_tha_handle->get_system_data(NET_SYSTEM_DATA_NAME_MCC, &length, option));
+    data = (s_tha_handle->get_system_data(NET_SYSTEM_DATA_NAME_MCC, NULL, 0x00, option));
     g_pile_request_net_info[gunno].body.mcc = *((uint16_t*)data);                       /* 国家码 */
 
-    data = (s_tha_handle->get_system_data(NET_SYSTEM_DATA_NAME_MNC, &length, option));
+    data = (s_tha_handle->get_system_data(NET_SYSTEM_DATA_NAME_MNC, NULL, 0x00, option));
     g_pile_request_net_info[gunno].body.mnc = *data;                                    /*  */
 
-    data = (s_tha_handle->get_system_data(NET_SYSTEM_DATA_NAME_LAC, &length, option));
+    data = (s_tha_handle->get_system_data(NET_SYSTEM_DATA_NAME_LAC, NULL, 0x00, option));
     g_pile_request_net_info[gunno].body.lac = *((uint16_t*)data);                       /*  */
 
-    data = (s_tha_handle->get_system_data(NET_SYSTEM_DATA_NAME_CI, &length, option));
+    data = (s_tha_handle->get_system_data(NET_SYSTEM_DATA_NAME_CI, NULL, 0x00, option));
     g_pile_request_net_info[gunno].body.ci = *((uint16_t*)data);                        /*  */
 
-    data = (s_tha_handle->get_system_data(NET_SYSTEM_DATA_NAME_IMEI, &length, option));
+    data = (s_tha_handle->get_system_data(NET_SYSTEM_DATA_NAME_IMEI, NULL, 0x00, option));
     valid_len = sizeof(g_pile_request_net_info[gunno].body.imei);
     valid_len = valid_len > length ? length : valid_len;
     memset(g_pile_request_net_info[gunno].body.imei, '\0', sizeof(g_pile_request_net_info[gunno].body.imei));
     memcpy(g_pile_request_net_info[gunno].body.imei, data, valid_len);                  /* 移动设备身份码 */
 
-    data = (s_tha_handle->get_system_data(NET_SYSTEM_DATA_NAME_RAM, &length, option));
+    data = (s_tha_handle->get_system_data(NET_SYSTEM_DATA_NAME_RAM, NULL, 0x00, option));
     valid_len = sizeof(g_pile_request_net_info[gunno].body.ram);
     valid_len = valid_len > length ? length : valid_len;
     memset(g_pile_request_net_info[gunno].body.ram, '\0', sizeof(g_pile_request_net_info[gunno].body.ram));
     memcpy(g_pile_request_net_info[gunno].body.ram, data, sizeof(g_pile_request_net_info[gunno].body.ram)); /* 充电设备RAM大小 */
 
-    data = (s_tha_handle->get_system_data(NET_SYSTEM_DATA_NAME_CI, &length, option));
+    data = (s_tha_handle->get_system_data(NET_SYSTEM_DATA_NAME_CI, NULL, 0x00, option));
     valid_len = sizeof(g_pile_request_net_info[gunno].body.rom);
     valid_len = valid_len > length ? length : valid_len;
     memset(g_pile_request_net_info[gunno].body.rom, '\0', sizeof(g_pile_request_net_info[gunno].body.rom));
     memcpy(g_pile_request_net_info[gunno].body.rom, data, sizeof(g_pile_request_net_info[gunno].body.rom)); /* 充电设备ROM大小 */
 
-    data = (s_tha_handle->get_system_data(NET_SYSTEM_DATA_NAME_CI, &length, option));
+    data = (s_tha_handle->get_system_data(NET_SYSTEM_DATA_NAME_CI, NULL, 0x00, option));
     valid_len = sizeof(g_pile_request_net_info[gunno].body.mac);
     valid_len = valid_len > length ? length : valid_len;
     memset(g_pile_request_net_info[gunno].body.mac, '\0', sizeof(g_pile_request_net_info[gunno].body.mac));
     memcpy(g_pile_request_net_info[gunno].body.mac, data, sizeof(g_pile_request_net_info[gunno].body.mac));
 
-    data = (s_tha_handle->get_system_data(NET_SYSTEM_DATA_NAME_ICCID, &length, option));
+    data = (s_tha_handle->get_system_data(NET_SYSTEM_DATA_NAME_ICCID, NULL, 0x00, option));
     valid_len = sizeof(g_pile_request_net_info[gunno].body.iccid);
     valid_len = valid_len > strlen((char*)data) ? strlen((char*)data) : valid_len;
     memset(g_pile_request_net_info[gunno].body.iccid, '\0', sizeof(g_pile_request_net_info[gunno].body.iccid));
     memcpy(g_pile_request_net_info[gunno].body.iccid, data, valid_len);                             /* SIM卡卡号 */
 
-    data = (s_tha_handle->get_system_data(NET_SYSTEM_DATA_NAME_IMSI, &length, option));
+    data = (s_tha_handle->get_system_data(NET_SYSTEM_DATA_NAME_IMSI, NULL, 0x00, option));
     valid_len = sizeof(g_pile_request_net_info[gunno].body.imsi);
     valid_len = valid_len > strlen((char*)data) ? strlen((char*)data) : valid_len;
     memset(g_pile_request_net_info[gunno].body.imsi, '\0', sizeof(g_pile_request_net_info[gunno].body.imsi));

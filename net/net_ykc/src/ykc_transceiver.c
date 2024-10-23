@@ -249,7 +249,12 @@ int ykc_socket_wait_data_write(int fd, uint32_t timeout)
 
 int ykc_socket_modify_recv_timeout(int fd, int32_t timeout)
 {
-    return net_socket_control(fd, NET_SOCKET_CONTROL_RECV_TIMEOUT, &timeout);
+    return net_socket_control(fd, NET_SOCKET_CONTROL_RECV_TIMEOUT, &timeout, sizeof(timeout), NULL, 0x00);
+}
+
+int ykc_socket_domain_parse(int fd, char *domain, uint8_t dlen, void *ret, uint8_t ret_len)
+{
+    return net_socket_control(fd, NET_SOCKET_CONTROL_DOMAIN_PARSE, domain, dlen, ret, ret_len);
 }
 
 void ykc_service_callback_register(uint8_t id, void *cb)

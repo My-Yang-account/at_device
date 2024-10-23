@@ -29,6 +29,7 @@
 #define ETHCH395_NETDEV_BAUDRATE_3000000                    3000000         /* ethch395 网络设备波特率 3000000 */
 
 #define ETHCH395_NETDEV_CTRL_BAUDRATE                       0x00            /** ethch395 网络设备参数控制：修改波特率 */
+#define ETHCH395_NETDEV_CTRL_HARDRESET                      0x01            /** ethch395 网络设备参数控制：硬复位 */
 
 int32_t ethch395_netdev_init(void);
 

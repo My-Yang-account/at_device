@@ -195,12 +195,12 @@ int app_socket_data_comein_port(int socket_fd, uint32_t timeout)
  *  功能       socket 控制指令
  *  返回      > =0 : 成功，< 0 ：失败
  *************************************************/
-int app_socket_control_port(int socket_fd, uint8_t cmd, void *para)
+int app_socket_control_port(int socket_fd, uint8_t cmd, void *para, uint8_t para_len, void *ret, uint8_t ret_len)
 {
     if(s_netdev_type &NET_NETDEV_TYPE_4G){
         switch(cmd){
         case NET_SOCKET_CONTROL_RECV_TIMEOUT:
-            return netdev_4g_socket_control(socket_fd, NETDEV_4G_SOCKET_CONTROL_RECV_TIMEOUT, para);
+            return netdev_4g_socket_control(socket_fd, NETDEV_4G_SOCKET_CONTROL_RECV_TIMEOUT, para, para_len, ret, ret_len);
             break;
         default:
             break;
@@ -208,12 +208,164 @@ int app_socket_control_port(int socket_fd, uint8_t cmd, void *para)
     }else if(s_netdev_type &NET_NETDEV_TYPE_ETHERNET){
         switch(cmd){
         case NET_SOCKET_CONTROL_RECV_TIMEOUT:
-            return netdev_ethch395_socket_control(socket_fd, NETDEV_ETHCH395_SOCKET_CONTROL_RECV_TIMEOUT, para);
+            return netdev_ethch395_socket_control(socket_fd, NETDEV_ETHCH395_SOCKET_CONTROL_RECV_TIMEOUT, para, para_len, ret, ret_len);
             break;
         default:
             break;
         }
     }
+    return -0x01;
+}
+
+/**************************************************
+ *  函数名   net_netdev_query_devstate
+ *  参数
+ *  功能       查询网络设备状态
+ *  返回      网络设备状态
+ *************************************************/
+uint8_t net_netdev_query_devstate(void)
+{
+    uint8_t state = NET_NETDEV_STATE_SIZE;
+
+    if(s_netdev_type &NET_NETDEV_TYPE_4G){
+        extern int get_at_device_appinfo_at(void);
+        extern int get_at_device_appinfo_check_card(void);
+        extern int get_at_device_appinfo_check_gprs_registered(void);
+        extern int get_at_device_appinfo_is_complete(void);
+
+        if(!get_at_device_appinfo_at()){
+            state = NET_NETDEV_STATE_PHY;
+        }else if(!get_at_device_appinfo_check_card()){
+            state = NET_NETDEV_STATE_DATA_LINK_MAC;
+        }else if(!get_at_device_appinfo_check_gprs_registered()){
+            state = NET_NETDEV_STATE_NET_REGISTERED;
+        }else if(!get_at_device_appinfo_is_complete()){
+            state = NET_NETDEV_STATE_MODULE_INIT;
+        }else{
+            state = NET_NETDEV_STATE_NORMAL;
+        }
+    }else if(s_netdev_type &NET_NETDEV_TYPE_ETHERNET){
+        uint8_t sta = ethch395_query_state();
+        switch(sta){
+        case NETDEV_ETHCH395_STATE_PHY:
+            state = NET_NETDEV_STATE_PHY;
+            break;
+        case NETDEV_ETHCH395_STATE_LINK_MAC:
+            state = NET_NETDEV_STATE_DATA_LINK_MAC;
+            break;
+        case NETDEV_ETHCH395_STATE_LINK_LCC:
+            state = NET_NETDEV_STATE_DATA_LINK_LCC;
+            break;
+        case NETDEV_ETHCH395_STATE_NET_REGISTERED:
+            state = NET_NETDEV_STATE_NET_REGISTERED;
+            break;
+        case NETDEV_ETHCH395_STATE_MODULE_INIT:
+            state = NET_NETDEV_STATE_MODULE_INIT;
+            break;
+        case NETDEV_ETHCH395_STATE_NORMAL:
+            state = NET_NETDEV_STATE_NORMAL;
+            break;
+        default:
+            break;
+        }
+    }
+
+    return state;
+}
+
+/**************************************************
+ *  函数名   net_netdev_dev_control
+ *  参数       cmd         控制命令
+ *        para        控制命令参数
+ *        para_len    控制命令参数长度
+ *        ret         控制命令返回参数
+ *        ret_len     控制命令返回参数长度
+ *  功能       网络设备控制
+ *  返回      > =0 : 成功，< 0 ：失败
+ *************************************************/
+int32_t net_netdev_dev_control(uint8_t cmd, void *para, uint16_t para_len, void *ret, uint16_t ret_len)
+{
+    switch(cmd){
+    case NET_NETDEV_CTRL_CMD_RESET:
+        if(s_netdev_type &NET_NETDEV_TYPE_4G){
+            extern void ec20_at_device_reset(void);
+            ec20_at_device_reset();
+        }else if(s_netdev_type &NET_NETDEV_TYPE_ETHERNET){
+            return ethch395_device_reset();
+        }
+        return 0x0;
+        break;
+    case NET_NETDEV_CTRL_CMD_QUERY_SIM:
+        if(s_netdev_type &NET_NETDEV_TYPE_4G){
+            if(ret){
+                extern char *get_at_device_appinfo_iccid(void);
+                char *iccid = get_at_device_appinfo_iccid();
+                uint8_t valid_len = strlen(iccid);
+                valid_len = valid_len > 20 ? 20 : valid_len;    /** imei 最长 20 位 */
+                memset(ret, 0x00, ret_len);
+                memcpy(ret, iccid, valid_len);
+            }
+        }else if(s_netdev_type &NET_NETDEV_TYPE_ETHERNET){
+            if(ret){
+                memset(ret, 0x00, ret_len);
+            }
+        }
+        return 0x0;
+        break;
+    case NET_NETDEV_CTRL_CMD_QUERY_STRENGTH:
+        if(s_netdev_type &NET_NETDEV_TYPE_4G){
+            if(ret && ret_len > 0x00){
+                extern int get_at_device_appinfo_signal_strength(void);
+                *(uint8_t *)ret = (uint8_t)(get_at_device_appinfo_signal_strength());
+            }
+        }else if(s_netdev_type &NET_NETDEV_TYPE_ETHERNET){
+            if(ret){
+                *(uint8_t *)ret = 20;
+            }
+        }
+        return 0x0;
+    case NET_NETDEV_CTRL_CMD_QUERY_IMEI:
+        if(s_netdev_type &NET_NETDEV_TYPE_4G){
+            if(ret){
+                extern char *get_at_device_appinfo_imei(void);
+                char *imei = get_at_device_appinfo_imei();
+                uint8_t valid_len = strlen(imei);
+                valid_len = valid_len > 16 ? 16 : valid_len;    /** imei 最长 16-1 位 */
+                memset(ret, 0x00, ret_len);
+                memcpy(ret, imei, valid_len);
+            }
+        }else if(s_netdev_type &NET_NETDEV_TYPE_ETHERNET){
+            if(ret){
+                uint8_t *mac = ethch395_get_dev_mac(), value = 0x00;
+                memset(ret, 0x00, ret_len);
+
+                for(uint8_t i = 0x00, j = 0x00; (i < 0x06) && (j < ret_len); i++, j += 0x02){  /** MAC地址为6字节 */
+                    value = (((mac[i]) &0xF0) >>0x04);
+                    if(value > 0x09){
+                        value += ('A' - (0x09 + 0x01));
+                    }else{
+                        value += '0';
+                    }
+                    *((uint8_t*)ret + j) = value;
+
+                    if((j + 0x01) < ret_len){
+                        value = ((mac[i]) &0x0F);
+                        if(value > 0x09){
+                            value += ('A' - (0x09 + 0x01));
+                        }else{
+                            value += '0';
+                        }
+                        *((uint8_t*)ret + j + 0x01) = value;
+                    }
+                }
+            }
+        }
+        return 0x0;
+        break;
+    default:
+        break;
+    }
+
     return -0x01;
 }
 
