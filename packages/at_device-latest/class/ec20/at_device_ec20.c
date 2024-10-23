@@ -125,6 +125,17 @@ void ec20_at_device_reset(void)
     LOG_E("ec20 AT device close");
     netdev_set_down(netdev_default);
     rt_thread_mdelay(5000);
+
+    s_at_device_appinfo.boot = 0;
+    s_at_device_appinfo.at = 0;
+    s_at_device_appinfo.card = 0;
+    rt_memset(s_at_device_appinfo.iccid, 0x00, sizeof(s_at_device_appinfo.iccid));
+    rt_memset(s_at_device_appinfo.imei, 0x00, sizeof(s_at_device_appinfo.imei));
+    s_at_device_appinfo.signal_strength = 0;
+    s_at_device_appinfo.cgreg = 0;
+    s_at_device_appinfo.mnc = -1;
+    s_at_device_appinfo.init_complete = 0;
+
     LOG_E("ec20 AT device open");
     netdev_set_up(netdev_default);
 }
