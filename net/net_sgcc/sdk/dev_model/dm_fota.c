@@ -146,7 +146,7 @@ int dm_fota_perform_sync(_OU_ char *output, _IN_ int output_len)
         }
         if ((((percent_now - percent_pre) > 5) &&
              ((report_now - report_pre) > 50)) || (percent_now >= IOT_OTAP_FETCH_PERCENTAGE_MAX)) {
-//            IOT_OTA_ReportProgress(ota_handle, percent_now, NULL);
+            IOT_OTA_ReportProgress(ota_handle, percent_now, NULL);
             percent_pre = percent_now;
             report_pre = report_now;
         }
