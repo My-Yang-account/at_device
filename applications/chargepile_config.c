@@ -1264,11 +1264,17 @@ int32_t system_config_init_if(void)
         mw_iflash_read((SYSTEM_CONFIG_INFO_ADDR_IF + sizeof(init_flag)), (uint8_t *)&s_chargepile_config_info, sizeof(s_chargepile_config_info));
 
         crc = crc32_ieee_update(0x00, (const uint8_t *)&s_chargepile_config_info, (sizeof(s_chargepile_config_info) - sizeof(s_chargepile_config_info.crc)));
+
+        s_chargepile_config_info.target_plat.verify_result = 0x01;
+        s_chargepile_config_info.monitor_plat.verify_result = 0x01;
+
         if(crc != s_chargepile_config_info.crc){
             if(++s_storage_chip_entry > 0x03){
                 LOG_E("system config if crc error");
                 if(init_flag_is_correct){
                     s_storage_chip_entry = 0x00; /** 只有初始标志和校验码都不对时才认为里面的数据不对 */
+                    s_chargepile_config_info.target_plat.verify_result = 0x00;
+                    s_chargepile_config_info.monitor_plat.verify_result = 0x00;
                 }
             }else{
                 rt_thread_mdelay(1000);
@@ -1457,6 +1463,42 @@ int32_t chargepile_check_config(void)
             }
         }
     }
+
+#if 0
+    if(s_chargepile_config_info.network.port == 0x00 || s_chargepile_config_info.network.port == 0xFFFF){
+        s_chargepile_config_info.network.port = 9350;
+        memset(s_chargepile_config_info.network.domain, 0x00, sizeof(s_chargepile_config_info.network.domain));
+        memcpy(s_chargepile_config_info.network.domain, "47.98.137.199", strlen("47.98.137.199"));
+    }else{
+        for(uint16_t count = 0x00; count < strlen((char*)s_chargepile_config_info.network.domain); count++){
+            if(!((s_chargepile_config_info.network.domain[count] >= 0x20) && (s_chargepile_config_info.network.domain[count] < 0x7F))){
+                s_chargepile_config_info.network.port = 9350;
+                memset(s_chargepile_config_info.network.domain, 0x00, sizeof(s_chargepile_config_info.network.domain));
+                memcpy(s_chargepile_config_info.network.domain, "47.98.137.199", strlen("47.98.137.199"));
+                break;
+            }
+        }
+    }
+
+    if(strlen((char*)s_chargepile_config_info.config_info.qrcode_prefix) <= 0x02){
+        s_chargepile_config_info.config_info.prefix_length = strlen("https://wechat.xiangnengnengjia.com?scanid=") + 0x02;
+        memset(s_chargepile_config_info.config_info.qrcode_prefix, 0x00, sizeof(s_chargepile_config_info.config_info.qrcode_prefix));
+        s_chargepile_config_info.config_info.qrcode_prefix[0x00] = CP_SET_QRCODE_FORMAT_PREFIX;
+        s_chargepile_config_info.config_info.qrcode_prefix[0x01] = CP_GENERATE_QRCODE_FORMAT_PREFIX_DEVICE_SN_PORT;
+        memcpy(&s_chargepile_config_info.config_info.qrcode_prefix[2], "https://wechat.xiangnengnengjia.com?scanid=", strlen("https://wechat.xiangnengnengjia.com?scanid="));
+    }else{
+        for(uint16_t count = 0x02; count < strlen((char*)s_chargepile_config_info.config_info.qrcode_prefix); count++){
+            if(!((s_chargepile_config_info.config_info.qrcode_prefix[count] >= 0x20) && (s_chargepile_config_info.config_info.qrcode_prefix[count] < 0x7F))){
+                s_chargepile_config_info.config_info.prefix_length = strlen("https://wechat.xiangnengnengjia.com?scanid=") + 0x02;
+                memset(s_chargepile_config_info.config_info.qrcode_prefix, 0x00, sizeof(s_chargepile_config_info.config_info.qrcode_prefix));
+                s_chargepile_config_info.config_info.qrcode_prefix[0x00] = CP_SET_QRCODE_FORMAT_PREFIX;
+                s_chargepile_config_info.config_info.qrcode_prefix[0x01] = CP_GENERATE_QRCODE_FORMAT_PREFIX_DEVICE_SN_PORT;
+                memcpy(&s_chargepile_config_info.config_info.qrcode_prefix[2], "https://wechat.xiangnengnengjia.com?scanid=", strlen("https://wechat.xiangnengnengjia.com?scanid="));
+                break;
+            }
+        }
+    }
+#endif
 
     return 0;
 }
