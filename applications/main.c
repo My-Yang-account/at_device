@@ -89,7 +89,9 @@ int main(void)
         mw_running_led_toggle(0, 0);
 
         extern uint8_t app_nsal_is_remote_reset(void);
-        if(app_nsal_is_remote_reset()){
+        extern uint8_t thaisen_query_screen_reboot(void);
+        extern void thaisen_clear_screen_reboot(void);
+        if(app_nsal_is_remote_reset() || thaisen_query_screen_reboot()){
             uint8_t gunno = 0x00;
             for(gunno = 0x00; gunno < APP_SYSTEM_GUNNO_SIZE; gunno++){
                 if(get_ofsm_info(gunno)->state != APP_OFSM_STATE_IDLEING){
@@ -102,6 +104,8 @@ int main(void)
                 __set_FAULTMASK(1);
                 NVIC_SystemReset();
             }
+
+            thaisen_clear_screen_reboot();
         }
     }
 

@@ -1146,4 +1146,23 @@ uint32_t thaisen_get_period_price(uint8_t gunno, uint8_t period)
     return ofsm_get_period_price(gunno, 0x00);
 }
 
+/********************************************
+ * 函数名      thaisen_query_screen_reboot
+ * 功能         查询屏幕是否点了重启
+* 返回           1：已点重启  0：未点重启
+ *******************************************/
+uint8_t thaisen_query_screen_reboot(void)
+{
+    return SerialScreen_ScreenGet_Reboot_Flag();
+}
+
+/********************************************
+ * 函数名      thaisen_clear_screen_reboot
+ * 功能         清除屏幕点击重启的事件
+* 返回
+ *******************************************/
+void thaisen_clear_screen_reboot(void)
+{
+    SerialScreen_ScreenClear_Reboot_Flag();
+}
 

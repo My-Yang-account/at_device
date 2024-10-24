@@ -295,6 +295,11 @@ int32_t thaisen_get_current_period_time_hm(uint8_t *buf, uint8_t blen);
  * 获取当前时段电费单价
  **/
 uint32_t thaisen_get_period_price(uint8_t gunno, uint8_t period);
+/**
+ * 屏幕点击重启
+ **/
+uint8_t thaisen_query_screen_reboot(void);
+void thaisen_clear_screen_reboot(void);
 
 #endif /* APPLICATIONS_INC_APP_DATA_INFO_INTERFACE_H_ */
 

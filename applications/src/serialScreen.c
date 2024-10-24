@@ -242,6 +242,7 @@ struct LCD_ASSISTANT_DATA{
         u8 ParaChargeSelect : 1;         //已选择并充
         u8 IsSetPowerPercent : 1;        //已设置功率百分比
         u8 IsSetELossProportion : 1;     //已设置电损比
+        u8 IsClickReboot : 1;            //已点击重启
     }Flag;
 
     struct{
@@ -919,6 +920,21 @@ s8 SerialScreen_Get_SetELossProportion_Flag(void)
 static void SerialScreen_ScreenSet_TimeSync_Flag(void)
 {
     LcdData.setData.TimeSync_Flag = 1;
+}
+
+static void SerialScreen_ScreenSet_Reboot_Flag(void)
+{
+    LcdAssistantData.Flag.IsClickReboot = TRUE;
+}
+
+u8 SerialScreen_ScreenGet_Reboot_Flag(void)
+{
+    return LcdAssistantData.Flag.IsClickReboot;
+}
+
+void SerialScreen_ScreenClear_Reboot_Flag(void)
+{
+    LcdAssistantData.Flag.IsClickReboot = FALSE;
 }
 
 static void SerialScreen_RealTime_InfoGet(void)
@@ -6720,6 +6736,7 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_SYS, NULL, "TimeMIN", LCD_InputType, 0, 0x419C, pu32_type, sizeof(LcdData.setData.s_TimeSync[4]), (void *)&LcdData.setData.s_TimeSync[4]);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_SYS, NULL, "TimeSecond", LCD_InputType, 0, 0x419E, pu32_type, sizeof(LcdData.setData.s_TimeSync[5]), (void *)&LcdData.setData.s_TimeSync[5]);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_SYS, NULL, "TimeSyncSet", LCD_BtnType, 0x0014, 0x1000, page_type, LCD_PAGE_MENU_SYS, (void *)SerialScreen_ScreenSet_TimeSync_Flag);
+//    SerialScreen_ItemSetUp(LCD_PAGE_MENU_SYS, NULL, "Reboot", LCD_BtnType, 0x0014, 0x1000, page_type, LCD_PAGE_MENU_SYS, (void *)SerialScreen_ScreenSet_Reboot_Flag);
 
     for(u8 i = 0; i < LCD_GUN_NUM; i++)
         LcdAssistantData.SeveralGunFlag[i].IsPowerOn = 0;
