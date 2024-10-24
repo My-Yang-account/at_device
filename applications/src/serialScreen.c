@@ -248,6 +248,7 @@ struct LCD_ASSISTANT_DATA{
         u8 AuxPower24VSelect : 1;        //24V辅源选择状态
         u8 AuxPower24VSelectLast : 1;    //24V辅源前一次选择状态
         u8 IsPowerOn : 1;                //上电开机
+        u8 IsVinStart : 1;               //启动方式为VIN码
     }SeveralGunFlag[LCD_GUN_NUM];
 
     u8 OccupyGunNum;                     //处于占用但未充电的枪数量
@@ -1055,18 +1056,24 @@ void SerialScreen_VinStartCharge(int port)
 void SerialScreen_VinStartChargeA(void)
 {
     sSCREEN_EVENT_DEBUGMSG("##########Port[LCD_GUN_1] Vin Start Charge###########\r\n");
-	if(TRUE == LcdData.setData.sup_VIN)
+	if(TRUE == LcdData.setData.sup_VIN){
+	     LcdAssistantData.SeveralGunFlag[LCD_GUN_1].IsVinStart = TRUE;
     	thaisen_app_set_vin_start_charge(LCD_GUN_1);
-	else ;
+	}else{
+
+	}
 }
 
 
 void SerialScreen_VinStartChargeB(void)
 {
     sSCREEN_EVENT_DEBUGMSG("##########Port[LCD_GUN_2] Vin Start Charge###########\r\n");
-	if(TRUE == LcdData.setData.sup_VIN)
-    	thaisen_app_set_vin_start_charge(LCD_GUN_2);
-	else ;
+	if(TRUE == LcdData.setData.sup_VIN){
+	    LcdAssistantData.SeveralGunFlag[LCD_GUN_2].IsVinStart = TRUE;
+	    thaisen_app_set_vin_start_charge(LCD_GUN_2);
+	}else{
+
+	}
 }
 
 
@@ -1074,7 +1081,7 @@ void SerialScreen_VinStartChargeB(void)
 void SerialScreen_StopCharge(int port)
 {
     sSCREEN_EVENT_DEBUGMSG("##########Port[%d] Stop Charge###########\r\n");
-	if(TRUE == LcdData.setData.sup_Local)
+	if((TRUE == LcdData.setData.sup_Local) || (LcdAssistantData.SeveralGunFlag[port].IsVinStart))
     	thaisen_app_set_screen_stop_charge(port);
 	else ;
 }
@@ -5695,6 +5702,9 @@ int SerialScreen_DataProcess()
 	                thaisenSetAuxPowerTypeA(thaisen_auxPowerType_12V);
 			    else
 			        thaisenSetAuxPowerTypeB(thaisen_auxPowerType_12V);
+
+			    LcdAssistantData.SeveralGunFlag[i].IsVinStart = FALSE;
+
 				LcdData.gun[i].workState = SysMainStatus_StandBy;
 				break;
 			case APP_OFSM_STATE_READYING:
@@ -5760,7 +5770,28 @@ int SerialScreen_DataProcess()
 			}
 		}
 
+		if(LcdData.gun[i].workState == SysMainStatus_Chrging){    /** 枪在充电且是VIN码启动，如果本地启动未使能则显示停止ICON */
+		    if(LcdAssistantData.SeveralGunFlag[i].IsVinStart == TRUE){
+	            if(LcdData.setData.sup_Local == FALSE){
+	                LcdData.setData.Sup_Stop = ICON_CHARGE_LOCAL;
+	            }
+		    }
+		}else{                                                    /** 只要有一把枪在充电且是VIN码启动，如果本地启动未使能则显示停止ICON */
+		    u8 AnotherGun = LCD_GUN_1;
+		    if(i == LCD_GUN_1){
+		        AnotherGun = LCD_GUN_2;
+		    }
+		    if(LcdData.setData.sup_Local == FALSE){
+		        if(!((LcdData.gun[AnotherGun].workState == SysMainStatus_Chrging) &&  \
+		                (LcdAssistantData.SeveralGunFlag[AnotherGun].IsVinStart == TRUE))){
+	                LcdData.setData.Sup_Stop = ICON_CHARGE_NULL;
+		        }
+		    }else{
+		        LcdData.setData.Sup_Stop = ICON_CHARGE_LOCAL;
+		    }
+		}
 	}
+
 	if(TRUE == LcdData.debugIOflg)
 	{
 		LcdData.setData.g_door = !thaisenGetDoorStatus();
@@ -5914,11 +5945,6 @@ int SerialScreen_DataProcess()
 				LcdData.setData.Sup_StartStyle[1][i] = ICON_CHARGE_VIN;
 			else LcdData.setData.Sup_StartStyle[1][i] = ICON_CHARGE_NULL;
 
-			if(LcdData.setData.sup_Local)
-	            LcdData.setData.Sup_Stop = ICON_CHARGE_LOCAL;
-			else
-	            LcdData.setData.Sup_Stop = ICON_CHARGE_NULL;
-
 			sSCREEN_DEBUGMSG(" ErWeiCode[%d]=%s",i,LcdData.setData.ErWeiCode[i]);
 			//
 			//sSCREEN_DEBUGMSG(" portState[%d] = %02x",i,LcdData.gun[i].portState);
@@ -5948,6 +5974,7 @@ int SerialScreen_DataProcess()
             LcdData.setData.parallel_iocn = ICON_CHARGEWAY_NONE;
 		}
 	}
+
 	return ret;
 }
 
