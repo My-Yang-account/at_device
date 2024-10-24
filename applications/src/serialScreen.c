@@ -466,6 +466,12 @@ struct LCD_DISPLAY_SETDATA_TYPE{
     /***********************fees***************************/
 	uint32_t period_time[4];                //当前时段
     uint32_t period_price;                  //当前时段电费单价
+    /***********************starting info***************************/
+    u8 chargeState[LCD_GUN_NUM];            //充电状态
+    s16 samplingVolt[LCD_GUN_NUM];          //采样电压
+    s16 moduleVolt[LCD_GUN_NUM];            //模块电压
+    s16 batteryVolt[LCD_GUN_NUM];           //电池电压
+    s16 maxChargeVolt[LCD_GUN_NUM];         //最大充电电压
 
 }LCD_DISPLAY_SETDATA_TYPE_t;
 
@@ -976,6 +982,16 @@ static void SerialScreen_RealTime_InfoGet(void)
         LcdData.setData.warnning[gunno] = SYSTEM_WARNNING_INFO_NORMAL;
 #endif
         LcdData.setData.period_price = thaisen_get_period_price(gunno, 0x00);
+
+        LcdData.setData.chargeState[gunno] = thaisen_get_charge_state(gunno);
+        LcdData.setData.batteryVolt[gunno] = thaisen_get_bcp_voltage(gunno);
+        LcdData.setData.maxChargeVolt[gunno] = thaisen_get_bhm_voltage(gunno);
+        LcdData.setData.moduleVolt[gunno] = thaisen_get_module_volt(gunno);
+        if(gunno == LCD_GUN_1){
+            LcdData.setData.samplingVolt[gunno] = TH_get_A_Insult_Volt();
+        }else{
+            LcdData.setData.samplingVolt[gunno] = TH_get_B_Insult_Volt();
+        }
     }
 }
 
@@ -5721,6 +5737,9 @@ int SerialScreen_DataProcess()
 
 			    LcdAssistantData.SeveralGunFlag[i].IsVinStart = FALSE;
 
+		        LcdData.setData.batteryVolt[i] = 0;
+		        LcdData.setData.maxChargeVolt[i] = 0;
+
 				LcdData.gun[i].workState = SysMainStatus_StandBy;
 				break;
 			case APP_OFSM_STATE_READYING:
@@ -6191,8 +6210,20 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     /** A枪启动 [page:04]*/
     SerialScreen_ItemSetUp(LCD_PAGE_A_START, NULL, "count down", LCD_DataType, LCD_1sReflash, 0x1040, pu16_type, sizeof(LcdData.gun[LCD_GUN_1].startCountTimer), (void *)&LcdData.gun[LCD_GUN_1].startCountTimer);
 
+//    SerialScreen_ItemSetUp(LCD_PAGE_A_START, NULL, "chargeSta", LCD_DataType, LCD_1sReflash, 0x1040, pu8_type, sizeof(LcdData.setData.chargeState[LCD_GUN_1]), (void *)&LcdData.setData.chargeState[LCD_GUN_1]);
+//    SerialScreen_ItemSetUp(LCD_PAGE_A_START, NULL, "sampVolt", LCD_DataType, LCD_1sReflash, 0x1040, pu16_type, sizeof(LcdData.setData.samplingVolt[LCD_GUN_1]), (void *)&LcdData.setData.samplingVolt[LCD_GUN_1]);
+//    SerialScreen_ItemSetUp(LCD_PAGE_A_START, NULL, "moduleVolt", LCD_DataType, LCD_1sReflash, 0x1040, pu16_type, sizeof(LcdData.setData.moduleVolt[LCD_GUN_1]), (void *)&LcdData.setData.moduleVolt[LCD_GUN_1]);
+//    SerialScreen_ItemSetUp(LCD_PAGE_A_START, NULL, "batVolt", LCD_DataType, LCD_1sReflash, 0x1040, pu16_type, sizeof(LcdData.setData.batteryVolt[LCD_GUN_1]), (void *)&LcdData.setData.batteryVolt[LCD_GUN_1]);
+//    SerialScreen_ItemSetUp(LCD_PAGE_A_START, NULL, "maxVolt", LCD_DataType, LCD_1sReflash, 0x1040, pu16_type, sizeof(LcdData.setData.maxChargeVolt[LCD_GUN_1]), (void *)&LcdData.setData.maxChargeVolt[LCD_GUN_1]);
+
     /** B枪启动 [page:05] */
     SerialScreen_ItemSetUp(LCD_PAGE_B_START, NULL, "count down", LCD_DataType, LCD_1sReflash, 0x2040, pu16_type, sizeof(LcdData.gun[LCD_GUN_2].startCountTimer), (void *)&LcdData.gun[LCD_GUN_2].startCountTimer);
+
+//    SerialScreen_ItemSetUp(LCD_PAGE_B_START, NULL, "chargeSta", LCD_DataType, LCD_1sReflash, 0x1040, pu8_type, sizeof(LcdData.setData.chargeState[LCD_GUN_2]), (void *)&LcdData.setData.chargeState[LCD_GUN_2]);
+//    SerialScreen_ItemSetUp(LCD_PAGE_B_START, NULL, "sampVolt", LCD_DataType, LCD_1sReflash, 0x1040, pu16_type, sizeof(LcdData.setData.samplingVolt[LCD_GUN_2]), (void *)&LcdData.setData.samplingVolt[LCD_GUN_2]);
+//    SerialScreen_ItemSetUp(LCD_PAGE_B_START, NULL, "moduleVolt", LCD_DataType, LCD_1sReflash, 0x1040, pu16_type, sizeof(LcdData.setData.moduleVolt[LCD_GUN_2]), (void *)&LcdData.setData.moduleVolt[LCD_GUN_2]);
+//    SerialScreen_ItemSetUp(LCD_PAGE_B_START, NULL, "batVolt", LCD_DataType, LCD_1sReflash, 0x1040, pu16_type, sizeof(LcdData.setData.batteryVolt[LCD_GUN_2]), (void *)&LcdData.setData.batteryVolt[LCD_GUN_2]);
+//    SerialScreen_ItemSetUp(LCD_PAGE_B_START, NULL, "maxVolt", LCD_DataType, LCD_1sReflash, 0x1040, pu16_type, sizeof(LcdData.setData.maxChargeVolt[LCD_GUN_2]), (void *)&LcdData.setData.maxChargeVolt[LCD_GUN_2]);
 
     /** A枪充电信息 [page:06] */
     SerialScreen_ItemSetUp(LCD_PAGE_A_CHGING, NULL, "net_sign", LCD_IconType, LCD_10sReflash, 0x1700, pu8_type, sizeof(LcdData.runData.netstate), (void *)&LcdData.runData.netstate);

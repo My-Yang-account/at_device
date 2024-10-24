@@ -66,7 +66,60 @@ enum aux_state_t mw_get_auxiliary_power_state(void)
     return (enum aux_state_t)thaisenGetAuxStatus();
 }
 
+#if 0
+typedef enum thaisenChargStatusEnum
+{
+    thaisenChargIdle,             /* 空闲 */
+    thaisenChargAuxPowerOn,       /* 闭合辅源 */
+    thaisenChargCHM,              /* 握手 */
+    thaisenChargInsult,           /* 绝缘 */
+    thaisenChargInsultFinish,     /* 绝缘结束 */
+    thaisenChargCRM,              /* CRM 辨识 */
+    thaisenChargCTSCML,           /* 时间同步、充电机最大允许 */
+    thaisenChargCRO,              /* CRO */
+    thaisenChargCROAA,            /* CROAA */
+    thaisenChargCCS,              /* CCS 充电 */
+    thaisenChargCST,              /* CST */
+    thaisenChargCSD,              /* BSD */
+    thaisenChargStop,             /* 停止 */
+    thaisenChargWaitGun,          /* 等待拔枪 */
+    thaisenChargFault,            /* 故障 */
+    thaisenChargingFault,         /* 充电故障 */
+    thaisenChargCommonFault,      /* 通讯(进行重连) */
+    thaisenChargCommonEndFault,   /* 通讯故障 */
+    thaisenChargAll,              /* 无 */
+}thaisenChargStatusEn;
+#endif
 
-
+/**
+ * 获取充电状态
+ */
+uint8_t mw_get_charge_library_state(uint8_t gunno)
+{
+    if(gunno >= APP_SYSTEM_GUNNO_SIZE){
+        return 0x00;
+    }
+    return thaisenChargGetStatus(gunno);
+}
+/**
+ * 获取BCP电池电压  精度：0.1
+ */
+int16_t mw_get_bcp_voltage(uint8_t gunno)
+{
+    if(gunno >= APP_SYSTEM_GUNNO_SIZE){
+        return 0x00;
+    }
+    return (mw_get_bms_data(gunno)->BCP.BatVolt);
+}
+/**
+ * 获取BHM最大允许电压   精度：0.1
+ */
+int16_t mw_get_bhm_voltage(uint8_t gunno)
+{
+    if(gunno >= APP_SYSTEM_GUNNO_SIZE){
+        return 0x00;
+    }
+    return (mw_get_bms_data(gunno)->BHM.MaxAllowVol);
+}
 
 

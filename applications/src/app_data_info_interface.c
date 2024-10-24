@@ -1166,3 +1166,32 @@ void thaisen_clear_screen_reboot(void)
     SerialScreen_ScreenClear_Reboot_Flag();
 }
 
+/********************************************
+ * 函数名      thaisen_get_charge_state
+ * 功能         获取充电状态
+ * 返回
+ *******************************************/
+uint8_t thaisen_get_charge_state(uint8_t gunno)
+{
+    return mw_get_charge_library_state(gunno);
+}
+
+/********************************************
+ * 函数名      thaisen_get_bcp_voltage
+ * 功能         获取BCP电池电压   精度：0.1
+ * 返回          BCP电池电压
+ *******************************************/
+int16_t thaisen_get_bcp_voltage(uint8_t gunno)
+{
+    return mw_get_bcp_voltage(gunno);
+}
+
+/********************************************
+ * 函数名      thaisen_get_bhm_voltage
+ * 功能         获取BHM最大允许电压   精度：0.1
+ * 返回           BHM最大允许电压
+ *******************************************/
+int16_t thaisen_get_bhm_voltage(uint8_t gunno)
+{
+    return mw_get_bhm_voltage(gunno);
+}

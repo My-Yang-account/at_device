@@ -45,6 +45,10 @@ void mw_open_auxiliary_power(void);
 void mw_close_auxiliary_power(void);
 enum aux_state_t mw_get_auxiliary_power_state(void);
 
+uint8_t mw_get_charge_library_state(uint8_t gunno);
+int16_t mw_get_bcp_voltage(uint8_t gunno);
+int16_t mw_get_bhm_voltage(uint8_t gunno);
+
 #ifdef __cplusplus
 }
 #endif

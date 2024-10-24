@@ -301,6 +301,19 @@ uint32_t thaisen_get_period_price(uint8_t gunno, uint8_t period);
 uint8_t thaisen_query_screen_reboot(void);
 void thaisen_clear_screen_reboot(void);
 
+/**
+ * 获取充电状态
+ **/
+uint8_t thaisen_get_charge_state(uint8_t gunno);
+/**
+ *  获取BCP电池电压
+ **/
+int16_t thaisen_get_bcp_voltage(uint8_t gunno);
+/**
+ * 获取BHM最大允许电压
+ **/
+int16_t thaisen_get_bhm_voltage(uint8_t gunno);
+
 #endif /* APPLICATIONS_INC_APP_DATA_INFO_INTERFACE_H_ */
 
 
