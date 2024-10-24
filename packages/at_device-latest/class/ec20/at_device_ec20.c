@@ -13,6 +13,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <app.h>
+#include "net_netdev.h"
 
 #include <at_device_ec20.h>
 
@@ -974,6 +975,10 @@ static void ec20_init_thread_entry(void *parameter)
         s_at_device_appinfo.mnc = -1;
         s_at_device_appinfo.init_complete = 0;
 
+        if((net_query_netdev_type() &NET_NETDEV_TYPE_4G) == 0){
+            LOG_W("net device selected is not 4G, quit");
+            break;
+        }
         /* power on the ec20 device */
         if(ec20_power_on(device) >= 0){
             s_at_device_appinfo.boot = 1;

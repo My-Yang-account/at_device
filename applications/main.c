@@ -28,6 +28,12 @@
 #define DBG_LVL DBG_LOG
 #include <rtdbg.h>
 
+
+//void rt_kprintf(const char *fmt, ...)
+//{
+//
+//}
+
 int main(void)
 {
     extern struct thaisenBMS_Charger_struct* mw_get_bms_data(uint8_t gunno);
@@ -40,9 +46,11 @@ int main(void)
     rt_base_t level;
     level = rt_hw_interrupt_disable();
 
+    SerialScreen_SetInputInfo();  /* �ϵ���������ϼ��ʹ�� */
+
     thaisen_board_bsp_init();
-    app_nfunc_config_init();
     prepose_init();
+    app_nfunc_config_init();
 
     SerialScreen_InputInfoGet();
     SerialScreen_SetInputInfo();

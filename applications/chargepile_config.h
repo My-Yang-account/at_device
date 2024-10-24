@@ -206,6 +206,11 @@
 #define CP_GENERATE_QRCODE_FORMAT_PORT                0x04             /* 终端生成的二维码格式类型：枪号 */
 #define CP_GENERATE_QRCODE_FORMAT_SIZE                0x05
 
+/* net type */
+#define CP_NETTYPE_4G                                 0x00             /* 联网方式：4G */
+#define CP_NETTYPE_ETH                                0x01             /* 联网方式：以太网 */
+#define CP_NETTYPE_SIZE                               0x02
+
 enum config_name{
     CONFIG_ITEM_PILE_NUMBER,
     CONFIG_ITEM_IP_DOMAIN,
@@ -292,6 +297,7 @@ enum config_name{
     CONFIG_ITEM_CARD_WHITELIST,
     CONFIG_ITEM_SCREEN_PASSWORD,
     CONFIG_ITEM_HELP_PHONE,
+    CONFIG_ITEM_NET_TYPE,
 
     CONFIG_ITEM_TARGET_PLATFORM,    /* 目标平台数据：为倒数第二项 */
     CONFIG_ITEM_MONITOR_PLATFORM,   /* 监控平台数据：为倒数第一项 */

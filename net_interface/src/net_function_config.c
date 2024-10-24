@@ -80,7 +80,7 @@ static void app_ndata_update(void)
 void ethernet_init_hook(uint8_t complete, uint8_t success)
 {
     if(success){
-        net_set_netdev_type(NET_NETDEV_TYPE_ETHERNET, 0x00);
+//        net_set_netdev_type(NET_NETDEV_TYPE_ETHERNET, 0x00);
     }else{
 //        net_clear_netdev_type(NET_NETDEV_TYPE_ETHERNET);
     }
@@ -731,8 +731,14 @@ int32_t app_nfunc_config_init(void)
         return -0x01;
     }
 
+    uint8_t nettype = CP_NETTYPE_4G;
+
     ethch395_set_init_hook(ethernet_init_hook);
-    net_netdev_init();
+    nettype = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_NET_TYPE, 0x00));
+    if(nettype == CP_NETTYPE_ETH){
+        net_set_netdev_type(NET_NETDEV_TYPE_ETHERNET, 0x00);
+        net_netdev_init();
+    }
 
     handle->para_config(0x00, NET_PARA_CONFIG_INDEX_DATA_UPDATA,           app_ndata_update, handle);
     handle->para_config(0x00, NET_PARA_CONFIG_INDEX_TIME_SYNC,             app_ntime_sync, handle);

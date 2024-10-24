@@ -53,7 +53,8 @@ struct _network{
 
     uint8_t gateway[CP_NETWORK_GATEWAY_LEN_MAX];                      /* 网关地址 */
 
-    uint8_t reserve[32];                                              /* 预留 */
+    uint8_t nettype;                                                  /* 网络类型(联网方式) */
+    uint8_t reserve[31];                                              /* 预留 */
 };
 
 struct _encrypt{
@@ -613,6 +614,10 @@ static struct config_item s_config_item_set[CONFIG_ITEM_SIZE] =
         (uint8_t*)&s_chargepile_config_info.pile_info.help_number,
         &s_chargepile_config_info.pile_info.help_number_len},
 
+        {CONFIG_ITEM_NET_TYPE,                                                             /* 联网方式 */
+        (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.network.nettype)),
+        (uint8_t*)&s_chargepile_config_info.network.nettype,
+        NULL},
 
 
 
@@ -1043,6 +1048,7 @@ uint8_t* sys_read_config_item_content(enum config_name name, uint8_t is_user_con
     if(is_user_content){
         return (uint8_t*)(s_config_item_set[name].user_data);
     }
+
     return (uint8_t*)(s_config_item_set[name].config_index);
 }
 
@@ -1053,6 +1059,7 @@ static void chargepile_config_data_reset(void)
     s_chargepile_config_info.network.port = 0x00;
     memset(s_chargepile_config_info.network.mac, '\0', sizeof(s_chargepile_config_info.network.mac));
     memset(s_chargepile_config_info.network.gateway, '\0', sizeof(s_chargepile_config_info.network.gateway));
+    s_chargepile_config_info.network.nettype = CP_NETTYPE_4G;
 
     s_chargepile_config_info.encrypt.key_len = 0x00;
     memset(s_chargepile_config_info.encrypt.key, '\0', sizeof(s_chargepile_config_info.encrypt.key));
@@ -1309,6 +1316,10 @@ int32_t chargepile_check_config(void)
         if(s_chargepile_config_info.config_info.module_num_singlegroup[count] > MODULE_NUMBER_SINGLE_MAX){
             s_chargepile_config_info.config_info.module_num_singlegroup[count] = MODULE_NUMBER_SINGLE_DEFAULT;
         }
+    }
+
+    if(s_chargepile_config_info.network.nettype >= CP_NETTYPE_SIZE){         /* 联网方式默认4G */
+        s_chargepile_config_info.network.nettype = CP_NETTYPE_4G;
     }
 
     if((s_chargepile_config_info.config_para.module_rated_outvolt < MODULE_RATED_OUTVOLT_MIN) ||

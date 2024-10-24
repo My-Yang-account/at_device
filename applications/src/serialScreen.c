@@ -342,6 +342,7 @@ struct LCD_DISPLAY_SETDATA_TYPE{
 
     u16 AllocWay;                           //分配方式
     u16 DevType;                            //设备类型
+    u16 NetType;                            //联网方式
 	u16 RmType;								//模块类型
 	u8 AgunRmNum;							//A枪模块个数
 	u8 BgunRmNum;							//B枪模块个数
@@ -1211,10 +1212,18 @@ void SerialScreen_BtnServerGet(void)
 
 void SerialScreen_BtnServerSet(void)
 {
+    u8 nettype = CP_NETTYPE_4G;
     SerialScreen_JumpPage(&SerialScreen, LCD_PAGE_STORAGE_WAITING);
 
+    if(LcdData.setData.NetType >= CP_NETTYPE_SIZE){
+        LcdData.setData.NetType = CP_NETTYPE_4G;
+    }
+    nettype = (u8)LcdData.setData.NetType;
+
+    rt_kprintf("SerialScreen_BtnServerSet(%d)\n", nettype);
 	UI_SYNC_SINGLE_CFG_STR(CONFIG_ITEM_IP_DOMAIN, LcdData.setData.svrIp, str_len(LcdData.setData.svrIp));
 	UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_PORT, (u16 *)&(LcdData.setData.svrPort), sizeof(LcdData.setData.svrPort));
+    UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_NET_TYPE, &(nettype), sizeof(nettype));
 
     UI_STORAGE_CFG_DATA;
 
@@ -4520,6 +4529,7 @@ struct LCD_DATA_FIFO_TYPE *SerialScreen_Init(struct SerialScreenObj *cmd)
     LcdData.setData.sup_usecard =*((u8*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_CARD, 0));
     LcdData.setData.AllocWay = *((u8*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_ALLOCATION_WAY, 0));
     LcdData.setData.DevType = *((u8*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_DEVICE_TYPE, 0));
+    LcdData.setData.NetType = *((u8*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_NET_TYPE, 0));
     LcdData.setData.GunVolt_LimitValue = *((u16*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_GUNVOLT_LIMIT, 0));
     LcdData.setData.sup_auxp_24V = *(UI_READ_SINGLE_CFG_STR(CONFIG_ITEM_SUPORT_AUXPOWER24V, 0));
     LcdData.setData.MeterModel = *(UI_READ_SINGLE_CFG_STR(CONFIG_ITEM_METER_MODEL, 0));
@@ -4655,6 +4665,9 @@ struct LCD_DATA_FIFO_TYPE *SerialScreen_Init(struct SerialScreenObj *cmd)
         break;
     }
 
+    if(LcdData.setData.NetType >= CP_NETTYPE_SIZE){
+        LcdData.setData.NetType = CP_NETTYPE_4G;
+    }
 	LcdAssistantData.Flag.IsEnableParaCharge = FALSE;
 	LcdData.setData.parallel_iocn = ICON_CHARGEWAY_NONE;
 	LcdAssistantData.Flag.ParaChargeSelect = FALSE;
@@ -6257,6 +6270,7 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_2, NULL, "COM_4", LCD_BtnType, 0x000D, 0x1000, page_type, LCD_PAGE_MENU_COM_4, (void *)SerialScreen_BtnModuleGet);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_2, NULL, "COM_5", LCD_BtnType, 0x000E, 0x1000, page_type, LCD_PAGE_MENU_COM_5, (void *)SerialScreen_BtnErrGetA);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_2, NULL, "COM_7", LCD_BtnType, 0x001C, 0x1000, page_type, LCD_PAGE_MENU_COM_7, (void *)NULL);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_2, NULL, "NetType", LCD_InputType, 0, 0x4652, menu_type, sizeof(LcdData.setData.NetType), (void *)&LcdData.setData.NetType);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_2, NULL, "subok", LCD_BtnType, 0x0014, 0x1000, page_type, LCD_PAGE_ROOT_MAIN, (void *)SerialScreen_BtnServerSet);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_2, NULL, "cd up", LCD_BtnType, 0x0050, 0x1000, page_type, LCD_PAGE_ROOT_MAIN, (void *)NULL);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_2, NULL, "back", LCD_BtnHomeType, 0x0002, 0x1000, page_type, LCD_PAGE_NONE, (void *)NULL);
