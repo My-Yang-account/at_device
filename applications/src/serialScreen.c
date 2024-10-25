@@ -1120,8 +1120,8 @@ void SerialScreen_StopCharge(int port)
 
 void SerialScreen_BtnChgInfoGet(int port)
 {
-    char *qrcode_pre = NULL;
-    u8 valid_len = sizeof(LcdData.setData.ErWeiCodePre);
+    u8 *qrcode_pre = NULL;
+    u8 qrcode_pre_len = 0;
 
 	sSCREEN_EVENT_DEBUGMSG("##########ChgInfo###########\r\n");
 	mem_set(LcdData.setData.pileID, 0, sizeof(LcdData.setData.pileID));
@@ -1132,12 +1132,11 @@ void SerialScreen_BtnChgInfoGet(int port)
 	str_ncpy((char *)(LcdData.setData.Help_Number), (char *)(UI_READ_SINGLE_CFG_STR(OCONFIG_ITEM_HELP_NUMBER, 0)), \
 					 sizeof(LcdData.setData.Help_Number));
 
-	qrcode_pre = (char *)(UI_READ_SINGLE_CFG_STR(CONFIG_ITEM_QRCODE_PRE, 0));
-    valid_len = (valid_len + 2) > strlen(qrcode_pre) ? strlen(qrcode_pre) : (valid_len + 2);
-
-    if(valid_len > 2){
-        str_ncpy((char *)(LcdData.setData.ErWeiCodePre), (qrcode_pre + 2), (valid_len - 2));
+    qrcode_pre = thaisen_app_get_qrcode_prefix(&qrcode_pre_len);
+    if(qrcode_pre_len && qrcode_pre){
+        str_ncpy((char *)(LcdData.setData.ErWeiCodePre), qrcode_pre, qrcode_pre_len);
     }
+
 	sSCREEN_EVENT_DEBUGMSG("##########pileID=%s helpnum:%s  qrcodefrex:%s###########\r\n",(char *)(LcdData.setData.pileID),(char *)(LcdData.setData.Help_Number),(char *)(LcdData.setData.ErWeiCodePre));
 }
 
@@ -4543,11 +4542,11 @@ struct LCD_DATA_FIFO_TYPE *SerialScreen_Init(struct SerialScreenObj *cmd)
 	         sizeof(LcdData.runData.pileID));
 	str_ncpy((char *)LcdData.setData.pileID,(char *)(LcdData.runData.pileID),sizeof(LcdData.setData.pileID));
 	sSCREEN_DEBUGPROMSG("LcdData.setData.pileID==%s\r\n",LcdData.runData.pileID);
-	
-	data = UI_READ_SINGLE_CFG_STR(CONFIG_ITEM_QRCODE_PRE, 0);
-	len = sizeof(LcdData.setData.ErWeiCodePre);
-	len = len > str_len((char*)(data + 2)) ? str_len((char*)(data + 2)) : len;
-	str_ncpy((char *)(LcdData.setData.ErWeiCodePre), (data + 2), len);
+
+	data = thaisen_app_get_qrcode_prefix(&len);
+    if(len && data){
+        str_ncpy((char *)(LcdData.setData.ErWeiCodePre), data, len);
+    }
 
     for(int i=0;i<LCD_GUN_NUM;i++)
     {

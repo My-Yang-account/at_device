@@ -216,6 +216,12 @@ struct qrcode_info *thaisen_app_get_gunno_qrcode(uint8_t gunno) // OK
         }
     }
 #endif /* APP_USING_DOUBLEGUN */
+
+#else
+    /** 二维码下发格式(二维码前缀 + 全部桩号 + 0 + 枪号) */
+    if(s_qrcode.qrcode_len > 0x00){
+        s_qrcode.qrcode[s_qrcode.qrcode_len - 0x01] = ('1' + gunno);
+    }
 #endif /* APP_QRCODE_CONFIG_USING_TLD */
         break;
     default:
@@ -224,6 +230,89 @@ struct qrcode_info *thaisen_app_get_gunno_qrcode(uint8_t gunno) // OK
 
     s_qrcode.qrcode_len = qrcode_len;
     return &s_qrcode;
+}
+
+/********************************************
+ * 函数名      thaisen_app_get_qrcode_prefix
+ * 功能          获取二维码前缀
+ * 参数         length  用于保存前缀长度
+ * 返回         前缀内容
+ * 注意         此函数要结合 thaisen_app_get_gunno_qrcode 函数一起
+ *******************************************/
+uint8_t *thaisen_app_get_qrcode_prefix(uint8_t *length)
+{
+#ifdef APP_QRCODE_CONFIG_USING_XXCD
+#define QRCODE_FEFAULT    "https://qrcode.starcharge.com/#/"                     /* 星星充电默认二维码前缀 */
+#elif defined(APP_QRCODE_CONFIG_USING_TLD)
+#define QRCODE_FEFAULT    "hlht://"                                              /* 特来电默认二维码前缀 */
+#else
+#define QRCODE_FEFAULT    "http://www.ykccn.com/MPAGE/index.html?pNum="          /* 云快充默认二维码前缀 */
+//#define QRCODE_FEFAULT    "https://wechat.xiangnengnengjia.com?scanid="          /* 云快充默认二维码前缀 */
+#endif
+
+    uint8_t storage_len = (*(sys_read_config_item_content(CONFIG_ITEM_QRCODE_PRE, 0x01)));
+    uint8_t *qrcode = sys_read_config_item_content(CONFIG_ITEM_QRCODE_PRE, 0), *ptr = NULL;
+    uint8_t *pile_number = sys_read_config_item_content(CONFIG_ITEM_PILE_NUMBER, 0x00);
+    uint8_t set_type = CP_SET_QRCODE_FORMAT_PREFIX, generate_type = CP_GENERATE_QRCODE_FORMAT_PREFIX_DEVICE_SN_PORT;
+
+
+    if(storage_len == 0 || storage_len >= 0xFF){
+        if(length){
+            *length = strlen(QRCODE_FEFAULT);
+        }
+        return QRCODE_FEFAULT;
+    }else{
+        if(storage_len <= 0x02){
+            if(length){
+                *length = 0x00;
+            }
+            return NULL;
+        }
+        if(length){
+            *length = strlen((const char*)(qrcode + 0x02));
+        }
+
+        set_type = qrcode[0];
+        generate_type = qrcode[1];
+        if(set_type >= CP_SET_QRCODE_FORMAT_SIZE){
+            set_type = CP_SET_QRCODE_FORMAT_PREFIX;
+        }
+        if(generate_type >= CP_GENERATE_QRCODE_FORMAT_SIZE){
+            generate_type = CP_GENERATE_QRCODE_FORMAT_PREFIX_DEVICE_SN_PORT;
+        }
+    }
+
+    switch(set_type){
+    /** 配置的二维码格式是：二维码前缀 + 桩号 + 枪号 */
+    case CP_SET_QRCODE_FORMAT_PREFIX_DEVICE_SN_PORT:
+#if 0
+#ifdef APP_QRCODE_CONFIG_USING_TLD
+
+#elif APP_QRCODE_CONFIG_USING_XXCD
+
+#else
+    /** 二维码下发格式(二维码前缀 + 全部桩号 + 0 + 枪号) */
+    if((ptr = strstr((qrcode + 0x02), (const char*)pile_number))){
+        if(ptr > ((qrcode + 0x02)) && length){
+            *length = (ptr - qrcode - 0x02);
+        }
+
+    }
+#endif /* APP_QRCODE_CONFIG_USING_TLD */
+#else
+    /** 二维码下发格式(二维码前缀 + 全部桩号 + 0 + 枪号) */
+    if((ptr = (uint8_t*)strstr((const char*)(qrcode + 0x02), (const char*)pile_number))){
+        if(ptr > ((qrcode + 0x02)) && length){
+            *length = (ptr - qrcode - 0x02);
+        }
+    }
+#endif
+        break;
+    default:
+        break;
+    }
+
+    return (qrcode + 0x02);
 }
 
 /********************************************
