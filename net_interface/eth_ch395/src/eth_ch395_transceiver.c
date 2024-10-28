@@ -279,6 +279,7 @@ uint8_t ethch395_wait_operate_lock(int32_t timeout, void *handle)
 
     if((s_ethch395_access_lock.owner == handle) && (s_ethch395_access_lock.owner != NULL)){
         s_ethch395_access_lock.lock = ETHCH395_ENUM_TRUE;
+        LOG_D("operate_lock");
         return ETHCH395_ENUM_TRUE;
     }
 
@@ -301,6 +302,7 @@ uint8_t ethch395_wait_operate_lock(int32_t timeout, void *handle)
         s_ethch395_access_lock.lock = ETHCH395_ENUM_TRUE;
         s_ethch395_access_lock.owner = handle;
 
+        LOG_D("operate_lock");
         rt_exit_critical();
         return ETHCH395_ENUM_TRUE;
     }
@@ -1150,6 +1152,9 @@ static void ethch395_device_init(void)
             }
         }
 
+        res = 0x00;
+        rentry = 0x00;
+
         while(ethch395_wait_operate_lock(-0x01, handle) == ETHCH395_ENUM_FALSE);
 
         baudrate = ETHCH395_NETDEV_BAUDRATE_9600;
@@ -1271,6 +1276,7 @@ static void ethch395_device_init(void)
             break;
         }
         if(rentry >= 100){
+            LOG_E("ethch395 query dhcp status timeout", rentry);
             res = -0x01;                                 /** DHCP 有时会出现返回失败，但是后续交互正常的情况，故如果返回失败暂时不认为是失败 */
             goto _is_end;
         }
