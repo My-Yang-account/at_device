@@ -552,7 +552,7 @@ int8_t sgcc_message_pro_remote_start_charge_request(uint8_t gunno, void *data, u
     }
 
     /** 并充时不能让平台启动副枪 */
-    if(s_sgcc_base->charge_way == APP_CHARGE_WAY_PARACHARGE){
+    if(s_sgcc_base->charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL){
         if(reason){
             *reason = 0x00;
         }
@@ -680,7 +680,7 @@ int8_t sgcc_message_pro_remote_start_charge_request(uint8_t gunno, void *data, u
     }
 
     /** 并充时不能让平台启动副枪 */
-    if(s_sgcc_base->charge_way == APP_CHARGE_WAY_PARACHARGE){
+    if(s_sgcc_base->charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL){
         if(reason){
             *reason = 0x00;
         }
@@ -797,7 +797,7 @@ int8_t sgcc_message_pro_remote_stop_charge_request(uint8_t gunno, void *data, ui
     evs_service_stopCharge *request = (evs_service_stopCharge*)data;
 
     /** 并充时不能让平台停止副枪 */
-    if(s_sgcc_base->charge_way == APP_CHARGE_WAY_PARACHARGE){
+    if(s_sgcc_base->charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL){
         if(gunno != s_sgcc_base->main_gunno){
             return 0x01;
         }
@@ -814,7 +814,14 @@ int8_t sgcc_message_pro_remote_stop_charge_request(uint8_t gunno, void *data, ui
     }
 
     if(stop_authorize_success == NET_ENUM_TRUE){
-        s_sgcc_flag_info[gunno].is_stop_charge = 0x01;
+        s_sgcc_flag_info[gunno].is_stop_charge = NET_ENUM_TRUE;
+
+        if(s_sgcc_base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
+            net_operation_set_event(s_sgcc_base->main_gunno, NET_OPERATION_EVENT_STOP_CHARGE);
+        }else{
+            net_operation_set_event(gunno, NET_OPERATION_EVENT_STOP_CHARGE);
+        }
+
         return 0x00;
     }
 
@@ -845,7 +852,7 @@ int8_t sgcc_message_pro_remote_stop_charge_request(uint8_t gunno, void *data, ui
     evs_service_stopCharge *request = (evs_service_stopCharge*)data;
 
     /** 并充时不能让平台停止副枪 */
-    if(s_sgcc_base->charge_way == APP_CHARGE_WAY_PARACHARGE){
+    if(s_sgcc_base->charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL){
         if(gunno != s_sgcc_base->main_gunno){
             return 0x01;
         }
@@ -913,7 +920,7 @@ int8_t sgcc_message_pro_apply_charge_response(uint8_t gunno, void *data, uint16_
     }
 
     /** 并充时不能让平台启动副枪 */
-    if(s_sgcc_base->charge_way == APP_CHARGE_WAY_PARACHARGE){
+    if(s_sgcc_base->charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL){
         return 0x02;
     }
 
@@ -2244,9 +2251,18 @@ void sgcc_chargepile_request_padding_bms_data(uint8_t gunno, uint8_t init)
 
     if(sgcc_get_message_send_state(gunno, NET_SGCC_PREQ_EVENT_REPORT_BMS_DATA) == NET_SGCC_SEND_STATE_COMPLETE){
         struct thaisenBMS_Charger_struct *bms = (struct thaisenBMS_Charger_struct*)(s_sgcc_base->bms_data);
+
         if(s_sgcc_base->state.current == APP_OFSM_STATE_STARTING){
+            if(s_sgcc_base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
+                s_sgcc_base = (System_BaseData*)(s_sgcc_handle->get_base_data(s_sgcc_base->main_gunno));
+                bms = (struct thaisenBMS_Charger_struct*)(s_sgcc_base->bms_data);
+            }
             evs_property_BMSs[gunno].socVal = bms->BCP.SOC /10;
         }else{
+            if(s_sgcc_base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
+                s_sgcc_base = (System_BaseData*)(s_sgcc_handle->get_base_data(s_sgcc_base->main_gunno));
+                bms = (struct thaisenBMS_Charger_struct*)(s_sgcc_base->bms_data);
+            }
             evs_property_BMSs[gunno].socVal = bms->BCS.SOC;
         }
 
@@ -2593,6 +2609,10 @@ void sgcc_stop_charge_response_asynchronously(uint8_t gunno, uint8_t result, uin
         return;
     }
 
+    s_sgcc_base = (System_BaseData*)(s_sgcc_handle->get_base_data(gunno));
+    if(s_sgcc_base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
+        gunno = s_sgcc_base->main_gunno;
+    }
     if(s_sgcc_flag_info[gunno].is_stop_charge == NET_ENUM_FALSE){
         return;
     }

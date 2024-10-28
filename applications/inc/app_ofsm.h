@@ -158,7 +158,8 @@ enum{
 enum charge_way{
     APP_CHARGE_WAY_NONE,                /* 充电方式：无 */
     APP_CHARGE_WAY_SINGLEGUN,           /* 充电方式：单枪 */
-    APP_CHARGE_WAY_PARACHARGE,          /* 充电方式：并充 */
+    APP_CHARGE_WAY_PARACHARGE_LOCAL,    /* 充电方式：并充(本地选择:最终只上报一把枪的交易) */
+    APP_CHARGE_WAY_PARACHARGE_CLOUD,    /* 充电方式：并充(云端选择:最终需上报两把枪的交易) */
 };
 
 #pragma pack(1)
@@ -313,6 +314,7 @@ typedef struct{
         uint32_t is_resume_power : 1;                        /* 需要恢复功率 */
         uint32_t is_reservation : 1;                         /* 预约中 */
         uint32_t bms_require_decrease : 1;                   /* BMS 需求减小 */
+        uint32_t is_deputygun_stop : 1;                      /* 这是副枪停止(副枪故障时停止，用于并充时) */
     }flag;
 
     uint8_t cc1_state;                /* CC1 状态 */

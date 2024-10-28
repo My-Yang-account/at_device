@@ -1114,7 +1114,6 @@ static void sgcc_message_server_thread_entry(void *parameter)
                         pro_result = 0x00;
                         if(result >= 0x00){
                             if(result == 0x00){
-                                net_operation_set_event(gunno, NET_OPERATION_EVENT_STOP_CHARGE);
                                 pro_result = 0x01;
                             }
                             reason = result;

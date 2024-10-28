@@ -40,15 +40,17 @@ struct ykc_monitor_state_info{
 };
 
 struct ykc_monitor_flag_info{
-    uint8_t is_start_charge : 1;                  /*  已启动充电 */
-    uint8_t is_stop_charge : 1;                   /*  已停止充电 */
-    uint8_t is_start_mergecharge : 1;             /*  已启动并充充电 */
-    uint8_t is_set_power : 1;                     /*  已设置功率百分比 */
+    uint16_t is_start_charge : 1;                 /*  已启动充电 */
+    uint16_t is_stop_charge : 1;                  /*  已停止充电 */
+    uint16_t is_start_mergecharge : 1;            /*  已启动并充充电 */
+    uint16_t is_request_mergecharge : 1;          /*  已请求并充充电 */
+    uint16_t is_refuse_mergecharge : 1;           /*  已拒绝并充充电 */
+    uint16_t is_set_power : 1;                    /*  已设置功率百分比 */
 
-    uint8_t start_success : 1;                    /*  启机成功 */
-    uint8_t stop_success : 1;                     /*  停机成功 */
-    uint8_t mergestart_success : 1;               /*  并充启机成功 */
-    uint8_t set_power_success : 1;                /*  设置功率百分比成功 */
+    uint16_t start_success : 1;                   /*  启机成功 */
+    uint16_t stop_success : 1;                    /*  停机成功 */
+    uint16_t mergestart_success : 1;              /*  并充启机成功 */
+    uint16_t set_power_success : 1;               /*  设置功率百分比成功 */
 };
 
 #pragma pack()
@@ -595,6 +597,7 @@ int8_t ykc_monitor_response_padding_remote_start_merge_charge(uint8_t gunno, uin
     uint8_t valid_len = 0x00;
     Net_YkcMonitorPro_PRes_Remote_StartMergeCharge_t *response = NULL;
     response = ((Net_YkcMonitorPro_PRes_Remote_StartMergeCharge_t*)buf);
+    s_ykc_monitor_base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
     memset(response, 0x00, data_len);
 
     valid_len = sizeof(g_ykc_monitor_sreq_remote_start_merge_charge[gunno].body.serial_number);
@@ -605,10 +608,14 @@ int8_t ykc_monitor_response_padding_remote_start_merge_charge(uint8_t gunno, uin
     valid_len = valid_len > sizeof(response->body.pile_number) ? sizeof(response->body.pile_number) : valid_len;
     memcpy(response->body.pile_number, g_ykc_monitor_sreq_remote_start_merge_charge[gunno].body.pile_number, valid_len);
 
-    response->body.main_auxiliary_gun_flag = NET_ENUM_FALSE;
+    if(s_ykc_monitor_base->main_gunno == gunno){
+        response->body.main_auxiliary_gun_flag = NET_ENUM_FALSE;
+    }else{
+        response->body.main_auxiliary_gun_flag = NET_ENUM_TRUE;
+    }
     memcpy(response->body.merge_charge_sn, g_ykc_monitor_sreq_remote_start_merge_charge[gunno].body.merge_charge_sn, NET_YKC_MONITOR_MERGE_CHARGE_SN_LENGTH_DEFAULT);
 
-    response->body.gunno = gunno;
+    response->body.gunno = gunno + 0x01;
 
     if(olen){
         *olen = data_len;
@@ -858,7 +865,7 @@ int8_t ykc_monitor_message_pro_remote_start_charge_request(uint8_t gunno, void *
     Net_YkcMonitorPro_SReq_Remote_StartCharge_t *request = (Net_YkcMonitorPro_SReq_Remote_StartCharge_t*)data;
 
     /** 并充时不能让平台启动副枪 */
-    if(s_ykc_monitor_base->charge_way == APP_CHARGE_WAY_PARACHARGE){
+    if(s_ykc_monitor_base->charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL){
         return NET_YKC_MONITOR_START_FAIL_REASON_IS_CHARGING;
     }
 
@@ -922,7 +929,7 @@ int8_t ykc_monitor_message_pro_remote_stop_charge_request(uint8_t gunno)
     s_ykc_monitor_base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
 
     /** 并充时不能让平台停止副枪 */
-    if(s_ykc_monitor_base->charge_way == APP_CHARGE_WAY_PARACHARGE){
+    if(s_ykc_monitor_base->charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL){
         if(gunno != s_ykc_monitor_base->main_gunno){
             return NET_YKC_MONITOR_STOP_FAIL_REASON_NOT_CHARGING;
         }
@@ -930,7 +937,15 @@ int8_t ykc_monitor_message_pro_remote_stop_charge_request(uint8_t gunno)
 
     if((s_ykc_monitor_base->state.current == APP_OFSM_STATE_CHARGING) ||
             (s_ykc_monitor_base->state.current == APP_OFSM_STATE_STARTING)){
-        s_ykc_monitor_flag_info[gunno].is_stop_charge = 0x01;
+        s_ykc_monitor_flag_info[gunno].is_stop_charge = NET_ENUM_TRUE;
+
+        if(s_ykc_monitor_base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
+            net_operation_set_event(s_ykc_monitor_base->main_gunno, NET_OPERATION_EVENT_STOP_CHARGE);
+        }else{
+            net_operation_set_event(gunno, NET_OPERATION_EVENT_STOP_CHARGE);
+        }
+
+
         return NET_YKC_MONITOR_STOP_FAIL_REASON_NO;
     }
     return NET_YKC_MONITOR_STOP_FAIL_REASON_NOT_CHARGING;
@@ -1115,7 +1130,7 @@ int8_t ykc_monitor_message_pro_remote_start_merge_charge_request(uint8_t gunno, 
     if(data == NULL){
         return -0x01;
     }
-    if(gunno >= NET_SYSTEM_GUN_NUMBER){
+    if((gunno >= NET_SYSTEM_GUN_NUMBER) && (NET_SYSTEM_GUN_NUMBER >= 0x02)){    /** 并充至少要有两把枪 */
         return -0x02;
     }
     if(data_len > len){
@@ -1126,17 +1141,43 @@ int8_t ykc_monitor_message_pro_remote_start_merge_charge_request(uint8_t gunno, 
         return NET_YKC_MONITOR_START_FAIL_REASON_BILLING;
     }
 
-    uint8_t valid_len = 0x00;
+    uint8_t valid_len = 0x00, another_gun = 0x01;
     Net_YkcMonitorPro_SReq_Remote_StartMergeCharge_t *request = (Net_YkcMonitorPro_SReq_Remote_StartMergeCharge_t*)data;
     s_ykc_monitor_base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
 
     /** 并充时不能让平台启动副枪 */
-    if(s_ykc_monitor_base->charge_way == APP_CHARGE_WAY_PARACHARGE){
+    if((s_ykc_monitor_base->charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL) || (s_ykc_monitor_base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD)){
         return NET_YKC_MONITOR_START_FAIL_REASON_IS_CHARGING;
     }
 
+    /** 并充暂时按照两把枪的形式做 */
+    if(gunno == 0x01){
+        another_gun = 0x00;
+    }
+
+    /** 平台并充启动时另一把枪必须处于待充电状态，第一把接收到并充报文的枪规定为主枪 */
+    s_ykc_monitor_base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(another_gun));
+    if((s_ykc_monitor_base->state.current != APP_OFSM_STATE_READYING) && (s_ykc_monitor_base->state.current != APP_OFSM_STATE_FINISHING)){
+        s_ykc_monitor_flag_info[gunno].is_refuse_mergecharge = NET_ENUM_TRUE;
+        s_ykc_monitor_flag_info[gunno].is_request_mergecharge = NET_ENUM_FALSE;
+        s_ykc_monitor_flag_info[gunno].is_start_mergecharge = NET_ENUM_FALSE;
+        return NET_YKC_MONITOR_START_FAIL_REASON_GUN_STATE;
+    }else{
+        if(s_ykc_monitor_flag_info[another_gun].is_request_mergecharge != NET_ENUM_TRUE){
+            for(uint8_t i = 0x00; i < NET_SYSTEM_GUN_NUMBER; i++){
+                s_ykc_monitor_base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(i));
+                s_ykc_monitor_base->main_gunno = gunno;
+            }
+        }
+    }
+
+    s_ykc_monitor_base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
+
     switch(s_ykc_monitor_base->state.current){
     case APP_OFSM_STATE_IDLEING:
+        s_ykc_monitor_flag_info[gunno].is_refuse_mergecharge = NET_ENUM_TRUE;
+        s_ykc_monitor_flag_info[gunno].is_request_mergecharge = NET_ENUM_FALSE;
+        s_ykc_monitor_flag_info[gunno].is_start_mergecharge = NET_ENUM_FALSE;
         return NET_YKC_MONITOR_START_FAIL_REASON_NO_GUN;
         break;
     case APP_OFSM_STATE_READYING:
@@ -1166,18 +1207,40 @@ int8_t ykc_monitor_message_pro_remote_start_merge_charge_request(uint8_t gunno, 
         s_ykc_monitor_base->charge_strategy = APP_CHARGE_STRATEGY_MONEY;
         s_ykc_monitor_base->charge_strategy_para = request->body.account_ballance *100;
 
+        s_ykc_monitor_flag_info[gunno].is_request_mergecharge = NET_ENUM_TRUE;
         s_ykc_monitor_flag_info[gunno].is_start_mergecharge = NET_ENUM_TRUE;
+
+        /** 这是第二把接收到并充报文的前，两把枪都接收到了并充报文，可以启动并充了，并充相当于两把枪单独充电 */
+        if(s_ykc_monitor_flag_info[another_gun].is_request_mergecharge == NET_ENUM_TRUE){
+            for(uint8_t i = 0x00; i < NET_SYSTEM_GUN_NUMBER; i++){
+                s_ykc_monitor_base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(i));
+                net_operation_set_event(i, NET_OPERATION_EVENT_START_CHARGE);
+                net_operation_clear_event(i, NET_OPERATION_EVENT_OFFLINECHARGE_LIMIT);
+                s_ykc_monitor_base->charge_way = APP_CHARGE_WAY_PARACHARGE_CLOUD;
+            }
+        }
 
         return NET_YKC_MONITOR_START_FAIL_REASON_NO;
         break;
     case APP_OFSM_STATE_STARTING:
     case APP_OFSM_STATE_CHARGING:
+        s_ykc_monitor_flag_info[gunno].is_refuse_mergecharge = NET_ENUM_TRUE;
+        s_ykc_monitor_flag_info[gunno].is_request_mergecharge = NET_ENUM_FALSE;
+        s_ykc_monitor_flag_info[gunno].is_start_mergecharge = NET_ENUM_FALSE;
         return NET_YKC_MONITOR_START_FAIL_REASON_IS_CHARGING;
         break;
     default:
+        s_ykc_monitor_flag_info[gunno].is_refuse_mergecharge = NET_ENUM_TRUE;
+        s_ykc_monitor_flag_info[gunno].is_request_mergecharge = NET_ENUM_FALSE;
+        s_ykc_monitor_flag_info[gunno].is_start_mergecharge = NET_ENUM_FALSE;
         return NET_YKC_MONITOR_START_FAIL_REASON_IS_FAULTING;
         break;
     }
+
+    s_ykc_monitor_flag_info[gunno].is_refuse_mergecharge = NET_ENUM_TRUE;
+    s_ykc_monitor_flag_info[gunno].is_request_mergecharge = NET_ENUM_FALSE;
+    s_ykc_monitor_flag_info[gunno].is_start_mergecharge = NET_ENUM_FALSE;
+
     return NET_YKC_MONITOR_START_FAIL_REASON_NO;
 #else
     return -0x01;
@@ -1405,6 +1468,10 @@ void ykc_monitor_chargepile_request_padding_bms_shakehand(uint8_t gunno)
     memset(g_ykc_monitor_preq_shake_hand[gunno].body.serial_number, 0x00, sizeof(g_ykc_monitor_preq_shake_hand[gunno].body.serial_number));
     memcpy(g_ykc_monitor_preq_shake_hand[gunno].body.serial_number, s_ykc_monitor_base->transaction_number, valid_len);
 
+    if(s_ykc_monitor_base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
+        s_ykc_monitor_base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(s_ykc_monitor_base->main_gunno));
+        bms = (struct thaisenBMS_Charger_struct*)(s_ykc_monitor_base->bms_data);
+    }
     memcpy(g_ykc_monitor_preq_shake_hand[gunno].body.bms_protocol_ver, bms->BRM.BMSVer, sizeof(bms->BRM.BMSVer));
     g_ykc_monitor_preq_shake_hand[gunno].body.bms_bat_type = bms->BRM.BatType;
     g_ykc_monitor_preq_shake_hand[gunno].body.bms_bat_rated_capacity = bms->BRM.BatRateCap;
@@ -1441,6 +1508,10 @@ void ykc_monitor_chargepile_request_padding_bms_paraconfig(uint8_t gunno)
     memset(g_ykc_monitor_preq_parameter_config[gunno].body.serial_number, 0x00, sizeof(g_ykc_monitor_preq_parameter_config[gunno].body.serial_number));
     memcpy(g_ykc_monitor_preq_parameter_config[gunno].body.serial_number, s_ykc_monitor_base->transaction_number, valid_len);
 
+    if(s_ykc_monitor_base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
+        s_ykc_monitor_base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(s_ykc_monitor_base->main_gunno));
+        bms = (struct thaisenBMS_Charger_struct*)(s_ykc_monitor_base->bms_data);
+    }
     g_ykc_monitor_preq_parameter_config[gunno].body.bms_single_bat_allow_volt_max = bms->BCP.CellAlowHigVolt;
     g_ykc_monitor_preq_parameter_config[gunno].body.bms_allow_curr_max = (4000 - bms->BCP.AlowCurlt);
     g_ykc_monitor_preq_parameter_config[gunno].body.bms_bat_nominal_energy_all = bms->BCP.BatRateKW;
@@ -1475,6 +1546,10 @@ void ykc_monitor_chargepile_request_padding_bms_chargeend(uint8_t gunno)
     memset(g_ykc_monitor_preq_charge_finish[gunno].body.serial_number, 0x00, sizeof(g_ykc_monitor_preq_charge_finish[gunno].body.serial_number));
     memcpy(g_ykc_monitor_preq_charge_finish[gunno].body.serial_number, s_ykc_monitor_base->transaction_number, valid_len);
 
+    if(s_ykc_monitor_base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
+        s_ykc_monitor_base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(s_ykc_monitor_base->main_gunno));
+        bms = (struct thaisenBMS_Charger_struct*)(s_ykc_monitor_base->bms_data);
+    }
     g_ykc_monitor_preq_charge_finish[gunno].body.bms_end_soc = bms->BSD.StopSOC;
     g_ykc_monitor_preq_charge_finish[gunno].body.bms_single_bat_volt_min = bms->BSD.CellLowVolt;
     g_ykc_monitor_preq_charge_finish[gunno].body.bms_single_bat_volt_max = bms->BSD.CellHigVolt;
@@ -1505,6 +1580,10 @@ void ykc_monitor_chargepile_request_padding_bms_error(uint8_t gunno)
     memset(g_ykc_monitor_preq_error_message[gunno].body.serial_number, 0x00, sizeof(g_ykc_monitor_preq_error_message[gunno].body.serial_number));
     memcpy(g_ykc_monitor_preq_error_message[gunno].body.serial_number, s_ykc_monitor_base->transaction_number, valid_len);
 
+    if(s_ykc_monitor_base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
+        s_ykc_monitor_base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(s_ykc_monitor_base->main_gunno));
+        bms = (struct thaisenBMS_Charger_struct*)(s_ykc_monitor_base->bms_data);
+    }
     g_ykc_monitor_preq_error_message[gunno].body.timeout.spn2560_00_identify = bms->BEM.CRM00OVtime;
     g_ykc_monitor_preq_error_message[gunno].body.timeout.spn2560_aa_identify = bms->BEM.CRMAAOVtime;
     g_ykc_monitor_preq_error_message[gunno].body.timeout.reserve_1 = 0x00;
@@ -1550,6 +1629,10 @@ void ykc_monitor_chargepile_request_padding_bmsend_duringcharge(uint8_t gunno)
     memset(g_ykc_monitor_preq_bms_end[gunno].body.serial_number, 0x00, sizeof(g_ykc_monitor_preq_bms_end[gunno].body.serial_number));
     memcpy(g_ykc_monitor_preq_bms_end[gunno].body.serial_number, s_ykc_monitor_base->transaction_number, valid_len);
 
+    if(s_ykc_monitor_base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
+        s_ykc_monitor_base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(s_ykc_monitor_base->main_gunno));
+        bms = (struct thaisenBMS_Charger_struct*)(s_ykc_monitor_base->bms_data);
+    }
     g_ykc_monitor_preq_bms_end[gunno].body.reason.reach_soc = bms->BST.SOCGetObj;
     g_ykc_monitor_preq_bms_end[gunno].body.reason.reach_volt_all = bms->BST.VoltGetObj;
     g_ykc_monitor_preq_bms_end[gunno].body.reason.reach_single_volt = bms->BST.CeliVoltGetObj;
@@ -1589,6 +1672,10 @@ void ykc_monitor_chargepile_request_padding_chargerend_duringcharge(uint8_t gunn
     memset(g_ykc_monitor_preq_charger_end[gunno].body.serial_number, 0x00, sizeof(g_ykc_monitor_preq_charger_end[gunno].body.serial_number));
     memcpy(g_ykc_monitor_preq_charger_end[gunno].body.serial_number, s_ykc_monitor_base->transaction_number, valid_len);
 
+    if(s_ykc_monitor_base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
+        s_ykc_monitor_base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(s_ykc_monitor_base->main_gunno));
+        bms = (struct thaisenBMS_Charger_struct*)(s_ykc_monitor_base->bms_data);
+    }
     g_ykc_monitor_preq_charger_end[gunno].body.reason.reach_set_adition = bms->CST.AutoStop;
     g_ykc_monitor_preq_charger_end[gunno].body.reason.manual_end = bms->CST.ManStop;
     g_ykc_monitor_preq_charger_end[gunno].body.reason.exception_end = bms->CST.FaultStop;
@@ -1632,6 +1719,14 @@ void ykc_monitor_chargepile_request_padding_bmscommand_chargerout(uint8_t gunno,
             s_ykc_monitor_base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
             struct thaisenBMS_Charger_struct *bms = (struct thaisenBMS_Charger_struct*)(s_ykc_monitor_base->bms_data);
 
+            g_ykc_monitor_preq_bmscommand_chargerout[gunno].body.pile_output_volt = (s_ykc_monitor_base->voltage_a /10);
+            g_ykc_monitor_preq_bmscommand_chargerout[gunno].body.pile_output_curr = (4000 - (s_ykc_monitor_base->current_a /10));
+            g_ykc_monitor_preq_bmscommand_chargerout[gunno].body.charge_time = s_ykc_monitor_base->charge_time /60;
+
+            if(s_ykc_monitor_base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
+                s_ykc_monitor_base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(s_ykc_monitor_base->main_gunno));
+                bms = (struct thaisenBMS_Charger_struct*)(s_ykc_monitor_base->bms_data);
+            }
             g_ykc_monitor_preq_bmscommand_chargerout[gunno].body.bms_volt_command = bms->BCL.BMSneedVolt;
             g_ykc_monitor_preq_bmscommand_chargerout[gunno].body.bms_curr_command = (4000 - bms->BCL.BMSneedCurlt);
             g_ykc_monitor_preq_bmscommand_chargerout[gunno].body.bms_charge_mode = bms->BCL.ChagModel;
@@ -1642,9 +1737,6 @@ void ykc_monitor_chargepile_request_padding_bmscommand_chargerout(uint8_t gunno,
             g_ykc_monitor_preq_bmscommand_chargerout[gunno].body.max_volt_and_gn.max_single_bat_volt_gn = bms->BCS.HigVoltCellNum;
             g_ykc_monitor_preq_bmscommand_chargerout[gunno].body.bms_current_soc = bms->BCS.SOC;
             g_ykc_monitor_preq_bmscommand_chargerout[gunno].body.bms_remain_charge_time = bms->BCS.SurplChgTime;
-            g_ykc_monitor_preq_bmscommand_chargerout[gunno].body.pile_output_volt = (s_ykc_monitor_base->voltage_a /10);
-            g_ykc_monitor_preq_bmscommand_chargerout[gunno].body.pile_output_curr = (4000 - (s_ykc_monitor_base->current_a /10));
-            g_ykc_monitor_preq_bmscommand_chargerout[gunno].body.charge_time = s_ykc_monitor_base->charge_time /60;
         }
     }
 }
@@ -1672,6 +1764,10 @@ void ykc_monitor_chargepile_request_padding_bmsinfo_duringcharge(uint8_t gunno, 
             s_ykc_monitor_base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
             struct thaisenBMS_Charger_struct *bms = (struct thaisenBMS_Charger_struct*)(s_ykc_monitor_base->bms_data);
 
+            if(s_ykc_monitor_base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
+                s_ykc_monitor_base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(s_ykc_monitor_base->main_gunno));
+                bms = (struct thaisenBMS_Charger_struct*)(s_ykc_monitor_base->bms_data);
+            }
             g_ykc_monitor_preq_bms_info[gunno].body.bms_max_single_volt_bat_number = bms->BSM.HigVoltCellNum;
             g_ykc_monitor_preq_bms_info[gunno].body.bms_bat_temp_max = (bms->BSM.HigTemp + 50);
             g_ykc_monitor_preq_bms_info[gunno].body.bat_temp_max_measure_number = bms->BSM.HigTempNum;
@@ -1967,15 +2063,19 @@ void ykc_monitor_start_charge_response_asynchronously(uint8_t gunno, uint8_t res
 }
 
 /*************************************************
- * 函数名      ykc_monitor_monitor_stop_charge_response_asynchronously
+ * 函数名      ykc_monitor_stop_charge_response_asynchronously
  * 功能          充电桩报文响应事件：停止充电异步响应
  * **********************************************/
-void ykc_monitor_monitor_stop_charge_response_asynchronously(uint8_t gunno, uint8_t result)
+void ykc_monitor_stop_charge_response_asynchronously(uint8_t gunno, uint8_t result)
 {
     if(gunno >= NET_SYSTEM_GUN_NUMBER){
         return;
     }
 
+    s_ykc_monitor_base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
+    if(s_ykc_monitor_base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
+        gunno = s_ykc_monitor_base->main_gunno;
+    }
     if(s_ykc_monitor_flag_info[gunno].is_stop_charge == NET_ENUM_FALSE){
         return;
     }
@@ -2469,8 +2569,22 @@ void ykc_monitor_data_realtime_process(uint8_t gunno)
         ykc_monitor_net_event_send(NET_YKC_MONITOR_EVENT_HANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, gunno, NET_YKC_MONITOR_PREQ_EVENT_REPORT_REALTIME_DATA);
     }
 
-    if((s_ykc_monitor_base->state.current == APP_OFSM_STATE_STARTING) || (s_ykc_monitor_base->state.current == APP_OFSM_STATE_CHARGING)){
+    switch(s_ykc_monitor_base->state.current){
+    case APP_OFSM_STATE_WAIT_NET:
+    case APP_OFSM_STATE_IDLEING:
+    case APP_OFSM_STATE_STOPING:
+    case APP_OFSM_STATE_FINISHING:
+    case APP_OFSM_STATE_FAULTING:
+        s_ykc_monitor_flag_info[gunno].is_refuse_mergecharge = NET_ENUM_FALSE;
+        s_ykc_monitor_flag_info[gunno].is_request_mergecharge = NET_ENUM_FALSE;
+        s_ykc_monitor_flag_info[gunno].is_start_mergecharge = NET_ENUM_FALSE;
+        break;
+    case APP_OFSM_STATE_STARTING:
+    case APP_OFSM_STATE_CHARGING:
         ykc_monitor_clear_message_wait_response_state(gunno, NET_YKC_MONITOR_PREQ_EVENT_TRANSACTION_RECORD);
+        break;
+    default:
+        break;
     }
 }
 

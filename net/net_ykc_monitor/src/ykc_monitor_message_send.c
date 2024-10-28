@@ -1533,7 +1533,6 @@ static void net_ykc_monitor_server_message_pro_entry(void *parameter)
                         if(result >= NET_YKC_MONITOR_STOP_FAIL_REASON_NO){
                             pro_result = 0x00;
                             if(result == NET_YKC_MONITOR_STOP_FAIL_REASON_NO){
-                                net_operation_set_event(gunno, NET_OPERATION_EVENT_STOP_CHARGE);
                                 pro_result = 0x01;
                             }
                             reason = result;
@@ -1866,26 +1865,28 @@ static void net_ykc_monitor_server_message_pro_entry(void *parameter)
                 /***** [运营平台远程控制并充启机请求] *****/
                 if(ykc_monitor_net_event_receive(NET_YKC_MONITOR_EVENT_HANDLE_SERVER, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, gunno,
                         (NET_YKC_MONITOR_EVENT_OPTION_OR |NET_YKC_MONITOR_EVENT_OPTION_CLEAR), NET_YKC_MONITOR_SREQ_EVENT_REMOTE_START_MERGE_CHARGE, NULL) > 0){
-                    result = 0x00;
+                    uint8_t pro_result = 0x00, reason = 0x00;
+                    result = NET_YKC_MONITOR_START_FAIL_REASON_NO;
                     response = ykc_monitor_get_response_buff(RT_WAITING_FOREVER);
+
                     if(g_ykc_monitor_sreq_remote_start_merge_charge[gunno].body.result == 0x00){
                         result = ykc_monitor_message_pro_remote_start_merge_charge_request(gunno, &g_ykc_monitor_sreq_remote_start_merge_charge[gunno], sizeof(g_ykc_monitor_sreq_remote_start_merge_charge[gunno]));
                         if(result >= NET_YKC_MONITOR_START_FAIL_REASON_NO){
-                            ((Net_YkcMonitorPro_PRes_Remote_StartMergeCharge_t*)response->general_transmit_buff)->body.result = 0x00;
+                            pro_result = 0x00;
                             if(result == NET_YKC_MONITOR_START_FAIL_REASON_NO){
-                                net_operation_set_event(gunno, NET_OPERATION_EVENT_START_MERGE_CHARGE);
-                                net_operation_clear_event(gunno, NET_OPERATION_EVENT_OFFLINECHARGE_LIMIT);
-                                ((Net_YkcMonitorPro_PRes_Remote_StartMergeCharge_t*)response->general_transmit_buff)->body.result = 0x01;
+                                pro_result = 0x01;
                             }
-                            ((Net_YkcMonitorPro_PRes_Remote_StartMergeCharge_t*)response->general_transmit_buff)->body.fail_reason = result;
+                            reason = result;
                         }
                     }else{
-                        ((Net_YkcMonitorPro_PRes_Remote_StartMergeCharge_t*)response->general_transmit_buff)->body.result = 0x00;
-                        ((Net_YkcMonitorPro_PRes_Remote_StartMergeCharge_t*)response->general_transmit_buff)->body.fail_reason = NET_YKC_MONITOR_START_FAIL_REASON_PILE_NUMBER_NOT_MATCH;
+                        pro_result = 0x00;
+                        reason = NET_YKC_MONITOR_START_FAIL_REASON_PILE_NUMBER_NOT_MATCH;
                     }
-                    if(result > 0x00){
+                    if(result >= NET_YKC_MONITOR_START_FAIL_REASON_NO){
                         result = ykc_monitor_response_padding_remote_start_merge_charge(gunno, response->general_transmit_buff, NET_YKC_MONITOR_GENERA_RESPONSE_BUFF_LENGTH, &(response->length));
-                        if(result >= 0x00){
+
+                        ((Net_YkcMonitorPro_PRes_Remote_StartMergeCharge_t*)response->general_transmit_buff)->body.result = pro_result;
+                        ((Net_YkcMonitorPro_PRes_Remote_StartMergeCharge_t*)response->general_transmit_buff)->body.fail_reason = reason;if(result >= 0x00){
                             ykc_monitor_net_event_send(NET_YKC_MONITOR_EVENT_HANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_RESPONSE, gunno, NET_YKC_MONITOR_PRES_EVENT_SERVER_START_MERGECHARGE);
                         }else{
                             ykc_monitor_response_buff_release_sem();

@@ -59,6 +59,7 @@
 #define NET_YKC_MONITOR_START_FAIL_REASON_OFFLINE                   4     /* 启动失败原因：设备离线 */
 #define NET_YKC_MONITOR_START_FAIL_REASON_NO_GUN                    5
 #define NET_YKC_MONITOR_START_FAIL_REASON_BILLING                   6     /* 启动失败原因：无效计费规则 */
+#define NET_YKC_MONITOR_START_FAIL_REASON_GUN_STATE                 7     /* 启动失败原因：枪状态不适合 */
 
 /** stop charge fail reason */
 #define NET_YKC_MONITOR_STOP_FAIL_REASON_NO                         0     /* 停机失败原因：无 */

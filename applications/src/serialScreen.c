@@ -998,7 +998,7 @@ static void SerialScreen_RealTime_InfoGet(void)
 u8 SerialScreen_GetChargeWay(void)
 {
     if(LcdAssistantData.Flag.ParaChargeSelect)
-        return APP_CHARGE_WAY_PARACHARGE;
+        return APP_CHARGE_WAY_PARACHARGE_LOCAL;
     else
         return APP_CHARGE_WAY_SINGLEGUN;
 }
@@ -1013,7 +1013,7 @@ void SerialScreen_SetChargeWay(u8 way)
         thaisen_set_charg_mode(thaisenSingleChargeMode);
         thaisenModuleSetChargeWay(thaisenModuleChargeWay_singleGun);
         LcdAssistantData.Flag.ParaChargeSelect = FALSE;
-    }else if(way == APP_CHARGE_WAY_PARACHARGE){
+    }else if((way == APP_CHARGE_WAY_PARACHARGE_LOCAL) || (way == APP_CHARGE_WAY_PARACHARGE_CLOUD)){
         thaisen_set_charg_mode(thaisenParallelCharging);
         thaisenModuleSetChargeWay(thaisenModuleChargeWay_parallelCharge);
         LcdAssistantData.Flag.ParaChargeSelect = TRUE;

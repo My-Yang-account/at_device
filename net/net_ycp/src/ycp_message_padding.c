@@ -853,7 +853,7 @@ int16_t ycp_message_pro_remote_start_charge_request(uint8_t gunno, void *data, u
     Net_YcpPro_SReq_Remote_StartCharge_t *request = (Net_YcpPro_SReq_Remote_StartCharge_t*)data;
 
     /** 并充时不能让平台启动副枪 */
-    if(s_ycp_base->charge_way == APP_CHARGE_WAY_PARACHARGE){
+    if(s_ycp_base->charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL){
         return NET_YCP_START_FAIL_CODE_IS_CHARGING;
     }
 
@@ -929,7 +929,7 @@ int16_t ycp_message_pro_remote_stop_charge_request(uint8_t gunno)
     s_ycp_base = (System_BaseData*)(s_ycp_handle->get_base_data(gunno));
 
     /** 并充时不能让平台停止副枪 */
-    if(s_ycp_base->charge_way == APP_CHARGE_WAY_PARACHARGE){
+    if(s_ycp_base->charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL){
         if(gunno != s_ycp_base->main_gunno){
             return NET_YCP_START_FAIL_CODE_IS_CHARGING;
         }
@@ -938,6 +938,13 @@ int16_t ycp_message_pro_remote_stop_charge_request(uint8_t gunno)
     if((s_ycp_base->state.current == APP_OFSM_STATE_CHARGING) ||
             (s_ycp_base->state.current == APP_OFSM_STATE_STARTING)){
         s_ycp_flag_info[gunno].is_stop_charge = NET_ENUM_TRUE;
+
+        if(s_ycp_base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
+            net_operation_set_event(s_ycp_base->main_gunno, NET_OPERATION_EVENT_STOP_CHARGE);
+        }else{
+            net_operation_set_event(gunno, NET_OPERATION_EVENT_STOP_CHARGE);
+        }
+
         return NET_YCP_STOP_FAIL_CODE_NONE;
     }
     return NET_YCP_STOP_FAIL_CODE_NO_CHARGING;
@@ -1315,6 +1322,10 @@ void ycp_chargepile_request_padding_bms_shakehand(uint8_t gunno)
     memset(g_ycp_preq_shake_hand[gunno].body.serial_number, 0x00, sizeof(g_ycp_preq_shake_hand[gunno].body.serial_number));
     memcpy(g_ycp_preq_shake_hand[gunno].body.serial_number, s_ycp_base->transaction_number, valid_len);
 
+    if(s_ycp_base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
+        s_ycp_base = (System_BaseData*)(s_ycp_handle->get_base_data(s_ycp_base->main_gunno));
+        bms = (struct thaisenBMS_Charger_struct*)(s_ycp_base->bms_data);
+    }
     memcpy(g_ycp_preq_shake_hand[gunno].body.bms_protocol_ver, bms->BRM.BMSVer, sizeof(bms->BRM.BMSVer));
     g_ycp_preq_shake_hand[gunno].body.bms_bat_type = bms->BRM.BatType;
     g_ycp_preq_shake_hand[gunno].body.bms_bat_rated_capacity = bms->BRM.BatRateCap;
@@ -1391,6 +1402,10 @@ void ycp_chargepile_request_padding_bms_paraconfig(uint8_t gunno)
     memset(g_ycp_preq_parameter_config[gunno].body.serial_number, 0x00, sizeof(g_ycp_preq_parameter_config[gunno].body.serial_number));
     memcpy(g_ycp_preq_parameter_config[gunno].body.serial_number, s_ycp_base->transaction_number, valid_len);
 
+    if(s_ycp_base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
+        s_ycp_base = (System_BaseData*)(s_ycp_handle->get_base_data(s_ycp_base->main_gunno));
+        bms = (struct thaisenBMS_Charger_struct*)(s_ycp_base->bms_data);
+    }
     g_ycp_preq_parameter_config[gunno].body.bms_single_bat_allow_volt_max = bms->BCP.CellAlowHigVolt;
     g_ycp_preq_parameter_config[gunno].body.bms_allow_curr_max = bms->BCP.AlowCurlt;
     g_ycp_preq_parameter_config[gunno].body.bms_bat_nominal_energy_all = bms->BCP.BatRateKW;
@@ -1437,6 +1452,10 @@ void ycp_chargepile_request_padding_bms_chargeend(uint8_t gunno)
     memset(g_ycp_preq_charge_finish[gunno].body.serial_number, 0x00, sizeof(g_ycp_preq_charge_finish[gunno].body.serial_number));
     memcpy(g_ycp_preq_charge_finish[gunno].body.serial_number, s_ycp_base->transaction_number, valid_len);
 
+    if(s_ycp_base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
+        s_ycp_base = (System_BaseData*)(s_ycp_handle->get_base_data(s_ycp_base->main_gunno));
+        bms = (struct thaisenBMS_Charger_struct*)(s_ycp_base->bms_data);
+    }
     g_ycp_preq_charge_finish[gunno].body.bms_end_soc = bms->BSD.StopSOC *10;
     g_ycp_preq_charge_finish[gunno].body.bms_single_bat_volt_min = bms->BSD.CellLowVolt;
     g_ycp_preq_charge_finish[gunno].body.bms_single_bat_volt_max = bms->BSD.CellHigVolt;
@@ -1470,6 +1489,10 @@ void ycp_chargepile_request_padding_bms_error(uint8_t gunno)
     memset(g_ycp_preq_error_message[gunno].body.serial_number, 0x00, sizeof(g_ycp_preq_error_message[gunno].body.serial_number));
     memcpy(g_ycp_preq_error_message[gunno].body.serial_number, s_ycp_base->transaction_number, valid_len);
 
+    if(s_ycp_base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
+        s_ycp_base = (System_BaseData*)(s_ycp_handle->get_base_data(s_ycp_base->main_gunno));
+        bms = (struct thaisenBMS_Charger_struct*)(s_ycp_base->bms_data);
+    }
     g_ycp_preq_error_message[gunno].body.timeout.spn2560_00_identify = bms->BEM.CRM00OVtime;
     g_ycp_preq_error_message[gunno].body.timeout.spn2560_aa_identify = bms->BEM.CRMAAOVtime;
     g_ycp_preq_error_message[gunno].body.timeout.charger_sync_and_output_max = bms->BEM.CTSCMLOVtime;
@@ -1510,6 +1533,10 @@ void ycp_chargepile_request_padding_bmsend_duringcharge(uint8_t gunno)
     memset(g_ycp_preq_bms_end[gunno].body.serial_number, 0x00, sizeof(g_ycp_preq_bms_end[gunno].body.serial_number));
     memcpy(g_ycp_preq_bms_end[gunno].body.serial_number, s_ycp_base->transaction_number, valid_len);
 
+    if(s_ycp_base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
+        s_ycp_base = (System_BaseData*)(s_ycp_handle->get_base_data(s_ycp_base->main_gunno));
+        bms = (struct thaisenBMS_Charger_struct*)(s_ycp_base->bms_data);
+    }
     if(bms->BST.SOCGetObj){
         g_ycp_preq_bms_end[gunno].body.stop_reason = 0x01;
     }else if(bms->BST.VoltGetObj){
@@ -1576,6 +1603,10 @@ void ycp_chargepile_request_padding_chargerend_duringcharge(uint8_t gunno)
     memset(g_ycp_preq_charger_end[gunno].body.serial_number, 0x00, sizeof(g_ycp_preq_charger_end[gunno].body.serial_number));
     memcpy(g_ycp_preq_charger_end[gunno].body.serial_number, s_ycp_base->transaction_number, valid_len);
 
+    if(s_ycp_base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
+        s_ycp_base = (System_BaseData*)(s_ycp_handle->get_base_data(s_ycp_base->main_gunno));
+        bms = (struct thaisenBMS_Charger_struct*)(s_ycp_base->bms_data);
+    }
     if(bms->CST.AutoStop){
         g_ycp_preq_charger_end[gunno].body.stop_reason = 0x01;
     }else if(bms->CST.ManStop){
@@ -1641,6 +1672,14 @@ void ycp_chargepile_request_padding_bmscommand_chargerout(uint8_t gunno, uint8_t
             s_ycp_base = (System_BaseData*)(s_ycp_handle->get_base_data(gunno));
             struct thaisenBMS_Charger_struct *bms = (struct thaisenBMS_Charger_struct*)(s_ycp_base->bms_data);
 
+            g_ycp_preq_bmscommand_chargerout[gunno].body.pile_output_volt = (s_ycp_base->voltage_a /10);
+            g_ycp_preq_bmscommand_chargerout[gunno].body.pile_output_curr = (s_ycp_base->current_a /10);
+            g_ycp_preq_bmscommand_chargerout[gunno].body.charge_time = s_ycp_base->charge_time;
+
+            if(s_ycp_base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
+                s_ycp_base = (System_BaseData*)(s_ycp_handle->get_base_data(s_ycp_base->main_gunno));
+                bms = (struct thaisenBMS_Charger_struct*)(s_ycp_base->bms_data);
+            }
             g_ycp_preq_bmscommand_chargerout[gunno].body.bms_volt_command = bms->BCL.BMSneedVolt;
             g_ycp_preq_bmscommand_chargerout[gunno].body.bms_curr_command = bms->BCL.BMSneedCurlt;
             g_ycp_preq_bmscommand_chargerout[gunno].body.bms_charge_mode = bms->BCL.ChagModel;
@@ -1651,9 +1690,6 @@ void ycp_chargepile_request_padding_bmscommand_chargerout(uint8_t gunno, uint8_t
             g_ycp_preq_bmscommand_chargerout[gunno].body.max_single_bat_volt_gn = bms->BCS.HigVoltCellNum;
             g_ycp_preq_bmscommand_chargerout[gunno].body.bms_current_soc = bms->BCS.SOC *10;
             g_ycp_preq_bmscommand_chargerout[gunno].body.bms_remain_charge_time = bms->BCS.SurplChgTime *60;
-            g_ycp_preq_bmscommand_chargerout[gunno].body.pile_output_volt = (s_ycp_base->voltage_a /10);
-            g_ycp_preq_bmscommand_chargerout[gunno].body.pile_output_curr = (s_ycp_base->current_a /10);
-            g_ycp_preq_bmscommand_chargerout[gunno].body.charge_time = s_ycp_base->charge_time;
         }
     }
 }
@@ -1684,6 +1720,10 @@ void ycp_chargepile_request_padding_bmsinfo_duringcharge(uint8_t gunno, uint8_t 
             s_ycp_base = (System_BaseData*)(s_ycp_handle->get_base_data(gunno));
             struct thaisenBMS_Charger_struct *bms = (struct thaisenBMS_Charger_struct*)(s_ycp_base->bms_data);
 
+            if(s_ycp_base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
+                s_ycp_base = (System_BaseData*)(s_ycp_handle->get_base_data(s_ycp_base->main_gunno));
+                bms = (struct thaisenBMS_Charger_struct*)(s_ycp_base->bms_data);
+            }
             g_ycp_preq_bms_info[gunno].body.bms_max_single_volt_bat_number = bms->BSM.HigVoltCellNum;
             g_ycp_preq_bms_info[gunno].body.bms_bat_temp_max = bms->BSM.HigTemp *10;
             g_ycp_preq_bms_info[gunno].body.bat_temp_max_measure_number = bms->BSM.HigTempNum;
@@ -1887,6 +1927,10 @@ void ycp_stop_charge_response_asynchronously(uint8_t gunno, uint8_t result)
         return;
     }
 
+    s_ycp_base = (System_BaseData*)(s_ycp_handle->get_base_data(gunno));
+    if(s_ycp_base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
+        gunno = s_ycp_base->main_gunno;
+    }
     if(s_ycp_flag_info[gunno].is_stop_charge == 0x00){
         return;
     }

@@ -1333,7 +1333,6 @@ static void net_ycp_server_message_pro_entry(void *parameter)
                     if(result >= NET_YCP_STOP_FAIL_CODE_NONE){
                         pro_result = NET_YCP_STOP_FAIL_CODE_NONE;
                         if(result == NET_YCP_STOP_FAIL_CODE_NONE){
-                            net_operation_set_event(gunno, NET_OPERATION_EVENT_STOP_CHARGE);
                             pro_result = 0x01;
                         }
                         reason = result;
