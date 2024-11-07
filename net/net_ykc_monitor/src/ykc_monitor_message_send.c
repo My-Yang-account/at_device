@@ -417,6 +417,12 @@ void ykc_monitor_ascii_to_bcd(uint8_t *ascii, uint8_t alen, uint8_t *bcd, uint8_
 {
     uint8_t index, c;
 
+    if((ascii == NULL) || (bcd == NULL) || (alen == 0x00) || (blen == 0x00)){
+        return;
+    }
+
+    memset(bcd, 0x00, blen);
+
     if(alen %0x02){
         for(index = 0; index < (alen /0x02); index++) {
             c  = (*ascii++) << 4;
