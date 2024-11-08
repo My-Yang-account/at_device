@@ -5648,7 +5648,6 @@ void SerialScreen_GetKeyProcess(struct SerialScreenObj *cmd)
 				if((pPageIndex->item[i].reflash == keyval)
 					&&(pPageIndex->item[i].regaddr == keyreg))
 				{
-					
 					if(pPageIndex->item[i].type == LCD_BtnAType)
 					{
 						LcdData.gunIndex = LCD_GUN_1;
@@ -5679,7 +5678,7 @@ void SerialScreen_GetKeyProcess(struct SerialScreenObj *cmd)
                         }
 						sSCREEN_DEBUGPROMSG("gunIndex2=%d\r\n",LcdData.gunIndex);
 					}
-					
+
 					if(pPageIndex->item[i].isOk != NULL)
 					{
                         if(pPageIndex->item[i].isOk(LcdData.gunIndex)==0)
@@ -7166,7 +7165,7 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_SYS, NULL, "TimeMIN", LCD_InputType, 0, 0x419C, pu32_type, sizeof(LcdData.setData.s_TimeSync[4]), (void *)&LcdData.setData.s_TimeSync[4]);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_SYS, NULL, "TimeSecond", LCD_InputType, 0, 0x419E, pu32_type, sizeof(LcdData.setData.s_TimeSync[5]), (void *)&LcdData.setData.s_TimeSync[5]);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_SYS, NULL, "TimeSyncSet", LCD_BtnType, 0x0014, 0x1000, page_type, LCD_PAGE_MENU_SYS, (void *)SerialScreen_ScreenSet_TimeSync_Flag);
-//    SerialScreen_ItemSetUp(LCD_PAGE_MENU_SYS, NULL, "Reboot", LCD_BtnType, 0x0014, 0x1000, page_type, LCD_PAGE_MENU_SYS, (void *)SerialScreen_ScreenSet_Reboot_Flag);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_SYS, NULL, "Reboot", LCD_BtnType, 0x0002, 0x1005, page_type, LCD_PAGE_MENU_SYS, (void *)SerialScreen_ScreenSet_Reboot_Flag);
 
     /** 41.出厂设置-离线费率 [page:62] */
     SerialScreen_ItemSetUp(LCD_PAGE_OFFLINE_BILLING, NULL, "input info", LCD_BtnType, 0x001E, 0x1000, page_type, LCD_PAGE_MENU_INPUT, (void *)SerialScreen_InputInfoGet);   //OK
