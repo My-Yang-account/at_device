@@ -13,100 +13,78 @@
 extern "C" {
 #endif
 
-#include <stdbool.h>
+#include <stdio.h>
 
-#define SEARCH_CARD_PERIOD      100                         /* 寻卡周期(单位 ms) */
-#define READER_OFFLINE          5000 /SEARCH_CARD_PERIOD    /* 读卡器离线确认时间 ms */
-#define READER_EXIT_COUNT       10                          /* 读卡器存在计数 */
-#define CARD_LEAVE_COUNT        10                          /* 卡离场计数 */
+#define APP_CARD_EVENT_QUERY_BILL                    (0x01 <<0x00)    /* 卡事件：查询是否有未结算订单 */
+#define APP_CARD_EVENT_QUERY_BALLANCE                (0x01 <<0x01)    /* 卡事件：查询卡内余额 */
+#define APP_CARD_EVENT_CHARGEPILE_READY              (0x01 <<0x02)    /* 卡事件：桩处于可充电状态 */
+#define APP_CARD_EVENT_CHARGE_START                  (0x01 <<0x03)    /* 卡事件：充电开始 */
+#define APP_CARD_EVENT_CHARGE_STOP                   (0x01 <<0x04)    /* 卡事件：充电结束 */
+#define APP_CARD_EVENT_IS_PAYING                     (0x01 <<0x05)    /* 卡事件：卡正在结算(业务不能再计算电量、金额) */
+#define APP_CARD_EVENT_PAY_COMPLETE                  (0x01 <<0x06)    /* 卡事件：卡结算完成 */
 
-#define BUZZON_STATE_MAX_COUNT   8
-
-/* device addr */
-#define DEVICE_ADDRESS    0xB3
-
-/* region */
-#define RESPONSE_FRAME_REGION_STATE           0x04          /* 响应帧状态域 */
-#define RESPONSE_FRAME_REGION_UID_LEN         0x0B          /* 响应帧uid长度域 */
-#define RESPONSE_FRAME_REGION_UID             0x0C          /* 响应帧uid域 */
-
-enum buzzon_state {
-    BUZZON_STATE_NULL = 0,
-    BUZZON_STATE_OK,
-    BUZZON_STATE_FAILED,  /* 平台鉴权卡片失败 */
-    BUZZON_STATE_WARRING, /* 密钥验证或获取卡号失败，本地鉴权失败 */
-    BUZZON_STATE_AUTHING, /* 平台正在鉴权卡片 */
-    BUZZON_STATE_SUCCESS, /* 平台鉴权卡片成功 */
-};
-/* 卡信息类型 */
-enum info_type{
-    CARD_INFO_TYPE_CARD_UID,
-    CARD_INFO_TYPE_CARD_NUMBER,
-};
-/* 读卡器指令 */
-enum cmd{
-    CARD_REQUEST = 0x41,
-    CARD_KEY_AUTHEN = 0x46,
-    CARD_READ_INFO = 0x47,
-    CARD_ACTIVE = 0x4D,
-    CARD_AUTO_DETECT = 0x4E,
-    CARD_BUZZER = 0x5A,
-};
-/* 读卡器指令类型 */
-enum cmd_type{
-    DEVICE_CONTROL_CLASS = 0x01,
-    MIFARE_S50_S70_CLASS,
-    ISO7816_3_CLASS,
-    ISO14443_PICC_CLASS,
-    PLUS_CPU_CLASS,
-    ISO15693_VICC_CLASS,
-    ISO18000_6C_CLASS,
-    ISO18092_NFCIP_1_CLASS,
-    SGR_ID_CARD,
-};
-/* 读卡器指令操作结果 */
-enum state{
-    OPERATION_STATE_SUCCESS = 0,
-    OPERATION_STATE_FAIL = -1,
-};
-/* 卡请求类型 */
-enum card_atqa_type {
-    CARD_ATQA_TYPE_MIFAREL1_S50 = 0x0004,
-    CARD_ATQA_TYPE_MIFAREL1_S70 = 0x0002,
-};
-/* 卡指令响应类型 */
-enum card_sak_type {
-    CARD_SAK_TYPE_MIFAREL1_S50 = 0x08,
-    CARD_SAK_TYPE_MIFAREL1_S70 = 0x18,
+enum{
+    APP_CARD_OPERATE_RET_SUCCESS = 0x00,                                      /** 卡操作结果：成功 */
+    APP_CARD_OPERATE_RET_INTERNAL_ERROR = -0x01,                              /** 卡操作结果：系统内部错误 */
+    APP_CARD_OPERATE_RET_NO_BALLANCE = -0x02,                                 /** 卡操作结果：余额不足 */
+    APP_CARD_OPERATE_RET_READ_ERROR = -0x03,                                  /** 卡操作结果：读取数据失败 */
+    APP_CARD_OPERATE_RET_STORAGE_ERROR = -0x04,                               /** 卡操作结果：保存数据失败 */
+    APP_CARD_OPERATE_RET_HISTORY_BILL_ERROR = -0x05,                          /** 卡操作结果：未查询到历史订单 */
+    APP_CARD_OPERATE_RET_IS_LOCKED = -0x06,                                   /** 卡操作结果：卡被锁 */
+    APP_CARD_OPERATE_RET_INVALID_CARD = -0x07,                                /** 卡操作结果：无效卡 */
 };
 
-enum card_state {
-    CARD_STATE_DOWN = 0,    /* 掉电状态（属于正常状态，RST引脚为低电平） */
-    CARD_STATE_IDLE,        /* 闲置状态 */
-    CARD_STATE_READY,       /* 准备状态 */
-    CARD_STATE_ACTIVATION,  /* 激活状态 */
-    CARD_STATE_FINISH,      /* 结束（完成）状态 */
-    CARD_STATE_OFFFIELD,    /* 离场状态 */
-    CARD_STATE_OFFLINE,     /* 离线状态（属于异常状态） */
-    CARD_STATE_SIZE,
-};
+/*****************************************************************************
+ *  函数名   app_card_event_send
+ *  功能       卡事件发送
+ *  参数       event      事件
+ *     set        用于保存当前事件集
+ * 返回       >=0：成功   <0：失败
+ ****************************************************************************/
+int32_t app_card_event_send(uint32_t event, uint8_t gunno, uint32_t *set);
 
-void buzzer_ipc_init(void);
-void card_thread_entry(void *parameter);
+/*****************************************************************************
+ *  函数名   app_card_event_recv
+ *  功能       卡事件接收
+ *  参数       event        事件
+ *     timeout      事件等待时长
+ *     set          用于保存当前事件集
+ *     is_clear     事件接收完是否清除事件
+ * 返回       >=0：成功   <0：失败
+ ****************************************************************************/
+int32_t app_card_event_recv(uint32_t event, uint32_t timeout, uint8_t gunno, uint32_t *set, uint8_t is_clear);
 
-uint8_t* get_card_number(void);
-uint8_t get_card_number_len(void);
+/*****************************************************************************
+ *  函数名   app_card_ipc_init
+ *  功能       卡IPC初始化
+ *  参数
+ * 返回       >=0：成功   <0：失败
+ ****************************************************************************/
+int32_t app_card_ipc_init(void);
 
-uint8_t* get_card_uid(void);
-uint8_t get_card_uid_len(void);
+/*****************************************************************************
+ *  函数名   app_card_query_ballance
+ *  功能       查询卡内余额
+ *  参数      gunno    枪号
+ * 返回       卡内余额
+ ****************************************************************************/
+uint32_t app_card_query_ballance(uint8_t gunno);
 
-uint8_t get_card_info_type(void);
+/*****************************************************************************
+ *  函数名   app_card_query_operate_ret
+ *  功能       查询卡信息处理结果
+ *  参数      gunno    枪号
+ * 返回       卡信息处理结果
+ ****************************************************************************/
+int8_t app_card_query_operate_ret(uint8_t gunno);
 
-uint8_t get_swipe_card_state(uint8_t gunno);
-void clear_swipe_card_state(uint8_t gunno);
-
-uint8_t get_current_port(void);
-void set_current_port(uint8_t port);
+/*****************************************************************************
+ *  函数名   app_card_init
+ *  功能       卡部分初始化
+ *  参数
+ * 返回       >=0：成功   <0：失败
+ ****************************************************************************/
+int32_t app_card_init(void);
 
 #ifdef __cplusplus
 }

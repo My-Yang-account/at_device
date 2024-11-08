@@ -9,6 +9,7 @@
  */
 #include "app_billing_rule.h"
 #include "app_ofsm.h"
+#include "chargepile_config.h"
 
 #pragma pack(1)
 /** [计费信息] */
@@ -703,15 +704,30 @@ void app_billing_info_calculate(uint32_t current_time, uint32_t current_elect, u
         return;
     }
 
-    uint8_t period = 0x00, rate_number = 0x00;
+    uint8_t period = 0x00, rate_number = 0x00, offbilling_rate_number = 0x00, is_offbilling_mode = 0x00;
     uint32_t elect_inc = 0x00, service_fees_total = 0x00, fees_total = 0x00;
 
     if((current_elect <= s_billing_info[gunno].last_elect) || (current_elect <= s_billing_info[gunno].start_elect)){
         return;
     }
 
+    if((*(sys_read_config_item_content(CONFIG_ITEM_SUPORT_OFFLINE_BILLING, 0))) == 0x01){
+        is_offbilling_mode = 0x01;     /** 离线计费模式 */
+    }
+
     period = app_calculate_current_period(current_time);
-    rate_number = s_billing_rule[gunno].rate_number[period];
+    if(is_offbilling_mode){
+        offbilling_rate_number = sys_get_offbilling_rate_number(current_time);
+        if(offbilling_rate_number >= APP_BILLING_RULE_RATE_TYPE_MAX){
+            if(APP_BILLING_RULE_RATE_TYPE_MAX){
+                rate_number = (APP_BILLING_RULE_RATE_TYPE_MAX - 0x01);
+            }else{
+                rate_number = 0;
+            }
+        }
+    }else{
+        rate_number = s_billing_rule[gunno].rate_number[period];
+    }
     elect_inc = current_elect - s_billing_info[gunno].last_elect;   /** 未计算电损比 */
 
     s_billing_info[gunno].period_number = period;
@@ -729,9 +745,15 @@ void app_billing_info_calculate(uint32_t current_time, uint32_t current_elect, u
     s_billing_info[gunno].period_elect[period] = s_billing_info[gunno].last_period_elect[period] +  \
             (s_billing_info[gunno].last_period_elect[period] *s_billing_assistant_info.eloss_proportion /1000);
 
-    s_billing_info[gunno].period_fees[period].elect = (s_billing_info[gunno].period_elect[period] *s_billing_rule[gunno].period_price[period].elect /10);
-    s_billing_info[gunno].period_fees[period].service = (s_billing_info[gunno].period_elect[period] *s_billing_rule[gunno].period_price[period].service /10);
-    s_billing_info[gunno].period_fees[period].delay = (s_billing_info[gunno].period_elect[period] *s_billing_rule[gunno].period_price[period].delay /10);
+    if(is_offbilling_mode){
+        s_billing_info[gunno].period_fees[period].elect = (s_billing_info[gunno].period_elect[period] *sys_get_offbilling_elect_price(offbilling_rate_number) /10);
+        s_billing_info[gunno].period_fees[period].service = (s_billing_info[gunno].period_elect[period] *sys_get_offbilling_service_price(offbilling_rate_number) /10);
+        s_billing_info[gunno].period_fees[period].delay = (s_billing_info[gunno].period_elect[period] *sys_get_offbilling_delay_price(offbilling_rate_number) /10);
+    }else{
+        s_billing_info[gunno].period_fees[period].elect = (s_billing_info[gunno].period_elect[period] *s_billing_rule[gunno].period_price[period].elect /10);
+        s_billing_info[gunno].period_fees[period].service = (s_billing_info[gunno].period_elect[period] *s_billing_rule[gunno].period_price[period].service /10);
+        s_billing_info[gunno].period_fees[period].delay = (s_billing_info[gunno].period_elect[period] *s_billing_rule[gunno].period_price[period].delay /10);
+    }
 
     /** 总电量、金额信息 */
     for(uint8_t count = 0x00; count < APP_BILLING_RULE_PERIOD_MAX; count++){
@@ -748,7 +770,13 @@ void app_billing_info_calculate(uint32_t current_time, uint32_t current_elect, u
             (s_billing_info[gunno].last_rate_type_elect[rate_number] *s_billing_assistant_info.eloss_proportion /1000);
 
     s_billing_info[gunno].rate_type_fess[rate_number] = (s_billing_info[gunno].rate_type_elect[rate_number] *s_billing_rule[gunno].rate_price[rate_number] /10);
-    s_billing_info[gunno].rate_type_elect_fess[rate_number] = (s_billing_info[gunno].rate_type_elect[rate_number] *s_billing_rule[gunno].period_price[period].elect /10);
-    s_billing_info[gunno].rate_type_service_fess[rate_number] = (s_billing_info[gunno].rate_type_elect[rate_number] *s_billing_rule[gunno].period_price[period].service /10);
+
+    if(is_offbilling_mode){
+        s_billing_info[gunno].rate_type_elect_fess[rate_number] = (s_billing_info[gunno].rate_type_elect[rate_number] *sys_get_offbilling_elect_price(rate_number) /10);
+        s_billing_info[gunno].rate_type_service_fess[rate_number] = (s_billing_info[gunno].rate_type_elect[rate_number] *sys_get_offbilling_service_price(rate_number) /10);
+    }else{
+        s_billing_info[gunno].rate_type_elect_fess[rate_number] = (s_billing_info[gunno].rate_type_elect[rate_number] *s_billing_rule[gunno].period_price[period].elect /10);
+        s_billing_info[gunno].rate_type_service_fess[rate_number] = (s_billing_info[gunno].rate_type_elect[rate_number] *s_billing_rule[gunno].period_price[period].service /10);
+    }
 }
 

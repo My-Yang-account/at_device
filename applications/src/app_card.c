@@ -1,4 +1,5 @@
 
+#include "app_rfid_reader.h"
 #include <rtthread.h>
 #include "string.h"
 
@@ -6,399 +7,701 @@
 #include "app_ofsm.h"
 #include "app_osupport.h"
 #include "app_support_func.h"
-#include "bsp_serial.h"
 #include "chargepile_config.h"
+#include "mw_storage.h"
 
 #define DBG_TAG "app.card"
 #define DBG_LVL DBG_LOG
 #include <rtdbg.h>
 
-struct card{
-    uint16_t data_count;
-    uint8_t data[64];
+#define CARD_BLOCK_SIZE                                0x10          /* 卡一个块的大小(字节) */
 
-    uint8_t card_uid_len;
-    uint8_t card_uid[8];
-    uint8_t card_numbe[16];
-    uint8_t card_numbe_len;
-    uint8_t info_type;
-    uint8_t state;
+#pragma pack(1)
 
-    uint8_t port;
+union block{
+    struct{
+        uint32_t start_time;               /** 开始时间戳(s) */
+        uint32_t ballance;                 /** 卡内余额(0.01元) */
+        uint8_t ballance_check;            /** 卡内余额和校验 */
+        uint8_t is_lock;                   /** 已锁卡 */
+        uint8_t reserve[6];                /** 预留 */
+    }detail;
+    uint8_t data[16];
 };
-static struct card s_card_info;
-static uint8_t s_reader_error_count;
 
-static uint8_t s_card_active[2] = {0x00, 0x26};
-static uint8_t s_card_info_sector = 0x09;
-static uint8_t s_thaisen_card_key[6] = {0x41, 0x31, 0x53, 0x4D, 0x31, 0x50};
-static uint8_t s_ykc_card_key[6] = {0x72, 0x28, 0x92, 0x63, 0x46, 0x23};
+struct card_info_sector2{
+    uint8_t device_id[16];                     /** 启动桩号 */
+    uint8_t card_number[16];                   /** 卡号 */
+    union block block_10;                      /** 块10 */
+};
 
-static enum card_state s_card_state = CARD_STATE_DOWN;
-static enum buzzon_state s_buzzon_state_array[BUZZON_STATE_MAX_COUNT];
-static enum buzzon_state s_buzzon_state = BUZZON_STATE_NULL;
-struct rt_messagequeue g_buzzon_mq;
+#pragma pack()
 
-void buzzer_ipc_init(void)
+#define APP_ENDIANNESS_CONVERT(value)        \
+        (((value >>24) &0xff) |((value >>8) &0xff00) |((value <<8) &0xff0000) |((value <<24) &0xff000000))
+
+static rfid_reader *s_rfidr = NULL;
+static int8_t s_card_operate_ret[APP_SYSTEM_GUNNO_SIZE];
+static struct card_info_sector2 s_card_info_sector2;
+static uint32_t s_card_ballance[APP_SYSTEM_GUNNO_SIZE];  /** 卡内余额(0.0001) */
+static struct rt_event s_card_event[APP_SYSTEM_GUNNO_SIZE];
+
+/*****************************************************************************
+ * 函数名                app_card_query_funpay_bill_fees_total
+ * 功能                    查询历史订单中与指定UUID匹配的第一条订单的消费金额
+ * 参数                    uuid   UUID
+ *          ulen   UUID 长度
+ *          stime  开始时间
+ *          fees   用于保存订单的消费电量
+ * 返回                   >=0：成功    <0：失败
+ ****************************************************************************/
+static int32_t app_card_query_funpay_bill_fees_total(uint8_t *uuid, uint8_t ulen, uint32_t stime, uint32_t *fees)
 {
-    rt_mq_init(&g_buzzon_mq, "buzzon_mq", s_buzzon_state_array, sizeof(enum buzzon_state), sizeof(s_buzzon_state_array), RT_IPC_FLAG_PRIO);
-}
-
-static int16_t reader_get_char(void)
-{
-    uint8_t ch = 0x00;
-    int8_t result = 0;
-
-    while (rt_device_read(g_reader_serial, -1, &ch, 1) != 1) {
-        result = rt_sem_take(&g_reader_rx_sem, SEARCH_CARD_PERIOD);
-        if(result != RT_EOK){
-            return -1;
-        }
+    if(fees == NULL){
+        return -0x01;
     }
-    return ch;
-}
+    if((uuid == NULL) || ((ulen < 0x04) || (ulen > 0x08))){
+        return -0x01;
+    }
 
-static int8_t readline_data_from_reader_uart(void)
-{
-    char ch;
-    int16_t result = 0;
-    uint16_t data_len = 0;
-    uint16_t frame_check = 0, calculate_check = 0;
-    s_card_info.data_count = 0;
+    LOG_D("query unpay bill, uuid:");
+    for(uint8_t count = 0x00; count < ulen; count++){
+        LOG_D("%02x", uuid[count]);
+    }
 
-    while(1)
-    {
-        result = reader_get_char();
-        if(result < 0){               /* 读卡器未回复 */
-            return -1;
-        }
-        ch = (uint8_t)result;
+    int8_t index = 0x00;
+    int32_t current_index = 0x00, total_num = 0x00, result = 0x00;
+    thaisen_transaction_t *transaction = (thaisen_transaction_t*)rt_malloc(sizeof(thaisen_transaction_t));
+    if(transaction == NULL){
+        /** 没有足够的内存 */
+        return -0x01;
+    }
+    current_index = mw_storage_record_get_current_index(RECORD_REGION_CHARGE_RECORDA);
+    total_num = mw_storage_record_get_record_total_num(RECORD_REGION_CHARGE_RECORDA);
+    if((current_index < 0x00) || (total_num <= 0x00)){
+        /** 这个设备目前没有订单 */
+        return -0x01;
+    }
 
-//        LOG_D("receive data|0x%x", ch);
+    for(index = current_index; index >=0; index--){
+        result = mw_storage_record_get_designate_index_record((uint8_t*)transaction, sizeof(thaisen_transaction_t), RECORD_REGION_CHARGE_RECORDA, index);
+        if((result == STORAGE_ERR_NONE) || (result == STORAGE_ERR_CHECK_ERROR)){
+            if(memcmp(uuid, transaction->physics_card_number, ulen) == 0x00){
+                struct ofsm_info *ofsm = get_ofsm_info(APP_SYSTEM_GUNNOA);
 
-        if(ch != DEVICE_ADDRESS && s_card_info.data_count == 0){
-            continue;
-        }
-        s_card_info.data[s_card_info.data_count++] = ch;
-
-        if(s_card_info.data_count == 8){
-            data_len = calculate_data_from_byte(s_card_info.data + 6, 2, START_FROM_HIGH_BYTE);
-        }
-
-        if(s_card_info.data_count >= 8 + data_len + 2){
-            frame_check = calculate_data_from_byte(s_card_info.data + 8 + data_len, 2, START_FROM_HIGH_BYTE);
-            for(uint8_t count = 0; count < 8 + data_len; count++){
-                calculate_check += s_card_info.data[count];
+                *fees = transaction->total_fee;
+                ofsm->base.charge_time = transaction->charge_time;
+                ofsm->base.elect_a = transaction->total_elect;
+                ofsm->base.fees_total = transaction->total_fee;
+                ofsm->base.account_ballance_after = transaction->account_ballance_after;
+                ofsm->base.reason_code = transaction->stop_reason;
+                return 0x00;
             }
-            if(frame_check != (uint16_t)(~calculate_check)){
-                LOG_E("check code error|%x |%x", frame_check, (uint16_t)(~calculate_check));
-                s_card_info.data_count = 0;
-                continue;
-            }
-            break;
         }
     }
-    return 0;
-}
+    if(total_num >= 100){  /** 设备能存储的订单最大数量 */
+        for(index = (100 - 1); index > current_index; index--){
+            result = mw_storage_record_get_designate_index_record((uint8_t*)transaction, sizeof(thaisen_transaction_t), RECORD_REGION_CHARGE_RECORDA, index);
+            if((result == STORAGE_ERR_NONE) || (result == STORAGE_ERR_CHECK_ERROR)){
+                if(memcmp(uuid, transaction->physics_card_number, ulen) == 0x00){
+                    struct ofsm_info *ofsm = get_ofsm_info(APP_SYSTEM_GUNNOA);
 
-
-static void send_frame_to_reader(uint16_t cmd, uint8_t* data, uint16_t len)
-{
-    uint16_t check_code = 0;
-    uint8_t request[len + 0x0A];
-
-    request[0] = 0xB2;
-    request[1] = 0x00;
-    request[2] = 0x00;
-    request[3] = MIFARE_S50_S70_CLASS;
-    request[4] = cmd;
-    request[5] = cmd >>8;
-    request[6] = len;
-    request[7] = len >>8;
-
-    for(uint16_t count = 0; count < len; count++){
-        request[8 + count] = data[count];
-    }
-    check_code = get_check_sum(request, len + 0x0A - 0x02);
-    check_code = ~check_code;
-
-    request[len + 0x0A - 0x02] = check_code;
-    request[len + 0x0A - 0x01] = check_code >>8;
-
-    reader_send_data(request, len + 0x0A);
-}
-
-static int8_t reader_offline_judge(void)
-{
-    if(readline_data_from_reader_uart() < 0){  /* 读卡器未回复 */
-        s_reader_error_count++;
-        if(s_reader_error_count >= READER_OFFLINE){
-            s_reader_error_count = 0;
-            s_card_state = CARD_STATE_OFFLINE;
-            if(*(sys_read_config_item_content(CONFIG_ITEM_SUPORT_CARD, 0)) == 1){
-                for(uint8_t gunno = 0x00; gunno < APP_SYSTEM_GUNNO_SIZE; gunno++){
-                    LOG_E("card reader offline");
-                    app_set_system_fault_enum(APP_SYS_FAULT_CARD_READER, APP_GENERAL_SYSTEM_FAULT_SET_LOW, gunno);
+                    *fees = transaction->total_fee;
+                    ofsm->base.charge_time = transaction->charge_time;
+                    ofsm->base.elect_a = transaction->total_elect;
+                    ofsm->base.fees_total = transaction->total_fee;
+                    ofsm->base.account_ballance_after = transaction->account_ballance_after;
+                    ofsm->base.reason_code = transaction->stop_reason;
+                    return 0x00;
                 }
             }
         }
-        return -1;
     }
-    s_reader_error_count = 0;
-    return 0;
+
+#ifdef APP_USING_DOUBLEGUN
+    current_index = mw_storage_record_get_current_index(RECORD_REGION_CHARGE_RECORDB);
+    total_num = mw_storage_record_get_record_total_num(RECORD_REGION_CHARGE_RECORDB);
+    if((current_index < 0x00) || (total_num <= 0x00)){
+        /** 这个设备目前没有订单 */
+        return -0x01;
+    }
+
+    for(index = current_index; index >=0; index--){
+        result = mw_storage_record_get_designate_index_record((uint8_t*)transaction, sizeof(thaisen_transaction_t), RECORD_REGION_CHARGE_RECORDB, index);
+        if((result == STORAGE_ERR_NONE) || (result == STORAGE_ERR_CHECK_ERROR)){
+            if(memcmp(uuid, transaction->physics_card_number, ulen) == 0x00){
+                struct ofsm_info *ofsm = get_ofsm_info(APP_SYSTEM_GUNNOB);
+
+                *fees = transaction->total_fee;
+                ofsm->base.charge_time = transaction->charge_time;
+                ofsm->base.elect_a = transaction->total_elect;
+                ofsm->base.fees_total = transaction->total_fee;
+                ofsm->base.account_ballance_after = transaction->account_ballance_after;
+                ofsm->base.reason_code = transaction->stop_reason;
+                return 0x00;
+            }
+        }
+    }
+    if(total_num >= 100){  /** 设备能存储的订单最大数量 */
+        for(index = (100 - 1); index > current_index; index--){
+            result = mw_storage_record_get_designate_index_record((uint8_t*)transaction, sizeof(thaisen_transaction_t), RECORD_REGION_CHARGE_RECORDB, index);
+            if((result == STORAGE_ERR_NONE) || (result == STORAGE_ERR_CHECK_ERROR)){
+                if(memcmp(uuid, transaction->physics_card_number, ulen) == 0x00){
+                    struct ofsm_info *ofsm = get_ofsm_info(APP_SYSTEM_GUNNOB);
+
+                    *fees = transaction->total_fee;
+                    ofsm->base.charge_time = transaction->charge_time;
+                    ofsm->base.elect_a = transaction->total_elect;
+                    ofsm->base.fees_total = transaction->total_fee;
+                    ofsm->base.account_ballance_after = transaction->account_ballance_after;
+                    ofsm->base.reason_code = transaction->stop_reason;
+                    return 0x00;
+                }
+            }
+        }
+    }
+
+#endif /* APP_USING_DOUBLEGUN */
+
+    return -0x01;
 }
 
-void card_thread_entry(void *parameter)
+
+/*****************************************************************************
+ *  函数名   app_card_swip_card_stop
+ *  功能       充电中刷卡停处理
+ *  参数      gunno    枪号
+ * 返回      >=0：成功   <0：失败
+ ****************************************************************************/
+static int32_t app_card_swip_card_stop(uint8_t gunno)
 {
-    (void)parameter;
+    if(gunno >= APP_SYSTEM_GUNNO_SIZE){
+        return APP_CARD_OPERATE_RET_INTERNAL_ERROR;
+    }
 
-    uint8_t reader_exit_count = 0;   /* 读卡器存在 */
-    uint8_t card_leave_count = 0;    /* 卡离场 */
-    uint16_t operation_state = 0;    /* 指令操作回复状态 */
+    LOG_D("gunno(%d) swip_card_stop");
 
-    while (1)
-    {
-        switch (get_ofsm_info(0x00)->base.ota_state) {
-        case APP_OTA_STATE_NULL:
-            break;
-        case APP_OTA_STATE_UP:
-        case APP_OTA_STATE_LINK_UP:
-        case APP_OTA_STATE_INTERNET_UP:
-            break;
-        case APP_OTA_STATE_AUTHING:
-            break;
-        case APP_OTA_STATE_AUTH_SUCCESS:
-        case APP_OTA_STATE_UPDATEING:
-            rt_thread_mdelay(100);
-            continue;
-            break;
-        case APP_OTA_STATE_UPDATE_SECCESS:
-        case APP_OTA_STATE_UPDATE_FAILED:
-            break;
-        default:
-            break;
+    struct ofsm_info *ofsm = get_ofsm_info(gunno);
+    uint8_t *dev_id = sys_read_config_item_content(CONFIG_ITEM_PILE_NUMBER, 0x00), card_info_block;
+
+    s_card_operate_ret[gunno] = APP_CARD_OPERATE_RET_SUCCESS;
+
+    memcpy(s_card_info_sector2.device_id, dev_id, CARD_BLOCK_SIZE);
+
+    s_card_info_sector2.block_10.detail.is_lock = 0x00;
+
+    LOG_D("this charge infomation consume:%d, ballance:%d", ofsm->base.fees_total, s_card_info_sector2.block_10.detail.ballance);
+    if(s_card_info_sector2.block_10.detail.ballance >= (ofsm->base.fees_total /100)){
+        s_card_info_sector2.block_10.detail.ballance -= (ofsm->base.fees_total /100);
+        s_card_info_sector2.block_10.detail.ballance = APP_ENDIANNESS_CONVERT(s_card_info_sector2.block_10.detail.ballance);
+        s_card_info_sector2.block_10.detail.ballance_check = get_check_sum((uint8_t*)&s_card_info_sector2.block_10.detail.ballance, sizeof(s_card_info_sector2.block_10.detail.ballance));
+
+        /** 保存设备ID */
+        card_info_block = 0x08;
+        if(s_rfidr->bolck_write(card_info_block, s_card_info_sector2.device_id, CARD_BLOCK_SIZE) < 0x00){
+            LOG_E("card storage dev id fail!!");
+            s_card_operate_ret[gunno] = APP_CARD_OPERATE_RET_STORAGE_ERROR;
+            return s_card_operate_ret[gunno];
         }
+        /** 保存充电信息 */
+        card_info_block = 0x0A;
+        if(s_rfidr->bolck_write(card_info_block, s_card_info_sector2.block_10.data, CARD_BLOCK_SIZE) < 0x00){
+            LOG_E("card storage charge info fail!!");
+            s_card_operate_ret[gunno] = APP_CARD_OPERATE_RET_STORAGE_ERROR;
+            return s_card_operate_ret[gunno];
+        }
+    }else{
+        /** 触发跳页 */
+        LOG_E("this card is not enough to pay the bill(%d, %d)!!", ofsm->base.fees_total, s_card_info_sector2.block_10.detail.ballance);
+        s_card_operate_ret[gunno] = APP_CARD_OPERATE_RET_NO_BALLANCE;
+        return s_card_operate_ret[gunno];
+    }
 
-        if((*(sys_read_config_item_content(CONFIG_ITEM_SUPORT_CARD, 0))) != 1){
+    return s_card_operate_ret[gunno];
+}
+
+/*****************************************************************************
+ *  函数名   app_card_pay_history_bill
+ *  功能       结算历史订单
+ *  参数      gunno    枪号
+ * 返回      >=0：成功   <0：失败
+ ****************************************************************************/
+static int32_t app_card_pay_history_bill(uint8_t gunno)
+{
+    if(gunno >= APP_SYSTEM_GUNNO_SIZE){
+        return APP_CARD_OPERATE_RET_INTERNAL_ERROR;
+    }
+
+    LOG_D("gunno(%d) pay_history_bill");
+
+    uint8_t card_info_block = 0x00;
+    uint32_t money = 0x00;
+    int32_t result = 0x00;
+    struct ofsm_info *ofsm = get_ofsm_info(gunno);
+
+    result = app_card_query_funpay_bill_fees_total(s_rfidr->uuid, s_rfidr->uuid_len, \
+            APP_ENDIANNESS_CONVERT(s_card_info_sector2.block_10.detail.start_time), &money);
+
+    s_card_operate_ret[gunno] = APP_CARD_OPERATE_RET_SUCCESS;
+
+    if(result >= 0x00){
+        s_card_info_sector2.block_10.detail.is_lock = 0x00;
+        if(s_card_info_sector2.block_10.detail.ballance >= (ofsm->base.fees_total /100)){
+            s_card_info_sector2.block_10.detail.ballance -= (ofsm->base.fees_total /100);
+            s_card_info_sector2.block_10.detail.ballance = APP_ENDIANNESS_CONVERT(s_card_info_sector2.block_10.detail.ballance);
+            s_card_info_sector2.block_10.detail.ballance_check = get_check_sum((uint8_t*)&s_card_info_sector2.block_10.detail.ballance, sizeof(s_card_info_sector2.block_10.detail.ballance));
+
+            /** 保存设备ID */
+            card_info_block = 0x08;
+            if(s_rfidr->bolck_write(card_info_block, s_card_info_sector2.device_id, CARD_BLOCK_SIZE) < 0x00){
+                LOG_E("card storage dev id fail(history bill)!!");
+                s_card_operate_ret[gunno] = APP_CARD_OPERATE_RET_STORAGE_ERROR;
+                return s_card_operate_ret[gunno];
+            }
+            /** 保存充电信息 */
+            card_info_block = 0x0A;
+            if(s_rfidr->bolck_write(card_info_block, s_card_info_sector2.block_10.data, CARD_BLOCK_SIZE) < 0x00){
+                LOG_E("card storage charge info fail(history bill)!!");
+                s_card_operate_ret[gunno] = APP_CARD_OPERATE_RET_STORAGE_ERROR;
+                return s_card_operate_ret[gunno];
+            }
+        }else{
+            LOG_E("this card is not enough to pay the bill(%d, %d)(history bill)!!", ofsm->base.fees_total, s_card_info_sector2.block_10.detail.ballance);
+            s_card_operate_ret[gunno] = APP_CARD_OPERATE_RET_NO_BALLANCE;
+            return s_card_operate_ret[gunno];
+        }
+    }else{
+        /** 获取订单信息失败，提示无效卡 */
+        s_card_operate_ret[gunno] = APP_CARD_OPERATE_RET_HISTORY_BILL_ERROR;
+        return s_card_operate_ret[gunno];
+    }
+
+    return s_card_operate_ret[gunno];
+}
+
+/*****************************************************************************
+ *  函数名   app_card_non_swip_card_stop
+ *  功能       充电中非刷卡停处理
+ *  参数      gunno    枪号
+ * 返回      >=0：成功   <0：失败
+ ****************************************************************************/
+static int32_t app_card_non_swip_card_stop(uint8_t gunno)
+{
+    if(gunno >= APP_SYSTEM_GUNNO_SIZE){
+        return APP_CARD_OPERATE_RET_INTERNAL_ERROR;
+    }
+
+    LOG_D("gunno(%d) non_swip_card_stop");
+
+    struct ofsm_info *ofsm = get_ofsm_info(gunno);
+    uint8_t *dev_id = sys_read_config_item_content(CONFIG_ITEM_PILE_NUMBER, 0x00), card_info_block = 0x00;
+
+    s_card_operate_ret[gunno] = APP_CARD_OPERATE_RET_SUCCESS;
+
+    memcpy(s_card_info_sector2.device_id, dev_id, CARD_BLOCK_SIZE);
+
+    s_card_info_sector2.block_10.detail.is_lock = 0x00;
+    if(s_card_info_sector2.block_10.detail.ballance >= (ofsm->base.fees_total /100)){
+        s_card_info_sector2.block_10.detail.ballance -= (ofsm->base.fees_total /100);
+        s_card_info_sector2.block_10.detail.ballance = APP_ENDIANNESS_CONVERT(s_card_info_sector2.block_10.detail.ballance);
+        s_card_info_sector2.block_10.detail.ballance_check = get_check_sum((uint8_t*)&s_card_info_sector2.block_10.detail.ballance, sizeof(s_card_info_sector2.block_10.detail.ballance));
+
+        /** 保存设备ID */
+        card_info_block = 0x08;
+        if(s_rfidr->bolck_write(card_info_block, s_card_info_sector2.device_id, CARD_BLOCK_SIZE) < 0x00){
+            LOG_E("card storage dev id fail(non swip card)!!");
+            s_card_operate_ret[gunno] = APP_CARD_OPERATE_RET_STORAGE_ERROR;
+            return s_card_operate_ret[gunno];
+        }
+        /** 保存充电信息 */
+        card_info_block = 0x0A;
+        if(s_rfidr->bolck_write(card_info_block, s_card_info_sector2.block_10.data, CARD_BLOCK_SIZE) < 0x00){
+            LOG_E("card storage charge info fail(non swip card)!!");
+            s_card_operate_ret[gunno] = APP_CARD_OPERATE_RET_STORAGE_ERROR;
+            return s_card_operate_ret[gunno];
+        }
+    }else{
+        /** 提示余额不足 */
+        LOG_E("this card is not enough to pay the bill(%d, %d)(non swip card)!!", ofsm->base.fees_total, s_card_info_sector2.block_10.detail.ballance);
+        s_card_operate_ret[gunno] = APP_CARD_OPERATE_RET_NO_BALLANCE;
+        return s_card_operate_ret[gunno];
+    }
+
+    return s_card_operate_ret[gunno];
+}
+
+/*****************************************************************************
+ *  函数名   app_card_swip_card_start
+ *  功能      刷卡启动处理
+ *  参数      gunno    枪号
+ * 返回      >=0：成功   <0：失败
+ ****************************************************************************/
+static int32_t app_card_swip_card_start(uint8_t gunno)
+{
+    if(gunno >= APP_SYSTEM_GUNNO_SIZE){
+        return APP_CARD_OPERATE_RET_INTERNAL_ERROR;
+    }
+
+    LOG_D("gunno(%d) swip_card_start");
+
+    struct ofsm_info *ofsm = get_ofsm_info(gunno);
+    uint8_t *dev_id = sys_read_config_item_content(CONFIG_ITEM_PILE_NUMBER, 0x00), card_info_block = 0x00;
+
+    s_card_operate_ret[gunno] = APP_CARD_OPERATE_RET_SUCCESS;
+
+    memcpy(s_card_info_sector2.device_id, dev_id, CARD_BLOCK_SIZE);
+    s_card_info_sector2.block_10.detail.start_time = APP_ENDIANNESS_CONVERT(ofsm->base.current_time);
+    s_card_info_sector2.block_10.detail.is_lock = 0x01;
+    s_card_info_sector2.block_10.detail.ballance = APP_ENDIANNESS_CONVERT(s_card_info_sector2.block_10.detail.ballance);
+    s_card_info_sector2.block_10.detail.ballance_check = get_check_sum((uint8_t*)&s_card_info_sector2.block_10.detail.ballance, sizeof(s_card_info_sector2.block_10.detail.ballance));
+
+    if(s_card_info_sector2.block_10.detail.ballance < 100){
+        /** 提示余额不足 */
+        LOG_E("card no ballance when swip card start(%d)!!", s_card_info_sector2.block_10.detail.ballance);
+        s_card_operate_ret[gunno] = APP_CARD_OPERATE_RET_NO_BALLANCE;
+        return s_card_operate_ret[gunno];
+    }
+    /** 保存设备ID */
+    card_info_block = 0x08;
+    if(s_rfidr->bolck_write(card_info_block, s_card_info_sector2.device_id, CARD_BLOCK_SIZE) < 0x00){
+        LOG_E("card storage dev id fail(swip card stop)!!");
+        s_card_operate_ret[gunno] = APP_CARD_OPERATE_RET_STORAGE_ERROR;
+        return s_card_operate_ret[gunno];
+    }
+    /** 保存充电信息 */
+    card_info_block = 0x0A;
+    if(s_rfidr->bolck_write(card_info_block, s_card_info_sector2.block_10.data, CARD_BLOCK_SIZE) < 0x00){
+        LOG_E("card storage charge info fail(swip card stop)!!");
+        s_card_operate_ret[gunno] = APP_CARD_OPERATE_RET_STORAGE_ERROR;
+        return s_card_operate_ret[gunno];
+    }
+
+    return s_card_operate_ret[gunno];
+}
+
+
+
+/*****************************************************************************
+ *  函数名   app_card_online_status
+ *  功能       读卡器在线、离线判断
+ *  参数       state   在线、离线状态
+ * 返回
+ ****************************************************************************/
+static void app_card_online_status(uint8_t state)
+{
+    if(state == APP_RFIDR_OFFLINE){
+        if(*(sys_read_config_item_content(CONFIG_ITEM_SUPORT_CARD, 0)) == 0x01){
             for(uint8_t gunno = 0x00; gunno < APP_SYSTEM_GUNNO_SIZE; gunno++){
-                app_clear_system_fault_enum(APP_SYS_FAULT_CARD_READER, APP_GENERAL_SYSTEM_FAULT_SET_LOW, gunno);
+                app_set_system_fault_enum(APP_SYS_FAULT_CARD_READER, APP_GENERAL_SYSTEM_FAULT_SET_LOW, gunno);
             }
-            rt_thread_mdelay(1000);
-            continue;                      /* 读卡器不配置将不进行寻卡操作 */
         }
-
-        if(rt_mq_recv(&g_buzzon_mq, &s_buzzon_state, sizeof(enum buzzon_state), 0) == RT_EOK){
-            send_frame_to_reader(CARD_BUZZER, &s_buzzon_state, 1);  /* 蜂鸣器 */
-            reader_offline_judge();
+    }else{
+        for(uint8_t gunno = 0x00; gunno < APP_SYSTEM_GUNNO_SIZE; gunno++){
+            app_clear_system_fault_enum(APP_SYS_FAULT_CARD_READER, APP_GENERAL_SYSTEM_FAULT_SET_LOW, gunno);
         }
+    }
+}
+/*****************************************************************************
+ *  函数名   app_card_data_update
+ *  功能       实时更新数据(是否使能读卡器、当前端口赋值)
+ *  参数       handle   卡信息总句柄
+ * 返回
+ ****************************************************************************/
+static void app_card_data_update(void* handle)
+{
+    s_rfidr = (rfid_reader*)handle;
 
-        switch (s_card_state) {
-        case CARD_STATE_DOWN:
-            send_frame_to_reader(CARD_ACTIVE, s_card_active, sizeof(s_card_active));  /* 卡激活(寻卡) */
-            if(reader_offline_judge() < 0){
-                break;   /* 读卡器未回复 */
-            }
-            operation_state = calculate_data_from_byte(&s_card_info.data[RESPONSE_FRAME_REGION_STATE], 2, START_FROM_HIGH_BYTE);
-            /* 寻到卡 */
-            if(operation_state == OPERATION_STATE_SUCCESS ){
-                s_card_info.card_uid_len = s_card_info.data[RESPONSE_FRAME_REGION_UID_LEN];
-                s_card_info.card_uid_len = s_card_info.card_uid_len > sizeof(s_card_info.card_uid) ? sizeof(s_card_info.card_uid) : s_card_info.card_uid_len;
+    if((*(sys_read_config_item_content(CONFIG_ITEM_SUPORT_CARD, 0))) != 0x01){
+        for(uint8_t gunno = 0x00; gunno < APP_SYSTEM_GUNNO_SIZE; gunno++){
+            app_clear_system_fault_enum(APP_SYS_FAULT_CARD_READER, APP_GENERAL_SYSTEM_FAULT_SET_LOW, gunno);
+        }
+        s_rfidr->is_forbid = 0x01;
+    }else{
+        /** 并充时，若要刷卡结束则停止主枪，不管屏幕当前页面 */
+        if((get_ofsm_info(0x00)->base.charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL) ||
+                (get_ofsm_info(0x00)->base.charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD)){
+            s_rfidr->current_port = get_ofsm_info(0x00)->base.main_gunno;
+        }else{
+            s_rfidr->current_port = thaisen_get_hci_page_pos();
+        }
+        s_rfidr->is_forbid = 0x00;
+    }
+}
+/*****************************************************************************
+ *  函数名   app_card_info_process
+ *  功能       卡信息读、写处理
+ *  参数       handle  卡信息总句柄
+ * 返回        >=0：成功   <0：失败
+ ****************************************************************************/
+static int32_t app_card_info_process(void* handle)
+{
+    if((*(sys_read_config_item_content(CONFIG_ITEM_SUPORT_OFFLINE_BILLING, 0))) != 0x01){
+        return 0x00;
+    }
+    s_rfidr = (rfid_reader*)handle;
 
-                memset(s_card_info.card_uid, 0x00, sizeof(s_card_info.card_uid));
-                memcpy(s_card_info.card_uid, &s_card_info.data[RESPONSE_FRAME_REGION_UID], s_card_info.card_uid_len);
+    int32_t ret = 0x00;
+    uint8_t card_info_block = 0x00, port = s_rfidr->current_port;
+    struct ofsm_info *ofsm = get_ofsm_info(port);
 
-                s_card_state = CARD_STATE_IDLE;
-            }
-            break;
-        case CARD_STATE_IDLE:
-        {
-            uint8_t card_key_authen[12];
-            card_key_authen[0] = 0x60;
-            card_key_authen[11] = 0x02;
+    if(port >= APP_SYSTEM_GUNNO_SIZE){
+        port = (APP_SYSTEM_GUNNO_SIZE - 0x01);   /** 必需有一把枪 */
+    }
+    s_card_operate_ret[port] = APP_CARD_OPERATE_RET_SUCCESS;
 
-            memcpy((card_key_authen + 1), s_card_info.card_uid, s_card_info.card_uid_len);
-            memcpy((card_key_authen + 1 + s_card_info.card_uid_len), s_thaisen_card_key, 6);
+    /** 读取设备ID */
+    card_info_block = 0x08;
+    if(s_rfidr->bolck_read(card_info_block, s_card_info_sector2.device_id, CARD_BLOCK_SIZE) < 0x00){
+        /** 提示无效卡 */
+        LOG_E("reader read device ID fail!!");
+        s_card_operate_ret[port] = APP_CARD_OPERATE_RET_READ_ERROR;
+        return s_card_operate_ret[port];
+    }
 
-            send_frame_to_reader(CARD_KEY_AUTHEN, card_key_authen, sizeof(card_key_authen));  /* 密钥直接认证 */
-            if(reader_offline_judge() < 0){
-                break;   /* 读卡器未回复 */
-            }
-            operation_state = calculate_data_from_byte(s_card_info.data + 4, 2, START_FROM_HIGH_BYTE);
-            if(operation_state != OPERATION_STATE_SUCCESS){
-                rt_thread_mdelay(100);
-                send_frame_to_reader(CARD_ACTIVE, s_card_active, sizeof(s_card_active));  /* 卡激活(寻卡) */
-                if(reader_offline_judge() < 0){
-                    break;   /* 读卡器未回复 */
-                }
-                operation_state = calculate_data_from_byte(&s_card_info.data[RESPONSE_FRAME_REGION_STATE], 2, START_FROM_HIGH_BYTE);
-                /* 寻到卡 */
-                if(operation_state == OPERATION_STATE_SUCCESS ){
-                    memcpy((card_key_authen + 1 + s_card_info.card_uid_len), s_ykc_card_key, 6);
+    /** 读取充电信息 */
+    card_info_block = 0x0A;
+    if(s_rfidr->bolck_read(card_info_block, s_card_info_sector2.block_10.data, CARD_BLOCK_SIZE) < 0x00){
+        /** 提示无效卡 */
+        LOG_E("reader read charge info fail!!");
+        s_card_operate_ret[port] = APP_CARD_OPERATE_RET_READ_ERROR;
+        return s_card_operate_ret[port];
+    }
 
-                    send_frame_to_reader(CARD_KEY_AUTHEN, card_key_authen, sizeof(card_key_authen));  /* 密钥直接认证 */
-                    if(reader_offline_judge() < 0){
-                        break;   /* 读卡器未回复 */
+    s_card_info_sector2.block_10.detail.ballance = APP_ENDIANNESS_CONVERT(s_card_info_sector2.block_10.detail.ballance);
+    memcpy(s_card_info_sector2.card_number, s_rfidr->card_number, sizeof(s_card_info_sector2.card_number));
+
+    /** 卡已被锁, 存在以下情况
+     * 1.上一次订单未结算(需要到上一次充电的设备去解锁, 除了启动、充电状态外，都可以解锁)
+     * 2.已经进行了充电(状态是启动中或充电中) */
+    if(s_card_info_sector2.block_10.detail.is_lock == 0x00){
+        /** 卡被锁了,业务状态既不是启动也不是充电, 可能是充电结束需要刷卡结算, 也可能是上一笔订单未支付 */
+        if((ofsm->base.state.current != APP_OFSM_STATE_STARTING) && (ofsm->base.state.current != APP_OFSM_STATE_CHARGING)){
+            uint8_t *dev_id = sys_read_config_item_content(CONFIG_ITEM_PILE_NUMBER, 0x00), valid_len = 0x00;
+            if(memcmp(dev_id, s_card_info_sector2.device_id, CARD_BLOCK_SIZE)){    /** 上一次充电不是在这个设备，需要到服务台解锁 */
+                /** 提示到服务台解锁 */
+                LOG_E("please unlock this card to service platform!!(%d)", APP_CARD_OPERATE_RET_IS_LOCKED);
+                s_card_operate_ret[port] = APP_CARD_OPERATE_RET_IS_LOCKED;
+                return s_card_operate_ret[port];
+            }else{    /** 解锁该卡 */
+                if(app_card_event_recv(APP_CARD_EVENT_CHARGE_STOP, 0x00, port, NULL, 0x01) >= 0x00){
+                    app_card_event_send(APP_CARD_EVENT_IS_PAYING, port, NULL);  /** 此时需要应用到业务的充电数据，先告诉业务正在结算，业务不能修改业务充电数据 */
+                    ret = app_card_non_swip_card_stop(port);
+                    if(ret < 0x00){
+                        app_card_event_recv(APP_CARD_EVENT_IS_PAYING, 0x00, port, NULL, 0x01);
+                        return -0x01;
+                    }else{
+                        app_card_event_send(APP_CARD_EVENT_PAY_COMPLETE, port, NULL);
                     }
-                    operation_state = calculate_data_from_byte(s_card_info.data + 4, 2, START_FROM_HIGH_BYTE);
+                }
+                /** 这是上一笔订单未结算, 需要查询历史订单进行结算 */
+                else{
+                    ret = app_card_pay_history_bill(port);
+                    if(ret < 0x00){
+                        app_card_event_recv(APP_CARD_EVENT_IS_PAYING, 0x00, port, NULL, 0x01);
+                        return -0x01;
+                    }else{
+                        app_card_event_send(APP_CARD_EVENT_PAY_COMPLETE, port, NULL);
+                    }
                 }
             }
-
-            /* 卡密钥认证成功 */
-            if(operation_state == OPERATION_STATE_SUCCESS){
-                s_card_state = CARD_STATE_ACTIVATION;
-                LOG_D("card key authen success");
+        }
+        /** 卡被锁了,业务状态为启动或充电, 说明这是正常充电流程, 此时刷卡了,是要停止充电*/
+        else{   // OK
+            if(memcmp(s_card_info_sector2.card_number, ofsm->base.card_number, APP_CARD_NUMBER_COMPARE_LEN_MIN_OFFLINE_BILLING)){
+                LOG_D("gunno(%d) card number and recorded card number is no match in first %d byte", port, APP_CARD_NUMBER_COMPARE_LEN_MIN_OFFLINE_BILLING);
+                s_card_operate_ret[port] = APP_CARD_OPERATE_RET_INVALID_CARD;
+                return s_card_operate_ret[port];
+            }
+            app_card_event_send(APP_CARD_EVENT_IS_PAYING, port, NULL);  /** 此时需要应用到业务的充电数据，先告诉业务正在结算，业务不能修改业务充电数据 */
+            ret = app_card_swip_card_stop(port);
+            if(ret < 0x00){
+                app_card_event_recv(APP_CARD_EVENT_IS_PAYING, 0x00, port, NULL, 0x01);
+                return -0x01;
             }else{
-                uint8_t port = get_current_port();
-                s_card_info.info_type = CARD_INFO_TYPE_CARD_UID;
-                s_card_info.state |= (1 <<port);
-
-                s_card_state = CARD_STATE_OFFFIELD;
-                LOG_D("card key authen fail");
+                app_card_event_send(APP_CARD_EVENT_PAY_COMPLETE, port, NULL);
+            }
+        }
+    }
+    /**
+     * 卡未被锁, 存在以下情况
+     * 1.充电结束，要刷卡结算(需要有业务已经处理结束事件)
+     * 2.想要启动充电(需要有业务状态已正常切换事件)
+     * 3.一张卡启动(被锁了)，用另一张卡结束
+     */
+    else{
+        switch(ofsm->base.state.current){
+        case APP_OFSM_STATE_WAIT_NET:
+        case APP_OFSM_STATE_IDLEING:
+            break;
+        case APP_OFSM_STATE_STARTING:
+        case APP_OFSM_STATE_CHARGING:
+        {
+            uint8_t *dev_id = sys_read_config_item_content(CONFIG_ITEM_PILE_NUMBER, 0x00);
+            if((memcmp(dev_id, s_card_info_sector2.device_id, CARD_BLOCK_SIZE)) ||
+                    (memcmp(s_card_info_sector2.card_number, ofsm->base.card_number, APP_CARD_NUMBER_COMPARE_LEN_MIN_OFFLINE_BILLING))){
+                LOG_W("this is not the start card");
+                s_card_operate_ret[port] = APP_CARD_OPERATE_RET_HISTORY_BILL_ERROR;
+                return s_card_operate_ret[port];
+            }else{
+                LOG_W("occured error, card start but not be locked");
+                app_card_event_send(APP_CARD_EVENT_IS_PAYING, port, NULL);  /** 此时需要应用到业务的充电数据，先告诉业务正在结算，业务不能修改业务充电数据 */
+                ret = app_card_swip_card_stop(port);
+                if(ret < 0x00){
+                    app_card_event_recv(APP_CARD_EVENT_IS_PAYING, 0x00, port, NULL, 0x01);
+                    return -0x01;
+                }else{
+                    app_card_event_send(APP_CARD_EVENT_PAY_COMPLETE, port, NULL);
+                }
             }
         }
             break;
-        case CARD_STATE_ACTIVATION:
-            send_frame_to_reader(CARD_READ_INFO, &s_card_info_sector, sizeof(s_card_info_sector));  /* 读取卡信息 */
-            if(reader_offline_judge() < 0){
-                break;   /* 读卡器未回复 */
-            }
-            operation_state = calculate_data_from_byte(&s_card_info.data[RESPONSE_FRAME_REGION_STATE], 2, START_FROM_HIGH_BYTE);
-            /* 已成功获取到卡信息 */
-            if(operation_state == OPERATION_STATE_SUCCESS){
-                uint8_t port = get_current_port();
-                memcpy(s_card_info.card_numbe, s_card_info.data + 8, 16);  /* 获取卡号 */
-                s_card_info.info_type = CARD_INFO_TYPE_CARD_NUMBER;
-                s_card_info.card_numbe_len = 16;
-                s_card_info.state |= (1 <<port);
-            }else{
-                LOG_E("read card number fail!!");
-            }
-            s_card_state = CARD_STATE_OFFFIELD;
-            break;
-        case CARD_STATE_OFFFIELD:
-            send_frame_to_reader(CARD_ACTIVE, s_card_active, sizeof(s_card_active));  /* 卡激活(寻卡)  */
-            if(reader_offline_judge() < 0){
-                break;   /* 读卡器未回复 */
-            }
-            operation_state = calculate_data_from_byte(&s_card_info.data[RESPONSE_FRAME_REGION_STATE], 2, START_FROM_HIGH_BYTE);
-            if(operation_state != OPERATION_STATE_SUCCESS){
-                card_leave_count++;
-            }else{
-                card_leave_count = 0;
-            }
-            if(card_leave_count >= CARD_LEAVE_COUNT){
-                s_card_state = CARD_STATE_DOWN;
-                card_leave_count = 0;
-                LOG_D("card have leaved reader");
-            }
-            break;
-        case CARD_STATE_OFFLINE:
-            send_frame_to_reader(CARD_ACTIVE, s_card_active, sizeof(s_card_active));  /* 卡激活(寻卡)  */
-            if(readline_data_from_reader_uart() < 0){
-                reader_exit_count = 0;
-                break;
-            }
-            reader_exit_count++;
-            if(reader_exit_count > READER_EXIT_COUNT){
-                reader_exit_count = 0;
-                s_card_state = CARD_STATE_DOWN;
-                LOG_D("reader is exit!!");
-                for(uint8_t gunno = 0x00; gunno < APP_SYSTEM_GUNNO_SIZE; gunno++){
-                    app_clear_system_fault_enum(APP_SYS_FAULT_CARD_READER, APP_GENERAL_SYSTEM_FAULT_SET_LOW, gunno);
+        case APP_OFSM_STATE_READYING:
+        case APP_OFSM_STATE_FINISHING:     // OK
+            if(app_card_event_recv(APP_CARD_EVENT_CHARGEPILE_READY, 0x00, port, NULL, 0x01) >= 0x00){
+                uint8_t *dev_id = sys_read_config_item_content(CONFIG_ITEM_PILE_NUMBER, 0x00);
+                if(memcmp(s_card_info_sector2.card_number, dev_id, APP_CARD_NUMBER_COMPARE_LEN_MIN_OFFLINE_BILLING)){
+                    LOG_D("gunno(%d) card number and pile number is no match in first %d byte", port, APP_CARD_NUMBER_COMPARE_LEN_MIN_OFFLINE_BILLING);
+                    s_card_operate_ret[port] = APP_CARD_OPERATE_RET_INVALID_CARD;
+                    return s_card_operate_ret[port];
                 }
+                ret = app_card_swip_card_start(port);
+                if(ret < 0x00){
+                    app_card_event_recv(APP_CARD_EVENT_IS_PAYING, 0x00, port, NULL, 0x01);
+                    return -0x01;
+                }else{
+                    app_card_event_send(APP_CARD_EVENT_CHARGE_START, port, NULL);
+                    s_card_ballance[port] = APP_ENDIANNESS_CONVERT(s_card_info_sector2.block_10.detail.ballance);
+
+                    LOG_D("gunno(%d) swip card start charge, ballance:%d", port, s_card_ballance[port]);
+                }
+            }else{
+                LOG_D("chargepile state is not switch complete(%d)\n", port);
+                return -0x01;
             }
             break;
         default:
             break;
         }
-        rt_thread_mdelay(SEARCH_CARD_PERIOD);
     }
+
+    return 0x00;
 }
 
-/*************************************
- * 函数名            get_card_number
- * 功能               获取卡号
- ************************************/
-uint8_t* get_card_number(void)
-{
-    return s_card_info.card_numbe;
-}
-/*************************************
- * 函数名            get_card_number_len
- * 功能               获取卡号长度
- ************************************/
-uint8_t get_card_number_len(void)
-{
-    return s_card_info.card_numbe_len;
-}
-
-/*************************************
- * 函数名            get_card_uid
- * 功能               获取卡UID
- ************************************/
-uint8_t* get_card_uid(void)
-{
-    return s_card_info.card_uid;
-}
-/*************************************
- * 函数名            get_card_uid_len
- * 功能               获取卡UID长度
- ************************************/
-uint8_t get_card_uid_len(void)
-{
-    return s_card_info.card_uid_len;
-}
-
-/*************************************
- * 函数名            get_card_info_type
- * 功能               获取刷卡信息类型
- ************************************/
-uint8_t get_card_info_type(void)
-{
-    return s_card_info.info_type;
-}
-
-/*************************************
- * 函数名            获取刷卡状态
- * 功能               获取卡号
- ************************************/
-uint8_t get_swipe_card_state(uint8_t gunno)
+/*****************************************************************************
+ *  函数名   app_card_event_send
+ *  功能       卡事件发送
+ *  参数       event      事件
+ *     set        用于保存当前事件集
+ * 返回       >=0：成功   <0：失败
+ ****************************************************************************/
+int32_t app_card_event_send(uint32_t event, uint8_t gunno, uint32_t *set)
 {
     if(gunno >= APP_SYSTEM_GUNNO_SIZE){
-        return 0;
+        if(set){
+            *set = 0x00;
+        }
+        return -0x01;
     }
-    return (s_card_info.state &(1 <<gunno));
-}
-/*************************************
- * 函数名            clear_swipe_card_state
- * 功能               清除刷卡状态
- ************************************/
-void clear_swipe_card_state(uint8_t gunno)
-{
-    if(gunno >= APP_SYSTEM_GUNNO_SIZE){
-        return;
+    int32_t res = 0x00;
+
+    res = rt_event_send(&s_card_event[gunno], event);
+    if(set){
+        *set = s_card_event[gunno].set;
     }
-    s_card_info.state &= (~(1 <<gunno));
+    return res;
 }
 
-/*************************************
- * 函数名            get_current_port
- * 功能               获取当前端口
- ************************************/
-uint8_t get_current_port(void)
+/*****************************************************************************
+ *  函数名   app_card_event_recv
+ *  功能       卡事件接收
+ *  参数       event        事件
+ *     timeout      事件等待时长
+ *     set          用于保存当前事件集
+ *     is_clear     事件接收完是否清除事件
+ * 返回       >=0：成功   <0：失败
+ ****************************************************************************/
+int32_t app_card_event_recv(uint32_t event, uint32_t timeout, uint8_t gunno, uint32_t *set, uint8_t is_clear)
 {
-    return s_card_info.port;
-}
-/*************************************
- * 函数名          set_current_port
- * 功能              设置当前端口
- ************************************/
-void set_current_port(uint8_t port)
-{
-    if(port >= APP_SYSTEM_GUNNO_SIZE){
-        return;
+    if(gunno >= APP_SYSTEM_GUNNO_SIZE){
+        if(set){
+            *set = 0x00;
+        }
+        return -0x01;
     }
-    s_card_info.port = port;
+
+    if(is_clear){
+        return rt_event_recv(&s_card_event[gunno], event, RT_EVENT_FLAG_OR |RT_EVENT_FLAG_CLEAR, timeout, set);
+    }
+    return rt_event_recv(&s_card_event[gunno], event, RT_EVENT_FLAG_OR, timeout, set);
+}
+
+/*****************************************************************************
+ *  函数名   app_card_ipc_init
+ *  功能       卡IPC初始化
+ *  参数
+ * 返回       >=0：成功   <0：失败
+ ****************************************************************************/
+int32_t app_card_ipc_init(void)
+{
+    uint8_t name[8];
+
+    memset(name, 0x00, sizeof(name));
+    memset(&s_card_info_sector2, 0x00, sizeof(s_card_info_sector2));
+
+    for(uint8_t gunno = 0x00; gunno < APP_SYSTEM_GUNNO_SIZE; gunno++){
+        sprintf(name, "%s%d", "carde_", gunno);
+        if(rt_event_init(&s_card_event[gunno], (const char*)name, RT_IPC_FLAG_PRIO) != RT_EOK){
+            LOG_E("card event set init fail(%d)", gunno);
+            return -0x01;
+        }
+    }
+
+    return 0x00;
+}
+
+/*****************************************************************************
+ *  函数名   app_card_query_ballance
+ *  功能       查询卡内余额
+ *  参数      gunno    枪号
+ * 返回       卡内余额
+ ****************************************************************************/
+uint32_t app_card_query_ballance(uint8_t gunno)
+{
+    if(gunno >= APP_SYSTEM_GUNNO_SIZE){
+        return 0x00;
+    }
+
+    return s_card_ballance[gunno];
+}
+
+/*****************************************************************************
+ *  函数名   app_card_query_operate_ret
+ *  功能       查询卡信息处理结果
+ *  参数      gunno    枪号
+ * 返回       卡信息处理结果
+ ****************************************************************************/
+int8_t app_card_query_operate_ret(uint8_t gunno)
+{
+    if(gunno >= APP_SYSTEM_GUNNO_SIZE){
+        return APP_CARD_OPERATE_RET_SUCCESS;
+    }
+
+    return s_card_operate_ret[gunno];
+}
+
+/*****************************************************************************
+ *  函数名   app_card_init
+ *  功能       卡部分初始化
+ *  参数
+ * 返回       >=0：成功   <0：失败
+ ****************************************************************************/
+int32_t app_card_init(void)
+{
+    app_rfidr_config_handle_fault(app_card_online_status);
+    app_rfidr_config_handle_data_update(app_card_data_update);
+    app_rfidr_config_handle_info_process(app_card_info_process);
+
+    return app_rfidr_init();
 }
 
 

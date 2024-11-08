@@ -582,7 +582,8 @@ int8_t sgcc_message_pro_remote_start_charge_request(uint8_t gunno, void *data, u
         memset(s_sgcc_base->device_transaction_number, 0x00, sizeof(s_sgcc_base->device_transaction_number));
         memcpy(s_sgcc_base->device_transaction_number, request->tradeNo, valid_len);
 
-        s_sgcc_base->account_balance = 0x00;
+        s_sgcc_base->account_ballance_before = 0x00;
+        s_sgcc_base->account_ballance_after = 0x00;
         s_sgcc_base->offline_chargetime = evs_data_dev_configs.offlinChaLen;
 
         switch(request->chargeMode){
@@ -593,6 +594,8 @@ int8_t sgcc_message_pro_remote_start_charge_request(uint8_t gunno, void *data, u
         case SGCC_CHARGE_MODE_MONEY:
             s_sgcc_base->charge_strategy = APP_CHARGE_STRATEGY_MONEY;
             s_sgcc_base->charge_strategy_para = request->limitData *100;
+            s_sgcc_base->account_ballance_before = request->limitData;
+            s_sgcc_base->account_ballance_after = request->limitData;
             break;
         case SGCC_CHARGE_MODE_ELECT:
             s_sgcc_base->charge_strategy = APP_CHARGE_STRATEGY_ELECT;
@@ -938,7 +941,8 @@ int8_t sgcc_message_pro_apply_charge_response(uint8_t gunno, void *data, uint16_
     memset(s_sgcc_base->device_transaction_number, 0x00, sizeof(s_sgcc_base->device_transaction_number));
     memcpy(s_sgcc_base->device_transaction_number, response->tradeNo, valid_len);
 
-    s_sgcc_base->account_balance = 0x00;
+    s_sgcc_base->account_ballance_before = 0x00;
+    s_sgcc_base->account_ballance_after = 0x00;
     s_sgcc_base->offline_chargetime = evs_data_dev_configs.offlinChaLen;
 
     switch(response->chargeMode){
@@ -949,6 +953,8 @@ int8_t sgcc_message_pro_apply_charge_response(uint8_t gunno, void *data, uint16_
     case SGCC_CHARGE_MODE_MONEY:
         s_sgcc_base->charge_strategy = APP_CHARGE_STRATEGY_MONEY;
         s_sgcc_base->charge_strategy_para = response->limitData *100;
+        s_sgcc_base->account_ballance_before = response->limitData;
+        s_sgcc_base->account_ballance_after = response->limitData;
         break;
     case SGCC_CHARGE_MODE_ELECT:
         s_sgcc_base->charge_strategy = APP_CHARGE_STRATEGY_ELECT;

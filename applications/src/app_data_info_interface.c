@@ -482,6 +482,7 @@ struct charge_data *thaisen_app_get_charge_info(uint8_t gunno) // OK
     s_data_of_charging.charge_power = ofsm_temp->base.power_a;
     s_data_of_charging.charge_elect = ofsm_temp->base.elect_a;
     s_data_of_charging.charge_total_fee = ofsm_temp->base.fees_total;
+    s_data_of_charging.account_ballance = ofsm_temp->base.account_ballance_after;
     s_data_of_charging.charge_start_time = ofsm_temp->base.start_time;
     s_data_of_charging.charge_stop_time = ofsm_temp->base.stop_time;
     s_data_of_charging.charge_time = ofsm_temp->base.charge_time;
@@ -1282,4 +1283,19 @@ int16_t thaisen_get_bcp_voltage(uint8_t gunno)
 int16_t thaisen_get_bhm_voltage(uint8_t gunno)
 {
     return mw_get_bhm_voltage(gunno);
+}
+
+/********************************************
+ * 函数名      thaisen_set_trigger_event
+ * 功能         设置屏幕外部触发事件
+ * 参数          event            事件
+ *      duration_time    持续时长, 单位s(为0时作用是为了让当前提示页面消除)
+ *      just_notice      是否仅用于提醒(1：是，0：否)
+ *      is_cover         是否覆盖当前提示页(1：是，0：否)
+ *      gunno            枪号
+ * 返回           >0：成功，<=0：失败
+ *******************************************/
+int32_t thaisen_set_trigger_event(enum thaisen_trig_event event, uint16_t duration_time, uint8_t just_notice, uint8_t gunno)
+{
+    return SerialScreen_ScreenSet_Trigger_Event(event, duration_time, just_notice, gunno);
 }

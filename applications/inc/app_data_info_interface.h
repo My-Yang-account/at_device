@@ -26,6 +26,23 @@
 #include "mw_storage.h"
 #include "mw_charge_control.h"
 
+/** 此枚举需要与 Trigger_Page 数组的下标对应 */
+enum thaisen_trig_event{
+    THAISEN_TRIG_EVENT_CARD_LOCKED,                               /** 屏幕外部触发事件：卡被锁 */
+    THAISEN_TRIG_EVENT_INVALID,                                   /** 屏幕外部触发事件：无效卡(非白名单卡、非场站卡) */
+    THAISEN_TRIG_EVENT_CARD_NOBALLANCE,                           /** 屏幕外部触发事件：卡余额不足 */
+    THAISEN_TRIG_EVENT_KEY_AUTHEN_FAIL,                           /** 屏幕外部触发事件：卡密钥认证失败 */
+    THAISEN_TRIG_EVENT_INSERT_GUN,                                /** 屏幕外部触发事件：提示先插枪 */
+    THAISEN_TRIG_EVENT_FEES_ERROR,                                /** 屏幕外部触发事件：提示计费信息设置错误 */
+    THAISEN_TRIG_EVENT_FINISH,                                    /** 屏幕外部触发事件：充电结束, 刷卡结算 */
+    THAISEN_TRIG_EVENT_PAY_COMPLETE,                              /** 屏幕外部触发事件：结算完成 */
+#if 0
+    THAISEN_TRIG_EVENT_WRITE_INFO,                                /** 屏幕外部触发事件：写卡信息失败 */
+    THAISEN_TRIG_EVENT_START_FAIL,                                /** 屏幕外部触发事件：启动失败, 刷卡结算 */
+#endif
+    THAISEN_TRIG_EVENT_SIZE,                                      /** 屏幕外部触发事件： */
+};
+
 /**
  * 获取充电状态
  **/
@@ -77,6 +94,7 @@ struct charge_data{
     uint32_t charge_power;          /* 充电功率：精度1位 ,单位：W */
     uint32_t charge_elect;          /* 充电电量：精度3位 ,单位：KWh */
     uint32_t charge_total_fee;      /* 费用：精度4位 */
+    uint32_t account_ballance;      /* 账户余额：精度4位 */
     uint32_t charge_start_time;     /* 充电开始时间：单位s */
     uint32_t charge_stop_time;      /* 充电结束时间：单位s */
     uint32_t charge_time;           /* 充电时间：单位s */
@@ -313,6 +331,10 @@ int16_t thaisen_get_bcp_voltage(uint8_t gunno);
  * 获取BHM最大允许电压
  **/
 int16_t thaisen_get_bhm_voltage(uint8_t gunno);
+/**
+ * 设置屏幕外部触发事件
+ **/
+int32_t thaisen_set_trigger_event(enum thaisen_trig_event event, uint16_t duration_time, uint8_t just_notice, uint8_t gunno);
 
 #endif /* APPLICATIONS_INC_APP_DATA_INFO_INTERFACE_H_ */
 

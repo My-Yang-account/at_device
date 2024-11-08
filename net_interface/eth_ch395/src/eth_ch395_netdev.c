@@ -148,14 +148,13 @@ int32_t ethch395_netdev_init(void)
     }
 
     /**** 以中断接收方式打开串口设备 ****/
-    int rres = 0;
-    if((rres = rt_device_open(s_ethch395_netdev, RT_DEVICE_FLAG_INT_RX)) != RT_EOK){
-        LOG_E("ethch395 net device open fail, please check!(%d)", rres);
+    if(rt_device_open(s_ethch395_netdev, RT_DEVICE_FLAG_INT_RX) != RT_EOK){
+        LOG_E("ethch395 net device open fail, please check!");
         return -3;
     }
     /**** 初始化数据接收信号量 ****/
     rt_sem_init(&s_ethch395_netdev_sem, "ethch395_sem", 0, RT_IPC_FLAG_FIFO);
-    /**** 设置蓝牙串口接收回调函数 ****/
+    /**** 设置串口接收回调函数 ****/
     rt_device_set_rx_indicate(s_ethch395_netdev, ethch395_netdev_input);
 
     rt_pin_mode(ETHCH395_RST_PIN, PIN_MODE_OUTPUT);

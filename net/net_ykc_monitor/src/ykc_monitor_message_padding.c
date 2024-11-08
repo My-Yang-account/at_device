@@ -828,10 +828,11 @@ int8_t ykc_monitor_message_pro_apply_charge_active_response(uint8_t gunno, void 
     memset(s_ykc_monitor_base->user_number, 0x00, sizeof(s_ykc_monitor_base->user_number));
     memcpy(s_ykc_monitor_base->user_number, s_ykc_monitor_base->card_number, valid_len);
 
-    s_ykc_monitor_base->account_balance = request->body.account_ballance;
-
     s_ykc_monitor_base->charge_strategy = APP_CHARGE_STRATEGY_MONEY;
     s_ykc_monitor_base->charge_strategy_para = request->body.account_ballance *100;
+
+    s_ykc_monitor_base->account_ballance_before = request->body.account_ballance;
+    s_ykc_monitor_base->account_ballance_after = request->body.account_ballance;
     return 0x00;
 #else
     return -0x01;
@@ -896,10 +897,11 @@ int8_t ykc_monitor_message_pro_remote_start_charge_request(uint8_t gunno, void *
         memset(s_ykc_monitor_base->user_number, 0x00, sizeof(s_ykc_monitor_base->user_number));
         memcpy(s_ykc_monitor_base->user_number, s_ykc_monitor_base->card_number, valid_len);
 
-        s_ykc_monitor_base->account_balance = request->body.account_ballance;
-
         s_ykc_monitor_base->charge_strategy = APP_CHARGE_STRATEGY_MONEY;
         s_ykc_monitor_base->charge_strategy_para = request->body.account_ballance *100;
+
+        s_ykc_monitor_base->account_ballance_before = request->body.account_ballance;
+        s_ykc_monitor_base->account_ballance_after = request->body.account_ballance;
 
         s_ykc_monitor_flag_info[gunno].is_start_charge = NET_ENUM_TRUE;
 
@@ -972,7 +974,8 @@ int8_t ykc_monitor_message_pro_account_ballance_update_request(uint8_t gunno, vo
     Net_YkcMonitorPro_SReq_AccountBallance_Update_t *request = (Net_YkcMonitorPro_SReq_AccountBallance_Update_t*)data;
     s_ykc_monitor_base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
 
-    s_ykc_monitor_base->account_balance = request->body.account_amount;
+    s_ykc_monitor_base->account_ballance_before = request->body.account_amount;
+    s_ykc_monitor_base->account_ballance_after = request->body.account_amount;
 
     return 0x00;
 }
@@ -1108,10 +1111,12 @@ int8_t ykc_monitor_message_pro_apply_merge_charge_active_response(uint8_t gunno,
     valid_len = valid_len > sizeof(s_ykc_monitor_base->user_number) ? sizeof(s_ykc_monitor_base->user_number) : valid_len;
     memset(s_ykc_monitor_base->user_number, 0x00, sizeof(s_ykc_monitor_base->user_number));
     memcpy(s_ykc_monitor_base->user_number, s_ykc_monitor_base->card_number, valid_len);
-    s_ykc_monitor_base->account_balance = request->body.account_ballance;
 
     s_ykc_monitor_base->charge_strategy = APP_CHARGE_STRATEGY_MONEY;
     s_ykc_monitor_base->charge_strategy_para = request->body.account_ballance *100;
+
+    s_ykc_monitor_base->account_ballance_before = request->body.account_ballance;
+    s_ykc_monitor_base->account_ballance_after = request->body.account_ballance;
     return 0x00;
 #else
     return -0x01;
@@ -1202,10 +1207,12 @@ int8_t ykc_monitor_message_pro_remote_start_merge_charge_request(uint8_t gunno, 
         valid_len = valid_len > sizeof(s_ykc_monitor_base->user_number) ? sizeof(s_ykc_monitor_base->user_number) : valid_len;
         memset(s_ykc_monitor_base->user_number, 0x00, sizeof(s_ykc_monitor_base->user_number));
         memcpy(s_ykc_monitor_base->user_number, s_ykc_monitor_base->card_number, valid_len);
-        s_ykc_monitor_base->account_balance = request->body.account_ballance;
 
         s_ykc_monitor_base->charge_strategy = APP_CHARGE_STRATEGY_MONEY;
         s_ykc_monitor_base->charge_strategy_para = request->body.account_ballance *100;
+
+        s_ykc_monitor_base->account_ballance_before = request->body.account_ballance;
+        s_ykc_monitor_base->account_ballance_after = request->body.account_ballance;
 
         s_ykc_monitor_flag_info[gunno].is_request_mergecharge = NET_ENUM_TRUE;
         s_ykc_monitor_flag_info[gunno].is_start_mergecharge = NET_ENUM_TRUE;

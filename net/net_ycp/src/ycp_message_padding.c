@@ -796,7 +796,8 @@ int8_t ycp_message_pro_apply_charge_active_response(uint8_t gunno, void *data, u
     memset(s_ycp_base->user_number, 0x00, sizeof(s_ycp_base->user_number));
     memcpy(s_ycp_base->user_number, s_ycp_base->card_number, valid_len);
 
-    s_ycp_base->account_balance = 0x00;
+    s_ycp_base->account_ballance_before = 0x00;
+    s_ycp_base->account_ballance_after = 0x00;
 
     switch(response->body.strategy){
     case NET_YCP_CHARGE_STRATEGY_TIME:
@@ -810,6 +811,8 @@ int8_t ycp_message_pro_apply_charge_active_response(uint8_t gunno, void *data, u
     case NET_YCP_CHARGE_STRATEGY_MONEY:
         s_ycp_base->charge_strategy = APP_CHARGE_STRATEGY_MONEY;
         s_ycp_base->charge_strategy_para = response->body.strategy_para *100;
+        s_ycp_base->account_ballance_before = response->body.strategy_para;
+        s_ycp_base->account_ballance_after = response->body.strategy_para;
         break;
     case NET_YCP_CHARGE_STRATEGY_FULL:
         s_ycp_base->charge_strategy = APP_CHARGE_STRATEGY_FULL;
@@ -873,7 +876,8 @@ int16_t ycp_message_pro_remote_start_charge_request(uint8_t gunno, void *data, u
         memset(s_ycp_base->transaction_number, 0x00, sizeof(s_ycp_base->transaction_number));
         memcpy(s_ycp_base->transaction_number, request->body.serial_number, valid_len);
 
-        s_ycp_base->account_balance = 0x00;
+        s_ycp_base->account_ballance_before = 0x00;
+        s_ycp_base->account_ballance_after = 0x00;
 
         switch(request->body.strategy){
         case NET_YCP_CHARGE_STRATEGY_TIME:
@@ -887,6 +891,8 @@ int16_t ycp_message_pro_remote_start_charge_request(uint8_t gunno, void *data, u
         case NET_YCP_CHARGE_STRATEGY_MONEY:
             s_ycp_base->charge_strategy = APP_CHARGE_STRATEGY_MONEY;
             s_ycp_base->charge_strategy_para = request->body.strategy_para *100;
+            s_ycp_base->account_ballance_before = request->body.strategy_para;
+            s_ycp_base->account_ballance_after = request->body.strategy_para;
             break;
         case NET_YCP_CHARGE_STRATEGY_FULL:
             s_ycp_base->charge_strategy = APP_CHARGE_STRATEGY_FULL;

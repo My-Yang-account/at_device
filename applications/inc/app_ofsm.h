@@ -23,6 +23,9 @@ extern "C" {
 
 #define APP_USING_DOUBLEGUN                            /* 使用双枪 */
 
+#define APP_CARD_NUMBER_COMPARE_LEN_MIN                   12    /* 卡号最小对比长度 */
+#define APP_CARD_NUMBER_COMPARE_LEN_MIN_OFFLINE_BILLING   6     /* 卡号最小对比长度(离线计费模式下) */
+
 #define START_CHARGE_TIMEOUT  (100 *1)
 #define TINY_CURRENT_ABNOAMAL_VALUE          200       /* 小电流异常值 */
 #define TINY_CURRENT_ABNOAMAL_TIMEOUT        1800000   /* 小电流异常持续时间 30 *60 *1000  */
@@ -41,6 +44,15 @@ extern "C" {
 #define APP_RESERVATE_STRATEGY_TIMEOUT_CANCEL  (0x01 <<0x02)     /* 预约策略：预约超时取消(最大超时时间有预约策略参数规定[单位：s]) */
 #define APP_RESERVATE_STRATEGY_VIN_AUTH        (0x01 <<0x03)     /* 预约策略：预约时间到后需要VIN码鉴权启动 */
 #define APP_RESERVATE_STRATEGY_START_DIRECTLY  (0x01 <<0x04)     /* 预约策略：预约时间到后直接启动 */
+
+enum buzzon_state {
+    APP_BUZZON_STATE_NULL = 0,
+    APP_BUZZON_STATE_OK,
+    APP_BUZZON_STATE_FAILED,  /** 平台鉴权卡片失败 */
+    APP_BUZZON_STATE_WARRING, /** 密钥验证或获取卡号失败，本地鉴权失败 */
+    APP_BUZZON_STATE_AUTHING, /** 平台正在鉴权卡片 */
+    APP_BUZZON_STATE_SUCCESS, /** 平台鉴权卡片成功 */
+};
 
 enum booting_step_t{
     APP_BOOTING_STEP_IDLE,
@@ -205,9 +217,13 @@ typedef struct
     uint8_t user_number[32];             /* 用户号 */
 #ifdef APP_INCLUDE_SGCC_PROTOCOL
     uint8_t chargepile_id[64];            /* 充电桩ID */
-    uint8_t reserve0[32];
+    uint32_t account_ballance_before;     /* 充电前卡(账户)余额 */
+    uint32_t account_ballance_after;      /* 充电后卡(账户)余额 */
+    uint8_t reserve0[24];
 #else
-    uint8_t reserve0[96];
+    uint32_t account_ballance_before;     /* 充电前卡(账户)余额 */
+    uint32_t account_ballance_after;      /* 充电后卡(账户)余额 */
+    uint8_t reserve0[88];
 #endif /* APP_INCLUDE_SGCC_PROTOCOL */
 
     uint32_t start_time;                  /* 充电开始时间 */
@@ -262,10 +278,6 @@ typedef struct
     uint8_t period_count;                 /* 跨时段个数 */
     uint8_t charge_strategy;              /* 充电策略参数 */
     uint32_t charge_strategy_para;        /* 充电策略参数 */
-#if (defined (APP_INCLUDE_SL_PROTOCOL) || defined (APP_INCLUDE_XJ_PROTOCOL))
-    uint32_t card_ballance_before;        /* 充电前卡余额 */
-    uint32_t card_ballance_after;         /* 充电后卡余额 */
-#endif /* (defined (APP_INCLUDE_SL_PROTOCOL) || defined (APP_INCLUDE_XJ_PROTOCOL)) */
     struct{
         uint8_t target_soc : 2;           /* 达到所需求的SOC目标值 */
         uint8_t target_tvolt : 2;         /* 达到总电压的设定值 */
@@ -363,8 +375,6 @@ typedef struct{
     uint32_t current_c;               /* 电流C相 */
     uint32_t power_c;                 /* 功率C相 */
     uint32_t elect_c;                 /* 电量C相 */
-    uint32_t account_balance;         /* 账户余额(精度：0.001) */
-    uint32_t card_balance;            /* 卡内余额(精度：0.001) */
     uint32_t fees_total;              /* 总费用(精度：0.0001) */
     uint32_t elect_fees_total;        /* 电费总费用(精度：0.0001) */
     uint32_t service_fees_total;      /* 服务费总费用(精度：0.0001) */
@@ -382,10 +392,8 @@ typedef struct{
     uint8_t start_period;             /* 开始时段 */
     uint8_t current_period;           /* 当前时段 */
     uint8_t period_num;               /* 跨时段总数 */
-#if (defined (APP_INCLUDE_SL_PROTOCOL) || defined (APP_INCLUDE_XJ_PROTOCOL))
-    uint32_t card_ballance_before;    /* 充电前卡余额 */
-    uint32_t card_ballance_after;     /* 充电后卡余额 */
-#endif /* (defined (APP_INCLUDE_SL_PROTOCOL) || defined (APP_INCLUDE_XJ_PROTOCOL)) */
+    uint32_t account_ballance_before; /* 充电前卡(账户)余额 */
+    uint32_t account_ballance_after;  /* 充电后卡(账户)余额 */
 
     uint8_t reservation_strategy;     /* 预约策略 */
     uint8_t reservation_strategy_para;/* 预约策略参数 */
@@ -403,7 +411,8 @@ typedef struct{
 #endif /* APP_INCLUDE_SGCC_PROTOCOL */
     uint8_t main_gunno;              /* 并充主枪枪号 */
     uint8_t charge_way;              /* 充电方式 */
-    void *bms_data;                   /* BMS 数据 */
+    uint8_t is_offline_billing;      /* 这是离线计费模式 */
+    void *bms_data;                  /* BMS 数据 */
 }System_BaseData;
 
 struct ofsm_info {

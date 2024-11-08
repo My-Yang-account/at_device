@@ -77,6 +77,7 @@ void SerialScreen_IsSupportParaRelaySet(void);
 void SerialScreen_IsSupportVINSet(void);
 void SerialScreen_IsSupportIsulationSet(void);
 void SerialScreen_IsSupportModuleSlienceSet(void);
+void SerialScreen_IsSupportOfflineBillingSet(void);
 struct charge_data *SerialScreen_GetChargeInfo(int port);
 struct bms_info *SerialScreen_GetBmsInfo(int port);
 struct temperature* SerialScreen_GetBatTemp(int port);
@@ -179,10 +180,14 @@ s8 SerialScreen_Get_SetELossProportion_Flag(void);
 void SerialScreen_ScreenGet_TimeSync(u16* buf, u8 len);
 u8 SerialScreen_ScreenGet_Reboot_Flag(void);
 void SerialScreen_ScreenClear_Reboot_Flag(void);
+s32 SerialScreen_ScreenSet_Trigger_Event(u8 Event, u16 DurationTime, u8 JustNotice, u8 port);
 /********************************输出信息*******************************************/
 void SerialScreen_AcIsSupportOutSet(void);
 void SerialScreen_ElockIsSupportOutSet(void);
 void SerialScreen_FanIsSupportOutSet(void);
+
+void SerialScreen_OfflineBillingSet(void);
+void SerialScreen_OfflineBillingGet(void);
 
 u8 SerialScreen_GetChargeWay(void);
 void SerialScreen_SetChargeWay(u8 way);

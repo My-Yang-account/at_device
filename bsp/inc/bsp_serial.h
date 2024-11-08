@@ -26,16 +26,12 @@ extern rt_device_t g_terminal_serial;
 extern struct rt_semaphore g_terminal_rx_sem;
 extern rt_device_t g_hci_serial;
 extern struct rt_semaphore g_hci_rx_sem;
-extern rt_device_t g_reader_serial;
-extern struct rt_semaphore g_reader_rx_sem;
 
 void terminal_send_data(char *data);
 void hci_send_data(uint8_t *data, uint8_t len);
-void reader_send_data(uint8_t *data, uint8_t len);
 
 int32_t bsp_terminal_serial_init(void);
 int32_t bsp_hci_serial_init(void);
-int32_t bsp_reader_serial_init(void);
 
 #ifdef __cplusplus
 }

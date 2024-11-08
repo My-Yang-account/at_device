@@ -176,7 +176,8 @@ struct _function_enable{
     uint8_t auxpower_24V;          /* 24V辅源 */
     uint8_t parallel_relay;        /* 并联 */
     uint8_t module_slience;        /* 模块静音 */
-    uint8_t reserve[94];
+    uint8_t offline_billing;       /* 离线计费 */
+    uint8_t reserve[93];
 };
 
 struct _state_reversal{
@@ -218,7 +219,8 @@ struct chargepile_config_info{
     struct _state_reversal state_reversal;
     struct _target_plat target_plat;
     struct _monitor_plat monitor_plat;
-    uint8_t reserve[512];
+    struct sys_billing_rule billing_rule;
+    uint8_t reserve[1024];
     uint32_t crc;
 };
 
@@ -382,6 +384,11 @@ static struct config_item s_config_item_set[CONFIG_ITEM_SIZE] =
         {CONFIG_ITEM_SUPORT_AUXPOWER24V,                                                /* 配置项：24V辅源 */
         (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.auxpower_24V)),
         (uint8_t*)&s_chargepile_config_info.function_enable.auxpower_24V,
+        NULL},
+
+        {CONFIG_ITEM_SUPORT_OFFLINE_BILLING,                                            /* 配置项：离线计费 */
+        (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.offline_billing)),
+        (uint8_t*)&s_chargepile_config_info.function_enable.offline_billing,
         NULL},
 
         {CONFIG_ITEM_INPUT_OVERVOL,                                                     /* 配置项：输入过压 */
@@ -620,6 +627,11 @@ static struct config_item s_config_item_set[CONFIG_ITEM_SIZE] =
         NULL},
 
 
+
+        {CONFIG_ITEM_BILLING_RULE,                                                              /* 计费规则数据：为倒数第三项 */
+        (1 <<(32 - 4))| (sizeof(s_chargepile_config_info.billing_rule)),
+        (uint8_t*)&s_chargepile_config_info.billing_rule,
+        NULL},
 
         {CONFIG_ITEM_TARGET_PLATFORM,                                                           /* 目标平台数据：为倒数第二项 */
         (1 <<(32 - 4))| (sizeof(s_chargepile_config_info.target_plat)),
@@ -900,12 +912,10 @@ static int32_t do_storage_if_config_content(uint32_t addr, uint8_t *buff, uint32
     while(rentry > 0){
         if(mw_iflash_erase_sector(addr, blen, 0x00) < 0x00){
             LOG_E("execute flash erase fail when call do_storage_if_config_content");
-//            return -1;
         }
 
         if(mw_iflash_write_directly(addr, (const uint8_t*)&init_flag , sizeof(init_flag), 0x00) < 0x00){
             LOG_E("execute write init flag fail when call do_storage_if_config_content");
-//            return -1;
         }
 
         s_chargepile_config_info.crc = crc32_ieee_update(0, (const uint8_t *)&s_chargepile_config_info, (sizeof(s_chargepile_config_info) - sizeof(s_chargepile_config_info.crc)));
@@ -1151,6 +1161,7 @@ static void chargepile_config_data_reset(void)
     s_chargepile_config_info.function_enable.rfid_card_reader = 0x00;
     s_chargepile_config_info.function_enable.parallel_relay = 0x00;
     s_chargepile_config_info.function_enable.module_slience = 0x00;
+    s_chargepile_config_info.function_enable.offline_billing = 0x00;
 
     s_chargepile_config_info.state_reversal.emergency_stop = 0x00;
     s_chargepile_config_info.state_reversal.gate = 0x00;
@@ -1162,6 +1173,37 @@ static void chargepile_config_data_reset(void)
 
     s_chargepile_config_info.target_plat.verify_result = 0x00;
     s_chargepile_config_info.monitor_plat.verify_result = 0x00;
+
+    for(uint8_t period = 0x00; period < CP_PERIOD_MAX; period++){
+        s_chargepile_config_info.billing_rule.period_price[period].elect = CP_PERIOD_ELECT_PRICE_DEF;
+        s_chargepile_config_info.billing_rule.period_price[period].service = CP_PERIOD_SERVICE_PRICE_DEF;
+        s_chargepile_config_info.billing_rule.period_price[period].delay = CP_PERIOD_DELAY_PRICE_DEF;
+        s_chargepile_config_info.billing_rule.period_price[period].reserve = 0x00;
+
+        s_chargepile_config_info.billing_rule.rate_number[period] = CP_PERIOD_RATED_NUMBER_DEFAULT;
+    }
+
+    s_chargepile_config_info.billing_rule.rate_elect_price[CP_RATED_TYPE_SHARP_SHARP] = CP_SHARP_SHARP_RATED_ELECT_PRICE_DEF;
+    s_chargepile_config_info.billing_rule.rate_service_price[CP_RATED_TYPE_SHARP_SHARP] = CP_SHARP_SHARP_RATED_SERVICE_PRICE_DEF;
+    s_chargepile_config_info.billing_rule.rate_delay_price[CP_RATED_TYPE_SHARP_SHARP] = CP_SHARP_SHARP_RATED_DELAY_PRICE_DEF;
+
+    s_chargepile_config_info.billing_rule.rate_elect_price[CP_RATED_TYPE_SHARP] = CP_SHARP_RATED_ELECT_PRICE_DEF;
+    s_chargepile_config_info.billing_rule.rate_service_price[CP_RATED_TYPE_SHARP] = CP_SHARP_RATED_SERVICE_PRICE_DEF;
+    s_chargepile_config_info.billing_rule.rate_delay_price[CP_RATED_TYPE_SHARP] = CP_SHARP_RATED_DELAY_PRICE_DEF;
+
+    s_chargepile_config_info.billing_rule.rate_elect_price[CP_RATED_TYPE_PEAK] = CP_PEAK_RATED_ELECT_PRICE_DEF;
+    s_chargepile_config_info.billing_rule.rate_service_price[CP_RATED_TYPE_PEAK] = CP_PEAK_RATED_SERVICE_PRICE_DEF;
+    s_chargepile_config_info.billing_rule.rate_delay_price[CP_RATED_TYPE_PEAK] = CP_PEAK_RATED_DELAY_PRICE_DEF;
+
+    s_chargepile_config_info.billing_rule.rate_elect_price[CP_RATED_TYPE_FLAT] = CP_FLAT_RATED_ELECT_PRICE_DEF;
+    s_chargepile_config_info.billing_rule.rate_service_price[CP_RATED_TYPE_FLAT] = CP_FLAT_RATED_SERVICE_PRICE_DEF;
+    s_chargepile_config_info.billing_rule.rate_delay_price[CP_RATED_TYPE_FLAT] = CP_FLAT_RATED_DELAY_PRICE_DEF;
+
+    s_chargepile_config_info.billing_rule.rate_elect_price[CP_RATED_TYPE_VALLEY] = CP_VALLEY_RATED_ELECT_PRICE_DEF;
+    s_chargepile_config_info.billing_rule.rate_service_price[CP_RATED_TYPE_VALLEY] = CP_VALLEY_RATED_SERVICE_PRICE_DEF;
+    s_chargepile_config_info.billing_rule.rate_delay_price[CP_RATED_TYPE_VALLEY] = CP_VALLEY_RATED_DELAY_PRICE_DEF;
+
+    sys_period_time_resume_default(s_chargepile_config_info.billing_rule.time, sizeof(s_chargepile_config_info.billing_rule.time));
 
 #ifdef APP_INCLUDE_TARGET_PLATFORM
 #if (APP_TARGET_PLATFORM_ID == NET_OCPP_PLATFORM_ID)
@@ -1303,6 +1345,8 @@ int32_t system_config_init_if(void)
 
 int32_t chargepile_check_config(void)
 {
+    struct period_time time[CP_RATED_TYPE_NUM_MAX *CP_RATED_TYPE_PERIOD_NUM];  /* 时段时间 */
+    uint8_t i = 0x00, j = 0x00;
     uint32_t single_module_power = 0x00;       /* 单个模块能输出的最大(额定)功率 */
     s_system_power_max = 0x00;
 
@@ -1418,6 +1462,9 @@ int32_t chargepile_check_config(void)
     if(s_chargepile_config_info.function_enable.module_slience > 0x01){   /* 模块静音默认关闭 */
         s_chargepile_config_info.function_enable.module_slience = 0x00;
     }
+    if(s_chargepile_config_info.function_enable.offline_billing > 0x01){   /* 离线计费默认关闭 */
+        s_chargepile_config_info.function_enable.offline_billing = 0x00;
+    }
 
     if(s_chargepile_config_info.state_reversal.emergency_stop > 0x01){   /* 急停默认不取反 */
         s_chargepile_config_info.state_reversal.emergency_stop = 0x00;
@@ -1510,6 +1557,204 @@ int32_t chargepile_check_config(void)
         }
     }
 #endif
+
+    /***************************************************[离线计费部分]*****************************************************/
+    /***************************************************[离线计费部分]*****************************************************/
+    for(uint8_t period = 0x00; period < CP_PERIOD_MAX; period++){
+        if((s_chargepile_config_info.billing_rule.period_price[period].elect < CP_PERIOD_ELECT_PRICE_MIN) ||
+                (s_chargepile_config_info.billing_rule.period_price[period].elect > CP_PERIOD_ELECT_PRICE_MAX)){
+            s_chargepile_config_info.billing_rule.period_price[period].elect = CP_PERIOD_ELECT_PRICE_DEF;
+        }
+        if((s_chargepile_config_info.billing_rule.period_price[period].service < CP_PERIOD_SERVICE_PRICE_MIN) ||
+                (s_chargepile_config_info.billing_rule.period_price[period].service > CP_PERIOD_SERVICE_PRICE_MAX)){
+            s_chargepile_config_info.billing_rule.period_price[period].service = CP_PERIOD_SERVICE_PRICE_DEF;
+        }
+        if((s_chargepile_config_info.billing_rule.period_price[period].delay < CP_PERIOD_DELAY_PRICE_MIN) ||
+                (s_chargepile_config_info.billing_rule.period_price[period].delay > CP_PERIOD_DELAY_PRICE_MAX)){
+            s_chargepile_config_info.billing_rule.period_price[period].delay = CP_PERIOD_DELAY_PRICE_DEF;
+        }
+
+        if((s_chargepile_config_info.billing_rule.rate_number[period] < CP_RATED_TYPE_MIN) ||
+                (s_chargepile_config_info.billing_rule.rate_number[period] > CP_RATED_TYPE_MAX)){
+            s_chargepile_config_info.billing_rule.rate_number[period] = CP_PERIOD_RATED_NUMBER_DEFAULT;
+        }
+    }
+    /************************************************************************************************************************/
+    if((s_chargepile_config_info.billing_rule.rate_elect_price[CP_RATED_TYPE_SHARP_SHARP] < CP_SHARP_SHARP_RATED_ELECT_PRICE_MIN) ||
+            (s_chargepile_config_info.billing_rule.rate_elect_price[CP_RATED_TYPE_SHARP_SHARP] > CP_SHARP_SHARP_RATED_ELECT_PRICE_MAX)){
+        s_chargepile_config_info.billing_rule.rate_elect_price[CP_RATED_TYPE_SHARP_SHARP] = CP_SHARP_SHARP_RATED_ELECT_PRICE_DEF;
+    }
+    if((s_chargepile_config_info.billing_rule.rate_service_price[CP_RATED_TYPE_SHARP_SHARP] < CP_SHARP_SHARP_RATED_SERVICE_PRICE_MIN) ||
+            (s_chargepile_config_info.billing_rule.rate_service_price[CP_RATED_TYPE_SHARP_SHARP] > CP_SHARP_SHARP_RATED_SERVICE_PRICE_MAX)){
+        s_chargepile_config_info.billing_rule.rate_service_price[CP_RATED_TYPE_SHARP_SHARP] = CP_SHARP_SHARP_RATED_SERVICE_PRICE_DEF;
+    }
+    if((s_chargepile_config_info.billing_rule.rate_delay_price[CP_RATED_TYPE_SHARP_SHARP] < CP_SHARP_SHARP_RATED_DELAY_PRICE_MIN) ||
+            (s_chargepile_config_info.billing_rule.rate_delay_price[CP_RATED_TYPE_SHARP_SHARP] > CP_SHARP_SHARP_RATED_DELAY_PRICE_MAX)){
+        s_chargepile_config_info.billing_rule.rate_delay_price[CP_RATED_TYPE_SHARP_SHARP] = CP_SHARP_SHARP_RATED_DELAY_PRICE_DEF;
+    }
+    /************************************************************************************************************************/
+    if((s_chargepile_config_info.billing_rule.rate_elect_price[CP_RATED_TYPE_SHARP] < CP_SHARP_RATED_ELECT_PRICE_MIN) ||
+            (s_chargepile_config_info.billing_rule.rate_elect_price[CP_RATED_TYPE_SHARP] > CP_SHARP_RATED_ELECT_PRICE_MAX)){
+        s_chargepile_config_info.billing_rule.rate_elect_price[CP_RATED_TYPE_SHARP] = CP_SHARP_RATED_ELECT_PRICE_DEF;
+    }
+    if((s_chargepile_config_info.billing_rule.rate_service_price[CP_RATED_TYPE_SHARP] < CP_SHARP_RATED_SERVICE_PRICE_MIN) ||
+            (s_chargepile_config_info.billing_rule.rate_service_price[CP_RATED_TYPE_SHARP] > CP_SHARP_RATED_SERVICE_PRICE_MAX)){
+        s_chargepile_config_info.billing_rule.rate_service_price[CP_RATED_TYPE_SHARP] = CP_SHARP_RATED_SERVICE_PRICE_DEF;
+    }
+    if((s_chargepile_config_info.billing_rule.rate_delay_price[CP_RATED_TYPE_SHARP] < CP_SHARP_RATED_DELAY_PRICE_MIN) ||
+            (s_chargepile_config_info.billing_rule.rate_delay_price[CP_RATED_TYPE_SHARP] > CP_SHARP_RATED_DELAY_PRICE_MAX)){
+        s_chargepile_config_info.billing_rule.rate_delay_price[CP_RATED_TYPE_SHARP] = CP_SHARP_RATED_DELAY_PRICE_DEF;
+    }
+    /************************************************************************************************************************/
+    if((s_chargepile_config_info.billing_rule.rate_elect_price[CP_RATED_TYPE_PEAK] < CP_PEAK_RATED_ELECT_PRICE_MIN) ||
+            (s_chargepile_config_info.billing_rule.rate_elect_price[CP_RATED_TYPE_PEAK] > CP_PEAK_RATED_ELECT_PRICE_MAX)){
+        s_chargepile_config_info.billing_rule.rate_elect_price[CP_RATED_TYPE_PEAK] = CP_PEAK_RATED_ELECT_PRICE_DEF;
+    }
+    if((s_chargepile_config_info.billing_rule.rate_service_price[CP_RATED_TYPE_PEAK] < CP_PEAK_RATED_SERVICE_PRICE_MIN) ||
+            (s_chargepile_config_info.billing_rule.rate_service_price[CP_RATED_TYPE_PEAK] > CP_PEAK_RATED_SERVICE_PRICE_MAX)){
+        s_chargepile_config_info.billing_rule.rate_service_price[CP_RATED_TYPE_PEAK] = CP_PEAK_RATED_SERVICE_PRICE_DEF;
+    }
+    if((s_chargepile_config_info.billing_rule.rate_delay_price[CP_RATED_TYPE_PEAK] < CP_PEAK_RATED_DELAY_PRICE_MIN) ||
+            (s_chargepile_config_info.billing_rule.rate_delay_price[CP_RATED_TYPE_PEAK] > CP_PEAK_RATED_DELAY_PRICE_MAX)){
+        s_chargepile_config_info.billing_rule.rate_delay_price[CP_RATED_TYPE_PEAK] = CP_PEAK_RATED_DELAY_PRICE_DEF;
+    }
+    /************************************************************************************************************************/
+    if((s_chargepile_config_info.billing_rule.rate_elect_price[CP_RATED_TYPE_FLAT] < CP_FLAT_RATED_ELECT_PRICE_MIN) ||
+            (s_chargepile_config_info.billing_rule.rate_elect_price[CP_RATED_TYPE_FLAT] > CP_FLAT_RATED_ELECT_PRICE_MAX)){
+        s_chargepile_config_info.billing_rule.rate_elect_price[CP_RATED_TYPE_FLAT] = CP_FLAT_RATED_ELECT_PRICE_DEF;
+    }
+    if((s_chargepile_config_info.billing_rule.rate_service_price[CP_RATED_TYPE_FLAT] < CP_FLAT_RATED_SERVICE_PRICE_MIN) ||
+            (s_chargepile_config_info.billing_rule.rate_service_price[CP_RATED_TYPE_FLAT] > CP_FLAT_RATED_SERVICE_PRICE_MAX)){
+        s_chargepile_config_info.billing_rule.rate_service_price[CP_RATED_TYPE_FLAT] = CP_FLAT_RATED_SERVICE_PRICE_DEF;
+    }
+    if((s_chargepile_config_info.billing_rule.rate_delay_price[CP_RATED_TYPE_FLAT] < CP_FLAT_RATED_DELAY_PRICE_MIN) ||
+            (s_chargepile_config_info.billing_rule.rate_delay_price[CP_RATED_TYPE_FLAT] > CP_FLAT_RATED_DELAY_PRICE_MAX)){
+        s_chargepile_config_info.billing_rule.rate_delay_price[CP_RATED_TYPE_FLAT] = CP_FLAT_RATED_DELAY_PRICE_DEF;
+    }
+    /************************************************************************************************************************/
+    if((s_chargepile_config_info.billing_rule.rate_elect_price[CP_RATED_TYPE_VALLEY] < CP_VALLEY_RATED_ELECT_PRICE_MIN) ||
+            (s_chargepile_config_info.billing_rule.rate_elect_price[CP_RATED_TYPE_VALLEY] > CP_VALLEY_RATED_ELECT_PRICE_MAX)){
+        s_chargepile_config_info.billing_rule.rate_elect_price[CP_RATED_TYPE_VALLEY] = CP_VALLEY_RATED_ELECT_PRICE_DEF;
+    }
+    if((s_chargepile_config_info.billing_rule.rate_service_price[CP_RATED_TYPE_VALLEY] < CP_VALLEY_RATED_SERVICE_PRICE_MIN) ||
+            (s_chargepile_config_info.billing_rule.rate_service_price[CP_RATED_TYPE_VALLEY] > CP_VALLEY_RATED_SERVICE_PRICE_MAX)){
+        s_chargepile_config_info.billing_rule.rate_service_price[CP_RATED_TYPE_VALLEY] = CP_VALLEY_RATED_SERVICE_PRICE_DEF;
+    }
+    if((s_chargepile_config_info.billing_rule.rate_delay_price[CP_RATED_TYPE_VALLEY] < CP_VALLEY_RATED_DELAY_PRICE_MIN) ||
+            (s_chargepile_config_info.billing_rule.rate_delay_price[CP_RATED_TYPE_VALLEY] > CP_VALLEY_RATED_DELAY_PRICE_MAX)){
+        s_chargepile_config_info.billing_rule.rate_delay_price[CP_RATED_TYPE_VALLEY] = CP_VALLEY_RATED_DELAY_PRICE_DEF;
+    }
+    /************************************************************************************************************************/
+
+    if(sys_period_time_format_valid(s_chargepile_config_info.billing_rule.time) != 0x01){
+        LOG_W("offline billing period time invalid");
+        sys_period_time_resume_default(s_chargepile_config_info.billing_rule.time, sizeof(s_chargepile_config_info.billing_rule.time));
+    }else{
+        for(i = 0x00; i < CP_RATED_TYPE_NUM_MAX; i++){
+            for(j = 0x00; j < CP_RATED_TYPE_PERIOD_NUM; j++){
+                time[i *CP_RATED_TYPE_PERIOD_NUM + j] = s_chargepile_config_info.billing_rule.time[i][j];
+            }
+        }
+        if(sys_period_time_continuous_valid(time, sizeof(time)) != 0x01){
+            sys_period_time_resume_default(s_chargepile_config_info.billing_rule.time, sizeof(s_chargepile_config_info.billing_rule.time));
+        }
+    }
+
+    for(i = 0x00; i < CP_RATED_TYPE_PERIOD_NUM; i++){
+        s_chargepile_config_info.billing_rule.time[CP_RATED_TYPE_SHARP_SHARP][i].rate_number = CP_RATED_TYPE_SHARP_SHARP;
+    }
+    for(i = 0x00; i < CP_RATED_TYPE_PERIOD_NUM; i++){
+        s_chargepile_config_info.billing_rule.time[CP_RATED_TYPE_SHARP][i].rate_number = CP_RATED_TYPE_SHARP;
+    }
+    for(i = 0x00; i < CP_RATED_TYPE_PERIOD_NUM; i++){
+        s_chargepile_config_info.billing_rule.time[CP_RATED_TYPE_PEAK][i].rate_number = CP_RATED_TYPE_PEAK;
+    }
+    for(i = 0x00; i < CP_RATED_TYPE_PERIOD_NUM; i++){
+        s_chargepile_config_info.billing_rule.time[CP_RATED_TYPE_FLAT][i].rate_number = CP_RATED_TYPE_FLAT;
+    }
+    for(i = 0x00; i < CP_RATED_TYPE_PERIOD_NUM; i++){
+        s_chargepile_config_info.billing_rule.time[CP_RATED_TYPE_VALLEY][i].rate_number = CP_RATED_TYPE_VALLEY;
+    }
+
+    rt_kprintf("=============================================================\n");
+    rt_kprintf("sharp sharp price:\n");
+    rt_kprintf("elect:%d\n", s_chargepile_config_info.billing_rule.rate_elect_price[CP_RATED_TYPE_SHARP_SHARP]);
+    rt_kprintf("service:%d\n", s_chargepile_config_info.billing_rule.rate_service_price[CP_RATED_TYPE_SHARP_SHARP]);
+    rt_kprintf("delay:%d\n", s_chargepile_config_info.billing_rule.rate_delay_price[CP_RATED_TYPE_SHARP_SHARP]);
+    rt_kprintf("=============================================================\n");
+    rt_kprintf("sharp price:\n");
+    rt_kprintf("elect:%d\n", s_chargepile_config_info.billing_rule.rate_elect_price[CP_RATED_TYPE_SHARP]);
+    rt_kprintf("service:%d\n", s_chargepile_config_info.billing_rule.rate_service_price[CP_RATED_TYPE_SHARP]);
+    rt_kprintf("delay:%d\n", s_chargepile_config_info.billing_rule.rate_delay_price[CP_RATED_TYPE_SHARP]);
+    rt_kprintf("=============================================================\n");
+    rt_kprintf("peak price:\n");
+    rt_kprintf("elect:%d\n", s_chargepile_config_info.billing_rule.rate_elect_price[CP_RATED_TYPE_PEAK]);
+    rt_kprintf("service:%d\n", s_chargepile_config_info.billing_rule.rate_service_price[CP_RATED_TYPE_PEAK]);
+    rt_kprintf("delay:%d\n", s_chargepile_config_info.billing_rule.rate_delay_price[CP_RATED_TYPE_PEAK]);
+    rt_kprintf("=============================================================\n");
+    rt_kprintf("flat price:\n");
+    rt_kprintf("elect:%d\n", s_chargepile_config_info.billing_rule.rate_elect_price[CP_RATED_TYPE_FLAT]);
+    rt_kprintf("service:%d\n", s_chargepile_config_info.billing_rule.rate_service_price[CP_RATED_TYPE_FLAT]);
+    rt_kprintf("delay:%d\n", s_chargepile_config_info.billing_rule.rate_delay_price[CP_RATED_TYPE_FLAT]);
+    rt_kprintf("=============================================================\n");
+    rt_kprintf("valley price:\n");
+    rt_kprintf("elect:%d\n", s_chargepile_config_info.billing_rule.rate_elect_price[CP_RATED_TYPE_VALLEY]);
+    rt_kprintf("service:%d\n", s_chargepile_config_info.billing_rule.rate_service_price[CP_RATED_TYPE_VALLEY]);
+    rt_kprintf("delay:%d\n", s_chargepile_config_info.billing_rule.rate_delay_price[CP_RATED_TYPE_VALLEY]);
+    rt_kprintf("=============================================================\n");
+
+    rt_kprintf("sharp sharp 00[%d:%d-%d:%d]\n", s_chargepile_config_info.billing_rule.time[CP_RATED_TYPE_SHARP_SHARP][0].shour,
+            s_chargepile_config_info.billing_rule.time[CP_RATED_TYPE_SHARP_SHARP][0].smin,
+            s_chargepile_config_info.billing_rule.time[CP_RATED_TYPE_SHARP_SHARP][0].ehour,
+            s_chargepile_config_info.billing_rule.time[CP_RATED_TYPE_SHARP_SHARP][0].emin);
+
+    rt_kprintf("sharp sharp 11[%d:%d-%d:%d]\n", s_chargepile_config_info.billing_rule.time[CP_RATED_TYPE_SHARP_SHARP][1].shour,
+            s_chargepile_config_info.billing_rule.time[CP_RATED_TYPE_SHARP_SHARP][1].smin,
+            s_chargepile_config_info.billing_rule.time[CP_RATED_TYPE_SHARP_SHARP][1].ehour,
+            s_chargepile_config_info.billing_rule.time[CP_RATED_TYPE_SHARP_SHARP][1].emin);
+
+    rt_kprintf("sharp 00[%d:%d-%d:%d]\n", s_chargepile_config_info.billing_rule.time[CP_RATED_TYPE_SHARP][0].shour,
+            s_chargepile_config_info.billing_rule.time[CP_RATED_TYPE_SHARP][0].smin,
+            s_chargepile_config_info.billing_rule.time[CP_RATED_TYPE_SHARP][0].ehour,
+            s_chargepile_config_info.billing_rule.time[CP_RATED_TYPE_SHARP][0].emin);
+
+    rt_kprintf("sharp 11[%d:%d-%d:%d]\n", s_chargepile_config_info.billing_rule.time[CP_RATED_TYPE_SHARP][1].shour,
+            s_chargepile_config_info.billing_rule.time[CP_RATED_TYPE_SHARP][1].smin,
+            s_chargepile_config_info.billing_rule.time[CP_RATED_TYPE_SHARP][1].ehour,
+            s_chargepile_config_info.billing_rule.time[CP_RATED_TYPE_SHARP][1].emin);
+
+    rt_kprintf("peak 00[%d:%d-%d:%d]\n", s_chargepile_config_info.billing_rule.time[CP_RATED_TYPE_PEAK][0].shour,
+            s_chargepile_config_info.billing_rule.time[CP_RATED_TYPE_PEAK][0].smin,
+            s_chargepile_config_info.billing_rule.time[CP_RATED_TYPE_PEAK][0].ehour,
+            s_chargepile_config_info.billing_rule.time[CP_RATED_TYPE_PEAK][0].emin);
+
+    rt_kprintf("peak 11[%d:%d-%d:%d]\n", s_chargepile_config_info.billing_rule.time[CP_RATED_TYPE_PEAK][1].shour,
+            s_chargepile_config_info.billing_rule.time[CP_RATED_TYPE_PEAK][1].smin,
+            s_chargepile_config_info.billing_rule.time[CP_RATED_TYPE_PEAK][1].ehour,
+            s_chargepile_config_info.billing_rule.time[CP_RATED_TYPE_PEAK][1].emin);
+
+    rt_kprintf("flat 00[%d:%d-%d:%d]\n", s_chargepile_config_info.billing_rule.time[CP_RATED_TYPE_FLAT][0].shour,
+            s_chargepile_config_info.billing_rule.time[CP_RATED_TYPE_FLAT][0].smin,
+            s_chargepile_config_info.billing_rule.time[CP_RATED_TYPE_FLAT][0].ehour,
+            s_chargepile_config_info.billing_rule.time[CP_RATED_TYPE_FLAT][0].emin);
+
+    rt_kprintf("flat 11[%d:%d-%d:%d]\n", s_chargepile_config_info.billing_rule.time[CP_RATED_TYPE_FLAT][1].shour,
+            s_chargepile_config_info.billing_rule.time[CP_RATED_TYPE_FLAT][1].smin,
+            s_chargepile_config_info.billing_rule.time[CP_RATED_TYPE_FLAT][1].ehour,
+            s_chargepile_config_info.billing_rule.time[CP_RATED_TYPE_FLAT][1].emin);
+
+    rt_kprintf("valley 00[%d:%d-%d:%d]\n", s_chargepile_config_info.billing_rule.time[CP_RATED_TYPE_VALLEY][0].shour,
+            s_chargepile_config_info.billing_rule.time[CP_RATED_TYPE_VALLEY][0].smin,
+            s_chargepile_config_info.billing_rule.time[CP_RATED_TYPE_VALLEY][0].ehour,
+            s_chargepile_config_info.billing_rule.time[CP_RATED_TYPE_VALLEY][0].emin);
+
+    rt_kprintf("valley 11[%d:%d-%d:%d]\n", s_chargepile_config_info.billing_rule.time[CP_RATED_TYPE_VALLEY][1].shour,
+            s_chargepile_config_info.billing_rule.time[CP_RATED_TYPE_VALLEY][1].smin,
+            s_chargepile_config_info.billing_rule.time[CP_RATED_TYPE_VALLEY][1].ehour,
+            s_chargepile_config_info.billing_rule.time[CP_RATED_TYPE_VALLEY][1].emin);
+
+    /********************************************************************************************************/
+    /********************************************************************************************************/
 
     return 0;
 }
@@ -1925,5 +2170,350 @@ int32_t sys_card_uid_whitelists_delete(uint8_t *data, uint8_t len)
         return -0x01;
     }
     return index;
+}
+
+/**********************************************[离线计费相关]********************************************************/
+/**********************************************[离线计费相关]********************************************************/
+/*********************************************************
+ * 函数名        sys_period_time_format_valid
+ * 功能            判断时段时间格式的合法性
+ * 参数           t   时段时间信息
+ * 返回           1：合法  0：空白   -1：非法
+ ********************************************************/
+int32_t sys_period_time_format_valid(void *t)
+{
+    if(t == NULL){
+        return -0x01;
+    }
+
+    uint8_t count = 0x00;
+    struct period_time (*time)[CP_RATED_TYPE_PERIOD_NUM] = (struct period_time (*)[CP_RATED_TYPE_PERIOD_NUM])t;
+
+    for(uint8_t i = 0x00; i < CP_RATED_TYPE_NUM_MAX; i++){
+        for(uint8_t j = 0x00; j < CP_RATED_TYPE_PERIOD_NUM; j++){
+            if(((time[i][j].shour >= 24) && (time[i][j].shour < 0xFF)) || ((time[i][j].ehour >= 24) && (time[i][j].ehour < 0xFF))){
+                return -0x01;
+            }
+            if(((time[i][j].smin >= 60) && (time[i][j].smin < 0xFF)) || ((time[i][j].emin >= 60) && (time[i][j].emin < 0xFF))){
+                return -0x01;
+            }
+
+            if((time[i][j].shour < 24) && (time[i][j].smin >= 60)){
+                return -0x01;
+            }
+            if((time[i][j].shour >= 24) && (time[i][j].smin < 60)){
+                return -0x01;
+            }
+
+            if((time[i][j].ehour < 24) && (time[i][j].emin >= 60)){
+                return -0x01;
+            }
+            if((time[i][j].ehour >= 24) && (time[i][j].emin < 60)){
+                return -0x01;
+            }
+
+            if((time[i][j].shour >= 0xFF) && (time[i][j].smin >= 0xFF) && (time[i][j].ehour >= 0xFF) && (time[i][j].emin >= 0xFF)){
+                count++;
+            }
+        }
+    }
+    /** 值全是 0xFF, 这是新板子 */
+    if(count >= (CP_RATED_TYPE_NUM_MAX *CP_RATED_TYPE_PERIOD_NUM)){
+        return 0x00;
+    }
+
+    return 0x01;
+}
+
+/*********************************************************
+ * 函数名        sys_period_time_continuous_valid
+ * 功能            判断时段时间是否连续
+ * 参数           t   时段时间信息
+ *      tlen  时段时间信息长度
+ * 返回           -1：重复    1：连续  0：间断
+ ********************************************************/
+int32_t sys_period_time_continuous_valid(void *t, uint8_t tlen)
+{
+    if(t == NULL){
+        return 0x00;
+    }
+    if(tlen < (sizeof(struct period_time) *CP_RATED_TYPE_NUM_MAX *CP_RATED_TYPE_PERIOD_NUM)){
+        return 0x00;
+    }
+
+    uint8_t i = 0x00, j = 0x00, min = 0x00;
+    struct period_time *time = (struct period_time*)t, temp;
+
+    /** 选择排序，按开始时间的小时进行升序排列 */
+    for(i = 0; i < (CP_RATED_TYPE_NUM_MAX *CP_RATED_TYPE_PERIOD_NUM - 1); i++){
+        min = i;
+        for(j = i + 1; j < (CP_RATED_TYPE_NUM_MAX *CP_RATED_TYPE_PERIOD_NUM); j++){
+            if (time[min].shour > time[j].shour){
+                min = j;
+            }
+        }
+        if(min != i){
+            temp = time[min];
+            time[min] = time[i];
+            time[i] = temp;
+        }
+    }
+
+    for(i = 0; i < (CP_RATED_TYPE_NUM_MAX *CP_RATED_TYPE_PERIOD_NUM); i++){
+        rt_kprintf("1111 period time(%d)[%d:%d-%d:%d]\n", i, time[i].shour,
+                time[i].smin,
+                time[i].ehour,
+                time[i].emin);
+    }
+
+    /** 判断是否连续 */
+    for(i = 0; i < (CP_RATED_TYPE_NUM_MAX *CP_RATED_TYPE_PERIOD_NUM - 1); i++){
+        if(time[i].shour == time[i].ehour){
+            if(time[i].smin > time[i].emin){
+                return -0x01;
+            }
+        }else{
+            if(time[i].shour > time[i].ehour){
+                return -0x01;
+            }
+        }
+
+        if(time[i + 0x01].shour != time[i].ehour){
+            if(time[i].ehour > time[i + 0x01].shour){
+                return -0x01;
+            }else{
+                return 0x0;
+            }
+        }
+
+        if(time[i + 0x01].smin != time[i].emin){
+            if(time[i].emin > time[i + 0x01].smin){
+                return -0x01;
+            }else{
+                return 0x0;
+            }
+        }
+    }
+
+    return 0x01;
+}
+
+/*********************************************************
+ * 函数名        sys_period_time_resume_default
+ * 功能            将时段时间恢复默认值
+ * 参数           t   时段时间信息
+ *      tlen  时段时间信息长度
+ * 返回           <=0：失败    >0：成功
+ ********************************************************/
+int32_t sys_period_time_resume_default(void *t, uint8_t tlen)
+{
+    if(t == NULL){
+        return 0x00;
+    }
+    if(tlen < (sizeof(struct period_time) *CP_RATED_TYPE_NUM_MAX *CP_RATED_TYPE_PERIOD_NUM)){
+        return 0x00;
+    }
+
+    uint8_t count = 0x00, i = 0x00, j = 0x00, segment = 0x00;
+    struct period_time (*time)[CP_RATED_TYPE_PERIOD_NUM] = (struct period_time (*)[CP_RATED_TYPE_PERIOD_NUM])t;
+
+    segment = (24 *4) /(CP_RATED_TYPE_PERIOD_NUM *CP_RATED_TYPE_NUM_MAX);     /* 将一天分为96段，15分钟一时段 */
+    // 96 /10 = 9, 余6，  10个可配置时间段，每个可配置的时间段均占 15 *9 = 135min   count 记录着经过了多少个时段
+
+    for(i = 0x00; i < CP_RATED_TYPE_NUM_MAX; i++){
+        for(j = 0x00; j < CP_RATED_TYPE_PERIOD_NUM; j++){
+            time[i][j].shour = (15 *(count+ j *segment)) /60;
+            time[i][j].smin = (15 *(count+ j *segment)) %60;
+            time[i][j].ehour = (15 *(count+ (j + 0x01) *segment)) /60;
+            time[i][j].emin = (15 *(count+ (j + 0x01) *segment)) %60;
+        }
+        count += CP_RATED_TYPE_PERIOD_NUM *segment;
+    }
+
+    i = 0x00;
+    j = 0x00;
+
+    if(CP_RATED_TYPE_PERIOD_NUM > 0x01){
+        i = CP_RATED_TYPE_PERIOD_NUM - 0x01;
+    }
+    if(CP_RATED_TYPE_NUM_MAX > 0x01){
+        j = CP_RATED_TYPE_NUM_MAX - 0x01;
+    }
+
+    time[j][i].ehour = 0x00;
+    time[j][i].emin = 0x00;
+
+    return 0x01;
+}
+
+/*********************************************************
+ * 函数名        sys_get_offbilling_rate_number
+ * 功能            获取当前时间费率号
+ * 参数           curr_time  当前时间(s)
+ * 返回           当前时间费率号
+ ********************************************************/
+uint8_t sys_get_offbilling_rate_number(uint32_t curr_time)
+{
+    uint8_t i = 0x00, j = 0x00, end_hour = 0x00;
+    struct tm *_tm;
+    _tm = localtime((time_t*)&curr_time);
+
+    for(i = 0x00; i < CP_RATED_TYPE_NUM_MAX; i++){
+        for(j = 0x00; j < CP_RATED_TYPE_PERIOD_NUM; j++){
+            if((s_chargepile_config_info.billing_rule.time[i][j].shour >= 24) ||
+                    (s_chargepile_config_info.billing_rule.time[i][j].ehour >= 24)){
+                break;
+            }
+            if((s_chargepile_config_info.billing_rule.time[i][j].smin >= 60) ||
+                    (s_chargepile_config_info.billing_rule.time[i][j].emin >= 60)){
+                break;
+            }
+
+            end_hour = s_chargepile_config_info.billing_rule.time[i][j].ehour;
+            if(end_hour == 0x00){  /** 结束时间是 00：00，相当于小时是 24 */
+                end_hour = 24;
+            }
+
+            if((_tm->tm_hour > s_chargepile_config_info.billing_rule.time[i][j].shour) && (_tm->tm_hour < end_hour)){
+                return s_chargepile_config_info.billing_rule.time[i][j].rate_number;
+            }else if(_tm->tm_hour == s_chargepile_config_info.billing_rule.time[i][j].shour){
+                if(s_chargepile_config_info.billing_rule.time[i][j].shour == end_hour){
+                    if((_tm->tm_min >= s_chargepile_config_info.billing_rule.time[i][j].smin) &&
+                            (_tm->tm_min <= s_chargepile_config_info.billing_rule.time[i][j].emin)){
+                        return s_chargepile_config_info.billing_rule.time[i][j].rate_number;
+                    }
+                }else{
+                    if(_tm->tm_min >= s_chargepile_config_info.billing_rule.time[i][j].smin){
+                        return s_chargepile_config_info.billing_rule.time[i][j].rate_number;
+                    }
+                }
+            }else if(_tm->tm_hour == end_hour){
+                if(s_chargepile_config_info.billing_rule.time[i][j].shour == end_hour){
+                    if((_tm->tm_min >= s_chargepile_config_info.billing_rule.time[i][j].smin) &&
+                            (_tm->tm_min <= s_chargepile_config_info.billing_rule.time[i][j].emin)){
+                        return s_chargepile_config_info.billing_rule.time[i][j].rate_number;
+                    }
+                }else{
+                    if(_tm->tm_min <= s_chargepile_config_info.billing_rule.time[i][j].emin){
+                        return s_chargepile_config_info.billing_rule.time[i][j].rate_number;
+                    }
+                }
+            }
+        }
+    }
+
+    return CP_PERIOD_RATED_NUMBER_DEFAULT;
+}
+
+/*********************************************************
+ * 函数名        sys_get_offbilling_unit_price
+ * 功能            获取当前时间电费总单价
+ * 参数            curr_time  当前时间(s)
+ * 返回           当前时间电费总单价
+ ********************************************************/
+uint32_t sys_get_offbilling_unit_price(uint32_t curr_time)
+{
+    uint8_t rate_number = CP_RATED_TYPE_NUM_MAX, i = 0x00, j = 0x00, end_hour = 0x00;
+    uint32_t price = 0x00;
+    struct tm *_tm;
+    _tm = localtime((time_t*)&curr_time);
+
+    for(i = 0x00; i < CP_RATED_TYPE_NUM_MAX; i++){
+        for(j = 0x00; j < CP_RATED_TYPE_PERIOD_NUM; j++){
+            if((s_chargepile_config_info.billing_rule.time[i][j].shour >= 24) ||
+                    (s_chargepile_config_info.billing_rule.time[i][j].ehour >= 24)){
+                break;
+            }
+            if((s_chargepile_config_info.billing_rule.time[i][j].smin >= 60) ||
+                    (s_chargepile_config_info.billing_rule.time[i][j].emin >= 60)){
+                break;
+            }
+
+            end_hour = s_chargepile_config_info.billing_rule.time[i][j].ehour;
+            if(end_hour == 0x00){  /** 结束时间是 00：00，相当于小时是 24 */
+                end_hour = 24;
+            }
+
+            if((_tm->tm_hour > s_chargepile_config_info.billing_rule.time[i][j].shour) && (_tm->tm_hour < end_hour)){
+                rate_number = s_chargepile_config_info.billing_rule.time[i][j].rate_number;
+            }else if(_tm->tm_hour == s_chargepile_config_info.billing_rule.time[i][j].shour){
+                if(s_chargepile_config_info.billing_rule.time[i][j].shour == end_hour){
+                    if((_tm->tm_min >= s_chargepile_config_info.billing_rule.time[i][j].smin) &&
+                            (_tm->tm_min <= s_chargepile_config_info.billing_rule.time[i][j].emin)){
+                        rate_number = s_chargepile_config_info.billing_rule.time[i][j].rate_number;
+                    }
+                }else{
+                    if(_tm->tm_min >= s_chargepile_config_info.billing_rule.time[i][j].smin){
+                        rate_number = s_chargepile_config_info.billing_rule.time[i][j].rate_number;
+                    }
+                }
+            }else if(_tm->tm_hour == end_hour){
+                if(s_chargepile_config_info.billing_rule.time[i][j].shour == end_hour){
+                    if((_tm->tm_min >= s_chargepile_config_info.billing_rule.time[i][j].smin) &&
+                            (_tm->tm_min <= s_chargepile_config_info.billing_rule.time[i][j].emin)){
+                        rate_number = s_chargepile_config_info.billing_rule.time[i][j].rate_number;
+                    }
+                }else{
+                    if(_tm->tm_min <= s_chargepile_config_info.billing_rule.time[i][j].emin){
+                        rate_number = s_chargepile_config_info.billing_rule.time[i][j].rate_number;
+                    }
+                }
+            }
+        }
+    }
+
+    if(rate_number >= CP_RATED_TYPE_NUM_MAX){
+        return 0x00;
+    }
+    price = s_chargepile_config_info.billing_rule.rate_elect_price[rate_number] + \
+            s_chargepile_config_info.billing_rule.rate_service_price[rate_number] + \
+            s_chargepile_config_info.billing_rule.rate_delay_price[rate_number];
+
+    return price;
+}
+
+/*********************************************************
+ * 函数名        sys_get_offbilling_elect_price
+ * 功能            获取当前时间电费价格
+ * 参数            rate_number  费率号
+ * 返回           当前时间当前时间电费价格
+ ********************************************************/
+uint32_t sys_get_offbilling_elect_price(uint8_t rate_number)
+{
+    if(rate_number >= CP_RATED_TYPE_NUM_MAX){
+        return 0x00;
+    }
+
+    return s_chargepile_config_info.billing_rule.rate_elect_price[rate_number];
+}
+
+/*********************************************************
+ * 函数名        sys_get_offbilling_service_price
+ * 功能            获取当前时间服务费价格
+ * 参数            rate_number  费率号
+ * 返回           当前时间当前时间服务费价格
+ ********************************************************/
+uint32_t sys_get_offbilling_service_price(uint8_t rate_number)
+{
+    if(rate_number >= CP_RATED_TYPE_NUM_MAX){
+        return 0x00;
+    }
+
+    return s_chargepile_config_info.billing_rule.rate_service_price[rate_number];
+}
+
+/*********************************************************
+ * 函数名        sys_get_offbilling_delay_price
+ * 功能            获取当前时间延迟费价格
+ * 参数            rate_number  费率号
+ * 返回           当前时间当前时间延迟费价格
+ ********************************************************/
+uint32_t sys_get_offbilling_delay_price(uint8_t rate_number)
+{
+    if(rate_number >= CP_RATED_TYPE_NUM_MAX){
+        return 0x00;
+    }
+
+    return s_chargepile_config_info.billing_rule.rate_delay_price[rate_number];
 }
 

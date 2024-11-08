@@ -18,6 +18,7 @@
 #include <rtthread.h>
 
 #include "net_sal.h"
+#include "app_billing_rule.h"
 
 /******************************************************************************/
 #define FLASH_BASE_ADDRESS                ((uint32_t)(0x00000000))
@@ -211,6 +212,99 @@
 #define CP_NETTYPE_ETH                                0x01             /* 联网方式：以太网 */
 #define CP_NETTYPE_SIZE                               0x02
 
+/* period num */
+#define CP_PERIOD_MAX                                 0x60             /* 时段总数 */
+
+/* rated type period time num */
+#define CP_RATED_TYPE_PERIOD_NUM                      0x02             /* 离线计费每个费率可设置的时段数量 */
+
+/* rated type */
+#define CP_RATED_TYPE_NUM_MAX                         0x05             /* 费率类型总数 */
+
+#define CP_RATED_TYPE_MIN                             0x00             /* 费率类型最小值 */
+#define CP_RATED_TYPE_SHARP_SHARP                     0x00             /* 费率类型：尖尖 */
+#define CP_RATED_TYPE_SHARP                           0x01             /* 费率类型：尖 */
+#define CP_RATED_TYPE_PEAK                            0x02             /* 费率类型：峰 */
+#define CP_RATED_TYPE_FLAT                            0x03             /* 费率类型：平 */
+#define CP_RATED_TYPE_VALLEY                          0x04             /* 费率类型：谷 */
+#define CP_RATED_TYPE_MAX                             0x04             /* 费率类型最大值 */
+
+/* price info */
+#define CP_PERIOD_ELECT_PRICE_MAX                     50000            /* 时段电费最大值(0.0001) */
+#define CP_PERIOD_ELECT_PRICE_MIN                     0                /* 时段电费最小值(0.0001) */
+#define CP_PERIOD_ELECT_PRICE_DEF                     10000            /* 时段电费默认值(0.0001) */
+
+#define CP_PERIOD_SERVICE_PRICE_MAX                   50000            /* 时段服务费最大值(0.0001) */
+#define CP_PERIOD_SERVICE_PRICE_MIN                   0                /* 时段服务费最小值(0.0001) */
+#define CP_PERIOD_SERVICE_PRICE_DEF                   5000             /* 时段服务费默认值(0.0001) */
+
+#define CP_PERIOD_DELAY_PRICE_MAX                     50000            /* 时段延迟费最大值(0.0001) */
+#define CP_PERIOD_DELAY_PRICE_MIN                     0                /* 时段延迟费最小值(0.0001) */
+#define CP_PERIOD_DELAY_PRICE_DEF                     0                /* 时段延迟费默认值(0.0001) */
+/**************************************************************************************************/
+#define CP_SHARP_SHARP_RATED_ELECT_PRICE_MAX          50000            /* 尖尖费率电费最大值(0.0001) */
+#define CP_SHARP_SHARP_RATED_ELECT_PRICE_MIN          0                /* 尖尖费率电费最小值(0.0001) */
+#define CP_SHARP_SHARP_RATED_ELECT_PRICE_DEF          10000            /* 尖尖费率电费默认值(0.0001) */
+
+#define CP_SHARP_SHARP_RATED_SERVICE_PRICE_MAX        50000            /* 尖尖费率服务费最大值(0.0001) */
+#define CP_SHARP_SHARP_RATED_SERVICE_PRICE_MIN        0                /* 尖尖费率服务费最小值(0.0001) */
+#define CP_SHARP_SHARP_RATED_SERVICE_PRICE_DEF        5000             /* 尖尖费率服务费默认值(0.0001) */
+
+#define CP_SHARP_SHARP_RATED_DELAY_PRICE_MAX          50000            /* 尖尖费率延迟费最大值(0.0001) */
+#define CP_SHARP_SHARP_RATED_DELAY_PRICE_MIN          0                /* 尖尖费率延迟费最小值(0.0001) */
+#define CP_SHARP_SHARP_RATED_DELAY_PRICE_DEF          0                /* 尖尖费率延迟费默认值(0.0001) */
+/**************************************************************************************************/
+#define CP_SHARP_RATED_ELECT_PRICE_MAX                50000            /* 尖费率电费最大值(0.0001) */
+#define CP_SHARP_RATED_ELECT_PRICE_MIN                0                /* 尖费率电费最小值(0.0001) */
+#define CP_SHARP_RATED_ELECT_PRICE_DEF                10000            /* 尖费率电费默认值(0.0001) */
+
+#define CP_SHARP_RATED_SERVICE_PRICE_MAX              50000            /* 尖费率服务费最大值(0.0001) */
+#define CP_SHARP_RATED_SERVICE_PRICE_MIN              0                /* 尖费率服务费最小值(0.0001) */
+#define CP_SHARP_RATED_SERVICE_PRICE_DEF              5000             /* 尖费率服务费默认值(0.0001) */
+
+#define CP_SHARP_RATED_DELAY_PRICE_MAX                50000            /* 尖费率延迟费最大值(0.0001) */
+#define CP_SHARP_RATED_DELAY_PRICE_MIN                0                /* 尖费率延迟费最小值(0.0001) */
+#define CP_SHARP_RATED_DELAY_PRICE_DEF                0                /* 尖费率延迟费默认值(0.0001) */
+/**************************************************************************************************/
+#define CP_PEAK_RATED_ELECT_PRICE_MAX                 50000            /* 峰费率电费最大值(0.0001) */
+#define CP_PEAK_RATED_ELECT_PRICE_MIN                 0                /* 峰费率电费最小值(0.0001) */
+#define CP_PEAK_RATED_ELECT_PRICE_DEF                 10000            /* 峰费率电费默认值(0.0001) */
+
+#define CP_PEAK_RATED_SERVICE_PRICE_MAX               50000            /* 峰费率服务费最大值(0.0001) */
+#define CP_PEAK_RATED_SERVICE_PRICE_MIN               0                /* 峰费率服务费最小值(0.0001) */
+#define CP_PEAK_RATED_SERVICE_PRICE_DEF               5000             /* 峰费率服务费默认值(0.0001) */
+
+#define CP_PEAK_RATED_DELAY_PRICE_MAX                 50000            /* 峰费率延迟费最大值(0.0001) */
+#define CP_PEAK_RATED_DELAY_PRICE_MIN                 0                /* 峰费率延迟费最小值(0.0001) */
+#define CP_PEAK_RATED_DELAY_PRICE_DEF                 0                /* 峰费率延迟费默认值(0.0001) */
+/**************************************************************************************************/
+#define CP_FLAT_RATED_ELECT_PRICE_MAX                 50000            /* 平费率电费最大值(0.0001) */
+#define CP_FLAT_RATED_ELECT_PRICE_MIN                 0                /* 平费率电费最小值(0.0001) */
+#define CP_FLAT_RATED_ELECT_PRICE_DEF                 10000            /* 平费率电费默认值(0.0001) */
+
+#define CP_FLAT_RATED_SERVICE_PRICE_MAX               50000            /* 平费率服务费最大值(0.0001) */
+#define CP_FLAT_RATED_SERVICE_PRICE_MIN               0                /* 平费率服务费最小值(0.0001) */
+#define CP_FLAT_RATED_SERVICE_PRICE_DEF               5000             /* 平费率服务费默认值(0.0001) */
+
+#define CP_FLAT_RATED_DELAY_PRICE_MAX                 50000            /* 平费率延迟费最大值(0.0001) */
+#define CP_FLAT_RATED_DELAY_PRICE_MIN                 0                /* 平费率延迟费最小值(0.0001) */
+#define CP_FLAT_RATED_DELAY_PRICE_DEF                 0                /* 平费率延迟费默认值(0.0001) */
+/**************************************************************************************************/
+#define CP_VALLEY_RATED_ELECT_PRICE_MAX               50000            /* 谷费率电费最大值(0.0001) */
+#define CP_VALLEY_RATED_ELECT_PRICE_MIN               0                /* 谷费率电费最小值(0.0001) */
+#define CP_VALLEY_RATED_ELECT_PRICE_DEF               10000            /* 谷费率电费默认值(0.0001) */
+
+#define CP_VALLEY_RATED_SERVICE_PRICE_MAX             50000            /* 谷费率服务费最大值(0.0001) */
+#define CP_VALLEY_RATED_SERVICE_PRICE_MIN             0                /* 谷费率服务费最小值(0.0001) */
+#define CP_VALLEY_RATED_SERVICE_PRICE_DEF             5000             /* 谷费率服务费默认值(0.0001) */
+
+#define CP_VALLEY_RATED_DELAY_PRICE_MAX               50000            /* 谷费率延迟费最大值(0.0001) */
+#define CP_VALLEY_RATED_DELAY_PRICE_MIN               0                /* 谷费率延迟费最小值(0.0001) */
+#define CP_VALLEY_RATED_DELAY_PRICE_DEF               0                /* 谷费率延迟费默认值(0.0001) */
+/**************************************************************************************************/
+
+#define CP_PERIOD_RATED_NUMBER_DEFAULT                0x04             /* 时段费率号默认值：谷费率 */
+
 enum config_name{
     CONFIG_ITEM_PILE_NUMBER,
     CONFIG_ITEM_IP_DOMAIN,
@@ -244,6 +338,7 @@ enum config_name{
     CONFIG_ITEM_SUPORT_BSM,
     CONFIG_ITEM_SUPORT_BCS,
     CONFIG_ITEM_SUPORT_AUXPOWER24V,
+    CONFIG_ITEM_SUPORT_OFFLINE_BILLING,
 
     CONFIG_ITEM_INPUT_OVERVOL,
     CONFIG_ITEM_INPUT_UNDERVOL,
@@ -299,6 +394,7 @@ enum config_name{
     CONFIG_ITEM_HELP_PHONE,
     CONFIG_ITEM_NET_TYPE,
 
+    CONFIG_ITEM_BILLING_RULE,       /* 计费规则数据：为倒数第三项 */
     CONFIG_ITEM_TARGET_PLATFORM,    /* 目标平台数据：为倒数第二项 */
     CONFIG_ITEM_MONITOR_PLATFORM,   /* 监控平台数据：为倒数第一项 */
 
@@ -311,12 +407,36 @@ enum config_name{
     CONFIG_ITEM_SIZE,
 };
 
+#pragma pack(1)
+struct period_time{                                        /** 用于离线计费 */
+    uint8_t shour;                                         /** 时段开始：小时 */
+    uint8_t smin;                                          /** 时段开始：分钟 */
+    uint8_t ehour;                                         /** 时段结束：小时 */
+    uint8_t emin;                                          /** 时段结束：分钟 */
+    uint8_t rate_number;                                   /** 费率号 */
+};
+
+struct sys_billing_rule{
+    struct{
+        uint32_t elect : 24;                               /** 时段电费价格(精度：0.0001) */
+        uint32_t service : 24;                             /** 时段服务费价格(精度：0.0001) */
+        uint32_t delay : 24;                               /** 时段延迟费价格(精度：0.0001) */
+        uint32_t reserve : 24;
+    }period_price[CP_PERIOD_MAX];            /** 时段价格 */
+    uint8_t rate_number[CP_PERIOD_MAX];      /** 时段费率号 */
+    struct period_time time[CP_RATED_TYPE_NUM_MAX][CP_RATED_TYPE_PERIOD_NUM];
+    uint32_t rate_elect_price[CP_RATED_TYPE_NUM_MAX];   /** 尖尖、尖、峰、平、谷费率电费价格(精度：0.0001) */
+    uint32_t rate_service_price[CP_RATED_TYPE_NUM_MAX]; /** 尖尖、尖、峰、平、谷费率服务费价格(精度：0.0001) */
+    uint32_t rate_delay_price[CP_RATED_TYPE_NUM_MAX];   /** 尖尖、尖、峰、平、谷费率延迟价格(精度：0.0001) */
+};
+
 struct config_item{
     uint8_t name;
     uint32_t user_section;    /* 最高4位用于表示 user_data 的长度， 最低10位用于表示配置项的长度*/
     uint8_t* config_index;
     void* user_data;
 };
+#pragma pack()
 
 #define SYS_CONFIG_OSDELAY(ms)   rt_thread_mdelay(ms)
 
@@ -360,5 +480,15 @@ uint8_t *sys_card_uid_get(uint8_t index);
 int32_t sys_card_uid_whitelists_add(uint8_t *data, uint8_t len);
 int32_t sys_card_uid_whitelists_query(uint8_t *data, uint8_t len);
 int32_t sys_card_uid_whitelists_delete(uint8_t *data, uint8_t len);
+
+int32_t sys_period_time_format_valid(void *t);
+int32_t sys_period_time_continuous_valid(void *t, uint8_t tlen);
+int32_t sys_period_time_resume_default(void *t, uint8_t tlen);
+
+uint8_t sys_get_offbilling_rate_number(uint32_t curr_time);
+uint32_t sys_get_offbilling_unit_price(uint32_t curr_time);
+uint32_t sys_get_offbilling_elect_price(uint8_t rate_number);
+uint32_t sys_get_offbilling_service_price(uint8_t rate_number);
+uint32_t sys_get_offbilling_delay_price(uint8_t rate_number);
 
 #endif /* APPLICATIONS_CHARGEPILE_CONFIG_H_ */

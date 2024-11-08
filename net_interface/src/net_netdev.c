@@ -371,8 +371,8 @@ int32_t net_netdev_dev_control(uint8_t cmd, void *para, uint16_t para_len, void 
 
 /**************************************************
  *  函数名   net_netdev_init
- *  参数
  *  功能       网络设备初始化
+ *  参数
  *  返回      > =0 : 成功，< 0 ：失败
  *************************************************/
 int32_t net_netdev_init(void)

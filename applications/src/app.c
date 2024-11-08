@@ -27,9 +27,6 @@
 #include <rtdbg.h>
 
 /**************************************************************************/
-static struct rt_thread card_thread;
-static rt_uint8_t card_thread_stack[2048];
-
 static uint8_t s_thread_gunno[APP_SYSTEM_GUNNO_SIZE];
 static struct rt_thread ofsm_thread[APP_SYSTEM_GUNNO_SIZE];
 static rt_uint8_t ofsm_thread_stack[APP_SYSTEM_GUNNO_SIZE][6144];
@@ -126,11 +123,7 @@ void app_init(void)
         rt_thread_startup(&osupport_thread);
     }
 
-    result = rt_thread_init(&card_thread, "task_card",
-            card_thread_entry, RT_NULL, &card_thread_stack, sizeof(card_thread_stack), 14, 10);
-    if (RT_EOK == result) {
-        rt_thread_startup(&card_thread);
-    }
+    app_card_init();
 }
 
 /*****************************(C)COPYRIGHT(c) 2021 Thaisen *****END OF FILE****/

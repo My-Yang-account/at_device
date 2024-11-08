@@ -53,23 +53,7 @@ void prepose_init(void)
 
     mw_iwdg_refresh();
 
-    /* 对读卡器串口进行初始化 */
-    while (1)
-    {
-        if(0 > bsp_reader_serial_init())
-        {
-            LOG_E("reader serial initialize failed, please check reader serial!");
-            rt_thread_mdelay(1000);
-        }
-        else
-        {
-            LOG_D("reader serial initialize success");
-            break;
-        }
-    }
-
-    buzzer_ipc_init();
-
+    app_card_ipc_init();
     app_led_init();
 
     if(system_config_init_if() < 0x00){
