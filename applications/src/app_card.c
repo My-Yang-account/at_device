@@ -95,6 +95,16 @@ static int32_t app_card_query_funpay_bill_fees_total(uint8_t *uuid, uint8_t ulen
                 ofsm->base.fees_total = transaction->total_fee;
                 ofsm->base.account_ballance_after = transaction->account_ballance_after;
                 ofsm->base.reason_code = transaction->stop_reason;
+                ofsm->base.current_soc = transaction->stop_soc;
+
+                LOG_D("history bill info:");
+                LOG_D("total_fee:%d", *fees);
+                LOG_D("charge_time:%d", ofsm->base.charge_time);
+                LOG_D("total_elect:%d", ofsm->base.elect_a);
+                LOG_D("total_fee:%d", ofsm->base.fees_total);
+                LOG_D("account_ballance_after:%d", ofsm->base.account_ballance_after);
+                LOG_D("stop_reason:%d", ofsm->base.reason_code);
+                LOG_D("stop_soc:%d", ofsm->base.current_soc);
                 return 0x00;
             }
         }
@@ -112,6 +122,16 @@ static int32_t app_card_query_funpay_bill_fees_total(uint8_t *uuid, uint8_t ulen
                     ofsm->base.fees_total = transaction->total_fee;
                     ofsm->base.account_ballance_after = transaction->account_ballance_after;
                     ofsm->base.reason_code = transaction->stop_reason;
+                    ofsm->base.current_soc = transaction->stop_soc;
+
+                    LOG_D("history bill info:");
+                    LOG_D("total_fee:%d", *fees);
+                    LOG_D("charge_time:%d", ofsm->base.charge_time);
+                    LOG_D("total_elect:%d", ofsm->base.elect_a);
+                    LOG_D("total_fee:%d", ofsm->base.fees_total);
+                    LOG_D("account_ballance_after:%d", ofsm->base.account_ballance_after);
+                    LOG_D("stop_reason:%d", ofsm->base.reason_code);
+                    LOG_D("stop_soc:%d", ofsm->base.current_soc);
                     return 0x00;
                 }
             }
@@ -138,6 +158,16 @@ static int32_t app_card_query_funpay_bill_fees_total(uint8_t *uuid, uint8_t ulen
                 ofsm->base.fees_total = transaction->total_fee;
                 ofsm->base.account_ballance_after = transaction->account_ballance_after;
                 ofsm->base.reason_code = transaction->stop_reason;
+                ofsm->base.current_soc = transaction->stop_soc;
+
+                LOG_D("history bill info:");
+                LOG_D("total_fee:%d", *fees);
+                LOG_D("charge_time:%d", ofsm->base.charge_time);
+                LOG_D("total_elect:%d", ofsm->base.elect_a);
+                LOG_D("total_fee:%d", ofsm->base.fees_total);
+                LOG_D("account_ballance_after:%d", ofsm->base.account_ballance_after);
+                LOG_D("stop_reason:%d", ofsm->base.reason_code);
+                LOG_D("stop_soc:%d", ofsm->base.current_soc);
                 return 0x00;
             }
         }
@@ -155,6 +185,16 @@ static int32_t app_card_query_funpay_bill_fees_total(uint8_t *uuid, uint8_t ulen
                     ofsm->base.fees_total = transaction->total_fee;
                     ofsm->base.account_ballance_after = transaction->account_ballance_after;
                     ofsm->base.reason_code = transaction->stop_reason;
+                    ofsm->base.current_soc = transaction->stop_soc;
+
+                    LOG_D("history bill info:");
+                    LOG_D("total_fee:%d", *fees);
+                    LOG_D("charge_time:%d", ofsm->base.charge_time);
+                    LOG_D("total_elect:%d", ofsm->base.elect_a);
+                    LOG_D("total_fee:%d", ofsm->base.fees_total);
+                    LOG_D("account_ballance_after:%d", ofsm->base.account_ballance_after);
+                    LOG_D("stop_reason:%d", ofsm->base.reason_code);
+                    LOG_D("stop_soc:%d", ofsm->base.current_soc);
                     return 0x00;
                 }
             }
@@ -182,24 +222,29 @@ static int32_t app_card_swip_card_stop(uint8_t gunno)
     LOG_D("gunno(%d) swip_card_stop");
 
     struct ofsm_info *ofsm = get_ofsm_info(gunno);
-    uint8_t *dev_id = sys_read_config_item_content(CONFIG_ITEM_PILE_NUMBER, 0x00), card_info_block;
+    uint8_t *dev_id = sys_read_config_item_content(CONFIG_ITEM_PILE_NUMBER, 0x00), card_info_block, locked = s_card_info_sector2.block_10.detail.is_lock;
+    uint32_t ballance = s_card_info_sector2.block_10.detail.ballance, stime = s_card_info_sector2.block_10.detail.start_time;
 
     s_card_operate_ret[gunno] = APP_CARD_OPERATE_RET_SUCCESS;
 
     memcpy(s_card_info_sector2.device_id, dev_id, CARD_BLOCK_SIZE);
-
-    s_card_info_sector2.block_10.detail.is_lock = 0x00;
 
     LOG_D("this charge infomation consume:%d, ballance:%d", ofsm->base.fees_total, s_card_info_sector2.block_10.detail.ballance);
     if(s_card_info_sector2.block_10.detail.ballance >= (ofsm->base.fees_total /100)){
         s_card_info_sector2.block_10.detail.ballance -= (ofsm->base.fees_total /100);
         s_card_info_sector2.block_10.detail.ballance = APP_ENDIANNESS_CONVERT(s_card_info_sector2.block_10.detail.ballance);
         s_card_info_sector2.block_10.detail.ballance_check = get_check_sum((uint8_t*)&s_card_info_sector2.block_10.detail.ballance, sizeof(s_card_info_sector2.block_10.detail.ballance));
+        s_card_info_sector2.block_10.detail.is_lock = 0x00;
 
         /** 保存设备ID */
         card_info_block = 0x08;
         if(s_rfidr->bolck_write(card_info_block, s_card_info_sector2.device_id, CARD_BLOCK_SIZE) < 0x00){
             LOG_E("card storage dev id fail!!");
+
+            s_card_info_sector2.block_10.detail.is_lock = locked;
+            s_card_info_sector2.block_10.detail.ballance = ballance;
+            s_card_info_sector2.block_10.detail.start_time = stime;
+
             s_card_operate_ret[gunno] = APP_CARD_OPERATE_RET_STORAGE_ERROR;
             return s_card_operate_ret[gunno];
         }
@@ -208,8 +253,22 @@ static int32_t app_card_swip_card_stop(uint8_t gunno)
         if(s_rfidr->bolck_write(card_info_block, s_card_info_sector2.block_10.data, CARD_BLOCK_SIZE) < 0x00){
             LOG_E("card storage charge info fail!!");
             s_card_operate_ret[gunno] = APP_CARD_OPERATE_RET_STORAGE_ERROR;
+
+            s_card_info_sector2.block_10.detail.is_lock = locked;
+            s_card_info_sector2.block_10.detail.ballance = ballance;
+            s_card_info_sector2.block_10.detail.start_time = stime;
+
             return s_card_operate_ret[gunno];
         }
+
+        LOG_D("swip card stop info:");
+        LOG_D("total_fee:%d", ofsm->base.fees_total /100);
+        LOG_D("charge_time:%d", ofsm->base.charge_time);
+        LOG_D("total_elect:%d", ofsm->base.elect_a);
+        LOG_D("total_fee:%d", ofsm->base.fees_total /100);
+        LOG_D("account_ballance_after:%d", ofsm->base.account_ballance_after);
+        LOG_D("stop_reason:%d", ofsm->base.reason_code);
+        LOG_D("stop_soc:%d", ofsm->base.current_soc);
     }else{
         /** 触发跳页 */
         LOG_E("this card is not enough to pay the bill(%d, %d)!!", ofsm->base.fees_total, s_card_info_sector2.block_10.detail.ballance);
@@ -234,9 +293,9 @@ static int32_t app_card_pay_history_bill(uint8_t gunno)
 
     LOG_D("gunno(%d) pay_history_bill");
 
-    uint8_t card_info_block = 0x00;
+    uint8_t card_info_block = 0x00, locked = s_card_info_sector2.block_10.detail.is_lock;
     uint32_t money = 0x00;
-    int32_t result = 0x00;
+    uint32_t result = 0x00, ballance = s_card_info_sector2.block_10.detail.ballance, stime = s_card_info_sector2.block_10.detail.start_time;
     struct ofsm_info *ofsm = get_ofsm_info(gunno);
 
     result = app_card_query_funpay_bill_fees_total(s_rfidr->uuid, s_rfidr->uuid_len, \
@@ -245,16 +304,21 @@ static int32_t app_card_pay_history_bill(uint8_t gunno)
     s_card_operate_ret[gunno] = APP_CARD_OPERATE_RET_SUCCESS;
 
     if(result >= 0x00){
-        s_card_info_sector2.block_10.detail.is_lock = 0x00;
         if(s_card_info_sector2.block_10.detail.ballance >= (ofsm->base.fees_total /100)){
             s_card_info_sector2.block_10.detail.ballance -= (ofsm->base.fees_total /100);
             s_card_info_sector2.block_10.detail.ballance = APP_ENDIANNESS_CONVERT(s_card_info_sector2.block_10.detail.ballance);
             s_card_info_sector2.block_10.detail.ballance_check = get_check_sum((uint8_t*)&s_card_info_sector2.block_10.detail.ballance, sizeof(s_card_info_sector2.block_10.detail.ballance));
+            s_card_info_sector2.block_10.detail.is_lock = 0x00;
 
             /** 保存设备ID */
             card_info_block = 0x08;
             if(s_rfidr->bolck_write(card_info_block, s_card_info_sector2.device_id, CARD_BLOCK_SIZE) < 0x00){
                 LOG_E("card storage dev id fail(history bill)!!");
+
+                s_card_info_sector2.block_10.detail.is_lock = locked;
+                s_card_info_sector2.block_10.detail.ballance = ballance;
+                s_card_info_sector2.block_10.detail.start_time = stime;
+
                 s_card_operate_ret[gunno] = APP_CARD_OPERATE_RET_STORAGE_ERROR;
                 return s_card_operate_ret[gunno];
             }
@@ -262,6 +326,11 @@ static int32_t app_card_pay_history_bill(uint8_t gunno)
             card_info_block = 0x0A;
             if(s_rfidr->bolck_write(card_info_block, s_card_info_sector2.block_10.data, CARD_BLOCK_SIZE) < 0x00){
                 LOG_E("card storage charge info fail(history bill)!!");
+
+                s_card_info_sector2.block_10.detail.is_lock = locked;
+                s_card_info_sector2.block_10.detail.ballance = ballance;
+                s_card_info_sector2.block_10.detail.start_time = stime;
+
                 s_card_operate_ret[gunno] = APP_CARD_OPERATE_RET_STORAGE_ERROR;
                 return s_card_operate_ret[gunno];
             }
@@ -294,22 +363,28 @@ static int32_t app_card_non_swip_card_stop(uint8_t gunno)
     LOG_D("gunno(%d) non_swip_card_stop");
 
     struct ofsm_info *ofsm = get_ofsm_info(gunno);
-    uint8_t *dev_id = sys_read_config_item_content(CONFIG_ITEM_PILE_NUMBER, 0x00), card_info_block = 0x00;
+    uint8_t *dev_id = sys_read_config_item_content(CONFIG_ITEM_PILE_NUMBER, 0x00), card_info_block = 0x00, locked = s_card_info_sector2.block_10.detail.is_lock;
+    uint32_t ballance = s_card_info_sector2.block_10.detail.ballance, stime = s_card_info_sector2.block_10.detail.start_time;
 
     s_card_operate_ret[gunno] = APP_CARD_OPERATE_RET_SUCCESS;
 
     memcpy(s_card_info_sector2.device_id, dev_id, CARD_BLOCK_SIZE);
 
-    s_card_info_sector2.block_10.detail.is_lock = 0x00;
     if(s_card_info_sector2.block_10.detail.ballance >= (ofsm->base.fees_total /100)){
         s_card_info_sector2.block_10.detail.ballance -= (ofsm->base.fees_total /100);
         s_card_info_sector2.block_10.detail.ballance = APP_ENDIANNESS_CONVERT(s_card_info_sector2.block_10.detail.ballance);
         s_card_info_sector2.block_10.detail.ballance_check = get_check_sum((uint8_t*)&s_card_info_sector2.block_10.detail.ballance, sizeof(s_card_info_sector2.block_10.detail.ballance));
+        s_card_info_sector2.block_10.detail.is_lock = 0x00;
 
         /** 保存设备ID */
         card_info_block = 0x08;
         if(s_rfidr->bolck_write(card_info_block, s_card_info_sector2.device_id, CARD_BLOCK_SIZE) < 0x00){
             LOG_E("card storage dev id fail(non swip card)!!");
+
+            s_card_info_sector2.block_10.detail.is_lock = locked;
+            s_card_info_sector2.block_10.detail.ballance = ballance;
+            s_card_info_sector2.block_10.detail.start_time = stime;
+
             s_card_operate_ret[gunno] = APP_CARD_OPERATE_RET_STORAGE_ERROR;
             return s_card_operate_ret[gunno];
         }
@@ -317,9 +392,23 @@ static int32_t app_card_non_swip_card_stop(uint8_t gunno)
         card_info_block = 0x0A;
         if(s_rfidr->bolck_write(card_info_block, s_card_info_sector2.block_10.data, CARD_BLOCK_SIZE) < 0x00){
             LOG_E("card storage charge info fail(non swip card)!!");
+
+            s_card_info_sector2.block_10.detail.is_lock = locked;
+            s_card_info_sector2.block_10.detail.ballance = ballance;
+            s_card_info_sector2.block_10.detail.start_time = stime;
+
             s_card_operate_ret[gunno] = APP_CARD_OPERATE_RET_STORAGE_ERROR;
             return s_card_operate_ret[gunno];
         }
+
+        LOG_D("swip non card stop info:");
+        LOG_D("total_fee:%d", ofsm->base.fees_total /100);
+        LOG_D("charge_time:%d", ofsm->base.charge_time);
+        LOG_D("total_elect:%d", ofsm->base.elect_a);
+        LOG_D("total_fee:%d", ofsm->base.fees_total /100);
+        LOG_D("account_ballance_after:%d", ofsm->base.account_ballance_after);
+        LOG_D("stop_reason:%d", ofsm->base.reason_code);
+        LOG_D("stop_soc:%d", ofsm->base.current_soc);
     }else{
         /** 提示余额不足 */
         LOG_E("this card is not enough to pay the bill(%d, %d)(non swip card)!!", ofsm->base.fees_total, s_card_info_sector2.block_10.detail.ballance);
@@ -345,9 +434,17 @@ static int32_t app_card_swip_card_start(uint8_t gunno)
     LOG_D("gunno(%d) swip_card_start");
 
     struct ofsm_info *ofsm = get_ofsm_info(gunno);
-    uint8_t *dev_id = sys_read_config_item_content(CONFIG_ITEM_PILE_NUMBER, 0x00), card_info_block = 0x00;
+    uint8_t *dev_id = sys_read_config_item_content(CONFIG_ITEM_PILE_NUMBER, 0x00), card_info_block = 0x00, locked = s_card_info_sector2.block_10.detail.is_lock;
+    uint32_t ballance = s_card_info_sector2.block_10.detail.ballance, stime = s_card_info_sector2.block_10.detail.start_time;
 
     s_card_operate_ret[gunno] = APP_CARD_OPERATE_RET_SUCCESS;
+
+    if(s_card_info_sector2.block_10.detail.ballance < 100){  /** 启动时余额不能小于1元 */
+        /** 提示余额不足 */
+        LOG_E("card no ballance when swip card start(%d)!!", s_card_info_sector2.block_10.detail.ballance);
+        s_card_operate_ret[gunno] = APP_CARD_OPERATE_RET_NO_BALLANCE;
+        return s_card_operate_ret[gunno];
+    }
 
     memcpy(s_card_info_sector2.device_id, dev_id, CARD_BLOCK_SIZE);
     s_card_info_sector2.block_10.detail.start_time = APP_ENDIANNESS_CONVERT(ofsm->base.current_time);
@@ -355,16 +452,15 @@ static int32_t app_card_swip_card_start(uint8_t gunno)
     s_card_info_sector2.block_10.detail.ballance = APP_ENDIANNESS_CONVERT(s_card_info_sector2.block_10.detail.ballance);
     s_card_info_sector2.block_10.detail.ballance_check = get_check_sum((uint8_t*)&s_card_info_sector2.block_10.detail.ballance, sizeof(s_card_info_sector2.block_10.detail.ballance));
 
-    if(s_card_info_sector2.block_10.detail.ballance < 100){
-        /** 提示余额不足 */
-        LOG_E("card no ballance when swip card start(%d)!!", s_card_info_sector2.block_10.detail.ballance);
-        s_card_operate_ret[gunno] = APP_CARD_OPERATE_RET_NO_BALLANCE;
-        return s_card_operate_ret[gunno];
-    }
     /** 保存设备ID */
     card_info_block = 0x08;
     if(s_rfidr->bolck_write(card_info_block, s_card_info_sector2.device_id, CARD_BLOCK_SIZE) < 0x00){
         LOG_E("card storage dev id fail(swip card stop)!!");
+
+        s_card_info_sector2.block_10.detail.is_lock = locked;
+        s_card_info_sector2.block_10.detail.ballance = ballance;
+        s_card_info_sector2.block_10.detail.start_time = stime;
+
         s_card_operate_ret[gunno] = APP_CARD_OPERATE_RET_STORAGE_ERROR;
         return s_card_operate_ret[gunno];
     }
@@ -372,6 +468,11 @@ static int32_t app_card_swip_card_start(uint8_t gunno)
     card_info_block = 0x0A;
     if(s_rfidr->bolck_write(card_info_block, s_card_info_sector2.block_10.data, CARD_BLOCK_SIZE) < 0x00){
         LOG_E("card storage charge info fail(swip card stop)!!");
+
+        s_card_info_sector2.block_10.detail.is_lock = locked;
+        s_card_info_sector2.block_10.detail.ballance = ballance;
+        s_card_info_sector2.block_10.detail.start_time = stime;
+
         s_card_operate_ret[gunno] = APP_CARD_OPERATE_RET_STORAGE_ERROR;
         return s_card_operate_ret[gunno];
     }
@@ -470,20 +571,30 @@ static int32_t app_card_info_process(void* handle)
     s_card_info_sector2.block_10.detail.ballance = APP_ENDIANNESS_CONVERT(s_card_info_sector2.block_10.detail.ballance);
     memcpy(s_card_info_sector2.card_number, s_rfidr->card_number, sizeof(s_card_info_sector2.card_number));
 
+    LOG_D("gunno(%d) this card locked state(%d) ballance(%d) device id[%s] card number[%s]", port, s_card_info_sector2.block_10.detail.is_lock, \
+            s_card_info_sector2.block_10.detail.ballance, s_card_info_sector2.device_id, s_card_info_sector2.card_number);
     /** 卡已被锁, 存在以下情况
      * 1.上一次订单未结算(需要到上一次充电的设备去解锁, 除了启动、充电状态外，都可以解锁)
      * 2.已经进行了充电(状态是启动中或充电中) */
-    if(s_card_info_sector2.block_10.detail.is_lock == 0x00){
+    if(s_card_info_sector2.block_10.detail.is_lock == 0x01){
+        uint8_t *dev_id = sys_read_config_item_content(CONFIG_ITEM_PILE_NUMBER, 0x00);
         /** 卡被锁了,业务状态既不是启动也不是充电, 可能是充电结束需要刷卡结算, 也可能是上一笔订单未支付 */
         if((ofsm->base.state.current != APP_OFSM_STATE_STARTING) && (ofsm->base.state.current != APP_OFSM_STATE_CHARGING)){
-            uint8_t *dev_id = sys_read_config_item_content(CONFIG_ITEM_PILE_NUMBER, 0x00), valid_len = 0x00;
             if(memcmp(dev_id, s_card_info_sector2.device_id, CARD_BLOCK_SIZE)){    /** 上一次充电不是在这个设备，需要到服务台解锁 */
                 /** 提示到服务台解锁 */
                 LOG_E("please unlock this card to service platform!!(%d)", APP_CARD_OPERATE_RET_IS_LOCKED);
                 s_card_operate_ret[port] = APP_CARD_OPERATE_RET_IS_LOCKED;
                 return s_card_operate_ret[port];
-            }else{    /** 解锁该卡 */
-                if(app_card_event_recv(APP_CARD_EVENT_CHARGE_STOP, 0x00, port, NULL, 0x01) >= 0x00){
+            }else{
+                /** 卡被锁而且桩不是启动或充电状态，并且接收到了充电桩已停止充电事件，说明这是充电完成未结算场景 */
+                if(app_card_event_recv(APP_CARD_EVENT_CHARGE_STOP, 0x00, port, NULL, 0x00) >= 0x00){  /** 只有正确结算完才将此事件清除 */
+                    if((memcmp(dev_id, s_card_info_sector2.device_id, CARD_BLOCK_SIZE)) ||
+                            (memcmp(s_card_info_sector2.card_number, ofsm->base.card_number, APP_CARD_NUMBER_COMPARE_LEN_MIN_OFFLINE_BILLING)) ||
+                            memcmp(s_rfidr->uuid, ofsm->base.card_uid, s_rfidr->uuid_len)){
+                        LOG_W("this is not the start card 00");
+                        s_card_operate_ret[port] = APP_CARD_OPERATE_RET_HISTORY_BILL_ERROR;
+                        return s_card_operate_ret[port];
+                    }
                     app_card_event_send(APP_CARD_EVENT_IS_PAYING, port, NULL);  /** 此时需要应用到业务的充电数据，先告诉业务正在结算，业务不能修改业务充电数据 */
                     ret = app_card_non_swip_card_stop(port);
                     if(ret < 0x00){
@@ -491,10 +602,14 @@ static int32_t app_card_info_process(void* handle)
                         return -0x01;
                     }else{
                         app_card_event_send(APP_CARD_EVENT_PAY_COMPLETE, port, NULL);
+                        app_card_event_recv(APP_CARD_EVENT_CHARGE_STOP, 0x00, port, NULL, 0x01);
                     }
+                    s_card_operate_ret[port] = APP_CARD_OPERATE_RET_PAYED;
+                    return s_card_operate_ret[port];
                 }
-                /** 这是上一笔订单未结算, 需要查询历史订单进行结算 */
+                /** 卡被锁而且桩不是启动或充电状态，但未接收到充电桩已停止充电事件，说明这是上一笔订单未结算场景 */
                 else{
+                    app_card_event_send(APP_CARD_EVENT_IS_PAYING, port, NULL);  /** 此时需要应用到业务的充电数据，先告诉业务正在结算，业务不能修改业务充电数据 */
                     ret = app_card_pay_history_bill(port);
                     if(ret < 0x00){
                         app_card_event_recv(APP_CARD_EVENT_IS_PAYING, 0x00, port, NULL, 0x01);
@@ -502,12 +617,16 @@ static int32_t app_card_info_process(void* handle)
                     }else{
                         app_card_event_send(APP_CARD_EVENT_PAY_COMPLETE, port, NULL);
                     }
+                    s_card_operate_ret[port] = APP_CARD_OPERATE_RET_PAYED;
+                    return s_card_operate_ret[port];
                 }
             }
         }
         /** 卡被锁了,业务状态为启动或充电, 说明这是正常充电流程, 此时刷卡了,是要停止充电*/
         else{   // OK
-            if(memcmp(s_card_info_sector2.card_number, ofsm->base.card_number, APP_CARD_NUMBER_COMPARE_LEN_MIN_OFFLINE_BILLING)){
+            if((memcmp(dev_id, s_card_info_sector2.device_id, CARD_BLOCK_SIZE)) ||
+                    (memcmp(s_card_info_sector2.card_number, ofsm->base.card_number, APP_CARD_NUMBER_COMPARE_LEN_MIN_OFFLINE_BILLING)) ||
+                    memcmp(s_rfidr->uuid, ofsm->base.card_uid, s_rfidr->uuid_len)){
                 LOG_D("gunno(%d) card number and recorded card number is no match in first %d byte", port, APP_CARD_NUMBER_COMPARE_LEN_MIN_OFFLINE_BILLING);
                 s_card_operate_ret[port] = APP_CARD_OPERATE_RET_INVALID_CARD;
                 return s_card_operate_ret[port];
@@ -538,7 +657,8 @@ static int32_t app_card_info_process(void* handle)
         {
             uint8_t *dev_id = sys_read_config_item_content(CONFIG_ITEM_PILE_NUMBER, 0x00);
             if((memcmp(dev_id, s_card_info_sector2.device_id, CARD_BLOCK_SIZE)) ||
-                    (memcmp(s_card_info_sector2.card_number, ofsm->base.card_number, APP_CARD_NUMBER_COMPARE_LEN_MIN_OFFLINE_BILLING))){
+                    (memcmp(s_card_info_sector2.card_number, ofsm->base.card_number, APP_CARD_NUMBER_COMPARE_LEN_MIN_OFFLINE_BILLING)) ||
+                    memcmp(s_rfidr->uuid, ofsm->base.card_uid, s_rfidr->uuid_len)){
                 LOG_W("this is not the start card");
                 s_card_operate_ret[port] = APP_CARD_OPERATE_RET_HISTORY_BILL_ERROR;
                 return s_card_operate_ret[port];
@@ -552,6 +672,8 @@ static int32_t app_card_info_process(void* handle)
                 }else{
                     app_card_event_send(APP_CARD_EVENT_PAY_COMPLETE, port, NULL);
                 }
+                s_card_operate_ret[port] = APP_CARD_OPERATE_RET_PAYED;
+                return s_card_operate_ret[port];
             }
         }
             break;

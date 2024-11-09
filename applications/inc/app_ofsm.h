@@ -327,6 +327,7 @@ typedef struct{
         uint32_t is_reservation : 1;                         /* 预约中 */
         uint32_t bms_require_decrease : 1;                   /* BMS 需求减小 */
         uint32_t is_deputygun_stop : 1;                      /* 这是副枪停止(副枪故障时停止，用于并充时) */
+        uint32_t is_pay_complete : 1;                        /* 已结算完成(用于离线计费) */
     }flag;
 
     uint8_t cc1_state;                /* CC1 状态 */

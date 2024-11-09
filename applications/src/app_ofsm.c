@@ -695,7 +695,7 @@ static void ofsm_idleing_fun(uint8_t gunno)
     }
 
     if(s_ofsm_info[gunno].base.is_offline_billing == APP_THA_ENUM_TRUE){
-        if(app_card_event_recv(APP_CARD_EVENT_PAY_COMPLETE, 0x00, gunno, NULL, 0x01) >= 0x00){
+        if(app_card_event_recv(APP_CARD_EVENT_PAY_COMPLETE, 0x00, gunno, NULL, APP_THA_ENUM_TRUE) >= APP_THA_ENUM_FALSE){
             LOG_D("gunno(%d) card is payed in offline billing", gunno);
             LOG_D("time:%ds  elect:%d  money:%d  ballance:%d  reason:%d", s_ofsm_info[gunno].base.charge_time,
                     s_ofsm_info[gunno].base.elect_a, s_ofsm_info[gunno].base.fees_total, s_ofsm_info[gunno].base.account_ballance_after,
@@ -798,7 +798,7 @@ static void ofsm_readying_fun(uint8_t gunno)
 #endif /* (defined (APP_INCLUDE_SL_PROTOCOL) || defined (APP_INCLUDE_XJ_PROTOCOL)) */
 
     if(s_ofsm_info[gunno].base.is_offline_billing == APP_THA_ENUM_TRUE){
-        if(app_card_event_recv(APP_CARD_EVENT_PAY_COMPLETE, 0x00, gunno, NULL, 0x01) >= 0x00){
+        if(app_card_event_recv(APP_CARD_EVENT_PAY_COMPLETE, 0x00, gunno, NULL, APP_THA_ENUM_TRUE) >= APP_THA_ENUM_FALSE){
             LOG_D("gunno(%d) card is payed in offline billing", gunno);
             LOG_D("time:%ds  elect:%d  money:%d  ballance:%d  reason:%d", s_ofsm_info[gunno].base.charge_time,
                     s_ofsm_info[gunno].base.elect_a, s_ofsm_info[gunno].base.fees_total, s_ofsm_info[gunno].base.account_ballance_after,
@@ -914,8 +914,8 @@ static void ofsm_readying_fun(uint8_t gunno)
             rfidr_clear_swipe_state(gunno);
 
             if(s_ofsm_info[gunno].base.is_offline_billing == APP_THA_ENUM_TRUE){
-                if(app_card_event_recv(APP_CARD_EVENT_CHARGEPILE_READY, 0x00, gunno, NULL, 0x01) < 0x00){
-                    LOG_D("gunno(%d) is not receive card start charge event in offline billing");
+                if(app_card_event_recv(APP_CARD_EVENT_CHARGEPILE_READY, 0x00, gunno, NULL, APP_THA_ENUM_TRUE) < APP_THA_ENUM_FALSE){
+                    LOG_D("gunno(%d) is not receive card start charge event in offline billing", gunno);
                     break;
                 }
             }
@@ -1122,6 +1122,9 @@ static void ofsm_readying_fun(uint8_t gunno)
                     app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
                     thaisen_set_trigger_event(THAISEN_TRIG_EVENT_CARD_LOCKED, 0x05, APP_THA_ENUM_TRUE, gunno);
                     break;
+                case APP_CARD_OPERATE_RET_PAYED:
+                    LOG_D("gunno(%d) card is payed in offline billing mode", gunno);
+                    break;
                 default:
                     LOG_D("gunno(%d) invalid card in offline billing mode 111", gunno);
                     app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
@@ -1300,6 +1303,9 @@ static void ofsm_readying_fun(uint8_t gunno)
             /* 启动前向屏幕对时 */
             thaisen_request_screen_time();
 
+            if(s_ofsm_info[gunno].base.is_offline_billing == APP_THA_ENUM_TRUE){
+                app_card_event_recv(APP_CARD_EVENT_CHARGE_STOP, 0x00, gunno, NULL, APP_THA_ENUM_TRUE);
+            }
             /** 云端并充时 main_gunno charge_way 这两个字段已被赋值 */
             if(s_ofsm_info[gunno].base.charge_way != APP_CHARGE_WAY_PARACHARGE_CLOUD){
                 s_ofsm_info[gunno].base.main_gunno = gunno;
@@ -1542,6 +1548,7 @@ static void ofsm_starting_fun(uint8_t gunno)
         LOG_I("gunno(%d) starting state (%dV | S%d)...", gunno, mw_get_cc1_value(mw_get_cc1(gunno)), charge_state);
     }
 
+    s_ofsm_info[gunno].base.flag.is_pay_complete = APP_THA_ENUM_FALSE;
     s_ofsm_info[gunno].base.flag.bms_require_decrease = APP_THA_ENUM_FALSE;
     s_compare_module_bcl_count[gunno] = rt_tick_get();
     s_compare_ccs_module_count[gunno] = rt_tick_get();
@@ -2773,11 +2780,12 @@ static void ofsm_charging_fun(uint8_t gunno)
 
             if(compare_len < compare_count){
                 app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
-                LOG_W("card number length is not enough|%d, %d", compare_count, compare_len);
+                LOG_W("gunno(%d) card number length is not enough|%d, %d", gunno, compare_count, compare_len);
                 return;
             }
-            if(memcmp(s_ofsm_info[gunno].base.card_number, rfidr_query_card_number(), compare_len)){
+            if(memcmp(s_ofsm_info[gunno].base.card_number, rfidr_query_card_number(), compare_count)){
                 app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
+                LOG_W("gunno(%d) card number is not match|%s, %s", gunno, s_ofsm_info[gunno].base.card_number, rfidr_query_card_number());
                 return;
             }
             app_rfidr_send_mail(APP_BUZZON_STATE_OK);
@@ -3239,8 +3247,6 @@ static void ofsm_stoping_fun(uint8_t gunno)
 
         memset(s_ofsm_info[gunno].base.transaction_number, 0x00, sizeof(s_ofsm_info[gunno].base.transaction_number));
         memset(s_ofsm_info[gunno].base.car_vin, 0x00, sizeof(s_ofsm_info[gunno].base.car_vin));
-        memset(s_ofsm_info[gunno].base.card_number, 0x00, sizeof(s_ofsm_info[gunno].base.card_number));
-        memset(s_ofsm_info[gunno].base.card_uid, 0x00, sizeof(s_ofsm_info[gunno].base.card_uid));
         memset(s_ofsm_info[gunno].base.user_number, 0x00, sizeof(s_ofsm_info[gunno].base.user_number));
 
         app_nsal_init_charge_data(gunno);
@@ -3376,6 +3382,7 @@ static void ofsm_stoping_fun(uint8_t gunno)
                 thaisen_set_trigger_event(THAISEN_TRIG_EVENT_FINISH, 0x64, APP_THA_ENUM_TRUE, gunno);
             }
         }
+        s_ofsm_info[gunno].base.flag.is_pay_complete = APP_THA_ENUM_FALSE;
     }
 
     mw_clear_time_sync_flag(gunno);
@@ -3453,6 +3460,26 @@ static void ofsm_finishing_fun(uint8_t gunno)
         }
     }
 
+    if(s_ofsm_info[gunno].base.is_offline_billing == APP_THA_ENUM_TRUE){
+        if(app_card_event_recv(APP_CARD_EVENT_PAY_COMPLETE, 0x00, gunno, NULL, APP_THA_ENUM_TRUE) >= APP_THA_ENUM_FALSE){
+            LOG_D("gunno(%d) card is payed in offline billing", gunno);
+            LOG_D("time:%ds  elect:%d  money:%d  ballance:%d  reason:%d", s_ofsm_info[gunno].base.charge_time,
+                    s_ofsm_info[gunno].base.elect_a, s_ofsm_info[gunno].base.fees_total, s_ofsm_info[gunno].base.account_ballance_after,
+                    s_ofsm_info[gunno].base.reason_code);
+
+            s_ofsm_info[gunno].base.flag.is_pay_complete = APP_THA_ENUM_TRUE;
+            thaisen_set_trigger_event(THAISEN_TRIG_EVENT_PAY_COMPLETE, 30, APP_THA_ENUM_TRUE, gunno);
+        }
+    }
+    /** 离线计费：未接收到订单结算完成前要一直发送充电结束事件 */
+    if(s_ofsm_info[gunno].base.is_offline_billing == APP_THA_ENUM_TRUE){
+        if(s_ofsm_info[gunno].base.flag.is_pay_complete == APP_THA_ENUM_FALSE){
+            app_card_event_send(APP_CARD_EVENT_CHARGE_STOP, gunno, NULL);
+        }else{
+            app_card_event_recv(APP_CARD_EVENT_CHARGE_STOP, 0x00, gunno, NULL, APP_THA_ENUM_TRUE);
+        }
+    }
+
     switch (s_ofsm_info[gunno].base.cc1_state) {
     case CC1_12V:
     case CC1_6V:
@@ -3474,6 +3501,8 @@ static void ofsm_finishing_fun(uint8_t gunno)
         s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
         app_nsal_state_charged(gunno);
         app_nsal_event_occurded(gunno);
+
+        rfidr_clear_swipe_state(gunno);
         return;
     }
     case CC1_4V:
@@ -3484,9 +3513,13 @@ static void ofsm_finishing_fun(uint8_t gunno)
             break;                               /* 充电结束必须等待充电状态为空闲时才可响应拔枪动作，已与充电控制同步 */
         }
 
+        /** 离线计费模式下支持2次启动，2次启动条件：必须先接收到卡已结算信号量，然后发送充电桩已准备好事件 */
         if(s_ofsm_info[gunno].base.is_offline_billing == APP_THA_ENUM_TRUE){
-            if(app_card_event_recv(APP_CARD_EVENT_PAY_COMPLETE, 0x00, gunno, NULL, 0x00) < 0x00){
+            if(s_ofsm_info[gunno].base.flag.is_pay_complete == APP_THA_ENUM_TRUE){
                 app_card_event_send(APP_CARD_EVENT_CHARGEPILE_READY, gunno, NULL);
+            }else{
+                app_card_event_recv(APP_CARD_EVENT_CHARGEPILE_READY, 0x00, gunno, NULL, APP_THA_ENUM_TRUE);
+                break;
             }
         }else{
             app_card_event_recv(APP_CARD_EVENT_CHARGEPILE_READY, 0x00, gunno, NULL, APP_THA_ENUM_TRUE);
@@ -3555,8 +3588,8 @@ static void ofsm_finishing_fun(uint8_t gunno)
             rfidr_clear_swipe_state(gunno);
 
             if(s_ofsm_info[gunno].base.is_offline_billing == APP_THA_ENUM_TRUE){
-                if(app_card_event_recv(APP_CARD_EVENT_CHARGEPILE_READY, 0x00, gunno, NULL, 0x01) < 0x00){
-                    LOG_D("gunno(%d) is not receive card start charge event in offline billing");
+                if(app_card_event_recv(APP_CARD_EVENT_CHARGEPILE_READY, 0x00, gunno, NULL, APP_THA_ENUM_TRUE) < APP_THA_ENUM_FALSE){
+                    LOG_D("gunno(%d) is not receive card start charge event in offline billing", gunno);
                     break;
                 }
             }
@@ -3763,6 +3796,9 @@ static void ofsm_finishing_fun(uint8_t gunno)
                     app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
                     thaisen_set_trigger_event(THAISEN_TRIG_EVENT_CARD_LOCKED, 0x05, APP_THA_ENUM_TRUE, gunno);
                     break;
+                case APP_CARD_OPERATE_RET_PAYED:
+                    LOG_D("gunno(%d) card is payed in offline billing mode", gunno);
+                    break;
                 default:
                     LOG_D("gunno(%d) invalid card in offline billing mode 111", gunno);
                     app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
@@ -3941,6 +3977,9 @@ static void ofsm_finishing_fun(uint8_t gunno)
             /* 启动前向屏幕对时 */
             thaisen_request_screen_time();
 
+            if(s_ofsm_info[gunno].base.is_offline_billing == APP_THA_ENUM_TRUE){
+                app_card_event_recv(APP_CARD_EVENT_CHARGE_STOP, 0x00, gunno, NULL, APP_THA_ENUM_TRUE);
+            }
             if(s_ofsm_info[gunno].base.charge_way != APP_CHARGE_WAY_PARACHARGE_CLOUD){
                 s_ofsm_info[gunno].base.main_gunno = gunno;
                 s_ofsm_info[gunno].base.charge_way = thaisen_get_charge_way();
@@ -4083,17 +4122,6 @@ static void ofsm_finishing_fun(uint8_t gunno)
         break;
     }
 
-    if(s_ofsm_info[gunno].base.is_offline_billing == APP_THA_ENUM_TRUE){
-        if(app_card_event_recv(APP_CARD_EVENT_PAY_COMPLETE, 0x00, gunno, NULL, 0x01) >= 0x00){
-            LOG_D("gunno(%d) card is payed in offline billing", gunno);
-            LOG_D("time:%ds  elect:%d  money:%d  ballance:%d  reason:%d", s_ofsm_info[gunno].base.charge_time,
-                    s_ofsm_info[gunno].base.elect_a, s_ofsm_info[gunno].base.fees_total, s_ofsm_info[gunno].base.account_ballance_after,
-                    s_ofsm_info[gunno].base.reason_code);
-
-            thaisen_set_trigger_event(THAISEN_TRIG_EVENT_PAY_COMPLETE, 30, APP_THA_ENUM_TRUE, gunno);
-        }
-    }
-
     switch(s_ofsm_info[gunno].base.cc1_state){
     case CC1_12V:
         if(s_ofsm_info[gunno].base.flag.connect_state != APP_CONNECT_STATE_HALFWAY){
@@ -4154,7 +4182,7 @@ static void ofsm_faulting_fun(uint8_t gunno)
     }
 
     if(s_ofsm_info[gunno].base.is_offline_billing == APP_THA_ENUM_TRUE){
-        if(app_card_event_recv(APP_CARD_EVENT_PAY_COMPLETE, 0x00, gunno, NULL, 0x01) >= 0x00){
+        if(app_card_event_recv(APP_CARD_EVENT_PAY_COMPLETE, 0x00, gunno, NULL, APP_THA_ENUM_TRUE) >= APP_THA_ENUM_FALSE){
             LOG_D("gunno(%d) card is payed in offline billing", gunno);
             LOG_D("time:%ds  elect:%d  money:%d  ballance:%d  reason:%d", s_ofsm_info[gunno].base.charge_time,
                     s_ofsm_info[gunno].base.elect_a, s_ofsm_info[gunno].base.fees_total, s_ofsm_info[gunno].base.account_ballance_after,
@@ -4303,8 +4331,8 @@ static void ofsm_faulting_fun(uint8_t gunno)
                     rfidr_clear_swipe_state(gunno);
 
                     if(s_ofsm_info[gunno].base.is_offline_billing == APP_THA_ENUM_TRUE){
-                        if(app_card_event_recv(APP_CARD_EVENT_CHARGEPILE_READY, 0x00, gunno, NULL, 0x01) < 0x00){
-                            LOG_D("gunno(%d) is not receive card start charge event in offline billing");
+                        if(app_card_event_recv(APP_CARD_EVENT_CHARGEPILE_READY, 0x00, gunno, NULL, APP_THA_ENUM_TRUE) < APP_THA_ENUM_FALSE){
+                            LOG_D("gunno(%d) is not receive card start charge event in offline billing", gunno);
                             break;
                         }
                     }
@@ -4511,6 +4539,9 @@ static void ofsm_faulting_fun(uint8_t gunno)
                             app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
                             thaisen_set_trigger_event(THAISEN_TRIG_EVENT_CARD_LOCKED, 0x05, APP_THA_ENUM_TRUE, gunno);
                             break;
+                        case APP_CARD_OPERATE_RET_PAYED:
+                            LOG_D("gunno(%d) card is payed in offline billing mode", gunno);
+                            break;
                         default:
                             LOG_D("gunno(%d) invalid card in offline billing mode 111", gunno);
                             app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
@@ -4679,6 +4710,10 @@ static void ofsm_faulting_fun(uint8_t gunno)
 
                     /* 启动前向屏幕对时 */
                     thaisen_request_screen_time();
+
+                    if(s_ofsm_info[gunno].base.is_offline_billing == APP_THA_ENUM_TRUE){
+                        app_card_event_recv(APP_CARD_EVENT_CHARGE_STOP, 0x00, gunno, NULL, APP_THA_ENUM_TRUE);
+                    }
 #if 0
                     if(s_ofsm_info[gunno].base.charge_way != APP_CHARGE_WAY_PARACHARGE_CLOUD){
                         s_ofsm_info[gunno].base.main_gunno = gunno;

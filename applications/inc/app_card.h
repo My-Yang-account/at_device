@@ -19,7 +19,7 @@ extern "C" {
 #define APP_CARD_EVENT_QUERY_BALLANCE                (0x01 <<0x01)    /* 卡事件：查询卡内余额 */
 #define APP_CARD_EVENT_CHARGEPILE_READY              (0x01 <<0x02)    /* 卡事件：桩处于可充电状态 */
 #define APP_CARD_EVENT_CHARGE_START                  (0x01 <<0x03)    /* 卡事件：充电开始 */
-#define APP_CARD_EVENT_CHARGE_STOP                   (0x01 <<0x04)    /* 卡事件：充电结束 */
+#define APP_CARD_EVENT_CHARGE_STOP                   (0x01 <<0x04)    /* 卡事件：充电结束(使用内存中的订单信息结算) */
 #define APP_CARD_EVENT_IS_PAYING                     (0x01 <<0x05)    /* 卡事件：卡正在结算(业务不能再计算电量、金额) */
 #define APP_CARD_EVENT_PAY_COMPLETE                  (0x01 <<0x06)    /* 卡事件：卡结算完成 */
 
@@ -32,6 +32,7 @@ enum{
     APP_CARD_OPERATE_RET_HISTORY_BILL_ERROR = -0x05,                          /** 卡操作结果：未查询到历史订单 */
     APP_CARD_OPERATE_RET_IS_LOCKED = -0x06,                                   /** 卡操作结果：卡被锁 */
     APP_CARD_OPERATE_RET_INVALID_CARD = -0x07,                                /** 卡操作结果：无效卡 */
+    APP_CARD_OPERATE_RET_PAYED = -0x08,                                       /** 卡操作结果：已结算 */
 };
 
 /*****************************************************************************
