@@ -2125,10 +2125,13 @@ int8_t ycp_chargepile_create_local_transaction_number(uint8_t gunno, void *vecto
     uint8_t *pile_number = NULL;
     uint8_t sn_len = 0x00, *ptr = (uint8_t*)vector;
     struct tm *_tm = NULL;
+    uint16_t valid_len = 0x00;
 
     s_ycp_handle = net_get_net_handle();
     pile_number = (uint8_t*)(s_ycp_handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, 0x00, option));
-    ycp_ascii_to_bcd(pile_number, strlen(pile_number), ptr, NET_YCP_CHARGEPILE_LENGTH_DEFAULT, 0x01);
+    valid_len = strlen((char*)pile_number);
+    valid_len = valid_len > (NET_YCP_CHARGEPILE_LENGTH_DEFAULT *0x02) ? (NET_YCP_CHARGEPILE_LENGTH_DEFAULT *0x02) : valid_len;
+    ycp_ascii_to_bcd(pile_number, valid_len, ptr, NET_YCP_CHARGEPILE_LENGTH_DEFAULT, 0x01);
 
     s_ycp_local_start_sq++;
     sn_len = 0x07;

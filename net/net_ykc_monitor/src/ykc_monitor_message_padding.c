@@ -678,11 +678,13 @@ int8_t ykc_monitor_response_padding_qrcode_config_tld(uint8_t gunno, uint8_t *bu
 
     uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC_MONITOR |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
     uint8_t *pile_number = (uint8_t*)(s_ykc_monitor_handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, 0x00, option));
+    uint16_t valid_len = strlen((char*)pile_number);
     Net_YkcMonitorPro_PRes_Qrcode_Config_Tld_t *response = NULL;
     response = ((Net_YkcMonitorPro_PRes_Qrcode_Config_Tld_t*)buf);
     memset(response, 0x00, data_len);
 
-    ykc_monitor_ascii_to_bcd(pile_number, strlen((char*)pile_number), response->body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
+    valid_len = valid_len > (NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT *0x02) ? (NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT *0x02) : valid_len;
+    ykc_monitor_ascii_to_bcd(pile_number, valid_len, response->body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
     response->body.gunno = g_ykc_monitor_sreq_qrcode_config_tld[gunno].body.gunno;
 
     if(olen){
@@ -1271,9 +1273,11 @@ void ykc_monitor_message_info_init(uint8_t gunno)  ///////// 这是网络部分�
 
     uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC_MONITOR |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
     uint8_t *pile_number = NULL;
+    uint16_t valid_len = 0x00;
     s_ykc_monitor_handle = net_get_net_handle();
     pile_number = (uint8_t*)(s_ykc_monitor_handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, 0x00, option));
     s_ykc_monitor_base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
+    valid_len = strlen((char*)pile_number);
 
     ykc_monitor_is_init = NET_ENUM_TRUE;
 
@@ -1287,7 +1291,9 @@ void ykc_monitor_message_info_init(uint8_t gunno)  ///////// 这是网络部分�
     g_ykc_monitor_preq_login.head.encrypt = NET_YKC_MONITOR_MESSAGE_ENCRYPT_DISABLE;
     g_ykc_monitor_preq_login.head.sequence = 0x00;
 
-    ykc_monitor_ascii_to_bcd(pile_number, strlen((char*)pile_number), g_ykc_monitor_preq_login.body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
+    valid_len = valid_len > (NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT *0x02) ? (NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT *0x02) : valid_len;
+
+    ykc_monitor_ascii_to_bcd(pile_number, valid_len, g_ykc_monitor_preq_login.body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
     g_ykc_monitor_preq_login.body.pile_type = NET_YKC_MONITOR_PILE_TYPE_DC;
     g_ykc_monitor_preq_login.body.gun_count = NET_SYSTEM_GUN_NUMBER;
     g_ykc_monitor_preq_login.body.protocol_ver = NET_YKC_MONITOR_PROTOCOL_VERSION;

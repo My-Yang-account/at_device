@@ -708,10 +708,12 @@ int8_t ykc_response_padding_qrcode_config_tld(uint8_t gunno, uint8_t *buf, uint1
     uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
     uint8_t *pile_number = (uint8_t*)(s_ykc_handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, 0x00, option));
     Net_YkcPro_PRes_Qrcode_Config_Tld_t *response = NULL;
+    uint16_t valid_len = strlen((char*)pile_number);
     response = ((Net_YkcPro_PRes_Qrcode_Config_Tld_t*)buf);
     memset(response, 0x00, data_len);
 
-    ykc_ascii_to_bcd(pile_number, strlen((char*)pile_number), response->body.pile_number, NET_YKC_CHARGEPILE_LENGTH_DEFAULT);
+    valid_len = valid_len > (NET_YKC_CHARGEPILE_LENGTH_DEFAULT *0x02) ? (NET_YKC_CHARGEPILE_LENGTH_DEFAULT *0x02) : valid_len;
+    ykc_ascii_to_bcd(pile_number, valid_len, response->body.pile_number, NET_YKC_CHARGEPILE_LENGTH_DEFAULT);
     response->body.gunno = g_ykc_sreq_qrcode_config_tld[gunno].body.gunno;
 
     if(olen){
@@ -1268,9 +1270,11 @@ void ykc_message_info_init(uint8_t gunno)  ///////// 这是网络部分外部调
 
     uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
     uint8_t *pile_number = NULL;
+    uint16_t valid_len = 0x00;
     s_ykc_handle = net_get_net_handle();
     pile_number = (uint8_t*)(s_ykc_handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, 0x00, option));
     s_ykc_base = (System_BaseData*)(s_ykc_handle->get_base_data(gunno));
+    valid_len = strlen((char*)pile_number);
 
     ykc_is_init = NET_ENUM_TRUE;
 
@@ -1284,7 +1288,8 @@ void ykc_message_info_init(uint8_t gunno)  ///////// 这是网络部分外部调
     g_ykc_preq_login.head.encrypt = NET_YKC_MESSAGE_ENCRYPT_DISABLE;
     g_ykc_preq_login.head.sequence = 0x00;
 
-    ykc_ascii_to_bcd(pile_number, strlen((char*)pile_number), g_ykc_preq_login.body.pile_number, NET_YKC_CHARGEPILE_LENGTH_DEFAULT);
+    valid_len = valid_len > (NET_YKC_CHARGEPILE_LENGTH_DEFAULT *0x02) ? (NET_YKC_CHARGEPILE_LENGTH_DEFAULT *0x02) : valid_len;
+    ykc_ascii_to_bcd(pile_number, valid_len, g_ykc_preq_login.body.pile_number, NET_YKC_CHARGEPILE_LENGTH_DEFAULT);
     g_ykc_preq_login.body.pile_type = NET_YKC_PILE_TYPE_DC;
     g_ykc_preq_login.body.gun_count = NET_SYSTEM_GUN_NUMBER;
     g_ykc_preq_login.body.protocol_ver = NET_YKC_PROTOCOL_VERSION;
