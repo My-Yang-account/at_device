@@ -1343,10 +1343,75 @@ int32_t system_config_init_if(void)
     return 0x00;
 }
 
+/**********************************************************************
+ * 函数           sys_string_contain_ctrl_char
+ * 功能           判断字符串是否含有控制字符
+ * 参数           string    字符串
+ *        slen      字符串长度
+ * 返回           1：含有控制字符        0：不含控制字符
+ *********************************************************************/
+int32_t sys_string_contain_ctrl_char(const char* string, uint16_t slen)
+{
+    if((string == NULL) || (slen == 0x00)){
+        return 0x01;
+    }
+    for(uint16_t index = 0x00; index < slen; index++){
+        if(!((string[index] >= 0x20) && (string[index] < 0x7F))){
+            return 0x01;
+        }
+    }
+
+    return 0x00;
+}
+
+/**********************************************************************
+ * 函数           sys_string_is_pure_digital_
+ * 功能           判断字符串是否是纯数字字符
+ * 参数           string    字符串
+ *        slen      字符串长度
+ * 返回           1：是纯数字字符        0：不是纯数字字符
+ *********************************************************************/
+int32_t sys_string_is_pure_digital_(const char* string, uint16_t slen)
+{
+    if((string == NULL) || (slen == 0x00)){
+        return 0x00;
+    }
+    for(uint16_t index = 0x00; index < slen; index++){
+        if(!((string[index] >= '0') && (string[index] <= '9'))){
+            return 0x00;
+        }
+    }
+
+    return 0x01;
+}
+
+/**********************************************************************
+ * 函数           sys_string_is_pure_digital_alphabet
+ * 功能           判断字符串是否是纯数字、字母字符
+ * 参数           string    字符串
+ *        slen      字符串长度
+ * 返回           1：是纯数字、字母字符        0：不是纯数字、字母字符
+ *********************************************************************/
+int32_t sys_string_is_pure_digital_alphabet(const char* string, uint16_t slen)
+{
+    if((string == NULL) || (slen == 0x00)){
+        return 0x00;
+    }
+    for(uint16_t index = 0x00; index < slen; index++){
+        if(!(((string[index] >= '0') && (string[index] <= '9')) || ((string[index] >= 'a') && (string[index] <= 'z')) ||
+                ((string[index] >= 'A') && (string[index] <= 'Z')))){
+            return 0x00;
+        }
+    }
+
+    return 0x01;
+}
+
 int32_t chargepile_check_config(void)
 {
     struct period_time time[CP_RATED_TYPE_NUM_MAX *CP_RATED_TYPE_PERIOD_NUM];  /* 时段时间 */
     uint8_t i = 0x00, j = 0x00;
+    uint16_t valid_len = 0x00;
     uint32_t single_module_power = 0x00;       /* 单个模块能输出的最大(额定)功率 */
     s_system_power_max = 0x00;
 
@@ -1504,59 +1569,96 @@ int32_t chargepile_check_config(void)
     rt_kprintf("system_power_total(%d, %d)\n", s_chargepile_config_info.config_info.system_power_total, s_system_power_max);
 
     for(uint8_t count = 0x00; count < CP_INFO_VIN_WHITELIST_NUM_MAX; count++){
-        for(uint8_t index = 0x00; index < VIN_CODE_LENGTH_MAX; index++){
-            if(!(((s_chargepile_config_info.config_info.vin_whitelist[count][index] >= '0') && (s_chargepile_config_info.config_info.vin_whitelist[count][index] <= '9')) ||
-                    ((s_chargepile_config_info.config_info.vin_whitelist[count][index] >= 'a') && (s_chargepile_config_info.config_info.vin_whitelist[count][index] <= 'z')) ||
-                    ((s_chargepile_config_info.config_info.vin_whitelist[count][index] >= 'A') && (s_chargepile_config_info.config_info.vin_whitelist[count][index] <= 'Z')))){
-                memset(s_chargepile_config_info.config_info.vin_whitelist[count], 0x00, sizeof(s_chargepile_config_info.config_info.vin_whitelist[count]));
-                break;
-            }
-        }
-    }
-    for(uint8_t count = 0x00; count < CP_INFO_CARD_NUMBER_WHITELIST_NUM_MAX; count++){
-        for(uint8_t index = 0x00; index < strlen((char*)s_chargepile_config_info.config_info.card_whitelist.card_number[count]); index++){
-            if(!((s_chargepile_config_info.config_info.card_whitelist.card_number[count][index] >= 0x20) && (s_chargepile_config_info.config_info.card_whitelist.card_number[count][index] < 0x7F))){
-                memset(s_chargepile_config_info.config_info.card_whitelist.card_number[count], 0x00, sizeof(s_chargepile_config_info.config_info.card_whitelist.card_number[count]));
-                break;
-            }
+        if(sys_string_is_pure_digital_alphabet((const char*)s_chargepile_config_info.config_info.vin_whitelist[count], VIN_CODE_LENGTH_MAX) == 0x00){
+            memset(s_chargepile_config_info.config_info.vin_whitelist[count], 0x00, sizeof(s_chargepile_config_info.config_info.vin_whitelist[count]));
         }
     }
 
-#if 0
+    for(uint8_t count = 0x00; count < CP_INFO_CARD_NUMBER_WHITELIST_NUM_MAX; count++){
+        valid_len = sizeof(s_chargepile_config_info.config_info.card_whitelist.card_number[count]);
+        valid_len = valid_len > strlen((char*)s_chargepile_config_info.config_info.card_whitelist.card_number[count]) ? \
+                strlen((char*)s_chargepile_config_info.config_info.card_whitelist.card_number[count]) : valid_len;
+
+        if(sys_string_contain_ctrl_char((const char*)s_chargepile_config_info.config_info.card_whitelist.card_number[count], valid_len)){
+            memset(s_chargepile_config_info.config_info.card_whitelist.card_number[count], 0x00, sizeof(s_chargepile_config_info.config_info.card_whitelist.card_number[count]));
+        }
+    }
+
     if(s_chargepile_config_info.network.port == 0x00 || s_chargepile_config_info.network.port == 0xFFFF){
-        s_chargepile_config_info.network.port = 9350;
+        s_chargepile_config_info.network.port = CP_PORT_DEFAULT;
         memset(s_chargepile_config_info.network.domain, 0x00, sizeof(s_chargepile_config_info.network.domain));
-        memcpy(s_chargepile_config_info.network.domain, "47.98.137.199", strlen("47.98.137.199"));
+
+        valid_len = sizeof(s_chargepile_config_info.network.domain);
+        valid_len = valid_len > strlen((char*)CP_DOMAIN_DEFAULT) ? strlen((char*)CP_DOMAIN_DEFAULT) : valid_len;
+        memcpy(s_chargepile_config_info.network.domain, CP_DOMAIN_DEFAULT, valid_len);
     }else{
-        for(uint16_t count = 0x00; count < strlen((char*)s_chargepile_config_info.network.domain); count++){
-            if(!((s_chargepile_config_info.network.domain[count] >= 0x20) && (s_chargepile_config_info.network.domain[count] < 0x7F))){
-                s_chargepile_config_info.network.port = 9350;
-                memset(s_chargepile_config_info.network.domain, 0x00, sizeof(s_chargepile_config_info.network.domain));
-                memcpy(s_chargepile_config_info.network.domain, "47.98.137.199", strlen("47.98.137.199"));
-                break;
-            }
+        valid_len = sizeof(s_chargepile_config_info.network.domain);
+        valid_len = valid_len > strlen((char*)s_chargepile_config_info.network.domain) ? \
+                strlen((char*)s_chargepile_config_info.network.domain) : valid_len;
+
+        if(sys_string_contain_ctrl_char((const char*)s_chargepile_config_info.network.domain, valid_len)){
+            s_chargepile_config_info.network.port = CP_PORT_DEFAULT;
+            memset(s_chargepile_config_info.network.domain, 0x00, sizeof(s_chargepile_config_info.network.domain));
+
+            valid_len = sizeof(s_chargepile_config_info.network.domain);
+            valid_len = valid_len > strlen((char*)CP_DOMAIN_DEFAULT) ? strlen((char*)CP_DOMAIN_DEFAULT) : valid_len;
+            memcpy(s_chargepile_config_info.network.domain, CP_DOMAIN_DEFAULT, valid_len);
         }
     }
 
     if(strlen((char*)s_chargepile_config_info.config_info.qrcode_prefix) <= 0x02){
-        s_chargepile_config_info.config_info.prefix_length = strlen("https://wechat.xiangnengnengjia.com?scanid=") + 0x02;
+        s_chargepile_config_info.config_info.prefix_length = strlen(CP_QRCODE_PREFIX_DEFAULT) + 0x02;
         memset(s_chargepile_config_info.config_info.qrcode_prefix, 0x00, sizeof(s_chargepile_config_info.config_info.qrcode_prefix));
-        s_chargepile_config_info.config_info.qrcode_prefix[0x00] = CP_SET_QRCODE_FORMAT_PREFIX;
-        s_chargepile_config_info.config_info.qrcode_prefix[0x01] = CP_GENERATE_QRCODE_FORMAT_PREFIX_DEVICE_SN_PORT;
-        memcpy(&s_chargepile_config_info.config_info.qrcode_prefix[2], "https://wechat.xiangnengnengjia.com?scanid=", strlen("https://wechat.xiangnengnengjia.com?scanid="));
+        s_chargepile_config_info.config_info.qrcode_prefix[0x00] = CP_QRCODE_CONFIG_FORMAT_DEFAULT;
+        s_chargepile_config_info.config_info.qrcode_prefix[0x01] = CP_QRCODE_GENERATE_FORMAT_DEFAULT;
+
+        valid_len = (sizeof(s_chargepile_config_info.config_info.qrcode_prefix) - 0x02);
+        valid_len = valid_len > strlen((char*)CP_QRCODE_PREFIX_DEFAULT) ? strlen((char*)CP_QRCODE_PREFIX_DEFAULT) : valid_len;
+        memcpy(&s_chargepile_config_info.config_info.qrcode_prefix[0x02], CP_QRCODE_PREFIX_DEFAULT, valid_len);
     }else{
-        for(uint16_t count = 0x02; count < strlen((char*)s_chargepile_config_info.config_info.qrcode_prefix); count++){
-            if(!((s_chargepile_config_info.config_info.qrcode_prefix[count] >= 0x20) && (s_chargepile_config_info.config_info.qrcode_prefix[count] < 0x7F))){
-                s_chargepile_config_info.config_info.prefix_length = strlen("https://wechat.xiangnengnengjia.com?scanid=") + 0x02;
-                memset(s_chargepile_config_info.config_info.qrcode_prefix, 0x00, sizeof(s_chargepile_config_info.config_info.qrcode_prefix));
-                s_chargepile_config_info.config_info.qrcode_prefix[0x00] = CP_SET_QRCODE_FORMAT_PREFIX;
-                s_chargepile_config_info.config_info.qrcode_prefix[0x01] = CP_GENERATE_QRCODE_FORMAT_PREFIX_DEVICE_SN_PORT;
-                memcpy(&s_chargepile_config_info.config_info.qrcode_prefix[2], "https://wechat.xiangnengnengjia.com?scanid=", strlen("https://wechat.xiangnengnengjia.com?scanid="));
-                break;
-            }
+        valid_len = (sizeof(s_chargepile_config_info.config_info.qrcode_prefix) - 0x02);
+        valid_len = valid_len > strlen((char*)&s_chargepile_config_info.config_info.qrcode_prefix[0x02]) ? \
+                strlen((char*)&s_chargepile_config_info.config_info.qrcode_prefix[0x02]) : valid_len;
+
+        if(sys_string_contain_ctrl_char((const char*)&s_chargepile_config_info.config_info.qrcode_prefix[0x02], valid_len)){
+            s_chargepile_config_info.config_info.prefix_length = strlen(CP_QRCODE_PREFIX_DEFAULT) + 0x02;
+            memset(s_chargepile_config_info.config_info.qrcode_prefix, 0x00, sizeof(s_chargepile_config_info.config_info.qrcode_prefix));
+            s_chargepile_config_info.config_info.qrcode_prefix[0x00] = CP_QRCODE_CONFIG_FORMAT_DEFAULT;
+            s_chargepile_config_info.config_info.qrcode_prefix[0x01] = CP_QRCODE_GENERATE_FORMAT_DEFAULT;
+
+            valid_len = (sizeof(s_chargepile_config_info.config_info.qrcode_prefix) - 0x02);
+            valid_len = valid_len > strlen((char*)CP_QRCODE_PREFIX_DEFAULT) ? strlen((char*)CP_QRCODE_PREFIX_DEFAULT) : valid_len;
+            memcpy(&s_chargepile_config_info.config_info.qrcode_prefix[0x02], CP_QRCODE_PREFIX_DEFAULT, valid_len);
         }
     }
-#endif
+
+
+    valid_len = sizeof(s_chargepile_config_info.pile_info.pile_number);
+    valid_len = valid_len > strlen((char*)s_chargepile_config_info.pile_info.pile_number) ? \
+            strlen((char*)s_chargepile_config_info.pile_info.pile_number) : valid_len;
+
+    if(sys_string_contain_ctrl_char((const char*)&s_chargepile_config_info.pile_info.pile_number, valid_len)){
+        s_chargepile_config_info.pile_info.pile_num_len = strlen(CP_PILE_NUMBER_DEFAULT);
+        memset(s_chargepile_config_info.pile_info.pile_number, 0x00, sizeof(s_chargepile_config_info.pile_info.pile_number));
+
+        valid_len = sizeof(s_chargepile_config_info.pile_info.pile_number);
+        valid_len = valid_len > strlen((char*)CP_PILE_NUMBER_DEFAULT) ? strlen((char*)CP_PILE_NUMBER_DEFAULT) : valid_len;
+        memcpy(&s_chargepile_config_info.pile_info.pile_number, CP_PILE_NUMBER_DEFAULT, valid_len);
+    }
+
+
+    valid_len = sizeof(s_chargepile_config_info.pile_info.help_number);
+    valid_len = valid_len > strlen((char*)s_chargepile_config_info.pile_info.help_number) ? \
+            strlen((char*)s_chargepile_config_info.pile_info.help_number) : valid_len;
+
+    if(sys_string_contain_ctrl_char((const char*)&s_chargepile_config_info.pile_info.help_number, valid_len)){
+        s_chargepile_config_info.pile_info.help_number_len = strlen(CP_HELP_PHONE_DEFAULT);
+        memset(s_chargepile_config_info.pile_info.help_number, 0x00, sizeof(s_chargepile_config_info.pile_info.help_number));
+
+        valid_len = sizeof(s_chargepile_config_info.pile_info.help_number);
+        valid_len = valid_len > strlen((char*)CP_HELP_PHONE_DEFAULT) ? strlen((char*)CP_HELP_PHONE_DEFAULT) : valid_len;
+        memcpy(&s_chargepile_config_info.pile_info.help_number, CP_HELP_PHONE_DEFAULT, valid_len);
+    }
 
     /***************************************************[离线计费部分]*****************************************************/
     /***************************************************[离线计费部分]*****************************************************/

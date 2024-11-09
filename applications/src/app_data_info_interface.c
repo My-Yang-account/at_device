@@ -86,13 +86,14 @@ struct app_version *thaisen_app_get_app_version(void)
  *******************************************/
 struct qrcode_info *thaisen_app_get_gunno_qrcode(uint8_t gunno) // OK
 {
-#ifdef APP_QRCODE_CONFIG_USING_XXCD
+#ifdef CP_QRCODE_CONFIG_USING_XXCD
 #define QRCODE_FEFAULT    "https://qrcode.starcharge.com/#/"                     /* 星星充电默认二维码前缀 */
-#elif defined(APP_QRCODE_CONFIG_USING_TLD)
+#elif defined(CP_QRCODE_CONFIG_USING_TLD)
 #define QRCODE_FEFAULT    "hlht://"                                              /* 特来电默认二维码前缀 */
+#elif defined(CP_QRCODE_CONFIG_USING_NJ)
+#define QRCODE_FEFAULT    "https://wechat.xiangnengnengjia.com?scanid="          /* 能佳默认二维码前缀 */
 #else
 #define QRCODE_FEFAULT    "http://www.ykccn.com/MPAGE/index.html?pNum="          /* 云快充默认二维码前缀 */
-//#define QRCODE_FEFAULT    "https://wechat.xiangnengnengjia.com?scanid="          /* 云快充默认二维码前缀 */
 #endif
     uint8_t i, *p = NULL, qrcode_len = 0, storage_len = (*(sys_read_config_item_content(CONFIG_ITEM_QRCODE_PRE, 1))),
             set_type = CP_SET_QRCODE_FORMAT_PREFIX, generate_type = CP_GENERATE_QRCODE_FORMAT_PREFIX_DEVICE_SN_PORT;
@@ -147,7 +148,7 @@ struct qrcode_info *thaisen_app_get_gunno_qrcode(uint8_t gunno) // OK
         /** 生成的二维码格式是：二维码前缀 + 桩号 + 枪号 */
         case CP_GENERATE_QRCODE_FORMAT_PREFIX_DEVICE_SN_PORT:
         {
-#ifdef APP_QRCODE_CONFIG_USING_XXCD
+#ifdef CP_QRCODE_CONFIG_USING_XXCD
             if(sizeof(s_qrcode.qrcode) < (APP_QRCODE_CONFIG_XXCD_PILENUMBER_VALID_LEN + qrcode_len)){
                 return &s_qrcode;
             }
@@ -198,7 +199,7 @@ struct qrcode_info *thaisen_app_get_gunno_qrcode(uint8_t gunno) // OK
         }
     /** 配置的二维码格式是：二维码前缀 + 桩号 + 枪号 */
     case CP_SET_QRCODE_FORMAT_PREFIX_DEVICE_SN_PORT:
-#ifdef APP_QRCODE_CONFIG_USING_TLD
+#ifdef CP_QRCODE_CONFIG_USING_TLD
 #ifdef APP_USING_DOUBLEGUN
     {
         uint8_t clen = 0x00;
@@ -222,7 +223,7 @@ struct qrcode_info *thaisen_app_get_gunno_qrcode(uint8_t gunno) // OK
     if(s_qrcode.qrcode_len > 0x00){
         s_qrcode.qrcode[s_qrcode.qrcode_len - 0x01] = ('1' + gunno);
     }
-#endif /* APP_QRCODE_CONFIG_USING_TLD */
+#endif /* CP_QRCODE_CONFIG_USING_TLD */
         break;
     default:
         break;
@@ -241,9 +242,9 @@ struct qrcode_info *thaisen_app_get_gunno_qrcode(uint8_t gunno) // OK
  *******************************************/
 uint8_t *thaisen_app_get_qrcode_prefix(uint8_t *length)
 {
-#ifdef APP_QRCODE_CONFIG_USING_XXCD
+#ifdef CP_QRCODE_CONFIG_USING_XXCD
 #define QRCODE_FEFAULT    "https://qrcode.starcharge.com/#/"                     /* 星星充电默认二维码前缀 */
-#elif defined(APP_QRCODE_CONFIG_USING_TLD)
+#elif defined(CP_QRCODE_CONFIG_USING_TLD)
 #define QRCODE_FEFAULT    "hlht://"                                              /* 特来电默认二维码前缀 */
 #else
 #define QRCODE_FEFAULT    "http://www.ykccn.com/MPAGE/index.html?pNum="          /* 云快充默认二维码前缀 */
@@ -286,9 +287,9 @@ uint8_t *thaisen_app_get_qrcode_prefix(uint8_t *length)
     /** 配置的二维码格式是：二维码前缀 + 桩号 + 枪号 */
     case CP_SET_QRCODE_FORMAT_PREFIX_DEVICE_SN_PORT:
 #if 0
-#ifdef APP_QRCODE_CONFIG_USING_TLD
+#ifdef CP_QRCODE_CONFIG_USING_TLD
 
-#elif APP_QRCODE_CONFIG_USING_XXCD
+#elif CP_QRCODE_CONFIG_USING_XXCD
 
 #else
     /** 二维码下发格式(二维码前缀 + 全部桩号 + 0 + 枪号) */
@@ -298,7 +299,7 @@ uint8_t *thaisen_app_get_qrcode_prefix(uint8_t *length)
         }
 
     }
-#endif /* APP_QRCODE_CONFIG_USING_TLD */
+#endif /* CP_QRCODE_CONFIG_USING_TLD */
 #else
     /** 二维码下发格式(二维码前缀 + 全部桩号 + 0 + 枪号) */
     if((ptr = (uint8_t*)strstr((const char*)(qrcode + 0x02), (const char*)pile_number))){

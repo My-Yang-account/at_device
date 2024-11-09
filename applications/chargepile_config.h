@@ -96,18 +96,86 @@
 #define VIN_CODE_LENGTH_MIN                0x11                    /* VIN码长度最小值 */
 #define VIN_CODE_LENGTH_MAX                0x11                    /* VIN码长度最大值 */
 
-/* module config */
-#define MODULE_MODEL_DEFAULT                    2           /* 默认模块型号：永联 */
-#define MODULE_MODEL_NUMBER                     5           /* 当前系统支持的模块型号数量 */
-#define MODULE_GROUP_NUMBER_DEFAULT             4           /* 默认模块组数：4组 */
-#define MODULE_GROUP_NUMBER_MAX                 4           /* 最大模块组数：4组 */
-#define MODULE_NUMBER_SINGLE_DEFAULT            3           /* 默认单个组的模块数：3 */
-#define MODULE_NUMBER_SINGLE_MAX                8           /* 最大单个组的模块数：8 */
 
-#define POWER_ALLOCATION_WAY_AVERAGE            0           /* 功率分配方式:均充 */
-#define POWER_ALLOCATION_WAY_SEQ_PRIORITY       1           /* 功率分配方式:先到先得 */
-#define POWER_ALLOCATION_WAY_POWER_PRIORITY     2           /* 功率分配方式:功率优先 */
-#define POWER_ALLOCATION_WAY_SIZE               3           /* 功率分配方式 */
+#define CP_SET_QRCODE_FORMAT_PREFIX                   0x01             /* 平台下发的二维码格式类型：前缀 */
+#define CP_SET_QRCODE_FORMAT_PREFIX_DEVICE_SN         0x02             /* 平台下发的二维码格式类型 ：前缀+设备号*/
+#define CP_SET_QRCODE_FORMAT_PREFIX_DEVICE_SN_PORT    0x03             /* 平台下发的二维码格式类型 ：前缀+设备号+枪号 */
+#define CP_SET_QRCODE_FORMAT_PORT                     0x04             /* 平台下发的二维码格式类型 ：枪号*/
+#define CP_SET_QRCODE_FORMAT_SIZE                     0x05
+
+#define CP_GENERATE_QRCODE_FORMAT_PREFIX              0x01             /* 终端生成的二维码格式类型：前缀 */
+#define CP_GENERATE_QRCODE_FORMAT_PREFIX_DEVICE_SN    0x02             /* 终端生成的二维码格式类型：前缀+设备号 */
+#define CP_GENERATE_QRCODE_FORMAT_PREFIX_DEVICE_SN_PORT  0x03          /* 终端生成的二维码格式类型：前缀+设备号+枪号 */
+#define CP_GENERATE_QRCODE_FORMAT_PORT                0x04             /* 终端生成的二维码格式类型：枪号 */
+#define CP_GENERATE_QRCODE_FORMAT_SIZE                0x05
+
+/***************************************** [默认配置] *******************************************/
+/** 以下所有配置默认云快充，除非有定义 */
+//#define CP_DOMAIN_USING_NJ                            /* IP域名使用能佳 */
+//#define CP_DOMAIN_USING_YCP                           /* IP域名使用越城公用 */
+
+//#define CP_QRCODE_CONFIG_USING_XXCD                   /* 二维码配置使用星星充电 */
+//#define CP_QRCODE_CONFIG_USING_TLD                    /* 二维码配置使用特来电 */
+//#define CP_QRCODE_CONFIG_USING_DUPU                   /* 二维码配置使用度普 */
+//#define CP_QRCODE_CONFIG_USING_NJ                     /* 二维码配置使用能佳 */
+
+/** 域名默认 */
+/**------------------------------------------------------------*/
+#ifdef CP_DOMAIN_USING_NJ
+#define CP_DOMAIN_DEFAULT                         "47.98.137.199"          /* 能佳IP */
+#define CP_PORT_DEFAULT                           9350                     /* 能佳端口 */
+#elif defined(CP_DOMAIN_USING_YCP)
+#define CP_DOMAIN_DEFAULT                         "121.229.203.34"         /* 越城公用IP */
+#define CP_PORT_DEFAULT                           6002                     /* 越城公用端口 */
+#else
+#define CP_DOMAIN_DEFAULT                         "121.43.69.62"           /* 云快充IP */
+#define CP_PORT_DEFAULT                           8767                     /* 云快充端口 */
+#endif /* APP_DOMAIN_USING_NJ */
+
+/** 二维码前缀默认 */
+/**------------------------------------------------------------*/
+#ifdef CP_QRCODE_CONFIG_USING_XXCD
+#define CP_QRCODE_CONFIG_FORMAT_DEFAULT           CP_SET_QRCODE_FORMAT_PREFIX                       /* 二维码配置格式 */
+#define CP_QRCODE_GENERATE_FORMAT_DEFAULT         CP_GENERATE_QRCODE_FORMAT_PREFIX_DEVICE_SN_PORT   /* 二维码生成格式 */
+#define CP_QRCODE_PREFIX_DEFAULT                  "https://qrcode.starcharge.com/#/"                /* 星星充电二维码前缀 */
+#elif defined(CP_QRCODE_CONFIG_USING_TLD)
+#define CP_QRCODE_CONFIG_FORMAT_DEFAULT           CP_SET_QRCODE_FORMAT_PREFIX_DEVICE_SN_PORT        /* 二维码配置格式 */
+#define CP_QRCODE_GENERATE_FORMAT_DEFAULT         CP_GENERATE_QRCODE_FORMAT_PREFIX_DEVICE_SN_PORT   /* 二维码生成格式 */
+#define CP_QRCODE_PREFIX_DEFAULT                  "hlht://"                                         /* 特来电二维码前缀 */
+#elif defined(CP_QRCODE_CONFIG_USING_DUPU)
+#define CP_QRCODE_CONFIG_FORMAT_DEFAULT           CP_SET_QRCODE_FORMAT_PREFIX_DEVICE_SN_PORT        /* 二维码配置格式 */
+#define CP_QRCODE_GENERATE_FORMAT_DEFAULT         CP_GENERATE_QRCODE_FORMAT_PREFIX_DEVICE_SN_PORT   /* 二维码生成格式 */
+#define CP_QRCODE_PREFIX_DEFAULT                  "hlht://32010600208123D1.MA27YQ0R4/"              /* 度普二维码前缀 */
+#elif defined(CP_QRCODE_CONFIG_USING_NJ)
+#define CP_QRCODE_CONFIG_FORMAT_DEFAULT           CP_SET_QRCODE_FORMAT_PREFIX                       /* 二维码配置格式 */
+#define CP_QRCODE_GENERATE_FORMAT_DEFAULT         CP_GENERATE_QRCODE_FORMAT_PREFIX_DEVICE_SN_PORT   /* 二维码生成格式 */
+#define CP_QRCODE_PREFIX_DEFAULT                  "https://wechat.xiangnengnengjia.com?scanid="     /* 能佳二维码前缀 */
+#else
+#define CP_QRCODE_CONFIG_FORMAT_DEFAULT           CP_SET_QRCODE_FORMAT_PREFIX                       /* 二维码配置格式 */
+#define CP_QRCODE_GENERATE_FORMAT_DEFAULT         CP_GENERATE_QRCODE_FORMAT_PREFIX_DEVICE_SN_PORT   /* 二维码生成格式 */
+#define CP_QRCODE_PREFIX_DEFAULT                  "http://www.ykccn.com/MPAGE/index.html?pNum="     /* 云快充二维码前缀 */
+#endif
+
+/** 桩号默认 */
+/**------------------------------------------------------------*/
+#define CP_PILE_NUMBER_DEFAULT                    "TX000000000001"                                  /* 默认桩号 */
+/** 帮助电话默认 */
+/**------------------------------------------------------------*/
+#define CP_HELP_PHONE_DEFAULT                     "18621280288"                                     /* 默认帮助电话 */
+
+
+/* module config */
+#define MODULE_MODEL_DEFAULT                      2           /* 默认模块型号：永联 */
+#define MODULE_MODEL_NUMBER                       5           /* 当前系统支持的模块型号数量 */
+#define MODULE_GROUP_NUMBER_DEFAULT               4           /* 默认模块组数：4组 */
+#define MODULE_GROUP_NUMBER_MAX                   4           /* 最大模块组数：4组 */
+#define MODULE_NUMBER_SINGLE_DEFAULT              3           /* 默认单个组的模块数：3 */
+#define MODULE_NUMBER_SINGLE_MAX                  8           /* 最大单个组的模块数：8 */
+
+#define POWER_ALLOCATION_WAY_AVERAGE              0           /* 功率分配方式:均充 */
+#define POWER_ALLOCATION_WAY_SEQ_PRIORITY         1           /* 功率分配方式:先到先得 */
+#define POWER_ALLOCATION_WAY_POWER_PRIORITY       2           /* 功率分配方式:功率优先 */
+#define POWER_ALLOCATION_WAY_SIZE                 3           /* 功率分配方式 */
 
 #define SYSTEM_FUNCTION_SINGLE_TERMINAL           0         /* 单枪终端 */
 #define SYSTEM_FUNCTION_AVERAGE_DOUBLE            1         /* 均充双枪 */
@@ -194,18 +262,6 @@
 #define CHARGEPILE_ELOSS_PROPORTION_MIN           0         /* 电损比最小值(一位小数) */
 #define CHARGEPILE_ELOSS_PROPORTION_MAX           100       /* 电损比最大值(一位小数) */
 #define CHARGEPILE_ELOSS_PROPORTION_DEF           0         /* 电损比默认值(一位小数) */
-
-#define CP_SET_QRCODE_FORMAT_PREFIX                   0x01             /* 平台下发的二维码格式类型：前缀 */
-#define CP_SET_QRCODE_FORMAT_PREFIX_DEVICE_SN         0x02             /* 平台下发的二维码格式类型 ：前缀+设备号*/
-#define CP_SET_QRCODE_FORMAT_PREFIX_DEVICE_SN_PORT    0x03             /* 平台下发的二维码格式类型 ：前缀+设备号+枪号 */
-#define CP_SET_QRCODE_FORMAT_PORT                     0x04             /* 平台下发的二维码格式类型 ：枪号*/
-#define CP_SET_QRCODE_FORMAT_SIZE                     0x05
-
-#define CP_GENERATE_QRCODE_FORMAT_PREFIX              0x01             /* 终端生成的二维码格式类型：前缀 */
-#define CP_GENERATE_QRCODE_FORMAT_PREFIX_DEVICE_SN    0x02             /* 终端生成的二维码格式类型：前缀+设备号 */
-#define CP_GENERATE_QRCODE_FORMAT_PREFIX_DEVICE_SN_PORT  0x03          /* 终端生成的二维码格式类型：前缀+设备号+枪号 */
-#define CP_GENERATE_QRCODE_FORMAT_PORT                0x04             /* 终端生成的二维码格式类型：枪号 */
-#define CP_GENERATE_QRCODE_FORMAT_SIZE                0x05
 
 /* net type */
 #define CP_NETTYPE_4G                                 0x00             /* 联网方式：4G */
@@ -439,6 +495,10 @@ struct config_item{
 #pragma pack()
 
 #define SYS_CONFIG_OSDELAY(ms)   rt_thread_mdelay(ms)
+
+int32_t sys_string_contain_ctrl_char(const char* string, uint16_t slen);
+int32_t sys_string_is_pure_digital_(const char* string, uint16_t slen);
+int32_t sys_string_is_pure_digital_alphabet(const char* string, uint16_t slen);
 
 int32_t chargepile_config_init(void);
 int32_t chargepile_check_config(void);
