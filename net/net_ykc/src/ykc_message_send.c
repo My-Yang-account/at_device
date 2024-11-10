@@ -1358,9 +1358,6 @@ static void net_ykc_server_message_pro_entry(void *parameter)
                         }
                     }else{
                         net_operation_set_event(gunno, NET_OPERATION_EVENT_SET_CHARGE_POWER);
-                        if(g_ykc_sreq_set_work_para.body.forbidden == 0x01){
-                            net_operation_set_event(gunno, NET_OPERATION_EVENT_FORBIDDEN_USE);
-                        }
                     }
                 }
                 /***** [对时设置请求] *****/

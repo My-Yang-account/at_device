@@ -4193,8 +4193,35 @@ static void ofsm_faulting_fun(uint8_t gunno)
     }
 
     if(system_fault == APP_SYS_FAULT_NO_ERROR){
+        switch(s_ofsm_info[gunno].base.cc1_state){
+        case CC1_12V:
+            if(s_ofsm_info[gunno].base.flag.connect_state != APP_CONNECT_STATE_HALFWAY){
+                s_ofsm_info[gunno].base.flag.connect_state = APP_CONNECT_STATE_HALFWAY;
+                app_nsal_event_occurded(gunno);
+            }
+            break;
+        case CC1_6V:
+            if(s_ofsm_info[gunno].base.flag.connect_state != APP_CONNECT_STATE_DISCONNECT){
+                s_ofsm_info[gunno].base.flag.connect_state = APP_CONNECT_STATE_DISCONNECT;
+                app_nsal_event_occurded(gunno);
+            }
+            break;
+        case CC1_4V:
+            if(s_ofsm_info[gunno].base.flag.connect_state != APP_CONNECT_STATE_CONNECT){
+                s_ofsm_info[gunno].base.flag.connect_state = APP_CONNECT_STATE_CONNECT;
+                app_nsal_event_occurded(gunno);
+            }
+            break;
+        default:
+            break;
+        }
+
         if((s_ofsm_info[gunno].base.device_state == APP_DEVICE_STATE_OVERHAUL) ||
                 (s_ofsm_info[gunno].base.device_state == APP_DEVICE_STATE_FREEZE)){
+            memset(s_ofsm_info[gunno].base.transaction_number, 0x00, sizeof(s_ofsm_info[gunno].base.transaction_number));
+            memset(s_ofsm_info[gunno].base.car_vin, 0x00, sizeof(s_ofsm_info[gunno].base.car_vin));
+            memset(s_ofsm_info[gunno].base.user_number, 0x00, sizeof(s_ofsm_info[gunno].base.user_number));
+
             return;
         }
         if(s_ofsm_info[gunno].base.flag.is_charge_complete == APP_THA_ENUM_TRUE){
@@ -4209,23 +4236,8 @@ static void ofsm_faulting_fun(uint8_t gunno)
             s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
         }
 
-        switch(s_ofsm_info[gunno].base.cc1_state){
-        case CC1_12V:
-            s_ofsm_info[gunno].base.flag.connect_state = APP_CONNECT_STATE_HALFWAY;
-            break;
-        case CC1_6V:
-            s_ofsm_info[gunno].base.flag.connect_state = APP_CONNECT_STATE_DISCONNECT;
-            break;
-        case CC1_4V:
-            s_ofsm_info[gunno].base.flag.connect_state = APP_CONNECT_STATE_CONNECT;
-            break;
-        default:
-            break;
-        }
         memset(s_ofsm_info[gunno].base.transaction_number, 0x00, sizeof(s_ofsm_info[gunno].base.transaction_number));
         memset(s_ofsm_info[gunno].base.car_vin, 0x00, sizeof(s_ofsm_info[gunno].base.car_vin));
-        memset(s_ofsm_info[gunno].base.card_number, 0x00, sizeof(s_ofsm_info[gunno].base.card_number));
-        memset(s_ofsm_info[gunno].base.card_uid, 0x00, sizeof(s_ofsm_info[gunno].base.card_uid));
         memset(s_ofsm_info[gunno].base.user_number, 0x00, sizeof(s_ofsm_info[gunno].base.user_number));
 
         app_nsal_init_charge_data(gunno);

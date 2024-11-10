@@ -1335,36 +1335,54 @@ int8_t sgcc_message_pro_dev_maintain_request(void *data, uint8_t len)
         break;
     case SGCC_DEV_STATE_OVERHAUL:
     {
-        sgcc_storage_struct *config = (sgcc_storage_struct*)(s_sgcc_handle->get_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, 0x00, NET_SYSTEM_DATA_OPTION_TARGET_PLAT));
-        config->storage_init_flag = NET_SGCC_STORAGE_INIT_FLAG;
-        config->dev_state = SGCC_DEV_STATE_OVERHAUL;
+        uint8_t i = 0x00;
+        for(i = 0x00; i < NET_SYSTEM_GUN_NUMBER; i++){
+            s_sgcc_base = (System_BaseData*)(s_sgcc_handle->get_base_data(i));
+            if(s_sgcc_base->state.current != APP_OFSM_STATE_IDLEING){
+                break;
+            }
+        }
+        if(i == NET_SYSTEM_GUN_NUMBER){
+            sgcc_storage_struct *config = (sgcc_storage_struct*)(s_sgcc_handle->get_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, 0x00, NET_SYSTEM_DATA_OPTION_TARGET_PLAT));
+            config->storage_init_flag = NET_SGCC_STORAGE_INIT_FLAG;
+            config->dev_state = SGCC_DEV_STATE_OVERHAUL;
 
-        if(s_sgcc_handle->set_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, 0x00, NET_SYSTEM_DATA_OPTION_TARGET_PLAT) < 0x00){
-            config->storage_init_flag = NET_SGCC_STORAGE_INIT_FLAG - 0x01;
-            return 0x01;
+            if(s_sgcc_handle->set_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, 0x00, NET_SYSTEM_DATA_OPTION_TARGET_PLAT) < 0x00){
+                config->storage_init_flag = NET_SGCC_STORAGE_INIT_FLAG - 0x01;
+                return 0x01;
+            }
+            for(uint8_t gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
+                s_sgcc_base = (System_BaseData*)(s_sgcc_handle->get_base_data(gunno));
+                s_sgcc_base->device_state = APP_DEVICE_STATE_OVERHAUL;
+            }
+            return 0x00;
         }
-        for(uint8_t gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
-            s_sgcc_base = (System_BaseData*)(s_sgcc_handle->get_base_data(gunno));
-            s_sgcc_base->device_state = APP_DEVICE_STATE_OVERHAUL;
-        }
-        return 0x00;
     }
         break;
     case SGCC_DEV_STATE_FREEZE:
     {
-        sgcc_storage_struct *config = (sgcc_storage_struct*)(s_sgcc_handle->get_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, 0x00, NET_SYSTEM_DATA_OPTION_TARGET_PLAT));
-        config->storage_init_flag = NET_SGCC_STORAGE_INIT_FLAG;
-        config->dev_state = SGCC_DEV_STATE_FREEZE;
+        uint8_t i = 0x00;
+        for(i = 0x00; i < NET_SYSTEM_GUN_NUMBER; i++){
+            s_sgcc_base = (System_BaseData*)(s_sgcc_handle->get_base_data(i));
+            if(s_sgcc_base->state.current != APP_OFSM_STATE_IDLEING){
+                break;
+            }
+        }
+        if(i == NET_SYSTEM_GUN_NUMBER){
+            sgcc_storage_struct *config = (sgcc_storage_struct*)(s_sgcc_handle->get_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, 0x00, NET_SYSTEM_DATA_OPTION_TARGET_PLAT));
+            config->storage_init_flag = NET_SGCC_STORAGE_INIT_FLAG;
+            config->dev_state = SGCC_DEV_STATE_FREEZE;
 
-        if(s_sgcc_handle->set_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, 0x00, NET_SYSTEM_DATA_OPTION_TARGET_PLAT) < 0x00){
-            config->storage_init_flag = NET_SGCC_STORAGE_INIT_FLAG - 0x01;
-            return 0x01;
+            if(s_sgcc_handle->set_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, 0x00, NET_SYSTEM_DATA_OPTION_TARGET_PLAT) < 0x00){
+                config->storage_init_flag = NET_SGCC_STORAGE_INIT_FLAG - 0x01;
+                return 0x01;
+            }
+            for(uint8_t gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
+                s_sgcc_base = (System_BaseData*)(s_sgcc_handle->get_base_data(gunno));
+                s_sgcc_base->device_state = APP_DEVICE_STATE_FREEZE;
+            }
+            return 0x00;
         }
-        for(uint8_t gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
-            s_sgcc_base = (System_BaseData*)(s_sgcc_handle->get_base_data(gunno));
-            s_sgcc_base->device_state = APP_DEVICE_STATE_FREEZE;
-        }
-        return 0x00;
     }
         break;
     case SGCC_DEV_STATE_COMMISSIONING:
@@ -1386,49 +1404,76 @@ int8_t sgcc_message_pro_dev_maintain_request(void *data, uint8_t len)
         break;
     case SGCC_DEV_STATE_OUTAGE:
     {
-        sgcc_storage_struct *config = (sgcc_storage_struct*)(s_sgcc_handle->get_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, 0x00, NET_SYSTEM_DATA_OPTION_TARGET_PLAT));
-        config->storage_init_flag = NET_SGCC_STORAGE_INIT_FLAG;
-        config->dev_state = SGCC_DEV_STATE_OUTAGE;
+        uint8_t i = 0x00;
+        for(i = 0x00; i < NET_SYSTEM_GUN_NUMBER; i++){
+            s_sgcc_base = (System_BaseData*)(s_sgcc_handle->get_base_data(i));
+            if(s_sgcc_base->state.current != APP_OFSM_STATE_IDLEING){
+                break;
+            }
+        }
+        if(i == NET_SYSTEM_GUN_NUMBER){
+            sgcc_storage_struct *config = (sgcc_storage_struct*)(s_sgcc_handle->get_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, 0x00, NET_SYSTEM_DATA_OPTION_TARGET_PLAT));
+            config->storage_init_flag = NET_SGCC_STORAGE_INIT_FLAG;
+            config->dev_state = SGCC_DEV_STATE_OUTAGE;
 
-        if(s_sgcc_handle->set_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, 0x00, NET_SYSTEM_DATA_OPTION_TARGET_PLAT) < 0x00){
-            config->storage_init_flag = NET_SGCC_STORAGE_INIT_FLAG - 0x01;
-            return 0x01;
+            if(s_sgcc_handle->set_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, 0x00, NET_SYSTEM_DATA_OPTION_TARGET_PLAT) < 0x00){
+                config->storage_init_flag = NET_SGCC_STORAGE_INIT_FLAG - 0x01;
+                return 0x01;
+            }
+            for(uint8_t gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
+                s_sgcc_base = (System_BaseData*)(s_sgcc_handle->get_base_data(gunno));
+                s_sgcc_base->device_state = APP_DEVICE_STATE_OUTAGE;
+            }
+            return 0x00;
         }
-        for(uint8_t gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
-            s_sgcc_base = (System_BaseData*)(s_sgcc_handle->get_base_data(gunno));
-            s_sgcc_base->device_state = APP_DEVICE_STATE_OUTAGE;
-        }
-        return 0x00;
     }
         break;
     case SGCC_DEV_STATE_RETURNS:
     {
-        sgcc_storage_struct *config = (sgcc_storage_struct*)(s_sgcc_handle->get_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, 0x00, NET_SYSTEM_DATA_OPTION_TARGET_PLAT));
-        config->storage_init_flag = NET_SGCC_STORAGE_INIT_FLAG;
-        config->dev_state = SGCC_DEV_STATE_RETURNS;
+        uint8_t i = 0x00;
+        for(i = 0x00; i < NET_SYSTEM_GUN_NUMBER; i++){
+            s_sgcc_base = (System_BaseData*)(s_sgcc_handle->get_base_data(i));
+            if(s_sgcc_base->state.current != APP_OFSM_STATE_IDLEING){
+                break;
+            }
+        }
+        if(i == NET_SYSTEM_GUN_NUMBER){
+            sgcc_storage_struct *config = (sgcc_storage_struct*)(s_sgcc_handle->get_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, 0x00, NET_SYSTEM_DATA_OPTION_TARGET_PLAT));
+            config->storage_init_flag = NET_SGCC_STORAGE_INIT_FLAG;
+            config->dev_state = SGCC_DEV_STATE_RETURNS;
 
-        if(s_sgcc_handle->set_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, 0x00, NET_SYSTEM_DATA_OPTION_TARGET_PLAT) < 0x00){
-            config->storage_init_flag = NET_SGCC_STORAGE_INIT_FLAG - 0x01;
-            return 0x01;
+            if(s_sgcc_handle->set_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, 0x00, NET_SYSTEM_DATA_OPTION_TARGET_PLAT) < 0x00){
+                config->storage_init_flag = NET_SGCC_STORAGE_INIT_FLAG - 0x01;
+                return 0x01;
+            }
+            for(uint8_t gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
+                s_sgcc_base = (System_BaseData*)(s_sgcc_handle->get_base_data(gunno));
+                s_sgcc_base->device_state = APP_DEVICE_STATE_RETURNS;
+            }
+            return 0x00;
         }
-        for(uint8_t gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
-            s_sgcc_base = (System_BaseData*)(s_sgcc_handle->get_base_data(gunno));
-            s_sgcc_base->device_state = APP_DEVICE_STATE_RETURNS;
-        }
-        return 0x00;
     }
         break;
     case SGCC_DEV_STATE_RESTORE_SRTTING:
     {
-        sgcc_storage_struct *config = (sgcc_storage_struct*)(s_sgcc_handle->get_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, 0x00, NET_SYSTEM_DATA_OPTION_TARGET_PLAT));
-        config->storage_init_flag = NET_SGCC_STORAGE_INIT_FLAG;
-        config->dev_state = SGCC_DEV_STATE_RESTORE_SRTTING;
-
-        if(s_sgcc_handle->set_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, 0x00, NET_SYSTEM_DATA_OPTION_TARGET_PLAT) < 0x00){
-            config->storage_init_flag = NET_SGCC_STORAGE_INIT_FLAG - 0x01;
-            return 0x01;
+        uint8_t i = 0x00;
+        for(i = 0x00; i < NET_SYSTEM_GUN_NUMBER; i++){
+            s_sgcc_base = (System_BaseData*)(s_sgcc_handle->get_base_data(i));
+            if(s_sgcc_base->state.current != APP_OFSM_STATE_IDLEING){
+                break;
+            }
         }
-        return 0x00;
+        if(i == NET_SYSTEM_GUN_NUMBER){
+            sgcc_storage_struct *config = (sgcc_storage_struct*)(s_sgcc_handle->get_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, 0x00, NET_SYSTEM_DATA_OPTION_TARGET_PLAT));
+            config->storage_init_flag = NET_SGCC_STORAGE_INIT_FLAG;
+            config->dev_state = SGCC_DEV_STATE_RESTORE_SRTTING;
+
+            if(s_sgcc_handle->set_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, 0x00, NET_SYSTEM_DATA_OPTION_TARGET_PLAT) < 0x00){
+                config->storage_init_flag = NET_SGCC_STORAGE_INIT_FLAG - 0x01;
+                return 0x01;
+            }
+            return 0x00;
+        }
     }
         break;
     default:

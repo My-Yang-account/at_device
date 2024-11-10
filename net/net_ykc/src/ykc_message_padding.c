@@ -986,7 +986,7 @@ int8_t ykc_message_pro_account_ballance_update_request(uint8_t gunno, void *data
  * **********************************************/
 int8_t ykc_message_pro_set_work_para_request(void *data, uint8_t len)
 {
-    uint8_t data_len = sizeof(Net_YkcPro_SReq_Set_WorkPara_t);
+    uint8_t data_len = sizeof(Net_YkcPro_SReq_Set_WorkPara_t), gunno = 0x00;
 
     if(data == NULL){
         return -0x01;
@@ -996,6 +996,28 @@ int8_t ykc_message_pro_set_work_para_request(void *data, uint8_t len)
     }
 
     Net_YkcPro_SReq_Set_WorkPara_t *request = (Net_YkcPro_SReq_Set_WorkPara_t*)data;
+
+    if(request->body.forbidden == NET_ENUM_TRUE){
+        /** 启动或充电中不能停用 */
+        for(gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
+            s_ykc_base = (System_BaseData*)(s_ykc_handle->get_base_data(gunno));
+            if((s_ykc_base->state.current == APP_OFSM_STATE_STARTING) || (s_ykc_base->state.current == APP_OFSM_STATE_CHARGING)){
+                return -0x03;
+            }
+        }
+        /*         [在此处将所有枪的状态设置为冻结并将状态存入flash]
+        for(gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
+            s_ykc_base = (System_BaseData*)(s_ykc_handle->get_base_data(gunno));
+            s_ykc_base->device_state = APP_DEVICE_STATE_FREEZE;
+        }
+        */
+    }else{
+        for(gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
+            s_ykc_base = (System_BaseData*)(s_ykc_handle->get_base_data(gunno));
+            s_ykc_base->device_state = APP_DEVICE_STATE_COMMISSIONING;
+        }
+    }
+
     s_ykc_base = (System_BaseData*)(s_ykc_handle->get_base_data(0x00));
 
     rt_kprintf("ykc_message_pro_set_work_para_request(%d, %d, %d)\n", request->body.power_max_percent,
@@ -1007,7 +1029,7 @@ int8_t ykc_message_pro_set_work_para_request(void *data, uint8_t len)
         s_ykc_base->power_strategy = APP_POWER_STRATEGY_SET_LIMIT;
         s_ykc_base->power_strategy_para = 0x00;
     }else{
-        return -0x03;
+        return -0x04;
     }
     return 0x00;
 }
