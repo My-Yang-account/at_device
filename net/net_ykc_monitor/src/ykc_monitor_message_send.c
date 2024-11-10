@@ -87,6 +87,7 @@ static uint8_t s_ykc_monitor_dev_info_count = 0x00;
 
 static uint32_t s_ykc_monitor_user_chargepile_event[NET_YKC_MONITOR_EVENT_TYPE_SIZE][NET_SYSTEM_GUN_NUMBER];
 static uint32_t s_ykc_monitor_user_server_event[NET_YKC_MONITOR_EVENT_TYPE_SIZE][NET_SYSTEM_GUN_NUMBER];
+static uint32_t s_ykc_monitor_external_chargepile_event[NET_SYSTEM_GUN_NUMBER];
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
 
 static struct rt_thread s_ykc_monitor_message_send_thread;
@@ -235,6 +236,9 @@ int32_t ykc_monitor_net_event_send(uint8_t event_handle, uint8_t event_type, uin
     case NET_YKC_MONITOR_USER_EVENT_HANDLE_SERVER:
         s_ykc_monitor_user_server_event[event_type][gunno] |= (1 <<event);
         break;
+    case NET_YKC_MONITOR_EXTERNAL_EHANDLE_CHARGEPILE:
+        s_ykc_monitor_external_chargepile_event[gunno] |= (1 <<event);
+        break;
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
     default:
         break;
@@ -281,6 +285,24 @@ int32_t ykc_monitor_net_event_receive(uint8_t event_handle, uint8_t event_type, 
     }
 
     if(event_set == NULL){
+        if(event_handle == NET_YKC_MONITOR_EXTERNAL_EHANDLE_CHARGEPILE){
+            if(event_buf){
+                (*event_buf) = s_ykc_monitor_external_chargepile_event[gunno];
+            }
+
+            if(s_ykc_monitor_external_chargepile_event[gunno] &(0x01 <<event)){
+                if(option &NET_YKC_MONITOR_EVENT_OPTION_AND){
+                    if((s_ykc_monitor_external_chargepile_event[gunno] &(0x01 <<event)) != (0x01 <<event)){
+                        return -0x04;
+                    }
+                }
+                if(option &NET_YKC_MONITOR_EVENT_OPTION_CLEAR){
+                    s_ykc_monitor_external_chargepile_event[gunno] &= (~(0x01 <<event));
+                }
+                return 0x01;
+            }
+        }
+
         return 0x00;
     }
 
@@ -288,18 +310,18 @@ int32_t ykc_monitor_net_event_receive(uint8_t event_handle, uint8_t event_type, 
         (*event_buf) = event_set[event_type][gunno];
     }
 
-    if(event_set[event_type][gunno] &(1 <<event)){
+    if(event_set[event_type][gunno] &(0x01 <<event)){
         if(option &NET_YKC_MONITOR_EVENT_OPTION_AND){
-            if((event_set[event_type][gunno] &(1 <<event)) != (1 <<event)){
-                return -4;
+            if((event_set[event_type][gunno] &(0x01 <<event)) != (0x01 <<event)){
+                return -0x04;
             }
         }
         if(option &NET_YKC_MONITOR_EVENT_OPTION_CLEAR){
-            event_set[event_type][gunno] &= (~(1 <<event));
+            event_set[event_type][gunno] &= (~(0x01 <<event));
         }
-        return 1;
+        return 0x01;
     }
-    return 0;
+    return 0x00;
 }
 
 /**************************************************************************
@@ -1083,12 +1105,12 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
                     (NET_YKC_MONITOR_EVENT_OPTION_OR |NET_YKC_MONITOR_EVENT_OPTION_CLEAR), NET_YKC_MONITOR_USER_PREQ_EVENT_REPORT_MODULE_INFO, NULL) > 0){
                 Net_YkcMonitorPro_PRes_Preq_ModuleInfo_t *module_info = (Net_YkcMonitorPro_PRes_Preq_ModuleInfo_t*)(s_ykc_monitor_response_buff.general_transmit_buff);
 
-                ykc_monitor_set_message_send_state(gunno, NET_YKC_MONITOR_SEND_STATE_ONGOING, NET_YKC_MONITOR_USER_PREQ_EVENT_REPORT_MODULE_INFO);
+//                ykc_monitor_set_message_send_state(gunno, NET_YKC_MONITOR_SEND_STATE_ONGOING, NET_YKC_MONITOR_USER_PREQ_EVENT_REPORT_MODULE_INFO);
                 module_info->head.sequence = s_ykc_monitor_message_serial_number[gunno]++;
                 ykc_monitor_message_send_port(NETYKC_MONITOR_SREQCMD_QUERY_MODULE_INFO, s_ykc_monitor_socket_info.fd, s_ykc_monitor_response_buff.general_transmit_buff,
                         s_ykc_monitor_response_buff.length, NULL);
 //                ykc_monitor_set_message_wait_response_state(gunno, NET_YKC_MONITOR_USER_PREQ_EVENT_REPORT_MODULE_INFO);
-                ykc_monitor_set_message_send_state(gunno, NET_YKC_MONITOR_SEND_STATE_COMPLETE, NET_YKC_MONITOR_USER_PREQ_EVENT_REPORT_MODULE_INFO);
+//                ykc_monitor_set_message_send_state(gunno, NET_YKC_MONITOR_SEND_STATE_COMPLETE, NET_YKC_MONITOR_USER_PREQ_EVENT_REPORT_MODULE_INFO);
                 ykc_monitor_response_buff_release_sem();
                 rt_thread_mdelay(250);
             }
@@ -1097,12 +1119,12 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
                     (NET_YKC_MONITOR_EVENT_OPTION_OR |NET_YKC_MONITOR_EVENT_OPTION_CLEAR), NET_YKC_MONITOR_USER_PREQ_EVENT_REPORT_MODULE_SETUPINFO, NULL) > 0){
                 Net_YkcMonitorPro_PRes_Preq_ModuleSetupInfo_t *module_setup = (Net_YkcMonitorPro_PRes_Preq_ModuleSetupInfo_t*)(s_ykc_monitor_response_buff.general_transmit_buff);
 
-                ykc_monitor_set_message_send_state(gunno, NET_YKC_MONITOR_SEND_STATE_ONGOING, NET_YKC_MONITOR_USER_PREQ_EVENT_REPORT_MODULE_SETUPINFO);
+//                ykc_monitor_set_message_send_state(gunno, NET_YKC_MONITOR_SEND_STATE_ONGOING, NET_YKC_MONITOR_USER_PREQ_EVENT_REPORT_MODULE_SETUPINFO);
                 module_setup->head.sequence = s_ykc_monitor_message_serial_number[gunno]++;
                 ykc_monitor_message_send_port(NETYKC_MONITOR_SREQCMD_QUERY_MODULE_SETUPINFO, s_ykc_monitor_socket_info.fd, s_ykc_monitor_response_buff.general_transmit_buff,
                         s_ykc_monitor_response_buff.length, NULL);
 //                ykc_monitor_set_message_wait_response_state(gunno, NET_YKC_MONITOR_USER_PREQ_EVENT_REPORT_MODULE_SETUPINFO);
-                ykc_monitor_set_message_send_state(gunno, NET_YKC_MONITOR_SEND_STATE_COMPLETE, NET_YKC_MONITOR_USER_PREQ_EVENT_REPORT_MODULE_SETUPINFO);
+//                ykc_monitor_set_message_send_state(gunno, NET_YKC_MONITOR_SEND_STATE_COMPLETE, NET_YKC_MONITOR_USER_PREQ_EVENT_REPORT_MODULE_SETUPINFO);
                 ykc_monitor_response_buff_release_sem();
                 rt_thread_mdelay(250);
             }
@@ -1118,6 +1140,20 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
                         s_ykc_monitor_response_buff.length, log_info->label);
 //                ykc_monitor_set_message_wait_response_state(gunno, NET_YKC_MONITOR_USER_PREQ_EVENT_REPORT_MODULE_SETUPINFO);
                 ykc_monitor_set_message_send_state(gunno, NET_YKC_MONITOR_SEND_STATE_COMPLETE, NET_YKC_MONITOR_USER_PREQ_EVENT_REPORT_TPLAT_LOG);
+                ykc_monitor_response_buff_release_sem();
+                rt_thread_mdelay(250);
+            }
+            /***** [充电桩上报给模块设置的电压、电流信息] *****/
+            if(ykc_monitor_net_event_receive(NET_YKC_MONITOR_USER_EVENT_HANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, gunno,
+                    (NET_YKC_MONITOR_EVENT_OPTION_OR |NET_YKC_MONITOR_EVENT_OPTION_CLEAR), NET_YKC_MONITOR_USER_PREQ_EVENT_SET_VOLTCURR, NULL) > 0){
+                Net_YkcMonitorPro_Preq_Pres_SetVoltCurr_t *voltcurr = (Net_YkcMonitorPro_Preq_Pres_SetVoltCurr_t*)(s_ykc_monitor_response_buff.general_transmit_buff);
+
+//                ykc_monitor_set_message_send_state(gunno, NET_YKC_MONITOR_SEND_STATE_ONGOING, NET_YKC_MONITOR_USER_PREQ_EVENT_SET_VOLTCURR);
+                voltcurr->head.sequence = s_ykc_monitor_message_serial_number[gunno]++;
+                ykc_monitor_message_send_port(NETYKC_MONITOR_PRES_PREQCMD_QUERY_SET_VOLTCURR, s_ykc_monitor_socket_info.fd, s_ykc_monitor_response_buff.general_transmit_buff,
+                        s_ykc_monitor_response_buff.length, NULL);
+//                ykc_monitor_set_message_wait_response_state(gunno, NET_YKC_MONITOR_USER_PREQ_EVENT_SET_VOLTCURR);
+//                ykc_monitor_set_message_send_state(gunno, NET_YKC_MONITOR_SEND_STATE_COMPLETE, NET_YKC_MONITOR_USER_PREQ_EVENT_SET_VOLTCURR);
                 ykc_monitor_response_buff_release_sem();
                 rt_thread_mdelay(250);
             }
@@ -2232,6 +2268,26 @@ static void net_ykc_monitor_server_message_pro_entry(void *parameter)
                 result = ykc_monitor_message_padding_dev_info(response->general_transmit_buff, NET_YKC_MONITOR_GENERA_RESPONSE_BUFF_LENGTH, &(response->length));
                 if(result >= 0x00){
                     ykc_monitor_net_event_send(NET_YKC_MONITOR_USER_EVENT_HANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, 0x00, NET_YKC_MONITOR_USER_PRES_EVENT_QUERY_DEV_INFO);
+                }else{
+                    ykc_monitor_response_buff_release_sem();
+                }
+            }
+        }
+        /***************************************************** [充电桩监控数据外部触发请求] **********************************************************/
+        /***************************************************** [充电桩监控数据外部触发请求] **********************************************************/
+        for(uint8_t gunno = 0; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
+            uint32_t _event = 0;
+            ykc_monitor_net_event_receive(NET_YKC_MONITOR_EXTERNAL_EHANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, gunno, 0x00, 0x00, &_event);
+            if(!_event){
+                continue;   /* 此枪没有响应事件,不进行事件查询 */
+            }
+            /***** [上报给模块设置的电压、电流数据请求] *****/
+            if(ykc_monitor_net_event_receive(NET_YKC_MONITOR_EXTERNAL_EHANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, gunno,
+                    (NET_YKC_MONITOR_EVENT_OPTION_OR |NET_YKC_MONITOR_EVENT_OPTION_CLEAR), NET_YKC_MONITOR_EXTERNAL_PREQ_EVENT_SET_VOLTCURR, NULL) > 0){
+                response = ykc_monitor_get_response_buff(RT_WAITING_FOREVER);
+                result = ykc_monitor_message_padding_setvoltcurr(gunno, response->general_transmit_buff, NET_YKC_MONITOR_GENERA_RESPONSE_BUFF_LENGTH, &(response->length));
+                if(result >= 0x00){
+                    ykc_monitor_net_event_send(NET_YKC_MONITOR_USER_EVENT_HANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, 0x00, NET_YKC_MONITOR_USER_PREQ_EVENT_SET_VOLTCURR);
                 }else{
                     ykc_monitor_response_buff_release_sem();
                 }

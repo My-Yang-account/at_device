@@ -41,7 +41,9 @@
 #ifdef NET_YKC_MONITOR_AS_MONITOR
 #define NET_YKC_MONITOR_USER_EVENT_HANDLE_CHARGEPILE                 0x02       /* 用于监控的充电桩事件句柄 */
 #define NET_YKC_MONITOR_USER_EVENT_HANDLE_SERVER                     0x03       /* 用于监控的服务器事件句柄 */
-#define NET_YKC_MONITOR_EVENT_HANDLE_SIZE                            0x04       /* 事件句柄总数 */
+
+#define NET_YKC_MONITOR_EXTERNAL_EHANDLE_CHARGEPILE                  0x04       /* 用于监控的外部(业务)触发事件句柄 */
+#define NET_YKC_MONITOR_EVENT_HANDLE_SIZE                            0x05       /* 事件句柄总数 */
 #else
 #define NET_YKC_MONITOR_EVENT_HANDLE_SIZE                            0x02       /* 事件句柄总数 */
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
@@ -118,13 +120,17 @@
 /******************************** 以下是监控报文事件 *******************************/
 /******************************** 以下是监控报文事件 *******************************/
 #ifdef NET_YKC_MONITOR_AS_MONITOR
+/** chargepile external request event */
+#define NET_YKC_MONITOR_EXTERNAL_PREQ_EVENT_SET_VOLTCURR             0    /* 充电桩监控外部触发请求事件：上报给模块设置的电压、电流信息 */
+
 /** chargepile user request event */
 #define NET_YKC_MONITOR_USER_PREQ_EVENT_REPORT_MODULE_INFO           0    /* 充电桩监控请求事件：上报模块信息 */
 #define NET_YKC_MONITOR_USER_PREQ_EVENT_REPORT_MODULE_SETUPINFO      1    /* 充电桩监控请求事件：上报模块配置信息 */
 #define NET_YKC_MONITOR_USER_PREQ_EVENT_REPORT_TPLAT_LOG             2    /* 充电桩监控请求事件：上报目标平台日志 */
 #define NET_YKC_MONITOR_USER_PREQ_EVENT_REPORT_DEV_INFO              3    /* 充电桩监控请求事件：上报设备信息 */
+#define NET_YKC_MONITOR_USER_PREQ_EVENT_SET_VOLTCURR                 4    /* 充电桩监控请求事件：上报给模块设置的电压、电流信息 */
 
-#define NET_YKC_MONITOR_USER_PREQ_EVENT_REPORT_DEV_INFO_ASYNCHRONOUSLY  4    /* 充电桩监控请求事件：上报设备信息异步(用于填充数据) */
+#define NET_YKC_MONITOR_USER_PREQ_EVENT_REPORT_DEV_INFO_ASYNCHRONOUSLY  5    /* 充电桩监控请求事件：上报设备信息异步(用于填充数据) */
 
 /** chargepile user response event */
 #define NET_YKC_MONITOR_USER_PRES_EVENT_QUERY_MODULE_INFO            0    /* 充电桩监控响应事件：查询模块信息 */

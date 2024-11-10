@@ -49,6 +49,10 @@
 #define NET_YKC_MONITOR_SIM_BCD_LENGTH_DEFAULT                         0x0A        /* 默认sim卡卡号BCD码长度 */
 #define NET_YKC_MONITOR_CARD_NUMBER_COUNT_MAX                          0x18        /* 卡号最大个数 */
 
+#ifdef NET_YKC_MONITOR_AS_MONITOR
+#define NET_YKC_MONITOR_SETVOLTCURR_PAIR_MAX                           0x14        /* 单次上报设置电压、流对的最大个数 */
+#endif /* NET_YKC_MONITOR_AS_MONITOR */
+
 enum ykc_monitor_device_state{
     NETYKC_MONITOR_DEVICE_STATE_OFFLINE = 0x00,                      /* 设备状态：离线 */
     NETYKC_MONITOR_DEVICE_STATE_FAULTING = 0x01,                     /* 设备状态：故障 */
@@ -278,6 +282,9 @@ enum ykc_monitor_cmd{
 
     NETYKC_MONITOR_SREQCMD_QUERY_TSOCKET_INFO = 0xC5,                /* 指令：运营平台查询目标socket信息 */
     NETYKC_MONITOR_PRESCMD_QUERY_TSOCKET_INFO = 0xC6,                /* 指令：远程查询目标socket信息命令回复 */
+
+    NETYKC_MONITOR_SREQCMD_QUERY_SET_VOLTCURR = 0xC7,                /* 指令：运营平台查询给模块设置的电压、电流 */
+    NETYKC_MONITOR_PRES_PREQCMD_QUERY_SET_VOLTCURR = 0xC8,           /* 指令：上报(响应)给模块设置的电压、电流 */
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
 };
 
@@ -1368,6 +1375,24 @@ typedef struct{
     }body;
     uint16_t check_sum;                          /* 校验码 */
 }Net_YkcMonitorPro_Preq_Pres_TsocketInfo_t;
+
+/** 0xC7 给模块设置的电压、电流响应(上报)帧 */
+struct voltcurr_pair{
+    uint32_t voltage : 15;                       /* 设置的电压(0.1) */
+    uint32_t current : 17;                       /* 设置的电流(0.01) */
+};
+
+typedef struct{
+    Net_YkcMonitorPro_Head_t head;
+    struct{
+        uint8_t pile_number[NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT];  /* 桩号*/
+        uint32_t gunno;                                                  /* 枪号 */
+        uint32_t timestamp;                                              /* 采样时间 */
+        uint8_t valid_pair;                                              /* 有效电压、电流对数(考虑到停充了，但已经采样了多对电压、电流) */
+        struct voltcurr_pair pair[NET_YKC_MONITOR_SETVOLTCURR_PAIR_MAX]; /* 每秒采样一次，采样20次上报一次(此帧每20秒上报一次) */
+    }body;
+    uint16_t check_sum;                          /* 校验码 */
+}Net_YkcMonitorPro_Preq_Pres_SetVoltCurr_t;
 
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
 

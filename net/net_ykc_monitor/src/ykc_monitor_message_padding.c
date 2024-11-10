@@ -53,8 +53,21 @@ struct ykc_monitor_flag_info{
     uint16_t set_power_success : 1;               /*  设置功率百分比成功 */
 };
 
+#ifdef NET_YKC_MONITOR_AS_MONITOR
+typedef struct{
+    uint32_t base_tick;                           /* 时间时基 */
+    uint32_t timestamp;                           /* 采样时间 */
+    uint8_t count;                                /* 已采样数 */
+    uint8_t is_locked;                            /*  */
+    struct voltcurr_pair pair[NET_YKC_MONITOR_SETVOLTCURR_PAIR_MAX]; /* 连续采20次，1秒采一次 */
+}ykc_monitor_setvoltcurr;
+#endif /* NET_YKC_MONITOR_AS_MONITOR */
+
 #pragma pack()
 
+#ifdef NET_YKC_MONITOR_AS_MONITOR
+static ykc_monitor_setvoltcurr s_ykc_monitor_setvoltcurr[NET_SYSTEM_GUN_NUMBER];
+#endif /* NET_YKC_MONITOR_AS_MONITOR */
 static struct ykc_monitor_flag_info s_ykc_monitor_flag_info[NET_SYSTEM_GUN_NUMBER];
 static uint16_t s_ykc_monitor_realtime_data_interval[NET_SYSTEM_GUN_NUMBER];
 static uint32_t s_ykc_monitor_realtime_data_count[NET_SYSTEM_GUN_NUMBER];
@@ -2188,6 +2201,10 @@ void ykc_monitor_chargepile_state_changed(uint8_t gunno)
     case APP_OFSM_STATE_STOPING:
     case APP_OFSM_STATE_FINISHING:
         s_ykc_monitor_state_info[gunno].state.state = NETYKC_MONITOR_DEVICE_STATE_IDLE;
+#ifdef NET_YKC_MONITOR_AS_MONITOR
+        ykc_monitor_net_event_send(NET_YKC_MONITOR_EXTERNAL_EHANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST,  \
+                gunno, NET_YKC_MONITOR_EXTERNAL_PREQ_EVENT_SET_VOLTCURR);
+#endif /* NET_YKC_MONITOR_AS_MONITOR */
         break;
     case APP_OFSM_STATE_FAULTING:
         s_ykc_monitor_state_info[gunno].state.state = NETYKC_MONITOR_DEVICE_STATE_FAULTING;
@@ -2598,6 +2615,27 @@ void ykc_monitor_data_realtime_process(uint8_t gunno)
                 ykc_monitor_net_event_send(NET_YKC_MONITOR_EVENT_HANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, gunno, NET_YKC_MONITOR_PREQ_EVENT_REPORT_REALTIME_DATA);
             }
         }
+
+#ifdef NET_YKC_MONITOR_AS_MONITOR
+        if((s_ykc_monitor_base->state.current == APP_OFSM_STATE_STARTING) || (s_ykc_monitor_base->state.current == APP_OFSM_STATE_CHARGING)){
+            if((rt_tick_get() - s_ykc_monitor_setvoltcurr[gunno].base_tick) > 1000){   /** 1秒采一次数据 */
+                ykc_monitor_padding_setvoltcurr_data(gunno);
+                s_ykc_monitor_setvoltcurr[gunno].base_tick = rt_tick_get();
+            }
+            if(s_ykc_monitor_setvoltcurr[gunno].count >= NET_YKC_MONITOR_SETVOLTCURR_PAIR_MAX){
+                if(s_ykc_monitor_setvoltcurr[gunno].is_locked == NET_ENUM_FALSE){
+                    ykc_monitor_net_event_send(NET_YKC_MONITOR_EXTERNAL_EHANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST,  \
+                            gunno, NET_YKC_MONITOR_EXTERNAL_PREQ_EVENT_SET_VOLTCURR);
+                    s_ykc_monitor_setvoltcurr[gunno].is_locked = NET_ENUM_TRUE;
+                }
+            }else{
+                s_ykc_monitor_setvoltcurr[gunno].is_locked = NET_ENUM_FALSE;
+            }
+        }else{
+            s_ykc_monitor_setvoltcurr[gunno].is_locked = NET_ENUM_FALSE;
+            s_ykc_monitor_setvoltcurr[gunno].base_tick = rt_tick_get();
+        }
+#endif /* NET_YKC_MONITOR_AS_MONITOR */
     }else{
         s_ykc_monitor_realtime_data_count[gunno] = rt_tick_get();
         s_ykc_monitor_realtime_data_interval[gunno] = YKC_MONITOR_REALTIME_DATA_INTERVAL_INIT;
@@ -2707,6 +2745,7 @@ int32_t ykc_monitor_realtime_process_init(void)
 
 /******************************** 以下是监控报文 *******************************/
 /******************************** 以下是监控报文 *******************************/
+#ifdef NET_YKC_MONITOR_AS_MONITOR
 /*************************************************
  * 函数名      ykc_monitor_message_padding_module_info
  * 功能          组包：充电模块信息
@@ -3137,5 +3176,82 @@ int8_t ykc_monitor_message_padding_dev_info(uint8_t *buf, uint16_t ilen, uint16_
 
     return 0x00;
 }
+
+/*************************************************
+ * 函数名      ykc_monitor_padding_setvoltcurr_data
+ * 功能         按枪填写给模块设置的输出电压、电流数据
+ * 参数         gunno   枪号
+ * 返回         >=0：成功       <0：失败
+ * **********************************************/
+int8_t ykc_monitor_padding_setvoltcurr_data(uint8_t gunno)
+{
+    if(gunno >= NET_SYSTEM_GUN_NUMBER){
+        return -0x01;
+    }
+    if(s_ykc_monitor_setvoltcurr[gunno].count >= NET_YKC_MONITOR_SETVOLTCURR_PAIR_MAX){
+        return -0x02;
+    }
+
+    extern uint32_t thaisenGetModuleSetVoltage(uint8_t groupNum);
+    extern uint32_t thaisenGetModuleSetCurrent(uint8_t groupNum);
+
+    if(s_ykc_monitor_setvoltcurr[gunno].count == 0x00){
+        s_ykc_monitor_base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
+        s_ykc_monitor_setvoltcurr[gunno].timestamp = s_ykc_monitor_base->current_time;
+    }
+    s_ykc_monitor_setvoltcurr[gunno].pair[s_ykc_monitor_setvoltcurr[gunno].count].voltage = thaisenGetModuleSetVoltage(gunno);
+    s_ykc_monitor_setvoltcurr[gunno].pair[s_ykc_monitor_setvoltcurr[gunno].count].current = thaisenGetModuleSetCurrent(gunno);
+    s_ykc_monitor_setvoltcurr[gunno].count++;
+
+    return 0x00;
+}
+
+/*************************************************
+ * 函数名      ykc_monitor_message_padding_setvoltcurr
+ * 功能         组包：填充给模块设置的电压、电流数据
+ * 参数         gunno   枪号
+ *       buf      缓存
+ *       ilen    输入缓存长度
+ *       olen    填写数据总长度
+ * 返回         >=0：成功       <0：失败
+ * **********************************************/
+int8_t ykc_monitor_message_padding_setvoltcurr(uint8_t gunno, uint8_t *buf, uint16_t ilen, uint16_t *olen)
+{
+    uint8_t data_len = sizeof(Net_YkcMonitorPro_Preq_Pres_SetVoltCurr_t);
+
+    if(buf == NULL){
+        return -0x01;
+    }
+    if(data_len > ilen){
+        return -0x02;
+    }
+    if(gunno >= NET_SYSTEM_GUN_NUMBER){
+        return -0x03;
+    }
+
+    Net_YkcMonitorPro_Preq_Pres_SetVoltCurr_t *message = (Net_YkcMonitorPro_Preq_Pres_SetVoltCurr_t*)buf;
+    uint8_t valid_len = sizeof(message->body.pair) /sizeof(message->body.pair[0x00]);
+
+    memset(message, 0x00, sizeof(Net_YkcMonitorPro_Preq_Pres_SetVoltCurr_t));
+    memcpy(message->body.pile_number, g_ykc_monitor_preq_login.body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
+    message->body.timestamp = s_ykc_monitor_setvoltcurr[gunno].timestamp;
+    message->body.valid_pair = s_ykc_monitor_setvoltcurr[gunno].count;
+    if(message->body.valid_pair > valid_len){
+        message->body.valid_pair = valid_len;
+    }
+    for(uint8_t count = 0x00; count < message->body.valid_pair; count++){
+        message->body.pair[count] = s_ykc_monitor_setvoltcurr[gunno].pair[count];
+    }
+    message->body.gunno = gunno + 0x01;
+    s_ykc_monitor_setvoltcurr[gunno].count = 0x00;
+
+    if(olen){
+        *olen = data_len;
+    }
+
+    return 0x00;
+}
+
+#endif /* NET_YKC_MONITOR_AS_MONITOR */
 
 #endif /* NET_PACK_USING_YKC_MONITOR */
