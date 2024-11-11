@@ -431,7 +431,7 @@ static int32_t app_card_swip_card_start(uint8_t gunno)
         return APP_CARD_OPERATE_RET_INTERNAL_ERROR;
     }
 
-    LOG_D("gunno(%d) swip_card_start");
+    LOG_D("gunno(%d) swip_card_start", gunno);
 
     struct ofsm_info *ofsm = get_ofsm_info(gunno);
     uint8_t *dev_id = sys_read_config_item_content(CONFIG_ITEM_PILE_NUMBER, 0x00), card_info_block = 0x00, locked = s_card_info_sector2.block_10.detail.is_lock;
@@ -455,7 +455,7 @@ static int32_t app_card_swip_card_start(uint8_t gunno)
     /** 保存设备ID */
     card_info_block = 0x08;
     if(s_rfidr->bolck_write(card_info_block, s_card_info_sector2.device_id, CARD_BLOCK_SIZE) < 0x00){
-        LOG_E("card storage dev id fail(swip card stop)!!");
+        LOG_E("card storage dev id fail(swip card start)!!");
 
         s_card_info_sector2.block_10.detail.is_lock = locked;
         s_card_info_sector2.block_10.detail.ballance = ballance;
@@ -467,7 +467,7 @@ static int32_t app_card_swip_card_start(uint8_t gunno)
     /** 保存充电信息 */
     card_info_block = 0x0A;
     if(s_rfidr->bolck_write(card_info_block, s_card_info_sector2.block_10.data, CARD_BLOCK_SIZE) < 0x00){
-        LOG_E("card storage charge info fail(swip card stop)!!");
+        LOG_E("card storage charge info fail(swip card start)!!");
 
         s_card_info_sector2.block_10.detail.is_lock = locked;
         s_card_info_sector2.block_10.detail.ballance = ballance;
@@ -628,7 +628,11 @@ static int32_t app_card_info_process(void* handle)
                     (memcmp(s_card_info_sector2.card_number, ofsm->base.card_number, APP_CARD_NUMBER_COMPARE_LEN_MIN_OFFLINE_BILLING)) ||
                     memcmp(s_rfidr->uuid, ofsm->base.card_uid, s_rfidr->uuid_len)){
                 LOG_D("gunno(%d) card number and recorded card number is no match in first %d byte", port, APP_CARD_NUMBER_COMPARE_LEN_MIN_OFFLINE_BILLING);
-                s_card_operate_ret[port] = APP_CARD_OPERATE_RET_INVALID_CARD;
+                if(memcmp(s_rfidr->uuid, ofsm->base.card_uid, s_rfidr->uuid_len)){
+                    s_card_operate_ret[port] = APP_CARD_OPERATE_RET_NOT_START_CARD;
+                }else{
+                    s_card_operate_ret[port] = APP_CARD_OPERATE_RET_INVALID_CARD;
+                }
                 return s_card_operate_ret[port];
             }
             app_card_event_send(APP_CARD_EVENT_IS_PAYING, port, NULL);  /** 此时需要应用到业务的充电数据，先告诉业务正在结算，业务不能修改业务充电数据 */
@@ -660,7 +664,11 @@ static int32_t app_card_info_process(void* handle)
                     (memcmp(s_card_info_sector2.card_number, ofsm->base.card_number, APP_CARD_NUMBER_COMPARE_LEN_MIN_OFFLINE_BILLING)) ||
                     memcmp(s_rfidr->uuid, ofsm->base.card_uid, s_rfidr->uuid_len)){
                 LOG_W("this is not the start card");
-                s_card_operate_ret[port] = APP_CARD_OPERATE_RET_HISTORY_BILL_ERROR;
+                if(memcmp(s_rfidr->uuid, ofsm->base.card_uid, s_rfidr->uuid_len)){
+                    s_card_operate_ret[port] = APP_CARD_OPERATE_RET_NOT_START_CARD;
+                }else{
+                    s_card_operate_ret[port] = APP_CARD_OPERATE_RET_HISTORY_BILL_ERROR;
+                }
                 return s_card_operate_ret[port];
             }else{
                 LOG_W("occured error, card start but not be locked");

@@ -33,6 +33,7 @@ enum{
     APP_CARD_OPERATE_RET_IS_LOCKED = -0x06,                                   /** 卡操作结果：卡被锁 */
     APP_CARD_OPERATE_RET_INVALID_CARD = -0x07,                                /** 卡操作结果：无效卡 */
     APP_CARD_OPERATE_RET_PAYED = -0x08,                                       /** 卡操作结果：已结算 */
+    APP_CARD_OPERATE_RET_NOT_START_CARD = -0x09,                              /** 卡操作结果：非启动卡(刷卡停使用的卡必须是启动的卡) */
 };
 
 /*****************************************************************************

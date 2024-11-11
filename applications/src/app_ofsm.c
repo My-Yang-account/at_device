@@ -3519,6 +3519,42 @@ static void ofsm_finishing_fun(uint8_t gunno)
                 app_card_event_send(APP_CARD_EVENT_CHARGEPILE_READY, gunno, NULL);
             }else{
                 app_card_event_recv(APP_CARD_EVENT_CHARGEPILE_READY, 0x00, gunno, NULL, APP_THA_ENUM_TRUE);
+                if(rfidr_query_swipe_state(gunno)){
+                    rfidr_clear_swipe_state(gunno);
+                    switch(rfidr_query_info_type()){
+                    case APP_RFIDR_INFO_TYPE_RW_FAIL:
+                        switch(app_card_query_operate_ret(gunno)){
+                        case APP_CARD_OPERATE_RET_NO_BALLANCE:
+                            LOG_D("gunno(%d) card no ballance in offline billing mode(finish)", gunno);
+                            app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
+                            thaisen_set_trigger_event(THAISEN_TRIG_EVENT_CARD_NOBALLANCE, 0x05, APP_THA_ENUM_TRUE, gunno);
+                            break;
+                        case APP_CARD_OPERATE_RET_IS_LOCKED:
+                            LOG_D("gunno(%d) card is locked in offline billing mode(finish)", gunno);
+                            app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
+                            thaisen_set_trigger_event(THAISEN_TRIG_EVENT_CARD_LOCKED, 0x05, APP_THA_ENUM_TRUE, gunno);
+                            break;
+                        case APP_CARD_OPERATE_RET_PAYED:
+                            break;
+                        case APP_CARD_OPERATE_RET_NOT_START_CARD:
+                            LOG_D("gunno(%d) not start card in offline billing mode", gunno);
+                            app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
+                            thaisen_set_trigger_event(THAISEN_TRIG_EVENT_INVALID, 0x05, APP_THA_ENUM_TRUE, gunno);
+                            break;
+                        default:
+                            LOG_D("gunno(%d) invalid card in offline billing mode 333", gunno);
+                            app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
+                            thaisen_set_trigger_event(THAISEN_TRIG_EVENT_INVALID, 0x05, APP_THA_ENUM_TRUE, gunno);
+                            break;
+                        }
+                        break;
+                    default:
+                        LOG_D("gunno(%d) invalid card in offline billing mode 222", gunno);
+                        app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
+                        thaisen_set_trigger_event(THAISEN_TRIG_EVENT_INVALID, 0x05, APP_THA_ENUM_TRUE, gunno);
+                        break;
+                    }
+                }
                 break;
             }
         }else{
