@@ -7,6 +7,7 @@
 #include "app_ofsm.h"
 #include "app_osupport.h"
 #include "app_support_func.h"
+#include "app_data_info_interface.h"
 #include "chargepile_config.h"
 #include "mw_storage.h"
 #include "notfs_cfg.h"
@@ -601,9 +602,13 @@ static int32_t app_card_info_process(void* handle)
                     if((memcmp(dev_id, s_card_info_sector2.device_id, CARD_BLOCK_SIZE)) ||
                             (memcmp(s_card_info_sector2.card_number, ofsm->base.card_number, APP_CARD_NUMBER_COMPARE_LEN_MIN_OFFLINE_BILLING)) ||
                             memcmp(s_rfidr->uuid, ofsm->base.card_uid, s_rfidr->uuid_len)){
+                        if(memcmp(s_rfidr->uuid, ofsm->base.card_uid, s_rfidr->uuid_len)){
+                            s_card_operate_ret[port] = APP_CARD_OPERATE_RET_NOT_START_CARD;
+                        }else{
+                            s_card_operate_ret[port] = APP_CARD_OPERATE_RET_HISTORY_BILL_ERROR;
+                        }
                         LOG_W("this is not the start card 00");
                         app_card_event_recv(APP_CARD_EVENT_CHARGE_STOP, 0x00, port, NULL, 0x01);
-                        s_card_operate_ret[port] = APP_CARD_OPERATE_RET_HISTORY_BILL_ERROR;
                         return s_card_operate_ret[port];
                     }
                     app_card_event_send(APP_CARD_EVENT_IS_PAYING, port, NULL);  /** 此时需要应用到业务的充电数据，先告诉业务正在结算，业务不能修改业务充电数据 */
@@ -620,6 +625,7 @@ static int32_t app_card_info_process(void* handle)
                 }
                 /** 卡被锁而且桩不是启动或充电状态，但未接收到充电桩已停止充电事件，说明这是上一笔订单未结算场景 */
                 else{
+                    thaisen_set_trigger_event(THAISEN_TRIG_EVENT_PAYING, 0x0A, APP_THA_ENUM_TRUE, port);
                     app_card_event_send(APP_CARD_EVENT_IS_PAYING, port, NULL);  /** 此时需要应用到业务的充电数据，先告诉业务正在结算，业务不能修改业务充电数据 */
                     another_port = port;
                     ret = app_card_pay_history_bill(&port);

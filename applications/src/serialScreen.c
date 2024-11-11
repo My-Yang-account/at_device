@@ -80,8 +80,10 @@
 #define SCREEN_TRIGGER_WARN_ICON_GUN_FIRST                0x04    /* 外部触发告警ICON：先插枪再刷卡 */
 #define SCREEN_TRIGGER_WARN_ICON_FEES_ERROR               0x05    /* 外部触发告警ICON：计费信息设置错误 */
 #define SCREEN_TRIGGER_WARN_ICON_PAY                      0x06    /* 外部触发告警ICON：充电结束, 刷卡结算 */
-#define SCREEN_TRIGGER_PAGE_PAY_COMPLETE                  0x07    /* 外部触发页面：结算完成 */
-#define SCREEN_TRIGGER_WARN_ICON_SIZE                     0x08    /* 外部触发告警ICON： */
+#define SCREEN_TRIGGER_WARN_ICON_PAYING                   0x07    /* 外部触发告警ICON：结算中(用于查询历史订单时) */
+#define SCREEN_TRIGGER_WARN_ICON_SWITCH_GUN               0x08    /* 外部触发告警ICON：不是启动卡，请切换枪号 */
+#define SCREEN_TRIGGER_PAGE_PAY_COMPLETE                  0x09    /* 外部触发页面：结算完成 */
+#define SCREEN_TRIGGER_WARN_ICON_SIZE                     0x010    /* 外部触发告警ICON： */
 
 #define sSCREEN_RX_CMD_MIN_LEN	6 //AA BB len cmd addh addl
 								
@@ -136,7 +138,7 @@ u8 SerialScreenRxbuf[sSCREEN_RX_CMD_MAX_LEN+sSCREEN_RX_CMD_MIN_LEN];
 #define VIN_LIST_NUM        6  // VIN 白名单个数
 #define SERIALSCREEN_CONFIG_PAGE_MAX   44  // 屏幕页面总数
 #define SERIALSCREEN_PAGE_ITEM_MAX     53  // 屏幕每页信息项总数
-#define SERIALSCREEN_TRIGGER_PAGE_MAX  9   // 外部触发页面总数
+#define SERIALSCREEN_TRIGGER_PAGE_MAX  11   // 外部触发页面总数
 
 #define SERIALSCREEN_OB_COUNTDOWN_STRING_MAX   4  //离线计费告警倒计时字符串最大长度
 #define CONFIG_ITEM_MODULE_GROUP_NUM_(X) 
@@ -775,6 +777,8 @@ static struct LCD_TRIGGER_PAGE Trigger_Page[SERIALSCREEN_TRIGGER_PAGE_MAX] =
     {LCD_PAGE_WARNNING_INFO, SCREEN_TRIGGER_WARN_ICON_GUN_FIRST, SCREEN_TRIGGER_WARN_ICON_SIZE},
     {LCD_PAGE_WARNNING_INFO, SCREEN_TRIGGER_WARN_ICON_FEES_ERROR, SCREEN_TRIGGER_WARN_ICON_SIZE},
     {LCD_PAGE_WARNNING_INFO, SCREEN_TRIGGER_WARN_ICON_PAY, SCREEN_TRIGGER_WARN_ICON_SIZE},
+    {LCD_PAGE_WARNNING_INFO, SCREEN_TRIGGER_WARN_ICON_PAYING, SCREEN_TRIGGER_WARN_ICON_SIZE},
+    {LCD_PAGE_WARNNING_INFO, SCREEN_TRIGGER_WARN_ICON_SWITCH_GUN, SCREEN_TRIGGER_WARN_ICON_SIZE},
     {LCD_PAGE_OB_PYA_A, 0x00, 0x00},
     {LCD_PAGE_OB_PYA_B, 0x00, 0x00},
 };
@@ -5278,30 +5282,34 @@ void SerialScreen_PageReset(int GunIdx)
 		case SysMainStatus_Chrging:
 			if(GunIdx==LCD_GUN_1)
 			{
-			    if(LcdData.ChargingPageCountDown_Over == 0){
-	                switch(LcdData.CurrentPage)
-	                {
-	                    case LCD_PAGE_A_CHGING_BAT:
-	                        LcdData.CurrentPage = LCD_PAGE_A_CHGING_BAT;
-	                        break;
-	                    default:
-	                        LcdData.CurrentPage = LCD_PAGE_A_CHGING;
-	                        break;
-	                }
-			    }
+                if(LcdTriggerEvent.IsTriggerExternal == FALSE){     /** 这些是由外部触发跳的页 */
+                    if(LcdData.ChargingPageCountDown_Over == 0){
+                        switch(LcdData.CurrentPage)
+                        {
+                            case LCD_PAGE_A_CHGING_BAT:
+                                LcdData.CurrentPage = LCD_PAGE_A_CHGING_BAT;
+                                break;
+                            default:
+                                LcdData.CurrentPage = LCD_PAGE_A_CHGING;
+                                break;
+                        }
+                    }
+                }
 			}
 
 			else 
 			{
-                if(LcdData.ChargingPageCountDown_Over == 0){
-                    switch(LcdData.CurrentPage)
-                    {
-                        case LCD_PAGE_B_CHGING_BAT:
-                            LcdData.CurrentPage = LCD_PAGE_B_CHGING_BAT;
-                            break;
-                        default:
-                            LcdData.CurrentPage = LCD_PAGE_B_CHGING;
-                            break;
+                if(LcdTriggerEvent.IsTriggerExternal == FALSE){     /** 这些是由外部触发跳的页 */
+                    if(LcdData.ChargingPageCountDown_Over == 0){
+                        switch(LcdData.CurrentPage)
+                        {
+                            case LCD_PAGE_B_CHGING_BAT:
+                                LcdData.CurrentPage = LCD_PAGE_B_CHGING_BAT;
+                                break;
+                            default:
+                                LcdData.CurrentPage = LCD_PAGE_B_CHGING;
+                                break;
+                        }
                     }
                 }
 			}

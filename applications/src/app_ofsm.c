@@ -2846,9 +2846,21 @@ static void ofsm_charging_fun(uint8_t gunno)
             thaisen_set_trigger_event(THAISEN_TRIG_EVENT_INVALID, 0x05, APP_THA_ENUM_TRUE, gunno);
 
         }else if(rfidr_query_info_type() == APP_RFIDR_INFO_TYPE_RW_FAIL){
-            LOG_D("gunno(%d) invalid card in offline billing mode 111", gunno);
-            app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
-            thaisen_set_trigger_event(THAISEN_TRIG_EVENT_INVALID, 0x05, APP_THA_ENUM_TRUE, gunno);
+            switch(app_card_query_operate_ret(gunno)){
+            case APP_CARD_OPERATE_RET_PAYED:
+                break;
+            case APP_CARD_OPERATE_RET_NOT_START_CARD:
+                LOG_D("gunno(%d) not start card in offline billing mode", gunno);
+                app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
+                thaisen_set_trigger_event(THAISEN_TRIG_EVENT_SWITCH_GUN, 0x05, APP_THA_ENUM_TRUE, gunno);
+                break;
+            default:
+                LOG_D("gunno(%d) invalid card in offline billing mode 333", gunno);
+                app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
+                thaisen_set_trigger_event(THAISEN_TRIG_EVENT_INVALID, 0x05, APP_THA_ENUM_TRUE, gunno);
+                break;
+            }
+
         }else{
             if(s_ofsm_info[gunno].base.is_offline_billing == APP_THA_ENUM_TRUE){
                 /** 提示鉴权失败, 信息有误 */;
@@ -3551,7 +3563,7 @@ static void ofsm_finishing_fun(uint8_t gunno)
                         case APP_CARD_OPERATE_RET_NOT_START_CARD:
                             LOG_D("gunno(%d) not start card in offline billing mode", gunno);
                             app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
-                            thaisen_set_trigger_event(THAISEN_TRIG_EVENT_INVALID, 0x05, APP_THA_ENUM_TRUE, gunno);
+                            thaisen_set_trigger_event(THAISEN_TRIG_EVENT_SWITCH_GUN, 0x05, APP_THA_ENUM_TRUE, gunno);
                             break;
                         default:
                             LOG_D("gunno(%d) invalid card in offline billing mode 333", gunno);

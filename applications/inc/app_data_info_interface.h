@@ -35,6 +35,8 @@ enum thaisen_trig_event{
     THAISEN_TRIG_EVENT_INSERT_GUN,                                /** 屏幕外部触发事件：提示先插枪 */
     THAISEN_TRIG_EVENT_FEES_ERROR,                                /** 屏幕外部触发事件：提示计费信息设置错误 */
     THAISEN_TRIG_EVENT_FINISH,                                    /** 屏幕外部触发事件：充电结束, 刷卡结算 */
+    THAISEN_TRIG_EVENT_PAYING,                                    /** 屏幕外部触发事件：结算中 */
+    THAISEN_TRIG_EVENT_SWITCH_GUN,                                /** 屏幕外部触发事件：不是启动卡，请切换枪 */
     THAISEN_TRIG_EVENT_PAY_COMPLETE,                              /** 屏幕外部触发事件：结算完成 */
 #if 0
     THAISEN_TRIG_EVENT_WRITE_INFO,                                /** 屏幕外部触发事件：写卡信息失败 */
