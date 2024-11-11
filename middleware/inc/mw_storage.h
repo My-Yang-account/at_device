@@ -52,19 +52,23 @@ int32_t mw_storage_init(void);
  * @param data
  * @param data_len
  * @param user_data 用户数据（通常为数据的状态。如果状态为0xFF，则无效）
+ * @param verify_mask 确认码(用于平台订单确认)
+ * @param is_verify 订单已确认(用于单条订单确认)
  * @return < 0: 失败，== 0：成功
  */
-int32_t mw_storage_record_create(const void *data, uint32_t data_len, uint32_t user_data, uint16_t verify_mask, uint8_t region);
+int32_t mw_storage_record_create(const void *data, uint32_t data_len, uint32_t user_data, uint16_t verify_mask, uint8_t is_verify, uint8_t region);
 
 /**
  * @brief 更新订单
  * @param data
  * @param data_len
  * @param user_data 用户数据（通常为数据的状态。如果状态为0xFF，则无效）
+ * @param verify_mask 确认码(用于平台订单确认)
+ * @param is_verify 订单已确认(用于单条订单确认)
  * @param index
  * @return < 0: 失败，== 0：成功
  */
-int32_t mw_storage_record_designate_index_updated(const void *data, uint32_t data_len, uint32_t user_data, uint16_t verify_mask, uint8_t region, int32_t index);
+int32_t mw_storage_record_designate_index_updated(const void *data, uint32_t data_len, uint32_t user_data, uint16_t verify_mask, uint8_t is_verify, uint8_t region, int32_t index);
 
 /**
  * @brief 获取指定下标记录信息
@@ -129,6 +133,21 @@ int32_t mw_storage_record_get_recordverify_record_num(uint16_t verify_mask, uint
  * @return < 0: 失败，== 0：成功
  */
 int32_t mw_storage_record_get_first_index_recordverify(uint16_t verify_mask, uint8_t region);
+
+/**
+ * @brief 查询指定存储区未确认的记录总数
+ * @param region 区域
+ * @return < 0: 失败，== 0：成功
+ */
+int32_t mw_storage_record_get_unverify_record_num(uint8_t region);
+
+/**
+ * @brief 查询指定存储区未确认的第一条记录下标
+ * @param region 区域
+ * @param sindex
+ * @return < 0: 失败，== 0：成功
+ */
+int32_t mw_storage_record_get_first_index_unverify(uint8_t region, int32_t sindex);
 
 /**
  * @brief 获取指定区域与verify_mask匹配的记录信息的第一个下标

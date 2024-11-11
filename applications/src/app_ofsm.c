@@ -236,7 +236,7 @@ static void transaction_record_query_report(uint8_t gunno)
             }
             if(need_check){
                 while(save_rentry < 5){
-                    if(mw_storage_record_designate_index_updated(&rtransaction, sizeof(rtransaction), USER_DATA_TYPE_VERIFIED, 0x00, gunno, index) < 0x00){
+                    if(mw_storage_record_designate_index_updated(&rtransaction, sizeof(rtransaction), USER_DATA_TYPE_VERIFIED, 0x00, 0x00, gunno, index) < 0x00){
                         rt_thread_mdelay(10);
                         save_rentry++;
                         continue;
@@ -257,7 +257,7 @@ static void transaction_record_query_report(uint8_t gunno)
         if(s_transaction_sending[TARGET_PLATFORM_INDEX][gunno] == APP_THA_ENUM_TRUE){
             LOG_D("gunno(%d) target transaction verify", gunno);
             mw_storage_record_designate_index_updated(&(s_thaisen_transaction_report[TARGET_PLATFORM_INDEX][gunno]), sizeof(thaisen_transaction_t), \
-                    USER_DATA_TYPE_REPORTED, APP_TARGET_PLATFORM_ID, gunno, s_current_order_index[TARGET_PLATFORM_INDEX][gunno]);
+                    USER_DATA_TYPE_REPORTED, APP_TARGET_PLATFORM_ID, APP_THA_ENUM_TRUE, gunno, s_current_order_index[TARGET_PLATFORM_INDEX][gunno]);
         }
         s_transaction_sending[TARGET_PLATFORM_INDEX][gunno] = APP_THA_ENUM_FALSE;
     }else{
@@ -283,7 +283,7 @@ static void transaction_record_query_report(uint8_t gunno)
         if(s_transaction_sending[MONITOR_PLATFORM_INDEX][gunno] == APP_THA_ENUM_TRUE){
             LOG_D("gunno(%d) monitor transaction verify", gunno);
             mw_storage_record_designate_index_updated(&(s_thaisen_transaction_report[MONITOR_PLATFORM_INDEX][gunno]), sizeof(thaisen_transaction_t), \
-                    USER_DATA_TYPE_REPORTED, APP_MONITOR_PLATFORM_ID, gunno, s_current_order_index[MONITOR_PLATFORM_INDEX][gunno]);
+                    USER_DATA_TYPE_REPORTED, APP_MONITOR_PLATFORM_ID, APP_THA_ENUM_TRUE, gunno, s_current_order_index[MONITOR_PLATFORM_INDEX][gunno]);
         }
         s_transaction_sending[MONITOR_PLATFORM_INDEX][gunno] = APP_THA_ENUM_FALSE;
     }else{
@@ -757,6 +757,10 @@ static void ofsm_idleing_fun(uint8_t gunno)
     app_nsal_clear_remote_stop(gunno);
     app_nsal_clear_remote_card_authorize(gunno);
     app_nsal_clear_remote_vin_authorize(gunno);
+
+    if(s_ofsm_info[gunno].base.is_offline_billing == APP_THA_ENUM_TRUE){
+        app_card_event_recv(APP_CARD_EVENT_CHARGE_STOP, 0x00, gunno, NULL, APP_THA_ENUM_TRUE);
+    }
 }
 
 static void ofsm_readying_fun(uint8_t gunno)
@@ -1123,7 +1127,7 @@ static void ofsm_readying_fun(uint8_t gunno)
                     thaisen_set_trigger_event(THAISEN_TRIG_EVENT_CARD_LOCKED, 0x05, APP_THA_ENUM_TRUE, gunno);
                     break;
                 case APP_CARD_OPERATE_RET_PAYED:
-                    LOG_D("gunno(%d) card is payed in offline billing mode", gunno);
+                    LOG_D("gunno(%d) card is payed in offline billing mode 555", gunno);
                     break;
                 default:
                     LOG_D("gunno(%d) invalid card in offline billing mode 111", gunno);
@@ -1303,9 +1307,6 @@ static void ofsm_readying_fun(uint8_t gunno)
             /* 启动前向屏幕对时 */
             thaisen_request_screen_time();
 
-            if(s_ofsm_info[gunno].base.is_offline_billing == APP_THA_ENUM_TRUE){
-                app_card_event_recv(APP_CARD_EVENT_CHARGE_STOP, 0x00, gunno, NULL, APP_THA_ENUM_TRUE);
-            }
             /** 云端并充时 main_gunno charge_way 这两个字段已被赋值 */
             if(s_ofsm_info[gunno].base.charge_way != APP_CHARGE_WAY_PARACHARGE_CLOUD){
                 s_ofsm_info[gunno].base.main_gunno = gunno;
@@ -1437,7 +1438,7 @@ static void ofsm_readying_fun(uint8_t gunno)
             app_nsal_event_occurded(gunno);
 
             mw_storage_record_create(&s_thaisen_transaction[gunno], sizeof(s_thaisen_transaction[gunno]), USER_DATA_TYPE_STORAGE,  \
-                    0x00, gunno);
+                    0x00, APP_THA_ENUM_FALSE, gunno);
             s_current_order_index[MONITOR_PLATFORM_INDEX][gunno] = mw_storage_record_get_current_index(gunno);
             s_current_order_index[TARGET_PLATFORM_INDEX][gunno] = s_current_order_index[MONITOR_PLATFORM_INDEX][gunno];
             memset(&(s_thaisen_transaction[gunno].bms_stop_reason), 0x00, sizeof(s_thaisen_transaction[gunno].bms_stop_reason));
@@ -1469,6 +1470,10 @@ static void ofsm_readying_fun(uint8_t gunno)
     }
     app_get_hci_event(gunno, HCI_EVENT_SCREEN_STOP, 1);
     app_nsal_clear_remote_stop(gunno);
+
+    if(s_ofsm_info[gunno].base.is_offline_billing == APP_THA_ENUM_TRUE){
+        app_card_event_recv(APP_CARD_EVENT_CHARGE_STOP, 0x00, gunno, NULL, APP_THA_ENUM_TRUE);
+    }
 }
 
 static void ofsm_reservation_fun(uint8_t gunno)
@@ -1579,7 +1584,7 @@ static void ofsm_starting_fun(uint8_t gunno)
         app_nsal_time_sync_revise(gunno);
 
         mw_storage_record_designate_index_updated(&s_thaisen_transaction[gunno], sizeof(s_thaisen_transaction[gunno]), USER_DATA_TYPE_STORAGE,  \
-                0x00, gunno, s_current_order_index[TARGET_PLATFORM_INDEX][gunno]);
+                0x00, APP_THA_ENUM_FALSE, gunno, s_current_order_index[TARGET_PLATFORM_INDEX][gunno]);
         /** 与时段有关的信息也要更新 */
         LOG_I("chargepile is synchronized, modify correlation time|%x\n", curr_time);
     }
@@ -2604,7 +2609,7 @@ static void ofsm_charging_fun(uint8_t gunno)
         app_nsal_time_sync_revise(gunno);
 
         mw_storage_record_designate_index_updated(&s_thaisen_transaction[gunno], sizeof(s_thaisen_transaction[gunno]), USER_DATA_TYPE_STORAGE,  \
-                0x00, gunno, s_current_order_index[TARGET_PLATFORM_INDEX][gunno]);
+                0x00, APP_THA_ENUM_FALSE, gunno, s_current_order_index[TARGET_PLATFORM_INDEX][gunno]);
         /** 与时段有关的信息也要更新 */
         LOG_I("chargepile is synchronized, modify correlation time|%x\n", curr_time);
     }
@@ -3349,8 +3354,15 @@ static void ofsm_stoping_fun(uint8_t gunno)
             }
         }
 
-        mw_storage_record_designate_index_updated(&s_thaisen_transaction[gunno], sizeof(s_thaisen_transaction[gunno]), USER_DATA_TYPE_VERIFIED,  \
-                0x00, gunno, s_current_order_index[TARGET_PLATFORM_INDEX][gunno]);
+        /** 如果是离线计费模式下的刷卡停止，则订单就是已经确认了的 */
+        if((s_ofsm_info[gunno].base.is_offline_billing == APP_THA_ENUM_TRUE) && (s_ofsm_info[gunno].base.reason_code == APP_SYSTEM_STOP_WAY_OFFLINECARD_STOP)){
+            mw_storage_record_designate_index_updated(&s_thaisen_transaction[gunno], sizeof(s_thaisen_transaction[gunno]), USER_DATA_TYPE_VERIFIED,  \
+                    0x00, APP_THA_ENUM_TRUE, gunno, s_current_order_index[TARGET_PLATFORM_INDEX][gunno]);
+        }else{
+            mw_storage_record_designate_index_updated(&s_thaisen_transaction[gunno], sizeof(s_thaisen_transaction[gunno]), USER_DATA_TYPE_VERIFIED,  \
+                    0x00, APP_THA_ENUM_FALSE, gunno, s_current_order_index[TARGET_PLATFORM_INDEX][gunno]);
+        }
+
         memcpy(&(s_thaisen_transaction_report[TARGET_PLATFORM_INDEX][gunno]), &(s_thaisen_transaction[gunno]), sizeof(thaisen_transaction_t));
         app_nsal_transaction_record_report_target(gunno, &(s_thaisen_transaction_report[TARGET_PLATFORM_INDEX][gunno]), 0x00);
         s_transaction_sending[TARGET_PLATFORM_INDEX][gunno] = APP_THA_ENUM_TRUE;
@@ -3833,7 +3845,7 @@ static void ofsm_finishing_fun(uint8_t gunno)
                     thaisen_set_trigger_event(THAISEN_TRIG_EVENT_CARD_LOCKED, 0x05, APP_THA_ENUM_TRUE, gunno);
                     break;
                 case APP_CARD_OPERATE_RET_PAYED:
-                    LOG_D("gunno(%d) card is payed in offline billing mode", gunno);
+                    LOG_D("gunno(%d) card is payed in offline billing mode 666", gunno);
                     break;
                 default:
                     LOG_D("gunno(%d) invalid card in offline billing mode 111", gunno);
@@ -4146,7 +4158,7 @@ static void ofsm_finishing_fun(uint8_t gunno)
             app_nsal_event_occurded(gunno);
 
             mw_storage_record_create(&s_thaisen_transaction[gunno], sizeof(s_thaisen_transaction[gunno]), USER_DATA_TYPE_STORAGE,  \
-                    0x00, gunno);
+                    0x00, APP_THA_ENUM_FALSE, gunno);
             s_current_order_index[MONITOR_PLATFORM_INDEX][gunno] = mw_storage_record_get_current_index(gunno);
             s_current_order_index[TARGET_PLATFORM_INDEX][gunno] = s_current_order_index[MONITOR_PLATFORM_INDEX][gunno];
             memset(&(s_thaisen_transaction[gunno].bms_stop_reason), 0x00, sizeof(s_thaisen_transaction[gunno].bms_stop_reason));
@@ -4588,7 +4600,7 @@ static void ofsm_faulting_fun(uint8_t gunno)
                             thaisen_set_trigger_event(THAISEN_TRIG_EVENT_CARD_LOCKED, 0x05, APP_THA_ENUM_TRUE, gunno);
                             break;
                         case APP_CARD_OPERATE_RET_PAYED:
-                            LOG_D("gunno(%d) card is payed in offline billing mode", gunno);
+                            LOG_D("gunno(%d) card is payed in offline billing mode 777", gunno);
                             break;
                         default:
                             LOG_D("gunno(%d) invalid card in offline billing mode 111", gunno);
@@ -4893,7 +4905,7 @@ static void ofsm_faulting_fun(uint8_t gunno)
                     app_nsal_event_occurded(gunno);
 
                     mw_storage_record_create(&s_thaisen_transaction[gunno], sizeof(s_thaisen_transaction[gunno]), USER_DATA_TYPE_STORAGE,  \
-                            0x00, gunno);
+                            0x00, APP_THA_ENUM_FALSE, gunno);
                     s_current_order_index[MONITOR_PLATFORM_INDEX][gunno] = mw_storage_record_get_current_index(gunno);
                     s_current_order_index[TARGET_PLATFORM_INDEX][gunno] = s_current_order_index[MONITOR_PLATFORM_INDEX][gunno];
                     memset(&(s_thaisen_transaction[gunno].bms_stop_reason), 0x00, sizeof(s_thaisen_transaction[gunno].bms_stop_reason));
@@ -5161,7 +5173,7 @@ void ofsm_thread_entry(void *parameter)
             }
             if((rt_tick_get() - record_store) > APP_STORAGE_TRANSATION_INTERVAL){
                 mw_storage_record_designate_index_updated(&s_thaisen_transaction[thread_gunno], sizeof(s_thaisen_transaction[thread_gunno]), USER_DATA_TYPE_STORAGE,  \
-                        0x00, thread_gunno, s_current_order_index[TARGET_PLATFORM_INDEX][thread_gunno]);
+                        0x00, APP_THA_ENUM_FALSE, thread_gunno, s_current_order_index[TARGET_PLATFORM_INDEX][thread_gunno]);
                 record_store = rt_tick_get();
             }
         }else{

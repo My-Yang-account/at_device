@@ -170,7 +170,7 @@ notfs_err_e notfs_init(void)
     return err;
 }
 
-notfs_err_e notfs_subregion_append_record(enum notfs_subregion subregion, const void *buf, size_t size, uint32_t user_data, uint16_t verify_mask)
+notfs_err_e notfs_subregion_append_record(enum notfs_subregion subregion, const void *buf, size_t size, uint32_t user_data, uint16_t verify_mask, uint8_t is_verify)
 {
     if (NOTFS_SUBREGION_MAX < subregion) {
         return NOTFS_OUTRANGE_ERR;
@@ -222,6 +222,11 @@ notfs_err_e notfs_subregion_append_record(enum notfs_subregion subregion, const 
     }
     s_notfs_inode[subregion].inode[index].user_data = user_data;
     s_notfs_inode[subregion].inode[index].record_verify = verify_mask;
+    if(is_verify){
+        s_notfs_inode[subregion].inode[index].is_verify = 1;
+    }else{
+        s_notfs_inode[subregion].inode[index].is_verify = 0;
+    }
 
     /* 初始化 INODE HANDER */
     s_notfs_inode[subregion].header.crc = notfs_crc32(0, (const uint8_t *)(s_notfs_inode[subregion].inode), isize);
@@ -244,7 +249,7 @@ notfs_err_e notfs_subregion_append_record(enum notfs_subregion subregion, const 
     return err;
 }
 
-notfs_err_e notfs_subregion_updated_designate_index_data(enum notfs_subregion subregion, const void *buf, size_t size, uint32_t user_data, uint16_t verify_mask, int32_t index)
+notfs_err_e notfs_subregion_updated_designate_index_data(enum notfs_subregion subregion, const void *buf, size_t size, uint32_t user_data, uint16_t verify_mask, uint8_t is_verify, int32_t index)
 {
     if (NOTFS_SUBREGION_MAX < subregion) {
         return NOTFS_OUTRANGE_ERR;
@@ -300,6 +305,11 @@ notfs_err_e notfs_subregion_updated_designate_index_data(enum notfs_subregion su
     s_notfs_inode[subregion].inode[index].timestamp = notfs_timestamp();
     s_notfs_inode[subregion].inode[index].user_data = user_data;
     s_notfs_inode[subregion].inode[index].record_verify |= verify_mask;
+    if(is_verify){
+        s_notfs_inode[subregion].inode[index].is_verify = 1;
+    }else{
+        s_notfs_inode[subregion].inode[index].is_verify = 0;
+    }
 
     /* 初始化 INODE HANDER */
     s_notfs_inode[subregion].header.crc = notfs_crc32(0, (const uint8_t *)(s_notfs_inode[subregion].inode), isize);
@@ -534,6 +544,70 @@ int32_t notfs_get_subregion_first_index_record_verify(enum notfs_subregion subre
             if(s_notfs_inode[subregion].inode[s_notfs_current_index[subregion] + 1].index != NOTFS_NOT_VALID_INDEX){
                 for (count = s_notfs_sb[subregion].file_max_count - 1; count > s_notfs_current_index[subregion]; count--) {
                     if (((s_notfs_inode[subregion].inode[count].record_verify) &verify_mask) == 0x00) {
+                        index = s_notfs_inode[subregion].inode[count].index %s_notfs_sb[subregion].file_max_count;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    return index;
+}
+
+int32_t notfs_get_subregion_unverify_record_num(enum notfs_subregion subregion)
+{
+    if (NOTFS_SUBREGION_MAX < subregion) {
+        return NOTFS_OUTRANGE_ERR;
+    }
+    if (NULL == s_notfs_inode[subregion].inode) {
+        return NOTFS_ILLEGAL_ERR;
+    }
+
+    int32_t index, count = 0;
+
+    for (index = 0; index < s_notfs_sb[subregion].file_max_count; index++) {
+        if (s_notfs_inode[subregion].inode[index].is_verify == 0x00) {
+            count += 1;
+        }
+    }
+
+    return count;
+}
+
+int32_t notfs_get_subregion_first_index_unverify(enum notfs_subregion subregion, int32_t sindex)
+{
+    if (NOTFS_SUBREGION_MAX < subregion) {
+        return NOTFS_OUTRANGE_ERR;
+    }
+
+    if (s_notfs_sb[subregion].file_max_count <= s_notfs_current_index[subregion]) {
+        return NOTFS_OUTRANGE_ERR;
+    }
+
+    if(sindex < 0){
+        sindex = s_notfs_current_index[subregion];
+    }
+
+    int32_t index = -1, count = 0;
+
+    if(sindex <= s_notfs_current_index[subregion]){
+        for (count = sindex; count >=0; count--) {
+            if (s_notfs_inode[subregion].inode[count].is_verify == 0x00) {
+                index = s_notfs_inode[subregion].inode[count].index %s_notfs_sb[subregion].file_max_count;
+                break;
+            }
+        }
+    }
+
+    if(sindex <= s_notfs_current_index[subregion]){
+        sindex = s_notfs_sb[subregion].file_max_count - 1;
+    }
+    if(0 > index){
+        if((s_notfs_current_index[subregion] + 1) < s_notfs_sb[subregion].file_max_count){
+            if(s_notfs_inode[subregion].inode[s_notfs_current_index[subregion] + 1].index != NOTFS_NOT_VALID_INDEX){
+                for (count = sindex; count > s_notfs_current_index[subregion]; count--) {
+                    if (s_notfs_inode[subregion].inode[count].is_verify == 0x00) {
                         index = s_notfs_inode[subregion].inode[count].index %s_notfs_sb[subregion].file_max_count;
                         break;
                     }

@@ -20,9 +20,9 @@ extern "C" {
 /* 初始化 */
 notfs_err_e notfs_init(void);
 /* 追加 */
-notfs_err_e notfs_subregion_append_record(enum notfs_subregion subregion, const void *buf, size_t size, uint32_t user_data, uint16_t verify_mask);
+notfs_err_e notfs_subregion_append_record(enum notfs_subregion subregion, const void *buf, size_t size, uint32_t user_data, uint16_t verify_mask, uint8_t is_verify);
 /* 根据指定下标更新记录数据 */
-notfs_err_e notfs_subregion_updated_designate_index_data(enum notfs_subregion subregion, const void *buf, size_t size, uint32_t user_data, uint16_t verify_mask, int32_t index);
+notfs_err_e notfs_subregion_updated_designate_index_data(enum notfs_subregion subregion, const void *buf, size_t size, uint32_t user_data, uint16_t verify_mask, uint8_t is_verify, int32_t index);
 /* 获取指定下标故障或充电记录数据 */
 notfs_err_e notfs_get_subregion_designate_index_record_data(enum notfs_subregion subregion, uint8_t* buf, size_t size, int32_t index);
 /* 获取指定区域记录总数 */
@@ -41,6 +41,10 @@ int32_t notfs_get_subregion_first_index_record_verify(enum notfs_subregion subre
 int32_t notfs_get_subregion_record_verify_record_num(enum notfs_subregion subregion, uint16_t verify_mask);
 /* 获取指定区域在指定时间段内的第一条记录的下标 */
 int32_t notfs_query_subregion_findex_with_time_period(enum notfs_subregion subregion, uint16_t sindex, uint32_t stime, uint32_t etime);
+
+int32_t notfs_get_subregion_unverify_record_num(enum notfs_subregion subregion);
+
+int32_t notfs_get_subregion_first_index_unverify(enum notfs_subregion subregion, int32_t sindex);
 
 /* notfs_utils.c */
 uint32_t notfs_timestamp(void);

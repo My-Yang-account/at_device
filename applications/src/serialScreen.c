@@ -6218,8 +6218,9 @@ int SerialScreen_DataProcess()
 		{
 			
 			LcdData.gun[i].portState = SerialScreen_IsCarConnect(i);
-			
-			if((LcdData.gun[i].workState >= SysMainStatus_StartReady)&&(LcdData.gun[i].workState <= SysMainStatus_Account)) 
+
+			if(((LcdData.gun[i].workState >= SysMainStatus_StartReady)&&(LcdData.gun[i].workState <= SysMainStatus_Account)) ||
+			        (LcdTriggerEvent.IsTriggerExternal == TRUE))
 			{
 				chargeInfo[i] = SerialScreen_GetChargeInfo(i);
 				bmsInfo[i] = SerialScreen_GetBmsInfo(i);

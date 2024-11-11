@@ -9,6 +9,7 @@
 #include "app_support_func.h"
 #include "chargepile_config.h"
 #include "mw_storage.h"
+#include "notfs_cfg.h"
 
 #define DBG_TAG "app.card"
 #define DBG_LVL DBG_LOG
@@ -53,14 +54,19 @@ static struct rt_event s_card_event[APP_SYSTEM_GUNNO_SIZE];
  *          ulen   UUID 长度
  *          stime  开始时间
  *          fees   用于保存订单的消费电量
+ *          gunno  用于保存历史记录是哪把枪的
  * 返回                   >=0：成功    <0：失败
  ****************************************************************************/
-static int32_t app_card_query_funpay_bill_fees_total(uint8_t *uuid, uint8_t ulen, uint32_t stime, uint32_t *fees)
+static int32_t app_card_query_funpay_bill_fees_total(void *buf, uint16_t blen, uint8_t *uuid, uint8_t ulen, uint32_t stime, \
+        uint32_t *fees, uint8_t *gunno, int32_t *index)
 {
-    if(fees == NULL){
+    if((fees == NULL) || (gunno == NULL) || (index == NULL)){
         return -0x01;
     }
     if((uuid == NULL) || ((ulen < 0x04) || (ulen > 0x08))){
+        return -0x01;
+    }
+    if(blen < sizeof(thaisen_transaction_t)){
         return -0x01;
     }
 
@@ -69,138 +75,107 @@ static int32_t app_card_query_funpay_bill_fees_total(uint8_t *uuid, uint8_t ulen
         LOG_D("%02x", uuid[count]);
     }
 
-    int8_t index = 0x00;
-    int32_t current_index = 0x00, total_num = 0x00, result = 0x00;
-    thaisen_transaction_t *transaction = (thaisen_transaction_t*)rt_malloc(sizeof(thaisen_transaction_t));
-    if(transaction == NULL){
-        /** 没有足够的内存 */
-        return -0x01;
-    }
-    current_index = mw_storage_record_get_current_index(RECORD_REGION_CHARGE_RECORDA);
-    total_num = mw_storage_record_get_record_total_num(RECORD_REGION_CHARGE_RECORDA);
-    if((current_index < 0x00) || (total_num <= 0x00)){
-        /** 这个设备目前没有订单 */
-        return -0x01;
-    }
+    uint8_t count = 0x00;
+    int32_t sindex = -0x01, total_num = 0x00, result = 0x00;
+    thaisen_transaction_t *transaction = (thaisen_transaction_t*)buf;
 
-    for(index = current_index; index >=0; index--){
-        result = mw_storage_record_get_designate_index_record((uint8_t*)transaction, sizeof(thaisen_transaction_t), RECORD_REGION_CHARGE_RECORDA, index);
-        if((result == STORAGE_ERR_NONE) || (result == STORAGE_ERR_CHECK_ERROR)){
-            if(memcmp(uuid, transaction->physics_card_number, ulen) == 0x00){
-                struct ofsm_info *ofsm = get_ofsm_info(APP_SYSTEM_GUNNOA);
-
-                *fees = transaction->total_fee;
-                ofsm->base.charge_time = transaction->charge_time;
-                ofsm->base.elect_a = transaction->total_elect;
-                ofsm->base.fees_total = transaction->total_fee;
-                ofsm->base.account_ballance_after = transaction->account_ballance_after;
-                ofsm->base.reason_code = transaction->stop_reason;
-                ofsm->base.current_soc = transaction->stop_soc;
-
-                LOG_D("history bill info:");
-                LOG_D("total_fee:%d", *fees);
-                LOG_D("charge_time:%d", ofsm->base.charge_time);
-                LOG_D("total_elect:%d", ofsm->base.elect_a);
-                LOG_D("total_fee:%d", ofsm->base.fees_total);
-                LOG_D("account_ballance_after:%d", ofsm->base.account_ballance_after);
-                LOG_D("stop_reason:%d", ofsm->base.reason_code);
-                LOG_D("stop_soc:%d", ofsm->base.current_soc);
-                return 0x00;
+    if((total_num = mw_storage_record_get_unverify_record_num(RECORD_REGION_CHARGE_RECORDA)) > 0x00){
+        LOG_D("gunno A unverify record num:%d", total_num);
+        for(count = 0x00; count < total_num; count++){
+            if(sindex >= 0x00){
+                sindex = sindex > 0x00 ? (sindex - 0x01) : (NOTFS_ORDER_USER_FILE_MAX_COUNT - 0x01);
             }
-        }
-    }
-    if(total_num >= 100){  /** 设备能存储的订单最大数量 */
-        for(index = (100 - 1); index > current_index; index--){
-            result = mw_storage_record_get_designate_index_record((uint8_t*)transaction, sizeof(thaisen_transaction_t), RECORD_REGION_CHARGE_RECORDA, index);
-            if((result == STORAGE_ERR_NONE) || (result == STORAGE_ERR_CHECK_ERROR)){
-                if(memcmp(uuid, transaction->physics_card_number, ulen) == 0x00){
-                    struct ofsm_info *ofsm = get_ofsm_info(APP_SYSTEM_GUNNOA);
+            if((sindex = mw_storage_record_get_first_index_unverify(RECORD_REGION_CHARGE_RECORDA, sindex)) >= 0x00){
+                result = mw_storage_record_get_designate_index_record((uint8_t*)transaction, sizeof(thaisen_transaction_t), RECORD_REGION_CHARGE_RECORDA, sindex);
+                if((result == STORAGE_ERR_NONE) || (result == STORAGE_ERR_CHECK_ERROR)){
+                    if(memcmp(uuid, transaction->physics_card_number, ulen) == 0x00){
+                        struct ofsm_info *ofsm = get_ofsm_info(APP_SYSTEM_GUNNOA);
 
-                    *fees = transaction->total_fee;
-                    ofsm->base.charge_time = transaction->charge_time;
-                    ofsm->base.elect_a = transaction->total_elect;
-                    ofsm->base.fees_total = transaction->total_fee;
-                    ofsm->base.account_ballance_after = transaction->account_ballance_after;
-                    ofsm->base.reason_code = transaction->stop_reason;
-                    ofsm->base.current_soc = transaction->stop_soc;
+                        *index = sindex;
+                        *gunno = APP_SYSTEM_GUNNOA;
+                        *fees = transaction->total_fee;
+                        ofsm->base.charge_time = transaction->charge_time;
+                        ofsm->base.elect_a = transaction->total_elect;
+                        ofsm->base.fees_total = transaction->total_fee;
+                        ofsm->base.account_ballance_after = transaction->account_ballance_after;
+                        ofsm->base.reason_code = transaction->stop_reason;
+                        ofsm->base.current_soc = transaction->stop_soc;
 
-                    LOG_D("history bill info:");
-                    LOG_D("total_fee:%d", *fees);
-                    LOG_D("charge_time:%d", ofsm->base.charge_time);
-                    LOG_D("total_elect:%d", ofsm->base.elect_a);
-                    LOG_D("total_fee:%d", ofsm->base.fees_total);
-                    LOG_D("account_ballance_after:%d", ofsm->base.account_ballance_after);
-                    LOG_D("stop_reason:%d", ofsm->base.reason_code);
-                    LOG_D("stop_soc:%d", ofsm->base.current_soc);
-                    return 0x00;
+                        LOG_D("history bill info:");
+                        LOG_D("total_fee:%d", *fees);
+                        LOG_D("charge_time:%d", ofsm->base.charge_time);
+                        LOG_D("total_elect:%d", ofsm->base.elect_a);
+                        LOG_D("total_fee:%d", ofsm->base.fees_total);
+                        LOG_D("account_ballance_after:%d", ofsm->base.account_ballance_after);
+                        LOG_D("stop_reason:%d", ofsm->base.reason_code);
+                        LOG_D("stop_soc:%d", ofsm->base.current_soc);
+                        return 0x00;
+                    }else{
+                        LOG_D("card uuid no match in first unverify record gunno A [%02x, %02x, %02x, %02x][%02x, %02x, %02x, %02x]",
+                                transaction->physics_card_number[0x00], transaction->physics_card_number[0x01],
+                                transaction->physics_card_number[0x02], transaction->physics_card_number[0x03],
+                                uuid[0x00], uuid[0x01], uuid[0x02], uuid[0x03]);
+                    }
+                }else{
+                    LOG_D("get first unverify record data fail in gunno A (%d)", result);
                 }
+            }else{
+                LOG_D("get first unverify record index fail in gunno A (%d)", sindex);
             }
         }
+    }else{
+        LOG_D("there is no unverify record is gunno A (%d)", total_num);
     }
 
 #ifdef APP_USING_DOUBLEGUN
-    current_index = mw_storage_record_get_current_index(RECORD_REGION_CHARGE_RECORDB);
-    total_num = mw_storage_record_get_record_total_num(RECORD_REGION_CHARGE_RECORDB);
-    if((current_index < 0x00) || (total_num <= 0x00)){
-        /** 这个设备目前没有订单 */
-        return -0x01;
-    }
-
-    for(index = current_index; index >=0; index--){
-        result = mw_storage_record_get_designate_index_record((uint8_t*)transaction, sizeof(thaisen_transaction_t), RECORD_REGION_CHARGE_RECORDB, index);
-        if((result == STORAGE_ERR_NONE) || (result == STORAGE_ERR_CHECK_ERROR)){
-            if(memcmp(uuid, transaction->physics_card_number, ulen) == 0x00){
-                struct ofsm_info *ofsm = get_ofsm_info(APP_SYSTEM_GUNNOB);
-
-                *fees = transaction->total_fee;
-                ofsm->base.charge_time = transaction->charge_time;
-                ofsm->base.elect_a = transaction->total_elect;
-                ofsm->base.fees_total = transaction->total_fee;
-                ofsm->base.account_ballance_after = transaction->account_ballance_after;
-                ofsm->base.reason_code = transaction->stop_reason;
-                ofsm->base.current_soc = transaction->stop_soc;
-
-                LOG_D("history bill info:");
-                LOG_D("total_fee:%d", *fees);
-                LOG_D("charge_time:%d", ofsm->base.charge_time);
-                LOG_D("total_elect:%d", ofsm->base.elect_a);
-                LOG_D("total_fee:%d", ofsm->base.fees_total);
-                LOG_D("account_ballance_after:%d", ofsm->base.account_ballance_after);
-                LOG_D("stop_reason:%d", ofsm->base.reason_code);
-                LOG_D("stop_soc:%d", ofsm->base.current_soc);
-                return 0x00;
+    sindex = -0x01;
+    if((total_num = mw_storage_record_get_unverify_record_num(RECORD_REGION_CHARGE_RECORDB)) > 0x00){
+        LOG_D("gunno B unverify record num:%d", total_num);
+        for(count = 0x00; count < total_num; count++){
+            if(sindex >= 0x00){
+                sindex = sindex > 0x00 ? (sindex - 0x01) : (NOTFS_ORDER_USER_FILE_MAX_COUNT - 0x01);
             }
-        }
-    }
-    if(total_num >= 100){  /** 设备能存储的订单最大数量 */
-        for(index = (100 - 1); index > current_index; index--){
-            result = mw_storage_record_get_designate_index_record((uint8_t*)transaction, sizeof(thaisen_transaction_t), RECORD_REGION_CHARGE_RECORDB, index);
-            if((result == STORAGE_ERR_NONE) || (result == STORAGE_ERR_CHECK_ERROR)){
-                if(memcmp(uuid, transaction->physics_card_number, ulen) == 0x00){
-                    struct ofsm_info *ofsm = get_ofsm_info(APP_SYSTEM_GUNNOB);
+            if((sindex = mw_storage_record_get_first_index_unverify(RECORD_REGION_CHARGE_RECORDB, sindex)) >= 0x00){
+                result = mw_storage_record_get_designate_index_record((uint8_t*)transaction, sizeof(thaisen_transaction_t), RECORD_REGION_CHARGE_RECORDB, sindex);
+                if((result == STORAGE_ERR_NONE) || (result == STORAGE_ERR_CHECK_ERROR)){
+                    if(memcmp(uuid, transaction->physics_card_number, ulen) == 0x00){
+                        struct ofsm_info *ofsm = get_ofsm_info(APP_SYSTEM_GUNNOB);
 
-                    *fees = transaction->total_fee;
-                    ofsm->base.charge_time = transaction->charge_time;
-                    ofsm->base.elect_a = transaction->total_elect;
-                    ofsm->base.fees_total = transaction->total_fee;
-                    ofsm->base.account_ballance_after = transaction->account_ballance_after;
-                    ofsm->base.reason_code = transaction->stop_reason;
-                    ofsm->base.current_soc = transaction->stop_soc;
+                        *index = sindex;
+                        *gunno = APP_SYSTEM_GUNNOB;
+                        *fees = transaction->total_fee;
+                        ofsm->base.charge_time = transaction->charge_time;
+                        ofsm->base.elect_a = transaction->total_elect;
+                        ofsm->base.fees_total = transaction->total_fee;
+                        ofsm->base.account_ballance_after = transaction->account_ballance_after;
+                        ofsm->base.reason_code = transaction->stop_reason;
+                        ofsm->base.current_soc = transaction->stop_soc;
 
-                    LOG_D("history bill info:");
-                    LOG_D("total_fee:%d", *fees);
-                    LOG_D("charge_time:%d", ofsm->base.charge_time);
-                    LOG_D("total_elect:%d", ofsm->base.elect_a);
-                    LOG_D("total_fee:%d", ofsm->base.fees_total);
-                    LOG_D("account_ballance_after:%d", ofsm->base.account_ballance_after);
-                    LOG_D("stop_reason:%d", ofsm->base.reason_code);
-                    LOG_D("stop_soc:%d", ofsm->base.current_soc);
-                    return 0x00;
+                        LOG_D("history bill info:");
+                        LOG_D("total_fee:%d", *fees);
+                        LOG_D("charge_time:%d", ofsm->base.charge_time);
+                        LOG_D("total_elect:%d", ofsm->base.elect_a);
+                        LOG_D("total_fee:%d", ofsm->base.fees_total);
+                        LOG_D("account_ballance_after:%d", ofsm->base.account_ballance_after);
+                        LOG_D("stop_reason:%d", ofsm->base.reason_code);
+                        LOG_D("stop_soc:%d", ofsm->base.current_soc);
+                        return 0x00;
+                    }else{
+                        LOG_D("card uuid no match in first unverify record gunno B [%02x, %02x, %02x, %02x][%02x, %02x, %02x, %02x]",
+                                transaction->physics_card_number[0x00], transaction->physics_card_number[0x01],
+                                transaction->physics_card_number[0x02], transaction->physics_card_number[0x03],
+                                uuid[0x00], uuid[0x01], uuid[0x02], uuid[0x03]);
+                    }
+                }else{
+                    LOG_D("get first unverify record data fail in gunno B (%d)", result);
                 }
+            }else{
+                LOG_D("get first unverify record index fail in gunno B (%d)", sindex);
             }
         }
+    }else{
+        LOG_D("there is no unverify record is gunno B (%d)", total_num);
     }
-
 #endif /* APP_USING_DOUBLEGUN */
 
     return -0x01;
@@ -282,70 +257,93 @@ static int32_t app_card_swip_card_stop(uint8_t gunno)
 /*****************************************************************************
  *  函数名   app_card_pay_history_bill
  *  功能       结算历史订单
- *  参数      gunno    枪号
+ *  参数      gunno    用于保存枪号
  * 返回      >=0：成功   <0：失败
  ****************************************************************************/
-static int32_t app_card_pay_history_bill(uint8_t gunno)
+static int32_t app_card_pay_history_bill(uint8_t *gunno)
 {
-    if(gunno >= APP_SYSTEM_GUNNO_SIZE){
+    if(gunno == NULL){
+        return APP_CARD_OPERATE_RET_INTERNAL_ERROR;
+    }
+    if(*gunno >= APP_SYSTEM_GUNNO_SIZE){
         return APP_CARD_OPERATE_RET_INTERNAL_ERROR;
     }
 
     LOG_D("gunno(%d) pay_history_bill");
 
     uint8_t card_info_block = 0x00, locked = s_card_info_sector2.block_10.detail.is_lock;
-    uint32_t money = 0x00;
-    uint32_t result = 0x00, ballance = s_card_info_sector2.block_10.detail.ballance, stime = s_card_info_sector2.block_10.detail.start_time;
-    struct ofsm_info *ofsm = get_ofsm_info(gunno);
+    int32_t result = 0x00, index;
+    uint32_t money = 0x00, ballance = s_card_info_sector2.block_10.detail.ballance, stime = s_card_info_sector2.block_10.detail.start_time;
+    struct ofsm_info *ofsm = NULL;
+    thaisen_transaction_t *transaction = (thaisen_transaction_t*)rt_malloc(sizeof(thaisen_transaction_t));
 
-    result = app_card_query_funpay_bill_fees_total(s_rfidr->uuid, s_rfidr->uuid_len, \
-            APP_ENDIANNESS_CONVERT(s_card_info_sector2.block_10.detail.start_time), &money);
-
-    s_card_operate_ret[gunno] = APP_CARD_OPERATE_RET_SUCCESS;
-
-    if(result >= 0x00){
-        if(s_card_info_sector2.block_10.detail.ballance >= (ofsm->base.fees_total /100)){
-            s_card_info_sector2.block_10.detail.ballance -= (ofsm->base.fees_total /100);
-            s_card_info_sector2.block_10.detail.ballance = APP_ENDIANNESS_CONVERT(s_card_info_sector2.block_10.detail.ballance);
-            s_card_info_sector2.block_10.detail.ballance_check = get_check_sum((uint8_t*)&s_card_info_sector2.block_10.detail.ballance, sizeof(s_card_info_sector2.block_10.detail.ballance));
-            s_card_info_sector2.block_10.detail.is_lock = 0x00;
-
-            /** 保存设备ID */
-            card_info_block = 0x08;
-            if(s_rfidr->bolck_write(card_info_block, s_card_info_sector2.device_id, CARD_BLOCK_SIZE) < 0x00){
-                LOG_E("card storage dev id fail(history bill)!!");
-
-                s_card_info_sector2.block_10.detail.is_lock = locked;
-                s_card_info_sector2.block_10.detail.ballance = ballance;
-                s_card_info_sector2.block_10.detail.start_time = stime;
-
-                s_card_operate_ret[gunno] = APP_CARD_OPERATE_RET_STORAGE_ERROR;
-                return s_card_operate_ret[gunno];
-            }
-            /** 保存充电信息 */
-            card_info_block = 0x0A;
-            if(s_rfidr->bolck_write(card_info_block, s_card_info_sector2.block_10.data, CARD_BLOCK_SIZE) < 0x00){
-                LOG_E("card storage charge info fail(history bill)!!");
-
-                s_card_info_sector2.block_10.detail.is_lock = locked;
-                s_card_info_sector2.block_10.detail.ballance = ballance;
-                s_card_info_sector2.block_10.detail.start_time = stime;
-
-                s_card_operate_ret[gunno] = APP_CARD_OPERATE_RET_STORAGE_ERROR;
-                return s_card_operate_ret[gunno];
-            }
-        }else{
-            LOG_E("this card is not enough to pay the bill(%d, %d)(history bill)!!", ofsm->base.fees_total, s_card_info_sector2.block_10.detail.ballance);
-            s_card_operate_ret[gunno] = APP_CARD_OPERATE_RET_NO_BALLANCE;
-            return s_card_operate_ret[gunno];
-        }
-    }else{
-        /** 获取订单信息失败，提示无效卡 */
-        s_card_operate_ret[gunno] = APP_CARD_OPERATE_RET_HISTORY_BILL_ERROR;
-        return s_card_operate_ret[gunno];
+    if(transaction == NULL){
+        /** 没有足够的内存 */
+        LOG_W("gunno(%d) no enough memory for transaction(%d)", *gunno, sizeof(thaisen_transaction_t));
+        s_card_operate_ret[*gunno] = APP_CARD_OPERATE_RET_INTERNAL_ERROR;
+        return s_card_operate_ret[*gunno];
     }
 
-    return s_card_operate_ret[gunno];
+    result = app_card_query_funpay_bill_fees_total(transaction, sizeof(thaisen_transaction_t), s_rfidr->uuid, s_rfidr->uuid_len, \
+            APP_ENDIANNESS_CONVERT(s_card_info_sector2.block_10.detail.start_time), &money, gunno, &index);
+
+    if((result < 0x00) || (*gunno >= APP_SYSTEM_GUNNO_SIZE)){
+        /** 获取订单信息失败，提示无效卡 */
+        LOG_D("current port(%d) query history bill fail(%d)", *gunno, result);
+        if(*gunno >= APP_SYSTEM_GUNNO_SIZE){
+            *gunno = APP_SYSTEM_GUNNO_SIZE - 0x01;
+            s_card_operate_ret[*gunno] = APP_CARD_OPERATE_RET_HISTORY_BILL_ERROR;
+        }else{
+            s_card_operate_ret[*gunno] = APP_CARD_OPERATE_RET_HISTORY_BILL_ERROR;
+        }
+        return s_card_operate_ret[*gunno];
+    }
+
+    ofsm = get_ofsm_info(*gunno);
+    s_card_operate_ret[*gunno] = APP_CARD_OPERATE_RET_SUCCESS;
+
+    if(s_card_info_sector2.block_10.detail.ballance >= (ofsm->base.fees_total /100)){
+        s_card_info_sector2.block_10.detail.ballance -= (ofsm->base.fees_total /100);
+        s_card_info_sector2.block_10.detail.ballance = APP_ENDIANNESS_CONVERT(s_card_info_sector2.block_10.detail.ballance);
+        s_card_info_sector2.block_10.detail.ballance_check = get_check_sum((uint8_t*)&s_card_info_sector2.block_10.detail.ballance, sizeof(s_card_info_sector2.block_10.detail.ballance));
+        s_card_info_sector2.block_10.detail.is_lock = 0x00;
+
+        /** 保存设备ID */
+        card_info_block = 0x08;
+        if(s_rfidr->bolck_write(card_info_block, s_card_info_sector2.device_id, CARD_BLOCK_SIZE) < 0x00){
+            LOG_E("card storage dev id fail(history bill)!!");
+
+            s_card_info_sector2.block_10.detail.is_lock = locked;
+            s_card_info_sector2.block_10.detail.ballance = ballance;
+            s_card_info_sector2.block_10.detail.start_time = stime;
+
+            s_card_operate_ret[*gunno] = APP_CARD_OPERATE_RET_STORAGE_ERROR;
+            return s_card_operate_ret[*gunno];
+        }
+        /** 保存充电信息 */
+        card_info_block = 0x0A;
+        if(s_rfidr->bolck_write(card_info_block, s_card_info_sector2.block_10.data, CARD_BLOCK_SIZE) < 0x00){
+            LOG_E("card storage charge info fail(history bill)!!");
+
+            s_card_info_sector2.block_10.detail.is_lock = locked;
+            s_card_info_sector2.block_10.detail.ballance = ballance;
+            s_card_info_sector2.block_10.detail.start_time = stime;
+
+            s_card_operate_ret[*gunno] = APP_CARD_OPERATE_RET_STORAGE_ERROR;
+            return s_card_operate_ret[*gunno];
+        }
+
+        LOG_D("gunno(%d) storage modified transaction(%d)(history bill)", *gunno, index);
+        mw_storage_record_designate_index_updated(transaction, sizeof(thaisen_transaction_t), USER_DATA_TYPE_REPORTED,  \
+                0x00, 0x01, *gunno, index);
+
+    }else{
+        LOG_E("this card is not enough to pay the bill(%d, %d)(history bill)!!", ofsm->base.fees_total, s_card_info_sector2.block_10.detail.ballance);
+        s_card_operate_ret[*gunno] = APP_CARD_OPERATE_RET_NO_BALLANCE;
+        return s_card_operate_ret[*gunno];
+    }
+
+    return s_card_operate_ret[*gunno];
 }
 
 /*****************************************************************************
@@ -365,6 +363,14 @@ static int32_t app_card_non_swip_card_stop(uint8_t gunno)
     struct ofsm_info *ofsm = get_ofsm_info(gunno);
     uint8_t *dev_id = sys_read_config_item_content(CONFIG_ITEM_PILE_NUMBER, 0x00), card_info_block = 0x00, locked = s_card_info_sector2.block_10.detail.is_lock;
     uint32_t ballance = s_card_info_sector2.block_10.detail.ballance, stime = s_card_info_sector2.block_10.detail.start_time;
+    thaisen_transaction_t *transaction = (thaisen_transaction_t*)rt_malloc(sizeof(thaisen_transaction_t));
+    int32_t index = mw_storage_record_get_current_index(gunno);
+    if(transaction == NULL){
+        /** 没有足够的内存 */
+        LOG_W("gunno(%d) no enough memory for transaction(%d)", gunno, sizeof(thaisen_transaction_t));
+        s_card_operate_ret[gunno] = APP_CARD_OPERATE_RET_INTERNAL_ERROR;
+        return s_card_operate_ret[gunno];
+    }
 
     s_card_operate_ret[gunno] = APP_CARD_OPERATE_RET_SUCCESS;
 
@@ -409,6 +415,10 @@ static int32_t app_card_non_swip_card_stop(uint8_t gunno)
         LOG_D("account_ballance_after:%d", ofsm->base.account_ballance_after);
         LOG_D("stop_reason:%d", ofsm->base.reason_code);
         LOG_D("stop_soc:%d", ofsm->base.current_soc);
+
+        LOG_D("gunno(%d) storage modified transaction", gunno);
+        mw_storage_record_designate_index_updated(transaction, sizeof(thaisen_transaction_t), USER_DATA_TYPE_REPORTED,  \
+                0x00, 0x01, gunno, index);
     }else{
         /** 提示余额不足 */
         LOG_E("this card is not enough to pay the bill(%d, %d)(non swip card)!!", ofsm->base.fees_total, s_card_info_sector2.block_10.detail.ballance);
@@ -542,7 +552,7 @@ static int32_t app_card_info_process(void* handle)
     s_rfidr = (rfid_reader*)handle;
 
     int32_t ret = 0x00;
-    uint8_t card_info_block = 0x00, port = s_rfidr->current_port;
+    uint8_t card_info_block = 0x00, port = s_rfidr->current_port, another_port = s_rfidr->current_port;
     struct ofsm_info *ofsm = get_ofsm_info(port);
 
     if(port >= APP_SYSTEM_GUNNO_SIZE){
@@ -592,6 +602,7 @@ static int32_t app_card_info_process(void* handle)
                             (memcmp(s_card_info_sector2.card_number, ofsm->base.card_number, APP_CARD_NUMBER_COMPARE_LEN_MIN_OFFLINE_BILLING)) ||
                             memcmp(s_rfidr->uuid, ofsm->base.card_uid, s_rfidr->uuid_len)){
                         LOG_W("this is not the start card 00");
+                        app_card_event_recv(APP_CARD_EVENT_CHARGE_STOP, 0x00, port, NULL, 0x01);
                         s_card_operate_ret[port] = APP_CARD_OPERATE_RET_HISTORY_BILL_ERROR;
                         return s_card_operate_ret[port];
                     }
@@ -610,13 +621,20 @@ static int32_t app_card_info_process(void* handle)
                 /** 卡被锁而且桩不是启动或充电状态，但未接收到充电桩已停止充电事件，说明这是上一笔订单未结算场景 */
                 else{
                     app_card_event_send(APP_CARD_EVENT_IS_PAYING, port, NULL);  /** 此时需要应用到业务的充电数据，先告诉业务正在结算，业务不能修改业务充电数据 */
-                    ret = app_card_pay_history_bill(port);
+                    another_port = port;
+                    ret = app_card_pay_history_bill(&port);
+
+                    if(port >= APP_SYSTEM_GUNNO_SIZE){
+                        port = APP_SYSTEM_GUNNO_SIZE - 0x01;
+                    }
+
                     if(ret < 0x00){
                         app_card_event_recv(APP_CARD_EVENT_IS_PAYING, 0x00, port, NULL, 0x01);
                         return -0x01;
                     }else{
                         app_card_event_send(APP_CARD_EVENT_PAY_COMPLETE, port, NULL);
                     }
+                    s_card_operate_ret[another_port] = APP_CARD_OPERATE_RET_PAYED;  /** 当前枪号和历史订单的枪号不对时，不让另一把枪显示告警 */
                     s_card_operate_ret[port] = APP_CARD_OPERATE_RET_PAYED;
                     return s_card_operate_ret[port];
                 }

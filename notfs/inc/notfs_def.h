@@ -57,9 +57,10 @@ typedef struct {
 typedef struct {
     uint32_t timestamp;       /* 时间戳 */
     uint32_t index : 20;      /* 索引从 0 开始，最大到 0xFFFFF-1 */
-    uint32_t reservation : 12; /* 预留 */
+    uint32_t is_verify : 1;   /* 记录确认(表明这条记录已被确认) */
+    uint32_t reservation : 11;/* 预留 */
     uint32_t user_data;       /* 支持 4 字节的用户数据定义 */
-    uint16_t record_verify;   /* 记录确认 */
+    uint16_t record_verify;   /* 记录确认(平台确认，一条记录可能需要多个平台确认) */
 } notfs_inode_t;
 
 struct nofs_header {

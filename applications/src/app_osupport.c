@@ -194,23 +194,23 @@ static int32_t app_fault_storage(struct error_info *error_info, uint32_t resume_
         region = NOTFS_SUBREGION_GUNNOB_FAULT_RECORD;
     }
     if(error_info->error_flag == 0x00){
-        (void)mw_storage_record_create(error_info, sizeof(struct error_info), error_info->error_index, 0x00, region);    /* 故障为产生，新存储一条记录 */
+        (void)mw_storage_record_create(error_info, sizeof(struct error_info), error_info->error_index, 0x00, 0x00, region);    /* 故障为产生，新存储一条记录 */
         LOG_D("gunno(%d) save fault info|%x, %x  start|%x", gunno, error_info->error_code, error_info->error_index, error_info->occur_time);
     }else{
         if((index = mw_storage_record_get_first_index_userdata(error_info->error_index, region)) < 0){
-            (void)mw_storage_record_create(error_info, sizeof(struct error_info), error_info->error_index, 0x00, region);
+            (void)mw_storage_record_create(error_info, sizeof(struct error_info), error_info->error_index, 0x00, 0x00, region);
             return -0x02;
         }else{
             struct error_info rinfo;
             memset(&rinfo, 0x00, sizeof(struct error_info));
             if(mw_storage_record_get_designate_index_record((uint8_t*)(&rinfo), sizeof(struct error_info), region, index) < 0){  /* 故障为恢复，查找已存储的对应下标的故障 */
-                (void)mw_storage_record_create(error_info, sizeof(struct error_info), error_info->error_index, 0x00, region);
+                (void)mw_storage_record_create(error_info, sizeof(struct error_info), error_info->error_index, 0x00, 0x00, region);
                 return -0x03;
             }
             rinfo.error_flag = 0x01;
             memcpy(&rinfo.resume_time, &(error_info->resume_time), sizeof(error_info->resume_time));
 
-            (void)mw_storage_record_designate_index_updated(&rinfo, sizeof(struct error_info), 0x00, 0x00, region, index);
+            (void)mw_storage_record_designate_index_updated(&rinfo, sizeof(struct error_info), 0x00, 0x00, 0x01, region, index);
             LOG_D("gunno(%d) update fault info|%x, %x %d  resume|%x", gunno, rinfo.error_code, rinfo.error_index, resume_time);
         }
     }
