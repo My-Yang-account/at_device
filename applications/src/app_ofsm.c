@@ -213,6 +213,12 @@ static void transaction_record_query_report(uint8_t gunno)
 
                     rtransaction.end_time += (15 *60);
                     rtransaction.charge_time += (15 *60);
+                    if(rtransaction.end_time > rtransaction.charge_time){
+                        rtransaction.start_time = rtransaction.end_time - rtransaction.charge_time;
+                    }else{
+                        rtransaction.start_time = rtransaction.end_time;
+                        rtransaction.charge_time = 0x00;
+                    }
 
 #if (defined (APP_INCLUDE_YKC_PROTOCOL) || defined (APP_INCLUDE_YKC_PROTOCOL_MONITOR) || defined (APP_INCLUDE_YCP_PROTOCOL) ||  \
                     defined (APP_INCLUDE_SGCC_PROTOCOL))
@@ -2048,18 +2054,21 @@ static void ofsm_starting_fun(uint8_t gunno)
                     valid_len = valid_len > sizeof(s_thaisen_transaction[gunno].serial_number) ? sizeof(s_thaisen_transaction[gunno].serial_number) : valid_len;
                     memset(s_thaisen_transaction[gunno].serial_number, 0x00, sizeof(s_thaisen_transaction[gunno].serial_number));
                     memcpy(s_thaisen_transaction[gunno].serial_number, s_ofsm_info[gunno].base.transaction_number, valid_len);
-    #ifdef APP_INCLUDE_SGCC_PROTOCOL
-                memcpy(s_thaisen_transaction[gunno].device_serial_number, s_ofsm_info[gunno].base.device_transaction_number, \
+#ifdef APP_INCLUDE_SGCC_PROTOCOL
+                    memcpy(s_thaisen_transaction[gunno].device_serial_number, s_ofsm_info[gunno].base.device_transaction_number, \
                         sizeof(s_ofsm_info[gunno].base.device_transaction_number));
-    #endif /* APP_INCLUDE_SGCC_PROTOCOL */
-                s_thaisen_transaction[gunno].account_ballance_before = s_ofsm_info[gunno].base.account_ballance_before;
-                s_thaisen_transaction[gunno].account_ballance_after = s_ofsm_info[gunno].base.account_ballance_after;
+#endif /* APP_INCLUDE_SGCC_PROTOCOL */
+                    s_thaisen_transaction[gunno].account_ballance_before = s_ofsm_info[gunno].base.account_ballance_before;
+                    s_thaisen_transaction[gunno].account_ballance_after = s_ofsm_info[gunno].base.account_ballance_after;
 
-                s_thaisen_transaction[gunno].order_state.online_order = APP_THA_ENUM_TRUE;
+                    s_thaisen_transaction[gunno].order_state.online_order = APP_THA_ENUM_TRUE;
 
                     app_nsal_clear_remote_vin_authorize(gunno);
                     app_nsal_init_charge_data(gunno);  /* 重新赋值流水号 */
                     vin_authentication_complete = APP_THA_ENUM_TRUE;
+
+                    mw_storage_record_designate_index_updated(&s_thaisen_transaction[gunno], sizeof(s_thaisen_transaction[gunno]), USER_DATA_TYPE_STORAGE,  \
+                            0x00, APP_THA_ENUM_FALSE, gunno, s_current_order_index[TARGET_PLATFORM_INDEX][gunno]);
                 }else if(app_nsal_is_vin_authorize_fail(gunno)){
                     app_nsal_clear_remote_vin_authorize(gunno);
                     LOG_W("gunno(%d) vin charge authentication fail", gunno);
@@ -3366,6 +3375,12 @@ static void ofsm_stoping_fun(uint8_t gunno)
             }
         }
 
+        if(s_thaisen_transaction[gunno].end_time > s_thaisen_transaction[gunno].charge_time){
+            s_thaisen_transaction[gunno].start_time = s_thaisen_transaction[gunno].end_time - s_thaisen_transaction[gunno].charge_time;
+        }else{
+            s_thaisen_transaction[gunno].start_time = s_thaisen_transaction[gunno].end_time;
+            s_thaisen_transaction[gunno].charge_time = 0x00;
+        }
         /** 如果是离线计费模式下的刷卡停止，则订单就是已经确认了的 */
         if((s_ofsm_info[gunno].base.is_offline_billing == APP_THA_ENUM_TRUE) && (s_ofsm_info[gunno].base.reason_code == APP_SYSTEM_STOP_WAY_OFFLINECARD_STOP)){
             mw_storage_record_designate_index_updated(&s_thaisen_transaction[gunno], sizeof(s_thaisen_transaction[gunno]), USER_DATA_TYPE_VERIFIED,  \

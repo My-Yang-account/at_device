@@ -1916,6 +1916,13 @@ uint8_t ykc_chargepile_request_padding_transaction_record(uint8_t gunno, void *t
         valid_len = valid_len > sizeof(_transaction->serial_number) ? sizeof(_transaction->serial_number) : valid_len;
         memset(g_ykc_preq_transaction_records[gunno].body.serial_number, 0x00, sizeof(g_ykc_preq_transaction_records[gunno].body.serial_number));
         memcpy(g_ykc_preq_transaction_records[gunno].body.serial_number, _transaction->serial_number, valid_len);
+
+        if(_transaction->end_time > _transaction->charge_time){
+            _transaction->start_time = _transaction->end_time - _transaction->charge_time;
+        }else{
+            _transaction->start_time = _transaction->end_time;
+            _transaction->charge_time = 0x00;
+        }
         g_ykc_preq_transaction_records[gunno].body.start_time = ykc_get_cp56time2a_from_timestamp(_transaction->start_time);
         g_ykc_preq_transaction_records[gunno].body.stop_time = ykc_get_cp56time2a_from_timestamp(_transaction->end_time);
 

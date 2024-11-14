@@ -2571,6 +2571,13 @@ uint8_t sgcc_chargepile_request_padding_transaction_record(uint8_t gunno, void *
         memcpy(evs_event_tradeInfos[gunno].vinCode, _transaction->car_vin, sizeof(_transaction->car_vin));
 
         evs_event_tradeInfos[gunno].timeDivType = SGCC_OPSCTL_ACTION;
+
+        if(_transaction->end_time > _transaction->charge_time){
+            _transaction->start_time = _transaction->end_time - _transaction->charge_time;
+        }else{
+            _transaction->start_time = _transaction->end_time;
+            _transaction->charge_time = 0x00;
+        }
         evs_event_tradeInfos[gunno].chargeStartTime = _transaction->start_time;
         evs_event_tradeInfos[gunno].chargeEndTime = _transaction->end_time;
         evs_event_tradeInfos[gunno].startSoc = _transaction->start_soc;
