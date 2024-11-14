@@ -1638,12 +1638,14 @@ int32_t chargepile_check_config(void)
             strlen((char*)s_chargepile_config_info.pile_info.pile_number) : valid_len;
 
     if(sys_string_contain_ctrl_char((const char*)&s_chargepile_config_info.pile_info.pile_number, valid_len)){
-        s_chargepile_config_info.pile_info.pile_num_len = strlen(CP_PILE_NUMBER_DEFAULT);
+        s_chargepile_config_info.pile_info.pile_num_len = 0x00;
         memset(s_chargepile_config_info.pile_info.pile_number, 0x00, sizeof(s_chargepile_config_info.pile_info.pile_number));
 
+#if 0
         valid_len = sizeof(s_chargepile_config_info.pile_info.pile_number);
         valid_len = valid_len > strlen((char*)CP_PILE_NUMBER_DEFAULT) ? strlen((char*)CP_PILE_NUMBER_DEFAULT) : valid_len;
         memcpy(&s_chargepile_config_info.pile_info.pile_number, CP_PILE_NUMBER_DEFAULT, valid_len);
+#endif
     }
 
 
