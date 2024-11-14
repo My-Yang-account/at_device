@@ -23,6 +23,8 @@ extern "C" {
 
 #define APP_USING_DOUBLEGUN                            /* 使用双枪 */
 
+#define APP_CALCULATE_ELECT_DIFF_MAX         510       /* 最大计算电量差值(精度：0.001) */
+
 #define APP_CARD_NUMBER_COMPARE_LEN_MIN                   12    /* 卡号最小对比长度 */
 #define APP_CARD_NUMBER_COMPARE_LEN_MIN_OFFLINE_BILLING   6     /* 卡号最小对比长度(离线计费模式下) */
 
@@ -328,6 +330,7 @@ typedef struct{
         uint32_t bms_require_decrease : 1;                   /* BMS 需求减小 */
         uint32_t is_deputygun_stop : 1;                      /* 这是副枪停止(副枪故障时停止，用于并充时) */
         uint32_t is_pay_complete : 1;                        /* 已结算完成(用于离线计费) */
+        uint32_t is_ammeter_elect_error : 1;                 /* 电表电量错误(防止一开始时读取到的电表电量是0) */
     }flag;
 
     uint8_t cc1_state;                /* CC1 状态 */
@@ -382,6 +385,7 @@ typedef struct{
     uint32_t start_elect;             /* 起始电量(精度：0.001) */
     uint32_t current_elect;           /* 当前电量(精度：0.001) */
     uint32_t ammeter_elect;           /* 电表电量(精度：0.001) */
+    uint32_t charge_elect_last;       /* 上一次计算所充电量(精度：0.001) */
     uint32_t current_time;            /* 当前时间(时间戳) */
     uint32_t start_time;              /* 充电开始时间(时间戳) */
     uint32_t stop_time;               /* 充电结束时间(时间戳) */
@@ -419,6 +423,7 @@ typedef struct{
 struct ofsm_info {
     enum ofsm_state state;
     System_BaseData base;
+    uint32_t elect_calculate_tick; /* 电量计算时基 */
     uint32_t charge_timeout;     /* 启动超时退出 */
     uint32_t timing_tick;        /* 计时tick(用于订单时段计算) */
 };

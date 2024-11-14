@@ -79,6 +79,6 @@ uint32_t app_billingrule_get_period_delay_fees(uint8_t gunno, uint8_t period);
 uint8_t app_get_current_period(uint8_t gunno);
 uint8_t app_calculate_current_period(uint32_t current_time);
 void app_billing_info_init(uint32_t init_elect, uint8_t gunno);
-void app_billing_info_calculate(uint32_t current_time, uint32_t current_elect, uint8_t gunno);
+void app_billing_info_calculate(uint32_t current_time, uint32_t current_elect, uint32_t elect_inc, uint8_t gunno);
 
 #endif /* APPLICATIONS_INC_APP_BILLING_RULE_H_ */

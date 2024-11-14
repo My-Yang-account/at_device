@@ -32,7 +32,7 @@ struct billing_info{
     uint32_t service_fees_total;                               /** 充电总服务费(精度：0.0001) */
     uint32_t start_elect;                                      /** 充电起始电量(精度：0.001) */
     uint32_t stop_elect;                                       /** 充电结束电量(精度：0.001) */
-    uint32_t last_elect;                                       /** 上一次计算的止电量(精度：0.001)[没有电损比] */
+    uint32_t origin_elect;                                     /** 未加电损比的总充电电量(精度：0.001) */
 };
 
 struct billing_assistant_info{
@@ -670,7 +670,7 @@ void app_billing_info_init(uint32_t init_elect, uint8_t gunno)
     }
     s_billing_info[gunno].start_elect = init_elect;
     s_billing_info[gunno].stop_elect = s_billing_info[gunno].start_elect;
-    s_billing_info[gunno].last_elect = s_billing_info[gunno].stop_elect;
+    s_billing_info[gunno].origin_elect = 0x00;
     s_billing_info[gunno].elect_total = 0x00;
     s_billing_info[gunno].fees_total = 0x00;
     s_billing_info[gunno].service_fees_total = 0x00;
@@ -698,16 +698,16 @@ void app_billing_info_init(uint32_t init_elect, uint8_t gunno)
  *         gunno            枪号
  * 返回
  ******************************************************/
-void app_billing_info_calculate(uint32_t current_time, uint32_t current_elect, uint8_t gunno)
+void app_billing_info_calculate(uint32_t current_time, uint32_t current_elect, uint32_t elect_inc, uint8_t gunno)
 {
     if(gunno >= APP_SYSTEM_GUNNO_SIZE){
         return;
     }
 
     uint8_t period = 0x00, rate_number = 0x00, offbilling_rate_number = 0x00, is_offbilling_mode = 0x00;
-    uint32_t elect_inc = 0x00, service_fees_total = 0x00, fees_total = 0x00;
+    uint32_t service_fees_total = 0x00, fees_total = 0x00;
 
-    if((current_elect <= s_billing_info[gunno].last_elect) || (current_elect <= s_billing_info[gunno].start_elect)){
+    if(elect_inc <= 0x00){
         return;
     }
 
@@ -728,17 +728,17 @@ void app_billing_info_calculate(uint32_t current_time, uint32_t current_elect, u
     }else{
         rate_number = s_billing_rule[gunno].rate_number[period];
     }
-    elect_inc = current_elect - s_billing_info[gunno].last_elect;   /** 未计算电损比 */
+    s_billing_info[gunno].stop_elect = current_elect;
+    s_billing_info[gunno].origin_elect += elect_inc;
 
     s_billing_info[gunno].period_number = period;
-    s_billing_info[gunno].last_elect = current_elect;               /** 未计算电损比 */
 
     /** 总电量、金额信息 */
-    if(s_billing_info[gunno].last_elect > s_billing_info[gunno].start_elect){
-        s_billing_info[gunno].elect_total = s_billing_info[gunno].last_elect - s_billing_info[gunno].start_elect;   /** 未计算电损比 */
-        s_billing_info[gunno].elect_total += (s_billing_info[gunno].elect_total *s_billing_assistant_info.eloss_proportion /1000);
+    s_billing_info[gunno].stop_elect = (current_elect + (current_elect *s_billing_assistant_info.eloss_proportion /1000));
+    s_billing_info[gunno].elect_total = (s_billing_info[gunno].origin_elect + (s_billing_info[gunno].origin_elect *s_billing_assistant_info.eloss_proportion /1000));
+    if(s_billing_info[gunno].stop_elect > s_billing_info[gunno].elect_total){
+        s_billing_info[gunno].start_elect = (s_billing_info[gunno].stop_elect - s_billing_info[gunno].elect_total);
     }
-    s_billing_info[gunno].stop_elect = s_billing_info[gunno].start_elect + s_billing_info[gunno].elect_total;
 
     /** 时段电量、金额信息 */
     s_billing_info[gunno].last_period_elect[period] += elect_inc;  /** 未计算电损比 */
