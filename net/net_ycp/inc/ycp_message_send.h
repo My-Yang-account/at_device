@@ -227,6 +227,7 @@ uint8_t ycp_exist_message_wait_response(uint8_t gunno, uint32_t *state);
 void ycp_clear_message_wait_response_state(uint8_t gunno, uint32_t message_bit);
 uint8_t ycp_get_message_wait_response_timeout_state(uint8_t gunno, uint32_t timeout, uint32_t message_bit);
 
+void ycp_bcd_to_ascii(uint8_t *ascii, uint8_t alen, uint8_t *bcd, uint8_t blen);
 void ycp_ascii_to_bcd(uint8_t *ascii, uint8_t alen, uint8_t *bcd, uint8_t blen, uint8_t is_order);
 void ycp_timestamp_to_timebcd(uint32_t timestamp, uint8_t *bcd, uint8_t len);
 uint32_t ycp_timebcd_to_timestamp(uint8_t *bcd, uint8_t len);

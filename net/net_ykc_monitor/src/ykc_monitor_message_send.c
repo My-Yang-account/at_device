@@ -471,7 +471,6 @@ void ykc_monitor_ascii_to_bcd(uint8_t *ascii, uint8_t alen, uint8_t *bcd, uint8_
 void ykc_monitor_platlog_data_insert(void *data, uint16_t len, uint8_t verify_result, const char* label)
 {
     return;
-
 #ifdef NET_YKC_MONITOR_AS_MONITOR
     if((data == NULL) || (len == 0x00)){
         return;
@@ -563,7 +562,7 @@ static struct ykc_monitor_lognode *ykc_monitor_platlog_data_query(void)
 
 static void net_ykc_monitor_message_send_thread_entry(void *parameter)
 {
-    uint8_t step = NET_YKC_MONITOR_NET_STATE_OPEN_SOCKET, is_power_on = 0x00;
+    uint8_t step = NET_YKC_MONITOR_NET_STATE_OPEN_SOCKET, is_power_on = 0x01;
     uint32_t delay = 0x00, wait_unlock = 0x00;
     uint32_t heartbeat_tick[NET_SYSTEM_GUN_NUMBER];
 
@@ -632,6 +631,30 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
             continue;
         }
 
+#ifdef NET_INCLUDE_TARGET_PLATFORM
+#if (NET_TARGET_PLATFORM_ID == NET_YCP_PRO_ID)
+        if(is_power_on){
+            if((net_get_net_handle()->net_state == NET_SOCKET_STATE_LOGIN_SUCCESS) || (strlen((char*)g_ykc_monitor_preq_login.body.pile_number) != 0x00)){
+                if(strlen((char*)g_ykc_monitor_preq_login.body.pile_number) == 0x00){
+                    uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC_MONITOR |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
+                    uint8_t *pile_number = (uint8_t*)(net_get_net_handle()->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, 0x00, option));
+                    uint16_t valid_len = strlen((char*)pile_number);
+
+                    valid_len = valid_len > (NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT *0x02) ? (NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT *0x02) : valid_len;
+                    ykc_monitor_ascii_to_bcd(pile_number, valid_len, g_ykc_monitor_preq_login.body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
+
+                    ykc_monitor_message_field_init(0x00);
+                }
+                is_power_on = 0x00;
+            }else{
+                LOG_D("target platform is ycp, is waiting for pile number...");
+                rt_thread_mdelay(1000);
+                continue;
+            }
+        }
+#endif /* NET_TARGET_PLATFORM_ID == NET_YCP_PRO_ID */
+#endif /* NET_INCLUDE_TARGET_PLATFORM */
+
         /***************************************************** [登录认证] **********************************************************/
         /***************************************************** [登录认证] **********************************************************/
 //        rt_kprintf("ykc monitor state(%d, %d, %d)\n", s_ykc_monitor_socket_info.state, step, (rt_tick_get() - delay));
@@ -693,7 +716,7 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
                 vaild_len = sizeof(g_ykc_monitor_preq_login.body.sim_number);
                 vaild_len = vaild_len > (strlen((char*)sim_no) /2)? strlen((char*)sim_no) : vaild_len;
 
-                ykc_monitor_ascii_to_bcd(sim_no, strlen((char*)sim_no), g_ykc_monitor_preq_login.body.sim_number, NET_YKC_MONITOR_SIM_BCD_LENGTH_DEFAULT);
+                ykc_monitor_ascii_to_bcd(sim_no, vaild_len, g_ykc_monitor_preq_login.body.sim_number, NET_YKC_MONITOR_SIM_BCD_LENGTH_DEFAULT);
 
                 switch (g_ykc_monitor_preq_login.body.operators) {
                 case NET_OPERATOR_NAME_CHINA_MOBILE:

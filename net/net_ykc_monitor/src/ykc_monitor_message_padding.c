@@ -1296,17 +1296,12 @@ int8_t ykc_monitor_message_pro_remote_start_merge_charge_request(uint8_t gunno, 
 }
 
 /*************************************************
- * 函数名      ykc_monitor_message_info_init
- * 功能          云快充报文信息初始化
+ * 函数名      ykc_monitor_message_field_init
+ * 功能          云快充监控报文字段初始化
  * **********************************************/
-void ykc_monitor_message_info_init(uint8_t gunno)  ///////// 这是网络部分外部调用的第一个函数(可以在里面进行相关初始化)
+void ykc_monitor_message_field_init(uint8_t gun)
 {
-    static uint8_t ykc_monitor_is_init = NET_ENUM_FALSE;
-    if(gunno >= NET_SYSTEM_GUN_NUMBER){
-        return;
-    }
-
-    if(ykc_monitor_is_init){
+    if(gun >= NET_SYSTEM_GUN_NUMBER){
         return;
     }
 
@@ -1315,16 +1310,8 @@ void ykc_monitor_message_info_init(uint8_t gunno)  ///////// 这是网络部分�
     uint16_t valid_len = 0x00;
     s_ykc_monitor_handle = net_get_net_handle();
     pile_number = (uint8_t*)(s_ykc_monitor_handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, 0x00, option));
-    s_ykc_monitor_base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
+    s_ykc_monitor_base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gun));
     valid_len = strlen((char*)pile_number);
-
-    ykc_monitor_is_init = NET_ENUM_TRUE;
-
-    for(uint8_t gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
-        s_ykc_monitor_realtime_data_interval[gunno] = YKC_MONITOR_REALTIME_DATA_INTERVAL_INIT;
-        s_ykc_monitor_realtime_data_count[gunno] = rt_tick_get();
-    }
-    memset(&s_ykc_monitor_flag_info, 0x00, sizeof(s_ykc_monitor_flag_info));
 
     /** 初始化登录签到 */
     g_ykc_monitor_preq_login.head.encrypt = NET_YKC_MONITOR_MESSAGE_ENCRYPT_DISABLE;
@@ -1432,6 +1419,34 @@ void ykc_monitor_message_info_init(uint8_t gunno)  ///////// 这是网络部分�
     /** 初始化升级结果响应 */
     g_ykc_monitor_pres_remote_update.head.encrypt = NET_YKC_MONITOR_MESSAGE_ENCRYPT_DISABLE;
     memcpy(g_ykc_monitor_pres_remote_update.body.pile_number, g_ykc_monitor_preq_login.body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
+}
+
+/*************************************************
+ * 函数名      ykc_monitor_message_info_init
+ * 功能          云快充监控报文信息初始化
+ * **********************************************/
+void ykc_monitor_message_info_init(uint8_t gunno)  ///////// 这是网络部分外部调用的第一个函数(可以在里面进行相关初始化)
+{
+    static uint8_t ykc_monitor_is_init = NET_ENUM_FALSE;
+    if(gunno >= NET_SYSTEM_GUN_NUMBER){
+        return;
+    }
+
+    if(ykc_monitor_is_init){
+        return;
+    }
+
+    s_ykc_monitor_handle = net_get_net_handle();
+
+    ykc_monitor_is_init = NET_ENUM_TRUE;
+
+    for(uint8_t gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
+        s_ykc_monitor_realtime_data_interval[gunno] = YKC_MONITOR_REALTIME_DATA_INTERVAL_INIT;
+        s_ykc_monitor_realtime_data_count[gunno] = rt_tick_get();
+    }
+    memset(&s_ykc_monitor_flag_info, 0x00, sizeof(s_ykc_monitor_flag_info));
+
+    ykc_monitor_message_field_init(gunno);
 }
 
 /*************************************************

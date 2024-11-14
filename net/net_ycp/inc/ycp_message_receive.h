@@ -16,6 +16,7 @@
 
 #define NET_YCP_QRCODE_BUF_MAX                                 256  /* 二维码缓存长度 */
 #define NET_YCP_SERVICE_PHONE_BUF_MAX                          32   /* 客服电话缓存长度 */
+#define YCP_DEVICE_SN_LENGTH_MAX                               32   /** 设备编号最大长度 */
 
 /** server response event */
 #define NET_YCP_SRES_EVENT_LOGIN                               0    /* 服务器响应事件：登录响应 */
@@ -101,10 +102,17 @@ typedef struct{
     uint8_t service_phone[NET_YCP_SERVICE_PHONE_BUF_MAX];
 }ycp_service_phone_buf_t;
 
+typedef struct{
+    uint8_t device_sn_length;
+    uint8_t device_sn[YCP_DEVICE_SN_LENGTH_MAX];
+}ycp_device_sn_buf_t;
+
 #pragma pack()
 
 void* ycp_get_qrcode_info(void);
 void* ycp_get_service_phone_info(void);
+void* ycp_get_device_sn_info(void);
+
 int32_t ycp_message_recv_init(void);
 
 #endif /* NET_PACK_USING_YCP */

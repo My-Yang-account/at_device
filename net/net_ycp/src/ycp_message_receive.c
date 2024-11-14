@@ -18,6 +18,7 @@
 
 #ifdef NET_PACK_USING_YCP
 
+static ycp_device_sn_buf_t s_ycp_device_sn_buf;
 static ycp_qrcode_buf_t s_ycp_qrcode_buf;
 static ycp_service_phone_buf_t s_ycp_service_phone_buf;
 extern uint8_t s_ycp_current_transaction_number[NET_SYSTEM_GUN_NUMBER][NET_YCP_SERIAL_NUMBER_LENGTH_DEFAULT];
@@ -82,6 +83,15 @@ void* ycp_get_service_phone_info(void)
     return &s_ycp_service_phone_buf;
 }
 
+/***********************************************
+ * 函数名      ycp_get_device_sn_info
+* 功能           获取设备编号信息
+ **********************************************/
+void* ycp_get_device_sn_info(void)
+{
+    return &s_ycp_device_sn_buf;
+}
+
 /*****************************************************************
  * 函数名                   ycp_callback_response_login
  * 功能                       处理登录响应
@@ -116,16 +126,11 @@ static void ycp_callback_response_login(uint8_t* data, uint16_t length)
 
     device_sn = (data + sizeof(Net_YcpPro_SRes_LogIn_t));
 
-    LOG_D("ycp login device sn|%d", response->body.device_sn_length);
-    for(uint8_t count = 0x00; count < (response->body.device_sn_length /0x02); count++){
-        if(device_sn[count] < 0x10){
-            rt_kprintf("0%x ", device_sn[count]);
-        }else{
-            rt_kprintf("%x ", device_sn[count]);
-        }
-    }
-    rt_kprintf("\n");
+    memset(s_ycp_device_sn_buf.device_sn, 0x00, YCP_DEVICE_SN_LENGTH_MAX);
+    ycp_bcd_to_ascii(s_ycp_device_sn_buf.device_sn, (YCP_DEVICE_SN_LENGTH_MAX - 0x01), device_sn, (response->body.device_sn_length /0x02));
+    s_ycp_device_sn_buf.device_sn_length = strlen((char*)s_ycp_device_sn_buf.device_sn);
 
+    LOG_D("s_ycp_device_sn_buf.device_sn(%s)\n", s_ycp_device_sn_buf.device_sn);
     ycp_net_event_send(NET_YCP_EVENT_HANDLE_SERVER, NET_YCP_EVENT_TYPE_RESPONSE, 0x00, NET_YCP_SRES_EVENT_LOGIN);
 }
 
@@ -408,6 +413,7 @@ static void ycp_callback_request_set_service_phone(uint8_t* data, uint16_t lengt
     }else{
         memset(s_ycp_service_phone_buf.service_phone, 0x00, NET_YCP_SERVICE_PHONE_BUF_MAX);
         memcpy(s_ycp_service_phone_buf.service_phone, &(request->body.result), request->body.service_phone_len);
+        memcpy(&g_ycp_sreq_set_service_phone, request, (sizeof(g_ycp_sreq_set_service_phone) - NET_YCP_PROTOCOL_CHECK_REGION_SIZE));
     }
     ycp_net_event_send(NET_YCP_EVENT_HANDLE_SERVER, NET_YCP_EVENT_TYPE_REQUEST, 0x00, NET_YCP_SREQ_EVENT_SET_SERVICE_PHONE);
 }

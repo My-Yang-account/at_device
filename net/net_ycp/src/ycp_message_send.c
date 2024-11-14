@@ -353,6 +353,28 @@ uint8_t ycp_get_message_wait_response_timeout_state(uint8_t gunno, uint32_t time
 }
 
 /**************************************************************************
+ * 函数名                 ycp_bcd_to_ascii
+ * 功能                     将BCD转成字符码
+ * 说明
+ * ***********************************************************************/
+void ycp_bcd_to_ascii(uint8_t *ascii, uint8_t alen, uint8_t *bcd, uint8_t blen)
+{
+    if((ascii == NULL) || (bcd == NULL) || (alen == 0x00) || (blen == 0x00)){
+        return;
+    }
+    int16_t aindex, bindex;
+
+    memset(ascii, 0x00, alen);
+
+    for(aindex = 0, bindex = 0; ((aindex + 1) < alen) && (bindex < blen); aindex += 2, bindex++){
+        ascii[aindex] = (uint8_t)((bcd[bindex] &0xf0) >>4);
+        ascii[aindex] += 0x30;
+        ascii[aindex + 1] = (bcd[bindex] &0x0f);
+        ascii[aindex + 1] += 0x30;
+    }
+}
+
+/**************************************************************************
  * 函数名                 ycp_ascii_to_bcd
  * 功能                     将字符码转成BCD
  * 说明
@@ -633,7 +655,7 @@ static void net_ycp_message_send_thread_entry(void *parameter)
                 uint8_t rentry = 0x00, data[NET_YCP_SIM_BCD_LENGTH_DEFAULT *0x02 + 0x01], *sim_no = NULL, *imei = NULL;
                 uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YCP |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
                 struct net_handle* handle = net_get_net_handle();
-
+                ycp_device_sn_buf_t *device_sn = NULL;
                 memset(data, 0x00, (NET_YCP_SIM_BCD_LENGTH_DEFAULT *0x02 + 0x01));
                 (void)(handle->get_system_data(NET_SYSTEM_DATA_NAME_ICCID, data, sizeof(data), option));
 
@@ -666,7 +688,7 @@ static void net_ycp_message_send_thread_entry(void *parameter)
                 ycp_net_event_receive(NET_YCP_EVENT_HANDLE_SERVER, NET_YCP_EVENT_TYPE_RESPONSE, 0x00,
                         (NET_YCP_EVENT_OPTION_OR |NET_YCP_EVENT_OPTION_CLEAR), NET_YCP_SRES_EVENT_LOGIN, NULL);
                 s_ycp_socket_info.state = YCP_SOCKET_STATE_LOGIN_WAIT;
-                net_get_net_handle()->net_state = NET_SOCKET_STATE_LOGIN_WAIT;
+                handle->net_state = NET_SOCKET_STATE_LOGIN_WAIT;
                 ycp_message_send_port(NETYCP_PREQCMD_SINGIN, s_ycp_socket_info.fd, &g_ycp_preq_login,
                         sizeof(g_ycp_preq_login));
                 while(rentry < NET_YCP_WAIT_LOGIN_RENTRY){
@@ -676,8 +698,13 @@ static void net_ycp_message_send_thread_entry(void *parameter)
                         s_ycp_socket_info.operate_fail.login = 0;
                         step = NET_YCP_NET_STATE_MONITORING;
 
+                        device_sn = (ycp_device_sn_buf_t*)(ycp_get_device_sn_info());
+                        if(handle->set_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, (uint8_t*)device_sn->device_sn, device_sn->device_sn_length, option) >= 0x00){
+                            handle->system_data_storage(0x00);
+                        }
+
                         s_ycp_socket_info.state = YCP_SOCKET_STATE_LOGIN_SUCCESS;
-                        net_get_net_handle()->net_state = NET_SOCKET_STATE_LOGIN_SUCCESS;
+                        handle->net_state = NET_SOCKET_STATE_LOGIN_SUCCESS;
                         s_ycp_socket_info.heartbeat = 0x00;
                         break;
                     }
@@ -689,7 +716,7 @@ static void net_ycp_message_send_thread_entry(void *parameter)
                     wait_unlock = rt_tick_get();
                     step = NET_YCP_NET_STATE_OPEN_SOCKET;
                     s_ycp_socket_info.state = YCP_SOCKET_STATE_OPEN;
-                    net_get_net_handle()->net_state = NET_SOCKET_STATE_OPEN;
+                    handle->net_state = NET_SOCKET_STATE_OPEN;
                     while(ycp_socket_is_lock()){
                         if((rt_tick_get() - wait_unlock) > NET_YCP_WAIT_UNLOCK_TIMEOUT){
                             break;
@@ -1090,7 +1117,7 @@ static void net_ycp_message_send_thread_entry(void *parameter)
             }
             /***** [运营平台二维码配置响应] *****/
             if(ycp_net_event_receive(NET_YCP_EVENT_HANDLE_CHARGEPILE, NET_YCP_EVENT_TYPE_RESPONSE, gunno,
-                    (NET_YCP_EVENT_OPTION_OR |NET_YCP_EVENT_OPTION_CLEAR), NET_YCP_SREQ_EVENT_QRCODE_CONFIG, NULL) > 0){
+                    (NET_YCP_EVENT_OPTION_OR |NET_YCP_EVENT_OPTION_CLEAR), NET_YCP_PRES_EVENT_QRCODE_CONFIG, NULL) > 0){
                 Net_YcpPro_PRes_Qrcode_Config_t *qrcode = (Net_YcpPro_PRes_Qrcode_Config_t*)(s_ycp_response_buff.general_transmit_buff);
                 qrcode->head.sequence = g_ycp_sreq_qrcode_config.head.sequence;
                 ycp_message_send_port(NETYCP_PRESCMD_QRCODE_CONFIG, s_ycp_socket_info.fd, s_ycp_response_buff.general_transmit_buff,

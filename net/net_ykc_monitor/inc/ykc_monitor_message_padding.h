@@ -51,6 +51,7 @@ int8_t ykc_monitor_message_pro_apply_merge_charge_active_response(uint8_t gunno,
 int8_t ykc_monitor_message_pro_remote_reset_request(void *data, uint8_t len);
 int8_t ykc_monitor_message_pro_remote_start_merge_charge_request(uint8_t gunno, void *data, uint8_t len);
 
+void ykc_monitor_message_field_init(uint8_t gun);
 void ykc_monitor_message_info_init(uint8_t gunno);
 
 void ykc_monitor_chargepile_request_padding_realtime_data(uint8_t gunno, uint8_t is_init);
