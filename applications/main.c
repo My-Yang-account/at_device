@@ -28,11 +28,28 @@
 #define DBG_LVL DBG_LOG
 #include <rtdbg.h>
 
-
 //void rt_kprintf(const char *fmt, ...)
 //{
 //
 //}
+
+extern int get_at_device_appinfo_at(void);
+extern int get_at_device_appinfo_check_card(void);
+extern int get_at_device_appinfo_check_gprs_registered(void);
+extern uint32_t g_net_target_platform_tick;
+static uint32_t s_net_alive_tick;
+
+static void net_alive_check(void)
+{
+    if(app_nsal_get_link_state() != APP_NET_STATE_AUTH_SECCESS){
+        if(get_at_device_appinfo_at() && get_at_device_appinfo_check_card() && get_at_device_appinfo_check_gprs_registered()){
+        }else{
+            s_net_alive_tick = rt_tick_get();
+        }
+    }else{
+        s_net_alive_tick = rt_tick_get();
+    }
+}
 
 int main(void)
 {
@@ -48,6 +65,30 @@ int main(void)
 
     SerialScreen_SetInputInfo();  /* �ϵ���������ϼ��ʹ�� */
 
+//    MX_GPIO_Init();
+//    MX_DMA_Init();
+//    MX_SPI1_Init();
+//    MX_SPI3_Init();
+//    MX_CAN2_Init();
+//    MX_RTC_Init();
+//    MX_ADC1_Init();
+//    MX_CAN1_Init();
+//    thaisen_dma_init();
+//    MX_I2C1_Init();
+//    MX_TIM1_Init();
+//    MX_IWDG_Init();
+//    thaisenW25qXX_init();
+//    thaisenCCVoltInit();
+
+
+
+//    thaisen_led_init();
+//    thaisen_ammeter_device_init();
+//    thaisen_SysFaultCheck_device_init();
+//    thaisenTempInit();
+//    get_eeprom_para();
+//    TH_HardwareData_init();
+
     thaisen_board_bsp_init();
     prepose_init();
     app_nfunc_config_init();
@@ -55,6 +96,9 @@ int main(void)
     SerialScreen_InputInfoGet();
     SerialScreen_SetInputInfo();
     rt_thread_mdelay(100);
+
+//    TH_CAN1_FilterConf();
+//    TH_CAN2_FilterConf();
 
     thaisenChargInit();
 	thaisen_chargModule_Init(thaisen_get_charg_status, mw_get_bms_data(0), mw_get_bms_data(1),(struct thasienModuleSetStruct *)sys_get_module_config_info());
@@ -70,23 +114,55 @@ int main(void)
     {
         mw_iwdg_refresh();
 
+        net_alive_check();
         rt_thread_mdelay(200);
         mw_iwdg_refresh();
+
+        net_alive_check();
         chargepile_power_adjust();
         rt_thread_mdelay(200);
         mw_iwdg_refresh();
+
+        net_alive_check();
         chargepile_power_adjust();
         rt_thread_mdelay(200);
         mw_iwdg_refresh();
+
+        net_alive_check();
         chargepile_power_adjust();
         rt_thread_mdelay(200);
         mw_iwdg_refresh();
+
+        net_alive_check();
         chargepile_power_adjust();
         rt_thread_mdelay(200);
         mw_iwdg_refresh();
+
+        net_alive_check();
         chargepile_power_adjust();
 
         mw_running_led_toggle(0, 0);
+
+        if(g_net_target_platform_tick > rt_tick_get()){
+            if((rt_tick_get() + 0xFFFFFFFF - g_net_target_platform_tick) > 5 *60 *1000){
+                net_operation_set_event(0x00, NET_OPERATION_EVENT_REBOOT);
+            }
+        }else{
+            if((rt_tick_get() - g_net_target_platform_tick) > 5 *60 *1000){
+                net_operation_set_event(0x00, NET_OPERATION_EVENT_REBOOT);
+            }
+        }
+
+
+        if(s_net_alive_tick > rt_tick_get()){
+            if((rt_tick_get() + 0xFFFFFFFF - s_net_alive_tick) > 90 *60000){
+                net_operation_set_event(0x00, NET_OPERATION_EVENT_REBOOT);
+            }
+        }else{
+            if((rt_tick_get() - s_net_alive_tick) > 90 *60000){
+                net_operation_set_event(0x00, NET_OPERATION_EVENT_REBOOT);
+            }
+        }
 
         extern uint8_t app_nsal_is_remote_reset(void);
         extern uint8_t thaisen_query_screen_reboot(void);

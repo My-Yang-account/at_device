@@ -372,7 +372,7 @@ void ykc_ascii_to_bcd(uint8_t *ascii, uint8_t alen, uint8_t *bcd, uint8_t blen)
     }
 }
 
-
+uint32_t g_net_target_platform_tick = 0;
 static void net_ykc_message_send_thread_entry(void *parameter)
 {
     uint8_t step = NET_YKC_NET_STATE_OPEN_SOCKET, is_power_on = 0x00;
@@ -381,6 +381,8 @@ static void net_ykc_message_send_thread_entry(void *parameter)
 
     while(1)
     {
+        g_net_target_platform_tick = rt_tick_get();
+
         if((net_get_ota_info()->state >= NET_OTA_STATE_OPEN_LINK) && (net_get_ota_info()->state <= NET_OTA_STATE_UPDATING)){
             rt_thread_mdelay(5000);
             continue;
