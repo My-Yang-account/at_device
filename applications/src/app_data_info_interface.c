@@ -199,9 +199,9 @@ struct qrcode_info *thaisen_app_get_gunno_qrcode(uint8_t gunno) // OK
         }
     /** 配置的二维码格式是：二维码前缀 + 桩号 + 枪号 */
     case CP_SET_QRCODE_FORMAT_PREFIX_DEVICE_SN_PORT:
-#ifdef CP_QRCODE_CONFIG_USING_TLD
 #ifdef APP_USING_DOUBLEGUN
     {
+#ifdef CP_QRCODE_CONFIG_USING_TLD
         uint8_t clen = 0x00;
         char *charptr = strchr((char*)s_qrcode.qrcode, '.');
         if((charptr != NULL) && ((uint32_t)charptr > (uint32_t)s_qrcode.qrcode)){
@@ -215,15 +215,23 @@ struct qrcode_info *thaisen_app_get_gunno_qrcode(uint8_t gunno) // OK
 #endif
             }
         }
+#elif defined(CP_QRCODE_CONFIG_USING_DUPU)
+        uint8_t clen = 0x00;
+        char *charptr = strchr((char*)s_qrcode.qrcode, '.');
+        if((charptr != NULL) && ((uint32_t)charptr > (uint32_t)s_qrcode.qrcode)){
+            clen = ((uint32_t)charptr - (uint32_t)s_qrcode.qrcode);
+            if((clen > 0x01) && (clen < sizeof(s_qrcode.qrcode))){    /** 0x01 是因为要根据枪号修改二维码中的端口号，占1位 */
+                s_qrcode.qrcode[clen - 0x01] = ('1' + gunno);
+            }
+        }
+#else
+        /** 二维码下发格式(二维码前缀 + 全部桩号 + 0 + 枪号) */
+        if(s_qrcode.qrcode_len > 0x00){
+            s_qrcode.qrcode[s_qrcode.qrcode_len - 0x01] = ('1' + gunno);
+        }
+#endif /* CP_QRCODE_CONFIG_USING_TLD */
     }
 #endif /* APP_USING_DOUBLEGUN */
-
-#else
-    /** 二维码下发格式(二维码前缀 + 全部桩号 + 0 + 枪号) */
-    if(s_qrcode.qrcode_len > 0x00){
-        s_qrcode.qrcode[s_qrcode.qrcode_len - 0x01] = ('1' + gunno);
-    }
-#endif /* CP_QRCODE_CONFIG_USING_TLD */
         break;
     default:
         break;
