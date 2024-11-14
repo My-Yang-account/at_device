@@ -273,6 +273,7 @@ struct LCD_ASSISTANT_DATA{
 
     u8 OccupyGunNum;                     //处于占用但未充电的枪数量
     u8 DeviceType;                       //设备类型
+    u8 RefrenshPeriod;                   //实时数据更新周期
 };
 
 struct LCD_TRIGGER_ITEM{
@@ -1074,8 +1075,26 @@ s32 SerialScreen_ScreenSet_Trigger_Event(u8 Event, u16 DurationTime, u8 JustNoti
 static void SerialScreen_RealTime_InfoGet(void)
 {
     u8 buf[4];
-    LcdData.setData.SIM_Strength = thaisen_app_get_signal_strength();
-    memcpy(LcdData.setData.SIM_card, thaisen_app_get_sim_number(), 21);
+
+    if(++LcdAssistantData.RefrenshPeriod > 1000 /100){   //线程运行时基10ms， 每1s更新一次数据
+        u8 valid_len = sizeof(LcdData.setData.Help_Number), *data = NULL;
+
+        LcdData.setData.SIM_Strength = thaisen_app_get_signal_strength();
+        memcpy(LcdData.setData.SIM_card, thaisen_app_get_sim_number(), 21);
+
+        if(LcdData.CurrentPage != LCD_PAGE_MENU_COM_1){
+            data = UI_READ_SINGLE_CFG_STR(CONFIG_ITEM_HELP_PHONE, 0);
+
+            valid_len = valid_len > strlen((char*)data) ? strlen((char*)data) : valid_len;
+            str_ncpy((char *)(LcdData.setData.Help_Number), data, valid_len);
+        }
+
+        for(int i = 0; i< LCD_GUN_NUM; i++)
+        {
+            thaisen_get_device_sn((char*)LcdData.runData.chgcode[i], sizeof(LcdData.runData.chgcode[i]), i);
+        }
+    }
+
     LcdData.setData.ota_progress = s_ota_info->progress;
 
     if(thaisen_get_current_period_time_hm(buf, sizeof(buf)) >= 0){
@@ -1257,7 +1276,7 @@ void SerialScreen_BtnChgInfoGet(int port)
 	mem_set(LcdData.setData.ErWeiCodePre, 0, sizeof(LcdData.setData.ErWeiCodePre));
 	str_ncpy((char *)(LcdData.setData.pileID), (char *)(UI_READ_SINGLE_CFG_STR(CONFIG_ITEM_PILE_NUMBER, 0)), \
 	         sizeof(LcdData.setData.pileID));
-	str_ncpy((char *)(LcdData.setData.Help_Number), (char *)(UI_READ_SINGLE_CFG_STR(OCONFIG_ITEM_HELP_NUMBER, 0)), \
+	str_ncpy((char *)(LcdData.setData.Help_Number), (char *)(UI_READ_SINGLE_CFG_STR(CONFIG_ITEM_HELP_PHONE, 0)), \
 					 sizeof(LcdData.setData.Help_Number));
 
     qrcode_pre = thaisen_app_get_qrcode_prefix(&qrcode_pre_len);
@@ -1285,7 +1304,7 @@ void SerialScreen_BtnChgInfoSet(int port)
     SerialScreen_JumpPage(&SerialScreen, LCD_PAGE_STORAGE_WAITING);
 
 	UI_SYNC_SINGLE_CFG_STR(CONFIG_ITEM_PILE_NUMBER,LcdData.setData.pileID,str_len(LcdData.setData.pileID));
-	UI_SYNC_SINGLE_CFG_STR(OCONFIG_ITEM_HELP_NUMBER,LcdData.setData.Help_Number,str_len(LcdData.setData.Help_Number));
+	UI_SYNC_SINGLE_CFG_STR(CONFIG_ITEM_HELP_PHONE,LcdData.setData.Help_Number,str_len(LcdData.setData.Help_Number));
 	if(str_len(temp) > 0x02){
 	    UI_SYNC_SINGLE_CFG_STR(CONFIG_ITEM_QRCODE_PRE,temp,str_len(temp));
 	}
@@ -4857,7 +4876,7 @@ struct LCD_DATA_FIFO_TYPE *SerialScreen_Init(struct SerialScreenObj *cmd)
 
     for(int i=0;i<LCD_GUN_NUM;i++)
     {
-        thaisen_get_device_sn(LcdData.runData.chgcode[i], sizeof(LcdData.runData.chgcode[i]), i);
+        thaisen_get_device_sn((char*)LcdData.runData.chgcode[i], sizeof(LcdData.runData.chgcode[i]), i);
         LcdData.pPageIndex[i] = &LCD_ALL_PAGE_TAB[0];
     }
 
@@ -4866,7 +4885,7 @@ struct LCD_DATA_FIFO_TYPE *SerialScreen_Init(struct SerialScreenObj *cmd)
 
     str_ncpy((char *)LcdData.setData.UserPasswdShow,UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_SCREEN_PASSWORD, 0),sizeof(LcdData.setData.UserPasswd));
 	str_ncpy((char *)LcdData.setData.App_SoftWareVersion,(char *)(thaisen_app_get_app_version()->version), strlen((char *)(thaisen_app_get_app_version()->version)));
-	str_ncpy((char *)(LcdData.setData.Help_Number), (char *)(UI_READ_SINGLE_CFG_STR(OCONFIG_ITEM_HELP_NUMBER, 0)), \
+	str_ncpy((char *)(LcdData.setData.Help_Number), (char *)(UI_READ_SINGLE_CFG_STR(CONFIG_ITEM_HELP_PHONE, 0)), \
 					 sizeof(LcdData.setData.Help_Number));	
 	LcdData.setData.sup_Local = *((u8*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_LOCAL, 0));
 	LcdData.setData.sup_insulation = *((u8*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_INSULATION, 0));

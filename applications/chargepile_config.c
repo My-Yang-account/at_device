@@ -291,11 +291,6 @@ static struct config_item s_config_item_set[CONFIG_ITEM_SIZE] =
         (uint8_t*)&s_chargepile_config_info.config_info.gun_num,
         NULL},
 
-        {OCONFIG_ITEM_HELP_NUMBER,                                                           /* 配置项：帮助电话 */
-        (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.pile_info.help_number)),
-        (uint8_t*)&s_chargepile_config_info.pile_info.help_number,
-        NULL},
-
         {CONFIG_ITEM_SUPORT_LOCAL,                                                           /* 配置项：本地启动 */
         (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.local_charge)),
         (uint8_t*)&s_chargepile_config_info.function_enable.local_charge,
