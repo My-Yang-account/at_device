@@ -470,6 +470,8 @@ void ykc_monitor_ascii_to_bcd(uint8_t *ascii, uint8_t alen, uint8_t *bcd, uint8_
  * ***********************************************************************/
 void ykc_monitor_platlog_data_insert(void *data, uint16_t len, uint8_t verify_result, const char* label)
 {
+    return;
+
 #ifdef NET_YKC_MONITOR_AS_MONITOR
     if((data == NULL) || (len == 0x00)){
         return;
