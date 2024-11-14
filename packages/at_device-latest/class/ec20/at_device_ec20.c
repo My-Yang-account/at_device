@@ -930,8 +930,7 @@ static struct netdev *ec20_netdev_add(const char *netdev_name)
         (resp) = at_resp_set_info((resp), 128, (resp_line), rt_tick_from_millisecond(timeout));    \
         if (at_obj_exec_cmd((client), (resp), (cmd)) < 0)                                          \
         {                                                                                          \
-            result = -RT_ERROR;                                                                    \
-            goto __exit;                                                                          \
+                                                                                                   \
         }                                                                                          \
     } while(0)                                                                                     \
 
@@ -945,8 +944,11 @@ static void ec20_init_thread_entry(void *parameter)
 #define CGREG_RETRY                    99
 #define CPIN_RETRY                     20
 
+#define POWER_OFF_COUNT                300 *1000
+
     int i, qi_arg[3] = {0}, is_digit = 0;
     int retry_num = INIT_RETRY;
+    unsigned int power_off_tick = rt_tick_get();
     char parsed_data[20] = {0};
     rt_err_t result = RT_EOK;
     at_response_t resp = RT_NULL;
@@ -1042,6 +1044,7 @@ static void ec20_init_thread_entry(void *parameter)
                 s_at_device_appinfo.card = 1;
                 break;
             }
+            LOG_I("search sim card again(%d)", i);
         }
 
         if(i == CPIN_RETRY){
@@ -1088,6 +1091,8 @@ static void ec20_init_thread_entry(void *parameter)
                 break;
             }
             rt_thread_mdelay(1000);
+
+            LOG_I("query sim card signal strength again(%d)", i);
         }
         if (i == CSQ_RETRY)
         {
@@ -1107,6 +1112,8 @@ static void ec20_init_thread_entry(void *parameter)
                 break;
             }
             rt_thread_mdelay(1000);
+
+            LOG_I("query GSM network is registered again(%d)", i);
         }
         if (i == CREG_RETRY)
         {
@@ -1127,6 +1134,8 @@ static void ec20_init_thread_entry(void *parameter)
                 break;
             }
             rt_thread_mdelay(1000);
+
+            LOG_I("query GPRS network is registered again(%d)", i);
         }
         if (i == CGREG_RETRY)
         {
@@ -1181,12 +1190,16 @@ static void ec20_init_thread_entry(void *parameter)
     __exit:
         if (result != RT_EOK)
         {
-            s_at_device_appinfo.boot = 0;
             /* power off the ec20 device */
-            ec20_power_off(device);
-            rt_thread_mdelay(10000);
+            if((rt_tick_get() - power_off_tick) > POWER_OFF_COUNT)
+            {
+                s_at_device_appinfo.boot = 0;
+                ec20_power_off(device);
+                power_off_tick = rt_tick_get();
+                LOG_I("4G module execute power off");
+            }
 
-            LOG_I("%s device initialize retry...", device->name);
+            LOG_I("%s device initialize retry...(%d)", device->name, (rt_tick_get() - power_off_tick));
         }
     }
 
