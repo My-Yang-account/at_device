@@ -542,7 +542,7 @@ int32_t sys_card_uid_whitelists_query(uint8_t *data, uint8_t len);
 int32_t sys_card_uid_whitelists_delete(uint8_t *data, uint8_t len);
 
 int32_t sys_period_time_format_valid(void *t);
-int32_t sys_period_time_continuous_valid(void *t, uint8_t tlen);
+int32_t sys_period_time_continuous_valid(void *t, uint8_t tlen, uint8_t valid_count);
 int32_t sys_period_time_resume_default(void *t, uint8_t tlen);
 
 uint8_t sys_get_offbilling_rate_number(uint32_t curr_time);

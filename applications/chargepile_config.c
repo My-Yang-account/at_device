@@ -1410,7 +1410,7 @@ int32_t sys_string_is_pure_digital_alphabet(const char* string, uint16_t slen)
 int32_t chargepile_check_config(void)
 {
     struct period_time time[CP_RATED_TYPE_NUM_MAX *CP_RATED_TYPE_PERIOD_NUM];  /* 时段时间 */
-    uint8_t i = 0x00, j = 0x00;
+    uint8_t i = 0x00, j = 0x00, valid_count = 0;;
     uint16_t valid_len = 0x00;
     uint32_t single_module_power = 0x00;       /* 单个模块能输出的最大(额定)功率 */
     s_system_power_max = 0x00;
@@ -1754,10 +1754,14 @@ int32_t chargepile_check_config(void)
     }else{
         for(i = 0x00; i < CP_RATED_TYPE_NUM_MAX; i++){
             for(j = 0x00; j < CP_RATED_TYPE_PERIOD_NUM; j++){
-                time[i *CP_RATED_TYPE_PERIOD_NUM + j] = s_chargepile_config_info.billing_rule.time[i][j];
+                if(s_chargepile_config_info.billing_rule.time[i][j].shour < 24){
+                    time[valid_count] = s_chargepile_config_info.billing_rule.time[i][j];
+                    valid_count++;
+                }
             }
         }
-        if(sys_period_time_continuous_valid(time, sizeof(time)) != 0x01){
+        if(sys_period_time_continuous_valid(time, sizeof(time), valid_count) != 0x01){
+            LOG_W("offline billing period not continuous");
             sys_period_time_resume_default(s_chargepile_config_info.billing_rule.time, sizeof(s_chargepile_config_info.billing_rule.time));
         }
     }
@@ -2332,9 +2336,10 @@ int32_t sys_period_time_format_valid(void *t)
  * 功能            判断时段时间是否连续
  * 参数           t   时段时间信息
  *      tlen  时段时间信息长度
+ *      valid_count   有效时间段个数
  * 返回           -1：重复    1：连续  0：间断
  ********************************************************/
-int32_t sys_period_time_continuous_valid(void *t, uint8_t tlen)
+int32_t sys_period_time_continuous_valid(void *t, uint8_t tlen, uint8_t valid_count)
 {
     if(t == NULL){
         return 0x00;
@@ -2342,14 +2347,17 @@ int32_t sys_period_time_continuous_valid(void *t, uint8_t tlen)
     if(tlen < (sizeof(struct period_time) *CP_RATED_TYPE_NUM_MAX *CP_RATED_TYPE_PERIOD_NUM)){
         return 0x00;
     }
+    if(!((valid_count > 0x00) && (valid_count <= CP_RATED_TYPE_NUM_MAX *CP_RATED_TYPE_PERIOD_NUM))){
+        return 0x00;
+    }
 
     uint8_t i = 0x00, j = 0x00, min = 0x00;
     struct period_time *time = (struct period_time*)t, temp;
 
     /** 选择排序，按开始时间的小时进行升序排列 */
-    for(i = 0; i < (CP_RATED_TYPE_NUM_MAX *CP_RATED_TYPE_PERIOD_NUM - 1); i++){
+    for(i = 0; i < (valid_count - 1); i++){
         min = i;
-        for(j = i + 1; j < (CP_RATED_TYPE_NUM_MAX *CP_RATED_TYPE_PERIOD_NUM); j++){
+        for(j = i + 1; j < valid_count; j++){
             if (time[min].shour > time[j].shour){
                 min = j;
             }
@@ -2361,7 +2369,7 @@ int32_t sys_period_time_continuous_valid(void *t, uint8_t tlen)
         }
     }
 
-    for(i = 0; i < (CP_RATED_TYPE_NUM_MAX *CP_RATED_TYPE_PERIOD_NUM); i++){
+    for(i = 0; i < valid_count; i++){
         rt_kprintf("1111 period time(%d)[%d:%d-%d:%d]\n", i, time[i].shour,
                 time[i].smin,
                 time[i].ehour,
@@ -2369,7 +2377,7 @@ int32_t sys_period_time_continuous_valid(void *t, uint8_t tlen)
     }
 
     /** 判断是否连续 */
-    for(i = 0; i < (CP_RATED_TYPE_NUM_MAX *CP_RATED_TYPE_PERIOD_NUM - 1); i++){
+    for(i = 0; i < (valid_count - 1); i++){
         if(time[i].shour == time[i].ehour){
             if(time[i].smin > time[i].emin){
                 return -0x01;
@@ -2464,11 +2472,11 @@ uint8_t sys_get_offbilling_rate_number(uint32_t curr_time)
         for(j = 0x00; j < CP_RATED_TYPE_PERIOD_NUM; j++){
             if((s_chargepile_config_info.billing_rule.time[i][j].shour >= 24) ||
                     (s_chargepile_config_info.billing_rule.time[i][j].ehour >= 24)){
-                break;
+                continue;
             }
             if((s_chargepile_config_info.billing_rule.time[i][j].smin >= 60) ||
                     (s_chargepile_config_info.billing_rule.time[i][j].emin >= 60)){
-                break;
+                continue;
             }
 
             end_hour = s_chargepile_config_info.billing_rule.time[i][j].ehour;
@@ -2524,11 +2532,11 @@ uint32_t sys_get_offbilling_unit_price(uint32_t curr_time)
         for(j = 0x00; j < CP_RATED_TYPE_PERIOD_NUM; j++){
             if((s_chargepile_config_info.billing_rule.time[i][j].shour >= 24) ||
                     (s_chargepile_config_info.billing_rule.time[i][j].ehour >= 24)){
-                break;
+                continue;
             }
             if((s_chargepile_config_info.billing_rule.time[i][j].smin >= 60) ||
                     (s_chargepile_config_info.billing_rule.time[i][j].emin >= 60)){
-                break;
+                continue;
             }
 
             end_hour = s_chargepile_config_info.billing_rule.time[i][j].ehour;

@@ -592,6 +592,7 @@ struct LCD_DISPLAY_VALUE_TYPE{
 	u16 KeyVal; //寄存器值
 	u16 KeyTimer;	//控制按键间隔
 	u8 KeyInput[100]; //键盘输入字符串
+	u8 KeyInputLen;   //键盘输入字符串有效长度
 
 	u8 BillIndex_Overreturn[LCD_GUN_NUM];
 	u8 BillCurrentIndex[LCD_GUN_NUM]; // 订单当前下标
@@ -2053,7 +2054,7 @@ void SerialScreen_OfflineBillingSet(void)
 {
     struct sys_billing_rule *rule = (struct sys_billing_rule*)sys_read_config_item_content(CONFIG_ITEM_BILLING_RULE, 0);
     struct Period_Time time[CP_RATED_TYPE_NUM_MAX *CP_RATED_TYPE_PERIOD_NUM];  /* 时段时间 */
-    u8 i = 0x00, j = 0x00;
+    u8 i = 0x00, j = 0x00, valid_count = 0;
     s8 res = 0;
 
 
@@ -2067,12 +2068,16 @@ void SerialScreen_OfflineBillingSet(void)
         rt_kprintf("offline billing period time format error\n");
         return;
     }else{
+        memset(time, 0x00, sizeof(time));
         for(i = 0x00; i < CP_RATED_TYPE_NUM_MAX; i++){
             for(j = 0x00; j < CP_RATED_TYPE_PERIOD_NUM; j++){
-                time[i *CP_RATED_TYPE_PERIOD_NUM + j] = LcdData.setData.PeriodTime[i][j];
+                if(LcdData.setData.PeriodTime[i][j].shour < 24){
+                    time[valid_count] = LcdData.setData.PeriodTime[i][j];
+                    valid_count++;
+                }
             }
         }
-        if((res = sys_period_time_continuous_valid(time, sizeof(time))) != 0x01){
+        if((res = sys_period_time_continuous_valid(time, sizeof(time), valid_count)) != 0x01){
             if(res == 0){
                 /* 弹出提示：设置的时间段不连续 */
                 LcdData.setData.OBwarning = ICON_OB_NOT_CONTINUOUS;
@@ -5056,11 +5061,10 @@ void SerialScreen_SaveKey(u16 regaddr,u16 regvalue,u8 *ptr,u16 len)
 			
             for(u32 i=0;(i<len)&&(i<sizeof(LcdData.KeyInput));i++)
 			{
-				if(*(ptr+i)==0xff)
-					LcdData.KeyInput[i] = 0;
-				else
-					LcdData.KeyInput[i] = *(ptr+i);
+                LcdData.KeyInput[i] = *(ptr+i);
 			}
+            LcdData.KeyInputLen = len;
+
 			sSCREEN_DEBUGPROMSG("KeyInputlen=%d,KeyInput=%s\r\n",str_len(LcdData.KeyInput),LcdData.KeyInput);
 		}
 		else if(LcdData.KeyTimer==0)
@@ -5625,6 +5629,13 @@ void SerialScreen_GetKeyProcess(struct SerialScreenObj *cmd)
 						        SerialScreen_CombineData(pPageIndex->item[i].valtype,pPageIndex->item[i].valaddr,LcdData.KeyInput,4,(1 <<0));
 						    }else{
 	                            sSCREEN_EVENT_DEBUGMSG("#########valtype = %d vallen = %d  valaddr = %s  KeyInput = %s\r\n",pPageIndex->item[i].valtype,pPageIndex->item[i].vallen,pPageIndex->item[i].valaddr,LcdData.KeyInput);
+
+	                            for(u32 i=0;(i<LcdData.KeyInputLen)&&(i<sizeof(LcdData.KeyInput));i++)
+	                            {
+	                                if(LcdData.KeyInput[i]==0xff){
+	                                    LcdData.KeyInput[i] = 0;          //如果输入的是字符串，则帧的最后2字节是0xFF
+	                                }
+	                            }
 	                            SerialScreen_StrToData(pPageIndex->item[i].valtype,pPageIndex->item[i].vallen,pPageIndex->item[i].valaddr,LcdData.KeyInput);
 						    }
 						}
