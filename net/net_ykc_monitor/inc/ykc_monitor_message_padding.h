@@ -97,7 +97,7 @@ int8_t ykc_monitor_message_padding_function_setup(uint8_t *buf, uint16_t ilen, u
 int8_t ykc_monitor_message_padding_tsocket_info(uint8_t *buf, uint16_t ilen, uint16_t *olen);
 int8_t ykc_monitor_message_padding_log_info(uint8_t *buf, uint16_t ilen, uint16_t *olen);
 int8_t ykc_monitor_message_padding_dev_info(uint8_t *buf, uint16_t ilen, uint16_t *olen);
-int8_t ykc_monitor_padding_setvoltcurr_data(uint8_t gunno);
+int8_t ykc_monitor_padding_setvoltcurr_data(void);
 int8_t ykc_monitor_message_padding_setvoltcurr(uint8_t gunno, uint8_t *buf, uint16_t ilen, uint16_t *olen);
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
 
