@@ -5056,6 +5056,19 @@ void ofsm_thread_entry(void *parameter)
             break;
         }
 
+        if(s_ofsm_info[thread_gunno].base.state.current == APP_OFSM_STATE_CHARGING){         /** 进入充电时才可设置BMS是否禁止充电 */
+            if((s_ofsm_info[thread_gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL) ||  \
+                    (s_ofsm_info[thread_gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD)){
+                if(s_ofsm_info[thread_gunno].base.main_gunno == thread_gunno){      /** 并充时只有主枪才可设置BMS是否禁止充电 */
+                    /** 设置BMS是否禁止充电 */
+                    thaisenModuleSetBMSAllowCharge(thaisen_get_charging_pause_activate(thread_gunno), thread_gunno);
+                }
+            }else{
+                /** 设置BMS是否禁止充电 */
+                thaisenModuleSetBMSAllowCharge(thaisen_get_charging_pause_activate(thread_gunno), thread_gunno);
+            }
+        }
+
         if(thaisen_get_screen_timesync_flag()){
             struct tm t = { 0 };
             uint32_t timestamp;

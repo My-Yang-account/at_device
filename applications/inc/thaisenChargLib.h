@@ -298,4 +298,17 @@ typedef enum thaisenChargModeEnum
 
 void thaisen_set_charg_mode(thaisenChargModeEn mode);
 uint8_t thaisen_get_charg_mode(void);
+
+/*****************************************************************************/
+/************************充电中暂停和启动选择*********************************************/
+typedef enum thaisenChargingInfoEnum
+{
+  thaisenChargingPause,   //暂停充电
+  thaisenChargingActivate,//允许充电
+}thaisenChargingInfo;
+
+
+void thaisen_set_charging_pause_activate(uint8_t gunNum,thaisenChargingInfo info);
+thaisenChargingInfo thaisen_get_charging_pause_activate(uint8_t gunNum);
+
 #endif

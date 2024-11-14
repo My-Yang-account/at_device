@@ -266,6 +266,31 @@ void thaisenSetModuleMaxChargCurrGroup(uint8_t groupNum, uint16_t curr);
 uint16_t thaisenGetModuleMaxChargCurrGroup(uint8_t groupNum);
 
 /* 功能说明:
+ *          thaisenSetModuleGroupOpenState:按组设置模块组的开机状态
+ *
+ * 输入参数:           groupNum 组号
+ *          sta     状态 (0：关机，1：开机)
+ *
+ * 返回参数:
+ *
+ * 调用方法:
+ *          可实时调用
+ */
+void thaisenSetModuleGroupOpenState(uint8_t groupNum, uint8_t sta);
+
+/* 功能说明:
+ *          thaisenGetModuleGroupOpenState:按组获取模块组的开机状态
+ *
+ * 输入参数:           groupNum 组号
+ *
+ * 返回参数:           模块组的开机状态(0：关机，1：开机)
+ *
+ * 调用方法:
+ *          可实时调用
+ */
+uint8_t thaisenGetModuleGroupOpenState(uint8_t groupNum);
+
+/* 功能说明:
  *          thaisenStorageModuleSetVoltage:按组保存给模块设置的输出电压
  *
  * 输入参数:           groupNum 组号
@@ -658,5 +683,38 @@ int32_t thaisenModuleSetAllowChargeState(uint8_t state, uint8_t gunNum);
  *          可实时调用
  */
 uint8_t thaisenModuleGetAllowChargeState(uint8_t gunNum);
+
+typedef enum
+{
+    thaisenBMSAllowCharge_forbid,              /* BMS禁止充电 */
+    thaisenBMSAllowCharge_allow,               /* BMS允许充电 */
+    thaisenBMSAllowCharge_size,
+}thaisenBMSAllowCharge;
+
+/* 功能说明:
+ *          thaisenModuleSetBMSAllowCharge:设置BMS是否允许充电
+ *
+ * 输入参数:
+ *          state:状态
+ *          gunNum:枪号
+ * 返回参数:
+ *
+ * 调用方法:
+ *          可实时调用
+ */
+int32_t thaisenModuleSetBMSAllowCharge(uint8_t state, uint8_t gunNum);
+
+/* 功能说明:
+ *          thaisenModuleGetBMSAllowCharge: 获取BMS是否允许充电
+ *
+ * 输入参数:
+ *          gunNum：枪号
+ *
+ * 返回参数:
+ *          状态
+ * 调用方法:
+ *          可实时调用
+ */
+uint8_t thaisenModuleGetBMSAllowCharge(uint8_t gunNum);
 
 #endif /* APPLICATIONS_THAISENCHARGMODULELIB_H_ */
