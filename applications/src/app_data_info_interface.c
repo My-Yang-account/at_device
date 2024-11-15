@@ -491,7 +491,7 @@ struct charge_data *thaisen_app_get_charge_info(uint8_t gunno) // OK
     s_data_of_charging.charge_power = ofsm_temp->base.power_a;
     s_data_of_charging.charge_elect = ofsm_temp->base.elect_a;
     s_data_of_charging.charge_total_fee = ofsm_temp->base.fees_total;
-    s_data_of_charging.account_ballance = ofsm_temp->base.account_ballance_after;
+    s_data_of_charging.account_ballance = ofsm_temp->base.account_ballance_before;
     s_data_of_charging.charge_start_time = ofsm_temp->base.start_time;
     s_data_of_charging.charge_stop_time = ofsm_temp->base.stop_time;
     s_data_of_charging.charge_time = ofsm_temp->base.charge_time;
