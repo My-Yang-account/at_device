@@ -26,6 +26,9 @@
 #define YKC_MONITOR_MODULE_GROUP_MAX                      0x04          /* 最大模块组数  */
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
 
+#define YKC_MONITOR_CHARGE_ELECT_MAX                      500000    /* 最大充电电量值(精度：0.001) */
+#define YKC_MONITOR_SPEND_AMOUNT_MAX                      5000000   /* 最大消费金额值(精度：0.0001) */
+
 #define YKC_MONITOR_REALTIME_DATA_INTERVAL_INIT           0x05          /* 刚连上网时实时数据上报间隔 */
 #define YKC_MONITOR_REALTIME_DATA_INTERVAL_CHARGING       0x0F          /* 充电中实时数据上报间隔  */
 #define YKC_MONITOR_REALTIME_DATA_INTERVAL_IDLE           0x05 *60      /* 空闲实时数据上报间隔  */
@@ -1968,21 +1971,45 @@ uint8_t ykc_monitor_chargepile_request_padding_transaction_record(uint8_t gunno,
         g_ykc_monitor_preq_transaction_records[gunno].body.tip_elect = _transaction->rate_type_elect[APP_RATE_TYPE_SHARP] *10;
         g_ykc_monitor_preq_transaction_records[gunno].body.tip_loss_elect = _transaction->rate_type_loss_elect[APP_RATE_TYPE_SHARP] *10;
         g_ykc_monitor_preq_transaction_records[gunno].body.tip_amount = _transaction->rate_type_amount[APP_RATE_TYPE_SHARP];
+        if(g_ykc_monitor_preq_transaction_records[gunno].body.tip_amount > YKC_MONITOR_SPEND_AMOUNT_MAX){
+            g_ykc_monitor_preq_transaction_records[gunno].body.tip_amount = YKC_MONITOR_SPEND_AMOUNT_MAX;
+        }
+        if(g_ykc_monitor_preq_transaction_records[gunno].body.tip_elect > YKC_MONITOR_CHARGE_ELECT_MAX *10){
+            g_ykc_monitor_preq_transaction_records[gunno].body.tip_elect = YKC_MONITOR_CHARGE_ELECT_MAX *10;
+        }
 
         g_ykc_monitor_preq_transaction_records[gunno].body.peak_unit_price = _transaction->rate_type_unit[APP_RATE_TYPE_PEAK] *10;
         g_ykc_monitor_preq_transaction_records[gunno].body.peak_elect = _transaction->rate_type_elect[APP_RATE_TYPE_PEAK] *10;
         g_ykc_monitor_preq_transaction_records[gunno].body.peak_loss_elect = _transaction->rate_type_loss_elect[APP_RATE_TYPE_PEAK] *10;
         g_ykc_monitor_preq_transaction_records[gunno].body.peak_amount = _transaction->rate_type_amount[APP_RATE_TYPE_PEAK];
+        if(g_ykc_monitor_preq_transaction_records[gunno].body.peak_amount > YKC_MONITOR_SPEND_AMOUNT_MAX){
+            g_ykc_monitor_preq_transaction_records[gunno].body.peak_amount = YKC_MONITOR_SPEND_AMOUNT_MAX;
+        }
+        if(g_ykc_monitor_preq_transaction_records[gunno].body.peak_elect > YKC_MONITOR_CHARGE_ELECT_MAX *10){
+            g_ykc_monitor_preq_transaction_records[gunno].body.peak_elect = YKC_MONITOR_CHARGE_ELECT_MAX *10;
+        }
 
         g_ykc_monitor_preq_transaction_records[gunno].body.flat_unit_price = _transaction->rate_type_unit[APP_RATE_TYPE_FLAT] *10;
         g_ykc_monitor_preq_transaction_records[gunno].body.flat_elect = _transaction->rate_type_elect[APP_RATE_TYPE_FLAT] *10;
         g_ykc_monitor_preq_transaction_records[gunno].body.flat_loss_elect = _transaction->rate_type_loss_elect[APP_RATE_TYPE_FLAT] *10;
         g_ykc_monitor_preq_transaction_records[gunno].body.flat_amount = _transaction->rate_type_amount[APP_RATE_TYPE_FLAT];
+        if(g_ykc_monitor_preq_transaction_records[gunno].body.flat_amount > YKC_MONITOR_SPEND_AMOUNT_MAX){
+            g_ykc_monitor_preq_transaction_records[gunno].body.flat_amount = YKC_MONITOR_SPEND_AMOUNT_MAX;
+        }
+        if(g_ykc_monitor_preq_transaction_records[gunno].body.flat_elect > YKC_MONITOR_CHARGE_ELECT_MAX *10){
+            g_ykc_monitor_preq_transaction_records[gunno].body.flat_elect = YKC_MONITOR_CHARGE_ELECT_MAX *10;
+        }
 
         g_ykc_monitor_preq_transaction_records[gunno].body.valley_unit_price = _transaction->rate_type_unit[APP_RATE_TYPE_VALLEY] *10;
         g_ykc_monitor_preq_transaction_records[gunno].body.valley_elect = _transaction->rate_type_elect[APP_RATE_TYPE_VALLEY] *10;
         g_ykc_monitor_preq_transaction_records[gunno].body.valley_loss_elect = _transaction->rate_type_loss_elect[APP_RATE_TYPE_VALLEY] *10;
         g_ykc_monitor_preq_transaction_records[gunno].body.valley_amount = _transaction->rate_type_amount[APP_RATE_TYPE_VALLEY];
+        if(g_ykc_monitor_preq_transaction_records[gunno].body.valley_amount > YKC_MONITOR_SPEND_AMOUNT_MAX){
+            g_ykc_monitor_preq_transaction_records[gunno].body.valley_amount = YKC_MONITOR_SPEND_AMOUNT_MAX;
+        }
+        if(g_ykc_monitor_preq_transaction_records[gunno].body.valley_elect > YKC_MONITOR_CHARGE_ELECT_MAX *10){
+            g_ykc_monitor_preq_transaction_records[gunno].body.valley_elect = YKC_MONITOR_CHARGE_ELECT_MAX *10;
+        }
 
         elect = _transaction->ammeter_start *10;
         memset(g_ykc_monitor_preq_transaction_records[gunno].body.ammeter_start_val, 0x00, sizeof(g_ykc_monitor_preq_transaction_records[gunno].body.ammeter_start_val));
@@ -1994,6 +2021,12 @@ uint8_t ykc_monitor_chargepile_request_padding_transaction_record(uint8_t gunno,
         g_ykc_monitor_preq_transaction_records[gunno].body.total_elect = _transaction->total_elect *10;
         g_ykc_monitor_preq_transaction_records[gunno].body.total_loss_elect = _transaction->total_loss_elect *10;
         g_ykc_monitor_preq_transaction_records[gunno].body.consume_amount = _transaction->total_fee;
+        if(g_ykc_monitor_preq_transaction_records[gunno].body.consume_amount > YKC_MONITOR_SPEND_AMOUNT_MAX){
+            g_ykc_monitor_preq_transaction_records[gunno].body.consume_amount = YKC_MONITOR_SPEND_AMOUNT_MAX;
+        }
+        if(g_ykc_monitor_preq_transaction_records[gunno].body.total_elect > YKC_MONITOR_CHARGE_ELECT_MAX *10){
+            g_ykc_monitor_preq_transaction_records[gunno].body.total_elect = YKC_MONITOR_CHARGE_ELECT_MAX *10;
+        }
 
         valid_len = sizeof(_transaction->car_vin);
         valid_len = valid_len > NET_YKC_MONITOR_CAR_VIN_NUMBER_LENGTH_MAX ? NET_YKC_MONITOR_CAR_VIN_NUMBER_LENGTH_MAX : valid_len;

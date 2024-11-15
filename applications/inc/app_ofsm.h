@@ -23,6 +23,8 @@ extern "C" {
 
 #define APP_USING_DOUBLEGUN                            /* 使用双枪 */
 
+#define APP_CHARGE_ELECT_MAX                 500000    /* 最大充电电量值(精度：0.001) */
+#define APP_SPEND_AMOUNT_MAX                 5000000   /* 最大消费金额值(精度：0.0001) */
 #define APP_CALCULATE_ELECT_DIFF_MAX         510       /* 最大计算电量差值(精度：0.001) */
 
 #define APP_CARD_NUMBER_COMPARE_LEN_MIN                   12    /* 卡号最小对比长度 */

@@ -24,6 +24,9 @@
 
 #ifdef NET_PACK_USING_SGCC
 
+#define SGCC_CHARGE_ELECT_MAX                      500000    /* 最大充电电量值(精度：0.001) */
+#define SGCC_SPEND_AMOUNT_MAX                      5000000   /* 最大消费金额值(精度：0.0001) */
+
 #define SGCC_STATE_PERIOD_CHARGING_FIRST_DEF       (60 *1000)      /* 启动充电时前1min 充电中实时数据上报间隔为5s  */
 #define SGCC_STATE_INTERVAL_STARTING_DEF           (5 *1000)       /* 充电中实时数据上报间隔(启动前2min)  */
 
@@ -2598,24 +2601,69 @@ uint8_t sgcc_chargepile_request_padding_transaction_record(uint8_t gunno, void *
         evs_event_tradeInfos[gunno].sumStart = _transaction->ammeter_start;
         evs_event_tradeInfos[gunno].sumEnd = _transaction->ammeter_stop;
         evs_event_tradeInfos[gunno].totalElect = _transaction->total_elect;
+        if(evs_event_tradeInfos[gunno].totalElect > SGCC_CHARGE_ELECT_MAX){
+            evs_event_tradeInfos[gunno].totalElect = SGCC_CHARGE_ELECT_MAX;
+        }
 
         evs_event_tradeInfos[gunno].sharpElect = _transaction->rate_type_elect[APP_RATE_TYPE_SHARP];
+        if(evs_event_tradeInfos[gunno].sharpElect > SGCC_CHARGE_ELECT_MAX){
+            evs_event_tradeInfos[gunno].sharpElect = SGCC_CHARGE_ELECT_MAX;
+        }
         evs_event_tradeInfos[gunno].peakElect = _transaction->rate_type_elect[APP_RATE_TYPE_PEAK];
+        if(evs_event_tradeInfos[gunno].peakElect > SGCC_CHARGE_ELECT_MAX){
+            evs_event_tradeInfos[gunno].peakElect = SGCC_CHARGE_ELECT_MAX;
+        }
         evs_event_tradeInfos[gunno].flatElect = _transaction->rate_type_elect[APP_RATE_TYPE_FLAT];
+        if(evs_event_tradeInfos[gunno].flatElect > SGCC_CHARGE_ELECT_MAX){
+            evs_event_tradeInfos[gunno].flatElect = SGCC_CHARGE_ELECT_MAX;
+        }
         evs_event_tradeInfos[gunno].valleyElect = _transaction->rate_type_elect[APP_RATE_TYPE_VALLEY];
+        if(evs_event_tradeInfos[gunno].valleyElect > SGCC_CHARGE_ELECT_MAX){
+            evs_event_tradeInfos[gunno].valleyElect = SGCC_CHARGE_ELECT_MAX;
+        }
 
         evs_event_tradeInfos[gunno].totalPowerCost = _transaction->charge_fee;
+        if(evs_event_tradeInfos[gunno].totalPowerCost > SGCC_SPEND_AMOUNT_MAX){
+            evs_event_tradeInfos[gunno].totalPowerCost = SGCC_SPEND_AMOUNT_MAX;
+        }
         evs_event_tradeInfos[gunno].totalServCost = _transaction->service_fee;
+        if(evs_event_tradeInfos[gunno].totalServCost > SGCC_SPEND_AMOUNT_MAX){
+            evs_event_tradeInfos[gunno].totalServCost = SGCC_SPEND_AMOUNT_MAX;
+        }
 
         evs_event_tradeInfos[gunno].sharpPowerCost = _transaction->rate_type_elect_amount[APP_RATE_TYPE_SHARP];
+        if(evs_event_tradeInfos[gunno].sharpPowerCost > SGCC_SPEND_AMOUNT_MAX){
+            evs_event_tradeInfos[gunno].sharpPowerCost = SGCC_SPEND_AMOUNT_MAX;
+        }
         evs_event_tradeInfos[gunno].peakPowerCost = _transaction->rate_type_elect_amount[APP_RATE_TYPE_PEAK];
+        if(evs_event_tradeInfos[gunno].peakPowerCost > SGCC_SPEND_AMOUNT_MAX){
+            evs_event_tradeInfos[gunno].peakPowerCost = SGCC_SPEND_AMOUNT_MAX;
+        }
         evs_event_tradeInfos[gunno].flatPowerCost = _transaction->rate_type_elect_amount[APP_RATE_TYPE_FLAT];
+        if(evs_event_tradeInfos[gunno].flatPowerCost > SGCC_SPEND_AMOUNT_MAX){
+            evs_event_tradeInfos[gunno].flatPowerCost = SGCC_SPEND_AMOUNT_MAX;
+        }
         evs_event_tradeInfos[gunno].valleyPowerCost = _transaction->rate_type_elect_amount[APP_RATE_TYPE_VALLEY];
+        if(evs_event_tradeInfos[gunno].valleyPowerCost > SGCC_SPEND_AMOUNT_MAX){
+            evs_event_tradeInfos[gunno].valleyPowerCost = SGCC_SPEND_AMOUNT_MAX;
+        }
 
         evs_event_tradeInfos[gunno].sharpServCost = _transaction->rate_type_service_amount[APP_RATE_TYPE_SHARP];
+        if(evs_event_tradeInfos[gunno].sharpServCost > SGCC_SPEND_AMOUNT_MAX){
+            evs_event_tradeInfos[gunno].sharpServCost = SGCC_SPEND_AMOUNT_MAX;
+        }
         evs_event_tradeInfos[gunno].peakServCost = _transaction->rate_type_service_amount[APP_RATE_TYPE_PEAK];
+        if(evs_event_tradeInfos[gunno].peakServCost > SGCC_SPEND_AMOUNT_MAX){
+            evs_event_tradeInfos[gunno].peakServCost = SGCC_SPEND_AMOUNT_MAX;
+        }
         evs_event_tradeInfos[gunno].flatServCost = _transaction->rate_type_service_amount[APP_RATE_TYPE_FLAT];
+        if(evs_event_tradeInfos[gunno].flatServCost > SGCC_SPEND_AMOUNT_MAX){
+            evs_event_tradeInfos[gunno].flatServCost = SGCC_SPEND_AMOUNT_MAX;
+        }
         evs_event_tradeInfos[gunno].valleyServCost = _transaction->rate_type_service_amount[APP_RATE_TYPE_VALLEY];
+        if(evs_event_tradeInfos[gunno].valleyServCost > SGCC_SPEND_AMOUNT_MAX){
+            evs_event_tradeInfos[gunno].valleyServCost = SGCC_SPEND_AMOUNT_MAX;
+        }
 
         sgcc_net_event_send(NET_SGCC_EVENT_HANDLE_CHARGEPILE, NET_SGCC_EVENT_TYPE_REQUEST, gunno, NET_SGCC_PREQ_EVENT_TRANSACTION_RECORD);
         return 0x01;

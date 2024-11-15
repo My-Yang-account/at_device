@@ -219,11 +219,26 @@ static void transaction_record_query_report(uint8_t gunno)
                         rtransaction.start_time = rtransaction.end_time;
                         rtransaction.charge_time = 0x00;
                     }
+                    if(rtransaction.charge_fee > APP_SPEND_AMOUNT_MAX){
+                        rtransaction.charge_fee = APP_SPEND_AMOUNT_MAX;
+                    }
+                    if(rtransaction.total_fee > APP_SPEND_AMOUNT_MAX){
+                        rtransaction.total_fee = APP_SPEND_AMOUNT_MAX;
+                    }
+                    if(rtransaction.total_elect > APP_CHARGE_ELECT_MAX){
+                        rtransaction.total_elect = APP_CHARGE_ELECT_MAX;
+                    }
 
 #if (defined (APP_INCLUDE_YKC_PROTOCOL) || defined (APP_INCLUDE_YKC_PROTOCOL_MONITOR) || defined (APP_INCLUDE_YCP_PROTOCOL) ||  \
                     defined (APP_INCLUDE_SGCC_PROTOCOL))
                     rtransaction.rate_type_elect[APP_RATE_TYPE_FLAT] += loss_elect;
                     rtransaction.rate_type_amount[APP_RATE_TYPE_FLAT] += ((double)loss_elect *(double)1.05 *10);
+                    if(rtransaction.rate_type_amount[APP_RATE_TYPE_FLAT] > APP_SPEND_AMOUNT_MAX){
+                        rtransaction.rate_type_amount[APP_RATE_TYPE_FLAT] = APP_SPEND_AMOUNT_MAX;
+                    }
+                    if(rtransaction.rate_type_elect[APP_RATE_TYPE_FLAT] > APP_CHARGE_ELECT_MAX){
+                        rtransaction.rate_type_elect[APP_RATE_TYPE_FLAT] = APP_CHARGE_ELECT_MAX;
+                    }
 #endif /* (defined (APP_INCLUDE_YKC_PROTOCOL) || defined (APP_INCLUDE_YKC_PROTOCOL_MONITOR) || defined (APP_INCLUDE_YCP_PROTOCOL) ||
                     defined (APP_INCLUDE_SGCC_PROTOCOL)) */
 
@@ -233,6 +248,13 @@ static void transaction_record_query_report(uint8_t gunno)
                     }
                     rtransaction.period_elect[rtransaction.start_period_number] += loss_elect;
                     rtransaction.period_elect_fees[rtransaction.start_period_number] += ((double)loss_elect *(double)1.05 *10);
+
+                    if(rtransaction.period_elect_fees[rtransaction.start_period_number] > APP_SPEND_AMOUNT_MAX){
+                        rtransaction.period_elect_fees[rtransaction.start_period_number] = APP_SPEND_AMOUNT_MAX;
+                    }
+                    if(rtransaction.period_elect[rtransaction.start_period_number] > APP_CHARGE_ELECT_MAX){
+                        rtransaction.period_elect[rtransaction.start_period_number] = APP_CHARGE_ELECT_MAX;
+                    }
 #endif /* (defined (APP_INCLUDE_SL_PROTOCOL) || defined (APP_INCLUDE_SGCC_PROTOCOL)) */
                     need_check = 1;
                 }
@@ -2647,13 +2669,26 @@ static void ofsm_charging_fun(uint8_t gunno)
     s_ofsm_info[gunno].base.current_elect = app_billingrule_get_stop_elcet(gunno);
     s_ofsm_info[gunno].base.fees_total = app_billingrule_get_fees_total(gunno);
     s_ofsm_info[gunno].base.service_fees_total = app_billingrule_get_service_fees_total(gunno);
+
+    if(s_ofsm_info[gunno].base.fees_total > APP_SPEND_AMOUNT_MAX){
+        s_ofsm_info[gunno].base.fees_total = APP_SPEND_AMOUNT_MAX;
+    }
+    if(s_ofsm_info[gunno].base.service_fees_total > APP_SPEND_AMOUNT_MAX){
+        s_ofsm_info[gunno].base.service_fees_total = APP_SPEND_AMOUNT_MAX;
+    }
     if(s_ofsm_info[gunno].base.fees_total > s_ofsm_info[gunno].base.service_fees_total){
         s_ofsm_info[gunno].base.elect_fees_total = (s_ofsm_info[gunno].base.fees_total - s_ofsm_info[gunno].base.service_fees_total);
+        if(s_ofsm_info[gunno].base.elect_fees_total > APP_SPEND_AMOUNT_MAX){
+            s_ofsm_info[gunno].base.elect_fees_total = APP_SPEND_AMOUNT_MAX;
+        }
     }
     if(s_ofsm_info[gunno].base.account_ballance_before > s_ofsm_info[gunno].base.fees_total){
         s_ofsm_info[gunno].base.account_ballance_after = s_ofsm_info[gunno].base.account_ballance_before - (s_ofsm_info[gunno].base.fees_total /100);
     }
     s_ofsm_info[gunno].base.elect_a = app_billingrule_get_elcet_total(gunno);
+    if(s_ofsm_info[gunno].base.elect_a > APP_CHARGE_ELECT_MAX){
+        s_ofsm_info[gunno].base.elect_a = APP_CHARGE_ELECT_MAX;
+    }
     if(s_ofsm_info[gunno].base.current_period != app_calculate_current_period((s_ofsm_info[gunno].base.start_time + increase_sec))){
         s_ofsm_info[gunno].base.current_period = app_calculate_current_period((s_ofsm_info[gunno].base.start_time + increase_sec));
         if(s_ofsm_info[gunno].base.period_num < APP_BILLING_RULE_PERIOD_MAX){
@@ -2679,6 +2714,13 @@ static void ofsm_charging_fun(uint8_t gunno)
         s_thaisen_transaction[gunno].rate_type_elect[type] = app_billingrule_get_rate_type_elect(gunno, type);
         s_thaisen_transaction[gunno].rate_type_amount[type] = app_billingrule_get_rate_type_fess(gunno, type);
         s_thaisen_transaction[gunno].rate_type_loss_elect[type] = 0x00;
+
+        if(s_thaisen_transaction[gunno].rate_type_amount[type] > APP_SPEND_AMOUNT_MAX){
+            s_thaisen_transaction[gunno].rate_type_amount[type] = APP_SPEND_AMOUNT_MAX;
+        }
+        if(s_thaisen_transaction[gunno].rate_type_elect[type] > APP_CHARGE_ELECT_MAX){
+            s_thaisen_transaction[gunno].rate_type_elect[type] = APP_CHARGE_ELECT_MAX;
+        }
     }
 #endif /* (defined (APP_INCLUDE_YKC_PROTOCOL) || defined (APP_INCLUDE_YKC_PROTOCOL_MONITOR) || defined (APP_INCLUDE_YCP_PROTOCOL) ||
     defined (APP_INCLUDE_SGCC_PROTOCOL)) */
@@ -2688,6 +2730,16 @@ static void ofsm_charging_fun(uint8_t gunno)
         s_thaisen_transaction[gunno].period_elect[period] = app_billingrule_get_period_elect(gunno, period);
         s_thaisen_transaction[gunno].period_elect_fees[period] = app_billingrule_get_period_elect_fees(gunno, period);
         s_thaisen_transaction[gunno].period_service_fees[period] = app_billingrule_get_period_service_fees(gunno, period);
+
+        if(s_thaisen_transaction[gunno].period_elect_fees[period] > APP_SPEND_AMOUNT_MAX){
+            s_thaisen_transaction[gunno].period_elect_fees[period] = APP_SPEND_AMOUNT_MAX;
+        }
+        if(s_thaisen_transaction[gunno].period_service_fees[period] > APP_SPEND_AMOUNT_MAX){
+            s_thaisen_transaction[gunno].period_service_fees[period] = APP_SPEND_AMOUNT_MAX;
+        }
+        if(s_thaisen_transaction[gunno].period_elect[period] > APP_CHARGE_ELECT_MAX){
+            s_thaisen_transaction[gunno].period_elect[period] = APP_CHARGE_ELECT_MAX;
+        }
     }
 #endif /* (defined (APP_INCLUDE_SL_PROTOCOL) || defined (APP_INCLUDE_SGCC_PROTOCOL)) */
     s_thaisen_transaction[gunno].period_count = s_ofsm_info[gunno].base.period_num;
@@ -2696,6 +2748,13 @@ static void ofsm_charging_fun(uint8_t gunno)
     for(uint8_t type = 0x00; type < APP_BILLING_RULE_RATE_TYPE_MAX; type++){
         s_thaisen_transaction[gunno].rate_type_elect_amount[type] = app_billingrule_get_rate_type_elect_fess(gunno, type);
         s_thaisen_transaction[gunno].rate_type_service_amount[type] = app_billingrule_get_rate_type_service_fess(gunno, type);
+
+        if(s_thaisen_transaction[gunno].rate_type_elect_amount[type] > APP_SPEND_AMOUNT_MAX){
+            s_thaisen_transaction[gunno].rate_type_elect_amount[type] = APP_SPEND_AMOUNT_MAX;
+        }
+        if(s_thaisen_transaction[gunno].rate_type_service_amount[type] > APP_SPEND_AMOUNT_MAX){
+            s_thaisen_transaction[gunno].rate_type_service_amount[type] = APP_SPEND_AMOUNT_MAX;
+        }
     }
 #endif /* (defined (APP_INCLUDE_SGCC_PROTOCOL)) */
 
@@ -3503,8 +3562,21 @@ static void ofsm_stoping_fun(uint8_t gunno)
                 s_ofsm_info[gunno].base.elect_a = app_billingrule_get_elcet_total(gunno);
                 s_ofsm_info[gunno].base.fees_total = app_billingrule_get_fees_total(gunno);
                 s_ofsm_info[gunno].base.service_fees_total = app_billingrule_get_service_fees_total(gunno);
+
+                if(s_ofsm_info[gunno].base.fees_total > APP_SPEND_AMOUNT_MAX){
+                    s_ofsm_info[gunno].base.fees_total = APP_SPEND_AMOUNT_MAX;
+                }
+                if(s_ofsm_info[gunno].base.service_fees_total > APP_SPEND_AMOUNT_MAX){
+                    s_ofsm_info[gunno].base.service_fees_total = APP_SPEND_AMOUNT_MAX;
+                }
+                if(s_ofsm_info[gunno].base.elect_a > APP_CHARGE_ELECT_MAX){
+                    s_ofsm_info[gunno].base.elect_a = APP_CHARGE_ELECT_MAX;
+                }
                 if(s_ofsm_info[gunno].base.fees_total > s_ofsm_info[gunno].base.service_fees_total){
                     s_ofsm_info[gunno].base.elect_fees_total = (s_ofsm_info[gunno].base.fees_total - s_ofsm_info[gunno].base.service_fees_total);
+                    if(s_ofsm_info[gunno].base.elect_fees_total > APP_SPEND_AMOUNT_MAX){
+                        s_ofsm_info[gunno].base.elect_fees_total = APP_SPEND_AMOUNT_MAX;
+                    }
                 }
                 if(s_ofsm_info[gunno].base.account_ballance_before > s_ofsm_info[gunno].base.fees_total){
                     s_ofsm_info[gunno].base.account_ballance_after = s_ofsm_info[gunno].base.account_ballance_before - (s_ofsm_info[gunno].base.fees_total /100);
@@ -3523,6 +3595,13 @@ static void ofsm_stoping_fun(uint8_t gunno)
                 for(uint8_t type = 0x00; type < APP_BILLING_RULE_RATE_TYPE_MAX; type++){
                     s_thaisen_transaction[gunno].rate_type_elect[type] = app_billingrule_get_rate_type_elect(gunno, type);
                     s_thaisen_transaction[gunno].rate_type_amount[type] = app_billingrule_get_rate_type_fess(gunno, type);
+
+                    if(s_thaisen_transaction[gunno].rate_type_amount[type] > APP_SPEND_AMOUNT_MAX){
+                        s_thaisen_transaction[gunno].rate_type_amount[type] = APP_SPEND_AMOUNT_MAX;
+                    }
+                    if(s_thaisen_transaction[gunno].rate_type_elect[type] > APP_CHARGE_ELECT_MAX){
+                        s_thaisen_transaction[gunno].rate_type_elect[type] = APP_CHARGE_ELECT_MAX;
+                    }
                 }
 #endif /* (defined (APP_INCLUDE_YKC_PROTOCOL) || defined (APP_INCLUDE_YKC_PROTOCOL_MONITOR) || defined (APP_INCLUDE_YCP_PROTOCOL) ||
             defined (APP_INCLUDE_SGCC_PROTOCOL)) */
@@ -3532,6 +3611,16 @@ static void ofsm_stoping_fun(uint8_t gunno)
                     s_thaisen_transaction[gunno].period_elect[period] = app_billingrule_get_period_elect(gunno, period);
                     s_thaisen_transaction[gunno].period_elect_fees[period] = app_billingrule_get_period_elect_fees(gunno, period);
                     s_thaisen_transaction[gunno].period_service_fees[period] = app_billingrule_get_period_service_fees(gunno, period);
+
+                    if(s_thaisen_transaction[gunno].period_elect_fees[period] > APP_SPEND_AMOUNT_MAX){
+                        s_thaisen_transaction[gunno].period_elect_fees[period] = APP_SPEND_AMOUNT_MAX;
+                    }
+                    if(s_thaisen_transaction[gunno].period_service_fees[period] > APP_SPEND_AMOUNT_MAX){
+                        s_thaisen_transaction[gunno].period_service_fees[period] = APP_SPEND_AMOUNT_MAX;
+                    }
+                    if(s_thaisen_transaction[gunno].period_elect[period] > APP_CHARGE_ELECT_MAX){
+                        s_thaisen_transaction[gunno].period_elect[period] = APP_CHARGE_ELECT_MAX;
+                    }
                 }
 #endif /* (defined (APP_INCLUDE_SL_PROTOCOL) || defined (APP_INCLUDE_SGCC_PROTOCOL)) */
 
@@ -3539,6 +3628,13 @@ static void ofsm_stoping_fun(uint8_t gunno)
                 for(uint8_t type = 0x00; type < APP_BILLING_RULE_RATE_TYPE_MAX; type++){
                     s_thaisen_transaction[gunno].rate_type_elect_amount[type] = app_billingrule_get_rate_type_elect_fess(gunno, type);
                     s_thaisen_transaction[gunno].rate_type_service_amount[type] = app_billingrule_get_rate_type_service_fess(gunno, type);
+
+                    if(s_thaisen_transaction[gunno].rate_type_elect_amount[type] > APP_SPEND_AMOUNT_MAX){
+                        s_thaisen_transaction[gunno].rate_type_elect_amount[type] = APP_SPEND_AMOUNT_MAX;
+                    }
+                    if(s_thaisen_transaction[gunno].rate_type_service_amount[type] > APP_SPEND_AMOUNT_MAX){
+                        s_thaisen_transaction[gunno].rate_type_service_amount[type] = APP_SPEND_AMOUNT_MAX;
+                    }
                 }
 #endif /* (defined (APP_INCLUDE_SGCC_PROTOCOL)) */
             }

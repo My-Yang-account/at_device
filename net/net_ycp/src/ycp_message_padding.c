@@ -22,6 +22,9 @@
 
 #ifdef NET_PACK_USING_YCP
 
+#define YCP_CHARGE_ELECT_MAX                      500000    /* 最大充电电量值(精度：0.001) */
+#define YCP_SPEND_AMOUNT_MAX                      5000000   /* 最大消费金额值(精度：0.0001) */
+
 #define YCP_DISPOSABLE_EVENT_STATE                0x00          /* 漏报事件：桩状态 */
 
 #define YCP_STATE_DATA_INTERVAL_INIT              0x05          /* 刚连上网时状态数据上报间隔 */
@@ -1876,20 +1879,35 @@ uint8_t ycp_chargepile_request_padding_transaction_record(uint8_t gunno, void *t
         g_ycp_preq_transaction_records[gunno].body.tip_unit_price = _transaction->rate_type_unit[APP_RATE_TYPE_SHARP] *10;
         g_ycp_preq_transaction_records[gunno].body.tip_elect = _transaction->rate_type_elect[APP_RATE_TYPE_SHARP] *10;
         g_ycp_preq_transaction_records[gunno].body.tip_loss_elect = _transaction->rate_type_loss_elect[APP_RATE_TYPE_SHARP] *10;
+        if(g_ycp_preq_transaction_records[gunno].body.tip_elect > YCP_CHARGE_ELECT_MAX *10){
+            g_ycp_preq_transaction_records[gunno].body.tip_elect = YCP_CHARGE_ELECT_MAX *10;
+        }
 
         g_ycp_preq_transaction_records[gunno].body.peak_unit_price = _transaction->rate_type_unit[APP_RATE_TYPE_PEAK] *10;
         g_ycp_preq_transaction_records[gunno].body.peak_elect = _transaction->rate_type_elect[APP_RATE_TYPE_PEAK] *10;
         g_ycp_preq_transaction_records[gunno].body.peak_loss_elect = _transaction->rate_type_loss_elect[APP_RATE_TYPE_PEAK] *10;
+        if(g_ycp_preq_transaction_records[gunno].body.peak_elect > YCP_CHARGE_ELECT_MAX *10){
+            g_ycp_preq_transaction_records[gunno].body.peak_elect = YCP_CHARGE_ELECT_MAX *10;
+        }
 
         g_ycp_preq_transaction_records[gunno].body.flat_unit_price = _transaction->rate_type_unit[APP_RATE_TYPE_FLAT] *10;
         g_ycp_preq_transaction_records[gunno].body.flat_elect = _transaction->rate_type_elect[APP_RATE_TYPE_FLAT] *10;
         g_ycp_preq_transaction_records[gunno].body.flat_loss_elect = _transaction->rate_type_loss_elect[APP_RATE_TYPE_FLAT] *10;
+        if(g_ycp_preq_transaction_records[gunno].body.flat_elect > YCP_CHARGE_ELECT_MAX *10){
+            g_ycp_preq_transaction_records[gunno].body.flat_elect = YCP_CHARGE_ELECT_MAX *10;
+        }
 
         g_ycp_preq_transaction_records[gunno].body.valley_unit_price = _transaction->rate_type_unit[APP_RATE_TYPE_VALLEY] *10;
         g_ycp_preq_transaction_records[gunno].body.valley_elect = _transaction->rate_type_elect[APP_RATE_TYPE_VALLEY] *10;
         g_ycp_preq_transaction_records[gunno].body.valley_loss_elect = _transaction->rate_type_loss_elect[APP_RATE_TYPE_VALLEY] *10;
+        if(g_ycp_preq_transaction_records[gunno].body.valley_elect > YCP_CHARGE_ELECT_MAX *10){
+            g_ycp_preq_transaction_records[gunno].body.valley_elect = YCP_CHARGE_ELECT_MAX *10;
+        }
 
         g_ycp_preq_transaction_records[gunno].body.consume_amount = _transaction->total_fee;
+        if(g_ycp_preq_transaction_records[gunno].body.consume_amount > YCP_SPEND_AMOUNT_MAX){
+            g_ycp_preq_transaction_records[gunno].body.consume_amount = YCP_SPEND_AMOUNT_MAX;
+        }
 
         valid_len = sizeof(_transaction->car_vin);
         valid_len = valid_len > NET_YCP_CAR_VIN_NUMBER_LENGTH_MAX ? NET_YCP_CAR_VIN_NUMBER_LENGTH_MAX : valid_len;
