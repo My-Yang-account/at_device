@@ -2679,7 +2679,7 @@ void ykc_monitor_data_realtime_process(uint8_t gunno)
         if(s_ykc_monitor_setvoltcurr.count >= NET_YKC_MONITOR_SETVOLTCURR_PAIR_MAX){
             if(s_ykc_monitor_setvoltcurr.is_locked == NET_ENUM_FALSE){
                 ykc_monitor_net_event_send(NET_YKC_MONITOR_EXTERNAL_EHANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST,  \
-                        gunno, NET_YKC_MONITOR_EXTERNAL_PREQ_EVENT_SET_VOLTCURR);
+                        0x00, NET_YKC_MONITOR_EXTERNAL_PREQ_EVENT_SET_VOLTCURR);
                 s_ykc_monitor_setvoltcurr.is_locked = NET_ENUM_TRUE;
             }
         }else{
