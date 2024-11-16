@@ -2301,6 +2301,7 @@ int32_t sys_period_time_format_valid(void *t)
                 return -0x01;
             }
 
+            /** 有一个是0xFF, 则必须这一时间段的另外3个值也是0xFF */
             if((time[i][j].shour < 24) && (time[i][j].smin >= 60)){
                 return -0x01;
             }
@@ -2356,6 +2357,20 @@ int32_t sys_period_time_continuous_valid(void *t, uint8_t tlen, uint8_t valid_co
         min = i;
         for(j = i + 1; j < valid_count; j++){
             if (time[min].shour > time[j].shour){
+                min = j;
+            }
+        }
+        if(min != i){
+            temp = time[min];
+            time[min] = time[i];
+            time[i] = temp;
+        }
+    }
+    /** 选择排序，按开始时间的分钟进行升序排列 */
+    for(i = 0; i < (valid_count - 1); i++){
+        min = i;
+        for(j = i + 1; j < valid_count; j++){
+            if ((time[min].smin > time[j].smin) && (time[min].shour == time[j].shour)){
                 min = j;
             }
         }
