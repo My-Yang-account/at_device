@@ -35,14 +35,14 @@ extern "C" {
 
 #ifdef APP_USING_DOUBLEGUN
 #define SOFTWARE_MODULE                 "YKC7103"          /* 软件型号 */
-//#define SOFTWARE_VERSION       1L
-//#define SOFTWARE_SUBVERSION    5L
-//#define SOFTWARE_REVISION      8L
-
-///* offline billing */
 #define SOFTWARE_VERSION       1L
 #define SOFTWARE_SUBVERSION    5L
 #define SOFTWARE_REVISION      9L
+
+///* offline billing */
+//#define SOFTWARE_VERSION       1L
+//#define SOFTWARE_SUBVERSION    5L
+//#define SOFTWARE_REVISION      9L
 
 #else
 #define SOFTWARE_MODULE                 "YKC7101"          /* 软件型号 */
