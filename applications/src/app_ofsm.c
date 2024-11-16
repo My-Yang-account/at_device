@@ -157,7 +157,13 @@ uint32_t ofsm_get_period_price(uint8_t gunno, uint8_t period)
             app_billingrule_get_period_delay_price(gunno, period);
 
     if(s_ofsm_info[gunno].base.is_offline_billing == APP_THA_ENUM_TRUE){
-        price = sys_get_offbilling_unit_price(s_timestamp_base);
+        uint32_t current_time = s_timestamp_base, tick = rt_tick_get();
+        if(s_tick_base > tick){
+            current_time += ((tick + 0xFFFFFFFF - s_tick_base) /1000);
+        }else{
+            current_time += ((tick - s_tick_base) /1000);
+        }
+        price = sys_get_offbilling_unit_price(current_time);
     }
 
     return price;
