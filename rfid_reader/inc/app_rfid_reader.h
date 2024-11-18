@@ -13,7 +13,7 @@
 #include "rfid_dev_api.h"
 
 #define RFIDR_MAIL_NUM_MAX                               0x05                          /** 射频读卡器邮箱邮件数量 */
-#define RFIDR_THREAD_STACK_SIZE                          1024                          /** 射频读卡器线程栈大小(B) */
+#define RFIDR_THREAD_STACK_SIZE                          2048                          /** 射频读卡器线程栈大小(B) */
 
 #define RFIDR_UUID_LEN_MAX                               0x08                          /** 卡UUID长度 */
 #define RFIDR_CARD_NUMBER_LEN_MAX                        0x10                          /** 卡号长度 */
