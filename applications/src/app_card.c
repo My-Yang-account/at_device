@@ -634,6 +634,9 @@ static int32_t app_card_info_process(void* handle)
                         port = APP_SYSTEM_GUNNO_SIZE - 0x01;
                     }
 
+                    if(another_port != port){
+                        app_card_event_send(APP_CARD_EVENT_IS_NOT_SAME_PORT, another_port, NULL);
+                    }
                     if(ret < 0x00){
                         app_card_event_recv(APP_CARD_EVENT_IS_PAYING, 0x00, port, NULL, 0x01);
                         return -0x01;

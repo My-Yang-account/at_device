@@ -22,6 +22,7 @@ extern "C" {
 #define APP_CARD_EVENT_CHARGE_STOP                   (0x01 <<0x04)    /* 卡事件：充电结束(使用内存中的订单信息结算) */
 #define APP_CARD_EVENT_IS_PAYING                     (0x01 <<0x05)    /* 卡事件：卡正在结算(业务不能再计算电量、金额) */
 #define APP_CARD_EVENT_PAY_COMPLETE                  (0x01 <<0x06)    /* 卡事件：卡结算完成 */
+#define APP_CARD_EVENT_IS_NOT_SAME_PORT              (0x01 <<0x06)    /* 卡事件：结算枪号不是当前枪号 */
 
 enum{
     APP_CARD_OPERATE_RET_SUCCESS = 0x00,                                      /** 卡操作结果：成功 */
