@@ -450,7 +450,7 @@ static int32_t app_card_swip_card_start(uint8_t gunno)
 
     s_card_operate_ret[gunno] = APP_CARD_OPERATE_RET_SUCCESS;
 
-    if(s_card_info_sector2.block_10.detail.ballance < 100){  /** 启动时余额不能小于1元 */
+    if(s_card_info_sector2.block_10.detail.ballance <= 100){  /** 启动时余额不能小于1元 */
         /** 提示余额不足 */
         LOG_E("card no ballance when swip card start(%d)!!", s_card_info_sector2.block_10.detail.ballance);
         s_card_operate_ret[gunno] = APP_CARD_OPERATE_RET_NO_BALLANCE;

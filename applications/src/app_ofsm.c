@@ -1048,6 +1048,9 @@ static void ofsm_readying_fun(uint8_t gunno)
                     if(s_ofsm_info[gunno].base.is_offline_billing == APP_THA_ENUM_TRUE){
                         s_ofsm_info[gunno].base.account_ballance_before = app_card_query_ballance(gunno);
                         s_ofsm_info[gunno].base.account_ballance_after = app_card_query_ballance(gunno);
+
+                        s_ofsm_info[gunno].base.charge_strategy = APP_CHARGE_STRATEGY_MONEY;
+                        s_ofsm_info[gunno].base.charge_strategy_para = s_ofsm_info[gunno].base.account_ballance_before *100;
                     }
                     compare_len = sizeof(s_ofsm_info[gunno].base.card_uid);
                     compare_len = compare_len > uuid_len ? uuid_len : compare_len;
@@ -4042,6 +4045,9 @@ static void ofsm_finishing_fun(uint8_t gunno)
                     if(s_ofsm_info[gunno].base.is_offline_billing == APP_THA_ENUM_TRUE){
                         s_ofsm_info[gunno].base.account_ballance_before = app_card_query_ballance(gunno);
                         s_ofsm_info[gunno].base.account_ballance_after = app_card_query_ballance(gunno);
+
+                        s_ofsm_info[gunno].base.charge_strategy = APP_CHARGE_STRATEGY_MONEY;
+                        s_ofsm_info[gunno].base.charge_strategy_para = s_ofsm_info[gunno].base.account_ballance_before *100;
                     }
                     compare_len = sizeof(s_ofsm_info[gunno].base.card_uid);
                     compare_len = compare_len > uuid_len ? uuid_len : compare_len;
@@ -4801,6 +4807,9 @@ static void ofsm_faulting_fun(uint8_t gunno)
                             if(s_ofsm_info[gunno].base.is_offline_billing == APP_THA_ENUM_TRUE){
                                 s_ofsm_info[gunno].base.account_ballance_before = app_card_query_ballance(gunno);
                                 s_ofsm_info[gunno].base.account_ballance_after = app_card_query_ballance(gunno);
+
+                                s_ofsm_info[gunno].base.charge_strategy = APP_CHARGE_STRATEGY_MONEY;
+                                s_ofsm_info[gunno].base.charge_strategy_para = s_ofsm_info[gunno].base.account_ballance_before *100;
                             }
                             compare_len = sizeof(s_ofsm_info[gunno].base.card_uid);
                             compare_len = compare_len > uuid_len ? uuid_len : compare_len;
