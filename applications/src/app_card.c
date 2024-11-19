@@ -625,6 +625,36 @@ static int32_t app_card_info_process(void* handle)
                 }
                 /** 卡被锁而且桩不是启动或充电状态，但未接收到充电桩已停止充电事件，说明这是上一笔订单未结算场景 */
                 else{
+                    /**
+                                                       * 此种情况分析：
+                     * 1：卡被锁
+                     * 2：此端口状态非启动或充电
+                     * 3：此端口未接收到充电结束事件
+                                                       * 有以下可能：
+                     * 1：这是上一笔订单未结算
+                     * 2：这是用这张卡先启了一把，然后选择了另一把枪(这把枪状态：非启动或空闲)然后刷卡
+                     */
+                    /** 判断情况2 */
+                    if(APP_SYSTEM_GUNNO_SIZE >= 0x02){   /** 双枪情况下才进行此判断 */
+                        another_port = APP_SYSTEM_GUNNOA;
+                        if(port == another_port){
+                            another_port = APP_SYSTEM_GUNNOB;
+                        }
+                        ofsm = get_ofsm_info(another_port);
+                        switch(ofsm->base.state.current){
+                        case APP_OFSM_STATE_STARTING:
+                        case APP_OFSM_STATE_CHARGING:
+                            if(memcmp(s_rfidr->uuid, ofsm->base.card_uid, s_rfidr->uuid_len) == 0x00){  /** 这是情况2，退出 */
+                                LOG_W("this card is charging on port(%d)", port);
+                                s_card_operate_ret[port] = APP_CARD_OPERATE_RET_IS_LOCKED;
+                                return s_card_operate_ret[port];
+                            }
+                            break;
+                        default:
+                            break;
+                        }
+                    }
+
                     thaisen_set_trigger_event(THAISEN_TRIG_EVENT_PAYING, 0x0A, APP_THA_ENUM_TRUE, port);
                     app_card_event_send(APP_CARD_EVENT_IS_PAYING, port, NULL);  /** 此时需要应用到业务的充电数据，先告诉业务正在结算，业务不能修改业务充电数据 */
                     another_port = port;

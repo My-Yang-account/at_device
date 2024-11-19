@@ -957,21 +957,21 @@ static void ofsm_readying_fun(uint8_t gunno)
             uint8_t need_authorize_online = APP_THA_ENUM_FALSE;
             rfidr_clear_swipe_state(gunno);
 
-            if(s_ofsm_info[gunno].base.is_offline_billing == APP_THA_ENUM_TRUE){
-                if(app_card_event_recv(APP_CARD_EVENT_CHARGE_START, 0x00, gunno, NULL, APP_THA_ENUM_TRUE) < APP_THA_ENUM_FALSE){
-                    if(app_card_event_recv(APP_CARD_EVENT_IS_NOT_SAME_PORT, 0x00, gunno, NULL, APP_THA_ENUM_FALSE) < APP_THA_ENUM_FALSE){
-                        LOG_D("gunno(%d) is not receive card start charge event in offline billing", gunno);
-                        app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
-                    }
-                    break;
-                }
-            }
-
             if(rfidr_query_info_type() == APP_RFIDR_INFO_TYPE_CARD_NUMBER){
                 uint8_t pile_number_len = APP_CARD_NUMBER_COMPARE_LEN, card_number_len = rfidr_query_card_number_len(),
                         compare_len = 0, count = 0;
                 uint8_t *pile_number, *card_number,
                          compare_count = APP_CARD_NUMBER_COMPARE_LEN_MIN;    /** 桩号卡对比长度 */
+
+                if(s_ofsm_info[gunno].base.is_offline_billing == APP_THA_ENUM_TRUE){
+                    if(app_card_event_recv(APP_CARD_EVENT_CHARGE_START, 0x00, gunno, NULL, APP_THA_ENUM_TRUE) < APP_THA_ENUM_FALSE){
+                        if(app_card_event_recv(APP_CARD_EVENT_IS_NOT_SAME_PORT, 0x00, gunno, NULL, APP_THA_ENUM_FALSE) < APP_THA_ENUM_FALSE){
+                            LOG_D("gunno(%d) is not receive card start charge event in offline billing", gunno);
+                            app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
+                        }
+                        break;
+                    }
+                }
 
                 compare_len = pile_number_len > card_number_len ? card_number_len : pile_number_len;
                 pile_number = sys_read_config_item_content(CONFIG_ITEM_PILE_NUMBER, 0);
@@ -3954,21 +3954,21 @@ static void ofsm_finishing_fun(uint8_t gunno)
             uint8_t need_authorize_online = APP_THA_ENUM_FALSE;
             rfidr_clear_swipe_state(gunno);
 
-            if(s_ofsm_info[gunno].base.is_offline_billing == APP_THA_ENUM_TRUE){
-                if(app_card_event_recv(APP_CARD_EVENT_CHARGE_START, 0x00, gunno, NULL, APP_THA_ENUM_TRUE) < APP_THA_ENUM_FALSE){
-                    if(app_card_event_recv(APP_CARD_EVENT_IS_NOT_SAME_PORT, 0x00, gunno, NULL, APP_THA_ENUM_FALSE) < APP_THA_ENUM_FALSE){
-                        LOG_D("gunno(%d) is not receive card start charge event in offline billing", gunno);
-                        app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
-                    }
-                    break;
-                }
-            }
-
             if(rfidr_query_info_type() == APP_RFIDR_INFO_TYPE_CARD_NUMBER){
                 uint8_t pile_number_len = APP_CARD_NUMBER_COMPARE_LEN, card_number_len = rfidr_query_card_number_len(),
                         compare_len = 0, count = 0;
                 uint8_t *pile_number, *card_number,
                          compare_count = APP_CARD_NUMBER_COMPARE_LEN_MIN;    /** 桩号卡对比长度 */
+
+                if(s_ofsm_info[gunno].base.is_offline_billing == APP_THA_ENUM_TRUE){
+                    if(app_card_event_recv(APP_CARD_EVENT_CHARGE_START, 0x00, gunno, NULL, APP_THA_ENUM_TRUE) < APP_THA_ENUM_FALSE){
+                        if(app_card_event_recv(APP_CARD_EVENT_IS_NOT_SAME_PORT, 0x00, gunno, NULL, APP_THA_ENUM_FALSE) < APP_THA_ENUM_FALSE){
+                            LOG_D("gunno(%d) is not receive card start charge event in offline billing", gunno);
+                            app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
+                        }
+                        break;
+                    }
+                }
 
                 compare_len = pile_number_len > card_number_len ? card_number_len : pile_number_len;
                 pile_number = sys_read_config_item_content(CONFIG_ITEM_PILE_NUMBER, 0);
@@ -4716,21 +4716,21 @@ static void ofsm_faulting_fun(uint8_t gunno)
                     uint8_t need_authorize_online = APP_THA_ENUM_FALSE;
                     rfidr_clear_swipe_state(gunno);
 
-                    if(s_ofsm_info[gunno].base.is_offline_billing == APP_THA_ENUM_TRUE){
-                        if(app_card_event_recv(APP_CARD_EVENT_CHARGE_START, 0x00, gunno, NULL, APP_THA_ENUM_TRUE) < APP_THA_ENUM_FALSE){
-                            if(app_card_event_recv(APP_CARD_EVENT_IS_NOT_SAME_PORT, 0x00, gunno, NULL, APP_THA_ENUM_FALSE) < APP_THA_ENUM_FALSE){
-                                LOG_D("gunno(%d) is not receive card start charge event in offline billing", gunno);
-                                app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
-                            }
-                            break;
-                        }
-                    }
-
                     if(rfidr_query_info_type() == APP_RFIDR_INFO_TYPE_CARD_NUMBER){
                         uint8_t pile_number_len = APP_CARD_NUMBER_COMPARE_LEN, card_number_len = rfidr_query_card_number_len(),
                                 compare_len = 0, count = 0;
                         uint8_t *pile_number, *card_number,
                                  compare_count = APP_CARD_NUMBER_COMPARE_LEN_MIN;    /** 桩号卡对比长度 */
+
+                        if(s_ofsm_info[gunno].base.is_offline_billing == APP_THA_ENUM_TRUE){
+                            if(app_card_event_recv(APP_CARD_EVENT_CHARGE_START, 0x00, gunno, NULL, APP_THA_ENUM_TRUE) < APP_THA_ENUM_FALSE){
+                                if(app_card_event_recv(APP_CARD_EVENT_IS_NOT_SAME_PORT, 0x00, gunno, NULL, APP_THA_ENUM_FALSE) < APP_THA_ENUM_FALSE){
+                                    LOG_D("gunno(%d) is not receive card start charge event in offline billing", gunno);
+                                    app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
+                                }
+                                break;
+                            }
+                        }
 
                         compare_len = pile_number_len > card_number_len ? card_number_len : pile_number_len;
                         pile_number = sys_read_config_item_content(CONFIG_ITEM_PILE_NUMBER, 0);
