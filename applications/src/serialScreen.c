@@ -5368,10 +5368,12 @@ void SerialScreen_PageReset(int GunIdx)
 			}
 			break;
 		case SysMainStatus_Err:
-			if(GunIdx==LCD_GUN_1)
-				LcdData.CurrentPage = LCD_PAGE_A_ERR;
-			else 
-				LcdData.CurrentPage = LCD_PAGE_B_ERR;
+            if(LcdTriggerEvent.IsTriggerExternal == FALSE){     /** 这些是由外部触发跳的页 */
+                if(GunIdx==LCD_GUN_1)
+                    LcdData.CurrentPage = LCD_PAGE_A_ERR;
+                else
+                    LcdData.CurrentPage = LCD_PAGE_B_ERR;
+            }
 			break;			
 			
 		default: 
