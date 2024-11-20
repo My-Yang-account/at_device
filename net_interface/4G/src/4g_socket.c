@@ -55,7 +55,7 @@ int netdev_4g_socket_open_port(int *socket_fd, char* host, uint16_t host_len, ui
     int result = 0x00, fd = 0x00, flag = 0x00;
     char port_str[6];
     struct addrinfo hints;
-    struct addrinfo *addr_list;
+    struct addrinfo *addr_list = NULL;
 
     memset(port_str, 0x00, sizeof(port_str));
     memset(&hints, 0x00, sizeof(struct addrinfo));
@@ -69,7 +69,9 @@ int netdev_4g_socket_open_port(int *socket_fd, char* host, uint16_t host_len, ui
     result = getaddrinfo(host, port_str, &hints, &addr_list);
 
     if(result != RT_EOK){
-        freeaddrinfo(addr_list);
+        if(addr_list){
+            freeaddrinfo(addr_list);
+        }
         LOG_E("get address info fail, result|%d", result);
         return -0x01;
     }
