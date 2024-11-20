@@ -269,8 +269,15 @@ static void transaction_record_query_report(uint8_t gunno)
                 need_check = 1;
             }
             if(need_check){
+                int32_t ret = 0x00;
                 while(save_rentry < 5){
-                    if(mw_storage_record_designate_index_updated(&rtransaction, sizeof(rtransaction), USER_DATA_TYPE_VERIFIED, 0x00, 0x00, gunno, index) < 0x00){
+                    ret = 0x00;
+                    if((s_ofsm_info[gunno].base.is_offline_billing == APP_THA_ENUM_TRUE) && (rtransaction.start_type == APP_CHARGE_START_WAY_OFFLINE_CARD)){
+                        ret = mw_storage_record_designate_index_updated(&rtransaction, sizeof(rtransaction), USER_DATA_TYPE_VERIFIED, 0x00, APP_THA_ENUM_FALSE, gunno, index);
+                    }else{
+                        ret = mw_storage_record_designate_index_updated(&rtransaction, sizeof(rtransaction), USER_DATA_TYPE_VERIFIED, 0x00, APP_THA_ENUM_TRUE, gunno, index);
+                    }
+                    if(ret < 0x00){
                         rt_thread_mdelay(10);
                         save_rentry++;
                         continue;
@@ -3672,12 +3679,18 @@ static void ofsm_stoping_fun(uint8_t gunno)
             s_thaisen_transaction[gunno].charge_time = 0x00;
         }
         /** 如果是离线计费模式下的刷卡停止，则订单就是已经确认了的 */
-        if((s_ofsm_info[gunno].base.is_offline_billing == APP_THA_ENUM_TRUE) && (s_ofsm_info[gunno].base.reason_code == APP_SYSTEM_STOP_WAY_OFFLINECARD_STOP)){
-            mw_storage_record_designate_index_updated(&s_thaisen_transaction[gunno], sizeof(s_thaisen_transaction[gunno]), USER_DATA_TYPE_VERIFIED,  \
-                    0x00, APP_THA_ENUM_TRUE, gunno, s_current_order_index[TARGET_PLATFORM_INDEX][gunno]);
+        if(s_ofsm_info[gunno].base.is_offline_billing == APP_THA_ENUM_TRUE){
+            if((s_ofsm_info[gunno].base.start_type == APP_CHARGE_START_WAY_OFFLINE_CARD) && \
+                    (s_ofsm_info[gunno].base.reason_code != APP_SYSTEM_STOP_WAY_OFFLINECARD_STOP)){
+                mw_storage_record_designate_index_updated(&s_thaisen_transaction[gunno], sizeof(s_thaisen_transaction[gunno]), USER_DATA_TYPE_VERIFIED,  \
+                        0x00, APP_THA_ENUM_FALSE, gunno, s_current_order_index[TARGET_PLATFORM_INDEX][gunno]);
+            }else{
+                mw_storage_record_designate_index_updated(&s_thaisen_transaction[gunno], sizeof(s_thaisen_transaction[gunno]), USER_DATA_TYPE_VERIFIED,  \
+                        0x00, APP_THA_ENUM_TRUE, gunno, s_current_order_index[TARGET_PLATFORM_INDEX][gunno]);
+            }
         }else{
             mw_storage_record_designate_index_updated(&s_thaisen_transaction[gunno], sizeof(s_thaisen_transaction[gunno]), USER_DATA_TYPE_VERIFIED,  \
-                    0x00, APP_THA_ENUM_FALSE, gunno, s_current_order_index[TARGET_PLATFORM_INDEX][gunno]);
+                    0x00, APP_THA_ENUM_TRUE, gunno, s_current_order_index[TARGET_PLATFORM_INDEX][gunno]);
         }
 
         memcpy(&(s_thaisen_transaction_report[TARGET_PLATFORM_INDEX][gunno]), &(s_thaisen_transaction[gunno]), sizeof(thaisen_transaction_t));
