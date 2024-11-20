@@ -713,7 +713,6 @@ static int32_t app_card_info_process(void* handle)
         case APP_OFSM_STATE_WAIT_NET:
         case APP_OFSM_STATE_IDLEING:
             break;
-        case APP_OFSM_STATE_STARTING:
         case APP_OFSM_STATE_CHARGING:
         {
             uint8_t *dev_id = sys_read_config_item_content(CONFIG_ITEM_PILE_NUMBER, 0x00);
@@ -767,6 +766,8 @@ static int32_t app_card_info_process(void* handle)
             }
             break;
         default:
+            s_card_operate_ret[port] = APP_CARD_OPERATE_RET_NULL;
+            return s_card_operate_ret[port];
             break;
         }
     }

@@ -1175,6 +1175,9 @@ static void ofsm_readying_fun(uint8_t gunno)
                 case APP_CARD_OPERATE_RET_PAYED:
                     LOG_D("gunno(%d) card is payed in offline billing mode 555", gunno);
                     break;
+                case APP_CARD_OPERATE_RET_NULL:
+                    LOG_D("gunno(%d) current state is not allow stop in offline billing mode", gunno);
+                    break;
                 default:
                     LOG_D("gunno(%d) invalid card in offline billing mode 111", gunno);
                     app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
@@ -3089,6 +3092,9 @@ static void ofsm_charging_fun(uint8_t gunno)
                 app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
                 thaisen_set_trigger_event(THAISEN_TRIG_EVENT_SWITCH_GUN, 0x05, APP_THA_ENUM_TRUE, gunno);
                 break;
+            case APP_CARD_OPERATE_RET_NULL:
+                LOG_D("gunno(%d) current state is not allow stop in offline billing mode", gunno);
+                break;
             default:
                 LOG_D("gunno(%d) invalid card in offline billing mode 333", gunno);
                 app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
@@ -3872,6 +3878,9 @@ static void ofsm_finishing_fun(uint8_t gunno)
                             app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
                             thaisen_set_trigger_event(THAISEN_TRIG_EVENT_SWITCH_GUN, 0x05, APP_THA_ENUM_TRUE, gunno);
                             break;
+                        case APP_CARD_OPERATE_RET_NULL:
+                            LOG_D("gunno(%d) current state is not allow stop in offline billing mode", gunno);
+                            break;
                         default:
                             LOG_D("gunno(%d) invalid card in offline billing mode 333", gunno);
                             app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
@@ -4171,6 +4180,9 @@ static void ofsm_finishing_fun(uint8_t gunno)
                     break;
                 case APP_CARD_OPERATE_RET_PAYED:
                     LOG_D("gunno(%d) card is payed in offline billing mode 666", gunno);
+                    break;
+                case APP_CARD_OPERATE_RET_NULL:
+                    LOG_D("gunno(%d) current state is not allow stop in offline billing mode", gunno);
                     break;
                 default:
                     LOG_D("gunno(%d) invalid card in offline billing mode 111", gunno);
@@ -4933,6 +4945,9 @@ static void ofsm_faulting_fun(uint8_t gunno)
                             break;
                         case APP_CARD_OPERATE_RET_PAYED:
                             LOG_D("gunno(%d) card is payed in offline billing mode 777", gunno);
+                            break;
+                        case APP_CARD_OPERATE_RET_NULL:
+                            LOG_D("gunno(%d) current state is not allow stop in offline billing mode", gunno);
                             break;
                         default:
                             LOG_D("gunno(%d) invalid card in offline billing mode 111", gunno);
