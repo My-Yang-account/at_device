@@ -2240,9 +2240,11 @@ void SerialScreen_OfflineBillingGet(void)
 
 void SerialScreen_IsSupportSetFlash(void)
 {
-    u8 function_disable = 1, len = 1, count = 0;
+    u8 function_disable = 1, len = 1, count = 0, function = 0;
 
     SerialScreen_JumpPage(&SerialScreen, LCD_PAGE_STORAGE_WAITING);
+
+    function = *(u8*)UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_OFFLINE_BILLING, 0);
 
 	sSCREEN_EVENT_DEBUGMSG("set Flash sup_Local=%d LcdData.setData.sup_VIN=%d\r\n",LcdData.setData.sup_Local,LcdData.setData.sup_VIN );
 	UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_LOCAL, (u8 *)&(LcdData.setData.sup_Local), sizeof(LcdData.setData.sup_Local));
@@ -2304,6 +2306,10 @@ void SerialScreen_IsSupportSetFlash(void)
 
     for(u8 i = 0; i < LCD_GUN_NUM; i++)
         LcdAssistantData.SeveralGunFlag[i].AuxPower24VSelect = LcdData.setData.sup_auxp_24V;
+
+    if(function != LcdData.setData.sup_offbilling){
+        SerialScreen_ScreenSet_Reboot_Flag();
+    }
 }
 
 
