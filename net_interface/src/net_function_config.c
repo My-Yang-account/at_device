@@ -731,11 +731,12 @@ int32_t app_nfunc_config_init(void)
         return -0x01;
     }
 
-    uint8_t nettype = CP_NETTYPE_4G;
+    uint8_t nettype = CP_NETTYPE_4G, offline_billing = 0x00;
 
     ethch395_set_init_hook(ethernet_init_hook);
     nettype = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_NET_TYPE, 0x00));
-    if(nettype == CP_NETTYPE_ETH){
+    offline_billing = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_SUPORT_OFFLINE_BILLING, 0x00));
+    if((nettype == CP_NETTYPE_ETH) && (offline_billing == 0x00)){
         net_set_netdev_type(NET_NETDEV_TYPE_ETHERNET, 0x00);
         net_netdev_init();
     }

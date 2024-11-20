@@ -13,6 +13,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <app.h>
+#include <chargepile_config.h>
 #include "net_netdev.h"
 
 #include <at_device_ec20.h>
@@ -979,6 +980,10 @@ static void ec20_init_thread_entry(void *parameter)
 
         if((net_query_netdev_type() &NET_NETDEV_TYPE_4G) == 0){
             LOG_W("net device selected is not 4G, quit");
+            break;
+        }
+        if(*(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_SUPORT_OFFLINE_BILLING, 0x00))){
+            LOG_W("device current mode is offline billing, quit");
             break;
         }
         /* power on the ec20 device */
