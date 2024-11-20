@@ -246,6 +246,7 @@ enum net_event{
     NET_OPERATION_EVENT_SET_RESERVATION,                /* 设置预约事件 */
     NET_OPERATION_EVENT_CANCEL_RESERVATION,             /* 取消预约事件 */
     NET_OPERATION_EVENT_OFFLINECHARGE_LIMIT,            /* 离线可充电时长限制事件 */
+    NET_OPERATION_EVENT_COMMUNICATE_DEV_REBOOT,         /* 通信设备重启事件 */
 };
 
 enum net_ota_state{

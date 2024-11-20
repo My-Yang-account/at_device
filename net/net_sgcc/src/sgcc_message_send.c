@@ -29,6 +29,7 @@
 #define NET_SGCC_WAIT_LOGIN_RENTRY                            100         /* 等待登录结果尝试次数 */
 #define NET_SGCC_WAIT_UNLOCK_TIMEOUT                          (10 *1000)  /* 等待socket 解锁超时时间(单位：ms) */
 
+#define NET_SGCC_RESET_NDEV_WAIT_TIME                         (30* 60 *1000)   /* 重启网络设备等待时间(单位ms:30 *60 *1000 = 30min) */
 #define NET_SGCC_LOGIN_OPERATION_INTERVAL                     30000       /* 登录操作间隔(单位ms:30 *1000 = 30s) */
 #define NET_SGCC_HEARTBEAT_REPORT_INTERVAL                    10000       /* 心跳间隔(单位ms:10 *1000 = 10s) */
 
@@ -454,6 +455,7 @@ static void sgcc_connect_thread_entry(void *parameter)
     {
         if((net_get_ota_info()->state >= NET_OTA_STATE_LOGIN_WAIT) && (net_get_ota_info()->state <= NET_OTA_STATE_UPDATING)){
             rt_thread_mdelay(5000);
+            s_sgcc_socket_info.fail_tick = rt_tick_get();
             continue;
         }
 
@@ -464,6 +466,7 @@ static void sgcc_connect_thread_entry(void *parameter)
             s_sgcc_socket_info.fd = -0x01;
             step = NET_SGCC_NET_STATE_OPEN_RESOURCE;
             link_open_step = 0x00;
+            s_sgcc_socket_info.fail_tick = rt_tick_get();
             if(rt_tick_get() > (delay + NET_SGCC_LOGIN_OPERATION_INTERVAL)){
                 delay = (rt_tick_get() - NET_SGCC_LOGIN_OPERATION_INTERVAL);
             }
@@ -477,6 +480,7 @@ static void sgcc_connect_thread_entry(void *parameter)
             s_sgcc_socket_info.fd = -0x01;
             step = NET_SGCC_NET_STATE_OPEN_RESOURCE;
             link_open_step = 0x00;
+            s_sgcc_socket_info.fail_tick = rt_tick_get();
             if(rt_tick_get() > (delay + NET_SGCC_LOGIN_OPERATION_INTERVAL)){
                 delay = (rt_tick_get() - NET_SGCC_LOGIN_OPERATION_INTERVAL);
             }
@@ -490,6 +494,7 @@ static void sgcc_connect_thread_entry(void *parameter)
             s_sgcc_socket_info.fd = -0x01;
             step = NET_SGCC_NET_STATE_OPEN_RESOURCE;
             link_open_step = 0x00;
+            s_sgcc_socket_info.fail_tick = rt_tick_get();
             if(rt_tick_get() > (delay + NET_SGCC_LOGIN_OPERATION_INTERVAL)){
                 delay = (rt_tick_get() - NET_SGCC_LOGIN_OPERATION_INTERVAL);
             }
@@ -503,6 +508,7 @@ static void sgcc_connect_thread_entry(void *parameter)
             s_sgcc_socket_info.fd = -0x01;
             step = NET_SGCC_NET_STATE_OPEN_RESOURCE;
             link_open_step = 0x00;
+            s_sgcc_socket_info.fail_tick = rt_tick_get();
             if(rt_tick_get() > (delay + NET_SGCC_LOGIN_OPERATION_INTERVAL)){
                 delay = (rt_tick_get() - NET_SGCC_LOGIN_OPERATION_INTERVAL);
             }
@@ -593,6 +599,7 @@ static void sgcc_connect_thread_entry(void *parameter)
             s_sgcc_socket_info.state = SGCC_SOCKET_STATE_LOGIN_SUCCESS;
             net_get_net_handle()->net_state = NET_SOCKET_STATE_LOGIN_SUCCESS;
             if(net_get_net_handle()->esocket_state == NET_ESOCKET_STATE_CLOSE){
+#if 0
                 extern void iotx_linkkit_ctx_close(void);
 
                 iotx_linkkit_ctx_close();
@@ -618,6 +625,7 @@ static void sgcc_connect_thread_entry(void *parameter)
 
                 LOG_W("sgcc login rentry = 0x00");
                 net_set_clear_ndev_reset_state(NET_PLATFORM_MASK_ALL, 0x00);
+#endif
             }
             break;
         default:
@@ -648,6 +656,7 @@ static void sgcc_connect_thread_entry(void *parameter)
         }
 
         if(s_sgcc_socket_info.operate_fail.login > NET_SGCC_LOGIN_RENTRY){
+#if 0
             extern void iotx_linkkit_ctx_close(void);
 
             iotx_linkkit_ctx_close();
@@ -673,6 +682,8 @@ static void sgcc_connect_thread_entry(void *parameter)
 
             LOG_W("sgcc login rentry = 0x00");
             net_set_clear_ndev_reset_state(NET_PLATFORM_MASK_ALL, 0x00);
+#endif
+            s_sgcc_socket_info.operate_fail.login = 0x00;
         }
 
         if(s_sgcc_socket_info.state == SGCC_SOCKET_STATE_LOGIN_SUCCESS){
@@ -700,6 +711,16 @@ static void sgcc_connect_thread_entry(void *parameter)
                 s_sgcc_socket_info.operate_fail.sync = NET_ENUM_FALSE;
 
                 LOG_D("sgcc sync timeout");
+            }
+            s_sgcc_socket_info.fail_tick = rt_tick_get();
+            net_set_clear_ndev_reset_state(NET_PLATFORM_MASK_TARGET, 0x01);
+        }else{
+            if(s_sgcc_socket_info.fail_tick > rt_tick_get()){
+                s_sgcc_socket_info.fail_tick = rt_tick_get();
+            }
+            if((rt_tick_get() - s_sgcc_socket_info.fail_tick) > NET_SGCC_RESET_NDEV_WAIT_TIME){
+                s_sgcc_socket_info.fail_tick = rt_tick_get();
+                net_set_clear_ndev_reset_state(NET_PLATFORM_MASK_TARGET, 0x00);
             }
         }
 

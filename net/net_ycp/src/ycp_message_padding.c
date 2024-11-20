@@ -2614,6 +2614,22 @@ static void ycp_realtime_process_thread_entry(void *parameter)
             ycp_disposable_message_check(gunno);
         }
 
+        if(net_operation_get_event(0x00, NET_OPERATION_EVENT_COMMUNICATE_DEV_REBOOT)){
+            uint8_t i = 0x00;
+            System_BaseData *base = NULL;
+            for(i = 0x00; i < NET_SYSTEM_GUN_NUMBER; i++){
+                base = (System_BaseData*)(s_ycp_handle->get_base_data(i));
+                if(base->state.current != APP_OFSM_STATE_IDLEING){
+                    break;
+                }
+            }
+            if(i >= NET_SYSTEM_GUN_NUMBER){
+                /** 重启通信模块 */
+                net_operation_clear_event(0x00, NET_OPERATION_EVENT_COMMUNICATE_DEV_REBOOT);
+                net_get_net_handle()->ndev_operate(NULL, NET_DEV_OPERATE_OPTION_RESET);
+            }
+        }
+
         rt_thread_mdelay(100);
     }
 }
