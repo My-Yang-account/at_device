@@ -98,7 +98,6 @@ static int32_t app_card_query_funpay_bill_fees_total(void *buf, uint16_t blen, u
                         ofsm->base.charge_time = transaction->charge_time;
                         ofsm->base.elect_a = transaction->total_elect;
                         ofsm->base.fees_total = transaction->total_fee;
-                        ofsm->base.account_ballance_after = transaction->account_ballance_after;
                         ofsm->base.reason_code = transaction->stop_reason;
                         ofsm->base.current_soc = transaction->stop_soc;
 
@@ -107,7 +106,6 @@ static int32_t app_card_query_funpay_bill_fees_total(void *buf, uint16_t blen, u
                         LOG_D("charge_time:%d", ofsm->base.charge_time);
                         LOG_D("total_elect:%d", ofsm->base.elect_a);
                         LOG_D("total_fee:%d", ofsm->base.fees_total);
-                        LOG_D("account_ballance_after:%d", ofsm->base.account_ballance_after);
                         LOG_D("stop_reason:%d", ofsm->base.reason_code);
                         LOG_D("stop_soc:%d", ofsm->base.current_soc);
                         return 0x00;
@@ -148,7 +146,6 @@ static int32_t app_card_query_funpay_bill_fees_total(void *buf, uint16_t blen, u
                         ofsm->base.charge_time = transaction->charge_time;
                         ofsm->base.elect_a = transaction->total_elect;
                         ofsm->base.fees_total = transaction->total_fee;
-                        ofsm->base.account_ballance_after = transaction->account_ballance_after;
                         ofsm->base.reason_code = transaction->stop_reason;
                         ofsm->base.current_soc = transaction->stop_soc;
 
@@ -157,7 +154,6 @@ static int32_t app_card_query_funpay_bill_fees_total(void *buf, uint16_t blen, u
                         LOG_D("charge_time:%d", ofsm->base.charge_time);
                         LOG_D("total_elect:%d", ofsm->base.elect_a);
                         LOG_D("total_fee:%d", ofsm->base.fees_total);
-                        LOG_D("account_ballance_after:%d", ofsm->base.account_ballance_after);
                         LOG_D("stop_reason:%d", ofsm->base.reason_code);
                         LOG_D("stop_soc:%d", ofsm->base.current_soc);
                         return 0x00;
@@ -305,6 +301,8 @@ static int32_t app_card_pay_history_bill(uint8_t *gunno)
 
     if(s_card_info_sector2.block_10.detail.ballance >= (ofsm->base.fees_total /100)){
         s_card_info_sector2.block_10.detail.ballance -= (ofsm->base.fees_total /100);
+        ofsm->base.account_ballance_before = s_card_info_sector2.block_10.detail.ballance;
+
         s_card_info_sector2.block_10.detail.ballance = APP_ENDIANNESS_CONVERT(s_card_info_sector2.block_10.detail.ballance);
         s_card_info_sector2.block_10.detail.ballance_check = get_check_sum((uint8_t*)&s_card_info_sector2.block_10.detail.ballance, sizeof(s_card_info_sector2.block_10.detail.ballance));
         s_card_info_sector2.block_10.detail.is_lock = 0x00;

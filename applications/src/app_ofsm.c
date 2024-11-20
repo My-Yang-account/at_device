@@ -2710,7 +2710,7 @@ static void ofsm_charging_fun(uint8_t gunno)
             s_ofsm_info[gunno].base.elect_fees_total = APP_SPEND_AMOUNT_MAX;
         }
     }
-    if(s_ofsm_info[gunno].base.account_ballance_before > s_ofsm_info[gunno].base.fees_total){
+    if(s_ofsm_info[gunno].base.account_ballance_before > (s_ofsm_info[gunno].base.fees_total /100)){
         s_ofsm_info[gunno].base.account_ballance_after = s_ofsm_info[gunno].base.account_ballance_before - (s_ofsm_info[gunno].base.fees_total /100);
     }
     s_ofsm_info[gunno].base.elect_a = app_billingrule_get_elcet_total(gunno);
@@ -3534,7 +3534,7 @@ static void ofsm_stoping_fun(uint8_t gunno)
             s_ofsm_info[gunno].base.fees_total = 0x00;
             s_ofsm_info[gunno].base.service_fees_total = 0x00;
             s_ofsm_info[gunno].base.elect_fees_total = 0x00;
-            if(s_ofsm_info[gunno].base.account_ballance_before > s_ofsm_info[gunno].base.fees_total){
+            if(s_ofsm_info[gunno].base.account_ballance_before > (s_ofsm_info[gunno].base.fees_total /100)){
                 s_ofsm_info[gunno].base.account_ballance_after = s_ofsm_info[gunno].base.account_ballance_before - s_ofsm_info[gunno].base.fees_total;
             }
             s_thaisen_transaction[gunno].ammeter_stop = s_ofsm_info[gunno].base.current_elect;
@@ -3610,7 +3610,7 @@ static void ofsm_stoping_fun(uint8_t gunno)
                         s_ofsm_info[gunno].base.elect_fees_total = APP_SPEND_AMOUNT_MAX;
                     }
                 }
-                if(s_ofsm_info[gunno].base.account_ballance_before > s_ofsm_info[gunno].base.fees_total){
+                if(s_ofsm_info[gunno].base.account_ballance_before > (s_ofsm_info[gunno].base.fees_total /100)){
                     s_ofsm_info[gunno].base.account_ballance_after = s_ofsm_info[gunno].base.account_ballance_before - (s_ofsm_info[gunno].base.fees_total /100);
                 }
                 s_thaisen_transaction[gunno].ammeter_start = s_ofsm_info[gunno].base.start_elect;
@@ -3671,6 +3671,8 @@ static void ofsm_stoping_fun(uint8_t gunno)
 #endif /* (defined (APP_INCLUDE_SGCC_PROTOCOL)) */
             }
         }
+
+        s_ofsm_info[gunno].base.account_ballance_before = s_ofsm_info[gunno].base.account_ballance_after;
 
         if(s_thaisen_transaction[gunno].end_time > s_thaisen_transaction[gunno].charge_time){
             s_thaisen_transaction[gunno].start_time = s_thaisen_transaction[gunno].end_time - s_thaisen_transaction[gunno].charge_time;
