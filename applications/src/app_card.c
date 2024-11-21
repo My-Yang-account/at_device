@@ -191,7 +191,7 @@ static int32_t app_card_swip_card_stop(uint8_t gunno)
         return APP_CARD_OPERATE_RET_INTERNAL_ERROR;
     }
 
-    LOG_D("gunno(%d) swip_card_stop");
+    LOG_D("gunno(%d) swip_card_stop", gunno);
 
     struct ofsm_info *ofsm = get_ofsm_info(gunno);
     uint8_t *dev_id = sys_read_config_item_content(CONFIG_ITEM_PILE_NUMBER, 0x00), card_info_block, locked = s_card_info_sector2.block_10.detail.is_lock;
@@ -679,6 +679,11 @@ static int32_t app_card_info_process(void* handle)
         }
         /** 卡被锁了,业务状态为启动或充电, 说明这是正常充电流程, 此时刷卡了,是要停止充电*/
         else{   // OK
+            if(ofsm->base.state.current == APP_OFSM_STATE_STARTING){
+                LOG_D("gunno(%d) is starting, is not allow stop", port);
+                s_card_operate_ret[port] = APP_CARD_OPERATE_RET_NULL;
+                return s_card_operate_ret[port];
+            }
             if((memcmp(dev_id, s_card_info_sector2.device_id, CARD_BLOCK_SIZE)) ||
                     (memcmp(s_card_info_sector2.card_number, ofsm->base.card_number, APP_CARD_NUMBER_COMPARE_LEN_MIN_OFFLINE_BILLING)) ||
                     memcmp(s_rfidr->uuid, ofsm->base.card_uid, s_rfidr->uuid_len)){
