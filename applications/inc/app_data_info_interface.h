@@ -38,6 +38,9 @@ enum thaisen_trig_event{
     THAISEN_TRIG_EVENT_PAYING,                                    /** 屏幕外部触发事件：结算中 */
     THAISEN_TRIG_EVENT_SWITCH_GUN,                                /** 屏幕外部触发事件：不是启动卡，请切换枪 */
     THAISEN_TRIG_EVENT_PAY_COMPLETE,                              /** 屏幕外部触发事件：结算完成 */
+    THAISEN_TRIG_EVENT_IS_STARTING,                               /** 屏幕外部触发事件：启动中 */
+    THAISEN_TRIG_EVENT_IS_CHARGING,                               /** 屏幕外部触发事件：此卡已启动充电 */
+    THAISEN_TRIG_EVENT_FAULT_STOP,                                /** 屏幕外部触发事件：故障停止，请重新拔、插枪 */
 #if 0
     THAISEN_TRIG_EVENT_WRITE_INFO,                                /** 屏幕外部触发事件：写卡信息失败 */
     THAISEN_TRIG_EVENT_START_FAIL,                                /** 屏幕外部触发事件：启动失败, 刷卡结算 */

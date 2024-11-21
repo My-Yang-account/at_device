@@ -521,6 +521,14 @@ static void app_card_data_update(void* handle)
 {
     s_rfidr = (rfid_reader*)handle;
 
+    switch (get_ofsm_info(0x00)->base.ota_state) {
+    case APP_OTA_STATE_AUTH_SUCCESS:
+    case APP_OTA_STATE_UPDATEING:
+        s_rfidr->is_forbid = 0x01;
+        return;
+    default:
+        break;
+    }
     if((*(sys_read_config_item_content(CONFIG_ITEM_SUPORT_CARD, 0))) != 0x01){
         for(uint8_t gunno = 0x00; gunno < APP_SYSTEM_GUNNO_SIZE; gunno++){
             app_clear_system_fault_enum(APP_SYS_FAULT_CARD_READER, APP_GENERAL_SYSTEM_FAULT_SET_LOW, gunno);
@@ -644,7 +652,7 @@ static int32_t app_card_info_process(void* handle)
                         case APP_OFSM_STATE_CHARGING:
                             if(memcmp(s_rfidr->uuid, ofsm->base.card_uid, s_rfidr->uuid_len) == 0x00){  /** 这是情况2，退出 */
                                 LOG_W("this card is charging on port(%d)", port);
-                                s_card_operate_ret[port] = APP_CARD_OPERATE_RET_IS_LOCKED;
+                                s_card_operate_ret[port] = APP_CARD_OPERATE_RET_IS_CHARGING;
                                 return s_card_operate_ret[port];
                             }
                             break;

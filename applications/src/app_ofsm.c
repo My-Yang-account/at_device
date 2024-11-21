@@ -1179,6 +1179,11 @@ static void ofsm_readying_fun(uint8_t gunno)
                     app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
                     thaisen_set_trigger_event(THAISEN_TRIG_EVENT_CARD_LOCKED, 0x05, APP_THA_ENUM_TRUE, gunno);
                     break;
+                case APP_CARD_OPERATE_RET_IS_CHARGING:
+                    LOG_D("gunno(%d) this card is start in offline billing mode", gunno);
+                    app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
+                    thaisen_set_trigger_event(THAISEN_TRIG_EVENT_IS_CHARGING, 0x05, APP_THA_ENUM_TRUE, gunno);
+                    break;
                 case APP_CARD_OPERATE_RET_PAYED:
                     LOG_D("gunno(%d) card is payed in offline billing mode 555", gunno);
                     break;
@@ -2446,7 +2451,9 @@ static void ofsm_starting_fun(uint8_t gunno)
     app_card_event_recv(APP_CARD_EVENT_CHARGEPILE_READY, 0x00, gunno, NULL, APP_THA_ENUM_TRUE);
     app_card_event_recv(APP_CARD_EVENT_CHARGE_START, 0x00, gunno, NULL, APP_THA_ENUM_TRUE);
     app_card_event_recv(APP_CARD_EVENT_CHARGE_STOP, 0x00, gunno, NULL, APP_THA_ENUM_TRUE);
-    app_card_event_recv(APP_CARD_EVENT_PAY_COMPLETE, 0x00, gunno, NULL, APP_THA_ENUM_TRUE);
+    if(s_ofsm_info[gunno].base.reason_code != APP_SYSTEM_STOP_WAY_OFFLINECARD_STOP){
+        app_card_event_recv(APP_CARD_EVENT_PAY_COMPLETE, 0x00, gunno, NULL, APP_THA_ENUM_TRUE);
+    }
 }
 
 static void ofsm_charging_fun(uint8_t gunno)
@@ -3104,6 +3111,11 @@ static void ofsm_charging_fun(uint8_t gunno)
                 app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
                 thaisen_set_trigger_event(THAISEN_TRIG_EVENT_SWITCH_GUN, 0x05, APP_THA_ENUM_TRUE, gunno);
                 break;
+            case APP_CARD_OPERATE_RET_IS_CHARGING:
+                LOG_D("gunno(%d) this card is start in offline billing mode", gunno);
+                app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
+                thaisen_set_trigger_event(THAISEN_TRIG_EVENT_IS_CHARGING, 0x05, APP_THA_ENUM_TRUE, gunno);
+                break;
             case APP_CARD_OPERATE_RET_NULL:
                 LOG_D("gunno(%d) current state is not allow stop in offline billing mode", gunno);
                 break;
@@ -3423,7 +3435,9 @@ static void ofsm_charging_fun(uint8_t gunno)
     app_card_event_recv(APP_CARD_EVENT_CHARGEPILE_READY, 0x00, gunno, NULL, APP_THA_ENUM_TRUE);
     app_card_event_recv(APP_CARD_EVENT_CHARGE_START, 0x00, gunno, NULL, APP_THA_ENUM_TRUE);
     app_card_event_recv(APP_CARD_EVENT_CHARGE_STOP, 0x00, gunno, NULL, APP_THA_ENUM_TRUE);
-    app_card_event_recv(APP_CARD_EVENT_PAY_COMPLETE, 0x00, gunno, NULL, APP_THA_ENUM_TRUE);
+    if(s_ofsm_info[gunno].base.reason_code != APP_SYSTEM_STOP_WAY_OFFLINECARD_STOP){
+        app_card_event_recv(APP_CARD_EVENT_PAY_COMPLETE, 0x00, gunno, NULL, APP_THA_ENUM_TRUE);
+    }
 }
 
 static void ofsm_stoping_fun(uint8_t gunno)
@@ -3723,12 +3737,16 @@ static void ofsm_stoping_fun(uint8_t gunno)
                     LOG_D("gunno(%d) start fail in offline billing mode");
                     if(s_thaisen_transaction[gunno].stop_reason != APP_SYSTEM_STOP_WAY_OFFLINECARD_STOP){
                         thaisen_set_trigger_event(THAISEN_TRIG_EVENT_FINISH, 0x64, APP_THA_ENUM_TRUE, gunno);
+                    }else{
+                        thaisen_set_trigger_event(THAISEN_TRIG_EVENT_PAY_COMPLETE, 0x1E, APP_THA_ENUM_TRUE, gunno);
                     }
                 }else{
                     /** 提示充电结束, 请刷卡结算 */;
                     LOG_D("gunno(%d) charge finish in offline billing mode", gunno);
                     if(s_thaisen_transaction[gunno].stop_reason != APP_SYSTEM_STOP_WAY_OFFLINECARD_STOP){   /** 离线计费：非刷卡停时才弹出请刷卡结算页面 */
                         thaisen_set_trigger_event(THAISEN_TRIG_EVENT_FINISH, 0x64, APP_THA_ENUM_TRUE, gunno);
+                    }else{
+                        thaisen_set_trigger_event(THAISEN_TRIG_EVENT_PAY_COMPLETE, 0x1E, APP_THA_ENUM_TRUE, gunno);
                     }
                 }
             }
@@ -3871,6 +3889,12 @@ static void ofsm_finishing_fun(uint8_t gunno)
     }
     case CC1_4V:
         if(s_ofsm_info[gunno].base.flag.is_fault_stop == APP_THA_ENUM_TRUE){
+            if(rfidr_query_swipe_state(gunno)){
+                rfidr_clear_swipe_state(gunno);
+                app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
+                thaisen_set_trigger_event(THAISEN_TRIG_EVENT_FAULT_STOP, 0x05, APP_THA_ENUM_TRUE, gunno);
+                LOG_D("gunno(%d)[%d] is fault stop, please pull and insert gun first", gunno, THAISEN_TRIG_EVENT_FAULT_STOP);
+            }
             break;          /* 故障停必须要拔枪 */
         }
         if(charge_state != APP_CHARGE_STATE_IDLE){
@@ -3904,6 +3928,11 @@ static void ofsm_finishing_fun(uint8_t gunno)
                             LOG_D("gunno(%d) not start card in offline billing mode", gunno);
                             app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
                             thaisen_set_trigger_event(THAISEN_TRIG_EVENT_SWITCH_GUN, 0x05, APP_THA_ENUM_TRUE, gunno);
+                            break;
+                        case APP_CARD_OPERATE_RET_IS_CHARGING:
+                            LOG_D("gunno(%d) this card is start in offline billing mode", gunno);
+                            app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
+                            thaisen_set_trigger_event(THAISEN_TRIG_EVENT_IS_CHARGING, 0x05, APP_THA_ENUM_TRUE, gunno);
                             break;
                         case APP_CARD_OPERATE_RET_NULL:
                             LOG_D("gunno(%d) current state is not allow stop in offline billing mode", gunno);
@@ -4204,6 +4233,11 @@ static void ofsm_finishing_fun(uint8_t gunno)
                     LOG_D("gunno(%d) card is locked(no bill) in offline billing mode", gunno);
                     app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
                     thaisen_set_trigger_event(THAISEN_TRIG_EVENT_CARD_LOCKED, 0x05, APP_THA_ENUM_TRUE, gunno);
+                    break;
+                case APP_CARD_OPERATE_RET_IS_CHARGING:
+                    LOG_D("gunno(%d) this card is start in offline billing mode", gunno);
+                    app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
+                    thaisen_set_trigger_event(THAISEN_TRIG_EVENT_IS_CHARGING, 0x05, APP_THA_ENUM_TRUE, gunno);
                     break;
                 case APP_CARD_OPERATE_RET_PAYED:
                     LOG_D("gunno(%d) card is payed in offline billing mode 666", gunno);
@@ -4969,6 +5003,11 @@ static void ofsm_faulting_fun(uint8_t gunno)
                             LOG_D("gunno(%d) card is locked(no bill) in offline billing mode", gunno);
                             app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
                             thaisen_set_trigger_event(THAISEN_TRIG_EVENT_CARD_LOCKED, 0x05, APP_THA_ENUM_TRUE, gunno);
+                            break;
+                        case APP_CARD_OPERATE_RET_IS_CHARGING:
+                            LOG_D("gunno(%d) this card is start in offline billing mode", gunno);
+                            app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
+                            thaisen_set_trigger_event(THAISEN_TRIG_EVENT_IS_CHARGING, 0x05, APP_THA_ENUM_TRUE, gunno);
                             break;
                         case APP_CARD_OPERATE_RET_PAYED:
                             LOG_D("gunno(%d) card is payed in offline billing mode 777", gunno);
