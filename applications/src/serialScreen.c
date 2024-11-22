@@ -296,6 +296,7 @@ struct LCD_TRIGGER{
     u8 Warnning;                         //告警ICON
     u8 TimeBaseTick;                     //倒计时时基
     u8 OriginPage;                       //原页面
+    u8 LastPage;                         //上一页面
     struct{
         u8 ItemLocked : 1;              //提示项上锁(提示项被修改的时候不执行提示显示的代码)
         u8 IsModify : 1;                //触发事件已修改
@@ -794,8 +795,8 @@ static struct LCD_TRIGGER_PAGE Trigger_Page[SERIALSCREEN_TRIGGER_PAGE_MAX] =
     {LCD_PAGE_WARNNING_INFO, SCREEN_TRIGGER_WARN_ICON_PAY, SCREEN_TRIGGER_WARN_ICON_SIZE, TRUE},
     {LCD_PAGE_WARNNING_INFO, SCREEN_TRIGGER_WARN_ICON_PAYING, SCREEN_TRIGGER_WARN_ICON_SIZE, FALSE},
     {LCD_PAGE_WARNNING_INFO, SCREEN_TRIGGER_WARN_ICON_SWITCH_GUN, SCREEN_TRIGGER_WARN_ICON_SIZE, FALSE},
-    {LCD_PAGE_OB_PYA_A, 0x00, 0x00, TRUE},
-    {LCD_PAGE_OB_PYA_B, 0x00, 0x00, TRUE},
+    {LCD_PAGE_OB_PYA_A, 0x00, 0x00, FALSE},
+    {LCD_PAGE_OB_PYA_B, 0x00, 0x00, FALSE},
     {LCD_PAGE_WARNNING_INFO, SCREEN_TRIGGER_WARN_IS_STARTING, SCREEN_TRIGGER_WARN_ICON_SIZE, FALSE},
     {LCD_PAGE_WARNNING_INFO, SCREEN_TRIGGER_WARN_IS_CHARGING, SCREEN_TRIGGER_WARN_ICON_SIZE, FALSE},
     {LCD_PAGE_WARNNING_INFO, SCREEN_TRIGGER_WARN_FAULT_STOP, SCREEN_TRIGGER_WARN_ICON_SIZE, FALSE},
@@ -1070,11 +1071,13 @@ s32 SerialScreen_ScreenSet_Trigger_Event(u8 Event, u16 DurationTime, u8 JustNoti
     if(LcdTriggerEvent[port].Flag.IsTriggerExternal || LcdTriggerEvent[port].Flag.IsInterrupt){
         if(LcdTriggerEvent[port].Flag.IsContinueEvent){
             if(Event == SCREEN_TRIGGER_PAGE_PAY_COMPLETE){
+#if 0
                 if(Trigger_Page[Event + port].ContinueShow == FALSE){
                     LcdTriggerEvent[port].Flag.IsNest = TRUE;
                     LcdTriggerEvent[port].item.time = LcdTriggerEvent[port].CountDown;
                     LcdTriggerEvent[port].BackupItem = LcdTriggerEvent[port].item;
                 }
+#endif
             }else{
                 if(Trigger_Page[Event].ContinueShow == FALSE){
                     LcdTriggerEvent[port].Flag.IsNest = TRUE;
@@ -6516,7 +6519,7 @@ static u8 SerialScreen_TriggerItem_Process(struct SerialScreenObj *cmd, struct L
             LcdTriggerEvent[LcdData.gunIndex].TimeBaseTick = 0x00;
             LcdTriggerEvent[LcdData.gunIndex].CountDown = item->time;             /* 提示显示倒计时 */
             LcdTriggerEvent[LcdData.gunIndex].Warnning = item->ShowPara;          /* 提示显示参数 */
-
+            LcdTriggerEvent[LcdData.gunIndex].LastPage = LcdData.CurrentPage;
             LcdData.CurrentPage = item->page;                   /* 强制跳页 */
         }
         if(LcdTriggerEvent[LcdData.gunIndex].Flag.IsInterrupt == TRUE){
@@ -6548,7 +6551,14 @@ static u8 SerialScreen_TriggerItem_Process(struct SerialScreenObj *cmd, struct L
                     LcdTriggerEvent[LcdData.gunIndex].Warnning = item->ShowPara;          /* 提示显示参数 */
                     LcdTriggerEvent[LcdData.gunIndex].Flag.IsContinueEvent = item->Flag.IsContinueEvent;
 
-                    LcdData.CurrentPage = item->page;                                     /* 强制跳页 */
+                    if((LcdData.Homeflg > 0) || ((LcdTriggerEvent[LcdData.gunIndex].LastPage != LCD_PAGE_WARNNING_INFO) &&
+                            (LcdTriggerEvent[LcdData.gunIndex].LastPage != LCD_PAGE_OB_PYA_A) &&
+                            (LcdTriggerEvent[LcdData.gunIndex].LastPage != LCD_PAGE_OB_PYA_A))){
+                        LcdTriggerEvent[LcdData.gunIndex].Flag.IsTriggerExternal = FALSE;
+                        LcdTriggerEvent[LcdData.gunIndex].Flag.IsInterrupt = TRUE;
+                    }else{
+                        LcdData.CurrentPage = item->page;                                     /* 强制跳页 */
+                    }
                     return FALSE;
                 }
                 LcdTriggerEvent[LcdData.gunIndex].Warnning = item->ShieldPara;     /* 如果是icon提示, 提示完后, 跳页前先发多次隐藏icon的指令 */
@@ -6570,7 +6580,14 @@ static u8 SerialScreen_TriggerItem_Process(struct SerialScreenObj *cmd, struct L
                     LcdTriggerEvent[LcdData.gunIndex].Warnning = item->ShowPara;          /* 提示显示参数 */
                     LcdTriggerEvent[LcdData.gunIndex].Flag.IsContinueEvent = item->Flag.IsContinueEvent;
 
-                    LcdData.CurrentPage = item->page;                                     /* 强制跳页 */
+                    if((LcdData.Homeflg > 0) || ((LcdTriggerEvent[LcdData.gunIndex].LastPage != LCD_PAGE_WARNNING_INFO) &&
+                            (LcdTriggerEvent[LcdData.gunIndex].LastPage != LCD_PAGE_OB_PYA_A) &&
+                            (LcdTriggerEvent[LcdData.gunIndex].LastPage != LCD_PAGE_OB_PYA_A))){
+                        LcdTriggerEvent[LcdData.gunIndex].Flag.IsTriggerExternal = FALSE;
+                        LcdTriggerEvent[LcdData.gunIndex].Flag.IsInterrupt = TRUE;
+                    }else{
+                        LcdData.CurrentPage = item->page;                                     /* 强制跳页 */
+                    }
                     return FALSE;
                 }
                 LcdTriggerEvent[LcdData.gunIndex].Flag.IsModify = FALSE;
