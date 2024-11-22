@@ -83,6 +83,7 @@ SECTIONS
 		KEEP(*notfs.o(.text .text.*))
 		
         KEEP(*stm32f4xx_hal_spi.o(.text .text.*))
+		KEEP(*stm32f4xx_hal_gpio.o(.text .text.*))
    
         . = ALIGN(4);
         *(.text)                        /* remaining code */
