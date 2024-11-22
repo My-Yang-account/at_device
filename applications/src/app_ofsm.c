@@ -3435,9 +3435,6 @@ static void ofsm_charging_fun(uint8_t gunno)
     app_card_event_recv(APP_CARD_EVENT_CHARGEPILE_READY, 0x00, gunno, NULL, APP_THA_ENUM_TRUE);
     app_card_event_recv(APP_CARD_EVENT_CHARGE_START, 0x00, gunno, NULL, APP_THA_ENUM_TRUE);
     app_card_event_recv(APP_CARD_EVENT_CHARGE_STOP, 0x00, gunno, NULL, APP_THA_ENUM_TRUE);
-    if(s_ofsm_info[gunno].base.reason_code != APP_SYSTEM_STOP_WAY_OFFLINECARD_STOP){
-        app_card_event_recv(APP_CARD_EVENT_PAY_COMPLETE, 0x00, gunno, NULL, APP_THA_ENUM_TRUE);
-    }
 }
 
 static void ofsm_stoping_fun(uint8_t gunno)
@@ -3776,6 +3773,9 @@ static void ofsm_stoping_fun(uint8_t gunno)
     app_nsal_clear_remote_vin_authorize(gunno);
 
     app_card_event_recv(APP_CARD_EVENT_CHARGEPILE_READY, 0x00, gunno, NULL, APP_THA_ENUM_TRUE);
+    if(s_ofsm_info[gunno].base.reason_code != APP_SYSTEM_STOP_WAY_OFFLINECARD_STOP){
+        app_card_event_recv(APP_CARD_EVENT_PAY_COMPLETE, 0x00, gunno, NULL, APP_THA_ENUM_TRUE);
+    }
 }
 
 static void ofsm_finishing_fun(uint8_t gunno)
