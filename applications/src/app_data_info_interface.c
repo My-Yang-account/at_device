@@ -197,6 +197,7 @@ struct qrcode_info *thaisen_app_get_gunno_qrcode(uint8_t gunno) // OK
         default:
             break;
         }
+        break;
     /** 配置的二维码格式是：二维码前缀 + 桩号 + 枪号 */
     case CP_SET_QRCODE_FORMAT_PREFIX_DEVICE_SN_PORT:
 #ifdef APP_USING_DOUBLEGUN
