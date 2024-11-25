@@ -772,6 +772,8 @@ static void sgcc_message_send_thread_entry(void *parameter)
             s_sgcc_flag_set.disconnect = 0x00;
             s_sgcc_flag_set.is_time_sync = NET_ENUM_FALSE;
             s_sgcc_time_sync_count = rt_tick_get();
+
+            sgcc_net_event_send(NET_SGCC_EVENT_HANDLE_CHARGEPILE, NET_SGCC_EVENT_TYPE_REQUEST, 0x00, NET_SGCC_PREQ_EVENT_CONFIG_UPDATE);
             rt_thread_mdelay(3000);
         }
 
@@ -836,6 +838,16 @@ static void sgcc_message_send_thread_entry(void *parameter)
                 evs_send_event(EVS_CMD_EVENT_FIREWARE_INFO, &evs_event_firmware_infos);
 //                sgcc_set_message_wait_response_state(gunno, NET_SGCC_PREQ_EVENT_REPORT_STATE_DATA_NONCHARGING);
                 sgcc_set_message_send_state(gunno, NET_SGCC_SEND_STATE_COMPLETE, NET_SGCC_PREQ_EVENT_REPORT_FIRMWARE_INFO);
+                rt_thread_mdelay(250);
+            }
+            /***** [配置信息更新请求] *****/
+            if(sgcc_net_event_receive(NET_SGCC_EVENT_HANDLE_CHARGEPILE, NET_SGCC_EVENT_TYPE_REQUEST, gunno,
+                    (NET_SGCC_EVENT_OPTION_OR |NET_SGCC_EVENT_OPTION_CLEAR), NET_SGCC_PREQ_EVENT_CONFIG_UPDATE, NULL) > 0){
+                rt_kprintf("CONFIG_UPDATE 00000000000000000000000000(%d)\n", gunno);
+                sgcc_set_message_send_state(gunno, NET_SGCC_SEND_STATE_ONGOING, NET_SGCC_PREQ_EVENT_CONFIG_UPDATE);
+                evs_send_event(EVS_CMD_EVENT_ASK_DEV_CONFIG, NULL);
+//                sgcc_set_message_wait_response_state(gunno, NET_SGCC_PREQ_EVENT_CONFIG_UPDATE);
+                sgcc_set_message_send_state(gunno, NET_SGCC_SEND_STATE_COMPLETE, NET_SGCC_PREQ_EVENT_CONFIG_UPDATE);
                 rt_thread_mdelay(250);
             }
             /***** [请求计费模型] *****/
