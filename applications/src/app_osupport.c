@@ -33,9 +33,53 @@
 static uint32_t s_system_fault_last[APP_SYSTEM_GUNNO_SIZE][APP_GENERAL_SYSTEM_FAULT_SET_NUM];
 static uint32_t s_system_fault_current[APP_SYSTEM_GUNNO_SIZE][APP_GENERAL_SYSTEM_FAULT_SET_NUM];
 static uint8_t s_charge_fault_last[APP_SYSTEM_GUNNO_SIZE][APP_GENERAL_CHARGE_FAULT_SET_NUM];   /* 由于当前充电故障数量小于8个，所以使用uint8_t 型 */
+static uint8_t s_charge_fault_current[APP_SYSTEM_GUNNO_SIZE][APP_GENERAL_CHARGE_FAULT_SET_NUM];   /* 由于当前充电故障数量小于8个，所以使用uint8_t 型 */
 
 static struct error_info s_system_error_info[APP_SYSTEM_GUNNO_SIZE];
 static struct error_info s_charge_error_info[APP_SYSTEM_GUNNO_SIZE];
+
+/************************************************
+ * 函数名         app_query_charge_fault
+ * 功能             查询充电故障码
+ * 参数             gunno    枪号
+ *       set      故障集(32位为一个故障集)
+ * 返回
+ ***********************************************/
+static void app_query_charge_fault(uint8_t gunno, uint8_t set)
+{
+    if(gunno >= APP_SYSTEM_GUNNO_SIZE){
+        return;
+    }
+    if(set >= APP_GENERAL_SYSTEM_FAULT_SET_NUM){
+        return;
+    }
+
+    switch (get_ofsm_info(gunno)->base.state.current) {
+    case APP_OFSM_STATE_STARTING:
+    case APP_OFSM_STATE_CHARGING:
+    case APP_OFSM_STATE_STOPING:
+    case APP_OFSM_STATE_FAULTING:
+    {
+        uint32_t *charge_fault = mw_get_charge_fault_set(gunno);
+        s_charge_fault_current[gunno][set] = (uint8_t)(*charge_fault);
+    }
+        break;
+    default:
+        s_charge_fault_current[gunno][set] = 0x00;
+        break;
+    }
+}
+
+/************************************************
+ * 函数名         app_query_system_fault_set
+ * 功能             查询系统故障集
+ * 参数             gunno    枪号
+ * 返回
+ ***********************************************/
+static uint32_t *app_query_system_fault_set(uint8_t gunno)
+{
+    return mw_get_system_fault_set(gunno);
+}
 
 uint8_t app_exist_forbid_charge_fault(uint8_t gunno)
 {
@@ -256,7 +300,7 @@ void app_osupport_thread_entry(void *parameter)
             start_bit = 0x00;
             end_bit = APP_SYS_FAULT_NO_ERROR >= 32 ? 32 : APP_SYS_FAULT_NO_ERROR;
             remain_bit = APP_SYS_FAULT_NO_ERROR - end_bit;
-            current_fault_ptr = mw_get_system_fault_set(gunno);
+            current_fault_ptr = app_query_system_fault_set(gunno);
 
             for(uint8_t set = 0x00; set < APP_GENERAL_SYSTEM_FAULT_SET_NUM; set++){
                 fault_temp = current_fault_ptr[set];
@@ -401,41 +445,47 @@ void app_osupport_thread_entry(void *parameter)
             /*************************** 充电故障检测 **********************************/
             bit = 0,
             start_bit = 0,
-            end_bit = APP_CHARGE_FAULT_NO_ERROR >= 32 ? 32 : APP_CHARGE_FAULT_NO_ERROR,
-            remain_bit = APP_CHARGE_FAULT_NO_ERROR - end_bit,
-
-            current_fault_ptr = mw_get_charge_fault_set(gunno);
+            end_bit = APP_CHARGE_FAULT_NO_ERROR >= 32 ? 32 : APP_CHARGE_FAULT_NO_ERROR;
+            remain_bit = APP_CHARGE_FAULT_NO_ERROR - end_bit;
 
             for(uint8_t set = 0; set < APP_GENERAL_CHARGE_FAULT_SET_NUM; set++){
-                fault_xor = current_fault_ptr[set] ^s_charge_fault_last[gunno][set];
+                app_query_charge_fault(gunno, set);
+                fault_xor = s_charge_fault_current[gunno][set] ^s_charge_fault_last[gunno][set];
                 if(fault_xor){
                     for(bit = 0; bit < (end_bit - start_bit); bit++){
                         if(fault_xor &(1 <<bit)){
+                            uint8_t _cfault = 0x00;
                             switch((bit + start_bit))
                             {
                             case APP_CHARGE_FAULT_GUN_VOLT:
                                 s_charge_error_info[gunno].error_index = 0x00FFFFFF;
                                 s_charge_error_info[gunno].error_code = mw_system_stop_way_convert(APP_SYSTEM_STOP_WAY_GUNVOLT);
+                                _cfault = APP_SYSTEM_STOP_WAY_GUNVOLT;
                                 break;
                             case APP_CHARGE_FAULT_INSULTA:
                                 s_charge_error_info[gunno].error_index = 0x00FFFFFE;
                                 s_charge_error_info[gunno].error_code = mw_system_stop_way_convert(APP_SYSTEM_STOP_WAY_INSULT);
+                                _cfault = APP_SYSTEM_STOP_WAY_INSULT;
                                 break;
                             case APP_CHARGE_FAULT_COMMON:
                                 s_charge_error_info[gunno].error_index = 0x00FFFFFD;
                                 s_charge_error_info[gunno].error_code = mw_system_stop_way_convert(APP_SYSTEM_STOP_WAY_COMMINICATION);
+                                _cfault = APP_SYSTEM_STOP_WAY_COMMINICATION;
                                 break;
                             case APP_CHARGE_FAULT_BATTERY_VOLT:
                                 s_charge_error_info[gunno].error_index = 0x00FFFFFC;
                                 s_charge_error_info[gunno].error_code = mw_system_stop_way_convert(APP_SYSTEM_STOP_WAY_BATTERY_VOLT);
+                                _cfault = APP_SYSTEM_STOP_WAY_BATTERY_VOLT;
                                 break;
                             case APP_CHARGE_FAULT_READY_VOLT:
                                 s_charge_error_info[gunno].error_index = 0x00FFFFFB;
                                 s_charge_error_info[gunno].error_code = mw_system_stop_way_convert(APP_SYSTEM_STOP_WAY_READY_VOLT);
+                                _cfault = APP_SYSTEM_STOP_WAY_READY_VOLT;
                                 break;
                             case APP_CHARGE_FAULT_INSULT_VOLT:
                                 s_charge_error_info[gunno].error_index = 0x00FFFFFA;
                                 s_charge_error_info[gunno].error_code = mw_system_stop_way_convert(APP_SYSTEM_STOP_WAY_INSULT_VOLT);
+                                _cfault = APP_SYSTEM_STOP_WAY_INSULT_VOLT;
                                 break;
                             default:
                                 break;
@@ -444,15 +494,18 @@ void app_osupport_thread_entry(void *parameter)
                             if(s_charge_fault_last[gunno][set] &(1 <<(bit + start_bit))){
                                 s_charge_error_info[gunno].error_flag = 0x01;  /* 故障恢复 */
                                 s_charge_error_info[gunno].resume_time = mw_get_current_timestamp();
+                                app_nsal_system_fault_report(gunno, _cfault, s_charge_error_info[gunno].resume_time, 0x01);
                             }else{
                                 s_charge_error_info[gunno].error_flag = 0x00;  /* 故障产生 */
                                 memset(&s_charge_error_info[gunno].resume_time, 0x00, sizeof(s_charge_error_info[gunno].resume_time));
                                 s_charge_error_info[gunno].occur_time = mw_get_current_timestamp();
+
+                                app_nsal_system_fault_report(gunno, _cfault, s_charge_error_info[gunno].occur_time, 0x00);
                             }
                             app_fault_storage(&s_charge_error_info[gunno], s_charge_error_info[gunno].resume_time, gunno);
                         }
                     }
-                    s_charge_fault_last[gunno][set] = current_fault_ptr[set];
+                    s_charge_fault_last[gunno][set] = s_charge_fault_current[gunno][set];
                 }
                 start_bit = end_bit;
                 end_bit = remain_bit > 32 ? 32 : remain_bit;
