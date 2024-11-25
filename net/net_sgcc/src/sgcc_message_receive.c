@@ -209,12 +209,7 @@ static int callback_evs_service_device_maintain(evs_service_dev_maintain *reques
     int result = 0x00;
 
     feedback->ctrlType = request->ctrlType;
-    feedback->reason = 12;
-    if((result = sgcc_message_pro_dev_maintain_request(request, sizeof(evs_service_dev_maintain))) >= 0x00){
-        if(result == 0x00){
-            feedback->reason = 10;
-        }
-    }
+    feedback->reason = sgcc_message_pro_dev_maintain_request(request, sizeof(evs_service_dev_maintain));
 
     return 0;
 }

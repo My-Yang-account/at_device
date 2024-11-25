@@ -236,14 +236,17 @@ static void sgcc_storage_data_check(void)
     sgcc_storage_struct *config = (sgcc_storage_struct*)(s_sgcc_handle->get_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, 0x00, NET_SYSTEM_DATA_OPTION_TARGET_PLAT));
 
     memset(config->product_key, 0x00, sizeof(config->product_key));
+//    memcpy(config->product_key, "a1q5OZTEiYV", strlen("a1q5OZTEiYV"));
     memcpy(config->product_key, "a1q5OZTEiYV", strlen("a1q5OZTEiYV"));
 
     memset(config->device_name, 0x00, sizeof(config->device_name));
-    memcpy(config->device_name, "tha202408272020", strlen("tha202408272020"));
-    memcpy(config->device_name, "961720420097522411938385", strlen("961720420097522411938385"));
+//    memcpy(config->device_name, "tha202408272020", strlen("tha202408272020"));
+//    memcpy(config->device_name, "961720420097522411938385", strlen("961720420097522411938385"));
+    memcpy(config->device_name, "961732505008037499799875", strlen("961732505008037499799875"));
 
     memset(config->device_secret, 0x00, sizeof(config->device_secret));
-    memcpy(config->device_secret, "7d42a44b1cda88a96db18cb981021c55", strlen("7d42a44b1cda88a96db18cb981021c55"));
+//    memcpy(config->device_secret, "7d42a44b1cda88a96db18cb981021c55", strlen("7d42a44b1cda88a96db18cb981021c55"));
+    memcpy(config->device_secret, "ac979b2a547680c6f689d79e6356fea2", strlen("ac979b2a547680c6f689d79e6356fea2"));
     if(config == NULL){
         verify_success = 0x00;
     }else if((config->verify_result == 0x00) || (config->storage_init_flag != NET_SGCC_STORAGE_INIT_FLAG)){
@@ -310,6 +313,15 @@ static void sgcc_storage_data_check(void)
             config->dev_state = SGCC_DEV_STATE_COMMISSIONING;
         }
 
+        /** 初始化计费模型请求 */
+        for(uint8_t gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
+            memset(evs_event_ask_feeModels[gunno].eleModelId, 0x00, EVS_MAX_MODEL_ID_LEN);
+            memcpy(evs_event_ask_feeModels[gunno].eleModelId, config->billing_rule.eleModelId, EVS_MAX_MODEL_ID_LEN);
+
+            memset(evs_event_ask_feeModels[gunno].serModeId, 0x00, EVS_MAX_MODEL_ID_LEN);
+            memcpy(evs_event_ask_feeModels[gunno].serModeId, config->billing_rule.serModelId, EVS_MAX_MODEL_ID_LEN);
+        }
+
         sgcc_message_pro_billing_model_request_response(&config->billing_rule, sizeof(config->billing_rule), 0x01);
     }else{
         evs_data_dev_configs.equipParamFreq = SGCC_MONITOR_PROPERTY_INTERVAL_DEF;
@@ -323,6 +335,12 @@ static void sgcc_storage_data_check(void)
         evs_data_dev_configs.doorLock = SGCC_DOOR_LOCK_INFO_INTERVAL_DEF;
         evs_data_dev_configs.encodeCon = config->encode_con;
         config->dev_state = SGCC_DEV_STATE_COMMISSIONING;
+
+        /** 初始化计费模型请求 */
+        for(uint8_t gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
+            memset(evs_event_ask_feeModels[gunno].eleModelId, 0x00, EVS_MAX_MODEL_ID_LEN);
+            memset(evs_event_ask_feeModels[gunno].serModeId, 0x00, EVS_MAX_MODEL_ID_LEN);
+        }
     }
 
     for(uint8_t gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
@@ -1302,19 +1320,30 @@ int8_t sgcc_message_pro_dev_maintain_request(void *data, uint8_t len)
     uint8_t data_len = sizeof(evs_service_dev_maintain);
 
     if(data == NULL){
-        return -0x01;
+        return 12;
     }
 
     if(data_len > len){
-        return -0x03;
+        return 12;
     }
 
+    uint8_t i = 0x00;
     evs_service_dev_maintain *request = (evs_service_dev_maintain*)data;
+
+    for(i = 0x00; i < NET_SYSTEM_GUN_NUMBER; i++){
+        s_sgcc_base = (System_BaseData*)(s_sgcc_handle->get_base_data(i));
+        if((s_sgcc_base->state.current == APP_OFSM_STATE_STARTING) || (s_sgcc_base->state.current == APP_OFSM_STATE_CHARGING)){
+            break;
+        }
+    }
+    if(i < NET_SYSTEM_GUN_NUMBER){
+        LOG_W("sgcc gunno(%d) is charging, forbid to maintain chargepile", i);
+        return 11;
+    }
 
     switch(request->ctrlType){
     case SGCC_DEV_STATE_REBOOT:
     {
-        uint8_t i = 0x00;
         for(i = 0x00; i < NET_SYSTEM_GUN_NUMBER; i++){
             s_sgcc_base = (System_BaseData*)(s_sgcc_handle->get_base_data(i));
             if(s_sgcc_base->state.current != APP_OFSM_STATE_IDLEING){
@@ -1328,17 +1357,16 @@ int8_t sgcc_message_pro_dev_maintain_request(void *data, uint8_t len)
 
             if(s_sgcc_handle->set_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, 0x00, NET_SYSTEM_DATA_OPTION_TARGET_PLAT) < 0x00){
                 config->storage_init_flag = NET_SGCC_STORAGE_INIT_FLAG - 0x01;
-                return 0x01;
+                return 12;
             }
 
             net_operation_set_event(0x00, NET_OPERATION_EVENT_REBOOT);
-            return 0x00;
+            return 10;
         }
     }
         break;
     case SGCC_DEV_STATE_OVERHAUL:
     {
-        uint8_t i = 0x00;
         for(i = 0x00; i < NET_SYSTEM_GUN_NUMBER; i++){
             s_sgcc_base = (System_BaseData*)(s_sgcc_handle->get_base_data(i));
             if(s_sgcc_base->state.current != APP_OFSM_STATE_IDLEING){
@@ -1352,19 +1380,18 @@ int8_t sgcc_message_pro_dev_maintain_request(void *data, uint8_t len)
 
             if(s_sgcc_handle->set_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, 0x00, NET_SYSTEM_DATA_OPTION_TARGET_PLAT) < 0x00){
                 config->storage_init_flag = NET_SGCC_STORAGE_INIT_FLAG - 0x01;
-                return 0x01;
+                return 12;
             }
             for(uint8_t gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
                 s_sgcc_base = (System_BaseData*)(s_sgcc_handle->get_base_data(gunno));
                 s_sgcc_base->device_state = APP_DEVICE_STATE_OVERHAUL;
             }
-            return 0x00;
+            return 10;
         }
     }
         break;
     case SGCC_DEV_STATE_FREEZE:
     {
-        uint8_t i = 0x00;
         for(i = 0x00; i < NET_SYSTEM_GUN_NUMBER; i++){
             s_sgcc_base = (System_BaseData*)(s_sgcc_handle->get_base_data(i));
             if(s_sgcc_base->state.current != APP_OFSM_STATE_IDLEING){
@@ -1378,13 +1405,13 @@ int8_t sgcc_message_pro_dev_maintain_request(void *data, uint8_t len)
 
             if(s_sgcc_handle->set_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, 0x00, NET_SYSTEM_DATA_OPTION_TARGET_PLAT) < 0x00){
                 config->storage_init_flag = NET_SGCC_STORAGE_INIT_FLAG - 0x01;
-                return 0x01;
+                return 12;
             }
             for(uint8_t gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
                 s_sgcc_base = (System_BaseData*)(s_sgcc_handle->get_base_data(gunno));
                 s_sgcc_base->device_state = APP_DEVICE_STATE_FREEZE;
             }
-            return 0x00;
+            return 10;
         }
     }
         break;
@@ -1396,18 +1423,17 @@ int8_t sgcc_message_pro_dev_maintain_request(void *data, uint8_t len)
 
         if(s_sgcc_handle->set_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, 0x00, NET_SYSTEM_DATA_OPTION_TARGET_PLAT) < 0x00){
             config->storage_init_flag = NET_SGCC_STORAGE_INIT_FLAG - 0x01;
-            return 0x01;
+            return 12;
         }
         for(uint8_t gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
             s_sgcc_base = (System_BaseData*)(s_sgcc_handle->get_base_data(gunno));
             s_sgcc_base->device_state = APP_DEVICE_STATE_COMMISSIONING;
         }
-        return 0x00;
+        return 10;
     }
         break;
     case SGCC_DEV_STATE_OUTAGE:
     {
-        uint8_t i = 0x00;
         for(i = 0x00; i < NET_SYSTEM_GUN_NUMBER; i++){
             s_sgcc_base = (System_BaseData*)(s_sgcc_handle->get_base_data(i));
             if(s_sgcc_base->state.current != APP_OFSM_STATE_IDLEING){
@@ -1421,19 +1447,18 @@ int8_t sgcc_message_pro_dev_maintain_request(void *data, uint8_t len)
 
             if(s_sgcc_handle->set_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, 0x00, NET_SYSTEM_DATA_OPTION_TARGET_PLAT) < 0x00){
                 config->storage_init_flag = NET_SGCC_STORAGE_INIT_FLAG - 0x01;
-                return 0x01;
+                return 12;
             }
             for(uint8_t gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
                 s_sgcc_base = (System_BaseData*)(s_sgcc_handle->get_base_data(gunno));
                 s_sgcc_base->device_state = APP_DEVICE_STATE_OUTAGE;
             }
-            return 0x00;
+            return 10;
         }
     }
         break;
     case SGCC_DEV_STATE_RETURNS:
     {
-        uint8_t i = 0x00;
         for(i = 0x00; i < NET_SYSTEM_GUN_NUMBER; i++){
             s_sgcc_base = (System_BaseData*)(s_sgcc_handle->get_base_data(i));
             if(s_sgcc_base->state.current != APP_OFSM_STATE_IDLEING){
@@ -1447,19 +1472,18 @@ int8_t sgcc_message_pro_dev_maintain_request(void *data, uint8_t len)
 
             if(s_sgcc_handle->set_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, 0x00, NET_SYSTEM_DATA_OPTION_TARGET_PLAT) < 0x00){
                 config->storage_init_flag = NET_SGCC_STORAGE_INIT_FLAG - 0x01;
-                return 0x01;
+                return 12;
             }
             for(uint8_t gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
                 s_sgcc_base = (System_BaseData*)(s_sgcc_handle->get_base_data(gunno));
                 s_sgcc_base->device_state = APP_DEVICE_STATE_RETURNS;
             }
-            return 0x00;
+            return 10;
         }
     }
         break;
     case SGCC_DEV_STATE_RESTORE_SRTTING:
     {
-        uint8_t i = 0x00;
         for(i = 0x00; i < NET_SYSTEM_GUN_NUMBER; i++){
             s_sgcc_base = (System_BaseData*)(s_sgcc_handle->get_base_data(i));
             if(s_sgcc_base->state.current != APP_OFSM_STATE_IDLEING){
@@ -1473,18 +1497,18 @@ int8_t sgcc_message_pro_dev_maintain_request(void *data, uint8_t len)
 
             if(s_sgcc_handle->set_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, 0x00, NET_SYSTEM_DATA_OPTION_TARGET_PLAT) < 0x00){
                 config->storage_init_flag = NET_SGCC_STORAGE_INIT_FLAG - 0x01;
-                return 0x01;
+                return 12;
             }
-            return 0x00;
+            return 10;
         }
     }
         break;
     default:
-        return 0x01;
+        return 12;
         break;
     }
 
-    return 0x02;
+    return 12;
 }
 
 /*************************************************
@@ -2012,8 +2036,6 @@ void sgcc_message_info_init(uint8_t gunno)  ///////// 这是网络部分外部�
         evs_event_tradeInfos[gunno].gunNo = gunno + 0x01;
         /** 初始化计费模型请求 */
         evs_event_ask_feeModels[gunno].gunNo = gunno + 0x01;
-        memset(evs_event_ask_feeModels[gunno].eleModelId, 0x00, EVS_MAX_MODEL_ID_LEN);
-        memset(evs_event_ask_feeModels[gunno].serModeId, 0x00, EVS_MAX_MODEL_ID_LEN);
         /** 初始化电表底值请求 */
         evs_property_meters[gunno].gunNo = gunno + 0x01;
         memset(evs_property_meters[gunno].mailAddr, 0x00, EVS_MAX_METER_ADDR_LEN);
@@ -2038,6 +2060,8 @@ void sgcc_message_info_init(uint8_t gunno)  ///////// 这是网络部分外部�
         evs_event_car_infos[gunno].batteryCap = 0x00;
         memset(evs_event_car_infos[gunno].vinCode, 0x00, EVS_MAX_CAR_VIN_LEN);
         evs_event_car_infos[gunno].state = 11;
+        /** 初始化枪状态变化信息 */
+        evs_event_pile_stutus_changes[gunno].connCheckStatus = SGCC_OPSCTL_SILENT;
     }
 
     evs_event_ver_infos.devRegMethod = 10;
@@ -3825,6 +3849,7 @@ int sgcc_realtime_process_init(void)
 {
     for(uint8_t gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
         s_sgcc_charge_sn[gunno] = 0x01;
+        s_sgcc_state_info[gunno].state.connect = SGCC_OPSCTL_SILENT;
     }
     if(rt_thread_init(&s_sgcc_realtime_process_thread, "sgcc_rl_pro", sgcc_realtime_process_thread_entry, NULL,
             s_sgcc_realtime_process_thread_stack, SGCC_REALTIME_PROCESS_THREAD_STACK_SIZE, 16, 10) != RT_EOK){

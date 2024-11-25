@@ -61,6 +61,7 @@
 #define NET_SGCC_PREQ_EVENT_APPLY_START_CHARGE                11   /* 充电桩请求事件：主动申请启动充电 */
 #define NET_SGCC_PREQ_EVENT_REPORT_DEV_RECORD                 12   /* 充电桩请求事件：上报设备记录 */
 #define NET_SGCC_PREQ_EVENT_REPORT_CAR_INFO                   13   /* 充电桩请求事件：上报车辆信息 */
+#define NET_SGCC_PREQ_EVENT_CONFIG_UPDATE                     14   /* 充电桩请求事件：配置更新请求 */
 
 
 //#define NET_SGCC_PREQ_EVENT_APPLY_START_CHARGE                5    /* 充电桩请求事件：主动申请启动充电 */
