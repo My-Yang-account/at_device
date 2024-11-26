@@ -506,16 +506,19 @@ void chargepile_power_adjust(void)
                     s_ofsm_info[gunno].base.flag.is_resume_power = APP_THA_ENUM_FALSE;
                     LOG_D("gunno(%d) resume origin power(%d)", gunno, original_power[gunno]);
                 }else{
-                    original_power[gunno] = s_system_power_output;
-                    s_system_power_output = app_nsal_get_setup_power(gunno) *10;
-                    s_ofsm_info[gunno].base.flag.is_adjust_power = APP_THA_ENUM_TRUE;
                     s_ofsm_info[gunno].base.flag.is_resume_power = APP_THA_ENUM_FALSE;
 
                     if(s_ofsm_info[gunno].base.power_strategy == APP_POWER_STRATEGY_SET_LIMIT){
+                        s_system_power_output = app_nsal_get_setup_power(gunno) *10;
                         s_ofsm_info[gunno].base.flag.is_adjust_power = APP_THA_ENUM_FALSE;
                         s_ofsm_info[gunno].base.flag.is_resume_power = APP_THA_ENUM_FALSE;
                         LOG_D("power strategy is order charge, limit power is[%d, %d]", gunno, app_nsal_get_setup_power(gunno));
                     }else{
+                        if(s_ofsm_info[gunno].base.flag.is_adjust_power == APP_THA_ENUM_FALSE){
+                            s_ofsm_info[gunno].base.flag.is_adjust_power = APP_THA_ENUM_TRUE;
+                            original_power[gunno] = s_system_power_output;
+                        }
+                        s_system_power_output = app_nsal_get_setup_power(gunno) *10;
                         if((s_ofsm_info[gunno].state != APP_OFSM_STATE_STARTING) && (s_ofsm_info[gunno].state != APP_OFSM_STATE_CHARGING)){
                             server_adjust_power = false;
                             s_issue_power_adjust = false;
@@ -3785,7 +3788,7 @@ static void ofsm_stoping_fun(uint8_t gunno)
     }
 
 #ifdef APP_INCLUDE_SGCC_PROTOCOL
-            app_stopway_fault_resume(gunno, s_ofsm_info[gunno].base.reason_code);
+    app_stopway_fault_resume(gunno, s_ofsm_info[gunno].base.reason_code);
 #endif /* APP_INCLUDE_SGCC_PROTOCOL */
 
     mw_clear_time_sync_flag(gunno);

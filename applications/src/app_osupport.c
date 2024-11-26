@@ -315,7 +315,9 @@ void app_osupport_thread_entry(void *parameter)
     for(uint8_t gunno = 0x00; gunno < APP_SYSTEM_GUNNO_SIZE; gunno++){
         s_system_fault_last[gunno][APP_GENERAL_SYSTEM_FAULT_SET_LOW] = 0x00;
         s_system_fault_current[gunno][APP_GENERAL_SYSTEM_FAULT_SET_LOW] = 0x00;
+#ifdef APP_INCLUDE_SGCC_PROTOCOL
         s_stopway_fault_flag[gunno] = APP_STOPWAY_FAULT_INFO_NULL;
+#endif /* APP_INCLUDE_SGCC_PROTOCOL */
     }
     uint8_t bit = 0x00, start_bit = 0x00, end_bit = 0x00, remain_bit = 0x00;
     uint32_t fault_xor = 0x00, fault_temp = 0x00, *current_fault_ptr = NULL;

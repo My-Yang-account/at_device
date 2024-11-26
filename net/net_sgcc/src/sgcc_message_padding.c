@@ -3484,7 +3484,7 @@ static uint16_t sgcc_chargepile_stop_reason_converted(uint8_t reason, uint8_t st
         break;
     /* 达到离线可充电时长 */
 //    case APP_SYSTEM_STOP_WAY_OFFLINE_CHARGE_TIME:
-//        _reason = NETSGCC_DCA_REASON3093_OFFLINE_CHARGE_TIME;
+//        _reason = NETSGCC_GS_REASON1006_OFFLINE_TIME;
 //        break;
     default:
         break;
@@ -3844,7 +3844,7 @@ static void sgcc_realtime_process_thread_entry(void *parameter)
             }
             if(s_sgcc_flag_info[gunno].is_orderly_charge == NET_ENUM_TRUE){
                 base = (System_BaseData*)(s_sgcc_handle->get_base_data(gunno));
-                if((base->state.current != APP_OFSM_STATE_STARTING) || (base->state.current != APP_OFSM_STATE_CHARGING)){
+                if((base->state.current != APP_OFSM_STATE_STARTING) && (base->state.current != APP_OFSM_STATE_CHARGING)){
                     s_sgcc_flag_info[gunno].is_orderly_charge = NET_ENUM_FALSE;
                     s_sgcc_order_charge[gunno].current_index = (SGCC_ORDERLY_CHARGE_TIME_POINT_NUM + 0x01);
                 }else{
