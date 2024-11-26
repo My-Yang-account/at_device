@@ -2600,18 +2600,19 @@ static void ykc_request_message_repeat(uint8_t gunno)
     }
 }
 
-static void ykc_data_realtime_process(uint8_t gunno)
+static void ykc_data_realtime_process(uint8_t gunno, System_BaseData *base)
 {
     if(gunno >= NET_SYSTEM_GUN_NUMBER){
         return;
     }
-
-    s_ykc_base = (System_BaseData*)(s_ykc_handle->get_base_data(gunno));
+    if(base == NULL){
+        return;
+    }
 
     if(ykc_get_socket_info()->state == YKC_SOCKET_STATE_LOGIN_SUCCESS){
         ykc_request_message_repeat(gunno);
 
-        if(s_ykc_base->state.current == APP_OFSM_STATE_CHARGING){
+        if(base->state.current == APP_OFSM_STATE_CHARGING){
             if(s_ykc_realtime_data_count[gunno] > rt_tick_get()){
                 s_ykc_realtime_data_count[gunno] = rt_tick_get();
             }
@@ -2639,7 +2640,7 @@ static void ykc_data_realtime_process(uint8_t gunno)
         ykc_net_event_send(NET_YKC_EVENT_HANDLE_CHARGEPILE, NET_YKC_EVENT_TYPE_REQUEST, gunno, NET_YKC_PREQ_EVENT_REPORT_REALTIME_DATA);
     }
 
-    switch(s_ykc_base->state.current){
+    switch(base->state.current){
     case APP_OFSM_STATE_WAIT_NET:
     case APP_OFSM_STATE_IDLEING:
     case APP_OFSM_STATE_STOPING:
@@ -2704,6 +2705,7 @@ static void ykc_state_changed_check(uint8_t gunno)
 
 static void ykc_realtime_process_thread_entry(void *parameter)
 {
+    System_BaseData *base = NULL;
     uint8_t gunno = 0x00;
 
     while(1){
@@ -2711,20 +2713,20 @@ static void ykc_realtime_process_thread_entry(void *parameter)
             rt_thread_mdelay(5000);
             continue;
         }
-        if((s_ykc_handle == NULL) || (s_ykc_base == NULL)){
+        if(s_ykc_handle == NULL){
             rt_thread_mdelay(100);
             continue;
         }
 
         for(gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
+            base = (System_BaseData*)(s_ykc_handle->get_base_data(gunno));
             ykc_fault_detect_report(gunno);
-            ykc_data_realtime_process(gunno);
+            ykc_data_realtime_process(gunno, base);
             ykc_state_changed_check(gunno);
         }
 
         if(net_operation_get_event(0x00, NET_OPERATION_EVENT_COMMUNICATE_DEV_REBOOT)){
             uint8_t i = 0x00;
-            System_BaseData *base = NULL;
             for(i = 0x00; i < NET_SYSTEM_GUN_NUMBER; i++){
                 base = (System_BaseData*)(s_ykc_handle->get_base_data(i));
                 if(base->state.current != APP_OFSM_STATE_IDLEING){

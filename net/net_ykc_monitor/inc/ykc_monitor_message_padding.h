@@ -81,7 +81,6 @@ int8_t ykc_monitor_chargepile_create_local_transaction_number(uint8_t gunno, voi
 void ykc_monitor_chargepile_time_sync_revise(uint8_t gunno);
 uint16_t ykc_monitor_chargepile_fault_converted(uint16_t bit);
 uint8_t ykc_monitor_query_transaction_verify_state(uint8_t gunno);
-void ykc_monitor_data_realtime_process(uint8_t gunno);
 void ykc_monitor_disposable_message_check(uint8_t gunno);
 
 

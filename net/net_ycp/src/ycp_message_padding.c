@@ -2504,18 +2504,19 @@ static void ycp_request_message_repeat(uint8_t gunno)
     }
 }
 
-static void ycp_data_realtime_process(uint8_t gunno)
+static void ycp_data_realtime_process(uint8_t gunno, System_BaseData *base)
 {
     if(gunno >= NET_SYSTEM_GUN_NUMBER){
         return;
     }
-
-    s_ycp_base = (System_BaseData*)(s_ycp_handle->get_base_data(gunno));
+    if(base == NULL){
+        return;
+    }
 
     if(ycp_get_socket_info()->state == YCP_SOCKET_STATE_LOGIN_SUCCESS){
         ycp_request_message_repeat(gunno);
 
-        if(s_ycp_base->state.current == APP_OFSM_STATE_CHARGING){
+        if(base->state.current == APP_OFSM_STATE_CHARGING){
             if(s_ycp_state_data_count[gunno] > rt_tick_get()){
                 s_ycp_state_data_count[gunno] = rt_tick_get();
             }
@@ -2559,7 +2560,7 @@ static void ycp_data_realtime_process(uint8_t gunno)
         ycp_net_event_send(NET_YCP_EVENT_HANDLE_CHARGEPILE, NET_YCP_EVENT_TYPE_REQUEST, gunno, NET_YCP_PREQ_EVENT_REPORT_STATE_DATA);
     }
 
-    if((s_ycp_base->state.current == APP_OFSM_STATE_STARTING) || (s_ycp_base->state.current == APP_OFSM_STATE_CHARGING)){
+    if((base->state.current == APP_OFSM_STATE_STARTING) || (base->state.current == APP_OFSM_STATE_CHARGING)){
         ycp_clear_message_wait_response_state(gunno, NET_YCP_PREQ_EVENT_TRANSACTION_RECORD);
     }else{
         if(s_ycp_flag_info[gunno].is_vin_authorized == NET_ENUM_TRUE){
@@ -2596,6 +2597,7 @@ static void ycp_disposable_message_check(uint8_t gunno)
 
 static void ycp_realtime_process_thread_entry(void *parameter)
 {
+    System_BaseData *base = NULL;
     uint8_t gunno = 0x00;
 
     while(1){
@@ -2603,20 +2605,20 @@ static void ycp_realtime_process_thread_entry(void *parameter)
             rt_thread_mdelay(5000);
             continue;
         }
-        if((s_ycp_handle == NULL) || (s_ycp_base == NULL)){
+        if(s_ycp_handle == NULL){
             rt_thread_mdelay(100);
             continue;
         }
 
         for(gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
+            base = (System_BaseData*)(s_ycp_handle->get_base_data(gunno));
             ycp_fault_detect_report(gunno);
-            ycp_data_realtime_process(gunno);
+            ycp_data_realtime_process(gunno, base);
             ycp_disposable_message_check(gunno);
         }
 
         if(net_operation_get_event(0x00, NET_OPERATION_EVENT_COMMUNICATE_DEV_REBOOT)){
             uint8_t i = 0x00;
-            System_BaseData *base = NULL;
             for(i = 0x00; i < NET_SYSTEM_GUN_NUMBER; i++){
                 base = (System_BaseData*)(s_ycp_handle->get_base_data(i));
                 if(base->state.current != APP_OFSM_STATE_IDLEING){
