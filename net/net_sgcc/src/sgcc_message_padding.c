@@ -425,16 +425,25 @@ int8_t sgcc_response_padding_remote_stop_charge(uint8_t gunno, uint8_t *buf, uin
 
     uint8_t valid_len = 0x00;
     evs_event_stopCharge *response = NULL;
+    s_sgcc_base = (System_BaseData*)(s_sgcc_handle->get_base_data(gunno));
     response = ((evs_event_stopCharge*)buf);
     memset(response, 0x00, data_len);
 
     valid_len = sizeof(evs_service_stopCharges[gunno].preTradeNo);
     valid_len = valid_len > EVS_MAX_TRADE_LEN ? EVS_MAX_TRADE_LEN : valid_len;
-    memcpy(response->preTradeNo, evs_service_stopCharges[gunno].preTradeNo, valid_len);
+    if(s_sgcc_base->reason_code == APP_SYSTEM_STOP_WAY_APP_STOP){
+        memcpy(response->preTradeNo, evs_service_stopCharges[gunno].preTradeNo, valid_len);
+    }else{
+        memcpy(response->preTradeNo, evs_service_startCharges[gunno].preTradeNo, valid_len);
+    }
 
     valid_len = sizeof(evs_service_stopCharges[gunno].tradeNo);
     valid_len = valid_len > EVS_MAX_TRADE_LEN ? EVS_MAX_TRADE_LEN : valid_len;
-    memcpy(response->tradeNo, evs_service_stopCharges[gunno].tradeNo, valid_len);
+    if(s_sgcc_base->reason_code == APP_SYSTEM_STOP_WAY_APP_STOP){
+        memcpy(response->tradeNo, evs_service_stopCharges[gunno].tradeNo, valid_len);
+    }else{
+        memcpy(response->tradeNo, evs_service_startCharges[gunno].tradeNo, valid_len);
+    }
 
     response->gunNo = gunno + 0x01;
 
@@ -569,6 +578,7 @@ int8_t sgcc_message_pro_remote_start_charge_request(uint8_t gunno, void *data, u
         if(reason){
             *reason = NETSGCC_DCA_REASON7008_INSERT_GUN_TIME;
         }
+        LOG_D("gunno(%d) sgcc insert gun time not match(%d, %d)", gunno, evs_event_pile_stutus_changes[gunno].yxOccurTime, request->insertGunTime);
         return NET_SGCC_START_RESULT_FAULTING;
     }
 
@@ -700,6 +710,7 @@ int8_t sgcc_message_pro_remote_start_charge_request(uint8_t gunno, void *data, u
         if(reason){
             *reason = NETSGCC_ACA_REASON6001_INSERT_GUN_TIME;
         }
+        LOG_D("gunno(%d) sgcc insert gun time not match(%d, %d)", gunno, evs_event_pile_stutus_changes[gunno].yxOccurTime, request->insertGunTime);
         return NET_SGCC_START_RESULT_FAULTING;
     }
 
@@ -893,7 +904,7 @@ int8_t sgcc_message_pro_remote_stop_charge_request(uint8_t gunno, void *data, ui
     }
 
     if(stop_authorize_success == NET_ENUM_TRUE){
-        s_sgcc_flag_info[gunno].is_stop_charge = 0x01;
+        s_sgcc_flag_info[gunno].is_stop_charge = NET_ENUM_TRUE;
         return 0x00;
     }
 
@@ -940,6 +951,7 @@ int8_t sgcc_message_pro_apply_charge_response(uint8_t gunno, void *data, uint16_
         return 0x06;
     }
     if(evs_event_pile_stutus_changes[gunno].yxOccurTime != response->insertGunTime){
+        LOG_D("gunno(%d) sgcc insert gun time not match(%d, %d)", gunno, evs_event_pile_stutus_changes[gunno].yxOccurTime, response->insertGunTime);
         return 0x07;
     }
 
@@ -2743,7 +2755,8 @@ void sgcc_stop_charge_response_asynchronously(uint8_t gunno, uint8_t result, uin
     if(s_sgcc_base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
         gunno = s_sgcc_base->main_gunno;
     }
-    if(s_sgcc_flag_info[gunno].is_stop_charge == NET_ENUM_FALSE){
+
+    if(s_sgcc_base->flag.start_result == NET_ENUM_FALSE){
         return;
     }
     if(result){
@@ -3235,6 +3248,36 @@ uint16_t sgcc_chargepile_fault_converted(uint16_t bit, uint8_t *rank)
         return 0x00;
     case APP_SYS_FAULT_EEPROM :
         return 0x00;
+    case APP_SYSTEM_STOP_WAY_GUNVOLT :
+        if(rank){
+            *rank = 0x01;
+        }
+        return NETSGCC_DCPA_REASON4014_RELAY_OUTSIDE_OVER10V;
+    case APP_SYSTEM_STOP_WAY_INSULT :
+        if(rank){
+            *rank = 0x01;
+        }
+        return NETSGCC_DCA_REASON3050_INSULATION;
+    case APP_SYSTEM_STOP_WAY_COMMINICATION :
+        if(rank){
+            *rank = 0x01;
+        }
+        return NETSGCC_DCCA_REASON5001_BMS_COMM;
+    case APP_SYSTEM_STOP_WAY_BATTERY_VOLT :
+        if(rank){
+            *rank = 0x01;
+        }
+        return NETSGCC_DCCA_REASON5029_BATTERY_VOLT_ABNORMAL;
+    case APP_SYSTEM_STOP_WAY_READY_VOLT :
+        if(rank){
+            *rank = 0x01;
+        }
+        return NETSGCC_DCCA_REASON5017_BMS_READY_VOLT_NOMATCH;
+    case APP_SYSTEM_STOP_WAY_INSULT_VOLT :
+        if(rank){
+            *rank = 0x01;
+        }
+        return NETSGCC_DCA_REASON7002_INSULT_VOLT;
     case APP_SYS_FAULT_LIGHT_PRPTECT :
         if(rank){
             *rank = 0x01;
@@ -3339,7 +3382,7 @@ static uint16_t sgcc_chargepile_stop_reason_converted(uint8_t reason, uint8_t st
         break;
     /* 拔枪 */
     case APP_SYSTEM_STOP_WAY_PULL_GUN:
-        _reason = NETSGCC_GS_REASON1008_PULL_GUN;
+        _reason = NETSGCC_DCA_REASON3057_CHARGE_LINK;
     /* 电子锁 */
     case APP_SYSTEM_STOP_WAY_ELECTRY_LOCK:
         _reason = NETSGCC_DCA_REASON3054_ELOCK;

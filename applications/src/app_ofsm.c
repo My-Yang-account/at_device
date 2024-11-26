@@ -2927,6 +2927,8 @@ static void ofsm_charging_fun(uint8_t gunno)
 
             s_thaisen_transaction[gunno].order_state.is_charging = APP_THA_ENUM_FALSE;
 
+            app_nsal_report_remote_stop_result(gunno, APP_THA_ENUM_TRUE, s_ofsm_info[gunno].base.reason_code, s_ofsm_info[gunno].base.reason_code);
+
             app_nsal_state_charged(gunno);
             app_nsal_event_occurded(gunno);
             return;
@@ -3011,6 +3013,8 @@ static void ofsm_charging_fun(uint8_t gunno)
 
             s_thaisen_transaction[gunno].order_state.is_charging = APP_THA_ENUM_FALSE;
 
+            app_nsal_report_remote_stop_result(gunno, APP_THA_ENUM_TRUE, s_ofsm_info[gunno].base.reason_code, s_ofsm_info[gunno].base.reason_code);
+
             app_nsal_state_charged(gunno);
             app_nsal_event_occurded(gunno);
             return;
@@ -3026,7 +3030,6 @@ static void ofsm_charging_fun(uint8_t gunno)
         s_ofsm_info[gunno].base.reason_code = s_thaisen_transaction[gunno].stop_reason;
         s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_FALSE;
 
-        app_nsal_report_remote_stop_result(gunno, APP_THA_ENUM_TRUE, s_ofsm_info[gunno].base.reason_code, s_ofsm_info[gunno].base.reason_code);
         is_stop_charge_authorization = true;
         LOG_D("gunno(%d) charge finish deal to APP stop\n", gunno);
 
@@ -3392,6 +3395,8 @@ static void ofsm_charging_fun(uint8_t gunno)
                 LOG_I("chargepile is synchronized, modify correlation time|%x\n", curr_time);
             }
 
+            app_nsal_report_remote_stop_result(gunno, APP_THA_ENUM_TRUE, s_ofsm_info[gunno].base.reason_code, s_ofsm_info[gunno].base.reason_code);
+
             app_nsal_state_charged(gunno);
             app_nsal_event_occurded(gunno);
 
@@ -3421,6 +3426,8 @@ static void ofsm_charging_fun(uint8_t gunno)
         }else{
             s_ofsm_info[gunno].base.charge_elect_last = mw_get_meter_total_wh(gunno);
         }
+
+        app_nsal_report_remote_stop_result(gunno, APP_THA_ENUM_TRUE, s_ofsm_info[gunno].base.reason_code, s_ofsm_info[gunno].base.reason_code);
 
         app_nsal_state_charged(gunno);
         app_nsal_event_occurded(gunno);

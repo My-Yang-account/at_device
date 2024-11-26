@@ -733,13 +733,8 @@ int32_t app_nfunc_config_init(void)
 
     uint8_t nettype = CP_NETTYPE_4G, offline_billing = 0x00;
 
-    ethch395_set_init_hook(ethernet_init_hook);
     nettype = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_NET_TYPE, 0x00));
     offline_billing = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_SUPORT_OFFLINE_BILLING, 0x00));
-    if((nettype == CP_NETTYPE_ETH) && (offline_billing == 0x00)){
-        net_set_netdev_type(NET_NETDEV_TYPE_ETHERNET, 0x00);
-        net_netdev_init();
-    }
 
     handle->para_config(0x00, NET_PARA_CONFIG_INDEX_DATA_UPDATA,           app_ndata_update, handle);
     handle->para_config(0x00, NET_PARA_CONFIG_INDEX_TIME_SYNC,             app_ntime_sync, handle);
@@ -759,6 +754,15 @@ int32_t app_nfunc_config_init(void)
     handle->para_config(0x00, NET_PARA_CONFIG_INDEX_NDEV_OPERATE,          app_ndevice_operate, handle);
     handle->para_config(0x00, NET_PARA_CONFIG_INDEX_CRC16_8005,            app_ncrc16_modbus, handle);
     handle->para_config(0x00, NET_PARA_CONFIG_INDEX_CRC32_UPDATE,          app_ncrc32_updtae, handle);
+
+    if(offline_billing == 0x01){
+        return -0x01;
+    }
+    ethch395_set_init_hook(ethernet_init_hook);
+    if((nettype == CP_NETTYPE_ETH) && (offline_billing == 0x00)){
+        net_set_netdev_type(NET_NETDEV_TYPE_ETHERNET, 0x00);
+        net_netdev_init();
+    }
 
     handle->start_func(handle);
     return 0x00;
