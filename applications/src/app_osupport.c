@@ -30,6 +30,16 @@
 #define APP_ALLOW_CHARGE_FAULT_MASK    (0xFFFFFFF9)
 #define APP_LIBRARY_DETECT_FAULT_MASK  (0xFFFFFFFD)
 
+#ifdef APP_INCLUDE_SGCC_PROTOCOL
+#define APP_STOPWAY_FAULT_INFO_OCCUR           0x00          /** 停充原因型故障：故障产生 */
+#define APP_STOPWAY_FAULT_INFO_RESUME          0x01          /** 停充原因型故障：故障恢复 */
+#define APP_STOPWAY_FAULT_INFO_NULL            0x02          /** 停充原因型故障：无 */
+#endif /* APP_INCLUDE_SGCC_PROTOCOL */
+
+#ifdef APP_INCLUDE_SGCC_PROTOCOL
+static uint8_t s_stopway_fault_flag[APP_SYSTEM_GUNNO_SIZE];  /** 停充原因类型故障(0：故障产生，1：故障恢复，2：无) */
+#endif /* APP_INCLUDE_SGCC_PROTOCOL */
+
 static uint32_t s_system_fault_last[APP_SYSTEM_GUNNO_SIZE][APP_GENERAL_SYSTEM_FAULT_SET_NUM];
 static uint32_t s_system_fault_current[APP_SYSTEM_GUNNO_SIZE][APP_GENERAL_SYSTEM_FAULT_SET_NUM];
 static uint8_t s_charge_fault_last[APP_SYSTEM_GUNNO_SIZE][APP_GENERAL_CHARGE_FAULT_SET_NUM];   /* 由于当前充电故障数量小于8个，所以使用uint8_t 型 */
@@ -37,6 +47,10 @@ static uint8_t s_charge_fault_current[APP_SYSTEM_GUNNO_SIZE][APP_GENERAL_CHARGE_
 
 static struct error_info s_system_error_info[APP_SYSTEM_GUNNO_SIZE];
 static struct error_info s_charge_error_info[APP_SYSTEM_GUNNO_SIZE];
+#ifdef APP_INCLUDE_SGCC_PROTOCOL
+static uint32_t s_stopway_fault[APP_SYSTEM_GUNNO_SIZE];
+static struct error_info s_stopway_error_info[APP_SYSTEM_GUNNO_SIZE];
+#endif /* APP_INCLUDE_SGCC_PROTOCOL */
 
 /************************************************
  * 函数名         app_query_charge_fault
@@ -80,6 +94,41 @@ static uint32_t *app_query_system_fault_set(uint8_t gunno)
 {
     return mw_get_system_fault_set(gunno);
 }
+
+#ifdef APP_INCLUDE_SGCC_PROTOCOL
+/************************************************
+ * 函数名         app_stopway_fault_occur
+ * 功能             停充原因型故障产生
+ * 参数             gunno    枪号
+ *       stopway  停充原因
+ * 返回
+ ***********************************************/
+void app_stopway_fault_occur(uint8_t gunno, uint32_t stopway)
+{
+    if(gunno >= APP_SYSTEM_GUNNO_SIZE){
+        return;
+    }
+
+    s_stopway_fault[gunno] = stopway;
+    s_stopway_fault_flag[gunno] = APP_STOPWAY_FAULT_INFO_OCCUR;
+}
+/************************************************
+ * 函数名         app_query_system_fault_set
+ * 功能             停充原因型故障恢复
+ * 参数             gunno    枪号
+ *       stopway  停充原因
+ * 返回
+ ***********************************************/
+void app_stopway_fault_resume(uint8_t gunno, uint32_t stopway)
+{
+    if(gunno >= APP_SYSTEM_GUNNO_SIZE){
+        return;
+    }
+
+    s_stopway_fault[gunno] = stopway;
+    s_stopway_fault_flag[gunno] = APP_STOPWAY_FAULT_INFO_RESUME;
+}
+#endif /* APP_INCLUDE_SGCC_PROTOCOL */
 
 uint8_t app_exist_forbid_charge_fault(uint8_t gunno)
 {
@@ -266,6 +315,7 @@ void app_osupport_thread_entry(void *parameter)
     for(uint8_t gunno = 0x00; gunno < APP_SYSTEM_GUNNO_SIZE; gunno++){
         s_system_fault_last[gunno][APP_GENERAL_SYSTEM_FAULT_SET_LOW] = 0x00;
         s_system_fault_current[gunno][APP_GENERAL_SYSTEM_FAULT_SET_LOW] = 0x00;
+        s_stopway_fault_flag[gunno] = APP_STOPWAY_FAULT_INFO_NULL;
     }
     uint8_t bit = 0x00, start_bit = 0x00, end_bit = 0x00, remain_bit = 0x00;
     uint32_t fault_xor = 0x00, fault_temp = 0x00, *current_fault_ptr = NULL;
@@ -512,6 +562,40 @@ void app_osupport_thread_entry(void *parameter)
                 end_bit += start_bit;
                 remain_bit = APP_CHARGE_FAULT_NO_ERROR - end_bit;
             }
+
+#ifdef APP_INCLUDE_SGCC_PROTOCOL
+            /*************************** 停充原因类故障检测 **********************************/
+            if(s_stopway_fault_flag[gunno] == APP_STOPWAY_FAULT_INFO_OCCUR){
+                uint32_t _sfault = s_stopway_fault[gunno];
+                s_stopway_fault_flag[gunno] = APP_STOPWAY_FAULT_INFO_NULL;
+                if(_sfault == APP_SYSTEM_STOP_WAY_PULL_GUN){
+                    s_stopway_error_info[gunno].error_flag = 0x00;  /* 故障产生 */
+                    memset(&s_stopway_error_info[gunno].resume_time, 0x00, sizeof(s_stopway_error_info[gunno].resume_time));
+                    s_stopway_error_info[gunno].occur_time = mw_get_current_timestamp();
+                    s_stopway_error_info[gunno].error_index = 0xFFFF;
+                    s_stopway_error_info[gunno].error_code = _sfault;
+
+                    LOG_D("gunno(%d) occured stopway fault(%d)\n", gunno, APP_SYSTEM_STOP_WAY_PULL_GUN);
+                    app_nsal_system_fault_report(gunno, APP_SYSTEM_STOP_WAY_PULL_GUN, s_stopway_error_info[gunno].occur_time, 0x00);
+
+//                    app_fault_storage(&s_charge_error_info[gunno], s_charge_error_info[gunno].resume_time, gunno);
+                }
+            }else if(s_stopway_fault_flag[gunno] == APP_STOPWAY_FAULT_INFO_RESUME){
+                uint32_t _sfault = s_stopway_fault[gunno];
+                s_stopway_fault_flag[gunno] = APP_STOPWAY_FAULT_INFO_NULL;
+                if(_sfault == APP_SYSTEM_STOP_WAY_PULL_GUN){
+                    s_stopway_error_info[gunno].error_flag = 0x01;  /* 故障恢复 */
+                    s_stopway_error_info[gunno].resume_time = mw_get_current_timestamp();
+                    s_stopway_error_info[gunno].error_index = 0xFFFF;
+                    s_stopway_error_info[gunno].error_code = _sfault;
+
+                    LOG_D("gunno(%d) resume stopway fault(%d)\n", gunno, APP_SYSTEM_STOP_WAY_PULL_GUN);
+                    app_nsal_system_fault_report(gunno, APP_SYSTEM_STOP_WAY_PULL_GUN, s_stopway_error_info[gunno].resume_time, 0x01);
+
+//                    app_fault_storage(&s_charge_error_info[gunno], s_charge_error_info[gunno].resume_time, gunno);
+                }
+            }
+#endif /* APP_INCLUDE_SGCC_PROTOCOL */
         }
         rt_thread_mdelay(500);
     }

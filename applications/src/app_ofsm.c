@@ -2927,6 +2927,10 @@ static void ofsm_charging_fun(uint8_t gunno)
 
             s_thaisen_transaction[gunno].order_state.is_charging = APP_THA_ENUM_FALSE;
 
+#ifdef APP_INCLUDE_SGCC_PROTOCOL
+            app_stopway_fault_occur(gunno, s_ofsm_info[gunno].base.reason_code);
+#endif /* APP_INCLUDE_SGCC_PROTOCOL */
+
             app_nsal_report_remote_stop_result(gunno, APP_THA_ENUM_TRUE, s_ofsm_info[gunno].base.reason_code, s_ofsm_info[gunno].base.reason_code);
 
             app_nsal_state_charged(gunno);
@@ -3012,6 +3016,10 @@ static void ofsm_charging_fun(uint8_t gunno)
             }
 
             s_thaisen_transaction[gunno].order_state.is_charging = APP_THA_ENUM_FALSE;
+
+#ifdef APP_INCLUDE_SGCC_PROTOCOL
+            app_stopway_fault_occur(gunno, s_ofsm_info[gunno].base.reason_code);
+#endif /* APP_INCLUDE_SGCC_PROTOCOL */
 
             app_nsal_report_remote_stop_result(gunno, APP_THA_ENUM_TRUE, s_ofsm_info[gunno].base.reason_code, s_ofsm_info[gunno].base.reason_code);
 
@@ -3395,6 +3403,10 @@ static void ofsm_charging_fun(uint8_t gunno)
                 LOG_I("chargepile is synchronized, modify correlation time|%x\n", curr_time);
             }
 
+#ifdef APP_INCLUDE_SGCC_PROTOCOL
+            app_stopway_fault_occur(gunno, s_ofsm_info[gunno].base.reason_code);
+#endif /* APP_INCLUDE_SGCC_PROTOCOL */
+
             app_nsal_report_remote_stop_result(gunno, APP_THA_ENUM_TRUE, s_ofsm_info[gunno].base.reason_code, s_ofsm_info[gunno].base.reason_code);
 
             app_nsal_state_charged(gunno);
@@ -3426,6 +3438,10 @@ static void ofsm_charging_fun(uint8_t gunno)
         }else{
             s_ofsm_info[gunno].base.charge_elect_last = mw_get_meter_total_wh(gunno);
         }
+
+#ifdef APP_INCLUDE_SGCC_PROTOCOL
+            app_stopway_fault_occur(gunno, s_ofsm_info[gunno].base.reason_code);
+#endif /* APP_INCLUDE_SGCC_PROTOCOL */
 
         app_nsal_report_remote_stop_result(gunno, APP_THA_ENUM_TRUE, s_ofsm_info[gunno].base.reason_code, s_ofsm_info[gunno].base.reason_code);
 
@@ -3767,6 +3783,10 @@ static void ofsm_stoping_fun(uint8_t gunno)
 
         s_ofsm_info[gunno].base.flag.is_pay_complete = APP_THA_ENUM_FALSE;
     }
+
+#ifdef APP_INCLUDE_SGCC_PROTOCOL
+            app_stopway_fault_resume(gunno, s_ofsm_info[gunno].base.reason_code);
+#endif /* APP_INCLUDE_SGCC_PROTOCOL */
 
     mw_clear_time_sync_flag(gunno);
     rfidr_clear_swipe_state(gunno);

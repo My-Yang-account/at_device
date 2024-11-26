@@ -16,8 +16,6 @@ extern "C" {
 #include "thaisenChargLib.h"
 #include "app_ofsm.h"
 
-#define APP_LIBRARY_DETECT_FAULT_MASK             0xFFFFFFFD    /* 库检测的故障：低16位 */
-
 #define APP_ORIGIN_SYSFAULT_MAX                   16            /* 原来系统故障最大值(包含SIZE) */
 #define APP_NEW_SYSFAULT_NUM                      500           /* 新系统故障数量 */
 #define APP_SYSFAULT_OFFSET_MIN                   (360 - APP_ORIGIN_SYSFAULT_MAX)                     /* 系统故障偏移最小值 */

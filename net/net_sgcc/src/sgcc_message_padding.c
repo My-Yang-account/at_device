@@ -3268,6 +3268,11 @@ uint16_t sgcc_chargepile_fault_converted(uint16_t bit, uint8_t *rank)
             *rank = 0x01;
         }
         return NETSGCC_DCCA_REASON5029_BATTERY_VOLT_ABNORMAL;
+    case APP_SYSTEM_STOP_WAY_PULL_GUN :
+        if(rank){
+            *rank = 0x01;
+        }
+        return NETSGCC_DCA_REASON3057_CHARGE_LINK;
     case APP_SYSTEM_STOP_WAY_READY_VOLT :
         if(rank){
             *rank = 0x01;
@@ -3383,6 +3388,7 @@ static uint16_t sgcc_chargepile_stop_reason_converted(uint8_t reason, uint8_t st
     /* 拔枪 */
     case APP_SYSTEM_STOP_WAY_PULL_GUN:
         _reason = NETSGCC_DCA_REASON3057_CHARGE_LINK;
+        break;
     /* 电子锁 */
     case APP_SYSTEM_STOP_WAY_ELECTRY_LOCK:
         _reason = NETSGCC_DCA_REASON3054_ELOCK;
