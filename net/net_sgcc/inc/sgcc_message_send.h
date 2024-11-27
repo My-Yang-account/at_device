@@ -178,7 +178,6 @@ typedef struct{
         uint8_t login : 4;
         uint8_t sync : 1;
     }operate_fail;
-    uint32_t fail_tick;
 }sgcc_socket_info_t;
 
 #pragma pack()

@@ -366,7 +366,7 @@ static void ycp_callback_request_qrcode_config(uint8_t* data, uint16_t length)
     }
     if(s_ycp_qrcode_buf.flag.is_used){
         LOG_E("ycp qrcode buff is used when call ycp_callback_request_qrcode_config(%d)", s_ycp_qrcode_buf.flag.is_used);
-        return;
+//        return;
     }
 
     s_ycp_qrcode_buf.flag.is_used = 0x01;

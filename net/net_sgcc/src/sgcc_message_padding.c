@@ -1983,7 +1983,7 @@ void sgcc_message_info_init(uint8_t gunno)  ///////// 这是网络部分外部�
     memcpy(evs_event_firmware_infos.devSn, data, valid_len);
 #else
     memset(evs_event_firmware_infos.devSn, 0x00, EVS_MAX_DEV_SN_LEN);
-    memcpy(evs_event_firmware_infos.devSn, "2024070114190001", strlen("2024070114190001"));
+    memcpy(evs_event_firmware_infos.devSn, "1000241125010001", strlen("1000241125010001"));
 #endif
 
 #ifdef NET_SGCC_PRO_USING_DC
@@ -3859,23 +3859,6 @@ static void sgcc_realtime_process_thread_entry(void *parameter)
             sgcc_data_realtime_process(gunno);
             sgcc_state_changed_check(gunno);
         }
-
-        if(net_operation_get_event(0x00, NET_OPERATION_EVENT_COMMUNICATE_DEV_REBOOT)){
-            uint8_t i = 0x00;
-            System_BaseData *base = NULL;
-            for(i = 0x00; i < NET_SYSTEM_GUN_NUMBER; i++){
-                base = (System_BaseData*)(s_sgcc_handle->get_base_data(i));
-                if(base->state.current != APP_OFSM_STATE_IDLEING){
-                    break;
-                }
-            }
-            if(i >= NET_SYSTEM_GUN_NUMBER){
-                /** 重启通信模块 */
-                net_operation_clear_event(0x00, NET_OPERATION_EVENT_COMMUNICATE_DEV_REBOOT);
-                net_get_net_handle()->ndev_operate(NULL, NET_DEV_OPERATE_OPTION_RESET);
-            }
-        }
-
 
         for(gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
             if(s_sgcc_flag_info[gunno].init_complete == NET_ENUM_FALSE){

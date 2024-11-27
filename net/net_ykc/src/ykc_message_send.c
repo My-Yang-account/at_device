@@ -26,7 +26,6 @@
 #define NET_YKC_WAIT_LOGIN_RENTRY                            100         /* 等待登录结果尝试次数 */
 #define NET_YKC_WAIT_UNLOCK_TIMEOUT                          (10 *1000)  /* 等待socket 解锁超时时间(单位：ms) */
 
-#define NET_YKC_RESET_NDEV_WAIT_TIME                         (30* 60 *1000)   /* 重启网络设备等待时间(单位ms:30 *60 *1000 = 30min) */
 #define NET_YKC_LOGIN_OPERATION_INTERVAL                     30000       /* 登录操作间隔(单位ms:30 *1000 = 30s) */
 #define NET_YKC_HEARTBEAT_REPORT_INTERVAL                    10000       /* 心跳间隔(单位ms:10 *1000 = 10s) */
 
@@ -386,7 +385,6 @@ static void net_ykc_message_send_thread_entry(void *parameter)
 
         if((net_get_ota_info()->state >= NET_OTA_STATE_OPEN_LINK) && (net_get_ota_info()->state <= NET_OTA_STATE_UPDATING)){
             rt_thread_mdelay(5000);
-            s_ykc_socket_info.fail_tick = rt_tick_get();
             continue;
         }
 
@@ -396,7 +394,6 @@ static void net_ykc_message_send_thread_entry(void *parameter)
             net_get_net_handle()->net_state = NET_SOCKET_STATE_PHY;
             s_ykc_socket_info.fd = -0x01;
             step = NET_YKC_NET_STATE_OPEN_SOCKET;
-            s_ykc_socket_info.fail_tick = rt_tick_get();
             if(rt_tick_get() > (delay + NET_YKC_LOGIN_OPERATION_INTERVAL)){
                 delay = (rt_tick_get() - NET_YKC_LOGIN_OPERATION_INTERVAL);
             }
@@ -409,7 +406,6 @@ static void net_ykc_message_send_thread_entry(void *parameter)
             net_get_net_handle()->net_state = NET_SOCKET_STATE_SIM;
             s_ykc_socket_info.fd = -0x01;
             step = NET_YKC_NET_STATE_OPEN_SOCKET;
-            s_ykc_socket_info.fail_tick = rt_tick_get();
             if(rt_tick_get() > (delay + NET_YKC_LOGIN_OPERATION_INTERVAL)){
                 delay = (rt_tick_get() - NET_YKC_LOGIN_OPERATION_INTERVAL);
             }
@@ -422,7 +418,6 @@ static void net_ykc_message_send_thread_entry(void *parameter)
             net_get_net_handle()->net_state = NET_SOCKET_STATE_DATA_LINK;
             s_ykc_socket_info.fd = -0x01;
             step = NET_YKC_NET_STATE_OPEN_SOCKET;
-            s_ykc_socket_info.fail_tick = rt_tick_get();
             if(rt_tick_get() > (delay + NET_YKC_LOGIN_OPERATION_INTERVAL)){
                 delay = (rt_tick_get() - NET_YKC_LOGIN_OPERATION_INTERVAL);
             }
@@ -435,7 +430,6 @@ static void net_ykc_message_send_thread_entry(void *parameter)
             net_get_net_handle()->net_state = NET_SOCKET_STATE_MODULE_INIT;
             s_ykc_socket_info.fd = -0x01;
             step = NET_YKC_NET_STATE_OPEN_SOCKET;
-            s_ykc_socket_info.fail_tick = rt_tick_get();
             if(rt_tick_get() > (delay + NET_YKC_LOGIN_OPERATION_INTERVAL)){
                 delay = (rt_tick_get() - NET_YKC_LOGIN_OPERATION_INTERVAL);
             }
@@ -593,12 +587,12 @@ static void net_ykc_message_send_thread_entry(void *parameter)
         if(s_ykc_socket_info.operate_fail.open_socket > NET_YKC_OPEN_SOCKET_RENTRY){
             s_ykc_socket_info.operate_fail.open_socket = 0x00;
             LOG_W("ykc open socket rentry = 0x00");
-//            net_set_clear_ndev_reset_state(NET_PLATFORM_MASK_TARGET, 0x00);
+            net_set_clear_ndev_reset_state(NET_PLATFORM_MASK_TARGET, 0x00);
         }
         if(s_ykc_socket_info.operate_fail.login > NET_YKC_LOGIN_RENTRY){
             s_ykc_socket_info.operate_fail.login = 0x00;
             LOG_W("ykc login rentry = 0x00");
-//            net_set_clear_ndev_reset_state(NET_PLATFORM_MASK_TARGET, 0x00);
+            net_set_clear_ndev_reset_state(NET_PLATFORM_MASK_TARGET, 0x00);
         }
 
         if(s_ykc_socket_info.state != YKC_SOCKET_STATE_LOGIN_SUCCESS){   /* 未登录上服务器前不进行网络数据交互事件处理 */
@@ -607,17 +601,9 @@ static void net_ykc_message_send_thread_entry(void *parameter)
                 ykc_set_message_send_state(gunno, NET_YKC_SEND_STATE_ONGOING, NET_YKC_PREQ_EVENT_HEARTBEAT);
                 ykc_net_event_send(NET_YKC_EVENT_HANDLE_CHARGEPILE, NET_YKC_EVENT_TYPE_REQUEST, gunno, NET_YKC_PREQ_EVENT_HEARTBEAT);
             }
-            if(s_ykc_socket_info.fail_tick > rt_tick_get()){
-                s_ykc_socket_info.fail_tick = rt_tick_get();
-            }
-            if((rt_tick_get() - s_ykc_socket_info.fail_tick) > NET_YKC_RESET_NDEV_WAIT_TIME){
-                s_ykc_socket_info.fail_tick = rt_tick_get();
-                net_set_clear_ndev_reset_state(NET_PLATFORM_MASK_TARGET, 0x00);
-            }
             rt_thread_mdelay(1000);
             continue;
         }else{
-            s_ykc_socket_info.fail_tick = rt_tick_get();
             net_set_clear_ndev_reset_state(NET_PLATFORM_MASK_TARGET, 0x01);
         }
 

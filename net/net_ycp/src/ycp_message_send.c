@@ -26,7 +26,6 @@
 #define NET_YCP_WAIT_LOGIN_RENTRY                            100         /* 等待登录结果尝试次数 */
 #define NET_YCP_WAIT_UNLOCK_TIMEOUT                          (10 *1000)  /* 等待socket 解锁超时时间(单位：ms) */
 
-#define NET_YCP_RESET_NDEV_WAIT_TIME                         (30* 60 *1000)   /* 重启网络设备等待时间(单位ms:30 *60 *1000 = 30min) */
 #define NET_YCP_LOGIN_OPERATION_INTERVAL                     30000       /* 登录操作间隔(单位ms:30 *1000 = 30s) */
 
 #define NET_YCP_REALTIME_DATA_IDLE_INTERVAL                  300000      /* 实时数据空闲上报间隔(单位ms:5 *60 *1000 = 5min) */
@@ -54,6 +53,7 @@ struct ycp_assistant_flag{
     uint16_t is_storaging : 1;
 };
 
+static uint32_t s_ycp_heartbeat_tick;
 uint8_t s_ycp_current_transaction_number[NET_SYSTEM_GUN_NUMBER][NET_YCP_SERIAL_NUMBER_LENGTH_DEFAULT];
 static struct ycp_assistant_flag s_ycp_assistant_flag;
 static uint8_t s_ycp_same_transaction_report_count[NET_SYSTEM_GUN_NUMBER];
@@ -556,7 +556,6 @@ static void net_ycp_message_send_thread_entry(void *parameter)
 
         if((net_get_ota_info()->state >= NET_OTA_STATE_OPEN_LINK) && (net_get_ota_info()->state <= NET_OTA_STATE_UPDATING)){
             rt_thread_mdelay(5000);
-            s_ycp_socket_info.fail_tick = rt_tick_get();
             continue;
         }
 
@@ -566,7 +565,6 @@ static void net_ycp_message_send_thread_entry(void *parameter)
             net_get_net_handle()->net_state = NET_SOCKET_STATE_PHY;
             s_ycp_socket_info.fd = -0x01;
             step = NET_YCP_NET_STATE_OPEN_SOCKET;
-            s_ycp_socket_info.fail_tick = rt_tick_get();
             if(rt_tick_get() > (delay + NET_YCP_LOGIN_OPERATION_INTERVAL)){
                 delay = (rt_tick_get() - NET_YCP_LOGIN_OPERATION_INTERVAL);
             }
@@ -579,7 +577,6 @@ static void net_ycp_message_send_thread_entry(void *parameter)
             net_get_net_handle()->net_state = NET_SOCKET_STATE_SIM;
             s_ycp_socket_info.fd = -0x01;
             step = NET_YCP_NET_STATE_OPEN_SOCKET;
-            s_ycp_socket_info.fail_tick = rt_tick_get();
             if(rt_tick_get() > (delay + NET_YCP_LOGIN_OPERATION_INTERVAL)){
                 delay = (rt_tick_get() - NET_YCP_LOGIN_OPERATION_INTERVAL);
             }
@@ -592,7 +589,6 @@ static void net_ycp_message_send_thread_entry(void *parameter)
             net_get_net_handle()->net_state = NET_SOCKET_STATE_DATA_LINK;
             s_ycp_socket_info.fd = -0x01;
             step = NET_YCP_NET_STATE_OPEN_SOCKET;
-            s_ycp_socket_info.fail_tick = rt_tick_get();
             if(rt_tick_get() > (delay + NET_YCP_LOGIN_OPERATION_INTERVAL)){
                 delay = (rt_tick_get() - NET_YCP_LOGIN_OPERATION_INTERVAL);
             }
@@ -605,7 +601,6 @@ static void net_ycp_message_send_thread_entry(void *parameter)
             net_get_net_handle()->net_state = NET_SOCKET_STATE_MODULE_INIT;
             s_ycp_socket_info.fd = -0x01;
             step = NET_YCP_NET_STATE_OPEN_SOCKET;
-            s_ycp_socket_info.fail_tick = rt_tick_get();
             if(rt_tick_get() > (delay + NET_YCP_LOGIN_OPERATION_INTERVAL)){
                 delay = (rt_tick_get() - NET_YCP_LOGIN_OPERATION_INTERVAL);
             }
@@ -711,7 +706,7 @@ static void net_ycp_message_send_thread_entry(void *parameter)
                         if(handle->set_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, (uint8_t*)device_sn->device_sn, device_sn->device_sn_length, option) >= 0x00){
                             handle->system_data_storage(0x00);
                         }
-
+                        net_set_clear_ndev_reset_state(NET_PLATFORM_MASK_TARGET, 0x01);
                         s_ycp_socket_info.state = YCP_SOCKET_STATE_LOGIN_SUCCESS;
                         handle->net_state = NET_SOCKET_STATE_LOGIN_SUCCESS;
                         s_ycp_socket_info.heartbeat = 0x00;
@@ -770,30 +765,20 @@ static void net_ycp_message_send_thread_entry(void *parameter)
         if(s_ycp_socket_info.operate_fail.open_socket > NET_YCP_OPEN_SOCKET_RENTRY){
             s_ycp_socket_info.operate_fail.open_socket = 0x00;
             LOG_W("ycp open socket rentry = 0x00");
-//            net_set_clear_ndev_reset_state(NET_PLATFORM_MASK_TARGET, 0x00);
+            net_set_clear_ndev_reset_state(NET_PLATFORM_MASK_TARGET, 0x00);
         }
         if(s_ycp_socket_info.operate_fail.login > NET_YCP_OPEN_SOCKET_RENTRY){
             s_ycp_socket_info.operate_fail.login = 0x00;
             LOG_W("ycp login rentry = 0x00");
-//            net_set_clear_ndev_reset_state(NET_PLATFORM_MASK_TARGET, 0x00);
+            net_set_clear_ndev_reset_state(NET_PLATFORM_MASK_TARGET, 0x00);
         }
 
         if(s_ycp_socket_info.state != YCP_SOCKET_STATE_LOGIN_SUCCESS){   /* 未登录上服务器前不进行网络数据交互事件处理 */
             s_ycp_assistant_flag.is_timesync = 0x00;
             s_ycp_assistant_flag.is_verify_billingrule = 0x00;
-
-            if(s_ycp_socket_info.fail_tick > rt_tick_get()){
-                s_ycp_socket_info.fail_tick = rt_tick_get();
-            }
-            if((rt_tick_get() - s_ycp_socket_info.fail_tick) > NET_YCP_RESET_NDEV_WAIT_TIME){
-                s_ycp_socket_info.fail_tick = rt_tick_get();
-                net_set_clear_ndev_reset_state(NET_PLATFORM_MASK_TARGET, 0x00);
-            }
+            s_ycp_heartbeat_tick = rt_tick_get();
             rt_thread_mdelay(1000);
             continue;
-        }else{
-            s_ycp_socket_info.fail_tick = rt_tick_get();
-            net_set_clear_ndev_reset_state(NET_PLATFORM_MASK_TARGET, 0x01);
         }
 
 
@@ -1186,14 +1171,27 @@ static void net_ycp_message_send_thread_entry(void *parameter)
         /***************************************************** [定时上报] **********************************************************/
         if(s_ycp_assistant_flag.is_verify_billingrule == 0x01){
             uint8_t overreturn = 0x00;
-            if(heartbeat_tick > rt_tick_get()){
+            if(s_ycp_heartbeat_tick > rt_tick_get()){
                 overreturn = 0x01;
             }
             /* 数据填报只能是连上网后才行 */
-            if((rt_tick_get() + overreturn *0xFFFFFFFF - heartbeat_tick) >=  (1000 *g_ycp_sreq_set_para.body.heartbeat_interval)){
-                heartbeat_tick = rt_tick_get();
+            if((rt_tick_get() + overreturn *0xFFFFFFFF - s_ycp_heartbeat_tick) >=  (1000 *g_ycp_sreq_set_para.body.heartbeat_interval)){
+                s_ycp_heartbeat_tick = rt_tick_get();
                 ycp_set_message_send_state(0x00, NET_YCP_SEND_STATE_ONGOING, NET_YCP_PREQ_EVENT_HEARTBEAT);
                 ycp_net_event_send(NET_YCP_EVENT_HANDLE_CHARGEPILE, NET_YCP_EVENT_TYPE_REQUEST, 0x00, NET_YCP_PREQ_EVENT_HEARTBEAT);
+            }
+        }else{
+            uint8_t overreturn = 0x00;
+            if(s_ycp_heartbeat_tick > rt_tick_get()){
+                overreturn = 0x01;
+            }
+
+            /* 数据填报只能是连上网后才行 */
+            if((rt_tick_get() + overreturn *0xFFFFFFFF - s_ycp_heartbeat_tick) >=  (1000 *g_ycp_sreq_set_para.body.heartbeat_interval)){
+                s_ycp_heartbeat_tick = rt_tick_get();
+                if(s_ycp_socket_info.heartbeat < 0xFF){
+                    s_ycp_socket_info.heartbeat++;
+                }
             }
         }
         /***************************************************** [内部消耗事件] **********************************************************/
@@ -1607,8 +1605,21 @@ static void net_ycp_server_message_pro_entry(void *parameter)
 
                             ycp_net_event_receive(NET_YCP_EVENT_HANDLE_SERVER, NET_YCP_EVENT_TYPE_RESPONSE, gunno,
                                                     (NET_YCP_EVENT_OPTION_OR |NET_YCP_EVENT_OPTION_CLEAR), NET_YCP_SRES_EVENT_BILLING_MODEL_VERIFY, NULL);
+
+                            s_ycp_heartbeat_tick = rt_tick_get();
+                            ycp_set_message_send_state(0x00, NET_YCP_SEND_STATE_ONGOING, NET_YCP_PREQ_EVENT_HEARTBEAT);
+                            ycp_net_event_send(NET_YCP_EVENT_HANDLE_CHARGEPILE, NET_YCP_EVENT_TYPE_REQUEST, 0x00, NET_YCP_PREQ_EVENT_HEARTBEAT);
+
                             s_ycp_assistant_flag.is_storaging = 0x00;
                         }
+                    }else{
+                        g_ycp_preq_billing_model_verify.body.model_sn = g_ycp_sres_billing_model_verify.body.model_number;
+                        s_ycp_assistant_flag.is_verify_billingrule = 0x01;
+
+                        s_ycp_heartbeat_tick = rt_tick_get();
+                        ycp_set_message_send_state(0x00, NET_YCP_SEND_STATE_ONGOING, NET_YCP_PREQ_EVENT_HEARTBEAT);
+                        ycp_net_event_send(NET_YCP_EVENT_HANDLE_CHARGEPILE, NET_YCP_EVENT_TYPE_REQUEST, 0x00, NET_YCP_PREQ_EVENT_HEARTBEAT);
+
                     }
                 }
                 /***** [充电桩主动申请启动充电响应] *****/

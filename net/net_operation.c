@@ -125,14 +125,9 @@ void net_set_clear_ndev_reset_state(uint8_t plat_mask, uint8_t is_clear)
         (void)s_net_handle.ndev_operate(NULL, NET_DEV_OPERATE_OPTION_RESET);
     }
 #else
-    if(s_net_ndev_reset){
-        if(is_clear == 0x00){
-            net_operation_set_event(0x00, NET_OPERATION_EVENT_COMMUNICATE_DEV_REBOOT);
-        }
-    }else{
-        net_operation_clear_event(0x00, NET_OPERATION_EVENT_COMMUNICATE_DEV_REBOOT);
+    if(is_clear == 0x00){
+        (void)s_net_handle.ndev_operate(NULL, NET_DEV_OPERATE_OPTION_RESET);
     }
-//    (void)s_net_handle.ndev_operate(NULL, NET_DEV_OPERATE_OPTION_RESET);
 #endif
 }
 
