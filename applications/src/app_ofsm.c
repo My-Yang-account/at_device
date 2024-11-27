@@ -186,124 +186,120 @@ static void transaction_record_query_report(uint8_t gunno)
 
     if(mw_storage_record_get_userdata_record_num(USER_DATA_TYPE_STORAGE, gunno) > 0x00){
         int32_t index = 0;
-        uint8_t save_rentry = 0, check_rentry = 0;
-        while(check_rentry < 3){
-            if((index = mw_storage_record_get_first_index_userdata(USER_DATA_TYPE_STORAGE, gunno)) < 0x00){
-                check_rentry = 3;
-                break;
+        uint8_t save_rentry = 0;
+        if((index = mw_storage_record_get_first_index_userdata(USER_DATA_TYPE_STORAGE, gunno)) < 0x00){
+            return;
+        }
+
+        uint8_t need_check = 0;
+        uint8_t _period = 0x00, _rated_number = APP_RATE_TYPE_FLAT;
+        double _unit_price = 10.5;   /** 断电时电费单价(默认1.05元，精度：0.1) */
+        thaisen_transaction_t rtransaction;
+        mw_storage_record_get_designate_index_record((uint8_t*)(&rtransaction), sizeof(rtransaction), gunno, index);
+        save_rentry = 0;
+
+        if(rtransaction.stop_reason == APP_SYSTEM_STOP_WAY_POWER_OFF){
+            uint32_t loss_elect = 0x00, _total_elect = 0x00, _price = 0x00;
+
+            if(rtransaction.charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL){
+                for(uint8_t count = 0x00; count < APP_SYSTEM_GUNNO_SIZE; count++){
+                    _total_elect += mw_get_meter_total_wh(count);
+                }
+            }else{
+                _total_elect = mw_get_meter_total_wh(gunno);
             }
 
-            uint8_t need_check = 0;
-            uint8_t _period = 0x00, _rated_number = APP_RATE_TYPE_FLAT;
-            double _unit_price = 10.5;   /** 断电时电费单价(默认1.05元，精度：0.1) */
-            thaisen_transaction_t rtransaction;
-            mw_storage_record_get_designate_index_record((uint8_t*)(&rtransaction), sizeof(rtransaction), gunno, index);
-            save_rentry = 0;
-
-            if(rtransaction.stop_reason == APP_SYSTEM_STOP_WAY_POWER_OFF){
-                uint32_t loss_elect = 0x00, _total_elect = 0x00, _price = 0x00;
-
-                if(rtransaction.charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL){
-                    for(uint8_t count = 0x00; count < APP_SYSTEM_GUNNO_SIZE; count++){
-                        _total_elect += mw_get_meter_total_wh(count);
+            if(_total_elect >= rtransaction.ammeter_stop){
+                if(rtransaction.run_mode == APP_RUN_MODE_OFFLINE_BILLING){
+                    _rated_number = sys_get_offbilling_rate_number(rtransaction.end_time);
+                    if(_rated_number > CP_RATED_TYPE_MAX){
+                        _rated_number = CP_PERIOD_RATED_NUMBER_DEFAULT;
                     }
-                }else{
-                    _total_elect = mw_get_meter_total_wh(gunno);
+
+                    _price = sys_get_offbilling_unit_price(rtransaction.end_time);
+                    if((_price > CP_UNIT_PRICE_MAX) || (_price < CP_UNIT_PRICE_MIN)){
+                        _price = CP_UNIT_PRICE_DEFAULT;
+                    }
+                    _unit_price = _price;
+                    _unit_price /= 1000;   /** 单价是4位小数，此处只需保留一位 */
                 }
 
-                if(_total_elect >= rtransaction.ammeter_stop){
-                    if(rtransaction.run_mode == APP_RUN_MODE_OFFLINE_BILLING){
-                        _rated_number = sys_get_offbilling_rate_number(rtransaction.end_time);
-                        if(_rated_number > CP_RATED_TYPE_MAX){
-                            _rated_number = CP_PERIOD_RATED_NUMBER_DEFAULT;
-                        }
+                loss_elect = _total_elect - rtransaction.ammeter_stop;
+                rtransaction.ammeter_stop = _total_elect;
 
-                        _price = sys_get_offbilling_unit_price(rtransaction.end_time);
-                        if((_price > CP_UNIT_PRICE_MAX) || (_price < CP_UNIT_PRICE_MIN)){
-                            _price = CP_UNIT_PRICE_DEFAULT;
-                        }
-                        _unit_price = _price;
-                        _unit_price /= 1000;   /** 单价是4位小数，此处只需保留一位 */
-                    }
+                rtransaction.total_elect = (rtransaction.ammeter_stop - rtransaction.ammeter_start);
+                rtransaction.charge_fee += ((double)loss_elect *(double)_unit_price);
+                rtransaction.total_fee += ((double)loss_elect *(double)_unit_price);
 
-                    loss_elect = _total_elect - rtransaction.ammeter_stop;
-                    rtransaction.ammeter_stop = _total_elect;
-
-                    rtransaction.total_elect = (rtransaction.ammeter_stop - rtransaction.ammeter_start);
-                    rtransaction.charge_fee += ((double)loss_elect *(double)_unit_price);
-                    rtransaction.total_fee += ((double)loss_elect *(double)_unit_price);
-
-                    rtransaction.end_time += (15 *60);
-                    rtransaction.charge_time += (15 *60);
-                    if(rtransaction.end_time > rtransaction.charge_time){
-                        rtransaction.start_time = rtransaction.end_time - rtransaction.charge_time;
-                    }else{
-                        rtransaction.start_time = rtransaction.end_time;
-                        rtransaction.charge_time = 0x00;
-                    }
-                    if(rtransaction.charge_fee > APP_SPEND_AMOUNT_MAX){
-                        rtransaction.charge_fee = APP_SPEND_AMOUNT_MAX;
-                    }
-                    if(rtransaction.total_fee > APP_SPEND_AMOUNT_MAX){
-                        rtransaction.total_fee = APP_SPEND_AMOUNT_MAX;
-                    }
-                    if(rtransaction.total_elect > APP_CHARGE_ELECT_MAX){
-                        rtransaction.total_elect = APP_CHARGE_ELECT_MAX;
-                    }
+                rtransaction.end_time += (15 *60);
+                rtransaction.charge_time += (15 *60);
+                if(rtransaction.end_time > rtransaction.charge_time){
+                    rtransaction.start_time = rtransaction.end_time - rtransaction.charge_time;
+                }else{
+                    rtransaction.start_time = rtransaction.end_time;
+                    rtransaction.charge_time = 0x00;
+                }
+                if(rtransaction.charge_fee > APP_SPEND_AMOUNT_MAX){
+                    rtransaction.charge_fee = APP_SPEND_AMOUNT_MAX;
+                }
+                if(rtransaction.total_fee > APP_SPEND_AMOUNT_MAX){
+                    rtransaction.total_fee = APP_SPEND_AMOUNT_MAX;
+                }
+                if(rtransaction.total_elect > APP_CHARGE_ELECT_MAX){
+                    rtransaction.total_elect = APP_CHARGE_ELECT_MAX;
+                }
 
 #if (defined (APP_INCLUDE_YKC_PROTOCOL) || defined (APP_INCLUDE_YKC_PROTOCOL_MONITOR) || defined (APP_INCLUDE_YCP_PROTOCOL) ||  \
-                    defined (APP_INCLUDE_SGCC_PROTOCOL))
-                    rtransaction.rate_type_elect[_rated_number] += loss_elect;
-                    rtransaction.rate_type_amount[_rated_number] += ((double)loss_elect *(double)_unit_price);
-                    if(rtransaction.rate_type_amount[_rated_number] > APP_SPEND_AMOUNT_MAX){
-                        rtransaction.rate_type_amount[_rated_number] = APP_SPEND_AMOUNT_MAX;
-                    }
-                    if(rtransaction.rate_type_elect[_rated_number] > APP_CHARGE_ELECT_MAX){
-                        rtransaction.rate_type_elect[_rated_number] = APP_CHARGE_ELECT_MAX;
-                    }
+                defined (APP_INCLUDE_SGCC_PROTOCOL))
+                rtransaction.rate_type_elect[_rated_number] += loss_elect;
+                rtransaction.rate_type_amount[_rated_number] += ((double)loss_elect *(double)_unit_price);
+                if(rtransaction.rate_type_amount[_rated_number] > APP_SPEND_AMOUNT_MAX){
+                    rtransaction.rate_type_amount[_rated_number] = APP_SPEND_AMOUNT_MAX;
+                }
+                if(rtransaction.rate_type_elect[_rated_number] > APP_CHARGE_ELECT_MAX){
+                    rtransaction.rate_type_elect[_rated_number] = APP_CHARGE_ELECT_MAX;
+                }
 #endif /* (defined (APP_INCLUDE_YKC_PROTOCOL) || defined (APP_INCLUDE_YKC_PROTOCOL_MONITOR) || defined (APP_INCLUDE_YCP_PROTOCOL) ||
-                    defined (APP_INCLUDE_SGCC_PROTOCOL)) */
+                defined (APP_INCLUDE_SGCC_PROTOCOL)) */
 
 #if (defined (APP_INCLUDE_SL_PROTOCOL) || defined (APP_INCLUDE_SGCC_PROTOCOL))
-                    if(rtransaction.start_period_number > (APP_BILLING_RULE_PERIOD_MAX - 0x01)){
-                        rtransaction.start_period_number = (APP_BILLING_RULE_PERIOD_MAX - 0x01);
-                    }
-                    rtransaction.period_elect[rtransaction.start_period_number] += loss_elect;
-                    rtransaction.period_elect_fees[rtransaction.start_period_number] += ((double)loss_elect *(double)_unit_price);
-
-                    if(rtransaction.period_elect_fees[rtransaction.start_period_number] > APP_SPEND_AMOUNT_MAX){
-                        rtransaction.period_elect_fees[rtransaction.start_period_number] = APP_SPEND_AMOUNT_MAX;
-                    }
-                    if(rtransaction.period_elect[rtransaction.start_period_number] > APP_CHARGE_ELECT_MAX){
-                        rtransaction.period_elect[rtransaction.start_period_number] = APP_CHARGE_ELECT_MAX;
-                    }
-#endif /* (defined (APP_INCLUDE_SL_PROTOCOL) || defined (APP_INCLUDE_SGCC_PROTOCOL)) */
-                    need_check = 1;
+                if(rtransaction.start_period_number > (APP_BILLING_RULE_PERIOD_MAX - 0x01)){
+                    rtransaction.start_period_number = (APP_BILLING_RULE_PERIOD_MAX - 0x01);
                 }
-                rtransaction.order_state.is_charging = APP_THA_ENUM_FALSE;
-            }else{
+                rtransaction.period_elect[rtransaction.start_period_number] += loss_elect;
+                rtransaction.period_elect_fees[rtransaction.start_period_number] += ((double)loss_elect *(double)_unit_price);
+
+                if(rtransaction.period_elect_fees[rtransaction.start_period_number] > APP_SPEND_AMOUNT_MAX){
+                    rtransaction.period_elect_fees[rtransaction.start_period_number] = APP_SPEND_AMOUNT_MAX;
+                }
+                if(rtransaction.period_elect[rtransaction.start_period_number] > APP_CHARGE_ELECT_MAX){
+                    rtransaction.period_elect[rtransaction.start_period_number] = APP_CHARGE_ELECT_MAX;
+                }
+#endif /* (defined (APP_INCLUDE_SL_PROTOCOL) || defined (APP_INCLUDE_SGCC_PROTOCOL)) */
                 need_check = 1;
             }
-            if(need_check){
-                int32_t ret = 0x00;
-                while(save_rentry < 5){
-                    ret = 0x00;
-                    if((s_ofsm_info[gunno].base.is_offline_billing == APP_THA_ENUM_TRUE) && (rtransaction.start_type == APP_CHARGE_START_WAY_OFFLINE_CARD)){
-                        ret = mw_storage_record_designate_index_updated(&rtransaction, sizeof(rtransaction), USER_DATA_TYPE_VERIFIED, 0x00, APP_THA_ENUM_FALSE, gunno, index);
-                    }else{
-                        ret = mw_storage_record_designate_index_updated(&rtransaction, sizeof(rtransaction), USER_DATA_TYPE_VERIFIED, 0x00, APP_THA_ENUM_TRUE, gunno, index);
-                    }
-                    if(ret < 0x00){
-                        rt_thread_mdelay(10);
-                        save_rentry++;
-                        continue;
-                    }else{
-                        check_rentry = 3;
-                        break;
-                    }
-                    LOG_D("order have adjusted(%d)", check_rentry);
+            rtransaction.order_state.is_charging = APP_THA_ENUM_FALSE;
+        }else{
+            need_check = 1;
+        }
+        if(need_check){
+            int32_t ret = 0x00;
+            while(save_rentry < 5){
+                ret = 0x00;
+                if((s_ofsm_info[gunno].base.is_offline_billing == APP_THA_ENUM_TRUE) && (rtransaction.start_type == APP_CHARGE_START_WAY_OFFLINE_CARD)){
+                    ret = mw_storage_record_designate_index_updated(&rtransaction, sizeof(rtransaction), USER_DATA_TYPE_VERIFIED, 0x00, APP_THA_ENUM_FALSE, gunno, index);
+                }else{
+                    ret = mw_storage_record_designate_index_updated(&rtransaction, sizeof(rtransaction), USER_DATA_TYPE_VERIFIED, 0x00, APP_THA_ENUM_TRUE, gunno, index);
+                }
+                if(ret < 0x00){
+                    rt_thread_mdelay(10);
+                    save_rentry++;
+                    continue;
+                }else{
                     break;
                 }
+                LOG_D("order have adjusted");
+                break;
             }
         }
         return;
