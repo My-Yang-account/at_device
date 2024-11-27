@@ -367,6 +367,7 @@ static void sgcc_storage_data_check(void)
  * **********************************************/
 int8_t sgcc_response_padding_remote_start_charge(uint8_t gunno, uint8_t *buf, uint16_t ilen, uint16_t *olen)
 {
+    /** 来到这里一定是在线启动方式 */
     uint8_t data_len = sizeof(evs_event_startResult);
 
     if(buf == NULL){
@@ -411,6 +412,7 @@ int8_t sgcc_response_padding_remote_start_charge(uint8_t gunno, uint8_t *buf, ui
  * **********************************************/
 int8_t sgcc_response_padding_remote_stop_charge(uint8_t gunno, uint8_t *buf, uint16_t ilen, uint16_t *olen)
 {
+    /** 来到这里一定是在线启动方式且已启动成功 */
     uint8_t data_len = sizeof(evs_event_stopCharge);
 
     if(buf == NULL){
@@ -431,18 +433,34 @@ int8_t sgcc_response_padding_remote_stop_charge(uint8_t gunno, uint8_t *buf, uin
 
     valid_len = sizeof(evs_service_stopCharges[gunno].preTradeNo);
     valid_len = valid_len > EVS_MAX_TRADE_LEN ? EVS_MAX_TRADE_LEN : valid_len;
+    /** 平台停止 */
     if(s_sgcc_base->reason_code == APP_SYSTEM_STOP_WAY_APP_STOP){
         memcpy(response->preTradeNo, evs_service_stopCharges[gunno].preTradeNo, valid_len);
     }else{
-        memcpy(response->preTradeNo, evs_service_startCharges[gunno].preTradeNo, valid_len);
+        /** 平台启动 */
+        if(s_sgcc_base->start_type == APP_CHARGE_START_WAY_APP){
+            memcpy(response->preTradeNo, evs_service_startCharges[gunno].preTradeNo, valid_len);
+        }
+        /** 鉴权启动 */
+        else{
+            memcpy(response->preTradeNo, evs_service_authCharges[gunno].preTradeNo, valid_len);
+        }
     }
 
     valid_len = sizeof(evs_service_stopCharges[gunno].tradeNo);
     valid_len = valid_len > EVS_MAX_TRADE_LEN ? EVS_MAX_TRADE_LEN : valid_len;
+    /** 平台停止 */
     if(s_sgcc_base->reason_code == APP_SYSTEM_STOP_WAY_APP_STOP){
         memcpy(response->tradeNo, evs_service_stopCharges[gunno].tradeNo, valid_len);
     }else{
-        memcpy(response->tradeNo, evs_service_startCharges[gunno].tradeNo, valid_len);
+        /** 平台启动 */
+        if(s_sgcc_base->start_type == APP_CHARGE_START_WAY_APP){
+            memcpy(response->tradeNo, evs_service_startCharges[gunno].tradeNo, valid_len);
+        }
+        /** 鉴权启动 */
+        else{
+            memcpy(response->tradeNo, evs_service_authCharges[gunno].tradeNo, valid_len);
+        }
     }
 
     response->gunNo = gunno + 0x01;
@@ -2718,27 +2736,43 @@ void sgcc_start_charge_response_asynchronously(uint8_t gunno, uint8_t result, ui
         return;
     }
 
-    if(s_sgcc_flag_info[gunno].is_start_charge == NET_ENUM_FALSE){
+    s_sgcc_base = (System_BaseData*)(s_sgcc_handle->get_base_data(gunno));
+
+    /** 在线启动才需要上报启动结果 */
+    if(s_sgcc_base->flag.is_local_charging == NET_ENUM_TRUE){
         return;
     }
     if(result){
         s_sgcc_flag_info[gunno].start_success = NET_ENUM_TRUE;
         s_agcc_remotecharge_result[gunno] = 10;
+        s_agcc_applycharge_result[gunno] = 10;
     }else{
         s_sgcc_flag_info[gunno].start_success = NET_ENUM_FALSE;
         s_agcc_remotecharge_result[gunno] = 11;
+        s_agcc_applycharge_result[gunno] = 11;
     }
 
-    if(s_agcc_remotecharge_result[gunno] == 10){
-        s_agcc_remotecharge_fail_reason[gunno] = 0x00;
+    if(s_sgcc_base->start_type == APP_CHARGE_START_WAY_APP){
+        if(s_agcc_remotecharge_result[gunno] == 10){
+            s_agcc_remotecharge_fail_reason[gunno] = 0x00;
+        }else{
+            s_agcc_remotecharge_fail_reason[gunno] = sgcc_chargepile_stop_reason_converted(reason, NET_ENUM_TRUE);
+        }
+
+        s_agcc_remotecharge_fault_reason[gunno] = s_agcc_remotecharge_fail_reason[gunno];
+        sgcc_net_event_send(NET_SGCC_EVENT_HANDLE_CHARGEPILE, NET_SGCC_EVENT_TYPE_RESPONSE, gunno, NET_SGCC_PRES_EVENT_START_CHARGE_ASYNCHRONOUSLY);
     }else{
-        s_agcc_remotecharge_fail_reason[gunno] = sgcc_chargepile_stop_reason_converted(reason, NET_ENUM_TRUE);
+        if(s_agcc_applycharge_result[gunno] == 10){
+            s_agcc_applycharge_fail_reason[gunno] = 0x00;
+        }else{
+            s_agcc_applycharge_fail_reason[gunno] = sgcc_chargepile_stop_reason_converted(reason, NET_ENUM_TRUE);
+        }
+
+        s_agcc_applycharge_fault_reason[gunno] = s_agcc_applycharge_fail_reason[gunno];
+        sgcc_net_event_send(NET_SGCC_EVENT_HANDLE_CHARGEPILE, NET_SGCC_EVENT_TYPE_RESPONSE, gunno, NET_SGCC_PRES_EVENT_APPLY_CHARGE_ASYNCHRONOUSLY);
     }
 
-    s_agcc_remotecharge_fault_reason[gunno] = s_agcc_remotecharge_fail_reason[gunno];
     s_sgcc_flag_info[gunno].is_start_charge = NET_ENUM_FALSE;
-
-    sgcc_net_event_send(NET_SGCC_EVENT_HANDLE_CHARGEPILE, NET_SGCC_EVENT_TYPE_RESPONSE, gunno, NET_SGCC_PRES_EVENT_START_CHARGE_ASYNCHRONOUSLY);
 }
 
 /*************************************************
@@ -2756,6 +2790,11 @@ void sgcc_stop_charge_response_asynchronously(uint8_t gunno, uint8_t result, uin
         gunno = s_sgcc_base->main_gunno;
     }
 
+    /** 在线启动才需要上报停止结果 */
+    if(s_sgcc_base->flag.is_local_charging == NET_ENUM_TRUE){
+        return;
+    }
+    /** 启动成功才上报停止结果 */
     if(s_sgcc_base->flag.start_result == NET_ENUM_FALSE){
         return;
     }

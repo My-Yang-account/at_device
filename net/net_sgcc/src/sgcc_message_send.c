@@ -1352,12 +1352,14 @@ static void sgcc_message_server_thread_entry(void *parameter)
                 response = sgcc_get_response_buff(RT_WAITING_FOREVER);
                 result = sgcc_response_padding_apply_charge_result(gunno, response->general_transmit_buff, NET_SGCC_GENERA_RESPONSE_BUFF_LENGTH, &(response->length));
                 if(result >= 0x00){
-                    if(sgcc_get_applycharge_result(gunno)){
-                        ((evs_event_startResult*)response->general_transmit_buff)->startResult = SGCC_OPSCTL_ACTION;
-                    }else{
-                        /* 此处需要进行原因码转换 */
-                        ((evs_event_startResult*)response->general_transmit_buff)->faultCode = 0x00;
-                    }
+                    ((evs_event_startResult*)response->general_transmit_buff)->startResult = sgcc_get_applycharge_result(gunno);
+                    ((evs_event_startResult*)response->general_transmit_buff)->faultCode = sgcc_get_applycharge_fail_reason(gunno);
+//                    if(sgcc_get_applycharge_result(gunno)){
+//                        ((evs_event_startResult*)response->general_transmit_buff)->startResult = SGCC_OPSCTL_ACTION;
+//                    }else{
+//                        /* 此处需要进行原因码转换 */
+//                        ((evs_event_startResult*)response->general_transmit_buff)->faultCode = 0x00;
+//                    }
                     sgcc_net_event_send(NET_SGCC_EVENT_HANDLE_CHARGEPILE, NET_SGCC_EVENT_TYPE_RESPONSE, gunno, NET_SGCC_PRES_EVENT_APPLY_CHARGE_RESULT);
                 }else{
                     sgcc_response_buff_release_sem();

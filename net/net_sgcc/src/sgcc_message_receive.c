@@ -374,6 +374,7 @@ static int callback_service_EVS_AUTH_RESULT_SRV(evs_service_authCharge *request,
 
     sgcc_input_recv_message_item(EVS_AUTH_RESULT_SRV, 0x00, (gunno - 0x01));
     memcpy(&(evs_service_authCharges[(gunno - 0x01)]), request, sizeof(evs_service_authCharge));
+    memcpy(evs_service_authCharges[(gunno - 0x01)].tradeNo, evs_event_startCharges[gunno - 0x01].tradeNo, EVS_MAX_TRADE_LEN);
 
     memset(feedback, 0x00, sizeof(evs_service_feedback_authCharge));
     feedback->gunNo = request->gunNo;
