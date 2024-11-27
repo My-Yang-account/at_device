@@ -177,7 +177,8 @@ struct _function_enable{
     uint8_t parallel_relay;        /* 并联 */
     uint8_t module_slience;        /* 模块静音 */
     uint8_t offline_billing;       /* 离线计费 */
-    uint8_t reserve[93];
+    uint8_t local_stop;            /* 本地停止 */
+    uint8_t reserve[92];
 };
 
 struct _state_reversal{
@@ -294,6 +295,11 @@ static struct config_item s_config_item_set[CONFIG_ITEM_SIZE] =
         {CONFIG_ITEM_SUPORT_LOCAL,                                                           /* 配置项：本地启动 */
         (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.local_charge)),
         (uint8_t*)&s_chargepile_config_info.function_enable.local_charge,
+        NULL},
+
+        {CONFIG_ITEM_SUPORT_LOCAL_STOP,                                                      /* 配置项：本地停止 */
+        (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.local_stop)),
+        (uint8_t*)&s_chargepile_config_info.function_enable.local_stop,
         NULL},
 
         {CONFIG_ITEM_SUPORT_INSULATION,                                                          /* 配置项：绝缘检测*/
@@ -1135,6 +1141,7 @@ static void chargepile_config_data_reset(void)
     s_chargepile_config_info.config_info.gun_num = 0x02;
 
     s_chargepile_config_info.function_enable.local_charge = 0x00;
+    s_chargepile_config_info.function_enable.local_stop = 0x00;
     s_chargepile_config_info.function_enable.insulation_detect = 0x01;
     s_chargepile_config_info.function_enable.vin_charge = 0x00;
     s_chargepile_config_info.function_enable.parallel_charge = 0x01;
@@ -1497,6 +1504,9 @@ int32_t chargepile_check_config(void)
     }
     if(s_chargepile_config_info.function_enable.local_charge > 0x01){       /* 本地启动默认关闭 */
         s_chargepile_config_info.function_enable.local_charge = 0x00;
+    }
+    if(s_chargepile_config_info.function_enable.local_stop > 0x01){       /* 本地停止默认关闭 */
+        s_chargepile_config_info.function_enable.local_stop = 0x00;
     }
     if(s_chargepile_config_info.function_enable.insulation_detect > 0x01){  /* 绝缘检测默认开启 */
         s_chargepile_config_info.function_enable.insulation_detect = 0x01;

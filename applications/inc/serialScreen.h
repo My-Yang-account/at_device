@@ -129,6 +129,7 @@ void SerialScreen_InputInfoGet(void);
 void SerialScreen_ParaChargeSet(void);
 void SerialScreen_SingleChargeSet(void);
 void SerialScreen_IsSupportSet(void);
+void SerialScreen_IsSupportLocalStopSet(void);
 void SerialScreen_IsSupportReaderSet(void);
 void SerialScreen_IsSupportGet(void);
 void SerialScreen_IsSupportSetFlash(void);
