@@ -359,6 +359,9 @@
 #define CP_VALLEY_RATED_DELAY_PRICE_DEF               0                /* 谷费率延迟费默认值(0.0001) */
 /**************************************************************************************************/
 
+#define CP_UNIT_PRICE_MAX                             100000           /* 单价最大值：10元 */
+#define CP_UNIT_PRICE_MIN                             3000             /* 单价最小值：0.3元 */
+#define CP_UNIT_PRICE_DEFAULT                         10000            /* 单价默认值：1元 */
 #define CP_PERIOD_RATED_NUMBER_DEFAULT                0x04             /* 时段费率号默认值：谷费率 */
 
 enum config_name{

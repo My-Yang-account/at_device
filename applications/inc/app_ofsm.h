@@ -73,6 +73,15 @@ enum system_gunno_enum{
     APP_SYSTEM_GUNNO_SIZE,
 };
 
+enum run_mode_enum{
+    APP_RUN_MODE_4G_ETH,                               /* 桩运行模式：4G、以太网联网 */
+    APP_RUN_MODE_OFFLINE_BILLING,                      /* 桩运行模式：4离线计费 */
+    APP_RUN_MODE_BLUE,                                 /* 桩运行模式：蓝牙联网 */
+    APP_RUN_MODE_WIFI,                                 /* 桩运行模式：wifi联网 */
+    APP_RUN_MODE_OTHER,                                /* 桩运行模式：非联网、非离线计费 */
+    APP_RUN_MODE_SIZE,                                 /* 桩运行模式： */
+};
+
 enum charge_strategy_enum{
     APP_CHARGE_STRATEGY_TIME,                          /* 充电策略：按时间(单位是s) */
     APP_CHARGE_STRATEGY_ELECT,                         /* 充电策略：按电量(单位0.001度) */
@@ -304,7 +313,9 @@ typedef struct
     uint32_t rate_type_elect_amount[APP_BILLING_RULE_RATE_TYPE_MAX];      /* 费率类型电费金额  */
     uint32_t rate_type_service_amount[APP_BILLING_RULE_RATE_TYPE_MAX];    /* 费率类型服务费金额  */
 #endif /* (defined (APP_INCLUDE_SGCC_PROTOCOL) */
-    uint8_t reserve[16];                  /* 预留 */
+
+    uint8_t run_mode;                     /* 运行模式：0：4G、以太网联网，1：离线计费，2：蓝牙联网，3：wifi联网，4：非联网、非离线计费 */
+    uint8_t reserve[15];                  /* 预留 */
 }thaisen_transaction_t;
 /*******************************************************************************************/
 

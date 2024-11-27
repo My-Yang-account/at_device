@@ -194,12 +194,14 @@ static void transaction_record_query_report(uint8_t gunno)
             }
 
             uint8_t need_check = 0;
+            uint8_t _period = 0x00, _rated_number = APP_RATE_TYPE_FLAT;
+            double _unit_price = 10.5;   /** 断电时电费单价(默认1.05元，精度：0.1) */
             thaisen_transaction_t rtransaction;
             mw_storage_record_get_designate_index_record((uint8_t*)(&rtransaction), sizeof(rtransaction), gunno, index);
             save_rentry = 0;
 
             if(rtransaction.stop_reason == APP_SYSTEM_STOP_WAY_POWER_OFF){
-                uint32_t loss_elect = 0x00, _total_elect = 0x00;
+                uint32_t loss_elect = 0x00, _total_elect = 0x00, _price = 0x00;
 
                 if(rtransaction.charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL){
                     for(uint8_t count = 0x00; count < APP_SYSTEM_GUNNO_SIZE; count++){
@@ -210,12 +212,26 @@ static void transaction_record_query_report(uint8_t gunno)
                 }
 
                 if(_total_elect >= rtransaction.ammeter_stop){
+                    if(rtransaction.run_mode == APP_RUN_MODE_OFFLINE_BILLING){
+                        _rated_number = sys_get_offbilling_rate_number(rtransaction.end_time);
+                        if(_rated_number > CP_RATED_TYPE_MAX){
+                            _rated_number = CP_PERIOD_RATED_NUMBER_DEFAULT;
+                        }
+
+                        _price = sys_get_offbilling_unit_price(rtransaction.end_time);
+                        if((_price > CP_UNIT_PRICE_MAX) || (_price < CP_UNIT_PRICE_MIN)){
+                            _price = CP_UNIT_PRICE_DEFAULT;
+                        }
+                        _unit_price = _price;
+                        _unit_price /= 1000;   /** 单价是4位小数，此处只需保留一位 */
+                    }
+
                     loss_elect = _total_elect - rtransaction.ammeter_stop;
                     rtransaction.ammeter_stop = _total_elect;
 
                     rtransaction.total_elect = (rtransaction.ammeter_stop - rtransaction.ammeter_start);
-                    rtransaction.charge_fee += ((double)loss_elect *(double)1.05 *10);
-                    rtransaction.total_fee += ((double)loss_elect *(double)1.05 *10);
+                    rtransaction.charge_fee += ((double)loss_elect *(double)_unit_price);
+                    rtransaction.total_fee += ((double)loss_elect *(double)_unit_price);
 
                     rtransaction.end_time += (15 *60);
                     rtransaction.charge_time += (15 *60);
@@ -237,13 +253,13 @@ static void transaction_record_query_report(uint8_t gunno)
 
 #if (defined (APP_INCLUDE_YKC_PROTOCOL) || defined (APP_INCLUDE_YKC_PROTOCOL_MONITOR) || defined (APP_INCLUDE_YCP_PROTOCOL) ||  \
                     defined (APP_INCLUDE_SGCC_PROTOCOL))
-                    rtransaction.rate_type_elect[APP_RATE_TYPE_FLAT] += loss_elect;
-                    rtransaction.rate_type_amount[APP_RATE_TYPE_FLAT] += ((double)loss_elect *(double)1.05 *10);
-                    if(rtransaction.rate_type_amount[APP_RATE_TYPE_FLAT] > APP_SPEND_AMOUNT_MAX){
-                        rtransaction.rate_type_amount[APP_RATE_TYPE_FLAT] = APP_SPEND_AMOUNT_MAX;
+                    rtransaction.rate_type_elect[_rated_number] += loss_elect;
+                    rtransaction.rate_type_amount[_rated_number] += ((double)loss_elect *(double)_unit_price);
+                    if(rtransaction.rate_type_amount[_rated_number] > APP_SPEND_AMOUNT_MAX){
+                        rtransaction.rate_type_amount[_rated_number] = APP_SPEND_AMOUNT_MAX;
                     }
-                    if(rtransaction.rate_type_elect[APP_RATE_TYPE_FLAT] > APP_CHARGE_ELECT_MAX){
-                        rtransaction.rate_type_elect[APP_RATE_TYPE_FLAT] = APP_CHARGE_ELECT_MAX;
+                    if(rtransaction.rate_type_elect[_rated_number] > APP_CHARGE_ELECT_MAX){
+                        rtransaction.rate_type_elect[_rated_number] = APP_CHARGE_ELECT_MAX;
                     }
 #endif /* (defined (APP_INCLUDE_YKC_PROTOCOL) || defined (APP_INCLUDE_YKC_PROTOCOL_MONITOR) || defined (APP_INCLUDE_YCP_PROTOCOL) ||
                     defined (APP_INCLUDE_SGCC_PROTOCOL)) */
@@ -253,7 +269,7 @@ static void transaction_record_query_report(uint8_t gunno)
                         rtransaction.start_period_number = (APP_BILLING_RULE_PERIOD_MAX - 0x01);
                     }
                     rtransaction.period_elect[rtransaction.start_period_number] += loss_elect;
-                    rtransaction.period_elect_fees[rtransaction.start_period_number] += ((double)loss_elect *(double)1.05 *10);
+                    rtransaction.period_elect_fees[rtransaction.start_period_number] += ((double)loss_elect *(double)_unit_price);
 
                     if(rtransaction.period_elect_fees[rtransaction.start_period_number] > APP_SPEND_AMOUNT_MAX){
                         rtransaction.period_elect_fees[rtransaction.start_period_number] = APP_SPEND_AMOUNT_MAX;
@@ -1459,6 +1475,10 @@ static void ofsm_readying_fun(uint8_t gunno)
             s_thaisen_transaction[gunno].charge_fee = 0x00;
             s_thaisen_transaction[gunno].service_fee = 0x00;
             s_thaisen_transaction[gunno].total_fee = 0x00;
+            s_thaisen_transaction[gunno].run_mode = APP_RUN_MODE_4G_ETH;
+            if(s_ofsm_info[gunno].base.is_offline_billing == APP_THA_ENUM_TRUE){
+                s_thaisen_transaction[gunno].run_mode = APP_RUN_MODE_OFFLINE_BILLING;
+            }
 
 #if (defined (APP_INCLUDE_YKC_PROTOCOL) || defined (APP_INCLUDE_YKC_PROTOCOL_MONITOR) || defined (APP_INCLUDE_YCP_PROTOCOL) || \
             defined (APP_INCLUDE_SGCC_PROTOCOL))
@@ -4537,6 +4557,10 @@ static void ofsm_finishing_fun(uint8_t gunno)
             s_thaisen_transaction[gunno].charge_fee = 0x00;
             s_thaisen_transaction[gunno].service_fee = 0x00;
             s_thaisen_transaction[gunno].total_fee = 0x00;
+            s_thaisen_transaction[gunno].run_mode = APP_RUN_MODE_4G_ETH;
+            if(s_ofsm_info[gunno].base.is_offline_billing == APP_THA_ENUM_TRUE){
+                s_thaisen_transaction[gunno].run_mode = APP_RUN_MODE_OFFLINE_BILLING;
+            }
 
 #if (defined (APP_INCLUDE_YKC_PROTOCOL) || defined (APP_INCLUDE_YKC_PROTOCOL_MONITOR) || defined (APP_INCLUDE_YCP_PROTOCOL) || \
         defined (APP_INCLUDE_SGCC_PROTOCOL))
@@ -5299,6 +5323,10 @@ static void ofsm_faulting_fun(uint8_t gunno)
                     s_thaisen_transaction[gunno].charge_fee = 0x00;
                     s_thaisen_transaction[gunno].service_fee = 0x00;
                     s_thaisen_transaction[gunno].total_fee = 0x00;
+                    s_thaisen_transaction[gunno].run_mode = APP_RUN_MODE_4G_ETH;
+                    if(s_ofsm_info[gunno].base.is_offline_billing == APP_THA_ENUM_TRUE){
+                        s_thaisen_transaction[gunno].run_mode = APP_RUN_MODE_OFFLINE_BILLING;
+                    }
 
 #if (defined (APP_INCLUDE_YKC_PROTOCOL) || defined (APP_INCLUDE_YKC_PROTOCOL_MONITOR) || defined (APP_INCLUDE_YCP_PROTOCOL) || \
         defined (APP_INCLUDE_SGCC_PROTOCOL))
