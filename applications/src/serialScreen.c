@@ -137,7 +137,7 @@ u8 SerialScreenRxbuf[sSCREEN_RX_CMD_MAX_LEN+sSCREEN_RX_CMD_MIN_LEN];
 #define LCD_MODULE_GROUP_MAX 4//模块组数
 #define LCD_GUN_1			0 //Gun_0
 #define LCD_GUN_2			1 //Gun_1
-#define QRCODE_LEN          100  // 二维码显示长度
+#define QRCODE_LEN          150  // 二维码显示长度
 #define VIN_LIST_NUM        6  // VIN 白名单个数
 #define SERIALSCREEN_CONFIG_PAGE_MAX   44  // 屏幕页面总数
 #define SERIALSCREEN_PAGE_ITEM_MAX     53  // 屏幕每页信息项总数

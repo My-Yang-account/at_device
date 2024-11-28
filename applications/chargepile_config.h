@@ -19,6 +19,7 @@
 
 #include "net_sal.h"
 #include "app_billing_rule.h"
+#include "app_ofsm.h"
 
 /******************************************************************************/
 #define FLASH_BASE_ADDRESS                ((uint32_t)(0x00000000))
@@ -118,6 +119,7 @@
 //#define CP_QRCODE_CONFIG_USING_TLD                    /* 二维码配置使用特来电 */
 //#define CP_QRCODE_CONFIG_USING_DUPU                   /* 二维码配置使用度普 */
 //#define CP_QRCODE_CONFIG_USING_NJ                     /* 二维码配置使用能佳 */
+#define CP_QRCODE_CONFIG_USING_SGCC                   /* 二维码配置使用国网 */
 
 /** 域名默认 */
 /**------------------------------------------------------------*/
@@ -127,6 +129,9 @@
 #elif defined(CP_DOMAIN_USING_YCP)
 #define CP_DOMAIN_DEFAULT                         "121.229.203.34"         /* 越城公用IP */
 #define CP_PORT_DEFAULT                           6002                     /* 越城公用端口 */
+#elif defined(CP_QRCODE_CONFIG_USING_SGCC)
+#define CP_DOMAIN_DEFAULT                         "121.43.69.62"           /* 国网IP */
+#define CP_PORT_DEFAULT                           8767                     /* 国网端口 */
 #else
 #define CP_DOMAIN_DEFAULT                         "121.43.69.62"           /* 云快充IP */
 #define CP_PORT_DEFAULT                           8767                     /* 云快充端口 */
@@ -150,6 +155,23 @@
 #define CP_QRCODE_CONFIG_FORMAT_DEFAULT           CP_SET_QRCODE_FORMAT_PREFIX                       /* 二维码配置格式 */
 #define CP_QRCODE_GENERATE_FORMAT_DEFAULT         CP_GENERATE_QRCODE_FORMAT_PREFIX_DEVICE_SN_PORT   /* 二维码生成格式 */
 #define CP_QRCODE_PREFIX_DEFAULT                  "https://wechat.xiangnengnengjia.com?scanid="     /* 能佳二维码前缀 */
+#elif defined(CP_QRCODE_CONFIG_USING_SGCC)
+#define CP_QRCODE_CONFIG_FORMAT_DEFAULT           CP_SET_QRCODE_FORMAT_PREFIX_DEVICE_SN_PORT        /* 二维码配置格式 */
+#define CP_QRCODE_GENERATE_FORMAT_DEFAULT         CP_GENERATE_QRCODE_FORMAT_PREFIX_DEVICE_SN_PORT   /* 二维码生成格式 */
+
+#ifdef APP_USING_DOUBLEGUN
+#define CP_QRCODE_PREFIX_DEFAULT                  "https://cdn-evone-oss.echargenet.com/IntentServe/index.html?M&qrcode="     /* 国网二维码前缀 */
+#else
+#define CP_QRCODE_PREFIX_DEFAULT                  "https://cdn-evone-oss.echargenet.com/IntentServe/index.html?qrcode="     /* 国网二维码前缀 */
+#endif /* APP_USING_DOUBLEGUN */
+
+#define CP_QRCODE_PARA_PRODUCT_IDENTIFICATION     "gwwl//"                                          /* 二维码配置参数：产品标识 */
+#define CP_QRCODE_PARA_VENDOR_CODE                "1001"                                            /* 二维码配置参数：厂商代码 */
+#define CP_QRCODE_PARA_RULE_VERSION               "1.0.1"                                           /* 二维码配置参数：二维码规则版本 */
+#define CP_QRCODE_PARA_STRING_CODE_TYPE           "3"                                               /* 二维码配置参数：字符码类型 */
+
+#define CP_QRCODE_PARA_PRODUCT_IDENTIFI           "FFFFFFFFFFFF"                                    /* 二维码配置参数：蓝牙MAC地址 */
+
 #else
 #define CP_QRCODE_CONFIG_FORMAT_DEFAULT           CP_SET_QRCODE_FORMAT_PREFIX                       /* 二维码配置格式 */
 #define CP_QRCODE_GENERATE_FORMAT_DEFAULT         CP_GENERATE_QRCODE_FORMAT_PREFIX_DEVICE_SN_PORT   /* 二维码生成格式 */

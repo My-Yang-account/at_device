@@ -529,6 +529,7 @@ static void app_card_data_update(void* handle)
     default:
         break;
     }
+
     if((*(sys_read_config_item_content(CONFIG_ITEM_SUPORT_CARD, 0))) != 0x01){
         for(uint8_t gunno = 0x00; gunno < APP_SYSTEM_GUNNO_SIZE; gunno++){
             app_clear_system_fault_enum(APP_SYS_FAULT_CARD_READER, APP_GENERAL_SYSTEM_FAULT_SET_LOW, gunno);
@@ -644,7 +645,7 @@ static int32_t app_card_info_process(void* handle)
                     if(APP_SYSTEM_GUNNO_SIZE >= 0x02){   /** 双枪情况下才进行此判断 */
                         another_port = APP_SYSTEM_GUNNOA;
                         if(port == another_port){
-                            another_port = APP_SYSTEM_GUNNOB;
+                            another_port = APP_SYSTEM_GUNNOA + 0x01;
                         }
                         ofsm = get_ofsm_info(another_port);
                         switch(ofsm->base.state.current){

@@ -126,11 +126,18 @@ struct qrcode_info *thaisen_app_get_gunno_qrcode(uint8_t gunno) // OK
             generate_type = CP_GENERATE_QRCODE_FORMAT_PREFIX_DEVICE_SN_PORT;
         }
 
+#ifdef CP_QRCODE_CONFIG_USING_SGCC
+        set_type = CP_SET_QRCODE_FORMAT_PREFIX_DEVICE_SN_PORT;
+        generate_type = CP_GENERATE_QRCODE_FORMAT_PREFIX_DEVICE_SN_PORT;
+        qrcode_len = 0x00;
+        s_qrcode.qrcode_len = qrcode_len;
+#else
         for (i = 0; i < storage_len; i++) {
             s_qrcode.qrcode[i] = (*(p + 2 + i));
         }
         qrcode_len = i;
         s_qrcode.qrcode_len = qrcode_len;
+#endif /* CP_QRCODE_CONFIG_USING_SGCC */
     }
 
     switch(set_type){
@@ -225,6 +232,65 @@ struct qrcode_info *thaisen_app_get_gunno_qrcode(uint8_t gunno) // OK
                 s_qrcode.qrcode[clen - 0x01] = ('1' + gunno);
             }
         }
+#elif defined(CP_QRCODE_CONFIG_USING_SGCC)
+        qrcode_len = 0x00;
+        s_qrcode.qrcode_len = qrcode_len;
+
+        /** 前缀 */
+        if((qrcode_len + strlen(CP_QRCODE_PREFIX_DEFAULT)) > QRCODE_BUFF_LEN){
+            return &s_qrcode;
+        }
+        sprintf((char*)(s_qrcode.qrcode + qrcode_len), "%s", CP_QRCODE_PREFIX_DEFAULT);
+        qrcode_len += strlen(CP_QRCODE_PREFIX_DEFAULT);
+
+        /** 产品标识 */
+        if((qrcode_len + strlen(CP_QRCODE_PARA_PRODUCT_IDENTIFICATION) + 0x01) > QRCODE_BUFF_LEN){
+            return &s_qrcode;
+        }
+        sprintf((char*)(s_qrcode.qrcode + qrcode_len), "%s:", CP_QRCODE_PARA_PRODUCT_IDENTIFICATION);
+        qrcode_len += (strlen(CP_QRCODE_PARA_PRODUCT_IDENTIFICATION) + 0x01);
+
+        /** 厂商代码 */
+        if((qrcode_len + strlen(CP_QRCODE_PARA_VENDOR_CODE) + 0x01) > QRCODE_BUFF_LEN){
+            return &s_qrcode;
+        }
+        sprintf((char*)(s_qrcode.qrcode + qrcode_len), "%s:", CP_QRCODE_PARA_VENDOR_CODE);
+        qrcode_len += (strlen(CP_QRCODE_PARA_VENDOR_CODE) + 0x01);
+
+        /** 二维码规则版本 */
+        if((qrcode_len + strlen(CP_QRCODE_PARA_RULE_VERSION) + 0x01) > QRCODE_BUFF_LEN){
+            return &s_qrcode;
+        }
+        sprintf((char*)(s_qrcode.qrcode + qrcode_len), "%s:", CP_QRCODE_PARA_RULE_VERSION);
+        qrcode_len += (strlen(CP_QRCODE_PARA_RULE_VERSION) + 0x01);
+
+        /** 字符码类型 */
+        if((qrcode_len + strlen(CP_QRCODE_PARA_STRING_CODE_TYPE) + 0x01) > QRCODE_BUFF_LEN){
+            return &s_qrcode;
+        }
+        sprintf((char*)(s_qrcode.qrcode + qrcode_len), "%s:", CP_QRCODE_PARA_STRING_CODE_TYPE);
+        qrcode_len += (strlen(CP_QRCODE_PARA_STRING_CODE_TYPE) + 0x01);
+
+        /** 字符码(出厂编码) */
+        if((qrcode_len + *(sys_read_config_item_content(CONFIG_ITEM_PILE_NUMBER, 1)) + 0x01) > QRCODE_BUFF_LEN){
+            return &s_qrcode;
+        }
+        sprintf((char*)(s_qrcode.qrcode + qrcode_len), "%s:", sys_read_config_item_content(CONFIG_ITEM_PILE_NUMBER, 0));
+        qrcode_len += (*(sys_read_config_item_content(CONFIG_ITEM_PILE_NUMBER, 1)) + 0x01);
+
+        /** 蓝牙MAC地址 */
+        if((qrcode_len + strlen(CP_QRCODE_PARA_PRODUCT_IDENTIFI) + 0x01) > QRCODE_BUFF_LEN){
+            return &s_qrcode;
+        }
+        sprintf((char*)(s_qrcode.qrcode + qrcode_len), "%s:", CP_QRCODE_PARA_PRODUCT_IDENTIFI);
+        qrcode_len += (strlen(CP_QRCODE_PARA_PRODUCT_IDENTIFI) + 0x01);
+
+        /** 枪号(占3位) */
+        if((qrcode_len + 0x04) > QRCODE_BUFF_LEN){
+            return &s_qrcode;
+        }
+        sprintf((char*)(s_qrcode.qrcode + qrcode_len), "%03d", (gunno + 0x01));
+        qrcode_len += 0x03;
 #else
         /** 二维码下发格式(二维码前缀 + 全部桩号 + 0 + 枪号) */
         if(s_qrcode.qrcode_len > 0x00){
@@ -232,6 +298,67 @@ struct qrcode_info *thaisen_app_get_gunno_qrcode(uint8_t gunno) // OK
         }
 #endif /* CP_QRCODE_CONFIG_USING_TLD */
     }
+#else
+#ifdef CP_QRCODE_CONFIG_USING_SGCC
+    qrcode_len = 0x00;
+    s_qrcode.qrcode_len = qrcode_len;
+
+    /** 前缀 */
+    if((qrcode_len + strlen(CP_QRCODE_PREFIX_DEFAULT)) > QRCODE_BUFF_LEN){
+        return &s_qrcode;
+    }
+    sprintf((char*)(s_qrcode.qrcode + qrcode_len), "%s", CP_QRCODE_PREFIX_DEFAULT);
+    qrcode_len += strlen(CP_QRCODE_PREFIX_DEFAULT);
+
+    /** 产品标识 */
+    if((qrcode_len + strlen(CP_QRCODE_PARA_PRODUCT_IDENTIFICATION) + 0x01) > QRCODE_BUFF_LEN){
+        return &s_qrcode;
+    }
+    sprintf((char*)(s_qrcode.qrcode + qrcode_len), "%s:", CP_QRCODE_PARA_PRODUCT_IDENTIFICATION);
+    qrcode_len += (strlen(CP_QRCODE_PARA_PRODUCT_IDENTIFICATION) + 0x01);
+
+    /** 厂商代码 */
+    if((qrcode_len + strlen(CP_QRCODE_PARA_VENDOR_CODE) + 0x01) > QRCODE_BUFF_LEN){
+        return &s_qrcode;
+    }
+    sprintf((char*)(s_qrcode.qrcode + qrcode_len), "%s:", CP_QRCODE_PARA_VENDOR_CODE);
+    qrcode_len += (strlen(CP_QRCODE_PARA_VENDOR_CODE) + 0x01);
+
+    /** 二维码规则版本 */
+    if((qrcode_len + strlen(CP_QRCODE_PARA_RULE_VERSION) + 0x01) > QRCODE_BUFF_LEN){
+        return &s_qrcode;
+    }
+    sprintf((char*)(s_qrcode.qrcode + qrcode_len), "%s:", CP_QRCODE_PARA_RULE_VERSION);
+    qrcode_len += (strlen(CP_QRCODE_PARA_RULE_VERSION) + 0x01);
+
+    /** 字符码类型 */
+    if((qrcode_len + strlen(CP_QRCODE_PARA_STRING_CODE_TYPE) + 0x01) > QRCODE_BUFF_LEN){
+        return &s_qrcode;
+    }
+    sprintf((char*)(s_qrcode.qrcode + qrcode_len), "%s:", CP_QRCODE_PARA_STRING_CODE_TYPE);
+    qrcode_len += (strlen(CP_QRCODE_PARA_STRING_CODE_TYPE) + 0x01);
+
+    /** 字符码(出厂编码) */
+    if((qrcode_len + *(sys_read_config_item_content(CONFIG_ITEM_PILE_NUMBER, 1)) + 0x01) > QRCODE_BUFF_LEN){
+        return &s_qrcode;
+    }
+    sprintf((char*)(s_qrcode.qrcode + qrcode_len), "%s:", sys_read_config_item_content(CONFIG_ITEM_PILE_NUMBER, 0));
+    qrcode_len += (*(sys_read_config_item_content(CONFIG_ITEM_PILE_NUMBER, 1)) + 0x01);
+
+    /** 蓝牙MAC地址 */
+    if((qrcode_len + strlen(CP_QRCODE_PARA_PRODUCT_IDENTIFI) + 0x01) > QRCODE_BUFF_LEN){
+        return &s_qrcode;
+    }
+    sprintf((char*)(s_qrcode.qrcode + qrcode_len), "%s:", CP_QRCODE_PARA_PRODUCT_IDENTIFI);
+    qrcode_len += (strlen(CP_QRCODE_PARA_PRODUCT_IDENTIFI) + 0x01);
+
+    /** 枪号(占3位) */
+    if((qrcode_len + 0x04) > QRCODE_BUFF_LEN){
+        return &s_qrcode;
+    }
+    sprintf((char*)(s_qrcode.qrcode + qrcode_len), "%03d", (gunno + 0x01));
+    qrcode_len += 0x03;
+#endif /* CP_QRCODE_CONFIG_USING_SGCC */
 #endif /* APP_USING_DOUBLEGUN */
         break;
     default:
