@@ -30,7 +30,7 @@
 #define RFID_THA_BLOCK_SIZE                       0x10    /* 一个块的大小(B) */
 #define RFID_THA_CARD_UUID_LEN                    0x08    /* 卡的UUID长度(B) */
 #define RFID_THA_WAIT_LOCK_TIME_MAX               10000   /* 等待操作锁最大时长 */
-#define RFID_THA_WAIT_SEM_TIME_MAX                20      /* 等待数据信号量最大时长 */
+#define RFID_THA_WAIT_SEM_TIME_MAX                80      /* 等待数据信号量最大时长(从发送寻卡指令到接收到回复大概40-60ms) */
 #define RFID_THA_WAIT_LOCK_TIME_MAX               10000   /* 等大操作锁最大时长(ms) */
 #define RFID_THA_REQUEST_BUFF_SIZE                0x20    /* 数据请求缓存大小(B) */
 #define RFID_THA_RESPONSE_BUFF_SIZE               0x40    /* 数据响应缓存大小(B) */

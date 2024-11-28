@@ -19,9 +19,9 @@
 #define RFIDR_CARD_KEY_NUM                            0x02                  /** 卡密钥个数 */
 
 #define RFIDR_THREAD_PERIOD                           10                    /** 线程运行周期 */
-#define RFIDR_DETECT_LEAVE_MAX                        50                    /** 检测卡离场次数(时基按10ms算) */
-#define RFIDR_DETECT_EXIT_MAX                         50                    /** 检测卡存在次数(时基按10ms算) */
-#define RFIDR_DETECT_OFFLINE_MAX                      (10000 /RFIDR_THREAD_PERIOD)  /** 检测读卡器离线次数 */
+#define RFIDR_DETECT_LEAVE_MAX                        20                    /** 检测卡离场次数(时基按10ms算) */
+#define RFIDR_DETECT_EXIT_MAX                         10                    /** 检测卡存在次数(时基按10ms算) */
+#define RFIDR_DETECT_OFFLINE_MAX                      10                    /** 检测读卡器离线次数 */
 
 /** rfidr:rfid reader */
 static rfid_reader s_rfidr_handle = {
@@ -116,6 +116,8 @@ static void rfidr_thread_entry(void *parameter)
                 }
                 rt_kprintf("\n");
 #endif /*APP_RFIDR_DEBUG */
+            }else{
+                offline_count = 0x00;
             }
             break;
         case APP_RFIDR_STATE_IDLE:
