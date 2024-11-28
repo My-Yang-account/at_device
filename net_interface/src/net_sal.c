@@ -57,7 +57,7 @@ void app_nsal_realtime_process(uint8_t gunno)
  * 函数名    app_nsal_realtime_process
  * 功能        实时处理数据
  *****************************************/
-void app_nsal_system_fault_report(uint8_t gunno, uint8_t code, uint32_t timestamp, uint8_t is_resume)
+void app_nsal_system_fault_report(uint8_t gunno, uint32_t code, uint32_t timestamp, uint8_t is_resume)
 {
 #ifdef NET_PACK_USING_THA
     tha_fault_event_detect_callback(gunno, code, timestamp, is_resume);

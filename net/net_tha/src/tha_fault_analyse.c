@@ -24,7 +24,7 @@ struct tha_fault_body{
         uint8_t is_resume : 4;
         uint8_t onging : 4;
     }flag;
-    uint8_t code;
+    uint32_t code;
     uint32_t timestamp;
 };
 
@@ -41,7 +41,7 @@ static struct tha_fault_info s_tha_fault_info[NET_SYSTEM_GUN_NUMBER];
  * 函数名      tha_fault_event_detect_callback
  * 功能          故障发生变化时调用，用于记录变化的故障
  * **********************************************/
-void tha_fault_event_detect_callback(uint8_t gunno, uint8_t code, uint32_t timestamp, uint8_t is_resume)
+void tha_fault_event_detect_callback(uint8_t gunno, uint32_t code, uint32_t timestamp, uint8_t is_resume)
 {
     if(gunno >= NET_SYSTEM_GUN_NUMBER){
         return;

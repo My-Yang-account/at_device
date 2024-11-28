@@ -14,8 +14,7 @@
 
 #ifdef NET_PACK_USING_SGCC
 
-void sgcc_fault_event_detect_callback(uint8_t gunno, uint8_t code, uint8_t is_resume);
-uint32_t sgcc_get_current_fault_set(uint8_t gunno);
+void sgcc_fault_event_detect_callback(uint8_t gunno, uint32_t code, uint8_t is_resume);
 void sgcc_fault_detect_report(uint8_t gunno);
 
 #endif /* NET_PACK_USING_SGCC */

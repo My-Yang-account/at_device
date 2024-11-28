@@ -26,7 +26,7 @@ struct sgcc_fault_body{
         uint8_t is_resume : 4;
         uint8_t onging : 4;
     }flag;
-    uint8_t code;
+    uint32_t code;
 };
 
 struct sgcc_fault_info{
@@ -35,7 +35,6 @@ struct sgcc_fault_info{
 };
 #pragma pack()
 
-static uint32_t s_sgcc_current_fault_set[NET_SYSTEM_GUN_NUMBER];
 static uint16_t s_sgcc_realtime_fault[NET_SYSTEM_GUN_NUMBER];
 static struct sgcc_fault_info s_sgcc_fault_info[NET_SYSTEM_GUN_NUMBER];
 
@@ -43,7 +42,7 @@ static struct sgcc_fault_info s_sgcc_fault_info[NET_SYSTEM_GUN_NUMBER];
  * 函数名      sgcc_fault_event_detect_callback
  * 功能          故障发生变化时调用，用于记录变化的故障
  * **********************************************/
-void sgcc_fault_event_detect_callback(uint8_t gunno, uint8_t code, uint8_t is_resume)
+void sgcc_fault_event_detect_callback(uint8_t gunno, uint32_t code, uint8_t is_resume)
 {
     if(gunno >= NET_SYSTEM_GUN_NUMBER){
         return;
@@ -59,10 +58,8 @@ void sgcc_fault_event_detect_callback(uint8_t gunno, uint8_t code, uint8_t is_re
     index = (SGCC_FAULT_MSG_NUM_MAX - 0x01 - s_sgcc_fault_info[gunno].head.count);
 
     if(is_resume){
-        s_sgcc_current_fault_set[gunno] &= (~(0x01 <<code));
         s_sgcc_fault_info[gunno].body[index].flag.is_resume = 0x01;
     }else{
-        s_sgcc_current_fault_set[gunno] |= (0x01 <<code);
         s_sgcc_fault_info[gunno].body[index].flag.is_resume = 0x00;
     }
     s_sgcc_fault_info[gunno].body[index].flag.onging = 0x01;
@@ -72,28 +69,8 @@ void sgcc_fault_event_detect_callback(uint8_t gunno, uint8_t code, uint8_t is_re
     rt_exit_critical();
 }
 
-/*************************************************
- * 函数名      sgcc_get_current_fault_set
- * 功能          获取当前故障集
- * **********************************************/
-uint32_t sgcc_get_current_fault_set(uint8_t gunno)
-{
-    if(gunno >= NET_SYSTEM_GUN_NUMBER){
-        return 0x00;
-    }
-    return s_sgcc_current_fault_set[gunno];
-}
-
-static void sgcc_clear_fault_event(uint8_t gunno, uint8_t code)
-{
-    if(gunno >= NET_SYSTEM_GUN_NUMBER){
-        return;
-    }
-    s_sgcc_current_fault_set[gunno] &= (~(0x01 <<code));
-}
-
 #ifdef NET_SGCC_PRO_USING_DC
-static int32_t sgcc_get_fault_code(uint8_t bit, uint8_t gunno, uint8_t *rank)
+static int32_t sgcc_get_fault_code(uint32_t bit, uint8_t gunno, uint8_t *rank)
 {
     if(gunno >= NET_SYSTEM_GUN_NUMBER){
         return -0x01;
@@ -110,7 +87,7 @@ static int32_t sgcc_get_fault_code(uint8_t bit, uint8_t gunno, uint8_t *rank)
     return 0x00;
 }
 #else
-static int32_t sgcc_get_fault_code(uint8_t bit, uint8_t gunno, uint8_t *rank)
+static int32_t sgcc_get_fault_code(uint32_t bit, uint8_t gunno, uint8_t *rank)
 {
     if(gunno >= NET_SYSTEM_GUN_NUMBER){
         return -0x01;
@@ -155,9 +132,6 @@ void sgcc_fault_detect_report(uint8_t gunno)
         if(result > 0x00){
             extern int8_t  sgcc_chargepile_fault_report(uint8_t gunno, uint16_t code, uint8_t is_resume, uint8_t rank);
             if(sgcc_chargepile_fault_report(gunno, s_sgcc_realtime_fault[gunno], s_sgcc_fault_info[gunno].body[index].flag.is_resume, rank) >= 0x00){
-                if(s_sgcc_fault_info[gunno].body[index].flag.is_resume){
-                    sgcc_clear_fault_event(gunno, s_sgcc_fault_info[gunno].body[index].code);
-                }
 
                 s_sgcc_fault_info[gunno].body[index].flag.onging = 0x00;
                 for(int8_t count = (SGCC_FAULT_MSG_NUM_MAX - 0x01); count > 0x00; count--){

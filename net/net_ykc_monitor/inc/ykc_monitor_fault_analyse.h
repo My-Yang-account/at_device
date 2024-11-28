@@ -14,8 +14,7 @@
 
 #ifdef NET_PACK_USING_YKC_MONITOR
 
-void ykc_monitor_fault_event_detect_callback(uint8_t gunno, uint8_t code, uint8_t is_resume);
-uint32_t ykc_monitor_get_current_fault_set(uint8_t gunno);
+void ykc_monitor_fault_event_detect_callback(uint8_t gunno, uint32_t code, uint8_t is_resume);
 void ykc_monitor_fault_detect_report(uint8_t gunno);
 
 #endif /* NET_PACK_USING_YKC_MONITOR */
