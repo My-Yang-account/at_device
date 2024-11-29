@@ -286,6 +286,9 @@ static int _fetch_dynreg_http_resp(char *request_payload, char *response_payload
     return STATE_SUCCESS;
 }
 
+//#define DEBUG_ENV  0//测试环境
+#define DEBUG_ENV  1//接入调试环境
+
 static int _fetch_custom_reg_http_resp(char *request_payload, char *response_payload,
                                        iotx_http_region_types_t region, char product_key[IOTX_PRODUCT_KEY_LEN], char device_name[IOTX_DEVICE_NAME_LEN], char device_secret[IOTX_DEVICE_SECRET_LEN])
 {
@@ -293,19 +296,24 @@ static int _fetch_custom_reg_http_resp(char *request_payload, char *response_pay
     const char *domain = NULL;
 
 #if defined(PLATFORM_IS_DEBUG)
+
+#if(DEBUG_ENV == 1)
+    const char *url_format = "http://%s/api/access/pile/getCertificateInfo";
+    int port = 8081;
+#else
     const char *url_format = "http://%s/asset-web-serv-v5.3.0/registerService/getCertificateInfo";
+    int port = 19849;
+#endif
+
 #else
     const char *url_format = "http://%s/asset-web-api/registerService/getCertificateInfo";
+    int port = 11901;
 #endif
     char *url = NULL;
     int url_len = 0;
     const char *pub_key = NULL;
     void *http_handle = NULL;
-#if defined(PLATFORM_IS_DEBUG)
-    int port = 19849;
-#else
-    int port = 11901;
-#endif
+
     iotx_http_method_t method = IOTX_HTTP_POST;
     int timeout_ms = 10000;
     char *header = "Accept: text/xml,text/javascript,text/html,application/json\r\n"
@@ -314,7 +322,12 @@ static int _fetch_custom_reg_http_resp(char *request_payload, char *response_pay
     dynreg_http_response_t response;
     int start = 0, end = 0, data_start = 0, data_end = 0;
 
+#if defined(PLATFORM_IS_DEBUG)&&(DEBUG_ENV == 1)
+    domain = "121.196.185.161";
+#else
     domain = g_infra_http_domain[region];
+#endif
+
     if (NULL == domain)
     {
         return STATE_USER_INPUT_HTTP_DOMAIN;
@@ -404,20 +417,25 @@ static int _fetch_get_reg_code_http_resp(char *request_payload, char *response_p
     int res = 0;
     const char *domain = NULL;
 #if defined(PLATFORM_IS_DEBUG)
+
+#if(DEBUG_ENV == 1)
+    const char *url_format = "http://%s/api/access/pile/getRegisterCode";
+    int port = 8081;
+#else
     const char *url_format = "http://%s/asset-web-serv-v5.3.0/registerService/getRegisterCode";
+    int port = 19849;
+#endif
+
 #else
     const char *url_format = "http://%s/asset-web-api/registerService/getRegisterCode";
+    int port = 11901;
 #endif
 
     char *url = NULL;
     int url_len = 0;
     const char *pub_key = NULL;
     void *http_handle = NULL;
-#if defined(PLATFORM_IS_DEBUG)
-    int port = 19849;
-#else
-    int port = 11901;
-#endif
+
     iotx_http_method_t method = IOTX_HTTP_POST;
     int timeout_ms = 10000;
     char *header = "Accept: text/xml,text/javascript,text/html,application/json\r\n"
@@ -426,7 +444,12 @@ static int _fetch_get_reg_code_http_resp(char *request_payload, char *response_p
     dynreg_http_response_t response;
     int start = 0, end = 0, data_start = 0, data_end = 0;
 
+#if defined(PLATFORM_IS_DEBUG)&&(DEBUG_ENV == 1)
+    domain = "121.196.185.161";
+#else
     domain = g_infra_http_domain[region];
+#endif
+
     if (NULL == domain)
     {
         return STATE_USER_INPUT_HTTP_DOMAIN;

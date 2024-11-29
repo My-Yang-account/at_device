@@ -235,18 +235,6 @@ static void sgcc_storage_data_check(void)
     uint8_t verify_success = 0x01;
     sgcc_storage_struct *config = (sgcc_storage_struct*)(s_sgcc_handle->get_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, 0x00, NET_SYSTEM_DATA_OPTION_TARGET_PLAT));
 
-    memset(config->product_key, 0x00, sizeof(config->product_key));
-//    memcpy(config->product_key, "a1q5OZTEiYV", strlen("a1q5OZTEiYV"));
-    memcpy(config->product_key, "a1q5OZTEiYV", strlen("a1q5OZTEiYV"));
-
-    memset(config->device_name, 0x00, sizeof(config->device_name));
-//    memcpy(config->device_name, "tha202408272020", strlen("tha202408272020"));
-//    memcpy(config->device_name, "961720420097522411938385", strlen("961720420097522411938385"));
-    memcpy(config->device_name, "961732505008037499799875", strlen("961732505008037499799875"));
-
-    memset(config->device_secret, 0x00, sizeof(config->device_secret));
-//    memcpy(config->device_secret, "7d42a44b1cda88a96db18cb981021c55", strlen("7d42a44b1cda88a96db18cb981021c55"));
-    memcpy(config->device_secret, "ac979b2a547680c6f689d79e6356fea2", strlen("ac979b2a547680c6f689d79e6356fea2"));
     if(config == NULL){
         verify_success = 0x00;
     }else if((config->verify_result == 0x00) || (config->storage_init_flag != NET_SGCC_STORAGE_INIT_FLAG)){
@@ -1525,10 +1513,16 @@ int8_t sgcc_message_pro_dev_maintain_request(void *data, uint8_t len)
             config->storage_init_flag = NET_SGCC_STORAGE_INIT_FLAG;
             config->dev_state = SGCC_DEV_STATE_RESTORE_SRTTING;
 
+            memset(config->device_secret, 0x0, sizeof(config->device_secret));
+            memset(config->device_name, 0x0, sizeof(config->device_name));
+            memset(config->product_key, 0x0, sizeof(config->product_key));
+
             if(s_sgcc_handle->set_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, 0x00, NET_SYSTEM_DATA_OPTION_TARGET_PLAT) < 0x00){
                 config->storage_init_flag = NET_SGCC_STORAGE_INIT_FLAG - 0x01;
                 return 12;
             }
+
+            net_operation_set_event(0x00, NET_OPERATION_EVENT_REBOOT);
             return 10;
         }
     }

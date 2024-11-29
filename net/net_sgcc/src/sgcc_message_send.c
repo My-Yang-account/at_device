@@ -528,7 +528,7 @@ static void sgcc_connect_thread_entry(void *parameter)
         }
         if(link_open_step == 0x01){
             LOG_D("sgcc linkit new");
-            if((result = evs_linkkit_new(0x01, 0x00)) < 0x00){
+            if((result = evs_linkkit_new(0x01, 0x01)) < 0x00){
                 LOG_D("linkkit new failed, res code: %d \n", result);
                 return RT_ERROR;  /** 是否需要 return,有待考虑*/
             }else{
