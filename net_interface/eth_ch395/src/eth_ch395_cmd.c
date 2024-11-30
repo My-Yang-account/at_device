@@ -86,6 +86,16 @@ static struct ethch395_info s_ethch395_info = {
     .socket[0x07].sour_port = 30200,
 };
 
+static void ethch395_enter_critical(void)
+{
+    rt_enter_critical();
+}
+
+static void ethch395_exit_critical(void)
+{
+    rt_exit_critical();
+}
+
 /**************************************************
  *  函数名   ethch395_send_cmd
  *  参数       cmd       指令
@@ -131,7 +141,12 @@ int32_t ethch395_cmd_query_ic_version(uint8_t *buf, uint8_t len)
 {
     int32_t res = 0x00;
 
+    ethch395_enter_critical();
+
     ethch395_send_cmd(ETHCH395_CMD_GET_IC_VER);
+
+    ethch395_exit_critical();
+
     res = ethch395_cmd_data_recv(buf, len);
 
     return res;
@@ -215,11 +230,15 @@ int32_t ethch395_cmd_set_baudrate(uint32_t baudrate)
         break;
     }
 
+    ethch395_enter_critical();
+
     ethch395_send_cmd(ETHCH395_CMD_SET_BAUDRATE);
 
     ethch395_send_cmd_data(para0);
     ethch395_send_cmd_data(para1);
     ethch395_send_cmd_data(para2);
+
+    ethch395_exit_critical();
 
     rt_thread_mdelay(100);
 
@@ -234,7 +253,11 @@ int32_t ethch395_cmd_set_baudrate(uint32_t baudrate)
  *************************************************/
 int32_t ethch395_cmd_hard_reset(void)
 {
+    ethch395_enter_critical();
+
     ethch395_send_cmd(ETHCH395_CMD_RESET_ALL);
+
+    ethch395_exit_critical();
 
     rt_thread_mdelay(100);
 
@@ -253,7 +276,12 @@ int32_t ethch395_cmd_query_globe_int_status(void)
 {
     uint16_t status = 0x00;
 
+    ethch395_enter_critical();
+
     ethch395_send_cmd(ETHCH395_CMD_GET_GLOB_INT_STATUS_ALL);
+
+    ethch395_exit_critical();
+
     if(ethch395_cmd_data_recv((uint8_t*)(&status), sizeof(status)) < 0x00){
         return -0x01;
     }
@@ -274,7 +302,12 @@ int32_t ethch395_cmd_query_globe_int_status(void)
 {
     uint8_t status = 0x00;
 
+    ethch395_enter_critical();
+
     ethch395_send_cmd(ETHCH395_CMD_GET_GLOB_INT_STATUS);
+
+    ethch395_exit_critical();
+
     if(ethch395_cmd_data_recv(&status, sizeof(status)) < 0x00){
         return -0x01;
     }
@@ -296,14 +329,19 @@ int32_t ethch395_cmd_query_socket_int(uint8_t fd)
     if(fd >= ETHCH395_SOCKET_NUM_MAX){
         return -0x01;
     }
-    if(s_ethch395_info.socket[fd].flag.used != ETHCH395_ENUM_TRUE){
-        return -0x03;
-    }
+//    if(s_ethch395_info.socket[fd].flag.used != ETHCH395_ENUM_TRUE){
+//        return -0x03;
+//    }
 
     uint8_t status = 0x00;
 
+    ethch395_enter_critical();
+
     ethch395_send_cmd(ETHCH395_CMD_GET_INT_STATUS_SN);
     ethch395_send_cmd_data(fd);
+
+    ethch395_exit_critical();
+
     if(ethch395_cmd_data_recv((uint8_t*)(&status), sizeof(status)) < 0x00){
         return -0x01;
     }
@@ -324,13 +362,19 @@ int32_t ethch395_cmd_query_socket_status(uint8_t fd)
     if(fd >= ETHCH395_SOCKET_NUM_MAX){
         return -0x01;
     }
-    if(s_ethch395_info.socket[fd].flag.used != ETHCH395_ENUM_TRUE){
-        return -0x03;
-    }
+//    if(s_ethch395_info.socket[fd].flag.used != ETHCH395_ENUM_TRUE){
+//        return -0x03;
+//    }
 
     uint16_t status = 0x00;
 
+    ethch395_enter_critical();
+
     ethch395_send_cmd(ETHCH395_CMD_GET_SOCKET_STATUS_SN);
+    ethch395_send_cmd_data(fd);
+
+    ethch395_exit_critical();
+
     if(ethch395_cmd_data_recv((uint8_t*)(&status), sizeof(status)) < 0x00){
         return -0x01;
     }
@@ -351,8 +395,12 @@ int32_t ethch395_cmd_test_communication_status(void)
 {
     uint8_t sbyte = 0x57, rbyte = 0x00;
 
+    ethch395_enter_critical();
+
     ethch395_send_cmd(ETHCH395_CMD_CHECK_EXIST);
     ethch395_send_cmd_data(sbyte);
+
+    ethch395_exit_critical();
 
     if(ethch395_cmd_data_recv(&rbyte, sizeof(rbyte)) < 0x00){
         return -0x01;
@@ -379,8 +427,12 @@ int32_t ethch395_cmd_set_phy(uint8_t mode)
         return -0x01;
     }
 
+    ethch395_enter_critical();
+
     ethch395_send_cmd(ETHCH395_CMD_SET_PHY);
     ethch395_send_cmd_data(mode);
+
+    ethch395_exit_critical();
 
     return 0x00;
 }
@@ -396,7 +448,12 @@ int32_t ethch395_cmd_query_cmd_status(void)
     uint8_t rbyte = 0x00;
     int32_t res = 0x00;
 
+    ethch395_enter_critical();
+
     ethch395_send_cmd(ETHCH395_CMD_GET_CMD_STATUS);
+
+    ethch395_exit_critical();
+
     res = ethch395_cmd_data_recv(&rbyte, sizeof(rbyte));
 
     return res;
@@ -414,12 +471,16 @@ int32_t ethch395_cmd_set_func_para(uint8_t para)
 #if 0
     uint8_t rbyte = 0x04;
 
+    ethch395_enter_critical();
+
     ethch395_send_cmd(ETHCH395_CMD_SET_FUN_PARA);
     ethch395_send_cmd_data(rbyte);
     rbyte = 0;
     ethch395_send_cmd_data(rbyte);
     ethch395_send_cmd_data(rbyte);
     ethch395_send_cmd_data(rbyte);
+
+    ethch395_exit_critical();
 
     rt_thread_mdelay(100);
 #endif
@@ -437,7 +498,11 @@ int32_t ethch395_cmd_init(void)
     int32_t res = 0x00;
     uint32_t stime = rt_tick_get();
 
+    ethch395_enter_critical();
+
     ethch395_send_cmd(ETHCH395_CMD_INIT_CH395);
+
+    ethch395_exit_critical();
 
     while(1){
         if(stime > rt_tick_get()){
@@ -474,12 +539,16 @@ int32_t ethch395_cmd_set_dhcp_status(uint8_t status)
     int32_t res = 0x00;
     uint32_t stime = rt_tick_get();
 
+    ethch395_enter_critical();
+
     ethch395_send_cmd(ETHCH395_CMD_DHCP_ENABLE);
     if(status){
         ethch395_send_cmd_data(ETHCH395_ENUM_TRUE);
     }else{
         ethch395_send_cmd_data(ETHCH395_ENUM_FALSE);
     }
+
+    ethch395_exit_critical();
 
     while(1){
         if(stime > rt_tick_get()){
@@ -515,7 +584,12 @@ int32_t ethch395_cmd_query_dhcp_status(void)
 {
     uint32_t byte = 0x02;
 
+    ethch395_enter_critical();
+
     ethch395_send_cmd(ETHCH395_CMD_GET_DHCP_STATUS);
+
+    ethch395_exit_critical();
+
     if(ethch395_cmd_data_recv((uint8_t*)&byte, sizeof(byte)) < 0x00){
         return -0x01;
     }
@@ -539,7 +613,12 @@ int32_t ethch395_cmd_query_ip_info(uint8_t *buf, uint8_t len)
     uint8_t base = 0x00;
     int32_t res = 0x00;
 
+    ethch395_enter_critical();
+
     ethch395_send_cmd(ETHCH395_CMD_GET_IP_INF);
+
+    ethch395_exit_critical();
+
     res = ethch395_cmd_data_recv(buf, len);
 
     for(uint8_t count = 0x00; count < 0x04; count++){
@@ -585,7 +664,13 @@ int32_t ethch395_cmd_query_dev_mac(uint8_t *buf, uint8_t len)
     int32_t res = 0x00;
 
     memset(buf, 0x00, len);
+
+    ethch395_enter_critical();
+
     ethch395_send_cmd(ETHCH395_CMD_GET_MAC_ADDR);
+
+    ethch395_exit_critical();
+
     res = ethch395_cmd_data_recv(buf, len);
 
     memcpy(s_ethch395_info.dev_mac, buf, ETHCH395_DEVICE_MAC_LEN);
@@ -613,9 +698,13 @@ int32_t ethch395_cmd_set_socket_protocol(uint8_t fd, uint8_t is_mode)
         mode = s_ethch395_info.socket[fd].work_mode;
     }
 
+    ethch395_enter_critical();
+
     ethch395_send_cmd(ETHCH395_CMD_SET_PROTO_TYPE_SN);
     ethch395_send_cmd_data(fd);
     ethch395_send_cmd_data(mode);
+
+    ethch395_exit_critical();
 
     rt_thread_mdelay(50);
 
@@ -630,10 +719,14 @@ int32_t ethch395_cmd_set_socket_protocol(uint8_t fd, uint8_t is_mode)
  *************************************************/
 int32_t ethch395_cmd_set_dev_ip(void)
 {
+    ethch395_enter_critical();
+
     ethch395_send_cmd(ETHCH395_CMD_SET_IP_ADDR);
     for(uint8_t count = 0x00; count < ETHCH395_DEVICE_IP_LEN; count++){
         ethch395_send_cmd_data(s_ethch395_info.dev_ip[count]);
     }
+
+    ethch395_exit_critical();
 
     rt_thread_mdelay(50);
 
@@ -648,10 +741,14 @@ int32_t ethch395_cmd_set_dev_ip(void)
  *************************************************/
 int32_t ethch395_cmd_set_dev_gateway_ip(void)
 {
+    ethch395_enter_critical();
+
     ethch395_send_cmd(ETHCH395_CMD_SET_GWIP_ADDR);
     for(uint8_t count = 0x00; count < ETHCH395_DEVICE_GATEWAYIP_LEN; count++){
         ethch395_send_cmd_data(s_ethch395_info.dev_gatewayip[count]);
     }
+
+    ethch395_exit_critical();
 
     rt_thread_mdelay(50);
 
@@ -666,10 +763,14 @@ int32_t ethch395_cmd_set_dev_gateway_ip(void)
  *************************************************/
 int32_t ethch395_cmd_set_dev_subnet_mask(void)
 {
+    ethch395_enter_critical();
+
     ethch395_send_cmd(ETHCH395_CMD_SET_MASK_ADDR);
     for(uint8_t count = 0x00; count < ETHCH395_DEVICE_SUBNET_MASK_LEN; count++){
         ethch395_send_cmd_data(s_ethch395_info.dev_subnet_mask[count]);
     }
+
+    ethch395_exit_critical();
 
     rt_thread_mdelay(50);
 
@@ -691,11 +792,15 @@ int32_t ethch395_cmd_set_remote_ip(uint8_t fd)
         return -0x03;
     }
 
+    ethch395_enter_critical();
+
     ethch395_send_cmd(ETHCH395_CMD_SET_IP_ADDR_SN);
     ethch395_send_cmd_data(fd);
     for(uint8_t count = 0x00; count < ETHCH395_SOCKET_DEST_IP_LEN; count++){
         ethch395_send_cmd_data(s_ethch395_info.socket[fd].dest_ip[count]);
     }
+
+    ethch395_exit_critical();
 
     rt_thread_mdelay(50);
 
@@ -719,12 +824,16 @@ int32_t ethch395_cmd_set_remote_port(uint8_t fd)
 
     uint8_t byte = (uint8_t)(s_ethch395_info.socket[fd].dest_port);
 
+    ethch395_enter_critical();
+
     ethch395_send_cmd(ETHCH395_CMD_SET_DES_PORT_SN);
     ethch395_send_cmd_data(fd);
     ethch395_send_cmd_data(byte);
 
     byte = (uint8_t)(s_ethch395_info.socket[fd].dest_port >>0x08);
     ethch395_send_cmd_data(byte);
+
+    ethch395_exit_critical();
 
     rt_thread_mdelay(50);
 
@@ -749,12 +858,16 @@ int32_t ethch395_cmd_set_source_port(uint8_t fd)
     uint16_t port = s_ethch395_info.socket[fd].sour_port;
     uint8_t byte = (uint8_t)(port);
 
+    ethch395_enter_critical();
+
     ethch395_send_cmd(ETHCH395_CMD_SET_SOUR_PORT_SN);
     ethch395_send_cmd_data(fd);
     ethch395_send_cmd_data(byte);
 
     byte = (uint8_t)(port >>0x08);
     ethch395_send_cmd_data(byte);
+
+    ethch395_exit_critical();
 
     rt_thread_mdelay(50);
 
@@ -779,8 +892,12 @@ int32_t ethch395_cmd_open_socket(uint8_t fd)
     int32_t res = 0x00;
     uint32_t stime = rt_tick_get();
 
+    ethch395_enter_critical();
+
     ethch395_send_cmd(ETHCH395_CMD_OPEN_SOCKET_SN);
     ethch395_send_cmd_data(fd);
+
+    ethch395_exit_critical();
 
     while(1){
         if(stime > rt_tick_get()){
@@ -824,8 +941,12 @@ int32_t ethch395_cmd_connect_socket(uint8_t fd)
     int32_t res = 0x00;
     uint32_t stime = rt_tick_get();
 
+    ethch395_enter_critical();
+
     ethch395_send_cmd(ETHCH395_CMD_TCP_CONNECT_SN);
     ethch395_send_cmd_data(fd);
+
+    ethch395_exit_critical();
 
     while(1){
         if(stime > rt_tick_get()){
@@ -871,6 +992,8 @@ int32_t ethch395_cmd_padding_data_sbuf(uint8_t fd, void *data, uint16_t dlen)
         return -0x01;
     }
 
+    ethch395_enter_critical();
+
     ethch395_send_cmd(ETHCH395_CMD_WRITE_SEND_BUF_SN);
     ethch395_send_cmd_data(fd);
     ethch395_send_cmd_data(dlen);
@@ -879,6 +1002,8 @@ int32_t ethch395_cmd_padding_data_sbuf(uint8_t fd, void *data, uint16_t dlen)
     for(uint16_t len = 0x00; len < dlen; len++){
         ethch395_netdev_send((data + len), 0x01);   /** 看需要是否要一个字节一个字节地发送 */
     }
+
+    ethch395_exit_critical();
 
     return 0x00;
 }
@@ -905,8 +1030,13 @@ int32_t ethch395_cmd_query_rbuf_data_len(uint8_t fd, uint8_t *buf, uint8_t len)
 
     int32_t res = 0x00;
 
+    ethch395_enter_critical();
+
     ethch395_send_cmd(ETHCH395_CMD_GET_RECV_LEN_SN);
     ethch395_send_cmd_data(fd);
+
+    ethch395_exit_critical();
+
     res = ethch395_cmd_data_recv(buf, len);
 
     return res;
@@ -933,10 +1063,14 @@ int32_t ethch395_cmd_read_rbuf_data(uint8_t fd, uint32_t len)
     }
 #endif
 
+    ethch395_enter_critical();
+
     ethch395_send_cmd(ETHCH395_CMD_READ_RECV_BUF_SN);
     ethch395_send_cmd_data(fd);
     ethch395_send_cmd_data(len);
     ethch395_send_cmd_data((uint8_t)(len >>0x08));
+
+    ethch395_exit_critical();
 
     return 0x00;
 }
@@ -959,8 +1093,12 @@ int32_t ethch395_cmd_close_socket(uint8_t fd)
     int32_t res = 0x00;
     uint32_t stime = rt_tick_get();
 
+    ethch395_enter_critical();
+
     ethch395_send_cmd(ETHCH395_CMD_CLOSE_SOCKET_SN);
     ethch395_send_cmd_data(fd);
+
+    ethch395_exit_critical();
 
     while(1){
         if(stime > rt_tick_get()){
@@ -997,15 +1135,19 @@ int32_t ethch395_cmd_disconnect_tcp(uint8_t fd)
     if(fd >= ETHCH395_SOCKET_NUM_MAX){
         return -0x01;
     }
-    if(s_ethch395_info.socket[fd].flag.used != ETHCH395_ENUM_TRUE){
-        return -0x03;
-    }
+//    if(s_ethch395_info.socket[fd].flag.used != ETHCH395_ENUM_TRUE){
+//        return -0x03;
+//    }
 
     int32_t res = 0x00;
     uint32_t stime = rt_tick_get();
 
+    ethch395_enter_critical();
+
     ethch395_send_cmd(ETHCH395_CMD_TCP_DISNCONNECT_SN);
     ethch395_send_cmd_data(fd);
+
+    ethch395_exit_critical();
 
     while(1){
         if(stime > rt_tick_get()){
@@ -1045,9 +1187,13 @@ int32_t ethch395_cmd_set_tcp_mss(uint16_t mss)
         mss = ETHCH395_TCP_MSS_DEF;
     }
 
+    ethch395_enter_critical();
+
     ethch395_send_cmd(ETHCH395_CMD_SET_TCP_MSS);
     ethch395_send_cmd_data((uint8_t)mss);
     ethch395_send_cmd_data((uint8_t)(mss >>0x08));
+
+    ethch395_exit_critical();
 
     rt_thread_mdelay(50);
 
@@ -1076,10 +1222,14 @@ int32_t ethch395_cmd_set_send_buf(uint8_t fd)
     sblock += s_ethch395_info.socket[fd].rbuf_block_num;
     block_num = s_ethch395_info.socket[fd].sbuf_block_num;
 
+    ethch395_enter_critical();
+
     ethch395_send_cmd(ETHCH395_CMD_SET_SEND_BUF);
     ethch395_send_cmd_data(fd);
     ethch395_send_cmd_data(sblock);
     ethch395_send_cmd_data(block_num);
+
+    ethch395_exit_critical();
 
     rt_thread_mdelay(50);
 
@@ -1107,10 +1257,14 @@ int32_t ethch395_cmd_set_recv_buf(uint8_t fd)
     }
     block_num = s_ethch395_info.socket[fd].rbuf_block_num;
 
+    ethch395_enter_critical();
+
     ethch395_send_cmd(ETHCH395_CMD_SET_RECV_BUF);
     ethch395_send_cmd_data(fd);
     ethch395_send_cmd_data(sblock);
     ethch395_send_cmd_data(block_num);
+
+    ethch395_exit_critical();
 
     rt_thread_mdelay(50);
 
@@ -1133,6 +1287,8 @@ int32_t ethch395_cmd_set_socket_keeplive(uint8_t fd, uint8_t state)
         return -0x03;
     }
 
+    ethch395_enter_critical();
+
     ethch395_send_cmd(ETHCH395_CMD_SET_KEEP_LIVE_SN);
     ethch395_send_cmd_data(fd);
     if(state){
@@ -1140,6 +1296,8 @@ int32_t ethch395_cmd_set_socket_keeplive(uint8_t fd, uint8_t state)
     }else{
         ethch395_send_cmd_data(0x00);
     }
+
+    ethch395_exit_critical();
 
     rt_thread_mdelay(50);
 

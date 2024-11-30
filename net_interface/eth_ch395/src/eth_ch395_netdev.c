@@ -106,9 +106,19 @@ int32_t ethch395_netdev_ctrl(uint8_t cmd, void *para, uint8_t plen)
         struct serial_configure serial_para = NET_ETHERNET_SERIAL_CONFIG_DEFAULT;
 
         serial_para.baud_rate = baudrate;
+        if(rt_device_close(s_ethch395_netdev) != RT_EOK){
+            LOG_E("ethch395 net device close, please check!");
+            return -0x01;
+        }
+
+        if(rt_device_open(s_ethch395_netdev, RT_DEVICE_FLAG_DMA_RX |RT_DEVICE_FLAG_RDWR) != RT_EOK){
+            LOG_E("ethch395 net device open fail, please check!");
+            return -0x01;
+        }
+
         if(rt_device_control(s_ethch395_netdev, RT_DEVICE_CTRL_CONFIG, &serial_para) != RT_EOK){
             LOG_E("ethch395 net device modify baudrate fail, please check(%d)!", baudrate);
-            return -2;
+            return -0x01;
         }
         break;
     }
@@ -148,7 +158,7 @@ int32_t ethch395_netdev_init(void)
     }
 
     /**** 以中断接收方式打开串口设备 ****/
-    if(rt_device_open(s_ethch395_netdev, RT_DEVICE_FLAG_INT_RX) != RT_EOK){
+    if(rt_device_open(s_ethch395_netdev, RT_DEVICE_FLAG_DMA_RX |RT_DEVICE_FLAG_RDWR) != RT_EOK){
         LOG_E("ethch395 net device open fail, please check!");
         return -3;
     }

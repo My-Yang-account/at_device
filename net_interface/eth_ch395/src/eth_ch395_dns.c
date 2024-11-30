@@ -413,6 +413,7 @@ int32_t ethch395_domain_parse(const char *url, uint8_t urllen, uint8_t *parseip,
 
     if(ethch395_dnsudp_socket_init() < 0x00){
         rt_free(buf);
+        ethch395_unlock_operate_lock(handle);
         return -0x02;
     }
     rt_thread_mdelay(100);
@@ -421,9 +422,11 @@ int32_t ethch395_domain_parse(const char *url, uint8_t urllen, uint8_t *parseip,
         if(ethch395_cmd_close_socket(socket_fd) < 0x00){
             LOG_E("ethch395 close dns socket fail(%d)", socket_fd);
             ethch395_socket_free(socket_fd);
+            ethch395_unlock_operate_lock(handle);
             return -0x01;
         }
         ethch395_socket_free(socket_fd);
+        ethch395_unlock_operate_lock(handle);
         return -0x03;
     }
 

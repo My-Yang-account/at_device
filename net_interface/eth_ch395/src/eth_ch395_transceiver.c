@@ -31,6 +31,7 @@
 #define ETHCH395_RECV_DATA_SIZE_MAX                                 1500              /* 单次接收数据最大字节(B) */
 #define ETHCH395_RECV_RENTRY_MAX                                    5                 /* 未接收到完整数据时最大尝试次数 */
 #define ETHCH395_QUERY_DLEN_RENTRY_MAX                              3                 /* 查询接收缓冲区数据长度最大尝试次数 */
+#define ETHCH395_SEND_RENTRY_MAX                                    5                 /* 发送指令失败或响应失败时最大尝试次数 */
 
 #define ETHCH395_EVENT_PRO_THREAD_STACK_SIZE                        1024              /* 以太网事件处理线程栈大小 */
 #define ETHCH395_RECV_THREAD_STACK_SIZE                             2048              /* 以太网数据接收线程栈大小 */
@@ -278,8 +279,8 @@ uint8_t ethch395_wait_operate_lock(int32_t timeout, void *handle)
     uint32_t tick = rt_tick_get();
 
     if((s_ethch395_access_lock.owner == handle) && (s_ethch395_access_lock.owner != NULL)){
+        LOG_D("operate_lock(%d, %d)\n", s_ethch395_access_lock.owner, handle);
         s_ethch395_access_lock.lock = ETHCH395_ENUM_TRUE;
-        LOG_D("operate_lock");
         return ETHCH395_ENUM_TRUE;
     }
 
@@ -299,10 +300,10 @@ uint8_t ethch395_wait_operate_lock(int32_t timeout, void *handle)
 
     rt_enter_critical();
     if(s_ethch395_access_lock.lock == ETHCH395_ENUM_FALSE){
+        LOG_D("000 operate_lock(%d, %d)\n", s_ethch395_access_lock.owner, handle);
         s_ethch395_access_lock.lock = ETHCH395_ENUM_TRUE;
         s_ethch395_access_lock.owner = handle;
 
-        LOG_D("operate_lock");
         rt_exit_critical();
         return ETHCH395_ENUM_TRUE;
     }
@@ -314,10 +315,10 @@ uint8_t ethch395_wait_operate_lock(int32_t timeout, void *handle)
 uint8_t ethch395_unlock_operate_lock(void *handle)
 {
     if((s_ethch395_access_lock.owner == handle) && (s_ethch395_access_lock.owner != NULL)){
+        LOG_D("ethch395_unlock_operate_lock(%d, %d)", s_ethch395_access_lock.owner, handle);
         s_ethch395_access_lock.lock = ETHCH395_ENUM_FALSE;
         s_ethch395_access_lock.owner = NULL;
 
-        rt_kprintf("ethch395_unlock_operate_lock\n");
         return ETHCH395_ENUM_TRUE;
     }
     return ETHCH395_ENUM_FALSE;
@@ -1061,12 +1062,20 @@ static void ethch395_event_pro_thread_entry(void* parameter)
 
         /** socket 中断 */
         if(s_ethch395_globe_int->value &ETHCH395_SOCKET_INT_MASK){
-            uint8_t int_base = 0x04;     /** socket 中断从第 4位开始 */
+            uint8_t rentry = 0x00, int_base = 0x04;     /** socket 中断从第 4位开始 */
             for(uint8_t socket = 0x00; socket < ETHCH395_SOCKET_NUM_MAX; socket++){
                 if(s_ethch395_globe_int->value &(0x01 <<(int_base + socket))){
                     s_ethch395_globe_int->value &= (~(0x01 <<(int_base + socket)));
 
-                    if(ethch395_cmd_query_socket_int(socket) < 0x00){
+                    for(rentry = 0x00; rentry < ETHCH395_SEND_RENTRY_MAX; rentry++){
+                        if(ethch395_cmd_query_socket_int(socket) < 0x00){
+                            LOG_E("ethch395 query socket init fail(%d)", socket);
+                            rt_thread_mdelay(20);
+                            continue;
+                        }
+                        break;
+                    }
+                    if(rentry >= ETHCH395_SEND_RENTRY_MAX){
                         LOG_E("ethch395 query socket init fail(%d)", socket);
                         continue;
                     }
