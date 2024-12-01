@@ -116,8 +116,14 @@ static void rfidr_thread_entry(void *parameter)
                 }
                 rt_kprintf("\n");
 #endif /*APP_RFIDR_DEBUG */
+                if(s_rfidr_handle.fault){
+                    s_rfidr_handle.fault(APP_RFIDR_ONLINE);
+                }
             }else{
                 offline_count = 0x00;
+                if(s_rfidr_handle.fault){
+                    s_rfidr_handle.fault(APP_RFIDR_ONLINE);
+                }
             }
             break;
         case APP_RFIDR_STATE_IDLE:
@@ -208,6 +214,10 @@ static void rfidr_thread_entry(void *parameter)
                     s_rfidr_handle.fault(APP_RFIDR_ONLINE);
                 }
                 LOG_D("rfid reader is exit");
+            }else{
+                if(s_rfidr_handle.fault){
+                    s_rfidr_handle.fault(APP_RFIDR_OFFLINE);
+                }
             }
             break;
         default:

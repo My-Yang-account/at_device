@@ -205,7 +205,6 @@ typedef struct{
         uint8_t open_socket : 4;
         uint8_t login : 4;
     }operate_fail;
-    uint32_t fail_tick;
 }ykc_monitor_socket_info_t;
 
 ykc_monitor_socket_info_t* ykc_monitor_get_socket_info(void);

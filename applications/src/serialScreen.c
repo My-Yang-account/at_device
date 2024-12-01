@@ -2511,7 +2511,6 @@ void SerialScreen_IsSupportSetFlash(void)
         thaisenSetYouYouSlienceMode(1);
     }
 
-    rt_kprintf("tData.sup_parallelrelay(%d)\n", LcdData.setData.sup_parallelrelay);
     if(LcdData.setData.sup_parallelrelay == FALSE){
         thaisenModuleSetParallelEnable(thaisenFunction_disable);
     }else{
