@@ -450,6 +450,8 @@ static void sgcc_connect_thread_entry(void *parameter)
     uint32_t delay = 0x00, wait_unlock;
     int32_t result = 0x00;
 
+    s_sgcc_socket_info.fd = -0x01;
+
     while(1)
     {
         if((net_get_ota_info()->state >= NET_OTA_STATE_LOGIN_WAIT) && (net_get_ota_info()->state <= NET_OTA_STATE_UPDATING)){
@@ -459,6 +461,10 @@ static void sgcc_connect_thread_entry(void *parameter)
 
         net_get_net_handle()->data_updata();
         if((net_get_net_handle()->net_fault) &NET_FAULT_PHYSICAL_LAYER){
+            if((s_sgcc_socket_info.fd >= 0x00) && (step >= NET_SGCC_NET_STATE_LOGIN)){   /** 平台已建立连接，但是通信模块出错(关机) */
+                evs_mainclose();
+                s_sgcc_socket_info.fd = -0x01;
+            }
             s_sgcc_socket_info.state = SGCC_SOCKET_STATE_PHY;
             net_get_net_handle()->net_state = NET_SOCKET_STATE_PHY;
             s_sgcc_socket_info.fd = -0x01;
@@ -472,6 +478,10 @@ static void sgcc_connect_thread_entry(void *parameter)
             continue;
         }
         if((net_get_net_handle()->net_fault) &NET_FAULT_SIM_CARD){
+            if((s_sgcc_socket_info.fd >= 0x00) && (step >= NET_SGCC_NET_STATE_LOGIN)){   /** 平台已建立连接，但是通信模块出错(关机) */
+                evs_mainclose();
+                s_sgcc_socket_info.fd = -0x01;
+            }
             s_sgcc_socket_info.state = SGCC_SOCKET_STATE_SIM;
             net_get_net_handle()->net_state = NET_SOCKET_STATE_SIM;
             s_sgcc_socket_info.fd = -0x01;
@@ -485,6 +495,10 @@ static void sgcc_connect_thread_entry(void *parameter)
             continue;
         }
         if((net_get_net_handle()->net_fault) &NET_FAULT_DATA_LINK_LAYER){
+            if((s_sgcc_socket_info.fd >= 0x00) && (step >= NET_SGCC_NET_STATE_LOGIN)){   /** 平台已建立连接，但是通信模块出错(关机) */
+                evs_mainclose();
+                s_sgcc_socket_info.fd = -0x01;
+            }
             s_sgcc_socket_info.state = SGCC_SOCKET_STATE_DATA_LINK;
             net_get_net_handle()->net_state = NET_SOCKET_STATE_DATA_LINK;
             s_sgcc_socket_info.fd = -0x01;
@@ -498,6 +512,10 @@ static void sgcc_connect_thread_entry(void *parameter)
             continue;
         }
         if((net_get_net_handle()->net_fault) &NET_FAULT_MODULE_INIT){
+            if((s_sgcc_socket_info.fd >= 0x00) && (step >= NET_SGCC_NET_STATE_LOGIN)){   /** 平台已建立连接，但是通信模块出错(关机) */
+                evs_mainclose();
+                s_sgcc_socket_info.fd = -0x01;
+            }
             s_sgcc_socket_info.state = SGCC_SOCKET_STATE_MODULE_INIT;
             net_get_net_handle()->net_state = NET_SOCKET_STATE_MODULE_INIT;
             s_sgcc_socket_info.fd = -0x01;
@@ -574,6 +592,7 @@ static void sgcc_connect_thread_entry(void *parameter)
             if(result >= 0x00){
                 LOG_D("linkkit connect success \n");
                 step = NET_SGCC_NET_STATE_MONITORING;
+                s_sgcc_socket_info.fd = 0x00;
                 s_sgcc_socket_info.operate_fail.login = 0x00;
                 sgcc_net_event_send(NET_SGCC_EVENT_HANDLE_CHARGEPILE, NET_SGCC_EVENT_TYPE_REQUEST, 0x00, NET_SGCC_PREQ_EVENT_REPORT_SDK_VERSION);
                 sgcc_net_event_send(NET_SGCC_EVENT_HANDLE_CHARGEPILE, NET_SGCC_EVENT_TYPE_REQUEST, 0x00, NET_SGCC_PREQ_EVENT_REPORT_FIRMWARE_INFO);

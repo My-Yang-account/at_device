@@ -372,12 +372,15 @@ void ykc_ascii_to_bcd(uint8_t *ascii, uint8_t alen, uint8_t *bcd, uint8_t blen)
     }
 }
 
+
 uint32_t g_net_target_platform_tick = 0;
 static void net_ykc_message_send_thread_entry(void *parameter)
 {
     uint8_t step = NET_YKC_NET_STATE_OPEN_SOCKET, is_power_on = 0x00;
     uint32_t delay = 0x00, wait_unlock = 0x00;
     uint32_t heartbeat_tick[NET_SYSTEM_GUN_NUMBER];
+
+    s_ykc_socket_info.fd = -0x01;
 
     while(1)
     {
@@ -390,6 +393,10 @@ static void net_ykc_message_send_thread_entry(void *parameter)
 
         net_get_net_handle()->data_updata();
         if((net_get_net_handle()->net_fault) &NET_FAULT_PHYSICAL_LAYER){
+            if((s_ykc_socket_info.fd >= 0x00) && (step >= NET_YKC_NET_STATE_LOGIN)){   /** 平台已建立连接，但是通信模块出错(关机) */
+                ykc_socket_close(s_ykc_socket_info.fd);
+                s_ykc_socket_info.fd = -0x01;
+            }
             s_ykc_socket_info.state = YKC_SOCKET_STATE_PHY;
             net_get_net_handle()->net_state = NET_SOCKET_STATE_PHY;
             s_ykc_socket_info.fd = -0x01;
@@ -402,6 +409,10 @@ static void net_ykc_message_send_thread_entry(void *parameter)
             continue;
         }
         if((net_get_net_handle()->net_fault) &NET_FAULT_SIM_CARD){
+            if((s_ykc_socket_info.fd >= 0x00) && (step >= NET_YKC_NET_STATE_LOGIN)){   /** 平台已建立连接，但是通信模块出错(关机) */
+                ykc_socket_close(s_ykc_socket_info.fd);
+                s_ykc_socket_info.fd = -0x01;
+            }
             s_ykc_socket_info.state = YKC_SOCKET_STATE_SIM;
             net_get_net_handle()->net_state = NET_SOCKET_STATE_SIM;
             s_ykc_socket_info.fd = -0x01;
@@ -414,6 +425,10 @@ static void net_ykc_message_send_thread_entry(void *parameter)
             continue;
         }
         if((net_get_net_handle()->net_fault) &NET_FAULT_DATA_LINK_LAYER){
+            if((s_ykc_socket_info.fd >= 0x00) && (step >= NET_YKC_NET_STATE_LOGIN)){   /** 平台已建立连接，但是通信模块出错(关机) */
+                ykc_socket_close(s_ykc_socket_info.fd);
+                s_ykc_socket_info.fd = -0x01;
+            }
             s_ykc_socket_info.state = YKC_SOCKET_STATE_DATA_LINK;
             net_get_net_handle()->net_state = NET_SOCKET_STATE_DATA_LINK;
             s_ykc_socket_info.fd = -0x01;
@@ -426,6 +441,10 @@ static void net_ykc_message_send_thread_entry(void *parameter)
             continue;
         }
         if((net_get_net_handle()->net_fault) &NET_FAULT_MODULE_INIT){
+            if((s_ykc_socket_info.fd >= 0x00) && (step >= NET_YKC_NET_STATE_LOGIN)){   /** 平台已建立连接，但是通信模块出错(关机) */
+                ykc_socket_close(s_ykc_socket_info.fd);
+                s_ykc_socket_info.fd = -0x01;
+            }
             s_ykc_socket_info.state = YKC_SOCKET_STATE_MODULE_INIT;
             net_get_net_handle()->net_state = NET_SOCKET_STATE_MODULE_INIT;
             s_ykc_socket_info.fd = -0x01;
@@ -476,6 +495,7 @@ static void net_ykc_message_send_thread_entry(void *parameter)
                         LOG_W("ykc fail to open socket with host[%s] port[%d] num|%d", host, port, s_ykc_socket_info.operate_fail.open_socket);
                         delay = rt_tick_get();
                         s_ykc_socket_info.operate_fail.open_socket++;
+                        s_ykc_socket_info.fd = -0x01;
                     }
                     for(uint8_t gunno = 0; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
                         s_ykc_message_serial_number[gunno] = 0x00;

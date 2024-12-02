@@ -566,6 +566,8 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
     uint32_t delay = 0x00, wait_unlock = 0x00;
     uint32_t heartbeat_tick[NET_SYSTEM_GUN_NUMBER];
 
+    s_ykc_monitor_socket_info.fd = -0x01;
+
     while(1)
     {
         if((net_get_ota_info()->state >= NET_OTA_STATE_OPEN_LINK) && (net_get_ota_info()->state <= NET_OTA_STATE_UPDATING)){
@@ -575,6 +577,10 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
 
         net_get_net_handle()->data_updata();
         if((net_get_net_handle()->net_fault) &NET_FAULT_PHYSICAL_LAYER){
+            if((s_ykc_monitor_socket_info.fd >= 0x00) && (step >= NET_YKC_MONITOR_NET_STATE_LOGIN)){   /** 平台已建立连接，但是通信模块出错(关机) */
+                ykc_monitor_socket_close(s_ykc_monitor_socket_info.fd);
+                s_ykc_monitor_socket_info.fd = -0x01;
+            }
             s_ykc_monitor_socket_info.state = YKC_MONITOR_SOCKET_STATE_PHY;
 #ifndef NET_YKC_MONITOR_AS_MONITOR
             net_get_net_handle()->net_state = NET_SOCKET_STATE_MODULE_INIT;
@@ -589,6 +595,10 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
             continue;
         }
         if((net_get_net_handle()->net_fault) &NET_FAULT_SIM_CARD){
+            if((s_ykc_monitor_socket_info.fd >= 0x00) && (step >= NET_YKC_MONITOR_NET_STATE_LOGIN)){   /** 平台已建立连接，但是通信模块出错(关机) */
+                ykc_monitor_socket_close(s_ykc_monitor_socket_info.fd);
+                s_ykc_monitor_socket_info.fd = -0x01;
+            }
             s_ykc_monitor_socket_info.state = YKC_MONITOR_SOCKET_STATE_SIM;
 #ifndef NET_YKC_MONITOR_AS_MONITOR
             net_get_net_handle()->net_state = NET_SOCKET_STATE_MODULE_SIM;
@@ -603,6 +613,10 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
             continue;
         }
         if((net_get_net_handle()->net_fault) &NET_FAULT_DATA_LINK_LAYER){
+            if((s_ykc_monitor_socket_info.fd >= 0x00) && (step >= NET_YKC_MONITOR_NET_STATE_LOGIN)){   /** 平台已建立连接，但是通信模块出错(关机) */
+                ykc_monitor_socket_close(s_ykc_monitor_socket_info.fd);
+                s_ykc_monitor_socket_info.fd = -0x01;
+            }
             s_ykc_monitor_socket_info.state = YKC_MONITOR_SOCKET_STATE_DATA_LINK;
 #ifndef NET_YKC_MONITOR_AS_MONITOR
             net_get_net_handle()->net_state = NET_SOCKET_STATE_MODULE_DATA_LINK;
@@ -617,6 +631,10 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
             continue;
         }
         if((net_get_net_handle()->net_fault) &NET_FAULT_MODULE_INIT){
+            if((s_ykc_monitor_socket_info.fd >= 0x00) && (step >= NET_YKC_MONITOR_NET_STATE_LOGIN)){   /** 平台已建立连接，但是通信模块出错(关机) */
+                ykc_monitor_socket_close(s_ykc_monitor_socket_info.fd);
+                s_ykc_monitor_socket_info.fd = -0x01;
+            }
             s_ykc_monitor_socket_info.state = YKC_MONITOR_SOCKET_STATE_MODULE_INIT;
 #ifndef NET_YKC_MONITOR_AS_MONITOR
             net_get_net_handle()->net_state = NET_SOCKET_STATE_MODULE_INIT;
@@ -693,6 +711,7 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
                         LOG_W("ykc monitor fail to open socket with host[%s] port[%d] num|%d", host, port, s_ykc_monitor_socket_info.operate_fail.open_socket);
                         delay = rt_tick_get();
                         s_ykc_monitor_socket_info.operate_fail.open_socket++;
+                        s_ykc_monitor_socket_info.fd = -0x01;
                     }
                     for(uint8_t gunno = 0; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
                         s_ykc_monitor_message_serial_number[gunno] = 0x00;
