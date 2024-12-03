@@ -157,7 +157,7 @@ int rfid_dev_hardware_init(void)
     }
 
     /**** 以中断接收方式打开串口设备 ****/
-    if(rt_device_open(s_rfid_dev, RT_DEVICE_FLAG_INT_RX) != RT_EOK){
+    if(rt_device_open(s_rfid_dev, RT_DEVICE_FLAG_DMA_RX) != RT_EOK){
         LOG_E("rfid device open fail, please check!");
         return -0x03;
     }

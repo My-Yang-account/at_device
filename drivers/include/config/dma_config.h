@@ -13,6 +13,7 @@
 #define __DMA_CONFIG_H__
 
 #include <rtthread.h>
+#include <app_ofsm.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -173,7 +174,11 @@ extern "C" {
 #define SPI4_TX_DMA_CHANNEL              DMA_CHANNEL_4
 #define SPI4_TX_DMA_IRQ                  DMA2_Stream1_IRQn
 #elif defined(BSP_UART6_RX_USING_DMA) && !defined(UART6_RX_DMA_INSTANCE)
+#ifdef APP_USING_DOUBLEGUN
 #define UART6_DMA_RX_IRQHandler          DMA2_Stream2_IRQHandler
+#else
+#define UART6_DMA_RX_IRQHandler          DMA2_Stream1_IRQHandler
+#endif /* APP_USING_DOUBLEGUN */
 #define UART6_RX_DMA_RCC                 RCC_AHB1ENR_DMA2EN
 #define UART6_RX_DMA_INSTANCE            DMA2_Stream2
 #define UART6_RX_DMA_CHANNEL             DMA_CHANNEL_5

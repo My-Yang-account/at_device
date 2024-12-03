@@ -78,6 +78,7 @@ extern "C"
 #define BSP_USING_UART2
 #define BSP_UART2_TX_PIN       "PD5"
 #define BSP_UART2_RX_PIN       "PD6"
+#define BSP_UART2_RX_USING_DMA
 
 /* DEBUG */
 #define BSP_USING_UART3
@@ -132,6 +133,7 @@ extern "C"
 #define BSP_USING_UART6
 #define BSP_UART6_TX_PIN       "PC6"
 #define BSP_UART6_RX_PIN       "PC7"
+#define BSP_UART6_RX_USING_DMA
 
 /* 以太网 */
 #define BSP_USING_UART7
