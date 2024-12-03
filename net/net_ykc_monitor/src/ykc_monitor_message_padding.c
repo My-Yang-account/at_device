@@ -2700,6 +2700,11 @@ static void ykc_monitor_data_realtime_process(uint8_t gunno, System_BaseData* ba
     case APP_OFSM_STATE_WAIT_NET:
     case APP_OFSM_STATE_IDLEING:
     case APP_OFSM_STATE_STOPING:
+        s_ykc_monitor_flag_info[gunno].is_refuse_mergecharge = NET_ENUM_FALSE;
+        s_ykc_monitor_flag_info[gunno].is_request_mergecharge = NET_ENUM_FALSE;
+        s_ykc_monitor_flag_info[gunno].is_start_mergecharge = NET_ENUM_FALSE;
+        ykc_monitor_clear_message_wait_response_state(gunno, NET_YKC_MONITOR_PREQ_EVENT_APPLY_START_CHARGE);
+        break;
     case APP_OFSM_STATE_FINISHING:
     case APP_OFSM_STATE_FAULTING:
         s_ykc_monitor_flag_info[gunno].is_refuse_mergecharge = NET_ENUM_FALSE;
@@ -2707,7 +2712,13 @@ static void ykc_monitor_data_realtime_process(uint8_t gunno, System_BaseData* ba
         s_ykc_monitor_flag_info[gunno].is_start_mergecharge = NET_ENUM_FALSE;
         break;
     case APP_OFSM_STATE_STARTING:
+        if(base->start_type != APP_CHARGE_START_WAY_VIN){
+            ykc_monitor_clear_message_wait_response_state(gunno, NET_YKC_MONITOR_PREQ_EVENT_APPLY_START_CHARGE);
+        }
+        ykc_monitor_clear_message_wait_response_state(gunno, NET_YKC_MONITOR_PREQ_EVENT_TRANSACTION_RECORD);
+        break;
     case APP_OFSM_STATE_CHARGING:
+        ykc_monitor_clear_message_wait_response_state(gunno, NET_YKC_MONITOR_PREQ_EVENT_APPLY_START_CHARGE);
         ykc_monitor_clear_message_wait_response_state(gunno, NET_YKC_MONITOR_PREQ_EVENT_TRANSACTION_RECORD);
         break;
     default:

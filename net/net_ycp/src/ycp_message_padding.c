@@ -2560,12 +2560,27 @@ static void ycp_data_realtime_process(uint8_t gunno, System_BaseData *base)
         ycp_net_event_send(NET_YCP_EVENT_HANDLE_CHARGEPILE, NET_YCP_EVENT_TYPE_REQUEST, gunno, NET_YCP_PREQ_EVENT_REPORT_STATE_DATA);
     }
 
-    if((base->state.current == APP_OFSM_STATE_STARTING) || (base->state.current == APP_OFSM_STATE_CHARGING)){
-        ycp_clear_message_wait_response_state(gunno, NET_YCP_PREQ_EVENT_TRANSACTION_RECORD);
-    }else{
-        if(s_ycp_flag_info[gunno].is_vin_authorized == NET_ENUM_TRUE){
+    switch(base->state.current){
+    case APP_OFSM_STATE_WAIT_NET:
+    case APP_OFSM_STATE_IDLEING:
+    case APP_OFSM_STATE_STOPING:
+        ycp_clear_message_wait_response_state(gunno, NET_YCP_PREQ_EVENT_APPLY_START_CHARGE);
+        break;
+    case APP_OFSM_STATE_FINISHING:
+    case APP_OFSM_STATE_FAULTING:
+        break;
+    case APP_OFSM_STATE_STARTING:
+        if(base->start_type != APP_CHARGE_START_WAY_VIN){
             ycp_clear_message_wait_response_state(gunno, NET_YCP_PREQ_EVENT_APPLY_START_CHARGE);
         }
+        ycp_clear_message_wait_response_state(gunno, NET_YCP_PREQ_EVENT_TRANSACTION_RECORD);
+        break;
+    case APP_OFSM_STATE_CHARGING:
+        ycp_clear_message_wait_response_state(gunno, NET_YCP_PREQ_EVENT_APPLY_START_CHARGE);
+        ycp_clear_message_wait_response_state(gunno, NET_YCP_PREQ_EVENT_TRANSACTION_RECORD);
+        break;
+    default:
+        break;
     }
 }
 

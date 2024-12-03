@@ -3644,10 +3644,6 @@ static void sgcc_data_realtime_process(uint8_t gunno)
         sgcc_net_event_send(NET_SGCC_EVENT_HANDLE_CHARGEPILE, NET_SGCC_EVENT_TYPE_REQUEST, gunno, NET_SGCC_PREQ_EVENT_REPORT_STATE_DATA_NONCHARGING);
     }
 
-    if((base->state.current == APP_OFSM_STATE_STARTING) || (base->state.current == APP_OFSM_STATE_CHARGING)){
-        sgcc_clear_message_wait_response_state(gunno, NET_SGCC_PREQ_EVENT_TRANSACTION_RECORD);
-    }
-
     if(sgcc_get_message_send_state(gunno, NET_SGCC_PREQ_EVENT_REPORT_STATE_DATA_NONCHARGING) == NET_SGCC_SEND_STATE_COMPLETE){
 #ifdef NET_SGCC_PRO_USING_DC
         evs_property_dc_nonWorks[gunno].conTemp1 = (base->gunline_temperature[0x00] + 500);
@@ -3675,6 +3671,29 @@ static void sgcc_data_realtime_process(uint8_t gunno)
     if((rt_tick_get() - s_sgcc_monitor_property_count[0x00]) > evs_data_dev_configs.equipParamFreq *1000){
         s_sgcc_monitor_property_count[0x00] = rt_tick_get();
         sgcc_chargepile_request_padding_monitor_property(0x00);
+    }
+
+    switch(base->state.current){
+    case APP_OFSM_STATE_WAIT_NET:
+    case APP_OFSM_STATE_IDLEING:
+    case APP_OFSM_STATE_STOPING:
+        sgcc_clear_message_wait_response_state(gunno, NET_SGCC_PREQ_EVENT_APPLY_START_CHARGE);
+        break;
+    case APP_OFSM_STATE_FINISHING:
+    case APP_OFSM_STATE_FAULTING:
+        break;
+    case APP_OFSM_STATE_STARTING:
+        if(base->start_type != APP_CHARGE_START_WAY_VIN){
+            sgcc_clear_message_wait_response_state(gunno, NET_SGCC_PREQ_EVENT_APPLY_START_CHARGE);
+        }
+        sgcc_clear_message_wait_response_state(gunno, NET_SGCC_PREQ_EVENT_TRANSACTION_RECORD);
+        break;
+    case APP_OFSM_STATE_CHARGING:
+        sgcc_clear_message_wait_response_state(gunno, NET_SGCC_PREQ_EVENT_APPLY_START_CHARGE);
+        sgcc_clear_message_wait_response_state(gunno, NET_SGCC_PREQ_EVENT_TRANSACTION_RECORD);
+        break;
+    default:
+        break;
     }
 }
 
