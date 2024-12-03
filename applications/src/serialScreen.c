@@ -6464,7 +6464,8 @@ int SerialScreen_DataProcess()
 		if(LcdState[i] != chargeState[i])
 		{
 			LcdState[i] = chargeState[i];
-			if(LcdData.gun[i].workState==APP_OFSM_STATE_IDLEING)
+			if((LcdData.gun[i].workState==SysMainStatus_PlugIn) ||   \
+			        (LcdData.gun[i].workState==SysMainStatus_Account))
 			{
 				sSCREEN_DEBUGPROMSG("*******************mainStatus change to StandBy***********\r\n");
 				//清数据
