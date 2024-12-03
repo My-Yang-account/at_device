@@ -124,9 +124,14 @@ void check_simcard_signal_strength(void)
 
 void ec20_at_device_reset(void)
 {
+    uint8_t rentry = 0x00;
     LOG_E("ec20 AT device close");
     netdev_set_down(netdev_default);
-    rt_thread_mdelay(5000);
+
+    while(rentry < 0x0A){
+        rt_thread_mdelay(1000);
+        rentry++;
+    }
 
     s_at_device_appinfo.boot = 0;
     s_at_device_appinfo.at = 0;
