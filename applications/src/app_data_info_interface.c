@@ -1436,3 +1436,17 @@ int32_t thaisen_set_trigger_event(enum thaisen_trig_event event, uint16_t durati
 {
     return SerialScreen_ScreenSet_Trigger_Event(event, duration_time, just_notice, gunno);
 }
+
+/********************************************
+ * 函数名      thaisen_is_online_start
+ * 功能         判断是否是在线启动
+ *        gunno  枪号
+ * 返回         > 0:是，<=0:不是
+ *******************************************/
+uint8_t thaisen_is_online_start(uint8_t gunno)
+{
+    if(get_ofsm_info(gunno)->base.flag.is_local_charging){
+        return 0x00;
+    }
+    return 0x01;
+}

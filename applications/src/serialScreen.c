@@ -271,6 +271,7 @@ struct LCD_ASSISTANT_DATA{
         u8 AuxPower24VSelect : 1;        //24V辅源选择状态
         u8 AuxPower24VSelectLast : 1;    //24V辅源前一次选择状态
         u8 IsPowerOn : 1;                //上电开机
+        u8 IsVinStart : 1;               //启动方式为VIN码
     }SeveralGunFlag[LCD_GUN_NUM];
 
     u8 OccupyGunNum;                     //处于占用但未充电的枪数量
@@ -1426,18 +1427,20 @@ void SerialScreen_VinStartCharge(int port)
 void SerialScreen_VinStartChargeA(void)
 {
     sSCREEN_EVENT_DEBUGMSG("##########Port[LCD_GUN_1] Vin Start Charge###########\r\n");
-    if(TRUE == LcdData.setData.sup_VIN)
+    if(TRUE == LcdData.setData.sup_VIN){
+         LcdAssistantData.SeveralGunFlag[LCD_GUN_1].IsVinStart = TRUE;
     	thaisen_app_set_vin_start_charge(LCD_GUN_1);
-    else ;
+    }else;
 }
 
 
 void SerialScreen_VinStartChargeB(void)
 {
     sSCREEN_EVENT_DEBUGMSG("##########Port[LCD_GUN_2] Vin Start Charge###########\r\n");
-    if(TRUE == LcdData.setData.sup_VIN)
+    if(TRUE == LcdData.setData.sup_VIN){
+        LcdAssistantData.SeveralGunFlag[LCD_GUN_2].IsVinStart = TRUE;
         thaisen_app_set_vin_start_charge(LCD_GUN_2);
-    else ;
+    }else;
 }
 
 
@@ -1445,7 +1448,9 @@ void SerialScreen_VinStartChargeB(void)
 void SerialScreen_StopCharge(int port)
 {
     sSCREEN_EVENT_DEBUGMSG("##########Port[%d] Stop Charge###########\r\n");
-    if(TRUE == LcdData.setData.sup_Local_stop)
+    if((TRUE == LcdData.setData.sup_Local) ||   \
+            (LcdAssistantData.SeveralGunFlag[port].IsVinStart) ||   \
+            ((TRUE == LcdData.setData.sup_Local_stop) && (thaisen_is_online_start(port))))
     	thaisen_app_set_screen_stop_charge(port);
 	else ;
 }
@@ -2490,13 +2495,6 @@ void SerialScreen_IsSupportSetFlash(void)
 
     UI_STORAGE_CFG_DATA;
 
-    if(LcdData.setData.sup_Local_stop){
-        LcdData.setData.Sup_Stop = ICON_CHARGE_LOCAL;
-    }else{
-        LcdData.setData.Sup_Stop = ICON_CHARGE_NULL;
-    }
-
-
     if(LcdData.setData.sup_insulation == FALSE){
         function_disable = 1;
     }else{
@@ -2623,10 +2621,8 @@ void SerialScreen_IsSupportGet(void)
     if(TRUE != *(u8 *)(UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_OFFLINE_BILLING, 0)))   /* 离线计费配置默认不启用 */
         LcdData.setData.sup_offbilling = FALSE;
 
-    LcdData.setData.Sup_Stop = ICON_CHARGE_NULL;
     LcdData.setData.Icon_SuplocalStop = FALSE;
     if(LcdData.setData.sup_Local_stop){
-        LcdData.setData.Sup_Stop = ICON_CHARGE_LOCAL;
         LcdData.setData.Icon_SuplocalStop = TRUE;
     }
 
@@ -6409,6 +6405,8 @@ int SerialScreen_DataProcess()
 		        LcdData.setData.batteryVolt[i] = 0;
 		        LcdData.setData.maxChargeVolt[i] = 0;
 
+                LcdAssistantData.SeveralGunFlag[i].IsVinStart = FALSE;
+
 				LcdData.gun[i].workState = SysMainStatus_StandBy;
 				break;
 			case APP_OFSM_STATE_READYING:
@@ -6473,6 +6471,54 @@ int SerialScreen_DataProcess()
 				SerialScreen_DataClean(i);
 			}
 		}
+
+        if(LcdData.gun[i].workState == SysMainStatus_Chrging){    /** 枪在充电且是VIN码启动，如果本地启动未使能则显示停止ICON */
+            if(LcdData.setData.sup_Local == FALSE){
+                if(LcdAssistantData.SeveralGunFlag[i].IsVinStart == TRUE){
+                    LcdData.setData.Sup_Stop = ICON_CHARGE_LOCAL;
+                }else if((LcdData.setData.sup_Local_stop == TRUE) && (thaisen_is_online_start(i))){ /** 停止使能目前只针对于在线启动方式(因为前面出去的屏幕工程没有停止使能按键，如果从flash中读出配置停止使能是开启则无法关闭) */
+                    LcdData.setData.Sup_Stop = ICON_CHARGE_LOCAL;
+                }else{
+                    u8 AnotherGun = LCD_GUN_1;
+                    if(i == LCD_GUN_1){
+                        AnotherGun = LCD_GUN_2;
+                    }
+                    if(LcdData.gun[AnotherGun].workState == SysMainStatus_Chrging){
+                        if(LcdAssistantData.SeveralGunFlag[AnotherGun].IsVinStart == TRUE){
+                            LcdData.setData.Sup_Stop = ICON_CHARGE_LOCAL;
+                        }else if((LcdData.setData.sup_Local_stop == TRUE) && (thaisen_is_online_start(AnotherGun))){
+                            LcdData.setData.Sup_Stop = ICON_CHARGE_LOCAL;
+                        }else{
+                            LcdData.setData.Sup_Stop = ICON_CHARGE_NULL;
+                        }
+                    }else{
+                        LcdData.setData.Sup_Stop = ICON_CHARGE_NULL;
+                    }
+                }
+            }else{
+                LcdData.setData.Sup_Stop = ICON_CHARGE_LOCAL;
+            }
+        }else{                                                    /** 只要有一把枪在充电且是VIN码启动，如果本地启动未使能则显示停止ICON */
+            u8 AnotherGun = LCD_GUN_1;
+            if(i == LCD_GUN_1){
+                AnotherGun = LCD_GUN_2;
+            }
+            if(LcdData.setData.sup_Local == FALSE){
+                if(LcdData.gun[AnotherGun].workState == SysMainStatus_Chrging){
+                    if(LcdAssistantData.SeveralGunFlag[AnotherGun].IsVinStart == TRUE){
+                        LcdData.setData.Sup_Stop = ICON_CHARGE_LOCAL;
+                    }else if((LcdData.setData.sup_Local_stop == TRUE) && (thaisen_is_online_start(AnotherGun))){
+                        LcdData.setData.Sup_Stop = ICON_CHARGE_LOCAL;
+                    }else{
+                        LcdData.setData.Sup_Stop = ICON_CHARGE_NULL;
+                    }
+                }else{
+                    LcdData.setData.Sup_Stop = ICON_CHARGE_NULL;
+                }
+            }else{
+                LcdData.setData.Sup_Stop = ICON_CHARGE_LOCAL;
+            }
+        }
 	}
 
 	if(TRUE == LcdData.debugIOflg)
