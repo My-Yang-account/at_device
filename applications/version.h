@@ -34,7 +34,7 @@ extern "C" {
 #define SOFTWARE_MODULE                 "YKC7103"          /* 软件型号 */
 #define SOFTWARE_VERSION       1L
 #define SOFTWARE_SUBVERSION    6L
-#define SOFTWARE_REVISION      4L
+#define SOFTWARE_REVISION      5L
 
 #else
 #define SOFTWARE_MODULE                 "YKC7101"          /* 软件型号 */
