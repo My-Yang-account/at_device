@@ -1639,6 +1639,9 @@ static void net_ycp_server_message_pro_entry(void *parameter)
                         ycp_set_message_send_state(0x00, NET_YCP_SEND_STATE_ONGOING, NET_YCP_PREQ_EVENT_HEARTBEAT);
                         ycp_net_event_send(NET_YCP_EVENT_HANDLE_CHARGEPILE, NET_YCP_EVENT_TYPE_REQUEST, 0x00, NET_YCP_PREQ_EVENT_HEARTBEAT);
 
+                        ycp_net_event_receive(NET_YCP_EVENT_HANDLE_SERVER, NET_YCP_EVENT_TYPE_RESPONSE, gunno,
+                                                (NET_YCP_EVENT_OPTION_OR |NET_YCP_EVENT_OPTION_CLEAR), NET_YCP_SRES_EVENT_BILLING_MODEL_VERIFY, NULL);
+
                     }
                 }
                 /***** [充电桩主动申请启动充电响应] *****/

@@ -201,7 +201,7 @@ static void ycp_callback_response_billing_model_verify(uint8_t* data, uint16_t l
 
     memcpy(&g_ycp_sres_billing_model_verify, data, (length - NET_YCP_PROTOCOL_CHECK_REGION_SIZE));
     ycp_clear_message_wait_response_state(0x00, NET_YCP_PREQ_EVENT_BILLING_MODEL_VERIFY);
-    ycp_net_event_send(NET_YCP_EVENT_HANDLE_SERVER, NET_YCP_EVENT_TYPE_RESPONSE, 0x00, NET_YCP_PREQ_EVENT_BILLING_MODEL_VERIFY);
+    ycp_net_event_send(NET_YCP_EVENT_HANDLE_SERVER, NET_YCP_EVENT_TYPE_RESPONSE, 0x00, NET_YCP_SRES_EVENT_BILLING_MODEL_VERIFY);
 }
 
 
