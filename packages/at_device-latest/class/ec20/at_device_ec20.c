@@ -333,7 +333,6 @@ static int8_t ec20_power_on(struct at_device *device)
 
     if(s_dev_control_info.power_on ==  0x00){
         s_dev_control_info.tick = rt_tick_get();
-        s_dev_control_info.power_on = 0x01;
     }
 
     if (rt_pin_read(ec20->power_status_pin) == PIN_LOW)
@@ -341,7 +340,7 @@ static int8_t ec20_power_on(struct at_device *device)
         LOG_I("4G MODULE ALREADY POWER ON");   /* 如果模块已是开机状态 */
         uint32_t ctick = rt_tick_get();
         if(s_dev_control_info.tick > ctick){
-            if(((ctick + 0xFFFFFFFF) - s_dev_control_info.tick) > EC20_POWER_CTRL_TIME){
+            if((((ctick + 0xFFFFFFFF) - s_dev_control_info.tick) > EC20_POWER_CTRL_TIME) || (s_dev_control_info.power_on ==  0x00)){
                 rt_pin_write(G4_POWER_CTRL_PIN, PIN_HIGH);
                 rt_thread_mdelay(8000);
                 rt_pin_write(G4_POWER_CTRL_PIN, PIN_LOW);
@@ -349,7 +348,7 @@ static int8_t ec20_power_on(struct at_device *device)
                 s_dev_control_info.tick = ctick;
             }
         }else{
-            if((ctick - s_dev_control_info.tick) > EC20_POWER_CTRL_TIME){
+            if(((ctick - s_dev_control_info.tick) > EC20_POWER_CTRL_TIME) || (s_dev_control_info.power_on ==  0x00)){
                 rt_pin_write(G4_POWER_CTRL_PIN, PIN_HIGH);
                 rt_thread_mdelay(8000);
                 rt_pin_write(G4_POWER_CTRL_PIN, PIN_LOW);
@@ -357,6 +356,10 @@ static int8_t ec20_power_on(struct at_device *device)
                 s_dev_control_info.tick = ctick;
             }
         }
+    }
+
+    if(s_dev_control_info.power_on ==  0x00){
+        s_dev_control_info.power_on = 0x01;
     }
 
     rt_pin_write(ec20->power_pin, PIN_LOW);     /* 拉高 POWKEY */
