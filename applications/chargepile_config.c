@@ -2363,7 +2363,7 @@ int32_t sys_period_time_continuous_valid(void *t, uint8_t tlen, uint8_t valid_co
     struct period_time *time = (struct period_time*)t, temp;
 
     /** 选择排序，按开始时间的小时进行升序排列 */
-    for(i = 0; i < (valid_count - 1); i++){
+    for(i = 0x00; i < (valid_count - 0x01); i++){
         min = i;
         for(j = i + 1; j < valid_count; j++){
             if (time[min].shour > time[j].shour){
@@ -2377,7 +2377,7 @@ int32_t sys_period_time_continuous_valid(void *t, uint8_t tlen, uint8_t valid_co
         }
     }
     /** 选择排序，按开始时间的分钟进行升序排列 */
-    for(i = 0; i < (valid_count - 1); i++){
+    for(i = 0x00; i < (valid_count - 0x01); i++){
         min = i;
         for(j = i + 1; j < valid_count; j++){
             if ((time[min].smin > time[j].smin) && (time[min].shour == time[j].shour)){
@@ -2391,39 +2391,70 @@ int32_t sys_period_time_continuous_valid(void *t, uint8_t tlen, uint8_t valid_co
         }
     }
 
-    for(i = 0; i < valid_count; i++){
+    for(i = 0x00; i < valid_count; i++){
         rt_kprintf("1111 period time(%d)[%d:%d-%d:%d]\n", i, time[i].shour,
                 time[i].smin,
                 time[i].ehour,
                 time[i].emin);
     }
 
-    /** 判断是否连续 */
-    for(i = 0; i < (valid_count - 1); i++){
-        if(time[i].shour == time[i].ehour){
-            if(time[i].smin > time[i].emin){
-                return -0x01;
+    /** 至少有两个时段 */
+    if(valid_count >= 0x02){
+        /** 判断是否连续 */
+        for(i = 0x00; i < (valid_count - 0x01); i++){
+            if(time[i].shour == time[i].ehour){
+                if(time[i].smin > time[i].emin){
+                    return -0x01;
+                }
+            }else{
+                if(time[i].shour > time[i].ehour){
+                    return -0x01;
+                }
             }
-        }else{
-            if(time[i].shour > time[i].ehour){
-                return -0x01;
+
+            if(time[i + 0x01].shour != time[i].ehour){
+                if(time[i].ehour > time[i + 0x01].shour){
+                    return -0x01;
+                }else{
+                    return 0x00;
+                }
+            }
+
+            if(time[i + 0x01].smin != time[i].emin){
+                if(time[i].emin > time[i + 0x01].smin){
+                    return -0x01;
+                }else{
+                    return 0x00;
+                }
+            }
+
+            if((i + 0x01) == (valid_count - 0x01)){
+                if((time[i + 0x01].emin != time[0x00].smin) || (time[i + 0x01].ehour != time[0x00].shour)){
+                    if(time[i + 0x01].ehour != time[0x00].shour){
+                        if((time[0x00].shour < time[i + 0x01].ehour) && (time[0x01].shour > time[i + 0x01].ehour)){
+                            return -0x01;
+                        }else{
+                            return 0x00;
+                        }
+                    }
+
+                    if(time[i + 0x01].emin != time[0x00].smin){
+                        if(time[0x00].smin < time[i + 0x01].emin){
+                            rt_kprintf("time[0x00].smin(%d)  time[i + 0x01].emin(%d)", time[0x00].smin, time[i + 0x01].emin);
+                            return -0x01;
+                        }else{
+                            return 0x00;
+                        }
+                    }
+                }
             }
         }
-
-        if(time[i + 0x01].shour != time[i].ehour){
-            if(time[i].ehour > time[i + 0x01].shour){
-                return -0x01;
-            }else{
-                return 0x0;
-            }
-        }
-
-        if(time[i + 0x01].smin != time[i].emin){
-            if(time[i].emin > time[i + 0x01].smin){
-                return -0x01;
-            }else{
-                return 0x0;
-            }
+    }
+    /** 只有一个时段 */
+    else{
+        if((time[0x00].shour != 0x00) || (time[0x00].smin != 0x00) ||     \
+                (time[0x00].ehour != 0x00) || (time[0x00].emin != 0x00)){
+            return 0x00;
         }
     }
 
