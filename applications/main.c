@@ -20,6 +20,8 @@
 #include "mw_led.h"
 #include "mw_iwdg.h"
 
+#include "chargepile_config.h"
+
 #include "thaisenChargLib.h"
 #include "thaisen7102Public.h"
 #include "thaisenChargModuleLib.h"
@@ -65,31 +67,33 @@ int main(void)
 
     SerialScreen_SetInputInfo();  /* �ϵ���������ϼ��ʹ�� */
 
-//    MX_GPIO_Init();
-//    MX_DMA_Init();
-//    MX_SPI1_Init();
-//    MX_SPI3_Init();
-//    MX_CAN2_Init();
-//    MX_RTC_Init();
-//    MX_ADC1_Init();
-//    MX_CAN1_Init();
-//    thaisen_dma_init();
-//    MX_I2C1_Init();
-//    MX_TIM1_Init();
-//    MX_IWDG_Init();
-//    thaisenW25qXX_init();
-//    thaisenCCVoltInit();
+#ifndef APP_USING_DOUBLEGUN
+    MX_GPIO_Init();
+    MX_DMA_Init();
+    MX_SPI1_Init();
+    MX_SPI3_Init();
+    MX_CAN2_Init();
+    MX_RTC_Init();
+    MX_ADC1_Init();
+    MX_CAN1_Init();
+    thaisen_dma_init();
+    MX_I2C1_Init();
+    MX_TIM1_Init();
+    MX_IWDG_Init();
+    thaisenW25qXX_init();
+    thaisenCCVoltInit();
 
 
 
-//    thaisen_led_init();
-//    thaisen_ammeter_device_init();
-//    thaisen_SysFaultCheck_device_init();
-//    thaisenTempInit();
-//    get_eeprom_para();
-//    TH_HardwareData_init();
-
+    thaisen_led_init();
+    thaisen_ammeter_device_init();
+    thaisen_SysFaultCheck_device_init();
+    thaisenTempInit();
+    get_eeprom_para();
+    TH_HardwareData_init();
+#else
     thaisen_board_bsp_init();
+#endif /* APP_USING_DOUBLEGUN */
     prepose_init();
     app_nfunc_config_init();
 
@@ -97,15 +101,16 @@ int main(void)
     SerialScreen_SetInputInfo();
     rt_thread_mdelay(100);
 
-//    TH_CAN1_FilterConf();
-//    TH_CAN2_FilterConf();
-
     thaisenChargInit();
 	thaisen_chargModule_Init(thaisen_get_charg_status, mw_get_bms_data(0), mw_get_bms_data(1),(struct thasienModuleSetStruct *)sys_get_module_config_info());
 	MX_IWDG_Init();
     app_init();
 	app_hci_init();
 
+#ifndef APP_USING_DOUBLEGUN
+    TH_CAN1_FilterConf();
+    TH_CAN2_FilterConf();
+#endif /* APP_USING_DOUBLEGUN */
     extern void chargepile_power_adjust(void);
 
     rt_hw_interrupt_enable(level);
@@ -143,25 +148,29 @@ int main(void)
 
         mw_running_led_toggle(0, 0);
 
-        if(g_net_target_platform_tick > rt_tick_get()){
-            if((rt_tick_get() + 0xFFFFFFFF - g_net_target_platform_tick) > 5 *60 *1000){
-                net_operation_set_event(0x00, NET_OPERATION_EVENT_REBOOT);
+        if((*(sys_read_config_item_content(CONFIG_ITEM_SUPORT_OFFLINE_BILLING, 0))) == 0x00){
+            if(g_net_target_platform_tick > rt_tick_get()){
+                if((rt_tick_get() + 0xFFFFFFFF - g_net_target_platform_tick) > 5 *60 *1000){
+                    net_operation_set_event(0x00, NET_OPERATION_EVENT_REBOOT);
+                }
+            }else{
+                if((rt_tick_get() - g_net_target_platform_tick) > 5 *60 *1000){
+                    net_operation_set_event(0x00, NET_OPERATION_EVENT_REBOOT);
+                }
+            }
+
+            if(s_net_alive_tick > rt_tick_get()){
+                if((rt_tick_get() + 0xFFFFFFFF - s_net_alive_tick) > 90 *60000){
+                    net_operation_set_event(0x00, NET_OPERATION_EVENT_REBOOT);
+                }
+            }else{
+                if((rt_tick_get() - s_net_alive_tick) > 90 *60000){
+                    net_operation_set_event(0x00, NET_OPERATION_EVENT_REBOOT);
+                }
             }
         }else{
-            if((rt_tick_get() - g_net_target_platform_tick) > 5 *60 *1000){
-                net_operation_set_event(0x00, NET_OPERATION_EVENT_REBOOT);
-            }
-        }
-
-
-        if(s_net_alive_tick > rt_tick_get()){
-            if((rt_tick_get() + 0xFFFFFFFF - s_net_alive_tick) > 90 *60000){
-                net_operation_set_event(0x00, NET_OPERATION_EVENT_REBOOT);
-            }
-        }else{
-            if((rt_tick_get() - s_net_alive_tick) > 90 *60000){
-                net_operation_set_event(0x00, NET_OPERATION_EVENT_REBOOT);
-            }
+            g_net_target_platform_tick = rt_tick_get();
+            s_net_alive_tick = rt_tick_get();
         }
 
         extern uint8_t app_nsal_is_remote_reset(void);
