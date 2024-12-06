@@ -140,7 +140,7 @@ u8 SerialScreenRxbuf[sSCREEN_RX_CMD_MAX_LEN+sSCREEN_RX_CMD_MIN_LEN];
 #define QRCODE_LEN          150  // 二维码显示长度
 #define VIN_LIST_NUM        6  // VIN 白名单个数
 #define SERIALSCREEN_CONFIG_PAGE_MAX   44  // 屏幕页面总数
-#define SERIALSCREEN_PAGE_ITEM_MAX     53  // 屏幕每页信息项总数
+#define SERIALSCREEN_PAGE_ITEM_MAX     54  // 屏幕每页信息项总数
 #define SERIALSCREEN_TRIGGER_PAGE_MAX  14   // 外部触发页面总数
 
 #define SERIALSCREEN_OB_COUNTDOWN_STRING_MAX   4  //离线计费告警倒计时字符串最大长度
@@ -592,7 +592,6 @@ struct LCD_DISPLAY_VALUE_TYPE{
 	//u16 CurrentPageBack[LCD_GUN_NUM];
 	u8 CurrentPage;	//当前页
 	u8 CurrentPageBack;
-	u16 CurrentPageTimer;
 	struct LCD_DISPLAY_PAGE_INDEX_TYPE *pPageIndex[LCD_GUN_NUM];
 	Sq_Queue List;//序列
 	
@@ -4316,12 +4315,14 @@ void SerialScreen_BtnFanSet(u8 port)
 void SerialScreen_AuxsetA()
 {
     if(LcdAssistantData.Flag.IsEnableAuxPower24V == TRUE){
-        if(LcdData.setData.s_selectaux[LCD_GUN_1] == (ICON_AUXPOWER_12V + 2 *LCD_GUN_1)){
-            LcdData.setData.s_selectaux[LCD_GUN_1] = (ICON_AUXPOWER_24V + 2 *LCD_GUN_1);
-            thaisenSetAuxPowerTypeA(thaisen_auxPowerType_24V);
-        }else{
-            LcdData.setData.s_selectaux[LCD_GUN_1] = (ICON_AUXPOWER_12V + 2 *LCD_GUN_1);
-            thaisenSetAuxPowerTypeA(thaisen_auxPowerType_12V);
+        if(LcdData.setData.s_selectaux[LCD_GUN_1] != ICON_AUXPOWER_NONE){
+            if(LcdData.setData.s_selectaux[LCD_GUN_1] == (ICON_AUXPOWER_12V + 2 *LCD_GUN_1)){
+                LcdData.setData.s_selectaux[LCD_GUN_1] = (ICON_AUXPOWER_24V + 2 *LCD_GUN_1);
+                thaisenSetAuxPowerTypeA(thaisen_auxPowerType_24V);
+            }else{
+                LcdData.setData.s_selectaux[LCD_GUN_1] = (ICON_AUXPOWER_12V + 2 *LCD_GUN_1);
+                thaisenSetAuxPowerTypeA(thaisen_auxPowerType_12V);
+            }
         }
     }
 }
@@ -4329,12 +4330,14 @@ void SerialScreen_AuxsetA()
 void SerialScreen_AuxsetB()
 {
     if(LcdAssistantData.Flag.IsEnableAuxPower24V == TRUE){
-        if(LcdData.setData.s_selectaux[LCD_GUN_2] == (ICON_AUXPOWER_12V + 2 *LCD_GUN_2)){
-            LcdData.setData.s_selectaux[LCD_GUN_2] = (ICON_AUXPOWER_24V + 2 *LCD_GUN_2);
-            thaisenSetAuxPowerTypeB(thaisen_auxPowerType_24V);
-        }else{
-            LcdData.setData.s_selectaux[LCD_GUN_2] = (ICON_AUXPOWER_12V + 2 *LCD_GUN_2);
-            thaisenSetAuxPowerTypeB(thaisen_auxPowerType_12V);
+        if(LcdData.setData.s_selectaux[LCD_GUN_2] != ICON_AUXPOWER_NONE){
+            if(LcdData.setData.s_selectaux[LCD_GUN_2] == (ICON_AUXPOWER_12V + 2 *LCD_GUN_2)){
+                LcdData.setData.s_selectaux[LCD_GUN_2] = (ICON_AUXPOWER_24V + 2 *LCD_GUN_2);
+                thaisenSetAuxPowerTypeB(thaisen_auxPowerType_24V);
+            }else{
+                LcdData.setData.s_selectaux[LCD_GUN_2] = (ICON_AUXPOWER_12V + 2 *LCD_GUN_2);
+                thaisenSetAuxPowerTypeB(thaisen_auxPowerType_12V);
+            }
         }
     }
 }
@@ -6174,11 +6177,6 @@ void SerialScreen_CurrentPageItem(struct SerialScreenObj *cmd,struct LCD_DISPLAY
 				{
 					if(pPageIndex->item[index].reflash==0)
 						break;
-					//
-					if(LcdData.CurrentPageTimer%pPageIndex->item[index].reflash != 0)
-					{
-						break;
-					}
 				}
 				if(pPageIndex->item[index].valaddr != NULL)
 				{
@@ -6190,10 +6188,6 @@ void SerialScreen_CurrentPageItem(struct SerialScreenObj *cmd,struct LCD_DISPLAY
 				{
 					if(pPageIndex->item[index].reflash==0)
 						break;	
-					if(LcdData.CurrentPageTimer%pPageIndex->item[index].reflash != 0)
-					{
-						break;
-					}
 				}
 				if(pPageIndex->item[index].valaddr != NULL)
 				{
@@ -6209,11 +6203,6 @@ void SerialScreen_CurrentPageItem(struct SerialScreenObj *cmd,struct LCD_DISPLAY
 				{
 					if(pPageIndex->item[index].reflash==0)
 						break;
-					//
-					if(LcdData.CurrentPageTimer%pPageIndex->item[index].reflash != 0)
-					{
-						break;
-					}
 				}
 				if(pPageIndex->item[index].valaddr != NULL)
 				{
@@ -6264,14 +6253,6 @@ void SerialScreen_CurrentPageItem(struct SerialScreenObj *cmd,struct LCD_DISPLAY
 
 void SerialScreen_CurrentPageShow(struct SerialScreenObj *cmd,u8 state)
 {
-    //u8 tbuf[200];
-
-	LcdData.CurrentPageTimer++;
-	if(LcdData.CurrentPageTimer>=LCD_MAX_Reflash)
-	{
-		LcdData.CurrentPageTimer = 0;
-	}
-
 	for(int i=0;i<LCD_ALL_PAGE_TAB_LEN;i++)
 	{
 		if(LcdData.CurrentPage == LCD_ALL_PAGE_TAB[i].page)
@@ -6296,12 +6277,13 @@ void SerialScreen_CurrentPageShow(struct SerialScreenObj *cmd,u8 state)
 		SerialScreen_JumpPage(cmd,pPageIndex->page);
 	}
 	
-	//定时刷新
-	if(pagetimer++>=240000/(BASE_SYS_TIMER*5)) //
-	{
-		pagetimer = 0;
-		SerialScreen_JumpPage(cmd,pPageIndex->page);
-	}
+    //定时跳页
+    if(pagetimer++>=1000/BASE_SYS_TIMER) //
+    {
+        pagetimer = 0;
+        SerialScreen_JumpPage(cmd,pPageIndex->page);
+        return;
+    }
 
 	if(pagetimer%100==0)
 	{
@@ -6798,7 +6780,6 @@ void SerialScreen_Process(struct SerialScreenObj *cmd)
             LcdData.ChargingPageCountDown_Over = 0;
         }
         LcdData.CurrentPageBack = LcdData.CurrentPage;
-        LcdData.CurrentPageTimer = 0;
         //sSCREEN_DEBUGMSG("**************SerialScreen_CurrentPageShow*******************\r\n");
         SerialScreen_CurrentPageShow(cmd,0);
         LcdData.PageCountDown = thaisen_app_get_system_tick();
@@ -6806,12 +6787,15 @@ void SerialScreen_Process(struct SerialScreenObj *cmd)
     }
     else
     {
-        //if(ret)
         static u8 timer = 0;
-        if(++timer>5)
-        {
-            timer = 0;
-            //sSCREEN_DEBUGMSG("*timer++\r\n");
+
+        if(s_ota_info->start_flag){
+            if(++timer>5)
+            {
+                timer = 0;
+                SerialScreen_CurrentPageShow(cmd,1);
+            }
+        }else{
             SerialScreen_CurrentPageShow(cmd,1);
         }
     }
@@ -6888,6 +6872,7 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_STANDBY, NULL, "period2", LCD_DataType, LCD_1sReflash, 0x430A, pu32_type, sizeof(LcdData.setData.period_time[2]), (void *)&LcdData.setData.period_time[2]);
     SerialScreen_ItemSetUp(LCD_PAGE_STANDBY, NULL, "period3", LCD_DataType, LCD_1sReflash, 0x430C, pu32_type, sizeof(LcdData.setData.period_time[3]), (void *)&LcdData.setData.period_time[3]);
     SerialScreen_ItemSetUp(LCD_PAGE_STANDBY, NULL, "period price", LCD_DataType, LCD_1sReflash, 0x474A, pu32_type, sizeof(LcdData.setData.period_price), (void *)&LcdData.setData.period_price);
+    SerialScreen_ItemSetUp(LCD_PAGE_STANDBY, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
 
     /** 2.A枪选择 [page:02]*/
     SerialScreen_ItemSetUp(LCD_PAGE_A_SELECT, NULL, "net_sign", LCD_IconType, LCD_10sReflash, 0x1700, pu8_type, sizeof(LcdData.runData.netstate), (void *)&LcdData.runData.netstate);
@@ -6898,6 +6883,7 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_A_SELECT, NULL, "start charge", LCD_IconType, LCD_10sReflash, 0x1056, pu8_type, 1, (void *)&LcdData.setData.Sup_StartStyle[0][LCD_GUN_1]);
     SerialScreen_ItemSetUp(LCD_PAGE_A_SELECT, NULL, "Vin charge", LCD_IconType, LCD_10sReflash, 0x1057, pu8_type, 1, (void *)&LcdData.setData.Sup_StartStyle[1][LCD_GUN_1]);
     SerialScreen_ItemSetUp(LCD_PAGE_A_SELECT, NULL, "double charge", LCD_IconType, LCD_10sReflash, 0x1058, pu8_type, 1, (void *)&LcdData.setData.Sup_StartStyle[2][LCD_GUN_1]);
+    SerialScreen_ItemSetUp(LCD_PAGE_A_SELECT, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
 
     /** 3.B枪选择 [page:03]*/
     SerialScreen_ItemSetUp(LCD_PAGE_B_SELECT, NULL, "net_sign", LCD_IconType, LCD_10sReflash, 0x1700, pu8_type, sizeof(LcdData.runData.netstate), (void *)&LcdData.runData.netstate);
@@ -6908,6 +6894,7 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_B_SELECT, NULL, "start charge", LCD_IconType, LCD_10sReflash, 0x1056, pu8_type, 1, (void *)&LcdData.setData.Sup_StartStyle[0][LCD_GUN_2]);
     SerialScreen_ItemSetUp(LCD_PAGE_B_SELECT, NULL, "Vin charge", LCD_IconType, LCD_10sReflash, 0x1057, pu8_type, 1, (void *)&LcdData.setData.Sup_StartStyle[1][LCD_GUN_2]);
     SerialScreen_ItemSetUp(LCD_PAGE_B_SELECT, NULL, "double charge", LCD_IconType, LCD_10sReflash, 0x1058, pu8_type, 1, (void *)&LcdData.setData.Sup_StartStyle[2][LCD_GUN_2]);
+    SerialScreen_ItemSetUp(LCD_PAGE_B_SELECT, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
 
     /** 4.A枪启动 [page:04]*/
     SerialScreen_ItemSetUp(LCD_PAGE_A_START, NULL, "count down", LCD_DataType, LCD_1sReflash, 0x1040, pu16_type, sizeof(LcdData.gun[LCD_GUN_1].startCountTimer), (void *)&LcdData.gun[LCD_GUN_1].startCountTimer);
@@ -6916,6 +6903,7 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_A_START, NULL, "moduleVolt", LCD_DataType, LCD_1sReflash, 0x1714, pu32_type, sizeof(LcdData.setData.moduleVolt[LCD_GUN_1]), (void *)&LcdData.setData.moduleVolt[LCD_GUN_1]);
     SerialScreen_ItemSetUp(LCD_PAGE_A_START, NULL, "batVolt", LCD_DataType, LCD_1sReflash, 0x1716, pu32_type, sizeof(LcdData.setData.batteryVolt[LCD_GUN_1]), (void *)&LcdData.setData.batteryVolt[LCD_GUN_1]);
     SerialScreen_ItemSetUp(LCD_PAGE_A_START, NULL, "maxVolt", LCD_DataType, LCD_1sReflash, 0x1718, pu32_type, sizeof(LcdData.setData.maxChargeVolt[LCD_GUN_1]), (void *)&LcdData.setData.maxChargeVolt[LCD_GUN_1]);
+    SerialScreen_ItemSetUp(LCD_PAGE_A_START, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
 
     /** 5.B枪启动 [page:05] */
     SerialScreen_ItemSetUp(LCD_PAGE_B_START, NULL, "count down", LCD_DataType, LCD_1sReflash, 0x2040, pu16_type, sizeof(LcdData.gun[LCD_GUN_2].startCountTimer), (void *)&LcdData.gun[LCD_GUN_2].startCountTimer);
@@ -6924,6 +6912,7 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_B_START, NULL, "moduleVolt", LCD_DataType, LCD_1sReflash, 0x171E, pu32_type, sizeof(LcdData.setData.moduleVolt[LCD_GUN_2]), (void *)&LcdData.setData.moduleVolt[LCD_GUN_2]);
     SerialScreen_ItemSetUp(LCD_PAGE_B_START, NULL, "batVolt", LCD_DataType, LCD_1sReflash, 0x1720, pu32_type, sizeof(LcdData.setData.batteryVolt[LCD_GUN_2]), (void *)&LcdData.setData.batteryVolt[LCD_GUN_2]);
     SerialScreen_ItemSetUp(LCD_PAGE_B_START, NULL, "maxVolt", LCD_DataType, LCD_1sReflash, 0x1722, pu32_type, sizeof(LcdData.setData.maxChargeVolt[LCD_GUN_2]), (void *)&LcdData.setData.maxChargeVolt[LCD_GUN_2]);
+    SerialScreen_ItemSetUp(LCD_PAGE_B_START, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
 
     /** 6.A枪充电信息 [page:06] */
     SerialScreen_ItemSetUp(LCD_PAGE_A_CHGING, NULL, "net_sign", LCD_IconType, LCD_10sReflash, 0x1700, pu8_type, sizeof(LcdData.runData.netstate), (void *)&LcdData.runData.netstate);
@@ -6941,6 +6930,7 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_A_CHGING, NULL, "period price", LCD_DataType, LCD_1sReflash, 0x474A, pu32_type, sizeof(LcdData.setData.period_price), (void *)&LcdData.setData.period_price);
     SerialScreen_ItemSetUp(LCD_PAGE_A_CHGING, NULL, "ballance", LCD_DataType, LCD_1sReflash, 0x172C, pu32_type, sizeof(LcdData.gun[LCD_GUN_1].AccountBallance), (void *)&LcdData.gun[LCD_GUN_1].AccountBallance);
     SerialScreen_ItemSetUp(LCD_PAGE_A_CHGING, NULL, "consume", LCD_DataType, LCD_1sReflash, 0x1618, pu32_type, sizeof(LcdData.gun[LCD_GUN_1].totalFee), (void *)&LcdData.gun[LCD_GUN_1].totalFee);
+    SerialScreen_ItemSetUp(LCD_PAGE_A_CHGING, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
 
     /** 7.B枪充电信息 [page:07] */
     SerialScreen_ItemSetUp(LCD_PAGE_B_CHGING, NULL, "net_sign", LCD_IconType, LCD_10sReflash, 0x1700, pu8_type, sizeof(LcdData.runData.netstate), (void *)&LcdData.runData.netstate);
@@ -6958,6 +6948,7 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_B_CHGING, NULL, "period price", LCD_DataType, LCD_1sReflash, 0x474A, pu32_type, sizeof(LcdData.setData.period_price), (void *)&LcdData.setData.period_price);
     SerialScreen_ItemSetUp(LCD_PAGE_B_CHGING, NULL, "ballance", LCD_DataType, LCD_1sReflash, 0x174A, pu32_type, sizeof(LcdData.gun[LCD_GUN_2].AccountBallance), (void *)&LcdData.gun[LCD_GUN_2].AccountBallance);
     SerialScreen_ItemSetUp(LCD_PAGE_B_CHGING, NULL, "consume", LCD_DataType, LCD_1sReflash, 0x2618, pu32_type, sizeof(LcdData.gun[LCD_GUN_2].totalFee), (void *)&LcdData.gun[LCD_GUN_2].totalFee);
+    SerialScreen_ItemSetUp(LCD_PAGE_B_CHGING, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
 
     /** 8.A枪电池信息 [page:08] */
     SerialScreen_ItemSetUp(LCD_PAGE_A_CHGING_BAT, NULL, "net_sign", LCD_IconType, LCD_10sReflash, 0x1700, pu8_type, sizeof(LcdData.runData.netstate), (void *)&LcdData.runData.netstate);
@@ -6975,6 +6966,7 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_A_CHGING_BAT, NULL, "period price", LCD_DataType, LCD_1sReflash, 0x474A, pu32_type, sizeof(LcdData.setData.period_price), (void *)&LcdData.setData.period_price);
     SerialScreen_ItemSetUp(LCD_PAGE_A_CHGING_BAT, NULL, "ballance", LCD_DataType, LCD_1sReflash, 0x172C, pu32_type, sizeof(LcdData.gun[LCD_GUN_1].AccountBallance), (void *)&LcdData.gun[LCD_GUN_1].AccountBallance);
     SerialScreen_ItemSetUp(LCD_PAGE_A_CHGING_BAT, NULL, "consume", LCD_DataType, LCD_1sReflash, 0x1618, pu32_type, sizeof(LcdData.gun[LCD_GUN_1].totalFee), (void *)&LcdData.gun[LCD_GUN_1].totalFee);
+    SerialScreen_ItemSetUp(LCD_PAGE_A_CHGING_BAT, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
 
     /** 9.B枪电池信息 [page:09] */
     SerialScreen_ItemSetUp(LCD_PAGE_B_CHGING_BAT, NULL, "net_sign", LCD_IconType, LCD_10sReflash, 0x1700, pu8_type, sizeof(LcdData.runData.netstate), (void *)&LcdData.runData.netstate);
@@ -6990,8 +6982,9 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_B_CHGING_BAT, NULL, "Home", LCD_BtnHomeType, 0x0002, 0x1000, page_type, LCD_PAGE_NONE, (void *)NULL);
     SerialScreen_ItemSetUp(LCD_PAGE_B_CHGING_BAT, NULL, "SupStop", LCD_IconType, LCD_10sReflash, 0x1054, pu8_type, sizeof(LcdData.setData.Sup_Stop), (void *)&LcdData.setData.Sup_Stop);
     SerialScreen_ItemSetUp(LCD_PAGE_B_CHGING_BAT, NULL, "period price", LCD_DataType, LCD_1sReflash, 0x474A, pu32_type, sizeof(LcdData.setData.period_price), (void *)&LcdData.setData.period_price);
-    SerialScreen_ItemSetUp(LCD_PAGE_B_CHGING_BAT, NULL, "ballance", LCD_DataType, LCD_1sReflash, 0x172C, pu32_type, sizeof(LcdData.gun[LCD_GUN_2].AccountBallance), (void *)&LcdData.gun[LCD_GUN_2].AccountBallance);
-    SerialScreen_ItemSetUp(LCD_PAGE_B_CHGING_BAT, NULL, "consume", LCD_DataType, LCD_1sReflash, 0x1728, pu32_type, sizeof(LcdData.gun[LCD_GUN_2].totalFee), (void *)&LcdData.gun[LCD_GUN_2].totalFee);
+    SerialScreen_ItemSetUp(LCD_PAGE_B_CHGING_BAT, NULL, "ballance", LCD_DataType, LCD_1sReflash, 0x174A, pu32_type, sizeof(LcdData.gun[LCD_GUN_2].AccountBallance), (void *)&LcdData.gun[LCD_GUN_2].AccountBallance);
+    SerialScreen_ItemSetUp(LCD_PAGE_B_CHGING_BAT, NULL, "consume", LCD_DataType, LCD_1sReflash, 0x2618, pu32_type, sizeof(LcdData.gun[LCD_GUN_2].totalFee), (void *)&LcdData.gun[LCD_GUN_2].totalFee);
+    SerialScreen_ItemSetUp(LCD_PAGE_B_CHGING_BAT, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
 
     /** 10.A枪结算 [page:10] */
     SerialScreen_ItemSetUp(LCD_PAGE_A_ACOUNT, NULL, "Energy", LCD_DataType, LCD_1sReflash, 0x1610, pu32_type, sizeof(LcdData.gun[LCD_GUN_1].engery), (void *)&LcdData.gun[LCD_GUN_1].engery);
@@ -7002,6 +6995,7 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_A_ACOUNT, NULL, "ChgStopReason", LCD_TextType, LCD_NoReflash, 0x161A, pstr_type, sizeof(LcdData.gun[LCD_GUN_1].code_stopResaon), (void *)&LcdData.gun[LCD_GUN_1].code_stopResaon[0]);
     SerialScreen_ItemSetUp(LCD_PAGE_A_ACOUNT, NULL, "back", LCD_BtnHomeType, 0x0002, 0x1000, page_type, 0, (void *)NULL);
     SerialScreen_ItemSetUp(LCD_PAGE_A_ACOUNT, NULL, "unlock_ela", LCD_BtnType, 0x0007, 0x1000, page_type, LCD_PAGE_A_ACOUNT, (void *)SerialScreen_BtnUnElockA);
+    SerialScreen_ItemSetUp(LCD_PAGE_A_ACOUNT, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
 
     /** 11.B枪结算 [page:11] */
     SerialScreen_ItemSetUp(LCD_PAGE_B_ACOUNT, NULL, "Energy", LCD_DataType, LCD_1sReflash, 0x2610, pu32_type, sizeof(LcdData.gun[LCD_GUN_2].engery), (void *)&LcdData.gun[LCD_GUN_2].engery);
@@ -7012,22 +7006,27 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_B_ACOUNT, NULL, "ChgStopReason", LCD_TextType, LCD_NoReflash, 0x261A, pstr_type, sizeof(LcdData.gun[LCD_GUN_2].code_stopResaon), (void *)&LcdData.gun[LCD_GUN_2].code_stopResaon[0]);
     SerialScreen_ItemSetUp(LCD_PAGE_B_ACOUNT, NULL, "back", LCD_BtnHomeType, 0x0002, 0x1000, page_type, 0, (void *)NULL);
     SerialScreen_ItemSetUp(LCD_PAGE_B_ACOUNT, NULL, "unlock_elb", LCD_BtnType, 0x0008, 0x1000, page_type, LCD_PAGE_B_ACOUNT, (void *)SerialScreen_BtnUnElockB);
+    SerialScreen_ItemSetUp(LCD_PAGE_B_ACOUNT, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
 
     /** 12.A枪故障  [page:12]*/
     SerialScreen_ItemSetUp(LCD_PAGE_A_ERR, NULL, "Agun_Fault", LCD_TextType, LCD_NoReflash, 0x1530, pstr_type, sizeof(LcdData.gun[LCD_GUN_1].ErrCode), (void *)&LcdData.gun[LCD_GUN_1].ErrCode[0]);
     SerialScreen_ItemSetUp(LCD_PAGE_A_ERR, NULL, "Home", LCD_BtnHomeType, 0x0002, 0x1000, page_type, 0, (void *)NULL);
     SerialScreen_ItemSetUp(LCD_PAGE_A_ERR, NULL, "unlock_ela", LCD_BtnType, 0x0007, 0x1000, page_type, LCD_PAGE_A_ERR, (void *)SerialScreen_BtnUnElockA);
+    SerialScreen_ItemSetUp(LCD_PAGE_A_ERR, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
 
     /** 13.B枪故障 [page:13] */
     SerialScreen_ItemSetUp(LCD_PAGE_B_ERR, NULL, "Bgun_Fault", LCD_TextType, LCD_NoReflash, 0x2530, pstr_type, sizeof(LcdData.gun[LCD_GUN_2].ErrCode), (void *)&LcdData.gun[LCD_GUN_2].ErrCode[0]);
     SerialScreen_ItemSetUp(LCD_PAGE_B_ERR, NULL, "Home", LCD_BtnHomeType, 0x0002, 0x1000, page_type, 0, (void *)NULL);
     SerialScreen_ItemSetUp(LCD_PAGE_B_ERR, NULL, "unlock_elb", LCD_BtnType, 0x0008, 0x1000, page_type, LCD_PAGE_B_ERR, (void *)SerialScreen_BtnUnElockB);
+    SerialScreen_ItemSetUp(LCD_PAGE_B_ERR, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
 
     /** 14.A枪停机中 [page:14] */
     SerialScreen_ItemSetUp(LCD_PAGE_A_STOPING, NULL, NULL, LCD_IconType, LCD_NoReflash, 0, 0, 0, NULL);
+    SerialScreen_ItemSetUp(LCD_PAGE_A_STOPING, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
 
     /** 15.B枪停机中 [page:15] */
     SerialScreen_ItemSetUp(LCD_PAGE_B_STOPING, NULL, NULL, LCD_IconType, LCD_NoReflash, 0, 0, 0, NULL);
+    SerialScreen_ItemSetUp(LCD_PAGE_B_STOPING, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
 
     /** 16.系统信息-桩信息 [page:18] */
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_1, NULL, "menu sys", LCD_BtnType, 0x0025, 0x1000, page_type, LCD_PAGE_MENU_SYS, (void *)NULL);
@@ -7042,6 +7041,7 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_1, NULL, "subok", LCD_BtnType, 0x0014, 0x1000, page_type, LCD_PAGE_ROOT_MAIN, (void *)SerialScreen_BtnChgInfoSet);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_1, NULL, "cd up", LCD_BtnType, 0x0050, 0x1000, page_type, LCD_PAGE_ROOT_MAIN, (void *)NULL);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_1, NULL, "back", LCD_BtnHomeType, 0x0002, 0x1000, page_type, LCD_PAGE_NONE, (void *)NULL);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_1, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
 
     /** 17.系统信息-服务器信息 [page:19] */
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_2, NULL, "menu sys", LCD_BtnType, 0x0025, 0x1000, page_type, LCD_PAGE_MENU_SYS, (void *)NULL);
@@ -7056,6 +7056,7 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_2, NULL, "subok", LCD_BtnType, 0x0014, 0x1000, page_type, LCD_PAGE_ROOT_MAIN, (void *)SerialScreen_BtnServerSet);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_2, NULL, "cd up", LCD_BtnType, 0x0050, 0x1000, page_type, LCD_PAGE_ROOT_MAIN, (void *)NULL);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_2, NULL, "back", LCD_BtnHomeType, 0x0002, 0x1000, page_type, LCD_PAGE_NONE, (void *)NULL);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_2, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
 
     /** 18.系统信息-电表 [page:20] */
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_3, NULL, "menu sys", LCD_BtnType, 0x0025, 0x1000, page_type, LCD_PAGE_MENU_SYS, (void *)NULL);
@@ -7070,6 +7071,7 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_3, NULL, "cd up", LCD_BtnType, 0x0050, 0x1000, page_type, LCD_PAGE_ROOT_MAIN, (void *)NULL);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_3, NULL, "back", LCD_BtnHomeType, 0x0002, 0x1000, page_type, LCD_PAGE_NONE, (void *)NULL);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_3, NULL, "meter model", LCD_InputType, 0, 0x4640, menu_type, sizeof(LcdData.setData.MeterModel), (void *)&LcdData.setData.MeterModel);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_3, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
 
     /** 19.系统信息-模块信息 [page:21] */
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_4, NULL, "menu sys", LCD_BtnType, 0x0025, 0x1000, page_type, LCD_PAGE_MENU_SYS, (void *)NULL);
@@ -7093,6 +7095,7 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_4, NULL, "COM_5", LCD_BtnType, 0x000E, 0x1000, page_type, LCD_PAGE_MENU_COM_5, (void *)SerialScreen_BtnErrGetA);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_4, NULL, "cd up", LCD_BtnType, 0x0050, 0x1000, page_type, LCD_PAGE_ROOT_MAIN, (void *)NULL);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_4, NULL, "back", LCD_BtnHomeType, 0x0002, 0x1000, page_type, LCD_PAGE_NONE, (void *)NULL);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_4, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
 
     /** 20.A枪故障记录信息 [page:22] */
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_5, NULL, "COM_6", LCD_BtnType, 0x0010, 0x1000, page_type, LCD_PAGE_MENU_COM_6, (void *)SerialScreen_BtnBillGetA);
@@ -7112,6 +7115,7 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_5, NULL, "up", LCD_TrigType, 0x0009, 0x1003, page_type, LCD_GUN_1, (void *)SerialScreen_BtnErrUp);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_5, NULL, "down", LCD_TrigType, 0x000E, 0x1004, page_type, LCD_GUN_1, (void *)SerialScreen_BtnErrDown);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_5, NULL, "back", LCD_BtnHomeType, 0x0002, 0x1000, page_type, 0, (void *)NULL);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_5, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
 
     /** 21.A枪充电记录信息 [page:23] */
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_6, NULL, "COM_6", LCD_BtnType, 0x000F, 0x1000, page_type, LCD_PAGE_MENU_COM_5, (void *)SerialScreen_BtnErrGetA);
@@ -7131,10 +7135,12 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_6, NULL, "up", LCD_TrigType, 0x0009, 0x1003, page_type, LCD_GUN_1, (void *)SerialScreen_BtnBillUp);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_6, NULL, "down", LCD_TrigType, 0x000E, 0x1004, page_type, LCD_GUN_1, (void *)SerialScreen_BtnBillDown);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_6, NULL, "back", LCD_BtnHomeType, 0x0002, 0x1000, page_type, LCD_PAGE_NONE, (void *)NULL);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_6, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
 
     /** 22.密码输入 [page:24] */
     SerialScreen_ItemSetUp(LCD_PAGE_ADMIN_PASWD, NULL, "passwd", LCD_inputPwdType, 10, 0x1210, pstr_type, LCD_PAGE_ROOT_MAIN, (void *)&LcdData.setData.UserPasswdShow);
     SerialScreen_ItemSetUp(LCD_PAGE_ADMIN_PASWD, NULL, "back", LCD_BtnType, 0x0013, 0x1000, page_type, LCD_PAGE_SYS_INFO, (void *)NULL);
+    SerialScreen_ItemSetUp(LCD_PAGE_ADMIN_PASWD, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
 
     /** 23.B枪充电记录信息 [page:27] */
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_6B, NULL, "COM_5", LCD_BtnType, 0x000F, 0x1000, page_type, LCD_PAGE_MENU_COM_5, (void *)SerialScreen_BtnErrGetA);
@@ -7154,6 +7160,7 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_6B, NULL, "up", LCD_TrigType, 0x0009, 0x1000, page_type, LCD_GUN_2, (void *)SerialScreen_BtnBillUp);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_6B, NULL, "down", LCD_TrigType, 0x000E, 0x1000, page_type, LCD_GUN_2, (void *)SerialScreen_BtnBillDown);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_6B, NULL, "back", LCD_BtnHomeType, 0x0002, 0x1000, page_type, LCD_PAGE_NONE, (void *)NULL);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_6B, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
 
     /** 24.B枪故障记录信息 [page:28] */
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_5B, NULL, "COM_6", LCD_BtnType, 0x0010, 0x1000, page_type, LCD_PAGE_MENU_COM_6, (void *)SerialScreen_BtnBillGetA);
@@ -7173,12 +7180,15 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_5B, NULL, "up", LCD_TrigType, 0x0009, 0x1000, page_type, LCD_GUN_2, (void *)SerialScreen_BtnErrUp);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_5B, NULL, "down", LCD_TrigType, 0x000E, 0x1000, page_type, LCD_GUN_2, (void *)SerialScreen_BtnErrDown);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_5B, NULL, "back", LCD_BtnHomeType, 0x0002, 0x1000, page_type, 0, (void *)NULL);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_5B, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
 
     /** 25.密码错误 [page:29] */
     SerialScreen_ItemSetUp(LCD_PAGE_PASWD_ERR, NULL, "cdup", LCD_BtnType, 0x0016, 0x1000, page_type, LCD_PAGE_ADMIN_PASWD, (void *)NULL);
+    SerialScreen_ItemSetUp(LCD_PAGE_PASWD_ERR, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
 
     /** 26.远程升级 [page:37] */
     SerialScreen_ItemSetUp(LCD_PAGE_SYS_UPDATE, NULL, "Progress value", LCD_InputType, 0, 0x1800, pu16_type, sizeof(LcdData.setData.ota_progress), (void *)&LcdData.setData.ota_progress);
+    SerialScreen_ItemSetUp(LCD_PAGE_SYS_UPDATE, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
 
     /** 27.系统信息 [page:38] */
     SerialScreen_ItemSetUp(LCD_PAGE_SYS_INFO, NULL, "Longitude", LCD_DataType, LCD_NoReflash, 0x4000, pu32_type, sizeof(LcdData.setData.Longitude), (void *)&LcdData.setData.Longitude);
@@ -7192,12 +7202,14 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_SYS_INFO, NULL, "COM_5", LCD_BtnType, 0x000F, 0x1000, page_type, LCD_PAGE_MENU_COM_5, (void *)SerialScreen_BtnErrGetA);
     SerialScreen_ItemSetUp(LCD_PAGE_SYS_INFO, NULL, "root paswd", LCD_BtnType, 0x0017, 0x1000, page_type, LCD_PAGE_ADMIN_PASWD, (void *)SerialScreen_NeedPageReset);
     SerialScreen_ItemSetUp(LCD_PAGE_SYS_INFO, NULL, "Home", LCD_BtnHomeType, 0x0002, 0x1000, page_type, LCD_PAGE_NONE, (void *)NULL);
+    SerialScreen_ItemSetUp(LCD_PAGE_SYS_INFO, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
 
     /** 28.主界面 [page:39] */
     SerialScreen_ItemSetUp(LCD_PAGE_ROOT_MAIN, NULL, "sys info", LCD_BtnType, 0x0019, 0x1000, page_type, LCD_PAGE_MENU_SYS, (void *)NULL);
     SerialScreen_ItemSetUp(LCD_PAGE_ROOT_MAIN, NULL, "factory set", LCD_BtnType, 0x001A, 0x1000, page_type, LCD_PAGE_MENU_INPUT, (void *)SerialScreen_InputInfoGet);
     SerialScreen_ItemSetUp(LCD_PAGE_ROOT_MAIN, NULL, "factory debug", LCD_BtnType, 0x001B, 0x1000, page_type, LCD_PAGE_MENU_MONITOR, (void *)NULL);
     SerialScreen_ItemSetUp(LCD_PAGE_ROOT_MAIN, NULL, "Home", LCD_BtnHomeType, 0x0002, 0x1000, page_type, LCD_PAGE_NONE, (void *)NULL);
+    SerialScreen_ItemSetUp(LCD_PAGE_ROOT_MAIN, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
 
     /** 29.系统信息-VIN码 [page:40] */
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_7, NULL, "COM_1", LCD_BtnType, 0x000A, 0x1000, page_type, LCD_PAGE_MENU_COM_1, (void *)SerialScreen_BtnChgInfoGet);
@@ -7214,6 +7226,7 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_7, NULL, "vin4", LCD_InputType, 0, 0x40A6, pstr_type, sizeof(LcdData.setData.s_vin_lists[3]), (void *)LcdData.setData.s_vin_lists[3]);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_7, NULL, "vin5", LCD_InputType, 0, 0x40B7, pstr_type, sizeof(LcdData.setData.s_vin_lists[4]), (void *)LcdData.setData.s_vin_lists[4]);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_7, NULL, "vin6", LCD_InputType, 0, 0x40C8, pstr_type, sizeof(LcdData.setData.s_vin_lists[5]), (void *)LcdData.setData.s_vin_lists[5]);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_7, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
 
     /** 30.出厂设置-输入信息 [page:41] */
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INPUT, NULL, "menu protect", LCD_BtnType, 0x0020, 0x1000, page_type, LCD_PAGE_MENU_PROTECT, (void *)SerialScreen_BtnProtectInfoGet);
@@ -7248,6 +7261,7 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INPUT, NULL, "subok", LCD_BtnType, 0x0014, 0x1000, page_type, LCD_PAGE_ROOT_MAIN, (void *)SerialScreen_InputSetFlash);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INPUT, NULL, "cd up", LCD_BtnType, 0x0050, 0x1000, page_type, LCD_PAGE_ROOT_MAIN, (void *)NULL);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INPUT, NULL, "Home", LCD_BtnHomeType, 0x0002, 0x1000, page_type, LCD_PAGE_NONE, (void *)NULL);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_INPUT, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
 
     /** 31.出厂设置-输出信息 [page:42] */
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_OUTPUT, NULL, "menu input", LCD_BtnType, 0x001E, 0x1000, page_type, LCD_PAGE_MENU_INPUT, (void *)SerialScreen_InputInfoGet);
@@ -7255,6 +7269,7 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_OUTPUT, NULL, "menu config", LCD_BtnType, 0x0021, 0x1000, page_type, LCD_PAGE_MENU_CONFIG, (void *)SerialScreen_IsSupportGet);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_OUTPUT, NULL, "cd up", LCD_BtnType, 0x0050, 0x1000, page_type, LCD_PAGE_ROOT_MAIN, (void *)NULL);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_OUTPUT, NULL, "Home", LCD_BtnHomeType, 0x0002, 0x1000, page_type, LCD_PAGE_NONE, (void *)NULL);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_OUTPUT, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
 
     /** 32.出厂设置-保护信息 [page:43] */
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_PROTECT, NULL, "menu input", LCD_BtnType, 0x001E, 0x1000, page_type, LCD_PAGE_MENU_INPUT, (void *)SerialScreen_InputInfoGet);
@@ -7276,6 +7291,7 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_PROTECT, NULL, "GunVolt", LCD_InputType, 0, 0x4144, pu16_type, sizeof(LcdData.setData.GunVolt_LimitValue), (void *)&LcdData.setData.GunVolt_LimitValue);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_PROTECT, NULL, "powerP", LCD_InputType, 0, 0x4148, pu16_type, sizeof(LcdData.setData.PowerPercent), (void *)&LcdData.setData.PowerPercent);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_PROTECT, NULL, "ElossP", LCD_InputType, 0, 0x4660, pu16_type, sizeof(LcdData.setData.ElossProprotion), (void *)&LcdData.setData.ElossProprotion);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_PROTECT, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
 
     /** 33.出厂设置-功能配置 [page:44] */
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_CONFIG, NULL, "locoal set", LCD_BtnType, 0x003d, 0x1000, page_type, LCD_PAGE_MENU_CONFIG, (void *)SerialScreen_IsSupportSet);
@@ -7305,6 +7321,7 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_CONFIG, NULL, "cd up", LCD_BtnType, 0x0050, 0x1000, page_type, LCD_PAGE_ROOT_MAIN, (void *)NULL);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_CONFIG, NULL, "Home", LCD_BtnHomeType, 0x0002, 0x1000, page_type, LCD_PAGE_NONE, (void *)NULL);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_CONFIG, NULL, "password", LCD_InputType, 0, 0x3928, pstr_type, (sizeof(LcdData.setData.UserPasswdShow) + 1), (void *)(LcdData.setData.UserPasswdShow));
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_CONFIG, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
 
     /** 34.出厂调试-A枪监控信息 [page:45] */
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_MONITOR, NULL, "b gun", LCD_BtnType, 0x0026, 0x1000, page_type, LCD_PAGE_MENU_MONITOR_B, (void *)NULL);
@@ -7325,6 +7342,7 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_MONITOR, NULL, "Home", LCD_BtnHomeType, 0x0002, 0x1000, page_type, LCD_PAGE_NONE, (void *)SerialScreen_QuitDebugIO);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_MONITOR, NULL, "start", LCD_BtnType, 0x004E, 0x1000, page_type, LCD_PAGE_MENU_MONITOR, (void *)SerialScreen_BtnModuleStartA);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_MONITOR, NULL, "stop", LCD_BtnType, 0x004F, 0x1000, page_type, LCD_PAGE_MENU_MONITOR, (void *)SerialScreen_BtnModuleStopA);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_MONITOR, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
 
     /** 35.出厂调试-B枪监控信息 [page:46] */
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_MONITOR_B, NULL, "a gun", LCD_BtnType, 0x0026, 0x1000, page_type, LCD_PAGE_MENU_MONITOR, (void *)NULL);
@@ -7345,6 +7363,7 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_MONITOR_B, NULL, "Home", LCD_BtnHomeType, 0x0002, 0x1000, page_type, LCD_PAGE_NONE, (void *)SerialScreen_QuitDebugIO);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_MONITOR_B, NULL, "start", LCD_BtnType, 0x004E, 0x1000, page_type, LCD_PAGE_MENU_MONITOR_B, (void *)SerialScreen_BtnModuleStartB);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_MONITOR_B, NULL, "stop", LCD_BtnType, 0x004F, 0x1000, page_type, LCD_PAGE_MENU_MONITOR_B, (void *)SerialScreen_BtnModuleStopB);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_MONITOR_B, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
 
     /** 36.出厂调试-A枪输入输出 [page:47] */
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT, NULL, "AC set", LCD_BtnType, 0x003E, 0x1000, page_type, LCD_PAGE_MENU_INOUT, (void *)SerialScreen_BtnAcSet);
@@ -7382,6 +7401,7 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT, NULL, "modeule state", LCD_BtnType, 0x0024, 0x1000, page_type, LCD_PAGE_MENU_STATE_MODULE, (void *)SerialScreen_BtnModuleStateA);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT, NULL, "cd up", LCD_BtnType, 0x0050, 0x1000, page_type, LCD_PAGE_ROOT_MAIN, (void *)SerialScreen_QuitDebugIO);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT, NULL, "Home", LCD_BtnHomeType, 0x0002, 0x1000, page_type, LCD_PAGE_NONE, (void *)SerialScreen_QuitDebugIO);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
 
     /** 37.出厂调试-B枪输入输出 [page:48] */
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT_B, NULL, "AC set", LCD_BtnType, 0x0045, 0x1000, page_type, LCD_PAGE_MENU_INOUT_B, (void *)SerialScreen_BtnAcSet);
@@ -7416,6 +7436,7 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT_B, NULL, "modeule state", LCD_BtnType, 0x0024, 0x1000, page_type, LCD_PAGE_MENU_STATE_MODULE_B, (void *)SerialScreen_BtnModuleStateB);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT_B, NULL, "cd up", LCD_BtnType, 0x0050, 0x1000, page_type, LCD_PAGE_ROOT_MAIN, (void *)SerialScreen_QuitDebugIO);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT_B, NULL, "Home", LCD_BtnHomeType, 0x0002, 0x1000, page_type, LCD_PAGE_NONE, (void *)SerialScreen_QuitDebugIO);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT_B, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
 
     /** 38.出厂调试-A枪模块信息 [page:49] */
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_STATE_MODULE, NULL, "b gun", LCD_BtnType, 0x0026, 0x1000, page_type, LCD_PAGE_MENU_STATE_MODULE_B, (void *)SerialScreen_BtnModuleStateB);
@@ -7439,6 +7460,7 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_STATE_MODULE, NULL, "modulestate", LCD_TextType, LCD_NoReflash, 0x52D0, pstr_type, sizeof(LcdData.ModuleStateString[13]), (void *)LcdData.ModuleStateString[13]);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_STATE_MODULE, NULL, "modulestate", LCD_TextType, LCD_NoReflash, 0x52E0, pstr_type, sizeof(LcdData.ModuleStateString[14]), (void *)LcdData.ModuleStateString[14]);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_STATE_MODULE, NULL, "modulestate", LCD_TextType, LCD_NoReflash, 0x52F0, pstr_type, sizeof(LcdData.ModuleStateString[15]), (void *)LcdData.ModuleStateString[15]);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_STATE_MODULE, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
 
     /** 39.出厂调试-B枪模块信息 [page:50] */
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_STATE_MODULE_B, NULL, "a gun", LCD_BtnType, 0x0026, 0x1000, page_type, LCD_PAGE_MENU_STATE_MODULE, (void *)SerialScreen_BtnModuleStateA);
@@ -7462,6 +7484,7 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_STATE_MODULE_B, NULL, "modulestate", LCD_TextType, LCD_NoReflash, 0x52D0, pstr_type, sizeof(LcdData.ModuleStateString[13]), (void *)LcdData.ModuleStateString[13]);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_STATE_MODULE_B, NULL, "modulestate", LCD_TextType, LCD_NoReflash, 0x52E0, pstr_type, sizeof(LcdData.ModuleStateString[14]), (void *)LcdData.ModuleStateString[14]);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_STATE_MODULE_B, NULL, "modulestate", LCD_TextType, LCD_NoReflash, 0x52F0, pstr_type, sizeof(LcdData.ModuleStateString[15]), (void *)LcdData.ModuleStateString[15]);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_STATE_MODULE_B, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
 
     /** 40.系统信息-系统 [page:54] */
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_SYS, NULL, "clear info", LCD_BtnType, 0x001d, 0x1000, page_type, LCD_PAGE_ROOT_MAIN, (void *)SerialScreen_BtnClearAll);
@@ -7483,6 +7506,7 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_SYS, NULL, "TimeSecond", LCD_InputType, 0, 0x419E, pu32_type, sizeof(LcdData.setData.s_TimeSync[5]), (void *)&LcdData.setData.s_TimeSync[5]);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_SYS, NULL, "TimeSyncSet", LCD_BtnType, 0x0014, 0x1000, page_type, LCD_PAGE_MENU_SYS, (void *)SerialScreen_ScreenSet_TimeSync_Flag);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_SYS, NULL, "Reboot", LCD_BtnType, 0x0002, 0x1005, page_type, LCD_PAGE_MENU_SYS, (void *)SerialScreen_ScreenSet_Reboot_Flag);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_SYS, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
 
     /** 41.出厂设置-离线费率 [page:62] */
     SerialScreen_ItemSetUp(LCD_PAGE_OFFLINE_BILLING, NULL, "input info", LCD_BtnType, 0x001E, 0x1000, page_type, LCD_PAGE_MENU_INPUT, (void *)SerialScreen_InputInfoGet);   //OK
@@ -7550,11 +7574,13 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
 
     SerialScreen_ItemSetUp(LCD_PAGE_OFFLINE_BILLING, NULL, "back", LCD_BtnType, 0x0050, 0x1000, page_type, LCD_PAGE_ROOT_MAIN, (void *)NULL);  //OK
     SerialScreen_ItemSetUp(LCD_PAGE_OFFLINE_BILLING, NULL, "home", LCD_BtnHomeType, 0x0002, 0x1000, page_type, LCD_PAGE_NONE, (void *)NULL);    //0K
+    SerialScreen_ItemSetUp(LCD_PAGE_OFFLINE_BILLING, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
 
     /** 42.告警信息 [page:78] */
     SerialScreen_ItemSetUp(LCD_PAGE_WARNNING_INFO, NULL, "home", LCD_BtnHomeType, 0x0002, 0x1000, page_type, LCD_PAGE_NONE, (void *)NULL);    //0K
     SerialScreen_ItemSetUp(LCD_PAGE_WARNNING_INFO, NULL, "count down", LCD_TextType, LCD_1sReflash, 0x2040, pstr_type, sizeof(LcdData.setData.OB_CountDownString), (void *)LcdData.setData.OB_CountDownString);
     SerialScreen_ItemSetUp(LCD_PAGE_WARNNING_INFO, NULL, "Icon warn", LCD_IconType, LCD_10sReflash, 0x173F, pu8_type, sizeof(LcdData.setData.OBEventwarning), (void *)&LcdData.setData.OBEventwarning);
+    SerialScreen_ItemSetUp(LCD_PAGE_WARNNING_INFO, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
 
     /** 43.A枪离线计费结算 [page:79] */
     SerialScreen_ItemSetUp(LCD_PAGE_OB_PYA_A, NULL, "home", LCD_BtnHomeType, 0x0002, 0x1000, page_type, LCD_PAGE_NONE, (void *)NULL);    //0K
@@ -7567,6 +7593,7 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_OB_PYA_A, NULL, "Acc Ballance", LCD_DataType, LCD_NoReflash, 0x172C, pu32_type, sizeof(LcdData.gun[LCD_GUN_1].AccountBallance), (void *)&LcdData.gun[LCD_GUN_1].AccountBallance);
     SerialScreen_ItemSetUp(LCD_PAGE_OB_PYA_A, NULL, "ChgStopReason", LCD_TextType, LCD_NoReflash, 0x161A, pstr_type, sizeof(LcdData.gun[LCD_GUN_1].code_stopResaon), (void *)&LcdData.gun[LCD_GUN_1].code_stopResaon[0]);
     SerialScreen_ItemSetUp(LCD_PAGE_OB_PYA_A, NULL, "help number", LCD_TextType, LCD_NoReflash, 0x11A0, pstr_type, sizeof(LcdData.setData.Help_Number), (void *)LcdData.setData.Help_Number);
+    SerialScreen_ItemSetUp(LCD_PAGE_OB_PYA_A, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
 
     /** 44.B枪离线计费结算 [page:80] */
     SerialScreen_ItemSetUp(LCD_PAGE_OB_PYA_B, NULL, "home", LCD_BtnHomeType, 0x0002, 0x1000, page_type, LCD_PAGE_NONE, (void *)NULL);    //0K
@@ -7579,6 +7606,7 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_OB_PYA_B, NULL, "Acc Ballance", LCD_DataType, LCD_NoReflash, 0x174A, pu32_type, sizeof(LcdData.gun[LCD_GUN_2].AccountBallance), (void *)&LcdData.gun[LCD_GUN_2].AccountBallance);
     SerialScreen_ItemSetUp(LCD_PAGE_OB_PYA_B, NULL, "ChgStopReason", LCD_TextType, LCD_NoReflash, 0x261A, pstr_type, sizeof(LcdData.gun[LCD_GUN_2].code_stopResaon), (void *)&LcdData.gun[LCD_GUN_2].code_stopResaon[0]);
     SerialScreen_ItemSetUp(LCD_PAGE_OB_PYA_B, NULL, "help number", LCD_TextType, LCD_NoReflash, 0x11A0, pstr_type, sizeof(LcdData.setData.Help_Number), (void *)LcdData.setData.Help_Number);
+    SerialScreen_ItemSetUp(LCD_PAGE_OB_PYA_B, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
 
     for(u8 i = 0; i < LCD_GUN_NUM; i++)
         LcdAssistantData.SeveralGunFlag[i].IsPowerOn = 0;
