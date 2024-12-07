@@ -181,6 +181,7 @@ s8 SerialScreen_Get_SetELossProportion_Flag(void);
 void SerialScreen_ScreenGet_TimeSync(u16* buf, u8 len);
 u8 SerialScreen_ScreenGet_Reboot_Flag(void);
 void SerialScreen_ScreenClear_Reboot_Flag(void);
+u8 SerialScreen_ScreenGet_Is_FirstPage(void);
 s32 SerialScreen_ScreenSet_Trigger_Event(u8 Event, u16 DurationTime, u8 JustNotice, u8 port);
 /********************************输出信息*******************************************/
 void SerialScreen_AcIsSupportOutSet(void);

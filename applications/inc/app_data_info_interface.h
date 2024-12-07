@@ -345,6 +345,11 @@ int32_t thaisen_set_trigger_event(enum thaisen_trig_event event, uint16_t durati
  **/
 uint8_t thaisen_is_online_start(uint8_t gunno);
 
+/**
+ * 判断是否是不允许刷卡启动的页面
+ **/
+uint8_t thaisen_is_not_allow_swip_card(void);
+
 #endif /* APPLICATIONS_INC_APP_DATA_INFO_INTERFACE_H_ */
 
 

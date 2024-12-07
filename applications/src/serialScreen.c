@@ -1056,6 +1056,14 @@ void SerialScreen_ScreenClear_Reboot_Flag(void)
     LcdAssistantData.Flag.IsClickReboot = FALSE;
 }
 
+u8 SerialScreen_ScreenGet_Is_FirstPage(void)
+{
+    if(LcdData.CurrentPage == LCD_PAGE_STANDBY){
+        return TRUE;
+    }
+    return FALSE;
+}
+
 /*******************************************************************************************
  * 函数名      SerialScreen_ScreenSet_Trigger_Event
  * 功能         设置屏幕外部触发事件

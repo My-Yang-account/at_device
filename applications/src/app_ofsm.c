@@ -983,6 +983,10 @@ static void ofsm_readying_fun(uint8_t gunno)
             uint8_t need_authorize_online = APP_THA_ENUM_FALSE;
             rfidr_clear_swipe_state(gunno);
 
+            if(thaisen_is_not_allow_swip_card()){
+                LOG_D("gunno(%d) current page is not allow swip card charge", gunno);
+                return;
+            }
             if(rfidr_query_info_type() == APP_RFIDR_INFO_TYPE_CARD_NUMBER){
                 uint8_t pile_number_len = APP_CARD_NUMBER_COMPARE_LEN, card_number_len = rfidr_query_card_number_len(),
                         compare_len = 0, count = 0;
@@ -4077,6 +4081,10 @@ static void ofsm_finishing_fun(uint8_t gunno)
             uint8_t need_authorize_online = APP_THA_ENUM_FALSE;
             rfidr_clear_swipe_state(gunno);
 
+            if(thaisen_is_not_allow_swip_card()){
+                LOG_D("gunno(%d) current page is not allow swip card charge", gunno);
+                return;
+            }
             if(rfidr_query_info_type() == APP_RFIDR_INFO_TYPE_CARD_NUMBER){
                 uint8_t pile_number_len = APP_CARD_NUMBER_COMPARE_LEN, card_number_len = rfidr_query_card_number_len(),
                         compare_len = 0, count = 0;
@@ -4851,6 +4859,10 @@ static void ofsm_faulting_fun(uint8_t gunno)
                     uint8_t need_authorize_online = APP_THA_ENUM_FALSE;
                     rfidr_clear_swipe_state(gunno);
 
+                    if(thaisen_is_not_allow_swip_card()){
+                        LOG_D("gunno(%d) current page is not allow swip card charge", gunno);
+                        return;
+                    }
                     if(rfidr_query_info_type() == APP_RFIDR_INFO_TYPE_CARD_NUMBER){
                         uint8_t pile_number_len = APP_CARD_NUMBER_COMPARE_LEN, card_number_len = rfidr_query_card_number_len(),
                                 compare_len = 0, count = 0;

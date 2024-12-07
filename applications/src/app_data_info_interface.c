@@ -1450,3 +1450,17 @@ uint8_t thaisen_is_online_start(uint8_t gunno)
     }
     return 0x01;
 }
+
+/********************************************
+ * 函数名      thaisen_is_not_allow_swip_card
+ * 功能         判断是否是不允许刷卡启动的页面
+ *
+ * 返回         > 1:是，0:不是
+ *******************************************/
+uint8_t thaisen_is_not_allow_swip_card(void)
+{
+    if(SerialScreen_ScreenGet_Is_FirstPage()){
+        return 0x01;
+    }
+    return 0x00;
+}
