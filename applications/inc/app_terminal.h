@@ -16,6 +16,13 @@ extern "C" {
 #endif
 
 void terminal_thread_entry(void *parameter);
+void terminal_req_thread_entry(void *parameter);
+uint8_t terminal_is_ems_adjust_power(void);
+void terminal_clear_is_ems_adjust_power(void);
+uint16_t terminal_get_ems_set_power(void);
+uint16_t terminal_get_ems_soc(void);
+uint16_t terminal_get_ems_voltage();
+uint16_t terminal_get_ems_current();
 
 #ifdef __cplusplus
 }

@@ -46,6 +46,9 @@ static rt_uint8_t hci_res_thread_stack[512];
 static struct rt_thread terminal_thread;
 static rt_uint8_t terminal_thread_stack[2048];
 
+static struct rt_thread terminal_req_thread;
+static rt_uint8_t terminal_req_thread_stack[1024];
+
 /**************************************************************************/
 
 void app_led_init(void)
@@ -104,10 +107,15 @@ void app_terminal_init(void)
 {
     rt_err_t result = RT_EOK;
 
-    result = rt_thread_init(&terminal_thread, "task_terminal",
+    result = rt_thread_init(&terminal_thread, "terminal_res",
             terminal_thread_entry, RT_NULL, terminal_thread_stack, sizeof(terminal_thread_stack), 19, 10);
     if (RT_EOK == result) {
         rt_thread_startup(&terminal_thread);
+    }
+    result = rt_thread_init(&terminal_req_thread, "terminal_req",
+            terminal_req_thread_entry, RT_NULL, terminal_req_thread_stack, sizeof(terminal_req_thread_stack), 16, 10);
+    if (RT_EOK == result) {
+        rt_thread_startup(&terminal_req_thread);
     }
 }
 

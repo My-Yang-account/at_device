@@ -66,7 +66,7 @@ int32_t bsp_terminal_serial_init(void)
     }
 
     /* step2：修改串口配置参数 */
-    s_terminal_config.baud_rate = BAUD_RATE_115200;
+    s_terminal_config.baud_rate = BAUD_RATE_9600;
     s_terminal_config.data_bits = DATA_BITS_8;
     s_terminal_config.stop_bits = STOP_BITS_1;
     s_terminal_config.bufsz     = 256;
@@ -143,9 +143,9 @@ int32_t bsp_hci_serial_init(void)
     return 0;
 }
 
-void terminal_send_data(char *data)
+void terminal_send_data(uint8_t *data,uint8_t len)
 {
-    rt_device_write(g_terminal_serial, 0, data, strlen(data));
+    rt_device_write(g_terminal_serial, 0, data, len);
 }
 
 void hci_send_data(uint8_t *data, uint8_t len)

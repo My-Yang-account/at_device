@@ -27,6 +27,7 @@
 #include "app_support_func.h"
 #include "app_data_info_interface.h"
 #include "app_rfid_reader.h"
+#include "app_terminal.h"
 
 #include "mw_cc1.h"
 #include "mw_charge_control.h"
@@ -543,7 +544,7 @@ void chargepile_power_adjust(void)
         }
     }
     /** 上电判断之前桩是否被设置过功率，如果是则需要进行功率调节 */
-    if((thaisen_is_set_power_percent() || s_power_on == 0) && server_adjust_power == false){
+    if((thaisen_is_set_power_percent() || terminal_is_ems_adjust_power() || s_power_on == 0) && server_adjust_power == false){
         uint32_t power = *((uint32_t*)(sys_read_config_item_content(CONFIG_ITEM_SYSTEM_POWER_TOTAL, 0)));
         uint32_t sys_power_max = 0x00, single_module_power = 0x00;
         uint8_t group = *(sys_read_config_item_content(CONFIG_ITEM_MODULE_GROUP_NUM, 0));
@@ -609,7 +610,10 @@ void chargepile_power_adjust(void)
     }
 //    LOG_W("s_power_adjust_delay|%d, %d, %d, %d", s_power_adjust_delay, set_volt, s_system_power_output *10 /set_volt, charge_type);
     /** 经过一次调整后需等待一定时间使其输出稳定后再进行查询并调节 */
-    if((++s_power_adjust_delay > ADJUST_PERIOD) || server_adjust_power || s_power_on == 0 ){
+    if((++s_power_adjust_delay > ADJUST_PERIOD) || server_adjust_power || s_power_on == 0 || terminal_is_ems_adjust_power()){
+        if(terminal_is_ems_adjust_power()){
+            terminal_clear_is_ems_adjust_power();
+        }
         for(gunno = 0; gunno < APP_SYSTEM_GUNNO_SIZE; gunno++){
             allocation_power[gunno] = s_system_power_output *10 / APP_SYSTEM_GUNNO_SIZE;  /* 100倍 */
             if(set_volt[gunno]){
