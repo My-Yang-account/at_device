@@ -1339,8 +1339,14 @@ static void SerialScreen_RealTime_InfoGet(void)
         LcdData.setData.moduleVolt[gunno] = thaisen_get_module_volt(gunno) *10;
         if(gunno == LCD_GUN_1){
             LcdData.setData.samplingVolt[gunno] = TH_get_A_Insult_Volt() *10;
+            if(LcdData.setData.samplingVolt[gunno] > (LcdData.setData.moduleVolt[gunno] + 50)){   //因采样误差，暂时做限制处理(5V)
+                LcdData.setData.samplingVolt[gunno] = (LcdData.setData.moduleVolt[gunno] + 50);
+            }
         }else{
             LcdData.setData.samplingVolt[gunno] = TH_get_B_Insult_Volt() *10;
+            if(LcdData.setData.samplingVolt[gunno] > (LcdData.setData.moduleVolt[gunno] + 50)){   //因采样误差，暂时做限制处理(5V)
+                LcdData.setData.samplingVolt[gunno] = (LcdData.setData.moduleVolt[gunno] + 50);
+            }
         }
     }
 }
