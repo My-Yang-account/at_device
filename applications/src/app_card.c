@@ -555,6 +555,19 @@ static void app_card_data_update(void* handle)
 static int32_t app_card_info_process(void* handle)
 {
     if((*(sys_read_config_item_content(CONFIG_ITEM_SUPORT_OFFLINE_BILLING, 0))) != 0x01){
+        if((rfidr_query_info_type() == APP_RFIDR_INFO_TYPE_UUID) ||
+                (rfidr_query_info_type() == APP_RFIDR_INFO_TYPE_CARD_NUMBER)){
+
+            struct ofsm_info *ofsm = NULL;
+            s_rfidr = (rfid_reader*)handle;
+            for(uint8_t gunno = 0x00; gunno < APP_SYSTEM_GUNNO_SIZE; gunno++){
+                ofsm = get_ofsm_info(gunno);
+                if((memcmp(s_rfidr->uuid, ofsm->base.card_uid, s_rfidr->uuid_len) == 0x00) &&
+                        (ofsm->base.state.current == APP_OFSM_STATE_CHARGING)){
+                    s_rfidr->current_port = gunno;
+                }
+            }
+        }
         return 0x00;
     }
     s_rfidr = (rfid_reader*)handle;

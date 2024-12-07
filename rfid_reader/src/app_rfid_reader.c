@@ -144,7 +144,11 @@ static void rfidr_thread_entry(void *parameter)
 
             if(key >= APP_RFIDR_KEY_TYPE_SIZE){
                 s_rfidr_state = APP_RFIDR_STATE_OFFFIELD;
-                s_rfidr_handle.swip_state |= (0x01 <<s_rfidr_handle.current_port);
+
+                if(s_rfidr_handle.info_process){
+                    ret = s_rfidr_handle.info_process(&s_rfidr_handle);
+                }
+                s_rfidr_handle.swip_state |= (1 <<s_rfidr_handle.current_port);
 
                 LOG_D("rfidr card key authen fail\n");
             }

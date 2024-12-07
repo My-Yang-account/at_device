@@ -3084,6 +3084,14 @@ static void ofsm_charging_fun(uint8_t gunno)
                 LOG_W("gunno(%d) card number is not match|%s, %s", gunno, s_ofsm_info[gunno].base.card_number, rfidr_query_card_number());
                 return;
             }
+
+            compare_count = sizeof(s_ofsm_info[gunno].base.card_uid);
+            compare_count = compare_count > rfidr_query_uuid_len() ? rfidr_query_uuid_len() : compare_count;
+            if(memcmp(s_ofsm_info[gunno].base.card_uid, rfidr_query_uuid(), compare_count)){
+                app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
+                LOG_W("gunno(%d) card uuid is not match", gunno);
+                return;
+            }
             app_rfidr_send_mail(APP_BUZZON_STATE_OK);
 
             if(s_ofsm_info[gunno].base.start_type == APP_CHARGE_START_WAY_ONLINE_CARD){
