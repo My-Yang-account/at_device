@@ -6690,6 +6690,20 @@ int SerialScreen_DataProcess()
 			//sSCREEN_EVENT_DEBUGMSG(" chgStatus[%d]= %02x\r\n",i,thaisen_get_charg_status(i));
 
             if(LcdData.gun[i].workStateLast != LcdData.gun[i].workState){
+                if(LcdData.gun[i].workState == SysMainStatus_PlugIn){
+                    LcdData.Homeflg = 0;
+                    if(i == LCD_GUN_1){
+                        if(LcdData.gun[LCD_GUN_2].workState != SysMainStatus_StartReady){
+                            LcdData.CurrentPage = LCD_PAGE_A_SELECT;
+                            LcdData.gunIndex = LCD_GUN_1;
+                        }
+                    }else{
+                        if(LcdData.gun[LCD_GUN_1].workState != SysMainStatus_StartReady){
+                            LcdData.CurrentPage = LCD_PAGE_B_SELECT;
+                            LcdData.gunIndex = LCD_GUN_2;
+                        }
+                    }
+                }
                 LcdData.gun[i].workStateLast = LcdData.gun[i].workState;
             }
 		}
