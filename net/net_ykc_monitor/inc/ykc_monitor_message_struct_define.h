@@ -293,7 +293,7 @@ enum ykc_monitor_cmd{
     NETYKC_MONITOR_SREQCMD_QUERY_SET_VOLTCURR = 0xCC,                /* 指令：运营平台查询给模块设置的电压、电流 */
     NETYKC_MONITOR_PRES_PREQCMD_QUERY_SET_VOLTCURR = 0xCD,           /* 指令：上报(响应)给模块设置的电压、电流 */
 
-    NETYKC_MONITOR_PREQ_REPORT_STARTING_INFO = 0xCE,                 /* 指令：上报启动中信息 */
+    NETYKC_MONITOR_PREQ_REPORT_STARTING_INFO = 0xD7,                 /* 指令：上报过程中信息 */
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
 };
 
@@ -1410,7 +1410,7 @@ struct value{
     uint16_t symbol : 1;                         /* 数据的符号(0：正值，1：负值) */
     uint16_t data : 15;                          /* 数据(绝对值，0.1精度) */
 };
-/** 0xCE 过程中信息上报帧 */
+/** 0xD7 过程中信息上报帧 */
 /** 启动中信息 */
 struct starting_info{
     uint8_t state;                               /* 充电状态 */

@@ -2797,15 +2797,6 @@ static void ykc_monitor_data_realtime_process(uint8_t gunno, System_BaseData* ba
                 s_ykc_monitor_charging_info[gunno].is_locked = NET_ENUM_FALSE;
             }
         }
-
-        /*********************************** 充电结束信息 ************************************/
-        /*********************************** 充电结束信息 ************************************/
-        if(base->state.current == APP_OFSM_STATE_FINISHING){
-
-        }else{
-
-        }
-
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
     }else{
 #ifdef NET_YKC_MONITOR_AS_MONITOR
