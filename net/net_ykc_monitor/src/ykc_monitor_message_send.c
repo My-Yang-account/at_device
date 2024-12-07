@@ -1206,6 +1206,48 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
                 ykc_monitor_response_buff_release_sem();
                 rt_thread_mdelay(250);
             }
+            /***** [充电桩上报启动中信息] *****/
+            if(ykc_monitor_net_event_receive(NET_YKC_MONITOR_USER_EVENT_HANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, gunno,
+                    (NET_YKC_MONITOR_EVENT_OPTION_OR |NET_YKC_MONITOR_EVENT_OPTION_CLEAR), NET_YKC_MONITOR_USER_PREQ_EVENT_STARTING_INFO, NULL) > 0){
+                Net_YkcMonitorPro_Preq_ProcessInfo_t *starting = (Net_YkcMonitorPro_Preq_ProcessInfo_t*)(s_ykc_monitor_response_buff.general_transmit_buff);
+
+//                ykc_monitor_set_message_send_state(gunno, NET_YKC_MONITOR_SEND_STATE_ONGOING, NET_YKC_MONITOR_USER_PREQ_EVENT_STARTING_INFO);
+                starting->head.sequence = s_ykc_monitor_message_serial_number[gunno]++;
+                ykc_monitor_message_send_port(NETYKC_MONITOR_PREQ_REPORT_STARTING_INFO, s_ykc_monitor_socket_info.fd, s_ykc_monitor_response_buff.general_transmit_buff,
+                        s_ykc_monitor_response_buff.length, NULL);
+//                ykc_monitor_set_message_wait_response_state(gunno, NET_YKC_MONITOR_USER_PREQ_EVENT_STARTING_INFO);
+//                ykc_monitor_set_message_send_state(gunno, NET_YKC_MONITOR_SEND_STATE_COMPLETE, NET_YKC_MONITOR_USER_PREQ_EVENT_STARTING_INFO);
+                ykc_monitor_response_buff_release_sem();
+                rt_thread_mdelay(250);
+            }
+            /***** [充电桩充电中信息] *****/
+            if(ykc_monitor_net_event_receive(NET_YKC_MONITOR_USER_EVENT_HANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, gunno,
+                    (NET_YKC_MONITOR_EVENT_OPTION_OR |NET_YKC_MONITOR_EVENT_OPTION_CLEAR), NET_YKC_MONITOR_USER_PREQ_EVENT_CHARGING_INFO, NULL) > 0){
+                Net_YkcMonitorPro_Preq_ProcessInfo_t *charging = (Net_YkcMonitorPro_Preq_ProcessInfo_t*)(s_ykc_monitor_response_buff.general_transmit_buff);
+
+//                ykc_monitor_set_message_send_state(gunno, NET_YKC_MONITOR_SEND_STATE_ONGOING, NET_YKC_MONITOR_USER_PREQ_EVENT_CHARGING_INFO);
+                charging->head.sequence = s_ykc_monitor_message_serial_number[gunno]++;
+                ykc_monitor_message_send_port(NETYKC_MONITOR_PREQ_REPORT_STARTING_INFO, s_ykc_monitor_socket_info.fd, s_ykc_monitor_response_buff.general_transmit_buff,
+                        s_ykc_monitor_response_buff.length, NULL);
+//                ykc_monitor_set_message_wait_response_state(gunno, NET_YKC_MONITOR_USER_PREQ_EVENT_CHARGING_INFO);
+//                ykc_monitor_set_message_send_state(gunno, NET_YKC_MONITOR_SEND_STATE_COMPLETE, NET_YKC_MONITOR_USER_PREQ_EVENT_CHARGING_INFO);
+                ykc_monitor_response_buff_release_sem();
+                rt_thread_mdelay(250);
+            }
+            /***** [充电桩充电结束信息] *****/
+            if(ykc_monitor_net_event_receive(NET_YKC_MONITOR_USER_EVENT_HANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, gunno,
+                    (NET_YKC_MONITOR_EVENT_OPTION_OR |NET_YKC_MONITOR_EVENT_OPTION_CLEAR), NET_YKC_MONITOR_USER_PREQ_EVENT_CHARGE_FINISH, NULL) > 0){
+                Net_YkcMonitorPro_Preq_ProcessInfo_t *finish = (Net_YkcMonitorPro_Preq_ProcessInfo_t*)(s_ykc_monitor_response_buff.general_transmit_buff);
+
+//                ykc_monitor_set_message_send_state(gunno, NET_YKC_MONITOR_SEND_STATE_ONGOING, NET_YKC_MONITOR_USER_PREQ_EVENT_CHARGE_FINISH);
+                finish->head.sequence = s_ykc_monitor_message_serial_number[gunno]++;
+                ykc_monitor_message_send_port(NETYKC_MONITOR_PREQ_REPORT_STARTING_INFO, s_ykc_monitor_socket_info.fd, s_ykc_monitor_response_buff.general_transmit_buff,
+                        s_ykc_monitor_response_buff.length, NULL);
+//                ykc_monitor_set_message_wait_response_state(gunno, NET_YKC_MONITOR_USER_PREQ_EVENT_CHARGE_FINISH);
+//                ykc_monitor_set_message_send_state(gunno, NET_YKC_MONITOR_SEND_STATE_COMPLETE, NET_YKC_MONITOR_USER_PREQ_EVENT_CHARGE_FINISH);
+                ykc_monitor_response_buff_release_sem();
+                rt_thread_mdelay(250);
+            }
         }
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
         /***************************************************** [数据响应] **********************************************************/
@@ -2337,6 +2379,39 @@ static void net_ykc_monitor_server_message_pro_entry(void *parameter)
                 result = ykc_monitor_message_padding_setvoltcurr(gunno, response->general_transmit_buff, NET_YKC_MONITOR_GENERA_RESPONSE_BUFF_LENGTH, &(response->length));
                 if(result >= 0x00){
                     ykc_monitor_net_event_send(NET_YKC_MONITOR_USER_EVENT_HANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, 0x00, NET_YKC_MONITOR_USER_PREQ_EVENT_SET_VOLTCURR);
+                }else{
+                    ykc_monitor_response_buff_release_sem();
+                }
+            }
+            /***** [上报启动中信息请求] *****/
+            if(ykc_monitor_net_event_receive(NET_YKC_MONITOR_EXTERNAL_EHANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, gunno,
+                    (NET_YKC_MONITOR_EVENT_OPTION_OR |NET_YKC_MONITOR_EVENT_OPTION_CLEAR), NET_YKC_MONITOR_EXTERNAL_PREQ_EVENT_STARTING_INFO, NULL) > 0){
+                response = ykc_monitor_get_response_buff(RT_WAITING_FOREVER);
+                result = ykc_monitor_message_padding_starting_info(gunno, response->general_transmit_buff, NET_YKC_MONITOR_GENERA_RESPONSE_BUFF_LENGTH, &(response->length));
+                if(result >= 0x00){
+                    ykc_monitor_net_event_send(NET_YKC_MONITOR_USER_EVENT_HANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, 0x00, NET_YKC_MONITOR_USER_PREQ_EVENT_STARTING_INFO);
+                }else{
+                    ykc_monitor_response_buff_release_sem();
+                }
+            }
+            /***** [上报充电中信息请求] *****/
+            if(ykc_monitor_net_event_receive(NET_YKC_MONITOR_EXTERNAL_EHANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, gunno,
+                    (NET_YKC_MONITOR_EVENT_OPTION_OR |NET_YKC_MONITOR_EVENT_OPTION_CLEAR), NET_YKC_MONITOR_EXTERNAL_PREQ_EVENT_CHARGING_INFO, NULL) > 0){
+                response = ykc_monitor_get_response_buff(RT_WAITING_FOREVER);
+                result = ykc_monitor_message_padding_charging_info(gunno, response->general_transmit_buff, NET_YKC_MONITOR_GENERA_RESPONSE_BUFF_LENGTH, &(response->length));
+                if(result >= 0x00){
+                    ykc_monitor_net_event_send(NET_YKC_MONITOR_USER_EVENT_HANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, 0x00, NET_YKC_MONITOR_USER_PREQ_EVENT_CHARGING_INFO);
+                }else{
+                    ykc_monitor_response_buff_release_sem();
+                }
+            }
+            /***** [上报充电结束信息请求] *****/
+            if(ykc_monitor_net_event_receive(NET_YKC_MONITOR_EXTERNAL_EHANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, gunno,
+                    (NET_YKC_MONITOR_EVENT_OPTION_OR |NET_YKC_MONITOR_EVENT_OPTION_CLEAR), NET_YKC_MONITOR_EXTERNAL_PREQ_EVENT_CHARGE_FINISH, NULL) > 0){
+                response = ykc_monitor_get_response_buff(RT_WAITING_FOREVER);
+                result = ykc_monitor_message_padding_charge_finish_info(gunno, response->general_transmit_buff, NET_YKC_MONITOR_GENERA_RESPONSE_BUFF_LENGTH, &(response->length));
+                if(result >= 0x00){
+                    ykc_monitor_net_event_send(NET_YKC_MONITOR_USER_EVENT_HANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, 0x00, NET_YKC_MONITOR_USER_PREQ_EVENT_CHARGE_FINISH);
                 }else{
                     ykc_monitor_response_buff_release_sem();
                 }

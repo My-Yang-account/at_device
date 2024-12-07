@@ -50,7 +50,14 @@
 #define NET_YKC_MONITOR_CARD_NUMBER_COUNT_MAX                          0x18        /* 卡号最大个数 */
 
 #ifdef NET_YKC_MONITOR_AS_MONITOR
+#define NET_YKC_MONITOR_PROCESS_INFO_TYPE_STARTING                     0x00        /* 过程信息类型：启动中 */
+#define NET_YKC_MONITOR_PROCESS_INFO_TYPE_CHARGING                     0x01        /* 过程信息类型：充电中 */
+#define NET_YKC_MONITOR_PROCESS_INFO_TYPE_FINISH                       0x02        /* 过程信息类型：充电结束 */
+
 #define NET_YKC_MONITOR_SETVOLTCURR_PAIR_MAX                           0x0E        /* 单次上报设置电压、流对的最大个数 */
+#define NET_YKC_MONITOR_STARTING_INFO_MAX                              0x0A        /* 单次上报启动中信息的最大个数 */
+#define NET_YKC_MONITOR_CHARGING_INFO_MAX                              0x0E        /* 单次上报充电中中信息的最大个数 */
+#define NET_YKC_MONITOR_FINISH_INFO_MAX                                0x01        /* 单次上报充电结束信息的最大个数 */
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
 
 enum ykc_monitor_device_state{
@@ -285,6 +292,8 @@ enum ykc_monitor_cmd{
 
     NETYKC_MONITOR_SREQCMD_QUERY_SET_VOLTCURR = 0xCC,                /* 指令：运营平台查询给模块设置的电压、电流 */
     NETYKC_MONITOR_PRES_PREQCMD_QUERY_SET_VOLTCURR = 0xCD,           /* 指令：上报(响应)给模块设置的电压、电流 */
+
+    NETYKC_MONITOR_PREQ_REPORT_STARTING_INFO = 0xCE,                 /* 指令：上报启动中信息 */
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
 };
 
@@ -1395,6 +1404,73 @@ typedef struct{
     }body;
     uint16_t check_sum;                          /* 校验码 */
 }Net_YkcMonitorPro_Preq_Pres_SetVoltCurr_t;
+
+
+struct value{
+    uint16_t symbol : 1;                         /* 数据的符号(0：正值，1：负值) */
+    uint16_t data : 15;                          /* 数据(绝对值，0.1精度) */
+};
+/** 0xCE 过程中信息上报帧 */
+/** 启动中信息 */
+struct starting_info{
+    uint8_t state;                               /* 充电状态 */
+    uint8_t bms_message;                         /* BMS报文接收情况(按位来，1是已接到) */
+    struct value sampling_voltage;               /* 采样电压(精度：0.1) */
+    struct value max_alllow_voltage;             /* 最大允许电压(精度：0.1) */
+    struct value battery_voltage;                /* 电池电压(精度：0.1) */
+    struct value module_voltage;                 /* 模块电压(精度：0.1) */
+    struct value positive_insul_volt;            /* 正极绝缘电压(精度：0.1) */
+    struct value negative_insul_volt;            /* 负极绝缘电压(精度：0.1) */
+    struct value positive_insul_resistance;      /* 正极绝缘电阻(精度：0.1) */
+    struct value negative_insul_resistance;      /* 负极绝缘电阻(精度：0.1) */
+};
+/** 充电中信息 */
+struct charging_info{
+    uint8_t state;                               /* 充电状态 */
+    uint8_t bms_message;                         /* BMS报文接收情况(按位来，1是已接到) */
+    struct value require_voltage;                /* 需求电压(精度：0.1) */
+    struct value require_current;                /* 需求电流(精度：0.1) */
+    struct value module_voltage;                 /* 模块电压(精度：0.1) */
+    struct value module_current;                 /* 模块电流(精度：0.1) */
+    struct value bms_measure_voltage;            /* BMS测量电压(精度：0.1) */
+    struct value bms_measure_current;            /* BMS测量电流(精度：0.1) */
+//    struct value pile_measure_voltage;           /* 桩测量电压(精度：0.1) */
+    struct value pile_measure_current;           /* 桩测量电流(精度：0.1) */
+};
+/** 充电结束信息 */
+struct finish_info{
+    uint8_t state;                               /* 充电状态 */
+    uint8_t bms_message;                         /* BMS报文接收情况(按位来，1是已接到) */
+    struct{
+        uint8_t msingle_bat_sn;                  /* 最高单体动力蓄电池电压所在编号 */
+        uint8_t max_bat_temp;                    /* 最高动力蓄电池温度 */
+        uint8_t max_bat_temp_sn;                 /* 最高温度检测点编号 */
+        uint8_t min_bat_temp;                    /* 最低动力蓄电池温度 */
+        uint8_t min_bat_temp_sn;                 /* 最低动力蓄电池温度检测点编号 */
+        struct{
+            uint16_t bms_single_volt       : 2;  /* BMS 单体动力蓄电池电压过高/过低 */
+            uint16_t bms_bat_soc           : 2;  /* BMS 整车动力蓄电池荷电状态 SOC 过高/过低 */
+            uint16_t bms_bat_curr          : 2;  /* BMS 动力蓄电池充电过电流 */
+            uint16_t bms_bat_temp          : 2;  /* BMS 动力蓄电池温度过高 */
+            uint16_t bms_bat_isolate       : 2;  /* BMS 动力蓄电池绝缘状态 */
+            uint16_t bms_bat_output_linker : 2;  /* BMS 动力蓄电池组输出连接器连接状态 */
+            uint16_t charge_forbid         : 2;  /* 充电禁止 */
+            uint16_t reserve               : 2;  /* 预留位  */
+        }state;
+    }bsm;
+};
+
+typedef struct{
+    Net_YkcMonitorPro_Head_t head;
+    struct{
+        uint8_t pile_number[NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT];  /* 桩号*/
+        uint32_t timestamp;                      /* 采样时间 */
+        uint8_t info_type;                       /* 信息类型(0：启动中信息，1：充电中信息，2：充电结束信息) */
+        uint8_t group_num;                       /* 有效采样组数 */
+        /* 信息数据 */
+    }body;
+    uint16_t check_sum;                          /* 校验码 */
+}Net_YkcMonitorPro_Preq_ProcessInfo_t;
 
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
 

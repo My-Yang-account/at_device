@@ -23,17 +23,37 @@
 #ifdef NET_PACK_USING_YKC_MONITOR
 
 #ifdef NET_YKC_MONITOR_AS_MONITOR
-#define YKC_MONITOR_MODULE_GROUP_MAX                      0x04          /* 最大模块组数  */
+/** 启动中报文 */
+#define YKC_MONITOR_STARTING_BMS_MESSAGE_BHM              (0x01 <<0x00)         /* 是否接收到了BHM报文 */
+#define YKC_MONITOR_STARTING_BMS_MESSAGE_BRM              (0x01 <<0x01)         /* 是否接收到了BRM报文 */
+#define YKC_MONITOR_STARTING_BMS_MESSAGE_BCP              (0x01 <<0x02)         /* 是否接收到了BCP报文 */
+#define YKC_MONITOR_STARTING_BMS_MESSAGE_BRO              (0x01 <<0x03)         /* 是否接收到了BRO报文 */
+#define YKC_MONITOR_STARTING_BMS_IS_READY                 (0x01 <<0x04)         /* BMS是否已准备好 */
+/** 充电中报文 */
+#define YKC_MONITOR_CHARGING_BMS_MESSAGE_BCL              (0x01 <<0x00)         /* 是否接收到了BCL报文 */
+#define YKC_MONITOR_CHARGING_BMS_MESSAGE_BCS              (0x01 <<0x01)         /* 是否接收到了BCS报文 */
+#define YKC_MONITOR_CHARGING_BMS_MESSAGE_BSM              (0x01 <<0x02)         /* 是否接收到了BSM报文 */
+#define YKC_MONITOR_CHARGING_BMS_MESSAGE_BMV              (0x01 <<0x03)         /* 是否接收到了BMV报文 */
+#define YKC_MONITOR_CHARGING_BMS_MESSAGE_BMT              (0x01 <<0x04)         /* 是否接收到了BMT报文 */
+#define YKC_MONITOR_CHARGING_BMS_MESSAGE_BSP              (0x01 <<0x05)         /* 是否接收到了BSP报文 */
+#define YKC_MONITOR_CHARGING_BMS_MESSAGE_BEM              (0x01 <<0x06)         /* 是否接收到了BEM报文 */
+#define YKC_MONITOR_CHARGING_BMS_IS_ALLOW                 (0x01 <<0x07)         /* BMS 允许充电 */
+/** 充电结束报文 */
+#define YKC_MONITOR_FINISH_BMS_MESSAGE_BST                (0x01 <<0x00)         /* 是否接收到了BST报文 */
+#define YKC_MONITOR_FINISH_BMS_MESSAGE_BSD                (0x01 <<0x01)         /* 是否接收到了BSD报文 */
+
+#define YKC_MONITOR_BUF_PUBLIC_LENGTH                     0xFF                  /* 充电数据公用缓存长度  */
+#define YKC_MONITOR_MODULE_GROUP_MAX                      0x04                  /* 最大模块组数  */
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
 
-#define YKC_MONITOR_CHARGE_ELECT_MAX                      500000    /* 最大充电电量值(精度：0.001) */
-#define YKC_MONITOR_SPEND_AMOUNT_MAX                      5000000   /* 最大消费金额值(精度：0.0001) */
+#define YKC_MONITOR_CHARGE_ELECT_MAX                      500000                /* 最大充电电量值(精度：0.001) */
+#define YKC_MONITOR_SPEND_AMOUNT_MAX                      5000000               /* 最大消费金额值(精度：0.0001) */
 
-#define YKC_MONITOR_REALTIME_DATA_INTERVAL_INIT           0x05          /* 刚连上网时实时数据上报间隔 */
-#define YKC_MONITOR_REALTIME_DATA_INTERVAL_CHARGING       0x0F          /* 充电中实时数据上报间隔  */
-#define YKC_MONITOR_REALTIME_DATA_INTERVAL_IDLE           0x05 *60      /* 空闲实时数据上报间隔  */
+#define YKC_MONITOR_REALTIME_DATA_INTERVAL_INIT           0x05                  /* 刚连上网时实时数据上报间隔 */
+#define YKC_MONITOR_REALTIME_DATA_INTERVAL_CHARGING       0x0F                  /* 充电中实时数据上报间隔  */
+#define YKC_MONITOR_REALTIME_DATA_INTERVAL_IDLE           0x05 *60              /* 空闲实时数据上报间隔  */
 
-#define YKC_MONITOR_REALTIME_PROCESS_THREAD_STACK_SIZE    1536          /* 实时处理线程栈大小 */
+#define YKC_MONITOR_REALTIME_PROCESS_THREAD_STACK_SIZE    1536                  /* 实时处理线程栈大小 */
 
 #pragma pack(1)
 
@@ -58,9 +78,11 @@ struct ykc_monitor_flag_info{
     uint16_t stop_success : 1;                    /*  停机成功 */
     uint16_t mergestart_success : 1;              /*  并充启机成功 */
     uint16_t set_power_success : 1;               /*  设置功率百分比成功 */
+    uint16_t is_charge_finish : 1;                /*  充电结束 */
 };
 
 #ifdef NET_YKC_MONITOR_AS_MONITOR
+/** 给模块设置的电压、电流信息 */
 typedef struct{
     uint32_t base_tick;                           /* 时间时基 */
     uint32_t timestamp;                           /* 采样时间 */
@@ -68,13 +90,32 @@ typedef struct{
     uint8_t is_locked;                            /*  */
     struct voltcurr_pair pair[YKC_MONITOR_MODULE_GROUP_MAX][NET_YKC_MONITOR_SETVOLTCURR_PAIR_MAX]; /* 连续采14次，1.5秒采一次(目前按4组模块计算) */
 }ykc_monitor_setvoltcurr;
+/** 启动过程中的信息 */
+typedef struct{
+    uint32_t base_tick;                           /* 时间时基 */
+    uint32_t timestamp;                           /* 采样时间 */
+    uint8_t count;                                /* 已采样数 */
+    uint8_t is_locked;                            /*  */
+    struct starting_info info[NET_YKC_MONITOR_STARTING_INFO_MAX]; /* 连续采10次，1秒采一次 */
+}ykc_monitor_starting_info;
+/** 充电过程中的信息 */
+typedef struct{
+    uint32_t base_tick;                           /* 时间时基 */
+    uint32_t timestamp;                           /* 采样时间 */
+    uint8_t count;                                /* 已采样数 */
+    uint8_t is_locked;                            /*  */
+    struct charging_info info[NET_YKC_MONITOR_CHARGING_INFO_MAX]; /* 连续采14次，1.5秒采一次 */
+}ykc_monitor_charging_info;
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
 
 #pragma pack()
 
 #ifdef NET_YKC_MONITOR_AS_MONITOR
 static ykc_monitor_setvoltcurr s_ykc_monitor_setvoltcurr;
+static ykc_monitor_starting_info s_ykc_monitor_starting_info[NET_SYSTEM_GUN_NUMBER];
+static ykc_monitor_charging_info s_ykc_monitor_charging_info[NET_SYSTEM_GUN_NUMBER];
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
+
 static struct ykc_monitor_flag_info s_ykc_monitor_flag_info[NET_SYSTEM_GUN_NUMBER];
 static uint16_t s_ykc_monitor_realtime_data_interval[NET_SYSTEM_GUN_NUMBER];
 static uint32_t s_ykc_monitor_realtime_data_count[NET_SYSTEM_GUN_NUMBER];
@@ -2252,19 +2293,31 @@ void ykc_monitor_chargepile_state_changed(uint8_t gunno)
     case APP_OFSM_STATE_IDLEING:
     case APP_OFSM_STATE_READYING:
     case APP_OFSM_STATE_STARTING:
+        s_ykc_monitor_flag_info[gunno].is_charge_finish = NET_ENUM_FALSE;
         s_ykc_monitor_state_info[gunno].state.state = NETYKC_MONITOR_DEVICE_STATE_IDLE;
         break;
     case APP_OFSM_STATE_CHARGING:
+        s_ykc_monitor_flag_info[gunno].is_charge_finish = NET_ENUM_FALSE;
         s_ykc_monitor_state_info[gunno].state.state = NETYKC_MONITOR_DEVICE_STATE_CHARGING;
         break;
     case APP_OFSM_STATE_STOPING:
+        s_ykc_monitor_flag_info[gunno].is_charge_finish = NET_ENUM_FALSE;
+        s_ykc_monitor_state_info[gunno].state.state = NETYKC_MONITOR_DEVICE_STATE_IDLE;
+        break;
     case APP_OFSM_STATE_FINISHING:
+        if(s_ykc_monitor_flag_info[gunno].is_charge_finish == NET_ENUM_FALSE){
+            ykc_monitor_net_event_send(NET_YKC_MONITOR_EXTERNAL_EHANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST,  \
+                    gunno, NET_YKC_MONITOR_EXTERNAL_PREQ_EVENT_CHARGE_FINISH);
+        }
+        s_ykc_monitor_flag_info[gunno].is_charge_finish = NET_ENUM_TRUE;
         s_ykc_monitor_state_info[gunno].state.state = NETYKC_MONITOR_DEVICE_STATE_IDLE;
         break;
     case APP_OFSM_STATE_FAULTING:
+        s_ykc_monitor_flag_info[gunno].is_charge_finish = NET_ENUM_FALSE;
         s_ykc_monitor_state_info[gunno].state.state = NETYKC_MONITOR_DEVICE_STATE_FAULTING;
         break;
     default:
+        s_ykc_monitor_flag_info[gunno].is_charge_finish = NET_ENUM_FALSE;
         break;
     }
 }
@@ -2686,10 +2739,79 @@ static void ykc_monitor_data_realtime_process(uint8_t gunno, System_BaseData* ba
         }else{
             s_ykc_monitor_setvoltcurr.is_locked = NET_ENUM_FALSE;
         }
+
+        /*********************************** 启动中信息 ************************************/
+        /*********************************** 启动中信息 ************************************/
+        if(base->state.current == APP_OFSM_STATE_STARTING){
+            if((rt_tick_get() - s_ykc_monitor_starting_info[gunno].base_tick) > 1000){   /** 1秒采一次数据 */
+                ykc_monitor_padding_starting_info(gunno);
+                s_ykc_monitor_starting_info[gunno].base_tick = rt_tick_get();
+            }
+            if(s_ykc_monitor_starting_info[gunno].count >= NET_YKC_MONITOR_STARTING_INFO_MAX){
+                if(s_ykc_monitor_starting_info[gunno].is_locked == NET_ENUM_FALSE){
+                    ykc_monitor_net_event_send(NET_YKC_MONITOR_EXTERNAL_EHANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST,  \
+                            gunno, NET_YKC_MONITOR_EXTERNAL_PREQ_EVENT_STARTING_INFO);
+                    s_ykc_monitor_starting_info[gunno].is_locked = NET_ENUM_TRUE;
+                }
+            }else{
+                s_ykc_monitor_starting_info[gunno].is_locked = NET_ENUM_FALSE;
+            }
+        }else{
+            if(s_ykc_monitor_starting_info[gunno].count != 0x00){
+                if(s_ykc_monitor_starting_info[gunno].is_locked == NET_ENUM_FALSE){
+                    ykc_monitor_net_event_send(NET_YKC_MONITOR_EXTERNAL_EHANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST,  \
+                            gunno, NET_YKC_MONITOR_EXTERNAL_PREQ_EVENT_STARTING_INFO);
+                    s_ykc_monitor_starting_info[gunno].is_locked = NET_ENUM_TRUE;
+                }
+            }else{
+                s_ykc_monitor_starting_info[gunno].count = 0x00;
+                s_ykc_monitor_starting_info[gunno].is_locked = NET_ENUM_FALSE;
+            }
+        }
+
+        /*********************************** 充电中信息 ************************************/
+        /*********************************** 充电中信息 ************************************/
+        if(base->state.current == APP_OFSM_STATE_CHARGING){
+            if((rt_tick_get() - s_ykc_monitor_charging_info[gunno].base_tick) > 1500){   /** 1.5秒采一次数据 */
+                ykc_monitor_padding_charging_info(gunno);
+                s_ykc_monitor_charging_info[gunno].base_tick = rt_tick_get();
+            }
+            if(s_ykc_monitor_charging_info[gunno].count >= NET_YKC_MONITOR_CHARGING_INFO_MAX){
+                if(s_ykc_monitor_charging_info[gunno].is_locked == NET_ENUM_FALSE){
+                    ykc_monitor_net_event_send(NET_YKC_MONITOR_EXTERNAL_EHANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST,  \
+                            gunno, NET_YKC_MONITOR_EXTERNAL_PREQ_EVENT_CHARGING_INFO);
+                    s_ykc_monitor_charging_info[gunno].is_locked = NET_ENUM_TRUE;
+                }
+            }else{
+                s_ykc_monitor_charging_info[gunno].is_locked = NET_ENUM_FALSE;
+            }
+        }else{
+            if(s_ykc_monitor_charging_info[gunno].count != 0x00){
+                if(s_ykc_monitor_charging_info[gunno].is_locked == NET_ENUM_FALSE){
+                    ykc_monitor_net_event_send(NET_YKC_MONITOR_EXTERNAL_EHANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST,  \
+                            gunno, NET_YKC_MONITOR_EXTERNAL_PREQ_EVENT_CHARGING_INFO);
+                    s_ykc_monitor_charging_info[gunno].is_locked = NET_ENUM_TRUE;
+                }
+            }else{
+                s_ykc_monitor_charging_info[gunno].count = 0x00;
+                s_ykc_monitor_charging_info[gunno].is_locked = NET_ENUM_FALSE;
+            }
+        }
+
+        /*********************************** 充电结束信息 ************************************/
+        /*********************************** 充电结束信息 ************************************/
+        if(base->state.current == APP_OFSM_STATE_FINISHING){
+
+        }else{
+
+        }
+
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
     }else{
 #ifdef NET_YKC_MONITOR_AS_MONITOR
         s_ykc_monitor_setvoltcurr.base_tick = rt_tick_get();
+        s_ykc_monitor_starting_info[gunno].base_tick = rt_tick_get();
+        s_ykc_monitor_charging_info[gunno].base_tick = rt_tick_get();
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
         s_ykc_monitor_realtime_data_count[gunno] = rt_tick_get();
         s_ykc_monitor_realtime_data_interval[gunno] = YKC_MONITOR_REALTIME_DATA_INTERVAL_INIT;
@@ -2807,6 +2929,18 @@ int32_t ykc_monitor_realtime_process_init(void)
         LOG_E("ykc monitor realtime process thread startup fail, please check");
         return -0x01;
     }
+
+    s_ykc_monitor_setvoltcurr.count = 0x00;
+    s_ykc_monitor_setvoltcurr.is_locked = NET_ENUM_FALSE;
+
+    for(uint8_t gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
+        s_ykc_monitor_starting_info[gunno].count = 0x00;
+        s_ykc_monitor_starting_info[gunno].is_locked = NET_ENUM_FALSE;
+
+        s_ykc_monitor_charging_info[gunno].count = 0x00;
+        s_ykc_monitor_charging_info[gunno].is_locked = NET_ENUM_FALSE;
+    }
+
     return 0x00;
 }
 
@@ -3325,6 +3459,428 @@ int8_t ykc_monitor_message_padding_setvoltcurr(uint8_t gunno, uint8_t *buf, uint
 
     if(olen){
         *olen = (sizeof(Net_YkcMonitorPro_Preq_Pres_SetVoltCurr_t) + message->body.group_num *sizeof(struct voltcurr_pair) *NET_YKC_MONITOR_SETVOLTCURR_PAIR_MAX);
+    }
+
+    return 0x00;
+}
+
+/*************************************************
+ * 函数名      ykc_monitor_padding_starting_info
+ * 功能         按枪填写启动中信息数据
+ * 参数         gunno    枪号
+ * 返回         >=0：成功       <0：失败
+ * **********************************************/
+int8_t ykc_monitor_padding_starting_info(uint8_t gunno)
+{
+    if(s_ykc_monitor_starting_info[gunno].count >= NET_YKC_MONITOR_STARTING_INFO_MAX){
+        return -0x01;
+    }
+    if(gunno >= NET_SYSTEM_GUN_NUMBER){
+        return -0x01;
+    }
+
+    extern uint8_t mw_get_charge_library_state(uint8_t gunno);
+    extern uint32_t thaisen_get_module_volt(uint8_t gunNum);
+    extern uint16_t thaisen_get_Insult_ResPos(uint8_t gunNum);
+    extern uint16_t thaisen_get_Insult_ResCat(uint8_t gunNum);
+
+    int32_t value0 = 0x00, value1 = 0x00;
+    System_BaseData *base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
+    struct thaisenBMS_Charger_struct *bms = (struct thaisenBMS_Charger_struct*)(base->bms_data);
+
+    if(s_ykc_monitor_starting_info[gunno].count == 0x00){
+        s_ykc_monitor_starting_info[gunno].timestamp = base->current_time;
+    }
+
+    s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].state = mw_get_charge_library_state(gunno);
+    if(bms->BHM.rev_info){
+        s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].bms_message |= YKC_MONITOR_STARTING_BMS_MESSAGE_BHM;
+    }else{
+        s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].bms_message &= (~YKC_MONITOR_STARTING_BMS_MESSAGE_BHM);
+    }
+
+    if(bms->BRM.rev_info){
+        s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].bms_message |= YKC_MONITOR_STARTING_BMS_MESSAGE_BRM;
+    }else{
+        s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].bms_message &= (~YKC_MONITOR_STARTING_BMS_MESSAGE_BRM);
+    }
+
+    if(bms->BCP.rev_info){
+        s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].bms_message |= YKC_MONITOR_STARTING_BMS_MESSAGE_BCP;
+    }else{
+        s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].bms_message &= (~YKC_MONITOR_STARTING_BMS_MESSAGE_BCP);
+    }
+
+    if(bms->BRO.rev_info){
+        s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].bms_message |= YKC_MONITOR_STARTING_BMS_MESSAGE_BRO;
+    }else{
+        s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].bms_message &= (~YKC_MONITOR_STARTING_BMS_MESSAGE_BRO);
+    }
+
+    if(bms->BRO.BMSReady == 0xAA){
+        s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].bms_message |= YKC_MONITOR_STARTING_BMS_IS_READY;
+    }else{
+        s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].bms_message &= (~YKC_MONITOR_STARTING_BMS_IS_READY);
+    }
+
+    /** 暂时按双枪做 */
+    if(gunno == 0x00){
+        extern int16_t TH_get_A_Insult_Volt(void);
+        value0 = TH_get_A_Insult_Volt();
+    }else{
+        extern int16_t TH_get_B_Insult_Volt(void);
+        value0 = TH_get_B_Insult_Volt();
+    }
+    if(value0 < 0x00){
+        s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].sampling_voltage.symbol = 0x01;
+        s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].sampling_voltage.data = 0x00 - value0;
+    }else{
+        s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].sampling_voltage.symbol = 0x00;
+        s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].sampling_voltage.data = value0;
+    }
+
+    s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].max_alllow_voltage.symbol = 0x00;
+    s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].max_alllow_voltage.data = bms->BHM.MaxAllowVol;
+
+    s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].battery_voltage.symbol = 0x00;
+    s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].battery_voltage.data = bms->BCP.BatVolt;
+
+    s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].module_voltage.symbol = 0x00;
+    s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].module_voltage.data = thaisen_get_module_volt(gunno);
+
+    /** 暂时按双枪做 */
+    if(gunno == 0x00){
+        extern int16_t TH_get_A_Insult_Positive_PE_Volt(void);
+        extern int16_t TH_get_A_Insult_Cathode_PE_Volt(void);
+        value0 = TH_get_A_Insult_Positive_PE_Volt();
+        value1 = TH_get_A_Insult_Cathode_PE_Volt();
+    }else{
+        extern int16_t TH_get_B_Insult_Positive_PE_Volt(void);
+        extern int16_t TH_get_B_Insult_Cathode_PE_Volt(void);
+        value0 = TH_get_B_Insult_Positive_PE_Volt();
+        value1 = TH_get_B_Insult_Cathode_PE_Volt();
+    }
+    if(value0 < 0x00){
+        s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].positive_insul_volt.symbol = 0x01;
+        s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].positive_insul_volt.data = 0x00 - value0;
+    }else{
+        s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].positive_insul_volt.symbol = 0x00;
+        s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].positive_insul_volt.data = value0;
+    }
+    if(value1 < 0x00){
+        s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].negative_insul_volt.symbol = 0x01;
+        s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].negative_insul_volt.data = 0x00 - value1;
+    }else{
+        s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].negative_insul_volt.symbol = 0x00;
+        s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].negative_insul_volt.data = value1;
+    }
+
+    value0 = thaisen_get_Insult_ResPos(gunno);
+    value1 = thaisen_get_Insult_ResCat(gunno);
+    if(value0 < 0x00){
+        s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].positive_insul_resistance.symbol = 0x01;
+        s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].positive_insul_resistance.data = 0x00 - value0;
+    }else{
+        s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].positive_insul_resistance.symbol = 0x00;
+        s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].positive_insul_resistance.data = value0;
+    }
+    if(value1 < 0x00){
+        s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].negative_insul_resistance.symbol = 0x01;
+        s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].negative_insul_resistance.data = 0x00 - value1;
+    }else{
+        s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].negative_insul_resistance.symbol = 0x00;
+        s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].negative_insul_resistance.data = value1;
+    }
+
+    s_ykc_monitor_starting_info[gunno].count++;
+
+    return 0x00;
+}
+
+/*************************************************
+ * 函数名      ykc_monitor_message_padding_starting_info
+ * 功能         组包：填充启动中信息
+ * 参数         gunno   枪号
+ *       buf      缓存
+ *       ilen    输入缓存长度
+ *       olen    填写数据总长度
+ * 返回         >=0：成功       <0：失败
+ * **********************************************/
+int8_t ykc_monitor_message_padding_starting_info(uint8_t gunno, uint8_t *buf, uint16_t ilen, uint16_t *olen)
+{
+    uint16_t data_len = (sizeof(Net_YkcMonitorPro_Preq_ProcessInfo_t) + sizeof(s_ykc_monitor_starting_info[gunno].info));
+
+    if(buf == NULL){
+        return -0x01;
+    }
+    if(data_len > ilen){
+        return -0x02;
+    }
+    if(gunno >= NET_SYSTEM_GUN_NUMBER){
+        return -0x03;
+    }
+
+    Net_YkcMonitorPro_Preq_ProcessInfo_t *message = (Net_YkcMonitorPro_Preq_ProcessInfo_t*)buf;
+    struct starting_info *info = (struct starting_info*)(&message->body.group_num + 0x01);
+
+    memset(message, 0x00, data_len);
+    memcpy(message->body.pile_number, g_ykc_monitor_preq_login.body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
+    message->body.timestamp = s_ykc_monitor_starting_info[gunno].timestamp;
+    message->body.info_type = NET_YKC_MONITOR_PROCESS_INFO_TYPE_STARTING;
+    if(s_ykc_monitor_starting_info[gunno].count > NET_YKC_MONITOR_STARTING_INFO_MAX){
+        message->body.group_num = NET_YKC_MONITOR_STARTING_INFO_MAX;
+    }else{
+        message->body.group_num = s_ykc_monitor_starting_info[gunno].count;
+    }
+
+    for(uint8_t count = 0x00; count < message->body.group_num; count++){
+        memcpy(&info[count], &s_ykc_monitor_starting_info[gunno].info[count], sizeof(struct starting_info));
+    }
+
+    memset(s_ykc_monitor_starting_info[gunno].info, 0x00, sizeof(s_ykc_monitor_starting_info[gunno].info));
+    s_ykc_monitor_starting_info[gunno].count = 0x00;
+
+    if(olen){
+        *olen = (sizeof(Net_YkcMonitorPro_Preq_ProcessInfo_t) + message->body.group_num *sizeof(struct starting_info));
+    }
+
+    return 0x00;
+}
+
+/*************************************************
+ * 函数名      ykc_monitor_padding_charging_info
+ * 功能         按枪填写充电中信息数据
+ * 参数         gunno    枪号
+ * 返回         >=0：成功       <0：失败
+ * **********************************************/
+int8_t ykc_monitor_padding_charging_info(uint8_t gunno)
+{
+    if(s_ykc_monitor_charging_info[gunno].count >= NET_YKC_MONITOR_CHARGING_INFO_MAX){
+        return -0x01;
+    }
+    if(gunno >= NET_SYSTEM_GUN_NUMBER){
+        return -0x01;
+    }
+
+    extern uint8_t mw_get_charge_library_state(uint8_t gunno);
+    extern uint32_t thaisen_get_module_volt(uint8_t gunNum);
+    extern uint32_t thaisen_get_module_curr(uint8_t gunNum);
+
+    int32_t value = 0x00;
+    System_BaseData *base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
+    struct thaisenBMS_Charger_struct *bms = (struct thaisenBMS_Charger_struct*)(base->bms_data);
+
+    if(s_ykc_monitor_charging_info[gunno].count == 0x00){
+        s_ykc_monitor_charging_info[gunno].timestamp = base->current_time;
+    }
+
+    s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].state = mw_get_charge_library_state(gunno);
+    if(bms->BCL.rev_info){
+        s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].bms_message |= YKC_MONITOR_CHARGING_BMS_MESSAGE_BCL;
+    }else{
+        s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].bms_message &= (~YKC_MONITOR_CHARGING_BMS_MESSAGE_BCL);
+    }
+
+    if(bms->BCS.rev_info){
+        s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].bms_message |= YKC_MONITOR_CHARGING_BMS_MESSAGE_BCS;
+    }else{
+        s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].bms_message &= (~YKC_MONITOR_CHARGING_BMS_MESSAGE_BCS);
+    }
+
+    if(bms->BSM.rev_info){
+        s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].bms_message |= YKC_MONITOR_CHARGING_BMS_MESSAGE_BSM;
+    }else{
+        s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].bms_message &= (~YKC_MONITOR_CHARGING_BMS_MESSAGE_BSM);
+    }
+
+    if(0/*bms->BMV.rev_info*/){
+        s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].bms_message |= YKC_MONITOR_CHARGING_BMS_MESSAGE_BMV;
+    }else{
+        s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].bms_message &= (~YKC_MONITOR_CHARGING_BMS_MESSAGE_BMV);
+    }
+
+    if(0/*bms->BMT.rev_info*/){
+        s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].bms_message |= YKC_MONITOR_CHARGING_BMS_MESSAGE_BMT;
+    }else{
+        s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].bms_message &= (~YKC_MONITOR_CHARGING_BMS_MESSAGE_BMT);
+    }
+
+    if(0/*bms->BSP.rev_info*/){
+        s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].bms_message |= YKC_MONITOR_CHARGING_BMS_MESSAGE_BSP;
+    }else{
+        s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].bms_message &= (~YKC_MONITOR_CHARGING_BMS_MESSAGE_BSP);
+    }
+
+    if(bms->BEM.rev_info){
+        s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].bms_message |= YKC_MONITOR_CHARGING_BMS_MESSAGE_BEM;
+    }else{
+        s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].bms_message &= (~YKC_MONITOR_CHARGING_BMS_MESSAGE_BEM);
+    }
+
+    if(bms->BSM.AllowChg){
+        s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].bms_message |= YKC_MONITOR_CHARGING_BMS_IS_ALLOW;
+    }else{
+        s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].bms_message &= (~YKC_MONITOR_CHARGING_BMS_IS_ALLOW);
+    }
+
+    s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].require_voltage.symbol = 0x00;
+    s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].require_voltage.data = bms->BCL.BMSneedVolt;
+
+    value = bms->BCL.BMSneedCurlt;
+    if(value < 0x00){
+        s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].require_current.symbol = 0x01;
+        s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].require_current.data = 0x00 - value;
+    }else{
+        s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].require_current.symbol = 0x00;
+        s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].require_current.data = value;
+    }
+
+    s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].module_voltage.symbol = 0x00;
+    s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].module_voltage.data = thaisen_get_module_volt(gunno);
+
+    s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].module_current.symbol = 0x00;
+    s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].module_current.data = thaisen_get_module_curr(gunno);
+
+    s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].bms_measure_voltage.symbol = 0x00;
+    s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].bms_measure_voltage.data = bms->BCS.ChargVolt;
+
+    value = bms->BCS.ChargCurlt;
+    if(value < 0x00){
+        s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].bms_measure_current.symbol = 0x01;
+        s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].bms_measure_current.data = 0x00 - value;
+    }else{
+        s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].bms_measure_current.symbol = 0x00;
+        s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].bms_measure_current.data = value;
+    }
+
+//    s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].pile_measure_voltage.symbol = 0x01;
+//    s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].pile_measure_voltage.data = base->voltage_a /10;
+
+    s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].pile_measure_current.symbol = 0x00;
+    s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].pile_measure_current.data = base->current_a /10;
+
+    s_ykc_monitor_charging_info[gunno].count++;
+
+    return 0x00;
+}
+
+/*************************************************
+ * 函数名      ykc_monitor_message_padding_charging_info
+ * 功能         组包：填充充电中信息
+ * 参数         gunno   枪号
+ *       buf      缓存
+ *       ilen    输入缓存长度
+ *       olen    填写数据总长度
+ * 返回         >=0：成功       <0：失败
+ * **********************************************/
+int8_t ykc_monitor_message_padding_charging_info(uint8_t gunno, uint8_t *buf, uint16_t ilen, uint16_t *olen)
+{
+    uint16_t data_len = (sizeof(Net_YkcMonitorPro_Preq_ProcessInfo_t) + sizeof(s_ykc_monitor_charging_info[gunno].info));
+
+    if(buf == NULL){
+        return -0x01;
+    }
+    if(data_len > ilen){
+        return -0x02;
+    }
+    if(gunno >= NET_SYSTEM_GUN_NUMBER){
+        return -0x03;
+    }
+
+    Net_YkcMonitorPro_Preq_ProcessInfo_t *message = (Net_YkcMonitorPro_Preq_ProcessInfo_t*)buf;
+    struct charging_info *info = (struct charging_info*)(&message->body.group_num + 0x01);
+
+    memset(message, 0x00, data_len);
+    memcpy(message->body.pile_number, g_ykc_monitor_preq_login.body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
+    message->body.timestamp = s_ykc_monitor_charging_info[gunno].timestamp;
+    message->body.info_type = NET_YKC_MONITOR_PROCESS_INFO_TYPE_CHARGING;
+    if(s_ykc_monitor_charging_info[gunno].count > NET_YKC_MONITOR_CHARGING_INFO_MAX){
+        message->body.group_num = NET_YKC_MONITOR_CHARGING_INFO_MAX;
+    }else{
+        message->body.group_num = s_ykc_monitor_charging_info[gunno].count;
+    }
+
+    for(uint8_t count = 0x00; count < message->body.group_num; count++){
+        memcpy(&info[count], &s_ykc_monitor_charging_info[gunno].info[count], sizeof(struct charging_info));
+    }
+
+    memset(s_ykc_monitor_charging_info[gunno].info, 0x00, sizeof(s_ykc_monitor_charging_info[gunno].info));
+    s_ykc_monitor_charging_info[gunno].count = 0x00;
+
+    if(olen){
+        *olen = (sizeof(Net_YkcMonitorPro_Preq_ProcessInfo_t) + message->body.group_num *sizeof(struct charging_info));
+    }
+
+    return 0x00;
+}
+
+/*************************************************
+ * 函数名      ykc_monitor_message_padding_charge_finish_info
+ * 功能         组包：填充充电结束信息
+ * 参数         gunno   枪号
+ *       buf      缓存
+ *       ilen    输入缓存长度
+ *       olen    填写数据总长度
+ * 返回         >=0：成功       <0：失败
+ * **********************************************/
+int8_t ykc_monitor_message_padding_charge_finish_info(uint8_t gunno, uint8_t *buf, uint16_t ilen, uint16_t *olen)
+{
+    uint16_t data_len = (sizeof(Net_YkcMonitorPro_Preq_ProcessInfo_t) + sizeof(struct finish_info));
+
+    if(buf == NULL){
+        return -0x01;
+    }
+    if(data_len > ilen){
+        return -0x02;
+    }
+    if(gunno >= NET_SYSTEM_GUN_NUMBER){
+        return -0x03;
+    }
+
+    extern uint8_t mw_get_charge_library_state(uint8_t gunno);
+
+    Net_YkcMonitorPro_Preq_ProcessInfo_t *message = (Net_YkcMonitorPro_Preq_ProcessInfo_t*)buf;
+    struct finish_info *info = (struct finish_info*)(&message->body.group_num + 0x01);
+    System_BaseData *base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
+    struct thaisenBMS_Charger_struct *bms = (struct thaisenBMS_Charger_struct*)(base->bms_data);
+
+    memset(message, 0x00, data_len);
+    memcpy(message->body.pile_number, g_ykc_monitor_preq_login.body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
+    message->body.timestamp = base->current_time;
+    message->body.info_type = NET_YKC_MONITOR_PROCESS_INFO_TYPE_FINISH;
+    message->body.group_num = NET_YKC_MONITOR_FINISH_INFO_MAX;
+
+    info->state = mw_get_charge_library_state(gunno);
+
+    if(bms->BST.rev_info){
+        info->bms_message |= YKC_MONITOR_FINISH_BMS_MESSAGE_BST;
+    }else{
+        info->bms_message &= (~YKC_MONITOR_FINISH_BMS_MESSAGE_BST);
+    }
+
+    if(bms->BSD.rev_info){
+        info->bms_message |= YKC_MONITOR_FINISH_BMS_MESSAGE_BSD;
+    }else{
+        info->bms_message &= (~YKC_MONITOR_FINISH_BMS_MESSAGE_BSD);
+    }
+
+    info->bsm.msingle_bat_sn = bms->BSM.HigVoltCellNum;
+    info->bsm.max_bat_temp = bms->BSM.HigTemp;
+    info->bsm.max_bat_temp_sn = bms->BSM.HigTempNum;
+    info->bsm.min_bat_temp = bms->BSM.LowTemp;
+    info->bsm.min_bat_temp_sn = bms->BSM.LowTempNum;
+
+    info->bsm.state.bms_single_volt = bms->BSM.CellOverVolt;
+    info->bsm.state.bms_bat_soc = bms->BSM.SOCState;
+    info->bsm.state.bms_bat_curr = bms->BSM.BatOverCurlt;
+    info->bsm.state.bms_bat_temp = bms->BSM.BatOverTemp;
+    info->bsm.state.bms_bat_isolate = bms->BSM.Insulat;
+    info->bsm.state.bms_bat_output_linker = bms->BSM.OutConect;
+    info->bsm.state.charge_forbid = bms->BSM.AllowChg;
+    info->bsm.state.reserve = 0x00;
+
+    if(olen){
+        *olen = (sizeof(Net_YkcMonitorPro_Preq_ProcessInfo_t) + message->body.group_num *sizeof(struct finish_info));
     }
 
     return 0x00;
