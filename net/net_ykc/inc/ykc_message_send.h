@@ -79,7 +79,12 @@
 #define NET_YKC_PREQ_EVENT_APPLY_START_MERGECHARGE           16   /* 充电桩请求事件：主动申请启动并充充电 */
 #define NET_YKC_PREQ_EVENT_REALTIME_FAULT_REPORT             17   /* 充电桩请求事件：实时故障上报 */
 
+#ifdef NET_YKC_MESSAGE_USING_DUPU
+#define NET_YKC_PREQ_EVENT_STORED_ENERGY_INFO_REPORT         18   /* 充电桩请求事件：储能信息上报 */
+#define NET_YKC_CHARGEPILE_PREQ_NUM                          19   /* 充电桩请求事件总数 */
+#else
 #define NET_YKC_CHARGEPILE_PREQ_NUM                          18   /* 充电桩请求事件总数 */
+#endif /* NET_YKC_MESSAGE_USING_DUPU */
 
 /** chargepile response event */
 #define NET_YKC_PRES_EVENT_READ_REALTIME_DATA                0    /* 充电桩响应事件：读取实时监测数据 */
@@ -144,6 +149,10 @@ extern Net_YkcPro_PReq_ApplyMergeCharge_Active_t g_ykc_preq_apply_merge_charge_a
 
 /** 升级结果上送 */
 extern Net_YkcPro_PRes_RemoteUpdate_t g_ykc_pres_remote_update;
+#ifdef NET_YKC_MESSAGE_USING_DUPU
+/** 上送储能信息 */
+extern Net_YkcPro_PReq_StoredEnergy_Info_t g_ykc_preq_stored_energy_info;
+#endif /* NET_YKC_MESSAGE_USING_DUPU */
 
 /** 网络状态 */
 enum{

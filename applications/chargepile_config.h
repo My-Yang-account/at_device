@@ -148,6 +148,7 @@
 #define CP_QRCODE_GENERATE_FORMAT_DEFAULT         CP_GENERATE_QRCODE_FORMAT_PREFIX_DEVICE_SN_PORT   /* 二维码生成格式 */
 #define CP_QRCODE_PREFIX_DEFAULT                  "hlht://"                                         /* 特来电二维码前缀 */
 #elif defined(CP_QRCODE_CONFIG_USING_DUPU)
+#define CP_CONFIG_USING_DUPU                                                                        /* 配置部分使用度普 */
 #define CP_QRCODE_CONFIG_FORMAT_DEFAULT           CP_SET_QRCODE_FORMAT_PREFIX_DEVICE_SN_PORT        /* 二维码配置格式 */
 #define CP_QRCODE_GENERATE_FORMAT_DEFAULT         CP_GENERATE_QRCODE_FORMAT_PREFIX_DEVICE_SN_PORT   /* 二维码生成格式 */
 #define CP_QRCODE_PREFIX_DEFAULT                  "hlht://32010600208123D1.MA27YQ0R4/"              /* 度普二维码前缀 */

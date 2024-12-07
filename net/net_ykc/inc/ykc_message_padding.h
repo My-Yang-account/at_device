@@ -67,7 +67,9 @@ int8_t ykc_chargepile_request_padding_vin_authority(uint8_t gunno);
 uint8_t ykc_chargepile_request_padding_transaction_record(uint8_t gunno, void *transaction, uint8_t is_repeat);
 int8_t ykc_chargepile_request_padding_mergecharge_card_authority(uint8_t gunno);
 int8_t ykc_chargepile_request_padding_mergecharge_vin_authority(uint8_t gunno);
-
+#ifdef NET_YKC_MESSAGE_USING_DUPU
+int8_t ykc_chargepile_request_padding_stored_energy_info(void);
+#endif /* NET_YKC_MESSAGE_USING_DUPU */
 void ykc_start_charge_response_asynchronously(uint8_t gunno, uint8_t result);
 void ykc_stop_charge_response_asynchronously(uint8_t gunno, uint8_t result);
 void ykc_start_mergecharge_response_asynchronously(uint8_t gunno, uint8_t result);

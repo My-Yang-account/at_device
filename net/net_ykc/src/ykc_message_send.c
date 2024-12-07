@@ -93,6 +93,10 @@ Net_YkcPro_PReq_ApplyMergeCharge_Active_t g_ykc_preq_apply_merge_charge_active[N
 
 /** 升级结果上送 */
 Net_YkcPro_PRes_RemoteUpdate_t g_ykc_pres_remote_update;  // OK
+#ifdef NET_YKC_MESSAGE_USING_DUPU
+/** 上送储能信息 */
+Net_YkcPro_PReq_StoredEnergy_Info_t g_ykc_preq_stored_energy_info;
+#endif /* NET_YKC_MESSAGE_USING_DUPU */
 
 /**************************************************************************
  * 函数名                 ykc_get_socket_info
@@ -881,6 +885,20 @@ static void net_ykc_message_send_thread_entry(void *parameter)
                 ykc_set_message_send_state(gunno, NET_YKC_SEND_STATE_COMPLETE, NET_YKC_PREQ_EVENT_APPLY_START_MERGECHARGE);
                 rt_thread_mdelay(250);
             }
+#ifdef NET_YKC_MESSAGE_USING_DUPU
+            /***** [上送储能信息] *****/
+            if(ykc_net_event_receive(NET_YKC_EVENT_HANDLE_CHARGEPILE, NET_YKC_EVENT_TYPE_REQUEST, gunno,
+                    (NET_YKC_EVENT_OPTION_OR |NET_YKC_EVENT_OPTION_CLEAR), NET_YKC_PREQ_EVENT_STORED_ENERGY_INFO_REPORT, NULL) > 0){
+
+                ykc_set_message_send_state(gunno, NET_YKC_SEND_STATE_ONGOING, NET_YKC_PREQ_EVENT_STORED_ENERGY_INFO_REPORT);
+                g_ykc_preq_stored_energy_info.head.sequence = s_ykc_message_serial_number[gunno]++;
+                ykc_message_send_port(NETYKC_PREQCMD_STORED_ENERGY_INFO, s_ykc_socket_info.fd, &g_ykc_preq_stored_energy_info,
+                        sizeof(g_ykc_preq_stored_energy_info));
+//                ykc_set_message_wait_response_state(gunno, NET_YKC_PREQ_EVENT_STORED_ENERGY_INFO_REPORT);
+                ykc_set_message_send_state(gunno, NET_YKC_SEND_STATE_COMPLETE, NET_YKC_PREQ_EVENT_STORED_ENERGY_INFO_REPORT);
+                rt_thread_mdelay(250);
+            }
+#endif /* NET_YKC_MESSAGE_USING_DUPU */
         }
         /***************************************************** [数据响应] **********************************************************/
         /***************************************************** [数据响应] **********************************************************/

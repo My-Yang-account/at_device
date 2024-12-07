@@ -21,6 +21,10 @@
 
 #ifdef NET_PACK_USING_YKC
 
+#ifdef NET_YKC_MESSAGE_USING_DUPU
+#define YKC_STORED_ENERGY_INFO_INTERVAL           10000         /* 储能信息上报间隔  */
+#endif /* NET_YKC_MESSAGE_USING_DUPU */
+
 #define YKC_CHARGE_ELECT_MAX                      500000    /* 最大充电电量值(精度：0.001) */
 #define YKC_SPEND_AMOUNT_MAX                      5000000   /* 最大消费金额值(精度：0.0001) */
 
@@ -60,6 +64,11 @@ struct ykc_flag_info{
 static struct ykc_flag_info s_ykc_flag_info[NET_SYSTEM_GUN_NUMBER];
 static uint16_t s_ykc_realtime_data_interval[NET_SYSTEM_GUN_NUMBER];
 static uint32_t s_ykc_realtime_data_count[NET_SYSTEM_GUN_NUMBER];
+
+#ifdef NET_YKC_MESSAGE_USING_DUPU
+static uint32_t s_ykc_stored_energy_info_count;
+#endif /* NET_YKC_MESSAGE_USING_DUPU */
+
 static uint16_t s_ykc_local_start_sq;
 static struct ykc_state_info s_ykc_state_info[NET_SYSTEM_GUN_NUMBER];
 static struct rt_thread s_ykc_realtime_process_thread;
@@ -1414,6 +1423,12 @@ void ykc_message_info_init(uint8_t gunno)  ///////// 这是网络部分外部调
     /** 初始化升级结果响应 */
     g_ykc_pres_remote_update.head.encrypt = NET_YKC_MESSAGE_ENCRYPT_DISABLE;
     memcpy(g_ykc_pres_remote_update.body.pile_number, g_ykc_preq_login.body.pile_number, NET_YKC_CHARGEPILE_LENGTH_DEFAULT);
+
+#ifdef NET_YKC_MESSAGE_USING_DUPU
+    /** 初始化储能信息请求 */
+    g_ykc_preq_stored_energy_info.head.encrypt = NET_YKC_MESSAGE_ENCRYPT_DISABLE;
+    memcpy(g_ykc_preq_stored_energy_info.body.pile_number, g_ykc_preq_login.body.pile_number, NET_YKC_CHARGEPILE_LENGTH_DEFAULT);
+#endif /* NET_YKC_MESSAGE_USING_DUPU */
 }
 
 /*************************************************
@@ -2109,6 +2124,31 @@ int8_t ykc_chargepile_request_padding_mergecharge_vin_authority(uint8_t gunno)
 #endif /* NET_YKC_AS_MONITOR */
 }
 
+#ifdef NET_YKC_MESSAGE_USING_DUPU
+/*************************************************
+ * 函数名      ykc_chargepile_request_padding_stored_energy_info
+ * 功能          充电桩请求报文填报：储能信息(度普)
+ * **********************************************/
+int8_t ykc_chargepile_request_padding_stored_energy_info(void)
+{
+    if((ykc_get_message_send_state(0x00, NET_YKC_PREQ_EVENT_STORED_ENERGY_INFO_REPORT) == NET_YKC_SEND_STATE_COMPLETE)){
+        extern uint16_t terminal_get_ems_set_power(void);
+        extern uint16_t terminal_get_ems_soc(void);
+        extern uint16_t terminal_get_ems_voltage();
+        extern uint16_t terminal_get_ems_current();
+
+        g_ykc_preq_stored_energy_info.body.soc = terminal_get_ems_soc();
+        g_ykc_preq_stored_energy_info.body.power = terminal_get_ems_set_power();
+        g_ykc_preq_stored_energy_info.body.voltage = terminal_get_ems_voltage();
+        g_ykc_preq_stored_energy_info.body.current = terminal_get_ems_current();
+
+        return 0x00;
+    }
+
+    return -0x01;
+}
+#endif /* NET_YKC_MESSAGE_USING_DUPU */
+
 /*************************************************
  * 函数名      ykc_start_charge_response_asynchronously
  * 功能          充电桩报文响应事件：启动充电异步响应
@@ -2634,7 +2674,22 @@ static void ykc_data_realtime_process(uint8_t gunno, System_BaseData *base)
                 ykc_net_event_send(NET_YKC_EVENT_HANDLE_CHARGEPILE, NET_YKC_EVENT_TYPE_REQUEST, gunno, NET_YKC_PREQ_EVENT_REPORT_REALTIME_DATA);
             }
         }
+
+#ifdef NET_YKC_MESSAGE_USING_DUPU
+        if(s_ykc_stored_energy_info_count > rt_tick_get()){
+            s_ykc_stored_energy_info_count = rt_tick_get();
+        }
+        if((rt_tick_get() - s_ykc_stored_energy_info_count) > YKC_STORED_ENERGY_INFO_INTERVAL){
+            if(ykc_chargepile_request_padding_stored_energy_info() >= 0x00){
+                s_ykc_stored_energy_info_count = rt_tick_get();
+                ykc_net_event_send(NET_YKC_EVENT_HANDLE_CHARGEPILE, NET_YKC_EVENT_TYPE_REQUEST, 0x00, NET_YKC_PREQ_EVENT_STORED_ENERGY_INFO_REPORT);
+            }
+        }
+#endif /* NET_YKC_MESSAGE_USING_DUPU */
     }else{
+#ifdef NET_YKC_MESSAGE_USING_DUPU
+        s_ykc_stored_energy_info_count = rt_tick_get();
+#endif /* NET_YKC_MESSAGE_USING_DUPU */
         s_ykc_realtime_data_count[gunno] = rt_tick_get();
         s_ykc_realtime_data_interval[gunno] = YKC_REALTIME_DATA_INTERVAL_INIT;
         ykc_net_event_send(NET_YKC_EVENT_HANDLE_CHARGEPILE, NET_YKC_EVENT_TYPE_REQUEST, gunno, NET_YKC_PREQ_EVENT_REPORT_REALTIME_DATA);

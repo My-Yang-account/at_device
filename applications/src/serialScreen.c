@@ -73,6 +73,10 @@
 #define SYSTEM_WARNNING_INFO_INSULT_VOLTAGE               0x02    /* 告警信息：绝缘电压异常 */
 #define SYSTEM_WARNNING_INFO_REQUEST_CURRENT              0x03    /* 告警信息：请求电流异常 */
 
+#ifdef CP_CONFIG_USING_DUPU
+#define SCREEN_USING_DUPU         /* 使用度普屏幕 */
+#endif /* CP_CONFIG_USING_DUPU */
+
 #define SCREEN_TRIGGER_WARN_ICON_CARD_LOCKED              0x00    /* 外部触发告警ICON：卡被锁 */
 #define SCREEN_TRIGGER_WARN_ICON_INVALID_CARD             0x01    /* 外部触发告警ICON：无效卡 */
 #define SCREEN_TRIGGER_WARN_ICON_NO_BALLANCE              0x02    /* 外部触发告警ICON：余额不足 */
@@ -532,6 +536,11 @@ struct LCD_DISPLAY_SETDATA_TYPE{
     /***********************fees***************************/
 	uint32_t period_time[4];                //当前时段
     uint32_t period_price;                  //当前时段电费单价
+#ifdef SCREEN_USING_DUPU
+    /***********************stored energy***************************/
+    u16 StoredEnergy_Soc;              //储能SOC
+    u32 StoredEnergy_Power;            //储能最大功率
+#endif /* SCREEN_USING_DUPU */
     /***********************starting info***************************/
     u8 chargeState[LCD_GUN_NUM];            //充电状态
     s32 samplingVolt[LCD_GUN_NUM];          //采样电压
@@ -1272,7 +1281,10 @@ static void SerialScreen_RealTime_InfoGet(void)
 
         LcdData.setData.SIM_Strength = thaisen_app_get_signal_strength();
         memcpy(LcdData.setData.SIM_card, thaisen_app_get_sim_number(), 21);
-
+#ifdef SCREEN_USING_DUPU
+        LcdData.setData.StoredEnergy_Soc = terminal_get_ems_soc();
+        LcdData.setData.StoredEnergy_Power = (*(u32*)UI_READ_SINGLE_CFG_STR(CONFIG_ITEM_SYSTEM_POWER_TOTAL, 0));
+#endif /* SCREEN_USING_DUPU */
         if(LcdData.CurrentPage != LCD_PAGE_MENU_COM_1){
             data = UI_READ_SINGLE_CFG_STR(CONFIG_ITEM_HELP_PHONE, 0);
 
@@ -7505,7 +7517,12 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_SYS, NULL, "TimeMIN", LCD_InputType, 0, 0x419C, pu32_type, sizeof(LcdData.setData.s_TimeSync[4]), (void *)&LcdData.setData.s_TimeSync[4]);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_SYS, NULL, "TimeSecond", LCD_InputType, 0, 0x419E, pu32_type, sizeof(LcdData.setData.s_TimeSync[5]), (void *)&LcdData.setData.s_TimeSync[5]);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_SYS, NULL, "TimeSyncSet", LCD_BtnType, 0x0014, 0x1000, page_type, LCD_PAGE_MENU_SYS, (void *)SerialScreen_ScreenSet_TimeSync_Flag);
-    SerialScreen_ItemSetUp(LCD_PAGE_MENU_SYS, NULL, "Reboot", LCD_BtnType, 0x0002, 0x1005, page_type, LCD_PAGE_MENU_SYS, (void *)SerialScreen_ScreenSet_Reboot_Flag);
+
+#ifdef SCREEN_USING_DUPU
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_SYS, NULL, "ems soc", LCD_DataType, LCD_1sReflash, 0x4764, pu16_type, sizeof(LcdData.setData.StoredEnergy_Soc), (void *)&LcdData.setData.StoredEnergy_Soc);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_SYS, NULL, "ems power", LCD_DataType, LCD_1sReflash, 0x4760, pu32_type, sizeof(LcdData.setData.StoredEnergy_Power), (void *)&LcdData.setData.StoredEnergy_Power);
+#endif /* SCREEN_USING_DUPU */
+	SerialScreen_ItemSetUp(LCD_PAGE_MENU_SYS, NULL, "Reboot", LCD_BtnType, 0x0002, 0x1005, page_type, LCD_PAGE_MENU_SYS, (void *)SerialScreen_ScreenSet_Reboot_Flag);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_SYS, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
 
     /** 41.出厂设置-离线费率 [page:62] */

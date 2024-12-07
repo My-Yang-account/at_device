@@ -14,6 +14,8 @@
 
 #ifdef NET_PACK_USING_YKC
 
+//#define NET_YKC_MESSAGE_USING_DUPU                                         /* 这是度普平台的报文 */
+
 #define NET_YKC_MESSAGE_START_CODE                             0x68        /* 报文起始码 */
 #define NET_YKC_MESSAGE_ENCRYPT_ENABLE                         0x01        /* 报文加密 */
 #define NET_YKC_MESSAGE_ENCRYPT_DISABLE                        0x00        /* 报文不加密 */
@@ -179,6 +181,10 @@ enum ykc_cmd{
 
     NETYKC_PREQCMD_BMS_STOP = 0x1D,                          /* 指令：桩上报充电阶段 BMS 中止 */
 
+#ifdef NET_YKC_MESSAGE_USING_DUPU
+    NETYKC_PREQCMD_STORED_ENERGY_INFO = 0x1F,                /* 指令：桩上报储能信息(度普)*/
+#endif /* NET_YKC_MESSAGE_USING_DUPU */
+
     NETYKC_PREQCMD_CHARGER_STOP = 0x21,                      /* 指令：桩上报充电阶段充电机中止 */
 
     NETYKC_PREQCMD_CHARGER_OUTPUT_BMS_REQUIRE = 0x23,        /* 指令：桩上报充电过程 BMS 需求与充电机输出 */
@@ -243,7 +249,6 @@ enum ykc_cmd{
 
     NETYKC_SREQCMD_QRCODE_CONFIG_YKC15 = 0xF0,               /* 指令：服务器设置二维码(云快充1.5) */
     NETYKC_PRESCMD_QRCODE_CONFIG_YKC15 = 0xF1,               /* 指令：桩响应设置二维码(云快充1.5) */
-
 };
 
 
@@ -1140,6 +1145,23 @@ typedef struct{
     }body;
     uint16_t check_sum;                          /* 校验码 */
 }Net_YkcPro_PRes_Qrcode_Config_Tld_t;
+
+
+
+#ifdef NET_YKC_MESSAGE_USING_DUPU
+/** 0x1F 充电桩上报储能信息请求帧 */
+typedef struct{
+    Net_YkcPro_Head_t head;
+    struct{
+        uint8_t pile_number[NET_YKC_CHARGEPILE_LENGTH_DEFAULT];  /* 桩号*/
+        uint16_t soc;                            /* SOC */
+        uint16_t power;                          /* 功率 */
+        uint16_t voltage;                        /* 电压 */
+        uint16_t current;                        /* 电流 */
+    }body;
+    uint16_t check_sum;                          /* 校验码 */
+}Net_YkcPro_PReq_StoredEnergy_Info_t;
+#endif /* NET_YKC_MESSAGE_USING_DUPU */
 
 #pragma pack()
 
