@@ -1917,6 +1917,11 @@ uint32_t sys_percent_convert_to_power(uint8_t percent)
     return (s_system_power_max *percent /100);
 }
 
+uint32_t sys_query_system_max_power(void)
+{
+    return s_system_power_max;   /** 系统最大功率(W) */
+}
+
 uint8_t sys_get_module_model(void)
 {
     return s_chargepile_config_info.config_info.module_model;

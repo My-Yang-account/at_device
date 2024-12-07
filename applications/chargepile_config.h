@@ -119,7 +119,7 @@
 //#define CP_QRCODE_CONFIG_USING_TLD                    /* 二维码配置使用特来电 */
 //#define CP_QRCODE_CONFIG_USING_DUPU                   /* 二维码配置使用度普 */
 //#define CP_QRCODE_CONFIG_USING_NJ                     /* 二维码配置使用能佳 */
-#define CP_QRCODE_CONFIG_USING_SGCC                   /* 二维码配置使用国网 */
+//#define CP_QRCODE_CONFIG_USING_SGCC                   /* 二维码配置使用国网 */
 
 /** 域名默认 */
 /**------------------------------------------------------------*/
@@ -544,6 +544,7 @@ uint8_t* sys_read_config_item_content(enum config_name name, uint8_t is_user_con
 uint8_t sys_get_single_group_module_num(uint8_t group);
 int16_t sys_get_power_percent(void);
 uint32_t sys_percent_convert_to_power(uint8_t percent);
+uint32_t sys_query_system_max_power(void);
 uint8_t sys_get_module_model(void);
 uint8_t sys_get_module_group_num(void);
 uint8_t* sys_get_module_num_single_group(void);
