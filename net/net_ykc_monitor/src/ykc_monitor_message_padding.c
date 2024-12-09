@@ -2742,7 +2742,8 @@ static void ykc_monitor_data_realtime_process(uint8_t gunno, System_BaseData* ba
 
         /*********************************** 启动中信息 ************************************/
         /*********************************** 启动中信息 ************************************/
-        if(base->state.current == APP_OFSM_STATE_STARTING){
+        if((base->state.current == APP_OFSM_STATE_STARTING) ||
+                ((base->state.current == APP_OFSM_STATE_STOPING) && (base->flag.start_result == NET_ENUM_FALSE))){  /** 启动失败时停止阶段也采样，防止状态变化不同步 */
             if((rt_tick_get() - s_ykc_monitor_starting_info[gunno].base_tick) > 1000){   /** 1秒采一次数据 */
                 ykc_monitor_padding_starting_info(gunno);
                 s_ykc_monitor_starting_info[gunno].base_tick = rt_tick_get();
