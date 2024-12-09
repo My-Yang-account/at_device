@@ -34,13 +34,13 @@ extern "C" {
 #define SOFTWARE_MODULE                 "YKC7103"          /* 软件型号 */
 #define SOFTWARE_VERSION       1L
 #define SOFTWARE_SUBVERSION    6L
-#define SOFTWARE_REVISION      5L
+#define SOFTWARE_REVISION      6L
 
 #else
 #define SOFTWARE_MODULE                 "YKC7101"          /* 软件型号 */
 #define SOFTWARE_VERSION       1L
 #define SOFTWARE_SUBVERSION    5L
-#define SOFTWARE_REVISION      8L
+#define SOFTWARE_REVISION      9L
 
 #endif /* APP_USING_DOUBLEGUN */
 
