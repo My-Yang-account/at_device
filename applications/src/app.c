@@ -21,6 +21,7 @@
 
 #include "mw_fault_check.h"
 #include "mw_charge_control.h"
+#include "chargepile_config.h"
 
 #define DBG_TAG "app"
 #define DBG_LVL DBG_LOG
@@ -106,7 +107,7 @@ void app_operation_init(void)
 void app_terminal_init(void)
 {
     rt_err_t result = RT_EOK;
-
+#ifdef CP_CONFIG_USING_DUPU
     result = rt_thread_init(&terminal_thread, "terminal_res",
             terminal_thread_entry, RT_NULL, terminal_thread_stack, sizeof(terminal_thread_stack), 19, 10);
     if (RT_EOK == result) {
@@ -117,6 +118,7 @@ void app_terminal_init(void)
     if (RT_EOK == result) {
         rt_thread_startup(&terminal_req_thread);
     }
+#endif /* CP_CONFIG_USING_DUPU */
 }
 
 void app_init(void)

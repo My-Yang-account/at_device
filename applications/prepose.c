@@ -122,6 +122,7 @@ void prepose_init(void)
     app_operation_init();
 
     /**************************************************************************/
+#ifdef CP_CONFIG_USING_DUPU
     /* 对终端串口进行初始化 */
     while (1) {
         if(0 > bsp_terminal_serial_init()) {
@@ -135,7 +136,7 @@ void prepose_init(void)
 
     /* 对终端的线程进行初始化 */
     app_terminal_init();
-
+#endif /* CP_CONFIG_USING_DUPU */
     mw_iwdg_refresh();
 }
 
