@@ -546,6 +546,59 @@ static void app_card_data_update(void* handle)
         s_rfidr->is_forbid = 0x00;
     }
 }
+
+/*****************************************************************************
+ *  函数名   app_card_another_gun_judge
+ *  功能       判断另一把枪是否要停止
+ *  参数       gunno    当前枪号
+ * 返回        1：需要停止   0：不需要停止
+ ****************************************************************************/
+static uint8_t app_card_another_gun_judge(uint8_t gunno)
+{
+    int32_t ret = 0x00;
+    uint8_t another_port = 0x00, *dev_id = sys_read_config_item_content(CONFIG_ITEM_PILE_NUMBER, 0x00);;
+    struct ofsm_info *ofsm = NULL;
+
+    if(APP_SYSTEM_GUNNO_SIZE >= 0x02){   /** 双枪情况下才进行此判断 */
+        another_port = APP_SYSTEM_GUNNOA;
+        if(gunno == another_port){
+            another_port = APP_SYSTEM_GUNNOA + 0x01;
+        }
+        ofsm = get_ofsm_info(another_port);
+        switch(ofsm->base.state.current){
+        case APP_OFSM_STATE_STARTING:
+            if(memcmp(s_rfidr->uuid, ofsm->base.card_uid, s_rfidr->uuid_len) == 0x00){  /** 这是情况2，退出 */
+                s_rfidr->current_port = another_port;
+                s_card_operate_ret[another_port] = APP_CARD_OPERATE_RET_NULL;
+                return 0x01;
+            }
+        case APP_OFSM_STATE_CHARGING:
+            if(((memcmp(dev_id, s_card_info_sector2.device_id, CARD_BLOCK_SIZE)) == 0x00) &&
+                    ((memcmp(s_card_info_sector2.card_number, ofsm->base.card_number, APP_CARD_NUMBER_COMPARE_LEN_MIN_OFFLINE_BILLING)) == 0x00) &&
+                    (memcmp(s_rfidr->uuid, ofsm->base.card_uid, s_rfidr->uuid_len) == 0x00)){
+                app_card_event_send(APP_CARD_EVENT_IS_PAYING, another_port, NULL);  /** 此时需要应用到业务的充电数据，先告诉业务正在结算，业务不能修改业务充电数据 */
+
+                ret = app_card_swip_card_stop(another_port);
+                s_rfidr->current_port = another_port;
+                if(ret < 0x00){
+                    app_card_event_recv(APP_CARD_EVENT_IS_PAYING, 0x00, another_port, NULL, 0x01);
+                    s_card_operate_ret[another_port] = APP_CARD_OPERATE_RET_INTERNAL_ERROR;
+                    return 0x01;
+                }else{
+                    app_card_event_send(APP_CARD_EVENT_PAY_COMPLETE, another_port, NULL);
+                }
+                s_card_operate_ret[another_port] = APP_CARD_OPERATE_RET_SUCCESS;
+                return 0x01;
+            }
+            break;
+        default:
+            break;
+        }
+    }
+
+    return 0x00;
+}
+
 /*****************************************************************************
  *  函数名   app_card_info_process
  *  功能       卡信息读、写处理
@@ -622,6 +675,17 @@ static int32_t app_card_info_process(void* handle)
                     if((memcmp(dev_id, s_card_info_sector2.device_id, CARD_BLOCK_SIZE)) ||
                             (memcmp(s_card_info_sector2.card_number, ofsm->base.card_number, APP_CARD_NUMBER_COMPARE_LEN_MIN_OFFLINE_BILLING)) ||
                             memcmp(s_rfidr->uuid, ofsm->base.card_uid, s_rfidr->uuid_len)){
+
+                        if(app_card_another_gun_judge(port)){
+                            if(APP_SYSTEM_GUNNO_SIZE >= 0x02){   /** 双枪情况下才进行此判断 */
+                                another_port = APP_SYSTEM_GUNNOA;
+                                if(port == another_port){
+                                    another_port = APP_SYSTEM_GUNNOA + 0x01;
+                                }
+                            }
+                            return s_card_operate_ret[another_port];
+                        }
+
                         if(memcmp(s_rfidr->uuid, ofsm->base.card_uid, s_rfidr->uuid_len)){
                             s_card_operate_ret[port] = APP_CARD_OPERATE_RET_NOT_START_CARD;
                         }else{
@@ -655,26 +719,15 @@ static int32_t app_card_info_process(void* handle)
                      * 2：这是用这张卡先启了一把，然后选择了另一把枪(这把枪状态：非启动或空闲)然后刷卡
                      */
                     /** 判断情况2 */
-                    if(APP_SYSTEM_GUNNO_SIZE >= 0x02){   /** 双枪情况下才进行此判断 */
-                        another_port = APP_SYSTEM_GUNNOA;
-                        if(port == another_port){
-                            another_port = APP_SYSTEM_GUNNOA + 0x01;
-                        }
-                        ofsm = get_ofsm_info(another_port);
-                        switch(ofsm->base.state.current){
-                        case APP_OFSM_STATE_STARTING:
-                        case APP_OFSM_STATE_CHARGING:
-                            if(memcmp(s_rfidr->uuid, ofsm->base.card_uid, s_rfidr->uuid_len) == 0x00){  /** 这是情况2，退出 */
-                                LOG_W("this card is charging on port(%d)", port);
-                                s_card_operate_ret[port] = APP_CARD_OPERATE_RET_IS_CHARGING;
-                                return s_card_operate_ret[port];
+                    if(app_card_another_gun_judge(port)){
+                        if(APP_SYSTEM_GUNNO_SIZE >= 0x02){   /** 双枪情况下才进行此判断 */
+                            another_port = APP_SYSTEM_GUNNOA;
+                            if(port == another_port){
+                                another_port = APP_SYSTEM_GUNNOA + 0x01;
                             }
-                            break;
-                        default:
-                            break;
                         }
+                        return s_card_operate_ret[another_port];
                     }
-
                     thaisen_set_trigger_event(THAISEN_TRIG_EVENT_PAYING, 0x0A, APP_THA_ENUM_TRUE, port);
                     app_card_event_send(APP_CARD_EVENT_IS_PAYING, port, NULL);  /** 此时需要应用到业务的充电数据，先告诉业务正在结算，业务不能修改业务充电数据 */
                     another_port = port;
@@ -701,29 +754,47 @@ static int32_t app_card_info_process(void* handle)
         }
         /** 卡被锁了,业务状态为启动或充电, 说明这是正常充电流程, 此时刷卡了,是要停止充电*/
         else{   // OK
+            uint8_t gunno = 0x00;
             if(ofsm->base.state.current == APP_OFSM_STATE_STARTING){
+                if(app_card_another_gun_judge(port)){
+                    if(APP_SYSTEM_GUNNO_SIZE >= 0x02){   /** 双枪情况下才进行此判断 */
+                        another_port = APP_SYSTEM_GUNNOA;
+                        if(port == another_port){
+                            another_port = APP_SYSTEM_GUNNOA + 0x01;
+                        }
+                    }
+                    return s_card_operate_ret[another_port];
+                }
+
                 LOG_D("gunno(%d) is starting, is not allow stop", port);
                 s_card_operate_ret[port] = APP_CARD_OPERATE_RET_NULL;
                 return s_card_operate_ret[port];
             }
-            if((memcmp(dev_id, s_card_info_sector2.device_id, CARD_BLOCK_SIZE)) ||
-                    (memcmp(s_card_info_sector2.card_number, ofsm->base.card_number, APP_CARD_NUMBER_COMPARE_LEN_MIN_OFFLINE_BILLING)) ||
-                    memcmp(s_rfidr->uuid, ofsm->base.card_uid, s_rfidr->uuid_len)){
-                LOG_D("gunno(%d) card number and recorded card number is no match in first %d byte", port, APP_CARD_NUMBER_COMPARE_LEN_MIN_OFFLINE_BILLING);
-                if(memcmp(s_rfidr->uuid, ofsm->base.card_uid, s_rfidr->uuid_len)){
-                    s_card_operate_ret[port] = APP_CARD_OPERATE_RET_NOT_START_CARD;
-                }else{
-                    s_card_operate_ret[port] = APP_CARD_OPERATE_RET_INVALID_CARD;
+
+            for(gunno = 0x00; gunno < APP_SYSTEM_GUNNO_SIZE; gunno++){
+                ofsm = get_ofsm_info(gunno);
+                if(((memcmp(dev_id, s_card_info_sector2.device_id, CARD_BLOCK_SIZE)) == 0x00) &&
+                        ((memcmp(s_card_info_sector2.card_number, ofsm->base.card_number, APP_CARD_NUMBER_COMPARE_LEN_MIN_OFFLINE_BILLING)) == 0x00) &&
+                        (memcmp(s_rfidr->uuid, ofsm->base.card_uid, s_rfidr->uuid_len) == 0x00)){
+                    s_rfidr->current_port = gunno;
+                    port = gunno;
+                    break;
                 }
-                return s_card_operate_ret[port];
             }
-            app_card_event_send(APP_CARD_EVENT_IS_PAYING, port, NULL);  /** 此时需要应用到业务的充电数据，先告诉业务正在结算，业务不能修改业务充电数据 */
-            ret = app_card_swip_card_stop(port);
-            if(ret < 0x00){
-                app_card_event_recv(APP_CARD_EVENT_IS_PAYING, 0x00, port, NULL, 0x01);
-                return -0x01;
+
+            if(gunno == APP_SYSTEM_GUNNO_SIZE){
+                LOG_D("gunno(%d) card number and recorded card number is no match in first %d byte", port, APP_CARD_NUMBER_COMPARE_LEN_MIN_OFFLINE_BILLING);
+                s_card_operate_ret[port] = APP_CARD_OPERATE_RET_NOT_START_CARD;
+                return s_card_operate_ret[port];
             }else{
-                app_card_event_send(APP_CARD_EVENT_PAY_COMPLETE, port, NULL);
+                app_card_event_send(APP_CARD_EVENT_IS_PAYING, port, NULL);  /** 此时需要应用到业务的充电数据，先告诉业务正在结算，业务不能修改业务充电数据 */
+                ret = app_card_swip_card_stop(port);
+                if(ret < 0x00){
+                    app_card_event_recv(APP_CARD_EVENT_IS_PAYING, 0x00, port, NULL, 0x01);
+                    return -0x01;
+                }else{
+                    app_card_event_send(APP_CARD_EVENT_PAY_COMPLETE, port, NULL);
+                }
             }
         }
     }
@@ -740,16 +811,26 @@ static int32_t app_card_info_process(void* handle)
             break;
         case APP_OFSM_STATE_CHARGING:
         {
-            uint8_t *dev_id = sys_read_config_item_content(CONFIG_ITEM_PILE_NUMBER, 0x00);
-            if((memcmp(dev_id, s_card_info_sector2.device_id, CARD_BLOCK_SIZE)) ||
-                    (memcmp(s_card_info_sector2.card_number, ofsm->base.card_number, APP_CARD_NUMBER_COMPARE_LEN_MIN_OFFLINE_BILLING)) ||
-                    memcmp(s_rfidr->uuid, ofsm->base.card_uid, s_rfidr->uuid_len)){
-                LOG_W("this is not the start card");
-                if(memcmp(s_rfidr->uuid, ofsm->base.card_uid, s_rfidr->uuid_len)){
-                    s_card_operate_ret[port] = APP_CARD_OPERATE_RET_NOT_START_CARD;
-                }else{
-                    s_card_operate_ret[port] = APP_CARD_OPERATE_RET_HISTORY_BILL_ERROR;
+            uint8_t *dev_id = sys_read_config_item_content(CONFIG_ITEM_PILE_NUMBER, 0x00), gunno = 0x00;
+            for(gunno = 0x00; gunno < APP_SYSTEM_GUNNO_SIZE; gunno++){
+                ofsm = get_ofsm_info(gunno);
+                if(((memcmp(dev_id, s_card_info_sector2.device_id, CARD_BLOCK_SIZE)) == 0x00) &&
+                        ((memcmp(s_card_info_sector2.card_number, ofsm->base.card_number, APP_CARD_NUMBER_COMPARE_LEN_MIN_OFFLINE_BILLING)) == 0x00) &&
+                        (memcmp(s_rfidr->uuid, ofsm->base.card_uid, s_rfidr->uuid_len) == 0x00)){
+                    s_rfidr->current_port = gunno;
+                    port = gunno;
+                    break;
                 }
+            }
+
+            if(gunno == APP_SYSTEM_GUNNO_SIZE){
+                LOG_W("this is not the start card");
+                if(thaisen_is_not_allow_swip_card()){
+                    LOG_D("gunno(%d) current page is not allow swip card charge", port);
+                    s_card_operate_ret[port] = APP_CARD_OPERATE_RET_NULL;
+                    return s_card_operate_ret[port];
+                }
+                s_card_operate_ret[port] = APP_CARD_OPERATE_RET_NOT_START_CARD;
                 return s_card_operate_ret[port];
             }else{
                 LOG_W("occured error, card start but not be locked");
@@ -761,7 +842,7 @@ static int32_t app_card_info_process(void* handle)
                 }else{
                     app_card_event_send(APP_CARD_EVENT_PAY_COMPLETE, port, NULL);
                 }
-                s_card_operate_ret[port] = APP_CARD_OPERATE_RET_PAYED;
+                s_card_operate_ret[port] = APP_CARD_OPERATE_RET_SUCCESS;
                 return s_card_operate_ret[port];
             }
         }
@@ -775,6 +856,11 @@ static int32_t app_card_info_process(void* handle)
                     s_card_operate_ret[port] = APP_CARD_OPERATE_RET_INVALID_CARD;
                     return s_card_operate_ret[port];
                 }
+                if(thaisen_is_not_allow_swip_card()){
+                    LOG_D("gunno(%d) current page is not allow swip card charge", port);
+                    s_card_operate_ret[port] = APP_CARD_OPERATE_RET_NULL;
+                    return s_card_operate_ret[port];
+                }
                 ret = app_card_swip_card_start(port);
                 if(ret < 0x00){
                     app_card_event_recv(APP_CARD_EVENT_IS_PAYING, 0x00, port, NULL, 0x01);
@@ -786,6 +872,21 @@ static int32_t app_card_info_process(void* handle)
                     LOG_D("gunno(%d) swip card start charge, ballance:%d", port, s_card_ballance[port]);
                 }
             }else{
+                if(app_card_another_gun_judge(port)){
+                    if(APP_SYSTEM_GUNNO_SIZE >= 0x02){   /** 双枪情况下才进行此判断 */
+                        another_port = APP_SYSTEM_GUNNOA;
+                        if(port == another_port){
+                            another_port = APP_SYSTEM_GUNNOA + 0x01;
+                        }
+                    }
+                    return s_card_operate_ret[another_port];
+                }else{
+                    if(thaisen_is_not_allow_swip_card()){
+                        LOG_D("gunno(%d) current page is not allow swip card charge", port);
+                        s_card_operate_ret[port] = APP_CARD_OPERATE_RET_NULL;
+                        return s_card_operate_ret[port];
+                    }
+                }
                 LOG_D("chargepile state is not switch complete(%d)\n", port);
                 return -0x01;
             }
