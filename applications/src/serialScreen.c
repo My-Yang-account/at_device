@@ -6018,7 +6018,7 @@ void SerialScreen_GetKeyProcess(struct SerialScreenObj *cmd)
 					if(pPageIndex->item[i].type == LCD_BtnAType)
 					{
 						LcdData.gunIndex = LCD_GUN_1;
-						LcdData.Homeflg = 0;
+						LcdData.Homeflg = 1;
 						//启动时清数据
 						if(LcdData.CurrentPage == LCD_PAGE_STANDBY)
 						{
@@ -6028,12 +6028,13 @@ void SerialScreen_GetKeyProcess(struct SerialScreenObj *cmd)
 						if(!SerialScreen_IsCarConnect(LCD_GUN_1)){
 						    break;
 						}
+                        LcdData.Homeflg = 0;
 						sSCREEN_DEBUGPROMSG("gunIndex1=%d\r\n",LcdData.gunIndex);
 					}
 					if(pPageIndex->item[i].type == LCD_BtnBType)
 					{
 						LcdData.gunIndex = LCD_GUN_2;
-						LcdData.Homeflg = 0;
+						LcdData.Homeflg = 1;
 						//启动时清数据
 						if(LcdData.CurrentPage == LCD_PAGE_STANDBY)
 						{
@@ -6043,6 +6044,7 @@ void SerialScreen_GetKeyProcess(struct SerialScreenObj *cmd)
                         if(!SerialScreen_IsCarConnect(LCD_GUN_2)){
                             break;
                         }
+                        LcdData.Homeflg = 0;
 						sSCREEN_DEBUGPROMSG("gunIndex2=%d\r\n",LcdData.gunIndex);
 					}
 
