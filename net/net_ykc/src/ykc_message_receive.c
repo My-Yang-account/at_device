@@ -1027,7 +1027,7 @@ static void ykc_callback_request_qrcode_config_gc(uint8_t* data, uint16_t length
     struct net_handle* handle = net_get_net_handle();
     char *pile_number = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, 0x00, option));
     uint8_t pile_numberbcd[NET_YKC_CHARGEPILE_LENGTH_DEFAULT];
-    uint8_t qrcode_len = (length - sizeof(Net_YkcPro_SReq_Qrcode_Config_GC_t));
+    uint8_t qrcode_len = strlen((char*)&(((Net_YkcPro_SReq_Qrcode_Config_GC_t*)data)->body.result));
     uint16_t valid_len = strlen((char*)pile_number);
 
     if(!((gunno > 0x00) && (gunno <= NET_SYSTEM_GUN_NUMBER))){
