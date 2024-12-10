@@ -57,6 +57,8 @@ static struct dev_control s_dev_control_info =
     .power_on = 0x00,
 };
 static struct at_device_appinfo s_at_device_appinfo;
+static struct rt_thread s_ec20_thread;
+static uint8_t s_ec20_thread_stack[EC20_THREAD_STACK_SIZE];
 
 int get_at_device_appinfo_boot(void)
 {
@@ -132,16 +134,6 @@ void ec20_at_device_reset(void)
         rt_thread_mdelay(1000);
         rentry++;
     }
-
-    s_at_device_appinfo.boot = 0;
-    s_at_device_appinfo.at = 0;
-    s_at_device_appinfo.card = 0;
-    rt_memset(s_at_device_appinfo.iccid, 0x00, sizeof(s_at_device_appinfo.iccid));
-    rt_memset(s_at_device_appinfo.imei, 0x00, sizeof(s_at_device_appinfo.imei));
-    s_at_device_appinfo.signal_strength = 0;
-    s_at_device_appinfo.cgreg = 0;
-    s_at_device_appinfo.mnc = -1;
-    s_at_device_appinfo.init_complete = 0;
 
     LOG_E("ec20 AT device open");
     netdev_set_up(netdev_default);
@@ -956,7 +948,6 @@ static void ec20_init_thread_entry(void *parameter)
 #define POWER_OFF_COUNT                300 *1000
 
     int i, qi_arg[3] = {0}, is_digit = 0;
-    int retry_num = INIT_RETRY;
     unsigned int power_off_tick = rt_tick_get();
     char parsed_data[20] = {0};
     rt_err_t result = RT_EOK;
@@ -973,8 +964,24 @@ static void ec20_init_thread_entry(void *parameter)
 
     LOG_D("start init %s device.", device->name);
 
-    while (retry_num--)
+    while (1)
     {
+        if(s_at_device_appinfo.init_complete == 1)
+        {
+            LOG_D("4G module thread is running complete");
+
+            power_off_tick = rt_tick_get();
+            if((s_at_device_appinfo.at == 0) ||
+                    (s_at_device_appinfo.card == 0) ||
+                    (s_at_device_appinfo.cgreg == 0))
+            {
+                s_at_device_appinfo.init_complete = 0;
+            }
+
+            rt_thread_mdelay(1000);
+            continue;
+        }
+
         is_digit = 0;
         s_at_device_appinfo.boot = 0;
         s_at_device_appinfo.at = 0;
@@ -1198,9 +1205,15 @@ static void ec20_init_thread_entry(void *parameter)
 
         /* initialize successfully  */
         result = RT_EOK;
-        break;
 
-    __exit:
+        ec20_netdev_set_info(device->netdev);
+        s_at_device_appinfo.init_complete = 1;
+
+        LOG_I("%s device network initialize success.", device->name);
+        continue;
+//        break;
+
+__exit:
         if (result != RT_EOK)
         {
             /* power off the ec20 device */
@@ -1215,7 +1228,7 @@ static void ec20_init_thread_entry(void *parameter)
             LOG_I("%s device initialize retry...(%d)", device->name, (rt_tick_get() - power_off_tick));
         }
     }
-
+#if 0
     if (resp)
     {
         at_delete_resp(resp);
@@ -1238,13 +1251,14 @@ static void ec20_init_thread_entry(void *parameter)
     {
         LOG_E("%s device network initialize failed(%d).", device->name, result);
     }
-
+#endif
 }
 
 /* ec20 device network initialize */
 static int ec20_net_init(struct at_device *device)
 {
 #ifdef AT_DEVICE_EC20_INIT_ASYN
+#if 0
     rt_thread_t tid;
 
     tid = rt_thread_create("ec20_net", ec20_init_thread_entry, (void *)device,
@@ -1258,6 +1272,35 @@ static int ec20_net_init(struct at_device *device)
         LOG_E("create %s device init thread failed.", device->name);
         return -RT_ERROR;
     }
+#else
+    static uint8_t is_init = 0;
+
+    if(is_init == 0){
+        rt_thread_init(&s_ec20_thread, "ec20_net", ec20_init_thread_entry, (void *)device, s_ec20_thread_stack,
+                EC20_THREAD_STACK_SIZE,
+                EC20_THREAD_PRIORITY,
+                20);
+        if(rt_thread_startup(&s_ec20_thread) != RT_EOK){
+            LOG_E("4G module thread startup fail");
+            return -RT_ERROR;
+        }
+
+        is_init = 1;
+    }
+
+    s_at_device_appinfo.boot = 0;
+    s_at_device_appinfo.at = 0;
+    s_at_device_appinfo.card = 0;
+    rt_memset(s_at_device_appinfo.iccid, 0x00, sizeof(s_at_device_appinfo.iccid));
+    rt_memset(s_at_device_appinfo.imei, 0x00, sizeof(s_at_device_appinfo.imei));
+    s_at_device_appinfo.signal_strength = 0;
+    s_at_device_appinfo.cgreg = 0;
+    s_at_device_appinfo.mnc = -1;
+    s_at_device_appinfo.init_complete = 0;
+
+    rt_kprintf("4G module thread restart...\n");
+#endif
+
 #else
     ec20_init_thread_entry(device);
 #endif /* AT_DEVICE_EC20_INIT_ASYN */
