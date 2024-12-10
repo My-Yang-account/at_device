@@ -39,6 +39,8 @@ extern "C" {
 #define APP_CURR_COMPARE_CCSBCL_MAX          500       /* CCS 和 BCL 电流比较最大差值 */
 #define APP_CURR_COMPARE_CCSBCS_MAX          1500      /* CCS 和 BCS 电流比较最大差值 */
 
+#define APP_ORDER_FIXES_WAIT_TIME            (30000)   /* 订单矫正等待最长时间(ms) */
+
 #define APP_STORAGE_TRANSATION_INTERVAL      (30 *60 *1000)   /* 充电中保存交易记录间隔 */
 #define APP_CARD_NUMBER_COMPARE_LEN          16        /* 卡号对比长度 */
 #define OVERTEMP_DECREASE_CURR_PERCENT       5 /10     /* 过温降流百分比 */
@@ -422,6 +424,7 @@ typedef struct{
 
     uint16_t offline_chargetime;      /* 离线可充电时长(单位s) */
     uint32_t offline_tick;            /* 离线时基 */
+    uint32_t order_fixes_tick;        /* 断电订单电量矫正时基 */
 
     uint8_t device_state;             /* 设备状态 */
 #ifdef APP_INCLUDE_SGCC_PROTOCOL

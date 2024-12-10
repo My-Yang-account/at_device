@@ -192,7 +192,7 @@ static void transaction_record_query_report(uint8_t gunno)
             return;
         }
 
-        uint8_t need_check = 0;
+        uint8_t need_check = 0, is_force = APP_THA_ENUM_FALSE;
         uint8_t _period = 0x00, _rated_number = APP_RATE_TYPE_FLAT;
         double _unit_price = 10.5;   /** 断电时电费单价(默认1.05元，精度：0.1) */
         thaisen_transaction_t rtransaction;
@@ -210,7 +210,19 @@ static void transaction_record_query_report(uint8_t gunno)
                 _total_elect = mw_get_meter_total_wh(gunno);
             }
 
-            if(_total_elect >= rtransaction.ammeter_stop){
+            if(s_ofsm_info[gunno].base.order_fixes_tick > rt_tick_get()){
+                s_ofsm_info[gunno].base.order_fixes_tick = rt_tick_get();
+            }
+            if((rt_tick_get() - s_ofsm_info[gunno].base.order_fixes_tick) > APP_ORDER_FIXES_WAIT_TIME){
+                is_force = APP_THA_ENUM_TRUE;   /** 对于断电订单：如果当前电表电量小于订单结束电表电量持续30s，就强制进行电量修正 */
+            }
+
+            if((_total_elect >= rtransaction.ammeter_stop) || (is_force == APP_THA_ENUM_TRUE)){
+                /** 这是不对的情况 */
+                if(_total_elect < rtransaction.ammeter_stop){
+                    _total_elect = rtransaction.ammeter_stop;
+                }
+
                 if(rtransaction.run_mode == APP_RUN_MODE_OFFLINE_BILLING){
                     _rated_number = sys_get_offbilling_rate_number(rtransaction.end_time);
                     if(_rated_number > CP_RATED_TYPE_MAX){
@@ -282,6 +294,7 @@ static void transaction_record_query_report(uint8_t gunno)
             rtransaction.order_state.is_charging = APP_THA_ENUM_FALSE;
         }else{
             need_check = 1;
+            s_ofsm_info[gunno].base.order_fixes_tick = rt_tick_get();
         }
         if(need_check){
             int32_t ret = 0x00;
@@ -298,12 +311,15 @@ static void transaction_record_query_report(uint8_t gunno)
                     continue;
                 }else{
                     break;
+                    s_ofsm_info[gunno].base.order_fixes_tick = rt_tick_get();
                 }
                 LOG_D("order have adjusted");
                 break;
             }
         }
         return;
+    }else{
+        s_ofsm_info[gunno].base.order_fixes_tick = rt_tick_get();
     }
 
 #ifdef APP_INCLUDE_TARGET_PLATFORM
@@ -5523,6 +5539,7 @@ void ofsm_thread_entry(void *parameter)
 
     rt_thread_mdelay(6000);  /** 等待底层驱动正常(电表要获取到电量) */
     s_request_screen_time_tick = rt_tick_get();
+    s_ofsm_info[thread_gunno].base.order_fixes_tick = rt_tick_get();
 
     while(1){
         uint16_t singlegun_curr = s_ofsm_info[thread_gunno].base.gun_set_curr;
