@@ -6712,11 +6712,33 @@ int SerialScreen_DataProcess()
                         if(LcdData.gun[LCD_GUN_2].workState != SysMainStatus_StartReady){
                             LcdData.CurrentPage = LCD_PAGE_A_SELECT;
                             LcdData.gunIndex = LCD_GUN_1;
+
+                            for(u8 i = 0; i < LCD_GUN_NUM; i++){
+                                LcdTriggerEvent[i].Flag.IsTriggerExternal = FALSE;
+                            }
                         }
                     }else{
                         if(LcdData.gun[LCD_GUN_1].workState != SysMainStatus_StartReady){
                             LcdData.CurrentPage = LCD_PAGE_B_SELECT;
                             LcdData.gunIndex = LCD_GUN_2;
+
+                            for(u8 i = 0; i < LCD_GUN_NUM; i++){
+                                LcdTriggerEvent[i].Flag.IsTriggerExternal = FALSE;
+                            }
+                        }
+                    }
+                }
+
+                if(LcdData.gun[i].workState == SysMainStatus_StandBy){
+                    if(i == LCD_GUN_1){
+                        if((LcdData.CurrentPage == LCD_PAGE_A_SELECT) && (LcdData.gunIndex == LCD_GUN_1)){
+                            LcdData.CurrentPage = LCD_PAGE_STANDBY;
+                            LcdData.Homeflg = 1;
+                        }
+                    }else{
+                        if((LcdData.CurrentPage == LCD_PAGE_B_SELECT) && (LcdData.gunIndex == LCD_GUN_2)){
+                            LcdData.CurrentPage = LCD_PAGE_STANDBY;
+                            LcdData.Homeflg = 1;
                         }
                     }
                 }
