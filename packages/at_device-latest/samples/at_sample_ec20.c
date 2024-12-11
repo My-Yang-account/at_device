@@ -40,4 +40,4 @@ static int ec20_device_register(void)
                               AT_DEVICE_CLASS_EC20,
                               (void *) ec20);
 }
-INIT_APP_EXPORT(ec20_device_register);
+//INIT_APP_EXPORT(ec20_device_register);

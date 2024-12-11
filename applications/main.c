@@ -30,10 +30,10 @@
 #define DBG_LVL DBG_LOG
 #include <rtdbg.h>
 
-//void rt_kprintf(const char *fmt, ...)
-//{
-//
-//}
+void rt_kprintf(const char *fmt, ...)
+{
+
+}
 
 extern int get_at_device_appinfo_at(void);
 extern int get_at_device_appinfo_check_card(void);
@@ -147,7 +147,7 @@ int main(void)
         chargepile_power_adjust();
 
         mw_running_led_toggle(0, 0);
-
+#if 0
         if((*(sys_read_config_item_content(CONFIG_ITEM_SUPORT_OFFLINE_BILLING, 0))) == 0x00){
             if(g_net_target_platform_tick > rt_tick_get()){
                 if((rt_tick_get() + 0xFFFFFFFF - g_net_target_platform_tick) > 5 *60 *1000){
@@ -172,11 +172,12 @@ int main(void)
             g_net_target_platform_tick = rt_tick_get();
             s_net_alive_tick = rt_tick_get();
         }
-
+#endif
         extern uint8_t app_nsal_is_remote_reset(void);
         extern uint8_t thaisen_query_screen_reboot(void);
         extern void thaisen_clear_screen_reboot(void);
-        if(app_nsal_is_remote_reset() || thaisen_query_screen_reboot()){
+//        if(app_nsal_is_remote_reset() || thaisen_query_screen_reboot()){
+        if(thaisen_query_screen_reboot()){
             uint8_t gunno = 0x00;
             for(gunno = 0x00; gunno < APP_SYSTEM_GUNNO_SIZE; gunno++){
                 if(get_ofsm_info(gunno)->state != APP_OFSM_STATE_IDLEING){

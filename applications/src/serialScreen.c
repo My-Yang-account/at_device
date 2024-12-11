@@ -6587,8 +6587,10 @@ int SerialScreen_DataProcess()
 
 		LcdData.runData.netstate = thaisen_app_get_net_state();
 		if(*((u8*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_OFFLINE_BILLING, 0)) == TRUE){
-		    LcdData.runData.netstate = 0x05;   //离线计费不显示网络图标
+//		    LcdData.runData.netstate = 0x05;   //离线计费不显示网络图标
 		}
+        LcdData.runData.netstate = 0x05;   //离线计费不显示网络图标
+
 		timeSync = thaisen_app_get_time_sync_flag();
 		if(TRUE == timeSync)
 		{
@@ -6672,7 +6674,8 @@ int SerialScreen_DataProcess()
             mem_set(LcdData.setData.ErWeiCode[i],0,sizeof(LcdData.setData.ErWeiCode[i]));
 			if((LcdData.gun[i].portState == GUN_CONNECT_STATE_YES)&&(LcdData.gun[i].workState==SysMainStatus_PlugIn)){
 			    u8 validLen = sizeof(LcdData.setData.ErWeiCode[i]);
-			    if(LcdData.setData.sup_offbilling == FALSE){
+//			    if(LcdData.setData.sup_offbilling == FALSE){
+                if(0){
 	                if(validLen > thaisen_app_get_gunno_qrcode(i)->qrcode_len){
 	                    str_ncpy(LcdData.setData.ErWeiCode[i],thaisen_app_get_gunno_qrcode(i)->qrcode,thaisen_app_get_gunno_qrcode(i)->qrcode_len);
 	                }else{
