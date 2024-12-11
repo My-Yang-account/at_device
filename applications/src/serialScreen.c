@@ -2564,9 +2564,17 @@ void SerialScreen_SetInputInfo(void)
 		thaisenSetSysFaultCheckBit(thaisenDoor); 
 
     if(FALSE == LcdData.setData.supin_ac){
+#ifdef SCREEN_USING_DOUBLE_GUN
         thaisenClearSysFaultCheckBit(thaisenRelayAc);
+#else
+        thaisenSetACRelayEnableState(0);
+#endif /* SCREEN_USING_DOUBLE_GUN */
     }else{
+#ifdef SCREEN_USING_DOUBLE_GUN
         thaisenSetSysFaultCheckBit(thaisenRelayAc);
+#else
+        thaisenSetACRelayEnableState(1);
+#endif /* SCREEN_USING_DOUBLE_GUN */
     }
     if(FALSE == LcdData.setData.supin_dc){
         thaisenClearSysFaultCheckBit(thaisenRelay);
@@ -5158,6 +5166,7 @@ struct LCD_DATA_FIFO_TYPE *SerialScreen_Init(struct SerialScreenObj *cmd)
     LcdData.setData.sup_parallelrelay = *(UI_READ_SINGLE_CFG_STR(CONFIG_ITEM_SUPORT_PARALLELRELAY, 0));
     LcdData.setData.sup_mslience = *((u8*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_MODULE_SLIENCE, 0));
     LcdData.setData.sup_offbilling = *((u8*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_OFFLINE_BILLING, 0));
+    LcdData.setData.supin_ac = *((u8*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_INEN_ACRELAY, 0));
 
     memset(LcdData.setData.UserPasswdShow, '\0', sizeof(LcdData.setData.UserPasswdShow));
     memcpy(LcdData.setData.UserPasswdShow, data, sizeof(LcdData.setData.UserPasswdShow));
@@ -5312,6 +5321,16 @@ struct LCD_DATA_FIFO_TYPE *SerialScreen_Init(struct SerialScreenObj *cmd)
     }else{
         thaisenModuleSetParallelEnable(thaisenFunction_enable);
     }
+
+#ifndef SCREEN_USING_DOUBLE_GUN
+    if(LcdData.setData.supin_ac > TRUE)
+        LcdData.setData.supin_ac = FALSE;
+
+    thaisenSetACRelayEnableState(LcdData.setData.supin_ac);
+#else
+        if(LcdData.setData.supin_ac > TRUE)
+            LcdData.setData.supin_ac = TRUE;
+#endif /* SCREEN_USING_DOUBLE_GUN */
 
 	Q_INIT(LcdData.List, u8, 250);
 //	SerialScreen_RtcShow(cmd);
