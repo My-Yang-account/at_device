@@ -390,6 +390,29 @@ uint8_t thaisenGetDCRelayBCloseStaus(void);
 
 void thaisenSetParaRelayCloseStaus(uint8_t sta);
 uint8_t thaisenGetParaRelayCloseStaus(void);
+
+/* 功能说明:
+ *      thaisenSetACRelayEnableState:设置交流接触器使能状态
+ * 输入参数:  状态：0：不使能    其它：使能
+ *
+ * 返回参数:
+ *      无
+ * 调用方法:
+ *      反馈时调用
+ */
+void thaisenSetACRelayEnableState(uint8_t state);
+
+/* 功能说明:
+ *      thaisenGetACRelayEnableState:获取交流接触器使能状态
+ * 输入参数:
+ *
+ * 返回参数:    状态：0：不使能    1：使能
+ *      无
+ * 调用方法:
+ *      反馈时调用
+ */
+uint8_t thaisenGetACRelayEnableState(void);
+
 /*****************************************************************************************************/
 /*************************************辅助电源函数******************************************************/
 
