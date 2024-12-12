@@ -3281,7 +3281,7 @@ static void ofsm_charging_fun(uint8_t gunno)
             }
         }
     }
-
+#ifdef CP_CONFIG_USING_DUPU
     if(terminal_get_ems_set_power() < APP_EMS_STOP_POWER_MIN){   /** 0.5KW */
         s_thaisen_transaction[gunno].stop_reason = APP_SYSTEM_STOP_WAY_REACH_ELECT;
         s_ofsm_info[gunno].base.reason_code = s_thaisen_transaction[gunno].stop_reason;
@@ -3290,7 +3290,7 @@ static void ofsm_charging_fun(uint8_t gunno)
         is_stop_charge_authorization = true;
         LOG_D("gunno(%d) charge finish deal to reach target elect(ems)\n", gunno);
     }
-
+#endif /* CP_CONFIG_USING_DUPU */
     if(((s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD) && (s_ofsm_info[gunno].base.main_gunno == gunno)) ||
             (s_ofsm_info[gunno].base.charge_way != APP_CHARGE_WAY_PARACHARGE_CLOUD)){
         if(s_ofsm_info[gunno].base.current_a < TINY_CURRENT_ABNOAMAL_VALUE){
