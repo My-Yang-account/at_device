@@ -3979,7 +3979,9 @@ static void ofsm_finishing_fun(uint8_t gunno)
                 rfidr_clear_swipe_state(gunno);
                 if(app_card_query_operate_ret(gunno) != APP_CARD_OPERATE_RET_NULL){
                     app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
-                    thaisen_set_trigger_event(THAISEN_TRIG_EVENT_FAULT_STOP, 0x05, APP_THA_ENUM_TRUE, gunno);
+                    if(s_ofsm_info[gunno].base.is_offline_billing == APP_THA_ENUM_TRUE){
+                        thaisen_set_trigger_event(THAISEN_TRIG_EVENT_FAULT_STOP, 0x05, APP_THA_ENUM_TRUE, gunno);
+                    }
                 }
                 LOG_D("gunno(%d)[%d] is fault stop, please pull and insert gun first", gunno, THAISEN_TRIG_EVENT_FAULT_STOP);
             }
