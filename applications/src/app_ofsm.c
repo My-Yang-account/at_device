@@ -5537,6 +5537,7 @@ void ofsm_thread_entry(void *parameter)
     s_ofsm_fun[thread_gunno] = s_ofsm_fun_list[thread_gunno][APP_OFSM_STATE_WAIT_NET];
     s_ofsm_info[thread_gunno].state = APP_OFSM_STATE_WAIT_NET;
 
+    s_ofsm_info[thread_gunno].base.net_state = app_nsal_get_link_state();
     app_billingrule_set_eloss_proportion(*((uint16_t*)sys_read_config_item_content(CONFIG_ITEM_ELOSS_PROPORTION, 0x00)));
 
     rt_thread_mdelay(6000);  /** 等待底层驱动正常(电表要获取到电量) */

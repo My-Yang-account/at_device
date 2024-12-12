@@ -9,6 +9,7 @@
  */
 #include "net_sal.h"
 #include "app_ofsm.h"
+#include "net_netdev.h"
 
 static void app_nsal_data_update(void)
 {
@@ -88,15 +89,27 @@ uint8_t app_nsal_get_link_state(void)
 {
     switch(net_get_net_handle()->net_state){
     case NET_SOCKET_STATE_PHY:
+        if(net_query_netdev_type() == NET_NETDEV_TYPE_ETHERNET){
+            return APP_NET_STATE_ETH_NULL;
+        }
         return APP_NET_STATE_NULL;
         break;
     case NET_SOCKET_STATE_SIM:
+        if(net_query_netdev_type() == NET_NETDEV_TYPE_ETHERNET){
+            return APP_NET_STATE_ETH_LINE;
+        }
         return APP_NET_STATE_CARD;
         break;
     case NET_SOCKET_STATE_DATA_LINK:
+        if(net_query_netdev_type() == NET_NETDEV_TYPE_ETHERNET){
+            return APP_NET_STATE_ETH_QUERY_NET;
+        }
         return APP_NET_STATE_UP;
         break;
     case NET_SOCKET_STATE_MODULE_INIT:
+        if(net_query_netdev_type() == NET_NETDEV_TYPE_ETHERNET){
+            return APP_NET_STATE_ETH_QUERY_NET;
+        }
         return APP_NET_STATE_UP;
         break;
     case NET_SOCKET_STATE_OPEN:
@@ -110,6 +123,10 @@ uint8_t app_nsal_get_link_state(void)
         break;
     default:
         break;
+    }
+
+    if(net_query_netdev_type() == NET_NETDEV_TYPE_ETHERNET){
+        return APP_NET_STATE_ETH_NULL;
     }
     return APP_NET_STATE_NULL;
 }

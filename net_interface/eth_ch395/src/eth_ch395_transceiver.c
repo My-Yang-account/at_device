@@ -1194,7 +1194,6 @@ static void ethch395_device_init(void)
             goto _is_end;
         }
 
-        s_ethch395_state = NETDEV_ETHCH395_STATE_LINK_MAC;    /** 芯片状态：初始化链路MAC层 */
         /** 修改 ethch395 通信波特率 */
         if(ethch395_cmd_set_baudrate(ETHCH395_CMD_BAUDRATE_115200) < 0x00){
             LOG_E("ethch395 modify baudrate fail(%d)", ETHCH395_CMD_BAUDRATE_115200);
@@ -1212,6 +1211,8 @@ static void ethch395_device_init(void)
             res = -0x01;
             goto _is_end;
         }
+
+        s_ethch395_state = NETDEV_ETHCH395_STATE_LINK_MAC;    /** 芯片状态：初始化链路MAC层 */
 
         rt_thread_mdelay(10);
 

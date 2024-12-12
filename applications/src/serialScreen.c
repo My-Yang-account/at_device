@@ -5128,7 +5128,7 @@ struct LCD_DATA_FIFO_TYPE *SerialScreen_Init(struct SerialScreenObj *cmd)
 	//LcdData init
     LcdData.gunIndex = 0;
 	LcdData.menuflg = 0;
-	LcdData.runData.netstate = 0; //
+	LcdData.runData.netstate = thaisen_app_get_net_state(); //
 	LcdData.Homeflg = 1;
 	LcdData.CurrentPage = LCD_PAGE_STANDBY;
     LcdData.CurrentPageBack = 0;
@@ -6600,6 +6600,11 @@ int SerialScreen_DataProcess()
 		LcdData.setData.g_auxRelay[LCD_GUN_2] =!(thaisenGetAux_B_Status_debug());
 	}
 	
+    LcdData.runData.netstate = thaisen_app_get_net_state();
+    if(*((u8*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_OFFLINE_BILLING, 0)) == TRUE){
+        LcdData.runData.netstate = 0x05;   //离线计费不显示网络图标
+    }
+
 	if(++timesecbak>1000/BASE_SYS_TIMER)
 	{
 		timesecbak = 0;
@@ -6614,12 +6619,6 @@ int SerialScreen_DataProcess()
 					LcdData.gun[i].startCountTimer--;
 				sSCREEN_DEBUGPROMSG("LcdData.gun[%d].startCountTimer = %02x\r\n",i,LcdData.gun[i].startCountTimer);	
 			}
-		}
-
-
-		LcdData.runData.netstate = thaisen_app_get_net_state();
-		if(*((u8*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_OFFLINE_BILLING, 0)) == TRUE){
-		    LcdData.runData.netstate = 0x05;   //离线计费不显示网络图标
 		}
 
 		timeSync = thaisen_app_get_time_sync_flag();

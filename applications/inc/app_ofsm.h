@@ -112,11 +112,15 @@ enum system_start_way{
 };
 
 enum net_state{
-    APP_NET_STATE_NULL = 0,     //物理层故障（网卡故障）
-    APP_NET_STATE_CARD,         //检测SIM卡异常
-    APP_NET_STATE_UP,           //链路层故障（GPRS网络注册异常）
-    APP_NET_STATE_INTERNET_UP,  //连接平台中
-    APP_NET_STATE_AUTH_SECCESS, //连接平台成功
+    APP_NET_STATE_NULL = 0,         //物理层故障（网卡故障）
+    APP_NET_STATE_CARD = 1,         //检测SIM卡异常
+    APP_NET_STATE_UP = 2,           //链路层故障（GPRS网络注册异常）
+    APP_NET_STATE_INTERNET_UP = 3,  //连接平台中
+    APP_NET_STATE_AUTH_SECCESS = 4, //连接平台成功
+
+    APP_NET_STATE_ETH_NULL = 6,     //以太网：模块检测
+    APP_NET_STATE_ETH_LINE = 7,     //以太网：网线检测
+    APP_NET_STATE_ETH_QUERY_NET = 8,//以太网：网络检测
 
     APP_NET_STATE_SIZE,
 };

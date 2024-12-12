@@ -254,7 +254,8 @@ uint8_t net_netdev_query_devstate(void)
             state = NET_NETDEV_STATE_DATA_LINK_MAC;
             break;
         case NETDEV_ETHCH395_STATE_LINK_LCC:
-            state = NET_NETDEV_STATE_DATA_LINK_LCC;
+            state = NET_NETDEV_STATE_DATA_LINK_MAC;
+//            state = NET_NETDEV_STATE_DATA_LINK_LCC;
             break;
         case NETDEV_ETHCH395_STATE_NET_REGISTERED:
             state = NET_NETDEV_STATE_NET_REGISTERED;
