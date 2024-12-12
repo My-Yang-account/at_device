@@ -28,13 +28,14 @@ extern "C" {
                                          [1.4.9 为打印开log费率不显示问题(增加打印信息)]
                                          [1.5.1 为打开电流比较，测试版本])
                                          [1.6.2 能佳测试版本(联网会断开)、绍兴临时版本]
-                                         [1.6.3 能佳版本(修复断网问题)]*/
+                                         [1.6.3 能佳版本(修复断网问题)]
+                                         [1.6.8 为不启用网络部分、去掉联网图标、屏幕二维码只显示桩号+枪号]*/
 
 #ifdef APP_USING_DOUBLEGUN
 #define SOFTWARE_MODULE                 "YKC7103"          /* 软件型号 */
 #define SOFTWARE_VERSION       1L
 #define SOFTWARE_SUBVERSION    6L
-#define SOFTWARE_REVISION      7L
+#define SOFTWARE_REVISION      9L
 
 #else
 #define SOFTWARE_MODULE                 "YKC7101"          /* 软件型号 */
