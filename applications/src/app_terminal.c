@@ -37,8 +37,8 @@
 #define THAISEN_EMS_LEGTH_RES                 0x06               //接收数据长度
 #define THAISEN_EMS_RECV_HEAD                 0x01               //接收数据头
 #define THAISEN_EMS_RECV_FRAME_CMD            0x04               //接收数据指令码(目前只有一帧，这样做能减少错误率)
-#define THAISEN_EMS_RECV_FRAME_LENGTH         0x08               //接收数据长度值(目前只有一帧，这样做能减少错误率)
-#define THAISEN_EMS_ALL_LEGTH_RES             0x0D               //接收数据长度
+#define THAISEN_EMS_RECV_FRAME_LENGTH         0x06               //接收数据长度值(目前只有一帧，这样做能减少错误率)
+#define THAISEN_EMS_ALL_LEGTH_RES             0x0B               //接收数据长度
 
 #define TERMINAL_EMS_SEND_PERIOD              250                //ems数据发送间隔(ms)
 #define EMS_WITE_PERIOD                       1000                //EMS主动上报的状态500ms周期(单位 ms)
@@ -174,7 +174,8 @@ uint16_t terminal_get_ems_set_power()
  ****************************************/
 uint16_t terminal_get_ems_soc()
 {
-    return s_ems_frame_res.soc;
+    return 0;
+//    return s_ems_frame_res.soc;
 }
 
 /*****************************************
@@ -360,8 +361,8 @@ void terminal_thread_entry(void *parameter)
         //已接收到头
         if(rlen > 0){
             data_buffer[rlen++] = ch;
-            if(rlen > THAISEN_EMS_ALL_LEGTH_RES){
-                if(xfmbmcrcsum((uint8_t *)&data_buffer, sizeof(data_buffer) - 2) != (uint16_t)((data_buffer[12] << 8) | data_buffer[11])){
+            if(rlen >= THAISEN_EMS_ALL_LEGTH_RES){
+                if(xfmbmcrcsum((uint8_t *)&data_buffer, sizeof(data_buffer) - 2) != (uint16_t)((data_buffer[10] << 8) | data_buffer[9])){
                     rlen = 0;
                     continue;                                      //校验失败返回while重新接收
                 }else{
@@ -382,7 +383,6 @@ void terminal_thread_entry(void *parameter)
                             issue_power = sys_query_system_max_power();
                         }
                         sys_sync_config_item_content(CONFIG_ITEM_SYSTEM_POWER_TOTAL, &issue_power, sizeof(issue_power));
-
                         s_last_power = s_ems_frame_res.power;
                     }
                 }
