@@ -1464,6 +1464,7 @@ typedef struct{
     Net_YkcMonitorPro_Head_t head;
     struct{
         uint8_t pile_number[NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT];  /* 桩号*/
+        uint8_t gunno;                           /* 枪号 */
         uint32_t timestamp;                      /* 采样时间 */
         uint8_t info_type;                       /* 信息类型(0：启动中信息，1：充电中信息，2：充电结束信息) */
         uint8_t group_num;                       /* 有效采样组数 */

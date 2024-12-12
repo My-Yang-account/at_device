@@ -3619,6 +3619,7 @@ int8_t ykc_monitor_message_padding_starting_info(uint8_t gunno, uint8_t *buf, ui
     memcpy(message->body.pile_number, g_ykc_monitor_preq_login.body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
     message->body.timestamp = s_ykc_monitor_starting_info[gunno].timestamp;
     message->body.info_type = NET_YKC_MONITOR_PROCESS_INFO_TYPE_STARTING;
+    message->body.gunno = (gunno + 0x01);
     if(s_ykc_monitor_starting_info[gunno].count > NET_YKC_MONITOR_STARTING_INFO_MAX){
         message->body.group_num = NET_YKC_MONITOR_STARTING_INFO_MAX;
     }else{
@@ -3786,6 +3787,7 @@ int8_t ykc_monitor_message_padding_charging_info(uint8_t gunno, uint8_t *buf, ui
     memcpy(message->body.pile_number, g_ykc_monitor_preq_login.body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
     message->body.timestamp = s_ykc_monitor_charging_info[gunno].timestamp;
     message->body.info_type = NET_YKC_MONITOR_PROCESS_INFO_TYPE_CHARGING;
+    message->body.gunno = (gunno + 0x01);
     if(s_ykc_monitor_charging_info[gunno].count > NET_YKC_MONITOR_CHARGING_INFO_MAX){
         message->body.group_num = NET_YKC_MONITOR_CHARGING_INFO_MAX;
     }else{
@@ -3840,6 +3842,7 @@ int8_t ykc_monitor_message_padding_charge_finish_info(uint8_t gunno, uint8_t *bu
     memcpy(message->body.pile_number, g_ykc_monitor_preq_login.body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
     message->body.timestamp = base->current_time;
     message->body.info_type = NET_YKC_MONITOR_PROCESS_INFO_TYPE_FINISH;
+    message->body.gunno = (gunno + 0x01);
     message->body.group_num = NET_YKC_MONITOR_FINISH_INFO_MAX;
 
     info->state = mw_get_charge_library_state(gunno);
