@@ -293,6 +293,7 @@ static int32_t app_card_pay_history_bill(uint8_t *gunno)
         }else{
             s_card_operate_ret[*gunno] = APP_CARD_OPERATE_RET_HISTORY_BILL_ERROR;
         }
+        rt_free(transaction);
         return s_card_operate_ret[*gunno];
     }
 
@@ -316,6 +317,7 @@ static int32_t app_card_pay_history_bill(uint8_t *gunno)
             s_card_info_sector2.block_10.detail.ballance = ballance;
             s_card_info_sector2.block_10.detail.start_time = stime;
 
+            rt_free(transaction);
             s_card_operate_ret[*gunno] = APP_CARD_OPERATE_RET_STORAGE_ERROR;
             return s_card_operate_ret[*gunno];
         }
@@ -328,6 +330,7 @@ static int32_t app_card_pay_history_bill(uint8_t *gunno)
             s_card_info_sector2.block_10.detail.ballance = ballance;
             s_card_info_sector2.block_10.detail.start_time = stime;
 
+            rt_free(transaction);
             s_card_operate_ret[*gunno] = APP_CARD_OPERATE_RET_STORAGE_ERROR;
             return s_card_operate_ret[*gunno];
         }
@@ -337,11 +340,13 @@ static int32_t app_card_pay_history_bill(uint8_t *gunno)
                 0x00, 0x01, *gunno, index);
 
     }else{
+        rt_free(transaction);
         LOG_E("this card is not enough to pay the bill(%d, %d)(history bill)!!", ofsm->base.fees_total, s_card_info_sector2.block_10.detail.ballance);
         s_card_operate_ret[*gunno] = APP_CARD_OPERATE_RET_NO_BALLANCE;
         return s_card_operate_ret[*gunno];
     }
 
+    rt_free(transaction);
     return s_card_operate_ret[*gunno];
 }
 
@@ -364,6 +369,7 @@ static int32_t app_card_non_swip_card_stop(uint8_t gunno)
     uint32_t ballance = s_card_info_sector2.block_10.detail.ballance, stime = s_card_info_sector2.block_10.detail.start_time;
     thaisen_transaction_t *transaction = (thaisen_transaction_t*)rt_malloc(sizeof(thaisen_transaction_t));
     int32_t index = mw_storage_record_get_current_index(gunno);
+
     if(transaction == NULL){
         /** 没有足够的内存 */
         LOG_W("gunno(%d) no enough memory for transaction(%d)", gunno, sizeof(thaisen_transaction_t));
@@ -390,6 +396,7 @@ static int32_t app_card_non_swip_card_stop(uint8_t gunno)
             s_card_info_sector2.block_10.detail.ballance = ballance;
             s_card_info_sector2.block_10.detail.start_time = stime;
 
+            rt_free(transaction);
             s_card_operate_ret[gunno] = APP_CARD_OPERATE_RET_STORAGE_ERROR;
             return s_card_operate_ret[gunno];
         }
@@ -402,6 +409,7 @@ static int32_t app_card_non_swip_card_stop(uint8_t gunno)
             s_card_info_sector2.block_10.detail.ballance = ballance;
             s_card_info_sector2.block_10.detail.start_time = stime;
 
+            rt_free(transaction);
             s_card_operate_ret[gunno] = APP_CARD_OPERATE_RET_STORAGE_ERROR;
             return s_card_operate_ret[gunno];
         }
@@ -419,12 +427,14 @@ static int32_t app_card_non_swip_card_stop(uint8_t gunno)
         mw_storage_record_designate_index_updated(transaction, sizeof(thaisen_transaction_t), USER_DATA_TYPE_REPORTED,  \
                 0x00, 0x01, gunno, index);
     }else{
+        rt_free(transaction);
         /** 提示余额不足 */
         LOG_E("this card is not enough to pay the bill(%d, %d)(non swip card)!!", ofsm->base.fees_total, s_card_info_sector2.block_10.detail.ballance);
         s_card_operate_ret[gunno] = APP_CARD_OPERATE_RET_NO_BALLANCE;
         return s_card_operate_ret[gunno];
     }
 
+    rt_free(transaction);
     return s_card_operate_ret[gunno];
 }
 
