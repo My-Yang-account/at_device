@@ -35,23 +35,8 @@
 //
 //}
 
-extern int get_at_device_appinfo_at(void);
-extern int get_at_device_appinfo_check_card(void);
-extern int get_at_device_appinfo_check_gprs_registered(void);
 extern uint32_t g_net_target_platform_tick;
 static uint32_t s_net_alive_tick;
-
-static void net_alive_check(void)
-{
-    if(app_nsal_get_link_state() != APP_NET_STATE_AUTH_SECCESS){
-        if(get_at_device_appinfo_at() && get_at_device_appinfo_check_card() && get_at_device_appinfo_check_gprs_registered()){
-        }else{
-            s_net_alive_tick = rt_tick_get();
-        }
-    }else{
-        s_net_alive_tick = rt_tick_get();
-    }
-}
 
 int main(void)
 {
@@ -119,32 +104,29 @@ int main(void)
     {
         mw_iwdg_refresh();
 
-        net_alive_check();
         rt_thread_mdelay(200);
         mw_iwdg_refresh();
-
-        net_alive_check();
         chargepile_power_adjust();
+
         rt_thread_mdelay(200);
         mw_iwdg_refresh();
-
-        net_alive_check();
         chargepile_power_adjust();
+
         rt_thread_mdelay(200);
         mw_iwdg_refresh();
-
-        net_alive_check();
         chargepile_power_adjust();
+
         rt_thread_mdelay(200);
         mw_iwdg_refresh();
-
-        net_alive_check();
         chargepile_power_adjust();
+
         rt_thread_mdelay(200);
         mw_iwdg_refresh();
-
-        net_alive_check();
         chargepile_power_adjust();
+
+        if(app_nsal_get_link_state() == APP_NET_STATE_AUTH_SECCESS){
+            s_net_alive_tick = rt_tick_get();
+        }
 
         mw_running_led_toggle(0, 0);
 
