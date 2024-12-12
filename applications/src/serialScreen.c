@@ -6037,7 +6037,7 @@ void SerialScreen_GetKeyProcess(struct SerialScreenObj *cmd)
 					if(pPageIndex->item[i].type == LCD_BtnAType)
 					{
 						LcdData.gunIndex = LCD_GUN_1;
-						LcdData.Homeflg = 1;
+						LcdData.Homeflg = 0;
 						//启动时清数据
 						if(LcdData.CurrentPage == LCD_PAGE_STANDBY)
 						{
@@ -6047,13 +6047,12 @@ void SerialScreen_GetKeyProcess(struct SerialScreenObj *cmd)
 						if(!SerialScreen_IsCarConnect(LCD_GUN_1)){
 						    break;
 						}
-                        LcdData.Homeflg = 0;
 						sSCREEN_DEBUGPROMSG("gunIndex1=%d\r\n",LcdData.gunIndex);
 					}
 					if(pPageIndex->item[i].type == LCD_BtnBType)
 					{
 						LcdData.gunIndex = LCD_GUN_2;
-						LcdData.Homeflg = 1;
+						LcdData.Homeflg = 0;
 						//启动时清数据
 						if(LcdData.CurrentPage == LCD_PAGE_STANDBY)
 						{
@@ -6063,7 +6062,6 @@ void SerialScreen_GetKeyProcess(struct SerialScreenObj *cmd)
                         if(!SerialScreen_IsCarConnect(LCD_GUN_2)){
                             break;
                         }
-                        LcdData.Homeflg = 0;
 						sSCREEN_DEBUGPROMSG("gunIndex2=%d\r\n",LcdData.gunIndex);
 					}
 
@@ -6587,9 +6585,8 @@ int SerialScreen_DataProcess()
 
 		LcdData.runData.netstate = thaisen_app_get_net_state();
 		if(*((u8*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_OFFLINE_BILLING, 0)) == TRUE){
-//		    LcdData.runData.netstate = 0x05;   //离线计费不显示网络图标
+		    LcdData.runData.netstate = 0x05;   //离线计费不显示网络图标
 		}
-        LcdData.runData.netstate = 0x05;   //离线计费不显示网络图标
 
 		timeSync = thaisen_app_get_time_sync_flag();
 		if(TRUE == timeSync)
@@ -6674,8 +6671,7 @@ int SerialScreen_DataProcess()
             mem_set(LcdData.setData.ErWeiCode[i],0,sizeof(LcdData.setData.ErWeiCode[i]));
 			if((LcdData.gun[i].portState == GUN_CONNECT_STATE_YES)&&(LcdData.gun[i].workState==SysMainStatus_PlugIn)){
 			    u8 validLen = sizeof(LcdData.setData.ErWeiCode[i]);
-//			    if(LcdData.setData.sup_offbilling == FALSE){
-                if(0){
+			    if(LcdData.setData.sup_offbilling == FALSE){
 	                if(validLen > thaisen_app_get_gunno_qrcode(i)->qrcode_len){
 	                    str_ncpy(LcdData.setData.ErWeiCode[i],thaisen_app_get_gunno_qrcode(i)->qrcode,thaisen_app_get_gunno_qrcode(i)->qrcode_len);
 	                }else{

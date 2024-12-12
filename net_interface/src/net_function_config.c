@@ -758,7 +758,7 @@ int32_t app_nfunc_config_init(void)
     if(offline_billing == 0x01){
         return -0x01;
     }
-#if 0
+
     ethch395_set_init_hook(ethernet_init_hook);
     if((nettype == CP_NETTYPE_ETH) && (offline_billing == 0x00)){
         net_set_netdev_type(NET_NETDEV_TYPE_ETHERNET, 0x00);
@@ -766,7 +766,7 @@ int32_t app_nfunc_config_init(void)
     }
 
     handle->start_func(handle);
-#endif
+
     return 0x00;
 }
 
