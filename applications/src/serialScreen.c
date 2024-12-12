@@ -302,6 +302,7 @@ struct LCD_TRIGGER{
         u8 IsModify : 1;                //触发事件已修改
         u8 IsTriggerExternal : 1;       //有外部触发事件
         u8 IsPayed : 1;                 //已支付
+        u8 IsWaitPay : 1;               //触发了等待支付事件
     }Flag;
     struct LCD_TRIGGER_ITEM item;
 };
@@ -1097,7 +1098,12 @@ s32 SerialScreen_ScreenSet_Trigger_Event(u8 Event, u16 DurationTime, u8 JustNoti
         LcdTriggerEvent[port].item.Flag.JustNotice = TRUE;
     }
     if(Event == SCREEN_TRIGGER_PAGE_PAY_COMPLETE){
+        LcdTriggerEvent[port].Flag.IsWaitPay = FALSE;
         LcdTriggerEvent[port].Flag.IsPayed = TRUE;
+    }
+
+    if(Event == SCREEN_TRIGGER_WARN_ICON_PAY){
+        LcdTriggerEvent[port].Flag.IsWaitPay = TRUE;
     }
 
     LcdTriggerEvent[port].item.page = Trigger_Page[Event].page;
@@ -5478,7 +5484,10 @@ void SerialScreen_PageReset(int GunIdx)
                 LcdData.Homeflg = 0;
                 LcdData.menuflg = 0;
                 LcdData.NeedMenuOffFlg = 0;
-                LcdTriggerEvent[LCD_GUN_1].Flag.IsTriggerExternal = FALSE;
+                for(u8 i = 0; i < LCD_GUN_NUM; i++){
+                    LcdTriggerEvent[i].Flag.IsTriggerExternal = FALSE;
+                }
+                LcdTriggerEvent[LCD_GUN_1].Flag.IsWaitPay = FALSE;
                 LcdTriggerEvent[LCD_GUN_1].Flag.IsPayed = FALSE;
             }else if(LcdData.gun[LCD_GUN_2].workState == SysMainStatus_StartReady){
                 LcdData.gunIndex = LCD_GUN_2;
@@ -5486,7 +5495,10 @@ void SerialScreen_PageReset(int GunIdx)
                 LcdData.Homeflg = 0;
                 LcdData.menuflg = 0;
                 LcdData.NeedMenuOffFlg = 0;
-                LcdTriggerEvent[LCD_GUN_2].Flag.IsTriggerExternal = FALSE;
+                for(u8 i = 0; i < LCD_GUN_NUM; i++){
+                    LcdTriggerEvent[i].Flag.IsTriggerExternal = FALSE;
+                }
+                LcdTriggerEvent[LCD_GUN_2].Flag.IsWaitPay = FALSE;
                 LcdTriggerEvent[LCD_GUN_2].Flag.IsPayed = FALSE;
             }else{
                 switch(LCD_GUN_NUM)//枪个数
@@ -5510,7 +5522,10 @@ void SerialScreen_PageReset(int GunIdx)
         LcdData.Homeflg = 0;
         LcdData.menuflg = 0;
         LcdData.NeedMenuOffFlg = 0;
-        LcdTriggerEvent[LCD_GUN_1].Flag.IsTriggerExternal = FALSE;
+        for(u8 i = 0; i < LCD_GUN_NUM; i++){
+            LcdTriggerEvent[i].Flag.IsTriggerExternal = FALSE;
+        }
+        LcdTriggerEvent[LCD_GUN_1].Flag.IsWaitPay = FALSE;
         LcdTriggerEvent[LCD_GUN_1].Flag.IsPayed = FALSE;
         return;
     }else if(LcdData.gun[LCD_GUN_2].workState == SysMainStatus_StartReady){
@@ -5519,7 +5534,10 @@ void SerialScreen_PageReset(int GunIdx)
         LcdData.Homeflg = 0;
         LcdData.menuflg = 0;
         LcdData.NeedMenuOffFlg = 0;
-        LcdTriggerEvent[LCD_GUN_2].Flag.IsTriggerExternal = FALSE;
+        for(u8 i = 0; i < LCD_GUN_NUM; i++){
+            LcdTriggerEvent[i].Flag.IsTriggerExternal = FALSE;
+        }
+        LcdTriggerEvent[LCD_GUN_2].Flag.IsWaitPay = FALSE;
         LcdTriggerEvent[LCD_GUN_2].Flag.IsPayed = FALSE;
         return;
     }
@@ -5558,13 +5576,19 @@ void SerialScreen_PageReset(int GunIdx)
 						case LCD_PAGE_STANDBY:
 						case LCD_PAGE_A_SELECT:
                             LcdData.CurrentPage = LCD_PAGE_A_START;
-                            LcdTriggerEvent[GunIdx].Flag.IsTriggerExternal = FALSE;
+                            for(u8 i = 0; i < LCD_GUN_NUM; i++){
+                                LcdTriggerEvent[i].Flag.IsTriggerExternal = FALSE;
+                            }
+                            LcdTriggerEvent[GunIdx].Flag.IsWaitPay = FALSE;
                             LcdTriggerEvent[GunIdx].Flag.IsPayed = FALSE;
 							break;
 						
 						default:
 							LcdData.CurrentPage = LCD_PAGE_A_START;
-			                LcdTriggerEvent[GunIdx].Flag.IsTriggerExternal = FALSE;
+                            for(u8 i = 0; i < LCD_GUN_NUM; i++){
+                                LcdTriggerEvent[i].Flag.IsTriggerExternal = FALSE;
+                            }
+                            LcdTriggerEvent[GunIdx].Flag.IsWaitPay = FALSE;
                             LcdTriggerEvent[GunIdx].Flag.IsPayed = FALSE;
 							break;
 					}
@@ -5576,13 +5600,19 @@ void SerialScreen_PageReset(int GunIdx)
 						case LCD_PAGE_STANDBY:
 						case LCD_PAGE_B_SELECT:
                             LcdData.CurrentPage = LCD_PAGE_B_START;
-                            LcdTriggerEvent[GunIdx].Flag.IsTriggerExternal = FALSE;
+                            for(u8 i = 0; i < LCD_GUN_NUM; i++){
+                                LcdTriggerEvent[i].Flag.IsTriggerExternal = FALSE;
+                            }
+                            LcdTriggerEvent[GunIdx].Flag.IsWaitPay = FALSE;
                             LcdTriggerEvent[GunIdx].Flag.IsPayed = FALSE;
                             break;
 
                         default:
                             LcdData.CurrentPage = LCD_PAGE_B_START;
-                            LcdTriggerEvent[GunIdx].Flag.IsTriggerExternal = FALSE;
+                            for(u8 i = 0; i < LCD_GUN_NUM; i++){
+                                LcdTriggerEvent[i].Flag.IsTriggerExternal = FALSE;
+                            }
+                            LcdTriggerEvent[GunIdx].Flag.IsWaitPay = FALSE;
                             LcdTriggerEvent[GunIdx].Flag.IsPayed = FALSE;
                             break;
 					}
@@ -5675,7 +5705,9 @@ void SerialScreen_PageReset(int GunIdx)
             }
 			if(GunIdx==LCD_GUN_1){
                 if(LcdTriggerEvent[GunIdx].Flag.IsTriggerExternal == FALSE){     /** 这些是由外部触发跳的页 */
-                    if((LcdTriggerEvent[GunIdx].Flag.IsPayed == FALSE) && (LcdData.setData.sup_offbilling == TRUE)){
+                    if((LcdTriggerEvent[GunIdx].Flag.IsPayed == FALSE) &&
+                            (LcdTriggerEvent[GunIdx].Flag.IsWaitPay == TRUE) &&
+                            (LcdData.setData.sup_offbilling == TRUE)){
                         SerialScreen_TriggerItem_Repeat_WaitPay(LCD_GUN_1);
                         LcdTriggerEvent[GunIdx].Flag.IsTriggerExternal = TRUE;
                         break;
@@ -5686,7 +5718,9 @@ void SerialScreen_PageReset(int GunIdx)
                 }
 			}else{
                 if(LcdTriggerEvent[GunIdx].Flag.IsTriggerExternal == FALSE){     /** 这些是由外部触发跳的页 */
-                    if((LcdTriggerEvent[GunIdx].Flag.IsPayed == FALSE) && (LcdData.setData.sup_offbilling == TRUE)){
+                    if((LcdTriggerEvent[GunIdx].Flag.IsPayed == FALSE) &&
+                            (LcdTriggerEvent[GunIdx].Flag.IsWaitPay == TRUE) &&
+                            (LcdData.setData.sup_offbilling == TRUE)){
                         SerialScreen_TriggerItem_Repeat_WaitPay(LCD_GUN_2);
                         LcdTriggerEvent[GunIdx].Flag.IsTriggerExternal = TRUE;
                         break;
