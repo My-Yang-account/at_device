@@ -566,6 +566,26 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
     uint32_t delay = 0x00, wait_unlock = 0x00;
     uint32_t heartbeat_tick[NET_SYSTEM_GUN_NUMBER];
 
+#ifdef NET_YKC_MONITOR_AS_MONITOR
+    /** 正式 */
+    char *host = "device.thaisen.cn";
+    uint16_t port = 9003;
+    struct net_handle* handle = net_get_net_handle();
+    uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC_MONITOR |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
+#else
+    uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC_MONITOR |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
+    struct net_handle* handle = net_get_net_handle();
+    char *host = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_DOMAIN, NULL, 0x00, option));
+    uint16_t port = *((uint16_t*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PORT, NULL, 0x00, option)));
+
+    if((port == 0x00) || (port == 0xFFFF)){
+        host = "139.198.163.108";
+        port = 9003;
+    }
+#endif /* NET_YKC_MONITOR_AS_MONITOR */
+
+    LOG_D("ykc monitor current link ip[%s:%d]", host, port);
+
     s_ykc_monitor_socket_info.fd = -0x01;
 
     while(1)
@@ -575,15 +595,15 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
             continue;
         }
 
-        net_get_net_handle()->data_updata();
-        if((net_get_net_handle()->net_fault) &NET_FAULT_PHYSICAL_LAYER){
+        handle->data_updata();
+        if((handle->net_fault) &NET_FAULT_PHYSICAL_LAYER){
             if((s_ykc_monitor_socket_info.fd >= 0x00) && (step >= NET_YKC_MONITOR_NET_STATE_LOGIN)){   /** 平台已建立连接，但是通信模块出错(关机) */
                 ykc_monitor_socket_close(s_ykc_monitor_socket_info.fd);
                 s_ykc_monitor_socket_info.fd = -0x01;
             }
             s_ykc_monitor_socket_info.state = YKC_MONITOR_SOCKET_STATE_PHY;
 #ifndef NET_YKC_MONITOR_AS_MONITOR
-            net_get_net_handle()->net_state = NET_SOCKET_STATE_MODULE_INIT;
+            handle->net_state = NET_SOCKET_STATE_MODULE_INIT;
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
             s_ykc_monitor_socket_info.fd = -0x01;
             step = NET_YKC_MONITOR_NET_STATE_OPEN_SOCKET;
@@ -594,14 +614,14 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
             rt_thread_mdelay(1000);
             continue;
         }
-        if((net_get_net_handle()->net_fault) &NET_FAULT_SIM_CARD){
+        if((handle->net_fault) &NET_FAULT_SIM_CARD){
             if((s_ykc_monitor_socket_info.fd >= 0x00) && (step >= NET_YKC_MONITOR_NET_STATE_LOGIN)){   /** 平台已建立连接，但是通信模块出错(关机) */
                 ykc_monitor_socket_close(s_ykc_monitor_socket_info.fd);
                 s_ykc_monitor_socket_info.fd = -0x01;
             }
             s_ykc_monitor_socket_info.state = YKC_MONITOR_SOCKET_STATE_SIM;
 #ifndef NET_YKC_MONITOR_AS_MONITOR
-            net_get_net_handle()->net_state = NET_SOCKET_STATE_MODULE_SIM;
+            handle->net_state = NET_SOCKET_STATE_MODULE_SIM;
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
             s_ykc_monitor_socket_info.fd = -0x01;
             step = NET_YKC_MONITOR_NET_STATE_OPEN_SOCKET;
@@ -612,14 +632,14 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
             rt_thread_mdelay(1000);
             continue;
         }
-        if((net_get_net_handle()->net_fault) &NET_FAULT_DATA_LINK_LAYER){
+        if((handle->net_fault) &NET_FAULT_DATA_LINK_LAYER){
             if((s_ykc_monitor_socket_info.fd >= 0x00) && (step >= NET_YKC_MONITOR_NET_STATE_LOGIN)){   /** 平台已建立连接，但是通信模块出错(关机) */
                 ykc_monitor_socket_close(s_ykc_monitor_socket_info.fd);
                 s_ykc_monitor_socket_info.fd = -0x01;
             }
             s_ykc_monitor_socket_info.state = YKC_MONITOR_SOCKET_STATE_DATA_LINK;
 #ifndef NET_YKC_MONITOR_AS_MONITOR
-            net_get_net_handle()->net_state = NET_SOCKET_STATE_MODULE_DATA_LINK;
+            handle->net_state = NET_SOCKET_STATE_MODULE_DATA_LINK;
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
             s_ykc_monitor_socket_info.fd = -0x01;
             step = NET_YKC_MONITOR_NET_STATE_OPEN_SOCKET;
@@ -630,14 +650,14 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
             rt_thread_mdelay(1000);
             continue;
         }
-        if((net_get_net_handle()->net_fault) &NET_FAULT_MODULE_INIT){
+        if((handle->net_fault) &NET_FAULT_MODULE_INIT){
             if((s_ykc_monitor_socket_info.fd >= 0x00) && (step >= NET_YKC_MONITOR_NET_STATE_LOGIN)){   /** 平台已建立连接，但是通信模块出错(关机) */
                 ykc_monitor_socket_close(s_ykc_monitor_socket_info.fd);
                 s_ykc_monitor_socket_info.fd = -0x01;
             }
             s_ykc_monitor_socket_info.state = YKC_MONITOR_SOCKET_STATE_MODULE_INIT;
 #ifndef NET_YKC_MONITOR_AS_MONITOR
-            net_get_net_handle()->net_state = NET_SOCKET_STATE_MODULE_INIT;
+            handle->net_state = NET_SOCKET_STATE_MODULE_INIT;
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
             s_ykc_monitor_socket_info.fd = -0x01;
             step = NET_YKC_MONITOR_NET_STATE_OPEN_SOCKET;
@@ -652,10 +672,9 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
 #ifdef NET_INCLUDE_TARGET_PLATFORM
 #if (NET_TARGET_PLATFORM_ID == NET_YCP_PRO_ID)
         if(is_power_on){
-            if((net_get_net_handle()->net_state == NET_SOCKET_STATE_LOGIN_SUCCESS) || (strlen((char*)g_ykc_monitor_preq_login.body.pile_number) != 0x00)){
+            if((handle->net_state == NET_SOCKET_STATE_LOGIN_SUCCESS) || (strlen((char*)g_ykc_monitor_preq_login.body.pile_number) != 0x00)){
                 if(strlen((char*)g_ykc_monitor_preq_login.body.pile_number) == 0x00){
-                    uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC_MONITOR |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
-                    uint8_t *pile_number = (uint8_t*)(net_get_net_handle()->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, 0x00, option));
+                    uint8_t *pile_number = (uint8_t*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, 0x00, option));
                     uint16_t valid_len = strlen((char*)pile_number);
 
                     valid_len = valid_len > (NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT *0x02) ? (NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT *0x02) : valid_len;
@@ -681,23 +700,14 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
             case NET_YKC_MONITOR_NET_STATE_OPEN_SOCKET:
                 s_ykc_monitor_socket_info.state = YKC_MONITOR_SOCKET_STATE_OPEN;
 #ifndef NET_YKC_MONITOR_AS_MONITOR
-                net_get_net_handle()->net_state = NET_SOCKET_STATE_OPEN;
+                handle->net_state = NET_SOCKET_STATE_OPEN;
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
                 if(delay > rt_tick_get()){
                     delay = rt_tick_get();
                 }
                 if(((rt_tick_get() - delay) > NET_YKC_MONITOR_LOGIN_OPERATION_INTERVAL) || is_power_on){
                     int32_t result = 0x00;
-#ifdef NET_YKC_MONITOR_AS_MONITOR
-                    /** 正式 */
-                    char *host = "device.thaisen.cn";
-                    uint16_t port = 9003;
-#else
-                    uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC_MONITOR |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
-                    struct net_handle* handle = net_get_net_handle();
-                    char *host = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_DOMAIN, NULL, 0x00, option));
-                    uint16_t port = *((uint16_t*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PORT, NULL, 0x00, option)));
-#endif /* NET_YKC_MONITOR_AS_MONITOR */
+
                     result = ykc_monitor_socket_open(&(s_ykc_monitor_socket_info.fd), host, strlen(host), port);
                     if(result >= 0){
                         int32_t recv_timeout = 0x0A;
@@ -722,8 +732,6 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
             case NET_YKC_MONITOR_NET_STATE_LOGIN:
             {
                 uint8_t vaild_len = 0, rentry = 0, data[NET_YKC_MONITOR_SIM_BCD_LENGTH_DEFAULT *0x02 + 0x01], *sim_no = NULL;
-                uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC_MONITOR |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
-                struct net_handle* handle = net_get_net_handle();
 
                 memset(data, 0x00, (NET_YKC_MONITOR_SIM_BCD_LENGTH_DEFAULT *0x02 + 0x01));
                 (void)(handle->get_system_data(NET_SYSTEM_DATA_NAME_ICCID, data, sizeof(data), option));
@@ -827,7 +835,7 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
                 ykc_monitor_socket_close(s_ykc_monitor_socket_info.fd);
                 s_ykc_monitor_socket_info.fd = -0x01;
 #ifndef NET_YKC_MONITOR_AS_MONITOR
-                net_get_net_handle()->net_state = NET_SOCKET_STATE_OPEN;
+                handle->net_state = NET_SOCKET_STATE_OPEN;
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
                 break;
             }
@@ -900,7 +908,7 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
                 ykc_monitor_socket_close(s_ykc_monitor_socket_info.fd);
                 s_ykc_monitor_socket_info.fd = -0x01;
 #ifndef NET_YKC_MONITOR_AS_MONITOR
-                net_get_net_handle()->net_state = NET_SOCKET_STATE_OPEN;
+                handle->net_state = NET_SOCKET_STATE_OPEN;
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
 
                 LOG_D("ykc monitor heartbeat timeout");

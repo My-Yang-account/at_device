@@ -550,6 +550,17 @@ static void net_ycp_message_send_thread_entry(void *parameter)
     uint32_t delay = 0x00, wait_unlock = 0x00;
     uint32_t heartbeat_tick, time_sync_tick;
 
+    uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YCP |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
+    struct net_handle* handle = net_get_net_handle();
+    char *host = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_DOMAIN, NULL, 0x00, option));
+    uint16_t port = *((uint16_t*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PORT, NULL, 0x00, option)));
+
+    if((port == 0x00) || (port == 0xFFFF)){
+        host = "121.229.203.34";
+        port = 6002;
+    }
+    LOG_D("ycp current link ip[%s:%d]", host, port);
+
     s_ycp_socket_info.fd = -0x01;
 
     while(1)
@@ -561,14 +572,14 @@ static void net_ycp_message_send_thread_entry(void *parameter)
             continue;
         }
 
-        net_get_net_handle()->data_updata();
-        if((net_get_net_handle()->net_fault) &NET_FAULT_PHYSICAL_LAYER){
+        handle->data_updata();
+        if((handle->net_fault) &NET_FAULT_PHYSICAL_LAYER){
             if((s_ycp_socket_info.fd >= 0x00) && (step >= NET_YCP_NET_STATE_LOGIN)){   /** 平台已建立连接，但是通信模块出错(关机) */
                 ycp_socket_close(s_ycp_socket_info.fd);
                 s_ycp_socket_info.fd = -0x01;
             }
             s_ycp_socket_info.state = YCP_SOCKET_STATE_PHY;
-            net_get_net_handle()->net_state = NET_SOCKET_STATE_PHY;
+            handle->net_state = NET_SOCKET_STATE_PHY;
             s_ycp_socket_info.fd = -0x01;
             step = NET_YCP_NET_STATE_OPEN_SOCKET;
             if(rt_tick_get() > (delay + NET_YCP_LOGIN_OPERATION_INTERVAL)){
@@ -578,13 +589,13 @@ static void net_ycp_message_send_thread_entry(void *parameter)
             rt_thread_mdelay(1000);
             continue;
         }
-        if((net_get_net_handle()->net_fault) &NET_FAULT_SIM_CARD){
+        if((handle->net_fault) &NET_FAULT_SIM_CARD){
             if((s_ycp_socket_info.fd >= 0x00) && (step >= NET_YCP_NET_STATE_LOGIN)){   /** 平台已建立连接，但是通信模块出错(关机) */
                 ycp_socket_close(s_ycp_socket_info.fd);
                 s_ycp_socket_info.fd = -0x01;
             }
             s_ycp_socket_info.state = YCP_SOCKET_STATE_SIM;
-            net_get_net_handle()->net_state = NET_SOCKET_STATE_SIM;
+            handle->net_state = NET_SOCKET_STATE_SIM;
             s_ycp_socket_info.fd = -0x01;
             step = NET_YCP_NET_STATE_OPEN_SOCKET;
             if(rt_tick_get() > (delay + NET_YCP_LOGIN_OPERATION_INTERVAL)){
@@ -594,13 +605,13 @@ static void net_ycp_message_send_thread_entry(void *parameter)
             rt_thread_mdelay(1000);
             continue;
         }
-        if((net_get_net_handle()->net_fault) &NET_FAULT_DATA_LINK_LAYER){
+        if((handle->net_fault) &NET_FAULT_DATA_LINK_LAYER){
             if((s_ycp_socket_info.fd >= 0x00) && (step >= NET_YCP_NET_STATE_LOGIN)){   /** 平台已建立连接，但是通信模块出错(关机) */
                 ycp_socket_close(s_ycp_socket_info.fd);
                 s_ycp_socket_info.fd = -0x01;
             }
             s_ycp_socket_info.state = YCP_SOCKET_STATE_DATA_LINK;
-            net_get_net_handle()->net_state = NET_SOCKET_STATE_DATA_LINK;
+            handle->net_state = NET_SOCKET_STATE_DATA_LINK;
             s_ycp_socket_info.fd = -0x01;
             step = NET_YCP_NET_STATE_OPEN_SOCKET;
             if(rt_tick_get() > (delay + NET_YCP_LOGIN_OPERATION_INTERVAL)){
@@ -610,13 +621,13 @@ static void net_ycp_message_send_thread_entry(void *parameter)
             rt_thread_mdelay(1000);
             continue;
         }
-        if((net_get_net_handle()->net_fault) &NET_FAULT_MODULE_INIT){
+        if((handle->net_fault) &NET_FAULT_MODULE_INIT){
             if((s_ycp_socket_info.fd >= 0x00) && (step >= NET_YCP_NET_STATE_LOGIN)){   /** 平台已建立连接，但是通信模块出错(关机) */
                 ycp_socket_close(s_ycp_socket_info.fd);
                 s_ycp_socket_info.fd = -0x01;
             }
             s_ycp_socket_info.state = YCP_SOCKET_STATE_MODULE_INIT;
-            net_get_net_handle()->net_state = NET_SOCKET_STATE_MODULE_INIT;
+            handle->net_state = NET_SOCKET_STATE_MODULE_INIT;
             s_ycp_socket_info.fd = -0x01;
             step = NET_YCP_NET_STATE_OPEN_SOCKET;
             if(rt_tick_get() > (delay + NET_YCP_LOGIN_OPERATION_INTERVAL)){
@@ -633,21 +644,12 @@ static void net_ycp_message_send_thread_entry(void *parameter)
             switch(step){
             case NET_YCP_NET_STATE_OPEN_SOCKET:
                 s_ycp_socket_info.state = YCP_SOCKET_STATE_OPEN;
-                net_get_net_handle()->net_state = NET_SOCKET_STATE_OPEN;
+                handle->net_state = NET_SOCKET_STATE_OPEN;
                 if(delay > rt_tick_get()){
                     delay = rt_tick_get();
                 }
                 if(((rt_tick_get() - delay) > NET_YCP_LOGIN_OPERATION_INTERVAL) || is_power_on){
-                    uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YCP |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
                     int32_t result = 0x00;
-                    struct net_handle* handle = net_get_net_handle();
-                    char *host = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_DOMAIN, NULL, 0x00, option));
-                    uint16_t port = *((uint16_t*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PORT, NULL, 0x00, option)));
-
-                    if((port == 0x00) || (port == 0xFFFF)){
-                        host = "121.229.203.34";
-                        port = 6002;
-                    }
 
                     net_operation_set_target_socket_domain(host, strlen(host));
                     net_operation_set_target_socket_port(port);
@@ -676,8 +678,7 @@ static void net_ycp_message_send_thread_entry(void *parameter)
             case NET_YCP_NET_STATE_LOGIN:
             {
                 uint8_t rentry = 0x00, data[NET_YCP_SIM_BCD_LENGTH_DEFAULT *0x02 + 0x01], *sim_no = NULL, *imei = NULL;
-                uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YCP |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
-                struct net_handle* handle = net_get_net_handle();
+
                 ycp_device_sn_buf_t *device_sn = NULL;
                 memset(data, 0x00, (NET_YCP_SIM_BCD_LENGTH_DEFAULT *0x02 + 0x01));
                 (void)(handle->get_system_data(NET_SYSTEM_DATA_NAME_ICCID, data, sizeof(data), option));
@@ -767,7 +768,7 @@ static void net_ycp_message_send_thread_entry(void *parameter)
                 wait_unlock = rt_tick_get();
                 step = NET_YCP_NET_STATE_OPEN_SOCKET;
                 s_ycp_socket_info.state = YCP_SOCKET_STATE_OPEN;
-                net_get_net_handle()->net_state = NET_SOCKET_STATE_OPEN;
+                handle->net_state = NET_SOCKET_STATE_OPEN;
                 while(ycp_socket_is_lock()){
                     if((rt_tick_get() - wait_unlock) > NET_YCP_WAIT_UNLOCK_TIMEOUT){
                         break;
@@ -809,7 +810,7 @@ static void net_ycp_message_send_thread_entry(void *parameter)
 
             step = NET_YCP_NET_STATE_OPEN_SOCKET;
             s_ycp_socket_info.state = YCP_SOCKET_STATE_OPEN;
-            net_get_net_handle()->net_state = NET_SOCKET_STATE_OPEN;
+            handle->net_state = NET_SOCKET_STATE_OPEN;
             while(ycp_socket_is_lock()){
                 if((rt_tick_get() - wait_unlock) > NET_YCP_WAIT_UNLOCK_TIMEOUT){
                     break;
