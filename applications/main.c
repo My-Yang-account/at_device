@@ -130,7 +130,7 @@ int main(void)
 
         mw_running_led_toggle(0, 0);
 
-        if((*(sys_read_config_item_content(CONFIG_ITEM_SUPORT_OFFLINE_BILLING, 0))) == 0x00){
+        if(get_ofsm_info(0x00)->base.run_mode == APP_RUN_MODE_4G_ETH){
             if(g_net_target_platform_tick > rt_tick_get()){
                 if((rt_tick_get() + 0xFFFFFFFF - g_net_target_platform_tick) > 5 *60 *1000){
                     net_operation_set_event(0x00, NET_OPERATION_EVENT_REBOOT);

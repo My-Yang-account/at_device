@@ -157,7 +157,7 @@ uint32_t ofsm_get_period_price(uint8_t gunno, uint8_t period)
             app_billingrule_get_period_service_price(gunno, period) + \
             app_billingrule_get_period_delay_price(gunno, period);
 
-    if(s_ofsm_info[gunno].base.is_offline_billing == APP_THA_ENUM_TRUE){
+    if(s_ofsm_info[gunno].base.run_mode == APP_RUN_MODE_OFFLINE_BILLING){
         uint32_t current_time = s_timestamp_base, tick = rt_tick_get();
         if(s_tick_base > tick){
             current_time += ((tick + 0xFFFFFFFF - s_tick_base) /1000);
@@ -300,7 +300,7 @@ static void transaction_record_query_report(uint8_t gunno)
             int32_t ret = 0x00;
             while(save_rentry < 5){
                 ret = 0x00;
-                if((s_ofsm_info[gunno].base.is_offline_billing == APP_THA_ENUM_TRUE) && (rtransaction.start_type == APP_CHARGE_START_WAY_OFFLINE_CARD)){
+                if((s_ofsm_info[gunno].base.run_mode == APP_RUN_MODE_OFFLINE_BILLING) && (rtransaction.start_type == APP_CHARGE_START_WAY_OFFLINE_CARD)){
                     ret = mw_storage_record_designate_index_updated(&rtransaction, sizeof(rtransaction), USER_DATA_TYPE_VERIFIED, 0x00, APP_THA_ENUM_FALSE, gunno, index);
                 }else{
                     ret = mw_storage_record_designate_index_updated(&rtransaction, sizeof(rtransaction), USER_DATA_TYPE_VERIFIED, 0x00, APP_THA_ENUM_TRUE, gunno, index);
@@ -663,7 +663,716 @@ void chargepile_power_adjust(void)
     }
 }
 
-static void ofsm_wait_net_fun(uint8_t gunno)
+/**************************************************************************************************************************
+ *                                               以下是启动信息填充
+ *************************************************************************************************************************/
+/***************************************************************
+ * 函数名          ofsm_start_info_padding_plug_and_play
+ * 功能               即插即充启动  信息填充
+ * 参数              gunno   枪号
+ * 返回
+ **************************************************************/
+static void ofsm_start_info_padding_plug_and_play(uint8_t gunno)
+{
+    if(gunno >= APP_SYSTEM_GUNNO_SIZE){   /* 枪号不对 */
+        return;
+    }
+
+    uint8_t valid_len = 0x00;
+
+    s_ofsm_info[gunno].base.flag.is_local_charging = APP_THA_ENUM_TRUE;
+    s_ofsm_info[gunno].base.start_type = APP_CHARGE_START_WAY_PLUG_AND_CHARGE;
+    s_ofsm_info[gunno].base.account_ballance_before = 0x00;
+    s_ofsm_info[gunno].base.account_ballance_after = 0x00;
+    s_ofsm_info[gunno].base.charge_strategy = APP_CHARGE_STRATEGY_FULL;
+    s_ofsm_info[gunno].base.charge_strategy_para = 0x00;
+
+    app_nsal_create_local_transaction_number(gunno, &(s_ofsm_info[gunno].base.transaction_number),  \
+            sizeof(s_ofsm_info[gunno].base.transaction_number));
+#ifdef APP_INCLUDE_SGCC_PROTOCOL
+    memcpy(s_ofsm_info[gunno].base.device_transaction_number, s_ofsm_info[gunno].base.transaction_number, \
+            sizeof(s_ofsm_info[gunno].base.transaction_number));
+#endif /* APP_INCLUDE_SGCC_PROTOCOL */
+
+    memset(s_ofsm_info[gunno].base.card_number, 0x00, sizeof(s_ofsm_info[gunno].base.card_number));
+    memset(&(s_ofsm_info[gunno].base.card_uid), 0x00, sizeof(s_ofsm_info[gunno].base.card_uid));
+    memset(s_ofsm_info[gunno].base.user_number, 0x00, sizeof(s_ofsm_info[gunno].base.user_number));
+
+    valid_len = sizeof(s_ofsm_info[gunno].base.transaction_number);
+    valid_len = valid_len > sizeof(s_thaisen_transaction[gunno].serial_number) ? sizeof(s_thaisen_transaction[gunno].serial_number) : valid_len;
+    memset(s_thaisen_transaction[gunno].serial_number, 0x00, sizeof(s_thaisen_transaction[gunno].serial_number));
+    memcpy(s_thaisen_transaction[gunno].serial_number, s_ofsm_info[gunno].base.transaction_number, valid_len);
+    memset(s_thaisen_transaction[gunno].logic_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].logic_card_number));
+    memset(s_thaisen_transaction[gunno].physics_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].physics_card_number));
+    memset(s_thaisen_transaction[gunno].user_number, 0x00, sizeof(s_thaisen_transaction[gunno].user_number));
+#ifdef APP_INCLUDE_SGCC_PROTOCOL
+    memcpy(s_thaisen_transaction[gunno].device_serial_number, s_ofsm_info[gunno].base.device_transaction_number, \
+            sizeof(s_ofsm_info[gunno].base.device_transaction_number));
+#endif /* APP_INCLUDE_SGCC_PROTOCOL */
+    s_thaisen_transaction[gunno].account_ballance_before = s_ofsm_info[gunno].base.account_ballance_before;
+    s_thaisen_transaction[gunno].account_ballance_after = s_ofsm_info[gunno].base.account_ballance_after;
+
+    s_thaisen_transaction[gunno].start_type = APP_CHARGE_START_WAY_PLUG_AND_CHARGE;
+    s_thaisen_transaction[gunno].order_state.online_order = APP_THA_ENUM_FALSE;
+}
+
+/***************************************************************
+ * 函数名          ofsm_start_info_padding_app
+ * 功能               app启动  信息填充
+ * 参数              gunno   枪号
+ * 返回
+ **************************************************************/
+static void ofsm_start_info_padding_app(uint8_t gunno)
+{
+    if(gunno >= APP_SYSTEM_GUNNO_SIZE){   /* 枪号不对 */
+        return;
+    }
+
+    uint8_t valid_len = 0x00;
+
+    s_ofsm_info[gunno].base.flag.is_local_charging = APP_THA_ENUM_FALSE;
+    s_ofsm_info[gunno].base.start_type = APP_CHARGE_START_WAY_APP;
+
+    valid_len = sizeof(s_ofsm_info[gunno].base.transaction_number);
+    valid_len = valid_len > sizeof(s_thaisen_transaction[gunno].serial_number) ? sizeof(s_thaisen_transaction[gunno].serial_number) : valid_len;
+    memset(s_thaisen_transaction[gunno].serial_number, 0x00, sizeof(s_thaisen_transaction[gunno].serial_number));
+    memcpy(s_thaisen_transaction[gunno].serial_number, s_ofsm_info[gunno].base.transaction_number, valid_len);
+
+    valid_len = sizeof(s_ofsm_info[gunno].base.card_uid);
+    valid_len = valid_len > sizeof(s_thaisen_transaction[gunno].physics_card_number) ? sizeof(s_thaisen_transaction[gunno].physics_card_number) : valid_len;
+    memset(s_thaisen_transaction[gunno].physics_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].physics_card_number));
+    memcpy(s_thaisen_transaction[gunno].physics_card_number, s_ofsm_info[gunno].base.card_uid, valid_len);
+
+    valid_len = sizeof(s_ofsm_info[gunno].base.card_number);
+    valid_len = valid_len > sizeof(s_thaisen_transaction[gunno].logic_card_number) ? sizeof(s_thaisen_transaction[gunno].logic_card_number) : valid_len;
+    memset(s_thaisen_transaction[gunno].logic_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].logic_card_number));
+    memcpy(s_thaisen_transaction[gunno].logic_card_number, s_ofsm_info[gunno].base.card_number, valid_len);
+
+    valid_len = sizeof(s_ofsm_info[gunno].base.user_number);
+    valid_len = valid_len > sizeof(s_thaisen_transaction[gunno].user_number) ? sizeof(s_thaisen_transaction[gunno].user_number) : valid_len;
+    memset(s_thaisen_transaction[gunno].user_number, 0x00, sizeof(s_thaisen_transaction[gunno].user_number));
+    memcpy(s_thaisen_transaction[gunno].user_number, s_ofsm_info[gunno].base.user_number, valid_len);
+#ifdef APP_INCLUDE_SGCC_PROTOCOL
+    memcpy(s_thaisen_transaction[gunno].device_serial_number, s_ofsm_info[gunno].base.device_transaction_number, \
+            sizeof(s_ofsm_info[gunno].base.device_transaction_number));
+#endif /* APP_INCLUDE_SGCC_PROTOCOL */
+    s_thaisen_transaction[gunno].account_ballance_before = s_ofsm_info[gunno].base.account_ballance_before;
+    s_thaisen_transaction[gunno].account_ballance_after = s_ofsm_info[gunno].base.account_ballance_after;
+
+    s_thaisen_transaction[gunno].start_type = APP_CHARGE_START_WAY_APP;
+    s_thaisen_transaction[gunno].order_state.online_order = APP_THA_ENUM_TRUE;
+}
+
+/***************************************************************
+ * 函数名          ofsm_start_info_padding_offline_card
+ * 功能               离线卡启动  信息填充
+ * 参数              gunno   枪号
+ * 返回
+ **************************************************************/
+static void ofsm_start_info_padding_offline_card(uint8_t gunno)
+{
+    if(gunno >= APP_SYSTEM_GUNNO_SIZE){   /* 枪号不对 */
+        return;
+    }
+
+    uint8_t compare_len = 0x00;
+
+    s_ofsm_info[gunno].base.start_type = APP_CHARGE_START_WAY_OFFLINE_CARD;
+    s_ofsm_info[gunno].base.account_ballance_before = 0x00;
+    s_ofsm_info[gunno].base.account_ballance_after = 0x00;
+    s_ofsm_info[gunno].base.charge_strategy = APP_CHARGE_STRATEGY_FULL;
+    s_ofsm_info[gunno].base.charge_strategy_para = 0x00;
+
+    app_nsal_create_local_transaction_number(gunno, &(s_ofsm_info[gunno].base.transaction_number),  \
+            sizeof(s_ofsm_info[gunno].base.transaction_number));
+#ifdef APP_INCLUDE_SGCC_PROTOCOL
+    memcpy(s_ofsm_info[gunno].base.device_transaction_number, s_ofsm_info[gunno].base.transaction_number, \
+            sizeof(s_ofsm_info[gunno].base.transaction_number));
+#endif /* APP_INCLUDE_SGCC_PROTOCOL */
+
+    memset(s_ofsm_info[gunno].base.user_number, 0x00, sizeof(s_ofsm_info[gunno].base.user_number));
+
+    compare_len = sizeof(s_ofsm_info[gunno].base.card_uid);
+    compare_len = compare_len > rfidr_query_uuid_len() ? rfidr_query_uuid_len() : compare_len;
+    memset(s_ofsm_info[gunno].base.card_uid, 0x00, sizeof(s_ofsm_info[gunno].base.card_uid));
+    memcpy(s_ofsm_info[gunno].base.card_uid, rfidr_query_uuid(), compare_len);
+
+    compare_len = sizeof(s_ofsm_info[gunno].base.transaction_number);
+    compare_len = compare_len > sizeof(s_thaisen_transaction[gunno].serial_number) ? sizeof(s_thaisen_transaction[gunno].serial_number) : compare_len;
+    memset(s_thaisen_transaction[gunno].serial_number, 0x00, sizeof(s_thaisen_transaction[gunno].serial_number));
+    memcpy(s_thaisen_transaction[gunno].serial_number, s_ofsm_info[gunno].base.transaction_number, compare_len);
+
+    compare_len = sizeof(s_ofsm_info[gunno].base.card_number);
+    compare_len = compare_len > sizeof(s_thaisen_transaction[gunno].logic_card_number) ? sizeof(s_thaisen_transaction[gunno].logic_card_number) : compare_len;
+    memset(s_thaisen_transaction[gunno].logic_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].logic_card_number));
+    memcpy(s_thaisen_transaction[gunno].logic_card_number, s_ofsm_info[gunno].base.card_number, compare_len);
+
+    compare_len = sizeof(s_ofsm_info[gunno].base.card_uid);
+    compare_len = compare_len > sizeof(s_thaisen_transaction[gunno].physics_card_number) ? sizeof(s_thaisen_transaction[gunno].physics_card_number) : compare_len;
+    memset(s_thaisen_transaction[gunno].physics_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].physics_card_number));
+    memcpy(s_thaisen_transaction[gunno].physics_card_number, s_ofsm_info[gunno].base.card_uid, compare_len);
+
+    compare_len = sizeof(s_ofsm_info[gunno].base.user_number);
+    compare_len = compare_len > sizeof(s_thaisen_transaction[gunno].user_number) ? sizeof(s_thaisen_transaction[gunno].user_number) : compare_len;
+    memset(s_thaisen_transaction[gunno].user_number, 0x00, sizeof(s_thaisen_transaction[gunno].user_number));
+    memcpy(s_thaisen_transaction[gunno].user_number, s_ofsm_info[gunno].base.user_number, compare_len);
+#ifdef APP_INCLUDE_SGCC_PROTOCOL
+    memcpy(s_thaisen_transaction[gunno].device_serial_number, s_ofsm_info[gunno].base.device_transaction_number, \
+            sizeof(s_ofsm_info[gunno].base.device_transaction_number));
+#endif /* APP_INCLUDE_SGCC_PROTOCOL */
+    s_thaisen_transaction[gunno].account_ballance_before = s_ofsm_info[gunno].base.account_ballance_before;
+    s_thaisen_transaction[gunno].account_ballance_after = s_ofsm_info[gunno].base.account_ballance_after;
+
+    s_thaisen_transaction[gunno].start_type = APP_CHARGE_START_WAY_OFFLINE_CARD;
+    s_thaisen_transaction[gunno].order_state.online_order = APP_THA_ENUM_FALSE;
+}
+
+/***************************************************************
+ * 函数名          ofsm_start_info_padding_online_card
+ * 功能               在线卡启动  信息填充
+ * 参数              gunno   枪号
+ * 返回
+ **************************************************************/
+static void ofsm_start_info_padding_online_card(uint8_t gunno)
+{
+    if(gunno >= APP_SYSTEM_GUNNO_SIZE){   /* 枪号不对 */
+        return;
+    }
+
+    uint8_t valid_len = 0x00;
+
+    s_ofsm_info[gunno].base.flag.is_local_charging = APP_THA_ENUM_FALSE;
+    s_ofsm_info[gunno].base.start_type = APP_CHARGE_START_WAY_ONLINE_CARD;
+
+    valid_len = sizeof(s_ofsm_info[gunno].base.transaction_number);
+    valid_len = valid_len > sizeof(s_thaisen_transaction[gunno].serial_number) ? sizeof(s_thaisen_transaction[gunno].serial_number) : valid_len;
+    memset(s_thaisen_transaction[gunno].serial_number, 0x00, sizeof(s_thaisen_transaction[gunno].serial_number));
+    memcpy(s_thaisen_transaction[gunno].serial_number, s_ofsm_info[gunno].base.transaction_number, valid_len);
+
+    valid_len = sizeof(s_ofsm_info[gunno].base.card_uid);
+    valid_len = valid_len > sizeof(s_thaisen_transaction[gunno].physics_card_number) ? sizeof(s_thaisen_transaction[gunno].physics_card_number) : valid_len;
+    memset(s_thaisen_transaction[gunno].physics_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].physics_card_number));
+    memcpy(s_thaisen_transaction[gunno].physics_card_number, s_ofsm_info[gunno].base.card_uid, valid_len);
+
+    valid_len = sizeof(s_ofsm_info[gunno].base.card_number);
+    valid_len = valid_len > sizeof(s_thaisen_transaction[gunno].logic_card_number) ? sizeof(s_thaisen_transaction[gunno].logic_card_number) : valid_len;
+    memset(s_thaisen_transaction[gunno].logic_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].logic_card_number));
+    memcpy(s_thaisen_transaction[gunno].logic_card_number, s_ofsm_info[gunno].base.card_number, valid_len);
+
+    valid_len = sizeof(s_ofsm_info[gunno].base.user_number);
+    valid_len = valid_len > sizeof(s_thaisen_transaction[gunno].user_number) ? sizeof(s_thaisen_transaction[gunno].user_number) : valid_len;
+    memset(s_thaisen_transaction[gunno].user_number, 0x00, sizeof(s_thaisen_transaction[gunno].user_number));
+    memcpy(s_thaisen_transaction[gunno].user_number, s_ofsm_info[gunno].base.user_number, valid_len);
+#ifdef APP_INCLUDE_SGCC_PROTOCOL
+    memcpy(s_thaisen_transaction[gunno].device_serial_number, s_ofsm_info[gunno].base.device_transaction_number, \
+            sizeof(s_ofsm_info[gunno].base.device_transaction_number));
+#endif /* APP_INCLUDE_SGCC_PROTOCOL */
+    s_thaisen_transaction[gunno].account_ballance_before = s_ofsm_info[gunno].base.account_ballance_before;
+    s_thaisen_transaction[gunno].account_ballance_after = s_ofsm_info[gunno].base.account_ballance_after;
+
+    s_thaisen_transaction[gunno].start_type = APP_CHARGE_START_WAY_ONLINE_CARD;
+    s_thaisen_transaction[gunno].order_state.online_order = APP_THA_ENUM_TRUE;
+}
+
+/***************************************************************
+ * 函数名          ofsm_start_info_padding_screen
+ * 功能               屏幕启动  信息填充
+ * 参数              gunno   枪号
+ * 返回
+ **************************************************************/
+static void ofsm_start_info_padding_screen(uint8_t gunno)
+{
+    if(gunno >= APP_SYSTEM_GUNNO_SIZE){   /* 枪号不对 */
+        return;
+    }
+
+    uint8_t valid_len = 0x00;
+
+    s_ofsm_info[gunno].base.flag.is_local_charging = APP_THA_ENUM_TRUE;
+    s_ofsm_info[gunno].base.start_type = APP_CHARGE_START_WAY_SCREEN;
+    s_ofsm_info[gunno].base.account_ballance_before = 0x00;
+    s_ofsm_info[gunno].base.account_ballance_after = 0x00;
+    s_ofsm_info[gunno].base.charge_strategy = APP_CHARGE_STRATEGY_FULL;
+    s_ofsm_info[gunno].base.charge_strategy_para = 0x00;
+
+    app_nsal_create_local_transaction_number(gunno, &(s_ofsm_info[gunno].base.transaction_number),  \
+            sizeof(s_ofsm_info[gunno].base.transaction_number));
+#ifdef APP_INCLUDE_SGCC_PROTOCOL
+    memcpy(s_ofsm_info[gunno].base.device_transaction_number, s_ofsm_info[gunno].base.transaction_number, \
+            sizeof(s_ofsm_info[gunno].base.transaction_number));
+#endif /* APP_INCLUDE_SGCC_PROTOCOL */
+
+    memset(s_ofsm_info[gunno].base.card_number, 0x00, sizeof(s_ofsm_info[gunno].base.card_number));
+    memset(&(s_ofsm_info[gunno].base.card_uid), 0x00, sizeof(s_ofsm_info[gunno].base.card_uid));
+    memset(s_ofsm_info[gunno].base.user_number, 0x00, sizeof(s_ofsm_info[gunno].base.user_number));
+
+    valid_len = sizeof(s_ofsm_info[gunno].base.transaction_number);
+    valid_len = valid_len > sizeof(s_thaisen_transaction[gunno].serial_number) ? sizeof(s_thaisen_transaction[gunno].serial_number) : valid_len;
+    memset(s_thaisen_transaction[gunno].serial_number, 0x00, sizeof(s_thaisen_transaction[gunno].serial_number));
+    memcpy(s_thaisen_transaction[gunno].serial_number, s_ofsm_info[gunno].base.transaction_number, valid_len);
+    memset(s_thaisen_transaction[gunno].logic_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].logic_card_number));
+    memset(s_thaisen_transaction[gunno].physics_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].physics_card_number));
+    memset(s_thaisen_transaction[gunno].user_number, 0x00, sizeof(s_thaisen_transaction[gunno].user_number));
+#ifdef APP_INCLUDE_SGCC_PROTOCOL
+    memcpy(s_thaisen_transaction[gunno].device_serial_number, s_ofsm_info[gunno].base.device_transaction_number, \
+            sizeof(s_ofsm_info[gunno].base.device_transaction_number));
+#endif /* APP_INCLUDE_SGCC_PROTOCOL */
+    s_thaisen_transaction[gunno].account_ballance_before = s_ofsm_info[gunno].base.account_ballance_before;
+    s_thaisen_transaction[gunno].account_ballance_after = s_ofsm_info[gunno].base.account_ballance_after;
+
+    s_thaisen_transaction[gunno].start_type = APP_CHARGE_START_WAY_SCREEN;
+    s_thaisen_transaction[gunno].order_state.online_order = APP_THA_ENUM_FALSE;
+}
+
+/***************************************************************
+ * 函数名          ofsm_start_info_padding_vin
+ * 功能               VIN码启动  信息填充
+ * 参数              gunno   枪号
+ * 返回
+ **************************************************************/
+static void ofsm_start_info_padding_vin(uint8_t gunno)
+{
+    if(gunno >= APP_SYSTEM_GUNNO_SIZE){   /* 枪号不对 */
+        return;
+    }
+
+    uint8_t valid_len = 0x00;
+
+    s_ofsm_info[gunno].base.flag.is_local_charging = APP_THA_ENUM_TRUE;
+    s_ofsm_info[gunno].base.flag.vin_authorization_success = APP_THA_ENUM_FALSE;
+    s_ofsm_info[gunno].base.flag.vin_is_authorized = APP_THA_ENUM_FALSE;
+    s_ofsm_info[gunno].base.start_type = APP_CHARGE_START_WAY_VIN;
+    s_ofsm_info[gunno].base.account_ballance_before = 0x00;
+    s_ofsm_info[gunno].base.account_ballance_after = 0x00;
+    s_ofsm_info[gunno].base.charge_strategy = APP_CHARGE_STRATEGY_FULL;
+    s_ofsm_info[gunno].base.charge_strategy_para = 0x00;
+
+    app_nsal_create_local_transaction_number(gunno, &(s_ofsm_info[gunno].base.transaction_number),  \
+            sizeof(s_ofsm_info[gunno].base.transaction_number));
+#ifdef APP_INCLUDE_SGCC_PROTOCOL
+    memcpy(s_ofsm_info[gunno].base.device_transaction_number, s_ofsm_info[gunno].base.transaction_number, \
+            sizeof(s_ofsm_info[gunno].base.transaction_number));
+#endif /* APP_INCLUDE_SGCC_PROTOCOL */
+
+    memset(s_ofsm_info[gunno].base.car_vin, 0x00, sizeof(s_ofsm_info[gunno].base.car_vin));
+    memset(s_ofsm_info[gunno].base.card_number, 0x00, sizeof(s_ofsm_info[gunno].base.card_number));
+    memset(s_ofsm_info[gunno].base.card_uid, 0x00, sizeof(s_ofsm_info[gunno].base.card_uid));
+    memset(s_ofsm_info[gunno].base.user_number, 0x00, sizeof(s_ofsm_info[gunno].base.user_number));
+
+    valid_len = sizeof(s_ofsm_info[gunno].base.transaction_number);
+    valid_len = valid_len > sizeof(s_thaisen_transaction[gunno].serial_number) ? sizeof(s_thaisen_transaction[gunno].serial_number) : valid_len;
+    memset(s_thaisen_transaction[gunno].serial_number, 0x00, sizeof(s_thaisen_transaction[gunno].serial_number));
+    memcpy(s_thaisen_transaction[gunno].serial_number, s_ofsm_info[gunno].base.transaction_number, valid_len);
+    memset(s_thaisen_transaction[gunno].logic_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].logic_card_number));
+    memset(s_thaisen_transaction[gunno].physics_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].physics_card_number));
+    memset(s_thaisen_transaction[gunno].user_number, 0x00, sizeof(s_thaisen_transaction[gunno].user_number));
+#ifdef APP_INCLUDE_SGCC_PROTOCOL
+    memcpy(s_thaisen_transaction[gunno].device_serial_number, s_ofsm_info[gunno].base.device_transaction_number, \
+            sizeof(s_ofsm_info[gunno].base.device_transaction_number));
+#endif /* APP_INCLUDE_SGCC_PROTOCOL */
+    s_thaisen_transaction[gunno].account_ballance_before = s_ofsm_info[gunno].base.account_ballance_before;
+    s_thaisen_transaction[gunno].account_ballance_after = s_ofsm_info[gunno].base.account_ballance_after;
+
+    s_thaisen_transaction[gunno].start_type = APP_CHARGE_START_WAY_VIN;
+    s_thaisen_transaction[gunno].order_state.online_order = APP_THA_ENUM_FALSE;
+}
+
+/***************************************************************
+ * 函数名          ofsm_start_info_padding_password
+ * 功能               密码启动  信息填充
+ * 参数              gunno   枪号
+ * 返回
+ **************************************************************/
+static void ofsm_start_info_padding_password(uint8_t gunno)
+{
+    if(gunno >= APP_SYSTEM_GUNNO_SIZE){   /* 枪号不对 */
+        return;
+    }
+}
+
+/***************************************************************
+ * 函数名          ofsm_start_info_padding_public
+ * 功能               启动充电  公用信息填充
+ * 参数              gunno   枪号
+ * 返回
+ **************************************************************/
+static void ofsm_start_info_padding_public(uint8_t gunno)
+{
+    if(gunno >= APP_SYSTEM_GUNNO_SIZE){   /* 枪号不对 */
+        return;
+    }
+
+    uint8_t deputy_gunno = APP_SYSTEM_GUNNOA;
+
+    /** 云端并充时 main_gunno charge_way 这两个字段已被赋值 */
+    if(s_ofsm_info[gunno].base.charge_way != APP_CHARGE_WAY_PARACHARGE_CLOUD){
+        s_ofsm_info[gunno].base.main_gunno = gunno;
+        s_ofsm_info[gunno].base.charge_way = thaisen_get_charge_way();
+    }
+
+    /** 这主要是判是否可以并充并设置充电模式，云端并充时已在网络部分判断了并充的可行性 */
+    if(s_ofsm_info[gunno].base.charge_way != APP_CHARGE_WAY_PARACHARGE_CLOUD){
+        if(s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL){
+            if(APP_SYSTEM_GUNNO_SIZE < 0x02){
+                s_ofsm_info[gunno].base.charge_way = APP_CHARGE_WAY_SINGLEGUN;  /** 单枪桩不支持并充 */
+            }else{
+                if(gunno == APP_SYSTEM_GUNNOA){
+                    deputy_gunno = APP_SYSTEM_GUNNOA + 0x01;
+                }
+                if((s_ofsm_info[deputy_gunno].base.flag.connect_state != APP_CONNECT_STATE_CONNECT)){
+                    s_ofsm_info[gunno].base.charge_way = APP_CHARGE_WAY_SINGLEGUN;  /** 并充时两把枪都要插上 */
+                }
+                if((s_ofsm_info[deputy_gunno].state != APP_OFSM_STATE_READYING)){
+                    s_ofsm_info[gunno].base.charge_way = APP_CHARGE_WAY_SINGLEGUN;  /** 并充时两把枪都要插上 */
+                }
+            }
+        }
+        s_ofsm_info[deputy_gunno].base.charge_way = s_ofsm_info[gunno].base.charge_way;
+        s_ofsm_info[deputy_gunno].base.main_gunno = s_ofsm_info[gunno].base.main_gunno;
+
+        if(s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL){
+            if(gunno == s_ofsm_info[gunno].base.main_gunno){
+                s_ofsm_info[gunno].base.start_elect = (mw_get_meter_total_wh(gunno) + mw_get_meter_total_wh(deputy_gunno));
+            }
+            s_thaisen_transaction[gunno].charge_way = APP_CHARGE_WAY_PARACHARGE_LOCAL;
+        }else{
+            s_thaisen_transaction[gunno].charge_way = APP_CHARGE_WAY_SINGLEGUN;
+            s_ofsm_info[gunno].base.start_elect = mw_get_meter_total_wh(gunno);
+        }
+    }else{
+        s_ofsm_info[gunno].base.start_elect = mw_get_meter_total_wh(gunno);
+    }
+
+    thaisen_set_charge_way(s_ofsm_info[gunno].base.charge_way);
+
+    s_ofsm_info[gunno].base.flag.is_starting = APP_THA_ENUM_FALSE;
+    s_ofsm_info[gunno].base.flag.permit_judge_complete = APP_THA_ENUM_FALSE;
+    s_ofsm_info[gunno].base.flag.start_result = APP_THA_ENUM_FALSE;
+    s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_FALSE;
+    s_ofsm_info[gunno].base.voltage_a = 0x00;
+    s_ofsm_info[gunno].base.current_a = 0x00;
+    s_ofsm_info[gunno].base.power_a = 0x00;
+    s_ofsm_info[gunno].base.elect_a = 0x00;
+    s_ofsm_info[gunno].base.fees_total = 0x00;
+    s_ofsm_info[gunno].base.elect_fees_total = 0x00;
+    s_ofsm_info[gunno].base.service_fees_total = 0x00;
+    s_ofsm_info[gunno].base.current_elect = mw_get_meter_total_wh(gunno);
+    s_ofsm_info[gunno].base.start_time = s_ofsm_info[gunno].base.current_time;
+    s_ofsm_info[gunno].base.stop_time = s_ofsm_info[gunno].base.current_time;
+    s_ofsm_info[gunno].base.charge_time = 0x00;
+    s_ofsm_info[gunno].base.reason_code = APP_SYSTEM_STOP_WAY_SIZE;
+    memset(s_ofsm_info[gunno].base.car_vin, 0x00, sizeof(s_ofsm_info[gunno].base.car_vin));
+    s_ofsm_info[gunno].base.start_period = app_calculate_current_period(s_ofsm_info[gunno].base.start_time);
+    s_ofsm_info[gunno].base.current_period = s_ofsm_info[gunno].base.start_period;
+    s_ofsm_info[gunno].base.period_num = 0x01;
+    s_ofsm_info[gunno].charge_timeout = rt_tick_get();
+    s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
+    s_ofsm_info[gunno].base.charctrl_state.last = APP_CHARGE_CTRL_STATE_IDLE;
+    s_ofsm_info[gunno].base.charctrl_state.current = APP_CHARGE_CTRL_STATE_IDLE;
+    s_ofsm_info[gunno].base.start_charge_tick = rt_tick_get();
+    s_ofsm_info[gunno].base.charge_elect_last = s_ofsm_info[gunno].base.start_elect;
+    if((s_ofsm_info[gunno].base.start_elect == 0x00) || (s_ofsm_info[gunno].base.current_elect == 0x00)){
+        s_ofsm_info[gunno].base.flag.is_ammeter_elect_error = APP_THA_ENUM_TRUE;
+    }else{
+        s_ofsm_info[gunno].base.flag.is_ammeter_elect_error = APP_THA_ENUM_FALSE;
+    }
+
+    s_thaisen_transaction[gunno].start_time = s_ofsm_info[gunno].base.start_time;
+    s_thaisen_transaction[gunno].end_time = s_thaisen_transaction[gunno].start_time;
+    s_thaisen_transaction[gunno].charge_time = 0x00;
+    s_thaisen_transaction[gunno].boot_result = s_ofsm_info[gunno].base.flag.start_result;
+    memset(s_thaisen_transaction[gunno].car_vin, 0x00, sizeof(s_thaisen_transaction[gunno].car_vin));
+    s_thaisen_transaction[gunno].start_soc = 0x00;
+    s_thaisen_transaction[gunno].stop_soc = 0x00;
+    s_thaisen_transaction[gunno].ammeter_start = s_ofsm_info[gunno].base.start_elect;
+    s_thaisen_transaction[gunno].ammeter_stop = s_thaisen_transaction[gunno].ammeter_start;
+    s_thaisen_transaction[gunno].stop_reason = APP_SYSTEM_STOP_WAY_POWER_OFF;
+    s_thaisen_transaction[gunno].total_elect = 0x00;
+    s_thaisen_transaction[gunno].total_loss_elect = 0x00;
+    s_thaisen_transaction[gunno].charge_fee = 0x00;
+    s_thaisen_transaction[gunno].service_fee = 0x00;
+    s_thaisen_transaction[gunno].total_fee = 0x00;
+    s_thaisen_transaction[gunno].run_mode = s_ofsm_info[gunno].base.run_mode;
+
+#if (defined (APP_INCLUDE_YKC_PROTOCOL) || defined (APP_INCLUDE_YKC_PROTOCOL_MONITOR) || defined (APP_INCLUDE_YCP_PROTOCOL) || \
+    defined (APP_INCLUDE_SGCC_PROTOCOL))
+    for(uint8_t type = 0x00; type < APP_BILLING_RULE_RATE_TYPE_MAX; type++){
+        s_thaisen_transaction[gunno].rate_type_unit[type] = app_billingrule_get_rate_type_price(gunno, type);
+    }
+    memset(s_thaisen_transaction[gunno].rate_type_elect, 0x00, sizeof(s_thaisen_transaction[gunno].rate_type_elect));
+    memset(s_thaisen_transaction[gunno].rate_type_amount, 0x00, sizeof(s_thaisen_transaction[gunno].rate_type_amount));
+    memset(s_thaisen_transaction[gunno].rate_type_loss_elect, 0x00, sizeof(s_thaisen_transaction[gunno].rate_type_loss_elect));
+#endif /* (defined (APP_INCLUDE_YKC_PROTOCOL) || defined (APP_INCLUDE_YKC_PROTOCOL_MONITOR) || defined (APP_INCLUDE_YCP_PROTOCOL) ||
+    defined (APP_INCLUDE_SGCC_PROTOCOL)) */
+
+#if (defined (APP_INCLUDE_SL_PROTOCOL) || defined (APP_INCLUDE_SGCC_PROTOCOL))
+    memset(s_thaisen_transaction[gunno].period_elect, 0x00, sizeof(s_thaisen_transaction[gunno].period_elect));
+    memset(s_thaisen_transaction[gunno].period_elect_fees, 0x00, sizeof(s_thaisen_transaction[gunno].period_elect_fees));
+    memset(s_thaisen_transaction[gunno].period_service_fees, 0x00, sizeof(s_thaisen_transaction[gunno].period_service_fees));
+    memset(s_thaisen_transaction[gunno].period_occupy_fees, 0x00, sizeof(s_thaisen_transaction[gunno].period_occupy_fees));
+    s_thaisen_transaction[gunno].rule = app_billingrule_get_rule(gunno);
+#endif /* (defined (APP_INCLUDE_SL_PROTOCOL) || defined (APP_INCLUDE_SGCC_PROTOCOL)) */
+
+#ifdef APP_INCLUDE_XJ_PROTOCOL
+    s_thaisen_transaction[gunno].delay_fee = 0x00;
+#endif /* APP_INCLUDE_XJ_PROTOCOL */
+
+#if (defined (APP_INCLUDE_SL_PROTOCOL) || defined (APP_INCLUDE_XJ_PROTOCOL))
+    s_thaisen_transaction[gunno].card_ballance_before = 0x00;
+    s_thaisen_transaction[gunno].card_ballance_after = 0x00;
+#endif /* (defined (APP_INCLUDE_SL_PROTOCOL) || defined (APP_INCLUDE_XJ_PROTOCOL)) */
+
+#if (defined (APP_INCLUDE_SGCC_PROTOCOL))
+    for(uint8_t type = 0x00; type < APP_BILLING_RULE_RATE_TYPE_MAX; type++){
+        s_thaisen_transaction[gunno].rate_type_elect_amount[type] = 0x00;
+        s_thaisen_transaction[gunno].rate_type_service_amount[type] = 0x00;
+    }
+#endif /* (defined (APP_INCLUDE_SGCC_PROTOCOL)) */
+
+    s_thaisen_transaction[gunno].start_period_number = s_ofsm_info[gunno].base.start_period;
+    s_thaisen_transaction[gunno].period_count = s_ofsm_info[gunno].base.period_num;
+
+    s_thaisen_transaction[gunno].order_state.verify_fail = APP_THA_ENUM_FALSE;
+    s_thaisen_transaction[gunno].order_state.is_start_fail = APP_THA_ENUM_TRUE;
+    s_thaisen_transaction[gunno].order_state.is_charging = APP_THA_ENUM_TRUE;
+
+    memset(&(s_thaisen_transaction[gunno].bms_stop_reason), 0x00, sizeof(s_thaisen_transaction[gunno].bms_stop_reason));
+    memset(&(s_thaisen_transaction[gunno].bms_fault_reason), 0x00, sizeof(s_thaisen_transaction[gunno].bms_fault_reason));
+    s_booting_step[gunno] = APP_BOOTING_STEP_IDLE;                 /* 初始化充电步骤 */
+
+    app_nsal_init_charge_data(gunno);
+
+    app_nsal_state_charged(gunno);
+    app_nsal_event_occurded(gunno);
+
+    mw_storage_record_create(&s_thaisen_transaction[gunno], sizeof(s_thaisen_transaction[gunno]), USER_DATA_TYPE_STORAGE,  \
+            0x00, APP_THA_ENUM_FALSE, gunno);
+    s_current_order_index[MONITOR_PLATFORM_INDEX][gunno] = mw_storage_record_get_current_index(gunno);
+    s_current_order_index[TARGET_PLATFORM_INDEX][gunno] = s_current_order_index[MONITOR_PLATFORM_INDEX][gunno];
+}
+
+/***************************************************************
+ * 函数名          ofsm_swip_card_judge
+ * 功能               刷卡判断
+ * 参数              gunno   枪号
+ * 返回              1: 鉴权成功，0: 鉴权失败
+ **************************************************************/
+static uint8_t ofsm_swip_card_judge(uint8_t gunno)
+{
+    if(gunno >= APP_SYSTEM_GUNNO_SIZE){   /* 枪号不对 */
+        return APP_THA_ENUM_FALSE;
+    }
+
+    uint8_t need_authorize_online = APP_THA_ENUM_FALSE;
+
+    /***************************************************************
+     * 此次刷卡得到的卡信息： 卡号
+     * ************************************************************/
+    if(rfidr_query_info_type() == APP_RFIDR_INFO_TYPE_CARD_NUMBER){
+        uint8_t pile_number_len = APP_CARD_NUMBER_COMPARE_LEN, card_number_len = rfidr_query_card_number_len(),
+                compare_len = 0x00, count = 0x00, compare_count = APP_CARD_NUMBER_COMPARE_LEN_MIN;    /** 桩号卡对比长度 */
+        uint8_t *pile_number = NULL, *card_number = NULL;
+
+        if(s_ofsm_info[gunno].base.run_mode == APP_RUN_MODE_OFFLINE_BILLING){
+            if(app_card_event_recv(APP_CARD_EVENT_CHARGE_START, 0x00, gunno, NULL, APP_THA_ENUM_TRUE) < APP_THA_ENUM_FALSE){
+                if(app_card_event_recv(APP_CARD_EVENT_IS_NOT_SAME_PORT, 0x00, gunno, NULL, APP_THA_ENUM_TRUE) < APP_THA_ENUM_FALSE){
+                    LOG_D("gunno(%d) is not receive card start charge event in offline billing", gunno);
+                    app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
+                }
+                return APP_THA_ENUM_FALSE;
+            }
+        }
+        /** 离线计费模式只判断卡号前6位 */
+        if(s_ofsm_info[gunno].base.run_mode == APP_RUN_MODE_OFFLINE_BILLING){
+            compare_count = APP_CARD_NUMBER_COMPARE_LEN_MIN_OFFLINE_BILLING;
+        }
+
+        compare_len = pile_number_len > card_number_len ? card_number_len : pile_number_len;
+        pile_number = sys_read_config_item_content(CONFIG_ITEM_PILE_NUMBER, 0);
+        card_number = rfidr_query_card_number();
+
+        /** 判断此卡是否符合充电要求 */
+        if(compare_len >= compare_count){
+            for(count = 0x00; count < compare_count; count++){
+                if(pile_number[count] != card_number[count]){
+                    break;
+                }
+            }
+            if(count >= compare_count){
+                app_rfidr_send_mail(APP_BUZZON_STATE_OK);
+                LOG_D("gunno(%d) start charge by local pile number card", gunno);
+            }
+        }
+
+        if((compare_len < compare_count) || (count < compare_count)){
+            if(sys_card_number_whitelists_query(card_number, card_number_len) >= 0x00){
+                app_rfidr_send_mail(APP_BUZZON_STATE_OK);
+                LOG_D("gunno(%d) start charge by local whitelist card", gunno);
+            }else{
+                if(s_ofsm_info[gunno].base.run_mode == APP_RUN_MODE_OFFLINE_BILLING){
+                    /** 提示鉴权失败, 离线计费必须是本地卡 */;
+                    LOG_D("gunno(%d) invalid card in offline billing mode, compare length 00", gunno);
+                    app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
+                    thaisen_set_trigger_event(THAISEN_TRIG_EVENT_INVALID, 0x05, APP_THA_ENUM_TRUE, gunno);
+                    return APP_THA_ENUM_FALSE;
+                }
+                need_authorize_online = APP_THA_ENUM_TRUE;
+            }
+        }
+
+        compare_len = sizeof(s_ofsm_info[gunno].base.card_number);
+        compare_len = compare_len > card_number_len ? card_number_len : compare_len;
+        memset(s_ofsm_info[gunno].base.card_number, 0x00, sizeof(s_ofsm_info[gunno].base.card_number));
+        memcpy(s_ofsm_info[gunno].base.card_number, card_number, compare_len);
+
+        compare_len = sizeof(s_ofsm_info[gunno].base.card_uid);
+        compare_len = compare_len > rfidr_query_uuid_len() ? rfidr_query_uuid_len() : compare_len;
+        memset(s_ofsm_info[gunno].base.card_uid, 0x00, sizeof(s_ofsm_info[gunno].base.card_uid));
+        memcpy(s_ofsm_info[gunno].base.card_uid, rfidr_query_uuid(), compare_len);
+
+        s_ofsm_info[gunno].base.flag.card_info_is_uid = APP_THA_ENUM_FALSE;
+        s_ofsm_info[gunno].base.flag.is_local_charging = APP_THA_ENUM_TRUE;
+
+        /** 桩号卡、白名单卡；不需要平台鉴权 */
+        if(need_authorize_online == APP_THA_ENUM_FALSE){
+            ofsm_start_info_padding_offline_card(gunno);
+
+            if(s_ofsm_info[gunno].base.run_mode == APP_RUN_MODE_OFFLINE_BILLING){
+                s_ofsm_info[gunno].base.account_ballance_before = app_card_query_ballance(gunno);
+                s_ofsm_info[gunno].base.account_ballance_after = app_card_query_ballance(gunno);
+
+                s_ofsm_info[gunno].base.charge_strategy = APP_CHARGE_STRATEGY_MONEY;
+                s_ofsm_info[gunno].base.charge_strategy_para = s_ofsm_info[gunno].base.account_ballance_before *100;
+            }
+            return APP_THA_ENUM_TRUE;
+        }
+    }
+    /***************************************************************
+     * 此次刷卡得到的卡信息： 卡UUID
+     * ************************************************************/
+    else if(rfidr_query_info_type() == APP_RFIDR_INFO_TYPE_UUID){
+        uint8_t uid_len = rfidr_query_uuid_len();
+
+        if(s_ofsm_info[gunno].base.run_mode == APP_RUN_MODE_OFFLINE_BILLING){
+            /** 提示鉴权失败, 离线计费获取到的卡信息类型必须是卡号 */;
+            LOG_D("gunno(%d) invalid card in offline billing mode, key authen fail", gunno);
+            app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
+            thaisen_set_trigger_event(THAISEN_TRIG_EVENT_KEY_AUTHEN_FAIL, 0x05, APP_THA_ENUM_TRUE, gunno);
+            return APP_THA_ENUM_FALSE;
+        }
+
+        if(sys_card_uid_whitelists_query(rfidr_query_uuid(), uid_len) >= 0x00){
+            app_rfidr_send_mail(APP_BUZZON_STATE_OK);
+            LOG_D("gunno(%d) start charge by local whitelist card uid", gunno);
+        }else{
+            need_authorize_online = APP_THA_ENUM_TRUE;
+        }
+
+        uid_len = uid_len > sizeof(s_ofsm_info[gunno].base.card_uid) ? sizeof(s_ofsm_info[gunno].base.card_uid) : uid_len;
+        memset(s_ofsm_info[gunno].base.card_uid, 0x00, sizeof(s_ofsm_info[gunno].base.card_uid));
+        memcpy(s_ofsm_info[gunno].base.card_uid, rfidr_query_uuid(), uid_len);
+
+        memset(s_ofsm_info[gunno].base.card_number, 0x00, sizeof(s_ofsm_info[gunno].base.card_number));
+
+        s_ofsm_info[gunno].base.card_uid_len = uid_len;
+        s_ofsm_info[gunno].base.flag.card_info_is_uid = APP_THA_ENUM_TRUE;
+        s_ofsm_info[gunno].base.flag.is_local_charging = APP_THA_ENUM_TRUE;
+
+        /** 白名单卡；不需要平台鉴权 */
+        if(need_authorize_online == APP_THA_ENUM_FALSE){
+            ofsm_start_info_padding_offline_card(gunno);
+            return APP_THA_ENUM_TRUE;
+        }
+    }
+    /***************************************************************
+     * 此次刷卡得到的卡信息： 读取卡号失败
+     * ************************************************************/
+    else if(rfidr_query_info_type() == APP_RFIDR_INFO_TYPE_ERROR){
+        /** 提示：无效卡 */
+        LOG_D("gunno(%d) invalid card in offline billing mode, read card number fail", gunno);
+        app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
+        thaisen_set_trigger_event(THAISEN_TRIG_EVENT_INVALID, 0x05, APP_THA_ENUM_TRUE, gunno);
+
+        need_authorize_online = APP_THA_ENUM_FALSE;
+    }
+    /***************************************************************
+     * 此次刷卡得到的卡信息： 卡读、写信息操作失败
+     * ************************************************************/
+    else if(rfidr_query_info_type() == APP_RFIDR_INFO_TYPE_RW_FAIL){
+        switch(app_card_query_operate_ret(gunno)){
+        case APP_CARD_OPERATE_RET_NO_BALLANCE:
+            LOG_D("gunno(%d) no ballance in offline billing mode", gunno);
+            app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
+            thaisen_set_trigger_event(THAISEN_TRIG_EVENT_CARD_NOBALLANCE, 0x05, APP_THA_ENUM_TRUE, gunno);
+            break;
+        case APP_CARD_OPERATE_RET_IS_LOCKED:
+            LOG_D("gunno(%d) card is locked in offline billing mode", gunno);
+            app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
+            thaisen_set_trigger_event(THAISEN_TRIG_EVENT_CARD_LOCKED, 0x05, APP_THA_ENUM_TRUE, gunno);
+            break;
+        case APP_CARD_OPERATE_RET_HISTORY_BILL_ERROR:
+            LOG_D("gunno(%d) card is locked(no bill) in offline billing mode", gunno);
+            app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
+            thaisen_set_trigger_event(THAISEN_TRIG_EVENT_CARD_LOCKED, 0x05, APP_THA_ENUM_TRUE, gunno);
+            break;
+        case APP_CARD_OPERATE_RET_IS_CHARGING:
+            LOG_D("gunno(%d) this card is start in offline billing mode", gunno);
+            app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
+            thaisen_set_trigger_event(THAISEN_TRIG_EVENT_IS_CHARGING, 0x05, APP_THA_ENUM_TRUE, gunno);
+            break;
+        case APP_CARD_OPERATE_RET_PAYED:
+            LOG_D("gunno(%d) card is payed in offline billing mode 555", gunno);
+            break;
+        case APP_CARD_OPERATE_RET_NULL:
+            LOG_D("gunno(%d) current state is not allow stop in offline billing mode", gunno);
+            break;
+        default:
+            LOG_D("gunno(%d) invalid card in offline billing mode 111", gunno);
+            app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
+            thaisen_set_trigger_event(THAISEN_TRIG_EVENT_INVALID, 0x05, APP_THA_ENUM_TRUE, gunno);
+            break;
+        }
+        need_authorize_online = APP_THA_ENUM_FALSE;
+    }
+    /***************************************************************
+     * 此次刷卡得到的卡信息： 其它
+     * ************************************************************/
+    else{
+        need_authorize_online = APP_THA_ENUM_FALSE;
+        if(s_ofsm_info[gunno].base.run_mode == APP_RUN_MODE_OFFLINE_BILLING){
+            /** 提示鉴权失败, 信息有误 */;
+            LOG_D("gunno(%d) operate card error in offline billing mode 00", gunno);
+            app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
+            thaisen_set_trigger_event(THAISEN_TRIG_EVENT_KEY_AUTHEN_FAIL, 0x05, APP_THA_ENUM_TRUE, gunno);
+            return APP_THA_ENUM_FALSE;
+        }else{
+            /** 信息有误, 蜂鸣器提示 */
+            app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
+        }
+    }
+
+    if(need_authorize_online){
+        if(app_nsal_card_authorize(gunno) < 0x00){
+            app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
+            LOG_W("gunno(%d) swip card authorize fail", gunno);
+            return APP_THA_ENUM_FALSE;
+        }
+        s_ofsm_info[gunno].base.flag.card_authorization = APP_THA_ENUM_TRUE;
+    }
+
+    return APP_THA_ENUM_FALSE;
+}
+
+/**************************************************************************************************************************
+ *                                               以下是业务状态机状态
+ *************************************************************************************************************************/
+/*****************************************************
+ * 函数名          ofsm_info_init_fun
+ * 功能               业务状态机信息初始化状态
+ * 参数              gunno   枪号
+ * 返回
+ ****************************************************/
+static void ofsm_info_init_fun(uint8_t gunno)
 {
     if(gunno >= APP_SYSTEM_GUNNO_SIZE){   /* 枪号不对 */
         return;
@@ -728,6 +1437,12 @@ static void ofsm_wait_net_fun(uint8_t gunno)
     app_nsal_event_occurded(gunno);
 }
 
+/*****************************************************
+ * 函数名          ofsm_idleing_fun
+ * 功能               业务状态机 空闲 状态
+ * 参数              gunno   枪号
+ * 返回
+ ****************************************************/
 static void ofsm_idleing_fun(uint8_t gunno)
 {
     if(gunno >= APP_SYSTEM_GUNNO_SIZE){   /* 枪号不对 */
@@ -773,7 +1488,7 @@ static void ofsm_idleing_fun(uint8_t gunno)
         return;
     }
 
-    if(s_ofsm_info[gunno].base.is_offline_billing == APP_THA_ENUM_TRUE){
+    if(s_ofsm_info[gunno].base.run_mode == APP_RUN_MODE_OFFLINE_BILLING){
         if(app_card_event_recv(APP_CARD_EVENT_PAY_COMPLETE, 0x00, gunno, NULL, APP_THA_ENUM_TRUE) >= APP_THA_ENUM_FALSE){
             LOG_D("gunno(%d) idle card is payed in offline billing", gunno);
             LOG_D("time:%ds  elect:%d  money:%d  ballance:%d  reason:%d", s_ofsm_info[gunno].base.charge_time,
@@ -807,7 +1522,7 @@ static void ofsm_idleing_fun(uint8_t gunno)
         }
         if(rfidr_query_swipe_state(gunno)){
             rfidr_clear_swipe_state(gunno);
-            if(s_ofsm_info[gunno].base.is_offline_billing == APP_THA_ENUM_TRUE){
+            if(s_ofsm_info[gunno].base.run_mode == APP_RUN_MODE_OFFLINE_BILLING){
                 /** 提示先插枪再刷卡 */
                 if(app_card_event_recv(APP_CARD_EVENT_IS_NOT_SAME_PORT, 0x00, gunno, NULL, APP_THA_ENUM_TRUE) < APP_THA_ENUM_FALSE){
                     LOG_D("gunno(%d) please insert the gun first", gunno);
@@ -842,11 +1557,17 @@ static void ofsm_idleing_fun(uint8_t gunno)
     app_nsal_clear_remote_card_authorize(gunno);
     app_nsal_clear_remote_vin_authorize(gunno);
 
-    if(s_ofsm_info[gunno].base.is_offline_billing == APP_THA_ENUM_TRUE){
+    if(s_ofsm_info[gunno].base.run_mode == APP_RUN_MODE_OFFLINE_BILLING){
         app_card_event_recv(APP_CARD_EVENT_CHARGE_STOP, 0x00, gunno, NULL, APP_THA_ENUM_TRUE);
     }
 }
 
+/*****************************************************
+ * 函数名          ofsm_readying_fun
+ * 功能               业务状态机 插枪准备 状态
+ * 参数              gunno   枪号
+ * 返回
+ ****************************************************/
 static void ofsm_readying_fun(uint8_t gunno)
 {
     if(gunno >= APP_SYSTEM_GUNNO_SIZE){   /* 枪号不对 */
@@ -885,7 +1606,7 @@ static void ofsm_readying_fun(uint8_t gunno)
     s_ofsm_info[gunno].base.card_ballance_after = 0x00;
 #endif /* (defined (APP_INCLUDE_SL_PROTOCOL) || defined (APP_INCLUDE_XJ_PROTOCOL)) */
 
-    if(s_ofsm_info[gunno].base.is_offline_billing == APP_THA_ENUM_TRUE){
+    if(s_ofsm_info[gunno].base.run_mode == APP_RUN_MODE_OFFLINE_BILLING){
         if(app_card_event_recv(APP_CARD_EVENT_PAY_COMPLETE, 0x00, gunno, NULL, APP_THA_ENUM_TRUE) >= APP_THA_ENUM_FALSE){
             LOG_D("gunno(%d) ready card is payed in offline billing", gunno);
             LOG_D("time:%ds  elect:%d  money:%d  ballance:%d  reason:%d", s_ofsm_info[gunno].base.charge_time,
@@ -935,22 +1656,24 @@ static void ofsm_readying_fun(uint8_t gunno)
         app_nsal_event_occurded(gunno);
         return;
     case CC1_4V:
-        if(s_ofsm_info[gunno].base.is_offline_billing == APP_THA_ENUM_TRUE){
+        if(s_ofsm_info[gunno].base.run_mode == APP_RUN_MODE_OFFLINE_BILLING){
             app_card_event_send(APP_CARD_EVENT_CHARGEPILE_READY, gunno, NULL);
         }else{
             app_card_event_recv(APP_CARD_EVENT_CHARGEPILE_READY, 0x00, gunno, NULL, APP_THA_ENUM_TRUE);
         }
-        if(app_nsal_is_remote_start(gunno)){
-            uint8_t valid_len = 0x00;
+
+        if(s_ofsm_info[gunno].base.run_mode == APP_RUN_MODE_PLUG_AND_PLAY){
+            LOG_D("gunno(%d) start charge by plug and play", gunno);
+            ofsm_start_info_padding_plug_and_play(gunno);
+            is_charging_authorization = true;
+
+        }else if(app_nsal_is_remote_start(gunno)){
             app_nsal_clear_remote_start(gunno);
             if(s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
 #ifndef APP_USING_DOUBLEGUN
                 break;      /** 单枪不允许并充 */
 #endif /* APP_USING_DOUBLEGUN */
             }
-            LOG_D("gunno(%d) start charge by APP", gunno);
-            s_ofsm_info[gunno].base.flag.is_local_charging = APP_THA_ENUM_FALSE;
-            s_ofsm_info[gunno].base.start_type = APP_CHARGE_START_WAY_APP;
 
             /* 经过平台启动的， 已填充以下字段
              * base->user_number
@@ -967,429 +1690,47 @@ static void ofsm_readying_fun(uint8_t gunno)
              * base->main_gunno(并充时)
              * base->charge_way(并充时)*/
 
-            valid_len = sizeof(s_ofsm_info[gunno].base.transaction_number);
-            valid_len = valid_len > sizeof(s_thaisen_transaction[gunno].serial_number) ? sizeof(s_thaisen_transaction[gunno].serial_number) : valid_len;
-            memset(s_thaisen_transaction[gunno].serial_number, 0x00, sizeof(s_thaisen_transaction[gunno].serial_number));
-            memcpy(s_thaisen_transaction[gunno].serial_number, s_ofsm_info[gunno].base.transaction_number, valid_len);
-
-            valid_len = sizeof(s_ofsm_info[gunno].base.card_uid);
-            valid_len = valid_len > sizeof(s_thaisen_transaction[gunno].physics_card_number) ? sizeof(s_thaisen_transaction[gunno].physics_card_number) : valid_len;
-            memset(s_thaisen_transaction[gunno].physics_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].physics_card_number));
-            memcpy(s_thaisen_transaction[gunno].physics_card_number, s_ofsm_info[gunno].base.card_uid, valid_len);
-
-            valid_len = sizeof(s_ofsm_info[gunno].base.card_number);
-            valid_len = valid_len > sizeof(s_thaisen_transaction[gunno].logic_card_number) ? sizeof(s_thaisen_transaction[gunno].logic_card_number) : valid_len;
-            memset(s_thaisen_transaction[gunno].logic_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].logic_card_number));
-            memcpy(s_thaisen_transaction[gunno].logic_card_number, s_ofsm_info[gunno].base.card_number, valid_len);
-
-            valid_len = sizeof(s_ofsm_info[gunno].base.user_number);
-            valid_len = valid_len > sizeof(s_thaisen_transaction[gunno].user_number) ? sizeof(s_thaisen_transaction[gunno].user_number) : valid_len;
-            memset(s_thaisen_transaction[gunno].user_number, 0x00, sizeof(s_thaisen_transaction[gunno].user_number));
-            memcpy(s_thaisen_transaction[gunno].user_number, s_ofsm_info[gunno].base.user_number, valid_len);
-#ifdef APP_INCLUDE_SGCC_PROTOCOL
-            memcpy(s_thaisen_transaction[gunno].device_serial_number, s_ofsm_info[gunno].base.device_transaction_number, \
-                    sizeof(s_ofsm_info[gunno].base.device_transaction_number));
-#endif /* APP_INCLUDE_SGCC_PROTOCOL */
-            s_thaisen_transaction[gunno].account_ballance_before = s_ofsm_info[gunno].base.account_ballance_before;
-            s_thaisen_transaction[gunno].account_ballance_after = s_ofsm_info[gunno].base.account_ballance_after;
-
-            s_thaisen_transaction[gunno].start_type = APP_CHARGE_START_WAY_APP;
-            s_thaisen_transaction[gunno].order_state.online_order = APP_THA_ENUM_TRUE;
-
+            LOG_D("gunno(%d) start charge by APP", gunno);
+            ofsm_start_info_padding_app(gunno);
             is_charging_authorization = true;
 
         }else if(rfidr_query_swipe_state(gunno)){
-            uint8_t need_authorize_online = APP_THA_ENUM_FALSE;
             rfidr_clear_swipe_state(gunno);
-
-            if(s_ofsm_info[gunno].base.is_offline_billing == APP_THA_ENUM_FALSE){
+            if(s_ofsm_info[gunno].base.run_mode != APP_RUN_MODE_OFFLINE_BILLING){
                 if(thaisen_is_not_allow_swip_card()){
                     LOG_D("gunno(%d) current page is not allow swip card charge", gunno);
                     return;
                 }
             }
-            if(rfidr_query_info_type() == APP_RFIDR_INFO_TYPE_CARD_NUMBER){
-                uint8_t pile_number_len = APP_CARD_NUMBER_COMPARE_LEN, card_number_len = rfidr_query_card_number_len(),
-                        compare_len = 0, count = 0;
-                uint8_t *pile_number, *card_number,
-                         compare_count = APP_CARD_NUMBER_COMPARE_LEN_MIN;    /** 桩号卡对比长度 */
-
-                if(s_ofsm_info[gunno].base.is_offline_billing == APP_THA_ENUM_TRUE){
-                    if(app_card_event_recv(APP_CARD_EVENT_CHARGE_START, 0x00, gunno, NULL, APP_THA_ENUM_TRUE) < APP_THA_ENUM_FALSE){
-                        if(app_card_event_recv(APP_CARD_EVENT_IS_NOT_SAME_PORT, 0x00, gunno, NULL, APP_THA_ENUM_TRUE) < APP_THA_ENUM_FALSE){
-                            LOG_D("gunno(%d) is not receive card start charge event in offline billing", gunno);
-                            app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
-                        }
-                        break;
-                    }
-                }
-
-                compare_len = pile_number_len > card_number_len ? card_number_len : pile_number_len;
-                pile_number = sys_read_config_item_content(CONFIG_ITEM_PILE_NUMBER, 0);
-                card_number = rfidr_query_card_number();
-
-                if(s_ofsm_info[gunno].base.is_offline_billing == APP_THA_ENUM_TRUE){
-                    compare_count = APP_CARD_NUMBER_COMPARE_LEN_MIN_OFFLINE_BILLING;
-                }
-
-                if(compare_len >= compare_count){
-                    for(; count < compare_count; count++){
-                        if(pile_number[count] != card_number[count]){
-                            break;
-                        }
-                    }
-                    if(count >= compare_count){
-                        app_rfidr_send_mail(APP_BUZZON_STATE_OK);
-                        LOG_D("gunno(%d) start charge by local pile number card", gunno);
-                    }else{
-                        if(sys_card_number_whitelists_query(card_number, card_number_len) >= 0x00){
-                            app_rfidr_send_mail(APP_BUZZON_STATE_OK);
-                            LOG_D("gunno(%d) start charge by local whitelist card", gunno);
-                        }else{
-                            if(s_ofsm_info[gunno].base.is_offline_billing == APP_THA_ENUM_TRUE){
-                                /** 提示鉴权失败, 离线计费必须是本地卡 */;
-                                LOG_D("gunno(%d) invalid card in offline billing mode, compare length", gunno);
-                                app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
-                                thaisen_set_trigger_event(THAISEN_TRIG_EVENT_INVALID, 0x05, APP_THA_ENUM_TRUE, gunno);
-                                return;
-                            }
-                            need_authorize_online = APP_THA_ENUM_TRUE;
-                        }
-                    }
-                }else{
-                    if(sys_card_number_whitelists_query(card_number, card_number_len) >= 0x00){
-                        app_rfidr_send_mail(APP_BUZZON_STATE_OK);
-                        LOG_D("gunno(%d) start charge by local whitelist card", gunno);
-                    }else{
-                        if(s_ofsm_info[gunno].base.is_offline_billing == APP_THA_ENUM_TRUE){
-                            /** 提示鉴权失败, 离线计费必须是本地卡 */;
-                            LOG_D("gunno(%d) invalid card in offline billing mode, compare length 00", gunno);
-                            app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
-                            thaisen_set_trigger_event(THAISEN_TRIG_EVENT_INVALID, 0x05, APP_THA_ENUM_TRUE, gunno);
-                            return;
-                        }
-                        need_authorize_online = APP_THA_ENUM_TRUE;
-                    }
-                }
-
-                compare_len = sizeof(s_ofsm_info[gunno].base.card_number);
-                compare_len = compare_len > card_number_len ? card_number_len : compare_len;
-                memset(s_ofsm_info[gunno].base.card_number, 0x00, sizeof(s_ofsm_info[gunno].base.card_number));
-                memcpy(s_ofsm_info[gunno].base.card_number, card_number, compare_len);
-
-                s_ofsm_info[gunno].base.flag.card_info_is_uid = APP_THA_ENUM_FALSE;
-                s_ofsm_info[gunno].base.flag.is_local_charging = APP_THA_ENUM_TRUE;
-
-                if(need_authorize_online == APP_THA_ENUM_FALSE){
-                    uint8_t uuid_len = rfidr_query_uuid_len();
-
-                    s_ofsm_info[gunno].base.start_type = APP_CHARGE_START_WAY_OFFLINE_CARD;
-                    s_ofsm_info[gunno].base.account_ballance_before = 0x00;
-                    s_ofsm_info[gunno].base.account_ballance_after = 0x00;
-                    s_ofsm_info[gunno].base.charge_strategy = APP_CHARGE_STRATEGY_FULL;
-                    s_ofsm_info[gunno].base.charge_strategy_para = 0x00;
-
-                    app_nsal_create_local_transaction_number(gunno, &(s_ofsm_info[gunno].base.transaction_number),  \
-                            sizeof(s_ofsm_info[gunno].base.transaction_number));
-#ifdef APP_INCLUDE_SGCC_PROTOCOL
-                    memcpy(s_ofsm_info[gunno].base.device_transaction_number, s_ofsm_info[gunno].base.transaction_number, \
-                            sizeof(s_ofsm_info[gunno].base.transaction_number));
-#endif /* APP_INCLUDE_SGCC_PROTOCOL */
-
-                    if(s_ofsm_info[gunno].base.is_offline_billing == APP_THA_ENUM_TRUE){
-                        s_ofsm_info[gunno].base.account_ballance_before = app_card_query_ballance(gunno);
-                        s_ofsm_info[gunno].base.account_ballance_after = app_card_query_ballance(gunno);
-
-                        s_ofsm_info[gunno].base.charge_strategy = APP_CHARGE_STRATEGY_MONEY;
-                        s_ofsm_info[gunno].base.charge_strategy_para = s_ofsm_info[gunno].base.account_ballance_before *100;
-                    }
-                    compare_len = sizeof(s_ofsm_info[gunno].base.card_uid);
-                    compare_len = compare_len > uuid_len ? uuid_len : compare_len;
-                    memset(s_ofsm_info[gunno].base.card_uid, 0x00, sizeof(s_ofsm_info[gunno].base.card_uid));
-                    memcpy(s_ofsm_info[gunno].base.card_uid, rfidr_query_uuid(), compare_len);
-
-                    memset(s_ofsm_info[gunno].base.user_number, 0x00, sizeof(s_ofsm_info[gunno].base.user_number));
-
-                    compare_len = sizeof(s_ofsm_info[gunno].base.transaction_number);
-                    compare_len = compare_len > sizeof(s_thaisen_transaction[gunno].serial_number) ? sizeof(s_thaisen_transaction[gunno].serial_number) : compare_len;
-                    memset(s_thaisen_transaction[gunno].serial_number, 0x00, sizeof(s_thaisen_transaction[gunno].serial_number));
-                    memcpy(s_thaisen_transaction[gunno].serial_number, s_ofsm_info[gunno].base.transaction_number, compare_len);
-
-                    compare_len = sizeof(s_ofsm_info[gunno].base.card_number);
-                    compare_len = compare_len > sizeof(s_thaisen_transaction[gunno].logic_card_number) ? sizeof(s_thaisen_transaction[gunno].logic_card_number) : compare_len;
-                    memset(s_thaisen_transaction[gunno].logic_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].logic_card_number));
-                    memcpy(s_thaisen_transaction[gunno].logic_card_number, s_ofsm_info[gunno].base.card_number, compare_len);
-
-                    memset(s_thaisen_transaction[gunno].physics_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].physics_card_number));
-                    memcpy(s_thaisen_transaction[gunno].physics_card_number, s_ofsm_info[gunno].base.card_uid, sizeof(s_ofsm_info[gunno].base.card_uid));
-
-                    memset(s_thaisen_transaction[gunno].user_number, 0x00, sizeof(s_thaisen_transaction[gunno].user_number));
-#ifdef APP_INCLUDE_SGCC_PROTOCOL
-                    memcpy(s_thaisen_transaction[gunno].device_serial_number, s_ofsm_info[gunno].base.device_transaction_number, \
-                            sizeof(s_ofsm_info[gunno].base.device_transaction_number));
-#endif /* APP_INCLUDE_SGCC_PROTOCOL */
-                    s_thaisen_transaction[gunno].account_ballance_before = s_ofsm_info[gunno].base.account_ballance_before;
-                    s_thaisen_transaction[gunno].account_ballance_after = s_ofsm_info[gunno].base.account_ballance_after;
-
-                    s_thaisen_transaction[gunno].start_type = APP_CHARGE_START_WAY_OFFLINE_CARD;
-                    s_thaisen_transaction[gunno].order_state.online_order = APP_THA_ENUM_FALSE;
-
-                    is_charging_authorization = true;
-                }
-            }else if(rfidr_query_info_type() == APP_RFIDR_INFO_TYPE_UUID){
-                uint8_t uid_len = rfidr_query_uuid_len(), compare_len = 0x00;
-
-                if(s_ofsm_info[gunno].base.is_offline_billing == APP_THA_ENUM_TRUE){
-                    /** 提示鉴权失败, 离线计费获取到的卡信息类型必须是卡号 */;
-                    LOG_D("gunno(%d) invalid card in offline billing mode, key authen fail", gunno);
-                    app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
-                    thaisen_set_trigger_event(THAISEN_TRIG_EVENT_KEY_AUTHEN_FAIL, 0x05, APP_THA_ENUM_TRUE, gunno);
-                    return;
-                }
-
-                if(sys_card_uid_whitelists_query(rfidr_query_uuid(), uid_len) >= 0x00){
-                    app_rfidr_send_mail(APP_BUZZON_STATE_OK);
-                    LOG_D("gunno(%d) start charge by local whitelist card uid", gunno);
-                }else{
-                    need_authorize_online = APP_THA_ENUM_TRUE;
-                }
-
-                uid_len = uid_len > sizeof(s_ofsm_info[gunno].base.card_uid) ? sizeof(s_ofsm_info[gunno].base.card_uid) : uid_len;
-                memset(s_ofsm_info[gunno].base.card_uid, 0x00, sizeof(s_ofsm_info[gunno].base.card_uid));
-                memcpy(s_ofsm_info[gunno].base.card_uid, rfidr_query_uuid(), uid_len);
-                s_ofsm_info[gunno].base.card_uid_len = uid_len;
-                s_ofsm_info[gunno].base.flag.card_info_is_uid = APP_THA_ENUM_TRUE;
-                s_ofsm_info[gunno].base.flag.is_local_charging = APP_THA_ENUM_TRUE;
-
-                if(need_authorize_online == APP_THA_ENUM_FALSE){
-                    s_ofsm_info[gunno].base.start_type = APP_CHARGE_START_WAY_OFFLINE_CARD;
-                    s_ofsm_info[gunno].base.account_ballance_before = 0x00;
-                    s_ofsm_info[gunno].base.account_ballance_after = 0x00;
-                    s_ofsm_info[gunno].base.charge_strategy = APP_CHARGE_STRATEGY_FULL;
-                    s_ofsm_info[gunno].base.charge_strategy_para = 0x00;
-
-                    app_nsal_create_local_transaction_number(gunno, &(s_ofsm_info[gunno].base.transaction_number),  \
-                            sizeof(s_ofsm_info[gunno].base.transaction_number));
-#ifdef APP_INCLUDE_SGCC_PROTOCOL
-                    memcpy(s_ofsm_info[gunno].base.device_transaction_number, s_ofsm_info[gunno].base.transaction_number, \
-                            sizeof(s_ofsm_info[gunno].base.transaction_number));
-#endif /* APP_INCLUDE_SGCC_PROTOCOL */
-
-                    compare_len = sizeof(s_ofsm_info[gunno].base.transaction_number);
-                    compare_len = compare_len > sizeof(s_thaisen_transaction[gunno].serial_number) ? sizeof(s_thaisen_transaction[gunno].serial_number) : compare_len;
-                    memset(s_thaisen_transaction[gunno].serial_number, 0x00, sizeof(s_thaisen_transaction[gunno].serial_number));
-                    memcpy(s_thaisen_transaction[gunno].serial_number, s_ofsm_info[gunno].base.transaction_number, compare_len);
-
-                    compare_len = sizeof(s_ofsm_info[gunno].base.card_number);
-                    compare_len = compare_len > sizeof(s_thaisen_transaction[gunno].logic_card_number) ? sizeof(s_thaisen_transaction[gunno].logic_card_number) : compare_len;
-                    memset(s_thaisen_transaction[gunno].logic_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].logic_card_number));
-                    memcpy(s_thaisen_transaction[gunno].logic_card_number, s_ofsm_info[gunno].base.card_number, compare_len);
-
-                    memset(s_thaisen_transaction[gunno].physics_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].physics_card_number));
-                    memset(s_thaisen_transaction[gunno].user_number, 0x00, sizeof(s_thaisen_transaction[gunno].user_number));
-#ifdef APP_INCLUDE_SGCC_PROTOCOL
-                    memcpy(s_thaisen_transaction[gunno].device_serial_number, s_ofsm_info[gunno].base.device_transaction_number, \
-                            sizeof(s_ofsm_info[gunno].base.device_transaction_number));
-#endif /* APP_INCLUDE_SGCC_PROTOCOL */
-                    s_thaisen_transaction[gunno].account_ballance_before = s_ofsm_info[gunno].base.account_ballance_before;
-                    s_thaisen_transaction[gunno].account_ballance_after = s_ofsm_info[gunno].base.account_ballance_after;
-
-                    s_thaisen_transaction[gunno].start_type = APP_CHARGE_START_WAY_OFFLINE_CARD;
-                    s_thaisen_transaction[gunno].order_state.online_order = APP_THA_ENUM_FALSE;
-
-                    is_charging_authorization = true;
-                }
-            }else if(rfidr_query_info_type() == APP_RFIDR_INFO_TYPE_ERROR){
-                /** 提示：无效卡 */
-                LOG_D("gunno(%d) invalid card in offline billing mode, read card number fail", gunno);
-                app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
-                thaisen_set_trigger_event(THAISEN_TRIG_EVENT_INVALID, 0x05, APP_THA_ENUM_TRUE, gunno);
-
-                need_authorize_online = APP_THA_ENUM_FALSE;
-            }else if(rfidr_query_info_type() == APP_RFIDR_INFO_TYPE_RW_FAIL){
-                switch(app_card_query_operate_ret(gunno)){
-                case APP_CARD_OPERATE_RET_NO_BALLANCE:
-                    LOG_D("gunno(%d) no ballance in offline billing mode", gunno);
-                    app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
-                    thaisen_set_trigger_event(THAISEN_TRIG_EVENT_CARD_NOBALLANCE, 0x05, APP_THA_ENUM_TRUE, gunno);
-                    break;
-                case APP_CARD_OPERATE_RET_IS_LOCKED:
-                    LOG_D("gunno(%d) card is locked in offline billing mode", gunno);
-                    app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
-                    thaisen_set_trigger_event(THAISEN_TRIG_EVENT_CARD_LOCKED, 0x05, APP_THA_ENUM_TRUE, gunno);
-                    break;
-                case APP_CARD_OPERATE_RET_HISTORY_BILL_ERROR:
-                    LOG_D("gunno(%d) card is locked(no bill) in offline billing mode", gunno);
-                    app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
-                    thaisen_set_trigger_event(THAISEN_TRIG_EVENT_CARD_LOCKED, 0x05, APP_THA_ENUM_TRUE, gunno);
-                    break;
-                case APP_CARD_OPERATE_RET_IS_CHARGING:
-                    LOG_D("gunno(%d) this card is start in offline billing mode", gunno);
-                    app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
-                    thaisen_set_trigger_event(THAISEN_TRIG_EVENT_IS_CHARGING, 0x05, APP_THA_ENUM_TRUE, gunno);
-                    break;
-                case APP_CARD_OPERATE_RET_PAYED:
-                    LOG_D("gunno(%d) card is payed in offline billing mode 555", gunno);
-                    break;
-                case APP_CARD_OPERATE_RET_NULL:
-                    LOG_D("gunno(%d) current state is not allow stop in offline billing mode", gunno);
-                    break;
-                default:
-                    LOG_D("gunno(%d) invalid card in offline billing mode 111", gunno);
-                    app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
-                    thaisen_set_trigger_event(THAISEN_TRIG_EVENT_INVALID, 0x05, APP_THA_ENUM_TRUE, gunno);
-                    break;
-                }
-                need_authorize_online = APP_THA_ENUM_FALSE;
+            if(ofsm_swip_card_judge(gunno)){
+                is_charging_authorization = true;
             }else{
-                need_authorize_online = APP_THA_ENUM_FALSE;
-                if(s_ofsm_info[gunno].base.is_offline_billing == APP_THA_ENUM_TRUE){
-                    /** 提示鉴权失败, 信息有误 */;
-                    LOG_D("gunno(%d) operate card error in offline billing mode 00", gunno);
-                    app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
-                    thaisen_set_trigger_event(THAISEN_TRIG_EVENT_KEY_AUTHEN_FAIL, 0x05, APP_THA_ENUM_TRUE, gunno);
-                    return;
-                }else{
-                    /** 信息有误, 蜂鸣器提示 */
-                    app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
-                }
-            }
-
-            if(need_authorize_online){
-                if(app_nsal_card_authorize(gunno) < 0x00){
-                    app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
-                    LOG_W("gunno(%d) swip card authorize fail", gunno);
-                    return;
-                }
-                s_ofsm_info[gunno].base.flag.card_authorization = APP_THA_ENUM_TRUE;
+                return;
             }
         }else if(app_nsal_is_card_authorize_success(gunno)){
-            uint8_t valid_len = 0x00;
             app_nsal_clear_remote_card_authorize(gunno);
+
             LOG_D("gunno(%d) start charge by online card", gunno);
-            s_ofsm_info[gunno].base.flag.is_local_charging = APP_THA_ENUM_FALSE;
-            s_ofsm_info[gunno].base.start_type = APP_CHARGE_START_WAY_ONLINE_CARD;
-
-            valid_len = sizeof(s_ofsm_info[gunno].base.transaction_number);
-            valid_len = valid_len > sizeof(s_thaisen_transaction[gunno].serial_number) ? sizeof(s_thaisen_transaction[gunno].serial_number) : valid_len;
-            memset(s_thaisen_transaction[gunno].serial_number, 0x00, sizeof(s_thaisen_transaction[gunno].serial_number));
-            memcpy(s_thaisen_transaction[gunno].serial_number, s_ofsm_info[gunno].base.transaction_number, valid_len);
-
-            valid_len = sizeof(s_ofsm_info[gunno].base.card_uid);
-            valid_len = valid_len > sizeof(s_thaisen_transaction[gunno].physics_card_number) ? sizeof(s_thaisen_transaction[gunno].physics_card_number) : valid_len;
-            memset(s_thaisen_transaction[gunno].physics_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].physics_card_number));
-            memcpy(s_thaisen_transaction[gunno].physics_card_number, s_ofsm_info[gunno].base.card_uid, valid_len);
-
-            valid_len = sizeof(s_ofsm_info[gunno].base.card_number);
-            valid_len = valid_len > sizeof(s_thaisen_transaction[gunno].logic_card_number) ? sizeof(s_thaisen_transaction[gunno].logic_card_number) : valid_len;
-            memset(s_thaisen_transaction[gunno].logic_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].logic_card_number));
-            memcpy(s_thaisen_transaction[gunno].logic_card_number, s_ofsm_info[gunno].base.card_number, valid_len);
-
-            valid_len = sizeof(s_ofsm_info[gunno].base.user_number);
-            valid_len = valid_len > sizeof(s_thaisen_transaction[gunno].user_number) ? sizeof(s_thaisen_transaction[gunno].user_number) : valid_len;
-            memset(s_thaisen_transaction[gunno].user_number, 0x00, sizeof(s_thaisen_transaction[gunno].user_number));
-            memcpy(s_thaisen_transaction[gunno].user_number, s_ofsm_info[gunno].base.user_number, valid_len);
-#ifdef APP_INCLUDE_SGCC_PROTOCOL
-            memcpy(s_thaisen_transaction[gunno].device_serial_number, s_ofsm_info[gunno].base.device_transaction_number, \
-                    sizeof(s_ofsm_info[gunno].base.device_transaction_number));
-#endif /* APP_INCLUDE_SGCC_PROTOCOL */
-            s_thaisen_transaction[gunno].account_ballance_before = s_ofsm_info[gunno].base.account_ballance_before;
-            s_thaisen_transaction[gunno].account_ballance_after = s_ofsm_info[gunno].base.account_ballance_after;
-
-            s_thaisen_transaction[gunno].start_type = APP_CHARGE_START_WAY_ONLINE_CARD;
-            s_thaisen_transaction[gunno].order_state.online_order = APP_THA_ENUM_TRUE;
-
+            ofsm_start_info_padding_online_card(gunno);
             is_charging_authorization = true;
 
         }else if(app_nsal_is_card_authorize_fail(gunno)){
             app_nsal_clear_remote_card_authorize(gunno);
             LOG_W("gunno(%d) swip card authorize response fail", gunno);
             s_ofsm_info[gunno].base.flag.card_authorization = APP_THA_ENUM_FALSE;
-            app_nsal_clear_remote_card_authorize(gunno);
 
             app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
-        }else if(app_get_hci_event(gunno, HCI_EVENT_SCREEN_START, 1)){
-            uint8_t valid_len = 0x00;
+
+        }else if(app_get_hci_event(gunno, HCI_EVENT_SCREEN_START, APP_THA_ENUM_TRUE)){
             LOG_D("gunno(%d) start charge by screen", gunno);
-            s_ofsm_info[gunno].base.flag.is_local_charging = APP_THA_ENUM_TRUE;
-            s_ofsm_info[gunno].base.start_type = APP_CHARGE_START_WAY_SCREEN;
-            s_ofsm_info[gunno].base.account_ballance_before = 0x00;
-            s_ofsm_info[gunno].base.account_ballance_after = 0x00;
-            s_ofsm_info[gunno].base.charge_strategy = APP_CHARGE_STRATEGY_FULL;
-            s_ofsm_info[gunno].base.charge_strategy_para = 0x00;
-
-            app_nsal_create_local_transaction_number(gunno, &(s_ofsm_info[gunno].base.transaction_number),  \
-                    sizeof(s_ofsm_info[gunno].base.transaction_number));
-#ifdef APP_INCLUDE_SGCC_PROTOCOL
-            memcpy(s_ofsm_info[gunno].base.device_transaction_number, s_ofsm_info[gunno].base.transaction_number, \
-                    sizeof(s_ofsm_info[gunno].base.transaction_number));
-#endif /* APP_INCLUDE_SGCC_PROTOCOL */
-
-            memset(s_ofsm_info[gunno].base.card_number, 0x00, sizeof(s_ofsm_info[gunno].base.card_number));
-            memset(&(s_ofsm_info[gunno].base.card_uid), 0x00, sizeof(s_ofsm_info[gunno].base.card_uid));
-            memset(s_ofsm_info[gunno].base.user_number, 0x00, sizeof(s_ofsm_info[gunno].base.user_number));
-
-            valid_len = sizeof(s_ofsm_info[gunno].base.transaction_number);
-            valid_len = valid_len > sizeof(s_thaisen_transaction[gunno].serial_number) ? sizeof(s_thaisen_transaction[gunno].serial_number) : valid_len;
-            memset(s_thaisen_transaction[gunno].serial_number, 0x00, sizeof(s_thaisen_transaction[gunno].serial_number));
-            memcpy(s_thaisen_transaction[gunno].serial_number, s_ofsm_info[gunno].base.transaction_number, valid_len);
-            memset(s_thaisen_transaction[gunno].logic_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].logic_card_number));
-            memset(s_thaisen_transaction[gunno].physics_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].physics_card_number));
-            memset(s_thaisen_transaction[gunno].user_number, 0x00, sizeof(s_thaisen_transaction[gunno].user_number));
-#ifdef APP_INCLUDE_SGCC_PROTOCOL
-            memcpy(s_thaisen_transaction[gunno].device_serial_number, s_ofsm_info[gunno].base.device_transaction_number, \
-                    sizeof(s_ofsm_info[gunno].base.device_transaction_number));
-#endif /* APP_INCLUDE_SGCC_PROTOCOL */
-            s_thaisen_transaction[gunno].account_ballance_before = s_ofsm_info[gunno].base.account_ballance_before;
-            s_thaisen_transaction[gunno].account_ballance_after = s_ofsm_info[gunno].base.account_ballance_after;
-
-            s_thaisen_transaction[gunno].start_type = APP_CHARGE_START_WAY_SCREEN;
-            s_thaisen_transaction[gunno].order_state.online_order = APP_THA_ENUM_FALSE;
-
+            ofsm_start_info_padding_screen(gunno);
             is_charging_authorization = true;
 
-        }else if(app_get_hci_event(gunno, HCI_EVENT_VIN_START, 1)){
-            uint8_t valid_len = 0x00;
+        }else if(app_get_hci_event(gunno, HCI_EVENT_VIN_START, APP_THA_ENUM_TRUE)){
             LOG_D("gunno(%d) start charge by VIN", gunno);
-            s_ofsm_info[gunno].base.flag.is_local_charging = APP_THA_ENUM_TRUE;
-            s_ofsm_info[gunno].base.flag.vin_authorization_success = APP_THA_ENUM_FALSE;
-            s_ofsm_info[gunno].base.flag.vin_is_authorized = APP_THA_ENUM_FALSE;
-            s_ofsm_info[gunno].base.start_type = APP_CHARGE_START_WAY_VIN;
-            s_ofsm_info[gunno].base.account_ballance_before = 0x00;
-            s_ofsm_info[gunno].base.account_ballance_after = 0x00;
-            s_ofsm_info[gunno].base.charge_strategy = APP_CHARGE_STRATEGY_FULL;
-            s_ofsm_info[gunno].base.charge_strategy_para = 0x00;
-
-            app_nsal_create_local_transaction_number(gunno, &(s_ofsm_info[gunno].base.transaction_number),  \
-                    sizeof(s_ofsm_info[gunno].base.transaction_number));
-#ifdef APP_INCLUDE_SGCC_PROTOCOL
-            memcpy(s_ofsm_info[gunno].base.device_transaction_number, s_ofsm_info[gunno].base.transaction_number, \
-                    sizeof(s_ofsm_info[gunno].base.transaction_number));
-#endif /* APP_INCLUDE_SGCC_PROTOCOL */
-
-            memset(s_ofsm_info[gunno].base.car_vin, 0x00, sizeof(s_ofsm_info[gunno].base.car_vin));
-            memset(s_ofsm_info[gunno].base.card_number, 0x00, sizeof(s_ofsm_info[gunno].base.card_number));
-            memset(s_ofsm_info[gunno].base.card_uid, 0x00, sizeof(s_ofsm_info[gunno].base.card_uid));
-            memset(s_ofsm_info[gunno].base.user_number, 0x00, sizeof(s_ofsm_info[gunno].base.user_number));
-
-            valid_len = sizeof(s_ofsm_info[gunno].base.transaction_number);
-            valid_len = valid_len > sizeof(s_thaisen_transaction[gunno].serial_number) ? sizeof(s_thaisen_transaction[gunno].serial_number) : valid_len;
-            memset(s_thaisen_transaction[gunno].serial_number, 0x00, sizeof(s_thaisen_transaction[gunno].serial_number));
-            memcpy(s_thaisen_transaction[gunno].serial_number, s_ofsm_info[gunno].base.transaction_number, valid_len);
-            memset(s_thaisen_transaction[gunno].logic_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].logic_card_number));
-            memset(s_thaisen_transaction[gunno].physics_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].physics_card_number));
-            memset(s_thaisen_transaction[gunno].user_number, 0x00, sizeof(s_thaisen_transaction[gunno].user_number));
-#ifdef APP_INCLUDE_SGCC_PROTOCOL
-            memcpy(s_thaisen_transaction[gunno].device_serial_number, s_ofsm_info[gunno].base.device_transaction_number, \
-                    sizeof(s_ofsm_info[gunno].base.device_transaction_number));
-#endif /* APP_INCLUDE_SGCC_PROTOCOL */
-            s_thaisen_transaction[gunno].account_ballance_before = s_ofsm_info[gunno].base.account_ballance_before;
-            s_thaisen_transaction[gunno].account_ballance_after = s_ofsm_info[gunno].base.account_ballance_after;
-
-            s_thaisen_transaction[gunno].start_type = APP_CHARGE_START_WAY_VIN;
-            s_thaisen_transaction[gunno].order_state.online_order = APP_THA_ENUM_FALSE;
-
+            ofsm_start_info_padding_vin(gunno);
             is_charging_authorization = true;
+
         }else if(app_nsal_is_set_reservation(gunno)){
             app_nsal_clear_set_reservation(gunno);
 #if 0
@@ -1404,161 +1745,13 @@ static void ofsm_readying_fun(uint8_t gunno)
 
         /************** 【充电桩已授权】 *************/
         if(is_charging_authorization == true){
-            uint8_t deputy_gunno = APP_SYSTEM_GUNNOA;
+            /** 启动前向屏幕对时 */
+            thaisen_request_screen_time();
+
+            ofsm_start_info_padding_public(gunno);
 
             s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_STARTING];
             s_ofsm_info[gunno].state = APP_OFSM_STATE_STARTING;
-
-            /* 启动前向屏幕对时 */
-            thaisen_request_screen_time();
-
-            /** 云端并充时 main_gunno charge_way 这两个字段已被赋值 */
-            if(s_ofsm_info[gunno].base.charge_way != APP_CHARGE_WAY_PARACHARGE_CLOUD){
-                s_ofsm_info[gunno].base.main_gunno = gunno;
-                s_ofsm_info[gunno].base.charge_way = thaisen_get_charge_way();
-            }
-
-            /** 这主要是判是否可以并充并设置充电模式，云端并充时已在网络部分判断了并充的可行性 */
-            if(s_ofsm_info[gunno].base.charge_way != APP_CHARGE_WAY_PARACHARGE_CLOUD){
-                if(s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL){
-                    if(APP_SYSTEM_GUNNO_SIZE < 0x02){
-                        s_ofsm_info[gunno].base.charge_way = APP_CHARGE_WAY_SINGLEGUN;  /** 单枪桩不支持并充 */
-                    }else{
-                        if(gunno == APP_SYSTEM_GUNNOA){
-                            deputy_gunno = APP_SYSTEM_GUNNOA + 0x01;
-                        }
-                        if((s_ofsm_info[deputy_gunno].base.flag.connect_state != APP_CONNECT_STATE_CONNECT)){
-                            s_ofsm_info[gunno].base.charge_way = APP_CHARGE_WAY_SINGLEGUN;  /** 并充时两把枪都要插上 */
-                        }
-                        if((s_ofsm_info[deputy_gunno].state != APP_OFSM_STATE_READYING)){
-                            s_ofsm_info[gunno].base.charge_way = APP_CHARGE_WAY_SINGLEGUN;  /** 并充时两把枪都要插上 */
-                        }
-                    }
-                }
-                s_ofsm_info[deputy_gunno].base.charge_way = s_ofsm_info[gunno].base.charge_way;
-                s_ofsm_info[deputy_gunno].base.main_gunno = s_ofsm_info[gunno].base.main_gunno;
-
-                if(s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL){
-                    if(gunno == s_ofsm_info[gunno].base.main_gunno){
-                        s_ofsm_info[gunno].base.start_elect = (mw_get_meter_total_wh(gunno) + mw_get_meter_total_wh(deputy_gunno));
-                    }
-                    s_thaisen_transaction[gunno].charge_way = APP_CHARGE_WAY_PARACHARGE_LOCAL;
-                }else{
-                    s_thaisen_transaction[gunno].charge_way = APP_CHARGE_WAY_SINGLEGUN;
-                    s_ofsm_info[gunno].base.start_elect = mw_get_meter_total_wh(gunno);
-                }
-            }else{
-                s_ofsm_info[gunno].base.start_elect = mw_get_meter_total_wh(gunno);
-            }
-
-            thaisen_set_charge_way(s_ofsm_info[gunno].base.charge_way);
-
-            s_ofsm_info[gunno].base.flag.is_starting = APP_THA_ENUM_FALSE;
-            s_ofsm_info[gunno].base.flag.permit_judge_complete = APP_THA_ENUM_FALSE;
-            s_ofsm_info[gunno].base.flag.start_result = APP_THA_ENUM_FALSE;
-            s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_FALSE;
-            s_ofsm_info[gunno].base.voltage_a = 0x00;
-            s_ofsm_info[gunno].base.current_a = 0x00;
-            s_ofsm_info[gunno].base.power_a = 0x00;
-            s_ofsm_info[gunno].base.elect_a = 0x00;
-            s_ofsm_info[gunno].base.fees_total = 0x00;
-            s_ofsm_info[gunno].base.elect_fees_total = 0x00;
-            s_ofsm_info[gunno].base.service_fees_total = 0x00;
-            s_ofsm_info[gunno].base.current_elect = mw_get_meter_total_wh(gunno);
-            s_ofsm_info[gunno].base.start_time = s_ofsm_info[gunno].base.current_time;
-            s_ofsm_info[gunno].base.stop_time = s_ofsm_info[gunno].base.current_time;
-            s_ofsm_info[gunno].base.charge_time = 0x00;
-            s_ofsm_info[gunno].base.reason_code = APP_SYSTEM_STOP_WAY_SIZE;
-            memset(s_ofsm_info[gunno].base.car_vin, 0x00, sizeof(s_ofsm_info[gunno].base.car_vin));
-            s_ofsm_info[gunno].base.start_period = app_calculate_current_period(s_ofsm_info[gunno].base.start_time);
-            s_ofsm_info[gunno].base.current_period = s_ofsm_info[gunno].base.start_period;
-            s_ofsm_info[gunno].base.period_num = 0x01;
-            s_ofsm_info[gunno].charge_timeout = rt_tick_get();
-            s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
-            s_ofsm_info[gunno].base.charctrl_state.last = APP_CHARGE_CTRL_STATE_IDLE;
-            s_ofsm_info[gunno].base.charctrl_state.current = APP_CHARGE_CTRL_STATE_IDLE;
-            s_ofsm_info[gunno].base.start_charge_tick = rt_tick_get();
-            s_ofsm_info[gunno].base.charge_elect_last = s_ofsm_info[gunno].base.start_elect;
-            if((s_ofsm_info[gunno].base.start_elect == 0x00) || (s_ofsm_info[gunno].base.current_elect == 0x00)){
-                s_ofsm_info[gunno].base.flag.is_ammeter_elect_error = APP_THA_ENUM_TRUE;
-            }else{
-                s_ofsm_info[gunno].base.flag.is_ammeter_elect_error = APP_THA_ENUM_FALSE;
-            }
-
-            s_thaisen_transaction[gunno].start_time = s_ofsm_info[gunno].base.start_time;
-            s_thaisen_transaction[gunno].end_time = s_thaisen_transaction[gunno].start_time;
-            s_thaisen_transaction[gunno].charge_time = 0x00;
-            s_thaisen_transaction[gunno].boot_result = s_ofsm_info[gunno].base.flag.start_result;
-            memset(s_thaisen_transaction[gunno].car_vin, 0x00, sizeof(s_thaisen_transaction[gunno].car_vin));
-            s_thaisen_transaction[gunno].start_soc = 0x00;
-            s_thaisen_transaction[gunno].stop_soc = 0x00;
-            s_thaisen_transaction[gunno].ammeter_start = s_ofsm_info[gunno].base.start_elect;
-            s_thaisen_transaction[gunno].ammeter_stop = s_thaisen_transaction[gunno].ammeter_start;
-            s_thaisen_transaction[gunno].stop_reason = APP_SYSTEM_STOP_WAY_POWER_OFF;
-            s_thaisen_transaction[gunno].total_elect = 0x00;
-            s_thaisen_transaction[gunno].total_loss_elect = 0x00;
-            s_thaisen_transaction[gunno].charge_fee = 0x00;
-            s_thaisen_transaction[gunno].service_fee = 0x00;
-            s_thaisen_transaction[gunno].total_fee = 0x00;
-            s_thaisen_transaction[gunno].run_mode = APP_RUN_MODE_4G_ETH;
-            if(s_ofsm_info[gunno].base.is_offline_billing == APP_THA_ENUM_TRUE){
-                s_thaisen_transaction[gunno].run_mode = APP_RUN_MODE_OFFLINE_BILLING;
-            }
-
-#if (defined (APP_INCLUDE_YKC_PROTOCOL) || defined (APP_INCLUDE_YKC_PROTOCOL_MONITOR) || defined (APP_INCLUDE_YCP_PROTOCOL) || \
-            defined (APP_INCLUDE_SGCC_PROTOCOL))
-            for(uint8_t type = 0x00; type < APP_BILLING_RULE_RATE_TYPE_MAX; type++){
-                s_thaisen_transaction[gunno].rate_type_unit[type] = app_billingrule_get_rate_type_price(gunno, type);
-            }
-            memset(s_thaisen_transaction[gunno].rate_type_elect, 0x00, sizeof(s_thaisen_transaction[gunno].rate_type_elect));
-            memset(s_thaisen_transaction[gunno].rate_type_amount, 0x00, sizeof(s_thaisen_transaction[gunno].rate_type_amount));
-            memset(s_thaisen_transaction[gunno].rate_type_loss_elect, 0x00, sizeof(s_thaisen_transaction[gunno].rate_type_loss_elect));
-#endif /* (defined (APP_INCLUDE_YKC_PROTOCOL) || defined (APP_INCLUDE_YKC_PROTOCOL_MONITOR) || defined (APP_INCLUDE_YCP_PROTOCOL) ||
-            defined (APP_INCLUDE_SGCC_PROTOCOL)) */
-
-#if (defined (APP_INCLUDE_SL_PROTOCOL) || defined (APP_INCLUDE_SGCC_PROTOCOL))
-            memset(s_thaisen_transaction[gunno].period_elect, 0x00, sizeof(s_thaisen_transaction[gunno].period_elect));
-            memset(s_thaisen_transaction[gunno].period_elect_fees, 0x00, sizeof(s_thaisen_transaction[gunno].period_elect_fees));
-            memset(s_thaisen_transaction[gunno].period_service_fees, 0x00, sizeof(s_thaisen_transaction[gunno].period_service_fees));
-            memset(s_thaisen_transaction[gunno].period_occupy_fees, 0x00, sizeof(s_thaisen_transaction[gunno].period_occupy_fees));
-            s_thaisen_transaction[gunno].rule = app_billingrule_get_rule(gunno);
-#endif /* (defined (APP_INCLUDE_SL_PROTOCOL) || defined (APP_INCLUDE_SGCC_PROTOCOL)) */
-
-#ifdef APP_INCLUDE_XJ_PROTOCOL
-            s_thaisen_transaction[gunno].delay_fee = 0x00;
-#endif /* APP_INCLUDE_XJ_PROTOCOL */
-
-#if (defined (APP_INCLUDE_SL_PROTOCOL) || defined (APP_INCLUDE_XJ_PROTOCOL))
-            s_thaisen_transaction[gunno].card_ballance_before = 0x00;
-            s_thaisen_transaction[gunno].card_ballance_after = 0x00;
-#endif /* (defined (APP_INCLUDE_SL_PROTOCOL) || defined (APP_INCLUDE_XJ_PROTOCOL)) */
-
-#if (defined (APP_INCLUDE_SGCC_PROTOCOL))
-            for(uint8_t type = 0x00; type < APP_BILLING_RULE_RATE_TYPE_MAX; type++){
-                s_thaisen_transaction[gunno].rate_type_elect_amount[type] = 0x00;
-                s_thaisen_transaction[gunno].rate_type_service_amount[type] = 0x00;
-            }
-#endif /* (defined (APP_INCLUDE_SGCC_PROTOCOL)) */
-
-            s_thaisen_transaction[gunno].start_period_number = s_ofsm_info[gunno].base.start_period;
-            s_thaisen_transaction[gunno].period_count = s_ofsm_info[gunno].base.period_num;
-
-            s_thaisen_transaction[gunno].order_state.verify_fail = APP_THA_ENUM_FALSE;
-            s_thaisen_transaction[gunno].order_state.is_start_fail = APP_THA_ENUM_TRUE;
-            s_thaisen_transaction[gunno].order_state.is_charging = APP_THA_ENUM_TRUE;
-
-            app_nsal_init_charge_data(gunno);
-
-            app_nsal_state_charged(gunno);
-            app_nsal_event_occurded(gunno);
-
-            mw_storage_record_create(&s_thaisen_transaction[gunno], sizeof(s_thaisen_transaction[gunno]), USER_DATA_TYPE_STORAGE,  \
-                    0x00, APP_THA_ENUM_FALSE, gunno);
-            s_current_order_index[MONITOR_PLATFORM_INDEX][gunno] = mw_storage_record_get_current_index(gunno);
-            s_current_order_index[TARGET_PLATFORM_INDEX][gunno] = s_current_order_index[MONITOR_PLATFORM_INDEX][gunno];
-            memset(&(s_thaisen_transaction[gunno].bms_stop_reason), 0x00, sizeof(s_thaisen_transaction[gunno].bms_stop_reason));
-            memset(&(s_thaisen_transaction[gunno].bms_fault_reason), 0x00, sizeof(s_thaisen_transaction[gunno].bms_fault_reason));
-            s_booting_step[gunno] = APP_BOOTING_STEP_IDLE;                 /* 初始化充电步骤 */
         }
         break;
     default:
@@ -1586,11 +1779,17 @@ static void ofsm_readying_fun(uint8_t gunno)
     app_get_hci_event(gunno, HCI_EVENT_SCREEN_STOP, 1);
     app_nsal_clear_remote_stop(gunno);
 
-    if(s_ofsm_info[gunno].base.is_offline_billing == APP_THA_ENUM_TRUE){
+    if(s_ofsm_info[gunno].base.run_mode == APP_RUN_MODE_OFFLINE_BILLING){
         app_card_event_recv(APP_CARD_EVENT_CHARGE_STOP, 0x00, gunno, NULL, APP_THA_ENUM_TRUE);
     }
 }
 
+/*****************************************************
+ * 函数名          ofsm_reservation_fun
+ * 功能               业务状态机 预约 状态
+ * 参数              gunno   枪号
+ * 返回
+ ****************************************************/
 static void ofsm_reservation_fun(uint8_t gunno)
 {
     if(gunno >= APP_SYSTEM_GUNNO_SIZE){   /* 枪号不对 */
@@ -1648,7 +1847,12 @@ static void ofsm_reservation_fun(uint8_t gunno)
     app_get_hci_event(gunno, HCI_EVENT_SCREEN_STOP, 1);
     app_nsal_clear_remote_stop(gunno);
 }
-
+/*****************************************************
+ * 函数名          ofsm_starting_fun
+ * 功能               业务状态机 启动中 状态
+ * 参数              gunno   枪号
+ * 返回
+ ****************************************************/
 static void ofsm_starting_fun(uint8_t gunno)
 {
     if(gunno >= APP_SYSTEM_GUNNO_SIZE){   /* 枪号不对 */
@@ -2503,7 +2707,12 @@ static void ofsm_starting_fun(uint8_t gunno)
         app_card_event_recv(APP_CARD_EVENT_PAY_COMPLETE, 0x00, gunno, NULL, APP_THA_ENUM_TRUE);
     }
 }
-
+/*****************************************************
+ * 函数名          ofsm_charging_fun
+ * 功能               业务状态机 充电中 状态
+ * 参数              gunno   枪号
+ * 返回
+ ****************************************************/
 static void ofsm_charging_fun(uint8_t gunno)
 {
     if(gunno >= APP_SYSTEM_GUNNO_SIZE){   /* 枪号不对 */
@@ -3095,7 +3304,7 @@ static void ofsm_charging_fun(uint8_t gunno)
             uint8_t compare_len = sizeof(s_ofsm_info[gunno].base.card_number), compare_count = APP_CARD_NUMBER_COMPARE_LEN_MIN;
             compare_len = compare_len > rfidr_query_card_number_len() ? rfidr_query_card_number_len() : compare_len;
 
-            if((s_ofsm_info[gunno].base.is_offline_billing == APP_THA_ENUM_TRUE) && (s_ofsm_info[gunno].base.start_type == APP_CHARGE_START_WAY_OFFLINE_CARD)){
+            if((s_ofsm_info[gunno].base.run_mode == APP_RUN_MODE_OFFLINE_BILLING) && (s_ofsm_info[gunno].base.start_type == APP_CHARGE_START_WAY_OFFLINE_CARD)){
                 compare_count = APP_CARD_NUMBER_COMPARE_LEN_MIN_OFFLINE_BILLING;
             }
 
@@ -3134,7 +3343,7 @@ static void ofsm_charging_fun(uint8_t gunno)
         }else if(rfidr_query_info_type() == APP_RFIDR_INFO_TYPE_UUID){
             uint8_t* uid = rfidr_query_uuid(), valid_len = sizeof(s_ofsm_info[gunno].base.card_uid);
 
-            if((s_ofsm_info[gunno].base.is_offline_billing == APP_THA_ENUM_TRUE) && (s_ofsm_info[gunno].base.start_type == APP_CHARGE_START_WAY_OFFLINE_CARD)){
+            if((s_ofsm_info[gunno].base.run_mode == APP_RUN_MODE_OFFLINE_BILLING) && (s_ofsm_info[gunno].base.start_type == APP_CHARGE_START_WAY_OFFLINE_CARD)){
                 /** 提示鉴权失败, 离线计费获取到的卡信息类型必须是卡号 */;
                 LOG_D("gunno(%d) invalid card in offline billing mode, key authen fail", gunno);
                 app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
@@ -3194,7 +3403,7 @@ static void ofsm_charging_fun(uint8_t gunno)
             }
 
         }else{
-            if((s_ofsm_info[gunno].base.is_offline_billing == APP_THA_ENUM_TRUE) && (s_ofsm_info[gunno].base.start_type == APP_CHARGE_START_WAY_OFFLINE_CARD)){
+            if((s_ofsm_info[gunno].base.run_mode == APP_RUN_MODE_OFFLINE_BILLING) && (s_ofsm_info[gunno].base.start_type == APP_CHARGE_START_WAY_OFFLINE_CARD)){
                 /** 提示鉴权失败, 信息有误 */;
                 LOG_D("gunno(%d) operate card error in offline billing mode 00", gunno);
                 app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
@@ -3524,7 +3733,12 @@ static void ofsm_charging_fun(uint8_t gunno)
     app_card_event_recv(APP_CARD_EVENT_CHARGE_START, 0x00, gunno, NULL, APP_THA_ENUM_TRUE);
     app_card_event_recv(APP_CARD_EVENT_CHARGE_STOP, 0x00, gunno, NULL, APP_THA_ENUM_TRUE);
 }
-
+/*****************************************************
+ * 函数名          ofsm_stoping_fun
+ * 功能               业务状态机 停止中 状态
+ * 参数              gunno   枪号
+ * 返回
+ ****************************************************/
 static void ofsm_stoping_fun(uint8_t gunno)
 {
     if(gunno >= APP_SYSTEM_GUNNO_SIZE){   /* 枪号不对 */
@@ -3678,8 +3892,8 @@ static void ofsm_stoping_fun(uint8_t gunno)
             }
 #endif /* (defined (APP_INCLUDE_SGCC_PROTOCOL)) */
         }else{
-            if((s_ofsm_info[gunno].base.is_offline_billing == APP_THA_ENUM_FALSE) ||
-                    ((s_ofsm_info[gunno].base.is_offline_billing == APP_THA_ENUM_TRUE) && (s_ofsm_info[gunno].base.start_type != APP_CHARGE_START_WAY_OFFLINE_CARD))){
+            if((s_ofsm_info[gunno].base.run_mode != APP_RUN_MODE_OFFLINE_BILLING) ||
+                    ((s_ofsm_info[gunno].base.run_mode == APP_RUN_MODE_OFFLINE_BILLING) && (s_ofsm_info[gunno].base.start_type != APP_CHARGE_START_WAY_OFFLINE_CARD))){
                 if((s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL) && (gunno == s_ofsm_info[gunno].base.main_gunno)){
                     uint8_t deputy_gunno = APP_SYSTEM_GUNNOA;
                     if(gunno == APP_SYSTEM_GUNNOA){
@@ -3790,7 +4004,7 @@ static void ofsm_stoping_fun(uint8_t gunno)
             s_thaisen_transaction[gunno].charge_time = 0x00;
         }
         /** 如果是离线计费模式下的刷卡停止，则订单就是已经确认了的 */
-        if(s_ofsm_info[gunno].base.is_offline_billing == APP_THA_ENUM_TRUE){
+        if(s_ofsm_info[gunno].base.run_mode == APP_RUN_MODE_OFFLINE_BILLING){
             if((s_ofsm_info[gunno].base.start_type == APP_CHARGE_START_WAY_OFFLINE_CARD) && \
                     (s_ofsm_info[gunno].base.reason_code != APP_SYSTEM_STOP_WAY_OFFLINECARD_STOP)){
                 mw_storage_record_designate_index_updated(&s_thaisen_transaction[gunno], sizeof(s_thaisen_transaction[gunno]), USER_DATA_TYPE_VERIFIED,  \
@@ -3814,7 +4028,7 @@ static void ofsm_stoping_fun(uint8_t gunno)
 
         rt_thread_mdelay(4000);  /* 等待电子锁解锁 */
 
-        if(s_ofsm_info[gunno].base.is_offline_billing == APP_THA_ENUM_TRUE){
+        if(s_ofsm_info[gunno].base.run_mode == APP_RUN_MODE_OFFLINE_BILLING){
             app_card_event_send(APP_CARD_EVENT_CHARGE_STOP, gunno, NULL);
             if(s_ofsm_info[gunno].base.start_type == APP_CHARGE_START_WAY_OFFLINE_CARD){   /** 离线计费：只有离线启动时才弹出请刷卡结算页面 */
                 if(s_ofsm_info[gunno].base.flag.start_result == APP_THA_ENUM_FALSE){
@@ -3869,7 +4083,12 @@ static void ofsm_stoping_fun(uint8_t gunno)
         app_card_event_recv(APP_CARD_EVENT_PAY_COMPLETE, 0x00, gunno, NULL, APP_THA_ENUM_TRUE);
     }
 }
-
+/*****************************************************
+ * 函数名          ofsm_stoping_fun
+ * 功能               业务状态机 充电结束 状态
+ * 参数              gunno   枪号
+ * 返回
+ ****************************************************/
 static void ofsm_finishing_fun(uint8_t gunno)
 {
     if(gunno >= APP_SYSTEM_GUNNO_SIZE){   /* 枪号不对 */
@@ -3933,7 +4152,7 @@ static void ofsm_finishing_fun(uint8_t gunno)
         }
     }
 
-    if(s_ofsm_info[gunno].base.is_offline_billing == APP_THA_ENUM_TRUE){
+    if(s_ofsm_info[gunno].base.run_mode == APP_RUN_MODE_OFFLINE_BILLING){
         if(app_card_event_recv(APP_CARD_EVENT_PAY_COMPLETE, 0x00, gunno, NULL, APP_THA_ENUM_TRUE) >= APP_THA_ENUM_FALSE){
             LOG_D("gunno(%d) finish card is payed in offline billing", gunno);
             LOG_D("time:%ds  elect:%d  money:%d  ballance:%d  reason:%d", s_ofsm_info[gunno].base.charge_time,
@@ -3949,7 +4168,7 @@ static void ofsm_finishing_fun(uint8_t gunno)
         }
     }
     /** 离线计费：未接收到订单结算完成前要一直发送充电结束事件 */
-    if(s_ofsm_info[gunno].base.is_offline_billing == APP_THA_ENUM_TRUE){
+    if(s_ofsm_info[gunno].base.run_mode == APP_RUN_MODE_OFFLINE_BILLING){
         if((s_ofsm_info[gunno].base.flag.is_pay_complete == APP_THA_ENUM_FALSE) && (s_ofsm_info[gunno].base.start_type == APP_CHARGE_START_WAY_OFFLINE_CARD)){
             app_card_event_send(APP_CARD_EVENT_CHARGE_STOP, gunno, NULL);
         }else{
@@ -3988,7 +4207,7 @@ static void ofsm_finishing_fun(uint8_t gunno)
                 rfidr_clear_swipe_state(gunno);
                 if(app_card_query_operate_ret(gunno) != APP_CARD_OPERATE_RET_NULL){
                     app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
-                    if(s_ofsm_info[gunno].base.is_offline_billing == APP_THA_ENUM_TRUE){
+                    if(s_ofsm_info[gunno].base.run_mode == APP_RUN_MODE_OFFLINE_BILLING){
                         thaisen_set_trigger_event(THAISEN_TRIG_EVENT_FAULT_STOP, 0x05, APP_THA_ENUM_TRUE, gunno);
                     }
                 }
@@ -4001,7 +4220,7 @@ static void ofsm_finishing_fun(uint8_t gunno)
         }
 
         /** 离线计费模式下支持2次启动，2次启动条件：必须先接收到卡已结算信号量，然后发送充电桩已准备好事件 */
-        if(s_ofsm_info[gunno].base.is_offline_billing == APP_THA_ENUM_TRUE){
+        if(s_ofsm_info[gunno].base.run_mode == APP_RUN_MODE_OFFLINE_BILLING){
             if((s_ofsm_info[gunno].base.flag.is_pay_complete == APP_THA_ENUM_TRUE) || (s_ofsm_info[gunno].base.start_type != APP_CHARGE_START_WAY_OFFLINE_CARD)){
                 app_card_event_send(APP_CARD_EVENT_CHARGEPILE_READY, gunno, NULL);
             }else{
@@ -4057,16 +4276,12 @@ static void ofsm_finishing_fun(uint8_t gunno)
         }
 
         if(app_nsal_is_remote_start(gunno)){
-            uint8_t valid_len = 0x00;
             app_nsal_clear_remote_start(gunno);
             if(s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
 #ifndef APP_USING_DOUBLEGUN
                 break;      /** 单枪不允许并充 */
 #endif /* APP_USING_DOUBLEGUN */
             }
-            LOG_D("gunno(%d) start charge by APP", gunno);
-            s_ofsm_info[gunno].base.flag.is_local_charging = APP_THA_ENUM_FALSE;
-            s_ofsm_info[gunno].base.start_type = APP_CHARGE_START_WAY_APP;
 
             /* 经过平台启动的， 已填充以下字段
              * base->user_number
@@ -4083,429 +4298,47 @@ static void ofsm_finishing_fun(uint8_t gunno)
              * base->main_gunno(并充时)
              * base->charge_way(并充时)*/
 
-            valid_len = sizeof(s_ofsm_info[gunno].base.transaction_number);
-            valid_len = valid_len > sizeof(s_thaisen_transaction[gunno].serial_number) ? sizeof(s_thaisen_transaction[gunno].serial_number) : valid_len;
-            memset(s_thaisen_transaction[gunno].serial_number, 0x00, sizeof(s_thaisen_transaction[gunno].serial_number));
-            memcpy(s_thaisen_transaction[gunno].serial_number, s_ofsm_info[gunno].base.transaction_number, valid_len);
-
-            valid_len = sizeof(s_ofsm_info[gunno].base.card_uid);
-            valid_len = valid_len > sizeof(s_thaisen_transaction[gunno].physics_card_number) ? sizeof(s_thaisen_transaction[gunno].physics_card_number) : valid_len;
-            memset(s_thaisen_transaction[gunno].physics_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].physics_card_number));
-            memcpy(s_thaisen_transaction[gunno].physics_card_number, s_ofsm_info[gunno].base.card_uid, valid_len);
-
-            valid_len = sizeof(s_ofsm_info[gunno].base.card_number);
-            valid_len = valid_len > sizeof(s_thaisen_transaction[gunno].logic_card_number) ? sizeof(s_thaisen_transaction[gunno].logic_card_number) : valid_len;
-            memset(s_thaisen_transaction[gunno].logic_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].logic_card_number));
-            memcpy(s_thaisen_transaction[gunno].logic_card_number, s_ofsm_info[gunno].base.card_number, valid_len);
-
-            valid_len = sizeof(s_ofsm_info[gunno].base.user_number);
-            valid_len = valid_len > sizeof(s_thaisen_transaction[gunno].user_number) ? sizeof(s_thaisen_transaction[gunno].user_number) : valid_len;
-            memset(s_thaisen_transaction[gunno].user_number, 0x00, sizeof(s_thaisen_transaction[gunno].user_number));
-            memcpy(s_thaisen_transaction[gunno].user_number, s_ofsm_info[gunno].base.user_number, valid_len);
-#ifdef APP_INCLUDE_SGCC_PROTOCOL
-            memcpy(s_thaisen_transaction[gunno].device_serial_number, s_ofsm_info[gunno].base.device_transaction_number, \
-                    sizeof(s_ofsm_info[gunno].base.device_transaction_number));
-#endif /* APP_INCLUDE_SGCC_PROTOCOL */
-            s_thaisen_transaction[gunno].account_ballance_before = s_ofsm_info[gunno].base.account_ballance_before;
-            s_thaisen_transaction[gunno].account_ballance_after = s_ofsm_info[gunno].base.account_ballance_after;
-
-            s_thaisen_transaction[gunno].start_type = APP_CHARGE_START_WAY_APP;
-            s_thaisen_transaction[gunno].order_state.online_order = APP_THA_ENUM_TRUE;
-
+            LOG_D("gunno(%d) start charge by APP", gunno);
+            ofsm_start_info_padding_app(gunno);
             is_charging_authorization = true;
 
         }else if(rfidr_query_swipe_state(gunno)){
-            uint8_t need_authorize_online = APP_THA_ENUM_FALSE;
             rfidr_clear_swipe_state(gunno);
-
-            if(s_ofsm_info[gunno].base.is_offline_billing == APP_THA_ENUM_FALSE){
+            if(s_ofsm_info[gunno].base.run_mode != APP_RUN_MODE_OFFLINE_BILLING){
                 if(thaisen_is_not_allow_swip_card()){
                     LOG_D("gunno(%d) current page is not allow swip card charge", gunno);
                     return;
                 }
             }
-            if(rfidr_query_info_type() == APP_RFIDR_INFO_TYPE_CARD_NUMBER){
-                uint8_t pile_number_len = APP_CARD_NUMBER_COMPARE_LEN, card_number_len = rfidr_query_card_number_len(),
-                        compare_len = 0, count = 0;
-                uint8_t *pile_number, *card_number,
-                         compare_count = APP_CARD_NUMBER_COMPARE_LEN_MIN;    /** 桩号卡对比长度 */
-
-                if(s_ofsm_info[gunno].base.is_offline_billing == APP_THA_ENUM_TRUE){
-                    if(app_card_event_recv(APP_CARD_EVENT_CHARGE_START, 0x00, gunno, NULL, APP_THA_ENUM_TRUE) < APP_THA_ENUM_FALSE){
-                        if(app_card_event_recv(APP_CARD_EVENT_IS_NOT_SAME_PORT, 0x00, gunno, NULL, APP_THA_ENUM_TRUE) < APP_THA_ENUM_FALSE){
-                            LOG_D("gunno(%d) is not receive card start charge event in offline billing", gunno);
-                            app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
-                        }
-                        break;
-                    }
-                }
-
-                compare_len = pile_number_len > card_number_len ? card_number_len : pile_number_len;
-                pile_number = sys_read_config_item_content(CONFIG_ITEM_PILE_NUMBER, 0);
-                card_number = rfidr_query_card_number();
-
-                if(s_ofsm_info[gunno].base.is_offline_billing == APP_THA_ENUM_TRUE){
-                    compare_count = APP_CARD_NUMBER_COMPARE_LEN_MIN_OFFLINE_BILLING;
-                }
-
-                if(compare_len >= compare_count){
-                    for(; count < compare_count; count++){
-                        if(pile_number[count] != card_number[count]){
-                            break;
-                        }
-                    }
-                    if(count >= compare_count){
-                        app_rfidr_send_mail(APP_BUZZON_STATE_OK);
-                        LOG_D("gunno(%d) start charge by local pile number card(finish)", gunno);
-                    }else{
-                        if(sys_card_number_whitelists_query(card_number, card_number_len) >= 0x00){
-                            app_rfidr_send_mail(APP_BUZZON_STATE_OK);
-                            LOG_D("gunno(%d) start charge by local whitelist card", gunno);
-                        }else{
-                            if(s_ofsm_info[gunno].base.is_offline_billing == APP_THA_ENUM_TRUE){
-                                /** 提示鉴权失败, 离线计费必须是本地卡 */;
-                                LOG_D("gunno(%d) invalid card in offline billing mode, compare length", gunno);
-                                app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
-                                thaisen_set_trigger_event(THAISEN_TRIG_EVENT_INVALID, 0x05, APP_THA_ENUM_TRUE, gunno);
-                                return;
-                            }
-                            need_authorize_online = APP_THA_ENUM_TRUE;
-                        }
-                    }
-                }else{
-                    if(sys_card_number_whitelists_query(card_number, card_number_len) >= 0x00){
-                        app_rfidr_send_mail(APP_BUZZON_STATE_OK);
-                        LOG_D("gunno(%d) start charge by local whitelist card", gunno);
-                    }else{
-                        if(s_ofsm_info[gunno].base.is_offline_billing == APP_THA_ENUM_TRUE){
-                            /** 提示鉴权失败, 离线计费必须是本地卡 */;
-                            LOG_D("gunno(%d) invalid card in offline billing mode, compare length 00", gunno);
-                            app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
-                            thaisen_set_trigger_event(THAISEN_TRIG_EVENT_INVALID, 0x05, APP_THA_ENUM_TRUE, gunno);
-                            return;
-                        }
-                        need_authorize_online = APP_THA_ENUM_TRUE;
-                    }
-                }
-
-                compare_len = sizeof(s_ofsm_info[gunno].base.card_number);
-                compare_len = compare_len > card_number_len ? card_number_len : compare_len;
-                memset(s_ofsm_info[gunno].base.card_number, 0x00, sizeof(s_ofsm_info[gunno].base.card_number));
-                memcpy(s_ofsm_info[gunno].base.card_number, card_number, compare_len);
-
-                s_ofsm_info[gunno].base.flag.card_info_is_uid = APP_THA_ENUM_FALSE;
-                s_ofsm_info[gunno].base.flag.is_local_charging = APP_THA_ENUM_TRUE;
-
-                if(need_authorize_online == APP_THA_ENUM_FALSE){
-                    uint8_t uuid_len = rfidr_query_uuid_len();
-
-                    s_ofsm_info[gunno].base.start_type = APP_CHARGE_START_WAY_OFFLINE_CARD;
-                    s_ofsm_info[gunno].base.account_ballance_before = 0x00;
-                    s_ofsm_info[gunno].base.account_ballance_after = 0x00;
-                    s_ofsm_info[gunno].base.charge_strategy = APP_CHARGE_STRATEGY_FULL;
-                    s_ofsm_info[gunno].base.charge_strategy_para = 0x00;
-
-                    app_nsal_create_local_transaction_number(gunno, &(s_ofsm_info[gunno].base.transaction_number),  \
-                            sizeof(s_ofsm_info[gunno].base.transaction_number));
-#ifdef APP_INCLUDE_SGCC_PROTOCOL
-                    memcpy(s_ofsm_info[gunno].base.device_transaction_number, s_ofsm_info[gunno].base.transaction_number, \
-                            sizeof(s_ofsm_info[gunno].base.transaction_number));
-#endif /* APP_INCLUDE_SGCC_PROTOCOL */
-
-                    if(s_ofsm_info[gunno].base.is_offline_billing == APP_THA_ENUM_TRUE){
-                        s_ofsm_info[gunno].base.account_ballance_before = app_card_query_ballance(gunno);
-                        s_ofsm_info[gunno].base.account_ballance_after = app_card_query_ballance(gunno);
-
-                        s_ofsm_info[gunno].base.charge_strategy = APP_CHARGE_STRATEGY_MONEY;
-                        s_ofsm_info[gunno].base.charge_strategy_para = s_ofsm_info[gunno].base.account_ballance_before *100;
-                    }
-                    compare_len = sizeof(s_ofsm_info[gunno].base.card_uid);
-                    compare_len = compare_len > uuid_len ? uuid_len : compare_len;
-                    memset(s_ofsm_info[gunno].base.card_uid, 0x00, sizeof(s_ofsm_info[gunno].base.card_uid));
-                    memcpy(s_ofsm_info[gunno].base.card_uid, rfidr_query_uuid(), compare_len);
-
-                    memset(s_ofsm_info[gunno].base.user_number, 0x00, sizeof(s_ofsm_info[gunno].base.user_number));
-
-                    compare_len = sizeof(s_ofsm_info[gunno].base.transaction_number);
-                    compare_len = compare_len > sizeof(s_thaisen_transaction[gunno].serial_number) ? sizeof(s_thaisen_transaction[gunno].serial_number) : compare_len;
-                    memset(s_thaisen_transaction[gunno].serial_number, 0x00, sizeof(s_thaisen_transaction[gunno].serial_number));
-                    memcpy(s_thaisen_transaction[gunno].serial_number, s_ofsm_info[gunno].base.transaction_number, compare_len);
-
-                    compare_len = sizeof(s_ofsm_info[gunno].base.card_number);
-                    compare_len = compare_len > sizeof(s_thaisen_transaction[gunno].logic_card_number) ? sizeof(s_thaisen_transaction[gunno].logic_card_number) : compare_len;
-                    memset(s_thaisen_transaction[gunno].logic_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].logic_card_number));
-                    memcpy(s_thaisen_transaction[gunno].logic_card_number, s_ofsm_info[gunno].base.card_number, compare_len);
-
-                    memset(s_thaisen_transaction[gunno].physics_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].physics_card_number));
-                    memcpy(s_thaisen_transaction[gunno].physics_card_number, s_ofsm_info[gunno].base.card_uid, sizeof(s_ofsm_info[gunno].base.card_uid));
-
-                    memset(s_thaisen_transaction[gunno].user_number, 0x00, sizeof(s_thaisen_transaction[gunno].user_number));
-#ifdef APP_INCLUDE_SGCC_PROTOCOL
-                    memcpy(s_thaisen_transaction[gunno].device_serial_number, s_ofsm_info[gunno].base.device_transaction_number, \
-                            sizeof(s_ofsm_info[gunno].base.device_transaction_number));
-#endif /* APP_INCLUDE_SGCC_PROTOCOL */
-                    s_thaisen_transaction[gunno].account_ballance_before = s_ofsm_info[gunno].base.account_ballance_before;
-                    s_thaisen_transaction[gunno].account_ballance_after = s_ofsm_info[gunno].base.account_ballance_after;
-
-                    s_thaisen_transaction[gunno].start_type = APP_CHARGE_START_WAY_OFFLINE_CARD;
-                    s_thaisen_transaction[gunno].order_state.online_order = APP_THA_ENUM_FALSE;
-
-                    is_charging_authorization = true;
-                }
-            }else if(rfidr_query_info_type() == APP_RFIDR_INFO_TYPE_UUID){
-                uint8_t uid_len = rfidr_query_uuid_len(), compare_len = 0x00;
-
-                if(s_ofsm_info[gunno].base.is_offline_billing == APP_THA_ENUM_TRUE){
-                    /** 提示鉴权失败, 离线计费获取到的卡信息类型必须是卡号 */;
-                    LOG_D("gunno(%d) invalid card in offline billing mode, key authen fail", gunno);
-                    app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
-                    thaisen_set_trigger_event(THAISEN_TRIG_EVENT_KEY_AUTHEN_FAIL, 0x05, APP_THA_ENUM_TRUE, gunno);
-                    return;
-                }
-
-                if(sys_card_uid_whitelists_query(rfidr_query_uuid(), uid_len) >= 0x00){
-                    app_rfidr_send_mail(APP_BUZZON_STATE_OK);
-                    LOG_D("gunno(%d) start charge by local whitelist card uid", gunno);
-                }else{
-                    need_authorize_online = APP_THA_ENUM_TRUE;
-                }
-
-                uid_len = uid_len > sizeof(s_ofsm_info[gunno].base.card_uid) ? sizeof(s_ofsm_info[gunno].base.card_uid) : uid_len;
-                memset(s_ofsm_info[gunno].base.card_uid, 0x00, sizeof(s_ofsm_info[gunno].base.card_uid));
-                memcpy(s_ofsm_info[gunno].base.card_uid, rfidr_query_uuid(), uid_len);
-                s_ofsm_info[gunno].base.card_uid_len = uid_len;
-                s_ofsm_info[gunno].base.flag.card_info_is_uid = APP_THA_ENUM_TRUE;
-                s_ofsm_info[gunno].base.flag.is_local_charging = APP_THA_ENUM_TRUE;
-
-                if(need_authorize_online == APP_THA_ENUM_FALSE){
-                    s_ofsm_info[gunno].base.start_type = APP_CHARGE_START_WAY_OFFLINE_CARD;
-                    s_ofsm_info[gunno].base.account_ballance_before = 0x00;
-                    s_ofsm_info[gunno].base.account_ballance_after = 0x00;
-                    s_ofsm_info[gunno].base.charge_strategy = APP_CHARGE_STRATEGY_FULL;
-                    s_ofsm_info[gunno].base.charge_strategy_para = 0x00;
-
-                    app_nsal_create_local_transaction_number(gunno, &(s_ofsm_info[gunno].base.transaction_number),  \
-                            sizeof(s_ofsm_info[gunno].base.transaction_number));
-#ifdef APP_INCLUDE_SGCC_PROTOCOL
-                    memcpy(s_ofsm_info[gunno].base.device_transaction_number, s_ofsm_info[gunno].base.transaction_number, \
-                            sizeof(s_ofsm_info[gunno].base.transaction_number));
-#endif /* APP_INCLUDE_SGCC_PROTOCOL */
-
-                    compare_len = sizeof(s_ofsm_info[gunno].base.transaction_number);
-                    compare_len = compare_len > sizeof(s_thaisen_transaction[gunno].serial_number) ? sizeof(s_thaisen_transaction[gunno].serial_number) : compare_len;
-                    memset(s_thaisen_transaction[gunno].serial_number, 0x00, sizeof(s_thaisen_transaction[gunno].serial_number));
-                    memcpy(s_thaisen_transaction[gunno].serial_number, s_ofsm_info[gunno].base.transaction_number, compare_len);
-
-                    compare_len = sizeof(s_ofsm_info[gunno].base.card_number);
-                    compare_len = compare_len > sizeof(s_thaisen_transaction[gunno].logic_card_number) ? sizeof(s_thaisen_transaction[gunno].logic_card_number) : compare_len;
-                    memset(s_thaisen_transaction[gunno].logic_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].logic_card_number));
-                    memcpy(s_thaisen_transaction[gunno].logic_card_number, s_ofsm_info[gunno].base.card_number, compare_len);
-
-                    memset(s_thaisen_transaction[gunno].physics_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].physics_card_number));
-                    memset(s_thaisen_transaction[gunno].user_number, 0x00, sizeof(s_thaisen_transaction[gunno].user_number));
-#ifdef APP_INCLUDE_SGCC_PROTOCOL
-                    memcpy(s_thaisen_transaction[gunno].device_serial_number, s_ofsm_info[gunno].base.device_transaction_number, \
-                            sizeof(s_ofsm_info[gunno].base.device_transaction_number));
-#endif /* APP_INCLUDE_SGCC_PROTOCOL */
-                    s_thaisen_transaction[gunno].account_ballance_before = s_ofsm_info[gunno].base.account_ballance_before;
-                    s_thaisen_transaction[gunno].account_ballance_after = s_ofsm_info[gunno].base.account_ballance_after;
-
-                    s_thaisen_transaction[gunno].start_type = APP_CHARGE_START_WAY_OFFLINE_CARD;
-                    s_thaisen_transaction[gunno].order_state.online_order = APP_THA_ENUM_FALSE;
-
-                    is_charging_authorization = true;
-                }
-            }else if(rfidr_query_info_type() == APP_RFIDR_INFO_TYPE_ERROR){
-                /** 提示：无效卡 */
-                LOG_D("gunno(%d) invalid card in offline billing mode, read card number fail", gunno);
-                app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
-                thaisen_set_trigger_event(THAISEN_TRIG_EVENT_INVALID, 0x05, APP_THA_ENUM_TRUE, gunno);
-
-                need_authorize_online = APP_THA_ENUM_FALSE;
-            }else if(rfidr_query_info_type() == APP_RFIDR_INFO_TYPE_RW_FAIL){
-                switch(app_card_query_operate_ret(gunno)){
-                case APP_CARD_OPERATE_RET_NO_BALLANCE:
-                    LOG_D("gunno(%d) no ballance in offline billing mode", gunno);
-                    app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
-                    thaisen_set_trigger_event(THAISEN_TRIG_EVENT_CARD_NOBALLANCE, 0x05, APP_THA_ENUM_TRUE, gunno);
-                    break;
-                case APP_CARD_OPERATE_RET_IS_LOCKED:
-                    LOG_D("gunno(%d) card is locked in offline billing mode", gunno);
-                    app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
-                    thaisen_set_trigger_event(THAISEN_TRIG_EVENT_CARD_LOCKED, 0x05, APP_THA_ENUM_TRUE, gunno);
-                    break;
-                case APP_CARD_OPERATE_RET_HISTORY_BILL_ERROR:
-                    LOG_D("gunno(%d) card is locked(no bill) in offline billing mode", gunno);
-                    app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
-                    thaisen_set_trigger_event(THAISEN_TRIG_EVENT_CARD_LOCKED, 0x05, APP_THA_ENUM_TRUE, gunno);
-                    break;
-                case APP_CARD_OPERATE_RET_IS_CHARGING:
-                    LOG_D("gunno(%d) this card is start in offline billing mode", gunno);
-                    app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
-                    thaisen_set_trigger_event(THAISEN_TRIG_EVENT_IS_CHARGING, 0x05, APP_THA_ENUM_TRUE, gunno);
-                    break;
-                case APP_CARD_OPERATE_RET_PAYED:
-                    LOG_D("gunno(%d) card is payed in offline billing mode 666", gunno);
-                    break;
-                case APP_CARD_OPERATE_RET_NULL:
-                    LOG_D("gunno(%d) current state is not allow stop in offline billing mode", gunno);
-                    break;
-                default:
-                    LOG_D("gunno(%d) invalid card in offline billing mode 111", gunno);
-                    app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
-                    thaisen_set_trigger_event(THAISEN_TRIG_EVENT_INVALID, 0x05, APP_THA_ENUM_TRUE, gunno);
-                    break;
-                }
-                need_authorize_online = APP_THA_ENUM_FALSE;
+            if(ofsm_swip_card_judge(gunno)){
+                is_charging_authorization = true;
             }else{
-                need_authorize_online = APP_THA_ENUM_FALSE;
-                if(s_ofsm_info[gunno].base.is_offline_billing == APP_THA_ENUM_TRUE){
-                    /** 提示鉴权失败, 信息有误 */;
-                    LOG_D("gunno(%d) operate card error in offline billing mode 00", gunno);
-                    app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
-                    thaisen_set_trigger_event(THAISEN_TRIG_EVENT_KEY_AUTHEN_FAIL, 0x05, APP_THA_ENUM_TRUE, gunno);
-                    return;
-                }else{
-                    /** 信息有误, 蜂鸣器提示 */
-                    app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
-                }
-            }
-
-            if(need_authorize_online){
-                if(app_nsal_card_authorize(gunno) < 0x00){
-                    app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
-                    LOG_W("gunno(%d) swip card authorize fail", gunno);
-                    return;
-                }
-                s_ofsm_info[gunno].base.flag.card_authorization = APP_THA_ENUM_TRUE;
+                return;
             }
         }else if(app_nsal_is_card_authorize_success(gunno)){
-            uint8_t valid_len = 0x00;
             app_nsal_clear_remote_card_authorize(gunno);
+
             LOG_D("gunno(%d) start charge by online card", gunno);
-            s_ofsm_info[gunno].base.flag.is_local_charging = APP_THA_ENUM_FALSE;
-            s_ofsm_info[gunno].base.start_type = APP_CHARGE_START_WAY_ONLINE_CARD;
-
-            valid_len = sizeof(s_ofsm_info[gunno].base.transaction_number);
-            valid_len = valid_len > sizeof(s_thaisen_transaction[gunno].serial_number) ? sizeof(s_thaisen_transaction[gunno].serial_number) : valid_len;
-            memset(s_thaisen_transaction[gunno].serial_number, 0x00, sizeof(s_thaisen_transaction[gunno].serial_number));
-            memcpy(s_thaisen_transaction[gunno].serial_number, s_ofsm_info[gunno].base.transaction_number, valid_len);
-
-            valid_len = sizeof(s_ofsm_info[gunno].base.card_uid);
-            valid_len = valid_len > sizeof(s_thaisen_transaction[gunno].physics_card_number) ? sizeof(s_thaisen_transaction[gunno].physics_card_number) : valid_len;
-            memset(s_thaisen_transaction[gunno].physics_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].physics_card_number));
-            memcpy(s_thaisen_transaction[gunno].physics_card_number, s_ofsm_info[gunno].base.card_uid, valid_len);
-
-            valid_len = sizeof(s_ofsm_info[gunno].base.card_number);
-            valid_len = valid_len > sizeof(s_thaisen_transaction[gunno].logic_card_number) ? sizeof(s_thaisen_transaction[gunno].logic_card_number) : valid_len;
-            memset(s_thaisen_transaction[gunno].logic_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].logic_card_number));
-            memcpy(s_thaisen_transaction[gunno].logic_card_number, s_ofsm_info[gunno].base.card_number, valid_len);
-
-            valid_len = sizeof(s_ofsm_info[gunno].base.user_number);
-            valid_len = valid_len > sizeof(s_thaisen_transaction[gunno].user_number) ? sizeof(s_thaisen_transaction[gunno].user_number) : valid_len;
-            memset(s_thaisen_transaction[gunno].user_number, 0x00, sizeof(s_thaisen_transaction[gunno].user_number));
-            memcpy(s_thaisen_transaction[gunno].user_number, s_ofsm_info[gunno].base.user_number, valid_len);
-#ifdef APP_INCLUDE_SGCC_PROTOCOL
-            memcpy(s_thaisen_transaction[gunno].device_serial_number, s_ofsm_info[gunno].base.device_transaction_number, \
-                    sizeof(s_ofsm_info[gunno].base.device_transaction_number));
-#endif /* APP_INCLUDE_SGCC_PROTOCOL */
-            s_thaisen_transaction[gunno].account_ballance_before = s_ofsm_info[gunno].base.account_ballance_before;
-            s_thaisen_transaction[gunno].account_ballance_after = s_ofsm_info[gunno].base.account_ballance_after;
-
-            s_thaisen_transaction[gunno].start_type = APP_CHARGE_START_WAY_ONLINE_CARD;
-            s_thaisen_transaction[gunno].order_state.online_order = APP_THA_ENUM_TRUE;
-
+            ofsm_start_info_padding_online_card(gunno);
             is_charging_authorization = true;
 
         }else if(app_nsal_is_card_authorize_fail(gunno)){
             app_nsal_clear_remote_card_authorize(gunno);
             LOG_W("gunno(%d) swip card authorize response fail", gunno);
             s_ofsm_info[gunno].base.flag.card_authorization = APP_THA_ENUM_FALSE;
-            app_nsal_clear_remote_card_authorize(gunno);
 
             app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
-        }else if(app_get_hci_event(gunno, HCI_EVENT_SCREEN_START, 1)){
-            uint8_t valid_len = 0x00;
+
+        }else if(app_get_hci_event(gunno, HCI_EVENT_SCREEN_START, APP_THA_ENUM_TRUE)){
             LOG_D("gunno(%d) start charge by screen", gunno);
-            s_ofsm_info[gunno].base.flag.is_local_charging = APP_THA_ENUM_TRUE;
-            s_ofsm_info[gunno].base.start_type = APP_CHARGE_START_WAY_SCREEN;
-            s_ofsm_info[gunno].base.account_ballance_before = 0x00;
-            s_ofsm_info[gunno].base.account_ballance_after = 0x00;
-            s_ofsm_info[gunno].base.charge_strategy = APP_CHARGE_STRATEGY_FULL;
-            s_ofsm_info[gunno].base.charge_strategy_para = 0x00;
-
-            app_nsal_create_local_transaction_number(gunno, &(s_ofsm_info[gunno].base.transaction_number),  \
-                    sizeof(s_ofsm_info[gunno].base.transaction_number));
-#ifdef APP_INCLUDE_SGCC_PROTOCOL
-            memcpy(s_ofsm_info[gunno].base.device_transaction_number, s_ofsm_info[gunno].base.transaction_number, \
-                    sizeof(s_ofsm_info[gunno].base.transaction_number));
-#endif /* APP_INCLUDE_SGCC_PROTOCOL */
-
-            memset(s_ofsm_info[gunno].base.card_number, 0x00, sizeof(s_ofsm_info[gunno].base.card_number));
-            memset(&(s_ofsm_info[gunno].base.card_uid), 0x00, sizeof(s_ofsm_info[gunno].base.card_uid));
-            memset(s_ofsm_info[gunno].base.user_number, 0x00, sizeof(s_ofsm_info[gunno].base.user_number));
-
-            valid_len = sizeof(s_ofsm_info[gunno].base.transaction_number);
-            valid_len = valid_len > sizeof(s_thaisen_transaction[gunno].serial_number) ? sizeof(s_thaisen_transaction[gunno].serial_number) : valid_len;
-            memset(s_thaisen_transaction[gunno].serial_number, 0x00, sizeof(s_thaisen_transaction[gunno].serial_number));
-            memcpy(s_thaisen_transaction[gunno].serial_number, s_ofsm_info[gunno].base.transaction_number, valid_len);
-            memset(s_thaisen_transaction[gunno].logic_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].logic_card_number));
-            memset(s_thaisen_transaction[gunno].physics_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].physics_card_number));
-            memset(s_thaisen_transaction[gunno].user_number, 0x00, sizeof(s_thaisen_transaction[gunno].user_number));
-#ifdef APP_INCLUDE_SGCC_PROTOCOL
-            memcpy(s_thaisen_transaction[gunno].device_serial_number, s_ofsm_info[gunno].base.device_transaction_number, \
-                    sizeof(s_ofsm_info[gunno].base.device_transaction_number));
-#endif /* APP_INCLUDE_SGCC_PROTOCOL */
-            s_thaisen_transaction[gunno].account_ballance_before = s_ofsm_info[gunno].base.account_ballance_before;
-            s_thaisen_transaction[gunno].account_ballance_after = s_ofsm_info[gunno].base.account_ballance_after;
-
-            s_thaisen_transaction[gunno].start_type = APP_CHARGE_START_WAY_SCREEN;
-            s_thaisen_transaction[gunno].order_state.online_order = APP_THA_ENUM_FALSE;
-
+            ofsm_start_info_padding_screen(gunno);
             is_charging_authorization = true;
 
-        }else if(app_get_hci_event(gunno, HCI_EVENT_VIN_START, 1)){
-            uint8_t valid_len = 0x00;
+        }else if(app_get_hci_event(gunno, HCI_EVENT_VIN_START, APP_THA_ENUM_TRUE)){
             LOG_D("gunno(%d) start charge by VIN", gunno);
-            s_ofsm_info[gunno].base.flag.is_local_charging = APP_THA_ENUM_TRUE;
-            s_ofsm_info[gunno].base.flag.vin_authorization_success = APP_THA_ENUM_FALSE;
-            s_ofsm_info[gunno].base.flag.vin_is_authorized = APP_THA_ENUM_FALSE;
-            s_ofsm_info[gunno].base.start_type = APP_CHARGE_START_WAY_VIN;
-            s_ofsm_info[gunno].base.account_ballance_before = 0x00;
-            s_ofsm_info[gunno].base.account_ballance_after = 0x00;
-            s_ofsm_info[gunno].base.charge_strategy = APP_CHARGE_STRATEGY_FULL;
-            s_ofsm_info[gunno].base.charge_strategy_para = 0x00;
-
-            app_nsal_create_local_transaction_number(gunno, &(s_ofsm_info[gunno].base.transaction_number),  \
-                    sizeof(s_ofsm_info[gunno].base.transaction_number));
-#ifdef APP_INCLUDE_SGCC_PROTOCOL
-            memcpy(s_ofsm_info[gunno].base.device_transaction_number, s_ofsm_info[gunno].base.transaction_number, \
-                    sizeof(s_ofsm_info[gunno].base.transaction_number));
-#endif /* APP_INCLUDE_SGCC_PROTOCOL */
-
-            memset(s_ofsm_info[gunno].base.car_vin, 0x00, sizeof(s_ofsm_info[gunno].base.car_vin));
-            memset(s_ofsm_info[gunno].base.card_number, 0x00, sizeof(s_ofsm_info[gunno].base.card_number));
-            memset(s_ofsm_info[gunno].base.card_uid, 0x00, sizeof(s_ofsm_info[gunno].base.card_uid));
-            memset(s_ofsm_info[gunno].base.user_number, 0x00, sizeof(s_ofsm_info[gunno].base.user_number));
-
-            valid_len = sizeof(s_ofsm_info[gunno].base.transaction_number);
-            valid_len = valid_len > sizeof(s_thaisen_transaction[gunno].serial_number) ? sizeof(s_thaisen_transaction[gunno].serial_number) : valid_len;
-            memset(s_thaisen_transaction[gunno].serial_number, 0x00, sizeof(s_thaisen_transaction[gunno].serial_number));
-            memcpy(s_thaisen_transaction[gunno].serial_number, s_ofsm_info[gunno].base.transaction_number, valid_len);
-            memset(s_thaisen_transaction[gunno].logic_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].logic_card_number));
-            memset(s_thaisen_transaction[gunno].physics_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].physics_card_number));
-            memset(s_thaisen_transaction[gunno].user_number, 0x00, sizeof(s_thaisen_transaction[gunno].user_number));
-#ifdef APP_INCLUDE_SGCC_PROTOCOL
-            memcpy(s_thaisen_transaction[gunno].device_serial_number, s_ofsm_info[gunno].base.device_transaction_number, \
-                    sizeof(s_ofsm_info[gunno].base.device_transaction_number));
-#endif /* APP_INCLUDE_SGCC_PROTOCOL */
-            s_thaisen_transaction[gunno].account_ballance_before = s_ofsm_info[gunno].base.account_ballance_before;
-            s_thaisen_transaction[gunno].account_ballance_after = s_ofsm_info[gunno].base.account_ballance_after;
-
-            s_thaisen_transaction[gunno].start_type = APP_CHARGE_START_WAY_VIN;
-            s_thaisen_transaction[gunno].order_state.online_order = APP_THA_ENUM_FALSE;
-
+            ofsm_start_info_padding_vin(gunno);
             is_charging_authorization = true;
+
         }else if(app_nsal_is_set_reservation(gunno)){
             app_nsal_clear_set_reservation(gunno);
 #if 0
@@ -4520,157 +4353,16 @@ static void ofsm_finishing_fun(uint8_t gunno)
 
         /************** 【充电桩已授权】 *************/
         if(is_charging_authorization == true){
-            uint8_t deputy_gunno = APP_SYSTEM_GUNNOA;
+            if(s_ofsm_info[gunno].base.run_mode == APP_RUN_MODE_OFFLINE_BILLING){
+                app_card_event_recv(APP_CARD_EVENT_CHARGE_STOP, 0x00, gunno, NULL, APP_THA_ENUM_TRUE);
+            }
+            /** 启动前向屏幕对时 */
+            thaisen_request_screen_time();
+
+            ofsm_start_info_padding_public(gunno);
 
             s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_STARTING];
             s_ofsm_info[gunno].state = APP_OFSM_STATE_STARTING;
-
-            /* 启动前向屏幕对时 */
-            thaisen_request_screen_time();
-
-            if(s_ofsm_info[gunno].base.is_offline_billing == APP_THA_ENUM_TRUE){
-                app_card_event_recv(APP_CARD_EVENT_CHARGE_STOP, 0x00, gunno, NULL, APP_THA_ENUM_TRUE);
-            }
-            if(s_ofsm_info[gunno].base.charge_way != APP_CHARGE_WAY_PARACHARGE_CLOUD){
-                s_ofsm_info[gunno].base.main_gunno = gunno;
-                s_ofsm_info[gunno].base.charge_way = thaisen_get_charge_way();
-            }
-
-            if(s_ofsm_info[gunno].base.charge_way != APP_CHARGE_WAY_PARACHARGE_CLOUD){
-                if(s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL){
-                    if(APP_SYSTEM_GUNNO_SIZE < 0x02){
-                        s_ofsm_info[gunno].base.charge_way = APP_CHARGE_WAY_SINGLEGUN;  /** 单枪桩不支持并充 */
-                    }else{
-                        if(gunno == APP_SYSTEM_GUNNOA){
-                            deputy_gunno = APP_SYSTEM_GUNNOA + 0x01;
-                        }
-                        if((s_ofsm_info[deputy_gunno].base.flag.connect_state != APP_CONNECT_STATE_CONNECT)){
-                            s_ofsm_info[gunno].base.charge_way = APP_CHARGE_WAY_SINGLEGUN;  /** 并充时两把枪都要插上 */
-                        }
-                        if((s_ofsm_info[deputy_gunno].state != APP_OFSM_STATE_READYING)){
-                            s_ofsm_info[gunno].base.charge_way = APP_CHARGE_WAY_SINGLEGUN;  /** 并充时两把枪都要插上 */
-                        }
-                    }
-                }
-                s_ofsm_info[deputy_gunno].base.charge_way = s_ofsm_info[gunno].base.charge_way;
-                s_ofsm_info[deputy_gunno].base.main_gunno = s_ofsm_info[gunno].base.main_gunno;
-
-                if(s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL){
-                    if(gunno == s_ofsm_info[gunno].base.main_gunno){
-                        s_ofsm_info[gunno].base.start_elect = (mw_get_meter_total_wh(gunno) + mw_get_meter_total_wh(deputy_gunno));
-                    }
-                    s_thaisen_transaction[gunno].charge_way = APP_CHARGE_WAY_PARACHARGE_LOCAL;
-                }else{
-                    s_thaisen_transaction[gunno].charge_way = APP_CHARGE_WAY_SINGLEGUN;
-                    s_ofsm_info[gunno].base.start_elect = mw_get_meter_total_wh(gunno);
-                }
-            }else{
-                s_ofsm_info[gunno].base.start_elect = mw_get_meter_total_wh(gunno);
-            }
-
-            thaisen_set_charge_way(s_ofsm_info[gunno].base.charge_way);
-
-            s_ofsm_info[gunno].base.flag.is_starting = APP_THA_ENUM_FALSE;
-            s_ofsm_info[gunno].base.flag.permit_judge_complete = APP_THA_ENUM_FALSE;
-            s_ofsm_info[gunno].base.flag.start_result = APP_THA_ENUM_FALSE;
-            s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_FALSE;
-
-            s_ofsm_info[gunno].base.voltage_a = 0x00;
-            s_ofsm_info[gunno].base.current_a = 0x00;
-            s_ofsm_info[gunno].base.power_a = 0x00;
-            s_ofsm_info[gunno].base.elect_a = 0x00;
-            s_ofsm_info[gunno].base.fees_total = 0x00;
-            s_ofsm_info[gunno].base.elect_fees_total = 0x00;
-            s_ofsm_info[gunno].base.service_fees_total = 0x00;
-            s_ofsm_info[gunno].base.current_elect = mw_get_meter_total_wh(gunno);
-            s_ofsm_info[gunno].base.start_time = s_ofsm_info[gunno].base.current_time;
-            s_ofsm_info[gunno].base.stop_time = s_ofsm_info[gunno].base.current_time;
-            s_ofsm_info[gunno].base.charge_time = 0x00;
-            s_ofsm_info[gunno].base.reason_code = APP_SYSTEM_STOP_WAY_SIZE;
-            memset(s_ofsm_info[gunno].base.car_vin, 0x00, sizeof(s_ofsm_info[gunno].base.car_vin));
-            s_ofsm_info[gunno].base.start_period = app_calculate_current_period(s_ofsm_info[gunno].base.start_time);
-            s_ofsm_info[gunno].base.current_period = s_ofsm_info[gunno].base.start_period;
-            s_ofsm_info[gunno].base.period_num = 0x01;
-            s_ofsm_info[gunno].charge_timeout = rt_tick_get();
-            s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
-            s_ofsm_info[gunno].base.charctrl_state.last = APP_CHARGE_CTRL_STATE_IDLE;
-            s_ofsm_info[gunno].base.charctrl_state.current = APP_CHARGE_CTRL_STATE_IDLE;
-            s_ofsm_info[gunno].base.start_charge_tick = rt_tick_get();
-
-            s_thaisen_transaction[gunno].start_time = s_ofsm_info[gunno].base.start_time;
-            s_thaisen_transaction[gunno].end_time = s_thaisen_transaction[gunno].start_time;
-            s_thaisen_transaction[gunno].charge_time = 0x00;
-            s_thaisen_transaction[gunno].boot_result = s_ofsm_info[gunno].base.flag.start_result;
-            memset(s_thaisen_transaction[gunno].car_vin, 0x00, sizeof(s_thaisen_transaction[gunno].car_vin));
-            s_thaisen_transaction[gunno].start_soc = 0x00;
-            s_thaisen_transaction[gunno].stop_soc = 0x00;
-            s_thaisen_transaction[gunno].ammeter_start = s_ofsm_info[gunno].base.start_elect;
-            s_thaisen_transaction[gunno].ammeter_stop = s_thaisen_transaction[gunno].ammeter_start;
-            s_thaisen_transaction[gunno].stop_reason = APP_SYSTEM_STOP_WAY_POWER_OFF;
-            s_thaisen_transaction[gunno].total_elect = 0x00;
-            s_thaisen_transaction[gunno].total_loss_elect = 0x00;
-            s_thaisen_transaction[gunno].charge_fee = 0x00;
-            s_thaisen_transaction[gunno].service_fee = 0x00;
-            s_thaisen_transaction[gunno].total_fee = 0x00;
-            s_thaisen_transaction[gunno].run_mode = APP_RUN_MODE_4G_ETH;
-            if(s_ofsm_info[gunno].base.is_offline_billing == APP_THA_ENUM_TRUE){
-                s_thaisen_transaction[gunno].run_mode = APP_RUN_MODE_OFFLINE_BILLING;
-            }
-
-#if (defined (APP_INCLUDE_YKC_PROTOCOL) || defined (APP_INCLUDE_YKC_PROTOCOL_MONITOR) || defined (APP_INCLUDE_YCP_PROTOCOL) || \
-        defined (APP_INCLUDE_SGCC_PROTOCOL))
-            for(uint8_t type = 0x00; type < APP_BILLING_RULE_RATE_TYPE_MAX; type++){
-                s_thaisen_transaction[gunno].rate_type_unit[type] = app_billingrule_get_rate_type_price(gunno, type);
-            }
-            memset(s_thaisen_transaction[gunno].rate_type_elect, 0x00, sizeof(s_thaisen_transaction[gunno].rate_type_elect));
-            memset(s_thaisen_transaction[gunno].rate_type_amount, 0x00, sizeof(s_thaisen_transaction[gunno].rate_type_amount));
-            memset(s_thaisen_transaction[gunno].rate_type_loss_elect, 0x00, sizeof(s_thaisen_transaction[gunno].rate_type_loss_elect));
-#endif /* (defined (APP_INCLUDE_YKC_PROTOCOL) || defined (APP_INCLUDE_YKC_PROTOCOL_MONITOR) || defined (APP_INCLUDE_YCP_PROTOCOL) ||
-        defined (APP_INCLUDE_SGCC_PROTOCOL)) */
-
-#if (defined (APP_INCLUDE_SL_PROTOCOL) || defined (APP_INCLUDE_SGCC_PROTOCOL))
-            memset(s_thaisen_transaction[gunno].period_elect, 0x00, sizeof(s_thaisen_transaction[gunno].period_elect));
-            memset(s_thaisen_transaction[gunno].period_elect_fees, 0x00, sizeof(s_thaisen_transaction[gunno].period_elect_fees));
-            memset(s_thaisen_transaction[gunno].period_service_fees, 0x00, sizeof(s_thaisen_transaction[gunno].period_service_fees));
-            memset(s_thaisen_transaction[gunno].period_occupy_fees, 0x00, sizeof(s_thaisen_transaction[gunno].period_occupy_fees));
-            s_thaisen_transaction[gunno].rule = app_billingrule_get_rule(gunno);
-#endif /* (defined (APP_INCLUDE_SL_PROTOCOL) || defined (APP_INCLUDE_SGCC_PROTOCOL)) */
-
-#ifdef APP_INCLUDE_XJ_PROTOCOL
-            s_thaisen_transaction[gunno].delay_fee = 0x00;
-#endif /* APP_INCLUDE_XJ_PROTOCOL */
-
-#if (defined (APP_INCLUDE_SL_PROTOCOL) || defined (APP_INCLUDE_XJ_PROTOCOL))
-            s_thaisen_transaction[gunno].card_ballance_before = 0x00;
-            s_thaisen_transaction[gunno].card_ballance_after = 0x00;
-#endif /* (defined (APP_INCLUDE_SL_PROTOCOL) || defined (APP_INCLUDE_XJ_PROTOCOL)) */
-
-#if (defined (APP_INCLUDE_SGCC_PROTOCOL))
-            for(uint8_t type = 0x00; type < APP_BILLING_RULE_RATE_TYPE_MAX; type++){
-                s_thaisen_transaction[gunno].rate_type_elect_amount[type] = 0x00;
-                s_thaisen_transaction[gunno].rate_type_service_amount[type] = 0x00;
-            }
-#endif /* (defined (APP_INCLUDE_SGCC_PROTOCOL)) */
-
-            s_thaisen_transaction[gunno].start_period_number = s_ofsm_info[gunno].base.start_period;
-            s_thaisen_transaction[gunno].period_count = s_ofsm_info[gunno].base.period_num;
-
-            s_thaisen_transaction[gunno].order_state.verify_fail = APP_THA_ENUM_FALSE;
-            s_thaisen_transaction[gunno].order_state.is_start_fail = APP_THA_ENUM_TRUE;
-            s_thaisen_transaction[gunno].order_state.is_charging = APP_THA_ENUM_TRUE;
-
-            app_nsal_init_charge_data(gunno);
-
-            app_nsal_state_charged(gunno);
-            app_nsal_event_occurded(gunno);
-
-            mw_storage_record_create(&s_thaisen_transaction[gunno], sizeof(s_thaisen_transaction[gunno]), USER_DATA_TYPE_STORAGE,  \
-                    0x00, APP_THA_ENUM_FALSE, gunno);
-            s_current_order_index[MONITOR_PLATFORM_INDEX][gunno] = mw_storage_record_get_current_index(gunno);
-            s_current_order_index[TARGET_PLATFORM_INDEX][gunno] = s_current_order_index[MONITOR_PLATFORM_INDEX][gunno];
-            memset(&(s_thaisen_transaction[gunno].bms_stop_reason), 0x00, sizeof(s_thaisen_transaction[gunno].bms_stop_reason));
-            memset(&(s_thaisen_transaction[gunno].bms_fault_reason), 0x00, sizeof(s_thaisen_transaction[gunno].bms_fault_reason));
-            s_booting_step[gunno] = APP_BOOTING_STEP_IDLE;                 /* 初始化充电步骤 */
         }
         break;
     default:
@@ -4717,7 +4409,12 @@ static void ofsm_finishing_fun(uint8_t gunno)
     app_get_hci_event(gunno, HCI_EVENT_SCREEN_STOP, 1);
     app_nsal_clear_remote_stop(gunno);
 }
-
+/*****************************************************
+ * 函数名          ofsm_faulting_fun
+ * 功能               业务状态机 故障 状态
+ * 参数              gunno   枪号
+ * 返回
+ ****************************************************/
 static void ofsm_faulting_fun(uint8_t gunno)
 {
     if(gunno >= APP_SYSTEM_GUNNO_SIZE){   /* 枪号不对 */
@@ -4736,7 +4433,7 @@ static void ofsm_faulting_fun(uint8_t gunno)
         LOG_I("gunno(%d) faulting state (32L: 0x%X, CC1: %d, S%d)...", gunno, (uint32_t)system_fault, mw_get_cc1_value(s_ofsm_info[gunno].base.cc1_state), charge_state);
     }
 
-    if(s_ofsm_info[gunno].base.is_offline_billing == APP_THA_ENUM_TRUE){
+    if(s_ofsm_info[gunno].base.run_mode == APP_RUN_MODE_OFFLINE_BILLING){
         if(app_card_event_recv(APP_CARD_EVENT_PAY_COMPLETE, 0x00, gunno, NULL, APP_THA_ENUM_TRUE) >= APP_THA_ENUM_FALSE){
             LOG_D("gunno(%d) faulting card is payed in offline billing", gunno);
             LOG_D("time:%ds  elect:%d  money:%d  ballance:%d  reason:%d", s_ofsm_info[gunno].base.charge_time,
@@ -4808,7 +4505,7 @@ static void ofsm_faulting_fun(uint8_t gunno)
             s_ofsm_info[gunno].base.flag.is_charge_complete = APP_THA_ENUM_FALSE;
             switch (s_ofsm_info[gunno].base.cc1_state){
             case CC1_4V:
-                if(s_ofsm_info[gunno].base.is_offline_billing == APP_THA_ENUM_TRUE){
+                if(s_ofsm_info[gunno].base.run_mode == APP_RUN_MODE_OFFLINE_BILLING){
                     app_card_event_send(APP_CARD_EVENT_CHARGEPILE_READY, gunno, NULL);
                 }else{
                     app_card_event_recv(APP_CARD_EVENT_CHARGEPILE_READY, 0x00, gunno, NULL, APP_THA_ENUM_TRUE);
@@ -4837,16 +4534,12 @@ static void ofsm_faulting_fun(uint8_t gunno)
                 }
 #endif /* 0 */
                 if(app_nsal_is_remote_start(gunno)){
-                    uint8_t valid_len = 0x00;
                     app_nsal_clear_remote_start(gunno);
                     if(s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
-#ifndef APP_USING_DOUBLEGUN
+        #ifndef APP_USING_DOUBLEGUN
                         break;      /** 单枪不允许并充 */
-#endif /* APP_USING_DOUBLEGUN */
+        #endif /* APP_USING_DOUBLEGUN */
                     }
-                    LOG_D("gunno(%d) start charge by APP", gunno);
-                    s_ofsm_info[gunno].base.flag.is_local_charging = APP_THA_ENUM_FALSE;
-                    s_ofsm_info[gunno].base.start_type = APP_CHARGE_START_WAY_APP;
 
                     /* 经过平台启动的， 已填充以下字段
                      * base->user_number
@@ -4863,586 +4556,61 @@ static void ofsm_faulting_fun(uint8_t gunno)
                      * base->main_gunno(并充时)
                      * base->charge_way(并充时)*/
 
-                    valid_len = sizeof(s_ofsm_info[gunno].base.transaction_number);
-                    valid_len = valid_len > sizeof(s_thaisen_transaction[gunno].serial_number) ? sizeof(s_thaisen_transaction[gunno].serial_number) : valid_len;
-                    memset(s_thaisen_transaction[gunno].serial_number, 0x00, sizeof(s_thaisen_transaction[gunno].serial_number));
-                    memcpy(s_thaisen_transaction[gunno].serial_number, s_ofsm_info[gunno].base.transaction_number, valid_len);
-
-                    valid_len = sizeof(s_ofsm_info[gunno].base.card_uid);
-                    valid_len = valid_len > sizeof(s_thaisen_transaction[gunno].physics_card_number) ? sizeof(s_thaisen_transaction[gunno].physics_card_number) : valid_len;
-                    memset(s_thaisen_transaction[gunno].physics_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].physics_card_number));
-                    memcpy(s_thaisen_transaction[gunno].physics_card_number, s_ofsm_info[gunno].base.card_uid, valid_len);
-
-                    valid_len = sizeof(s_ofsm_info[gunno].base.card_number);
-                    valid_len = valid_len > sizeof(s_thaisen_transaction[gunno].logic_card_number) ? sizeof(s_thaisen_transaction[gunno].logic_card_number) : valid_len;
-                    memset(s_thaisen_transaction[gunno].logic_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].logic_card_number));
-                    memcpy(s_thaisen_transaction[gunno].logic_card_number, s_ofsm_info[gunno].base.card_number, valid_len);
-
-                    valid_len = sizeof(s_ofsm_info[gunno].base.user_number);
-                    valid_len = valid_len > sizeof(s_thaisen_transaction[gunno].user_number) ? sizeof(s_thaisen_transaction[gunno].user_number) : valid_len;
-                    memset(s_thaisen_transaction[gunno].user_number, 0x00, sizeof(s_thaisen_transaction[gunno].user_number));
-                    memcpy(s_thaisen_transaction[gunno].user_number, s_ofsm_info[gunno].base.user_number, valid_len);
-#ifdef APP_INCLUDE_SGCC_PROTOCOL
-                    memcpy(s_thaisen_transaction[gunno].device_serial_number, s_ofsm_info[gunno].base.device_transaction_number, \
-                            sizeof(s_ofsm_info[gunno].base.device_transaction_number));
-#endif /* APP_INCLUDE_SGCC_PROTOCOL */
-                    s_thaisen_transaction[gunno].account_ballance_before = s_ofsm_info[gunno].base.account_ballance_before;
-                    s_thaisen_transaction[gunno].account_ballance_after = s_ofsm_info[gunno].base.account_ballance_after;
-
-                    s_thaisen_transaction[gunno].start_type = APP_CHARGE_START_WAY_APP;
-                    s_thaisen_transaction[gunno].order_state.online_order = APP_THA_ENUM_TRUE;
-
+                    LOG_D("gunno(%d) start charge by APP", gunno);
+                    ofsm_start_info_padding_app(gunno);
                     is_charging_authorization = true;
 
                 }else if(rfidr_query_swipe_state(gunno)){
-                    uint8_t need_authorize_online = APP_THA_ENUM_FALSE;
                     rfidr_clear_swipe_state(gunno);
-
-                    if(s_ofsm_info[gunno].base.is_offline_billing == APP_THA_ENUM_FALSE){
+                    if(s_ofsm_info[gunno].base.run_mode != APP_RUN_MODE_OFFLINE_BILLING){
                         if(thaisen_is_not_allow_swip_card()){
                             LOG_D("gunno(%d) current page is not allow swip card charge", gunno);
                             return;
                         }
                     }
-                    if(rfidr_query_info_type() == APP_RFIDR_INFO_TYPE_CARD_NUMBER){
-                        uint8_t pile_number_len = APP_CARD_NUMBER_COMPARE_LEN, card_number_len = rfidr_query_card_number_len(),
-                                compare_len = 0, count = 0;
-                        uint8_t *pile_number, *card_number,
-                                 compare_count = APP_CARD_NUMBER_COMPARE_LEN_MIN;    /** 桩号卡对比长度 */
-
-                        if(s_ofsm_info[gunno].base.is_offline_billing == APP_THA_ENUM_TRUE){
-                            if(app_card_event_recv(APP_CARD_EVENT_CHARGE_START, 0x00, gunno, NULL, APP_THA_ENUM_TRUE) < APP_THA_ENUM_FALSE){
-                                if(app_card_event_recv(APP_CARD_EVENT_IS_NOT_SAME_PORT, 0x00, gunno, NULL, APP_THA_ENUM_TRUE) < APP_THA_ENUM_FALSE){
-                                    LOG_D("gunno(%d) is not receive card start charge event in offline billing", gunno);
-                                    app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
-                                }
-                                break;
-                            }
-                        }
-
-                        compare_len = pile_number_len > card_number_len ? card_number_len : pile_number_len;
-                        pile_number = sys_read_config_item_content(CONFIG_ITEM_PILE_NUMBER, 0);
-                        card_number = rfidr_query_card_number();
-
-                        if(s_ofsm_info[gunno].base.is_offline_billing == APP_THA_ENUM_TRUE){
-                            compare_count = APP_CARD_NUMBER_COMPARE_LEN_MIN_OFFLINE_BILLING;
-                        }
-
-                        if(compare_len >= compare_count){
-                            for(; count < compare_count; count++){
-                                if(pile_number[count] != card_number[count]){
-                                    break;
-                                }
-                            }
-                            if(count >= compare_count){
-                                app_rfidr_send_mail(APP_BUZZON_STATE_OK);
-                                LOG_D("gunno(%d) start charge by local pile number card", gunno);
-                            }else{
-                                if(sys_card_number_whitelists_query(card_number, card_number_len) >= 0x00){
-                                    app_rfidr_send_mail(APP_BUZZON_STATE_OK);
-                                    LOG_D("gunno(%d) start charge by local whitelist card", gunno);
-                                }else{
-                                    if(s_ofsm_info[gunno].base.is_offline_billing == APP_THA_ENUM_TRUE){
-                                        /** 提示鉴权失败, 离线计费必须是本地卡 */;
-                                        LOG_D("gunno(%d) invalid card in offline billing mode, compare length", gunno);
-                                        app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
-                                        thaisen_set_trigger_event(THAISEN_TRIG_EVENT_INVALID, 0x05, APP_THA_ENUM_TRUE, gunno);
-                                        return;
-                                    }
-                                    need_authorize_online = APP_THA_ENUM_TRUE;
-                                }
-                            }
-                        }else{
-                            if(sys_card_number_whitelists_query(card_number, card_number_len) >= 0x00){
-                                app_rfidr_send_mail(APP_BUZZON_STATE_OK);
-                                LOG_D("gunno(%d) start charge by local whitelist card", gunno);
-                            }else{
-                                if(s_ofsm_info[gunno].base.is_offline_billing == APP_THA_ENUM_TRUE){
-                                    /** 提示鉴权失败, 离线计费必须是本地卡 */;
-                                    LOG_D("gunno(%d) invalid card in offline billing mode, compare length 00", gunno);
-                                    app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
-                                    thaisen_set_trigger_event(THAISEN_TRIG_EVENT_INVALID, 0x05, APP_THA_ENUM_TRUE, gunno);
-                                    return;
-                                }
-                                need_authorize_online = APP_THA_ENUM_TRUE;
-                            }
-                        }
-
-                        compare_len = sizeof(s_ofsm_info[gunno].base.card_number);
-                        compare_len = compare_len > card_number_len ? card_number_len : compare_len;
-                        memset(s_ofsm_info[gunno].base.card_number, 0x00, sizeof(s_ofsm_info[gunno].base.card_number));
-                        memcpy(s_ofsm_info[gunno].base.card_number, card_number, compare_len);
-
-                        s_ofsm_info[gunno].base.flag.card_info_is_uid = APP_THA_ENUM_FALSE;
-                        s_ofsm_info[gunno].base.flag.is_local_charging = APP_THA_ENUM_TRUE;
-
-                        if(need_authorize_online == APP_THA_ENUM_FALSE){
-                            uint8_t uuid_len = rfidr_query_uuid_len();
-
-                            s_ofsm_info[gunno].base.start_type = APP_CHARGE_START_WAY_OFFLINE_CARD;
-                            s_ofsm_info[gunno].base.account_ballance_before = 0x00;
-                            s_ofsm_info[gunno].base.account_ballance_after = 0x00;
-                            s_ofsm_info[gunno].base.charge_strategy = APP_CHARGE_STRATEGY_FULL;
-                            s_ofsm_info[gunno].base.charge_strategy_para = 0x00;
-
-                            app_nsal_create_local_transaction_number(gunno, &(s_ofsm_info[gunno].base.transaction_number),  \
-                                    sizeof(s_ofsm_info[gunno].base.transaction_number));
-#ifdef APP_INCLUDE_SGCC_PROTOCOL
-                            memcpy(s_ofsm_info[gunno].base.device_transaction_number, s_ofsm_info[gunno].base.transaction_number, \
-                                    sizeof(s_ofsm_info[gunno].base.transaction_number));
-#endif /* APP_INCLUDE_SGCC_PROTOCOL */
-
-                            if(s_ofsm_info[gunno].base.is_offline_billing == APP_THA_ENUM_TRUE){
-                                s_ofsm_info[gunno].base.account_ballance_before = app_card_query_ballance(gunno);
-                                s_ofsm_info[gunno].base.account_ballance_after = app_card_query_ballance(gunno);
-
-                                s_ofsm_info[gunno].base.charge_strategy = APP_CHARGE_STRATEGY_MONEY;
-                                s_ofsm_info[gunno].base.charge_strategy_para = s_ofsm_info[gunno].base.account_ballance_before *100;
-                            }
-                            compare_len = sizeof(s_ofsm_info[gunno].base.card_uid);
-                            compare_len = compare_len > uuid_len ? uuid_len : compare_len;
-                            memset(s_ofsm_info[gunno].base.card_uid, 0x00, sizeof(s_ofsm_info[gunno].base.card_uid));
-                            memcpy(s_ofsm_info[gunno].base.card_uid, rfidr_query_uuid(), compare_len);
-
-                            memset(s_ofsm_info[gunno].base.user_number, 0x00, sizeof(s_ofsm_info[gunno].base.user_number));
-
-                            compare_len = sizeof(s_ofsm_info[gunno].base.transaction_number);
-                            compare_len = compare_len > sizeof(s_thaisen_transaction[gunno].serial_number) ? sizeof(s_thaisen_transaction[gunno].serial_number) : compare_len;
-                            memset(s_thaisen_transaction[gunno].serial_number, 0x00, sizeof(s_thaisen_transaction[gunno].serial_number));
-                            memcpy(s_thaisen_transaction[gunno].serial_number, s_ofsm_info[gunno].base.transaction_number, compare_len);
-
-                            compare_len = sizeof(s_ofsm_info[gunno].base.card_number);
-                            compare_len = compare_len > sizeof(s_thaisen_transaction[gunno].logic_card_number) ? sizeof(s_thaisen_transaction[gunno].logic_card_number) : compare_len;
-                            memset(s_thaisen_transaction[gunno].logic_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].logic_card_number));
-                            memcpy(s_thaisen_transaction[gunno].logic_card_number, s_ofsm_info[gunno].base.card_number, compare_len);
-
-                            memset(s_thaisen_transaction[gunno].physics_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].physics_card_number));
-                            memcpy(s_thaisen_transaction[gunno].physics_card_number, s_ofsm_info[gunno].base.card_uid, sizeof(s_ofsm_info[gunno].base.card_uid));
-
-                            memset(s_thaisen_transaction[gunno].user_number, 0x00, sizeof(s_thaisen_transaction[gunno].user_number));
-#ifdef APP_INCLUDE_SGCC_PROTOCOL
-                            memcpy(s_thaisen_transaction[gunno].device_serial_number, s_ofsm_info[gunno].base.device_transaction_number, \
-                                    sizeof(s_ofsm_info[gunno].base.device_transaction_number));
-#endif /* APP_INCLUDE_SGCC_PROTOCOL */
-                            s_thaisen_transaction[gunno].account_ballance_before = s_ofsm_info[gunno].base.account_ballance_before;
-                            s_thaisen_transaction[gunno].account_ballance_after = s_ofsm_info[gunno].base.account_ballance_after;
-
-                            s_thaisen_transaction[gunno].start_type = APP_CHARGE_START_WAY_OFFLINE_CARD;
-                            s_thaisen_transaction[gunno].order_state.online_order = APP_THA_ENUM_FALSE;
-
-                            is_charging_authorization = true;
-                        }
-                    }else if(rfidr_query_info_type() == APP_RFIDR_INFO_TYPE_UUID){
-                        uint8_t uid_len = rfidr_query_uuid_len(), compare_len = 0x00;
-
-                        if(s_ofsm_info[gunno].base.is_offline_billing == APP_THA_ENUM_TRUE){
-                            /** 提示鉴权失败, 离线计费获取到的卡信息类型必须是卡号 */;
-                            LOG_D("gunno(%d) invalid card in offline billing mode, key authen fail", gunno);
-                            app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
-                            thaisen_set_trigger_event(THAISEN_TRIG_EVENT_KEY_AUTHEN_FAIL, 0x05, APP_THA_ENUM_TRUE, gunno);
-                            return;
-                        }
-
-                        if(sys_card_uid_whitelists_query(rfidr_query_uuid(), uid_len) >= 0x00){
-                            app_rfidr_send_mail(APP_BUZZON_STATE_OK);
-                            LOG_D("gunno(%d) start charge by local whitelist card uid", gunno);
-                        }else{
-                            need_authorize_online = APP_THA_ENUM_TRUE;
-                        }
-
-                        uid_len = uid_len > sizeof(s_ofsm_info[gunno].base.card_uid) ? sizeof(s_ofsm_info[gunno].base.card_uid) : uid_len;
-                        memset(s_ofsm_info[gunno].base.card_uid, 0x00, sizeof(s_ofsm_info[gunno].base.card_uid));
-                        memcpy(s_ofsm_info[gunno].base.card_uid, rfidr_query_uuid(), uid_len);
-                        s_ofsm_info[gunno].base.card_uid_len = uid_len;
-                        s_ofsm_info[gunno].base.flag.card_info_is_uid = APP_THA_ENUM_TRUE;
-                        s_ofsm_info[gunno].base.flag.is_local_charging = APP_THA_ENUM_TRUE;
-
-                        if(need_authorize_online == APP_THA_ENUM_FALSE){
-                            s_ofsm_info[gunno].base.start_type = APP_CHARGE_START_WAY_OFFLINE_CARD;
-                            s_ofsm_info[gunno].base.account_ballance_before = 0x00;
-                            s_ofsm_info[gunno].base.account_ballance_after = 0x00;
-                            s_ofsm_info[gunno].base.charge_strategy = APP_CHARGE_STRATEGY_FULL;
-                            s_ofsm_info[gunno].base.charge_strategy_para = 0x00;
-
-                            app_nsal_create_local_transaction_number(gunno, &(s_ofsm_info[gunno].base.transaction_number),  \
-                                    sizeof(s_ofsm_info[gunno].base.transaction_number));
-#ifdef APP_INCLUDE_SGCC_PROTOCOL
-                            memcpy(s_ofsm_info[gunno].base.device_transaction_number, s_ofsm_info[gunno].base.transaction_number, \
-                                    sizeof(s_ofsm_info[gunno].base.transaction_number));
-#endif /* APP_INCLUDE_SGCC_PROTOCOL */
-
-                            compare_len = sizeof(s_ofsm_info[gunno].base.transaction_number);
-                            compare_len = compare_len > sizeof(s_thaisen_transaction[gunno].serial_number) ? sizeof(s_thaisen_transaction[gunno].serial_number) : compare_len;
-                            memset(s_thaisen_transaction[gunno].serial_number, 0x00, sizeof(s_thaisen_transaction[gunno].serial_number));
-                            memcpy(s_thaisen_transaction[gunno].serial_number, s_ofsm_info[gunno].base.transaction_number, compare_len);
-
-                            compare_len = sizeof(s_ofsm_info[gunno].base.card_number);
-                            compare_len = compare_len > sizeof(s_thaisen_transaction[gunno].logic_card_number) ? sizeof(s_thaisen_transaction[gunno].logic_card_number) : compare_len;
-                            memset(s_thaisen_transaction[gunno].logic_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].logic_card_number));
-                            memcpy(s_thaisen_transaction[gunno].logic_card_number, s_ofsm_info[gunno].base.card_number, compare_len);
-
-                            memset(s_thaisen_transaction[gunno].physics_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].physics_card_number));
-                            memset(s_thaisen_transaction[gunno].user_number, 0x00, sizeof(s_thaisen_transaction[gunno].user_number));
-#ifdef APP_INCLUDE_SGCC_PROTOCOL
-                            memcpy(s_thaisen_transaction[gunno].device_serial_number, s_ofsm_info[gunno].base.device_transaction_number, \
-                                    sizeof(s_ofsm_info[gunno].base.device_transaction_number));
-#endif /* APP_INCLUDE_SGCC_PROTOCOL */
-                            s_thaisen_transaction[gunno].account_ballance_before = s_ofsm_info[gunno].base.account_ballance_before;
-                            s_thaisen_transaction[gunno].account_ballance_after = s_ofsm_info[gunno].base.account_ballance_after;
-
-                            s_thaisen_transaction[gunno].start_type = APP_CHARGE_START_WAY_OFFLINE_CARD;
-                            s_thaisen_transaction[gunno].order_state.online_order = APP_THA_ENUM_FALSE;
-
-                            is_charging_authorization = true;
-                        }
-                    }else if(rfidr_query_info_type() == APP_RFIDR_INFO_TYPE_ERROR){
-                        /** 提示：无效卡 */
-                        LOG_D("gunno(%d) invalid card in offline billing mode, read card number fail", gunno);
-                        app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
-                        thaisen_set_trigger_event(THAISEN_TRIG_EVENT_INVALID, 0x05, APP_THA_ENUM_TRUE, gunno);
-
-                        need_authorize_online = APP_THA_ENUM_FALSE;
-                    }else if(rfidr_query_info_type() == APP_RFIDR_INFO_TYPE_RW_FAIL){
-                        switch(app_card_query_operate_ret(gunno)){
-                        case APP_CARD_OPERATE_RET_NO_BALLANCE:
-                            LOG_D("gunno(%d) no ballance in offline billing mode", gunno);
-                            app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
-                            thaisen_set_trigger_event(THAISEN_TRIG_EVENT_CARD_NOBALLANCE, 0x05, APP_THA_ENUM_TRUE, gunno);
-                            break;
-                        case APP_CARD_OPERATE_RET_IS_LOCKED:
-                            LOG_D("gunno(%d) card is locked in offline billing mode", gunno);
-                            app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
-                            thaisen_set_trigger_event(THAISEN_TRIG_EVENT_CARD_LOCKED, 0x05, APP_THA_ENUM_TRUE, gunno);
-                            break;
-                        case APP_CARD_OPERATE_RET_HISTORY_BILL_ERROR:
-                            LOG_D("gunno(%d) card is locked(no bill) in offline billing mode", gunno);
-                            app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
-                            thaisen_set_trigger_event(THAISEN_TRIG_EVENT_CARD_LOCKED, 0x05, APP_THA_ENUM_TRUE, gunno);
-                            break;
-                        case APP_CARD_OPERATE_RET_IS_CHARGING:
-                            LOG_D("gunno(%d) this card is start in offline billing mode", gunno);
-                            app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
-                            thaisen_set_trigger_event(THAISEN_TRIG_EVENT_IS_CHARGING, 0x05, APP_THA_ENUM_TRUE, gunno);
-                            break;
-                        case APP_CARD_OPERATE_RET_PAYED:
-                            LOG_D("gunno(%d) card is payed in offline billing mode 777", gunno);
-                            break;
-                        case APP_CARD_OPERATE_RET_NULL:
-                            LOG_D("gunno(%d) current state is not allow stop in offline billing mode", gunno);
-                            break;
-                        default:
-                            LOG_D("gunno(%d) invalid card in offline billing mode 111", gunno);
-                            app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
-                            thaisen_set_trigger_event(THAISEN_TRIG_EVENT_INVALID, 0x05, APP_THA_ENUM_TRUE, gunno);
-                            break;
-                        }
-                        need_authorize_online = APP_THA_ENUM_FALSE;
+                    if(ofsm_swip_card_judge(gunno)){
+                        is_charging_authorization = true;
                     }else{
-                        need_authorize_online = APP_THA_ENUM_FALSE;
-                        if(s_ofsm_info[gunno].base.is_offline_billing == APP_THA_ENUM_TRUE){
-                            /** 提示鉴权失败, 信息有误 */;
-                            LOG_D("gunno(%d) operate card error in offline billing mode 00", gunno);
-                            app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
-                            thaisen_set_trigger_event(THAISEN_TRIG_EVENT_KEY_AUTHEN_FAIL, 0x05, APP_THA_ENUM_TRUE, gunno);
-                            return;
-                        }else{
-                            /** 信息有误, 蜂鸣器提示 */
-                            app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
-                        }
-                    }
-
-                    if(need_authorize_online){
-                        if(app_nsal_card_authorize(gunno) < 0x00){
-                            app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
-                            LOG_W("gunno(%d) swip card authorize fail", gunno);
-                            return;
-                        }
-                        s_ofsm_info[gunno].base.flag.card_authorization = APP_THA_ENUM_TRUE;
+                        return;
                     }
                 }else if(app_nsal_is_card_authorize_success(gunno)){
-                    uint8_t valid_len = 0x00;
                     app_nsal_clear_remote_card_authorize(gunno);
+
                     LOG_D("gunno(%d) start charge by online card", gunno);
-                    s_ofsm_info[gunno].base.flag.is_local_charging = APP_THA_ENUM_FALSE;
-                    s_ofsm_info[gunno].base.start_type = APP_CHARGE_START_WAY_ONLINE_CARD;
-
-                    valid_len = sizeof(s_ofsm_info[gunno].base.transaction_number);
-                    valid_len = valid_len > sizeof(s_thaisen_transaction[gunno].serial_number) ? sizeof(s_thaisen_transaction[gunno].serial_number) : valid_len;
-                    memset(s_thaisen_transaction[gunno].serial_number, 0x00, sizeof(s_thaisen_transaction[gunno].serial_number));
-                    memcpy(s_thaisen_transaction[gunno].serial_number, s_ofsm_info[gunno].base.transaction_number, valid_len);
-
-                    valid_len = sizeof(s_ofsm_info[gunno].base.card_uid);
-                    valid_len = valid_len > sizeof(s_thaisen_transaction[gunno].physics_card_number) ? sizeof(s_thaisen_transaction[gunno].physics_card_number) : valid_len;
-                    memset(s_thaisen_transaction[gunno].physics_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].physics_card_number));
-                    memcpy(s_thaisen_transaction[gunno].physics_card_number, s_ofsm_info[gunno].base.card_uid, valid_len);
-
-                    valid_len = sizeof(s_ofsm_info[gunno].base.card_number);
-                    valid_len = valid_len > sizeof(s_thaisen_transaction[gunno].logic_card_number) ? sizeof(s_thaisen_transaction[gunno].logic_card_number) : valid_len;
-                    memset(s_thaisen_transaction[gunno].logic_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].logic_card_number));
-                    memcpy(s_thaisen_transaction[gunno].logic_card_number, s_ofsm_info[gunno].base.card_number, valid_len);
-
-                    valid_len = sizeof(s_ofsm_info[gunno].base.user_number);
-                    valid_len = valid_len > sizeof(s_thaisen_transaction[gunno].user_number) ? sizeof(s_thaisen_transaction[gunno].user_number) : valid_len;
-                    memset(s_thaisen_transaction[gunno].user_number, 0x00, sizeof(s_thaisen_transaction[gunno].user_number));
-                    memcpy(s_thaisen_transaction[gunno].user_number, s_ofsm_info[gunno].base.user_number, valid_len);
-#ifdef APP_INCLUDE_SGCC_PROTOCOL
-                    memcpy(s_thaisen_transaction[gunno].device_serial_number, s_ofsm_info[gunno].base.device_transaction_number, \
-                            sizeof(s_ofsm_info[gunno].base.device_transaction_number));
-#endif /* APP_INCLUDE_SGCC_PROTOCOL */
-                    s_thaisen_transaction[gunno].account_ballance_before = s_ofsm_info[gunno].base.account_ballance_before;
-                    s_thaisen_transaction[gunno].account_ballance_after = s_ofsm_info[gunno].base.account_ballance_after;
-
-                    s_thaisen_transaction[gunno].start_type = APP_CHARGE_START_WAY_ONLINE_CARD;
-                    s_thaisen_transaction[gunno].order_state.online_order = APP_THA_ENUM_TRUE;
-
+                    ofsm_start_info_padding_online_card(gunno);
                     is_charging_authorization = true;
 
                 }else if(app_nsal_is_card_authorize_fail(gunno)){
                     app_nsal_clear_remote_card_authorize(gunno);
                     LOG_W("gunno(%d) swip card authorize response fail", gunno);
                     s_ofsm_info[gunno].base.flag.card_authorization = APP_THA_ENUM_FALSE;
-                    app_nsal_clear_remote_card_authorize(gunno);
 
                     app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
-                }else if(app_get_hci_event(gunno, HCI_EVENT_SCREEN_START, 1)){
-                    uint8_t valid_len = 0x00;
+
+                }else if(app_get_hci_event(gunno, HCI_EVENT_SCREEN_START, APP_THA_ENUM_TRUE)){
                     LOG_D("gunno(%d) start charge by screen", gunno);
-                    s_ofsm_info[gunno].base.flag.is_local_charging = APP_THA_ENUM_TRUE;
-                    s_ofsm_info[gunno].base.start_type = APP_CHARGE_START_WAY_SCREEN;
-                    s_ofsm_info[gunno].base.account_ballance_before = 0x00;
-                    s_ofsm_info[gunno].base.account_ballance_after = 0x00;
-                    s_ofsm_info[gunno].base.charge_strategy = APP_CHARGE_STRATEGY_FULL;
-                    s_ofsm_info[gunno].base.charge_strategy_para = 0x00;
-
-                    app_nsal_create_local_transaction_number(gunno, &(s_ofsm_info[gunno].base.transaction_number),  \
-                            sizeof(s_ofsm_info[gunno].base.transaction_number));
-#ifdef APP_INCLUDE_SGCC_PROTOCOL
-                    memcpy(s_ofsm_info[gunno].base.device_transaction_number, s_ofsm_info[gunno].base.transaction_number, \
-                            sizeof(s_ofsm_info[gunno].base.transaction_number));
-#endif /* APP_INCLUDE_SGCC_PROTOCOL */
-
-                    memset(s_ofsm_info[gunno].base.card_number, 0x00, sizeof(s_ofsm_info[gunno].base.card_number));
-                    memset(&(s_ofsm_info[gunno].base.card_uid), 0x00, sizeof(s_ofsm_info[gunno].base.card_uid));
-                    memset(s_ofsm_info[gunno].base.user_number, 0x00, sizeof(s_ofsm_info[gunno].base.user_number));
-
-                    valid_len = sizeof(s_ofsm_info[gunno].base.transaction_number);
-                    valid_len = valid_len > sizeof(s_thaisen_transaction[gunno].serial_number) ? sizeof(s_thaisen_transaction[gunno].serial_number) : valid_len;
-                    memset(s_thaisen_transaction[gunno].serial_number, 0x00, sizeof(s_thaisen_transaction[gunno].serial_number));
-                    memcpy(s_thaisen_transaction[gunno].serial_number, s_ofsm_info[gunno].base.transaction_number, valid_len);
-                    memset(s_thaisen_transaction[gunno].logic_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].logic_card_number));
-                    memset(s_thaisen_transaction[gunno].physics_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].physics_card_number));
-                    memset(s_thaisen_transaction[gunno].user_number, 0x00, sizeof(s_thaisen_transaction[gunno].user_number));
-#ifdef APP_INCLUDE_SGCC_PROTOCOL
-                    memcpy(s_thaisen_transaction[gunno].device_serial_number, s_ofsm_info[gunno].base.device_transaction_number, \
-                            sizeof(s_ofsm_info[gunno].base.device_transaction_number));
-#endif /* APP_INCLUDE_SGCC_PROTOCOL */
-                    s_thaisen_transaction[gunno].account_ballance_before = s_ofsm_info[gunno].base.account_ballance_before;
-                    s_thaisen_transaction[gunno].account_ballance_after = s_ofsm_info[gunno].base.account_ballance_after;
-
-                    s_thaisen_transaction[gunno].start_type = APP_CHARGE_START_WAY_SCREEN;
-                    s_thaisen_transaction[gunno].order_state.online_order = APP_THA_ENUM_FALSE;
-
+                    ofsm_start_info_padding_screen(gunno);
                     is_charging_authorization = true;
 
-                }else if(app_get_hci_event(gunno, HCI_EVENT_VIN_START, 1)){
-                    uint8_t valid_len = 0x00;
+                }else if(app_get_hci_event(gunno, HCI_EVENT_VIN_START, APP_THA_ENUM_TRUE)){
                     LOG_D("gunno(%d) start charge by VIN", gunno);
-                    s_ofsm_info[gunno].base.flag.is_local_charging = APP_THA_ENUM_TRUE;
-                    s_ofsm_info[gunno].base.flag.vin_authorization_success = APP_THA_ENUM_FALSE;
-                    s_ofsm_info[gunno].base.flag.vin_is_authorized = APP_THA_ENUM_FALSE;
-                    s_ofsm_info[gunno].base.start_type = APP_CHARGE_START_WAY_VIN;
-                    s_ofsm_info[gunno].base.account_ballance_before = 0x00;
-                    s_ofsm_info[gunno].base.account_ballance_after = 0x00;
-                    s_ofsm_info[gunno].base.charge_strategy = APP_CHARGE_STRATEGY_FULL;
-                    s_ofsm_info[gunno].base.charge_strategy_para = 0x00;
-
-                    app_nsal_create_local_transaction_number(gunno, &(s_ofsm_info[gunno].base.transaction_number),  \
-                            sizeof(s_ofsm_info[gunno].base.transaction_number));
-#ifdef APP_INCLUDE_SGCC_PROTOCOL
-                    memcpy(s_ofsm_info[gunno].base.device_transaction_number, s_ofsm_info[gunno].base.transaction_number, \
-                            sizeof(s_ofsm_info[gunno].base.transaction_number));
-#endif /* APP_INCLUDE_SGCC_PROTOCOL */
-
-                    memset(s_ofsm_info[gunno].base.car_vin, 0x00, sizeof(s_ofsm_info[gunno].base.car_vin));
-                    memset(s_ofsm_info[gunno].base.card_number, 0x00, sizeof(s_ofsm_info[gunno].base.card_number));
-                    memset(s_ofsm_info[gunno].base.card_uid, 0x00, sizeof(s_ofsm_info[gunno].base.card_uid));
-                    memset(s_ofsm_info[gunno].base.user_number, 0x00, sizeof(s_ofsm_info[gunno].base.user_number));
-
-                    valid_len = sizeof(s_ofsm_info[gunno].base.transaction_number);
-                    valid_len = valid_len > sizeof(s_thaisen_transaction[gunno].serial_number) ? sizeof(s_thaisen_transaction[gunno].serial_number) : valid_len;
-                    memset(s_thaisen_transaction[gunno].serial_number, 0x00, sizeof(s_thaisen_transaction[gunno].serial_number));
-                    memcpy(s_thaisen_transaction[gunno].serial_number, s_ofsm_info[gunno].base.transaction_number, valid_len);
-                    memset(s_thaisen_transaction[gunno].logic_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].logic_card_number));
-                    memset(s_thaisen_transaction[gunno].physics_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].physics_card_number));
-                    memset(s_thaisen_transaction[gunno].user_number, 0x00, sizeof(s_thaisen_transaction[gunno].user_number));
-#ifdef APP_INCLUDE_SGCC_PROTOCOL
-                    memcpy(s_thaisen_transaction[gunno].device_serial_number, s_ofsm_info[gunno].base.device_transaction_number, \
-                            sizeof(s_ofsm_info[gunno].base.device_transaction_number));
-#endif /* APP_INCLUDE_SGCC_PROTOCOL */
-                    s_thaisen_transaction[gunno].account_ballance_before = s_ofsm_info[gunno].base.account_ballance_before;
-                    s_thaisen_transaction[gunno].account_ballance_after = s_ofsm_info[gunno].base.account_ballance_after;
-
-                    s_thaisen_transaction[gunno].start_type = APP_CHARGE_START_WAY_VIN;
-                    s_thaisen_transaction[gunno].order_state.online_order = APP_THA_ENUM_FALSE;
-
+                    ofsm_start_info_padding_vin(gunno);
                     is_charging_authorization = true;
+
                 }
 
                 /************** 【充电桩已授权】 *************/
                 if(is_charging_authorization == true){
-#if 0
-                    uint8_t deputy_gunno = APP_SYSTEM_GUNNOA;
-#endif /* 0 */
-                    s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_STARTING];
-                    s_ofsm_info[gunno].state = APP_OFSM_STATE_STARTING;
-
-                    /* 启动前向屏幕对时 */
-                    thaisen_request_screen_time();
-
-                    if(s_ofsm_info[gunno].base.is_offline_billing == APP_THA_ENUM_TRUE){
+                    if(s_ofsm_info[gunno].base.run_mode == APP_RUN_MODE_OFFLINE_BILLING){
                         app_card_event_recv(APP_CARD_EVENT_CHARGE_STOP, 0x00, gunno, NULL, APP_THA_ENUM_TRUE);
                     }
-#if 0
-                    if(s_ofsm_info[gunno].base.charge_way != APP_CHARGE_WAY_PARACHARGE_CLOUD){
-                        s_ofsm_info[gunno].base.main_gunno = gunno;
-                        s_ofsm_info[gunno].base.charge_way = thaisen_get_charge_way();
-                    }
-                    if(s_ofsm_info[gunno].base.charge_way != APP_CHARGE_WAY_PARACHARGE_CLOUD){
-                        if(s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL){
-                            if(APP_SYSTEM_GUNNO_SIZE < 0x02){
-                                s_ofsm_info[gunno].base.charge_way = APP_CHARGE_WAY_SINGLEGUN;  /** 单枪桩不支持并充 */
-                            }else{
-                                if(gunno == APP_SYSTEM_GUNNOA){
-                                    deputy_gunno = APP_SYSTEM_GUNNOA + 0x01;
-                                }
-                                if((s_ofsm_info[deputy_gunno].base.flag.connect_state != APP_CONNECT_STATE_CONNECT)){
-                                    s_ofsm_info[gunno].base.charge_way = APP_CHARGE_WAY_SINGLEGUN;  /** 并充时两把枪都要插上 */
-                                }
-                                if((s_ofsm_info[deputy_gunno].state != APP_OFSM_STATE_READYING)){
-                                    s_ofsm_info[gunno].base.charge_way = APP_CHARGE_WAY_SINGLEGUN;  /** 并充时两把枪都要插上 */
-                                }
-                            }
-                        }
-                        s_ofsm_info[deputy_gunno].base.charge_way = s_ofsm_info[gunno].base.charge_way;
-                        s_ofsm_info[deputy_gunno].base.main_gunno = s_ofsm_info[gunno].base.main_gunno;
+                    /** 启动前向屏幕对时 */
+                    thaisen_request_screen_time();
 
-                        if(s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL){
-                            if(gunno == s_ofsm_info[gunno].base.main_gunno){
-                                s_ofsm_info[gunno].base.start_elect = (mw_get_meter_total_wh(gunno) + mw_get_meter_total_wh(deputy_gunno));
-                            }
-                            s_thaisen_transaction[gunno].charge_way = APP_CHARGE_WAY_PARACHARGE_LOCAL;
-                        }else{
-                            s_thaisen_transaction[gunno].charge_way = APP_CHARGE_WAY_SINGLEGUN;
-                            s_ofsm_info[gunno].base.start_elect = mw_get_meter_total_wh(gunno);
-                        }
-                    }else{
-                        s_ofsm_info[gunno].base.start_elect = mw_get_meter_total_wh(gunno);
-                    }
+                    ofsm_start_info_padding_public(gunno);
 
-                    thaisen_set_charge_way(s_ofsm_info[gunno].base.charge_way);
-#else
-                    s_ofsm_info[gunno].base.start_elect = mw_get_meter_total_wh(gunno);
-#endif /* 0 */
-                    s_ofsm_info[gunno].base.flag.is_starting = APP_THA_ENUM_FALSE;
-                    s_ofsm_info[gunno].base.flag.permit_judge_complete = APP_THA_ENUM_FALSE;
-                    s_ofsm_info[gunno].base.flag.start_result = APP_THA_ENUM_FALSE;
-                    s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_FALSE;
-                    s_ofsm_info[gunno].base.voltage_a = 0x00;
-                    s_ofsm_info[gunno].base.current_a = 0x00;
-                    s_ofsm_info[gunno].base.power_a = 0x00;
-                    s_ofsm_info[gunno].base.elect_a = 0x00;
-                    s_ofsm_info[gunno].base.fees_total = 0x00;
-                    s_ofsm_info[gunno].base.elect_fees_total = 0x00;
-                    s_ofsm_info[gunno].base.service_fees_total = 0x00;
-                    s_ofsm_info[gunno].base.current_elect = mw_get_meter_total_wh(gunno);
-                    s_ofsm_info[gunno].base.start_time = s_ofsm_info[gunno].base.current_time;
-                    s_ofsm_info[gunno].base.stop_time = s_ofsm_info[gunno].base.current_time;
-                    s_ofsm_info[gunno].base.charge_time = 0x00;
-                    s_ofsm_info[gunno].base.reason_code = APP_SYSTEM_STOP_WAY_SIZE;
-                    memset(s_ofsm_info[gunno].base.car_vin, 0x00, sizeof(s_ofsm_info[gunno].base.car_vin));
-                    s_ofsm_info[gunno].base.start_period = app_calculate_current_period(s_ofsm_info[gunno].base.start_time);
-                    s_ofsm_info[gunno].base.current_period = s_ofsm_info[gunno].base.start_period;
-                    s_ofsm_info[gunno].base.period_num = 0x01;
-                    s_ofsm_info[gunno].charge_timeout = rt_tick_get();
-                    s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
-                    s_ofsm_info[gunno].base.charctrl_state.last = APP_CHARGE_CTRL_STATE_IDLE;
-                    s_ofsm_info[gunno].base.charctrl_state.current = APP_CHARGE_CTRL_STATE_IDLE;
-                    s_ofsm_info[gunno].base.start_charge_tick = rt_tick_get();
-
-                    s_thaisen_transaction[gunno].start_time = s_ofsm_info[gunno].base.start_time;
-                    s_thaisen_transaction[gunno].end_time = s_thaisen_transaction[gunno].start_time;
-                    s_thaisen_transaction[gunno].charge_time = 0x00;
-                    s_thaisen_transaction[gunno].boot_result = s_ofsm_info[gunno].base.flag.start_result;
-                    memset(s_thaisen_transaction[gunno].car_vin, 0x00, sizeof(s_thaisen_transaction[gunno].car_vin));
-                    s_thaisen_transaction[gunno].start_soc = 0x00;
-                    s_thaisen_transaction[gunno].stop_soc = 0x00;
-                    s_thaisen_transaction[gunno].ammeter_start = s_ofsm_info[gunno].base.start_elect;
-                    s_thaisen_transaction[gunno].ammeter_stop = s_thaisen_transaction[gunno].ammeter_start;
-                    s_thaisen_transaction[gunno].stop_reason = APP_SYSTEM_STOP_WAY_POWER_OFF;
-                    s_thaisen_transaction[gunno].total_elect = 0x00;
-                    s_thaisen_transaction[gunno].total_loss_elect = 0x00;
-                    s_thaisen_transaction[gunno].charge_fee = 0x00;
-                    s_thaisen_transaction[gunno].service_fee = 0x00;
-                    s_thaisen_transaction[gunno].total_fee = 0x00;
-                    s_thaisen_transaction[gunno].run_mode = APP_RUN_MODE_4G_ETH;
-                    if(s_ofsm_info[gunno].base.is_offline_billing == APP_THA_ENUM_TRUE){
-                        s_thaisen_transaction[gunno].run_mode = APP_RUN_MODE_OFFLINE_BILLING;
-                    }
-
-#if (defined (APP_INCLUDE_YKC_PROTOCOL) || defined (APP_INCLUDE_YKC_PROTOCOL_MONITOR) || defined (APP_INCLUDE_YCP_PROTOCOL) || \
-        defined (APP_INCLUDE_SGCC_PROTOCOL))
-                    for(uint8_t type = 0x00; type < APP_BILLING_RULE_RATE_TYPE_MAX; type++){
-                        s_thaisen_transaction[gunno].rate_type_unit[type] = app_billingrule_get_rate_type_price(gunno, type);
-                    }
-                    memset(s_thaisen_transaction[gunno].rate_type_elect, 0x00, sizeof(s_thaisen_transaction[gunno].rate_type_elect));
-                    memset(s_thaisen_transaction[gunno].rate_type_amount, 0x00, sizeof(s_thaisen_transaction[gunno].rate_type_amount));
-                    memset(s_thaisen_transaction[gunno].rate_type_loss_elect, 0x00, sizeof(s_thaisen_transaction[gunno].rate_type_loss_elect));
-#endif /* (defined (APP_INCLUDE_YKC_PROTOCOL) || defined (APP_INCLUDE_YKC_PROTOCOL_MONITOR) || defined (APP_INCLUDE_YCP_PROTOCOL) ||
-        defined (APP_INCLUDE_SGCC_PROTOCOL)) */
-
-#if (defined (APP_INCLUDE_SL_PROTOCOL) || defined (APP_INCLUDE_SGCC_PROTOCOL))
-                    memset(s_thaisen_transaction[gunno].period_elect, 0x00, sizeof(s_thaisen_transaction[gunno].period_elect));
-                    memset(s_thaisen_transaction[gunno].period_elect_fees, 0x00, sizeof(s_thaisen_transaction[gunno].period_elect_fees));
-                    memset(s_thaisen_transaction[gunno].period_service_fees, 0x00, sizeof(s_thaisen_transaction[gunno].period_service_fees));
-                    memset(s_thaisen_transaction[gunno].period_occupy_fees, 0x00, sizeof(s_thaisen_transaction[gunno].period_occupy_fees));
-                    s_thaisen_transaction[gunno].rule = app_billingrule_get_rule(gunno);
-#endif /* (defined (APP_INCLUDE_SL_PROTOCOL) || defined (APP_INCLUDE_SGCC_PROTOCOL)) */
-
-#ifdef APP_INCLUDE_XJ_PROTOCOL
-                    s_thaisen_transaction[gunno].delay_fee = 0x00;
-#endif /* APP_INCLUDE_XJ_PROTOCOL */
-
-#if (defined (APP_INCLUDE_SL_PROTOCOL) || defined (APP_INCLUDE_XJ_PROTOCOL))
-                    s_thaisen_transaction[gunno].card_ballance_before = 0x00;
-                    s_thaisen_transaction[gunno].card_ballance_after = 0x00;
-#endif /* (defined (APP_INCLUDE_SL_PROTOCOL) || defined (APP_INCLUDE_XJ_PROTOCOL)) */
-
-#if (defined (APP_INCLUDE_SGCC_PROTOCOL))
-                    for(uint8_t type = 0x00; type < APP_BILLING_RULE_RATE_TYPE_MAX; type++){
-                        s_thaisen_transaction[gunno].rate_type_elect_amount[type] = 0x00;
-                        s_thaisen_transaction[gunno].rate_type_service_amount[type] = 0x00;
-                    }
-#endif /* (defined (APP_INCLUDE_SGCC_PROTOCOL)) */
-
-                    s_thaisen_transaction[gunno].start_period_number = s_ofsm_info[gunno].base.start_period;
-                    s_thaisen_transaction[gunno].period_count = s_ofsm_info[gunno].base.period_num;
-
-                    s_thaisen_transaction[gunno].order_state.verify_fail = APP_THA_ENUM_FALSE;
-                    s_thaisen_transaction[gunno].order_state.is_start_fail = APP_THA_ENUM_TRUE;
-                    s_thaisen_transaction[gunno].order_state.is_charging = APP_THA_ENUM_TRUE;
-
-                    app_nsal_init_charge_data(gunno);
-
-                    app_nsal_state_charged(gunno);
-                    app_nsal_event_occurded(gunno);
-
-                    mw_storage_record_create(&s_thaisen_transaction[gunno], sizeof(s_thaisen_transaction[gunno]), USER_DATA_TYPE_STORAGE,  \
-                            0x00, APP_THA_ENUM_FALSE, gunno);
-                    s_current_order_index[MONITOR_PLATFORM_INDEX][gunno] = mw_storage_record_get_current_index(gunno);
-                    s_current_order_index[TARGET_PLATFORM_INDEX][gunno] = s_current_order_index[MONITOR_PLATFORM_INDEX][gunno];
-                    memset(&(s_thaisen_transaction[gunno].bms_stop_reason), 0x00, sizeof(s_thaisen_transaction[gunno].bms_stop_reason));
-                    memset(&(s_thaisen_transaction[gunno].bms_fault_reason), 0x00, sizeof(s_thaisen_transaction[gunno].bms_fault_reason));
-                    s_booting_step[gunno] = APP_BOOTING_STEP_IDLE;                 /* 初始化充电步骤 */
+                    s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_STARTING];
+                    s_ofsm_info[gunno].state = APP_OFSM_STATE_STARTING;
                 }
                 break;
             default:
@@ -5505,7 +4673,7 @@ static void ofsm_faulting_fun(uint8_t gunno)
 void ofsm_fun_list_init(void)
 {
     for(uint8_t gunno = 0; gunno < APP_SYSTEM_GUNNO_SIZE; gunno++){
-        s_ofsm_fun_list[gunno][APP_OFSM_STATE_WAIT_NET] = ofsm_wait_net_fun;
+        s_ofsm_fun_list[gunno][APP_OFSM_STATE_WAIT_NET] = ofsm_info_init_fun;
         s_ofsm_fun_list[gunno][APP_OFSM_STATE_IDLEING] = ofsm_idleing_fun;
         s_ofsm_fun_list[gunno][APP_OFSM_STATE_READYING] = ofsm_readying_fun;
         s_ofsm_fun_list[gunno][APP_OFSM_STATE_RESERVATION] = ofsm_reservation_fun;
@@ -5541,6 +4709,17 @@ void ofsm_thread_entry(void *parameter)
     if(thread_gunno >= APP_SYSTEM_GUNNO_SIZE){
         thread_gunno = APP_SYSTEM_GUNNO_SIZE;
     }
+
+    s_ofsm_info[thread_gunno].base.run_mode = APP_RUN_MODE_4G_ETH;
+    if(*(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_SUPORT_OFFLINE_BILLING, APP_THA_ENUM_FALSE))){
+        s_ofsm_info[thread_gunno].base.run_mode = APP_RUN_MODE_OFFLINE_BILLING;
+    }else if(*(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_SUPORT_PLUGCHARGE, APP_THA_ENUM_FALSE))){
+        s_ofsm_info[thread_gunno].base.run_mode = APP_RUN_MODE_PLUG_AND_PLAY;
+    }else if(*(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_NET_TYPE, APP_THA_ENUM_FALSE)) == CP_NETTYPE_OFFLINE){
+        s_ofsm_info[thread_gunno].base.run_mode = APP_RUN_MODE_OFFLINE;
+    }
+
+    LOG_D("system run mode is:%d-%d", thread_gunno, s_ofsm_info[thread_gunno].base.run_mode);
     s_transaction_sending[TARGET_PLATFORM_INDEX][thread_gunno] = APP_THA_ENUM_FALSE;
     s_transaction_sending[MONITOR_PLATFORM_INDEX][thread_gunno] = APP_THA_ENUM_FALSE;
     s_ofsm_fun[thread_gunno] = s_ofsm_fun_list[thread_gunno][APP_OFSM_STATE_WAIT_NET];
@@ -5801,10 +4980,20 @@ void ofsm_thread_entry(void *parameter)
         extern void thaisenSetModuleMaxChargCurrGroup(uint8_t groupNum, uint16_t curr);
         thaisenSetModuleMaxChargCurrGroup(thread_gunno, singlegun_curr);
 
+        if(s_ofsm_info[thread_gunno].base.run_mode >= APP_RUN_MODE_SIZE){
+            s_ofsm_info[thread_gunno].base.run_mode = APP_RUN_MODE_4G_ETH;
+            if(*(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_SUPORT_OFFLINE_BILLING, APP_THA_ENUM_FALSE))){
+                s_ofsm_info[thread_gunno].base.run_mode = APP_RUN_MODE_OFFLINE_BILLING;
+            }else if(*(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_SUPORT_PLUGCHARGE, APP_THA_ENUM_FALSE))){
+                s_ofsm_info[thread_gunno].base.run_mode = APP_RUN_MODE_PLUG_AND_PLAY;
+            }else if(*(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_NET_TYPE, APP_THA_ENUM_FALSE)) == CP_NETTYPE_OFFLINE){
+                s_ofsm_info[thread_gunno].base.run_mode = APP_RUN_MODE_OFFLINE;
+            }
+            LOG_D("system run mode is:%d-%d", thread_gunno, s_ofsm_info[thread_gunno].base.run_mode);
+        }
         s_ofsm_info[thread_gunno].base.ammeter_elect = mw_get_meter_total_wh(thread_gunno);
         s_ofsm_info[thread_gunno].base.net_state = app_nsal_get_link_state();
         s_ofsm_info[thread_gunno].base.cc1_state = mw_get_cc1(thread_gunno);
-        s_ofsm_info[thread_gunno].base.is_offline_billing = (*(sys_read_config_item_content(CONFIG_ITEM_SUPORT_OFFLINE_BILLING, 0)));
         s_ofsm_info[thread_gunno].base.current_time = mw_get_current_timestamp();
         s_ofsm_info[thread_gunno].base.gunline_temperature[0x00] = mw_get_temp_dcp(thread_gunno); /* 正极实时获取温度值 */
         s_ofsm_info[thread_gunno].base.gunline_temperature[0x01] = mw_get_temp_dcn(thread_gunno); /* 负极实时获取温度值 */

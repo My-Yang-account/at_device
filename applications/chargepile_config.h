@@ -289,7 +289,8 @@
 /* net type */
 #define CP_NETTYPE_4G                                 0x00             /* 联网方式：4G */
 #define CP_NETTYPE_ETH                                0x01             /* 联网方式：以太网 */
-#define CP_NETTYPE_SIZE                               0x02
+#define CP_NETTYPE_OFFLINE                            0x02             /* 联网方式：离线模式 */
+#define CP_NETTYPE_SIZE                               0x03
 
 /* period num */
 #define CP_PERIOD_MAX                                 0x60             /* 时段总数 */

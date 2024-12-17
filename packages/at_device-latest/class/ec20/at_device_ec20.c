@@ -1001,6 +1001,14 @@ static void ec20_init_thread_entry(void *parameter)
             LOG_W("device current mode is offline billing, quit");
             break;
         }
+        if(*(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_NET_TYPE, 0x00)) == CP_NETTYPE_OFFLINE){
+            LOG_W("device current mode is offline, quit");
+            break;
+        }
+        if(*(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_SUPORT_PLUGCHARGE, 0x00))){
+            LOG_W("device current mode is plug and play, quit");
+            break;
+        }
         /* power on the ec20 device */
         if(ec20_power_on(device) >= 0){
             s_at_device_appinfo.boot = 1;

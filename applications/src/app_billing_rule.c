@@ -711,7 +711,7 @@ void app_billing_info_calculate(uint32_t current_time, uint32_t current_elect, u
         return;
     }
 
-    if((*(sys_read_config_item_content(CONFIG_ITEM_SUPORT_OFFLINE_BILLING, 0))) == 0x01){
+    if(get_ofsm_info(0x00)->base.run_mode == APP_RUN_MODE_OFFLINE_BILLING){
         is_offbilling_mode = 0x01;     /** 离线计费模式 */
     }
 

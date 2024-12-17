@@ -1535,6 +1535,9 @@ int32_t chargepile_check_config(void)
     if(s_chargepile_config_info.function_enable.offline_billing > 0x01){   /* 离线计费默认关闭 */
         s_chargepile_config_info.function_enable.offline_billing = 0x00;
     }
+    if(s_chargepile_config_info.function_enable.plug_charge > 0x01){       /* 即插即充默认关闭 */
+        s_chargepile_config_info.function_enable.plug_charge = 0x00;
+    }
 
     if(s_chargepile_config_info.state_reversal.emergency_stop > 0x01){   /* 急停默认不取反 */
         s_chargepile_config_info.state_reversal.emergency_stop = 0x00;
@@ -1556,6 +1559,15 @@ int32_t chargepile_check_config(void)
     }
     if(s_chargepile_config_info.state_reversal.elock > 0x01){   /* 电子锁默认不取反 */
         s_chargepile_config_info.state_reversal.elock = 0x00;
+    }
+
+    if(s_chargepile_config_info.function_enable.offline_billing == 0x01){        /* 离线计费第一优先 */
+        s_chargepile_config_info.function_enable.plug_charge = 0x00;
+    }else if(s_chargepile_config_info.function_enable.plug_charge == 0x01){      /* 即插即充第二优先 */
+        s_chargepile_config_info.function_enable.offline_billing = 0x00;
+    }else if(s_chargepile_config_info.network.nettype == CP_NETTYPE_OFFLINE){    /* 离线模式第三优先 */
+        s_chargepile_config_info.function_enable.offline_billing = 0x00;
+        s_chargepile_config_info.function_enable.plug_charge = 0x00;
     }
 
     single_module_power = s_chargepile_config_info.config_para.module_rated_outvolt *s_chargepile_config_info.config_para.module_rated_limit_curr;

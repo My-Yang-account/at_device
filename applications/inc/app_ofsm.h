@@ -79,9 +79,8 @@ enum system_gunno_enum{
 enum run_mode_enum{
     APP_RUN_MODE_4G_ETH,                               /* 桩运行模式：4G、以太网联网 */
     APP_RUN_MODE_OFFLINE_BILLING,                      /* 桩运行模式：4离线计费 */
-    APP_RUN_MODE_BLUE,                                 /* 桩运行模式：蓝牙联网 */
-    APP_RUN_MODE_WIFI,                                 /* 桩运行模式：wifi联网 */
-    APP_RUN_MODE_OTHER,                                /* 桩运行模式：非联网、非离线计费 */
+    APP_RUN_MODE_OFFLINE,                              /* 桩运行模式：离线模式 */
+    APP_RUN_MODE_PLUG_AND_PLAY,                        /* 桩运行模式：即插即充模式 */
     APP_RUN_MODE_SIZE,                                 /* 桩运行模式： */
 };
 
@@ -321,7 +320,7 @@ typedef struct
     uint32_t rate_type_service_amount[APP_BILLING_RULE_RATE_TYPE_MAX];    /* 费率类型服务费金额  */
 #endif /* (defined (APP_INCLUDE_SGCC_PROTOCOL) */
 
-    uint8_t run_mode;                     /* 运行模式：0：4G、以太网联网，1：离线计费，2：蓝牙联网，3：wifi联网，4：非联网、非离线计费 */
+    uint8_t run_mode;                     /* 运行模式：0：4G、以太网联网，1：离线计费，2：离线模式，3.即插即充 */
     uint8_t reserve[15];                  /* 预留 */
 }thaisen_transaction_t;
 /*******************************************************************************************/
@@ -437,7 +436,7 @@ typedef struct{
 #endif /* APP_INCLUDE_SGCC_PROTOCOL */
     uint8_t main_gunno;              /* 并充主枪枪号 */
     uint8_t charge_way;              /* 充电方式 */
-    uint8_t is_offline_billing;      /* 这是离线计费模式 */
+    uint8_t run_mode;                /* 运行模式：0：4G、以太网联网，1：离线计费，2：离线模式，3.即插即充 */
     void *bms_data;                  /* BMS 数据 */
 }System_BaseData;
 

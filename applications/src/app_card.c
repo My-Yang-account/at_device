@@ -617,7 +617,7 @@ static uint8_t app_card_another_gun_judge(uint8_t gunno)
  ****************************************************************************/
 static int32_t app_card_info_process(void* handle)
 {
-    if((*(sys_read_config_item_content(CONFIG_ITEM_SUPORT_OFFLINE_BILLING, 0))) != 0x01){
+    if(get_ofsm_info(0x00)->base.run_mode != APP_RUN_MODE_OFFLINE_BILLING){
         if((rfidr_query_info_type() == APP_RFIDR_INFO_TYPE_UUID) ||
                 (rfidr_query_info_type() == APP_RFIDR_INFO_TYPE_CARD_NUMBER)){
 
