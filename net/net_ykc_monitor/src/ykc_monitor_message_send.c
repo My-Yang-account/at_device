@@ -285,6 +285,7 @@ int32_t ykc_monitor_net_event_receive(uint8_t event_handle, uint8_t event_type, 
     }
 
     if(event_set == NULL){
+#ifdef NET_YKC_MONITOR_AS_MONITOR
         if(event_handle == NET_YKC_MONITOR_EXTERNAL_EHANDLE_CHARGEPILE){
             if(event_buf){
                 (*event_buf) = s_ykc_monitor_external_chargepile_event[gunno];
@@ -302,7 +303,7 @@ int32_t ykc_monitor_net_event_receive(uint8_t event_handle, uint8_t event_type, 
                 return 0x01;
             }
         }
-
+#endif /* NET_YKC_MONITOR_AS_MONITOR */
         return 0x00;
     }
 
@@ -587,6 +588,7 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
     LOG_D("ykc monitor current link ip[%s:%d]", host, port);
 
     s_ykc_monitor_socket_info.fd = -0x01;
+    s_ykc_monitor_socket_info.domain_is_prase = 0x00;
 
     while(1)
     {
@@ -621,7 +623,7 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
             }
             s_ykc_monitor_socket_info.state = YKC_MONITOR_SOCKET_STATE_SIM;
 #ifndef NET_YKC_MONITOR_AS_MONITOR
-            handle->net_state = NET_SOCKET_STATE_MODULE_SIM;
+            handle->net_state = NET_SOCKET_STATE_SIM;
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
             s_ykc_monitor_socket_info.fd = -0x01;
             step = NET_YKC_MONITOR_NET_STATE_OPEN_SOCKET;
@@ -639,7 +641,7 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
             }
             s_ykc_monitor_socket_info.state = YKC_MONITOR_SOCKET_STATE_DATA_LINK;
 #ifndef NET_YKC_MONITOR_AS_MONITOR
-            handle->net_state = NET_SOCKET_STATE_MODULE_DATA_LINK;
+            handle->net_state = NET_SOCKET_STATE_DATA_LINK;
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
             s_ykc_monitor_socket_info.fd = -0x01;
             step = NET_YKC_MONITOR_NET_STATE_OPEN_SOCKET;
@@ -692,6 +694,21 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
 #endif /* NET_TARGET_PLATFORM_ID == NET_YCP_PRO_ID */
 #endif /* NET_INCLUDE_TARGET_PLATFORM */
 
+#ifndef NET_YKC_MONITOR_AS_MONITOR
+        /** 进行域名解析 */
+        if(s_ykc_monitor_socket_info.domain_is_prase == 0x00){
+            char ip_str[0x10];   /** 点分十进制式IP，最大长度15，预留一位 */
+            if(ykc_monitor_socket_domain_parse(0x00, host, strlen(host), ip_str, sizeof(ip_str)) >= 0x00){
+                net_operation_set_target_socket_domain(ip_str, strlen(ip_str));
+                net_operation_set_target_socket_port(port);
+                s_ykc_monitor_socket_info.domain_is_prase = 0x01;
+
+                LOG_D("ykc monitor prase success[%s:%d]", ip_str, port);
+            }
+        }
+#else
+
+#endif /* NET_YKC_MONITOR_AS_MONITOR */
         /***************************************************** [登录认证] **********************************************************/
         /***************************************************** [登录认证] **********************************************************/
         if(s_ykc_monitor_socket_info.state != YKC_MONITOR_SOCKET_STATE_LOGIN_SUCCESS){

@@ -233,6 +233,11 @@ int ycp_socket_modify_recv_timeout(int fd, int32_t timeout)
     return net_socket_control(fd, NET_SOCKET_CONTROL_RECV_TIMEOUT, &timeout, sizeof(timeout), NULL, 0x00);
 }
 
+int ycp_socket_domain_parse(int fd, char *domain, uint8_t dlen, void *ret, uint8_t ret_len)
+{
+    return net_socket_control(fd, NET_SOCKET_CONTROL_DOMAIN_PARSE, domain, dlen, ret, ret_len);
+}
+
 void ycp_service_callback_register(uint8_t id, void *cb)
 {
     uint8_t service = 0x00;

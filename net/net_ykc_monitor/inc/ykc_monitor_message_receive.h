@@ -127,10 +127,13 @@ extern Net_YkcMonitorPro_SRes_TransactionRecords_t g_ykc_monitor_sres_transactio
 extern Net_YkcMonitorPro_SRes_ApplyCharge_Active_t g_ykc_monitor_sres_apply_charge_active[NET_SYSTEM_GUN_NUMBER];   // OK
 /** 充电桩主动申请并充充电响应 */
 extern Net_YkcMonitorPro_SRes_ApplyMergeCharge_Active_t g_ykc_monitor_sres_apply_merge_charge_active[NET_SYSTEM_GUN_NUMBER];   // OK
+
+#ifdef NET_YKC_MONITOR_AS_MONITOR
 /** 充电桩目标平台日志上报响应 */
 extern Net_YkcMonitorPro_Sres_TargetPlat_Log_t g_ykc_monitor_sres_target_plat_log;
 /** 充电桩设备信息上报响应 */
 extern Net_YkcMonitorPro_Sres_DevInfo_t g_ykc_monitor_sres_dev_info;
+#endif /* NET_YKC_MONITOR_AS_MONITOR */
 
 #pragma pack(1)
 

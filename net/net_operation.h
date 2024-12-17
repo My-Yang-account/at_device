@@ -286,6 +286,7 @@ typedef struct{
     uint8_t state;
     uint8_t open_count;
     uint8_t login_count;
+    uint8_t domain_is_prase;
     uint8_t domain[64];
     uint16_t port;
 }net_plat_socket_info_t;

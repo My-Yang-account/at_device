@@ -12,6 +12,8 @@
 
 #include "ykc_message_send.h"
 #include "ycp_message_send.h"
+#include "ykc_monitor_message_send.h"
+#include "sgcc_message_send.h"
 
 #define DBG_TAG "net_operation"
 #define DBG_LVL DBG_LOG
@@ -243,28 +245,40 @@ uint32_t net_operation_get_total_power(uint8_t gunno)
 net_plat_socket_info_t *net_operation_get_target_socket_info(void)
 {
 #ifdef NET_YKC_AS_TARGET
-    s_plat_socket_info.state = ykc_get_socket_info()->state;
-    s_plat_socket_info.open_count = ykc_get_socket_info()->operate_fail.open_socket;
-    s_plat_socket_info.login_count = ykc_get_socket_info()->operate_fail.login;
+    ykc_socket_info_t *ykc_socket = ykc_get_socket_info();
+    s_plat_socket_info.state = ykc_socket->state;
+    s_plat_socket_info.open_count = ykc_socket->operate_fail.open_socket;
+    s_plat_socket_info.login_count = ykc_socket->operate_fail.login;
 
     return &s_plat_socket_info;
 #endif /* NET_YKC_AS_TARGET */
 
 #ifdef NET_YKC_MONITOR_AS_TARGET
-    s_plat_socket_info.state = ykc_monitor_get_socket_info()->state;
-    s_plat_socket_info.open_count = ykc_monitor_get_socket_info()->operate_fail.open_socket;
-    s_plat_socket_info.login_count = ykc_monitor_get_socket_info()->operate_fail.login;
+    ykc_monitor_socket_info_t *ykc_monitor_socket = ykc_monitor_get_socket_info();
+    s_plat_socket_info.state = ykc_monitor_socket->state;
+    s_plat_socket_info.open_count = ykc_monitor_socket->operate_fail.open_socket;
+    s_plat_socket_info.login_count = ykc_monitor_socket->operate_fail.login;
 
     return &s_plat_socket_info;
 #endif /* NET_YKC_MONITOR_AS_TARGET */
 
 #ifdef NET_YCP_AS_TARGET
-    s_plat_socket_info.state = ycp_get_socket_info()->state;
-    s_plat_socket_info.open_count = ycp_get_socket_info()->operate_fail.open_socket;
-    s_plat_socket_info.login_count = ycp_get_socket_info()->operate_fail.login;
+    ycp_socket_info_t *ycp_socket = ycp_get_socket_info();
+    s_plat_socket_info.state = ycp_socket->state;
+    s_plat_socket_info.open_count = ycp_socket->operate_fail.open_socket;
+    s_plat_socket_info.login_count = ycp_socket->operate_fail.login;
 
     return &s_plat_socket_info;
 #endif /* NET_YCP_AS_TARGET */
+
+#ifdef NET_SGCC_AS_TARGET
+    sgcc_socket_info_t *sgcc_socket = sgcc_get_socket_info();
+    s_plat_socket_info.state = sgcc_socket->state;
+    s_plat_socket_info.open_count = 0x00;
+    s_plat_socket_info.login_count = sgcc_socket->operate_fail.login;
+
+    return &s_plat_socket_info;
+#endif /* NET_SGCC_AS_TARGET */
 
     return &s_plat_socket_info;
 }
@@ -275,14 +289,11 @@ net_plat_socket_info_t *net_operation_get_target_socket_info(void)
  * ***************************************/
 void net_operation_set_target_socket_domain(char* domain, uint8_t domain_len)
 {
-#if 0
     uint8_t valid_len = sizeof(s_plat_socket_info.domain);
     valid_len = valid_len > domain_len ? domain_len : valid_len;
 
     memset(s_plat_socket_info.domain, 0x00, sizeof(s_plat_socket_info.domain));
     memcpy(s_plat_socket_info.domain, domain, valid_len);
-#endif
-
 }
 
 /******************************************
@@ -291,9 +302,8 @@ void net_operation_set_target_socket_domain(char* domain, uint8_t domain_len)
  * ***************************************/
 void net_operation_set_target_socket_port(uint16_t port)
 {
-#if 0
     s_plat_socket_info.port = port;
-#endif
+    s_plat_socket_info.domain_is_prase = 0x01;    /** 先设置了 domain ，然后才设置port */
 }
 
 /******************************************

@@ -2306,8 +2306,10 @@ void ykc_monitor_chargepile_state_changed(uint8_t gunno)
         break;
     case APP_OFSM_STATE_FINISHING:
         if(s_ykc_monitor_flag_info[gunno].is_charge_finish == NET_ENUM_FALSE){
+#ifdef NET_YKC_MONITOR_AS_MONITOR
             ykc_monitor_net_event_send(NET_YKC_MONITOR_EXTERNAL_EHANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST,  \
                     gunno, NET_YKC_MONITOR_EXTERNAL_PREQ_EVENT_CHARGE_FINISH);
+#endif /* NET_YKC_MONITOR_AS_MONITOR */
         }
         s_ykc_monitor_flag_info[gunno].is_charge_finish = NET_ENUM_TRUE;
         s_ykc_monitor_state_info[gunno].state.state = NETYKC_MONITOR_DEVICE_STATE_IDLE;
@@ -2922,6 +2924,7 @@ int32_t ykc_monitor_realtime_process_init(void)
         return -0x01;
     }
 
+#ifdef NET_YKC_MONITOR_AS_MONITOR
     s_ykc_monitor_setvoltcurr.count = 0x00;
     s_ykc_monitor_setvoltcurr.is_locked = NET_ENUM_FALSE;
 
@@ -2932,6 +2935,7 @@ int32_t ykc_monitor_realtime_process_init(void)
         s_ykc_monitor_charging_info[gunno].count = 0x00;
         s_ykc_monitor_charging_info[gunno].is_locked = NET_ENUM_FALSE;
     }
+#endif /* NET_YKC_MONITOR_AS_MONITOR */
 
     return 0x00;
 }

@@ -396,6 +396,7 @@ static void net_ykc_message_send_thread_entry(void *parameter)
     LOG_D("ykc current link ip[%s:%d]", host, port);
 
     s_ykc_socket_info.fd = -0x01;
+    s_ykc_socket_info.domain_is_prase = 0x00;
 
     while(1)
     {
@@ -471,6 +472,18 @@ static void net_ykc_message_send_thread_entry(void *parameter)
             rt_thread_mdelay(1000);
             continue;
         }
+
+        /** 进行域名解析 */
+        if(s_ykc_socket_info.domain_is_prase == 0x00){
+            char ip_str[0x10];   /** 点分十进制式IP，最大长度15，预留一位 */
+            if(ykc_socket_domain_parse(0x00, host, strlen(host), ip_str, sizeof(ip_str)) >= 0x00){
+                net_operation_set_target_socket_domain(ip_str, strlen(ip_str));
+                net_operation_set_target_socket_port(port);
+                s_ykc_socket_info.domain_is_prase = 0x01;
+
+                LOG_D("ykc domain prase success[%s:%d]", ip_str, port);
+            }
+        }
         /***************************************************** [登录认证] **********************************************************/
         /***************************************************** [登录认证] **********************************************************/
         if(s_ykc_socket_info.state != YKC_SOCKET_STATE_LOGIN_SUCCESS){
@@ -484,9 +497,6 @@ static void net_ykc_message_send_thread_entry(void *parameter)
                 }
                 if(((rt_tick_get() - delay) > NET_YKC_LOGIN_OPERATION_INTERVAL) || is_power_on){
                     int32_t result = 0x00;
-
-                    net_operation_set_target_socket_domain(host, strlen(host));
-                    net_operation_set_target_socket_port(port);
 
                     result = ykc_socket_open(&(s_ykc_socket_info.fd), host, strlen(host), port);
                     if(result >= 0){

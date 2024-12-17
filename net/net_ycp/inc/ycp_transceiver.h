@@ -18,6 +18,8 @@
 #define YCP_RECV_BUFF_SIZE                                      16 + NET_OTA_SEGMENT_LEN    /* 接收缓存大小 */
 #define YCP_RECV_THREAD_STACK_SIZE                              2048                        /* 报文接收线程栈大小 */
 
+uint8_t ycp_socket_is_lock(void);
+
 int ycp_socket_open(int *fd, char* host, uint16_t host_len, uint16_t port);
 int ycp_socket_close(int fd);
 int ycp_socket_send(int fd, void *data, uint16_t len);
@@ -25,8 +27,7 @@ int ycp_socket_recv(int fd, void *buff, uint16_t len);
 int ycp_socket_data_comein(int fd, uint32_t timeout);
 int ycp_socket_wait_data_write(int fd, uint32_t timeout);
 int ycp_socket_modify_recv_timeout(int fd, int32_t timeout);
-
-uint8_t ycp_socket_is_lock(void);
+int ycp_socket_domain_parse(int fd, char *domain, uint8_t dlen, void *ret, uint8_t ret_len);
 
 void ycp_service_callback_register(uint8_t id, void *cb);
 void *ycp_get_service_callback(uint8_t id);
