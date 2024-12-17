@@ -827,9 +827,29 @@ int netdev_ethch395_socket_control(int socket_fd, uint8_t cmd, void *para, uint8
     switch(cmd){
     case NETDEV_ETHCH395_SOCKET_CONTROL_RECV_TIMEOUT:
         s_ethch395_socket_info[socket_fd].recv_timeout = *((int32_t*)para);
+        return 0x00;
         break;
     case NETDEV_ETHCH395_SOCKET_CONTROL_DOMAIN_PARSE:
+    {
+        if((para == NULL) || (para_len == 0x00)){
+            return -0x01;
+        }
+        if((ret == NULL) || (ret_len < 0x10)){  /** 点分十进制式IP，最长15字节，预留一字节 */
+            return -0x01;
+        }
 
+        uint8_t ip_str[0x04];
+        memset(ret, 0x00, ret_len);
+
+        if(host_is_pure_digital((char*)para, (uint16_t)para_len, ip_str, sizeof(ip_str)) == ETHCH395_ENUM_FALSE){
+            if(ethch395_domain_parse((char*)para, (uint16_t)para_len, ip_str, sizeof(ip_str)) < 0x00){
+                LOG_E("ethch395 socket control DNS domain parse fail(%s)n", (char*)para);
+                return -0x01;
+            }
+        }
+        sprintf((char*)ret, "%d.%d.%d.%d", ip_str[0x00], ip_str[0x01], ip_str[0x02], ip_str[0x03]);
+        return 0x00;
+    }
         break;
     default:
         break;

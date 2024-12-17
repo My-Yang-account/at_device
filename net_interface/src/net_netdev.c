@@ -202,6 +202,9 @@ int app_socket_control_port(int socket_fd, uint8_t cmd, void *para, uint8_t para
         case NET_SOCKET_CONTROL_RECV_TIMEOUT:
             return netdev_4g_socket_control(socket_fd, NETDEV_4G_SOCKET_CONTROL_RECV_TIMEOUT, para, para_len, ret, ret_len);
             break;
+        case NET_SOCKET_CONTROL_DOMAIN_PARSE:
+            return netdev_4g_socket_control(socket_fd, NETDEV_4G_SOCKET_CONTROL_DOMAIN_PARSE, para, para_len, ret, ret_len);
+            break;
         default:
             break;
         }
@@ -209,6 +212,9 @@ int app_socket_control_port(int socket_fd, uint8_t cmd, void *para, uint8_t para
         switch(cmd){
         case NET_SOCKET_CONTROL_RECV_TIMEOUT:
             return netdev_ethch395_socket_control(socket_fd, NETDEV_ETHCH395_SOCKET_CONTROL_RECV_TIMEOUT, para, para_len, ret, ret_len);
+            break;
+        case NET_SOCKET_CONTROL_DOMAIN_PARSE:
+            return netdev_ethch395_socket_control(socket_fd, NETDEV_ETHCH395_SOCKET_CONTROL_DOMAIN_PARSE, para, para_len, ret, ret_len);
             break;
         default:
             break;

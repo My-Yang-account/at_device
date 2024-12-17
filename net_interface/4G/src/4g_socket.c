@@ -49,6 +49,39 @@ static void _port_uint2str(uint16_t input, char *output)
     } while (i > 0);
 }
 
+static int32_t ip_u32tostr(uint32_t addr, const char* str, uint8_t str_len)
+{
+    if((str == NULL) || (str_len < 0x10)){   /** 点分十进制是IP最大长度：15，预留一字节 */
+        return -0x01;
+    }
+
+    uint32_t ip_addr = addr;
+    uint8_t i = 0x00, c = 0x00, used_len = 0x00;
+    memset((void*)str, 0x00, str_len);
+
+    for(i = 0x00; i < 0x04; i++){
+        c = ip_addr &0xFF;
+        sprintf((char*)(str + used_len), "%d", c);
+        used_len = strlen(str);
+        if(used_len >= str_len){
+            return -0x01;
+        }
+
+        if(i < (0x04 - 0x01)){
+            sprintf((char*)(str + used_len), "%c", '.');
+
+            used_len += 0x01;
+            ip_addr >>=0x08;
+
+            if((used_len + 0x03) >= str_len){   /** 一个十进制值最大占3位 */
+                return -0x01;
+            }
+        }
+    }
+
+    return 0x00;
+}
+
 int netdev_4g_socket_open_port(int *socket_fd, char* host, uint16_t host_len, uint16_t port)
 {
     uint8_t block_connect = 0x01;
@@ -309,7 +342,50 @@ int netdev_4g_socket_control(int socket_fd, uint8_t cmd, void *para, uint8_t par
         break;
     }
     case NETDEV_4G_SOCKET_CONTROL_DOMAIN_PARSE:
+    {
+        if((para == NULL) || (para_len == 0x00)){
+            return -0x01;
+        }
+        if((ret == NULL) || (ret_len < 0x10)){  /** 点分十进制式IP，最长15字节，预留一字节 */
+            return -0x01;
+        }
 
+        char port_str[6];
+        struct addrinfo hints;
+        struct addrinfo *addr_list = NULL;
+        struct sockaddr_in *sa4 = NULL;
+
+        memset(port_str, 0x00, sizeof(port_str));
+        memset(&hints, 0x00, sizeof(struct addrinfo));
+        hints.ai_family = AF_INET;         /* only IPv4 */
+        hints.ai_socktype = SOCK_STREAM;   /* socket 类型 */
+        hints.ai_protocol = IPPROTO_TCP;   /* 协议 */
+        hints.ai_flags = 0;                /* 标志 */
+
+        _port_uint2str(2000, port_str);
+
+        if(getaddrinfo((const char*)para, (const char*)port_str, &hints, &addr_list) < 0x00){
+            if(addr_list){
+                freeaddrinfo(addr_list);
+            }
+            return -0x01;
+        }
+
+        memset(ret, 0x00, ret_len);
+        sa4 = (struct sockaddr_in *)addr_list->ai_addr;
+
+        if(ip_u32tostr(sa4->sin_addr.s_addr, (const char*)ret, ret_len) < 0x00){
+            if(addr_list){
+                freeaddrinfo(addr_list);
+            }
+            return -0x01;
+        }
+
+        if(addr_list){
+            freeaddrinfo(addr_list);
+        }
+        return 0x00;
+    }
         break;
     default:
         break;
