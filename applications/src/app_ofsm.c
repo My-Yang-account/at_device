@@ -2208,29 +2208,29 @@ static void ofsm_starting_fun(uint8_t gunno)
                 s_ofsm_info[gunno].base.charge_fault = charge_fault;
                 s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
 
-            if((s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL) && (gunno == s_ofsm_info[gunno].base.main_gunno)){
-                uint8_t deputy_gunno = APP_SYSTEM_GUNNOA;
-                if(gunno == APP_SYSTEM_GUNNOA){
-                    deputy_gunno = APP_SYSTEM_GUNNOA + 0x01;
-                }
-                s_ofsm_info[gunno].base.charge_elect_last = (mw_get_meter_total_wh(gunno) + mw_get_meter_total_wh(deputy_gunno));
-            }else{
-                s_ofsm_info[gunno].base.charge_elect_last = mw_get_meter_total_wh(gunno);
-            }
-
-            /** 防止状态异常，上层已停止但下层还在充电 */
-            mw_charge_stop_cmd(gunno);
-            if(stop_way == APP_SYSTEM_STOP_WAY_NULL){
-                uint8_t rentry = 0x00;
-                while(rentry <= 20){  /** 最多等待 10s，等下层赋值完停充原因 */
-                    rt_thread_mdelay(500);
-                    stop_way = mw_get_system_stop_way(gunno);
-                    if(stop_way != APP_SYSTEM_STOP_WAY_NULL){
-                        break;
+                if((s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL) && (gunno == s_ofsm_info[gunno].base.main_gunno)){
+                    uint8_t deputy_gunno = APP_SYSTEM_GUNNOA;
+                    if(gunno == APP_SYSTEM_GUNNOA){
+                        deputy_gunno = APP_SYSTEM_GUNNOA + 0x01;
                     }
-                    rentry++;
+                    s_ofsm_info[gunno].base.charge_elect_last = (mw_get_meter_total_wh(gunno) + mw_get_meter_total_wh(deputy_gunno));
+                }else{
+                    s_ofsm_info[gunno].base.charge_elect_last = mw_get_meter_total_wh(gunno);
                 }
-            }
+
+                /** 防止状态异常，上层已停止但下层还在充电 */
+                mw_charge_stop_cmd(gunno);
+                if(stop_way == APP_SYSTEM_STOP_WAY_NULL){
+                    uint8_t rentry = 0x00;
+                    while(rentry <= 20){  /** 最多等待 10s，等下层赋值完停充原因 */
+                        rt_thread_mdelay(500);
+                        stop_way = mw_get_system_stop_way(gunno);
+                        if(stop_way != APP_SYSTEM_STOP_WAY_NULL){
+                            break;
+                        }
+                        rentry++;
+                    }
+                }
 
                 LOG_D("gunno(%d) charge stop deal to stop way(boot timeout)|%d\n", gunno, stop_way);
 
@@ -2439,18 +2439,18 @@ static void ofsm_starting_fun(uint8_t gunno)
                 s_ofsm_info[gunno].base.charge_fault = charge_fault;
                 s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
 
-            if((s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL) && (gunno == s_ofsm_info[gunno].base.main_gunno)){
-                uint8_t deputy_gunno = APP_SYSTEM_GUNNOA;
-                if(gunno == APP_SYSTEM_GUNNOA){
-                    deputy_gunno = APP_SYSTEM_GUNNOA + 0x01;
+                if((s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL) && (gunno == s_ofsm_info[gunno].base.main_gunno)){
+                    uint8_t deputy_gunno = APP_SYSTEM_GUNNOA;
+                    if(gunno == APP_SYSTEM_GUNNOA){
+                        deputy_gunno = APP_SYSTEM_GUNNOA + 0x01;
+                    }
+                    s_ofsm_info[gunno].base.charge_elect_last = (mw_get_meter_total_wh(gunno) + mw_get_meter_total_wh(deputy_gunno));
+                }else{
+                    s_ofsm_info[gunno].base.charge_elect_last = mw_get_meter_total_wh(gunno);
                 }
-                s_ofsm_info[gunno].base.charge_elect_last = (mw_get_meter_total_wh(gunno) + mw_get_meter_total_wh(deputy_gunno));
-            }else{
-                s_ofsm_info[gunno].base.charge_elect_last = mw_get_meter_total_wh(gunno);
-            }
 
-            s_thaisen_transaction[gunno].stop_reason = APP_SYSTEM_STOP_WAY_AUTHEN_FAIL;
-            s_ofsm_info[gunno].base.reason_code = s_thaisen_transaction[gunno].stop_reason;
+                s_thaisen_transaction[gunno].stop_reason = APP_SYSTEM_STOP_WAY_AUTHEN_FAIL;
+                s_ofsm_info[gunno].base.reason_code = s_thaisen_transaction[gunno].stop_reason;
 
                 LOG_D("gunno(%d) charge stop deal to vin authorization fail", gunno);
 
@@ -2529,17 +2529,17 @@ static void ofsm_starting_fun(uint8_t gunno)
             s_ofsm_info[gunno].base.charge_fault = charge_fault;
             s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
 
-        if((s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL) && (gunno == s_ofsm_info[gunno].base.main_gunno)){
-            uint8_t deputy_gunno = APP_SYSTEM_GUNNOA;
-            if(gunno == APP_SYSTEM_GUNNOA){
-                deputy_gunno = APP_SYSTEM_GUNNOA + 0x01;
+            if((s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL) && (gunno == s_ofsm_info[gunno].base.main_gunno)){
+                uint8_t deputy_gunno = APP_SYSTEM_GUNNOA;
+                if(gunno == APP_SYSTEM_GUNNOA){
+                    deputy_gunno = APP_SYSTEM_GUNNOA + 0x01;
+                }
+                s_ofsm_info[gunno].base.charge_elect_last = (mw_get_meter_total_wh(gunno) + mw_get_meter_total_wh(deputy_gunno));
+            }else{
+                s_ofsm_info[gunno].base.charge_elect_last = mw_get_meter_total_wh(gunno);
             }
-            s_ofsm_info[gunno].base.charge_elect_last = (mw_get_meter_total_wh(gunno) + mw_get_meter_total_wh(deputy_gunno));
-        }else{
-            s_ofsm_info[gunno].base.charge_elect_last = mw_get_meter_total_wh(gunno);
-        }
 
-        stop_way = mw_get_system_stop_way(gunno);
+            stop_way = mw_get_system_stop_way(gunno);
 
             /** 防止状态异常，上层已停止但下层还在充电 */
             mw_charge_stop_cmd(gunno);
@@ -3125,17 +3125,17 @@ static void ofsm_charging_fun(uint8_t gunno)
             s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_FALSE;
             s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
 
-        if((s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL) && (gunno == s_ofsm_info[gunno].base.main_gunno)){
-            uint8_t deputy_gunno = APP_SYSTEM_GUNNOA;
-            if(gunno == APP_SYSTEM_GUNNOA){
-                deputy_gunno = APP_SYSTEM_GUNNOA + 0x01;
+            if((s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL) && (gunno == s_ofsm_info[gunno].base.main_gunno)){
+                uint8_t deputy_gunno = APP_SYSTEM_GUNNOA;
+                if(gunno == APP_SYSTEM_GUNNOA){
+                    deputy_gunno = APP_SYSTEM_GUNNOA + 0x01;
+                }
+                s_ofsm_info[gunno].base.charge_elect_last = (mw_get_meter_total_wh(gunno) + mw_get_meter_total_wh(deputy_gunno));
+            }else{
+                s_ofsm_info[gunno].base.charge_elect_last = mw_get_meter_total_wh(gunno);
             }
-            s_ofsm_info[gunno].base.charge_elect_last = (mw_get_meter_total_wh(gunno) + mw_get_meter_total_wh(deputy_gunno));
-        }else{
-            s_ofsm_info[gunno].base.charge_elect_last = mw_get_meter_total_wh(gunno);
-        }
 
-        stop_way = mw_get_system_stop_way(gunno);
+            stop_way = mw_get_system_stop_way(gunno);
 
             /** 防止状态异常，上层已停止但下层还在充电 */
             mw_charge_stop_cmd(gunno);
@@ -3210,17 +3210,17 @@ static void ofsm_charging_fun(uint8_t gunno)
             s_ofsm_info[gunno].base.charge_fault = charge_fault;
             s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
 
-        if((s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL) && (gunno == s_ofsm_info[gunno].base.main_gunno)){
-            uint8_t deputy_gunno = APP_SYSTEM_GUNNOA;
-            if(gunno == APP_SYSTEM_GUNNOA){
-                deputy_gunno = APP_SYSTEM_GUNNOA + 0x01;
+            if((s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL) && (gunno == s_ofsm_info[gunno].base.main_gunno)){
+                uint8_t deputy_gunno = APP_SYSTEM_GUNNOA;
+                if(gunno == APP_SYSTEM_GUNNOA){
+                    deputy_gunno = APP_SYSTEM_GUNNOA + 0x01;
+                }
+                s_ofsm_info[gunno].base.charge_elect_last = (mw_get_meter_total_wh(gunno) + mw_get_meter_total_wh(deputy_gunno));
+            }else{
+                s_ofsm_info[gunno].base.charge_elect_last = mw_get_meter_total_wh(gunno);
             }
-            s_ofsm_info[gunno].base.charge_elect_last = (mw_get_meter_total_wh(gunno) + mw_get_meter_total_wh(deputy_gunno));
-        }else{
-            s_ofsm_info[gunno].base.charge_elect_last = mw_get_meter_total_wh(gunno);
-        }
 
-        stop_way = mw_get_system_stop_way(gunno);
+            stop_way = mw_get_system_stop_way(gunno);
 
             /** 防止状态异常，上层已停止但下层还在充电 */
             mw_charge_stop_cmd(gunno);
@@ -4055,6 +4055,8 @@ static void ofsm_stoping_fun(uint8_t gunno)
         s_ofsm_info[gunno].state = APP_OFSM_STATE_FINISHING;
 
         s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
+
+        app_nsal_state_charged(gunno);
 
         s_ofsm_info[gunno].base.main_gunno = 0x00;
         s_ofsm_info[gunno].base.charge_way = APP_CHARGE_WAY_NONE;    /** 复位充电模式 */
