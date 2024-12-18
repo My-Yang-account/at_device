@@ -16,6 +16,8 @@
 
 #define NET_YKC_MONITOR_USING_EXTEND_PROTOCOL                                      /* 使用监控扩展协议 */
 
+#define NET_YKC_MONITOR_STORAGE_INIT_FLAG                              0x12345678  /* 平台数据存储标志 */
+
 #define NET_YKC_MONITOR_MESSAGE_START_CODE                             0x68        /* 报文起始码 */
 #define NET_YKC_MONITOR_MESSAGE_ENCRYPT_ENABLE                         0x01        /* 报文加密 */
 #define NET_YKC_MONITOR_MESSAGE_ENCRYPT_DISABLE                        0x00        /* 报文不加密 */
@@ -297,6 +299,9 @@ enum ykc_monitor_cmd{
     NETYKC_MONITOR_SREQCMD_QUERY_TSOCKET_INFO = 0xC5,                /* 指令：运营平台查询目标socket信息 */
     NETYKC_MONITOR_PRESCMD_QUERY_TSOCKET_INFO = 0xC6,                /* 指令：远程查询目标socket信息命令回复 */
 
+    NETYKC_MONITOR_SREQCMD_FUNCTION_SWITCH = 0xCA,                   /* 指令：运营平台下发功能开关指令 */
+    NETYKC_MONITOR_PRESCMD_FUNCTION_SWITCH = 0xCB,                   /* 指令：功能开关指令回复 */
+
     NETYKC_MONITOR_SREQCMD_QUERY_SET_VOLTCURR = 0xCC,                /* 指令：运营平台查询给模块设置的电压、电流 */
     NETYKC_MONITOR_PRES_PREQCMD_QUERY_SET_VOLTCURR = 0xCD,           /* 指令：上报(响应)给模块设置的电压、电流 */
 
@@ -344,6 +349,18 @@ typedef union {
  */
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 #pragma pack(1)
+
+/** 监控平台数据存储体 */
+typedef struct{
+    uint32_t storage_init_flag;              /* 存储初始化标志 */
+    uint8_t verify_result;                   /* 数据校验结果 */
+
+    struct{
+        uint32_t tplat_log :1;               /* 功能开关：上报目标平台日志 */
+        uint32_t reserve0 :31;               /* 功能开关：预留 */
+        uint32_t reserve1 :32;               /* 功能开关：预留 */
+    }fswitch;                                /* 功能开关 1：开启  0：关闭 */
+}ykc_monitor_storage_struct;
 
 /** 协议头部 */
 typedef struct{
@@ -1432,6 +1449,28 @@ typedef struct{
     uint16_t check_sum;                          /* 校验码 */
 }Net_YkcMonitorPro_Preq_Pres_SetVoltCurr_t;
 
+/** 0xCA 服务器下发功能控制开关帧 */
+typedef struct{
+    Net_YkcMonitorPro_Head_t head;
+    struct{
+        uint8_t tplat_log;                       /* 目标平台数据(1：开启， 0：关闭) */
+        uint8_t reserve0;                        /* 预留 */
+        uint8_t reserve1;                        /* 预留 */
+        uint8_t reserve2;                        /* 预留 */
+        uint8_t reserve3;                        /* 预留 */
+        uint8_t reserve4;                        /* 预留 */
+    }body;
+    uint16_t check_sum;                          /* 校验码 */
+}Net_YkcMonitorPro_Sreq_FunctionSwitch_t;
+
+/** 0xCB 桩回复服务器下发功能控制开关帧 */
+typedef struct{
+    Net_YkcMonitorPro_Head_t head;
+    struct{
+        uint8_t result;                          /* 结果 */
+    }body;
+    uint16_t check_sum;                          /* 校验码 */
+}Net_YkcMonitorPro_Pres_FunctionSwitch_t;
 
 struct value{
     uint16_t symbol : 1;                         /* 数据的符号(0：正值，1：负值) */

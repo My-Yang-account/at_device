@@ -95,6 +95,9 @@ Net_YkcMonitorPro_SRes_ApplyMergeCharge_Active_t g_ykc_monitor_sres_apply_merge_
 Net_YkcMonitorPro_Sres_TargetPlat_Log_t g_ykc_monitor_sres_target_plat_log;
 /** 充电桩设备信息上报响应 */
 Net_YkcMonitorPro_Sres_DevInfo_t g_ykc_monitor_sres_dev_info;
+
+/** 服务器下发功能开关控制请求 */
+Net_YkcMonitorPro_Sreq_FunctionSwitch_t g_ykc_monitor_sreq_function_switch;
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
 
 #ifdef NET_YKC_MONITOR_AS_MONITOR
@@ -1555,6 +1558,29 @@ static void ykc_monitor_callback_response_report_dev_info(uint8_t* data, uint16_
     ykc_monitor_net_event_send(NET_YKC_MONITOR_USER_EVENT_HANDLE_SERVER, NET_YKC_MONITOR_EVENT_TYPE_RESPONSE, 0x00, NET_YKC_MONITOR_USER_SRES_EVENT_REPORT_DEV_INFO);
 }
 
+/*****************************************************************
+ * 函数名                   ykc_monitor_callback_request_function_switch
+ * 功能                       处理运营平台下发的功能开关控制指令
+ *           data       数据
+ *           length     数据长度
+ * 返回                        无
+ ****************************************************************/
+static void ykc_monitor_callback_request_function_switch(uint8_t* data, uint16_t length)
+{
+    if(data == NULL){
+        LOG_E("ykc monitor input data is null when call ykc_monitor_callback_request_function_switch");
+        return;
+    }
+    if(length != sizeof(Net_YkcMonitorPro_Sreq_FunctionSwitch_t)){
+        LOG_E("ykc monitor input length error when call ykc_monitor_callback_request_function_switch|%d, %d", length,
+                sizeof(Net_YkcMonitorPro_Sreq_FunctionSwitch_t));
+        return;
+    }
+
+    memcpy(&g_ykc_monitor_sreq_function_switch, data, length);
+    ykc_monitor_net_event_send(NET_YKC_MONITOR_USER_EVENT_HANDLE_SERVER, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, 0x00, NET_YKC_MONITOR_USER_SREQ_EVENT_FUNCTION_SWITCH);
+}
+
 #endif /* NET_PACK_USING_YKC_MONITOR */
 
 int32_t ykc_monitor_message_recv_init(void)
@@ -1594,6 +1620,7 @@ int32_t ykc_monitor_message_recv_init(void)
     ykc_monitor_service_callback_register(NETYKC_MONITOR_SRESCMD_TARGET_PLAT_LOG,            ykc_monitor_callback_response_report_tplat_log);
     ykc_monitor_service_callback_register(NETYKC_MONITOR_SREQCMD_QUERY_DVE_INFO,             ykc_monitor_callback_request_query_dev_info);
     ykc_monitor_service_callback_register(NETYKC_MONITOR_SRESCMD_REPORT_DVE_INFO,            ykc_monitor_callback_response_report_dev_info);
+    ykc_monitor_service_callback_register(NETYKC_MONITOR_SREQCMD_FUNCTION_SWITCH,            ykc_monitor_callback_request_function_switch);
 #endif /* #ifdef NET_YKC_MONITOR_AS_MONITOR */
 
     s_ykc_monitor_qrcode_buf.flag.is_used = 0x00;

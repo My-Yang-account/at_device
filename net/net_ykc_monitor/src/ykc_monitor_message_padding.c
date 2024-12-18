@@ -217,6 +217,30 @@ uint8_t ykc_monitor_is_set_power_success(void)
 }
 
 /*************************************************
+ * 函数名      ykc_monitor_storage_data_check
+ * 功能          校验存储的平台数据
+ * **********************************************/
+static void ykc_monitor_storage_data_check(void)
+{
+    uint8_t verify_success = 0x01;
+    ykc_monitor_storage_struct *config = (ykc_monitor_storage_struct*)(s_ykc_monitor_handle->get_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, 0x00, NET_SYSTEM_DATA_OPTION_MONITOR_PLAT));
+
+    if(config == NULL){
+        verify_success = 0x00;
+    }else if((config->verify_result == 0x00) || (config->storage_init_flag != NET_YKC_MONITOR_STORAGE_INIT_FLAG)){
+        verify_success = 0x00;
+    }
+
+    if(verify_success){
+        ykc_monitor_function_switch_set(config);
+    }else{
+
+    }
+
+    LOG_D("ykc_monitor_storage_data_check(%d)\n", config->fswitch.tplat_log);
+}
+
+/*************************************************
  * 函数名      ykc_monitor_response_padding_query_realtime_data
  * 功能          组包：查询实时数据响应
  * **********************************************/
@@ -1507,6 +1531,7 @@ void ykc_monitor_message_info_init(uint8_t gunno)  ///////// 这是网络部分�
     memset(&s_ykc_monitor_flag_info, 0x00, sizeof(s_ykc_monitor_flag_info));
 
     ykc_monitor_message_field_init(gunno);
+    ykc_monitor_storage_data_check();
 }
 
 /*************************************************
@@ -3906,6 +3931,65 @@ int8_t ykc_monitor_message_padding_charge_finish_info(uint8_t gunno, uint8_t *bu
 
     return 0x00;
 }
+
+/*************************************************
+ * 函数名      ykc_monitor_message_pro_function_switch
+ * 功能          处理服务器下发的功能开关控制请求
+ * **********************************************/
+int8_t ykc_monitor_message_pro_function_switch(void *data, uint8_t len)
+{
+    if(data == NULL){
+        return -0x01;
+    }
+    if(len < sizeof(Net_YkcMonitorPro_Sreq_FunctionSwitch_t)){
+        return -0x02;
+    }
+
+    Net_YkcMonitorPro_Sreq_FunctionSwitch_t *fswitch = (Net_YkcMonitorPro_Sreq_FunctionSwitch_t*)data;
+    ykc_monitor_storage_struct *config = (ykc_monitor_storage_struct*)(s_ykc_monitor_handle->get_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, 0x00, NET_SYSTEM_DATA_OPTION_MONITOR_PLAT));
+    if(config == NULL){
+        return -0x03;
+    }
+
+    config->storage_init_flag = NET_YKC_MONITOR_STORAGE_INIT_FLAG;
+    config->fswitch.tplat_log = fswitch->body.tplat_log;
+
+    if(s_ykc_monitor_handle->set_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, 0x00, NET_SYSTEM_DATA_OPTION_MONITOR_PLAT) < 0x00){
+        config->storage_init_flag = NET_YKC_MONITOR_STORAGE_INIT_FLAG - 0x01;
+        return -0x04;
+    }
+
+    ykc_monitor_function_switch_set(config);
+
+    return 0x00;
+}
+
+/*************************************************
+ * 函数名      ykc_monitor_response_padding_function_switch
+ * 功能          组包：功能开关控制响应
+ * **********************************************/
+int8_t ykc_monitor_response_padding_function_switch(uint8_t *buf, uint16_t ilen, uint16_t *olen)
+{
+    uint16_t data_len = sizeof(Net_YkcMonitorPro_Pres_FunctionSwitch_t);
+
+    if(buf == NULL){
+        return -0x01;
+    }
+    if(ilen < data_len){
+        return -0x02;
+    }
+
+    Net_YkcMonitorPro_Pres_FunctionSwitch_t *fswitch = (Net_YkcMonitorPro_Pres_FunctionSwitch_t*)buf;
+
+    fswitch->body.result = 0x01;
+
+    if(olen){
+        *olen = data_len;
+    }
+
+    return 0x00;
+}
+
 
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
 

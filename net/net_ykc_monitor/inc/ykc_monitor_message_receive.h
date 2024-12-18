@@ -68,6 +68,7 @@
 #define NET_YKC_MONITOR_USER_SREQ_EVENT_QUERY_FUNCTION_SETUP         6    /* 服务器监控请求事件：查询功能配置 */
 #define NET_YKC_MONITOR_USER_SREQ_EVENT_QUERY_TSOCKET_INFO           7    /* 服务器监控请求事件：查询目标socket */
 #define NET_YKC_MONITOR_USER_SREQ_EVENT_QUERY_DEV_INFO               8    /* 服务器监控请求事件：查询设备信息 */
+#define NET_YKC_MONITOR_USER_SREQ_EVENT_FUNCTION_SWITCH              9    /* 服务器监控请求事件：功能开关控制 */
 
 /** server user response event */
 #define NET_YKC_MONITOR_USER_SRES_EVENT_REPORT_TPLAT_LOG             0    /* 服务器监控响应事件：上报目标平台日志 */
@@ -133,6 +134,9 @@ extern Net_YkcMonitorPro_SRes_ApplyMergeCharge_Active_t g_ykc_monitor_sres_apply
 extern Net_YkcMonitorPro_Sres_TargetPlat_Log_t g_ykc_monitor_sres_target_plat_log;
 /** 充电桩设备信息上报响应 */
 extern Net_YkcMonitorPro_Sres_DevInfo_t g_ykc_monitor_sres_dev_info;
+
+/** 服务器下发功能开关控制请求 */
+extern Net_YkcMonitorPro_Sreq_FunctionSwitch_t g_ykc_monitor_sreq_function_switch;
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
 
 #pragma pack(1)

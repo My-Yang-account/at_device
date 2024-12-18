@@ -57,6 +57,11 @@ struct ykc_monitor_loghead{
     uint8_t log_num;                                                             /* 日志条数 */
     struct ykc_monitor_lognode node;                                             /* 下一个日志数据节点 */
 };
+
+typedef struct{
+    uint8_t tplat_log : 1;                                                       /* 功能开关：上报目标平台日志 */
+}ykc_monitor_fswitch;
+
 #pragma pack()
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
 
@@ -65,6 +70,7 @@ struct ykc_monitor_wait_response{
     uint32_t message_repeat_time[NET_SYSTEM_GUN_NUMBER][NET_YKC_MONITOR_CHARGEPILE_PREQ_NUM];  /* 报文重发计时 */
 };
 
+static ykc_monitor_fswitch s_ykc_monitor_fswitch;
 uint8_t s_ykc_monitor_current_transaction_number[NET_SYSTEM_GUN_NUMBER][NET_YKC_MONITOR_SERIAL_NUMBER_LENGTH_DEFAULT];
 static uint8_t s_ykc_monitor_same_transaction_report_count[NET_SYSTEM_GUN_NUMBER];
 static uint8_t s_ykc_monitor_transaction_verify[NET_SYSTEM_GUN_NUMBER];
@@ -133,6 +139,21 @@ Net_YkcMonitorPro_PReq_GroundLock_Info_t g_ykc_monitor_preq_ground_lock_info[NET
 Net_YkcMonitorPro_PReq_ApplyMergeCharge_Active_t g_ykc_monitor_preq_apply_merge_charge_active[NET_SYSTEM_GUN_NUMBER];  // OK
 /** 升级结果上送 */
 Net_YkcMonitorPro_PRes_RemoteUpdate_t g_ykc_monitor_pres_remote_update;  // OK
+
+/**************************************************************************
+ * 函数名                 ykc_monitor_function_switch_set
+ * 功能                     功能开关设置
+ * 说明
+ * ***********************************************************************/
+void ykc_monitor_function_switch_set(void* handle)
+{
+    if(handle == NULL){
+        return;
+    }
+    ykc_monitor_storage_struct *info = (ykc_monitor_storage_struct*)handle;
+
+    s_ykc_monitor_fswitch.tplat_log = info->fswitch.tplat_log;
+}
 
 /**************************************************************************
  * 函数名                 ykc_monitor_get_socket_info
@@ -471,7 +492,9 @@ void ykc_monitor_ascii_to_bcd(uint8_t *ascii, uint8_t alen, uint8_t *bcd, uint8_
  * ***********************************************************************/
 void ykc_monitor_platlog_data_insert(void *data, uint16_t len, uint8_t verify_result, const char* label)
 {
-    return;
+    if(!s_ykc_monitor_fswitch.tplat_log){
+        return;
+    }
 #ifdef NET_YKC_MONITOR_AS_MONITOR
     if((data == NULL) || (len == 0x00)){
         return;
@@ -1613,6 +1636,17 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
                 ykc_monitor_response_buff_release_sem();
                 rt_thread_mdelay(250);
             }
+            /***** [服务器功能控制开关响应] *****/
+            if(ykc_monitor_net_event_receive(NET_YKC_MONITOR_USER_EVENT_HANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_RESPONSE, gunno,
+                    (NET_YKC_MONITOR_EVENT_OPTION_OR |NET_YKC_MONITOR_EVENT_OPTION_CLEAR), NET_YKC_MONITOR_USER_PRES_EVENT_FUNCTION_SWITCH, NULL) > 0){
+                Net_YkcMonitorPro_Pres_FunctionSwitch_t *fswitch = (Net_YkcMonitorPro_Pres_FunctionSwitch_t*)(s_ykc_monitor_response_buff.general_transmit_buff);
+
+                fswitch->head.sequence = g_ykc_monitor_sreq_function_switch.head.sequence;
+                ykc_monitor_message_send_port(NETYKC_MONITOR_PRESCMD_FUNCTION_SWITCH, s_ykc_monitor_socket_info.fd, s_ykc_monitor_response_buff.general_transmit_buff,
+                        s_ykc_monitor_response_buff.length, NULL);
+                ykc_monitor_response_buff_release_sem();
+                rt_thread_mdelay(250);
+            }
         }
 
         /***************************************************** [充电桩监控数据请求] **********************************************************/
@@ -2410,7 +2444,25 @@ static void net_ykc_monitor_server_message_pro_entry(void *parameter)
                 response = ykc_monitor_get_response_buff(RT_WAITING_FOREVER);
                 result = ykc_monitor_message_padding_dev_info(response->general_transmit_buff, NET_YKC_MONITOR_GENERA_RESPONSE_BUFF_LENGTH, &(response->length));
                 if(result >= 0x00){
-                    ykc_monitor_net_event_send(NET_YKC_MONITOR_USER_EVENT_HANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, 0x00, NET_YKC_MONITOR_USER_PRES_EVENT_QUERY_DEV_INFO);
+                    ykc_monitor_net_event_send(NET_YKC_MONITOR_USER_EVENT_HANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_RESPONSE, 0x00, NET_YKC_MONITOR_USER_PRES_EVENT_QUERY_DEV_INFO);
+                }else{
+                    ykc_monitor_response_buff_release_sem();
+                }
+            }
+            /***** [功能开关控制请求] *****/
+            if(ykc_monitor_net_event_receive(NET_YKC_MONITOR_USER_EVENT_HANDLE_SERVER, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, gunno,
+                    (NET_YKC_MONITOR_EVENT_OPTION_OR |NET_YKC_MONITOR_EVENT_OPTION_CLEAR), NET_YKC_MONITOR_USER_SREQ_EVENT_FUNCTION_SWITCH, NULL) > 0){
+                uint8_t res = 0x00;
+                result = ykc_monitor_message_pro_function_switch(&g_ykc_monitor_sreq_function_switch, sizeof(g_ykc_monitor_sreq_function_switch));
+                if(result >= 0x00){
+                    res = 0x01;
+                }
+
+                response = ykc_monitor_get_response_buff(RT_WAITING_FOREVER);
+                result = ykc_monitor_response_padding_function_switch(response->general_transmit_buff, NET_YKC_MONITOR_GENERA_RESPONSE_BUFF_LENGTH, &(response->length));
+                if(result >= 0x00){
+                    ((Net_YkcMonitorPro_Pres_FunctionSwitch_t*)response->general_transmit_buff)->body.result = res;
+                    ykc_monitor_net_event_send(NET_YKC_MONITOR_USER_EVENT_HANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_RESPONSE, 0x00, NET_YKC_MONITOR_USER_PRES_EVENT_FUNCTION_SWITCH);
                 }else{
                     ykc_monitor_response_buff_release_sem();
                 }
@@ -2477,36 +2529,41 @@ static void net_ykc_monitor_server_message_pro_entry(void *parameter)
                 ykc_monitor_platlog_data_remove();
             }
             if(s_ykc_monitor_loghead.log_num){
-                uint16_t valid_len = 0x00;
-                struct ykc_monitor_lognode *log = ykc_monitor_platlog_data_query();
-                if(log){
-                    response = ykc_monitor_get_response_buff(RT_WAITING_FOREVER);
-                    if(NET_YKC_MONITOR_GENERA_RESPONSE_BUFF_LENGTH > (sizeof(Net_YkcMonitorPro_Preq_TargetPlat_Log_t) + NET_YKC_MONITOR_PROTOCOL_CHECK_REGION_SIZE)){
-                        if(log->log_size){
-                            log->log_size--;     /** 长度减去数据部分的第一字节(数据是否校验正确字段) */
-                        }
-                        valid_len = (NET_YKC_MONITOR_GENERA_RESPONSE_BUFF_LENGTH - (sizeof(Net_YkcMonitorPro_Preq_TargetPlat_Log_t) + NET_YKC_MONITOR_PROTOCOL_CHECK_REGION_SIZE));
-                        valid_len = valid_len > log->log_size ? log->log_size : valid_len;
-                        if(ykc_monitor_message_padding_log_info(response->general_transmit_buff, NET_YKC_MONITOR_GENERA_RESPONSE_BUFF_LENGTH, NULL) >= 0x00){
-                            Net_YkcMonitorPro_Preq_TargetPlat_Log_t *log_data = (Net_YkcMonitorPro_Preq_TargetPlat_Log_t*)response->general_transmit_buff;
-                            if(s_ykc_monitor_log_step != NET_YKC_MONITOR_LOG_STEP_REPEAT){
-                                s_ykc_monitor_current_log_id = rt_tick_get();
+                if(s_ykc_monitor_fswitch.tplat_log){
+                    uint16_t valid_len = 0x00;
+                    struct ykc_monitor_lognode *log = ykc_monitor_platlog_data_query();
+                    if(log){
+                        response = ykc_monitor_get_response_buff(RT_WAITING_FOREVER);
+                        if(NET_YKC_MONITOR_GENERA_RESPONSE_BUFF_LENGTH > (sizeof(Net_YkcMonitorPro_Preq_TargetPlat_Log_t) + NET_YKC_MONITOR_PROTOCOL_CHECK_REGION_SIZE)){
+                            if(log->log_size){
+                                log->log_size--;     /** 长度减去数据部分的第一字节(数据是否校验正确字段) */
                             }
-                            s_ykc_monitor_log_step = NET_YKC_MONITOR_LOG_STEP_ONGOING;
+                            valid_len = (NET_YKC_MONITOR_GENERA_RESPONSE_BUFF_LENGTH - (sizeof(Net_YkcMonitorPro_Preq_TargetPlat_Log_t) + NET_YKC_MONITOR_PROTOCOL_CHECK_REGION_SIZE));
+                            valid_len = valid_len > log->log_size ? log->log_size : valid_len;
+                            if(ykc_monitor_message_padding_log_info(response->general_transmit_buff, NET_YKC_MONITOR_GENERA_RESPONSE_BUFF_LENGTH, NULL) >= 0x00){
+                                Net_YkcMonitorPro_Preq_TargetPlat_Log_t *log_data = (Net_YkcMonitorPro_Preq_TargetPlat_Log_t*)response->general_transmit_buff;
+                                if(s_ykc_monitor_log_step != NET_YKC_MONITOR_LOG_STEP_REPEAT){
+                                    s_ykc_monitor_current_log_id = rt_tick_get();
+                                }
+                                s_ykc_monitor_log_step = NET_YKC_MONITOR_LOG_STEP_ONGOING;
 
-                            log_data->body.data_verify = log->log[0x00];
-                            log_data->body.id = s_ykc_monitor_current_log_id;
-                            memcpy((&(log_data->body.id) + 0x01), &(log->log[0x01]), valid_len);
-                            response->length = sizeof(Net_YkcMonitorPro_Preq_TargetPlat_Log_t) + NET_YKC_MONITOR_PROTOCOL_CHECK_REGION_SIZE + valid_len;
+                                log_data->body.data_verify = log->log[0x00];
+                                log_data->body.id = s_ykc_monitor_current_log_id;
+                                memcpy((&(log_data->body.id) + 0x01), &(log->log[0x01]), valid_len);
+                                response->length = sizeof(Net_YkcMonitorPro_Preq_TargetPlat_Log_t) + NET_YKC_MONITOR_PROTOCOL_CHECK_REGION_SIZE + valid_len;
 
-                            s_ykc_monitor_log_tick = rt_tick_get();
-                            ykc_monitor_net_event_send(NET_YKC_MONITOR_USER_EVENT_HANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, 0x00, NET_YKC_MONITOR_USER_PREQ_EVENT_REPORT_TPLAT_LOG);
+                                s_ykc_monitor_log_tick = rt_tick_get();
+                                ykc_monitor_net_event_send(NET_YKC_MONITOR_USER_EVENT_HANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, 0x00, NET_YKC_MONITOR_USER_PREQ_EVENT_REPORT_TPLAT_LOG);
+                            }else{
+                                ykc_monitor_response_buff_release_sem();
+                            }
                         }else{
                             ykc_monitor_response_buff_release_sem();
                         }
-                    }else{
-                        ykc_monitor_response_buff_release_sem();
                     }
+                }else{
+                    s_ykc_monitor_log_tick = rt_tick_get();
+                    s_ykc_monitor_log_step = NET_YKC_MONITOR_LOG_STEP_REPEAT;
                 }
             }
         }else{
