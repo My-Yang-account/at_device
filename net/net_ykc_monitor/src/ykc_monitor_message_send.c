@@ -568,9 +568,15 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
     uint32_t heartbeat_tick[NET_SYSTEM_GUN_NUMBER];
 
 #ifdef NET_YKC_MONITOR_AS_MONITOR
+#ifdef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL
+    /** 正式 */
+    char *host = "monitor.thaisen.cn";
+    uint16_t port = 9003;
+#else
     /** 正式 */
     char *host = "device.thaisen.cn";
     uint16_t port = 9003;
+#endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
     struct net_handle* handle = net_get_net_handle();
     uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC_MONITOR |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
 #else
@@ -671,6 +677,43 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
             continue;
         }
 
+#ifndef NET_YKC_MONITOR_AS_MONITOR
+        /** 进行域名解析 */
+        if(s_ykc_monitor_socket_info.domain_is_prase == 0x00){
+            char ip_str[0x10];   /** 点分十进制式IP，最大长度15，预留一位 */
+            if(ykc_monitor_socket_domain_parse(0x00, host, strlen(host), ip_str, sizeof(ip_str)) >= 0x00){
+                net_operation_set_target_socket_domain(ip_str, strlen(ip_str));
+                net_operation_set_target_socket_port(port);
+                s_ykc_monitor_socket_info.domain_is_prase = 0x01;
+
+                LOG_D("ykc monitor prase success[%s:%d]", ip_str, port);
+            }
+        }
+#else
+#ifdef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL
+        /** 使用监控扩展协议，需要将所有报文桩号字段重新初始化 */
+        if(s_ykc_monitor_socket_info.domain_is_prase == 0x00){
+            uint8_t valid_len;
+            net_plat_socket_info_t *socket_info = net_operation_get_target_socket_info();
+            if(socket_info->domain_is_prase == 0x01){
+                s_ykc_monitor_socket_info.domain_is_prase = 0x01;
+
+                valid_len = sizeof(s_ykc_monitor_socket_info.target_plat_ip);
+                valid_len = valid_len > sizeof(socket_info->domain) ? sizeof(socket_info->domain) : valid_len;
+                memset(s_ykc_monitor_socket_info.target_plat_ip, 0x00, sizeof(s_ykc_monitor_socket_info.target_plat_ip));
+                memcpy(s_ykc_monitor_socket_info.target_plat_ip, socket_info->domain, valid_len);
+
+                ykc_monitor_message_field_init(0x00);
+                LOG_D("ykc monitor queried target platform ip[%s:%d]", socket_info->domain, socket_info->port);
+            }else{
+                LOG_D("ykc monitor is waiting for target platform domain prase...");
+                rt_thread_mdelay(100);
+                continue;
+            }
+        }
+#endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
+#endif /* NET_YKC_MONITOR_AS_MONITOR */
+
 #ifdef NET_INCLUDE_TARGET_PLATFORM
 #if (NET_TARGET_PLATFORM_ID == NET_YCP_PRO_ID)
         if(is_power_on){
@@ -693,22 +736,6 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
         }
 #endif /* NET_TARGET_PLATFORM_ID == NET_YCP_PRO_ID */
 #endif /* NET_INCLUDE_TARGET_PLATFORM */
-
-#ifndef NET_YKC_MONITOR_AS_MONITOR
-        /** 进行域名解析 */
-        if(s_ykc_monitor_socket_info.domain_is_prase == 0x00){
-            char ip_str[0x10];   /** 点分十进制式IP，最大长度15，预留一位 */
-            if(ykc_monitor_socket_domain_parse(0x00, host, strlen(host), ip_str, sizeof(ip_str)) >= 0x00){
-                net_operation_set_target_socket_domain(ip_str, strlen(ip_str));
-                net_operation_set_target_socket_port(port);
-                s_ykc_monitor_socket_info.domain_is_prase = 0x01;
-
-                LOG_D("ykc monitor prase success[%s:%d]", ip_str, port);
-            }
-        }
-#else
-
-#endif /* NET_YKC_MONITOR_AS_MONITOR */
         /***************************************************** [登录认证] **********************************************************/
         /***************************************************** [登录认证] **********************************************************/
         if(s_ykc_monitor_socket_info.state != YKC_MONITOR_SOCKET_STATE_LOGIN_SUCCESS){

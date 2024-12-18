@@ -22,7 +22,11 @@
 #define DBG_LVL DBG_LOG
 #include <rtdbg.h>
 
+#ifdef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL
+#define YKC_MONITOR_MESSAGE_FIX_LEN_DEFAULT        0x05
+#else
 #define YKC_MONITOR_MESSAGE_FIX_LEN_DEFAULT        0x04
+#endif
 
 typedef struct{
     uint8_t socket_lock : 1;          /* socket正被操作：上锁 */
@@ -108,19 +112,33 @@ static uint16_t ykc_monitor_readline_data(int fd)
                 continue;
             }
         }
-        if(rlen == 0x02){
-            body_len = s_ykc_monitor_message_recv_buff[rlen - 0x01];
-            if((body_len + 0x04) > YKC_MONITOR_RECV_BUFF_SIZE){
+#ifdef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL
+        if(rlen == 0x03){
+            body_len = (uint16_t)((s_ykc_monitor_message_recv_buff[rlen - 0x01] <<0x08) |s_ykc_monitor_message_recv_buff[rlen - 0x02]);
+            if((body_len + YKC_MONITOR_MESSAGE_FIX_LEN_DEFAULT) > YKC_MONITOR_RECV_BUFF_SIZE){
                 rlen = 0x00;
-                LOG_W("ykc monitor net message receive buff not enough|%d, %d\n", (body_len + 0x04), YKC_MONITOR_RECV_BUFF_SIZE);
+                LOG_W("ykc monitor net message receive buff not enough|%d, %d\n", (body_len + YKC_MONITOR_MESSAGE_FIX_LEN_DEFAULT), YKC_MONITOR_RECV_BUFF_SIZE);
                 return 0x00;
             }
-            rbyte = body_len + 0x02;
+            rbyte = body_len + NET_YKC_MONITOR_PROTOCOL_CHECK_REGION_SIZE;
         }
-
-        if(rlen >= (body_len + 0x04)){
+        if(rlen >= (body_len + YKC_MONITOR_MESSAGE_FIX_LEN_DEFAULT)){
             return rlen;
         }
+#else
+        if(rlen == 0x02){
+            body_len = s_ykc_monitor_message_recv_buff[rlen - 0x01];
+            if((body_len + YKC_MONITOR_MESSAGE_FIX_LEN_DEFAULT) > YKC_MONITOR_RECV_BUFF_SIZE){
+                rlen = 0x00;
+                LOG_W("ykc monitor net message receive buff not enough|%d, %d\n", (body_len + YKC_MONITOR_MESSAGE_FIX_LEN_DEFAULT), YKC_MONITOR_RECV_BUFF_SIZE);
+                return 0x00;
+            }
+            rbyte = body_len + NET_YKC_MONITOR_PROTOCOL_CHECK_REGION_SIZE;
+        }
+        if(rlen >= (body_len + YKC_MONITOR_MESSAGE_FIX_LEN_DEFAULT)){
+            return rlen;
+        }
+#endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
     }
 }
 
@@ -172,7 +190,7 @@ static void ykc_monitor_message_recv_thread_entry(void *parameter)
     }
 }
 
-int32_t ykc_monitor_message_send_port(uint8_t cmd, int fd, void *data, uint16_t len, char* lable)
+int32_t ykc_monitor_message_send_port(uint16_t cmd, int fd, void *data, uint32_t len, char* lable)
 {
     if(data == NULL){
         return -0x01;
@@ -189,9 +207,9 @@ int32_t ykc_monitor_message_send_port(uint8_t cmd, int fd, void *data, uint16_t 
     Net_YkcMonitorPro_Head_t *head = (Net_YkcMonitorPro_Head_t*)data;
     head->start_code = NET_YKC_MONITOR_MESSAGE_START_CODE;
     head->type = cmd;
-    head->length = len - 0x04;
+    head->length = len - YKC_MONITOR_MESSAGE_FIX_LEN_DEFAULT;
     check_code = net_get_net_handle()->crc16_8005(0xFFFF, (uint8_t*)&(((Net_YkcMonitorPro_Head_t*)data)->sequence), \
-            (len - 0x04));
+            (len - YKC_MONITOR_MESSAGE_FIX_LEN_DEFAULT));
 
     *((uint8_t*)data + len - 0x01) = (uint8_t)(check_code >>0x08);
     *((uint8_t*)data + len - 0x02) = check_code;

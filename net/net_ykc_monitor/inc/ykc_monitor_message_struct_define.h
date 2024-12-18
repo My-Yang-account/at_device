@@ -14,6 +14,8 @@
 
 #ifdef NET_PACK_USING_YKC_MONITOR
 
+#define NET_YKC_MONITOR_USING_EXTEND_PROTOCOL                                      /* 使用监控扩展协议 */
+
 #define NET_YKC_MONITOR_MESSAGE_START_CODE                             0x68        /* 报文起始码 */
 #define NET_YKC_MONITOR_MESSAGE_ENCRYPT_ENABLE                         0x01        /* 报文加密 */
 #define NET_YKC_MONITOR_MESSAGE_ENCRYPT_DISABLE                        0x00        /* 报文不加密 */
@@ -34,7 +36,12 @@
 #define NET_YKC_MONITOR_PILE_TYPE_DC                                   0x00        /* 桩类型：直流 */
 #define NET_YKC_MONITOR_PILE_TYPE_AC                                   0x01        /* 桩类型：交流 */
 
+#ifdef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL
+#define NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT                      0x40        /* 默认桩号长度 */
+#else
 #define NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT                      0x07        /* 默认桩号长度 */
+#endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
+
 #define NET_YKC_MONITOR_CARD_NUMBER_LENGTH_MAX                         0x08        /* 卡号长度最大值 */
 #define NET_YKC_MONITOR_CAR_VIN_NUMBER_LENGTH_MAX                      0x11        /* 车VIN码长度最大值 */
 #define NET_YKC_MONITOR_RATE_PERIOD_COUNT_MAX                          0x30        /* 费率时段数 */
@@ -340,11 +347,19 @@ typedef union {
 
 /** 协议头部 */
 typedef struct{
+#ifdef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL
+    uint8_t start_code;                           /* 起始码 */
+    uint16_t length;                              /* 数据长度 */
+    uint16_t sequence;                            /* 序列号 */
+    uint8_t encrypt;                              /* 加密标志 */
+    uint16_t type;                                /* 帧类型 */
+#else
     uint8_t start_code;                           /* 起始码 */
     uint8_t length;                               /* 数据长度 */
     uint16_t sequence;                            /* 序列号 */
     uint8_t encrypt;                              /* 加密标志 */
     uint8_t type;                                 /* 帧类型 */
+#endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
 }Net_YkcMonitorPro_Head_t;
 
 /** 0x01 登录签到帧 */
@@ -1308,7 +1323,9 @@ typedef struct{
     Net_YkcMonitorPro_Head_t head;
     struct{
         uint8_t pile_number[NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT];  /* 桩号*/
+#ifndef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL
         uint8_t pile_number_whole[48];           /* 真正的桩号*/
+#endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
         uint8_t interconnecting_way;             /* 联网方式 */
         uint8_t hardware[16];                    /* 硬件版本 */
         uint8_t soft_model[16];                  /* 软件型号 */
@@ -1324,7 +1341,9 @@ typedef struct{
     Net_YkcMonitorPro_Head_t head;
     struct{
         uint8_t pile_number[NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT];  /* 桩号*/
+#ifndef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL
         uint8_t pile_number_whole[48];           /* 真正的桩号*/
+#endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
     }body;
     uint16_t check_sum;                          /* 校验码 */
 }Net_YkcMonitorPro_Sres_DevInfo_t;
@@ -1334,7 +1353,9 @@ typedef struct{
     Net_YkcMonitorPro_Head_t head;
     struct{
         uint8_t pile_number[NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT];  /* 桩号*/
+#ifndef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL
         uint8_t pile_number_whole[48];           /* 真正的桩号*/
+#endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
         uint8_t data_verify;                     /* 日志数据校验是否正确(1:正确，0：错误) */
         uint32_t id;                             /* 报文ID */
         /** 以下为数据部分 */
@@ -1346,7 +1367,9 @@ typedef struct{
     Net_YkcMonitorPro_Head_t head;
     struct{
         uint8_t pile_number[NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT];  /* 桩号*/
+#ifndef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL
         uint8_t pile_number_whole[48];           /* 真正的桩号*/
+#endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
         uint32_t id;                             /* 报文ID */
     }body;
     uint16_t check_sum;                          /* 校验码 */
@@ -1364,7 +1387,9 @@ typedef struct{
     Net_YkcMonitorPro_Head_t head;
     struct{
         uint8_t pile_number[NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT];  /* 桩号*/
+#ifndef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL
         uint8_t pile_number_whole[48];           /* 真正的桩号*/
+#endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
         struct fees_info fees[96];               /* 费率信息 */
     }body;
     uint16_t check_sum;                          /* 校验码 */
@@ -1375,7 +1400,9 @@ typedef struct{
     Net_YkcMonitorPro_Head_t head;
     struct{
         uint8_t pile_number[NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT];  /* 桩号*/
+#ifndef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL
         uint8_t pile_number_whole[48];           /* 真正的桩号*/
+#endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
         uint8_t domain[128];                     /* 域名 */
         uint16_t port;                           /* 域名 */
         uint8_t state;                           /* 域名 */

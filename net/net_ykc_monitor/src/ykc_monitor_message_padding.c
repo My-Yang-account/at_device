@@ -1361,9 +1361,25 @@ void ykc_monitor_message_field_init(uint8_t gun)
     g_ykc_monitor_preq_login.head.encrypt = NET_YKC_MONITOR_MESSAGE_ENCRYPT_DISABLE;
     g_ykc_monitor_preq_login.head.sequence = 0x00;
 
-    valid_len = valid_len > (NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT *0x02) ? (NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT *0x02) : valid_len;
+#ifdef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL
+    uint8_t used_len = 0x00;
+    ykc_monitor_socket_info_t *socket_info = ykc_monitor_get_socket_info();
 
+    valid_len = valid_len > (used_len + (strlen((char*)pile_number) + 0x01)) ? (used_len + (strlen((char*)pile_number) + 0x01)) : valid_len;
+    if(valid_len){
+        sprintf((char*)g_ykc_monitor_preq_login.body.pile_number, "%s_", pile_number);
+    }
+    used_len += (used_len + (strlen((char*)pile_number) + 0x01));
+
+    valid_len = valid_len > (used_len + strlen((char*)socket_info->target_plat_ip)) ? (used_len + strlen((char*)socket_info->target_plat_ip)) : valid_len;
+    if(valid_len){
+        sprintf((char*)(g_ykc_monitor_preq_login.body.pile_number + used_len), "%s", socket_info->target_plat_ip);
+    }
+#else
+    valid_len = valid_len > (NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT *0x02) ? (NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT *0x02) : valid_len;
     ykc_monitor_ascii_to_bcd(pile_number, valid_len, g_ykc_monitor_preq_login.body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
+#endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
+
     g_ykc_monitor_preq_login.body.pile_type = NET_YKC_MONITOR_PILE_TYPE_DC;
     g_ykc_monitor_preq_login.body.gun_count = NET_SYSTEM_GUN_NUMBER;
     g_ykc_monitor_preq_login.body.protocol_ver = NET_YKC_MONITOR_PROTOCOL_VERSION;
@@ -3230,10 +3246,12 @@ int8_t ykc_monitor_message_padding_tsocket_info(uint8_t *buf, uint16_t ilen, uin
 
     pile_number = (uint8_t*)(s_ykc_monitor_handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, 0x00, option));
 
+#ifndef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL
     valid_len = sizeof(message->body.pile_number_whole);
     valid_len = valid_len > strlen((char*)pile_number) ? strlen((char*)pile_number) : valid_len;
     memset(message->body.pile_number_whole, 0x00, sizeof(message->body.pile_number_whole));
     memcpy(message->body.pile_number_whole, pile_number, valid_len);
+#endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
 
     valid_len = sizeof(message->body.domain);
     valid_len = valid_len > sizeof(socket->domain) ? sizeof(socket->domain) : valid_len;
@@ -3273,10 +3291,12 @@ int8_t ykc_monitor_message_padding_log_info(uint8_t *buf, uint16_t ilen, uint16_
 
     pile_number = (uint8_t*)(s_ykc_monitor_handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, 0x00, option));
 
+#ifndef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL
     valid_len = sizeof(message->body.pile_number_whole);
     valid_len = valid_len > strlen((char*)pile_number) ? strlen((char*)pile_number) : valid_len;
     memset(message->body.pile_number_whole, 0x00, sizeof(message->body.pile_number_whole));
     memcpy(message->body.pile_number_whole, pile_number, valid_len);
+#endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
 
     if(olen){
         *olen = total;
@@ -3307,10 +3327,12 @@ int8_t ykc_monitor_message_padding_dev_info(uint8_t *buf, uint16_t ilen, uint16_
 
     data = (uint8_t*)(s_ykc_monitor_handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, 0x00, option));
 
+#ifndef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL
     valid_len = sizeof(message->body.pile_number_whole);
     valid_len = valid_len > strlen((char*)data) ? strlen((char*)data) : valid_len;
     memset(message->body.pile_number_whole, 0x00, sizeof(message->body.pile_number_whole));
     memcpy(message->body.pile_number_whole, data, valid_len);
+#endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
 
     data = (uint8_t*)(s_ykc_monitor_handle->get_system_data(NET_SYSTEM_DATA_NAME_NETWORKED_WAY, NULL, 0x00, option));
     if(*data == *(uint8_t*)(NET_NETWORKED_WAY_4G)){

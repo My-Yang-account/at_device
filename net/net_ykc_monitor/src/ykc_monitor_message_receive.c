@@ -203,6 +203,23 @@ void* ykc_monitor_get_card_vin_whitelists_info(void)
     return &s_ykc_monitor_card_vin_buf;
 }
 
+/***********************************************
+ * 函数名      ykc_monitor_pile_number_invalid
+* 功能           判断报文桩号字段是否有效
+* 参数            number   报文所含桩号
+*        code      报文指令码
+* 返回           1：无效       0：有效
+ **********************************************/
+static uint8_t ykc_monitor_pile_number_invalid(uint8_t *number, uint16_t code)
+{
+    if(memcmp(number, g_ykc_monitor_preq_login.body.pile_number, strlen((char*)g_ykc_monitor_preq_login.body.pile_number))){
+        LOG_E("ykc monitor chargepile number error cmd|%04X [%s|%s", code, number, g_ykc_monitor_preq_login.body.pile_number);
+        return 0x01;
+    }
+
+    return 0x00;
+}
+
 /*****************************************************************
  * 函数名                   ykc_monitor_callback_response_login
  * 功能                       处理登录响应
@@ -221,16 +238,9 @@ static void ykc_monitor_callback_response_login(uint8_t* data, uint16_t length)
                 sizeof(Net_YkcMonitorPro_SRes_LogIn_t) + NET_YKC_MONITOR_PROTOCOL_CHECK_REGION_SIZE);
         return;
     }
-    uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC_MONITOR |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
-    struct net_handle* handle = net_get_net_handle();
-    char *pile_number = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, 0x00, option));
-    uint8_t pile_numberbcd[NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT];
-    uint16_t valid_len = strlen((char*)pile_number);
+    Net_YkcMonitorPro_SRes_LogIn_t *response = (Net_YkcMonitorPro_SRes_LogIn_t*)data;
 
-    valid_len = valid_len > (NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT *0x02) ? (NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT *0x02) : valid_len;
-    ykc_monitor_ascii_to_bcd((uint8_t*)pile_number, valid_len, pile_numberbcd, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
-    if(memcmp(pile_numberbcd, ((Net_YkcMonitorPro_SRes_LogIn_t*)data)->body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT)){
-        LOG_E("ykc monitor chargepile number error when call tha_callback_response_login");
+    if(ykc_monitor_pile_number_invalid(response->body.pile_number, response->head.type)){
         return;
     }
 
@@ -258,20 +268,8 @@ static void ykc_monitor_callback_response_heartbeat(uint8_t* data, uint16_t leng
     }
     Net_YkcMonitorPro_SRes_HeartBeat_t *response = (Net_YkcMonitorPro_SRes_HeartBeat_t*)data;
     uint8_t gunno = response->body.gunno;
-    uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC_MONITOR |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
-    struct net_handle* handle = net_get_net_handle();
-    char *pile_number = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, 0x00, option));
-    uint8_t pile_numberbcd[NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT];
-    uint16_t valid_len = strlen((char*)pile_number);
 
-    valid_len = valid_len > (NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT *0x02) ? (NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT *0x02) : valid_len;
-    ykc_monitor_ascii_to_bcd((uint8_t*)pile_number, valid_len, pile_numberbcd, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
-    if(memcmp(pile_numberbcd, response->body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT)){
-        LOG_E("ykc monitor chargepile number error when call ykc_monitor_callback_response_heartbeat");
-        for(uint8_t i = 0x00; i < NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT; i++){
-            printf("%x(%x) ", pile_numberbcd[i], response->body.pile_number[i]);
-        }
-        printf("\n(%s)\n", pile_number);
+    if(ykc_monitor_pile_number_invalid(response->body.pile_number, response->head.type)){
         return;
     }
     if(!((gunno > 0x00) && (gunno <= NET_SYSTEM_GUN_NUMBER))){
@@ -300,16 +298,8 @@ static void ykc_monitor_callback_response_billing_model_verify(uint8_t* data, ui
                 sizeof(Net_YkcMonitorPro_SRes_BillingModel_Verify_t) + NET_YKC_MONITOR_PROTOCOL_CHECK_REGION_SIZE);
         return;
     }
-    uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC_MONITOR |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
-    struct net_handle* handle = net_get_net_handle();
-    char *pile_number = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, 0x00, option));
-    uint8_t pile_numberbcd[NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT];
-    uint16_t valid_len = strlen((char*)pile_number);
-
-    valid_len = valid_len > (NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT *0x02) ? (NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT *0x02) : valid_len;
-    ykc_monitor_ascii_to_bcd((uint8_t*)pile_number, valid_len, pile_numberbcd, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
-    if(memcmp(pile_numberbcd, ((Net_YkcMonitorPro_SRes_BillingModel_Verify_t*)data)->body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT)){
-        LOG_E("ykc monitor chargepile number error when call ykc_monitor_callback_response_billing_model_verify");
+    Net_YkcMonitorPro_SRes_BillingModel_Verify_t *response = (Net_YkcMonitorPro_SRes_BillingModel_Verify_t*)data;
+    if(ykc_monitor_pile_number_invalid(response->body.pile_number, response->head.type)){
         return;
     }
 
@@ -336,16 +326,8 @@ static void ykc_monitor_callback_response_billing_model_request(uint8_t* data, u
                 sizeof(Net_YkcMonitorPro_SRes_BillingModel_Request_t) + NET_YKC_MONITOR_PROTOCOL_CHECK_REGION_SIZE);
         return;
     }
-    uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC_MONITOR |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
-    struct net_handle* handle = net_get_net_handle();
-    char *pile_number = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, 0x00, option));
-    uint8_t pile_numberbcd[NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT];
-    uint16_t valid_len = strlen((char*)pile_number);
-
-    valid_len = valid_len > (NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT *0x02) ? (NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT *0x02) : valid_len;
-    ykc_monitor_ascii_to_bcd((uint8_t*)pile_number, valid_len, pile_numberbcd, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
-    if(memcmp(pile_numberbcd, ((Net_YkcMonitorPro_SRes_BillingModel_Request_t*)data)->body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT)){
-        LOG_E("ykc monitor chargepile number error when call ykc_monitor_callback_response_billing_model_request");
+    Net_YkcMonitorPro_SRes_BillingModel_Request_t *response = (Net_YkcMonitorPro_SRes_BillingModel_Request_t*)data;
+    if(ykc_monitor_pile_number_invalid(response->body.pile_number, response->head.type)){
         return;
     }
 
@@ -372,17 +354,10 @@ static void ykc_monitor_callback_response_apply_charge_active(uint8_t* data, uin
                 sizeof(Net_YkcMonitorPro_SRes_ApplyCharge_Active_t) + NET_YKC_MONITOR_PROTOCOL_CHECK_REGION_SIZE);
         return;
     }
-    uint8_t gunno = ((Net_YkcMonitorPro_SRes_ApplyCharge_Active_t*)data)->body.gunno;
-    uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC_MONITOR |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
-    struct net_handle* handle = net_get_net_handle();
-    char *pile_number = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, 0x00, option));
-    uint8_t pile_numberbcd[NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT];
-    uint16_t valid_len = strlen((char*)pile_number);
+    Net_YkcMonitorPro_SRes_ApplyCharge_Active_t *response = (Net_YkcMonitorPro_SRes_ApplyCharge_Active_t*)data;
+    uint8_t gunno = response->body.gunno;
 
-    valid_len = valid_len > (NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT *0x02) ? (NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT *0x02) : valid_len;
-    ykc_monitor_ascii_to_bcd((uint8_t*)pile_number, valid_len, pile_numberbcd, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
-    if(memcmp(pile_numberbcd, ((Net_YkcMonitorPro_SRes_ApplyCharge_Active_t*)data)->body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT)){
-        LOG_E("ykc monitor chargepile number error when call ykc_monitor_callback_response_apply_charge_active");
+    if(ykc_monitor_pile_number_invalid(response->body.pile_number, response->head.type)){
         return;
     }
     if(!((gunno > 0x00) && (gunno <= NET_SYSTEM_GUN_NUMBER))){
@@ -468,23 +443,17 @@ static void ykc_monitor_callback_response_apply_merge_charge_active(uint8_t* dat
                 sizeof(Net_YkcMonitorPro_SRes_ApplyMergeCharge_Active_t) + NET_YKC_MONITOR_PROTOCOL_CHECK_REGION_SIZE);
         return;
     }
-    uint8_t gunno = ((Net_YkcMonitorPro_SRes_ApplyMergeCharge_Active_t*)data)->body.gunno;
-    uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC_MONITOR |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
-    struct net_handle* handle = net_get_net_handle();
-    char *pile_number = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, 0x00, option));
-    uint8_t pile_numberbcd[NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT];
-    uint16_t valid_len = strlen((char*)pile_number);
+    Net_YkcMonitorPro_SRes_ApplyMergeCharge_Active_t *response = (Net_YkcMonitorPro_SRes_ApplyMergeCharge_Active_t*)data;
+    uint8_t gunno = response->body.gunno;
 
-    valid_len = valid_len > (NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT *0x02) ? (NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT *0x02) : valid_len;
-    ykc_monitor_ascii_to_bcd((uint8_t*)pile_number, valid_len, pile_numberbcd, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
-    if(memcmp(pile_numberbcd, ((Net_YkcMonitorPro_SRes_ApplyMergeCharge_Active_t*)data)->body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT)){
-        LOG_E("ykc monitor chargepile number error when call ykc_monitor_callback_response_apply_merge_charge_active");
+    if(ykc_monitor_pile_number_invalid(response->body.pile_number, response->head.type)){
         return;
     }
     if(!((gunno > 0x00) && (gunno <= NET_SYSTEM_GUN_NUMBER))){
         LOG_E("ykc monitor gunno error when call ykc_monitor_callback_response_apply_merge_charge_active|%d", gunno);
         return;
     }
+
     memcpy(&g_ykc_monitor_sres_apply_merge_charge_active[gunno - 0x01], data, length - NET_YKC_MONITOR_PROTOCOL_CHECK_REGION_SIZE);
     ykc_monitor_clear_message_wait_response_state((gunno - 0x01), NET_YKC_MONITOR_SRES_EVENT_APPLY_MERGE_CHARGE_ACTIVE);
     ykc_monitor_net_event_send(NET_YKC_MONITOR_EVENT_HANDLE_SERVER, NET_YKC_MONITOR_EVENT_TYPE_RESPONSE, (gunno - 0x01), NET_YKC_MONITOR_SRES_EVENT_APPLY_MERGE_CHARGE_ACTIVE);
@@ -508,17 +477,10 @@ static void ykc_monitor_callback_request_query_realtime_data(uint8_t* data, uint
                 sizeof(Net_YkcMonitorPro_SReq_Query_RealTimeData_t) + NET_YKC_MONITOR_PROTOCOL_CHECK_REGION_SIZE);
         return;
     }
-    uint8_t gunno = ((Net_YkcMonitorPro_SReq_Query_RealTimeData_t*)data)->body.gunno;
-    uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC_MONITOR |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
-    struct net_handle* handle = net_get_net_handle();
-    char *pile_number = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, 0x00, option));
-    uint8_t pile_numberbcd[NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT];
-    uint16_t valid_len = strlen((char*)pile_number);
+    Net_YkcMonitorPro_SReq_Query_RealTimeData_t *request = (Net_YkcMonitorPro_SReq_Query_RealTimeData_t*)data;
+    uint8_t gunno = request->body.gunno;
 
-    valid_len = valid_len > (NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT *0x02) ? (NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT *0x02) : valid_len;
-    ykc_monitor_ascii_to_bcd((uint8_t*)pile_number, valid_len, pile_numberbcd, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
-    if(memcmp(pile_numberbcd, ((Net_YkcMonitorPro_SReq_Query_RealTimeData_t*)data)->body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT)){
-        LOG_E("ykc monitor chargepile number error when call tha_callback_request_query_realtime_data");
+    if(ykc_monitor_pile_number_invalid(request->body.pile_number, request->head.type)){
         return;
     }
     if(!((gunno > 0x00) && (gunno <= NET_SYSTEM_GUN_NUMBER))){
@@ -548,22 +510,14 @@ static void ykc_monitor_callback_request_remote_start_charge(uint8_t* data, uint
                 sizeof(Net_YkcMonitorPro_SReq_Remote_StartCharge_t));
         return;
     }
-    uint8_t gunno = ((Net_YkcMonitorPro_SReq_Remote_StartCharge_t*)data)->body.gunno;
-    uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC_MONITOR |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
-    struct net_handle* handle = net_get_net_handle();
-    char *pile_number = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, 0x00, option));
     Net_YkcMonitorPro_SReq_Remote_StartCharge_t *request = (Net_YkcMonitorPro_SReq_Remote_StartCharge_t*)data;
-    uint8_t pile_numberbcd[NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT];
-    uint16_t valid_len = strlen((char*)pile_number);
+    uint8_t gunno = request->body.gunno;
 
-    valid_len = valid_len > (NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT *0x02) ? (NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT *0x02) : valid_len;
-    ykc_monitor_ascii_to_bcd((uint8_t*)pile_number, valid_len, pile_numberbcd, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
     if(!((gunno > 0x00) && (gunno <= NET_SYSTEM_GUN_NUMBER))){
         LOG_E("ykc monitor gunno error when call tha_callback_request_remote_start_charge|%d", gunno);
         return;
     }
-    if(memcmp(pile_numberbcd, request->body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT)){
-        LOG_E("ykc monitor chargepile number error when call tha_callback_request_remote_start_charge");
+    if(ykc_monitor_pile_number_invalid(request->body.pile_number, request->head.type)){
         g_ykc_monitor_sreq_remote_start_charge[gunno - 0x01].body.result = 0x01;
         memcpy(&g_ykc_monitor_sreq_remote_start_charge[gunno - 0x01], data, length - NET_YKC_MONITOR_PROTOCOL_CHECK_REGION_SIZE);
         ykc_monitor_net_event_send(NET_YKC_MONITOR_EVENT_HANDLE_SERVER, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, (gunno - 0x01), NET_YKC_MONITOR_SREQ_EVENT_REMOTE_START_CHARGE);
@@ -593,21 +547,14 @@ static void ykc_monitor_callback_request_remote_stop_charge(uint8_t* data, uint1
                 sizeof(Net_YkcMonitorPro_SReq_Remote_StopCharge_t));
         return;
     }
-    uint8_t gunno = ((Net_YkcMonitorPro_SReq_Remote_StopCharge_t*)data)->body.gunno;
-    uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC_MONITOR |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
-    struct net_handle* handle = net_get_net_handle();
-    char *pile_number = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, 0x00, option));
-    uint8_t pile_numberbcd[NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT];
-    uint16_t valid_len = strlen((char*)pile_number);
+    Net_YkcMonitorPro_SReq_Remote_StopCharge_t *request = (Net_YkcMonitorPro_SReq_Remote_StopCharge_t*)data;
+    uint8_t gunno = request->body.gunno;
 
-    valid_len = valid_len > (NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT *0x02) ? (NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT *0x02) : valid_len;
-    ykc_monitor_ascii_to_bcd((uint8_t*)pile_number, valid_len, pile_numberbcd, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
     if(!((gunno > 0x00) && (gunno <= NET_SYSTEM_GUN_NUMBER))){
         LOG_E("ykc monitor gunno error when call tha_callback_request_remote_stop_charge|%d", gunno);
         return;
     }
-    if(memcmp(pile_numberbcd, ((Net_YkcMonitorPro_SReq_Remote_StopCharge_t*)data)->body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT)){
-        LOG_E("ykc monitor chargepile number error when call tha_callback_request_remote_stop_charge");
+    if(ykc_monitor_pile_number_invalid(request->body.pile_number, request->head.type)){
         g_ykc_monitor_sreq_remote_stop_charge[gunno - 0x01].body.result = 0x01;
         memcpy(&g_ykc_monitor_sreq_remote_stop_charge[gunno - 0x01], data, length - NET_YKC_MONITOR_PROTOCOL_CHECK_REGION_SIZE);
         ykc_monitor_net_event_send(NET_YKC_MONITOR_EVENT_HANDLE_SERVER, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, (gunno - 0x01), NET_YKC_MONITOR_SREQ_EVENT_REMOTE_START_CHARGE);
@@ -637,21 +584,14 @@ static void ykc_monitor_callback_request_account_ballance_update(uint8_t* data, 
                 sizeof(Net_YkcMonitorPro_SReq_AccountBallance_Update_t));
         return;
     }
+    Net_YkcMonitorPro_SReq_AccountBallance_Update_t *request = (Net_YkcMonitorPro_SReq_AccountBallance_Update_t*)data;
     uint8_t gunno = ((Net_YkcMonitorPro_SReq_AccountBallance_Update_t*)data)->body.gunno;
-    uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC_MONITOR |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
-    struct net_handle* handle = net_get_net_handle();
-    char *pile_number = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, 0x00, option));
-    uint8_t pile_numberbcd[NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT];
-    uint16_t valid_len = strlen((char*)pile_number);
 
-    valid_len = valid_len > (NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT *0x02) ? (NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT *0x02) : valid_len;
-    ykc_monitor_ascii_to_bcd((uint8_t*)pile_number, valid_len, pile_numberbcd, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
     if(!((gunno > 0x00) && (gunno <= NET_SYSTEM_GUN_NUMBER))){
         LOG_E("ykc monitor gunno error when call tha_callback_request_account_ballance_update|%d", gunno);
         return;
     }
-    if(memcmp(pile_numberbcd, ((Net_YkcMonitorPro_SReq_AccountBallance_Update_t*)data)->body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT)){
-        LOG_E("ykc monitor chargepile number error when call tha_callback_request_account_ballance_update");
+    if(ykc_monitor_pile_number_invalid(request->body.pile_number, request->head.type)){
         g_ykc_monitor_sreq_account_ballance_update[gunno - 0x01].body.result = 0x01;
         memcpy(&g_ykc_monitor_sreq_account_ballance_update[gunno - 0x01], data, length - NET_YKC_MONITOR_PROTOCOL_CHECK_REGION_SIZE);
         ykc_monitor_net_event_send(NET_YKC_MONITOR_EVENT_HANDLE_SERVER, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, (gunno - 0x01), NET_YKC_MONITOR_SREQ_EVENT_ACCOUNT_BALLANCE_UPDATE);
@@ -676,22 +616,16 @@ static void ykc_monitor_callback_request_sync_offline_card(uint8_t* data, uint16
         LOG_E("ykc monitor input data is null when call ykc_monitor_callback_request_sync_offline_card");
         return;
     }
-    uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC_MONITOR |NET_SYSTEM_DATA_OPTION_DATA_CONTENT), count = 0x00, total_len = 0x00;
+    uint32_t count = 0x00, total_len = 0x00;
     uint8_t *card = NULL;
-    struct net_handle* handle = net_get_net_handle();
-    char *pile_number = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, 0x00, option));
-    uint8_t pile_numberbcd[NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT];
-    uint16_t valid_len = strlen((char*)pile_number);
+    Net_YkcMonitorPro_SReq_Sync_OfflineCard_t *request = (Net_YkcMonitorPro_SReq_Sync_OfflineCard_t*)data;
 
-    valid_len = valid_len > (NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT *0x02) ? (NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT *0x02) : valid_len;
-    ykc_monitor_ascii_to_bcd((uint8_t*)pile_number, valid_len, pile_numberbcd, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
-    if(memcmp(pile_numberbcd, ((Net_YkcMonitorPro_SReq_Sync_OfflineCard_t*)data)->body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT)){
-        LOG_E("ykc monitor chargepile number error when call ykc_monitor_callback_request_sync_offline_card");
+    if(ykc_monitor_pile_number_invalid(request->body.pile_number, request->head.type)){
         return;
     }
 
-    card = (uint8_t*)(&(((Net_YkcMonitorPro_SReq_Sync_OfflineCard_t*)data)->body.result));
-    count = ((Net_YkcMonitorPro_SReq_Sync_OfflineCard_t*)data)->body.count;
+    card = (uint8_t*)(&(request->body.result));
+    count = request->body.count;
     total_len = sizeof(Net_YkcMonitorPro_SReq_Sync_OfflineCard_t) + (2 *count *NET_YKC_MONITOR_CARD_NUMBER_LENGTH_MAX);
     if(length != total_len){
         LOG_E("ykc monitor input length error when call ykc_monitor_callback_request_sync_offline_card|%d, %d", length, total_len);
@@ -738,18 +672,11 @@ static void ykc_monitor_callback_request_clear_offline_card(uint8_t* data, uint1
         LOG_E("ykc monitor input data is null when call ykc_monitor_callback_request_clear_offline_card");
         return;
     }
-    uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC_MONITOR |NET_SYSTEM_DATA_OPTION_DATA_CONTENT), count = 0x00, total_len = 0x00;
+    uint32_t count = 0x00, total_len = 0x00;
     uint8_t *card = NULL;
-    struct net_handle* handle = net_get_net_handle();
-    char *pile_number = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, 0x00, option));
-    uint8_t pile_numberbcd[NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT];
     Net_YkcMonitorPro_SReq_Clear_OfflineCard_t *request = (Net_YkcMonitorPro_SReq_Clear_OfflineCard_t*)data;
-    uint16_t valid_len = strlen((char*)pile_number);
 
-    valid_len = valid_len > (NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT *0x02) ? (NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT *0x02) : valid_len;
-    ykc_monitor_ascii_to_bcd((uint8_t*)pile_number, valid_len, pile_numberbcd, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
-    if(memcmp(pile_numberbcd, request->body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT)){
-        LOG_E("ykc monitor chargepile number error when call ykc_monitor_callback_request_clear_offline_card");
+    if(ykc_monitor_pile_number_invalid(request->body.pile_number, request->head.type)){
         return;
     }
 
@@ -799,18 +726,11 @@ static void ykc_monitor_callback_request_query_offline_card(uint8_t* data, uint1
         LOG_E("ykc monitor input data is null when call ykc_monitor_callback_request_query_offline_card");
         return;
     }
-    uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC_MONITOR |NET_SYSTEM_DATA_OPTION_DATA_CONTENT), count = 0x00, total_len = 0x00;
+    uint32_t count = 0x00, total_len = 0x00;
     uint8_t *card = NULL;
-    struct net_handle* handle = net_get_net_handle();
-    char *pile_number = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, 0x00, option));
-    uint8_t pile_numberbcd[NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT];
     Net_YkcMonitorPro_SReq_Query_OfflineCard_t *request = (Net_YkcMonitorPro_SReq_Query_OfflineCard_t*)data;
-    uint16_t valid_len = strlen((char*)pile_number);
 
-    valid_len = valid_len > (NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT *0x02) ? (NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT *0x02) : valid_len;
-    ykc_monitor_ascii_to_bcd((uint8_t*)pile_number, valid_len, pile_numberbcd, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
-    if(memcmp(pile_numberbcd, request->body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT)){
-        LOG_E("ykc monitor chargepile number error when call ykc_monitor_callback_request_query_offline_card");
+    if(ykc_monitor_pile_number_invalid(request->body.pile_number, request->head.type)){
         return;
     }
 
@@ -866,16 +786,9 @@ static void ykc_monitor_callback_request_set_work_para(uint8_t* data, uint16_t l
                 sizeof(Net_YkcMonitorPro_SReq_Set_WorkPara_t) + NET_YKC_MONITOR_PROTOCOL_CHECK_REGION_SIZE);
         return;
     }
-    uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC_MONITOR |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
-    struct net_handle* handle = net_get_net_handle();
-    char *pile_number = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, 0x00, option));
-    uint8_t pile_numberbcd[NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT];
-    uint16_t valid_len = strlen((char*)pile_number);
+    Net_YkcMonitorPro_SReq_Set_WorkPara_t *request = (Net_YkcMonitorPro_SReq_Set_WorkPara_t*)data;
 
-    valid_len = valid_len > (NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT *0x02) ? (NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT *0x02) : valid_len;
-    ykc_monitor_ascii_to_bcd((uint8_t*)pile_number, valid_len, pile_numberbcd, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
-    if(memcmp(pile_numberbcd, ((Net_YkcMonitorPro_SReq_Set_WorkPara_t*)data)->body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT)){
-        LOG_E("ykc monitor chargepile number error when call tha_callback_request_set_work_para");
+    if(ykc_monitor_pile_number_invalid(request->body.pile_number, request->head.type)){
         return;
     }
 
@@ -901,16 +814,9 @@ static void ykc_monitor_callback_request_time_sync(uint8_t* data, uint16_t lengt
                 sizeof(Net_YkcMonitorPro_SReq_TimeSync_t) + NET_YKC_MONITOR_PROTOCOL_CHECK_REGION_SIZE);
         return;
     }
-    uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC_MONITOR |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
-    struct net_handle* handle = net_get_net_handle();
-    char *pile_number = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, 0x00, option));
-    uint8_t pile_numberbcd[NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT];
-    uint16_t valid_len = strlen((char*)pile_number);
+    Net_YkcMonitorPro_SReq_TimeSync_t *request = (Net_YkcMonitorPro_SReq_TimeSync_t*)data;
 
-    valid_len = valid_len > (NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT *0x02) ? (NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT *0x02) : valid_len;
-    ykc_monitor_ascii_to_bcd((uint8_t*)pile_number, valid_len, pile_numberbcd, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
-    if(memcmp(pile_numberbcd, ((Net_YkcMonitorPro_SReq_TimeSync_t*)data)->body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT)){
-        LOG_E("ykc monitor chargepile number error when call tha_callback_request_time_sync");
+    if(ykc_monitor_pile_number_invalid(request->body.pile_number, request->head.type)){
         return;
     }
 
@@ -936,16 +842,9 @@ static void ykc_monitor_callback_request_billing_model_set(uint8_t* data, uint16
                 sizeof(Net_YkcMonitorPro_SRep_BillingModel_Set_t) + NET_YKC_MONITOR_PROTOCOL_CHECK_REGION_SIZE);
         return;
     }
-    uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC_MONITOR |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
-    struct net_handle* handle = net_get_net_handle();
-    char *pile_number = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, 0x00, option));
-    uint8_t pile_numberbcd[NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT];
-    uint16_t valid_len = strlen((char*)pile_number);
+    Net_YkcMonitorPro_SRep_BillingModel_Set_t *request = (Net_YkcMonitorPro_SRep_BillingModel_Set_t*)data;
 
-    valid_len = valid_len > (NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT *0x02) ? (NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT *0x02) : valid_len;
-    ykc_monitor_ascii_to_bcd((uint8_t*)pile_number, valid_len, pile_numberbcd, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
-    if(memcmp(pile_numberbcd, ((Net_YkcMonitorPro_SRep_BillingModel_Set_t*)data)->body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT)){
-        LOG_E("ykc monitor chargepile number error when call tha_callback_request_billing_model_set");
+    if(ykc_monitor_pile_number_invalid(request->body.pile_number, request->head.type)){
         return;
     }
 
@@ -971,17 +870,10 @@ static void ykc_monitor_callback_request_ground_lock_lifting(uint8_t* data, uint
                 sizeof(Net_YkcMonitorPro_SReq_GroundLock_Lifting_t) + NET_YKC_MONITOR_PROTOCOL_CHECK_REGION_SIZE);
         return;
     }
+    Net_YkcMonitorPro_SReq_GroundLock_Lifting_t *request = (Net_YkcMonitorPro_SReq_GroundLock_Lifting_t*)data;
     uint8_t gunno = ((Net_YkcMonitorPro_SReq_GroundLock_Lifting_t*)data)->body.gunno;
-    uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC_MONITOR |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
-    struct net_handle* handle = net_get_net_handle();
-    char *pile_number = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, 0x00, option));
-    uint8_t pile_numberbcd[NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT];
-    uint16_t valid_len = strlen((char*)pile_number);
 
-    valid_len = valid_len > (NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT *0x02) ? (NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT *0x02) : valid_len;
-    ykc_monitor_ascii_to_bcd((uint8_t*)pile_number, valid_len, pile_numberbcd, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
-    if(memcmp(pile_numberbcd, ((Net_YkcMonitorPro_SReq_GroundLock_Lifting_t*)data)->body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT)){
-        LOG_E("ykc monitor chargepile number error when call tha_callback_request_ground_lock_lifting");
+    if(ykc_monitor_pile_number_invalid(request->body.pile_number, request->head.type)){
         return;
     }
     if(!((gunno > 0x00) && (gunno <= NET_SYSTEM_GUN_NUMBER))){
@@ -1011,16 +903,9 @@ static void ykc_monitor_callback_request_remote_reboot(uint8_t* data, uint16_t l
                 sizeof(Net_YkcMonitorPro_SReq_RemoteReboot_t) + NET_YKC_MONITOR_PROTOCOL_CHECK_REGION_SIZE);
         return;
     }
-    uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC_MONITOR |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
-    struct net_handle* handle = net_get_net_handle();
-    char *pile_number = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, 0x00, option));
-    uint8_t pile_numberbcd[NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT];
-    uint16_t valid_len = strlen((char*)pile_number);
 
-    valid_len = valid_len > (NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT *0x02) ? (NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT *0x02) : valid_len;
-    ykc_monitor_ascii_to_bcd((uint8_t*)pile_number, valid_len, pile_numberbcd, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
-    if(memcmp(pile_numberbcd, ((Net_YkcMonitorPro_SReq_RemoteReboot_t*)data)->body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT)){
-        LOG_E("ykc monitor chargepile number error when call tha_callback_request_remote_reboot");
+    Net_YkcMonitorPro_SReq_RemoteReboot_t *request = (Net_YkcMonitorPro_SReq_RemoteReboot_t*)data;
+    if(ykc_monitor_pile_number_invalid(request->body.pile_number, request->head.type)){
         return;
     }
 
@@ -1046,16 +931,9 @@ static void ykc_monitor_callback_request_remote_update(uint8_t* data, uint16_t l
                 sizeof(Net_YkcMonitorPro_SReq_RemoteUpdate_t));
         return;
     }
-    uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC_MONITOR |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
-    struct net_handle* handle = net_get_net_handle();
-    char *pile_number = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, 0x00, option));
-    uint8_t pile_numberbcd[NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT];
-    uint16_t valid_len = strlen((char*)pile_number);
+    Net_YkcMonitorPro_SReq_RemoteUpdate_t *request = (Net_YkcMonitorPro_SReq_RemoteUpdate_t*)data;
 
-    valid_len = valid_len > (NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT *0x02) ? (NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT *0x02) : valid_len;
-    ykc_monitor_ascii_to_bcd((uint8_t*)pile_number, valid_len, pile_numberbcd, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
-    if(memcmp(pile_numberbcd, ((Net_YkcMonitorPro_SReq_RemoteUpdate_t*)data)->body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT)){
-        LOG_E("ykc monitor chargepile number error when call tha_callback_request_remote_update");
+    if(ykc_monitor_pile_number_invalid(request->body.pile_number, request->head.type)){
         g_ykc_monitor_sreq_remote_update.body.result = 0x01;
         memcpy(&g_ykc_monitor_sreq_remote_update, data, length - 0x02);
         ykc_monitor_net_event_send(NET_YKC_MONITOR_EVENT_HANDLE_SERVER, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, 0x00, NET_YKC_MONITOR_SREQ_EVENT_REMOTE_UPDATE);
@@ -1085,22 +963,14 @@ static void ykc_monitor_callback_request_remote_start_merge_charge(uint8_t* data
                 sizeof(Net_YkcMonitorPro_SReq_Remote_StartMergeCharge_t));
         return;
     }
-    uint8_t gunno = ((Net_YkcMonitorPro_SReq_Remote_StartMergeCharge_t*)data)->body.gunno;
-    uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC_MONITOR |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
-    struct net_handle* handle = net_get_net_handle();
-    char *pile_number = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, 0x00, option));
-    uint8_t pile_numberbcd[NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT];
-    uint16_t valid_len = strlen((char*)pile_number);
+    Net_YkcMonitorPro_SReq_Remote_StartMergeCharge_t *request = (Net_YkcMonitorPro_SReq_Remote_StartMergeCharge_t*)data;
+    uint8_t gunno = request->body.gunno;
 
     if(!((gunno > 0x00) && (gunno <= NET_SYSTEM_GUN_NUMBER))){
         LOG_E("ykc monitor gunno error when call tha_callback_request_remote_start_merge_charge|%d", gunno);
         return;
     }
-
-    valid_len = valid_len > (NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT *0x02) ? (NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT *0x02) : valid_len;
-    ykc_monitor_ascii_to_bcd((uint8_t*)pile_number, valid_len, pile_numberbcd, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
-    if(memcmp(pile_numberbcd, ((Net_YkcMonitorPro_SReq_Remote_StartMergeCharge_t*)data)->body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT)){
-        LOG_E("ykc monitor chargepile number error when call tha_callback_request_remote_start_merge_charge");
+    if(ykc_monitor_pile_number_invalid(request->body.pile_number, request->head.type)){
         g_ykc_monitor_sreq_remote_start_merge_charge[gunno - 0x01].body.result = 0x01;
         memcpy(&g_ykc_monitor_sreq_remote_start_merge_charge[gunno - 0x01], data, length - NET_YKC_MONITOR_PROTOCOL_CHECK_REGION_SIZE);
         ykc_monitor_net_event_send(NET_YKC_MONITOR_EVENT_HANDLE_SERVER, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, (gunno - 0x01), NET_YKC_MONITOR_SREQ_EVENT_REMOTE_START_MERGE_CHARGE);
@@ -1130,16 +1000,9 @@ static void ykc_monitor_callback_request_qrcode_config_gc(uint8_t* data, uint16_
                 sizeof(Net_YkcMonitorPro_SReq_Qrcode_Config_GC_t));
         return;
     }
-
-    uint8_t gunno = ((Net_YkcMonitorPro_SReq_Qrcode_Config_GC_t*)data)->body.gunno;
-    uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC_MONITOR |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
-    struct net_handle* handle = net_get_net_handle();
-    char *pile_number = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, 0x00, option));
-    uint8_t pile_numberbcd[NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT];
+    Net_YkcMonitorPro_SReq_Qrcode_Config_GC_t *request = (Net_YkcMonitorPro_SReq_Qrcode_Config_GC_t*)data;
+    uint8_t gunno = request->body.gunno;
     uint8_t qrcode_len = (length - sizeof(Net_YkcMonitorPro_SReq_Qrcode_Config_GC_t));
-    uint16_t valid_len = strlen((char*)pile_number);
-
-    valid_len = valid_len > (NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT *0x02) ? (NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT *0x02) : valid_len;
 
     if(!((gunno > 0x00) && (gunno <= NET_SYSTEM_GUN_NUMBER))){
         memcpy(&(g_ykc_monitor_sreq_qrcode_config_gc[0x00]), data, (sizeof(g_ykc_monitor_sreq_qrcode_config_gc[0x00]) - NET_YKC_MONITOR_PROTOCOL_CHECK_REGION_SIZE));
@@ -1149,9 +1012,7 @@ static void ykc_monitor_callback_request_qrcode_config_gc(uint8_t* data, uint16_
         return;
     }
     memcpy(&(g_ykc_monitor_sreq_qrcode_config_gc[gunno - 0x01]), data, (sizeof(g_ykc_monitor_sreq_qrcode_config_gc[gunno - 0x01]) - NET_YKC_MONITOR_PROTOCOL_CHECK_REGION_SIZE));
-    ykc_monitor_ascii_to_bcd((uint8_t*)pile_number, valid_len, pile_numberbcd, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
-    if(memcmp(pile_numberbcd, ((Net_YkcMonitorPro_SReq_Qrcode_Config_GC_t*)data)->body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT)){
-        LOG_E("ykc monitor chargepile number error when call ykc_monitor_callback_request_qrcode_config_gc");
+    if(ykc_monitor_pile_number_invalid(request->body.pile_number, request->head.type)){
         g_ykc_monitor_sreq_qrcode_config_gc[gunno - 0x01].body.result = 0x01;
         ykc_monitor_net_event_send(NET_YKC_MONITOR_EVENT_HANDLE_SERVER, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, (gunno - 0x01), NET_YKC_MONITOR_SREQ_EVENT_QRCODE_CONFIG_GC);
         return;
@@ -1214,20 +1075,14 @@ static void ykc_monitor_callback_request_qrcode_config_ykc15(uint8_t* data, uint
                 sizeof(Net_YkcMonitorPro_SReq_Qrcode_Config_Ykc15_t));
         return;
     }
-
+    Net_YkcMonitorPro_SReq_Qrcode_Config_Ykc15_t *request = (Net_YkcMonitorPro_SReq_Qrcode_Config_Ykc15_t*)data;
     uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC_MONITOR |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
     struct net_handle* handle = net_get_net_handle();
     char *pile_number = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, 0x00, option));
-    uint8_t pile_numberbcd[NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT];
     uint8_t qrcode_len = ((Net_YkcMonitorPro_SReq_Qrcode_Config_Ykc15_t*)data)->body.length;
-    uint16_t valid_len = strlen((char*)pile_number);
-
-    valid_len = valid_len > (NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT *0x02) ? (NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT *0x02) : valid_len;
 
     memcpy(&(g_ykc_monitor_sreq_qrcode_config_ykc15), data, (sizeof(g_ykc_monitor_sreq_qrcode_config_ykc15) - NET_YKC_MONITOR_PROTOCOL_CHECK_REGION_SIZE));
-    ykc_monitor_ascii_to_bcd((uint8_t*)pile_number, valid_len, pile_numberbcd, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
-    if(memcmp(pile_numberbcd, ((Net_YkcMonitorPro_SReq_Qrcode_Config_Ykc15_t*)data)->body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT)){
-        LOG_E("ykc monitor chargepile number error when call ykc_monitor_callback_request_qrcode_config_ykc15");
+    if(ykc_monitor_pile_number_invalid(request->body.pile_number, request->head.type)){
         g_ykc_monitor_sreq_qrcode_config_ykc15.body.result = 0x01;
         ykc_monitor_net_event_send(NET_YKC_MONITOR_EVENT_HANDLE_SERVER, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, 0x00, NET_YKC_MONITOR_SREQ_EVENT_QRCODE_CONFIG_YKC15);
         return;
@@ -1261,7 +1116,7 @@ static void ykc_monitor_callback_request_qrcode_config_ykc15(uint8_t* data, uint
         return;
     }
 
-    if(strstr((const char*)(&(((Net_YkcMonitorPro_SReq_Qrcode_Config_Ykc15_t*)data)->body.result)), (const char*)pile_number)){
+    if(strstr((const char*)(&(request->body.result)), (const char*)pile_number)){
         s_ykc_monitor_qrcode_buf.set_type = NET_SET_QRCODE_FORMAT_PREFIX_DEVICE_SN_PORT;
         s_ykc_monitor_qrcode_buf.general_type = NET_GENERATE_QRCODE_FORMAT_PREFIX_DEVICE_SN_PORT;
     }else{
@@ -1298,8 +1153,8 @@ static void ykc_monitor_callback_request_qrcode_config_tld(uint8_t* data, uint16
                 sizeof(Net_YkcMonitorPro_SReq_Qrcode_Config_Tld_t));
         return;
     }
-
-    uint8_t gunno = ((Net_YkcMonitorPro_SReq_Qrcode_Config_Tld_t*)data)->body.gunno;
+    Net_YkcMonitorPro_SReq_Qrcode_Config_Tld_t *request = (Net_YkcMonitorPro_SReq_Qrcode_Config_Tld_t*)data;
+    uint8_t gunno = request->body.gunno;
     uint8_t qrcode_len = (length - sizeof(Net_YkcMonitorPro_SReq_Qrcode_Config_Tld_t));
 
     if(!((gunno > 0x00) && (gunno <= NET_SYSTEM_GUN_NUMBER))){
@@ -1370,18 +1225,9 @@ static void ykc_monitor_callback_request_query_module_info(uint8_t* data, uint16
                 (sizeof(Net_YkcMonitorPro_SReq_General_t) + NET_YKC_MONITOR_PROTOCOL_CHECK_REGION_SIZE - 0x01));
         return;
     }
-
-    uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC_MONITOR |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
-    struct net_handle* handle = net_get_net_handle();
-    char *pile_number = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, 0x00, option));
-    uint8_t pile_numberbcd[NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT];
     Net_YkcMonitorPro_SReq_General_t *request = (Net_YkcMonitorPro_SReq_General_t*)data;
-    uint16_t valid_len = strlen((char*)pile_number);
 
-    valid_len = valid_len > (NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT *0x02) ? (NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT *0x02) : valid_len;
-    ykc_monitor_ascii_to_bcd((uint8_t*)pile_number, valid_len, pile_numberbcd, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
-    if(memcmp(pile_numberbcd, request->body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT)){
-        LOG_E("ykc monitor chargepile number error when call ykc_monitor_callback_request_query_module_info");
+    if(ykc_monitor_pile_number_invalid(request->body.pile_number, request->head.type)){
         return;
     }
 
@@ -1407,18 +1253,9 @@ static void ykc_monitor_callback_request_query_module_setupinfo(uint8_t* data, u
                 (sizeof(Net_YkcMonitorPro_SReq_General_t) + NET_YKC_MONITOR_PROTOCOL_CHECK_REGION_SIZE - 0x01));
         return;
     }
-
-    uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC_MONITOR |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
-    struct net_handle* handle = net_get_net_handle();
-    char *pile_number = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, 0x00, option));
-    uint8_t pile_numberbcd[NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT];
     Net_YkcMonitorPro_SReq_General_t *request = (Net_YkcMonitorPro_SReq_General_t*)data;
-    uint16_t valid_len = strlen((char*)pile_number);
 
-    valid_len = valid_len > (NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT *0x02) ? (NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT *0x02) : valid_len;
-    ykc_monitor_ascii_to_bcd((uint8_t*)pile_number, valid_len, pile_numberbcd, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
-    if(memcmp(pile_numberbcd, request->body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT)){
-        LOG_E("ykc monitor chargepile number error when call ykc_monitor_callback_request_query_module_setupinfo");
+    if(ykc_monitor_pile_number_invalid(request->body.pile_number, request->head.type)){
         return;
     }
 
@@ -1444,24 +1281,14 @@ static void ykc_monitor_callback_request_query_fault_record(uint8_t* data, uint1
                  (sizeof(Net_YkcMonitorPro_SReq_General_t) + NET_YKC_MONITOR_PROTOCOL_CHECK_REGION_SIZE));
         return;
     }
-
     Net_YkcMonitorPro_SReq_General_t *request = (Net_YkcMonitorPro_SReq_General_t*)data;
     uint8_t gunno = request->body.gunno;
-    uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC_MONITOR |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
-    struct net_handle* handle = net_get_net_handle();
-    char *pile_number = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, 0x00, option));
-    uint8_t pile_numberbcd[NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT];
-    uint16_t valid_len = strlen((char*)pile_number);
 
     if(!((gunno > 0x00) && (gunno <= NET_SYSTEM_GUN_NUMBER))){
         LOG_E("ykc monitor gunno error when call ykc_monitor_callback_request_query_fault_record|%d", gunno);
         return;
     }
-
-    valid_len = valid_len > (NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT *0x02) ? (NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT *0x02) : valid_len;
-    ykc_monitor_ascii_to_bcd((uint8_t*)pile_number, valid_len, pile_numberbcd, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
-    if(memcmp(pile_numberbcd, request->body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT)){
-        LOG_E("ykc monitor chargepile number error when call ykc_monitor_callback_request_query_fault_record");
+    if(ykc_monitor_pile_number_invalid(request->body.pile_number, request->head.type)){
         return;
     }
 
@@ -1487,23 +1314,14 @@ static void ykc_monitor_callback_request_query_charge_record(uint8_t* data, uint
                  (sizeof(Net_YkcMonitorPro_SReq_General_t) + NET_YKC_MONITOR_PROTOCOL_CHECK_REGION_SIZE));
         return;
     }
-
     Net_YkcMonitorPro_SReq_General_t *request = (Net_YkcMonitorPro_SReq_General_t*)data;
     uint8_t gunno = request->body.gunno;
-    uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC_MONITOR |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
-    struct net_handle* handle = net_get_net_handle();
-    char *pile_number = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, 0x00, option));
-    uint8_t pile_numberbcd[NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT];
-    uint16_t valid_len = strlen((char*)pile_number);
 
-    if(!((gunno > 0x00) && (gunno <= NET_SYSTEM_GUN_NUMBER))){
-        LOG_E("ykc monitor gunno error when call ykc_monitor_callback_request_query_charge_record|%d", gunno);
+    if(ykc_monitor_pile_number_invalid(request->body.pile_number, request->head.type)){
         return;
     }
-    valid_len = valid_len > (NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT *0x02) ? (NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT *0x02) : valid_len;
-    ykc_monitor_ascii_to_bcd((uint8_t*)pile_number, valid_len, pile_numberbcd, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
-    if(memcmp(pile_numberbcd, request->body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT)){
-        LOG_E("ykc monitor chargepile number error when call ykc_monitor_callback_request_query_charge_record");
+    if(!((gunno > 0x00) && (gunno <= NET_SYSTEM_GUN_NUMBER))){
+        LOG_E("ykc monitor gunno error when call ykc_monitor_callback_request_query_charge_record|%d", gunno);
         return;
     }
 
@@ -1529,18 +1347,9 @@ static void ykc_monitor_callback_request_query_inputinfo_setup(uint8_t* data, ui
                 (sizeof(Net_YkcMonitorPro_SReq_General_t) + NET_YKC_MONITOR_PROTOCOL_CHECK_REGION_SIZE - 0x01));
         return;
     }
-
-    uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC_MONITOR |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
-    struct net_handle* handle = net_get_net_handle();
-    char *pile_number = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, 0x00, option));
-    uint8_t pile_numberbcd[NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT];
     Net_YkcMonitorPro_SReq_General_t *request = (Net_YkcMonitorPro_SReq_General_t*)data;
-    uint16_t valid_len = strlen((char*)pile_number);
 
-    valid_len = valid_len > (NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT *0x02) ? (NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT *0x02) : valid_len;
-    ykc_monitor_ascii_to_bcd((uint8_t*)pile_number, valid_len, pile_numberbcd, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
-    if(memcmp(pile_numberbcd, request->body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT)){
-        LOG_E("ykc monitor chargepile number error when call ykc_monitor_callback_request_query_inputinfo_setup");
+    if(ykc_monitor_pile_number_invalid(request->body.pile_number, request->head.type)){
         return;
     }
 
@@ -1566,18 +1375,9 @@ static void ykc_monitor_callback_request_query_protectinfo_setup(uint8_t* data, 
                 (sizeof(Net_YkcMonitorPro_SReq_General_t) + NET_YKC_MONITOR_PROTOCOL_CHECK_REGION_SIZE - 0x01));
         return;
     }
-
-    uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC_MONITOR |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
-    struct net_handle* handle = net_get_net_handle();
-    char *pile_number = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, 0x00, option));
-    uint8_t pile_numberbcd[NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT];
     Net_YkcMonitorPro_SReq_General_t *request = (Net_YkcMonitorPro_SReq_General_t*)data;
-    uint16_t valid_len = strlen((char*)pile_number);
 
-    valid_len = valid_len > (NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT *0x02) ? (NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT *0x02) : valid_len;
-    ykc_monitor_ascii_to_bcd((uint8_t*)pile_number, valid_len, pile_numberbcd, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
-    if(memcmp(pile_numberbcd, request->body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT)){
-        LOG_E("ykc monitor chargepile number error when call ykc_monitor_callback_request_query_protectinfo_setup");
+    if(ykc_monitor_pile_number_invalid(request->body.pile_number, request->head.type)){
         return;
     }
 
@@ -1603,18 +1403,9 @@ static void ykc_monitor_callback_request_query_function_setup(uint8_t* data, uin
                 (sizeof(Net_YkcMonitorPro_SReq_General_t) + NET_YKC_MONITOR_PROTOCOL_CHECK_REGION_SIZE - 0x01));
         return;
     }
-
-    uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC_MONITOR |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
-    struct net_handle* handle = net_get_net_handle();
-    char *pile_number = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, 0x00, option));
-    uint8_t pile_numberbcd[NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT];
     Net_YkcMonitorPro_SReq_General_t *request = (Net_YkcMonitorPro_SReq_General_t*)data;
-    uint16_t valid_len = strlen((char*)pile_number);
 
-    valid_len = valid_len > (NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT *0x02) ? (NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT *0x02) : valid_len;
-    ykc_monitor_ascii_to_bcd((uint8_t*)pile_number, valid_len, pile_numberbcd, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
-    if(memcmp(pile_numberbcd, request->body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT)){
-        LOG_E("ykc monitor chargepile number error when call ykc_monitor_callback_request_query_function_setup");
+    if(ykc_monitor_pile_number_invalid(request->body.pile_number, request->head.type)){
         return;
     }
 
@@ -1640,18 +1431,9 @@ static void ykc_monitor_callback_request_query_tsocket_info(uint8_t* data, uint1
                 (sizeof(Net_YkcMonitorPro_SReq_General_t) + NET_YKC_MONITOR_PROTOCOL_CHECK_REGION_SIZE - 0x01));
         return;
     }
-
-    uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC_MONITOR |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
-    struct net_handle* handle = net_get_net_handle();
-    char *pile_number = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, 0x00, option));
-    uint8_t pile_numberbcd[NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT];
     Net_YkcMonitorPro_SReq_General_t *request = (Net_YkcMonitorPro_SReq_General_t*)data;
-    uint16_t valid_len = strlen((char*)pile_number);
 
-    valid_len = valid_len > (NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT *0x02) ? (NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT *0x02) : valid_len;
-    ykc_monitor_ascii_to_bcd((uint8_t*)pile_number, valid_len, pile_numberbcd, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
-    if(memcmp(pile_numberbcd, request->body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT)){
-        LOG_E("ykc monitor chargepile number error when call ykc_monitor_callback_request_query_tsocket_info");
+    if(ykc_monitor_pile_number_invalid(request->body.pile_number, request->head.type)){
         return;
     }
 
@@ -1677,26 +1459,26 @@ static void ykc_monitor_callback_response_report_tplat_log(uint8_t* data, uint16
                 sizeof(Net_YkcMonitorPro_Sres_TargetPlat_Log_t));
         return;
     }
+    uint16_t valid_len = 0x00;
+    Net_YkcMonitorPro_Sres_TargetPlat_Log_t *response = (Net_YkcMonitorPro_Sres_TargetPlat_Log_t*)data;
 
+    if(ykc_monitor_pile_number_invalid(response->body.pile_number, response->head.type)){
+        return;
+    }
+
+#ifndef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL
     uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC_MONITOR |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
     struct net_handle* handle = net_get_net_handle();
     char *pile_number = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, 0x00, option));
-    uint8_t pile_numberbcd[NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT];
-    Net_YkcMonitorPro_Sres_TargetPlat_Log_t *response = (Net_YkcMonitorPro_Sres_TargetPlat_Log_t*)data;
-    uint16_t valid_len = strlen((char*)pile_number);
+    valid_len = strlen((char*)pile_number);
 
-    valid_len = valid_len > (NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT *0x02) ? (NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT *0x02) : valid_len;
-    ykc_monitor_ascii_to_bcd((uint8_t*)pile_number, valid_len, pile_numberbcd, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
-    if(memcmp(pile_numberbcd, response->body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT)){
-        LOG_E("ykc monitor chargepile number error when call ykc_monitor_callback_response_report_log");
-        return;
-    }
     valid_len = sizeof(response->body.pile_number_whole);
     valid_len = valid_len > strlen(pile_number) ? strlen(pile_number) : valid_len;
     if(memcmp(pile_number, response->body.pile_number_whole, valid_len)){
         LOG_E("ykc monitor whole chargepile number error when call ykc_monitor_callback_response_report_log");
         return;
     }
+#endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
 
     memcpy(&g_ykc_monitor_sres_target_plat_log, data, length);
     ykc_monitor_net_event_send(NET_YKC_MONITOR_USER_EVENT_HANDLE_SERVER, NET_YKC_MONITOR_EVENT_TYPE_RESPONSE, 0x00, NET_YKC_MONITOR_USER_SRES_EVENT_REPORT_TPLAT_LOG);
@@ -1720,18 +1502,9 @@ static void ykc_monitor_callback_request_query_dev_info(uint8_t* data, uint16_t 
                 (sizeof(Net_YkcMonitorPro_SReq_General_t) + NET_YKC_MONITOR_PROTOCOL_CHECK_REGION_SIZE - 0x01));
         return;
     }
-
-    uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC_MONITOR |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
-    struct net_handle* handle = net_get_net_handle();
-    char *pile_number = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, 0x00, option));
-    uint8_t pile_numberbcd[NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT];
     Net_YkcMonitorPro_SReq_General_t *request = (Net_YkcMonitorPro_SReq_General_t*)data;
-    uint16_t valid_len = strlen((char*)pile_number);
 
-    valid_len = valid_len > (NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT *0x02) ? (NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT *0x02) : valid_len;
-    ykc_monitor_ascii_to_bcd((uint8_t*)pile_number, valid_len, pile_numberbcd, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
-    if(memcmp(pile_numberbcd, request->body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT)){
-        LOG_E("ykc monitor chargepile number error when call ykc_monitor_callback_request_query_dev_info");
+    if(ykc_monitor_pile_number_invalid(request->body.pile_number, request->head.type)){
         return;
     }
 
@@ -1757,26 +1530,26 @@ static void ykc_monitor_callback_response_report_dev_info(uint8_t* data, uint16_
                 sizeof(Net_YkcMonitorPro_Sres_DevInfo_t));
         return;
     }
+    uint16_t valid_len = 0x00;
+    Net_YkcMonitorPro_Sres_DevInfo_t *response = (Net_YkcMonitorPro_Sres_DevInfo_t*)data;
 
+    if(ykc_monitor_pile_number_invalid(response->body.pile_number, response->head.type)){
+        return;
+    }
+
+#ifndef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL
     uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC_MONITOR |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
     struct net_handle* handle = net_get_net_handle();
     char *pile_number = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, 0x00, option));
-    uint8_t pile_numberbcd[NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT];
-    Net_YkcMonitorPro_Sres_DevInfo_t *response = (Net_YkcMonitorPro_Sres_DevInfo_t*)data;
-    uint16_t valid_len = strlen((char*)pile_number);
+    valid_len = strlen((char*)pile_number);
 
-    valid_len = valid_len > (NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT *0x02) ? (NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT *0x02) : valid_len;
-    ykc_monitor_ascii_to_bcd((uint8_t*)pile_number, valid_len, pile_numberbcd, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
-    if(memcmp(pile_numberbcd, response->body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT)){
-        LOG_E("ykc monitor chargepile number error when call ykc_monitor_callback_response_report_dev_info");
-        return;
-    }
     valid_len = sizeof(response->body.pile_number_whole);
     valid_len = valid_len > strlen(pile_number) ? strlen(pile_number) : valid_len;
     if(memcmp(pile_number, response->body.pile_number_whole, valid_len)){
         LOG_E("ykc monitor whole chargepile number error when call ykc_monitor_callback_response_report_log");
         return;
     }
+#endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
 
     memcpy(&g_ykc_monitor_sres_dev_info, data, length);
     ykc_monitor_net_event_send(NET_YKC_MONITOR_USER_EVENT_HANDLE_SERVER, NET_YKC_MONITOR_EVENT_TYPE_RESPONSE, 0x00, NET_YKC_MONITOR_USER_SRES_EVENT_REPORT_DEV_INFO);

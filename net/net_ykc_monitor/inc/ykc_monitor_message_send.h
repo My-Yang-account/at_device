@@ -17,7 +17,13 @@
 #define NET_YKC_MONITOR_MESSAGE_SEND_THREAD_STACK_SIZE               3072       /* 报文发送线程栈 */
 #define NET_YKC_MONITOR_SERVER_MESSAGE_PRO_THREAD_STACK_SIZE         2048       /* 服务器报文处理线程栈 */
 #define NET_YKC_MONITOR_HOST_LENGTH_MAX                              128        /* 主机名最大长度 */
+
+#ifdef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL
+#define NET_YKC_MONITOR_GENERA_RESPONSE_BUFF_LENGTH                  512        /* 同用响应缓存大小 */
+#else
 #define NET_YKC_MONITOR_GENERA_RESPONSE_BUFF_LENGTH                  256        /* 同用响应缓存大小 */
+#endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
+
 #define NET_YKC_MONITOR_BILL_SERIAL_NUMBER_COUNT_MAX                 0x03       /* 账单流水号记录最大个数 */
 
 /** net state */
@@ -208,6 +214,9 @@ typedef struct{
     uint8_t state;
     uint8_t heartbeat[NET_SYSTEM_GUN_NUMBER];
     uint8_t domain_is_prase;   /** 域名已解析 */
+#ifdef NET_YKC_MONITOR_AS_MONITOR
+    uint8_t target_plat_ip[0x10];  /** 目标平台纯数字IP */
+#endif /* NET_YKC_MONITOR_AS_MONITOR */
     struct{
         uint8_t open_socket : 4;
         uint8_t login : 4;
