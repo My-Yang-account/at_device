@@ -17,6 +17,9 @@
 #define NOTFS_FILE_MAX_SIZE            (NOTFS_FILE_ADDR_OFFSET - 8) /* 允许的单文件最大容量 */
 #define NOTFS_FILE_MAX_COUNT           (256  - 2) /* 允许的文件最大数量 */
 
+#define NOTFS_INIT_RENTRY              5          /* 初始化：读取初始化标志尝试次数 */
+#define NOTFS_INIT_NODE_RENTRY         (5 + 3)    /* 初始化：读取节点数据尝试次数 */
+
 struct notfs_inode {
     struct nofs_header header;
     notfs_inode_t *inode;
@@ -33,58 +36,59 @@ static struct notfs_inode s_notfs_inode[NOTFS_SUBREGION_MAX];
 /* data */
 static struct notfs_file s_notfs_file[NOTFS_SUBREGION_MAX];
 
-/* 只是为了增强异常的处理 */
-static bool s_check_failed[NOTFS_SUBREGION_MAX] = {false, false};
 /* 只是为了加快寻址 */
 static uint32_t s_notfs_current_index[NOTFS_SUBREGION_MAX] = {0};
 /* 只是为了加快寻址 */
 static uint32_t s_notfs_first_data_index[NOTFS_SUBREGION_MAX] = {0};
 
 static uint8_t s_init_flag_check[NOTFS_SUBREGION_MAX] = {0}, s_is_init[NOTFS_SUBREGION_MAX] = {0};
+static uint32_t s_subregion_start_addr[NOTFS_SUBREGION_MAX] = {0}, s_file_max_count[NOTFS_SUBREGION_MAX] = {0}, s_total_size[NOTFS_SUBREGION_MAX] = {0};
+static bool s_is_power_open = true;
 
 notfs_err_e notfs_init(void)
 {
     notfs_err_e err = NOTFS_NO_ERR;
 
-    uint8_t tp = 0xFF; /* 芯片初始值为 0xFF */
-    uint32_t i, j, k, t;
-    uint32_t subregion_start_addr, file_max_count, total_size, isize, crc, tmp;
+    uint32_t i, j, k;
+    uint32_t isize, crc, tmp;
 
-    for (i = 0; i < NOTFS_SUBREGION_MAX; ++i) {
-        if(s_is_init[i] == 0){
+    if(s_is_power_open == true){
+        s_is_power_open = false;
+        for (i = 0; i < NOTFS_SUBREGION_MAX; ++i) {
             s_notfs_current_index[i] = NOTFS_NOT_VALID_INDEX;
+            s_is_init[i] = 0;
+            s_subregion_start_addr[i] = s_notfs_sb[i].subregion_start_addr; /* 用于已经先于进行默认配置 */
+            s_file_max_count[i] = s_notfs_sb[i].file_max_count;             /* 用户已经先于进行默认配置 */
+            s_total_size[i] = s_notfs_sb[i].subregion_total_size;           /* 用户已经先于进行默认配置 */
         }
     }
 
     for (i = 0; i < NOTFS_SUBREGION_MAX; ++i) {
         if(s_is_init[i] == 0){
-            subregion_start_addr = s_notfs_sb[i].subregion_start_addr; /* 用于已经先于进行默认配置 */
-            file_max_count = s_notfs_sb[i].file_max_count;             /* 用户已经先于进行默认配置 */
-            total_size = s_notfs_sb[i].subregion_total_size;           /* 用户已经先于进行默认配置 */
-
             memset(&(s_notfs_sb[i]), 0x00, sizeof(notfs_super_block_t));
             /* 读出分区的超级块信息 */
-            err = notfs_port_read(subregion_start_addr, (uint8_t *)&(s_notfs_sb[i]), sizeof(notfs_super_block_t));
+            err = notfs_port_read(s_subregion_start_addr[i], (uint8_t *)&(s_notfs_sb[i]), sizeof(notfs_super_block_t));
             if (NOTFS_NO_ERR != err) {
                 break;
             }
 
-            if (((NOTFS_KEY != s_notfs_sb[i].key) || (s_check_failed[i])) && (s_init_flag_check[i] <= 5)) {
-                if(s_notfs_sb[i].key == 0xFFFFFFFF){
+            if ((NOTFS_KEY != s_notfs_sb[i].key) && (s_init_flag_check[i] <= NOTFS_INIT_RENTRY)) {
+                if((s_notfs_sb[i].key == 0xFFFFFFFF) || (s_init_flag_check[i] >= NOTFS_INIT_RENTRY)){
                     /* 执行分区擦除 */
-                    (void)notfs_port_erase(subregion_start_addr, total_size);
+                    (void)notfs_port_erase(s_subregion_start_addr[i], NOTFS_FILE_ADDR_OFFSET);
                     /* 初始化超级块数据 */
                     s_notfs_sb[i].key = NOTFS_KEY;
-                    s_notfs_sb[i].subregion_start_addr = subregion_start_addr;
-                    s_notfs_sb[i].subregion_total_size = total_size;
+                    s_notfs_sb[i].subregion_start_addr = s_subregion_start_addr[i];
+                    s_notfs_sb[i].subregion_total_size = s_total_size[i];
                     s_notfs_sb[i].file_max_size        = NOTFS_FILE_MAX_SIZE;
-                    s_notfs_sb[i].file_max_count       = (file_max_count < NOTFS_FILE_MAX_COUNT ? file_max_count : NOTFS_FILE_MAX_COUNT);
+                    s_notfs_sb[i].file_max_count       = (s_file_max_count[i] < NOTFS_FILE_MAX_COUNT ? s_file_max_count[i] : NOTFS_FILE_MAX_COUNT);
                     s_notfs_sb[i].inode_start_addr     = s_notfs_sb[i].subregion_start_addr + 4096 * 1;
                     s_notfs_sb[i].inode_addr_offset    = NOTFS_INODE_ADDR_OFFSET;
                     s_notfs_sb[i].file_start_addr      = s_notfs_sb[i].inode_start_addr + 4096 * 2;
                     s_notfs_sb[i].file_addr_step       = NOTFS_FILE_ADDR_STEP;
                     s_notfs_sb[i].file_addr_offset     = NOTFS_FILE_ADDR_OFFSET;
                     s_notfs_sb[i].crc                  = notfs_crc32(0, (const uint8_t *)&(s_notfs_sb[i]), sizeof(s_notfs_sb[i]));
+#if 0
                     /* 初始化索引区数据 */
                     for (t = 0, crc = 0x00; t < sizeof(notfs_inode_t) * s_notfs_sb[i].file_max_count; t++) {
                         crc = notfs_crc32(crc, &tp, sizeof(tp)); /* 按照 0xFF 计算校验 */
@@ -94,11 +98,11 @@ notfs_err_e notfs_init(void)
                     (void)notfs_port_write(s_notfs_sb[i].inode_start_addr, (const uint8_t *)&(s_notfs_inode[i].header), sizeof(struct nofs_header));
                     (void)notfs_port_write(s_notfs_sb[i].inode_start_addr + s_notfs_sb[i].inode_addr_offset, (const uint8_t *)&(s_notfs_inode[i].header), sizeof(struct nofs_header));
                     /* 初始化超级块 */
-
+#endif
                     err = notfs_port_write(s_notfs_sb[i].subregion_start_addr, (const uint8_t *)&(s_notfs_sb[i]), sizeof(s_notfs_sb[i]));
                     err = NOTFS_NOTINIT_ERR;
-                    /* 初始化校验失败标志 */
-                    s_check_failed[i] = false;
+
+                    s_init_flag_check[i] = 0;
                 }else{
                     if(s_init_flag_check[i] < 0xFF){
                         s_init_flag_check[i]++;
@@ -106,8 +110,6 @@ notfs_err_e notfs_init(void)
                     return NOTFS_READ_ERR;
                 }
             } else {
-                s_is_init[i] = 1;
-
                 memset(&(s_notfs_inode[i]), 0x00, sizeof(struct notfs_inode));
                 memset(&(s_notfs_file [i]), 0x00, sizeof(struct notfs_file));
 
@@ -137,14 +139,25 @@ notfs_err_e notfs_init(void)
                     (void)notfs_port_read(s_notfs_sb[i].inode_start_addr + s_notfs_sb[i].inode_addr_offset + sizeof(struct nofs_header),
                             (uint8_t *)(s_notfs_inode[i].inode), isize);
                     crc = notfs_crc32(0, (const uint8_t *)(s_notfs_inode[i].inode), isize);
-                    if (crc != s_notfs_inode[i].header.crc) {
+
+                    if ((crc != s_notfs_inode[i].header.crc) && (s_init_flag_check[i] < NOTFS_INIT_NODE_RENTRY)) {
                         /* 校验还失败，那就重新格式化分区吧，并且把申请的索引区内存释放掉 */
-                        s_check_failed[i] = true;
                         free(s_notfs_inode[i].inode);
-                        rt_kprintf("NOTFS_NOTINIT_ERR(%d)\n", isize);
                         err = NOTFS_NOTINIT_ERR; /* 主备都校验失败，就是初始化异常 */
+
+                        if(s_init_flag_check[i] < 0xFF){
+                            s_init_flag_check[i]++;
+                        }
                         break;
+                    }else{
+                        err = NOTFS_NO_ERR;
+                        s_is_init[i] = 1;
+                        if(crc != s_notfs_inode[i].header.crc){
+                            /* 对节点数据做可能需要的处理 */
+                        }
                     }
+                }else{
+                    s_is_init[i] = 1;
                 }
 
                 /* 找出可存储的索引下标 */
