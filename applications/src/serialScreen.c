@@ -477,7 +477,7 @@ struct LCD_DISPLAY_SETDATA_TYPE{
 	u8 App_SoftWareVersion[20];				//软件版本号
 	u8 SIM_card[21];						//SIM卡
     u32 SIM_Strength;                        //SIM卡 信号强度
-	u8 Help_Number[20];						//帮助电话
+	u8 Help_Number[32];						//帮助电话
 	u8 Sup_Stop;                            //是否支持本地停止
     u8 Sup_PlugAndPlay;                     //是否支持即插即充
 	u8 Sup_StartStyle[3][LCD_MODULE_GROUP_MAX];	//[0]:本地 [1]:VIN [2]:并充
