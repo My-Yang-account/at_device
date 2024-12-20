@@ -233,11 +233,19 @@ static void ykc_monitor_storage_data_check(void)
 
     if(verify_success){
         ykc_monitor_function_switch_set(config);
+        for(uint8_t gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
+            s_ykc_monitor_base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
+            if(config->fswitch.lock == NET_ENUM_TRUE){
+                s_ykc_monitor_base->device_state = APP_DEVICE_STATE_FREEZE;
+            }else {
+                s_ykc_monitor_base->device_state = APP_DEVICE_STATE_COMMISSIONING;
+            }
+        }
     }else{
 
     }
 
-    LOG_D("ykc_monitor_storage_data_check(%d)\n", config->fswitch.tplat_log);
+    LOG_D("ykc_monitor_storage_data_check(%d, %d)\n", config->fswitch.tplat_log, config->fswitch.lock);
 }
 
 /*************************************************
@@ -1083,6 +1091,7 @@ int8_t ykc_monitor_message_pro_set_work_para_request(void *data, uint8_t len)
     }
 
     Net_YkcMonitorPro_SReq_Set_WorkPara_t *request = (Net_YkcMonitorPro_SReq_Set_WorkPara_t*)data;
+    ykc_monitor_storage_struct *config = (ykc_monitor_storage_struct*)(s_ykc_monitor_handle->get_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, 0x00, NET_SYSTEM_DATA_OPTION_MONITOR_PLAT));
 
     if(request->body.forbidden == NET_ENUM_TRUE){
         /** 启动或充电中不能停用 */
@@ -1092,22 +1101,22 @@ int8_t ykc_monitor_message_pro_set_work_para_request(void *data, uint8_t len)
                 return -0x03;
             }
         }
-        /*         [在此处将所有枪的状态设置为冻结并将状态存入flash]
-        for(gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
-            s_ykc_monitor_base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
-            s_ykc_monitor_base->device_state = APP_DEVICE_STATE_FREEZE;
+        /** 此处锁桩只是填充信息，具体是否保存成功有设置功率百分比异步响应决定 */
+        if(config){
+            config->storage_init_flag = NET_YKC_MONITOR_STORAGE_INIT_FLAG;
+            config->fswitch.lock = NET_ENUM_TRUE;
         }
-        */
     }else{
-        for(gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
-            s_ykc_monitor_base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
-            s_ykc_monitor_base->device_state = APP_DEVICE_STATE_COMMISSIONING;
+        /** 此处锁桩只是填充信息，具体是否保存成功有设置功率百分比异步响应决定 */
+        if(config){
+            config->storage_init_flag = NET_YKC_MONITOR_STORAGE_INIT_FLAG;
+            config->fswitch.lock = NET_ENUM_FALSE;
         }
     }
 
     s_ykc_monitor_base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(0x00));
 
-    rt_kprintf("ykc_message_pro_set_work_para_request(%d, %d, %d)\n", request->body.power_max_percent,
+    LOG_D("ykc_monitor_message_pro_set_work_para_request(%d, %d, %d)\n", request->body.power_max_percent,
             s_ykc_monitor_base->system_power_max, (s_ykc_monitor_base->system_power_max * request->body.power_max_percent /100));
     if((request->body.power_max_percent > 0x00) && (request->body.power_max_percent <= 0x64)){
         uint32_t power = (s_ykc_monitor_base->system_power_max * request->body.power_max_percent /100);
@@ -2313,6 +2322,22 @@ void ykc_monitor_set_power_percent_response_asynchronously(uint8_t result)
     }else{
         s_ykc_monitor_flag_info[0x00].set_power_success = NET_ENUM_FALSE;
     }
+
+    if(s_ykc_monitor_flag_info[0x00].set_power_success == NET_ENUM_TRUE){
+        ykc_monitor_storage_struct *config = (ykc_monitor_storage_struct*)(s_ykc_monitor_handle->get_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, 0x00, NET_SYSTEM_DATA_OPTION_MONITOR_PLAT));
+        if(config){
+            /** 功率修改与锁桩功能在同一个报文中，为了提高效率，锁桩是否成功都有功率是否修改成功来决定(信息要存flash-耗时) */
+            for(uint8_t gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
+                s_ykc_monitor_base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
+                if(config->fswitch.lock == NET_ENUM_TRUE){
+                    s_ykc_monitor_base->device_state = APP_DEVICE_STATE_FREEZE;
+                }else {
+                    s_ykc_monitor_base->device_state = APP_DEVICE_STATE_COMMISSIONING;
+                }
+            }
+        }
+    }
+
     s_ykc_monitor_flag_info[0x00].is_set_power = NET_ENUM_FALSE;
     ykc_monitor_net_event_send(NET_YKC_MONITOR_EVENT_HANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_RESPONSE, 0x00, NET_YKC_MONITOR_PRES_EVENT_SET_POWER_PERCENT_ASYNCHRONOUSLY);
 }
