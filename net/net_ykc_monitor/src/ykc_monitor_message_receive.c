@@ -1119,6 +1119,15 @@ static void ykc_monitor_callback_request_qrcode_config_ykc15(uint8_t* data, uint
         return;
     }
 
+#ifdef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL
+    if(g_ykc_monitor_sreq_qrcode_config_ykc15.body.format == 0x00){
+        s_ykc_monitor_qrcode_buf.set_type = NET_SET_QRCODE_FORMAT_PREFIX;
+        s_ykc_monitor_qrcode_buf.general_type = NET_GENERATE_QRCODE_FORMAT_PREFIX_DEVICE_SN;
+    }else{
+        s_ykc_monitor_qrcode_buf.set_type = NET_SET_QRCODE_FORMAT_PREFIX;
+        s_ykc_monitor_qrcode_buf.general_type = NET_GENERATE_QRCODE_FORMAT_PREFIX_DEVICE_SN_PORT;
+    }
+#else
     if(strstr((const char*)(&(request->body.result)), (const char*)pile_number)){
         s_ykc_monitor_qrcode_buf.set_type = NET_SET_QRCODE_FORMAT_PREFIX_DEVICE_SN_PORT;
         s_ykc_monitor_qrcode_buf.general_type = NET_GENERATE_QRCODE_FORMAT_PREFIX_DEVICE_SN_PORT;
@@ -1126,6 +1135,7 @@ static void ykc_monitor_callback_request_qrcode_config_ykc15(uint8_t* data, uint
         s_ykc_monitor_qrcode_buf.set_type = NET_SET_QRCODE_FORMAT_PREFIX;
         s_ykc_monitor_qrcode_buf.general_type = NET_GENERATE_QRCODE_FORMAT_PREFIX_DEVICE_SN_PORT;
     }
+#endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
 
     s_ykc_monitor_qrcode_buf.qrcode[0x00] = s_ykc_monitor_qrcode_buf.set_type;
     s_ykc_monitor_qrcode_buf.qrcode[0x01] = s_ykc_monitor_qrcode_buf.general_type;

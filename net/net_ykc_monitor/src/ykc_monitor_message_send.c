@@ -2119,7 +2119,9 @@ static void net_ykc_monitor_server_message_pro_entry(void *parameter)
 
                     response = ykc_monitor_get_response_buff(RT_WAITING_FOREVER);
 #ifdef NET_YKC_MONITOR_AS_MONITOR
+#ifndef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL
                     g_ykc_monitor_sreq_qrcode_config_gc[gunno].body.result = 0x01;
+#endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
                     info->flag.is_used = 0x00;
                     if(g_ykc_monitor_sreq_qrcode_config_gc[gunno].body.result == 0x00){
@@ -2147,7 +2149,9 @@ static void net_ykc_monitor_server_message_pro_entry(void *parameter)
 
                     response = ykc_monitor_get_response_buff(RT_WAITING_FOREVER);
 #ifdef NET_YKC_MONITOR_AS_MONITOR
+#ifndef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL
                     g_ykc_monitor_sreq_qrcode_config_ykc15.body.result = 0x01;
+#endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
                     info->flag.is_used = 0x00;
                     if(g_ykc_monitor_sreq_qrcode_config_ykc15.body.result == 0x00){

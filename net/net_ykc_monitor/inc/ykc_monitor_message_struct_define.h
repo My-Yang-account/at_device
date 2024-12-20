@@ -357,7 +357,8 @@ typedef struct{
 
     struct{
         uint32_t tplat_log :1;               /* 功能开关：上报目标平台日志 */
-        uint32_t reserve0 :31;               /* 功能开关：预留 */
+        uint32_t lock :1;                    /* 功能开关：锁桩 */
+        uint32_t reserve0 :30;               /* 功能开关：预留 */
         uint32_t reserve1 :32;               /* 功能开关：预留 */
     }fswitch;                                /* 功能开关 1：开启  0：关闭 */
 }ykc_monitor_storage_struct;
