@@ -212,6 +212,8 @@ typedef struct{
 
 #pragma pack()
 
+uint8_t ycp_is_interact_normally(void);
+
 ycp_socket_info_t* ycp_get_socket_info(void);
 
 uint8_t ycp_transaction_is_verify(uint8_t gunno);

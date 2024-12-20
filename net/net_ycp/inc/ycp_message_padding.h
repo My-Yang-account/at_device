@@ -64,7 +64,7 @@ void ycp_set_power_percent_response_asynchronously(uint8_t result);
 
 void ycp_chargepile_state_changed(uint8_t gunno);
 void ycp_chargepile_update_result_report(uint8_t result, uint8_t reason);
-int8_t  ycp_chargepile_fault_report(uint8_t gunno, uint16_t code, uint8_t is_resume);
+int8_t  ycp_chargepile_fault_report(uint8_t gunno, uint16_t code, uint8_t is_resume, uint8_t rank);
 int8_t ycp_chargepile_create_local_transaction_number(uint8_t gunno, void *vector, uint8_t len);
 void ycp_chargepile_time_sync_revise(uint8_t gunno);
 uint16_t ycp_chargepile_fault_converted(uint16_t bit);

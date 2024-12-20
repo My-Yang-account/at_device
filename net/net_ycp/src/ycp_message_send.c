@@ -109,6 +109,16 @@ Net_YcpPro_PReq_BmsInfo_t g_ycp_preq_bms_info[NET_SYSTEM_GUN_NUMBER];   // OK
 Net_YcpPro_PRes_RemoteUpdate_t g_ycp_pres_remote_update;  // OK
 
 /**************************************************************************
+ * 函数名                 ycp_is_interact_normally
+ * 功能                     判断是否已经可以正常交互数据(越城公用协议需要接收到计费规则(响应)后才能交互其它报文)
+ * 说明                     1：可以    0：不可
+ * ***********************************************************************/
+uint8_t ycp_is_interact_normally(void)
+{
+    return s_ycp_assistant_flag.is_verify_billingrule;
+}
+
+/**************************************************************************
  * 函数名                 ycp_get_socket_info
  * 功能                     获取socket信息
  * 说明
@@ -546,9 +556,9 @@ uint32_t ycp_timebcd_to_timestamp(uint8_t *bcd, uint8_t len)
 uint32_t g_net_target_platform_tick = 0;
 static void net_ycp_message_send_thread_entry(void *parameter)
 {
-    uint8_t step = NET_YCP_NET_STATE_OPEN_SOCKET, is_power_on = 0x00;
+    uint8_t step = NET_YCP_NET_STATE_OPEN_SOCKET, is_power_on = 0x01;
     uint32_t delay = 0x00, wait_unlock = 0x00;
-    uint32_t heartbeat_tick, time_sync_tick;
+    uint32_t time_sync_tick;
 
     uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YCP |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
     struct net_handle* handle = net_get_net_handle();

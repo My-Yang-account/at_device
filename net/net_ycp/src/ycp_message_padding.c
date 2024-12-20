@@ -2058,7 +2058,7 @@ void ycp_chargepile_update_result_report(uint8_t result, uint8_t reason)
     ycp_net_event_send(NET_YCP_EVENT_HANDLE_CHARGEPILE, NET_YCP_EVENT_TYPE_RESPONSE, 0x00, NET_YCP_PRES_EVENT_REMOTE_UPDATE);
 }
 
-int8_t ycp_chargepile_fault_report(uint8_t gunno, uint16_t code, uint8_t is_resume)
+int8_t ycp_chargepile_fault_report(uint8_t gunno, uint16_t code, uint8_t is_resume, uint8_t rank)
 {
     if(gunno >= NET_SYSTEM_GUN_NUMBER){
         return -0x01;
@@ -2115,7 +2115,7 @@ int8_t ycp_chargepile_fault_report(uint8_t gunno, uint16_t code, uint8_t is_resu
             return -0x01;
         }
 
-        g_ycp_preq_report_device_fault.body.fault[index].fault_type = NET_YCP_FAULT_CODE_TYPE_PORT;
+        g_ycp_preq_report_device_fault.body.fault[index].fault_type = rank;
         g_ycp_preq_report_device_fault.body.fault[index].gunno = gunno + 0x01;
         g_ycp_preq_report_device_fault.body.fault[index].fault_code = temp;
         g_ycp_preq_report_device_fault.body.fault_num++;
@@ -2613,7 +2613,7 @@ static void ycp_disposable_message_check(uint8_t gunno)
 static void ycp_realtime_process_thread_entry(void *parameter)
 {
     System_BaseData *base = NULL;
-    uint8_t gunno = 0x00;
+    uint8_t gunno = 0x00, is_power_on = NET_ENUM_TRUE;
 
     while(1){
         if((net_get_ota_info()->state >= NET_OTA_STATE_LOGIN_WAIT) && (net_get_ota_info()->state <= NET_OTA_STATE_UPDATING)){
@@ -2623,6 +2623,19 @@ static void ycp_realtime_process_thread_entry(void *parameter)
         if(s_ycp_handle == NULL){
             rt_thread_mdelay(100);
             continue;
+        }
+
+        if(ycp_get_socket_info()->state == YCP_SOCKET_STATE_LOGIN_SUCCESS){
+            if((is_power_on == NET_ENUM_TRUE) && (ycp_is_interact_normally())){
+                is_power_on = NET_ENUM_FALSE;
+                for(gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
+                    base = (System_BaseData*)(s_ycp_handle->get_base_data(gunno));
+                    if(base->state.current != APP_OFSM_STATE_FAULTING){
+                        g_ycp_preq_report_device_fault.head.length = 0x04 + 0x01;
+                        ycp_net_event_send(NET_YCP_EVENT_HANDLE_CHARGEPILE, NET_YCP_EVENT_TYPE_REQUEST, gunno, NET_YCP_PREQ_EVENT_REPORT_DEVICE_FAULT);
+                    }
+                }
+            }
         }
 
         for(gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){

@@ -67,7 +67,7 @@ void ycp_fault_event_detect_callback(uint8_t gunno, uint32_t code, uint8_t is_re
     rt_exit_critical();
 }
 
-static int32_t ycp_get_fault_code(uint32_t bit, uint8_t gunno)
+static int32_t ycp_get_fault_code(uint32_t bit, uint8_t gunno, uint8_t *rank)
 {
     if(gunno >= NET_SYSTEM_GUN_NUMBER){
         return -0x01;
@@ -79,75 +79,147 @@ static int32_t ycp_get_fault_code(uint32_t bit, uint8_t gunno)
     switch(bit){
     case NET_GENERAL_FAULT_SCRAM:
         s_ycp_realtime_fault[gunno] = NET_YCP_FAULT_CODE_EMERGENCY;
+        if(rank){
+            *rank = NET_YCP_FAULT_CODE_TYPE_DEVICE;
+        }
         break;
     case NET_GENERAL_FAULT_CARD_READER:
         s_ycp_realtime_fault[gunno] = NET_YCP_FAULT_CODE_CARD_READER;
+        if(rank){
+            *rank = NET_YCP_FAULT_CODE_TYPE_DEVICE;
+        }
         break;
     case NET_GENERAL_FAULT_DOOR:
         s_ycp_realtime_fault[gunno] = NET_YCP_FAULT_CODE_GATE;
+        if(rank){
+            *rank = NET_YCP_FAULT_CODE_TYPE_DEVICE;
+        }
         break;
     case NET_GENERAL_FAULT_AMMETER:
         s_ycp_realtime_fault[gunno] = NET_YCP_FAULT_CODE_AMMETER;
+        if(rank){
+            *rank = NET_YCP_FAULT_CODE_TYPE_PORT;
+        }
         break;
     case NET_GENERAL_FAULT_CHARGE_MODULE:
         s_ycp_realtime_fault[gunno] = NET_YCP_FAULT_CODE_COMMUNICATION_MODULE;
+        if(rank){
+            *rank = NET_YCP_FAULT_CODE_TYPE_PORT;
+        }
         break;
     case NET_GENERAL_FAULT_OVER_TEMP:
         s_ycp_realtime_fault[gunno] = NET_YCP_FAULT_CODE_GUN_OVERTEMP;
+        if(rank){
+            *rank = NET_YCP_FAULT_CODE_TYPE_PORT;
+        }
         break;
     case NET_GENERAL_FAULT_OVER_VOLT:
         s_ycp_realtime_fault[gunno] = NET_YCP_FAULT_CODE_INPUT_OVERVOLT;
+        if(rank){
+            *rank = NET_YCP_FAULT_CODE_TYPE_PORT;
+        }
         break;
     case NET_GENERAL_FAULT_UNDER_VOLT:
         s_ycp_realtime_fault[gunno] = NET_YCP_FAULT_CODE_INPUT_UNDERVOLT;
+        if(rank){
+            *rank = NET_YCP_FAULT_CODE_TYPE_PORT;
+        }
         break;
     case NET_GENERAL_FAULT_OVER_CURR:
         s_ycp_realtime_fault[gunno] = NET_YCP_FAULT_CODE_OVERCURR;
+        if(rank){
+            *rank = NET_YCP_FAULT_CODE_TYPE_PORT;
+        }
         break;
     case NET_GENERAL_FAULT_MAIN_RELAY:
         s_ycp_realtime_fault[gunno] = NET_YCP_FAULT_CODE_RELAY_ADH;
+        if(rank){
+            *rank = NET_YCP_FAULT_CODE_TYPE_PORT;
+        }
         break;
     case NET_GENERAL_FAULT_PARALLEL_RELAY:
         s_ycp_realtime_fault[gunno] = NET_YCP_FAULT_CODE_RELAY_ADH;
+        if(rank){
+            *rank = NET_YCP_FAULT_CODE_TYPE_DEVICE;
+        }
         break;
     case NET_GENERAL_FAULT_AC_RELAY:
         s_ycp_realtime_fault[gunno] = NET_YCP_FAULT_CODE_AC_RELAY;
+        if(rank){
+            *rank = NET_YCP_FAULT_CODE_TYPE_DEVICE;
+        }
         break;
     case NET_GENERAL_FAULT_ELOCK:
+        if(rank){
+            *rank = NET_YCP_FAULT_CODE_TYPE_PORT;
+        }
         return 0x00;
         break;
     case NET_GENERAL_FAULT_AUXPOWER:
+        if(rank){
+            *rank = NET_YCP_FAULT_CODE_TYPE_PORT;
+        }
         return 0x00;
         break;
     case NET_GENERAL_FAULT_FLASH:
         s_ycp_realtime_fault[gunno] = NET_YCP_FAULT_CODE_STORAGE_CHIP;
+        if(rank){
+            *rank = NET_YCP_FAULT_CODE_TYPE_DEVICE;
+        }
         break;
     case NET_GENERAL_FAULT_EEPROM:
         s_ycp_realtime_fault[gunno] = NET_YCP_FAULT_CODE_STORAGE_CHIP;
+        if(rank){
+            *rank = NET_YCP_FAULT_CODE_TYPE_DEVICE;
+        }
         break;
     case NET_GENERAL_FAULT_LIGHT_PRPTECT:
         s_ycp_realtime_fault[gunno] = NET_YCP_FAULT_CODE_LIGHTNING_PROTECTOR;
+        if(rank){
+            *rank = NET_YCP_FAULT_CODE_TYPE_DEVICE;
+        }
         break;
     case NET_GENERAL_FAULT_GUN_SITE:
         s_ycp_realtime_fault[gunno] = NET_YCP_FAULT_CODE_GUN_SITE;
+        if(rank){
+            *rank = NET_YCP_FAULT_CODE_TYPE_PORT;
+        }
         break;
     case NET_GENERAL_FAULT_CIRCUIT_BREAKER:
         s_ycp_realtime_fault[gunno] = NET_YCP_FAULT_CODE_CIRCUIT_BREAKER;
+        if(rank){
+            *rank = NET_YCP_FAULT_CODE_TYPE_DEVICE;
+        }
         break;
     case NET_GENERAL_FAULT_FLOODING:
         s_ycp_realtime_fault[gunno] = NET_YCP_FAULT_CODE_FLOODING;
+        if(rank){
+            *rank = NET_YCP_FAULT_CODE_TYPE_DEVICE;
+        }
         break;
     case NET_GENERAL_FAULT_SMOKE:
         s_ycp_realtime_fault[gunno] = NET_YCP_FAULT_CODE_FUMES;
+        if(rank){
+            *rank = NET_YCP_FAULT_CODE_TYPE_DEVICE;
+        }
         break;
     case NET_GENERAL_FAULT_POUR:
         s_ycp_realtime_fault[gunno] = NET_YCP_FAULT_CODE_POUR;
+        if(rank){
+            *rank = NET_YCP_FAULT_CODE_TYPE_DEVICE;
+        }
         break;
     case NET_GENERAL_FAULT_LIQUID_COOLING:
         s_ycp_realtime_fault[gunno] = NET_YCP_FAULT_CODE_LIQUID_COOLING;
+        if(rank){
+            *rank = NET_YCP_FAULT_CODE_TYPE_PORT;
+        }
         break;
     case NET_GENERAL_FAULT_FUSE:
         s_ycp_realtime_fault[gunno] = NET_YCP_FAULT_CODE_FUSE;
+        if(rank){
+            *rank = NET_YCP_FAULT_CODE_TYPE_PORT;
+        }
         break;
     default:
         return 0x00;
@@ -175,14 +247,14 @@ void ycp_fault_detect_report(uint8_t gunno)
         }
     }
     int32_t result = 0x00;
-    uint8_t index = (YCP_FAULT_MSG_NUM_MAX - 0x01);
+    uint8_t index = (YCP_FAULT_MSG_NUM_MAX - 0x01), rank = NET_YCP_FAULT_CODE_TYPE_PORT;
 
     rt_enter_critical();
 
-    if((result = ycp_get_fault_code(s_ycp_fault_info[gunno].body[index].code, gunno)) >= 0x00){
+    if((result = ycp_get_fault_code(s_ycp_fault_info[gunno].body[index].code, gunno, &rank)) >= 0x00){
         if(result > 0x00){
-            extern int8_t  ycp_chargepile_fault_report(uint8_t gunno, uint16_t code, uint8_t is_resume);
-            if(ycp_chargepile_fault_report(gunno, s_ycp_realtime_fault[gunno], s_ycp_fault_info[gunno].body[index].flag.is_resume) >= 0x00){
+            extern int8_t  ycp_chargepile_fault_report(uint8_t gunno, uint16_t code, uint8_t is_resume, uint8_t rank);
+            if(ycp_chargepile_fault_report(gunno, s_ycp_realtime_fault[gunno], s_ycp_fault_info[gunno].body[index].flag.is_resume, rank) >= 0x00){
 
                 s_ycp_fault_info[gunno].body[index].flag.onging = 0x00;
                 for(int8_t count = (YCP_FAULT_MSG_NUM_MAX - 0x01); count > 0x00; count--){
