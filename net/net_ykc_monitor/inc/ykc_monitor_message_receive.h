@@ -69,10 +69,12 @@
 #define NET_YKC_MONITOR_USER_SREQ_EVENT_QUERY_TSOCKET_INFO           7    /* 服务器监控请求事件：查询目标socket */
 #define NET_YKC_MONITOR_USER_SREQ_EVENT_QUERY_DEV_INFO               8    /* 服务器监控请求事件：查询设备信息 */
 #define NET_YKC_MONITOR_USER_SREQ_EVENT_FUNCTION_SWITCH              9    /* 服务器监控请求事件：功能开关控制 */
+#define NET_YKC_MONITOR_USER_SREQ_EVENT_INFOPARA_MODIFY              10   /* 服务器监控请求事件：修改桩信息、参数 */
 
 /** server user response event */
 #define NET_YKC_MONITOR_USER_SRES_EVENT_REPORT_TPLAT_LOG             0    /* 服务器监控响应事件：上报目标平台日志 */
 #define NET_YKC_MONITOR_USER_SRES_EVENT_REPORT_DEV_INFO              1    /* 服务器监控响应事件：上报设备信息 */
+#define NET_YKC_MONITOR_USER_SRES_EVENT_INFOPARA_CONFIRM_RES         2    /* 服务器监控响应事件：修改的桩信息、参数确认结果 */
 
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
 
@@ -134,9 +136,12 @@ extern Net_YkcMonitorPro_SRes_ApplyMergeCharge_Active_t g_ykc_monitor_sres_apply
 extern Net_YkcMonitorPro_Sres_TargetPlat_Log_t g_ykc_monitor_sres_target_plat_log;
 /** 充电桩设备信息上报响应 */
 extern Net_YkcMonitorPro_Sres_DevInfo_t g_ykc_monitor_sres_dev_info;
-
 /** 服务器下发功能开关控制请求 */
 extern Net_YkcMonitorPro_Sreq_FunctionSwitch_t g_ykc_monitor_sreq_function_switch;
+/** IP、端口、桩号修改(信息确认)请求 */
+extern Net_YkcMonitorPro_Sreq_Pres_InfoPara_ModifyConfirm_t g_ykc_monitor_sreq_pres_info_para_modify_confirm;
+/** IP、服务器IP、端口、桩号信息确认结果响应 */
+extern Net_YkcMonitorPro_Sres_InfoPara_ConfirmResult_t g_ykc_monitor_sres_info_para_confirm_result;
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
 
 #pragma pack(1)

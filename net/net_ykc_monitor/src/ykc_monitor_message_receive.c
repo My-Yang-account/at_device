@@ -95,9 +95,12 @@ Net_YkcMonitorPro_SRes_ApplyMergeCharge_Active_t g_ykc_monitor_sres_apply_merge_
 Net_YkcMonitorPro_Sres_TargetPlat_Log_t g_ykc_monitor_sres_target_plat_log;
 /** 充电桩设备信息上报响应 */
 Net_YkcMonitorPro_Sres_DevInfo_t g_ykc_monitor_sres_dev_info;
-
 /** 服务器下发功能开关控制请求 */
 Net_YkcMonitorPro_Sreq_FunctionSwitch_t g_ykc_monitor_sreq_function_switch;
+/** IP、端口、桩号修改(信息确认)请求 */
+Net_YkcMonitorPro_Sreq_Pres_InfoPara_ModifyConfirm_t g_ykc_monitor_sreq_pres_info_para_modify_confirm;
+/** IP、服务器IP、端口、桩号信息确认结果响应 */
+Net_YkcMonitorPro_Sres_InfoPara_ConfirmResult_t g_ykc_monitor_sres_info_para_confirm_result;
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
 
 #ifdef NET_YKC_MONITOR_AS_MONITOR
@@ -1591,6 +1594,62 @@ static void ykc_monitor_callback_request_function_switch(uint8_t* data, uint16_t
     ykc_monitor_net_event_send(NET_YKC_MONITOR_USER_EVENT_HANDLE_SERVER, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, 0x00, NET_YKC_MONITOR_USER_SREQ_EVENT_FUNCTION_SWITCH);
 }
 
+/*****************************************************************
+ * 函数名                   ykc_monitor_callback_request_info_para_modify
+ * 功能                       处理运营平台下发的修改桩信息、参数指令
+ *             data       数据
+ *             length     数据长度
+ * 返回                        无
+ ****************************************************************/
+static void ykc_monitor_callback_request_info_para_modify(uint8_t* data, uint16_t length)
+{
+    if(data == NULL){
+        LOG_E("ykc monitor input data is null when call ykc_monitor_callback_request_info_para_modify");
+        return;
+    }
+    if(length != sizeof(Net_YkcMonitorPro_Sreq_Pres_InfoPara_ModifyConfirm_t)){
+        LOG_E("ykc monitor input length error when call ykc_monitor_callback_request_info_para_modify|%d, %d", length,
+                sizeof(Net_YkcMonitorPro_Sreq_Pres_InfoPara_ModifyConfirm_t));
+        return;
+    }
+
+    if(g_ykc_monitor_sreq_pres_info_para_modify_confirm.ongoing){
+        LOG_W("ykc monitor modify info para confirm......");
+        return;
+    }
+    g_ykc_monitor_sreq_pres_info_para_modify_confirm.ongoing = 0x01;
+    memcpy(&g_ykc_monitor_sreq_pres_info_para_modify_confirm, data, length);
+    ykc_monitor_net_event_send(NET_YKC_MONITOR_USER_EVENT_HANDLE_SERVER, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, 0x00, NET_YKC_MONITOR_USER_SREQ_EVENT_INFOPARA_MODIFY);
+}
+
+/*****************************************************************
+ * 函数名                   ykc_monitor_callback_response_info_para_confirm_result
+ * 功能                       处理运营平台响应的桩信息、参数确认结果
+ *             data       数据
+ *             length     数据长度
+ * 返回                        无
+ ****************************************************************/
+static void ykc_monitor_callback_response_info_para_confirm_result(uint8_t* data, uint16_t length)
+{
+    if(data == NULL){
+        LOG_E("ykc monitor input data is null when call ykc_monitor_callback_response_info_para_confirm_result");
+        return;
+    }
+    if(length != sizeof(Net_YkcMonitorPro_Sres_InfoPara_ConfirmResult_t)){
+        LOG_E("ykc monitor input length error when call ykc_monitor_callback_response_info_para_confirm_result|%d, %d", length,
+                sizeof(Net_YkcMonitorPro_Sres_InfoPara_ConfirmResult_t));
+        return;
+    }
+
+    if(g_ykc_monitor_sres_info_para_confirm_result.ongoing){
+        LOG_W("ykc monitor modify info para confirm(result)......");
+        return;
+    }
+    g_ykc_monitor_sres_info_para_confirm_result.ongoing = 0x01;
+    memcpy(&g_ykc_monitor_sres_info_para_confirm_result, data, length);
+    ykc_monitor_net_event_send(NET_YKC_MONITOR_USER_EVENT_HANDLE_SERVER, NET_YKC_MONITOR_EVENT_TYPE_RESPONSE, 0x00, NET_YKC_MONITOR_USER_SRES_EVENT_INFOPARA_CONFIRM_RES);
+}
+
 #endif /* NET_PACK_USING_YKC_MONITOR */
 
 int32_t ykc_monitor_message_recv_init(void)
@@ -1631,10 +1690,15 @@ int32_t ykc_monitor_message_recv_init(void)
     ykc_monitor_service_callback_register(NETYKC_MONITOR_SREQCMD_QUERY_DVE_INFO,             ykc_monitor_callback_request_query_dev_info);
     ykc_monitor_service_callback_register(NETYKC_MONITOR_SRESCMD_REPORT_DVE_INFO,            ykc_monitor_callback_response_report_dev_info);
     ykc_monitor_service_callback_register(NETYKC_MONITOR_SREQCMD_FUNCTION_SWITCH,            ykc_monitor_callback_request_function_switch);
+    ykc_monitor_service_callback_register(NETYKC_MONITOR_SREQCMD_INFOPARA_MODIFY,            ykc_monitor_callback_request_info_para_modify);
+    ykc_monitor_service_callback_register(NETYKC_MONITOR_SRESCMD_INFOPARA_CONFIRM_RESULT,    ykc_monitor_callback_response_info_para_confirm_result);
 #endif /* #ifdef NET_YKC_MONITOR_AS_MONITOR */
 
     s_ykc_monitor_qrcode_buf.flag.is_used = 0x00;
     s_ykc_monitor_card_vin_buf.flag.is_used = 0x00;
+
+    g_ykc_monitor_sreq_pres_info_para_modify_confirm.ongoing = 0x00;
+    g_ykc_monitor_sres_info_para_confirm_result.ongoing = 0x00;
 
     return 0x00;
 }

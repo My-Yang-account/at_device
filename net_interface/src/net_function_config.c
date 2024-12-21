@@ -449,13 +449,11 @@ static int32_t app_nset_system_data(uint8_t name, uint8_t *data, uint16_t len, u
         if(sys_sync_config_item_content(CONFIG_ITEM_IP_DOMAIN, data, len) < 0x00){
             return -0x01;
         }
-        return sys_storage_config_item();
         break;
     case NET_SYSTEM_DATA_NAME_PORT:
         if(sys_sync_config_item_content(CONFIG_ITEM_PORT, data, len) < 0x00){
             return -0x01;
         }
-        return sys_storage_config_item();
         break;
 #if 0
     case NET_SYSTEM_DATA_NAME_VOLTAGE_MAX:

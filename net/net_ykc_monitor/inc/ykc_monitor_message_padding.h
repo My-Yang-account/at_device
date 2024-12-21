@@ -88,6 +88,7 @@ void ykc_monitor_disposable_message_check(uint8_t gunno);
 /******************************** 以下是监控报文 *******************************/
 #ifdef NET_YKC_MONITOR_AS_MONITOR
 int8_t ykc_monitor_message_pro_function_switch(void *data, uint8_t len);
+int8_t ykc_monitor_message_pro_info_para_modify(void *data, uint16_t len);
 
 int8_t ykc_monitor_message_padding_module_info(uint8_t *buf, uint16_t ilen, uint16_t *olen);
 int8_t ykc_monitor_message_padding_module_setup_info(uint8_t *buf, uint16_t ilen, uint16_t *olen);
@@ -107,6 +108,8 @@ int8_t ykc_monitor_padding_charging_info(uint8_t gunno);
 int8_t ykc_monitor_message_padding_charging_info(uint8_t gunno, uint8_t *buf, uint16_t ilen, uint16_t *olen);
 int8_t ykc_monitor_message_padding_charge_finish_info(uint8_t gunno, uint8_t *buf, uint16_t ilen, uint16_t *olen);
 int8_t ykc_monitor_response_padding_function_switch(uint8_t *buf, uint16_t ilen, uint16_t *olen);
+int8_t ykc_monitor_response_padding_info_para_confirm(uint8_t *buf, uint16_t ilen, uint16_t *olen);
+
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
 
 #endif /* NET_PACK_USING_YKC_MONITOR */

@@ -39,10 +39,14 @@
 #define NET_YKC_MONITOR_PILE_TYPE_AC                                   0x01        /* 桩类型：交流 */
 
 #ifdef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL
+#define NET_YKC_MONITOR_EXTEND_CHARGEPILE_LENGTH                       0x30        /* 默认扩展桩号长度 */
 #define NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT                      0x40        /* 默认桩号长度 */
 #else
+#define NET_YKC_MONITOR_EXTEND_CHARGEPILE_LENGTH                       0x30        /* 默认扩展桩号长度 */
 #define NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT                      0x07        /* 默认桩号长度 */
 #endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
+
+#define NET_YKC_MONITOR_DOMAIN_LENGTH_DEFAULT                          0x80        /* 默认域名长度 */
 
 #define NET_YKC_MONITOR_CARD_NUMBER_LENGTH_MAX                         0x08        /* 卡号长度最大值 */
 #define NET_YKC_MONITOR_CAR_VIN_NUMBER_LENGTH_MAX                      0x11        /* 车VIN码长度最大值 */
@@ -298,6 +302,10 @@ enum ykc_monitor_cmd{
 
     NETYKC_MONITOR_SREQCMD_QUERY_TSOCKET_INFO = 0xC5,                /* 指令：运营平台查询目标socket信息 */
     NETYKC_MONITOR_PRESCMD_QUERY_TSOCKET_INFO = 0xC6,                /* 指令：远程查询目标socket信息命令回复 */
+
+    NETYKC_MONITOR_SREQCMD_INFOPARA_MODIFY = 0xC7,                   /* 指令：运营平台下发修改桩信息、参数 */
+    NETYKC_MONITOR_PRESCMD_INFOPARA_CONFIRM = 0xC8,                  /* 指令：桩向运营平台确认修改的桩信息、参数 */
+    NETYKC_MONITOR_SRESCMD_INFOPARA_CONFIRM_RESULT = 0xC9,           /* 指令：运营平台回复修改的桩信息、参数确认结果 */
 
     NETYKC_MONITOR_SREQCMD_FUNCTION_SWITCH = 0xCA,                   /* 指令：运营平台下发功能开关指令 */
     NETYKC_MONITOR_PRESCMD_FUNCTION_SWITCH = 0xCB,                   /* 指令：功能开关指令回复 */
@@ -1430,25 +1438,30 @@ typedef struct{
     uint16_t check_sum;                          /* 校验码 */
 }Net_YkcMonitorPro_Preq_Pres_TsocketInfo_t;
 
-/** 0xC7 给模块设置的电压、电流响应(上报)帧 */
-struct voltcurr_pair{
-    uint32_t is_open : 1;                        /* 模块组开机(1：开机，0：关机) */
-    uint32_t voltage : 14;                       /* 设置的电压(0.1) */
-    uint32_t current : 17;                       /* 设置的电流(0.01) */
-};
-
+/** 0xC7、0xC8 IP、端口、桩号修改(信息确认)帧 */
 typedef struct{
     Net_YkcMonitorPro_Head_t head;
     struct{
-        uint8_t pile_number[NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT];  /* 桩号*/
-        uint32_t timestamp;                                              /* 采样时间 */
-        uint8_t group_num;                                               /* 模块组数 */
-#if 0
-        struct voltcurr_pair pair[NET_YKC_MONITOR_SETVOLTCURR_PAIR_MAX]; /* 每秒采样一次，采样14次上报一次(此帧每20秒上报一次) */
-#endif
+        uint8_t pile_number[NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT];     /* 桩号*/
+        uint8_t new_pile_number[NET_YKC_MONITOR_EXTEND_CHARGEPILE_LENGTH];  /* 新桩号*/
+        uint8_t domain[NET_YKC_MONITOR_DOMAIN_LENGTH_DEFAULT];              /* IP/域名 */
+        uint16_t port;                           /* 端口 */
     }body;
-    uint16_t check_sum;                          /* 校验码 */
-}Net_YkcMonitorPro_Preq_Pres_SetVoltCurr_t;
+    uint16_t ongoing;                            /* 正在处理数据 */
+//    uint16_t check_sum;                          /* 校验码 */
+}Net_YkcMonitorPro_Sreq_Pres_InfoPara_ModifyConfirm_t;
+
+/** 0xC9 IP、服务器IP、端口、桩号信息确认结果帧 */
+typedef struct{
+    Net_YkcMonitorPro_Head_t head;
+    struct{
+        uint16_t type;                           /* 确认报文类型码 */
+        uint8_t result;                          /* 确认结果 */
+        uint8_t err_reason;                      /* 错误原因 */
+    }body;
+    uint16_t ongoing;                            /* 正在处理数据 */
+//    uint16_t check_sum;                          /* 校验码 */
+}Net_YkcMonitorPro_Sres_InfoPara_ConfirmResult_t;
 
 /** 0xCA 服务器下发功能控制开关帧 */
 typedef struct{
@@ -1472,6 +1485,26 @@ typedef struct{
     }body;
     uint16_t check_sum;                          /* 校验码 */
 }Net_YkcMonitorPro_Pres_FunctionSwitch_t;
+
+/** 0xCD 给模块设置的电压、电流响应(上报)帧 */
+struct voltcurr_pair{
+    uint32_t is_open : 1;                        /* 模块组开机(1：开机，0：关机) */
+    uint32_t voltage : 14;                       /* 设置的电压(0.1) */
+    uint32_t current : 17;                       /* 设置的电流(0.01) */
+};
+
+typedef struct{
+    Net_YkcMonitorPro_Head_t head;
+    struct{
+        uint8_t pile_number[NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT];  /* 桩号*/
+        uint32_t timestamp;                                              /* 采样时间 */
+        uint8_t group_num;                                               /* 模块组数 */
+#if 0
+        struct voltcurr_pair pair[NET_YKC_MONITOR_SETVOLTCURR_PAIR_MAX]; /* 每秒采样一次，采样14次上报一次(此帧每20秒上报一次) */
+#endif
+    }body;
+    uint16_t check_sum;                          /* 校验码 */
+}Net_YkcMonitorPro_Preq_Pres_SetVoltCurr_t;
 
 struct value{
     uint16_t symbol : 1;                         /* 数据的符号(0：正值，1：负值) */

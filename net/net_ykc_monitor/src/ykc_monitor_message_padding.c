@@ -2425,11 +2425,15 @@ int8_t ykc_monitor_chargepile_create_local_transaction_number(uint8_t gunno, voi
     struct tm *_tm = NULL;
 
     s_ykc_monitor_local_start_sq++;
+#ifdef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL
+    sn_len = 0x07;    /** 受限于云快充协议 */
+#else /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
     sn_len = sizeof(g_ykc_monitor_preq_transaction_records[gunno].body.pile_number);
+#endif
     s_ykc_monitor_base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
     _tm = localtime((const time_t*)&(s_ykc_monitor_base->current_time));
 
-    rt_kprintf("ykc_chargepile_create_local_transaction_number[%d](%d, %d, %d, %d, %d)\n", s_ykc_monitor_base->current_time, _tm->tm_year, _tm->tm_mon,
+    LOG_D("ykc_chargepile_create_local_transaction_number[%d](%d/%d/%d %d:%d:%d)", s_ykc_monitor_base->current_time, _tm->tm_year, _tm->tm_mon,
             _tm->tm_mday, _tm->tm_hour, _tm->tm_min, _tm->tm_sec);
     memcpy(ptr, g_ykc_monitor_preq_transaction_records[gunno].body.pile_number, sn_len);   /* 桩号 */
     ptr[sn_len++] = gunno + 1;                                                     /* 枪号 */
@@ -3958,6 +3962,66 @@ int8_t ykc_monitor_message_padding_charge_finish_info(uint8_t gunno, uint8_t *bu
 }
 
 /*************************************************
+ * 函数名      ykc_monitor_response_padding_function_switch
+ * 功能          组包：功能开关控制响应
+ * **********************************************/
+int8_t ykc_monitor_response_padding_function_switch(uint8_t *buf, uint16_t ilen, uint16_t *olen)
+{
+    uint16_t data_len = sizeof(Net_YkcMonitorPro_Pres_FunctionSwitch_t);
+
+    if(buf == NULL){
+        return -0x01;
+    }
+    if(ilen < data_len){
+        return -0x02;
+    }
+
+    Net_YkcMonitorPro_Pres_FunctionSwitch_t *fswitch = (Net_YkcMonitorPro_Pres_FunctionSwitch_t*)buf;
+
+    memset(fswitch, 0x00, sizeof(Net_YkcMonitorPro_Pres_FunctionSwitch_t));
+    fswitch->body.result = 0x01;
+
+    if(olen){
+        *olen = data_len;
+    }
+
+    return 0x00;
+}
+
+/*************************************************
+ * 函数名      ykc_monitor_response_padding_info_para_confirm
+ * 功能          组包：确认修改的桩信息、参数
+ * **********************************************/
+int8_t ykc_monitor_response_padding_info_para_confirm(uint8_t *buf, uint16_t ilen, uint16_t *olen)
+{
+    uint16_t data_len = sizeof(Net_YkcMonitorPro_Sreq_Pres_InfoPara_ModifyConfirm_t);
+
+    if(buf == NULL){
+        return -0x01;
+    }
+    if(ilen < data_len){
+        return -0x02;
+    }
+
+    Net_YkcMonitorPro_Sreq_Pres_InfoPara_ModifyConfirm_t *info_para = (Net_YkcMonitorPro_Sreq_Pres_InfoPara_ModifyConfirm_t*)buf;
+
+    memset(info_para, 0x00, sizeof(Net_YkcMonitorPro_Sreq_Pres_InfoPara_ModifyConfirm_t));
+    memcpy(info_para, &g_ykc_monitor_sreq_pres_info_para_modify_confirm, sizeof(Net_YkcMonitorPro_Sreq_Pres_InfoPara_ModifyConfirm_t));
+
+    if(olen){
+        *olen = data_len;
+    }
+
+    return 0x00;
+}
+
+
+
+
+
+/** 监控报文处理 */
+
+/*************************************************
  * 函数名      ykc_monitor_message_pro_function_switch
  * 功能          处理服务器下发的功能开关控制请求
  * **********************************************/
@@ -3990,27 +4054,42 @@ int8_t ykc_monitor_message_pro_function_switch(void *data, uint8_t len)
 }
 
 /*************************************************
- * 函数名      ykc_monitor_response_padding_function_switch
- * 功能          组包：功能开关控制响应
+ * 函数名      ykc_monitor_message_pro_info_para_modify
+ * 功能          执行桩信息、参数修改
  * **********************************************/
-int8_t ykc_monitor_response_padding_function_switch(uint8_t *buf, uint16_t ilen, uint16_t *olen)
+int8_t ykc_monitor_message_pro_info_para_modify(void *data, uint16_t len)
 {
-    uint16_t data_len = sizeof(Net_YkcMonitorPro_Pres_FunctionSwitch_t);
+    uint16_t data_len = sizeof(Net_YkcMonitorPro_Sreq_Pres_InfoPara_ModifyConfirm_t);
 
-    if(buf == NULL){
+    if(data == NULL){
         return -0x01;
     }
-    if(ilen < data_len){
+    if(len < data_len){
         return -0x02;
     }
 
-    Net_YkcMonitorPro_Pres_FunctionSwitch_t *fswitch = (Net_YkcMonitorPro_Pres_FunctionSwitch_t*)buf;
+    uint8_t item_len = 0x00;
+    uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC_MONITOR |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
+    Net_YkcMonitorPro_Sreq_Pres_InfoPara_ModifyConfirm_t *info_para = (Net_YkcMonitorPro_Sreq_Pres_InfoPara_ModifyConfirm_t*)data;
 
-    fswitch->body.result = 0x01;
-
-    if(olen){
-        *olen = data_len;
+    item_len = strlen((char*)info_para->body.new_pile_number);
+    if(item_len){
+        LOG_D("ykc monitor modify pile number:%s", info_para->body.new_pile_number);
+        s_ykc_monitor_handle->set_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, (uint8_t*)info_para->body.new_pile_number, item_len, option);
     }
+
+    item_len = strlen((char*)info_para->body.domain);
+    if(item_len){
+        LOG_D("ykc monitor modify domain:%s", info_para->body.domain);
+        s_ykc_monitor_handle->set_system_data(NET_SYSTEM_DATA_NAME_DOMAIN, (uint8_t*)info_para->body.domain, item_len, option);
+    }
+
+    if(info_para->body.port){
+        LOG_D("ykc monitor modify port:%s", info_para->body.port);
+        s_ykc_monitor_handle->set_system_data(NET_SYSTEM_DATA_NAME_PORT, (uint8_t*)&info_para->body.port, sizeof(info_para->body.port), option);
+    }
+
+    s_ykc_monitor_handle->system_data_storage(0x00);
 
     return 0x00;
 }

@@ -34,7 +34,7 @@ typedef struct{
 
 typedef struct
 {
-    uint8_t service_id;
+    uint16_t service_id;
     void *service_cb;
 }ykc_monitor_service_callback_map;
 

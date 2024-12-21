@@ -1350,6 +1350,12 @@ static void net_ycp_server_message_pro_entry(void *parameter)
                                     LOG_D("modify server port data sync fail");
                                 }
                             }
+
+                            if(handle->system_data_storage(0x00) < 0x00){
+                                s_ycp_assistant_flag.attemp_login_success = 0x00;
+                                LOG_D("modify server addr port data sync fail...");
+                            }
+
                             if(s_ycp_assistant_flag.attemp_login_success){
                                 if(handle->system_data_storage(0x00) < 0x00){
                                     s_ycp_assistant_flag.attemp_login_success = 0x00;
