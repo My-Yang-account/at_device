@@ -213,6 +213,7 @@ typedef struct{
 #pragma pack()
 
 uint8_t ycp_is_interact_normally(void);
+void ycp_request_billingrule_again(void);
 
 ycp_socket_info_t* ycp_get_socket_info(void);
 

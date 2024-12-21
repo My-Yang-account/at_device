@@ -27,6 +27,7 @@
 
 #define YCP_DISPOSABLE_EVENT_STATE                0x00          /* 漏报事件：桩状态 */
 
+#define YCP_REQ_BILLINGRULE_AGAIN_INTERVAL        (30 *1000)    /* 外部触发重新请求计费模型间隔 */
 #define YCP_STATE_DATA_INTERVAL_INIT              0x05          /* 刚连上网时状态数据上报间隔 */
 #define YCP_STATE_DATA_INTERVAL_CHARGING          0x0F          /* 充电中状态数据上报间隔  */
 #define YCP_STATE_DATA_INTERVAL_IDLE              0x05 *60      /* 空闲状态数据上报间隔  */
@@ -2613,6 +2614,7 @@ static void ycp_disposable_message_check(uint8_t gunno)
 static void ycp_realtime_process_thread_entry(void *parameter)
 {
     System_BaseData *base = NULL;
+    uint32_t req_billing_rule_tick = 0x00;
     uint8_t gunno = 0x00, is_power_on = NET_ENUM_TRUE;
 
     while(1){
@@ -2636,6 +2638,24 @@ static void ycp_realtime_process_thread_entry(void *parameter)
                     }
                 }
             }
+            if(ycp_is_interact_normally()){
+                extern uint8_t app_billingrule_is_valid(uint8_t gunno);
+                for(gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
+                    if(app_billingrule_is_valid(gunno) == 0x00){
+                        if(req_billing_rule_tick > rt_tick_get()){
+                            req_billing_rule_tick = rt_tick_get();
+                        }
+                        if((rt_tick_get() - req_billing_rule_tick) > YCP_REQ_BILLINGRULE_AGAIN_INTERVAL){
+                            g_ycp_preq_billing_model_verify.body.model_sn = 0x00;
+                            ycp_request_billingrule_again();
+                            req_billing_rule_tick = rt_tick_get();
+                            break;
+                        }
+                    }
+                }
+            }
+        }else{
+            req_billing_rule_tick = rt_tick_get();
         }
 
         for(gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){

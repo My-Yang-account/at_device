@@ -26,6 +26,8 @@
 #define NET_YCP_WAIT_LOGIN_RENTRY                            100         /* 等待登录结果尝试次数 */
 #define NET_YCP_WAIT_UNLOCK_TIMEOUT                          (10 *1000)  /* 等待socket 解锁超时时间(单位：ms) */
 
+#define NET_YCP_REQ_BILLINGRULE_INTERVAL                     (30 *1000)  /* 未接收到计费规则时，重新请求间隔(单位ms:30 *1000 = 30s) */
+
 #define NET_YCP_LOGIN_OPERATION_INTERVAL                     30000       /* 登录操作间隔(单位ms:30 *1000 = 30s) */
 
 #define NET_YCP_REALTIME_DATA_IDLE_INTERVAL                  300000      /* 实时数据空闲上报间隔(单位ms:5 *60 *1000 = 5min) */
@@ -51,9 +53,11 @@ struct ycp_assistant_flag{
     uint16_t is_attemping_open : 1;
     uint16_t is_attemping_login : 1;
     uint16_t is_storaging : 1;
+    uint16_t req_billingrule_again : 1;
 };
 
 static uint32_t s_ycp_heartbeat_tick;
+static uint32_t s_ycp_billing_rule_tick;
 uint8_t s_ycp_current_transaction_number[NET_SYSTEM_GUN_NUMBER][NET_YCP_SERIAL_NUMBER_LENGTH_DEFAULT];
 static struct ycp_assistant_flag s_ycp_assistant_flag;
 static uint8_t s_ycp_same_transaction_report_count[NET_SYSTEM_GUN_NUMBER];
@@ -116,6 +120,16 @@ Net_YcpPro_PRes_RemoteUpdate_t g_ycp_pres_remote_update;  // OK
 uint8_t ycp_is_interact_normally(void)
 {
     return s_ycp_assistant_flag.is_verify_billingrule;
+}
+
+/**************************************************************************
+ * 函数名                 ycp_request_billingrule_again
+ * 功能                     用于外部触发再次请求计费规则
+ * 说明
+ * ***********************************************************************/
+void ycp_request_billingrule_again(void)
+{
+    s_ycp_assistant_flag.req_billingrule_again = 0x01;
 }
 
 /**************************************************************************
@@ -816,7 +830,9 @@ static void net_ycp_message_send_thread_entry(void *parameter)
         if(s_ycp_socket_info.state != YCP_SOCKET_STATE_LOGIN_SUCCESS){   /* 未登录上服务器前不进行网络数据交互事件处理 */
             s_ycp_assistant_flag.is_timesync = 0x00;
             s_ycp_assistant_flag.is_verify_billingrule = 0x00;
+            s_ycp_assistant_flag.req_billingrule_again = 0x00;
             s_ycp_heartbeat_tick = rt_tick_get();
+            s_ycp_billing_rule_tick = rt_tick_get();
             rt_thread_mdelay(1000);
             continue;
         }
@@ -860,6 +876,23 @@ static void net_ycp_message_send_thread_entry(void *parameter)
             }
         }else{
             time_sync_tick = rt_tick_get();
+        }
+
+        /** 超过一定时间未接收到计费规则需要再次请求 */
+        if(s_ycp_assistant_flag.is_verify_billingrule == 0x00){
+            if(s_ycp_billing_rule_tick > rt_tick_get()){
+                s_ycp_billing_rule_tick = rt_tick_get();
+            }
+            if((rt_tick_get() - s_ycp_billing_rule_tick) > NET_YCP_REQ_BILLINGRULE_INTERVAL){
+                ycp_net_event_send(NET_YCP_EVENT_HANDLE_CHARGEPILE, NET_YCP_EVENT_TYPE_REQUEST, 0x00, NET_YCP_PREQ_EVENT_BILLING_MODEL_VERIFY);
+                s_ycp_billing_rule_tick = rt_tick_get();
+            }
+        }
+
+        /** 外部触发再次请求计费模型 */
+        if(s_ycp_assistant_flag.req_billingrule_again){
+            ycp_net_event_send(NET_YCP_EVENT_HANDLE_CHARGEPILE, NET_YCP_EVENT_TYPE_REQUEST, 0x00, NET_YCP_PREQ_EVENT_BILLING_MODEL_VERIFY);
+            s_ycp_assistant_flag.req_billingrule_again = 0x00;
         }
 
         /***************************************************** [数据请求] **********************************************************/
