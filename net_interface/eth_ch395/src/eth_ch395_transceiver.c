@@ -1197,10 +1197,11 @@ static void ethch395_device_init(void)
 
         while(ethch395_wait_operate_lock(-0x01, handle) == ETHCH395_ENUM_FALSE);
 
+#if 0
         baudrate = ETHCH395_NETDEV_BAUDRATE_9600;
         ethch395_netdev_ctrl(ETHCH395_NETDEV_CTRL_BAUDRATE, &baudrate, sizeof(baudrate));
         rt_thread_mdelay(100);
-
+#endif
         /** 查询  ethch395 通信状态 */
         if(ethch395_cmd_test_communication_status() < 0x00){
             LOG_E("ethch395 communication status abnormal");
@@ -1374,10 +1375,14 @@ _is_end:
  *************************************************/
 int32_t ethch395_device_reset(void)
 {
+    uint32_t baudrate = ETHCH395_NETDEV_BAUDRATE_9600;
+
     LOG_D("ethch395_device_reset");
     s_ethch395_state = NETDEV_ETHCH395_STATE_PHY;    /** 芯片状态：初始化物理层 */
     s_ethch395_assistant_info.flag.error = ETHCH395_ENUM_FALSE;
     s_ethch395_assistant_info.flag.init_complete = ETHCH395_ENUM_FALSE;
+
+    ethch395_netdev_ctrl(ETHCH395_NETDEV_CTRL_BAUDRATE, &baudrate, sizeof(baudrate));
 
     return ethch395_netdev_ctrl(ETHCH395_NETDEV_CTRL_HARDRESET, NULL, 0x00);
 }
