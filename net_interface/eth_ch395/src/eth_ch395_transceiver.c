@@ -22,6 +22,12 @@
 #define DBG_LVL DBG_LOG
 #include <rtdbg.h>
 
+
+#define ETHCH395_RESET_DELAY_TIME_DEF                               10000             /* 给芯片复位默认延时时间(ms) */
+#define ETHCH395_RESET_DELAY_TIME_MIN                               10000             /* 给芯片复位最小延时时间(ms) */
+#define ETHCH395_RESET_DELAY_TIME_MAX                               (5 *60 *1000)     /* 给芯片复位最大延时时间(ms) */
+#define ETHCH395_RESET_DELAY_TIME_STEP                              30000             /* 给芯片复位延时时间递增步进(ms) */
+
 #define ETHCH395_WAIT_RECV_TIME_DEF                                 10000             /* 等待数据接收完成最大时长 */
 #define ETHCH395_WAIT_CONNECTED_TIMEOUT                             20000             /* 等待连接最大时长(ms) */
 #define ETHCH395_WAIT_CLOSED_TIMEOUT                                5000              /* 等待关闭最大时长(ms) */
@@ -86,6 +92,8 @@ struct ethch395_access_lock{
 };
 #pragma pack()
 
+static uint32_t s_ethch395_reset_period;                       /** 芯片复位周期 */
+static uint32_t s_ethch395_reset_tick;                         /** 芯片复位时基 */
 static struct ethch395_access_lock s_ethch395_access_lock;
 static void (*ethch395_init_hook)(uint8_t, uint8_t);           /** ethch395 初始化 钩子函数 参数1：是否已初始化， 参数2：初始化成功与否*/
 static struct ethch395_assistant s_ethch395_assistant_info;
@@ -1169,6 +1177,9 @@ static void ethch395_device_init(void)
     ethch395_slist *node = NULL;
     void *handle = ethch395_get_thread_handle();
 
+    s_ethch395_reset_tick = rt_tick_get();
+    s_ethch395_reset_period = ETHCH395_RESET_DELAY_TIME_DEF;
+
     while(1){
         s_ethch395_assistant_info.flag.error = ETHCH395_ENUM_FALSE;
         s_ethch395_assistant_info.flag.init_complete = ETHCH395_ENUM_FALSE;
@@ -1336,13 +1347,21 @@ static void ethch395_device_init(void)
         break;
 
 _is_end:
-
         ethch395_unlock_operate_lock(handle);
-        s_ethch395_assistant_info.flag.error = ETHCH395_ENUM_TRUE;
-        s_ethch395_assistant_info.flag.init_complete = ETHCH395_ENUM_FALSE;
 
-        ethch395_device_reset();
         rt_thread_mdelay(10000);
+
+        if(s_ethch395_reset_tick > rt_tick_get()){
+            s_ethch395_reset_tick = rt_tick_get();
+        }
+        if((rt_tick_get() - s_ethch395_reset_tick) >= s_ethch395_reset_period){
+            s_ethch395_reset_tick = rt_tick_get();
+            ethch395_device_reset();
+        }
+        s_ethch395_reset_period += ETHCH395_RESET_DELAY_TIME_STEP;
+        if(s_ethch395_reset_period > ETHCH395_RESET_DELAY_TIME_MAX){
+            s_ethch395_reset_period = ETHCH395_RESET_DELAY_TIME_MAX;
+        }
         LOG_D("ethch395 device init repeat");
     }
 }
@@ -1377,6 +1396,8 @@ int32_t net_ethch395_transceiver_init(void)
         ethch395_init_hook(ETHCH395_ENUM_FALSE, ETHCH395_ENUM_FALSE);
     }
 
+    s_ethch395_reset_tick = rt_tick_get();
+    s_ethch395_reset_period = ETHCH395_RESET_DELAY_TIME_DEF;
     s_ethch395_assistant_info.flag.error = ETHCH395_ENUM_FALSE;
     s_ethch395_assistant_info.flag.init_complete = ETHCH395_ENUM_FALSE;
 
