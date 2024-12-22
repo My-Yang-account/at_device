@@ -124,7 +124,6 @@ static struct ykc_monitor_state_info s_ykc_monitor_state_info[NET_SYSTEM_GUN_NUM
 static struct rt_thread s_ykc_monitor_realtime_process_thread;
 static uint8_t s_ykc_monitor_realtime_process_thread_stack[YKC_MONITOR_REALTIME_PROCESS_THREAD_STACK_SIZE];
 static struct net_handle* s_ykc_monitor_handle = NULL;
-static System_BaseData *s_ykc_monitor_base = NULL;
 
 static uint16_t ykc_monitor_chargepile_stop_reason_converted(uint8_t bit, uint8_t stop_in_starting);
 static uint8_t ykc_monitor_chargepile_transaction_identity_converted(uint8_t identity);
@@ -216,6 +215,7 @@ uint8_t ykc_monitor_is_set_power_success(void)
     return s_ykc_monitor_flag_info[0x00].set_power_success;
 }
 
+#ifdef NET_YKC_MONITOR_AS_MONITOR
 /*************************************************
  * 函数名      ykc_monitor_storage_data_check
  * 功能          校验存储的平台数据
@@ -223,6 +223,7 @@ uint8_t ykc_monitor_is_set_power_success(void)
 static void ykc_monitor_storage_data_check(void)
 {
     uint8_t verify_success = 0x01;
+    System_BaseData *base = NULL;
     ykc_monitor_storage_struct *config = (ykc_monitor_storage_struct*)(s_ykc_monitor_handle->get_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, 0x00, NET_SYSTEM_DATA_OPTION_MONITOR_PLAT));
 
     if(config == NULL){
@@ -234,11 +235,11 @@ static void ykc_monitor_storage_data_check(void)
     if(verify_success){
         ykc_monitor_function_switch_set(config);
         for(uint8_t gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
-            s_ykc_monitor_base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
+            base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
             if(config->fswitch.lock == NET_ENUM_TRUE){
-                s_ykc_monitor_base->device_state = APP_DEVICE_STATE_FREEZE;
+                base->device_state = APP_DEVICE_STATE_FREEZE;
             }else {
-                s_ykc_monitor_base->device_state = APP_DEVICE_STATE_COMMISSIONING;
+                base->device_state = APP_DEVICE_STATE_COMMISSIONING;
             }
         }
     }else{
@@ -247,6 +248,7 @@ static void ykc_monitor_storage_data_check(void)
 
     LOG_D("ykc_monitor_storage_data_check(%d, %d)\n", config->fswitch.tplat_log, config->fswitch.lock);
 }
+#endif /* NET_YKC_MONITOR_AS_MONITOR */
 
 /*************************************************
  * 函数名      ykc_monitor_response_padding_query_realtime_data
@@ -298,7 +300,6 @@ int8_t ykc_monitor_response_padding_remote_start_charge(uint8_t gunno, uint8_t *
 
     uint8_t valid_len = 0x00;
     Net_YkcMonitorPro_PRes_Remote_StartCharge_t *response = NULL;
-    s_ykc_monitor_base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
     response = ((Net_YkcMonitorPro_PRes_Remote_StartCharge_t*)buf);
     memset(response, 0x00, data_len);
 
@@ -688,9 +689,10 @@ int8_t ykc_monitor_response_padding_remote_start_merge_charge(uint8_t gunno, uin
     }
 
     uint8_t valid_len = 0x00;
+    System_BaseData *base = NULL;
     Net_YkcMonitorPro_PRes_Remote_StartMergeCharge_t *response = NULL;
     response = ((Net_YkcMonitorPro_PRes_Remote_StartMergeCharge_t*)buf);
-    s_ykc_monitor_base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
+    base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
     memset(response, 0x00, data_len);
 
     valid_len = sizeof(g_ykc_monitor_sreq_remote_start_merge_charge[gunno].body.serial_number);
@@ -701,7 +703,7 @@ int8_t ykc_monitor_response_padding_remote_start_merge_charge(uint8_t gunno, uin
     valid_len = valid_len > sizeof(response->body.pile_number) ? sizeof(response->body.pile_number) : valid_len;
     memcpy(response->body.pile_number, g_ykc_monitor_sreq_remote_start_merge_charge[gunno].body.pile_number, valid_len);
 
-    if(s_ykc_monitor_base->main_gunno == gunno){
+    if(base->main_gunno == gunno){
         response->body.main_auxiliary_gun_flag = NET_ENUM_FALSE;
     }else{
         response->body.main_auxiliary_gun_flag = NET_ENUM_TRUE;
@@ -832,13 +834,14 @@ int8_t ykc_monitor_message_pro_billing_model_set_response(void *data, uint8_t le
         return -0x02;
     }
 
+    System_BaseData *base = NULL;
     Net_YkcMonitorPro_SRes_BillingModel_Request_t *request = (Net_YkcMonitorPro_SRes_BillingModel_Request_t*)data;
 
     for(uint8_t _gunno = 0x00; _gunno < NET_SYSTEM_GUN_NUMBER; _gunno++){
         uint8_t gunno = _gunno;
-        s_ykc_monitor_base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
-        if((s_ykc_monitor_base->state.current == APP_OFSM_STATE_CHARGING) || (s_ykc_monitor_base->state.current == APP_OFSM_STATE_STARTING) ||
-                (s_ykc_monitor_base->state.current == APP_OFSM_STATE_STOPING)){
+        base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
+        if((base->state.current == APP_OFSM_STATE_CHARGING) || (base->state.current == APP_OFSM_STATE_STARTING) ||
+                (base->state.current == APP_OFSM_STATE_STOPING)){
             net_operation_set_event(gunno, NET_OPERATION_EVENT_UPDATE_BILLING_RULE);
             gunno = NET_SYSTEM_GUN_NUMBER;
         }
@@ -905,29 +908,29 @@ int8_t ykc_monitor_message_pro_apply_charge_active_response(uint8_t gunno, void 
     }
 
     uint8_t valid_len = 0x00;
-    s_ykc_monitor_base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
+    System_BaseData *base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
     Net_YkcMonitorPro_SRes_ApplyCharge_Active_t *request = (Net_YkcMonitorPro_SRes_ApplyCharge_Active_t*)data;
 
     valid_len = sizeof(request->body.logic_card_number);
-    valid_len = valid_len > sizeof(s_ykc_monitor_base->card_number) ? sizeof(s_ykc_monitor_base->card_number) : valid_len;
-    memset(s_ykc_monitor_base->card_number, 0x00, sizeof(s_ykc_monitor_base->card_number));
-    memcpy(s_ykc_monitor_base->card_number, request->body.logic_card_number, valid_len);
+    valid_len = valid_len > sizeof(base->card_number) ? sizeof(base->card_number) : valid_len;
+    memset(base->card_number, 0x00, sizeof(base->card_number));
+    memcpy(base->card_number, request->body.logic_card_number, valid_len);
 
     valid_len = sizeof(request->body.serial_number);
-    valid_len = valid_len > sizeof(s_ykc_monitor_base->transaction_number) ? sizeof(s_ykc_monitor_base->transaction_number) : valid_len;
-    memset(s_ykc_monitor_base->transaction_number, 0x00, sizeof(s_ykc_monitor_base->transaction_number));
-    memcpy(s_ykc_monitor_base->transaction_number, request->body.serial_number, valid_len);
+    valid_len = valid_len > sizeof(base->transaction_number) ? sizeof(base->transaction_number) : valid_len;
+    memset(base->transaction_number, 0x00, sizeof(base->transaction_number));
+    memcpy(base->transaction_number, request->body.serial_number, valid_len);
 
-    valid_len = sizeof(s_ykc_monitor_base->card_number);
-    valid_len = valid_len > sizeof(s_ykc_monitor_base->user_number) ? sizeof(s_ykc_monitor_base->user_number) : valid_len;
-    memset(s_ykc_monitor_base->user_number, 0x00, sizeof(s_ykc_monitor_base->user_number));
-    memcpy(s_ykc_monitor_base->user_number, s_ykc_monitor_base->card_number, valid_len);
+    valid_len = sizeof(base->card_number);
+    valid_len = valid_len > sizeof(base->user_number) ? sizeof(base->user_number) : valid_len;
+    memset(base->user_number, 0x00, sizeof(base->user_number));
+    memcpy(base->user_number, base->card_number, valid_len);
 
-    s_ykc_monitor_base->charge_strategy = APP_CHARGE_STRATEGY_MONEY;
-    s_ykc_monitor_base->charge_strategy_para = request->body.account_ballance *100;
+    base->charge_strategy = APP_CHARGE_STRATEGY_MONEY;
+    base->charge_strategy_para = request->body.account_ballance *100;
 
-    s_ykc_monitor_base->account_ballance_before = request->body.account_ballance;
-    s_ykc_monitor_base->account_ballance_after = request->body.account_ballance;
+    base->account_ballance_before = request->body.account_ballance;
+    base->account_ballance_after = request->body.account_ballance;
     return 0x00;
 #else
     return -0x01;
@@ -957,15 +960,15 @@ int8_t ykc_monitor_message_pro_remote_start_charge_request(uint8_t gunno, void *
     }
 
     uint8_t valid_len = 0x00;
-    s_ykc_monitor_base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
+    System_BaseData *base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
     Net_YkcMonitorPro_SReq_Remote_StartCharge_t *request = (Net_YkcMonitorPro_SReq_Remote_StartCharge_t*)data;
 
     /** 并充时不能让平台启动副枪 */
-    if(s_ykc_monitor_base->charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL){
+    if(base->charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL){
         return NET_YKC_MONITOR_START_FAIL_REASON_IS_CHARGING;
     }
 
-    switch(s_ykc_monitor_base->state.current){
+    switch(base->state.current){
     case APP_OFSM_STATE_IDLEING:
         return NET_YKC_MONITOR_START_FAIL_REASON_NO_GUN;
         break;
@@ -973,30 +976,30 @@ int8_t ykc_monitor_message_pro_remote_start_charge_request(uint8_t gunno, void *
     case APP_OFSM_STATE_FINISHING:
     case APP_OFSM_STATE_FAULTING:
         valid_len = sizeof(request->body.logic_card_number);
-        valid_len = valid_len > sizeof(s_ykc_monitor_base->card_number) ? sizeof(s_ykc_monitor_base->card_number) : valid_len;
-        memset(s_ykc_monitor_base->card_number, 0x00, sizeof(s_ykc_monitor_base->card_number));
-        memcpy(s_ykc_monitor_base->card_number, request->body.logic_card_number, valid_len);
+        valid_len = valid_len > sizeof(base->card_number) ? sizeof(base->card_number) : valid_len;
+        memset(base->card_number, 0x00, sizeof(base->card_number));
+        memcpy(base->card_number, request->body.logic_card_number, valid_len);
 
         valid_len = sizeof(request->body.physics_card_number);
-        valid_len = valid_len > sizeof(s_ykc_monitor_base->card_uid) ? sizeof(s_ykc_monitor_base->card_uid) : valid_len;
-        memset(s_ykc_monitor_base->card_uid, 0x00, sizeof(s_ykc_monitor_base->card_uid));
-        memcpy(s_ykc_monitor_base->card_uid, request->body.physics_card_number, valid_len);
+        valid_len = valid_len > sizeof(base->card_uid) ? sizeof(base->card_uid) : valid_len;
+        memset(base->card_uid, 0x00, sizeof(base->card_uid));
+        memcpy(base->card_uid, request->body.physics_card_number, valid_len);
 
         valid_len = sizeof(request->body.serial_number);
-        valid_len = valid_len > sizeof(s_ykc_monitor_base->transaction_number) ? sizeof(s_ykc_monitor_base->transaction_number) : valid_len;
-        memset(s_ykc_monitor_base->transaction_number, 0x00, sizeof(s_ykc_monitor_base->transaction_number));
-        memcpy(s_ykc_monitor_base->transaction_number, request->body.serial_number, valid_len);
+        valid_len = valid_len > sizeof(base->transaction_number) ? sizeof(base->transaction_number) : valid_len;
+        memset(base->transaction_number, 0x00, sizeof(base->transaction_number));
+        memcpy(base->transaction_number, request->body.serial_number, valid_len);
 
-        valid_len = sizeof(s_ykc_monitor_base->card_number);
-        valid_len = valid_len > sizeof(s_ykc_monitor_base->user_number) ? sizeof(s_ykc_monitor_base->user_number) : valid_len;
-        memset(s_ykc_monitor_base->user_number, 0x00, sizeof(s_ykc_monitor_base->user_number));
-        memcpy(s_ykc_monitor_base->user_number, s_ykc_monitor_base->card_number, valid_len);
+        valid_len = sizeof(base->card_number);
+        valid_len = valid_len > sizeof(base->user_number) ? sizeof(base->user_number) : valid_len;
+        memset(base->user_number, 0x00, sizeof(base->user_number));
+        memcpy(base->user_number, base->card_number, valid_len);
 
-        s_ykc_monitor_base->charge_strategy = APP_CHARGE_STRATEGY_MONEY;
-        s_ykc_monitor_base->charge_strategy_para = request->body.account_ballance *100;
+        base->charge_strategy = APP_CHARGE_STRATEGY_MONEY;
+        base->charge_strategy_para = request->body.account_ballance *100;
 
-        s_ykc_monitor_base->account_ballance_before = request->body.account_ballance;
-        s_ykc_monitor_base->account_ballance_after = request->body.account_ballance;
+        base->account_ballance_before = request->body.account_ballance;
+        base->account_ballance_after = request->body.account_ballance;
 
         s_ykc_monitor_flag_info[gunno].is_start_charge = NET_ENUM_TRUE;
 
@@ -1023,21 +1026,21 @@ int8_t ykc_monitor_message_pro_remote_stop_charge_request(uint8_t gunno)
         return -0x02;
     }
 
-    s_ykc_monitor_base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
+    System_BaseData *base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
 
     /** 并充时不能让平台停止副枪 */
-    if(s_ykc_monitor_base->charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL){
-        if(gunno != s_ykc_monitor_base->main_gunno){
+    if(base->charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL){
+        if(gunno != base->main_gunno){
             return NET_YKC_MONITOR_STOP_FAIL_REASON_NOT_CHARGING;
         }
     }
 
-    if((s_ykc_monitor_base->state.current == APP_OFSM_STATE_CHARGING) ||
-            (s_ykc_monitor_base->state.current == APP_OFSM_STATE_STARTING)){
+    if((base->state.current == APP_OFSM_STATE_CHARGING) ||
+            (base->state.current == APP_OFSM_STATE_STARTING)){
         s_ykc_monitor_flag_info[gunno].is_stop_charge = NET_ENUM_TRUE;
 
-        if(s_ykc_monitor_base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
-            net_operation_set_event(s_ykc_monitor_base->main_gunno, NET_OPERATION_EVENT_STOP_CHARGE);
+        if(base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
+            net_operation_set_event(base->main_gunno, NET_OPERATION_EVENT_STOP_CHARGE);
         }else{
             net_operation_set_event(gunno, NET_OPERATION_EVENT_STOP_CHARGE);
         }
@@ -1067,10 +1070,10 @@ int8_t ykc_monitor_message_pro_account_ballance_update_request(uint8_t gunno, vo
     }
 
     Net_YkcMonitorPro_SReq_AccountBallance_Update_t *request = (Net_YkcMonitorPro_SReq_AccountBallance_Update_t*)data;
-    s_ykc_monitor_base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
+    System_BaseData *base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
 
-    s_ykc_monitor_base->account_ballance_before = request->body.account_amount;
-    s_ykc_monitor_base->account_ballance_after = request->body.account_amount;
+    base->account_ballance_before = request->body.account_amount;
+    base->account_ballance_after = request->body.account_amount;
 
     return 0x00;
 }
@@ -1092,12 +1095,13 @@ int8_t ykc_monitor_message_pro_set_work_para_request(void *data, uint8_t len)
 
     Net_YkcMonitorPro_SReq_Set_WorkPara_t *request = (Net_YkcMonitorPro_SReq_Set_WorkPara_t*)data;
     ykc_monitor_storage_struct *config = (ykc_monitor_storage_struct*)(s_ykc_monitor_handle->get_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, 0x00, NET_SYSTEM_DATA_OPTION_MONITOR_PLAT));
+    System_BaseData *base = NULL;
 
     if(request->body.forbidden == NET_ENUM_TRUE){
         /** 启动或充电中不能停用 */
         for(gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
-            s_ykc_monitor_base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
-            if((s_ykc_monitor_base->state.current == APP_OFSM_STATE_STARTING) || (s_ykc_monitor_base->state.current == APP_OFSM_STATE_CHARGING)){
+            base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
+            if((base->state.current == APP_OFSM_STATE_STARTING) || (base->state.current == APP_OFSM_STATE_CHARGING)){
                 return -0x03;
             }
         }
@@ -1114,16 +1118,16 @@ int8_t ykc_monitor_message_pro_set_work_para_request(void *data, uint8_t len)
         }
     }
 
-    s_ykc_monitor_base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(0x00));
+    base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(0x00));
 
     LOG_D("ykc_monitor_message_pro_set_work_para_request(%d, %d, %d)\n", request->body.power_max_percent,
-            s_ykc_monitor_base->system_power_max, (s_ykc_monitor_base->system_power_max * request->body.power_max_percent /100));
+            base->system_power_max, (base->system_power_max * request->body.power_max_percent /100));
     if((request->body.power_max_percent > 0x00) && (request->body.power_max_percent <= 0x64)){
-        uint32_t power = (s_ykc_monitor_base->system_power_max * request->body.power_max_percent /100);
+        uint32_t power = (base->system_power_max * request->body.power_max_percent /100);
         net_operation_set_total_power(power, 0x00);
         s_ykc_monitor_flag_info[0x00].is_set_power = NET_ENUM_TRUE;
-        s_ykc_monitor_base->power_strategy = APP_POWER_STRATEGY_SET_LIMIT;
-        s_ykc_monitor_base->power_strategy_para = 0x00;
+        base->power_strategy = APP_POWER_STRATEGY_SET_LIMIT;
+        base->power_strategy_para = 0x00;
     }else{
         return -0x04;
     }
@@ -1171,12 +1175,13 @@ int8_t ykc_monitor_message_pro_remote_reset_request(void *data, uint8_t len)
     }
 
     uint8_t gunno = 0x00;
+    System_BaseData *base = NULL;
     Net_YkcMonitorPro_SReq_RemoteReboot_t *request = (Net_YkcMonitorPro_SReq_RemoteReboot_t*)data;
 
     if(request->body.control_cmd == 0x01){
         for(gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
-            s_ykc_monitor_base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
-            if(s_ykc_monitor_base->state.current != APP_OFSM_STATE_IDLEING){
+            base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
+            if(base->state.current != APP_OFSM_STATE_IDLEING){
                 break;
             }
         }
@@ -1213,28 +1218,28 @@ int8_t ykc_monitor_message_pro_apply_merge_charge_active_response(uint8_t gunno,
 
     uint8_t valid_len = 0x00;
     Net_YkcMonitorPro_SRes_ApplyMergeCharge_Active_t *request = (Net_YkcMonitorPro_SRes_ApplyMergeCharge_Active_t*)data;
-    s_ykc_monitor_base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
+    System_BaseData *base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
 
     valid_len = sizeof(request->body.logic_card_number);
-    valid_len = valid_len > sizeof(s_ykc_monitor_base->card_number) ? sizeof(s_ykc_monitor_base->card_number) : valid_len;
-    memset(&(s_ykc_monitor_base->card_number), 0x00, sizeof(s_ykc_monitor_base->card_number));
-    memcpy(&(s_ykc_monitor_base->card_number), request->body.logic_card_number, valid_len);
+    valid_len = valid_len > sizeof(base->card_number) ? sizeof(base->card_number) : valid_len;
+    memset(&(base->card_number), 0x00, sizeof(base->card_number));
+    memcpy(&(base->card_number), request->body.logic_card_number, valid_len);
 
     valid_len = sizeof(request->body.serial_number);
-    valid_len = valid_len > sizeof(s_ykc_monitor_base->transaction_number) ? sizeof(s_ykc_monitor_base->transaction_number) : valid_len;
-    memset(&(s_ykc_monitor_base->transaction_number), 0x00, sizeof(s_ykc_monitor_base->transaction_number));
-    memcpy(&(s_ykc_monitor_base->transaction_number), request->body.serial_number, valid_len);
+    valid_len = valid_len > sizeof(base->transaction_number) ? sizeof(base->transaction_number) : valid_len;
+    memset(&(base->transaction_number), 0x00, sizeof(base->transaction_number));
+    memcpy(&(base->transaction_number), request->body.serial_number, valid_len);
 
-    valid_len = sizeof(s_ykc_monitor_base->card_number);
-    valid_len = valid_len > sizeof(s_ykc_monitor_base->user_number) ? sizeof(s_ykc_monitor_base->user_number) : valid_len;
-    memset(s_ykc_monitor_base->user_number, 0x00, sizeof(s_ykc_monitor_base->user_number));
-    memcpy(s_ykc_monitor_base->user_number, s_ykc_monitor_base->card_number, valid_len);
+    valid_len = sizeof(base->card_number);
+    valid_len = valid_len > sizeof(base->user_number) ? sizeof(base->user_number) : valid_len;
+    memset(base->user_number, 0x00, sizeof(base->user_number));
+    memcpy(base->user_number, base->card_number, valid_len);
 
-    s_ykc_monitor_base->charge_strategy = APP_CHARGE_STRATEGY_MONEY;
-    s_ykc_monitor_base->charge_strategy_para = request->body.account_ballance *100;
+    base->charge_strategy = APP_CHARGE_STRATEGY_MONEY;
+    base->charge_strategy_para = request->body.account_ballance *100;
 
-    s_ykc_monitor_base->account_ballance_before = request->body.account_ballance;
-    s_ykc_monitor_base->account_ballance_after = request->body.account_ballance;
+    base->account_ballance_before = request->body.account_ballance;
+    base->account_ballance_after = request->body.account_ballance;
     return 0x00;
 #else
     return -0x01;
@@ -1266,10 +1271,10 @@ int8_t ykc_monitor_message_pro_remote_start_merge_charge_request(uint8_t gunno, 
 
     uint8_t valid_len = 0x00, another_gun = 0x01;
     Net_YkcMonitorPro_SReq_Remote_StartMergeCharge_t *request = (Net_YkcMonitorPro_SReq_Remote_StartMergeCharge_t*)data;
-    s_ykc_monitor_base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
+    System_BaseData *base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
 
     /** 并充时不能让平台启动副枪 */
-    if((s_ykc_monitor_base->charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL) || (s_ykc_monitor_base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD)){
+    if((base->charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL) || (base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD)){
         return NET_YKC_MONITOR_START_FAIL_REASON_IS_CHARGING;
     }
 
@@ -1279,8 +1284,8 @@ int8_t ykc_monitor_message_pro_remote_start_merge_charge_request(uint8_t gunno, 
     }
 
     /** 平台并充启动时另一把枪必须处于待充电状态，第一把接收到并充报文的枪规定为主枪 */
-    s_ykc_monitor_base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(another_gun));
-    if((s_ykc_monitor_base->state.current != APP_OFSM_STATE_READYING) && (s_ykc_monitor_base->state.current != APP_OFSM_STATE_FINISHING)){
+    base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(another_gun));
+    if((base->state.current != APP_OFSM_STATE_READYING) && (base->state.current != APP_OFSM_STATE_FINISHING)){
         s_ykc_monitor_flag_info[gunno].is_refuse_mergecharge = NET_ENUM_TRUE;
         s_ykc_monitor_flag_info[gunno].is_request_mergecharge = NET_ENUM_FALSE;
         s_ykc_monitor_flag_info[gunno].is_start_mergecharge = NET_ENUM_FALSE;
@@ -1288,15 +1293,15 @@ int8_t ykc_monitor_message_pro_remote_start_merge_charge_request(uint8_t gunno, 
     }else{
         if(s_ykc_monitor_flag_info[another_gun].is_request_mergecharge != NET_ENUM_TRUE){
             for(uint8_t i = 0x00; i < NET_SYSTEM_GUN_NUMBER; i++){
-                s_ykc_monitor_base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(i));
-                s_ykc_monitor_base->main_gunno = gunno;
+                base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(i));
+                base->main_gunno = gunno;
             }
         }
     }
 
-    s_ykc_monitor_base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
+    base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
 
-    switch(s_ykc_monitor_base->state.current){
+    switch(base->state.current){
     case APP_OFSM_STATE_IDLEING:
         s_ykc_monitor_flag_info[gunno].is_refuse_mergecharge = NET_ENUM_TRUE;
         s_ykc_monitor_flag_info[gunno].is_request_mergecharge = NET_ENUM_FALSE;
@@ -1307,30 +1312,30 @@ int8_t ykc_monitor_message_pro_remote_start_merge_charge_request(uint8_t gunno, 
     case APP_OFSM_STATE_FINISHING:
     case APP_OFSM_STATE_FAULTING:
         valid_len = sizeof(request->body.logic_card_number);
-        valid_len = valid_len > sizeof(s_ykc_monitor_base->card_number) ? sizeof(s_ykc_monitor_base->card_number) : valid_len;
-        memset(&(s_ykc_monitor_base->card_number), 0x00, sizeof(s_ykc_monitor_base->card_number));
-        memcpy(&(s_ykc_monitor_base->card_number), request->body.logic_card_number, valid_len);
+        valid_len = valid_len > sizeof(base->card_number) ? sizeof(base->card_number) : valid_len;
+        memset(&(base->card_number), 0x00, sizeof(base->card_number));
+        memcpy(&(base->card_number), request->body.logic_card_number, valid_len);
 
         valid_len = sizeof(request->body.physics_card_number);
-        valid_len = valid_len > sizeof(s_ykc_monitor_base->card_uid) ? sizeof(s_ykc_monitor_base->card_uid) : valid_len;
-        memset(&(s_ykc_monitor_base->card_uid), 0x00, sizeof(s_ykc_monitor_base->card_uid));
-        memcpy(&(s_ykc_monitor_base->card_uid), request->body.physics_card_number, valid_len);
+        valid_len = valid_len > sizeof(base->card_uid) ? sizeof(base->card_uid) : valid_len;
+        memset(&(base->card_uid), 0x00, sizeof(base->card_uid));
+        memcpy(&(base->card_uid), request->body.physics_card_number, valid_len);
 
         valid_len = sizeof(request->body.serial_number);
-        valid_len = valid_len > sizeof(s_ykc_monitor_base->transaction_number) ? sizeof(s_ykc_monitor_base->transaction_number) : valid_len;
-        memset(&(s_ykc_monitor_base->transaction_number), 0x00, sizeof(s_ykc_monitor_base->transaction_number));
-        memcpy(&(s_ykc_monitor_base->transaction_number), request->body.serial_number, valid_len);
+        valid_len = valid_len > sizeof(base->transaction_number) ? sizeof(base->transaction_number) : valid_len;
+        memset(&(base->transaction_number), 0x00, sizeof(base->transaction_number));
+        memcpy(&(base->transaction_number), request->body.serial_number, valid_len);
 
-        valid_len = sizeof(s_ykc_monitor_base->card_number);
-        valid_len = valid_len > sizeof(s_ykc_monitor_base->user_number) ? sizeof(s_ykc_monitor_base->user_number) : valid_len;
-        memset(s_ykc_monitor_base->user_number, 0x00, sizeof(s_ykc_monitor_base->user_number));
-        memcpy(s_ykc_monitor_base->user_number, s_ykc_monitor_base->card_number, valid_len);
+        valid_len = sizeof(base->card_number);
+        valid_len = valid_len > sizeof(base->user_number) ? sizeof(base->user_number) : valid_len;
+        memset(base->user_number, 0x00, sizeof(base->user_number));
+        memcpy(base->user_number, base->card_number, valid_len);
 
-        s_ykc_monitor_base->charge_strategy = APP_CHARGE_STRATEGY_MONEY;
-        s_ykc_monitor_base->charge_strategy_para = request->body.account_ballance *100;
+        base->charge_strategy = APP_CHARGE_STRATEGY_MONEY;
+        base->charge_strategy_para = request->body.account_ballance *100;
 
-        s_ykc_monitor_base->account_ballance_before = request->body.account_ballance;
-        s_ykc_monitor_base->account_ballance_after = request->body.account_ballance;
+        base->account_ballance_before = request->body.account_ballance;
+        base->account_ballance_after = request->body.account_ballance;
 
         s_ykc_monitor_flag_info[gunno].is_request_mergecharge = NET_ENUM_TRUE;
         s_ykc_monitor_flag_info[gunno].is_start_mergecharge = NET_ENUM_TRUE;
@@ -1338,10 +1343,10 @@ int8_t ykc_monitor_message_pro_remote_start_merge_charge_request(uint8_t gunno, 
         /** 这是第二把接收到并充报文的前，两把枪都接收到了并充报文，可以启动并充了，并充相当于两把枪单独充电 */
         if(s_ykc_monitor_flag_info[another_gun].is_request_mergecharge == NET_ENUM_TRUE){
             for(uint8_t i = 0x00; i < NET_SYSTEM_GUN_NUMBER; i++){
-                s_ykc_monitor_base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(i));
+                base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(i));
                 net_operation_set_event(i, NET_OPERATION_EVENT_START_CHARGE);
                 net_operation_clear_event(i, NET_OPERATION_EVENT_OFFLINECHARGE_LIMIT);
-                s_ykc_monitor_base->charge_way = APP_CHARGE_WAY_PARACHARGE_CLOUD;
+                base->charge_way = APP_CHARGE_WAY_PARACHARGE_CLOUD;
             }
         }
 
@@ -1387,13 +1392,14 @@ void ykc_monitor_message_field_init(uint8_t gun)
     uint16_t valid_len = 0x00;
     s_ykc_monitor_handle = net_get_net_handle();
     pile_number = (uint8_t*)(s_ykc_monitor_handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, 0x00, option));
-    s_ykc_monitor_base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gun));
+    System_BaseData *base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gun));
     valid_len = strlen((char*)pile_number);
 
     /** 初始化登录签到 */
     g_ykc_monitor_preq_login.head.encrypt = NET_YKC_MONITOR_MESSAGE_ENCRYPT_DISABLE;
     g_ykc_monitor_preq_login.head.sequence = 0x00;
 
+#ifdef NET_YKC_MONITOR_AS_MONITOR
 #ifdef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL
     uint8_t used_len = 0x00;
     ykc_monitor_socket_info_t *socket_info = ykc_monitor_get_socket_info();
@@ -1413,16 +1419,21 @@ void ykc_monitor_message_field_init(uint8_t gun)
     ykc_monitor_ascii_to_bcd(pile_number, valid_len, g_ykc_monitor_preq_login.body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
 #endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
 
+#else
+    valid_len = valid_len > (NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT *0x02) ? (NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT *0x02) : valid_len;
+    ykc_monitor_ascii_to_bcd(pile_number, valid_len, g_ykc_monitor_preq_login.body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
+#endif /* NET_YKC_MONITOR_AS_MONITOR */
+
     g_ykc_monitor_preq_login.body.pile_type = NET_YKC_MONITOR_PILE_TYPE_DC;
     g_ykc_monitor_preq_login.body.gun_count = NET_SYSTEM_GUN_NUMBER;
     g_ykc_monitor_preq_login.body.protocol_ver = NET_YKC_MONITOR_PROTOCOL_VERSION;
 
     memset(g_ykc_monitor_preq_login.body.software_ver, '\0', sizeof(g_ykc_monitor_preq_login.body.software_ver));
-    g_ykc_monitor_preq_login.body.software_ver[0] = s_ykc_monitor_base->soft_ver_main + '0';
+    g_ykc_monitor_preq_login.body.software_ver[0] = base->soft_ver_main + '0';
     g_ykc_monitor_preq_login.body.software_ver[1] = '.';
-    g_ykc_monitor_preq_login.body.software_ver[2] = s_ykc_monitor_base->soft_ver_sub + '0';
+    g_ykc_monitor_preq_login.body.software_ver[2] = base->soft_ver_sub + '0';
     g_ykc_monitor_preq_login.body.software_ver[3] = '.';
-    sprintf((char *)&g_ykc_monitor_preq_login.body.software_ver[3 + 1], "%02d", s_ykc_monitor_base->soft_ver_revise);
+    sprintf((char *)&g_ykc_monitor_preq_login.body.software_ver[3 + 1], "%02d", base->soft_ver_revise);
 
     g_ykc_monitor_preq_login.body.net_link_type = NET_YKC_MONITOR_NET_LINK_TYPE_SIM;
 
@@ -1540,7 +1551,9 @@ void ykc_monitor_message_info_init(uint8_t gunno)  ///////// 这是网络部分�
     memset(&s_ykc_monitor_flag_info, 0x00, sizeof(s_ykc_monitor_flag_info));
 
     ykc_monitor_message_field_init(gunno);
+#ifdef NET_YKC_MONITOR_AS_MONITOR
     ykc_monitor_storage_data_check();
+#endif /* NET_YKC_MONITOR_AS_MONITOR */
 }
 
 /*************************************************
@@ -1553,13 +1566,13 @@ void ykc_monitor_chargepile_request_padding_realtime_data(uint8_t gunno, uint8_t
         return;
     }
 
-    s_ykc_monitor_base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
+    System_BaseData *base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
 
     if(is_init){
         uint8_t valid_len = sizeof(g_ykc_monitor_preq_report_realtime_data[gunno].body.serial_number);
-        valid_len = valid_len > sizeof(s_ykc_monitor_base->transaction_number) ? sizeof(s_ykc_monitor_base->transaction_number) : valid_len;
+        valid_len = valid_len > sizeof(base->transaction_number) ? sizeof(base->transaction_number) : valid_len;
         memset(g_ykc_monitor_preq_report_realtime_data[gunno].body.serial_number, 0x00, sizeof(g_ykc_monitor_preq_report_realtime_data[gunno].body.serial_number));
-        memcpy(g_ykc_monitor_preq_report_realtime_data[gunno].body.serial_number, s_ykc_monitor_base->transaction_number, valid_len);
+        memcpy(g_ykc_monitor_preq_report_realtime_data[gunno].body.serial_number, base->transaction_number, valid_len);
 
         g_ykc_monitor_preq_report_realtime_data[gunno].body.homing = 0x02;
         g_ykc_monitor_preq_report_realtime_data[gunno].body.output_voltage = 0x00;
@@ -1577,23 +1590,23 @@ void ykc_monitor_chargepile_request_padding_realtime_data(uint8_t gunno, uint8_t
         ykc_monitor_chargepile_request_padding_bmsinfo_duringcharge(gunno, NET_ENUM_TRUE);
     }else{
         if(ykc_monitor_get_message_send_state(gunno, NET_YKC_MONITOR_PREQ_EVENT_REPORT_REALTIME_DATA) == NET_YKC_MONITOR_SEND_STATE_COMPLETE){
-            if((s_ykc_monitor_base->state.current == APP_OFSM_STATE_CHARGING) || (s_ykc_monitor_base->state.current == APP_OFSM_STATE_STARTING)){
-                struct thaisenBMS_Charger_struct *bms = (struct thaisenBMS_Charger_struct*)(s_ykc_monitor_base->bms_data);
+            if((base->state.current == APP_OFSM_STATE_CHARGING) || (base->state.current == APP_OFSM_STATE_STARTING)){
+                struct thaisenBMS_Charger_struct *bms = (struct thaisenBMS_Charger_struct*)(base->bms_data);
 
-                g_ykc_monitor_preq_report_realtime_data[gunno].body.output_voltage = s_ykc_monitor_base->voltage_a /10;
-                g_ykc_monitor_preq_report_realtime_data[gunno].body.output_current = s_ykc_monitor_base->current_a /10;
-                if(s_ykc_monitor_base->gunline_temperature[0] > s_ykc_monitor_base->gunline_temperature[1]){
-                    g_ykc_monitor_preq_report_realtime_data[gunno].body.gun_temperature = (s_ykc_monitor_base->gunline_temperature[0] /10 + 50);
+                g_ykc_monitor_preq_report_realtime_data[gunno].body.output_voltage = base->voltage_a /10;
+                g_ykc_monitor_preq_report_realtime_data[gunno].body.output_current = base->current_a /10;
+                if(base->gunline_temperature[0] > base->gunline_temperature[1]){
+                    g_ykc_monitor_preq_report_realtime_data[gunno].body.gun_temperature = (base->gunline_temperature[0] /10 + 50);
                 }else{
-                    g_ykc_monitor_preq_report_realtime_data[gunno].body.gun_temperature = (s_ykc_monitor_base->gunline_temperature[1] /10 + 50);
+                    g_ykc_monitor_preq_report_realtime_data[gunno].body.gun_temperature = (base->gunline_temperature[1] /10 + 50);
                 }
-                g_ykc_monitor_preq_report_realtime_data[gunno].body.soc = s_ykc_monitor_base->current_soc;
+                g_ykc_monitor_preq_report_realtime_data[gunno].body.soc = base->current_soc;
                 g_ykc_monitor_preq_report_realtime_data[gunno].body.battery_group_temp_max = (bms->BSM.HigTemp + 50);
-                g_ykc_monitor_preq_report_realtime_data[gunno].body.charge_time = s_ykc_monitor_base->charge_time /60;
+                g_ykc_monitor_preq_report_realtime_data[gunno].body.charge_time = base->charge_time /60;
                 g_ykc_monitor_preq_report_realtime_data[gunno].body.remain_time = bms->BCS.SurplChgTime;
-                g_ykc_monitor_preq_report_realtime_data[gunno].body.charge_elect = s_ykc_monitor_base->elect_a *10;
+                g_ykc_monitor_preq_report_realtime_data[gunno].body.charge_elect = base->elect_a *10;
                 g_ykc_monitor_preq_report_realtime_data[gunno].body.loss_elect = 0x00;
-                g_ykc_monitor_preq_report_realtime_data[gunno].body.consume_amount = s_ykc_monitor_base->fees_total;
+                g_ykc_monitor_preq_report_realtime_data[gunno].body.consume_amount = base->fees_total;
             }else{
                 g_ykc_monitor_preq_report_realtime_data[gunno].body.homing = 0x02;
                 g_ykc_monitor_preq_report_realtime_data[gunno].body.output_voltage = 0x00;
@@ -1621,17 +1634,17 @@ void ykc_monitor_chargepile_request_padding_bms_shakehand(uint8_t gunno)
         return;
     }
     uint8_t valid_len = 0x00;
-    s_ykc_monitor_base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
-    struct thaisenBMS_Charger_struct *bms = (struct thaisenBMS_Charger_struct*)(s_ykc_monitor_base->bms_data);
+    System_BaseData *base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
+    struct thaisenBMS_Charger_struct *bms = (struct thaisenBMS_Charger_struct*)(base->bms_data);
 
     valid_len = sizeof(g_ykc_monitor_preq_shake_hand[gunno].body.serial_number);
-    valid_len = valid_len > sizeof(s_ykc_monitor_base->transaction_number) ? sizeof(s_ykc_monitor_base->transaction_number) : valid_len;
+    valid_len = valid_len > sizeof(base->transaction_number) ? sizeof(base->transaction_number) : valid_len;
     memset(g_ykc_monitor_preq_shake_hand[gunno].body.serial_number, 0x00, sizeof(g_ykc_monitor_preq_shake_hand[gunno].body.serial_number));
-    memcpy(g_ykc_monitor_preq_shake_hand[gunno].body.serial_number, s_ykc_monitor_base->transaction_number, valid_len);
+    memcpy(g_ykc_monitor_preq_shake_hand[gunno].body.serial_number, base->transaction_number, valid_len);
 
-    if(s_ykc_monitor_base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
-        s_ykc_monitor_base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(s_ykc_monitor_base->main_gunno));
-        bms = (struct thaisenBMS_Charger_struct*)(s_ykc_monitor_base->bms_data);
+    if(base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
+        base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(base->main_gunno));
+        bms = (struct thaisenBMS_Charger_struct*)(base->bms_data);
     }
     memcpy(g_ykc_monitor_preq_shake_hand[gunno].body.bms_protocol_ver, bms->BRM.BMSVer, sizeof(bms->BRM.BMSVer));
     g_ykc_monitor_preq_shake_hand[gunno].body.bms_bat_type = bms->BRM.BatType;
@@ -1661,17 +1674,17 @@ void ykc_monitor_chargepile_request_padding_bms_paraconfig(uint8_t gunno)
         return;
     }
     uint8_t valid_len = 0x00;
-    s_ykc_monitor_base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
-    struct thaisenBMS_Charger_struct *bms = (struct thaisenBMS_Charger_struct*)(s_ykc_monitor_base->bms_data);
+    System_BaseData *base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
+    struct thaisenBMS_Charger_struct *bms = (struct thaisenBMS_Charger_struct*)(base->bms_data);
 
     valid_len = sizeof(g_ykc_monitor_preq_parameter_config[gunno].body.serial_number);
-    valid_len = valid_len > sizeof(s_ykc_monitor_base->transaction_number) ? sizeof(s_ykc_monitor_base->transaction_number) : valid_len;
+    valid_len = valid_len > sizeof(base->transaction_number) ? sizeof(base->transaction_number) : valid_len;
     memset(g_ykc_monitor_preq_parameter_config[gunno].body.serial_number, 0x00, sizeof(g_ykc_monitor_preq_parameter_config[gunno].body.serial_number));
-    memcpy(g_ykc_monitor_preq_parameter_config[gunno].body.serial_number, s_ykc_monitor_base->transaction_number, valid_len);
+    memcpy(g_ykc_monitor_preq_parameter_config[gunno].body.serial_number, base->transaction_number, valid_len);
 
-    if(s_ykc_monitor_base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
-        s_ykc_monitor_base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(s_ykc_monitor_base->main_gunno));
-        bms = (struct thaisenBMS_Charger_struct*)(s_ykc_monitor_base->bms_data);
+    if(base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
+        base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(base->main_gunno));
+        bms = (struct thaisenBMS_Charger_struct*)(base->bms_data);
     }
     g_ykc_monitor_preq_parameter_config[gunno].body.bms_single_bat_allow_volt_max = bms->BCP.CellAlowHigVolt;
     g_ykc_monitor_preq_parameter_config[gunno].body.bms_allow_curr_max = (4000 - bms->BCP.AlowCurlt);
@@ -1699,17 +1712,17 @@ void ykc_monitor_chargepile_request_padding_bms_chargeend(uint8_t gunno)
         return;
     }
     uint8_t valid_len = 0x00;
-    s_ykc_monitor_base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
-    struct thaisenBMS_Charger_struct *bms = (struct thaisenBMS_Charger_struct*)(s_ykc_monitor_base->bms_data);
+    System_BaseData *base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
+    struct thaisenBMS_Charger_struct *bms = (struct thaisenBMS_Charger_struct*)(base->bms_data);
 
     valid_len = sizeof(g_ykc_monitor_preq_charge_finish[gunno].body.serial_number);
-    valid_len = valid_len > sizeof(s_ykc_monitor_base->transaction_number) ? sizeof(s_ykc_monitor_base->transaction_number) : valid_len;
+    valid_len = valid_len > sizeof(base->transaction_number) ? sizeof(base->transaction_number) : valid_len;
     memset(g_ykc_monitor_preq_charge_finish[gunno].body.serial_number, 0x00, sizeof(g_ykc_monitor_preq_charge_finish[gunno].body.serial_number));
-    memcpy(g_ykc_monitor_preq_charge_finish[gunno].body.serial_number, s_ykc_monitor_base->transaction_number, valid_len);
+    memcpy(g_ykc_monitor_preq_charge_finish[gunno].body.serial_number, base->transaction_number, valid_len);
 
-    if(s_ykc_monitor_base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
-        s_ykc_monitor_base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(s_ykc_monitor_base->main_gunno));
-        bms = (struct thaisenBMS_Charger_struct*)(s_ykc_monitor_base->bms_data);
+    if(base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
+        base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(base->main_gunno));
+        bms = (struct thaisenBMS_Charger_struct*)(base->bms_data);
     }
     g_ykc_monitor_preq_charge_finish[gunno].body.bms_end_soc = bms->BSD.StopSOC;
     g_ykc_monitor_preq_charge_finish[gunno].body.bms_single_bat_volt_min = bms->BSD.CellLowVolt;
@@ -1733,17 +1746,17 @@ void ykc_monitor_chargepile_request_padding_bms_error(uint8_t gunno)
         return;
     }
     uint8_t valid_len = 0x00;
-    s_ykc_monitor_base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
-    struct thaisenBMS_Charger_struct *bms = (struct thaisenBMS_Charger_struct*)(s_ykc_monitor_base->bms_data);
+    System_BaseData *base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
+    struct thaisenBMS_Charger_struct *bms = (struct thaisenBMS_Charger_struct*)(base->bms_data);
 
     valid_len = sizeof(g_ykc_monitor_preq_error_message[gunno].body.serial_number);
-    valid_len = valid_len > sizeof(s_ykc_monitor_base->transaction_number) ? sizeof(s_ykc_monitor_base->transaction_number) : valid_len;
+    valid_len = valid_len > sizeof(base->transaction_number) ? sizeof(base->transaction_number) : valid_len;
     memset(g_ykc_monitor_preq_error_message[gunno].body.serial_number, 0x00, sizeof(g_ykc_monitor_preq_error_message[gunno].body.serial_number));
-    memcpy(g_ykc_monitor_preq_error_message[gunno].body.serial_number, s_ykc_monitor_base->transaction_number, valid_len);
+    memcpy(g_ykc_monitor_preq_error_message[gunno].body.serial_number, base->transaction_number, valid_len);
 
-    if(s_ykc_monitor_base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
-        s_ykc_monitor_base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(s_ykc_monitor_base->main_gunno));
-        bms = (struct thaisenBMS_Charger_struct*)(s_ykc_monitor_base->bms_data);
+    if(base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
+        base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(base->main_gunno));
+        bms = (struct thaisenBMS_Charger_struct*)(base->bms_data);
     }
     g_ykc_monitor_preq_error_message[gunno].body.timeout.spn2560_00_identify = bms->BEM.CRM00OVtime;
     g_ykc_monitor_preq_error_message[gunno].body.timeout.spn2560_aa_identify = bms->BEM.CRMAAOVtime;
@@ -1782,17 +1795,17 @@ void ykc_monitor_chargepile_request_padding_bmsend_duringcharge(uint8_t gunno)
         return;
     }
     uint8_t valid_len = 0x00;
-    s_ykc_monitor_base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
-    struct thaisenBMS_Charger_struct *bms = (struct thaisenBMS_Charger_struct*)(s_ykc_monitor_base->bms_data);
+    System_BaseData *base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
+    struct thaisenBMS_Charger_struct *bms = (struct thaisenBMS_Charger_struct*)(base->bms_data);
 
     valid_len = sizeof(g_ykc_monitor_preq_bms_end[gunno].body.serial_number);
-    valid_len = valid_len > sizeof(s_ykc_monitor_base->transaction_number) ? sizeof(s_ykc_monitor_base->transaction_number) : valid_len;
+    valid_len = valid_len > sizeof(base->transaction_number) ? sizeof(base->transaction_number) : valid_len;
     memset(g_ykc_monitor_preq_bms_end[gunno].body.serial_number, 0x00, sizeof(g_ykc_monitor_preq_bms_end[gunno].body.serial_number));
-    memcpy(g_ykc_monitor_preq_bms_end[gunno].body.serial_number, s_ykc_monitor_base->transaction_number, valid_len);
+    memcpy(g_ykc_monitor_preq_bms_end[gunno].body.serial_number, base->transaction_number, valid_len);
 
-    if(s_ykc_monitor_base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
-        s_ykc_monitor_base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(s_ykc_monitor_base->main_gunno));
-        bms = (struct thaisenBMS_Charger_struct*)(s_ykc_monitor_base->bms_data);
+    if(base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
+        base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(base->main_gunno));
+        bms = (struct thaisenBMS_Charger_struct*)(base->bms_data);
     }
     g_ykc_monitor_preq_bms_end[gunno].body.reason.reach_soc = bms->BST.SOCGetObj;
     g_ykc_monitor_preq_bms_end[gunno].body.reason.reach_volt_all = bms->BST.VoltGetObj;
@@ -1825,17 +1838,17 @@ void ykc_monitor_chargepile_request_padding_chargerend_duringcharge(uint8_t gunn
         return;
     }
     uint8_t valid_len = 0x00;
-    s_ykc_monitor_base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
-    struct thaisenBMS_Charger_struct *bms = (struct thaisenBMS_Charger_struct*)(s_ykc_monitor_base->bms_data);
+    System_BaseData *base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
+    struct thaisenBMS_Charger_struct *bms = (struct thaisenBMS_Charger_struct*)(base->bms_data);
 
     valid_len = sizeof(g_ykc_monitor_preq_charger_end[gunno].body.serial_number);
-    valid_len = valid_len > sizeof(s_ykc_monitor_base->transaction_number) ? sizeof(s_ykc_monitor_base->transaction_number) : valid_len;
+    valid_len = valid_len > sizeof(base->transaction_number) ? sizeof(base->transaction_number) : valid_len;
     memset(g_ykc_monitor_preq_charger_end[gunno].body.serial_number, 0x00, sizeof(g_ykc_monitor_preq_charger_end[gunno].body.serial_number));
-    memcpy(g_ykc_monitor_preq_charger_end[gunno].body.serial_number, s_ykc_monitor_base->transaction_number, valid_len);
+    memcpy(g_ykc_monitor_preq_charger_end[gunno].body.serial_number, base->transaction_number, valid_len);
 
-    if(s_ykc_monitor_base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
-        s_ykc_monitor_base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(s_ykc_monitor_base->main_gunno));
-        bms = (struct thaisenBMS_Charger_struct*)(s_ykc_monitor_base->bms_data);
+    if(base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
+        base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(base->main_gunno));
+        bms = (struct thaisenBMS_Charger_struct*)(base->bms_data);
     }
     g_ykc_monitor_preq_charger_end[gunno].body.reason.reach_set_adition = bms->CST.AutoStop;
     g_ykc_monitor_preq_charger_end[gunno].body.reason.manual_end = bms->CST.ManStop;
@@ -1869,24 +1882,24 @@ void ykc_monitor_chargepile_request_padding_bmscommand_chargerout(uint8_t gunno,
 
     if(is_init){
         uint8_t valid_len = 0x00;
-        s_ykc_monitor_base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
+        System_BaseData *base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
 
         valid_len = sizeof(g_ykc_monitor_preq_bmscommand_chargerout[gunno].body.serial_number);
-        valid_len = valid_len > sizeof(s_ykc_monitor_base->transaction_number) ? sizeof(s_ykc_monitor_base->transaction_number) : valid_len;
+        valid_len = valid_len > sizeof(base->transaction_number) ? sizeof(base->transaction_number) : valid_len;
         memset(g_ykc_monitor_preq_bmscommand_chargerout[gunno].body.serial_number, 0x00, sizeof(g_ykc_monitor_preq_bmscommand_chargerout[gunno].body.serial_number));
-        memcpy(g_ykc_monitor_preq_bmscommand_chargerout[gunno].body.serial_number, s_ykc_monitor_base->transaction_number, valid_len);
+        memcpy(g_ykc_monitor_preq_bmscommand_chargerout[gunno].body.serial_number, base->transaction_number, valid_len);
     }else{
         if(ykc_monitor_get_message_send_state(gunno, NET_YKC_MONITOR_PREQ_EVENT_CHARGER_OUTPUT_BMS_REQUIRE) == NET_YKC_MONITOR_SEND_STATE_COMPLETE){
-            s_ykc_monitor_base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
-            struct thaisenBMS_Charger_struct *bms = (struct thaisenBMS_Charger_struct*)(s_ykc_monitor_base->bms_data);
+            System_BaseData *base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
+            struct thaisenBMS_Charger_struct *bms = (struct thaisenBMS_Charger_struct*)(base->bms_data);
 
-            g_ykc_monitor_preq_bmscommand_chargerout[gunno].body.pile_output_volt = (s_ykc_monitor_base->voltage_a /10);
-            g_ykc_monitor_preq_bmscommand_chargerout[gunno].body.pile_output_curr = (4000 - (s_ykc_monitor_base->current_a /10));
-            g_ykc_monitor_preq_bmscommand_chargerout[gunno].body.charge_time = s_ykc_monitor_base->charge_time /60;
+            g_ykc_monitor_preq_bmscommand_chargerout[gunno].body.pile_output_volt = (base->voltage_a /10);
+            g_ykc_monitor_preq_bmscommand_chargerout[gunno].body.pile_output_curr = (4000 - (base->current_a /10));
+            g_ykc_monitor_preq_bmscommand_chargerout[gunno].body.charge_time = base->charge_time /60;
 
-            if(s_ykc_monitor_base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
-                s_ykc_monitor_base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(s_ykc_monitor_base->main_gunno));
-                bms = (struct thaisenBMS_Charger_struct*)(s_ykc_monitor_base->bms_data);
+            if(base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
+                base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(base->main_gunno));
+                bms = (struct thaisenBMS_Charger_struct*)(base->bms_data);
             }
             g_ykc_monitor_preq_bmscommand_chargerout[gunno].body.bms_volt_command = bms->BCL.BMSneedVolt;
             g_ykc_monitor_preq_bmscommand_chargerout[gunno].body.bms_curr_command = (4000 - bms->BCL.BMSneedCurlt);
@@ -1914,20 +1927,20 @@ void ykc_monitor_chargepile_request_padding_bmsinfo_duringcharge(uint8_t gunno, 
 
     if(is_init){
         uint8_t valid_len = 0x00;
-        s_ykc_monitor_base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
+        System_BaseData *base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
 
         valid_len = sizeof(g_ykc_monitor_preq_bms_info[gunno].body.serial_number);
-        valid_len = valid_len > sizeof(s_ykc_monitor_base->transaction_number) ? sizeof(s_ykc_monitor_base->transaction_number) : valid_len;
+        valid_len = valid_len > sizeof(base->transaction_number) ? sizeof(base->transaction_number) : valid_len;
         memset(g_ykc_monitor_preq_bms_info[gunno].body.serial_number, 0x00, sizeof(g_ykc_monitor_preq_bms_info[gunno].body.serial_number));
-        memcpy(g_ykc_monitor_preq_bms_info[gunno].body.serial_number, s_ykc_monitor_base->transaction_number, valid_len);
+        memcpy(g_ykc_monitor_preq_bms_info[gunno].body.serial_number, base->transaction_number, valid_len);
     }else{
         if(ykc_monitor_get_message_send_state(gunno, NET_YKC_MONITOR_PREQ_EVENT_BMS_INFO) == NET_YKC_MONITOR_SEND_STATE_COMPLETE){
-            s_ykc_monitor_base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
-            struct thaisenBMS_Charger_struct *bms = (struct thaisenBMS_Charger_struct*)(s_ykc_monitor_base->bms_data);
+            System_BaseData *base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
+            struct thaisenBMS_Charger_struct *bms = (struct thaisenBMS_Charger_struct*)(base->bms_data);
 
-            if(s_ykc_monitor_base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
-                s_ykc_monitor_base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(s_ykc_monitor_base->main_gunno));
-                bms = (struct thaisenBMS_Charger_struct*)(s_ykc_monitor_base->bms_data);
+            if(base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
+                base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(base->main_gunno));
+                bms = (struct thaisenBMS_Charger_struct*)(base->bms_data);
             }
             g_ykc_monitor_preq_bms_info[gunno].body.bms_max_single_volt_bat_number = bms->BSM.HigVoltCellNum;
             g_ykc_monitor_preq_bms_info[gunno].body.bms_bat_temp_max = (bms->BSM.HigTemp + 50);
@@ -1963,22 +1976,22 @@ int8_t ykc_monitor_chargepile_request_padding_card_authority(uint8_t gunno)
         return -0x01;
     }
     uint8_t valid_len = 0x00;
-    s_ykc_monitor_base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
+    System_BaseData *base =  (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
 
-    if(!s_ykc_monitor_base->flag.card_info_is_uid){
+    if(!base->flag.card_info_is_uid){
         return -0x01;
     }
     g_ykc_monitor_preq_apply_charge_active[gunno].body.start_type = 0x01;
     g_ykc_monitor_preq_apply_charge_active[gunno].body.whether_password = NET_ENUM_FALSE;
 
-    valid_len = sizeof(s_ykc_monitor_base->card_uid);
+    valid_len = sizeof(base->card_uid);
     valid_len = valid_len > NET_YKC_MONITOR_CARD_NUMBER_LENGTH_MAX ? NET_YKC_MONITOR_CARD_NUMBER_LENGTH_MAX : valid_len;
     memset(g_ykc_monitor_preq_apply_charge_active[gunno].body.account_or_phycard_number, 0x00, NET_YKC_MONITOR_CARD_NUMBER_LENGTH_MAX);
-    if(valid_len > s_ykc_monitor_base->card_uid_len){
-        memcpy((g_ykc_monitor_preq_apply_charge_active[gunno].body.account_or_phycard_number + (valid_len - s_ykc_monitor_base->card_uid_len)),
-                s_ykc_monitor_base->card_uid, s_ykc_monitor_base->card_uid_len);
+    if(valid_len > base->card_uid_len){
+        memcpy((g_ykc_monitor_preq_apply_charge_active[gunno].body.account_or_phycard_number + (valid_len - base->card_uid_len)),
+                base->card_uid, base->card_uid_len);
     }else{
-        memcpy(g_ykc_monitor_preq_apply_charge_active[gunno].body.account_or_phycard_number, s_ykc_monitor_base->card_uid, valid_len);
+        memcpy(g_ykc_monitor_preq_apply_charge_active[gunno].body.account_or_phycard_number, base->card_uid, valid_len);
     }
     memset(g_ykc_monitor_preq_apply_charge_active[gunno].body.password, 0x00, NET_YKC_MONITOR_PASSWORD_LENGTH_DEFAULT);
     memset(g_ykc_monitor_preq_apply_charge_active[gunno].body.vin, 0x00, NET_YKC_MONITOR_CAR_VIN_NUMBER_LENGTH_MAX);
@@ -2007,14 +2020,14 @@ int8_t ykc_monitor_chargepile_request_padding_vin_authority(uint8_t gunno)
     if(ykc_monitor_get_socket_info()->state != YKC_MONITOR_SOCKET_STATE_LOGIN_SUCCESS){
         return -0x01;
     }
-    s_ykc_monitor_base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
+    System_BaseData *base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
 
     g_ykc_monitor_preq_apply_charge_active[gunno].body.start_type = 0x03;
     g_ykc_monitor_preq_apply_charge_active[gunno].body.whether_password = NET_ENUM_FALSE;
     memset(g_ykc_monitor_preq_apply_charge_active[gunno].body.account_or_phycard_number, 0x00, NET_YKC_MONITOR_CARD_NUMBER_LENGTH_MAX);
     memset(g_ykc_monitor_preq_apply_charge_active[gunno].body.password, 0x00, NET_YKC_MONITOR_PASSWORD_LENGTH_DEFAULT);
     for(uint8_t count = 0x00; count < NET_YKC_MONITOR_CAR_VIN_NUMBER_LENGTH_MAX; count++){
-        g_ykc_monitor_preq_apply_charge_active[gunno].body.vin[count] = s_ykc_monitor_base->car_vin[NET_YKC_MONITOR_CAR_VIN_NUMBER_LENGTH_MAX - count - 0x01];
+        g_ykc_monitor_preq_apply_charge_active[gunno].body.vin[count] = base->car_vin[NET_YKC_MONITOR_CAR_VIN_NUMBER_LENGTH_MAX - count - 0x01];
     }
 
     ykc_monitor_net_event_send(NET_YKC_MONITOR_EVENT_HANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, gunno, NET_YKC_MONITOR_PREQ_EVENT_APPLY_START_CHARGE);
@@ -2039,7 +2052,7 @@ uint8_t ykc_monitor_chargepile_request_padding_transaction_record(uint8_t gunno,
     uint64_t elect = 0x00;
     thaisen_transaction_t *_transaction = (thaisen_transaction_t*)transaction;
 
-    s_ykc_monitor_base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
+    System_BaseData *base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
 
     ykc_monitor_set_transaction_verify_state(gunno, 0x00);
 
@@ -2136,7 +2149,7 @@ uint8_t ykc_monitor_chargepile_request_padding_transaction_record(uint8_t gunno,
             memcpy(g_ykc_monitor_preq_transaction_records[gunno].body.physics_card_number, &(_transaction->physics_card_number), valid_len);
         }
 
-        g_ykc_monitor_preq_transaction_records[gunno].body.transaction_date = ykc_monitor_get_cp56time2a_from_timestamp(s_ykc_monitor_base->current_time);
+        g_ykc_monitor_preq_transaction_records[gunno].body.transaction_date = ykc_monitor_get_cp56time2a_from_timestamp(base->current_time);
         g_ykc_monitor_preq_transaction_records[gunno].body.stop_reason = ykc_monitor_chargepile_stop_reason_converted(_transaction->stop_reason, _transaction->order_state.is_start_fail);
 
         ykc_monitor_net_event_send(NET_YKC_MONITOR_EVENT_HANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, gunno, NET_YKC_MONITOR_PREQ_EVENT_TRANSACTION_RECORD);
@@ -2165,15 +2178,15 @@ int8_t ykc_monitor_chargepile_request_padding_mergecharge_card_authority(uint8_t
     struct tm *_tm;
     time_t _time = time(NULL);
     uint8_t valid_len = 0x00;
-    s_ykc_monitor_base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
+    System_BaseData *base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
 
     g_ykc_monitor_preq_apply_merge_charge_active[gunno].body.start_type = 0x01;
     g_ykc_monitor_preq_apply_merge_charge_active[gunno].body.whether_password = NET_ENUM_FALSE;
 
-    valid_len = sizeof(s_ykc_monitor_base->card_uid);
+    valid_len = sizeof(base->card_uid);
     valid_len = valid_len > NET_YKC_MONITOR_CARD_NUMBER_LENGTH_MAX ? NET_YKC_MONITOR_CARD_NUMBER_LENGTH_MAX : valid_len;
     memset(g_ykc_monitor_preq_apply_merge_charge_active[gunno].body.account_or_phycard_number, 0x00, NET_YKC_MONITOR_CARD_NUMBER_LENGTH_MAX);
-    memcpy(g_ykc_monitor_preq_apply_merge_charge_active[gunno].body.account_or_phycard_number, s_ykc_monitor_base->card_uid, valid_len);
+    memcpy(g_ykc_monitor_preq_apply_merge_charge_active[gunno].body.account_or_phycard_number, base->card_uid, valid_len);
     memset(g_ykc_monitor_preq_apply_merge_charge_active[gunno].body.password, 0x00, NET_YKC_MONITOR_PASSWORD_LENGTH_DEFAULT);
     memset(g_ykc_monitor_preq_apply_merge_charge_active[gunno].body.vin, 0x00, NET_YKC_MONITOR_CAR_VIN_NUMBER_LENGTH_MAX);
 
@@ -2212,14 +2225,14 @@ int8_t ykc_monitor_chargepile_request_padding_mergecharge_vin_authority(uint8_t 
     }
     struct tm *_tm;
     time_t _time = time(NULL);
-    s_ykc_monitor_base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
+    System_BaseData *base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
 
     g_ykc_monitor_preq_apply_merge_charge_active[gunno].body.start_type = 0x03;
     g_ykc_monitor_preq_apply_merge_charge_active[gunno].body.whether_password = NET_ENUM_FALSE;
     memset(g_ykc_monitor_preq_apply_merge_charge_active[gunno].body.account_or_phycard_number, 0x00, NET_YKC_MONITOR_CARD_NUMBER_LENGTH_MAX);
     memset(g_ykc_monitor_preq_apply_merge_charge_active[gunno].body.password, 0x00, NET_YKC_MONITOR_PASSWORD_LENGTH_DEFAULT);
     for(uint8_t count = 0x00; count < NET_YKC_MONITOR_CAR_VIN_NUMBER_LENGTH_MAX; count++){
-        g_ykc_monitor_preq_apply_merge_charge_active[gunno].body.vin[count] = s_ykc_monitor_base->car_vin[NET_YKC_MONITOR_CAR_VIN_NUMBER_LENGTH_MAX - count - 0x01];
+        g_ykc_monitor_preq_apply_merge_charge_active[gunno].body.vin[count] = base->car_vin[NET_YKC_MONITOR_CAR_VIN_NUMBER_LENGTH_MAX - count - 0x01];
     }
     g_ykc_monitor_preq_apply_merge_charge_active[gunno].body.main_auxiliary_gun_flag = NET_ENUM_FALSE;   /* 默认主枪申请 */
     _tm = localtime(&_time);
@@ -2270,9 +2283,9 @@ void ykc_monitor_stop_charge_response_asynchronously(uint8_t gunno, uint8_t resu
         return;
     }
 
-    s_ykc_monitor_base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
-    if(s_ykc_monitor_base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
-        gunno = s_ykc_monitor_base->main_gunno;
+    System_BaseData *base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
+    if(base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
+        gunno = base->main_gunno;
     }
     if(s_ykc_monitor_flag_info[gunno].is_stop_charge == NET_ENUM_FALSE){
         return;
@@ -2324,15 +2337,16 @@ void ykc_monitor_set_power_percent_response_asynchronously(uint8_t result)
     }
 
     if(s_ykc_monitor_flag_info[0x00].set_power_success == NET_ENUM_TRUE){
+        System_BaseData *base = NULL;
         ykc_monitor_storage_struct *config = (ykc_monitor_storage_struct*)(s_ykc_monitor_handle->get_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, 0x00, NET_SYSTEM_DATA_OPTION_MONITOR_PLAT));
         if(config){
             /** 功率修改与锁桩功能在同一个报文中，为了提高效率，锁桩是否成功都有功率是否修改成功来决定(信息要存flash-耗时) */
             for(uint8_t gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
-                s_ykc_monitor_base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
+                base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
                 if(config->fswitch.lock == NET_ENUM_TRUE){
-                    s_ykc_monitor_base->device_state = APP_DEVICE_STATE_FREEZE;
+                    base->device_state = APP_DEVICE_STATE_FREEZE;
                 }else {
-                    s_ykc_monitor_base->device_state = APP_DEVICE_STATE_COMMISSIONING;
+                    base->device_state = APP_DEVICE_STATE_COMMISSIONING;
                 }
             }
         }
@@ -2348,14 +2362,14 @@ void ykc_monitor_chargepile_state_changed(uint8_t gunno)
         return;
     }
 
-    s_ykc_monitor_base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
+    System_BaseData *base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
 
-    if(s_ykc_monitor_base->flag.connect_state == APP_CONNECT_STATE_CONNECT){
+    if(base->flag.connect_state == APP_CONNECT_STATE_CONNECT){
         s_ykc_monitor_state_info[gunno].state.connect = NET_ENUM_TRUE;
     }else{
         s_ykc_monitor_state_info[gunno].state.connect = NET_ENUM_FALSE;
     }
-    switch(s_ykc_monitor_base->state.current){
+    switch(base->state.current){
     case APP_OFSM_STATE_IDLEING:
     case APP_OFSM_STATE_READYING:
     case APP_OFSM_STATE_STARTING:
@@ -2430,10 +2444,10 @@ int8_t ykc_monitor_chargepile_create_local_transaction_number(uint8_t gunno, voi
 #else /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
     sn_len = sizeof(g_ykc_monitor_preq_transaction_records[gunno].body.pile_number);
 #endif
-    s_ykc_monitor_base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
-    _tm = localtime((const time_t*)&(s_ykc_monitor_base->current_time));
+    System_BaseData *base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
+    _tm = localtime((const time_t*)&(base->current_time));
 
-    LOG_D("ykc_chargepile_create_local_transaction_number[%d](%d/%d/%d %d:%d:%d)", s_ykc_monitor_base->current_time, _tm->tm_year, _tm->tm_mon,
+    LOG_D("ykc_chargepile_create_local_transaction_number[%d](%d/%d/%d %d:%d:%d)", base->current_time, _tm->tm_year, _tm->tm_mon,
             _tm->tm_mday, _tm->tm_hour, _tm->tm_min, _tm->tm_sec);
     memcpy(ptr, g_ykc_monitor_preq_transaction_records[gunno].body.pile_number, sn_len);   /* 桩号 */
     ptr[sn_len++] = gunno + 1;                                                     /* 枪号 */
@@ -2459,10 +2473,10 @@ void ykc_monitor_chargepile_time_sync_revise(uint8_t gunno)
         return;
     }
 
-    s_ykc_monitor_base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
+    System_BaseData *base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
 
-    g_ykc_monitor_preq_transaction_records[gunno].body.start_time = ykc_monitor_get_cp56time2a_from_timestamp(s_ykc_monitor_base->start_time);
-    g_ykc_monitor_preq_transaction_records[gunno].body.stop_time = ykc_monitor_get_cp56time2a_from_timestamp(s_ykc_monitor_base->stop_time);
+    g_ykc_monitor_preq_transaction_records[gunno].body.start_time = ykc_monitor_get_cp56time2a_from_timestamp(base->start_time);
+    g_ykc_monitor_preq_transaction_records[gunno].body.stop_time = ykc_monitor_get_cp56time2a_from_timestamp(base->stop_time);
 }
 
 /*************************************************
@@ -3292,15 +3306,17 @@ int8_t ykc_monitor_message_padding_tsocket_info(uint8_t *buf, uint16_t ilen, uin
         return -0x02;
     }
 
+#ifndef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL
     uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC_MONITOR |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
-    uint8_t valid_len = 0x00, *pile_number = NULL;
+    uint8_t *pile_number = NULL;
+#endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
+    uint8_t valid_len = 0x00;
     net_plat_socket_info_t *socket = net_operation_get_target_socket_info();
     Net_YkcMonitorPro_Preq_Pres_TsocketInfo_t *message = (Net_YkcMonitorPro_Preq_Pres_TsocketInfo_t*)buf;
     memcpy(message->body.pile_number, g_ykc_monitor_preq_login.body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
 
-    pile_number = (uint8_t*)(s_ykc_monitor_handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, 0x00, option));
-
 #ifndef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL
+    pile_number = (uint8_t*)(s_ykc_monitor_handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, 0x00, option));
     valid_len = sizeof(message->body.pile_number_whole);
     valid_len = valid_len > strlen((char*)pile_number) ? strlen((char*)pile_number) : valid_len;
     memset(message->body.pile_number_whole, 0x00, sizeof(message->body.pile_number_whole));
@@ -3338,14 +3354,15 @@ int8_t ykc_monitor_message_padding_log_info(uint8_t *buf, uint16_t ilen, uint16_
         return -0x02;
     }
 
+#ifndef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL
     uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC_MONITOR |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
     uint8_t *pile_number = NULL, valid_len;
+#endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
     Net_YkcMonitorPro_Preq_TargetPlat_Log_t *message = (Net_YkcMonitorPro_Preq_TargetPlat_Log_t*)buf;
     memcpy(message->body.pile_number, g_ykc_monitor_preq_login.body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
 
-    pile_number = (uint8_t*)(s_ykc_monitor_handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, 0x00, option));
-
 #ifndef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL
+    pile_number = (uint8_t*)(s_ykc_monitor_handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, 0x00, option));
     valid_len = sizeof(message->body.pile_number_whole);
     valid_len = valid_len > strlen((char*)pile_number) ? strlen((char*)pile_number) : valid_len;
     memset(message->body.pile_number_whole, 0x00, sizeof(message->body.pile_number_whole));
@@ -3467,8 +3484,8 @@ int8_t ykc_monitor_padding_setvoltcurr_data(void)
     extern uint32_t thaisenGetModuleSetCurrent(uint8_t groupNum);
 
     if(s_ykc_monitor_setvoltcurr.count == 0x00){
-        s_ykc_monitor_base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(0x00));
-        s_ykc_monitor_setvoltcurr.timestamp = s_ykc_monitor_base->current_time;
+        System_BaseData *base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(0x00));
+        s_ykc_monitor_setvoltcurr.timestamp = base->current_time;
     }
 
     for(uint8_t group = 0x00; group < YKC_MONITOR_MODULE_GROUP_MAX; group++){

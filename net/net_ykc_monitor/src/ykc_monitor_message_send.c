@@ -82,7 +82,6 @@ struct ykc_monitor_wait_response{
     uint32_t message_repeat_time[NET_SYSTEM_GUN_NUMBER][NET_YKC_MONITOR_CHARGEPILE_PREQ_NUM];  /* 报文重发计时 */
 };
 
-static ykc_monitor_fswitch s_ykc_monitor_fswitch;
 uint8_t s_ykc_monitor_current_transaction_number[NET_SYSTEM_GUN_NUMBER][NET_YKC_MONITOR_SERIAL_NUMBER_LENGTH_DEFAULT];
 static uint8_t s_ykc_monitor_same_transaction_report_count[NET_SYSTEM_GUN_NUMBER];
 static uint8_t s_ykc_monitor_transaction_verify[NET_SYSTEM_GUN_NUMBER];
@@ -99,6 +98,7 @@ static uint32_t s_ykc_monitor_log_tick = 0x00;
 static uint8_t s_ykc_monitor_log_step = NET_YKC_MONITOR_LOG_STEP_NULL;
 static struct ykc_monitor_loghead s_ykc_monitor_loghead;
 
+static ykc_monitor_fswitch s_ykc_monitor_fswitch;
 static ykc_monitor_assistant_info s_ykc_monitor_assistant_info;
 
 static uint32_t s_ykc_monitor_user_chargepile_event[NET_YKC_MONITOR_EVENT_TYPE_SIZE][NET_SYSTEM_GUN_NUMBER];
@@ -150,6 +150,7 @@ Net_YkcMonitorPro_PReq_ApplyMergeCharge_Active_t g_ykc_monitor_preq_apply_merge_
 /** 升级结果上送 */
 Net_YkcMonitorPro_PRes_RemoteUpdate_t g_ykc_monitor_pres_remote_update;  // OK
 
+#ifdef NET_YKC_MONITOR_AS_MONITOR
 /**************************************************************************
  * 函数名                 ykc_monitor_function_switch_set
  * 功能                     功能开关设置
@@ -164,6 +165,7 @@ void ykc_monitor_function_switch_set(void* handle)
 
     s_ykc_monitor_fswitch.tplat_log = info->fswitch.tplat_log;
 }
+#endif /* NET_YKC_MONITOR_AS_MONITOR */
 
 /**************************************************************************
  * 函数名                 ykc_monitor_get_socket_info
@@ -495,6 +497,7 @@ void ykc_monitor_ascii_to_bcd(uint8_t *ascii, uint8_t alen, uint8_t *bcd, uint8_
     }
 }
 
+#ifdef NET_YKC_MONITOR_AS_MONITOR
 /**************************************************************************
  * 函数名                 ykc_monitor_platlog_data_insert
  * 功能                     插入目标平台报文数据节点
@@ -505,7 +508,7 @@ void ykc_monitor_platlog_data_insert(void *data, uint16_t len, uint8_t verify_re
     if(!s_ykc_monitor_fswitch.tplat_log){
         return;
     }
-#ifdef NET_YKC_MONITOR_AS_MONITOR
+
     if((data == NULL) || (len == 0x00)){
         return;
     }
@@ -545,7 +548,6 @@ void ykc_monitor_platlog_data_insert(void *data, uint16_t len, uint8_t verify_re
         }
         n = n->node;
     }
-#endif /* NET_YKC_MONITOR_AS_MONITOR */
 }
 
 /**************************************************************************
@@ -555,7 +557,6 @@ void ykc_monitor_platlog_data_insert(void *data, uint16_t len, uint8_t verify_re
  * ***********************************************************************/
 static void ykc_monitor_platlog_data_remove(void)
 {
-#ifdef NET_YKC_MONITOR_AS_MONITOR
     if(s_ykc_monitor_loghead.log_num == 0x00){
         return;
     }
@@ -574,7 +575,6 @@ static void ykc_monitor_platlog_data_remove(void)
             s_ykc_monitor_loghead.log_num--;
         }
     }
-#endif /* NET_YKC_MONITOR_AS_MONITOR */
 }
 
 /**************************************************************************
@@ -584,15 +584,13 @@ static void ykc_monitor_platlog_data_remove(void)
  * ***********************************************************************/
 static struct ykc_monitor_lognode *ykc_monitor_platlog_data_query(void)
 {
-#ifdef NET_YKC_MONITOR_AS_MONITOR
     if(s_ykc_monitor_loghead.log_num == 0x00){
         return NULL;
     }
 
     return s_ykc_monitor_loghead.node.node;
-#endif /* NET_YKC_MONITOR_AS_MONITOR */
-    return NULL;
 }
+#endif /* NET_YKC_MONITOR_AS_MONITOR */
 
 static void net_ykc_monitor_message_send_thread_entry(void *parameter)
 {

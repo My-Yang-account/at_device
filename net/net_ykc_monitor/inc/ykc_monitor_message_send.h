@@ -225,7 +225,10 @@ typedef struct{
     }operate_fail;
 }ykc_monitor_socket_info_t;
 
+#ifdef NET_YKC_MONITOR_AS_MONITOR
 void ykc_monitor_function_switch_set(void* handle);
+void ykc_monitor_platlog_data_insert(void *data, uint16_t len, uint8_t verify_result, const char* label);
+#endif /* NET_YKC_MONITOR_AS_MONITOR */
 
 ykc_monitor_socket_info_t* ykc_monitor_get_socket_info(void);
 
@@ -244,8 +247,6 @@ void ykc_monitor_clear_message_wait_response_state(uint8_t gunno, uint32_t messa
 uint8_t ykc_monitor_get_message_wait_response_timeout_state(uint8_t gunno, uint32_t timeout, uint32_t message_bit);
 
 void ykc_monitor_ascii_to_bcd(uint8_t *ascii, uint8_t alen, uint8_t *bcd, uint8_t blen);
-
-void ykc_monitor_platlog_data_insert(void *data, uint16_t len, uint8_t verify_result, const char* label);
 
 int32_t ykc_monitor_message_send_init(void);
 

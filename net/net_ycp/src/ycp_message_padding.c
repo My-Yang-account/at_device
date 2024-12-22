@@ -69,7 +69,6 @@ static struct ycp_disposable_info s_ycp_disposable_info[NET_SYSTEM_GUN_NUMBER];
 static struct rt_thread s_ycp_realtime_process_thread;
 static uint8_t s_ycp_realtime_process_thread_stack[YCP_REALTIME_PROCESS_THREAD_STACK_SIZE];
 static struct net_handle* s_ycp_handle = NULL;
-static System_BaseData *s_ycp_base = NULL;
 
 static uint16_t ycp_chargepile_stop_reason_converted(uint8_t bit, uint8_t stop_in_starting);
 static uint8_t ycp_chargepile_transaction_identity_converted(uint8_t identity);
@@ -241,6 +240,7 @@ int8_t ycp_response_padding_query_state_data(uint8_t gunno, uint8_t *buf, uint16
 
     uint8_t length = 0x00;
     Net_YcpPro_PRes_Query_PReq_Report_PileState_t *response = NULL;
+    System_BaseData *base = (System_BaseData*)(s_ycp_handle->get_base_data(gunno));
 
     response = ((Net_YcpPro_PRes_Query_PReq_Report_PileState_t*)buf);
     if(g_ycp_sreq_query_device_state[gunno].body.data_type == 0x01){
@@ -262,9 +262,9 @@ int8_t ycp_response_padding_query_state_data(uint8_t gunno, uint8_t *buf, uint16
         memcpy(response, &g_ycp_preq_report_state_data[gunno], length);
 
         valid_len = sizeof(response->body.serial_number);
-        valid_len = valid_len > sizeof(s_ycp_base->transaction_number) ? sizeof(s_ycp_base->transaction_number) : valid_len;
+        valid_len = valid_len > sizeof(base->transaction_number) ? sizeof(base->transaction_number) : valid_len;
         memset(response->body.serial_number, 0x00, sizeof(response->body.serial_number));
-        memcpy(response->body.serial_number, s_ycp_base->transaction_number, valid_len);
+        memcpy(response->body.serial_number, base->transaction_number, valid_len);
     }
 
     if(olen){
@@ -286,6 +286,7 @@ int8_t ycp_response_padding_query_state_data_all(uint8_t *buf, uint16_t ilen, ui
     uint8_t valid_len = 0x00;
     uint8_t length = 0x00, *charging_gun_number = NULL;
     Net_YcpPro_PRes_Query_PReq_Report_PileState_All_t *response = NULL;
+    System_BaseData *base = NULL;
 
     response = ((Net_YcpPro_PRes_Query_PReq_Report_PileState_All_t*)buf);
     if(g_ycp_sreq_query_device_state_all.body.data_type == 0x01){
@@ -300,12 +301,12 @@ int8_t ycp_response_padding_query_state_data_all(uint8_t *buf, uint16_t ilen, ui
         response->body.gun_num = NET_SYSTEM_GUN_NUMBER;
         charging_gun_number = (uint8_t*)(&_gunno_state[NET_SYSTEM_GUN_NUMBER]);
         for(uint8_t gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
-            s_ycp_base = (System_BaseData*)(s_ycp_handle->get_base_data(gunno));
+            base = (System_BaseData*)(s_ycp_handle->get_base_data(gunno));
             _gunno_state[gunno].gunno = gunno + 0x01;
             _gunno_state[gunno].state = g_ycp_preq_report_state_data[gunno].body.state;
             _gunno_state[gunno].homing = g_ycp_preq_report_state_data[gunno].body.homing;
             _gunno_state[gunno].plug_gun = g_ycp_preq_report_state_data[gunno].body.plug_gun;
-            if(s_ycp_base->state.current == APP_OFSM_STATE_CHARGING){
+            if(base->state.current == APP_OFSM_STATE_CHARGING){
                 (*charging_gun_number)++;
             }
         }
@@ -323,12 +324,12 @@ int8_t ycp_response_padding_query_state_data_all(uint8_t *buf, uint16_t ilen, ui
         response->body.gun_num = NET_SYSTEM_GUN_NUMBER;
         charging_gun_number = (uint8_t*)(&_gunno_state[NET_SYSTEM_GUN_NUMBER]);
         for(uint8_t gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
-            s_ycp_base = (System_BaseData*)(s_ycp_handle->get_base_data(gunno));
+            base = (System_BaseData*)(s_ycp_handle->get_base_data(gunno));
             _gunno_state[gunno].gunno = gunno + 0x01;
             _gunno_state[gunno].state = g_ycp_preq_report_state_data[gunno].body.state;
             _gunno_state[gunno].homing = g_ycp_preq_report_state_data[gunno].body.homing;
             _gunno_state[gunno].plug_gun = g_ycp_preq_report_state_data[gunno].body.plug_gun;
-            if(s_ycp_base->state.current == APP_OFSM_STATE_CHARGING){
+            if(base->state.current == APP_OFSM_STATE_CHARGING){
                 (*charging_gun_number)++;
             }
         }
@@ -336,10 +337,11 @@ int8_t ycp_response_padding_query_state_data_all(uint8_t *buf, uint16_t ilen, ui
         _gun_data = (struct gun_data*)(charging_gun_number + 0x01);
 
         for(uint8_t gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
+            base = (System_BaseData*)(s_ycp_handle->get_base_data(gunno));
             valid_len = sizeof(_gun_data[gunno].serial_number);
-            valid_len = valid_len > sizeof(s_ycp_base->transaction_number) ? sizeof(s_ycp_base->transaction_number) : valid_len;
+            valid_len = valid_len > sizeof(base->transaction_number) ? sizeof(base->transaction_number) : valid_len;
             memset(_gun_data[gunno].serial_number, 0x00, sizeof(_gun_data[gunno].serial_number));
-            memcpy(_gun_data[gunno].serial_number, s_ycp_base->transaction_number, valid_len);
+            memcpy(_gun_data[gunno].serial_number, base->transaction_number, valid_len);
 
             _gun_data[gunno].gunno = gunno + 0x01;
             _gun_data[gunno].output_voltage = g_ycp_preq_report_state_data[gunno].body.output_voltage;
@@ -382,7 +384,7 @@ int8_t ycp_response_padding_remote_start_charge(uint8_t gunno, uint8_t *buf, uin
 
     uint8_t valid_len = 0x00;
     Net_YcpPro_PRes_Remote_StartCharge_t *response = NULL;
-    s_ycp_base = (System_BaseData*)(s_ycp_handle->get_base_data(gunno));
+
     response = ((Net_YcpPro_PRes_Remote_StartCharge_t*)buf);
     memset(response, 0x00, data_len);
 
@@ -645,10 +647,12 @@ void ycp_request_padding_heartbeat(void)
 {
     uint8_t signal = 0x00;
     int32_t temperature = 0x00;
+    System_BaseData *base = NULL;
+
     for(uint8_t gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
-        s_ycp_base = (System_BaseData*)(s_ycp_handle->get_base_data(gunno));
-        temperature = temperature > s_ycp_base->gunline_temperature[0x00] ? temperature : s_ycp_base->gunline_temperature[0x00];
-        temperature = temperature > s_ycp_base->gunline_temperature[0x01] ? temperature : s_ycp_base->gunline_temperature[0x01];
+        base = (System_BaseData*)(s_ycp_handle->get_base_data(gunno));
+        temperature = temperature > base->gunline_temperature[0x00] ? temperature : base->gunline_temperature[0x00];
+        temperature = temperature > base->gunline_temperature[0x01] ? temperature : base->gunline_temperature[0x01];
     }
     (void)(s_ycp_handle->get_system_data(NET_SYSTEM_DATA_NAME_SIGNAL_STRENGTH, &signal, sizeof(signal), NET_SYSTEM_DATA_OPTION_TARGET_PLAT));
     g_ycp_preq_heartbeat.body.signal_value = signal;
@@ -676,6 +680,7 @@ int8_t ycp_message_pro_billing_model_set_response(void *data, uint8_t len, uint8
         return -0x02;
     }
 
+    System_BaseData *base = NULL;
     ycp_storage_struct *config = (ycp_storage_struct*)(s_ycp_handle->get_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, 0x00, NET_SYSTEM_DATA_OPTION_TARGET_PLAT));
     Net_YcpPro_SReq_BillingModel_Set_t *response = (Net_YcpPro_SReq_BillingModel_Set_t*)data;
 
@@ -708,9 +713,9 @@ int8_t ycp_message_pro_billing_model_set_response(void *data, uint8_t len, uint8
 
     for(uint8_t _gunno = 0x00; _gunno < NET_SYSTEM_GUN_NUMBER; _gunno++){
         uint8_t gunno = _gunno;
-        s_ycp_base = (System_BaseData*)(s_ycp_handle->get_base_data(gunno));
-        if((s_ycp_base->state.current == APP_OFSM_STATE_CHARGING) || (s_ycp_base->state.current == APP_OFSM_STATE_STARTING) ||
-                (s_ycp_base->state.current == APP_OFSM_STATE_STOPING)){
+        base = (System_BaseData*)(s_ycp_handle->get_base_data(gunno));
+        if((base->state.current == APP_OFSM_STATE_CHARGING) || (base->state.current == APP_OFSM_STATE_STARTING) ||
+                (base->state.current == APP_OFSM_STATE_STOPING)){
             net_operation_set_event(gunno, NET_OPERATION_EVENT_UPDATE_BILLING_RULE);
             gunno = NET_SYSTEM_GUN_NUMBER;
         }
@@ -782,49 +787,49 @@ int8_t ycp_message_pro_apply_charge_active_response(uint8_t gunno, void *data, u
     }
 
     uint8_t valid_len = 0x00;
-    s_ycp_base = (System_BaseData*)(s_ycp_handle->get_base_data(gunno));
+    System_BaseData *base = (System_BaseData*)(s_ycp_handle->get_base_data(gunno));
     Net_YcpPro_SRes_ApplyCharge_Active_t *response = (Net_YcpPro_SRes_ApplyCharge_Active_t*)data;
 
     valid_len = sizeof(response->body.logic_card_number);
-    valid_len = valid_len > sizeof(s_ycp_base->card_number) ? sizeof(s_ycp_base->card_number) : valid_len;
-    memset(s_ycp_base->card_number, 0x00, sizeof(s_ycp_base->card_number));
-    memcpy(s_ycp_base->card_number, response->body.logic_card_number, valid_len);
+    valid_len = valid_len > sizeof(base->card_number) ? sizeof(base->card_number) : valid_len;
+    memset(base->card_number, 0x00, sizeof(base->card_number));
+    memcpy(base->card_number, response->body.logic_card_number, valid_len);
 
     valid_len = sizeof(response->body.serial_number);
-    valid_len = valid_len > sizeof(s_ycp_base->transaction_number) ? sizeof(s_ycp_base->transaction_number) : valid_len;
-    memset(s_ycp_base->transaction_number, 0x00, sizeof(s_ycp_base->transaction_number));
-    memcpy(s_ycp_base->transaction_number, response->body.serial_number, valid_len);
+    valid_len = valid_len > sizeof(base->transaction_number) ? sizeof(base->transaction_number) : valid_len;
+    memset(base->transaction_number, 0x00, sizeof(base->transaction_number));
+    memcpy(base->transaction_number, response->body.serial_number, valid_len);
 
-    valid_len = sizeof(s_ycp_base->card_number);
-    valid_len = valid_len > sizeof(s_ycp_base->user_number) ? sizeof(s_ycp_base->user_number) : valid_len;
-    memset(s_ycp_base->user_number, 0x00, sizeof(s_ycp_base->user_number));
-    memcpy(s_ycp_base->user_number, s_ycp_base->card_number, valid_len);
+    valid_len = sizeof(base->card_number);
+    valid_len = valid_len > sizeof(base->user_number) ? sizeof(base->user_number) : valid_len;
+    memset(base->user_number, 0x00, sizeof(base->user_number));
+    memcpy(base->user_number, base->card_number, valid_len);
 
-    s_ycp_base->account_ballance_before = 0x00;
-    s_ycp_base->account_ballance_after = 0x00;
+    base->account_ballance_before = 0x00;
+    base->account_ballance_after = 0x00;
 
     switch(response->body.strategy){
     case NET_YCP_CHARGE_STRATEGY_TIME:
-        s_ycp_base->charge_strategy = APP_CHARGE_STRATEGY_TIME;
-        s_ycp_base->charge_strategy_para = response->body.strategy_para *60 /100;
+        base->charge_strategy = APP_CHARGE_STRATEGY_TIME;
+        base->charge_strategy_para = response->body.strategy_para *60 /100;
         break;
     case NET_YCP_CHARGE_STRATEGY_ELECT:
-        s_ycp_base->charge_strategy = APP_CHARGE_STRATEGY_ELECT;
-        s_ycp_base->charge_strategy_para = response->body.strategy_para *10;
+        base->charge_strategy = APP_CHARGE_STRATEGY_ELECT;
+        base->charge_strategy_para = response->body.strategy_para *10;
         break;
     case NET_YCP_CHARGE_STRATEGY_MONEY:
-        s_ycp_base->charge_strategy = APP_CHARGE_STRATEGY_MONEY;
-        s_ycp_base->charge_strategy_para = response->body.strategy_para *100;
-        s_ycp_base->account_ballance_before = response->body.strategy_para;
-        s_ycp_base->account_ballance_after = response->body.strategy_para;
+        base->charge_strategy = APP_CHARGE_STRATEGY_MONEY;
+        base->charge_strategy_para = response->body.strategy_para *100;
+        base->account_ballance_before = response->body.strategy_para;
+        base->account_ballance_after = response->body.strategy_para;
         break;
     case NET_YCP_CHARGE_STRATEGY_FULL:
-        s_ycp_base->charge_strategy = APP_CHARGE_STRATEGY_FULL;
-        s_ycp_base->charge_strategy_para = response->body.strategy_para;
+        base->charge_strategy = APP_CHARGE_STRATEGY_FULL;
+        base->charge_strategy_para = response->body.strategy_para;
         break;
     default:
-        s_ycp_base->charge_strategy = APP_CHARGE_STRATEGY_FULL;
-        s_ycp_base->charge_strategy_para = response->body.strategy_para;
+        base->charge_strategy = APP_CHARGE_STRATEGY_FULL;
+        base->charge_strategy_para = response->body.strategy_para;
         break;
     }
 
@@ -856,60 +861,57 @@ int16_t ycp_message_pro_remote_start_charge_request(uint8_t gunno, void *data, u
     }
 
     uint8_t valid_len = 0x00;
-    s_ycp_base = (System_BaseData*)(s_ycp_handle->get_base_data(gunno));
+    System_BaseData *base = (System_BaseData*)(s_ycp_handle->get_base_data(gunno));
     Net_YcpPro_SReq_Remote_StartCharge_t *request = (Net_YcpPro_SReq_Remote_StartCharge_t*)data;
 
     /** 并充时不能让平台启动副枪 */
-    if(s_ycp_base->charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL){
+    if(base->charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL){
         return NET_YCP_START_FAIL_CODE_IS_CHARGING;
     }
 
-    switch(s_ycp_base->state.current){
+    switch(base->state.current){
     case APP_OFSM_STATE_IDLEING:
         return NET_YCP_START_FAIL_CODE_NO_GUN;
         break;
     case APP_OFSM_STATE_READYING:
     case APP_OFSM_STATE_FINISHING:
     case APP_OFSM_STATE_FAULTING:
-        memset(s_ycp_base->card_number, 0x00, sizeof(s_ycp_base->card_number));
-        memset(s_ycp_base->card_uid, 0x00, sizeof(s_ycp_base->card_uid));
-        memset(s_ycp_base->user_number, 0x00, sizeof(s_ycp_base->user_number));
+        memset(base->card_number, 0x00, sizeof(base->card_number));
+        memset(base->card_uid, 0x00, sizeof(base->card_uid));
+        memset(base->user_number, 0x00, sizeof(base->user_number));
 
         valid_len = sizeof(request->body.serial_number);
-        valid_len = valid_len > sizeof(s_ycp_base->transaction_number) ? sizeof(s_ycp_base->transaction_number) : valid_len;
-        memset(s_ycp_base->transaction_number, 0x00, sizeof(s_ycp_base->transaction_number));
-        memcpy(s_ycp_base->transaction_number, request->body.serial_number, valid_len);
+        valid_len = valid_len > sizeof(base->transaction_number) ? sizeof(base->transaction_number) : valid_len;
+        memset(base->transaction_number, 0x00, sizeof(base->transaction_number));
+        memcpy(base->transaction_number, request->body.serial_number, valid_len);
 
-        s_ycp_base->account_ballance_before = 0x00;
-        s_ycp_base->account_ballance_after = 0x00;
+        base->account_ballance_before = 0x00;
+        base->account_ballance_after = 0x00;
 
         switch(request->body.strategy){
         case NET_YCP_CHARGE_STRATEGY_TIME:
-            s_ycp_base->charge_strategy = APP_CHARGE_STRATEGY_TIME;
-            s_ycp_base->charge_strategy_para = request->body.strategy_para *60 /100;
+            base->charge_strategy = APP_CHARGE_STRATEGY_TIME;
+            base->charge_strategy_para = request->body.strategy_para *60 /100;
             break;
         case NET_YCP_CHARGE_STRATEGY_ELECT:
-            s_ycp_base->charge_strategy = APP_CHARGE_STRATEGY_ELECT;
-            s_ycp_base->charge_strategy_para = request->body.strategy_para *10;
+            base->charge_strategy = APP_CHARGE_STRATEGY_ELECT;
+            base->charge_strategy_para = request->body.strategy_para *10;
             break;
         case NET_YCP_CHARGE_STRATEGY_MONEY:
-            s_ycp_base->charge_strategy = APP_CHARGE_STRATEGY_MONEY;
-            s_ycp_base->charge_strategy_para = request->body.strategy_para *100;
-            s_ycp_base->account_ballance_before = request->body.strategy_para;
-            s_ycp_base->account_ballance_after = request->body.strategy_para;
+            base->charge_strategy = APP_CHARGE_STRATEGY_MONEY;
+            base->charge_strategy_para = request->body.strategy_para *100;
+            base->account_ballance_before = request->body.strategy_para;
+            base->account_ballance_after = request->body.strategy_para;
             break;
         case NET_YCP_CHARGE_STRATEGY_FULL:
-            s_ycp_base->charge_strategy = APP_CHARGE_STRATEGY_FULL;
-            s_ycp_base->charge_strategy_para = request->body.strategy_para;
+            base->charge_strategy = APP_CHARGE_STRATEGY_FULL;
+            base->charge_strategy_para = request->body.strategy_para;
             break;
         default:
-            s_ycp_base->charge_strategy = APP_CHARGE_STRATEGY_FULL;
-            s_ycp_base->charge_strategy_para = request->body.strategy_para;
+            base->charge_strategy = APP_CHARGE_STRATEGY_FULL;
+            base->charge_strategy_para = request->body.strategy_para;
             break;
         }
-
-        rt_kprintf("ycp_message_pro_remote_start_charge_request(%d, %d, %d)\n", gunno,
-                s_ycp_base->charge_strategy, s_ycp_base->charge_strategy_para);
 
         s_ycp_flag_info[gunno].is_start_charge = NET_ENUM_TRUE;
 
@@ -936,21 +938,21 @@ int16_t ycp_message_pro_remote_stop_charge_request(uint8_t gunno)
         return -0x01;
     }
 
-    s_ycp_base = (System_BaseData*)(s_ycp_handle->get_base_data(gunno));
+    System_BaseData *base = (System_BaseData*)(s_ycp_handle->get_base_data(gunno));
 
     /** 并充时不能让平台停止副枪 */
-    if(s_ycp_base->charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL){
-        if(gunno != s_ycp_base->main_gunno){
+    if(base->charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL){
+        if(gunno != base->main_gunno){
             return NET_YCP_START_FAIL_CODE_IS_CHARGING;
         }
     }
 
-    if((s_ycp_base->state.current == APP_OFSM_STATE_CHARGING) ||
-            (s_ycp_base->state.current == APP_OFSM_STATE_STARTING)){
+    if((base->state.current == APP_OFSM_STATE_CHARGING) ||
+            (base->state.current == APP_OFSM_STATE_STARTING)){
         s_ycp_flag_info[gunno].is_stop_charge = NET_ENUM_TRUE;
 
-        if(s_ycp_base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
-            net_operation_set_event(s_ycp_base->main_gunno, NET_OPERATION_EVENT_STOP_CHARGE);
+        if(base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
+            net_operation_set_event(base->main_gunno, NET_OPERATION_EVENT_STOP_CHARGE);
         }else{
             net_operation_set_event(gunno, NET_OPERATION_EVENT_STOP_CHARGE);
         }
@@ -978,7 +980,7 @@ int8_t ycp_message_pro_set_para_request(void *data, uint8_t len)
     uint8_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YCP |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
     ycp_storage_struct *config = (ycp_storage_struct*)(s_ycp_handle->get_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, 0x00, NET_SYSTEM_DATA_OPTION_TARGET_PLAT));
     Net_YcpPro_SReq_ParaSet_t *request = (Net_YcpPro_SReq_ParaSet_t*)data;
-    s_ycp_base = (System_BaseData*)(s_ycp_handle->get_base_data(0x00));
+    System_BaseData *base = (System_BaseData*)(s_ycp_handle->get_base_data(0x00));
 
     if(config == NULL){
         return -0x04;
@@ -1018,14 +1020,14 @@ int8_t ycp_message_pro_set_para_request(void *data, uint8_t len)
         }
     }
 
-    rt_kprintf("ycp_message_pro_set_work_para_request(%d, %d, %d)\n", request->body.power_percent,
-            s_ycp_base->system_power_max, (s_ycp_base->system_power_max * request->body.power_percent /100));
+    LOG_D("ycp_message_pro_set_work_para_request(%d, %d, %d)", request->body.power_percent,
+            base->system_power_max, (base->system_power_max * request->body.power_percent /100));
     if((request->body.power_percent > 0x00) && (request->body.power_percent <= 0x64)){
-        uint32_t power = (s_ycp_base->system_power_max * request->body.power_percent /100);
+        uint32_t power = (base->system_power_max * request->body.power_percent /100);
         net_operation_set_total_power(power, 0x00);
         s_ycp_flag_info[0x00].is_set_power = 0x01;
-        s_ycp_base->power_strategy = APP_POWER_STRATEGY_SET_LIMIT;
-        s_ycp_base->power_strategy_para = 0x00;
+        base->power_strategy = APP_POWER_STRATEGY_SET_LIMIT;
+        base->power_strategy_para = 0x00;
     }else{
         return -0x03;
     }
@@ -1051,7 +1053,7 @@ int8_t ycp_message_pro_time_sync_response(void *data, uint8_t len)
     uint32_t timestamp = ycp_timebcd_to_timestamp(response->body.current_time, NET_YCP_TIME_BCD_LENGTH_DEFAULT);
     s_ycp_handle->time_sync(timestamp);
 
-    rt_kprintf("ycp_message_pro_time_sync_response(%x)[%x, %x, %x, %x, %x, %x, %x](%x)\n", timestamp,
+    LOG_D("ycp_message_pro_time_sync_response(%x)[%x, %x, %x, %x, %x, %x, %x](%x)", timestamp,
             response->body.current_time[0x06], response->body.current_time[0x05],
             response->body.current_time[0x04], response->body.current_time[0x03],
             response->body.current_time[0x02], response->body.current_time[0x01],
@@ -1080,11 +1082,12 @@ int8_t ycp_message_pro_remote_reset_request(void *data, uint8_t len)
 
     uint8_t gunno = 0x00;
     Net_YcpPro_SReq_RemoteReboot_t *request = (Net_YcpPro_SReq_RemoteReboot_t*)data;
+    System_BaseData *base = NULL;
 
     if(request->body.control_cmd == 0x01){
         for(gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
-            s_ycp_base = (System_BaseData*)(s_ycp_handle->get_base_data(gunno));
-            if(s_ycp_base->state.current != APP_OFSM_STATE_IDLEING){
+            base = (System_BaseData*)(s_ycp_handle->get_base_data(gunno));
+            if(base->state.current != APP_OFSM_STATE_IDLEING){
                 break;
             }
         }
@@ -1112,9 +1115,9 @@ void ycp_message_info_init(uint8_t gunno)  ///////// 这是网络部分外部调
     if(ycp_is_init){
         return;
     }
-    uint8_t communication_sn[5] = {0x82, 0x10, 0x12, 0x77, 0x85};
+
     s_ycp_handle = net_get_net_handle();
-    s_ycp_base = (System_BaseData*)(s_ycp_handle->get_base_data(gunno));
+    System_BaseData *base = (System_BaseData*)(s_ycp_handle->get_base_data(gunno));
     ycp_is_init = 0x01;
 
     for(uint8_t gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
@@ -1134,11 +1137,11 @@ void ycp_message_info_init(uint8_t gunno)  ///////// 这是网络部分外部调
     g_ycp_preq_login.body.protocol_ver[0x02] = NET_YCP_PROTOCOL_VERSION_MAIN;
 
     memset(g_ycp_preq_login.body.software_ver, '\0', sizeof(g_ycp_preq_login.body.software_ver));
-    g_ycp_preq_login.body.software_ver[0] = s_ycp_base->soft_ver_main + '0';
+    g_ycp_preq_login.body.software_ver[0] = base->soft_ver_main + '0';
     g_ycp_preq_login.body.software_ver[1] = '.';
-    g_ycp_preq_login.body.software_ver[2] = s_ycp_base->soft_ver_sub + '0';
+    g_ycp_preq_login.body.software_ver[2] = base->soft_ver_sub + '0';
     g_ycp_preq_login.body.software_ver[3] = '.';
-    sprintf((char *)&g_ycp_preq_login.body.software_ver[3 + 1], "%02d", s_ycp_base->soft_ver_revise);
+    sprintf((char *)&g_ycp_preq_login.body.software_ver[3 + 1], "%02d", base->soft_ver_revise);
 
     g_ycp_preq_login.body.net_link_type = NET_YCP_NET_LINK_TYPE_SIM;
     memset(g_ycp_preq_login.body.communicate_module_sn, '\0', sizeof(g_ycp_preq_login.body.communicate_module_sn));
@@ -1230,7 +1233,7 @@ void ycp_chargepile_request_padding_state_data(uint8_t gunno, uint8_t is_init)
         return;
     }
 
-    s_ycp_base = (System_BaseData*)(s_ycp_handle->get_base_data(gunno));
+    System_BaseData *base = (System_BaseData*)(s_ycp_handle->get_base_data(gunno));
 
     if(g_ycp_sreq_set_para.body.chargedata_type == 0x01){
         g_ycp_preq_report_state_data[gunno].head.length = ((uint32_t)(g_ycp_preq_report_state_data[gunno].body.serial_number) -  \
@@ -1240,9 +1243,9 @@ void ycp_chargepile_request_padding_state_data(uint8_t gunno, uint8_t is_init)
     }
     if(is_init){
         uint8_t valid_len = sizeof(g_ycp_preq_report_state_data[gunno].body.serial_number);
-        valid_len = valid_len > sizeof(s_ycp_base->transaction_number) ? sizeof(s_ycp_base->transaction_number) : valid_len;
+        valid_len = valid_len > sizeof(base->transaction_number) ? sizeof(base->transaction_number) : valid_len;
         memset(g_ycp_preq_report_state_data[gunno].body.serial_number, 0x00, sizeof(g_ycp_preq_report_state_data[gunno].body.serial_number));
-        memcpy(g_ycp_preq_report_state_data[gunno].body.serial_number, s_ycp_base->transaction_number, valid_len);
+        memcpy(g_ycp_preq_report_state_data[gunno].body.serial_number, base->transaction_number, valid_len);
 
         g_ycp_preq_report_state_data[gunno].body.homing = 0x02;
         g_ycp_preq_report_state_data[gunno].body.output_voltage = 0x00;
@@ -1260,32 +1263,32 @@ void ycp_chargepile_request_padding_state_data(uint8_t gunno, uint8_t is_init)
         ycp_chargepile_request_padding_bmsinfo_duringcharge(gunno, 0x01);
     }else{
         if(ycp_get_message_send_state(gunno, NET_YCP_PREQ_EVENT_REPORT_STATE_DATA) == NET_YCP_SEND_STATE_COMPLETE){
-            if((s_ycp_base->state.current == APP_OFSM_STATE_CHARGING) || (s_ycp_base->state.current == APP_OFSM_STATE_STARTING)){
-                struct thaisenBMS_Charger_struct *bms = (struct thaisenBMS_Charger_struct*)(s_ycp_base->bms_data);
+            if((base->state.current == APP_OFSM_STATE_CHARGING) || (base->state.current == APP_OFSM_STATE_STARTING)){
+                struct thaisenBMS_Charger_struct *bms = (struct thaisenBMS_Charger_struct*)(base->bms_data);
 
                 if(s_ycp_flag_info[gunno].chargedata_mode_last == 0x01){
                     uint8_t valid_len = sizeof(g_ycp_preq_report_state_data[gunno].body.serial_number);
-                    valid_len = valid_len > sizeof(s_ycp_base->transaction_number) ? sizeof(s_ycp_base->transaction_number) : valid_len;
+                    valid_len = valid_len > sizeof(base->transaction_number) ? sizeof(base->transaction_number) : valid_len;
                     memset(g_ycp_preq_report_state_data[gunno].body.serial_number, 0x00, sizeof(g_ycp_preq_report_state_data[gunno].body.serial_number));
-                    memcpy(g_ycp_preq_report_state_data[gunno].body.serial_number, s_ycp_base->transaction_number, valid_len);
+                    memcpy(g_ycp_preq_report_state_data[gunno].body.serial_number, base->transaction_number, valid_len);
                 }
-                g_ycp_preq_report_state_data[gunno].body.output_voltage = s_ycp_base->voltage_a /10;
-                g_ycp_preq_report_state_data[gunno].body.output_current = s_ycp_base->current_a /10;
+                g_ycp_preq_report_state_data[gunno].body.output_voltage = base->voltage_a /10;
+                g_ycp_preq_report_state_data[gunno].body.output_current = base->current_a /10;
                 g_ycp_preq_report_state_data[gunno].body.gun_temperature = 0x00;
-                if(s_ycp_base->state.current == APP_OFSM_STATE_CHARGING){
-                    if(s_ycp_base->gunline_temperature[0] > s_ycp_base->gunline_temperature[1]){
-                        g_ycp_preq_report_state_data[gunno].body.gun_temperature = (s_ycp_base->gunline_temperature[0] /10 + 0x00);
+                if(base->state.current == APP_OFSM_STATE_CHARGING){
+                    if(base->gunline_temperature[0] > base->gunline_temperature[1]){
+                        g_ycp_preq_report_state_data[gunno].body.gun_temperature = (base->gunline_temperature[0] /10 + 0x00);
                     }else{
-                        g_ycp_preq_report_state_data[gunno].body.gun_temperature = (s_ycp_base->gunline_temperature[1] /10 + 0x00);
+                        g_ycp_preq_report_state_data[gunno].body.gun_temperature = (base->gunline_temperature[1] /10 + 0x00);
                     }
                 }
-                g_ycp_preq_report_state_data[gunno].body.soc = s_ycp_base->current_soc *10;
+                g_ycp_preq_report_state_data[gunno].body.soc = base->current_soc *10;
                 g_ycp_preq_report_state_data[gunno].body.battery_group_temp_max = bms->BSM.HigTemp;
-                g_ycp_preq_report_state_data[gunno].body.charge_time = s_ycp_base->charge_time /60;
+                g_ycp_preq_report_state_data[gunno].body.charge_time = base->charge_time /60;
                 g_ycp_preq_report_state_data[gunno].body.remain_time = bms->BCS.SurplChgTime;
-                g_ycp_preq_report_state_data[gunno].body.charge_elect = s_ycp_base->elect_a *10;
+                g_ycp_preq_report_state_data[gunno].body.charge_elect = base->elect_a *10;
                 g_ycp_preq_report_state_data[gunno].body.loss_elect = 0x00;
-                g_ycp_preq_report_state_data[gunno].body.consume_amount = s_ycp_base->fees_total;
+                g_ycp_preq_report_state_data[gunno].body.consume_amount = base->fees_total;
             }else{
                 g_ycp_preq_report_state_data[gunno].body.homing = 0x02;
                 g_ycp_preq_report_state_data[gunno].body.output_voltage = 0x00;
@@ -1324,17 +1327,17 @@ void ycp_chargepile_request_padding_bms_shakehand(uint8_t gunno)
 
     uint16_t year;
     uint8_t valid_len = 0x00, yearh, yearl, byteh, bytel;
-    s_ycp_base = (System_BaseData*)(s_ycp_handle->get_base_data(gunno));
-    struct thaisenBMS_Charger_struct *bms = (struct thaisenBMS_Charger_struct*)(s_ycp_base->bms_data);
+    System_BaseData *base = (System_BaseData*)(s_ycp_handle->get_base_data(gunno));
+    struct thaisenBMS_Charger_struct *bms = (struct thaisenBMS_Charger_struct*)(base->bms_data);
 
     valid_len = sizeof(g_ycp_preq_shake_hand[gunno].body.serial_number);
-    valid_len = valid_len > sizeof(s_ycp_base->transaction_number) ? sizeof(s_ycp_base->transaction_number) : valid_len;
+    valid_len = valid_len > sizeof(base->transaction_number) ? sizeof(base->transaction_number) : valid_len;
     memset(g_ycp_preq_shake_hand[gunno].body.serial_number, 0x00, sizeof(g_ycp_preq_shake_hand[gunno].body.serial_number));
-    memcpy(g_ycp_preq_shake_hand[gunno].body.serial_number, s_ycp_base->transaction_number, valid_len);
+    memcpy(g_ycp_preq_shake_hand[gunno].body.serial_number, base->transaction_number, valid_len);
 
-    if(s_ycp_base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
-        s_ycp_base = (System_BaseData*)(s_ycp_handle->get_base_data(s_ycp_base->main_gunno));
-        bms = (struct thaisenBMS_Charger_struct*)(s_ycp_base->bms_data);
+    if(base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
+        base = (System_BaseData*)(s_ycp_handle->get_base_data(base->main_gunno));
+        bms = (struct thaisenBMS_Charger_struct*)(base->bms_data);
     }
     memcpy(g_ycp_preq_shake_hand[gunno].body.bms_protocol_ver, bms->BRM.BMSVer, sizeof(bms->BRM.BMSVer));
     g_ycp_preq_shake_hand[gunno].body.bms_bat_type = bms->BRM.BatType;
@@ -1404,17 +1407,17 @@ void ycp_chargepile_request_padding_bms_paraconfig(uint8_t gunno)
         return;
     }
     uint8_t valid_len = 0x00;
-    s_ycp_base = (System_BaseData*)(s_ycp_handle->get_base_data(gunno));
-    struct thaisenBMS_Charger_struct *bms = (struct thaisenBMS_Charger_struct*)(s_ycp_base->bms_data);
+    System_BaseData *base = (System_BaseData*)(s_ycp_handle->get_base_data(gunno));
+    struct thaisenBMS_Charger_struct *bms = (struct thaisenBMS_Charger_struct*)(base->bms_data);
 
     valid_len = sizeof(g_ycp_preq_parameter_config[gunno].body.serial_number);
-    valid_len = valid_len > sizeof(s_ycp_base->transaction_number) ? sizeof(s_ycp_base->transaction_number) : valid_len;
+    valid_len = valid_len > sizeof(base->transaction_number) ? sizeof(base->transaction_number) : valid_len;
     memset(g_ycp_preq_parameter_config[gunno].body.serial_number, 0x00, sizeof(g_ycp_preq_parameter_config[gunno].body.serial_number));
-    memcpy(g_ycp_preq_parameter_config[gunno].body.serial_number, s_ycp_base->transaction_number, valid_len);
+    memcpy(g_ycp_preq_parameter_config[gunno].body.serial_number, base->transaction_number, valid_len);
 
-    if(s_ycp_base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
-        s_ycp_base = (System_BaseData*)(s_ycp_handle->get_base_data(s_ycp_base->main_gunno));
-        bms = (struct thaisenBMS_Charger_struct*)(s_ycp_base->bms_data);
+    if(base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
+        base = (System_BaseData*)(s_ycp_handle->get_base_data(base->main_gunno));
+        bms = (struct thaisenBMS_Charger_struct*)(base->bms_data);
     }
     g_ycp_preq_parameter_config[gunno].body.bms_single_bat_allow_volt_max = bms->BCP.CellAlowHigVolt;
     g_ycp_preq_parameter_config[gunno].body.bms_allow_curr_max = bms->BCP.AlowCurlt;
@@ -1454,17 +1457,17 @@ void ycp_chargepile_request_padding_bms_chargeend(uint8_t gunno)
         return;
     }
     uint8_t valid_len = 0x00;
-    s_ycp_base = (System_BaseData*)(s_ycp_handle->get_base_data(gunno));
-    struct thaisenBMS_Charger_struct *bms = (struct thaisenBMS_Charger_struct*)(s_ycp_base->bms_data);
+    System_BaseData *base = (System_BaseData*)(s_ycp_handle->get_base_data(gunno));
+    struct thaisenBMS_Charger_struct *bms = (struct thaisenBMS_Charger_struct*)(base->bms_data);
 
     valid_len = sizeof(g_ycp_preq_charge_finish[gunno].body.serial_number);
-    valid_len = valid_len > sizeof(s_ycp_base->transaction_number) ? sizeof(s_ycp_base->transaction_number) : valid_len;
+    valid_len = valid_len > sizeof(base->transaction_number) ? sizeof(base->transaction_number) : valid_len;
     memset(g_ycp_preq_charge_finish[gunno].body.serial_number, 0x00, sizeof(g_ycp_preq_charge_finish[gunno].body.serial_number));
-    memcpy(g_ycp_preq_charge_finish[gunno].body.serial_number, s_ycp_base->transaction_number, valid_len);
+    memcpy(g_ycp_preq_charge_finish[gunno].body.serial_number, base->transaction_number, valid_len);
 
-    if(s_ycp_base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
-        s_ycp_base = (System_BaseData*)(s_ycp_handle->get_base_data(s_ycp_base->main_gunno));
-        bms = (struct thaisenBMS_Charger_struct*)(s_ycp_base->bms_data);
+    if(base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
+        base = (System_BaseData*)(s_ycp_handle->get_base_data(base->main_gunno));
+        bms = (struct thaisenBMS_Charger_struct*)(base->bms_data);
     }
     g_ycp_preq_charge_finish[gunno].body.bms_end_soc = bms->BSD.StopSOC *10;
     g_ycp_preq_charge_finish[gunno].body.bms_single_bat_volt_min = bms->BSD.CellLowVolt;
@@ -1491,17 +1494,17 @@ void ycp_chargepile_request_padding_bms_error(uint8_t gunno)
         return;
     }
     uint8_t valid_len = 0x00;
-    s_ycp_base = (System_BaseData*)(s_ycp_handle->get_base_data(gunno));
-    struct thaisenBMS_Charger_struct *bms = (struct thaisenBMS_Charger_struct*)(s_ycp_base->bms_data);
+    System_BaseData *base = (System_BaseData*)(s_ycp_handle->get_base_data(gunno));
+    struct thaisenBMS_Charger_struct *bms = (struct thaisenBMS_Charger_struct*)(base->bms_data);
 
     valid_len = sizeof(g_ycp_preq_error_message[gunno].body.serial_number);
-    valid_len = valid_len > sizeof(s_ycp_base->transaction_number) ? sizeof(s_ycp_base->transaction_number) : valid_len;
+    valid_len = valid_len > sizeof(base->transaction_number) ? sizeof(base->transaction_number) : valid_len;
     memset(g_ycp_preq_error_message[gunno].body.serial_number, 0x00, sizeof(g_ycp_preq_error_message[gunno].body.serial_number));
-    memcpy(g_ycp_preq_error_message[gunno].body.serial_number, s_ycp_base->transaction_number, valid_len);
+    memcpy(g_ycp_preq_error_message[gunno].body.serial_number, base->transaction_number, valid_len);
 
-    if(s_ycp_base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
-        s_ycp_base = (System_BaseData*)(s_ycp_handle->get_base_data(s_ycp_base->main_gunno));
-        bms = (struct thaisenBMS_Charger_struct*)(s_ycp_base->bms_data);
+    if(base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
+        base = (System_BaseData*)(s_ycp_handle->get_base_data(base->main_gunno));
+        bms = (struct thaisenBMS_Charger_struct*)(base->bms_data);
     }
     g_ycp_preq_error_message[gunno].body.timeout.spn2560_00_identify = bms->BEM.CRM00OVtime;
     g_ycp_preq_error_message[gunno].body.timeout.spn2560_aa_identify = bms->BEM.CRMAAOVtime;
@@ -1535,17 +1538,17 @@ void ycp_chargepile_request_padding_bmsend_duringcharge(uint8_t gunno)
         return;
     }
     uint8_t valid_len = 0x00;
-    s_ycp_base = (System_BaseData*)(s_ycp_handle->get_base_data(gunno));
-    struct thaisenBMS_Charger_struct *bms = (struct thaisenBMS_Charger_struct*)(s_ycp_base->bms_data);
+    System_BaseData *base = (System_BaseData*)(s_ycp_handle->get_base_data(gunno));
+    struct thaisenBMS_Charger_struct *bms = (struct thaisenBMS_Charger_struct*)(base->bms_data);
 
     valid_len = sizeof(g_ycp_preq_bms_end[gunno].body.serial_number);
-    valid_len = valid_len > sizeof(s_ycp_base->transaction_number) ? sizeof(s_ycp_base->transaction_number) : valid_len;
+    valid_len = valid_len > sizeof(base->transaction_number) ? sizeof(base->transaction_number) : valid_len;
     memset(g_ycp_preq_bms_end[gunno].body.serial_number, 0x00, sizeof(g_ycp_preq_bms_end[gunno].body.serial_number));
-    memcpy(g_ycp_preq_bms_end[gunno].body.serial_number, s_ycp_base->transaction_number, valid_len);
+    memcpy(g_ycp_preq_bms_end[gunno].body.serial_number, base->transaction_number, valid_len);
 
-    if(s_ycp_base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
-        s_ycp_base = (System_BaseData*)(s_ycp_handle->get_base_data(s_ycp_base->main_gunno));
-        bms = (struct thaisenBMS_Charger_struct*)(s_ycp_base->bms_data);
+    if(base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
+        base = (System_BaseData*)(s_ycp_handle->get_base_data(base->main_gunno));
+        bms = (struct thaisenBMS_Charger_struct*)(base->bms_data);
     }
     if(bms->BST.SOCGetObj){
         g_ycp_preq_bms_end[gunno].body.stop_reason = 0x01;
@@ -1605,17 +1608,17 @@ void ycp_chargepile_request_padding_chargerend_duringcharge(uint8_t gunno)
         return;
     }
     uint8_t valid_len = 0x00;
-    s_ycp_base = (System_BaseData*)(s_ycp_handle->get_base_data(gunno));
-    struct thaisenBMS_Charger_struct *bms = (struct thaisenBMS_Charger_struct*)(s_ycp_base->bms_data);
+    System_BaseData *base = (System_BaseData*)(s_ycp_handle->get_base_data(gunno));
+    struct thaisenBMS_Charger_struct *bms = (struct thaisenBMS_Charger_struct*)(base->bms_data);
 
     valid_len = sizeof(g_ycp_preq_charger_end[gunno].body.serial_number);
-    valid_len = valid_len > sizeof(s_ycp_base->transaction_number) ? sizeof(s_ycp_base->transaction_number) : valid_len;
+    valid_len = valid_len > sizeof(base->transaction_number) ? sizeof(base->transaction_number) : valid_len;
     memset(g_ycp_preq_charger_end[gunno].body.serial_number, 0x00, sizeof(g_ycp_preq_charger_end[gunno].body.serial_number));
-    memcpy(g_ycp_preq_charger_end[gunno].body.serial_number, s_ycp_base->transaction_number, valid_len);
+    memcpy(g_ycp_preq_charger_end[gunno].body.serial_number, base->transaction_number, valid_len);
 
-    if(s_ycp_base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
-        s_ycp_base = (System_BaseData*)(s_ycp_handle->get_base_data(s_ycp_base->main_gunno));
-        bms = (struct thaisenBMS_Charger_struct*)(s_ycp_base->bms_data);
+    if(base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
+        base = (System_BaseData*)(s_ycp_handle->get_base_data(base->main_gunno));
+        bms = (struct thaisenBMS_Charger_struct*)(base->bms_data);
     }
     if(bms->CST.AutoStop){
         g_ycp_preq_charger_end[gunno].body.stop_reason = 0x01;
@@ -1668,27 +1671,27 @@ void ycp_chargepile_request_padding_bmscommand_chargerout(uint8_t gunno, uint8_t
 
     if(is_init){
         uint8_t valid_len = 0x00;
-        s_ycp_base = (System_BaseData*)(s_ycp_handle->get_base_data(gunno));
+        System_BaseData *base = (System_BaseData*)(s_ycp_handle->get_base_data(gunno));
 
         valid_len = sizeof(g_ycp_preq_bmscommand_chargerout[gunno].body.serial_number);
-        valid_len = valid_len > sizeof(s_ycp_base->transaction_number) ? sizeof(s_ycp_base->transaction_number) : valid_len;
+        valid_len = valid_len > sizeof(base->transaction_number) ? sizeof(base->transaction_number) : valid_len;
         memset(g_ycp_preq_bmscommand_chargerout[gunno].body.serial_number, 0x00, sizeof(g_ycp_preq_bmscommand_chargerout[gunno].body.serial_number));
-        memcpy(g_ycp_preq_bmscommand_chargerout[gunno].body.serial_number, s_ycp_base->transaction_number, valid_len);
+        memcpy(g_ycp_preq_bmscommand_chargerout[gunno].body.serial_number, base->transaction_number, valid_len);
     }else{
         if(g_ycp_sreq_set_para.body.bmsdata_switch == 0x00){
             return;
         }
         if(ycp_get_message_send_state(gunno, NET_YCP_PREQ_EVENT_CHARGER_OUTPUT_BMS_REQUIRE) == NET_YCP_SEND_STATE_COMPLETE){
-            s_ycp_base = (System_BaseData*)(s_ycp_handle->get_base_data(gunno));
-            struct thaisenBMS_Charger_struct *bms = (struct thaisenBMS_Charger_struct*)(s_ycp_base->bms_data);
+            System_BaseData *base = (System_BaseData*)(s_ycp_handle->get_base_data(gunno));
+            struct thaisenBMS_Charger_struct *bms = (struct thaisenBMS_Charger_struct*)(base->bms_data);
 
-            g_ycp_preq_bmscommand_chargerout[gunno].body.pile_output_volt = (s_ycp_base->voltage_a /10);
-            g_ycp_preq_bmscommand_chargerout[gunno].body.pile_output_curr = (s_ycp_base->current_a /10);
-            g_ycp_preq_bmscommand_chargerout[gunno].body.charge_time = s_ycp_base->charge_time;
+            g_ycp_preq_bmscommand_chargerout[gunno].body.pile_output_volt = (base->voltage_a /10);
+            g_ycp_preq_bmscommand_chargerout[gunno].body.pile_output_curr = (base->current_a /10);
+            g_ycp_preq_bmscommand_chargerout[gunno].body.charge_time = base->charge_time;
 
-            if(s_ycp_base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
-                s_ycp_base = (System_BaseData*)(s_ycp_handle->get_base_data(s_ycp_base->main_gunno));
-                bms = (struct thaisenBMS_Charger_struct*)(s_ycp_base->bms_data);
+            if(base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
+                base = (System_BaseData*)(s_ycp_handle->get_base_data(base->main_gunno));
+                bms = (struct thaisenBMS_Charger_struct*)(base->bms_data);
             }
             g_ycp_preq_bmscommand_chargerout[gunno].body.bms_volt_command = bms->BCL.BMSneedVolt;
             g_ycp_preq_bmscommand_chargerout[gunno].body.bms_curr_command = bms->BCL.BMSneedCurlt;
@@ -1716,23 +1719,23 @@ void ycp_chargepile_request_padding_bmsinfo_duringcharge(uint8_t gunno, uint8_t 
 
     if(is_init){
         uint8_t valid_len = 0x00;
-        s_ycp_base = (System_BaseData*)(s_ycp_handle->get_base_data(gunno));
+        System_BaseData *base = (System_BaseData*)(s_ycp_handle->get_base_data(gunno));
 
         valid_len = sizeof(g_ycp_preq_bms_info[gunno].body.serial_number);
-        valid_len = valid_len > sizeof(s_ycp_base->transaction_number) ? sizeof(s_ycp_base->transaction_number) : valid_len;
+        valid_len = valid_len > sizeof(base->transaction_number) ? sizeof(base->transaction_number) : valid_len;
         memset(g_ycp_preq_bms_info[gunno].body.serial_number, 0x00, sizeof(g_ycp_preq_bms_info[gunno].body.serial_number));
-        memcpy(g_ycp_preq_bms_info[gunno].body.serial_number, s_ycp_base->transaction_number, valid_len);
+        memcpy(g_ycp_preq_bms_info[gunno].body.serial_number, base->transaction_number, valid_len);
     }else{
         if(g_ycp_sreq_set_para.body.bmsdata_switch == 0x00){
             return;
         }
         if(ycp_get_message_send_state(gunno, NET_YCP_PREQ_EVENT_BMS_INFO) == NET_YCP_SEND_STATE_COMPLETE){
-            s_ycp_base = (System_BaseData*)(s_ycp_handle->get_base_data(gunno));
-            struct thaisenBMS_Charger_struct *bms = (struct thaisenBMS_Charger_struct*)(s_ycp_base->bms_data);
+            System_BaseData *base = (System_BaseData*)(s_ycp_handle->get_base_data(gunno));
+            struct thaisenBMS_Charger_struct *bms = (struct thaisenBMS_Charger_struct*)(base->bms_data);
 
-            if(s_ycp_base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
-                s_ycp_base = (System_BaseData*)(s_ycp_handle->get_base_data(s_ycp_base->main_gunno));
-                bms = (struct thaisenBMS_Charger_struct*)(s_ycp_base->bms_data);
+            if(base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
+                base = (System_BaseData*)(s_ycp_handle->get_base_data(base->main_gunno));
+                bms = (struct thaisenBMS_Charger_struct*)(base->bms_data);
             }
             g_ycp_preq_bms_info[gunno].body.bms_max_single_volt_bat_number = bms->BSM.HigVoltCellNum;
             g_ycp_preq_bms_info[gunno].body.bms_bat_temp_max = bms->BSM.HigTemp *10;
@@ -1767,24 +1770,23 @@ int8_t ycp_chargepile_request_padding_card_authority(uint8_t gunno)
         return -0x01;
     }
     uint8_t valid_len = 0x00, ascii_valid_len = 0x00, value = 0x00;
-    s_ycp_base = (System_BaseData*)(s_ycp_handle->get_base_data(gunno));
+    System_BaseData *base = (System_BaseData*)(s_ycp_handle->get_base_data(gunno));
 
-    if(!s_ycp_base->flag.card_info_is_uid){
+    if(!base->flag.card_info_is_uid){
         return -0x01;
     }
     g_ycp_preq_apply_charge_active[gunno].body.start_type = 0x01;
 
-    ascii_valid_len = s_ycp_base->card_uid_len *0x02;
+    ascii_valid_len = base->card_uid_len *0x02;
     ascii_valid_len = ascii_valid_len > (NET_YCP_PHYCARD_NUMBER_LENGTH_MAX + 0x01) ? (NET_YCP_PHYCARD_NUMBER_LENGTH_MAX + 0x01) : ascii_valid_len;
     ascii_valid_len -= (ascii_valid_len %0x02);
 
-    valid_len = s_ycp_base->card_uid_len;
+    valid_len = base->card_uid_len;
     valid_len = valid_len > (NET_YCP_PHYCARD_NUMBER_LENGTH_MAX + 0x01) ? (NET_YCP_PHYCARD_NUMBER_LENGTH_MAX + 0x01) : valid_len;
     memset(g_ycp_preq_apply_charge_active[gunno].body.phycard_number, ' ', (NET_YCP_PHYCARD_NUMBER_LENGTH_MAX + 0x01));
 
     for(uint8_t i = 0x00, j = 0x00; (i < valid_len) && (j < ascii_valid_len); i++, j += 0x02){
-//        value = ((s_ycp_base->card_uid[valid_len - 0x01 - i]) &0x0F);
-        value = ((s_ycp_base->card_uid[i]) &0x0F);
+        value = ((base->card_uid[i]) &0x0F);
         if(value > 0x09){
             value += ('A' - (0x09 + 0x01));
         }else{
@@ -1792,8 +1794,7 @@ int8_t ycp_chargepile_request_padding_card_authority(uint8_t gunno)
         }
         g_ycp_preq_apply_charge_active[gunno].body.phycard_number[j] = value;
 
-//        value = (((s_ycp_base->card_uid[valid_len - 0x01 - i]) &0xF0) >>0x04);
-        value = (((s_ycp_base->card_uid[i]) &0xF0) >>0x04);
+        value = (((base->card_uid[i]) &0xF0) >>0x04);
         if(value > 0x09){
             value += ('A' - (0x09 + 0x01));
         }else{
@@ -1828,13 +1829,13 @@ int8_t ycp_chargepile_request_padding_vin_authority(uint8_t gunno)
     if(ycp_get_socket_info()->state != YCP_SOCKET_STATE_LOGIN_SUCCESS){
         return -0x01;
     }
-    s_ycp_base = (System_BaseData*)(s_ycp_handle->get_base_data(gunno));
+    System_BaseData *base = (System_BaseData*)(s_ycp_handle->get_base_data(gunno));
 
     g_ycp_preq_apply_charge_active[gunno].body.start_type = 0x03;
     memset(g_ycp_preq_apply_charge_active[gunno].body.phycard_number, 0x00, (NET_YCP_PHYCARD_NUMBER_LENGTH_MAX + 0x01));
     memset(g_ycp_preq_apply_charge_active[gunno].body.password, 0x00, NET_YCP_PASSWORD_LENGTH_DEFAULT);
     for(uint8_t count = 0x00; count < NET_YCP_CAR_VIN_NUMBER_LENGTH_MAX; count++){
-        g_ycp_preq_apply_charge_active[gunno].body.phycard_number[count] = s_ycp_base->car_vin[NET_YCP_CAR_VIN_NUMBER_LENGTH_MAX - count - 0x01];
+        g_ycp_preq_apply_charge_active[gunno].body.phycard_number[count] = base->car_vin[NET_YCP_CAR_VIN_NUMBER_LENGTH_MAX - count - 0x01];
     }
 
     s_ycp_flag_info[gunno].is_vin_authorized = NET_ENUM_TRUE;
@@ -1860,7 +1861,6 @@ uint8_t ycp_chargepile_request_padding_transaction_record(uint8_t gunno, void *t
     uint8_t valid_len = 0x00;
     thaisen_transaction_t *_transaction = (thaisen_transaction_t*)transaction;
 
-    s_ycp_base = (System_BaseData*)(s_ycp_handle->get_base_data(gunno));
     ycp_set_transaction_verify_state(gunno, 0x00);
     if((ycp_get_message_send_state(gunno, NET_YCP_PREQ_EVENT_TRANSACTION_RECORD) == NET_YCP_SEND_STATE_COMPLETE)){
         valid_len = sizeof(g_ycp_preq_transaction_records[gunno].body.serial_number);
@@ -1959,9 +1959,9 @@ void ycp_stop_charge_response_asynchronously(uint8_t gunno, uint8_t result)
         return;
     }
 
-    s_ycp_base = (System_BaseData*)(s_ycp_handle->get_base_data(gunno));
-    if(s_ycp_base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
-        gunno = s_ycp_base->main_gunno;
+    System_BaseData *base = (System_BaseData*)(s_ycp_handle->get_base_data(gunno));
+    if(base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
+        gunno = base->main_gunno;
     }
     if(s_ycp_flag_info[gunno].is_stop_charge == 0x00){
         return;
@@ -2001,15 +2001,15 @@ void ycp_chargepile_state_changed(uint8_t gunno)
         return;
     }
     uint8_t state = 0xFF;
-    s_ycp_base = (System_BaseData*)(s_ycp_handle->get_base_data(gunno));
+    System_BaseData *base = (System_BaseData*)(s_ycp_handle->get_base_data(gunno));
 
-    if(s_ycp_base->flag.connect_state == APP_CONNECT_STATE_CONNECT){
+    if(base->flag.connect_state == APP_CONNECT_STATE_CONNECT){
         s_ycp_disposable_info[gunno].state.connect = 0x01;
     }else{
         s_ycp_disposable_info[gunno].state.connect = 0x00;
     }
 
-    switch(s_ycp_base->state.current){
+    switch(base->state.current){
     case APP_OFSM_STATE_IDLEING:
     case APP_OFSM_STATE_READYING:
     case APP_OFSM_STATE_STARTING:
@@ -2152,6 +2152,7 @@ int8_t ycp_chargepile_create_local_transaction_number(uint8_t gunno, void *vecto
     uint8_t sn_len = 0x00, *ptr = (uint8_t*)vector;
     struct tm *_tm = NULL;
     uint16_t valid_len = 0x00;
+    System_BaseData *base = (System_BaseData*)(s_ycp_handle->get_base_data(gunno));
 
     s_ycp_handle = net_get_net_handle();
     pile_number = (uint8_t*)(s_ycp_handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, 0x00, option));
@@ -2161,10 +2162,9 @@ int8_t ycp_chargepile_create_local_transaction_number(uint8_t gunno, void *vecto
 
     s_ycp_local_start_sq++;
     sn_len = 0x07;
-    s_ycp_base = (System_BaseData*)(s_ycp_handle->get_base_data(gunno));
-    _tm = localtime((const time_t*)&(s_ycp_base->current_time));
+    _tm = localtime((const time_t*)&(base->current_time));
 
-    rt_kprintf("ycp_chargepile_create_local_transaction_number[%d](%d, %d, %d, %d, %d)\n", s_ycp_base->current_time, _tm->tm_year, _tm->tm_mon,
+    LOG_D("ycp_chargepile_create_local_transaction_number[%d](%d, %d, %d, %d, %d)", base->current_time, _tm->tm_year, _tm->tm_mon,
             _tm->tm_mday, _tm->tm_hour, _tm->tm_min, _tm->tm_sec);
 
     ptr[sn_len++] = gunno + 1;                                                     /* 枪号 */
@@ -2190,10 +2190,10 @@ void ycp_chargepile_time_sync_revise(uint8_t gunno)
         return;
     }
 
-    s_ycp_base = (System_BaseData*)(s_ycp_handle->get_base_data(gunno));
+    System_BaseData *base = (System_BaseData*)(s_ycp_handle->get_base_data(gunno));
 
-    ycp_timestamp_to_timebcd(s_ycp_base->start_time, g_ycp_preq_transaction_records[gunno].body.start_time, NET_YCP_TIME_BCD_LENGTH_DEFAULT);
-    ycp_timestamp_to_timebcd(s_ycp_base->stop_time, g_ycp_preq_transaction_records[gunno].body.end_time, NET_YCP_TIME_BCD_LENGTH_DEFAULT);
+    ycp_timestamp_to_timebcd(base->start_time, g_ycp_preq_transaction_records[gunno].body.start_time, NET_YCP_TIME_BCD_LENGTH_DEFAULT);
+    ycp_timestamp_to_timebcd(base->stop_time, g_ycp_preq_transaction_records[gunno].body.end_time, NET_YCP_TIME_BCD_LENGTH_DEFAULT);
 }
 
 /*************************************************

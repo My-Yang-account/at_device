@@ -121,7 +121,6 @@ static struct rt_thread s_sgcc_realtime_process_thread;
 static uint8_t s_sgcc_realtime_process_thread_stack[4096];
 
 static struct net_handle* s_sgcc_handle = NULL;
-static System_BaseData *s_sgcc_base = NULL;
 
 static uint8_t sgcc_chargepile_transaction_identity_converted(uint8_t identity, uint8_t online_order);
 static uint16_t sgcc_chargepile_stop_reason_converted(uint8_t reason, uint8_t stop_in_starting);
@@ -233,6 +232,7 @@ static uint8_t sgcc_calculate_period_with_hm(uint8_t hour, uint8_t min)
 static void sgcc_storage_data_check(void)
 {
     uint8_t verify_success = 0x01;
+    System_BaseData *base = NULL;
     sgcc_storage_struct *config = (sgcc_storage_struct*)(s_sgcc_handle->get_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, 0x00, NET_SYSTEM_DATA_OPTION_TARGET_PLAT));
 
     if(config == NULL){
@@ -332,8 +332,8 @@ static void sgcc_storage_data_check(void)
     }
 
     for(uint8_t gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
-        s_sgcc_base = (System_BaseData*)(s_sgcc_handle->get_base_data(gunno));
-        s_sgcc_base->device_state = config->dev_state;
+        base = (System_BaseData*)(s_sgcc_handle->get_base_data(gunno));
+        base->device_state = config->dev_state;
     }
 
     sgcc_register_storage_struct(config);
@@ -370,7 +370,7 @@ int8_t sgcc_response_padding_remote_start_charge(uint8_t gunno, uint8_t *buf, ui
 
     uint8_t valid_len = 0x00;
     evs_event_startResult *response = NULL;
-    s_sgcc_base = (System_BaseData*)(s_sgcc_handle->get_base_data(gunno));
+    System_BaseData *base = (System_BaseData*)(s_sgcc_handle->get_base_data(gunno));
     response = ((evs_event_startResult*)buf);
     memset(response, 0x00, data_len);
 
@@ -382,9 +382,9 @@ int8_t sgcc_response_padding_remote_start_charge(uint8_t gunno, uint8_t *buf, ui
     valid_len = valid_len > EVS_MAX_TRADE_LEN ? EVS_MAX_TRADE_LEN : valid_len;
     memcpy(response->tradeNo, evs_service_startCharges[gunno].tradeNo, valid_len);
 
-    valid_len = sizeof(s_sgcc_base->car_vin);
+    valid_len = sizeof(base->car_vin);
     valid_len = valid_len > EVS_MAX_CAR_VIN_LEN ? EVS_MAX_CAR_VIN_LEN : valid_len;
-    memcpy(response->vinCode, s_sgcc_base->car_vin, valid_len);
+    memcpy(response->vinCode, base->car_vin, valid_len);
 
     response->gunNo = gunno + 0x01;
 
@@ -415,18 +415,18 @@ int8_t sgcc_response_padding_remote_stop_charge(uint8_t gunno, uint8_t *buf, uin
 
     uint8_t valid_len = 0x00;
     evs_event_stopCharge *response = NULL;
-    s_sgcc_base = (System_BaseData*)(s_sgcc_handle->get_base_data(gunno));
+    System_BaseData *base = (System_BaseData*)(s_sgcc_handle->get_base_data(gunno));
     response = ((evs_event_stopCharge*)buf);
     memset(response, 0x00, data_len);
 
     valid_len = sizeof(evs_service_stopCharges[gunno].preTradeNo);
     valid_len = valid_len > EVS_MAX_TRADE_LEN ? EVS_MAX_TRADE_LEN : valid_len;
     /** 平台停止 */
-    if(s_sgcc_base->reason_code == APP_SYSTEM_STOP_WAY_APP_STOP){
+    if(base->reason_code == APP_SYSTEM_STOP_WAY_APP_STOP){
         memcpy(response->preTradeNo, evs_service_stopCharges[gunno].preTradeNo, valid_len);
     }else{
         /** 平台启动 */
-        if(s_sgcc_base->start_type == APP_CHARGE_START_WAY_APP){
+        if(base->start_type == APP_CHARGE_START_WAY_APP){
             memcpy(response->preTradeNo, evs_service_startCharges[gunno].preTradeNo, valid_len);
         }
         /** 鉴权启动 */
@@ -438,11 +438,11 @@ int8_t sgcc_response_padding_remote_stop_charge(uint8_t gunno, uint8_t *buf, uin
     valid_len = sizeof(evs_service_stopCharges[gunno].tradeNo);
     valid_len = valid_len > EVS_MAX_TRADE_LEN ? EVS_MAX_TRADE_LEN : valid_len;
     /** 平台停止 */
-    if(s_sgcc_base->reason_code == APP_SYSTEM_STOP_WAY_APP_STOP){
+    if(base->reason_code == APP_SYSTEM_STOP_WAY_APP_STOP){
         memcpy(response->tradeNo, evs_service_stopCharges[gunno].tradeNo, valid_len);
     }else{
         /** 平台启动 */
-        if(s_sgcc_base->start_type == APP_CHARGE_START_WAY_APP){
+        if(base->start_type == APP_CHARGE_START_WAY_APP){
             memcpy(response->tradeNo, evs_service_startCharges[gunno].tradeNo, valid_len);
         }
         /** 鉴权启动 */
@@ -479,7 +479,7 @@ int8_t sgcc_response_padding_apply_charge_result(uint8_t gunno, uint8_t *buf, ui
 
     uint8_t valid_len = 0x00;
     evs_event_startResult *response = NULL;
-    s_sgcc_base = (System_BaseData*)(s_sgcc_handle->get_base_data(gunno));
+    System_BaseData *base = (System_BaseData*)(s_sgcc_handle->get_base_data(gunno));
     response = ((evs_event_startResult*)buf);
     memset(response, 0x00, data_len);
 
@@ -491,9 +491,9 @@ int8_t sgcc_response_padding_apply_charge_result(uint8_t gunno, uint8_t *buf, ui
     valid_len = valid_len > EVS_MAX_TRADE_LEN ? EVS_MAX_TRADE_LEN : valid_len;
     memcpy(response->tradeNo, evs_service_authCharges[gunno].tradeNo, valid_len);
 
-    valid_len = sizeof(s_sgcc_base->car_vin);
+    valid_len = sizeof(base->car_vin);
     valid_len = valid_len > EVS_MAX_CAR_VIN_LEN ? EVS_MAX_CAR_VIN_LEN : valid_len;
-    memcpy(response->vinCode, s_sgcc_base->car_vin, valid_len);
+    memcpy(response->vinCode, base->car_vin, valid_len);
 
     response->gunNo = gunno + 0x01;
 
@@ -523,21 +523,21 @@ int8_t sgcc_response_padding_elock_ctrl_result(uint8_t gunno, uint8_t *buf, uint
 
     uint8_t valid_len = 0x00;
     evs_event_startResult *response = NULL;
-    s_sgcc_base = (System_BaseData*)(s_sgcc_handle->get_base_data(gunno));
+    System_BaseData *base = (System_BaseData*)(s_sgcc_handle->get_base_data(gunno));
     response = ((evs_event_startResult*)buf);
     memset(response, 0x00, data_len);
 
-    valid_len = sizeof(s_sgcc_base->transaction_number);
+    valid_len = sizeof(base->transaction_number);
     valid_len = valid_len > EVS_MAX_TRADE_LEN ? EVS_MAX_TRADE_LEN : valid_len;
-    memcpy(response->preTradeNo, s_sgcc_base->transaction_number, valid_len);
+    memcpy(response->preTradeNo, base->transaction_number, valid_len);
 
-    valid_len = sizeof(s_sgcc_base->device_transaction_number);
+    valid_len = sizeof(base->device_transaction_number);
     valid_len = valid_len > EVS_MAX_TRADE_LEN ? EVS_MAX_TRADE_LEN : valid_len;
-    memcpy(response->tradeNo, s_sgcc_base->device_transaction_number, valid_len);
+    memcpy(response->tradeNo, base->device_transaction_number, valid_len);
 
-    valid_len = sizeof(s_sgcc_base->car_vin);
+    valid_len = sizeof(base->car_vin);
     valid_len = valid_len > EVS_MAX_CAR_VIN_LEN ? EVS_MAX_CAR_VIN_LEN : valid_len;
-    memcpy(response->vinCode, s_sgcc_base->car_vin, valid_len);
+    memcpy(response->vinCode, base->car_vin, valid_len);
 
     response->gunNo = gunno + 0x01;
 
@@ -577,7 +577,7 @@ int8_t sgcc_message_pro_remote_start_charge_request(uint8_t gunno, void *data, u
     }
 
     uint8_t valid_len = 0x00;
-    s_sgcc_base = (System_BaseData*)(s_sgcc_handle->get_base_data(gunno));
+    System_BaseData *base = (System_BaseData*)(s_sgcc_handle->get_base_data(gunno));
     evs_service_startCharge *request = (evs_service_startCharge*)data;
 
     if(evs_event_pile_stutus_changes[gunno].yxOccurTime != request->insertGunTime){
@@ -589,14 +589,14 @@ int8_t sgcc_message_pro_remote_start_charge_request(uint8_t gunno, void *data, u
     }
 
     /** 并充时不能让平台启动副枪 */
-    if(s_sgcc_base->charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL){
+    if(base->charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL){
         if(reason){
             *reason = 0x00;
         }
         return NET_SGCC_START_RESULT_CHARGING;
     }
 
-    switch(s_sgcc_base->state.current){
+    switch(base->state.current){
     case APP_OFSM_STATE_IDLEING:
         if(reason){
             *reason = NETSGCC_DCA_REASON3057_CHARGE_LINK;
@@ -605,56 +605,56 @@ int8_t sgcc_message_pro_remote_start_charge_request(uint8_t gunno, void *data, u
         break;
     case APP_OFSM_STATE_READYING:
     case APP_OFSM_STATE_FINISHING:
-        memset(s_sgcc_base->card_number, 0x00, sizeof(s_sgcc_base->card_number));
-        memset(s_sgcc_base->card_uid, 0x00, sizeof(s_sgcc_base->card_uid));
-        memset(s_sgcc_base->user_number, 0x00, sizeof(s_sgcc_base->user_number));
+        memset(base->card_number, 0x00, sizeof(base->card_number));
+        memset(base->card_uid, 0x00, sizeof(base->card_uid));
+        memset(base->user_number, 0x00, sizeof(base->user_number));
 
-        valid_len = sizeof(s_sgcc_base->transaction_number);
+        valid_len = sizeof(base->transaction_number);
         valid_len = valid_len > EVS_MAX_TRADE_LEN ? EVS_MAX_TRADE_LEN : valid_len;
-        memset(s_sgcc_base->transaction_number, 0x00, sizeof(s_sgcc_base->transaction_number));
-        memcpy(s_sgcc_base->transaction_number, request->preTradeNo, valid_len);
+        memset(base->transaction_number, 0x00, sizeof(base->transaction_number));
+        memcpy(base->transaction_number, request->preTradeNo, valid_len);
 
-        valid_len = sizeof(s_sgcc_base->device_transaction_number);
+        valid_len = sizeof(base->device_transaction_number);
         valid_len = valid_len > EVS_MAX_TRADE_LEN ? EVS_MAX_TRADE_LEN : valid_len;
-        memset(s_sgcc_base->device_transaction_number, 0x00, sizeof(s_sgcc_base->device_transaction_number));
-        memcpy(s_sgcc_base->device_transaction_number, request->tradeNo, valid_len);
+        memset(base->device_transaction_number, 0x00, sizeof(base->device_transaction_number));
+        memcpy(base->device_transaction_number, request->tradeNo, valid_len);
 
-        s_sgcc_base->account_ballance_before = 0x00;
-        s_sgcc_base->account_ballance_after = 0x00;
-        s_sgcc_base->offline_chargetime = evs_data_dev_configs.offlinChaLen;
+        base->account_ballance_before = 0x00;
+        base->account_ballance_after = 0x00;
+        base->offline_chargetime = evs_data_dev_configs.offlinChaLen;
 
         switch(request->chargeMode){
         case SGCC_CHARGE_MODE_FULL:
-            s_sgcc_base->charge_strategy = APP_CHARGE_STRATEGY_FULL;
-            s_sgcc_base->charge_strategy_para = 0x00;
+            base->charge_strategy = APP_CHARGE_STRATEGY_FULL;
+            base->charge_strategy_para = 0x00;
             break;
         case SGCC_CHARGE_MODE_MONEY:
-            s_sgcc_base->charge_strategy = APP_CHARGE_STRATEGY_MONEY;
-            s_sgcc_base->charge_strategy_para = request->limitData *100;
-            s_sgcc_base->account_ballance_before = request->limitData;
-            s_sgcc_base->account_ballance_after = request->limitData;
+            base->charge_strategy = APP_CHARGE_STRATEGY_MONEY;
+            base->charge_strategy_para = request->limitData *100;
+            base->account_ballance_before = request->limitData;
+            base->account_ballance_after = request->limitData;
             break;
         case SGCC_CHARGE_MODE_ELECT:
-            s_sgcc_base->charge_strategy = APP_CHARGE_STRATEGY_ELECT;
-            s_sgcc_base->charge_strategy_para = request->limitData *100;
+            base->charge_strategy = APP_CHARGE_STRATEGY_ELECT;
+            base->charge_strategy_para = request->limitData *100;
             break;
         case SGCC_CHARGE_MODE_SOC:
-            s_sgcc_base->charge_strategy = APP_CHARGE_STRATEGY_SOC;
-            s_sgcc_base->charge_strategy_para = request->limitData;
+            base->charge_strategy = APP_CHARGE_STRATEGY_SOC;
+            base->charge_strategy_para = request->limitData;
             break;
         case SGCC_CHARGE_MODE_TIME:
-            s_sgcc_base->charge_strategy = APP_CHARGE_STRATEGY_TIME;
-            s_sgcc_base->charge_strategy_para = request->limitData *60;
+            base->charge_strategy = APP_CHARGE_STRATEGY_TIME;
+            base->charge_strategy_para = request->limitData *60;
             break;
 #if 0
         case SGCC_CHARGE_MODE_POWER:
-            s_sgcc_base->charge_strategy = APP_CHARGE_STRATEGY_FULL;
-            s_sgcc_base->charge_strategy_para = 0x00;
+            base->charge_strategy = APP_CHARGE_STRATEGY_FULL;
+            base->charge_strategy_para = 0x00;
             break;
 #endif
         default:
-            s_sgcc_base->charge_strategy = APP_CHARGE_STRATEGY_FULL;
-            s_sgcc_base->charge_strategy_para = 0x00;
+            base->charge_strategy = APP_CHARGE_STRATEGY_FULL;
+            base->charge_strategy_para = 0x00;
             break;
         }
 
@@ -709,7 +709,7 @@ int8_t sgcc_message_pro_remote_start_charge_request(uint8_t gunno, void *data, u
     }
 
     uint8_t valid_len = 0x00;
-    s_sgcc_base = (System_BaseData*)(s_sgcc_handle->get_base_data(gunno));
+    System_BaseData *base = (System_BaseData*)(s_sgcc_handle->get_base_data(gunno));
     evs_service_startCharge *request = (evs_service_startCharge*)data;
 
     if(evs_event_pile_stutus_changes[gunno].yxOccurTime != request->insertGunTime){
@@ -721,14 +721,14 @@ int8_t sgcc_message_pro_remote_start_charge_request(uint8_t gunno, void *data, u
     }
 
     /** 并充时不能让平台启动副枪 */
-    if(s_sgcc_base->charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL){
+    if(base->charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL){
         if(reason){
             *reason = 0x00;
         }
         return NET_SGCC_START_RESULT_CHARGING;
     }
 
-    switch(s_sgcc_base->state.current){
+    switch(base->state.current){
     case APP_OFSM_STATE_IDLEING:
         if(reason){
             *reason = NETSGCC_ACA_REASON3014_CHARGE_LINK;
@@ -737,53 +737,53 @@ int8_t sgcc_message_pro_remote_start_charge_request(uint8_t gunno, void *data, u
         break;
     case APP_OFSM_STATE_READYING:
     case APP_OFSM_STATE_FINISHING:
-        memset(s_sgcc_base->card_number, 0x00, sizeof(s_sgcc_base->card_number));
-        memset(s_sgcc_base->card_uid, 0x00, sizeof(s_sgcc_base->card_uid));
-        memset(s_sgcc_base->user_number, 0x00, sizeof(s_sgcc_base->user_number));
+        memset(base->card_number, 0x00, sizeof(base->card_number));
+        memset(base->card_uid, 0x00, sizeof(base->card_uid));
+        memset(base->user_number, 0x00, sizeof(base->user_number));
 
-        valid_len = sizeof(s_sgcc_base->transaction_number);
+        valid_len = sizeof(base->transaction_number);
         valid_len = valid_len > EVS_MAX_TRADE_LEN ? EVS_MAX_TRADE_LEN : valid_len;
-        memset(s_sgcc_base->transaction_number, 0x00, sizeof(s_sgcc_base->transaction_number));
-        memcpy(s_sgcc_base->transaction_number, request->preTradeNo, valid_len);
+        memset(base->transaction_number, 0x00, sizeof(base->transaction_number));
+        memcpy(base->transaction_number, request->preTradeNo, valid_len);
 
-        valid_len = sizeof(s_sgcc_base->device_transaction_number);
+        valid_len = sizeof(base->device_transaction_number);
         valid_len = valid_len > EVS_MAX_TRADE_LEN ? EVS_MAX_TRADE_LEN : valid_len;
-        memset(s_sgcc_base->device_transaction_number, 0x00, sizeof(s_sgcc_base->device_transaction_number));
-        memcpy(s_sgcc_base->device_transaction_number, request->tradeNo, valid_len);
+        memset(base->device_transaction_number, 0x00, sizeof(base->device_transaction_number));
+        memcpy(base->device_transaction_number, request->tradeNo, valid_len);
 
-        s_sgcc_base->account_balance = 0x00;
-        s_sgcc_base->offline_chargetime = evs_data_dev_configs.offlinChaLen;
+        base->account_balance = 0x00;
+        base->offline_chargetime = evs_data_dev_configs.offlinChaLen;
 
         switch(request->chargeMode){
         case SGCC_CHARGE_MODE_FULL:
-            s_sgcc_base->charge_strategy = APP_CHARGE_STRATEGY_FULL;
-            s_sgcc_base->charge_strategy_para = 0x00;
+            base->charge_strategy = APP_CHARGE_STRATEGY_FULL;
+            base->charge_strategy_para = 0x00;
             break;
         case SGCC_CHARGE_MODE_MONEY:
-            s_sgcc_base->charge_strategy = APP_CHARGE_STRATEGY_MONEY;
-            s_sgcc_base->charge_strategy_para = request->limitData *100;
+            base->charge_strategy = APP_CHARGE_STRATEGY_MONEY;
+            base->charge_strategy_para = request->limitData *100;
             break;
         case SGCC_CHARGE_MODE_ELECT:
-            s_sgcc_base->charge_strategy = APP_CHARGE_STRATEGY_ELECT;
-            s_sgcc_base->charge_strategy_para = request->limitData *100;
+            base->charge_strategy = APP_CHARGE_STRATEGY_ELECT;
+            base->charge_strategy_para = request->limitData *100;
             break;
         case SGCC_CHARGE_MODE_SOC:
-            s_sgcc_base->charge_strategy = APP_CHARGE_STRATEGY_SOC;
-            s_sgcc_base->charge_strategy_para = request->limitData;
+            base->charge_strategy = APP_CHARGE_STRATEGY_SOC;
+            base->charge_strategy_para = request->limitData;
             break;
         case SGCC_CHARGE_MODE_TIME:
-            s_sgcc_base->charge_strategy = APP_CHARGE_STRATEGY_TIME;
-            s_sgcc_base->charge_strategy_para = request->limitData *60;
+            base->charge_strategy = APP_CHARGE_STRATEGY_TIME;
+            base->charge_strategy_para = request->limitData *60;
             break;
 #if 0
         case SGCC_CHARGE_MODE_POWER:
-            s_sgcc_base->charge_strategy = APP_CHARGE_STRATEGY_FULL;
-            s_sgcc_base->charge_strategy_para = 0x00;
+            base->charge_strategy = APP_CHARGE_STRATEGY_FULL;
+            base->charge_strategy_para = 0x00;
             break;
 #endif
         default:
-            s_sgcc_base->charge_strategy = APP_CHARGE_STRATEGY_FULL;
-            s_sgcc_base->charge_strategy_para = 0x00;
+            base->charge_strategy = APP_CHARGE_STRATEGY_FULL;
+            base->charge_strategy_para = 0x00;
             break;
         }
 
@@ -834,31 +834,31 @@ int8_t sgcc_message_pro_remote_stop_charge_request(uint8_t gunno, void *data, ui
 
     uint8_t stop_authorize_success = NET_ENUM_TRUE;
 
-    s_sgcc_base = (System_BaseData*)(s_sgcc_handle->get_base_data(gunno));
+    System_BaseData *base = (System_BaseData*)(s_sgcc_handle->get_base_data(gunno));
     evs_service_stopCharge *request = (evs_service_stopCharge*)data;
 
     /** 并充时不能让平台停止副枪 */
-    if(s_sgcc_base->charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL){
-        if(gunno != s_sgcc_base->main_gunno){
+    if(base->charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL){
+        if(gunno != base->main_gunno){
             return 0x01;
         }
     }
-    if((s_sgcc_base->state.current != APP_OFSM_STATE_CHARGING) &&
-            (s_sgcc_base->state.current != APP_OFSM_STATE_STARTING)){
+    if((base->state.current != APP_OFSM_STATE_CHARGING) &&
+            (base->state.current != APP_OFSM_STATE_STARTING)){
         stop_authorize_success = NET_ENUM_FALSE;
     }
-    if(memcmp(s_sgcc_base->device_transaction_number, request->tradeNo, EVS_MAX_TRADE_LEN)){
+    if(memcmp(base->device_transaction_number, request->tradeNo, EVS_MAX_TRADE_LEN)){
         stop_authorize_success = NET_ENUM_FALSE;
     }
-    if(memcmp(s_sgcc_base->transaction_number, request->preTradeNo, EVS_MAX_TRADE_LEN)){
+    if(memcmp(base->transaction_number, request->preTradeNo, EVS_MAX_TRADE_LEN)){
         stop_authorize_success = NET_ENUM_FALSE;
     }
 
     if(stop_authorize_success == NET_ENUM_TRUE){
         s_sgcc_flag_info[gunno].is_stop_charge = NET_ENUM_TRUE;
 
-        if(s_sgcc_base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
-            net_operation_set_event(s_sgcc_base->main_gunno, NET_OPERATION_EVENT_STOP_CHARGE);
+        if(base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
+            net_operation_set_event(base->main_gunno, NET_OPERATION_EVENT_STOP_CHARGE);
         }else{
             net_operation_set_event(gunno, NET_OPERATION_EVENT_STOP_CHARGE);
         }
@@ -889,23 +889,23 @@ int8_t sgcc_message_pro_remote_stop_charge_request(uint8_t gunno, void *data, ui
 
     uint8_t stop_authorize_success = NET_ENUM_TRUE;
 
-    s_sgcc_base = (System_BaseData*)(s_sgcc_handle->get_base_data(gunno));
+    System_BaseData *base = (System_BaseData*)(s_sgcc_handle->get_base_data(gunno));
     evs_service_stopCharge *request = (evs_service_stopCharge*)data;
 
     /** 并充时不能让平台停止副枪 */
-    if(s_sgcc_base->charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL){
-        if(gunno != s_sgcc_base->main_gunno){
+    if(base->charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL){
+        if(gunno != base->main_gunno){
             return 0x01;
         }
     }
-    if((s_sgcc_base->state.current != APP_OFSM_STATE_CHARGING) &&
-            (s_sgcc_base->state.current != APP_OFSM_STATE_STARTING)){
+    if((base->state.current != APP_OFSM_STATE_CHARGING) &&
+            (base->state.current != APP_OFSM_STATE_STARTING)){
         stop_authorize_success = NET_ENUM_FALSE;
     }
-    if(memcmp(s_sgcc_base->device_transaction_number, request->tradeNo, EVS_MAX_TRADE_LEN)){
+    if(memcmp(base->device_transaction_number, request->tradeNo, EVS_MAX_TRADE_LEN)){
         stop_authorize_success = NET_ENUM_FALSE;
     }
-    if(memcmp(s_sgcc_base->transaction_number, request->preTradeNo, EVS_MAX_TRADE_LEN)){
+    if(memcmp(base->transaction_number, request->preTradeNo, EVS_MAX_TRADE_LEN)){
         stop_authorize_success = NET_ENUM_FALSE;
     }
 
@@ -941,16 +941,16 @@ int8_t sgcc_message_pro_apply_charge_response(uint8_t gunno, void *data, uint16_
     }
 
     uint8_t valid_len = 0x00;
-    s_sgcc_base = (System_BaseData*)(s_sgcc_handle->get_base_data(gunno));
+    System_BaseData *base = (System_BaseData*)(s_sgcc_handle->get_base_data(gunno));
     evs_service_authCharge *response = (evs_service_authCharge*)data;
 
     if(evs_event_startCharges[gunno].startType == SGCC_OPSCTL_SILENT){
-        if(memcmp(evs_event_startCharges[gunno].authCode, s_sgcc_base->car_vin, sizeof(s_sgcc_base->car_vin))){
+        if(memcmp(evs_event_startCharges[gunno].authCode, base->car_vin, sizeof(base->car_vin))){
             return 0x06;
         }
     }else{
 #if 0
-        if(memcmp(evs_event_startCharges[gunno].authCode, s_sgcc_base->car_vin, sizeof(s_sgcc_base->car_vin))){
+        if(memcmp(evs_event_startCharges[gunno].authCode, base->car_vin, sizeof(base->car_vin))){
             return 0x06;
         }
 #endif
@@ -962,60 +962,60 @@ int8_t sgcc_message_pro_apply_charge_response(uint8_t gunno, void *data, uint16_
     }
 
     /** 并充时不能让平台启动副枪 */
-    if(s_sgcc_base->charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL){
+    if(base->charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL){
         return 0x02;
     }
 
-//    memset(s_sgcc_base->card_number, 0x00, sizeof(s_sgcc_base->card_number));
-//    memset(s_sgcc_base->card_uid, 0x00, sizeof(s_sgcc_base->card_uid));
-    memset(s_sgcc_base->user_number, 0x00, sizeof(s_sgcc_base->user_number));
+//    memset(base->card_number, 0x00, sizeof(base->card_number));
+//    memset(base->card_uid, 0x00, sizeof(base->card_uid));
+    memset(base->user_number, 0x00, sizeof(base->user_number));
 
-    valid_len = sizeof(s_sgcc_base->transaction_number);
+    valid_len = sizeof(base->transaction_number);
     valid_len = valid_len > EVS_MAX_TRADE_LEN ? EVS_MAX_TRADE_LEN : valid_len;
-    memset(s_sgcc_base->transaction_number, 0x00, sizeof(s_sgcc_base->transaction_number));
-    memcpy(s_sgcc_base->transaction_number, response->preTradeNo, valid_len);
+    memset(base->transaction_number, 0x00, sizeof(base->transaction_number));
+    memcpy(base->transaction_number, response->preTradeNo, valid_len);
 
-    valid_len = sizeof(s_sgcc_base->device_transaction_number);
+    valid_len = sizeof(base->device_transaction_number);
     valid_len = valid_len > EVS_MAX_TRADE_LEN ? EVS_MAX_TRADE_LEN : valid_len;
-    memset(s_sgcc_base->device_transaction_number, 0x00, sizeof(s_sgcc_base->device_transaction_number));
-    memcpy(s_sgcc_base->device_transaction_number, response->tradeNo, valid_len);
+    memset(base->device_transaction_number, 0x00, sizeof(base->device_transaction_number));
+    memcpy(base->device_transaction_number, response->tradeNo, valid_len);
 
-    s_sgcc_base->account_ballance_before = 0x00;
-    s_sgcc_base->account_ballance_after = 0x00;
-    s_sgcc_base->offline_chargetime = evs_data_dev_configs.offlinChaLen;
+    base->account_ballance_before = 0x00;
+    base->account_ballance_after = 0x00;
+    base->offline_chargetime = evs_data_dev_configs.offlinChaLen;
 
     switch(response->chargeMode){
     case SGCC_CHARGE_MODE_FULL:
-        s_sgcc_base->charge_strategy = APP_CHARGE_STRATEGY_FULL;
-        s_sgcc_base->charge_strategy_para = 0x00;
+        base->charge_strategy = APP_CHARGE_STRATEGY_FULL;
+        base->charge_strategy_para = 0x00;
         break;
     case SGCC_CHARGE_MODE_MONEY:
-        s_sgcc_base->charge_strategy = APP_CHARGE_STRATEGY_MONEY;
-        s_sgcc_base->charge_strategy_para = response->limitData *100;
-        s_sgcc_base->account_ballance_before = response->limitData;
-        s_sgcc_base->account_ballance_after = response->limitData;
+        base->charge_strategy = APP_CHARGE_STRATEGY_MONEY;
+        base->charge_strategy_para = response->limitData *100;
+        base->account_ballance_before = response->limitData;
+        base->account_ballance_after = response->limitData;
         break;
     case SGCC_CHARGE_MODE_ELECT:
-        s_sgcc_base->charge_strategy = APP_CHARGE_STRATEGY_ELECT;
-        s_sgcc_base->charge_strategy_para = response->limitData *100;
+        base->charge_strategy = APP_CHARGE_STRATEGY_ELECT;
+        base->charge_strategy_para = response->limitData *100;
         break;
     case SGCC_CHARGE_MODE_SOC:
-        s_sgcc_base->charge_strategy = APP_CHARGE_STRATEGY_SOC;
-        s_sgcc_base->charge_strategy_para = response->limitData;
+        base->charge_strategy = APP_CHARGE_STRATEGY_SOC;
+        base->charge_strategy_para = response->limitData;
         break;
     case SGCC_CHARGE_MODE_TIME:
-        s_sgcc_base->charge_strategy = APP_CHARGE_STRATEGY_TIME;
-        s_sgcc_base->charge_strategy_para = response->limitData *60;
+        base->charge_strategy = APP_CHARGE_STRATEGY_TIME;
+        base->charge_strategy_para = response->limitData *60;
         break;
 #if 0
     case SGCC_CHARGE_MODE_POWER:
-        s_sgcc_base->charge_strategy = APP_CHARGE_STRATEGY_FULL;
-        s_sgcc_base->charge_strategy_para = 0x00;
+        base->charge_strategy = APP_CHARGE_STRATEGY_FULL;
+        base->charge_strategy_para = 0x00;
         break;
 #endif
     default:
-        s_sgcc_base->charge_strategy = APP_CHARGE_STRATEGY_FULL;
-        s_sgcc_base->charge_strategy_para = 0x00;
+        base->charge_strategy = APP_CHARGE_STRATEGY_FULL;
+        base->charge_strategy_para = 0x00;
         break;
     }
 
@@ -1039,6 +1039,7 @@ int8_t sgcc_message_pro_billing_model_request_response(void *data, uint8_t len, 
         return -0x02;
     }
 
+    System_BaseData *base = NULL;
     evs_service_issue_feeModel *request = (evs_service_issue_feeModel*)data;
     sgcc_storage_struct *config = (sgcc_storage_struct*)(s_sgcc_handle->get_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, 0x00, NET_SYSTEM_DATA_OPTION_TARGET_PLAT));
 
@@ -1058,15 +1059,15 @@ int8_t sgcc_message_pro_billing_model_request_response(void *data, uint8_t len, 
     for(uint8_t _gunno = 0x00; _gunno < NET_SYSTEM_GUN_NUMBER; _gunno++){
         uint8_t gunno = _gunno;
         uint8_t hour = 0x00, min = 0x00, start_period = 0x00, end_period = 0x00, rate_type = 0x00, time_val[0x03];
-        s_sgcc_base = (System_BaseData*)(s_sgcc_handle->get_base_data(gunno));
-        if((s_sgcc_base->state.current == APP_OFSM_STATE_CHARGING) || (s_sgcc_base->state.current == APP_OFSM_STATE_STARTING) ||
-                (s_sgcc_base->state.current == APP_OFSM_STATE_STOPING)){
+        base = (System_BaseData*)(s_sgcc_handle->get_base_data(gunno));
+        if((base->state.current == APP_OFSM_STATE_CHARGING) || (base->state.current == APP_OFSM_STATE_STARTING) ||
+                (base->state.current == APP_OFSM_STATE_STOPING)){
             net_operation_set_event(gunno, NET_OPERATION_EVENT_UPDATE_BILLING_RULE);
             gunno = NET_SYSTEM_GUN_NUMBER;
         }
 
-        rt_kprintf("sgcc gunno(%d) billingrule info[%s][%s]\n", gunno, request->eleModelId, request->serModelId);
-        rt_kprintf("ter(%d) tsr(%d) per(%d) psr(%d) fer(%d) fsr(%d) ver(%d) vsr(%d)\n", request->chargeFee[APP_RATE_TYPE_SHARP],
+        LOG_D("sgcc gunno(%d) billingrule info[%s][%s]", gunno, request->eleModelId, request->serModelId);
+        LOG_D("ter(%d) tsr(%d) per(%d) psr(%d) fer(%d) fsr(%d) ver(%d) vsr(%d)", request->chargeFee[APP_RATE_TYPE_SHARP],
                 request->serviceFee[APP_RATE_TYPE_SHARP], request->chargeFee[APP_RATE_TYPE_PEAK], request->serviceFee[APP_RATE_TYPE_PEAK],
                 request->chargeFee[APP_RATE_TYPE_FLAT], request->serviceFee[APP_RATE_TYPE_FLAT], request->chargeFee[APP_RATE_TYPE_VALLEY],
                 request->serviceFee[APP_RATE_TYPE_VALLEY]);
@@ -1092,7 +1093,7 @@ int8_t sgcc_message_pro_billing_model_request_response(void *data, uint8_t len, 
 
             start_period = sgcc_calculate_period_with_hm(hour, min);
 
-            rt_kprintf("start_period[%d, %d, %d]\n", hour, min, start_period);
+            LOG_D("start_period[%d, %d, %d]\n", hour, min, start_period);
 
             if((segment + 0x01) >= request->TimeNum){
                 end_period = APP_BILLING_RULE_PERIOD_MAX;
@@ -1110,7 +1111,7 @@ int8_t sgcc_message_pro_billing_model_request_response(void *data, uint8_t len, 
                 end_period = sgcc_calculate_period_with_hm(hour, min);
             }
 
-            rt_kprintf("end_period[%d, %d, %d]\n", hour, min, end_period);
+            LOG_D("end_period[%d, %d, %d]\n", hour, min, end_period);
 
             rate_type = APP_RATE_TYPE_VALLEY;
             if((request->SegFlag[segment] >= 10) && (request->SegFlag[segment] <= 13)){
@@ -1118,7 +1119,7 @@ int8_t sgcc_message_pro_billing_model_request_response(void *data, uint8_t len, 
             }
 
             for(uint8_t period = start_period; period < end_period; period++){
-                rt_kprintf("[%d, %d, %d, %d, %d, %d]\n", gunno, segment, period, start_period, end_period, rate_type);
+                LOG_D("[%d, %d, %d, %d, %d, %d]\n", gunno, segment, period, start_period, end_period, rate_type);
                 app_billingrule_set_period_rate_number(gunno, period, rate_type);
                 switch(rate_type){
                 case APP_RATE_TYPE_SHARP :
@@ -1167,7 +1168,6 @@ int8_t sgcc_message_pro_config_update_request(void *data, uint16_t len)
 
     sgcc_storage_struct *config = (sgcc_storage_struct*)(s_sgcc_handle->get_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, 0x00, NET_SYSTEM_DATA_OPTION_TARGET_PLAT));
     evs_data_dev_config *request = (evs_data_dev_config*)data;
-    s_sgcc_base = (System_BaseData*)(s_sgcc_handle->get_base_data(0x00));
 
     if(config == NULL){
         return -0x03;
@@ -1186,17 +1186,17 @@ int8_t sgcc_message_pro_config_update_request(void *data, uint16_t len)
     config->doorlock_interval = request->doorLock *60;
     config->encode_con = request->encodeCon;
 
-    rt_kprintf("config->rt_property_interval(%d)\n", config->rt_property_interval);
-    rt_kprintf("config->charging_property_interval(%d)\n", config->charging_property_interval);
-    rt_kprintf("config->noncharging_property_interval(%d)\n", config->noncharging_property_interval);
-    rt_kprintf("config->fault_warning_interval(%d)\n", config->fault_warning_interval);
-    rt_kprintf("config->ac_meter_interval(%d)\n", config->ac_meter_interval);
-    rt_kprintf("config->dc_meter_interval(%d)\n", config->dc_meter_interval);
-    rt_kprintf("config->offline_charge_time(%d)\n", config->offline_charge_time);
-    rt_kprintf("config->groundlock_interval(%d)\n", config->groundlock_interval);
-    rt_kprintf("config->doorlock_interval(%d)\n", config->doorlock_interval);
-    rt_kprintf("config->encode_con(%d)\n", config->encode_con);
-    rt_kprintf("config->qrCode(%s)\n", request->qrCode[0x00]);
+    LOG_D("config->rt_property_interval(%d)", config->rt_property_interval);
+    LOG_D("config->charging_property_interval(%d)", config->charging_property_interval);
+    LOG_D("config->noncharging_property_interval(%d)", config->noncharging_property_interval);
+    LOG_D("config->fault_warning_interval(%d)", config->fault_warning_interval);
+    LOG_D("config->ac_meter_interval(%d)", config->ac_meter_interval);
+    LOG_D("config->dc_meter_interval(%d)", config->dc_meter_interval);
+    LOG_D("config->offline_charge_time(%d)", config->offline_charge_time);
+    LOG_D("config->groundlock_interval(%d)", config->groundlock_interval);
+    LOG_D("config->doorlock_interval(%d)", config->doorlock_interval);
+    LOG_D("config->encode_con(%d)", config->encode_con);
+    LOG_D("config->qrCode(%s)", request->qrCode[0x00]);
 
     if(s_sgcc_handle->set_system_data(NET_SYSTEM_DATA_NAME_QRCODE, (uint8_t*)(request->qrCode[0x00]), strlen((char*)request->qrCode[0x00]), NET_SYSTEM_DATA_OPTION_PLAT_SGCC) < 0x00){
         config->storage_init_flag = NET_SGCC_STORAGE_INIT_FLAG - 0x01;
@@ -1241,7 +1241,6 @@ int8_t sgcc_message_pro_config_query_request(uint8_t *buf, uint16_t ilen, uint16
     uint8_t *qrcode = s_sgcc_handle->get_system_data(NET_SYSTEM_DATA_NAME_QRCODE, NULL, 0x00, NET_SYSTEM_DATA_OPTION_TARGET_PLAT);
     sgcc_storage_struct *config = (sgcc_storage_struct*)(s_sgcc_handle->get_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, 0x00, NET_SYSTEM_DATA_OPTION_TARGET_PLAT));
     evs_data_dev_config *vector = (evs_data_dev_config*)buf;
-    s_sgcc_base = (System_BaseData*)(s_sgcc_handle->get_base_data(0x00));
 
     if(config == NULL){
         return -0x03;
@@ -1258,15 +1257,15 @@ int8_t sgcc_message_pro_config_query_request(uint8_t *buf, uint16_t ilen, uint16
     vector->encodeCon = config->encode_con;
     memset(vector->qrCode, 0x00, sizeof(vector->qrCode));
 
-    rt_kprintf("vector->rt_property_interval(%d)\n", vector->equipParamFreq);
-    rt_kprintf("vector->charging_property_interval(%d)\n", vector->gunElecFreq);
-    rt_kprintf("vector->noncharging_property_interval(%d)\n", vector->nonElecFreq);
-    rt_kprintf("vector->fault_warning_interval(%d)\n", vector->faultWarnings);
-    rt_kprintf("vector->ac_meter_interval(%d)\n", vector->acMeterFreq);
-    rt_kprintf("vector->dc_meter_interval(%d)\n", vector->dcMeterFreq);
-    rt_kprintf("vector->offline_charge_time(%d)\n", vector->offlinChaLen);
-    rt_kprintf("vector->groundlock_interval(%d)\n", vector->grndLock);
-    rt_kprintf("vector->doorlock_interval(%d)\n", vector->doorLock);
+    LOG_D("vector->rt_property_interval(%d)", vector->equipParamFreq);
+    LOG_D("vector->charging_property_interval(%d)", vector->gunElecFreq);
+    LOG_D("vector->noncharging_property_interval(%d)", vector->nonElecFreq);
+    LOG_D("vector->fault_warning_interval(%d)", vector->faultWarnings);
+    LOG_D("vector->ac_meter_interval(%d)", vector->acMeterFreq);
+    LOG_D("vector->dc_meter_interval(%d)", vector->dcMeterFreq);
+    LOG_D("vector->offline_charge_time(%d)", vector->offlinChaLen);
+    LOG_D("vector->groundlock_interval(%d)", vector->grndLock);
+    LOG_D("vector->doorlock_interval(%d)", vector->doorLock);
 
     if(qrcode == NULL){
         return -0x04;
@@ -1276,7 +1275,7 @@ int8_t sgcc_message_pro_config_query_request(uint8_t *buf, uint16_t ilen, uint16
     valid_len = valid_len > EVS_MAX_QRCODE_LEN ? EVS_MAX_QRCODE_LEN : valid_len;
     memcpy(vector->qrCode[0x00], qrcode, valid_len);
 
-    rt_kprintf("vector->qrCode(%s)\n", vector->qrCode[0x00]);
+    LOG_D("vector->qrCode(%s)", vector->qrCode[0x00]);
 
     if(olen){
         *olen = data_len;
@@ -1302,10 +1301,10 @@ int8_t sgcc_message_pro_ctrl_elock_request(uint8_t gunno, void *data, uint8_t le
         return -0x03;
     }
 
-    s_sgcc_base = (System_BaseData*)(s_sgcc_handle->get_base_data(gunno));
+    System_BaseData *base = (System_BaseData*)(s_sgcc_handle->get_base_data(gunno));
     evs_service_lockCtrl *request = (evs_service_lockCtrl*)data;
 
-    switch(s_sgcc_base->state.current){
+    switch(base->state.current){
     case APP_OFSM_STATE_STARTING:
     case APP_OFSM_STATE_CHARGING:
     case APP_OFSM_STATE_STOPING:
@@ -1347,10 +1346,11 @@ int8_t sgcc_message_pro_dev_maintain_request(void *data, uint8_t len)
 
     uint8_t i = 0x00;
     evs_service_dev_maintain *request = (evs_service_dev_maintain*)data;
+    System_BaseData *base = NULL;
 
     for(i = 0x00; i < NET_SYSTEM_GUN_NUMBER; i++){
-        s_sgcc_base = (System_BaseData*)(s_sgcc_handle->get_base_data(i));
-        if((s_sgcc_base->state.current == APP_OFSM_STATE_STARTING) || (s_sgcc_base->state.current == APP_OFSM_STATE_CHARGING)){
+        base = (System_BaseData*)(s_sgcc_handle->get_base_data(i));
+        if((base->state.current == APP_OFSM_STATE_STARTING) || (base->state.current == APP_OFSM_STATE_CHARGING)){
             break;
         }
     }
@@ -1363,8 +1363,8 @@ int8_t sgcc_message_pro_dev_maintain_request(void *data, uint8_t len)
     case SGCC_DEV_STATE_REBOOT:
     {
         for(i = 0x00; i < NET_SYSTEM_GUN_NUMBER; i++){
-            s_sgcc_base = (System_BaseData*)(s_sgcc_handle->get_base_data(i));
-            if(s_sgcc_base->state.current != APP_OFSM_STATE_IDLEING){
+            base = (System_BaseData*)(s_sgcc_handle->get_base_data(i));
+            if(base->state.current != APP_OFSM_STATE_IDLEING){
                 break;
             }
         }
@@ -1386,8 +1386,8 @@ int8_t sgcc_message_pro_dev_maintain_request(void *data, uint8_t len)
     case SGCC_DEV_STATE_OVERHAUL:
     {
         for(i = 0x00; i < NET_SYSTEM_GUN_NUMBER; i++){
-            s_sgcc_base = (System_BaseData*)(s_sgcc_handle->get_base_data(i));
-            if(s_sgcc_base->state.current != APP_OFSM_STATE_IDLEING){
+            base = (System_BaseData*)(s_sgcc_handle->get_base_data(i));
+            if(base->state.current != APP_OFSM_STATE_IDLEING){
                 break;
             }
         }
@@ -1401,8 +1401,8 @@ int8_t sgcc_message_pro_dev_maintain_request(void *data, uint8_t len)
                 return 12;
             }
             for(uint8_t gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
-                s_sgcc_base = (System_BaseData*)(s_sgcc_handle->get_base_data(gunno));
-                s_sgcc_base->device_state = APP_DEVICE_STATE_OVERHAUL;
+                base = (System_BaseData*)(s_sgcc_handle->get_base_data(gunno));
+                base->device_state = APP_DEVICE_STATE_OVERHAUL;
             }
             return 10;
         }
@@ -1411,8 +1411,8 @@ int8_t sgcc_message_pro_dev_maintain_request(void *data, uint8_t len)
     case SGCC_DEV_STATE_FREEZE:
     {
         for(i = 0x00; i < NET_SYSTEM_GUN_NUMBER; i++){
-            s_sgcc_base = (System_BaseData*)(s_sgcc_handle->get_base_data(i));
-            if(s_sgcc_base->state.current != APP_OFSM_STATE_IDLEING){
+            base = (System_BaseData*)(s_sgcc_handle->get_base_data(i));
+            if(base->state.current != APP_OFSM_STATE_IDLEING){
                 break;
             }
         }
@@ -1426,8 +1426,8 @@ int8_t sgcc_message_pro_dev_maintain_request(void *data, uint8_t len)
                 return 12;
             }
             for(uint8_t gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
-                s_sgcc_base = (System_BaseData*)(s_sgcc_handle->get_base_data(gunno));
-                s_sgcc_base->device_state = APP_DEVICE_STATE_FREEZE;
+                base = (System_BaseData*)(s_sgcc_handle->get_base_data(gunno));
+                base->device_state = APP_DEVICE_STATE_FREEZE;
             }
             return 10;
         }
@@ -1444,8 +1444,8 @@ int8_t sgcc_message_pro_dev_maintain_request(void *data, uint8_t len)
             return 12;
         }
         for(uint8_t gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
-            s_sgcc_base = (System_BaseData*)(s_sgcc_handle->get_base_data(gunno));
-            s_sgcc_base->device_state = APP_DEVICE_STATE_COMMISSIONING;
+            base = (System_BaseData*)(s_sgcc_handle->get_base_data(gunno));
+            base->device_state = APP_DEVICE_STATE_COMMISSIONING;
         }
         return 10;
     }
@@ -1453,8 +1453,8 @@ int8_t sgcc_message_pro_dev_maintain_request(void *data, uint8_t len)
     case SGCC_DEV_STATE_OUTAGE:
     {
         for(i = 0x00; i < NET_SYSTEM_GUN_NUMBER; i++){
-            s_sgcc_base = (System_BaseData*)(s_sgcc_handle->get_base_data(i));
-            if(s_sgcc_base->state.current != APP_OFSM_STATE_IDLEING){
+            base = (System_BaseData*)(s_sgcc_handle->get_base_data(i));
+            if(base->state.current != APP_OFSM_STATE_IDLEING){
                 break;
             }
         }
@@ -1468,8 +1468,8 @@ int8_t sgcc_message_pro_dev_maintain_request(void *data, uint8_t len)
                 return 12;
             }
             for(uint8_t gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
-                s_sgcc_base = (System_BaseData*)(s_sgcc_handle->get_base_data(gunno));
-                s_sgcc_base->device_state = APP_DEVICE_STATE_OUTAGE;
+                base = (System_BaseData*)(s_sgcc_handle->get_base_data(gunno));
+                base->device_state = APP_DEVICE_STATE_OUTAGE;
             }
             return 10;
         }
@@ -1478,8 +1478,8 @@ int8_t sgcc_message_pro_dev_maintain_request(void *data, uint8_t len)
     case SGCC_DEV_STATE_RETURNS:
     {
         for(i = 0x00; i < NET_SYSTEM_GUN_NUMBER; i++){
-            s_sgcc_base = (System_BaseData*)(s_sgcc_handle->get_base_data(i));
-            if(s_sgcc_base->state.current != APP_OFSM_STATE_IDLEING){
+            base = (System_BaseData*)(s_sgcc_handle->get_base_data(i));
+            if(base->state.current != APP_OFSM_STATE_IDLEING){
                 break;
             }
         }
@@ -1493,8 +1493,8 @@ int8_t sgcc_message_pro_dev_maintain_request(void *data, uint8_t len)
                 return 12;
             }
             for(uint8_t gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
-                s_sgcc_base = (System_BaseData*)(s_sgcc_handle->get_base_data(gunno));
-                s_sgcc_base->device_state = APP_DEVICE_STATE_RETURNS;
+                base = (System_BaseData*)(s_sgcc_handle->get_base_data(gunno));
+                base->device_state = APP_DEVICE_STATE_RETURNS;
             }
             return 10;
         }
@@ -1503,8 +1503,8 @@ int8_t sgcc_message_pro_dev_maintain_request(void *data, uint8_t len)
     case SGCC_DEV_STATE_RESTORE_SRTTING:
     {
         for(i = 0x00; i < NET_SYSTEM_GUN_NUMBER; i++){
-            s_sgcc_base = (System_BaseData*)(s_sgcc_handle->get_base_data(i));
-            if(s_sgcc_base->state.current != APP_OFSM_STATE_IDLEING){
+            base = (System_BaseData*)(s_sgcc_handle->get_base_data(i));
+            if(base->state.current != APP_OFSM_STATE_IDLEING){
                 break;
             }
         }
@@ -1608,24 +1608,24 @@ int8_t sgcc_message_pro_reservation_request(uint8_t gunno, void *data, uint8_t l
         return -0x02;
     }
 
-    s_sgcc_base = (System_BaseData*)(s_sgcc_handle->get_base_data(gunno));
+    System_BaseData *base = (System_BaseData*)(s_sgcc_handle->get_base_data(gunno));
     evs_service_rsvCharge *request = (evs_service_rsvCharge*)data;
 
     if(request->appomathod == 11){
-        if(s_sgcc_base->state.current == APP_OFSM_STATE_RESERVATION){
+        if(base->state.current == APP_OFSM_STATE_RESERVATION){
             net_operation_set_event(gunno, NET_OPERATION_EVENT_CANCEL_RESERVATION);
             net_operation_clear_event(gunno, NET_OPERATION_EVENT_OFFLINECHARGE_LIMIT);
             return 0x00;
         }
     }else{
-        switch(s_sgcc_base->state.current){
+        switch(base->state.current){
         case APP_OFSM_STATE_READYING:
-            s_sgcc_base->reservation_time_sec = request->appoDelay *60;
-            s_sgcc_base->reservation_strategy_para = 0x00;
-            s_sgcc_base->reservation_strategy = (uint8_t)(APP_RESERVATE_STRATEGY_PULLGUN_CANCEL | \
+            base->reservation_time_sec = request->appoDelay *60;
+            base->reservation_strategy_para = 0x00;
+            base->reservation_strategy = (uint8_t)(APP_RESERVATE_STRATEGY_PULLGUN_CANCEL | \
                     APP_RESERVATE_STRATEGY_TIMEOUT_CANCEL |APP_RESERVATE_STRATEGY_VIN_AUTH |  \
                     APP_RESERVATE_STRATEGY_FAULT_CANCEL);
-            s_sgcc_base->offline_chargetime = evs_data_dev_configs.offlinChaLen;
+            base->offline_chargetime = evs_data_dev_configs.offlinChaLen;
             net_operation_set_event(gunno, NET_OPERATION_EVENT_SET_RESERVATION);
             net_operation_set_event(gunno, NET_OPERATION_EVENT_OFFLINECHARGE_LIMIT);
             return 0x00;
@@ -1656,11 +1656,12 @@ int8_t sgcc_message_pro_orderly_charge_request(void *data, uint8_t len)
     uint8_t gunno = 0x00, hour = 0x00, min = 0x00, time_val[0x03];
     uint32_t temp_value = 0x00;
     evs_service_orderCharge *request = (evs_service_orderCharge*)data;
+    System_BaseData *base = NULL;
 
     for(gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
-        s_sgcc_base = (System_BaseData*)(s_sgcc_handle->get_base_data(gunno));
-        if((s_sgcc_base->state.current == APP_OFSM_STATE_STARTING) || (s_sgcc_base->state.current == APP_OFSM_STATE_CHARGING)){
-            if(memcmp(request->preTradeNo, s_sgcc_base->transaction_number, strlen(request->preTradeNo)) == 0x00){
+        base = (System_BaseData*)(s_sgcc_handle->get_base_data(gunno));
+        if((base->state.current == APP_OFSM_STATE_STARTING) || (base->state.current == APP_OFSM_STATE_CHARGING)){
+            if(memcmp(request->preTradeNo, base->transaction_number, strlen(request->preTradeNo)) == 0x00){
                LOG_D("sgcc gunno(%d) set orderly charge", gunno);
                 break;
             }
@@ -1686,9 +1687,9 @@ int8_t sgcc_message_pro_orderly_charge_request(void *data, uint8_t len)
         s_sgcc_order_charge[gunno].time_sec[count] = (hour *60 *60 + min *60);
         s_sgcc_order_charge[gunno].period_power[count] = request->kw[count];
 
-        if(s_sgcc_order_charge[gunno].period_power[count] *100 > s_sgcc_base->system_power_max){
+        if(s_sgcc_order_charge[gunno].period_power[count] *100 > base->system_power_max){
             LOG_E("power out of range when set orderly charge(%d, %d, %d, %d)", gunno, count,
-                    s_sgcc_order_charge[gunno].period_power[count] *100, s_sgcc_base->system_power_max);
+                    s_sgcc_order_charge[gunno].period_power[count] *100, base->system_power_max);
             return -0x04;
         }
 
@@ -1732,14 +1733,14 @@ int8_t sgcc_message_pro_query_dev_record_request(uint8_t gunno, void *data, uint
         return -0x02;
     }
 
-    s_sgcc_base = (System_BaseData*)(s_sgcc_handle->get_base_data(gunno));
+    System_BaseData *base = (System_BaseData*)(s_sgcc_handle->get_base_data(gunno));
     evs_service_query_log *request = (evs_service_query_log*)data;
     thaisen_transaction_t *_transaction = NULL;
     net_record_info_t info;
     uint8_t valid_len = 0x00;
     int32_t record_num = 0x00;
 
-    switch(s_sgcc_base->state.current){
+    switch(base->state.current){
     case APP_OFSM_STATE_STARTING:
     case APP_OFSM_STATE_CHARGING:
     case APP_OFSM_STATE_STOPING:
@@ -1949,7 +1950,7 @@ void sgcc_message_info_init(uint8_t gunno)  ///////// 这是网络部分外部�
     }
 
     uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_SGCC |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
-    uint8_t *data = NULL, valid_len = 0x00, count = 0x00;
+    uint8_t *data = NULL, count = 0x00;
     sgcc_storage_struct *config = NULL;
 
     s_sgcc_handle = net_get_net_handle();
@@ -1957,7 +1958,7 @@ void sgcc_message_info_init(uint8_t gunno)  ///////// 这是网络部分外部�
     config = (sgcc_storage_struct*)(s_sgcc_handle->get_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, 0x00, NET_SYSTEM_DATA_OPTION_TARGET_PLAT));
 
     memset(&s_sgcc_flag_info, 0x00, sizeof(s_sgcc_flag_info));
-    s_sgcc_base = (System_BaseData*)(s_sgcc_handle->get_base_data(gunno));
+    System_BaseData *base = (System_BaseData*)(s_sgcc_handle->get_base_data(gunno));
 
     /** 初始化登录签到 */
     memset(evs_event_firmware_infos.eleModelId, 0x00, EVS_MAX_MODEL_ID_LEN);
@@ -2000,7 +2001,7 @@ void sgcc_message_info_init(uint8_t gunno)  ///////// 这是网络部分外部�
 #else
     evs_event_firmware_infos.meaType = 13;
 #endif /* NET_SGCC_PRO_USING_DC */
-    evs_event_firmware_infos.otRate = s_sgcc_base->system_power_max /100;
+    evs_event_firmware_infos.otRate = base->system_power_max /100;
 
     data = (uint8_t*)(s_sgcc_handle->get_system_data(NET_SYSTEM_DATA_NAME_VOLTAGE_MIN, NULL, 0x00, option));
     evs_event_firmware_infos.otMinVol = 2000;
@@ -2101,7 +2102,7 @@ void sgcc_message_info_init(uint8_t gunno)  ///////// 这是网络部分外部�
 
     memset(evs_event_ver_infos.pileSoftwareVer, 0x00, EVS_MAX_SOFTWAREVER_LEN);
 #if 0
-    sprintf("V%02d.%02d.%02d", s_sgcc_base->soft_ver_main, s_sgcc_base->soft_ver_sub, s_sgcc_base->soft_ver_revise);
+    sprintf("V%02d.%02d.%02d", base->soft_ver_main, base->soft_ver_sub, base->soft_ver_revise);
 #else
     memcpy(evs_event_ver_infos.pileSoftwareVer, "V1.3.2", strlen("V1.3.2"));
 #endif
@@ -2130,22 +2131,22 @@ void sgcc_chargepile_request_padding_state_data(uint8_t gunno, uint8_t is_init)
         return;
     }
 
-    s_sgcc_base = (System_BaseData*)(s_sgcc_handle->get_base_data(gunno));
+    System_BaseData *base = (System_BaseData*)(s_sgcc_handle->get_base_data(gunno));
 
     if(is_init){
-        uint8_t valid_len = sizeof(s_sgcc_base->transaction_number);
+        uint8_t valid_len = sizeof(base->transaction_number);
         valid_len = valid_len > EVS_MAX_TRADE_LEN ? EVS_MAX_TRADE_LEN : valid_len;
 #ifdef NET_SGCC_PRO_USING_DC
         memset(evs_property_dc_works[gunno].preTradeNo, 0x00, EVS_MAX_TRADE_LEN);
-        memcpy(evs_property_dc_works[gunno].preTradeNo, s_sgcc_base->transaction_number, valid_len);
+        memcpy(evs_property_dc_works[gunno].preTradeNo, base->transaction_number, valid_len);
 
-        valid_len = sizeof(s_sgcc_base->device_transaction_number);
+        valid_len = sizeof(base->device_transaction_number);
         valid_len = valid_len > EVS_MAX_TRADE_LEN ? EVS_MAX_TRADE_LEN : valid_len;
         memset(evs_property_dc_works[gunno].tradeNo, 0x00, EVS_MAX_TRADE_LEN);
-        memcpy(evs_property_dc_works[gunno].tradeNo, s_sgcc_base->device_transaction_number, valid_len);
+        memcpy(evs_property_dc_works[gunno].tradeNo, base->device_transaction_number, valid_len);
 
-        evs_property_dc_works[gunno].chgType = sgcc_chargepile_transaction_identity_converted(s_sgcc_base->start_type, \
-                !(s_sgcc_base->flag.is_local_charging));
+        evs_property_dc_works[gunno].chgType = sgcc_chargepile_transaction_identity_converted(base->start_type, \
+                !(base->flag.is_local_charging));
 
         evs_property_dc_works[gunno].dcVol = 0x00;
         evs_property_dc_works[gunno].dcCur = 0x00;
@@ -2173,12 +2174,12 @@ void sgcc_chargepile_request_padding_state_data(uint8_t gunno, uint8_t is_init)
         sgcc_chargepile_request_padding_bms_data(gunno, NET_ENUM_TRUE);
 #else
         memset(evs_property_ac_works[gunno].preTradeNo, 0x00, EVS_MAX_TRADE_LEN);
-        memcpy(evs_property_ac_works[gunno].preTradeNo, s_sgcc_base->transaction_number, valid_len);
+        memcpy(evs_property_ac_works[gunno].preTradeNo, base->transaction_number, valid_len);
 
-        valid_len = sizeof(s_sgcc_base->device_transaction_number);
+        valid_len = sizeof(base->device_transaction_number);
         valid_len = valid_len > EVS_MAX_TRADE_LEN ? EVS_MAX_TRADE_LEN : valid_len;
         memset(evs_property_ac_works[gunno].tradeNo, 0x00, EVS_MAX_TRADE_LEN);
-        memcpy(evs_property_ac_works[gunno].tradeNo, s_sgcc_base->device_transaction_number, valid_len);
+        memcpy(evs_property_ac_works[gunno].tradeNo, base->device_transaction_number, valid_len);
 
         evs_property_ac_works[gunno].acVolA = 0x00;
         evs_property_ac_works[gunno].acCurA = 0x00;
@@ -2200,14 +2201,14 @@ void sgcc_chargepile_request_padding_state_data(uint8_t gunno, uint8_t is_init)
         return;
     }
 
-    if(s_sgcc_base->state.current == APP_OFSM_STATE_CHARGING){
+    if(base->state.current == APP_OFSM_STATE_CHARGING){
         if(sgcc_get_message_send_state(gunno, NET_SGCC_PREQ_EVENT_REPORT_STATE_DATA_CHARGING) == NET_SGCC_SEND_STATE_COMPLETE){
 #ifdef NET_SGCC_PRO_USING_DC
-            struct thaisenBMS_Charger_struct *bms = (struct thaisenBMS_Charger_struct*)(s_sgcc_base->bms_data);
-            evs_property_dc_works[gunno].dcVol = s_sgcc_base->voltage_a /10;
-            evs_property_dc_works[gunno].dcCur = s_sgcc_base->current_a;
-            evs_property_dc_works[gunno].realPower = s_sgcc_base->power_a /100;
-            evs_property_dc_works[gunno].chgTime = s_sgcc_base->charge_time /60;
+            struct thaisenBMS_Charger_struct *bms = (struct thaisenBMS_Charger_struct*)(base->bms_data);
+            evs_property_dc_works[gunno].dcVol = base->voltage_a /10;
+            evs_property_dc_works[gunno].dcCur = base->current_a;
+            evs_property_dc_works[gunno].realPower = base->power_a /100;
+            evs_property_dc_works[gunno].chgTime = base->charge_time /60;
             evs_property_dc_works[gunno].remainT = bms->BCS.SurplChgTime;
             evs_property_dc_works[gunno].socVal = bms->BCS.SOC;
             evs_property_dc_works[gunno].needVol = bms->BCL.BMSneedVolt;
@@ -2218,30 +2219,30 @@ void sgcc_chargepile_request_padding_state_data(uint8_t gunno, uint8_t is_init)
             evs_property_dc_works[gunno].SingleMHV = bms->BCS.CellHigVolt;
             evs_property_dc_works[gunno].MHTemp = (bms->BSM.HigTemp + 50) *10;
             evs_property_dc_works[gunno].MLTemp = (bms->BSM.LowTemp + 50) *10;
-            evs_property_dc_works[gunno].totalElect = s_sgcc_base->elect_a;
-            evs_property_dc_works[gunno].totalCost = s_sgcc_base->fees_total;
-            evs_property_dc_works[gunno].totalPowerCost = s_sgcc_base->elect_fees_total;
-            evs_property_dc_works[gunno].totalServCost = s_sgcc_base->service_fees_total;
+            evs_property_dc_works[gunno].totalElect = base->elect_a;
+            evs_property_dc_works[gunno].totalCost = base->fees_total;
+            evs_property_dc_works[gunno].totalPowerCost = base->elect_fees_total;
+            evs_property_dc_works[gunno].totalServCost = base->service_fees_total;
             evs_property_dc_works[gunno].sharpElect = app_billingrule_get_rate_type_elect(gunno, APP_RATE_TYPE_SHARP);
             evs_property_dc_works[gunno].peakElect = app_billingrule_get_rate_type_elect(gunno, APP_RATE_TYPE_PEAK);
             evs_property_dc_works[gunno].flatElect = app_billingrule_get_rate_type_elect(gunno, APP_RATE_TYPE_FLAT);
             evs_property_dc_works[gunno].valleyElect = app_billingrule_get_rate_type_elect(gunno, APP_RATE_TYPE_VALLEY);
 #else
-            evs_property_ac_works[gunno].acVolA = s_sgcc_base->voltage_a /10;
-            evs_property_ac_works[gunno].acCurA = s_sgcc_base->current_a /10;
-            evs_property_ac_works[gunno].acVolB = s_sgcc_base->voltage_b /10;
-            evs_property_ac_works[gunno].acCurB = s_sgcc_base->current_b /10;
-            evs_property_ac_works[gunno].acVolC = s_sgcc_base->voltage_c /10;
-            evs_property_ac_works[gunno].acCurC = s_sgcc_base->current_b /10;
-            evs_property_ac_works[gunno].realPower = (s_sgcc_base->power_a + s_sgcc_base->power_b + s_sgcc_base->power_c) /100;
-            evs_property_ac_works[gunno].chgTime = s_sgcc_base->charge_time /60;
-            evs_property_ac_works[gunno].totalElect = s_sgcc_base->elect_a;
+            evs_property_ac_works[gunno].acVolA = base->voltage_a /10;
+            evs_property_ac_works[gunno].acCurA = base->current_a /10;
+            evs_property_ac_works[gunno].acVolB = base->voltage_b /10;
+            evs_property_ac_works[gunno].acCurB = base->current_b /10;
+            evs_property_ac_works[gunno].acVolC = base->voltage_c /10;
+            evs_property_ac_works[gunno].acCurC = base->current_b /10;
+            evs_property_ac_works[gunno].realPower = (base->power_a + base->power_b + base->power_c) /100;
+            evs_property_ac_works[gunno].chgTime = base->charge_time /60;
+            evs_property_ac_works[gunno].totalElect = base->elect_a;
             evs_property_ac_works[gunno].sharpElect = app_billingrule_get_rate_type_elect(gunno, APP_RATE_TYPE_SHARP);
             evs_property_ac_works[gunno].peakElect = app_billingrule_get_rate_type_elect(gunno, APP_RATE_TYPE_PEAK);
             evs_property_ac_works[gunno].flatElect = app_billingrule_get_rate_type_elect(gunno, APP_RATE_TYPE_FLAT);
             evs_property_ac_works[gunno].valleyElect = app_billingrule_get_rate_type_elect(gunno, APP_RATE_TYPE_VALLEY);
-            evs_property_ac_works[gunno].totalPowerCost = s_sgcc_base->elect_fees_total;
-            evs_property_ac_works[gunno].totalServCost = s_sgcc_base->service_fees_total;
+            evs_property_ac_works[gunno].totalPowerCost = base->elect_fees_total;
+            evs_property_ac_works[gunno].totalServCost = base->service_fees_total;
             evs_property_ac_works[gunno].PwmDutyRadio = 53;
 #endif /* NET_SGCC_PRO_USING_DC */
         }
@@ -2259,14 +2260,14 @@ void sgcc_chargepile_request_padding_out_ammeter_val(uint8_t gunno)
     }
 
     uint8_t transaction_sn_len = 0x00, valid_len = 0x00;
-    s_sgcc_base = (System_BaseData*)(s_sgcc_handle->get_base_data(gunno));
+    System_BaseData *base = (System_BaseData*)(s_sgcc_handle->get_base_data(gunno));
 
     if(sgcc_get_message_send_state(gunno, NET_SGCC_PREQ_EVENT_REPORT_AMMETER_VALUE) == NET_SGCC_SEND_STATE_COMPLETE){
         uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_SGCC |NET_SYSTEM_DATA_OPTION_DATA_CONTENT), count = 0x00;
         struct tm *_tm = NULL;
         uint8_t used_len = 0x00, *data = NULL;
 
-        _tm = localtime((const time_t*)&(s_sgcc_base->current_time));
+        _tm = localtime((const time_t*)&(base->current_time));
 
         data = (uint8_t*)(s_sgcc_handle->get_system_data(NET_SYSTEM_DATA_NAME_AMMETER_ADDRESS, &count, sizeof(count), option));
         memset(evs_property_meters[gunno].meterNo, 0x00, EVS_MAX_METER_ADDR_LEN);
@@ -2302,20 +2303,20 @@ void sgcc_chargepile_request_padding_out_ammeter_val(uint8_t gunno)
         }
         sprintf((char*)(evs_property_meters[gunno].acqTime + used_len), "%02d", _tm->tm_sec);
 
-        if(s_sgcc_base->ammeter_elect > evs_property_meters[gunno].sumMeter){
-            evs_property_meters[gunno].sumMeter = s_sgcc_base->ammeter_elect;
+        if(base->ammeter_elect > evs_property_meters[gunno].sumMeter){
+            evs_property_meters[gunno].sumMeter = base->ammeter_elect;
         }
-        if(s_sgcc_base->elect_a > 0x00){
-            evs_property_meters[gunno].elec = s_sgcc_base->elect_a;
+        if(base->elect_a > 0x00){
+            evs_property_meters[gunno].elec = base->elect_a;
         }
 
-        transaction_sn_len = strlen((char*)(s_sgcc_base->device_transaction_number));
+        transaction_sn_len = strlen((char*)(base->device_transaction_number));
 
         if(transaction_sn_len > 0x00){
-            valid_len = sizeof(s_sgcc_base->device_transaction_number);
+            valid_len = sizeof(base->device_transaction_number);
             valid_len = valid_len > EVS_MAX_TRADE_LEN ? EVS_MAX_TRADE_LEN : valid_len;
             memset(evs_property_meters[gunno].lastTrade, 0x00, EVS_MAX_TRADE_LEN);
-            memcpy(evs_property_meters[gunno].lastTrade, s_sgcc_base->device_transaction_number, valid_len);
+            memcpy(evs_property_meters[gunno].lastTrade, base->device_transaction_number, valid_len);
         }
 
         s_sgcc_flag_info[gunno].omit_oammeter_val = NET_ENUM_FALSE;
@@ -2335,35 +2336,35 @@ void sgcc_chargepile_request_padding_bms_data(uint8_t gunno, uint8_t init)
         return;
     }
 #ifdef NET_SGCC_PRO_USING_DC
-    s_sgcc_base = (System_BaseData*)(s_sgcc_handle->get_base_data(gunno));
+    System_BaseData *base = (System_BaseData*)(s_sgcc_handle->get_base_data(gunno));
 
     if(init){
-        uint8_t valid_len = sizeof(s_sgcc_base->transaction_number);
+        uint8_t valid_len = sizeof(base->transaction_number);
         valid_len = valid_len > EVS_MAX_TRADE_LEN ? EVS_MAX_TRADE_LEN : valid_len;
         memset(evs_property_BMSs[gunno].preTradeNo, 0x00, EVS_MAX_TRADE_LEN);
-        memcpy(evs_property_BMSs[gunno].preTradeNo, s_sgcc_base->transaction_number, valid_len);
+        memcpy(evs_property_BMSs[gunno].preTradeNo, base->transaction_number, valid_len);
 
-        valid_len = sizeof(s_sgcc_base->device_transaction_number);
+        valid_len = sizeof(base->device_transaction_number);
         valid_len = valid_len > EVS_MAX_TRADE_LEN ? EVS_MAX_TRADE_LEN : valid_len;
         memset(evs_property_BMSs[gunno].tradeNo, 0x00, EVS_MAX_TRADE_LEN);
-        memcpy(evs_property_BMSs[gunno].tradeNo, s_sgcc_base->device_transaction_number, valid_len);
+        memcpy(evs_property_BMSs[gunno].tradeNo, base->device_transaction_number, valid_len);
 
         return;
     }
 
     if(sgcc_get_message_send_state(gunno, NET_SGCC_PREQ_EVENT_REPORT_BMS_DATA) == NET_SGCC_SEND_STATE_COMPLETE){
-        struct thaisenBMS_Charger_struct *bms = (struct thaisenBMS_Charger_struct*)(s_sgcc_base->bms_data);
+        struct thaisenBMS_Charger_struct *bms = (struct thaisenBMS_Charger_struct*)(base->bms_data);
 
-        if(s_sgcc_base->state.current == APP_OFSM_STATE_STARTING){
-            if(s_sgcc_base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
-                s_sgcc_base = (System_BaseData*)(s_sgcc_handle->get_base_data(s_sgcc_base->main_gunno));
-                bms = (struct thaisenBMS_Charger_struct*)(s_sgcc_base->bms_data);
+        if(base->state.current == APP_OFSM_STATE_STARTING){
+            if(base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
+                base = (System_BaseData*)(s_sgcc_handle->get_base_data(base->main_gunno));
+                bms = (struct thaisenBMS_Charger_struct*)(base->bms_data);
             }
             evs_property_BMSs[gunno].socVal = bms->BCP.SOC /10;
         }else{
-            if(s_sgcc_base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
-                s_sgcc_base = (System_BaseData*)(s_sgcc_handle->get_base_data(s_sgcc_base->main_gunno));
-                bms = (struct thaisenBMS_Charger_struct*)(s_sgcc_base->bms_data);
+            if(base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
+                base = (System_BaseData*)(s_sgcc_handle->get_base_data(base->main_gunno));
+                bms = (struct thaisenBMS_Charger_struct*)(base->bms_data);
             }
             evs_property_BMSs[gunno].socVal = bms->BCS.SOC;
         }
@@ -2409,7 +2410,7 @@ void sgcc_chargepile_request_padding_monitor_property(uint8_t gunno)
         return;
     }
 
-    s_sgcc_base = (System_BaseData*)(s_sgcc_handle->get_base_data(gunno));
+    System_BaseData *base = (System_BaseData*)(s_sgcc_handle->get_base_data(gunno));
 
     if(sgcc_get_message_send_state(gunno, NET_SGCC_PREQ_EVENT_REPORT_MONITOR_PROPERTY) == NET_SGCC_SEND_STATE_COMPLETE){
         uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_SGCC |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
@@ -2444,12 +2445,12 @@ void sgcc_chargepile_request_padding_monitor_property(uint8_t gunno)
             break;
         }
 
-        evs_property_dcPiles.acVolA = s_sgcc_base->voltage_a /10;
-        evs_property_dcPiles.acCurA = s_sgcc_base->current_a /10;
-        evs_property_dcPiles.acVolB = s_sgcc_base->voltage_b /10;
-        evs_property_dcPiles.acCurB = s_sgcc_base->current_b /10;
-        evs_property_dcPiles.acVolC = s_sgcc_base->voltage_c /10;
-        evs_property_dcPiles.acCurC = s_sgcc_base->current_b /10;
+        evs_property_dcPiles.acVolA = base->voltage_a /10;
+        evs_property_dcPiles.acCurA = base->current_a /10;
+        evs_property_dcPiles.acVolB = base->voltage_b /10;
+        evs_property_dcPiles.acCurB = base->current_b /10;
+        evs_property_dcPiles.acVolC = base->voltage_c /10;
+        evs_property_dcPiles.acCurC = base->current_b /10;
 
         evs_property_dcPiles.caseTemp = (250 + 500);
         evs_property_dcPiles.inletTemp = (250 + 500);
@@ -2484,12 +2485,12 @@ void sgcc_chargepile_request_padding_monitor_property(uint8_t gunno)
             break;
         }
 
-        evs_property_acPiles.acVolA = s_sgcc_base->voltage_a /10;
-        evs_property_acPiles.acCurA = s_sgcc_base->current_a /10;
-        evs_property_acPiles.acVolB = s_sgcc_base->voltage_b /10;
-        evs_property_acPiles.acCurB = s_sgcc_base->current_b /10;
-        evs_property_acPiles.acVolC = s_sgcc_base->voltage_c /10;
-        evs_property_acPiles.acCurC = s_sgcc_base->current_b /10;
+        evs_property_acPiles.acVolA = base->voltage_a /10;
+        evs_property_acPiles.acCurA = base->current_a /10;
+        evs_property_acPiles.acVolB = base->voltage_b /10;
+        evs_property_acPiles.acCurB = base->current_b /10;
+        evs_property_acPiles.acVolC = base->voltage_c /10;
+        evs_property_acPiles.acCurC = base->current_b /10;
 
         evs_property_acPiles.caseTemp = (250 + 500);
 #endif /* NET_SGCC_PRO_USING_DC */
@@ -2520,22 +2521,22 @@ int8_t sgcc_chargepile_request_padding_card_authority(uint8_t gunno)
         return -0x01;
     }
     uint8_t valid_len = 0x00;
-    s_ykc_base = (System_BaseData*)(s_ykc_handle->get_base_data(gunno));
+    System_BaseData *base = (System_BaseData*)(s_ykc_handle->get_base_data(gunno));
 
-    if(!s_ykc_base->flag.card_info_is_uid){
+    if(!base->flag.card_info_is_uid){
         return -0x01;
     }
     g_ykc_preq_apply_charge_active[gunno].body.start_type = 0x01;
     g_ykc_preq_apply_charge_active[gunno].body.whether_password = NET_ENUM_FALSE;
 
-    valid_len = sizeof(s_ykc_base->card_uid);
+    valid_len = sizeof(base->card_uid);
     valid_len = valid_len > NET_YKC_CARD_NUMBER_LENGTH_MAX ? NET_YKC_CARD_NUMBER_LENGTH_MAX : valid_len;
     memset(g_ykc_preq_apply_charge_active[gunno].body.account_or_phycard_number, 0x00, NET_YKC_CARD_NUMBER_LENGTH_MAX);
-    if(valid_len > s_ykc_base->card_uid_len){
-        memcpy((g_ykc_preq_apply_charge_active[gunno].body.account_or_phycard_number + (valid_len - s_ykc_base->card_uid_len)),
-                s_ykc_base->card_uid, s_ykc_base->card_uid_len);
+    if(valid_len > base->card_uid_len){
+        memcpy((g_ykc_preq_apply_charge_active[gunno].body.account_or_phycard_number + (valid_len - base->card_uid_len)),
+                base->card_uid, base->card_uid_len);
     }else{
-        memcpy(g_ykc_preq_apply_charge_active[gunno].body.account_or_phycard_number, s_ykc_base->card_uid, valid_len);
+        memcpy(g_ykc_preq_apply_charge_active[gunno].body.account_or_phycard_number, base->card_uid, valid_len);
     }
     memset(g_ykc_preq_apply_charge_active[gunno].body.password, 0x00, NET_YKC_PASSWORD_LENGTH_DEFAULT);
     memset(g_ykc_preq_apply_charge_active[gunno].body.vin, 0x00, NET_YKC_CAR_VIN_NUMBER_LENGTH_MAX);
@@ -2565,19 +2566,19 @@ int8_t sgcc_chargepile_request_padding_vin_authority(uint8_t gunno)
         return -0x01;
     }
 
-    s_sgcc_base = (System_BaseData*)(s_sgcc_handle->get_base_data(gunno));
-    uint8_t valid_len = sizeof(s_sgcc_base->device_transaction_number);
-    struct thaisenBMS_Charger_struct *bms = (struct thaisenBMS_Charger_struct*)(s_sgcc_base->bms_data);
+    System_BaseData *base = (System_BaseData*)(s_sgcc_handle->get_base_data(gunno));
+    uint8_t valid_len = sizeof(base->device_transaction_number);
+    struct thaisenBMS_Charger_struct *bms = (struct thaisenBMS_Charger_struct*)(base->bms_data);
 
     memset(evs_event_startCharges[gunno].preTradeNo, 0x00, EVS_MAX_TRADE_LEN);
     memset(evs_event_startCharges[gunno].tradeNo, 0x00, EVS_MAX_TRADE_LEN);
 
     valid_len = valid_len > EVS_MAX_TRADE_LEN ? EVS_MAX_TRADE_LEN : valid_len;
-    memcpy(evs_event_startCharges[gunno].tradeNo, s_sgcc_base->device_transaction_number, valid_len);
+    memcpy(evs_event_startCharges[gunno].tradeNo, base->device_transaction_number, valid_len);
 
     evs_event_startCharges[gunno].startType = SGCC_OPSCTL_SILENT;
     memset(evs_event_startCharges[gunno].authCode, 0x00, EVS_MAX_CAR_VIN_LEN);
-    memcpy(evs_event_startCharges[gunno].authCode, s_sgcc_base->car_vin, sizeof(s_sgcc_base->car_vin));
+    memcpy(evs_event_startCharges[gunno].authCode, base->car_vin, sizeof(base->car_vin));
     evs_event_startCharges[gunno].batterySOC = bms->BCP.SOC /10;
     evs_event_startCharges[gunno].batteryCap = bms->BRM.BatRateCap;
     evs_event_startCharges[gunno].chargeTimes = 0x00;
@@ -2604,7 +2605,6 @@ uint8_t sgcc_chargepile_request_padding_transaction_record(uint8_t gunno, void *
     uint8_t valid_len = 0x00;
     thaisen_transaction_t *_transaction = (thaisen_transaction_t*)transaction;
 
-    s_sgcc_base = (System_BaseData*)(s_sgcc_handle->get_base_data(gunno));
     sgcc_set_transaction_verify_state(gunno, 0x00);
 
     if((sgcc_get_message_send_state(gunno, NET_SGCC_PREQ_EVENT_TRANSACTION_RECORD) == NET_SGCC_SEND_STATE_COMPLETE)){
@@ -2730,10 +2730,10 @@ void sgcc_start_charge_response_asynchronously(uint8_t gunno, uint8_t result, ui
         return;
     }
 
-    s_sgcc_base = (System_BaseData*)(s_sgcc_handle->get_base_data(gunno));
+    System_BaseData *base = (System_BaseData*)(s_sgcc_handle->get_base_data(gunno));
 
     /** 在线启动才需要上报启动结果 */
-    if(s_sgcc_base->flag.is_local_charging == NET_ENUM_TRUE){
+    if(base->flag.is_local_charging == NET_ENUM_TRUE){
         return;
     }
     if(result){
@@ -2746,7 +2746,7 @@ void sgcc_start_charge_response_asynchronously(uint8_t gunno, uint8_t result, ui
         s_agcc_applycharge_result[gunno] = 11;
     }
 
-    if(s_sgcc_base->start_type == APP_CHARGE_START_WAY_APP){
+    if(base->start_type == APP_CHARGE_START_WAY_APP){
         if(s_agcc_remotecharge_result[gunno] == 10){
             s_agcc_remotecharge_fail_reason[gunno] = 0x00;
         }else{
@@ -2779,17 +2779,17 @@ void sgcc_stop_charge_response_asynchronously(uint8_t gunno, uint8_t result, uin
         return;
     }
 
-    s_sgcc_base = (System_BaseData*)(s_sgcc_handle->get_base_data(gunno));
-    if(s_sgcc_base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
-        gunno = s_sgcc_base->main_gunno;
+    System_BaseData *base = (System_BaseData*)(s_sgcc_handle->get_base_data(gunno));
+    if(base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
+        gunno = base->main_gunno;
     }
 
     /** 在线启动才需要上报停止结果 */
-    if(s_sgcc_base->flag.is_local_charging == NET_ENUM_TRUE){
+    if(base->flag.is_local_charging == NET_ENUM_TRUE){
         return;
     }
     /** 启动成功才上报停止结果 */
-    if(s_sgcc_base->flag.start_result == NET_ENUM_FALSE){
+    if(base->flag.start_result == NET_ENUM_FALSE){
         return;
     }
     if(result){
@@ -2817,21 +2817,21 @@ void sgcc_chargepile_state_changed(uint8_t gunno)
         return;
     }
 
-    s_sgcc_base = (System_BaseData*)(s_sgcc_handle->get_base_data(gunno));
+    System_BaseData *base = (System_BaseData*)(s_sgcc_handle->get_base_data(gunno));
 
-    if(s_sgcc_base->flag.connect_state == APP_CONNECT_STATE_CONNECT){
+    if(base->flag.connect_state == APP_CONNECT_STATE_CONNECT){
         if(s_sgcc_state_info[gunno].state.connect == SGCC_OPSCTL_SILENT){
-            s_sgcc_state_info[gunno].timestamp = s_sgcc_base->current_time;
+            s_sgcc_state_info[gunno].timestamp = base->current_time;
         }
         s_sgcc_state_info[gunno].state.connect = SGCC_OPSCTL_ACTION;
     }else{
         if(s_sgcc_state_info[gunno].state.connect == SGCC_OPSCTL_ACTION){
-            s_sgcc_state_info[gunno].timestamp = s_sgcc_base->current_time;
+            s_sgcc_state_info[gunno].timestamp = base->current_time;
         }
         s_sgcc_state_info[gunno].state.connect = SGCC_OPSCTL_SILENT;
     }
 
-    switch(s_sgcc_base->state.current){
+    switch(base->state.current){
     case APP_OFSM_STATE_WAIT_NET:
     case APP_OFSM_STATE_IDLEING:
         s_sgcc_state_info[gunno].state.state = SGCC_WORKSTATE_IDLE;
@@ -2856,7 +2856,7 @@ void sgcc_chargepile_state_changed(uint8_t gunno)
     case APP_OFSM_STATE_STARTING:
     {
         if(s_sgcc_state_info[gunno].state.state != SGCC_WORKSTATE_STARTING){
-            if((s_sgcc_base->flag.is_local_charging == NET_ENUM_FALSE) && (s_sgcc_base->start_type != APP_CHARGE_START_WAY_VIN)){
+            if((base->flag.is_local_charging == NET_ENUM_FALSE) && (base->start_type != APP_CHARGE_START_WAY_VIN)){
                 if(++s_sgcc_charge_sn[gunno] >= 10000){
                     s_sgcc_charge_sn[gunno] = 0x01;
                 }
@@ -2865,7 +2865,7 @@ void sgcc_chargepile_state_changed(uint8_t gunno)
         }
 
         s_sgcc_state_info[gunno].state.state = SGCC_WORKSTATE_STARTING;
-        switch(s_sgcc_base->charctrl_state.current){
+        switch(base->charctrl_state.current){
         case APP_CHARGE_CTRL_STATE_SHAKE_HAND:
             s_sgcc_state_info[gunno].state.electlock = SGCC_OPSCTL_SILENT;
             s_sgcc_state_info[gunno].state.dck1 = SGCC_OPSCTL_SILENT;
@@ -2927,7 +2927,7 @@ void sgcc_chargepile_state_changed(uint8_t gunno)
         break;
     case APP_OFSM_STATE_CHARGING:
         if(s_sgcc_state_info[gunno].state.state != SGCC_WORKSTATE_CHARGINGING){
-            if((s_sgcc_base->flag.is_local_charging == NET_ENUM_FALSE) && (s_sgcc_base->start_type == APP_CHARGE_START_WAY_VIN)){
+            if((base->flag.is_local_charging == NET_ENUM_FALSE) && (base->start_type == APP_CHARGE_START_WAY_VIN)){
                 if(++s_sgcc_charge_sn[gunno] >= 10000){
                     s_sgcc_charge_sn[gunno] = 0x01;
                 }
@@ -2967,7 +2967,6 @@ void sgcc_chargepile_state_changed(uint8_t gunno)
     default:
         break;
     }
-    rt_kprintf("9999999999999 ccccccccc(%d)\n", gunno, s_sgcc_state_info[gunno].state.state, s_sgcc_state_info[gunno].state.connect);
 }
 
 /*************************************************
@@ -3085,8 +3084,9 @@ int8_t sgcc_chargepile_create_local_transaction_number(uint8_t gunno, void *vect
     sgcc_storage_struct *config = (sgcc_storage_struct*)(s_sgcc_handle->get_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, 0x00, NET_SYSTEM_DATA_OPTION_TARGET_PLAT));
     uint8_t sn_len = 0x00;
     struct tm *_tm = NULL;
+    System_BaseData *base = (System_BaseData*)(s_sgcc_handle->get_base_data(gunno));
 
-    _tm = localtime((const time_t*)&(s_sgcc_base->current_time));
+    _tm = localtime((const time_t*)&(base->current_time));
 
     memset(vector, 0x00, len);
     memcpy((vector + sn_len), config->device_name, SGCC_DEVICE_NAME_VALID_LEN);
@@ -3195,8 +3195,8 @@ uint16_t sgcc_query_highest_priority_fault(uint8_t gunno)
         return 0x00;
     }
 
-    s_sgcc_base = (System_BaseData*)(s_sgcc_handle->get_base_data(gunno));
-    return s_sgcc_base->system_fault;
+    System_BaseData *base = (System_BaseData*)(s_sgcc_handle->get_base_data(gunno));
+    return base->system_fault;
 }
 
 /*************************************************
@@ -3900,8 +3900,8 @@ static void sgcc_realtime_process_thread_entry(void *parameter)
                                     net_operation_set_event(gunno, NET_OPERATION_EVENT_SET_CHARGE_POWER);
                                     net_operation_set_total_power(s_sgcc_order_charge[gunno].period_power[count] *100, gunno);
                                     s_sgcc_flag_info[gunno].is_set_power = NET_ENUM_TRUE;
-                                    s_sgcc_base->power_strategy = APP_POWER_STRATEGY_ORDER;
-                                    s_sgcc_base->power_strategy_para = 0x00;
+                                    base->power_strategy = APP_POWER_STRATEGY_ORDER;
+                                    base->power_strategy_para = 0x00;
                                     break;
                                 }else{
                                     break;
@@ -3916,8 +3916,8 @@ static void sgcc_realtime_process_thread_entry(void *parameter)
                                 net_operation_set_event(gunno, NET_OPERATION_EVENT_SET_CHARGE_POWER);
                                 net_operation_set_total_power(s_sgcc_order_charge[gunno].period_power[(SGCC_ORDERLY_CHARGE_TIME_POINT_NUM - 0x01)] *100, gunno);
                                 s_sgcc_flag_info[gunno].is_set_power = NET_ENUM_TRUE;
-                                s_sgcc_base->power_strategy = APP_POWER_STRATEGY_ORDER;
-                                s_sgcc_base->power_strategy_para = 0x00;
+                                base->power_strategy = APP_POWER_STRATEGY_ORDER;
+                                base->power_strategy_para = 0x00;
                                 break;
                             }
                         }

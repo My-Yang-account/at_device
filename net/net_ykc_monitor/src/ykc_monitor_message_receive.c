@@ -1696,9 +1696,10 @@ int32_t ykc_monitor_message_recv_init(void)
 
     s_ykc_monitor_qrcode_buf.flag.is_used = 0x00;
     s_ykc_monitor_card_vin_buf.flag.is_used = 0x00;
-
+#ifdef NET_YKC_MONITOR_AS_MONITOR
     g_ykc_monitor_sreq_pres_info_para_modify_confirm.ongoing = 0x00;
     g_ykc_monitor_sres_info_para_confirm_result.ongoing = 0x00;
+#endif /* NET_YKC_MONITOR_AS_MONITOR */
 
     return 0x00;
 }
