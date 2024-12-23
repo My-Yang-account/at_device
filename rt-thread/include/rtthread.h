@@ -572,7 +572,7 @@ void rt_components_board_init(void);
  * general kernel service
  */
 #ifndef RT_USING_CONSOLE
-#define rt_kprintf(...)
+//#define rt_kprintf(...)
 #define rt_kputs(str)
 #else
 int rt_kprintf(const char *fmt, ...);
