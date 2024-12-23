@@ -1170,7 +1170,7 @@ static void ethch395_event_pro_thread_entry(void* parameter)
  *************************************************/
 static void ethch395_device_init(void)
 {
-    uint8_t resp[32], rentry = 0x00;
+    uint8_t resp[32], rentry = 0x00, is_reset = ETHCH395_ENUM_TRUE;
     int32_t res = 0x00;
     uint32_t baudrate = ETHCH395_NETDEV_BAUDRATE_9600, wait_tick;
     memset(resp, 0x00, sizeof(resp));
@@ -1216,9 +1216,6 @@ static void ethch395_device_init(void)
         }
         LOG_D("ethch395 version:%s", resp);
 
-        /** 命令复位  ethch395 */
-        ethch395_cmd_hard_reset();
-
         /** 设置 ethch395 TCP MSS */
         if(ethch395_cmd_set_tcp_mss(ETHCH395_TCP_MSS_DEF) < 0x00){
             LOG_E("ethch395 set tcp mss fail");
@@ -1226,34 +1223,39 @@ static void ethch395_device_init(void)
             goto _is_end;
         }
 
-        /** 修改 ethch395 通信波特率 */
-        if(ethch395_cmd_set_baudrate(ETHCH395_CMD_BAUDRATE_115200) < 0x00){
-            LOG_E("ethch395 modify baudrate fail(%d)", ETHCH395_CMD_BAUDRATE_115200);
-            res = -0x01;
-            goto _is_end;
-        }
+        if(is_reset == ETHCH395_ENUM_TRUE){
+            /** 命令复位  ethch395 */
+            ethch395_cmd_hard_reset();
 
-        baudrate = ETHCH395_NETDEV_BAUDRATE_115200;
-        ethch395_netdev_ctrl(ETHCH395_NETDEV_CTRL_BAUDRATE, &baudrate, sizeof(baudrate));
-        rt_thread_mdelay(100);
-        /**  查询 ethch395 版本(只是为了验证波特率修改是否成功) */
-        memset(resp, 0x00, sizeof(resp));
-        if(ethch395_cmd_query_ic_version(resp, sizeof(resp)) < 0x00){
-            LOG_E("ethch395 query chip version fail when detect new baudrate");
-            res = -0x01;
-            goto _is_end;
+            /** 修改 ethch395 通信波特率 */
+            if(ethch395_cmd_set_baudrate(ETHCH395_CMD_BAUDRATE_115200) < 0x00){
+                LOG_E("ethch395 modify baudrate fail(%d)", ETHCH395_CMD_BAUDRATE_115200);
+                res = -0x01;
+                goto _is_end;
+            }
+
+            baudrate = ETHCH395_NETDEV_BAUDRATE_115200;
+            ethch395_netdev_ctrl(ETHCH395_NETDEV_CTRL_BAUDRATE, &baudrate, sizeof(baudrate));
+            rt_thread_mdelay(100);
+            /**  查询 ethch395 版本(只是为了验证波特率修改是否成功) */
+            memset(resp, 0x00, sizeof(resp));
+            if(ethch395_cmd_query_ic_version(resp, sizeof(resp)) < 0x00){
+                LOG_E("ethch395 query chip version fail when detect new baudrate");
+                res = -0x01;
+                goto _is_end;
+            }
         }
 
         s_ethch395_state = NETDEV_ETHCH395_STATE_LINK_MAC;    /** 芯片状态：初始化链路MAC层 */
 
         rt_thread_mdelay(10);
 
-    #if 0
+#if 0
         ethch395_cmd_set_func_para(0);
 
         /** 设置  ethch395 PHY 模式为自动协商 */
         ethch395_cmd_set_phy(ETHCH395_PHY_TYPE_AUTO);
-    #endif
+#endif
 
         s_ethch395_state = NETDEV_ETHCH395_STATE_LINK_LCC;    /** 芯片状态：初始化链路LCC层 */
         /** 命令初始化  ethch395 */
@@ -1348,6 +1350,7 @@ static void ethch395_device_init(void)
         break;
 
 _is_end:
+        is_reset = ETHCH395_ENUM_FALSE;
         ethch395_unlock_operate_lock(handle);
 
         rt_thread_mdelay(10000);
@@ -1356,8 +1359,9 @@ _is_end:
             s_ethch395_reset_tick = rt_tick_get();
         }
         if((rt_tick_get() - s_ethch395_reset_tick) >= s_ethch395_reset_period){
-            s_ethch395_reset_tick = rt_tick_get();
+            is_reset = ETHCH395_ENUM_TRUE;
             ethch395_device_reset();
+            s_ethch395_reset_tick = rt_tick_get();
         }
         s_ethch395_reset_period += ETHCH395_RESET_DELAY_TIME_STEP;
         if(s_ethch395_reset_period > ETHCH395_RESET_DELAY_TIME_MAX){
@@ -1375,6 +1379,7 @@ _is_end:
  *************************************************/
 int32_t ethch395_device_reset(void)
 {
+    int32_t ret = 0x00;
     uint32_t baudrate = ETHCH395_NETDEV_BAUDRATE_9600;
 
     LOG_D("ethch395_device_reset");
@@ -1384,7 +1389,10 @@ int32_t ethch395_device_reset(void)
 
     ethch395_netdev_ctrl(ETHCH395_NETDEV_CTRL_BAUDRATE, &baudrate, sizeof(baudrate));
 
-    return ethch395_netdev_ctrl(ETHCH395_NETDEV_CTRL_HARDRESET, NULL, 0x00);
+    ret = ethch395_netdev_ctrl(ETHCH395_NETDEV_CTRL_HARDRESET, NULL, 0x00);
+    rt_thread_mdelay(100);
+
+    return ret;
 }
 
 /**************************************************
