@@ -44,12 +44,13 @@ static rt_uint8_t hci_req_thread_stack[4096];
 static struct rt_thread hci_res_thread;
 static rt_uint8_t hci_res_thread_stack[512];
 
+#ifdef CP_CONFIG_USING_DUPU
 static struct rt_thread terminal_thread;
 static rt_uint8_t terminal_thread_stack[2048];
 
 static struct rt_thread terminal_req_thread;
 static rt_uint8_t terminal_req_thread_stack[1024];
-
+#endif /* CP_CONFIG_USING_DUPU */
 /**************************************************************************/
 
 void app_led_init(void)
@@ -106,8 +107,9 @@ void app_operation_init(void)
 
 void app_terminal_init(void)
 {
-    rt_err_t result = RT_EOK;
 #ifdef CP_CONFIG_USING_DUPU
+    rt_err_t result = RT_EOK;
+
     result = rt_thread_init(&terminal_thread, "terminal_res",
             terminal_thread_entry, RT_NULL, terminal_thread_stack, sizeof(terminal_thread_stack), 19, 10);
     if (RT_EOK == result) {
