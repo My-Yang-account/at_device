@@ -71,6 +71,8 @@
 #define NET_YKC_MONITOR_STARTING_INFO_MAX                              0x0A        /* 单次上报启动中信息的最大个数 */
 #define NET_YKC_MONITOR_CHARGING_INFO_MAX                              0x0E        /* 单次上报充电中中信息的最大个数 */
 #define NET_YKC_MONITOR_FINISH_INFO_MAX                                0x01        /* 单次上报充电结束信息的最大个数 */
+
+#define NET_YKC_MONITOR_SCREEN_PW_LENGTH_DEFAULT                       0x0F        /* 默认屏幕密码长度 */
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
 
 enum ykc_monitor_device_state{
@@ -314,6 +316,7 @@ enum ykc_monitor_cmd{
     NETYKC_MONITOR_PRES_PREQCMD_QUERY_SET_VOLTCURR = 0xCD,           /* 指令：上报(响应)给模块设置的电压、电流 */
 
     NETYKC_MONITOR_PREQ_REPORT_STARTING_INFO = 0xD7,                 /* 指令：上报过程中信息 */
+    NETYKC_MONITOR_SREQ_MODIFY_PILE_INFO = 0xD8,                     /* 指令：修改桩信息 */
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
 };
 
@@ -1572,6 +1575,23 @@ typedef struct{
     }body;
     uint16_t check_sum;                          /* 校验码 */
 }Net_YkcMonitorPro_Preq_ProcessInfo_t;
+
+/** 0xD8 服务器修改设备信息帧 */
+/** 屏幕密码 */
+struct screen_pw{
+    uint8_t dlen;                                /* 数据长度 */
+    uint8_t password[NET_YKC_MONITOR_SCREEN_PW_LENGTH_DEFAULT];  /* 密码 */
+};
+
+typedef struct{
+    Net_YkcMonitorPro_Head_t head;
+    struct{
+        uint8_t pile_number[NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT];  /* 桩号*/
+        uint8_t info_type;                       /* 信息类型 */
+        /* 信息数据 */
+    }body;
+    uint16_t check_sum;                          /* 校验码 */
+}Net_YkcMonitorPro_Sreq_Modify_DeviceInfo_t;
 
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
 

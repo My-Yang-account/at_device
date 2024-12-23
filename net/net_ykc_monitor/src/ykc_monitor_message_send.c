@@ -1680,6 +1680,17 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
                 ykc_monitor_response_buff_release_sem();
                 rt_thread_mdelay(250);
             }
+            /***** [修改设备信息响应] *****/
+            if(ykc_monitor_net_event_receive(NET_YKC_MONITOR_USER_EVENT_HANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_RESPONSE, gunno,
+                    (NET_YKC_MONITOR_EVENT_OPTION_OR |NET_YKC_MONITOR_EVENT_OPTION_CLEAR), NET_YKC_MONITOR_USER_PRES_EVENT_MODIFY_DEV_INFO, NULL) > 0){
+                Net_YkcMonitorPro_Sres_InfoPara_ConfirmResult_t *info = (Net_YkcMonitorPro_Sres_InfoPara_ConfirmResult_t*)(s_ykc_monitor_response_buff.general_transmit_buff);
+
+                info->head.sequence = g_ykc_monitor_sreq_modify_device_info.head.sequence;
+                ykc_monitor_message_send_port(NETYKC_MONITOR_SRESCMD_INFOPARA_CONFIRM_RESULT, s_ykc_monitor_socket_info.fd, s_ykc_monitor_response_buff.general_transmit_buff,
+                        s_ykc_monitor_response_buff.length, NULL);
+                ykc_monitor_response_buff_release_sem();
+                rt_thread_mdelay(250);
+            }
         }
 
         /***************************************************** [充电桩监控数据请求] **********************************************************/
@@ -2251,6 +2262,28 @@ static void net_ykc_monitor_server_message_pro_entry(void *parameter)
                         s_ykc_monitor_assistant_info.flag.recved_info_modify = 0x00;
                         g_ykc_monitor_sreq_pres_info_para_modify_confirm.ongoing = 0x00;
                         g_ykc_monitor_sres_info_para_confirm_result.ongoing = 0x00;
+                        ykc_monitor_response_buff_release_sem();
+                    }
+                }
+                /***** [运营平台修改设备信息请求] *****/
+                if(ykc_monitor_net_event_receive(NET_YKC_MONITOR_USER_EVENT_HANDLE_SERVER, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, gunno,
+                        (NET_YKC_MONITOR_EVENT_OPTION_OR |NET_YKC_MONITOR_EVENT_OPTION_CLEAR), NET_YKC_MONITOR_USER_SREQ_EVENT_MODIFY_DEV_INFO, NULL) > 0){
+                    int8_t pro_result = 0x00;
+                    ykc_monitor_dev_info_buf_t *info = (ykc_monitor_dev_info_buf_t*)ykc_monitor_get_device_info();
+
+                    response = ykc_monitor_get_response_buff(RT_WAITING_FOREVER);
+                    info->flag.is_used = 0x00;
+                    if((result = ykc_monitor_message_pro_modify_dev_info(info->info_type, info->info, info->length)) < 0x00){
+                        pro_result = 0x01;
+                    }
+
+                    result = ykc_monitor_response_padding_modify_dev_info(response->general_transmit_buff, NET_YKC_MONITOR_GENERA_RESPONSE_BUFF_LENGTH, &(response->length));
+                    if(result >= 0x00){
+                        ((Net_YkcMonitorPro_Sres_InfoPara_ConfirmResult_t *)response->general_transmit_buff)->body.type = NETYKC_MONITOR_SREQ_MODIFY_PILE_INFO;
+                        ((Net_YkcMonitorPro_Sres_InfoPara_ConfirmResult_t *)response->general_transmit_buff)->body.err_reason = 0x02;  /** 未知故障 */
+                        ((Net_YkcMonitorPro_Sres_InfoPara_ConfirmResult_t *)response->general_transmit_buff)->body.result = pro_result;
+                        ykc_monitor_net_event_send(NET_YKC_MONITOR_USER_EVENT_HANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_RESPONSE, gunno, NET_YKC_MONITOR_USER_PRES_EVENT_MODIFY_DEV_INFO);
+                    }else{
                         ykc_monitor_response_buff_release_sem();
                     }
                 }

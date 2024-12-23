@@ -33,6 +33,7 @@ static struct ykc_monitor_recv_message s_ykc_monitor_recv_message[YKC_RECV_MONIT
 
 static ykc_monitor_qrcode_buf_t s_ykc_monitor_qrcode_buf;
 static ykc_monitor_card_vin_buf_t s_ykc_monitor_card_vin_buf;
+static ykc_monitor_dev_info_buf_t s_ykc_monitor_dev_info_buf;
 
 extern uint8_t s_ykc_monitor_current_transaction_number[NET_SYSTEM_GUN_NUMBER][NET_YKC_MONITOR_SERIAL_NUMBER_LENGTH_DEFAULT];
 
@@ -101,6 +102,8 @@ Net_YkcMonitorPro_Sreq_FunctionSwitch_t g_ykc_monitor_sreq_function_switch;
 Net_YkcMonitorPro_Sreq_Pres_InfoPara_ModifyConfirm_t g_ykc_monitor_sreq_pres_info_para_modify_confirm;
 /** IP、服务器IP、端口、桩号信息确认结果响应 */
 Net_YkcMonitorPro_Sres_InfoPara_ConfirmResult_t g_ykc_monitor_sres_info_para_confirm_result;
+/** 服务器下发修改设备信息请求 */
+Net_YkcMonitorPro_Sreq_Modify_DeviceInfo_t g_ykc_monitor_sreq_modify_device_info;
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
 
 #ifdef NET_YKC_MONITOR_AS_MONITOR
@@ -207,6 +210,15 @@ void* ykc_monitor_get_qrcode_info(void)
 void* ykc_monitor_get_card_vin_whitelists_info(void)
 {
     return &s_ykc_monitor_card_vin_buf;
+}
+
+/***********************************************
+ * 函数名      ykc_monitor_get_device_info
+* 功能           获取平台下发修改的设备信息
+ **********************************************/
+void* ykc_monitor_get_device_info(void)
+{
+    return &s_ykc_monitor_dev_info_buf;
 }
 
 /***********************************************
@@ -1650,6 +1662,49 @@ static void ykc_monitor_callback_response_info_para_confirm_result(uint8_t* data
     ykc_monitor_net_event_send(NET_YKC_MONITOR_USER_EVENT_HANDLE_SERVER, NET_YKC_MONITOR_EVENT_TYPE_RESPONSE, 0x00, NET_YKC_MONITOR_USER_SRES_EVENT_INFOPARA_CONFIRM_RES);
 }
 
+/*****************************************************************
+ * 函数名                   ykc_monitor_callback_request_modify_device_info
+ * 功能                       处理运营平台下发的修改设备信息请求
+ *           data       数据
+ *           length     数据长度
+ * 返回                        无
+ ****************************************************************/
+static void ykc_monitor_callback_request_modify_device_info(uint8_t* data, uint16_t length)
+{
+    if(data == NULL){
+        LOG_E("ykc monitor input data is null when call ykc_monitor_callback_request_modify_device_info");
+        return;
+    }
+    if(length < sizeof(Net_YkcMonitorPro_Sreq_Modify_DeviceInfo_t)){
+        LOG_E("ykc monitor input length too short when call ykc_monitor_callback_request_modify_device_info|%d, %d", length,
+                sizeof(Net_YkcMonitorPro_Sreq_Modify_DeviceInfo_t));
+        return;
+    }
+
+    Net_YkcMonitorPro_Sreq_Modify_DeviceInfo_t *info = (Net_YkcMonitorPro_Sreq_Modify_DeviceInfo_t*)data;
+    if(s_ykc_monitor_dev_info_buf.flag.is_used){
+        LOG_W("ykc monitor device info processing......");
+        return;
+    }
+
+    s_ykc_monitor_dev_info_buf.flag.is_used = 0x01;
+    memcpy(&g_ykc_monitor_sreq_modify_device_info, info, sizeof(Net_YkcMonitorPro_Sreq_Modify_DeviceInfo_t));
+    /** 屏幕密码 */
+    if(info->body.info_type == 0x00){
+        struct screen_pw *pw = (struct screen_pw*)(&info->body.info_type + 0x01);
+
+        s_ykc_monitor_dev_info_buf.info_type = info->body.info_type;
+        s_ykc_monitor_dev_info_buf.length = pw->dlen;
+        if(s_ykc_monitor_dev_info_buf.length > NET_YKC_MONITOR_DEV_INFO_BUF_MAX){
+            s_ykc_monitor_dev_info_buf.length = NET_YKC_MONITOR_DEV_INFO_BUF_MAX;
+        }
+        memcpy(s_ykc_monitor_dev_info_buf.info, pw->password, s_ykc_monitor_dev_info_buf.length);
+        ykc_monitor_net_event_send(NET_YKC_MONITOR_USER_EVENT_HANDLE_SERVER, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, 0x00, NET_YKC_MONITOR_USER_SREQ_EVENT_MODIFY_DEV_INFO);
+    }else{
+
+    }
+}
+
 #endif /* NET_PACK_USING_YKC_MONITOR */
 
 int32_t ykc_monitor_message_recv_init(void)
@@ -1692,6 +1747,7 @@ int32_t ykc_monitor_message_recv_init(void)
     ykc_monitor_service_callback_register(NETYKC_MONITOR_SREQCMD_FUNCTION_SWITCH,            ykc_monitor_callback_request_function_switch);
     ykc_monitor_service_callback_register(NETYKC_MONITOR_SREQCMD_INFOPARA_MODIFY,            ykc_monitor_callback_request_info_para_modify);
     ykc_monitor_service_callback_register(NETYKC_MONITOR_SRESCMD_INFOPARA_CONFIRM_RESULT,    ykc_monitor_callback_response_info_para_confirm_result);
+    ykc_monitor_service_callback_register(NETYKC_MONITOR_SREQ_MODIFY_PILE_INFO,              ykc_monitor_callback_request_modify_device_info);
 #endif /* #ifdef NET_YKC_MONITOR_AS_MONITOR */
 
     s_ykc_monitor_qrcode_buf.flag.is_used = 0x00;

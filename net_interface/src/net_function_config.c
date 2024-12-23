@@ -523,6 +523,9 @@ static int32_t app_nset_system_data(uint8_t name, uint8_t *data, uint16_t len, u
         return sys_sync_config_item_content(CONFIG_ITEM_OVERTEMP_STOP, &value, sizeof(value));
     }
         break;
+    case NET_SYSTEM_DATA_NAME_SCREEN_PW:
+        return sys_sync_config_item_content(CONFIG_ITEM_SCREEN_PASSWORD, data, len);
+        break;
     default:
         break;
     }

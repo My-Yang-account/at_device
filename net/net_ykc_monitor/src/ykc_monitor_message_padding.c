@@ -1152,7 +1152,7 @@ int8_t ykc_monitor_message_pro_time_sync_request(void *data, uint8_t len)
     uint32_t timestamp = ykc_monitor_get_timestamp_from_cp56time2a(request->body.current_time);
     s_ykc_monitor_handle->time_sync(timestamp + 28800);
 
-    rt_kprintf("ykc_monitor_message_pro_time_sync_request(%d)[%d, %d, %d, %d, %d, %d]\n", timestamp,
+    LOG_D("ykc_monitor_message_pro_time_sync_request(%d)[%d, %d, %d, %d, %d, %d]", timestamp,
             request->body.current_time.cp56time2a_tm.year, request->body.current_time.cp56time2a_tm.month,
             request->body.current_time.cp56time2a_tm.mday, request->body.current_time.cp56time2a_tm.hour,
             request->body.current_time.cp56time2a_tm.min, request->body.current_time.cp56time2a_tm.msec /1000);
@@ -4032,6 +4032,28 @@ int8_t ykc_monitor_response_padding_info_para_confirm(uint8_t *buf, uint16_t ile
     return 0x00;
 }
 
+/*************************************************
+ * 函数名      ykc_monitor_response_padding_modify_dev_info
+ * 功能          组包：修改设备信息响应
+ * **********************************************/
+int8_t ykc_monitor_response_padding_modify_dev_info(uint8_t *buf, uint16_t ilen, uint16_t *olen)
+{
+    uint16_t data_len = sizeof(Net_YkcMonitorPro_Sres_InfoPara_ConfirmResult_t);
+
+    if(buf == NULL){
+        return -0x01;
+    }
+    if(ilen < data_len){
+        return -0x02;
+    }
+
+    if(olen){
+        *olen = data_len;
+    }
+
+    return 0x00;
+}
+
 
 
 
@@ -4106,9 +4128,44 @@ int8_t ykc_monitor_message_pro_info_para_modify(void *data, uint16_t len)
         s_ykc_monitor_handle->set_system_data(NET_SYSTEM_DATA_NAME_PORT, (uint8_t*)&info_para->body.port, sizeof(info_para->body.port), option);
     }
 
-    s_ykc_monitor_handle->system_data_storage(0x00);
+    return s_ykc_monitor_handle->system_data_storage(0x00);
+}
 
-    return 0x00;
+/*************************************************
+ * 函数名      ykc_monitor_message_pro_modify_dev_info
+ * 功能          执行设备信息修改
+ * **********************************************/
+int8_t ykc_monitor_message_pro_modify_dev_info(uint8_t info_type, void *data, uint16_t len)
+{
+    if(data == NULL){
+        return -0x01;
+    }
+
+    uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC_MONITOR |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
+
+    /** 屏幕密码 */
+    if(info_type == 0x00){
+        uint8_t count = 0x00;
+        for(count = 0; count < len; count++){
+            if((*((uint8_t*)data + count) < 0x20) || (*((uint8_t*)data + count) > 0x7E)){        /** 不能是控制字符 */
+                break;
+            }
+        }
+        if(count == len){
+            if(s_ykc_monitor_handle->set_system_data(NET_SYSTEM_DATA_NAME_SCREEN_PW, (uint8_t*)data, len, option) < 0x00){
+                LOG_W("ykc_monitor_message_pro_modify_dev_info modify screen password fail(storage sync)");
+                return -0x01;
+            }
+        }else{
+            LOG_W("ykc_monitor_message_pro_modify_dev_info modify screen password fail(ctrl char)");
+            return -0x01;
+        }
+    }else{
+        LOG_W("ykc_monitor_message_pro_modify_dev_info not this info type(%d)", info_type);
+        return -0x01;
+    }
+
+    return s_ykc_monitor_handle->system_data_storage(0x00);
 }
 
 

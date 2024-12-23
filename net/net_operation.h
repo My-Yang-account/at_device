@@ -124,9 +124,10 @@
 #define NET_SYSTEM_DATA_NAME_AMMETER_ADDRESS           0x1D    /* 系统数据名： 电表地址*/
 #define NET_SYSTEM_DATA_NAME_TEMP_PROTECT_SWITCH       0x1E    /* 系统数据名： 温度保护开关*/
 #define NET_SYSTEM_DATA_NAME_TEMP_PROTECT_STOP_VAL     0x1F    /* 系统数据名： 温度保护：停充温度*/
-#define NET_SYSTEM_DATA_NAME_SOFTWARE_MODEL            0x20    /* 系统数据名： 温度保护：软件型号*/
-#define NET_SYSTEM_DATA_NAME_DEV_TYPE                  0x21    /* 系统数据名： 温度保护：设备类型*/
-#define NET_SYSTEM_DATA_NAME_SIZE                      0x22
+#define NET_SYSTEM_DATA_NAME_SOFTWARE_MODEL            0x20    /* 系统数据名： 软件型号*/
+#define NET_SYSTEM_DATA_NAME_DEV_TYPE                  0x21    /* 系统数据名： 设备类型*/
+#define NET_SYSTEM_DATA_NAME_SCREEN_PW                 0x22    /* 系统数据名： 屏幕密码*/
+#define NET_SYSTEM_DATA_NAME_SIZE                      0x23
 
 /** operator name */
 #define NET_OPERATOR_NAME_CHINA_MOBILE                 0x00    /* 运营商名称：中国移动*/

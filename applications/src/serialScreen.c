@@ -1313,6 +1313,24 @@ static void SerialScreen_RealTime_InfoGet(void)
         {
             thaisen_get_device_sn((char*)LcdData.runData.chgcode[i], sizeof(LcdData.runData.chgcode[i]), i);
         }
+
+        if(LcdData.CurrentPage != LCD_PAGE_ADMIN_PASWD){
+            data = UI_READ_SINGLE_CFG_STR(CONFIG_ITEM_SCREEN_PASSWORD, 0);
+            valid_len = strlen((char*)data);
+            valid_len = valid_len > sizeof(LcdData.setData.UserPasswd) ? sizeof(LcdData.setData.UserPasswd) : valid_len;
+
+            if(memcmp(data, LcdData.setData.UserPasswd, valid_len)){
+                u8 i = 0;
+                for(i = 0; i < valid_len; i++){
+                    if((data[i] < 0x20) || (data[i] > 0x7E)){
+                        break;
+                    }
+                }
+                if(i == valid_len){
+                    memcpy(LcdData.setData.UserPasswd, data, valid_len);
+                }
+            }
+        }
     }
 
     LcdData.setData.ota_progress = s_ota_info->progress;
