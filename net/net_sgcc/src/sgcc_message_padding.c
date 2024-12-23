@@ -125,6 +125,28 @@ static struct net_handle* s_sgcc_handle = NULL;
 static uint8_t sgcc_chargepile_transaction_identity_converted(uint8_t identity, uint8_t online_order);
 static uint16_t sgcc_chargepile_stop_reason_converted(uint8_t reason, uint8_t stop_in_starting);
 
+/*******************************************************
+ * 函数名               sgcc_enter_critical
+ * 功能                  进入临界区
+ * 参数
+ * 返回
+ ******************************************************/
+static void sgcc_enter_critical(void)
+{
+    rt_enter_critical();
+}
+
+/*******************************************************
+ * 函数名               sgcc_exit_critical
+ * 功能                  退出临界区
+ * 参数
+ * 返回
+ ******************************************************/
+static void sgcc_exit_critical(void)
+{
+    rt_exit_critical();
+}
+
 /*************************************************
  * 函数名      sgcc_get_applycharge_result
  * 功能          获取申请充电启动结果
@@ -1587,8 +1609,11 @@ int8_t sgcc_message_pro_time_sync_request(void *data, uint8_t len)
     net_operation_set_event(0x00, NET_OPERATION_EVENT_TIME_SYNC);
 
     timestamp = time(NULL);
+
+    sgcc_enter_critical();
     _tm = localtime((const time_t*)&(timestamp));
     LOG_D("set time ok, now time is %d-%02d-%02d %02d:%02d:%02d\n", _tm->tm_year + 1900, _tm->tm_mon + 1, _tm->tm_mday, _tm->tm_hour, _tm->tm_min, _tm->tm_sec);
+    sgcc_exit_critical();
 
     return 0x00;
 }
@@ -1877,10 +1902,12 @@ int8_t sgcc_message_pro_query_dev_record_request(uint8_t gunno, void *data, uint
         evs_event_logQuery_Results[gunno].dataArea.tradeInfo.valleyServCost = _transaction->rate_type_service_amount[APP_RATE_TYPE_VALLEY];
 
     }else{
-//        struct tm *_tm = NULL;
+//        struct tm _tm;
 //        uint8_t used_len = 0x00;
 //
-//        _tm = localtime((const time_t*)&(_transaction->end_time));
+//        sgcc_enter_critical();
+//        _tm = *(localtime((const time_t*)&(_transaction->end_time)));
+//        sgcc_exit_critical();
 //
 //        evs_event_logQuery_Results[gunno].dataArea.meterData.gunNo = request->gunNo;
 //
@@ -2264,10 +2291,12 @@ void sgcc_chargepile_request_padding_out_ammeter_val(uint8_t gunno)
 
     if(sgcc_get_message_send_state(gunno, NET_SGCC_PREQ_EVENT_REPORT_AMMETER_VALUE) == NET_SGCC_SEND_STATE_COMPLETE){
         uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_SGCC |NET_SYSTEM_DATA_OPTION_DATA_CONTENT), count = 0x00;
-        struct tm *_tm = NULL;
+        struct tm _tm;
         uint8_t used_len = 0x00, *data = NULL;
 
-        _tm = localtime((const time_t*)&(base->current_time));
+        sgcc_enter_critical();
+        _tm = *(localtime((const time_t*)&(base->current_time)));
+        sgcc_exit_critical();
 
         data = (uint8_t*)(s_sgcc_handle->get_system_data(NET_SYSTEM_DATA_NAME_AMMETER_ADDRESS, &count, sizeof(count), option));
         memset(evs_property_meters[gunno].meterNo, 0x00, EVS_MAX_METER_ADDR_LEN);
@@ -2276,32 +2305,32 @@ void sgcc_chargepile_request_padding_out_ammeter_val(uint8_t gunno)
         }
 
         memset(evs_property_meters[gunno].acqTime, 0x00, EVS_MAX_TIMESTAMP_LEN);
-        sprintf((char*)(evs_property_meters[gunno].acqTime + used_len), "%d", (_tm->tm_year + 1900));
+        sprintf((char*)(evs_property_meters[gunno].acqTime + used_len), "%d", (_tm.tm_year + 1900));
         used_len = strlen((char*)(evs_property_meters[gunno].acqTime));
         if((used_len + 0x02) > EVS_MAX_TIMESTAMP_LEN){
             return;
         }
-        sprintf((char*)(evs_property_meters[gunno].acqTime + used_len), "%02d", (_tm->tm_mon + 0x01));
+        sprintf((char*)(evs_property_meters[gunno].acqTime + used_len), "%02d", (_tm.tm_mon + 0x01));
         used_len = strlen((char*)(evs_property_meters[gunno].acqTime));
         if((used_len + 0x02) > EVS_MAX_TIMESTAMP_LEN){
             return;
         }
-        sprintf((char*)(evs_property_meters[gunno].acqTime + used_len), "%02d", _tm->tm_mday);
+        sprintf((char*)(evs_property_meters[gunno].acqTime + used_len), "%02d", _tm.tm_mday);
         used_len = strlen((char*)(evs_property_meters[gunno].acqTime));
         if((used_len + 0x02) > EVS_MAX_TIMESTAMP_LEN){
             return;
         }
-        sprintf((char*)(evs_property_meters[gunno].acqTime + used_len), "%02d", _tm->tm_hour);
+        sprintf((char*)(evs_property_meters[gunno].acqTime + used_len), "%02d", _tm.tm_hour);
         used_len = strlen((char*)(evs_property_meters[gunno].acqTime));
         if((used_len + 0x02) > EVS_MAX_TIMESTAMP_LEN){
             return;
         }
-        sprintf((char*)(evs_property_meters[gunno].acqTime + used_len), "%02d", _tm->tm_min);
+        sprintf((char*)(evs_property_meters[gunno].acqTime + used_len), "%02d", _tm.tm_min);
         used_len = strlen((char*)(evs_property_meters[gunno].acqTime));
         if((used_len + 0x02) > EVS_MAX_TIMESTAMP_LEN){
             return;
         }
-        sprintf((char*)(evs_property_meters[gunno].acqTime + used_len), "%02d", _tm->tm_sec);
+        sprintf((char*)(evs_property_meters[gunno].acqTime + used_len), "%02d", _tm.tm_sec);
 
         if(base->ammeter_elect > evs_property_meters[gunno].sumMeter){
             evs_property_meters[gunno].sumMeter = base->ammeter_elect;
@@ -3083,10 +3112,12 @@ int8_t sgcc_chargepile_create_local_transaction_number(uint8_t gunno, void *vect
 
     sgcc_storage_struct *config = (sgcc_storage_struct*)(s_sgcc_handle->get_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, 0x00, NET_SYSTEM_DATA_OPTION_TARGET_PLAT));
     uint8_t sn_len = 0x00;
-    struct tm *_tm = NULL;
+    struct tm _tm;
     System_BaseData *base = (System_BaseData*)(s_sgcc_handle->get_base_data(gunno));
 
-    _tm = localtime((const time_t*)&(base->current_time));
+    sgcc_enter_critical();
+    _tm = *(localtime((const time_t*)&(base->current_time)));
+    sgcc_exit_critical();
 
     memset(vector, 0x00, len);
     memcpy((vector + sn_len), config->device_name, SGCC_DEVICE_NAME_VALID_LEN);
@@ -3101,19 +3132,19 @@ int8_t sgcc_chargepile_create_local_transaction_number(uint8_t gunno, void *vect
         return -0x01;
     }
 
-    sprintf((vector + sn_len), "%02d", (_tm->tm_year - 100));
+    sprintf((vector + sn_len), "%02d", (_tm.tm_year - 100));
     sn_len += 0x02;
     if((sn_len + 0x02) >= len){
         return -0x01;
     }
 
-    sprintf((vector + sn_len), "%02d", (_tm->tm_mon + 0x01));
+    sprintf((vector + sn_len), "%02d", (_tm.tm_mon + 0x01));
     sn_len += 0x02;
     if((sn_len + 0x02) >= len){
         return -0x01;
     }
 
-    sprintf((vector + sn_len), "%02d", _tm->tm_mday);
+    sprintf((vector + sn_len), "%02d", _tm.tm_mday);
     sn_len += 0x02;
     if((sn_len + 0x04) >= len){
         return -0x01;
@@ -3885,10 +3916,13 @@ static void sgcc_realtime_process_thread_entry(void *parameter)
                 }else{
                     uint8_t count = 0x00;
                     uint32_t time_sec = 0x00;
-                    struct tm *_tm = NULL;
+                    struct tm _tm;
 
-                    _tm = localtime((const time_t*)&(base->current_time));
-                    time_sec = (_tm->tm_hour *60 *60 + _tm->tm_min *60 + _tm->tm_sec);
+                    sgcc_enter_critical();
+                    _tm = *(localtime((const time_t*)&(base->current_time)));
+                    sgcc_exit_critical();
+
+                    time_sec = (_tm.tm_hour *60 *60 + _tm.tm_min *60 + _tm.tm_sec);
                     for(count = 0x00; count < SGCC_ORDERLY_CHARGE_TIME_POINT_NUM; count++){
                         if((count + 0x02) <= SGCC_ORDERLY_CHARGE_TIME_POINT_NUM){
                             if((time_sec >= s_sgcc_order_charge[gunno].time_sec[count]) &&  \

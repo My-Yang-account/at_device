@@ -1464,3 +1464,26 @@ uint8_t thaisen_is_not_allow_swip_card(void)
     }
     return 0x00;
 }
+
+/*******************************************************
+ * 函数名               thaisen_enter_critical
+ * 功能                  进入临界区
+ * 参数
+ * 返回
+ ******************************************************/
+void thaisen_enter_critical(void)
+{
+    rt_enter_critical();
+}
+
+/*******************************************************
+ * 函数名               thaisen_exit_critical
+ * 功能                  退出临界区
+ * 参数
+ * 返回
+ ******************************************************/
+void thaisen_exit_critical(void)
+{
+    rt_exit_critical();
+}
+

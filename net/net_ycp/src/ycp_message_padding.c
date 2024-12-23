@@ -2150,7 +2150,7 @@ int8_t ycp_chargepile_create_local_transaction_number(uint8_t gunno, void *vecto
     uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YCP |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
     uint8_t *pile_number = NULL;
     uint8_t sn_len = 0x00, *ptr = (uint8_t*)vector;
-    struct tm *_tm = NULL;
+    struct tm _tm;
     uint16_t valid_len = 0x00;
     System_BaseData *base = (System_BaseData*)(s_ycp_handle->get_base_data(gunno));
 
@@ -2162,18 +2162,21 @@ int8_t ycp_chargepile_create_local_transaction_number(uint8_t gunno, void *vecto
 
     s_ycp_local_start_sq++;
     sn_len = 0x07;
-    _tm = localtime((const time_t*)&(base->current_time));
 
-    LOG_D("ycp_chargepile_create_local_transaction_number[%d](%d, %d, %d, %d, %d)", base->current_time, _tm->tm_year, _tm->tm_mon,
-            _tm->tm_mday, _tm->tm_hour, _tm->tm_min, _tm->tm_sec);
+    ycp_enter_critical();
+    _tm = *(localtime((const time_t*)&(base->current_time)));
+    ycp_exit_critical();
+
+    LOG_D("ycp_chargepile_create_local_transaction_number[%d](%d, %d, %d, %d, %d)", base->current_time, _tm.tm_year, _tm.tm_mon,
+            _tm.tm_mday, _tm.tm_hour, _tm.tm_min, _tm.tm_sec);
 
     ptr[sn_len++] = gunno + 1;                                                     /* 枪号 */
-    ptr[sn_len++] = (((_tm->tm_year - 100) /10) *16) + ((_tm->tm_year - 100) %10); /* 年 */
-    ptr[sn_len++] = (((_tm->tm_mon + 0x01) /10) *16) + ((_tm->tm_mon + 0x01) %10); /* 月 */
-    ptr[sn_len++] = ((_tm->tm_mday /10) *16) +  (_tm->tm_mday %10);                /* 日 */
-    ptr[sn_len++] = ((_tm->tm_hour /10) *16) + (_tm->tm_hour %10);                 /* 时 */
-    ptr[sn_len++] = ((_tm->tm_min /10) *16) + (_tm->tm_min %10);                   /* 分 */
-    ptr[sn_len++] = ((_tm->tm_sec /10) *16) + (_tm->tm_sec %10);                   /* 秒 */
+    ptr[sn_len++] = (((_tm.tm_year - 100) /10) *16) + ((_tm.tm_year - 100) %10); /* 年 */
+    ptr[sn_len++] = (((_tm.tm_mon + 0x01) /10) *16) + ((_tm.tm_mon + 0x01) %10); /* 月 */
+    ptr[sn_len++] = ((_tm.tm_mday /10) *16) +  (_tm.tm_mday %10);                /* 日 */
+    ptr[sn_len++] = ((_tm.tm_hour /10) *16) + (_tm.tm_hour %10);                 /* 时 */
+    ptr[sn_len++] = ((_tm.tm_min /10) *16) + (_tm.tm_min %10);                   /* 分 */
+    ptr[sn_len++] = ((_tm.tm_sec /10) *16) + (_tm.tm_sec %10);                   /* 秒 */
     memcpy((ptr + sn_len), &s_ycp_local_start_sq, sizeof(s_ycp_local_start_sq));   /* 自增序列号 */
 
 

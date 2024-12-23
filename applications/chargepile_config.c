@@ -656,6 +656,28 @@ static struct config_item s_config_item_set[CONFIG_ITEM_SIZE] =
 
 /******************************************************************************/
 
+/*******************************************************
+ * 函数名               sys_config_enter_critical
+ * 功能                  进入临界区
+ * 参数
+ * 返回
+ ******************************************************/
+static void sys_config_enter_critical(void)
+{
+    rt_enter_critical();
+}
+
+/*******************************************************
+ * 函数名               sys_config_exit_critical
+ * 功能                  退出临界区
+ * 参数
+ * 返回
+ ******************************************************/
+static void sys_config_exit_critical(void)
+{
+    rt_exit_critical();
+}
+
 static uint32_t crc32_ieee_update(uint32_t crc, const uint8_t *data, size_t len)
 {
     /* crc table generated from polynomial 0xedb88320 */
@@ -2535,8 +2557,11 @@ int32_t sys_period_time_resume_default(void *t, uint8_t tlen)
 uint8_t sys_get_offbilling_rate_number(uint32_t curr_time)
 {
     uint8_t i = 0x00, j = 0x00, end_hour = 0x00;
-    struct tm *_tm;
-    _tm = localtime((time_t*)&curr_time);
+    struct tm _tm;
+
+    sys_config_enter_critical();
+    _tm = *(localtime((time_t*)&curr_time));
+    sys_config_exit_critical();
 
     for(i = 0x00; i < CP_RATED_TYPE_NUM_MAX; i++){
         for(j = 0x00; j < CP_RATED_TYPE_PERIOD_NUM; j++){
@@ -2554,27 +2579,27 @@ uint8_t sys_get_offbilling_rate_number(uint32_t curr_time)
                 end_hour = 24;
             }
 
-            if((_tm->tm_hour > s_chargepile_config_info.billing_rule.time[i][j].shour) && (_tm->tm_hour < end_hour)){
+            if((_tm.tm_hour > s_chargepile_config_info.billing_rule.time[i][j].shour) && (_tm.tm_hour < end_hour)){
                 return s_chargepile_config_info.billing_rule.time[i][j].rate_number;
-            }else if(_tm->tm_hour == s_chargepile_config_info.billing_rule.time[i][j].shour){
+            }else if(_tm.tm_hour == s_chargepile_config_info.billing_rule.time[i][j].shour){
                 if(s_chargepile_config_info.billing_rule.time[i][j].shour == end_hour){
-                    if((_tm->tm_min >= s_chargepile_config_info.billing_rule.time[i][j].smin) &&
-                            (_tm->tm_min <= s_chargepile_config_info.billing_rule.time[i][j].emin)){
+                    if((_tm.tm_min >= s_chargepile_config_info.billing_rule.time[i][j].smin) &&
+                            (_tm.tm_min <= s_chargepile_config_info.billing_rule.time[i][j].emin)){
                         return s_chargepile_config_info.billing_rule.time[i][j].rate_number;
                     }
                 }else{
-                    if(_tm->tm_min >= s_chargepile_config_info.billing_rule.time[i][j].smin){
+                    if(_tm.tm_min >= s_chargepile_config_info.billing_rule.time[i][j].smin){
                         return s_chargepile_config_info.billing_rule.time[i][j].rate_number;
                     }
                 }
-            }else if(_tm->tm_hour == end_hour){
+            }else if(_tm.tm_hour == end_hour){
                 if(s_chargepile_config_info.billing_rule.time[i][j].shour == end_hour){
-                    if((_tm->tm_min >= s_chargepile_config_info.billing_rule.time[i][j].smin) &&
-                            (_tm->tm_min <= s_chargepile_config_info.billing_rule.time[i][j].emin)){
+                    if((_tm.tm_min >= s_chargepile_config_info.billing_rule.time[i][j].smin) &&
+                            (_tm.tm_min <= s_chargepile_config_info.billing_rule.time[i][j].emin)){
                         return s_chargepile_config_info.billing_rule.time[i][j].rate_number;
                     }
                 }else{
-                    if(_tm->tm_min <= s_chargepile_config_info.billing_rule.time[i][j].emin){
+                    if(_tm.tm_min <= s_chargepile_config_info.billing_rule.time[i][j].emin){
                         return s_chargepile_config_info.billing_rule.time[i][j].rate_number;
                     }
                 }
@@ -2595,8 +2620,11 @@ uint32_t sys_get_offbilling_unit_price(uint32_t curr_time)
 {
     uint8_t rate_number = CP_RATED_TYPE_NUM_MAX, i = 0x00, j = 0x00, end_hour = 0x00;
     uint32_t price = 0x00;
-    struct tm *_tm;
-    _tm = localtime((time_t*)&curr_time);
+    struct tm _tm;
+
+    sys_config_enter_critical();
+    _tm = *(localtime((time_t*)&curr_time));
+    sys_config_exit_critical();
 
     for(i = 0x00; i < CP_RATED_TYPE_NUM_MAX; i++){
         for(j = 0x00; j < CP_RATED_TYPE_PERIOD_NUM; j++){
@@ -2614,27 +2642,27 @@ uint32_t sys_get_offbilling_unit_price(uint32_t curr_time)
                 end_hour = 24;
             }
 
-            if((_tm->tm_hour > s_chargepile_config_info.billing_rule.time[i][j].shour) && (_tm->tm_hour < end_hour)){
+            if((_tm.tm_hour > s_chargepile_config_info.billing_rule.time[i][j].shour) && (_tm.tm_hour < end_hour)){
                 rate_number = s_chargepile_config_info.billing_rule.time[i][j].rate_number;
-            }else if(_tm->tm_hour == s_chargepile_config_info.billing_rule.time[i][j].shour){
+            }else if(_tm.tm_hour == s_chargepile_config_info.billing_rule.time[i][j].shour){
                 if(s_chargepile_config_info.billing_rule.time[i][j].shour == end_hour){
-                    if((_tm->tm_min >= s_chargepile_config_info.billing_rule.time[i][j].smin) &&
-                            (_tm->tm_min <= s_chargepile_config_info.billing_rule.time[i][j].emin)){
+                    if((_tm.tm_min >= s_chargepile_config_info.billing_rule.time[i][j].smin) &&
+                            (_tm.tm_min <= s_chargepile_config_info.billing_rule.time[i][j].emin)){
                         rate_number = s_chargepile_config_info.billing_rule.time[i][j].rate_number;
                     }
                 }else{
-                    if(_tm->tm_min >= s_chargepile_config_info.billing_rule.time[i][j].smin){
+                    if(_tm.tm_min >= s_chargepile_config_info.billing_rule.time[i][j].smin){
                         rate_number = s_chargepile_config_info.billing_rule.time[i][j].rate_number;
                     }
                 }
-            }else if(_tm->tm_hour == end_hour){
+            }else if(_tm.tm_hour == end_hour){
                 if(s_chargepile_config_info.billing_rule.time[i][j].shour == end_hour){
-                    if((_tm->tm_min >= s_chargepile_config_info.billing_rule.time[i][j].smin) &&
-                            (_tm->tm_min <= s_chargepile_config_info.billing_rule.time[i][j].emin)){
+                    if((_tm.tm_min >= s_chargepile_config_info.billing_rule.time[i][j].smin) &&
+                            (_tm.tm_min <= s_chargepile_config_info.billing_rule.time[i][j].emin)){
                         rate_number = s_chargepile_config_info.billing_rule.time[i][j].rate_number;
                     }
                 }else{
-                    if(_tm->tm_min <= s_chargepile_config_info.billing_rule.time[i][j].emin){
+                    if(_tm.tm_min <= s_chargepile_config_info.billing_rule.time[i][j].emin){
                         rate_number = s_chargepile_config_info.billing_rule.time[i][j].rate_number;
                     }
                 }

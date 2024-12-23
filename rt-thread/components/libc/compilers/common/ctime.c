@@ -220,6 +220,7 @@ struct tm *gmtime_r(const time_t *timep, struct tm *r)
 }
 RTM_EXPORT(gmtime_r);
 
+/** 由于该函数使用内部静态变量，对于实时操作系统(多线程)，需要在临界区内调用此函数 */
 struct tm* gmtime(const time_t* t)
 {
     static struct tm tmp;
@@ -236,6 +237,7 @@ struct tm* localtime_r(const time_t* t, struct tm* r)
 }
 RTM_EXPORT(localtime_r);
 
+/** 由于该函数使用内部静态变量，对于实时操作系统(多线程)，需要在临界区内调用此函数 */
 struct tm* localtime(const time_t* t)
 {
     static struct tm tmp;
@@ -307,6 +309,7 @@ char* asctime_r(const struct tm *t, char *buf)
 }
 RTM_EXPORT(asctime_r);
 
+/** 由于该函数使用内部静态变量，对于实时操作系统(多线程)，需要在临界区内调用此函数 */
 char* asctime(const struct tm *timeptr)
 {
     static char buf[26];
@@ -321,6 +324,7 @@ char *ctime_r(const time_t * tim_p, char * result)
 }
 RTM_EXPORT(ctime_r);
 
+/** 由于该函数使用内部静态变量，对于实时操作系统(多线程)，需要在临界区内调用此函数 */
 char* ctime(const time_t *tim_p)
 {
     return asctime(localtime(tim_p));

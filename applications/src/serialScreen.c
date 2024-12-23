@@ -3214,9 +3214,12 @@ void SerialScreen_BtnBillGet(int port)
         }
 
         /** 开始时间 **/
+        thaisen_enter_critical();
         _tm = localtime((time_t*)(&(billBuf.start_time)));
         sprintf(((char*)LcdData.billInfo[i] + used_len), "%02d/%02d/%02d %02d:%02d", (_tm->tm_year + 1900),
                 (_tm->tm_mon + 1),_tm->tm_mday, _tm->tm_hour, _tm->tm_min);
+        thaisen_exit_critical();
+
         used_len += START_TIME_LEN;
         if(used_len > strlen((char*)LcdData.billInfo[i])){    /* 未使用字节填充空格字符 */
             remain_len = used_len - strlen((char*)LcdData.billInfo[i]);
@@ -3226,9 +3229,11 @@ void SerialScreen_BtnBillGet(int port)
         }
         /** 结束时间 **/
         if(billBuf.order_state.is_charging == 0x00){
+            thaisen_enter_critical();
             _tm = localtime((time_t*)(&(billBuf.end_time)));
             sprintf(((char*)LcdData.billInfo[i] + used_len), "%02d/%02d %02d:%02d ", (_tm->tm_mon + 1),
                     _tm->tm_mday, _tm->tm_hour,_tm->tm_min);
+            thaisen_exit_critical();
         }
         used_len += STOP_TIMEL_LEN;
         if(used_len > strlen((char*)LcdData.billInfo[i])){    /* 未使用字节填充空格字符 */
@@ -3402,9 +3407,12 @@ void SerialScreen_BtnBillUp(int port)
         }
 
         /** 开始时间 **/
+        thaisen_enter_critical();
         _tm = localtime((time_t*)(&(billBuf.start_time)));
         sprintf(((char*)LcdData.billInfo[i] + used_len), "%02d/%02d/%02d %02d:%02d", (_tm->tm_year + 1900),
                 (_tm->tm_mon + 1),_tm->tm_mday, _tm->tm_hour, _tm->tm_min);
+        thaisen_exit_critical();
+
         used_len += START_TIME_LEN;
         if(used_len > strlen((char*)LcdData.billInfo[i])){    /* 未使用字节填充空格字符 */
             remain_len = used_len - strlen((char*)LcdData.billInfo[i]);
@@ -3414,9 +3422,11 @@ void SerialScreen_BtnBillUp(int port)
         }
         /** 结束时间 **/
         if(billBuf.order_state.is_charging == 0x00){
+            thaisen_enter_critical();
             _tm = localtime((time_t*)(&(billBuf.end_time)));
             sprintf(((char*)LcdData.billInfo[i] + used_len), "%02d/%02d %02d:%02d ", (_tm->tm_mon + 1),
                     _tm->tm_mday, _tm->tm_hour,_tm->tm_min);
+            thaisen_exit_critical();
         }
         used_len += STOP_TIMEL_LEN;
         if(used_len > strlen((char*)LcdData.billInfo[i])){    /* 未使用字节填充空格字符 */
@@ -3554,9 +3564,12 @@ void SerialScreen_BtnBillDown(int port)
         }
 
         /** 开始时间 **/
+        thaisen_enter_critical();
         _tm = localtime((time_t*)(&(billBuf.start_time)));
         sprintf(((char*)LcdData.billInfo[i] + used_len), "%02d/%02d/%02d %02d:%02d", (_tm->tm_year + 1900),
                 (_tm->tm_mon + 1),_tm->tm_mday, _tm->tm_hour, _tm->tm_min);
+        thaisen_exit_critical();
+
         used_len += START_TIME_LEN;
         if(used_len > strlen((char*)LcdData.billInfo[i])){    /* 未使用字节填充空格字符 */
             remain_len = used_len - strlen((char*)LcdData.billInfo[i]);
@@ -3566,9 +3579,11 @@ void SerialScreen_BtnBillDown(int port)
         }
         /** 结束时间 **/
         if(billBuf.order_state.is_charging == 0x00){
+            thaisen_enter_critical();
             _tm = localtime((time_t*)(&(billBuf.end_time)));
             sprintf(((char*)LcdData.billInfo[i] + used_len), "%02d/%02d %02d:%02d ", (_tm->tm_mon + 1),
                     _tm->tm_mday, _tm->tm_hour,_tm->tm_min);
+            thaisen_exit_critical();
         }
         used_len += STOP_TIMEL_LEN;
         if(used_len > strlen((char*)LcdData.billInfo[i])){    /* 未使用字节填充空格字符 */
@@ -3738,9 +3753,12 @@ void SerialScreen_BtnErrGet(int port)
             }
         }
 
+        thaisen_enter_critical();
         _tm = localtime((time_t*)(&(errBuf.occur_time)));
         sprintf(((char*)LcdData.ErrInfo[i] + used_len), "%02d/%02d/%02d %02d:%02d", (_tm->tm_year + 1900),     /* 发生开始时间 */
                 (_tm->tm_mon + 1), _tm->tm_mday, _tm->tm_hour, _tm->tm_min);
+        thaisen_exit_critical();
+
         used_len += START_TIME_LEN;
         if(used_len > strlen((char*)LcdData.ErrInfo[i])){    /* 未使用字节填充空格字符 */
             remain_len = used_len - strlen((char*)LcdData.ErrInfo[i]);
@@ -3750,9 +3768,11 @@ void SerialScreen_BtnErrGet(int port)
         }
 
         if(errBuf.error_flag == 0x01){
+            thaisen_enter_critical();
             _tm = localtime((time_t*)(&(errBuf.resume_time)));
             sprintf(((char*)LcdData.ErrInfo[i] + used_len), "%02d/%02d/%02d %02d:%02d", (_tm->tm_year + 1900),    /* 恢复时间 */
                     (_tm->tm_mon + 1), _tm->tm_mday, _tm->tm_hour, _tm->tm_min);
+            thaisen_exit_critical();
         }
         used_len +=STOP_TIME_LEN;
         if(used_len > strlen((char*)LcdData.ErrInfo[i])){    /* 未使用字节填充空格字符 */
@@ -3888,9 +3908,12 @@ void SerialScreen_BtnErrUp(int port)
             }
         }
 
+        thaisen_enter_critical();
         _tm = localtime((time_t*)(&(errBuf.occur_time)));
         sprintf(((char*)LcdData.ErrInfo[i] + used_len), "%02d/%02d/%02d %02d:%02d", (_tm->tm_year + 1900),     /* 发生开始时间 */
                 (_tm->tm_mon + 1), _tm->tm_mday, _tm->tm_hour, _tm->tm_min);
+        thaisen_exit_critical();
+
         used_len += START_TIME_LEN;
         if(used_len > strlen((char*)LcdData.ErrInfo[i])){    /* 未使用字节填充空格字符 */
             remain_len = used_len - strlen((char*)LcdData.ErrInfo[i]);
@@ -3900,9 +3923,11 @@ void SerialScreen_BtnErrUp(int port)
         }
 
         if(errBuf.error_flag == 0x01){
+            thaisen_enter_critical();
             _tm = localtime((time_t*)(&(errBuf.resume_time)));
             sprintf(((char*)LcdData.ErrInfo[i] + used_len), "%02d/%02d/%02d %02d:%02d", (_tm->tm_year + 1900),    /* 恢复时间 */
                     (_tm->tm_mon + 1), _tm->tm_mday, _tm->tm_hour, _tm->tm_min);
+            thaisen_exit_critical();
         }
         used_len +=STOP_TIME_LEN;
         if(used_len > strlen((char*)LcdData.ErrInfo[i])){    /* 未使用字节填充空格字符 */
@@ -3999,9 +4024,12 @@ void SerialScreen_BtnErrDown(int port)
             }
         }
 
+        thaisen_enter_critical();
         _tm = localtime((time_t*)(&(errBuf.occur_time)));
         sprintf(((char*)LcdData.ErrInfo[i] + used_len), "%02d/%02d/%02d %02d:%02d", (_tm->tm_year + 1900),     /* 发生开始时间 */
                 (_tm->tm_mon + 1), _tm->tm_mday, _tm->tm_hour, _tm->tm_min);
+        thaisen_exit_critical();
+
         used_len += START_TIME_LEN;
         if(used_len > strlen((char*)LcdData.ErrInfo[i])){    /* 未使用字节填充空格字符 */
             remain_len = used_len - strlen((char*)LcdData.ErrInfo[i]);
@@ -4011,9 +4039,11 @@ void SerialScreen_BtnErrDown(int port)
         }
 
         if(errBuf.error_flag == 0x01){
+            thaisen_enter_critical();
             _tm = localtime((time_t*)(&(errBuf.resume_time)));
             sprintf(((char*)LcdData.ErrInfo[i] + used_len), "%02d/%02d/%02d %02d:%02d", (_tm->tm_year + 1900),    /* 恢复时间 */
                     (_tm->tm_mon + 1), _tm->tm_mday, _tm->tm_hour, _tm->tm_min);
+            thaisen_exit_critical();
         }
         used_len +=STOP_TIME_LEN;
         if(used_len > strlen((char*)LcdData.ErrInfo[i])){    /* 未使用字节填充空格字符 */

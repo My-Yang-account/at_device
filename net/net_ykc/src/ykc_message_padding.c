@@ -78,22 +78,47 @@ static struct net_handle* s_ykc_handle = NULL;
 static uint16_t ykc_chargepile_stop_reason_converted(uint8_t bit, uint8_t stop_in_starting);
 static uint8_t ykc_chargepile_transaction_identity_converted(uint8_t identity);
 
+/*******************************************************
+ * 函数名               ykc_enter_critical
+ * 功能                  进入临界区
+ * 参数
+ * 返回
+ ******************************************************/
+static void ykc_enter_critical(void)
+{
+    rt_enter_critical();
+}
+
+/*******************************************************
+ * 函数名               ykc_exit_critical
+ * 功能                  退出临界区
+ * 参数
+ * 返回
+ ******************************************************/
+static void ykc_exit_critical(void)
+{
+    rt_exit_critical();
+}
+
 cp56time2a_t ykc_get_cp56time2a_from_timestamp(uint32_t timestamp)
 {
-    struct tm *_tm;
+    struct tm _tm;
     time_t _time = timestamp;
     cp56time2a_t cp56time2a;
 
-    _tm = localtime(&_time);
+    ykc_enter_critical();
+    _tm = *(localtime(&_time));
+    ykc_exit_critical();
+
     memset(&cp56time2a, 0x00, sizeof(cp56time2a));
 
-    cp56time2a.cp56time2a_tm.year  = _tm->tm_year + 1900 - 2000;
-    cp56time2a.cp56time2a_tm.month = _tm->tm_mon + 1;
-    cp56time2a.cp56time2a_tm.mday  = _tm->tm_mday;
-    cp56time2a.cp56time2a_tm.wday  = _tm->tm_wday;
-    cp56time2a.cp56time2a_tm.hour  = _tm->tm_hour;
-    cp56time2a.cp56time2a_tm.min   = _tm->tm_min;
-    cp56time2a.cp56time2a_tm.msec  = _tm->tm_sec * 1000;
+    cp56time2a.cp56time2a_tm.year  = _tm.tm_year + 1900 - 2000;
+    cp56time2a.cp56time2a_tm.month = _tm.tm_mon + 1;
+    cp56time2a.cp56time2a_tm.mday  = _tm.tm_mday;
+    cp56time2a.cp56time2a_tm.wday  = _tm.tm_wday;
+    cp56time2a.cp56time2a_tm.hour  = _tm.tm_hour;
+    cp56time2a.cp56time2a_tm.min   = _tm.tm_min;
+    cp56time2a.cp56time2a_tm.msec  = _tm.tm_sec * 1000;
     cp56time2a.cp56time2a_tm.iv    = 0;
     cp56time2a.cp56time2a_tm.su    = 0;
 
@@ -2049,7 +2074,7 @@ int8_t ykc_chargepile_request_padding_mergecharge_card_authority(uint8_t gunno)
     if(ykc_get_socket_info()->state != YKC_SOCKET_STATE_LOGIN_SUCCESS){
         return -0x01;
     }
-    struct tm *_tm;
+    struct tm _tm;
     time_t _time = time(NULL);
     uint8_t valid_len = 0x00;
     System_BaseData *base = (System_BaseData*)(s_ykc_handle->get_base_data(gunno));
@@ -2065,13 +2090,17 @@ int8_t ykc_chargepile_request_padding_mergecharge_card_authority(uint8_t gunno)
     memset(g_ykc_preq_apply_merge_charge_active[gunno].body.vin, 0x00, NET_YKC_CAR_VIN_NUMBER_LENGTH_MAX);
 
     g_ykc_preq_apply_merge_charge_active[gunno].body.main_auxiliary_gun_flag = NET_ENUM_FALSE;   /* 默认主枪申请 */
-    _tm = localtime(&_time);
-    g_ykc_preq_apply_merge_charge_active[gunno].body.merge_charge_sn[0] = _tm->tm_year;
-    g_ykc_preq_apply_merge_charge_active[gunno].body.merge_charge_sn[1] = _tm->tm_mon;
-    g_ykc_preq_apply_merge_charge_active[gunno].body.merge_charge_sn[2] = _tm->tm_mday;
-    g_ykc_preq_apply_merge_charge_active[gunno].body.merge_charge_sn[3] = _tm->tm_hour;
-    g_ykc_preq_apply_merge_charge_active[gunno].body.merge_charge_sn[4] = _tm->tm_min;
-    g_ykc_preq_apply_merge_charge_active[gunno].body.merge_charge_sn[5] = _tm->tm_sec;
+
+    ykc_enter_critical();
+    _tm = *(localtime(&_time));
+    ykc_exit_critical();
+
+    g_ykc_preq_apply_merge_charge_active[gunno].body.merge_charge_sn[0] = _tm.tm_year;
+    g_ykc_preq_apply_merge_charge_active[gunno].body.merge_charge_sn[1] = _tm.tm_mon;
+    g_ykc_preq_apply_merge_charge_active[gunno].body.merge_charge_sn[2] = _tm.tm_mday;
+    g_ykc_preq_apply_merge_charge_active[gunno].body.merge_charge_sn[3] = _tm.tm_hour;
+    g_ykc_preq_apply_merge_charge_active[gunno].body.merge_charge_sn[4] = _tm.tm_min;
+    g_ykc_preq_apply_merge_charge_active[gunno].body.merge_charge_sn[5] = _tm.tm_sec;
 
     ykc_net_event_send(NET_YKC_EVENT_HANDLE_CHARGEPILE, NET_YKC_EVENT_TYPE_REQUEST, gunno, NET_YKC_PREQ_EVENT_APPLY_START_MERGECHARGE);
 
@@ -2097,7 +2126,7 @@ int8_t ykc_chargepile_request_padding_mergecharge_vin_authority(uint8_t gunno)
     if(ykc_get_socket_info()->state != YKC_SOCKET_STATE_LOGIN_SUCCESS){
         return -0x01;
     }
-    struct tm *_tm;
+    struct tm _tm;
     time_t _time = time(NULL);
     System_BaseData *base = (System_BaseData*)(s_ykc_handle->get_base_data(gunno));
 
@@ -2109,13 +2138,17 @@ int8_t ykc_chargepile_request_padding_mergecharge_vin_authority(uint8_t gunno)
         g_ykc_preq_apply_merge_charge_active[gunno].body.vin[count] = base->car_vin[NET_YKC_CAR_VIN_NUMBER_LENGTH_MAX - count - 0x01];
     }
     g_ykc_preq_apply_merge_charge_active[gunno].body.main_auxiliary_gun_flag = NET_ENUM_FALSE;   /* 默认主枪申请 */
-    _tm = localtime(&_time);
-    g_ykc_preq_apply_merge_charge_active[gunno].body.merge_charge_sn[0] = _tm->tm_year;
-    g_ykc_preq_apply_merge_charge_active[gunno].body.merge_charge_sn[1] = _tm->tm_mon;
-    g_ykc_preq_apply_merge_charge_active[gunno].body.merge_charge_sn[2] = _tm->tm_mday;
-    g_ykc_preq_apply_merge_charge_active[gunno].body.merge_charge_sn[3] = _tm->tm_hour;
-    g_ykc_preq_apply_merge_charge_active[gunno].body.merge_charge_sn[4] = _tm->tm_min;
-    g_ykc_preq_apply_merge_charge_active[gunno].body.merge_charge_sn[5] = _tm->tm_sec;
+
+    ykc_enter_critical();
+    _tm = *(localtime(&_time));
+    ykc_exit_critical();
+
+    g_ykc_preq_apply_merge_charge_active[gunno].body.merge_charge_sn[0] = _tm.tm_year;
+    g_ykc_preq_apply_merge_charge_active[gunno].body.merge_charge_sn[1] = _tm.tm_mon;
+    g_ykc_preq_apply_merge_charge_active[gunno].body.merge_charge_sn[2] = _tm.tm_mday;
+    g_ykc_preq_apply_merge_charge_active[gunno].body.merge_charge_sn[3] = _tm.tm_hour;
+    g_ykc_preq_apply_merge_charge_active[gunno].body.merge_charge_sn[4] = _tm.tm_min;
+    g_ykc_preq_apply_merge_charge_active[gunno].body.merge_charge_sn[5] = _tm.tm_sec;
 
     ykc_net_event_send(NET_YKC_EVENT_HANDLE_CHARGEPILE, NET_YKC_EVENT_TYPE_REQUEST, gunno, NET_YKC_PREQ_EVENT_APPLY_START_MERGECHARGE);
 
@@ -2305,23 +2338,26 @@ int8_t ykc_chargepile_create_local_transaction_number(uint8_t gunno, void *vecto
     }
 
     uint8_t sn_len = 0x00, *ptr = (uint8_t*)vector;
-    struct tm *_tm = NULL;
+    struct tm _tm;
 
     s_ykc_local_start_sq++;
     sn_len = sizeof(g_ykc_preq_transaction_records[gunno].body.pile_number);
     System_BaseData *base = (System_BaseData*)(s_ykc_handle->get_base_data(gunno));
-    _tm = localtime((const time_t*)&(base->current_time));
 
-    rt_kprintf("ykc_chargepile_create_local_transaction_number[%d](%d, %d, %d, %d, %d)\n", base->current_time, _tm->tm_year, _tm->tm_mon,
-            _tm->tm_mday, _tm->tm_hour, _tm->tm_min, _tm->tm_sec);
+    ykc_enter_critical();
+    _tm = *(localtime((const time_t*)&(base->current_time)));
+    ykc_exit_critical();
+
+    rt_kprintf("ykc_chargepile_create_local_transaction_number[%d](%d, %d, %d, %d, %d)\n", base->current_time, _tm.tm_year, _tm.tm_mon,
+            _tm.tm_mday, _tm.tm_hour, _tm.tm_min, _tm.tm_sec);
     memcpy(ptr, g_ykc_preq_transaction_records[gunno].body.pile_number, sn_len);   /* 桩号 */
     ptr[sn_len++] = gunno + 1;                                                     /* 枪号 */
-    ptr[sn_len++] = (((_tm->tm_year - 100) /10) *16) + ((_tm->tm_year - 100) %10); /* 年 */
-    ptr[sn_len++] = (((_tm->tm_mon + 0x01) /10) *16) + ((_tm->tm_mon + 0x01) %10); /* 月 */
-    ptr[sn_len++] = ((_tm->tm_mday /10) *16) +  (_tm->tm_mday %10);                /* 日 */
-    ptr[sn_len++] = ((_tm->tm_hour /10) *16) + (_tm->tm_hour %10);                 /* 时 */
-    ptr[sn_len++] = ((_tm->tm_min /10) *16) + (_tm->tm_min %10);                   /* 分 */
-    ptr[sn_len++] = ((_tm->tm_sec /10) *16) + (_tm->tm_sec %10);                   /* 秒 */
+    ptr[sn_len++] = (((_tm.tm_year - 100) /10) *16) + ((_tm.tm_year - 100) %10); /* 年 */
+    ptr[sn_len++] = (((_tm.tm_mon + 0x01) /10) *16) + ((_tm.tm_mon + 0x01) %10); /* 月 */
+    ptr[sn_len++] = ((_tm.tm_mday /10) *16) +  (_tm.tm_mday %10);                /* 日 */
+    ptr[sn_len++] = ((_tm.tm_hour /10) *16) + (_tm.tm_hour %10);                 /* 时 */
+    ptr[sn_len++] = ((_tm.tm_min /10) *16) + (_tm.tm_min %10);                   /* 分 */
+    ptr[sn_len++] = ((_tm.tm_sec /10) *16) + (_tm.tm_sec %10);                   /* 秒 */
     memcpy((ptr + sn_len), &s_ykc_local_start_sq, sizeof(s_ykc_local_start_sq));   /* 自增序列号 */
 
 

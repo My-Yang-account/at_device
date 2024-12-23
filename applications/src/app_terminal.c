@@ -98,6 +98,28 @@ static ems_frame_res s_ems_frame_res;                           //数据接收
 static uint8_t s_power_data_received_flag = 0;                  //是否收到数据标志位
 static uint16_t s_last_power;                                   //上次调整功率数据
 
+/*******************************************************
+ * 函数名               terminal_enter_critical
+ * 功能                  进入临界区
+ * 参数
+ * 返回
+ ******************************************************/
+static void terminal_enter_critical(void)
+{
+    rt_enter_critical();
+}
+
+/*******************************************************
+ * 函数名               terminal_exit_critical
+ * 功能                  退出临界区
+ * 参数
+ * 返回
+ ******************************************************/
+static void terminal_exit_critical(void)
+{
+    rt_exit_critical();
+}
+
 static int16_t terminal_get_char(void)
 {
     uint8_t ch = 0x00;
@@ -281,6 +303,9 @@ static void terminal_ems_send_charger_status(void)                              
         break;
     }
 #endif /* APP_USING_DOUBLEGUN */
+
+    terminal_enter_critical();
+
     ems_tm = localtime((time_t*)&tick);
     s_ems_frame_request.year= HTONS(ems_tm->tm_year + 1900);             //年加上1900
     s_ems_frame_request.month = HTONS(ems_tm->tm_mon + 1);               //月是从0开始，0代表1月
@@ -288,6 +313,8 @@ static void terminal_ems_send_charger_status(void)                              
     s_ems_frame_request.hour = HTONS(ems_tm->tm_hour);
     s_ems_frame_request.minute = HTONS(ems_tm->tm_min);
     s_ems_frame_request.second = HTONS(ems_tm->tm_sec);
+
+    terminal_exit_critical();
 
     s_ems_frame_request.crc = xfmbmcrcsum((uint8_t *)&s_ems_frame_request, sizeof(s_ems_frame_request) - 2);//crc校验校验数据高字节在前
 

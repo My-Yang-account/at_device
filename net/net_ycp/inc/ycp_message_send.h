@@ -212,6 +212,9 @@ typedef struct{
 
 #pragma pack()
 
+void ycp_enter_critical(void);
+void ycp_exit_critical(void);
+
 uint8_t ycp_is_interact_normally(void);
 void ycp_request_billingrule_again(void);
 

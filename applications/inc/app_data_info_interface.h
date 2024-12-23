@@ -350,6 +350,16 @@ uint8_t thaisen_is_online_start(uint8_t gunno);
  **/
 uint8_t thaisen_is_not_allow_swip_card(void);
 
+/**
+ * 进入临界区
+ **/
+void thaisen_enter_critical(void);
+
+/**
+ * 退出临界区
+ **/
+void thaisen_exit_critical(void);
+
 #endif /* APPLICATIONS_INC_APP_DATA_INFO_INTERFACE_H_ */
 
 

@@ -45,6 +45,90 @@ static struct billing_info s_billing_info[APP_SYSTEM_GUNNO_SIZE];
 static struct billing_rule s_billing_rule[APP_SYSTEM_GUNNO_SIZE + 1];
 struct billing_assistant_info s_billing_assistant_info;
 
+/***************************************************************************************************
+ ************************************* [离线计费相关] *********************************************
+ **************************************************************************************************/
+/*******************************************************
+ * 函数名               app_billingrule_is_offbilling_mode
+ * 功能                  判断当前运行模式是否是离线计费模式
+ * 参数
+ * 返回                   1：是   0：否
+ ******************************************************/
+static uint8_t app_billingrule_is_offbilling_mode(void)
+{
+    if(get_ofsm_info(0x00)->base.run_mode == APP_RUN_MODE_OFFLINE_BILLING){
+        return 0x01;
+    }
+    return 0x00;
+}
+
+/*******************************************************
+ * 函数名               app_billingrule_get_offbilling_rate_number
+ * 功能                  获离线计费模式下当前时间的费率号
+ * 参数                   current_time    当前时间(时间戳)
+ * 返回                  当前时间的费率号
+ ******************************************************/
+static uint8_t app_billingrule_get_offbilling_rate_number(uint32_t current_time)
+{
+    return sys_get_offbilling_rate_number(current_time);
+}
+
+/*******************************************************
+ * 函数名               app_billingrule_get_offbilling_elect_price
+ * 功能                  获取离线计费模式下指定费率号的电费费价格
+ * 参数                   rate_number   费率号
+ * 返回                   电费费价格
+ ******************************************************/
+static uint32_t app_billingrule_get_offbilling_elect_price(uint8_t rate_number)
+{
+    return sys_get_offbilling_elect_price(rate_number);
+}
+
+/*******************************************************
+ * 函数名               app_billingrule_get_offbilling_service_price
+ * 功能                  获取离线计费模式下指定费率号的服务费价格
+ * 参数                   rate_number   费率号
+ * 返回                   服务费价格
+ ******************************************************/
+static uint32_t app_billingrule_get_offbilling_service_price(uint8_t rate_number)
+{
+    return sys_get_offbilling_service_price(rate_number);
+}
+
+/*******************************************************
+ * 函数名               app_billingrule_get_offbilling_delay_price
+ * 功能                  获取离线计费模式下指定费率号的延迟费价格
+ * 参数                   rate_number   费率号
+ * 返回                   延迟费价格
+ ******************************************************/
+static uint32_t app_billingrule_get_offbilling_delay_price(uint8_t rate_number)
+{
+    return sys_get_offbilling_delay_price(rate_number);
+}
+/***************************************************************************************************
+ **************************************************************************************************/
+
+/*******************************************************
+ * 函数名               app_billingrule_enter_critical
+ * 功能                  进入临界区
+ * 参数
+ * 返回
+ ******************************************************/
+static void app_billingrule_enter_critical(void)
+{
+    rt_enter_critical();
+}
+
+/*******************************************************
+ * 函数名               app_billingrule_exit_critical
+ * 功能                  退出临界区
+ * 参数
+ * 返回
+ ******************************************************/
+static void app_billingrule_exit_critical(void)
+{
+    rt_exit_critical();
+}
 
 /*******************************************************
  * 函数名               app_billingrule_query_rule_update_gunno
@@ -649,9 +733,13 @@ uint8_t app_calculate_current_period(uint32_t current_time)
     uint8_t period;
     struct tm *_tm;
 
-    _tm = localtime((time_t*)&current_time);
+    app_billingrule_enter_critical();
 
+    _tm = localtime((time_t*)&current_time);
     current_time = _tm->tm_hour *60 *60 + _tm->tm_min *60 + _tm->tm_sec;
+
+    app_billingrule_exit_critical();
+
     period = current_time / (24 * 60 / APP_BILLING_RULE_PERIOD_MAX * 60);
 
     return period;
@@ -711,13 +799,14 @@ void app_billing_info_calculate(uint32_t current_time, uint32_t current_elect, u
         return;
     }
 
-    if(get_ofsm_info(0x00)->base.run_mode == APP_RUN_MODE_OFFLINE_BILLING){
+    if(app_billingrule_is_offbilling_mode()){
         is_offbilling_mode = 0x01;     /** 离线计费模式 */
     }
 
     period = app_calculate_current_period(current_time);
     if(is_offbilling_mode){
-        offbilling_rate_number = sys_get_offbilling_rate_number(current_time);
+        offbilling_rate_number = app_billingrule_get_offbilling_rate_number(current_time);
+        rate_number = offbilling_rate_number;
         if(offbilling_rate_number >= APP_BILLING_RULE_RATE_TYPE_MAX){
             if(APP_BILLING_RULE_RATE_TYPE_MAX){
                 rate_number = (APP_BILLING_RULE_RATE_TYPE_MAX - 0x01);
@@ -728,6 +817,7 @@ void app_billing_info_calculate(uint32_t current_time, uint32_t current_elect, u
     }else{
         rate_number = s_billing_rule[gunno].rate_number[period];
     }
+
     s_billing_info[gunno].stop_elect = current_elect;
     s_billing_info[gunno].origin_elect += elect_inc;
 
@@ -746,9 +836,9 @@ void app_billing_info_calculate(uint32_t current_time, uint32_t current_elect, u
             (s_billing_info[gunno].last_period_elect[period] *s_billing_assistant_info.eloss_proportion /1000);
 
     if(is_offbilling_mode){
-        s_billing_info[gunno].period_fees[period].elect = (s_billing_info[gunno].period_elect[period] *sys_get_offbilling_elect_price(offbilling_rate_number) /10);
-        s_billing_info[gunno].period_fees[period].service = (s_billing_info[gunno].period_elect[period] *sys_get_offbilling_service_price(offbilling_rate_number) /10);
-        s_billing_info[gunno].period_fees[period].delay = (s_billing_info[gunno].period_elect[period] *sys_get_offbilling_delay_price(offbilling_rate_number) /10);
+        s_billing_info[gunno].period_fees[period].elect = (s_billing_info[gunno].period_elect[period] *app_billingrule_get_offbilling_elect_price(offbilling_rate_number) /10);
+        s_billing_info[gunno].period_fees[period].service = (s_billing_info[gunno].period_elect[period] *app_billingrule_get_offbilling_service_price(offbilling_rate_number) /10);
+        s_billing_info[gunno].period_fees[period].delay = (s_billing_info[gunno].period_elect[period] *app_billingrule_get_offbilling_delay_price(offbilling_rate_number) /10);
     }else{
         s_billing_info[gunno].period_fees[period].elect = (s_billing_info[gunno].period_elect[period] *s_billing_rule[gunno].period_price[period].elect /10);
         s_billing_info[gunno].period_fees[period].service = (s_billing_info[gunno].period_elect[period] *s_billing_rule[gunno].period_price[period].service /10);
@@ -772,8 +862,8 @@ void app_billing_info_calculate(uint32_t current_time, uint32_t current_elect, u
     s_billing_info[gunno].rate_type_fess[rate_number] = (s_billing_info[gunno].rate_type_elect[rate_number] *s_billing_rule[gunno].rate_price[rate_number] /10);
 
     if(is_offbilling_mode){
-        s_billing_info[gunno].rate_type_elect_fess[rate_number] = (s_billing_info[gunno].rate_type_elect[rate_number] *sys_get_offbilling_elect_price(rate_number) /10);
-        s_billing_info[gunno].rate_type_service_fess[rate_number] = (s_billing_info[gunno].rate_type_elect[rate_number] *sys_get_offbilling_service_price(rate_number) /10);
+        s_billing_info[gunno].rate_type_elect_fess[rate_number] = (s_billing_info[gunno].rate_type_elect[rate_number] *app_billingrule_get_offbilling_elect_price(offbilling_rate_number) /10);
+        s_billing_info[gunno].rate_type_service_fess[rate_number] = (s_billing_info[gunno].rate_type_elect[rate_number] *app_billingrule_get_offbilling_service_price(offbilling_rate_number) /10);
     }else{
         s_billing_info[gunno].rate_type_elect_fess[rate_number] = (s_billing_info[gunno].rate_type_elect[rate_number] *s_billing_rule[gunno].period_price[period].elect /10);
         s_billing_info[gunno].rate_type_service_fess[rate_number] = (s_billing_info[gunno].rate_type_elect[rate_number] *s_billing_rule[gunno].period_price[period].service /10);

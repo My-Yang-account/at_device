@@ -112,6 +112,29 @@ Net_YcpPro_PReq_BmsInfo_t g_ycp_preq_bms_info[NET_SYSTEM_GUN_NUMBER];   // OK
 /** 升级结果上送 */
 Net_YcpPro_PRes_RemoteUpdate_t g_ycp_pres_remote_update;  // OK
 
+
+/*******************************************************
+ * 函数名               ycp_enter_critical
+ * 功能                  进入临界区
+ * 参数
+ * 返回
+ ******************************************************/
+void ycp_enter_critical(void)
+{
+    rt_enter_critical();
+}
+
+/*******************************************************
+ * 函数名               ycp_exit_critical
+ * 功能                  退出临界区
+ * 参数
+ * 返回
+ ******************************************************/
+void ycp_exit_critical(void)
+{
+    rt_exit_critical();
+}
+
 /**************************************************************************
  * 函数名                 ycp_is_interact_normally
  * 功能                     判断是否已经可以正常交互数据(越城公用协议需要接收到计费规则(响应)后才能交互其它报文)
@@ -457,52 +480,54 @@ void ycp_timestamp_to_timebcd(uint32_t timestamp, uint8_t *bcd, uint8_t len)
     if(bcd == NULL || len < 0x07){
         return;
     }
-    struct tm *_tm;
+    struct tm _tm;
     uint8_t value, yhigh, ylow;
 
-    _tm = localtime((time_t*)(&timestamp));
+    ycp_enter_critical();
+    _tm = *(localtime((time_t*)(&timestamp)));
+    ycp_exit_critical();
 
     /** 年 */
-    _tm->tm_year += 1900;
-    bcd[0x01] = (uint8_t)(_tm->tm_year %10);
-    _tm->tm_year /= 10;
-    bcd[0x01] |= (uint8_t)((_tm->tm_year %10) <<0x04);
-    _tm->tm_year /= 10;
+    _tm.tm_year += 1900;
+    bcd[0x01] = (uint8_t)(_tm.tm_year %10);
+    _tm.tm_year /= 10;
+    bcd[0x01] |= (uint8_t)((_tm.tm_year %10) <<0x04);
+    _tm.tm_year /= 10;
 
-    bcd[0x00] = (uint8_t)(_tm->tm_year %10);
-    _tm->tm_year /= 10;
-    bcd[0x00] |= (uint8_t)((_tm->tm_year %10) <<0x04);
+    bcd[0x00] = (uint8_t)(_tm.tm_year %10);
+    _tm.tm_year /= 10;
+    bcd[0x00] |= (uint8_t)((_tm.tm_year %10) <<0x04);
 
     /** 月 */
-    _tm->tm_mon += 0x01;
-    bcd[0x02] = (uint8_t)(_tm->tm_mon %10);
-    _tm->tm_mon /= 10;
-    bcd[0x02] |= (uint8_t)((_tm->tm_mon %10) <<0x04);
-    _tm->tm_mon /= 10;
+    _tm.tm_mon += 0x01;
+    bcd[0x02] = (uint8_t)(_tm.tm_mon %10);
+    _tm.tm_mon /= 10;
+    bcd[0x02] |= (uint8_t)((_tm.tm_mon %10) <<0x04);
+    _tm.tm_mon /= 10;
 
     /** 日 */
-    bcd[0x03] = (uint8_t)(_tm->tm_mday %10);
-    _tm->tm_mday /= 10;
-    bcd[0x03] |= (uint8_t)((_tm->tm_mday %10) <<0x04);
-    _tm->tm_mday /= 10;
+    bcd[0x03] = (uint8_t)(_tm.tm_mday %10);
+    _tm.tm_mday /= 10;
+    bcd[0x03] |= (uint8_t)((_tm.tm_mday %10) <<0x04);
+    _tm.tm_mday /= 10;
 
     /** 时 */
-    bcd[0x04] = (uint8_t)(_tm->tm_hour %10);
-    _tm->tm_hour /= 10;
-    bcd[0x04] |= (uint8_t)((_tm->tm_hour %10) <<0x04);
-    _tm->tm_hour /= 10;
+    bcd[0x04] = (uint8_t)(_tm.tm_hour %10);
+    _tm.tm_hour /= 10;
+    bcd[0x04] |= (uint8_t)((_tm.tm_hour %10) <<0x04);
+    _tm.tm_hour /= 10;
 
     /** 分 */
-    bcd[0x05] = (uint8_t)(_tm->tm_min %10);
-    _tm->tm_min /= 10;
-    bcd[0x05] |= (uint8_t)((_tm->tm_min %10) <<0x04);
-    _tm->tm_min /= 10;
+    bcd[0x05] = (uint8_t)(_tm.tm_min %10);
+    _tm.tm_min /= 10;
+    bcd[0x05] |= (uint8_t)((_tm.tm_min %10) <<0x04);
+    _tm.tm_min /= 10;
 
     /** 秒 */
-    bcd[0x06] = (uint8_t)(_tm->tm_sec %10);
-    _tm->tm_sec /= 10;
-    bcd[0x06] |= (uint8_t)((_tm->tm_sec %10) <<0x04);
-    _tm->tm_sec /= 10;
+    bcd[0x06] = (uint8_t)(_tm.tm_sec %10);
+    _tm.tm_sec /= 10;
+    bcd[0x06] |= (uint8_t)((_tm.tm_sec %10) <<0x04);
+    _tm.tm_sec /= 10;
 
 
 }

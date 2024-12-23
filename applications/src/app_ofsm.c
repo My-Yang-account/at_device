@@ -95,8 +95,12 @@ uint8_t ofsm_get_current_period(void)
     }else{
         current_time += ((tick - s_tick_base) /1000);
     }
+
+    rt_enter_critical();
     _tm = localtime((time_t*)&current_time);
     current_time = _tm->tm_hour *60 *60 + _tm->tm_min *60 + _tm->tm_sec;
+    rt_exit_critical();
+
     period = current_time / (24 * 60 / APP_BILLING_RULE_PERIOD_MAX * 60);
 
     return (period + 0x01);
