@@ -23,6 +23,9 @@ extern "C" {
 
 #define APP_USING_DOUBLEGUN                            /* 使用双枪 */
 
+#define APP_PARACHARGE_IDENTIFY_CAN_ID       0x1FFFFFFF /* 并充自动识别CAN ID */
+#define APP_PARACHARGE_IDENTIFY_CAN_DATA     0x5A       /* 并充自动识别CAN 数据 */
+
 #define APP_CHARGE_ELECT_MAX                 500000    /* 最大充电电量值(精度：0.001) */
 #define APP_SPEND_AMOUNT_MAX                 5000000   /* 最大消费金额值(精度：0.0001) */
 #define APP_CALCULATE_ELECT_DIFF_MAX         510       /* 最大计算电量差值(精度：0.001) */
@@ -350,6 +353,7 @@ typedef struct{
         uint32_t is_deputygun_stop : 1;                      /* 这是副枪停止(副枪故障时停止，用于并充时) */
         uint32_t is_pay_complete : 1;                        /* 已结算完成(用于离线计费) */
         uint32_t is_ammeter_elect_error : 1;                 /* 电表电量错误(防止一开始时读取到的电表电量是0) */
+        uint32_t paracharge_is_identified : 1;               /* 是否并充已识别 */
     }flag;
 
     uint8_t cc1_state;                /* CC1 状态 */

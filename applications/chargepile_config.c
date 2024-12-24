@@ -1454,6 +1454,10 @@ int32_t chargepile_check_config(void)
     if(s_chargepile_config_info.network.nettype >= CP_NETTYPE_SIZE){         /* 联网方式默认4G */
         s_chargepile_config_info.network.nettype = CP_NETTYPE_4G;
     }
+    /** 设备类型默认均充双枪(注：这是普通双枪版本做法，其它版本需要根据实际来) */
+    if(s_chargepile_config_info.config_info.system_function != SYSTEM_FUNCTION_DYNAMIC_SWITCH){
+        s_chargepile_config_info.config_info.system_function = SYSTEM_FUNCTION_AVERAGE_DOUBLE;
+    }
 
     if((s_chargepile_config_info.config_para.module_rated_outvolt < MODULE_RATED_OUTVOLT_MIN) ||
             (s_chargepile_config_info.config_para.module_rated_outvolt > MODULE_RATED_OUTVOLT_MAX)){

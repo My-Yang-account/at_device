@@ -35,6 +35,7 @@
 #include "mw_temp.h"
 #include "mw_time.h"
 #include "mw_module_control.h"
+#include "mw_can_control.h"
 
 #include "chargepile_config.h"
 
@@ -77,6 +78,88 @@ static uint32_t s_compare_ccs_module_count[APP_SYSTEM_GUNNO_SIZE];
 
 static uint32_t s_bms_require_curr_last[APP_SYSTEM_GUNNO_SIZE];
 static uint8_t s_bms_reqcurr_changed_count[APP_SYSTEM_GUNNO_SIZE];
+
+
+/*************************************
+ * 函数名       ofsm_bms_can_send
+ * 功能           发送BMS CAN 数据
+ * 参数           gunno   枪号
+ *        data    要发送的数据
+ * 返回
+ ************************************/
+static void ofsm_bms_can_send(uint8_t gunno, mw_can_info *data)
+{
+    if(gunno >= APP_SYSTEM_GUNNO_SIZE){
+        return;
+    }
+    if(data == NULL){
+        return;
+    }
+
+    data->id = APP_PARACHARGE_IDENTIFY_CAN_ID;
+    data->length = 0x08;
+    memset(data->data, APP_PARACHARGE_IDENTIFY_CAN_DATA, data->length);
+    if(gunno == APP_SYSTEM_GUNNOA){
+        mw_bmsa_can_send(data->id, data->data, data->length);
+    }
+#ifdef APP_USING_DOUBLEGUN
+    else if(gunno == APP_SYSTEM_GUNNOB){
+        mw_bmsb_can_send(data->id, data->data, data->length);
+    }
+#endif /* APP_USING_DOUBLEGUN */
+}
+
+/*************************************
+ * 函数名       ofsm_is_belong_one_car
+ * 功能           并充自动识别，判断两把枪是否插在同一辆车上(CNA 线相连)
+ * 参数           gunno   枪号
+ * 返回           1：是  0：否
+ ************************************/
+static uint8_t ofsm_is_belong_one_car(uint8_t gunno)
+{
+    if(gunno >= APP_SYSTEM_GUNNO_SIZE){
+        return APP_THA_ENUM_FALSE;
+    }
+    /** 按两把枪做 */
+    if(APP_SYSTEM_GUNNO_SIZE >= 0x02){
+        if(gunno == APP_SYSTEM_GUNNOA){
+            gunno = (APP_SYSTEM_GUNNOA + 0x01);
+        }else{
+            gunno = APP_SYSTEM_GUNNOA;
+        }
+    }else{
+        return APP_THA_ENUM_FALSE;
+    }
+
+    mw_can_info buf;
+    uint8_t compare_data[0x08];
+    memset(compare_data, APP_PARACHARGE_IDENTIFY_CAN_DATA, sizeof(compare_data));
+    memset(&buf, 0x00, sizeof(mw_can_info));
+
+    if(gunno == APP_SYSTEM_GUNNOA){
+        mw_bmsa_can_recv(&buf);
+    }
+#ifdef APP_USING_DOUBLEGUN
+    else if(gunno == APP_SYSTEM_GUNNOB){
+        mw_bmsb_can_recv(&buf);
+    }
+#endif /* APP_USING_DOUBLEGUN */
+
+    if(buf.id != APP_PARACHARGE_IDENTIFY_CAN_ID){
+        return APP_THA_ENUM_FALSE;
+    }
+    if(buf.length > sizeof(compare_data)){
+        if(memcmp(compare_data, buf.data, sizeof(compare_data))){
+            return APP_THA_ENUM_FALSE;
+        }
+    }else{
+        if(memcmp(compare_data, buf.data, buf.length)){
+            return APP_THA_ENUM_FALSE;
+        }
+    }
+
+    return APP_THA_ENUM_TRUE;
+}
 
 /*************************************
  * 函数名       ofsm_get_current_period
@@ -1053,6 +1136,7 @@ static void ofsm_start_info_padding_public(uint8_t gunno)
     s_ofsm_info[gunno].base.flag.permit_judge_complete = APP_THA_ENUM_FALSE;
     s_ofsm_info[gunno].base.flag.start_result = APP_THA_ENUM_FALSE;
     s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_FALSE;
+    s_ofsm_info[gunno].base.flag.paracharge_is_identified = APP_THA_ENUM_FALSE;
     s_ofsm_info[gunno].base.voltage_a = 0x00;
     s_ofsm_info[gunno].base.current_a = 0x00;
     s_ofsm_info[gunno].base.power_a = 0x00;
@@ -1883,6 +1967,59 @@ static void ofsm_starting_fun(uint8_t gunno)
     s_tiny_current_count[gunno] = rt_tick_get();
     s_bms_require_curr_last[gunno] = 0x00;
     s_bms_reqcurr_changed_count[gunno] = 0x00;
+
+    /*******************************************************************************
+     ********************************  并充自动识别    ***********************************
+     ******************************************************************************/
+    if(s_ofsm_info[gunno].base.flag.paracharge_is_identified == APP_THA_ENUM_FALSE){
+#ifdef APP_USING_DOUBLEGUN
+        /** 并充自动识别前提条件1：本次屏幕选择充电模式为单枪单车(选双枪单车时就按并充模式来)、已启用并充功能、设备类型不是动态双枪 */
+        if((s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_SINGLEGUN) &&   \
+                ((*sys_read_config_item_content(CONFIG_ITEM_SUPORT_PARALLEL, 0x00)) == APP_THA_ENUM_TRUE) &&  \
+                ((*sys_read_config_item_content(CONFIG_ITEM_DEVICE_TYPE, 0x00)) != SYSTEM_FUNCTION_DYNAMIC_SWITCH)){
+            mw_can_info data;
+            uint8_t rentry = 0x00, deputy_gunno = APP_SYSTEM_GUNNOA, deputy_gun_enum = THAISEN_BMS_A_CAN_RECV;
+
+            if(gunno == APP_SYSTEM_GUNNOA){
+                deputy_gunno = APP_SYSTEM_GUNNOA + 0x01;
+                deputy_gun_enum = THAISEN_BMS_B_CAN_RECV;
+            }
+            /** 并充自动识别前提条件2：并充时两把枪都要插上  副枪要处于未充电状态 */
+            if((s_ofsm_info[deputy_gunno].base.flag.connect_state == APP_CONNECT_STATE_CONNECT) &&  \
+                    (s_ofsm_info[deputy_gunno].state == APP_OFSM_STATE_READYING)){
+                mw_clear_can_recved(deputy_gun_enum);
+                ofsm_bms_can_send(gunno, &data);          /** 发送并充识别报文 */
+                /** 等待响应，最多等待500ms */
+                while(1){
+                    if(++rentry > 50){
+                        break;
+                    }
+                    rt_kprintf("22 sss(%d, %d)\n", gunno, rentry);
+                    if(mw_is_can_recved(deputy_gun_enum)){
+                        mw_clear_can_recved(deputy_gun_enum);
+                        if(ofsm_is_belong_one_car(gunno) != APP_THA_ENUM_TRUE){
+                            LOG_D("gunno(%d) identify paracharge, both gun is not belong to the same car", gunno);
+                            break;
+                        }
+                        /** 这是两把枪插在一辆车上了，启动并充模式 */
+                        s_ofsm_info[gunno].base.main_gunno = gunno;
+                        s_ofsm_info[gunno].base.charge_way = APP_CHARGE_WAY_PARACHARGE_LOCAL;
+
+                        s_ofsm_info[deputy_gunno].base.charge_way = s_ofsm_info[gunno].base.charge_way;
+                        s_ofsm_info[deputy_gunno].base.main_gunno = s_ofsm_info[gunno].base.main_gunno;
+
+                        s_ofsm_info[gunno].base.start_elect = (mw_get_meter_total_wh(gunno) + mw_get_meter_total_wh(deputy_gunno));
+                        thaisen_set_charge_way(s_ofsm_info[gunno].base.charge_way);
+
+                        break;
+                    }
+                    rt_thread_mdelay(10);
+                }
+            }
+        }
+#endif /* APP_USING_DOUBLEGUN */
+        s_ofsm_info[gunno].base.flag.paracharge_is_identified = APP_THA_ENUM_TRUE;
+    }
 
     /** 时间已进行同步，需要修改订单和BASE数据中与时间有关字段，并重新保存一次订单 */
     if(mw_get_time_sync_flag(gunno)){

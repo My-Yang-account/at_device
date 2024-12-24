@@ -697,6 +697,46 @@ can_msg_buf *thaisen_get_can_charg_module_dat(void);
 can_msg_buf thaisen_get_can_bmsA_dat(void);
 can_msg_buf thaisen_get_can_bmsB_dat(void);
 
+/* 功能说明:
+ *      thaisen_get_tcu_dat TCUCAN数据
+ * 输入参数:
+*               无
+ * 返回参数:
+ *      can_msg_buf:帧数据
+ * 调用方法:
+ *      实时调用
+ */
+can_msg_buf thaisen_get_tcu_dat(void);
+
+typedef enum{
+    THAISEN_BMS_A_CAN_RECV,       //BMS A CAN 接收到数据
+    THAISEN_BMS_B_CAN_RECV,       //BMS B CAN 接收到数据
+    THAISEN_BMS_TCU_CAN_RECV,     //TCU CAN 接收到数据
+    THAISEN_BMS_MODULE_CAN_RECV,  //充电模块 CAN 接收到数据
+    THAISEN_CAN_RECV_SIZE,
+}thaisenIsCANRecv;
+
+/* 功能说明:
+ *      thaisen_is_can_recved 查询CAN是否接收到了数据
+ * 输入参数:
+*              en CAN 枚举
+ * 返回参数:
+ *             1：已接收到   0：未接收到
+ * 调用方法:
+ *      CAN 空闲时调用
+ */
+unsigned char thaisen_is_can_recved(thaisenIsCANRecv en);
+
+/* 功能说明:
+ *      thaisen_clear_can_recved 清除CAN接收数据标志
+ * 输入参数:
+*              en CAN 枚举
+ * 返回参数:
+ *
+ * 调用方法:
+ *      CAN 空闲时调用
+ */
+void thaisen_clear_can_recved(thaisenIsCANRecv en);
 
 /*******************************************************************************/
 
