@@ -84,6 +84,7 @@ SECTIONS
 		
         KEEP(*stm32f4xx_hal_spi.o(.text .text.*))
 		KEEP(*stm32f4xx_hal_gpio.o(.text .text.*))
+		KEEP(*thread.o(.text .text.*))
    
         . = ALIGN(4);
         *(.text)                        /* remaining code */
@@ -130,7 +131,7 @@ SECTIONS
         KEEP (*(.init_array))
         PROVIDE(__ctors_end__ = .);
 
-        . = ALIGN(0x40000);
+        . = ALIGN(0x10000);
         *(.rodata*)
         *(.rodata)                      /* read-only data (constants) */        
 
