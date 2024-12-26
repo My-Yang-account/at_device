@@ -16,6 +16,8 @@
 
 //#define NET_YKC_MESSAGE_USING_DUPU                                         /* 这是度普平台的报文 */
 
+#define NET_YKC_STORAGE_INIT_FLAG                              0x12345678  /* 平台数据存储标志 */
+
 #define NET_YKC_MESSAGE_START_CODE                             0x68        /* 报文起始码 */
 #define NET_YKC_MESSAGE_ENCRYPT_ENABLE                         0x01        /* 报文加密 */
 #define NET_YKC_MESSAGE_ENCRYPT_DISABLE                        0x00        /* 报文不加密 */
@@ -291,6 +293,18 @@ typedef union {
  */
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 #pragma pack(1)
+
+/** 云快充平台数据存储体 */
+typedef struct{
+    uint32_t storage_init_flag;              /* 存储初始化标志 */
+    uint8_t verify_result;                   /* 数据校验结果 */
+
+    struct{
+        uint32_t lock :1;                    /* 功能开关：锁桩 */
+        uint32_t reserve0 :31;               /* 功能开关：预留 */
+        uint32_t reserve1 :32;               /* 功能开关：预留 */
+    }fswitch;                                /* 功能开关 1：开启  0：关闭 */
+}ykc_storage_struct;
 
 /** 协议头部 */
 typedef struct{

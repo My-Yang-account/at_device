@@ -191,6 +191,38 @@ uint8_t ykc_is_set_power_success(void)
 }
 
 /*************************************************
+ * 函数名      ykc_storage_data_check
+ * 功能          校验存储的平台数据
+ * **********************************************/
+static void ykc_storage_data_check(void)
+{
+    uint8_t verify_success = 0x01;
+    System_BaseData *base = NULL;
+    ykc_storage_struct *config = (ykc_storage_struct*)(s_ykc_handle->get_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, 0x00, NET_SYSTEM_DATA_OPTION_TARGET_PLAT));
+
+    if(config == NULL){
+        verify_success = 0x00;
+    }else if((config->verify_result == 0x00) || (config->storage_init_flag != NET_YKC_STORAGE_INIT_FLAG)){
+        verify_success = 0x00;
+    }
+
+    if(verify_success){
+        for(uint8_t gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
+            base = (System_BaseData*)(s_ykc_handle->get_base_data(gunno));
+            if(config->fswitch.lock == NET_ENUM_TRUE){
+                base->device_state = APP_DEVICE_STATE_FREEZE;
+            }else {
+                base->device_state = APP_DEVICE_STATE_COMMISSIONING;
+            }
+        }
+    }else{
+
+    }
+
+    LOG_D("ykc_storage_data_check(%d)\n", config->fswitch.lock);
+}
+
+/*************************************************
  * 函数名      ykc_response_padding_query_realtime_data
  * 功能          组包：查询实时数据响应
  * **********************************************/
@@ -1031,8 +1063,9 @@ int8_t ykc_message_pro_set_work_para_request(void *data, uint8_t len)
         return -0x02;
     }
 
-    System_BaseData *base = NULL;
     Net_YkcPro_SReq_Set_WorkPara_t *request = (Net_YkcPro_SReq_Set_WorkPara_t*)data;
+    ykc_storage_struct *config = (ykc_storage_struct*)(s_ykc_handle->get_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, 0x00, NET_SYSTEM_DATA_OPTION_TARGET_PLAT));
+    System_BaseData *base = NULL;
 
     if(request->body.forbidden == NET_ENUM_TRUE){
         /** 启动或充电中不能停用 */
@@ -1042,22 +1075,22 @@ int8_t ykc_message_pro_set_work_para_request(void *data, uint8_t len)
                 return -0x03;
             }
         }
-        /*         [在此处将所有枪的状态设置为冻结并将状态存入flash]
-        for(gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
-            base = (System_BaseData*)(s_ykc_handle->get_base_data(gunno));
-            base->device_state = APP_DEVICE_STATE_FREEZE;
+        /** 此处锁桩只是填充信息，具体是否保存成功有设置功率百分比异步响应决定 */
+        if(config){
+            config->storage_init_flag = NET_YKC_STORAGE_INIT_FLAG;
+            config->fswitch.lock = NET_ENUM_TRUE;
         }
-        */
     }else{
-        for(gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
-            base = (System_BaseData*)(s_ykc_handle->get_base_data(gunno));
-            base->device_state = APP_DEVICE_STATE_COMMISSIONING;
+        /** 此处锁桩只是填充信息，具体是否保存成功有设置功率百分比异步响应决定 */
+        if(config){
+            config->storage_init_flag = NET_YKC_STORAGE_INIT_FLAG;
+            config->fswitch.lock = NET_ENUM_FALSE;
         }
     }
 
     base = (System_BaseData*)(s_ykc_handle->get_base_data(0x00));
 
-    rt_kprintf("ykc_message_pro_set_work_para_request(%d, %d, %d)\n", request->body.power_max_percent,
+    LOG_D("ykc_message_pro_set_work_para_request(%d, %d, %d)", request->body.power_max_percent,
             base->system_power_max, (base->system_power_max * request->body.power_max_percent /100));
     if((request->body.power_max_percent > 0x00) && (request->body.power_max_percent <= 0x64)){
         uint32_t power = (base->system_power_max * request->body.power_max_percent /100);
@@ -1455,6 +1488,8 @@ void ykc_message_info_init(uint8_t gunno)  ///////// 这是网络部分外部调
     g_ykc_preq_stored_energy_info.head.encrypt = NET_YKC_MESSAGE_ENCRYPT_DISABLE;
     memcpy(g_ykc_preq_stored_energy_info.body.pile_number, g_ykc_preq_login.body.pile_number, NET_YKC_CHARGEPILE_LENGTH_DEFAULT);
 #endif /* NET_YKC_MESSAGE_USING_DUPU */
+
+    ykc_storage_data_check();
 }
 
 /*************************************************
@@ -2267,6 +2302,24 @@ void ykc_set_power_percent_response_asynchronously(uint8_t result)
     }else{
         s_ykc_flag_info[0x00].set_power_success = NET_ENUM_FALSE;
     }
+
+
+    if(s_ykc_flag_info[0x00].set_power_success == NET_ENUM_TRUE){
+        System_BaseData *base = NULL;
+        ykc_storage_struct *config = (ykc_storage_struct*)(s_ykc_handle->get_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, 0x00, NET_SYSTEM_DATA_OPTION_TARGET_PLAT));
+        if(config){
+            /** 功率修改与锁桩功能在同一个报文中，为了提高效率，锁桩是否成功都有功率是否修改成功来决定(信息要存flash-耗时) */
+            for(uint8_t gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
+                base = (System_BaseData*)(s_ykc_handle->get_base_data(gunno));
+                if(config->fswitch.lock == NET_ENUM_TRUE){
+                    base->device_state = APP_DEVICE_STATE_FREEZE;
+                }else {
+                    base->device_state = APP_DEVICE_STATE_COMMISSIONING;
+                }
+            }
+        }
+    }
+
     s_ykc_flag_info[0x00].is_set_power = NET_ENUM_FALSE;
     ykc_net_event_send(NET_YKC_EVENT_HANDLE_CHARGEPILE, NET_YKC_EVENT_TYPE_RESPONSE, 0x00, NET_YKC_PRES_EVENT_SET_POWER_PERCENT_ASYNCHRONOUSLY);
 }
