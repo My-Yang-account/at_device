@@ -1705,6 +1705,13 @@ int32_t chargepile_check_config(void)
         memcpy(&s_chargepile_config_info.pile_info.help_number, CP_HELP_PHONE_DEFAULT, valid_len);
     }
 
+    for(uint8_t count = 0x00; count < 0x02; count++){
+        if(sys_string_contain_ctrl_char((const char*)s_chargepile_config_info.config_info.meter_address[count], (CP_INFO_METER_ADDRESS_LEN_MAX - 0x01))){
+            memset(s_chargepile_config_info.config_info.meter_address[count], 0x00, CP_INFO_METER_ADDRESS_LEN_MAX);
+            memset(s_chargepile_config_info.config_info.meter_address[count], 'A', (CP_INFO_METER_ADDRESS_LEN_MAX - 0x01));
+        }
+    }
+
     /***************************************************[离线计费部分]*****************************************************/
     /***************************************************[离线计费部分]*****************************************************/
     for(uint8_t period = 0x00; period < CP_PERIOD_MAX; period++){
