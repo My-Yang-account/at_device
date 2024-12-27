@@ -15,7 +15,7 @@
 #include "app_ofsm.h"
 
 #define RFID_DEV_INCLUDE_THA                              /* 射频识别设备：钛昕 */
-//#define RFID_DEV_INCLUDE_ZLG                              /* 射频识别设备：周立功 */
+#define RFID_DEV_INCLUDE_MT                              /* 射频识别设备：铭特 */
 
 #ifdef APP_USING_DOUBLEGUN
 #define RFID_DEV_NAME                          "uart2"    /* 射频识别设备名 */

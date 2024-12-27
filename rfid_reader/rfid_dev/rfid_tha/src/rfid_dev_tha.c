@@ -16,6 +16,8 @@
 
 //#define RFIDR_THA_DEBUG
 
+#ifdef RFID_DEV_INCLUDE_THA
+
 #define RFID_THA_FRAME_STATE_REGION               0x04    /* 帧响应状态域 */
 #define RFID_THA_FRAME_UUID_REGION                0x0C    /* 帧UUID域 */
 #define RFID_THA_FRAME_UID_LEN_REGION             0x0B    /* 帧UUID长度域 */
@@ -169,7 +171,7 @@ static int rfid_tha_readline(void)
         }
         ch = (unsigned char)result;
 #ifdef RFIDR_THA_DEBUG
-        LOG_D("receive data|0x%x, %d", ch, s_tha_card_info.count);
+        LOG_D("tha recv|0x%x, %d", ch, s_tha_card_info.count);
 #endif /* RFIDR_THA_DEBUG */
         if((ch != RFID_THA_DEVICE_RESPONSE_ADDRESS) && (s_tha_card_info.count == 0x00)){
             continue;
@@ -205,14 +207,29 @@ static int rfid_tha_readline(void)
 }
 
 /*****************************************************************************
+ *  函数名   rfid_tha_device_identify
+ *  功能       判断设备是否支持此协议
+ *  参数
+ * 返回        1：支持   0：不支持     <0：读卡器未回复
+ ****************************************************************************/
+int rfid_tha_device_identify(void)
+{
+    if(rfid_tha_buzzer(0x00) >= 0x00){
+        return 0x01;
+    }
+
+    return 0x00;
+}
+
+/*****************************************************************************
  *  函数名   rfid_tha_buzzer
  *  功能       蜂鸣器控制
  *  参数       count     蜂鸣器响的次数
- * 返回        >=0：成功   <0：失败
+ * 返回        >0：成功   =0：失败     <0：读卡器未回复
  ****************************************************************************/
 int rfid_tha_buzzer(unsigned char count)
 {
-    int tick = rt_tick_get();
+    unsigned int tick = rt_tick_get();
     unsigned short status = 0x00;
 
     while(s_rfid_tha_lock == 0x01){
@@ -248,12 +265,12 @@ int rfid_tha_buzzer(unsigned char count)
 
     if(status != 0x00){
         s_rfid_tha_lock = 0x00;
-        return -0x01;
+        return 0x00;
     }
 
     s_rfid_tha_lock = 0x00;
 
-    return 0x00;
+    return 0x01;
 }
 
 /*****************************************************************************
@@ -266,7 +283,7 @@ int rfid_tha_buzzer(unsigned char count)
  ****************************************************************************/
 int rfid_tha_active_card(unsigned char *uuid, unsigned char ulen, unsigned char *olen)
 {
-    int tick = rt_tick_get();
+    unsigned int tick = rt_tick_get();
     unsigned short status = 0x00;
 
     while(s_rfid_tha_lock == 0x01){
@@ -342,7 +359,7 @@ int rfid_tha_key_authentication(unsigned char sector, unsigned char *key, unsign
         return -0x01;
     }
 
-    int tick = rt_tick_get();
+    unsigned int tick = rt_tick_get();
     unsigned short status = 0x00;
     unsigned char card_key_authen[0x0C];   /** 鉴权时帧的数据域为：密钥类型(1字节) + UUID(4字节) + 密钥(6字节) + 卡块号(1字节)，12字节 */
 
@@ -419,7 +436,7 @@ int rfid_tha_read_block_info(unsigned char block, unsigned char *buf, unsigned c
         return -0x01;
     }
 
-    int tick = rt_tick_get();
+    unsigned int tick = rt_tick_get();
     unsigned short status = 0x00;
     unsigned char rentry = 0x00;
 
@@ -503,7 +520,7 @@ int rfid_tha_write_block_info(unsigned char block, unsigned char *data, unsigned
         return -0x01;
     }
 
-    int tick = rt_tick_get();
+    unsigned int tick = rt_tick_get();
     unsigned char wbuff[RFID_THA_BLOCK_SIZE + 0x01], rbuff[RFID_THA_BLOCK_SIZE], rentry = 0x00;
 
     while(s_rfid_tha_lock == 0x01){
@@ -535,20 +552,20 @@ int rfid_tha_write_block_info(unsigned char block, unsigned char *data, unsigned
         if(s_rfid_tha_padding_request(RFID_THA_CMD_CARD_WRITE_INFO, wbuff, (RFID_THA_BLOCK_SIZE + 0x01)) < 0x00){
             rentry++;
             rt_thread_mdelay(10);
-            LOG_E("reader not response when write block info(%d) entry(%d)", block, rentry);
+            LOG_E("tha reader not response when write block info(%d) entry(%d)", block, rentry);
             continue;
         }
         if(rfid_dev_send(s_rfid_tha_request, (RFID_THA_FRAME_FIX_LEN + (RFID_THA_BLOCK_SIZE + 0x01))) < 0x00){
             rentry++;
             rt_thread_mdelay(10);
-            LOG_E("reader not response when write block info(%d) entry(%d)", block, rentry);
+            LOG_E("tha reader not response when write block info(%d) entry(%d)", block, rentry);
             continue;
         }
 
         if(rfid_tha_readline() < 0x00){
             rentry++;
             rt_thread_mdelay(10);
-            LOG_E("reader not response when write block info(%d) entry(%d)", block, rentry);
+            LOG_E("tha reader not response when write block info(%d) entry(%d)", block, rentry);
             continue;
         }
 
@@ -557,7 +574,7 @@ int rfid_tha_write_block_info(unsigned char block, unsigned char *data, unsigned
         if(memcmp((wbuff + 0x01), rbuff, RFID_THA_BLOCK_SIZE)){
             rentry++;
             rt_thread_mdelay(10);
-            LOG_E("reader write block(%d) info check fail entry(%d)", block, rentry);
+            LOG_E("tha reader write block(%d) info check fail entry(%d)", block, rentry);
             continue;
         }
 
@@ -573,3 +590,6 @@ int rfid_tha_write_block_info(unsigned char block, unsigned char *data, unsigned
 
     return 0x00;
 }
+
+#endif /* RFID_DEV_INCLUDE_THA */
+

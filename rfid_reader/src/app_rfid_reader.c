@@ -22,6 +22,7 @@
 #define RFIDR_DETECT_LEAVE_MAX                        20                    /** 检测卡离场次数(时基按10ms算) */
 #define RFIDR_DETECT_EXIT_MAX                         10                    /** 检测卡存在次数(时基按10ms算) */
 #define RFIDR_DETECT_OFFLINE_MAX                      10                    /** 检测读卡器离线次数 */
+#define RFIDR_DEV_IDENTIFY_PERIOD                     10000                 /** 设备识别周期(ms) */
 
 /** rfidr:rfid reader */
 static rfid_reader s_rfidr_handle = {
@@ -49,7 +50,7 @@ static unsigned char s_rfidr_thread_stack[RFIDR_THREAD_STACK_SIZE];
  ********************************************************************/
 static int app_rfidr_read_block(unsigned char bolck, unsigned char *buf, unsigned char blen)
 {
-    return rfid_dev_api_read_block_info(bolck, buf, blen);
+    return rfid_dev_api_read_block_info(s_rfidr_sector, bolck, buf, blen);
 }
 /*********************************************************************
  * 函数名        app_rfidr_write_block
@@ -61,7 +62,7 @@ static int app_rfidr_read_block(unsigned char bolck, unsigned char *buf, unsigne
  ********************************************************************/
 static int app_rfidr_write_block(unsigned char bolck, unsigned char *data, unsigned char dlen)
 {
-    return rfid_dev_api_write_block_info(bolck, data, dlen);
+    return rfid_dev_api_write_block_info(s_rfidr_sector, bolck, data, dlen);
 }
 
 /*********************************************************************
@@ -72,11 +73,14 @@ static int app_rfidr_write_block(unsigned char bolck, unsigned char *data, unsig
  ********************************************************************/
 static void rfidr_thread_entry(void *parameter)
 {
-    unsigned char uuid[RFIDR_UUID_LEN_MAX], uuid_len = 0x00;
+    unsigned char uuid[RFIDR_UUID_LEN_MAX], uuid_len = 0x00, dev_is_identified = APP_RFIDR_ENUM_FALSE;
     unsigned char leave_count = 0x00, exit_count = 0x00, offline_count = 0x00, key;
+    unsigned int dev_repeat_identify_tick = 0x00;
     int ret = APP_RFIDR_ENUM_FALSE;
 
-    rt_thread_mdelay(1000);
+    rt_thread_mdelay(2000);           /** 保证读卡器外设已初始化完成 */
+
+    rfid_dev_api_device_identify();   /** 上电先识别读卡器设备 */
 
     while(1){
         if(s_rfidr_handle.data_update){
@@ -93,12 +97,15 @@ static void rfidr_thread_entry(void *parameter)
 
         switch(s_rfidr_state){
         case APP_RFIDR_STATE_DOWN:
-            ret = rfid_dev_api_active_card(uuid, RFIDR_UUID_LEN_MAX, &uuid_len);
+            ret = rfid_dev_api_active_card(APP_RFIDR_ENUM_FALSE, uuid, RFIDR_UUID_LEN_MAX, &uuid_len);
             if(ret < APP_RFIDR_ENUM_FALSE){
                 offline_count++;
                 if(offline_count > RFIDR_DETECT_OFFLINE_MAX){
                     offline_count = 0x00;
                     s_rfidr_state = APP_RFIDR_STATE_OFFLINE;
+                    dev_is_identified = APP_RFIDR_ENUM_FALSE;
+                    dev_repeat_identify_tick = rt_tick_get();
+
                     if(s_rfidr_handle.fault){
                         s_rfidr_handle.fault(APP_RFIDR_OFFLINE);
                     }
@@ -128,7 +135,7 @@ static void rfidr_thread_entry(void *parameter)
             break;
         case APP_RFIDR_STATE_IDLE:
             for(key = 0x00; key < APP_RFIDR_KEY_TYPE_SIZE; key++){
-                ret = rfid_dev_api_key_authentication(s_rfidr_sector, s_rfidr_card_key[key], sizeof(s_rfidr_card_key[key]));
+                ret = rfid_dev_api_key_authentication(s_rfidr_sector, s_rfidr_block, s_rfidr_card_key[key], sizeof(s_rfidr_card_key[key]));
                 if(ret >= 0x00){
                     s_rfidr_state = APP_RFIDR_STATE_ACTIVATION;
                     s_rfidr_handle.key_type = key;
@@ -136,7 +143,7 @@ static void rfidr_thread_entry(void *parameter)
                     break;
                 }else{
                     rt_thread_mdelay(100);
-                    rfid_dev_api_active_card(uuid, RFIDR_UUID_LEN_MAX, &uuid_len);
+                    rfid_dev_api_active_card(APP_RFIDR_ENUM_TRUE, uuid, RFIDR_UUID_LEN_MAX, &uuid_len);
                 }
             }
 
@@ -154,7 +161,7 @@ static void rfidr_thread_entry(void *parameter)
             }
             break;
         case APP_RFIDR_STATE_ACTIVATION:
-            ret = rfid_dev_api_read_block_info(s_rfidr_block, s_rfidr_handle.card_number, RFIDR_CARD_NUMBER_LEN_MAX);
+            ret = rfid_dev_api_read_block_info(s_rfidr_sector, s_rfidr_block, s_rfidr_handle.card_number, RFIDR_CARD_NUMBER_LEN_MAX);
             if(ret >= 0x00){
                 s_rfidr_handle.info_type = APP_RFIDR_INFO_TYPE_CARD_NUMBER;
                 s_rfidr_handle.card_number_len = RFIDR_CARD_NUMBER_LEN_MAX;
@@ -190,7 +197,7 @@ static void rfidr_thread_entry(void *parameter)
             s_rfidr_state = APP_RFIDR_STATE_OFFFIELD;
             break;
         case APP_RFIDR_STATE_OFFFIELD:
-            ret = rfid_dev_api_active_card(uuid, RFIDR_UUID_LEN_MAX, &uuid_len);
+            ret = rfid_dev_api_active_card(APP_RFIDR_ENUM_TRUE, uuid, RFIDR_UUID_LEN_MAX, &uuid_len);
             if(ret != APP_RFIDR_ENUM_TRUE){
                 leave_count++;
             }else{
@@ -204,23 +211,44 @@ static void rfidr_thread_entry(void *parameter)
             }
             break;
         case APP_RFIDR_STATE_OFFLINE:
-            ret = rfid_dev_api_active_card(uuid, RFIDR_UUID_LEN_MAX, &uuid_len);
-            if(ret < APP_RFIDR_ENUM_FALSE){
+            if(dev_is_identified == APP_RFIDR_ENUM_FALSE){
+                if(rfid_dev_api_device_identify()){
+                    dev_is_identified = APP_RFIDR_ENUM_TRUE;
+                    LOG_D("rfid dev is identified");
+                }
                 exit_count = 0x00;
-                break;
+                dev_repeat_identify_tick = rt_tick_get();
+                rt_thread_mdelay(100);       /** 设备识别期间，消息可以不用发那么快 */
+            }else{
+                if(dev_repeat_identify_tick > rt_tick_get()){
+                    dev_repeat_identify_tick = rt_tick_get();
+                }
+                if((rt_tick_get() - dev_repeat_identify_tick) > RFIDR_DEV_IDENTIFY_PERIOD){
+                    dev_is_identified = APP_RFIDR_ENUM_FALSE;
+                    dev_repeat_identify_tick = rt_tick_get();
+                }
             }
 
-            exit_count++;
-            if(exit_count > RFIDR_DETECT_EXIT_MAX){
-                exit_count = 0;
-                s_rfidr_state = APP_RFIDR_STATE_DOWN;
-                if(s_rfidr_handle.fault){
-                    s_rfidr_handle.fault(APP_RFIDR_ONLINE);
+            if(dev_is_identified == APP_RFIDR_ENUM_TRUE){
+                ret = rfid_dev_api_active_card(APP_RFIDR_ENUM_TRUE, uuid, RFIDR_UUID_LEN_MAX, &uuid_len);
+                if(ret < APP_RFIDR_ENUM_FALSE){
+                    exit_count = 0x00;
+                    break;
                 }
-                LOG_D("rfid reader is exit");
-            }else{
-                if(s_rfidr_handle.fault){
-                    s_rfidr_handle.fault(APP_RFIDR_OFFLINE);
+
+                exit_count++;
+                if(exit_count > RFIDR_DETECT_EXIT_MAX){
+                    exit_count = 0x00;
+                    offline_count = 0x00;
+                    s_rfidr_state = APP_RFIDR_STATE_DOWN;
+                    if(s_rfidr_handle.fault){
+                        s_rfidr_handle.fault(APP_RFIDR_ONLINE);
+                    }
+                    LOG_D("rfid reader is exit");
+                }else{
+                    if(s_rfidr_handle.fault){
+                        s_rfidr_handle.fault(APP_RFIDR_OFFLINE);
+                    }
                 }
             }
             break;

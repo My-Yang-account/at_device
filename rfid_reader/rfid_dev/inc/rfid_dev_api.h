@@ -14,7 +14,7 @@
 
 enum rfid_dev_type{
     RFID_DEV_TYPE_THA = 0x01,
-    RFID_DEV_TYPE_ZLG = 0x02,
+    RFID_DEV_TYPE_MT = 0x02,
     RFID_DEV_TYPE_SIZE = 0x04,
 };
 
@@ -62,6 +62,14 @@ enum rfid_dev_type rfid_query_dev_type(void);
 int32_t rfid_dev_api_dev_control(uint8_t cmd, void *para, uint16_t para_len, void *ret, uint16_t ret_len);
 
 /*****************************************************************************
+ *  函数名   rfid_dev_api_device_identify
+ *  功能       判断是否有可用设备
+ *  参数
+ * 返回        1：有   0：无
+ ****************************************************************************/
+int rfid_dev_api_device_identify(void);
+
+/*****************************************************************************
  *  函数名   rfid_dev_api_buzzer
  *  功能       蜂鸣器控制
  *  参数       count     蜂鸣器响的次数
@@ -73,41 +81,45 @@ int rfid_dev_api_buzzer(unsigned char count);
  *  函数名   rfid_dev_api_active_card
  *  功能       寻卡(卡激活)
  *  参数       uuid     用于保存接收到的UUID缓存
- *        ulen     缓存长度
- *        olen     用来保存UUID实际长度
+ *     ulen     缓存长度
+ *     olen     用来保存UUID实际长度
+ *     is_search_card    是否只是寻卡
  * 返回        >0：寻到卡   0：未寻到卡   <0：射频识别设备未回复(或回复有误)
  ****************************************************************************/
-int rfid_dev_api_active_card(unsigned char *uuid, unsigned char ulen, unsigned char *olen);
+int rfid_dev_api_active_card(unsigned char is_search_card, unsigned char *uuid, unsigned char ulen, unsigned char *olen);
 
 /*****************************************************************************
  *  函数名   rfid_dev_api_key_authentication
  *  功能       对卡进行密钥鉴权
  *  参数       key     密钥
  *     klen    密钥长度
+ *     sector  块归属扇区
  *     block   验证的块号
  * 返回        >=0：成功   <0：失败
  ****************************************************************************/
-int rfid_dev_api_key_authentication(unsigned char block, unsigned char *key, unsigned char klen);
+int rfid_dev_api_key_authentication(unsigned char sector, unsigned char block, unsigned char *key, unsigned char klen);
 
 /*****************************************************************************
  *  函数名   rfid_dev_api_read_block_info
  *  功能       读取指定块信息
  *  参数       buf     信息缓存
  *     blen    缓存长度
+ *     sector  块归属扇区
  *     block   验证的块号
  * 返回        >=0：成功   <0：失败
  ****************************************************************************/
-int rfid_dev_api_read_block_info(unsigned char block, unsigned char *buf, unsigned char blen);
+int rfid_dev_api_read_block_info(unsigned char sector, unsigned char block, unsigned char *buf, unsigned char blen);
 
 /*****************************************************************************
  *  函数名   rfid_dev_api_write_block_info
  *  功能       修改指定块信息
  *  参数       data    数据
  *     dlen    数据长度
+ *     sector  块归属扇区
  *     block   块号
  * 返回        >=0：成功   <0：失败
  ****************************************************************************/
-int rfid_dev_api_write_block_info(unsigned char block, unsigned char *data, unsigned char dlen);
+int rfid_dev_api_write_block_info(unsigned char sector, unsigned char block, unsigned char *data, unsigned char dlen);
 
 /**************************************************
  *  函数名   rfid_dev_api_init
