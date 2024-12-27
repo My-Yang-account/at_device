@@ -379,6 +379,12 @@ static int32_t app_card_non_swip_card_stop(uint8_t gunno)
 
     s_card_operate_ret[gunno] = APP_CARD_OPERATE_RET_SUCCESS;
 
+    if(gunno == APP_SYSTEM_GUNNOA){
+        mw_storage_record_get_designate_index_record((uint8_t*)transaction, sizeof(thaisen_transaction_t), RECORD_REGION_CHARGE_RECORDA, index);
+    }else{
+        mw_storage_record_get_designate_index_record((uint8_t*)transaction, sizeof(thaisen_transaction_t), RECORD_REGION_CHARGE_RECORDB, index);
+    }
+
     memcpy(s_card_info_sector2.device_id, dev_id, CARD_BLOCK_SIZE);
 
     if(s_card_info_sector2.block_10.detail.ballance >= (ofsm->base.fees_total /100)){
