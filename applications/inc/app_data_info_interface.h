@@ -329,6 +329,10 @@ void thaisen_clear_screen_reboot(void);
  **/
 uint8_t thaisen_get_charge_state(uint8_t gunno);
 /**
+ *  获取模块电压
+ **/
+int16_t thaisen_get_module_voltage(uint8_t gunno);
+/**
  *  获取BCP电池电压
  **/
 int16_t thaisen_get_bcp_voltage(uint8_t gunno);
@@ -336,6 +340,10 @@ int16_t thaisen_get_bcp_voltage(uint8_t gunno);
  * 获取BHM最大允许电压
  **/
 int16_t thaisen_get_bhm_voltage(uint8_t gunno);
+/**
+ * 获取绝缘电压
+ **/
+int16_t thaisen_get_insult_voltage(uint8_t gunno);
 /**
  * 设置屏幕外部触发事件
  **/

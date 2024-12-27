@@ -1371,17 +1371,10 @@ static void SerialScreen_RealTime_InfoGet(void)
         LcdData.setData.chargeState[gunno] = thaisen_get_charge_state(gunno);
         LcdData.setData.batteryVolt[gunno] = thaisen_get_bcp_voltage(gunno) *10;
         LcdData.setData.maxChargeVolt[gunno] = thaisen_get_bhm_voltage(gunno) *10;
-        LcdData.setData.moduleVolt[gunno] = thaisen_get_module_volt(gunno) *10;
-        if(gunno == LCD_GUN_1){
-            LcdData.setData.samplingVolt[gunno] = TH_get_A_Insult_Volt() *10;
-            if(LcdData.setData.samplingVolt[gunno] > (LcdData.setData.moduleVolt[gunno] + 50)){   //因采样误差，暂时做限制处理(5V)
-                LcdData.setData.samplingVolt[gunno] = (LcdData.setData.moduleVolt[gunno] + 50);
-            }
-        }else{
-            LcdData.setData.samplingVolt[gunno] = TH_get_B_Insult_Volt() *10;
-            if(LcdData.setData.samplingVolt[gunno] > (LcdData.setData.moduleVolt[gunno] + 50)){   //因采样误差，暂时做限制处理(5V)
-                LcdData.setData.samplingVolt[gunno] = (LcdData.setData.moduleVolt[gunno] + 50);
-            }
+        LcdData.setData.moduleVolt[gunno] = thaisen_get_module_voltage(gunno) *10;
+        LcdData.setData.samplingVolt[gunno] = thaisen_get_insult_voltage(gunno) *10;
+        if(LcdData.setData.samplingVolt[gunno] > (LcdData.setData.moduleVolt[gunno] + 50)){   //因采样误差，暂时做限制处理(5V)
+            LcdData.setData.samplingVolt[gunno] = (LcdData.setData.moduleVolt[gunno] + 50);
         }
     }
 }

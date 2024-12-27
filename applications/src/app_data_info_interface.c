@@ -1399,7 +1399,41 @@ void thaisen_clear_screen_reboot(void)
  *******************************************/
 uint8_t thaisen_get_charge_state(uint8_t gunno)
 {
-    return mw_get_charge_library_state(gunno);
+    if(gunno >= APP_SYSTEM_GUNNO_SIZE){
+        return 0x00;
+    }
+
+    uint8_t main_gunno = gunno;
+    struct ofsm_info *ofsm_temp = get_ofsm_info(gunno);
+
+    if(((ofsm_temp->base.charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL) || (ofsm_temp->base.charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD)) &&
+            (ofsm_temp->base.main_gunno != gunno) && (ofsm_temp->base.main_gunno < APP_SYSTEM_GUNNO_SIZE)){
+        main_gunno = ofsm_temp->base.main_gunno;
+    }
+
+    return mw_get_charge_library_state(main_gunno);
+}
+
+/********************************************
+ * 函数名      thaisen_get_module_voltage
+ * 功能         获取模块电压   精度：0.1
+ * 返回          模块电压
+ *******************************************/
+int16_t thaisen_get_module_voltage(uint8_t gunno)
+{
+    if(gunno >= APP_SYSTEM_GUNNO_SIZE){
+        return 0x00;
+    }
+
+    uint8_t main_gunno = gunno;
+    struct ofsm_info *ofsm_temp = get_ofsm_info(gunno);
+
+    if(((ofsm_temp->base.charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL) || (ofsm_temp->base.charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD)) &&
+            (ofsm_temp->base.main_gunno != gunno) && (ofsm_temp->base.main_gunno < APP_SYSTEM_GUNNO_SIZE)){
+        main_gunno = ofsm_temp->base.main_gunno;
+    }
+
+    return thaisen_get_module_volt(main_gunno);
 }
 
 /********************************************
@@ -1409,7 +1443,19 @@ uint8_t thaisen_get_charge_state(uint8_t gunno)
  *******************************************/
 int16_t thaisen_get_bcp_voltage(uint8_t gunno)
 {
-    return mw_get_bcp_voltage(gunno);
+    if(gunno >= APP_SYSTEM_GUNNO_SIZE){
+        return 0x00;
+    }
+
+    uint8_t main_gunno = gunno;
+    struct ofsm_info *ofsm_temp = get_ofsm_info(gunno);
+
+    if(((ofsm_temp->base.charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL) || (ofsm_temp->base.charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD)) &&
+            (ofsm_temp->base.main_gunno != gunno) && (ofsm_temp->base.main_gunno < APP_SYSTEM_GUNNO_SIZE)){
+        main_gunno = ofsm_temp->base.main_gunno;
+    }
+
+    return mw_get_bcp_voltage(main_gunno);
 }
 
 /********************************************
@@ -1419,7 +1465,44 @@ int16_t thaisen_get_bcp_voltage(uint8_t gunno)
  *******************************************/
 int16_t thaisen_get_bhm_voltage(uint8_t gunno)
 {
-    return mw_get_bhm_voltage(gunno);
+    if(gunno >= APP_SYSTEM_GUNNO_SIZE){
+        return 0x00;
+    }
+
+    uint8_t main_gunno = gunno;
+    struct ofsm_info *ofsm_temp = get_ofsm_info(gunno);
+
+    if(((ofsm_temp->base.charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL) || (ofsm_temp->base.charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD)) &&
+            (ofsm_temp->base.main_gunno != gunno) && (ofsm_temp->base.main_gunno < APP_SYSTEM_GUNNO_SIZE)){
+        main_gunno = ofsm_temp->base.main_gunno;
+    }
+
+    return mw_get_bhm_voltage(main_gunno);
+}
+
+/********************************************
+ * 函数名      thaisen_get_insult_voltage
+ * 功能         获取绝缘电压   精度：0.1
+ * 返回         绝缘电压
+ *******************************************/
+int16_t thaisen_get_insult_voltage(uint8_t gunno)
+{
+    if(gunno >= APP_SYSTEM_GUNNO_SIZE){
+        return 0x00;
+    }
+
+    uint8_t main_gunno = gunno;
+    struct ofsm_info *ofsm_temp = get_ofsm_info(gunno);
+
+    if(((ofsm_temp->base.charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL) || (ofsm_temp->base.charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD)) &&
+            (ofsm_temp->base.main_gunno != gunno) && (ofsm_temp->base.main_gunno < APP_SYSTEM_GUNNO_SIZE)){
+        main_gunno = ofsm_temp->base.main_gunno;
+    }
+
+    if(main_gunno == 0x00){
+        return TH_get_A_Insult_Volt();
+    }
+    return TH_get_B_Insult_Volt();
 }
 
 /********************************************
