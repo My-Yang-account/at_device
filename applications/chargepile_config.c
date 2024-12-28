@@ -2400,13 +2400,13 @@ int32_t sys_period_time_format_valid(void *t)
 int32_t sys_period_time_continuous_valid(void *t, uint8_t tlen, uint8_t valid_count)
 {
     if(t == NULL){
-        return 0x00;
+        return 0x00;    /** 时间间断 */
     }
     if(tlen < (sizeof(struct period_time) *CP_RATED_TYPE_NUM_MAX *CP_RATED_TYPE_PERIOD_NUM)){
-        return 0x00;
+        return 0x00;    /** 时间间断 */
     }
     if(!((valid_count > 0x00) && (valid_count <= CP_RATED_TYPE_NUM_MAX *CP_RATED_TYPE_PERIOD_NUM))){
-        return 0x00;
+        return 0x00;    /** 时间间断 */
     }
 
     uint8_t i = 0x00, j = 0x00, min = 0x00;
@@ -2453,47 +2453,47 @@ int32_t sys_period_time_continuous_valid(void *t, uint8_t tlen, uint8_t valid_co
         /** 判断是否连续 */
         for(i = 0x00; i < (valid_count - 0x01); i++){
             if(time[i].shour == time[i].ehour){
-                if(time[i].smin > time[i].emin){
-                    return -0x01;
+                if(time[i].smin >= time[i].emin){   /** 此时这个时间段内的开始小时等于结束小时、开始分钟等于结束分钟；这段时间将毫无意义(可以去掉不使用0xFF) */
+                    return -0x01;    /** 时间重复 */
                 }
             }else{
                 if(time[i].shour > time[i].ehour){
-                    return -0x01;
+                    return -0x01;    /** 时间重复 */
                 }
             }
 
             if(time[i + 0x01].shour != time[i].ehour){
                 if(time[i].ehour > time[i + 0x01].shour){
-                    return -0x01;
+                    return -0x01;    /** 时间重复 */
                 }else{
-                    return 0x00;
+                    return 0x00;     /** 时间间断 */
                 }
             }
 
             if(time[i + 0x01].smin != time[i].emin){
                 if(time[i].emin > time[i + 0x01].smin){
-                    return -0x01;
+                    return -0x01;    /** 时间重复 */
                 }else{
-                    return 0x00;
+                    return 0x00;     /** 时间间断 */
                 }
             }
-
+            /** 最后一个时间要和最开始的时间进行判断 */
             if((i + 0x01) == (valid_count - 0x01)){
                 if((time[i + 0x01].emin != time[0x00].smin) || (time[i + 0x01].ehour != time[0x00].shour)){
                     if(time[i + 0x01].ehour != time[0x00].shour){
                         if((time[0x00].shour < time[i + 0x01].ehour) && (time[0x01].shour > time[i + 0x01].ehour)){
-                            return -0x01;
+                            return -0x01;    /** 时间重复 */
                         }else{
-                            return 0x00;
+                            return 0x00;     /** 时间间断 */
                         }
                     }
 
                     if(time[i + 0x01].emin != time[0x00].smin){
                         if(time[0x00].smin < time[i + 0x01].emin){
                             rt_kprintf("time[0x00].smin(%d)  time[i + 0x01].emin(%d)", time[0x00].smin, time[i + 0x01].emin);
-                            return -0x01;
+                            return -0x01;    /** 时间重复 */
                         }else{
-                            return 0x00;
+                            return 0x00;     /** 时间间断 */
                         }
                     }
                 }
@@ -2504,7 +2504,7 @@ int32_t sys_period_time_continuous_valid(void *t, uint8_t tlen, uint8_t valid_co
     else{
         if((time[0x00].shour != 0x00) || (time[0x00].smin != 0x00) ||     \
                 (time[0x00].ehour != 0x00) || (time[0x00].emin != 0x00)){
-            return 0x00;
+            return 0x00;    /** 时间间断 */
         }
     }
 
