@@ -368,6 +368,11 @@ void thaisen_enter_critical(void);
  **/
 void thaisen_exit_critical(void);
 
+/**
+ * 判断屏幕启动倒计时是否已结束
+ **/
+uint8_t thaisen_is_countdown_finish(uint8_t gunno);
+
 #endif /* APPLICATIONS_INC_APP_DATA_INFO_INTERFACE_H_ */
 
 

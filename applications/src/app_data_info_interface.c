@@ -1570,3 +1570,14 @@ void thaisen_exit_critical(void)
     rt_exit_critical();
 }
 
+/********************************************
+ * 函数名      thaisen_is_countdown_finish
+ * 功能         判断屏幕启动倒计时是否已结束
+ *
+ * 返回          1:是，0:不是
+ *******************************************/
+uint8_t thaisen_is_countdown_finish(uint8_t gunno)
+{
+    return SerialScreen_Screen_IsCouDownFin_Flag(gunno);
+}
+

@@ -269,6 +269,7 @@ struct LCD_ASSISTANT_DATA{
         u8 IsSetPowerPercent : 1;        //已设置功率百分比
         u8 IsSetELossProportion : 1;     //已设置电损比
         u8 IsClickReboot : 1;            //已点击重启
+        u8 IsCountDownFinish : 1;        //启动倒计时已结束
     }Flag;
 
     struct{
@@ -1066,6 +1067,25 @@ u8 SerialScreen_ScreenGet_Is_FirstPage(void)
         return TRUE;
     }
     return FALSE;
+}
+
+void SerialScreen_ScreenSet_CouDownFin_Flag(u8 sta)
+{
+    if(sta)
+        LcdAssistantData.Flag.IsCountDownFinish = TRUE;
+    else
+        LcdAssistantData.Flag.IsCountDownFinish = FALSE;
+}
+
+u8 SerialScreen_Screen_IsCouDownFin_Flag(u8 port)
+{
+    if(port >= LCD_GUN_NUM)
+        return TRUE;
+
+    if(LcdData.gun[port].startCountTimer == 0)
+        return TRUE;
+    else
+        return FALSE;
 }
 
 /*******************************************************************************************
@@ -4911,6 +4931,8 @@ void SerialScreen_DataClean(int index)
 //	mem_set(LcdData.gun[index].code_stopResaon,0, sizeof(LcdData.gun[index].code_stopResaon));
 	
 	LcdData.gun[index].startCountTimer = 90;
+	SerialScreen_ScreenSet_CouDownFin_Flag(FALSE);
+	/** 此处清除启动倒计时结束标志 */
 }
 
 //1 : online  0:offline
@@ -5364,6 +5386,7 @@ struct LCD_DATA_FIFO_TYPE *SerialScreen_Init(struct SerialScreenObj *cmd)
 	//	LcdData.gun[i].Aux12v = 1;
 		LcdData.gun[i].Unit_Price = -0.31f;
 		LcdData.gun[i].startCountTimer = 90;
+	    SerialScreen_ScreenSet_CouDownFin_Flag(FALSE);
 		LcdData.setData.Sup_StartStyle[0][i] = ~LcdData.setData.sup_Local;
 		if(TRUE == LcdData.setData.sup_VIN)
 			LcdData.setData.Sup_StartStyle[1][i] = ICON_CHARGE_VIN;

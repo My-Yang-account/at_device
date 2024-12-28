@@ -2334,20 +2334,34 @@ static void ofsm_starting_fun(uint8_t gunno)
         }
     }
 
-    switch(charge_state){
-    case APP_CHARGE_STATE_IDLE:
-        if(((s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD) && (s_ofsm_info[gunno].base.main_gunno == gunno)) ||
-                (s_ofsm_info[gunno].base.charge_way != APP_CHARGE_WAY_PARACHARGE_CLOUD)){
-            if(s_ofsm_info[gunno].charge_timeout > rt_tick_get()){
-                s_ofsm_info[gunno].charge_timeout = rt_tick_get();
-            }
-            if((rt_tick_get() - s_ofsm_info[gunno].charge_timeout) > 50000){
-                stop_way = mw_get_system_stop_way(gunno);
-                if(stop_way != APP_SYSTEM_STOP_WAY_NULL){
-                    /** 已有停充原因，充电已结束，充电失败，退出 */
-                }else if((rt_tick_get() - s_ofsm_info[gunno].charge_timeout) <= 90000){
-                    break;
+    if(((s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD) && (s_ofsm_info[gunno].base.main_gunno == gunno)) ||  \
+            ((s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL) && (s_ofsm_info[gunno].base.main_gunno == gunno)) || \
+            ((s_ofsm_info[gunno].base.charge_way != APP_CHARGE_WAY_PARACHARGE_CLOUD) && (s_ofsm_info[gunno].base.charge_way != APP_CHARGE_WAY_PARACHARGE_LOCAL))){
+        if(s_ofsm_info[gunno].charge_timeout > rt_tick_get()){
+            s_ofsm_info[gunno].charge_timeout = rt_tick_get();
+        }
+        if((rt_tick_get() - s_ofsm_info[gunno].charge_timeout) > 50000){
+            stop_way = mw_get_system_stop_way(gunno);
+            if(((rt_tick_get() - s_ofsm_info[gunno].charge_timeout) >= 90000) || (stop_way != APP_SYSTEM_STOP_WAY_NULL)){
+                if(stop_way == APP_SYSTEM_STOP_WAY_NULL){
+                    uint8_t rentry = 0x00;
+                    while((rentry <= 100) && (thaisen_is_countdown_finish(gunno) == APP_THA_ENUM_FALSE)){  /** 最多等待 60s，等下层赋值完停充原因 */
+                        rt_thread_mdelay(600);
+                        stop_way = mw_get_system_stop_way(gunno);
+                        if(stop_way != APP_SYSTEM_STOP_WAY_NULL){
+                            break;
+                        }
+                        rentry++;
+                    }
                 }
+                /** 注：启动超时时间计算如此：
+                                             *  屏幕上的倒计时时长为90s，但是计时用的是线程定时，有一定误差，实际测试屏幕的90s大概为实际的145s(2分24s48)，为了使业务状态跳转与屏幕倒计时一致，实际倒计时时间必须大于145s，但不能相差过大，故定150s = 90s + ((100 *600) /1000)s
+                 */
+                /** 防止状态异常，上层已停止但下层还在充电 */
+                mw_charge_stop_cmd(gunno);
+
+                LOG_D("gunno(%d) charge stop deal to stop way(boot timeout)|%d\n", gunno, stop_way);
+
                 s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_STOPING];
                 s_ofsm_info[gunno].state = APP_OFSM_STATE_STOPING;
 
@@ -2364,22 +2378,6 @@ static void ofsm_starting_fun(uint8_t gunno)
                 }else{
                     s_ofsm_info[gunno].base.charge_elect_last = mw_get_meter_total_wh(gunno);
                 }
-
-                /** 防止状态异常，上层已停止但下层还在充电 */
-                mw_charge_stop_cmd(gunno);
-                if(stop_way == APP_SYSTEM_STOP_WAY_NULL){
-                    uint8_t rentry = 0x00;
-                    while(rentry <= 20){  /** 最多等待 10s，等下层赋值完停充原因 */
-                        rt_thread_mdelay(500);
-                        stop_way = mw_get_system_stop_way(gunno);
-                        if(stop_way != APP_SYSTEM_STOP_WAY_NULL){
-                            break;
-                        }
-                        rentry++;
-                    }
-                }
-
-                LOG_D("gunno(%d) charge stop deal to stop way(boot timeout)|%d\n", gunno, stop_way);
 
                 s_thaisen_transaction[gunno].stop_reason = stop_way;
                 s_ofsm_info[gunno].base.reason_code = stop_way;
@@ -2427,11 +2425,18 @@ static void ofsm_starting_fun(uint8_t gunno)
 
                 app_nsal_report_remote_start_result(gunno, s_ofsm_info[gunno].base.flag.start_result,  \
                         s_ofsm_info[gunno].base.reason_code, s_ofsm_info[gunno].base.reason_code);
+
+                app_charge_fault_occur(gunno, s_ofsm_info[gunno].base.reason_code, (*mw_get_charge_fault_set(gunno)));
+
                 app_nsal_state_charged(gunno);
                 app_nsal_event_occurded(gunno);
                 return;
             }
         }
+    }
+
+    switch(charge_state){
+    case APP_CHARGE_STATE_IDLE:
         s_booting_step[gunno] = APP_BOOTING_STEP_IDLE;
         break;
     case APP_CHARGE_STATE_SHAKE_HAND:
