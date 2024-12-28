@@ -53,38 +53,6 @@ static struct error_info s_stopway_error_info[APP_SYSTEM_GUNNO_SIZE];
 #endif /* APP_INCLUDE_SGCC_PROTOCOL */
 
 /************************************************
- * 函数名         app_query_charge_fault
- * 功能             查询充电故障码
- * 参数             gunno    枪号
- *       set      故障集(32位为一个故障集)
- * 返回
- ***********************************************/
-static void app_query_charge_fault(uint8_t gunno, uint8_t set)
-{
-    if(gunno >= APP_SYSTEM_GUNNO_SIZE){
-        return;
-    }
-    if(set >= APP_GENERAL_SYSTEM_FAULT_SET_NUM){
-        return;
-    }
-
-    switch (get_ofsm_info(gunno)->base.state.current) {
-    case APP_OFSM_STATE_STARTING:
-    case APP_OFSM_STATE_CHARGING:
-    case APP_OFSM_STATE_STOPING:
-    case APP_OFSM_STATE_FAULTING:
-    {
-        uint32_t *charge_fault = mw_get_charge_fault_set(gunno);
-        s_charge_fault_current[gunno][set] = (uint8_t)(*charge_fault);
-    }
-        break;
-    default:
-        s_charge_fault_current[gunno][set] = 0x00;
-        break;
-    }
-}
-
-/************************************************
  * 函数名         app_query_system_fault_set
  * 功能             查询系统故障集
  * 参数             gunno    枪号
@@ -95,40 +63,55 @@ static uint32_t *app_query_system_fault_set(uint8_t gunno)
     return mw_get_system_fault_set(gunno);
 }
 
-#ifdef APP_INCLUDE_SGCC_PROTOCOL
+
 /************************************************
- * 函数名         app_stopway_fault_occur
- * 功能             停充原因型故障产生
+ * 函数名         app_charge_fault_occur
+ * 功能             充电故障产生
  * 参数             gunno    枪号
  *       stopway  停充原因
+ *       charge_fault 充电故障码(集)
  * 返回
  ***********************************************/
-void app_stopway_fault_occur(uint8_t gunno, uint32_t stopway)
+void app_charge_fault_occur(uint8_t gunno, uint32_t stopway, uint32_t charge_fault)
 {
     if(gunno >= APP_SYSTEM_GUNNO_SIZE){
         return;
     }
 
+    rt_enter_critical();
+#ifdef APP_INCLUDE_SGCC_PROTOCOL
     s_stopway_fault[gunno] = stopway;
     s_stopway_fault_flag[gunno] = APP_STOPWAY_FAULT_INFO_OCCUR;
+#endif /* APP_INCLUDE_SGCC_PROTOCOL */
+    for(uint8_t set = 0x00; set <APP_GENERAL_CHARGE_FAULT_SET_NUM; set++){
+        s_charge_fault_current[gunno][set] = charge_fault;
+    }
+    rt_exit_critical();
 }
 /************************************************
- * 函数名         app_query_system_fault_set
- * 功能             停充原因型故障恢复
+ * 函数名         app_charge_fault_resume
+ * 功能             充电故障恢复
  * 参数             gunno    枪号
  *       stopway  停充原因
+ *       charge_fault 充电故障码(集)
  * 返回
  ***********************************************/
-void app_stopway_fault_resume(uint8_t gunno, uint32_t stopway)
+void app_charge_fault_resume(uint8_t gunno, uint32_t stopway, uint32_t charge_fault)
 {
     if(gunno >= APP_SYSTEM_GUNNO_SIZE){
         return;
     }
 
+    rt_enter_critical();
+#ifdef APP_INCLUDE_SGCC_PROTOCOL
     s_stopway_fault[gunno] = stopway;
     s_stopway_fault_flag[gunno] = APP_STOPWAY_FAULT_INFO_RESUME;
-}
 #endif /* APP_INCLUDE_SGCC_PROTOCOL */
+    for(uint8_t set = 0x00; set <APP_GENERAL_CHARGE_FAULT_SET_NUM; set++){
+        s_charge_fault_current[gunno][set] = charge_fault;
+    }
+    rt_exit_critical();
+}
 
 uint8_t app_exist_forbid_charge_fault(uint8_t gunno)
 {
@@ -501,8 +484,8 @@ void app_osupport_thread_entry(void *parameter)
             remain_bit = APP_CHARGE_FAULT_NO_ERROR - end_bit;
 
             for(uint8_t set = 0; set < APP_GENERAL_CHARGE_FAULT_SET_NUM; set++){
-                app_query_charge_fault(gunno, set);
-                fault_xor = s_charge_fault_current[gunno][set] ^s_charge_fault_last[gunno][set];
+                uint32_t _fault_set = s_charge_fault_current[gunno][set];
+                fault_xor = _fault_set ^s_charge_fault_last[gunno][set];
                 if(fault_xor){
                     for(bit = 0; bit < (end_bit - start_bit); bit++){
                         if(fault_xor &(1 <<bit)){
@@ -557,7 +540,7 @@ void app_osupport_thread_entry(void *parameter)
                             app_fault_storage(&s_charge_error_info[gunno], s_charge_error_info[gunno].resume_time, gunno);
                         }
                     }
-                    s_charge_fault_last[gunno][set] = s_charge_fault_current[gunno][set];
+                    s_charge_fault_last[gunno][set] = _fault_set;
                 }
                 start_bit = end_bit;
                 end_bit = remain_bit > 32 ? 32 : remain_bit;

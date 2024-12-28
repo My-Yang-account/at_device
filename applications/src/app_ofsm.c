@@ -1994,7 +1994,7 @@ static void ofsm_starting_fun(uint8_t gunno)
                     if(++rentry > 50){
                         break;
                     }
-                    rt_kprintf("22 sss(%d, %d)\n", gunno, rentry);
+
                     if(mw_is_can_recved(deputy_gun_enum)){
                         mw_clear_can_recved(deputy_gun_enum);
                         if(ofsm_is_belong_one_car(gunno) != APP_THA_ENUM_TRUE){
@@ -2233,6 +2233,9 @@ static void ofsm_starting_fun(uint8_t gunno)
 
             app_nsal_report_remote_start_result(gunno, s_ofsm_info[gunno].base.flag.start_result,  \
                     s_ofsm_info[gunno].base.reason_code, s_ofsm_info[gunno].base.reason_code);
+
+            app_charge_fault_occur(gunno, s_ofsm_info[gunno].base.reason_code, (*mw_get_charge_fault_set(gunno)));
+
             app_nsal_state_charged(gunno);
             app_nsal_event_occurded(gunno);
             return;
@@ -2321,6 +2324,9 @@ static void ofsm_starting_fun(uint8_t gunno)
 
                 app_nsal_report_remote_start_result(gunno, s_ofsm_info[gunno].base.flag.start_result,  \
                         s_ofsm_info[gunno].base.reason_code, s_ofsm_info[gunno].base.reason_code);
+
+                app_charge_fault_occur(gunno, s_ofsm_info[gunno].base.reason_code, (*mw_get_charge_fault_set(gunno)));
+
                 app_nsal_state_charged(gunno);
                 app_nsal_event_occurded(gunno);
                 return;
@@ -2629,6 +2635,9 @@ static void ofsm_starting_fun(uint8_t gunno)
 
                 app_nsal_report_remote_start_result(gunno, s_ofsm_info[gunno].base.flag.start_result,  \
                         s_ofsm_info[gunno].base.reason_code, s_ofsm_info[gunno].base.reason_code);
+
+                app_charge_fault_occur(gunno, s_ofsm_info[gunno].base.reason_code, (*mw_get_charge_fault_set(gunno)));
+
                 app_nsal_state_charged(gunno);
                 app_nsal_event_occurded(gunno);
                 return;
@@ -2744,6 +2753,9 @@ static void ofsm_starting_fun(uint8_t gunno)
 
             app_nsal_report_remote_start_result(gunno, s_ofsm_info[gunno].base.flag.start_result,  \
                     s_ofsm_info[gunno].base.reason_code, s_ofsm_info[gunno].base.reason_code);
+
+            app_charge_fault_occur(gunno, s_ofsm_info[gunno].base.reason_code, (*mw_get_charge_fault_set(gunno)));
+
             app_nsal_state_charged(gunno);
             app_nsal_event_occurded(gunno);
         }
@@ -2809,6 +2821,8 @@ static void ofsm_starting_fun(uint8_t gunno)
 
             app_nsal_report_remote_start_result(gunno, s_ofsm_info[gunno].base.flag.start_result,  \
                     s_ofsm_info[gunno].base.reason_code, s_ofsm_info[gunno].base.reason_code);
+
+            app_charge_fault_occur(gunno, s_ofsm_info[gunno].base.reason_code, (*mw_get_charge_fault_set(gunno)));
 
             app_nsal_state_charged(gunno);
             app_nsal_event_occurded(gunno);
@@ -3325,9 +3339,7 @@ static void ofsm_charging_fun(uint8_t gunno)
 
             s_thaisen_transaction[gunno].order_state.is_charging = APP_THA_ENUM_FALSE;
 
-#ifdef APP_INCLUDE_SGCC_PROTOCOL
-            app_stopway_fault_occur(gunno, s_ofsm_info[gunno].base.reason_code);
-#endif /* APP_INCLUDE_SGCC_PROTOCOL */
+            app_charge_fault_occur(gunno, s_ofsm_info[gunno].base.reason_code, (*mw_get_charge_fault_set(gunno)));
 
             app_nsal_report_remote_stop_result(gunno, APP_THA_ENUM_TRUE, s_ofsm_info[gunno].base.reason_code, s_ofsm_info[gunno].base.reason_code);
 
@@ -3415,9 +3427,7 @@ static void ofsm_charging_fun(uint8_t gunno)
 
             s_thaisen_transaction[gunno].order_state.is_charging = APP_THA_ENUM_FALSE;
 
-#ifdef APP_INCLUDE_SGCC_PROTOCOL
-            app_stopway_fault_occur(gunno, s_ofsm_info[gunno].base.reason_code);
-#endif /* APP_INCLUDE_SGCC_PROTOCOL */
+            app_charge_fault_occur(gunno, s_ofsm_info[gunno].base.reason_code, (*mw_get_charge_fault_set(gunno)));
 
             app_nsal_report_remote_stop_result(gunno, APP_THA_ENUM_TRUE, s_ofsm_info[gunno].base.reason_code, s_ofsm_info[gunno].base.reason_code);
 
@@ -3818,9 +3828,7 @@ static void ofsm_charging_fun(uint8_t gunno)
                 LOG_I("chargepile is synchronized, modify correlation time|%x\n", curr_time);
             }
 
-#ifdef APP_INCLUDE_SGCC_PROTOCOL
-            app_stopway_fault_occur(gunno, s_ofsm_info[gunno].base.reason_code);
-#endif /* APP_INCLUDE_SGCC_PROTOCOL */
+            app_charge_fault_occur(gunno, s_ofsm_info[gunno].base.reason_code, (*mw_get_charge_fault_set(gunno)));
 
             app_nsal_report_remote_stop_result(gunno, APP_THA_ENUM_TRUE, s_ofsm_info[gunno].base.reason_code, s_ofsm_info[gunno].base.reason_code);
 
@@ -3854,9 +3862,7 @@ static void ofsm_charging_fun(uint8_t gunno)
             s_ofsm_info[gunno].base.charge_elect_last = mw_get_meter_total_wh(gunno);
         }
 
-#ifdef APP_INCLUDE_SGCC_PROTOCOL
-            app_stopway_fault_occur(gunno, s_ofsm_info[gunno].base.reason_code);
-#endif /* APP_INCLUDE_SGCC_PROTOCOL */
+        app_charge_fault_occur(gunno, s_ofsm_info[gunno].base.reason_code, (*mw_get_charge_fault_set(gunno)));
 
         app_nsal_report_remote_stop_result(gunno, APP_THA_ENUM_TRUE, s_ofsm_info[gunno].base.reason_code, s_ofsm_info[gunno].base.reason_code);
 
@@ -4206,9 +4212,7 @@ static void ofsm_stoping_fun(uint8_t gunno)
         s_ofsm_info[gunno].base.flag.is_pay_complete = APP_THA_ENUM_FALSE;
     }
 
-#ifdef APP_INCLUDE_SGCC_PROTOCOL
-    app_stopway_fault_resume(gunno, s_ofsm_info[gunno].base.reason_code);
-#endif /* APP_INCLUDE_SGCC_PROTOCOL */
+    app_charge_fault_resume(gunno, s_ofsm_info[gunno].base.reason_code, 0x00);
 
     mw_clear_time_sync_flag(gunno);
     rfidr_clear_swipe_state(gunno);

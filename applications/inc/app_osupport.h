@@ -16,7 +16,6 @@ extern "C" {
 #endif
 
 #include "stdio.h"
-#include "net_sal.h"
 
 #define APP_GENERAL_SYSTEM_FAULT_SET_NUM          1
 #define APP_GENERAL_CHARGE_FAULT_SET_NUM          1
@@ -41,10 +40,8 @@ struct error_info
 uint8_t app_exist_forbid_charge_fault(uint8_t gunno);
 void app_shield_allow_charge_fautl(uint8_t gunno);
 void app_enable_detect_allow_charge_fautl(uint8_t gunno);
-#ifdef APP_INCLUDE_SGCC_PROTOCOL
-void app_stopway_fault_occur(uint8_t gunno, uint32_t stopway);
-void app_stopway_fault_resume(uint8_t gunno, uint32_t stopway);
-#endif /* APP_INCLUDE_SGCC_PROTOCOL */
+void app_charge_fault_occur(uint8_t gunno, uint32_t stopway, uint32_t charge_fault);
+void app_charge_fault_resume(uint8_t gunno, uint32_t stopway, uint32_t charge_fault);
 enum charge_fault_t app_get_highest_priority_charge_fault(uint8_t gunno);
 enum system_fault_t app_get_highest_priority_system_fault(uint8_t gunno);
 
