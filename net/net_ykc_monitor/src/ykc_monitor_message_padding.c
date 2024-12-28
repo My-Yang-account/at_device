@@ -666,36 +666,6 @@ int8_t ykc_monitor_response_padding_ground_lock_lifting(uint8_t gunno, uint8_t *
 }
 
 /*************************************************
- * 函数名      ykc_monitor_response_padding_remote_update
- * 功能          组包：远程更新响应
- * **********************************************/
-int8_t ykc_monitor_response_padding_remote_update(uint8_t *buf, uint16_t ilen, uint16_t *olen)
-{
-    uint8_t data_len = sizeof(Net_YkcMonitorPro_PRes_RemoteUpdate_t);
-
-    if(buf == NULL){
-        return -0x01;
-    }
-    if(data_len > ilen){
-        return -0x02;
-    }
-
-    uint8_t valid_len = 0x00;
-    Net_YkcMonitorPro_PRes_RemoteUpdate_t *response = NULL;
-    response = ((Net_YkcMonitorPro_PRes_RemoteUpdate_t*)buf);
-    memset(response, 0x00, data_len);
-
-    valid_len = sizeof(g_ykc_monitor_sreq_remote_update.body.pile_number);
-    valid_len = valid_len > sizeof(response->body.pile_number) ? sizeof(response->body.pile_number) : valid_len;
-    memcpy(response->body.pile_number, g_ykc_monitor_sreq_remote_update.body.pile_number, valid_len);
-
-    if(olen){
-        *olen = data_len;
-    }
-    return 0x00;
-}
-
-/*************************************************
  * 函数名      ykc_monitor_response_padding_remote_start_merge_charge
  * 功能          组包：远程并充启机响应
  * **********************************************/

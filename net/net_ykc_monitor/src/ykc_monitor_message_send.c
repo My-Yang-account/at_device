@@ -2112,14 +2112,7 @@ static void net_ykc_monitor_server_message_pro_entry(void *parameter)
                         pro_result = 0x01;
                     }
                     if(pro_result != 0x00){
-                        response = ykc_monitor_get_response_buff(RT_WAITING_FOREVER);
-                        result = ykc_monitor_response_padding_remote_update(response->general_transmit_buff, NET_YKC_MONITOR_GENERA_RESPONSE_BUFF_LENGTH, &(response->length));
-                        ((Net_YkcMonitorPro_PRes_RemoteUpdate_t*)response->general_transmit_buff)->body.result = pro_result;
-                        if(result >= 0x00){
-                            ykc_monitor_net_event_send(NET_YKC_MONITOR_EVENT_HANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_RESPONSE, gunno, NET_YKC_MONITOR_PRES_EVENT_REMOTE_UPDATE);
-                        }else{
-                            ykc_monitor_response_buff_release_sem();
-                        }
+                        ykc_monitor_chargepile_update_result_report(0x03);   /** 默认失败原因是超时 */
                     }
                 }
                 /***** [运营平台远程控制并充启机请求] *****/

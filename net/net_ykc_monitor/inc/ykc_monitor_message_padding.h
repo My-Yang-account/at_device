@@ -34,7 +34,6 @@ int8_t ykc_monitor_response_padding_time_sync(uint8_t *buf, uint16_t ilen, uint1
 int8_t ykc_monitor_response_padding_remote_reboot(uint8_t *buf, uint16_t ilen, uint16_t *olen);
 int8_t ykc_monitor_response_padding_set_billing_model(uint8_t *buf, uint16_t ilen, uint16_t *olen);
 int8_t ykc_monitor_response_padding_ground_lock_lifting(uint8_t gunno, uint8_t *buf, uint16_t ilen, uint16_t *olen);
-int8_t ykc_monitor_response_padding_remote_update(uint8_t *buf, uint16_t ilen, uint16_t *olen);
 int8_t ykc_monitor_response_padding_remote_start_merge_charge(uint8_t gunno, uint8_t *buf, uint16_t ilen, uint16_t *olen);
 int8_t ykc_monitor_response_padding_qrcode_config_gc(uint8_t gunno, uint8_t *buf, uint16_t ilen, uint16_t *olen);
 int8_t ykc_monitor_response_padding_qrcode_config_ykc15(uint8_t *buf, uint16_t ilen, uint16_t *olen);
