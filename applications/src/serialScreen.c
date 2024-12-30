@@ -1393,8 +1393,8 @@ static void SerialScreen_RealTime_InfoGet(void)
         LcdData.setData.maxChargeVolt[gunno] = thaisen_get_bhm_voltage(gunno) *10;
         LcdData.setData.moduleVolt[gunno] = thaisen_get_module_voltage(gunno) *10;
         LcdData.setData.samplingVolt[gunno] = thaisen_get_insult_voltage(gunno) *10;
-        if(LcdData.setData.samplingVolt[gunno] > (LcdData.setData.moduleVolt[gunno] + 50)){   //因采样误差，暂时做限制处理(5V)
-            LcdData.setData.samplingVolt[gunno] = (LcdData.setData.moduleVolt[gunno] + 50);
+        if(LcdData.setData.samplingVolt[gunno] > (LcdData.setData.moduleVolt[gunno] + 500)){   //因采样误差，暂时做限制处理(5V)
+            LcdData.setData.samplingVolt[gunno] = (LcdData.setData.moduleVolt[gunno] + 500);
         }
     }
 }
