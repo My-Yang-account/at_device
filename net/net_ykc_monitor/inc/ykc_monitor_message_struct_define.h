@@ -1579,7 +1579,7 @@ typedef struct{
 /** 0xD8 服务器修改设备信息帧 */
 /** 屏幕密码 */
 struct screen_pw{
-    uint8_t dlen;                                /* 数据长度 */
+    uint16_t dlen;                                /* 数据长度 */
     uint8_t password[NET_YKC_MONITOR_SCREEN_PW_LENGTH_DEFAULT];  /* 密码 */
 };
 

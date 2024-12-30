@@ -1687,12 +1687,12 @@ static void ykc_monitor_callback_request_modify_device_info(uint8_t* data, uint1
         return;
     }
 
-    s_ykc_monitor_dev_info_buf.flag.is_used = 0x01;
     memcpy(&g_ykc_monitor_sreq_modify_device_info, info, sizeof(Net_YkcMonitorPro_Sreq_Modify_DeviceInfo_t));
     /** 屏幕密码 */
     if(info->body.info_type == 0x00){
-        struct screen_pw *pw = (struct screen_pw*)(&info->body.info_type + 0x01);
+        struct screen_pw *pw = (struct screen_pw*)(&info->body.info_type + 0x01);   /** 0x01(info_type) */
 
+        s_ykc_monitor_dev_info_buf.flag.is_used = 0x01;
         s_ykc_monitor_dev_info_buf.info_type = info->body.info_type;
         s_ykc_monitor_dev_info_buf.length = pw->dlen;
         if(s_ykc_monitor_dev_info_buf.length > NET_YKC_MONITOR_DEV_INFO_BUF_MAX){
@@ -1701,7 +1701,9 @@ static void ykc_monitor_callback_request_modify_device_info(uint8_t* data, uint1
         memcpy(s_ykc_monitor_dev_info_buf.info, pw->password, s_ykc_monitor_dev_info_buf.length);
         ykc_monitor_net_event_send(NET_YKC_MONITOR_USER_EVENT_HANDLE_SERVER, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, 0x00, NET_YKC_MONITOR_USER_SREQ_EVENT_MODIFY_DEV_INFO);
     }else{
-
+        /*
+        s_ykc_monitor_dev_info_buf.flag.is_used = 0x01;
+        */
     }
 }
 
