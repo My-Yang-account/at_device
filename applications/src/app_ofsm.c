@@ -1988,10 +1988,10 @@ static void ofsm_starting_fun(uint8_t gunno)
             if((s_ofsm_info[deputy_gunno].base.flag.connect_state == APP_CONNECT_STATE_CONNECT) &&  \
                     (s_ofsm_info[deputy_gunno].state == APP_OFSM_STATE_READYING)){
                 mw_clear_can_recved(deputy_gun_enum);
-                ofsm_bms_can_send(gunno, &data);          /** 发送并充识别报文 */
                 /** 等待响应，最多等待500ms */
                 while(1){
-                    if(++rentry > 50){
+                    ofsm_bms_can_send(gunno, &data);          /** 发送并充识别报文 */
+                    if(++rentry > 10){
                         break;
                     }
 
@@ -2011,9 +2011,14 @@ static void ofsm_starting_fun(uint8_t gunno)
                         s_ofsm_info[gunno].base.start_elect = (mw_get_meter_total_wh(gunno) + mw_get_meter_total_wh(deputy_gunno));
                         thaisen_set_charge_way(s_ofsm_info[gunno].base.charge_way);
 
+                        s_thaisen_transaction[gunno].charge_way = APP_CHARGE_WAY_PARACHARGE_LOCAL;
+                        s_thaisen_transaction[gunno].ammeter_start = s_ofsm_info[gunno].base.start_elect;
+                        s_thaisen_transaction[gunno].ammeter_stop = s_thaisen_transaction[gunno].ammeter_start;
+
+                        /** 此处不再次保存订单，由时间同步修正是统一再次保存，目前程序，启动时都会校时一次，如果不校时则需要在此处保存一次 */
                         break;
                     }
-                    rt_thread_mdelay(10);
+                    rt_thread_mdelay(50);
                 }
             }
         }
