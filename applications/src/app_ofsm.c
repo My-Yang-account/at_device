@@ -2075,6 +2075,7 @@ static void ofsm_starting_fun(uint8_t gunno)
                 for(uint8_t i = 0x00; i < APP_SYSTEM_GUNNO_SIZE; i++){
                     s_ofsm_info[i].base.flag.is_deputygun_stop = APP_THA_ENUM_TRUE;
                 }
+                LOG_D("deputy gunno is fault in parallel charge mode(%d, %d)", gunno, system_fault);
             }
         }
     }
@@ -2248,7 +2249,7 @@ static void ofsm_starting_fun(uint8_t gunno)
             if(s_ofsm_info[gunno].base.flag.is_starting == APP_THA_ENUM_FALSE){
                 s_ofsm_info[gunno].base.flag.is_starting = APP_THA_ENUM_TRUE;
                 /* 开始充电 */
-                if(s_ofsm_info[gunno].base.charge_way != APP_CHARGE_WAY_PARACHARGE_CLOUD){
+                if((s_ofsm_info[gunno].base.charge_way != APP_CHARGE_WAY_PARACHARGE_LOCAL) || (s_ofsm_info[gunno].base.charge_way != APP_CHARGE_WAY_PARACHARGE_CLOUD)){
                     mw_charge_start_cmd(gunno);
                 }else{
                     if(s_ofsm_info[gunno].base.main_gunno == gunno){
@@ -2777,7 +2778,7 @@ static void ofsm_starting_fun(uint8_t gunno)
 
     /******************************[并充部分,这是副枪故障导致的主枪停止,主枪要获取副枪的信息]******************************/
     /******************************[并充部分,这是副枪故障导致的主枪停止,主枪要获取副枪的信息]******************************/
-    if(s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
+    if((s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL) || (s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD)){
         if((s_ofsm_info[gunno].base.flag.is_deputygun_stop == APP_THA_ENUM_TRUE) && (s_ofsm_info[gunno].base.main_gunno == gunno)){
             uint8_t deputy_gunno = APP_SYSTEM_GUNNOA;
             if(gunno == APP_SYSTEM_GUNNOA){
@@ -3795,7 +3796,7 @@ static void ofsm_charging_fun(uint8_t gunno)
 #endif /* APP_INCLUDE_NET */
 
     /** 这是副枪故障导致的主枪停止，主枪要获取副枪的信息 */
-    if(s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
+    if((s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL) || (s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD)){
         if((s_ofsm_info[gunno].base.flag.is_deputygun_stop == APP_THA_ENUM_TRUE) && (s_ofsm_info[gunno].base.main_gunno == gunno)){
             uint8_t deputy_gunno = APP_SYSTEM_GUNNOA;
             if(gunno == APP_SYSTEM_GUNNOA){
