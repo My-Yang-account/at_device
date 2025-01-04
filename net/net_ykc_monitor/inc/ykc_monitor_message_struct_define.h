@@ -177,6 +177,7 @@ enum ykc_monitor_abnormal_stop{
     NETYKC_MONITOR_AS_REASON8E_STORAGE_CHIP = 0x8E,                  /* 充电异常中止，存储芯片 */
     NETYKC_MONITOR_AS_REASON8F_BSM_WARNNING = 0x8F,                  /* 充电异常中止，BSM 告警 */
     NETYKC_MONITOR_AS_REASON90_UNKNOW = 0x90,                        /* 充电异常中止，未知原因停止 */
+    NETYKC_MONITOR_AS_REASON91_GATE = 0x91,                          /* 充电异常中止，门禁故障 */
 };
 
 enum ykc_monitor_cmd{

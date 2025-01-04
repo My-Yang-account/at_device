@@ -2292,10 +2292,13 @@ static uint16_t ycp_chargepile_stop_reason_converted(uint8_t reason, uint8_t sto
             _reason = NETYCP_AS_REASON57_EMERGENCY_STOP;
         }
         break;
-    /* 读卡器、门禁 */
+    /* 读卡器 */
     case APP_SYSTEM_STOP_WAY_CARDREADER:
-    case APP_SYSTEM_STOP_WAY_DOOR:
         _reason = NETYCP_AS_REASON6F_CARDREADER;
+        break;
+    /* 门禁 */
+    case APP_SYSTEM_STOP_WAY_DOOR:
+        _reason = NETYCP_AS_REASON75_GATE;
         break;
     /* 电表 */
     case APP_SYSTEM_STOP_WAY_AMMETER:
