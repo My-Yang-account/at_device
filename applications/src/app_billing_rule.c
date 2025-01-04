@@ -41,9 +41,30 @@ struct billing_assistant_info{
 };
 #pragma pack()
 
-static struct billing_info s_billing_info[APP_SYSTEM_GUNNO_SIZE];
-static struct billing_rule s_billing_rule[APP_SYSTEM_GUNNO_SIZE + 1];
-struct billing_assistant_info s_billing_assistant_info;
+APP_DEF_SRAM2 static struct billing_info s_billing_info[APP_SYSTEM_GUNNO_SIZE];
+APP_DEF_SRAM2 static struct billing_rule s_billing_rule[APP_SYSTEM_GUNNO_SIZE + 1];
+APP_DEF_SRAM1 struct billing_assistant_info s_billing_assistant_info;
+
+#ifdef APP_DESIGNATE_REGION
+/*************************************
+ * 函数名       app_billingrule_info_init
+ * 功能           计费信息、变量初始化
+ * 参数
+ * 返回
+ ************************************/
+void app_billingrule_info_init(void)
+{
+    for(uint8_t gunno = 0x00; gunno < APP_SYSTEM_GUNNO_SIZE; gunno++){
+        memset(&s_billing_info[gunno], 0x00, sizeof(s_billing_info[gunno]));
+    }
+
+    for(uint8_t gunno = 0x00; gunno < (APP_SYSTEM_GUNNO_SIZE + 0x01); gunno++){
+        memset(&s_billing_rule[gunno], 0x00, sizeof(s_billing_rule[gunno]));
+    }
+
+    memset(&s_billing_assistant_info, 0x00, sizeof(s_billing_assistant_info));
+}
+#endif /* APP_DESIGNATE_REGION */
 
 /***************************************************************************************************
  ************************************* [离线计费相关] *********************************************

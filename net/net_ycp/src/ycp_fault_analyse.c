@@ -33,8 +33,22 @@ struct ycp_fault_info{
 };
 #pragma pack()
 
-static uint16_t s_ycp_realtime_fault[NET_SYSTEM_GUN_NUMBER];
-static struct ycp_fault_info s_ycp_fault_info[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 static uint16_t s_ycp_realtime_fault[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 static struct ycp_fault_info s_ycp_fault_info[NET_SYSTEM_GUN_NUMBER];
+
+#ifdef NET_DESIGNATE_REGION
+/*************************************************
+ * 函数名      ycp_fault_info_init
+ * 功能          越城公用平台故障信息、变量初始化
+ * **********************************************/
+void ycp_fault_info_init(void)
+{
+    for(uint8_t gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
+        s_ycp_realtime_fault[gunno] = 0x00;
+        memset(&s_ycp_fault_info[gunno], 0x00, sizeof(s_ycp_fault_info[gunno]));
+    }
+}
+#endif /* NET_DESIGNATE_REGION */
 
 /*************************************************
  * 函数名      ycp_fault_event_detect_callback

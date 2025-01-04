@@ -34,13 +34,13 @@ typedef struct
     void *service_cb;
 }ycp_service_callback_map;
 
-static ycp_transceiver_flag_set s_ycp_transceiver_flag_set;
-static uint8_t s_ycp_service_number = 0;
-static ycp_service_callback_map s_ycp_service_callback_map[YCP_SERVICE_CALLBACK_ITEM_MAX];
+NET_DEF_SRAM2 static ycp_transceiver_flag_set s_ycp_transceiver_flag_set;
+NET_DEF_SRAM2 static uint8_t s_ycp_service_number = 0;
+NET_DEF_SRAM2 static ycp_service_callback_map s_ycp_service_callback_map[YCP_SERVICE_CALLBACK_ITEM_MAX];
 
-static uint8_t s_ycp_message_recv_buff[YCP_RECV_BUFF_SIZE];
-static struct rt_thread s_ycp_message_recv_thread;
-static uint8_t s_ycp_message_recv_thread_stack[YCP_RECV_THREAD_STACK_SIZE];
+NET_DEF_SRAM2 static uint8_t s_ycp_message_recv_buff[YCP_RECV_BUFF_SIZE];
+NET_DEF_SRAM2 static struct rt_thread s_ycp_message_recv_thread;
+NET_DEF_SRAM0 static uint8_t s_ycp_message_recv_thread_stack[YCP_RECV_THREAD_STACK_SIZE];
 
 uint8_t ycp_socket_is_lock(void)
 {
@@ -290,6 +290,14 @@ void *ycp_get_service_callback(uint8_t id)
 
 int32_t ycp_transceiver_init(void)
 {
+#ifdef NET_DESIGNATE_REGION
+    s_ycp_service_number = 0x00;
+
+    memset(&s_ycp_transceiver_flag_set, 0x00, sizeof(s_ycp_transceiver_flag_set));
+    memset(s_ycp_service_callback_map, 0x00, sizeof(s_ycp_service_callback_map));
+    memset(s_ycp_message_recv_buff, 0x00, sizeof(s_ycp_message_recv_buff));
+#endif /* NET_DESIGNATE_REGION */
+
     if(rt_thread_init(&s_ycp_message_recv_thread, "ycp_recv", ycp_message_recv_thread_entry, NULL,
                             s_ycp_message_recv_thread_stack, YCP_RECV_THREAD_STACK_SIZE, 16, 10) != RT_EOK){
         LOG_E("ycp message recv thread init fail");

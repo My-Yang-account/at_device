@@ -50,8 +50,22 @@ struct ykc_monitor_fault_info{
 };
 #pragma pack()
 
-static uint16_t s_ykc_monitor_realtime_fault[NET_SYSTEM_GUN_NUMBER];
-static struct ykc_monitor_fault_info s_ykc_monitor_fault_info[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 static uint16_t s_ykc_monitor_realtime_fault[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 static struct ykc_monitor_fault_info s_ykc_monitor_fault_info[NET_SYSTEM_GUN_NUMBER];
+
+#ifdef NET_DESIGNATE_REGION
+/*************************************************
+ * 函数名      ykc_monitor_fault_info_init
+ * 功能          监控平台故障信息、变量初始化
+ * **********************************************/
+void ykc_monitor_fault_info_init(void)
+{
+    for(uint8_t gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
+        s_ykc_monitor_realtime_fault[gunno] = 0x00;
+        memset(&s_ykc_monitor_fault_info[gunno], 0x00, sizeof(s_ykc_monitor_fault_info[gunno]));
+    }
+}
+#endif /* NET_DESIGNATE_REGION */
 
 /*************************************************
  * 函数名      ykc_monitor_fault_event_detect_callback

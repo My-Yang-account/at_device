@@ -21,7 +21,7 @@
 
 #ifdef NET_PACK_USING_SGCC
 
-static sgcc_storage_struct *s_sgcc_storage_struct = NULL;
+NET_DEF_SRAM2 static sgcc_storage_struct *s_sgcc_storage_struct = NULL;
 
 void sgcc_register_storage_struct(void *storage_struct)
 {

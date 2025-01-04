@@ -34,6 +34,20 @@ static char *QICSGP_CHINA_MOBILE = "AT+QICSGP=1,1,\"CMNET\",\"\",\"\",0";
 static char *QICSGP_CHINA_UNICOM = "AT+QICSGP=1,1,\"UNINET\",\"\",\"\",0";
 static char *QICSGP_CHINA_TELECOM = "AT+QICSGP=1,1,\"CTNET\",\"\",\"\",0";
 
+#define EC20_DESIGNATE_REGION           /* 变量定义到指定区 */
+
+#ifdef EC20_DESIGNATE_REGION
+#define EC20_DEF_TCMRAM CFG_DEF_TCMRAM
+#define EC20_DEF_SRAM0 CFG_DEF_SRAM0
+#define EC20_DEF_SRAM1 CFG_DEF_SRAM1
+#define EC20_DEF_SRAM2 CFG_DEF_SRAM2
+#else
+#define EC20_DEF_TCMRAM
+#define EC20_DEF_SRAM0
+#define EC20_DEF_SRAM1
+#define EC20_DEF_SRAM2
+#endif /* EC20_DESIGNATE_REGION */
+
 ///////////////////////////////////////////////////////////////////////////////
 struct at_device_appinfo {
     int  boot;            /* 开机状态 */
@@ -52,13 +66,13 @@ struct dev_control{
     uint8_t power_on;
 };
 
-static struct dev_control s_dev_control_info =
+EC20_DEF_SRAM2 static struct dev_control s_dev_control_info =
 {
     .power_on = 0x00,
 };
-static struct at_device_appinfo s_at_device_appinfo;
-static struct rt_thread s_ec20_thread;
-static uint8_t s_ec20_thread_stack[EC20_THREAD_STACK_SIZE];
+EC20_DEF_SRAM2 static struct at_device_appinfo s_at_device_appinfo;
+EC20_DEF_SRAM2 static struct rt_thread s_ec20_thread;
+EC20_DEF_SRAM0 static uint8_t s_ec20_thread_stack[EC20_THREAD_STACK_SIZE];
 
 int get_at_device_appinfo_boot(void)
 {
@@ -1292,6 +1306,11 @@ static int ec20_net_init(struct at_device *device)
             LOG_E("4G module thread startup fail");
             return -RT_ERROR;
         }
+
+#ifdef EC20_DESIGNATE_REGION
+        s_dev_control_info.power_on = 0x00;
+        memset(&s_at_device_appinfo, 0x00, sizeof(s_at_device_appinfo));
+#endif /* EC20_DESIGNATE_REGION */
 
         is_init = 1;
     }

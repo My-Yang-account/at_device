@@ -37,7 +37,6 @@
 #include "mw_module_control.h"
 #include "mw_can_control.h"
 
-#include "chargepile_config.h"
 
 #define DBG_TAG "app.ofsm"
 #define DBG_LVL DBG_LOG
@@ -49,36 +48,86 @@
 
 typedef void (* ofsm_fun_p)(uint8_t gunno);
 
-static ofsm_fun_p s_ofsm_fun_list[APP_SYSTEM_GUNNO_SIZE][APP_OFSM_STATE_SIZE];
-static ofsm_fun_p s_ofsm_fun[APP_SYSTEM_GUNNO_SIZE] = {NULL};
-static uint32_t s_debug_count[APP_SYSTEM_GUNNO_SIZE];
+APP_DEF_SRAM1 static ofsm_fun_p s_ofsm_fun_list[APP_SYSTEM_GUNNO_SIZE][APP_OFSM_STATE_SIZE];
+APP_DEF_SRAM1 static ofsm_fun_p s_ofsm_fun[APP_SYSTEM_GUNNO_SIZE] = {NULL};
+APP_DEF_SRAM1 static uint32_t s_debug_count[APP_SYSTEM_GUNNO_SIZE];
 
-static uint32_t s_tiny_current_count[APP_SYSTEM_GUNNO_SIZE];
+APP_DEF_SRAM1 static uint32_t s_tiny_current_count[APP_SYSTEM_GUNNO_SIZE];
+
+APP_DEF_SRAM1 static struct ofsm_info s_ofsm_info[APP_SYSTEM_GUNNO_SIZE];
+APP_DEF_SRAM1 static int32_t s_current_order_index[LINK_PLATFORM_MAX][APP_SYSTEM_GUNNO_SIZE];
+APP_DEF_SRAM1 static thaisen_transaction_t s_thaisen_transaction[APP_SYSTEM_GUNNO_SIZE];
+APP_DEF_SRAM1 static thaisen_transaction_t s_thaisen_transaction_report[LINK_PLATFORM_MAX][APP_SYSTEM_GUNNO_SIZE];
+APP_DEF_SRAM1 static enum booting_step_t s_booting_step[APP_SYSTEM_GUNNO_SIZE];
+APP_DEF_SRAM1 static uint32_t s_request_screen_time_tick = 0x00;
+APP_DEF_SRAM1 static uint8_t s_request_screen_time_step = 0x01;
+APP_DEF_SRAM1 static uint8_t s_transaction_sending[LINK_PLATFORM_MAX][APP_SYSTEM_GUNNO_SIZE];
+APP_DEF_SRAM1 static uint8_t s_chargegun_idle_count = 0x00;
+APP_DEF_SRAM1 static uint32_t s_timestamp_base = 0x00, s_tick_base = 0x00;
+
+APP_DEF_SRAM1 static uint8_t s_issue_power_adjust = false, s_chargepile_output_steady[APP_SYSTEM_GUNNO_SIZE];
+APP_DEF_SRAM1 static uint8_t s_charge_steady_delay[APP_SYSTEM_GUNNO_SIZE], s_power_adjust_delay = 0, s_power_on = 0;
+APP_DEF_SRAM1 static uint32_t s_system_power_output = 0x00;
+APP_DEF_SRAM1 static uint16_t s_gun_charging_curr[APP_SYSTEM_GUNNO_SIZE];
+
+APP_DEF_SRAM1 static uint32_t s_compare_module_bcl_count[APP_SYSTEM_GUNNO_SIZE];
+APP_DEF_SRAM1 static uint32_t s_compare_ccs_module_count[APP_SYSTEM_GUNNO_SIZE];
+
+APP_DEF_SRAM1 static uint32_t s_bms_require_curr_last[APP_SYSTEM_GUNNO_SIZE];
+APP_DEF_SRAM1 static uint8_t s_bms_reqcurr_changed_count[APP_SYSTEM_GUNNO_SIZE];
 
 extern struct rt_messagequeue g_buzzon_mq;
 
-static struct ofsm_info s_ofsm_info[APP_SYSTEM_GUNNO_SIZE];
-static int32_t s_current_order_index[LINK_PLATFORM_MAX][APP_SYSTEM_GUNNO_SIZE];
-static thaisen_transaction_t s_thaisen_transaction[APP_SYSTEM_GUNNO_SIZE];
-static thaisen_transaction_t s_thaisen_transaction_report[LINK_PLATFORM_MAX][APP_SYSTEM_GUNNO_SIZE];
-static enum booting_step_t s_booting_step[APP_SYSTEM_GUNNO_SIZE];
-static uint32_t s_request_screen_time_tick = 0x00;
-static uint8_t s_request_screen_time_step = 0x01;
-static uint8_t s_transaction_sending[LINK_PLATFORM_MAX][APP_SYSTEM_GUNNO_SIZE];
-static uint8_t s_chargegun_idle_count = 0x00;
-static uint32_t s_timestamp_base = 0x00, s_tick_base = 0x00;
+#ifdef APP_DESIGNATE_REGION
+/*************************************
+ * 函数名       app_ofsm_info_init
+ * 功能           业务信息、变量初始化
+ * 参数
+ * 返回
+ ************************************/
+void app_ofsm_info_init(void)
+{
+    for(uint8_t gunno = 0x00; gunno < APP_SYSTEM_GUNNO_SIZE; gunno++){
+        memset(s_ofsm_fun_list[gunno], 0x00, sizeof(s_ofsm_fun_list[gunno]));
+        s_ofsm_fun[gunno] = 0x00;
 
-static uint8_t s_issue_power_adjust = false, s_chargepile_output_steady[APP_SYSTEM_GUNNO_SIZE];
-static uint8_t s_charge_steady_delay[APP_SYSTEM_GUNNO_SIZE], s_power_adjust_delay = 0, s_power_on = 0;
-static uint32_t s_system_power_output = 0x00;
-static uint16_t s_gun_charging_curr[APP_SYSTEM_GUNNO_SIZE];
+        s_debug_count[gunno] = 0x00;
+        s_tiny_current_count[gunno] = 0x00;
 
-static uint32_t s_compare_module_bcl_count[APP_SYSTEM_GUNNO_SIZE];
-static uint32_t s_compare_ccs_module_count[APP_SYSTEM_GUNNO_SIZE];
+        for(uint8_t plat = 0x00; plat < LINK_PLATFORM_MAX; plat++){
+            s_current_order_index[plat][gunno] = 0x00;
+            s_transaction_sending[plat][gunno] = 0x00;
+            memset(&(s_thaisen_transaction_report[plat][gunno]), 0x00, sizeof(s_thaisen_transaction_report[plat][gunno]));
+        }
 
-static uint32_t s_bms_require_curr_last[APP_SYSTEM_GUNNO_SIZE];
-static uint8_t s_bms_reqcurr_changed_count[APP_SYSTEM_GUNNO_SIZE];
+        s_booting_step[gunno] = 0x00;
 
+        s_chargepile_output_steady[gunno] = 0x00;
+        s_charge_steady_delay[gunno] = 0x00;
+        s_gun_charging_curr[gunno] = 0x00;
+
+        s_compare_module_bcl_count[gunno] = 0x00;
+        s_compare_ccs_module_count[gunno] = 0x00;
+        s_bms_require_curr_last[gunno] = 0x00;
+        s_bms_reqcurr_changed_count[gunno] = 0x00;
+
+        memset(&(s_thaisen_transaction[gunno]), 0x00, sizeof(s_thaisen_transaction[gunno]));
+        memset(&(s_ofsm_info[gunno]), 0x00, sizeof(s_ofsm_info[gunno]));
+    }
+
+    s_request_screen_time_tick = 0x00;
+    s_request_screen_time_step = 0x01;
+
+    s_chargegun_idle_count = 0x00;
+    s_issue_power_adjust = false;
+    s_power_adjust_delay = 0x00;
+    s_power_on = 0x00;
+    s_system_power_output = 0x00;
+
+    s_timestamp_base = 0x00;
+    s_tick_base = 0x00;
+}
+#endif /* APP_DESIGNATE_REGION */
 
 /*************************************
  * 函数名       ofsm_bms_can_send

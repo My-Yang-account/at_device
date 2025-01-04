@@ -106,44 +106,92 @@ const char* get_stopway_string(uint16_t code)
 }
 #endif /* 0 */
 
-static const char* system_fault_str[APP_SYS_FAULT_NO_ERROR] =
+APP_DEF_SRAM1 static const char* system_fault_str[APP_SYS_FAULT_NO_ERROR] =
 {
-     "scram",
-     "card reader",
-     "door",
-     "ammeter",
-     "charge module",
-     "over temp",
-     "over voltage",
-     "under voltage",
-     "over current",
-     "dc relay",
-     "parallel relay",
-     "ac relay",
-     "electronic lock",
-     "auxiliary power",
-     "flash chip",
-     "eeprom chip",
-     "lighting pro",
-     "gun site",
-     "circuit breaker",
-     "flooding",
-     "smoke",
-     "pour",
-     "liquid cool",
-     "fuse",
-     "main cabinet",
+#ifndef APP_DESIGNATE_REGION
+     "scram",                     /** 系统故障码字符串 0：急停 */
+     "card reader",               /** 系统故障码字符串 1：读卡器 */
+     "door",                      /** 系统故障码字符串 2：门禁 */
+     "ammeter",                   /** 系统故障码字符串 3：电表 */
+     "charge module",             /** 系统故障码字符串 4：充电模块 */
+     "over temp",                 /** 系统故障码字符串 5：过温 */
+     "over voltage",              /** 系统故障码字符串 6：过压 */
+     "under voltage",             /** 系统故障码字符串 7欠压 */
+     "over current",              /** 系统故障码字符串 8：过流 */
+     "dc relay",                  /** 系统故障码字符串 9：直流继电器 */
+     "parallel relay",            /** 系统故障码字符串 10：并联继电器 */
+     "ac relay",                  /** 系统故障码字符串 11：交流接触器 */
+     "electronic lock",           /** 系统故障码字符串 12：电子锁 */
+     "auxiliary power",           /** 系统故障码字符串 13：辅源 */
+     "flash chip",                /** 系统故障码字符串 14：FLASH */
+     "eeprom chip",               /** 系统故障码字符串 15：EEPROM */
+     "lighting pro",              /** 系统故障码字符串 16：防雷器 */
+     "gun site",                  /** 系统故障码字符串 17：枪座 */
+     "circuit breaker",           /** 系统故障码字符串 18：断路器 */
+     "flooding",                  /** 系统故障码字符串 19：水浸 */
+     "smoke",                     /** 系统故障码字符串 20：烟感 */
+     "pour",                      /** 系统故障码字符串 21：倾倒 */
+     "liquid cool",               /** 系统故障码字符串 22：液冷 */
+     "fuse",                      /** 系统故障码字符串 23：熔断器 */
+     "main cabinet",              /** 系统故障码字符串 24：主机柜 */
+#endif /* APP_DESIGNATE_REGION */
 };
 
-static const char* charge_fault_str[APP_CHARGE_FAULT_NO_ERROR] =
+APP_DEF_SRAM1 static const char* charge_fault_str[APP_CHARGE_FAULT_NO_ERROR] =
 {
-    "gun voltage",
-    "IMD",
-    "bms commu",
-    "battery voltage",
-    "ready voltage",
-    "IMD voltage",
+#ifndef APP_DESIGNATE_REGION
+    "gun voltage",                /** 充电故障码字符串 0：枪头电压 */
+    "IMD",                        /** 充电故障码字符串 1：绝缘 */
+    "bms commu",                  /** 充电故障码字符串 2：BMS通讯 */
+    "battery voltage",            /** 充电故障码字符串 3：电池电压 */
+    "ready voltage",              /** 充电故障码字符串 4：准备电压 */
+    "IMD voltage",                /** 充电故障码字符串 5：绝缘电压 */
+#endif /* APP_DESIGNATE_REGION */
 };
+
+#ifdef APP_DESIGNATE_REGION
+/*************************************
+ * 函数名       app_support_func_info_init
+ * 功能           辅助函数信息、变量初始化
+ * 参数
+ * 返回
+ ************************************/
+void app_support_func_info_init(void)
+{
+    system_fault_str[0] = "scram";
+    system_fault_str[1] = "card reader";
+    system_fault_str[2] = "door";
+    system_fault_str[3] = "ammeter";
+    system_fault_str[4] = "charge module";
+    system_fault_str[5] = "over temp";
+    system_fault_str[6] = "over voltage";
+    system_fault_str[7] = "under voltage";
+    system_fault_str[8] = "over current";
+    system_fault_str[9] = "dc relay";
+    system_fault_str[10] = "parallel relay";
+    system_fault_str[11] = "ac relay";
+    system_fault_str[12] = "electronic lock";
+    system_fault_str[13] = "auxiliary power";
+    system_fault_str[14] = "flash chip";
+    system_fault_str[15] = "eeprom chip";
+    system_fault_str[16] = "lighting pro";
+    system_fault_str[17] = "gun site";
+    system_fault_str[18] = "circuit breaker";
+    system_fault_str[19] = "flooding";
+    system_fault_str[20] = "smoke";
+    system_fault_str[21] = "pour";
+    system_fault_str[22] = "liquid cool";
+    system_fault_str[23] = "fuse";
+    system_fault_str[24] = "main cabinet";
+
+    charge_fault_str[0] = "gun voltage";
+    charge_fault_str[1] = "IMD";
+    charge_fault_str[2] = "bms commu";
+    charge_fault_str[3] = "battery voltage";
+    charge_fault_str[4] = "ready voltage";
+    charge_fault_str[5] = "IMD voltage";
+}
+#endif /* APP_DESIGNATE_REGION */
 
 /*********************************************
  * 函数名             get_fault_string

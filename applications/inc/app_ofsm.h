@@ -21,6 +21,22 @@ extern "C" {
 #include "mw_fault_check.h"
 #include "app_billing_rule.h"
 
+#include "chargepile_config.h"
+
+#define APP_DESIGNATE_REGION           /* 变量定义到指定区 */
+
+#ifdef APP_DESIGNATE_REGION
+#define APP_DEF_TCMRAM CFG_DEF_TCMRAM
+#define APP_DEF_SRAM0 CFG_DEF_SRAM0
+#define APP_DEF_SRAM1 CFG_DEF_SRAM1
+#define APP_DEF_SRAM2 CFG_DEF_SRAM2
+#else
+#define APP_DEF_TCMRAM
+#define APP_DEF_SRAM0
+#define APP_DEF_SRAM1
+#define APP_DEF_SRAM2
+#endif /* APP_DESIGNATE_REGION */
+
 #define APP_USING_DOUBLEGUN                            /* 使用双枪 */
 
 #define APP_PARACHARGE_IDENTIFY_CAN_ID       0x1FFFFFFF /* 并充自动识别CAN ID */
@@ -460,6 +476,10 @@ struct ofsm_info *get_ofsm_info(uint8_t gunno);
 uint8_t ofsm_get_current_period(void);
 uint32_t ofsm_get_period_price(uint8_t gunno, uint8_t period);
 int32_t ofsm_get_current_period_time_hm(uint8_t period, uint8_t *buf, uint8_t blen);
+
+#ifdef APP_DESIGNATE_REGION
+void app_ofsm_info_init(void);
+#endif /* APP_DESIGNATE_REGION */
 
 void ofsm_thread_entry(void *parameter);
 

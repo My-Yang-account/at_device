@@ -12,31 +12,46 @@
 
 #include "bsp_serial.h"
 #include "app.h"
+#include "chargepile_config.h"
 
 #define DBG_TAG "bsp.serial"
 #define DBG_LVL DBG_LOG
 #include <rtdbg.h>
 
+#define BSP_DESIGNATE_REGION           /* 变量定义到指定区 */
+
+#ifdef BSP_DESIGNATE_REGION
+#define BSP_DEF_TCMRAM CFG_DEF_TCMRAM
+#define BSP_DEF_SRAM0 CFG_DEF_SRAM0
+#define BSP_DEF_SRAM1 CFG_DEF_SRAM1
+#define BSP_DEF_SRAM2 CFG_DEF_SRAM2
+#else
+#define BSP_DEF_TCMRAM
+#define BSP_DEF_SRAM0
+#define BSP_DEF_SRAM1
+#define BSP_DEF_SRAM2
+#endif /* BSP_DESIGNATE_REGION */
+
 #ifdef USING_DOUBLE_GUN
 
 #define TERMINAL_UART_NAME   "uart3"        /* 终端串口设备名称 */
-static struct serial_configure s_terminal_config = RT_SERIAL_CONFIG_DEFAULT;  /* 初始化配置参数 */
+BSP_DEF_SRAM1 static struct serial_configure s_terminal_config = RT_SERIAL_CONFIG_DEFAULT;  /* 初始化配置参数 */
 #define HCI_UART_NAME        "uart4"        /* 屏幕串口设备名称 */
-static struct serial_configure s_hci_config = RT_SERIAL_CONFIG_DEFAULT;       /* 初始化配置参数 */
+BSP_DEF_SRAM1 static struct serial_configure s_hci_config = RT_SERIAL_CONFIG_DEFAULT;       /* 初始化配置参数 */
 
 #else
 
 #define TERMINAL_UART_NAME   "uart3"        /* 终端串口设备名称 */
-static struct serial_configure s_terminal_config = RT_SERIAL_CONFIG_DEFAULT;  /* 初始化配置参数 */
+BSP_DEF_SRAM2 static struct serial_configure s_terminal_config = RT_SERIAL_CONFIG_DEFAULT;  /* 初始化配置参数 */
 #define HCI_UART_NAME        "uart2"        /* 屏幕串口设备名称 */
-static struct serial_configure s_hci_config = RT_SERIAL_CONFIG_DEFAULT;       /* 初始化配置参数 */
+BSP_DEF_SRAM2 static struct serial_configure s_hci_config = RT_SERIAL_CONFIG_DEFAULT;       /* 初始化配置参数 */
 
 #endif /* USING_DOUBLE_GUN */
 
-rt_device_t g_terminal_serial = NULL;
-struct rt_semaphore g_terminal_rx_sem;
-rt_device_t g_hci_serial = NULL;
-struct rt_semaphore g_hci_rx_sem;
+BSP_DEF_SRAM1 rt_device_t g_terminal_serial = NULL;
+BSP_DEF_SRAM1 struct rt_semaphore g_terminal_rx_sem;
+BSP_DEF_SRAM1 rt_device_t g_hci_serial = NULL;
+BSP_DEF_SRAM1 struct rt_semaphore g_hci_rx_sem;
 
 static rt_err_t terminal_uart_input(rt_device_t dev, rt_size_t size)
 {
@@ -69,8 +84,12 @@ int32_t bsp_terminal_serial_init(void)
     s_terminal_config.baud_rate = BAUD_RATE_9600;
     s_terminal_config.data_bits = DATA_BITS_8;
     s_terminal_config.stop_bits = STOP_BITS_1;
-    s_terminal_config.bufsz     = 256;
     s_terminal_config.parity    = PARITY_NONE;
+    s_terminal_config.bit_order = BIT_ORDER_LSB;
+    s_terminal_config.invert = NRZ_NORMAL;
+    s_terminal_config.bufsz = 256;
+    s_terminal_config.flowcontrol = RT_SERIAL_FLOWCONTROL_NONE;
+    s_terminal_config.reserved = 0;
 
     /* step3：控制串口设备。通过控制接口传入命令控制字，与控制参数 */
     if (RT_EOK != rt_device_control(g_terminal_serial, RT_DEVICE_CTRL_CONFIG, &s_terminal_config)) {
@@ -113,8 +132,13 @@ int32_t bsp_hci_serial_init(void)
     s_hci_config.baud_rate = BAUD_RATE_115200;
     s_hci_config.data_bits = DATA_BITS_8;
     s_hci_config.stop_bits = STOP_BITS_1;
-    s_hci_config.bufsz     = 512;
     s_hci_config.parity    = PARITY_NONE;
+    s_hci_config.bit_order = BIT_ORDER_LSB;
+    s_hci_config.invert = NRZ_NORMAL;
+    s_hci_config.bufsz = 512;
+    s_hci_config.flowcontrol = RT_SERIAL_FLOWCONTROL_NONE;
+    s_hci_config.reserved = 0;
+
 
     /* step3：控制串口设备。通过控制接口传入命令控制字，与控制参数 */
     if (RT_EOK != rt_device_control(g_hci_serial, RT_DEVICE_CTRL_CONFIG, &s_hci_config)) {

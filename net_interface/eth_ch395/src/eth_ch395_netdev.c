@@ -17,9 +17,9 @@
 #define ETHCH395_RST_PIN      GET_PIN(A, 3)
 #define ETHCH395_CFG_PIN      GET_PIN(A, 2)
 
-static uint32_t s_ethch395_irq_notice = 0x00;
-static struct rt_semaphore s_ethch395_netdev_sem;
-static rt_device_t s_ethch395_netdev;
+ETH_DEF_SRAM2 static uint32_t s_ethch395_irq_notice = 0x00;
+ETH_DEF_SRAM2 static struct rt_semaphore s_ethch395_netdev_sem;
+ETH_DEF_SRAM2 static rt_device_t s_ethch395_netdev;
 
 /**--------------------------------------------------
                   [串口中断回调函数]
@@ -142,6 +142,8 @@ int32_t ethch395_netdev_ctrl(uint8_t cmd, void *para, uint8_t plen)
  -------------------------------------------------*/
 int32_t ethch395_netdev_init(void)
 {
+    s_ethch395_irq_notice = 0x00;
+
     /**** 寻找串口设备 ****/
     s_ethch395_netdev = rt_device_find(NET_ETHERNET_NETDEV_NAME);
     if(s_ethch395_netdev == NULL){

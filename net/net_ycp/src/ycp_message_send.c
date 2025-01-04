@@ -56,61 +56,63 @@ struct ycp_assistant_flag{
     uint16_t req_billingrule_again : 1;
 };
 
-static uint32_t s_ycp_heartbeat_tick;
-static uint32_t s_ycp_billing_rule_tick;
-uint8_t s_ycp_current_transaction_number[NET_SYSTEM_GUN_NUMBER][NET_YCP_SERIAL_NUMBER_LENGTH_DEFAULT];
-static struct ycp_assistant_flag s_ycp_assistant_flag;
-static uint8_t s_ycp_same_transaction_report_count[NET_SYSTEM_GUN_NUMBER];
-static uint8_t s_ycp_transaction_verify[NET_SYSTEM_GUN_NUMBER];
-static struct ycp_wait_response s_ycp_wait_response;
-static ycp_socket_info_t s_ycp_socket_info;
-static uint16_t s_ycp_message_serial_number[NET_SYSTEM_GUN_NUMBER];                      /* 报文序列号 */
-static uint32_t s_ycp_message_send_state[NET_SYSTEM_GUN_NUMBER];                        /* 报文发送状态 */
-static uint32_t s_ycp_chargepile_event[NET_YCP_EVENT_TYPE_SIZE][NET_SYSTEM_GUN_NUMBER];
-static uint32_t s_ycp_server_event[NET_YCP_EVENT_TYPE_SIZE][NET_SYSTEM_GUN_NUMBER];
-static uint32_t s_ycp_wait_storage;
+NET_DEF_SRAM2 static uint32_t s_ycp_heartbeat_tick;
+NET_DEF_SRAM2 static uint32_t s_ycp_billing_rule_tick;
+NET_DEF_SRAM2 uint8_t s_ycp_current_transaction_number[NET_SYSTEM_GUN_NUMBER][NET_YCP_SERIAL_NUMBER_LENGTH_DEFAULT];
+NET_DEF_SRAM2 static struct ycp_assistant_flag s_ycp_assistant_flag;
+NET_DEF_SRAM2 static uint8_t s_ycp_same_transaction_report_count[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 static uint8_t s_ycp_transaction_verify[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 static struct ycp_wait_response s_ycp_wait_response;
+NET_DEF_SRAM2 static ycp_socket_info_t s_ycp_socket_info;
+NET_DEF_SRAM2 static uint16_t s_ycp_message_serial_number[NET_SYSTEM_GUN_NUMBER];                      /* 报文序列号 */
+NET_DEF_SRAM2 static uint32_t s_ycp_message_send_state[NET_SYSTEM_GUN_NUMBER];                        /* 报文发送状态 */
+NET_DEF_SRAM2 static uint32_t s_ycp_chargepile_event[NET_YCP_EVENT_TYPE_SIZE][NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 static uint32_t s_ycp_server_event[NET_YCP_EVENT_TYPE_SIZE][NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 static uint32_t s_ycp_wait_storage_tick;
 
-static struct rt_thread s_ycp_message_send_thread;
-static uint8_t s_ycp_message_send_thread_stack[NET_YCP_MESSAGE_SEND_THREAD_STACK_SIZE];
-static struct rt_thread s_ycp_server_message_pro_thread;
-static uint8_t s_ycp_server_message_pro_thread_stack[NET_YCP_SERVER_MESSAGE_PRO_THREAD_STACK_SIZE];
-static ycp_response_message_buf_t s_ycp_response_buff;
-static struct rt_semaphore s_ycp_response_buff_sem;
+NET_DEF_SRAM2 uint32_t g_net_target_platform_tick = 0x00;
+
+NET_DEF_SRAM2 static struct rt_thread s_ycp_message_send_thread;
+NET_DEF_SRAM0 static uint8_t s_ycp_message_send_thread_stack[NET_YCP_MESSAGE_SEND_THREAD_STACK_SIZE];
+NET_DEF_SRAM2 static struct rt_thread s_ycp_server_message_pro_thread;
+NET_DEF_SRAM0 static uint8_t s_ycp_server_message_pro_thread_stack[NET_YCP_SERVER_MESSAGE_PRO_THREAD_STACK_SIZE];
+NET_DEF_SRAM2 static ycp_response_message_buf_t s_ycp_response_buff;
+NET_DEF_SRAM2 static struct rt_semaphore s_ycp_response_buff_sem;
 
 /** 登录签到 */
-Net_YcpPro_PReq_LogIn_t g_ycp_preq_login;
+NET_DEF_SRAM2 Net_YcpPro_PReq_LogIn_t g_ycp_preq_login;
 /** 对时 */
-Net_YcpPro_PReq_TimeSync_t g_ycp_preq_time_sync;  // OK
+NET_DEF_SRAM2 Net_YcpPro_PReq_TimeSync_t g_ycp_preq_time_sync;  // OK
 /** 上报心跳 */
-Net_YcpPro_PReq_HeartBeat_t g_ycp_preq_heartbeat;   // OK
+NET_DEF_SRAM2 Net_YcpPro_PReq_HeartBeat_t g_ycp_preq_heartbeat;   // OK
 /** 计费模型验证 */
-Net_YcpPro_PReq_BillingModel_Verify_t g_ycp_preq_billing_model_verify;   // OK
+NET_DEF_SRAM2 Net_YcpPro_PReq_BillingModel_Verify_t g_ycp_preq_billing_model_verify;   // OK
 /** 上报单枪状态数据 */
-Net_YcpPro_PRes_Query_PReq_Report_PileState_t g_ycp_preq_report_state_data[NET_SYSTEM_GUN_NUMBER];  // OK
+NET_DEF_SRAM2 Net_YcpPro_PRes_Query_PReq_Report_PileState_t g_ycp_preq_report_state_data[NET_SYSTEM_GUN_NUMBER];  // OK
 /** 充电桩主动申请启动充电 */
-Net_YcpPro_PReq_ApplyCharge_Active_t g_ycp_preq_apply_charge_active[NET_SYSTEM_GUN_NUMBER];  // OK
+NET_DEF_SRAM2 Net_YcpPro_PReq_ApplyCharge_Active_t g_ycp_preq_apply_charge_active[NET_SYSTEM_GUN_NUMBER];  // OK
 /** 交易记录 */
-Net_YcpPro_PReq_TransactionRecords_t g_ycp_preq_transaction_records[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 Net_YcpPro_PReq_TransactionRecords_t g_ycp_preq_transaction_records[NET_SYSTEM_GUN_NUMBER];
 /** 上报设备故障 */
-Net_YcpPro_PReq_Report_DeviceFault_t g_ycp_preq_report_device_fault;  // OK
+NET_DEF_SRAM2 Net_YcpPro_PReq_Report_DeviceFault_t g_ycp_preq_report_device_fault;  // OK
 /** 充电握手 */
-Net_YcpPro_PReq_ShakeHand_t g_ycp_preq_shake_hand[NET_SYSTEM_GUN_NUMBER];   // OK
+NET_DEF_SRAM2 Net_YcpPro_PReq_ShakeHand_t g_ycp_preq_shake_hand[NET_SYSTEM_GUN_NUMBER];   // OK
 /** 参数配置 */
-Net_YcpPro_PReq_ParameterConfig_t g_ycp_preq_parameter_config[NET_SYSTEM_GUN_NUMBER];   // OK
+NET_DEF_SRAM2 Net_YcpPro_PReq_ParameterConfig_t g_ycp_preq_parameter_config[NET_SYSTEM_GUN_NUMBER];   // OK
 /** 充电结束 */
-Net_YcpPro_PReq_ChargeFinish_t g_ycp_preq_charge_finish[NET_SYSTEM_GUN_NUMBER];   // OK
+NET_DEF_SRAM2 Net_YcpPro_PReq_ChargeFinish_t g_ycp_preq_charge_finish[NET_SYSTEM_GUN_NUMBER];   // OK
 /** 错误报文 */
-Net_YcpPro_PReq_ErrorMessage_t g_ycp_preq_error_message[NET_SYSTEM_GUN_NUMBER];   // OK
+NET_DEF_SRAM2 Net_YcpPro_PReq_ErrorMessage_t g_ycp_preq_error_message[NET_SYSTEM_GUN_NUMBER];   // OK
 /** 充电过程中 BMS 终止 */
-Net_YcpPro_PReq_BmsEnd_t g_ycp_preq_bms_end[NET_SYSTEM_GUN_NUMBER];   // OK
+NET_DEF_SRAM2 Net_YcpPro_PReq_BmsEnd_t g_ycp_preq_bms_end[NET_SYSTEM_GUN_NUMBER];   // OK
 /** 充电过程中充电机终止 */
-Net_YcpPro_PReq_ChargerEnd_t g_ycp_preq_charger_end[NET_SYSTEM_GUN_NUMBER];   // OK
+NET_DEF_SRAM2 Net_YcpPro_PReq_ChargerEnd_t g_ycp_preq_charger_end[NET_SYSTEM_GUN_NUMBER];   // OK
 /** 充电过程 BMS 需求与充电机输出 */
-Net_YcpPro_PReq_BmsCommand_ChargerOut_t g_ycp_preq_bmscommand_chargerout[NET_SYSTEM_GUN_NUMBER];   // OK
+NET_DEF_SRAM2 Net_YcpPro_PReq_BmsCommand_ChargerOut_t g_ycp_preq_bmscommand_chargerout[NET_SYSTEM_GUN_NUMBER];   // OK
 /** 充电过程 BMS 信息 */
-Net_YcpPro_PReq_BmsInfo_t g_ycp_preq_bms_info[NET_SYSTEM_GUN_NUMBER];   // OK
+NET_DEF_SRAM2 Net_YcpPro_PReq_BmsInfo_t g_ycp_preq_bms_info[NET_SYSTEM_GUN_NUMBER];   // OK
 /** 升级结果上送 */
-Net_YcpPro_PRes_RemoteUpdate_t g_ycp_pres_remote_update;  // OK
+NET_DEF_SRAM2 Net_YcpPro_PRes_RemoteUpdate_t g_ycp_pres_remote_update;  // OK
 
 
 /*******************************************************
@@ -592,7 +594,6 @@ uint32_t ycp_timebcd_to_timestamp(uint8_t *bcd, uint8_t len)
     return timestamp;
 }
 
-uint32_t g_net_target_platform_tick = 0;
 static void net_ycp_message_send_thread_entry(void *parameter)
 {
     uint8_t step = NET_YCP_NET_STATE_OPEN_SOCKET, is_power_on = 0x01;
@@ -1820,15 +1821,15 @@ static void net_ycp_server_message_pro_entry(void *parameter)
         }
 
         if(s_ycp_assistant_flag.is_storaging == 0x01){
-            if(s_ycp_wait_storage > rt_tick_get()){
-                s_ycp_wait_storage = rt_tick_get();
+            if(s_ycp_wait_storage_tick > rt_tick_get()){
+                s_ycp_wait_storage_tick = rt_tick_get();
             }
-            if((rt_tick_get() > s_ycp_wait_storage) > 10 *1000){
-                s_ycp_wait_storage = rt_tick_get();
+            if((rt_tick_get() - s_ycp_wait_storage_tick) > (10 *1000)){
+                s_ycp_wait_storage_tick = rt_tick_get();
                 s_ycp_assistant_flag.is_storaging = 0x00;
             }
         }else{
-            s_ycp_wait_storage = rt_tick_get();
+            s_ycp_wait_storage_tick = rt_tick_get();
         }
 
         rt_thread_mdelay(10);
@@ -1840,7 +1841,48 @@ int32_t ycp_message_send_init(void)
     for(uint8_t gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
         s_ycp_same_transaction_report_count[gunno] = 0x00;
         s_ycp_transaction_verify[gunno] = 0x00;
+#ifdef NET_DESIGNATE_REGION
+        s_ycp_message_serial_number[gunno] = 0x00;
+        s_ycp_message_send_state[gunno] = 0x00;
+
+        for(uint8_t event = 0x00; event < NET_YCP_EVENT_TYPE_SIZE; event++){
+            s_ycp_chargepile_event[event][gunno] = 0x00;
+            s_ycp_server_event[event][gunno] = 0x00;
+        }
+        memset(&s_ycp_current_transaction_number[gunno], 0x00, sizeof(s_ycp_current_transaction_number[gunno]));
+#endif /* NET_DESIGNATE_REGION */
     }
+
+#ifdef NET_DESIGNATE_REGION
+    s_ycp_heartbeat_tick = 0x00;
+    s_ycp_billing_rule_tick = 0x00;
+    g_net_target_platform_tick = 0x00;
+    s_ycp_wait_storage_tick = 0x00;
+    memset(&s_ycp_assistant_flag, 0x00, sizeof(s_ycp_assistant_flag));
+    memset(&s_ycp_wait_response, 0x00, sizeof(s_ycp_wait_response));
+    memset(&s_ycp_socket_info, 0x00, sizeof(s_ycp_socket_info));
+    memset(&s_ycp_response_buff, 0x00, sizeof(s_ycp_response_buff));
+
+
+    memset(g_ycp_preq_report_state_data, 0x00, sizeof(g_ycp_preq_report_state_data));
+    memset(g_ycp_preq_apply_charge_active, 0x00, sizeof(g_ycp_preq_apply_charge_active));
+    memset(g_ycp_preq_transaction_records, 0x00, sizeof(g_ycp_preq_transaction_records));
+    memset(g_ycp_preq_shake_hand, 0x00, sizeof(g_ycp_preq_shake_hand));
+    memset(g_ycp_preq_parameter_config, 0x00, sizeof(g_ycp_preq_parameter_config));
+    memset(g_ycp_preq_charge_finish, 0x00, sizeof(g_ycp_preq_charge_finish));
+    memset(g_ycp_preq_error_message, 0x00, sizeof(g_ycp_preq_error_message));
+    memset(g_ycp_preq_bms_end, 0x00, sizeof(g_ycp_preq_bms_end));
+    memset(g_ycp_preq_charger_end, 0x00, sizeof(g_ycp_preq_charger_end));
+    memset(g_ycp_preq_bmscommand_chargerout, 0x00, sizeof(g_ycp_preq_bmscommand_chargerout));
+    memset(g_ycp_preq_bms_info, 0x00, sizeof(g_ycp_preq_bms_info));
+
+    memset(&g_ycp_preq_login, 0x00, sizeof(g_ycp_preq_login));
+    memset(&g_ycp_preq_time_sync, 0x00, sizeof(g_ycp_preq_time_sync));
+    memset(&g_ycp_preq_heartbeat, 0x00, sizeof(g_ycp_preq_heartbeat));
+    memset(&g_ycp_preq_billing_model_verify, 0x00, sizeof(g_ycp_preq_billing_model_verify));
+    memset(&g_ycp_preq_report_device_fault, 0x00, sizeof(g_ycp_preq_report_device_fault));
+    memset(&g_ycp_pres_remote_update, 0x00, sizeof(g_ycp_pres_remote_update));
+#endif /* NET_DESIGNATE_REGION */
 
     if(rt_thread_init(&s_ycp_message_send_thread, "ycp_send", net_ycp_message_send_thread_entry, NULL,
             s_ycp_message_send_thread_stack, NET_YCP_MESSAGE_SEND_THREAD_STACK_SIZE, 16, 10) != RT_EOK){

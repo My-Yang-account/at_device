@@ -51,102 +51,102 @@ struct sgcc_wait_response{
     uint32_t message_repeat_time[NET_SYSTEM_GUN_NUMBER][NET_SGCC_CHARGEPILE_PREQ_NUM];  /* 报文重发计时 */
 };
 
-static uint32_t s_sgcc_time_sync_count = 0x00;
-static struct sgcc_flag_set s_sgcc_flag_set;
-static uint32_t s_sgcc_chargepile_event[NET_SGCC_EVENT_TYPE_SIZE][NET_SYSTEM_GUN_NUMBER];
-static uint32_t s_sgcc_server_event[NET_SGCC_EVENT_TYPE_SIZE][NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 static uint32_t s_sgcc_time_sync_count = 0x00;
+NET_DEF_SRAM2 static struct sgcc_flag_set s_sgcc_flag_set;
+NET_DEF_SRAM2 static uint32_t s_sgcc_chargepile_event[NET_SGCC_EVENT_TYPE_SIZE][NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 static uint32_t s_sgcc_server_event[NET_SGCC_EVENT_TYPE_SIZE][NET_SYSTEM_GUN_NUMBER];
 
-static uint8_t s_sgcc_same_transaction_report_count[NET_SYSTEM_GUN_NUMBER];
-static uint8_t s_sgcc_transaction_verify[NET_SYSTEM_GUN_NUMBER];
-static struct sgcc_wait_response s_sgcc_wait_response;
-static uint32_t s_sgcc_message_send_state[NET_SYSTEM_GUN_NUMBER];                       /* 报文发送状态 */
+NET_DEF_SRAM2 static uint8_t s_sgcc_same_transaction_report_count[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 static uint8_t s_sgcc_transaction_verify[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 static struct sgcc_wait_response s_sgcc_wait_response;
+NET_DEF_SRAM2 static uint32_t s_sgcc_message_send_state[NET_SYSTEM_GUN_NUMBER];                       /* 报文发送状态 */
 
-static struct rt_thread s_sgcc_message_send_thread;
-static uint8_t s_sgcc_message_send_thread_stack[NET_SGCC_MESSAGE_SEND_THREAD_STACK_SIZE];
-static struct rt_thread s_sgcc_message_server_thread;
-static uint8_t s_sgcc_message_service_thread_stack[NET_SGCC_SERVER_MESSAGE_PRO_THREAD_STACK_SIZE];
-static struct rt_thread s_sgcc_connect_thread;
-static uint8_t s_sgcc_connect_thread_stack[NET_SGCC_CONNECT_THREAD_STACK_SIZE];
-static struct rt_thread s_sgcc_yield_thread;
-static uint8_t s_sgcc_yield_thread_stack[NET_SGCC_YIELD_THREAD_STACK_SIZE];
+NET_DEF_SRAM2 static struct rt_thread s_sgcc_message_send_thread;
+NET_DEF_SRAM0 static uint8_t s_sgcc_message_send_thread_stack[NET_SGCC_MESSAGE_SEND_THREAD_STACK_SIZE];
+NET_DEF_SRAM2 static struct rt_thread s_sgcc_message_server_thread;
+NET_DEF_SRAM0 static uint8_t s_sgcc_message_service_thread_stack[NET_SGCC_SERVER_MESSAGE_PRO_THREAD_STACK_SIZE];
+NET_DEF_SRAM2 static struct rt_thread s_sgcc_connect_thread;
+NET_DEF_SRAM2 static uint8_t s_sgcc_connect_thread_stack[NET_SGCC_CONNECT_THREAD_STACK_SIZE];
+NET_DEF_SRAM2 static struct rt_thread s_sgcc_yield_thread;
+NET_DEF_SRAM0 static uint8_t s_sgcc_yield_thread_stack[NET_SGCC_YIELD_THREAD_STACK_SIZE];
 
-static sgcc_response_message_buf_t s_sgcc_response_buff;
-static struct rt_semaphore s_sgcc_response_buff_sem;
-static sgcc_socket_info_t s_sgcc_socket_info;
+NET_DEF_SRAM2 static sgcc_response_message_buf_t s_sgcc_response_buff;
+NET_DEF_SRAM2 static struct rt_semaphore s_sgcc_response_buff_sem;
+NET_DEF_SRAM2 static sgcc_socket_info_t s_sgcc_socket_info;
 
 /**=======================================[充电桩公共请求报文]=======================================*/
 ///设备固件信息
-evs_event_fireware_info evs_event_firmware_infos;
+NET_DEF_SRAM2 evs_event_fireware_info evs_event_firmware_infos;
 ///设备版本信息
-evs_event_ver_info evs_event_ver_infos;
+NET_DEF_SRAM2 evs_event_ver_info evs_event_ver_infos;
 /////设备组件信息
-//evs_event_devmdu_info evs_event_devmdu_infos[NET_SYSTEM_GUN_NUMBER];
+//NET_DEF_SRAM2 evs_event_devmdu_info evs_event_devmdu_infos[NET_SYSTEM_GUN_NUMBER];
 /////智能卡信息
-//evs_event_card_info evs_event_card_infos[NET_SYSTEM_GUN_NUMBER];
+//NET_DEF_SRAM2 evs_event_card_info evs_event_card_infos[NET_SYSTEM_GUN_NUMBER];
 /////智能卡鉴权
-//evs_event_card_auth evs_event_card_auths[NET_SYSTEM_GUN_NUMBER];
+//NET_DEF_SRAM2 evs_event_card_auth evs_event_card_auths[NET_SYSTEM_GUN_NUMBER];
 /////智能卡鉴权结果
-//evs_event_card_auth_result evs_event_card_auth_results[NET_SYSTEM_GUN_NUMBER];
+//NET_DEF_SRAM2 evs_event_card_auth_result evs_event_card_auth_results[NET_SYSTEM_GUN_NUMBER];
 ///计费模型请求
-evs_event_ask_feeModel evs_event_ask_feeModels[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 evs_event_ask_feeModel evs_event_ask_feeModels[NET_SYSTEM_GUN_NUMBER];
 ///启动充电结果
-evs_event_startResult evs_event_startResults[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 evs_event_startResult evs_event_startResults[NET_SYSTEM_GUN_NUMBER];
 ///启动充电鉴权
-evs_event_startCharge evs_event_startCharges[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 evs_event_startCharge evs_event_startCharges[NET_SYSTEM_GUN_NUMBER];
 ///停止充电结果
-evs_event_stopCharge evs_event_stopCharges[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 evs_event_stopCharge evs_event_stopCharges[NET_SYSTEM_GUN_NUMBER];
 ///交易记录
-evs_event_tradeInfo evs_event_tradeInfos[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 evs_event_tradeInfo evs_event_tradeInfos[NET_SYSTEM_GUN_NUMBER];
 ///故障告警
-evs_event_alarm evs_event_alarms[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 evs_event_alarm evs_event_alarms[NET_SYSTEM_GUN_NUMBER];
 ///地锁状态变化
-evs_event_groundLock_change evs_event_groundLock_changes[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 evs_event_groundLock_change evs_event_groundLock_changes[NET_SYSTEM_GUN_NUMBER];
 ///智能门锁状态变化
-evs_event_gateLock_change evs_event_gateLock_changes[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 evs_event_gateLock_change evs_event_gateLock_changes[NET_SYSTEM_GUN_NUMBER];
 ///充电枪状态变化
-evs_event_pile_stutus_change evs_event_pile_stutus_changes[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 evs_event_pile_stutus_change evs_event_pile_stutus_changes[NET_SYSTEM_GUN_NUMBER];
 ///车辆信息
-evs_event_car_info evs_event_car_infos[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 evs_event_car_info evs_event_car_infos[NET_SYSTEM_GUN_NUMBER];
 /////VIN码白名单查询结果
-//evs_event_vinList_result evs_event_vinList_results[NET_SYSTEM_GUN_NUMBER];
+//NET_DEF_SRAM2 evs_event_vinList_result evs_event_vinList_results[NET_SYSTEM_GUN_NUMBER];
 /////时间同步结果
-//evs_event_time_sync_result evs_event_time_sync_results[NET_SYSTEM_GUN_NUMBER];
+//NET_DEF_SRAM2 evs_event_time_sync_result evs_event_time_sync_results[NET_SYSTEM_GUN_NUMBER];
 /////充电中的连接状态
-//evs_event_charge_connect_change evs_event_charge_connect_changes[NET_SYSTEM_GUN_NUMBER];
+//NET_DEF_SRAM2 evs_event_charge_connect_change evs_event_charge_connect_changes[NET_SYSTEM_GUN_NUMBER];
 /////卡异常检测信息
-//evs_event_card_check_error evs_event_card_check_errors[NET_SYSTEM_GUN_NUMBER];
+//NET_DEF_SRAM2 evs_event_card_check_error evs_event_card_check_errors[NET_SYSTEM_GUN_NUMBER];
 /////蓝牙信息
-//evs_event_ble_plug_charge_info evs_event_ble_plug_charge_infos[NET_SYSTEM_GUN_NUMBER];
+//NET_DEF_SRAM2 evs_event_ble_plug_charge_info evs_event_ble_plug_charge_infos[NET_SYSTEM_GUN_NUMBER];
 /////蓝牙连接状态变化
-//evs_event_ble_conn_change evs_event_ble_conn_changes[NET_SYSTEM_GUN_NUMBER];
+//NET_DEF_SRAM2 evs_event_ble_conn_change evs_event_ble_conn_changes[NET_SYSTEM_GUN_NUMBER];
 ///日志查询结果
-evs_event_logQuery_Result evs_event_logQuery_Results[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 evs_event_logQuery_Result evs_event_logQuery_Results[NET_SYSTEM_GUN_NUMBER];
 /////智能枪参数信息
-//evs_smart_gun_auth_param evs_smart_gun_auth_params[NET_SYSTEM_GUN_NUMBER];
+//NET_DEF_SRAM2 evs_smart_gun_auth_param evs_smart_gun_auth_params[NET_SYSTEM_GUN_NUMBER];
 ///输出电表底值
-evs_property_meter evs_property_meters[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 evs_property_meter evs_property_meters[NET_SYSTEM_GUN_NUMBER];
 
 #ifdef NET_SGCC_PRO_USING_DC
 /**=======================================[直流充电桩请求报文]=======================================*/
-//evs_event_ccu_info evs_event_ccu_infos[NET_SYSTEM_GUN_NUMBER];
-//evs_event_pcu_info evs_event_pcu_infos[NET_SYSTEM_GUN_NUMBER];
-//evs_event_cu_info evs_event_cu_infos[NET_SYSTEM_GUN_NUMBER];
-//evs_event_switch_info evs_event_switch_infos[NET_SYSTEM_GUN_NUMBER];
-//evs_event_edas_info evs_event_edas_infos[NET_SYSTEM_GUN_NUMBER];
-//evs_event_cu_work_info evs_event_cu_work_infos[NET_SYSTEM_GUN_NUMBER];
+//NET_DEF_SRAM2 evs_event_ccu_info evs_event_ccu_infos[NET_SYSTEM_GUN_NUMBER];
+//NET_DEF_SRAM2 evs_event_pcu_info evs_event_pcu_infos[NET_SYSTEM_GUN_NUMBER];
+//NET_DEF_SRAM2 evs_event_cu_info evs_event_cu_infos[NET_SYSTEM_GUN_NUMBER];
+//NET_DEF_SRAM2 evs_event_switch_info evs_event_switch_infos[NET_SYSTEM_GUN_NUMBER];
+//NET_DEF_SRAM2 evs_event_edas_info evs_event_edas_infos[NET_SYSTEM_GUN_NUMBER];
+//NET_DEF_SRAM2 evs_event_cu_work_info evs_event_cu_work_infos[NET_SYSTEM_GUN_NUMBER];
 
-evs_property_dcPile evs_property_dcPiles;
-evs_property_BMS evs_property_BMSs[NET_SYSTEM_GUN_NUMBER];
-evs_property_dc_work evs_property_dc_works[NET_SYSTEM_GUN_NUMBER];
-evs_property_dc_nonWork evs_property_dc_nonWorks[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 evs_property_dcPile evs_property_dcPiles;
+NET_DEF_SRAM2 evs_property_BMS evs_property_BMSs[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 evs_property_dc_work evs_property_dc_works[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 evs_property_dc_nonWork evs_property_dc_nonWorks[NET_SYSTEM_GUN_NUMBER];
 ///输入电表低值
-evs_property_dc_input_meter evs_property_dc_input_meters[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 evs_property_dc_input_meter evs_property_dc_input_meters[NET_SYSTEM_GUN_NUMBER];
 
 #else
 /**=======================================[交流充电桩请求报文]=======================================*/
-evs_property_acPile evs_property_acPiles;
-evs_property_ac_work evs_property_ac_works[NET_SYSTEM_GUN_NUMBER];
-evs_property_ac_nonWork evs_property_ac_nonWorks[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 evs_property_acPile evs_property_acPiles;
+NET_DEF_SRAM2 evs_property_ac_work evs_property_ac_works[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 evs_property_ac_nonWork evs_property_ac_nonWorks[NET_SYSTEM_GUN_NUMBER];
 #endif /* NET_SGCC_PRO_USING_DC */
 
 /**************************************************************************
@@ -1377,6 +1377,76 @@ static void sgcc_message_server_thread_entry(void *parameter)
 
 int sgcc_message_send_init(void)
 {
+#ifdef NET_DESIGNATE_REGION
+    for(uint8_t gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
+        s_sgcc_same_transaction_report_count[gunno] = 0x00;
+        s_sgcc_transaction_verify[gunno] = 0x00;
+        s_sgcc_message_send_state[gunno] = 0x00;
+
+        for(uint8_t event = 0x00; event < NET_SGCC_EVENT_TYPE_SIZE; event++){
+            s_sgcc_chargepile_event[event][gunno] = 0x00;
+            s_sgcc_server_event[event][gunno] = 0x00;
+        }
+    }
+
+    s_sgcc_time_sync_count = 0x00;
+    memset(&s_sgcc_flag_set, 0x00, sizeof(s_sgcc_flag_set));
+
+    memset(&s_sgcc_wait_response, 0x00, sizeof(s_sgcc_wait_response));
+    memset(&s_sgcc_socket_info, 0x00, sizeof(s_sgcc_socket_info));
+    memset(&s_sgcc_response_buff, 0x00, sizeof(s_sgcc_response_buff));
+
+    /**=======================================[充电桩公共请求报文]=======================================*/
+    memset(&evs_event_firmware_infos, 0x00, sizeof(evs_event_firmware_infos));
+    memset(&evs_event_ver_infos, 0x00, sizeof(evs_event_ver_infos));
+
+//    memset(evs_event_devmdu_infos, 0x00, sizeof(evs_event_devmdu_infos));
+//    memset(evs_event_card_infos, 0x00, sizeof(evs_event_card_infos));
+//    memset(evs_event_card_auths, 0x00, sizeof(evs_event_card_auths));
+//    memset(evs_event_card_auth_results, 0x00, sizeof(evs_event_card_auth_results));
+    memset(evs_event_ask_feeModels, 0x00, sizeof(evs_event_ask_feeModels));
+    memset(evs_event_startResults, 0x00, sizeof(evs_event_startResults));
+    memset(evs_event_startCharges, 0x00, sizeof(evs_event_startCharges));
+    memset(evs_event_stopCharges, 0x00, sizeof(evs_event_stopCharges));
+    memset(evs_event_tradeInfos, 0x00, sizeof(evs_event_tradeInfos));
+    memset(evs_event_alarms, 0x00, sizeof(evs_event_alarms));
+    memset(evs_event_groundLock_changes, 0x00, sizeof(evs_event_groundLock_changes));
+    memset(evs_event_gateLock_changes, 0x00, sizeof(evs_event_gateLock_changes));
+    memset(evs_event_pile_stutus_changes, 0x00, sizeof(evs_event_pile_stutus_changes));
+    memset(evs_event_car_infos, 0x00, sizeof(evs_event_car_infos));
+//    memset(evs_event_vinList_results, 0x00, sizeof(evs_event_vinList_results));
+//    memset(evs_event_time_sync_results, 0x00, sizeof(evs_event_time_sync_results));
+//    memset(evs_event_charge_connect_changes, 0x00, sizeof(evs_event_charge_connect_changes));
+//    memset(evs_event_card_check_errors, 0x00, sizeof(evs_event_card_check_errors));
+//    memset(evs_event_ble_plug_charge_infos, 0x00, sizeof(evs_event_ble_plug_charge_infos));
+//    memset(evs_event_ble_conn_changes, 0x00, sizeof(evs_event_ble_conn_changes));
+    memset(evs_event_logQuery_Results, 0x00, sizeof(evs_event_logQuery_Results));
+//    memset(evs_smart_gun_auth_params, 0x00, sizeof(evs_smart_gun_auth_params));
+    memset(evs_property_meters, 0x00, sizeof(evs_property_meters));
+
+#ifdef NET_SGCC_PRO_USING_DC
+/**=======================================[直流充电桩请求报文]=======================================*/
+//    memset(evs_event_ccu_infos, 0x00, sizeof(evs_event_ccu_infos));
+//    memset(evs_event_pcu_infos, 0x00, sizeof(evs_event_pcu_infos));
+//    memset(evs_event_cu_infos, 0x00, sizeof(evs_event_cu_infos));
+//    memset(evs_event_switch_infos, 0x00, sizeof(evs_event_switch_infos));
+//    memset(evs_event_edas_infos, 0x00, sizeof(evs_event_edas_infos));
+//    memset(evs_event_cu_work_infos, 0x00, sizeof(evs_event_cu_work_infos));
+    memset(&evs_property_dcPiles, 0x00, sizeof(evs_property_dcPiles));
+    memset(evs_property_BMSs, 0x00, sizeof(evs_property_BMSs));
+    memset(evs_property_dc_works, 0x00, sizeof(evs_property_dc_works));
+    memset(evs_property_dc_nonWorks, 0x00, sizeof(evs_property_dc_nonWorks));
+    memset(evs_property_dc_input_meters, 0x00, sizeof(evs_property_dc_input_meters));
+#else
+/**=======================================[交流充电桩请求报文]=======================================*/
+    memset(&evs_property_acPiles, 0x00, sizeof(evs_property_acPiles));
+    memset(evs_property_ac_works, 0x00, sizeof(evs_property_ac_works));
+    memset(evs_property_ac_nonWorks, 0x00, sizeof(evs_property_ac_nonWorks));
+#endif /* NET_SGCC_PRO_USING_DC */
+
+#endif /* NET_DESIGNATE_REGION */
+
+
     if(rt_thread_init(&s_sgcc_message_send_thread, "sgcc_send", sgcc_message_send_thread_entry, NULL,
             s_sgcc_message_send_thread_stack, NET_SGCC_MESSAGE_SEND_THREAD_STACK_SIZE, 16, 10) != RT_EOK){
         LOG_E("sgcc message send thread create fail, please check");

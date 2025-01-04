@@ -92,19 +92,19 @@ struct ethch395_access_lock{
 };
 #pragma pack()
 
-static uint32_t s_ethch395_reset_period;                       /** 芯片复位周期 */
-static uint32_t s_ethch395_reset_tick;                         /** 芯片复位时基 */
-static struct ethch395_access_lock s_ethch395_access_lock;
-static void (*ethch395_init_hook)(uint8_t, uint8_t);           /** ethch395 初始化 钩子函数 参数1：是否已初始化， 参数2：初始化成功与否*/
-static struct ethch395_assistant s_ethch395_assistant_info;
-union ethch395_globe_int *s_ethch395_globe_int = NULL;
-static struct ethch395_socket_info s_ethch395_socket_info[ETHCH395_SOCKET_NUM_MAX];
-static struct rt_thread s_ethch395_event_pro_thread;
-static uint8_t s_ethch395_event_pro_thread_stack[ETHCH395_EVENT_PRO_THREAD_STACK_SIZE];
-static struct rt_thread s_ethch395_recv_thread;
-static uint8_t s_ethch395_recv_thread_stack[ETHCH395_RECV_THREAD_STACK_SIZE];
-static struct rt_event s_ethch395_event;
-static uint8_t s_ethch395_state = NETDEV_ETHCH395_STATE_PHY;
+ETH_DEF_SRAM2 static uint32_t s_ethch395_reset_period;                       /** 芯片复位周期 */
+ETH_DEF_SRAM2 static uint32_t s_ethch395_reset_tick;                         /** 芯片复位时基 */
+ETH_DEF_SRAM2 static struct ethch395_access_lock s_ethch395_access_lock;
+ETH_DEF_SRAM2 static void (*ethch395_init_hook)(uint8_t, uint8_t);           /** ethch395 初始化 钩子函数 参数1：是否已初始化， 参数2：初始化成功与否*/
+ETH_DEF_SRAM2 static struct ethch395_assistant s_ethch395_assistant_info;
+ETH_DEF_SRAM2 union ethch395_globe_int *s_ethch395_globe_int = NULL;
+ETH_DEF_SRAM2 static struct ethch395_socket_info s_ethch395_socket_info[ETHCH395_SOCKET_NUM_MAX];
+ETH_DEF_SRAM2 static struct rt_thread s_ethch395_event_pro_thread;
+ETH_DEF_SRAM0 static uint8_t s_ethch395_event_pro_thread_stack[ETHCH395_EVENT_PRO_THREAD_STACK_SIZE];
+ETH_DEF_SRAM2 static struct rt_thread s_ethch395_recv_thread;
+ETH_DEF_SRAM0 static uint8_t s_ethch395_recv_thread_stack[ETHCH395_RECV_THREAD_STACK_SIZE];
+ETH_DEF_SRAM2 static struct rt_event s_ethch395_event;
+ETH_DEF_SRAM2 static uint8_t s_ethch395_state = NETDEV_ETHCH395_STATE_PHY;
 
 static void ethch395_device_init(void);
 
@@ -1404,6 +1404,24 @@ int32_t ethch395_device_reset(void)
 int32_t net_ethch395_transceiver_init(void)
 {
     int32_t res = 0x00;
+
+#ifdef ETH_DESIGNATE_REGION
+    extern void ethch395_dns_info_init(void);
+    ethch395_dns_info_init();
+
+    extern void ethch395_cmd_info_init(void);
+    ethch395_cmd_info_init();
+
+    s_ethch395_globe_int = NULL;
+    s_ethch395_state = NETDEV_ETHCH395_STATE_PHY;
+
+    s_ethch395_reset_period = 0x00;
+    s_ethch395_reset_tick = 0x00;
+
+    memset(&s_ethch395_access_lock, 0x00, sizeof(s_ethch395_access_lock));
+    memset(&s_ethch395_assistant_info, 0x00, sizeof(s_ethch395_assistant_info));
+    memset(s_ethch395_socket_info, 0x00, sizeof(s_ethch395_socket_info));
+#endif /* ETH_DESIGNATE_REGION */
 
     if(ethch395_init_hook){
         ethch395_init_hook(ETHCH395_ENUM_FALSE, ETHCH395_ENUM_FALSE);

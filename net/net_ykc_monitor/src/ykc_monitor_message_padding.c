@@ -111,19 +111,19 @@ typedef struct{
 #pragma pack()
 
 #ifdef NET_YKC_MONITOR_AS_MONITOR
-static ykc_monitor_setvoltcurr s_ykc_monitor_setvoltcurr;
-static ykc_monitor_starting_info s_ykc_monitor_starting_info[NET_SYSTEM_GUN_NUMBER];
-static ykc_monitor_charging_info s_ykc_monitor_charging_info[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 static ykc_monitor_setvoltcurr s_ykc_monitor_setvoltcurr;
+NET_DEF_SRAM2 static ykc_monitor_starting_info s_ykc_monitor_starting_info[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 static ykc_monitor_charging_info s_ykc_monitor_charging_info[NET_SYSTEM_GUN_NUMBER];
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
 
-static struct ykc_monitor_flag_info s_ykc_monitor_flag_info[NET_SYSTEM_GUN_NUMBER];
-static uint16_t s_ykc_monitor_realtime_data_interval[NET_SYSTEM_GUN_NUMBER];
-static uint32_t s_ykc_monitor_realtime_data_count[NET_SYSTEM_GUN_NUMBER];
-static uint16_t s_ykc_monitor_local_start_sq;
-static struct ykc_monitor_state_info s_ykc_monitor_state_info[NET_SYSTEM_GUN_NUMBER];
-static struct rt_thread s_ykc_monitor_realtime_process_thread;
-static uint8_t s_ykc_monitor_realtime_process_thread_stack[YKC_MONITOR_REALTIME_PROCESS_THREAD_STACK_SIZE];
-static struct net_handle* s_ykc_monitor_handle = NULL;
+NET_DEF_SRAM2 static struct ykc_monitor_flag_info s_ykc_monitor_flag_info[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 static uint16_t s_ykc_monitor_realtime_data_interval[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 static uint32_t s_ykc_monitor_realtime_data_count[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 static uint16_t s_ykc_monitor_local_start_sq;
+NET_DEF_SRAM2 static struct ykc_monitor_state_info s_ykc_monitor_state_info[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 static struct rt_thread s_ykc_monitor_realtime_process_thread;
+NET_DEF_SRAM0 static uint8_t s_ykc_monitor_realtime_process_thread_stack[YKC_MONITOR_REALTIME_PROCESS_THREAD_STACK_SIZE];
+NET_DEF_SRAM2 static struct net_handle* s_ykc_monitor_handle = NULL;
 
 static uint16_t ykc_monitor_chargepile_stop_reason_converted(uint8_t bit, uint8_t stop_in_starting);
 static uint8_t ykc_monitor_chargepile_transaction_identity_converted(uint8_t identity);
@@ -1691,8 +1691,8 @@ void ykc_monitor_chargepile_request_padding_bms_paraconfig(uint8_t gunno)
 
     g_ykc_monitor_preq_parameter_config[gunno].body.pile_output_volt_max = bms->CML.ChagHigOutVolt;
     g_ykc_monitor_preq_parameter_config[gunno].body.pile_output_volt_min = bms->CML.ChagLowOutVolt;
-    g_ykc_monitor_preq_parameter_config[gunno].body.pile_output_curr_max = (4000 - bms->CML.ChagHigOutCurlt);
-    g_ykc_monitor_preq_parameter_config[gunno].body.pile_output_curr_min = (4000 - bms->CML.ChagLowOutCurlt);
+    g_ykc_monitor_preq_parameter_config[gunno].body.pile_output_curr_max = bms->CML.ChagHigOutCurlt;
+    g_ykc_monitor_preq_parameter_config[gunno].body.pile_output_curr_min = bms->CML.ChagLowOutCurlt;
 
     ykc_monitor_net_event_send(NET_YKC_MONITOR_EVENT_HANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, gunno, NET_YKC_MONITOR_PREQ_EVENT_PARA_CONFIG);
 }
@@ -3004,6 +3004,27 @@ static void ykc_monitor_realtime_process_thread_entry(void *parameter)
 
 int32_t ykc_monitor_realtime_process_init(void)
 {
+#ifdef NET_DESIGNATE_REGION
+    for(uint8_t gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
+        s_ykc_monitor_realtime_data_interval[gunno] = 0x00;
+        s_ykc_monitor_realtime_data_count[gunno] = 0x00;
+
+        memset(&s_ykc_monitor_flag_info[gunno], 0x00, sizeof(s_ykc_monitor_flag_info[gunno]));
+        memset(&s_ykc_monitor_state_info[gunno], 0x00, sizeof(s_ykc_monitor_state_info[gunno]));
+
+#ifdef NET_YKC_MONITOR_AS_MONITOR
+        memset(&s_ykc_monitor_starting_info[gunno], 0x00, sizeof(s_ykc_monitor_starting_info[gunno]));
+        memset(&s_ykc_monitor_charging_info[gunno], 0x00, sizeof(s_ykc_monitor_charging_info[gunno]));
+#endif /* NET_YKC_MONITOR_AS_MONITOR */
+    }
+
+#ifdef NET_YKC_MONITOR_AS_MONITOR
+    memset(&s_ykc_monitor_setvoltcurr, 0x00, sizeof(s_ykc_monitor_setvoltcurr));
+#endif /* NET_YKC_MONITOR_AS_MONITOR */
+    s_ykc_monitor_local_start_sq = 0x00;
+    s_ykc_monitor_handle = NULL;
+#endif /* NET_DESIGNATE_REGION */
+
     if(rt_thread_init(&s_ykc_monitor_realtime_process_thread, "ykc_mrl_pro", ykc_monitor_realtime_process_thread_entry, NULL,
             s_ykc_monitor_realtime_process_thread_stack, YKC_MONITOR_REALTIME_PROCESS_THREAD_STACK_SIZE, 16, 10) != RT_EOK){
         LOG_E("ykc monitor realtime process thread create fail, please check");

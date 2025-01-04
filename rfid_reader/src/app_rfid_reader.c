@@ -29,15 +29,15 @@ static rfid_reader s_rfidr_handle = {
         .is_forbid = APP_RFIDR_ENUM_FALSE,
 };
 
-static unsigned char s_rfidr_state = APP_RFIDR_STATE_DOWN;
-static unsigned char s_rfidr_block = 0x09;     /** 卡号所在块 */
-static unsigned char s_rfidr_sector = 0x02;     /** 卡号所在扇区 */
-static unsigned char s_rfidr_card_key[RFIDR_CARD_KEY_NUM][0x06] = {{0x41, 0x31, 0x53, 0x4D, 0x31, 0x50}, {0x72, 0x28, 0x92, 0x63, 0x46, 0x23}};
+RFID_DEF_SRAM2 static unsigned char s_rfidr_state = APP_RFIDR_STATE_DOWN;
+RFID_DEF_SRAM2 static unsigned char s_rfidr_block = 0x09;     /** 卡号所在块 */
+RFID_DEF_SRAM2 static unsigned char s_rfidr_sector = 0x02;     /** 卡号所在扇区 */
+RFID_DEF_SRAM2 static unsigned char s_rfidr_card_key[RFIDR_CARD_KEY_NUM][0x06] = {{0x41, 0x31, 0x53, 0x4D, 0x31, 0x50}, {0x72, 0x28, 0x92, 0x63, 0x46, 0x23}};
 
-static struct rt_mailbox s_rfidr_mailbox;
-static unsigned long s_rfidr_mail, s_rfidr_mail_pool[RFIDR_MAIL_NUM_MAX];
-static struct rt_thread s_rfidr_thread;
-static unsigned char s_rfidr_thread_stack[RFIDR_THREAD_STACK_SIZE];
+RFID_DEF_SRAM2 static struct rt_mailbox s_rfidr_mailbox;
+RFID_DEF_SRAM2 static unsigned long s_rfidr_mail, s_rfidr_mail_pool[RFIDR_MAIL_NUM_MAX];
+RFID_DEF_SRAM2 static struct rt_thread s_rfidr_thread;
+RFID_DEF_SRAM0 static unsigned char s_rfidr_thread_stack[RFIDR_THREAD_STACK_SIZE];
 
 
 /*********************************************************************
@@ -356,6 +356,29 @@ int app_rfidr_config_handle_info_process(void *handle)
 int app_rfidr_init(void)
 {
     int ret = 0x00;
+
+#ifdef RFID_DESIGNATE_REGION
+    s_rfidr_state = APP_RFIDR_STATE_DOWN;
+    s_rfidr_block = 0x09;     /** 卡号所在块 */
+    s_rfidr_sector = 0x02;     /** 卡号所在扇区 */
+
+    /** 钛昕密钥 */
+    s_rfidr_card_key[0x00][0x00] = 0x41;
+    s_rfidr_card_key[0x00][0x01] = 0x31;
+    s_rfidr_card_key[0x00][0x02] = 0x53;
+    s_rfidr_card_key[0x00][0x03] = 0x4D;
+    s_rfidr_card_key[0x00][0x04] = 0x31;
+    s_rfidr_card_key[0x00][0x05] = 0x50;
+
+    /** 云快充密钥 */
+    s_rfidr_card_key[0x01][0x00] = 0x72;
+    s_rfidr_card_key[0x01][0x01] = 0x28;
+    s_rfidr_card_key[0x01][0x02] = 0x92;
+    s_rfidr_card_key[0x01][0x03] = 0x63;
+    s_rfidr_card_key[0x01][0x04] = 0x46;
+    s_rfidr_card_key[0x01][0x05] = 0x23;
+
+#endif /* RFID_DESIGNATE_REGION */
 
     ret = rfid_dev_api_init();
     if(ret < 0x00){

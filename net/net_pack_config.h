@@ -16,6 +16,7 @@
 #include "time.h"
 #include <rtthread.h>
 
+#define NET_DESIGNATE_REGION                                  /* 变量定义到指定区 */
 #define NET_USING_NET_PACK                                    /* 联网 */
 
 #ifdef NET_USING_NET_PACK
@@ -25,13 +26,13 @@
 #define NET_INCLUDE_OTA
 
 //#define NET_PACK_USING_THA                                    /* 使用钛享协议 */
-//#define NET_PACK_USING_YKC                                    /* 使用云快充协议 */
-//#define NET_PACK_USING_YKC_MONITOR                            /* 使用云快充协议(监控) */
+#define NET_PACK_USING_YKC                                    /* 使用云快充协议 */
+#define NET_PACK_USING_YKC_MONITOR                            /* 使用云快充协议(监控) */
 //#define NET_PACK_USING_YCP                                    /* 使用越城协议 */
 //#define NET_PACK_USING_YND                                    /* 使用一电、南电协议 */
 //#define NET_PACK_USING_XJ                                     /* 使用小桔协议 */
 //#define NET_PACK_USING_SL                                     /* 使用阳光乐通协议 */
-#define NET_PACK_USING_SGCC                                   /* 使用国网协议 */
+//#define NET_PACK_USING_SGCC                                   /* 使用国网协议 */
 
 /*************************************************** 钛享协议 **********************************************************/
 #ifdef NET_PACK_USING_THA
@@ -190,6 +191,19 @@
 #endif /* NET_INCLUDE_OTA */
 
 #define NET_SYSTEM_RECORD_STORAGE_NUM_MAX             100        /* 系统存储记录数量最大值 */
+
+#ifdef NET_DESIGNATE_REGION
+#define NET_DEF_TCMRAM __attribute__((section(".TCM_RAM")))      /* 将变量定义在TCMRAM区，注：对于GD32F470ZGT6 TCMRAM 不能存放代码，不能被任何 DMA 访问，可以将一些变量定义在该地址空间；定义的变量初始值是未知的 */
+#define NET_DEF_SRAM0  __attribute__((section(".SRAM0_RAM")))    /* 将变量定义在SRAM0区，注：对于GD32F470ZGT6 SRAM0 可以存放代码，也可以存放变量，也可以作为线程的栈地址空间，可以被 DMA 访问；定义的变量初始值是未知的 */
+#define NET_DEF_SRAM1  __attribute__((section(".SRAM1_RAM")))    /* 将变量定义在SRAM1区，注：对于GD32F470ZGT6 SRAM1 不可以存放代码，也不可以将线程的栈地址空间定义在这里，可以被 DMA 访问；定义的变量初始值是未知的 */
+#define NET_DEF_SRAM2  __attribute__((section(".SRAM2_RAM")))    /* 将变量定义在SRAM2区，注：对于GD32F470ZGT6 SRAM2 不可以存放代码，也不可以将线程的栈地址空间定义在这里，可以被 DMA 访问；定义的变量初始值是未知的 */
+#else
+#define NET_DEF_TCMRAM
+#define NET_DEF_SRAM0
+#define NET_DEF_SRAM1
+#define NET_DEF_SRAM2
+#endif /* NET_DESIGNATE_REGION */
+
 #endif /* NET_USING_NET_PACK */
 
 #endif /* NET_PACK_NET_PACK_CONFIG_H_ */

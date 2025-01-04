@@ -31,11 +31,11 @@ extern "C"
 /*-------------------------- ROM/RAM CONFIG BEGIN --------------------------*/
 
 #define ROM_START              ((uint32_t)0x08010000)
-#define ROM_SIZE               ((2048 - 128) * 1024)
+#define ROM_SIZE               ((1024 - 128) * 1024)
 #define ROM_END                ((uint32_t)(ROM_START + ROM_SIZE))
 
 #define RAM_START              (0x20030000)
-#define RAM_SIZE               (512 * 1024)
+#define RAM_SIZE               (256 * 1024)
 #define RAM_END                (RAM_START + RAM_SIZE)
 
 /*-------------------------- ROM/RAM CONFIG END --------------------------*/
@@ -133,7 +133,7 @@ extern "C"
 #define BSP_USING_UART6
 #define BSP_UART6_TX_PIN       "PC6"
 #define BSP_UART6_RX_PIN       "PC7"
-#define BSP_UART6_RX_USING_DMA
+//#define BSP_UART6_RX_USING_DMA
 
 /* 以太网 */
 #define BSP_USING_UART7

@@ -732,6 +732,11 @@ int32_t app_nfunc_config_init(void)
         return -0x01;
     }
 
+#ifdef NET_DESIGNATE_REGION
+    extern void net_operation_info_init(void);
+    net_operation_info_init();
+#endif /* NET_DESIGNATE_REGION */
+
     uint8_t nettype = CP_NETTYPE_4G, offline_billing = 0x00, plug_and_play = 0x00;
 
     nettype = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_NET_TYPE, 0x00));

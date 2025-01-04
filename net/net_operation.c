@@ -30,11 +30,11 @@ struct setup_para{
 
 #pragma pack()
 
-static struct setup_para s_setup_para;
-static net_plat_socket_info_t s_plat_socket_info;
-static uint8_t s_net_ndev_reset;
-static net_ota_info_t s_net_ota_info;
-static uint32_t s_net_operation_event_set[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 static struct setup_para s_setup_para;
+NET_DEF_SRAM2 static net_plat_socket_info_t s_plat_socket_info;
+NET_DEF_SRAM2 static uint8_t s_net_ndev_reset;
+NET_DEF_SRAM2 static net_ota_info_t s_net_ota_info;
+NET_DEF_SRAM2 static uint32_t s_net_operation_event_set[NET_SYSTEM_GUN_NUMBER];
 
 static void net_start_function(void* handle);
 static int32_t net_para_config_function(uint8_t platform, uint8_t index, void* para, void* handle);
@@ -100,7 +100,7 @@ void NETDATA_DEBUG(const char *id, void *data, int len, uint8_t dir)
 }
 #endif /* NET_ENABLE_DEBUG */
 
-static struct net_handle s_net_handle =
+NET_DEF_SRAM2 static struct net_handle s_net_handle =
 {
     .net_fault = 0xFF,
     .start_func = net_start_function,
@@ -108,6 +108,29 @@ static struct net_handle s_net_handle =
 };
 
 static int32_t net_operation_init(void);
+
+#ifdef NET_DESIGNATE_REGION
+/*************************************************
+ * 函数名      net_operation_info_init
+ * 功能          网络总操作信息、变量初始化
+ * **********************************************/
+void net_operation_info_init(void)
+{
+    for(uint8_t gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
+        s_net_operation_event_set[gunno] = 0x00;
+    }
+    s_net_handle.net_fault = 0xFF;
+    s_net_handle.start_func = net_start_function;
+    s_net_handle.para_config = net_para_config_function;
+
+    s_net_ndev_reset = 0x00;
+
+    memset(&s_setup_para, 0x00, sizeof(s_setup_para));
+    memset(&s_plat_socket_info, 0x00, sizeof(s_plat_socket_info));
+    memset(&s_net_ota_info, 0x00, sizeof(s_net_ota_info));
+
+}
+#endif /* NET_DESIGNATE_REGION */
 
 /******************************************
  * 函数名     net_set_clear_ndev_reset_state
@@ -431,52 +454,84 @@ struct net_handle* net_get_net_handle(void)
 
 static int32_t net_operation_init(void)
 {
+/** 钛享平台 */
 #ifdef NET_PACK_USING_THA
     tha_ota_init();
-    tha_message_recv_init();
-    tha_transceiver_init();
+    tha_transceiver_init();    /** 初始化有先后顺序 */
+    tha_message_recv_init();   /** 初始化有先后顺序 */
     net_tha_message_send_init();
 #endif /* NET_PACK_USING_THA */
 
+/** 云快充平台 */
 #ifdef NET_PACK_USING_YKC
     extern int32_t ykc_ota_init(void);
     extern int32_t ykc_message_recv_init(void);
     extern int32_t ykc_transceiver_init(void);
     extern int32_t ykc_message_send_init(void);
     extern int32_t ykc_realtime_process_init(void);
+
+#ifdef NET_DESIGNATE_REGION
+    extern void ykc_fault_info_init(void);
+    extern void ykc_mreceive_info_init(void);
+
+    ykc_fault_info_init();
+    ykc_mreceive_info_init();
+#endif /* NET_DESIGNATE_REGION */
+
     ykc_ota_init();
-    ykc_message_recv_init();
-    ykc_transceiver_init();
+    ykc_transceiver_init();    /** 初始化有先后顺序 */
+    ykc_message_recv_init();   /** 初始化有先后顺序 */
     ykc_message_send_init();
     ykc_realtime_process_init();
 #endif /* NET_PACK_USING_YKC */
 
+/** 监控平台 */
 #ifdef NET_PACK_USING_YKC_MONITOR
     extern int32_t ykc_monitor_ota_init(void);
     extern int32_t ykc_monitor_message_recv_init(void);
     extern int32_t ykc_monitor_transceiver_init(void);
     extern int32_t ykc_monitor_message_send_init(void);
     extern int32_t ykc_monitor_realtime_process_init(void);
+
+#ifdef NET_DESIGNATE_REGION
+    extern void ykc_monitor_fault_info_init(void);
+    extern void ykc_monitor_mreceive_info_init(void);
+
+    ykc_monitor_fault_info_init();
+    ykc_monitor_mreceive_info_init();
+#endif /* NET_DESIGNATE_REGION */
+
     ykc_monitor_ota_init();
-    ykc_monitor_message_recv_init();
-    ykc_monitor_transceiver_init();
+    ykc_monitor_transceiver_init();     /** 初始化有先后顺序 */
+    ykc_monitor_message_recv_init();    /** 初始化有先后顺序 */
     ykc_monitor_message_send_init();
     ykc_monitor_realtime_process_init();
 #endif /* NET_PACK_USING_YKC_MONITOR */
 
+/** 越城公用平台 */
 #ifdef NET_PACK_USING_YCP
     extern int32_t ycp_ota_init(void);
     extern int32_t ycp_message_recv_init(void);
     extern int32_t ycp_transceiver_init(void);
     extern int32_t ycp_message_send_init(void);
     extern int32_t ycp_realtime_process_init(void);
+
+#ifdef NET_DESIGNATE_REGION
+    extern void ycp_fault_info_init(void);
+    extern void ycp_mreceive_info_init(void);
+
+    ycp_fault_info_init();
+    ycp_mreceive_info_init();
+#endif /* NET_DESIGNATE_REGION */
+
     ycp_ota_init();
-    ycp_message_recv_init();
-    ycp_transceiver_init();
+    ycp_transceiver_init();     /** 初始化有先后顺序 */
+    ycp_message_recv_init();    /** 初始化有先后顺序 */
     ycp_message_send_init();
     ycp_realtime_process_init();
 #endif /* NET_PACK_USING_YCP */
 
+/** 国网平台 */
 #ifdef NET_PACK_USING_SGCC
     extern int sgcc_ota_init(void);
     extern int sgcc_message_recvive_init(void);
@@ -484,9 +539,17 @@ static int32_t net_operation_init(void)
     extern int sgcc_realtime_process_init(void);
     extern void sgcc_device_register_init(void);
 
+#ifdef NET_DESIGNATE_REGION
+    extern void sgcc_fault_info_init(void);
+    extern void sgcc_mreceive_info_init(void);
+
+    sgcc_fault_info_init();
+    sgcc_mreceive_info_init();
+#endif /* NET_DESIGNATE_REGION */
+
     sgcc_ota_init();
-    sgcc_message_recvive_init();
     sgcc_message_send_init();
+    sgcc_message_recvive_init();
     sgcc_realtime_process_init();
     sgcc_device_register_init();
 #endif /* NET_PACK_USING_SGCC */

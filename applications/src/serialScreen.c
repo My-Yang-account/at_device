@@ -73,6 +73,22 @@
 #define SYSTEM_WARNNING_INFO_INSULT_VOLTAGE               0x02    /* 告警信息：绝缘电压异常 */
 #define SYSTEM_WARNNING_INFO_REQUEST_CURRENT              0x03    /* 告警信息：请求电流异常 */
 
+#ifdef APP_DESIGNATE_REGION
+#define SERIALSCREEN_DESIGNATE_REGION
+#endif /* APP_DESIGNATE_REGION */
+
+#ifdef SERIALSCREEN_DESIGNATE_REGION
+#define SERIALSCREEN_DEF_TCMRAM CFG_DEF_TCMRAM
+#define SERIALSCREEN_DEF_SRAM0 CFG_DEF_SRAM0
+#define SERIALSCREEN_DEF_SRAM1 CFG_DEF_SRAM1
+#define SERIALSCREEN_DEF_SRAM2 CFG_DEF_SRAM2
+#else
+#define SERIALSCREEN_DEF_TCMRAM
+#define SERIALSCREEN_DEF_SRAM0
+#define SERIALSCREEN_DEF_SRAM1
+#define SERIALSCREEN_DEF_SRAM2
+#endif /* SERIALSCREEN_DESIGNATE_REGION */
+
 #ifdef CP_CONFIG_USING_DUPU
 #define SCREEN_USING_DUPU         /* 使用度普屏幕 */
 #endif /* CP_CONFIG_USING_DUPU */
@@ -132,9 +148,9 @@
 
 
 //Modbus收发数据缓冲区
-u8 SerialScreenAddr = 1;
-static ota_info* s_ota_info = NULL;
-u8 SerialScreenRxbuf[sSCREEN_RX_CMD_MAX_LEN+sSCREEN_RX_CMD_MIN_LEN];
+SERIALSCREEN_DEF_SRAM2 u8 SerialScreenAddr = 1;
+SERIALSCREEN_DEF_SRAM2 static ota_info* s_ota_info = NULL;
+SERIALSCREEN_DEF_SRAM2 u8 SerialScreenRxbuf[sSCREEN_RX_CMD_MAX_LEN+sSCREEN_RX_CMD_MIN_LEN];
 
 
 #define LCD_GUN_NUM			2//初始化赋值
@@ -672,11 +688,11 @@ DEAL_STRUCT DealSInfo;
 #endif
 
 
-struct LCD_DISPLAY_VALUE_TYPE LcdData;
-struct LCD_RXDATA_VALUE_TYPE LcdRxData;
-struct LCD_TXDATA_VALUE_TYPE LcdTxData;
-struct LCD_ASSISTANT_DATA LcdAssistantData;
-struct LCD_TRIGGER LcdTriggerEvent[LCD_GUN_NUM];
+SERIALSCREEN_DEF_SRAM2 struct LCD_DISPLAY_VALUE_TYPE LcdData;
+SERIALSCREEN_DEF_SRAM2 struct LCD_RXDATA_VALUE_TYPE LcdRxData;
+SERIALSCREEN_DEF_SRAM2 struct LCD_TXDATA_VALUE_TYPE LcdTxData;
+SERIALSCREEN_DEF_SRAM2 struct LCD_ASSISTANT_DATA LcdAssistantData;
+SERIALSCREEN_DEF_SRAM2 struct LCD_TRIGGER LcdTriggerEvent[LCD_GUN_NUM];
 
 
 enum SYSMAIN_STATUS{
@@ -791,7 +807,7 @@ enum REALAY_STATE{
     
 };
 
-static struct LCD_TRIGGER_PAGE Trigger_Page[SERIALSCREEN_TRIGGER_PAGE_MAX] =
+SERIALSCREEN_DEF_SRAM2 static struct LCD_TRIGGER_PAGE Trigger_Page[SERIALSCREEN_TRIGGER_PAGE_MAX] =
 {
     {LCD_PAGE_WARNNING_INFO, SCREEN_TRIGGER_WARN_ICON_CARD_LOCKED, SCREEN_TRIGGER_WARN_ICON_SIZE},
     {LCD_PAGE_WARNNING_INFO, SCREEN_TRIGGER_WARN_ICON_INVALID_CARD, SCREEN_TRIGGER_WARN_ICON_SIZE},
@@ -808,7 +824,7 @@ static struct LCD_TRIGGER_PAGE Trigger_Page[SERIALSCREEN_TRIGGER_PAGE_MAX] =
     {LCD_PAGE_WARNNING_INFO, SCREEN_TRIGGER_WARN_IS_CHARGING, SCREEN_TRIGGER_WARN_ICON_SIZE},
     {LCD_PAGE_WARNNING_INFO, SCREEN_TRIGGER_WARN_FAULT_STOP, SCREEN_TRIGGER_WARN_ICON_SIZE},
 };
-__attribute__((section(".ARM.__at_0x10000000"))) struct LCD_DISPLAY_PAGE_INDEX_TYPE LCD_ALL_PAGE_TAB[SERIALSCREEN_CONFIG_PAGE_MAX];
+SERIALSCREEN_DEF_TCMRAM static struct LCD_DISPLAY_PAGE_INDEX_TYPE LCD_ALL_PAGE_TAB[SERIALSCREEN_CONFIG_PAGE_MAX];
 static void SerialScreen_ScreenSet_TimeSync_Flag(void);
 static void SerialScreen_BtnModuleStateClear(void);
 static void SerialScreen_BtnModuleStateShow(int port);
@@ -5308,6 +5324,8 @@ struct LCD_DATA_FIFO_TYPE *SerialScreen_Init(struct SerialScreenObj *cmd)
     memcpy(LcdData.setData.UserPasswd, LcdData.setData.UserPasswdShow, sizeof(LcdData.setData.UserPasswdShow));
     memset(LcdData.setData.UserPasswdShow, '*', len);
 
+    memcpy(LcdData.setData.UserPasswd, "0909", strlen("0909"));
+
     SerialScreen_InitInfo_Pro();
 
     SerialScreen_BtnModuleGet();
@@ -7868,6 +7886,76 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_OB_PYA_B, NULL, "ChgStopReason", LCD_TextType, LCD_NoReflash, 0x261A, pstr_type, sizeof(LcdData.gun[LCD_GUN_2].code_stopResaon), (void *)&LcdData.gun[LCD_GUN_2].code_stopResaon[0]);
     SerialScreen_ItemSetUp(LCD_PAGE_OB_PYA_B, NULL, "help number", LCD_TextType, LCD_NoReflash, 0x11A0, pstr_type, sizeof(LcdData.setData.Help_Number), (void *)LcdData.setData.Help_Number);
     SerialScreen_ItemSetUp(LCD_PAGE_OB_PYA_B, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
+
+#ifdef SERIALSCREEN_DESIGNATE_REGION
+    SerialScreenAddr = 1;
+    s_ota_info = NULL;
+
+    /** 锁卡 */
+    Trigger_Page[0x00].page = LCD_PAGE_WARNNING_INFO;
+    Trigger_Page[0x00].ShowPara = SCREEN_TRIGGER_WARN_ICON_CARD_LOCKED;
+    Trigger_Page[0x00].ShieldPara = SCREEN_TRIGGER_WARN_ICON_SIZE;
+    /** 无效卡 */
+    Trigger_Page[0x01].page = LCD_PAGE_WARNNING_INFO;
+    Trigger_Page[0x01].ShowPara = SCREEN_TRIGGER_WARN_ICON_INVALID_CARD;
+    Trigger_Page[0x01].ShieldPara = SCREEN_TRIGGER_WARN_ICON_SIZE;
+    /** 余额不足 */
+    Trigger_Page[0x02].page = LCD_PAGE_WARNNING_INFO;
+    Trigger_Page[0x02].ShowPara = SCREEN_TRIGGER_WARN_ICON_NO_BALLANCE;
+    Trigger_Page[0x02].ShieldPara = SCREEN_TRIGGER_WARN_ICON_SIZE;
+    /** 非法卡 */
+    Trigger_Page[0x03].page = LCD_PAGE_WARNNING_INFO;
+    Trigger_Page[0x03].ShowPara = SCREEN_TRIGGER_WARN_ICON_ILLEGAL_CARD;
+    Trigger_Page[0x03].ShieldPara = SCREEN_TRIGGER_WARN_ICON_SIZE;
+    /** 先插枪后刷卡 */
+    Trigger_Page[0x04].page = LCD_PAGE_WARNNING_INFO;
+    Trigger_Page[0x04].ShowPara = SCREEN_TRIGGER_WARN_ICON_GUN_FIRST;
+    Trigger_Page[0x04].ShieldPara = SCREEN_TRIGGER_WARN_ICON_SIZE;
+    /** 计费信息设置错误 */
+    Trigger_Page[0x05].page = LCD_PAGE_WARNNING_INFO;
+    Trigger_Page[0x05].ShowPara = SCREEN_TRIGGER_WARN_ICON_FEES_ERROR;
+    Trigger_Page[0x05].ShieldPara = SCREEN_TRIGGER_WARN_ICON_SIZE;
+    /** 充电结束, 刷卡结算 */
+    Trigger_Page[0x06].page = LCD_PAGE_WARNNING_INFO;
+    Trigger_Page[0x06].ShowPara = SCREEN_TRIGGER_WARN_ICON_PAY;
+    Trigger_Page[0x06].ShieldPara = SCREEN_TRIGGER_WARN_ICON_SIZE;
+    /** 结算中(用于查询历史订单时) */
+    Trigger_Page[0x07].page = LCD_PAGE_WARNNING_INFO;
+    Trigger_Page[0x07].ShowPara = SCREEN_TRIGGER_WARN_ICON_PAYING;
+    Trigger_Page[0x07].ShieldPara = SCREEN_TRIGGER_WARN_ICON_SIZE;
+    /** 不是启动卡，请切换枪号 */
+    Trigger_Page[0x08].page = LCD_PAGE_WARNNING_INFO;
+    Trigger_Page[0x08].ShowPara = SCREEN_TRIGGER_WARN_ICON_SWITCH_GUN;
+    Trigger_Page[0x08].ShieldPara = SCREEN_TRIGGER_WARN_ICON_SIZE;
+    /** 结算成功 */
+    Trigger_Page[0x09].page = LCD_PAGE_OB_PYA_A;
+    Trigger_Page[0x09].ShowPara = 0x00;
+    Trigger_Page[0x09].ShieldPara = 0x00;
+    /** 结算成功 */
+    Trigger_Page[0x0A].page = LCD_PAGE_OB_PYA_B;
+    Trigger_Page[0x0A].ShowPara = 0x00;
+    Trigger_Page[0x0A].ShieldPara = 0x00;
+    /** 启动中 */
+    Trigger_Page[0x0B].page = LCD_PAGE_WARNNING_INFO;
+    Trigger_Page[0x0B].ShowPara = SCREEN_TRIGGER_WARN_IS_STARTING;
+    Trigger_Page[0x0B].ShieldPara = SCREEN_TRIGGER_WARN_ICON_SIZE;
+    /** 正在充电中 */
+    Trigger_Page[0x0C].page = LCD_PAGE_WARNNING_INFO;
+    Trigger_Page[0x0C].ShowPara = SCREEN_TRIGGER_WARN_IS_CHARGING;
+    Trigger_Page[0x0C].ShieldPara = SCREEN_TRIGGER_WARN_ICON_SIZE;
+    /** 故障停、请重新拔、插枪 */
+    Trigger_Page[0x0D].page = LCD_PAGE_WARNNING_INFO;
+    Trigger_Page[0x0D].ShowPara = SCREEN_TRIGGER_WARN_FAULT_STOP;
+    Trigger_Page[0x0D].ShieldPara = SCREEN_TRIGGER_WARN_ICON_SIZE;
+
+    memset(&LcdData, 0x00, sizeof(LcdData));
+    memset(&LcdRxData, 0x00, sizeof(LcdRxData));
+    memset(&LcdTxData, 0x00, sizeof(LcdTxData));
+    memset(&LcdAssistantData, 0x00, sizeof(LcdAssistantData));
+
+    memset(LcdTriggerEvent, 0x00, sizeof(LcdTriggerEvent));
+    memset(SerialScreenRxbuf, 0x00, sizeof(SerialScreenRxbuf));
+#endif /* SERIALSCREEN_DESIGNATE_REGION */
 
     for(u8 i = 0; i < LCD_GUN_NUM; i++)
         LcdAssistantData.SeveralGunFlag[i].IsPowerOn = 0;

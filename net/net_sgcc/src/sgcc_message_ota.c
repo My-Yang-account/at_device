@@ -161,19 +161,20 @@ struct sgcc_ota_flag{
     uint8_t ota_login : 1;
 };
 
-static net_ota_info_t *s_sgcc_ota_info = NULL;
-static struct net_handle* s_handle = NULL;
-static struct sgcc_ota_flag s_sgcc_ota_flag;
-static struct sgcc_ota_storage_info s_sgcc_ota_storage_info;
-static struct rt_thread s_sgcc_ota_thread;
-static uint8_t s_sgcc_ota_thread_stack[NET_SGCC_OTA_THREAD_STACK_SIZE];
+NET_DEF_SRAM2 static net_ota_info_t *s_sgcc_ota_info = NULL;
+NET_DEF_SRAM2 static struct net_handle* s_handle = NULL;
+NET_DEF_SRAM2 static struct sgcc_ota_flag s_sgcc_ota_flag;
+NET_DEF_SRAM2 static struct sgcc_ota_storage_info s_sgcc_ota_storage_info;
+NET_DEF_SRAM2 static struct rt_thread s_sgcc_ota_thread;
+NET_DEF_SRAM0 static uint8_t s_sgcc_ota_thread_stack[NET_SGCC_OTA_THREAD_STACK_SIZE];
 
-static uint32_t s_sgcc_crc, s_sgcc_actual_crc;
-static uint32_t s_sgcc_spiflash_addr;
+NET_DEF_SRAM2 static uint32_t s_sgcc_crc, s_sgcc_actual_crc;
+NET_DEF_SRAM2 static uint32_t s_sgcc_spiflash_addr;
 
-static uint8_t s_sgcc_ota_file_flag[NET_SGCC_OTA_FILE_FLAG_TOTAL_LEN];
-static uint8_t s_sgcc_ota_buff[NET_SGCC_OTA_BUFF_SIZE];
-static char firmware_version[32] = "APP1.0.1-EVSDK1.1.10";
+NET_DEF_SRAM2 static uint8_t s_sgcc_ota_file_flag[NET_SGCC_OTA_FILE_FLAG_TOTAL_LEN];
+NET_DEF_SRAM2 static uint8_t s_sgcc_ota_buff[NET_SGCC_OTA_BUFF_SIZE];
+NET_DEF_SRAM2 static char firmware_version[32] = "APP1.0.1-EVSDK1.1.10";
+
 static uint8_t sgcc_parse_ota_data(const uint8_t *data, uint32_t len);
 
 void sgcc_set_ota_was_requested_flag(void)
@@ -457,6 +458,21 @@ static uint8_t sgcc_parse_ota_data(const uint8_t *data, uint32_t len)
 
 int sgcc_ota_init(void)
 {
+#ifdef NET_DESIGNATE_REGION
+    s_sgcc_ota_info = NULL;
+    s_handle = NULL;
+
+    s_sgcc_crc = 0x00;
+    s_sgcc_actual_crc = 0x00;
+    s_sgcc_spiflash_addr = 0x00;
+
+    memset(&s_sgcc_ota_flag, 0x00, sizeof(s_sgcc_ota_flag));
+    memset(&s_sgcc_ota_storage_info, 0x00, sizeof(s_sgcc_ota_storage_info));
+    memset(s_sgcc_ota_file_flag, 0x00, sizeof(s_sgcc_ota_file_flag));
+    memset(s_sgcc_ota_buff, 0x00, sizeof(s_sgcc_ota_buff));
+    memset(firmware_version, 0x00, sizeof(firmware_version));
+    memcpy(firmware_version, "APP1.0.1-EVSDK1.1.10", strlen("APP1.0.1-EVSDK1.1.10"));
+#endif /* NET_DESIGNATE_REGION */
 //#if 0
     if(rt_thread_init(&s_sgcc_ota_thread, "sgcc_ota", sgcc_ota_thread_entry, NULL,
             s_sgcc_ota_thread_stack, NET_SGCC_OTA_THREAD_STACK_SIZE, NET_OTA_THREAD_PRIORITY, 10) != RT_EOK){

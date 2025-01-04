@@ -82,73 +82,73 @@ struct ykc_monitor_wait_response{
     uint32_t message_repeat_time[NET_SYSTEM_GUN_NUMBER][NET_YKC_MONITOR_CHARGEPILE_PREQ_NUM];  /* 报文重发计时 */
 };
 
-uint8_t s_ykc_monitor_current_transaction_number[NET_SYSTEM_GUN_NUMBER][NET_YKC_MONITOR_SERIAL_NUMBER_LENGTH_DEFAULT];
-static uint8_t s_ykc_monitor_same_transaction_report_count[NET_SYSTEM_GUN_NUMBER];
-static uint8_t s_ykc_monitor_transaction_verify[NET_SYSTEM_GUN_NUMBER];
-static struct ykc_monitor_wait_response s_ykc_monitor_wait_response;
-static ykc_monitor_socket_info_t s_ykc_monitor_socket_info;
-static uint16_t s_ykc_monitor_message_serial_number[NET_SYSTEM_GUN_NUMBER];                      /* 报文序列号 */
-static uint32_t s_ykc_monitor_message_send_state[NET_SYSTEM_GUN_NUMBER];                        /* 报文发送状态 */
-static uint32_t s_ykc_monitor_chargepile_event[NET_YKC_MONITOR_EVENT_TYPE_SIZE][NET_SYSTEM_GUN_NUMBER];
-static uint32_t s_ykc_monitor_server_event[NET_YKC_MONITOR_EVENT_TYPE_SIZE][NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 uint8_t s_ykc_monitor_current_transaction_number[NET_SYSTEM_GUN_NUMBER][NET_YKC_MONITOR_SERIAL_NUMBER_LENGTH_DEFAULT];
+NET_DEF_SRAM2 static uint8_t s_ykc_monitor_same_transaction_report_count[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 static uint8_t s_ykc_monitor_transaction_verify[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 static struct ykc_monitor_wait_response s_ykc_monitor_wait_response;
+NET_DEF_SRAM2 static ykc_monitor_socket_info_t s_ykc_monitor_socket_info;
+NET_DEF_SRAM2 static uint16_t s_ykc_monitor_message_serial_number[NET_SYSTEM_GUN_NUMBER];                      /* 报文序列号 */
+NET_DEF_SRAM2 static uint32_t s_ykc_monitor_message_send_state[NET_SYSTEM_GUN_NUMBER];                        /* 报文发送状态 */
+NET_DEF_SRAM2 static uint32_t s_ykc_monitor_chargepile_event[NET_YKC_MONITOR_EVENT_TYPE_SIZE][NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 static uint32_t s_ykc_monitor_server_event[NET_YKC_MONITOR_EVENT_TYPE_SIZE][NET_SYSTEM_GUN_NUMBER];
 
 #ifdef NET_YKC_MONITOR_AS_MONITOR
-static uint32_t s_ykc_monitor_current_log_id = 0x00;
-static uint32_t s_ykc_monitor_log_tick = 0x00;
-static uint8_t s_ykc_monitor_log_step = NET_YKC_MONITOR_LOG_STEP_NULL;
-static struct ykc_monitor_loghead s_ykc_monitor_loghead;
+NET_DEF_SRAM2 static uint32_t s_ykc_monitor_current_log_id = 0x00;
+NET_DEF_SRAM2 static uint32_t s_ykc_monitor_log_tick = 0x00;
+NET_DEF_SRAM2 static uint8_t s_ykc_monitor_log_step = NET_YKC_MONITOR_LOG_STEP_NULL;
+NET_DEF_SRAM2 static struct ykc_monitor_loghead s_ykc_monitor_loghead;
 
-static ykc_monitor_fswitch s_ykc_monitor_fswitch;
-static ykc_monitor_assistant_info s_ykc_monitor_assistant_info;
+NET_DEF_SRAM2 static ykc_monitor_fswitch s_ykc_monitor_fswitch;
+NET_DEF_SRAM2 static ykc_monitor_assistant_info s_ykc_monitor_assistant_info;
 
-static uint32_t s_ykc_monitor_user_chargepile_event[NET_YKC_MONITOR_EVENT_TYPE_SIZE][NET_SYSTEM_GUN_NUMBER];
-static uint32_t s_ykc_monitor_user_server_event[NET_YKC_MONITOR_EVENT_TYPE_SIZE][NET_SYSTEM_GUN_NUMBER];
-static uint32_t s_ykc_monitor_external_chargepile_event[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 static uint32_t s_ykc_monitor_user_chargepile_event[NET_YKC_MONITOR_EVENT_TYPE_SIZE][NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 static uint32_t s_ykc_monitor_user_server_event[NET_YKC_MONITOR_EVENT_TYPE_SIZE][NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 static uint32_t s_ykc_monitor_external_chargepile_event[NET_SYSTEM_GUN_NUMBER];
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
 
-static struct rt_thread s_ykc_monitor_message_send_thread;
-static uint8_t s_ykc_monitor_message_send_thread_stack[NET_YKC_MONITOR_MESSAGE_SEND_THREAD_STACK_SIZE];
-static struct rt_thread s_ykc_monitor_server_message_pro_thread;
-static uint8_t s_ykc_monitor_server_message_pro_thread_stack[NET_YKC_MONITOR_SERVER_MESSAGE_PRO_THREAD_STACK_SIZE];
-static ykc_monitor_response_message_buf_t s_ykc_monitor_response_buff;
-static struct rt_semaphore s_ykc_monitor_response_buff_sem;
+NET_DEF_SRAM2 static struct rt_thread s_ykc_monitor_message_send_thread;
+NET_DEF_SRAM0 static uint8_t s_ykc_monitor_message_send_thread_stack[NET_YKC_MONITOR_MESSAGE_SEND_THREAD_STACK_SIZE];
+NET_DEF_SRAM2 static struct rt_thread s_ykc_monitor_server_message_pro_thread;
+NET_DEF_SRAM0 static uint8_t s_ykc_monitor_server_message_pro_thread_stack[NET_YKC_MONITOR_SERVER_MESSAGE_PRO_THREAD_STACK_SIZE];
+NET_DEF_SRAM2 static ykc_monitor_response_message_buf_t s_ykc_monitor_response_buff;
+NET_DEF_SRAM2 static struct rt_semaphore s_ykc_monitor_response_buff_sem;
 
 /** 登录签到 */
-Net_YkcMonitorPro_PReq_LogIn_t g_ykc_monitor_preq_login;
+NET_DEF_SRAM2 Net_YkcMonitorPro_PReq_LogIn_t g_ykc_monitor_preq_login;
 /** 上报心跳 */
-Net_YkcMonitorPro_PReq_HeartBeat_t g_ykc_monitor_preq_heartbeat[NET_SYSTEM_GUN_NUMBER];   // OK
+NET_DEF_SRAM2 Net_YkcMonitorPro_PReq_HeartBeat_t g_ykc_monitor_preq_heartbeat[NET_SYSTEM_GUN_NUMBER];   // OK
 /** 计费模型验证 */
-Net_YkcMonitorPro_PReq_BillingModel_Verify_t g_ykc_monitor_preq_billing_model_verify;   // OK
+NET_DEF_SRAM2 Net_YkcMonitorPro_PReq_BillingModel_Verify_t g_ykc_monitor_preq_billing_model_verify;   // OK
 /** 计费模型请求 */
-Net_YkcMonitorPro_PReq_BillingModel_Request_t g_ykc_monitor_preq_billing_model_request;  // OK
+NET_DEF_SRAM2 Net_YkcMonitorPro_PReq_BillingModel_Request_t g_ykc_monitor_preq_billing_model_request;  // OK
 /** 上传实时监测数据 */
-Net_YkcMonitorPro_PRes_Query_PReq_Report_RealTimeData_t g_ykc_monitor_preq_report_realtime_data[NET_SYSTEM_GUN_NUMBER];  // OK
+NET_DEF_SRAM2 Net_YkcMonitorPro_PRes_Query_PReq_Report_RealTimeData_t g_ykc_monitor_preq_report_realtime_data[NET_SYSTEM_GUN_NUMBER];  // OK
 /** 充电握手 */
-Net_YkcMonitorPro_PReq_ShakeHand_t g_ykc_monitor_preq_shake_hand[NET_SYSTEM_GUN_NUMBER];   // OK
+NET_DEF_SRAM2 Net_YkcMonitorPro_PReq_ShakeHand_t g_ykc_monitor_preq_shake_hand[NET_SYSTEM_GUN_NUMBER];   // OK
 /** 参数配置 */
-Net_YkcMonitorPro_PReq_ParameterConfig_t g_ykc_monitor_preq_parameter_config[NET_SYSTEM_GUN_NUMBER];   // OK
+NET_DEF_SRAM2 Net_YkcMonitorPro_PReq_ParameterConfig_t g_ykc_monitor_preq_parameter_config[NET_SYSTEM_GUN_NUMBER];   // OK
 /** 充电结束 */
-Net_YkcMonitorPro_PReq_ChargeFinish_t g_ykc_monitor_preq_charge_finish[NET_SYSTEM_GUN_NUMBER];   // OK
+NET_DEF_SRAM2 Net_YkcMonitorPro_PReq_ChargeFinish_t g_ykc_monitor_preq_charge_finish[NET_SYSTEM_GUN_NUMBER];   // OK
 /** 错误报文 */
-Net_YkcMonitorPro_PReq_ErrorMessage_t g_ykc_monitor_preq_error_message[NET_SYSTEM_GUN_NUMBER];   // OK
+NET_DEF_SRAM2 Net_YkcMonitorPro_PReq_ErrorMessage_t g_ykc_monitor_preq_error_message[NET_SYSTEM_GUN_NUMBER];   // OK
 /** 充电过程中 BMS 终止 */
-Net_YkcMonitorPro_PReq_BmsEnd_t g_ykc_monitor_preq_bms_end[NET_SYSTEM_GUN_NUMBER];   // OK
+NET_DEF_SRAM2 Net_YkcMonitorPro_PReq_BmsEnd_t g_ykc_monitor_preq_bms_end[NET_SYSTEM_GUN_NUMBER];   // OK
 /** 充电过程中充电机终止 */
-Net_YkcMonitorPro_PReq_ChargerEnd_t g_ykc_monitor_preq_charger_end[NET_SYSTEM_GUN_NUMBER];   // OK
+NET_DEF_SRAM2 Net_YkcMonitorPro_PReq_ChargerEnd_t g_ykc_monitor_preq_charger_end[NET_SYSTEM_GUN_NUMBER];   // OK
 /** 充电过程 BMS 需求与充电机输出 */
-Net_YkcMonitorPro_PReq_BmsCommand_ChargerOut_t g_ykc_monitor_preq_bmscommand_chargerout[NET_SYSTEM_GUN_NUMBER];   // OK
+NET_DEF_SRAM2 Net_YkcMonitorPro_PReq_BmsCommand_ChargerOut_t g_ykc_monitor_preq_bmscommand_chargerout[NET_SYSTEM_GUN_NUMBER];   // OK
 /** 充电过程 BMS 信息 */
-Net_YkcMonitorPro_PReq_BmsInfo_t g_ykc_monitor_preq_bms_info[NET_SYSTEM_GUN_NUMBER];   // OK
+NET_DEF_SRAM2 Net_YkcMonitorPro_PReq_BmsInfo_t g_ykc_monitor_preq_bms_info[NET_SYSTEM_GUN_NUMBER];   // OK
 /** 充电桩主动申请启动充电 */
-Net_YkcMonitorPro_PReq_ApplyCharge_Active_t g_ykc_monitor_preq_apply_charge_active[NET_SYSTEM_GUN_NUMBER];  // OK
+NET_DEF_SRAM2 Net_YkcMonitorPro_PReq_ApplyCharge_Active_t g_ykc_monitor_preq_apply_charge_active[NET_SYSTEM_GUN_NUMBER];  // OK
 /** 交易记录 */
-Net_YkcMonitorPro_PReq_TransactionRecords_t g_ykc_monitor_preq_transaction_records[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 Net_YkcMonitorPro_PReq_TransactionRecords_t g_ykc_monitor_preq_transaction_records[NET_SYSTEM_GUN_NUMBER];
 /** 地锁数据上送 */
-Net_YkcMonitorPro_PReq_GroundLock_Info_t g_ykc_monitor_preq_ground_lock_info[NET_SYSTEM_GUN_NUMBER];  // OK
+NET_DEF_SRAM2 Net_YkcMonitorPro_PReq_GroundLock_Info_t g_ykc_monitor_preq_ground_lock_info[NET_SYSTEM_GUN_NUMBER];  // OK
 /** 充电桩主动申请并充充电 */
-Net_YkcMonitorPro_PReq_ApplyMergeCharge_Active_t g_ykc_monitor_preq_apply_merge_charge_active[NET_SYSTEM_GUN_NUMBER];  // OK
+NET_DEF_SRAM2 Net_YkcMonitorPro_PReq_ApplyMergeCharge_Active_t g_ykc_monitor_preq_apply_merge_charge_active[NET_SYSTEM_GUN_NUMBER];  // OK
 /** 升级结果上送 */
-Net_YkcMonitorPro_PRes_RemoteUpdate_t g_ykc_monitor_pres_remote_update;  // OK
+NET_DEF_SRAM2 Net_YkcMonitorPro_PRes_RemoteUpdate_t g_ykc_monitor_pres_remote_update;  // OK
 
 #ifdef NET_YKC_MONITOR_AS_MONITOR
 /**************************************************************************
@@ -2708,7 +2708,61 @@ int32_t ykc_monitor_message_send_init(void)
     for(uint8_t gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
         s_ykc_monitor_same_transaction_report_count[gunno] = 0x00;
         s_ykc_monitor_transaction_verify[gunno] = 0x00;
+
+#ifdef NET_DESIGNATE_REGION
+        s_ykc_monitor_message_serial_number[gunno] = 0x00;
+        s_ykc_monitor_message_send_state[gunno] = 0x00;
+
+        for(uint8_t event = 0x00; event < NET_YKC_MONITOR_EVENT_TYPE_SIZE; event++){
+            s_ykc_monitor_chargepile_event[event][gunno] = 0x00;
+            s_ykc_monitor_server_event[event][gunno] = 0x00;
+        }
+#ifdef NET_YKC_MONITOR_AS_MONITOR
+        for(uint8_t event = 0x00; event < NET_YKC_MONITOR_EVENT_TYPE_SIZE; event++){
+            s_ykc_monitor_user_chargepile_event[event][gunno] = 0x00;
+            s_ykc_monitor_user_server_event[event][gunno] = 0x00;
+        }
+        s_ykc_monitor_external_chargepile_event[gunno] = 0x00;
+#endif /* NET_YKC_MONITOR_AS_MONITOR */
+        memset(&s_ykc_monitor_current_transaction_number[gunno], 0x00, sizeof(s_ykc_monitor_current_transaction_number[gunno]));
+#endif /* NET_DESIGNATE_REGION */
     }
+
+#ifdef NET_DESIGNATE_REGION
+    memset(g_ykc_monitor_preq_heartbeat, 0x00, sizeof(g_ykc_monitor_preq_heartbeat));
+    memset(g_ykc_monitor_preq_report_realtime_data, 0x00, sizeof(g_ykc_monitor_preq_report_realtime_data));
+    memset(g_ykc_monitor_preq_shake_hand, 0x00, sizeof(g_ykc_monitor_preq_shake_hand));
+    memset(g_ykc_monitor_preq_parameter_config, 0x00, sizeof(g_ykc_monitor_preq_parameter_config));
+    memset(g_ykc_monitor_preq_charge_finish, 0x00, sizeof(g_ykc_monitor_preq_charge_finish));
+    memset(g_ykc_monitor_preq_error_message, 0x00, sizeof(g_ykc_monitor_preq_error_message));
+    memset(g_ykc_monitor_preq_bms_end, 0x00, sizeof(g_ykc_monitor_preq_bms_end));
+    memset(g_ykc_monitor_preq_charger_end, 0x00, sizeof(g_ykc_monitor_preq_charger_end));
+    memset(g_ykc_monitor_preq_bmscommand_chargerout, 0x00, sizeof(g_ykc_monitor_preq_bmscommand_chargerout));
+    memset(g_ykc_monitor_preq_bms_info, 0x00, sizeof(g_ykc_monitor_preq_bms_info));
+    memset(g_ykc_monitor_preq_apply_charge_active, 0x00, sizeof(g_ykc_monitor_preq_apply_charge_active));
+    memset(g_ykc_monitor_preq_transaction_records, 0x00, sizeof(g_ykc_monitor_preq_transaction_records));
+    memset(g_ykc_monitor_preq_ground_lock_info, 0x00, sizeof(g_ykc_monitor_preq_ground_lock_info));
+    memset(g_ykc_monitor_preq_apply_merge_charge_active, 0x00, sizeof(g_ykc_monitor_preq_apply_merge_charge_active));
+
+    memset(&g_ykc_monitor_preq_login, 0x00, sizeof(g_ykc_monitor_preq_login));
+    memset(&g_ykc_monitor_preq_billing_model_verify, 0x00, sizeof(g_ykc_monitor_preq_billing_model_verify));
+    memset(&g_ykc_monitor_preq_billing_model_request, 0x00, sizeof(g_ykc_monitor_preq_billing_model_request));
+    memset(&g_ykc_monitor_pres_remote_update, 0x00, sizeof(g_ykc_monitor_pres_remote_update));
+
+
+    memset(&s_ykc_monitor_wait_response, 0x00, sizeof(s_ykc_monitor_wait_response));
+    memset(&s_ykc_monitor_socket_info, 0x00, sizeof(s_ykc_monitor_socket_info));
+    memset(&s_ykc_monitor_response_buff, 0x00, sizeof(s_ykc_monitor_response_buff));
+
+#ifdef NET_YKC_MONITOR_AS_MONITOR
+    s_ykc_monitor_current_log_id = 0x00;
+    s_ykc_monitor_log_tick = 0x00;
+    s_ykc_monitor_log_step = NET_YKC_MONITOR_LOG_STEP_NULL;
+    memset(&s_ykc_monitor_loghead, 0x00, sizeof(s_ykc_monitor_loghead));
+    memset(&s_ykc_monitor_fswitch, 0x00, sizeof(s_ykc_monitor_fswitch));
+    memset(&s_ykc_monitor_assistant_info, 0x00, sizeof(s_ykc_monitor_assistant_info));
+#endif /* NET_YKC_MONITOR_AS_MONITOR */
+#endif /* NET_DESIGNATE_REGION */
 
     if(rt_thread_init(&s_ykc_monitor_message_send_thread, "mykc_send", net_ykc_monitor_message_send_thread_entry, NULL,
             s_ykc_monitor_message_send_thread_stack, NET_YKC_MONITOR_MESSAGE_SEND_THREAD_STACK_SIZE, 16, 10) != RT_EOK){

@@ -19,8 +19,24 @@
 #define DBG_LVL DBG_LOG
 #include <rtdbg.h>
 
-static uint8_t s_hci_event[APP_SYSTEM_GUNNO_SIZE] = {0};
-static struct LCD_DATA_FIFO_TYPE *p_hci_data_info;
+APP_DEF_SRAM1 static uint8_t s_hci_event[APP_SYSTEM_GUNNO_SIZE] = {0};
+APP_DEF_SRAM1 static struct LCD_DATA_FIFO_TYPE *p_hci_data_info;
+
+#ifdef APP_DESIGNATE_REGION
+/*************************************
+ * 函数名       app_hci_info_init
+ * 功能           屏幕信息、变量初始化
+ * 参数
+ * 返回
+ ************************************/
+void app_hci_info_init(void)
+{
+    for(uint8_t gunno = 0x00; gunno < APP_SYSTEM_GUNNO_SIZE; gunno++){
+        s_hci_event[gunno] = 0x00;
+    }
+    p_hci_data_info = NULL;
+}
+#endif /* APP_DESIGNATE_REGION */
 
 uint8_t app_get_hci_event(uint8_t gunno, uint16_t event, uint8_t is_clear)
 {

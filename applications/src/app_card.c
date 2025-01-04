@@ -42,11 +42,11 @@ struct card_info_sector2{
 #define APP_ENDIANNESS_CONVERT(value)        \
         (((value >>24) &0xff) |((value >>8) &0xff00) |((value <<8) &0xff0000) |((value <<24) &0xff000000))
 
-static rfid_reader *s_rfidr = NULL;
-static int8_t s_card_operate_ret[APP_SYSTEM_GUNNO_SIZE];
-static struct card_info_sector2 s_card_info_sector2;
-static uint32_t s_card_ballance[APP_SYSTEM_GUNNO_SIZE];  /** 卡内余额(0.0001) */
-static struct rt_event s_card_event[APP_SYSTEM_GUNNO_SIZE];
+APP_DEF_SRAM2 static rfid_reader *s_rfidr = NULL;
+APP_DEF_SRAM2 static int8_t s_card_operate_ret[APP_SYSTEM_GUNNO_SIZE];
+APP_DEF_SRAM2 static struct card_info_sector2 s_card_info_sector2;
+APP_DEF_SRAM2 static uint32_t s_card_ballance[APP_SYSTEM_GUNNO_SIZE];  /** 卡内余额(0.0001) */
+APP_DEF_SRAM2 static struct rt_event s_card_event[APP_SYSTEM_GUNNO_SIZE];
 
 /*****************************************************************************
  * 函数名                app_card_query_funpay_bill_fees_total
@@ -1027,6 +1027,16 @@ int8_t app_card_query_operate_ret(uint8_t gunno)
  ****************************************************************************/
 int32_t app_card_init(void)
 {
+#ifdef APP_DESIGNATE_REGION
+    for(uint8_t gunno = 0x00; gunno < APP_SYSTEM_GUNNO_SIZE; gunno++){
+        s_card_operate_ret[gunno] = 0x00;
+        s_card_ballance[gunno] = 0x00;
+    }
+
+    s_rfidr = NULL;
+    memset(&s_card_info_sector2, 0x00, sizeof(s_card_info_sector2));
+#endif /* APP_DESIGNATE_REGION */
+
     app_rfidr_config_handle_fault(app_card_online_status);
     app_rfidr_config_handle_data_update(app_card_data_update);
     app_rfidr_config_handle_info_process(app_card_info_process);

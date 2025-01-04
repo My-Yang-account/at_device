@@ -18,52 +18,93 @@
 
 #ifdef NET_PACK_USING_YCP
 
-static ycp_device_sn_buf_t s_ycp_device_sn_buf;
-static ycp_qrcode_buf_t s_ycp_qrcode_buf;
-static ycp_service_phone_buf_t s_ycp_service_phone_buf;
+NET_DEF_SRAM2 static ycp_device_sn_buf_t s_ycp_device_sn_buf;
+NET_DEF_SRAM2 static ycp_qrcode_buf_t s_ycp_qrcode_buf;
+NET_DEF_SRAM2 static ycp_service_phone_buf_t s_ycp_service_phone_buf;
 extern uint8_t s_ycp_current_transaction_number[NET_SYSTEM_GUN_NUMBER][NET_YCP_SERIAL_NUMBER_LENGTH_DEFAULT];
 
 /**=======================================[服务器请求报文]=======================================*/
 /**=======================================[服务器请求报文]=======================================*/
 /** 充电桩参数设置 */
-Net_YcpPro_SReq_ParaSet_t g_ycp_sreq_set_para;
+NET_DEF_SRAM2 Net_YcpPro_SReq_ParaSet_t g_ycp_sreq_set_para;
 /** 运营平台下发二维码配置 */
-Net_YcpPro_SReq_Qrcode_Config_t g_ycp_sreq_qrcode_config;
+NET_DEF_SRAM2 Net_YcpPro_SReq_Qrcode_Config_t g_ycp_sreq_qrcode_config;
 /** 客服电话设置 */
-Net_YcpPro_SReq_ServicePhone_t g_ycp_sreq_set_service_phone;
+NET_DEF_SRAM2 Net_YcpPro_SReq_ServicePhone_t g_ycp_sreq_set_service_phone;
 /** 计费模型下发 */
-Net_YcpPro_SReq_BillingModel_Set_t g_ycp_sreq_billing_model_set;
+NET_DEF_SRAM2 Net_YcpPro_SReq_BillingModel_Set_t g_ycp_sreq_billing_model_set;
 /** 查询单个枪状态 */
-Net_YcpPro_SReq_Query_PileState_t g_ycp_sreq_query_device_state[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 Net_YcpPro_SReq_Query_PileState_t g_ycp_sreq_query_device_state[NET_SYSTEM_GUN_NUMBER];
 /** 查询所有枪状态 */
-Net_YcpPro_SReq_Query_PileState_All_t g_ycp_sreq_query_device_state_all;
+NET_DEF_SRAM2 Net_YcpPro_SReq_Query_PileState_All_t g_ycp_sreq_query_device_state_all;
 /** 远程开启充电 */
-Net_YcpPro_SReq_Remote_StartCharge_t g_ycp_sreq_remote_start_charge[NET_SYSTEM_GUN_NUMBER];   // OK
+NET_DEF_SRAM2 Net_YcpPro_SReq_Remote_StartCharge_t g_ycp_sreq_remote_start_charge[NET_SYSTEM_GUN_NUMBER];   // OK
 /** 远程结束充电 */
-Net_YcpPro_SReq_Remote_StopCharge_t g_ycp_sreq_remote_stop_charge[NET_SYSTEM_GUN_NUMBER];   // OK
+NET_DEF_SRAM2 Net_YcpPro_SReq_Remote_StopCharge_t g_ycp_sreq_remote_stop_charge[NET_SYSTEM_GUN_NUMBER];   // OK
 /** 远程升级 */
-Net_YcpPro_SReq_RemoteUpdate_t g_ycp_sreq_remote_update;
+NET_DEF_SRAM2 Net_YcpPro_SReq_RemoteUpdate_t g_ycp_sreq_remote_update;
 /** 远程重启 */
-Net_YcpPro_SReq_RemoteReboot_t g_ycp_sreq_remote_reboot;
+NET_DEF_SRAM2 Net_YcpPro_SReq_RemoteReboot_t g_ycp_sreq_remote_reboot;
 /** 远程修改联网地址 */
-Net_YcpPro_SReq_Modify_ServerAddr_t g_ycp_sreq_modify_server_addr;
+NET_DEF_SRAM2 Net_YcpPro_SReq_Modify_ServerAddr_t g_ycp_sreq_modify_server_addr;
 /** 获取当前设备故障信息 */
-Net_YcpPro_SReq_Query_DeviceFault_t g_ycp_sreq_query_device_fault;
+NET_DEF_SRAM2 Net_YcpPro_SReq_Query_DeviceFault_t g_ycp_sreq_query_device_fault;
 
 /**=======================================[服务器响应报文]=======================================*/
 /**=======================================[服务器响应报文]=======================================*/
 /** 登录签到响应 */
-Net_YcpPro_SRes_LogIn_t g_ycp_sres_login;   // OK
+NET_DEF_SRAM2 Net_YcpPro_SRes_LogIn_t g_ycp_sres_login;   // OK
 /** 对时设置 */
-Net_YcpPro_SRes_TimeSync_t g_ycp_sres_time_sync;   // OK
+NET_DEF_SRAM2 Net_YcpPro_SRes_TimeSync_t g_ycp_sres_time_sync;   // OK
 ///** 心跳响应 */
-//Net_YcpPro_SRes_HeartBeat_t g_ycp_sres_heartbeat[NET_SYSTEM_GUN_NUMBER];   // OK
+//NET_DEF_SRAM2 Net_YcpPro_SRes_HeartBeat_t g_ycp_sres_heartbeat[NET_SYSTEM_GUN_NUMBER];   // OK
 /** 计费模型验证请求响应 */
-Net_YcpPro_SRes_BillingModel_Verify_t g_ycp_sres_billing_model_verify;   // OK
+NET_DEF_SRAM2 Net_YcpPro_SRes_BillingModel_Verify_t g_ycp_sres_billing_model_verify;   // OK
 /** 服务器回复充电桩主动请求充电请求 */
-Net_YcpPro_SRes_ApplyCharge_Active_t g_ycp_sres_apply_charge_active[NET_SYSTEM_GUN_NUMBER];   // OK
+NET_DEF_SRAM2 Net_YcpPro_SRes_ApplyCharge_Active_t g_ycp_sres_apply_charge_active[NET_SYSTEM_GUN_NUMBER];   // OK
 /** 充电结束报告应答 */
-Net_YcpPro_SRes_TransactionRecords_t g_ycp_sres_transaction_records[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 Net_YcpPro_SRes_TransactionRecords_t g_ycp_sres_transaction_records[NET_SYSTEM_GUN_NUMBER];
+
+#ifdef NET_DESIGNATE_REGION
+/*************************************************
+ * 函数名      ycp_mreceive_info_init
+ * 功能          云快充平台报文接收信息、变量初始化
+ * **********************************************/
+void ycp_mreceive_info_init(void)
+{
+    /**=======================================[服务器请求报文]=======================================*/
+    /**=======================================[服务器请求报文]=======================================*/
+    memset(g_ycp_sreq_query_device_state, 0x00, sizeof(g_ycp_sreq_query_device_state));
+    memset(g_ycp_sreq_remote_start_charge, 0x00, sizeof(g_ycp_sreq_remote_start_charge));
+    memset(g_ycp_sreq_remote_stop_charge, 0x00, sizeof(g_ycp_sreq_remote_stop_charge));
+
+    memset(&g_ycp_sreq_set_para, 0x00, sizeof(g_ycp_sreq_set_para));
+    memset(&g_ycp_sreq_qrcode_config, 0x00, sizeof(g_ycp_sreq_qrcode_config));
+    memset(&g_ycp_sreq_set_service_phone, 0x00, sizeof(g_ycp_sreq_set_service_phone));
+    memset(&g_ycp_sreq_billing_model_set, 0x00, sizeof(g_ycp_sreq_billing_model_set));
+    memset(&g_ycp_sreq_query_device_state_all, 0x00, sizeof(g_ycp_sreq_query_device_state_all));
+    memset(&g_ycp_sreq_remote_update, 0x00, sizeof(g_ycp_sreq_remote_update));
+    memset(&g_ycp_sreq_remote_reboot, 0x00, sizeof(g_ycp_sreq_remote_reboot));
+    memset(&g_ycp_sreq_modify_server_addr, 0x00, sizeof(g_ycp_sreq_modify_server_addr));
+    memset(&g_ycp_sreq_query_device_fault, 0x00, sizeof(g_ycp_sreq_query_device_fault));
+
+
+    /**=======================================[服务器响应报文]=======================================*/
+    /**=======================================[服务器响应报文]=======================================*/
+//    memset(g_ycp_sres_heartbeat, 0x00, sizeof(g_ycp_sres_heartbeat));
+    memset(g_ycp_sres_apply_charge_active, 0x00, sizeof(g_ycp_sres_apply_charge_active));
+    memset(g_ycp_sres_transaction_records, 0x00, sizeof(g_ycp_sres_transaction_records));
+
+    memset(&g_ycp_sres_login, 0x00, sizeof(g_ycp_sres_login));
+    memset(&g_ycp_sres_time_sync, 0x00, sizeof(g_ycp_sres_time_sync));
+    memset(&g_ycp_sres_billing_model_verify, 0x00, sizeof(g_ycp_sres_billing_model_verify));
+
+
+    memset(&s_ycp_device_sn_buf, 0x00, sizeof(s_ycp_device_sn_buf));
+    memset(&s_ycp_qrcode_buf, 0x00, sizeof(s_ycp_qrcode_buf));
+    memset(&s_ycp_service_phone_buf, 0x00, sizeof(s_ycp_service_phone_buf));
+}
+#endif /* NET_DESIGNATE_REGION */
 
 /***********************************************
  * 函数名      ycp_get_qrcode_info

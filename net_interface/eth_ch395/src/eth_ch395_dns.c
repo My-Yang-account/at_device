@@ -22,10 +22,24 @@
 
 #define ETHCH395_DNS_PORT                           53                   /** DNS 服务器端口 */
 
-static struct dhdr s_ethch395_dhp;
-static uint16_t s_ethch395_dnsmsg_id = 0x1100;                           /** 标识 */
-static int32_t socket_fd = -0x01;
-static uint8_t ethch395_dns_ip[0x04];
+ETH_DEF_SRAM2 static struct dhdr s_ethch395_dhp;
+ETH_DEF_SRAM2 static uint16_t s_ethch395_dnsmsg_id = 0x1100;                           /** 标识 */
+ETH_DEF_SRAM2 static int32_t s_socket_fd = -0x01;
+ETH_DEF_SRAM2 static uint8_t s_ethch395_dns_ip[0x04];
+
+#ifdef ETH_DESIGNATE_REGION
+/*************************************************
+ * 函数名      ethch395_dns_info_init
+ * 功能          以太网DNS信息、变量初始化
+ * **********************************************/
+void ethch395_dns_info_init(void)
+{
+    s_ethch395_dnsmsg_id = 0x1100;
+    s_socket_fd = -0x01;
+    memset(s_ethch395_dns_ip, 0x00, sizeof(s_ethch395_dns_ip));
+    memset(&s_ethch395_dhp, 0x00, sizeof(s_ethch395_dhp));
+}
+#endif /* ETH_DESIGNATE_REGION */
 
 /*********************************************************************************
 * 函数名  : ethch395_get16
@@ -325,7 +339,7 @@ void ethch395_config_dns_ip(uint8_t *ip, uint8_t iplen)
         return;
     }
 
-    memcpy(ethch395_dns_ip, ip, sizeof(ethch395_dns_ip));
+    memcpy(s_ethch395_dns_ip, ip, sizeof(s_ethch395_dns_ip));
 }
 
 /**********************************************************************************
@@ -336,55 +350,55 @@ void ethch395_config_dns_ip(uint8_t *ip, uint8_t iplen)
 **********************************************************************************/
 static int32_t ethch395_dnsudp_socket_init(void)
 {
-    if((socket_fd = ethch395_socket(0x00)) < 0x00){
+    if((s_socket_fd = ethch395_socket(0x00)) < 0x00){
         return -0x01;
     }
 
     int32_t res = 0x00;
 
     /** 保存目的端口 */
-    res = ethch395_config_socket_dest_port(socket_fd, ETHCH395_DNS_PORT);
+    res = ethch395_config_socket_dest_port(s_socket_fd, ETHCH395_DNS_PORT);
     if(res < 0x00){
-        LOG_E("ethch395 config dns socket dest port fail(%d, %d)", res, socket_fd);
+        LOG_E("ethch395 config dns socket dest port fail(%d, %d)", res, s_socket_fd);
         return -0x01;
     }
     /** 保存目的IP */
-    res = ethch395_config_socket_dest_ip(socket_fd, ethch395_dns_ip, sizeof(ethch395_dns_ip));
+    res = ethch395_config_socket_dest_ip(s_socket_fd, s_ethch395_dns_ip, sizeof(s_ethch395_dns_ip));
     if(res < 0x00){
-        LOG_E("ethch395 config dns socket dest ip fail(%d, %d)", res, socket_fd);
+        LOG_E("ethch395 config dns socket dest ip fail(%d, %d)", res, s_socket_fd);
         return -0x01;
     }
 
 
     /** 设置 socket 类型 */
-    res = ethch395_cmd_set_socket_protocol(socket_fd, ETHCH395_WORK_MODE_UDP);
+    res = ethch395_cmd_set_socket_protocol(s_socket_fd, ETHCH395_WORK_MODE_UDP);
     if(res < 0x00){
-        LOG_E("ethch395 set dns socket protocol type fail(%d, %d)", res, socket_fd);
+        LOG_E("ethch395 set dns socket protocol type fail(%d, %d)", res, s_socket_fd);
         return -0x01;
     }
     /** 给网络设备配置 socket 目的IP */
-    res = ethch395_cmd_set_remote_ip(socket_fd);
+    res = ethch395_cmd_set_remote_ip(s_socket_fd);
     if(res < 0x00){
-        LOG_E("ethch395 set dns dest ip fail(%d, %d)", res, socket_fd);
+        LOG_E("ethch395 set dns dest ip fail(%d, %d)", res, s_socket_fd);
         return -0x01;
     }
     /** 给网络设备配置 socket 目的端口 */
-    res = ethch395_cmd_set_remote_port(socket_fd);
+    res = ethch395_cmd_set_remote_port(s_socket_fd);
     if(res < 0x00){
-        LOG_E("ethch395 set dns dest port fail(%d, %d)", res, socket_fd);
+        LOG_E("ethch395 set dns dest port fail(%d, %d)", res, s_socket_fd);
         return -0x01;
     }
     /** 给网络设备配置 socket 源端口 */
-    res = ethch395_cmd_set_source_port(socket_fd);
+    res = ethch395_cmd_set_source_port(s_socket_fd);
     if(res < 0x00){
-        LOG_E("ethch395 set dns sour port fail(%d, %d)", res, socket_fd);
+        LOG_E("ethch395 set dns sour port fail(%d, %d)", res, s_socket_fd);
         return -0x01;
     }
 
     /** 打开 socket */
-    res = ethch395_cmd_open_socket(socket_fd);
+    res = ethch395_cmd_open_socket(s_socket_fd);
     if(res < 0x00){
-        LOG_E("ethch395 open dns socket fail(%d, %d)", res, socket_fd);
+        LOG_E("ethch395 open dns socket fail(%d, %d)", res, s_socket_fd);
         return -0x01;
     }
 
@@ -419,13 +433,13 @@ int32_t ethch395_domain_parse(const char *url, uint8_t urllen, uint8_t *parseip,
     rt_thread_mdelay(100);
 
     if(buf == NULL){
-        if(ethch395_cmd_close_socket(socket_fd) < 0x00){
-            LOG_E("ethch395 close dns socket fail(%d)", socket_fd);
-            ethch395_socket_free(socket_fd);
+        if(ethch395_cmd_close_socket(s_socket_fd) < 0x00){
+            LOG_E("ethch395 close dns socket fail(%d)", s_socket_fd);
+            ethch395_socket_free(s_socket_fd);
             ethch395_unlock_operate_lock(handle);
             return -0x01;
         }
-        ethch395_socket_free(socket_fd);
+        ethch395_socket_free(s_socket_fd);
         ethch395_unlock_operate_lock(handle);
         return -0x03;
     }
@@ -434,11 +448,11 @@ int32_t ethch395_domain_parse(const char *url, uint8_t urllen, uint8_t *parseip,
 
     wait_tick = rt_tick_get();
     while(1){
-        ethch395_udp_send_data(buf, message_len, ethch395_dns_ip, ETHCH395_DNS_PORT, socket_fd);
+        ethch395_udp_send_data(buf, message_len, s_ethch395_dns_ip, ETHCH395_DNS_PORT, s_socket_fd);
 
         ethch395_unlock_operate_lock(handle);
 
-        if(netdev_ethch395_socket_data_comein_port(socket_fd, 3000) > 0x00){
+        if(netdev_ethch395_socket_data_comein_port(s_socket_fd, 3000) > 0x00){
             break;
         }
         if(wait_tick > rt_tick_get()){
@@ -450,14 +464,14 @@ int32_t ethch395_domain_parse(const char *url, uint8_t urllen, uint8_t *parseip,
             rt_free(buf);
 
             LOG_E("ethch395 DNS response timeout(%d)", 15 *1000);
-            if(ethch395_cmd_close_socket(socket_fd) < 0x00){
-                LOG_E("ethch395 close dns socket fail(%d)", socket_fd);
-                ethch395_socket_free(socket_fd);
+            if(ethch395_cmd_close_socket(s_socket_fd) < 0x00){
+                LOG_E("ethch395 close dns socket fail(%d)", s_socket_fd);
+                ethch395_socket_free(s_socket_fd);
 
                 ethch395_unlock_operate_lock(handle);
                 return -0x01;
             }
-            ethch395_socket_free(socket_fd);
+            ethch395_socket_free(s_socket_fd);
 
             ethch395_unlock_operate_lock(handle);
             return -0x06;
@@ -466,16 +480,16 @@ int32_t ethch395_domain_parse(const char *url, uint8_t urllen, uint8_t *parseip,
 
     while(ethch395_wait_operate_lock(-0x01, handle) == ETHCH395_ENUM_FALSE);
 
-    if(netdev_ethch395_socket_recv_port(socket_fd, buf, ETHCH395_DNS_BUF_SIZE) <= 0x00){
+    if(netdev_ethch395_socket_recv_port(s_socket_fd, buf, ETHCH395_DNS_BUF_SIZE) <= 0x00){
         rt_free(buf);
-        if(ethch395_cmd_close_socket(socket_fd) < 0x00){
-            LOG_E("ethch395 close dns socket fail(%d)", socket_fd);
-            ethch395_socket_free(socket_fd);
+        if(ethch395_cmd_close_socket(s_socket_fd) < 0x00){
+            LOG_E("ethch395 close dns socket fail(%d)", s_socket_fd);
+            ethch395_socket_free(s_socket_fd);
 
             ethch395_unlock_operate_lock(handle);
             return -0x01;
         }
-        ethch395_socket_free(socket_fd);
+        ethch395_socket_free(s_socket_fd);
 
         ethch395_unlock_operate_lock(handle);
         return -0x05;
@@ -483,8 +497,8 @@ int32_t ethch395_domain_parse(const char *url, uint8_t urllen, uint8_t *parseip,
     ethch395_parse_message(&s_ethch395_dhp, buf, parseip);
     LOG_D("ethch395 DNS parse[%s]->[%d, %d, %d, %d]\\n", url, parseip[0], parseip[1], parseip[2], parseip[3]);
 
-    ethch395_cmd_close_socket(socket_fd);   /** 域名已解析成功，无论这个UDP socket 是否关闭成功都返回成功 */
-    ethch395_socket_free(socket_fd);
+    ethch395_cmd_close_socket(s_socket_fd);   /** 域名已解析成功，无论这个UDP socket 是否关闭成功都返回成功 */
+    ethch395_socket_free(s_socket_fd);
 
     rt_free(buf);
 

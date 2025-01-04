@@ -79,6 +79,36 @@ int main(void)
 #else
     thaisen_board_bsp_init();
 #endif /* APP_USING_DOUBLEGUN */
+
+#ifdef APP_DESIGNATE_REGION
+    extern void app_ofsm_info_init(void);
+    app_ofsm_info_init();
+
+    extern void app_billingrule_info_init(void);
+    app_billingrule_info_init();
+
+    extern void app_data_info_interface_init(void);
+    app_data_info_interface_init();
+
+    extern void app_hci_info_init(void);
+    app_hci_info_init();
+
+    extern void app_osupport_info_init(void);
+    app_osupport_info_init();
+
+    extern void app_support_func_info_init(void);
+    app_support_func_info_init();
+
+    extern void app_terminal_info_init(void);
+    app_terminal_info_init();
+
+    extern void sys_chargeplie_config_info_init(void);
+    sys_chargeplie_config_info_init();
+
+    extern void notfs_info_init(void);
+    notfs_info_init();
+#endif /* APP_DESIGNATE_REGION */
+
     prepose_init();
     app_nfunc_config_init();
 

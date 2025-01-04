@@ -50,9 +50,9 @@ struct mt_card_info{
 };
 #pragma pack()
 
-static unsigned char s_rfid_mt_lock = 0x00;
-static unsigned char s_rfid_mt_request[RFID_MT_REQUEST_BUFF_SIZE];
-static struct mt_card_info s_mt_card_info;
+RFID_DEF_SRAM2 static unsigned char s_rfid_mt_lock = 0x00;
+RFID_DEF_SRAM2 static unsigned char s_rfid_mt_request[RFID_MT_REQUEST_BUFF_SIZE];
+RFID_DEF_SRAM2 static struct mt_card_info s_mt_card_info;
 
 /*****************************************************************************
  *  函数名   rfid_mt_check_sum

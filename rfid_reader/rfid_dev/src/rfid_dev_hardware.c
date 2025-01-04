@@ -16,8 +16,8 @@
 
 //#define RFIDR_HARDWARE_DEBUG
 
-static struct rt_semaphore s_rfid_dev_sem;
-static rt_device_t s_rfid_dev;
+RFID_DEF_SRAM2 static struct rt_semaphore s_rfid_dev_sem;
+RFID_DEF_SRAM2 static rt_device_t s_rfid_dev;
 
 /**************************************************************
  * 函数名        rfid_dev_input

@@ -61,14 +61,14 @@ struct ycp_flag_info{
 
 #pragma pack()
 
-static struct ycp_flag_info s_ycp_flag_info[NET_SYSTEM_GUN_NUMBER];
-static uint16_t s_ycp_state_data_interval[NET_SYSTEM_GUN_NUMBER];
-static uint32_t s_ycp_state_data_count[NET_SYSTEM_GUN_NUMBER], s_ycp_fault_report;
-static uint16_t s_ycp_local_start_sq;
-static struct ycp_disposable_info s_ycp_disposable_info[NET_SYSTEM_GUN_NUMBER];
-static struct rt_thread s_ycp_realtime_process_thread;
-static uint8_t s_ycp_realtime_process_thread_stack[YCP_REALTIME_PROCESS_THREAD_STACK_SIZE];
-static struct net_handle* s_ycp_handle = NULL;
+NET_DEF_SRAM2 static struct ycp_flag_info s_ycp_flag_info[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 static uint16_t s_ycp_state_data_interval[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 static uint32_t s_ycp_state_data_count[NET_SYSTEM_GUN_NUMBER], s_ycp_fault_report;
+NET_DEF_SRAM2 static uint16_t s_ycp_local_start_sq;
+NET_DEF_SRAM2 static struct ycp_disposable_info s_ycp_disposable_info[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 static struct rt_thread s_ycp_realtime_process_thread;
+NET_DEF_SRAM0 static uint8_t s_ycp_realtime_process_thread_stack[YCP_REALTIME_PROCESS_THREAD_STACK_SIZE];
+NET_DEF_SRAM2 static struct net_handle* s_ycp_handle = NULL;
 
 static uint16_t ycp_chargepile_stop_reason_converted(uint8_t bit, uint8_t stop_in_starting);
 static uint8_t ycp_chargepile_transaction_identity_converted(uint8_t identity);
@@ -1430,16 +1430,8 @@ void ycp_chargepile_request_padding_bms_paraconfig(uint8_t gunno)
     g_ycp_preq_parameter_config[gunno].body.pile_output_volt_max = bms->CML.ChagHigOutVolt;
     g_ycp_preq_parameter_config[gunno].body.pile_output_volt_min = bms->CML.ChagLowOutVolt;
 
-    if(bms->CML.ChagHigOutCurlt > 4000){
-        g_ycp_preq_parameter_config[gunno].body.pile_output_curr_max = 0x00;
-    }else{
-        g_ycp_preq_parameter_config[gunno].body.pile_output_curr_max = (4000 - bms->CML.ChagHigOutCurlt);
-    }
-    if(bms->CML.ChagLowOutCurlt > 4000){
-        g_ycp_preq_parameter_config[gunno].body.pile_output_curr_min = 0x00;
-    }else{
-        g_ycp_preq_parameter_config[gunno].body.pile_output_curr_min = (4000 - bms->CML.ChagLowOutCurlt);
-    }
+    g_ycp_preq_parameter_config[gunno].body.pile_output_curr_max = bms->CML.ChagHigOutCurlt;
+    g_ycp_preq_parameter_config[gunno].body.pile_output_curr_min = bms->CML.ChagLowOutCurlt;
 
     ycp_net_event_send(NET_YCP_EVENT_HANDLE_CHARGEPILE, NET_YCP_EVENT_TYPE_REQUEST, gunno, NET_YCP_PREQ_EVENT_PARA_CONFIG);
 }
@@ -2674,6 +2666,19 @@ static void ycp_realtime_process_thread_entry(void *parameter)
 
 int32_t ycp_realtime_process_init(void)
 {
+#ifdef NET_DESIGNATE_REGION
+    for(uint8_t gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
+        s_ycp_state_data_interval[gunno] = 0x00;
+        s_ycp_state_data_count[gunno] = 0x00;
+
+        memset(&s_ycp_flag_info[gunno], 0x00, sizeof(s_ycp_flag_info[gunno]));
+        memset(&s_ycp_disposable_info[gunno], 0x00, sizeof(s_ycp_disposable_info[gunno]));
+    }
+    s_ycp_fault_report = 0x00;
+    s_ycp_local_start_sq = 0x00;
+    s_ycp_handle = NULL;
+#endif /* NET_DESIGNATE_REGION */
+
     if(rt_thread_init(&s_ycp_realtime_process_thread, "ycp_rl_pro", ycp_realtime_process_thread_entry, NULL,
             s_ycp_realtime_process_thread_stack, YCP_REALTIME_PROCESS_THREAD_STACK_SIZE, 16, 10) != RT_EOK){
         LOG_E("ycp realtime process thread create fail, please check");

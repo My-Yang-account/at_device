@@ -18,6 +18,8 @@
 
 #define SYSTEM_INIT_KEY    ((uint32_t)(0x12345678))
 
+#define SYS_DESIGNATE_REGION           /* 变量定义到指定区 */
+
 static uint8_t s_sys_config_lock = 0x01;
 
 #pragma pack(1)
@@ -233,15 +235,28 @@ static struct system_config_tp_additional s_system_config_tp_additional;
 #endif /* (APP_TARGET_PLATFORM_ID == NET_OCPP_PLATFORM_ID) */
 #endif /* #ifdef APP_INCLUDE_TARGET_PLATFORM */
 
-static struct chargepile_config_info s_chargepile_config_info;
-static uint8_t s_storage_chip_entry = 0x00;
-static uint32_t s_config_info_address = SYSTEM_CONFIG_MAIN_ADDRESS;
-static uint32_t s_system_power_max = 0x00;
-static struct module_info s_module_info;
+#ifdef SYS_DESIGNATE_REGION
+#define SYS_DEF_TCMRAM CFG_DEF_TCMRAM
+#define SYS_DEF_SRAM0 CFG_DEF_SRAM0
+#define SYS_DEF_SRAM1 CFG_DEF_SRAM1
+#define SYS_DEF_SRAM2 CFG_DEF_SRAM2
+#else
+#define SYS_DEF_TCMRAM
+#define SYS_DEF_SRAM0
+#define SYS_DEF_SRAM1
+#define SYS_DEF_SRAM2
+#endif /* SYS_DESIGNATE_REGION */
 
-/** 初始化排列必须要按照  enum config_name 枚举一致*/
-static struct config_item s_config_item_set[CONFIG_ITEM_SIZE] =
+SYS_DEF_SRAM2 static struct chargepile_config_info s_chargepile_config_info;
+SYS_DEF_SRAM1 static uint8_t s_storage_chip_entry = 0x00;
+SYS_DEF_SRAM1 static uint32_t s_config_info_address = SYSTEM_CONFIG_MAIN_ADDRESS;
+SYS_DEF_SRAM1 static uint32_t s_system_power_max = 0x00;
+SYS_DEF_SRAM1 static struct module_info s_module_info;
+
+/** 初始化排列必须要按照  enum config_name 枚举一致并按顺序连续排列*/
+APP_DEF_SRAM2 static struct config_item s_config_item_set[CONFIG_ITEM_SIZE] =
 {
+#ifndef SYS_DESIGNATE_REGION
         {CONFIG_ITEM_PILE_NUMBER,                                                             /* 配置项：桩号 */
         (1 <<(32 - 4))| (sizeof(s_chargepile_config_info.pile_info.pile_number) - 1),
         (uint8_t*)s_chargepile_config_info.pile_info.pile_number,
@@ -652,9 +667,294 @@ static struct config_item s_config_item_set[CONFIG_ITEM_SIZE] =
         NULL},
 #endif /* (APP_TARGET_PLATFORM_ID == NET_OCPP_PLATFORM_ID) */
 #endif /* #ifdef APP_INCLUDE_TARGET_PLATFORM */
+
+#endif /* SYS_DESIGNATE_REGION */
 };
 
 /******************************************************************************/
+
+#ifdef SYS_DESIGNATE_REGION
+/*************************************
+ * 函数名       sys_config_item_init
+ * 功能           初始化配置项
+ * 参数
+ * 返回
+ ************************************/
+/** 初始化排列必须要按照  enum config_name 枚举一致并按顺序连续排列*/
+static void sys_config_item_init(uint8_t item, uint32_t user, uint8_t* config_ptr, void* user_data)
+{
+    if(item >= CONFIG_ITEM_SIZE){
+        return;
+    }
+
+    s_config_item_set[item].name = item;
+    s_config_item_set[item].user_section = user;
+    s_config_item_set[item].config_index = config_ptr;
+    s_config_item_set[item].user_data = user_data;
+}
+/*************************************
+ * 函数名       app_chargeplie_config_info_init
+ * 功能           桩配置信息、变量初始化
+ * 参数
+ * 返回
+ ************************************/
+void sys_chargeplie_config_info_init(void)
+{
+    s_storage_chip_entry = 0x00;
+    s_config_info_address = SYSTEM_CONFIG_MAIN_ADDRESS;
+    s_system_power_max = 0x00;
+
+    memset(&s_chargepile_config_info, 0x00, sizeof(s_chargepile_config_info));
+    memset(&s_module_info, 0x00, sizeof(s_module_info));
+    /** 桩号 */
+    sys_config_item_init(CONFIG_ITEM_PILE_NUMBER, (1 <<(32 - 4))| (sizeof(s_chargepile_config_info.pile_info.pile_number) - 1), \
+            (uint8_t*)s_chargepile_config_info.pile_info.pile_number, &s_chargepile_config_info.pile_info.pile_num_len);
+    /** 域名 */
+    sys_config_item_init(CONFIG_ITEM_IP_DOMAIN, (1 <<(32 - 4))| (sizeof(s_chargepile_config_info.network.domain) - 1), \
+            (uint8_t*)s_chargepile_config_info.network.domain, &s_chargepile_config_info.network.domain_len);
+    /** 端口号 */
+    sys_config_item_init(CONFIG_ITEM_PORT, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.network.port)), \
+            (uint8_t*)&s_chargepile_config_info.network.port, NULL);
+    /** 模块型号 */
+    sys_config_item_init(CONFIG_ITEM_MODULE_MODEL, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_info.module_model)), \
+            (uint8_t*)&s_chargepile_config_info.config_info.module_model, NULL);
+    /** 模块组数 */
+    sys_config_item_init(CONFIG_ITEM_MODULE_GROUP_NUM, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_info.module_group_num)), \
+            (uint8_t*)&s_chargepile_config_info.config_info.module_group_num, NULL);
+    /** 组1模块数 */
+    sys_config_item_init(CONFIG_ITEM_MODULE_NUM_GROUP_1, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_info.module_num_singlegroup[0])), \
+            (uint8_t*)&s_chargepile_config_info.config_info.module_num_singlegroup[0], NULL);
+    /** 组2模块数 */
+    sys_config_item_init(CONFIG_ITEM_MODULE_NUM_GROUP_2, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_info.module_num_singlegroup[1])), \
+            (uint8_t*)&s_chargepile_config_info.config_info.module_num_singlegroup[1], NULL);
+    /** 组3模块数 */
+    sys_config_item_init(CONFIG_ITEM_MODULE_NUM_GROUP_3, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_info.module_num_singlegroup[2])), \
+            (uint8_t*)&s_chargepile_config_info.config_info.module_num_singlegroup[2], NULL);
+    /** 组4模块数 */
+    sys_config_item_init(CONFIG_ITEM_MODULE_NUM_GROUP_4, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_info.module_num_singlegroup[3])), \
+            (uint8_t*)&s_chargepile_config_info.config_info.module_num_singlegroup[3], NULL);
+    /** 枪数量 */
+    sys_config_item_init(OCONFIG_ITEM_GUN_NUMBER, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_info.gun_num)), \
+            (uint8_t*)&s_chargepile_config_info.config_info.gun_num, NULL);
+    /** 启用本地启动功能 */
+    sys_config_item_init(CONFIG_ITEM_SUPORT_LOCAL, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.local_charge)), \
+            (uint8_t*)&s_chargepile_config_info.function_enable.local_charge, NULL);
+    /** 启用本地停止功能 */
+    sys_config_item_init(CONFIG_ITEM_SUPORT_LOCAL_STOP, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.local_stop)), \
+            (uint8_t*)&s_chargepile_config_info.function_enable.local_stop, NULL);
+    /** 启用绝缘检测功能 */
+    sys_config_item_init(CONFIG_ITEM_SUPORT_INSULATION, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.insulation_detect)), \
+            (uint8_t*)&s_chargepile_config_info.function_enable.insulation_detect, NULL);
+    /** 启用VIN码启动功能 */
+    sys_config_item_init(CONFIG_ITEM_SUPORT_VIN, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.vin_charge)), \
+            (uint8_t*)&s_chargepile_config_info.function_enable.vin_charge, NULL);
+    /** 启用并充功能 */
+    sys_config_item_init(CONFIG_ITEM_SUPORT_PARALLEL, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.parallel_charge)), \
+            (uint8_t*)&s_chargepile_config_info.function_enable.parallel_charge, NULL);
+    /** 启用并联功能 */
+    sys_config_item_init(CONFIG_ITEM_SUPORT_PARALLELRELAY, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.parallel_relay)), \
+            (uint8_t*)&s_chargepile_config_info.function_enable.parallel_relay, NULL);
+    /** 启用即插即充功能 */
+    sys_config_item_init(CONFIG_ITEM_SUPORT_PLUGCHARGE, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.plug_charge)), \
+            (uint8_t*)&s_chargepile_config_info.function_enable.plug_charge, NULL);
+    /** 启用刷卡功能 */
+    sys_config_item_init(CONFIG_ITEM_SUPORT_CARD, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.rfid_card_reader)), \
+            (uint8_t*)&s_chargepile_config_info.function_enable.rfid_card_reader, NULL);
+    /** 启用模块静音功能 */
+    sys_config_item_init(CONFIG_ITEM_SUPORT_MODULE_SLIENCE, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.module_slience)), \
+            (uint8_t*)&s_chargepile_config_info.function_enable.module_slience, NULL);
+    /** 卡类型 */
+    sys_config_item_init(CONFIG_ITEM_CARD_TYPE, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_info.card_type)), \
+            (uint8_t*)&s_chargepile_config_info.config_info.card_type, NULL);
+    /** CC1 4V 最大值 */
+    sys_config_item_init(CONFIG_ITEM_CC14V_MAX, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.cc1_4_max)), \
+            (uint8_t*)&s_chargepile_config_info.config_para.cc1_4_max, NULL);
+    /** CC1 4V 最小值 */
+    sys_config_item_init(CONFIG_ITEM_CC14V_MIN, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.cc1_4_min)), \
+            (uint8_t*)&s_chargepile_config_info.config_para.cc1_4_min, NULL);
+    /** CC1 6V 最大值  */
+    sys_config_item_init(CONFIG_ITEM_CC16V_MAX, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.cc1_6_max)), \
+            (uint8_t*)&s_chargepile_config_info.config_para.cc1_6_max, NULL);
+    /** CC1 6V 最小值 */
+    sys_config_item_init(CONFIG_ITEM_CC16V_MIN, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.cc1_6_min)), \
+            (uint8_t*)&s_chargepile_config_info.config_para.cc1_6_min, NULL);
+    /** CC1 12V 最大值 */
+    sys_config_item_init(CONFIG_ITEM_CC112V_MAX, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.cc1_12_max)), \
+            (uint8_t*)&s_chargepile_config_info.config_para.cc1_12_max, NULL);
+    /** CC1 12V 最小值 */
+    sys_config_item_init(CONFIG_ITEM_CC112V_MIN, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.cc1_12_min)), \
+            (uint8_t*)&s_chargepile_config_info.config_para.cc1_12_min, NULL);
+    /** 启用BSM功能 */
+    sys_config_item_init(CONFIG_ITEM_SUPORT_BSM, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.bsm)), \
+            (uint8_t*)&s_chargepile_config_info.function_enable.bsm, NULL);
+    /** 启用BCS功能 */
+    sys_config_item_init(CONFIG_ITEM_SUPORT_BCS, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.bcs)), \
+            (uint8_t*)&s_chargepile_config_info.function_enable.bcs, NULL);
+    /** 启用24V辅源功能 */
+    sys_config_item_init(CONFIG_ITEM_SUPORT_AUXPOWER24V, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.auxpower_24V)), \
+            (uint8_t*)&s_chargepile_config_info.function_enable.auxpower_24V, NULL);
+    /** 启用离线计费功能 */
+    sys_config_item_init(CONFIG_ITEM_SUPORT_OFFLINE_BILLING, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.offline_billing)), \
+            (uint8_t*)&s_chargepile_config_info.function_enable.offline_billing, NULL);
+    /** 输入过压值 */
+    sys_config_item_init(CONFIG_ITEM_INPUT_OVERVOL, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.input_overvol)), \
+            (uint8_t*)&s_chargepile_config_info.config_para.input_overvol, NULL);
+    /** 输入欠压值 */
+    sys_config_item_init(CONFIG_ITEM_INPUT_UNDERVOL, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.input_undervol)), \
+            (uint8_t*)&s_chargepile_config_info.config_para.input_undervol, NULL);
+    /** 输出过压值 */
+    sys_config_item_init(CONFIG_ITEM_OUTPUT_OVERVOL, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.output_overvol)), \
+            (uint8_t*)&s_chargepile_config_info.config_para.output_overvol, NULL);
+    /** 输出欠压值 */
+    sys_config_item_init(CONFIG_ITEM_OUTPUT_UNDERVOL, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.output_undervol)), \
+            (uint8_t*)&s_chargepile_config_info.config_para.output_undervol, NULL);
+    /** 输出过流值 */
+    sys_config_item_init(CONFIG_ITEM_OUTPUT_OVERCUR, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.output_overcur)), \
+            (uint8_t*)&s_chargepile_config_info.config_para.output_overcur, NULL);
+    /** 停充SOC值 */
+    sys_config_item_init(CONFIG_ITEM_SOC_STOP, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.soc_stop)), \
+            (uint8_t*)&s_chargepile_config_info.config_para.soc_stop, NULL);
+    /** 过温告警值 */
+    sys_config_item_init(CONFIG_ITEM_OVERTEMP_WARN, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.overtemp_alarm)), \
+            (uint8_t*)&s_chargepile_config_info.config_para.overtemp_alarm, NULL);
+    /** 过温停充值 */
+    sys_config_item_init(CONFIG_ITEM_OVERTEMP_STOP, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.overtemp_stop)), \
+            (uint8_t*)&s_chargepile_config_info.config_para.overtemp_stop, NULL);
+    /** 过温恢复值 */
+    sys_config_item_init(CONFIG_ITEM_OVERTEMP_RECOVER, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.overtemp_recovery)), \
+            (uint8_t*)&s_chargepile_config_info.config_para.overtemp_recovery, NULL);
+    /** 过温限流值 */
+    sys_config_item_init(CONFIG_ITEM_OVERTEMP_SETCUR, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.overtemp_limitcur)), \
+            (uint8_t*)&s_chargepile_config_info.config_para.overtemp_limitcur, NULL);
+    /** 电损比 */
+    sys_config_item_init(CONFIG_ITEM_ELOSS_PROPORTION, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.eloss_proportion)), \
+            (uint8_t*)&s_chargepile_config_info.config_para.eloss_proportion, NULL);
+    /** 启用交流接触器 */
+    sys_config_item_init(CONFIG_ITEM_OUTEN_AC, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.acrelay_out)), \
+            (uint8_t*)&s_chargepile_config_info.function_enable.acrelay_out, NULL);
+    /** 启用电子锁 */
+    sys_config_item_init(CONFIG_ITEM_OUTEN_ELOCK, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.elock_out)), \
+            (uint8_t*)&s_chargepile_config_info.function_enable.elock_out, NULL);
+    /**启用风扇 */
+    sys_config_item_init(CONFIG_ITEM_OUTEN_FAN, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.fan_out)), \
+            (uint8_t*)&s_chargepile_config_info.function_enable.fan_out, NULL);
+    /** 急停反馈使能 */
+    sys_config_item_init(CONFIG_ITEM_INEN_SCRAM, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.emergency_stop)), \
+            (uint8_t*)&s_chargepile_config_info.function_enable.emergency_stop, NULL);
+    /** 门禁反馈使能 */
+    sys_config_item_init(CONFIG_ITEM_INEN_GATE, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.gate_in)), \
+            (uint8_t*)&s_chargepile_config_info.function_enable.gate_in, NULL);
+    /** 交流接触器反馈使能 */
+    sys_config_item_init(CONFIG_ITEM_INEN_ACRELAY, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.acrelay_in)), \
+            (uint8_t*)&s_chargepile_config_info.function_enable.acrelay_in, NULL);
+    /** 直流继电器反馈使能 */
+    sys_config_item_init(CONFIG_ITEM_INEN_DCRELAY, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.dcrelay_in)), \
+            (uint8_t*)&s_chargepile_config_info.function_enable.dcrelay_in, NULL);
+    /** 风扇反馈使能 */
+    sys_config_item_init(CONFIG_ITEM_INEN_FAN, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.fan_in)), \
+            (uint8_t*)&s_chargepile_config_info.function_enable.fan_in, NULL);
+    /** 电子锁反馈使能 */
+    sys_config_item_init(CONFIG_ITEM_INEN_ELOCK, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.elock_in)), \
+            (uint8_t*)&s_chargepile_config_info.function_enable.elock_in, NULL);
+    /** 温度保护使能 */
+    sys_config_item_init(CONFIG_ITEM_INEN_TEMPPRO, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.temp_protect)), \
+            (uint8_t*)&s_chargepile_config_info.function_enable.temp_protect, NULL);
+    /** 急停反馈取反 */
+    sys_config_item_init(CONFIG_ITEM_INNEG_SCRAM, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.state_reversal.emergency_stop)), \
+            (uint8_t*)&s_chargepile_config_info.state_reversal.emergency_stop, NULL);
+    /** 门禁反馈取反 */
+    sys_config_item_init(CONFIG_ITEM_INNEG_GATE, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.state_reversal.gate)), \
+            (uint8_t*)&s_chargepile_config_info.state_reversal.gate, NULL);
+    /** 交流接触器反馈取反 */
+    sys_config_item_init(CONFIG_ITEM_INNEG_ACRELAY, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.state_reversal.acrelay)), \
+            (uint8_t*)&s_chargepile_config_info.state_reversal.acrelay, NULL);
+    /** 直流继电器反馈取反 */
+    sys_config_item_init(CONFIG_ITEM_INNEG_DCRELAY, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.state_reversal.dcrelay)), \
+            (uint8_t*)&s_chargepile_config_info.state_reversal.dcrelay, NULL);
+    /** 风扇反馈取反 */
+    sys_config_item_init(CONFIG_ITEM_INNEG_FAN, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.state_reversal.fan)), \
+            (uint8_t*)&s_chargepile_config_info.state_reversal.fan, NULL);
+    /** 电子锁反馈取反 */
+    sys_config_item_init(CONFIG_ITEM_INNEG_ELOCK, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.state_reversal.elock)), \
+            (uint8_t*)&s_chargepile_config_info.state_reversal.elock, NULL);
+    /** 二维码前缀 */
+    sys_config_item_init(CONFIG_ITEM_QRCODE_PRE, (1 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_info.qrcode_prefix) - 1), \
+            (uint8_t*)s_chargepile_config_info.config_info.qrcode_prefix, &s_chargepile_config_info.config_info.prefix_length);
+    /** 二维码后缀 */
+    sys_config_item_init(CONFIG_ITEM_QRCODE_SUF, (1 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_info.qrcode_suffix) - 1), \
+            (uint8_t*)s_chargepile_config_info.config_info.qrcode_suffix, &s_chargepile_config_info.config_info.suffix_length);
+    /** A枪电表地址 */
+    sys_config_item_init(CONFIG_ITEM_METER_NOA, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_info.meter_address[0]) - 1), \
+            (uint8_t*)s_chargepile_config_info.config_info.meter_address[0], NULL);
+    /** B枪电表地址 */
+    sys_config_item_init(CONFIG_ITEM_METER_NOB, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_info.meter_address[1]) - 1), \
+            (uint8_t*)s_chargepile_config_info.config_info.meter_address[1], NULL);
+    /** 电表型号 */
+    sys_config_item_init(CONFIG_ITEM_METER_MODEL, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_info.meter_model)), \
+            (uint8_t*)&s_chargepile_config_info.config_info.meter_model, NULL);
+    /** 模块额定输出电压 */
+    sys_config_item_init(CONFIG_ITEM_RATED_OUTPUT_VOLTAGE, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.module_rated_outvolt)), \
+            (uint8_t*)&s_chargepile_config_info.config_para.module_rated_outvolt, NULL);
+    /** 桩最大输出电压 */
+    sys_config_item_init(CONFIG_ITEM_MAX_OUTPUT_VOLTAGE, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.pile_max_outvolt)), \
+            (uint8_t*)&s_chargepile_config_info.config_para.pile_max_outvolt, NULL);
+    /** 桩最小输出电压 */
+    sys_config_item_init(CONFIG_ITEM_MIN_OUTPUT_VOLTAGE, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.pile_min_outvolt)), \
+            (uint8_t*)&s_chargepile_config_info.config_para.pile_min_outvolt, NULL);
+    /** 模块额定输出电流 */
+    sys_config_item_init(CONFIG_ITEM_RATED_LIMIT_CURRENT, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.module_rated_limit_curr)), \
+            (uint8_t*)&s_chargepile_config_info.config_para.module_rated_limit_curr, NULL);
+    /** 桩最大输出电流 */
+    sys_config_item_init(CONFIG_ITEM_MAX_LIMIT_CURRENT, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.pile_max_limit_curr)), \
+            (uint8_t*)&s_chargepile_config_info.config_para.pile_max_limit_curr, NULL);
+    /** 桩最小输出电流 */
+    sys_config_item_init(CONFIG_ITEM_MIN_LIMIT_CURRENT, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.pile_min_limit_curr)), \
+            (uint8_t*)&s_chargepile_config_info.config_para.pile_min_limit_curr, NULL);
+    /** 桩最大输出功率 */
+    sys_config_item_init(CONFIG_ITEM_SYSTEM_POWER_TOTAL, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_info.system_power_total)), \
+            (uint8_t*)&s_chargepile_config_info.config_info.system_power_total, NULL);
+    /** 功率分配方式 */
+    sys_config_item_init(CONFIG_ITEM_ALLOCATION_WAY, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_info.power_alloc_way)), \
+            (uint8_t*)&s_chargepile_config_info.config_info.power_alloc_way, NULL);
+    /** 设备类型 */
+    sys_config_item_init(CONFIG_ITEM_DEVICE_TYPE, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_info.system_function)), \
+            (uint8_t*)&s_chargepile_config_info.config_info.system_function, NULL);
+    /** 枪头电压 */
+    sys_config_item_init(CONFIG_ITEM_GUNVOLT_LIMIT, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_info.gunvolt_limit)), \
+            (uint8_t*)&s_chargepile_config_info.config_info.gunvolt_limit, NULL);
+    /** VIN码白名单 */
+    sys_config_item_init(CONFIG_ITEM_VIN_WHITELIST, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_info.vin_whitelist)), \
+            (uint8_t*)&s_chargepile_config_info.config_info.vin_whitelist, NULL);
+    /** 卡号白名单 */
+    sys_config_item_init(CONFIG_ITEM_CARD_WHITELIST, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_info.card_whitelist.card_number)), \
+            (uint8_t*)&s_chargepile_config_info.config_info.card_whitelist.card_number, NULL);
+    /** 屏幕密码 */
+    sys_config_item_init(CONFIG_ITEM_SCREEN_PASSWORD, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_info.screen_password)), \
+            (uint8_t*)&s_chargepile_config_info.config_info.screen_password, NULL);
+    /** 帮助电话 */
+    sys_config_item_init(CONFIG_ITEM_HELP_PHONE, (1 <<(32 - 4))| (sizeof(s_chargepile_config_info.pile_info.help_number)), \
+            (uint8_t*)&s_chargepile_config_info.pile_info.help_number, &s_chargepile_config_info.pile_info.help_number_len);
+    /** 网络类型 */
+    sys_config_item_init(CONFIG_ITEM_NET_TYPE, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.network.nettype)), \
+            (uint8_t*)&s_chargepile_config_info.network.nettype, NULL);
+    /** 计费规则信息 */
+    sys_config_item_init(CONFIG_ITEM_BILLING_RULE, (1 <<(32 - 4))| (sizeof(s_chargepile_config_info.billing_rule)), \
+            (uint8_t*)&s_chargepile_config_info.billing_rule, NULL);
+    /** 目标平台信息 */
+    sys_config_item_init(CONFIG_ITEM_TARGET_PLATFORM, (1 <<(32 - 4))| (sizeof(s_chargepile_config_info.target_plat)), \
+            (uint8_t*)&s_chargepile_config_info.target_plat, NULL);
+    /** 监控平台信息 */
+    sys_config_item_init(CONFIG_ITEM_MONITOR_PLATFORM, (1 <<(32 - 4))| (sizeof(s_chargepile_config_info.monitor_plat)), \
+            (uint8_t*)&s_chargepile_config_info.monitor_plat, NULL);
+
+#ifdef APP_INCLUDE_TARGET_PLATFORM
+#if (APP_TARGET_PLATFORM_ID == NET_OCPP_PLATFORM_ID)
+    sys_config_item_init(CONFIG_ITEM_TARGET_PLATFORM_ADDITIONAL, (1 <<(32 - 4))| (sizeof(s_system_config_tp_additional)), \
+            (uint8_t*)&s_system_config_tp_additional, NULL);
+#endif /* (APP_TARGET_PLATFORM_ID == NET_OCPP_PLATFORM_ID) */
+#endif /* #ifdef APP_INCLUDE_TARGET_PLATFORM */
+}
+#endif /* SYS_DESIGNATE_REGION */
 
 /*******************************************************
  * 函数名               sys_config_enter_critical

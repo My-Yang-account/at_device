@@ -54,7 +54,8 @@ struct ethch395_info{
 
 #pragma pack()
 
-static struct ethch395_info s_ethch395_info = {
+ETH_DEF_SRAM2 static struct ethch395_info s_ethch395_info = {
+#ifndef ETH_DESIGNATE_REGION
     .socket[0x00].rbuf_block_num = 0x06,
     .socket[0x00].sbuf_block_num = 0x03,
 
@@ -84,7 +85,47 @@ static struct ethch395_info s_ethch395_info = {
 
     .socket[0x06].sour_port = 30010,
     .socket[0x07].sour_port = 30200,
+#endif /* ETH_DESIGNATE_REGION */
 };
+
+#ifdef ETH_DESIGNATE_REGION
+/*************************************************
+ * 函数名      ethch395_cmd_info_init
+ * 功能          以太网指令信息、变量初始化
+ * **********************************************/
+void ethch395_cmd_info_init(void)
+{
+    s_ethch395_info.socket[0x00].rbuf_block_num = 0x06;
+    s_ethch395_info.socket[0x00].sbuf_block_num = 0x03;
+
+    s_ethch395_info.socket[0x01].rbuf_block_num = 0x06;
+    s_ethch395_info.socket[0x01].sbuf_block_num = 0x03;
+
+    s_ethch395_info.socket[0x02].rbuf_block_num = 0x06;
+    s_ethch395_info.socket[0x02].sbuf_block_num = 0x03;
+
+    s_ethch395_info.socket[0x03].rbuf_block_num = 0x06;
+    s_ethch395_info.socket[0x03].sbuf_block_num = 0x03;
+
+    s_ethch395_info.socket[0x04].rbuf_block_num = 0x06;
+    s_ethch395_info.socket[0x04].sbuf_block_num = 0x03;
+
+    s_ethch395_info.socket[0x05].rbuf_block_num = 0x02;
+    s_ethch395_info.socket[0x05].sbuf_block_num = 0x01;
+
+    s_ethch395_info.socket[0x00].sour_port = 30001;
+    s_ethch395_info.socket[0x01].sour_port = 2000;
+
+    s_ethch395_info.socket[0x02].sour_port = 30500;
+    s_ethch395_info.socket[0x03].sour_port = 30300;
+
+    s_ethch395_info.socket[0x04].sour_port = 30040;
+    s_ethch395_info.socket[0x05].sour_port = 35000;
+
+    s_ethch395_info.socket[0x06].sour_port = 30010;
+    s_ethch395_info.socket[0x07].sour_port = 30200;
+}
+#endif /* ETH_DESIGNATE_REGION */
 
 static void ethch395_enter_critical(void)
 {

@@ -28,28 +28,28 @@
 #include <rtdbg.h>
 
 /**************************************************************************/
-static uint8_t s_thread_gunno[APP_SYSTEM_GUNNO_SIZE];
-static struct rt_thread ofsm_thread[APP_SYSTEM_GUNNO_SIZE];
-static rt_uint8_t ofsm_thread_stack[APP_SYSTEM_GUNNO_SIZE][6144];
+APP_DEF_SRAM1 static uint8_t s_thread_gunno[APP_SYSTEM_GUNNO_SIZE];
+APP_DEF_SRAM1 static struct rt_thread ofsm_thread[APP_SYSTEM_GUNNO_SIZE];
+APP_DEF_SRAM0 static rt_uint8_t ofsm_thread_stack[APP_SYSTEM_GUNNO_SIZE][6144];
 
-static struct rt_thread osupport_thread;
-static rt_uint8_t osupport_thread_stack[4096];
+APP_DEF_SRAM1 static struct rt_thread osupport_thread;
+APP_DEF_SRAM0 static rt_uint8_t osupport_thread_stack[4096];
 
-static struct rt_thread led_thread;
-static rt_uint8_t led_thread_stack[512];
+APP_DEF_SRAM1 static struct rt_thread led_thread;
+APP_DEF_SRAM2 static rt_uint8_t led_thread_stack[512];
 
-static struct rt_thread hci_req_thread;
-static rt_uint8_t hci_req_thread_stack[4096];
+APP_DEF_SRAM1 static struct rt_thread hci_req_thread;
+APP_DEF_SRAM0 static rt_uint8_t hci_req_thread_stack[4096];
 
-static struct rt_thread hci_res_thread;
-static rt_uint8_t hci_res_thread_stack[512];
+APP_DEF_SRAM1 static struct rt_thread hci_res_thread;
+APP_DEF_SRAM0 static rt_uint8_t hci_res_thread_stack[512];
 
 #ifdef CP_CONFIG_USING_DUPU
-static struct rt_thread terminal_thread;
-static rt_uint8_t terminal_thread_stack[2048];
+APP_DEF_SRAM1 static struct rt_thread terminal_thread;
+APP_DEF_SRAM0 static rt_uint8_t terminal_thread_stack[2048];
 
-static struct rt_thread terminal_req_thread;
-static rt_uint8_t terminal_req_thread_stack[1024];
+APP_DEF_SRAM1 static struct rt_thread terminal_req_thread;
+APP_DEF_SRAM0 static rt_uint8_t terminal_req_thread_stack[1024];
 #endif /* CP_CONFIG_USING_DUPU */
 /**************************************************************************/
 

@@ -24,102 +24,167 @@
 
 /**=======================================[服务器请求报文]=======================================*/
 ///设备配置信息
-evs_data_dev_config evs_data_dev_configs;
+NET_DEF_SRAM2 evs_data_dev_config evs_data_dev_configs;
 /////设备功能配置信息
-//evs_service_dev_fun_config evs_service_dev_fun_configs[NET_SYSTEM_GUN_NUMBER];
+//NET_DEF_SRAM2 evs_service_dev_fun_config evs_service_dev_fun_configs[NET_SYSTEM_GUN_NUMBER];
 /////设备部件配置信息
-//evs_service_config_parts evs_service_config_partss[NET_SYSTEM_GUN_NUMBER];
+//NET_DEF_SRAM2 evs_service_config_parts evs_service_config_partss[NET_SYSTEM_GUN_NUMBER];
 /////设备部件配置查询
-//evs_service_parts_config_get evs_service_parts_config_gets[NET_SYSTEM_GUN_NUMBER];
+//NET_DEF_SRAM2 evs_service_parts_config_get evs_service_parts_config_gets[NET_SYSTEM_GUN_NUMBER];
 ///日志查询
-evs_service_query_log evs_service_query_logs[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 evs_service_query_log evs_service_query_logs[NET_SYSTEM_GUN_NUMBER];
 ///维护
-evs_service_dev_maintain evs_service_dev_maintains[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 evs_service_dev_maintain evs_service_dev_maintains[NET_SYSTEM_GUN_NUMBER];
 ///电子锁
-evs_service_lockCtrl evs_service_lockCtrls[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 evs_service_lockCtrl evs_service_lockCtrls[NET_SYSTEM_GUN_NUMBER];
 ///计费模型
-evs_service_issue_feeModel evs_service_issue_feeModels[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 evs_service_issue_feeModel evs_service_issue_feeModels[NET_SYSTEM_GUN_NUMBER];
 ///开始充电
-evs_service_startCharge evs_service_startCharges[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 evs_service_startCharge evs_service_startCharges[NET_SYSTEM_GUN_NUMBER];
 ///鉴权
-evs_service_authCharge evs_service_authCharges[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 evs_service_authCharge evs_service_authCharges[NET_SYSTEM_GUN_NUMBER];
 ///停止充电
-evs_service_stopCharge evs_service_stopCharges[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 evs_service_stopCharge evs_service_stopCharges[NET_SYSTEM_GUN_NUMBER];
 /////交易记录获取
-//evs_service_trade_get evs_service_trade_gets[NET_SYSTEM_GUN_NUMBER];
+//NET_DEF_SRAM2 evs_service_trade_get evs_service_trade_gets[NET_SYSTEM_GUN_NUMBER];
 /////电表底值获取
-//evs_service_meter_get evs_service_meter_gets[NET_SYSTEM_GUN_NUMBER];
+//NET_DEF_SRAM2 evs_service_meter_get evs_service_meter_gets[NET_SYSTEM_GUN_NUMBER];
 ///交易记录确认
-evs_service_confirmTrade evs_service_confirmTrades[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 evs_service_confirmTrade evs_service_confirmTrades[NET_SYSTEM_GUN_NUMBER];
 /////VIN码白名单更新
-//evs_service_vinList_update evs_service_vinList_updates[NET_SYSTEM_GUN_NUMBER];
+//NET_DEF_SRAM2 evs_service_vinList_update evs_service_vinList_updates[NET_SYSTEM_GUN_NUMBER];
 ///预约
-evs_service_rsvCharge evs_service_rsvCharges[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 evs_service_rsvCharge evs_service_rsvCharges[NET_SYSTEM_GUN_NUMBER];
 ///地锁
-evs_service_groundLock_ctrl evs_service_groundLock_ctrls[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 evs_service_groundLock_ctrl evs_service_groundLock_ctrls[NET_SYSTEM_GUN_NUMBER];
 ///智能门锁
-evs_service_gateLock_ctrl evs_service_gateLock_ctrls[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 evs_service_gateLock_ctrl evs_service_gateLock_ctrls[NET_SYSTEM_GUN_NUMBER];
 ///有序充电
-evs_service_orderCharge evs_service_orderCharges[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 evs_service_orderCharge evs_service_orderCharges[NET_SYSTEM_GUN_NUMBER];
 /////设备功能配置查询
-//evs_service_get_dev_fun_config evs_service_get_dev_fun_configs[NET_SYSTEM_GUN_NUMBER];
+//NET_DEF_SRAM2 evs_service_get_dev_fun_config evs_service_get_dev_fun_configs[NET_SYSTEM_GUN_NUMBER];
 /////计费模型查询
-//evs_service_feeModel_query evs_service_feeModel_querys[NET_SYSTEM_GUN_NUMBER];
+//NET_DEF_SRAM2 evs_service_feeModel_query evs_service_feeModel_querys[NET_SYSTEM_GUN_NUMBER];
 /////蓝牙密钥更新
-//evs_service_blesecret_update evs_service_blesecret_updates[NET_SYSTEM_GUN_NUMBER];
+//NET_DEF_SRAM2 evs_service_blesecret_update evs_service_blesecret_updates[NET_SYSTEM_GUN_NUMBER];
 /////蓝牙信息
-//evs_service_ble_plug_charge_info_conf evs_service_ble_plug_charge_info_confs[NET_SYSTEM_GUN_NUMBER];
+//NET_DEF_SRAM2 evs_service_ble_plug_charge_info_conf evs_service_ble_plug_charge_info_confs[NET_SYSTEM_GUN_NUMBER];
 /////蓝牙清空
-//evs_service_blelist_clean evs_service_blelist_cleans[NET_SYSTEM_GUN_NUMBER];
+//NET_DEF_SRAM2 evs_service_blelist_clean evs_service_blelist_cleans[NET_SYSTEM_GUN_NUMBER];
 
 /**=======================================[服务器响应报文]=======================================*/
 /////设备维护指令结果
-//evs_event_feedback_dev_maintain evs_event_feedback_dev_maintains[NET_SYSTEM_GUN_NUMBER];
+//NET_DEF_SRAM2 evs_event_feedback_dev_maintain evs_event_feedback_dev_maintains[NET_SYSTEM_GUN_NUMBER];
 /////电子锁控制结果
-//evs_event_feedback_lockCtrl evs_event_feedback_lockCtrls[NET_SYSTEM_GUN_NUMBER];
+//NET_DEF_SRAM2 evs_event_feedback_lockCtrl evs_event_feedback_lockCtrls[NET_SYSTEM_GUN_NUMBER];
 ///日志查询
-evs_service_feedback_query_log evs_service_feedback_query_logs[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 evs_service_feedback_query_log evs_service_feedback_query_logs[NET_SYSTEM_GUN_NUMBER];
 ///设备维护状态
-evs_service_feedback_maintain_query evs_service_feedback_maintain_querys[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 evs_service_feedback_maintain_query evs_service_feedback_maintain_querys[NET_SYSTEM_GUN_NUMBER];
 ///计费模型更新
-evs_service_feedback_feeModel evs_service_feedback_feeModels[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 evs_service_feedback_feeModel evs_service_feedback_feeModels[NET_SYSTEM_GUN_NUMBER];
 ///启动充电
-evs_service_feedback_startCharge evs_service_feedback_startCharges[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 evs_service_feedback_startCharge evs_service_feedback_startCharges[NET_SYSTEM_GUN_NUMBER];
 ///鉴权充电
-evs_service_feedback_authCharge evs_service_feedback_authCharges[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 evs_service_feedback_authCharge evs_service_feedback_authCharges[NET_SYSTEM_GUN_NUMBER];
 ///停止充电
-evs_service_feedback_stopCharge evs_service_feedback_stopCharges[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 evs_service_feedback_stopCharge evs_service_feedback_stopCharges[NET_SYSTEM_GUN_NUMBER];
 /////设备部件配置参数
-//evs_service_feedback_config_parts evs_service_feedback_config_partss[NET_SYSTEM_GUN_NUMBER];
+//NET_DEF_SRAM2 evs_service_feedback_config_parts evs_service_feedback_config_partss[NET_SYSTEM_GUN_NUMBER];
 /////设备部件配置获取
-//evs_service_feedback_config_parts_get evs_service_feedback_config_parts_gets[NET_SYSTEM_GUN_NUMBER];
+//NET_DEF_SRAM2 evs_service_feedback_config_parts_get evs_service_feedback_config_parts_gets[NET_SYSTEM_GUN_NUMBER];
 /////交易记录获取
-//evs_service_feedback_trade_get evs_service_feedback_trade_gets[NET_SYSTEM_GUN_NUMBER];
+//NET_DEF_SRAM2 evs_service_feedback_trade_get evs_service_feedback_trade_gets[NET_SYSTEM_GUN_NUMBER];
 /////电表底值
-//evs_service_feedback_meter_get evs_service_feedback_meter_gets[NET_SYSTEM_GUN_NUMBER];
+//NET_DEF_SRAM2 evs_service_feedback_meter_get evs_service_feedback_meter_gets[NET_SYSTEM_GUN_NUMBER];
 /////VIN码列表更新
-//evs_service_feedback_vinList_update evs_service_feedback_vinList_updates[NET_SYSTEM_GUN_NUMBER];
+//NET_DEF_SRAM2 evs_service_feedback_vinList_update evs_service_feedback_vinList_updates[NET_SYSTEM_GUN_NUMBER];
 ///预约结果
-evs_service_feedback_rsvCharge evs_service_feedback_rsvCharges[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 evs_service_feedback_rsvCharge evs_service_feedback_rsvCharges[NET_SYSTEM_GUN_NUMBER];
 ///地锁
-evs_service_feedback_groundLock_ctrl evs_service_feedback_groundLock_ctrls[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 evs_service_feedback_groundLock_ctrl evs_service_feedback_groundLock_ctrls[NET_SYSTEM_GUN_NUMBER];
 ///智能门锁
-evs_service_feedback_gateLock_ctrl evs_service_feedback_gateLock_ctrls[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 evs_service_feedback_gateLock_ctrl evs_service_feedback_gateLock_ctrls[NET_SYSTEM_GUN_NUMBER];
 ///有序充电
-evs_service_feedback_orderCharge evs_service_feedback_orderCharges[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 evs_service_feedback_orderCharge evs_service_feedback_orderCharges[NET_SYSTEM_GUN_NUMBER];
 /////设备功能配置查询
-//evs_service_feedback_dev_fun_config evs_service_feedback_dev_fun_configs[NET_SYSTEM_GUN_NUMBER];
+//NET_DEF_SRAM2 evs_service_feedback_dev_fun_config evs_service_feedback_dev_fun_configs[NET_SYSTEM_GUN_NUMBER];
 /////设备计费模型查询
-//evs_service_feedback_feeModel_qurey evs_service_feedback_feeModel_qureys[NET_SYSTEM_GUN_NUMBER];
+//NET_DEF_SRAM2 evs_service_feedback_feeModel_qurey evs_service_feedback_feeModel_qureys[NET_SYSTEM_GUN_NUMBER];
 /////蓝牙密钥更新
-//evs_service_feedback_blesecret_update evs_service_feedback_blesecret_updates[NET_SYSTEM_GUN_NUMBER];
+//NET_DEF_SRAM2 evs_service_feedback_blesecret_update evs_service_feedback_blesecret_updates[NET_SYSTEM_GUN_NUMBER];
 /////蓝牙列表清除
-//evs_service_feedback_blelist_clean evs_service_feedback_blelist_cleans[NET_SYSTEM_GUN_NUMBER];
+//NET_DEF_SRAM2 evs_service_feedback_blelist_clean evs_service_feedback_blelist_cleans[NET_SYSTEM_GUN_NUMBER];
 /////蓝牙重置
-//evs_service_feedback_ble_reset evs_service_feedback_ble_resets[NET_SYSTEM_GUN_NUMBER];
+//NET_DEF_SRAM2 evs_service_feedback_ble_reset evs_service_feedback_ble_resets[NET_SYSTEM_GUN_NUMBER];
 
-static uint8_t sgcc_firmware_version[NET_SGCC_FIRMWARE_VERSION_LEN];
-static sgcc_recv_item s_sgcc_recv_item[NET_SGCC_RECV_MESSAGE_ITEM_MAX];
+NET_DEF_SRAM2 static uint8_t sgcc_firmware_version[NET_SGCC_FIRMWARE_VERSION_LEN];
+NET_DEF_SRAM2 static sgcc_recv_item s_sgcc_recv_item[NET_SGCC_RECV_MESSAGE_ITEM_MAX];
+
+#ifdef NET_DESIGNATE_REGION
+/*************************************************
+ * 函数名      sgcc_mreceive_info_init
+ * 功能          国网平台报文接收信息、变量初始化
+ * **********************************************/
+void sgcc_mreceive_info_init(void)
+{
+    /**=======================================[服务器请求报文]=======================================*/
+//    memset(evs_service_dev_fun_configs, 0x00, sizeof(evs_service_dev_fun_configs));
+//    memset(evs_service_config_partss, 0x00, sizeof(evs_service_config_partss));
+//    memset(evs_service_parts_config_gets, 0x00, sizeof(evs_service_parts_config_gets));
+    memset(evs_service_query_logs, 0x00, sizeof(evs_service_query_logs));
+    memset(evs_service_dev_maintains, 0x00, sizeof(evs_service_dev_maintains));
+    memset(evs_service_lockCtrls, 0x00, sizeof(evs_service_lockCtrls));
+    memset(evs_service_issue_feeModels, 0x00, sizeof(evs_service_issue_feeModels));
+    memset(evs_service_startCharges, 0x00, sizeof(evs_service_startCharges));
+    memset(evs_service_authCharges, 0x00, sizeof(evs_service_authCharges));
+    memset(evs_service_stopCharges, 0x00, sizeof(evs_service_stopCharges));
+//    memset(evs_service_trade_gets, 0x00, sizeof(evs_service_trade_gets));
+//    memset(evs_service_meter_gets, 0x00, sizeof(evs_service_meter_gets));
+    memset(evs_service_confirmTrades, 0x00, sizeof(evs_service_confirmTrades));
+//    memset(evs_service_vinList_updates, 0x00, sizeof(evs_service_vinList_updates));
+    memset(evs_service_rsvCharges, 0x00, sizeof(evs_service_rsvCharges));
+    memset(evs_service_groundLock_ctrls, 0x00, sizeof(evs_service_groundLock_ctrls));
+    memset(evs_service_gateLock_ctrls, 0x00, sizeof(evs_service_gateLock_ctrls));
+    memset(evs_service_orderCharges, 0x00, sizeof(evs_service_orderCharges));
+//    memset(evs_service_get_dev_fun_configs, 0x00, sizeof(evs_service_get_dev_fun_configs));
+//    memset(evs_service_feeModel_querys, 0x00, sizeof(evs_service_feeModel_querys));
+//    memset(evs_service_blesecret_updates, 0x00, sizeof(evs_service_blesecret_updates));
+//    memset(evs_service_ble_plug_charge_info_confs, 0x00, sizeof(evs_service_ble_plug_charge_info_confs));
+//    memset(evs_service_blelist_cleans, 0x00, sizeof(evs_service_blelist_cleans));
+
+    memset(&evs_data_dev_configs, 0x00, sizeof(evs_data_dev_configs));
+
+
+    /**=======================================[服务器响应报文]=======================================*/
+//    memset(evs_event_feedback_dev_maintains, 0x00, sizeof(evs_event_feedback_dev_maintains));
+//    memset(evs_event_feedback_lockCtrls, 0x00, sizeof(evs_event_feedback_lockCtrls));
+    memset(evs_service_feedback_query_logs, 0x00, sizeof(evs_service_feedback_query_logs));
+    memset(evs_service_feedback_maintain_querys, 0x00, sizeof(evs_service_feedback_maintain_querys));
+    memset(evs_service_feedback_feeModels, 0x00, sizeof(evs_service_feedback_feeModels));
+    memset(evs_service_feedback_startCharges, 0x00, sizeof(evs_service_feedback_startCharges));
+    memset(evs_service_feedback_authCharges, 0x00, sizeof(evs_service_feedback_authCharges));
+    memset(evs_service_feedback_stopCharges, 0x00, sizeof(evs_service_feedback_stopCharges));
+//    memset(evs_service_feedback_config_partss, 0x00, sizeof(evs_service_feedback_config_partss));
+//    memset(evs_service_feedback_config_parts_gets, 0x00, sizeof(evs_service_feedback_config_parts_gets));
+//    memset(evs_service_feedback_trade_gets, 0x00, sizeof(evs_service_feedback_trade_gets));
+//    memset(evs_service_feedback_meter_gets, 0x00, sizeof(evs_service_feedback_meter_gets));
+//    memset(evs_service_feedback_vinList_updates, 0x00, sizeof(evs_service_feedback_vinList_updates));
+    memset(evs_service_feedback_rsvCharges, 0x00, sizeof(evs_service_feedback_rsvCharges));
+    memset(evs_service_feedback_groundLock_ctrls, 0x00, sizeof(evs_service_feedback_groundLock_ctrls));
+    memset(evs_service_feedback_gateLock_ctrls, 0x00, sizeof(evs_service_feedback_gateLock_ctrls));
+    memset(evs_service_feedback_orderCharges, 0x00, sizeof(evs_service_feedback_orderCharges));
+//    memset(evs_service_feedback_dev_fun_configs, 0x00, sizeof(evs_service_feedback_dev_fun_configs));
+//    memset(evs_service_feedback_feeModel_qureys, 0x00, sizeof(evs_service_feedback_feeModel_qureys));
+//    memset(evs_service_feedback_blesecret_updates, 0x00, sizeof(evs_service_feedback_blesecret_updates));
+//    memset(evs_service_feedback_blelist_cleans, 0x00, sizeof(evs_service_feedback_blelist_cleans));
+//    memset(evs_service_feedback_ble_resets, 0x00, sizeof(evs_service_feedback_ble_resets));
+
+
+    memset(sgcc_firmware_version, 0x00, sizeof(sgcc_firmware_version));
+    memset(s_sgcc_recv_item, 0x00, sizeof(s_sgcc_recv_item));
+}
+#endif /* NET_DESIGNATE_REGION */
 
 /***********************************************
  * 函数名      sgcc_get_firmware_pack_version

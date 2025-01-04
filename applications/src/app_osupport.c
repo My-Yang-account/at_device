@@ -37,20 +37,50 @@
 #endif /* APP_INCLUDE_SGCC_PROTOCOL */
 
 #ifdef APP_INCLUDE_SGCC_PROTOCOL
-static uint8_t s_stopway_fault_flag[APP_SYSTEM_GUNNO_SIZE];  /** 停充原因类型故障(0：故障产生，1：故障恢复，2：无) */
+APP_DEF_SRAM1 static uint8_t s_stopway_fault_flag[APP_SYSTEM_GUNNO_SIZE];  /** 停充原因类型故障(0：故障产生，1：故障恢复，2：无) */
 #endif /* APP_INCLUDE_SGCC_PROTOCOL */
 
-static uint32_t s_system_fault_last[APP_SYSTEM_GUNNO_SIZE][APP_GENERAL_SYSTEM_FAULT_SET_NUM];
-static uint32_t s_system_fault_current[APP_SYSTEM_GUNNO_SIZE][APP_GENERAL_SYSTEM_FAULT_SET_NUM];
-static uint8_t s_charge_fault_last[APP_SYSTEM_GUNNO_SIZE][APP_GENERAL_CHARGE_FAULT_SET_NUM];   /* 由于当前充电故障数量小于8个，所以使用uint8_t 型 */
-static uint8_t s_charge_fault_current[APP_SYSTEM_GUNNO_SIZE][APP_GENERAL_CHARGE_FAULT_SET_NUM];   /* 由于当前充电故障数量小于8个，所以使用uint8_t 型 */
+APP_DEF_SRAM1 static uint32_t s_system_fault_last[APP_SYSTEM_GUNNO_SIZE][APP_GENERAL_SYSTEM_FAULT_SET_NUM];
+APP_DEF_SRAM1 static uint32_t s_system_fault_current[APP_SYSTEM_GUNNO_SIZE][APP_GENERAL_SYSTEM_FAULT_SET_NUM];
+APP_DEF_SRAM1 static uint8_t s_charge_fault_last[APP_SYSTEM_GUNNO_SIZE][APP_GENERAL_CHARGE_FAULT_SET_NUM];   /* 由于当前充电故障数量小于8个，所以使用uint8_t 型 */
+APP_DEF_SRAM1 static uint8_t s_charge_fault_current[APP_SYSTEM_GUNNO_SIZE][APP_GENERAL_CHARGE_FAULT_SET_NUM];   /* 由于当前充电故障数量小于8个，所以使用uint8_t 型 */
 
-static struct error_info s_system_error_info[APP_SYSTEM_GUNNO_SIZE];
-static struct error_info s_charge_error_info[APP_SYSTEM_GUNNO_SIZE];
+APP_DEF_SRAM1 static struct error_info s_system_error_info[APP_SYSTEM_GUNNO_SIZE];
+APP_DEF_SRAM1 static struct error_info s_charge_error_info[APP_SYSTEM_GUNNO_SIZE];
 #ifdef APP_INCLUDE_SGCC_PROTOCOL
-static uint32_t s_stopway_fault[APP_SYSTEM_GUNNO_SIZE];
-static struct error_info s_stopway_error_info[APP_SYSTEM_GUNNO_SIZE];
+APP_DEF_SRAM1 static uint32_t s_stopway_fault[APP_SYSTEM_GUNNO_SIZE];
+APP_DEF_SRAM1 static struct error_info s_stopway_error_info[APP_SYSTEM_GUNNO_SIZE];
 #endif /* APP_INCLUDE_SGCC_PROTOCOL */
+
+#ifdef APP_DESIGNATE_REGION
+/*************************************
+ * 函数名       app_osupport_info_init
+ * 功能           故障信息、变量初始化
+ * 参数
+ * 返回
+ ************************************/
+void app_osupport_info_init(void)
+{
+    for(uint8_t gunno = 0x00; gunno < APP_SYSTEM_GUNNO_SIZE; gunno++){
+#ifdef APP_INCLUDE_SGCC_PROTOCOL
+        s_stopway_fault_flag[gunno] = APP_STOPWAY_FAULT_INFO_NULL;
+        s_stopway_fault[gunno] = 0x00;
+#endif /* APP_INCLUDE_SGCC_PROTOCOL */
+
+        memset(s_system_fault_last[gunno], 0x00, sizeof(s_system_fault_last[gunno]));
+        memset(s_system_fault_current[gunno], 0x00, sizeof(s_system_fault_current[gunno]));
+        memset(s_charge_fault_last[gunno], 0x00, sizeof(s_charge_fault_last[gunno]));
+        memset(s_charge_fault_current[gunno], 0x00, sizeof(s_charge_fault_current[gunno]));
+
+        memset(&(s_system_error_info[gunno]), 0x00, sizeof(s_system_error_info[gunno]));
+        memset(&(s_charge_error_info[gunno]), 0x00, sizeof(s_charge_error_info[gunno]));
+
+#ifdef APP_INCLUDE_SGCC_PROTOCOL
+        memset(&(s_stopway_error_info[gunno]), 0x00, sizeof(s_stopway_error_info[gunno]));
+#endif /* APP_INCLUDE_SGCC_PROTOCOL */
+    }
+}
+#endif /* APP_DESIGNATE_REGION */
 
 /************************************************
  * 函数名         app_query_system_fault_set

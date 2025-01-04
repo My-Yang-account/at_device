@@ -138,7 +138,7 @@ SECTIONS
         _etext = .;
     } > ROM = 0
 
-    .TCMRAM :
+    .TCMRAM (NOLOAD):
     {
         . = ALIGN(0x4);
         __tcm_ram_start = .;
@@ -147,7 +147,7 @@ SECTIONS
         __tcm_ram_end = .;
     } > TCMRAM
     
-    .SRAM0 :
+    .SRAM0 (NOLOAD):
     {
         . = ALIGN(0x4);
         __sram0_ram_start = .;
@@ -156,7 +156,7 @@ SECTIONS
         __sram0_ram_end = .;
     } > SRAM0 
 
-    .SRAM1 :
+    .SRAM1 (NOLOAD):
     {
         . = ALIGN(0x4);
         __sram0_ram_start = .;
@@ -165,7 +165,7 @@ SECTIONS
         __sram1_ram_end = .;
     } > SRAM1
     
-    .SRAM2 :
+    .SRAM2 (NOLOAD):
     {
         . = ALIGN(0x4);
         __sram2_ram_start = .;

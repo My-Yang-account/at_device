@@ -63,20 +63,21 @@ struct ykc_monitor_ota_flag{
     uint8_t was_requested : 1;
 };
 
-static net_ota_info_t *s_ykc_monitor_ota_info = NULL;
-static struct net_handle* s_handle = NULL;
-static struct ykc_monitor_ota_flag s_ykc_monitor_ota_flag;
-static struct ykc_monitor_server_info s_ykc_monitor_server_info;
-static struct ykc_monitor_ota_storage_info s_ykc_monitor_ota_storage_info;
-static struct rt_thread s_ykc_monitor_ota_thread;
-static uint8_t s_ykc_monitor_ota_thread_stack[NET_YKC_MONITOR_OTA_THREAD_STACK_SIZE];
+NET_DEF_SRAM2 static net_ota_info_t *s_ykc_monitor_ota_info = NULL;
+NET_DEF_SRAM2 static struct net_handle* s_handle = NULL;
+NET_DEF_SRAM2 static struct ykc_monitor_ota_flag s_ykc_monitor_ota_flag;
+NET_DEF_SRAM2 static struct ykc_monitor_server_info s_ykc_monitor_server_info;
+NET_DEF_SRAM2 static struct ykc_monitor_ota_storage_info s_ykc_monitor_ota_storage_info;
+NET_DEF_SRAM2 static struct rt_thread s_ykc_monitor_ota_thread;
+NET_DEF_SRAM0 static uint8_t s_ykc_monitor_ota_thread_stack[NET_YKC_MONITOR_OTA_THREAD_STACK_SIZE];
 
-static uint32_t s_ykc_monitor_ota_timeout = 0x00;
-static uint32_t s_ykc_monitor_crc, s_ykc_monitor_actual_crc;
-static uint32_t s_ykc_monitor_spiflash_addr;
+NET_DEF_SRAM2 static uint32_t s_ykc_monitor_ota_timeout = 0x00;
+NET_DEF_SRAM2 static uint32_t s_ykc_monitor_crc, s_ykc_monitor_actual_crc;
+NET_DEF_SRAM2 static uint32_t s_ykc_monitor_spiflash_addr;
 
-static uint8_t s_ykc_monitor_ota_file_flag[NET_YKC_MONITOR_OTA_FILE_FLAG_TOTAL_LEN];
-static uint32_t s_ykc_monitor_start_tick = 0;
+NET_DEF_SRAM2 static uint8_t s_ykc_monitor_ota_file_flag[NET_YKC_MONITOR_OTA_FILE_FLAG_TOTAL_LEN];
+NET_DEF_SRAM2 static uint32_t s_ykc_monitor_start_tick = 0;
+
 static int32_t ykc_monitor_parse_ota_data(const uint8_t *data, uint32_t len);
 
 void ykc_monitor_set_ota_was_requested_flag(void)
@@ -379,6 +380,22 @@ static int32_t ykc_monitor_parse_ota_data(const uint8_t *data, uint32_t len)
 
 int32_t ykc_monitor_ota_init(void)
 {
+#ifdef NET_DESIGNATE_REGION
+    s_ykc_monitor_ota_info = NULL;
+    s_handle = NULL;
+
+    s_ykc_monitor_crc = 0x00;
+    s_ykc_monitor_actual_crc = 0x00;
+    s_ykc_monitor_ota_timeout = 0x00;
+    s_ykc_monitor_spiflash_addr = 0x00;
+    s_ykc_monitor_start_tick = 0x00;
+
+    memset(&s_ykc_monitor_ota_flag, 0x00, sizeof(s_ykc_monitor_ota_flag));
+    memset(&s_ykc_monitor_server_info, 0x00, sizeof(s_ykc_monitor_server_info));
+    memset(&s_ykc_monitor_ota_storage_info, 0x00, sizeof(s_ykc_monitor_ota_storage_info));
+    memset(s_ykc_monitor_ota_file_flag, 0x00, sizeof(s_ykc_monitor_ota_file_flag));
+#endif /* NET_DESIGNATE_REGION */
+
     if(rt_thread_init(&s_ykc_monitor_ota_thread, "ykc_ota", ykc_monitor_ota_thread_entry, NULL,
             s_ykc_monitor_ota_thread_stack, NET_YKC_MONITOR_OTA_THREAD_STACK_SIZE, NET_OTA_THREAD_PRIORITY, 10) != RT_EOK){
         LOG_E("ykc monitor ota thread create fail, please check");

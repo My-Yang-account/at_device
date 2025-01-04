@@ -47,10 +47,10 @@ struct tha_card_info{
 };
 #pragma pack()
 
-static unsigned char s_rfid_tha_lock = 0x00;
-static unsigned char s_rfid_tha_card_active_cmd[0x02] = {0x00, 0x26};
-static unsigned char s_rfid_tha_request[RFID_THA_REQUEST_BUFF_SIZE];
-static struct tha_card_info s_tha_card_info;
+RFID_DEF_SRAM2 static unsigned char s_rfid_tha_lock = 0x00;
+RFID_DEF_SRAM2 static unsigned char s_rfid_tha_card_active_cmd[0x02] = {0x00, 0x26};
+RFID_DEF_SRAM2 static unsigned char s_rfid_tha_request[RFID_THA_REQUEST_BUFF_SIZE];
+RFID_DEF_SRAM2 static struct tha_card_info s_tha_card_info;
 
 /*****************************************************************************
  *  函数名   rfid_tha_check_sum
@@ -298,6 +298,9 @@ int rfid_tha_active_card(unsigned char *uuid, unsigned char ulen, unsigned char 
     s_rfid_tha_lock = 0x01;
 
     rfid_tha_clear_data();
+
+    s_rfid_tha_card_active_cmd[0x00] = 0x00;
+    s_rfid_tha_card_active_cmd[0x01] = 0x26;
 
     if(s_rfid_tha_padding_request(RFID_THA_CMD_CARD_ACTIVE, s_rfid_tha_card_active_cmd, sizeof(s_rfid_tha_card_active_cmd)) < 0x00){
         s_rfid_tha_lock = 0x00;

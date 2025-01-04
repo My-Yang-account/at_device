@@ -9,6 +9,7 @@
  */
 #include "ota_support.h"
 #include "ftplib.h"
+#include "net_pack_config.h"
 
 struct _ftp_user_arg_cb {
     uint8_t *data;
@@ -16,16 +17,16 @@ struct _ftp_user_arg_cb {
 
 typedef int32_t (*parse)(const uint8_t *data, uint32_t len);
 
-static struct _ftp_user_arg_cb s_ftp_user_arg_cb = {0};
+NET_DEF_SRAM2 static struct _ftp_user_arg_cb s_ftp_user_arg_cb = {0};
 
-static parse s_parse_cb = NULL;
+NET_DEF_SRAM2 static parse s_parse_cb = NULL;
 
-static netbuf *s_conn = NULL;
-static netbuf *s_access = NULL;
-static FtpCallbackOptions s_ftp_opt = {0};
+NET_DEF_SRAM2 static netbuf *s_conn = NULL;
+NET_DEF_SRAM2 static netbuf *s_access = NULL;
+NET_DEF_SRAM2 static FtpCallbackOptions s_ftp_opt = {0};
 
-static uint32_t s_ftp_file_size = 0;
-static uint8_t s_data[FTPLIB_CB_BUFFER] = {0};
+NET_DEF_SRAM2 static uint32_t s_ftp_file_size = 0;
+NET_DEF_SRAM2 static uint8_t s_data[FTPLIB_CB_BUFFER] = {0};
 
 static int ftp_user_func_cb(netbuf *nControl, fsz_t xfered, void *arg)
 {
@@ -46,6 +47,16 @@ int32_t ftp_read(void)
 
 void ftp_callback_init(int32_t (*callback)(const uint8_t *data, uint32_t len))
 {
+#ifdef NET_DESIGNATE_REGION
+    s_parse_cb = NULL;
+    s_conn = NULL;
+    s_access = NULL;
+    s_ftp_file_size = 0;
+
+    memset(&s_ftp_user_arg_cb, 0x00, sizeof(s_ftp_user_arg_cb));
+    memset(&s_ftp_opt, 0x00, sizeof(s_ftp_opt));
+    memset(s_data, 0x00, sizeof(s_data));
+#endif /* NET_DESIGNATE_REGION */
     s_parse_cb = callback;
 }
 

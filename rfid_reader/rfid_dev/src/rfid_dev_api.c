@@ -11,7 +11,7 @@
 #include "rfid_dev_tha.h"
 #include "rfid_dev_mt.h"
 
-static enum rfid_dev_type s_rfid_dev_type = RFID_DEV_TYPE_THA;
+RFID_DEF_SRAM2 static enum rfid_dev_type s_rfid_dev_type = RFID_DEV_TYPE_THA;
 
 /**************************************************
  *  函数名   rfid_set_dev_type
@@ -244,6 +244,8 @@ int32_t rfid_dev_api_init(void)
     /** 钛昕射频识别设备信息初始化 */
 
     /** 铭特射频识别设备信息初始化 */
+
+    s_rfid_dev_type = RFID_DEV_TYPE_THA;
 
     return 0x00;
 }

@@ -65,20 +65,21 @@ struct ycp_ota_flag{
     uint8_t was_requested : 1;
 };
 
-static net_ota_info_t *s_ycp_ota_info = NULL;
-static struct net_handle* s_handle = NULL;
-static struct ycp_ota_flag s_ycp_ota_flag;
-static struct ycp_server_info s_ycp_server_info;
-static struct ycp_ota_storage_info s_ycp_ota_storage_info;
-static struct rt_thread s_ycp_ota_thread;
-static uint8_t s_ycp_ota_thread_stack[NET_YCP_OTA_THREAD_STACK_SIZE];
+NET_DEF_SRAM2 static net_ota_info_t *s_ycp_ota_info = NULL;
+NET_DEF_SRAM2 static struct net_handle* s_handle = NULL;
+NET_DEF_SRAM2 static struct ycp_ota_flag s_ycp_ota_flag;
+NET_DEF_SRAM2 static struct ycp_server_info s_ycp_server_info;
+NET_DEF_SRAM2 static struct ycp_ota_storage_info s_ycp_ota_storage_info;
+NET_DEF_SRAM2 static struct rt_thread s_ycp_ota_thread;
+NET_DEF_SRAM0 static uint8_t s_ycp_ota_thread_stack[NET_YCP_OTA_THREAD_STACK_SIZE];
 
-static uint32_t s_ycp_ota_timeout = 0x00;
-static uint32_t s_ycp_crc, s_ycp_actual_crc;
-static uint32_t s_ycp_spiflash_addr;
+NET_DEF_SRAM2 static uint32_t s_ycp_ota_timeout = 0x00;
+NET_DEF_SRAM2 static uint32_t s_ycp_crc, s_ycp_actual_crc;
+NET_DEF_SRAM2 static uint32_t s_ycp_spiflash_addr;
 
-static uint8_t s_ycp_ota_file_flag[NET_YCP_OTA_FILE_FLAG_TOTAL_LEN];
-static uint32_t s_ycp_start_tick = 0;
+NET_DEF_SRAM2 static uint8_t s_ycp_ota_file_flag[NET_YCP_OTA_FILE_FLAG_TOTAL_LEN];
+NET_DEF_SRAM2 static uint32_t s_ycp_start_tick = 0;
+
 static int32_t ycp_parse_ota_data(const uint8_t *data, uint32_t len);
 
 void ycp_set_ota_was_requested_flag(void)
@@ -371,6 +372,22 @@ static int32_t ycp_parse_ota_data(const uint8_t *data, uint32_t len)
 
 int32_t ycp_ota_init(void)
 {
+#ifdef NET_DESIGNATE_REGION
+    s_ycp_ota_info = NULL;
+    s_handle = NULL;
+
+    s_ycp_crc = 0x00;
+    s_ycp_actual_crc = 0x00;
+    s_ycp_ota_timeout = 0x00;
+    s_ycp_spiflash_addr = 0x00;
+    s_ycp_start_tick = 0x00;
+
+    memset(&s_ycp_ota_flag, 0x00, sizeof(s_ycp_ota_flag));
+    memset(&s_ycp_server_info, 0x00, sizeof(s_ycp_server_info));
+    memset(&s_ycp_ota_storage_info, 0x00, sizeof(s_ycp_ota_storage_info));
+    memset(s_ycp_ota_file_flag, 0x00, sizeof(s_ycp_ota_file_flag));
+#endif /* NET_DESIGNATE_REGION */
+
     if(rt_thread_init(&s_ycp_ota_thread, "ycp_ota", ycp_ota_thread_entry, NULL,
             s_ycp_ota_thread_stack, NET_YCP_OTA_THREAD_STACK_SIZE, NET_OTA_THREAD_PRIORITY, 10) != RT_EOK){
         LOG_E("ycp ota thread create fail, please check");

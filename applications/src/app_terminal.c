@@ -92,11 +92,29 @@ typedef struct{
 
 #pragma pack() /* #pragma pack(1) */                            //回到默认对齐方式
 
-static ems_frame_req s_ems_frame_request;                       //数据发送
-static struct terminal_data s_terminal_data;
-static ems_frame_res s_ems_frame_res;                           //数据接收
-static uint8_t s_power_data_received_flag = 0;                  //是否收到数据标志位
-static uint16_t s_last_power;                                   //上次调整功率数据
+APP_DEF_SRAM1 static ems_frame_req s_ems_frame_request;                       //数据发送
+APP_DEF_SRAM1 static struct terminal_data s_terminal_data;
+APP_DEF_SRAM1 static ems_frame_res s_ems_frame_res;                           //数据接收
+APP_DEF_SRAM1 static uint8_t s_power_data_received_flag = 0;                  //是否收到数据标志位
+APP_DEF_SRAM1 static uint16_t s_last_power;                                   //上次调整功率数据
+
+#ifdef APP_DESIGNATE_REGION
+/*************************************
+ * 函数名       app_terminal_info_init
+ * 功能           中断串口信息、变量初始化
+ * 参数
+ * 返回
+ ************************************/
+void app_terminal_info_init(void)
+{
+    memset(&s_ems_frame_request, 0x00, sizeof(s_ems_frame_request));
+    memset(&s_terminal_data, 0x00, sizeof(s_terminal_data));
+    memset(&s_ems_frame_res, 0x00, sizeof(s_ems_frame_res));
+
+    s_power_data_received_flag = 0;
+    s_last_power = 0;
+}
+#endif /* APP_DESIGNATE_REGION */
 
 /*******************************************************
  * 函数名               terminal_enter_critical

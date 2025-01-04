@@ -34,13 +34,13 @@ typedef struct
     void *service_cb;
 }ykc_service_callback_map;
 
-static ykc_transceiver_flag_set s_ykc_transceiver_flag_set;
-static uint8_t s_ykc_service_number = 0;
-static ykc_service_callback_map s_ykc_service_callback_map[YKC_SERVICE_CALLBACK_ITEM_MAX];
+NET_DEF_SRAM2 static ykc_transceiver_flag_set s_ykc_transceiver_flag_set;
+NET_DEF_SRAM2 static uint8_t s_ykc_service_number = 0;
+NET_DEF_SRAM2 static ykc_service_callback_map s_ykc_service_callback_map[YKC_SERVICE_CALLBACK_ITEM_MAX];
 
-static uint8_t s_ykc_message_recv_buff[YKC_RECV_BUFF_SIZE];
-static struct rt_thread s_ykc_message_recv_thread;
-static uint8_t s_ykc_message_recv_thread_stack[YKC_RECV_THREAD_STACK_SIZE];
+NET_DEF_SRAM2 static uint8_t s_ykc_message_recv_buff[YKC_RECV_BUFF_SIZE];
+NET_DEF_SRAM2 static struct rt_thread s_ykc_message_recv_thread;
+NET_DEF_SRAM0 static uint8_t s_ykc_message_recv_thread_stack[YKC_RECV_THREAD_STACK_SIZE];
 
 #if 0
 static uint16_t ykc_get_check_code(uint16_t crc, uint8_t *data, uint32_t len)
@@ -309,6 +309,14 @@ void *ykc_get_service_callback(uint8_t id)
 
 int32_t ykc_transceiver_init(void)
 {
+#ifdef NET_DESIGNATE_REGION
+    s_ykc_service_number = 0x00;
+
+    memset(&s_ykc_transceiver_flag_set, 0x00, sizeof(s_ykc_transceiver_flag_set));
+    memset(s_ykc_service_callback_map, 0x00, sizeof(s_ykc_service_callback_map));
+    memset(s_ykc_message_recv_buff, 0x00, sizeof(s_ykc_message_recv_buff));
+#endif /* NET_DESIGNATE_REGION */
+
     if(rt_thread_init(&s_ykc_message_recv_thread, "ykc_recv", ykc_message_recv_thread_entry, NULL,
                             s_ykc_message_recv_thread_stack, YKC_RECV_THREAD_STACK_SIZE, 16, 10) != RT_EOK){
         LOG_E("ykc message recv thread init fail");

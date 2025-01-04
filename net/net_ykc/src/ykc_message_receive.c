@@ -18,64 +18,109 @@
 
 #ifdef NET_PACK_USING_YKC
 
-static ykc_qrcode_buf_t s_ykc_qrcode_buf;
-static ykc_card_vin_buf_t s_ykc_card_vin_buf;
+NET_DEF_SRAM2 static ykc_qrcode_buf_t s_ykc_qrcode_buf;
+NET_DEF_SRAM2 static ykc_card_vin_buf_t s_ykc_card_vin_buf;
 
 extern uint8_t s_ykc_current_transaction_number[NET_SYSTEM_GUN_NUMBER][NET_YKC_SERIAL_NUMBER_LENGTH_DEFAULT];
 
 /**=======================================[服务器请求报文]=======================================*/
 /**=======================================[服务器请求报文]=======================================*/
 /** 读取实时数据 */
-Net_YkcPro_SReq_Query_RealTimeData_t g_ykc_sreq_query_realtime_data[NET_SYSTEM_GUN_NUMBER];   // OK
+NET_DEF_SRAM2 Net_YkcPro_SReq_Query_RealTimeData_t g_ykc_sreq_query_realtime_data[NET_SYSTEM_GUN_NUMBER];   // OK
 /** 运营平台远程控制启机 */
-Net_YkcPro_SReq_Remote_StartCharge_t g_ykc_sreq_remote_start_charge[NET_SYSTEM_GUN_NUMBER];   // OK
+NET_DEF_SRAM2 Net_YkcPro_SReq_Remote_StartCharge_t g_ykc_sreq_remote_start_charge[NET_SYSTEM_GUN_NUMBER];   // OK
 /** 运营平台远程停机 */
-Net_YkcPro_SReq_Remote_StopCharge_t g_ykc_sreq_remote_stop_charge[NET_SYSTEM_GUN_NUMBER];   // OK
+NET_DEF_SRAM2 Net_YkcPro_SReq_Remote_StopCharge_t g_ykc_sreq_remote_stop_charge[NET_SYSTEM_GUN_NUMBER];   // OK
 /** 远程账户余额更新 */
-Net_YkcPro_SReq_AccountBallance_Update_t g_ykc_sreq_account_ballance_update[NET_SYSTEM_GUN_NUMBER];   // OK
+NET_DEF_SRAM2 Net_YkcPro_SReq_AccountBallance_Update_t g_ykc_sreq_account_ballance_update[NET_SYSTEM_GUN_NUMBER];   // OK
 /** 离线卡数据同步 */
-Net_YkcPro_SReq_Sync_OfflineCard_t g_ykc_sreq_sync_offline_card;   // OK
+NET_DEF_SRAM2 Net_YkcPro_SReq_Sync_OfflineCard_t g_ykc_sreq_sync_offline_card;   // OK
 /** 离线卡数据清除 */
-Net_YkcPro_SReq_Clear_OfflineCard_t g_ykc_sreq_clear_offline_card;   // OK
+NET_DEF_SRAM2 Net_YkcPro_SReq_Clear_OfflineCard_t g_ykc_sreq_clear_offline_card;   // OK
 /** 离线卡数据查询 */
-Net_YkcPro_SReq_Query_OfflineCard_t g_ykc_sreq_query_offline_card;   // OK
+NET_DEF_SRAM2 Net_YkcPro_SReq_Query_OfflineCard_t g_ykc_sreq_query_offline_card;   // OK
 /** 充电桩工作参数设置 */
-Net_YkcPro_SReq_Set_WorkPara_t g_ykc_sreq_set_work_para;   // OK
+NET_DEF_SRAM2 Net_YkcPro_SReq_Set_WorkPara_t g_ykc_sreq_set_work_para;   // OK
 /** 对时设置 */
-Net_YkcPro_SReq_TimeSync_t g_ykc_sreq_time_sync;   // OK
+NET_DEF_SRAM2 Net_YkcPro_SReq_TimeSync_t g_ykc_sreq_time_sync;   // OK
 /** 计费模型设置 */
-Net_YkcPro_SRep_BillingModel_Set_t g_ykc_sreq_billing_model_set;   // OK
+NET_DEF_SRAM2 Net_YkcPro_SRep_BillingModel_Set_t g_ykc_sreq_billing_model_set;   // OK
 /** 遥控地锁升锁与降锁命令 */
-Net_YkcPro_SReq_GroundLock_Lifting_t g_ykc_sreq_ground_lock_lifting[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 Net_YkcPro_SReq_GroundLock_Lifting_t g_ykc_sreq_ground_lock_lifting[NET_SYSTEM_GUN_NUMBER];
 /** 远程重启 */
-Net_YkcPro_SReq_RemoteReboot_t g_ykc_sreq_remote_reboot;
+NET_DEF_SRAM2 Net_YkcPro_SReq_RemoteReboot_t g_ykc_sreq_remote_reboot;
 /** 远程更新 */
-Net_YkcPro_SReq_RemoteUpdate_t g_ykc_sreq_remote_update;
+NET_DEF_SRAM2 Net_YkcPro_SReq_RemoteUpdate_t g_ykc_sreq_remote_update;
 /** 运营平台远程控制并充启机 */
-Net_YkcPro_SReq_Remote_StartMergeCharge_t g_ykc_sreq_remote_start_merge_charge[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 Net_YkcPro_SReq_Remote_StartMergeCharge_t g_ykc_sreq_remote_start_merge_charge[NET_SYSTEM_GUN_NUMBER];
 /** 运营平台下发二维码配置(国充) */
-Net_YkcPro_SReq_Qrcode_Config_GC_t g_ykc_sreq_qrcode_config_gc[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 Net_YkcPro_SReq_Qrcode_Config_GC_t g_ykc_sreq_qrcode_config_gc[NET_SYSTEM_GUN_NUMBER];
 /** 运营平台下发二维码配置(云快充1.5) */
-Net_YkcPro_SReq_Qrcode_Config_Ykc15_t g_ykc_sreq_qrcode_config_ykc15;
+NET_DEF_SRAM2 Net_YkcPro_SReq_Qrcode_Config_Ykc15_t g_ykc_sreq_qrcode_config_ykc15;
 /** 运营平台下发二维码配置(特来电) */
-Net_YkcPro_SReq_Qrcode_Config_Tld_t g_ykc_sreq_qrcode_config_tld[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 Net_YkcPro_SReq_Qrcode_Config_Tld_t g_ykc_sreq_qrcode_config_tld[NET_SYSTEM_GUN_NUMBER];
 
 /**=======================================[服务器响应报文]=======================================*/
 /**=======================================[服务器响应报文]=======================================*/
 /** 登录签到响应 */
-Net_YkcPro_SRes_LogIn_t g_ykc_sres_login;   // OK
+NET_DEF_SRAM2 Net_YkcPro_SRes_LogIn_t g_ykc_sres_login;   // OK
 ///** 心跳响应 */
-//Net_YkcPro_SRes_HeartBeat_t g_ykc_sres_heartbeat[NET_SYSTEM_GUN_NUMBER];   // OK
+//NET_DEF_SRAM2 Net_YkcPro_SRes_HeartBeat_t g_ykc_sres_heartbeat[NET_SYSTEM_GUN_NUMBER];   // OK
 /** 计费模型验证请求响应 */
-Net_YkcPro_SRes_BillingModel_Verify_t g_ykc_sres_billing_model_verify;   // OK
+NET_DEF_SRAM2 Net_YkcPro_SRes_BillingModel_Verify_t g_ykc_sres_billing_model_verify;   // OK
 /** 计费模型请求响应 */
-Net_YkcPro_SRes_BillingModel_Request_t g_ykc_sres_billing_model_request;   // OK
+NET_DEF_SRAM2 Net_YkcPro_SRes_BillingModel_Request_t g_ykc_sres_billing_model_request;   // OK
 /** 交易记录响应 */
-Net_YkcPro_SRes_TransactionRecords_t g_ykc_sres_transaction_records[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 Net_YkcPro_SRes_TransactionRecords_t g_ykc_sres_transaction_records[NET_SYSTEM_GUN_NUMBER];
 /** 充电桩主动申请启动充电响应 */
-Net_YkcPro_SRes_ApplyCharge_Active_t g_ykc_sres_apply_charge_active[NET_SYSTEM_GUN_NUMBER];   // OK
+NET_DEF_SRAM2 Net_YkcPro_SRes_ApplyCharge_Active_t g_ykc_sres_apply_charge_active[NET_SYSTEM_GUN_NUMBER];   // OK
 /** 充电桩主动申请并充充电响应 */
-Net_YkcPro_SRes_ApplyMergeCharge_Active_t g_ykc_sres_apply_merge_charge_active[NET_SYSTEM_GUN_NUMBER];   // OK
+NET_DEF_SRAM2 Net_YkcPro_SRes_ApplyMergeCharge_Active_t g_ykc_sres_apply_merge_charge_active[NET_SYSTEM_GUN_NUMBER];   // OK
+
+#ifdef NET_DESIGNATE_REGION
+/*************************************************
+ * 函数名      ykc_mreceive_info_init
+ * 功能          云快充平台报文接收信息、变量初始化
+ * **********************************************/
+void ykc_mreceive_info_init(void)
+{
+    /**=======================================[服务器请求报文]=======================================*/
+    /**=======================================[服务器请求报文]=======================================*/
+    memset(g_ykc_sreq_query_realtime_data, 0x00, sizeof(g_ykc_sreq_query_realtime_data));
+    memset(g_ykc_sreq_remote_start_charge, 0x00, sizeof(g_ykc_sreq_remote_start_charge));
+    memset(g_ykc_sreq_remote_stop_charge, 0x00, sizeof(g_ykc_sreq_remote_stop_charge));
+    memset(g_ykc_sreq_account_ballance_update, 0x00, sizeof(g_ykc_sreq_account_ballance_update));
+    memset(g_ykc_sreq_ground_lock_lifting, 0x00, sizeof(g_ykc_sreq_ground_lock_lifting));
+    memset(g_ykc_sreq_remote_start_merge_charge, 0x00, sizeof(g_ykc_sreq_remote_start_merge_charge));
+    memset(g_ykc_sreq_qrcode_config_gc, 0x00, sizeof(g_ykc_sreq_qrcode_config_gc));
+    memset(g_ykc_sreq_qrcode_config_tld, 0x00, sizeof(g_ykc_sreq_qrcode_config_tld));
+
+    memset(&g_ykc_sreq_sync_offline_card, 0x00, sizeof(g_ykc_sreq_sync_offline_card));
+    memset(&g_ykc_sreq_clear_offline_card, 0x00, sizeof(g_ykc_sreq_clear_offline_card));
+    memset(&g_ykc_sreq_query_offline_card, 0x00, sizeof(g_ykc_sreq_query_offline_card));
+    memset(&g_ykc_sreq_set_work_para, 0x00, sizeof(g_ykc_sreq_set_work_para));
+    memset(&g_ykc_sreq_time_sync, 0x00, sizeof(g_ykc_sreq_time_sync));
+    memset(&g_ykc_sreq_billing_model_set, 0x00, sizeof(g_ykc_sreq_billing_model_set));
+    memset(&g_ykc_sreq_remote_reboot, 0x00, sizeof(g_ykc_sreq_remote_reboot));
+    memset(&g_ykc_sreq_remote_update, 0x00, sizeof(g_ykc_sreq_remote_update));
+    memset(&g_ykc_sreq_qrcode_config_ykc15, 0x00, sizeof(g_ykc_sreq_qrcode_config_ykc15));
+
+
+    /**=======================================[服务器响应报文]=======================================*/
+    /**=======================================[服务器响应报文]=======================================*/
+//    memset(g_ykc_sres_heartbeat, 0x00, sizeof(g_ykc_sres_heartbeat));
+    memset(g_ykc_sres_transaction_records, 0x00, sizeof(g_ykc_sres_transaction_records));
+    memset(g_ykc_sres_apply_charge_active, 0x00, sizeof(g_ykc_sres_apply_charge_active));
+    memset(g_ykc_sres_apply_merge_charge_active, 0x00, sizeof(g_ykc_sres_apply_merge_charge_active));
+
+    memset(&g_ykc_sres_login, 0x00, sizeof(g_ykc_sres_login));
+    memset(&g_ykc_sres_billing_model_verify, 0x00, sizeof(g_ykc_sres_billing_model_verify));
+    memset(&g_ykc_sres_billing_model_request, 0x00, sizeof(g_ykc_sres_billing_model_request));
+
+    memset(&s_ykc_qrcode_buf, 0x00, sizeof(s_ykc_qrcode_buf));
+    memset(&s_ykc_card_vin_buf, 0x00, sizeof(s_ykc_card_vin_buf));
+}
+#endif /* NET_DESIGNATE_REGION */
 
 /***********************************************
  * 函数名      ykc_get_qrcode_info

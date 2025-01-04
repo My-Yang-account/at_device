@@ -15,16 +15,37 @@
 
 #define APP_QRCODE_CONFIG_XXCD_PILENUMBER_VALID_LEN          0x08            /** 星星充电二维码配置桩号部分有效长度 */
 
-static struct temperature s_temp_info;
-static ota_info s_ota_info;
+APP_DEF_SRAM1 static struct temperature s_temp_info;
+APP_DEF_SRAM1 static ota_info s_ota_info;
 
-static struct app_version s_version;
-static struct qrcode_info s_qrcode;
-static struct charge_data s_data_of_charging;
-static struct battery_info s_battery_info;
-static struct bms_info s_bms_info;
-static struct account_info s_account_info;
-static struct fault_info s_fault_info;
+APP_DEF_SRAM1 static struct app_version s_version;
+APP_DEF_SRAM1 static struct qrcode_info s_qrcode;
+APP_DEF_SRAM1 static struct charge_data s_data_of_charging;
+APP_DEF_SRAM1 static struct battery_info s_battery_info;
+APP_DEF_SRAM1 static struct bms_info s_bms_info;
+APP_DEF_SRAM1 static struct account_info s_account_info;
+APP_DEF_SRAM1 static struct fault_info s_fault_info;
+
+#ifdef APP_DESIGNATE_REGION
+/*************************************
+ * 函数名       app_data_info_interface_init
+ * 功能           屏幕数据接口信息、变量初始化
+ * 参数
+ * 返回
+ ************************************/
+void app_data_info_interface_init(void)
+{
+    memset(&s_temp_info, 0x00, sizeof(s_temp_info));
+    memset(&s_ota_info, 0x00, sizeof(s_ota_info));
+    memset(&s_version, 0x00, sizeof(s_version));
+    memset(&s_qrcode, 0x00, sizeof(s_qrcode));
+    memset(&s_data_of_charging, 0x00, sizeof(s_data_of_charging));
+    memset(&s_battery_info, 0x00, sizeof(s_battery_info));
+    memset(&s_bms_info, 0x00, sizeof(s_bms_info));
+    memset(&s_account_info, 0x00, sizeof(s_account_info));
+    memset(&s_fault_info, 0x00, sizeof(s_fault_info));
+}
+#endif /* APP_DESIGNATE_REGION */
 
 /********************************************
  * 函数名      thaisen_app_get_ofsm_charge_state

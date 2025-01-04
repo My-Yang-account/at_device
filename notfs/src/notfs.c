@@ -30,20 +30,58 @@ struct notfs_file {
 };
 
 /* supper block */
-static notfs_super_block_t s_notfs_sb[NOTFS_SUBREGION_MAX] = NOTFS_NORFLASH_SUBREGION_TABLE;
+NOTFS_DEF_SRAM2 static notfs_super_block_t s_notfs_sb[NOTFS_SUBREGION_MAX] = NOTFS_NORFLASH_SUBREGION_TABLE;
 /* inode */
-static struct notfs_inode s_notfs_inode[NOTFS_SUBREGION_MAX];
+NOTFS_DEF_SRAM2 static struct notfs_inode s_notfs_inode[NOTFS_SUBREGION_MAX];
 /* data */
-static struct notfs_file s_notfs_file[NOTFS_SUBREGION_MAX];
+NOTFS_DEF_SRAM2 static struct notfs_file s_notfs_file[NOTFS_SUBREGION_MAX];
 
 /* 只是为了加快寻址 */
-static uint32_t s_notfs_current_index[NOTFS_SUBREGION_MAX] = {0};
+NOTFS_DEF_SRAM2 static uint32_t s_notfs_current_index[NOTFS_SUBREGION_MAX] = {0};
 /* 只是为了加快寻址 */
-static uint32_t s_notfs_first_data_index[NOTFS_SUBREGION_MAX] = {0};
+NOTFS_DEF_SRAM2 static uint32_t s_notfs_first_data_index[NOTFS_SUBREGION_MAX] = {0};
 
-static uint8_t s_init_flag_check[NOTFS_SUBREGION_MAX] = {0}, s_is_init[NOTFS_SUBREGION_MAX] = {0};
-static uint32_t s_subregion_start_addr[NOTFS_SUBREGION_MAX] = {0}, s_file_max_count[NOTFS_SUBREGION_MAX] = {0}, s_total_size[NOTFS_SUBREGION_MAX] = {0};
-static bool s_is_power_open = true;
+NOTFS_DEF_SRAM2 static uint8_t s_init_flag_check[NOTFS_SUBREGION_MAX] = {0}, s_is_init[NOTFS_SUBREGION_MAX] = {0};
+NOTFS_DEF_SRAM2 static uint32_t s_subregion_start_addr[NOTFS_SUBREGION_MAX] = {0}, s_file_max_count[NOTFS_SUBREGION_MAX] = {0}, s_total_size[NOTFS_SUBREGION_MAX] = {0};
+NOTFS_DEF_SRAM2 static bool s_is_power_open = true;
+
+#ifdef NOTFS_DESIGNATE_REGION
+/*************************************************
+ * 函数名      notfs_info_init
+ * 功能          记录存储信息、变量初始化
+ * **********************************************/
+void notfs_info_init(void)
+{
+    for(uint8_t region = 0x00; region < NOTFS_SUBREGION_MAX; region++){
+        s_notfs_current_index[region] = 0x00;
+        s_notfs_first_data_index[region] = 0x00;
+        s_init_flag_check[region] = 0x00;
+        s_is_init[region] = 0x00;
+        s_subregion_start_addr[region] = 0x00;
+        s_file_max_count[region] = 0x00;
+        s_total_size[region] = 0x00;
+
+        s_notfs_sb[NOTFS_SUBREGION_GUNNOA_CHARGE_ORDER].subregion_start_addr = GUNNOA_CHARGE_RECORD_ADDRESS;
+        s_notfs_sb[NOTFS_SUBREGION_GUNNOA_CHARGE_ORDER].file_max_count = NOTFS_ORDER_USER_FILE_MAX_COUNT;
+        s_notfs_sb[NOTFS_SUBREGION_GUNNOA_CHARGE_ORDER].subregion_total_size = NOTFS_GUNNOA_CHARGE_ORDER_REGION_SIZE;
+
+        s_notfs_sb[NOTFS_SUBREGION_GUNNOB_CHARGE_ORDER].subregion_start_addr = GUNNOB_CHARGE_RECORD_ADDRESS;
+        s_notfs_sb[NOTFS_SUBREGION_GUNNOB_CHARGE_ORDER].file_max_count = NOTFS_ORDER_USER_FILE_MAX_COUNT;
+        s_notfs_sb[NOTFS_SUBREGION_GUNNOB_CHARGE_ORDER].subregion_total_size = NOTFS_GUNNOB_CHARGE_ORDER_REGION_SIZE;
+
+        s_notfs_sb[NOTFS_SUBREGION_GUNNOA_FAULT_RECORD].subregion_start_addr = GUNNOA_FAULT_RECORD_ADDRESS;
+        s_notfs_sb[NOTFS_SUBREGION_GUNNOA_FAULT_RECORD].file_max_count = NOTFS_ORDER_USER_FILE_MAX_COUNT;
+        s_notfs_sb[NOTFS_SUBREGION_GUNNOA_FAULT_RECORD].subregion_total_size = NOTFS_GUNNOA_FAULT_RECORD_REGION_SIZE;
+
+        s_notfs_sb[NOTFS_SUBREGION_GUNNOB_FAULT_RECORD].subregion_start_addr = GUNNOB_FAULT_RECORD_ADDRESS;
+        s_notfs_sb[NOTFS_SUBREGION_GUNNOB_FAULT_RECORD].file_max_count = NOTFS_ORDER_USER_FILE_MAX_COUNT;
+        s_notfs_sb[NOTFS_SUBREGION_GUNNOB_FAULT_RECORD].subregion_total_size = NOTFS_GUNNOB_FAULT_RECORD_REGION_SIZE;
+    }
+    s_is_power_open = true;
+    memset(s_notfs_inode, 0x00, sizeof(s_notfs_inode));
+    memset(s_notfs_file, 0x00, sizeof(s_notfs_file));
+}
+#endif /* NOTFS_DESIGNATE_REGION */
 
 notfs_err_e notfs_init(void)
 {

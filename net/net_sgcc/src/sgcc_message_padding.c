@@ -87,40 +87,40 @@ struct sgcc_order_charge{
 
 #pragma pack()
 
-static uint8_t s_agcc_applycharge_result[NET_SYSTEM_GUN_NUMBER];
-static uint16_t s_agcc_applycharge_fault_reason[NET_SYSTEM_GUN_NUMBER];
-static uint16_t s_agcc_applycharge_fail_reason[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 static uint8_t s_agcc_applycharge_result[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 static uint16_t s_agcc_applycharge_fault_reason[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 static uint16_t s_agcc_applycharge_fail_reason[NET_SYSTEM_GUN_NUMBER];
 
-static uint8_t s_agcc_remotecharge_result[NET_SYSTEM_GUN_NUMBER];
-static uint16_t s_agcc_remotecharge_fault_reason[NET_SYSTEM_GUN_NUMBER];
-static uint16_t s_agcc_remotecharge_fail_reason[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 static uint8_t s_agcc_remotecharge_result[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 static uint16_t s_agcc_remotecharge_fault_reason[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 static uint16_t s_agcc_remotecharge_fail_reason[NET_SYSTEM_GUN_NUMBER];
 
-static uint8_t s_agcc_remotestop_result[NET_SYSTEM_GUN_NUMBER];
-static uint16_t s_agcc_remotestop_fault_reason[NET_SYSTEM_GUN_NUMBER];
-static uint16_t s_agcc_remotestop_fail_reason[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 static uint8_t s_agcc_remotestop_result[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 static uint16_t s_agcc_remotestop_fault_reason[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 static uint16_t s_agcc_remotestop_fail_reason[NET_SYSTEM_GUN_NUMBER];
 
-static struct sgcc_order_charge s_sgcc_order_charge[NET_SYSTEM_GUN_NUMBER];
-static struct sgcc_flag_info s_sgcc_flag_info[NET_SYSTEM_GUN_NUMBER];
-static struct sgcc_state_info s_sgcc_state_info[NET_SYSTEM_GUN_NUMBER];
-static uint32_t s_sgcc_state_noncharging_count[NET_SYSTEM_GUN_NUMBER];
-static uint32_t s_sgcc_state_charging_count[NET_SYSTEM_GUN_NUMBER];
-static uint32_t s_sgcc_state_charging_interval[NET_SYSTEM_GUN_NUMBER];
-static uint32_t s_sgcc_state_charging_period_first[NET_SYSTEM_GUN_NUMBER];
-static uint32_t s_sgcc_oammeter_val_count[NET_SYSTEM_GUN_NUMBER];
-static uint32_t s_sgcc_faultwarn_count[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 static struct sgcc_order_charge s_sgcc_order_charge[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 static struct sgcc_flag_info s_sgcc_flag_info[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 static struct sgcc_state_info s_sgcc_state_info[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 static uint32_t s_sgcc_state_noncharging_count[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 static uint32_t s_sgcc_state_charging_count[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 static uint32_t s_sgcc_state_charging_interval[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 static uint32_t s_sgcc_state_charging_period_first[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 static uint32_t s_sgcc_oammeter_val_count[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 static uint32_t s_sgcc_faultwarn_count[NET_SYSTEM_GUN_NUMBER];
 
-static uint32_t s_sgcc_bms_data_count[NET_SYSTEM_GUN_NUMBER];
-static uint8_t s_sgcc_bms_data_report_num[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 static uint32_t s_sgcc_bms_data_count[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 static uint8_t s_sgcc_bms_data_report_num[NET_SYSTEM_GUN_NUMBER];
 
-static uint32_t s_sgcc_monitor_property_count[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 static uint32_t s_sgcc_monitor_property_count[NET_SYSTEM_GUN_NUMBER];
 
-static uint16_t s_sgcc_charge_sn[NET_SYSTEM_GUN_NUMBER];
-static uint8_t s_sgcc_operation_sn[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 static uint16_t s_sgcc_charge_sn[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 static uint8_t s_sgcc_operation_sn[NET_SYSTEM_GUN_NUMBER];
 
-static struct rt_thread s_sgcc_realtime_process_thread;
-static uint8_t s_sgcc_realtime_process_thread_stack[4096];
+NET_DEF_SRAM2 static struct rt_thread s_sgcc_realtime_process_thread;
+NET_DEF_SRAM0 static uint8_t s_sgcc_realtime_process_thread_stack[4096];
 
-static struct net_handle* s_sgcc_handle = NULL;
+NET_DEF_SRAM2 static struct net_handle* s_sgcc_handle = NULL;
 
 static uint8_t sgcc_chargepile_transaction_identity_converted(uint8_t identity, uint8_t online_order);
 static uint16_t sgcc_chargepile_stop_reason_converted(uint8_t reason, uint8_t stop_in_starting);
@@ -3968,7 +3968,41 @@ int sgcc_realtime_process_init(void)
     for(uint8_t gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
         s_sgcc_charge_sn[gunno] = 0x01;
         s_sgcc_state_info[gunno].state.connect = SGCC_OPSCTL_SILENT;
+#ifdef NET_DESIGNATE_REGION
+        s_sgcc_state_noncharging_count[gunno] = 0x00;
+        s_sgcc_state_charging_count[gunno] = 0x00;
+        s_sgcc_state_charging_interval[gunno] = 0x00;
+        s_sgcc_state_charging_period_first[gunno] = 0x00;
+        s_sgcc_oammeter_val_count[gunno] = 0x00;
+        s_sgcc_faultwarn_count[gunno] = 0x00;
+        s_sgcc_bms_data_count[gunno] = 0x00;
+        s_sgcc_bms_data_report_num[gunno] = 0x00;
+        s_sgcc_monitor_property_count[gunno] = 0x00;
+        s_sgcc_state_noncharging_count[gunno] = 0x00;
+        s_sgcc_charge_sn[gunno] = 0x00;
+        s_sgcc_operation_sn[gunno] = 0x00;
+
+        s_agcc_applycharge_result[gunno] = 0x00;
+        s_agcc_applycharge_fault_reason[gunno] = 0x00;
+        s_agcc_applycharge_fail_reason[gunno] = 0x00;
+
+        s_agcc_remotecharge_result[gunno] = 0x00;
+        s_agcc_remotecharge_fault_reason[gunno] = 0x00;
+        s_agcc_remotecharge_fail_reason[gunno] = 0x00;
+
+        s_agcc_remotestop_result[gunno] = 0x00;
+        s_agcc_remotestop_fault_reason[gunno] = 0x00;
+        s_agcc_remotestop_fail_reason[gunno] = 0x00;
+
+        memset(&s_sgcc_order_charge[gunno], 0x00, sizeof(s_sgcc_order_charge[gunno]));
+        memset(&s_sgcc_flag_info[gunno], 0x00, sizeof(s_sgcc_flag_info[gunno]));
+        memset(&s_sgcc_state_info[gunno], 0x00, sizeof(s_sgcc_state_info[gunno]));
+#endif /* NET_DESIGNATE_REGION */
     }
+#ifdef NET_DESIGNATE_REGION
+    s_sgcc_handle = NULL;
+#endif /* NET_DESIGNATE_REGION */
+
     if(rt_thread_init(&s_sgcc_realtime_process_thread, "sgcc_rl_pro", sgcc_realtime_process_thread_entry, NULL,
             s_sgcc_realtime_process_thread_stack, SGCC_REALTIME_PROCESS_THREAD_STACK_SIZE, 16, 10) != RT_EOK){
         LOG_E("sgcc realtime process thread create fail, please check");

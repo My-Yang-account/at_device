@@ -29,11 +29,12 @@ typedef struct
     unsigned short kw[SMART_GUN_TIME_SIZE];          // 5   策略配置功率//整型数组。功率精确到0.1KW[kw1,kw2,kw3…]
 } smart_gun_param_t;
 
-static smart_gun_param_t s_smart_gun_param;
+//static smart_gun_param_t s_smart_gun_param;
 
 ///将策略生效时间从字符串转为整数
 void time_str_to_min_int(void)
 {
+#if 0
     int hour = 0, min = 0;
 
     for (int var = 0; var < SMART_GUN_TIME_SIZE; ++var)
@@ -43,6 +44,7 @@ void time_str_to_min_int(void)
 
         s_smart_gun_param.valiMin[var] = hour * 60 + min;
     }
+#endif
 }
 
 unsigned short get_current_smart_gun_kw(unsigned int t)
