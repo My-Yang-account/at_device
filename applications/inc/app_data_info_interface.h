@@ -58,7 +58,7 @@ enum ofsm_state thaisen_app_get_ofsm_charge_state(uint8_t gunno);
 enum net_state thaisen_app_get_net_state(void);
 
 struct app_version{
-    uint8_t version[8];
+    uint8_t version[20];
 };
 struct app_version *thaisen_app_get_app_version(void);
 

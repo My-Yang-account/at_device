@@ -126,6 +126,11 @@
 //#define CP_QRCODE_CONFIG_USING_NJ                     /* 二维码配置使用能佳 */
 //#define CP_QRCODE_CONFIG_USING_SGCC                   /* 二维码配置使用国网 */
 
+//#define CP_PLATFORM_USING_YCP                           /* 平台使用越城公用 */
+//#define CP_PLATFORM_USING_XXCD                          /* 平台使用星星充电 */
+//#define CP_PLATFORM_USING_TLD                           /* 平台使用特来电 */
+//#define CP_PLATFORM_USING_SGCC                          /* 平台使用国网 */
+
 /** 域名默认 */
 /**------------------------------------------------------------*/
 #ifdef CP_DOMAIN_USING_NJ
@@ -141,6 +146,20 @@
 #define CP_DOMAIN_DEFAULT                         "121.43.69.62"           /* 云快充IP */
 #define CP_PORT_DEFAULT                           8767                     /* 云快充端口 */
 #endif /* APP_DOMAIN_USING_NJ */
+
+/** 连接平台默认 */
+/**------------------------------------------------------------*/
+#ifdef CP_PLATFORM_USING_YCP
+#define CP_PLATFORM_ID                            2L                       /* 越城公用平台ID */
+#elif defined(CP_PLATFORM_USING_XXCD)
+#define CP_PLATFORM_ID                            6L                       /* 星星充电平台ID */
+#elif defined(CP_PLATFORM_USING_TLD)
+#define CP_PLATFORM_ID                            7L                       /* 特来电平台ID */
+#elif defined(CP_PLATFORM_USING_SGCC)
+#define CP_PLATFORM_ID                            1L                       /* 国网平台ID */
+#else
+#define CP_PLATFORM_ID                            0L                       /* 云快充平台ID */
+#endif /* CP_PLATFORM_USING_YCP */
 
 /** 二维码前缀默认 */
 /**------------------------------------------------------------*/
