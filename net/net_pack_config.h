@@ -68,6 +68,10 @@
 #define NET_YKC_PRO_USING_AC                                      /* 云快充协议使用交流部分 */
 #endif /* NET_PACK_USING_YKC */
 #define NET_YKC_PRO_ID                                0x00000002 /* 云快充协议ID */
+
+//#define NET_YKC_DERIVE_PRO_XXCD                                   /* 云快充衍生协议：星星充电 */
+//#define NET_YKC_DERIVE_PRO_TLD                                    /* 云快充衍生协议：特来电 */
+//#define NET_YKC_DERIVE_PRO_DUPU                                   /* 云快充衍生协议：度普 */
 /*************************************************** 云快充监控协议 **********************************************************/
 #ifdef NET_PACK_USING_YKC_MONITOR
 #define NET_YKC_MONITOR_AS_MONITOR                                /* 云快充平台作为监控平台 */

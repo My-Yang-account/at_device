@@ -3471,7 +3471,16 @@ int8_t ykc_monitor_message_padding_dev_info(uint8_t *buf, uint16_t ilen, uint16_
 
 #ifdef NET_INCLUDE_TARGET_PLATFORM
 #if (NET_TARGET_PLATFORM_ID == NET_YKC_PRO_ID)
-    message->body.target_plat_protocol = 0x01;
+#ifdef NET_YKC_DERIVE_PRO_XXCD
+    message->body.target_plat_protocol = 0x07;
+#elif defined(NET_YKC_DERIVE_PRO_TLD)
+    message->body.target_plat_protocol = 0x08;
+#elif defined(NET_YKC_DERIVE_PRO_DUPU)
+    message->body.target_plat_protocol = 0x09;
+#else
+    message->body.target_plat_protocol = 0x0A;
+#endif /* NET_YKC_DERIVE_PRO_XXCD */
+
 #elif (NET_TARGET_PLATFORM_ID == NET_YCP_PRO_ID)
     message->body.target_plat_protocol = 0x02;
 #elif (NET_TARGET_PLATFORM_ID == NET_YND_PRO_ID)
