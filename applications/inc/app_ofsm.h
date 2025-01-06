@@ -297,11 +297,11 @@ typedef struct
 #endif /* (defined (APP_INCLUDE_YKC_PROTOCOL) || defined (APP_INCLUDE_YKC_PROTOCOL_MONITOR)) */
 
 #if (defined (APP_INCLUDE_SL_PROTOCOL) || defined (APP_INCLUDE_SGCC_PROTOCOL))
-    uint16_t period_elect[APP_BILLING_RULE_PERIOD_MAX];            /* 时段电量 */
-    uint16_t period_elect_fees[APP_BILLING_RULE_PERIOD_MAX];       /* 时段电费 */
-    uint16_t period_service_fees[APP_BILLING_RULE_PERIOD_MAX];     /* 时段服务费 */
-    uint16_t period_occupy_fees[APP_BILLING_RULE_PERIOD_MAX];      /* 时段占位费 */
-    struct billing_rule rule;             /* 计费规则 */
+    uint32_t period_elect[APP_BILLING_RULE_PERIOD_MAX];            /* 时段电量 */
+    uint32_t period_elect_fees[APP_BILLING_RULE_PERIOD_MAX];       /* 时段电费 */
+    uint32_t period_service_fees[APP_BILLING_RULE_PERIOD_MAX];     /* 时段服务费 */
+    uint32_t period_occupy_fees[APP_BILLING_RULE_PERIOD_MAX];      /* 时段占位费 */
+    uint8_t reserve[146];
 #endif /* (defined (APP_INCLUDE_SL_PROTOCOL) || defined (APP_INCLUDE_SGCC_PROTOCOL)) */
 
 #ifdef APP_INCLUDE_SGCC_PROTOCOL
