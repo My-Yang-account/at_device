@@ -831,6 +831,52 @@ void thaisen_set_ammnterModel(uint8_t model);
  */
 uint8_t thaisen_get_ammnterModel(void);
 
+/* 功能说明:
+ *          thaisen_set_gunVolt:设置枪端电压(用于无电表时)
+ * 输入参数:           volt   电压(0.1)
+ *          gunNum  枪号
+ *
+ * 返回参数:
+ *
+ * 调用方法:
+ *          实时调用
+ */
+void thaisen_set_gunVolt(uint32_t volt, uint8_t gunNum);
+
+/* 功能说明:
+ *          thaisen_get_gunVolt:获取枪端电压(用于无电表时)
+ * 输入参数:           gunNum  枪号
+ *
+ * 返回参数:
+ *                             枪端电压(0.1)
+ * 调用方法:
+ *          实时调用
+ */
+uint32_t thaisen_get_gunVolt(uint8_t gunNum);
+
+/* 功能说明:
+ *          thaisen_set_gunCurr:设置枪端电流(用于无电表时)
+ * 输入参数:           curr   电流(0.1)
+ *          gunNum  枪号
+ *
+ * 返回参数:
+ *
+ * 调用方法:
+ *          实时调用
+ */
+void thaisen_set_gunCurr(uint32_t curr, uint8_t gunNum);
+
+/* 功能说明:
+ *          thaisen_get_gunCurr:获取枪端电流(用于无电表时)
+ * 输入参数:           gunNum  枪号
+ *
+ * 返回参数:
+ *                             枪端电流(0.1)
+ * 调用方法:
+ *          实时调用
+ */
+uint32_t thaisen_get_gunCurr(uint8_t gunNum);
+
 /*****************************************************************************************************/
 
 /*********************************FLASH***************************************************************/

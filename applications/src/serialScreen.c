@@ -1615,16 +1615,21 @@ void SerialScreen_SetMeterInfo(void)
 	{
 	    len[i] = str_len(LcdData.setData.MeterAddr[i]);
         sSCREEN_EVENT_DEBUGMSG("LcdData.setData.MeterAddr[%d][0] = %d \r\n",i,LcdData.setData.MeterAddr[i][0]);
-        if((len[i])&&((LcdData.setData.MeterAddr[i][0] != 'A') && (LcdData.setData.MeterAddr[i][0] != 'a')))
+        if((len[i])&&  \
+                ((LcdData.setData.MeterAddr[i][0] != 'A') && (LcdData.setData.MeterAddr[i][0] != 'a')) &&   \
+                ((LcdData.setData.MeterAddr[i][0] != 'F') && (LcdData.setData.MeterAddr[i][0] != 'f')))
 		{
 			String2BCD(LcdData.setData.MeterAddr[i],meterNo[i]);
-
-//			mem_swap(meterNo[i],sizeof(meterNo[i]));
 		}
 		else
 		{
-			for(j = 0; j < sizeof(meterNo[LCD_GUN_NUM]); j++ )
-				meterNo[i][j] = 0xAA;
+            if((LcdData.setData.MeterAddr[i][0] == 'F') || (LcdData.setData.MeterAddr[i][0] == 'f')){
+                for(j = 0; j < sizeof(meterNo[i]); j++ )
+                    meterNo[i][j] = 0xFF;
+            }else{
+                for(j = 0; j < sizeof(meterNo[i]); j++ )
+                    meterNo[i][j] = 0xAA;
+            }
 		}
 #if 1
 		sSCREEN_EVENT_DEBUGMSG("SetMeter[%d] No \r\n",i);
