@@ -145,7 +145,7 @@ extern Net_YkcMonitorPro_Sreq_Pres_InfoPara_ModifyConfirm_t g_ykc_monitor_sreq_p
 /** IP、服务器IP、端口、桩号信息确认结果响应 */
 extern Net_YkcMonitorPro_Sres_InfoPara_ConfirmResult_t g_ykc_monitor_sres_info_para_confirm_result;
 /** 服务器下发修改设备信息请求 */
-Net_YkcMonitorPro_Sreq_Modify_DeviceInfo_t g_ykc_monitor_sreq_modify_device_info;
+extern Net_YkcMonitorPro_Sreq_Modify_DeviceInfo_t g_ykc_monitor_sreq_modify_device_info;
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
 
 #pragma pack(1)
