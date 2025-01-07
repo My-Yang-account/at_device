@@ -1869,15 +1869,15 @@ int8_t sgcc_message_pro_query_dev_record_request(uint8_t gunno, void *data, uint
 
         evs_event_logQuery_Results[gunno].dataArea.tradeInfo.reason = sgcc_chargepile_stop_reason_converted(_transaction->stop_reason, _transaction->order_state.is_start_fail);                            // 11 停止充电原因
 
-        valid_len = sizeof(_transaction->rule.elect_model_sn);
+        valid_len = sizeof(_transaction->elect_model_sn);
         valid_len = valid_len > EVS_MAX_MODEL_ID_LEN ? EVS_MAX_MODEL_ID_LEN : valid_len;
         memset(evs_event_logQuery_Results[gunno].dataArea.tradeInfo.eleModelId, 0x00, sizeof(evs_event_logQuery_Results[gunno].dataArea.tradeInfo.eleModelId));
-        memcpy(evs_event_logQuery_Results[gunno].dataArea.tradeInfo.eleModelId, _transaction->rule.elect_model_sn, valid_len);
+        memcpy(evs_event_logQuery_Results[gunno].dataArea.tradeInfo.eleModelId, _transaction->elect_model_sn, valid_len);
 
-        valid_len = sizeof(_transaction->rule.service_model_sn);
+        valid_len = sizeof(_transaction->service_model_sn);
         valid_len = valid_len > EVS_MAX_MODEL_ID_LEN ? EVS_MAX_MODEL_ID_LEN : valid_len;
         memset(evs_event_logQuery_Results[gunno].dataArea.tradeInfo.serModelId, 0x00, sizeof(evs_event_logQuery_Results[gunno].dataArea.tradeInfo.serModelId));
-        memcpy(evs_event_logQuery_Results[gunno].dataArea.tradeInfo.serModelId, _transaction->rule.service_model_sn, valid_len);
+        memcpy(evs_event_logQuery_Results[gunno].dataArea.tradeInfo.serModelId, _transaction->service_model_sn, valid_len);
 
         evs_event_logQuery_Results[gunno].dataArea.tradeInfo.sumStart = _transaction->ammeter_start;
         evs_event_logQuery_Results[gunno].dataArea.tradeInfo.sumEnd = _transaction->ammeter_stop;
@@ -2665,15 +2665,15 @@ uint8_t sgcc_chargepile_request_padding_transaction_record(uint8_t gunno, void *
 
         evs_event_tradeInfos[gunno].reason = sgcc_chargepile_stop_reason_converted(_transaction->stop_reason, _transaction->order_state.is_start_fail);
 
-        valid_len = sizeof(_transaction->rule.elect_model_sn);
+        valid_len = sizeof(_transaction->elect_model_sn);
         valid_len = valid_len > EVS_MAX_MODEL_ID_LEN ? EVS_MAX_MODEL_ID_LEN : valid_len;
         memset(evs_event_tradeInfos[gunno].eleModelId, 0x00, sizeof(evs_event_tradeInfos[gunno].eleModelId));
-        memcpy(evs_event_tradeInfos[gunno].eleModelId, _transaction->rule.elect_model_sn, valid_len);
+        memcpy(evs_event_tradeInfos[gunno].eleModelId, _transaction->elect_model_sn, valid_len);
 
-        valid_len = sizeof(_transaction->rule.service_model_sn);
+        valid_len = sizeof(_transaction->service_model_sn);
         valid_len = valid_len > EVS_MAX_MODEL_ID_LEN ? EVS_MAX_MODEL_ID_LEN : valid_len;
         memset(evs_event_tradeInfos[gunno].serModelId, 0x00, sizeof(evs_event_tradeInfos[gunno].serModelId));
-        memcpy(evs_event_tradeInfos[gunno].serModelId, _transaction->rule.service_model_sn, valid_len);
+        memcpy(evs_event_tradeInfos[gunno].serModelId, _transaction->service_model_sn, valid_len);
 
         evs_event_tradeInfos[gunno].sumStart = _transaction->ammeter_start;
         evs_event_tradeInfos[gunno].sumEnd = _transaction->ammeter_stop;

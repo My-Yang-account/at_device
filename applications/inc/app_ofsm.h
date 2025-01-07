@@ -301,7 +301,9 @@ typedef struct
     uint32_t period_elect_fees[APP_BILLING_RULE_PERIOD_MAX];       /* 时段电费 */
     uint32_t period_service_fees[APP_BILLING_RULE_PERIOD_MAX];     /* 时段服务费 */
     uint32_t period_occupy_fees[APP_BILLING_RULE_PERIOD_MAX];      /* 时段占位费 */
-    uint8_t reserve[146];
+    uint8_t elect_model_sn[APP_BILLING_MODEL_SN_LEN + 1];          /* 电费计费模型编号 */
+    uint8_t service_model_sn[APP_BILLING_MODEL_SN_LEN + 1];        /* 服务费计费模型编号 */
+    uint8_t reserve3[112];
 #endif /* (defined (APP_INCLUDE_SL_PROTOCOL) || defined (APP_INCLUDE_SGCC_PROTOCOL)) */
 
 #ifdef APP_INCLUDE_SGCC_PROTOCOL

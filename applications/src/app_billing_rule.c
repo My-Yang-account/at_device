@@ -33,6 +33,8 @@ struct billing_info{
     uint32_t start_elect;                                      /** 充电起始电量(精度：0.001) */
     uint32_t stop_elect;                                       /** 充电结束电量(精度：0.001) */
     uint32_t origin_elect;                                     /** 未加电损比的总充电电量(精度：0.001) */
+    uint8_t elect_model_sn[APP_BILLING_MODEL_SN_LEN + 1];      /** 电费计费模型编号 */
+    uint8_t service_model_sn[APP_BILLING_MODEL_SN_LEN + 1];    /** 服务费计费模型编号 */
 };
 
 struct billing_assistant_info{
@@ -204,20 +206,6 @@ uint8_t app_billingrule_is_valid(uint8_t gunno)
     return 0x00;
 }
 
-/*******************************************************
- * 函数名               app_billingrule_get_rule
- * 功能                  获取指定枪的计费规则
- * 参数                  gunno     枪号
- * 返回
- ******************************************************/
-struct billing_rule app_billingrule_get_rule(uint8_t gunno)
-{
-    if(gunno >= APP_SYSTEM_GUNNO_SIZE){
-        return s_billing_rule[APP_SYSTEM_GUNNOA];
-    }
-    return s_billing_rule[gunno];
-}
-
 /*******************************************
  * 函数名            app_billingrule_update_billingrule_info
  * 功能                更新对应枪的计费策略
@@ -258,8 +246,8 @@ void app_billingrule_set_elect_model_sn(uint8_t gunno, uint8_t *sn, uint8_t len)
     uint8_t valid_len = len;
     valid_len = valid_len > (APP_BILLING_MODEL_SN_LEN + 0x01) ? (APP_BILLING_MODEL_SN_LEN + 0x01) : valid_len;
 
-    memset(s_billing_rule[gunno].elect_model_sn, 0x00, (APP_BILLING_MODEL_SN_LEN + 0x01));
-    memcpy(s_billing_rule[gunno].elect_model_sn, sn, valid_len);
+    memset(s_billing_info[gunno].elect_model_sn, 0x00, (APP_BILLING_MODEL_SN_LEN + 0x01));
+    memcpy(s_billing_info[gunno].elect_model_sn, sn, valid_len);
     s_billing_assistant_info.billing_rule_update_gunno = gunno;
 }
 
@@ -273,7 +261,7 @@ uint8_t *app_billingrule_get_elect_model_sn(uint8_t gunno)
         return 0x00;
     }
 
-    return s_billing_rule[gunno].elect_model_sn;
+    return s_billing_info[gunno].elect_model_sn;
 }
 
 /*******************************************
@@ -288,8 +276,8 @@ void app_billingrule_set_service_model_sn(uint8_t gunno, uint8_t *sn, uint8_t le
     uint8_t valid_len = len;
     valid_len = valid_len > (APP_BILLING_MODEL_SN_LEN + 0x01) ? (APP_BILLING_MODEL_SN_LEN + 0x01) : valid_len;
 
-    memset(s_billing_rule[gunno].service_model_sn, 0x00, (APP_BILLING_MODEL_SN_LEN + 0x01));
-    memcpy(s_billing_rule[gunno].service_model_sn, sn, valid_len);
+    memset(s_billing_info[gunno].service_model_sn, 0x00, (APP_BILLING_MODEL_SN_LEN + 0x01));
+    memcpy(s_billing_info[gunno].service_model_sn, sn, valid_len);
     s_billing_assistant_info.billing_rule_update_gunno = gunno;
 }
 
@@ -303,7 +291,7 @@ uint8_t *app_billingrule_get_service_model_sn(uint8_t gunno)
         return 0x00;
     }
 
-    return s_billing_rule[gunno].service_model_sn;
+    return s_billing_info[gunno].service_model_sn;
 }
 
 /****************************************************[计费规则信息]**********************************************************/

@@ -76,8 +76,6 @@ APP_DEF_SRAM1 static uint32_t s_compare_ccs_module_count[APP_SYSTEM_GUNNO_SIZE];
 APP_DEF_SRAM1 static uint32_t s_bms_require_curr_last[APP_SYSTEM_GUNNO_SIZE];
 APP_DEF_SRAM1 static uint8_t s_bms_reqcurr_changed_count[APP_SYSTEM_GUNNO_SIZE];
 
-extern struct rt_messagequeue g_buzzon_mq;
-
 #ifdef APP_DESIGNATE_REGION
 /*************************************
  * 函数名       app_ofsm_info_init
@@ -1247,7 +1245,11 @@ static void ofsm_start_info_padding_public(uint8_t gunno)
     memset(s_thaisen_transaction[gunno].period_elect_fees, 0x00, sizeof(s_thaisen_transaction[gunno].period_elect_fees));
     memset(s_thaisen_transaction[gunno].period_service_fees, 0x00, sizeof(s_thaisen_transaction[gunno].period_service_fees));
     memset(s_thaisen_transaction[gunno].period_occupy_fees, 0x00, sizeof(s_thaisen_transaction[gunno].period_occupy_fees));
-    s_thaisen_transaction[gunno].rule = app_billingrule_get_rule(gunno);
+    memset(s_thaisen_transaction[gunno].elect_model_sn, 0x00, (APP_BILLING_MODEL_SN_LEN + 1));
+    memset(s_thaisen_transaction[gunno].service_model_sn, 0x00, (APP_BILLING_MODEL_SN_LEN + 1));
+
+    memcpy(s_thaisen_transaction[gunno].elect_model_sn, app_billingrule_get_elect_model_sn(gunno), APP_BILLING_MODEL_SN_LEN);
+    memcpy(s_thaisen_transaction[gunno].service_model_sn, app_billingrule_get_service_model_sn(gunno), APP_BILLING_MODEL_SN_LEN);
 #endif /* (defined (APP_INCLUDE_SL_PROTOCOL) || defined (APP_INCLUDE_SGCC_PROTOCOL)) */
 
 #ifdef APP_INCLUDE_XJ_PROTOCOL
@@ -4743,9 +4745,9 @@ static void ofsm_faulting_fun(uint8_t gunno)
                 if(app_nsal_is_remote_start(gunno)){
                     app_nsal_clear_remote_start(gunno);
                     if(s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
-        #ifndef APP_USING_DOUBLEGUN
+#ifndef APP_USING_DOUBLEGUN
                         break;      /** 单枪不允许并充 */
-        #endif /* APP_USING_DOUBLEGUN */
+#endif /* APP_USING_DOUBLEGUN */
                     }
 
                     /* 经过平台启动的， 已填充以下字段
