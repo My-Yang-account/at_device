@@ -12,12 +12,16 @@
 
 uint8_t mw_is_can_recved(thaisenIsCANRecv en)
 {
+#ifndef APP_USING_DOUBLEGUN
     return thaisen_is_can_recved(en);
+#endif /* APP_USING_DOUBLEGUN */
 }
 
 void mw_clear_can_recved(thaisenIsCANRecv en)
 {
+#ifndef APP_USING_DOUBLEGUN
     thaisen_clear_can_recved(en);
+#endif /* APP_USING_DOUBLEGUN */
 }
 
 void mw_bmsa_can_send(uint32_t id, uint8_t *data, uint8_t dlen)
@@ -58,6 +62,7 @@ void mw_bmsb_can_send(uint32_t id, uint8_t *data, uint8_t dlen)
 
 void mw_tcu_can_send(uint32_t id, uint8_t *data, uint8_t dlen)
 {
+#if 0
     can_msg_buf message;
 
     memset(&message, 0x00, sizeof(message));
@@ -72,6 +77,7 @@ void mw_tcu_can_send(uint32_t id, uint8_t *data, uint8_t dlen)
     }
 
     thaisen_tcu_can_send(&message);
+#endif
 }
 
 void mw_module_can_send(uint32_t id, uint8_t *data, uint8_t dlen)
@@ -128,6 +134,7 @@ void mw_bmsb_can_recv(mw_can_info *buf)
 
 void mw_tcu_can_recv(mw_can_info *buf)
 {
+#if 0
     if(buf){
         can_msg_buf message = thaisen_get_tcu_dat();
 
@@ -140,6 +147,7 @@ void mw_tcu_can_recv(mw_can_info *buf)
             memcpy(buf->data, message.data, buf->length);
         }
     }
+#endif
 }
 
 void mw_module_can_recv(mw_can_info *buf)
@@ -157,3 +165,4 @@ void mw_module_can_recv(mw_can_info *buf)
         }
     }
 }
+
