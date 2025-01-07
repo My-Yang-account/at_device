@@ -60,6 +60,7 @@ NET_DEF_SRAM2 static uint8_t s_sgcc_same_transaction_report_count[NET_SYSTEM_GUN
 NET_DEF_SRAM2 static uint8_t s_sgcc_transaction_verify[NET_SYSTEM_GUN_NUMBER];
 NET_DEF_SRAM2 static struct sgcc_wait_response s_sgcc_wait_response;
 NET_DEF_SRAM2 static uint32_t s_sgcc_message_send_state[NET_SYSTEM_GUN_NUMBER];                       /* 报文发送状态 */
+NET_DEF_SRAM2 uint32_t g_net_target_platform_tick = 0x00;
 
 NET_DEF_SRAM2 static struct rt_thread s_sgcc_message_send_thread;
 NET_DEF_SRAM0 static uint8_t s_sgcc_message_send_thread_stack[NET_SGCC_MESSAGE_SEND_THREAD_STACK_SIZE];
@@ -454,6 +455,8 @@ static void sgcc_connect_thread_entry(void *parameter)
 
     while(1)
     {
+        g_net_target_platform_tick = rt_tick_get();
+
         if((net_get_ota_info()->state >= NET_OTA_STATE_LOGIN_WAIT) && (net_get_ota_info()->state <= NET_OTA_STATE_UPDATING)){
             rt_thread_mdelay(5000);
             continue;
@@ -761,6 +764,8 @@ static void sgcc_message_send_thread_entry(void *parameter)
 
     while(1)
     {
+        g_net_target_platform_tick = rt_tick_get();
+
         if((net_get_ota_info()->state >= NET_OTA_STATE_LOGIN_WAIT) && (net_get_ota_info()->state <= NET_OTA_STATE_UPDATING)){
             rt_thread_mdelay(5000);
             continue;
@@ -1388,7 +1393,7 @@ int sgcc_message_send_init(void)
             s_sgcc_server_event[event][gunno] = 0x00;
         }
     }
-
+    g_net_target_platform_tick = 0x00;
     s_sgcc_time_sync_count = 0x00;
     memset(&s_sgcc_flag_set, 0x00, sizeof(s_sgcc_flag_set));
 
