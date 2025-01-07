@@ -1864,6 +1864,21 @@ int32_t chargepile_check_config(void)
     if(s_chargepile_config_info.function_enable.plug_charge > 0x01){       /* 即插即充默认关闭 */
         s_chargepile_config_info.function_enable.plug_charge = 0x00;
     }
+    if(s_chargepile_config_info.function_enable.bcs > 0x01){               /* BCS功能默认关闭 */
+        s_chargepile_config_info.function_enable.bcs = 0x00;
+    }
+    if(s_chargepile_config_info.function_enable.bsm > 0x01){               /* BSM功能默认关闭 */
+        s_chargepile_config_info.function_enable.bsm = 0x00;
+    }
+    if(s_chargepile_config_info.function_enable.acrelay_out > 0x01){       /* 交流接触器输出启用默认关闭 */
+        s_chargepile_config_info.function_enable.acrelay_out = 0x00;
+    }
+    if(s_chargepile_config_info.function_enable.fan_out > 0x01){           /* 风扇输出启用默认关闭 */
+        s_chargepile_config_info.function_enable.fan_out = 0x00;
+    }
+    if(s_chargepile_config_info.function_enable.elock_in > 0x01){          /* 电子锁输入检测默认开启 */
+        s_chargepile_config_info.function_enable.elock_in = 0x01;
+    }
 
     if(s_chargepile_config_info.state_reversal.emergency_stop > 0x01){   /* 急停默认不取反 */
         s_chargepile_config_info.state_reversal.emergency_stop = 0x00;
