@@ -5,7 +5,7 @@
 /* Program Entry, set to mark it as "used" and avoid gc */
 MEMORY
 {
-ROM (rx) : ORIGIN =0x08010000,LENGTH =1920k
+ROM (rx) : ORIGIN =0x08020000,LENGTH =896k
 RAM (rw) : ORIGIN =0x20030000,LENGTH =512k
 TCMRAM (rw) : ORIGIN =0x10000000,LENGTH =64k
 SRAM0  (rw) : ORIGIN =0x20000000,LENGTH =112k
@@ -64,6 +64,7 @@ SECTIONS
 		KEEP(*user_pwm_fan.o(.text .text.*))
 		KEEP(*user_relay.o(.text .text.*))
 		KEEP(*thaisenAmmeter.o(.text .text.*))
+		KEEP(*thaisenLiquid.o(.text .text.*))
 		
 		KEEP(*thaisenChargModule.o(.text .text.*))
 		KEEP(*thaisenGuoWang.o(.text .text.*))
