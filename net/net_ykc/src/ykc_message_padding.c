@@ -781,7 +781,8 @@ int8_t ykc_message_pro_billing_model_set_response(void *data, uint8_t len)
     for(uint8_t _gunno = 0x00; _gunno < NET_SYSTEM_GUN_NUMBER; _gunno++){
         uint8_t gunno = _gunno;
         base = (System_BaseData*)(s_ykc_handle->get_base_data(gunno));
-        if((base->state.current == APP_OFSM_STATE_CHARGING) || (base->state.current == APP_OFSM_STATE_STARTING) ||
+        if((base->state.current == APP_OFSM_STATE_CHARGING) ||
+                ((base->state.current == APP_OFSM_STATE_STARTING) && (base->start_type != APP_CHARGE_START_WAY_VIN)) ||
                 (base->state.current == APP_OFSM_STATE_STOPING)){
             net_operation_set_event(gunno, NET_OPERATION_EVENT_UPDATE_BILLING_RULE);
             gunno = NET_SYSTEM_GUN_NUMBER;
