@@ -2615,6 +2615,19 @@ static void ofsm_starting_fun(uint8_t gunno)
 
                     s_thaisen_transaction[gunno].order_state.online_order = APP_THA_ENUM_TRUE;
 
+#if (defined (APP_INCLUDE_YKC_PROTOCOL) || defined (APP_INCLUDE_YKC_PROTOCOL_MONITOR) || defined (APP_INCLUDE_YCP_PROTOCOL) || \
+                    defined (APP_INCLUDE_SGCC_PROTOCOL))
+                    for(uint8_t type = 0x00; type < APP_BILLING_RULE_RATE_TYPE_MAX; type++){
+                        s_thaisen_transaction[gunno].rate_type_unit[type] = app_billingrule_get_rate_type_price(gunno, type);
+                    }
+#endif /* (defined (APP_INCLUDE_YKC_PROTOCOL) || defined (APP_INCLUDE_YKC_PROTOCOL_MONITOR) || defined (APP_INCLUDE_YCP_PROTOCOL) ||
+    defined (APP_INCLUDE_SGCC_PROTOCOL)) */
+
+#if (defined (APP_INCLUDE_SL_PROTOCOL) || defined (APP_INCLUDE_SGCC_PROTOCOL))
+                    memcpy(s_thaisen_transaction[gunno].elect_model_sn, app_billingrule_get_elect_model_sn(gunno), APP_BILLING_MODEL_SN_LEN);
+                    memcpy(s_thaisen_transaction[gunno].service_model_sn, app_billingrule_get_service_model_sn(gunno), APP_BILLING_MODEL_SN_LEN);
+#endif /* (defined (APP_INCLUDE_SL_PROTOCOL) || defined (APP_INCLUDE_SGCC_PROTOCOL)) */
+
                     app_nsal_clear_remote_vin_authorize(gunno);
                     app_nsal_init_charge_data(gunno);  /* 重新赋值流水号 */
                     vin_authentication_complete = APP_THA_ENUM_TRUE;
