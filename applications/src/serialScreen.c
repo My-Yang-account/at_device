@@ -824,7 +824,12 @@ SERIALSCREEN_DEF_SRAM2 static struct LCD_TRIGGER_PAGE Trigger_Page[SERIALSCREEN_
     {LCD_PAGE_WARNNING_INFO, SCREEN_TRIGGER_WARN_IS_CHARGING, SCREEN_TRIGGER_WARN_ICON_SIZE},
     {LCD_PAGE_WARNNING_INFO, SCREEN_TRIGGER_WARN_FAULT_STOP, SCREEN_TRIGGER_WARN_ICON_SIZE},
 };
+#ifdef SERIALSCREEN_DESIGNATE_REGION
 SERIALSCREEN_DEF_TCMRAM static struct LCD_DISPLAY_PAGE_INDEX_TYPE LCD_ALL_PAGE_TAB[SERIALSCREEN_CONFIG_PAGE_MAX];
+#else
+__attribute__((section(".ARM.__at_0x10000000"))) struct LCD_DISPLAY_PAGE_INDEX_TYPE LCD_ALL_PAGE_TAB[SERIALSCREEN_CONFIG_PAGE_MAX];
+#endif /* SERIALSCREEN_DESIGNATE_REGION */
+
 static void SerialScreen_ScreenSet_TimeSync_Flag(void);
 static void SerialScreen_BtnModuleStateClear(void);
 static void SerialScreen_BtnModuleStateShow(int port);
@@ -5049,7 +5054,6 @@ void SerialScreen_ReadData(struct SerialScreenObj *cmd, u16 addr, u32 len)
 
 void SerialScreen_RtcShow(struct SerialScreenObj *cmd)
 {
-    
     u8 rtc_buf[8];
 	u8 rtc_len;
     memset(rtc_buf, 0x00, sizeof(rtc_buf));
@@ -5328,8 +5332,6 @@ struct LCD_DATA_FIFO_TYPE *SerialScreen_Init(struct SerialScreenObj *cmd)
     len = strlen((char*)(LcdData.setData.UserPasswdShow));
     memcpy(LcdData.setData.UserPasswd, LcdData.setData.UserPasswdShow, sizeof(LcdData.setData.UserPasswdShow));
     memset(LcdData.setData.UserPasswdShow, '*', len);
-
-    memcpy(LcdData.setData.UserPasswd, "0909", strlen("0909"));
 
     SerialScreen_InitInfo_Pro();
 
@@ -6586,7 +6588,7 @@ int SerialScreen_DataProcess()
 	int i,ret=0;
 	static u32 timesecbak;
 	u8 timeSync = FALSE;
-	u32 timesec = thaisen_app_get_current_timestamp();
+//	u32 timesec = thaisen_app_get_current_timestamp();
 	enum ofsm_state chargeState[LCD_GUN_NUM]; 
 	struct charge_data *chargeInfo[LCD_GUN_NUM];
 	struct bms_info *bmsInfo[LCD_GUN_NUM];

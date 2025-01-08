@@ -5,7 +5,7 @@
 /* Program Entry, set to mark it as "used" and avoid gc */
 MEMORY
 {
-ROM (rx) : ORIGIN =0x08020000,LENGTH =896k
+ROM (rx) : ORIGIN =0x08010000,LENGTH =1920k
 RAM (rw) : ORIGIN =0x20030000,LENGTH =512k
 TCMRAM (rw) : ORIGIN =0x10000000,LENGTH =64k
 SRAM0  (rw) : ORIGIN =0x20000000,LENGTH =112k
@@ -51,8 +51,10 @@ SECTIONS
 		KEEP(*thaisenDMA.o(.text .text.*))
 		KEEP(*thaisenGPIO.o(.text .text.*))
 		KEEP(*thaisenIWDG.o(.text .text.*))
-		KEEP(*thaisenRTC.o(.text .text.*))
 		KEEP(*thaisenTim.o(.text .text.*))
+		KEEP(*thaisenI2C.o(.text .text.*))
+		KEEP(*thaisenRTC.o(.text .text.*))		
+	    KEEP(*user_RTC.o(.text .text.*))
 		KEEP(*user_aux_power.o(.text .text.*))
 		KEEP(*user_calibrat_parameter.o(.text .text.*))
 		KEEP(*user_can.o(.text .text.*))
@@ -63,8 +65,9 @@ SECTIONS
 		KEEP(*user_mcp2512.o(.text .text.*))
 		KEEP(*user_pwm_fan.o(.text .text.*))
 		KEEP(*user_relay.o(.text .text.*))
+		KEEP(*AT24C256.o(.text .text.*))
 		KEEP(*thaisenAmmeter.o(.text .text.*))
-		KEEP(*thaisenLiquid.o(.text .text.*))
+	
 		
 		KEEP(*thaisenChargModule.o(.text .text.*))
 		KEEP(*thaisenGuoWang.o(.text .text.*))
@@ -78,6 +81,7 @@ SECTIONS
 		
 	    KEEP(*mw_storage.o(.text .text.*))
 		KEEP(*mw_norflash.o(.text .text.*))
+		KEEP(*mw_time.o(.text .text.*))
 		KEEP(*chargepile_config.o(.text .text.*))
 		KEEP(*app_ofsm.o(.text .text.*))
 		KEEP(*notfs_port.o(.text .text.*))
@@ -85,7 +89,14 @@ SECTIONS
 		
         KEEP(*stm32f4xx_hal_spi.o(.text .text.*))
 		KEEP(*stm32f4xx_hal_gpio.o(.text .text.*))
+		KEEP(*stm32f4xx_hal_i2c.o(.text .text.*))
+		KEEP(*stm32f4xx_hal_i2c_ex.o(.text .text.*))
+		KEEP(*stm32f4xx_hal_iwdg.o(.text .text.*))
+		KEEP(*stm32f4xx_hal_rcc.o(.text .text.*))
+		
+		
 		KEEP(*thread.o(.text .text.*))
+		KEEP(*drv_common.o(.text .text.*))	
    
         . = ALIGN(4);
         *(.text)                        /* remaining code */

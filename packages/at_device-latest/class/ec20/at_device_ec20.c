@@ -34,7 +34,7 @@ static char *QICSGP_CHINA_MOBILE = "AT+QICSGP=1,1,\"CMNET\",\"\",\"\",0";
 static char *QICSGP_CHINA_UNICOM = "AT+QICSGP=1,1,\"UNINET\",\"\",\"\",0";
 static char *QICSGP_CHINA_TELECOM = "AT+QICSGP=1,1,\"CTNET\",\"\",\"\",0";
 
-#define EC20_DESIGNATE_REGION           /* 变量定义到指定区 */
+//#define EC20_DESIGNATE_REGION           /* 变量定义到指定区 */
 
 #ifdef EC20_DESIGNATE_REGION
 #define EC20_DEF_TCMRAM CFG_DEF_TCMRAM

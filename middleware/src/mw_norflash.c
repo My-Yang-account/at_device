@@ -9,7 +9,7 @@
 #include "mw_norflash.h"
 #include "thaisen7102Public.h"
 
-#define MW_IFLASH_CONFIG_ADDR_MIN              0x08010000               /* 内部flash配置部分最小地址 */
+#define MW_IFLASH_CONFIG_ADDR_MIN              0x081E0000               /* 内部flash配置部分最小地址 */
 #define MW_IFLASH_CONFIG_ADDR_MAX              0x08200000               /* 内部flash配置部分最大地址 */
 #define MW_IFLASH_SINGLE_SECTOR_SIZE           4096      /* 内部flash单个扇区大小 */
 

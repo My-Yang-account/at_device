@@ -19,7 +19,7 @@
 
 #define NET_ETHERNET_NETDEV_NAME                          "uart7"    /* 以太网网络设备名 */
 
-#define ETH_DESIGNATE_REGION                                         /* 变量定义到指定区 */
+//#define ETH_DESIGNATE_REGION                                         /* 变量定义到指定区 */
 
 /** 串口参数配置 */
 #define NET_ETHERNET_SERIAL_CONFIG_DEFAULT    \

@@ -61,7 +61,7 @@
 #endif /* #ifdef APP_INCLUDE_TARGET_PLATFORM */
 
 /** internal flash */
-#define SYSTEM_CONFIG_INFO_ADDR_IF        0x08010000
+#define SYSTEM_CONFIG_INFO_ADDR_IF        0x081E0000
 /******************************************************************************/
 
 #define CP_NETWORK_DOMAIN_LEN_MAX          256                     /* 域名最大长度 */

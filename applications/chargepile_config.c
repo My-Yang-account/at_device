@@ -18,7 +18,7 @@
 
 #define SYSTEM_INIT_KEY    ((uint32_t)(0x12345678))
 
-#define SYS_DESIGNATE_REGION           /* 变量定义到指定区 */
+//#define SYS_DESIGNATE_REGION           /* 变量定义到指定区 */
 
 static uint8_t s_sys_config_lock = 0x01;
 
