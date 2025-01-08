@@ -1144,38 +1144,46 @@ static void net_ykc_server_message_pro_entry(void *parameter)
                 }
                 /***** [运营平台远程控制启机请求] *****/
                 if(ykc_net_event_receive(NET_YKC_EVENT_HANDLE_SERVER, NET_YKC_EVENT_TYPE_REQUEST, gunno,
-                        (NET_YKC_EVENT_OPTION_OR |NET_YKC_EVENT_OPTION_CLEAR), NET_YKC_SREQ_EVENT_REMOTE_START_CHARGE, NULL) > 0){
-                    uint8_t pro_result, reason;
-                    result = NET_YKC_START_FAIL_REASON_IS_CHARGING;
-                    response = ykc_get_response_buff(RT_WAITING_FOREVER);
-                    if(g_ykc_sreq_remote_start_charge[gunno].body.result == 0x00){
-                        result = ykc_message_pro_remote_start_charge_request(gunno, &g_ykc_sreq_remote_start_charge[gunno], sizeof(g_ykc_sreq_remote_start_charge[gunno]));
-                        if(result >= NET_YKC_START_FAIL_REASON_NO){
-                            pro_result = 0x00;
-                            if(result == NET_YKC_START_FAIL_REASON_NO){
-                                net_operation_set_event(gunno, NET_OPERATION_EVENT_START_CHARGE);
-                                net_operation_clear_event(gunno, NET_OPERATION_EVENT_OFFLINECHARGE_LIMIT);
-                                pro_result = 0x01;
+                        (NET_YKC_EVENT_OPTION_OR), NET_YKC_SREQ_EVENT_REMOTE_START_CHARGE, NULL) > 0){
+                    /** 部分平台会在下发启动前，下发计费策略，此时必须先执行计费策略信息修改，防止先接到启动指令使桩进入了启动或充电状态(启动或充电中不更新计费策略) */
+                    if(ykc_net_event_receive(NET_YKC_EVENT_HANDLE_SERVER, NET_YKC_EVENT_TYPE_REQUEST, 0x00,
+                            (NET_YKC_EVENT_OPTION_OR), NET_YKC_SREQ_EVENT_BILLING_MODEL_SET, NULL) <= 0){
+
+                        ykc_net_event_receive(NET_YKC_EVENT_HANDLE_SERVER, NET_YKC_EVENT_TYPE_REQUEST, gunno,
+                                                (NET_YKC_EVENT_OPTION_OR |NET_YKC_EVENT_OPTION_CLEAR), NET_YKC_SREQ_EVENT_REMOTE_START_CHARGE, NULL);
+                        uint8_t pro_result, reason;
+                        result = NET_YKC_START_FAIL_REASON_IS_CHARGING;
+                        response = ykc_get_response_buff(RT_WAITING_FOREVER);
+                        if(g_ykc_sreq_remote_start_charge[gunno].body.result == 0x00){
+                            result = ykc_message_pro_remote_start_charge_request(gunno, &g_ykc_sreq_remote_start_charge[gunno], sizeof(g_ykc_sreq_remote_start_charge[gunno]));
+                            if(result >= NET_YKC_START_FAIL_REASON_NO){
+                                pro_result = 0x00;
+                                if(result == NET_YKC_START_FAIL_REASON_NO){
+                                    net_operation_set_event(gunno, NET_OPERATION_EVENT_START_CHARGE);
+                                    net_operation_clear_event(gunno, NET_OPERATION_EVENT_OFFLINECHARGE_LIMIT);
+                                    pro_result = 0x01;
+                                }
+                                reason = result;
                             }
-                            reason = result;
+                        }else{
+                            pro_result = 0x00;
+                            reason = NET_YKC_START_FAIL_REASON_PILE_NUMBER_NOT_MATCH;
                         }
-                    }else{
-                        pro_result = 0x00;
-                        reason = NET_YKC_START_FAIL_REASON_PILE_NUMBER_NOT_MATCH;
-                    }
-                    if(result >= NET_YKC_START_FAIL_REASON_NO){
-                        result = ykc_response_padding_remote_start_charge(gunno, response->general_transmit_buff, NET_YKC_GENERA_RESPONSE_BUFF_LENGTH, &(response->length));
-                        ((Net_YkcPro_PRes_Remote_StartCharge_t*)response->general_transmit_buff)->body.result = pro_result;
-                        ((Net_YkcPro_PRes_Remote_StartCharge_t*)response->general_transmit_buff)->body.fail_reason = reason;
-                        if(result >= 0x00){
-                            ykc_net_event_send(NET_YKC_EVENT_HANDLE_CHARGEPILE, NET_YKC_EVENT_TYPE_RESPONSE, gunno, NET_YKC_PRES_EVENT_SERVER_START_CHARGE);
+                        if(result >= NET_YKC_START_FAIL_REASON_NO){
+                            result = ykc_response_padding_remote_start_charge(gunno, response->general_transmit_buff, NET_YKC_GENERA_RESPONSE_BUFF_LENGTH, &(response->length));
+                            ((Net_YkcPro_PRes_Remote_StartCharge_t*)response->general_transmit_buff)->body.result = pro_result;
+                            ((Net_YkcPro_PRes_Remote_StartCharge_t*)response->general_transmit_buff)->body.fail_reason = reason;
+                            if(result >= 0x00){
+                                ykc_net_event_send(NET_YKC_EVENT_HANDLE_CHARGEPILE, NET_YKC_EVENT_TYPE_RESPONSE, gunno, NET_YKC_PRES_EVENT_SERVER_START_CHARGE);
+                            }else{
+                                ykc_response_buff_release_sem();
+                            }
                         }else{
                             ykc_response_buff_release_sem();
                         }
-                    }else{
-                        ykc_response_buff_release_sem();
                     }
                 }
+
                 /***** [运营平台远程停机请求] *****/ // OK
                 if(ykc_net_event_receive(NET_YKC_EVENT_HANDLE_SERVER, NET_YKC_EVENT_TYPE_REQUEST, gunno,
                         (NET_YKC_EVENT_OPTION_OR |NET_YKC_EVENT_OPTION_CLEAR), NET_YKC_SREQ_EVENT_REMOTE_STOP_CHARGE, NULL) > 0){
@@ -1506,38 +1514,48 @@ static void net_ykc_server_message_pro_entry(void *parameter)
                 }
                 /***** [运营平台远程控制并充启机请求] *****/
                 if(ykc_net_event_receive(NET_YKC_EVENT_HANDLE_SERVER, NET_YKC_EVENT_TYPE_REQUEST, gunno,
-                        (NET_YKC_EVENT_OPTION_OR |NET_YKC_EVENT_OPTION_CLEAR), NET_YKC_SREQ_EVENT_REMOTE_START_MERGE_CHARGE, NULL) > 0){
-                    uint8_t pro_result = 0x00, reason = 0x00;
-                    result = NET_YKC_START_FAIL_REASON_NO;
-                    response = ykc_get_response_buff(RT_WAITING_FOREVER);
+                        (NET_YKC_EVENT_OPTION_OR), NET_YKC_SREQ_EVENT_REMOTE_START_MERGE_CHARGE, NULL) > 0){
+                    /** 部分平台会在下发启动前，下发计费策略，此时必须先执行计费策略信息修改，防止先接到启动指令使桩进入了启动或充电状态(启动或充电中不更新计费策略) */
+                    if(ykc_net_event_receive(NET_YKC_EVENT_HANDLE_SERVER, NET_YKC_EVENT_TYPE_REQUEST, 0x00,
+                            (NET_YKC_EVENT_OPTION_OR), NET_YKC_SREQ_EVENT_BILLING_MODEL_SET, NULL) <= 0){
 
-                    if(g_ykc_sreq_remote_start_merge_charge[gunno].body.result == 0x00){
-                        result = ykc_message_pro_remote_start_merge_charge_request(gunno, &g_ykc_sreq_remote_start_merge_charge[gunno], sizeof(g_ykc_sreq_remote_start_merge_charge[gunno]));
-                        if(result >= NET_YKC_START_FAIL_REASON_NO){
-                            pro_result = 0x00;
-                            if(result == NET_YKC_START_FAIL_REASON_NO){
-                                pro_result = 0x01;
+                        ykc_net_event_receive(NET_YKC_EVENT_HANDLE_SERVER, NET_YKC_EVENT_TYPE_REQUEST, gunno,
+                                                (NET_YKC_EVENT_OPTION_OR |NET_YKC_EVENT_OPTION_CLEAR), NET_YKC_SREQ_EVENT_REMOTE_START_MERGE_CHARGE, NULL);
+                        uint8_t pro_result = 0x00, reason = 0x00;
+                        result = NET_YKC_START_FAIL_REASON_NO;
+                        response = ykc_get_response_buff(RT_WAITING_FOREVER);
+
+                        if(g_ykc_sreq_remote_start_merge_charge[gunno].body.result == 0x00){
+                            result = ykc_message_pro_remote_start_merge_charge_request(gunno, &g_ykc_sreq_remote_start_merge_charge[gunno], sizeof(g_ykc_sreq_remote_start_merge_charge[gunno]));
+                            if(result >= NET_YKC_START_FAIL_REASON_NO){
+                                pro_result = 0x00;
+                                rt_kprintf("888888(%d, %d)\n", gunno, result);
+                                if(result == NET_YKC_START_FAIL_REASON_NO){
+                                    pro_result = 0x01;
+                                }
+                                reason = result;
                             }
-                            reason = result;
+                        }else{
+                            pro_result = 0x00;
+                            reason = NET_YKC_START_FAIL_REASON_PILE_NUMBER_NOT_MATCH;
                         }
-                    }else{
-                        pro_result = 0x00;
-                        reason = NET_YKC_START_FAIL_REASON_PILE_NUMBER_NOT_MATCH;
-                    }
 
-                    if(result >= NET_YKC_START_FAIL_REASON_NO){
-                        result = ykc_response_padding_remote_start_merge_charge(gunno, response->general_transmit_buff, NET_YKC_GENERA_RESPONSE_BUFF_LENGTH, &(response->length));
-                        ((Net_YkcPro_PRes_Remote_StartMergeCharge_t*)response->general_transmit_buff)->body.result = pro_result;
-                        ((Net_YkcPro_PRes_Remote_StartMergeCharge_t*)response->general_transmit_buff)->body.fail_reason = reason;
-                        if(result >= 0x00){
-                            ykc_net_event_send(NET_YKC_EVENT_HANDLE_CHARGEPILE, NET_YKC_EVENT_TYPE_RESPONSE, gunno, NET_YKC_PRES_EVENT_SERVER_START_MERGECHARGE);
+                        if(result >= NET_YKC_START_FAIL_REASON_NO){
+                            result = ykc_response_padding_remote_start_merge_charge(gunno, response->general_transmit_buff, NET_YKC_GENERA_RESPONSE_BUFF_LENGTH, &(response->length));
+                            rt_kprintf("777777(%d, %d)\n", gunno, pro_result);
+                            ((Net_YkcPro_PRes_Remote_StartMergeCharge_t*)response->general_transmit_buff)->body.result = pro_result;
+                            ((Net_YkcPro_PRes_Remote_StartMergeCharge_t*)response->general_transmit_buff)->body.fail_reason = reason;
+                            if(result >= 0x00){
+                                ykc_net_event_send(NET_YKC_EVENT_HANDLE_CHARGEPILE, NET_YKC_EVENT_TYPE_RESPONSE, gunno, NET_YKC_PRES_EVENT_SERVER_START_MERGECHARGE);
+                            }else{
+                                ykc_response_buff_release_sem();
+                            }
                         }else{
                             ykc_response_buff_release_sem();
                         }
-                    }else{
-                        ykc_response_buff_release_sem();
                     }
                 }
+
                 /***** [运营平台二维码配置请求(国充)] *****/
                 if(ykc_net_event_receive(NET_YKC_EVENT_HANDLE_SERVER, NET_YKC_EVENT_TYPE_REQUEST, gunno,
                         (NET_YKC_EVENT_OPTION_OR |NET_YKC_EVENT_OPTION_CLEAR), NET_YKC_SREQ_EVENT_QRCODE_CONFIG_GC, NULL) > 0){
@@ -1627,24 +1645,33 @@ static void net_ykc_server_message_pro_entry(void *parameter)
                 }
                 /***** [充电桩主动申请启动充电响应] *****/
                 if(ykc_net_event_receive(NET_YKC_EVENT_HANDLE_SERVER, NET_YKC_EVENT_TYPE_RESPONSE, gunno,
-                        (NET_YKC_EVENT_OPTION_OR |NET_YKC_EVENT_OPTION_CLEAR), NET_YKC_SRES_EVENT_APPLY_CHARGE_ACTIVE, NULL) > 0){
-                    if(g_ykc_sres_apply_charge_active[gunno].body.authentication_success == 0x01){
-                        ykc_message_pro_apply_charge_active_response(gunno, &g_ykc_sres_apply_charge_active[gunno], sizeof(g_ykc_sres_apply_charge_active[gunno]));
-                        if(g_ykc_preq_apply_charge_active[gunno].body.start_type == 0x01){
-                            net_operation_set_event(gunno, NET_OPERATION_EVENT_CARDAUTHORITY_SUCCESS);
+                        (NET_YKC_EVENT_OPTION_OR), NET_YKC_SRES_EVENT_APPLY_CHARGE_ACTIVE, NULL) > 0){
+                    /** 部分平台会在下发启动前，下发计费策略，此时必须先执行计费策略信息修改，防止先接到启动指令使桩进入了启动或充电状态(启动或充电中不更新计费策略) */
+                    if(ykc_net_event_receive(NET_YKC_EVENT_HANDLE_SERVER, NET_YKC_EVENT_TYPE_REQUEST, 0x00,
+                            (NET_YKC_EVENT_OPTION_OR), NET_YKC_SREQ_EVENT_BILLING_MODEL_SET, NULL) <= 0){
+
+                        ykc_net_event_receive(NET_YKC_EVENT_HANDLE_SERVER, NET_YKC_EVENT_TYPE_RESPONSE, gunno,
+                                                (NET_YKC_EVENT_OPTION_OR |NET_YKC_EVENT_OPTION_CLEAR), NET_YKC_SRES_EVENT_APPLY_CHARGE_ACTIVE, NULL);
+
+                        if(g_ykc_sres_apply_charge_active[gunno].body.authentication_success == 0x01){
+                            ykc_message_pro_apply_charge_active_response(gunno, &g_ykc_sres_apply_charge_active[gunno], sizeof(g_ykc_sres_apply_charge_active[gunno]));
+                            if(g_ykc_preq_apply_charge_active[gunno].body.start_type == 0x01){
+                                net_operation_set_event(gunno, NET_OPERATION_EVENT_CARDAUTHORITY_SUCCESS);
+                            }else{
+                                net_operation_set_event(gunno, NET_OPERATION_EVENT_VINAUTHORITY_SUCCESS);
+                            }
                         }else{
-                            net_operation_set_event(gunno, NET_OPERATION_EVENT_VINAUTHORITY_SUCCESS);
+                            if(g_ykc_preq_apply_charge_active[gunno].body.start_type == 0x01){
+                                net_operation_set_event(gunno, NET_OPERATION_EVENT_CARDAUTHORITY_FAIL);
+                            }else{
+                                net_operation_set_event(gunno, NET_OPERATION_EVENT_VINAUTHORITY_FAIL);
+                            }
+                            LOG_W("ykc chargepile apply charge active fail reason(%d)", g_ykc_sres_apply_charge_active[gunno].body.fail_reason);
                         }
-                    }else{
-                        if(g_ykc_preq_apply_charge_active[gunno].body.start_type == 0x01){
-                            net_operation_set_event(gunno, NET_OPERATION_EVENT_CARDAUTHORITY_FAIL);
-                        }else{
-                            net_operation_set_event(gunno, NET_OPERATION_EVENT_VINAUTHORITY_FAIL);
-                        }
-                        LOG_W("ykc chargepile apply charge active fail reason(%d)", g_ykc_sres_apply_charge_active[gunno].body.fail_reason);
+                        net_operation_clear_event(gunno, NET_OPERATION_EVENT_OFFLINECHARGE_LIMIT);
                     }
-                    net_operation_clear_event(gunno, NET_OPERATION_EVENT_OFFLINECHARGE_LIMIT);
                 }
+
                 /***** [交易记录响应响应] *****/
                 if(ykc_net_event_receive(NET_YKC_EVENT_HANDLE_SERVER, NET_YKC_EVENT_TYPE_RESPONSE, gunno,
                         (NET_YKC_EVENT_OPTION_OR |NET_YKC_EVENT_OPTION_CLEAR), NET_YKC_SRES_EVENT_BILL_VERIFY, NULL) > 0){
@@ -1652,29 +1679,38 @@ static void net_ykc_server_message_pro_entry(void *parameter)
                 }
                 /***** [充电桩主动申请并充充电响应] *****/
                 if(ykc_net_event_receive(NET_YKC_EVENT_HANDLE_SERVER, NET_YKC_EVENT_TYPE_RESPONSE, gunno,
-                        (NET_YKC_EVENT_OPTION_OR |NET_YKC_EVENT_OPTION_CLEAR), NET_YKC_SRES_EVENT_APPLY_MERGE_CHARGE_ACTIVE, NULL) > 0){
-                    if(g_ykc_sres_apply_merge_charge_active[gunno].body.authentication_success == 0x01){
-                        ykc_message_pro_apply_merge_charge_active_response(gunno, &g_ykc_sres_apply_merge_charge_active, sizeof(g_ykc_sres_apply_merge_charge_active));
-                        if(g_ykc_preq_apply_merge_charge_active[gunno].body.start_type == 0x01){
-                            net_operation_set_event(gunno, NET_OPERATION_EVENT_CARDAUTHORITY_MERGE_SUCCESS);
+                        (NET_YKC_EVENT_OPTION_OR), NET_YKC_SRES_EVENT_APPLY_MERGE_CHARGE_ACTIVE, NULL) > 0){
+                    /** 部分平台会在下发启动前，下发计费策略，此时必须先执行计费策略信息修改，防止先接到启动指令使桩进入了启动或充电状态(启动或充电中不更新计费策略) */
+                    if(ykc_net_event_receive(NET_YKC_EVENT_HANDLE_SERVER, NET_YKC_EVENT_TYPE_REQUEST, 0x00,
+                            (NET_YKC_EVENT_OPTION_OR), NET_YKC_SREQ_EVENT_BILLING_MODEL_SET, NULL) <= 0){
+
+                        ykc_net_event_receive(NET_YKC_EVENT_HANDLE_SERVER, NET_YKC_EVENT_TYPE_RESPONSE, gunno,
+                                                (NET_YKC_EVENT_OPTION_OR |NET_YKC_EVENT_OPTION_CLEAR), NET_YKC_SRES_EVENT_APPLY_MERGE_CHARGE_ACTIVE, NULL);
+
+                        if(g_ykc_sres_apply_merge_charge_active[gunno].body.authentication_success == 0x01){
+                            ykc_message_pro_apply_merge_charge_active_response(gunno, &g_ykc_sres_apply_merge_charge_active, sizeof(g_ykc_sres_apply_merge_charge_active));
+                            if(g_ykc_preq_apply_merge_charge_active[gunno].body.start_type == 0x01){
+                                net_operation_set_event(gunno, NET_OPERATION_EVENT_CARDAUTHORITY_MERGE_SUCCESS);
+                            }else{
+                                net_operation_set_event(gunno, NET_OPERATION_EVENT_VINAUTHORITY_MERGE_SUCCESS);
+                            }
+                            LOG_D("ykc merge charge sn");
+                            for(uint8_t count = 0x00; count < sizeof(g_ykc_sres_apply_merge_charge_active[gunno].body.merge_charge_sn); count++){
+                                rt_kprintf("0x%X ", g_ykc_sres_apply_merge_charge_active[gunno].body.merge_charge_sn[count]);
+                            }
+                            rt_kprintf("\n");
                         }else{
-                            net_operation_set_event(gunno, NET_OPERATION_EVENT_VINAUTHORITY_MERGE_SUCCESS);
+                            if(g_ykc_preq_apply_merge_charge_active[gunno].body.start_type == 0x01){
+                                net_operation_set_event(gunno, NET_OPERATION_EVENT_CARDAUTHORITY_MERGE_FAIL);
+                            }else{
+                                net_operation_set_event(gunno, NET_OPERATION_EVENT_VINAUTHORITY_MERGE_FAIL);
+                            }
+                            LOG_W("ykc chargepile apply merge charge active fail reason(%d)", g_ykc_sres_apply_charge_active[gunno].body.fail_reason);
                         }
-                        LOG_D("ykc merge charge sn");
-                        for(uint8_t count = 0x00; count < sizeof(g_ykc_sres_apply_merge_charge_active[gunno].body.merge_charge_sn); count++){
-                            rt_kprintf("0x%X ", g_ykc_sres_apply_merge_charge_active[gunno].body.merge_charge_sn[count]);
-                        }
-                        rt_kprintf("\n");
-                    }else{
-                        if(g_ykc_preq_apply_merge_charge_active[gunno].body.start_type == 0x01){
-                            net_operation_set_event(gunno, NET_OPERATION_EVENT_CARDAUTHORITY_MERGE_FAIL);
-                        }else{
-                            net_operation_set_event(gunno, NET_OPERATION_EVENT_VINAUTHORITY_MERGE_FAIL);
-                        }
-                        LOG_W("ykc chargepile apply merge charge active fail reason(%d)", g_ykc_sres_apply_charge_active[gunno].body.fail_reason);
+                        net_operation_clear_event(gunno, NET_OPERATION_EVENT_OFFLINECHARGE_LIMIT);
                     }
-                    net_operation_clear_event(gunno, NET_OPERATION_EVENT_OFFLINECHARGE_LIMIT);
                 }
+
             }
             /***** [启动充电异步响应] *****/
             if(ykc_net_event_receive(NET_YKC_EVENT_HANDLE_CHARGEPILE, NET_YKC_EVENT_TYPE_RESPONSE, gunno,
