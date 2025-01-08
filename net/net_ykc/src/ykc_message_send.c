@@ -1622,7 +1622,7 @@ static void net_ykc_server_message_pro_entry(void *parameter)
             if(_event){
                 /***** [计费模型请求响应] *****/
                 if(ykc_net_event_receive(NET_YKC_EVENT_HANDLE_SERVER, NET_YKC_EVENT_TYPE_RESPONSE, gunno,
-                        (NET_YKC_EVENT_OPTION_OR |NET_YKC_EVENT_OPTION_CLEAR), NET_YKC_PREQ_EVENT_BILLING_MODEL_REQUEST, NULL) > 0){
+                        (NET_YKC_EVENT_OPTION_OR |NET_YKC_EVENT_OPTION_CLEAR), NET_YKC_SRES_EVENT_BILLING_MODEL_REQUEST, NULL) > 0){
                     ykc_message_pro_billing_model_set_response(&g_ykc_sres_billing_model_request, sizeof(g_ykc_sres_billing_model_request));
                 }
                 /***** [充电桩主动申请启动充电响应] *****/
