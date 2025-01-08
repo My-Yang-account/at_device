@@ -1529,7 +1529,6 @@ static void net_ykc_server_message_pro_entry(void *parameter)
                             result = ykc_message_pro_remote_start_merge_charge_request(gunno, &g_ykc_sreq_remote_start_merge_charge[gunno], sizeof(g_ykc_sreq_remote_start_merge_charge[gunno]));
                             if(result >= NET_YKC_START_FAIL_REASON_NO){
                                 pro_result = 0x00;
-                                rt_kprintf("888888(%d, %d)\n", gunno, result);
                                 if(result == NET_YKC_START_FAIL_REASON_NO){
                                     pro_result = 0x01;
                                 }
@@ -1542,7 +1541,6 @@ static void net_ykc_server_message_pro_entry(void *parameter)
 
                         if(result >= NET_YKC_START_FAIL_REASON_NO){
                             result = ykc_response_padding_remote_start_merge_charge(gunno, response->general_transmit_buff, NET_YKC_GENERA_RESPONSE_BUFF_LENGTH, &(response->length));
-                            rt_kprintf("777777(%d, %d)\n", gunno, pro_result);
                             ((Net_YkcPro_PRes_Remote_StartMergeCharge_t*)response->general_transmit_buff)->body.result = pro_result;
                             ((Net_YkcPro_PRes_Remote_StartMergeCharge_t*)response->general_transmit_buff)->body.fail_reason = reason;
                             if(result >= 0x00){
