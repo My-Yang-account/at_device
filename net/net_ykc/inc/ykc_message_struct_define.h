@@ -15,6 +15,7 @@
 #ifdef NET_PACK_USING_YKC
 
 //#define NET_YKC_MESSAGE_USING_DUPU                                         /* 这是度普平台的报文 */
+//#define NET_YKC_MESSAGE_USING_TLD                                          /* 这是特来电平台的报文 */
 
 #define NET_YKC_STORAGE_INIT_FLAG                              0x12345678  /* 平台数据存储标志 */
 

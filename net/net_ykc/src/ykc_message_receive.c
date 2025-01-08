@@ -837,6 +837,9 @@ static void ykc_callback_request_time_sync(uint8_t* data, uint16_t length)
                 sizeof(Net_YkcPro_SReq_TimeSync_t) + NET_YKC_PROTOCOL_CHECK_REGION_SIZE);
         return;
     }
+
+    /** 注：特来电平台历史遗留问题(桩号不一致) */
+#ifndef NET_YKC_MESSAGE_USING_TLD
     uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
     struct net_handle* handle = net_get_net_handle();
     char *pile_number = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, 0x00, option));
@@ -849,6 +852,7 @@ static void ykc_callback_request_time_sync(uint8_t* data, uint16_t length)
         LOG_E("ykc chargepile number error when call tha_callback_request_time_sync");
         return;
     }
+#endif /* NET_YKC_MESSAGE_USING_TLD */
 
     memcpy(&g_ykc_sreq_time_sync, data, length - NET_YKC_PROTOCOL_CHECK_REGION_SIZE);
     ykc_net_event_send(NET_YKC_EVENT_HANDLE_SERVER, NET_YKC_EVENT_TYPE_REQUEST, 0x00, NET_YKC_SREQ_EVENT_TIME_SYNC);
