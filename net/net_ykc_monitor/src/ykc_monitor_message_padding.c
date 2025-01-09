@@ -3481,31 +3481,47 @@ int8_t ykc_monitor_message_padding_dev_info(uint8_t *buf, uint16_t ilen, uint16_
 #ifdef NET_INCLUDE_TARGET_PLATFORM
 #if (NET_TARGET_PLATFORM_ID == NET_YKC_PRO_ID)
 #ifdef NET_YKC_DERIVE_PRO_XXCD
-    message->body.target_plat_protocol = 0x07;
+    message->body.target_plat_protocol = 0x06;
 #elif defined(NET_YKC_DERIVE_PRO_TLD)
-    message->body.target_plat_protocol = 0x08;
+    message->body.target_plat_protocol = 0x07;
 #elif defined(NET_YKC_DERIVE_PRO_DUPU)
-    message->body.target_plat_protocol = 0x09;
+    message->body.target_plat_protocol = 0x0F;
+#elif defined(NET_YKC_DERIVE_PRO_XDT)
+    message->body.target_plat_protocol = 0x10;
+#elif defined(NET_YKC_DERIVE_PRO_TT)
+    message->body.target_plat_protocol = 0x11;
+#elif defined(NET_YKC_DERIVE_PRO_XJ)
+    message->body.target_plat_protocol = 0x0E;
 #else
-    message->body.target_plat_protocol = 0x01;
+    message->body.target_plat_protocol = 0x00;
 #endif /* NET_YKC_DERIVE_PRO_XXCD */
 
 #elif (NET_TARGET_PLATFORM_ID == NET_YCP_PRO_ID)
     message->body.target_plat_protocol = 0x02;
 #elif (NET_TARGET_PLATFORM_ID == NET_YND_PRO_ID)
-    message->body.target_plat_protocol = 0x04;
-#elif (NET_TARGET_PLATFORM_ID == NET_XJ_PRO_ID)
-    message->body.target_plat_protocol = 0x05;
-#elif (NET_TARGET_PLATFORM_ID == NET_SL_PRO_ID)
-    message->body.target_plat_protocol = 0x06;
-#elif (NET_TARGET_PLATFORM_ID == NET_SGCC_PRO_ID)
     message->body.target_plat_protocol = 0x03;
-#else
+#elif (NET_TARGET_PLATFORM_ID == NET_XJ_PRO_ID)
+    message->body.target_plat_protocol = 0x04;
+#elif (NET_TARGET_PLATFORM_ID == NET_SL_PRO_ID)
+    message->body.target_plat_protocol = 0x05;
+
+#elif (NET_TARGET_PLATFORM_ID == NET_CDW_PRO_ID)
+    message->body.target_plat_protocol = 0x0A;
+#elif (NET_TARGET_PLATFORM_ID == NET_YD_PRO_ID)
+    message->body.target_plat_protocol = 0x0B;
+#elif (NET_TARGET_PLATFORM_ID == NET_JR_PRO_ID)
+    message->body.target_plat_protocol = 0x0C;
+#elif (NET_TARGET_PLATFORM_ID == NET_WXN_PRO_ID)
+    message->body.target_plat_protocol = 0x0D;
+
+#elif (NET_TARGET_PLATFORM_ID == NET_SGCC_PRO_ID)
     message->body.target_plat_protocol = 0x01;
+#else
+    message->body.target_plat_protocol = 0x00;
 #endif
 
 #else
-    message->body.target_plat_protocol = 0x01;
+    message->body.target_plat_protocol = 0x00;
 #endif /* NET_INCLUDE_TARGET_PLATFORM */
 
     if(olen){

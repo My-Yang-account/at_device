@@ -72,6 +72,10 @@
 //#define NET_YKC_DERIVE_PRO_XXCD                                   /* 云快充衍生协议：星星充电 */
 //#define NET_YKC_DERIVE_PRO_TLD                                    /* 云快充衍生协议：特来电 */
 //#define NET_YKC_DERIVE_PRO_DUPU                                   /* 云快充衍生协议：度普 */
+
+//#define NET_YKC_DERIVE_PRO_XDT                                   /* 云快充衍生协议：新电途 */
+//#define NET_YKC_DERIVE_PRO_TT                                    /* 云快充衍生协议：铁塔 */
+//#define NET_YKC_DERIVE_PRO_XJ                                    /* 云快充衍生协议：小桔 */
 /*************************************************** 云快充监控协议 **********************************************************/
 #ifdef NET_PACK_USING_YKC_MONITOR
 #define NET_YKC_MONITOR_AS_MONITOR                                /* 云快充平台作为监控平台 */
