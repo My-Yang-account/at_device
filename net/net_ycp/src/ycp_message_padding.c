@@ -2618,7 +2618,6 @@ static void ycp_realtime_process_thread_entry(void *parameter)
     while(1){
         net_thread_running(rt_thread_self(), NULL, 0x00, 0x00);
         if((net_get_ota_info()->state >= NET_OTA_STATE_LOGIN_WAIT) && (net_get_ota_info()->state <= NET_OTA_STATE_UPDATING)){
-            net_thread_running(rt_thread_self(), NULL, 0x00, 0x00);
             rt_thread_mdelay(5000);
             continue;
         }
