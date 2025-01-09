@@ -611,7 +611,6 @@ static void temperature_protect_limitcurr(uint8_t gunno, uint16_t *set_curr)
  **************************************************************************/
 void chargepile_power_adjust(void)
 {
-    return;
 #define RUNNING_PERIOD      200
 #define ADJUST_PERIOD       30000 /RUNNING_PERIOD
 
