@@ -17,7 +17,7 @@
 //#define NET_YKC_MESSAGE_USING_DUPU                                         /* 这是度普平台的报文 */
 //#define NET_YKC_MESSAGE_USING_TLD                                          /* 这是特来电平台的报文 */
 
-#define NET_YKC_STORAGE_INIT_FLAG                              0x12345678  /* 平台数据存储标志 */
+#define NET_YKC_STORAGE_INIT_FLAG                              0x12345777  /* 平台数据存储标志 */
 
 #define NET_YKC_MESSAGE_START_CODE                             0x68        /* 报文起始码 */
 #define NET_YKC_MESSAGE_ENCRYPT_ENABLE                         0x01        /* 报文加密 */

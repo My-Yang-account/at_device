@@ -16,7 +16,7 @@
 
 #define NET_YKC_MONITOR_USING_EXTEND_PROTOCOL                                      /* 使用监控扩展协议 */
 
-#define NET_YKC_MONITOR_STORAGE_INIT_FLAG                              0x12345678  /* 平台数据存储标志 */
+#define NET_YKC_MONITOR_STORAGE_INIT_FLAG                              0x12345666  /* 平台数据存储标志 */
 
 #define NET_YKC_MONITOR_MESSAGE_START_CODE                             0x68        /* 报文起始码 */
 #define NET_YKC_MONITOR_MESSAGE_ENCRYPT_ENABLE                         0x01        /* 报文加密 */
