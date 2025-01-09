@@ -1067,7 +1067,7 @@ static void SerialScreen_ScreenSet_TimeSync_Flag(void)
     LcdData.setData.TimeSync_Flag = 1;
 }
 
-static void SerialScreen_ScreenSet_Reboot_Flag(void)
+void SerialScreen_ScreenSet_Reboot_Flag(void)
 {
     LcdAssistantData.Flag.IsClickReboot = TRUE;
 }

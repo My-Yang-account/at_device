@@ -1417,6 +1417,16 @@ void thaisen_clear_screen_reboot(void)
 }
 
 /********************************************
+ * 函数名      thaisen_set_screen_reboot
+ * 功能         设置屏幕点击重启的事件
+* 返回
+ *******************************************/
+void thaisen_set_screen_reboot(void)
+{
+    SerialScreen_ScreenSet_Reboot_Flag();
+}
+
+/********************************************
  * 函数名      thaisen_get_charge_state
  * 功能         获取充电状态
  * 返回

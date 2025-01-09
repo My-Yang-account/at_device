@@ -135,6 +135,7 @@ void app_nsal_clear_remote_stop(uint8_t gunno);
 void app_nsal_clear_remote_card_authorize(uint8_t gunno);
 void app_nsal_clear_remote_vin_authorize(uint8_t gunno);
 uint8_t app_nsal_is_remote_reset(void);
+void app_nsal_clear_remote_reset(void);
 
 void app_nsal_time_sync_revise(uint8_t gunno);
 void app_nsal_init_charge_data(uint8_t gunno);

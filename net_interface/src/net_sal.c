@@ -205,6 +205,16 @@ uint8_t app_nsal_is_remote_reset(void)
 {
     return net_operation_get_event(0x00, NET_OPERATION_EVENT_REBOOT);
 }
+
+/*******************************************
+ * 函数名    app_nsal_clear_remote_reset
+ * 功能        清除远程重启事件
+ *****************************************/
+void app_nsal_clear_remote_reset(void)
+{
+    return net_operation_clear_event(0x00, NET_OPERATION_EVENT_REBOOT);
+}
+
 /********************************************** 远程重启相关 **********************************************/
 
 /*******************************************

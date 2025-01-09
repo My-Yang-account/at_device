@@ -323,6 +323,10 @@ uint32_t thaisen_get_period_price(uint8_t gunno, uint8_t period);
  **/
 uint8_t thaisen_query_screen_reboot(void);
 void thaisen_clear_screen_reboot(void);
+/**
+ * 设置屏幕点击重启的事件
+ **/
+void thaisen_set_screen_reboot(void);
 
 /**
  * 获取充电状态
