@@ -3886,6 +3886,7 @@ static void sgcc_realtime_process_thread_entry(void *parameter)
 
     while(1)
     {
+        net_thread_running(rt_thread_self(), NULL, 0x00, 0x00);
         if((net_get_ota_info()->state >= NET_OTA_STATE_LOGIN_WAIT) && (net_get_ota_info()->state <= NET_OTA_STATE_UPDATING)){
             rt_thread_mdelay(5000);
             continue;
@@ -3965,6 +3966,8 @@ static void sgcc_realtime_process_thread_entry(void *parameter)
 
 int sgcc_realtime_process_init(void)
 {
+    uint8_t entry = 0x03, name[NET_THREAD_MONITOR_NAME_MAX];
+
     for(uint8_t gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
         s_sgcc_charge_sn[gunno] = 0x01;
         s_sgcc_state_info[gunno].state.connect = SGCC_OPSCTL_SILENT;
@@ -4012,6 +4015,12 @@ int sgcc_realtime_process_init(void)
         LOG_E("sgcc realtime process thread startup fail, please check");
         return -0x01;
     }
+
+    net_thread_init_hook(&s_sgcc_realtime_process_thread, &entry, sizeof(entry), NET_THREAD_RUNNING_OPTION_ENTRY_MAX);
+
+    memset(name, 0x00, NET_THREAD_MONITOR_NAME_MAX);
+    memcpy(name, "gw_rlp", strlen("gw_rlp"));
+    net_thread_init_hook(&s_sgcc_realtime_process_thread, name, strlen((char*)name), NET_THREAD_RUNNING_OPTION_NAME);
 
     return 0x00;
 }

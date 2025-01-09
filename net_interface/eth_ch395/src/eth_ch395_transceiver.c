@@ -96,6 +96,8 @@ ETH_DEF_SRAM2 static uint32_t s_ethch395_reset_period;                       /**
 ETH_DEF_SRAM2 static uint32_t s_ethch395_reset_tick;                         /** 芯片复位时基 */
 ETH_DEF_SRAM2 static struct ethch395_access_lock s_ethch395_access_lock;
 ETH_DEF_SRAM2 static void (*ethch395_init_hook)(uint8_t, uint8_t);           /** ethch395 初始化 钩子函数 参数1：是否已初始化， 参数2：初始化成功与否*/
+ETH_DEF_SRAM2 static int32_t (*ethch395_node_init)(void *node, void *para, uint32_t plen, uint32_t option);     /** 节点初始化 */
+ETH_DEF_SRAM2 static int32_t (*ethch395_node_running)(void *node, void *para, uint32_t plen, uint32_t option);  /** 节点运行(外部调用) */
 ETH_DEF_SRAM2 static struct ethch395_assistant s_ethch395_assistant_info;
 ETH_DEF_SRAM2 union ethch395_globe_int *s_ethch395_globe_int = NULL;
 ETH_DEF_SRAM2 static struct ethch395_socket_info s_ethch395_socket_info[ETHCH395_SOCKET_NUM_MAX];
@@ -142,6 +144,30 @@ void ethch395_set_init_hook(void *hook)
     if(hook){
         ethch395_init_hook = (void (*)(uint8_t, uint8_t))hook;
     }
+}
+
+/*********************************************************************
+ * 函数名        ethch395_set_node_init_handle
+ * 功能            配置节点(线程)初始化回调句柄
+ * 参数            handle    句柄
+ * 返回           >=0：成功   <0：失败
+ ********************************************************************/
+int32_t ethch395_set_node_init_handle(void *handle)
+{
+    ethch395_node_init = (int32_t (*)(void *node, void *para, uint32_t plen, uint32_t option))handle;
+    return 0x00;
+}
+
+/*********************************************************************
+ * 函数名        ethch395_set_node_running_handle
+ * 功能            配置节点运行句柄
+ * 参数            handle    句柄
+ * 返回           >=0：成功   <0：失败
+ ********************************************************************/
+int32_t ethch395_set_node_running_handle(void *handle)
+{
+    ethch395_node_running = (int32_t (*)(void *node, void *para, uint32_t plen, uint32_t option))handle;
+    return 0x00;
 }
 
 /*********************************************************************************************
@@ -930,6 +956,9 @@ static void ethch395_recv_thread_entry(void* parameter)
 
     while(1)
     {
+        if(ethch395_node_running){
+            ethch395_node_running(handle, NULL, 0x00, 0x00);
+        }
         if(s_ethch395_assistant_info.flag.init_complete == ETHCH395_ENUM_FALSE){
             ethch395_device_init();
         }
@@ -1050,6 +1079,9 @@ static void ethch395_event_pro_thread_entry(void* parameter)
 
     while(1)
     {
+        if(ethch395_node_running){
+            ethch395_node_running(handle, NULL, 0x00, 0x00);
+        }
         if(s_ethch395_assistant_info.flag.error == ETHCH395_ENUM_TRUE){
             ethch395_unlock_operate_lock(handle);
             rt_thread_mdelay(5000);
@@ -1181,6 +1213,9 @@ static void ethch395_device_init(void)
     s_ethch395_reset_period = ETHCH395_RESET_DELAY_TIME_DEF;
 
     while(1){
+        if(ethch395_node_running){
+            ethch395_node_running(handle, NULL, 0x00, 0x00);
+        }
         s_ethch395_assistant_info.flag.error = ETHCH395_ENUM_FALSE;
         s_ethch395_assistant_info.flag.init_complete = ETHCH395_ENUM_FALSE;
         s_ethch395_state = NETDEV_ETHCH395_STATE_PHY;    /** 芯片状态：初始化物理层 */
@@ -1281,6 +1316,10 @@ static void ethch395_device_init(void)
             rt_thread_mdelay(10);
         }
 
+        if(ethch395_node_running){
+            ethch395_node_running(handle, NULL, 0x00, 0x00);
+        }
+
         while(ethch395_wait_operate_lock(-0x01, handle) == ETHCH395_ENUM_FALSE);
 
         /** 启动 DHCP，IP动态分配，但socket 原端口还需配置 */
@@ -1305,6 +1344,10 @@ static void ethch395_device_init(void)
                 goto _is_end;
             }
             rt_thread_mdelay(10);
+        }
+
+        if(ethch395_node_running){
+            ethch395_node_running(handle, NULL, 0x00, 0x00);
         }
 
         while(ethch395_wait_operate_lock(-0x01, handle) == ETHCH395_ENUM_FALSE);
@@ -1404,6 +1447,7 @@ int32_t ethch395_device_reset(void)
 int32_t net_ethch395_transceiver_init(void)
 {
     int32_t res = 0x00;
+    uint8_t entry = 0x03, name[8];
 
 #ifdef ETH_DESIGNATE_REGION
     extern void ethch395_dns_info_init(void);
@@ -1456,6 +1500,15 @@ int32_t net_ethch395_transceiver_init(void)
         goto _init_end;
     }
 
+    if(ethch395_node_init){
+        ethch395_node_init(&s_ethch395_event_pro_thread, &entry, sizeof(entry), ETHCH395_NODE_RUNNING_OPTION_ENTRY_MAX);
+
+        memset(name, 0x00, sizeof(name));
+        memcpy(name, "395_pro", strlen("395_pro"));
+        ethch395_node_init(&s_ethch395_event_pro_thread, name, strlen((char*)name), ETHCH395_NODE_RUNNING_OPTION_NAME);
+    }
+
+
     if(rt_thread_init(&s_ethch395_recv_thread, "395recv", ethch395_recv_thread_entry, NULL,
             s_ethch395_recv_thread_stack, ETHCH395_RECV_THREAD_STACK_SIZE, 14, 5) != RT_EOK){
         LOG_E("ethch395 recv thread init fail");
@@ -1472,6 +1525,15 @@ int32_t net_ethch395_transceiver_init(void)
         LOG_E("ethch395 recv thread startup fail");
         res = -0x01;
         goto _init_end;
+    }
+
+    if(ethch395_node_init){
+        entry = 0x05;     /** 这个最大容忍次数需要根据实际情况定(目前此线程最大可能等待时长为 30s，系统线程监控一次容忍间隔是15s) */
+        ethch395_node_init(&s_ethch395_recv_thread, &entry, sizeof(entry), ETHCH395_NODE_RUNNING_OPTION_ENTRY_MAX);
+
+        memset(name, 0x00, sizeof(name));
+        memcpy(name, "395_rec", strlen("395_rec"));
+        ethch395_node_init(&s_ethch395_recv_thread, name, strlen((char*)name), ETHCH395_NODE_RUNNING_OPTION_NAME);
     }
 
 _init_end:

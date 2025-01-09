@@ -107,6 +107,9 @@ int main(void)
 
     extern void notfs_info_init(void);
     notfs_info_init();
+
+    extern void app_application_info_init(void);
+    app_application_info_init();
 #endif /* APP_DESIGNATE_REGION */
 
     prepose_init();

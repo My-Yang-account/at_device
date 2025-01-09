@@ -2616,7 +2616,9 @@ static void ycp_realtime_process_thread_entry(void *parameter)
     uint8_t gunno = 0x00, is_power_on = NET_ENUM_TRUE;
 
     while(1){
+        net_thread_running(rt_thread_self(), NULL, 0x00, 0x00);
         if((net_get_ota_info()->state >= NET_OTA_STATE_LOGIN_WAIT) && (net_get_ota_info()->state <= NET_OTA_STATE_UPDATING)){
+            net_thread_running(rt_thread_self(), NULL, 0x00, 0x00);
             rt_thread_mdelay(5000);
             continue;
         }
@@ -2669,6 +2671,8 @@ static void ycp_realtime_process_thread_entry(void *parameter)
 
 int32_t ycp_realtime_process_init(void)
 {
+    uint8_t entry = 0x03, name[NET_THREAD_MONITOR_NAME_MAX];
+
 #ifdef NET_DESIGNATE_REGION
     for(uint8_t gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
         s_ycp_state_data_interval[gunno] = 0x00;
@@ -2691,6 +2695,13 @@ int32_t ycp_realtime_process_init(void)
         LOG_E("ycp realtime process thread startup fail, please check");
         return -0x01;
     }
+
+    net_thread_init_hook(&s_ycp_realtime_process_thread, &entry, sizeof(entry), NET_THREAD_RUNNING_OPTION_ENTRY_MAX);
+
+    memset(name, 0x00, NET_THREAD_MONITOR_NAME_MAX);
+    memcpy(name, "yc_rlp", strlen("yc_rlp"));
+    net_thread_init_hook(&s_ycp_realtime_process_thread, name, strlen((char*)name), NET_THREAD_RUNNING_OPTION_NAME);
+
     return 0x00;
 }
 

@@ -12,6 +12,10 @@
 
 #include "eth_ch395_config.h"
 
+#define ETHCH395_NODE_RUNNING_OPTION_ENTRY_MAX     (1 <<0x01)      /** 节点运行选项字：最大容忍次数 */
+#define ETHCH395_NODE_RUNNING_OPTION_URGENT        (1 <<0x02)      /** 节点运行选项字：紧急(无需判断，直接处理) */
+#define ETHCH395_NODE_RUNNING_OPTION_NAME          (1 <<0x03)      /** 节点运行选项字：线程名字 */
+
 enum{
     NETDEV_ETHCH395_SOCKET_CONTROL_RECV_TIMEOUT,                   /** 以太网 ch395 socket 控制指令：修改数据接收等待时间 */
     NETDEV_ETHCH395_SOCKET_CONTROL_DOMAIN_PARSE,                   /** 以太网 ch395 socket 控制指令：域名解析 */
@@ -29,6 +33,9 @@ enum{
 
 uint8_t ethch395_query_state(void);
 void ethch395_set_init_hook(void *hook);
+
+int32_t ethch395_set_node_init_handle(void *handle);
+int32_t ethch395_set_node_running_handle(void *handle);
 
 int netdev_ethch395_socket_open_port(int *socket_fd, char* host, uint16_t host_len, uint16_t port);
 int netdev_ethch395_socket_send_port(int socket_fd, void *data, uint32_t len);

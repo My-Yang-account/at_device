@@ -2985,6 +2985,7 @@ static void ykc_monitor_realtime_process_thread_entry(void *parameter)
     uint8_t gunno = 0x00;
 
     while(1){
+        net_thread_running(rt_thread_self(), NULL, 0x00, 0x00);
         if((net_get_ota_info()->state >= NET_OTA_STATE_LOGIN_WAIT) && (net_get_ota_info()->state <= NET_OTA_STATE_UPDATING)){
             rt_thread_mdelay(5000);
             continue;
@@ -3007,6 +3008,8 @@ static void ykc_monitor_realtime_process_thread_entry(void *parameter)
 
 int32_t ykc_monitor_realtime_process_init(void)
 {
+    uint8_t entry = 0x03, name[NET_THREAD_MONITOR_NAME_MAX];
+
 #ifdef NET_DESIGNATE_REGION
     for(uint8_t gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
         s_ykc_monitor_realtime_data_interval[gunno] = 0x00;
@@ -3037,6 +3040,12 @@ int32_t ykc_monitor_realtime_process_init(void)
         LOG_E("ykc monitor realtime process thread startup fail, please check");
         return -0x01;
     }
+
+    net_thread_init_hook(&s_ykc_monitor_realtime_process_thread, &entry, sizeof(entry), NET_THREAD_RUNNING_OPTION_ENTRY_MAX);
+
+    memset(name, 0x00, NET_THREAD_MONITOR_NAME_MAX);
+    memcpy(name, "ym_rlp", strlen("ym_rlp"));
+    net_thread_init_hook(&s_ykc_monitor_realtime_process_thread, name, strlen((char*)name), NET_THREAD_RUNNING_OPTION_NAME);
 
 #ifdef NET_YKC_MONITOR_AS_MONITOR
     s_ykc_monitor_setvoltcurr.count = 0x00;
@@ -3478,7 +3487,7 @@ int8_t ykc_monitor_message_padding_dev_info(uint8_t *buf, uint16_t ilen, uint16_
 #elif defined(NET_YKC_DERIVE_PRO_DUPU)
     message->body.target_plat_protocol = 0x09;
 #else
-    message->body.target_plat_protocol = 0x0A;
+    message->body.target_plat_protocol = 0x01;
 #endif /* NET_YKC_DERIVE_PRO_XXCD */
 
 #elif (NET_TARGET_PLATFORM_ID == NET_YCP_PRO_ID)

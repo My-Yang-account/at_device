@@ -133,6 +133,40 @@ void net_operation_info_init(void)
 #endif /* NET_DESIGNATE_REGION */
 
 /******************************************
+ * 函数名     net_thread_init_hook
+ * 功能         网络模块线程初始化回调
+ * 参数         thread   线程句柄
+ *      para     可选参数
+ *      plen     参数长度(B)
+ *      option   选项字
+ * 返回
+ * ***************************************/
+int32_t net_thread_init_hook(void *thread, void *para, uint32_t plen, uint32_t option)
+{
+    if(s_net_handle.thread_init_hook){
+        return s_net_handle.thread_init_hook(thread, para, plen, option);
+    }
+    return -0x01;
+}
+
+/******************************************
+ * 函数名     net_thread_running
+ * 功能         网络模块线程运行回调
+ * 参数         thread   线程句柄
+ *      para     可选参数
+ *      plen     参数长度(B)
+ *      option   选项字
+ * 返回
+ * ***************************************/
+int32_t net_thread_running(void *thread, void *para, uint32_t plen, uint32_t option)
+{
+    if(s_net_handle.thread_running){
+        return s_net_handle.thread_running(thread, para, plen, option);
+    }
+    return -0x01;
+}
+
+/******************************************
  * 函数名     net_set_clear_ndev_reset_state
  * 功能         设置清除网络设备复位状态
  * ***************************************/
@@ -367,6 +401,9 @@ static void net_start_function(void* handle)
     NET_MY_ASSERT(s_net_handle.flash_write, NET_PARA_CONFIG_INDEX_FLASH_WRITE);
     NET_MY_ASSERT(s_net_handle.flash_write_directly, NET_PARA_CONFIG_INDEX_FLASH_WRITE_DIRECTLY);
 
+    NET_MY_ASSERT(s_net_handle.thread_init_hook, NET_PARA_CONFIG_INDEX_THREAD_INIT);
+    NET_MY_ASSERT(s_net_handle.thread_running, NET_PARA_CONFIG_INDEX_THREAD_RUNNING);
+
     net_operation_init();
 }
 
@@ -439,6 +476,12 @@ static int32_t net_para_config_function(uint8_t platform, uint8_t index, void* p
         break;
     case NET_PARA_CONFIG_INDEX_NDEV_OPERATE :
         s_net_handle.ndev_operate = (int32_t (*)(void*, uint32_t))para;
+        break;
+    case NET_PARA_CONFIG_INDEX_THREAD_INIT :
+        s_net_handle.thread_init_hook = (int32_t (*)(void*, void*, uint32_t, uint32_t))para;
+        break;
+    case NET_PARA_CONFIG_INDEX_THREAD_RUNNING :
+        s_net_handle.thread_running = (int32_t (*)(void*, void*, uint32_t, uint32_t))para;
         break;
     default:
         return -0x06;

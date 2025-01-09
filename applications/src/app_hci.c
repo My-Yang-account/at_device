@@ -109,6 +109,7 @@ void app_hci_req_thread_entry(void *parameter)
 {
     (void)parameter;
 
+    extern int32_t app_thread_monitor_process(void *thread, void *para, uint32_t plen, uint32_t option);
 
     /* 调取屏幕初始化函数 */
     p_hci_data_info = serialScreen_ObjectAi_Init();
@@ -122,6 +123,7 @@ void app_hci_req_thread_entry(void *parameter)
 
     while (1)
     {
+        app_thread_monitor_process(rt_thread_self(), NULL, 0x00, 0x00);
         /* 调取屏幕处理函数 */
         serialScreen_ObjectAi_main();
         rt_thread_mdelay(10);

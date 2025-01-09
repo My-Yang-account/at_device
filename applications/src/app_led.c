@@ -20,6 +20,8 @@ void app_led_thread_entry(void *parameter)
 {
     (void)parameter;
 
+    extern int32_t app_thread_monitor_process(void *thread, void *para, uint32_t plen, uint32_t option);
+
     uint8_t gunno = 0;
     uint32_t time_base[APP_SYSTEM_GUNNO_SIZE], _time[APP_SYSTEM_GUNNO_SIZE];
 
@@ -31,6 +33,8 @@ void app_led_thread_entry(void *parameter)
 
     while (1)
     {
+        app_thread_monitor_process(rt_thread_self(), NULL, 0x00, 0x00);
+
         switch (get_ofsm_info(0x00)->base.ota_state) {
         case APP_OTA_STATE_NULL:
             break;
@@ -56,7 +60,7 @@ void app_led_thread_entry(void *parameter)
         }
 
         for(gunno = 0; gunno < APP_SYSTEM_GUNNO_SIZE; gunno++){
-#if 1
+#if 0
             switch(get_ofsm_info(gunno)->base.state.current)
             {
             case APP_OFSM_STATE_CHARGING:

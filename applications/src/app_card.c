@@ -48,6 +48,50 @@ APP_DEF_SRAM2 static struct card_info_sector2 s_card_info_sector2;
 APP_DEF_SRAM2 static uint32_t s_card_ballance[APP_SYSTEM_GUNNO_SIZE];  /** 卡内余额(0.0001) */
 APP_DEF_SRAM2 static struct rt_event s_card_event[APP_SYSTEM_GUNNO_SIZE];
 
+/******************************************
+ * 函数名     card_node_init_hook
+ * 功能         读卡器部分线程初始化回调
+ * 参数         node   节点句柄
+ *      para     可选参数
+ *      plen     参数长度(B)
+ *      option   选项字
+ * 返回
+ * ***************************************/
+static int32_t card_node_init_hook(void *node, void *para, uint32_t plen, uint32_t option)
+{
+    extern int32_t app_thread_monitor_add(void *thread, void *para, uint32_t plen, uint32_t option);
+
+    if(option &RFIDR_NODE_RUNNING_OPTION_ENTRY_MAX){
+        app_thread_monitor_add(node, para, plen, APP_THREAD_MONITOR_OPT_ENTRY);
+    }else if(option &RFIDR_NODE_RUNNING_OPTION_NAME){
+        app_thread_monitor_add(node, para, plen, APP_THREAD_MONITOR_OPT_NAME);
+    }
+
+    return 0x00;
+}
+
+/******************************************
+ * 函数名     card_node_running
+ * 功能         读卡器部分线程运行回调
+ * 参数         node   节点句柄
+ *      para     可选参数
+ *      plen     参数长度(B)
+ *      option   选项字
+ * 返回
+ * ***************************************/
+static int32_t card_node_running(void *node, void *para, uint32_t plen, uint32_t option)
+{
+    extern int32_t app_thread_monitor_process(void *thread, void *para, uint32_t plen, uint32_t option);
+    uint32_t _option = 0x00;
+
+    if(option &RFIDR_NODE_RUNNING_OPTION_URGENT){
+        _option |= APP_THREAD_MONITOR_OPT_URGENT;
+    }
+    app_thread_monitor_process(node, NULL, 0x00, _option);
+
+    return 0x00;
+}
+
 /*****************************************************************************
  * 函数名                app_card_query_funpay_bill_fees_total
  * 功能                    查询历史订单中与指定UUID匹配的第一条订单的消费金额
@@ -540,7 +584,7 @@ static void app_card_data_update(void* handle)
     switch (get_ofsm_info(0x00)->base.ota_state) {
     case APP_OTA_STATE_AUTH_SUCCESS:
     case APP_OTA_STATE_UPDATEING:
-        s_rfidr->is_forbid = 0x01;
+        s_rfidr->flag.is_forbid = 0x01;
         return;
     default:
         break;
@@ -550,7 +594,7 @@ static void app_card_data_update(void* handle)
         for(uint8_t gunno = 0x00; gunno < APP_SYSTEM_GUNNO_SIZE; gunno++){
             app_clear_system_fault_enum(APP_SYS_FAULT_CARD_READER, APP_GENERAL_SYSTEM_FAULT_SET_LOW, gunno);
         }
-        s_rfidr->is_forbid = 0x01;
+        s_rfidr->flag.is_forbid = 0x01;
     }else{
         /** 并充时，若要刷卡结束则停止主枪，不管屏幕当前页面 */
         if((get_ofsm_info(0x00)->base.charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL) ||
@@ -559,7 +603,7 @@ static void app_card_data_update(void* handle)
         }else{
             s_rfidr->current_port = thaisen_get_hci_page_pos();
         }
-        s_rfidr->is_forbid = 0x00;
+        s_rfidr->flag.is_forbid = 0x00;
     }
 }
 
@@ -1040,6 +1084,8 @@ int32_t app_card_init(void)
     app_rfidr_config_handle_fault(app_card_online_status);
     app_rfidr_config_handle_data_update(app_card_data_update);
     app_rfidr_config_handle_info_process(app_card_info_process);
+    app_rfidr_config_handle_node_init(card_node_init_hook);
+    app_rfidr_config_handle_node_running(card_node_running);
 
     return app_rfidr_init();
 }

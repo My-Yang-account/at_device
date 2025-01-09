@@ -611,6 +611,7 @@ static void temperature_protect_limitcurr(uint8_t gunno, uint16_t *set_curr)
  **************************************************************************/
 void chargepile_power_adjust(void)
 {
+    return;
 #define RUNNING_PERIOD      200
 #define ADJUST_PERIOD       30000 /RUNNING_PERIOD
 
@@ -4927,6 +4928,8 @@ void ofsm_thread_entry(void *parameter)
     enum temp_check result = TCHECK_RESULT_NORMAL;
     thaisenChargeGunInfo info;
 
+    extern int32_t app_thread_monitor_process(void *thread, void *para, uint32_t plen, uint32_t option);
+
     memset(&info, 0x00, sizeof(thaisenChargeGunInfo));
     if(thread_gunno >= APP_SYSTEM_GUNNO_SIZE){
         thread_gunno = APP_SYSTEM_GUNNO_SIZE;
@@ -4957,6 +4960,8 @@ void ofsm_thread_entry(void *parameter)
     while(1){
         uint16_t singlegun_curr = s_ofsm_info[thread_gunno].base.gun_set_curr;
         s_ofsm_info[thread_gunno].base.ota_state = app_nsal_get_ota_state();
+
+        app_thread_monitor_process(rt_thread_self(), NULL, 0x00, 0x00);
 
         switch (s_ofsm_info[thread_gunno].base.ota_state) {
         case APP_OTA_STATE_NULL:

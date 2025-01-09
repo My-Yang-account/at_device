@@ -342,8 +342,13 @@ static void terminal_ems_send_charger_status(void)                              
 void terminal_req_thread_entry(void *parameter)
 {
     uint32_t tick = rt_tick_get();
+
+    extern int32_t app_thread_monitor_process(void *thread, void *para, uint32_t plen, uint32_t option);
+
     while(1)
     {
+        app_thread_monitor_process(rt_thread_self(), NULL, 0x00, 0x00);
+
         if(tick > rt_tick_get()){
             tick = rt_tick_get();
         }
@@ -365,8 +370,12 @@ void terminal_thread_entry(void *parameter)
     uint8_t rlen = 0;                                         //接收数据长度
     uint8_t data_buffer[THAISEN_EMS_ALL_LEGTH_RES];           //用来存放接收数据
 
+    extern int32_t app_thread_monitor_process(void *thread, void *para, uint32_t plen, uint32_t option);
+
     while(1)
     {
+        app_thread_monitor_process(rt_thread_self(), NULL, 0x00, 0x00);
+
         ch = terminal_get_char();
 
         if(ch < 0){

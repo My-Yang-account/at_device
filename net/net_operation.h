@@ -192,6 +192,13 @@
 #define NET_SYSTEM_RECORD_OPTION_CNUM                  0x02             /* 系统数据选项：充电记录总数 */
 #define NET_SYSTEM_RECORD_OPTION_FNUM                  0x03             /* 系统数据选项：故障记录总数 */
 
+#define NET_THREAD_MONITOR_NAME_MAX                    0x08             /* 线程监控名字最大长度 */
+
+#define NET_THREAD_RUNNING_OPTION_DELETE               (1 <<0x00)       /* 线程运行选项字：线程信息删除 */
+#define NET_THREAD_RUNNING_OPTION_ENTRY_MAX            (1 <<0x01)       /* 线程运行选项字：最大容忍次数 */
+#define NET_THREAD_RUNNING_OPTION_URGENT               (1 <<0x02)       /* 线程运行选项字：紧急(无需判断，直接处理) */
+#define NET_THREAD_RUNNING_OPTION_NAME                 (1 <<0x03)       /* 线程运行选项字：线程名字 */
+
 /** net parameter config */
 enum para_config{
     NET_PARA_CONFIG_INDEX_FLASH_ERASE = 1,             /* 参数配置下标：flash擦除函数 */
@@ -212,7 +219,9 @@ enum para_config{
     NET_PARA_CONFIG_INDEX_SYSTEM_CONTROL = 16,         /* 参数配置下标：系统控制 */
     NET_PARA_CONFIG_INDEX_QUERY_SYSTEM_RECORD = 17,    /* 参数配置下标：查询系统数据 */
     NET_PARA_CONFIG_INDEX_NDEV_OPERATE = 18,           /* 参数配置下标：网络设备操作 */
-    NET_PARA_CONFIG_INDEX_SIZE = 19,
+    NET_PARA_CONFIG_INDEX_THREAD_INIT = 19,            /* 参数配置下标：线程初始化 */
+    NET_PARA_CONFIG_INDEX_THREAD_RUNNING = 20,         /* 参数配置下标：线程运行 */
+    NET_PARA_CONFIG_INDEX_SIZE = 21,
 };
 
 #define NET_MY_ASSERT(para, index)                             \
@@ -337,11 +346,16 @@ struct net_handle{
     int32_t (*ndev_operate)(void* para, uint32_t option);
     uint16_t (*crc16_8005)(uint16_t init, const uint8_t *data, uint32_t len);
     uint32_t (*crc32_updtae)(uint32_t init, const uint8_t *data, uint32_t len);
+    int32_t (*thread_init_hook)(void *thread, void *para, uint32_t plen, uint32_t option);
+    int32_t (*thread_running)(void *thread, void *para, uint32_t plen, uint32_t option);
 };
 
 #pragma pack()
 
 void NETDATA_DEBUG(const char *id, void *data, int len, uint8_t dir);
+
+int32_t net_thread_init_hook(void *thread, void *para, uint32_t plen, uint32_t option);
+int32_t net_thread_running(void *thread, void *para, uint32_t plen, uint32_t option);
 
 void net_set_clear_ndev_reset_state(uint8_t plat_mask, uint8_t is_clear);
 void net_operation_set_event(uint8_t gunno, uint8_t event);

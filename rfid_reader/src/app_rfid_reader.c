@@ -26,7 +26,7 @@
 
 /** rfidr:rfid reader */
 static rfid_reader s_rfidr_handle = {
-        .is_forbid = APP_RFIDR_ENUM_FALSE,
+        .flag.is_forbid = APP_RFIDR_ENUM_FALSE,
 };
 
 RFID_DEF_SRAM2 static unsigned char s_rfidr_state = APP_RFIDR_STATE_DOWN;
@@ -83,10 +83,14 @@ static void rfidr_thread_entry(void *parameter)
     rfid_dev_api_device_identify();   /** 上电先识别读卡器设备 */
 
     while(1){
+        if(s_rfidr_handle.node_running){
+            s_rfidr_handle.node_running(rt_thread_self(), NULL, 0x00, 0x00);
+        }
+
         if(s_rfidr_handle.data_update){
             s_rfidr_handle.data_update(&s_rfidr_handle);
         }
-        if(s_rfidr_handle.is_forbid){
+        if(s_rfidr_handle.flag.is_forbid){
             rt_thread_mdelay(3000);
             continue;
         }
@@ -286,6 +290,17 @@ static int rfidr_thread_init(void)
         return -0x01;
     }
 
+    if(s_rfidr_handle.node_init){
+        uint8_t entry = 0x03, name[8];
+
+        s_rfidr_handle.node_init(&s_rfidr_thread, &entry, sizeof(entry), RFIDR_NODE_RUNNING_OPTION_ENTRY_MAX);
+
+        memset(name, 0x00, sizeof(name));
+        memcpy(name, "rfidr", strlen("rfidr"));
+        s_rfidr_handle.node_init(&s_rfidr_thread, name, strlen((char*)name), RFIDR_NODE_RUNNING_OPTION_NAME);
+
+    }
+
     return 0x00;
 }
 
@@ -348,6 +363,30 @@ int app_rfidr_config_handle_info_process(void *handle)
 }
 
 /*********************************************************************
+ * 函数名        app_rfidr_config_handle_init_hook
+ * 功能            配置节点(线程)初始化回调句柄
+ * 参数            handle    句柄
+ * 返回           >=0：成功   <0：失败
+ ********************************************************************/
+int app_rfidr_config_handle_node_init(void *handle)
+{
+    s_rfidr_handle.node_init = (int (*)(void *node, void *para, unsigned int plen, unsigned int option))handle;
+    return 0x00;
+}
+
+/*********************************************************************
+ * 函数名        app_rfidr_config_handle_realtime_pro
+ * 功能            配置节点运行句柄
+ * 参数            handle    句柄
+ * 返回           >=0：成功   <0：失败
+ ********************************************************************/
+int app_rfidr_config_handle_node_running(void *handle)
+{
+    s_rfidr_handle.node_running = (int (*)(void *node, void *para, unsigned int plen, unsigned int option))handle;
+    return 0x00;
+}
+
+/*********************************************************************
  * 函数名        app_rfidr_init
  * 功能            初始化
  * 参数
@@ -361,6 +400,7 @@ int app_rfidr_init(void)
     s_rfidr_state = APP_RFIDR_STATE_DOWN;
     s_rfidr_block = 0x09;     /** 卡号所在块 */
     s_rfidr_sector = 0x02;     /** 卡号所在扇区 */
+    s_rfidr_handle.flag.is_forbid = APP_RFIDR_ENUM_FALSE;
 
     /** 钛昕密钥 */
     s_rfidr_card_key[0x00][0x00] = 0x41;

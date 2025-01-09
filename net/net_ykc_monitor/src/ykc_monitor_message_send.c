@@ -629,6 +629,7 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
 
     while(1)
     {
+        net_thread_running(rt_thread_self(), NULL, 0x00, 0x00);
         if((net_get_ota_info()->state >= NET_OTA_STATE_OPEN_LINK) && (net_get_ota_info()->state <= NET_OTA_STATE_UPDATING)){
             rt_thread_mdelay(5000);
             continue;
@@ -1727,6 +1728,7 @@ static void net_ykc_monitor_server_message_pro_entry(void *parameter)
 
     while(1)
     {
+        net_thread_running(rt_thread_self(), NULL, 0x00, 0x00);
         if((net_get_ota_info()->state >= NET_OTA_STATE_OPEN_LINK) && (net_get_ota_info()->state <= NET_OTA_STATE_UPDATING)){
             rt_thread_mdelay(5000);
             continue;
@@ -2697,6 +2699,8 @@ static void net_ykc_monitor_server_message_pro_entry(void *parameter)
 
 int32_t ykc_monitor_message_send_init(void)
 {
+    uint8_t entry = 0x03, name[NET_THREAD_MONITOR_NAME_MAX];
+
 #ifdef NET_YKC_MONITOR_AS_MONITOR
     s_ykc_monitor_loghead.log_num = 0x00;
     s_ykc_monitor_loghead.node.node = NULL;
@@ -2774,6 +2778,12 @@ int32_t ykc_monitor_message_send_init(void)
         return -0x01;
     }
 
+    net_thread_init_hook(&s_ykc_monitor_message_send_thread, &entry, sizeof(entry), NET_THREAD_RUNNING_OPTION_ENTRY_MAX);
+
+    memset(name, 0x00, NET_THREAD_MONITOR_NAME_MAX);
+    memcpy(name, "ym_pms", strlen("ym_pms"));
+    net_thread_init_hook(&s_ykc_monitor_message_send_thread, name, strlen((char*)name), NET_THREAD_RUNNING_OPTION_NAME);
+
     if(rt_thread_init(&s_ykc_monitor_server_message_pro_thread, "mykc_server", net_ykc_monitor_server_message_pro_entry, NULL,
             s_ykc_monitor_server_message_pro_thread_stack, NET_YKC_MONITOR_SERVER_MESSAGE_PRO_THREAD_STACK_SIZE, 16, 10) != RT_EOK){
         LOG_E("ykc monitor server message process thread create fail, please check");
@@ -2783,6 +2793,12 @@ int32_t ykc_monitor_message_send_init(void)
         LOG_E("ykc monitor server message process thread startup fail, please check");
         return -0x01;
     }
+
+    net_thread_init_hook(&s_ykc_monitor_server_message_pro_thread, &entry, sizeof(entry), NET_THREAD_RUNNING_OPTION_ENTRY_MAX);
+
+    memset(name, 0x00, NET_THREAD_MONITOR_NAME_MAX);
+    memcpy(name, "ym_smp", strlen("ym_smp"));
+    net_thread_init_hook(&s_ykc_monitor_server_message_pro_thread, name, strlen((char*)name), NET_THREAD_RUNNING_OPTION_NAME);
 
     if(rt_sem_init(&s_ykc_monitor_response_buff_sem, "mykc_tbsem", 0x01, RT_IPC_FLAG_PRIO) != RT_EOK){
         LOG_E("ykc monitor response buff sem create fail");

@@ -456,7 +456,7 @@ static void sgcc_connect_thread_entry(void *parameter)
     while(1)
     {
         g_net_target_platform_tick = rt_tick_get();
-
+        net_thread_running(rt_thread_self(), NULL, 0x00, 0x00);
         if((net_get_ota_info()->state >= NET_OTA_STATE_LOGIN_WAIT) && (net_get_ota_info()->state <= NET_OTA_STATE_UPDATING)){
             rt_thread_mdelay(5000);
             continue;
@@ -765,7 +765,7 @@ static void sgcc_message_send_thread_entry(void *parameter)
     while(1)
     {
         g_net_target_platform_tick = rt_tick_get();
-
+        net_thread_running(rt_thread_self(), NULL, 0x00, 0x00);
         if((net_get_ota_info()->state >= NET_OTA_STATE_LOGIN_WAIT) && (net_get_ota_info()->state <= NET_OTA_STATE_UPDATING)){
             rt_thread_mdelay(5000);
             continue;
@@ -1082,6 +1082,8 @@ static void sgcc_message_server_thread_entry(void *parameter)
 
     while(1)
     {
+        g_net_target_platform_tick = rt_tick_get();
+        net_thread_running(rt_thread_self(), NULL, 0x00, 0x00);
         if(net_get_ota_info()->state >= NET_OTA_STATE_LOGIN_WAIT){
             rt_thread_mdelay(5000);
             continue;
@@ -1382,6 +1384,8 @@ static void sgcc_message_server_thread_entry(void *parameter)
 
 int sgcc_message_send_init(void)
 {
+    uint8_t entry = 0x03, name[NET_THREAD_MONITOR_NAME_MAX];
+
 #ifdef NET_DESIGNATE_REGION
     for(uint8_t gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
         s_sgcc_same_transaction_report_count[gunno] = 0x00;
@@ -1461,6 +1465,12 @@ int sgcc_message_send_init(void)
         LOG_E("sgcc message send thread startup fail, please check");
         return -0x01;
     }
+    net_thread_init_hook(&s_sgcc_message_send_thread, &entry, sizeof(entry), NET_THREAD_RUNNING_OPTION_ENTRY_MAX);
+
+    memset(name, 0x00, NET_THREAD_MONITOR_NAME_MAX);
+    memcpy(name, "gw_pms", strlen("gw_pms"));
+    net_thread_init_hook(&s_sgcc_message_send_thread, name, strlen((char*)name), NET_THREAD_RUNNING_OPTION_NAME);
+
 
     if(rt_thread_init(&s_sgcc_message_server_thread, "sgcc_server", sgcc_message_server_thread_entry, NULL,
             s_sgcc_message_service_thread_stack, NET_SGCC_SERVER_MESSAGE_PRO_THREAD_STACK_SIZE, 16, 10) != RT_EOK){
@@ -1468,9 +1478,16 @@ int sgcc_message_send_init(void)
         return -0x01;
     }
     if(rt_thread_startup(&s_sgcc_message_server_thread) != RT_EOK){
-        LOG_E("gw message pro thread startup fail, please check");
+        LOG_E("sgcc message pro thread startup fail, please check");
         return -0x01;
     }
+
+    net_thread_init_hook(&s_sgcc_message_server_thread, &entry, sizeof(entry), NET_THREAD_RUNNING_OPTION_ENTRY_MAX);
+
+    memset(name, 0x00, NET_THREAD_MONITOR_NAME_MAX);
+    memcpy(name, "gw_smp", strlen("gw_smp"));
+    net_thread_init_hook(&s_sgcc_message_server_thread, name, strlen((char*)name), NET_THREAD_RUNNING_OPTION_NAME);
+
 
     if(rt_thread_init(&s_sgcc_connect_thread, "sgcc_conn", sgcc_connect_thread_entry, NULL,
             s_sgcc_connect_thread_stack, NET_SGCC_CONNECT_THREAD_STACK_SIZE, 10, 10) != RT_EOK){
@@ -1481,6 +1498,13 @@ int sgcc_message_send_init(void)
         LOG_E("sgcc connect thread startup fail, please check");
         return -0x01;
     }
+
+    net_thread_init_hook(&s_sgcc_connect_thread, &entry, sizeof(entry), NET_THREAD_RUNNING_OPTION_ENTRY_MAX);
+
+    memset(name, 0x00, NET_THREAD_MONITOR_NAME_MAX);
+    memcpy(name, "gw_conn", strlen("gw_conn"));
+    net_thread_init_hook(&s_sgcc_connect_thread, name, strlen((char*)name), NET_THREAD_RUNNING_OPTION_NAME);
+
 
     if(rt_thread_init(&s_sgcc_yield_thread, "sgcc_yield", sgcc_yield_thread_entry, NULL,
             s_sgcc_yield_thread_stack, NET_SGCC_YIELD_THREAD_STACK_SIZE, 9, 10) != RT_EOK){

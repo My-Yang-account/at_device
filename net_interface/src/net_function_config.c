@@ -719,6 +719,41 @@ static uint32_t app_ncrc32_updtae(uint32_t init, const uint8_t *data, uint32_t l
     return crc32_ieee(init, data, len);
 }
 
+/***********************************************
+ * 函数名     app_nthread_init_hook
+ * 功能         网络模块线程初始化回调
+ **********************************************/
+static int32_t app_nthread_init_hook(void *thread, void *para, uint32_t plen, uint32_t option)
+{
+    extern int32_t app_thread_monitor_add(void *thread, void *para, uint32_t plen, uint32_t option);
+
+    if(option &NET_THREAD_RUNNING_OPTION_ENTRY_MAX){
+        app_thread_monitor_add(thread, para, plen, APP_THREAD_MONITOR_OPT_ENTRY);
+    }else if(option &NET_THREAD_RUNNING_OPTION_NAME){
+        app_thread_monitor_add(thread, para, plen, APP_THREAD_MONITOR_OPT_NAME);
+    }
+
+    return 0x00;
+}
+
+/***********************************************
+ * 函数名     app_nthread_running
+ * 功能         网络模块线程运行回调
+ **********************************************/
+static int32_t app_nthread_running(void *thread, void *para, uint32_t plen, uint32_t option)
+{
+    extern int32_t app_thread_monitor_process(void *thread, void *para, uint32_t plen, uint32_t option);
+    uint32_t _option = 0x00;
+
+    if(option &NET_THREAD_RUNNING_OPTION_URGENT){
+        _option |= APP_THREAD_MONITOR_OPT_URGENT;
+    }
+    app_thread_monitor_process(thread, NULL, 0x00, _option);
+
+    return 0x00;
+}
+
+
 int32_t app_nfunc_config_init(void)
 {
     struct net_handle* handle = net_get_net_handle();
@@ -758,6 +793,8 @@ int32_t app_nfunc_config_init(void)
     handle->para_config(0x00, NET_PARA_CONFIG_INDEX_NDEV_OPERATE,          app_ndevice_operate, handle);
     handle->para_config(0x00, NET_PARA_CONFIG_INDEX_CRC16_8005,            app_ncrc16_modbus, handle);
     handle->para_config(0x00, NET_PARA_CONFIG_INDEX_CRC32_UPDATE,          app_ncrc32_updtae, handle);
+    handle->para_config(0x00, NET_PARA_CONFIG_INDEX_THREAD_INIT,           app_nthread_init_hook, handle);
+    handle->para_config(0x00, NET_PARA_CONFIG_INDEX_THREAD_RUNNING,        app_nthread_running, handle);
 
     if((offline_billing == 0x01) || (plug_and_play == 0x01)){
         return -0x01;
@@ -765,6 +802,8 @@ int32_t app_nfunc_config_init(void)
 
     ethch395_set_init_hook(ethernet_init_hook);
     if(nettype == CP_NETTYPE_ETH){
+        ethch395_set_node_init_handle(app_nthread_init_hook);
+        ethch395_set_node_running_handle(app_nthread_running);
         net_set_netdev_type(NET_NETDEV_TYPE_ETHERNET, 0x00);
         net_netdev_init();
     }

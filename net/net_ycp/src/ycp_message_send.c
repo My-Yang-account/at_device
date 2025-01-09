@@ -617,7 +617,7 @@ static void net_ycp_message_send_thread_entry(void *parameter)
     while(1)
     {
         g_net_target_platform_tick = rt_tick_get();
-
+        net_thread_running(rt_thread_self(), NULL, 0x00, 0x00);
         if((net_get_ota_info()->state >= NET_OTA_STATE_OPEN_LINK) && (net_get_ota_info()->state <= NET_OTA_STATE_UPDATING)){
             rt_thread_mdelay(5000);
             continue;
@@ -1315,6 +1315,7 @@ static void net_ycp_server_message_pro_entry(void *parameter)
 
     while(1)
     {
+        net_thread_running(rt_thread_self(), NULL, 0x00, 0x00);
         if((net_get_ota_info()->state >= NET_OTA_STATE_OPEN_LINK) && (net_get_ota_info()->state <= NET_OTA_STATE_UPDATING)){
             rt_thread_mdelay(5000);
             continue;
@@ -1838,6 +1839,8 @@ static void net_ycp_server_message_pro_entry(void *parameter)
 
 int32_t ycp_message_send_init(void)
 {
+    uint8_t entry = 0x03, name[NET_THREAD_MONITOR_NAME_MAX];
+
     for(uint8_t gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
         s_ycp_same_transaction_report_count[gunno] = 0x00;
         s_ycp_transaction_verify[gunno] = 0x00;
@@ -1894,6 +1897,12 @@ int32_t ycp_message_send_init(void)
         return -0x01;
     }
 
+    net_thread_init_hook(&s_ycp_message_send_thread, &entry, sizeof(entry), NET_THREAD_RUNNING_OPTION_ENTRY_MAX);
+
+    memset(name, 0x00, NET_THREAD_MONITOR_NAME_MAX);
+    memcpy(name, "yc_pms", strlen("yc_pms"));
+    net_thread_init_hook(&s_ycp_message_send_thread, name, strlen((char*)name), NET_THREAD_RUNNING_OPTION_NAME);
+
     if(rt_thread_init(&s_ycp_server_message_pro_thread, "ycp_server", net_ycp_server_message_pro_entry, NULL,
             s_ycp_server_message_pro_thread_stack, NET_YCP_SERVER_MESSAGE_PRO_THREAD_STACK_SIZE, 16, 10) != RT_EOK){
         LOG_E("ycp server message process thread create fail, please check");
@@ -1903,6 +1912,11 @@ int32_t ycp_message_send_init(void)
         LOG_E("ycp server message process thread startup fail, please check");
         return -0x01;
     }
+    net_thread_init_hook(&s_ycp_server_message_pro_thread, &entry, sizeof(entry), NET_THREAD_RUNNING_OPTION_ENTRY_MAX);
+
+    memset(name, 0x00, NET_THREAD_MONITOR_NAME_MAX);
+    memcpy(name, "yc_smp", strlen("yc_smp"));
+    net_thread_init_hook(&s_ycp_server_message_pro_thread, name, strlen((char*)name), NET_THREAD_RUNNING_OPTION_NAME);
 
     if(rt_sem_init(&s_ycp_response_buff_sem, "ycp_tbsem", 0x01, RT_IPC_FLAG_PRIO) != RT_EOK){
         LOG_E("ycp response buff sem create fail");

@@ -165,7 +165,11 @@ static void ykc_message_recv_thread_entry(void *parameter)
             }else{
                 s_ykc_transceiver_flag_set.socket_lock = 0x00;
             }
+
+            net_thread_running(rt_thread_self(), NULL, 0x00, 0x00);
         }else{
+            net_thread_running(rt_thread_self(), NULL, 0x00, 0x00);
+
             s_ykc_transceiver_flag_set.socket_lock = 0x00;
             rt_thread_mdelay(5000);
             continue;
@@ -309,6 +313,8 @@ void *ykc_get_service_callback(uint8_t id)
 
 int32_t ykc_transceiver_init(void)
 {
+    uint8_t entry = 0x03, name[NET_THREAD_MONITOR_NAME_MAX];
+
 #ifdef NET_DESIGNATE_REGION
     s_ykc_service_number = 0x00;
 
@@ -326,6 +332,13 @@ int32_t ykc_transceiver_init(void)
         LOG_E("ykc message recv thread startup fail");
         return -0x01;
     }
+
+    net_thread_init_hook(&s_ykc_message_recv_thread, &entry, sizeof(entry), NET_THREAD_RUNNING_OPTION_ENTRY_MAX);
+
+    memset(name, 0x00, NET_THREAD_MONITOR_NAME_MAX);
+    memcpy(name, "yk_drec", strlen("yk_drec"));
+    net_thread_init_hook(&s_ykc_message_recv_thread, name, strlen((char*)name), NET_THREAD_RUNNING_OPTION_NAME);
+
     return 0x00;
 }
 

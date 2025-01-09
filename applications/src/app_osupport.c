@@ -335,10 +335,14 @@ void app_osupport_thread_entry(void *parameter)
     uint8_t bit = 0x00, start_bit = 0x00, end_bit = 0x00, remain_bit = 0x00;
     uint32_t fault_xor = 0x00, fault_temp = 0x00, *current_fault_ptr = NULL;
 
+    extern int32_t app_thread_monitor_process(void *thread, void *para, uint32_t plen, uint32_t option);
+
     rt_thread_mdelay(8000);     /* 忽略上电前8s故障 */
 
     while (1)
     {
+        app_thread_monitor_process(rt_thread_self(), NULL, 0x00, 0x00);
+
         switch (get_ofsm_info(0x00)->base.ota_state) {
         case APP_OTA_STATE_NULL:
             break;

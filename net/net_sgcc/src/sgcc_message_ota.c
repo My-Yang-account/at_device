@@ -279,6 +279,7 @@ static void sgcc_ota_thread_entry(void *parameter)
     while (1)
     {
         if(s_sgcc_ota_flag.was_requested){
+            net_thread_running(rt_thread_self(), NULL, 0x00, NET_THREAD_RUNNING_OPTION_URGENT);
             switch(s_sgcc_ota_info->state){
             case NET_OTA_STATE_NULL:
                 if(net_operation_get_event(0x00, NET_OPERATION_EVENT_START_UPDATE)){
@@ -397,6 +398,8 @@ static void sgcc_ota_thread_entry(void *parameter)
             }
             rt_thread_mdelay(1);
         }else{
+            net_thread_running(rt_thread_self(), NULL, 0x00, 0x00);
+
             rt_thread_mdelay(100);
         }
     }
@@ -458,6 +461,8 @@ static uint8_t sgcc_parse_ota_data(const uint8_t *data, uint32_t len)
 
 int sgcc_ota_init(void)
 {
+    uint8_t entry = 0x03, name[NET_THREAD_MONITOR_NAME_MAX];
+
 #ifdef NET_DESIGNATE_REGION
     s_sgcc_ota_info = NULL;
     s_handle = NULL;
@@ -484,6 +489,13 @@ int sgcc_ota_init(void)
         return -0x01;
     }
 //#endif
+
+    net_thread_init_hook(&s_sgcc_ota_thread, &entry, sizeof(entry), NET_THREAD_RUNNING_OPTION_ENTRY_MAX);
+
+    memset(name, 0x00, NET_THREAD_MONITOR_NAME_MAX);
+    memcpy(name, "gw_ota", strlen("gw_ota"));
+    net_thread_init_hook(&s_sgcc_ota_thread, name, strlen((char*)name), NET_THREAD_RUNNING_OPTION_NAME);
+
     s_sgcc_ota_info = net_get_ota_info();
     s_handle = net_get_net_handle();
 

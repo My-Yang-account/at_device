@@ -12,6 +12,10 @@
 
 #include "rfid_dev_api.h"
 
+#define RFIDR_NODE_RUNNING_OPTION_ENTRY_MAX             (1 <<0x01)                     /** 节点运行选项字：最大容忍次数 */
+#define RFIDR_NODE_RUNNING_OPTION_URGENT                (1 <<0x02)                     /** 节点运行选项字：紧急(无需判断，直接处理) */
+#define RFIDR_NODE_RUNNING_OPTION_NAME                  (1 <<0x03)                     /** 节点运行选项字：线程名字 */
+
 #define RFIDR_MAIL_NUM_MAX                               0x05                          /** 射频读卡器邮箱邮件数量 */
 #define RFIDR_THREAD_STACK_SIZE                          2048                          /** 射频读卡器线程栈大小(B) */
 
@@ -52,7 +56,10 @@ enum{
 };
 
 typedef struct{
-    unsigned char is_forbid;                                                           /** 禁止运行 */
+    struct{
+        unsigned char is_forbid : 1;                                                   /** 禁止运行 */
+        unsigned char enable_fdetect : 1;                                              /** 使能故障检测 */
+    }flag;
     unsigned char current_port;                                                        /** 当前端口(枪号) */
     unsigned char key_type;                                                            /** 卡密钥类型 */
     unsigned char info_type;                                                           /** 刷卡信息类型 */
@@ -62,6 +69,8 @@ typedef struct{
     unsigned char card_number_len;                                                     /** 卡号长度 */
     unsigned char card_number[RFIDR_CARD_NUMBER_LEN_MAX];                              /** 卡号 */
     void (*fault)(unsigned char status);                                               /** 故障设置与恢复 */
+    int (*node_init)(void *node, void *para, unsigned int plen, unsigned int option);  /** 节点初始化 */
+    int (*node_running)(void *node, void *para, unsigned int plen, unsigned int option); /** 节点运行(外部调用) */
     void (*data_update)(void *handle);                                                 /** 数据更新(外部调用) */
     int (*bolck_read)(unsigned char bolck, unsigned char *buf, unsigned char blen);    /** 读块数据(外部调用) */
     int (*bolck_write)(unsigned char bolck, unsigned char *data, unsigned char dlen);  /** 写块数据(外部调用) */
@@ -108,6 +117,22 @@ int app_rfidr_config_handle_data_update(void *handle);
  * 返回           >=0：成功   <0：失败
  ********************************************************************/
 int app_rfidr_config_handle_info_process(void *handle);
+
+/*********************************************************************
+ * 函数名        app_rfidr_config_handle_node_init
+ * 功能            配置节点(线程)初始化回调句柄
+ * 参数            handle    句柄
+ * 返回           >=0：成功   <0：失败
+ ********************************************************************/
+int app_rfidr_config_handle_node_init(void *handle);
+
+/*********************************************************************
+ * 函数名        app_rfidr_config_handle_node_running
+ * 功能            配置节点运行句柄
+ * 参数            handle    句柄
+ * 返回           >=0：成功   <0：失败
+ ********************************************************************/
+int app_rfidr_config_handle_node_running(void *handle);
 
 /*********************************************************************
  * 函数名        app_rfidr_init
