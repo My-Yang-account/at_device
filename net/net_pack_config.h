@@ -16,7 +16,7 @@
 #include "time.h"
 #include <rtthread.h>
 
-//#define NET_DESIGNATE_REGION                                  /* 变量定义到指定区 */
+#define NET_DESIGNATE_REGION                                  /* 变量定义到指定区 */
 #define NET_USING_NET_PACK                                    /* 联网 */
 
 #ifdef NET_USING_NET_PACK

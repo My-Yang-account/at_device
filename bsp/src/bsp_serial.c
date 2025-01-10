@@ -18,7 +18,7 @@
 #define DBG_LVL DBG_LOG
 #include <rtdbg.h>
 
-//#define BSP_DESIGNATE_REGION           /* 变量定义到指定区 */
+#define BSP_DESIGNATE_REGION           /* 变量定义到指定区 */
 
 #ifdef BSP_DESIGNATE_REGION
 #define BSP_DEF_TCMRAM CFG_DEF_TCMRAM

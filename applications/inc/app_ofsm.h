@@ -23,7 +23,7 @@ extern "C" {
 
 #include "chargepile_config.h"
 
-//#define APP_DESIGNATE_REGION           /* 变量定义到指定区 */
+#define APP_DESIGNATE_REGION           /* 变量定义到指定区 */
 
 #ifdef APP_DESIGNATE_REGION
 #define APP_DEF_TCMRAM CFG_DEF_TCMRAM

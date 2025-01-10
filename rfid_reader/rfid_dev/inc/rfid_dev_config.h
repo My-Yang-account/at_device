@@ -17,7 +17,7 @@
 #define RFID_DEV_INCLUDE_THA                              /* 射频识别设备：钛昕 */
 #define RFID_DEV_INCLUDE_MT                              /* 射频识别设备：铭特 */
 
-//#define RFID_DESIGNATE_REGION                             /* 变量定义到指定区 */
+#define RFID_DESIGNATE_REGION                             /* 变量定义到指定区 */
 
 #ifdef APP_USING_DOUBLEGUN
 #define RFID_DEV_NAME                          "uart2"    /* 射频识别设备名 */

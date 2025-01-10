@@ -17,7 +17,7 @@ extern "C" {
 
 #define NOTFS_VERSION "1.1"
 
-//#define NOTFS_DESIGNATE_REGION                                     /* 变量定义到指定区 */
+#define NOTFS_DESIGNATE_REGION                                     /* 变量定义到指定区 */
 
 #ifdef NOTFS_DESIGNATE_REGION
 #define NOTFS_DEF_TCMRAM __attribute__((section(".TCM_RAM")))      /* 将变量定义在TCMRAM区，注：对于GD32F470ZGT6 TCMRAM 不能存放代码，不能被任何 DMA 访问，可以将一些变量定义在该地址空间；定义的变量初始值是未知的 */
