@@ -1757,6 +1757,7 @@ static int iotx_mc_handle_reconnect(iotx_mc_client_t *pClient)
         return STATE_USER_INPUT_INVALID;
     }
 
+    /** 每次重连之间是有间隔的，要等到下一次重连时间 */
     if (!utils_time_is_expired(&(pClient->reconnect_param.reconnect_next_time))) {
         /* Timer has not expired. Not time to attempt reconnect yet. Return attempting reconnect */
         HAL_SleepMs(100);

@@ -113,11 +113,6 @@ static iotx_linkkit_ctx_t *_iotx_linkkit_get_ctx(void)
     return &g_iotx_linkkit_ctx;
 }
 
-void iotx_linkkit_ctx_close(void)
-{
-    g_iotx_linkkit_ctx.is_yield_running = 0;
-}
-
 static void _iotx_linkkit_mutex_lock(void)
 {
     iotx_linkkit_ctx_t *ctx = _iotx_linkkit_get_ctx();
@@ -1280,7 +1275,7 @@ static int _iotx_linkkit_master_connect(void)
     IOT_Bind_Start(NULL, NULL);
 #endif
 
-    ctx->yield_running = 1;
+    ctx->yield_running = 1;             /** 连接成功， 可以开始接收数据 */
     return SUCCESS_RETURN;
 }
 
@@ -1459,7 +1454,7 @@ static int _iotx_linkkit_master_close(void)
     iotx_linkkit_ctx_t *ctx = _iotx_linkkit_get_ctx();
 
     ctx->yield_running = 0;
-    if (ctx->is_yield_running) {
+    if (ctx->is_yield_running) {         /** 正在接收数据，不能关闭 */
         return STATE_DEV_MODEL_YIELD_RUNNING;
     }
     _iotx_linkkit_mutex_lock();
@@ -1579,18 +1574,18 @@ int IOT_Linkkit_Yield(int timeout_ms)
     iotx_linkkit_ctx_t *ctx = _iotx_linkkit_get_ctx();
     int res = 0;
 
-    if (ctx->yield_running == 0) {
+    if (ctx->yield_running == 0) {        /** 此变量在连接成功后置1，调用关闭连接函数后置0 */
         HAL_SleepMs(timeout_ms);
         return STATE_DEV_MODEL_YIELD_STOPPED;
     }
 
-    ctx->is_yield_running = 1;
+    ctx->is_yield_running = 1;            /** 表明数据接收正在执行，不要关闭socket */
     if (timeout_ms <= 0) {
         ctx->is_yield_running = 0;
         return STATE_USER_INPUT_INVALID;
     }
 
-    if (ctx->is_opened == 0 || ctx->is_connected == 0) {
+    if (ctx->is_opened == 0 || ctx->is_connected == 0) {  /** is_opened 成功获取三元组后置1，调用关闭连接函数后置0   is_connected 调用_iotx_linkkit_master_connect后置1，调用关闭连接函数后置0 */
         ctx->is_yield_running = 0;
         return STATE_DEV_MODEL_MASTER_NOT_CONNECT_YET;
     }

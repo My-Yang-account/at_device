@@ -18,7 +18,6 @@
 #define NET_SGCC_MESSAGE_SEND_THREAD_STACK_SIZE               (12 *1024)       /* 报文发送线程栈 */
 #define NET_SGCC_SERVER_MESSAGE_PRO_THREAD_STACK_SIZE         2048       /* 服务器报文处理线程栈 */
 #define NET_SGCC_CONNECT_THREAD_STACK_SIZE                    (12 *1024)       /* 连接线程栈 */
-#define NET_SGCC_YIELD_THREAD_STACK_SIZE                      (10 *1024)       /* 数据接收线程栈 */
 #define NET_SGCC_HOST_LENGTH_MAX                              128        /* 主机名最大长度 */
 #define NET_SGCC_GENERA_RESPONSE_BUFF_LENGTH                  256        /* 同用响应缓存大小 */
 #define NET_SGCC_BILL_SERIAL_NUMBER_COUNT_MAX                 0x03       /* 账单流水号记录最大个数 */
@@ -176,6 +175,7 @@ typedef struct{
     uint8_t sync_repeat;
     struct{
         uint8_t login : 4;
+        uint8_t open : 3;
         uint8_t sync : 1;
     }operate_fail;
 }sgcc_socket_info_t;
