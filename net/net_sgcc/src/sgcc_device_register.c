@@ -15,6 +15,8 @@
 #include "interface.h"
 #include "protocol.h"
 
+#include "net_socket_interface.h"
+
 #define DBG_TAG "register"
 #define DBG_LVL DBG_LOG
 #include <rtdbg.h>
@@ -170,6 +172,12 @@ void sgcc_device_register_init(void)
     EVS_RegisterCallback(EVS_CERT_SET, callback_service_EVS_CERT_SET);
     EVS_RegisterCallback(EVS_DEVICE_REG_CODE_GET, callback_service_EVS_DEVICE_REG_CODE_GET);
     EVS_RegisterCallback(EVS_DEVICE_UID_GET, callback_service_EVS_DEVICE_UID_GET);
+}
+
+
+int sgcc_socket_domain_parse(int fd, char *domain, uint8_t dlen, void *ret, uint8_t ret_len)
+{
+    return net_socket_control(fd, NET_SOCKET_CONTROL_DOMAIN_PARSE, domain, dlen, ret, ret_len);
 }
 
 #endif /* NET_PACK_USING_SGCC */

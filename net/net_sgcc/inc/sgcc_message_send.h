@@ -173,6 +173,7 @@ typedef struct{
     int fd;
     uint8_t state;
     uint8_t sync_repeat;
+    uint8_t domain_is_prase;   /** 域名已解析 */
     struct{
         uint8_t login : 4;
         uint8_t open : 3;

@@ -354,5 +354,7 @@ void sgcc_device_register_init(void);
 /// @return 设置的UID长度
 int sgcc_device_uid_set(char *device_uid);
 
+int sgcc_socket_domain_parse(int fd, char *domain, uint8_t dlen, void *ret, uint8_t ret_len);
+
 #endif /* NET_PACK_USING_SGCC */
 #endif /* NET_NET_SGCC_INC_SGCC_DEVICE_REGISTER_H_ */

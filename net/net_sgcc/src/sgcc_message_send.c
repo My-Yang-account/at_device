@@ -450,6 +450,7 @@ static void sgcc_connect_thread_entry(void *parameter)
     int32_t result = 0x00;
 
     s_sgcc_socket_info.fd = -0x01;
+    s_sgcc_socket_info.domain_is_prase = 0x00;
 
     while(1)
     {
@@ -555,6 +556,19 @@ static void sgcc_connect_thread_entry(void *parameter)
             }
 
             link_open_step = 0x02;
+        }
+
+        /** 进行域名解析 */
+        if(s_sgcc_socket_info.domain_is_prase == 0x00){
+            char ip_str[0x10];   /** 点分十进制式IP，最大长度15，预留一位 */
+            if(sgcc_socket_domain_parse(0x00, (char*)g_infra_mqtt_domain[IOTX_CLOUD_REGION_SHANGHAI], strlen(g_infra_mqtt_domain[IOTX_CLOUD_REGION_SHANGHAI]),  \
+                    ip_str, sizeof(ip_str)) >= 0x00){
+                net_operation_set_target_socket_domain(ip_str, strlen(ip_str));
+                net_operation_set_target_socket_port(443);
+                s_sgcc_socket_info.domain_is_prase = 0x01;
+
+                LOG_D("sgcc domain prase success[%s:%d]", ip_str, 443);
+            }
         }
 
         /***************************************************** [登录认证] **********************************************************/
