@@ -3331,9 +3331,10 @@ static void ofsm_charging_fun(uint8_t gunno)
         s_thaisen_transaction[gunno].start_time = s_ofsm_info[gunno].base.start_time;
 
         app_nsal_time_sync_revise(gunno);
-
+#if 0
         mw_storage_record_designate_index_updated(&s_thaisen_transaction[gunno], sizeof(s_thaisen_transaction[gunno]), USER_DATA_TYPE_STORAGE,  \
                 0x00, APP_THA_ENUM_FALSE, gunno, s_current_order_index[TARGET_PLATFORM_INDEX][gunno]);
+#endif /* 0 */
         /** 与时段有关的信息也要更新 */
         LOG_I("chargepile is synchronized, modify correlation time|%x\n", curr_time);
     }
