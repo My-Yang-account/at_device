@@ -111,6 +111,10 @@ int8_t ykc_monitor_response_padding_function_switch(uint8_t *buf, uint16_t ilen,
 int8_t ykc_monitor_response_padding_info_para_confirm(uint8_t *buf, uint16_t ilen, uint16_t *olen);
 int8_t ykc_monitor_response_padding_modify_dev_info(uint8_t *buf, uint16_t ilen, uint16_t *olen);
 
+/******************************** 以下是外部调用触发 *******************************/
+/******************************** 以下是外部调用触发 *******************************/
+int8_t ykc_monitor_storage_thread_monitor_err_info(char *name);
+
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
 
 #endif /* NET_PACK_USING_YKC_MONITOR */

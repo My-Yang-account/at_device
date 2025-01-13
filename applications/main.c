@@ -133,6 +133,11 @@ int main(void)
 
     rt_hw_interrupt_enable(level);
 
+    for(uint8_t i = 0x00; i < APP_SYSTEM_GUNNO_SIZE; i++){
+        get_ofsm_info(i)->base.reset_reason = RCC->CSR;
+    }
+    RCC->CSR |= 0x1000002;
+
     while (1)
     {
         mw_iwdg_refresh();
@@ -200,6 +205,15 @@ int main(void)
             }
             if(gunno == APP_SYSTEM_GUNNO_SIZE){
                 LOG_D("remote reset system");
+                /** 在此处需要保存重启信息 */
+                extern uint8_t app_thread_monitor_occur_error(void);
+                extern char *app_thread_monitor_get_err_thread_name(void);
+                extern void app_nsal_storage_thread_monitor_info(char *name);
+                if(app_thread_monitor_occur_error()){
+                    LOG_D("storage thread monitor error info:%s", app_thread_monitor_get_err_thread_name());
+                    /** 保存错误线程名 */
+                    app_nsal_storage_thread_monitor_info(app_thread_monitor_get_err_thread_name());
+                }
                 rt_thread_mdelay(5000);
                 __set_FAULTMASK(1);
                 NVIC_SystemReset();

@@ -98,7 +98,9 @@ APP_DEF_SRAM2 static thread_moniotr s_thread_moniotr;
  ************************************/
 void app_application_info_init(void)
 {
+#ifdef USING_THREAD_MONITOR
     memset(&s_thread_moniotr, 0x00, sizeof(s_thread_moniotr));
+#endif /* USING_THREAD_MONITOR */
 }
 #endif /* APP_DESIGNATE_REGION */
 
@@ -311,10 +313,42 @@ int32_t app_thread_monitor_process(void *thread, void *para, uint32_t plen, uint
     return 0x01;
 }
 
+/******************************************
+ * 函数名     app_thread_monitor_occur_error
+ * 功能         查询线程监控是否检测到了错误
+ * 参数
+ * 返回         1：是       0：否
+ * ***************************************/
+uint8_t app_thread_monitor_occur_error(void)
+{
+#ifdef USING_THREAD_MONITOR
+    if(s_thread_moniotr.is_error){
+        return 0x01;
+    }
+#endif /* USING_THREAD_MONITOR */
+    return 0x00;
+}
+
+/******************************************
+ * 函数名     app_thread_monitor_get_err_thread_name
+ * 功能         线程监控获取错误线程名
+ * 参数
+ * 返回         线程监控检测到了错误： 错误线程名；  没有检测到错误：NULL
+ * ***************************************/
+char *app_thread_monitor_get_err_thread_name(void)
+{
+#ifdef USING_THREAD_MONITOR
+    if(s_thread_moniotr.is_error){
+        return s_thread_moniotr.node[s_thread_moniotr.current_index].name;
+    }
+#endif /* USING_THREAD_MONITOR */
+    return NULL;
+}
+
 void app_led_init(void)
 {
     rt_err_t result = RT_EOK;
-    uint8_t entry = 0x8, name[8];
+    uint8_t entry = 0x08, name[8];
 
     result = rt_thread_init(&led_thread, "task_led",
             app_led_thread_entry, RT_NULL, &led_thread_stack, sizeof(led_thread_stack), 18, 10);

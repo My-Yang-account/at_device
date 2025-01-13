@@ -1076,7 +1076,10 @@ void app_nsal_clear_cancel_reservation(uint8_t gunno)
  *****************************************/
 uint8_t app_nsal_offlinecharge_is_limit(uint8_t gunno)
 {
-    net_operation_get_event(gunno, NET_OPERATION_EVENT_OFFLINECHARGE_LIMIT);
+    if(net_operation_get_event(gunno, NET_OPERATION_EVENT_OFFLINECHARGE_LIMIT)){
+        return 0x01;
+    }
+    return 0x00;
 }
 
 /*******************************************
@@ -1087,4 +1090,18 @@ void app_nsal_clear_offlinecharge_limit(uint8_t gunno)
 {
     net_operation_clear_event(gunno, NET_OPERATION_EVENT_OFFLINECHARGE_LIMIT);
 }
+
+/*******************************************
+ * 函数名    app_nsal_storage_thread_monitor_info
+ * 功能        保存线程监控中错误线程信息
+ * 参数        name   错误线程名
+ * 返回
+ *****************************************/
+void app_nsal_storage_thread_monitor_info(char *name)
+{
+#ifdef NET_PACK_USING_YKC_MONITOR
+    ykc_monitor_storage_thread_monitor_err_info(name);
+#endif /* NET_PACK_USING_YKC_MONITOR */
+}
+
 

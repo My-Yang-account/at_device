@@ -79,6 +79,8 @@ struct ykc_monitor_flag_info{
     uint16_t mergestart_success : 1;              /*  并充启机成功 */
     uint16_t set_power_success : 1;               /*  设置功率百分比成功 */
     uint16_t is_charge_finish : 1;                /*  充电结束 */
+
+    uint16_t is_thread_error : 1;                 /*  用于保存重启原因是否是线程监控检测到线程出错 */
 };
 
 #ifdef NET_YKC_MONITOR_AS_MONITOR
@@ -271,7 +273,23 @@ static void ykc_monitor_storage_data_check(void)
 
     }
 
-    LOG_D("ykc_monitor_storage_data_check(%d, %d)\n", config->fswitch.tplat_log, config->fswitch.lock);
+    for(uint8_t gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
+        s_ykc_monitor_flag_info[gunno].is_thread_error = config->flag.is_thread_error;
+    }
+
+    base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(0x00));
+
+    if(config->reset_count == 0xFFFFFFFF){
+        config->reset_count = 0x00;
+    }
+    config->reset_count++;
+    config->reset_reason = base->reset_reason;
+    config->flag.is_thread_error = NET_ENUM_FALSE;
+    /** 重新保存一次 */
+    s_ykc_monitor_handle->set_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, 0x00, NET_SYSTEM_DATA_OPTION_MONITOR_PLAT);
+
+    LOG_D("ykc monitor tplat_log lock:%d, pile lock:%d", config->fswitch.tplat_log, config->fswitch.lock);
+    LOG_D("ykc monitor reset count:%d, reset reason:%X", config->reset_count, config->reset_reason);
 }
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
 
@@ -3433,6 +3451,10 @@ int8_t ykc_monitor_message_padding_dev_info(uint8_t *buf, uint16_t ilen, uint16_
     uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC_MONITOR |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
     uint8_t valid_len = 0x00, *data = NULL;
     Net_YkcMonitorPro_Preq_PRes_DevInfo_t *message = (Net_YkcMonitorPro_Preq_PRes_DevInfo_t*)buf;
+#ifdef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL
+    ykc_monitor_storage_struct *config = (ykc_monitor_storage_struct*)(s_ykc_monitor_handle->get_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, 0x00, NET_SYSTEM_DATA_OPTION_MONITOR_PLAT));
+#endif /* #ifdef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
+    memset(message, 0x00, sizeof(Net_YkcMonitorPro_Preq_PRes_DevInfo_t));
     memcpy(message->body.pile_number, g_ykc_monitor_preq_login.body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
 
     data = (uint8_t*)(s_ykc_monitor_handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, 0x00, option));
@@ -3523,6 +3545,21 @@ int8_t ykc_monitor_message_padding_dev_info(uint8_t *buf, uint16_t ilen, uint16_
 #else
     message->body.target_plat_protocol = 0x00;
 #endif /* NET_INCLUDE_TARGET_PLATFORM */
+
+#ifdef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL
+    if(config){
+        message->body.flag.verify_result = config->verify_result;
+        message->body.reset_count = config->reset_count;
+        message->body.reset_reason = config->reset_reason;
+        if(s_ykc_monitor_flag_info[0x00].is_thread_error){
+            if(strlen((char*)config->reset_lable) > sizeof(message->body.reset_lable)){
+                memcpy(message->body.reset_lable, config->reset_lable, sizeof(message->body.reset_lable));
+            }else{
+                memcpy(message->body.reset_lable, config->reset_lable, strlen((char*)config->reset_lable));
+            }
+        }
+    }
+#endif /* #ifdef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
 
     if(olen){
         *olen = total;
@@ -4230,6 +4267,37 @@ int8_t ykc_monitor_message_pro_modify_dev_info(uint8_t info_type, void *data, ui
     }
 
     return s_ykc_monitor_handle->system_data_storage(0x00);
+}
+
+
+/******************************** 以下是外部调用触发 *******************************/
+/******************************** 以下是外部调用触发 *******************************/
+
+/*************************************************
+ * 函数名      ykc_monitor_storage_thread_monitor_err_info
+ * 功能          保存线程监控错误信息
+ * 参数          name  错误线程名
+ * 返回          >=0：成功          <0：失败
+ * **********************************************/
+int8_t ykc_monitor_storage_thread_monitor_err_info(char *name)
+{
+    ykc_monitor_storage_struct *config = (ykc_monitor_storage_struct*)(s_ykc_monitor_handle->get_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, 0x00, NET_SYSTEM_DATA_OPTION_MONITOR_PLAT));
+    if(config == NULL){
+        return -0x01;
+    }
+    memset(config->reset_lable, 0x00, sizeof(config->reset_lable));
+    if(name){
+        if(strlen(name) > sizeof(config->reset_lable)){
+            memcpy(config->reset_lable, name, sizeof(config->reset_lable));
+        }else{
+            memcpy(config->reset_lable, name, strlen(name));
+        }
+        config->flag.is_thread_error = NET_ENUM_TRUE;
+    }else{
+        config->flag.is_thread_error = NET_ENUM_FALSE;
+    }
+
+    return s_ykc_monitor_handle->set_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, 0x00, NET_SYSTEM_DATA_OPTION_MONITOR_PLAT);
 }
 
 

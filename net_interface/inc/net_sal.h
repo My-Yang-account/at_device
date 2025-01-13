@@ -191,6 +191,7 @@ void app_nsal_clear_cancel_reservation(uint8_t gunno);
 
 uint8_t app_nsal_offlinecharge_is_limit(uint8_t gunno);
 void app_nsal_clear_offlinecharge_limit(uint8_t gunno);
+void app_nsal_storage_thread_monitor_info(char *name);
 
 
 #endif /* NET_INTERFACE_INC_NET_SAL_H_ */

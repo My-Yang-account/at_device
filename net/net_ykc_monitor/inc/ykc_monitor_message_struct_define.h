@@ -373,6 +373,13 @@ typedef struct{
         uint32_t reserve0 :30;               /* 功能开关：预留 */
         uint32_t reserve1 :32;               /* 功能开关：预留 */
     }fswitch;                                /* 功能开关 1：开启  0：关闭 */
+    uint32_t reset_count;                    /* 重启次数 */
+    uint32_t reset_reason;                   /* 重启原因 */
+    uint8_t reset_lable[8];                  /* 重启标签 */
+    struct{
+        uint16_t is_thread_error :1;         /* 线程监控检测出线程错误 1：是，0：否 */
+        uint16_t freserve : 15;
+    }flag;                                   /* 标志位 */
 }ykc_monitor_storage_struct;
 
 /** 协议头部 */
@@ -1362,6 +1369,15 @@ typedef struct{
         uint8_t dev_type;                        /* 设备类型 */
         uint8_t target_plat_protocol;            /* 目标平台协议 */
         uint16_t customer;                       /* 客户代码 */
+#ifdef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL
+        uint32_t reset_count;                    /* 重启次数 */
+        uint32_t reset_reason;                   /* 重启原因 */
+        uint8_t reset_lable[8];                  /* 重启标签 */
+        struct{
+            uint16_t verify_result :1;           /* 存储数据校验结果：1：成功，0：失败 */
+            uint16_t freserve : 15;
+        }flag;                                   /* 标志位 */
+#endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
     }body;
     uint16_t check_sum;                          /* 校验码 */
 }Net_YkcMonitorPro_Preq_PRes_DevInfo_t;

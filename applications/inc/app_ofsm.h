@@ -460,6 +460,7 @@ typedef struct{
     uint8_t charge_way;              /* 充电方式 */
     uint8_t run_mode;                /* 运行模式：0：4G、以太网联网，1：离线计费，2：离线模式，3.即插即充 */
     void *bms_data;                  /* BMS 数据 */
+    uint32_t reset_reason;           /* 重启原因：RCC->CSR 寄存器 */
 }System_BaseData;
 
 struct ofsm_info {
