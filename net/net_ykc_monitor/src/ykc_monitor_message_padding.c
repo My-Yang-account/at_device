@@ -79,8 +79,6 @@ struct ykc_monitor_flag_info{
     uint16_t mergestart_success : 1;              /*  并充启机成功 */
     uint16_t set_power_success : 1;               /*  设置功率百分比成功 */
     uint16_t is_charge_finish : 1;                /*  充电结束 */
-
-    uint16_t is_thread_error : 1;                 /*  用于保存重启原因是否是线程监控检测到线程出错 */
 };
 
 #ifdef NET_YKC_MONITOR_AS_MONITOR
@@ -263,7 +261,7 @@ static void ykc_monitor_storage_data_check(void)
         ykc_monitor_function_switch_set(config);
         for(uint8_t gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
             base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
-            if(config->fswitch.lock == NET_ENUM_TRUE){
+            if(config->fswitch.lock == NET_ENUM_FALSE){
                 base->device_state = APP_DEVICE_STATE_FREEZE;
             }else {
                 base->device_state = APP_DEVICE_STATE_COMMISSIONING;
@@ -273,10 +271,9 @@ static void ykc_monitor_storage_data_check(void)
 
     }
 
-    for(uint8_t gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
-        s_ykc_monitor_flag_info[gunno].is_thread_error = config->flag.is_thread_error;
+    if(config->flag.is_thread_error == NET_ENUM_FALSE){
+        memset(config->reset_lable, 0x00, sizeof(config->reset_lable));
     }
-
     base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(0x00));
 
     if(config->reset_count == 0xFFFFFFFF){
@@ -288,7 +285,7 @@ static void ykc_monitor_storage_data_check(void)
     /** 重新保存一次 */
     s_ykc_monitor_handle->set_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, 0x00, NET_SYSTEM_DATA_OPTION_MONITOR_PLAT);
 
-    LOG_D("ykc monitor tplat_log lock:%d, pile lock:%d", config->fswitch.tplat_log, config->fswitch.lock);
+    LOG_D("ykc monitor tplat_log lock:%d, pile lock:%d", !config->fswitch.tplat_log, !config->fswitch.lock);
     LOG_D("ykc monitor reset count:%d, reset reason:%X", config->reset_count, config->reset_reason);
 }
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
@@ -1121,13 +1118,13 @@ int8_t ykc_monitor_message_pro_set_work_para_request(void *data, uint8_t len)
         /** 此处锁桩只是填充信息，具体是否保存成功有设置功率百分比异步响应决定 */
         if(config){
             config->storage_init_flag = NET_YKC_MONITOR_STORAGE_INIT_FLAG;
-            config->fswitch.lock = NET_ENUM_TRUE;
+            config->fswitch.lock = NET_ENUM_FALSE;
         }
     }else{
         /** 此处锁桩只是填充信息，具体是否保存成功有设置功率百分比异步响应决定 */
         if(config){
             config->storage_init_flag = NET_YKC_MONITOR_STORAGE_INIT_FLAG;
-            config->fswitch.lock = NET_ENUM_FALSE;
+            config->fswitch.lock = NET_ENUM_TRUE;
         }
     }
 
@@ -2364,7 +2361,7 @@ void ykc_monitor_set_power_percent_response_asynchronously(uint8_t result)
             /** 功率修改与锁桩功能在同一个报文中，为了提高效率，锁桩是否成功都有功率是否修改成功来决定(信息要存flash-耗时) */
             for(uint8_t gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
                 base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
-                if(config->fswitch.lock == NET_ENUM_TRUE){
+                if(config->fswitch.lock == NET_ENUM_FALSE){
                     base->device_state = APP_DEVICE_STATE_FREEZE;
                 }else {
                     base->device_state = APP_DEVICE_STATE_COMMISSIONING;
@@ -3551,12 +3548,10 @@ int8_t ykc_monitor_message_padding_dev_info(uint8_t *buf, uint16_t ilen, uint16_
         message->body.flag.verify_result = config->verify_result;
         message->body.reset_count = config->reset_count;
         message->body.reset_reason = config->reset_reason;
-        if(s_ykc_monitor_flag_info[0x00].is_thread_error){
-            if(strlen((char*)config->reset_lable) > sizeof(message->body.reset_lable)){
-                memcpy(message->body.reset_lable, config->reset_lable, sizeof(message->body.reset_lable));
-            }else{
-                memcpy(message->body.reset_lable, config->reset_lable, strlen((char*)config->reset_lable));
-            }
+        if(strlen((char*)config->reset_lable) > sizeof(message->body.reset_lable)){
+            memcpy(message->body.reset_lable, config->reset_lable, sizeof(message->body.reset_lable));
+        }else{
+            memcpy(message->body.reset_lable, config->reset_lable, strlen((char*)config->reset_lable));
         }
     }
 #endif /* #ifdef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
@@ -4181,7 +4176,11 @@ int8_t ykc_monitor_message_pro_function_switch(void *data, uint8_t len)
     }
 
     config->storage_init_flag = NET_YKC_MONITOR_STORAGE_INIT_FLAG;
-    config->fswitch.tplat_log = fswitch->body.tplat_log;
+    if(fswitch->body.tplat_log){
+        config->fswitch.tplat_log = NET_ENUM_FALSE;
+    }else{
+        config->fswitch.tplat_log = NET_ENUM_TRUE;
+    }
 
     if(s_ykc_monitor_handle->set_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, 0x00, NET_SYSTEM_DATA_OPTION_MONITOR_PLAT) < 0x00){
         config->storage_init_flag = NET_YKC_MONITOR_STORAGE_INIT_FLAG - 0x01;

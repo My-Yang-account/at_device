@@ -305,7 +305,7 @@ typedef struct{
         uint32_t lock :1;                    /* 功能开关：锁桩 */
         uint32_t reserve0 :31;               /* 功能开关：预留 */
         uint32_t reserve1 :32;               /* 功能开关：预留 */
-    }fswitch;                                /* 功能开关 1：开启  0：关闭 */
+    }fswitch;                                /* 功能开关 0：开启  1：关闭 */
 }ykc_storage_struct;
 
 /** 协议头部 */

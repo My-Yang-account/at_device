@@ -163,7 +163,7 @@ void ykc_monitor_function_switch_set(void* handle)
     }
     ykc_monitor_storage_struct *info = (ykc_monitor_storage_struct*)handle;
 
-    s_ykc_monitor_fswitch.tplat_log = info->fswitch.tplat_log;
+    s_ykc_monitor_fswitch.tplat_log = !info->fswitch.tplat_log;
 }
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
 

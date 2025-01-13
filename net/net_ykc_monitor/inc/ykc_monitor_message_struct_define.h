@@ -372,7 +372,7 @@ typedef struct{
         uint32_t lock :1;                    /* 功能开关：锁桩 */
         uint32_t reserve0 :30;               /* 功能开关：预留 */
         uint32_t reserve1 :32;               /* 功能开关：预留 */
-    }fswitch;                                /* 功能开关 1：开启  0：关闭 */
+    }fswitch;                                /* 功能开关 0：开启  1：关闭 */
     uint32_t reset_count;                    /* 重启次数 */
     uint32_t reset_reason;                   /* 重启原因 */
     uint8_t reset_lable[8];                  /* 重启标签 */

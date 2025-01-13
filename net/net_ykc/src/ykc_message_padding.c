@@ -209,7 +209,7 @@ static void ykc_storage_data_check(void)
     if(verify_success){
         for(uint8_t gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
             base = (System_BaseData*)(s_ykc_handle->get_base_data(gunno));
-            if(config->fswitch.lock == NET_ENUM_TRUE){
+            if(config->fswitch.lock == NET_ENUM_FALSE){
                 base->device_state = APP_DEVICE_STATE_FREEZE;
             }else {
                 base->device_state = APP_DEVICE_STATE_COMMISSIONING;
@@ -219,7 +219,7 @@ static void ykc_storage_data_check(void)
 
     }
 
-    LOG_D("ykc_storage_data_check(%d)\n", config->fswitch.lock);
+    LOG_D("ykc_storage_data_check(%d)\n", !config->fswitch.lock);
 }
 
 /*************************************************
@@ -1049,13 +1049,13 @@ int8_t ykc_message_pro_set_work_para_request(void *data, uint8_t len)
         /** 此处锁桩只是填充信息，具体是否保存成功有设置功率百分比异步响应决定 */
         if(config){
             config->storage_init_flag = NET_YKC_STORAGE_INIT_FLAG;
-            config->fswitch.lock = NET_ENUM_TRUE;
+            config->fswitch.lock = NET_ENUM_FALSE;
         }
     }else{
         /** 此处锁桩只是填充信息，具体是否保存成功有设置功率百分比异步响应决定 */
         if(config){
             config->storage_init_flag = NET_YKC_STORAGE_INIT_FLAG;
-            config->fswitch.lock = NET_ENUM_FALSE;
+            config->fswitch.lock = NET_ENUM_TRUE;
         }
     }
 
@@ -2282,7 +2282,7 @@ void ykc_set_power_percent_response_asynchronously(uint8_t result)
             /** 功率修改与锁桩功能在同一个报文中，为了提高效率，锁桩是否成功都有功率是否修改成功来决定(信息要存flash-耗时) */
             for(uint8_t gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
                 base = (System_BaseData*)(s_ykc_handle->get_base_data(gunno));
-                if(config->fswitch.lock == NET_ENUM_TRUE){
+                if(config->fswitch.lock == NET_ENUM_FALSE){
                     base->device_state = APP_DEVICE_STATE_FREEZE;
                 }else {
                     base->device_state = APP_DEVICE_STATE_COMMISSIONING;
