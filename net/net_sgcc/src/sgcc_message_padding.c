@@ -273,66 +273,73 @@ static void sgcc_storage_data_check(void)
 
     if(verify_success){
         evs_data_dev_configs.equipParamFreq = config->rt_property_interval;
-        if(evs_data_dev_configs.equipParamFreq == 0x00){
+        if((evs_data_dev_configs.equipParamFreq == 0x00) || (evs_data_dev_configs.equipParamFreq == 0xFFFFFFFF)){
             evs_data_dev_configs.equipParamFreq = SGCC_MONITOR_PROPERTY_INTERVAL_DEF;
         }
 
         evs_data_dev_configs.gunElecFreq = config->charging_property_interval;
-        if(evs_data_dev_configs.gunElecFreq == 0x00){
+        if((evs_data_dev_configs.gunElecFreq == 0x00) || (evs_data_dev_configs.gunElecFreq == 0xFFFFFFFF)){
             evs_data_dev_configs.gunElecFreq = SGCC_STATE_INTERVAL_CHARGING_DEF;
         }
 
         evs_data_dev_configs.nonElecFreq = config->noncharging_property_interval;
-        if(evs_data_dev_configs.nonElecFreq == 0x00){
+        if((evs_data_dev_configs.nonElecFreq == 0x00) || (evs_data_dev_configs.nonElecFreq == 0xFFFFFFFF)){
             evs_data_dev_configs.nonElecFreq = SGCC_STATE_INTERVAL_NONCHARGING_DEF;
         }
 
         evs_data_dev_configs.faultWarnings = config->fault_warning_interval;
-        if(evs_data_dev_configs.faultWarnings == 0x00){
+        if((evs_data_dev_configs.faultWarnings == 0x00) || (evs_data_dev_configs.faultWarnings == 0xFFFFFFFF)){
             evs_data_dev_configs.faultWarnings = SGCC_FAULT_WARNNING_INTERVAL_DEF;
         }
 
         evs_data_dev_configs.acMeterFreq = config->ac_meter_interval;
-        if(evs_data_dev_configs.acMeterFreq == 0x00){
+        if((evs_data_dev_configs.acMeterFreq == 0x00) || (evs_data_dev_configs.acMeterFreq == 0xFFFFFFFF)){
             evs_data_dev_configs.acMeterFreq = SGCC_AC_AMMETER_VALUE_INTERVAL_DEF;
         }
 
         evs_data_dev_configs.dcMeterFreq = config->dc_meter_interval;
-        if(evs_data_dev_configs.dcMeterFreq == 0x00){
+        if((evs_data_dev_configs.dcMeterFreq == 0x00) || (evs_data_dev_configs.dcMeterFreq == 0xFFFFFFFF)){
             evs_data_dev_configs.dcMeterFreq = SGCC_OAMMETER_VALUE_INTERVAL_DEF;
         }
 
         evs_data_dev_configs.offlinChaLen = config->offline_charge_time;
-        if(evs_data_dev_configs.offlinChaLen == 0x00){
+        if((evs_data_dev_configs.offlinChaLen == 0x00) || (evs_data_dev_configs.offlinChaLen == 0xFFFFFFFF)){
             evs_data_dev_configs.offlinChaLen = SGCC_OFFLINE_CHARGE_TIME_DEF;
         }
 
         evs_data_dev_configs.grndLock = config->groundlock_interval;
-        if(evs_data_dev_configs.grndLock == 0x00){
+        if((evs_data_dev_configs.grndLock == 0x00) || (evs_data_dev_configs.grndLock == 0xFFFFFFFF)){
             evs_data_dev_configs.grndLock = SGCC_GROUND_LOCK_INFO_INTERVAL_DEF;
         }
 
         evs_data_dev_configs.doorLock = config->doorlock_interval;
-        if(evs_data_dev_configs.doorLock == 0x00){
+        if((evs_data_dev_configs.doorLock == 0x00) || (evs_data_dev_configs.doorLock == 0xFFFFFFFF)){
             evs_data_dev_configs.doorLock = SGCC_DOOR_LOCK_INFO_INTERVAL_DEF;
         }
 
         evs_data_dev_configs.encodeCon = config->encode_con;
 
-        if(config->dev_state == SGCC_DEV_STATE_REBOOT){
+        if((config->dev_state == SGCC_DEV_STATE_REBOOT)){
             config->dev_state = SGCC_DEV_STATE_COMMISSIONING;
         }
 
         /** 初始化计费模型请求 */
-        for(uint8_t gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
-            memset(evs_event_ask_feeModels[gunno].eleModelId, 0x00, EVS_MAX_MODEL_ID_LEN);
-            memcpy(evs_event_ask_feeModels[gunno].eleModelId, config->billing_rule.eleModelId, EVS_MAX_MODEL_ID_LEN);
+        if(config->billing_rule.TimeNum == 0xFF){
+            for(uint8_t gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
+                memset(evs_event_ask_feeModels[gunno].eleModelId, 0x00, EVS_MAX_MODEL_ID_LEN);
+                memset(evs_event_ask_feeModels[gunno].serModeId, 0x00, EVS_MAX_MODEL_ID_LEN);
+            }
+        }else{
+            for(uint8_t gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
+                memset(evs_event_ask_feeModels[gunno].eleModelId, 0x00, EVS_MAX_MODEL_ID_LEN);
+                memcpy(evs_event_ask_feeModels[gunno].eleModelId, config->billing_rule.eleModelId, EVS_MAX_MODEL_ID_LEN);
 
-            memset(evs_event_ask_feeModels[gunno].serModeId, 0x00, EVS_MAX_MODEL_ID_LEN);
-            memcpy(evs_event_ask_feeModels[gunno].serModeId, config->billing_rule.serModelId, EVS_MAX_MODEL_ID_LEN);
+                memset(evs_event_ask_feeModels[gunno].serModeId, 0x00, EVS_MAX_MODEL_ID_LEN);
+                memcpy(evs_event_ask_feeModels[gunno].serModeId, config->billing_rule.serModelId, EVS_MAX_MODEL_ID_LEN);
+            }
+
+            sgcc_message_pro_billing_model_request_response(&config->billing_rule, sizeof(config->billing_rule), 0x01);
         }
-
-        sgcc_message_pro_billing_model_request_response(&config->billing_rule, sizeof(config->billing_rule), 0x01);
     }else{
         evs_data_dev_configs.equipParamFreq = SGCC_MONITOR_PROPERTY_INTERVAL_DEF;
         evs_data_dev_configs.gunElecFreq = SGCC_STATE_INTERVAL_CHARGING_DEF;
