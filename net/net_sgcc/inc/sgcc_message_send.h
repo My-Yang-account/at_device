@@ -23,9 +23,10 @@
 #define NET_SGCC_BILL_SERIAL_NUMBER_COUNT_MAX                 0x03       /* 账单流水号记录最大个数 */
 
 /** net state */
-#define NET_SGCC_NET_STATE_OPEN_RESOURCE                      0x00       /* 打开资源 */
-#define NET_SGCC_NET_STATE_LOGIN                              0x01       /* 登录 */
-#define NET_SGCC_NET_STATE_MONITORING                         0x02       /* 监控 */
+#define NET_SGCC_NET_STATE_ELEMENT_GROUP                      0x00       /* 获取三元组并创建套件 */
+#define NET_SGCC_NET_STATE_OPEN                               0x01       /* 打开socket */
+#define NET_SGCC_NET_STATE_LOGIN                              0x02       /* 登录 */
+#define NET_SGCC_NET_STATE_MONITORING                         0x03       /* 监控 */
 
 /** send state */
 #define NET_SGCC_SEND_STATE_COMPLETE                          0x00       /* 报文发送完成 */
@@ -175,9 +176,11 @@ typedef struct{
     uint8_t sync_repeat;
     uint8_t domain_is_prase;   /** 域名已解析 */
     struct{
-        uint8_t login : 4;
-        uint8_t open : 3;
-        uint8_t sync : 1;
+        uint16_t auth : 3;     /** 获取认证信息(三元组) */
+        uint16_t open : 3;     /** 打开socket */
+        uint16_t login  : 3;   /** 登录 */
+        uint16_t sync : 1;     /** 类似心跳 */
+        uint16_t reserve : 6;
     }operate_fail;
 }sgcc_socket_info_t;
 

@@ -24,13 +24,15 @@
 #ifdef NET_PACK_USING_SGCC
 
 #define NET_SGCC_HEARTBEAT_TIMEOUT_RENTRY                     3           /* 心跳超时次数 */
+#define NET_SGCC_QUERY_AUTHEN_RENTRY                          5           /* 查询认证信息尝试次数 */
 #define NET_SGCC_OPEN_SOCKET_RENTRY                           5           /* 打开socket尝试次数 */
 #define NET_SGCC_LOGIN_RENTRY                                 5           /* 登录尝试次数 */
 #define NET_SGCC_WAIT_LOGIN_RENTRY                            100         /* 等待登录结果尝试次数 */
 #define NET_SGCC_WAIT_UNLOCK_TIMEOUT                          (10 *1000)  /* 等待socket 解锁超时时间(单位：ms) */
 
 #define NET_SGCC_LOGIN_OPERATION_INTERVAL                     30000       /* 登录操作间隔(单位ms:30 *1000 = 30s) */
-#define NET_SGCC_HEARTBEAT_REPORT_INTERVAL                    10000       /* 心跳间隔(单位ms:10 *1000 = 10s) */
+#define NET_SGCC_HEARTBEAT_INIT_INTERVAL                      5000        /* 心跳初始间隔(单位ms:5 *1000 = 5s) */
+#define NET_SGCC_HEARTBEAT_REPORT_INTERVAL                    50000       /* 心跳间隔(单位ms:50 *1000 = 50s) */
 
 #define NET_SGCC_REALTIME_DATA_IDLE_INTERVAL                  300000      /* 实时数据空闲上报间隔(单位ms:5 *60 *1000 = 5min) */
 #define NET_SGCC_REALTIME_DATA_CHARGING_INTERVAL              15000       /* 实时数据充电中上报间隔(单位ms:15 *1000 = 15s) */
@@ -445,9 +447,10 @@ void sgcc_ascii_to_bcd(uint8_t *ascii, uint8_t alen, uint8_t *bcd, uint8_t blen,
 
 static void sgcc_connect_thread_entry(void *parameter)
 {
-    uint8_t step = NET_SGCC_NET_STATE_OPEN_RESOURCE, is_power_on = 0x01, link_open_step = 0x00;
+    uint8_t step = NET_SGCC_NET_STATE_ELEMENT_GROUP, is_power_on = 0x01, link_open_step = 0x00;
     uint32_t delay = 0x00;
     int32_t result = 0x00;
+    struct net_handle* handle = net_get_net_handle();
 
     s_sgcc_socket_info.fd = -0x01;
     s_sgcc_socket_info.domain_is_prase = 0x00;
@@ -461,17 +464,19 @@ static void sgcc_connect_thread_entry(void *parameter)
             continue;
         }
 
-        net_get_net_handle()->data_updata();
-        if((net_get_net_handle()->net_fault) &NET_FAULT_PHYSICAL_LAYER){
+        handle->data_updata();
+        if((handle->net_fault) &NET_FAULT_PHYSICAL_LAYER){
             if((s_sgcc_socket_info.fd >= 0x00) && (step >= NET_SGCC_NET_STATE_LOGIN)){   /** 平台已建立连接，但是通信模块出错(关机) */
                 evs_mainclose();
                 s_sgcc_socket_info.fd = -0x01;
             }
             s_sgcc_socket_info.state = SGCC_SOCKET_STATE_PHY;
-            net_get_net_handle()->net_state = NET_SOCKET_STATE_PHY;
+            handle->net_state = NET_SOCKET_STATE_PHY;
             s_sgcc_socket_info.fd = -0x01;
-            step = NET_SGCC_NET_STATE_OPEN_RESOURCE;
-            link_open_step = 0x00;
+            step = NET_SGCC_NET_STATE_ELEMENT_GROUP;
+            if(link_open_step){
+                step = NET_SGCC_NET_STATE_OPEN;
+            }
             if(rt_tick_get() > (delay + NET_SGCC_LOGIN_OPERATION_INTERVAL)){
                 delay = (rt_tick_get() - NET_SGCC_LOGIN_OPERATION_INTERVAL);
             }
@@ -479,16 +484,18 @@ static void sgcc_connect_thread_entry(void *parameter)
             rt_thread_mdelay(1000);
             continue;
         }
-        if((net_get_net_handle()->net_fault) &NET_FAULT_SIM_CARD){
+        if((handle->net_fault) &NET_FAULT_SIM_CARD){
             if((s_sgcc_socket_info.fd >= 0x00) && (step >= NET_SGCC_NET_STATE_LOGIN)){   /** 平台已建立连接，但是通信模块出错(关机) */
                 evs_mainclose();
                 s_sgcc_socket_info.fd = -0x01;
             }
             s_sgcc_socket_info.state = SGCC_SOCKET_STATE_SIM;
-            net_get_net_handle()->net_state = NET_SOCKET_STATE_SIM;
+            handle->net_state = NET_SOCKET_STATE_SIM;
             s_sgcc_socket_info.fd = -0x01;
-            step = NET_SGCC_NET_STATE_OPEN_RESOURCE;
-            link_open_step = 0x00;
+            step = NET_SGCC_NET_STATE_ELEMENT_GROUP;
+            if(link_open_step){
+                step = NET_SGCC_NET_STATE_OPEN;
+            }
             if(rt_tick_get() > (delay + NET_SGCC_LOGIN_OPERATION_INTERVAL)){
                 delay = (rt_tick_get() - NET_SGCC_LOGIN_OPERATION_INTERVAL);
             }
@@ -496,16 +503,18 @@ static void sgcc_connect_thread_entry(void *parameter)
             rt_thread_mdelay(1000);
             continue;
         }
-        if((net_get_net_handle()->net_fault) &NET_FAULT_DATA_LINK_LAYER){
+        if((handle->net_fault) &NET_FAULT_DATA_LINK_LAYER){
             if((s_sgcc_socket_info.fd >= 0x00) && (step >= NET_SGCC_NET_STATE_LOGIN)){   /** 平台已建立连接，但是通信模块出错(关机) */
                 evs_mainclose();
                 s_sgcc_socket_info.fd = -0x01;
             }
             s_sgcc_socket_info.state = SGCC_SOCKET_STATE_DATA_LINK;
-            net_get_net_handle()->net_state = NET_SOCKET_STATE_DATA_LINK;
+            handle->net_state = NET_SOCKET_STATE_DATA_LINK;
             s_sgcc_socket_info.fd = -0x01;
-            step = NET_SGCC_NET_STATE_OPEN_RESOURCE;
-            link_open_step = 0x00;
+            step = NET_SGCC_NET_STATE_ELEMENT_GROUP;
+            if(link_open_step){
+                step = NET_SGCC_NET_STATE_OPEN;
+            }
             if(rt_tick_get() > (delay + NET_SGCC_LOGIN_OPERATION_INTERVAL)){
                 delay = (rt_tick_get() - NET_SGCC_LOGIN_OPERATION_INTERVAL);
             }
@@ -513,49 +522,24 @@ static void sgcc_connect_thread_entry(void *parameter)
             rt_thread_mdelay(1000);
             continue;
         }
-        if((net_get_net_handle()->net_fault) &NET_FAULT_MODULE_INIT){
+        if((handle->net_fault) &NET_FAULT_MODULE_INIT){
             if((s_sgcc_socket_info.fd >= 0x00) && (step >= NET_SGCC_NET_STATE_LOGIN)){   /** 平台已建立连接，但是通信模块出错(关机) */
                 evs_mainclose();
                 s_sgcc_socket_info.fd = -0x01;
             }
             s_sgcc_socket_info.state = SGCC_SOCKET_STATE_MODULE_INIT;
-            net_get_net_handle()->net_state = NET_SOCKET_STATE_MODULE_INIT;
+            handle->net_state = NET_SOCKET_STATE_MODULE_INIT;
             s_sgcc_socket_info.fd = -0x01;
-            step = NET_SGCC_NET_STATE_OPEN_RESOURCE;
-            link_open_step = 0x00;
+            step = NET_SGCC_NET_STATE_ELEMENT_GROUP;
+            if(link_open_step){
+                step = NET_SGCC_NET_STATE_OPEN;
+            }
             if(rt_tick_get() > (delay + NET_SGCC_LOGIN_OPERATION_INTERVAL)){
                 delay = (rt_tick_get() - NET_SGCC_LOGIN_OPERATION_INTERVAL);
             }
 
             rt_thread_mdelay(1000);
             continue;
-        }
-
-        extern int get_at_device_appinfo_is_complete(void);
-        while (1) {
-            if (get_at_device_appinfo_is_complete()) {
-//                LOG_D("net init complete \n");
-                break;
-            }else{
-                LOG_D("net wait init... \n");
-
-                rt_thread_mdelay(1000);
-            }
-        }
-
-        if(link_open_step == 0x00){
-            link_open_step = 0x01;
-        }
-        if(link_open_step == 0x01){
-            LOG_D("sgcc linkit new");
-            if((result = evs_linkkit_new(0x01, 0x01)) < 0x00){
-                LOG_D("linkkit new failed, res code: %d \n", result);
-                return RT_ERROR;  /** 是否需要 return,有待考虑*/
-            }else{
-                LOG_D("linkkit new success \n");
-            }
-
-            link_open_step = 0x02;
         }
 
         /** 进行域名解析 */
@@ -582,29 +566,58 @@ static void sgcc_connect_thread_entry(void *parameter)
         /***************************************************** [登录认证] **********************************************************/
         /***************************************************** [登录认证] **********************************************************/
         switch(step){
-        case NET_SGCC_NET_STATE_OPEN_RESOURCE:
+        case NET_SGCC_NET_STATE_ELEMENT_GROUP:
+            s_sgcc_socket_info.state = SGCC_SOCKET_STATE_OPEN;
+            handle->net_state = NET_SOCKET_STATE_OPEN;
+            if(delay > rt_tick_get()){
+                delay = rt_tick_get();
+            }
+            if(((rt_tick_get() - delay) > NET_SGCC_LOGIN_OPERATION_INTERVAL) || is_power_on){
+                LOG_D("sgcc linkit new - query three element group");
+                if((result = evs_linkkit_new(0x01, 0x01)) < 0x00){
+                    is_power_on = 0x00;
+                    link_open_step = 0x00;
+                    delay = rt_tick_get();
+                    s_sgcc_socket_info.operate_fail.auth++;
+                    LOG_D("sgcc linkkit new failed, res code: %d, %d \n", result, s_sgcc_socket_info.operate_fail.auth);
+                }else{
+                    is_power_on = 0x01;
+                    link_open_step = 0x01;
+                    step = NET_SGCC_NET_STATE_OPEN;
+                    s_sgcc_socket_info.operate_fail.auth = 0x00;
+                    LOG_D("sgcc linkkit new success \n");
+                }
+            }
+            break;
+        case NET_SGCC_NET_STATE_OPEN:
+            s_sgcc_socket_info.state = SGCC_SOCKET_STATE_OPEN;
+            handle->net_state = NET_SOCKET_STATE_OPEN;
             if(delay > rt_tick_get()){
                 delay = rt_tick_get();
             }
             if(((rt_tick_get() - delay) > NET_SGCC_LOGIN_OPERATION_INTERVAL) || is_power_on){
                 LOG_D("sgcc open start");
                 if(evs_mainopen() >= 0x00){
-                    LOG_D("linkkit open resource success \n");
+                    LOG_D("sgcc linkkit open socket success \n");
                     step = NET_SGCC_NET_STATE_LOGIN;
                     s_sgcc_socket_info.operate_fail.open = 0x00;
                 }else{
                     s_sgcc_socket_info.operate_fail.open++;
-                    LOG_D("linkkit open failed num(%d)\n", s_sgcc_socket_info.operate_fail.open);
+                    LOG_D("linkkit open socket failed num(%d)\n", s_sgcc_socket_info.operate_fail.open);
                 }
                 is_power_on = 0x00;
                 delay = rt_tick_get();
             }
+            link_open_step = 0x01;
+            s_sgcc_socket_info.operate_fail.auth = 0x00;
             break;
         case NET_SGCC_NET_STATE_LOGIN:
         {
             uint8_t vaild_len = 0, data[21], *sim_no = NULL;
             uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_SGCC |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
-            struct net_handle* handle = net_get_net_handle();
+
+            s_sgcc_socket_info.state = SGCC_SOCKET_STATE_LOGIN_WAIT;
+            handle->net_state = NET_SOCKET_STATE_LOGIN_WAIT;
 
             memset(data, 0x00, 21);
             (void)(handle->get_system_data(NET_SYSTEM_DATA_NAME_ICCID, data, sizeof(data), option));
@@ -618,7 +631,7 @@ static void sgcc_connect_thread_entry(void *parameter)
             LOG_D("sgcc linkit connect start");
             result = evs_mainconnect();
             if(result >= 0x00){
-                LOG_D("linkkit connect success \n");
+                LOG_D("sgcc linkkit connect success \n");
                 step = NET_SGCC_NET_STATE_MONITORING;
                 s_sgcc_socket_info.fd = 0x00;
                 s_sgcc_socket_info.operate_fail.login = 0x00;
@@ -629,28 +642,30 @@ static void sgcc_connect_thread_entry(void *parameter)
                 evs_mainclose();
                 s_sgcc_socket_info.operate_fail.login++;
                 delay = rt_tick_get();
-                step = NET_SGCC_NET_STATE_OPEN_RESOURCE;
+                step = NET_SGCC_NET_STATE_OPEN;
                 s_sgcc_socket_info.state = SGCC_SOCKET_STATE_OPEN;
-                net_get_net_handle()->net_state = NET_SOCKET_STATE_OPEN;
+                handle->net_state = NET_SOCKET_STATE_OPEN;
                 LOG_D("linkkit connect failed num(%d)\n", s_sgcc_socket_info.operate_fail.login);
             }
+            link_open_step = 0x01;
+            s_sgcc_socket_info.operate_fail.auth = 0x00;
             break;
         }
         case NET_SGCC_NET_STATE_MONITORING:
             s_sgcc_socket_info.state = SGCC_SOCKET_STATE_LOGIN_SUCCESS;
-            net_get_net_handle()->net_state = NET_SOCKET_STATE_LOGIN_SUCCESS;
+            handle->net_state = NET_SOCKET_STATE_LOGIN_SUCCESS;
             /** 接收数据 */
             LOG_D("sgcc main yied start");
             evs_mainyield();
             LOG_D("sgcc main yied end");
             /** 数据接收时检测到连接断开 */
-            if(net_get_net_handle()->esocket_state == NET_ESOCKET_STATE_CLOSE){
+            if(handle->esocket_state == NET_ESOCKET_STATE_CLOSE){
                 LOG_W("sgcc socket have closed when recv data");
 
                 delay = rt_tick_get();
-                step = NET_SGCC_NET_STATE_OPEN_RESOURCE;
-                s_sgcc_socket_info.state = SGCC_SOCKET_STATE_DATA_LINK;
-                net_get_net_handle()->net_state = NET_SOCKET_STATE_DATA_LINK;
+                step = NET_SGCC_NET_STATE_OPEN;
+                s_sgcc_socket_info.state = SGCC_SOCKET_STATE_OPEN;
+                handle->net_state = NET_SOCKET_STATE_OPEN;
 
                 evs_mainclose();
 
@@ -660,6 +675,8 @@ static void sgcc_connect_thread_entry(void *parameter)
                 s_sgcc_socket_info.sync_repeat = 0x00;
                 s_sgcc_socket_info.operate_fail.sync = NET_ENUM_FALSE;
             }
+            link_open_step = 0x01;
+            s_sgcc_socket_info.operate_fail.auth = 0x00;
             break;
         default:
         {
@@ -667,9 +684,12 @@ static void sgcc_connect_thread_entry(void *parameter)
             LOG_W("sgcc connect state error, close socket");
 
             delay = rt_tick_get();
-            step = NET_SGCC_NET_STATE_OPEN_RESOURCE;
-            s_sgcc_socket_info.state = SGCC_SOCKET_STATE_DATA_LINK;
-            net_get_net_handle()->net_state = NET_SOCKET_STATE_DATA_LINK;
+            step = NET_SGCC_NET_STATE_ELEMENT_GROUP;
+            if(link_open_step){
+                step = NET_SGCC_NET_STATE_OPEN;
+            }
+            s_sgcc_socket_info.state = SGCC_SOCKET_STATE_OPEN;
+            handle->net_state = NET_SOCKET_STATE_OPEN;
 
             evs_mainclose();
 
@@ -685,17 +705,24 @@ static void sgcc_connect_thread_entry(void *parameter)
         /************************* 连续多次登录不上  **************************/
         /************************* 连续多次open失败  **************************/
         if((s_sgcc_socket_info.operate_fail.login > NET_SGCC_LOGIN_RENTRY) ||    \
-                (s_sgcc_socket_info.operate_fail.open > NET_SGCC_OPEN_SOCKET_RENTRY)){
-            LOG_W("sgcc operate fail  repeat open count(%d) repeat login count(%d)", s_sgcc_socket_info.operate_fail.open, s_sgcc_socket_info.operate_fail.login);
+                (s_sgcc_socket_info.operate_fail.open > NET_SGCC_OPEN_SOCKET_RENTRY) ||  \
+                (s_sgcc_socket_info.operate_fail.auth > NET_SGCC_QUERY_AUTHEN_RENTRY)){
+            LOG_W("sgcc operate fail  open(%d) login(%d) auth(%d)", s_sgcc_socket_info.operate_fail.open, \
+                    s_sgcc_socket_info.operate_fail.login, s_sgcc_socket_info.operate_fail.auth);
 
             delay = rt_tick_get();
-            step = NET_SGCC_NET_STATE_OPEN_RESOURCE;
-            s_sgcc_socket_info.state = SGCC_SOCKET_STATE_DATA_LINK;
-            net_get_net_handle()->net_state = NET_SOCKET_STATE_DATA_LINK;
+            s_sgcc_socket_info.state = SGCC_SOCKET_STATE_OPEN;
+            handle->net_state = NET_SOCKET_STATE_OPEN;
+            if(s_sgcc_socket_info.operate_fail.auth > NET_SGCC_QUERY_AUTHEN_RENTRY){
+                step = NET_SGCC_NET_STATE_ELEMENT_GROUP;
+            }else{
+                step = NET_SGCC_NET_STATE_OPEN;
+            }
 
             evs_mainclose();
 
             s_sgcc_socket_info.fd = -0x01;
+            s_sgcc_socket_info.operate_fail.auth = 0x00;
             s_sgcc_socket_info.operate_fail.login = 0x00;
             s_sgcc_socket_info.operate_fail.open = 0x00;
             s_sgcc_socket_info.sync_repeat = 0x00;
@@ -708,9 +735,9 @@ static void sgcc_connect_thread_entry(void *parameter)
         if(s_sgcc_socket_info.state == SGCC_SOCKET_STATE_LOGIN_SUCCESS){
             if(s_sgcc_socket_info.operate_fail.sync == NET_ENUM_TRUE){      /* 相当于心跳超时 */
                 delay = rt_tick_get();
-                step = NET_SGCC_NET_STATE_OPEN_RESOURCE;
-                s_sgcc_socket_info.state = SGCC_SOCKET_STATE_DATA_LINK;
-                net_get_net_handle()->net_state = NET_SOCKET_STATE_DATA_LINK;
+                step = NET_SGCC_NET_STATE_OPEN;
+                s_sgcc_socket_info.state = SGCC_SOCKET_STATE_OPEN;
+                handle->net_state = NET_SOCKET_STATE_OPEN;
 
                 evs_mainclose();
 
@@ -759,7 +786,7 @@ static void sgcc_message_send_thread_entry(void *parameter)
             s_sgcc_time_sync_count = rt_tick_get();
         }
         if(s_sgcc_flag_set.is_time_sync == NET_ENUM_FALSE){
-            if((rt_tick_get() - s_sgcc_time_sync_count) > 5000){
+            if((rt_tick_get() - s_sgcc_time_sync_count) > NET_SGCC_HEARTBEAT_INIT_INTERVAL){
                 s_sgcc_time_sync_count = rt_tick_get();
                 evs_linkkit_time_sync();
 
@@ -770,7 +797,7 @@ static void sgcc_message_send_thread_entry(void *parameter)
                 }
             }
         }else{
-            if((rt_tick_get() - s_sgcc_time_sync_count) > 50000){
+            if((rt_tick_get() - s_sgcc_time_sync_count) > NET_SGCC_HEARTBEAT_REPORT_INTERVAL){
                 s_sgcc_time_sync_count = rt_tick_get();
                 evs_linkkit_time_sync();
 
