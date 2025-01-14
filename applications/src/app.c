@@ -49,8 +49,11 @@ typedef struct{
 }thread_moniotr_node;                        /** 监控节点 */
 
 typedef struct{
+    struct{
+        uint8_t is_error : 1;                /** 检测到线程发生错误 */
+        uint8_t reset_system : 1;            /** 需要重启系统 */
+    }flag;
     uint32_t tick;
-    uint8_t is_error;
     uint8_t thread_num;                      /** 被监控的线程数量 */
     uint8_t current_index;                   /** 当前线程下标 */
     thread_moniotr_node node[APP_APPLICATION_THREAD_MAX];
@@ -220,8 +223,6 @@ int32_t app_thread_monitor_remove(void *thread)
 int32_t app_thread_monitor_process(void *thread, void *para, uint32_t plen, uint32_t option)
 {
 #ifdef USING_THREAD_MONITOR
-    extern void thaisen_clear_screen_reboot(void);
-    extern void thaisen_set_screen_reboot(void);
     extern void mw_iwdg_refresh(void);
 
     static uint8_t entry = 0x00;
@@ -234,12 +235,12 @@ int32_t app_thread_monitor_process(void *thread, void *para, uint32_t plen, uint
     /** 如果是紧急事件或没有线程被监控，直接按正常进行处理 */
     if((option &APP_THREAD_MONITOR_OPT_URGENT) || (s_thread_moniotr.thread_num == 0x00)){
         s_thread_moniotr.tick = rt_tick_get();
-        s_thread_moniotr.is_error = 0x00;
+        s_thread_moniotr.flag.is_error = 0x00;
         entry = 0x00;
         /** 喂狗 */
         mw_iwdg_refresh();
         /** 清除重启事件 */
-        thaisen_clear_screen_reboot();
+        s_thread_moniotr.flag.reset_system = 0x00;
     }else{
         uint8_t count = 0x00;
         for(count = 0x00; count < s_thread_moniotr.thread_num; count++){
@@ -248,10 +249,10 @@ int32_t app_thread_monitor_process(void *thread, void *para, uint32_t plen, uint
                 /** 喂狗 */
                 mw_iwdg_refresh();
                 /** 清除重启事件 */
-                thaisen_clear_screen_reboot();
+                s_thread_moniotr.flag.reset_system = 0x00;
 
                 s_thread_moniotr.tick = rt_tick_get();
-                s_thread_moniotr.is_error = 0x00;
+                s_thread_moniotr.flag.is_error = 0x00;
                 entry = 0x00;
                 if(++s_thread_moniotr.current_index >= s_thread_moniotr.thread_num){
                     s_thread_moniotr.current_index = 0x00;
@@ -268,15 +269,15 @@ int32_t app_thread_monitor_process(void *thread, void *para, uint32_t plen, uint
                 /** 喂狗 */
                 mw_iwdg_refresh();
                 if(++entry > s_thread_moniotr.node[s_thread_moniotr.current_index].rentry){
-                    s_thread_moniotr.is_error = 0x01;
+                    s_thread_moniotr.flag.is_error = 0x01;
                     entry = s_thread_moniotr.node[s_thread_moniotr.current_index].rentry;
                     /** 设置重启事件 */
-                    thaisen_set_screen_reboot();
+                    s_thread_moniotr.flag.reset_system = 0x01;
                     rt_exit_critical();
                     return -0x01;
                 }else{
                     /** 清除重启事件 */
-                    thaisen_clear_screen_reboot();
+                    s_thread_moniotr.flag.reset_system = 0x00;
                 }
                 rt_exit_critical();
                 return 0x00;
@@ -286,10 +287,10 @@ int32_t app_thread_monitor_process(void *thread, void *para, uint32_t plen, uint
                 /** 喂狗 */
                 mw_iwdg_refresh();
                 /** 清除重启事件 */
-                thaisen_clear_screen_reboot();
+                s_thread_moniotr.flag.reset_system = 0x00;
 
                 s_thread_moniotr.tick = rt_tick_get();
-                s_thread_moniotr.is_error = 0x00;
+                s_thread_moniotr.flag.is_error = 0x00;
                 entry = 0x00;
                 s_thread_moniotr.node[s_thread_moniotr.current_index].rentry = 0x00;
                 if(++s_thread_moniotr.current_index >= s_thread_moniotr.thread_num){
@@ -298,13 +299,13 @@ int32_t app_thread_monitor_process(void *thread, void *para, uint32_t plen, uint
             }
         }
 
-        if(s_thread_moniotr.is_error){
-            thaisen_set_screen_reboot();
+        if(s_thread_moniotr.flag.is_error){
+            s_thread_moniotr.flag.reset_system = 0x01;
 #ifdef APP_THREAD_MONITOR_DEBUG
             LOG_D("thread monitor occur error(%s)\n", s_thread_moniotr.node[s_thread_moniotr.current_index].name);
 #endif /* APP_THREAD_MONITOR_DEBUG */
         }else{
-            thaisen_clear_screen_reboot();
+            s_thread_moniotr.flag.reset_system = 0x00;
         }
     }
 
@@ -322,7 +323,7 @@ int32_t app_thread_monitor_process(void *thread, void *para, uint32_t plen, uint
 uint8_t app_thread_monitor_occur_error(void)
 {
 #ifdef USING_THREAD_MONITOR
-    if(s_thread_moniotr.is_error){
+    if(s_thread_moniotr.flag.is_error){
         return 0x01;
     }
 #endif /* USING_THREAD_MONITOR */
@@ -338,12 +339,29 @@ uint8_t app_thread_monitor_occur_error(void)
 char *app_thread_monitor_get_err_thread_name(void)
 {
 #ifdef USING_THREAD_MONITOR
-    if(s_thread_moniotr.is_error){
+    if(s_thread_moniotr.flag.is_error){
         return s_thread_moniotr.node[s_thread_moniotr.current_index].name;
     }
 #endif /* USING_THREAD_MONITOR */
     return NULL;
 }
+
+/******************************************
+ * 函数名     app_thread_monitor_need_reset
+ * 功能         判断是否需要复位
+ * 参数
+ * 返回         1：是       0：否
+ * ***************************************/
+uint8_t app_thread_monitor_need_reset(void)
+{
+#ifdef USING_THREAD_MONITOR
+    if(s_thread_moniotr.flag.reset_system){
+        return 0x01;
+    }
+#endif /* USING_THREAD_MONITOR */
+    return 0x00;
+}
+
 
 void app_led_init(void)
 {

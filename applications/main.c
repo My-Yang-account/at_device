@@ -196,7 +196,8 @@ int main(void)
         extern uint8_t app_nsal_is_remote_reset(void);
         extern uint8_t thaisen_query_screen_reboot(void);
         extern void thaisen_clear_screen_reboot(void);
-        if(app_nsal_is_remote_reset() || thaisen_query_screen_reboot()){
+        extern uint8_t app_thread_monitor_need_reset(void);
+        if(app_nsal_is_remote_reset() || thaisen_query_screen_reboot() || app_thread_monitor_need_reset()){
             uint8_t gunno = 0x00;
             for(gunno = 0x00; gunno < APP_SYSTEM_GUNNO_SIZE; gunno++){
                 if(get_ofsm_info(gunno)->state != APP_OFSM_STATE_IDLEING){
