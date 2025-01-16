@@ -133,7 +133,7 @@ static void ykc_message_recv_thread_entry(void *parameter)
     while(1)
     {
         if(net_get_ota_info()->state < NET_OTA_STATE_OPEN_LINK){
-            if((socket->state >= YKC_SOCKET_STATE_LOGIN_WAIT) && (socket->fd >= 0x00)){
+            if((socket->socket_state >= YKC_SOCKET_STATE_LOGIN_WAIT) && (socket->fd >= 0x00)){
                 s_ykc_transceiver_flag_set.socket_lock = 0x01;
 
                 if((length = ykc_readline_data(socket->fd))){

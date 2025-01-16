@@ -629,6 +629,7 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
 
     while(1)
     {
+        s_ykc_monitor_socket_info.program_state = step;
         net_thread_running(rt_thread_self(), NULL, 0x00, 0x00);
         if((net_get_ota_info()->state >= NET_OTA_STATE_OPEN_LINK) && (net_get_ota_info()->state <= NET_OTA_STATE_UPDATING)){
             rt_thread_mdelay(5000);
@@ -641,7 +642,7 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
                 ykc_monitor_socket_close(s_ykc_monitor_socket_info.fd);
                 s_ykc_monitor_socket_info.fd = -0x01;
             }
-            s_ykc_monitor_socket_info.state = YKC_MONITOR_SOCKET_STATE_PHY;
+            s_ykc_monitor_socket_info.socket_state = YKC_MONITOR_SOCKET_STATE_PHY;
 #ifndef NET_YKC_MONITOR_AS_MONITOR
             handle->net_state = NET_SOCKET_STATE_MODULE_INIT;
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
@@ -659,7 +660,7 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
                 ykc_monitor_socket_close(s_ykc_monitor_socket_info.fd);
                 s_ykc_monitor_socket_info.fd = -0x01;
             }
-            s_ykc_monitor_socket_info.state = YKC_MONITOR_SOCKET_STATE_SIM;
+            s_ykc_monitor_socket_info.socket_state = YKC_MONITOR_SOCKET_STATE_SIM;
 #ifndef NET_YKC_MONITOR_AS_MONITOR
             handle->net_state = NET_SOCKET_STATE_SIM;
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
@@ -677,7 +678,7 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
                 ykc_monitor_socket_close(s_ykc_monitor_socket_info.fd);
                 s_ykc_monitor_socket_info.fd = -0x01;
             }
-            s_ykc_monitor_socket_info.state = YKC_MONITOR_SOCKET_STATE_DATA_LINK;
+            s_ykc_monitor_socket_info.socket_state = YKC_MONITOR_SOCKET_STATE_DATA_LINK;
 #ifndef NET_YKC_MONITOR_AS_MONITOR
             handle->net_state = NET_SOCKET_STATE_DATA_LINK;
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
@@ -695,7 +696,7 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
                 ykc_monitor_socket_close(s_ykc_monitor_socket_info.fd);
                 s_ykc_monitor_socket_info.fd = -0x01;
             }
-            s_ykc_monitor_socket_info.state = YKC_MONITOR_SOCKET_STATE_MODULE_INIT;
+            s_ykc_monitor_socket_info.socket_state = YKC_MONITOR_SOCKET_STATE_MODULE_INIT;
 #ifndef NET_YKC_MONITOR_AS_MONITOR
             handle->net_state = NET_SOCKET_STATE_MODULE_INIT;
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
@@ -770,11 +771,11 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
 #endif /* NET_INCLUDE_TARGET_PLATFORM */
         /***************************************************** [登录认证] **********************************************************/
         /***************************************************** [登录认证] **********************************************************/
-        if(s_ykc_monitor_socket_info.state != YKC_MONITOR_SOCKET_STATE_LOGIN_SUCCESS){
-            LOG_D("ykc monitor state(%d, %d, %d)\n", s_ykc_monitor_socket_info.state, step, (rt_tick_get() - delay));
+        if(s_ykc_monitor_socket_info.socket_state != YKC_MONITOR_SOCKET_STATE_LOGIN_SUCCESS){
+            LOG_D("ykc monitor state(%d, %d, %d)\n", s_ykc_monitor_socket_info.socket_state, step, (rt_tick_get() - delay));
             switch(step){
             case NET_YKC_MONITOR_NET_STATE_OPEN_SOCKET:
-                s_ykc_monitor_socket_info.state = YKC_MONITOR_SOCKET_STATE_OPEN;
+                s_ykc_monitor_socket_info.socket_state = YKC_MONITOR_SOCKET_STATE_OPEN;
 #ifndef NET_YKC_MONITOR_AS_MONITOR
                 handle->net_state = NET_SOCKET_STATE_OPEN;
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
@@ -837,7 +838,7 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
 
                 ykc_monitor_net_event_receive(NET_YKC_MONITOR_EVENT_HANDLE_SERVER, NET_YKC_MONITOR_EVENT_TYPE_RESPONSE, 0x00,
                         (NET_YKC_MONITOR_EVENT_OPTION_OR |NET_YKC_MONITOR_EVENT_OPTION_CLEAR), NET_YKC_MONITOR_SRES_EVENT_LOGIN, NULL);
-                s_ykc_monitor_socket_info.state = YKC_MONITOR_SOCKET_STATE_LOGIN_WAIT;
+                s_ykc_monitor_socket_info.socket_state = YKC_MONITOR_SOCKET_STATE_LOGIN_WAIT;
 #ifndef NET_YKC_MONITOR_AS_MONITOR
                 handle->net_state = NET_SOCKET_STATE_LOGIN_WAIT;
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
@@ -850,7 +851,7 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
                         s_ykc_monitor_socket_info.operate_fail.login = 0;
                         step = NET_YKC_MONITOR_NET_STATE_MONITORING;
 
-                        s_ykc_monitor_socket_info.state = YKC_MONITOR_SOCKET_STATE_LOGIN_SUCCESS;
+                        s_ykc_monitor_socket_info.socket_state = YKC_MONITOR_SOCKET_STATE_LOGIN_SUCCESS;
 #ifndef NET_YKC_MONITOR_AS_MONITOR
                         handle->net_state = NET_SOCKET_STATE_LOGIN_SUCCESS;
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
@@ -872,7 +873,7 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
                     delay = rt_tick_get();
                     wait_unlock = rt_tick_get();
                     step = NET_YKC_MONITOR_NET_STATE_OPEN_SOCKET;
-                    s_ykc_monitor_socket_info.state = YKC_MONITOR_SOCKET_STATE_OPEN;
+                    s_ykc_monitor_socket_info.socket_state = YKC_MONITOR_SOCKET_STATE_OPEN;
                     while(ykc_monitor_socket_is_lock()){
                         if((rt_tick_get() - wait_unlock) > NET_YKC_MONITOR_WAIT_UNLOCK_TIMEOUT){
                             break;
@@ -893,13 +894,13 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
                 break;
             }
             case NET_YKC_MONITOR_NET_STATE_MONITORING:
-                s_ykc_monitor_socket_info.state = YKC_MONITOR_SOCKET_STATE_LOGIN_SUCCESS;
+                s_ykc_monitor_socket_info.socket_state = YKC_MONITOR_SOCKET_STATE_LOGIN_SUCCESS;
                 break;
             default:
                 delay = rt_tick_get();
                 wait_unlock = rt_tick_get();
                 step = NET_YKC_MONITOR_NET_STATE_OPEN_SOCKET;
-                s_ykc_monitor_socket_info.state = YKC_MONITOR_SOCKET_STATE_OPEN;
+                s_ykc_monitor_socket_info.socket_state = YKC_MONITOR_SOCKET_STATE_OPEN;
                 while(ykc_monitor_socket_is_lock()){
                     if((rt_tick_get() - wait_unlock) > NET_YKC_MONITOR_WAIT_UNLOCK_TIMEOUT){
                         break;
@@ -935,7 +936,7 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
         }
 
-        if(s_ykc_monitor_socket_info.state != YKC_MONITOR_SOCKET_STATE_LOGIN_SUCCESS){   /* 未登录上服务器前不进行网络数据交互事件处理 */
+        if(s_ykc_monitor_socket_info.socket_state != YKC_MONITOR_SOCKET_STATE_LOGIN_SUCCESS){   /* 未登录上服务器前不进行网络数据交互事件处理 */
             for(uint8_t gunno = 0; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
                 heartbeat_tick[gunno] = rt_tick_get();
                 ykc_monitor_set_message_send_state(gunno, NET_YKC_MONITOR_SEND_STATE_ONGOING, NET_YKC_MONITOR_PREQ_EVENT_HEARTBEAT);
@@ -985,7 +986,7 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
                 wait_unlock = rt_tick_get();
 
                 step = NET_YKC_MONITOR_NET_STATE_OPEN_SOCKET;
-                s_ykc_monitor_socket_info.state = YKC_MONITOR_SOCKET_STATE_OPEN;
+                s_ykc_monitor_socket_info.socket_state = YKC_MONITOR_SOCKET_STATE_OPEN;
                 while(ykc_monitor_socket_is_lock()){
                     if((rt_tick_get() - wait_unlock) > NET_YKC_MONITOR_WAIT_UNLOCK_TIMEOUT){
                         break;
@@ -1734,7 +1735,7 @@ static void net_ykc_monitor_server_message_pro_entry(void *parameter)
             continue;
         }
 
-        if(s_ykc_monitor_socket_info.state != YKC_MONITOR_SOCKET_STATE_LOGIN_SUCCESS){   /* 未登录上服务器前不进行网络数据交互事件处理 */
+        if(s_ykc_monitor_socket_info.socket_state != YKC_MONITOR_SOCKET_STATE_LOGIN_SUCCESS){   /* 未登录上服务器前不进行网络数据交互事件处理 */
             rt_thread_mdelay(500);
             continue;
         }

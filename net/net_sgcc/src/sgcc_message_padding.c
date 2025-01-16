@@ -2553,7 +2553,7 @@ int8_t sgcc_chargepile_request_padding_card_authority(uint8_t gunno)
     if(app_billingrule_is_valid(gunno) == NET_ENUM_FALSE){
         return -0x01;
     }
-    if(sgcc_get_socket_info()->state != SGCC_SOCKET_STATE_LOGIN_SUCCESS){
+    if(sgcc_get_socket_info()->socket_state != SGCC_SOCKET_STATE_LOGIN_SUCCESS){
         return -0x01;
     }
     uint8_t valid_len = 0x00;
@@ -2598,7 +2598,7 @@ int8_t sgcc_chargepile_request_padding_vin_authority(uint8_t gunno)
     if(app_billingrule_is_valid(gunno) == NET_ENUM_FALSE){
         return -0x01;
     }
-    if(sgcc_get_socket_info()->state != SGCC_SOCKET_STATE_LOGIN_SUCCESS){
+    if(sgcc_get_socket_info()->socket_state != SGCC_SOCKET_STATE_LOGIN_SUCCESS){
         return -0x01;
     }
 
@@ -3609,7 +3609,7 @@ static void sgcc_data_realtime_process(uint8_t gunno)
 
     System_BaseData* base = (System_BaseData*)(s_sgcc_handle->get_base_data(gunno));
 
-    if(sgcc_get_socket_info()->state == SGCC_SOCKET_STATE_LOGIN_SUCCESS){
+    if(sgcc_get_socket_info()->socket_state == SGCC_SOCKET_STATE_LOGIN_SUCCESS){
         sgcc_request_message_repeat(gunno);
 
         if(s_sgcc_faultwarn_count[gunno] > rt_tick_get()){

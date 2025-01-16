@@ -172,7 +172,8 @@ typedef struct{
 
 typedef struct{
     int fd;
-    uint8_t state;
+    uint8_t socket_state;
+    uint8_t program_state;
     uint8_t sync_repeat;
     uint8_t domain_is_prase;   /** 域名已解析 */
     struct{

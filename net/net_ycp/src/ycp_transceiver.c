@@ -115,7 +115,7 @@ static void ycp_message_recv_thread_entry(void *parameter)
     while(1)
     {
         if(net_get_ota_info()->state < NET_OTA_STATE_OPEN_LINK){
-            if((socket->state >= YCP_SOCKET_STATE_LOGIN_WAIT) && (socket->fd >= 0x00)){
+            if((socket->socket_state >= YCP_SOCKET_STATE_LOGIN_WAIT) && (socket->fd >= 0x00)){
                 s_ycp_transceiver_flag_set.socket_lock = 0x01;
 
                 if((length = ycp_readline_data(socket->fd))){

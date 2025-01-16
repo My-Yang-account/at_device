@@ -401,6 +401,7 @@ static void net_ykc_message_send_thread_entry(void *parameter)
 
     while(1)
     {
+        s_ykc_socket_info.program_state = step;
         g_net_target_platform_tick = rt_tick_get();
         net_thread_running(rt_thread_self(), NULL, 0x00, 0x00);
         if((net_get_ota_info()->state >= NET_OTA_STATE_OPEN_LINK) && (net_get_ota_info()->state <= NET_OTA_STATE_UPDATING)){
@@ -414,7 +415,7 @@ static void net_ykc_message_send_thread_entry(void *parameter)
                 ykc_socket_close(s_ykc_socket_info.fd);
                 s_ykc_socket_info.fd = -0x01;
             }
-            s_ykc_socket_info.state = YKC_SOCKET_STATE_PHY;
+            s_ykc_socket_info.socket_state = YKC_SOCKET_STATE_PHY;
             handle->net_state = NET_SOCKET_STATE_PHY;
             s_ykc_socket_info.fd = -0x01;
             step = NET_YKC_NET_STATE_OPEN_SOCKET;
@@ -430,7 +431,7 @@ static void net_ykc_message_send_thread_entry(void *parameter)
                 ykc_socket_close(s_ykc_socket_info.fd);
                 s_ykc_socket_info.fd = -0x01;
             }
-            s_ykc_socket_info.state = YKC_SOCKET_STATE_SIM;
+            s_ykc_socket_info.socket_state = YKC_SOCKET_STATE_SIM;
             handle->net_state = NET_SOCKET_STATE_SIM;
             s_ykc_socket_info.fd = -0x01;
             step = NET_YKC_NET_STATE_OPEN_SOCKET;
@@ -446,7 +447,7 @@ static void net_ykc_message_send_thread_entry(void *parameter)
                 ykc_socket_close(s_ykc_socket_info.fd);
                 s_ykc_socket_info.fd = -0x01;
             }
-            s_ykc_socket_info.state = YKC_SOCKET_STATE_DATA_LINK;
+            s_ykc_socket_info.socket_state = YKC_SOCKET_STATE_DATA_LINK;
             handle->net_state = NET_SOCKET_STATE_DATA_LINK;
             s_ykc_socket_info.fd = -0x01;
             step = NET_YKC_NET_STATE_OPEN_SOCKET;
@@ -462,7 +463,7 @@ static void net_ykc_message_send_thread_entry(void *parameter)
                 ykc_socket_close(s_ykc_socket_info.fd);
                 s_ykc_socket_info.fd = -0x01;
             }
-            s_ykc_socket_info.state = YKC_SOCKET_STATE_MODULE_INIT;
+            s_ykc_socket_info.socket_state = YKC_SOCKET_STATE_MODULE_INIT;
             handle->net_state = NET_SOCKET_STATE_MODULE_INIT;
             s_ykc_socket_info.fd = -0x01;
             step = NET_YKC_NET_STATE_OPEN_SOCKET;
@@ -487,11 +488,11 @@ static void net_ykc_message_send_thread_entry(void *parameter)
         }
         /***************************************************** [登录认证] **********************************************************/
         /***************************************************** [登录认证] **********************************************************/
-        if(s_ykc_socket_info.state != YKC_SOCKET_STATE_LOGIN_SUCCESS){
-            rt_kprintf("state(%d, %d, %d)\n", s_ykc_socket_info.state, step, (rt_tick_get() - delay));
+        if(s_ykc_socket_info.socket_state != YKC_SOCKET_STATE_LOGIN_SUCCESS){
+            rt_kprintf("state(%d, %d, %d)\n", s_ykc_socket_info.socket_state, step, (rt_tick_get() - delay));
             switch(step){
             case NET_YKC_NET_STATE_OPEN_SOCKET:
-                s_ykc_socket_info.state = YKC_SOCKET_STATE_OPEN;
+                s_ykc_socket_info.socket_state = YKC_SOCKET_STATE_OPEN;
                 handle->net_state = NET_SOCKET_STATE_OPEN;
                 if(delay > rt_tick_get()){
                     delay = rt_tick_get();
@@ -552,7 +553,7 @@ static void net_ykc_message_send_thread_entry(void *parameter)
 
                 ykc_net_event_receive(NET_YKC_EVENT_HANDLE_SERVER, NET_YKC_EVENT_TYPE_RESPONSE, 0x00,
                         (NET_YKC_EVENT_OPTION_OR |NET_YKC_EVENT_OPTION_CLEAR), NET_YKC_SRES_EVENT_LOGIN, NULL);
-                s_ykc_socket_info.state = YKC_SOCKET_STATE_LOGIN_WAIT;
+                s_ykc_socket_info.socket_state = YKC_SOCKET_STATE_LOGIN_WAIT;
                 handle->net_state = NET_SOCKET_STATE_LOGIN_WAIT;
                 ykc_message_send_port(NETYKC_PREQCMD_SINGIN, s_ykc_socket_info.fd, &g_ykc_preq_login,
                         sizeof(g_ykc_preq_login));
@@ -563,7 +564,7 @@ static void net_ykc_message_send_thread_entry(void *parameter)
                         s_ykc_socket_info.operate_fail.login = 0;
                         step = NET_YKC_NET_STATE_MONITORING;
 
-                        s_ykc_socket_info.state = YKC_SOCKET_STATE_LOGIN_SUCCESS;
+                        s_ykc_socket_info.socket_state = YKC_SOCKET_STATE_LOGIN_SUCCESS;
                         handle->net_state = NET_SOCKET_STATE_LOGIN_SUCCESS;
                         for(uint8_t gunno = 0; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
                             s_ykc_message_serial_number[gunno]++;
@@ -578,7 +579,7 @@ static void net_ykc_message_send_thread_entry(void *parameter)
                     delay = rt_tick_get();
                     wait_unlock = rt_tick_get();
                     step = NET_YKC_NET_STATE_OPEN_SOCKET;
-                    s_ykc_socket_info.state = YKC_SOCKET_STATE_OPEN;
+                    s_ykc_socket_info.socket_state = YKC_SOCKET_STATE_OPEN;
                     handle->net_state = NET_SOCKET_STATE_OPEN;
                     while(ykc_socket_is_lock()){
                         if((rt_tick_get() - wait_unlock) > NET_YKC_WAIT_UNLOCK_TIMEOUT){
@@ -598,13 +599,13 @@ static void net_ykc_message_send_thread_entry(void *parameter)
                 break;
             }
             case NET_YKC_NET_STATE_MONITORING:
-                s_ykc_socket_info.state = YKC_SOCKET_STATE_LOGIN_SUCCESS;
+                s_ykc_socket_info.socket_state = YKC_SOCKET_STATE_LOGIN_SUCCESS;
                 break;
             default:
                 delay = rt_tick_get();
                 wait_unlock = rt_tick_get();
                 step = NET_YKC_NET_STATE_OPEN_SOCKET;
-                s_ykc_socket_info.state = YKC_SOCKET_STATE_OPEN;
+                s_ykc_socket_info.socket_state = YKC_SOCKET_STATE_OPEN;
                 handle->net_state = NET_SOCKET_STATE_OPEN;
                 while(ykc_socket_is_lock()){
                     if((rt_tick_get() - wait_unlock) > NET_YKC_WAIT_UNLOCK_TIMEOUT){
@@ -630,7 +631,7 @@ static void net_ykc_message_send_thread_entry(void *parameter)
             net_set_clear_ndev_reset_state(NET_PLATFORM_MASK_TARGET, 0x00);
         }
 
-        if(s_ykc_socket_info.state != YKC_SOCKET_STATE_LOGIN_SUCCESS){   /* 未登录上服务器前不进行网络数据交互事件处理 */
+        if(s_ykc_socket_info.socket_state != YKC_SOCKET_STATE_LOGIN_SUCCESS){   /* 未登录上服务器前不进行网络数据交互事件处理 */
             for(uint8_t gunno = 0; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
                 heartbeat_tick[gunno] = rt_tick_get();
                 ykc_set_message_send_state(gunno, NET_YKC_SEND_STATE_ONGOING, NET_YKC_PREQ_EVENT_HEARTBEAT);
@@ -650,7 +651,7 @@ static void net_ykc_message_send_thread_entry(void *parameter)
                 wait_unlock = rt_tick_get();
 
                 step = NET_YKC_NET_STATE_OPEN_SOCKET;
-                s_ykc_socket_info.state = YKC_SOCKET_STATE_OPEN;
+                s_ykc_socket_info.socket_state = YKC_SOCKET_STATE_OPEN;
                 handle->net_state = NET_SOCKET_STATE_OPEN;
                 while(ykc_socket_is_lock()){
                     if((rt_tick_get() - wait_unlock) > NET_YKC_WAIT_UNLOCK_TIMEOUT){
@@ -1124,7 +1125,7 @@ static void net_ykc_server_message_pro_entry(void *parameter)
             continue;
         }
 
-        if(s_ykc_socket_info.state != YKC_SOCKET_STATE_LOGIN_SUCCESS){   /* 未登录上服务器前不进行网络数据交互事件处理 */
+        if(s_ykc_socket_info.socket_state != YKC_SOCKET_STATE_LOGIN_SUCCESS){   /* 未登录上服务器前不进行网络数据交互事件处理 */
             rt_thread_mdelay(500);
             continue;
         }

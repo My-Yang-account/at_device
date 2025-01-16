@@ -1879,7 +1879,7 @@ int8_t ykc_chargepile_request_padding_card_authority(uint8_t gunno)
     if(app_billingrule_is_valid(gunno) == NET_ENUM_FALSE){
         return -0x01;
     }
-    if(ykc_get_socket_info()->state != YKC_SOCKET_STATE_LOGIN_SUCCESS){
+    if(ykc_get_socket_info()->socket_state != YKC_SOCKET_STATE_LOGIN_SUCCESS){
         return -0x01;
     }
     uint8_t valid_len = 0x00;
@@ -1924,7 +1924,7 @@ int8_t ykc_chargepile_request_padding_vin_authority(uint8_t gunno)
     if(app_billingrule_is_valid(gunno) == NET_ENUM_FALSE){
         return -0x01;
     }
-    if(ykc_get_socket_info()->state != YKC_SOCKET_STATE_LOGIN_SUCCESS){
+    if(ykc_get_socket_info()->socket_state != YKC_SOCKET_STATE_LOGIN_SUCCESS){
         return -0x01;
     }
     System_BaseData *base = (System_BaseData*)(s_ykc_handle->get_base_data(gunno));
@@ -2077,7 +2077,7 @@ int8_t ykc_chargepile_request_padding_mergecharge_card_authority(uint8_t gunno)
     if(app_billingrule_is_valid(gunno) == NET_ENUM_FALSE){
         return -0x01;
     }
-    if(ykc_get_socket_info()->state != YKC_SOCKET_STATE_LOGIN_SUCCESS){
+    if(ykc_get_socket_info()->socket_state != YKC_SOCKET_STATE_LOGIN_SUCCESS){
         return -0x01;
     }
     struct tm _tm;
@@ -2129,7 +2129,7 @@ int8_t ykc_chargepile_request_padding_mergecharge_vin_authority(uint8_t gunno)
     if(app_billingrule_is_valid(gunno) == NET_ENUM_FALSE){
         return -0x01;
     }
-    if(ykc_get_socket_info()->state != YKC_SOCKET_STATE_LOGIN_SUCCESS){
+    if(ykc_get_socket_info()->socket_state != YKC_SOCKET_STATE_LOGIN_SUCCESS){
         return -0x01;
     }
     struct tm _tm;
@@ -2713,7 +2713,7 @@ static void ykc_data_realtime_process(uint8_t gunno, System_BaseData *base)
         return;
     }
 
-    if(ykc_get_socket_info()->state == YKC_SOCKET_STATE_LOGIN_SUCCESS){
+    if(ykc_get_socket_info()->socket_state == YKC_SOCKET_STATE_LOGIN_SUCCESS){
         ykc_request_message_repeat(gunno);
 
         if(base->state.current == APP_OFSM_STATE_CHARGING){

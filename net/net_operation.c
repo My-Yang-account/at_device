@@ -303,7 +303,7 @@ net_plat_socket_info_t *net_operation_get_target_socket_info(void)
 {
 #ifdef NET_YKC_AS_TARGET
     ykc_socket_info_t *ykc_socket = ykc_get_socket_info();
-    s_plat_socket_info.state = ykc_socket->state;
+    s_plat_socket_info.socket_state = ykc_socket->socket_state;
     s_plat_socket_info.open_count = ykc_socket->operate_fail.open_socket;
     s_plat_socket_info.login_count = ykc_socket->operate_fail.login;
 
@@ -312,7 +312,7 @@ net_plat_socket_info_t *net_operation_get_target_socket_info(void)
 
 #ifdef NET_YKC_MONITOR_AS_TARGET
     ykc_monitor_socket_info_t *ykc_monitor_socket = ykc_monitor_get_socket_info();
-    s_plat_socket_info.state = ykc_monitor_socket->state;
+    s_plat_socket_info.socket_state = ykc_monitor_socket->socket_state;
     s_plat_socket_info.open_count = ykc_monitor_socket->operate_fail.open_socket;
     s_plat_socket_info.login_count = ykc_monitor_socket->operate_fail.login;
 
@@ -321,7 +321,7 @@ net_plat_socket_info_t *net_operation_get_target_socket_info(void)
 
 #ifdef NET_YCP_AS_TARGET
     ycp_socket_info_t *ycp_socket = ycp_get_socket_info();
-    s_plat_socket_info.state = ycp_socket->state;
+    s_plat_socket_info.socket_state = ycp_socket->socket_state;
     s_plat_socket_info.open_count = ycp_socket->operate_fail.open_socket;
     s_plat_socket_info.login_count = ycp_socket->operate_fail.login;
 
@@ -330,7 +330,7 @@ net_plat_socket_info_t *net_operation_get_target_socket_info(void)
 
 #ifdef NET_SGCC_AS_TARGET
     sgcc_socket_info_t *sgcc_socket = sgcc_get_socket_info();
-    s_plat_socket_info.state = sgcc_socket->state;
+    s_plat_socket_info.socket_state = sgcc_socket->socket_state;
     s_plat_socket_info.open_count = 0x00;
     s_plat_socket_info.login_count = sgcc_socket->operate_fail.login;
 

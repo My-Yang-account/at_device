@@ -292,13 +292,16 @@ enum net_enum{
 
 #pragma pack(1)
 
+/** 目标平台socket信息 */
 typedef struct{
-    uint8_t state;
-    uint8_t open_count;
-    uint8_t login_count;
-    uint8_t domain_is_prase;
-    uint8_t domain[64];
-    uint16_t port;
+    uint8_t program_state;      /** 程序运行状态 */
+    uint8_t socket_state;       /** socket状态 */
+    uint8_t open_count;         /** 连续重复open socket次数 */
+    uint8_t login_count;        /** 连续重复登录次数 */
+    uint8_t heartbeat_count;    /** 心跳超时次数 */
+    uint8_t domain_is_prase;    /** 目标平台域名已解析 */
+    uint8_t domain[0x10];       /** 点分十进制式IP */
+    uint16_t port;              /** 端口号 */
 }net_plat_socket_info_t;
 
 typedef struct{

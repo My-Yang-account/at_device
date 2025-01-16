@@ -214,7 +214,8 @@ typedef struct{
 
 typedef struct{
     int fd;
-    uint8_t state;
+    uint8_t socket_state;
+    uint8_t program_state;
     uint8_t heartbeat[NET_SYSTEM_GUN_NUMBER];
     uint8_t domain_is_prase;   /** 域名已解析 */
 #ifdef NET_YKC_MONITOR_AS_MONITOR

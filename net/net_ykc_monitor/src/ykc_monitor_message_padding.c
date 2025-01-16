@@ -2809,7 +2809,7 @@ static void ykc_monitor_data_realtime_process(uint8_t gunno, System_BaseData* ba
         return;
     }
 
-    if(ykc_monitor_get_socket_info()->state == YKC_MONITOR_SOCKET_STATE_LOGIN_SUCCESS){
+    if(ykc_monitor_get_socket_info()->socket_state == YKC_MONITOR_SOCKET_STATE_LOGIN_SUCCESS){
         ykc_monitor_request_message_repeat(gunno);
 
         if(base->state.current == APP_OFSM_STATE_CHARGING){
@@ -3382,7 +3382,7 @@ int8_t ykc_monitor_message_padding_tsocket_info(uint8_t *buf, uint16_t ilen, uin
     memcpy(message->body.domain, socket->domain, valid_len);
 
     message->body.port = socket->port;
-    message->body.state = socket->state;
+    message->body.socket_state = socket->socket_state;
     message->body.open_count = socket->open_count;
     message->body.login_count = socket->login_count;
 

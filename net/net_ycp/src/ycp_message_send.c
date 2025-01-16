@@ -616,6 +616,7 @@ static void net_ycp_message_send_thread_entry(void *parameter)
 
     while(1)
     {
+        s_ycp_socket_info.program_state = step;
         g_net_target_platform_tick = rt_tick_get();
         net_thread_running(rt_thread_self(), NULL, 0x00, 0x00);
         if((net_get_ota_info()->state >= NET_OTA_STATE_OPEN_LINK) && (net_get_ota_info()->state <= NET_OTA_STATE_UPDATING)){
@@ -629,7 +630,7 @@ static void net_ycp_message_send_thread_entry(void *parameter)
                 ycp_socket_close(s_ycp_socket_info.fd);
                 s_ycp_socket_info.fd = -0x01;
             }
-            s_ycp_socket_info.state = YCP_SOCKET_STATE_PHY;
+            s_ycp_socket_info.socket_state = YCP_SOCKET_STATE_PHY;
             handle->net_state = NET_SOCKET_STATE_PHY;
             s_ycp_socket_info.fd = -0x01;
             step = NET_YCP_NET_STATE_OPEN_SOCKET;
@@ -645,7 +646,7 @@ static void net_ycp_message_send_thread_entry(void *parameter)
                 ycp_socket_close(s_ycp_socket_info.fd);
                 s_ycp_socket_info.fd = -0x01;
             }
-            s_ycp_socket_info.state = YCP_SOCKET_STATE_SIM;
+            s_ycp_socket_info.socket_state = YCP_SOCKET_STATE_SIM;
             handle->net_state = NET_SOCKET_STATE_SIM;
             s_ycp_socket_info.fd = -0x01;
             step = NET_YCP_NET_STATE_OPEN_SOCKET;
@@ -661,7 +662,7 @@ static void net_ycp_message_send_thread_entry(void *parameter)
                 ycp_socket_close(s_ycp_socket_info.fd);
                 s_ycp_socket_info.fd = -0x01;
             }
-            s_ycp_socket_info.state = YCP_SOCKET_STATE_DATA_LINK;
+            s_ycp_socket_info.socket_state = YCP_SOCKET_STATE_DATA_LINK;
             handle->net_state = NET_SOCKET_STATE_DATA_LINK;
             s_ycp_socket_info.fd = -0x01;
             step = NET_YCP_NET_STATE_OPEN_SOCKET;
@@ -677,7 +678,7 @@ static void net_ycp_message_send_thread_entry(void *parameter)
                 ycp_socket_close(s_ycp_socket_info.fd);
                 s_ycp_socket_info.fd = -0x01;
             }
-            s_ycp_socket_info.state = YCP_SOCKET_STATE_MODULE_INIT;
+            s_ycp_socket_info.socket_state = YCP_SOCKET_STATE_MODULE_INIT;
             handle->net_state = NET_SOCKET_STATE_MODULE_INIT;
             s_ycp_socket_info.fd = -0x01;
             step = NET_YCP_NET_STATE_OPEN_SOCKET;
@@ -702,11 +703,11 @@ static void net_ycp_message_send_thread_entry(void *parameter)
         }
         /***************************************************** [登录认证] **********************************************************/
         /***************************************************** [登录认证] **********************************************************/
-        if(s_ycp_socket_info.state != YCP_SOCKET_STATE_LOGIN_SUCCESS){
-            rt_kprintf("ycp state(%d, %d, %d)\n", s_ycp_socket_info.state, step, (rt_tick_get() - delay));
+        if(s_ycp_socket_info.socket_state != YCP_SOCKET_STATE_LOGIN_SUCCESS){
+            rt_kprintf("ycp state(%d, %d, %d)\n", s_ycp_socket_info.socket_state, step, (rt_tick_get() - delay));
             switch(step){
             case NET_YCP_NET_STATE_OPEN_SOCKET:
-                s_ycp_socket_info.state = YCP_SOCKET_STATE_OPEN;
+                s_ycp_socket_info.socket_state = YCP_SOCKET_STATE_OPEN;
                 handle->net_state = NET_SOCKET_STATE_OPEN;
                 if(delay > rt_tick_get()){
                     delay = rt_tick_get();
@@ -771,7 +772,7 @@ static void net_ycp_message_send_thread_entry(void *parameter)
 
                 ycp_net_event_receive(NET_YCP_EVENT_HANDLE_SERVER, NET_YCP_EVENT_TYPE_RESPONSE, 0x00,
                         (NET_YCP_EVENT_OPTION_OR |NET_YCP_EVENT_OPTION_CLEAR), NET_YCP_SRES_EVENT_LOGIN, NULL);
-                s_ycp_socket_info.state = YCP_SOCKET_STATE_LOGIN_WAIT;
+                s_ycp_socket_info.socket_state = YCP_SOCKET_STATE_LOGIN_WAIT;
                 handle->net_state = NET_SOCKET_STATE_LOGIN_WAIT;
                 ycp_message_send_port(NETYCP_PREQCMD_SINGIN, s_ycp_socket_info.fd, &g_ycp_preq_login,
                         sizeof(g_ycp_preq_login));
@@ -787,7 +788,7 @@ static void net_ycp_message_send_thread_entry(void *parameter)
                             handle->system_data_storage(0x00);
                         }
                         net_set_clear_ndev_reset_state(NET_PLATFORM_MASK_TARGET, 0x01);
-                        s_ycp_socket_info.state = YCP_SOCKET_STATE_LOGIN_SUCCESS;
+                        s_ycp_socket_info.socket_state = YCP_SOCKET_STATE_LOGIN_SUCCESS;
                         handle->net_state = NET_SOCKET_STATE_LOGIN_SUCCESS;
                         s_ycp_socket_info.heartbeat = 0x00;
                         break;
@@ -799,7 +800,7 @@ static void net_ycp_message_send_thread_entry(void *parameter)
                     delay = rt_tick_get();
                     wait_unlock = rt_tick_get();
                     step = NET_YCP_NET_STATE_OPEN_SOCKET;
-                    s_ycp_socket_info.state = YCP_SOCKET_STATE_OPEN;
+                    s_ycp_socket_info.socket_state = YCP_SOCKET_STATE_OPEN;
                     handle->net_state = NET_SOCKET_STATE_OPEN;
                     while(ycp_socket_is_lock()){
                         if((rt_tick_get() - wait_unlock) > NET_YCP_WAIT_UNLOCK_TIMEOUT){
@@ -821,13 +822,13 @@ static void net_ycp_message_send_thread_entry(void *parameter)
                 break;
             }
             case NET_YCP_NET_STATE_MONITORING:
-                s_ycp_socket_info.state = YCP_SOCKET_STATE_LOGIN_SUCCESS;
+                s_ycp_socket_info.socket_state = YCP_SOCKET_STATE_LOGIN_SUCCESS;
                 break;
             default:
                 delay = rt_tick_get();
                 wait_unlock = rt_tick_get();
                 step = NET_YCP_NET_STATE_OPEN_SOCKET;
-                s_ycp_socket_info.state = YCP_SOCKET_STATE_OPEN;
+                s_ycp_socket_info.socket_state = YCP_SOCKET_STATE_OPEN;
                 handle->net_state = NET_SOCKET_STATE_OPEN;
                 while(ycp_socket_is_lock()){
                     if((rt_tick_get() - wait_unlock) > NET_YCP_WAIT_UNLOCK_TIMEOUT){
@@ -853,7 +854,7 @@ static void net_ycp_message_send_thread_entry(void *parameter)
             net_set_clear_ndev_reset_state(NET_PLATFORM_MASK_TARGET, 0x00);
         }
 
-        if(s_ycp_socket_info.state != YCP_SOCKET_STATE_LOGIN_SUCCESS){   /* 未登录上服务器前不进行网络数据交互事件处理 */
+        if(s_ycp_socket_info.socket_state != YCP_SOCKET_STATE_LOGIN_SUCCESS){   /* 未登录上服务器前不进行网络数据交互事件处理 */
             s_ycp_assistant_flag.is_timesync = 0x00;
             s_ycp_assistant_flag.is_verify_billingrule = 0x00;
             s_ycp_assistant_flag.req_billingrule_again = 0x00;
@@ -871,7 +872,7 @@ static void net_ycp_message_send_thread_entry(void *parameter)
             wait_unlock = rt_tick_get();
 
             step = NET_YCP_NET_STATE_OPEN_SOCKET;
-            s_ycp_socket_info.state = YCP_SOCKET_STATE_OPEN;
+            s_ycp_socket_info.socket_state = YCP_SOCKET_STATE_OPEN;
             handle->net_state = NET_SOCKET_STATE_OPEN;
             while(ycp_socket_is_lock()){
                 if((rt_tick_get() - wait_unlock) > NET_YCP_WAIT_UNLOCK_TIMEOUT){
@@ -1321,7 +1322,7 @@ static void net_ycp_server_message_pro_entry(void *parameter)
             continue;
         }
 
-        if(s_ycp_socket_info.state != YCP_SOCKET_STATE_LOGIN_SUCCESS){   /* 未登录上服务器前不进行网络数据交互事件处理 */
+        if(s_ycp_socket_info.socket_state != YCP_SOCKET_STATE_LOGIN_SUCCESS){   /* 未登录上服务器前不进行网络数据交互事件处理 */
             rt_thread_mdelay(500);
             continue;
         }

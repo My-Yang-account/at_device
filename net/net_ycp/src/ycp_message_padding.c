@@ -1758,7 +1758,7 @@ int8_t ycp_chargepile_request_padding_card_authority(uint8_t gunno)
     if(app_billingrule_is_valid(gunno) == 0x00){
         return -0x01;
     }
-    if(ycp_get_socket_info()->state != YCP_SOCKET_STATE_LOGIN_SUCCESS){
+    if(ycp_get_socket_info()->socket_state != YCP_SOCKET_STATE_LOGIN_SUCCESS){
         return -0x01;
     }
     uint8_t valid_len = 0x00, ascii_valid_len = 0x00, value = 0x00;
@@ -1818,7 +1818,7 @@ int8_t ycp_chargepile_request_padding_vin_authority(uint8_t gunno)
     if(app_billingrule_is_valid(gunno) == 0x00){
         return -0x01;
     }
-    if(ycp_get_socket_info()->state != YCP_SOCKET_STATE_LOGIN_SUCCESS){
+    if(ycp_get_socket_info()->socket_state != YCP_SOCKET_STATE_LOGIN_SUCCESS){
         return -0x01;
     }
     System_BaseData *base = (System_BaseData*)(s_ycp_handle->get_base_data(gunno));
@@ -2512,7 +2512,7 @@ static void ycp_data_realtime_process(uint8_t gunno, System_BaseData *base)
         return;
     }
 
-    if(ycp_get_socket_info()->state == YCP_SOCKET_STATE_LOGIN_SUCCESS){
+    if(ycp_get_socket_info()->socket_state == YCP_SOCKET_STATE_LOGIN_SUCCESS){
         ycp_request_message_repeat(gunno);
 
         if(base->state.current == APP_OFSM_STATE_CHARGING){
@@ -2626,7 +2626,7 @@ static void ycp_realtime_process_thread_entry(void *parameter)
             continue;
         }
 
-        if(ycp_get_socket_info()->state == YCP_SOCKET_STATE_LOGIN_SUCCESS){
+        if(ycp_get_socket_info()->socket_state == YCP_SOCKET_STATE_LOGIN_SUCCESS){
             if((is_power_on == NET_ENUM_TRUE) && (ycp_is_interact_normally())){
                 is_power_on = NET_ENUM_FALSE;
                 for(gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
