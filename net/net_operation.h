@@ -376,9 +376,10 @@ uint32_t net_operation_get_total_power(uint8_t gunno);
 
 struct net_handle* net_get_net_handle(void);
 net_ota_info_t *net_get_ota_info(void);
-net_plat_socket_info_t *net_operation_get_target_socket_info(void);
+net_plat_socket_info_t *net_operation_get_target_socket_info(uint8_t sync_data);
 void net_operation_set_target_socket_domain(char* domain, uint8_t domain_len);
 void net_operation_set_target_socket_port(uint16_t port);
 void net_operation_insert_tplat_log(void *data, uint16_t len, uint8_t verify_result, const char* label);
+void net_operation_tplat_info_trigger(uint8_t sync_data);
 
 #endif /* NET_PACK_NET_OPERATION_H_ */

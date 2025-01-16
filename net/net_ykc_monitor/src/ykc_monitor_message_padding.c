@@ -3351,6 +3351,7 @@ int8_t ykc_monitor_message_padding_function_setup(uint8_t *buf, uint16_t ilen, u
  * **********************************************/
 int8_t ykc_monitor_message_padding_tsocket_info(uint8_t *buf, uint16_t ilen, uint16_t *olen)
 {
+#ifdef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL
     uint16_t total = sizeof(Net_YkcMonitorPro_Preq_Pres_TsocketInfo_t);
 
     if(buf == NULL){
@@ -3360,37 +3361,45 @@ int8_t ykc_monitor_message_padding_tsocket_info(uint8_t *buf, uint16_t ilen, uin
         return -0x02;
     }
 
-#ifndef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL
+    uint8_t *domain = NULL, valid_len = 0x00;
     uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC_MONITOR |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
-    uint8_t *pile_number = NULL;
-#endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
-    uint8_t valid_len = 0x00;
-    net_plat_socket_info_t *socket = net_operation_get_target_socket_info();
+    net_plat_socket_info_t *socket = net_operation_get_target_socket_info(NET_ENUM_FALSE);
     Net_YkcMonitorPro_Preq_Pres_TsocketInfo_t *message = (Net_YkcMonitorPro_Preq_Pres_TsocketInfo_t*)buf;
+
+    memset(message, 0x00, ilen);
     memcpy(message->body.pile_number, g_ykc_monitor_preq_login.body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
 
-#ifndef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL
-    pile_number = (uint8_t*)(s_ykc_monitor_handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, 0x00, option));
-    valid_len = sizeof(message->body.pile_number_whole);
-    valid_len = valid_len > strlen((char*)pile_number) ? strlen((char*)pile_number) : valid_len;
-    memset(message->body.pile_number_whole, 0x00, sizeof(message->body.pile_number_whole));
-    memcpy(message->body.pile_number_whole, pile_number, valid_len);
-#endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
+    domain = (uint8_t*)(s_ykc_monitor_handle->get_system_data(NET_SYSTEM_DATA_NAME_DOMAIN, NULL, 0x00, option));
+    valid_len = strlen((char*)domain);
+    valid_len = valid_len > sizeof(message->body.domain) ? sizeof(message->body.domain) : valid_len;
+    memcpy(message->body.domain, domain, valid_len);
 
-    valid_len = sizeof(message->body.domain);
-    valid_len = valid_len > sizeof(socket->domain) ? sizeof(socket->domain) : valid_len;
-    memcpy(message->body.domain, socket->domain, valid_len);
+    message->body.port = *(uint16_t*)(s_ykc_monitor_handle->get_system_data(NET_SYSTEM_DATA_NAME_PORT, NULL, 0x00, option));
 
-    message->body.port = socket->port;
+    message->body.program_state = socket->program_state;
     message->body.socket_state = socket->socket_state;
     message->body.open_count = socket->open_count;
     message->body.login_count = socket->login_count;
+    message->body.heartbeat_count = socket->heartbeat_count;;
 
     if(olen){
         *olen = total;
     }
 
+    LOG_D("net target socket info:");
+    LOG_D("pile_number|%s", message->body.pile_number);
+    LOG_D("domain|%s", message->body.domain);
+    LOG_D("port|%d", message->body.port);
+    LOG_D("program_state|%d", message->body.program_state);
+    LOG_D("socket_state|%d", message->body.socket_state);
+    LOG_D("open_count|%d", message->body.open_count);
+    LOG_D("login_count|%d", message->body.login_count);
+    LOG_D("heartbeat_count|%d", message->body.heartbeat_count);
+
     return 0x00;
+#else
+    return -0x01;
+#endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
 }
 
 /*************************************************

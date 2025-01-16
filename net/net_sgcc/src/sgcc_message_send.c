@@ -585,9 +585,15 @@ static void sgcc_connect_thread_entry(void *parameter)
                     is_power_on = 0x01;
                     link_open_step = 0x01;
                     step = NET_SGCC_NET_STATE_OPEN;
+                    /** 状态变化，提前改变状态 */
+                    s_sgcc_socket_info.program_state = step;
+                    s_sgcc_socket_info.socket_state = SGCC_SOCKET_STATE_OPEN;
+                    handle->net_state = NET_SOCKET_STATE_OPEN;
                     s_sgcc_socket_info.operate_fail.auth = 0x00;
                     LOG_D("sgcc linkkit new success \n");
                 }
+                /** socket 状态可能有变，上报一次 */
+                net_operation_tplat_info_trigger(0x01);
             }
             break;
         case NET_SGCC_NET_STATE_OPEN:
@@ -601,6 +607,10 @@ static void sgcc_connect_thread_entry(void *parameter)
                 if(evs_mainopen() >= 0x00){
                     LOG_D("sgcc linkkit open socket success \n");
                     step = NET_SGCC_NET_STATE_LOGIN;
+                    /** 状态变化，提前改变状态 */
+                    s_sgcc_socket_info.program_state = step;
+                    s_sgcc_socket_info.socket_state = SGCC_SOCKET_STATE_LOGIN_WAIT;
+                    handle->net_state = NET_SOCKET_STATE_LOGIN_WAIT;
                     s_sgcc_socket_info.operate_fail.open = 0x00;
                 }else{
                     s_sgcc_socket_info.operate_fail.open++;
@@ -608,6 +618,8 @@ static void sgcc_connect_thread_entry(void *parameter)
                 }
                 is_power_on = 0x00;
                 delay = rt_tick_get();
+                /** socket 状态可能有变，上报一次 */
+                net_operation_tplat_info_trigger(0x01);
             }
             link_open_step = 0x01;
             s_sgcc_socket_info.operate_fail.auth = 0x00;
@@ -634,6 +646,10 @@ static void sgcc_connect_thread_entry(void *parameter)
             if(result >= 0x00){
                 LOG_D("sgcc linkkit connect success \n");
                 step = NET_SGCC_NET_STATE_MONITORING;
+                /** 状态变化，提前改变状态 */
+                s_sgcc_socket_info.program_state = step;
+                s_sgcc_socket_info.socket_state = SGCC_SOCKET_STATE_LOGIN_SUCCESS;
+                handle->net_state = NET_SOCKET_STATE_LOGIN_SUCCESS;
                 s_sgcc_socket_info.fd = 0x00;
                 s_sgcc_socket_info.operate_fail.login = 0x00;
                 sgcc_net_event_send(NET_SGCC_EVENT_HANDLE_CHARGEPILE, NET_SGCC_EVENT_TYPE_REQUEST, 0x00, NET_SGCC_PREQ_EVENT_REPORT_SDK_VERSION);
@@ -644,12 +660,16 @@ static void sgcc_connect_thread_entry(void *parameter)
                 s_sgcc_socket_info.operate_fail.login++;
                 delay = rt_tick_get();
                 step = NET_SGCC_NET_STATE_OPEN;
+                /** 状态变化，提前改变状态 */
+                s_sgcc_socket_info.program_state = step;
                 s_sgcc_socket_info.socket_state = SGCC_SOCKET_STATE_OPEN;
                 handle->net_state = NET_SOCKET_STATE_OPEN;
                 LOG_D("linkkit connect failed num(%d)\n", s_sgcc_socket_info.operate_fail.login);
             }
             link_open_step = 0x01;
             s_sgcc_socket_info.operate_fail.auth = 0x00;
+            /** socket 状态可能有变，上报一次 */
+            net_operation_tplat_info_trigger(0x01);
             break;
         }
         case NET_SGCC_NET_STATE_MONITORING:
@@ -665,10 +685,15 @@ static void sgcc_connect_thread_entry(void *parameter)
 
                 delay = rt_tick_get();
                 step = NET_SGCC_NET_STATE_OPEN;
+                /** 状态变化，提前改变状态 */
+                s_sgcc_socket_info.program_state = step;
                 s_sgcc_socket_info.socket_state = SGCC_SOCKET_STATE_OPEN;
                 handle->net_state = NET_SOCKET_STATE_OPEN;
 
                 evs_mainclose();
+
+                /** socket 可能有变，上报一次 */
+                net_operation_tplat_info_trigger(0x01);
 
                 s_sgcc_socket_info.fd = -0x01;
                 s_sgcc_socket_info.operate_fail.login = 0x00;
@@ -689,10 +714,15 @@ static void sgcc_connect_thread_entry(void *parameter)
             if(link_open_step){
                 step = NET_SGCC_NET_STATE_OPEN;
             }
+            /** 状态变化，提前改变状态 */
+            s_sgcc_socket_info.program_state = step;
             s_sgcc_socket_info.socket_state = SGCC_SOCKET_STATE_OPEN;
             handle->net_state = NET_SOCKET_STATE_OPEN;
 
             evs_mainclose();
+
+            /** socket 状态可能有变，上报一次 */
+            net_operation_tplat_info_trigger(0x01);
 
             s_sgcc_socket_info.fd = -0x01;
             s_sgcc_socket_info.sync_repeat = 0x00;
@@ -719,8 +749,13 @@ static void sgcc_connect_thread_entry(void *parameter)
             }else{
                 step = NET_SGCC_NET_STATE_OPEN;
             }
+            /** 状态变化，提前改变状态 */
+            s_sgcc_socket_info.program_state = step;
 
             evs_mainclose();
+
+            /** socket 状态有变，上报一次 */
+            net_operation_tplat_info_trigger(0x01);
 
             s_sgcc_socket_info.fd = -0x01;
             s_sgcc_socket_info.operate_fail.auth = 0x00;
@@ -737,10 +772,15 @@ static void sgcc_connect_thread_entry(void *parameter)
             if(s_sgcc_socket_info.operate_fail.sync == NET_ENUM_TRUE){      /* 相当于心跳超时 */
                 delay = rt_tick_get();
                 step = NET_SGCC_NET_STATE_OPEN;
+                /** 状态变化，提前改变状态 */
+                s_sgcc_socket_info.program_state = step;
                 s_sgcc_socket_info.socket_state = SGCC_SOCKET_STATE_OPEN;
                 handle->net_state = NET_SOCKET_STATE_OPEN;
 
                 evs_mainclose();
+
+                /** socket 状态有变，上报一次 */
+                net_operation_tplat_info_trigger(0x01);
 
                 s_sgcc_socket_info.fd = -0x01;
                 s_sgcc_socket_info.sync_repeat = 0x00;

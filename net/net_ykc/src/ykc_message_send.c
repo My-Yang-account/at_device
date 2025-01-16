@@ -507,6 +507,10 @@ static void net_ykc_message_send_thread_entry(void *parameter)
                         LOG_D("ykc socket open success with host[%s] port[%d] fd(%d)", host, port, s_ykc_socket_info.fd);
                         s_ykc_socket_info.operate_fail.open_socket = 0;
                         step = NET_YKC_NET_STATE_LOGIN;
+                        /** 状态变化，提前改变状态 */
+                        s_ykc_socket_info.program_state = step;
+                        s_ykc_socket_info.socket_state = YKC_SOCKET_STATE_LOGIN_WAIT;
+                        handle->net_state = NET_SOCKET_STATE_LOGIN_WAIT;
 
                         ykc_socket_modify_recv_timeout(s_ykc_socket_info.fd, recv_timeout);
                     }else{
@@ -519,6 +523,8 @@ static void net_ykc_message_send_thread_entry(void *parameter)
                         s_ykc_message_serial_number[gunno] = 0x00;
                     }
                     is_power_on = 0x00;
+                    /** socket 状态可能有变，上报一次 */
+                    net_operation_tplat_info_trigger(0x01);
                 }
                 break;
             case NET_YKC_NET_STATE_LOGIN:
@@ -563,6 +569,8 @@ static void net_ykc_message_send_thread_entry(void *parameter)
                         LOG_D("ykc login success");
                         s_ykc_socket_info.operate_fail.login = 0;
                         step = NET_YKC_NET_STATE_MONITORING;
+                        /** 状态变化，提前改变状态 */
+                        s_ykc_socket_info.program_state = step;
 
                         s_ykc_socket_info.socket_state = YKC_SOCKET_STATE_LOGIN_SUCCESS;
                         handle->net_state = NET_SOCKET_STATE_LOGIN_SUCCESS;
@@ -579,6 +587,8 @@ static void net_ykc_message_send_thread_entry(void *parameter)
                     delay = rt_tick_get();
                     wait_unlock = rt_tick_get();
                     step = NET_YKC_NET_STATE_OPEN_SOCKET;
+                    /** 状态变化，提前改变状态 */
+                    s_ykc_socket_info.program_state = step;
                     s_ykc_socket_info.socket_state = YKC_SOCKET_STATE_OPEN;
                     handle->net_state = NET_SOCKET_STATE_OPEN;
                     while(ykc_socket_is_lock()){
@@ -596,15 +606,20 @@ static void net_ykc_message_send_thread_entry(void *parameter)
                     rt_thread_mdelay(100);
                     ykc_net_event_send(NET_YKC_EVENT_HANDLE_CHARGEPILE, NET_YKC_EVENT_TYPE_REQUEST, 0x00, NET_YKC_PREQ_EVENT_BILLING_MODEL_REQUEST);
                 }
+                /** socket 状态可能有变，上报一次 */
+                net_operation_tplat_info_trigger(0x01);
                 break;
             }
             case NET_YKC_NET_STATE_MONITORING:
                 s_ykc_socket_info.socket_state = YKC_SOCKET_STATE_LOGIN_SUCCESS;
+                handle->net_state = NET_SOCKET_STATE_LOGIN_SUCCESS;
                 break;
             default:
                 delay = rt_tick_get();
                 wait_unlock = rt_tick_get();
                 step = NET_YKC_NET_STATE_OPEN_SOCKET;
+                /** 状态变化，提前改变状态 */
+                s_ykc_socket_info.program_state = step;
                 s_ykc_socket_info.socket_state = YKC_SOCKET_STATE_OPEN;
                 handle->net_state = NET_SOCKET_STATE_OPEN;
                 while(ykc_socket_is_lock()){
@@ -616,18 +631,26 @@ static void net_ykc_message_send_thread_entry(void *parameter)
 
                 ykc_socket_close(s_ykc_socket_info.fd);
                 s_ykc_socket_info.fd = -0x01;
+                /** socket 状态可能有变，上报一次 */
+                net_operation_tplat_info_trigger(0x01);
                 break;
             }
         }
 
         if(s_ykc_socket_info.operate_fail.open_socket > NET_YKC_OPEN_SOCKET_RENTRY){
+            /** socket 状态有变，上报一次 */
+            net_operation_tplat_info_trigger(0x01);
             s_ykc_socket_info.operate_fail.open_socket = 0x00;
             LOG_W("ykc open socket rentry = 0x00");
+            rt_thread_mdelay(5000);
             net_set_clear_ndev_reset_state(NET_PLATFORM_MASK_TARGET, 0x00);
         }
         if(s_ykc_socket_info.operate_fail.login > NET_YKC_LOGIN_RENTRY){
+            /** socket 状态可能有变，上报一次 */
+            net_operation_tplat_info_trigger(0x01);
             s_ykc_socket_info.operate_fail.login = 0x00;
             LOG_W("ykc login rentry = 0x00");
+            rt_thread_mdelay(5000);
             net_set_clear_ndev_reset_state(NET_PLATFORM_MASK_TARGET, 0x00);
         }
 
@@ -645,12 +668,12 @@ static void net_ykc_message_send_thread_entry(void *parameter)
 
         for(uint8_t gunno = 0; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
             if(s_ykc_socket_info.heartbeat[gunno] > NET_YKC_HEARTBEAT_TIMEOUT_RENTRY){
-                s_ykc_socket_info.heartbeat[gunno] = 0x00;
-
                 delay = rt_tick_get();
                 wait_unlock = rt_tick_get();
 
                 step = NET_YKC_NET_STATE_OPEN_SOCKET;
+                /** 状态变化，提前改变状态 */
+                s_ykc_socket_info.program_state = step;
                 s_ykc_socket_info.socket_state = YKC_SOCKET_STATE_OPEN;
                 handle->net_state = NET_SOCKET_STATE_OPEN;
                 while(ykc_socket_is_lock()){
@@ -662,6 +685,9 @@ static void net_ykc_message_send_thread_entry(void *parameter)
 
                 ykc_socket_close(s_ykc_socket_info.fd);
                 s_ykc_socket_info.fd = -0x01;
+                /** socket 状态可能有变，上报一次 */
+                net_operation_tplat_info_trigger(0x01);
+                s_ykc_socket_info.heartbeat[gunno] = 0x00;
 
                 LOG_D("ykc heartbeat timeout");
                 break;

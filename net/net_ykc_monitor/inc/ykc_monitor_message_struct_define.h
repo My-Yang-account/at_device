@@ -1446,14 +1446,13 @@ typedef struct{
     Net_YkcMonitorPro_Head_t head;
     struct{
         uint8_t pile_number[NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT];  /* 桩号*/
-#ifndef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL
-        uint8_t pile_number_whole[48];           /* 真正的桩号*/
-#endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
         uint8_t domain[128];                     /* 域名 */
-        uint16_t port;                           /* 域名 */
-        uint8_t state;                           /* 域名 */
-        uint8_t open_count;                      /* 域名 */
-        uint8_t login_count;                     /* 域名 */
+        uint16_t port;                           /* 端口 */
+        uint8_t socket_state;                    /* socket 状态 */
+        uint8_t program_state;                   /* 程序运行状态 */
+        uint8_t open_count;                      /* 连续重复open socket次数*/
+        uint8_t login_count;                     /* 连续重复登录次数 */
+        uint8_t heartbeat_count;                 /* 心跳超时次数 */
     }body;
     uint16_t check_sum;                          /* 校验码 */
 }Net_YkcMonitorPro_Preq_Pres_TsocketInfo_t;

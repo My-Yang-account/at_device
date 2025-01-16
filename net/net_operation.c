@@ -298,44 +298,69 @@ uint32_t net_operation_get_total_power(uint8_t gunno)
 /******************************************
  * 函数名     net_operation_get_target_socket_info
  * 功能         获取目标平台 socket 信息
+ * 参数         sync_data   是否同步数据(1:是，0：否)
+ * 返回          目标平台 socket 信息
  * ***************************************/
-net_plat_socket_info_t *net_operation_get_target_socket_info(void)
+net_plat_socket_info_t *net_operation_get_target_socket_info(uint8_t sync_data)
 {
+/** 注：如果是双socket 或有双枪信息，则A枪信息放在高4位，B枪信息放在低4位 */
+    if(sync_data){
 #ifdef NET_YKC_AS_TARGET
-    ykc_socket_info_t *ykc_socket = ykc_get_socket_info();
-    s_plat_socket_info.socket_state = ykc_socket->socket_state;
-    s_plat_socket_info.open_count = ykc_socket->operate_fail.open_socket;
-    s_plat_socket_info.login_count = ykc_socket->operate_fail.login;
+        ykc_socket_info_t *ykc_socket = ykc_get_socket_info();
+        s_plat_socket_info.socket_state = ykc_socket->socket_state;
+        s_plat_socket_info.open_count = ykc_socket->operate_fail.open_socket;
+        s_plat_socket_info.login_count = ykc_socket->operate_fail.login;
+        s_plat_socket_info.program_state = ykc_socket->program_state;
+        s_plat_socket_info.heartbeat_count = 0x00;
+        for(uint8_t i = 0x00; i < NET_SYSTEM_GUN_NUMBER; i++){
+            s_plat_socket_info.heartbeat_count |= (uint8_t)(ykc_socket->heartbeat[i] &0x0F);
+            if((i + 0x01) < NET_SYSTEM_GUN_NUMBER){
+                s_plat_socket_info.heartbeat_count <<=0x04;
+            }
+        }
 
-    return &s_plat_socket_info;
+        return &s_plat_socket_info;
 #endif /* NET_YKC_AS_TARGET */
 
 #ifdef NET_YKC_MONITOR_AS_TARGET
-    ykc_monitor_socket_info_t *ykc_monitor_socket = ykc_monitor_get_socket_info();
-    s_plat_socket_info.socket_state = ykc_monitor_socket->socket_state;
-    s_plat_socket_info.open_count = ykc_monitor_socket->operate_fail.open_socket;
-    s_plat_socket_info.login_count = ykc_monitor_socket->operate_fail.login;
+        ykc_monitor_socket_info_t *ykc_monitor_socket = ykc_monitor_get_socket_info();
+        s_plat_socket_info.socket_state = ykc_monitor_socket->socket_state;
+        s_plat_socket_info.open_count = ykc_monitor_socket->operate_fail.open_socket;
+        s_plat_socket_info.login_count = ykc_monitor_socket->operate_fail.login;
+        s_plat_socket_info.program_state = ykc_monitor_socket->program_state;
+        s_plat_socket_info.heartbeat_count = 0x00;
+        for(uint8_t i = 0x00; i < NET_SYSTEM_GUN_NUMBER; i++){
+            s_plat_socket_info.heartbeat_count |= (uint8_t)(ykc_monitor_socket->heartbeat[i] &0x0F);
+            if((i + 0x01) < NET_SYSTEM_GUN_NUMBER){
+                s_plat_socket_info.heartbeat_count <<=0x04;
+            }
+        }
 
-    return &s_plat_socket_info;
+        return &s_plat_socket_info;
 #endif /* NET_YKC_MONITOR_AS_TARGET */
 
 #ifdef NET_YCP_AS_TARGET
-    ycp_socket_info_t *ycp_socket = ycp_get_socket_info();
-    s_plat_socket_info.socket_state = ycp_socket->socket_state;
-    s_plat_socket_info.open_count = ycp_socket->operate_fail.open_socket;
-    s_plat_socket_info.login_count = ycp_socket->operate_fail.login;
+        ycp_socket_info_t *ycp_socket = ycp_get_socket_info();
+        s_plat_socket_info.socket_state = ycp_socket->socket_state;
+        s_plat_socket_info.open_count = ycp_socket->operate_fail.open_socket;
+        s_plat_socket_info.login_count = ycp_socket->operate_fail.login;
+        s_plat_socket_info.heartbeat_count = ycp_socket->heartbeat;
+        s_plat_socket_info.program_state = ycp_socket->program_state;
 
-    return &s_plat_socket_info;
+        return &s_plat_socket_info;
 #endif /* NET_YCP_AS_TARGET */
 
 #ifdef NET_SGCC_AS_TARGET
-    sgcc_socket_info_t *sgcc_socket = sgcc_get_socket_info();
-    s_plat_socket_info.socket_state = sgcc_socket->socket_state;
-    s_plat_socket_info.open_count = 0x00;
-    s_plat_socket_info.login_count = sgcc_socket->operate_fail.login;
+        sgcc_socket_info_t *sgcc_socket = sgcc_get_socket_info();
+        s_plat_socket_info.socket_state = sgcc_socket->socket_state;
+        s_plat_socket_info.open_count = sgcc_socket->operate_fail.open;
+        s_plat_socket_info.login_count = sgcc_socket->operate_fail.login;
+        s_plat_socket_info.heartbeat_count = sgcc_socket->sync_repeat;
+        s_plat_socket_info.program_state = sgcc_socket->program_state;
 
-    return &s_plat_socket_info;
+        return &s_plat_socket_info;
 #endif /* NET_SGCC_AS_TARGET */
+    }
 
     return &s_plat_socket_info;
 }
@@ -373,6 +398,24 @@ void net_operation_insert_tplat_log(void *data, uint16_t len, uint8_t verify_res
     ykc_monitor_platlog_data_insert(data, len, verify_result, label);
 #endif /* NET_INCLUDE_MONITOR_PLATFORM */
 }
+
+/******************************************
+ * 函数名     net_operation_tplat_info_trigger
+ * 功能         触发上报目标平台socket信息
+ * 参数         sync_data   是否同步数据(1:是，0：否)
+ * 返回
+ * ***************************************/
+void net_operation_tplat_info_trigger(uint8_t sync_data)
+{
+#ifdef NET_INCLUDE_MONITOR_PLATFORM
+#ifdef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL
+    (void)net_operation_get_target_socket_info(sync_data);
+    ykc_monitor_net_event_send(NET_YKC_MONITOR_EXTERNAL_EHANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST,  \
+            0x00, NET_YKC_MONITOR_EXTERNAL_PREQ_EVENT_TSOCKET_INFO);
+#endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
+#endif /* NET_INCLUDE_MONITOR_PLATFORM */
+}
+
 
 static void net_start_function(void* handle)
 {
