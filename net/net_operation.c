@@ -42,7 +42,7 @@ static int32_t net_para_config_function(uint8_t platform, uint8_t index, void* p
 #ifdef NET_ENABLE_DEBUG
 void NETDATA_DEBUG(const char *id, void *data, int len, uint8_t dir)
 {
-    if(len >= 300){
+    if(len >= 512){
         return;
     }
 
