@@ -1762,7 +1762,7 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
                 ykc_monitor_response_buff_release_sem();
                 rt_thread_mdelay(250);
 
-            s_ykc_monitor_tplat_socket_tick = rt_tick_get();
+                s_ykc_monitor_tplat_socket_tick = rt_tick_get();
 #endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
             }
             /***** [上报目标平台计费信息请求] *****/
@@ -1772,7 +1772,7 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
                 Net_YkcMonitorPro_Preq_Pres_BillingRule_t *billing = (Net_YkcMonitorPro_Preq_Pres_BillingRule_t*)(s_ykc_monitor_response_buff.general_transmit_buff);
 
                 billing->head.sequence = s_ykc_monitor_message_serial_number[gunno]++;
-                ykc_monitor_message_send_port(NETYKC_MONITOR_PRESCMD_QUERY_TSOCKET_INFO, s_ykc_monitor_socket_info.fd, s_ykc_monitor_response_buff.general_transmit_buff,
+                ykc_monitor_message_send_port(NETYKC_MONITOR_PRESCMD_QUERY_BILLING_RULE, s_ykc_monitor_socket_info.fd, s_ykc_monitor_response_buff.general_transmit_buff,
                         s_ykc_monitor_response_buff.length, NULL);
 //                ykc_monitor_set_message_wait_response_state(gunno, NET_YKC_MONITOR_USER_PREQ_EVENT_REPORT_TSOCKET_INFO);
                 ykc_monitor_response_buff_release_sem();

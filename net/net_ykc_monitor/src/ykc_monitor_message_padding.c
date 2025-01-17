@@ -4262,56 +4262,56 @@ int8_t ykc_monitor_message_padding_billing_rule(uint8_t *buf, uint16_t ilen, uin
         message->body.fees_type = NET_YKC_MONITOR_FEES_TYPE_YKC15;
 
         for(uint8_t i = 0x00; i < APP_BILLING_RULE_PERIOD_MAX; i += 0x02){
-            info->rate_number[i /0x02] = app_billingrule_get_period_rate_number(gunno, (i /0x02));
+            info->rate_number[i /0x02] = app_billingrule_get_period_rate_number(gunno, i);
             /****************** 判尖电费 **********************/
             if(info->tip_elect_rate == 0x00){
                 if(info->rate_number[i /0x02] == APP_RATE_TYPE_SHARP){
-                    info->tip_elect_rate = app_billingrule_get_period_elect_price(gunno, (i /0x02)) *10;
+                    info->tip_elect_rate = app_billingrule_get_period_elect_price(gunno, i) *10;
                 }
             }
             /** 判尖服务费 */
             if(info->tip_service_rate == 0x00){
                 if(info->rate_number[i /0x02] == APP_RATE_TYPE_SHARP){
-                    info->tip_service_rate = app_billingrule_get_period_service_price(gunno, (i /0x02)) *10;
+                    info->tip_service_rate = app_billingrule_get_period_service_price(gunno, i) *10;
                 }
             }
 
             /****************** 判峰电费 **********************/
             if(info->peak_elect_rate == 0x00){
                 if(info->rate_number[i /0x02] == APP_RATE_TYPE_PEAK){
-                    info->peak_elect_rate = app_billingrule_get_period_elect_price(gunno, (i /0x02)) *10;
+                    info->peak_elect_rate = app_billingrule_get_period_elect_price(gunno, i) *10;
                 }
             }
             /** 判峰服务费 */
             if(info->peak_service_rate == 0x00){
                 if(info->rate_number[i /0x02] == APP_RATE_TYPE_PEAK){
-                    info->peak_service_rate = app_billingrule_get_period_service_price(gunno, (i /0x02)) *10;
+                    info->peak_service_rate = app_billingrule_get_period_service_price(gunno, i) *10;
                 }
             }
 
             /****************** 判平电费 *********************/
             if(info->flat_elect_rate == 0x00){
                 if(info->rate_number[i /0x02] == APP_RATE_TYPE_FLAT){
-                    info->flat_elect_rate = app_billingrule_get_period_elect_price(gunno, (i /0x02)) *10;
+                    info->flat_elect_rate = app_billingrule_get_period_elect_price(gunno, i) *10;
                 }
             }
             /** 判平服务费 */
             if(info->flat_service_rate == 0x00){
                 if(info->rate_number[i /0x02] == APP_RATE_TYPE_FLAT){
-                    info->flat_service_rate = app_billingrule_get_period_service_price(gunno, (i /0x02)) *10;
+                    info->flat_service_rate = app_billingrule_get_period_service_price(gunno, i) *10;
                 }
             }
 
             /****************** 判谷电费 *********************/
             if(info->valley_elect_rate == 0x00){
                 if(info->rate_number[i /0x02] == APP_RATE_TYPE_VALLEY){
-                    info->valley_elect_rate = app_billingrule_get_period_elect_price(gunno, (i /0x02)) *10;
+                    info->valley_elect_rate = app_billingrule_get_period_elect_price(gunno, i) *10;
                 }
             }
             /** 判谷服务费 */
             if(info->valley_service_rate == 0x00){
                 if(info->rate_number[i /0x02] == APP_RATE_TYPE_VALLEY){
-                    info->valley_service_rate = app_billingrule_get_period_service_price(gunno, (i /0x02)) *10;
+                    info->valley_service_rate = app_billingrule_get_period_service_price(gunno, i) *10;
                 }
             }
         }
