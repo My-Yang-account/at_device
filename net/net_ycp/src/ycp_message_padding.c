@@ -680,6 +680,7 @@ int8_t ycp_message_pro_billing_model_set_response(void *data, uint8_t len, uint8
         return -0x02;
     }
 
+    uint8_t is_updated = NET_ENUM_FALSE;
     System_BaseData *base = NULL;
     ycp_storage_struct *config = (ycp_storage_struct*)(s_ycp_handle->get_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, 0x00, NET_SYSTEM_DATA_OPTION_TARGET_PLAT));
     Net_YcpPro_SReq_BillingModel_Set_t *response = (Net_YcpPro_SReq_BillingModel_Set_t*)data;
@@ -711,6 +712,7 @@ int8_t ycp_message_pro_billing_model_set_response(void *data, uint8_t len, uint8
         }
     }
 
+    net_operation_set_fees_gunno(0xFF, 0x00);    /** 先清除信息 */
     for(uint8_t _gunno = 0x00; _gunno < NET_SYSTEM_GUN_NUMBER; _gunno++){
         uint8_t gunno = _gunno;
         base = (System_BaseData*)(s_ycp_handle->get_base_data(gunno));
@@ -718,6 +720,9 @@ int8_t ycp_message_pro_billing_model_set_response(void *data, uint8_t len, uint8
                 (base->state.current == APP_OFSM_STATE_STOPING)){
             net_operation_set_event(gunno, NET_OPERATION_EVENT_UPDATE_BILLING_RULE);
             gunno = NET_SYSTEM_GUN_NUMBER;
+        }else{
+            is_updated = NET_ENUM_TRUE;
+            net_operation_set_fees_gunno(_gunno, 0x01);
         }
 
         rt_kprintf("gunno(%d) billingrule info\n", gunno);
@@ -730,6 +735,8 @@ int8_t ycp_message_pro_billing_model_set_response(void *data, uint8_t len, uint8
         app_billingrule_set_rate_price(gunno, APP_RATE_TYPE_PEAK, (response->body.peak_elect_rate + response->body.peak_service_rate) /10);
         app_billingrule_set_rate_price(gunno, APP_RATE_TYPE_FLAT, (response->body.flat_elect_rate + response->body.flat_service_rate) /10);
         app_billingrule_set_rate_price(gunno, APP_RATE_TYPE_VALLEY, (response->body.valley_elect_rate + response->body.valley_service_rate) /10);
+        app_billingrule_set_elect_model_sn(gunno, (uint8_t*)&response->body.model_number, sizeof(response->body.model_number));
+        app_billingrule_set_service_model_sn(gunno, (uint8_t*)&response->body.model_number, sizeof(response->body.model_number));
 
         for(uint8_t period = 0x00, count = 0x00; period < APP_BILLING_RULE_PERIOD_MAX; period++, count++){
             app_billingrule_set_period_rate_number(gunno, period, response->body.rate_number[period /0x02]);
@@ -758,6 +765,10 @@ int8_t ycp_message_pro_billing_model_set_response(void *data, uint8_t len, uint8
                 break;
             }
         }
+        if(is_updated){
+            net_operation_updated_billing_trigger();
+        }
+
     }
 
     return 0x00;

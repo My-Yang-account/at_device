@@ -844,9 +844,15 @@ int8_t ykc_monitor_message_pro_billing_model_set_response(void *data, uint8_t le
         return -0x02;
     }
 
+#ifdef NET_YKC_MONITOR_AS_TARGET
+    uint8_t is_updated = NET_ENUM_FALSE;
+#endif /* NET_YKC_MONITOR_AS_TARGET */
     System_BaseData *base = NULL;
     Net_YkcMonitorPro_SRes_BillingModel_Request_t *request = (Net_YkcMonitorPro_SRes_BillingModel_Request_t*)data;
 
+#ifdef NET_YKC_MONITOR_AS_TARGET
+    net_operation_set_fees_gunno(0xFF, 0x00);    /** 先清除信息 */
+#endif /* NET_YKC_MONITOR_AS_TARGET */
     for(uint8_t _gunno = 0x00; _gunno < NET_SYSTEM_GUN_NUMBER; _gunno++){
         uint8_t gunno = _gunno;
         base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
@@ -855,6 +861,12 @@ int8_t ykc_monitor_message_pro_billing_model_set_response(void *data, uint8_t le
             net_operation_set_event(gunno, NET_OPERATION_EVENT_UPDATE_BILLING_RULE);
             gunno = NET_SYSTEM_GUN_NUMBER;
         }
+#ifdef NET_YKC_MONITOR_AS_TARGET
+        else{
+            is_updated = NET_ENUM_TRUE;
+            net_operation_set_fees_gunno(_gunno, 0x01);
+        }
+#endif /* NET_YKC_MONITOR_AS_TARGET */
 
         rt_kprintf("gunno(%d) billingrule info\n", gunno);
         rt_kprintf("ter(%d) tsr(%d) per(%d) psr(%d) fer(%d) fsr(%d) ver(%d) vsr(%d)\n", request->body.tip_elect_rate,
@@ -866,6 +878,8 @@ int8_t ykc_monitor_message_pro_billing_model_set_response(void *data, uint8_t le
         app_billingrule_set_rate_price(gunno, APP_RATE_TYPE_PEAK, (request->body.peak_elect_rate + request->body.peak_service_rate) /10);
         app_billingrule_set_rate_price(gunno, APP_RATE_TYPE_FLAT, (request->body.flat_elect_rate + request->body.flat_service_rate) /10);
         app_billingrule_set_rate_price(gunno, APP_RATE_TYPE_VALLEY, (request->body.valley_elect_rate + request->body.valley_service_rate) /10);
+        app_billingrule_set_elect_model_sn(gunno, (uint8_t*)&request->body.model_number, sizeof(request->body.model_number));
+        app_billingrule_set_service_model_sn(gunno, (uint8_t*)&request->body.model_number, sizeof(request->body.model_number));
 
         for(uint8_t period = 0x00, count = 0x00; period < APP_BILLING_RULE_PERIOD_MAX; period++, count++){
             app_billingrule_set_period_rate_number(gunno, period, request->body.rate_number[period /0x02]);
@@ -895,6 +909,12 @@ int8_t ykc_monitor_message_pro_billing_model_set_response(void *data, uint8_t le
             }
         }
     }
+#ifdef NET_YKC_MONITOR_AS_TARGET
+    if(is_updated){
+        net_operation_updated_billing_trigger();
+    }
+#endif /* NET_YKC_MONITOR_AS_TARGET */
+
     return 0x00;
 }
 
@@ -4159,7 +4179,198 @@ int8_t ykc_monitor_response_padding_modify_dev_info(uint8_t *buf, uint16_t ilen,
     return 0x00;
 }
 
+/*************************************************
+ * 函数名      ykc_monitor_message_padding_billing_rule_info
+ * 功能          组包：计费信息
+ * **********************************************/
+int8_t ykc_monitor_message_padding_billing_rule(uint8_t *buf, uint16_t ilen, uint16_t *olen)
+{
+#ifdef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL
+    if(buf == NULL){
+        return -0x01;
+    }
+    if(ilen < sizeof(Net_YkcMonitorPro_Preq_Pres_BillingRule_t)){
+        return -0x04;
+    }
 
+    uint8_t is_locked_fees_type = NET_ENUM_FALSE, gunno = 0x00, count = 0x00;
+    uint16_t total_len = 0x00;
+    Net_YkcMonitorPro_Preq_Pres_BillingRule_t *message = (Net_YkcMonitorPro_Preq_Pres_BillingRule_t*)buf;
+
+#ifdef NET_INCLUDE_TARGET_PLATFORM
+#if ((NET_TARGET_PLATFORM_ID == NET_YKC_PRO_ID) || (NET_TARGET_PLATFORM_ID == NET_YCP_PRO_ID))
+    is_locked_fees_type = NET_ENUM_TRUE;
+    total_len = (sizeof(Net_YkcMonitorPro_Preq_Pres_BillingRule_t) + sizeof(struct fees_type_ykc16));
+    if(ilen < total_len){
+        LOG_W("ykc monitor buf too short when padding billing rule(yck/ycp)[%d, %d]", total_len, ilen);
+        return -0x03;
+    }
+#elif (NET_TARGET_PLATFORM_ID == NET_YKC20_PRO_ID)
+    is_locked_fees_type = NET_ENUM_FALSE;
+    /** 总长度判断 */
+#elif (NET_TARGET_PLATFORM_ID == NET_XJ_PRO_ID)
+    is_locked_fees_type = NET_ENUM_TRUE;
+    /** 总长度判断 */
+#elif (NET_TARGET_PLATFORM_ID == NET_SL_PRO_ID)
+    is_locked_fees_type = NET_ENUM_FALSE;
+    /** 总长度判断 */
+#elif (NET_TARGET_PLATFORM_ID == NET_CDW_PRO_ID)
+    is_locked_fees_type = NET_ENUM_TRUE;
+    /** 总长度判断 */
+#elif (NET_TARGET_PLATFORM_ID == NET_YD_PRO_ID)
+    is_locked_fees_type = NET_ENUM_TRUE;
+    /** 总长度判断 */
+#elif (NET_TARGET_PLATFORM_ID == NET_JR_PRO_ID)
+    is_locked_fees_type = NET_ENUM_TRUE;
+    /** 总长度判断 */
+#elif (NET_TARGET_PLATFORM_ID == NET_WXN_PRO_ID)
+    is_locked_fees_type = NET_ENUM_TRUE;
+    /** 总长度判断 */
+#elif (NET_TARGET_PLATFORM_ID == NET_SGCC_PRO_ID)
+    is_locked_fees_type = NET_ENUM_TRUE;
+    total_len = (sizeof(Net_YkcMonitorPro_Preq_Pres_BillingRule_t) + sizeof(struct fees_type_period15min) *APP_BILLING_RULE_PERIOD_MAX);
+    if(ilen < total_len){
+        LOG_W("ykc monitor buf too short when padding billing rule(sgcc)[%d, %d]", total_len, ilen);
+        return -0x03;
+    }
+#else
+    LOG_D("ykc monitor no found match target platform(padding billing rule)");
+    return -0x03;
+#endif /* (NET_TARGET_PLATFORM_ID == NET_YKC_PRO_ID) */
+#else
+    LOG_D("ykc monitor not include target platform(padding billing rule)");
+    return -0x03;
+#endif /* NET_INCLUDE_TARGET_PLATFORM */
+
+    /**************** 费率信息组包 ********************/
+    if(is_locked_fees_type == NET_ENUM_TRUE){
+        memset(message, 0x00, total_len);
+        memcpy(message->body.pile_number, g_ykc_monitor_preq_login.body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
+        for(uint8_t i = 0x00; i < NET_SYSTEM_GUN_NUMBER; i++){
+            if(net_operation_is_gunno_updated_fees(i)){
+                count++;
+                gunno = i;
+            }
+        }
+#ifdef NET_INCLUDE_TARGET_PLATFORM
+#if ((NET_TARGET_PLATFORM_ID == NET_YKC_PRO_ID) || (NET_TARGET_PLATFORM_ID == NET_YCP_PRO_ID))
+        /** 云快充1.6/越城公用协议费率信息组包 */
+        struct fees_type_ykc16 *info = (struct fees_type_ykc16*)(buf + sizeof(Net_YkcMonitorPro_Preq_Pres_BillingRule_t) - NET_YKC_MONITOR_PROTOCOL_CHECK_REGION_SIZE);
+        sprintf((char*)message->body.emodel_sn, "%d", *(uint16_t*)app_billingrule_get_elect_model_sn(gunno));
+        sprintf((char*)message->body.smodel_sn, "%d", *(uint16_t*)app_billingrule_get_service_model_sn(gunno));
+        message->body.group_num = NET_YKC_MONITOR_RATE_PERIOD_COUNT_MAX;
+        message->body.fees_type = NET_YKC_MONITOR_FEES_TYPE_YKC15;
+
+        for(uint8_t i = 0x00; i < APP_BILLING_RULE_PERIOD_MAX; i += 0x02){
+            info->rate_number[i /0x02] = app_billingrule_get_period_rate_number(gunno, (i /0x02));
+            /****************** 判尖电费 **********************/
+            if(info->tip_elect_rate == 0x00){
+                if(info->rate_number[i /0x02] == APP_RATE_TYPE_SHARP){
+                    info->tip_elect_rate = app_billingrule_get_period_elect_price(gunno, (i /0x02)) *10;
+                }
+            }
+            /** 判尖服务费 */
+            if(info->tip_service_rate == 0x00){
+                if(info->rate_number[i /0x02] == APP_RATE_TYPE_SHARP){
+                    info->tip_service_rate = app_billingrule_get_period_service_price(gunno, (i /0x02)) *10;
+                }
+            }
+
+            /****************** 判峰电费 **********************/
+            if(info->peak_elect_rate == 0x00){
+                if(info->rate_number[i /0x02] == APP_RATE_TYPE_PEAK){
+                    info->peak_elect_rate = app_billingrule_get_period_elect_price(gunno, (i /0x02)) *10;
+                }
+            }
+            /** 判峰服务费 */
+            if(info->peak_service_rate == 0x00){
+                if(info->rate_number[i /0x02] == APP_RATE_TYPE_PEAK){
+                    info->peak_service_rate = app_billingrule_get_period_service_price(gunno, (i /0x02)) *10;
+                }
+            }
+
+            /****************** 判平电费 *********************/
+            if(info->flat_elect_rate == 0x00){
+                if(info->rate_number[i /0x02] == APP_RATE_TYPE_FLAT){
+                    info->flat_elect_rate = app_billingrule_get_period_elect_price(gunno, (i /0x02)) *10;
+                }
+            }
+            /** 判平服务费 */
+            if(info->flat_service_rate == 0x00){
+                if(info->rate_number[i /0x02] == APP_RATE_TYPE_FLAT){
+                    info->flat_service_rate = app_billingrule_get_period_service_price(gunno, (i /0x02)) *10;
+                }
+            }
+
+            /****************** 判谷电费 *********************/
+            if(info->valley_elect_rate == 0x00){
+                if(info->rate_number[i /0x02] == APP_RATE_TYPE_VALLEY){
+                    info->valley_elect_rate = app_billingrule_get_period_elect_price(gunno, (i /0x02)) *10;
+                }
+            }
+            /** 判谷服务费 */
+            if(info->valley_service_rate == 0x00){
+                if(info->rate_number[i /0x02] == APP_RATE_TYPE_VALLEY){
+                    info->valley_service_rate = app_billingrule_get_period_service_price(gunno, (i /0x02)) *10;
+                }
+            }
+        }
+        info->loss_proportion = app_billingrule_query_eloss_proportion();
+        if(count >= NET_SYSTEM_GUN_NUMBER){
+            gunno = 0xFF;
+        }
+        message->body.gunno = gunno;
+#elif (NET_TARGET_PLATFORM_ID == NET_YKC20_PRO_ID)
+        /** 云快充2.0协议费率信息组包 */
+#elif (NET_TARGET_PLATFORM_ID == NET_XJ_PRO_ID)
+        /** 小桔协议费率信息组包 */
+#elif (NET_TARGET_PLATFORM_ID == NET_SL_PRO_ID)
+        /** 阳关乐通协议费率信息组包 */
+#elif (NET_TARGET_PLATFORM_ID == NET_CDW_PRO_ID)
+        /** 车电网协议费率信息组包 */
+#elif (NET_TARGET_PLATFORM_ID == NET_YD_PRO_ID)
+        /** 一电协议费率信息组包 */
+#elif (NET_TARGET_PLATFORM_ID == NET_JR_PRO_ID)
+        /** 久融协议费率信息组包 */
+#elif (NET_TARGET_PLATFORM_ID == NET_WXN_PRO_ID)
+        /** 皖小能协议费率信息组包 */
+#elif (NET_TARGET_PLATFORM_ID == NET_SGCC_PRO_ID)
+        /** 国网协议费率信息组包 */
+        struct fees_type_period15min *info = (struct fees_type_period15min*)(buf + sizeof(Net_YkcMonitorPro_Preq_Pres_BillingRule_t) - NET_YKC_MONITOR_PROTOCOL_CHECK_REGION_SIZE);
+        sprintf((char*)message->body.emodel_sn, "%s", app_billingrule_get_elect_model_sn(gunno));
+        sprintf((char*)message->body.smodel_sn, "%s", app_billingrule_get_service_model_sn(gunno));
+        message->body.group_num = APP_BILLING_RULE_PERIOD_MAX;
+        message->body.fees_type = NET_YKC_MONITOR_FEES_TYPE_PERIOD_15MIN;
+
+        for(uint8_t i = 0x00; i < APP_BILLING_RULE_PERIOD_MAX; i++){
+            info[i].elect_fees = app_billingrule_get_period_elect_price(gunno, i);;
+            info[i].service_fees = app_billingrule_get_period_service_price(gunno, i);
+            info[i].delay_fees = app_billingrule_get_period_delay_price(gunno, i);
+            info[i].reserve = 0x00;
+        }
+        if(count >= NET_SYSTEM_GUN_NUMBER){
+            gunno = 0xFF;
+        }
+        message->body.gunno = gunno;
+#else
+        LOG_D("ykc monitor match target platform error(padding billing rule)");
+        return -0x03;
+#endif /* (NET_TARGET_PLATFORM_ID == NET_YKC_PRO_ID) */
+#endif /* NET_INCLUDE_TARGET_PLATFORM */
+    }else{
+        LOG_D("ykc monitor there is no fees type to be locked(padding billing rule)");
+        return -0x03;
+    }
+
+    if(olen){
+        *olen = total_len;
+    }
+
+    return 0x00;
+#else
+    return -0x01;
+#endif /* #ifdef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
+}
 
 
 

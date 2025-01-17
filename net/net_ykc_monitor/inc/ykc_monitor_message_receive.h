@@ -72,6 +72,7 @@
 #define NET_YKC_MONITOR_USER_SREQ_EVENT_FUNCTION_SWITCH              9    /* 服务器监控请求事件：功能开关控制 */
 #define NET_YKC_MONITOR_USER_SREQ_EVENT_INFOPARA_MODIFY              10   /* 服务器监控请求事件：修改桩信息、参数 */
 #define NET_YKC_MONITOR_USER_SREQ_EVENT_MODIFY_DEV_INFO              11   /* 服务器监控请求事件：修改设备信息 */
+#define NET_YKC_MONITOR_USER_SREQ_EVENT_QUERY_BILLING_RULE           12   /* 服务器监控请求事件：查询计费信息 */
 
 /** server user response event */
 #define NET_YKC_MONITOR_USER_SRES_EVENT_REPORT_TPLAT_LOG             0    /* 服务器监控响应事件：上报目标平台日志 */

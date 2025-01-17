@@ -26,6 +26,7 @@
 
 struct setup_para{
     uint32_t total_power[NET_SYSTEM_GUN_NUMBER];          /* 系统总功率，单位W */
+    uint8_t fees_set_gunno;                               /* 费率设置的枪号 */
 };
 
 #pragma pack()
@@ -42,7 +43,7 @@ static int32_t net_para_config_function(uint8_t platform, uint8_t index, void* p
 #ifdef NET_ENABLE_DEBUG
 void NETDATA_DEBUG(const char *id, void *data, int len, uint8_t dir)
 {
-    if(len >= 512){
+    if(len >= 1024){
         return;
     }
 
@@ -412,6 +413,65 @@ void net_operation_tplat_info_trigger(uint8_t sync_data)
     (void)net_operation_get_target_socket_info(sync_data);
     ykc_monitor_net_event_send(NET_YKC_MONITOR_EXTERNAL_EHANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST,  \
             0x00, NET_YKC_MONITOR_EXTERNAL_PREQ_EVENT_TSOCKET_INFO);
+#endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
+#endif /* NET_INCLUDE_MONITOR_PLATFORM */
+}
+
+/******************************************
+ * 函数名     net_operation_set_fees_gunno
+ * 功能         设置已配置了费率的枪号
+ * 参数         gunno       枪号
+ *       is_appand   是否是追加
+ * 返回
+ * ***************************************/
+void net_operation_set_fees_gunno(uint8_t gunno, uint8_t is_appand)
+{
+#ifdef NET_INCLUDE_MONITOR_PLATFORM
+#ifdef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL
+    if(is_appand){
+        s_setup_para.fees_set_gunno |= (uint8_t)(0x01 <<gunno);
+    }else{
+        /** 当 gunno >= 8 *sizeof(s_setup_para.fees_set_gunno) 时表示清空 s_setup_para.fees_set_gunno */
+        s_setup_para.fees_set_gunno = (uint8_t)(0x01 <<gunno);
+    }
+#endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
+#endif /* NET_INCLUDE_MONITOR_PLATFORM */
+}
+
+/******************************************
+ * 函数名     net_operation_is_gunno_updated_fees
+ * 功能         判断枪是否已经设置了费率
+ * 参数         gunno   枪号
+ * 返回         1：已设置     0：未设置
+ * ***************************************/
+uint8_t net_operation_is_gunno_updated_fees(uint8_t gunno)
+{
+#ifdef NET_INCLUDE_MONITOR_PLATFORM
+#ifdef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL
+    if(gunno >= NET_SYSTEM_GUN_NUMBER){
+        return 0x00;
+    }
+    if(s_setup_para.fees_set_gunno &(0x01 <<gunno)){
+        return 0x01;
+    }
+
+    return 0x00;
+#endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
+#endif /* NET_INCLUDE_MONITOR_PLATFORM */
+}
+
+/******************************************
+ * 函数名     net_operation_updated_billing_trigger
+ * 功能         触发上报目标平台计费信息信息
+ * 参数
+ * 返回
+ * ***************************************/
+void net_operation_updated_billing_trigger(void)
+{
+#ifdef NET_INCLUDE_MONITOR_PLATFORM
+#ifdef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL
+    ykc_monitor_net_event_send(NET_YKC_MONITOR_EXTERNAL_EHANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST,  \
+            0x00, NET_YKC_MONITOR_EXTERNAL_PREQ_EVENT_BILLING_INFO);
 #endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
 #endif /* NET_INCLUDE_MONITOR_PLATFORM */
 }

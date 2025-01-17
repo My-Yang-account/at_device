@@ -18,6 +18,13 @@
 
 #define NET_YKC_MONITOR_STORAGE_INIT_FLAG                              0x12345678  /* 平台数据存储标志 */
 
+#ifdef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL
+#define NET_YKC_MONITOR_FEES_TYPE_YKC15                                0x00        /* 费率类型：云快充1.5 */
+#define NET_YKC_MONITOR_FEES_TYPE_YKC20                                0x01        /* 费率类型：云快充2.0 */
+#define NET_YKC_MONITOR_FEES_TYPE_PERIOD_15MIN                         0x02        /* 费率类型：15分钟一个时段 */
+#define NET_YKC_MONITOR_FEES_TYPE_START_STOP_TIME                      0x03        /* 费率类型：按开始时间、结束时间上报 */
+#endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
+
 #define NET_YKC_MONITOR_MESSAGE_START_CODE                             0x68        /* 报文起始码 */
 #define NET_YKC_MONITOR_MESSAGE_ENCRYPT_ENABLE                         0x01        /* 报文加密 */
 #define NET_YKC_MONITOR_MESSAGE_ENCRYPT_DISABLE                        0x00        /* 报文不加密 */
@@ -41,6 +48,9 @@
 #ifdef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL
 #define NET_YKC_MONITOR_EXTEND_CHARGEPILE_LENGTH                       0x30        /* 默认扩展桩号长度 */
 #define NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT                      0x40        /* 默认桩号长度 */
+
+#define NET_YKC_MONITOR_EMODEL_SN_LENGTH_DEFAULT                       0x11        /* 默认电费模型编号长度 */
+#define NET_YKC_MONITOR_SMODEL_SN_LENGTH_DEFAULT                       0x11        /* 默认服务费模型编号长度 */
 #else
 #define NET_YKC_MONITOR_EXTEND_CHARGEPILE_LENGTH                       0x30        /* 默认扩展桩号长度 */
 #define NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT                      0x07        /* 默认桩号长度 */
@@ -316,8 +326,8 @@ enum ykc_monitor_cmd{
     NETYKC_MONITOR_SREQCMD_QUERY_SET_VOLTCURR = 0xCC,                /* 指令：运营平台查询给模块设置的电压、电流 */
     NETYKC_MONITOR_PRES_PREQCMD_QUERY_SET_VOLTCURR = 0xCD,           /* 指令：上报(响应)给模块设置的电压、电流 */
 
-    NETYKC_MONITOR_PREQ_REPORT_STARTING_INFO = 0xD7,                 /* 指令：上报过程中信息 */
-    NETYKC_MONITOR_SREQ_MODIFY_PILE_INFO = 0xD8,                     /* 指令：修改桩信息 */
+    NETYKC_MONITOR_PREQCMD_REPORT_STARTING_INFO = 0xD7,              /* 指令：上报过程中信息 */
+    NETYKC_MONITOR_SREQCMD_MODIFY_PILE_INFO = 0xD8,                  /* 指令：修改桩信息 */
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
 };
 
@@ -1422,24 +1432,76 @@ typedef struct{
 }Net_YkcMonitorPro_Sres_TargetPlat_Log_t;
 
 /** 0xC4 计费策略响应(上报)帧 */
-struct fees_info{
+#ifdef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL
+/** 费率类型：云快充1.6(此类型时段数量不起作用)[48个时段，半小时一个时段] */
+struct fees_type_ykc16{
+    uint32_t tip_elect_rate;                 /* 尖电费费率 */
+    uint32_t tip_service_rate;               /* 尖服务费费率 */
+    uint32_t peak_elect_rate;                /* 峰电费费率 */
+    uint32_t peak_service_rate;              /* 峰服务费费率 */
+    uint32_t flat_elect_rate;                /* 平电费费率 */
+    uint32_t flat_service_rate;              /* 平服务费费率 */
+    uint32_t valley_elect_rate;              /* 谷电费费率 */
+    uint32_t valley_service_rate;            /* 谷服务费费率 */
+    uint8_t loss_proportion;                 /* 计损比例 */
+    uint8_t rate_number[NET_YKC_MONITOR_RATE_PERIOD_COUNT_MAX];     /* 计损比例 */
+};
+/** 费率类型：云快充2.0(此类型时段数量不起作用)[48个时段(有可能不是48，根据实际来)，半小时一个时段，每个时段可设置不同的费率，费率最多48个(有可能不是48，根据实际来)] */
+struct fees_type_ykc20{
+    /** uint8_t fees_num; //费率数量 */
+    /** 接下来是 fees_num 个费率，每个费率占4字节，精确到小数点后5位*/
+    /** uint32_t fees_1   //费率1 */
+    /** uint32_t fees_2   //费率2 */
+    /** uint32_t fees_3   //费率3 */
+    /** ...... */
+    /** 接下来是时段费率号(1-48(有可能不是48，根据实际来)分别代表各费率) */
+    /** fees_number[48] */
+
+    /** 举例：4个费率 */
+    /*
+     * struct{
+     *   uint8_t fees;      //费率数量
+     *   uint32_t fees_1;   //费率1
+     *   uint32_t fees_2;   //费率2
+     *   uint32_t fees_3;   //费率3
+     *   uint32_t fees_4;   //费率4
+     *   uint8_t fees_number[4];  //费率号
+     * };
+     */
+};
+/** 费率类型： 15分钟一个时段 */
+struct fees_type_period15min{
     uint32_t elect_fees : 20;                    /* 电费 */
     uint32_t service_fees : 20;                  /* 服务费 */
     uint32_t delay_fees : 20;                    /* 延迟费 */
     uint32_t reserve : 4;                        /* 预留 */
+};
+/** 费率类型：以开始时间(时间戳)和结束时间上报) */
+struct fees_type_start_end_time{
+    uint32_t start_time;                         /* 开始时间(时间戳) */
+    uint32_t end_time;                           /* 结束时间(时间戳) */
+    struct{
+        uint32_t elect_fees : 20;                /* 电费 */
+        uint32_t service_fees : 20;              /* 服务费 */
+        uint32_t delay_fees : 20;                /* 延迟费 */
+        uint32_t reserve : 4;                    /* 预留 */
+    }fees;
 };
 
 typedef struct{
     Net_YkcMonitorPro_Head_t head;
     struct{
         uint8_t pile_number[NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT];  /* 桩号*/
-#ifndef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL
-        uint8_t pile_number_whole[48];           /* 真正的桩号*/
-#endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
-        struct fees_info fees[96];               /* 费率信息 */
+        uint8_t gunno;                           /* 枪号(0xFF表示所有枪) */
+        uint8_t emodel_sn[NET_YKC_MONITOR_EMODEL_SN_LENGTH_DEFAULT];     /* 电费模型编号 */
+        uint8_t smodel_sn[NET_YKC_MONITOR_EMODEL_SN_LENGTH_DEFAULT];     /* 服务费费模型编号 */
+        uint8_t group_num;                                               /* 时段数量 */
+        uint8_t fees_type;                       /* 费率类型(0：标准云快充1.6  1：云快充2.0  2：15分钟一个时段    3：以开始时间(时间戳)和结束时间上报) */
+        /* 以下是费率信息(根据费率类型来解析) */
     }body;
     uint16_t check_sum;                          /* 校验码 */
 }Net_YkcMonitorPro_Preq_Pres_BillingRule_t;
+#endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
 
 /** 0xC6 目标平台socket信息响应(上报)帧 */
 typedef struct{

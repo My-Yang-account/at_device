@@ -1068,6 +1068,7 @@ int8_t sgcc_message_pro_billing_model_request_response(void *data, uint8_t len, 
         return -0x02;
     }
 
+    uint8_t is_updated = NET_ENUM_FALSE;
     System_BaseData *base = NULL;
     evs_service_issue_feeModel *request = (evs_service_issue_feeModel*)data;
     sgcc_storage_struct *config = (sgcc_storage_struct*)(s_sgcc_handle->get_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, 0x00, NET_SYSTEM_DATA_OPTION_TARGET_PLAT));
@@ -1085,6 +1086,7 @@ int8_t sgcc_message_pro_billing_model_request_response(void *data, uint8_t len, 
         }
     }
 
+    net_operation_set_fees_gunno(0xFF, 0x00);    /** 先清除信息 */
     for(uint8_t _gunno = 0x00; _gunno < NET_SYSTEM_GUN_NUMBER; _gunno++){
         uint8_t gunno = _gunno;
         uint8_t hour = 0x00, min = 0x00, start_period = 0x00, end_period = 0x00, rate_type = 0x00, time_val[0x03];
@@ -1093,6 +1095,9 @@ int8_t sgcc_message_pro_billing_model_request_response(void *data, uint8_t len, 
                 (base->state.current == APP_OFSM_STATE_STOPING)){
             net_operation_set_event(gunno, NET_OPERATION_EVENT_UPDATE_BILLING_RULE);
             gunno = NET_SYSTEM_GUN_NUMBER;
+        }else{
+            is_updated = NET_ENUM_TRUE;
+            net_operation_set_fees_gunno(_gunno, 0x01);
         }
 
         LOG_D("sgcc gunno(%d) billingrule info[%s][%s]", gunno, request->eleModelId, request->serModelId);
@@ -1177,6 +1182,10 @@ int8_t sgcc_message_pro_billing_model_request_response(void *data, uint8_t len, 
             }
         }
     }
+    if(is_updated){
+        net_operation_updated_billing_trigger();
+    }
+
     return 0x00;
 }
 

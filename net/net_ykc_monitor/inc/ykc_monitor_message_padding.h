@@ -110,6 +110,7 @@ int8_t ykc_monitor_message_padding_charge_finish_info(uint8_t gunno, uint8_t *bu
 int8_t ykc_monitor_response_padding_function_switch(uint8_t *buf, uint16_t ilen, uint16_t *olen);
 int8_t ykc_monitor_response_padding_info_para_confirm(uint8_t *buf, uint16_t ilen, uint16_t *olen);
 int8_t ykc_monitor_response_padding_modify_dev_info(uint8_t *buf, uint16_t ilen, uint16_t *olen);
+int8_t ykc_monitor_message_padding_billing_rule(uint8_t *buf, uint16_t ilen, uint16_t *olen);
 
 /******************************** 以下是外部调用触发 *******************************/
 /******************************** 以下是外部调用触发 *******************************/

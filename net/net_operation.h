@@ -382,4 +382,8 @@ void net_operation_set_target_socket_port(uint16_t port);
 void net_operation_insert_tplat_log(void *data, uint16_t len, uint8_t verify_result, const char* label);
 void net_operation_tplat_info_trigger(uint8_t sync_data);
 
+void net_operation_set_fees_gunno(uint8_t gunno, uint8_t is_appand);
+uint8_t net_operation_is_gunno_updated_fees(uint8_t gunno);
+void net_operation_updated_billing_trigger(void);
+
 #endif /* NET_PACK_NET_OPERATION_H_ */

@@ -1764,6 +1764,36 @@ static void ykc_monitor_callback_request_modify_device_info(uint8_t* data, uint1
     }
 }
 
+/*****************************************************************
+ * 函数名                   ykc_monitor_callback_request_query_billing_rule_info
+ * 功能                       处理运营平台下发的查询计费规则信息请求
+ *           data       数据
+ *           length     数据长度
+ * 返回                        无
+ ****************************************************************/
+static void ykc_monitor_callback_request_query_billing_rule_info(uint8_t* data, uint16_t length)
+{
+#ifdef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL
+    if(data == NULL){
+        LOG_E("ykc monitor input data is null when call ykc_monitor_callback_request_query_billing_rule_info");
+        return;
+    }
+    if(length != (sizeof(Net_YkcMonitorPro_SReq_General_t) + NET_YKC_MONITOR_PROTOCOL_CHECK_REGION_SIZE - 0x01)){
+        LOG_E("ykc monitor input length error when call ykc_monitor_callback_request_query_billing_rule_info|%d, %d", length,
+                (sizeof(Net_YkcMonitorPro_SReq_General_t) + NET_YKC_MONITOR_PROTOCOL_CHECK_REGION_SIZE - 0x01));
+        return;
+    }
+    Net_YkcMonitorPro_SReq_General_t *request = (Net_YkcMonitorPro_SReq_General_t*)data;
+
+    if(ykc_monitor_pile_number_invalid(request->body.pile_number, request->head.type)){
+        return;
+    }
+
+    ykc_monitor_input_recv_message_item(NETYKC_MONITOR_SREQCMD_QUERY_BILLING_RULE, request->head.sequence, 0x01, 0x00);
+    ykc_monitor_net_event_send(NET_YKC_MONITOR_USER_EVENT_HANDLE_SERVER, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, 0x00, NET_YKC_MONITOR_USER_SREQ_EVENT_QUERY_BILLING_RULE);
+#endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
+}
+
 #endif /* NET_PACK_USING_YKC_MONITOR */
 
 int32_t ykc_monitor_message_recv_init(void)
@@ -1806,7 +1836,8 @@ int32_t ykc_monitor_message_recv_init(void)
     ykc_monitor_service_callback_register(NETYKC_MONITOR_SREQCMD_FUNCTION_SWITCH,            ykc_monitor_callback_request_function_switch);
     ykc_monitor_service_callback_register(NETYKC_MONITOR_SREQCMD_INFOPARA_MODIFY,            ykc_monitor_callback_request_info_para_modify);
     ykc_monitor_service_callback_register(NETYKC_MONITOR_SRESCMD_INFOPARA_CONFIRM_RESULT,    ykc_monitor_callback_response_info_para_confirm_result);
-    ykc_monitor_service_callback_register(NETYKC_MONITOR_SREQ_MODIFY_PILE_INFO,              ykc_monitor_callback_request_modify_device_info);
+    ykc_monitor_service_callback_register(NETYKC_MONITOR_SREQCMD_MODIFY_PILE_INFO,           ykc_monitor_callback_request_modify_device_info);
+    ykc_monitor_service_callback_register(NETYKC_MONITOR_SREQCMD_QUERY_BILLING_RULE,         ykc_monitor_callback_request_query_billing_rule_info);
 #endif /* #ifdef NET_YKC_MONITOR_AS_MONITOR */
 
     s_ykc_monitor_qrcode_buf.flag.is_used = 0x00;
