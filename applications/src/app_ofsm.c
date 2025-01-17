@@ -2128,6 +2128,48 @@ static void ofsm_starting_fun(uint8_t gunno)
                 }
                 LOG_D("deputy gunno is fault in parallel charge mode(%d, %d)", gunno, system_fault);
             }
+
+            /******************************[启动阶段,判断主机柜是否允许充电]******************************/
+            /******************************[启动阶段,判断主机柜是否允许充电]******************************/
+            if(s_ofsm_info[gunno].base.flag.permit_judge_complete == APP_THA_ENUM_FALSE){
+                if(mw_module_get_permit_charge_state(gunno) == APP_MODULE_CHARGE_SIZE){
+                    if(s_ofsm_info[gunno].charge_timeout > rt_tick_get()){
+                        s_ofsm_info[gunno].charge_timeout = rt_tick_get();
+                    }
+
+                    if((rt_tick_get() - s_ofsm_info[gunno].charge_timeout) > 20000){
+                        s_ofsm_info[gunno].base.flag.permit_judge_complete = APP_THA_ENUM_TRUE;
+                        s_ofsm_info[gunno].charge_timeout = rt_tick_get();
+                    }
+                }else if(mw_module_get_permit_charge_state(gunno) == APP_MODULE_FORBID_CHARGE){
+                    s_ofsm_info[gunno].base.flag.permit_judge_complete = APP_THA_ENUM_TRUE;
+                    s_ofsm_info[gunno].charge_timeout = rt_tick_get();
+                }else{
+                    s_ofsm_info[gunno].base.flag.permit_judge_complete = APP_THA_ENUM_TRUE;
+                    s_ofsm_info[gunno].charge_timeout = rt_tick_get();
+                }
+            }
+            if(s_ofsm_info[gunno].base.flag.permit_judge_complete == APP_THA_ENUM_TRUE){
+                if(mw_module_get_permit_charge_state(gunno) != APP_MODULE_ALLOW_CHARGE){
+                    s_ofsm_info[gunno].base.system_fault = APP_SYS_FAULT_NO_ERROR;
+                    s_ofsm_info[gunno].base.charge_fault = APP_CHARGE_FAULT_NO_ERROR;
+
+                    LOG_D("gunno(%d) charge stop deal to stop way(main cabinet forbid)|%d\n", gunno, APP_SYSTEM_STOP_WAY_MAIN_CABINET_FORBID);
+
+                    s_thaisen_transaction[gunno].stop_reason = APP_SYSTEM_STOP_WAY_MAIN_CABINET_FORBID;
+                    s_ofsm_info[gunno].base.reason_code = s_thaisen_transaction[gunno].stop_reason;
+                    s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_FALSE;
+
+                    s_ofsm_info[gunno].base.flag.start_result = APP_THA_ENUM_FALSE;
+                    s_thaisen_transaction[gunno].boot_result = s_ofsm_info[gunno].base.flag.start_result;
+                    s_thaisen_transaction[gunno].order_state.is_charging = APP_THA_ENUM_FALSE;
+
+                    for(uint8_t i = 0x00; i < APP_SYSTEM_GUNNO_SIZE; i++){
+                        s_ofsm_info[i].base.flag.is_deputygun_stop = APP_THA_ENUM_TRUE;
+                    }
+                    LOG_D("deputy gunno is fault in parallel charge mode(%d, %d)", gunno, system_fault);
+                }
+            }
         }
     }
 
