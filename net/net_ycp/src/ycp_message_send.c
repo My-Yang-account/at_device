@@ -93,8 +93,6 @@ NET_DEF_SRAM2 Net_YcpPro_PRes_Query_PReq_Report_PileState_t g_ycp_preq_report_st
 NET_DEF_SRAM2 Net_YcpPro_PReq_ApplyCharge_Active_t g_ycp_preq_apply_charge_active[NET_SYSTEM_GUN_NUMBER];  // OK
 /** 交易记录 */
 NET_DEF_SRAM2 Net_YcpPro_PReq_TransactionRecords_t g_ycp_preq_transaction_records[NET_SYSTEM_GUN_NUMBER];
-/** 上报设备故障 */
-NET_DEF_SRAM2 Net_YcpPro_PReq_Report_DeviceFault_t g_ycp_preq_report_device_fault;  // OK
 /** 充电握手 */
 NET_DEF_SRAM2 Net_YcpPro_PReq_ShakeHand_t g_ycp_preq_shake_hand[NET_SYSTEM_GUN_NUMBER];   // OK
 /** 参数配置 */
@@ -1056,10 +1054,12 @@ static void net_ycp_message_send_thread_entry(void *parameter)
             if(ycp_net_event_receive(NET_YCP_EVENT_HANDLE_CHARGEPILE, NET_YCP_EVENT_TYPE_REQUEST, gunno,
                     (NET_YCP_EVENT_OPTION_OR |NET_YCP_EVENT_OPTION_CLEAR), NET_YCP_PREQ_EVENT_REPORT_DEVICE_FAULT, NULL) > 0){
 
+                Net_YcpPro_PReq_Report_DeviceFault_t *device_fault = (Net_YcpPro_PReq_Report_DeviceFault_t*)(s_ycp_response_buff.general_transmit_buff);
                 ycp_set_message_send_state(gunno, NET_YCP_SEND_STATE_ONGOING, NET_YCP_PREQ_EVENT_REPORT_DEVICE_FAULT);
-                g_ycp_preq_report_device_fault.head.sequence = s_ycp_message_serial_number[gunno]++;
-                ycp_message_send_port(NETYCP_PREQCMD_PRESCMD_REPORT_DEVICE_FAULT, s_ycp_socket_info.fd, &g_ycp_preq_report_device_fault,
-                        (g_ycp_preq_report_device_fault.head.length + 0x04));
+                device_fault->head.sequence = s_ycp_message_serial_number[gunno]++;
+                ycp_message_send_port(NETYCP_PREQCMD_PRESCMD_REPORT_DEVICE_FAULT, s_ycp_socket_info.fd, s_ycp_response_buff.general_transmit_buff,
+                        s_ycp_response_buff.length);
+                ycp_response_buff_release_sem();
                 ycp_set_message_send_state(gunno, NET_YCP_SEND_STATE_COMPLETE, NET_YCP_PREQ_EVENT_REPORT_DEVICE_FAULT);
                 rt_thread_mdelay(250);
             }
@@ -1711,7 +1711,7 @@ static void net_ycp_server_message_pro_entry(void *parameter)
                         (NET_YCP_EVENT_OPTION_OR |NET_YCP_EVENT_OPTION_CLEAR), NET_YCP_SREQ_EVENT_QUERY_DEVICE_FAULT, NULL) > 0){
                     response = ycp_get_response_buff(RT_WAITING_FOREVER);
 
-                    result = ycp_response_padding_query_device_fault(response->general_transmit_buff, NET_YCP_GENERA_RESPONSE_BUFF_LENGTH, &(response->length));
+                    result = ycp_message_padding_device_fault(response->general_transmit_buff, NET_YCP_GENERA_RESPONSE_BUFF_LENGTH, &(response->length));
                     if(result >= 0x00){
                         ycp_net_event_send(NET_YCP_EVENT_HANDLE_CHARGEPILE, NET_YCP_EVENT_TYPE_RESPONSE, gunno, NET_YCP_PRES_EVENT_QUERY_DEVICE_FAULT);
                     }else{
@@ -1846,6 +1846,21 @@ static void net_ycp_server_message_pro_entry(void *parameter)
                 }
                 s_ycp_assistant_flag.is_storaging = 0x00;
             }
+
+            ycp_net_event_receive(NET_YCP_EVENT_HANDLE_CHARGEPILE, NET_YCP_EVENT_TYPE_REQUEST, gunno, 0x00, 0x00, &_event);
+            if(_event){
+                /***** [填充设备故障信息请求] *****/
+                if(ycp_net_event_receive(NET_YCP_EVENT_HANDLE_CHARGEPILE, NET_YCP_EVENT_TYPE_REQUEST, gunno,
+                        (NET_YCP_EVENT_OPTION_OR |NET_YCP_EVENT_OPTION_CLEAR), NET_YCP_PREQ_EVENT_PADDING_DEVICE_FAULT, NULL) > 0){
+                    response = ycp_get_response_buff(RT_WAITING_FOREVER);
+                    result = ycp_message_padding_device_fault(response->general_transmit_buff, NET_YCP_GENERA_RESPONSE_BUFF_LENGTH, &(response->length));
+                    if(result >= 0x00){
+                        ycp_net_event_send(NET_YCP_EVENT_HANDLE_CHARGEPILE, NET_YCP_EVENT_TYPE_REQUEST, gunno, NET_YCP_PREQ_EVENT_REPORT_DEVICE_FAULT);
+                    }else{
+                        ycp_response_buff_release_sem();
+                    }
+                }
+            }
         }
 
         if(s_ycp_assistant_flag.is_storaging == 0x01){
@@ -1910,7 +1925,6 @@ int32_t ycp_message_send_init(void)
     memset(&g_ycp_preq_time_sync, 0x00, sizeof(g_ycp_preq_time_sync));
     memset(&g_ycp_preq_heartbeat, 0x00, sizeof(g_ycp_preq_heartbeat));
     memset(&g_ycp_preq_billing_model_verify, 0x00, sizeof(g_ycp_preq_billing_model_verify));
-    memset(&g_ycp_preq_report_device_fault, 0x00, sizeof(g_ycp_preq_report_device_fault));
     memset(&g_ycp_pres_remote_update, 0x00, sizeof(g_ycp_pres_remote_update));
 #endif /* NET_DESIGNATE_REGION */
 

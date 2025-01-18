@@ -124,7 +124,8 @@
 #define NET_YCP_PREQ_EVENT_CHARGER_OUTPUT_BMS_REQUIRE        14   /* 充电桩请求事件：充电过程 BMS 需求与充电机输出 */
 #define NET_YCP_PREQ_EVENT_BMS_INFO                          15   /* 充电桩请求事件：充电过程 BMS 信息 */
 
-#define NET_YCP_CHARGEPILE_PREQ_NUM                          16   /* 充电桩请求事件总数 */
+#define NET_YCP_PREQ_EVENT_PADDING_DEVICE_FAULT              16   /* 充电桩请求事件：填充设备故障信息 */
+#define NET_YCP_CHARGEPILE_PREQ_NUM                          17   /* 充电桩请求事件总数 */
 
 /** chargepile response event */
 #define NET_YCP_PRES_EVENT_SET_PARA                          0    /* 充电桩响应事件：设置充电桩参数 */
@@ -160,8 +161,6 @@ extern Net_YcpPro_PRes_Query_PReq_Report_PileState_t g_ycp_preq_report_state_dat
 extern Net_YcpPro_PReq_ApplyCharge_Active_t g_ycp_preq_apply_charge_active[NET_SYSTEM_GUN_NUMBER];  // OK
 /** 交易记录 */
 extern Net_YcpPro_PReq_TransactionRecords_t g_ycp_preq_transaction_records[NET_SYSTEM_GUN_NUMBER];
-/** 上报设备故障 */
-extern Net_YcpPro_PReq_Report_DeviceFault_t g_ycp_preq_report_device_fault;  // OK
 /** 充电握手 */
 extern Net_YcpPro_PReq_ShakeHand_t g_ycp_preq_shake_hand[NET_SYSTEM_GUN_NUMBER];   // OK
 /** 参数配置 */

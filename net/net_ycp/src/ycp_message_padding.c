@@ -22,8 +22,11 @@
 
 #ifdef NET_PACK_USING_YCP
 
-#define YCP_CHARGE_ELECT_MAX                      500000    /* 最大充电电量值(精度：0.001) */
-#define YCP_SPEND_AMOUNT_MAX                      5000000   /* 最大消费金额值(精度：0.0001) */
+#define YCP_HOST_FAULT_NUM_MAX_DEFAULT            0x10         /* 默认上报主机故障数目最大值 */
+#define YCP_PORT_FAULT_NUM_MAX_DEFAULT            0x20         /* 默认上报枪口故障数目最大值 */
+
+#define YCP_CHARGE_ELECT_MAX                      500000        /* 最大充电电量值(精度：0.001) */
+#define YCP_SPEND_AMOUNT_MAX                      5000000       /* 最大消费金额值(精度：0.0001) */
 
 #define YCP_DISPOSABLE_EVENT_STATE                0x00          /* 漏报事件：桩状态 */
 
@@ -59,6 +62,27 @@ struct ycp_flag_info{
     uint16_t is_vin_authorized : 1;                /*  已进行了VIN鉴权 */
 };
 
+/** 枪口故障 */
+struct ycp_pfaut_node{
+    uint8_t fault_type;                            /* 故障类型 */
+    uint8_t gunno;                                 /* 枪号 */
+    uint16_t fault_code;                           /* 故障码 */
+};
+struct ycp_pfaut_info{
+    uint8_t fault_num;                             /* 枪口故障数 */
+    struct ycp_pfaut_node fault[YCP_PORT_FAULT_NUM_MAX_DEFAULT];  /* 枪口故障 */
+};
+
+/** 主机故障 */
+struct ycp_hfaut_node{
+    uint8_t fault_type;                            /* 故障类型 */
+    uint16_t fault_code;                           /* 故障码 */
+};
+struct ycp_hfaut_info{
+    uint8_t fault_num;                             /* 主机故障数 */
+    struct ycp_hfaut_node fault[YCP_HOST_FAULT_NUM_MAX_DEFAULT];  /* 主机故障 */
+};
+
 #pragma pack()
 
 NET_DEF_SRAM2 static struct ycp_flag_info s_ycp_flag_info[NET_SYSTEM_GUN_NUMBER];
@@ -69,6 +93,8 @@ NET_DEF_SRAM2 static struct ycp_disposable_info s_ycp_disposable_info[NET_SYSTEM
 NET_DEF_SRAM2 static struct rt_thread s_ycp_realtime_process_thread;
 NET_DEF_SRAM0 static uint8_t s_ycp_realtime_process_thread_stack[YCP_REALTIME_PROCESS_THREAD_STACK_SIZE];
 NET_DEF_SRAM2 static struct net_handle* s_ycp_handle = NULL;
+NET_DEF_SRAM2 static struct ycp_pfaut_info s_ycp_pfaut_info;
+NET_DEF_SRAM2 static struct ycp_hfaut_info s_ycp_hfaut_info;
 
 static uint16_t ycp_chargepile_stop_reason_converted(uint8_t bit, uint8_t stop_in_starting);
 static uint8_t ycp_chargepile_transaction_identity_converted(uint8_t identity);
@@ -612,12 +638,14 @@ int8_t ycp_response_padding_modify_server_addr(uint8_t *buf, uint16_t ilen, uint
 }
 
 /*************************************************
- * 函数名      ycp_response_padding_query_device_fault
- * 功能          组包：查询设备故障响应
+ * 函数名      ycp_message_padding_device_fault
+ * 功能          组包：设备故障信息
  * **********************************************/
-int8_t ycp_response_padding_query_device_fault(uint8_t *buf, uint16_t ilen, uint16_t *olen)
+int8_t ycp_message_padding_device_fault(uint8_t *buf, uint16_t ilen, uint16_t *olen)
 {
-    uint8_t data_len = (g_ycp_preq_report_device_fault.head.length + 0x04);
+    uint16_t data_len = sizeof(Net_YcpPro_PReq_Report_DeviceFault_t);
+
+    data_len += ((s_ycp_pfaut_info.fault_num *sizeof(struct ycp_pfaut_node)) + (s_ycp_hfaut_info.fault_num *sizeof(struct ycp_hfaut_node)));
 
     if(buf == NULL){
         return -0x01;
@@ -626,16 +654,28 @@ int8_t ycp_response_padding_query_device_fault(uint8_t *buf, uint16_t ilen, uint
         return -0x02;
     }
 
-    Net_YcpPro_PReq_Report_DeviceFault_t *response = NULL;
-    response = ((Net_YcpPro_PReq_Report_DeviceFault_t*)buf);
-    memset(response, 0x00, data_len);
+    Net_YcpPro_PReq_Report_DeviceFault_t *message = NULL;
+    struct ycp_pfaut_node *_pfault = NULL;
+    struct ycp_hfaut_node *_hfault = NULL;
 
-    response->body.fault_num = g_ycp_preq_report_device_fault.body.fault_num;
-    memcpy(response->body.fault ,g_ycp_preq_report_device_fault.body.fault, sizeof(struct faut_info) *response->body.fault_num);
+    message = ((Net_YcpPro_PReq_Report_DeviceFault_t*)buf);
+    memset(message, 0x00, data_len);
+
+    message->head.flag = NET_YCP_MESSAGE_ENCRYPT_DISABLE;
+    message->body.fault_num = s_ycp_pfaut_info.fault_num + s_ycp_hfaut_info.fault_num;
+    _hfault = (struct ycp_hfaut_node*)((uint8_t*)&message->body.fault_num + 0x01);
+    _pfault = (struct ycp_pfaut_node*)((uint8_t*)&message->body.fault_num + 0x01 + (s_ycp_hfaut_info.fault_num *sizeof(struct ycp_hfaut_node)));
+    for(uint8_t i = 0x00; i < s_ycp_hfaut_info.fault_num; i++){
+        memcpy(&_hfault[i], &s_ycp_hfaut_info.fault[i], sizeof(struct ycp_hfaut_node));
+    }
+    for(uint8_t i = 0x00; i < s_ycp_pfaut_info.fault_num; i++){
+        memcpy(&_pfault[i], &s_ycp_pfaut_info.fault[i], sizeof(struct ycp_pfaut_node));
+    }
 
     if(olen){
         *olen = data_len;
     }
+
     return 0x00;
 }
 
@@ -1209,9 +1249,6 @@ void ycp_message_info_init(uint8_t gunno)  ///////// 这是网络部分外部调
         g_ycp_preq_bms_info[gunno].head.flag = NET_YCP_MESSAGE_ENCRYPT_DISABLE;
         g_ycp_preq_bms_info[gunno].body.gunno = gunno + 0x01;
     }
-    /** 初始化设备故障上报请求 */
-    g_ycp_preq_report_device_fault.head.flag = NET_YCP_MESSAGE_ENCRYPT_DISABLE;
-
     /** 初始化计费模型验证 */
     g_ycp_preq_billing_model_verify.head.flag = NET_YCP_MESSAGE_ENCRYPT_DISABLE;
 
@@ -2075,61 +2112,115 @@ int8_t ycp_chargepile_fault_report(uint8_t gunno, uint16_t code, uint8_t is_resu
     }
 
     if(is_resume){
-        uint8_t pos = 0x00;
+        uint8_t pos = 0x00, is_matched = NET_ENUM_FALSE;
         uint16_t temp = (uint8_t)((code &0xff00) >>0x08);
         temp |= (uint16_t)(code <<0x08);
 
-        for(pos = 0x00; pos < g_ycp_preq_report_device_fault.body.fault_num; pos++){
-            if(temp == g_ycp_preq_report_device_fault.body.fault[pos].fault_code){
-                for(uint8_t i = pos; i < g_ycp_preq_report_device_fault.body.fault_num; i++){
-                    if((i + 0x01) < g_ycp_preq_report_device_fault.body.fault_num){
-                        g_ycp_preq_report_device_fault.body.fault[i].fault_type = g_ycp_preq_report_device_fault.body.fault[i + 0x01].fault_type;
-                        g_ycp_preq_report_device_fault.body.fault[i].gunno = g_ycp_preq_report_device_fault.body.fault[i + 0x01].gunno;
-                        g_ycp_preq_report_device_fault.body.fault[i].fault_code = g_ycp_preq_report_device_fault.body.fault[i + 0x01].fault_code;
+        /** 这是枪口故障 */
+        if(rank == NET_YCP_FAULT_CODE_TYPE_PORT){
+            for(pos = 0x00; pos < s_ycp_pfaut_info.fault_num; pos++){
+                if(temp == s_ycp_pfaut_info.fault[pos].fault_code){
+                    for(uint8_t i = pos; i < s_ycp_pfaut_info.fault_num; i++){
+                        if((i + 0x01) < s_ycp_pfaut_info.fault_num){
+                            s_ycp_pfaut_info.fault[i].fault_type = s_ycp_pfaut_info.fault[i + 0x01].fault_type;
+                            s_ycp_pfaut_info.fault[i].gunno = s_ycp_pfaut_info.fault[i + 0x01].gunno;
+                            s_ycp_pfaut_info.fault[i].fault_code = s_ycp_pfaut_info.fault[i + 0x01].fault_code;
+                        }
                     }
-                }
 
-                if(g_ycp_preq_report_device_fault.body.fault_num > 0x00){
-                    memset(&(g_ycp_preq_report_device_fault.body.fault[g_ycp_preq_report_device_fault.body.fault_num - 0x01]), 0x00, \
-                            sizeof(g_ycp_preq_report_device_fault.body.fault[g_ycp_preq_report_device_fault.body.fault_num - 0x01]));
-                }else{
-                    memset(&(g_ycp_preq_report_device_fault.body.fault[0x00]), 0x00, \
-                            sizeof(g_ycp_preq_report_device_fault.body.fault[0x00]));
-                }
+                    if(s_ycp_pfaut_info.fault_num > 0x00){
+                        memset(&(s_ycp_pfaut_info.fault[s_ycp_pfaut_info.fault_num - 0x01]), 0x00, \
+                                sizeof(s_ycp_pfaut_info.fault[s_ycp_pfaut_info.fault_num - 0x01]));
+                    }else{
+                        memset(&(s_ycp_pfaut_info.fault[0x00]), 0x00, \
+                                sizeof(s_ycp_pfaut_info.fault[0x00]));
+                    }
 
-                if(g_ycp_preq_report_device_fault.body.fault_num > 0x00){
-                    g_ycp_preq_report_device_fault.body.fault_num--;
+                    if(s_ycp_pfaut_info.fault_num > 0x00){
+                        s_ycp_pfaut_info.fault_num--;
+                    }
+                    is_matched = NET_ENUM_TRUE;
+                    break;
                 }
-                break;
+            }
+            if(is_matched == NET_ENUM_FALSE){
+                return 0x00;
+            }
+        }
+        /** 这是主机故障 */
+        else{
+            for(pos = 0x00; pos < s_ycp_hfaut_info.fault_num; pos++){
+                if(temp == s_ycp_hfaut_info.fault[pos].fault_code){
+                    for(uint8_t i = pos; i < s_ycp_hfaut_info.fault_num; i++){
+                        if((i + 0x01) < s_ycp_hfaut_info.fault_num){
+                            s_ycp_hfaut_info.fault[i].fault_type = s_ycp_hfaut_info.fault[i + 0x01].fault_type;
+                            s_ycp_hfaut_info.fault[i].fault_code = s_ycp_hfaut_info.fault[i + 0x01].fault_code;
+                        }
+                    }
+
+                    if(s_ycp_hfaut_info.fault_num > 0x00){
+                        memset(&(s_ycp_hfaut_info.fault[s_ycp_hfaut_info.fault_num - 0x01]), 0x00, \
+                                sizeof(s_ycp_hfaut_info.fault[s_ycp_hfaut_info.fault_num - 0x01]));
+                    }else{
+                        memset(&(s_ycp_hfaut_info.fault[0x00]), 0x00, \
+                                sizeof(s_ycp_hfaut_info.fault[0x00]));
+                    }
+
+                    if(s_ycp_hfaut_info.fault_num > 0x00){
+                        s_ycp_hfaut_info.fault_num--;
+                    }
+                    is_matched = NET_ENUM_TRUE;
+                    break;
+                }
+            }
+            if(is_matched == NET_ENUM_FALSE){
+                return 0x00;
             }
         }
     }else{
         uint16_t temp = (uint8_t)((code &0xff00) >>0x08);
-        uint8_t index = g_ycp_preq_report_device_fault.body.fault_num;
+        uint8_t index = 0x00;
 
         temp |= (uint16_t)(code <<0x08);
-
-        for(uint8_t pos = 0x00; pos < g_ycp_preq_report_device_fault.body.fault_num; pos++){
-            if((temp == g_ycp_preq_report_device_fault.body.fault[pos].fault_code) &&
-                    ((gunno + 0x01) == g_ycp_preq_report_device_fault.body.fault[pos].gunno)){
-                return 0x00;
+        /** 这是枪口故障 */
+        if(rank == NET_YCP_FAULT_CODE_TYPE_PORT){
+            index = s_ycp_pfaut_info.fault_num;
+            for(uint8_t pos = 0x00; pos < s_ycp_pfaut_info.fault_num; pos++){
+                if((temp == s_ycp_pfaut_info.fault[pos].fault_code) &&
+                        ((gunno + 0x01) == s_ycp_pfaut_info.fault[pos].gunno)){
+                    return 0x00;
+                }
             }
-        }
-        if(index >= NET_YCP_FAULT_NUM_MAX_DEFAULT){
-            return -0x01;
-        }
+            if(index >= YCP_PORT_FAULT_NUM_MAX_DEFAULT){
+                return -0x01;
+            }
 
-        g_ycp_preq_report_device_fault.body.fault[index].fault_type = rank;
-        g_ycp_preq_report_device_fault.body.fault[index].gunno = gunno + 0x01;
-        g_ycp_preq_report_device_fault.body.fault[index].fault_code = temp;
-        g_ycp_preq_report_device_fault.body.fault_num++;
+            s_ycp_pfaut_info.fault[index].fault_type = rank;
+            s_ycp_pfaut_info.fault[index].gunno = gunno + 0x01;
+            s_ycp_pfaut_info.fault[index].fault_code = temp;
+            s_ycp_pfaut_info.fault_num++;
+        }
+        /** 这是主机故障 */
+        else{
+            index = s_ycp_hfaut_info.fault_num;
+            for(uint8_t pos = 0x00; pos < s_ycp_hfaut_info.fault_num; pos++){
+                if(temp == s_ycp_hfaut_info.fault[pos].fault_code){
+                    return 0x00;
+                }
+            }
+            if(index >= YCP_HOST_FAULT_NUM_MAX_DEFAULT){
+                return -0x01;
+            }
+
+            s_ycp_hfaut_info.fault[index].fault_type = rank;
+            s_ycp_hfaut_info.fault[index].fault_code = temp;
+            s_ycp_hfaut_info.fault_num++;
+        }
     }
-
-    g_ycp_preq_report_device_fault.head.length = 0x04 + 0x01 + sizeof(struct faut_info) *g_ycp_preq_report_device_fault.body.fault_num;
 
     s_ycp_fault_report = rt_tick_get();
 
-    ycp_net_event_send(NET_YCP_EVENT_HANDLE_CHARGEPILE, NET_YCP_EVENT_TYPE_REQUEST, gunno, NET_YCP_PREQ_EVENT_REPORT_DEVICE_FAULT);
+    ycp_net_event_send(NET_YCP_EVENT_HANDLE_CHARGEPILE, NET_YCP_EVENT_TYPE_REQUEST, gunno, NET_YCP_PREQ_EVENT_PADDING_DEVICE_FAULT);
 
     return 0x00;
 }
@@ -2560,7 +2651,7 @@ static void ycp_data_realtime_process(uint8_t gunno, System_BaseData *base)
 
         if((rt_tick_get() - s_ycp_fault_report) > YCP_FAULT_INFO_INTERVAL *1000){
             s_ycp_fault_report = rt_tick_get();
-            ycp_net_event_send(NET_YCP_EVENT_HANDLE_CHARGEPILE, NET_YCP_EVENT_TYPE_REQUEST, 0x00, NET_YCP_PREQ_EVENT_REPORT_DEVICE_FAULT);
+            ycp_net_event_send(NET_YCP_EVENT_HANDLE_CHARGEPILE, NET_YCP_EVENT_TYPE_REQUEST, 0x00, NET_YCP_PREQ_EVENT_PADDING_DEVICE_FAULT);
         }
     }else{
         s_ycp_fault_report = rt_tick_get();
@@ -2639,12 +2730,15 @@ static void ycp_realtime_process_thread_entry(void *parameter)
 
         if(ycp_get_socket_info()->socket_state == YCP_SOCKET_STATE_LOGIN_SUCCESS){
             if((is_power_on == NET_ENUM_TRUE) && (ycp_is_interact_normally())){
+                uint8_t is_reported = NET_ENUM_FALSE;
                 is_power_on = NET_ENUM_FALSE;
                 for(gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
                     base = (System_BaseData*)(s_ycp_handle->get_base_data(gunno));
                     if(base->state.current != APP_OFSM_STATE_FAULTING){
-                        g_ycp_preq_report_device_fault.head.length = 0x04 + 0x01;
-                        ycp_net_event_send(NET_YCP_EVENT_HANDLE_CHARGEPILE, NET_YCP_EVENT_TYPE_REQUEST, gunno, NET_YCP_PREQ_EVENT_REPORT_DEVICE_FAULT);
+                        if(is_reported == NET_ENUM_FALSE){
+                            ycp_net_event_send(NET_YCP_EVENT_HANDLE_CHARGEPILE, NET_YCP_EVENT_TYPE_REQUEST, gunno, NET_YCP_PREQ_EVENT_PADDING_DEVICE_FAULT);
+                            is_reported = NET_ENUM_TRUE;
+                        }
                     }
                 }
             }
@@ -2691,6 +2785,9 @@ int32_t ycp_realtime_process_init(void)
         memset(&s_ycp_flag_info[gunno], 0x00, sizeof(s_ycp_flag_info[gunno]));
         memset(&s_ycp_disposable_info[gunno], 0x00, sizeof(s_ycp_disposable_info[gunno]));
     }
+    memset(&s_ycp_pfaut_info, 0x00, sizeof(s_ycp_pfaut_info));
+    memset(&s_ycp_hfaut_info, 0x00, sizeof(s_ycp_hfaut_info));
+
     s_ycp_fault_report = 0x00;
     s_ycp_local_start_sq = 0x00;
     s_ycp_handle = NULL;

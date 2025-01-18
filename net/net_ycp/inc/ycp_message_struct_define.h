@@ -53,7 +53,6 @@
 #define NET_YCP_PASSWORD_LENGTH_DEFAULT                        0x10        /* 默认密码长度 */
 #define NET_YCP_SERVER_ADDR_LENGTH_DEFAULT                     0x40        /* 默认服务器地址长度 */
 #define NET_YCP_FILE_PATH_LENGTH_DEFAULT                       0x20        /* 默认文件路径长度 */
-#define NET_YCP_FAULT_NUM_MAX_DEFAULT                          0x0A        /* 默认上报故障数目最大值 */
 #define NET_YCP_QRCODE_LENGTH_DEFAULT                          0x96        /* 默认二维码长度 */
 
 #define NET_YCP_STORAGE_INIT_FLAG                              0x12345678  /* 平台数据存储标志 */
@@ -739,16 +738,11 @@ typedef struct{
 }Net_YcpPro_SReq_Query_DeviceFault_t;
 
 /** 0x27 设备故障上报 */
-struct faut_info{
-    uint8_t fault_type;                          /* 故障类型 */
-    uint8_t gunno;                               /* 枪号 */
-    uint16_t fault_code;                         /* 故障码 */
-};
 typedef struct{
     Net_YcpPro_Head_t head;
     struct{
-        uint8_t fault_num;                       /* 故障数 */
-        struct faut_info fault[NET_YCP_FAULT_NUM_MAX_DEFAULT]; /* 故障信息 */
+        uint8_t fault_num;                       /* 枪口故障数 */
+        /** 以下是故障信息 */
     }body;
     uint16_t check_sum;                          /* 校验码 */
 }Net_YcpPro_PReq_Report_DeviceFault_t;

@@ -21,7 +21,7 @@ uint8_t ycp_is_set_power_success(void);
 int8_t ycp_response_padding_query_state_data(uint8_t gunno, uint8_t *buf, uint16_t ilen, uint16_t *olen);
 int8_t ycp_response_padding_query_state_data_all(uint8_t *buf, uint16_t ilen, uint16_t *olen);
 
-
+int8_t ycp_message_padding_device_fault(uint8_t *buf, uint16_t ilen, uint16_t *olen);
 
 int8_t ycp_response_padding_remote_start_charge(uint8_t gunno, uint8_t *buf, uint16_t ilen, uint16_t *olen);
 int8_t ycp_response_padding_remote_stop_charge(uint8_t gunno, uint8_t *buf, uint16_t ilen, uint16_t *olen);
@@ -32,7 +32,6 @@ int8_t ycp_response_padding_remote_update(uint8_t *buf, uint16_t ilen, uint16_t 
 int8_t ycp_response_padding_qrcode_config(uint8_t gunno, uint8_t *buf, uint16_t ilen, uint16_t *olen);
 int8_t ycp_response_padding_set_service_phone(uint8_t gunno, uint8_t *buf, uint16_t ilen, uint16_t *olen);
 int8_t ycp_response_padding_modify_server_addr(uint8_t *buf, uint16_t ilen, uint16_t *olen);
-int8_t ycp_response_padding_query_device_fault(uint8_t *buf, uint16_t ilen, uint16_t *olen);
 void ycp_request_padding_heartbeat(void);
 
 int8_t ycp_message_pro_billing_model_set_response(void *data, uint8_t len, uint8_t is_init);
