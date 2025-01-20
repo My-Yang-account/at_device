@@ -24,8 +24,8 @@
 
 #ifdef NET_PACK_USING_SGCC
 
-#define SGCC_CHARGE_ELECT_MAX                      500000    /* 最大充电电量值(精度：0.001) */
-#define SGCC_SPEND_AMOUNT_MAX                      5000000   /* 最大消费金额值(精度：0.0001) */
+#define SGCC_CHARGE_ELECT_MAX                      500000          /* 最大充电电量值(精度：0.001) */
+#define SGCC_SPEND_AMOUNT_MAX                      5000000         /* 最大消费金额值(精度：0.0001) */
 
 #define SGCC_STATE_PERIOD_CHARGING_FIRST_DEF       (60 *1000)      /* 启动充电时前1min 充电中实时数据上报间隔为5s  */
 #define SGCC_STATE_INTERVAL_STARTING_DEF           (5 *1000)       /* 充电中实时数据上报间隔(启动前2min)  */
@@ -42,12 +42,14 @@
 #define SGCC_DOOR_LOCK_INFO_INTERVAL_DEF           (3600)          /* 门锁监测上送频率上报间隔(单位s)  */
 
 #define SGCC_ORDERLY_CHARGE_TIME_POINT_NUM         0x05            /* 有序充电时间点数 */
+#define SGCC_BILLING_INFO_SEGMENT_NUM              0x0E            /* 计费最大段数 */
 
 #define SGCC_BMS_DATA_REPORT_NUM_MAX               0x06            /* BMS数据上报次数 */
 #define SGCC_REALTIME_PROCESS_THREAD_STACK_SIZE    1536            /* 实时处理线程栈大小 */
 
 #pragma pack(1)
 
+/** 状态信息 */
 struct sgcc_state_info{
     struct{
         uint32_t connect : 4;
@@ -61,6 +63,7 @@ struct sgcc_state_info{
     uint32_t timestamp;                           /* 时间 */
 };
 
+/** 标志信息 */
 struct sgcc_flag_info{
     uint8_t is_start_charge : 1;                  /*  已启动充电 */
     uint8_t is_stop_charge : 1;                   /*  已停止充电 */
@@ -79,10 +82,18 @@ struct sgcc_flag_info{
     uint8_t init_complete : 1;                    /* 初始化完成 */
 };
 
+/** 有序充电 */
 struct sgcc_order_charge{
     uint8_t current_index;                                     /* 当前时间点下标 */
     uint32_t time_sec[SGCC_ORDERLY_CHARGE_TIME_POINT_NUM];     /* 有序充电时间点(s) */
     uint16_t period_power[SGCC_ORDERLY_CHARGE_TIME_POINT_NUM]; /* 有序充电时间段功率(0.1KW) */
+};
+
+struct sgcc_billing{
+    uint8_t period;                                            /* 时段 */
+    uint8_t fees_number;                                       /* 费率号 */
+    uint32_t elect_price;                                      /* 电费价格 */
+    uint32_t service_price;                                    /* 服务费价格 */
 };
 
 #pragma pack()
@@ -1057,6 +1068,45 @@ int8_t sgcc_message_pro_apply_charge_response(uint8_t gunno, void *data, uint16_
  * 函数名      sgcc_message_pro_billing_model_request_response
  * 功能          处理服务器响应(下发)的计费模型
  * **********************************************/
+static void sgcc_billing_info_set(void *data, uint8_t gunno, uint8_t speriod, uint8_t eperiod, uint8_t fees_number)
+{
+    if(data == NULL){
+        return;
+    }
+
+    uint8_t period = 0x00;
+    evs_service_issue_feeModel *request = (evs_service_issue_feeModel*)data;
+
+    for(period = speriod; period < eperiod; period++){
+        LOG_D("[%d, %d, %d, %d, %d]\n", gunno, period, speriod, eperiod, fees_number);
+        app_billingrule_set_period_rate_number(gunno, period, fees_number);
+        switch(fees_number){
+        case APP_RATE_TYPE_SHARP :
+            app_billingrule_set_period_elect_price(gunno, period, request->chargeFee[APP_RATE_TYPE_SHARP]);
+            app_billingrule_set_period_service_price(gunno, period, request->serviceFee[APP_RATE_TYPE_SHARP]);
+            app_billingrule_set_period_delay_price(gunno, period, 0x00);
+            break;
+        case APP_RATE_TYPE_PEAK :
+            app_billingrule_set_period_elect_price(gunno, period, request->chargeFee[APP_RATE_TYPE_PEAK]);
+            app_billingrule_set_period_service_price(gunno, period, request->serviceFee[APP_RATE_TYPE_PEAK]);
+            app_billingrule_set_period_delay_price(gunno, period, 0x00);
+            break;
+        case APP_RATE_TYPE_FLAT :
+            app_billingrule_set_period_elect_price(gunno, period, request->chargeFee[APP_RATE_TYPE_FLAT]);
+            app_billingrule_set_period_service_price(gunno, period, request->serviceFee[APP_RATE_TYPE_FLAT]);
+            app_billingrule_set_period_delay_price(gunno, period, 0x00);
+            break;
+        case APP_RATE_TYPE_VALLEY :
+            app_billingrule_set_period_elect_price(gunno, period, request->chargeFee[APP_RATE_TYPE_VALLEY]);
+            app_billingrule_set_period_service_price(gunno, period, request->serviceFee[APP_RATE_TYPE_VALLEY]);
+            app_billingrule_set_period_delay_price(gunno, period, 0x00);
+            break;
+        default:
+            break;
+        }
+    }
+}
+
 int8_t sgcc_message_pro_billing_model_request_response(void *data, uint8_t len, uint8_t is_init)
 {
     uint8_t data_len = sizeof(evs_service_issue_feeModel);
@@ -1068,8 +1118,10 @@ int8_t sgcc_message_pro_billing_model_request_response(void *data, uint8_t len, 
         return -0x02;
     }
 
-    uint8_t is_updated = NET_ENUM_FALSE;
+    uint8_t is_updated = NET_ENUM_FALSE, segment_num = 0x00;
+    uint8_t i = 0x00, j = 0x00, min = 0x00, temp = 0x00;
     System_BaseData *base = NULL;
+    struct sgcc_billing *billing_info = NULL;
     evs_service_issue_feeModel *request = (evs_service_issue_feeModel*)data;
     sgcc_storage_struct *config = (sgcc_storage_struct*)(s_sgcc_handle->get_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, 0x00, NET_SYSTEM_DATA_OPTION_TARGET_PLAT));
 
@@ -1086,10 +1138,78 @@ int8_t sgcc_message_pro_billing_model_request_response(void *data, uint8_t len, 
         }
     }
 
+    /*********************** 提取并排列计费信息 *******************/
+    /*********************** 提取并排列计费信息 *******************/
+    segment_num = request->TimeNum;
+    if(segment_num <= 0x00){
+        LOG_E("sgcc billing info, segment num error(%d)", segment_num);
+        return -0x05;
+    }
+    if(segment_num > SGCC_BILLING_INFO_SEGMENT_NUM){
+        segment_num = SGCC_BILLING_INFO_SEGMENT_NUM;
+    }
+
+    billing_info = (struct sgcc_billing*)rt_malloc(sizeof(struct sgcc_billing) *segment_num);
+    if(billing_info == NULL){
+        LOG_E("sgcc no memory for billing info(%d)", sizeof(struct sgcc_billing) *segment_num);
+        return -0x05;
+    }
+
+    memset(billing_info, 0x00, sizeof(struct sgcc_billing) *segment_num);
+    /** 提取计费信息 */
+    for(uint8_t segment = 0x00; segment < segment_num; segment++){
+        uint8_t time_val[0x03], hour = 0x00, min = 0x00, rate_type = 0x00;
+
+        memset(time_val, 0x00, sizeof(time_val));
+        time_val[0x00] = request->TimeSeg[segment][0x00];
+        time_val[0x01] = request->TimeSeg[segment][0x01];
+        hour = atoi((char*)time_val);
+
+        memset(time_val, 0x00, sizeof(time_val));
+        time_val[0x00] = request->TimeSeg[segment][0x02];
+        time_val[0x01] = request->TimeSeg[segment][0x03];
+        min = atoi((char*)time_val);
+
+        billing_info[segment].period = sgcc_calculate_period_with_hm(hour, min);
+
+        rate_type = APP_RATE_TYPE_VALLEY;
+        if((request->SegFlag[segment] >= 10) && (request->SegFlag[segment] <= 13)){
+            rate_type = request->SegFlag[segment] - 10;
+        }
+        billing_info[segment].fees_number = rate_type;
+        billing_info[segment].elect_price = request->chargeFee[rate_type];
+        billing_info[segment].service_price = request->serviceFee[rate_type];
+
+        LOG_D("sgcc billing segment[%d][%d, %d, %d, %d, %d, %d]", segment, hour, min, billing_info[segment].period,
+                billing_info[segment].fees_number, billing_info[segment].elect_price, billing_info[segment].service_price);
+    }
+    /** 选择排序，按时段大小进行升序排列 */
+    if(segment_num > 0x01){
+        for(i = 0x00; i < (segment_num - 0x01); i++){
+            min = i;
+            for(j = i + 1; j < segment_num; j++){
+                if (billing_info[min].period > billing_info[j].period){
+                    min = j;
+                }
+            }
+            if(min != i){
+                temp = billing_info[min].period;
+                billing_info[min].period = billing_info[i].period;
+                billing_info[i].period = temp;
+            }
+        }
+    }
+
+    for(i = 0x00; i < segment_num; i++){
+        LOG_D("sgcc period info(%d)[%d, %d, %d, %d]", i, billing_info[i].period,
+                billing_info[i].fees_number,
+                billing_info[i].elect_price,
+                billing_info[i].service_price);
+    }
+
     net_operation_set_fees_gunno(0xFF, 0x00);    /** 先清除信息 */
     for(uint8_t _gunno = 0x00; _gunno < NET_SYSTEM_GUN_NUMBER; _gunno++){
         uint8_t gunno = _gunno;
-        uint8_t hour = 0x00, min = 0x00, start_period = 0x00, end_period = 0x00, rate_type = 0x00, time_val[0x03];
         base = (System_BaseData*)(s_sgcc_handle->get_base_data(gunno));
         if((base->state.current == APP_OFSM_STATE_CHARGING) || (base->state.current == APP_OFSM_STATE_STARTING) ||
                 (base->state.current == APP_OFSM_STATE_STOPING)){
@@ -1114,74 +1234,25 @@ int8_t sgcc_message_pro_billing_model_request_response(void *data, uint8_t len, 
         app_billingrule_set_rate_price(gunno, APP_RATE_TYPE_FLAT, (request->chargeFee[APP_RATE_TYPE_FLAT] + request->serviceFee[APP_RATE_TYPE_FLAT]));
         app_billingrule_set_rate_price(gunno, APP_RATE_TYPE_VALLEY, (request->chargeFee[APP_RATE_TYPE_VALLEY] + request->serviceFee[APP_RATE_TYPE_VALLEY]));
 
-        for(uint8_t segment = 0x00; segment < request->TimeNum; segment++){
-            memset(time_val, 0x00, sizeof(time_val));
-            time_val[0x00] = request->TimeSeg[segment][0x00];
-            time_val[0x01] = request->TimeSeg[segment][0x01];
-            hour = atoi((char*)time_val);
+        if(segment_num <= 0x01){
+            sgcc_billing_info_set(request, gunno, 0x00, APP_BILLING_RULE_PERIOD_MAX, billing_info[0x00].fees_number);
+        }else{
+            for(uint8_t segment = 0x00; segment < (segment_num - 0x01); segment++){
+                if((segment == 0x00) && (billing_info[segment].period != 0x00)){
+                    sgcc_billing_info_set(request, gunno, 0x00, billing_info[segment].period, billing_info[segment_num - 0x01].fees_number);
+                    sgcc_billing_info_set(request, gunno, billing_info[segment].period, billing_info[segment + 0x01].period, billing_info[segment].fees_number);
+                }else{
+                    sgcc_billing_info_set(request, gunno, billing_info[segment].period, billing_info[segment + 0x01].period, billing_info[segment].fees_number);
+                }
 
-            memset(time_val, 0x00, sizeof(time_val));
-            time_val[0x00] = request->TimeSeg[segment][0x02];
-            time_val[0x01] = request->TimeSeg[segment][0x03];
-            min = atoi((char*)time_val);
-
-            start_period = sgcc_calculate_period_with_hm(hour, min);
-
-            LOG_D("start_period[%d, %d, %d]\n", hour, min, start_period);
-
-            if((segment + 0x01) >= request->TimeNum){
-                end_period = APP_BILLING_RULE_PERIOD_MAX;
-            }else{
-                memset(time_val, 0x00, sizeof(time_val));
-                time_val[0x00] = request->TimeSeg[segment + 0x01][0x00];
-                time_val[0x01] = request->TimeSeg[segment + 0x01][0x01];
-                hour = atoi((char*)time_val);
-
-                memset(time_val, 0x00, sizeof(time_val));
-                time_val[0x00] = request->TimeSeg[segment + 0x01][0x02];
-                time_val[0x01] = request->TimeSeg[segment + 0x01][0x03];
-                min = atoi((char*)time_val);
-
-                end_period = sgcc_calculate_period_with_hm(hour, min);
-            }
-
-            LOG_D("end_period[%d, %d, %d]\n", hour, min, end_period);
-
-            rate_type = APP_RATE_TYPE_VALLEY;
-            if((request->SegFlag[segment] >= 10) && (request->SegFlag[segment] <= 13)){
-                rate_type = request->SegFlag[segment] - 10;
-            }
-
-            for(uint8_t period = start_period; period < end_period; period++){
-                LOG_D("[%d, %d, %d, %d, %d, %d]\n", gunno, segment, period, start_period, end_period, rate_type);
-                app_billingrule_set_period_rate_number(gunno, period, rate_type);
-                switch(rate_type){
-                case APP_RATE_TYPE_SHARP :
-                    app_billingrule_set_period_elect_price(gunno, period, request->chargeFee[APP_RATE_TYPE_SHARP]);
-                    app_billingrule_set_period_service_price(gunno, period, request->serviceFee[APP_RATE_TYPE_SHARP]);
-                    app_billingrule_set_period_delay_price(gunno, period, 0x00);
-                    break;
-                case APP_RATE_TYPE_PEAK :
-                    app_billingrule_set_period_elect_price(gunno, period, request->chargeFee[APP_RATE_TYPE_PEAK]);
-                    app_billingrule_set_period_service_price(gunno, period, request->serviceFee[APP_RATE_TYPE_PEAK]);
-                    app_billingrule_set_period_delay_price(gunno, period, 0x00);
-                    break;
-                case APP_RATE_TYPE_FLAT :
-                    app_billingrule_set_period_elect_price(gunno, period, request->chargeFee[APP_RATE_TYPE_FLAT]);
-                    app_billingrule_set_period_service_price(gunno, period, request->serviceFee[APP_RATE_TYPE_FLAT]);
-                    app_billingrule_set_period_delay_price(gunno, period, 0x00);
-                    break;
-                case APP_RATE_TYPE_VALLEY :
-                    app_billingrule_set_period_elect_price(gunno, period, request->chargeFee[APP_RATE_TYPE_VALLEY]);
-                    app_billingrule_set_period_service_price(gunno, period, request->serviceFee[APP_RATE_TYPE_VALLEY]);
-                    app_billingrule_set_period_delay_price(gunno, period, 0x00);
-                    break;
-                default:
-                    break;
+                if((segment + 0x01) >= (segment_num - 0x01)){
+                    sgcc_billing_info_set(request, gunno, billing_info[segment + 0x01].period, APP_BILLING_RULE_PERIOD_MAX, billing_info[segment + 0x01].fees_number);
                 }
             }
         }
     }
+    rt_free(billing_info);
+
     if(is_updated){
         net_operation_updated_billing_trigger();
     }
