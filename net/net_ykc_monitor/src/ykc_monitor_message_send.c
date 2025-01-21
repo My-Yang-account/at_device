@@ -1727,6 +1727,20 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
                 ykc_monitor_response_buff_release_sem();
                 rt_thread_mdelay(250);
             }
+            /***** [服务器查询计费信息响应] *****/
+            if(ykc_monitor_net_event_receive(NET_YKC_MONITOR_USER_EVENT_HANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_RESPONSE, gunno,
+                    (NET_YKC_MONITOR_EVENT_OPTION_OR |NET_YKC_MONITOR_EVENT_OPTION_CLEAR), NET_YKC_MONITOR_USER_PRES_EVENT_QUERY_BILLING, NULL) > 0){
+#ifdef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL
+                Net_YkcMonitorPro_Preq_Pres_BillingRule_t *billing = (Net_YkcMonitorPro_Preq_Pres_BillingRule_t*)(s_ykc_monitor_response_buff.general_transmit_buff);
+
+                billing->head.sequence = ykc_monitor_get_recv_message_item_serial_number(NETYKC_MONITOR_SREQCMD_QUERY_BILLING_RULE, gunno);
+                ykc_monitor_clear_recv_message_item(NETYKC_MONITOR_SREQCMD_QUERY_BILLING_RULE, gunno);
+                ykc_monitor_message_send_port(NETYKC_MONITOR_PRESCMD_QUERY_BILLING_RULE, s_ykc_monitor_socket_info.fd, s_ykc_monitor_response_buff.general_transmit_buff,
+                        s_ykc_monitor_response_buff.length, NULL);
+                ykc_monitor_response_buff_release_sem();
+                rt_thread_mdelay(250);
+#endif /* #ifdef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
+            }
         }
 
         /***************************************************** [充电桩监控数据请求] **********************************************************/
@@ -2643,9 +2657,9 @@ static void net_ykc_monitor_server_message_pro_entry(void *parameter)
                     (NET_YKC_MONITOR_EVENT_OPTION_OR |NET_YKC_MONITOR_EVENT_OPTION_CLEAR), NET_YKC_MONITOR_USER_SREQ_EVENT_QUERY_BILLING_RULE, NULL) > 0){
 #ifdef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL
                 response = ykc_monitor_get_response_buff(RT_WAITING_FOREVER);
-                result = ykc_monitor_message_padding_dev_info(response->general_transmit_buff, NET_YKC_MONITOR_GENERA_RESPONSE_BUFF_LENGTH, &(response->length));
+                result = ykc_monitor_message_padding_billing_rule(response->general_transmit_buff, NET_YKC_MONITOR_GENERA_RESPONSE_BUFF_LENGTH, &(response->length));
                 if(result >= 0x00){
-                    ykc_monitor_net_event_send(NET_YKC_MONITOR_USER_EVENT_HANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_RESPONSE, 0x00, NET_YKC_MONITOR_USER_PRES_EVENT_QUERY_DEV_INFO);
+                    ykc_monitor_net_event_send(NET_YKC_MONITOR_USER_EVENT_HANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_RESPONSE, 0x00, NET_YKC_MONITOR_USER_PRES_EVENT_QUERY_BILLING);
                 }else{
                     ykc_monitor_response_buff_release_sem();
                 }

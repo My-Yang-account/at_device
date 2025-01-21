@@ -1778,9 +1778,9 @@ static void ykc_monitor_callback_request_query_billing_rule_info(uint8_t* data, 
         LOG_E("ykc monitor input data is null when call ykc_monitor_callback_request_query_billing_rule_info");
         return;
     }
-    if(length != (sizeof(Net_YkcMonitorPro_SReq_General_t) + NET_YKC_MONITOR_PROTOCOL_CHECK_REGION_SIZE - 0x01)){
+    if(length != (sizeof(Net_YkcMonitorPro_SReq_General_t) + NET_YKC_MONITOR_PROTOCOL_CHECK_REGION_SIZE)){
         LOG_E("ykc monitor input length error when call ykc_monitor_callback_request_query_billing_rule_info|%d, %d", length,
-                (sizeof(Net_YkcMonitorPro_SReq_General_t) + NET_YKC_MONITOR_PROTOCOL_CHECK_REGION_SIZE - 0x01));
+                (sizeof(Net_YkcMonitorPro_SReq_General_t) + NET_YKC_MONITOR_PROTOCOL_CHECK_REGION_SIZE));
         return;
     }
     Net_YkcMonitorPro_SReq_General_t *request = (Net_YkcMonitorPro_SReq_General_t*)data;

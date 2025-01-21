@@ -161,6 +161,7 @@
 #define NET_YKC_MONITOR_USER_PRES_EVENT_QUERY_DEV_INFO               8    /* 充电桩监控响应事件：查询设备信息 */
 #define NET_YKC_MONITOR_USER_PRES_EVENT_FUNCTION_SWITCH              9    /* 充电桩监控响应事件：功能开关控制 */
 #define NET_YKC_MONITOR_USER_PRES_EVENT_MODIFY_DEV_INFO              10   /* 充电桩监控响应事件：修改设备信息 */
+#define NET_YKC_MONITOR_USER_PRES_EVENT_QUERY_BILLING                11   /* 充电桩监控响应事件：查询计费信息 */
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
 
 /** 登录签到 */
