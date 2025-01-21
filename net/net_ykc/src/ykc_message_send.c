@@ -34,11 +34,19 @@
 #define NET_YKC_REALTIME_DATA_LINK_INTERVAL                  5000        /* 实时数据刚连上网时上报间隔(单位ms:5 *1000 = 5s) */
 #define NET_YKC_SAME_TRANSATION_REPORT_COUNT_MAX             10          /* 相同订单最大上报次数 */
 
+#pragma pack(1)
 struct ykc_wait_response{
     uint32_t message_wait_response_state[NET_SYSTEM_GUN_NUMBER];                       /* 报文已发送发送，等待响应状态 */
     uint32_t message_repeat_time[NET_SYSTEM_GUN_NUMBER][NET_YKC_CHARGEPILE_PREQ_NUM];  /* 报文重发计时 */
 };
 
+/** 标志集 */
+struct ykc_flag_set{
+    uint8_t is_recved_billing : 1;     /** 已接到了计费模型 */
+};
+#pragma pack()
+
+NET_DEF_SRAM2 static struct ykc_flag_set s_ykc_flag_set;
 NET_DEF_SRAM2 uint8_t s_ykc_current_transaction_number[NET_SYSTEM_GUN_NUMBER][NET_YKC_SERIAL_NUMBER_LENGTH_DEFAULT];
 NET_DEF_SRAM2 static uint8_t s_ykc_same_transaction_report_count[NET_SYSTEM_GUN_NUMBER];
 NET_DEF_SRAM2 static uint8_t s_ykc_transaction_verify[NET_SYSTEM_GUN_NUMBER];
@@ -99,6 +107,16 @@ NET_DEF_SRAM2 Net_YkcPro_PRes_RemoteUpdate_t g_ykc_pres_remote_update;  // OK
 /** 上送储能信息 */
 NET_DEF_SRAM2 Net_YkcPro_PReq_StoredEnergy_Info_t g_ykc_preq_stored_energy_info;
 #endif /* NET_YKC_MESSAGE_USING_DUPU */
+
+/**************************************************************************
+ * 函数名                 ykc_is_recved_billing_rule
+ * 功能                     检查是否已经接收到了计费规则
+ * 说明
+ * ***********************************************************************/
+uint8_t ykc_is_recved_billing_rule(void)
+{
+    return s_ykc_flag_set.is_recved_billing;
+}
 
 /**************************************************************************
  * 函数名                 ykc_get_socket_info
@@ -398,6 +416,7 @@ static void net_ykc_message_send_thread_entry(void *parameter)
 
     s_ykc_socket_info.fd = -0x01;
     s_ykc_socket_info.domain_is_prase = 0x00;
+    s_ykc_flag_set.is_recved_billing = 0x00;
 
     while(1)
     {
@@ -755,6 +774,7 @@ static void net_ykc_message_send_thread_entry(void *parameter)
             if(ykc_net_event_receive(NET_YKC_EVENT_HANDLE_CHARGEPILE, NET_YKC_EVENT_TYPE_REQUEST, gunno,
                     (NET_YKC_EVENT_OPTION_OR |NET_YKC_EVENT_OPTION_CLEAR), NET_YKC_PREQ_EVENT_BILLING_MODEL_REQUEST, NULL) > 0){
 
+                s_ykc_flag_set.is_recved_billing = 0x00;
                 ykc_set_message_send_state(gunno, NET_YKC_SEND_STATE_ONGOING, NET_YKC_PREQ_EVENT_BILLING_MODEL_REQUEST);
                 g_ykc_preq_billing_model_request.head.sequence = s_ykc_message_serial_number[gunno]++;
                 ykc_message_send_port(NETYKC_PREQCMD_BILLING_MODEL_REQUEST, s_ykc_socket_info.fd, &g_ykc_preq_billing_model_request,
@@ -1469,6 +1489,7 @@ static void net_ykc_server_message_pro_entry(void *parameter)
                     if(ykc_message_pro_billing_model_set_response(&g_ykc_sreq_billing_model_set, sizeof(g_ykc_sreq_billing_model_set)) < 0x00){
                         res = 0x00;
                     }else{
+                        s_ykc_flag_set.is_recved_billing = 0x01;
                         res = 0x01;
                     }
                     result = ykc_response_padding_set_billing_model(response->general_transmit_buff, NET_YKC_GENERA_RESPONSE_BUFF_LENGTH, &(response->length));
@@ -1668,6 +1689,7 @@ static void net_ykc_server_message_pro_entry(void *parameter)
                 if(ykc_net_event_receive(NET_YKC_EVENT_HANDLE_SERVER, NET_YKC_EVENT_TYPE_RESPONSE, gunno,
                         (NET_YKC_EVENT_OPTION_OR |NET_YKC_EVENT_OPTION_CLEAR), NET_YKC_SRES_EVENT_BILLING_MODEL_REQUEST, NULL) > 0){
                     ykc_message_pro_billing_model_set_response(&g_ykc_sres_billing_model_request, sizeof(g_ykc_sres_billing_model_request));
+                    s_ykc_flag_set.is_recved_billing = 0x01;
                 }
                 /***** [充电桩主动申请启动充电响应] *****/
                 if(ykc_net_event_receive(NET_YKC_EVENT_HANDLE_SERVER, NET_YKC_EVENT_TYPE_RESPONSE, gunno,
@@ -1855,6 +1877,7 @@ int32_t ykc_message_send_init(void)
     memset(&s_ykc_wait_response, 0x00, sizeof(s_ykc_wait_response));
     memset(&s_ykc_socket_info, 0x00, sizeof(s_ykc_socket_info));
     memset(&s_ykc_response_buff, 0x00, sizeof(s_ykc_response_buff));
+    memset(&s_ykc_flag_set, 0x00, sizeof(s_ykc_flag_set));
 #endif /* NET_DESIGNATE_REGION */
 
     if(rt_thread_init(&s_ykc_message_send_thread, "ykc_send", net_ykc_message_send_thread_entry, NULL,

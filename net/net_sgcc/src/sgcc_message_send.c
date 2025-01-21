@@ -44,8 +44,9 @@ struct sgcc_flag_set{
     uint8_t disconnect : 1;            /** 断网或刚开始连上网 */
     uint8_t start_responsed : 1;       /** 启动充电已异步响应 */
     uint8_t stop_responsed : 1;        /** 停止充电已异步响应 */
-    uint8_t is_time_sync;              /** 已进行时间同步 */
-    uint8_t socket_lock;               /** socket已锁 */
+    uint8_t is_time_sync : 1;          /** 已进行时间同步 */
+    uint8_t socket_lock : 1;           /** socket已锁 */
+    uint8_t is_recved_billing : 1;     /** 已接到了计费模型 */
 };
 
 struct sgcc_wait_response{
@@ -149,6 +150,30 @@ NET_DEF_SRAM2 evs_property_acPile evs_property_acPiles;
 NET_DEF_SRAM2 evs_property_ac_work evs_property_ac_works[NET_SYSTEM_GUN_NUMBER];
 NET_DEF_SRAM2 evs_property_ac_nonWork evs_property_ac_nonWorks[NET_SYSTEM_GUN_NUMBER];
 #endif /* NET_SGCC_PRO_USING_DC */
+
+/**************************************************************************
+ * 函数名                 sgcc_is_recved_billing_rule
+ * 功能                     检查是否已经接收到了计费规则
+ * 说明
+ * ***********************************************************************/
+uint8_t sgcc_is_recved_billing_rule(void)
+{
+    return s_sgcc_flag_set.is_recved_billing;
+}
+
+/**************************************************************************
+ * 函数名                 sgcc_is_recved_billing_rule
+ * 功能                     检查是否已经接收到了计费规则
+ * 说明
+ * ***********************************************************************/
+void sgcc_set_recv_billing_state(uint8_t state)
+{
+    if(state){
+        s_sgcc_flag_set.is_recved_billing = 0x01;
+    }else{
+        s_sgcc_flag_set.is_recved_billing = 0x00;
+    }
+}
 
 /**************************************************************************
  * 函数名                 sgcc_get_socket_info
@@ -454,6 +479,7 @@ static void sgcc_connect_thread_entry(void *parameter)
 
     s_sgcc_socket_info.fd = -0x01;
     s_sgcc_socket_info.domain_is_prase = 0x00;
+    s_sgcc_flag_set.is_recved_billing = 0x00;
 
     while(1)
     {
@@ -903,16 +929,14 @@ static void sgcc_message_send_thread_entry(void *parameter)
                 sgcc_net_event_receive(NET_SGCC_EVENT_HANDLE_SERVER, NET_SGCC_EVENT_TYPE_REQUEST, gunno,
                                         (NET_SGCC_EVENT_OPTION_OR |NET_SGCC_EVENT_OPTION_CLEAR), NET_SGCC_SREQ_EVENT_BILLING_MODEL_SET, NULL);
 
+                s_sgcc_flag_set.is_recved_billing = 0x00;
+                memset(evs_event_ask_feeModels[gunno].eleModelId, 0x00, sizeof(evs_event_ask_feeModels[gunno].eleModelId));
+                memset(evs_event_ask_feeModels[gunno].serModeId, 0x00, sizeof(evs_event_ask_feeModels[gunno].serModeId));
+
                 sgcc_set_message_send_state(gunno, NET_SGCC_SEND_STATE_ONGOING, NET_SGCC_PREQ_EVENT_REQUEST_BILLING_MODE);
                 evs_send_event(EVS_CMD_EVENT_ASK_FEEMODEL, &evs_event_ask_feeModels[gunno]);
 
-                if(sgcc_net_event_receive(NET_SGCC_EVENT_HANDLE_SERVER, NET_SGCC_EVENT_TYPE_REQUEST, gunno,
-                        (NET_SGCC_EVENT_OPTION_OR |NET_SGCC_EVENT_OPTION_CLEAR), NET_SGCC_SREQ_EVENT_BILLING_MODEL_SET, NULL) <= 0){
-//                    sgcc_set_message_wait_response_state(gunno, NET_SGCC_PREQ_EVENT_REQUEST_BILLING_MODE);
-                }else{
-                    sgcc_clear_message_wait_response_state(gunno, NET_SGCC_PREQ_EVENT_REQUEST_BILLING_MODE);
-                }
-
+                sgcc_set_message_wait_response_state(gunno, NET_SGCC_PREQ_EVENT_REQUEST_BILLING_MODE);
                 sgcc_set_message_send_state(gunno, NET_SGCC_SEND_STATE_COMPLETE, NET_SGCC_PREQ_EVENT_REQUEST_BILLING_MODE);
                 rt_thread_mdelay(250);
             }

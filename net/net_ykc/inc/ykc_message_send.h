@@ -186,6 +186,7 @@ typedef struct{
 
 #pragma pack()
 
+uint8_t ykc_is_recved_billing_rule(void);
 ykc_socket_info_t* ykc_get_socket_info(void);
 
 uint8_t ykc_transaction_is_verify(uint8_t gunno);

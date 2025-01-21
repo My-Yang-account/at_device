@@ -2847,6 +2847,7 @@ static void ykc_state_changed_check(uint8_t gunno)
 static void ykc_realtime_process_thread_entry(void *parameter)
 {
     System_BaseData *base = NULL;
+    uint32_t request_billing_tick = 0x00;
     uint8_t gunno = 0x00;
 
     while(1){
@@ -2859,6 +2860,24 @@ static void ykc_realtime_process_thread_entry(void *parameter)
             rt_thread_mdelay(100);
             continue;
         }
+
+        if(ykc_is_recved_billing_rule()){
+            for(gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
+                if(app_billingrule_is_valid(gunno) == NET_ENUM_FALSE){
+                    if((rt_tick_get() - request_billing_tick) > 30000){
+                        request_billing_tick = rt_tick_get();
+                        ykc_net_event_send(NET_YKC_EVENT_HANDLE_CHARGEPILE, NET_YKC_EVENT_TYPE_REQUEST, 0x00, NET_YKC_PREQ_EVENT_BILLING_MODEL_REQUEST);
+                    }
+                    break;
+                }
+            }
+            if(gunno >= NET_SYSTEM_GUN_NUMBER){
+                request_billing_tick = rt_tick_get();
+            }
+        }else{
+            request_billing_tick = rt_tick_get();
+        }
+
 
         for(gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
             base = (System_BaseData*)(s_ykc_handle->get_base_data(gunno));

@@ -187,6 +187,9 @@ typedef struct{
 
 #pragma pack()
 
+uint8_t sgcc_is_recved_billing_rule(void);
+void sgcc_set_recv_billing_state(uint8_t state);
+
 sgcc_socket_info_t* sgcc_get_socket_info(void);
 
 uint8_t sgcc_transaction_is_verify(uint8_t gunno);

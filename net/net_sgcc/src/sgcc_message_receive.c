@@ -339,9 +339,11 @@ static int callback_service_EVS_FEE_MODEL_UPDATE_SRV(evs_service_issue_feeModel 
     memcpy(feedback->serModelId, request->serModelId, EVS_MAX_MODEL_ID_LEN);
 
     if(sgcc_message_pro_billing_model_request_response(request, sizeof(evs_service_issue_feeModel), 0x00) >= 0x00){
+        sgcc_set_recv_billing_state(0x01);
         feedback->result = SGCC_OPSCTL_ACTION;
         for(uint8_t gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
             sgcc_net_event_send(NET_SGCC_EVENT_HANDLE_SERVER, NET_SGCC_EVENT_TYPE_REQUEST, gunno, NET_SGCC_SREQ_EVENT_BILLING_MODEL_SET);
+            sgcc_clear_message_wait_response_state(gunno, NET_SGCC_PREQ_EVENT_REQUEST_BILLING_MODE);
         }
     }
 

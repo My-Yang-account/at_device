@@ -3969,6 +3969,7 @@ static void sgcc_state_changed_check(uint8_t gunno)
 static void sgcc_realtime_process_thread_entry(void *parameter)
 {
     uint8_t gunno = 0x00;
+    uint32_t request_billing_tick = 0x00;
     static System_BaseData *base = NULL;
 
     while(1)
@@ -3990,6 +3991,23 @@ static void sgcc_realtime_process_thread_entry(void *parameter)
             sgcc_fault_detect_report(gunno);
             sgcc_data_realtime_process(gunno);
             sgcc_state_changed_check(gunno);
+        }
+
+        if(sgcc_is_recved_billing_rule()){
+            for(gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
+                if(app_billingrule_is_valid(gunno) == NET_ENUM_FALSE){
+                    if((rt_tick_get() - request_billing_tick) > 30000){
+                        request_billing_tick = rt_tick_get();
+                        sgcc_net_event_send(NET_SGCC_EVENT_HANDLE_CHARGEPILE, NET_SGCC_EVENT_TYPE_REQUEST, 0x00, NET_SGCC_PREQ_EVENT_REQUEST_BILLING_MODE);
+                    }
+                    break;
+                }
+            }
+            if(gunno >= NET_SYSTEM_GUN_NUMBER){
+                request_billing_tick = rt_tick_get();
+            }
+        }else{
+            request_billing_tick = rt_tick_get();
         }
 
         for(gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
