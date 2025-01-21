@@ -37,13 +37,16 @@
 #define THAISEN_EMS_LEGTH_RES                 0x06               //接收数据长度
 #define THAISEN_EMS_RECV_HEAD                 0x01               //接收数据头
 #define THAISEN_EMS_RECV_FRAME_CMD            0x04               //接收数据指令码(目前只有一帧，这样做能减少错误率)
-#define THAISEN_EMS_RECV_FRAME_LENGTH         0x06               //接收数据长度值(目前只有一帧，这样做能减少错误率)
-#define THAISEN_EMS_ALL_LEGTH_RES             0x0B               //接收数据长度
+#define THAISEN_EMS_ALL_LEGTH_RES             0x0D               //接收数据长度
+
+#define THAISEN_EMS_FIX_LEGTH                 0x03               //帧固定长度
+#define THAISEN_EMS_CRC_LEGTH                 0x02               //校验码长度
 
 #define TERMINAL_EMS_SEND_PERIOD              250                //ems数据发送间隔(ms)
 #define EMS_WITE_PERIOD                       1000                //EMS主动上报的状态500ms周期(单位 ms)
 
 #define HTONS(x) ((((x) & 0x00ff) << 8) | (((x) & 0xff00) >> 8)) //宏把低字节在前转为高字节在前
+#define HTONL(x) ((((x) & 0xff000000) >> 24) | (((x) & 0xff0000) >> 8) | (((x) & 0xff00) << 8) | (((x) & 0xff) << 24)) //宏把低字节在前转为高字节在前
 
 #pragma pack(1)                                                  // 1字节对齐，成员紧密排列，没有填充
 
@@ -54,7 +57,7 @@ struct terminal_data
 };
 
 // 定义帧结构
-struct chargegun_data{
+struct ems_chargegun_data{
     uint16_t volt;       //电压
     uint16_t curr;       //电流
     uint16_t soc;        //soc
@@ -62,12 +65,18 @@ struct chargegun_data{
     uint16_t state;      //状态
 };                                                              //发送数据电压电流结构体
 
+struct ems_bms_info{
+    uint16_t require_voltage;       /** 需求电压 */
+    uint16_t require_current;       /** 需求电流 */
+    uint16_t require_power;         /** 需求功率 */
+};
+
 typedef struct{
     uint8_t header;
     uint8_t function_code;
     uint8_t length;
 
-    struct chargegun_data gun_data[2];                          //目前协议按照双枪发送
+    struct ems_chargegun_data gun_data[2];                          //目前协议按照双枪发送
 
     uint16_t year;        //年
     uint16_t month;       //月
@@ -75,6 +84,10 @@ typedef struct{
     uint16_t hour;        //时
     uint16_t minute;      //分
     uint16_t second;      //秒
+
+    struct ems_bms_info bms_data[2];
+
+    uint32_t elect_total[2];          /** 已充电量 */
 
     uint16_t crc;
 }ems_frame_req;                                                 //发送数据结构体
@@ -252,22 +265,29 @@ static void terminal_ems_send_charger_status(void)                              
     struct tm *ems_tm;
     s_ems_frame_request.header = THAISEN_EMS_RECV_HEAD;
     s_ems_frame_request.function_code = THAISEN_EMS_FANCTION_CODE_REQ;
-    s_ems_frame_request.length = THAISEN_EMS_LEGTH_REQ;
+    s_ems_frame_request.length = (sizeof(s_ems_frame_request) - THAISEN_EMS_FIX_LEGTH - THAISEN_EMS_CRC_LEGTH);
     uint32_t tick = mw_get_current_timestamp();
 
 #ifdef APP_USING_DOUBLEGUN                                           //双枪模式
     for(uint8_t gunno = 0x00; gunno < APP_SYSTEM_GUNNO_SIZE; gunno++){
         struct ofsm_info *ofsm = get_ofsm_info(gunno);
+        struct thaisenBMS_Charger_struct *bms = (struct thaisenBMS_Charger_struct*)(ofsm->base.bms_data);
+        uint32_t elect_total = ofsm->base.elect_a /10;
+
         if(ofsm->base.state.current == APP_OFSM_STATE_CHARGING){                                            //充电状态赋值充电数据
             s_ems_frame_request.gun_data[gunno].curr = HTONS(ofsm->base.current_a /10);
             s_ems_frame_request.gun_data[gunno].power = HTONS(ofsm->base.power_a /1000);
-
-            rt_kprintf("ofsm->base.current_a /10(%d)\r\n",ofsm->base.current_a /10);
-            rt_kprintf("ofsm->base.voltage_a /10(%d)\r\n",ofsm->base.voltage_a /10);
             s_ems_frame_request.gun_data[gunno].soc = HTONS(ofsm->base.current_soc);
             s_ems_frame_request.gun_data[gunno].volt = HTONS(ofsm->base.voltage_a /10);
+
+            s_ems_frame_request.bms_data[gunno].require_voltage = HTONS(bms->BCL.BMSneedVolt);
+            s_ems_frame_request.bms_data[gunno].require_current = HTONS(bms->BCL.BMSneedCurlt);
+            s_ems_frame_request.bms_data[gunno].require_power = HTONS(((bms->BCL.BMSneedVolt * bms->BCL.BMSneedCurlt) /1000 /10));
+            s_ems_frame_request.elect_total[gunno] = HTONL(elect_total);
         }else{
             memset(&s_ems_frame_request.gun_data[gunno], 0x00, sizeof(s_ems_frame_request.gun_data[gunno]));//非充电状态数据置0
+            memset(&s_ems_frame_request.bms_data[gunno], 0x00, sizeof(s_ems_frame_request.bms_data[gunno]));//非充电状态数据置0
+            s_ems_frame_request.elect_total[gunno] = 0;
         }
         switch(ofsm->base.state.current){                        //赋值充电状态给要发送的数据
         case APP_OFSM_STATE_WAIT_NET:
@@ -293,11 +313,26 @@ static void terminal_ems_send_charger_status(void)                              
         }
     }
 #else                                                          //单枪模式
-    struct ofsm_info *ofsm = get_ofsm_info(0x00);
-    s_ems_frame_request.gun_data[APP_SYSTEM_GUNNOA].curr = HTONS(ofsm->base.current_a /10);
-    s_ems_frame_request.gun_data[APP_SYSTEM_GUNNOA].power = HTONS(ofsm->base.power_a /1000);
-    s_ems_frame_request.gun_data[APP_SYSTEM_GUNNOA].soc = HTONS(ofsm->base.current_soc);
-    s_ems_frame_request.gun_data[APP_SYSTEM_GUNNOA].volt =HTONS(ofsm->base.voltage_a /10);
+    struct ofsm_info *ofsm = get_ofsm_info(APP_SYSTEM_GUNNOA);
+    struct thaisenBMS_Charger_struct *bms = (struct thaisenBMS_Charger_struct*)(ofsm->base.bms_data);
+    uint32_t elect_total = ofsm->base.elect_a /10;
+
+    if(ofsm->base.state.current == APP_OFSM_STATE_CHARGING){                                            //充电状态赋值充电数据
+        s_ems_frame_request.gun_data[APP_SYSTEM_GUNNOA].curr = HTONS(ofsm->base.current_a /10);
+        s_ems_frame_request.gun_data[APP_SYSTEM_GUNNOA].power = HTONS(ofsm->base.power_a /1000);
+        s_ems_frame_request.gun_data[APP_SYSTEM_GUNNOA].soc = HTONS(ofsm->base.current_soc);
+        s_ems_frame_request.gun_data[APP_SYSTEM_GUNNOA].volt =HTONS(ofsm->base.voltage_a /10);
+
+        s_ems_frame_request.bms_data[APP_SYSTEM_GUNNOA].require_voltage = HTONS(bms->BCL.BMSneedVolt);
+        s_ems_frame_request.bms_data[APP_SYSTEM_GUNNOA].require_current = HTONS(bms->BCL.BMSneedCurlt);
+        s_ems_frame_request.bms_data[APP_SYSTEM_GUNNOA].require_power = HTONS(((bms->BCL.BMSneedVolt * bms->BCL.BMSneedCurlt) /1000 /10));
+        s_ems_frame_request.elect_total[APP_SYSTEM_GUNNOA] = HTONL(elect_total);
+    }else{
+        memset(&s_ems_frame_request.gun_data[APP_SYSTEM_GUNNOA], 0x00, sizeof(s_ems_frame_request.gun_data[APP_SYSTEM_GUNNOA]));//非充电状态数据置0
+        memset(&s_ems_frame_request.bms_data[APP_SYSTEM_GUNNOA], 0x00, sizeof(s_ems_frame_request.bms_data[APP_SYSTEM_GUNNOA]));//非充电状态数据置0
+        s_ems_frame_request.elect_total[APP_SYSTEM_GUNNOA] = 0;
+    }
+
     switch(ofsm->base.state.current){
     case APP_OFSM_STATE_WAIT_NET:
     case APP_OFSM_STATE_IDLEING:
@@ -382,7 +417,7 @@ void terminal_thread_entry(void *parameter)
             rlen = 0;
             continue;                                      //没有收到数据返回while重新接收
         }
-
+        /** 帧头 */
         if((ch != THAISEN_EMS_RECV_HEAD) && (rlen == 0)){                           //收到帧头
             rlen = 0;
             continue;
@@ -392,7 +427,7 @@ void terminal_thread_entry(void *parameter)
             data_buffer[0] = THAISEN_EMS_RECV_HEAD;
             continue;
         }
-
+        /** 指令码 */
         if((ch != THAISEN_EMS_RECV_FRAME_CMD) && (rlen == 1)){                           //收到帧头
             rlen = 0;
             continue;
@@ -403,21 +438,24 @@ void terminal_thread_entry(void *parameter)
             continue;
         }
 
-        if((ch != THAISEN_EMS_RECV_FRAME_LENGTH) && (rlen == 2)){                           //收到帧头            rlen = 0;
-            continue;
-        }
         if(rlen == 2){
-            rlen++;
-            data_buffer[2] = THAISEN_EMS_RECV_FRAME_LENGTH;
-            continue;
+            uint8_t frame_len = ch;
+            if((frame_len + THAISEN_EMS_FIX_LEGTH + THAISEN_EMS_CRC_LEGTH) > THAISEN_EMS_ALL_LEGTH_RES){
+                rlen = 0;
+                LOG_W("terminal ems frame length too long(%d, %d)", frame_len, THAISEN_EMS_ALL_LEGTH_RES);
+                continue;
+            }
         }
 
-        //已接收到头
+        /** 已接收到头 */
         if(rlen > 0){
             data_buffer[rlen++] = ch;
-            if(rlen >= THAISEN_EMS_ALL_LEGTH_RES){
-                if(xfmbmcrcsum((uint8_t *)&data_buffer, sizeof(data_buffer) - 2) != (uint16_t)((data_buffer[10] << 8) | data_buffer[9])){
+            if(rlen >= (data_buffer[2] + THAISEN_EMS_FIX_LEGTH + THAISEN_EMS_CRC_LEGTH)){
+                if(xfmbmcrcsum(data_buffer, (data_buffer[2] + THAISEN_EMS_FIX_LEGTH)) !=    \
+                        (uint16_t)((data_buffer[rlen - 1] << 8) | data_buffer[rlen - 02])){
                     rlen = 0;
+                    LOG_W("terminal ems frame crc error(%x, %x)", xfmbmcrcsum(data_buffer, (data_buffer[2] + THAISEN_EMS_FIX_LEGTH)),  \
+                            (uint16_t)((data_buffer[rlen - 1] << 8) | data_buffer[rlen - 02]));
                     continue;                                      //校验失败返回while重新接收
                 }else{
                     s_ems_frame_res.header = data_buffer[0];
