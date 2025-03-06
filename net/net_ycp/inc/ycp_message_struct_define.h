@@ -173,6 +173,7 @@ enum ycp_abnormal_stop{
     NETYCP_AS_REASON73_STORAGE_CHIP = 0x73,                  /* 充电异常中止，存储芯片 */
     NETYCP_AS_REASON74_BSM_WARNNING = 0x74,                  /* 充电异常中止，BSM 告警 */
     NETYCP_AS_REASON75_GATE = 0x75,                          /* 充电异常中止，门禁故障 */
+    NETYCP_AS_REASON76_BATTERY_VOLTAGE = 0x76,               /* 充电异常中止，电池电压 */
     NETYCP_AS_REASONFF_UNKNOW = 0xFF,                        /* 充电异常中止，未知原因停止 */
 };
 

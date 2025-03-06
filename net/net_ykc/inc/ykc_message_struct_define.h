@@ -157,6 +157,7 @@ enum ykc_abnormal_stop{
     NETYKC_AS_REASON8F_BSM_WARNNING = 0x8F,                  /* 充电异常中止，BSM 告警 */
     NETYKC_AS_REASON90_UNKNOW = 0x90,                        /* 充电异常中止，未知原因停止 */
     NETYKC_AS_REASON91_GATE = 0x91,                          /* 充电异常中止，门禁故障 */
+    NETYKC_AS_REASON92_BATTERY_VOLTAGE = 0x92,               /* 充电异常中止，电池电压 */
 };
 
 enum ykc_cmd{

@@ -2731,7 +2731,7 @@ static uint16_t ykc_monitor_chargepile_stop_reason_converted(uint8_t reason, uin
         break;
     /* 电池电压 */
     case APP_SYSTEM_STOP_WAY_BATTERY_VOLT:
-        _reason = NETYKC_MONITOR_SF_REASON61_BRO_AA_STAGE_VOLT_OVERRANGE;
+        _reason = NETYKC_MONITOR_AS_REASON92_BATTERY_VOLTAGE;
         break;
     /* 车机停止 */
     case APP_SYSTEM_STOP_WAY_BST:
@@ -2739,7 +2739,7 @@ static uint16_t ykc_monitor_chargepile_stop_reason_converted(uint8_t reason, uin
         break;
     /* 准备电压 */
     case APP_SYSTEM_STOP_WAY_READY_VOLT:
-        _reason = NETYKC_MONITOR_SF_REASON67_READY_VOLTAGE;
+        _reason = NETYKC_MONITOR_SF_REASON61_BRO_AA_STAGE_VOLT_OVERRANGE;
         break;
     /* 绝缘电压 */
     case APP_SYSTEM_STOP_WAY_INSULT_VOLT:

@@ -2502,11 +2502,7 @@ static uint16_t ycp_chargepile_stop_reason_converted(uint8_t reason, uint8_t sto
         break;
     /* 电池电压 */
     case APP_SYSTEM_STOP_WAY_BATTERY_VOLT:
-        if(stop_in_starting){
-            _reason = NETYCP_SF_REASON26_BRO_AA_STAGE_VOLT_OVERRANGE;
-        }else{
-            _reason = NETYCP_AS_REASON65_BSTATE_ABNORMAL;
-        }
+        _reason = NETYCP_AS_REASON76_BATTERY_VOLTAGE;
         break;
     /* 车机停止 */
     case APP_SYSTEM_STOP_WAY_BST:
@@ -2514,7 +2510,7 @@ static uint16_t ycp_chargepile_stop_reason_converted(uint8_t reason, uint8_t sto
         break;
     /* 准备电压 */
     case APP_SYSTEM_STOP_WAY_READY_VOLT:
-        _reason = NETYCP_SF_REASON2C_READY_VOLTAGE;
+        _reason = NETYCP_SF_REASON26_BRO_AA_STAGE_VOLT_OVERRANGE;
         break;
     /* 绝缘电压 */
     case APP_SYSTEM_STOP_WAY_INSULT_VOLT:
