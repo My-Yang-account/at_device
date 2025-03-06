@@ -2773,6 +2773,7 @@ static void ofsm_starting_fun(uint8_t gunno)
             if(s_ofsm_info[gunno].base.start_type == APP_CHARGE_START_WAY_VIN){
                 if(s_ofsm_info[gunno].base.flag.vin_is_authorized == APP_THA_ENUM_FALSE){
                     struct thaisenBMS_Charger_struct* bms = (struct thaisenBMS_Charger_struct*)(s_ofsm_info[gunno].base.bms_data);
+                    s_thaisen_transaction[gunno].start_soc = bms->BCP.SOC;
                     memcpy(s_ofsm_info[gunno].base.car_vin, bms->BRM.CarDiscern, sizeof(s_ofsm_info[gunno].base.car_vin));
                     memcpy(s_thaisen_transaction[gunno].car_vin, bms->BRM.CarDiscern, sizeof(bms->BRM.CarDiscern));
                     if(sys_vin_whitelists_query(bms->BRM.CarDiscern, sizeof(bms->BRM.CarDiscern)) >= 0x00){
@@ -2843,6 +2844,7 @@ static void ofsm_starting_fun(uint8_t gunno)
                 s_ofsm_info[gunno].base.flag.vin_authorization_success = APP_THA_ENUM_TRUE;
                 struct thaisenBMS_Charger_struct* bms = (struct thaisenBMS_Charger_struct*)(s_ofsm_info[gunno].base.bms_data);
                 memcpy(s_ofsm_info[gunno].base.car_vin, bms->BRM.CarDiscern, sizeof(s_ofsm_info[gunno].base.car_vin));
+                s_thaisen_transaction[gunno].start_soc = bms->BCP.SOC;
                 memcpy(s_thaisen_transaction[gunno].car_vin, bms->BRM.CarDiscern, sizeof(bms->BRM.CarDiscern));
             }
 
