@@ -1226,6 +1226,46 @@ static void ofsm_start_info_padding_password(uint8_t gunno)
     if(gunno >= APP_SYSTEM_GUNNO_SIZE){   /* 枪号不对 */
         return;
     }
+
+    uint8_t valid_len = 0x00;
+
+    s_ofsm_info[gunno].base.flag.is_local_charging = APP_THA_ENUM_TRUE;
+    s_ofsm_info[gunno].base.flag.vin_authorization_success = APP_THA_ENUM_FALSE;
+    s_ofsm_info[gunno].base.flag.vin_is_authorized = APP_THA_ENUM_FALSE;
+    s_ofsm_info[gunno].base.start_type = APP_CHARGE_START_WAY_PASSWORD;
+    s_ofsm_info[gunno].base.account_ballance_before = 0x00;
+    s_ofsm_info[gunno].base.account_ballance_after = 0x00;
+    s_ofsm_info[gunno].base.charge_strategy = APP_CHARGE_STRATEGY_FULL;
+    s_ofsm_info[gunno].base.charge_strategy_para = 0x00;
+
+    app_nsal_create_local_transaction_number(gunno, &(s_ofsm_info[gunno].base.transaction_number),  \
+            sizeof(s_ofsm_info[gunno].base.transaction_number));
+#ifdef APP_INCLUDE_SGCC_PROTOCOL
+    memcpy(s_ofsm_info[gunno].base.device_transaction_number, s_ofsm_info[gunno].base.transaction_number, \
+            sizeof(s_ofsm_info[gunno].base.transaction_number));
+#endif /* APP_INCLUDE_SGCC_PROTOCOL */
+
+    memset(s_ofsm_info[gunno].base.car_vin, 0x00, sizeof(s_ofsm_info[gunno].base.car_vin));
+    memset(s_ofsm_info[gunno].base.card_number, 0x00, sizeof(s_ofsm_info[gunno].base.card_number));
+    memset(s_ofsm_info[gunno].base.card_uid, 0x00, sizeof(s_ofsm_info[gunno].base.card_uid));
+    memset(s_ofsm_info[gunno].base.user_number, 0x00, sizeof(s_ofsm_info[gunno].base.user_number));
+
+    valid_len = sizeof(s_ofsm_info[gunno].base.transaction_number);
+    valid_len = valid_len > sizeof(s_thaisen_transaction[gunno].serial_number) ? sizeof(s_thaisen_transaction[gunno].serial_number) : valid_len;
+    memset(s_thaisen_transaction[gunno].serial_number, 0x00, sizeof(s_thaisen_transaction[gunno].serial_number));
+    memcpy(s_thaisen_transaction[gunno].serial_number, s_ofsm_info[gunno].base.transaction_number, valid_len);
+    memset(s_thaisen_transaction[gunno].logic_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].logic_card_number));
+    memset(s_thaisen_transaction[gunno].physics_card_number, 0x00, sizeof(s_thaisen_transaction[gunno].physics_card_number));
+    memset(s_thaisen_transaction[gunno].user_number, 0x00, sizeof(s_thaisen_transaction[gunno].user_number));
+#ifdef APP_INCLUDE_SGCC_PROTOCOL
+    memcpy(s_thaisen_transaction[gunno].device_serial_number, s_ofsm_info[gunno].base.device_transaction_number, \
+            sizeof(s_ofsm_info[gunno].base.device_transaction_number));
+#endif /* APP_INCLUDE_SGCC_PROTOCOL */
+    s_thaisen_transaction[gunno].account_ballance_before = s_ofsm_info[gunno].base.account_ballance_before;
+    s_thaisen_transaction[gunno].account_ballance_after = s_ofsm_info[gunno].base.account_ballance_after;
+
+    s_thaisen_transaction[gunno].start_type = APP_CHARGE_START_WAY_PASSWORD;
+    s_thaisen_transaction[gunno].order_state.online_order = APP_THA_ENUM_FALSE;
 }
 
 /***************************************************************
@@ -1819,9 +1859,10 @@ static void ofsm_idleing_fun(uint8_t gunno)
     }
 
     mw_clear_time_sync_flag(gunno);
-    app_get_hci_event(gunno, HCI_EVENT_SCREEN_START, 1);
-    app_get_hci_event(gunno, HCI_EVENT_SCREEN_STOP, 1);
-    app_get_hci_event(gunno, HCI_EVENT_VIN_START, 1);
+    app_get_hci_event(gunno, HCI_EVENT_SCREEN_START, APP_THA_ENUM_TRUE);
+    app_get_hci_event(gunno, HCI_EVENT_SCREEN_STOP, APP_THA_ENUM_TRUE);
+    app_get_hci_event(gunno, HCI_EVENT_VIN_START, APP_THA_ENUM_TRUE);
+    app_get_hci_event(gunno, HCI_EVENT_PASSWORD_START, APP_THA_ENUM_TRUE);
 
     app_nsal_clear_remote_start(gunno);
     app_nsal_clear_remote_stop(gunno);
@@ -1907,13 +1948,14 @@ static void ofsm_readying_fun(uint8_t gunno)
                 s_ofsm_info[gunno].base.flag.paracharge_is_identified = APP_THA_ENUM_TRUE;
 
                 rfidr_clear_swipe_state(gunno);
-                app_get_hci_event(gunno, HCI_EVENT_SCREEN_START, 1);
-                app_get_hci_event(gunno, HCI_EVENT_VIN_START, 1);
+                app_get_hci_event(gunno, HCI_EVENT_SCREEN_START, APP_THA_ENUM_TRUE);
+                app_get_hci_event(gunno, HCI_EVENT_VIN_START, APP_THA_ENUM_TRUE);
                 app_nsal_clear_remote_start(gunno);
                 app_nsal_clear_remote_card_authorize(gunno);
                 mw_clear_time_sync_flag(gunno);
-                app_get_hci_event(gunno, HCI_EVENT_SCREEN_STOP, 1);
+                app_get_hci_event(gunno, HCI_EVENT_SCREEN_STOP, APP_THA_ENUM_TRUE);
                 app_nsal_clear_remote_stop(gunno);
+                app_get_hci_event(gunno, HCI_EVENT_PASSWORD_START, APP_THA_ENUM_TRUE);
 
                 return;
             }
@@ -2013,6 +2055,11 @@ static void ofsm_readying_fun(uint8_t gunno)
             ofsm_start_info_padding_vin(gunno);
             is_charging_authorization = true;
 
+        }else if(app_get_hci_event(gunno, HCI_EVENT_PASSWORD_START, APP_THA_ENUM_TRUE)){
+            LOG_D("gunno(%d) start charge by password", gunno);
+            ofsm_start_info_padding_password(gunno);
+            is_charging_authorization = true;
+
         }else if(app_nsal_is_set_reservation(gunno)){
             app_nsal_clear_set_reservation(gunno);
 #if 0
@@ -2051,8 +2098,9 @@ static void ofsm_readying_fun(uint8_t gunno)
 
     if(is_charging_authorization == true){
         rfidr_clear_swipe_state(gunno);
-        app_get_hci_event(gunno, HCI_EVENT_SCREEN_START, 1);
-        app_get_hci_event(gunno, HCI_EVENT_VIN_START, 1);
+        app_get_hci_event(gunno, HCI_EVENT_SCREEN_START, APP_THA_ENUM_TRUE);
+        app_get_hci_event(gunno, HCI_EVENT_VIN_START, APP_THA_ENUM_TRUE);
+        app_get_hci_event(gunno, HCI_EVENT_PASSWORD_START, APP_THA_ENUM_TRUE);
         app_nsal_clear_remote_start(gunno);
         app_nsal_clear_remote_card_authorize(gunno);
     }else{
@@ -2121,8 +2169,9 @@ static void ofsm_reservation_fun(uint8_t gunno)
 
     if(is_charging_authorization == true){
         rfidr_clear_swipe_state(gunno);
-        app_get_hci_event(gunno, HCI_EVENT_SCREEN_START, 1);
-        app_get_hci_event(gunno, HCI_EVENT_VIN_START, 1);
+        app_get_hci_event(gunno, HCI_EVENT_SCREEN_START, APP_THA_ENUM_TRUE);
+        app_get_hci_event(gunno, HCI_EVENT_VIN_START, APP_THA_ENUM_TRUE);
+        app_get_hci_event(gunno, HCI_EVENT_PASSWORD_START, APP_THA_ENUM_TRUE);
         app_nsal_clear_remote_start(gunno);
         app_nsal_clear_remote_card_authorize(gunno);
     }else{
@@ -3135,9 +3184,10 @@ static void ofsm_starting_fun(uint8_t gunno)
 
     mw_clear_time_sync_flag(gunno);
     rfidr_clear_swipe_state(gunno);
-    app_get_hci_event(gunno, HCI_EVENT_SCREEN_START, 1);
-    app_get_hci_event(gunno, HCI_EVENT_SCREEN_STOP, 1);
-    app_get_hci_event(gunno, HCI_EVENT_VIN_START, 1);
+    app_get_hci_event(gunno, HCI_EVENT_SCREEN_START, APP_THA_ENUM_TRUE);
+    app_get_hci_event(gunno, HCI_EVENT_SCREEN_STOP, APP_THA_ENUM_TRUE);
+    app_get_hci_event(gunno, HCI_EVENT_VIN_START, APP_THA_ENUM_TRUE);
+    app_get_hci_event(gunno, HCI_EVENT_PASSWORD_START, APP_THA_ENUM_TRUE);
 
     app_nsal_clear_remote_start(gunno);
     app_nsal_clear_remote_card_authorize(gunno);
@@ -4605,9 +4655,10 @@ static void ofsm_stoping_fun(uint8_t gunno)
 
     mw_clear_time_sync_flag(gunno);
     rfidr_clear_swipe_state(gunno);
-    app_get_hci_event(gunno, HCI_EVENT_SCREEN_START, 1);
-    app_get_hci_event(gunno, HCI_EVENT_SCREEN_STOP, 1);
-    app_get_hci_event(gunno, HCI_EVENT_VIN_START, 1);
+    app_get_hci_event(gunno, HCI_EVENT_SCREEN_START, APP_THA_ENUM_TRUE);
+    app_get_hci_event(gunno, HCI_EVENT_SCREEN_STOP, APP_THA_ENUM_TRUE);
+    app_get_hci_event(gunno, HCI_EVENT_VIN_START, APP_THA_ENUM_TRUE);
+    app_get_hci_event(gunno, HCI_EVENT_PASSWORD_START, APP_THA_ENUM_TRUE);
 
     app_nsal_clear_remote_start(gunno);
     app_nsal_clear_remote_stop(gunno);
@@ -4675,12 +4726,13 @@ static void ofsm_finishing_fun(uint8_t gunno)
                 s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
 
                 rfidr_clear_swipe_state(gunno);
-                app_get_hci_event(gunno, HCI_EVENT_SCREEN_START, 1);
-                app_get_hci_event(gunno, HCI_EVENT_VIN_START, 1);
+                app_get_hci_event(gunno, HCI_EVENT_SCREEN_START, APP_THA_ENUM_TRUE);
+                app_get_hci_event(gunno, HCI_EVENT_VIN_START, APP_THA_ENUM_TRUE);
+                app_get_hci_event(gunno, HCI_EVENT_PASSWORD_START, APP_THA_ENUM_TRUE);
                 app_nsal_clear_remote_start(gunno);
                 app_nsal_clear_remote_card_authorize(gunno);
                 mw_clear_time_sync_flag(gunno);
-                app_get_hci_event(gunno, HCI_EVENT_SCREEN_STOP, 1);
+                app_get_hci_event(gunno, HCI_EVENT_SCREEN_STOP, APP_THA_ENUM_TRUE);
                 app_nsal_clear_remote_stop(gunno);
 
                 return;
@@ -4882,6 +4934,11 @@ static void ofsm_finishing_fun(uint8_t gunno)
             ofsm_start_info_padding_vin(gunno);
             is_charging_authorization = true;
 
+        }else if(app_get_hci_event(gunno, HCI_EVENT_PASSWORD_START, APP_THA_ENUM_TRUE)){
+            LOG_D("gunno(%d) start charge by password", gunno);
+            ofsm_start_info_padding_password(gunno);
+            is_charging_authorization = true;
+
         }else if(app_nsal_is_set_reservation(gunno)){
             app_nsal_clear_set_reservation(gunno);
 #if 0
@@ -4944,14 +5001,15 @@ static void ofsm_finishing_fun(uint8_t gunno)
 
     if(is_charging_authorization == true){
         rfidr_clear_swipe_state(gunno);
-        app_get_hci_event(gunno, HCI_EVENT_SCREEN_START, 1);
-        app_get_hci_event(gunno, HCI_EVENT_VIN_START, 1);
+        app_get_hci_event(gunno, HCI_EVENT_SCREEN_START, APP_THA_ENUM_TRUE);
+        app_get_hci_event(gunno, HCI_EVENT_VIN_START, APP_THA_ENUM_TRUE);
+        app_get_hci_event(gunno, HCI_EVENT_PASSWORD_START, APP_THA_ENUM_TRUE);
         app_nsal_clear_remote_start(gunno);
         app_nsal_clear_remote_card_authorize(gunno);
     }else{
         mw_clear_time_sync_flag(gunno);
     }
-    app_get_hci_event(gunno, HCI_EVENT_SCREEN_STOP, 1);
+    app_get_hci_event(gunno, HCI_EVENT_SCREEN_STOP, APP_THA_ENUM_TRUE);
     app_nsal_clear_remote_stop(gunno);
 }
 /*****************************************************
@@ -5068,12 +5126,13 @@ static void ofsm_faulting_fun(uint8_t gunno)
                             s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
 
                             clear_swipe_card_state(gunno);
-                            app_get_hci_event(gunno, HCI_EVENT_SCREEN_START, 1);
-                            app_get_hci_event(gunno, HCI_EVENT_VIN_START, 1);
+                            app_get_hci_event(gunno, HCI_EVENT_SCREEN_START, APP_THA_ENUM_TRUE);
+                            app_get_hci_event(gunno, HCI_EVENT_VIN_START, APP_THA_ENUM_TRUE);
+                            app_get_hci_event(gunno, HCI_EVENT_PASSWORD_START, APP_THA_ENUM_TRUE);
                             app_nsal_clear_remote_start(gunno);
                             app_nsal_clear_remote_card_authorize(gunno);
                             mw_clear_time_sync_flag(gunno);
-                            app_get_hci_event(gunno, HCI_EVENT_SCREEN_STOP, 1);
+                            app_get_hci_event(gunno, HCI_EVENT_SCREEN_STOP, APP_THA_ENUM_TRUE);
                             app_nsal_clear_remote_stop(gunno);
 
                             return;
@@ -5145,6 +5204,10 @@ static void ofsm_faulting_fun(uint8_t gunno)
                     ofsm_start_info_padding_vin(gunno);
                     is_charging_authorization = true;
 
+                }else if(app_get_hci_event(gunno, HCI_EVENT_PASSWORD_START, APP_THA_ENUM_TRUE)){
+                    LOG_D("gunno(%d) start charge by password", gunno);
+                    ofsm_start_info_padding_password(gunno);
+                    is_charging_authorization = true;
                 }
 
                 /************** 【充电桩已授权】 *************/
@@ -5168,21 +5231,23 @@ static void ofsm_faulting_fun(uint8_t gunno)
             }
             if(is_charging_authorization == true){
                 rfidr_clear_swipe_state(gunno);
-                app_get_hci_event(gunno, HCI_EVENT_SCREEN_START, 1);
-                app_get_hci_event(gunno, HCI_EVENT_VIN_START, 1);
+                app_get_hci_event(gunno, HCI_EVENT_SCREEN_START, APP_THA_ENUM_TRUE);
+                app_get_hci_event(gunno, HCI_EVENT_VIN_START, APP_THA_ENUM_TRUE);
+                app_get_hci_event(gunno, HCI_EVENT_PASSWORD_START, APP_THA_ENUM_TRUE);
                 app_nsal_clear_remote_start(gunno);
                 app_nsal_clear_remote_card_authorize(gunno);
             }else{
                 mw_clear_time_sync_flag(gunno);
             }
-            app_get_hci_event(gunno, HCI_EVENT_SCREEN_STOP, 1);
+            app_get_hci_event(gunno, HCI_EVENT_SCREEN_STOP, APP_THA_ENUM_TRUE);
             app_nsal_clear_remote_stop(gunno);
         }else{
             mw_clear_time_sync_flag(gunno);
             rfidr_clear_swipe_state(gunno);
-            app_get_hci_event(gunno, HCI_EVENT_SCREEN_START, 1);
-            app_get_hci_event(gunno, HCI_EVENT_SCREEN_STOP, 1);
-            app_get_hci_event(gunno, HCI_EVENT_VIN_START, 1);
+            app_get_hci_event(gunno, HCI_EVENT_SCREEN_START, APP_THA_ENUM_TRUE);
+            app_get_hci_event(gunno, HCI_EVENT_SCREEN_STOP, APP_THA_ENUM_TRUE);
+            app_get_hci_event(gunno, HCI_EVENT_VIN_START, APP_THA_ENUM_TRUE);
+            app_get_hci_event(gunno, HCI_EVENT_PASSWORD_START, APP_THA_ENUM_TRUE);
 
             app_nsal_clear_remote_start(gunno);
             app_nsal_clear_remote_stop(gunno);

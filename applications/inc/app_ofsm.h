@@ -143,6 +143,7 @@ enum system_start_way{
     APP_CHARGE_START_WAY_BLUE,                         /* 启动方式：蓝牙 */
     APP_CHARGE_START_WAY_PLUG_AND_CHARGE,              /* 启动方式：即插即充 */
     APP_CHARGE_START_WAY_TIMING,                       /* 启动方式：定时预约 */
+    APP_CHARGE_START_WAY_PASSWORD,                     /* 启动方式：密码 */
 };
 
 enum net_state{

@@ -23,6 +23,7 @@ enum hci_event{
     HCI_EVENT_SCREEN_START,    /* 屏幕启动 */
     HCI_EVENT_SCREEN_STOP,     /* 屏幕停止 */
     HCI_EVENT_VIN_START,       /* VIN启动 */
+    HCI_EVENT_PASSWORD_START,  /* 密码启动 */
 };
 
 void app_hci_req_thread_entry(void *parameter);

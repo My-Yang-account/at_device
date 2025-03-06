@@ -1121,6 +1121,20 @@ void thaisen_app_set_vin_start_charge(uint8_t gunno)
     app_set_hci_event(gunno, HCI_EVENT_VIN_START);
 }
 
+/********************************************
+ * 函数名      thaisen_app_set_password_start_charge
+ * 功能          设置密码启动充电状态
+ * 参数          gunno     枪号
+ * 返回          无
+ *******************************************/
+void thaisen_app_set_password_start_charge(uint8_t gunno)
+{
+    if(gunno >= APP_SYSTEM_GUNNO_SIZE){
+        return;
+    }
+    app_set_hci_event(gunno, HCI_EVENT_PASSWORD_START);
+}
+
 struct temperature* get_battery_temp_info(uint8_t gunno)
 {
     if(gunno >= APP_SYSTEM_GUNNO_SIZE){

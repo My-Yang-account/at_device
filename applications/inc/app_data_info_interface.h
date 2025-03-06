@@ -434,6 +434,10 @@ void thaisen_app_clear_vin_start_charge(uint8_t gunno);
  * 设置VIN码启动充电指令
  **/
 void thaisen_app_set_vin_start_charge(uint8_t gunno);
+/**
+ * 设置密码启动充电指令
+ **/
+void thaisen_app_set_password_start_charge(uint8_t gunno);
 
 struct temperature{
     int8_t temp;       /* 动力电池最高温度 */

@@ -317,6 +317,7 @@ struct LCD_ASSISTANT_DATA{
         u16 IsCountDownFinish : 1;       //启动倒计时已结束
         u16 IsConfigFail : 1;            //配置保存失败
         u16 NeedReboot : 1;              //需要重启
+        u16 IsPWStartAuthen : 1;         //填密码是密码启动鉴权
     }Flag;
 
     struct{
@@ -509,6 +510,7 @@ struct LCD_DISPLAY_SETDATA_TYPE{
 	u8 supout_fan;							//风扇输入启用
 
 	u8 sup_Local;							//本地充电支持
+    u8 sup_pw_start;                        //密码充电支持
     u8 sup_Local_stop;                      //本地停止支持
 	u8 sup_insulation;						//绝缘检测支持
 	u8 sup_usecard;							//刷卡支持
@@ -540,6 +542,7 @@ struct LCD_DISPLAY_SETDATA_TYPE{
     u8 Icon_SuplocalStop;                   //本地停止使能icon
     u8 Icon_SupPlugAndPlay;                    //即插即充使能icon
     u8 Icon_SupOfflineBilling;              //离线计费使能icon
+    u8 Icon_SupPWStart;                     //密码启动使能icon
     /***********************protect info***************************/
 	u32 Input_OverVolt;                     // 输入过压
     u32 Input_UnderVolt;                    // 输入欠压
@@ -767,7 +770,14 @@ enum ICON_CHARGE_STYLE{
 	ICON_CHARGE_LOCAL = 0,
 	ICON_CHARGE_NULL ,
 	ICON_CHARGE_VIN ,
-	ICON_CHARGE_DOUBLE,
+    ICON_CHARGE_DOUBLE,
+	ICON_CHARGE_PW,
+};
+
+enum CHARGE_STYLE{
+    CHARGE_STYLE_START_LOCAL,
+    CHARGE_STYLE_START_VIN,
+    CHARGE_STYLE_START_PW,
 };
 
 enum ICON_AUXPOWER_SELECT{
@@ -2201,6 +2211,9 @@ static void SerialScreen_RealTime_InfoGet(void)
 #ifdef SCREEN_USING_DUPU
         LcdData.setData.StoredEnergy_Soc = terminal_get_ems_soc();
         LcdData.setData.StoredEnergy_Power = (*(u32*)UI_READ_SINGLE_CFG_STR(CONFIG_ITEM_SYSTEM_POWER_TOTAL, 0));
+        if(LcdData.setData.StoredEnergy_Power > (terminal_get_ems_set_power() *100)){
+            LcdData.setData.StoredEnergy_Power = (terminal_get_ems_set_power() *100);
+        }
 #endif /* SCREEN_USING_DUPU */
         if(LcdData.CurrentPage != LCD_PAGE_MENU_COM_1){
             data = UI_READ_SINGLE_CFG_STR(CONFIG_ITEM_HELP_PHONE, 0);
@@ -2388,7 +2401,12 @@ void SerialScreen_VinStartChargeB(void)
     }else;
 }
 
-
+void SerialScreen_PWStartCharge(u8 port)
+{
+    if(TRUE == LcdData.setData.sup_pw_start){
+        thaisen_app_set_password_start_charge(port);
+    }else;
+}
 
 void SerialScreen_StopCharge(int port)
 {
@@ -3360,6 +3378,14 @@ void SerialScreen_IsSupportOfflineBillingSet(void)
 #endif /* SCREEN_USING_OFFLINE_BILLING */
 }
 
+void SerialScreen_IsSupportPWStartSet(void)
+{
+    if(LcdData.setData.Icon_SupPWStart != TRUE)
+        LcdData.setData.Icon_SupPWStart = TRUE;
+    else
+        LcdData.setData.Icon_SupPWStart = FALSE;
+}
+
 /********************************输入信息*******************************************/
 void SerialScreen_ScramIsSupportSet(void)
 {
@@ -3805,6 +3831,7 @@ static void SerialScreen_IsSupportInfoJudge(u32 *ret)
     LcdData.setData.sup_Local_stop = LcdData.setData.Icon_SuplocalStop;
     LcdData.setData.sup_offbilling = LcdData.setData.Icon_SupOfflineBilling;
     LcdData.setData.Sup_PlugAndPlay = LcdData.setData.Icon_SupPlugAndPlay;
+    LcdData.setData.sup_pw_start = LcdData.setData.Icon_SupPWStart;
 
     if(ret){
         *ret = result;
@@ -3834,6 +3861,7 @@ void SerialScreen_IsSupportSetFlash(void)
     UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_PARALLELRELAY, (u8 *)&(LcdData.setData.sup_parallelrelay), sizeof(LcdData.setData.sup_parallelrelay));
     UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_MODULE_SLIENCE, (u8 *)&(LcdData.setData.sup_mslience), sizeof(LcdData.setData.sup_mslience));
     UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_OFFLINE_BILLING, (u8 *)&(LcdData.setData.sup_offbilling), sizeof(LcdData.setData.sup_offbilling));
+    UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_PASSWORD_START, (u8 *)&(LcdData.setData.sup_pw_start), sizeof(LcdData.setData.sup_pw_start));
 
     for(u8 i = 0; i < sizeof(LcdData.setData.UserPasswdShow); i++){
         if((LcdData.setData.UserPasswdShow[i] < 0x20) ||  \
@@ -4000,6 +4028,8 @@ void SerialScreen_IsSupportGet(void)
 #else
     LcdData.setData.sup_offbilling = FALSE;
 #endif /* SCREEN_USING_OFFLINE_BILLING */
+    if(TRUE != *(u8 *)(UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_PASSWORD_START, 0)))   /* 密码启动配置默认不启用 */
+        LcdData.setData.sup_pw_start = FALSE;
 
     LcdData.setData.Icon_SuplocalStop = FALSE;
     if(LcdData.setData.sup_Local_stop){
@@ -4018,6 +4048,11 @@ void SerialScreen_IsSupportGet(void)
 #else
     LcdData.setData.Icon_SupOfflineBilling = FALSE;
 #endif /* SCREEN_USING_OFFLINE_BILLING */
+
+    LcdData.setData.Icon_SupPWStart = FALSE;
+    if(LcdData.setData.sup_pw_start){
+        LcdData.setData.Icon_SupPWStart = TRUE;
+    }
 
     if(LcdData.setData.sup_insulation == FALSE){
         function_disable = 1;
@@ -5791,6 +5826,16 @@ void SerialScreen_NeedPageReset(int port)
 	LcdData.menuflg = 1;
 	//LcdData.NeedMenuOffFlg = 1;
 	//LcdData.NeedMenuOffTimer = 2000; //100s*20
+	LcdAssistantData.Flag.IsPWStartAuthen = FALSE;
+}
+
+void SerialScreen_PWStartAuthen(void)
+{
+    if(LcdData.setData.sup_pw_start){
+        LcdAssistantData.Flag.IsPWStartAuthen = TRUE;
+    }else{
+        LcdAssistantData.Flag.IsPWStartAuthen = FALSE;
+    }
 }
 
 
@@ -6591,6 +6636,7 @@ struct LCD_DATA_FIFO_TYPE *SerialScreen_Init(struct SerialScreenObj *cmd)
     LcdData.setData.sup_parallelrelay = *(UI_READ_SINGLE_CFG_STR(CONFIG_ITEM_SUPORT_PARALLELRELAY, 0));
     LcdData.setData.sup_mslience = *((u8*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_MODULE_SLIENCE, 0));
     LcdData.setData.sup_offbilling = *((u8*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_OFFLINE_BILLING, 0));
+    LcdData.setData.sup_pw_start = *((u8*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_PASSWORD_START, 0));
     LcdData.setData.supin_ac = *((u8*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_INEN_ACRELAY, 0));
 
     memset(LcdData.setData.UserPasswdShow, '\0', sizeof(LcdData.setData.UserPasswdShow));
@@ -6663,6 +6709,9 @@ struct LCD_DATA_FIFO_TYPE *SerialScreen_Init(struct SerialScreenObj *cmd)
 #else
     LcdData.setData.sup_offbilling = FALSE;
 #endif /* SCREEN_USING_OFFLINE_BILLING */
+
+    if(LcdData.setData.sup_pw_start > TRUE)        /* 密码启动默认不启用 */
+        LcdData.setData.sup_pw_start = FALSE;
 
     if(LcdData.setData.Sup_PlugAndPlay > TRUE)       /* 即插即充默认不启用 */
         LcdData.setData.Sup_PlugAndPlay = FALSE;
@@ -6751,14 +6800,16 @@ struct LCD_DATA_FIFO_TYPE *SerialScreen_Init(struct SerialScreenObj *cmd)
 		LcdData.gun[i].Unit_Price = -0.31f;
 		LcdData.gun[i].startCountTimer = 90;
 	    SerialScreen_ScreenSet_CouDownFin_Flag(FALSE);
-		LcdData.setData.Sup_StartStyle[0][i] = ~LcdData.setData.sup_Local;
+		LcdData.setData.Sup_StartStyle[CHARGE_STYLE_START_LOCAL][i] = ~LcdData.setData.sup_Local;
 		if(TRUE == LcdData.setData.sup_VIN)
-			LcdData.setData.Sup_StartStyle[1][i] = ICON_CHARGE_VIN;
-		else LcdData.setData.Sup_StartStyle[1][i] = ICON_CHARGE_NULL;
-		for(int j = 2 ;j <(sizeof(LcdData.setData.Sup_StartStyle)/sizeof(LcdData.setData.Sup_StartStyle[0])) ; j++)
-		{
-			LcdData.setData.Sup_StartStyle[j][i] = ICON_CHARGE_NULL;	
-		}
+			LcdData.setData.Sup_StartStyle[CHARGE_STYLE_START_VIN][i] = ICON_CHARGE_VIN;
+		else LcdData.setData.Sup_StartStyle[CHARGE_STYLE_START_VIN][i] = ICON_CHARGE_NULL;
+
+        if(TRUE == LcdData.setData.sup_pw_start)
+            LcdData.setData.Sup_StartStyle[CHARGE_STYLE_START_PW][i] = ICON_CHARGE_PW;
+        else LcdData.setData.Sup_StartStyle[CHARGE_STYLE_START_PW][i] = ICON_CHARGE_NULL;
+
+	    LcdAssistantData.SeveralGunFlag[i].DataIsVerify = FALSE;
 	}
 
     LcdData.setData.Sup_Stop = ICON_CHARGE_NULL;
@@ -6780,6 +6831,11 @@ struct LCD_DATA_FIFO_TYPE *SerialScreen_Init(struct SerialScreenObj *cmd)
 #else
     LcdData.setData.Icon_SupOfflineBilling = FALSE;
 #endif /* SCREEN_USING_OFFLINE_BILLING */
+
+    LcdData.setData.Icon_SupPWStart = FALSE;
+    if(LcdData.setData.sup_pw_start){
+        LcdData.setData.Icon_SupPWStart = TRUE;
+    }
 
 	LcdData.setData.SerialScreen_PassWordShow = FALSE;
 	LcdData.setData.manufacturer = 1;//NULL
@@ -7548,10 +7604,14 @@ void SerialScreen_GetKeyProcess(struct SerialScreenObj *cmd)
                     if((str_ncmp(LcdData.KeyInput, LcdData.setData.UserPasswd, strlen(LcdData.setData.UserPasswd))==0)
                             ||((str_ncmp((u8 *)pPageIndex->item[i].valaddr, LcdData.KeyInput, pPageIndex->item[i].reflash)==0)&&(str_len(LcdData.KeyInput)>5)))
 					{
-                        if(LcdAssistantData.Flag.IsLongLiSerialScreen){
-                            LcdData.CurrentPage = LCD_PAGE_SYS_INFO;
+                        if(LcdAssistantData.Flag.IsPWStartAuthen == TRUE){
+                            SerialScreen_PWStartCharge(LcdData.gunIndex);
                         }else{
-                            LcdData.CurrentPage = pPageIndex->item[i].vallen;
+                            if(LcdAssistantData.Flag.IsLongLiSerialScreen){
+                                LcdData.CurrentPage = LCD_PAGE_SYS_INFO;
+                            }else{
+                                LcdData.CurrentPage = pPageIndex->item[i].vallen;
+                            }
                         }
 						 LcdData.menuflg = 1;
 					}
@@ -7761,11 +7821,19 @@ void SerialScreen_GetKeyProcess(struct SerialScreenObj *cmd)
 
                          if(LcdData.CurrentPage == LCD_PAGE_ADMIN_PASWD){
                              if(page_selected == 0){
-                                 if(((keyreg == 0x1000) && (keyval == 0x0013)) && LcdAssistantData.Flag.IsLongLiSerialScreen){
-                                     LcdData.CurrentPage = LCD_PAGE_STANDBY;
+                                 LcdData.CurrentPage = pPageIndex->item[i].vallen;
+                                 if((keyreg == 0x1000) && (keyval == 0x0013)){        //输密码页面点击返回
+                                     if(LcdAssistantData.Flag.IsLongLiSerialScreen){
+                                         LcdData.CurrentPage = LCD_PAGE_STANDBY;
+                                     }else if(LcdAssistantData.Flag.IsPWStartAuthen == TRUE){
+                                         if(LcdData.gunIndex == LCD_GUN_1){
+                                             LcdData.CurrentPage = LCD_PAGE_A_SELECT;
+                                         }else{
+                                             LcdData.CurrentPage = LCD_PAGE_B_SELECT;
+                                         }
+                                         LcdAssistantData.Flag.IsPWStartAuthen = FALSE;
+                                     }
                                      LcdData.menuflg = 0;
-                                 }else{
-                                     LcdData.CurrentPage = pPageIndex->item[i].vallen;
                                  }
                                  page_selected = 1;
                              }
@@ -7794,6 +7862,10 @@ void SerialScreen_GetKeyProcess(struct SerialScreenObj *cmd)
                                  (*pdofun)(LcdData.gunIndex);
                              }
                              sSCREEN_DEBUGPROMSG("LCD_BtnType CurrentPage=%d\r\n",LcdData.CurrentPage);
+                         }
+
+                         if(LcdAssistantData.Flag.IsPWStartAuthen == TRUE){
+                             LcdData.CurrentPage = LCD_PAGE_ADMIN_PASWD;
                          }
 
 						 sSCREEN_DEBUGPROMSG("pPageIndex->item[i].vallen = %d\r\n",pPageIndex->item[i].vallen);
@@ -8375,15 +8447,19 @@ int SerialScreen_DataProcess()
 				mem_set(LcdData.gun[i].soc,0,sizeof(LcdData.gun[i].soc));
 
 			#endif
-			LcdData.setData.Sup_StartStyle[0][i] = !LcdData.setData.sup_Local;
+			LcdData.setData.Sup_StartStyle[CHARGE_STYLE_START_LOCAL][i] = !LcdData.setData.sup_Local;
 			if(TRUE == LcdData.setData.sup_VIN)
-				LcdData.setData.Sup_StartStyle[1][i] = ICON_CHARGE_VIN;
-			else LcdData.setData.Sup_StartStyle[1][i] = ICON_CHARGE_NULL;
+				LcdData.setData.Sup_StartStyle[CHARGE_STYLE_START_VIN][i] = ICON_CHARGE_VIN;
+			else LcdData.setData.Sup_StartStyle[CHARGE_STYLE_START_VIN][i] = ICON_CHARGE_NULL;
+
+            if(TRUE == LcdData.setData.sup_pw_start)
+                LcdData.setData.Sup_StartStyle[CHARGE_STYLE_START_PW][i] = ICON_CHARGE_PW;
+            else LcdData.setData.Sup_StartStyle[CHARGE_STYLE_START_PW][i] = ICON_CHARGE_NULL;
 
 			sSCREEN_DEBUGMSG(" ErWeiCode[%d]=%s",i,LcdData.setData.ErWeiCode[i]);
 			//
 			//sSCREEN_DEBUGMSG(" portState[%d] = %02x",i,LcdData.gun[i].portState);
-			sSCREEN_DEBUGMSG("Sup_StartStyle[%d] = %d",i,LcdData.setData.Sup_StartStyle[0][i]);
+			sSCREEN_DEBUGMSG("Sup_StartStyle[%d] = %d",i,LcdData.setData.Sup_StartStyle[CHARGE_STYLE_START_LOCAL][i]);
 			sSCREEN_DEBUGMSG(" chargeState[%d]= %02x\r\n",i,chargeState[i]);
 			sSCREEN_DEBUGMSG(" code_stopResaon[%d]=%s",i,LcdData.gun[i].code_stopResaon);
 			sSCREEN_DEBUGMSG(" workState[%d]= %02x\r\n",i,LcdData.gun[i].workState);
@@ -8480,6 +8556,7 @@ void SerialScreen_Process(struct SerialScreenObj *cmd)
         sSCREEN_DEBUGPROMSG("**************menu exit*******************\r\n");
         LcdData.menuflg = 0;
         SerialScreen_PageNeedRefresh(LcdData.gunIndex);
+        LcdAssistantData.Flag.IsPWStartAuthen = FALSE;
         //
     }
 
@@ -8653,12 +8730,13 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_A_SELECT, NULL, "back", LCD_BtnType, 0x0002, 0x1000, page_type, LCD_PAGE_STANDBY, (void *)SerialScreen_BtnReturn1);
     SerialScreen_ItemSetUp(LCD_PAGE_A_SELECT, NULL, "Agun_Charge", LCD_BtnType, 0x0008, 0x1010, page_type, LCD_PAGE_A_SELECT, (void *)SerialScreen_StartChargeA);
     SerialScreen_ItemSetUp(LCD_PAGE_A_SELECT, NULL, "Agun_VinCharge", LCD_BtnType, 0x0016, 0x1010, page_type, LCD_PAGE_A_SELECT, (void *)SerialScreen_VinStartChargeA);
-    SerialScreen_ItemSetUp(LCD_PAGE_A_SELECT, NULL, "start charge", LCD_IconType, LCD_10sReflash, 0x1056, pu8_type, 1, (void *)&LcdData.setData.Sup_StartStyle[0][LCD_GUN_1]);
-    SerialScreen_ItemSetUp(LCD_PAGE_A_SELECT, NULL, "Vin charge", LCD_IconType, LCD_10sReflash, 0x1057, pu8_type, 1, (void *)&LcdData.setData.Sup_StartStyle[1][LCD_GUN_1]);
-    SerialScreen_ItemSetUp(LCD_PAGE_A_SELECT, NULL, "double charge", LCD_IconType, LCD_10sReflash, 0x1058, pu8_type, 1, (void *)&LcdData.setData.Sup_StartStyle[2][LCD_GUN_1]);
+    SerialScreen_ItemSetUp(LCD_PAGE_A_SELECT, NULL, "start charge", LCD_IconType, LCD_10sReflash, 0x1056, pu8_type, 1, (void *)&LcdData.setData.Sup_StartStyle[CHARGE_STYLE_START_LOCAL][LCD_GUN_1]);
+    SerialScreen_ItemSetUp(LCD_PAGE_A_SELECT, NULL, "Vin charge", LCD_IconType, LCD_10sReflash, 0x1057, pu8_type, 1, (void *)&LcdData.setData.Sup_StartStyle[CHARGE_STYLE_START_VIN][LCD_GUN_1]);
+    SerialScreen_ItemSetUp(LCD_PAGE_A_SELECT, NULL, "PW charge", LCD_IconType, LCD_10sReflash, 0x6500, pu8_type, 1, (void *)&LcdData.setData.Sup_StartStyle[CHARGE_STYLE_START_PW][LCD_GUN_1]);
     SerialScreen_ItemSetUp(LCD_PAGE_A_SELECT, NULL, "Icon Saux", LCD_IconType, LCD_10sReflash, 0x4630, pu8_type, sizeof(LcdData.setData.s_selectaux[LCD_GUN_1]), (void *)&LcdData.setData.s_selectaux[LCD_GUN_1]);
     SerialScreen_ItemSetUp(LCD_PAGE_A_SELECT, NULL, "auxA set", LCD_BtnType, 0x0001, 0x1007, page_type, LCD_PAGE_A_SELECT, (void *)SerialScreen_AuxsetA);
     SerialScreen_ItemSetUp(LCD_PAGE_A_SELECT, NULL, "unlock_ela", LCD_BtnType, 0x0007, 0x1000, page_type, LCD_PAGE_A_SELECT, (void *)SerialScreen_BtnUnElockA);
+    SerialScreen_ItemSetUp(LCD_PAGE_A_SELECT, NULL, "pw authen", LCD_BtnType, 0x0001, 0x1001, page_type, LCD_PAGE_A_SELECT, (void *)SerialScreen_PWStartAuthen);
     SerialScreen_ItemSetUp(LCD_PAGE_A_SELECT, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
 
     /** 3.B枪选择 [page:03]*/
@@ -8667,12 +8745,13 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_B_SELECT, NULL, "back", LCD_BtnType, 0x0002, 0x1000, page_type, LCD_PAGE_STANDBY, (void *)SerialScreen_BtnReturn1);
     SerialScreen_ItemSetUp(LCD_PAGE_B_SELECT, NULL, "Bgun_Charge", LCD_BtnType, 0x0008, 0x1010, page_type, LCD_PAGE_B_SELECT, (void *)SerialScreen_StartChargeB);
     SerialScreen_ItemSetUp(LCD_PAGE_B_SELECT, NULL, "Bgun_VinCharge", LCD_BtnType, 0x0016, 0x1010, page_type, LCD_PAGE_B_SELECT, (void *)SerialScreen_VinStartChargeB);
-    SerialScreen_ItemSetUp(LCD_PAGE_B_SELECT, NULL, "start charge", LCD_IconType, LCD_10sReflash, 0x1056, pu8_type, 1, (void *)&LcdData.setData.Sup_StartStyle[0][LCD_GUN_2]);
-    SerialScreen_ItemSetUp(LCD_PAGE_B_SELECT, NULL, "Vin charge", LCD_IconType, LCD_10sReflash, 0x1057, pu8_type, 1, (void *)&LcdData.setData.Sup_StartStyle[1][LCD_GUN_2]);
-    SerialScreen_ItemSetUp(LCD_PAGE_B_SELECT, NULL, "double charge", LCD_IconType, LCD_10sReflash, 0x1058, pu8_type, 1, (void *)&LcdData.setData.Sup_StartStyle[2][LCD_GUN_2]);
+    SerialScreen_ItemSetUp(LCD_PAGE_B_SELECT, NULL, "start charge", LCD_IconType, LCD_10sReflash, 0x1056, pu8_type, 1, (void *)&LcdData.setData.Sup_StartStyle[CHARGE_STYLE_START_LOCAL][LCD_GUN_2]);
+    SerialScreen_ItemSetUp(LCD_PAGE_B_SELECT, NULL, "Vin charge", LCD_IconType, LCD_10sReflash, 0x1057, pu8_type, 1, (void *)&LcdData.setData.Sup_StartStyle[CHARGE_STYLE_START_VIN][LCD_GUN_2]);
+    SerialScreen_ItemSetUp(LCD_PAGE_B_SELECT, NULL, "PW charge", LCD_IconType, LCD_10sReflash, 0x6501, pu8_type, 1, (void *)&LcdData.setData.Sup_StartStyle[CHARGE_STYLE_START_PW][LCD_GUN_2]);
     SerialScreen_ItemSetUp(LCD_PAGE_B_SELECT, NULL, "Icon Saux", LCD_IconType, LCD_10sReflash, 0x4632, pu8_type, sizeof(LcdData.setData.s_selectaux[LCD_GUN_2]), (void *)&LcdData.setData.s_selectaux[LCD_GUN_2]);
     SerialScreen_ItemSetUp(LCD_PAGE_B_SELECT, NULL, "auxB set", LCD_BtnType, 0x0002, 0x1007, page_type, LCD_PAGE_B_SELECT, (void *)SerialScreen_AuxsetB);
     SerialScreen_ItemSetUp(LCD_PAGE_B_SELECT, NULL, "unlock_elb", LCD_BtnType, 0x0008, 0x1000, page_type, LCD_PAGE_B_SELECT, (void *)SerialScreen_BtnUnElockB);
+    SerialScreen_ItemSetUp(LCD_PAGE_B_SELECT, NULL, "pw authen", LCD_BtnType, 0x0003, 0x1001, page_type, LCD_PAGE_B_SELECT, (void *)SerialScreen_PWStartAuthen);
     SerialScreen_ItemSetUp(LCD_PAGE_B_SELECT, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
 
     /** 4.A枪启动 [page:04]*/
@@ -9111,6 +9190,7 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
 #endif /* SCREEN_USING_OFFLINE_BILLING */
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_CONFIG, NULL, "module slience set", LCD_BtnType, 0x0001, 0x1005, page_type, LCD_PAGE_MENU_CONFIG, (void *)SerialScreen_IsSupportModuleSlienceSet);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_CONFIG, NULL, "offline billing set", LCD_BtnType, 0x0001, 0x1009, page_type, LCD_PAGE_MENU_CONFIG, (void *)SerialScreen_IsSupportOfflineBillingSet);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_CONFIG, NULL, "pw start set", LCD_BtnType, 0x0004, 0x1001, page_type, LCD_PAGE_MENU_CONFIG, (void *)SerialScreen_IsSupportPWStartSet);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_CONFIG, NULL, "plug and play", LCD_IconType, LCD_10sReflash, 0x412A, pu8_type, sizeof(LcdData.setData.Icon_SupPlugAndPlay), (void *)&LcdData.setData.Icon_SupPlugAndPlay);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_CONFIG, NULL, "locoal charge", LCD_IconType, LCD_10sReflash, 0x412E, pu8_type, sizeof(LcdData.setData.sup_Local), (void *)&LcdData.setData.sup_Local);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_CONFIG, NULL, "locoal stop", LCD_IconType, LCD_10sReflash, 0x6110, pu8_type, sizeof(LcdData.setData.Icon_SuplocalStop), (void *)&LcdData.setData.Icon_SuplocalStop);
@@ -9122,6 +9202,7 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_CONFIG, NULL, "vin set", LCD_IconType, LCD_10sReflash, 0x4126, pu8_type, sizeof(LcdData.setData.sup_VIN), (void *)&LcdData.setData.sup_VIN);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_CONFIG, NULL, "module slience", LCD_IconType, LCD_10sReflash, 0x4304, pu8_type, sizeof(LcdData.setData.sup_mslience), (void *)&LcdData.setData.sup_mslience);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_CONFIG, NULL, "offline billing", LCD_IconType, LCD_10sReflash, 0x475D, pu8_type, sizeof(LcdData.setData.Icon_SupOfflineBilling), (void *)&LcdData.setData.Icon_SupOfflineBilling);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_CONFIG, NULL, "pw start", LCD_IconType, LCD_10sReflash, 0x6502, pu8_type, sizeof(LcdData.setData.Icon_SupPWStart), (void *)&LcdData.setData.Icon_SupPWStart);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_CONFIG, NULL, "subok", LCD_BtnType, 0x0014, 0x1000, page_type, LCD_PAGE_ROOT_MAIN, (void *)SerialScreen_IsSupportSetFlash);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_CONFIG, NULL, "cd up", LCD_BtnType, 0x0050, 0x1000, page_type, LCD_PAGE_ROOT_MAIN, (void *)NULL);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_CONFIG, NULL, "Home", LCD_BtnHomeType, 0x0002, 0x1000, page_type, LCD_PAGE_NONE, (void *)NULL);
