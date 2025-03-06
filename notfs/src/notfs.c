@@ -141,6 +141,7 @@ notfs_err_e notfs_init(void)
                     err = NOTFS_NOTINIT_ERR;
 
                     s_init_flag_check[i] = 0;
+                    return err;
                 }else{
                     if(s_init_flag_check[i] < 0xFF){
                         s_init_flag_check[i]++;
@@ -151,6 +152,8 @@ notfs_err_e notfs_init(void)
                 memset(&(s_notfs_inode[i]), 0x00, sizeof(struct notfs_inode));
                 memset(&(s_notfs_file [i]), 0x00, sizeof(struct notfs_file));
 
+                s_notfs_sb[i].file_max_count = NOTFS_ORDER_USER_FILE_MAX_COUNT;
+                s_notfs_sb[i].file_max_size = NOTFS_FILE_MAX_SIZE;
                 /* 申请内存前进行安全处理 */
                 if (NOTFS_FILE_MAX_COUNT < s_notfs_sb[i].file_max_count) {
                     s_notfs_sb[i].file_max_count = NOTFS_FILE_MAX_COUNT;
