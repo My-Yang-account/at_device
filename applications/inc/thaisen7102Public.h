@@ -877,6 +877,71 @@ void thaisen_set_gunCurr(uint32_t curr, uint8_t gunNum);
  */
 uint32_t thaisen_get_gunCurr(uint8_t gunNum);
 
+/* 电表串口校验方式 */
+typedef enum
+{
+    THAISEN_CHECK_WAY_NONE,
+    THAISEN_CHECK_WAY_EVEN,
+    THAISEN_CHECK_WAY_ODD,
+    THAISEN_CHECK_WAY_SIZE,
+}thaisenCheckWayEnum;
+/* 电表串口通信波特率 */
+typedef enum
+{
+    THAISEN_BAUDRATE_2400,
+    THAISEN_BAUDRATE_4800,
+    THAISEN_BAUDRATE_9600,
+    THAISEN_BAUDRATE_19200,
+    THAISEN_BAUDRATE_38400,
+    THAISEN_BAUDRATE_57600,
+    THAISEN_BAUDRATE_115200,
+    THAISEN_BAUDRATE_SIZE,
+}thaisenBaudrateEnum;
+
+/* 功能说明:
+ *          thaisen_set_ammeterCheckWay:设置电表校验方式
+ * 输入参数:
+ *
+ * 返回参数:
+ *          校验方式枚举
+ * 调用方法:
+ *          实时调用
+ */
+void thaisen_set_ammeterCheckWay(thaisenCheckWayEnum way);
+
+/* 功能说明:
+ *          thaisen_get_ammeterCheckWay:获取电表校验方式
+ * 输入参数:
+ *
+ * 返回参数:
+ *          校验方式枚举
+ * 调用方法:
+ *          实时调用
+ */
+thaisenCheckWayEnum thaisen_get_ammeterCheckWay(void);
+
+/* 功能说明:
+ *          thaisen_set_ammeterBaudrate:设置电表通信波特率
+ * 输入参数:
+ *
+ * 返回参数:
+ *          波特率枚举
+ * 调用方法:
+ *          实时调用
+ */
+void thaisen_set_ammeterBaudrate(thaisenBaudrateEnum baudrate);
+
+/* 功能说明:
+ *          thaisen_get_ammeterBaudrate:获取电表通信波特率
+ * 输入参数:
+ *
+ * 返回参数:
+ *          波特率枚举
+ * 调用方法:
+ *          实时调用
+ */
+thaisenBaudrateEnum thaisen_get_ammeterBaudrate(void);
+
 /*****************************************************************************************************/
 
 /*********************************FLASH***************************************************************/

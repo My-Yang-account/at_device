@@ -310,6 +310,16 @@
 #define CHARGEPILE_ELOSS_PROPORTION_MAX           100       /* 电损比最大值(一位小数) */
 #define CHARGEPILE_ELOSS_PROPORTION_DEF           0         /* 电损比默认值(一位小数) */
 
+#define CP_AMMETER_CHECK_WAY_EVEN                 0         /* 电表串口校验方式：偶校验 */
+#define CP_AMMETER_CHECK_WAY_ODD                  1         /* 电表串口校验方式：奇校验 */
+#define CP_AMMETER_CHECK_WAY_NONE                 2         /* 电表串口校验方式：无校验 */
+
+#define CP_AMMETER_BAUDRATE_2400                  0         /* 电表串口波特率：2400 */
+#define CP_AMMETER_BAUDRATE_4800                  1         /* 电表串口波特率：4800 */
+#define CP_AMMETER_BAUDRATE_9600                  2         /* 电表串口波特率：9600 */
+#define CP_AMMETER_BAUDRATE_38400                 3         /* 电表串口波特率：38400 */
+#define CP_AMMETER_BAUDRATE_115200                4         /* 电表串口波特率：115200 */
+
 /* net type */
 #define CP_NETTYPE_4G                                 0x00             /* 联网方式：4G */
 #define CP_NETTYPE_ETH                                0x01             /* 联网方式：以太网 */
@@ -484,6 +494,8 @@ enum config_name{
     CONFIG_ITEM_METER_NOA,
     CONFIG_ITEM_METER_NOB,
     CONFIG_ITEM_METER_MODEL,
+    CONFIG_ITEM_METER_CHECK_WAY,
+    CONFIG_ITEM_METER_BAUDRATE,
 
     CONFIG_ITEM_RATED_OUTPUT_VOLTAGE,
     CONFIG_ITEM_MAX_OUTPUT_VOLTAGE,

@@ -153,7 +153,10 @@ struct _config_info{
 
     uint16_t teminal_addrA;                                           /* A枪终端地址 */
     uint16_t teminal_addrB;                                           /* B枪终端地址 */
-    uint8_t reserve[256 - 4];                                         /* 保留 */
+
+    uint8_t ammeter_check_way;                                        /* 电表串口校验方式 */
+    uint8_t ammeter_baudrate;                                         /* 电表串口波特率 */
+    uint8_t reserve[256 - 6];                                         /* 保留 */
 };
 
 struct _function_enable{
@@ -567,6 +570,16 @@ APP_DEF_SRAM2 static struct config_item s_config_item_set[CONFIG_ITEM_SIZE] =
         (uint8_t*)&s_chargepile_config_info.config_info.meter_model,
         NULL},
 
+        {CONFIG_ITEM_METER_CHECK_WAY,                                                           /* 电表校验方式 */
+        (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_info.ammeter_check_way)),
+        (uint8_t*)&s_chargepile_config_info.config_info.ammeter_check_way,
+        NULL},
+
+        {CONFIG_ITEM_METER_BAUDRATE,                                                            /* 电表波特率 */
+        (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_info.ammeter_baudrate)),
+        (uint8_t*)&s_chargepile_config_info.config_info.ammeter_baudrate,
+        NULL},
+
         {CONFIG_ITEM_RATED_OUTPUT_VOLTAGE,                                                    /* 额定输出电压 */
         (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.module_rated_outvolt)),
         (uint8_t*)&s_chargepile_config_info.config_para.module_rated_outvolt,
@@ -892,6 +905,12 @@ void sys_chargeplie_config_info_init(void)
     /** 电表型号 */
     sys_config_item_init(CONFIG_ITEM_METER_MODEL, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_info.meter_model)), \
             (uint8_t*)&s_chargepile_config_info.config_info.meter_model, NULL);
+    /** 电表校验方式 */
+    sys_config_item_init(CONFIG_ITEM_METER_CHECK_WAY, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_info.ammeter_check_way)), \
+            (uint8_t*)&s_chargepile_config_info.config_info.ammeter_check_way, NULL);
+    /** 电表波特率 */
+    sys_config_item_init(CONFIG_ITEM_METER_BAUDRATE, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_info.ammeter_baudrate)), \
+            (uint8_t*)&s_chargepile_config_info.config_info.ammeter_baudrate, NULL);
     /** 模块额定输出电压 */
     sys_config_item_init(CONFIG_ITEM_RATED_OUTPUT_VOLTAGE, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.module_rated_outvolt)), \
             (uint8_t*)&s_chargepile_config_info.config_para.module_rated_outvolt, NULL);
@@ -1461,6 +1480,8 @@ static void chargepile_config_data_reset(void)
 
     s_chargepile_config_info.config_info.gunvolt_limit = GUNVOLT_LIMIT_VALUE_MIN;
     s_chargepile_config_info.config_info.gun_num = 0x02;
+    s_chargepile_config_info.config_info.ammeter_check_way = CP_AMMETER_CHECK_WAY_EVEN;
+    s_chargepile_config_info.config_info.ammeter_baudrate = CP_AMMETER_BAUDRATE_9600;
 
     s_chargepile_config_info.function_enable.local_charge = 0x00;
     s_chargepile_config_info.function_enable.local_stop = 0x00;
@@ -1757,6 +1778,17 @@ int32_t chargepile_check_config(void)
     /** 设备类型默认均充双枪(注：这是普通双枪版本做法，其它版本需要根据实际来) */
     if(s_chargepile_config_info.config_info.system_function != SYSTEM_FUNCTION_DYNAMIC_SWITCH){
         s_chargepile_config_info.config_info.system_function = SYSTEM_FUNCTION_AVERAGE_DOUBLE;
+    }
+
+    /** 电表串口校验方式模式偶校验 */
+    if((s_chargepile_config_info.config_info.ammeter_check_way < CP_AMMETER_CHECK_WAY_EVEN) ||\
+            (s_chargepile_config_info.config_info.ammeter_check_way > CP_AMMETER_CHECK_WAY_NONE)){
+        s_chargepile_config_info.config_info.ammeter_check_way = CP_AMMETER_CHECK_WAY_EVEN;
+    }
+    /** 电表串口波特率默认9600 */
+    if((s_chargepile_config_info.config_info.ammeter_baudrate < CP_AMMETER_BAUDRATE_9600) ||\
+            (s_chargepile_config_info.config_info.ammeter_baudrate > CP_AMMETER_BAUDRATE_115200)){
+        s_chargepile_config_info.config_info.ammeter_baudrate = CP_AMMETER_BAUDRATE_9600;
     }
 
     if((s_chargepile_config_info.config_para.module_rated_outvolt < MODULE_RATED_OUTVOLT_MIN) ||
@@ -2812,7 +2844,6 @@ int32_t sys_period_time_continuous_valid(void *t, uint8_t tlen, uint8_t valid_co
 
                     if(time[i + 0x01].emin != time[0x00].smin){
                         if(time[0x00].smin < time[i + 0x01].emin){
-                            rt_kprintf("time[0x00].smin(%d)  time[i + 0x01].emin(%d)", time[0x00].smin, time[i + 0x01].emin);
                             return -0x01;    /** 时间重复 */
                         }else{
                             return 0x00;     /** 时间间断 */

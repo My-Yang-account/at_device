@@ -400,6 +400,8 @@ struct LCD_DISPLAY_SETDATA_TYPE{
 	u8 pileID[20];							//设备地址
 	u8 MeterAddr[LCD_GUN_NUM][13];
     u16 MeterModel;
+    u16 MeterCheckWay;
+    u16 MeterBaudrate;
 	u8 ErWeiCode[LCD_GUN_NUM][QRCODE_LEN];
 	u8 ErWeiCodePre[128];
 	u8 SerialScreen_PassWordShow;           //屏幕密码显示
@@ -1594,11 +1596,25 @@ void SerialScreen_BtnChgInfoSet(int port)
 
 void SerialScreen_BtnMeterNoInfoSet(void)
 {
-    u8 model = LcdData.setData.MeterModel;
+    u8 model = LcdData.setData.MeterModel, para = 0;
     SerialScreen_JumpPage(&SerialScreen, LCD_PAGE_STORAGE_WAITING);
 
     if(model > thaisenAmmeterModel_Other)
         model = thaisenAmmeterModel_RuiYin;
+
+    if((LcdData.setData.MeterCheckWay < CP_AMMETER_CHECK_WAY_EVEN) ||\
+            (LcdData.setData.MeterCheckWay > CP_AMMETER_CHECK_WAY_NONE)){
+        LcdData.setData.MeterCheckWay = CP_AMMETER_CHECK_WAY_EVEN;
+    }
+    para = LcdData.setData.MeterCheckWay;
+    UI_SYNC_SINGLE_CFG_STR(CONFIG_ITEM_METER_CHECK_WAY,&para,sizeof(para));
+
+    if((LcdData.setData.MeterBaudrate < CP_AMMETER_BAUDRATE_2400) ||\
+            (LcdData.setData.MeterBaudrate > CP_AMMETER_BAUDRATE_115200)){
+        LcdData.setData.MeterBaudrate = CP_AMMETER_BAUDRATE_9600;
+    }
+    para = LcdData.setData.MeterBaudrate;
+    UI_SYNC_SINGLE_CFG_STR(CONFIG_ITEM_METER_BAUDRATE,&para,sizeof(para));
 
     UI_SYNC_SINGLE_CFG_STR(CONFIG_ITEM_METER_MODEL,&model,sizeof(model));
     UI_SYNC_SINGLE_CFG_STR(CONFIG_ITEM_METER_NOA,LcdData.setData.MeterAddr[LCD_GUN_1],str_len(LcdData.setData.MeterAddr[LCD_GUN_1]));
@@ -1647,6 +1663,44 @@ void SerialScreen_SetMeterInfo(void)
 
     if(LcdData.setData.MeterModel > thaisenAmmeterModel_Other)
         LcdData.setData.MeterModel = thaisenAmmeterModel_RuiYin;
+
+    if((LcdData.setData.MeterCheckWay < CP_AMMETER_CHECK_WAY_EVEN) ||\
+            (LcdData.setData.MeterCheckWay > CP_AMMETER_CHECK_WAY_NONE)){
+        LcdData.setData.MeterCheckWay = CP_AMMETER_CHECK_WAY_EVEN;
+    }
+    switch(LcdData.setData.MeterCheckWay){
+    case CP_AMMETER_CHECK_WAY_EVEN:
+        thaisen_set_ammeterCheckWay(THAISEN_CHECK_WAY_EVEN);
+        break;
+    case CP_AMMETER_CHECK_WAY_ODD:
+        thaisen_set_ammeterCheckWay(THAISEN_CHECK_WAY_ODD);
+        break;
+    case CP_AMMETER_CHECK_WAY_NONE:
+        thaisen_set_ammeterCheckWay(THAISEN_CHECK_WAY_NONE);
+        break;
+    }
+
+    if((LcdData.setData.MeterBaudrate < CP_AMMETER_BAUDRATE_2400) ||\
+            (LcdData.setData.MeterBaudrate > CP_AMMETER_BAUDRATE_115200)){
+        LcdData.setData.MeterBaudrate = CP_AMMETER_BAUDRATE_9600;
+    }
+    switch(LcdData.setData.MeterBaudrate){
+    case CP_AMMETER_BAUDRATE_2400:
+        thaisen_set_ammeterBaudrate(THAISEN_BAUDRATE_2400);
+        break;
+    case CP_AMMETER_BAUDRATE_4800:
+        thaisen_set_ammeterBaudrate(THAISEN_BAUDRATE_4800);
+        break;
+    case CP_AMMETER_BAUDRATE_9600:
+        thaisen_set_ammeterBaudrate(THAISEN_BAUDRATE_9600);
+        break;
+    case CP_AMMETER_BAUDRATE_38400:
+        thaisen_set_ammeterBaudrate(THAISEN_BAUDRATE_38400);
+        break;
+    case CP_AMMETER_BAUDRATE_115200:
+        thaisen_set_ammeterBaudrate(THAISEN_BAUDRATE_115200);
+        break;
+    }
 
     thaisen_set_ammnterModel(LcdData.setData.MeterModel);
 }
@@ -5308,6 +5362,8 @@ struct LCD_DATA_FIFO_TYPE *SerialScreen_Init(struct SerialScreenObj *cmd)
     LcdData.setData.GunVolt_LimitValue = *((u16*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_GUNVOLT_LIMIT, 0));
     LcdData.setData.sup_auxp_24V = *(UI_READ_SINGLE_CFG_STR(CONFIG_ITEM_SUPORT_AUXPOWER24V, 0));
     LcdData.setData.MeterModel = *(UI_READ_SINGLE_CFG_STR(CONFIG_ITEM_METER_MODEL, 0));
+    LcdData.setData.MeterCheckWay = *(UI_READ_SINGLE_CFG_STR(CONFIG_ITEM_METER_CHECK_WAY, 0));
+    LcdData.setData.MeterBaudrate = *(UI_READ_SINGLE_CFG_STR(CONFIG_ITEM_METER_BAUDRATE, 0));
     LcdData.setData.sup_parallelchg = *(UI_READ_SINGLE_CFG_STR(CONFIG_ITEM_SUPORT_PARALLEL, 0));
     LcdData.setData.sup_parallelrelay = *(UI_READ_SINGLE_CFG_STR(CONFIG_ITEM_SUPORT_PARALLELRELAY, 0));
     LcdData.setData.sup_mslience = *((u8*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_MODULE_SLIENCE, 0));
@@ -5394,8 +5450,45 @@ struct LCD_DATA_FIFO_TYPE *SerialScreen_Init(struct SerialScreenObj *cmd)
     if(LcdData.setData.MeterModel > thaisenAmmeterModel_Other)
         LcdData.setData.MeterModel = thaisenAmmeterModel_RuiYin;
 
-    rt_kprintf("LcdData.setData.MeterModel(%d)\n", LcdData.setData.MeterModel);
     thaisen_set_ammnterModel(LcdData.setData.MeterModel);
+    if((LcdData.setData.MeterCheckWay < CP_AMMETER_CHECK_WAY_EVEN) ||\
+            (LcdData.setData.MeterCheckWay > CP_AMMETER_CHECK_WAY_NONE)){
+        LcdData.setData.MeterCheckWay = CP_AMMETER_CHECK_WAY_EVEN;
+    }
+    switch(LcdData.setData.MeterCheckWay){
+    case CP_AMMETER_CHECK_WAY_EVEN:
+        thaisen_set_ammeterCheckWay(THAISEN_CHECK_WAY_EVEN);
+        break;
+    case CP_AMMETER_CHECK_WAY_ODD:
+        thaisen_set_ammeterCheckWay(THAISEN_CHECK_WAY_ODD);
+        break;
+    case CP_AMMETER_CHECK_WAY_NONE:
+        thaisen_set_ammeterCheckWay(THAISEN_CHECK_WAY_NONE);
+        break;
+    }
+
+    if((LcdData.setData.MeterBaudrate < CP_AMMETER_BAUDRATE_2400) ||\
+            (LcdData.setData.MeterBaudrate > CP_AMMETER_BAUDRATE_115200)){
+        LcdData.setData.MeterBaudrate = CP_AMMETER_BAUDRATE_9600;
+    }
+    switch(LcdData.setData.MeterBaudrate){
+    case CP_AMMETER_BAUDRATE_2400:
+        thaisen_set_ammeterBaudrate(THAISEN_BAUDRATE_2400);
+        break;
+    case CP_AMMETER_BAUDRATE_4800:
+        thaisen_set_ammeterBaudrate(THAISEN_BAUDRATE_4800);
+        break;
+    case CP_AMMETER_BAUDRATE_9600:
+        thaisen_set_ammeterBaudrate(THAISEN_BAUDRATE_9600);
+        break;
+    case CP_AMMETER_BAUDRATE_38400:
+        thaisen_set_ammeterBaudrate(THAISEN_BAUDRATE_38400);
+        break;
+    case CP_AMMETER_BAUDRATE_115200:
+        thaisen_set_ammeterBaudrate(THAISEN_BAUDRATE_115200);
+        break;
+    }
+    rt_kprintf("MeterModel(%d)  MeterCheckWay(%d)  MeterBaudrate(%d)\n", LcdData.setData.MeterModel, LcdData.setData.MeterCheckWay, LcdData.setData.MeterBaudrate);
 
     if((LcdData.setData.GunVolt_LimitValue < GUNVOLT_LIMIT_VALUE_MIN) || (LcdData.setData.GunVolt_LimitValue > GUNVOLT_LIMIT_VALUE_MAX)){
         LcdData.setData.GunVolt_LimitValue = GUNVOLT_LIMIT_VALUE_MIN;
@@ -7362,6 +7455,8 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_3, NULL, "cd up", LCD_BtnType, 0x0050, 0x1000, page_type, LCD_PAGE_ROOT_MAIN, (void *)NULL);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_3, NULL, "back", LCD_BtnHomeType, 0x0002, 0x1000, page_type, LCD_PAGE_NONE, (void *)NULL);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_3, NULL, "meter model", LCD_InputType, 0, 0x4640, menu_type, sizeof(LcdData.setData.MeterModel), (void *)&LcdData.setData.MeterModel);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_3, NULL, "meter check", LCD_InputType, 0, 0x53C2, menu_type, sizeof(LcdData.setData.MeterCheckWay), (void *)&LcdData.setData.MeterCheckWay);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_3, NULL, "meter baudrate", LCD_InputType, 0, 0x53B2, menu_type, sizeof(LcdData.setData.MeterBaudrate), (void *)&LcdData.setData.MeterBaudrate);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_3, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
 
     /** 19.系统信息-模块信息 [page:21] */
