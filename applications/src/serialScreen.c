@@ -1596,6 +1596,12 @@ void SerialScreen_BtnChgInfoSet(int port)
 
 void SerialScreen_BtnMeterNoInfoSet(void)
 {
+#define SERIALSCREEN_AMMETER_BAUD_2400       0      //电表波特率：2400
+#define SERIALSCREEN_AMMETER_BAUD_4800       1      //电表波特率：4800
+#define SERIALSCREEN_AMMETER_BAUD_9600       2      //电表波特率：9600
+#define SERIALSCREEN_AMMETER_BAUD_38400      3      //电表波特率：38400
+#define SERIALSCREEN_AMMETER_BAUD_115200     4      //电表波特率：115200
+
     u8 model = LcdData.setData.MeterModel, para = 0;
     SerialScreen_JumpPage(&SerialScreen, LCD_PAGE_STORAGE_WAITING);
 
@@ -1609,11 +1615,32 @@ void SerialScreen_BtnMeterNoInfoSet(void)
     para = LcdData.setData.MeterCheckWay;
     UI_SYNC_SINGLE_CFG_STR(CONFIG_ITEM_METER_CHECK_WAY,&para,sizeof(para));
 
-    if((LcdData.setData.MeterBaudrate < CP_AMMETER_BAUDRATE_2400) ||\
-            (LcdData.setData.MeterBaudrate > CP_AMMETER_BAUDRATE_115200)){
-        LcdData.setData.MeterBaudrate = CP_AMMETER_BAUDRATE_9600;
+    if((LcdData.setData.MeterBaudrate < SERIALSCREEN_AMMETER_BAUD_2400) ||\
+            (LcdData.setData.MeterBaudrate > SERIALSCREEN_AMMETER_BAUD_115200)){
+        LcdData.setData.MeterBaudrate = SERIALSCREEN_AMMETER_BAUD_9600;
     }
-    para = LcdData.setData.MeterBaudrate;
+    switch(LcdData.setData.MeterBaudrate){
+    case SERIALSCREEN_AMMETER_BAUD_2400:
+        para = CP_AMMETER_BAUDRATE_2400;
+        break;
+    case SERIALSCREEN_AMMETER_BAUD_4800:
+        para = CP_AMMETER_BAUDRATE_4800;
+        break;
+    case SERIALSCREEN_AMMETER_BAUD_9600:
+        para = CP_AMMETER_BAUDRATE_9600;
+        break;
+    case SERIALSCREEN_AMMETER_BAUD_38400:
+        para = CP_AMMETER_BAUDRATE_38400;
+        break;
+    case SERIALSCREEN_AMMETER_BAUD_115200:
+        para = CP_AMMETER_BAUDRATE_115200;
+        break;
+    default:
+        para = CP_AMMETER_BAUDRATE_9600;
+        LcdData.setData.MeterBaudrate = SERIALSCREEN_AMMETER_BAUD_9600;
+        break;
+    }
+
     UI_SYNC_SINGLE_CFG_STR(CONFIG_ITEM_METER_BAUDRATE,&para,sizeof(para));
 
     UI_SYNC_SINGLE_CFG_STR(CONFIG_ITEM_METER_MODEL,&model,sizeof(model));
@@ -1625,10 +1652,22 @@ void SerialScreen_BtnMeterNoInfoSet(void)
     SerialScreen_SetMeterInfo();
 
     rt_kprintf("SerialScreen_BtnMeterNoInfoSet(%s, %s)\n", LcdData.setData.MeterAddr[LCD_GUN_1],LcdData.setData.MeterAddr[LCD_GUN_2]);
+
+#undef SERIALSCREEN_AMMETER_BAUD_2400
+#undef SERIALSCREEN_AMMETER_BAUD_4800
+#undef SERIALSCREEN_AMMETER_BAUD_9600
+#undef SERIALSCREEN_AMMETER_BAUD_38400
+#undef SERIALSCREEN_AMMETER_BAUD_115200
 }
 
 void SerialScreen_SetMeterInfo(void)
 {
+#define SERIALSCREEN_AMMETER_BAUD_2400       0      //电表波特率：2400
+#define SERIALSCREEN_AMMETER_BAUD_4800       1      //电表波特率：4800
+#define SERIALSCREEN_AMMETER_BAUD_9600       2      //电表波特率：9600
+#define SERIALSCREEN_AMMETER_BAUD_38400      3      //电表波特率：38400
+#define SERIALSCREEN_AMMETER_BAUD_115200     4      //电表波特率：115200
+
 	u8 meterNo[LCD_GUN_NUM][6];
 	u8 len[LCD_GUN_NUM]; 
 	u8 i,j;
@@ -1680,29 +1719,35 @@ void SerialScreen_SetMeterInfo(void)
         break;
     }
 
-    if((LcdData.setData.MeterBaudrate < CP_AMMETER_BAUDRATE_2400) ||\
-            (LcdData.setData.MeterBaudrate > CP_AMMETER_BAUDRATE_115200)){
-        LcdData.setData.MeterBaudrate = CP_AMMETER_BAUDRATE_9600;
+    if((LcdData.setData.MeterBaudrate < SERIALSCREEN_AMMETER_BAUD_2400) ||\
+            (LcdData.setData.MeterBaudrate > SERIALSCREEN_AMMETER_BAUD_115200)){
+        LcdData.setData.MeterBaudrate = SERIALSCREEN_AMMETER_BAUD_9600;
     }
     switch(LcdData.setData.MeterBaudrate){
-    case CP_AMMETER_BAUDRATE_2400:
+    case SERIALSCREEN_AMMETER_BAUD_2400:
         thaisen_set_ammeterBaudrate(THAISEN_BAUDRATE_2400);
         break;
-    case CP_AMMETER_BAUDRATE_4800:
+    case SERIALSCREEN_AMMETER_BAUD_4800:
         thaisen_set_ammeterBaudrate(THAISEN_BAUDRATE_4800);
         break;
-    case CP_AMMETER_BAUDRATE_9600:
+    case SERIALSCREEN_AMMETER_BAUD_9600:
         thaisen_set_ammeterBaudrate(THAISEN_BAUDRATE_9600);
         break;
-    case CP_AMMETER_BAUDRATE_38400:
+    case SERIALSCREEN_AMMETER_BAUD_38400:
         thaisen_set_ammeterBaudrate(THAISEN_BAUDRATE_38400);
         break;
-    case CP_AMMETER_BAUDRATE_115200:
+    case SERIALSCREEN_AMMETER_BAUD_115200:
         thaisen_set_ammeterBaudrate(THAISEN_BAUDRATE_115200);
         break;
     }
 
     thaisen_set_ammnterModel(LcdData.setData.MeterModel);
+
+#undef SERIALSCREEN_AMMETER_BAUD_2400
+#undef SERIALSCREEN_AMMETER_BAUD_4800
+#undef SERIALSCREEN_AMMETER_BAUD_9600
+#undef SERIALSCREEN_AMMETER_BAUD_38400
+#undef SERIALSCREEN_AMMETER_BAUD_115200
 }
 
 
@@ -5315,8 +5360,14 @@ u8 SerialScreen_Read(void)
 
 struct LCD_DATA_FIFO_TYPE *SerialScreen_Init(struct SerialScreenObj *cmd)
 {
+#define SERIALSCREEN_AMMETER_BAUD_2400       0      //电表波特率：2400
+#define SERIALSCREEN_AMMETER_BAUD_4800       1      //电表波特率：4800
+#define SERIALSCREEN_AMMETER_BAUD_9600       2      //电表波特率：9600
+#define SERIALSCREEN_AMMETER_BAUD_38400      3      //电表波特率：38400
+#define SERIALSCREEN_AMMETER_BAUD_115200     4      //电表波特率：115200
+
     u32 _tick = 0;
-    u8 len = 0, count = 0, *data, entry = 0;
+    u8 len = 0, count = 0, *data, entry = 0, baud = 0;
 	memset(&LcdRxData,0,sizeof(LcdRxData));
 	//LcdData init
     LcdData.gunIndex = 0;
@@ -5467,27 +5518,37 @@ struct LCD_DATA_FIFO_TYPE *SerialScreen_Init(struct SerialScreenObj *cmd)
         break;
     }
 
-    if((LcdData.setData.MeterBaudrate < CP_AMMETER_BAUDRATE_2400) ||\
+    if((LcdData.setData.MeterBaudrate < CP_AMMETER_BAUDRATE_9600) ||\
             (LcdData.setData.MeterBaudrate > CP_AMMETER_BAUDRATE_115200)){
         LcdData.setData.MeterBaudrate = CP_AMMETER_BAUDRATE_9600;
     }
     switch(LcdData.setData.MeterBaudrate){
     case CP_AMMETER_BAUDRATE_2400:
+        baud = SERIALSCREEN_AMMETER_BAUD_2400;
         thaisen_set_ammeterBaudrate(THAISEN_BAUDRATE_2400);
         break;
     case CP_AMMETER_BAUDRATE_4800:
+        baud = SERIALSCREEN_AMMETER_BAUD_4800;
         thaisen_set_ammeterBaudrate(THAISEN_BAUDRATE_4800);
         break;
     case CP_AMMETER_BAUDRATE_9600:
+        baud = SERIALSCREEN_AMMETER_BAUD_9600;
         thaisen_set_ammeterBaudrate(THAISEN_BAUDRATE_9600);
         break;
     case CP_AMMETER_BAUDRATE_38400:
+        baud = SERIALSCREEN_AMMETER_BAUD_38400;
         thaisen_set_ammeterBaudrate(THAISEN_BAUDRATE_38400);
         break;
     case CP_AMMETER_BAUDRATE_115200:
+        baud = SERIALSCREEN_AMMETER_BAUD_115200;
         thaisen_set_ammeterBaudrate(THAISEN_BAUDRATE_115200);
         break;
+    default:
+        baud = SERIALSCREEN_AMMETER_BAUD_9600;
+        thaisen_set_ammeterBaudrate(THAISEN_BAUDRATE_9600);
+        break;
     }
+    LcdData.setData.MeterBaudrate = baud;
     rt_kprintf("MeterModel(%d)  MeterCheckWay(%d)  MeterBaudrate(%d)\n", LcdData.setData.MeterModel, LcdData.setData.MeterCheckWay, LcdData.setData.MeterBaudrate);
 
     if((LcdData.setData.GunVolt_LimitValue < GUNVOLT_LIMIT_VALUE_MIN) || (LcdData.setData.GunVolt_LimitValue > GUNVOLT_LIMIT_VALUE_MAX)){
@@ -5599,6 +5660,12 @@ struct LCD_DATA_FIFO_TYPE *SerialScreen_Init(struct SerialScreenObj *cmd)
 	        entry++;
 	    }
 	}
+
+#undef SERIALSCREEN_AMMETER_BAUD_2400
+#undef SERIALSCREEN_AMMETER_BAUD_4800
+#undef SERIALSCREEN_AMMETER_BAUD_9600
+#undef SERIALSCREEN_AMMETER_BAUD_38400
+#undef SERIALSCREEN_AMMETER_BAUD_115200
 
 	return LcdRxData.pDataFifo;
 }

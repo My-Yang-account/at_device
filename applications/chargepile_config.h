@@ -314,9 +314,9 @@
 #define CP_AMMETER_CHECK_WAY_ODD                  1         /* 电表串口校验方式：奇校验 */
 #define CP_AMMETER_CHECK_WAY_NONE                 2         /* 电表串口校验方式：无校验 */
 
-#define CP_AMMETER_BAUDRATE_2400                  0         /* 电表串口波特率：2400 */
-#define CP_AMMETER_BAUDRATE_4800                  1         /* 电表串口波特率：4800 */
-#define CP_AMMETER_BAUDRATE_9600                  2         /* 电表串口波特率：9600 */
+#define CP_AMMETER_BAUDRATE_9600                  0         /* 电表串口波特率：9600 */
+#define CP_AMMETER_BAUDRATE_2400                  1         /* 电表串口波特率：2400 */
+#define CP_AMMETER_BAUDRATE_4800                  2         /* 电表串口波特率：4800 */
 #define CP_AMMETER_BAUDRATE_38400                 3         /* 电表串口波特率：38400 */
 #define CP_AMMETER_BAUDRATE_115200                4         /* 电表串口波特率：115200 */
 

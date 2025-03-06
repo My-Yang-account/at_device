@@ -164,7 +164,7 @@ struct _function_enable{
     uint8_t insulation_detect;     /* 绝缘检测 */
     uint8_t vin_charge;            /* VIN */
     uint8_t parallel_charge;       /* 并充 */
-    uint8_t plug_charge;           /* 即插即充 */
+    uint8_t reserve0;              /*  */
     uint8_t bcs;                   /* BCS功能 */
     uint8_t bsm;                   /* BSM功能 */
     uint8_t acrelay_out;           /* 交流接触器 */
@@ -183,7 +183,8 @@ struct _function_enable{
     uint8_t module_slience;        /* 模块静音 */
     uint8_t offline_billing;       /* 离线计费 */
     uint8_t local_stop;            /* 本地停止 */
-    uint8_t reserve[92];
+    uint8_t plug_charge;           /* 即插即充 */
+    uint8_t reserve[91];
 };
 
 struct _state_reversal{
@@ -717,7 +718,7 @@ void sys_chargeplie_config_info_init(void)
     s_config_info_address = SYSTEM_CONFIG_MAIN_ADDRESS;
     s_system_power_max = 0x00;
 
-    memset(&s_chargepile_config_info, 0x00, sizeof(s_chargepile_config_info));
+    memset(&s_chargepile_config_info, 0xFF, sizeof(s_chargepile_config_info));
     memset(&s_module_info, 0x00, sizeof(s_module_info));
     /** 桩号 */
     sys_config_item_init(CONFIG_ITEM_PILE_NUMBER, (1 <<(32 - 4))| (sizeof(s_chargepile_config_info.pile_info.pile_number) - 1), \
@@ -1593,7 +1594,7 @@ int32_t chargepile_config_init(void)
         s_config_info_address = SYSTEM_CONFIG_MAIN_ADDRESS;
         return -0x01;
     }else{
-        memset(&s_chargepile_config_info, 0x00, sizeof(s_chargepile_config_info));
+        memset(&s_chargepile_config_info, 0xFF, sizeof(s_chargepile_config_info));
         mw_norflash_read(s_config_info_address, (uint8_t *)&s_chargepile_config_info, sizeof(s_chargepile_config_info));
 
         crc = crc32_ieee_update(0x00, (const uint8_t *)&s_chargepile_config_info, (sizeof(s_chargepile_config_info) - sizeof(s_chargepile_config_info.crc)));
@@ -1654,7 +1655,7 @@ int32_t system_config_init_if(void)
 
     s_storage_chip_entry = 0x00;
     while(1){
-        memset(&s_chargepile_config_info, 0x00, sizeof(s_chargepile_config_info));
+        memset(&s_chargepile_config_info, 0xFF, sizeof(s_chargepile_config_info));
         mw_iflash_read((SYSTEM_CONFIG_INFO_ADDR_IF + sizeof(init_flag)), (uint8_t *)&s_chargepile_config_info, sizeof(s_chargepile_config_info));
 
         crc = crc32_ieee_update(0x00, (const uint8_t *)&s_chargepile_config_info, (sizeof(s_chargepile_config_info) - sizeof(s_chargepile_config_info.crc)));
