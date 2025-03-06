@@ -83,6 +83,60 @@
 #define NET_YKC_MONITOR_FINISH_INFO_MAX                                0x01        /* 单次上报充电结束信息的最大个数 */
 
 #define NET_YKC_MONITOR_SCREEN_PW_LENGTH_DEFAULT                       0x0F        /* 默认屏幕密码长度 */
+
+/*********************************************************************************
+ * 设备配置信息报文
+ ********************************************************************************/
+#ifdef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL
+#define NET_YKC_MONITOR_VIN_COUNT_MAX                                  0x06        /* VIN码个数 */
+#define NET_YKC_MONITOR_AMMETER_ADDR_COUNT_MAX                         0x02        /* 电表地址个数 */
+/************************************* 7104 *********************************************/
+#define NET_YKC_MONITOR_INPUT_PORT_MAX                                 0x0D        /* 输入端口号最大值 */
+#define NET_YKC_MONITOR_INPUT_PORT_MIN                                 0x01        /* 输入端口号最小值 */
+#define NET_YKC_MONITOR_OUTPUT_PORT_MAX                                0x0E        /* 输出端口号最大值 */
+#define NET_YKC_MONITOR_OUTPUT_PORT_MIN                                0x01        /* 输出端口号最小值 */
+#endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
+
+#endif /* NET_YKC_MONITOR_AS_MONITOR */
+
+
+#ifdef NET_YKC_MONITOR_AS_MONITOR
+/*********************************************************************************
+ * 设备配置信息报文
+ ********************************************************************************/
+#ifdef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL
+enum ykcm_config_info_type{
+     NETYKCM_CONFIG_INFO_TYPE_SYSTEM,                                /* 配置信息类型：系统信息 */
+     NETYKCM_CONFIG_INFO_TYPE_PILE,                                  /* 配置信息类型：桩信息 */
+     NETYKCM_CONFIG_INFO_TYPE_SERVER,                                /* 配置信息类型：服务器信息 */
+     NETYKCM_CONFIG_INFO_TYPE_AMMETER,                               /* 配置信息类型：电表信息 */
+     NETYKCM_CONFIG_INFO_TYPE_MODULE,                                /* 配置信息类型：模块信息 */
+     NETYKCM_CONFIG_INFO_TYPE_VIN,                                   /* 配置信息类型：VIN码信息 */
+     NETYKCM_CONFIG_INFO_TYPE_PROTECT_INFO,                          /* 配置信息类型：保护信息 */
+     NETYKCM_CONFIG_INFO_TYPE_FUNCTION_CONFIG,                       /* 配置信息类型：功能配置 */
+     NETYKCM_CONFIG_INFO_TYPE_OFFLINE_BILLING,                       /* 配置信息类型：离线计费 */
+     NETYKCM_CONFIG_INFO_TYPE_INPUT_7103_7101,                       /* 配置信息类型：输入信息(7103/7101) */
+     NETYKCM_CONFIG_INFO_TYPE_PUBLIC_INPUT_7104,                     /* 配置信息类型：通用输入信息(7104) */
+     NETYKCM_CONFIG_INFO_TYPE_GUN_INPUT_7104,                        /* 配置信息类型：枪输入信息(7104) */
+     NETYKCM_CONFIG_INFO_TYPE_PUBLIC_OUTPUT_7104,                    /* 配置信息类型：通用输出信息(7104) */
+     NETYKCM_CONFIG_INFO_TYPE_GUN_OUTPUT_7104,                       /* 配置信息类型：枪输出信息(7104) */
+     NETYKCM_CONFIG_INFO_TYPE_SIZE,                                  /* 配置信息类型： */
+};
+enum ykcm_config_info_option{
+    NETYKCM_CONFIG_INFO_OPTION_QUERY,                                /* 配置信息操作类型：查询 */
+    NETYKCM_CONFIG_INFO_OPTION_SET,                                  /* 配置信息操作类型：设置 */
+    NETYKCM_CONFIG_INFO_OPTION_SIZE,                                 /* 配置信息操作类型： */
+};
+
+enum ykcm_config_result{
+    NETYKCM_CONFIG_RES_SUCCESS = 0x00,                               /* 配置执行结果：成功 */
+    NETYKCM_CONFIG_RES_FAIL_STORAGE = 0x01,                          /* 配置执行结果：保存失败 */
+    NETYKCM_CONFIG_RES_ITEM_FAIL_BASE = 0x02,                        /* 配置执行结果：配置条目失败基偏移 */
+    NETYKCM_CONFIG_RES_SYS_ASSERT_BASE = 0xFF,                       /* 配置执行结果：系统总数据断言失败基偏移 */
+    NETYKCM_CONFIG_RES_SYS_ITEM_ASSERT_BASE = 0x110,                 /* 配置执行结果：系统配置项断言失败基偏移 */
+    NETYKCM_CONFIG_RES_EXTERN_INVOKE_ASSERT_BASE = 0x120,            /* 配置执行结果：调用外部函数的断言失败基偏移 */
+};
+#endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
 
 enum ykc_monitor_device_state{
@@ -329,6 +383,11 @@ enum ykc_monitor_cmd{
 
     NETYKC_MONITOR_PREQCMD_REPORT_STARTING_INFO = 0xD7,              /* 指令：上报过程中信息 */
     NETYKC_MONITOR_SREQCMD_MODIFY_PILE_INFO = 0xD8,                  /* 指令：修改桩信息 */
+#ifdef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL
+    NETYKC_MONITOR_PRESCMD_QUERY_SET_CONFIG_INFO = 0xDC,             /* 指令：桩响应运营平台下发的查询、修改桩配置信息指令 */
+    NETYKC_MONITOR_SREQCMD_QUERY_SET_CONFIG_INFO = 0xDB,             /* 指令：运营平台下发查询、修改桩配置信息 */
+#endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
+
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
 };
 
@@ -1671,6 +1730,231 @@ typedef struct{
     }body;
     uint16_t check_sum;                          /* 校验码 */
 }Net_YkcMonitorPro_Sreq_Modify_DeviceInfo_t;
+
+
+/*********************************************************************************
+ * 设备配置信息报文(ASCII 无效值为'0/'， bin 无效值为0xFF)
+ ********************************************************************************/
+#ifdef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL
+/************************************ 公共报文 *************************************/
+/** 系统信息 */
+/** 信息设置响应结果：0：成功  1：保存失败   2及以上但小于 NETYKCM_CONFIG_RES_SYS_ASSERT_BASE 表示某一配置项配置失败,按配置项次序升序排列(例：2：本机功能配置失败；3：分配方式配置失败；4：A枪终端地址配置失败；5：B枪终端地址配置失败) */
+struct ykcm_sys_info{
+    uint8_t dev_function;                        /* 本机功能(0：单枪终端，1：均充双枪，2：双枪终端，3：整流柜，4：动态切换) */
+    uint8_t allocate_way;                        /* 分配方式(0：均充, 1：先到先得, 2：功率优先) */
+    uint16_t terminal_addr[2];                   /* 终端地址(两把枪：A枪在前) */
+};
+/** 桩信息 */
+/** 信息设置响应结果：0：成功  1：保存失败   2及以上表示某一配置项配置失败,按配置项次序升序排列(类似系统信息的响应) */
+struct ykcm_pile_info{
+    /** 桩号使用其它报文 */
+    uint8_t qrcode_prefix[128];                  /* 二维码前缀(前2字节分别为设置格式和生成格式，第3字节开始是实际数据) */
+    uint8_t qrcode_suffix[128];                  /* 二维码后缀 */
+    uint8_t help_number[32];                     /* 帮助电话 */
+    uint8_t screen_password[15];                 /* 屏幕密码 */
+};
+/** 服务器信息 */
+/** 信息设置响应结果：0：成功  1：保存失败   2及以上表示某一配置项配置失败,按配置项次序升序排列(类似系统信息的响应) */
+struct ykcm_server_info{
+    uint8_t domain[256];                         /* 域名 */
+    uint16_t port;                               /* 端口 */
+    uint8_t net_mode;                            /* 网络模式(0：4G，1：以太网，2：离线) */
+};
+/** 电表信息 */
+/** 信息设置响应结果：0：成功  1：保存失败   2及以上表示某一配置项配置失败,按配置项次序升序排列(类似系统信息的响应) */
+struct ykcm_ammeter_info{
+    uint8_t ammeter_addr[NET_YKC_MONITOR_AMMETER_ADDR_COUNT_MAX][13]; /* 电表地址(两把枪：A枪在前; 地址12位，最后一位填空字符) */
+    uint8_t ammeter_model;                       /* 电表协议(0：瑞银，1：雅达，2：科达瑞，3：英利达，4：安科瑞，5：科为，6：预留) */
+    uint8_t baudrate;                            /* 波特率(0：9600，1：2400，2：4800，3：38400，4：115200) */
+    uint8_t check_way;                           /* 校验位(0:偶校验, 1:奇校验, 2:无校验) */
+};
+
+/** 模块信息 */
+/** 信息设置响应结果：0：成功  1：保存失败   2及以上表示某一配置项配置失败,按配置项次序升序排列(类似系统信息的响应) */
+struct ykcm_module_info{
+    uint8_t module_protocol;                     /* 模块协议(0：英飞源，1：国网，2：永联，3：优优，4：易能，5：预留) */
+    uint8_t module_group;                        /* 模块组数 */
+    uint8_t module_num_single[8];                /* 每组模块数(目前定死8组) */
+    uint16_t module_rated_voltage;               /* 模块额定电压 */
+    uint16_t module_rated_current;               /* 模块额定电流 */
+    uint16_t pile_outvoltage_max;                /* 桩最大输出电压 */
+    uint16_t pile_outvoltage_min;                /* 桩最小输出电压 */
+    uint16_t pile_outcurrent_max;                /* 桩最大输出电流 */
+    uint16_t pile_outcurrent_min;                /* 桩最小输出电流 */
+};
+/** VIN码信息 */
+/** 信息设置响应结果：0：成功  1：保存失败   2及以上表示某一配置项配置失败,按配置项次序升序排列(类似系统信息的响应) */
+struct ykcm_vin_info{
+    uint8_t vin_whitelist[NET_YKC_MONITOR_VIN_COUNT_MAX][18]; /* 目前最多6个VIN码，VIN码17位(最后一位填空字符) */
+};
+/** 保护信息 */
+/** 信息设置响应结果：0：成功  1：保存失败   2及以上表示某一配置项配置失败,按配置项次序升序排列(类似系统信息的响应) */
+struct ykcm_protect_info{
+    uint16_t overtemp_alarm;                     /* 过温告警值(范围：1-300) */
+    uint16_t overtemp_stop;                      /* 过温停充值(范围：1-300) */
+    uint16_t overtemp_recovery;                  /* 过温恢复值(范围：1-120) */
+    uint16_t overtemp_limitcur;                  /* 过温限流值(范围：1-300) */
+    uint16_t gunvolt_limit;                      /* 枪头电压限值(100倍) */
+    uint16_t soc_stop;                           /* 停充 SOC(范围：1-100) */
+    uint16_t power_percent;                      /* 功率百分比(10倍) */
+    uint16_t eloss_proportion;                   /* 电损比(10倍) */
+    uint16_t cc1_12_max;                         /* CC1 12V 上限(100倍) */
+    uint16_t cc1_12_min;                         /* CC1 12V 下限(100倍) */
+    uint16_t cc1_6_max;                          /* CC1 6V 上限(100倍) */
+    uint16_t cc1_6_min;                          /* CC1 6V 下限(100倍) */
+    uint16_t cc1_4_max;                          /* CC1 4V 上限(100倍) */
+    uint16_t cc1_4_min;                          /* CC1 4V 下限(100倍) */
+};
+/** 功能配置 */
+/** 信息设置响应结果：0：成功  1：保存失败   2及以上表示某一配置项配置失败,按配置项次序升序排列(类似系统信息的响应) */
+struct ykcm_function_config{
+    uint16_t insult_detect : 1;                  /* 绝缘检测(1：启用，0：禁用) */
+    uint16_t card_reader : 1;                    /* 读卡器(1：启用，0：禁用) */
+    uint16_t parallel_charge : 1;                /* 并充(1：启用，0：禁用) */
+    uint16_t vin_charge : 1;                     /* VIN码(1：启用，0：禁用) */
+    uint16_t parallel_relay : 1;                 /* 并联继电器(1：启用，0：禁用) */
+    uint16_t module_silence : 1;                 /* 模块静音(1：启用，0：禁用) */
+    uint16_t plug_charge : 1;                    /* 即插即充(1：启用，0：禁用) */
+    uint16_t local_start : 1;                    /* 本地启动(1：启用，0：禁用) */
+    uint16_t local_stop : 1;                     /* 本地停止(1：启用，0：禁用) */
+    uint16_t auxpower_24V : 1;                   /* 24V辅源(1：启用，0：禁用) */
+    uint16_t offline_billing : 1;                /* 离线计费(1：启用，0：禁用) */
+    uint16_t password_start : 1;                 /* 密码启动(1：启用，0：禁用) */
+};
+/** 离线计费 */
+/** 信息设置响应结果：0：成功  1：保存失败   2及以上表示某一配置项配置失败,按配置项次序升序排列(2：在充电，3：时间段格式错误，4：时间段不连续，5：时间段重复) */
+struct ykcm_fees_time_info{
+    uint8_t start_hour;                          /* 时段开始小时(范围：0-23) */
+    uint8_t start_min;                           /* 时段开始分钟(范围：0-59) */
+    uint8_t end_hour;                            /* 时段结束小时(范围：0-23) */
+    uint8_t end_min;                             /* 时段结束分钟(范围：0-59) */
+    uint8_t rated_number;                        /* 时段费率号(0：尖尖，1：尖，2：峰，3：平，4：谷) */
+};
+struct ykcm_offline_billing{
+    uint32_t service_price;                      /* 服务费价格(单位：元，10000倍) */
+    uint32_t sharp_sharp_price;                  /* 尖尖电费价格(单位：元，10000倍) */
+    struct ykcm_fees_time_info sstime1;          /* 尖尖时段1 */
+    struct ykcm_fees_time_info sstime2;          /* 尖尖时段2 */
+    uint32_t sharp_price;                        /* 尖电费价格(单位：元，10000倍) */
+    struct ykcm_fees_time_info stime1;           /* 尖时段1 */
+    struct ykcm_fees_time_info stime2;           /* 尖时段2 */
+    uint32_t peak_price;                         /* 峰电费价格(单位：元，10000倍) */
+    struct ykcm_fees_time_info ptime1;           /* 峰时段1 */
+    struct ykcm_fees_time_info ptime2;           /* 峰时段2 */
+    uint32_t flat_price;                         /* 平电费价格(单位：元，10000倍) */
+    struct ykcm_fees_time_info ftime1;           /* 平时段1 */
+    struct ykcm_fees_time_info ftime2;           /* 平时段2 */
+    uint32_t valley_price;                       /* 谷电费价格(单位：元，10000倍) */
+    struct ykcm_fees_time_info vtime1;           /* 谷时段1 */
+    struct ykcm_fees_time_info vtime2;           /* 谷时段2 */
+};
+
+/************************************* 7103/7101 *********************************************/
+/** 输入信息 */
+/** 信息设置响应结果：0：成功  1：保存失败   2及以上表示某一配置项配置失败,按配置项次序升序排列(类似系统信息的响应) */
+struct ykcm_input_pair_7103_7101{
+    uint8_t enable : 4;                          /* 1：启用，0：禁用 */
+    uint8_t reversal : 4;                        /* 1：取反，0：不取反 */
+};
+struct ykcm_input_info_7103_7101{
+    struct ykcm_input_pair_7103_7101 scram;      /* 急停 */
+    struct ykcm_input_pair_7103_7101 door;       /* 门禁 */
+    struct ykcm_input_pair_7103_7101 acrelay;    /* 交流接触器 */
+    struct ykcm_input_pair_7103_7101 dcrelay;    /* 直流接触器 */
+    struct ykcm_input_pair_7103_7101 fan;        /* 风扇 */
+    struct ykcm_input_pair_7103_7101 elock;      /* 电子锁 */
+    struct ykcm_input_pair_7103_7101 tempprotect;/* 温度保护 */
+};
+/************************************* 7104 *********************************************/
+/** 输入信息 */
+/** 信息设置响应结果：0：成功  1：保存失败   2及以上表示某一配置项配置失败,按配置项次序升序排列(2：端口重复) */
+struct ykcm_input_pair_7104{
+    uint8_t port_number;                         /* 输入口号(NET_YKC_MONITOR_INPUT_PORT_MIN - NET_YKC_MONITOR_INPUT_PORT_MAX) */
+    struct{
+        uint8_t enable : 4;                      /* 1：启用，0：禁用 */
+        uint8_t reversal : 4;                    /* 1：取反，0：不取反 */
+    }state;
+};
+/** 通用输入信息 */
+struct ykcm_public_input_info_7104{
+    struct ykcm_input_pair_7104 protectlight;    /* 防雷器 */
+    struct ykcm_input_pair_7104 parallel_relay1; /* 母联1 */
+    struct ykcm_input_pair_7104 parallel_relay2; /* 母联2 */
+    struct ykcm_input_pair_7104 parallel_relay3; /* 母联3 */
+    struct ykcm_input_pair_7104 scram;           /* 急停 */
+    struct ykcm_input_pair_7104 breaker;         /* 断路器 */
+    struct ykcm_input_pair_7104 acrelay;         /* 交流接触器 */
+    struct ykcm_input_pair_7104 fan;             /* 风扇 */
+    struct ykcm_input_pair_7104 flooding;        /* 水浸 */
+    struct ykcm_input_pair_7104 door;            /* 门禁 */
+    struct ykcm_input_pair_7104 smoke;           /* 烟感 */
+    struct ykcm_input_pair_7104 fall;            /* 倾倒 */
+};
+/** 枪输入信息 */
+struct ykcm_gun_input_info_7104{
+    struct ykcm_input_pair_7104 dcrelay;         /* 直流继电器 */
+    struct ykcm_input_pair_7104 elock;           /* 电子锁 */
+    struct ykcm_input_pair_7104 gunsite;         /* 枪座 */
+    struct ykcm_input_pair_7104 liquid;          /* 液冷 */
+    struct ykcm_input_pair_7104 fuse;            /* 熔断器 */
+    struct ykcm_input_pair_7104 temp_detect;     /* 温度检测 */
+};
+
+/** 输出信息 */
+/** 信息设置响应结果：0：成功  1：保存失败   2及以上表示某一配置项配置失败,按配置项次序升序排列(2：端口重复) */
+struct ykcm_output_config_7104{
+    uint8_t port_number;                         /* 输入口号(NET_YKC_MONITOR_OUTPUT_PORT_MIN - NET_YKC_MONITOR_OUTPUT_PORT_MAX) */
+    uint8_t enable;                              /* 1:启用, 0:禁用 */
+};
+/** 通用输出信息 */
+struct ykcm_public_output_info_7104{
+    struct ykcm_output_config_7104 fan;             /* 风扇 */
+    struct ykcm_output_config_7104 parallel_relay1; /* 母联1 */
+    struct ykcm_output_config_7104 parallel_relay2; /* 母联2 */
+    struct ykcm_output_config_7104 parallel_relay3; /* 母联3 */
+    struct ykcm_output_config_7104 acrelay;         /* 交流接触器 */
+};
+/** 枪输出信息 */
+struct ykcm_gun_output_info_7104{
+    struct ykcm_output_config_7104 auxpower_24V;    /* 24V辅源 */
+    struct ykcm_output_config_7104 auxpower_12V;    /* 12V辅源 */
+    struct ykcm_output_config_7104 dcrelay;         /* 直流继电器 */
+    struct ykcm_output_config_7104 relief;          /* 泄放 */
+    struct ykcm_output_config_7104 elock;           /* 电子锁 */
+    struct ykcm_output_config_7104 liquid;          /* 液冷 */
+};
+/** 响应结果 */
+struct ykcm_response_result{
+    uint8_t result;                                 /* 结果：0：成功，1：失败 */
+    uint32_t fail_reason;                           /* 失败原因：配置失败的最前一个配置项次序(从1开始) */
+};
+
+/** 0xDB 服务器查询、修改设备配置信息帧 */
+typedef struct{
+    Net_YkcMonitorPro_Head_t head;
+    struct{
+        uint8_t pile_number[NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT];  /* 桩号*/
+        uint8_t gunno;                           /* 枪号(从1开始，0xFF表示所有枪) */
+        uint8_t info_type;                       /* 查询或修改信息的类型(enum ykcm_config_info_type) */
+        uint8_t option;                          /* 查询：0或修改：1或响应结果2(enum ykcm_config_info_option) */
+        /* 如果是修改则会带有修改的数据 */
+    }body;
+    uint16_t check_sum;                          /* 校验码 */
+}Net_YkcMonitorPro_Sreq_QuerySet_ConfigInfo_t;
+
+/** 0xDC 桩响应服务器查询、修改设备配置信息帧 */
+typedef struct{
+    Net_YkcMonitorPro_Head_t head;
+    struct{
+        uint8_t pile_number[NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT];  /* 桩号*/
+        uint8_t gunno;                           /* 枪号(从1开始，0xFF表示所有枪), 和查询或修改的一样 */
+        uint8_t info_type;                       /* 查询或修改信息的类型, 和查询或修改的一样 */
+        uint8_t option;                          /* 查询：0或修改：1或响应结果2, 和查询或修改的一样 */
+        /* 配置数据 */
+    }body;
+    uint16_t check_sum;                          /* 校验码 */
+}Net_YkcMonitorPro_Pres_QuerySet_ConfigInfo_t;
+#endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
 
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
 

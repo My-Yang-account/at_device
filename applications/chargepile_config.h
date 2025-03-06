@@ -130,7 +130,7 @@
 //#define CP_PLATFORM_USING_XXCD                          /* 平台使用星星充电 */
 //#define CP_PLATFORM_USING_TLD                           /* 平台使用特来电 */
 //#define CP_PLATFORM_USING_SGCC                          /* 平台使用国网 */
-//#define CP_USING_OFFLINE_BILLING                        /* 包含离线计费 */
+#define CP_USING_OFFLINE_BILLING                        /* 包含离线计费 */
 
 /** 域名默认 */
 /**------------------------------------------------------------*/
@@ -233,9 +233,9 @@
 #define SYSTEM_FUNCTION_SIZE                      5         /* 系统功能 */
 
 /* protect info config */
-#define PROTECT_POWER_PERCENT_VALUE_DEFAULT       100       /* 保护信息：默认功率百分比值 */
-#define PROTECT_POWER_PERCENT_VALUE_MAX           100       /* 保护信息：功率百分比最大值 */
-#define PROTECT_POWER_PERCENT_VALUE_MIN           1         /* 保护信息：功率百分比最小值 */
+#define PROTECT_POWER_PERCENT_VALUE_DEFAULT       1000      /* 保护信息：默认功率百分比值 */
+#define PROTECT_POWER_PERCENT_VALUE_MAX           1000      /* 保护信息：功率百分比最大值 */
+#define PROTECT_POWER_PERCENT_VALUE_MIN           10        /* 保护信息：功率百分比最小值 */
 
 #define PROTECT_STOP_SOC_VALUE_DEFAULT            100       /* 保护信息：默认SOC停充值 */
 #define PROTECT_STOP_SOC_VALUE_MAX                100       /* 保护信息：SOC停充值最大值 */
@@ -448,6 +448,8 @@ enum config_name{
     CONFIG_ITEM_SUPORT_PLUGCHARGE,
     CONFIG_ITEM_SUPORT_CARD,
     CONFIG_ITEM_SUPORT_MODULE_SLIENCE,
+    CONFIG_ITEM_SUPORT_PASSWORD_START,
+
     CONFIG_ITEM_CARD_TYPE,
     CONFIG_ITEM_CC14V_MAX,
     CONFIG_ITEM_CC14V_MIN,
@@ -515,6 +517,8 @@ enum config_name{
     CONFIG_ITEM_SCREEN_PASSWORD,
     CONFIG_ITEM_HELP_PHONE,
     CONFIG_ITEM_NET_TYPE,
+    CONFIG_ITEM_TEMINAL_ADDRA,
+    CONFIG_ITEM_TEMINAL_ADDRB,
 
 #ifdef CP_USING_OFFLINE_BILLING
     CONFIG_ITEM_BILLING_RULE,       /* 计费规则数据：为倒数第三项 */
@@ -588,7 +592,7 @@ uint8_t* sys_read_config_item_content(enum config_name name, uint8_t is_user_con
 
 uint8_t sys_get_single_group_module_num(uint8_t group);
 int16_t sys_get_power_percent(void);
-uint32_t sys_percent_convert_to_power(uint8_t percent);
+uint32_t sys_percent_convert_to_power(uint16_t percent);
 uint32_t sys_query_system_max_power(void);
 uint8_t sys_get_module_model(void);
 uint8_t sys_get_module_group_num(void);
@@ -599,18 +603,21 @@ uint8_t *sys_vin_code_get(uint8_t index);
 int32_t sys_vin_whitelists_add(uint8_t *data, uint8_t len);
 int32_t sys_vin_whitelists_query(uint8_t *data, uint8_t len);
 int32_t sys_vin_whitelists_delete(uint8_t *data, uint8_t len);
+int32_t sys_vin_whitelists_clear(void);
 
 int32_t sys_card_number_whitelists_storage(void);
 uint8_t *sys_card_number_get(uint8_t index);
 int32_t sys_card_number_whitelists_add(uint8_t *data, uint8_t len);
 int32_t sys_card_number_whitelists_query(uint8_t *data, uint8_t len);
 int32_t sys_card_number_whitelists_delete(uint8_t *data, uint8_t len);
+int32_t sys_card_number_whitelists_clear(void);
 
 int32_t sys_card_uid_whitelists_storage(void);
 uint8_t *sys_card_uid_get(uint8_t index);
 int32_t sys_card_uid_whitelists_add(uint8_t *data, uint8_t len);
 int32_t sys_card_uid_whitelists_query(uint8_t *data, uint8_t len);
 int32_t sys_card_uid_whitelists_delete(uint8_t *data, uint8_t len);
+int32_t sys_card_uid_whitelists_clear(void);
 
 int32_t sys_period_time_format_valid(void *t);
 int32_t sys_period_time_continuous_valid(void *t, uint8_t tlen, uint8_t valid_count);

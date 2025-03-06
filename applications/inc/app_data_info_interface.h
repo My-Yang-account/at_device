@@ -48,6 +48,216 @@ enum thaisen_trig_event{
     THAISEN_TRIG_EVENT_SIZE,                                      /** 屏幕外部触发事件： */
 };
 
+typedef enum{
+    THAISEN_CONFIG_PAGE_SYSTEM_INFO,                              /** 屏幕配置页：系统信息 */
+    THAISEN_CONFIG_PAGE_PILE_INFO,                                /** 屏幕配置页：桩信息 */
+    THAISEN_CONFIG_PAGE_SERVER_INFO,                              /** 屏幕配置页：服务器信息 */
+    THAISEN_CONFIG_PAGE_AMMETER_INFO,                             /** 屏幕配置页：电表信息 */
+    THAISEN_CONFIG_PAGE_MODULE_INFO,                              /** 屏幕配置页：模块信息 */
+    THAISEN_CONFIG_PAGE_VIN_INFO,                                 /** 屏幕配置页：VIN信息 */
+    THAISEN_CONFIG_PAGE_PROTECT_INFO,                             /** 屏幕配置页：保护信息 */
+    THAISEN_CONFIG_PAGE_FUNCTION_INFO,                            /** 屏幕配置页：功能配置信息 */
+    THAISEN_CONFIG_PAGE_OFFLINE_BILLING_INFO,                     /** 屏幕配置页：离线计费信息 */
+    THAISEN_CONFIG_PAGE_INPUT_7103_7101_INFO,                     /** 屏幕配置页：输入信息(7103/7101) */
+    THAISEN_CONFIG_PAGE_PUBLIC_INPUT_7104_INFO,                   /** 屏幕配置页：通用输入信息(7104) */
+    THAISEN_CONFIG_PAGE_GUN_INPUT_7104_INFO,                      /** 屏幕配置页：枪输入信息(7104) */
+    THAISEN_CONFIG_PAGE_PUBLIC_OUTPUT_7104_INFO,                  /** 屏幕配置页：通用输出信息(7104) */
+    THAISEN_CONFIG_PAGE_GUN_OUTPUT_7104_INFO,                     /** 屏幕配置页：枪输出信息(7104) */
+    THAISEN_CONFIG_PAGE_SIZE,                                     /** 屏幕配置页： */
+}thaisen_cfg_page;
+
+/** 负值为失败 */
+#define THAISEN_CONFIG_FAIL_OFFSET                  0x02         /** 配置条目失败结果偏移 */
+#define THAISEN_CONFIG_SYSTEM_ASSERT                -0x01        /** 配置结果：系统断言失败最大值 */
+#define THAISEN_CONFIG_SUCCESS                      0x00         /** 配置结果：成功 */
+#define THAISEN_CONFIG_FAIL_STORAGR                 0x01         /** 配置结果：保存失败 */
+/** > THAISEN_CONFIG_FAIL_OFFSET 表示某个配置项(成员顺序位置，从2开始)配置失败 */
+
+/** 注：以下结构必须要和监控平台部分定义的一致 */
+/** 注：以下结构必须要和监控平台部分定义的一致 */
+/** 注：以下结构必须要和监控平台部分定义的一致 */
+#pragma pack(1)
+/** 参数配置页面:屏幕-设置-系统设置-系统 */
+typedef struct{
+    uint8_t dev_function;                                         /** 本机功能(0：单枪终端，1：均充双枪，2：双枪终端，3：整流柜，4：动态切换) */
+    uint8_t allocate_way;                                         /** 分配方式(0：均充, 1：先到先得, 2：功率优先) */
+    uint16_t terminal_addr[2];                                    /** 终端地址(两把枪：A枪在前) */
+}thaisen_cfg_info_system;
+/** 参数配置页面:屏幕-设置-系统设置-桩信息 */
+typedef struct{
+    /** 桩号使用其它报文 */
+    uint8_t qrcode_prefix[128];                                   /** 二维码前缀(前2字节分别为设置格式和生成格式，第3字节开始是实际数据) */
+    uint8_t qrcode_suffix[128];                                   /** 二维码后缀 */
+    uint8_t help_number[32];                                      /** 帮助电话 */
+    uint8_t screen_password[15];                                  /** 屏幕密码 */
+}thaisen_cfg_info_pile;
+/** 参数配置页面:屏幕-设置-系统设置-服务器信息 */
+typedef struct{
+    uint8_t domain[256];                                          /** 域名 */
+    uint16_t port;                                                /** 端口 */
+    uint8_t net_mode;                                             /** 网络模式(0：4G，1：以太网，2：离线) */
+}thaisen_cfg_info_server;
+/** 参数配置页面:屏幕-设置-系统设置-电表 */
+typedef struct{
+    uint8_t ammeter_addr[2][13];                                  /** 电表地址(两把枪：A枪在前; 地址12位，最后一位填空字符) */
+    uint8_t ammeter_model;                                        /** 电表协议(0：瑞银，1：雅达，2：科达瑞，3：英利达，4：安科瑞，5：科为，6：预留) */
+    uint8_t baudrate;                                             /** 波特率 */
+    uint8_t check_way;                                            /** 校验位(0:偶校验, 1:奇校验, 2:无校验) */
+}thaisen_cfg_info_ammeter;
+/** 参数配置页面:屏幕-设置-系统设置-模块信息 */
+typedef struct{
+    uint8_t module_protocol;                                      /** 模块协议(0：英飞源，1：国网，2：永联，3：优优，4：易能，5：预留) */
+    uint8_t module_group;                                         /** 模块组数 */
+    uint8_t module_num_single[8];                                 /** 每组模块数(目前定死8组) */
+    uint16_t module_rated_voltage;                                /** 模块额定电压 */
+    uint16_t module_rated_current;                                /** 模块额定电流 */
+    uint16_t pile_outvoltage_max;                                 /** 桩最大输出电压 */
+    uint16_t pile_outvoltage_min;                                 /** 桩最小输出电压 */
+    uint16_t pile_outcurrent_max;                                 /** 桩最大输出电流 */
+    uint16_t pile_outcurrent_min;                                 /** 桩最小输出电流 */
+}thaisen_cfg_info_module;
+/** 参数配置页面:屏幕-设置-系统设置-VIN */
+typedef struct{
+    uint8_t vin_whitelist[6][18];                                 /** 目前最多6个VIN码，VIN码17位(最后一位填空字符) */
+}thaisen_cfg_info_vin;
+
+
+/** 参数配置页面:屏幕-设置-出厂设置-保护信息 */
+typedef struct{
+    uint16_t overtemp_alarm;                                      /** 过温告警值(范围：1-300) */
+    uint16_t overtemp_stop;                                       /** 过温停充值(范围：1-300) */
+    uint16_t overtemp_recovery;                                   /** 过温恢复值(范围：1-120) */
+    uint16_t overtemp_limitcur;                                   /** 过温限流值(范围：1-300) */
+    uint16_t gunvolt_limit;                                       /** 枪头电压限值(100倍) */
+    uint16_t soc_stop;                                            /** 停充 SOC(范围：1-100) */
+    uint16_t power_percent;                                       /** 功率百分比(10倍) */
+    uint16_t eloss_proportion;                                    /** 电损比(10倍) */
+    uint16_t cc1_12_max;                                          /** CC1 12V 上限(100倍) */
+    uint16_t cc1_12_min;                                          /** CC1 12V 下限(100倍) */
+    uint16_t cc1_6_max;                                           /** CC1 6V 上限(100倍) */
+    uint16_t cc1_6_min;                                           /** CC1 6V 下限(100倍) */
+    uint16_t cc1_4_max;                                           /** CC1 4V 上限(100倍) */
+    uint16_t cc1_4_min;                                           /** CC1 4V 下限(100倍) */
+}thaisen_cfg_info_protect;
+/** 参数配置页面:屏幕-设置-出厂设置-功能配置 */
+typedef struct{
+    uint16_t insult_detect : 1;                                   /** 绝缘检测(1：启用，0：禁用) */
+    uint16_t card_reader : 1;                                     /** 读卡器(1：启用，0：禁用) */
+    uint16_t parallel_charge : 1;                                 /** 并充(1：启用，0：禁用) */
+    uint16_t vin_charge : 1;                                      /** VIN码(1：启用，0：禁用) */
+    uint16_t parallel_relay : 1;                                  /** 并联继电器(1：启用，0：禁用) */
+    uint16_t module_silence : 1;                                  /** 模块静音(1：启用，0：禁用) */
+    uint16_t plug_charge : 1;                                     /** 即插即充(1：启用，0：禁用) */
+    uint16_t local_start : 1;                                     /** 本地启动(1：启用，0：禁用) */
+    uint16_t local_stop : 1;                                      /** 本地停止(1：启用，0：禁用) */
+    uint16_t auxpower_24V : 1;                                    /** 24V辅源(1：启用，0：禁用) */
+    uint16_t offline_billing : 1;                                 /** 离线计费(1：启用，0：禁用) */
+    uint16_t password_start : 1;                                  /** 密码启动(1：启用，0：禁用) */
+}thaisen_cfg_info_function;
+/** 参数配置页面:屏幕-设置-出厂设置-离线计费 */
+struct _time_info{
+    uint8_t start_hour;                                           /** 时段开始小时(范围：0-23) */
+    uint8_t start_min;                                            /** 时段开始分钟(范围：0-59) */
+    uint8_t end_hour;                                             /** 时段结束小时(范围：0-23) */
+    uint8_t end_min;                                              /** 时段结束分钟(范围：0-59) */
+    uint8_t rated_number;                                         /** 时段费率号(0：尖尖，1：尖，2：峰，3：平，4：谷) */
+};
+typedef struct{
+    uint32_t service_price;                                       /** 服务费价格(单位：元，10000倍) */
+    uint32_t sharp_sharp_price;                                   /** 尖尖电费价格(单位：元，10000倍) */
+    struct _time_info sstime1;                                    /** 尖尖时段1 */
+    struct _time_info sstime2;                                    /** 尖尖时段2 */
+    uint32_t sharp_price;                                         /** 尖电费价格(单位：元，10000倍) */
+    struct _time_info stime1;                                     /** 尖时段1 */
+    struct _time_info stime2;                                     /** 尖时段2 */
+    uint32_t peak_price;                                          /** 峰电费价格(单位：元，10000倍) */
+    struct _time_info ptime1;                                     /** 峰时段1 */
+    struct _time_info ptime2;                                     /** 峰时段2 */
+    uint32_t flat_price;                                          /** 平电费价格(单位：元，10000倍) */
+    struct _time_info ftime1;                                     /** 平时段1 */
+    struct _time_info ftime2;                                     /** 平时段2 */
+    uint32_t valley_price;                                        /** 谷电费价格(单位：元，10000倍) */
+    struct _time_info vtime1;                                     /** 谷时段1 */
+    struct _time_info vtime2;                                     /** 谷时段2 */
+}thaisen_cfg_info_offline_billing;
+
+/************************************* 7103/7101 *********************************************/
+/** 参数配置页面:屏幕-设置-出厂设置-输入信息 */
+struct _input_pair_7103_7101{
+    uint8_t enable : 4;                                           /** 1：启用，0：禁用 */
+    uint8_t reversal : 4;                                         /** 1：取反，0：不取反 */
+};
+typedef struct{
+    struct _input_pair_7103_7101 scram;                           /** 急停 */
+    struct _input_pair_7103_7101 door;                            /** 门禁 */
+    struct _input_pair_7103_7101 acrelay;                         /** 交流接触器 */
+    struct _input_pair_7103_7101 dcrelay;                         /** 直流接触器 */
+    struct _input_pair_7103_7101 fan;                             /** 风扇 */
+    struct _input_pair_7103_7101 elock;                           /** 电子锁 */
+    struct _input_pair_7103_7101 tempprotect;                     /** 温度保护 */
+}thaisen_cfg_info_input_7103_7101;
+
+/************************************* 7104 *********************************************/
+/** 参数配置页面:屏幕-设置-出厂设置-通用输入信息 */
+struct _input_pair_7104{
+    uint8_t port_number;                                          /** 输入口号(NET_YKC_MONITOR_INPUT_PORT_MIN - NET_YKC_MONITOR_INPUT_PORT_MAX) */
+    struct{
+        uint8_t enable : 4;                                       /** 1：启用，0：禁用 */
+        uint8_t reversal : 4;                                     /** 1：取反，0：不取反 */
+    }state;
+};
+typedef struct{
+    struct _input_pair_7104 protectlight;                         /** 防雷器 */
+    struct _input_pair_7104 parallel_relay1;                      /** 母联1 */
+    struct _input_pair_7104 parallel_relay2;                      /** 母联2 */
+    struct _input_pair_7104 parallel_relay3;                      /** 母联3 */
+    struct _input_pair_7104 scram;                                /** 急停 */
+    struct _input_pair_7104 breaker;                              /** 断路器 */
+    struct _input_pair_7104 acrelay;                              /** 交流接触器 */
+    struct _input_pair_7104 fan;                                  /** 风扇 */
+    struct _input_pair_7104 flooding;                             /** 水浸 */
+    struct _input_pair_7104 door;                                 /** 门禁 */
+    struct _input_pair_7104 smoke;                                /** 烟感 */
+    struct _input_pair_7104 fall;                                 /** 倾倒 */
+}thaisen_cfg_info_public_input_7104;
+/** 参数配置页面:屏幕-设置-出厂设置-A/B枪输入信息 */
+typedef struct{
+    struct _input_pair_7104 dcrelay;                              /** 直流继电器 */
+    struct _input_pair_7104 elock;                                /** 电子锁 */
+    struct _input_pair_7104 gunsite;                              /** 枪座 */
+    struct _input_pair_7104 liquid;                               /** 液冷 */
+    struct _input_pair_7104 fuse;                                 /** 熔断器 */
+    struct _input_pair_7104 temp_detect;                          /** 温度检测 */
+}thaisen_cfg_info_gun_input_7104;
+
+/** 参数配置页面:屏幕-设置-出厂设置-通用输出信息 */
+struct _output_config_7104{
+    uint8_t port_number;                                          /** 输入口号(NET_YKC_MONITOR_OUTPUT_PORT_MIN - NET_YKC_MONITOR_OUTPUT_PORT_MAX) */
+    uint8_t enable;                                               /** 1:启用, 0:禁用 */
+};
+typedef struct{
+    struct _output_config_7104 fan;                               /** 风扇 */
+    struct _output_config_7104 parallel_relay1;                   /** 母联1 */
+    struct _output_config_7104 parallel_relay2;                   /** 母联2 */
+    struct _output_config_7104 parallel_relay3;                   /** 母联3 */
+    struct _output_config_7104 acrelay;                           /** 交流接触器 */
+}thaisen_cfg_info_public_output_7104;
+/** 参数配置页面:屏幕-设置-出厂设置-A/B枪输出信息 */
+typedef struct{
+    struct _output_config_7104 auxpower_24V;                      /** 24V辅源 */
+    struct _output_config_7104 auxpower_12V;                      /** 12V辅源 */
+    struct _output_config_7104 dcrelay;                           /** 直流继电器 */
+    struct _output_config_7104 relief;                            /** 泄放 */
+    struct _output_config_7104 elock;                             /** 电子锁 */
+    struct _output_config_7104 liquid;                            /** 液冷 */
+}thaisen_cfg_info_gun_output_7104;
+
+#pragma pack()
+/**
+ * 外部触发执行信息配置
+ **/
+int32_t thaisen_trigger_config_execute(uint8_t gunno, thaisen_cfg_page page, void *config, void *sub_config, void *sub_sub_config);
+
 /**
  * 获取充电状态
  **/
@@ -297,11 +507,15 @@ int16_t thaisen_get_power_percent(void);
 /**
  * 根据功率百分比获取功率值
  **/
-uint32_t thaisen_get_power_from_percent(uint8_t percent);
+uint32_t thaisen_get_power_from_percent(uint16_t percent);
 /**
  * 添加VIN码白名单
  **/
 int32_t thaisen_vin_whitelists_add(uint8_t *data, uint8_t len);
+/**
+ * 清空VIN码白名单
+ **/
+int32_t thaisen_vin_whitelists_clear(void);
 /**
  * 获取充电方式
  **/

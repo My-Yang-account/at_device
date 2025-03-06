@@ -112,6 +112,10 @@ int8_t ykc_monitor_response_padding_info_para_confirm(uint8_t *buf, uint16_t ile
 int8_t ykc_monitor_response_padding_modify_dev_info(uint8_t *buf, uint16_t ilen, uint16_t *olen);
 int8_t ykc_monitor_message_padding_billing_rule(uint8_t *buf, uint16_t ilen, uint16_t *olen);
 
+#ifdef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL
+int8_t ykc_monitor_config_info_process(void *data, uint16_t dlen, void *buf, uint16_t blen, uint16_t *olen);
+#endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
+
 /******************************** 以下是外部调用触发 *******************************/
 /******************************** 以下是外部调用触发 *******************************/
 int8_t ykc_monitor_storage_thread_monitor_err_info(char *name);

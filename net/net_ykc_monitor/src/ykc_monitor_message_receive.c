@@ -34,6 +34,9 @@ NET_DEF_SRAM2 static struct ykc_monitor_recv_message s_ykc_monitor_recv_message[
 NET_DEF_SRAM2 static ykc_monitor_qrcode_buf_t s_ykc_monitor_qrcode_buf;
 NET_DEF_SRAM2 static ykc_monitor_card_vin_buf_t s_ykc_monitor_card_vin_buf;
 NET_DEF_SRAM2 static ykc_monitor_dev_info_buf_t s_ykc_monitor_dev_info_buf;
+#ifdef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL
+NET_DEF_SRAM2 static ykc_monitor_config_info_buf_t s_ykc_monitor_config_info_buf;
+#endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
 
 extern uint8_t s_ykc_monitor_current_transaction_number[NET_SYSTEM_GUN_NUMBER][NET_YKC_MONITOR_SERIAL_NUMBER_LENGTH_DEFAULT];
 
@@ -277,6 +280,17 @@ void* ykc_monitor_get_device_info(void)
 {
     return &s_ykc_monitor_dev_info_buf;
 }
+
+#ifdef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL
+/***********************************************
+ * 函数名      ykc_monitor_get_config_info
+* 功能           获取平台下发的修改、查询设备配置信息
+ **********************************************/
+void* ykc_monitor_get_config_info(void)
+{
+    return &s_ykc_monitor_config_info_buf;
+}
+#endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
 
 /***********************************************
  * 函数名      ykc_monitor_pile_number_invalid
@@ -1794,6 +1808,46 @@ static void ykc_monitor_callback_request_query_billing_rule_info(uint8_t* data, 
 #endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
 }
 
+/*****************************************************************
+ * 函数名                   ykc_monitor_callback_request_query_set_config_info
+ * 功能                       处理运营平台下发的查询、设置配置信息请求
+ *           data       数据
+ *           length     数据长度
+ * 返回                        无
+ ****************************************************************/
+static void ykc_monitor_callback_request_query_set_config_info(uint8_t* data, uint16_t length)
+{
+#ifdef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL
+    if(data == NULL){
+        LOG_E("ykc monitor input data is null when call ykc_monitor_callback_request_query_set_config_info");
+        return;
+    }
+    if(length > sizeof(s_ykc_monitor_config_info_buf.info)){
+        LOG_E("ykc monitor input data length out of range when call ykc_monitor_callback_request_query_set_config_info|%d, %d", \
+                length, sizeof(s_ykc_monitor_config_info_buf.info));
+        return;
+    }
+
+    if(s_ykc_monitor_config_info_buf.flag.is_used){
+        LOG_W("ykc monitor config info processing......");
+        return;
+    }
+
+    Net_YkcMonitorPro_Sreq_QuerySet_ConfigInfo_t *request = (Net_YkcMonitorPro_Sreq_QuerySet_ConfigInfo_t*)data;
+    if(ykc_monitor_pile_number_invalid(request->body.pile_number, request->head.type)){
+        LOG_W("ykc monitor config info pile number error(%s)", request->body.pile_number);
+        return;
+    }
+
+    s_ykc_monitor_config_info_buf.flag.is_used = 0x01;
+    s_ykc_monitor_config_info_buf.length = length;
+    memset(s_ykc_monitor_config_info_buf.info, 0x00, sizeof(s_ykc_monitor_config_info_buf.info));
+    memcpy(s_ykc_monitor_config_info_buf.info, data, length);
+
+    ykc_monitor_net_event_send(NET_YKC_MONITOR_USER_EVENT_HANDLE_SERVER, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, 0x00, NET_YKC_MONITOR_USER_SREQ_EVENT_QUERY_SET_CONFIG_INFO);
+#endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
+}
+
 #endif /* NET_PACK_USING_YKC_MONITOR */
 
 int32_t ykc_monitor_message_recv_init(void)
@@ -1838,6 +1892,7 @@ int32_t ykc_monitor_message_recv_init(void)
     ykc_monitor_service_callback_register(NETYKC_MONITOR_SRESCMD_INFOPARA_CONFIRM_RESULT,    ykc_monitor_callback_response_info_para_confirm_result);
     ykc_monitor_service_callback_register(NETYKC_MONITOR_SREQCMD_MODIFY_PILE_INFO,           ykc_monitor_callback_request_modify_device_info);
     ykc_monitor_service_callback_register(NETYKC_MONITOR_SREQCMD_QUERY_BILLING_RULE,         ykc_monitor_callback_request_query_billing_rule_info);
+    ykc_monitor_service_callback_register(NETYKC_MONITOR_SREQCMD_QUERY_SET_CONFIG_INFO,      ykc_monitor_callback_request_query_set_config_info);
 #endif /* #ifdef NET_YKC_MONITOR_AS_MONITOR */
 
     s_ykc_monitor_qrcode_buf.flag.is_used = 0x00;

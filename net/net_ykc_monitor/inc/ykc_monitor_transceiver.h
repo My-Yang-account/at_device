@@ -11,21 +11,26 @@
 #define NET_NET_YKC_MONITOR_INC_YKC_MONITOR_TRANSCEIVER_H_
 
 #include "net_pack_config.h"
+#include "ykc_monitor_message_struct_define.h"
 
 #ifdef NET_PACK_USING_YKC_MONITOR
 
 #ifdef NET_YKC_MONITOR_AS_MONITOR
+#ifdef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL
+#define YKC_USER_MONITOR_SERVICE_CALLBACK_NUM    17
+#else
 #define YKC_USER_MONITOR_SERVICE_CALLBACK_NUM    16
+#endif
 #else
 #define YKC_USER_MONITOR_SERVICE_CALLBACK_NUM    0
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
 
-#define YKC_MONITOR_SERVICE_CALLBACK_ITEM_MAX                           23 + YKC_USER_MONITOR_SERVICE_CALLBACK_NUM    /* 服务回调项数量 */
+#define YKC_MONITOR_SERVICE_CALLBACK_ITEM_MAX                           (23 + YKC_USER_MONITOR_SERVICE_CALLBACK_NUM)    /* 服务回调项数量 */
 
 #ifdef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL
-#define YKC_MONITOR_RECV_BUFF_SIZE                                      18 + NET_OTA_SEGMENT_LEN    /* 接收缓存大小 */
+#define YKC_MONITOR_RECV_BUFF_SIZE                                      (18 + NET_OTA_SEGMENT_LEN)  /* 接收缓存大小 */
 #else
-#define YKC_MONITOR_RECV_BUFF_SIZE                                      16 + NET_OTA_SEGMENT_LEN    /* 接收缓存大小 */
+#define YKC_MONITOR_RECV_BUFF_SIZE                                      (16 + NET_OTA_SEGMENT_LEN)  /* 接收缓存大小 */
 #endif
 
 #define YKC_MONITOR_RECV_THREAD_STACK_SIZE                              2048                        /* 报文接收线程栈大小 */

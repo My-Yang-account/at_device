@@ -23,7 +23,6 @@ APP_DEF_SRAM1 static struct qrcode_info s_qrcode;
 APP_DEF_SRAM1 static struct charge_data s_data_of_charging;
 APP_DEF_SRAM1 static struct battery_info s_battery_info;
 APP_DEF_SRAM1 static struct bms_info s_bms_info;
-APP_DEF_SRAM1 static struct account_info s_account_info;
 APP_DEF_SRAM1 static struct fault_info s_fault_info;
 
 #ifdef APP_DESIGNATE_REGION
@@ -42,7 +41,6 @@ void app_data_info_interface_init(void)
     memset(&s_data_of_charging, 0x00, sizeof(s_data_of_charging));
     memset(&s_battery_info, 0x00, sizeof(s_battery_info));
     memset(&s_bms_info, 0x00, sizeof(s_bms_info));
-    memset(&s_account_info, 0x00, sizeof(s_account_info));
     memset(&s_fault_info, 0x00, sizeof(s_fault_info));
 }
 #endif /* APP_DESIGNATE_REGION */
@@ -1322,7 +1320,7 @@ uint8_t thaisen_is_set_power_percent(void)
 /********************************************
  * 函数名      thaisen_get_power_percent
  * 功能         获取功率百分比
-* 返回           功率百分比(0-100), 负值的话是没有配置，默认100
+* 返回           功率百分比(0-1000), 负值的话是没有配置，默认1000
  *******************************************/
 int16_t thaisen_get_power_percent(void)
 {
@@ -1334,7 +1332,7 @@ int16_t thaisen_get_power_percent(void)
  * 功能         根据功率百分比获取功率值
 * 返回           功率(单位W)
  *******************************************/
-uint32_t thaisen_get_power_from_percent(uint8_t percent)
+uint32_t thaisen_get_power_from_percent(uint16_t percent)
 {
     return sys_percent_convert_to_power(percent);
 }
@@ -1347,6 +1345,16 @@ uint32_t thaisen_get_power_from_percent(uint8_t percent)
 int32_t thaisen_vin_whitelists_add(uint8_t *data, uint8_t len)
 {
     return sys_vin_whitelists_add(data, len);
+}
+
+/********************************************
+ * 函数名      thaisen_vin_whitelists_clear
+ * 功能         清空VIN码白名单
+* 返回           >= 0:成功, 其它：失败
+ *******************************************/
+int32_t thaisen_vin_whitelists_clear(void)
+{
+    return sys_vin_whitelists_clear();
 }
 
 /********************************************
@@ -1613,5 +1621,17 @@ void thaisen_exit_critical(void)
 uint8_t thaisen_is_countdown_finish(uint8_t gunno)
 {
     return SerialScreen_Screen_IsCouDownFin_Flag(gunno);
+}
+
+/**************************************************************************
+ * 函数名      thaisen_trigger_config_execute
+ * 功能         外部触发执行信息配置
+ * 参数          page     配置所在页
+ *        config   配置数据
+ * 返回          <0:配置失败(参数无效)，=0:配置成功  1:配置存储失败， >1:写入配置成功，但是写入的内容与输入的内容有差异
+ *************************************************************************/
+int32_t thaisen_trigger_config_execute(uint8_t gunno, thaisen_cfg_page page, void *config, void *sub_config, void *sub_sub_config)
+{
+    return SerialScreen_Trigger_ConfigExecute(gunno, page, config, sub_config, sub_sub_config);
 }
 

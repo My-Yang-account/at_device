@@ -15,6 +15,7 @@
 #include "chargepile_config.h"
 #include "net_operation.h"
 #include "thaisenChargModuleLib.h"
+#include "app_data_info_interface.h"
 
 #define DBG_TAG "ykc_mrl"
 #define DBG_LVL DBG_LOG
@@ -3400,7 +3401,7 @@ int8_t ykc_monitor_message_padding_tsocket_info(uint8_t *buf, uint16_t ilen, uin
     message->body.socket_state = socket->socket_state;
     message->body.open_count = socket->open_count;
     message->body.login_count = socket->login_count;
-    message->body.heartbeat_count = socket->heartbeat_count;;
+    message->body.heartbeat_count = socket->heartbeat_count;
 
     if(olen){
         *olen = total;
@@ -4343,7 +4344,7 @@ int8_t ykc_monitor_message_padding_billing_rule(uint8_t *buf, uint16_t ilen, uin
         message->body.fees_type = NET_YKC_MONITOR_FEES_TYPE_PERIOD_15MIN;
 
         for(uint8_t i = 0x00; i < APP_BILLING_RULE_PERIOD_MAX; i++){
-            info[i].elect_fees = app_billingrule_get_period_elect_price(gunno, i);;
+            info[i].elect_fees = app_billingrule_get_period_elect_price(gunno, i);
             info[i].service_fees = app_billingrule_get_period_service_price(gunno, i);
             info[i].delay_fees = app_billingrule_get_period_delay_price(gunno, i);
             info[i].reserve = 0x00;
@@ -4371,7 +4372,6 @@ int8_t ykc_monitor_message_padding_billing_rule(uint8_t *buf, uint16_t ilen, uin
     return -0x01;
 #endif /* #ifdef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
 }
-
 
 
 /** 监控报文处理 */
@@ -4488,7 +4488,1340 @@ int8_t ykc_monitor_message_pro_modify_dev_info(uint8_t info_type, void *data, ui
     return s_ykc_monitor_handle->system_data_storage(0x00);
 }
 
+/*********************************************************************************
+ * 设备配置信息报文处理
+ ********************************************************************************/
+#ifdef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL
+/********************************************************************
+ * 函数名      ykc_monitor_is_config_data_valid
+ * 功能          检查下发的配置数据是否有效(字符型数据全为空字符为无效；数值型数据全为0xFF为无效)
+ * *****************************************************************/
+static uint8_t ykc_monitor_is_config_data_valid(void *data, uint8_t dlen, uint8_t is_string)
+{
+    if(is_string){
+        if(strlen((char*)data)){
+            return 0x01;
+        }
+    }else{
+        for(uint8_t i = 0x00; i < dlen; i++){
+            if(*((uint8_t*)data + i) != 0xFF){
+                return 0x01;
+            }
+        }
+    }
+    return 0x00;
+}
 
+/********************************************************************
+ * 函数名      ykc_monitor_config_execute
+ * 功能          执行配置操作
+ * *****************************************************************/
+static int32_t ykc_monitor_config_execute(uint8_t gunno, uint8_t page, void *data, void *sub_data, void *sub_sub_data)
+{
+    int32_t ret = thaisen_trigger_config_execute(gunno, page, data, sub_data, sub_sub_data);
+    if(ret == THAISEN_CONFIG_SUCCESS){
+        return NETYKCM_CONFIG_RES_SUCCESS;                               /** 配置成功 */
+    }else if(ret == THAISEN_CONFIG_FAIL_STORAGR){
+        return NETYKCM_CONFIG_RES_FAIL_STORAGE;                          /** 配置保存失败 */
+    }else if(ret <= THAISEN_CONFIG_SYSTEM_ASSERT){
+        return (NETYKCM_CONFIG_RES_EXTERN_INVOKE_ASSERT_BASE + (THAISEN_CONFIG_SYSTEM_ASSERT - ret));  /** 外部调用断言失败 */
+    }else{
+        return (NETYKCM_CONFIG_RES_ITEM_FAIL_BASE + (ret - THAISEN_CONFIG_FAIL_OFFSET));               /** 配置条目失败 */
+    }
+}
+
+/** 系统信息 */
+/*************************************************
+ * 函数名      ykc_monitor_config_info_process_sys_info
+ * 功能          处理服务器下发的系统信息配置修改、查询请求
+ * 返回          <0：失败(无效数据-系统故障，不执行响应)
+ *      =0：成功
+ *      >0：失败(作为失败原因进行响应)
+ * **********************************************/
+static int32_t ykc_monitor_config_info_process_sys_info(uint8_t option, void *data, uint16_t dlen, void *buf, uint16_t blen)
+{
+    if((buf == NULL) || (blen < sizeof(struct ykcm_sys_info))){
+        LOG_E("ykcm input buf invalid with sys info|%d,%d", blen, sizeof(struct ykcm_sys_info));
+        return (NETYKCM_CONFIG_RES_SYS_ITEM_ASSERT_BASE + 0x00);
+    }
+    /** 配置信息查询 */
+    if(option == NETYKCM_CONFIG_INFO_OPTION_QUERY){
+        struct ykcm_sys_info *response = (struct ykcm_sys_info*)buf;
+
+        memset(response, 0x00, sizeof(struct ykcm_sys_info));
+
+        response->allocate_way = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_ALLOCATION_WAY, 0x00));
+        response->dev_function = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_DEVICE_TYPE, 0x00));
+        response->terminal_addr[0x00] = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_TEMINAL_ADDRA, 0x00));
+        response->terminal_addr[0x01] = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_TEMINAL_ADDRB, 0x00));
+    }
+    /** 配置信息设置 */
+    else{
+        if((data == NULL) || (dlen < sizeof(struct ykcm_sys_info))){
+            LOG_E("ykcm input data invalid with sys info|%d,%d", dlen, sizeof(struct ykcm_sys_info));
+            return (NETYKCM_CONFIG_RES_SYS_ITEM_ASSERT_BASE + 0x01);
+        }
+        struct ykcm_sys_info *info = (struct ykcm_sys_info*)data;
+
+        if(ykc_monitor_is_config_data_valid(&info->allocate_way, sizeof(info->allocate_way), 0x00) == NET_ENUM_FALSE){
+            info->allocate_way = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_ALLOCATION_WAY, 0x00));
+        }
+        if(ykc_monitor_is_config_data_valid(&info->dev_function, sizeof(info->dev_function), 0x00) == NET_ENUM_FALSE){
+            info->dev_function = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_DEVICE_TYPE, 0x00));
+        }
+        if(ykc_monitor_is_config_data_valid(&info->terminal_addr[0x00], sizeof(info->terminal_addr[0x00]), 0x00) == NET_ENUM_FALSE){
+            info->terminal_addr[0x00] = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_TEMINAL_ADDRA, 0x00));
+        }
+        if(ykc_monitor_is_config_data_valid(&info->terminal_addr[0x01], sizeof(info->terminal_addr[0x01]), 0x00) == NET_ENUM_FALSE){
+            info->terminal_addr[0x01] = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_TEMINAL_ADDRB, 0x00));
+        }
+
+        return ykc_monitor_config_execute(0x00, THAISEN_CONFIG_PAGE_SYSTEM_INFO, data, NULL, NULL);
+    }
+
+    return 0x00;
+}
+
+/** 桩信息 */
+/*************************************************
+ * 函数名      ykc_monitor_config_info_process_pile_info
+ * 功能          处理服务器下发的桩信息配置修改、查询请求
+ * 返回          <0：失败(无效数据-系统故障，不执行响应)
+ *      =0：成功
+ *      >0：失败(作为失败原因进行响应)
+ * **********************************************/
+static int32_t ykc_monitor_config_info_process_pile_info(uint8_t option, void *data, uint16_t dlen, void *buf, uint16_t blen)
+{
+    if((buf == NULL) || (blen < sizeof(struct ykcm_pile_info))){
+        LOG_E("ykcm input buf invalid with pile info|%d,%d", blen, sizeof(struct ykcm_pile_info));
+        return (NETYKCM_CONFIG_RES_SYS_ITEM_ASSERT_BASE + 0x00);
+    }
+    uint16_t valid_len = 0x00;
+    /** 配置信息查询 */
+    if(option == NETYKCM_CONFIG_INFO_OPTION_QUERY){
+        char *config_item = NULL;
+        struct ykcm_pile_info *response = (struct ykcm_pile_info*)buf;
+
+        memset(response, 0x00, sizeof(struct ykcm_pile_info));
+
+        config_item = (char*)(sys_read_config_item_content(CONFIG_ITEM_QRCODE_PRE, 0x00));
+        valid_len = strlen(config_item);
+        valid_len = valid_len > sizeof(response->qrcode_prefix) ? sizeof(response->qrcode_prefix) : valid_len;
+        memcpy(response->qrcode_prefix, config_item, valid_len);
+
+        config_item = (char*)(sys_read_config_item_content(CONFIG_ITEM_QRCODE_SUF, 0x00));
+        valid_len = strlen(config_item);
+        valid_len = valid_len > sizeof(response->qrcode_suffix) ? sizeof(response->qrcode_suffix) : valid_len;
+        memcpy(response->qrcode_suffix, config_item, valid_len);
+
+        config_item = (char*)(sys_read_config_item_content(CONFIG_ITEM_HELP_PHONE, 0x00));
+        valid_len = strlen(config_item);
+        valid_len = valid_len > sizeof(response->help_number) ? sizeof(response->help_number) : valid_len;
+        memcpy(response->help_number, config_item, valid_len);
+
+        config_item = (char*)(sys_read_config_item_content(CONFIG_ITEM_SCREEN_PASSWORD, 0x00));
+        valid_len = strlen(config_item);
+        valid_len = valid_len > sizeof(response->screen_password) ? sizeof(response->screen_password) : valid_len;
+        memcpy(response->screen_password, config_item, valid_len);
+    }
+    /** 配置信息设置 */
+    else{
+        if((data == NULL) || (dlen < sizeof(struct ykcm_pile_info))){
+            LOG_E("ykcm input data invalid with pile info|%d,%d", dlen, sizeof(struct ykcm_pile_info));
+            return (NETYKCM_CONFIG_RES_SYS_ITEM_ASSERT_BASE + 0x01);
+        }
+
+        return ykc_monitor_config_execute(0x00, THAISEN_CONFIG_PAGE_PILE_INFO, data, NULL, NULL);
+    }
+
+    return 0x00;
+}
+
+/** 服务器信息 */
+/*************************************************
+ * 函数名      ykc_monitor_config_info_process_server_info
+ * 功能          处理服务器下发的服务器信息配置修改、查询请求
+ * 返回          <0：失败(无效数据-系统故障，不执行响应)
+ *      =0：成功
+ *      >0：失败(作为失败原因进行响应)
+ * **********************************************/
+static int32_t ykc_monitor_config_info_process_server_info(uint8_t option, void *data, uint16_t dlen, void *buf, uint16_t blen)
+{
+#define YKCM_NET_MODE_POSITION              0x02         /** 网络模式(配置条目)在结构体 thaisen_cfg_info_server 中的成员次序(从0开始)*/
+
+    if((buf == NULL) || (blen < sizeof(struct ykcm_server_info))){
+        LOG_E("ykcm input buf invalid with server info|%d,%d", blen, sizeof(struct ykcm_server_info));
+        return (NETYKCM_CONFIG_RES_SYS_ITEM_ASSERT_BASE + 0x00);
+    }
+    uint16_t valid_len = 0x00;
+
+    /** 配置信息查询 */
+    if(option == NETYKCM_CONFIG_INFO_OPTION_QUERY){
+        char *config_item = NULL;
+        struct ykcm_server_info *response = (struct ykcm_server_info*)buf;
+
+        memset(response, 0x00, sizeof(struct ykcm_server_info));
+
+        config_item = (char*)(sys_read_config_item_content(CONFIG_ITEM_IP_DOMAIN, 0x00));
+        valid_len = strlen(config_item);
+        valid_len = valid_len > sizeof(response->domain) ? sizeof(response->domain) : valid_len;
+        memcpy(response->domain, config_item, valid_len);
+
+        response->port = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_PORT, 0x00));
+        response->net_mode = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_NET_TYPE, 0x00));
+    }
+    /** 配置信息设置 */
+    else{
+        if((data == NULL) || (dlen < sizeof(struct ykcm_server_info))){
+            LOG_E("ykcm input data invalid with server info|%d,%d", dlen, sizeof(struct ykcm_server_info));
+            return (NETYKCM_CONFIG_RES_SYS_ITEM_ASSERT_BASE + 0x01);
+        }
+        struct ykcm_server_info *info = (struct ykcm_server_info*)data;
+
+        if(ykc_monitor_is_config_data_valid(&info->net_mode, sizeof(info->net_mode), 0x00)){
+            info->net_mode = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_NET_TYPE, 0x00));
+        }
+        return ykc_monitor_config_execute(0x00, THAISEN_CONFIG_PAGE_SERVER_INFO, data, NULL, NULL);
+    }
+
+    return 0x00;
+}
+
+/** 电表信息 */
+/*************************************************
+ * 函数名      ykc_monitor_config_info_process_ammeter_info
+ * 功能          处理服务器下发的电表信息配置修改、查询请求
+ * 返回          <0：失败(无效数据-系统故障，不执行响应)
+ *      =0：成功
+ *      >0：失败(作为失败原因进行响应)
+ * **********************************************/
+static int32_t ykc_monitor_config_info_process_ammeter_info(uint8_t option, void *data, uint16_t dlen, void *buf, uint16_t blen)
+{
+    if((buf == NULL) || (blen < sizeof(struct ykcm_ammeter_info))){
+        LOG_E("ykcm input buf invalid with ammeter info|%d,%d", blen, sizeof(struct ykcm_ammeter_info));
+        return (NETYKCM_CONFIG_RES_SYS_ITEM_ASSERT_BASE + 0x00);
+    }
+    uint16_t valid_len = 0x00;
+
+    /** 配置信息查询 */
+    if(option == NETYKCM_CONFIG_INFO_OPTION_QUERY){
+        char *config_item = NULL;
+        struct ykcm_ammeter_info *response = (struct ykcm_ammeter_info*)buf;
+
+        memset(response, 0x00, sizeof(struct ykcm_ammeter_info));
+
+        config_item = (char*)(sys_read_config_item_content(CONFIG_ITEM_METER_NOA, 0x00));
+        valid_len = strlen(config_item);
+        valid_len = valid_len > (sizeof(response->ammeter_addr[0x00]) - 0x01) ? (sizeof(response->ammeter_addr[0x00]) - 0x01) : valid_len;
+        memcpy(response->ammeter_addr[0x00], config_item, valid_len);
+
+        config_item = (char*)(sys_read_config_item_content(CONFIG_ITEM_METER_NOB, 0x00));
+        valid_len = strlen(config_item);
+        valid_len = valid_len > (sizeof(response->ammeter_addr[0x01]) - 0x01) ? (sizeof(response->ammeter_addr[0x01]) - 0x01) : valid_len;
+        memcpy(response->ammeter_addr[0x01], config_item, valid_len);
+
+        response->baudrate = *(uint32_t*)(sys_read_config_item_content(CONFIG_ITEM_METER_BAUDRATE, 0x00));
+        response->check_way = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_METER_CHECK_WAY, 0x00));
+        response->ammeter_model = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_METER_MODEL, 0x00));
+    }
+    /** 配置信息设置 */
+    else{
+        if((data == NULL) || (dlen < sizeof(struct ykcm_ammeter_info))){
+            LOG_E("ykcm input data invalid with ammeter info|%d,%d", dlen, sizeof(struct ykcm_ammeter_info));
+            return (NETYKCM_CONFIG_RES_SYS_ITEM_ASSERT_BASE + 0x01);
+        }
+        struct ykcm_ammeter_info *info = (struct ykcm_ammeter_info*)data;
+
+        if(ykc_monitor_is_config_data_valid(&info->ammeter_model, sizeof(info->ammeter_model), 0x00) == NET_ENUM_FALSE){
+            info->ammeter_model = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_METER_MODEL, 0x00));
+        }
+        if(ykc_monitor_is_config_data_valid(&info->check_way, sizeof(info->check_way), 0x00) == NET_ENUM_FALSE){
+            info->check_way = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_METER_CHECK_WAY, 0x00));
+        }
+        if(ykc_monitor_is_config_data_valid(&info->baudrate, sizeof(info->baudrate), 0x00) == NET_ENUM_FALSE){
+            info->baudrate = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_METER_BAUDRATE, 0x00));
+        }
+
+        return ykc_monitor_config_execute(0x00, THAISEN_CONFIG_PAGE_AMMETER_INFO, data, NULL, NULL);
+    }
+
+    return 0x00;
+}
+
+/** 模块信息 */
+/*************************************************
+ * 函数名      ykc_monitor_config_info_process_module_info
+ * 功能          处理服务器下发的模块信息配置修改、查询请求
+ * 返回          <0：失败(无效数据-系统故障，不执行响应)
+ *      =0：成功
+ *      >0：失败(作为失败原因进行响应)
+ * **********************************************/
+static int32_t ykc_monitor_config_info_process_module_info(uint8_t option, void *data, uint16_t dlen, void *buf, uint16_t blen)
+{
+    if((buf == NULL) || (blen < sizeof(struct ykcm_module_info))){
+        LOG_E("ykcm input buf invalid with module info|%d,%d", blen, sizeof(struct ykcm_module_info));
+        return (NETYKCM_CONFIG_RES_SYS_ITEM_ASSERT_BASE + 0x00);
+    }
+
+    /** 配置信息查询 */
+    if(option == NETYKCM_CONFIG_INFO_OPTION_QUERY){
+        struct ykcm_module_info *response = (struct ykcm_module_info*)buf;
+
+        memset(response, 0x00, sizeof(struct ykcm_module_info));
+
+        response->module_protocol = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_MODULE_MODEL, 0x00));
+        response->module_group = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_MODULE_GROUP_NUM, 0x00));
+        response->module_num_single[0x00] = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_MODULE_NUM_GROUP_1, 0x00));
+        if(response->module_group > 0x01){
+            response->module_num_single[0x01] = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_MODULE_NUM_GROUP_2, 0x00));
+        }
+        if(response->module_group > 0x02){
+            response->module_num_single[0x02] = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_MODULE_NUM_GROUP_3, 0x00));
+        }
+        if(response->module_group > 0x03){
+            response->module_num_single[0x03] = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_MODULE_NUM_GROUP_4, 0x00));
+        }
+        response->module_rated_voltage = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_RATED_OUTPUT_VOLTAGE, 0x00));
+        response->module_rated_current = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_RATED_LIMIT_CURRENT, 0x00));
+        response->pile_outvoltage_max = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_MAX_OUTPUT_VOLTAGE, 0x00));
+        response->pile_outvoltage_min = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_MIN_OUTPUT_VOLTAGE, 0x00));
+        response->pile_outcurrent_max = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_MAX_LIMIT_CURRENT, 0x00));
+        response->pile_outcurrent_min = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_MIN_LIMIT_CURRENT, 0x00));
+    }
+    /** 配置信息设置 */
+    else{
+        if((data == NULL) || (dlen < sizeof(struct ykcm_module_info))){
+            LOG_E("ykcm input data invalid with module info|%d,%d", dlen, sizeof(struct ykcm_module_info));
+            return (NETYKCM_CONFIG_RES_SYS_ITEM_ASSERT_BASE + 0x01);
+        }
+        struct ykcm_module_info *info = (struct ykcm_module_info*)data;
+
+        if(ykc_monitor_is_config_data_valid(&info->module_protocol, sizeof(info->module_protocol), 0x00) == NET_ENUM_FALSE){
+            info->module_protocol = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_MODULE_MODEL, 0x00));
+        }
+        if(ykc_monitor_is_config_data_valid(&info->module_group, sizeof(info->module_group), 0x00) == NET_ENUM_FALSE){
+            info->module_group = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_MODULE_GROUP_NUM, 0x00));
+        }
+        if(ykc_monitor_is_config_data_valid(&info->module_num_single[0x00], sizeof(info->module_num_single[0x00]), 0x00) == NET_ENUM_FALSE){
+            info->module_num_single[0x00] = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_MODULE_NUM_GROUP_1, 0x00));
+        }
+        if(ykc_monitor_is_config_data_valid(&info->module_num_single[0x01], sizeof(info->module_num_single[0x01]), 0x00) == NET_ENUM_FALSE){
+            info->module_num_single[0x01] = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_MODULE_NUM_GROUP_2, 0x00));
+        }
+        if(ykc_monitor_is_config_data_valid(&info->module_num_single[0x02], sizeof(info->module_num_single[0x02]), 0x00) == NET_ENUM_FALSE){
+            info->module_num_single[0x02] = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_MODULE_NUM_GROUP_3, 0x00));
+        }
+        if(ykc_monitor_is_config_data_valid(&info->module_num_single[0x03], sizeof(info->module_num_single[0x03]), 0x00) == NET_ENUM_FALSE){
+            info->module_num_single[0x03] = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_MODULE_NUM_GROUP_4, 0x00));
+        }
+        if(ykc_monitor_is_config_data_valid(&info->module_rated_voltage, sizeof(info->module_rated_voltage), 0x00) == NET_ENUM_FALSE){
+            info->module_rated_voltage = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_RATED_OUTPUT_VOLTAGE, 0x00));
+        }
+        if(ykc_monitor_is_config_data_valid(&info->module_rated_current, sizeof(info->module_rated_current), 0x00) == NET_ENUM_FALSE){
+            info->module_rated_current = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_RATED_LIMIT_CURRENT, 0x00));
+        }
+        if(ykc_monitor_is_config_data_valid(&info->pile_outvoltage_max, sizeof(info->pile_outvoltage_max), 0x00) == NET_ENUM_FALSE){
+            info->pile_outvoltage_max = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_MAX_OUTPUT_VOLTAGE, 0x00));
+        }
+        if(ykc_monitor_is_config_data_valid(&info->pile_outvoltage_min, sizeof(info->pile_outvoltage_min), 0x00) == NET_ENUM_FALSE){
+            info->pile_outvoltage_min = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_MIN_OUTPUT_VOLTAGE, 0x00));
+        }
+        if(ykc_monitor_is_config_data_valid(&info->pile_outcurrent_max, sizeof(info->pile_outcurrent_max), 0x00) == NET_ENUM_FALSE){
+            info->pile_outcurrent_max = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_MAX_LIMIT_CURRENT, 0x00));
+        }
+        if(ykc_monitor_is_config_data_valid(&info->pile_outcurrent_min, sizeof(info->pile_outcurrent_min), 0x00) == NET_ENUM_FALSE){
+            info->pile_outcurrent_min = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_MIN_LIMIT_CURRENT, 0x00));
+        }
+
+        return ykc_monitor_config_execute(0x00, THAISEN_CONFIG_PAGE_MODULE_INFO, data, NULL, NULL);
+    }
+
+    return 0x00;
+}
+
+/** VIN码信息 */
+/*************************************************
+ * 函数名      ykc_monitor_config_info_process_vin_info
+ * 功能          处理服务器下发的VIN码信息配置修改、查询请求
+ * 返回          <0：失败(无效数据-系统故障，不执行响应)
+ *      =0：成功
+ *      >0：失败(作为失败原因进行响应)
+ * **********************************************/
+static int32_t ykc_monitor_config_info_process_vin_info(uint8_t option, void *data, uint16_t dlen, void *buf, uint16_t blen)
+{
+    if((buf == NULL) || (blen < sizeof(struct ykcm_vin_info))){
+        LOG_E("ykcm input buf invalid with vin info|%d,%d", blen, sizeof(struct ykcm_vin_info));
+        return (NETYKCM_CONFIG_RES_SYS_ITEM_ASSERT_BASE + 0x00);
+    }
+
+    /** 配置信息查询 */
+    if(option == NETYKCM_CONFIG_INFO_OPTION_QUERY){
+        uint8_t *vin = (uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_VIN_WHITELIST, 0x00));
+        struct ykcm_vin_info *response = (struct ykcm_vin_info*)buf;
+
+        memset(response->vin_whitelist, 0x00, sizeof(response->vin_whitelist));
+
+        for(uint8_t i = 0x00; i < NET_YKC_MONITOR_VIN_COUNT_MAX; i++){
+            memcpy(response->vin_whitelist[i], vin, (sizeof(response->vin_whitelist[i]) - 0x01));
+            if((i + 0x01) < NET_YKC_MONITOR_VIN_COUNT_MAX){
+                vin += sizeof(response->vin_whitelist[i]);
+            }
+        }
+    }
+    /** 配置信息设置 */
+    else{
+        if((data == NULL) || (dlen < sizeof(struct ykcm_vin_info))){
+            LOG_E("ykcm input data invalid with vin info|%d,%d", dlen, sizeof(struct ykcm_vin_info));
+            return (NETYKCM_CONFIG_RES_SYS_ITEM_ASSERT_BASE + 0x01);
+        }
+        uint8_t count = NET_YKC_MONITOR_VIN_COUNT_MAX, valid_count = 0x00, i = 0x00;
+        struct ykcm_vin_info *info = (struct ykcm_vin_info*)data;
+
+        count = count > CP_INFO_VIN_WHITELIST_NUM_MAX ? CP_INFO_VIN_WHITELIST_NUM_MAX : count;
+        /** VIN码有效性判断 */
+        for(i = 0x00; i < count; i++){
+            if(ykc_monitor_is_config_data_valid(info->vin_whitelist[i], 0x00, 0x01)){
+                if(strlen((char*)data) != 0x11){     /** VIN码必须17位 */
+                    break;
+                }
+                valid_count++;
+            }
+        }
+        /** VIN码格式不对 */
+        if(i < count){
+            LOG_W("ykcm vin format error with config_info_process_vin_info");
+            return (NETYKCM_CONFIG_RES_SYS_ITEM_ASSERT_BASE + 0x02);
+        }
+        if(valid_count){
+            return ykc_monitor_config_execute(0x00, THAISEN_CONFIG_PAGE_VIN_INFO, data, &valid_count, NULL);
+        }else{
+            return (NETYKCM_CONFIG_RES_SYS_ITEM_ASSERT_BASE + 0x03);
+        }
+    }
+
+    return 0x00;
+}
+
+/** 保护信息 */
+/*************************************************
+ * 函数名      ykc_monitor_config_info_process_protect_info
+ * 功能          处理服务器下发的保护信息配置修改、查询请求
+ * 返回          <0：失败(无效数据-系统故障，不执行响应)
+ *      =0：成功
+ *      >0：失败(作为失败原因进行响应)
+ * **********************************************/
+static int32_t ykc_monitor_config_info_process_protect_info(uint8_t option, void *data, uint16_t dlen, void *buf, uint16_t blen)
+{
+    if((buf == NULL) || (blen < sizeof(struct ykcm_protect_info))){
+        LOG_E("ykcm input buf invalid with protect info|%d,%d", blen, sizeof(struct ykcm_protect_info));
+        return (NETYKCM_CONFIG_RES_SYS_ITEM_ASSERT_BASE + 0x00);
+    }
+
+    /** 配置信息查询 */
+    if(option == NETYKCM_CONFIG_INFO_OPTION_QUERY){
+        struct ykcm_protect_info *response = (struct ykcm_protect_info*)buf;
+
+        memset(response, 0x00, sizeof(struct ykcm_protect_info));
+
+        response->overtemp_alarm = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_OVERTEMP_WARN, 0x00));
+        response->overtemp_stop = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_OVERTEMP_STOP, 0x00));
+        response->overtemp_recovery = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_OVERTEMP_RECOVER, 0x00));
+        response->overtemp_limitcur = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_OVERTEMP_SETCUR, 0x00));
+        response->gunvolt_limit = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_GUNVOLT_LIMIT, 0x00));
+        response->soc_stop = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_SOC_STOP, 0x00));
+        response->power_percent = sys_get_power_percent();
+        response->eloss_proportion = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_ELOSS_PROPORTION, 0x00));
+        response->cc1_12_max = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_CC112V_MAX, 0x00));
+        response->cc1_12_min = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_CC112V_MIN, 0x00));
+        response->cc1_6_max = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_CC16V_MAX, 0x00));
+        response->cc1_6_min = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_CC16V_MIN, 0x00));
+        response->cc1_4_max = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_CC14V_MAX, 0x00));
+        response->cc1_4_min = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_CC14V_MIN, 0x00));
+    }
+    /** 配置信息设置 */
+    else{
+        if((data == NULL) || (dlen < sizeof(struct ykcm_protect_info))){
+            LOG_E("ykcm input data invalid with protect info|%d,%d", dlen, sizeof(struct ykcm_protect_info));
+            return (NETYKCM_CONFIG_RES_SYS_ITEM_ASSERT_BASE + 0x01);
+        }
+        struct ykcm_protect_info *info = (struct ykcm_protect_info*)data;
+
+        if(ykc_monitor_is_config_data_valid(&info->overtemp_alarm, sizeof(info->overtemp_alarm), 0x00) == NET_ENUM_FALSE){
+            info->overtemp_alarm = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_OVERTEMP_WARN, 0x00));
+        }
+        if(ykc_monitor_is_config_data_valid(&info->overtemp_stop, sizeof(info->overtemp_stop), 0x00) == NET_ENUM_FALSE){
+            info->overtemp_stop = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_OVERTEMP_STOP, 0x00));
+        }
+        if(ykc_monitor_is_config_data_valid(&info->overtemp_recovery, sizeof(info->overtemp_recovery), 0x00) == NET_ENUM_FALSE){
+            info->overtemp_recovery = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_OVERTEMP_RECOVER, 0x00));
+        }
+        if(ykc_monitor_is_config_data_valid(&info->overtemp_limitcur, sizeof(info->overtemp_limitcur), 0x00) == NET_ENUM_FALSE){
+            info->overtemp_limitcur = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_OVERTEMP_SETCUR, 0x00));
+        }
+        if(ykc_monitor_is_config_data_valid(&info->gunvolt_limit, sizeof(info->gunvolt_limit), 0x00) == NET_ENUM_FALSE){
+            info->gunvolt_limit = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_GUNVOLT_LIMIT, 0x00));
+        }
+        if(ykc_monitor_is_config_data_valid(&info->soc_stop, sizeof(info->soc_stop), 0x00) == NET_ENUM_FALSE){
+            info->soc_stop = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_SOC_STOP, 0x00));
+        }
+        if(ykc_monitor_is_config_data_valid(&info->power_percent, sizeof(info->power_percent), 0x00) == NET_ENUM_FALSE){
+            info->power_percent = sys_get_power_percent();
+        }
+        if(ykc_monitor_is_config_data_valid(&info->eloss_proportion, sizeof(info->eloss_proportion), 0x00) == NET_ENUM_FALSE){
+            info->eloss_proportion = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_ELOSS_PROPORTION, 0x00));
+        }
+        if(ykc_monitor_is_config_data_valid(&info->cc1_12_max, sizeof(info->cc1_12_max), 0x00) == NET_ENUM_FALSE){
+            info->cc1_12_max = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_CC112V_MAX, 0x00));
+        }
+        if(ykc_monitor_is_config_data_valid(&info->cc1_12_min, sizeof(info->cc1_12_min), 0x00) == NET_ENUM_FALSE){
+            info->cc1_12_min = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_CC112V_MIN, 0x00));
+        }
+        if(ykc_monitor_is_config_data_valid(&info->cc1_6_max, sizeof(info->cc1_6_max), 0x00) == NET_ENUM_FALSE){
+            info->cc1_6_max = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_CC16V_MAX, 0x00));
+        }
+        if(ykc_monitor_is_config_data_valid(&info->cc1_6_min, sizeof(info->cc1_6_min), 0x00) == NET_ENUM_FALSE){
+            info->cc1_6_min = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_CC16V_MIN, 0x00));
+        }
+        if(ykc_monitor_is_config_data_valid(&info->cc1_4_max, sizeof(info->cc1_4_max), 0x00) == NET_ENUM_FALSE){
+            info->cc1_4_max = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_CC14V_MAX, 0x00));
+        }
+        if(ykc_monitor_is_config_data_valid(&info->cc1_4_min, sizeof(info->cc1_4_min), 0x00) == NET_ENUM_FALSE){
+            info->cc1_4_min = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_CC14V_MIN, 0x00));
+        }
+
+        return ykc_monitor_config_execute(0x00, THAISEN_CONFIG_PAGE_PROTECT_INFO, data, NULL, NULL);
+    }
+
+    return 0x00;
+}
+
+/** 功能配置信息 */
+/*************************************************
+ * 函数名      ykc_monitor_config_info_process_function_config_info
+ * 功能          处理服务器下发的功能配置信息配置修改、查询请求
+ * 返回          <0：失败(无效数据-系统故障，不执行响应)
+ *      =0：成功
+ *      >0：失败(作为失败原因进行响应)
+ * **********************************************/
+static int32_t ykc_monitor_config_info_process_function_config_info(uint8_t option, void *data, uint16_t dlen, void *buf, uint16_t blen)
+{
+    if((buf == NULL) || (blen < sizeof(struct ykcm_function_config))){
+        LOG_E("ykcm input buf invalid with function config info|%d,%d", blen, sizeof(struct ykcm_function_config));
+        return (NETYKCM_CONFIG_RES_SYS_ITEM_ASSERT_BASE + 0x00);
+    }
+
+    /** 配置信息查询 */
+    if(option == NETYKCM_CONFIG_INFO_OPTION_QUERY){
+        struct ykcm_function_config *response = (struct ykcm_function_config*)buf;
+
+        memset(response, 0x00, sizeof(struct ykcm_function_config));
+
+        response->insult_detect = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_SUPORT_INSULATION, 0x00));
+        response->card_reader = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_SUPORT_CARD, 0x00));
+        response->parallel_charge = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_SUPORT_PARALLEL, 0x00));
+        response->vin_charge = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_SUPORT_VIN, 0x00));
+        response->parallel_relay = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_SUPORT_PARALLELRELAY, 0x00));
+        response->module_silence = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_SUPORT_MODULE_SLIENCE, 0x00));
+        response->plug_charge = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_SUPORT_PLUGCHARGE, 0x00));
+        response->local_start = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_SUPORT_LOCAL, 0x00));
+        response->local_stop = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_SUPORT_LOCAL_STOP, 0x00));
+        response->auxpower_24V = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_SUPORT_AUXPOWER24V, 0x00));
+        response->offline_billing = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_SUPORT_OFFLINE_BILLING, 0x00));
+        response->password_start = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_SUPORT_PASSWORD_START, 0x00));
+    }
+    /** 配置信息设置 */
+    else{
+        if((data == NULL) || (dlen < sizeof(struct ykcm_function_config))){
+            LOG_E("ykcm input data invalid with function config info|%d,%d", dlen, sizeof(struct ykcm_function_config));
+            return (NETYKCM_CONFIG_RES_SYS_ITEM_ASSERT_BASE + 0x01);
+        }
+
+        return ykc_monitor_config_execute(0x00, THAISEN_CONFIG_PAGE_FUNCTION_INFO, data, NULL, NULL);
+    }
+
+    return 0x00;
+}
+
+/** 离线计费信息 */
+/*************************************************
+ * 函数名      ykc_monitor_config_info_process_offline_billing_info
+ * 功能          处理服务器下发的离线计费信息配置修改、查询请求
+ * 返回          <0：失败(无效数据-系统故障，不执行响应)
+ *      =0：成功
+ *      >0：失败(作为失败原因进行响应)
+ * **********************************************/
+static int32_t ykc_monitor_config_info_process_offline_billing_info(uint8_t option, void *data, uint16_t dlen, void *buf, uint16_t blen)
+{
+#ifdef APP_USING_OFFLINE_BILLING
+    if((buf == NULL) || (blen < sizeof(struct ykcm_offline_billing))){
+        LOG_E("ykcm input buf invalid with offline billing info|%d,%d", blen, sizeof(struct ykcm_offline_billing));
+        return (NETYKCM_CONFIG_RES_SYS_ITEM_ASSERT_BASE + 0x00);
+    }
+    struct sys_billing_rule *rule = (struct sys_billing_rule*)(sys_read_config_item_content(CONFIG_ITEM_BILLING_RULE, 0x00));
+
+    /** 配置信息查询 */
+    if(option == NETYKCM_CONFIG_INFO_OPTION_QUERY){
+        struct ykcm_offline_billing *response = (struct ykcm_offline_billing*)buf;
+
+        memset(response, 0x00, sizeof(struct ykcm_offline_billing));
+
+        response->service_price = rule->rate_service_price[0x00];
+        /** 尖尖 */
+        response->sharp_sharp_price = rule->rate_elect_price[CP_RATED_TYPE_SHARP_SHARP];
+        memcpy(&response->sstime1, &rule->time[CP_RATED_TYPE_SHARP_SHARP][0x00], sizeof(response->sstime1));
+        memcpy(&response->sstime2, &rule->time[CP_RATED_TYPE_SHARP_SHARP][0x01], sizeof(response->sstime2));
+        /** 尖 */
+        response->sharp_price = rule->rate_elect_price[CP_RATED_TYPE_SHARP];
+        memcpy(&response->stime1, &rule->time[CP_RATED_TYPE_SHARP][0x00], sizeof(response->stime1));
+        memcpy(&response->stime2, &rule->time[CP_RATED_TYPE_SHARP][0x01], sizeof(response->stime2));
+        /** 峰 */
+        response->peak_price = rule->rate_elect_price[CP_RATED_TYPE_PEAK];
+        memcpy(&response->ptime1, &rule->time[CP_RATED_TYPE_PEAK][0x00], sizeof(response->ptime1));
+        memcpy(&response->ptime2, &rule->time[CP_RATED_TYPE_PEAK][0x01], sizeof(response->ptime2));
+        /** 平 */
+        response->flat_price = rule->rate_elect_price[CP_RATED_TYPE_FLAT];
+        memcpy(&response->ftime1, &rule->time[CP_RATED_TYPE_FLAT][0x00], sizeof(response->ftime1));
+        memcpy(&response->ftime2, &rule->time[CP_RATED_TYPE_FLAT][0x01], sizeof(response->ftime2));
+        /** 谷 */
+        response->valley_price = rule->rate_elect_price[CP_RATED_TYPE_VALLEY];
+        memcpy(&response->vtime1, &rule->time[CP_RATED_TYPE_VALLEY][0x00], sizeof(response->vtime1));
+        memcpy(&response->vtime2, &rule->time[CP_RATED_TYPE_VALLEY][0x01], sizeof(response->vtime2));
+    }
+    /** 配置信息设置 */
+    else{
+        if((data == NULL) || (dlen < sizeof(struct ykcm_offline_billing))){
+            LOG_E("ykcm input data invalid with offline billing info|%d,%d", dlen, sizeof(struct ykcm_offline_billing));
+            return (NETYKCM_CONFIG_RES_SYS_ITEM_ASSERT_BASE + 0x01);
+        }
+        System_BaseData *base = NULL;
+        struct ykcm_offline_billing *info = (struct ykcm_offline_billing*)data;
+
+        /************* 充电时不能修改费率 ************/
+        for(uint8_t i = 0x00; i < NET_SYSTEM_GUN_NUMBER; i++){
+            base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(i));
+            if((base->state.current >= APP_OFSM_STATE_STARTING) && (base->state.current <= APP_OFSM_STATE_STOPING)){
+                LOG_W("ykcm gunno(%d) is charging, not allow modify billing rule", i);
+                return (NETYKCM_CONFIG_RES_SYS_ITEM_ASSERT_BASE + 0x02);
+            }
+        }
+        /** 服务费 */
+        if(ykc_monitor_is_config_data_valid(&info->service_price, sizeof(info->service_price), 0x00) == NET_ENUM_FALSE){
+            info->service_price = rule->rate_service_price[0x00];
+        }
+        /** 尖尖电费 */
+        if(ykc_monitor_is_config_data_valid(&info->sharp_sharp_price, sizeof(info->sharp_sharp_price), 0x00) == NET_ENUM_FALSE){
+            info->sharp_sharp_price = rule->rate_elect_price[CP_RATED_TYPE_SHARP_SHARP];
+        }
+        /** 尖电费 */
+        if(ykc_monitor_is_config_data_valid(&info->sharp_price, sizeof(info->sharp_price), 0x00) == NET_ENUM_FALSE){
+            info->sharp_price = rule->rate_elect_price[CP_RATED_TYPE_SHARP];
+        }
+        /** 峰电费 */
+        if(ykc_monitor_is_config_data_valid(&info->peak_price, sizeof(info->peak_price), 0x00) == NET_ENUM_FALSE){
+            info->peak_price = rule->rate_elect_price[CP_RATED_TYPE_PEAK];
+        }
+        /** 平电费 */
+        if(ykc_monitor_is_config_data_valid(&info->flat_price, sizeof(info->flat_price), 0x00) == NET_ENUM_FALSE){
+            info->flat_price = rule->rate_elect_price[CP_RATED_TYPE_FLAT];
+        }
+        /** 谷电费 */
+        if(ykc_monitor_is_config_data_valid(&info->valley_price, sizeof(info->valley_price), 0x00) == NET_ENUM_FALSE){
+            info->valley_price = rule->rate_elect_price[CP_RATED_TYPE_VALLEY];
+        }
+
+        return ykc_monitor_config_execute(0x00, THAISEN_CONFIG_PAGE_OFFLINE_BILLING_INFO, data, NULL, NULL);
+    }
+
+    return 0x00;
+#else
+    return (NETYKCM_CONFIG_RES_SYS_ITEM_ASSERT_BASE + 0x04);
+#endif /* APP_USING_OFFLINE_BILLING */
+}
+
+/************************************* 7103/7101 *********************************************/
+/** 输入信息 */
+/*************************************************
+ * 函数名      ykc_monitor_config_info_process_input_7103_7101_info
+ * 功能          处理服务器下发的输入信息配置修改、查询请求
+ * 返回          <0：失败(无效数据-系统故障，不执行响应)
+ *      =0：成功
+ *      >0：失败(作为失败原因进行响应)
+ * **********************************************/
+static int32_t ykc_monitor_config_info_process_input_7103_7101_info(uint8_t option, void *data, uint16_t dlen, void *buf, uint16_t blen)
+{
+    if((buf == NULL) || (blen < sizeof(struct ykcm_input_info_7103_7101))){
+        LOG_E("ykcm input buf invalid with input 7103/7101 info|%d,%d", blen, sizeof(struct ykcm_input_info_7103_7101));
+        return (NETYKCM_CONFIG_RES_SYS_ITEM_ASSERT_BASE + 0x00);
+    }
+    /** 配置信息查询 */
+    if(option == NETYKCM_CONFIG_INFO_OPTION_QUERY){
+        struct ykcm_input_info_7103_7101 *response = (struct ykcm_input_info_7103_7101*)buf;
+
+        memset(response, 0x00, sizeof(struct ykcm_function_config));
+
+        response->scram.enable = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INEN_SCRAM, 0x00));
+        response->scram.reversal = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INNEG_SCRAM, 0x00));
+
+        response->door.enable = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INEN_GATE, 0x00));
+        response->door.reversal = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INNEG_GATE, 0x00));
+
+        response->acrelay.enable = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INEN_ACRELAY, 0x00));
+        response->acrelay.reversal = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INNEG_ACRELAY, 0x00));
+
+        response->dcrelay.enable = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INEN_DCRELAY, 0x00));
+        response->dcrelay.reversal = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INNEG_DCRELAY, 0x00));
+
+        response->fan.enable = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INEN_FAN, 0x00));
+        response->fan.reversal = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INNEG_FAN, 0x00));
+
+        response->elock.enable = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INEN_ELOCK, 0x00));
+        response->elock.reversal = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INNEG_ELOCK, 0x00));
+
+        response->tempprotect.enable = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INEN_TEMPPRO, 0x00));
+        response->tempprotect.reversal = 0x00;
+    }
+    /** 配置信息设置 */
+    else{
+        if((data == NULL) || (dlen < sizeof(struct ykcm_input_info_7103_7101))){
+            LOG_E("ykcm input data invalid with input 7103/7101 info|%d,%d", dlen, sizeof(struct ykcm_input_info_7103_7101));
+            return (NETYKCM_CONFIG_RES_SYS_ITEM_ASSERT_BASE + 0x01);
+        }
+
+        return ykc_monitor_config_execute(0x00, THAISEN_CONFIG_PAGE_INPUT_7103_7101_INFO, data, NULL, NULL);
+    }
+
+    return 0x00;
+}
+
+
+/************************************* 7104 *********************************************/
+/** 通用输入信息 */
+/*************************************************
+ * 函数名      ykc_monitor_config_info_process_public_input_7104_info
+ * 功能          处理服务器下发的通用输入信息配置修改、查询请求
+ * 返回          <0：失败(无效数据-系统故障，不执行响应)
+ *      =0：成功
+ *      >0：失败(作为失败原因进行响应)
+ * **********************************************/
+static int32_t ykc_monitor_config_info_process_public_input_7104_info(uint8_t option, void *data, uint16_t dlen, void *buf, uint16_t blen)
+{
+/******************************* 这是7104的配置 **********************************/
+#if 0
+    if((buf == NULL) || (blen < sizeof(struct ykcm_public_input_info_7104))){
+        LOG_E("ykcm input buf invalid with public input 7104 info|%d,%d", blen, sizeof(struct ykcm_public_input_info_7104));
+        return (NETYKCM_CONFIG_RES_SYS_ITEM_ASSERT_BASE + 0x00);
+    }
+    /** 配置信息查询 */
+    if(option == NETYKCM_CONFIG_INFO_OPTION_QUERY){
+        struct ykcm_public_input_info_7104 *response = (struct ykcm_public_input_info_7104*)buf;
+
+        memset(response, 0x00, sizeof(struct ykcm_public_input_info_7104));
+
+        response->protectlight.port_number = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INPUT_PROTECTLIGHT, 0x00));
+        response->protectlight.state.enable = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INEN_PROTECTLIGHT, 0x00));
+        response->protectlight.state.reversal = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INNEG_PROTECTLIGHT, 0x00));
+
+        response->parallel_relay1.port_number = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INPUT_PARALLEL1, 0x00));
+        response->parallel_relay1.state.enable = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INEN_PRARALLEL1, 0x00));
+        response->parallel_relay1.state.reversal = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INNEG_PARALLEL1, 0x00));
+
+        response->parallel_relay2.port_number = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INPUT_PARALLEL2, 0x00));
+        response->parallel_relay2.state.enable = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INEN_PRARALLEL2, 0x00));
+        response->parallel_relay2.state.reversal = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INNEG_PARALLEL2, 0x00));
+
+        response->parallel_relay3.port_number = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INPUT_PARALLEL3, 0x00));
+        response->parallel_relay3.state.enable = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INEN_PRARALLEL3, 0x00));
+        response->parallel_relay3.state.reversal = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INNEG_PARALLEL3, 0x00));
+
+        response->scram.port_number = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INPUT_SCRAM, 0x00));
+        response->scram.state.enable = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INEN_SCRAM, 0x00));
+        response->scram.state.reversal = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INNEG_SCRAM, 0x00));
+
+        response->breaker.port_number = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INPUT_BREAKERS, 0x00));
+        response->breaker.state.enable = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INEN_BREAKERS, 0x00));
+        response->breaker.state.reversal = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INNEG_BREAKERS, 0x00));
+
+        response->acrelay.port_number = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INPUT_AC, 0x00));
+        response->acrelay.state.enable = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INEN_ACRELAY, 0x00));
+        response->acrelay.state.reversal = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INNEG_ACRELAY, 0x00));
+
+        response->fan.port_number = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INPUT_FAN, 0x00));
+        response->fan.state.enable = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INEN_FAN, 0x00));
+        response->fan.state.reversal = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INNEG_FAN, 0x00));
+
+        response->flooding.port_number = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INPUT_WATER, 0x00));
+        response->flooding.state.enable = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INEN_WATER, 0x00));
+        response->flooding.state.reversal = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INNEG_WATER, 0x00));
+
+        response->door.port_number = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INPUT_GATE, 0x00));
+        response->door.state.enable = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INEN_GATE, 0x00));
+        response->door.state.reversal = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INNEG_GATE, 0x00));
+
+        response->smoke.port_number = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INPUT_SMOKE, 0x00));
+        response->smoke.state.enable = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INEN_SMOKE, 0x00));
+        response->smoke.state.reversal = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INNEG_SMOKE, 0x00));
+
+        response->fall.port_number = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INPUT_FALL, 0x00));
+        response->fall.state.enable = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INEN_FALL, 0x00));
+        response->fall.state.reversal = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INNEG_FALL, 0x00));
+    }
+    /** 配置信息设置 */
+    else{
+        if((data == NULL) || (dlen < sizeof(struct ykcm_public_input_info_7104))){
+            LOG_E("ykcm input data invalid with public input 7104 info|%d,%d", dlen, sizeof(struct ykcm_public_input_info_7104));
+            return (NETYKCM_CONFIG_RES_SYS_ITEM_ASSERT_BASE + 0x01);
+        }
+        struct ykcm_public_input_info_7104 *info = (struct ykcm_public_input_info_7104*)data;
+
+        if(ykc_monitor_is_config_data_valid(&info->protectlight.port_number, sizeof(info->protectlight.port_number), 0x00) == NET_ENUM_FALSE){
+            info->protectlight.port_number = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INPUT_PROTECTLIGHT, 0x00));
+        }
+        if(ykc_monitor_is_config_data_valid(&info->parallel_relay1.port_number, sizeof(info->parallel_relay1.port_number), 0x00) == NET_ENUM_FALSE){
+            info->parallel_relay1.port_number = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INPUT_PARALLEL1, 0x00));
+        }
+        if(ykc_monitor_is_config_data_valid(&info->parallel_relay2.port_number, sizeof(info->parallel_relay2.port_number), 0x00) == NET_ENUM_FALSE){
+            info->parallel_relay2.port_number = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INPUT_PARALLEL2, 0x00));
+        }
+        if(ykc_monitor_is_config_data_valid(&info->parallel_relay3.port_number, sizeof(info->parallel_relay3.port_number), 0x00) == NET_ENUM_FALSE){
+            info->parallel_relay3.port_number = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INPUT_PARALLEL3, 0x00));
+        }
+        if(ykc_monitor_is_config_data_valid(&info->scram.port_number, sizeof(info->scram.port_number), 0x00) == NET_ENUM_FALSE){
+            info->scram.port_number = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INPUT_SCRAM, 0x00));
+        }
+        if(ykc_monitor_is_config_data_valid(&info->breaker.port_number, sizeof(info->breaker.port_number), 0x00) == NET_ENUM_FALSE){
+            info->breaker.port_number = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INPUT_BREAKERS, 0x00));
+        }
+        if(ykc_monitor_is_config_data_valid(&info->acrelay.port_number, sizeof(info->acrelay.port_number), 0x00) == NET_ENUM_FALSE){
+            info->acrelay.port_number = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INPUT_AC, 0x00));
+        }
+        if(ykc_monitor_is_config_data_valid(&info->fan.port_number, sizeof(info->fan.port_number), 0x00) == NET_ENUM_FALSE){
+            info->fan.port_number = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INPUT_FAN, 0x00));
+        }
+        if(ykc_monitor_is_config_data_valid(&info->flooding.port_number, sizeof(info->flooding.port_number), 0x00) == NET_ENUM_FALSE){
+            info->flooding.port_number = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INPUT_WATER, 0x00));
+        }
+        if(ykc_monitor_is_config_data_valid(&info->door.port_number, sizeof(info->door.port_number), 0x00) == NET_ENUM_FALSE){
+            info->door.port_number = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INPUT_GATE, 0x00));
+        }
+        if(ykc_monitor_is_config_data_valid(&info->smoke.port_number, sizeof(info->smoke.port_number), 0x00) == NET_ENUM_FALSE){
+            info->smoke.port_number = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INPUT_SMOKE, 0x00));
+        }
+        if(ykc_monitor_is_config_data_valid(&info->fall.port_number, sizeof(info->fall.port_number), 0x00) == NET_ENUM_FALSE){
+            info->fall.port_number = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INPUT_FALL, 0x00));
+        }
+
+        return ykc_monitor_config_execute(0x00, THAISEN_CONFIG_PAGE_PUBLIC_INPUT_7104_INFO, data, NULL, NULL);
+    }
+
+    return 0x00;
+#else
+    return (NETYKCM_CONFIG_RES_SYS_ITEM_ASSERT_BASE + 0x03);
+#endif
+}
+
+/** 枪输入信息 */
+/*************************************************
+ * 函数名      ykc_monitor_config_info_process_gun_input_7104_info
+ * 功能          处理服务器下发的枪输入信息配置修改、查询请求
+ * 返回          <0：失败(无效数据-系统故障，不执行响应)
+ *      =0：成功
+ *      >0：失败(作为失败原因进行响应)
+ * **********************************************/
+static int32_t ykc_monitor_config_info_process_gun_input_7104_info(uint8_t option, uint8_t gunno, void *data, uint16_t dlen, void *buf, uint16_t blen)
+{
+/******************************* 这是7104的配置 **********************************/
+#if 0
+    if((buf == NULL) || (blen < sizeof(struct ykcm_gun_input_info_7104))){
+        LOG_E("ykcm input buf invalid with gun input 7104 info|%d,%d", blen, sizeof(struct ykcm_gun_input_info_7104));
+        return (NETYKCM_CONFIG_RES_SYS_ITEM_ASSERT_BASE + 0x00);
+    }
+    /** 配置信息查询 */
+    if(option == NETYKCM_CONFIG_INFO_OPTION_QUERY){
+        struct ykcm_gun_input_info_7104 *response = (struct ykcm_gun_input_info_7104*)buf;
+
+        memset(response, 0x00, sizeof(struct ykcm_gun_input_info_7104));
+
+        if(gunno == 0x01){
+            response->dcrelay.port_number = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INPUT_DCA, 0x00));
+            response->dcrelay.state.enable = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INEN_DCRELAYA, 0x00));
+            response->dcrelay.state.reversal = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INNEG_DCRELAYA, 0x00));
+
+            response->elock.port_number = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INPUT_ELOCKA, 0x00));
+            response->elock.state.enable = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INEN_ELOCKA, 0x00));
+            response->elock.state.reversal = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INNEG_ELOCKA, 0x00));
+
+            response->gunsite.port_number = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INPUT_GUNSITEA, 0x00));
+            response->gunsite.state.enable = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INEN_GUNSITEA, 0x00));
+            response->gunsite.state.reversal = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INNEG_GUNSITEA, 0x00));
+
+            response->liquid.port_number = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INPUT_LIQIDA, 0x00));
+            response->liquid.state.enable = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INEN_LIQIDA, 0x00));
+            response->liquid.state.reversal = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INNEG_LIQIDA, 0x00));
+
+            response->fuse.port_number = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INPUT_FUSEA, 0x00));
+            response->fuse.state.enable = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INEN_FUSEA, 0x00));
+            response->fuse.state.reversal = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INNEG_FUSEA, 0x00));
+
+            response->temp_detect.port_number = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INEN_TEMPPROA, 0x00));
+            response->temp_detect.state.enable = 0x00;
+            response->temp_detect.state.reversal = 0x00;
+        }else if(gunno == 0x02){
+            response->dcrelay.port_number = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INPUT_DCB, 0x00));
+            response->dcrelay.state.enable = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INEN_DCRELAYB, 0x00));
+            response->dcrelay.state.reversal = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INNEG_DCRELAYB, 0x00));
+
+            response->elock.port_number = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INPUT_ELOCKB, 0x00));
+            response->elock.state.enable = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INEN_ELOCKB, 0x00));
+            response->elock.state.reversal = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INNEG_ELOCKB, 0x00));
+
+            response->gunsite.port_number = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INPUT_GUNSITEB, 0x00));
+            response->gunsite.state.enable = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INEN_GUNSITEB, 0x00));
+            response->gunsite.state.reversal = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INNEG_GUNSITEB, 0x00));
+
+            response->liquid.port_number = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INPUT_LIQIDB, 0x00));
+            response->liquid.state.enable = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INEN_LIQIDB, 0x00));
+            response->liquid.state.reversal = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INNEG_LIQIDB, 0x00));
+
+            response->fuse.port_number = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INPUT_FUSEB, 0x00));
+            response->fuse.state.enable = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INEN_FUSEB, 0x00));
+            response->fuse.state.reversal = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INNEG_FUSEB, 0x00));
+
+            response->temp_detect.port_number = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INEN_TEMPPROB, 0x00));
+            response->temp_detect.state.enable = 0x00;
+            response->temp_detect.state.reversal = 0x00;
+        }else{
+            LOG_W("ykcm config set input gun port gunno error(%d)", gunno);
+            return (NETYKCM_CONFIG_RES_SYS_ITEM_ASSERT_BASE + 0x01);
+        }
+    }
+    /** 配置信息设置 */
+    else{
+        if((data == NULL) || (dlen < sizeof(struct ykcm_gun_input_info_7104))){
+            LOG_E("ykcm input data invalid with gun input 7104 info|%d,%d", dlen, sizeof(struct ykcm_gun_input_info_7104));
+            return (NETYKCM_CONFIG_RES_SYS_ITEM_ASSERT_BASE + 0x02);
+        }
+        struct ykcm_gun_input_info_7104 *info = (struct ykcm_gun_input_info_7104*)data;
+
+        if(gunno == 0x01){
+            if(ykc_monitor_is_config_data_valid(&info->dcrelay.port_number, sizeof(info->dcrelay.port_number), 0x00) == NET_ENUM_FALSE){
+                info->dcrelay.port_number = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INPUT_DCA, 0x00));
+            }
+            if(ykc_monitor_is_config_data_valid(&info->elock.port_number, sizeof(info->elock.port_number), 0x00) == NET_ENUM_FALSE){
+                info->elock.port_number = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INPUT_ELOCKA, 0x00));
+            }
+            if(ykc_monitor_is_config_data_valid(&info->gunsite.port_number, sizeof(info->gunsite.port_number), 0x00) == NET_ENUM_FALSE){
+                info->gunsite.port_number = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INPUT_GUNSITEA, 0x00));
+            }
+            if(ykc_monitor_is_config_data_valid(&info->liquid.port_number, sizeof(info->liquid.port_number), 0x00) == NET_ENUM_FALSE){
+                info->liquid.port_number = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INPUT_LIQIDA, 0x00));
+            }
+            if(ykc_monitor_is_config_data_valid(&info->fuse.port_number, sizeof(info->fuse.port_number), 0x00) == NET_ENUM_FALSE){
+                info->fuse.port_number = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INPUT_FUSEA, 0x00));
+            }
+            if(ykc_monitor_is_config_data_valid(&info->temp_detect.port_number, sizeof(info->temp_detect.port_number), 0x00) == NET_ENUM_FALSE){
+                info->temp_detect.port_number = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INEN_TEMPPROA, 0x00));
+            }
+        }else if(gunno == 0x02){
+            if(ykc_monitor_is_config_data_valid(&info->dcrelay.port_number, sizeof(info->dcrelay.port_number), 0x00) == NET_ENUM_FALSE){
+                info->dcrelay.port_number = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INPUT_DCB, 0x00));
+            }
+            if(ykc_monitor_is_config_data_valid(&info->elock.port_number, sizeof(info->elock.port_number), 0x00) == NET_ENUM_FALSE){
+                info->elock.port_number = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INPUT_ELOCKB, 0x00));
+            }
+            if(ykc_monitor_is_config_data_valid(&info->gunsite.port_number, sizeof(info->gunsite.port_number), 0x00) == NET_ENUM_FALSE){
+                info->gunsite.port_number = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INPUT_GUNSITEB, 0x00));
+            }
+            if(ykc_monitor_is_config_data_valid(&info->liquid.port_number, sizeof(info->liquid.port_number), 0x00) == NET_ENUM_FALSE){
+                info->liquid.port_number = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INPUT_LIQIDB, 0x00));
+            }
+            if(ykc_monitor_is_config_data_valid(&info->fuse.port_number, sizeof(info->fuse.port_number), 0x00) == NET_ENUM_FALSE){
+                info->fuse.port_number = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INPUT_FUSEB, 0x00));
+            }
+            if(ykc_monitor_is_config_data_valid(&info->temp_detect.port_number, sizeof(info->temp_detect.port_number), 0x00) == NET_ENUM_FALSE){
+                info->temp_detect.port_number = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INEN_TEMPPROB, 0x00));
+            }
+        }else{
+            LOG_W("ykcm config set input gun port gunno error(%d)", gunno);
+            return (NETYKCM_CONFIG_RES_SYS_ITEM_ASSERT_BASE + 0x03);
+        }
+
+        return ykc_monitor_config_execute((gunno - 0x01), THAISEN_CONFIG_PAGE_GUN_INPUT_7104_INFO, data, NULL, NULL);
+    }
+
+    return 0x00;
+#else
+    return (NETYKCM_CONFIG_RES_SYS_ITEM_ASSERT_BASE + 0x05);
+#endif
+}
+
+/** 通用输出信息 */
+/*************************************************
+ * 函数名      ykc_monitor_config_info_process_public_output_7104_info
+ * 功能          处理服务器下发的通用输出信息配置修改、查询请求
+ * 返回          <0：失败(无效数据-系统故障，不执行响应)
+ *      =0：成功
+ *      >0：失败(作为失败原因进行响应)
+ * **********************************************/
+static int32_t ykc_monitor_config_info_process_public_output_7104_info(uint8_t option, void *data, uint16_t dlen, void *buf, uint16_t blen)
+{
+/******************************* 这是7104的配置 **********************************/
+#if 0
+    if((buf == NULL) || (blen < sizeof(struct ykcm_public_output_info_7104))){
+        LOG_E("ykcm input buf invalid with public output 7104 info|%d,%d", blen, sizeof(struct ykcm_public_output_info_7104));
+        return (NETYKCM_CONFIG_RES_SYS_ITEM_ASSERT_BASE + 0x00);
+    }
+    /** 配置信息查询 */
+    if(option == NETYKCM_CONFIG_INFO_OPTION_QUERY){
+        struct ykcm_public_output_info_7104 *response = (struct ykcm_public_output_info_7104*)buf;
+
+        memset(response, 0x00, sizeof(struct ykcm_public_output_info_7104));
+
+        response->fan.port_number = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_OUTPUT_FAN, 0x00));
+        response->fan.enable = 0x01;
+
+        response->parallel_relay1.port_number = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_OUTPUT_PARALLEL1, 0x00));
+        response->parallel_relay1.enable = 0x01;
+
+        response->parallel_relay2.port_number = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_OUTPUT_PARALLEL2, 0x00));
+        response->parallel_relay2.enable = 0x01;
+
+        response->parallel_relay3.port_number = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_OUTPUT_PARALLEL3, 0x00));
+        response->parallel_relay3.enable = 0x01;
+
+        response->acrelay.port_number = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_OUTPUT_AC, 0x00));
+        response->acrelay.enable = 0x01;
+    }
+    /** 配置信息设置 */
+    else{
+        if((data == NULL) || (dlen < sizeof(struct ykcm_public_output_info_7104))){
+            LOG_E("ykcm input data invalid with public output 7104 info|%d,%d", dlen, sizeof(struct ykcm_public_output_info_7104));
+            return (NETYKCM_CONFIG_RES_SYS_ITEM_ASSERT_BASE + 0x01);
+        }
+        struct ykcm_public_output_info_7104 *info = (struct ykcm_public_output_info_7104*)data;
+
+        if(ykc_monitor_is_config_data_valid(&info->fan.port_number, sizeof(info->fan.port_number), 0x00) == NET_ENUM_FALSE){
+            info->fan.port_number = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_OUTPUT_FAN, 0x00));
+        }
+        if(ykc_monitor_is_config_data_valid(&info->parallel_relay1.port_number, sizeof(info->parallel_relay1.port_number), 0x00) == NET_ENUM_FALSE){
+            info->parallel_relay1.port_number = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_OUTPUT_PARALLEL1, 0x00));
+        }
+        if(ykc_monitor_is_config_data_valid(&info->parallel_relay2.port_number, sizeof(info->parallel_relay2.port_number), 0x00) == NET_ENUM_FALSE){
+            info->parallel_relay2.port_number = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_OUTPUT_PARALLEL2, 0x00));
+        }
+        if(ykc_monitor_is_config_data_valid(&info->parallel_relay3.port_number, sizeof(info->parallel_relay3.port_number), 0x00) == NET_ENUM_FALSE){
+            info->parallel_relay3.port_number = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_OUTPUT_PARALLEL3, 0x00));
+        }
+        if(ykc_monitor_is_config_data_valid(&info->acrelay.port_number, sizeof(info->acrelay.port_number), 0x00) == NET_ENUM_FALSE){
+            info->acrelay.port_number = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_OUTPUT_AC, 0x00));
+        }
+
+        return ykc_monitor_config_execute(0x00, THAISEN_CONFIG_PAGE_PUBLIC_OUTPUT_7104_INFO, data, NULL, NULL);
+    }
+
+    return 0x00;
+#else
+    return (NETYKCM_CONFIG_RES_SYS_ITEM_ASSERT_BASE + 0x03);
+#endif
+}
+
+/** 枪输出信息 */
+/*************************************************
+ * 函数名      ykc_monitor_config_info_process_gun_output_7104_info
+ * 功能          处理服务器下发的枪输出信息配置修改、查询请求
+ * 返回          <0：失败(无效数据-系统故障，不执行响应)
+ *      =0：成功
+ *      >0：失败(作为失败原因进行响应)
+ * **********************************************/
+static int32_t ykc_monitor_config_info_process_gun_output_7104_info(uint8_t option, uint8_t gunno, void *data, uint16_t dlen, void *buf, uint16_t blen)
+{
+/******************************* 这是7104的配置 **********************************/
+#if 0
+    if((buf == NULL) || (blen < sizeof(struct ykcm_gun_output_info_7104))){
+        LOG_E("ykcm input buf invalid with gun output 7104 info|%d,%d", blen, sizeof(struct ykcm_gun_output_info_7104));
+        return (NETYKCM_CONFIG_RES_SYS_ITEM_ASSERT_BASE + 0x00);
+    }
+    /** 配置信息查询 */
+    if(option == NETYKCM_CONFIG_INFO_OPTION_QUERY){
+        struct ykcm_gun_output_info_7104 *response = (struct ykcm_gun_output_info_7104*)buf;
+
+        memset(response, 0x00, sizeof(struct ykcm_gun_output_info_7104));
+
+        if(gunno == 0x01){
+            response->auxpower_24V.port_number = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_OUTPUT_AUX24A, 0x00));
+            response->auxpower_24V.enable = 0x01;
+
+            response->auxpower_12V.port_number = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_OUTPUT_AUX12A, 0x00));
+            response->auxpower_12V.enable = 0x01;
+
+            response->dcrelay.port_number = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_OUTPUT_DCA, 0x00));
+            response->dcrelay.enable = 0x01;
+
+            response->relief.port_number = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_OUTPUT_RELIEFA, 0x00));
+            response->relief.enable = 0x01;
+
+            response->elock.port_number = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_OUTPUT_ELOCKA, 0x00));
+            response->elock.enable = 0x01;
+
+            response->liquid.port_number = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_OUTPUT_LIQIDA, 0x00));
+            response->liquid.enable = 0x01;
+        }else if(gunno == 0x02){
+            response->auxpower_24V.port_number = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_OUTPUT_AUX24B, 0x00));
+            response->auxpower_24V.enable = 0x01;
+
+            response->auxpower_12V.port_number = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_OUTPUT_AUX12B, 0x00));
+            response->auxpower_12V.enable = 0x01;
+
+            response->dcrelay.port_number = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_OUTPUT_DCB, 0x00));
+            response->dcrelay.enable = 0x01;
+
+            response->relief.port_number = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_OUTPUT_RELIEFB, 0x00));
+            response->relief.enable = 0x01;
+
+            response->elock.port_number = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_OUTPUT_ELOCKB, 0x00));
+            response->elock.enable = 0x01;
+
+            response->liquid.port_number = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_OUTPUT_LIQIDB, 0x00));
+            response->liquid.enable = 0x01;
+        }else{
+            LOG_W("ykcm config query output gun port gunno error(%d)", gunno);
+            return (NETYKCM_CONFIG_RES_SYS_ITEM_ASSERT_BASE + 0x01);
+        }
+    }
+    /** 配置信息设置 */
+    else{
+        if((data == NULL) || (dlen < sizeof(struct ykcm_gun_output_info_7104))){
+            LOG_E("ykcm input data invalid with gun output 7104 info|%d,%d", dlen, sizeof(struct ykcm_gun_output_info_7104));
+            return (NETYKCM_CONFIG_RES_SYS_ITEM_ASSERT_BASE + 0x02);
+        }
+        struct ykcm_gun_output_info_7104 *info = (struct ykcm_gun_output_info_7104*)data;
+
+        if(gunno == 0x01){
+            if(ykc_monitor_is_config_data_valid(&info->auxpower_24V.port_number, sizeof(info->auxpower_24V.port_number), 0x00) == NET_ENUM_FALSE){
+                info->auxpower_24V.port_number = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_OUTPUT_AUX24A, 0x00));
+            }
+            if(ykc_monitor_is_config_data_valid(&info->auxpower_12V.port_number, sizeof(info->auxpower_12V.port_number), 0x00) == NET_ENUM_FALSE){
+                info->auxpower_12V.port_number = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_OUTPUT_AUX12A, 0x00));
+            }
+            if(ykc_monitor_is_config_data_valid(&info->dcrelay.port_number, sizeof(info->dcrelay.port_number), 0x00) == NET_ENUM_FALSE){
+                info->dcrelay.port_number = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_OUTPUT_DCA, 0x00));
+            }
+            if(ykc_monitor_is_config_data_valid(&info->relief.port_number, sizeof(info->relief.port_number), 0x00) == NET_ENUM_FALSE){
+                info->relief.port_number = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_OUTPUT_RELIEFA, 0x00));
+            }
+            if(ykc_monitor_is_config_data_valid(&info->elock.port_number, sizeof(info->elock.port_number), 0x00) == NET_ENUM_FALSE){
+                info->elock.port_number = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_OUTPUT_ELOCKA, 0x00));
+            }
+            if(ykc_monitor_is_config_data_valid(&info->liquid.port_number, sizeof(info->liquid.port_number), 0x00) == NET_ENUM_FALSE){
+                info->liquid.port_number = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_OUTPUT_LIQIDA, 0x00));
+            }
+        }else if(gunno == 0x02){
+            if(ykc_monitor_is_config_data_valid(&info->auxpower_24V.port_number, sizeof(info->auxpower_24V.port_number), 0x00) == NET_ENUM_FALSE){
+                info->auxpower_24V.port_number = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_OUTPUT_AUX24B, 0x00));
+            }
+            if(ykc_monitor_is_config_data_valid(&info->auxpower_12V.port_number, sizeof(info->auxpower_12V.port_number), 0x00) == NET_ENUM_FALSE){
+                info->auxpower_12V.port_number = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_OUTPUT_AUX12B, 0x00));
+            }
+            if(ykc_monitor_is_config_data_valid(&info->dcrelay.port_number, sizeof(info->dcrelay.port_number), 0x00) == NET_ENUM_FALSE){
+                info->dcrelay.port_number = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_OUTPUT_DCB, 0x00));
+            }
+            if(ykc_monitor_is_config_data_valid(&info->relief.port_number, sizeof(info->relief.port_number), 0x00) == NET_ENUM_FALSE){
+                info->relief.port_number = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_OUTPUT_RELIEFB, 0x00));
+            }
+            if(ykc_monitor_is_config_data_valid(&info->elock.port_number, sizeof(info->elock.port_number), 0x00) == NET_ENUM_FALSE){
+                info->elock.port_number = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_OUTPUT_ELOCKB, 0x00));
+            }
+            if(ykc_monitor_is_config_data_valid(&info->liquid.port_number, sizeof(info->liquid.port_number), 0x00) == NET_ENUM_FALSE){
+                info->liquid.port_number = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_OUTPUT_LIQIDB, 0x00));
+            }
+        }else{
+            LOG_W("ykcm config set output gun port gunno error(%d)", gunno);
+            return (NETYKCM_CONFIG_RES_SYS_ITEM_ASSERT_BASE + 0x03);
+        }
+
+        return ykc_monitor_config_execute((gunno - 0x01), THAISEN_CONFIG_PAGE_GUN_OUTPUT_7104_INFO, data, NULL, NULL);
+    }
+
+    return 0x00;
+#else
+    return (NETYKCM_CONFIG_RES_SYS_ITEM_ASSERT_BASE + 0x04);
+#endif
+}
+
+/*************************************************
+ * 函数名      ykc_monitor_config_info_process
+ * 功能          处理服务器下发的配置信息修改、查询请求
+ * **********************************************/
+int8_t ykc_monitor_config_info_process(void *data, uint16_t dlen, void *buf, uint16_t blen, uint16_t *olen)
+{
+    if((data == NULL) || (dlen < sizeof(Net_YkcMonitorPro_Sreq_QuerySet_ConfigInfo_t))){
+        LOG_E("ykcm input data error with config_info_process|%d |%d, %d",  \
+                data, dlen, sizeof(Net_YkcMonitorPro_Sreq_QuerySet_ConfigInfo_t));
+        return -0x01;
+    }
+    if((buf == NULL) || (blen < sizeof(Net_YkcMonitorPro_Pres_QuerySet_ConfigInfo_t))){
+        LOG_E("ykcm input buff error with config_info_process|%d |%d, %d",  \
+                buf, blen, sizeof(Net_YkcMonitorPro_Pres_QuerySet_ConfigInfo_t));
+        return -0x01;
+    }
+
+    int32_t ret = 0x00;
+    uint16_t out_len = sizeof(Net_YkcMonitorPro_Pres_QuerySet_ConfigInfo_t),
+             cdata_len = (dlen - sizeof(Net_YkcMonitorPro_Sreq_QuerySet_ConfigInfo_t)),
+             rbuf_len = (blen - sizeof(Net_YkcMonitorPro_Pres_QuerySet_ConfigInfo_t));
+    Net_YkcMonitorPro_Sreq_QuerySet_ConfigInfo_t *request = (Net_YkcMonitorPro_Sreq_QuerySet_ConfigInfo_t*)data;
+    Net_YkcMonitorPro_Pres_QuerySet_ConfigInfo_t *response = (Net_YkcMonitorPro_Pres_QuerySet_ConfigInfo_t*)buf;
+
+    if((request->body.option >= NETYKCM_CONFIG_INFO_OPTION_SIZE) || (request->body.option < 0x00)){
+        LOG_E("ykcm config info process option error|%d", request->body.option);
+        return -0x01;
+    }
+    memcpy(response, request, sizeof(Net_YkcMonitorPro_Pres_QuerySet_ConfigInfo_t));
+
+    switch(request->body.info_type){
+    case NETYKCM_CONFIG_INFO_TYPE_SYSTEM:
+        LOG_D("ykcm config info query set --- system info(%d)", request->body.option);
+        ret = ykc_monitor_config_info_process_sys_info(request->body.option, ((uint8_t*)&request->body.option + 0x01), \
+                cdata_len, ((uint8_t*)&response->body.option + 0x01), rbuf_len);
+        if(request->body.option == NETYKCM_CONFIG_INFO_OPTION_QUERY){
+            out_len += sizeof(struct ykcm_sys_info);
+        }
+        break;
+    case NETYKCM_CONFIG_INFO_TYPE_PILE:
+        LOG_D("ykcm config info query set --- pile info(%d)", request->body.option);
+        ret = ykc_monitor_config_info_process_pile_info(request->body.option, ((uint8_t*)&request->body.option + 0x01), \
+                cdata_len, ((uint8_t*)&response->body.option + 0x01), rbuf_len);
+        if(request->body.option == NETYKCM_CONFIG_INFO_OPTION_QUERY){
+            out_len += sizeof(struct ykcm_pile_info);
+        }
+        break;
+    case NETYKCM_CONFIG_INFO_TYPE_SERVER:
+        LOG_D("ykcm config info query set --- server info(%d)", request->body.option);
+        ret = ykc_monitor_config_info_process_server_info(request->body.option, ((uint8_t*)&request->body.option + 0x01), \
+                cdata_len, ((uint8_t*)&response->body.option + 0x01), rbuf_len);
+        if(request->body.option == NETYKCM_CONFIG_INFO_OPTION_QUERY){
+            out_len += sizeof(struct ykcm_server_info);
+        }
+        break;
+    case NETYKCM_CONFIG_INFO_TYPE_AMMETER:
+        LOG_D("ykcm config info query set --- ammeter info(%d)", request->body.option);
+        ret = ykc_monitor_config_info_process_ammeter_info(request->body.option, ((uint8_t*)&request->body.option + 0x01), \
+                cdata_len, ((uint8_t*)&response->body.option + 0x01), rbuf_len);
+        if(request->body.option == NETYKCM_CONFIG_INFO_OPTION_QUERY){
+            out_len += sizeof(struct ykcm_ammeter_info);
+        }
+        break;
+    case NETYKCM_CONFIG_INFO_TYPE_MODULE:
+        LOG_D("ykcm config info query set --- module info(%d)", request->body.option);
+        ret = ykc_monitor_config_info_process_module_info(request->body.option, ((uint8_t*)&request->body.option + 0x01), \
+                cdata_len, ((uint8_t*)&response->body.option + 0x01), rbuf_len);
+        if(request->body.option == NETYKCM_CONFIG_INFO_OPTION_QUERY){
+            out_len += sizeof(struct ykcm_module_info);
+        }
+        break;
+    case NETYKCM_CONFIG_INFO_TYPE_VIN:
+        LOG_D("ykcm config info query set --- vin info(%d)", request->body.option);
+        ret = ykc_monitor_config_info_process_vin_info(request->body.option, ((uint8_t*)&request->body.option + 0x01), \
+                cdata_len, ((uint8_t*)&response->body.option + 0x01), rbuf_len);
+        if(request->body.option == NETYKCM_CONFIG_INFO_OPTION_QUERY){
+            out_len += sizeof(struct ykcm_vin_info);
+        }
+        break;
+    case NETYKCM_CONFIG_INFO_TYPE_PROTECT_INFO:
+        LOG_D("ykcm config info query set --- protect info(%d)", request->body.option);
+        ret = ykc_monitor_config_info_process_protect_info(request->body.option, ((uint8_t*)&request->body.option + 0x01), \
+                cdata_len, ((uint8_t*)&response->body.option + 0x01), rbuf_len);
+        if(request->body.option == NETYKCM_CONFIG_INFO_OPTION_QUERY){
+            out_len += sizeof(struct ykcm_protect_info);
+        }
+        break;
+    case NETYKCM_CONFIG_INFO_TYPE_FUNCTION_CONFIG:
+        LOG_D("ykcm config info query set --- function config info(%d)", request->body.option);
+        ret = ykc_monitor_config_info_process_function_config_info(request->body.option, ((uint8_t*)&request->body.option + 0x01), \
+                cdata_len, ((uint8_t*)&response->body.option + 0x01), rbuf_len);
+        if(request->body.option == NETYKCM_CONFIG_INFO_OPTION_QUERY){
+            out_len += sizeof(struct ykcm_function_config);
+        }
+        break;
+    case NETYKCM_CONFIG_INFO_TYPE_OFFLINE_BILLING:
+        LOG_D("ykcm config info query set --- offline billing info(%d)", request->body.option);
+        ret = ykc_monitor_config_info_process_offline_billing_info(request->body.option, ((uint8_t*)&request->body.option + 0x01), \
+                cdata_len, ((uint8_t*)&response->body.option + 0x01), rbuf_len);
+        if(request->body.option == NETYKCM_CONFIG_INFO_OPTION_QUERY){
+            out_len += sizeof(struct ykcm_offline_billing);
+        }
+        break;
+    case NETYKCM_CONFIG_INFO_TYPE_INPUT_7103_7101:
+        LOG_D("ykcm config info query set --- input 7103/7101 info(%d)", request->body.option);
+        ret = ykc_monitor_config_info_process_input_7103_7101_info(request->body.option, ((uint8_t*)&request->body.option + 0x01), \
+                cdata_len, ((uint8_t*)&response->body.option + 0x01), rbuf_len);
+        if(request->body.option == NETYKCM_CONFIG_INFO_OPTION_QUERY){
+            out_len += sizeof(struct ykcm_input_info_7103_7101);
+        }
+        break;
+    case NETYKCM_CONFIG_INFO_TYPE_PUBLIC_INPUT_7104:
+        LOG_D("ykcm config info query set --- public input 7104 info(%d)", request->body.option);
+        ret = ykc_monitor_config_info_process_public_input_7104_info(request->body.option, ((uint8_t*)&request->body.option + 0x01), \
+                cdata_len, ((uint8_t*)&response->body.option + 0x01), rbuf_len);
+        if(request->body.option == NETYKCM_CONFIG_INFO_OPTION_QUERY){
+            out_len += sizeof(struct ykcm_public_input_info_7104);
+        }
+        break;
+    case NETYKCM_CONFIG_INFO_TYPE_GUN_INPUT_7104:
+        LOG_D("ykcm config info query set --- gun input 7104 info(%d)", request->body.option);
+        ret = ykc_monitor_config_info_process_gun_input_7104_info(request->body.option, request->body.gunno,
+                ((uint8_t*)&request->body.option + 0x01), cdata_len, ((uint8_t*)&response->body.option + 0x01), rbuf_len);
+        if(request->body.option == NETYKCM_CONFIG_INFO_OPTION_QUERY){
+            out_len += sizeof(struct ykcm_gun_input_info_7104);
+        }
+        break;
+    case NETYKCM_CONFIG_INFO_TYPE_PUBLIC_OUTPUT_7104:
+        LOG_D("ykcm config info query set --- public output 7104 info(%d)", request->body.option);
+        ret = ykc_monitor_config_info_process_public_output_7104_info(request->body.option, ((uint8_t*)&request->body.option + 0x01), \
+                cdata_len, ((uint8_t*)&response->body.option + 0x01), rbuf_len);
+        if(request->body.option == NETYKCM_CONFIG_INFO_OPTION_QUERY){
+            out_len += sizeof(struct ykcm_public_output_info_7104);
+        }
+        break;
+    case NETYKCM_CONFIG_INFO_TYPE_GUN_OUTPUT_7104:
+        LOG_D("ykcm config info query set --- gun output 7104 info(%d)", request->body.option);
+        ret = ykc_monitor_config_info_process_gun_output_7104_info(request->body.option, request->body.gunno, \
+                ((uint8_t*)&request->body.option + 0x01), cdata_len, ((uint8_t*)&response->body.option + 0x01), rbuf_len);
+        if(request->body.option == NETYKCM_CONFIG_INFO_OPTION_QUERY){
+            out_len += sizeof(struct ykcm_gun_output_info_7104);
+        }
+        break;
+    default:
+        LOG_D("ykcm config info query set --- info type error(%d)", request->body.info_type);
+        if(request->body.option == NETYKCM_CONFIG_INFO_OPTION_SET){
+            struct ykcm_response_result *result = (struct ykcm_response_result*)((uint8_t*)&response->body.option + 0x01);
+
+            result->result = 0x01;
+            result->fail_reason = (NETYKCM_CONFIG_RES_SYS_ASSERT_BASE + 0x00);
+            out_len += sizeof(struct ykcm_response_result);
+            return 0x00;
+        }
+        return -0x01;
+    }
+
+    if(request->body.option == NETYKCM_CONFIG_INFO_OPTION_SET){
+        struct ykcm_response_result *result = (struct ykcm_response_result*)((uint8_t*)&response->body.option + 0x01);
+
+        result->result = NETYKCM_CONFIG_RES_SUCCESS;
+        result->fail_reason = NETYKCM_CONFIG_RES_SUCCESS;
+        if(ret != NETYKCM_CONFIG_RES_SUCCESS){
+            result->result = 0x01;
+            result->fail_reason = ret;
+        }
+        out_len += sizeof(struct ykcm_response_result);
+    }
+
+    if(olen){
+        *(uint16_t*)olen = out_len;
+    }
+    return 0x00;
+}
+
+#endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
 /******************************** 以下是外部调用触发 *******************************/
 /******************************** 以下是外部调用触发 *******************************/
 

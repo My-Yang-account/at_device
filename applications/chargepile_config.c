@@ -184,7 +184,8 @@ struct _function_enable{
     uint8_t offline_billing;       /* 离线计费 */
     uint8_t local_stop;            /* 本地停止 */
     uint8_t plug_charge;           /* 即插即充 */
-    uint8_t reserve[91];
+    uint8_t password_start;        /* 密码启动 */
+    uint8_t reserve[90];
 };
 
 struct _state_reversal{
@@ -358,6 +359,11 @@ APP_DEF_SRAM2 static struct config_item s_config_item_set[CONFIG_ITEM_SIZE] =
         {CONFIG_ITEM_SUPORT_MODULE_SLIENCE,
         (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.module_slience)),       /*配置项：模块静音*/
         (uint8_t*)&s_chargepile_config_info.function_enable.module_slience,
+        NULL},
+
+        {CONFIG_ITEM_SUPORT_PASSWORD_START,
+        (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.password_start)),       /*配置项：密码启动*/
+        (uint8_t*)&s_chargepile_config_info.function_enable.password_start,
         NULL},
 
         {CONFIG_ITEM_CARD_TYPE,
@@ -660,7 +666,15 @@ APP_DEF_SRAM2 static struct config_item s_config_item_set[CONFIG_ITEM_SIZE] =
         (uint8_t*)&s_chargepile_config_info.network.nettype,
         NULL},
 
+        {CONFIG_ITEM_TEMINAL_ADDRA,
+        (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_info.teminal_addrA)),
+        (uint8_t*)&s_chargepile_config_info.config_info.teminal_addrA,
+        NULL},
 
+        {CONFIG_ITEM_TEMINAL_ADDRB,
+        (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_info.teminal_addrB)),
+        (uint8_t*)&s_chargepile_config_info.config_info.teminal_addrB,
+        NULL},
 
 
 #ifdef CP_USING_OFFLINE_BILLING
@@ -784,6 +798,9 @@ void sys_chargeplie_config_info_init(void)
     /** 启用模块静音功能 */
     sys_config_item_init(CONFIG_ITEM_SUPORT_MODULE_SLIENCE, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.module_slience)), \
             (uint8_t*)&s_chargepile_config_info.function_enable.module_slience, NULL);
+    /** 启用密码启动功能 */
+    sys_config_item_init(CONFIG_ITEM_SUPORT_PASSWORD_START, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.password_start)), \
+            (uint8_t*)&s_chargepile_config_info.function_enable.password_start, NULL);
     /** 卡类型 */
     sys_config_item_init(CONFIG_ITEM_CARD_TYPE, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_info.card_type)), \
             (uint8_t*)&s_chargepile_config_info.config_info.card_type, NULL);
@@ -964,6 +981,12 @@ void sys_chargeplie_config_info_init(void)
     /** 网络类型 */
     sys_config_item_init(CONFIG_ITEM_NET_TYPE, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.network.nettype)), \
             (uint8_t*)&s_chargepile_config_info.network.nettype, NULL);
+    /** A枪终端地址 */
+    sys_config_item_init(CONFIG_ITEM_TEMINAL_ADDRA, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_info.teminal_addrA)), \
+            (uint8_t*)&s_chargepile_config_info.config_info.teminal_addrA, NULL);
+    /** B枪终端地址 */
+    sys_config_item_init(CONFIG_ITEM_TEMINAL_ADDRB, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_info.teminal_addrB)), \
+            (uint8_t*)&s_chargepile_config_info.config_info.teminal_addrB, NULL);
 #ifdef CP_USING_OFFLINE_BILLING
     /** 计费规则信息 */
     sys_config_item_init(CONFIG_ITEM_BILLING_RULE, (1 <<(32 - 4))| (sizeof(s_chargepile_config_info.billing_rule)), \
@@ -1516,6 +1539,7 @@ static void chargepile_config_data_reset(void)
     s_chargepile_config_info.function_enable.rfid_card_reader = 0x00;
     s_chargepile_config_info.function_enable.parallel_relay = 0x00;
     s_chargepile_config_info.function_enable.module_slience = 0x00;
+    s_chargepile_config_info.function_enable.password_start = 0x00;
     s_chargepile_config_info.function_enable.offline_billing = 0x00;
 
     s_chargepile_config_info.state_reversal.emergency_stop = 0x00;
@@ -1907,6 +1931,9 @@ int32_t chargepile_check_config(void)
     if(s_chargepile_config_info.function_enable.module_slience > 0x01){   /* 模块静音默认关闭 */
         s_chargepile_config_info.function_enable.module_slience = 0x00;
     }
+    if(s_chargepile_config_info.function_enable.password_start > 0x01){   /* 密码启动默认关闭 */
+        s_chargepile_config_info.function_enable.password_start = 0x00;
+    }
     if(s_chargepile_config_info.function_enable.offline_billing > 0x01){   /* 离线计费默认关闭 */
         s_chargepile_config_info.function_enable.offline_billing = 0x00;
     }
@@ -2103,10 +2130,8 @@ int32_t chargepile_check_config(void)
             (s_chargepile_config_info.billing_rule.rate_elect_price[CP_RATED_TYPE_SHARP_SHARP] > CP_SHARP_SHARP_RATED_ELECT_PRICE_MAX)){
         s_chargepile_config_info.billing_rule.rate_elect_price[CP_RATED_TYPE_SHARP_SHARP] = CP_SHARP_SHARP_RATED_ELECT_PRICE_DEF;
     }
-    if((s_chargepile_config_info.billing_rule.rate_service_price[CP_RATED_TYPE_SHARP_SHARP] < CP_SHARP_SHARP_RATED_SERVICE_PRICE_MIN) ||
-            (s_chargepile_config_info.billing_rule.rate_service_price[CP_RATED_TYPE_SHARP_SHARP] > CP_SHARP_SHARP_RATED_SERVICE_PRICE_MAX)){
-        s_chargepile_config_info.billing_rule.rate_service_price[CP_RATED_TYPE_SHARP_SHARP] = CP_SHARP_SHARP_RATED_SERVICE_PRICE_DEF;
-    }
+    s_chargepile_config_info.billing_rule.rate_service_price[CP_RATED_TYPE_SHARP_SHARP] = CP_VALLEY_RATED_SERVICE_PRICE_DEF;
+
     if((s_chargepile_config_info.billing_rule.rate_delay_price[CP_RATED_TYPE_SHARP_SHARP] < CP_SHARP_SHARP_RATED_DELAY_PRICE_MIN) ||
             (s_chargepile_config_info.billing_rule.rate_delay_price[CP_RATED_TYPE_SHARP_SHARP] > CP_SHARP_SHARP_RATED_DELAY_PRICE_MAX)){
         s_chargepile_config_info.billing_rule.rate_delay_price[CP_RATED_TYPE_SHARP_SHARP] = CP_SHARP_SHARP_RATED_DELAY_PRICE_DEF;
@@ -2116,10 +2141,8 @@ int32_t chargepile_check_config(void)
             (s_chargepile_config_info.billing_rule.rate_elect_price[CP_RATED_TYPE_SHARP] > CP_SHARP_RATED_ELECT_PRICE_MAX)){
         s_chargepile_config_info.billing_rule.rate_elect_price[CP_RATED_TYPE_SHARP] = CP_SHARP_RATED_ELECT_PRICE_DEF;
     }
-    if((s_chargepile_config_info.billing_rule.rate_service_price[CP_RATED_TYPE_SHARP] < CP_SHARP_RATED_SERVICE_PRICE_MIN) ||
-            (s_chargepile_config_info.billing_rule.rate_service_price[CP_RATED_TYPE_SHARP] > CP_SHARP_RATED_SERVICE_PRICE_MAX)){
-        s_chargepile_config_info.billing_rule.rate_service_price[CP_RATED_TYPE_SHARP] = CP_SHARP_RATED_SERVICE_PRICE_DEF;
-    }
+    s_chargepile_config_info.billing_rule.rate_service_price[CP_RATED_TYPE_SHARP] = CP_VALLEY_RATED_SERVICE_PRICE_DEF;
+
     if((s_chargepile_config_info.billing_rule.rate_delay_price[CP_RATED_TYPE_SHARP] < CP_SHARP_RATED_DELAY_PRICE_MIN) ||
             (s_chargepile_config_info.billing_rule.rate_delay_price[CP_RATED_TYPE_SHARP] > CP_SHARP_RATED_DELAY_PRICE_MAX)){
         s_chargepile_config_info.billing_rule.rate_delay_price[CP_RATED_TYPE_SHARP] = CP_SHARP_RATED_DELAY_PRICE_DEF;
@@ -2129,10 +2152,8 @@ int32_t chargepile_check_config(void)
             (s_chargepile_config_info.billing_rule.rate_elect_price[CP_RATED_TYPE_PEAK] > CP_PEAK_RATED_ELECT_PRICE_MAX)){
         s_chargepile_config_info.billing_rule.rate_elect_price[CP_RATED_TYPE_PEAK] = CP_PEAK_RATED_ELECT_PRICE_DEF;
     }
-    if((s_chargepile_config_info.billing_rule.rate_service_price[CP_RATED_TYPE_PEAK] < CP_PEAK_RATED_SERVICE_PRICE_MIN) ||
-            (s_chargepile_config_info.billing_rule.rate_service_price[CP_RATED_TYPE_PEAK] > CP_PEAK_RATED_SERVICE_PRICE_MAX)){
-        s_chargepile_config_info.billing_rule.rate_service_price[CP_RATED_TYPE_PEAK] = CP_PEAK_RATED_SERVICE_PRICE_DEF;
-    }
+    s_chargepile_config_info.billing_rule.rate_service_price[CP_RATED_TYPE_PEAK] = CP_VALLEY_RATED_SERVICE_PRICE_DEF;
+
     if((s_chargepile_config_info.billing_rule.rate_delay_price[CP_RATED_TYPE_PEAK] < CP_PEAK_RATED_DELAY_PRICE_MIN) ||
             (s_chargepile_config_info.billing_rule.rate_delay_price[CP_RATED_TYPE_PEAK] > CP_PEAK_RATED_DELAY_PRICE_MAX)){
         s_chargepile_config_info.billing_rule.rate_delay_price[CP_RATED_TYPE_PEAK] = CP_PEAK_RATED_DELAY_PRICE_DEF;
@@ -2142,10 +2163,8 @@ int32_t chargepile_check_config(void)
             (s_chargepile_config_info.billing_rule.rate_elect_price[CP_RATED_TYPE_FLAT] > CP_FLAT_RATED_ELECT_PRICE_MAX)){
         s_chargepile_config_info.billing_rule.rate_elect_price[CP_RATED_TYPE_FLAT] = CP_FLAT_RATED_ELECT_PRICE_DEF;
     }
-    if((s_chargepile_config_info.billing_rule.rate_service_price[CP_RATED_TYPE_FLAT] < CP_FLAT_RATED_SERVICE_PRICE_MIN) ||
-            (s_chargepile_config_info.billing_rule.rate_service_price[CP_RATED_TYPE_FLAT] > CP_FLAT_RATED_SERVICE_PRICE_MAX)){
-        s_chargepile_config_info.billing_rule.rate_service_price[CP_RATED_TYPE_FLAT] = CP_FLAT_RATED_SERVICE_PRICE_DEF;
-    }
+    s_chargepile_config_info.billing_rule.rate_service_price[CP_RATED_TYPE_FLAT] = CP_VALLEY_RATED_SERVICE_PRICE_DEF;
+
     if((s_chargepile_config_info.billing_rule.rate_delay_price[CP_RATED_TYPE_FLAT] < CP_FLAT_RATED_DELAY_PRICE_MIN) ||
             (s_chargepile_config_info.billing_rule.rate_delay_price[CP_RATED_TYPE_FLAT] > CP_FLAT_RATED_DELAY_PRICE_MAX)){
         s_chargepile_config_info.billing_rule.rate_delay_price[CP_RATED_TYPE_FLAT] = CP_FLAT_RATED_DELAY_PRICE_DEF;
@@ -2155,10 +2174,8 @@ int32_t chargepile_check_config(void)
             (s_chargepile_config_info.billing_rule.rate_elect_price[CP_RATED_TYPE_VALLEY] > CP_VALLEY_RATED_ELECT_PRICE_MAX)){
         s_chargepile_config_info.billing_rule.rate_elect_price[CP_RATED_TYPE_VALLEY] = CP_VALLEY_RATED_ELECT_PRICE_DEF;
     }
-    if((s_chargepile_config_info.billing_rule.rate_service_price[CP_RATED_TYPE_VALLEY] < CP_VALLEY_RATED_SERVICE_PRICE_MIN) ||
-            (s_chargepile_config_info.billing_rule.rate_service_price[CP_RATED_TYPE_VALLEY] > CP_VALLEY_RATED_SERVICE_PRICE_MAX)){
-        s_chargepile_config_info.billing_rule.rate_service_price[CP_RATED_TYPE_VALLEY] = CP_VALLEY_RATED_SERVICE_PRICE_DEF;
-    }
+    s_chargepile_config_info.billing_rule.rate_service_price[CP_RATED_TYPE_VALLEY] = CP_VALLEY_RATED_SERVICE_PRICE_DEF;
+
     if((s_chargepile_config_info.billing_rule.rate_delay_price[CP_RATED_TYPE_VALLEY] < CP_VALLEY_RATED_DELAY_PRICE_MIN) ||
             (s_chargepile_config_info.billing_rule.rate_delay_price[CP_RATED_TYPE_VALLEY] > CP_VALLEY_RATED_DELAY_PRICE_MAX)){
         s_chargepile_config_info.billing_rule.rate_delay_price[CP_RATED_TYPE_VALLEY] = CP_VALLEY_RATED_DELAY_PRICE_DEF;
@@ -2322,7 +2339,7 @@ int16_t sys_get_power_percent(void)
     return percent;
 }
 
-uint32_t sys_percent_convert_to_power(uint8_t percent)
+uint32_t sys_percent_convert_to_power(uint16_t percent)
 {
     uint32_t single_module_power = 0x00, power_max = 0x00;       /* 单个模块能输出的最大(额定)功率 */
 
@@ -2331,7 +2348,8 @@ uint32_t sys_percent_convert_to_power(uint8_t percent)
         power_max += single_module_power *s_chargepile_config_info.config_info.module_num_singlegroup[count];
     }
     s_system_power_max = power_max;
-    return (s_system_power_max *percent /100);
+
+    return (s_system_power_max *percent /1000);
 }
 
 uint32_t sys_query_system_max_power(void)
@@ -2472,6 +2490,12 @@ int32_t sys_vin_whitelists_delete(uint8_t *data, uint8_t len)
     return index;
 }
 
+int32_t sys_vin_whitelists_clear(void)
+{
+    memset(s_chargepile_config_info.config_info.vin_whitelist, 0x00, sizeof(s_chargepile_config_info.config_info.vin_whitelist));
+    return 0x00;
+}
+
 /**********************************************[卡号白名单相关]********************************************************/
 /**********************************************[卡号白名单相关]********************************************************/
 int32_t sys_card_number_whitelists_storage(void)
@@ -2592,6 +2616,11 @@ int32_t sys_card_number_whitelists_delete(uint8_t *data, uint8_t len)
     return index;
 }
 
+int32_t sys_card_number_whitelists_clear(void)
+{
+    memset(s_chargepile_config_info.config_info.card_whitelist.card_number, 0x00, sizeof(s_chargepile_config_info.config_info.card_whitelist.card_number));
+    return 0x00;
+}
 
 /**********************************************[卡UID白名单相关]********************************************************/
 /**********************************************[卡UID白名单相关]********************************************************/
@@ -2706,6 +2735,13 @@ int32_t sys_card_uid_whitelists_delete(uint8_t *data, uint8_t len)
     }
     return index;
 }
+
+int32_t sys_card_uid_whitelists_clear(void)
+{
+    memset(s_chargepile_config_info.config_info.card_whitelist.card_uid, 0x00, sizeof(s_chargepile_config_info.config_info.card_whitelist.card_uid));
+    return 0x00;
+}
+
 
 /**********************************************[离线计费相关]********************************************************/
 /**********************************************[离线计费相关]********************************************************/

@@ -18,6 +18,10 @@
 #define NET_YKC_MONITOR_QRCODE_BUF_MAX                               256       /* 二维码缓存长度 */
 #define NET_YKC_MONITOR_DEV_INFO_BUF_MAX                             32        /* 设备西信息缓存长度 */
 
+#ifdef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL
+#define NET_YKC_MONITOR_CONFIG_INFO_BUF_MAX                          400       /* 设备配置信息缓存长度 */
+#endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
+
 #define NET_YKC_MONITOR_WHITELIST_TYPE_CARD                          0x00      /* 白名单类型：卡白名单 */
 #define NET_YKC_MONITOR_WHITELIST_TYPE_VIN                           0x01      /* 白名单类型：VIN码白名单 */
 
@@ -73,6 +77,7 @@
 #define NET_YKC_MONITOR_USER_SREQ_EVENT_INFOPARA_MODIFY              10   /* 服务器监控请求事件：修改桩信息、参数 */
 #define NET_YKC_MONITOR_USER_SREQ_EVENT_MODIFY_DEV_INFO              11   /* 服务器监控请求事件：修改设备信息 */
 #define NET_YKC_MONITOR_USER_SREQ_EVENT_QUERY_BILLING_RULE           12   /* 服务器监控请求事件：查询计费信息 */
+#define NET_YKC_MONITOR_USER_SREQ_EVENT_QUERY_SET_CONFIG_INFO        13   /* 服务器监控请求事件：查询、设置配置信息 */
 
 /** server user response event */
 #define NET_YKC_MONITOR_USER_SRES_EVENT_REPORT_TPLAT_LOG             0    /* 服务器监控响应事件：上报目标平台日志 */
@@ -179,6 +184,16 @@ typedef struct{
     uint8_t info[NET_YKC_MONITOR_DEV_INFO_BUF_MAX];
 }ykc_monitor_dev_info_buf_t;
 
+#ifdef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL
+typedef struct{
+    struct{
+        uint8_t is_used : 1;
+    }flag;
+    uint16_t length;
+    uint8_t info[NET_YKC_MONITOR_CONFIG_INFO_BUF_MAX];
+}ykc_monitor_config_info_buf_t;
+#endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
+
 #pragma pack()
 
 #ifdef NET_YKC_MONITOR_AS_MONITOR
@@ -189,6 +204,10 @@ uint16_t ykc_monitor_get_recv_message_item_serial_number(uint8_t cmd, uint8_t gu
 void* ykc_monitor_get_qrcode_info(void);
 void* ykc_monitor_get_card_vin_whitelists_info(void);
 void* ykc_monitor_get_device_info(void);
+
+#ifdef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL
+void* ykc_monitor_get_config_info(void);
+#endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
 
 int32_t ykc_message_recv_init(void);
 

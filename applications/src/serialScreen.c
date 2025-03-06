@@ -286,18 +286,22 @@ enum LCD_DISPLAY_PAGE_TYPE{
 
 extern struct SerialScreenObj SerialScreen;
 
+typedef s32 (*ConfigExecutPool)(u8, void*, void*, void*);
+
 #pragma pack(1)
 //辅组数据
 struct LCD_ASSISTANT_DATA{
     struct{
-        u8 IsLongLiSerialScreen : 1;     //龙立屏幕
-        u8 IsEnableParaCharge : 1;       //已打开并充使能
-        u8 IsEnableAuxPower24V : 1;      //已打开并充使能
-        u8 ParaChargeSelect : 1;         //已选择并充
-        u8 IsSetPowerPercent : 1;        //已设置功率百分比
-        u8 IsSetELossProportion : 1;     //已设置电损比
-        u8 IsClickReboot : 1;            //已点击重启
-        u8 IsCountDownFinish : 1;        //启动倒计时已结束
+        u16 IsLongLiSerialScreen : 1;    //龙立屏幕
+        u16 IsEnableParaCharge : 1;      //已打开并充使能
+        u16 IsEnableAuxPower24V : 1;     //已打开并充使能
+        u16 ParaChargeSelect : 1;        //已选择并充
+        u16 IsSetPowerPercent : 1;       //已设置功率百分比
+        u16 IsSetELossProportion : 1;    //已设置电损比
+        u16 IsClickReboot : 1;           //已点击重启
+        u16 IsCountDownFinish : 1;       //启动倒计时已结束
+        u16 IsConfigFail : 1;            //配置保存失败
+        u16 NeedReboot : 1;              //需要重启
     }Flag;
 
     struct{
@@ -305,6 +309,7 @@ struct LCD_ASSISTANT_DATA{
         u8 AuxPower24VSelectLast : 1;    //24V辅源前一次选择状态
         u8 IsPowerOn : 1;                //上电开机
         u8 IsVinStart : 1;               //启动方式为VIN码
+        u8 DataIsVerify : 1;            //配置数据已确认
     }SeveralGunFlag[LCD_GUN_NUM];
 
     u8 OccupyGunNum;                     //处于占用但未充电的枪数量
@@ -714,6 +719,7 @@ SERIALSCREEN_DEF_SRAM2 struct LCD_ASSISTANT_DATA LcdAssistantData;
 SERIALSCREEN_DEF_SRAM2 struct LCD_TRIGGER LcdTriggerEvent[LCD_GUN_NUM];
 #endif /* SCREEN_USING_OFFLINE_BILLING */
 
+SERIALSCREEN_DEF_SRAM2 ConfigExecutPool LcdConfigExecutPool[THAISEN_CONFIG_PAGE_SIZE];
 
 enum SYSMAIN_STATUS{
 	SysMainStatus_StandBy,		//空闲状态(主状态)0
@@ -857,6 +863,14 @@ static void SerialScreen_ScreenSet_TimeSync_Flag(void);
 static void SerialScreen_BtnModuleStateClear(void);
 static void SerialScreen_BtnModuleStateShow(int port);
 void SerialScreen_SendIco(struct SerialScreenObj *cmd,u16 addr, u16 par);
+void SerialScreen_JumpPage(struct SerialScreenObj *cmd,u8 page);
+
+static void SerialScreen_BtnSystemFuncJudge(u32 *ret);
+static void SerialScreen_BtnMeterNoInfoJudge(u32 *ret);
+static void SerialScreen_BtnModuleInfoJudge(u32 *ret);
+static void SerialScreen_BtnProtectInfoJudge(u32 *ret);
+static void SerialScreen_IsSupportInfoJudge(u32 *ret);
+static void SerialScreen_OfflineBillingInfoJudge(u32 *ret);
 
 typedef void(*dofun_void)(int);
 
@@ -1130,6 +1144,798 @@ u8 SerialScreen_Screen_IsCouDownFin_Flag(u8 port)
         return TRUE;
     else
         return FALSE;
+}
+
+/*********************************************** 外部触发执行配置 ****************************************************/
+/*********************************************** 外部触发执行配置 ****************************************************/
+/*******************************************************************
+ * 函数名      SerialScreen_ConfigExecute_System
+ * 功能         外部触发执行系统信息配置
+ * 参数          data         配置数据
+ *        port         枪口号
+ * 返回          <0:配置失败(参数无效)，=0:配置成功  1:配置存储失败， >1:写入配置成功，但是写入的内容与输入的内容有差异
+ *******************************************************************/
+static s32 SerialScreen_ConfigExecute_System(u8 port, void *data, void *sub_data, void *sub_sub_data)   // OK
+{
+    u32 ret = 0;
+    thaisen_cfg_info_system *config = (thaisen_cfg_info_system*)data;
+
+    LcdData.setData.AllocWay = config->allocate_way;
+    LcdData.setData.DevType = config->dev_function;
+    /** 终端地址需要终端程序赋值 */
+#if 0
+     = config->terminal_addr[0];
+     = config->terminal_addr[1];
+#endif
+     /** 系统信息有效性判断 */
+    SerialScreen_BtnSystemFuncJudge(&ret);
+    if(ret != 0){
+        for(u8 i = 0; i < 32; i++){
+            if(ret &(1 <<i))   return (i + THAISEN_CONFIG_FAIL_OFFSET);
+        }
+    }
+    LcdAssistantData.SeveralGunFlag[LCD_GUN_1].DataIsVerify = TRUE;
+    SerialScreen_BtnSystemFuncSet();
+
+    return LcdAssistantData.Flag.IsConfigFail;
+}
+
+/*******************************************************************
+ * 函数名      SerialScreen_ConfigExecute_Pile
+ * 功能         外部触发执行桩信息配置
+ * 参数          data         配置数据
+ *        port         枪口号
+ * 返回          <0:配置失败(参数无效)，=0:配置成功  1:配置存储失败， >1:写入配置成功，但是写入的内容与输入的内容有差异
+ *******************************************************************/
+static s32 SerialScreen_ConfigExecute_Pile(u8 port, void *data, void *sub_data, void *sub_sub_data)  // OK
+{
+#define SSCREEN_PASSWORD_POSITION    3         /* 屏幕密码(配置条目)在结构体 thaisen_cfg_info_pile 中的成员次序(从0开始)*/
+
+    u32 ret = 0;
+    u16 valid_len = 0;
+    thaisen_cfg_info_pile *config = (thaisen_cfg_info_pile*)data;
+
+    /** 获取桩信息 */
+    SerialScreen_BtnChgInfoGet(port);
+    /** >2 是因为前两个字节是设置格式、生成格式，一定有 */
+    if((valid_len = strlen((char*)config->qrcode_prefix)) > 2){
+        valid_len = valid_len > (sizeof(LcdData.setData.ErWeiCodePre) - 1) ? (sizeof(LcdData.setData.ErWeiCodePre) - 1) : valid_len;
+        memset(LcdData.setData.ErWeiCodePre, 0, sizeof(LcdData.setData.ErWeiCodePre));
+        memcpy(LcdData.setData.ErWeiCodePre, config->qrcode_prefix, valid_len);
+    }
+#if 0
+    if((valid_len = strlen((char*)config->qrcode_suffix)) > 2){
+        valid_len = valid_len > (sizeof(LcdData.setData.ErWeiCodePre) - 1) ? (sizeof(LcdData.setData.ErWeiCodePre) - 1) : valid_len;
+        memset(LcdData.setData.ErWeiCodePre, 0, sizeof(LcdData.setData.ErWeiCodePre));
+        memcpy(LcdData.setData.ErWeiCodePre, config->qrcode_prefix, valid_len);
+    }
+#endif
+    /** 屏幕密码有效性判断 */
+    if((valid_len = strlen((char*)config->screen_password)) > 0){
+        u8 i = 0, len = 0;
+        for(i = 0; i < sizeof(config->screen_password); i++){
+            if((config->screen_password[i] < 0x20) || (config->screen_password[i] > 0x7E) || (config->screen_password[i] == 0x00)){
+                len = i;
+                break;
+            }
+        }
+
+        if(len > 0){
+            memset(LcdData.setData.UserPasswdShow, '\0', sizeof(LcdData.setData.UserPasswdShow));
+            memcpy(LcdData.setData.UserPasswdShow, config->screen_password, len);
+            memcpy(LcdData.setData.UserPasswd, LcdData.setData.UserPasswdShow, sizeof(LcdData.setData.UserPasswdShow));
+
+            UI_SYNC_SINGLE_CFG_STR(CONFIG_ITEM_SCREEN_PASSWORD, (u8 *)(LcdData.setData.UserPasswd), len);
+        }else{
+            return (SSCREEN_PASSWORD_POSITION + THAISEN_CONFIG_FAIL_OFFSET);
+        }
+    }
+    if((valid_len = strlen((char*)config->help_number)) > 0){
+        valid_len = valid_len > (sizeof(LcdData.setData.Help_Number) - 1) ? (sizeof(LcdData.setData.Help_Number) - 1) : valid_len;
+        UI_SYNC_SINGLE_CFG_STR(CONFIG_ITEM_HELP_PHONE, config->help_number, valid_len);
+        memset(LcdData.setData.Help_Number, 0, sizeof(LcdData.setData.Help_Number));
+        memcpy(LcdData.setData.Help_Number, config->help_number, valid_len);
+    }
+#if 0
+    /** 桩信息有效性判断 */
+    SerialScreen_BtnChgInfoJudge(&ret);
+    if(ret != 0){
+        for(u8 i = 0; i < 32; i++){
+            if(ret &(1 <<i))   return (i + THAISEN_CONFIG_FAIL_OFFSET);
+        }
+    }
+    LcdAssistantData.SeveralGunFlag[LCD_GUN_1].DataIsVerify = TRUE;
+#endif
+    SerialScreen_BtnChgInfoSet(LCD_GUN_1);
+
+    return LcdAssistantData.Flag.IsConfigFail;
+}
+
+/*******************************************************************
+ * 函数名      SerialScreen_ConfigExecute_Server
+ * 功能         外部触发执行服务器信息配置
+ * 参数          data         配置数据
+ *        port         枪口号
+ * 返回          <0:配置失败(参数无效)，=0:配置成功  1:配置存储失败， >1:写入配置成功，但是写入的内容与输入的内容有差异
+ *******************************************************************/
+static s32 SerialScreen_ConfigExecute_Server(u8 port, void *data, void *sub_data, void *sub_sub_data)  //OK
+{
+#define SSCREEN_NET_MODE_POSITION    2         /* 网络模式(配置条目)在结构体 thaisen_cfg_info_server 中的成员次序(从0开始)*/
+    thaisen_cfg_info_server *config = (thaisen_cfg_info_server*)data;
+
+    if(config->net_mode >= CP_NETTYPE_SIZE){
+        return (SSCREEN_NET_MODE_POSITION + THAISEN_CONFIG_FAIL_OFFSET);
+    }
+    SerialScreen_BtnServerGet();
+    LcdData.setData.NetType = config->net_mode;
+    SerialScreen_BtnServerSet();
+
+    return LcdAssistantData.Flag.IsConfigFail;
+}
+
+/*******************************************************************
+ * 函数名      SerialScreen_ConfigExecute_Ammeter
+ * 功能         外部触发执行电表信息配置
+ * 参数          data         配置数据
+ *        port         枪口号
+ * 返回          <0:配置失败(参数无效)，=0:配置成功  1:配置存储失败， >1:写入配置成功，但是写入的内容与输入的内容有差异
+ *******************************************************************/
+static s32 SerialScreen_ConfigExecute_Ammeter(u8 port, void *data, void *sub_data, void *sub_sub_data)   //OK
+{
+// @ thaisen_cfg_info_ammeter
+#define SCONFIG_METER_ADDR_A_POSITION    0         /* A枪电表地址(配置条目)在结构体 thaisen_cfg_info_ammeter 中的成员次序(从0开始)*/
+#define SCONFIG_METER_ADDR_B_POSITION    1         /* B枪电表地址(配置条目)在结构体 thaisen_cfg_info_ammeter 中的成员次序(从0开始)*/
+#define SCONFIG_METER_BAUD_POSITION      2         /* 电表通信波特率(配置条目)在结构体 thaisen_cfg_info_ammeter 中的成员次序(从0开始)*/
+
+#define SCONFIG_METER_BAUD_2400          0         /* 电表波特率：2400 */
+#define SCONFIG_METER_BAUD_4800          1         /* 电表波特率：4800 */
+#define SCONFIG_METER_BAUD_9600          2         /* 电表波特率：9600 */
+#define SCONFIG_METER_BAUD_38400         3         /* 电表波特率：38400 */
+#define SCONFIG_METER_BAUD_115200        4         /* 电表波特率：115200 */
+
+    u16 valid_len = 0;
+    u32 ret = 0;
+    thaisen_cfg_info_ammeter *config = (thaisen_cfg_info_ammeter*)data;
+
+    /** 上电时已获取了电表信息 */
+
+    switch(config->baudrate){
+    case CP_AMMETER_BAUDRATE_2400:
+        LcdData.setData.MeterBaudrate = SCONFIG_METER_BAUD_2400;
+        break;
+    case CP_AMMETER_BAUDRATE_4800:
+        LcdData.setData.MeterBaudrate = SCONFIG_METER_BAUD_4800;
+        break;
+    case CP_AMMETER_BAUDRATE_9600:
+        LcdData.setData.MeterBaudrate = SCONFIG_METER_BAUD_9600;
+        break;
+    case CP_AMMETER_BAUDRATE_38400:
+        LcdData.setData.MeterBaudrate = SCONFIG_METER_BAUD_38400;
+        break;
+    case CP_AMMETER_BAUDRATE_115200:
+        LcdData.setData.MeterBaudrate = SCONFIG_METER_BAUD_115200;
+        break;
+    default:
+        return (SCONFIG_METER_BAUD_POSITION + THAISEN_CONFIG_FAIL_OFFSET);
+    }
+
+    if((valid_len = strlen((char*)config->ammeter_addr[LCD_GUN_1])) > 0){   /** 电表地址最小12字节(6字节的BCD) */
+        if(valid_len >= 12){
+            valid_len = valid_len > (sizeof(LcdData.setData.MeterAddr[LCD_GUN_1]) - 1) ? (sizeof(LcdData.setData.MeterAddr[LCD_GUN_1]) - 1) : valid_len;
+            memset(LcdData.setData.MeterAddr[LCD_GUN_1], 0, sizeof(LcdData.setData.MeterAddr[LCD_GUN_1]));
+            memcpy(LcdData.setData.MeterAddr[LCD_GUN_1], config->ammeter_addr[LCD_GUN_1], valid_len);
+        }else{
+            return (SCONFIG_METER_ADDR_A_POSITION + THAISEN_CONFIG_FAIL_OFFSET);
+        }
+    }
+    if((valid_len = strlen((char*)config->ammeter_addr[LCD_GUN_2])) > 0){   /** 电表地址最小12字节(6字节的BCD) */
+        if(valid_len >= 12){
+            valid_len = valid_len > (sizeof(LcdData.setData.MeterAddr[LCD_GUN_2]) - 1) ? (sizeof(LcdData.setData.MeterAddr[LCD_GUN_2]) - 1) : valid_len;
+            memset(LcdData.setData.MeterAddr[LCD_GUN_2], 0, sizeof(LcdData.setData.MeterAddr[LCD_GUN_2]));
+            memcpy(LcdData.setData.MeterAddr[LCD_GUN_2], config->ammeter_addr[LCD_GUN_2], valid_len);
+        }else{
+            return (SCONFIG_METER_ADDR_B_POSITION + THAISEN_CONFIG_FAIL_OFFSET);
+        }
+    }
+    LcdData.setData.MeterModel = config->ammeter_model;
+    LcdData.setData.MeterCheckWay = config->check_way;
+
+    /** 电表信息有效性判断 */
+    SerialScreen_BtnMeterNoInfoJudge(&ret);
+    if(ret != 0){
+        for(u8 i = 0; i < 32; i++){
+            if(ret &(1 <<i))   return (i + THAISEN_CONFIG_FAIL_OFFSET);
+        }
+    }
+    LcdAssistantData.SeveralGunFlag[LCD_GUN_1].DataIsVerify = TRUE;
+    SerialScreen_BtnMeterNoInfoSet();
+
+    return LcdAssistantData.Flag.IsConfigFail;
+}
+
+/*******************************************************************
+ * 函数名      SerialScreen_ConfigExecute_Module
+ * 功能         外部触发执行模块信息配置
+ * 参数          data         配置数据
+ *        port         枪口号
+ * 返回          <0:配置失败(参数无效)，=0:配置成功  1:配置存储失败， >1:写入配置成功，但是写入的内容与输入的内容有差异
+ *******************************************************************/
+static s32 SerialScreen_ConfigExecute_Module(u8 port, void *data, void *sub_data, void *sub_sub_data)  //OK
+{
+    u32 ret = 0;
+    u16 valid_len = 0;
+    thaisen_cfg_info_module *config = (thaisen_cfg_info_module*)data;
+
+//    SerialScreen_BtnModuleGet();
+
+    LcdData.setData.RmType = config->module_protocol;
+    LcdData.setData.ModuleGroupNum = config->module_group;
+    valid_len = sizeof(config->module_num_single);
+    valid_len = valid_len > sizeof(LcdData.setData.ModuleNum) ? sizeof(LcdData.setData.ModuleNum) : valid_len;
+    memset(LcdData.setData.ModuleNum, 0, valid_len);
+    memcpy(LcdData.setData.ModuleNum, config->module_num_single, valid_len);
+
+    LcdData.setData.Rated_Output_Voltage = config->module_rated_voltage;
+    LcdData.setData.Rated_Limit_Current = config->module_rated_current;
+    LcdData.setData.Max_Output_Voltage = config->pile_outvoltage_max;
+    LcdData.setData.Min_Output_Voltage = config->pile_outvoltage_min;
+    LcdData.setData.Max_Limit_Current = config->pile_outcurrent_max;
+    LcdData.setData.Min_Limit_Current = config->pile_outcurrent_min;
+
+    /** 模块信息有效性判断 */
+    SerialScreen_BtnModuleInfoJudge(&ret);
+    if(ret != 0){
+        for(u8 i = 0; i < 32; i++){
+            if(ret &(1 <<i))   return (i + THAISEN_CONFIG_FAIL_OFFSET);
+        }
+    }
+    LcdAssistantData.SeveralGunFlag[LCD_GUN_1].DataIsVerify = TRUE;
+    SerialScreen_BtnModuleSet();
+
+    return LcdAssistantData.Flag.IsConfigFail;
+}
+
+/*******************************************************************
+ * 函数名      SerialScreen_ConfigExecute_Vin
+ * 功能         外部触发执行VIN码信息配置
+ * 参数          data         配置数据
+ *        port         枪口号
+ * 返回          <0:配置失败(参数无效)，=0:配置成功  1:配置存储失败， >1:写入配置成功，但是写入的内容与输入的内容有差异
+ *******************************************************************/
+static s32 SerialScreen_ConfigExecute_Vin(u8 port, void *data, void *sub_data, void *sub_sub_data)  //OK
+{
+    if(sub_data == NULL){
+        return -0x01;
+    }
+    u8 valid_count = *(u8*)sub_data;
+    thaisen_cfg_info_vin *config = (thaisen_cfg_info_vin*)data;
+
+//    SerialScreen_BtnVinListGet();
+
+    valid_count = valid_count > VIN_LIST_NUM ? VIN_LIST_NUM : valid_count;
+    memset(LcdData.setData.s_vin_lists, 0, sizeof(LcdData.setData.s_vin_lists));
+    for(u8 i = 0; i < valid_count; i++){
+        memcpy(LcdData.setData.s_vin_lists[i], config->vin_whitelist[i], sizeof(LcdData.setData.s_vin_lists[i]));
+    }
+    SerialScreen_BtnVinListSet();
+
+    return LcdAssistantData.Flag.IsConfigFail;
+}
+
+/*******************************************************************
+ * 函数名      SerialScreen_ConfigExecute_Protect
+ * 功能         外部触发执行保护信息配置
+ * 参数          data         配置数据
+ *        port         枪口号
+ * 返回          <0:配置失败(参数无效)，=0:配置成功  1:配置存储失败， >1:写入配置成功，但是写入的内容与输入的内容有差异
+ *******************************************************************/
+static s32 SerialScreen_ConfigExecute_Protect(u8 port, void *data, void *sub_data, void *sub_sub_data)  //OK
+{
+    u32 ret = 0;
+    thaisen_cfg_info_protect *config = (thaisen_cfg_info_protect*)data;
+
+    LcdData.setData.Stop_SOC = config->soc_stop;
+    LcdData.setData.GunVolt_LimitValue = config->gunvolt_limit;
+
+    LcdData.setData.PowerPercent = config->power_percent;
+    LcdData.setData.ElossProprotion = config->eloss_proportion;
+
+    LcdData.setData.OverTemp_Warnning = config->overtemp_alarm;
+    LcdData.setData.OverTemp_Stop = config->overtemp_stop;
+    LcdData.setData.OverTemp_Resume = config->overtemp_recovery;
+    LcdData.setData.OverTemp_LimitCurr = config->overtemp_limitcur;
+
+    /** 保护信息有效性判断 */
+    SerialScreen_BtnProtectInfoJudge(&ret);
+    if(ret != 0){
+        for(u8 i = 0; i < 32; i++){
+            if(ret &(1 <<i))   return (i + THAISEN_CONFIG_FAIL_OFFSET);
+        }
+    }
+    LcdAssistantData.SeveralGunFlag[LCD_GUN_1].DataIsVerify = TRUE;
+    SerialScreen_BtnProtectInfoSet();
+
+    return LcdAssistantData.Flag.IsConfigFail;
+}
+
+/*******************************************************************
+ * 函数名      SerialScreen_ConfigExecute_Function
+ * 功能         外部触发执行功能信息配置
+ * 参数          data         配置数据
+ *        port         枪口号
+ * 返回          <0:配置失败(参数无效)，=0:配置成功  1:配置存储失败， >1:写入配置成功，但是写入的内容与输入的内容有差异
+ *******************************************************************/
+static s32 SerialScreen_ConfigExecute_Function(u8 port, void *data, void *sub_data, void *sub_sub_data)  //OK
+{
+    u32 ret = 0;
+    thaisen_cfg_info_function *config = (thaisen_cfg_info_function*)data;
+
+    LcdData.setData.sup_Local = config->local_start;
+    LcdData.setData.Icon_SupPlugAndPlay = config->plug_charge;
+    LcdData.setData.Icon_SuplocalStop = config->local_stop;
+    LcdData.setData.sup_VIN = config->vin_charge;
+    LcdData.setData.sup_insulation = config->insult_detect;
+    LcdData.setData.sup_usecard = config->card_reader;
+    LcdData.setData.sup_auxp_24V = config->auxpower_24V;
+    LcdData.setData.sup_parallelchg = config->parallel_charge;
+    LcdData.setData.sup_parallelrelay = config->parallel_relay;
+    LcdData.setData.sup_mslience = config->module_silence;
+    LcdData.setData.Icon_SupOfflineBilling = config->offline_billing;
+
+    /** 功能配置信息有效性判断 */
+    SerialScreen_IsSupportInfoJudge(&ret);
+    if(ret != 0){
+        for(u8 i = 0; i < 32; i++){
+            if(ret &(1 <<i))   return (i + THAISEN_CONFIG_FAIL_OFFSET);
+        }
+    }
+    LcdAssistantData.SeveralGunFlag[LCD_GUN_1].DataIsVerify = TRUE;
+    SerialScreen_IsSupportSetFlash();
+
+    return LcdAssistantData.Flag.IsConfigFail;
+}
+
+/*******************************************************************
+ * 函数名      SerialScreen_ConfigExecute_OfflineBilling
+ * 功能         外部触发执行离线计费信息配置
+ * 参数          data         配置数据
+ *        port         枪口号
+ * 返回          <0:配置失败(参数无效)，=0:配置成功  1:配置存储失败， >1:写入配置成功，但是写入的内容与输入的内容有差异
+ *******************************************************************/
+static s32 SerialScreen_ConfigExecute_OfflineBilling(u8 port, void *data, void *sub_data, void *sub_sub_data)  //OK
+{
+#ifdef SCREEN_USING_OFFLINE_BILLING
+    u32 ret = 0;
+    thaisen_cfg_info_offline_billing *config = (thaisen_cfg_info_offline_billing*)data;
+
+    LcdData.setData.ServicePrice = config->service_price;
+    LcdData.setData.SsElectPrice = config->sharp_sharp_price;
+    LcdData.setData.SElectPrice = config->sharp_price;
+    LcdData.setData.PElectPrice = config->peak_price;
+    LcdData.setData.FElectPrice = config->flat_price;
+    LcdData.setData.VElectPrice = config->valley_price;
+
+    LcdData.setData.PeriodTime[CP_RATED_TYPE_SHARP_SHARP][0].shour = config->sstime1.start_hour;
+    LcdData.setData.PeriodTime[CP_RATED_TYPE_SHARP_SHARP][0].smin = config->sstime1.start_min;
+    LcdData.setData.PeriodTime[CP_RATED_TYPE_SHARP_SHARP][0].ehour = config->sstime1.end_hour;
+    LcdData.setData.PeriodTime[CP_RATED_TYPE_SHARP_SHARP][0].emin = config->sstime1.end_min;
+    LcdData.setData.PeriodTime[CP_RATED_TYPE_SHARP_SHARP][0].rate_number = config->sstime1.rated_number;
+
+    LcdData.setData.PeriodTime[CP_RATED_TYPE_SHARP_SHARP][1].shour = config->sstime2.start_hour;
+    LcdData.setData.PeriodTime[CP_RATED_TYPE_SHARP_SHARP][1].smin = config->sstime2.start_min;
+    LcdData.setData.PeriodTime[CP_RATED_TYPE_SHARP_SHARP][1].ehour = config->sstime2.end_hour;
+    LcdData.setData.PeriodTime[CP_RATED_TYPE_SHARP_SHARP][1].emin = config->sstime2.end_min;
+    LcdData.setData.PeriodTime[CP_RATED_TYPE_SHARP_SHARP][1].rate_number = config->sstime2.rated_number;
+
+    LcdData.setData.PeriodTime[CP_RATED_TYPE_SHARP][0].shour = config->stime1.start_hour;
+    LcdData.setData.PeriodTime[CP_RATED_TYPE_SHARP][0].smin = config->stime1.start_min;
+    LcdData.setData.PeriodTime[CP_RATED_TYPE_SHARP][0].ehour = config->stime1.end_hour;
+    LcdData.setData.PeriodTime[CP_RATED_TYPE_SHARP][0].emin = config->stime1.end_min;
+    LcdData.setData.PeriodTime[CP_RATED_TYPE_SHARP][0].rate_number = config->stime1.rated_number;
+
+    LcdData.setData.PeriodTime[CP_RATED_TYPE_SHARP][1].shour = config->stime2.start_hour;
+    LcdData.setData.PeriodTime[CP_RATED_TYPE_SHARP][1].smin = config->stime2.start_min;
+    LcdData.setData.PeriodTime[CP_RATED_TYPE_SHARP][1].ehour = config->stime2.end_hour;
+    LcdData.setData.PeriodTime[CP_RATED_TYPE_SHARP][1].emin = config->stime2.end_min;
+    LcdData.setData.PeriodTime[CP_RATED_TYPE_SHARP][1].rate_number = config->stime2.rated_number;
+
+    LcdData.setData.PeriodTime[CP_RATED_TYPE_PEAK][0].shour = config->ptime1.start_hour;
+    LcdData.setData.PeriodTime[CP_RATED_TYPE_PEAK][0].smin = config->ptime1.start_min;
+    LcdData.setData.PeriodTime[CP_RATED_TYPE_PEAK][0].ehour = config->ptime1.end_hour;
+    LcdData.setData.PeriodTime[CP_RATED_TYPE_PEAK][0].emin = config->ptime1.end_min;
+    LcdData.setData.PeriodTime[CP_RATED_TYPE_PEAK][0].rate_number = config->ptime1.rated_number;
+
+    LcdData.setData.PeriodTime[CP_RATED_TYPE_PEAK][1].shour = config->ptime2.start_hour;
+    LcdData.setData.PeriodTime[CP_RATED_TYPE_PEAK][1].smin = config->ptime2.start_min;
+    LcdData.setData.PeriodTime[CP_RATED_TYPE_PEAK][1].ehour = config->ptime2.end_hour;
+    LcdData.setData.PeriodTime[CP_RATED_TYPE_PEAK][1].emin = config->ptime2.end_min;
+    LcdData.setData.PeriodTime[CP_RATED_TYPE_PEAK][1].rate_number = config->ptime2.rated_number;
+
+    LcdData.setData.PeriodTime[CP_RATED_TYPE_FLAT][0].shour = config->ftime1.start_hour;
+    LcdData.setData.PeriodTime[CP_RATED_TYPE_FLAT][0].smin = config->ftime1.start_min;
+    LcdData.setData.PeriodTime[CP_RATED_TYPE_FLAT][0].ehour = config->ftime1.end_hour;
+    LcdData.setData.PeriodTime[CP_RATED_TYPE_FLAT][0].emin = config->ftime1.end_min;
+    LcdData.setData.PeriodTime[CP_RATED_TYPE_FLAT][0].rate_number = config->ftime1.rated_number;
+
+    LcdData.setData.PeriodTime[CP_RATED_TYPE_FLAT][1].shour = config->ftime2.start_hour;
+    LcdData.setData.PeriodTime[CP_RATED_TYPE_FLAT][1].smin = config->ftime2.start_min;
+    LcdData.setData.PeriodTime[CP_RATED_TYPE_FLAT][1].ehour = config->ftime2.end_hour;
+    LcdData.setData.PeriodTime[CP_RATED_TYPE_FLAT][1].emin = config->ftime2.end_min;
+    LcdData.setData.PeriodTime[CP_RATED_TYPE_FLAT][1].rate_number = config->ftime2.rated_number;
+
+    LcdData.setData.PeriodTime[CP_RATED_TYPE_VALLEY][0].shour = config->vtime1.start_hour;
+    LcdData.setData.PeriodTime[CP_RATED_TYPE_VALLEY][0].smin = config->vtime1.start_min;
+    LcdData.setData.PeriodTime[CP_RATED_TYPE_VALLEY][0].ehour = config->vtime1.end_hour;
+    LcdData.setData.PeriodTime[CP_RATED_TYPE_VALLEY][0].emin = config->vtime1.end_min;
+    LcdData.setData.PeriodTime[CP_RATED_TYPE_VALLEY][0].rate_number = config->vtime1.rated_number;
+
+    LcdData.setData.PeriodTime[CP_RATED_TYPE_VALLEY][1].shour = config->vtime2.start_hour;
+    LcdData.setData.PeriodTime[CP_RATED_TYPE_VALLEY][1].smin = config->vtime2.start_min;
+    LcdData.setData.PeriodTime[CP_RATED_TYPE_VALLEY][1].ehour = config->vtime2.end_hour;
+    LcdData.setData.PeriodTime[CP_RATED_TYPE_VALLEY][1].emin = config->vtime2.end_min;
+    LcdData.setData.PeriodTime[CP_RATED_TYPE_VALLEY][1].rate_number = config->vtime2.rated_number;
+
+    /** 离线计费信息有效性判断 */
+    SerialScreen_OfflineBillingInfoJudge(&ret);
+    if(ret != 0){
+        for(u8 i = 0; i < 32; i++){
+            if(ret &(1 <<i))   return (i + THAISEN_CONFIG_FAIL_OFFSET);
+        }
+    }
+    LcdAssistantData.SeveralGunFlag[LCD_GUN_1].DataIsVerify = TRUE;
+    SerialScreen_OfflineBillingSet();
+
+    return LcdAssistantData.Flag.IsConfigFail;
+#else
+    return TRUE;
+#endif /* SCREEN_USING_OFFLINE_BILLING */
+}
+
+/*******************************************************************
+ * 函数名      SerialScreen_ConfigExecute_Input_7103_7101
+ * 功能         外部触发执行 7103/7101输入信息配置
+ * 参数          data         配置数据
+ *        port         枪口号
+ * 返回          <0:配置失败(参数无效)，=0:配置成功  1:配置存储失败， >1:写入配置成功，但是写入的内容与输入的内容有差异
+ *******************************************************************/
+static s32 SerialScreen_ConfigExecute_Input_7103_7101(u8 port, void *data, void *sub_data, void *sub_sub_data)  //OK
+{
+    thaisen_cfg_info_input_7103_7101 *config = (thaisen_cfg_info_input_7103_7101*)data;
+
+    LcdData.setData.supin_scram = FALSE;
+    if(config->scram.enable){
+        LcdData.setData.supin_scram = TRUE;
+    }
+    LcdData.setData.neg_scram = FALSE;
+    if(config->scram.reversal){
+        LcdData.setData.neg_scram = TRUE;
+    }
+
+    LcdData.setData.supin_gate = FALSE;
+    if(config->door.enable){
+        LcdData.setData.supin_gate = TRUE;
+    }
+    LcdData.setData.neg_gate = FALSE;
+    if(config->door.reversal){
+        LcdData.setData.neg_gate = TRUE;
+    }
+
+    LcdData.setData.supin_ac = FALSE;
+    if(config->acrelay.enable){
+        LcdData.setData.supin_ac = TRUE;
+    }
+    LcdData.setData.neg_ac = FALSE;
+    if(config->acrelay.reversal){
+        LcdData.setData.neg_ac = TRUE;
+    }
+
+    LcdData.setData.supin_dc = FALSE;
+    if(config->dcrelay.enable){
+        LcdData.setData.supin_dc = TRUE;
+    }
+    LcdData.setData.neg_dc = FALSE;
+    if(config->dcrelay.reversal){
+        LcdData.setData.neg_dc = TRUE;
+    }
+
+    LcdData.setData.supin_fan = FALSE;
+    if(config->fan.enable){
+        LcdData.setData.supin_fan = TRUE;
+    }
+    LcdData.setData.neg_fan = FALSE;
+    if(config->fan.reversal){
+        LcdData.setData.neg_fan = TRUE;
+    }
+
+    LcdData.setData.supin_elock = FALSE;
+    if(config->elock.enable){
+        LcdData.setData.supin_elock = TRUE;
+    }
+    LcdData.setData.neg_elcok = FALSE;
+    if(config->elock.reversal){
+        LcdData.setData.neg_elcok = TRUE;
+    }
+
+    LcdData.setData.supin_temp_pro = FALSE;
+    if(config->tempprotect.enable){
+        LcdData.setData.supin_temp_pro = TRUE;
+    }
+
+    SerialScreen_InputSetFlash();
+
+    return LcdAssistantData.Flag.IsConfigFail;
+}
+
+/*******************************************************************
+ * 函数名      SerialScreen_ConfigExecute_PublicInput_7104
+ * 功能         外部触发执行 7104通用输入信息配置
+ * 参数          data         配置数据
+ *        port         枪口号
+ * 返回          <0:配置失败(参数无效)，=0:配置成功  1:配置存储失败， >1:写入配置成功，但是写入的内容与输入的内容有差异
+ *******************************************************************/
+static s32 SerialScreen_ConfigExecute_PublicInput_7104(u8 port, void *data, void *sub_data, void *sub_sub_data)
+{
+#define SSCREEN_7104_INPORT_DUPLICATE     0         /* 7104 通用输入端口重复错误码*/
+/******************************* 这是7104的配置 **********************************/
+#if 0
+    thaisen_cfg_info_public_input_7104 *config = (thaisen_cfg_info_public_input_7104*)data;
+
+    LcdData.setData.input_protectlight = config->protectlight.port_number;
+    LcdData.setData.input_parallel[PARA_0] = config->parallel_relay1.port_number;
+    LcdData.setData.input_parallel[PARA_1] = config->parallel_relay2.port_number;
+    LcdData.setData.input_parallel[PARA_2] = config->parallel_relay3.port_number;
+    LcdData.setData.input_scram = config->scram.port_number;
+    LcdData.setData.input_breakers = config->breaker.port_number;
+    LcdData.setData.input_ac = config->acrelay.port_number;
+    LcdData.setData.input_fan = config->fan.port_number;
+    LcdData.setData.input_water = config->flooding.port_number;
+    LcdData.setData.input_gate = config->door.port_number;
+    LcdData.setData.input_smoke = config->smoke.port_number;
+    LcdData.setData.input_fall = config->fall.port_number;
+
+    LcdData.setData.supin_protectlight = FALSE;
+    if(config->protectlight.state.enable)    LcdData.setData.supin_protectlight = TRUE;
+    LcdData.setData.neg_protectlight = FALSE;
+    if(config->protectlight.state.reversal)    LcdData.setData.neg_protectlight = TRUE;
+
+    LcdData.setData.supin_Parallel[PARA_0] = FALSE;
+    if(config->parallel_relay1.state.enable)    LcdData.setData.supin_Parallel[PARA_0] = TRUE;
+    LcdData.setData.neg_Parallel[PARA_0] = FALSE;
+    if(config->parallel_relay1.state.reversal)    LcdData.setData.neg_Parallel[PARA_0] = TRUE;
+
+    LcdData.setData.supin_Parallel[PARA_1] = FALSE;
+    if(config->parallel_relay2.state.enable)    LcdData.setData.supin_Parallel[PARA_1] = TRUE;
+    LcdData.setData.neg_Parallel[PARA_1] = FALSE;
+    if(config->parallel_relay2.state.reversal)    LcdData.setData.neg_Parallel[PARA_1] = TRUE;
+
+    LcdData.setData.supin_Parallel[PARA_2] = FALSE;
+    if(config->parallel_relay3.state.enable)    LcdData.setData.supin_Parallel[PARA_2] = TRUE;
+    LcdData.setData.neg_Parallel[PARA_2] = FALSE;
+    if(config->parallel_relay3.state.reversal)    LcdData.setData.neg_Parallel[PARA_2] = TRUE;
+
+    LcdData.setData.supin_scram = FALSE;
+    if(config->scram.state.enable)    LcdData.setData.supin_scram = TRUE;
+    LcdData.setData.neg_scram = FALSE;
+    if(config->scram.state.reversal)    LcdData.setData.neg_scram = TRUE;
+
+    LcdData.setData.supin_breakers = FALSE;
+    if(config->breaker.state.enable)    LcdData.setData.supin_breakers = TRUE;
+    LcdData.setData.neg_breakers = FALSE;
+    if(config->breaker.state.reversal)    LcdData.setData.neg_breakers = TRUE;
+
+    LcdData.setData.supin_ac = FALSE;
+    if(config->acrelay.state.enable)    LcdData.setData.supin_ac = TRUE;
+    LcdData.setData.neg_ac = FALSE;
+    if(config->acrelay.state.reversal)    LcdData.setData.neg_ac = TRUE;
+
+    LcdData.setData.supin_fan = FALSE;
+    if(config->fan.state.enable)    LcdData.setData.supin_fan = TRUE;
+    LcdData.setData.neg_fan = FALSE;
+    if(config->fan.state.reversal)    LcdData.setData.neg_fan = TRUE;
+
+    LcdData.setData.supin_water = FALSE;
+    if(config->flooding.state.enable)    LcdData.setData.supin_water = TRUE;
+    LcdData.setData.neg_water = FALSE;
+    if(config->flooding.state.reversal)    LcdData.setData.neg_water = TRUE;
+
+    LcdData.setData.supin_gate = FALSE;
+    if(config->door.state.enable)    LcdData.setData.supin_gate = TRUE;
+    LcdData.setData.neg_gate = FALSE;
+    if(config->door.state.reversal)    LcdData.setData.neg_gate = TRUE;
+
+    LcdData.setData.supin_smoke = FALSE;
+    if(config->smoke.state.enable)    LcdData.setData.supin_smoke = TRUE;
+    LcdData.setData.neg_smoke = FALSE;
+    if(config->smoke.state.reversal)    LcdData.setData.neg_smoke = TRUE;
+
+    LcdData.setData.supin_fall = FALSE;
+    if(config->fall.state.enable)    LcdData.setData.supin_fall = TRUE;
+    LcdData.setData.neg_fall = FALSE;
+    if(config->fall.state.reversal)    LcdData.setData.neg_fall = TRUE;
+
+    /** 输入端口信息有效性判断 */
+    if(SerialScreen_CheckInputPort_Valid(0) == 0){
+        return (SSCREEN_7104_INPORT_DUPLICATE + THAISEN_CONFIG_FAIL_OFFSET);
+    }
+    LcdAssistantData.SeveralGunFlag[LCD_GUN_1].DataIsVerify = TRUE;
+    SerialScreen_InputSetFlash();
+
+    return LcdAssistantData.Flag.IsConfigFail;
+#else
+    return (SSCREEN_7104_INPORT_DUPLICATE + THAISEN_CONFIG_FAIL_OFFSET);
+#endif
+}
+
+/*******************************************************************
+ * 函数名      SerialScreen_ConfigExecute_PublicInput_7104
+ * 功能         外部触发执行 7104枪输入信息配置
+ * 参数          data         配置数据
+ *        port         枪口号
+ * 返回          <0:配置失败(参数无效)，=0:配置成功  1:配置存储失败， >1:写入配置成功，但是写入的内容与输入的内容有差异
+ *******************************************************************/
+static s32 SerialScreen_ConfigExecute_GunInput_7104(u8 port, void *data, void *sub_data, void *sub_sub_data)
+{
+#define SSCREEN_7104_GUN_INPORT_DUPLICATE     0         /* 7104 枪输入端口重复错误码*/
+/******************************* 这是7104的配置 **********************************/
+#if 0
+    thaisen_cfg_info_gun_input_7104 *config = (thaisen_cfg_info_gun_input_7104*)data;
+
+    LcdData.setData.input_dc[port] = config->dcrelay.port_number;
+    LcdData.setData.input_elock[port] = config->elock.port_number;
+    LcdData.setData.input_gunsite[port] = config->gunsite.port_number;
+    LcdData.setData.input_fuse[port] = config->fuse.port_number;
+    LcdData.setData.input_liquid[port] = config->liquid.port_number;
+
+    LcdData.setData.supin_dc[port] = FALSE;
+    if(config->dcrelay.state.enable)    LcdData.setData.supin_dc[port] = TRUE;
+    LcdData.setData.neg_dc[port] = FALSE;
+    if(config->dcrelay.state.reversal)    LcdData.setData.neg_dc[port] = TRUE;
+
+    LcdData.setData.supin_elock[port] = FALSE;
+    if(config->elock.state.enable)    LcdData.setData.supin_elock[port] = TRUE;
+    LcdData.setData.neg_elcok[port] = FALSE;
+    if(config->elock.state.reversal)    LcdData.setData.neg_elcok[port] = TRUE;
+
+    LcdData.setData.supin_gunsite[port] = FALSE;
+    if(config->gunsite.state.enable)    LcdData.setData.supin_gunsite[port] = TRUE;
+    LcdData.setData.neg_gunsite[port] = FALSE;
+    if(config->gunsite.state.reversal)    LcdData.setData.neg_gunsite[port] = TRUE;
+
+    LcdData.setData.supin_Fuse[port] = FALSE;
+    if(config->fuse.state.enable)    LcdData.setData.supin_Fuse[port] = TRUE;
+    LcdData.setData.neg_Fuse[port] = FALSE;
+    if(config->fuse.state.reversal)    LcdData.setData.neg_Fuse[port] = TRUE;
+
+    LcdData.setData.supin_Liquid[port] = FALSE;
+    if(config->liquid.state.enable)    LcdData.setData.supin_Liquid[port] = TRUE;
+    LcdData.setData.neg_Liquid[port] = FALSE;
+    if(config->liquid.state.reversal)    LcdData.setData.neg_Liquid[port] = TRUE;
+
+    LcdData.setData.supin_temp_pro[port] = FALSE;
+    if(config->temp_detect.state.enable)    LcdData.setData.supin_temp_pro[port] = TRUE;
+
+    return 0;
+#else
+    return (SSCREEN_7104_GUN_INPORT_DUPLICATE + THAISEN_CONFIG_FAIL_OFFSET);
+#endif
+}
+
+/*******************************************************************
+ * 函数名      SerialScreen_ConfigExecute_PublicInput_7104
+ * 功能         外部触发执行 7104通用输出信息配置
+ * 参数          data         配置数据
+ *        port         枪口号
+ * 返回          <0:配置失败(参数无效)，=0:配置成功  1:配置存储失败， >1:写入配置成功，但是写入的内容与输入的内容有差异
+ *******************************************************************/
+static s32 SerialScreen_ConfigExecute_PublicOutput_7104(u8 port, void *data, void *sub_data, void *sub_sub_data)
+{
+#define SSCREEN_7104_OUTPORT_DUPLICATE     0         /* 7104 通用输出端口重复错误码*/
+/******************************* 这是7104的配置 **********************************/
+#if 0
+    thaisen_cfg_info_public_output_7104 *config = (thaisen_cfg_info_public_output_7104*)data;
+
+    LcdData.setData.output_fan = config->fan.port_number;
+    LcdData.setData.output_para[PARA_0] = config->parallel_relay1.port_number;
+    LcdData.setData.output_para[PARA_1] = config->parallel_relay2.port_number;
+    LcdData.setData.output_para[PARA_2] = config->parallel_relay3.port_number;
+    LcdData.setData.output_ac = config->acrelay.port_number;
+
+    LcdData.setData.supin_ofan = FALSE;
+    if(config->fan.enable)    LcdData.setData.supin_ofan = TRUE;
+
+    LcdData.setData.supin_opara[PARA_0] = FALSE;
+    if(config->parallel_relay1.enable)    LcdData.setData.supin_opara[PARA_0] = TRUE;
+
+    LcdData.setData.supin_opara[PARA_1] = FALSE;
+    if(config->parallel_relay2.enable)    LcdData.setData.supin_opara[PARA_1] = TRUE;
+
+    LcdData.setData.supin_opara[PARA_2] = FALSE;
+    if(config->parallel_relay3.enable)    LcdData.setData.supin_opara[PARA_2] = TRUE;
+
+    LcdData.setData.supin_oac = FALSE;
+    if(config->acrelay.enable)    LcdData.setData.supin_oac = TRUE;
+
+    /** 输出端口信息有效性判断 */
+    if(SerialScreen_CheckOutputPort_Valid(0) == 0){
+        return (SSCREEN_7104_OUTPORT_DUPLICATE + THAISEN_CONFIG_FAIL_OFFSET);
+    }
+    LcdAssistantData.SeveralGunFlag[LCD_GUN_1].DataIsVerify = TRUE;
+    SerialScreen_OutputSetFlash();
+
+    return LcdAssistantData.Flag.IsConfigFail;
+#else
+    return (SSCREEN_7104_OUTPORT_DUPLICATE + THAISEN_CONFIG_FAIL_OFFSET);
+#endif
+}
+
+/*******************************************************************
+ * 函数名      SerialScreen_ConfigExecute_GunOutput_7104
+ * 功能         外部触发执行 7104枪输出信息配置
+ * 参数          data         配置数据
+ *        port         枪口号
+ * 返回          <0:配置失败(参数无效)，=0:配置成功  1:配置存储失败， >1:写入配置成功，但是写入的内容与输入的内容有差异
+ *******************************************************************/
+static s32 SerialScreen_ConfigExecute_GunOutput_7104(u8 port, void *data, void *sub_data, void *sub_sub_data)
+{
+#define SSCREEN_7104_GUN_OUTPORT_DUPLICATE     0         /* 7104 枪输出端口重复错误码*/
+/******************************* 这是7104的配置 **********************************/
+#if 0
+    thaisen_cfg_info_gun_output_7104 *config = (thaisen_cfg_info_gun_output_7104*)data;
+
+    LcdData.setData.output_aux12v[port] = config->auxpower_12V.port_number;
+    LcdData.setData.output_aux24v[port] = config->auxpower_24V.port_number;
+    LcdData.setData.output_dc[port] = config->dcrelay.port_number;
+    LcdData.setData.output_elock[port] = config->elock.port_number;
+    LcdData.setData.output_relief[port] = config->relief.port_number;
+    LcdData.setData.output_liquid[port] = config->liquid.port_number;
+
+    LcdData.setData.supin_AUX12V[port] = FALSE;
+    if(config->auxpower_12V.enable)    LcdData.setData.supin_AUX12V[port] = TRUE;
+
+    LcdData.setData.supin_AUX24V[port] = FALSE;
+    if(config->auxpower_24V.enable)    LcdData.setData.supin_AUX24V[port] = TRUE;
+
+    LcdData.setData.supin_odc[port] = FALSE;
+    if(config->dcrelay.enable)    LcdData.setData.supin_odc[port] = TRUE;
+
+    LcdData.setData.supin_oelock[port] = FALSE;
+    if(config->elock.enable)    LcdData.setData.supin_oelock[port] = TRUE;
+
+    LcdData.setData.supin_relief[port] = FALSE;
+    if(config->relief.enable)    LcdData.setData.supin_relief[port] = TRUE;
+
+    LcdData.setData.supin_oliquid[port] = FALSE;
+    if(config->liquid.enable)    LcdData.setData.supin_oliquid[port] = TRUE;
+
+    return 0;
+#else
+    return (SSCREEN_7104_GUN_OUTPORT_DUPLICATE + THAISEN_CONFIG_FAIL_OFFSET);
+#endif
+}
+
+/*******************************************************************************************
+ * 函数名      SerialScreen_Trigger_ConfigExecute
+ * 功能         外部触发执行信息配置
+ * 参数          cfg_page     配置所在页
+ *        data         配置数据
+ * 返回          <0:配置失败(参数无效)，=0:配置成功  1:配置存储失败， >1:写入配置成功，但是写入的内容与输入的内容有差异
+ ******************************************************************************************/
+s32 SerialScreen_Trigger_ConfigExecute(u8 port, u8 cfg_page, void *main_data, void *sub_data, void *sub_sub_data)
+{
+#define SERIAL_SCREEN_ASSERT_BASE       -0x10      /* 配置信息，系统断言失败(函数调用)偏移，此函数断言失败已使用了-1，-2 */
+
+    if((cfg_page >= THAISEN_CONFIG_PAGE_SIZE) || (main_data == NULL) || (port >= LCD_GUN_NUM))
+        return -1;
+    if(LcdConfigExecutPool[cfg_page] == NULL)
+        return -2;
+
+    s32 ret = LcdConfigExecutPool[cfg_page](port, main_data, sub_data, sub_sub_data);
+
+    if(ret < 0){
+        return (ret + SERIAL_SCREEN_ASSERT_BASE);   /** 这样操作是为了更好地反应出内部函数调用的断言失败情况 */
+    }
+
+    return ret;
 }
 
 /*******************************************************************************************
@@ -1601,31 +2407,83 @@ void SerialScreen_BtnChgInfoGet(int port)
 
 void SerialScreen_BtnChgInfoSet(int port)
 {
-    u8 len = sizeof(LcdData.setData.ErWeiCodePre), i, j;
-    u8 temp[len];
-
-    mem_set(temp, 0, len);
-
-    for(i = 2, j = 0; (i < len) && (j < len); i++, j++){
-        temp[i] = LcdData.setData.ErWeiCodePre[j];
-    }
-
-    temp[0] = CP_SET_QRCODE_FORMAT_PREFIX;
-    temp[1] = CP_GENERATE_QRCODE_FORMAT_PREFIX_DEVICE_SN_PORT;
-
     SerialScreen_JumpPage(&SerialScreen, LCD_PAGE_STORAGE_WAITING);
 
-	UI_SYNC_SINGLE_CFG_STR(CONFIG_ITEM_PILE_NUMBER,LcdData.setData.pileID,str_len(LcdData.setData.pileID));
-	UI_SYNC_SINGLE_CFG_STR(CONFIG_ITEM_HELP_PHONE,LcdData.setData.Help_Number,str_len(LcdData.setData.Help_Number));
-	if(str_len(temp) > 0x02){
-	    UI_SYNC_SINGLE_CFG_STR(CONFIG_ITEM_QRCODE_PRE,temp,str_len(temp));
-	}
+    /** 平台配置 */
+    if(((LcdData.setData.ErWeiCodePre[0] >= CP_SET_QRCODE_FORMAT_PREFIX) && (LcdData.setData.ErWeiCodePre[0] < CP_SET_QRCODE_FORMAT_SIZE)) &&
+            ((LcdData.setData.ErWeiCodePre[1] >= CP_GENERATE_QRCODE_FORMAT_PREFIX) && (LcdData.setData.ErWeiCodePre[1] < CP_GENERATE_QRCODE_FORMAT_SIZE))){
+        UI_SYNC_SINGLE_CFG_STR(CONFIG_ITEM_QRCODE_PRE,LcdData.setData.ErWeiCodePre,str_len(LcdData.setData.ErWeiCodePre));
+    }
+    /** 屏幕配置 */
+    else{
+        u8 len = sizeof(LcdData.setData.ErWeiCodePre), i, j;
+        u8 temp[len + 2];
 
-	UI_STORAGE_CFG_DATA;
+        for(i = 2, j = 0; (i < len) && (j < len); i++, j++){
+            temp[i] = LcdData.setData.ErWeiCodePre[j];
+        }
 
-	str_ncpy((char *)(LcdData.runData.pileID), (char *)(LcdData.setData.pileID), \
-	         sizeof(LcdData.runData.pileID));
-	sSCREEN_EVENT_DEBUGMSG("##########pileID=%s helpnum:%s  qrcodefrex:%s###########\r\n",(char *)(LcdData.setData.pileID),(char *)(LcdData.setData.Help_Number),(char *)(LcdData.setData.ErWeiCodePre));
+        temp[0] = CP_SET_QRCODE_FORMAT_PREFIX;
+        temp[1] = CP_GENERATE_QRCODE_FORMAT_PREFIX_DEVICE_SN_PORT;
+        if(str_len(temp) > 0x02){
+            UI_SYNC_SINGLE_CFG_STR(CONFIG_ITEM_QRCODE_PRE,temp,str_len(temp));
+        }
+    }
+    UI_SYNC_SINGLE_CFG_STR(CONFIG_ITEM_PILE_NUMBER,LcdData.setData.pileID,str_len(LcdData.setData.pileID));
+    UI_SYNC_SINGLE_CFG_STR(CONFIG_ITEM_HELP_PHONE,LcdData.setData.Help_Number,str_len(LcdData.setData.Help_Number));
+
+    LcdAssistantData.Flag.IsConfigFail = TRUE;
+    if(UI_STORAGE_CFG_DATA >= 0){
+        LcdAssistantData.Flag.IsConfigFail = FALSE;
+    }
+
+    str_ncpy((char *)(LcdData.runData.pileID), (char *)(LcdData.setData.pileID), \
+             sizeof(LcdData.runData.pileID));
+    sSCREEN_EVENT_DEBUGMSG("##########pileID=%s helpnum:%s  qrcodefrex:%s###########\r\n",(char *)(LcdData.setData.pileID),(char *)(LcdData.setData.Help_Number),(char *)(LcdData.setData.ErWeiCodePre));
+}
+
+static void SerialScreen_BtnMeterNoInfoJudge(u32 *ret)
+{
+#define SERIALSCREEN_AMMETER_BAUD_2400       0      //电表波特率：2400
+#define SERIALSCREEN_AMMETER_BAUD_4800       1      //电表波特率：4800
+#define SERIALSCREEN_AMMETER_BAUD_9600       2      //电表波特率：9600
+#define SERIALSCREEN_AMMETER_BAUD_38400      3      //电表波特率：38400
+#define SERIALSCREEN_AMMETER_BAUD_115200     4      //电表波特率：115200
+
+// @ thaisen_cfg_info_ammeter
+#define SERIALSCREEN_METER_MODEL_POSITION    2      /* 电表型号在结构体 thaisen_cfg_info_ammeter 中的成员次序(从0开始)  */
+#define SERIALSCREEN_METER_BAUD_POSITION     3      /* 电表串口波特率在结构体 thaisen_cfg_info_ammeter 中的成员次序(从0开始)  */
+#define SERIALSCREEN_METER_CHECK_POSITION    4      /* 电表串口校验位在结构体 thaisen_cfg_info_ammeter 中的成员次序(从0开始)  */
+
+    u32 result = 0;
+
+    if(LcdData.setData.MeterModel > thaisenAmmeterModel_Other){
+        LcdData.setData.MeterModel = thaisenAmmeterModel_RuiYin;
+        result |= (1 <<SERIALSCREEN_METER_MODEL_POSITION);
+    }
+    if((LcdData.setData.MeterBaudrate < SERIALSCREEN_AMMETER_BAUD_2400) ||\
+        (LcdData.setData.MeterBaudrate > SERIALSCREEN_AMMETER_BAUD_115200)){
+        LcdData.setData.MeterBaudrate = SERIALSCREEN_AMMETER_BAUD_9600;
+        result |= (1 <<SERIALSCREEN_METER_BAUD_POSITION);
+    }
+    if((LcdData.setData.MeterCheckWay < CP_AMMETER_CHECK_WAY_EVEN) ||\
+            (LcdData.setData.MeterCheckWay > CP_AMMETER_CHECK_WAY_NONE)){
+        LcdData.setData.MeterCheckWay = CP_AMMETER_CHECK_WAY_EVEN;
+        result |= (1 <<SERIALSCREEN_METER_CHECK_POSITION);
+    }
+    if(ret){
+        *ret = result;
+    }
+
+#undef SERIALSCREEN_AMMETER_BAUD_2400
+#undef SERIALSCREEN_AMMETER_BAUD_4800
+#undef SERIALSCREEN_AMMETER_BAUD_9600
+#undef SERIALSCREEN_AMMETER_BAUD_38400
+#undef SERIALSCREEN_AMMETER_BAUD_115200
+
+#undef SERIALSCREEN_METER_MODEL_POSITION
+#undef SERIALSCREEN_METER_BAUD_POSITION
+#undef SERIALSCREEN_METER_CHECK_POSITION
 }
 
 void SerialScreen_BtnMeterNoInfoSet(void)
@@ -1636,23 +2494,14 @@ void SerialScreen_BtnMeterNoInfoSet(void)
 #define SERIALSCREEN_AMMETER_BAUD_38400      3      //电表波特率：38400
 #define SERIALSCREEN_AMMETER_BAUD_115200     4      //电表波特率：115200
 
-    u8 model = LcdData.setData.MeterModel, para = 0;
+    u8 para = 0;
     SerialScreen_JumpPage(&SerialScreen, LCD_PAGE_STORAGE_WAITING);
 
-    if(model > thaisenAmmeterModel_Other)
-        model = thaisenAmmeterModel_RuiYin;
-
-    if((LcdData.setData.MeterCheckWay < CP_AMMETER_CHECK_WAY_EVEN) ||\
-            (LcdData.setData.MeterCheckWay > CP_AMMETER_CHECK_WAY_NONE)){
-        LcdData.setData.MeterCheckWay = CP_AMMETER_CHECK_WAY_EVEN;
+    if(LcdAssistantData.SeveralGunFlag[LCD_GUN_1].DataIsVerify == FALSE){
+        SerialScreen_BtnMeterNoInfoJudge(NULL);
     }
-    para = LcdData.setData.MeterCheckWay;
-    UI_SYNC_SINGLE_CFG_STR(CONFIG_ITEM_METER_CHECK_WAY,&para,sizeof(para));
+    LcdAssistantData.SeveralGunFlag[LCD_GUN_1].DataIsVerify = FALSE;
 
-    if((LcdData.setData.MeterBaudrate < SERIALSCREEN_AMMETER_BAUD_2400) ||\
-            (LcdData.setData.MeterBaudrate > SERIALSCREEN_AMMETER_BAUD_115200)){
-        LcdData.setData.MeterBaudrate = SERIALSCREEN_AMMETER_BAUD_9600;
-    }
     switch(LcdData.setData.MeterBaudrate){
     case SERIALSCREEN_AMMETER_BAUD_2400:
         para = CP_AMMETER_BAUDRATE_2400;
@@ -1674,18 +2523,22 @@ void SerialScreen_BtnMeterNoInfoSet(void)
         LcdData.setData.MeterBaudrate = SERIALSCREEN_AMMETER_BAUD_9600;
         break;
     }
-
     UI_SYNC_SINGLE_CFG_STR(CONFIG_ITEM_METER_BAUDRATE,&para,sizeof(para));
 
-    UI_SYNC_SINGLE_CFG_STR(CONFIG_ITEM_METER_MODEL,&model,sizeof(model));
+    para = LcdData.setData.MeterCheckWay;
+    UI_SYNC_SINGLE_CFG_STR(CONFIG_ITEM_METER_CHECK_WAY,&para,sizeof(para));
+
+    para = LcdData.setData.MeterModel;
+    UI_SYNC_SINGLE_CFG_STR(CONFIG_ITEM_METER_MODEL,&para,sizeof(para));
     UI_SYNC_SINGLE_CFG_STR(CONFIG_ITEM_METER_NOA,LcdData.setData.MeterAddr[LCD_GUN_1],str_len(LcdData.setData.MeterAddr[LCD_GUN_1]));
     UI_SYNC_SINGLE_CFG_STR(CONFIG_ITEM_METER_NOB,LcdData.setData.MeterAddr[LCD_GUN_2],str_len(LcdData.setData.MeterAddr[LCD_GUN_2]));
 
-    UI_STORAGE_CFG_DATA;
+    LcdAssistantData.Flag.IsConfigFail = TRUE;
+    if(UI_STORAGE_CFG_DATA >= 0){
+        LcdAssistantData.Flag.IsConfigFail = FALSE;
+    }
 
     SerialScreen_SetMeterInfo();
-
-    rt_kprintf("SerialScreen_BtnMeterNoInfoSet(%s, %s)\n", LcdData.setData.MeterAddr[LCD_GUN_1],LcdData.setData.MeterAddr[LCD_GUN_2]);
 
 #undef SERIALSCREEN_AMMETER_BAUD_2400
 #undef SERIALSCREEN_AMMETER_BAUD_4800
@@ -1824,21 +2677,30 @@ void SerialScreen_BtnServerSet(void)
 	UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_PORT, (u16 *)&(LcdData.setData.svrPort), sizeof(LcdData.setData.svrPort));
     UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_NET_TYPE, &(nettype), sizeof(nettype));
 
-    UI_STORAGE_CFG_DATA;
+    LcdAssistantData.Flag.IsConfigFail = TRUE;
+    if(UI_STORAGE_CFG_DATA >= 0){
+        LcdAssistantData.Flag.IsConfigFail = FALSE;
+    }
 
 	sSCREEN_EVENT_DEBUGMSG("##########svrIp=%s svrPort=%d###########\r\n",LcdData.setData.svrIp,LcdData.setData.svrPort);
 }
 
 void SerialScreen_BtnVinListSet(void)
 {
+    uint8_t *vin = UI_READ_SINGLE_CFG_STR(CONFIG_ITEM_VIN_WHITELIST, 0);
+
     SerialScreen_JumpPage(&SerialScreen, LCD_PAGE_STORAGE_WAITING);
 
+    thaisen_vin_whitelists_clear();
     for(uint8_t count = 0; count < VIN_LIST_NUM; count++){
         thaisen_vin_whitelists_add(LcdData.setData.s_vin_lists[count], sizeof(LcdData.setData.s_vin_lists[count]));
     }
     UI_SYNC_SINGLE_CFG_STR(CONFIG_ITEM_VIN_WHITELIST, NULL, 1);
 
-    UI_STORAGE_CFG_DATA;
+    LcdAssistantData.Flag.IsConfigFail = TRUE;
+    if(UI_STORAGE_CFG_DATA >= 0){
+        LcdAssistantData.Flag.IsConfigFail = FALSE;
+    }
 }
 
 void SerialScreen_BtnVinListGet(void)
@@ -1944,39 +2806,42 @@ void SerialScreen_BtnModuleGet(void)
     rt_kprintf("thaisenSetModuleMaxChargVolt|%d    thaisenSetModuleMaxChargCurr|%d\n", LcdData.setData.Max_Output_Voltage, LcdData.setData.Max_Limit_Current);
 }
 
-void SerialScreen_BtnModuleSet(void)
+static void SerialScreen_BtnModuleInfoJudge(u32 *ret)
 {
-	u8 i = 0;
-    u8 ModuleModel = (u8)LcdData.setData.RmType, ModuleGroup = LcdData.setData.ModuleGroupNum, ModuleNumberSingle = 0;
-	u8 rmType = (u8)LcdData.setData.RmType;
+//@ thaisen_cfg_info_module
+#define SSCREEN_MODULE_PROTOCOL_POSITION                    0    /* 模块型号在结构体 thaisen_cfg_info_module 中的成员次序(从0开始)  */
+#define SSCREEN_MODULE_MGROUP_POSITION                      1    /* 模块组数在结构体 thaisen_cfg_info_module 中的成员次序(从0开始)  */
+#define SSCREEN_MODULE_SMNUM_POSITION                       2    /* 组内模块数在结构体 thaisen_cfg_info_module 中的成员次序(从0开始)  */
+#define SSCREEN_MODULE_RATED_OVOLT_POSITION                 10   /* 模块额定输出在结构体 thaisen_cfg_info_module 中的成员次序(从0开始)  */
+#define SSCREEN_MODULE_RATED_LCURR_POSITION                 11   /* 模块额定限电流在结构体 thaisen_cfg_info_module 中的成员次序(从0开始)  */
+#define SSCREEN_MODULE_MAX_OVOLT_POSITION                   12   /* 桩最大输出电压在结构体 thaisen_cfg_info_module 中的成员次序(从0开始)  */
+#define SSCREEN_MODULE_MIN_OVOLT_POSITION                   13   /* 桩最小输出电压在结构体 thaisen_cfg_info_module 中的成员次序(从0开始)  */
+#define SSCREEN_MODULE_MAX_LCURR_POSITION                   14   /* 桩最大输出电流在结构体 thaisen_cfg_info_module 中的成员次序(从0开始)  */
+#define SSCREEN_MODULE_MIN_LCURR_POSITION                   15   /* 桩最小输出电流在结构体 thaisen_cfg_info_module 中的成员次序(从0开始)  */
+
+    u32 result = 0;
     u16 Rated_Output_Voltage = 0;
     u16 Max_Output_Voltage = 0;
     u16 Min_Output_Voltage = 0;
     u16 Rated_Limit_Current = 0;
     u16 Max_Limit_Current = 0;
     u16 Min_Limit_Current = 0;
-    u32 power = 0;
 
-    if(ModuleModel > MODULE_MODEL_NUMBER)
-        ModuleModel = MODULE_MODEL_DEFAULT;
-
-    if(ModuleGroup > MODULE_GROUP_NUMBER_MAX)
-        ModuleGroup = MODULE_GROUP_NUMBER_DEFAULT;
-
-    SerialScreen_JumpPage(&SerialScreen, LCD_PAGE_STORAGE_WAITING);
-
-	sSCREEN_EVENT_DEBUGMSG("##########ModulSet###########\r\n");
-	for(i= 0; i < sizeof(LcdData.setData.ModuleNum); i++)
-	{
-        ModuleNumberSingle = LcdData.setData.ModuleNum[i];
-        if(ModuleNumberSingle > MODULE_NUMBER_SINGLE_MAX)
-            ModuleNumberSingle = MODULE_NUMBER_SINGLE_DEFAULT;
-
-		UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_MODULE_NUM_GROUP_1+i,&ModuleNumberSingle, sizeof(LcdData.setData.ModuleNum[0]));
-		sSCREEN_EVENT_DEBUGMSG("ModuleNum[%d]=%d ",i,LcdData.setData.ModuleNum[i]);
-	}
-	UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_MODULE_GROUP_NUM, &ModuleGroup, sizeof(LcdData.setData.ModuleGroupNum));
-	UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_MODULE_MODEL, &ModuleModel, sizeof(ModuleModel));
+    if(LcdData.setData.RmType > MODULE_MODEL_NUMBER){
+        LcdData.setData.RmType = MODULE_MODEL_DEFAULT;
+        result |= (1 <<SSCREEN_MODULE_PROTOCOL_POSITION);
+    }
+    if(LcdData.setData.ModuleGroupNum > MODULE_GROUP_NUMBER_MAX){
+        LcdData.setData.ModuleGroupNum = MODULE_GROUP_NUMBER_DEFAULT;
+        result |= (1 <<SSCREEN_MODULE_MGROUP_POSITION);
+    }
+    for(u8 i = 0; i < sizeof(LcdData.setData.ModuleNum); i++)
+    {
+        if(LcdData.setData.ModuleNum[i] > MODULE_NUMBER_SINGLE_MAX){
+            LcdData.setData.ModuleNum[i] = MODULE_NUMBER_SINGLE_DEFAULT;
+            result |= (1 <<(SSCREEN_MODULE_SMNUM_POSITION + i));
+        }
+    }
 
     Rated_Output_Voltage = SerialScreen_GetPara_ValidValue(LcdData.setData.Rated_Output_Voltage,
             MODULE_RATED_OUTVOLT_DEF, MODULE_RATED_OUTVOLT_MIN, MODULE_RATED_OUTVOLT_MAX);
@@ -1996,12 +2861,64 @@ void SerialScreen_BtnModuleSet(void)
     Min_Limit_Current = SerialScreen_GetPara_ValidValue(LcdData.setData.Min_Limit_Current,
             MODULE_MIN_LIMIT_CURR_DEF, MODULE_MIN_LIMIT_CURR_MIN, MODULE_MIN_LIMIT_CURR_MAX);
 
+    if(LcdData.setData.Rated_Output_Voltage != Rated_Output_Voltage){
+        result |= (1 <<SSCREEN_MODULE_RATED_OVOLT_POSITION);
+    }
+    if(LcdData.setData.Rated_Limit_Current != Rated_Limit_Current){
+        result |= (1 <<SSCREEN_MODULE_RATED_LCURR_POSITION);
+    }
+    if(LcdData.setData.Max_Output_Voltage != Max_Output_Voltage){
+        result |= (1 <<SSCREEN_MODULE_MAX_OVOLT_POSITION);
+    }
+    if(LcdData.setData.Min_Output_Voltage != Min_Output_Voltage){
+        result |= (1 <<SSCREEN_MODULE_MIN_OVOLT_POSITION);
+    }
+    if(LcdData.setData.Max_Limit_Current != Max_Limit_Current){
+        result |= (1 <<SSCREEN_MODULE_MAX_LCURR_POSITION);
+    }
+    if(LcdData.setData.Min_Limit_Current != Min_Limit_Current){
+        result |= (1 <<SSCREEN_MODULE_MIN_LCURR_POSITION);
+    }
+
     LcdData.setData.Rated_Output_Voltage = Rated_Output_Voltage;
     LcdData.setData.Max_Output_Voltage = Max_Output_Voltage;
     LcdData.setData.Min_Output_Voltage = Min_Output_Voltage;
     LcdData.setData.Rated_Limit_Current = Rated_Limit_Current;
     LcdData.setData.Max_Limit_Current = Max_Limit_Current;
     LcdData.setData.Min_Limit_Current = Min_Limit_Current;
+
+    if(ret){
+        *ret = result;
+    }
+
+#undef SSCREEN_MODULE_PROTOCOL_POSITION
+#undef SSCREEN_MODULE_MGROUP_POSITION
+#undef SSCREEN_MODULE_SMNUM_POSITION
+#undef SSCREEN_MODULE_RATED_OVOLT_POSITION
+#undef SSCREEN_MODULE_RATED_LCURR_POSITION
+#undef SSCREEN_MODULE_MAX_OVOLT_POSITION
+#undef SSCREEN_MODULE_MIN_OVOLT_POSITION
+#undef SSCREEN_MODULE_MAX_LCURR_POSITION
+#undef SSCREEN_MODULE_MIN_LCURR_POSITION
+}
+
+void SerialScreen_BtnModuleSet(void)
+{
+    u32 power = 0;
+    u8 ModuleModel = LcdData.setData.RmType;
+
+    SerialScreen_JumpPage(&SerialScreen, LCD_PAGE_STORAGE_WAITING);
+
+    if(LcdAssistantData.SeveralGunFlag[LCD_GUN_1].DataIsVerify == FALSE){
+        SerialScreen_BtnModuleInfoJudge(NULL);
+    }
+    LcdAssistantData.SeveralGunFlag[LCD_GUN_1].DataIsVerify = FALSE;
+
+    for(u8 i= 0; i < LCD_MODULE_GROUP_MAX; i++){
+        UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_MODULE_NUM_GROUP_1+i,&LcdData.setData.ModuleNum[i], sizeof(LcdData.setData.ModuleNum[i]));
+    }
+    UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_MODULE_GROUP_NUM, &LcdData.setData.ModuleGroupNum, sizeof(LcdData.setData.ModuleGroupNum));
+    UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_MODULE_MODEL, &ModuleModel, sizeof(ModuleModel));
 
     UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_RATED_OUTPUT_VOLTAGE, &LcdData.setData.Rated_Output_Voltage, sizeof(LcdData.setData.Rated_Output_Voltage));
     UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_MAX_OUTPUT_VOLTAGE, &LcdData.setData.Max_Output_Voltage, sizeof(LcdData.setData.Max_Output_Voltage));
@@ -2010,12 +2927,18 @@ void SerialScreen_BtnModuleSet(void)
     UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_MAX_LIMIT_CURRENT, &LcdData.setData.Max_Limit_Current, sizeof(LcdData.setData.Max_Limit_Current));
     UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_MIN_LIMIT_CURRENT, &LcdData.setData.Min_Limit_Current, sizeof(LcdData.setData.Min_Limit_Current));
 
-    UI_STORAGE_CFG_DATA;
+    LcdAssistantData.Flag.IsConfigFail = TRUE;
+    if(UI_STORAGE_CFG_DATA >= 0){
+        LcdAssistantData.Flag.IsConfigFail = FALSE;
+    }
 
-    power = thaisen_get_power_from_percent(thaisen_get_power_percent() /10);
+    power = thaisen_get_power_from_percent(thaisen_get_power_percent());
     UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_SYSTEM_POWER_TOTAL, &power, sizeof(power));
 
-    UI_STORAGE_CFG_DATA;
+    LcdAssistantData.Flag.IsConfigFail = TRUE;
+    if(UI_STORAGE_CFG_DATA >= 0){
+        LcdAssistantData.Flag.IsConfigFail = FALSE;
+    }
 
     extern void thaisenSetModuleMaxVolt(uint16_t volt);
     extern void thaisenSetModuleMinVolt(uint16_t volt);
@@ -2047,22 +2970,28 @@ void SerialScreen_BtnModuleSet(void)
     rt_kprintf("thaisenSetModuleMaxCurr|%d    thaisenSetModuleMinCurr|%d\n", LcdData.setData.Rated_Limit_Current, LcdData.setData.Min_Limit_Current);
     rt_kprintf("thaisenSetModuleMaxChargVolt|%d    thaisenSetModuleMaxChargCurr|%d\n", LcdData.setData.Max_Output_Voltage, LcdData.setData.Max_Limit_Current);
 
-	sSCREEN_EVENT_DEBUGMSG("ModuleGroupNum=%d  RmType =%d\r\n",LcdData.setData.ModuleGroupNum,LcdData.setData.RmType);
+    sSCREEN_EVENT_DEBUGMSG("ModuleGroupNum=%d  RmType =%d\r\n",LcdData.setData.ModuleGroupNum,LcdData.setData.RmType);
 }
 
-void SerialScreen_BtnSystemFuncSet(void)
+static void SerialScreen_BtnSystemFuncJudge(u32 *ret)
 {
+//@ thaisen_cfg_info_system
+#define SSCREEN_ALLOCATE_WAY_POSITION                    0    /* 分配方式在结构体 thaisen_cfg_info_system 中的成员次序(从0开始)  */
+#define SSCREEN_DEVICE_TYPE_POSITION                     1    /* 设备类型在结构体 thaisen_cfg_info_system 中的成员次序(从0开始)  */
+
+    u32 result = 0;
     u8 way = LcdData.setData.AllocWay;
     u8 type = LcdData.setData.DevType;
 
-    SerialScreen_JumpPage(&SerialScreen, LCD_PAGE_STORAGE_WAITING);
-
-    if(way >= POWER_ALLOCATION_WAY_SIZE){
-        way = POWER_ALLOCATION_WAY_SEQ_PRIORITY;
-    }
-
     if(type >= SYSTEM_FUNCTION_SIZE){        /* 设备类型默认双枪一体 */
         type = SYSTEM_FUNCTION_AVERAGE_DOUBLE;
+        result |= (1 <<SSCREEN_DEVICE_TYPE_POSITION);
+    }
+    if(way >= POWER_ALLOCATION_WAY_SIZE){
+        way = POWER_ALLOCATION_WAY_SEQ_PRIORITY;
+#if 0
+        result |= (1 <<SSCREEN_ALLOCATE_WAY_POSITION);
+#endif
     }
 
     switch(type){
@@ -2073,6 +3002,7 @@ void SerialScreen_BtnSystemFuncSet(void)
             LcdAssistantData.DeviceType = type;
         }else{
             LcdData.setData.DevType = LcdAssistantData.DeviceType;
+            result |= (1 <<SSCREEN_DEVICE_TYPE_POSITION);
         }
         break;
     default:
@@ -2081,6 +3011,23 @@ void SerialScreen_BtnSystemFuncSet(void)
         thaisenSetChargGunRunType(thaisenDeviceType_doubleGun);
         break;
     }
+    if(ret){
+        *ret = result;
+    }
+
+#undef SSCREEN_ALLOCATE_WAY_POSITION
+#undef SSCREEN_DEVICE_TYPE_POSITION
+}
+
+void SerialScreen_BtnSystemFuncSet(void)
+{
+    u8 para = 0;
+    SerialScreen_JumpPage(&SerialScreen, LCD_PAGE_STORAGE_WAITING);
+
+    if(LcdAssistantData.SeveralGunFlag[LCD_GUN_1].DataIsVerify == FALSE){
+        SerialScreen_BtnSystemFuncJudge(NULL);
+    }
+    LcdAssistantData.SeveralGunFlag[LCD_GUN_1].DataIsVerify = FALSE;
 
     /* 此处要设置功率分配方式 */
 //    thaisenSetAllocateStrategy(LcdData.setData.AllocWay);
@@ -2088,9 +3035,13 @@ void SerialScreen_BtnSystemFuncSet(void)
 //    LcdData.setData.AllocWay = way;
 //
 //    UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_ALLOCATION_WAY, &way, sizeof(way));
-    UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_DEVICE_TYPE, &type, sizeof(type));
+    para = LcdData.setData.DevType;
+    UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_DEVICE_TYPE, &para, sizeof(para));
 
-    UI_STORAGE_CFG_DATA;
+    LcdAssistantData.Flag.IsConfigFail = TRUE;
+    if(UI_STORAGE_CFG_DATA >= 0){
+        LcdAssistantData.Flag.IsConfigFail = FALSE;
+    }
 
 //    thaisenSetAllocateStrategy(LcdData.setData.AllocWay);
     rt_kprintf("current power allocation way(%d) device type(%d)\n", LcdData.setData.AllocWay, LcdData.setData.DevType);
@@ -2156,67 +3107,108 @@ void SerialScreen_BtnProtectInfoGet(void)
     rt_kprintf("OverTemp_LimitCurr|%d    OverTemp_LimitCurr|%d\n", LcdData.setData.OverTemp_LimitCurr, LcdData.setData.OverTemp_LimitCurr);
 }
 
+static void SerialScreen_BtnProtectInfoJudge(u32 *ret)
+{
+//@ thaisen_cfg_info_protect
+#define SSCREEN_OT_WARNNING_POSITION                        0   /* 过温告警值在结构体 thaisen_cfg_info_protect 中的成员次序(从0开始)  */
+#define SSCREEN_OT_STOP_POSITION                            1   /* 过温停充值在结构体 thaisen_cfg_info_protect 中的成员次序(从0开始)  */
+#define SSCREEN_OT_RESUME_POSITION                          2   /* 过温恢复值在结构体 thaisen_cfg_info_protect 中的成员次序(从0开始)  */
+#define SSCREEN_OT_LIMIT_POSITION                           3   /* 过温限流值出在结构体 thaisen_cfg_info_protect 中的成员次序(从0开始)  */
+#define SSCREEN_GUN_VOLTAGE_POSITION                        4   /* 枪头电压限值在结构体 thaisen_cfg_info_protect 中的成员次序(从0开始)  */
+#define SSCREEN_STOP_SOC_POSITION                           5   /* 停充 SOC在结构体 thaisen_cfg_info_protect 中的成员次序(从0开始)  */
+#define SSCREEN_POWER_PERCENT_POSITION                      6   /* 功率百分比在结构体 thaisen_cfg_info_protect 中的成员次序(从0开始)  */
+#define SSCREEN_ELOSS_PROPROTION_POSITION                   7   /* 电损比在结构体 thaisen_cfg_info_protect 中的成员次序(从0开始)  */
+
+    u32 result = 0;
+    u32 Stop_SOC = 0;
+    u32 OverTemp_Warnning = 0;
+    u32 OverTemp_Stop = 0;
+    u32 OverTemp_Resume = 0;
+    u32 OverTemp_LimitCurr = 0;
+
+    Stop_SOC = SerialScreen_GetPara_ValidValue(LcdData.setData.Stop_SOC,
+            PROTECT_STOP_SOC_VALUE_DEFAULT, PROTECT_STOP_SOC_VALUE_MIN, PROTECT_STOP_SOC_VALUE_MAX);
+
+    OverTemp_Warnning = SerialScreen_GetPara_ValidValue(LcdData.setData.OverTemp_Warnning,
+            PROTECT_OVERTEMP_WARNNING_VALUE_DEFAULT, PROTECT_OVERTEMP_WARNNING_VALUE_MIN, PROTECT_OVERTEMP_WARNNING_VALUE_MAX);
+
+    OverTemp_Stop = SerialScreen_GetPara_ValidValue(LcdData.setData.OverTemp_Stop,
+            PROTECT_OVERTEMP_STOP_VALUE_DEFAULT, PROTECT_OVERTEMP_STOP_VALUE_MIN, PROTECT_OVERTEMP_STOP_VALUE_MAX);
+
+    OverTemp_Resume = SerialScreen_GetPara_ValidValue(LcdData.setData.OverTemp_Resume,
+            PROTECT_OVERTEMP_RESUME_VALUE_DEFAULT, PROTECT_OVERTEMP_RESUME_VALUE_MIN, PROTECT_OVERTEMP_RESUME_VALUE_MAX);
+
+    OverTemp_LimitCurr = SerialScreen_GetPara_ValidValue(LcdData.setData.OverTemp_LimitCurr,
+            PROTECT_OVERTEMP_LIMITCURR_VALUE_DEFAULT, PROTECT_OVERTEMP_LIMITCURR_VALUE_MIN, PROTECT_OVERTEMP_LIMITCURR_VALUE_MAX);
+
+    if((LcdData.setData.GunVolt_LimitValue < GUNVOLT_LIMIT_VALUE_MIN) || (LcdData.setData.GunVolt_LimitValue > GUNVOLT_LIMIT_VALUE_MAX)){
+        LcdData.setData.GunVolt_LimitValue = GUNVOLT_LIMIT_VALUE_MIN;
+        result |= (1 <<SSCREEN_GUN_VOLTAGE_POSITION);
+    }
+
+    if(LcdData.setData.PowerPercent < PROTECT_POWER_PERCENT_VALUE_MIN){
+        LcdData.setData.PowerPercent = PROTECT_POWER_PERCENT_VALUE_MIN;
+        result |= (1 <<SSCREEN_POWER_PERCENT_POSITION);
+    }else if(LcdData.setData.PowerPercent > PROTECT_POWER_PERCENT_VALUE_MAX){
+        LcdData.setData.PowerPercent = PROTECT_POWER_PERCENT_VALUE_MAX;
+        result |= (1 <<SSCREEN_POWER_PERCENT_POSITION);
+    }
+
+    if((LcdData.setData.ElossProprotion < CHARGEPILE_ELOSS_PROPORTION_MIN) || (LcdData.setData.ElossProprotion > CHARGEPILE_ELOSS_PROPORTION_MAX)){
+        LcdData.setData.ElossProprotion = CHARGEPILE_ELOSS_PROPORTION_DEF;
+        result |= (1 <<SSCREEN_ELOSS_PROPROTION_POSITION);
+    }
+
+    if(LcdData.setData.Stop_SOC != Stop_SOC){
+        result |= (1 <<SSCREEN_STOP_SOC_POSITION);
+    }
+    if(LcdData.setData.OverTemp_Warnning != OverTemp_Warnning){
+        result |= (1 <<SSCREEN_OT_WARNNING_POSITION);
+    }
+    if(LcdData.setData.OverTemp_Stop != OverTemp_Stop){
+        result |= (1 <<SSCREEN_OT_STOP_POSITION);
+    }
+    if(LcdData.setData.OverTemp_Resume != OverTemp_Resume){
+        result |= (1 <<SSCREEN_OT_RESUME_POSITION);
+    }
+    if(LcdData.setData.OverTemp_LimitCurr != OverTemp_LimitCurr){
+        result |= (1 <<SSCREEN_OT_LIMIT_POSITION);
+    }
+
+    LcdData.setData.Stop_SOC = Stop_SOC;
+    LcdData.setData.OverTemp_Warnning = OverTemp_Warnning;
+    LcdData.setData.OverTemp_Stop = OverTemp_Stop;
+    LcdData.setData.OverTemp_Resume = OverTemp_Resume;
+    LcdData.setData.OverTemp_LimitCurr = OverTemp_LimitCurr;
+
+    if(ret){
+        *ret = result;
+    }
+
+#undef SSCREEN_OT_WARNNING_POSITION
+#undef SSCREEN_OT_STOP_POSITION
+#undef SSCREEN_OT_RESUME_POSITION
+#undef SSCREEN_OT_LIMIT_POSITION
+#undef SSCREEN_GUN_VOLTAGE_POSITION
+#undef SSCREEN_STOP_SOC_POSITION
+#undef SSCREEN_POWER_PERCENT_POSITION
+#undef SSCREEN_ELOSS_PROPROTION_POSITION
+}
+
 void SerialScreen_BtnProtectInfoSet(void)
 {
     u32 power = 0;
     SerialScreen_JumpPage(&SerialScreen, LCD_PAGE_STORAGE_WAITING);
 
-#if 0
-    LcdData.setData.Input_OverVolt = SerialScreen_GetPara_ValidValue(LcdData.setData.Input_OverVolt,
-            750, 500, 1200);
-
-    LcdData.setData.Input_UnderVolt = SerialScreen_GetPara_ValidValue(LcdData.setData.Input_UnderVolt,
-            750, 500, 1200);
-
-    LcdData.setData.Onput_OverVolt = SerialScreen_GetPara_ValidValue(LcdData.setData.Onput_OverVolt,
-            750, 500, 1200);
-
-    LcdData.setData.Onput_UnderVolt = SerialScreen_GetPara_ValidValue(LcdData.setData.Onput_UnderVolt,
-            750, 500, 1200);
-
-    LcdData.setData.Onput_OverCurr = SerialScreen_GetPara_ValidValue(LcdData.setData.Onput_OverCurr,
-            750, 500, 1200);
-#endif
-    LcdData.setData.Stop_SOC = SerialScreen_GetPara_ValidValue(LcdData.setData.Stop_SOC,
-            PROTECT_STOP_SOC_VALUE_DEFAULT, PROTECT_STOP_SOC_VALUE_MIN, PROTECT_STOP_SOC_VALUE_MAX);
-
-    LcdData.setData.OverTemp_Warnning = SerialScreen_GetPara_ValidValue(LcdData.setData.OverTemp_Warnning,
-            PROTECT_OVERTEMP_WARNNING_VALUE_DEFAULT, PROTECT_OVERTEMP_WARNNING_VALUE_MIN, PROTECT_OVERTEMP_WARNNING_VALUE_MAX);
-
-    LcdData.setData.OverTemp_Stop = SerialScreen_GetPara_ValidValue(LcdData.setData.OverTemp_Stop,
-            PROTECT_OVERTEMP_STOP_VALUE_DEFAULT, PROTECT_OVERTEMP_STOP_VALUE_MIN, PROTECT_OVERTEMP_STOP_VALUE_MAX);
-
-    LcdData.setData.OverTemp_Resume = SerialScreen_GetPara_ValidValue(LcdData.setData.OverTemp_Resume,
-            PROTECT_OVERTEMP_RESUME_VALUE_DEFAULT, PROTECT_OVERTEMP_RESUME_VALUE_MIN, PROTECT_OVERTEMP_RESUME_VALUE_MAX);
-
-    LcdData.setData.OverTemp_LimitCurr = SerialScreen_GetPara_ValidValue(LcdData.setData.OverTemp_LimitCurr,
-            PROTECT_OVERTEMP_LIMITCURR_VALUE_DEFAULT, PROTECT_OVERTEMP_LIMITCURR_VALUE_MIN, PROTECT_OVERTEMP_LIMITCURR_VALUE_MAX);
-
-    if((LcdData.setData.GunVolt_LimitValue < GUNVOLT_LIMIT_VALUE_MIN) || (LcdData.setData.GunVolt_LimitValue > GUNVOLT_LIMIT_VALUE_MAX)){
-        LcdData.setData.GunVolt_LimitValue = GUNVOLT_LIMIT_VALUE_MIN;
+    if(LcdAssistantData.SeveralGunFlag[LCD_GUN_1].DataIsVerify == FALSE){
+        SerialScreen_BtnProtectInfoJudge(NULL);
     }
+    LcdAssistantData.SeveralGunFlag[LCD_GUN_1].DataIsVerify = FALSE;
+
     thaisen_set_ChargGunVolt((LcdData.setData.GunVolt_LimitValue /10), 0);
     thaisen_set_ChargGunVolt((LcdData.setData.GunVolt_LimitValue /10), 1);
 
-    LcdData.setData.PowerPercent /= 10;    // 一位小数
-    if(LcdData.setData.PowerPercent < PROTECT_POWER_PERCENT_VALUE_MIN){
-        LcdData.setData.PowerPercent = PROTECT_POWER_PERCENT_VALUE_MIN;
-    }else if(LcdData.setData.PowerPercent > PROTECT_POWER_PERCENT_VALUE_MAX){
-        LcdData.setData.PowerPercent = PROTECT_POWER_PERCENT_VALUE_MAX;
-    }
     power = thaisen_get_power_from_percent(LcdData.setData.PowerPercent);
-
-    if((LcdData.setData.ElossProprotion < CHARGEPILE_ELOSS_PROPORTION_MIN) || (LcdData.setData.ElossProprotion > CHARGEPILE_ELOSS_PROPORTION_MAX)){
-        LcdData.setData.ElossProprotion = CHARGEPILE_ELOSS_PROPORTION_DEF;
-    }
-
-#if 0
-    UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_INPUT_OVERVOL, &LcdData.setData.Input_OverVolt, sizeof(LcdData.setData.Input_OverVolt));
-    UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_INPUT_UNDERVOL, &LcdData.setData.Input_UnderVolt, sizeof(LcdData.setData.Input_UnderVolt));
-    UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_OUTPUT_OVERVOL, &LcdData.setData.Onput_OverVolt, sizeof(LcdData.setData.Onput_OverVolt));
-    UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_OUTPUT_UNDERVOL, &LcdData.setData.Onput_UnderVolt, sizeof(LcdData.setData.Onput_UnderVolt));
-    UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_OUTPUT_OVERCUR, &LcdData.setData.Onput_OverCurr, sizeof(LcdData.setData.Onput_OverCurr));
-#endif
 
     UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_SYSTEM_POWER_TOTAL, &power, sizeof(power));
     UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_SOC_STOP, &LcdData.setData.Stop_SOC, sizeof(LcdData.setData.Stop_SOC) - 0x02);
@@ -2227,7 +3219,10 @@ void SerialScreen_BtnProtectInfoSet(void)
     UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_GUNVOLT_LIMIT, &LcdData.setData.GunVolt_LimitValue, sizeof(LcdData.setData.GunVolt_LimitValue));
     UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_ELOSS_PROPORTION, &LcdData.setData.ElossProprotion, sizeof(LcdData.setData.ElossProprotion));
 
-    UI_STORAGE_CFG_DATA;
+    LcdAssistantData.Flag.IsConfigFail = TRUE;
+    if(UI_STORAGE_CFG_DATA >= 0){
+        LcdAssistantData.Flag.IsConfigFail = FALSE;
+    }
 
     LcdAssistantData.Flag.IsSetPowerPercent = TRUE;
     LcdAssistantData.Flag.IsSetELossProportion = TRUE;
@@ -2509,39 +3504,30 @@ void SerialScreen_FanIsSupportOutSet(void)
 	sSCREEN_EVENT_DEBUGMSG("supin_elock=%d\r\n",LcdData.setData.supout_fan );	
 }
 
-void SerialScreen_OfflineBillingSet(void)
+static void SerialScreen_OfflineBillingInfoJudge(u32 *ret)
 {
+#define SSCREEN_OB_CHARGING_POSITION                        0   /* 离线计费配置失败原因：在充电  */
+#define SSCREEN_OB_FORMAT_POSITION                          1   /* 离线计费配置失败原因：格式错误  */
+#define SSCREEN_OB_NOT_CONTINOUS_POSITION                   2   /* 离线计费配置失败原因：不连续  */
+#define SSCREEN_OB_DUPLICATE_POSITION                       3   /* 离线计费配置失败原因：重复  */
+
+    u32 result = 0;
 #ifdef SCREEN_USING_OFFLINE_BILLING
-    struct sys_billing_rule *rule = (struct sys_billing_rule*)sys_read_config_item_content(CONFIG_ITEM_BILLING_RULE, 0);
     struct Period_Time time[CP_RATED_TYPE_NUM_MAX *CP_RATED_TYPE_PERIOD_NUM];  /* 时段时间 */
     u8 i = 0x00, j = 0x00, valid_count = 0;
     s8 res = 0;
 
     for(i = 0x00; i < LCD_GUN_NUM; i++){
         if((LcdData.gun[i].workState >= SysMainStatus_StartReady) && (LcdData.gun[i].workState <= SysMainStatus_StopChg)){
+            result |= (1 <<SSCREEN_OB_CHARGING_POSITION);
+            rt_kprintf("is starting or charging, not allow to modify offline billing rule\n");
             break;
         }
     }
-    if(i < LCD_GUN_NUM){
-        /* 弹出提示：启动或充电中不允许修改 */
-        LcdData.setData.OBwarning = ICON_OB_IS_CHARGING;
-        /* 此时不进行切页 */
-        if(LcdData.CurrentPage != LcdData.CurrentPageBack){
-            LcdData.CurrentPage = LcdData.CurrentPageBack;
-        }
-        rt_kprintf("is starting or charging, not allow to modify offline billing rule\n");
-        return;
-    }
 
     if((res = sys_period_time_format_valid(LcdData.setData.PeriodTime)) != 0x01){
-        /* 弹出提示：设置的时间段不连续 */
-        LcdData.setData.OBwarning = ICON_OB_NOT_CONTINUOUS;
-        /* 此时不进行切页 */
-        if(LcdData.CurrentPage != LcdData.CurrentPageBack){
-            LcdData.CurrentPage = LcdData.CurrentPageBack;
-        }
+        result |= (1 <<SSCREEN_OB_FORMAT_POSITION);
         rt_kprintf("offline billing period time format error\n");
-        return;
     }else{
         memset(time, 0x00, sizeof(time));
         for(i = 0x00; i < CP_RATED_TYPE_NUM_MAX; i++){
@@ -2554,12 +3540,69 @@ void SerialScreen_OfflineBillingSet(void)
         }
         if((res = sys_period_time_continuous_valid(time, sizeof(time), valid_count)) != 0x01){
             if(res == 0){
-                /* 弹出提示：设置的时间段不连续 */
-                LcdData.setData.OBwarning = ICON_OB_NOT_CONTINUOUS;
+                result |= (1 <<SSCREEN_OB_NOT_CONTINOUS_POSITION);
+                rt_kprintf("offline billing time not continous\n");
             }else{
-                /* 弹出提示：设置的时间段重复 */
-                LcdData.setData.OBwarning = ICON_OB_TIME_DUPLICATE;
+                result |= (1 <<SSCREEN_OB_DUPLICATE_POSITION);
+                rt_kprintf("offline billing time duplicate\n");
             }
+        }
+    }
+#else
+    result |= (1 <<SSCREEN_OB_FORMAT_POSITION);
+    rt_kprintf("system not support offline billing mode\n");
+#endif /* SCREEN_USING_OFFLINE_BILLING */
+    if(ret){
+        *ret = result;
+    }
+
+#undef SSCREEN_OB_CHARGING_POSITION
+#undef SSCREEN_OB_FORMAT_POSITION
+#undef SSCREEN_OB_NOT_CONTINOUS_POSITION
+#undef SSCREEN_OB_DUPLICATE_POSITION
+}
+
+void SerialScreen_OfflineBillingSet(void)
+{
+#define SSCREEN_OB_CHARGING_POSITION                        0   /* 离线计费配置失败原因：在充电  */
+#define SSCREEN_OB_FORMAT_POSITION                          1   /* 离线计费配置失败原因：格式错误  */
+#define SSCREEN_OB_NOT_CONTINOUS_POSITION                   2   /* 离线计费配置失败原因：不连续  */
+#define SSCREEN_OB_DUPLICATE_POSITION                       3   /* 离线计费配置失败原因：重复  */
+
+#ifdef SCREEN_USING_OFFLINE_BILLING
+    struct sys_billing_rule *rule = (struct sys_billing_rule*)sys_read_config_item_content(CONFIG_ITEM_BILLING_RULE, 0);
+    u8 i = 0x00;
+    u32 ret = 0;
+
+    if(LcdAssistantData.SeveralGunFlag[LCD_GUN_1].DataIsVerify == FALSE){
+        SerialScreen_OfflineBillingInfoJudge(&ret);
+        if(ret &(1 <<SSCREEN_OB_CHARGING_POSITION)){
+            /* 弹出提示：启动或充电中不允许修改 */
+            LcdData.setData.OBwarning = ICON_OB_IS_CHARGING;
+            /* 此时不进行切页 */
+            if(LcdData.CurrentPage != LcdData.CurrentPageBack){
+                LcdData.CurrentPage = LcdData.CurrentPageBack;
+            }
+            return;
+        }else if(ret &(1 <<SSCREEN_OB_FORMAT_POSITION)){
+            /* 弹出提示：设置的时间段不连续 */
+            LcdData.setData.OBwarning = ICON_OB_NOT_CONTINUOUS;
+            /* 此时不进行切页 */
+            if(LcdData.CurrentPage != LcdData.CurrentPageBack){
+                LcdData.CurrentPage = LcdData.CurrentPageBack;
+            }
+            return;
+        }else if(ret &(1 <<SSCREEN_OB_NOT_CONTINOUS_POSITION)){
+            /* 弹出提示：设置的时间段不连续 */
+            LcdData.setData.OBwarning = ICON_OB_NOT_CONTINUOUS;
+            /* 此时不进行切页 */
+            if(LcdData.CurrentPage != LcdData.CurrentPageBack){
+                LcdData.CurrentPage = LcdData.CurrentPageBack;
+            }
+            return;
+        }else if(ret &(1 <<SSCREEN_OB_DUPLICATE_POSITION)){
+            /* 弹出提示：设置的时间段重复 */
+            LcdData.setData.OBwarning = ICON_OB_TIME_DUPLICATE;
             /* 此时不进行切页 */
             if(LcdData.CurrentPage != LcdData.CurrentPageBack){
                 LcdData.CurrentPage = LcdData.CurrentPageBack;
@@ -2567,6 +3610,7 @@ void SerialScreen_OfflineBillingSet(void)
             return;
         }
     }
+    LcdAssistantData.SeveralGunFlag[LCD_GUN_1].DataIsVerify = FALSE;
 
     LcdData.setData.OBwarning = ICON_OB_NULL;
     SerialScreen_JumpPage(&SerialScreen, LCD_PAGE_STORAGE_WAITING);
@@ -2620,8 +3664,16 @@ void SerialScreen_OfflineBillingSet(void)
 
     memcpy(rule->time, LcdData.setData.PeriodTime, sizeof(LcdData.setData.PeriodTime));
 
-    UI_STORAGE_CFG_DATA;
+    LcdAssistantData.Flag.IsConfigFail = TRUE;
+    if(UI_STORAGE_CFG_DATA >= 0){
+        LcdAssistantData.Flag.IsConfigFail = FALSE;
+    }
 #endif /* SCREEN_USING_OFFLINE_BILLING */
+
+#undef SSCREEN_OB_CHARGING_POSITION
+#undef SSCREEN_OB_FORMAT_POSITION
+#undef SSCREEN_OB_NOT_CONTINOUS_POSITION
+#undef SSCREEN_OB_DUPLICATE_POSITION
 }
 
 void SerialScreen_OfflineBillingGet(void)
@@ -2696,18 +3748,27 @@ void SerialScreen_OfflineBillingGet(void)
 #endif /* SCREEN_USING_OFFLINE_BILLING */
 }
 
-
-void SerialScreen_IsSupportSetFlash(void)
+static void SerialScreen_IsSupportInfoJudge(u32 *ret)
 {
-    u8 function_disable = TRUE, len = 1, count = 0, mode_changed = FALSE;
+//@ thaisen_cfg_info_function
+#define SSCREEN_PLUG_AND_PLAY_POSITION                        6   /* 即插即充功能在结构体 thaisen_cfg_info_function 中的成员次序(从0开始)  */
+    u32 result = 0;
 
-    SerialScreen_JumpPage(&SerialScreen, LCD_PAGE_STORAGE_WAITING);
+#ifndef SCREEN_USING_OFFLINE_BILLING
+    LcdData.setData.Icon_SupOfflineBilling = FALSE;
+    LcdData.setData.sup_offbilling = FALSE;
+#endif /* SCREEN_USING_OFFLINE_BILLING */
+
+    LcdAssistantData.Flag.NeedReboot = FALSE;
 
     if(LcdData.setData.Icon_SupOfflineBilling != LcdData.setData.sup_offbilling){
         if(LcdData.setData.Icon_SupOfflineBilling){
+            if(LcdData.setData.Icon_SupPlugAndPlay){
+                result |= (1 <<SSCREEN_PLUG_AND_PLAY_POSITION);
+            }
             LcdData.setData.Icon_SupPlugAndPlay = FALSE;
         }
-        mode_changed = TRUE;
+        LcdAssistantData.Flag.NeedReboot = TRUE;
     }
 
     if(LcdData.setData.Icon_SupOfflineBilling == FALSE){
@@ -2715,9 +3776,12 @@ void SerialScreen_IsSupportSetFlash(void)
             if(LcdData.setData.Icon_SupPlugAndPlay){
                 LcdData.setData.Icon_SupOfflineBilling = FALSE;
             }
-            mode_changed = TRUE;
+            LcdAssistantData.Flag.NeedReboot = TRUE;
         }
     }else{
+        if(LcdData.setData.Icon_SupPlugAndPlay){
+            result |= (1 <<SSCREEN_PLUG_AND_PLAY_POSITION);
+        }
         LcdData.setData.Icon_SupPlugAndPlay = FALSE;
     }
 
@@ -2725,11 +3789,27 @@ void SerialScreen_IsSupportSetFlash(void)
     LcdData.setData.sup_offbilling = LcdData.setData.Icon_SupOfflineBilling;
     LcdData.setData.Sup_PlugAndPlay = LcdData.setData.Icon_SupPlugAndPlay;
 
-	sSCREEN_EVENT_DEBUGMSG("set Flash sup_Local=%d LcdData.setData.sup_VIN=%d\r\n",LcdData.setData.sup_Local,LcdData.setData.sup_VIN );
-	UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_LOCAL, (u8 *)&(LcdData.setData.sup_Local), sizeof(LcdData.setData.sup_Local));
+    if(ret){
+        *ret = result;
+    }
+
+#undef SSCREEN_PLUG_AND_PLAY_POSITION
+}
+void SerialScreen_IsSupportSetFlash(void)
+{
+    u8 function_disable = TRUE, len = 0, count = 0;
+
+    SerialScreen_JumpPage(&SerialScreen, LCD_PAGE_STORAGE_WAITING);
+
+    if(LcdAssistantData.SeveralGunFlag[LCD_GUN_1].DataIsVerify == FALSE){
+        SerialScreen_IsSupportInfoJudge(NULL);
+    }
+    LcdAssistantData.SeveralGunFlag[LCD_GUN_1].DataIsVerify = FALSE;
+
+    UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_LOCAL, (u8 *)&(LcdData.setData.sup_Local), sizeof(LcdData.setData.sup_Local));
     UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_PLUGCHARGE, (u8 *)&(LcdData.setData.Sup_PlugAndPlay), sizeof(LcdData.setData.Sup_PlugAndPlay));
-	UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_LOCAL_STOP, (u8 *)&(LcdData.setData.sup_Local_stop), sizeof(LcdData.setData.sup_Local_stop));
-	UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_VIN, (u8 *)&(LcdData.setData.sup_VIN), sizeof(LcdData.setData.sup_VIN));
+    UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_LOCAL_STOP, (u8 *)&(LcdData.setData.sup_Local_stop), sizeof(LcdData.setData.sup_Local_stop));
+    UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_VIN, (u8 *)&(LcdData.setData.sup_VIN), sizeof(LcdData.setData.sup_VIN));
     UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_INSULATION, (u8 *)&(LcdData.setData.sup_insulation), sizeof(LcdData.setData.sup_insulation));
     UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_CARD, (u8 *)&(LcdData.setData.sup_usecard), sizeof(LcdData.setData.sup_usecard));
     UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_AUXPOWER24V, (u8 *)&(LcdData.setData.sup_auxp_24V), sizeof(LcdData.setData.sup_auxp_24V));
@@ -2746,20 +3826,21 @@ void SerialScreen_IsSupportSetFlash(void)
             break;
         }
     }
-
     for(u8 i = 0; i < len; i++){
         if(LcdData.setData.UserPasswdShow[i] == '*'){
             count++;
         }
     }
-
     if(count != len){
         memcpy(LcdData.setData.UserPasswd, LcdData.setData.UserPasswdShow, sizeof(LcdData.setData.UserPasswdShow));
     }
 
     UI_SYNC_SINGLE_CFG_STR(CONFIG_ITEM_SCREEN_PASSWORD, (u8 *)(LcdData.setData.UserPasswd), len);
 
-    UI_STORAGE_CFG_DATA;
+    LcdAssistantData.Flag.IsConfigFail = TRUE;
+    if(UI_STORAGE_CFG_DATA >= 0){
+        LcdAssistantData.Flag.IsConfigFail = FALSE;
+    }
 
     if(LcdData.setData.sup_insulation == FALSE){
         function_disable = TRUE;
@@ -2787,7 +3868,7 @@ void SerialScreen_IsSupportSetFlash(void)
     for(u8 i = 0; i < LCD_GUN_NUM; i++)
         LcdAssistantData.SeveralGunFlag[i].AuxPower24VSelect = LcdData.setData.sup_auxp_24V;
 
-    if(mode_changed == TRUE){
+    if(LcdAssistantData.Flag.NeedReboot == TRUE){
         SerialScreen_ScreenSet_Reboot_Flag();
     }
 }
@@ -2859,7 +3940,10 @@ void SerialScreen_InputSetFlash(void)
 	UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_INNEG_ELOCK, (u8 *)&(LcdData.setData.neg_elcok), sizeof(LcdData.setData.neg_elcok));
     UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_INEN_TEMPPRO, (u8 *)&(LcdData.setData.supin_temp_pro), sizeof(LcdData.setData.supin_temp_pro));
 
-    UI_STORAGE_CFG_DATA;
+    LcdAssistantData.Flag.IsConfigFail = TRUE;
+    if(UI_STORAGE_CFG_DATA >= 0){
+        LcdAssistantData.Flag.IsConfigFail = FALSE;
+    }
 
 	SerialScreen_SetInputInfo();
 }
@@ -8300,6 +9384,21 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
 
     for(u8 i = 0; i < LCD_GUN_NUM; i++)
         LcdAssistantData.SeveralGunFlag[i].IsPowerOn = 0;
+
+    LcdConfigExecutPool[THAISEN_CONFIG_PAGE_SYSTEM_INFO] = SerialScreen_ConfigExecute_System;
+    LcdConfigExecutPool[THAISEN_CONFIG_PAGE_PILE_INFO] = SerialScreen_ConfigExecute_Pile;
+    LcdConfigExecutPool[THAISEN_CONFIG_PAGE_SERVER_INFO] = SerialScreen_ConfigExecute_Server;
+    LcdConfigExecutPool[THAISEN_CONFIG_PAGE_AMMETER_INFO] = SerialScreen_ConfigExecute_Ammeter;
+    LcdConfigExecutPool[THAISEN_CONFIG_PAGE_MODULE_INFO] = SerialScreen_ConfigExecute_Module;
+    LcdConfigExecutPool[THAISEN_CONFIG_PAGE_VIN_INFO] = SerialScreen_ConfigExecute_Vin;
+    LcdConfigExecutPool[THAISEN_CONFIG_PAGE_PROTECT_INFO] = SerialScreen_ConfigExecute_Protect;
+    LcdConfigExecutPool[THAISEN_CONFIG_PAGE_FUNCTION_INFO] = SerialScreen_ConfigExecute_Function;
+    LcdConfigExecutPool[THAISEN_CONFIG_PAGE_OFFLINE_BILLING_INFO] = SerialScreen_ConfigExecute_OfflineBilling;
+    LcdConfigExecutPool[THAISEN_CONFIG_PAGE_INPUT_7103_7101_INFO] = SerialScreen_ConfigExecute_Input_7103_7101;
+    LcdConfigExecutPool[THAISEN_CONFIG_PAGE_PUBLIC_INPUT_7104_INFO] = SerialScreen_ConfigExecute_PublicInput_7104;
+    LcdConfigExecutPool[THAISEN_CONFIG_PAGE_GUN_INPUT_7104_INFO] = SerialScreen_ConfigExecute_GunInput_7104;
+    LcdConfigExecutPool[THAISEN_CONFIG_PAGE_PUBLIC_OUTPUT_7104_INFO] = SerialScreen_ConfigExecute_PublicOutput_7104;
+    LcdConfigExecutPool[THAISEN_CONFIG_PAGE_GUN_OUTPUT_7104_INFO] = SerialScreen_ConfigExecute_GunOutput_7104;
 
     return SerialScreen.Initialize(&SerialScreen);
 }
