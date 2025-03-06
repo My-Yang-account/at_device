@@ -8653,6 +8653,7 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_A_SELECT, NULL, "double charge", LCD_IconType, LCD_10sReflash, 0x1058, pu8_type, 1, (void *)&LcdData.setData.Sup_StartStyle[2][LCD_GUN_1]);
     SerialScreen_ItemSetUp(LCD_PAGE_A_SELECT, NULL, "Icon Saux", LCD_IconType, LCD_10sReflash, 0x4630, pu8_type, sizeof(LcdData.setData.s_selectaux[LCD_GUN_1]), (void *)&LcdData.setData.s_selectaux[LCD_GUN_1]);
     SerialScreen_ItemSetUp(LCD_PAGE_A_SELECT, NULL, "auxA set", LCD_BtnType, 0x0001, 0x1007, page_type, LCD_PAGE_A_SELECT, (void *)SerialScreen_AuxsetA);
+    SerialScreen_ItemSetUp(LCD_PAGE_A_SELECT, NULL, "unlock_ela", LCD_BtnType, 0x0007, 0x1000, page_type, LCD_PAGE_A_SELECT, (void *)SerialScreen_BtnUnElockA);
     SerialScreen_ItemSetUp(LCD_PAGE_A_SELECT, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
 
     /** 3.B枪选择 [page:03]*/
@@ -8666,6 +8667,7 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_B_SELECT, NULL, "double charge", LCD_IconType, LCD_10sReflash, 0x1058, pu8_type, 1, (void *)&LcdData.setData.Sup_StartStyle[2][LCD_GUN_2]);
     SerialScreen_ItemSetUp(LCD_PAGE_B_SELECT, NULL, "Icon Saux", LCD_IconType, LCD_10sReflash, 0x4632, pu8_type, sizeof(LcdData.setData.s_selectaux[LCD_GUN_2]), (void *)&LcdData.setData.s_selectaux[LCD_GUN_2]);
     SerialScreen_ItemSetUp(LCD_PAGE_B_SELECT, NULL, "auxB set", LCD_BtnType, 0x0002, 0x1007, page_type, LCD_PAGE_B_SELECT, (void *)SerialScreen_AuxsetB);
+    SerialScreen_ItemSetUp(LCD_PAGE_B_SELECT, NULL, "unlock_elb", LCD_BtnType, 0x0008, 0x1000, page_type, LCD_PAGE_B_SELECT, (void *)SerialScreen_BtnUnElockB);
     SerialScreen_ItemSetUp(LCD_PAGE_B_SELECT, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
 
     /** 4.A枪启动 [page:04]*/
