@@ -18,6 +18,7 @@
 #include "app_led.h"
 #include "app_hci.h"
 #include "app_terminal.h"
+#include "app_can.h"
 
 #include "mw_fault_check.h"
 #include "mw_charge_control.h"
@@ -32,11 +33,19 @@
 #define APP_THREAD_MONITOR_DEBUG
 #define APP_THREAD_ENTRY_PERIOD         15000   /** 线程不正常超过一定时长(ms)，容忍次数加1(这个时间需要参考看门狗复位时间) */
 
-#ifdef CP_CONFIG_USING_DUPU
-#define APP_APPLICATION_THREAD_MAX      20      /** 应用线程数量 */
+#ifdef USING_TCU_CAN
+#define APP_CAN_THREAD                  1       /* 监控 CAN 线程 */
 #else
-#define APP_APPLICATION_THREAD_MAX      18      /** 应用线程数量 */
+#define APP_CAN_THREAD                  0       /* 监控 CAN 线程 */
+#endif /* USING_TCU_CAN */
+
+#ifdef CP_CONFIG_USING_DUPU
+#define APP_DUPU_THREAD                 2       /* 监控 杜普 线程 */
+#else
+#define APP_DUPU_THREAD                 0       /* 监控 杜普 线程 */
 #endif /* CP_CONFIG_USING_DUPU */
+
+#define APP_APPLICATION_THREAD_MAX      (18 + APP_CAN_THREAD + APP_DUPU_THREAD)      /** 应用线程数量 */
 
 #pragma pack(1)
 
@@ -86,6 +95,12 @@ APP_DEF_SRAM0 static rt_uint8_t terminal_thread_stack[2048];
 APP_DEF_SRAM1 static struct rt_thread terminal_req_thread;
 APP_DEF_SRAM0 static rt_uint8_t terminal_req_thread_stack[1024];
 #endif /* CP_CONFIG_USING_DUPU */
+
+#ifdef USING_TCU_CAN
+APP_DEF_SRAM1 static struct rt_thread tcan_thread;
+APP_DEF_SRAM0 static rt_uint8_t tcan_thread_stack[1024];
+#endif /* USING_TCU_CAN */
+
 APP_DEF_SRAM2 static uint8_t s_system_reset_set = 0x00;
 
 #ifdef USING_THREAD_MONITOR
@@ -498,6 +513,20 @@ void app_init(void)
         memcpy(name, "fdet", strlen("fdet"));
         app_thread_monitor_add(&osupport_thread, name, strlen((char*)name), APP_THREAD_MONITOR_OPT_NAME);
     }
+
+#ifdef USING_TCU_CAN
+    result = rt_thread_init(&tcan_thread, "task_tcan",
+            app_tcan_thread_entry, RT_NULL, &tcan_thread_stack, sizeof(tcan_thread_stack), 16, 10);
+    if (RT_EOK == result) {
+        rt_thread_startup(&tcan_thread);
+
+        app_thread_monitor_add(&tcan_thread, &entry, sizeof(entry), APP_THREAD_MONITOR_OPT_ENTRY);
+
+        memset(name, 0x00, sizeof(name));
+        memcpy(name, "tcan", strlen("tcan"));
+        app_thread_monitor_add(&tcan_thread, name, strlen((char*)name), APP_THREAD_MONITOR_OPT_NAME);
+    }
+#endif /* USING_TCU_CAN */
 
     app_card_init();
 }

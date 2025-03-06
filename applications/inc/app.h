@@ -18,6 +18,7 @@ extern "C" {
 
 #define USING_DOUBLE_GUN                     /* 使用双枪 */
 #define USING_THREAD_MONITOR                 /* 使用线程监控 */
+#define USING_TCU_CAN                        /* 使用TCU CAN */
 
 #define APP_THREAD_MONITOR_OPT_URGENT        (1 <<0)     /* 线程监控选项：紧急(无需判断，直接处理) */
 #define APP_THREAD_MONITOR_OPT_ENTRY         (1 <<1)     /* 线程监控选项：最大容忍次数 */
