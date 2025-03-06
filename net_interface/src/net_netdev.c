@@ -369,6 +369,17 @@ int32_t net_netdev_dev_control(uint8_t cmd, void *para, uint16_t para_len, void 
         }
         return 0x0;
         break;
+    case NET_NETDEV_CTRL_CMD_QUERY_SYS_ERR:
+        if(ret){
+            *(uint8_t*)ret = 0x00;             /** 无故障 */
+            if(s_netdev_type &NET_NETDEV_TYPE_ETHERNET){
+                if(ethch395_is_occured_sys_err()){
+                    *(uint8_t*)ret = 0x01;     /** 有故障 */
+                }
+            }
+            return 0x00;
+        }
+        break;
     default:
         break;
     }

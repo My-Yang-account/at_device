@@ -162,6 +162,8 @@ static void ethch395_send_cmd(uint8_t cmd)
 
     byte = cmd;   /* 指令 */
     ethch395_netdev_send(&byte, 0x01);
+
+    rt_kprintf("eth cmd[%02X, %02X, %02X]\n", 0x57, 0xAB, cmd);
 }
 
 /**************************************************
@@ -174,6 +176,8 @@ static void ethch395_send_cmd_data(uint8_t data)
 {
     uint8_t byte = data;
     ethch395_netdev_send(&byte, sizeof(byte));
+
+    rt_kprintf("eth cmd data[%02X]\n", data);
 }
 
 /**************************************************
@@ -1042,6 +1046,16 @@ int32_t ethch395_cmd_padding_data_sbuf(uint8_t fd, void *data, uint16_t dlen)
         return -0x01;
     }
 
+    rt_kprintf("eth(%d) send:%d\n> ", fd, dlen);
+
+    for(uint16_t i = 0x00; i < dlen; i++){
+        rt_kprintf("%02X ", *((uint8_t*)data + i));
+        if((i != 0x00) && (i % 16 == 0x00)){
+            rt_kprintf("\n> ");
+        }
+    }
+    rt_kprintf("\n");
+
     ethch395_enter_critical();
 
     ethch395_send_cmd(ETHCH395_CMD_WRITE_SEND_BUF_SN);
@@ -1652,6 +1666,23 @@ uint8_t *ethch395_get_dns1_ip(void)
 uint8_t *ethch395_get_dns2_ip(void)
 {
     return s_ethch395_info.dns2;
+}
+
+/**************************************************
+ *  函数名   ethch395_socket_is_used
+ *  参数       fd         socket 下标
+ *  功能       查询socket 是否已被使用
+ *  返回       0：未被使用      1：已使用
+ *************************************************/
+uint8_t ethch395_socket_is_used(int fd)
+{
+    if((fd >= 0x00) && (fd < ETHCH395_SOCKET_NUM_MAX)){
+        if(s_ethch395_info.socket[fd].flag.used == ETHCH395_ENUM_TRUE){
+            return ETHCH395_ENUM_TRUE;
+        }
+        return ETHCH395_ENUM_FALSE;
+    }
+    return ETHCH395_ENUM_FALSE;
 }
 
 #endif /* NET_INCLUDE_ETHERNET_PACK */

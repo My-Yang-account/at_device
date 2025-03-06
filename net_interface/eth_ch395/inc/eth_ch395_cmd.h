@@ -23,11 +23,12 @@
 #else
 #define ETHCH395_SOCKET_NUM_MAX                                     4               /* ch395 最大socket 数 */
 #endif /* ETHCH395_CHIP_VER_MORE_ADVANCED_THAN_0X44 */
+#define ETHCH395_VALID_SOCKET_INDEX                                 5               /* ch395 最大socket 下标(从0开始) */
 
 /** ethch395 tcp mss */
 #define ETHCH395_TCP_MSS_MIN                                        60              /* ch395 tcp mss 最小值 */
 #define ETHCH395_TCP_MSS_MAX                                        1460            /* ch395 tcp mss 最大值 */
-#define ETHCH395_TCP_MSS_DEF                                        512             /* ch395 tcp mss 默认值 */
+#define ETHCH395_TCP_MSS_DEF                                        500             /* ch395 tcp mss 默认值 */
 
 /** ethch395 cmd */
 #define ETHCH395_CMD_GET_IC_VER                                     0x01            /* 指令：获取芯片及固件版本 */
@@ -700,6 +701,14 @@ uint8_t *ethch395_get_dns1_ip(void);
  *  返回       DNS2 IP地址指针
  *************************************************/
 uint8_t *ethch395_get_dns2_ip(void);
+
+/**************************************************
+ *  函数名   ethch395_socket_is_used
+ *  参数       fd         socket 下标
+ *  功能       查询socket 是否已被使用
+ *  返回       0：未被使用      1：已使用
+ *************************************************/
+uint8_t ethch395_socket_is_used(int fd);
 
 #endif /* NET_INCLUDE_ETHERNET_PACK */
 

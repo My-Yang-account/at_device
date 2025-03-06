@@ -33,6 +33,7 @@
 #define ETHCH395_WAIT_CLOSED_TIMEOUT                                5000              /* 等待关闭最大时长(ms) */
 #define ETHCH395_WAIT_SBUF_FREE_TIMEOUT                             5000              /* 等待发送缓存为空最大时长(ms) */
 #define ETHCH395_WAIT_CMD_RESDATA_TIMEOUT                           1000              /* 等待指令响应数据最大时长(ms) */
+#define ETHCH395_SYS_ERROR_TIMEOUT                                  (2 *60 *1000)     /* 系统故障连续最大时长(ms) */
 
 #define ETHCH395_RECV_DATA_SIZE_MAX                                 1500              /* 单次接收数据最大字节(B) */
 #define ETHCH395_RECV_RENTRY_MAX                                    5                 /* 未接收到完整数据时最大尝试次数 */
@@ -84,9 +85,13 @@ struct ethch395_socket_info{
 /** 辅助信息 */
 struct ethch395_assistant{
     struct{
-        uint8_t error : 1;                             /** 发生了错误 */
-        uint8_t init_complete : 1;                     /** ethch395 初始化已完成 */
+        uint8_t error : 1;                         /** 发生了错误 */
+        uint8_t init_complete : 1;                 /** ethch395 初始化已完成 */
+        uint8_t system_error : 1;                  /** 系统错误，需要重启系统(MCU) */
+        uint8_t reserve : 5;
     }flag;
+
+    uint32_t sys_error_tick;                       /** 系统错误时机 */
 };
 
 /** 以太网芯片操作访问锁 */
@@ -113,6 +118,17 @@ ETH_DEF_SRAM2 static struct rt_event s_ethch395_event;
 ETH_DEF_SRAM2 static uint8_t s_ethch395_state = NETDEV_ETHCH395_STATE_PHY;
 
 static void ethch395_device_init(void);
+
+/**************************************************
+ *  函数名   ethch395_is_occured_sys_err
+ *  参数
+ *  功能       查询是否产生了系统故障
+ *  返回        0：否    1：是
+ *************************************************/
+uint8_t ethch395_is_occured_sys_err(void)
+{
+    return s_ethch395_assistant_info.flag.system_error;
+}
 
 /**************************************************
  *  函数名   ethch395_get_thread_handle
@@ -484,6 +500,7 @@ int netdev_ethch395_socket_open_port(int *socket_fd, char* host, uint16_t host_l
     if(host_is_pure_digital(host, host_len, _ip, sizeof(_ip)) == ETHCH395_ENUM_FALSE){
         if(ethch395_domain_parse(host, host_len, _ip, sizeof(_ip)) < 0x00){
             LOG_E("ethch395 DNS domain parse fail(%s)n", host);
+            return -0x01;
         }
     }
 
@@ -739,9 +756,12 @@ int netdev_ethch395_socket_close_port(int socket_fd)
     if((socket_fd < 0x00) || (socket_fd >= ETHCH395_SOCKET_NUM_MAX)){
         return -0x01;
     }
+    /** 针对于被对端关闭的情况 */
+#if 0
     if(s_ethch395_socket_info[socket_fd].flag.connected != ETHCH395_ENUM_TRUE){
         return -0x01;
     }
+#endif
 
     uint32_t wait_tick = 0x00;
     ethch395_slist_t *node = NULL;
@@ -751,11 +771,13 @@ int netdev_ethch395_socket_close_port(int socket_fd)
 
     if(ethch395_cmd_close_socket(socket_fd) < 0x00){
         LOG_E("ethch395 close socket fail(%d)", socket_fd);
+        ethch395_socket_free(socket_fd);
         ethch395_unlock_operate_lock(handle);
         return -0x01;
     }
     if(ethch395_cmd_disconnect_tcp(socket_fd) < 0x00){
         LOG_E("ethch395 disconnect tcp fail(%d)", socket_fd);
+        ethch395_socket_free(socket_fd);
         ethch395_unlock_operate_lock(handle);
         return -0x01;
     }
@@ -1106,6 +1128,7 @@ static void ethch395_event_pro_thread_entry(void* parameter)
     union ethch395_socket_int *s_ethch395_socket_int = NULL;
     memset(s_ethch395_socket_info, 0x00, sizeof(s_ethch395_socket_info));
     void *handle = ethch395_get_thread_handle();
+    uint8_t i_fd = 0x00;
 
     while(1)
     {
@@ -1116,6 +1139,22 @@ static void ethch395_event_pro_thread_entry(void* parameter)
             ethch395_unlock_operate_lock(handle);
             rt_thread_mdelay(5000);
             continue;
+        }
+
+        for(i_fd = (ETHCH395_VALID_SOCKET_INDEX + 0x01); i_fd < ETHCH395_SOCKET_NUM_MAX; i_fd++){
+            if(ethch395_socket_is_used(i_fd)){
+                break;
+            }
+        }
+        if(i_fd < ETHCH395_SOCKET_NUM_MAX){
+            if((rt_tick_get() - s_ethch395_assistant_info.sys_error_tick) > ETHCH395_SYS_ERROR_TIMEOUT){
+                s_ethch395_assistant_info.flag.system_error = ETHCH395_ENUM_TRUE;
+            }else{
+                s_ethch395_assistant_info.flag.system_error = ETHCH395_ENUM_FALSE;
+            }
+        }else{
+            s_ethch395_assistant_info.flag.system_error = ETHCH395_ENUM_FALSE;
+            s_ethch395_assistant_info.sys_error_tick = rt_tick_get();
         }
 
         /** 中断管脚产生了中断 */
@@ -1414,6 +1453,10 @@ static void ethch395_device_init(void)
         }
 
         ethch395_config_dns_ip(ethch395_get_dev_gatewayip(), 0x04);
+
+        for(uint8_t socket = 0x00; socket < ETHCH395_SOCKET_NUM_MAX; socket++){
+            ethch395_socket_free(socket);
+        }
 
         s_ethch395_state = NETDEV_ETHCH395_STATE_MODULE_INIT;    /** 芯片状态：芯片相关信息初始化 */
         /** 查询设备MAC地址 */

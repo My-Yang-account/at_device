@@ -106,7 +106,7 @@ int32_t ethch395_netdev_send(void *data, uint32_t len)
         return 0x00;
     }
 
-    rt_kprintf("send:%02X\n", *((uint8_t*)data + 0));
+//    LOG_D("send:%02X\n", *((uint8_t*)data + 0));
 
     return rt_device_write(s_ethch395_netdev, 0, data, len);
 }

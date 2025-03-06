@@ -34,6 +34,7 @@ enum netdev_ctrl{
     NET_NETDEV_CTRL_CMD_QUERY_SIM,
     NET_NETDEV_CTRL_CMD_QUERY_STRENGTH,
     NET_NETDEV_CTRL_CMD_QUERY_IMEI,
+    NET_NETDEV_CTRL_CMD_QUERY_SYS_ERR,
 };
 
 void net_set_netdev_init_status(uint8_t devid, uint8_t status);

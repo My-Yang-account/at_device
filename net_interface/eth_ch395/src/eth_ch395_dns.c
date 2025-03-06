@@ -366,12 +366,14 @@ static int32_t ethch395_dnsudp_socket_init(void)
     res = ethch395_config_socket_dest_port(s_socket_fd, ETHCH395_DNS_PORT);
     if(res < 0x00){
         LOG_E("ethch395 config dns socket dest port fail(%d, %d)", res, s_socket_fd);
+        ethch395_socket_free(s_socket_fd);
         return -0x01;
     }
     /** 保存目的IP */
     res = ethch395_config_socket_dest_ip(s_socket_fd, s_ethch395_dns_ip, sizeof(s_ethch395_dns_ip));
     if(res < 0x00){
         LOG_E("ethch395 config dns socket dest ip fail(%d, %d)", res, s_socket_fd);
+        ethch395_socket_free(s_socket_fd);
         return -0x01;
     }
 
@@ -380,24 +382,28 @@ static int32_t ethch395_dnsudp_socket_init(void)
     res = ethch395_cmd_set_socket_protocol(s_socket_fd, ETHCH395_WORK_MODE_UDP);
     if(res < 0x00){
         LOG_E("ethch395 set dns socket protocol type fail(%d, %d)", res, s_socket_fd);
+        ethch395_socket_free(s_socket_fd);
         return -0x01;
     }
     /** 给网络设备配置 socket 目的IP */
     res = ethch395_cmd_set_remote_ip(s_socket_fd);
     if(res < 0x00){
         LOG_E("ethch395 set dns dest ip fail(%d, %d)", res, s_socket_fd);
+        ethch395_socket_free(s_socket_fd);
         return -0x01;
     }
     /** 给网络设备配置 socket 目的端口 */
     res = ethch395_cmd_set_remote_port(s_socket_fd);
     if(res < 0x00){
         LOG_E("ethch395 set dns dest port fail(%d, %d)", res, s_socket_fd);
+        ethch395_socket_free(s_socket_fd);
         return -0x01;
     }
     /** 给网络设备配置 socket 源端口 */
     res = ethch395_cmd_set_source_port(s_socket_fd);
     if(res < 0x00){
         LOG_E("ethch395 set dns sour port fail(%d, %d)", res, s_socket_fd);
+        ethch395_socket_free(s_socket_fd);
         return -0x01;
     }
 
@@ -405,6 +411,7 @@ static int32_t ethch395_dnsudp_socket_init(void)
     res = ethch395_cmd_open_socket(s_socket_fd);
     if(res < 0x00){
         LOG_E("ethch395 open dns socket fail(%d, %d)", res, s_socket_fd);
+        ethch395_socket_free(s_socket_fd);
         return -0x01;
     }
 
