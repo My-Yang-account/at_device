@@ -7,6 +7,11 @@
  * Date           Author       Notes
  * 2024-09-05     我的杨yang       the first version
  */
+
+/******************************
+ * 注：本文件属于以太网设备指令部分
+ *    实现了常用的指令
+ *****************************/
 #include "eth_ch395_cmd.h"
 #include "eth_ch395_netdev.h"
 #include "eth_ch395_transceiver.h"
@@ -370,9 +375,11 @@ int32_t ethch395_cmd_query_socket_int(uint8_t fd)
     if(fd >= ETHCH395_SOCKET_NUM_MAX){
         return -0x01;
     }
-//    if(s_ethch395_info.socket[fd].flag.used != ETHCH395_ENUM_TRUE){
-//        return -0x03;
-//    }
+#if 0
+    if(s_ethch395_info.socket[fd].flag.used != ETHCH395_ENUM_TRUE){
+        return -0x03;
+    }
+#endif
 
     uint8_t status = 0x00;
 
@@ -403,9 +410,11 @@ int32_t ethch395_cmd_query_socket_status(uint8_t fd)
     if(fd >= ETHCH395_SOCKET_NUM_MAX){
         return -0x01;
     }
-//    if(s_ethch395_info.socket[fd].flag.used != ETHCH395_ENUM_TRUE){
-//        return -0x03;
-//    }
+#if 0
+    if(s_ethch395_info.socket[fd].flag.used != ETHCH395_ENUM_TRUE){
+        return -0x03;
+    }
+#endif
 
     uint16_t status = 0x00;
 
@@ -1176,9 +1185,11 @@ int32_t ethch395_cmd_disconnect_tcp(uint8_t fd)
     if(fd >= ETHCH395_SOCKET_NUM_MAX){
         return -0x01;
     }
-//    if(s_ethch395_info.socket[fd].flag.used != ETHCH395_ENUM_TRUE){
-//        return -0x03;
-//    }
+#if 0
+    if(s_ethch395_info.socket[fd].flag.used != ETHCH395_ENUM_TRUE){
+        return -0x03;
+    }
+#endif
 
     int32_t res = 0x00;
     uint32_t stime = rt_tick_get();
@@ -1213,8 +1224,6 @@ int32_t ethch395_cmd_disconnect_tcp(uint8_t fd)
 
     return res;
 }
-
-
 
 /**************************************************
  *  函数名   ethch395_cmd_set_tcp_mss
@@ -1346,6 +1355,8 @@ int32_t ethch395_cmd_set_socket_keeplive(uint8_t fd, uint8_t state)
 }
 
 
+
+
 /**************************************************
  *  函数名   ethch395_socket
  *  参数       protocol       协议类型
@@ -1375,7 +1386,6 @@ int32_t ethch395_socket(uint8_t protocol)
 int32_t ethch395_socket_free(int s)
 {
     if((s >= 0x00) && (s < ETHCH395_SOCKET_NUM_MAX)){
-        /** 目前 */
         uint16_t port = s_ethch395_info.socket[s].sour_port;
         uint8_t sbuf_block_num = s_ethch395_info.socket[s].sbuf_block_num,
                 rbuf_block_num = s_ethch395_info.socket[s].rbuf_block_num,
@@ -1392,6 +1402,9 @@ int32_t ethch395_socket_free(int s)
 
     return -0x01;
 }
+
+
+
 
 /**************************************************
  *  函数名   ethch395_config_dev_ip
@@ -1513,6 +1526,7 @@ int32_t ethch395_config_socket_sour_port(int s, uint16_t port)
 
     return -0x01;
 }
+
 
 
 /**************************************************

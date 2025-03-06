@@ -48,24 +48,26 @@
 #define ETHCH395_SOCKET_INT_MASK                                    0xF0              /* 全局中断中socket中断部分掩码 */
 #endif /* ETHCH395_CHIP_VER_MORE_ADVANCED_THAN_0X44 */
 
+/** 获取结构体成员地址 */
 #define ethch395_container_of(ptr, type, member) \
     ((type *)((char *)(ptr) - (unsigned long)(&((type *)0)->member)))
 
 #pragma pack(1)
 
-/** socket 链表点 */
+/** socket 数据链表点 */
 typedef struct slist{
     struct slist *next;
-}ethch395_slist;
+}ethch395_slist_t;
 
 /** 接收数据包信息 */
 typedef struct{
-    ethch395_slist node;                           /** 链表点 */
+    ethch395_slist_t node;                         /** 链表点 */
     uint32_t bfsz_totle;                           /** 数据大小 */
     uint32_t bfsz_index;                           /** 数据当前获取下标 */
     uint8_t *buff;                                 /** 数据 */
 }ethch395_recv_pkt;
 
+/** socket 信息 */
 struct ethch395_socket_info{
     struct{
         uint8_t send_ok : 1;                       /** socket 信息：发送成功 */
@@ -76,9 +78,10 @@ struct ethch395_socket_info{
     }flag;
     int32_t recv_timeout;                          /** socket 接收数据超时时间 */
     uint32_t recv_size;                            /** socket 接收缓存数据大小 */
-    ethch395_slist list;                           /** 单向数据链表 */
+    ethch395_slist_t list;                         /** 单向数据链表 */
 };
 
+/** 辅助信息 */
 struct ethch395_assistant{
     struct{
         uint8_t error : 1;                             /** 发生了错误 */
@@ -86,9 +89,10 @@ struct ethch395_assistant{
     }flag;
 };
 
+/** 以太网芯片操作访问锁 */
 struct ethch395_access_lock{
-    uint8_t lock;
-    void *owner;
+    uint8_t lock;                                  /** 锁标志 */
+    void *owner;                                   /** 当前操作以太网芯片的线程句柄 */
 };
 #pragma pack()
 
@@ -171,7 +175,7 @@ int32_t ethch395_set_node_running_handle(void *handle)
 }
 
 /*********************************************************************************************
- * **************************************** 数据链表 *****************************************
+ * **************************************** socket 数据链表 *************************************
  ********************************************************************************************/
 /**************************************************
  *  函数名   ethch395_slist_init
@@ -179,7 +183,7 @@ int32_t ethch395_set_node_running_handle(void *handle)
  *  功能       初始化一个socket 数据链表
  *  返回
  *************************************************/
-static void ethch395_slist_init(ethch395_slist *list)
+static void ethch395_slist_init(ethch395_slist_t *list)
 {
     list->next = NULL;
 }
@@ -189,20 +193,20 @@ static void ethch395_slist_init(ethch395_slist *list)
  *  功能       查询 socket 数据链表是否为空
  *  返回      > 0 : 否，< =0 ：是
  *************************************************/
-static uint8_t ethch395_slist_isempty(ethch395_slist *list)
+static uint8_t ethch395_slist_isempty(ethch395_slist_t *list)
 {
     return (list->next == NULL);
 }
 /**************************************************
  *  函数名   ethch395_slist_append
  *  参数       list        链表表头
- *     node        节点
+ *        node        节点
  *  功能       向指定链表中添加节点
  *  返回
  *************************************************/
-static void ethch395_slist_append(ethch395_slist *list, ethch395_slist *node)
+static void ethch395_slist_append(ethch395_slist_t *list, ethch395_slist_t *node)
 {
-    ethch395_slist *n;
+    ethch395_slist_t *n;
 
     n = list;
     while(n->next){
@@ -219,14 +223,14 @@ static void ethch395_slist_append(ethch395_slist *list, ethch395_slist *node)
  *  功能       从链表中移除指定节点
  *  返回     链表表头
  ********************************************************************************/
-static ethch395_slist *ethch395_slist_remove(ethch395_slist *list, ethch395_slist *node)
+static ethch395_slist_t *ethch395_slist_remove(ethch395_slist_t *list, ethch395_slist_t *node)
 {
-    ethch395_slist *n = list;
+    ethch395_slist_t *n = list;
     while(n->next && n->next != node){
         n = n->next;
     }
 
-    if(n->next != (ethch395_slist *)0){
+    if(n->next != (ethch395_slist_t *)0){
         n->next = n->next->next;
     }
 
@@ -239,7 +243,7 @@ static ethch395_slist *ethch395_slist_remove(ethch395_slist *list, ethch395_slis
  *  功能       释放指定链表中自定节点的内存
  *  返回      >= 0 : 成功，< 0 ：失败
  **************************************************************************************/
-static uint8_t ethch395_recvpkt_node_delete(ethch395_slist *rlist, ethch395_slist *node)
+static uint8_t ethch395_recvpkt_node_delete(ethch395_slist_t *rlist, ethch395_slist_t *node)
 {
     ethch395_recv_pkt *pack = NULL;
 
@@ -268,9 +272,9 @@ static uint8_t ethch395_recvpkt_node_delete(ethch395_slist *rlist, ethch395_slis
  *  功能      从指定链表中获取数据
  *  返回      > 0 : 有数据，< =0 ：错误
  *********************************************************************************/
-static int32_t ethch395_recvpkt_get(ethch395_slist *rlist, char *mem, uint32_t len)
+static int32_t ethch395_recvpkt_get(ethch395_slist_t *rlist, char *mem, uint32_t len)
 {
-    ethch395_slist *node = NULL;
+    ethch395_slist_t *node = NULL;
     ethch395_recv_pkt *pack = NULL;
     int32_t content_pos = 0, page_pos = 0;
 
@@ -303,11 +307,16 @@ static int32_t ethch395_recvpkt_get(ethch395_slist *rlist, char *mem, uint32_t l
 
     return content_pos;
 }
-
 /*********************************************************************************************
- * **************************************** 数据链表 *****************************************
  ********************************************************************************************/
 
+/**********************************************************************************
+ *  函数名   ethch395_wait_operate_lock
+ *  参数       timeout     等待时长(ms)
+ *        handle      等待的线程句柄
+ *  功能      等待芯片操作访问锁
+ *  返回      1 : 等到访问锁，    0 ：等到访问锁
+ *********************************************************************************/
 uint8_t ethch395_wait_operate_lock(int32_t timeout, void *handle)
 {
     uint32_t tick = rt_tick_get();
@@ -332,6 +341,7 @@ uint8_t ethch395_wait_operate_lock(int32_t timeout, void *handle)
         rt_thread_mdelay(10);
     }
 
+    /** 加临界区是为了防止高优先级线程抢占 */
     rt_enter_critical();
     if(s_ethch395_access_lock.lock == ETHCH395_ENUM_FALSE){
         LOG_D("000 operate_lock(%d, %d)\n", s_ethch395_access_lock.owner, handle);
@@ -346,18 +356,27 @@ uint8_t ethch395_wait_operate_lock(int32_t timeout, void *handle)
     return ETHCH395_ENUM_FALSE;
 }
 
+/**********************************************************************************
+ *  函数名   ethch395_unlock_operate_lock
+ *  参数       handle      解锁线程句柄
+ *  功能      解锁芯片操作访问锁
+ *  返回      1 : 解锁成功，    0 ：解锁失败
+ *********************************************************************************/
 uint8_t ethch395_unlock_operate_lock(void *handle)
 {
     if((s_ethch395_access_lock.owner == handle) && (s_ethch395_access_lock.owner != NULL)){
         LOG_D("ethch395_unlock_operate_lock(%d, %d)", s_ethch395_access_lock.owner, handle);
-        s_ethch395_access_lock.lock = ETHCH395_ENUM_FALSE;
         s_ethch395_access_lock.owner = NULL;
+        s_ethch395_access_lock.lock = ETHCH395_ENUM_FALSE;
 
         return ETHCH395_ENUM_TRUE;
     }
     return ETHCH395_ENUM_FALSE;
 }
 
+/*****************************************************************************************************************
+ ************************************************** socket API ***************************************************
+ ****************************************************************************************************************/
 /**************************************************
  *  函数名   host_is_pure_digital
  *  参数       host        主机名
@@ -372,10 +391,10 @@ static int32_t host_is_pure_digital(char* host, uint16_t host_len, uint8_t *ipbu
     if((host == NULL) || (host_len == 0x00)){
         return ETHCH395_ENUM_FALSE;
     }
-    if(host_len > 15){ /* 点分十进制式IP最大长度为 15 */
+    if(host_len > 15){ /** 点分十进制式IP最大长度为 15 */
         return ETHCH395_ENUM_FALSE;
     }
-    if((ipbuf == NULL) || (plen < 0x04)){    /* 点分十进制式IP为4个十进制数组合 */
+    if((ipbuf == NULL) || (plen < 0x04)){    /** 点分十进制式IP为4个十进制数组合 */
         return ETHCH395_ENUM_FALSE;
     }
 
@@ -385,8 +404,8 @@ static int32_t host_is_pure_digital(char* host, uint16_t host_len, uint8_t *ipbu
 
     for(i = 0x00; i < host_len; i++){
         memset(strbuf, 0x00, sizeof(strbuf));
-        if(host[i] == '.'){     /* 点分十进制式IP分隔符 */
-            if(((uint8_t*)host + i) > (ptr + 0x03)){    /* 点分十进制式IP，单个十进制数最大长度为3 */
+        if(host[i] == '.'){     /** 点分十进制式IP分隔符 */
+            if(((uint8_t*)host + i) > (ptr + 0x03)){    /** 点分十进制式IP，单个十进制数最大长度为3 */
                 return ETHCH395_ENUM_FALSE;
             }
             clen = (((uint8_t*)host + i) - ptr);
@@ -406,7 +425,7 @@ static int32_t host_is_pure_digital(char* host, uint16_t host_len, uint8_t *ipbu
             ipbuf[count] = digit;
             ptr = ((uint8_t*)host + i + 0x01);
             count++;
-            if(count >= 0x04){  /* 点分十进制式IP为4个十进制数组合 */
+            if(count >= 0x04){  /** 点分十进制式IP为4个十进制数组合 */
                 return ETHCH395_ENUM_FALSE;
             }
         }
@@ -457,7 +476,7 @@ int netdev_ethch395_socket_open_port(int *socket_fd, char* host, uint16_t host_l
     int res = 0x00, _fd = -0x01;
     uint8_t _ip[0x04];           /** 点分十进制式IP */
     uint32_t wait_tick = 0x00;
-    ethch395_slist *node = NULL;
+    ethch395_slist_t *node = NULL;
     void *handle = ethch395_get_thread_handle();
 
     memset(_ip, 0x00, sizeof(_ip));
@@ -725,7 +744,7 @@ int netdev_ethch395_socket_close_port(int socket_fd)
     }
 
     uint32_t wait_tick = 0x00;
-    ethch395_slist *node = NULL;
+    ethch395_slist_t *node = NULL;
     void *handle = ethch395_get_thread_handle();
 
     while(ethch395_wait_operate_lock(-0x01, handle) == ETHCH395_ENUM_FALSE);
@@ -907,6 +926,13 @@ void ethch395_cmd_data_clear(void)
     reset_ethch395_data_sem();
 }
 
+/**************************************************
+ *  函数名   ethch395_cmd_data_recv
+ *  参数       buf      存放响应数据的缓存
+ *        len      缓存长度
+ *  功能       接收指令响应数据
+ *  返回       >=0：成功接收到数据或响应超时       <0：接收失败
+ *************************************************/
 int32_t ethch395_cmd_data_recv(uint8_t *buf, uint8_t len)
 {
     if((buf == NULL) || (len == 0x00)){
@@ -930,7 +956,7 @@ int32_t ethch395_cmd_data_recv(uint8_t *buf, uint8_t len)
             }
         }
 
-        rt_kprintf("recv(%02X, %d, %d)\n", ch, rlen, len);
+        LOG_D("recv(%02X, %d, %d)", ch, rlen, len);
         buf[rlen] = ch;
         rlen++;
 
@@ -959,6 +985,7 @@ static void ethch395_recv_thread_entry(void* parameter)
         if(ethch395_node_running){
             ethch395_node_running(handle, NULL, 0x00, 0x00);
         }
+        /** 如果设备未初始化或设备被复位，则需要重新初始化 */
         if(s_ethch395_assistant_info.flag.init_complete == ETHCH395_ENUM_FALSE){
             ethch395_device_init();
         }
@@ -969,19 +996,19 @@ static void ethch395_recv_thread_entry(void* parameter)
         }
 
         count = 0x00;
-
+        /************* 遍历 socket，查看是否有 socket 接收到了数据 ************/
         for(socket = 0x00; socket < ETHCH395_SOCKET_NUM_MAX; socket++){
             if(s_ethch395_socket_info[socket].flag.recv == ETHCH395_ENUM_TRUE){
-
+                /** 等待上一次操作完成 */
                 while(ethch395_wait_operate_lock(-0x01, handle) == ETHCH395_ENUM_FALSE);
-
+                /** 发送指令读取芯片缓冲区数据 */
                 if(ethch395_cmd_read_rbuf_data(socket, s_ethch395_socket_info[socket].recv_size) < 0x00){
                     LOG_E("ethch395 read socket rbuf data fail(%d, %d)", socket, s_ethch395_socket_info[socket].recv_size);
                     s_ethch395_socket_info[socket].flag.recv = ETHCH395_ENUM_FALSE;
                     rt_thread_mdelay(10);
                     continue;
                 }
-
+                /** 如果芯片超时未响应，结束本次接收 */
                 if(take_ethch395_data_sem(ETHCH395_WAIT_CMD_RESDATA_TIMEOUT) < 0x00){
                     LOG_E("ethch395 wait socket data sem fail(%d)", socket);
                     s_ethch395_socket_info[socket].flag.recv = ETHCH395_ENUM_FALSE;
@@ -992,7 +1019,7 @@ static void ethch395_recv_thread_entry(void* parameter)
                 uint8_t *buf = NULL, rentry = 0x00;
                 ethch395_recv_pkt *pack = NULL;
                 uint32_t len = 0x00, recved_len = 0x00, remain_len = s_ethch395_socket_info[socket].recv_size;
-
+                /** 动态创建缓存，用于保存接收到的数据 */
                 buf = (uint8_t*)rt_malloc(s_ethch395_socket_info[socket].recv_size);
                 if(buf == NULL){
                     rt_thread_mdelay(10);
@@ -1013,7 +1040,7 @@ static void ethch395_recv_thread_entry(void* parameter)
                     if((len = ethch395_netdev_recv((buf + recved_len), remain_len)) != remain_len){
                         recved_len += len;
                         remain_len -= len;
-
+                        /** 未接收到指定长度的数据，最多等待 ETHCH395_WAIT_CMD_RESDATA_TIMEOUT ms */
                         if(take_ethch395_data_sem(ETHCH395_WAIT_CMD_RESDATA_TIMEOUT) < 0x00){  /** 数据没接收完最多等待1000ms(等待时间) */
                             if(++rentry > ETHCH395_RECV_RENTRY_MAX){
                                 s_ethch395_socket_info[socket].flag.recv = ETHCH395_ENUM_FALSE;
@@ -1026,6 +1053,7 @@ static void ethch395_recv_thread_entry(void* parameter)
                                 }
                                 break;
                             }
+                            /** 等待后还没有数据，继续发指令读取芯片缓冲区数据 */
                             if(ethch395_cmd_read_rbuf_data(socket, remain_len) < 0x00){
                                 LOG_E("ethch395 read socket rbuf data again fail(%d, %d)", socket, remain_len);
                                 continue;
@@ -1043,7 +1071,7 @@ static void ethch395_recv_thread_entry(void* parameter)
                     }
                     recved_len += len;
                     remain_len -= len;
-
+                    /** 已接收完指定长度数据，将数据包添加到数据链表 */
                     if(recved_len >= s_ethch395_socket_info[socket].recv_size){
                         s_ethch395_socket_info[socket].flag.recv = ETHCH395_ENUM_FALSE;
                         ethch395_slist_append(&s_ethch395_socket_info[socket].list, &pack->node);
@@ -1051,12 +1079,14 @@ static void ethch395_recv_thread_entry(void* parameter)
                     }
                 }
                 if(pack){
+                    /** 已接收到数据，发送事件通知 */
                     rt_event_send(&s_ethch395_event, (0x01 <<(socket + 0x01)));
                 }
             }else{
                 count++;
             }
         }
+        /** 本次接收操作完成，释放操作访问互斥锁 */
         if(count == ETHCH395_SOCKET_NUM_MAX){
             ethch395_unlock_operate_lock(handle);
         }
@@ -1088,10 +1118,11 @@ static void ethch395_event_pro_thread_entry(void* parameter)
             continue;
         }
 
-        if(is_ethch395_irq_coming()){   /* 中断管脚产生了中断 */
-
+        /** 中断管脚产生了中断 */
+        if(is_ethch395_irq_coming()){
+            /** 等待上一次操作完成 */
             while(ethch395_wait_operate_lock(-0x01, handle) == ETHCH395_ENUM_FALSE);
-
+            /** 查询全局中断信息 */
             if(ethch395_cmd_query_globe_int_status() < 0x00){
                 ethch395_unlock_operate_lock(ethch395_get_thread_handle());
                 LOG_E("ethch395 get globe int status fail");
@@ -1102,7 +1133,7 @@ static void ethch395_event_pro_thread_entry(void* parameter)
             rt_thread_mdelay(20);
             continue;
         }
-
+        /*************************** 全局中断解析 *************************/
         /** 不可达中断 */
         if(s_ethch395_globe_int->bit.not_reachable == ETHCH395_ENUM_TRUE){
             s_ethch395_globe_int->bit.not_reachable = ETHCH395_ENUM_FALSE;
@@ -1113,20 +1144,25 @@ static void ethch395_event_pro_thread_entry(void* parameter)
         }
         /** PHY 状态改变 */
         if(s_ethch395_globe_int->bit.phy_changed == ETHCH395_ENUM_TRUE){
-//                s_ethch395_globe_int->bit.phy_changed = ETHCH395_ENUM_FALSE;
+#if 0
+            s_ethch395_globe_int->bit.phy_changed = ETHCH395_ENUM_FALSE;
+#endif
         }
         /** DHCP */
         if(s_ethch395_globe_int->bit.dhcp == ETHCH395_ENUM_TRUE){
-//                s_ethch395_globe_int->bit.dhcp = ETHCH395_ENUM_FALSE;
+#if 0
+            s_ethch395_globe_int->bit.dhcp = ETHCH395_ENUM_FALSE;
+#endif
         }
 
         /** socket 中断 */
         if(s_ethch395_globe_int->value &ETHCH395_SOCKET_INT_MASK){
             uint8_t rentry = 0x00, int_base = 0x04;     /** socket 中断从第 4位开始 */
             for(uint8_t socket = 0x00; socket < ETHCH395_SOCKET_NUM_MAX; socket++){
+                /** 查找产生中断的 socket 号 */
                 if(s_ethch395_globe_int->value &(0x01 <<(int_base + socket))){
                     s_ethch395_globe_int->value &= (~(0x01 <<(int_base + socket)));
-
+                    /** 查询指定 socket 的中断信息(如果查询失败，最多尝试 ETHCH395_SEND_RENTRY_MAX 次) */
                     for(rentry = 0x00; rentry < ETHCH395_SEND_RENTRY_MAX; rentry++){
                         if(ethch395_cmd_query_socket_int(socket) < 0x00){
                             LOG_E("ethch395 query socket init fail(%d)", socket);
@@ -1139,30 +1175,32 @@ static void ethch395_event_pro_thread_entry(void* parameter)
                         LOG_E("ethch395 query socket init fail(%d)", socket);
                         continue;
                     }
-
+                    /*************************** socket 中断解析 *************************/
                     s_ethch395_socket_int = ethch395_get_socket_int_info(socket);
                     if(s_ethch395_socket_info[socket].flag.connected == ETHCH395_ENUM_FALSE){
+                        /** TCP 连接中断 */
                         if(s_ethch395_socket_int->bit.tcp_connect){
                             LOG_D("socket(%d) connect interrupt", socket);
                             s_ethch395_socket_info[socket].flag.connected = ETHCH395_ENUM_TRUE;
                         }
                     }else{
+                        /** TCP连接断开中断 */
                         if(s_ethch395_socket_int->bit.tcp_disconnect){
                             LOG_D("socket(%d) disconnect interrupt", socket);
                             s_ethch395_socket_info[socket].flag.connected = ETHCH395_ENUM_FALSE;
                         }
                     }
-
+                    /** 发送缓冲区非空中断 */
                     if(s_ethch395_socket_int->bit.sbuf_free){
                         LOG_D("socket(%d) send free interrupt", socket);
                         s_ethch395_socket_info[socket].flag.sbuf_free = ETHCH395_ENUM_TRUE;
                     }
-
+                    /** 发送成功中断 */
                     if(s_ethch395_socket_int->bit.send_ok){
                         LOG_D("socket(%d) send ok interrupt", socket);
                         s_ethch395_socket_info[socket].flag.send_ok = ETHCH395_ENUM_TRUE;
                     }
-
+                    /** 超时中断(多种原因：看协议) */
                     if(s_ethch395_socket_int->bit.timeout){
                         LOG_D("socket(%d) send timeout interrupt", socket);
                         s_ethch395_socket_info[socket].flag.timeout = ETHCH395_ENUM_TRUE;
@@ -1206,7 +1244,7 @@ static void ethch395_device_init(void)
     int32_t res = 0x00;
     uint32_t baudrate = ETHCH395_NETDEV_BAUDRATE_9600, wait_tick;
     memset(resp, 0x00, sizeof(resp));
-    ethch395_slist *node = NULL;
+    ethch395_slist_t *node = NULL;
     void *handle = ethch395_get_thread_handle();
 
     s_ethch395_reset_tick = rt_tick_get();

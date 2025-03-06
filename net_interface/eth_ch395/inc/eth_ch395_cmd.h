@@ -116,6 +116,7 @@
 #define ETHCH395_SOCKET_STATUS_CLOSE                                0x00            /* Socket 的状态码：关闭 */
 #define ETHCH395_SOCKET_STATUS_OPEN                                 0x05            /* Socket 的状态码：打开 */
 
+/** ethch395 tcp state */
 #define ETHCH395_TCP_STATUS_CLOSE                                   0x00            /* TCP 的状态码：关闭  */
 #define ETHCH395_TCP_STATUS_LISTEN                                  0x01            /* TCP 的状态码：监听  */
 #define ETHCH395_TCP_STATUS_SYN_SENT                                0x02            /* TCP 的状态码：SYN 发送  */
@@ -128,11 +129,11 @@
 #define ETHCH395_TCP_STATUS_LAST_ACK                                0x09            /* TCP 的状态码：被动关闭方发送 FIN  */
 #define ETHCH395_TCP_STATUS_TIME_WAIT                               0x0A            /* TCP 的状态码：2MLS 等待状态  */
 
-/** ethch395 socket interrupt */
+/** ethch395 cmd execute status */
 #define ETHCH395_CMD_STATUS_OPENED                                  0x20            /* 命令执行状态：已打开 */
 #define ETHCH395_CMD_STATUS_OPENED                                  0x20            /* 命令执行状态：已打开 */
 
-/** ethch395 baudrate */
+/** ethch395 baudrate and correspondence para */
 #define ETHCH395_CMD_BAUDRATE_4800                                  0x00            /* ethch395 波特率 4800 */
 #define ETHCH395_CMD_BAUDRATE_4800_PARA0                            0xC0            /* ethch395 波特率 4800，参数0 */
 #define ETHCH395_CMD_BAUDRATE_4800_PARA1                            0x12            /* ethch395 波特率 4800，参数1 */
@@ -210,6 +211,7 @@ enum ethch395_enum{
     ETHCH395_ENUM_TRUE,
 };
 
+/** ethch395 work mode */
 enum ethch395_work_mode{
     ETHCH395_WORK_MODE_IP_MESSAGE,
     ETHCH395_WORK_MODE_MAC_MESSAGE,
@@ -218,6 +220,7 @@ enum ethch395_work_mode{
     ETHCH395_WORK_MODE_SIZE,
 };
 
+/** ethch395 globe interrupt bit */
 union ethch395_globe_int{
     struct{
         uint16_t not_reachable : 1;                   /* 中断：不可达中断 */
@@ -237,6 +240,7 @@ union ethch395_globe_int{
     uint16_t value;
 };
 
+/** ethch395 socket interrupt bit */
 union ethch395_socket_int{
     struct{
         uint8_t sbuf_free : 1;                       /* 中断：发送缓冲区空闲 */
@@ -251,62 +255,450 @@ union ethch395_socket_int{
     uint8_t value;
 };
 
+/******************************** 指令部分 ***********************************/
+/******************************** 指令部分 ***********************************/
+
+/**************************************************
+ *  函数名   ethch395_cmd_query_ic_version
+ *  参数       buf       数据缓存
+ *     len        数据缓存长度
+ *  功能       查询模块版本
+ *  返回       >= 0 : 成功，< 0 : 失败
+ *************************************************/
 int32_t ethch395_cmd_query_ic_version(uint8_t *buf, uint8_t len);
+
+/**************************************************
+ *  函数名   ethch395_cmd_set_baudrate
+ *  参数       prar1       系数1
+ *     prar2       系数2
+ *     prar3       系数3
+ *  功能      设置串口波特率
+ *  返回       >= 0 : 成功，< 0 : 失败
+ *************************************************/
 int32_t ethch395_cmd_set_baudrate(uint32_t baudrate);
+
+/**************************************************
+ *  函数名   ethch395_cmd_hard_reset
+ *  参数
+ *  功能       发送硬复位指令
+ *  返回       >= 0 : 成功，< 0 : 失败
+ *************************************************/
 int32_t ethch395_cmd_hard_reset(void);
+
+/**************************************************
+ *  函数名   ethch395_cmd_query_globe_int_status
+ *  参数       buf       数据缓存
+ *     len        数据缓存长度
+ *  功能       查询全局中断状态
+ *  返回       中断状态码
+ *************************************************/
 int32_t ethch395_cmd_query_globe_int_status(void);
+
+/**************************************************
+ *  函数名   ethch395_cmd_query_socket_int
+ *  参数       fd         socket 下标
+ *  功能       查询socket中断
+ *  返回       socket中断状态码
+ *************************************************/
 int32_t ethch395_cmd_query_socket_int(uint8_t fd);
+
+/**************************************************
+ *  函数名   ethch395_cmd_query_socket_status
+ *  参数       fd         socket 下标
+ *  功能       查询socket状态
+ *  返回       socket状态码
+ *************************************************/
 int32_t ethch395_cmd_query_socket_status(uint8_t fd);
+
+/**************************************************
+ *  函数名   ethch395_cmd_test_communication_status
+ *  参数
+ *  功能       测试通信接口状态
+ *  返回        >= 0 : 成功，< 0 : 失败
+* 注：
+* 该命令需要输入 1 个字节数据，可以是任意数据，如果 CH395 正常工作，那么 CH395 的输出数据是输入数据的按位取反。
+*例如，输入数据是 57H，则输出数据是 A8H
+ *************************************************/
 int32_t ethch395_cmd_test_communication_status(void);
+
+/**************************************************
+ *  函数名   ethch395_cmd_set_phy
+ *  参数       mode       模式
+ *  功能      设置                      ch395 PHY连接方式
+ *  返回       >= 0 : 成功，< 0 : 失败
+ *************************************************/
 int32_t ethch395_cmd_set_phy(uint8_t mode);
+
+/**************************************************
+ *  函数名   ethch395_cmd_query_cmd_status
+ *  参数
+ *  功能      查询指令执行状态
+ *  返回       >= 0 : 状态码，< 0 : 查询失败失败
+ *************************************************/
 int32_t ethch395_cmd_query_cmd_status(void);
+
+/**************************************************
+ *  函数名   ethch395_cmd_set_func_para
+ *  参数       para     参数(仅支持0和1)
+ *  功能      设置TCP功能参数
+ *  返回       >= 0 : 状态码，< 0 : 查询失败失败
+ *************************************************/
 int32_t ethch395_cmd_set_func_para(uint8_t para);
+
+/**************************************************
+ *  函数名   ethch395_cmd_init
+ *  参数
+ *  功能      初始化ch395芯片
+ *  返回       >= 0 : 成功，< 0 : 失败
+ *************************************************/
 int32_t ethch395_cmd_init(void);
+
+/**************************************************
+ *  函数名   ethch395_cmd_set_dhcp_status
+ *  参数
+ *  功能      设置DHCP状态
+ *  返回       >= 0 : 成功，< 0 : 失败
+ *************************************************/
 int32_t ethch395_cmd_set_dhcp_status(uint8_t status);
+
+/**************************************************
+ *  函数名   ethch395_cmd_query_dhcp_status
+ *  参数
+ *  功能      查询DHCP状态
+ *  返回       >= 0 : 成功，< 0 : 失败
+ *************************************************/
 int32_t ethch395_cmd_query_dhcp_status(void);
+
+/**************************************************
+ *  函数名   ethch395_cmd_query_ip_info
+ *  参数       buf       数据缓存
+ *     len        数据缓存长度
+ *  功能       查询IP信息
+ *  返回       >= 0 : 成功，< 0 : 失败
+ *************************************************/
 int32_t ethch395_cmd_query_ip_info(uint8_t *buf, uint8_t len);
+
+/**************************************************
+ *  函数名   ethch395_cmd_query_dev_mac
+ *  参数       buf       数据缓存
+ *     len        数据缓存长度
+ *  功能       查询设备MAC 地址
+ *  返回       >= 0 : 成功，< 0 : 失败
+ *************************************************/
 int32_t ethch395_cmd_query_dev_mac(uint8_t *buf, uint8_t len);
+
+/**************************************************
+ *  函数名   ethch395_cmd_set_socket_protocol
+ *  参数       fd       socket 下标
+ *        is_mode  指定协议类型
+ *  功能       设置socket 协议类型
+ *  返回       >= 0 : 成功，< 0 : 失败
+ *************************************************/
 int32_t ethch395_cmd_set_socket_protocol(uint8_t fd, uint8_t is_mode);
+
+/**************************************************
+ *  函数名   ethch395_cmd_set_dev_ip
+ *  参数
+ *  功能       配置设备的IP地址
+ *  返回       >= 0 : 成功，< 0 : 失败
+ *************************************************/
 int32_t ethch395_cmd_set_dev_ip(void);
+
+/**************************************************
+ *  函数名   ethch395_cmd_set_dev_gateway_ip
+ *  参数
+ *  功能       配置设备的网关IP地址
+ *  返回       >= 0 : 成功，< 0 : 失败
+ *************************************************/
 int32_t ethch395_cmd_set_dev_gateway_ip(void);
+
+/**************************************************
+ *  函数名   ethch395_cmd_set_dev_subnet_mask
+ *  参数
+ *  功能       配置设备的子网掩码
+ *  返回       >= 0 : 成功，< 0 : 失败
+ *************************************************/
 int32_t ethch395_cmd_set_dev_subnet_mask(void);
+
+/**************************************************
+ *  函数名   ethch395_cmd_set_remote_ip
+ *  参数       fd       socket 下标
+ *  功能       设置目标IP
+ *  返回       >= 0 : 成功，< 0 : 失败
+ *************************************************/
 int32_t ethch395_cmd_set_remote_ip(uint8_t fd);
+
+/**************************************************
+ *  函数名   ethch395_cmd_set_remote_port
+ *  参数       fd       socket 下标
+ *  功能       设置目标port
+ *  返回       >= 0 : 成功，< 0 : 失败
+ *************************************************/
 int32_t ethch395_cmd_set_remote_port(uint8_t fd);
+
+/**************************************************
+ *  函数名   ethch395_cmd_set_source_port
+ *  参数       fd       socket 下标
+ *  功能       设置源port
+ *  返回       >= 0 : 成功，< 0 : 失败
+ *************************************************/
 int32_t ethch395_cmd_set_source_port(uint8_t fd);
+
+/**************************************************
+ *  函数名   ethch395_cmd_open_socket
+ *  参数       fd       socket 下标
+ *  功能      设置DHCP状态
+ *  返回       >= 0 : 成功，< 0 : 失败
+ *************************************************/
 int32_t ethch395_cmd_open_socket(uint8_t fd);
+
+/**************************************************
+ *  函数名   ethch395_cmd_connect_socket
+ *  参数       fd       socket 下标
+ *  功能      启动 socket 连接
+ *  返回       >= 0 : 成功，< 0 : 失败
+ *************************************************/
 int32_t ethch395_cmd_connect_socket(uint8_t fd);
+
+/**************************************************
+ *  函数名   ethch395_cmd_padding_data_sbuf
+ *  参数       fd       socket 下标
+ *     data     数据首地址
+ *     dlen     数据长度
+ *  功能      向发送缓冲区填数据
+ *  返回       >= 0 : 成功，< 0 : 失败
+ *************************************************/
 int32_t ethch395_cmd_padding_data_sbuf(uint8_t fd, void *data, uint16_t dlen);
+
+/**************************************************
+ *  函数名   ethch395_cmd_query_rbuf_data_len
+ *  参数       fd        socket 下标
+ *     buf       数据缓存
+ *     len        数据缓存长度
+ *  功能       查询接收缓冲区内的数据长度
+ *  返回       >= 0 : 成功，< 0 : 失败
+ *************************************************/
 int32_t ethch395_cmd_query_rbuf_data_len(uint8_t fd, uint8_t *buf, uint8_t len);
+
+/**************************************************
+ *  函数名   ethch395_cmd_read_rbuf_data
+ *  参数       fd        socket 下标
+ *     len       要接收的数据长度
+ *  功能       读取接收缓冲区内的数据(只是发送命令，接收由数据接收线程完成)
+ *  返回       >= 0 : 成功，< 0 : 失败
+ *************************************************/
 int32_t ethch395_cmd_read_rbuf_data(uint8_t fd, uint32_t len);
+
+/**************************************************
+ *  函数名   ethch395_cmd_close_socket
+ *  参数       fd       socket 下标
+ *  功能      关闭socket
+ *  返回       >= 0 : 成功，< 0 : 失败
+ *************************************************/
 int32_t ethch395_cmd_close_socket(uint8_t fd);
+
+/**************************************************
+ *  函数名   ethch395_cmd_disconnect_tcp
+ *  参数       fd       socket 下标
+ *  功能      断开TCP连接(在 TCP 模式下，关闭 Socket时 CH395 会自动断开 TCP 连接)
+ *  返回       >= 0 : 成功，< 0 : 失败
+ *************************************************/
 int32_t ethch395_cmd_disconnect_tcp(uint8_t fd);
 
+/**************************************************
+ *  函数名   ethch395_cmd_set_tcp_mss
+ *  参数       mss
+ *  功能       设置 tcp mss
+ *  返回       >= 0 : 成功，< 0 : 失败
+ *************************************************/
 int32_t ethch395_cmd_set_tcp_mss(uint16_t mss);
+
+/**************************************************
+ *  函数名   ethch395_cmd_set_send_buf
+ *  参数       fd
+ *  功能       设置发送缓冲区
+ *  返回       >= 0 : 成功，< 0 : 失败
+ *************************************************/
 int32_t ethch395_cmd_set_send_buf(uint8_t fd);
+
+/**************************************************
+ *  函数名   ethch395_cmd_set_recv_buf
+ *  参数       fd
+ *  功能       设置接收缓冲区
+ *  返回       >= 0 : 成功，< 0 : 失败
+ *************************************************/
 int32_t ethch395_cmd_set_recv_buf(uint8_t fd);
 
+/**************************************************
+ *  函数名   ethch395_cmd_set_socket_keeplive
+ *  参数       fd           socket 下标
+ *     state        socket keeplive 状态：0：关闭，1：使能
+ *  功能       设置 socket keeplive
+ *  返回       >= 0 : 成功，< 0 : 失败
+ *************************************************/
 int32_t ethch395_cmd_set_socket_keeplive(uint8_t fd, uint8_t state);
 
+/******************************** 信息操作部分 ***********************************/
+/******************************** 信息操作部分 ***********************************/
+
+/**************************************************
+ *  函数名   ethch395_socket
+ *  参数       protocol       协议类型
+ *  功能       查找一个未使用的 socket，并返回其下标
+ *  返回       >= 0 : 有效socket下标，< 0 ：socket都已被使用
+ *************************************************/
 int32_t ethch395_socket(uint8_t protocol);
+
+/**************************************************
+ *  函数名   ethch395_socket_free
+ *  参数       s                  socket下标
+ *  功能       释放一个已使用的 socket
+ *  返回       >= 0 : 成功，< 0 ：失败
+ *************************************************/
 int32_t ethch395_socket_free(int s);
 
+/******************************** 信息配置部分 ***********************************/
+/******************************** 信息配置部分 ***********************************/
+
+/**************************************************
+ *  函数名   ethch395_config_dev_ip
+ *  参数       s                  socket下标
+ *        ip                 socket 目的IP
+ *        len                socket 目的IP长度
+ *  功能       设置 设备的IP地址
+ *  返回       >= 0 : 成功，< 0 ：失败
+ *************************************************/
 int32_t ethch395_config_dev_ip(int s, uint8_t *ip, uint8_t len);
+
+/**************************************************
+ *  函数名   ethch395_config_dev_gateway_ip
+ *  参数       s                  socket下标
+ *        ip                 socket 目的IP
+ *        len                socket 目的IP长度
+ *  功能       设置 设备网关IP
+ *  返回       >= 0 : 成功，< 0 ：失败
+ *************************************************/
 int32_t ethch395_config_dev_gateway_ip(int s, uint8_t *ip, uint8_t len);
+
+/**************************************************
+ *  函数名   ethch395_config_dev_subnet_mask
+ *  参数       s                  socket下标
+ *        ip                 socket 目的IP
+ *        len                socket 目的IP长度
+ *  功能       设置 设备子网掩码
+ *  返回       >= 0 : 成功，< 0 ：失败
+ *************************************************/
 int32_t ethch395_config_dev_subnet_mask(int s, uint8_t *mask, uint8_t len);
+
+/**************************************************
+ *  函数名   ethch395_config_socket_dest_ip
+ *  参数       s                  socket下标
+ *        ip                 socket 目的IP
+ *        len                socket 目的IP长度
+ *  功能       设置 socket 的目的IP
+ *  返回       >= 0 : 成功，< 0 ：失败
+ *************************************************/
 int32_t ethch395_config_socket_dest_ip(int s, uint8_t *ip, uint8_t len);
+
+/**************************************************
+ *  函数名   ethch395_config_socket_dest_port
+ *  参数       s                  socket下标
+ *        port               socket 目的端口
+ *  功能       设置 socket 的目的端口
+ *  返回       >= 0 : 成功，< 0 ：失败
+ *************************************************/
 int32_t ethch395_config_socket_dest_port(int s, uint16_t port);
+
+/**************************************************
+ *  函数名   ethch395_config_socket_sour_port
+ *  参数       s                  socket 原端口
+ *        port
+ *  功能       设置 socket 的 原端口
+ *  返回       >= 0 : 成功，< 0 ：失败
+ *************************************************/
 int32_t ethch395_config_socket_sour_port(int s, uint16_t port);
 
+/******************************** 信息获取部分 ***********************************/
+/******************************** 信息获取部分 ***********************************/
+
+/**************************************************
+ *  函数名   ethch395_get_globe_int_info
+ *  参数
+ *  功能       获取全局中断信息
+ *  返回       全局中断信息指针
+ *************************************************/
 union ethch395_globe_int *ethch395_get_globe_int_info(void);
+
+/**************************************************
+ *  函数名   ethch395_get_socket_int_info
+ *  参数       fd         socket 下标
+ *  功能       获取 socket 中断信息
+ *  返回      socket 中断信息指针
+ *************************************************/
 union ethch395_socket_int *ethch395_get_socket_int_info(uint8_t fd);
+
+/**************************************************
+ *  函数名   ethch395_get_socket_sbuf_szie
+ *  参数       fd         socket 下标
+ *  功能       获取 socket 发送缓存大小
+ *  返回      发送缓存大小
+ *************************************************/
 uint32_t ethch395_get_socket_sbuf_szie(uint8_t fd);
+
+/**************************************************
+ *  函数名   ethch395_get_socket_rbuf_szie
+ *  参数       fd         socket 下标
+ *  功能       获取 socket 接收缓存大小
+ *  返回      接收缓存大小
+ *************************************************/
 uint32_t ethch395_get_socket_rbuf_szie(uint8_t fd);
 
+/**************************************************
+ *  函数名   ethch395_get_dev_mac
+ *  参数
+ *  功能       获取 设备MAC地址
+ *  返回      设备MAC地址指针
+ *************************************************/
 uint8_t *ethch395_get_dev_mac(void);
+
+/**************************************************
+ *  函数名   ethch395_get_dev_ip
+ *  参数
+ *  功能       获取 设备IP地址
+ *  返回      设备IP地址指针
+ *************************************************/
 uint8_t *ethch395_get_dev_ip(void);
+
+/**************************************************
+ *  函数名   ethch395_get_dev_gatewayip
+ *  参数
+ *  功能       获取 设备网关IP地址
+ *  返回      设备网关IP地址指针
+ *************************************************/
 uint8_t *ethch395_get_dev_gatewayip(void);
+
+/**************************************************
+ *  函数名   ethch395_get_dev_subnet_mask
+ *  参数
+ *  功能       获取 设备子网掩码
+ *  返回      设备子网掩码指针
+ *************************************************/
 uint8_t *ethch395_get_dev_subnet_mask(void);
+
+/**************************************************
+ *  函数名   ethch395_get_dns1_ip
+ *  参数
+ *  功能       获取DNS1 IP地址
+ *  返回      DNS1 IP地址指针
+ *************************************************/
 uint8_t *ethch395_get_dns1_ip(void);
+
+/**************************************************
+ *  函数名   ethch395_get_dns2_ip
+ *  参数
+ *  功能       获取 DNS2 IP地址
+ *  返回       DNS2 IP地址指针
+ *************************************************/
 uint8_t *ethch395_get_dns2_ip(void);
 
 #endif /* NET_INCLUDE_ETHERNET_PACK */

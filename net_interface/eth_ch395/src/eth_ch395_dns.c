@@ -7,6 +7,11 @@
  * Date           Author       Notes
  * 2024-09-26     我的杨yang       the first version
  */
+
+/*********************************
+ * 注：本文件属于以太网DNS域名解析部分
+ *    是参照例程编写
+ ********************************/
 #include "eth_ch395_dns.h"
 
 #include "eth_ch395_transceiver.h"
@@ -20,7 +25,8 @@
 
 #ifdef NET_INCLUDE_ETHERNET_PACK
 
-#define ETHCH395_DNS_PORT                           53                   /** DNS 服务器端口 */
+#define ETHCH395_DNS_PORT                            53                                /** DNS 服务器端口 */
+#define ETHCH395_WAIT_DNS_RESPONSE_TIME              (15 *1000)                        /** 等待DNS响应最大时长(ms) */
 
 ETH_DEF_SRAM2 static struct dhdr s_ethch395_dhp;
 ETH_DEF_SRAM2 static uint16_t s_ethch395_dnsmsg_id = 0x1100;                           /** 标识 */
@@ -80,7 +86,7 @@ static uint8_t *ethch395_put16(uint8_t *s, uint16_t i)
 **********************************************************************************/
 static int32_t ethch395_parse_name(uint8_t *msg, uint8_t *compressed, char *buf)
 {
-  uint16_t slen;                                                                            /* 当前片段长度*/
+  uint16_t slen;                                                                          /* 当前片段长度*/
   uint8_t * cp;
 
   int clen = 0;                                                                           /* 压缩域名长度 */
@@ -89,9 +95,9 @@ static int32_t ethch395_parse_name(uint8_t *msg, uint8_t *compressed, char *buf)
   cp = compressed;
   for (;;)
   {
-    slen = *cp++;                                                                          /* 首字节的计数值*/
+    slen = *cp++;                                                                         /* 首字节的计数值*/
     if (!indirect) clen++;
-    if ((slen & 0xc0) == 0xc0)                                                             /*计数字节高两比特为1，用于压缩格式*/
+    if ((slen & 0xc0) == 0xc0)                                                            /*计数字节高两比特为1，用于压缩格式*/
     {
       if (!indirect)
         clen++;
@@ -405,6 +411,17 @@ static int32_t ethch395_dnsudp_socket_init(void)
     return 0x00;
 }
 
+/**********************************************************************************
+* 函数名  : ethch395_domain_parse
+* 功能      : 域名解析
+* 参数           url        域名
+*        urllen     域名长度(B)
+*        parseip    用于存放解析后的IP值
+*        iplen      缓存长度(B)
+* 返回       >= 0 : 成功，< 0 : 失败
+* 注：         解析结果是点分十进制式IP各十进制的值(例：若DNS返回结果："121.43.69.62"，则本函数返回的IP值为4
+*        个十进制值：121(D), 43(D), 69(D), 62(D))
+**********************************************************************************/
 int32_t ethch395_domain_parse(const char *url, uint8_t urllen, uint8_t *parseip, uint8_t iplen)
 {
     if((url == NULL) || (urllen == 0x00)){
@@ -423,10 +440,13 @@ int32_t ethch395_domain_parse(const char *url, uint8_t urllen, uint8_t *parseip,
     uint32_t wait_tick = 0x00;
     void *handle = ethch395_get_thread_handle();
 
+    /** 等待上一次操作完成并上锁 */
     while(ethch395_wait_operate_lock(-0x01, handle) == ETHCH395_ENUM_FALSE);
-
+    /** 初始化 socket */
     if(ethch395_dnsudp_socket_init() < 0x00){
-        rt_free(buf);
+        if(buf){
+            rt_free(buf);
+        }
         ethch395_unlock_operate_lock(handle);
         return -0x02;
     }
@@ -443,41 +463,41 @@ int32_t ethch395_domain_parse(const char *url, uint8_t urllen, uint8_t *parseip,
         ethch395_unlock_operate_lock(handle);
         return -0x03;
     }
-
+    /** 组包：DNS查询 */
     message_len = ethch395_make_dnsquery_message(0x00, (char*)url, buf, ETHCH395_DNS_BUF_SIZE);
 
     wait_tick = rt_tick_get();
     while(1){
+        /** 发送DNS查询请求 */
         ethch395_udp_send_data(buf, message_len, s_ethch395_dns_ip, ETHCH395_DNS_PORT, s_socket_fd);
-
+        /** 解锁(用于接收芯片接收到的DNS查询响应) */
         ethch395_unlock_operate_lock(handle);
-
+        /** 查询芯片是否有接收到数据(最长等待 ETHCH395_WAIT_DNS_RESPONSE_TIME ms) */
         if(netdev_ethch395_socket_data_comein_port(s_socket_fd, 3000) > 0x00){
             break;
         }
         if(wait_tick > rt_tick_get()){
             wait_tick = rt_tick_get();
         }
-        if((rt_tick_get() - wait_tick) > 15 *1000){
+        if((rt_tick_get() - wait_tick) > ETHCH395_WAIT_DNS_RESPONSE_TIME){
+            /** DNS 查询超时未响应，等待上一次操作完以关闭 socket */
             while(ethch395_wait_operate_lock(-0x01, handle) == ETHCH395_ENUM_FALSE);
 
             rt_free(buf);
 
-            LOG_E("ethch395 DNS response timeout(%d)", 15 *1000);
+            LOG_E("ethch395 DNS response timeout(%d)", ETHCH395_WAIT_DNS_RESPONSE_TIME);
             if(ethch395_cmd_close_socket(s_socket_fd) < 0x00){
                 LOG_E("ethch395 close dns socket fail(%d)", s_socket_fd);
                 ethch395_socket_free(s_socket_fd);
-
                 ethch395_unlock_operate_lock(handle);
                 return -0x01;
             }
             ethch395_socket_free(s_socket_fd);
-
             ethch395_unlock_operate_lock(handle);
             return -0x06;
         }
     }
-
+    /** DNS 查询已响应，等待上一次操作完成，接收数据并关闭socket */
     while(ethch395_wait_operate_lock(-0x01, handle) == ETHCH395_ENUM_FALSE);
 
     if(netdev_ethch395_socket_recv_port(s_socket_fd, buf, ETHCH395_DNS_BUF_SIZE) <= 0x00){
@@ -485,15 +505,14 @@ int32_t ethch395_domain_parse(const char *url, uint8_t urllen, uint8_t *parseip,
         if(ethch395_cmd_close_socket(s_socket_fd) < 0x00){
             LOG_E("ethch395 close dns socket fail(%d)", s_socket_fd);
             ethch395_socket_free(s_socket_fd);
-
             ethch395_unlock_operate_lock(handle);
             return -0x01;
         }
         ethch395_socket_free(s_socket_fd);
-
         ethch395_unlock_operate_lock(handle);
         return -0x05;
     }
+    /** 解析DNS 响应数据包 */
     ethch395_parse_message(&s_ethch395_dhp, buf, parseip);
     LOG_D("ethch395 DNS parse[%s]->[%d, %d, %d, %d]\\n", url, parseip[0], parseip[1], parseip[2], parseip[3]);
 

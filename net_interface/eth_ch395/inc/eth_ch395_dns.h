@@ -36,21 +36,40 @@
 
 struct dhdr
 {
-  uint16_t id;                                                                        /* 标识 */
+  uint16_t id;                                                                       /* 标识 */
   uint8_t qr;                                                                        /* 查询或应答标志*/
   uint8_t opcode;
-  uint8_t aa;                                                                          /* 授权回答 */
-  uint8_t tc;                                                                          /* 可截断的 */
-  uint8_t rd;                                                                          /* 期望递归*/
-  uint8_t ra;                                                                          /* 可以递归 */
-  uint8_t rcode;                                                                       /* 应答码 */
-  uint16_t qdcount;                                                                   /* 问题数 */
-  uint16_t ancount;                                                                   /* 应答数 */
-  uint16_t nscount;                                                                   /* 授权数 */
-  uint16_t arcount;                                                                   /* 额外记录数 */
+  uint8_t aa;                                                                        /* 授权回答 */
+  uint8_t tc;                                                                        /* 可截断的 */
+  uint8_t rd;                                                                        /* 期望递归*/
+  uint8_t ra;                                                                        /* 可以递归 */
+  uint8_t rcode;                                                                     /* 应答码 */
+  uint16_t qdcount;                                                                  /* 问题数 */
+  uint16_t ancount;                                                                  /* 应答数 */
+  uint16_t nscount;                                                                  /* 授权数 */
+  uint16_t arcount;                                                                  /* 额外记录数 */
 };
 
+/**********************************************************************************
+* 函数名  : ethch395_config_dns_ip
+* 功能      : 配置DNS服务器IP
+* 参数      : ip       IP
+*      iplen    IP 长度
+* 返回
+**********************************************************************************/
 void ethch395_config_dns_ip(uint8_t *ip, uint8_t iplen);
+
+/**********************************************************************************
+* 函数名  : ethch395_domain_parse
+* 功能      : 域名解析
+* 参数           url        域名
+*        urllen     域名长度(B)
+*        parseip    用于存放解析后的IP值
+*        iplen      缓存长度(B)
+* 返回       >= 0 : 成功，< 0 : 失败
+* 注：         解析结果是点分十进制式IP各十进制的值(例：若DNS返回结果："121.43.69.62"，则本函数返回的IP值为4
+*        个十进制值：121(D), 43(D), 69(D), 62(D))
+**********************************************************************************/
 int32_t ethch395_domain_parse(const char *url, uint8_t urllen, uint8_t *parseip, uint8_t iplen);
 
 #endif /* NET_INTERFACE_ETH_CH395_INC_ETH_CH395_DNS_H_ */
