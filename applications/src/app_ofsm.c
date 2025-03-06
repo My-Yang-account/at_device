@@ -865,16 +865,22 @@ void chargepile_power_adjust(void)
 //    LOG_W("s_power_adjust_delay|%d, %d, %d, %d", s_power_adjust_delay, set_volt, s_system_power_output *10 /set_volt, charge_type);
     /** 经过一次调整后需等待一定时间使其输出稳定后再进行查询并调节 */
     if((++s_power_adjust_delay > ADJUST_PERIOD) || server_adjust_power || s_power_on == 0 || terminal_is_ems_adjust_power()){
+        uint8_t module_tnum = 0x00;
+        for(gunno = 0; gunno < APP_SYSTEM_GUNNO_SIZE; gunno++){
+            module_tnum += sys_get_single_group_module_num(gunno);
+        }
+        module_tnum = module_tnum > 0x00 ? module_tnum : 0x01;       /** 起码一个模块 */
+
         if(terminal_is_ems_adjust_power()){
             terminal_clear_is_ems_adjust_power();
         }
         for(gunno = 0; gunno < APP_SYSTEM_GUNNO_SIZE; gunno++){
-            allocation_power[gunno] = s_system_power_output *10 / APP_SYSTEM_GUNNO_SIZE;  /* 100倍 */
+            allocation_power[gunno] = (s_system_power_output *10 *sys_get_single_group_module_num(gunno)) / module_tnum;  /* 100倍 */
             if(set_volt[gunno]){
                 if(s_chargepile_output_steady[gunno] || gun_idle[gunno]){
                     s_ofsm_info[gunno].base.gun_set_curr = allocation_power[gunno]/ set_volt[gunno];  /* 10倍 */
-                    if(s_ofsm_info[gunno].base.gun_set_curr > ((*((uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_MAX_LIMIT_CURRENT, 0)))) *10 /APP_SYSTEM_GUNNO_SIZE)){
-                        s_ofsm_info[gunno].base.gun_set_curr = ((*((uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_MAX_LIMIT_CURRENT, 0)))) *10/ APP_SYSTEM_GUNNO_SIZE);
+                    if(s_ofsm_info[gunno].base.gun_set_curr > ((*((uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_MAX_LIMIT_CURRENT, 0)))) *10 *sys_get_single_group_module_num(gunno) /module_tnum)){
+                        s_ofsm_info[gunno].base.gun_set_curr = ((*((uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_MAX_LIMIT_CURRENT, 0)))) *10 *sys_get_single_group_module_num(gunno) /module_tnum);
                     }
                     rt_kprintf("gunno(%d) s_set_curr|%d, allocation_power|%d  set_volt|%d  chargecurr_max|%d  s_system_power_output|%d  power_percent|%d\n", gunno,
                             s_ofsm_info[gunno].base.gun_set_curr, allocation_power[gunno], set_volt[gunno], (*((uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_MAX_LIMIT_CURRENT, 0)))), s_system_power_output, s_system_power_output);
@@ -1708,7 +1714,7 @@ static void ofsm_info_init_fun(uint8_t gunno)
     LOG_D("gunno(%d) system_power_max(%d) get_single_group_module_num(%d)(%d)\n\n", gunno, s_ofsm_info[gunno].base.system_power_max, \
             sys_get_single_group_module_num(gunno), single_module_power);
 
-    s_ofsm_info[gunno].base.gun_set_curr = (*((uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_MAX_LIMIT_CURRENT, 0)))) *10;
+    s_ofsm_info[gunno].base.gun_set_curr = (*((uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_MAX_LIMIT_CURRENT, 0)))) *10 / APP_SYSTEM_GUNNO_SIZE;
 
     app_nsal_message_init(gunno);
     app_nsal_init_charge_data(gunno);
