@@ -65,6 +65,17 @@ extern "C" {
 #define APP_CARD_NUMBER_COMPARE_LEN          16        /* 卡号对比长度 */
 #define OVERTEMP_DECREASE_CURR_PERCENT       5 /10     /* 过温降流百分比 */
 
+#ifdef APP_INCLUDE_YKC17_PROTOCOL
+#define APP_AMMETER_ENCRY_WAIT_START_REPLY_MS       1500         /* 等待开始充电指令响应时长 */
+#define APP_AMMETER_ENCRY_WAIT_STOP_REPLY_MS        1500         /* 等待结束充电指令响应时长 */
+#define APP_AMMETER_ENCRY_WAIT_READING_REPLY_MS     2000         /* 等待抄表指令响应时长 */
+
+#define APP_AMMETER_ENCRY_STEP_NULL          0x00                /* 获取电表加密数据步骤：开始 */
+#define APP_AMMETER_ENCRY_STEP_START         0x01                /* 获取电表加密数据步骤：发开始充电指令 */
+#define APP_AMMETER_ENCRY_STEP_STOP          0x02                /* 获取电表加密数据步骤：发结束充电指令 */
+#define APP_AMMETER_ENCRY_STEP_METER_READING 0x03                /* 获取电表加密数据步骤：发抄表指令 */
+#endif /* APP_INCLUDE_YKC17_PROTOCOL */
+
 #define APP_RESERVATE_STRATEGY_PULLGUN_CANCEL  (0x01 <<0x00)     /* 预约策略：拔枪取消 */
 #define APP_RESERVATE_STRATEGY_FAULT_CANCEL    (0x01 <<0x01)     /* 预约策略：故障取消取消 */
 #define APP_RESERVATE_STRATEGY_TIMEOUT_CANCEL  (0x01 <<0x02)     /* 预约策略：预约超时取消(最大超时时间有预约策略参数规定[单位：s]) */
@@ -341,7 +352,21 @@ typedef struct
     uint32_t rate_type_service_amount[APP_BILLING_RULE_RATE_TYPE_MAX];    /* 费率类型服务费金额  */
 #endif /* (defined (APP_INCLUDE_SGCC_PROTOCOL) */
 
-    uint8_t run_mode;                     /* 运行模式：0：4G、以太网联网，1：离线计费，2：离线模式，3.即插即充 */
+#ifdef APP_INCLUDE_YKC17_PROTOCOL
+    /* 电表加密 */
+    uint16_t meter_ver;                   /* 通讯协议版本号(HEX) */
+    uint8_t meter_encry_type;             /* 加密方式 */
+    uint8_t meter_trade_number[16];       /* 流水号(BCD) */
+    uint8_t meter_dev_sn[6];              /* 表号(BCD) */
+    uint8_t meter_port_identify_sn[17];   /* 枪口识别号(BCD)--加密或参与签名计算开始 */
+    uint32_t meter_stimestamp;            /* 计量开始时间(秒时戳,HEX) */
+    uint32_t meter_etimestamp;            /* 计量结束时间(秒时戳,HEX) */
+    uint32_t meter_positive_elect;        /* 正向充电电量(3 位小数,HEX) */
+    uint32_t meter_install_timestamp;     /* 电表安装时间(秒时戳,HEX) */
+    uint8_t meter_history_state;          /* 端钮历史状态(0 正常，1 发生过端钮盖打开时间)--加密或参与签名计算域结束 */
+#endif /* APP_INCLUDE_YKC17_PROTOCOL */
+
+    uint8_t run_mode;                     /* 运行模式：0：4G、以太网联网，1：离线计费，2：蓝牙联网，3：wifi联网，4：非联网、非离线计费 */
     uint8_t reserve[15];                  /* 预留 */
 }thaisen_transaction_t;
 /*******************************************************************************************/
@@ -451,7 +476,11 @@ typedef struct{
     uint16_t offline_chargetime;      /* 离线可充电时长(单位s) */
     uint32_t offline_tick;            /* 离线时基 */
     uint32_t order_fixes_tick;        /* 断电订单电量矫正时基 */
-
+#ifdef APP_INCLUDE_YKC17_PROTOCOL
+    /** 电表加密 */
+    uint32_t meter_reading_tick;      /* 抄表时基 */
+    uint8_t meter_step;               /* 步骤 */
+#endif /* APP_INCLUDE_YKC17_PROTOCOL */
     uint8_t device_state;             /* 设备状态 */
 #ifdef APP_INCLUDE_SGCC_PROTOCOL
     uint8_t device_transaction_number[40 + 1];  /* 设备流水号 */

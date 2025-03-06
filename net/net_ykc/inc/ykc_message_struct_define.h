@@ -16,13 +16,18 @@
 
 //#define NET_YKC_MESSAGE_USING_DUPU                                         /* 这是度普平台的报文 */
 //#define NET_YKC_MESSAGE_USING_TLD                                          /* 这是特来电平台的报文 */
+//#define NET_YKC_MESSAGE_USING_YKC17                                        /* 这是YKC1.7平台的报文 */
 
 #define NET_YKC_STORAGE_INIT_FLAG                              0x12345777  /* 平台数据存储标志 */
 
 #define NET_YKC_MESSAGE_START_CODE                             0x68        /* 报文起始码 */
 #define NET_YKC_MESSAGE_ENCRYPT_ENABLE                         0x01        /* 报文加密 */
 #define NET_YKC_MESSAGE_ENCRYPT_DISABLE                        0x00        /* 报文不加密 */
+#ifdef NET_YKC_MESSAGE_USING_YKC17
+#define NET_YKC_PROTOCOL_VERSION                               0x11        /* 协议版本号（v1.7） */
+#else
 #define NET_YKC_PROTOCOL_VERSION                               0x10        /* 协议版本号（v1.6） */
+#endif /* NET_YKC_MESSAGE_USING_YKC17 */
 
 #define NET_YKC_PROTOCOL_CHECK_REGION_SIZE                     0x02        /* 校验码域长度：单位字节 */
 
@@ -53,6 +58,11 @@
 #define NET_YKC_SOFT_VERSION_LENGTH_DEFAULT                    0x08        /* 默认软件版本长度 */
 #define NET_YKC_SIM_BCD_LENGTH_DEFAULT                         0x0A        /* 默认sim卡卡号BCD码长度 */
 #define NET_YKC_CARD_NUMBER_COUNT_MAX                          0x18        /* 卡号最大个数 */
+
+#ifdef NET_YKC_MESSAGE_USING_YKC17
+#define NET_YKC_AMMETER_SN_LENGTH_DEFAULT                      0x06        /* 电表标号(BCD) */
+#define NET_YKC_AMMETER_ENCRY_DATA_LENGTH_DEFAULT              0x22        /* 电表密文长度 */
+#endif /* NET_YKC_MESSAGE_USING_YKC17 */
 
 enum ykc_device_state{
     NETYKC_DEVICE_STATE_OFFLINE = 0x00,                      /* 设备状态：离线 */
@@ -205,7 +215,11 @@ enum ykc_cmd{
     NETYKC_SREQCMD_SERVER_STOP_CHARGE = 0x36,                /* 指令：运营平台远程停机 */
     NETYKC_PRESCMD_SERVER_STOP_CHARGE = 0x35,                /* 指令：远程停机命令回复 */
 
+#ifdef NET_YKC_MESSAGE_USING_YKC17
+    NETYKC_PREQCMD_TRANSACTION_RECORD = 0x3D,                /* 指令：桩上报交易记录 */
+#else
     NETYKC_PREQCMD_TRANSACTION_RECORD = 0x3B,                /* 指令：桩上报交易记录 */
+#endif /* NET_YKC_MESSAGE_USING_YKC17 */
     NETYKC_SRESCMD_TRANSACTION_RECORD_VERIFY = 0x40,         /* 指令：服务器交易记录确认 */
 
     NETYKC_SREQCMD_ACCOUNT_BALLANCE_UPDATE = 0x42,           /* 指令：服务器远程账户余额更新 */
@@ -745,6 +759,12 @@ typedef struct{
         uint8_t gunno;                                   /* 枪号 */
         cp56time2a_t start_time;                         /* 开始时间 */
         cp56time2a_t stop_time;                          /* 结束时间 */
+#ifdef NET_YKC_MESSAGE_USING_YKC17
+        uint8_t ammeter_sn[NET_YKC_AMMETER_SN_LENGTH_DEFAULT];   /* 电表标号 */
+        uint8_t ammeter_encry_data[NET_YKC_AMMETER_ENCRY_DATA_LENGTH_DEFAULT];  /* 电表密文 */
+        uint16_t ammeter_protocol_ver;                   /* 电表协议版本 */
+        uint8_t ammeter_encrypt_way;                     /* 加密方式 */
+#endif /* NET_YKC_MESSAGE_USING_YKC17 */
         uint32_t tip_unit_price;                         /* 尖单价 */
         uint32_t tip_elect;                              /* 尖电量 */
         uint32_t tip_loss_elect;                         /* 尖计损电量 */

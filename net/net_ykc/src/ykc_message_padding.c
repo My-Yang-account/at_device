@@ -1987,6 +1987,84 @@ uint8_t ykc_chargepile_request_padding_transaction_record(uint8_t gunno, void *t
         g_ykc_preq_transaction_records[gunno].body.start_time = ykc_get_cp56time2a_from_timestamp(_transaction->start_time);
         g_ykc_preq_transaction_records[gunno].body.stop_time = ykc_get_cp56time2a_from_timestamp(_transaction->end_time);
 
+#ifdef NET_YKC_MESSAGE_USING_YKC17
+        uint8_t used_len = 0x00;
+        valid_len = sizeof(_transaction->meter_dev_sn);
+        valid_len = valid_len > NET_YKC_AMMETER_SN_LENGTH_DEFAULT ? NET_YKC_AMMETER_SN_LENGTH_DEFAULT : valid_len;
+        memset(g_ykc_preq_transaction_records[gunno].body.ammeter_sn, 0x00, NET_YKC_AMMETER_SN_LENGTH_DEFAULT);
+        memcpy(g_ykc_preq_transaction_records[gunno].body.ammeter_sn, _transaction->meter_dev_sn, valid_len);
+
+        memset(g_ykc_preq_transaction_records[gunno].body.ammeter_encry_data, 0x00, NET_YKC_AMMETER_ENCRY_DATA_LENGTH_DEFAULT);
+        valid_len = used_len >= NET_YKC_AMMETER_ENCRY_DATA_LENGTH_DEFAULT ? 0x00 : (NET_YKC_AMMETER_ENCRY_DATA_LENGTH_DEFAULT - used_len);
+        if(valid_len){
+            if(valid_len > sizeof(_transaction->meter_port_identify_sn)){
+                memcpy((g_ykc_preq_transaction_records[gunno].body.ammeter_encry_data + used_len), _transaction->meter_port_identify_sn, sizeof(_transaction->meter_port_identify_sn));
+                used_len += sizeof(_transaction->meter_port_identify_sn);
+            }else{
+                memcpy((g_ykc_preq_transaction_records[gunno].body.ammeter_encry_data + used_len), _transaction->meter_port_identify_sn, valid_len);
+                used_len += valid_len;
+            }
+        }
+
+        valid_len = used_len >= NET_YKC_AMMETER_ENCRY_DATA_LENGTH_DEFAULT ? 0x00 : (NET_YKC_AMMETER_ENCRY_DATA_LENGTH_DEFAULT - used_len);
+        if(valid_len){
+            if(valid_len > sizeof(_transaction->meter_stimestamp)){
+                memcpy((g_ykc_preq_transaction_records[gunno].body.ammeter_encry_data + used_len), &_transaction->meter_stimestamp, sizeof(_transaction->meter_stimestamp));
+                used_len += sizeof(_transaction->meter_stimestamp);
+            }else{
+                memcpy((g_ykc_preq_transaction_records[gunno].body.ammeter_encry_data + used_len), &_transaction->meter_stimestamp, valid_len);
+                used_len += valid_len;
+            }
+        }
+
+        valid_len = used_len >= NET_YKC_AMMETER_ENCRY_DATA_LENGTH_DEFAULT ? 0x00 : (NET_YKC_AMMETER_ENCRY_DATA_LENGTH_DEFAULT - used_len);
+        if(valid_len){
+            if(valid_len > sizeof(_transaction->meter_etimestamp)){
+                memcpy((g_ykc_preq_transaction_records[gunno].body.ammeter_encry_data + used_len), &_transaction->meter_etimestamp, sizeof(_transaction->meter_etimestamp));
+                used_len += sizeof(_transaction->meter_etimestamp);
+            }else{
+                memcpy((g_ykc_preq_transaction_records[gunno].body.ammeter_encry_data + used_len), &_transaction->meter_etimestamp, valid_len);
+                used_len += valid_len;
+            }
+        }
+
+        valid_len = used_len >= NET_YKC_AMMETER_ENCRY_DATA_LENGTH_DEFAULT ? 0x00 : (NET_YKC_AMMETER_ENCRY_DATA_LENGTH_DEFAULT - used_len);
+        if(valid_len){
+            if(valid_len > sizeof(_transaction->meter_positive_elect)){
+                memcpy((g_ykc_preq_transaction_records[gunno].body.ammeter_encry_data + used_len), &_transaction->meter_positive_elect, sizeof(_transaction->meter_positive_elect));
+                used_len += sizeof(_transaction->meter_positive_elect);
+            }else{
+                memcpy((g_ykc_preq_transaction_records[gunno].body.ammeter_encry_data + used_len), &_transaction->meter_positive_elect, valid_len);
+                used_len += valid_len;
+            }
+        }
+
+        valid_len = used_len >= NET_YKC_AMMETER_ENCRY_DATA_LENGTH_DEFAULT ? 0x00 : (NET_YKC_AMMETER_ENCRY_DATA_LENGTH_DEFAULT - used_len);
+        if(valid_len){
+            if(valid_len > sizeof(_transaction->meter_install_timestamp)){
+                memcpy((g_ykc_preq_transaction_records[gunno].body.ammeter_encry_data + used_len), &_transaction->meter_install_timestamp, sizeof(_transaction->meter_install_timestamp));
+                used_len += sizeof(_transaction->meter_install_timestamp);
+            }else{
+                memcpy((g_ykc_preq_transaction_records[gunno].body.ammeter_encry_data + used_len), &_transaction->meter_install_timestamp, valid_len);
+                used_len += valid_len;
+            }
+        }
+
+        valid_len = used_len >= NET_YKC_AMMETER_ENCRY_DATA_LENGTH_DEFAULT ? 0x00 : (NET_YKC_AMMETER_ENCRY_DATA_LENGTH_DEFAULT - used_len);
+        if(valid_len){
+            if(valid_len > sizeof(_transaction->meter_history_state)){
+                memcpy((g_ykc_preq_transaction_records[gunno].body.ammeter_encry_data + used_len), &_transaction->meter_history_state, sizeof(_transaction->meter_history_state));
+                used_len += sizeof(_transaction->meter_history_state);
+            }else{
+                memcpy((g_ykc_preq_transaction_records[gunno].body.ammeter_encry_data + used_len), &_transaction->meter_history_state, valid_len);
+                used_len += valid_len;
+            }
+        }
+
+        g_ykc_preq_transaction_records[gunno].body.ammeter_protocol_ver = _transaction->meter_ver;
+        g_ykc_preq_transaction_records[gunno].body.ammeter_encrypt_way = _transaction->meter_encry_type;
+#endif /* NET_YKC_MESSAGE_USING_YKC17 */
+
         g_ykc_preq_transaction_records[gunno].body.tip_unit_price = _transaction->rate_type_unit[APP_RATE_TYPE_SHARP] *10;
         g_ykc_preq_transaction_records[gunno].body.tip_elect = _transaction->rate_type_elect[APP_RATE_TYPE_SHARP] *10;
         g_ykc_preq_transaction_records[gunno].body.tip_loss_elect = _transaction->rate_type_loss_elect[APP_RATE_TYPE_SHARP] *10;

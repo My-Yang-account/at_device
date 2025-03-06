@@ -44,6 +44,10 @@
 #define APP_TARGET_PLATFORM_ID                        0x0002   /* 目标平台ID */
 #endif /* NET_YKC_AS_MONITOR */
 
+#ifdef NET_YKC_MESSAGE_USING_YKC17
+#define APP_INCLUDE_YKC17_PROTOCOL                             /* 云快充1.7 */
+#endif /* NET_YKC_MESSAGE_USING_YKC17 */
+
 #define APP_INCLUDE_YKC_PROTOCOL
 #endif /* NET_PACK_USING_YKC */
 #define APP_PLATFORM_ID_YKC                           0x0002   /* 云快充平台ID */

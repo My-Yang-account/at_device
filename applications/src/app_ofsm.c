@@ -352,6 +352,87 @@ static void transaction_record_query_report(uint8_t gunno)
             }
 
             if((_total_elect >= rtransaction.ammeter_stop) || (is_force == APP_THA_ENUM_TRUE)){
+#ifdef APP_INCLUDE_YKC17_PROTOCOL
+                if(s_ofsm_info[gunno].base.meter_step == APP_AMMETER_ENCRY_STEP_NULL){
+                    s_ofsm_info[gunno].base.meter_step = APP_AMMETER_ENCRY_STEP_START;
+                    s_ofsm_info[gunno].base.meter_reading_tick = rt_tick_get();
+
+                    LOG_D("meter encrypt:start[%d](poweroff bill)", gunno);
+                    thaisen_ammeter_encry_scmd(gunno, THAISEN_AMMETER_ENCRY_TYPE_START);
+                    return;
+                }
+                /** 等待电表加密开始充电指令响应 */
+                else if(s_ofsm_info[gunno].base.meter_step == APP_AMMETER_ENCRY_STEP_START){
+                    if((rt_tick_get() - s_ofsm_info[gunno].base.meter_reading_tick) < APP_AMMETER_ENCRY_WAIT_START_REPLY_MS){
+                        if(thaisen_ammeter_is_replied(gunno) == APP_THA_ENUM_FALSE){
+                            return;
+                        }
+                    }
+                    s_ofsm_info[gunno].base.meter_step = APP_AMMETER_ENCRY_STEP_STOP;
+                    s_ofsm_info[gunno].base.meter_reading_tick = rt_tick_get();
+
+                    LOG_D("meter encrypt:stop[%d, %d](poweroff bill)", gunno, (rt_tick_get() - s_ofsm_info[gunno].base.meter_reading_tick));
+                    thaisen_ammeter_encry_scmd(gunno, THAISEN_AMMETER_ENCRY_TYPE_STOP);
+                    return;
+                }
+                /** 等待电表加密结束充电指令响应 */
+                else if(s_ofsm_info[gunno].base.meter_step == APP_AMMETER_ENCRY_STEP_STOP){
+                    if((rt_tick_get() - s_ofsm_info[gunno].base.meter_reading_tick) < APP_AMMETER_ENCRY_WAIT_STOP_REPLY_MS){
+                        if(thaisen_ammeter_is_replied(gunno) == APP_THA_ENUM_FALSE){
+                            return;
+                        }
+                    }
+                    s_ofsm_info[gunno].base.meter_step = APP_AMMETER_ENCRY_STEP_METER_READING;
+                    s_ofsm_info[gunno].base.meter_reading_tick = rt_tick_get();
+
+                    LOG_D("meter encrypt:meter reading[%d, %d](poweroff bill)", gunno, (rt_tick_get() - s_ofsm_info[gunno].base.meter_reading_tick));
+                    thaisen_ammeter_encry_scmd(gunno, THAISEN_AMMETER_ENCRY_TYPE_METER_READING);
+                    return;
+                }
+                /** 等待电表加密抄表指令响应 */
+                else if(s_ofsm_info[gunno].base.meter_step == APP_AMMETER_ENCRY_STEP_METER_READING){
+                    if((rt_tick_get() - s_ofsm_info[gunno].base.meter_reading_tick) < APP_AMMETER_ENCRY_WAIT_READING_REPLY_MS){
+                        if(thaisen_ammeter_is_replied(gunno) == APP_THA_ENUM_TRUE){
+                            uint8_t _compare_len = 0x00;
+                            LOG_D("meter encrypt:meter reading is replied[%d, %d](poweroff bill)\n", gunno, (rt_tick_get() - s_ofsm_info[gunno].base.meter_reading_tick));
+                            thaisen_encry_data_t *_encry_data = (thaisen_encry_data_t*)thaisen_ammeter_query_encrypt_data(gunno);
+                            if(_encry_data){
+                                rtransaction.meter_ver = _encry_data->ver;
+                                rtransaction.meter_encry_type = _encry_data->encry_type;
+
+                                _compare_len = sizeof(_encry_data->trade_number);
+                                _compare_len = _compare_len > sizeof(rtransaction.meter_trade_number) ? sizeof(rtransaction.meter_trade_number) : _compare_len;
+                                memset(rtransaction.meter_trade_number, 0x00, sizeof(rtransaction.meter_trade_number));
+                                memcpy(rtransaction.meter_trade_number, _encry_data->trade_number, _compare_len);
+
+                                _compare_len = sizeof(_encry_data->dev_sn);
+                                _compare_len = _compare_len > sizeof(rtransaction.meter_dev_sn) ? sizeof(rtransaction.meter_dev_sn) : _compare_len;
+                                memset(rtransaction.meter_dev_sn, 0x00, sizeof(rtransaction.meter_dev_sn));
+                                memcpy(rtransaction.meter_dev_sn, _encry_data->dev_sn, _compare_len);
+
+                                _compare_len = sizeof(_encry_data->port_identify_sn);
+                                _compare_len = _compare_len > sizeof(rtransaction.meter_port_identify_sn) ? sizeof(rtransaction.meter_port_identify_sn) : _compare_len;
+                                memset(rtransaction.meter_port_identify_sn, 0x00, sizeof(rtransaction.meter_port_identify_sn));
+                                memcpy(rtransaction.meter_port_identify_sn, _encry_data->port_identify_sn, _compare_len);
+
+                                rtransaction.meter_stimestamp = _encry_data->stimestamp;
+                                rtransaction.meter_etimestamp = _encry_data->etimestamp;
+                                rtransaction.meter_positive_elect = _encry_data->positive_elect;
+                                rtransaction.meter_install_timestamp = _encry_data->install_timestamp;
+                                rtransaction.meter_history_state = _encry_data->history_state;
+                            }
+                        }else{
+                            return;
+                        }
+                    }
+                    s_ofsm_info[gunno].base.meter_step = APP_AMMETER_ENCRY_STEP_NULL;
+                    s_ofsm_info[gunno].base.meter_reading_tick = rt_tick_get();
+                }else{
+                    s_ofsm_info[gunno].base.meter_step = APP_AMMETER_ENCRY_STEP_NULL;
+                    s_ofsm_info[gunno].base.meter_reading_tick = rt_tick_get();
+                    return;
+                }
+#endif /* APP_INCLUDE_YKC17_PROTOCOL */
                 /** 这是不对的情况 */
                 if(_total_elect < rtransaction.ammeter_stop){
                     _total_elect = rtransaction.ammeter_stop;
@@ -451,9 +532,17 @@ static void transaction_record_query_report(uint8_t gunno)
                 break;
             }
         }
+#ifdef APP_INCLUDE_YKC17_PROTOCOL
+            s_ofsm_info[gunno].base.meter_step = APP_AMMETER_ENCRY_STEP_NULL;
+            s_ofsm_info[gunno].base.meter_reading_tick = rt_tick_get();
+#endif /* APP_INCLUDE_YKC17_PROTOCOL */
         return;
     }else{
         s_ofsm_info[gunno].base.order_fixes_tick = rt_tick_get();
+#ifdef APP_INCLUDE_YKC17_PROTOCOL
+        s_ofsm_info[gunno].base.meter_step = APP_AMMETER_ENCRY_STEP_NULL;
+        s_ofsm_info[gunno].base.meter_reading_tick = rt_tick_get();
+#endif /* APP_INCLUDE_YKC17_PROTOCOL */
     }
 
 #ifdef APP_INCLUDE_TARGET_PLATFORM
@@ -1150,6 +1239,10 @@ static void ofsm_start_info_padding_public(uint8_t gunno)
     }
 
     uint8_t deputy_gunno = APP_SYSTEM_GUNNOA;
+
+#ifdef APP_INCLUDE_YKC17_PROTOCOL
+    thaisen_ammeter_encry_scmd(gunno, THAISEN_AMMETER_ENCRY_TYPE_START);
+#endif /* APP_INCLUDE_YKC17_PROTOCOL */
 
     /** 云端并充时 main_gunno charge_way 这两个字段已被赋值 */
     if(s_ofsm_info[gunno].base.charge_way != APP_CHARGE_WAY_PARACHARGE_CLOUD){
@@ -2294,6 +2387,10 @@ static void ofsm_starting_fun(uint8_t gunno)
             s_ofsm_info[gunno].base.charge_fault = APP_CHARGE_FAULT_NO_ERROR;
             s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
 
+#ifdef APP_INCLUDE_YKC17_PROTOCOL
+            thaisen_ammeter_encry_scmd(gunno, THAISEN_AMMETER_ENCRY_TYPE_STOP);
+#endif /* APP_INCLUDE_YKC17_PROTOCOL */
+
             if((s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL) && (gunno == s_ofsm_info[gunno].base.main_gunno)){
                 uint8_t deputy_gunno = APP_SYSTEM_GUNNOA;
                 if(gunno == APP_SYSTEM_GUNNOA){
@@ -2381,6 +2478,10 @@ static void ofsm_starting_fun(uint8_t gunno)
                 s_ofsm_info[gunno].base.system_fault = system_fault;
                 s_ofsm_info[gunno].base.charge_fault = charge_fault;
                 s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
+
+#ifdef APP_INCLUDE_YKC17_PROTOCOL
+                thaisen_ammeter_encry_scmd(gunno, THAISEN_AMMETER_ENCRY_TYPE_STOP);
+#endif /* APP_INCLUDE_YKC17_PROTOCOL */
 
                 if((s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL) && (gunno == s_ofsm_info[gunno].base.main_gunno)){
                     uint8_t deputy_gunno = APP_SYSTEM_GUNNOA;
@@ -2480,6 +2581,10 @@ static void ofsm_starting_fun(uint8_t gunno)
                 s_ofsm_info[gunno].base.system_fault = system_fault;
                 s_ofsm_info[gunno].base.charge_fault = charge_fault;
                 s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
+
+#ifdef APP_INCLUDE_YKC17_PROTOCOL
+                thaisen_ammeter_encry_scmd(gunno, THAISEN_AMMETER_ENCRY_TYPE_STOP);
+#endif /* APP_INCLUDE_YKC17_PROTOCOL */
 
                 if((s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL) && (gunno == s_ofsm_info[gunno].base.main_gunno)){
                     uint8_t deputy_gunno = APP_SYSTEM_GUNNOA;
@@ -2716,6 +2821,10 @@ static void ofsm_starting_fun(uint8_t gunno)
                 s_ofsm_info[gunno].base.charge_fault = charge_fault;
                 s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
 
+#ifdef APP_INCLUDE_YKC17_PROTOCOL
+                thaisen_ammeter_encry_scmd(gunno, THAISEN_AMMETER_ENCRY_TYPE_STOP);
+#endif /* APP_INCLUDE_YKC17_PROTOCOL */
+
                 if((s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL) && (gunno == s_ofsm_info[gunno].base.main_gunno)){
                     uint8_t deputy_gunno = APP_SYSTEM_GUNNOA;
                     if(gunno == APP_SYSTEM_GUNNOA){
@@ -2808,6 +2917,10 @@ static void ofsm_starting_fun(uint8_t gunno)
             s_ofsm_info[gunno].base.system_fault = system_fault;
             s_ofsm_info[gunno].base.charge_fault = charge_fault;
             s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
+
+#ifdef APP_INCLUDE_YKC17_PROTOCOL
+            thaisen_ammeter_encry_scmd(gunno, THAISEN_AMMETER_ENCRY_TYPE_STOP);
+#endif /* APP_INCLUDE_YKC17_PROTOCOL */
 
             if((s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL) && (gunno == s_ofsm_info[gunno].base.main_gunno)){
                 uint8_t deputy_gunno = APP_SYSTEM_GUNNOA;
@@ -2907,6 +3020,10 @@ static void ofsm_starting_fun(uint8_t gunno)
             s_ofsm_info[gunno].state = APP_OFSM_STATE_STOPING;
 
             s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
+
+#ifdef APP_INCLUDE_YKC17_PROTOCOL
+            thaisen_ammeter_encry_scmd(gunno, THAISEN_AMMETER_ENCRY_TYPE_STOP);
+#endif /* APP_INCLUDE_YKC17_PROTOCOL */
 
             mw_charge_stop_cmd(gunno);
 
@@ -3411,6 +3528,10 @@ static void ofsm_charging_fun(uint8_t gunno)
             s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_FALSE;
             s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
 
+#ifdef APP_INCLUDE_YKC17_PROTOCOL
+            thaisen_ammeter_encry_scmd(gunno, THAISEN_AMMETER_ENCRY_TYPE_STOP);
+#endif /* APP_INCLUDE_YKC17_PROTOCOL */
+
             if((s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL) && (gunno == s_ofsm_info[gunno].base.main_gunno)){
                 uint8_t deputy_gunno = APP_SYSTEM_GUNNOA;
                 if(gunno == APP_SYSTEM_GUNNOA){
@@ -3493,6 +3614,10 @@ static void ofsm_charging_fun(uint8_t gunno)
             s_ofsm_info[gunno].base.system_fault = system_fault;
             s_ofsm_info[gunno].base.charge_fault = charge_fault;
             s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
+
+#ifdef APP_INCLUDE_YKC17_PROTOCOL
+            thaisen_ammeter_encry_scmd(gunno, THAISEN_AMMETER_ENCRY_TYPE_STOP);
+#endif /* APP_INCLUDE_YKC17_PROTOCOL */
 
             if((s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL) && (gunno == s_ofsm_info[gunno].base.main_gunno)){
                 uint8_t deputy_gunno = APP_SYSTEM_GUNNOA;
@@ -3927,6 +4052,10 @@ static void ofsm_charging_fun(uint8_t gunno)
 
             s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
 
+#ifdef APP_INCLUDE_YKC17_PROTOCOL
+            thaisen_ammeter_encry_scmd(gunno, THAISEN_AMMETER_ENCRY_TYPE_STOP);
+#endif /* APP_INCLUDE_YKC17_PROTOCOL */
+
             mw_charge_stop_cmd(gunno);
 
             s_thaisen_transaction[gunno].order_state.is_charging = APP_THA_ENUM_FALSE;
@@ -3974,6 +4103,10 @@ static void ofsm_charging_fun(uint8_t gunno)
     if(is_stop_charge_authorization == true){
         s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_STOPING];
         s_ofsm_info[gunno].state = APP_OFSM_STATE_STOPING;
+
+#ifdef APP_INCLUDE_YKC17_PROTOCOL
+        thaisen_ammeter_encry_scmd(gunno, THAISEN_AMMETER_ENCRY_TYPE_STOP);
+#endif /* APP_INCLUDE_YKC17_PROTOCOL */
 
         mw_charge_stop_cmd(gunno);
 
@@ -4025,6 +4158,9 @@ static void ofsm_stoping_fun(uint8_t gunno)
 
     bool is_stop_complete = APP_THA_ENUM_FALSE;  /* 充电已停止完成 */
     enum charge_state_t charge_state = mw_get_charge_state(gunno);
+#ifdef APP_INCLUDE_YKC17_PROTOCOL
+    uint32_t meter_reading_tick = 0x00;
+#endif /* APP_INCLUDE_YKC17_PROTOCOL */
 
     if(s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
         charge_state = mw_get_charge_state(s_ofsm_info[gunno].base.main_gunno);
@@ -4127,7 +4263,69 @@ static void ofsm_stoping_fun(uint8_t gunno)
 
         app_nsal_init_charge_data(gunno);
 
-        rt_thread_mdelay(2000);  /* 错峰上报订单 */
+        rt_thread_mdelay(1000);  /* 错峰上报订单 */
+
+#ifdef APP_INCLUDE_YKC17_PROTOCOL
+        /** 电表加密 */
+        meter_reading_tick = rt_tick_get();
+        /** 等待停止充电响应 */
+        while((rt_tick_get() - meter_reading_tick) < APP_AMMETER_ENCRY_WAIT_STOP_REPLY_MS){
+            if(thaisen_ammeter_is_replied(gunno)){
+                LOG_D("ammeter stop charge cmd replied(%d)", gunno);
+                break;
+            }
+        }
+
+        s_thaisen_transaction[gunno].meter_ver = 0x00;
+        s_thaisen_transaction[gunno].meter_encry_type = 0x00;
+        memset(s_thaisen_transaction[gunno].meter_trade_number, 0x00, sizeof(s_thaisen_transaction[gunno].meter_trade_number));
+        memset(s_thaisen_transaction[gunno].meter_dev_sn, 0x00, sizeof(s_thaisen_transaction[gunno].meter_dev_sn));
+        memset(s_thaisen_transaction[gunno].meter_port_identify_sn, 0x00, sizeof(s_thaisen_transaction[gunno].meter_port_identify_sn));
+        s_thaisen_transaction[gunno].meter_stimestamp = 0x00;
+        s_thaisen_transaction[gunno].meter_etimestamp = 0x00;
+        s_thaisen_transaction[gunno].meter_positive_elect = 0x00;
+        s_thaisen_transaction[gunno].meter_install_timestamp = 0x00;
+        s_thaisen_transaction[gunno].meter_history_state = 0x00;
+
+        meter_reading_tick = rt_tick_get();
+
+        LOG_D("app ofsm meter reading start...");
+        thaisen_ammeter_encry_scmd(gunno, THAISEN_AMMETER_ENCRY_TYPE_METER_READING);
+
+        while((rt_tick_get() - meter_reading_tick) < APP_AMMETER_ENCRY_WAIT_READING_REPLY_MS){
+            if(thaisen_ammeter_is_replied(gunno)){
+                uint8_t _compare_len = 0x00;
+                LOG_D("app ofsm meter reading is replied(%d)\n", (rt_tick_get() - meter_reading_tick));
+                thaisen_encry_data_t *_encry_data = (thaisen_encry_data_t*)thaisen_ammeter_query_encrypt_data(gunno);
+                if(_encry_data){
+                    s_thaisen_transaction[gunno].meter_ver = _encry_data->ver;
+                    s_thaisen_transaction[gunno].meter_encry_type = _encry_data->encry_type;
+
+                    _compare_len = sizeof(_encry_data->trade_number);
+                    _compare_len = _compare_len > sizeof(s_thaisen_transaction[gunno].meter_trade_number) ? sizeof(s_thaisen_transaction[gunno].meter_trade_number) : _compare_len;
+                    memset(s_thaisen_transaction[gunno].meter_trade_number, 0x00, sizeof(s_thaisen_transaction[gunno].meter_trade_number));
+                    memcpy(s_thaisen_transaction[gunno].meter_trade_number, _encry_data->trade_number, _compare_len);
+
+                    _compare_len = sizeof(_encry_data->dev_sn);
+                    _compare_len = _compare_len > sizeof(s_thaisen_transaction[gunno].meter_dev_sn) ? sizeof(s_thaisen_transaction[gunno].meter_dev_sn) : _compare_len;
+                    memset(s_thaisen_transaction[gunno].meter_dev_sn, 0x00, sizeof(s_thaisen_transaction[gunno].meter_dev_sn));
+                    memcpy(s_thaisen_transaction[gunno].meter_dev_sn, _encry_data->dev_sn, _compare_len);
+
+                    _compare_len = sizeof(_encry_data->port_identify_sn);
+                    _compare_len = _compare_len > sizeof(s_thaisen_transaction[gunno].meter_port_identify_sn) ? sizeof(s_thaisen_transaction[gunno].meter_port_identify_sn) : _compare_len;
+                    memset(s_thaisen_transaction[gunno].meter_port_identify_sn, 0x00, sizeof(s_thaisen_transaction[gunno].meter_port_identify_sn));
+                    memcpy(s_thaisen_transaction[gunno].meter_port_identify_sn, _encry_data->port_identify_sn, _compare_len);
+
+                    s_thaisen_transaction[gunno].meter_stimestamp = _encry_data->stimestamp;
+                    s_thaisen_transaction[gunno].meter_etimestamp = _encry_data->etimestamp;
+                    s_thaisen_transaction[gunno].meter_positive_elect = _encry_data->positive_elect;
+                    s_thaisen_transaction[gunno].meter_install_timestamp = _encry_data->install_timestamp;
+                    s_thaisen_transaction[gunno].meter_history_state = _encry_data->history_state;
+                }
+                break;
+            }
+        }
+#endif /* APP_INCLUDE_YKC17_PROTOCOL */
 
         if(s_ofsm_info[gunno].base.flag.start_result == APP_THA_ENUM_FALSE){
             s_ofsm_info[gunno].base.current_elect = s_ofsm_info[gunno].base.start_elect;
@@ -4304,7 +4502,7 @@ static void ofsm_stoping_fun(uint8_t gunno)
         app_nsal_transaction_record_report_monitor(gunno, &(s_thaisen_transaction_report[MONITOR_PLATFORM_INDEX][gunno]), 0x00);
         s_transaction_sending[MONITOR_PLATFORM_INDEX][gunno] = APP_THA_ENUM_TRUE;
 
-        rt_thread_mdelay(4000);  /* 等待电子锁解锁 */
+        rt_thread_mdelay(3000);  /* 等待电子锁解锁 */
 
         if(s_ofsm_info[gunno].base.run_mode == APP_RUN_MODE_OFFLINE_BILLING){
             app_card_event_send(APP_CARD_EVENT_CHARGE_STOP, gunno, NULL);
@@ -5011,6 +5209,11 @@ void ofsm_thread_entry(void *parameter)
     rt_thread_mdelay(6000);  /** 等待底层驱动正常(电表要获取到电量) */
     s_request_screen_time_tick = rt_tick_get();
     s_ofsm_info[thread_gunno].base.order_fixes_tick = rt_tick_get();
+
+#ifdef APP_INCLUDE_YKC17_PROTOCOL
+    s_ofsm_info[thread_gunno].base.meter_step = APP_AMMETER_ENCRY_STEP_NULL;
+    s_ofsm_info[thread_gunno].base.meter_reading_tick = rt_tick_get();
+#endif /* APP_INCLUDE_YKC17_PROTOCOL */
 
     while(1){
         uint16_t singlegun_curr = s_ofsm_info[thread_gunno].base.gun_set_curr;

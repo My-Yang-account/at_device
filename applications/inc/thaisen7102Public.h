@@ -2622,4 +2622,66 @@ typedef struct
  */
 void thaisenSetGunState(uint8_t gunNum, thaisenChargeGunInfo info);
 
+/********************************** 电表加密 ************************************/
+enum encry_type
+{
+ THAISEN_AMMETER_ENCRY_TYPE_START,           //指令：开始充电
+ THAISEN_AMMETER_ENCRY_TYPE_STOP,            //指令：结束充电
+ THAISEN_AMMETER_ENCRY_TYPE_METER_READING,   //指令：抄表
+};
+
+#pragma pack(1)
+//数据标识:E4 03 00 00 加密数据
+typedef struct{
+    uint16_t ver;                       //通讯协议版本号(HEX)
+    uint8_t encry_type;                 //加密方式
+    uint8_t reserve[7];                 //预留
+    uint8_t trade_number[16];           //流水号(BCD)
+    uint8_t dev_sn[6];                  //表号(BCD)
+    uint8_t port_identify_sn[17];       //枪口识别号(BCD)--加密或参与签名计算开始
+    uint32_t stimestamp;                //计量开始时间(秒时戳,HEX)
+    uint32_t etimestamp;                //计量结束时间(秒时戳,HEX)
+    uint32_t positive_elect;            //正向充电电量(3 位小数,HEX)
+    uint32_t install_timestamp;         //电表安装时间(秒时戳,HEX)
+    uint8_t history_state;              //端钮历史状态(0 正常，1 发生过端钮盖打开时间)--加密或参与签名计算域结束
+//    uint8_t sign_data[64];              //64 字节签名数据(当加密方式为 ECC256 时有该域)
+}thaisen_encry_data_t;
+#pragma pack()
+
+/* 功能说明:
+ *          thaisen_ammeter_encry_scmd: 发送电表加密指令
+ *
+ * 输入参数:
+ *         gunNum:枪号
+ *         type：指令类型(enum encry_type)
+ * 返回参数:
+ *
+ * 调用方法:
+ *          可实时调用
+ */
+void thaisen_ammeter_encry_scmd(uint8_t gunNum, enum encry_type type);
+
+/* 功能说明:
+ *          thaisen_ammeter_is_replied: 查询电表是否已回复指令
+ *
+ * 输入参数:
+ *         gunNum:枪号
+ * 返回参数:
+ *         0：未回复      1：已回复
+ * 调用方法:
+ *          可实时调用
+ */
+uint8_t thaisen_ammeter_is_replied(uint8_t gunNum);
+
+/* 功能说明:
+ *          thaisen_ammeter_query_encrypt_data: 获取加密数据
+ *
+ * 输入参数:
+ *         gunNum:枪号
+ * 返回参数:
+ *         (thaisen_encry_data_t*)型数据
+ * 调用方法:
+ *          可实时调用
+ */
+void *thaisen_ammeter_query_encrypt_data(uint8_t gunNum);
 #endif /* APPLICATIONS_THAISEN7102PUBLIC_H_ */
