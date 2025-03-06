@@ -146,6 +146,7 @@ APP_DEF_SRAM1 static const char* charge_fault_str[APP_CHARGE_FAULT_NO_ERROR] =
     "battery voltage",            /** 充电故障码字符串 3：电池电压 */
     "ready voltage",              /** 充电故障码字符串 4：准备电压 */
     "IMD voltage",                /** 充电故障码字符串 5：绝缘电压 */
+    "YT BFC",                     /** 充电故障码字符串 6：宇通BFC */
 #endif /* APP_DESIGNATE_REGION */
 };
 
@@ -190,6 +191,7 @@ void app_support_func_info_init(void)
     charge_fault_str[3] = "battery voltage";
     charge_fault_str[4] = "ready voltage";
     charge_fault_str[5] = "IMD voltage";
+    charge_fault_str[6] = "YT BFC";
 }
 #endif /* APP_DESIGNATE_REGION */
 
@@ -227,6 +229,8 @@ const char* get_fault_string(uint16_t code)
         return charge_fault_str[APP_CHARGE_FAULT_READY_VOLT];
     }else if(code == mw_system_stop_way_convert(APP_SYSTEM_STOP_WAY_INSULT_VOLT)){
         return charge_fault_str[APP_CHARGE_FAULT_INSULT_VOLT];
+    }else if(code == mw_system_stop_way_convert(thaisen_chargeCtl_stopWay_BFC)){
+        return charge_fault_str[APP_CHARGE_FAULT_YT_BFC];
     }
 
     return "unknow";
