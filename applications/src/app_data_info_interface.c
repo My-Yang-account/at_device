@@ -710,6 +710,7 @@ struct bms_info *thaisen_app_get_bms_info(uint8_t gunno)    // OK
     s_bms_info.single_battery_max_voltage = bms_data->BCS.CellHigVolt;
     s_bms_info.bms_require_voltage = bms_data->BCL.BMSneedVolt;
     s_bms_info.bms_require_current = bms_data->BCL.BMSneedCurlt;
+    s_bms_info.bms_remain_time = bms_data->BCS.SurplChgTime;
 
     return &s_bms_info;
 }

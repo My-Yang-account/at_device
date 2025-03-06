@@ -125,11 +125,14 @@
 //#define CP_QRCODE_CONFIG_USING_DUPU                   /* 二维码配置使用度普 */
 //#define CP_QRCODE_CONFIG_USING_NJ                     /* 二维码配置使用能佳 */
 //#define CP_QRCODE_CONFIG_USING_SGCC                   /* 二维码配置使用国网 */
+//#define CP_QRCODE_CONFIG_USING_QBJ                      /* 二维码配置使用柒捌玖 */
 
 //#define CP_PLATFORM_USING_YCP                           /* 平台使用越城公用 */
 //#define CP_PLATFORM_USING_XXCD                          /* 平台使用星星充电 */
 //#define CP_PLATFORM_USING_TLD                           /* 平台使用特来电 */
 //#define CP_PLATFORM_USING_SGCC                          /* 平台使用国网 */
+#define CP_PLATFORM_USING_QBJ                          /* 平台使用柒捌玖 */
+
 #define CP_USING_OFFLINE_BILLING                        /* 包含离线计费 */
 
 /** 域名默认 */
@@ -158,6 +161,9 @@
 #define CP_PLATFORM_ID                            7L                       /* 特来电平台ID */
 #elif defined(CP_PLATFORM_USING_SGCC)
 #define CP_PLATFORM_ID                            1L                       /* 国网平台ID */
+#elif defined(CP_PLATFORM_USING_QBJ)
+#define CP_PLATFORM_ID                            19L                      /* 柒捌玖平台ID */
+#define CP_CONFIG_USING_QBJ                                                /* 配置部分使用柒捌玖 */
 #else
 #define CP_PLATFORM_ID                            0L                       /* 云快充平台ID */
 #endif /* CP_PLATFORM_USING_YCP */

@@ -3565,6 +3565,8 @@ int8_t ykc_monitor_message_padding_dev_info(uint8_t *buf, uint16_t ilen, uint16_
 
 #elif (NET_TARGET_PLATFORM_ID == NET_SGCC_PRO_ID)
     message->body.target_plat_protocol = 0x01;
+#elif (NET_TARGET_PLATFORM_ID == NET_QBJ_PRO_ID)
+    message->body.target_plat_protocol = 0x13;
 #else
     message->body.target_plat_protocol = 0x00;
 #endif
@@ -4227,6 +4229,9 @@ int8_t ykc_monitor_message_padding_billing_rule(uint8_t *buf, uint16_t ilen, uin
 #elif (NET_TARGET_PLATFORM_ID == NET_WXN_PRO_ID)
     is_locked_fees_type = NET_ENUM_TRUE;
     /** 总长度判断 */
+#elif (NET_TARGET_PLATFORM_ID == NET_QBJ_PRO_ID)
+    is_locked_fees_type = NET_ENUM_TRUE;
+    /** 总长度判断 */
 #elif (NET_TARGET_PLATFORM_ID == NET_SGCC_PRO_ID)
     is_locked_fees_type = NET_ENUM_TRUE;
     total_len = (sizeof(Net_YkcMonitorPro_Preq_Pres_BillingRule_t) + sizeof(struct fees_type_period15min) *APP_BILLING_RULE_PERIOD_MAX);
@@ -4335,6 +4340,8 @@ int8_t ykc_monitor_message_padding_billing_rule(uint8_t *buf, uint16_t ilen, uin
         /** 久融协议费率信息组包 */
 #elif (NET_TARGET_PLATFORM_ID == NET_WXN_PRO_ID)
         /** 皖小能协议费率信息组包 */
+#elif (NET_TARGET_PLATFORM_ID == NET_QBJ_PRO_ID)
+        /** 柒捌玖协议费率信息组包 */
 #elif (NET_TARGET_PLATFORM_ID == NET_SGCC_PRO_ID)
         /** 国网协议费率信息组包 */
         struct fees_type_period15min *info = (struct fees_type_period15min*)(buf + sizeof(Net_YkcMonitorPro_Preq_Pres_BillingRule_t) - NET_YKC_MONITOR_PROTOCOL_CHECK_REGION_SIZE);

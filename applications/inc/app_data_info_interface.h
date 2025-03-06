@@ -331,6 +331,7 @@ struct bms_info{
     uint16_t single_battery_max_voltage;
     uint16_t bms_require_voltage;
     uint16_t bms_require_current;
+    uint16_t bms_remain_time;
 };
 struct bms_info *thaisen_app_get_bms_info(uint8_t gunno);
 /**

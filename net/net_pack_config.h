@@ -178,6 +178,23 @@
 //#define NET_SGCC_PRO_USING_AC                                      /* 国网协议使用交流部分 */
 #endif /* NET_PACK_USING_SGCC */
 #define NET_SGCC_PRO_ID                               0x00000080 /* 国网协议ID */
+/*********************************************************柒捌玖**************************************************************/
+#ifdef NET_PACK_USING_QBJ
+//#define NET_QBJ_AS_MONITOR                                     /* 柒捌玖平台作为监控平台 */
+#define NET_QBJ_AS_TARGET                                        /* 柒捌玖平台作为目标平台 */
+
+#ifdef NET_QBJ_AS_MONITOR
+#define NET_INCLUDE_MONITOR_PLATFORM                              /* 包含监控平台 */
+#define NET_MONITOR_PLATFORM_ID                       0x00002000  /* 监控平台ID */
+#else
+#define NET_INCLUDE_TARGET_PLATFORM                               /* 包含目标平台 */
+#define NET_TARGET_PLATFORM_ID                        0x00002000  /* 目标平台ID */
+#endif /* NET_QBJ_AS_MONITOR */
+
+#define NET_QBJ_PRO_USING_DC                                      /* 柒捌玖协议使用直流部分 */
+#define NET_QBJ_PRO_USING_AC                                      /* 柒捌玖协议使用交流部分 */
+#endif /* NET_PACK_USING_QBJ */
+#define NET_QBJ_PRO_ID                                0x00002000 /* 柒捌玖协议ID */
 /***********************************************************************************************************************/
 
 /* OTA 相关配置 */
