@@ -271,18 +271,24 @@ static void terminal_ems_send_charger_status(void)                              
     for(uint8_t gunno = 0x00; gunno < APP_SYSTEM_GUNNO_SIZE; gunno++){
         struct ofsm_info *ofsm = get_ofsm_info(gunno);
         struct thaisenBMS_Charger_struct *bms = (struct thaisenBMS_Charger_struct*)(ofsm->base.bms_data);
-        uint32_t elect_total = ofsm->base.elect_a /10;
+        uint32_t para0 = 0x00, para1 = 0x00;
 
         if(ofsm->base.state.current == APP_OFSM_STATE_CHARGING){                                            //充电状态赋值充电数据
-            s_ems_frame_request.gun_data[gunno].curr = HTONS(ofsm->base.current_a /10);
-            s_ems_frame_request.gun_data[gunno].power = HTONS(ofsm->base.power_a /1000);
-            s_ems_frame_request.gun_data[gunno].soc = HTONS(ofsm->base.current_soc);
-            s_ems_frame_request.gun_data[gunno].volt = HTONS(ofsm->base.voltage_a /10);
+            para0 = ofsm->base.current_a /10;
+            para1 = ofsm->base.voltage_a /10;
+            s_ems_frame_request.gun_data[gunno].volt = HTONS(para1);
+            s_ems_frame_request.gun_data[gunno].curr = HTONS(para0);
+            s_ems_frame_request.gun_data[gunno].power = HTONS((para0 *para1 /10000));
+            para0 = ofsm->base.current_soc;
+            s_ems_frame_request.gun_data[gunno].soc = HTONS(para0);
 
-            s_ems_frame_request.bms_data[gunno].require_voltage = HTONS(bms->BCL.BMSneedVolt);
-            s_ems_frame_request.bms_data[gunno].require_current = HTONS(bms->BCL.BMSneedCurlt);
-            s_ems_frame_request.bms_data[gunno].require_power = HTONS(((bms->BCL.BMSneedVolt * bms->BCL.BMSneedCurlt) /1000 /10));
-            s_ems_frame_request.elect_total[gunno] = HTONL(elect_total);
+            para0 = bms->BCL.BMSneedVolt;
+            para1 = bms->BCL.BMSneedCurlt;
+            s_ems_frame_request.bms_data[gunno].require_voltage = HTONS(para0);
+            s_ems_frame_request.bms_data[gunno].require_current = HTONS(para1);
+            s_ems_frame_request.bms_data[gunno].require_power = HTONS(((para0 * para1) /1000 /10));
+            para0 = ofsm->base.elect_a /10;
+            s_ems_frame_request.elect_total[gunno] = HTONL(para0);
         }else{
             memset(&s_ems_frame_request.gun_data[gunno], 0x00, sizeof(s_ems_frame_request.gun_data[gunno]));//非充电状态数据置0
             memset(&s_ems_frame_request.bms_data[gunno], 0x00, sizeof(s_ems_frame_request.bms_data[gunno]));//非充电状态数据置0
@@ -314,18 +320,25 @@ static void terminal_ems_send_charger_status(void)                              
 #else                                                          //单枪模式
     struct ofsm_info *ofsm = get_ofsm_info(APP_SYSTEM_GUNNOA);
     struct thaisenBMS_Charger_struct *bms = (struct thaisenBMS_Charger_struct*)(ofsm->base.bms_data);
+    uint32_t para0 = 0x00, para1 = 0x00;
     uint32_t elect_total = ofsm->base.elect_a /10;
 
     if(ofsm->base.state.current == APP_OFSM_STATE_CHARGING){                                            //充电状态赋值充电数据
-        s_ems_frame_request.gun_data[APP_SYSTEM_GUNNOA].curr = HTONS(ofsm->base.current_a /10);
-        s_ems_frame_request.gun_data[APP_SYSTEM_GUNNOA].power = HTONS(ofsm->base.power_a /1000);
-        s_ems_frame_request.gun_data[APP_SYSTEM_GUNNOA].soc = HTONS(ofsm->base.current_soc);
-        s_ems_frame_request.gun_data[APP_SYSTEM_GUNNOA].volt =HTONS(ofsm->base.voltage_a /10);
+        para0 = ofsm->base.current_a /10;
+        para1 = ofsm->base.voltage_a /10;
+        s_ems_frame_request.gun_data[APP_SYSTEM_GUNNOA].volt =HTONS(para1);
+        s_ems_frame_request.gun_data[APP_SYSTEM_GUNNOA].curr = HTONS(para0);
+        s_ems_frame_request.gun_data[APP_SYSTEM_GUNNOA].power = HTONS((para0 *para1 /10000));
+        para0 = ofsm->base.current_soc;
+        s_ems_frame_request.gun_data[APP_SYSTEM_GUNNOA].soc = HTONS(para0);
 
-        s_ems_frame_request.bms_data[APP_SYSTEM_GUNNOA].require_voltage = HTONS(bms->BCL.BMSneedVolt);
-        s_ems_frame_request.bms_data[APP_SYSTEM_GUNNOA].require_current = HTONS(bms->BCL.BMSneedCurlt);
-        s_ems_frame_request.bms_data[APP_SYSTEM_GUNNOA].require_power = HTONS(((bms->BCL.BMSneedVolt * bms->BCL.BMSneedCurlt) /1000 /10));
-        s_ems_frame_request.elect_total[APP_SYSTEM_GUNNOA] = HTONL(elect_total);
+        para0 = bms->BCL.BMSneedVolt;
+        para1 = bms->BCL.BMSneedCurlt;
+        s_ems_frame_request.bms_data[APP_SYSTEM_GUNNOA].require_voltage = HTONS(para0);
+        s_ems_frame_request.bms_data[APP_SYSTEM_GUNNOA].require_current = HTONS(para1);
+        s_ems_frame_request.bms_data[APP_SYSTEM_GUNNOA].require_power = HTONS(((para0 * para1) /1000 /10));
+        para0 = ofsm->base.elect_a /10;
+        s_ems_frame_request.elect_total[APP_SYSTEM_GUNNOA] = HTONL(para0);
     }else{
         memset(&s_ems_frame_request.gun_data[APP_SYSTEM_GUNNOA], 0x00, sizeof(s_ems_frame_request.gun_data[APP_SYSTEM_GUNNOA]));//非充电状态数据置0
         memset(&s_ems_frame_request.bms_data[APP_SYSTEM_GUNNOA], 0x00, sizeof(s_ems_frame_request.bms_data[APP_SYSTEM_GUNNOA]));//非充电状态数据置0
