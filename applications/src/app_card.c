@@ -92,6 +92,7 @@ static int32_t card_node_running(void *node, void *para, uint32_t plen, uint32_t
     return 0x00;
 }
 
+#ifdef APP_USING_OFFLINE_BILLING
 /*****************************************************************************
  * 函数名                app_card_query_funpay_bill_fees_total
  * 功能                    查询历史订单中与指定UUID匹配的第一条订单的消费金额
@@ -548,7 +549,7 @@ static int32_t app_card_swip_card_start(uint8_t gunno)
 
     return s_card_operate_ret[gunno];
 }
-
+#endif /* APP_USING_OFFLINE_BILLING */
 
 
 /*****************************************************************************
@@ -607,6 +608,7 @@ static void app_card_data_update(void* handle)
     }
 }
 
+#ifdef APP_USING_OFFLINE_BILLING
 /*****************************************************************************
  *  函数名   app_card_another_gun_judge
  *  功能       判断另一把枪是否要停止
@@ -616,7 +618,7 @@ static void app_card_data_update(void* handle)
 static uint8_t app_card_another_gun_judge(uint8_t gunno)
 {
     int32_t ret = 0x00;
-    uint8_t another_port = 0x00, *dev_id = sys_read_config_item_content(CONFIG_ITEM_PILE_NUMBER, 0x00);;
+    uint8_t another_port = 0x00, *dev_id = sys_read_config_item_content(CONFIG_ITEM_PILE_NUMBER, 0x00);
     struct ofsm_info *ofsm = NULL;
 
     if(APP_SYSTEM_GUNNO_SIZE >= 0x02){   /** 双枪情况下才进行此判断 */
@@ -658,6 +660,7 @@ static uint8_t app_card_another_gun_judge(uint8_t gunno)
 
     return 0x00;
 }
+#endif /* APP_USING_OFFLINE_BILLING */
 
 /*****************************************************************************
  *  函数名   app_card_info_process
@@ -667,6 +670,24 @@ static uint8_t app_card_another_gun_judge(uint8_t gunno)
  ****************************************************************************/
 static int32_t app_card_info_process(void* handle)
 {
+#ifndef APP_USING_OFFLINE_BILLING
+    if(get_ofsm_info(0x00)->base.run_mode != APP_RUN_MODE_OFFLINE_BILLING){
+        if((rfidr_query_info_type() == APP_RFIDR_INFO_TYPE_UUID) ||
+                (rfidr_query_info_type() == APP_RFIDR_INFO_TYPE_CARD_NUMBER)){
+
+            struct ofsm_info *ofsm = NULL;
+            s_rfidr = (rfid_reader*)handle;
+            for(uint8_t gunno = 0x00; gunno < APP_SYSTEM_GUNNO_SIZE; gunno++){
+                ofsm = get_ofsm_info(gunno);
+                if((memcmp(s_rfidr->uuid, ofsm->base.card_uid, s_rfidr->uuid_len) == 0x00) &&
+                        (ofsm->base.state.current == APP_OFSM_STATE_CHARGING)){
+                    s_rfidr->current_port = gunno;
+                }
+            }
+        }
+        return 0x00;
+    }
+#else
     if(get_ofsm_info(0x00)->base.run_mode != APP_RUN_MODE_OFFLINE_BILLING){
         if((rfidr_query_info_type() == APP_RFIDR_INFO_TYPE_UUID) ||
                 (rfidr_query_info_type() == APP_RFIDR_INFO_TYPE_CARD_NUMBER)){
@@ -957,7 +978,7 @@ static int32_t app_card_info_process(void* handle)
             break;
         }
     }
-
+#endif APP_USING_OFFLINE_BILLING
     return 0x00;
 }
 
@@ -970,6 +991,7 @@ static int32_t app_card_info_process(void* handle)
  ****************************************************************************/
 int32_t app_card_event_send(uint32_t event, uint8_t gunno, uint32_t *set)
 {
+#ifdef APP_USING_OFFLINE_BILLING
     if(gunno >= APP_SYSTEM_GUNNO_SIZE){
         if(set){
             *set = 0x00;
@@ -983,6 +1005,9 @@ int32_t app_card_event_send(uint32_t event, uint8_t gunno, uint32_t *set)
         *set = s_card_event[gunno].set;
     }
     return res;
+#else
+    return -0x01;
+#endif APP_USING_OFFLINE_BILLING
 }
 
 /*****************************************************************************
@@ -996,6 +1021,7 @@ int32_t app_card_event_send(uint32_t event, uint8_t gunno, uint32_t *set)
  ****************************************************************************/
 int32_t app_card_event_recv(uint32_t event, uint32_t timeout, uint8_t gunno, uint32_t *set, uint8_t is_clear)
 {
+#ifdef APP_USING_OFFLINE_BILLING
     if(gunno >= APP_SYSTEM_GUNNO_SIZE){
         if(set){
             *set = 0x00;
@@ -1007,6 +1033,9 @@ int32_t app_card_event_recv(uint32_t event, uint32_t timeout, uint8_t gunno, uin
         return rt_event_recv(&s_card_event[gunno], event, RT_EVENT_FLAG_OR |RT_EVENT_FLAG_CLEAR, timeout, set);
     }
     return rt_event_recv(&s_card_event[gunno], event, RT_EVENT_FLAG_OR, timeout, set);
+#else
+    return -0x01;
+#endif APP_USING_OFFLINE_BILLING
 }
 
 /*****************************************************************************
@@ -1041,11 +1070,15 @@ int32_t app_card_ipc_init(void)
  ****************************************************************************/
 uint32_t app_card_query_ballance(uint8_t gunno)
 {
+#ifdef APP_USING_OFFLINE_BILLING
     if(gunno >= APP_SYSTEM_GUNNO_SIZE){
         return 0x00;
     }
 
     return s_card_ballance[gunno];
+#else
+    return 0x00;
+#endif APP_USING_OFFLINE_BILLING
 }
 
 /*****************************************************************************

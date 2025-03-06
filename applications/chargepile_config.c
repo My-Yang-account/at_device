@@ -226,7 +226,11 @@ struct chargepile_config_info{
     struct _state_reversal state_reversal;
     struct _target_plat target_plat;
     struct _monitor_plat monitor_plat;
+#ifdef CP_USING_OFFLINE_BILLING
     struct sys_billing_rule billing_rule;
+#else
+    uint8_t ob_reserve[1358];    /** 不使用离线计费时也要占用对应大小的配置内存 */
+#endif /* CP_USING_OFFLINE_BILLING */
     uint8_t reserve[1024];
     uint32_t crc;
 };
@@ -658,10 +662,13 @@ APP_DEF_SRAM2 static struct config_item s_config_item_set[CONFIG_ITEM_SIZE] =
 
 
 
+
+#ifdef CP_USING_OFFLINE_BILLING
         {CONFIG_ITEM_BILLING_RULE,                                                              /* 计费规则数据：为倒数第三项 */
         (1 <<(32 - 4))| (sizeof(s_chargepile_config_info.billing_rule)),
         (uint8_t*)&s_chargepile_config_info.billing_rule,
         NULL},
+#endif /* CP_USING_OFFLINE_BILLING */
 
         {CONFIG_ITEM_TARGET_PLATFORM,                                                           /* 目标平台数据：为倒数第二项 */
         (1 <<(32 - 4))| (sizeof(s_chargepile_config_info.target_plat)),
@@ -957,9 +964,11 @@ void sys_chargeplie_config_info_init(void)
     /** 网络类型 */
     sys_config_item_init(CONFIG_ITEM_NET_TYPE, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.network.nettype)), \
             (uint8_t*)&s_chargepile_config_info.network.nettype, NULL);
+#ifdef CP_USING_OFFLINE_BILLING
     /** 计费规则信息 */
     sys_config_item_init(CONFIG_ITEM_BILLING_RULE, (1 <<(32 - 4))| (sizeof(s_chargepile_config_info.billing_rule)), \
             (uint8_t*)&s_chargepile_config_info.billing_rule, NULL);
+#endif /* #ifdef CP_USING_OFFLINE_BILLING */
     /** 目标平台信息 */
     sys_config_item_init(CONFIG_ITEM_TARGET_PLATFORM, (1 <<(32 - 4))| (sizeof(s_chargepile_config_info.target_plat)), \
             (uint8_t*)&s_chargepile_config_info.target_plat, NULL);
@@ -1520,6 +1529,7 @@ static void chargepile_config_data_reset(void)
     s_chargepile_config_info.target_plat.verify_result = 0x00;
     s_chargepile_config_info.monitor_plat.verify_result = 0x00;
 
+#ifdef CP_USING_OFFLINE_BILLING
     for(uint8_t period = 0x00; period < CP_PERIOD_MAX; period++){
         s_chargepile_config_info.billing_rule.period_price[period].elect = CP_PERIOD_ELECT_PRICE_DEF;
         s_chargepile_config_info.billing_rule.period_price[period].service = CP_PERIOD_SERVICE_PRICE_DEF;
@@ -1550,6 +1560,7 @@ static void chargepile_config_data_reset(void)
     s_chargepile_config_info.billing_rule.rate_delay_price[CP_RATED_TYPE_VALLEY] = CP_VALLEY_RATED_DELAY_PRICE_DEF;
 
     sys_period_time_resume_default(s_chargepile_config_info.billing_rule.time, sizeof(s_chargepile_config_info.billing_rule.time));
+#endif /* CP_USING_OFFLINE_BILLING */
 
 #ifdef APP_INCLUDE_TARGET_PLATFORM
 #if (APP_TARGET_PLATFORM_ID == NET_OCPP_PLATFORM_ID)
@@ -1755,8 +1766,13 @@ int32_t sys_string_is_pure_digital_alphabet(const char* string, uint16_t slen)
 
 int32_t chargepile_check_config(void)
 {
+#ifdef CP_USING_OFFLINE_BILLING
     struct period_time time[CP_RATED_TYPE_NUM_MAX *CP_RATED_TYPE_PERIOD_NUM];  /* 时段时间 */
-    uint8_t i = 0x00, j = 0x00, valid_count = 0;;
+    uint8_t i = 0x00, j = 0x00, valid_count = 0;
+#else
+    s_chargepile_config_info.function_enable.offline_billing = 0;
+#endif /* CP_USING_OFFLINE_BILLING */
+
     uint16_t valid_len = 0x00;
     uint32_t single_module_power = 0x00;       /* 单个模块能输出的最大(额定)功率 */
     s_system_power_max = 0x00;
@@ -2060,6 +2076,7 @@ int32_t chargepile_check_config(void)
         }
     }
 
+#ifdef CP_USING_OFFLINE_BILLING
     /***************************************************[离线计费部分]*****************************************************/
     /***************************************************[离线计费部分]*****************************************************/
     for(uint8_t period = 0x00; period < CP_PERIOD_MAX; period++){
@@ -2261,7 +2278,7 @@ int32_t chargepile_check_config(void)
 
     /********************************************************************************************************/
     /********************************************************************************************************/
-
+#endif /* CP_USING_OFFLINE_BILLING */
     return 0;
 }
 
@@ -2700,6 +2717,7 @@ int32_t sys_card_uid_whitelists_delete(uint8_t *data, uint8_t len)
  ********************************************************/
 int32_t sys_period_time_format_valid(void *t)
 {
+#ifdef CP_USING_OFFLINE_BILLING
     if(t == NULL){
         return -0x01;
     }
@@ -2742,6 +2760,9 @@ int32_t sys_period_time_format_valid(void *t)
     }
 
     return 0x01;
+#else
+    return -0x01;
+#endif /* CP_USING_OFFLINE_BILLING */
 }
 
 /*********************************************************
@@ -2754,6 +2775,7 @@ int32_t sys_period_time_format_valid(void *t)
  ********************************************************/
 int32_t sys_period_time_continuous_valid(void *t, uint8_t tlen, uint8_t valid_count)
 {
+#ifdef CP_USING_OFFLINE_BILLING
     if(t == NULL){
         return 0x00;    /** 时间间断 */
     }
@@ -2863,6 +2885,9 @@ int32_t sys_period_time_continuous_valid(void *t, uint8_t tlen, uint8_t valid_co
     }
 
     return 0x01;
+#else
+    return 0x00;
+#endif /* CP_USING_OFFLINE_BILLING */
 }
 
 /*********************************************************
@@ -2874,6 +2899,7 @@ int32_t sys_period_time_continuous_valid(void *t, uint8_t tlen, uint8_t valid_co
  ********************************************************/
 int32_t sys_period_time_resume_default(void *t, uint8_t tlen)
 {
+#ifdef CP_USING_OFFLINE_BILLING
     if(t == NULL){
         return 0x00;
     }
@@ -2911,6 +2937,9 @@ int32_t sys_period_time_resume_default(void *t, uint8_t tlen)
     time[j][i].emin = 0x00;
 
     return 0x01;
+#else
+    return 0x00;
+#endif /* CP_USING_OFFLINE_BILLING */
 }
 
 /*********************************************************
@@ -2921,6 +2950,7 @@ int32_t sys_period_time_resume_default(void *t, uint8_t tlen)
  ********************************************************/
 uint8_t sys_get_offbilling_rate_number(uint32_t curr_time)
 {
+#ifdef CP_USING_OFFLINE_BILLING
     uint8_t i = 0x00, j = 0x00, end_hour = 0x00;
     struct tm _tm;
 
@@ -2973,6 +3003,9 @@ uint8_t sys_get_offbilling_rate_number(uint32_t curr_time)
     }
 
     return CP_PERIOD_RATED_NUMBER_DEFAULT;
+#else
+    return 0x04;
+#endif /* CP_USING_OFFLINE_BILLING */
 }
 
 /*********************************************************
@@ -2983,6 +3016,7 @@ uint8_t sys_get_offbilling_rate_number(uint32_t curr_time)
  ********************************************************/
 uint32_t sys_get_offbilling_unit_price(uint32_t curr_time)
 {
+#ifdef CP_USING_OFFLINE_BILLING
     uint8_t rate_number = CP_RATED_TYPE_NUM_MAX, i = 0x00, j = 0x00, end_hour = 0x00;
     uint32_t price = 0x00;
     struct tm _tm;
@@ -3043,6 +3077,9 @@ uint32_t sys_get_offbilling_unit_price(uint32_t curr_time)
             s_chargepile_config_info.billing_rule.rate_delay_price[rate_number];
 
     return price;
+#else
+    return 0x00;
+#endif /* CP_USING_OFFLINE_BILLING */
 }
 
 /*********************************************************
@@ -3053,11 +3090,15 @@ uint32_t sys_get_offbilling_unit_price(uint32_t curr_time)
  ********************************************************/
 uint32_t sys_get_offbilling_elect_price(uint8_t rate_number)
 {
+#ifdef CP_USING_OFFLINE_BILLING
     if(rate_number >= CP_RATED_TYPE_NUM_MAX){
         return 0x00;
     }
 
     return s_chargepile_config_info.billing_rule.rate_elect_price[rate_number];
+#else
+    return 0x00;
+#endif /* CP_USING_OFFLINE_BILLING */
 }
 
 /*********************************************************
@@ -3068,11 +3109,15 @@ uint32_t sys_get_offbilling_elect_price(uint8_t rate_number)
  ********************************************************/
 uint32_t sys_get_offbilling_service_price(uint8_t rate_number)
 {
+#ifdef CP_USING_OFFLINE_BILLING
     if(rate_number >= CP_RATED_TYPE_NUM_MAX){
         return 0x00;
     }
 
     return s_chargepile_config_info.billing_rule.rate_service_price[rate_number];
+#else
+    return 0x00;
+#endif /* CP_USING_OFFLINE_BILLING */
 }
 
 /*********************************************************
@@ -3083,10 +3128,15 @@ uint32_t sys_get_offbilling_service_price(uint8_t rate_number)
  ********************************************************/
 uint32_t sys_get_offbilling_delay_price(uint8_t rate_number)
 {
+#ifdef CP_USING_OFFLINE_BILLING
     if(rate_number >= CP_RATED_TYPE_NUM_MAX){
         return 0x00;
     }
 
     return s_chargepile_config_info.billing_rule.rate_delay_price[rate_number];
+#else
+    return 0x00;
+#endif /* CP_USING_OFFLINE_BILLING */
 }
+
 

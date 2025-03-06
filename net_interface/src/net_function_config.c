@@ -30,9 +30,9 @@ static void app_ndata_update(void)
 
     net_netdev_dev_control(NET_NETDEV_CTRL_CMD_QUERY_SYS_ERR, NULL, 0x00, &err, sizeof(err));
     if(err){
-        app_set_system_reset_event(APP_SYS_RESET_NDEV_ERROR, 0x01);
+        net_operation_set_event(0x00, NET_OPERATION_EVENT_REBOOT);
     }else{
-        app_set_system_reset_event(APP_SYS_RESET_NDEV_ERROR, 0x00);
+        net_operation_clear_event(0x00, NET_OPERATION_EVENT_REBOOT);
     }
 
     switch(state){

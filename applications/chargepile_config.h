@@ -130,6 +130,7 @@
 //#define CP_PLATFORM_USING_XXCD                          /* 平台使用星星充电 */
 //#define CP_PLATFORM_USING_TLD                           /* 平台使用特来电 */
 //#define CP_PLATFORM_USING_SGCC                          /* 平台使用国网 */
+//#define CP_USING_OFFLINE_BILLING                        /* 包含离线计费 */
 
 /** 域名默认 */
 /**------------------------------------------------------------*/
@@ -326,6 +327,7 @@
 #define CP_NETTYPE_OFFLINE                            0x02             /* 联网方式：离线模式 */
 #define CP_NETTYPE_SIZE                               0x03
 
+#ifdef CP_USING_OFFLINE_BILLING
 /* period num */
 #define CP_PERIOD_MAX                                 0x60             /* 时段总数 */
 
@@ -421,6 +423,7 @@
 #define CP_UNIT_PRICE_MIN                             3000             /* 单价最小值：0.3元 */
 #define CP_UNIT_PRICE_DEFAULT                         10000            /* 单价默认值：1元 */
 #define CP_PERIOD_RATED_NUMBER_DEFAULT                0x04             /* 时段费率号默认值：谷费率 */
+#endif /* CP_USING_OFFLINE_BILLING */
 
 enum config_name{
     CONFIG_ITEM_PILE_NUMBER,
@@ -513,7 +516,9 @@ enum config_name{
     CONFIG_ITEM_HELP_PHONE,
     CONFIG_ITEM_NET_TYPE,
 
+#ifdef CP_USING_OFFLINE_BILLING
     CONFIG_ITEM_BILLING_RULE,       /* 计费规则数据：为倒数第三项 */
+#endif /* CP_USING_OFFLINE_BILLING */
     CONFIG_ITEM_TARGET_PLATFORM,    /* 目标平台数据：为倒数第二项 */
     CONFIG_ITEM_MONITOR_PLATFORM,   /* 监控平台数据：为倒数第一项 */
 
@@ -527,6 +532,7 @@ enum config_name{
 };
 
 #pragma pack(1)
+#ifdef CP_USING_OFFLINE_BILLING
 struct period_time{                                        /** 用于离线计费 */
     uint8_t shour;                                         /** 时段开始：小时 */
     uint8_t smin;                                          /** 时段开始：分钟 */
@@ -548,6 +554,7 @@ struct sys_billing_rule{
     uint32_t rate_service_price[CP_RATED_TYPE_NUM_MAX]; /** 尖尖、尖、峰、平、谷费率服务费价格(精度：0.0001) */
     uint32_t rate_delay_price[CP_RATED_TYPE_NUM_MAX];   /** 尖尖、尖、峰、平、谷费率延迟价格(精度：0.0001) */
 };
+#endif /* CP_USING_OFFLINE_BILLING */
 
 struct config_item{
     uint8_t name;

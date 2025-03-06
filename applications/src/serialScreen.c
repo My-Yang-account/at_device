@@ -93,6 +93,10 @@
 #define SCREEN_USING_DUPU         /* 使用度普屏幕 */
 #endif /* CP_CONFIG_USING_DUPU */
 
+#ifdef CP_USING_OFFLINE_BILLING
+#define SCREEN_USING_OFFLINE_BILLING     /* 使用离线计费 */
+#endif /* CP_USING_OFFLINE_BILLING */
+
 #define SCREEN_TRIGGER_WARN_ICON_CARD_LOCKED              0x00    /* 外部触发告警ICON：卡被锁 */
 #define SCREEN_TRIGGER_WARN_ICON_INVALID_CARD             0x01    /* 外部触发告警ICON：无效卡 */
 #define SCREEN_TRIGGER_WARN_ICON_NO_BALLANCE              0x02    /* 外部触发告警ICON：余额不足 */
@@ -159,11 +163,17 @@ SERIALSCREEN_DEF_SRAM2 u8 SerialScreenRxbuf[sSCREEN_RX_CMD_MAX_LEN+sSCREEN_RX_CM
 #define LCD_GUN_2			1 //Gun_1
 #define QRCODE_LEN          150  // 二维码显示长度
 #define VIN_LIST_NUM        6  // VIN 白名单个数
+
+#ifdef SCREEN_USING_OFFLINE_BILLING
 #define SERIALSCREEN_CONFIG_PAGE_MAX   44  // 屏幕页面总数
 #define SERIALSCREEN_PAGE_ITEM_MAX     54  // 屏幕每页信息项总数
 #define SERIALSCREEN_TRIGGER_PAGE_MAX  14   // 外部触发页面总数
 
 #define SERIALSCREEN_OB_COUNTDOWN_STRING_MAX   4  //离线计费告警倒计时字符串最大长度
+#else
+#define SERIALSCREEN_CONFIG_PAGE_MAX   40  // 屏幕页面总数
+#define SERIALSCREEN_PAGE_ITEM_MAX     54  // 屏幕每页信息项总数
+#endif /* SCREEN_USING_OFFLINE_BILLING */
 #define CONFIG_ITEM_MODULE_GROUP_NUM_(X) 
 
 #ifdef USING_DOUBLE_GUN
@@ -218,7 +228,7 @@ enum LCD_RXDATA_STEP_TYPE{
 
 
 enum LCD_DISPLAY_PAGE_TYPE{
-	LCD_PAGE_NONE ,
+	LCD_PAGE_NONE = 0,
 	LCD_PAGE_STANDBY = 1,		//待机界面
 	LCD_PAGE_A_SELECT = 2,		//充电模式选择
 	LCD_PAGE_B_SELECT = 3,		//充电模式选择
@@ -264,12 +274,14 @@ enum LCD_DISPLAY_PAGE_TYPE{
 	LCD_PAGE_MENU_CONTROL_MODULE_B = 52,//模块控制
 	LCD_PAGE_MENU_SYS = 54,	//系统
 
+#ifdef SCREEN_USING_OFFLINE_BILLING
     LCD_PAGE_OFFLINE_BILLING = 62, //离线计费
-    LCD_PAGE_STORAGE_WAITING = 66, //保存等待
-    LCD_PAGE_CLEAR_RECORD_WAITING = 67, //清除记录等待
     LCD_PAGE_WARNNING_INFO = 78, //告警信息
     LCD_PAGE_OB_PYA_A = 79, //离线计费A枪结算
     LCD_PAGE_OB_PYA_B = 80, //离线计费B枪结算
+#endif /* SCREEN_USING_OFFLINE_BILLING */
+    LCD_PAGE_STORAGE_WAITING = 66, //保存等待
+    LCD_PAGE_CLEAR_RECORD_WAITING = 67, //清除记录等待
 };
 
 extern struct SerialScreenObj SerialScreen;
@@ -300,6 +312,7 @@ struct LCD_ASSISTANT_DATA{
     u8 RefrenshPeriod;                   //实时数据更新周期
 };
 
+#ifdef SCREEN_USING_OFFLINE_BILLING
 struct LCD_TRIGGER_ITEM{
     u8 page;                             //页面
     u16 time;                            //持续时间
@@ -337,6 +350,7 @@ struct Period_Time{
     u8 emin;                                          /** 时段结束：分钟 */
     u8 rate_number;                                   /** 费率号 */
 };
+#endif /* SCREEN_USING_OFFLINE_BILLING */
 
 #pragma pack()
 
@@ -570,6 +584,7 @@ struct LCD_DISPLAY_SETDATA_TYPE{
     s32 moduleVolt[LCD_GUN_NUM];            //模块电压
     s32 batteryVolt[LCD_GUN_NUM];           //电池电压
     s32 maxChargeVolt[LCD_GUN_NUM];         //最大充电电压
+#ifdef SCREEN_USING_OFFLINE_BILLING
     /***********************offline billing***************************/
     u8 OBCountDown;                         //离线计费倒计时
     u8 OBwarning;                           //offline billing信息告警
@@ -583,6 +598,7 @@ struct LCD_DISPLAY_SETDATA_TYPE{
     struct Period_Time PeriodTime[CP_RATED_TYPE_NUM_MAX][CP_RATED_TYPE_PERIOD_NUM];  //时段时间
 
     u8 OB_CountDownString[SERIALSCREEN_OB_COUNTDOWN_STRING_MAX];
+#endif /* SCREEN_USING_OFFLINE_BILLING */
 
 }LCD_DISPLAY_SETDATA_TYPE_t;
 
@@ -694,7 +710,9 @@ SERIALSCREEN_DEF_SRAM2 struct LCD_DISPLAY_VALUE_TYPE LcdData;
 SERIALSCREEN_DEF_SRAM2 struct LCD_RXDATA_VALUE_TYPE LcdRxData;
 SERIALSCREEN_DEF_SRAM2 struct LCD_TXDATA_VALUE_TYPE LcdTxData;
 SERIALSCREEN_DEF_SRAM2 struct LCD_ASSISTANT_DATA LcdAssistantData;
+#ifdef SCREEN_USING_OFFLINE_BILLING
 SERIALSCREEN_DEF_SRAM2 struct LCD_TRIGGER LcdTriggerEvent[LCD_GUN_NUM];
+#endif /* SCREEN_USING_OFFLINE_BILLING */
 
 
 enum SYSMAIN_STATUS{
@@ -809,6 +827,7 @@ enum REALAY_STATE{
     
 };
 
+#ifdef SCREEN_USING_OFFLINE_BILLING
 SERIALSCREEN_DEF_SRAM2 static struct LCD_TRIGGER_PAGE Trigger_Page[SERIALSCREEN_TRIGGER_PAGE_MAX] =
 {
     {LCD_PAGE_WARNNING_INFO, SCREEN_TRIGGER_WARN_ICON_CARD_LOCKED, SCREEN_TRIGGER_WARN_ICON_SIZE},
@@ -826,6 +845,8 @@ SERIALSCREEN_DEF_SRAM2 static struct LCD_TRIGGER_PAGE Trigger_Page[SERIALSCREEN_
     {LCD_PAGE_WARNNING_INFO, SCREEN_TRIGGER_WARN_IS_CHARGING, SCREEN_TRIGGER_WARN_ICON_SIZE},
     {LCD_PAGE_WARNNING_INFO, SCREEN_TRIGGER_WARN_FAULT_STOP, SCREEN_TRIGGER_WARN_ICON_SIZE},
 };
+#endif /* SCREEN_USING_OFFLINE_BILLING */
+
 #ifdef SERIALSCREEN_DESIGNATE_REGION
 SERIALSCREEN_DEF_TCMRAM static struct LCD_DISPLAY_PAGE_INDEX_TYPE LCD_ALL_PAGE_TAB[SERIALSCREEN_CONFIG_PAGE_MAX];
 #else
@@ -1122,6 +1143,7 @@ u8 SerialScreen_Screen_IsCouDownFin_Flag(u8 port)
  ******************************************************************************************/
 s32 SerialScreen_ScreenSet_Trigger_Event(u8 Event, u16 DurationTime, u8 JustNotice, u8 port)
 {
+#ifdef SCREEN_USING_OFFLINE_BILLING
     if(LcdData.setData.sup_offbilling == FALSE){
         LcdTriggerEvent[port].Flag.IsModify = FALSE;
         LcdTriggerEvent[port].Flag.IsTriggerExternal = FALSE;
@@ -1164,6 +1186,9 @@ s32 SerialScreen_ScreenSet_Trigger_Event(u8 Event, u16 DurationTime, u8 JustNoti
     LcdTriggerEvent[port].Flag.IsTriggerExternal = TRUE;
 
     return TRUE;
+#else
+    return FALSE;
+#endif /* SCREEN_USING_OFFLINE_BILLING */
 }
 
 /*****************************************************************************************************
@@ -1175,6 +1200,7 @@ s32 SerialScreen_ScreenSet_Trigger_Event(u8 Event, u16 DurationTime, u8 JustNoti
  ****************************************************************************************************/
 static u8 SerialScreen_TriggerItem_Execute(struct LCD_TRIGGER_ITEM *item)
 {
+#ifdef SCREEN_USING_OFFLINE_BILLING
     if(LcdData.setData.sup_offbilling == FALSE){
         LcdTriggerEvent[LcdData.gunIndex].Flag.IsModify = FALSE;
         LcdTriggerEvent[LcdData.gunIndex].Flag.IsTriggerExternal = FALSE;
@@ -1229,7 +1255,7 @@ static u8 SerialScreen_TriggerItem_Execute(struct LCD_TRIGGER_ITEM *item)
             return TRUE;
         }
     }
-
+#endif /* SCREEN_USING_OFFLINE_BILLING */
     return FALSE;
 }
 
@@ -1241,6 +1267,7 @@ static u8 SerialScreen_TriggerItem_Execute(struct LCD_TRIGGER_ITEM *item)
  **********************************************************/
 static void SerialScreen_TriggerItem_Repeat_WaitPay(u8 port)
 {
+#ifdef SCREEN_USING_OFFLINE_BILLING
     if(LcdData.setData.sup_offbilling == FALSE){
         return;
     }
@@ -1251,6 +1278,7 @@ static void SerialScreen_TriggerItem_Repeat_WaitPay(u8 port)
     LcdTriggerEvent[LcdData.gunIndex].item.ShieldPara = SCREEN_TRIGGER_WARN_ICON_SIZE;
 
     LcdData.CurrentPage = LCD_PAGE_WARNNING_INFO;                   /* 强制跳页 */
+#endif /* SCREEN_USING_OFFLINE_BILLING */
 }
 /***********************************************************
  * 函数名     SerialScreen_TriggerItem_Page_Warnning
@@ -1260,6 +1288,7 @@ static void SerialScreen_TriggerItem_Repeat_WaitPay(u8 port)
  **********************************************************/
 static u8 SerialScreen_TriggerItem_Page_Warnning(void)
 {
+#ifdef SCREEN_USING_OFFLINE_BILLING
     if(LcdData.setData.sup_offbilling == FALSE){
         return TRUE;
     }
@@ -1276,7 +1305,7 @@ static u8 SerialScreen_TriggerItem_Page_Warnning(void)
     else{
         LcdData.CurrentPage = LcdTriggerEvent[LcdData.gunIndex].LastPage;
     }
-
+#endif /* SCREEN_USING_OFFLINE_BILLING */
     return TRUE;
 }
 /***********************************************************
@@ -1287,10 +1316,12 @@ static u8 SerialScreen_TriggerItem_Page_Warnning(void)
  **********************************************************/
 static u8 SerialScreen_TriggerItem_Page_Payed(void)
 {
+#ifdef SCREEN_USING_OFFLINE_BILLING
     if(LcdData.setData.sup_offbilling == FALSE){
         return TRUE;
     }
     LcdData.CurrentPage = LCD_PAGE_A_ACOUNT + LcdData.gunIndex;
+#endif /* SCREEN_USING_OFFLINE_BILLING */
     return TRUE;
 }
 /***********************************************************
@@ -1301,12 +1332,13 @@ static u8 SerialScreen_TriggerItem_Page_Payed(void)
  **********************************************************/
 static u8 SerialScreen_TriggerItem_Complete(void)
 {
+#ifdef SCREEN_USING_OFFLINE_BILLING
     if(LcdData.CurrentPage == LCD_PAGE_WARNNING_INFO){
         return SerialScreen_TriggerItem_Page_Warnning();
     }else{
         return SerialScreen_TriggerItem_Page_Payed();
     }
-
+#endif /* SCREEN_USING_OFFLINE_BILLING */
     return TRUE;
 }
 
@@ -1318,6 +1350,7 @@ static u8 SerialScreen_TriggerItem_Complete(void)
  **********************************************************/
 static void SerialScreen_TriggerEvent_Process(void)
 {
+#ifdef SCREEN_USING_OFFLINE_BILLING
     if(LcdData.setData.sup_offbilling == FALSE){
         LcdTriggerEvent[LcdData.gunIndex].Flag.IsTriggerExternal = FALSE;
         return TRUE;
@@ -1330,6 +1363,7 @@ static void SerialScreen_TriggerEvent_Process(void)
             }
         }
     }
+#endif /* SCREEN_USING_OFFLINE_BILLING */
 }
 
 static void SerialScreen_RealTime_InfoGet(void)
@@ -2306,10 +2340,12 @@ void SerialScreen_IsSupportModuleSlienceSet(void)
 
 void SerialScreen_IsSupportOfflineBillingSet(void)
 {
+#ifdef SCREEN_USING_OFFLINE_BILLING
     if(LcdData.setData.Icon_SupOfflineBilling != TRUE)
         LcdData.setData.Icon_SupOfflineBilling = TRUE;
     else
         LcdData.setData.Icon_SupOfflineBilling = FALSE;
+#endif /* SCREEN_USING_OFFLINE_BILLING */
 }
 
 /********************************输入信息*******************************************/
@@ -2475,6 +2511,7 @@ void SerialScreen_FanIsSupportOutSet(void)
 
 void SerialScreen_OfflineBillingSet(void)
 {
+#ifdef SCREEN_USING_OFFLINE_BILLING
     struct sys_billing_rule *rule = (struct sys_billing_rule*)sys_read_config_item_content(CONFIG_ITEM_BILLING_RULE, 0);
     struct Period_Time time[CP_RATED_TYPE_NUM_MAX *CP_RATED_TYPE_PERIOD_NUM];  /* 时段时间 */
     u8 i = 0x00, j = 0x00, valid_count = 0;
@@ -2584,10 +2621,12 @@ void SerialScreen_OfflineBillingSet(void)
     memcpy(rule->time, LcdData.setData.PeriodTime, sizeof(LcdData.setData.PeriodTime));
 
     UI_STORAGE_CFG_DATA;
+#endif /* SCREEN_USING_OFFLINE_BILLING */
 }
 
 void SerialScreen_OfflineBillingGet(void)
 {
+#ifdef SCREEN_USING_OFFLINE_BILLING
     struct sys_billing_rule *rule = (struct sys_billing_rule*)sys_read_config_item_content(CONFIG_ITEM_BILLING_RULE, 0);
 
     LcdData.setData.OBwarning = ICON_OB_NULL;
@@ -2654,6 +2693,7 @@ void SerialScreen_OfflineBillingGet(void)
             LcdData.setData.PeriodTime[CP_RATED_TYPE_VALLEY][1].smin,
             LcdData.setData.PeriodTime[CP_RATED_TYPE_VALLEY][1].ehour,
             LcdData.setData.PeriodTime[CP_RATED_TYPE_VALLEY][1].emin);
+#endif /* SCREEN_USING_OFFLINE_BILLING */
 }
 
 
@@ -2854,8 +2894,12 @@ void SerialScreen_IsSupportGet(void)
         LcdData.setData.sup_parallelrelay = TRUE;
     if(TRUE != *(u8 *)(UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_MODULE_SLIENCE, 0)))   /* 模块静音配置默认不启用 */
         LcdData.setData.sup_mslience = FALSE;
+#ifdef SCREEN_USING_OFFLINE_BILLING
     if(TRUE != *(u8 *)(UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_OFFLINE_BILLING, 0)))   /* 离线计费配置默认不启用 */
         LcdData.setData.sup_offbilling = FALSE;
+#else
+    LcdData.setData.sup_offbilling = FALSE;
+#endif /* SCREEN_USING_OFFLINE_BILLING */
 
     LcdData.setData.Icon_SuplocalStop = FALSE;
     if(LcdData.setData.sup_Local_stop){
@@ -2866,11 +2910,14 @@ void SerialScreen_IsSupportGet(void)
     if(LcdData.setData.Sup_PlugAndPlay){
         LcdData.setData.Icon_SupPlugAndPlay = TRUE;
     }
-
+#ifdef SCREEN_USING_OFFLINE_BILLING
     LcdData.setData.Icon_SupOfflineBilling = FALSE;
     if(LcdData.setData.sup_offbilling){
         LcdData.setData.Icon_SupOfflineBilling = TRUE;
     }
+#else
+    LcdData.setData.Icon_SupOfflineBilling = FALSE;
+#endif /* SCREEN_USING_OFFLINE_BILLING */
 
     if(LcdData.setData.sup_insulation == FALSE){
         function_disable = 1;
@@ -5485,8 +5532,12 @@ struct LCD_DATA_FIFO_TYPE *SerialScreen_Init(struct SerialScreenObj *cmd)
     if(LcdData.setData.sup_mslience > TRUE)       /* 模块静音默认不启用 */
         LcdData.setData.sup_mslience = FALSE;
 
+#ifdef SCREEN_USING_OFFLINE_BILLING
     if(LcdData.setData.sup_offbilling > TRUE)       /* 离线计费默认不启用 */
         LcdData.setData.sup_offbilling = FALSE;
+#else
+    LcdData.setData.sup_offbilling = FALSE;
+#endif /* SCREEN_USING_OFFLINE_BILLING */
 
     if(LcdData.setData.Sup_PlugAndPlay > TRUE)       /* 即插即充默认不启用 */
         LcdData.setData.Sup_PlugAndPlay = FALSE;
@@ -5502,6 +5553,7 @@ struct LCD_DATA_FIFO_TYPE *SerialScreen_Init(struct SerialScreenObj *cmd)
         LcdData.setData.MeterModel = thaisenAmmeterModel_RuiYin;
 
     thaisen_set_ammnterModel(LcdData.setData.MeterModel);
+
     if((LcdData.setData.MeterCheckWay < CP_AMMETER_CHECK_WAY_EVEN) ||\
             (LcdData.setData.MeterCheckWay > CP_AMMETER_CHECK_WAY_NONE)){
         LcdData.setData.MeterCheckWay = CP_AMMETER_CHECK_WAY_EVEN;
@@ -5595,11 +5647,14 @@ struct LCD_DATA_FIFO_TYPE *SerialScreen_Init(struct SerialScreenObj *cmd)
     if(LcdData.setData.Sup_PlugAndPlay){
         LcdData.setData.Icon_SupPlugAndPlay = TRUE;
     }
-
+#ifdef SCREEN_USING_OFFLINE_BILLING
     LcdData.setData.Icon_SupOfflineBilling = FALSE;
     if(LcdData.setData.sup_offbilling){
         LcdData.setData.Icon_SupOfflineBilling = TRUE;
     }
+#else
+    LcdData.setData.Icon_SupOfflineBilling = FALSE;
+#endif /* SCREEN_USING_OFFLINE_BILLING */
 
 	LcdData.setData.SerialScreen_PassWordShow = FALSE;
 	LcdData.setData.manufacturer = 1;//NULL
@@ -5774,20 +5829,29 @@ void SerialScreen_PageReset(int GunIdx)
             switch(LCD_GUN_NUM)//枪个数
             {
                 case LCD_GUN_NUM:
+#ifdef SCREEN_USING_OFFLINE_BILLING
                     if(LcdData.setData.sup_offbilling == FALSE){
                         LcdTriggerEvent[GunIdx].Flag.IsTriggerExternal = FALSE;
                     }
                     if(LcdTriggerEvent[GunIdx].Flag.IsTriggerExternal == FALSE){     /** 这些是由外部触发跳的页 */
                         LcdData.CurrentPage = LCD_PAGE_STANDBY;
                     }
+#else
+                    LcdData.CurrentPage = LCD_PAGE_STANDBY;
+#endif /* SCREEN_USING_OFFLINE_BILLING */
                 break;
                 default:
+#ifdef SCREEN_USING_OFFLINE_BILLING
                     if(LcdData.setData.sup_offbilling == FALSE){
                         LcdTriggerEvent[GunIdx].Flag.IsTriggerExternal = FALSE;
                     }
                     if(LcdTriggerEvent[GunIdx].Flag.IsTriggerExternal == FALSE){     /** 这些是由外部触发跳的页 */
                         LcdData.CurrentPage = LCD_PAGE_STANDBY;
                     }
+
+#else
+                    LcdData.CurrentPage = LCD_PAGE_STANDBY;
+#endif /* SCREEN_USING_OFFLINE_BILLING */
                 break;
             }
             return;
@@ -5798,22 +5862,26 @@ void SerialScreen_PageReset(int GunIdx)
                 LcdData.Homeflg = 0;
                 LcdData.menuflg = 0;
                 LcdData.NeedMenuOffFlg = 0;
+#ifdef SCREEN_USING_OFFLINE_BILLING
                 for(u8 i = 0; i < LCD_GUN_NUM; i++){
                     LcdTriggerEvent[i].Flag.IsTriggerExternal = FALSE;
                 }
                 LcdTriggerEvent[LCD_GUN_1].Flag.IsWaitPay = FALSE;
                 LcdTriggerEvent[LCD_GUN_1].Flag.IsPayed = FALSE;
+#endif /* SCREEN_USING_OFFLINE_BILLING */
             }else if(LcdData.gun[LCD_GUN_2].workState == SysMainStatus_StartReady){
                 LcdData.gunIndex = LCD_GUN_2;
                 LcdData.CurrentPage = LCD_PAGE_B_START;
                 LcdData.Homeflg = 0;
                 LcdData.menuflg = 0;
                 LcdData.NeedMenuOffFlg = 0;
+#ifdef SCREEN_USING_OFFLINE_BILLING
                 for(u8 i = 0; i < LCD_GUN_NUM; i++){
                     LcdTriggerEvent[i].Flag.IsTriggerExternal = FALSE;
                 }
                 LcdTriggerEvent[LCD_GUN_2].Flag.IsWaitPay = FALSE;
                 LcdTriggerEvent[LCD_GUN_2].Flag.IsPayed = FALSE;
+#endif /* SCREEN_USING_OFFLINE_BILLING */
             }else{
                 switch(LCD_GUN_NUM)//枪个数
                 {
@@ -5836,11 +5904,13 @@ void SerialScreen_PageReset(int GunIdx)
         LcdData.Homeflg = 0;
         LcdData.menuflg = 0;
         LcdData.NeedMenuOffFlg = 0;
+#ifdef SCREEN_USING_OFFLINE_BILLING
         for(u8 i = 0; i < LCD_GUN_NUM; i++){
             LcdTriggerEvent[i].Flag.IsTriggerExternal = FALSE;
         }
         LcdTriggerEvent[LCD_GUN_1].Flag.IsWaitPay = FALSE;
         LcdTriggerEvent[LCD_GUN_1].Flag.IsPayed = FALSE;
+#endif /* SCREEN_USING_OFFLINE_BILLING */
         return;
     }else if(LcdData.gun[LCD_GUN_2].workState == SysMainStatus_StartReady){
         LcdData.gunIndex = LCD_GUN_2;
@@ -5848,11 +5918,13 @@ void SerialScreen_PageReset(int GunIdx)
         LcdData.Homeflg = 0;
         LcdData.menuflg = 0;
         LcdData.NeedMenuOffFlg = 0;
+#ifdef SCREEN_USING_OFFLINE_BILLING
         for(u8 i = 0; i < LCD_GUN_NUM; i++){
             LcdTriggerEvent[i].Flag.IsTriggerExternal = FALSE;
         }
         LcdTriggerEvent[LCD_GUN_2].Flag.IsWaitPay = FALSE;
         LcdTriggerEvent[LCD_GUN_2].Flag.IsPayed = FALSE;
+#endif /* SCREEN_USING_OFFLINE_BILLING */
         return;
     }
 	//主状态巡检
@@ -5890,20 +5962,24 @@ void SerialScreen_PageReset(int GunIdx)
 						case LCD_PAGE_STANDBY:
 						case LCD_PAGE_A_SELECT:
                             LcdData.CurrentPage = LCD_PAGE_A_START;
+#ifdef SCREEN_USING_OFFLINE_BILLING
                             for(u8 i = 0; i < LCD_GUN_NUM; i++){
                                 LcdTriggerEvent[i].Flag.IsTriggerExternal = FALSE;
                             }
                             LcdTriggerEvent[GunIdx].Flag.IsWaitPay = FALSE;
                             LcdTriggerEvent[GunIdx].Flag.IsPayed = FALSE;
+#endif /* SCREEN_USING_OFFLINE_BILLING */
 							break;
 						
 						default:
 							LcdData.CurrentPage = LCD_PAGE_A_START;
+#ifdef SCREEN_USING_OFFLINE_BILLING
                             for(u8 i = 0; i < LCD_GUN_NUM; i++){
                                 LcdTriggerEvent[i].Flag.IsTriggerExternal = FALSE;
                             }
                             LcdTriggerEvent[GunIdx].Flag.IsWaitPay = FALSE;
                             LcdTriggerEvent[GunIdx].Flag.IsPayed = FALSE;
+#endif /* SCREEN_USING_OFFLINE_BILLING */
 							break;
 					}
 				}
@@ -5914,20 +5990,24 @@ void SerialScreen_PageReset(int GunIdx)
 						case LCD_PAGE_STANDBY:
 						case LCD_PAGE_B_SELECT:
                             LcdData.CurrentPage = LCD_PAGE_B_START;
+#ifdef SCREEN_USING_OFFLINE_BILLING
                             for(u8 i = 0; i < LCD_GUN_NUM; i++){
                                 LcdTriggerEvent[i].Flag.IsTriggerExternal = FALSE;
                             }
                             LcdTriggerEvent[GunIdx].Flag.IsWaitPay = FALSE;
                             LcdTriggerEvent[GunIdx].Flag.IsPayed = FALSE;
+#endif /* SCREEN_USING_OFFLINE_BILLING */
                             break;
 
                         default:
                             LcdData.CurrentPage = LCD_PAGE_B_START;
+#ifdef SCREEN_USING_OFFLINE_BILLING
                             for(u8 i = 0; i < LCD_GUN_NUM; i++){
                                 LcdTriggerEvent[i].Flag.IsTriggerExternal = FALSE;
                             }
                             LcdTriggerEvent[GunIdx].Flag.IsWaitPay = FALSE;
                             LcdTriggerEvent[GunIdx].Flag.IsPayed = FALSE;
+#endif /* SCREEN_USING_OFFLINE_BILLING */
                             break;
 					}
 				}
@@ -5954,6 +6034,7 @@ void SerialScreen_PageReset(int GunIdx)
 		case SysMainStatus_Chrging:
 			if(GunIdx==LCD_GUN_1)
 			{
+#ifdef SCREEN_USING_OFFLINE_BILLING
                 if(LcdData.setData.sup_offbilling == FALSE){
                     LcdTriggerEvent[GunIdx].Flag.IsTriggerExternal = FALSE;
                 }
@@ -5971,10 +6052,24 @@ void SerialScreen_PageReset(int GunIdx)
                     }
                 }
                 LcdTriggerEvent[LCD_GUN_1].Flag.IsPayed = FALSE;
+#else
+                if(LcdData.ChargingPageCountDown_Over == 0){
+                    switch(LcdData.CurrentPage)
+                    {
+                        case LCD_PAGE_A_CHGING_BAT:
+                            LcdData.CurrentPage = LCD_PAGE_A_CHGING_BAT;
+                            break;
+                        default:
+                            LcdData.CurrentPage = LCD_PAGE_A_CHGING;
+                            break;
+                    }
+                }
+#endif /* SCREEN_USING_OFFLINE_BILLING */
 			}
 
 			else 
 			{
+#ifdef SCREEN_USING_OFFLINE_BILLING
                 if(LcdData.setData.sup_offbilling == FALSE){
                     LcdTriggerEvent[GunIdx].Flag.IsTriggerExternal = FALSE;
                 }
@@ -5992,10 +6087,24 @@ void SerialScreen_PageReset(int GunIdx)
                     }
                 }
                 LcdTriggerEvent[LCD_GUN_2].Flag.IsPayed = FALSE;
+#else
+                if(LcdData.ChargingPageCountDown_Over == 0){
+                    switch(LcdData.CurrentPage)
+                    {
+                        case LCD_PAGE_B_CHGING_BAT:
+                            LcdData.CurrentPage = LCD_PAGE_B_CHGING_BAT;
+                            break;
+                        default:
+                            LcdData.CurrentPage = LCD_PAGE_B_CHGING;
+                            break;
+                    }
+                }
+#endif /* SCREEN_USING_OFFLINE_BILLING */
 			}
 			break;
 			
 		case SysMainStatus_StopChg:
+#ifdef SCREEN_USING_OFFLINE_BILLING
             if(LcdData.setData.sup_offbilling == FALSE){
                 LcdTriggerEvent[GunIdx].Flag.IsTriggerExternal = FALSE;
             }
@@ -6006,6 +6115,13 @@ void SerialScreen_PageReset(int GunIdx)
                     LcdData.CurrentPage = LCD_PAGE_B_STOPING;//预留
                 }
             }
+#else
+            if(GunIdx==LCD_GUN_1){
+                LcdData.CurrentPage = LCD_PAGE_A_STOPING;
+            }else{
+                LcdData.CurrentPage = LCD_PAGE_B_STOPING;//预留
+            }
+#endif /* SCREEN_USING_OFFLINE_BILLING */
 			break;
 		
 		//充电结算中...
@@ -6014,6 +6130,7 @@ void SerialScreen_PageReset(int GunIdx)
 		case SysMainStatus_Parking:
 		case SysMainStatus_ParkAccount:
 		case SysMainStatus_Other:
+#ifdef SCREEN_USING_OFFLINE_BILLING
             if(LcdData.setData.sup_offbilling == FALSE){
                 LcdTriggerEvent[GunIdx].Flag.IsTriggerExternal = FALSE;
             }
@@ -6044,8 +6161,20 @@ void SerialScreen_PageReset(int GunIdx)
                     }
                 }
 			}
+#else
+            if(GunIdx==LCD_GUN_1){
+                if(LcdData.AccountPageCountDown_Over == 0){
+                    LcdData.CurrentPage = LCD_PAGE_A_ACOUNT;
+                }
+            }else{
+                if(LcdData.AccountPageCountDown_Over == 0){
+                    LcdData.CurrentPage = LCD_PAGE_B_ACOUNT;
+                }
+            }
+#endif /* SCREEN_USING_OFFLINE_BILLING */
 			break;
 		case SysMainStatus_Err:
+#ifdef SCREEN_USING_OFFLINE_BILLING
             if(LcdData.setData.sup_offbilling == FALSE){
                 LcdTriggerEvent[GunIdx].Flag.IsTriggerExternal = FALSE;
             }
@@ -6055,6 +6184,12 @@ void SerialScreen_PageReset(int GunIdx)
                 else
                     LcdData.CurrentPage = LCD_PAGE_B_ERR;
             }
+#else
+            if(GunIdx==LCD_GUN_1)
+                LcdData.CurrentPage = LCD_PAGE_A_ERR;
+            else
+                LcdData.CurrentPage = LCD_PAGE_B_ERR;
+#endif /* SCREEN_USING_OFFLINE_BILLING */
 			break;			
 			
 		default: 
@@ -6201,6 +6336,7 @@ void SerialScreen_GetKeyProcess(struct SerialScreenObj *cmd)
     }
 
     //离线计费页面
+#ifdef SCREEN_USING_OFFLINE_BILLING
     if((LcdData.CurrentPage == LCD_PAGE_WARNNING_INFO) ||
             (LcdData.CurrentPage == LCD_PAGE_OB_PYA_A) ||
             (LcdData.CurrentPage == LCD_PAGE_OB_PYA_B)){
@@ -6210,6 +6346,7 @@ void SerialScreen_GetKeyProcess(struct SerialScreenObj *cmd)
             }
         }
     }
+#endif /* SCREEN_USING_OFFLINE_BILLING */
 
     if((LcdData.CurrentPage == LCD_PAGE_MENU_MONITOR) ||
             (LcdData.CurrentPage == LCD_PAGE_MENU_MONITOR_B) ||
@@ -6332,8 +6469,12 @@ void SerialScreen_GetKeyProcess(struct SerialScreenObj *cmd)
 						    if(LcdData.CurrentPage == LCD_PAGE_MENU_SYS ||
 						            LcdData.CurrentPage == LCD_PAGE_MENU_MONITOR ||
 						            LcdData.CurrentPage == LCD_PAGE_MENU_MONITOR_B ||
-						            LcdData.CurrentPage == LCD_PAGE_MENU_PROTECT ||
-						            LcdData.CurrentPage == LCD_PAGE_OFFLINE_BILLING){
+						            LcdData.CurrentPage == LCD_PAGE_MENU_PROTECT
+#ifdef SCREEN_USING_OFFLINE_BILLING
+						            || LcdData.CurrentPage == LCD_PAGE_OFFLINE_BILLING){
+#else
+						        ){
+#endif /* SCREEN_USING_OFFLINE_BILLING */
 						        SerialScreen_CombineData(pPageIndex->item[i].valtype,pPageIndex->item[i].valaddr,LcdData.KeyInput,4,(1 <<0));
 						    }else{
 	                            sSCREEN_EVENT_DEBUGMSG("#########valtype = %d vallen = %d  valaddr = %s  KeyInput = %s\r\n",pPageIndex->item[i].valtype,pPageIndex->item[i].vallen,pPageIndex->item[i].valaddr,LcdData.KeyInput);
@@ -6612,8 +6753,12 @@ void SerialScreen_CurrentPageItem(struct SerialScreenObj *cmd,struct LCD_DISPLAY
                                     LcdData.CurrentPage == LCD_PAGE_MENU_MONITOR ||
                                     LcdData.CurrentPage == LCD_PAGE_MENU_MONITOR_B ||
                                     LcdData.CurrentPage == LCD_PAGE_MENU_PROTECT ||
-                                    LcdData.CurrentPage == LCD_PAGE_SYS_UPDATE ||
-                                    LcdData.CurrentPage == LCD_PAGE_OFFLINE_BILLING){
+                                    LcdData.CurrentPage == LCD_PAGE_SYS_UPDATE
+#ifdef SCREEN_USING_OFFLINE_BILLING
+                                    || LcdData.CurrentPage == LCD_PAGE_OFFLINE_BILLING){
+#else
+                                ){
+#endif /* SCREEN_USING_OFFLINE_BILLING */
                                 u32 data = SerialScreen_GetData_WithType(pPageIndex->item[index].valtype, pPageIndex->item[index].valaddr);
                                 SerialScreen_SendData(cmd, pPageIndex->item[index].regaddr, data);
                             }else{
@@ -6957,9 +7102,12 @@ int SerialScreen_DataProcess()
 		{
 			
 			LcdData.gun[i].portState = SerialScreen_IsCarConnect(i);
-
+#ifdef SCREEN_USING_OFFLINE_BILLING
 			if(((LcdData.gun[i].workState >= SysMainStatus_StartReady)&&(LcdData.gun[i].workState <= SysMainStatus_Account)) ||
 			        ((LcdTriggerEvent[i].Flag.IsTriggerExternal == TRUE) && (LcdData.setData.sup_offbilling == TRUE)))
+#else
+            if((LcdData.gun[i].workState >= SysMainStatus_StartReady)&&(LcdData.gun[i].workState <= SysMainStatus_Account))
+#endif /* SCREEN_USING_OFFLINE_BILLING */
 			{
 				chargeInfo[i] = SerialScreen_GetChargeInfo(i);
 				bmsInfo[i] = SerialScreen_GetBmsInfo(i);
@@ -7084,20 +7232,22 @@ int SerialScreen_DataProcess()
                             if(LcdData.gun[LCD_GUN_2].workState != SysMainStatus_StartReady){
                                 LcdData.CurrentPage = LCD_PAGE_A_SELECT;
                                 LcdData.gunIndex = LCD_GUN_1;
-
+#ifdef SCREEN_USING_OFFLINE_BILLING
                                 for(u8 i = 0; i < LCD_GUN_NUM; i++){
                                     LcdTriggerEvent[i].Flag.IsTriggerExternal = FALSE;
                                 }
+#endif /* SCREEN_USING_OFFLINE_BILLING */
                                 SerialScreen_QuitDebugIO();
                             }
                         }else{
                             if(LcdData.gun[LCD_GUN_1].workState != SysMainStatus_StartReady){
                                 LcdData.CurrentPage = LCD_PAGE_B_SELECT;
                                 LcdData.gunIndex = LCD_GUN_2;
-
+#ifdef SCREEN_USING_OFFLINE_BILLING
                                 for(u8 i = 0; i < LCD_GUN_NUM; i++){
                                     LcdTriggerEvent[i].Flag.IsTriggerExternal = FALSE;
                                 }
+#endif /* SCREEN_USING_OFFLINE_BILLING */
                                 SerialScreen_QuitDebugIO();
                             }
                         }
@@ -7684,7 +7834,9 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     /** 30.出厂设置-输入信息 [page:41] */
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INPUT, NULL, "menu protect", LCD_BtnType, 0x0020, 0x1000, page_type, LCD_PAGE_MENU_PROTECT, (void *)SerialScreen_BtnProtectInfoGet);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INPUT, NULL, "menu config", LCD_BtnType, 0x0021, 0x1000, page_type, LCD_PAGE_MENU_CONFIG, (void *)SerialScreen_IsSupportGet);
+#ifdef SCREEN_USING_OFFLINE_BILLING
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INPUT, NULL, "menu offbilling", LCD_BtnType, 0x0053, 0x1000, page_type, LCD_PAGE_OFFLINE_BILLING, (void *)SerialScreen_OfflineBillingGet);
+#endif /* SCREEN_USING_OFFLINE_BILLING */
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INPUT, NULL, "Icon Scram sup", LCD_IconType, LCD_10sReflash, 0x4100, pu8_type, sizeof(LcdData.setData.supin_scram), (void *)&LcdData.setData.supin_scram);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INPUT, NULL, "Icon Gate sup", LCD_IconType, LCD_10sReflash, 0x4102, pu8_type, sizeof(LcdData.setData.supin_gate), (void *)&LcdData.setData.supin_gate);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INPUT, NULL, "Icon AC sup", LCD_IconType, LCD_10sReflash, 0x4104, pu8_type, sizeof(LcdData.setData.supin_ac), (void *)&LcdData.setData.supin_ac);
@@ -7727,7 +7879,9 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     /** 32.出厂设置-保护信息 [page:43] */
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_PROTECT, NULL, "menu input", LCD_BtnType, 0x001E, 0x1000, page_type, LCD_PAGE_MENU_INPUT, (void *)SerialScreen_InputInfoGet);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_PROTECT, NULL, "menu config", LCD_BtnType, 0x0021, 0x1000, page_type, LCD_PAGE_MENU_CONFIG, (void *)SerialScreen_IsSupportGet);
+#ifdef SCREEN_USING_OFFLINE_BILLING
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_PROTECT, NULL, "menu offbilling", LCD_BtnType, 0x0053, 0x1000, page_type, LCD_PAGE_OFFLINE_BILLING, (void *)SerialScreen_OfflineBillingGet);
+#endif /* SCREEN_USING_OFFLINE_BILLING */
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_PROTECT, NULL, "cd up", LCD_BtnType, 0x0050, 0x1000, page_type, LCD_PAGE_ROOT_MAIN, (void *)NULL);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_PROTECT, NULL, "Home", LCD_BtnHomeType, 0x0002, 0x1000, page_type, LCD_PAGE_NONE, (void *)NULL);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_PROTECT, NULL, "subok", LCD_BtnType, 0x0014, 0x1000, page_type, LCD_PAGE_ROOT_MAIN, (void *)SerialScreen_BtnProtectInfoSet);
@@ -7758,7 +7912,9 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_CONFIG, NULL, "insulation set", LCD_BtnType, 0x0038, 0x1000, page_type, LCD_PAGE_MENU_CONFIG, (void *)SerialScreen_IsSupportIsulationSet);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_CONFIG, NULL, "menu input", LCD_BtnType, 0x001E, 0x1000, page_type, LCD_PAGE_MENU_INPUT, (void *)SerialScreen_InputInfoGet);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_CONFIG, NULL, "menu protect", LCD_BtnType, 0x0020, 0x1000, page_type, LCD_PAGE_MENU_PROTECT, (void *)SerialScreen_BtnProtectInfoGet);
+#ifdef SCREEN_USING_OFFLINE_BILLING
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_CONFIG, NULL, "menu offbilling", LCD_BtnType, 0x0053, 0x1000, page_type, LCD_PAGE_OFFLINE_BILLING, (void *)SerialScreen_OfflineBillingGet);
+#endif /* SCREEN_USING_OFFLINE_BILLING */
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_CONFIG, NULL, "module slience set", LCD_BtnType, 0x0001, 0x1005, page_type, LCD_PAGE_MENU_CONFIG, (void *)SerialScreen_IsSupportModuleSlienceSet);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_CONFIG, NULL, "offline billing set", LCD_BtnType, 0x0001, 0x1009, page_type, LCD_PAGE_MENU_CONFIG, (void *)SerialScreen_IsSupportOfflineBillingSet);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_CONFIG, NULL, "plug and play", LCD_IconType, LCD_10sReflash, 0x412A, pu8_type, sizeof(LcdData.setData.Icon_SupPlugAndPlay), (void *)&LcdData.setData.Icon_SupPlugAndPlay);
@@ -7968,6 +8124,7 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
 	SerialScreen_ItemSetUp(LCD_PAGE_MENU_SYS, NULL, "Reboot", LCD_BtnType, 0x0002, 0x1005, page_type, LCD_PAGE_MENU_SYS, (void *)SerialScreen_ScreenSet_Reboot_Flag);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_SYS, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
 
+#ifdef SCREEN_USING_OFFLINE_BILLING
     /** 41.出厂设置-离线费率 [page:62] */
     SerialScreen_ItemSetUp(LCD_PAGE_OFFLINE_BILLING, NULL, "input info", LCD_BtnType, 0x001E, 0x1000, page_type, LCD_PAGE_MENU_INPUT, (void *)SerialScreen_InputInfoGet);   //OK
     SerialScreen_ItemSetUp(LCD_PAGE_OFFLINE_BILLING, NULL, "protect info", LCD_BtnType, 0x0020, 0x1000, page_type, LCD_PAGE_MENU_PROTECT, (void *)SerialScreen_BtnProtectInfoGet);  //OK
@@ -8067,11 +8224,12 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_OB_PYA_B, NULL, "ChgStopReason", LCD_TextType, LCD_NoReflash, 0x261A, pstr_type, sizeof(LcdData.gun[LCD_GUN_2].code_stopResaon), (void *)&LcdData.gun[LCD_GUN_2].code_stopResaon[0]);
     SerialScreen_ItemSetUp(LCD_PAGE_OB_PYA_B, NULL, "help number", LCD_TextType, LCD_NoReflash, 0x11A0, pstr_type, sizeof(LcdData.setData.Help_Number), (void *)LcdData.setData.Help_Number);
     SerialScreen_ItemSetUp(LCD_PAGE_OB_PYA_B, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
+#endif SCREEN_USING_OFFLINE_BILLING
 
 #ifdef SERIALSCREEN_DESIGNATE_REGION
     SerialScreenAddr = 1;
     s_ota_info = NULL;
-
+#ifdef SCREEN_USING_OFFLINE_BILLING
     /** 锁卡 */
     Trigger_Page[0x00].page = LCD_PAGE_WARNNING_INFO;
     Trigger_Page[0x00].ShowPara = SCREEN_TRIGGER_WARN_ICON_CARD_LOCKED;
@@ -8129,12 +8287,14 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     Trigger_Page[0x0D].ShowPara = SCREEN_TRIGGER_WARN_FAULT_STOP;
     Trigger_Page[0x0D].ShieldPara = SCREEN_TRIGGER_WARN_ICON_SIZE;
 
+    memset(LcdTriggerEvent, 0x00, sizeof(LcdTriggerEvent));
+#endif SCREEN_USING_OFFLINE_BILLING
+
     memset(&LcdData, 0x00, sizeof(LcdData));
     memset(&LcdRxData, 0x00, sizeof(LcdRxData));
     memset(&LcdTxData, 0x00, sizeof(LcdTxData));
     memset(&LcdAssistantData, 0x00, sizeof(LcdAssistantData));
 
-    memset(LcdTriggerEvent, 0x00, sizeof(LcdTriggerEvent));
     memset(SerialScreenRxbuf, 0x00, sizeof(SerialScreenRxbuf));
 #endif /* SERIALSCREEN_DESIGNATE_REGION */
 

@@ -37,6 +37,10 @@ extern "C" {
 #define APP_DEF_SRAM2
 #endif /* APP_DESIGNATE_REGION */
 
+#ifdef CP_USING_OFFLINE_BILLING
+#define APP_USING_OFFLINE_BILLING                       /* 包含离线计费 */
+#endif /* CP_USING_OFFLINE_BILLING */
+
 #define APP_USING_DOUBLEGUN                            /* 使用双枪 */
 
 #define APP_PARACHARGE_IDENTIFY_CAN_ID       0x1FFFFFFF /* 并充自动识别CAN ID */
