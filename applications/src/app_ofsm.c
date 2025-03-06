@@ -1870,6 +1870,11 @@ static void ofsm_readying_fun(uint8_t gunno)
                 s_ofsm_info[gunno].state = s_ofsm_info[s_ofsm_info[gunno].base.main_gunno].state;
 
                 s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
+                s_ofsm_info[gunno].base.flag.is_starting = APP_THA_ENUM_FALSE;
+                s_ofsm_info[gunno].base.flag.permit_judge_complete = APP_THA_ENUM_FALSE;
+                s_ofsm_info[gunno].base.flag.start_result = APP_THA_ENUM_FALSE;
+                s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_FALSE;
+                s_ofsm_info[gunno].base.flag.paracharge_is_identified = APP_THA_ENUM_TRUE;
 
                 rfidr_clear_swipe_state(gunno);
                 app_get_hci_event(gunno, HCI_EVENT_SCREEN_START, 1);
