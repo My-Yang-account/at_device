@@ -1597,7 +1597,7 @@ void SerialScreen_BtnMeterNoInfoSet(void)
     u8 model = LcdData.setData.MeterModel;
     SerialScreen_JumpPage(&SerialScreen, LCD_PAGE_STORAGE_WAITING);
 
-    if(model >= thaisenAmmeterModel_Other)
+    if(model > thaisenAmmeterModel_Other)
         model = thaisenAmmeterModel_RuiYin;
 
     UI_SYNC_SINGLE_CFG_STR(CONFIG_ITEM_METER_MODEL,&model,sizeof(model));
@@ -1645,7 +1645,7 @@ void SerialScreen_SetMeterInfo(void)
 		thaisen_set_ammeterAddress(meterNo[i],i);
 	}
 
-    if(LcdData.setData.MeterModel >= thaisenAmmeterModel_Other)
+    if(LcdData.setData.MeterModel > thaisenAmmeterModel_Other)
         LcdData.setData.MeterModel = thaisenAmmeterModel_RuiYin;
 
     thaisen_set_ammnterModel(LcdData.setData.MeterModel);
@@ -5391,7 +5391,7 @@ struct LCD_DATA_FIFO_TYPE *SerialScreen_Init(struct SerialScreenObj *cmd)
     /* 此处要设置功率分配方式 */
 //    thaisenSetAllocateStrategy(LcdData.setData.AllocWay);
 
-    if(LcdData.setData.MeterModel >= thaisenAmmeterModel_Other)
+    if(LcdData.setData.MeterModel > thaisenAmmeterModel_Other)
         LcdData.setData.MeterModel = thaisenAmmeterModel_RuiYin;
 
     rt_kprintf("LcdData.setData.MeterModel(%d)\n", LcdData.setData.MeterModel);
