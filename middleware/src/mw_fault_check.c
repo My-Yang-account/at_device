@@ -54,6 +54,7 @@ uint16_t mw_system_fault_convert(uint16_t code)
     return APP_SYS_FAULT_MAX;
 }
 
+/** stopway 需是直接从 mw_get_system_stop_way 中获取的 */
 uint16_t mw_system_stop_way_convert(uint16_t stopway)
 {
     uint16_t diff = 0x00;

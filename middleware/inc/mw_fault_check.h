@@ -44,6 +44,7 @@ enum charge_fault_t{
     APP_CHARGE_FAULT_BATTERY_VOLT = thaisenBatteryVolt,            /* 电池电压故障 */
     APP_CHARGE_FAULT_READY_VOLT = thaisenReadyVolt,                /* 准备电压故障 */
     APP_CHARGE_FAULT_INSULT_VOLT = thaisenInsultVolt,              /* 绝缘电压故障 */
+    APP_CHARGE_FAULT_YT_BFC = thaisenYTBFC,                        /* 宇通协议BFC故障 */
 
     APP_CHARGE_FAULT_NO_ERROR,                                     /* 无故障 */
 };
@@ -158,7 +159,9 @@ enum system_stop_way{
     APP_SYSTEM_STOP_WAY_POUR = thaisen_chargeCtl_stopWay_Pour + APP_SYSFAULT_STOPWAY_OFFSET,                        /* 倾倒 */
     APP_SYSTEM_STOP_WAY_LIQUIDCOOLING = thaisen_chargeCtl_stopWay_LiquidCooling + APP_SYSFAULT_STOPWAY_OFFSET,      /* 液冷 */
     APP_SYSTEM_STOP_WAY_FUSE = thaisen_chargeCtl_stopWay_Fuse + APP_SYSFAULT_STOPWAY_OFFSET,                        /* 熔断器 */
-    APP_SYSTEM_STOP_WAY_MAIN_CABINET = thaisenFaultMainCabinet + APP_SYSFAULT_STOPWAY_OFFSET,                       /* 主机柜故障 */
+    APP_SYSTEM_STOP_WAY_MAIN_CABINET = tthaisen_chargeCtl_stopWay_MainCabinet + APP_SYSFAULT_STOPWAY_OFFSET,        /* 主机柜故障 */
+
+    APP_SYSTEM_STOP_WAY_YT_BFC = thaisen_chargeCtl_stopWay_BFC + APP_NONE_SYSFAULT_STOPWAY_OFFSET,                  /* 宇通协议BFC故障 */
 
     APP_SYSTEM_STOP_WAY_SIZE,
 };

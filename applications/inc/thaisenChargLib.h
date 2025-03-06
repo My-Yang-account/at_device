@@ -62,6 +62,7 @@ typedef enum thaisenFaultChargEnum
     thaisenBatteryVolt,
     thaisenReadyVolt,
     thaisenInsultVolt,
+    thaisenYTBFC,
 }thaisenFaultChargTy;
 
 /* 功能说明:
@@ -215,6 +216,7 @@ typedef enum{
     thaisen_chargeCtl_stopWay_ReadyVolt,
     thaisen_chargeCtl_stopWay_InsultVolt,
     thaisen_chargeCtl_stopWay_BSM,
+    thaisen_chargeCtl_stopWay_BFC,
 
     thaisen_chargeCtl_stopWay_size,
 }thaisenChargeCtlStopWayEn;
@@ -255,11 +257,17 @@ enum
   thaisenBMSCurrentAlarm,
 };
 
+enum
+{
+    thaisenChargeWarnOk,
+    thaisenChargeWarnCommu,
+};
 
 
 uint8_t thaisen_get_InsultInfo(uint8_t gunNum);
 uint8_t thaisen_get_InsultVoltInfo(uint8_t gunNum);
 uint8_t thaisen_get_BMSCurrentInfo(uint8_t gunNum);
+uint8_t thaisen_get_ChargeWarnningInfo(uint8_t gunNum);
 
 /*****************************************************************************/
 /************************枪头电压信息*********************************************/

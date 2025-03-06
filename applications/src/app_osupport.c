@@ -556,6 +556,11 @@ void app_osupport_thread_entry(void *parameter)
                                 s_charge_error_info[gunno].error_code = mw_system_stop_way_convert(APP_SYSTEM_STOP_WAY_INSULT_VOLT);
                                 _cfault = APP_SYSTEM_STOP_WAY_INSULT_VOLT;
                                 break;
+                            case APP_CHARGE_FAULT_YT_BFC:
+                                s_charge_error_info[gunno].error_index = 0x00FFFFF9;
+                                s_charge_error_info[gunno].error_code = mw_system_stop_way_convert(thaisen_chargeCtl_stopWay_BFC);
+                                _cfault = APP_SYSTEM_STOP_WAY_YT_BFC;
+                                break;
                             default:
                                 break;
                             }
