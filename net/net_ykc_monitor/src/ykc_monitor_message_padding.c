@@ -1718,7 +1718,11 @@ void ykc_monitor_chargepile_request_padding_bms_paraconfig(uint8_t gunno)
         bms = (struct thaisenBMS_Charger_struct*)(base->bms_data);
     }
     g_ykc_monitor_preq_parameter_config[gunno].body.bms_single_bat_allow_volt_max = bms->BCP.CellAlowHigVolt;
-    g_ykc_monitor_preq_parameter_config[gunno].body.bms_allow_curr_max = (4000 - bms->BCP.AlowCurlt);
+    if(bms->BCP.AlowCurlt > 4000){
+        g_ykc_monitor_preq_parameter_config[gunno].body.bms_allow_curr_max = 0x00;
+    }else{
+        g_ykc_monitor_preq_parameter_config[gunno].body.bms_allow_curr_max = (4000  - bms->BCP.AlowCurlt);
+    }
     g_ykc_monitor_preq_parameter_config[gunno].body.bms_bat_nominal_energy_all = bms->BCP.BatRateKW;
     g_ykc_monitor_preq_parameter_config[gunno].body.bms_allow_volt_max = bms->BCP.BatAlowHigVolt;
     g_ykc_monitor_preq_parameter_config[gunno].body.bms_allow_temp_max = (bms->BCP.BatAlowHigTemp + 50);
@@ -1925,7 +1929,11 @@ void ykc_monitor_chargepile_request_padding_bmscommand_chargerout(uint8_t gunno,
             struct thaisenBMS_Charger_struct *bms = (struct thaisenBMS_Charger_struct*)(base->bms_data);
 
             g_ykc_monitor_preq_bmscommand_chargerout[gunno].body.pile_output_volt = (base->voltage_a /10);
-            g_ykc_monitor_preq_bmscommand_chargerout[gunno].body.pile_output_curr = (4000 - (base->current_a /10));
+            if((base->current_a /10) > 4000){
+                g_ykc_monitor_preq_bmscommand_chargerout[gunno].body.pile_output_curr = 0x00;
+            }else{
+                g_ykc_monitor_preq_bmscommand_chargerout[gunno].body.pile_output_curr = (4000  - (base->current_a /10));
+            }
             g_ykc_monitor_preq_bmscommand_chargerout[gunno].body.charge_time = base->charge_time /60;
 
             if(base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
@@ -1933,11 +1941,19 @@ void ykc_monitor_chargepile_request_padding_bmscommand_chargerout(uint8_t gunno,
                 bms = (struct thaisenBMS_Charger_struct*)(base->bms_data);
             }
             g_ykc_monitor_preq_bmscommand_chargerout[gunno].body.bms_volt_command = bms->BCL.BMSneedVolt;
-            g_ykc_monitor_preq_bmscommand_chargerout[gunno].body.bms_curr_command = (4000 - bms->BCL.BMSneedCurlt);
+            if(bms->BCL.BMSneedCurlt > 4000){
+                g_ykc_monitor_preq_bmscommand_chargerout[gunno].body.bms_curr_command = 0x00;
+            }else{
+                g_ykc_monitor_preq_bmscommand_chargerout[gunno].body.bms_curr_command = (4000  - bms->BCL.BMSneedCurlt);
+            }
             g_ykc_monitor_preq_bmscommand_chargerout[gunno].body.bms_charge_mode = bms->BCL.ChagModel;
 
             g_ykc_monitor_preq_bmscommand_chargerout[gunno].body.bms_volt_measure_value = bms->BCS.ChargVolt;
-            g_ykc_monitor_preq_bmscommand_chargerout[gunno].body.bms_curr_measure_value = (4000 - bms->BCS.ChargCurlt);
+            if(bms->BCS.ChargCurlt > 4000){
+                g_ykc_monitor_preq_bmscommand_chargerout[gunno].body.bms_curr_measure_value = 0x00;
+            }else{
+                g_ykc_monitor_preq_bmscommand_chargerout[gunno].body.bms_curr_measure_value = (4000  - bms->BCS.ChargCurlt);
+            }
             g_ykc_monitor_preq_bmscommand_chargerout[gunno].body.max_volt_and_gn.bms_max_single_bat_volt = bms->BCS.CellHigVolt;
             g_ykc_monitor_preq_bmscommand_chargerout[gunno].body.max_volt_and_gn.max_single_bat_volt_gn = bms->BCS.HigVoltCellNum;
             g_ykc_monitor_preq_bmscommand_chargerout[gunno].body.bms_current_soc = bms->BCS.SOC;

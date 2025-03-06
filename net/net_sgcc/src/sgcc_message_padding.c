@@ -2329,7 +2329,11 @@ void sgcc_chargepile_request_padding_state_data(uint8_t gunno, uint8_t is_init)
             evs_property_dc_works[gunno].needCur = bms->BCL.BMSneedCurlt;
             evs_property_dc_works[gunno].chargeMode = (bms->BCL.ChagModel + SGCC_OPSCTL_ACTION);
             evs_property_dc_works[gunno].bmsVol = bms->BCS.ChargVolt;
-            evs_property_dc_works[gunno].bmsCur = (4000 - bms->BCS.ChargCurlt);
+            if(bms->BCS.ChargCurlt > 4000){
+                evs_property_dc_works[gunno].bmsCur = 0x00;
+            }else{
+                evs_property_dc_works[gunno].bmsCur = (4000 - bms->BCS.ChargCurlt);
+            }
             evs_property_dc_works[gunno].SingleMHV = bms->BCS.CellHigVolt;
             evs_property_dc_works[gunno].MHTemp = (bms->BSM.HigTemp + 50) *10;
             evs_property_dc_works[gunno].MLTemp = (bms->BSM.LowTemp + 50) *10;
@@ -2501,7 +2505,11 @@ void sgcc_chargepile_request_padding_bms_data(uint8_t gunno, uint8_t init)
         evs_property_BMSs[gunno].batRatedCap = bms->BRM.BatRateCap;
         evs_property_BMSs[gunno].batRatedTotalVol = bms->BRM.BatRateVolt;
         evs_property_BMSs[gunno].singlBatMaxAllowVol = bms->BCP.CellAlowHigVolt;
-        evs_property_BMSs[gunno].maxAllowCur = (4000 - bms->BCP.AlowCurlt);
+        if(bms->BCP.AlowCurlt > 4000){
+            evs_property_BMSs[gunno].maxAllowCur = 0x00;
+        }else{
+            evs_property_BMSs[gunno].maxAllowCur = (4000 - bms->BCP.AlowCurlt);
+        }
         evs_property_BMSs[gunno].battotalEnergy = bms->BCP.BatRateKW;
         evs_property_BMSs[gunno].maxVol = bms->BCP.BatAlowHigVolt;
         evs_property_BMSs[gunno].maxTemp = (bms->BCP.BatAlowHigTemp + 50);

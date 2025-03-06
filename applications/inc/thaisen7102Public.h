@@ -2749,4 +2749,18 @@ uint8_t thaisen_ammeter_is_replied(uint8_t gunNum);
  *          可实时调用
  */
 void *thaisen_ammeter_query_encrypt_data(uint8_t gunNum);
+
+/********************************** 电流偏移 ************************************/
+/* 功能说明:
+ *          thaisen_get_current_offset: 获取电流偏移量(10倍)
+ *
+ * 输入参数:
+ *         gunNum:枪号
+ * 返回参数:
+ *         电流偏移量
+ * 调用方法:
+ *          可实时调用
+ */
+uint16_t thaisen_get_current_offset(uint8_t gunNum);
+
 #endif /* APPLICATIONS_THAISEN7102PUBLIC_H_ */

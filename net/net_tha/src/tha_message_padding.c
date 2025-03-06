@@ -441,7 +441,11 @@ int8_t tha_response_padding_query_battery_charge_info(uint8_t gunno, uint8_t *bu
     response->body.allow_temp_max = (bms->BCP.BatAlowHigTemp + 50);
     response->body.allow_chargevolt_max_ofbms = bms->BCP.BatAlowHigVolt;
     response->body.allow_chargevolt_max_ofbsingle = bms->BCP.CellAlowHigVolt;
-    response->body.allow_chargecurr_max = (4000 - bms->BCP.AlowCurlt);
+    if(bms->BCP.AlowCurlt > 4000){
+        response->body.allow_chargecurr_max = 0x00;
+    }else{
+        response->body.allow_chargecurr_max = (4000 - bms->BCP.AlowCurlt);
+    }
     response->body.battery_ratedvolt_total = bms->BRM.BatRateVolt;
     response->body.battery_voltage_current = bms->BCP.BatVolt;
     response->body.battery_rated_capacity = bms->BRM.BatRateCap;
