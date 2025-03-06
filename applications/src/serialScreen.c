@@ -89,6 +89,14 @@
 #define SERIALSCREEN_DEF_SRAM2
 #endif /* SERIALSCREEN_DESIGNATE_REGION */
 
+
+#define SCREEN_USING_TXT_RTC                 /* 发送RTC TXT */
+#ifdef SCREEN_USING_TXT_RTC
+#define SCREEN_TXT_RTC_STRLEN       21       /* RTC TXT 字符串长度 */
+#define SCREEN_TXT_RTC_PERIOD       500      /* RTC TXT 发送间隔(ms) */
+#define SCREEN_TXT_RTC_ADDR         0x6600   /* RTC TXT 控件地址 */
+#endif /* SCREEN_USING_TXT_RTC */
+
 #ifdef CP_CONFIG_USING_DUPU
 #define SCREEN_USING_DUPU                /* 使用度普屏幕 */
 #endif /* CP_CONFIG_USING_DUPU */
@@ -622,6 +630,11 @@ struct LCD_DISPLAY_SETDATA_TYPE{
 
     u8 OB_CountDownString[SERIALSCREEN_OB_COUNTDOWN_STRING_MAX];
 #endif /* SCREEN_USING_OFFLINE_BILLING */
+#ifdef SCREEN_USING_TXT_RTC
+    u8 rtc_time[SCREEN_TXT_RTC_STRLEN];
+    u32 ScreenBaseTime;
+    u32 ScreenBaseTick;
+#endif /* SCREEN_USING_TXT_RTC */
 
 }LCD_DISPLAY_SETDATA_TYPE_t;
 
@@ -6405,6 +6418,34 @@ static void SerialScreen_ScreenLight(struct SerialScreenObj *cmd)
     cmd->SendData(cmd ,buf, sizeof(buf));
 }
 #endif /* CP_CONFIG_USING_QBJ */
+
+#ifdef SCREEN_USING_TXT_RTC
+static void SerialScreen_RtcTxtSend(struct SerialScreenObj *cmd)
+{
+    time_t _time = 0;
+    struct tm _tm;
+    u32 CurrTick = 0;
+
+    if(LcdData.setData.ScreenBaseTime != 0){
+        CurrTick = thaisen_app_get_system_tick();
+        _time = LcdData.setData.ScreenBaseTime;
+        if(LcdData.setData.ScreenBaseTick > CurrTick){
+            _time += ((CurrTick + 0xFFFFFFFF - LcdData.setData.ScreenBaseTick) /1000);
+        }else{
+            _time += ((CurrTick - LcdData.setData.ScreenBaseTick) /1000);
+        }
+    }else{
+        _time = time(NULL);
+    }
+
+    localtime_r(&_time, &_tm);
+    sprintf((char*)LcdData.setData.rtc_time, "%d-%02d-%02d %02d:%02d:%02d", (_tm.tm_year + 1900), (_tm.tm_mon + 1), \
+            _tm.tm_mday, _tm.tm_hour, _tm.tm_min, _tm.tm_sec);
+
+    SerialScreen_SendTxt(cmd, SCREEN_TXT_RTC_ADDR, LcdData.setData.rtc_time, strlen((char*)LcdData.setData.rtc_time));
+}
+#endif /* SCREEN_USING_TXT_RTC */
+
 void SerialScreen_ClearPageReset()
 {
 	LcdData.NeedMenuOffFlg = 0;
@@ -8031,7 +8072,8 @@ void SerialScreen_CurrentPageShow(struct SerialScreenObj *cmd,u8 state)
 			SerialScreen_RtcShow(cmd);
 			LcdData.runData.syncTimeFlg = FALSE;
 			sSCREEN_EVENT_DEBUGMSG("##################RTC Sync");
-			
+			LcdData.setData.ScreenBaseTick = thaisen_app_get_system_tick();
+			LcdData.setData.ScreenBaseTime = time(NULL);
 		}	
         timeshow = 0;
        // sSCREEN_DEBUGKEYMSG("##################RTC Show");
@@ -8109,6 +8151,10 @@ int SerialScreen_DataProcess()
 	static u8 ScreenLightCount = 0;
 #endif /* SCREEN_USING_QBJ */
 
+#ifdef SCREEN_USING_TXT_RTC
+	static u32 RtcTxtTick = 0;
+#endif /* SCREEN_USING_TXT_RTC */
+
 	//备份app状态 如果是待机清除屏幕数据
 	for(i=0;i<LCD_GUN_NUM;i++)
 	{
@@ -8169,6 +8215,14 @@ int SerialScreen_DataProcess()
 		{
 	        LcdData.gun[i].iocnState = LcdData.gun[i].workState;
 		}
+
+#ifdef SCREEN_USING_TXT_RTC
+		if((thaisen_app_get_system_tick() - RtcTxtTick) > SCREEN_TXT_RTC_PERIOD){
+		    RtcTxtTick = thaisen_app_get_system_tick();
+		    SerialScreen_RtcTxtSend(&SerialScreen);
+		}
+#endif /* SCREEN_USING_TXT_RTC */
+
 		#if 1
 		if(LcdData.gun[i].workState == SysMainStatus_Chrging)
 		{
