@@ -214,7 +214,7 @@ void terminal_clear_is_ems_adjust_power(void)
  * 参数
  * 返回             ems 设置的功率
  ****************************************/
-uint16_t terminal_get_ems_set_power()
+uint16_t terminal_get_ems_set_power(void)
 {
     return s_ems_frame_res.power;
 }
@@ -225,10 +225,9 @@ uint16_t terminal_get_ems_set_power()
  * 参数
  * 返回             ems SOC
  ****************************************/
-uint16_t terminal_get_ems_soc()
+uint16_t terminal_get_ems_soc(void)
 {
-    return 0;
-//    return s_ems_frame_res.soc;
+    return s_ems_frame_res.soc;
 }
 
 /*****************************************
@@ -237,7 +236,7 @@ uint16_t terminal_get_ems_soc()
  * 参数
  * 返回             ems 电压
  ****************************************/
-uint16_t terminal_get_ems_voltage()
+uint16_t terminal_get_ems_voltage(void)
 {
     return s_ems_frame_res.volt;
 }
@@ -248,7 +247,7 @@ uint16_t terminal_get_ems_voltage()
  * 参数
  * 返回             ems 电流
  ****************************************/
-uint16_t terminal_get_ems_current()
+uint16_t terminal_get_ems_current(void)
 {
     return s_ems_frame_res.curr;
 }
@@ -406,6 +405,7 @@ void terminal_thread_entry(void *parameter)
     uint8_t data_buffer[THAISEN_EMS_ALL_LEGTH_RES];           //用来存放接收数据
 
     extern int32_t app_thread_monitor_process(void *thread, void *para, uint32_t plen, uint32_t option);
+    s_ems_frame_res.power = sys_query_system_max_power() /100;
 
     while(1)
     {
@@ -468,13 +468,11 @@ void terminal_thread_entry(void *parameter)
                     s_ems_frame_res.crc = (data_buffer[11] << 11) | data_buffer[12];
 
                     if(s_ems_frame_res.power != s_last_power){
-                        uint32_t issue_power = s_ems_frame_res.power *100;
+                        uint32_t issue_power = s_ems_frame_res.power *100, sys_power_max = *((uint32_t*)(sys_read_config_item_content(CONFIG_ITEM_SYSTEM_POWER_TOTAL, 0)));
                         s_power_data_received_flag = 1;                             //调节功率发生改变，收到数据收到数据标志位置1，进行功率调节
-
-                        if(issue_power > sys_query_system_max_power()){
-                            issue_power = sys_query_system_max_power();
+                        if(issue_power > sys_power_max){
+                            issue_power = sys_power_max;
                         }
-                        sys_sync_config_item_content(CONFIG_ITEM_SYSTEM_POWER_TOTAL, &issue_power, sizeof(issue_power));
                         s_last_power = s_ems_frame_res.power;
                     }
                 }

@@ -1822,6 +1822,7 @@ void SerialScreen_BtnModuleSet(void)
     u16 Rated_Limit_Current = 0;
     u16 Max_Limit_Current = 0;
     u16 Min_Limit_Current = 0;
+    u32 power = 0;
 
     if(ModuleModel > MODULE_MODEL_NUMBER)
         ModuleModel = MODULE_MODEL_DEFAULT;
@@ -1878,6 +1879,11 @@ void SerialScreen_BtnModuleSet(void)
 
     UI_STORAGE_CFG_DATA;
 
+    power = thaisen_get_power_from_percent(thaisen_get_power_percent() /10);
+    UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_SYSTEM_POWER_TOTAL, &power, sizeof(power));
+
+    UI_STORAGE_CFG_DATA;
+
     extern void thaisenSetModuleMaxVolt(uint16_t volt);
     extern void thaisenSetModuleMinVolt(uint16_t volt);
     extern void thaisenSetModuleMaxCurr(uint16_t curr);
@@ -1901,6 +1907,8 @@ void SerialScreen_BtnModuleSet(void)
     thaisenSetModuleMaxChargCurrGroup(0, LcdData.setData.Max_Limit_Current *10);
     thaisenSetModuleMaxChargCurrGroup(1, 0);
 #endif
+
+    LcdAssistantData.Flag.IsSetPowerPercent = TRUE;
 
     rt_kprintf("thaisenSetModuleMaxVolt|%d    thaisenSetModuleMinVolt|%d\n", LcdData.setData.Rated_Output_Voltage, LcdData.setData.Min_Output_Voltage);
     rt_kprintf("thaisenSetModuleMaxCurr|%d    thaisenSetModuleMinCurr|%d\n", LcdData.setData.Rated_Limit_Current, LcdData.setData.Min_Limit_Current);

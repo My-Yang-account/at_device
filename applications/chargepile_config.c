@@ -2274,6 +2274,13 @@ int16_t sys_get_power_percent(void)
 
 uint32_t sys_percent_convert_to_power(uint8_t percent)
 {
+    uint32_t single_module_power = 0x00, power_max = 0x00;       /* 单个模块能输出的最大(额定)功率 */
+
+    single_module_power = s_chargepile_config_info.config_para.module_rated_outvolt *s_chargepile_config_info.config_para.module_rated_limit_curr;
+    for(uint8_t count = 0; count < s_chargepile_config_info.config_info.module_group_num; count++){
+        power_max += single_module_power *s_chargepile_config_info.config_info.module_num_singlegroup[count];
+    }
+    s_system_power_max = power_max;
     return (s_system_power_max *percent /100);
 }
 

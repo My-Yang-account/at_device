@@ -675,7 +675,7 @@ void chargepile_power_adjust(void)
                         s_system_power_output = app_nsal_get_setup_power(gunno) *10;
                         s_ofsm_info[gunno].base.flag.is_adjust_power = APP_THA_ENUM_FALSE;
                         s_ofsm_info[gunno].base.flag.is_resume_power = APP_THA_ENUM_FALSE;
-                        LOG_D("power strategy is order charge, limit power is[%d, %d]", gunno, app_nsal_get_setup_power(gunno));
+                        LOG_D("power strategy is not order charge, limit power is[%d, %d]", gunno, app_nsal_get_setup_power(gunno));
                     }else{
                         if(s_ofsm_info[gunno].base.flag.is_adjust_power == APP_THA_ENUM_FALSE){
                             s_ofsm_info[gunno].base.flag.is_adjust_power = APP_THA_ENUM_TRUE;
@@ -688,6 +688,11 @@ void chargepile_power_adjust(void)
                             LOG_D("gunno(%d) is not charging, not allow set order power", gunno);
                         }
                     }
+#ifdef CP_CONFIG_USING_DUPU
+                    if(s_system_power_output > terminal_get_ems_set_power() *1000){
+                        s_system_power_output =  terminal_get_ems_set_power() *1000;
+                    }
+#endif /* CP_CONFIG_USING_DUPU */
                 }
                 LOG_I("gunno(%d) server adjust system power|%d, %d, %d", gunno, app_nsal_get_setup_power(gunno), s_ofsm_info[gunno].base.system_power_max, s_ofsm_info[gunno].base.power_strategy);
             }
@@ -704,7 +709,15 @@ void chargepile_power_adjust(void)
         for(uint8_t count = 0; count < group; count++){
             sys_power_max += (sys_get_single_group_module_num(count) *single_module_power);
         }
-
+#ifdef CP_CONFIG_USING_DUPU
+        if(terminal_is_ems_adjust_power()){
+            if((terminal_get_ems_set_power() *100 < power) && (terminal_get_ems_set_power() != 0x00)){
+                power = terminal_get_ems_set_power() *100;
+            }
+        }else if((power > terminal_get_ems_set_power() *100) && (terminal_get_ems_set_power() != 0x00)){
+            power =  terminal_get_ems_set_power() *100;
+        }
+#endif /* CP_CONFIG_USING_DUPU */
         if((power >= sys_power_max /100) && (power <= sys_power_max)){
             s_system_power_output = power *10;
         }else{
