@@ -101,6 +101,11 @@
 #define SCREEN_USING_OFFLINE_BILLING     /* 使用离线计费 */
 #endif /* CP_USING_OFFLINE_BILLING */
 
+#ifdef CP_CONFIG_USING_QBJ
+#define SCREEN_LIGHTSCREEN_LOCATION_X   700 /* 模拟点亮屏幕的坐标X轴 */
+#define SCREEN_LIGHTSCREEN_LOCATION_Y   0   /* 模拟点亮屏幕的坐标Y轴 */
+#endif /* CP_CONFIG_USING_QBJ */
+
 #define SCREEN_TRIGGER_WARN_ICON_CARD_LOCKED              0x00    /* 外部触发告警ICON：卡被锁 */
 #define SCREEN_TRIGGER_WARN_ICON_INVALID_CARD             0x01    /* 外部触发告警ICON：无效卡 */
 #define SCREEN_TRIGGER_WARN_ICON_NO_BALLANCE              0x02    /* 外部触发告警ICON：余额不足 */

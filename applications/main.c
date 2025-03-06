@@ -130,6 +130,7 @@ int main(void)
     TH_CAN2_FilterConf();
 #endif /* APP_USING_DOUBLEGUN */
     extern void chargepile_power_adjust(void);
+    extern void app_set_system_reset_event(uint8_t event, uint8_t state);
 
     rt_hw_interrupt_enable(level);
 
@@ -164,6 +165,8 @@ int main(void)
 
         if(app_nsal_get_link_state() == APP_NET_STATE_AUTH_SECCESS){
             s_net_alive_tick = rt_tick_get();
+            app_set_system_reset_event(APP_SYS_RESET_NET_DISCONNECT, 0x00);
+            app_set_system_reset_event(APP_SYS_RESET_NET_THREAD_STOP, 0x00);
         }
 
         mw_running_led_toggle(0, 0);
@@ -171,33 +174,35 @@ int main(void)
         if(get_ofsm_info(0x00)->base.run_mode == APP_RUN_MODE_4G_ETH){
             if(g_net_target_platform_tick > rt_tick_get()){
                 if((rt_tick_get() + 0xFFFFFFFF - g_net_target_platform_tick) > 5 *60 *1000){
-                    net_operation_set_event(0x00, NET_OPERATION_EVENT_REBOOT);
+                    app_set_system_reset_event(APP_SYS_RESET_NET_THREAD_STOP, 0x01);
                 }
             }else{
                 if((rt_tick_get() - g_net_target_platform_tick) > 5 *60 *1000){
-                    net_operation_set_event(0x00, NET_OPERATION_EVENT_REBOOT);
+                    app_set_system_reset_event(APP_SYS_RESET_NET_THREAD_STOP, 0x01);
                 }
             }
 
             if(s_net_alive_tick > rt_tick_get()){
                 if((rt_tick_get() + 0xFFFFFFFF - s_net_alive_tick) > 90 *60000){
-                    net_operation_set_event(0x00, NET_OPERATION_EVENT_REBOOT);
+                    app_set_system_reset_event(APP_SYS_RESET_NET_DISCONNECT, 0x01);
                 }
             }else{
                 if((rt_tick_get() - s_net_alive_tick) > 90 *60000){
-                    net_operation_set_event(0x00, NET_OPERATION_EVENT_REBOOT);
+                    app_set_system_reset_event(APP_SYS_RESET_NET_DISCONNECT, 0x01);
                 }
             }
         }else{
             g_net_target_platform_tick = rt_tick_get();
             s_net_alive_tick = rt_tick_get();
+            app_set_system_reset_event(APP_SYS_RESET_NET_DISCONNECT, 0x00);
+            app_set_system_reset_event(APP_SYS_RESET_NET_THREAD_STOP, 0x00);
         }
 
         extern uint8_t app_nsal_is_remote_reset(void);
         extern uint8_t thaisen_query_screen_reboot(void);
         extern void thaisen_clear_screen_reboot(void);
-        extern uint8_t app_thread_monitor_need_reset(void);
-        if(app_nsal_is_remote_reset() || thaisen_query_screen_reboot() || app_thread_monitor_need_reset()){
+        extern uint8_t app_system_monitor_need_reset(void);
+        if(app_nsal_is_remote_reset() || thaisen_query_screen_reboot() || app_system_monitor_need_reset()){
             uint8_t gunno = 0x00;
             for(gunno = 0x00; gunno < APP_SYSTEM_GUNNO_SIZE; gunno++){
                 if(get_ofsm_info(gunno)->state != APP_OFSM_STATE_IDLEING){

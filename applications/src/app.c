@@ -86,11 +86,14 @@ APP_DEF_SRAM0 static rt_uint8_t terminal_thread_stack[2048];
 APP_DEF_SRAM1 static struct rt_thread terminal_req_thread;
 APP_DEF_SRAM0 static rt_uint8_t terminal_req_thread_stack[1024];
 #endif /* CP_CONFIG_USING_DUPU */
+APP_DEF_SRAM2 static uint8_t s_system_reset_set = 0x00;
 
 #ifdef USING_THREAD_MONITOR
 APP_DEF_SRAM2 static thread_moniotr s_thread_moniotr;
 #endif /* USING_THREAD_MONITOR */
 /**************************************************************************/
+
+void app_set_system_reset_event(uint8_t event, uint8_t state);
 
 #ifdef APP_DESIGNATE_REGION
 /*************************************
@@ -104,6 +107,7 @@ void app_application_info_init(void)
 #ifdef USING_THREAD_MONITOR
     memset(&s_thread_moniotr, 0x00, sizeof(s_thread_moniotr));
 #endif /* USING_THREAD_MONITOR */
+    s_system_reset_set = 0x00;
 }
 #endif /* APP_DESIGNATE_REGION */
 
@@ -240,7 +244,7 @@ int32_t app_thread_monitor_process(void *thread, void *para, uint32_t plen, uint
         /** 喂狗 */
         mw_iwdg_refresh();
         /** 清除重启事件 */
-        s_thread_moniotr.flag.reset_system = 0x00;
+        app_set_system_reset_event(APP_SYS_RESET_THREAD_MONITOR, 0x00);
     }else{
         uint8_t count = 0x00;
         for(count = 0x00; count < s_thread_moniotr.thread_num; count++){
@@ -249,7 +253,7 @@ int32_t app_thread_monitor_process(void *thread, void *para, uint32_t plen, uint
                 /** 喂狗 */
                 mw_iwdg_refresh();
                 /** 清除重启事件 */
-                s_thread_moniotr.flag.reset_system = 0x00;
+                app_set_system_reset_event(APP_SYS_RESET_THREAD_MONITOR, 0x00);
 
                 s_thread_moniotr.tick = rt_tick_get();
                 s_thread_moniotr.flag.is_error = 0x00;
@@ -272,12 +276,12 @@ int32_t app_thread_monitor_process(void *thread, void *para, uint32_t plen, uint
                     s_thread_moniotr.flag.is_error = 0x01;
                     entry = s_thread_moniotr.node[s_thread_moniotr.current_index].rentry;
                     /** 设置重启事件 */
-                    s_thread_moniotr.flag.reset_system = 0x01;
+                    app_set_system_reset_event(APP_SYS_RESET_THREAD_MONITOR, 0x01);
                     rt_exit_critical();
                     return -0x01;
                 }else{
                     /** 清除重启事件 */
-                    s_thread_moniotr.flag.reset_system = 0x00;
+                    app_set_system_reset_event(APP_SYS_RESET_THREAD_MONITOR, 0x00);
                 }
                 rt_exit_critical();
                 return 0x00;
@@ -287,7 +291,7 @@ int32_t app_thread_monitor_process(void *thread, void *para, uint32_t plen, uint
                 /** 喂狗 */
                 mw_iwdg_refresh();
                 /** 清除重启事件 */
-                s_thread_moniotr.flag.reset_system = 0x00;
+                app_set_system_reset_event(APP_SYS_RESET_THREAD_MONITOR, 0x00);
 
                 s_thread_moniotr.tick = rt_tick_get();
                 s_thread_moniotr.flag.is_error = 0x00;
@@ -300,12 +304,12 @@ int32_t app_thread_monitor_process(void *thread, void *para, uint32_t plen, uint
         }
 
         if(s_thread_moniotr.flag.is_error){
-            s_thread_moniotr.flag.reset_system = 0x01;
+            app_set_system_reset_event(APP_SYS_RESET_THREAD_MONITOR, 0x01);
 #ifdef APP_THREAD_MONITOR_DEBUG
             LOG_D("thread monitor occur error(%s)\n", s_thread_moniotr.node[s_thread_moniotr.current_index].name);
 #endif /* APP_THREAD_MONITOR_DEBUG */
         }else{
-            s_thread_moniotr.flag.reset_system = 0x00;
+            app_set_system_reset_event(APP_SYS_RESET_THREAD_MONITOR, 0x00);
         }
     }
 
@@ -347,19 +351,30 @@ char *app_thread_monitor_get_err_thread_name(void)
 }
 
 /******************************************
- * 函数名     app_thread_monitor_need_reset
+ * 函数名     app_system_monitor_need_reset
  * 功能         判断是否需要复位
  * 参数
  * 返回         1：是       0：否
  * ***************************************/
-uint8_t app_thread_monitor_need_reset(void)
+uint8_t app_system_monitor_need_reset(void)
 {
-#ifdef USING_THREAD_MONITOR
-    if(s_thread_moniotr.flag.reset_system){
-        return 0x01;
+    return s_system_reset_set;
+}
+
+/******************************************
+ * 函数名     app_set_system_reset_event
+ * 功能         设置系统重启事件
+ * 参数          event       事件
+ *        state       状态
+ * 返回         1：是       0：否
+ * ***************************************/
+void app_set_system_reset_event(uint8_t event, uint8_t state)
+{
+    if(state){
+        s_system_reset_set |= (1 <<event);
+    }else{
+        s_system_reset_set &= ~(1 <<event);
     }
-#endif /* USING_THREAD_MONITOR */
-    return 0x00;
 }
 
 
