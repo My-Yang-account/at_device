@@ -287,13 +287,14 @@ static void terminal_ems_send_charger_status(void)                              
             s_ems_frame_request.bms_data[gunno].require_voltage = HTONS(para0);
             s_ems_frame_request.bms_data[gunno].require_current = HTONS(para1);
             s_ems_frame_request.bms_data[gunno].require_power = HTONS(((para0 * para1) /1000 /10));
-            para0 = ofsm->base.elect_a /10;
-            s_ems_frame_request.elect_total[gunno] = HTONL(para0);
         }else{
             memset(&s_ems_frame_request.gun_data[gunno], 0x00, sizeof(s_ems_frame_request.gun_data[gunno]));//非充电状态数据置0
             memset(&s_ems_frame_request.bms_data[gunno], 0x00, sizeof(s_ems_frame_request.bms_data[gunno]));//非充电状态数据置0
-            s_ems_frame_request.elect_total[gunno] = 0;
         }
+
+        para0 = mw_get_meter_total_wh(gunno) /10;
+        s_ems_frame_request.elect_total[gunno] = HTONL(para0);
+
         switch(ofsm->base.state.current){                        //赋值充电状态给要发送的数据
         case APP_OFSM_STATE_WAIT_NET:
         case APP_OFSM_STATE_IDLEING:
@@ -337,13 +338,13 @@ static void terminal_ems_send_charger_status(void)                              
         s_ems_frame_request.bms_data[APP_SYSTEM_GUNNOA].require_voltage = HTONS(para0);
         s_ems_frame_request.bms_data[APP_SYSTEM_GUNNOA].require_current = HTONS(para1);
         s_ems_frame_request.bms_data[APP_SYSTEM_GUNNOA].require_power = HTONS(((para0 * para1) /1000 /10));
-        para0 = ofsm->base.elect_a /10;
-        s_ems_frame_request.elect_total[APP_SYSTEM_GUNNOA] = HTONL(para0);
     }else{
         memset(&s_ems_frame_request.gun_data[APP_SYSTEM_GUNNOA], 0x00, sizeof(s_ems_frame_request.gun_data[APP_SYSTEM_GUNNOA]));//非充电状态数据置0
         memset(&s_ems_frame_request.bms_data[APP_SYSTEM_GUNNOA], 0x00, sizeof(s_ems_frame_request.bms_data[APP_SYSTEM_GUNNOA]));//非充电状态数据置0
-        s_ems_frame_request.elect_total[APP_SYSTEM_GUNNOA] = 0;
     }
+
+    para0 = mw_get_meter_total_wh(APP_SYSTEM_GUNNOA) /10;
+    s_ems_frame_request.elect_total[APP_SYSTEM_GUNNOA] = HTONL(para0);
 
     switch(ofsm->base.state.current){
     case APP_OFSM_STATE_WAIT_NET:
