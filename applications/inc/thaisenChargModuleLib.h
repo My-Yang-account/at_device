@@ -717,4 +717,28 @@ int32_t thaisenModuleSetBMSAllowCharge(uint8_t state, uint8_t gunNum);
  */
 uint8_t thaisenModuleGetBMSAllowCharge(uint8_t gunNum);
 
+/* 功能说明:
+ *          thaisenModuleSetMaxCurrSingleGun: 设置单枪最大充电电流
+ *
+ * 输入参数:
+ *          curr  单枪最大充电电流
+ * 返回参数:
+ *
+ * 调用方法:
+ *          可实时调用
+ */
+void thaisenModuleSetMaxCurrSingleGun(uint32_t curr);
+
+/* 功能说明:
+ *          thaisenModuleGetMaxCurrSingleGun: 获取单枪最大充电电流
+ *
+ * 输入参数:
+ *
+ * 返回参数:
+ *                    单枪最大充电电流
+ * 调用方法:
+ *          可实时调用
+ */
+uint32_t thaisenModuleGetMaxCurrSingleGun(void);
+
 #endif /* APPLICATIONS_THAISENCHARGMODULELIB_H_ */

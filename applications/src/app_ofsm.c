@@ -5393,10 +5393,16 @@ void ofsm_thread_entry(void *parameter)
                 if(s_ofsm_info[thread_gunno].base.main_gunno == thread_gunno){      /** 并充时只有主枪才可设置BMS是否禁止充电 */
                     /** 设置BMS是否禁止充电 */
                     thaisenModuleSetBMSAllowCharge(thaisen_get_charging_pause_activate(thread_gunno), thread_gunno);
+                    if(thaisen_get_current_offset(thread_gunno) > APP_CURRENT_OFFSET_DEFAULT){
+                        thaisenModuleSetMaxCurrSingleGun(APP_MCURRENT_SINGLEGUN_PARACHARGE);
+                    }else{
+                        thaisenModuleSetMaxCurrSingleGun(APP_MCURRENT_SINGLEGUN_DEFAULT);
+                    }
                 }
             }else{
                 /** 设置BMS是否禁止充电 */
                 thaisenModuleSetBMSAllowCharge(thaisen_get_charging_pause_activate(thread_gunno), thread_gunno);
+                thaisenModuleSetMaxCurrSingleGun(APP_MCURRENT_SINGLEGUN_DEFAULT);
             }
         }
 
