@@ -278,7 +278,9 @@ static void terminal_ems_send_charger_status(void)                              
             para1 = ofsm->base.voltage_a /10;
             s_ems_frame_request.gun_data[gunno].volt = HTONS(para1);
             s_ems_frame_request.gun_data[gunno].curr = HTONS(para0);
-            s_ems_frame_request.gun_data[gunno].power = HTONS((para0 *para1 /10000));
+
+            para0 = ofsm->base.power_a /1000;
+            s_ems_frame_request.gun_data[gunno].power = HTONS(para0);
             para0 = ofsm->base.current_soc;
             s_ems_frame_request.gun_data[gunno].soc = HTONS(para0);
 
@@ -329,7 +331,9 @@ static void terminal_ems_send_charger_status(void)                              
         para1 = ofsm->base.voltage_a /10;
         s_ems_frame_request.gun_data[APP_SYSTEM_GUNNOA].volt =HTONS(para1);
         s_ems_frame_request.gun_data[APP_SYSTEM_GUNNOA].curr = HTONS(para0);
-        s_ems_frame_request.gun_data[APP_SYSTEM_GUNNOA].power = HTONS((para0 *para1 /10000));
+
+        para0 = ofsm->base.power_a /1000;
+        s_ems_frame_request.gun_data[APP_SYSTEM_GUNNOA].power = HTONS(para0);
         para0 = ofsm->base.current_soc;
         s_ems_frame_request.gun_data[APP_SYSTEM_GUNNOA].soc = HTONS(para0);
 
