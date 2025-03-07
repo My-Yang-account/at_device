@@ -52,7 +52,7 @@ static int8_t ks_padding_charge_info(uint8_t* data, uint8_t len, uint8_t gunno)
             memcpy(&data[0x04], &value, 0x02);
 
             value = ofsm->base.elect_a;
-            value /= 100;
+            value /= 10;
             memcpy(&data[0x06], &value, 0x02);
             break;
         case APP_OFSM_STATE_STOPING:
