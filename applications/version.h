@@ -32,13 +32,59 @@ extern "C" {
                                          [1.6.8 /1.7.0 为不启用网络部分、去掉联网图标、屏幕二维码只显示桩号+枪号]*/
 
 #ifdef APP_USING_DOUBLEGUN
-#define SOFTWARE_MODULE                 "YKC7103"          /* 软件型号 */
+
+#define APP_SOFT_MODULE_USING_GB_WHOLE_7103F_ZG                 /* 软件型号使用国标双枪一体机7103F-470ZG(芯片型号) */
+//#define APP_SOFT_MODULE_USING_GB_WHOLE_7104C_ZG                 /* 软件型号使用国标双枪一体机7104C-470ZG(芯片型号) */
+//#define APP_SOFT_MODULE_USING_GB_TERMINAL_7103F_ZG              /* 软件型号使用国标双枪终端7103F-470ZG(芯片型号) */
+//#define APP_SOFT_MODULE_USING_GB_HCABINET_7103F_ZG              /* 软件型号使用国标半矩主机柜7103F-470ZG(芯片型号) */
+//#define APP_SOFT_MODULE_USING_GB_WCABINET7103F_ZG               /* 软件型号使用国标全矩主机柜7103F-470ZG(芯片型号) */
+//#define APP_SOFT_MODULE_USING_EN_TCU_7103F_ZG                   /* 软件型号使用欧标含TCU7103F-470ZG(芯片型号) */
+//#define APP_SOFT_MODULE_USING_EN_NTCU_7103F_ZG                  /* 软件型号使用欧标无TCU7103F-470ZG(芯片型号) */
+//#define APP_SOFT_MODULE_USING_GB_SGUN_HOST_7103F_H7             /* 软件型号使用国标多枪主板7103F-470H7(芯片型号) */
+//#define APP_SOFT_MODULE_USING_GB_SGUN_SLAVE_7103F_VG            /* 软件型号使用国标多枪从板7103F-470VG(芯片型号) */
+
+#if defined(APP_SOFT_MODULE_USING_GB_WHOLE_7103F_ZG)
+#define SOFTWARE_MODULE                                         "7103-V31"          /* 软件型号 */
+#elif defined(APP_SOFT_MODULE_USING_GB_WHOLE_7104C_ZG)
+#define SOFTWARE_MODULE                                         "7103-V41"          /* 软件型号 */
+#elif defined(APP_SOFT_MODULE_USING_GB_TERMINAL_7103F_ZG)
+#define SOFTWARE_MODULE                                         "7103-V51"          /* 软件型号 */
+#elif defined(APP_SOFT_MODULE_USING_GB_HCABINET_7103F_ZG)
+#define SOFTWARE_MODULE                                         "7103-V71"          /* 软件型号 */
+#elif defined(APP_SOFT_MODULE_USING_GB_WCABINET7103F_ZG)
+#define SOFTWARE_MODULE                                         "7103-V81"          /* 软件型号 */
+#elif defined(APP_SOFT_MODULE_USING_EN_TCU_7103F_ZG)
+#define SOFTWARE_MODULE                                         "7103-V91"          /* 软件型号 */
+#elif defined(APP_SOFT_MODULE_USING_EN_NTCU_7103F_ZG)
+#define SOFTWARE_MODULE                                         "7103-VA1"          /* 软件型号 */
+#elif defined(APP_SOFT_MODULE_USING_GB_SGUN_HOST_7103F_H7)
+#define SOFTWARE_MODULE                                         "7103-VC1"          /* 软件型号 */
+#elif defined(APP_SOFT_MODULE_USING_GB_SGUN_SLAVE_7103F_VG)
+#define SOFTWARE_MODULE                                         "7103-VC2"          /* 软件型号 */
+#else
+#define SOFTWARE_MODULE                                         "7103-V30"          /* 软件型号 */
+#endif /* APP_SOFT_MODULE_USING_GB_WHOLE_7103F_ZG */
+
 #define SOFTWARE_VERSION       1L
-#define SOFTWARE_SUBVERSION    6L
-#define SOFTWARE_REVISION      9L
+#define SOFTWARE_SUBVERSION    8L
+#define SOFTWARE_REVISION      1L
 
 #else
-#define SOFTWARE_MODULE                 "YKC7101"          /* 软件型号 */
+
+#define APP_SOFT_MODULE_USING_GB_TERMINAL_7101H_ZG              /* 软件型号使用国标单枪终端7101H-470ZG(芯片型号) */
+//#define APP_SOFT_MODULE_USING_GB_WHOLE_7101H_ZG                 /* 软件型号使用国标单枪一体机7101H-470ZG(芯片型号) */
+//#define APP_SOFT_MODULE_USING_EN_WHOLE_7101H_ZG                 /* 软件型号使用国标单枪一体机7101H-470ZG(芯片型号) */
+
+#if defined(APP_SOFT_MODULE_USING_GB_TERMINAL_7101H_ZG)
+#define SOFTWARE_MODULE                                         "7101-V61"          /* 软件型号 */
+#elif defined(APP_SOFT_MODULE_USING_GB_WHOLE_7101H_ZG)
+#define SOFTWARE_MODULE                                         "7101-V21"          /* 软件型号 */
+#elif defined(APP_SOFT_MODULE_USING_EN_WHOLE_7101H_ZG)
+#define SOFTWARE_MODULE                                         "7101-VB1"          /* 软件型号 */
+#else
+#define SOFTWARE_MODULE                                         "7101-V20"          /* 软件型号 */
+#endif /* APP_SOFT_MODULE_USING_GB_TERMINAL_7101H_ZG */
+
 #define SOFTWARE_VERSION       1L
 #define SOFTWARE_SUBVERSION    6L
 #define SOFTWARE_REVISION      2L
