@@ -1662,8 +1662,8 @@ struct starting_info{
     struct value module_voltage;                 /* 模块电压(精度：0.1) */
     struct value positive_insul_volt;            /* 正极绝缘电压(精度：0.1) */
     struct value negative_insul_volt;            /* 负极绝缘电压(精度：0.1) */
-    struct value positive_insul_resistance;      /* 正极绝缘电阻(精度：0.1) */
-    struct value negative_insul_resistance;      /* 负极绝缘电阻(精度：0.1) */
+    uint16_t positive_insul_resistance;          /* 正极绝缘电阻(单位K欧) */
+    uint16_t negative_insul_resistance;          /* 负极绝缘电阻(单位K欧) */
 };
 /** 充电中信息 */
 struct charging_info{
