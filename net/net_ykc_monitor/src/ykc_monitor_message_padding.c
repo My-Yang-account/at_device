@@ -3810,8 +3810,8 @@ int8_t ykc_monitor_padding_starting_info(uint8_t gunno)
 
     value0 = thaisen_get_Insult_ResPos(gunno);
     value1 = thaisen_get_Insult_ResCat(gunno);
-    s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].positive_insul_resistance.data = value0;
-    s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].negative_insul_resistance.data = value1;
+    s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].positive_insul_resistance = value0;
+    s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].negative_insul_resistance = value1;
 
     s_ykc_monitor_starting_info[gunno].count++;
 
