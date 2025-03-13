@@ -21,7 +21,7 @@
 #ifdef NET_PACK_USING_YKC_MONITOR
 
 #ifdef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL
-#define NET_YKC_MONITOR_TPLAT_SOCKET_INFO_INTERVAL                   60000       /* 目标平台socket信息上报间隔 */
+#define NET_YKC_MONITOR_TPLAT_SOCKET_INFO_INTERVAL                   (5 *60000)  /* 目标平台socket信息上报间隔 */
 #define NET_YKC_MONITOR_BILLING_RULE_INFO_INTERVAL                   (5 *60000)  /* 目标平台计费信息上报间隔 */
 #endif /* #ifdef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
 
