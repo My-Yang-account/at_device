@@ -2044,6 +2044,8 @@ static void ofsm_readying_fun(uint8_t gunno)
             ofsm_start_info_padding_online_card(gunno);
             is_charging_authorization = true;
 
+            app_rfidr_send_mail(APP_BUZZON_STATE_OK);
+
         }else if(app_nsal_is_card_authorize_fail(gunno)){
             app_nsal_clear_remote_card_authorize(gunno);
             LOG_W("gunno(%d) swip card authorize response fail", gunno);
@@ -4923,6 +4925,8 @@ static void ofsm_finishing_fun(uint8_t gunno)
             ofsm_start_info_padding_online_card(gunno);
             is_charging_authorization = true;
 
+            app_rfidr_send_mail(APP_BUZZON_STATE_OK);
+
         }else if(app_nsal_is_card_authorize_fail(gunno)){
             app_nsal_clear_remote_card_authorize(gunno);
             LOG_W("gunno(%d) swip card authorize response fail", gunno);
@@ -5192,6 +5196,8 @@ static void ofsm_faulting_fun(uint8_t gunno)
                     LOG_D("gunno(%d) start charge by online card", gunno);
                     ofsm_start_info_padding_online_card(gunno);
                     is_charging_authorization = true;
+
+                    app_rfidr_send_mail(APP_BUZZON_STATE_OK);
 
                 }else if(app_nsal_is_card_authorize_fail(gunno)){
                     app_nsal_clear_remote_card_authorize(gunno);
