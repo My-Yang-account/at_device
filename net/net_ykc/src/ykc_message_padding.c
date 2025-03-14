@@ -2897,9 +2897,12 @@ static void ykc_data_realtime_process(uint8_t gunno, System_BaseData *base)
 /*
  * 用于检测到状态有变化时上报
  * */
-static void ykc_state_changed_check(uint8_t gunno)
+static void ykc_state_changed_check(uint8_t gunno, System_BaseData *base)
 {
     if(gunno >= NET_SYSTEM_GUN_NUMBER){
+        return;
+    }
+    if(base == NULL){
         return;
     }
 
@@ -2916,7 +2919,7 @@ static void ykc_state_changed_check(uint8_t gunno)
             uint16_t _fault = s_ykc_state_info[gunno].fault_code;
 
             if(_state == NETYKC_DEVICE_STATE_FAULTING){
-                if(_fault != 0x00){
+                if((_fault != 0x00) || (base->device_state == APP_DEVICE_STATE_OVERHAUL) || (base->device_state == APP_DEVICE_STATE_FREEZE)){
                     g_ykc_preq_report_realtime_data[gunno].body.hardware_fault = _fault;
                     g_ykc_preq_report_realtime_data[gunno].body.plug_gun = _connect;
                     g_ykc_preq_report_realtime_data[gunno].body.state = _state;
@@ -2977,7 +2980,7 @@ static void ykc_realtime_process_thread_entry(void *parameter)
             base = (System_BaseData*)(s_ykc_handle->get_base_data(gunno));
             ykc_fault_detect_report(gunno);
             ykc_data_realtime_process(gunno, base);
-            ykc_state_changed_check(gunno);
+            ykc_state_changed_check(gunno, base);
         }
 
         rt_thread_mdelay(100);
