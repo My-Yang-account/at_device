@@ -2083,6 +2083,7 @@ static void ofsm_readying_fun(uint8_t gunno)
         /************** 【充电桩已授权】 *************/
         if(is_charging_authorization == true){
             /** 启动前向屏幕对时 */
+            s_request_screen_time_step = 1;
             thaisen_request_screen_time();
 
             ofsm_start_info_padding_public(gunno);
@@ -4969,6 +4970,7 @@ static void ofsm_finishing_fun(uint8_t gunno)
             }
 #endif /* #ifdef APP_USING_OFFLINE_BILLING */
             /** 启动前向屏幕对时 */
+            s_request_screen_time_step = 1;
             thaisen_request_screen_time();
 
             ofsm_start_info_padding_public(gunno);
@@ -5230,6 +5232,7 @@ static void ofsm_faulting_fun(uint8_t gunno)
                     }
 #endif /* APP_USING_OFFLINE_BILLING */
                     /** 启动前向屏幕对时 */
+                    s_request_screen_time_step = 1;
                     thaisen_request_screen_time();
 
                     ofsm_start_info_padding_public(gunno);
