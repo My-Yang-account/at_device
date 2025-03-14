@@ -66,8 +66,8 @@ extern "C" {
 #endif /* APP_SOFT_MODULE_USING_GB_WHOLE_7103F_ZG */
 
 #define SOFTWARE_VERSION       1L
-#define SOFTWARE_SUBVERSION    8L
-#define SOFTWARE_REVISION      1L
+#define SOFTWARE_SUBVERSION    9
+#define SOFTWARE_REVISION      0L
 
 #else
 
