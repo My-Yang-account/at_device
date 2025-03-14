@@ -179,7 +179,7 @@ static void ycp_ota_thread_entry(void *parameter)
                     ftp_callback_init(ycp_parse_ota_data);
                     uint8_t rentry = 0;
                     int32_t result = 0;
-                    uint16_t ver_data = 0x00;
+
                     while(rentry < NET_YCP_OTA_LOGIN_RENTRY){
                         result = ftp_linkkie_new(s_ycp_server_info.host, s_ycp_server_info.user, s_ycp_server_info.password, s_ycp_server_info.path);
                         if (0 <= result) {

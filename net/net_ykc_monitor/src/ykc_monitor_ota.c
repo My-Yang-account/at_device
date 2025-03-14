@@ -25,6 +25,7 @@
 /** update control */
 #define NET_YKC_MONITOR_UPDATE_CONTROL_EXECUTE_IMMEDIATELY    0x01        /* 升级控制：立即执行 */
 #define NET_YKC_MONITOR_UPDATE_CONTROL_EXECUTE_IDLE_STATE     0x02        /* 升级控制：空闲执行 */
+#define NET_YKC_MONITOR_UPDATE_CONTROL_STATE_MASK             0x0F        /* 升级控制掩码 */
 
 #define NET_YKC_MONITOR_UPDATE_RESULT_SUCCESS                 0x00        /* 升级结果：成功 */
 #define NET_YKC_MONITOR_UPDATE_RESULT_SN_INCORRECT            0x01        /* 升级结果：编号错误 */
@@ -112,21 +113,10 @@ static void ykc_monitor_ota_thread_entry(void *parameter)
                 }
                 break;
             case NET_OTA_STATE_READY:
-                if(g_ykc_monitor_sreq_remote_update.body.control_cmd == NET_YKC_MONITOR_UPDATE_CONTROL_EXECUTE_IDLE_STATE){
-//                    while(s_ykc_monitor_ota_info->flag.permit_ota == 0x00){
-                    if(s_ykc_monitor_ota_info->flag.permit_ota == 0x00){
-                        if(0x01/*(time(NULL) - s_ykc_monitor_ota_timeout) > g_ykc_monitor_sreq_remote_update.body.timeout_value *60*/){
-                            s_ykc_monitor_ota_flag.is_parse = 0x00;
-                            s_ykc_monitor_ota_flag.file_correct = 0x00;
-                            s_ykc_monitor_ota_info->flag.start_ota = 0x00;
-                            s_ykc_monitor_ota_flag.ota_login = 0x00;
-                            s_ykc_monitor_ota_flag.was_requested = 0x00;
-
-                            s_ykc_monitor_ota_info->state = NET_OTA_STATE_NULL;
-                            LOG_W("ykc monitor chargepile wait idle state timeout|%d", g_ykc_monitor_sreq_remote_update.body.timeout_value);
-                            ykc_monitor_chargepile_update_result_report(NET_YKC_MONITOR_UPDATE_RESULT_TIMEOUT);
-                            break;
-                        }
+                if((g_ykc_monitor_sreq_remote_update.body.control_cmd &NET_YKC_MONITOR_UPDATE_CONTROL_STATE_MASK) == NET_YKC_MONITOR_UPDATE_CONTROL_EXECUTE_IDLE_STATE){
+                    while(s_ykc_monitor_ota_info->flag.permit_ota == 0x00){
+                        net_thread_running(rt_thread_self(), NULL, 0x00, 0x00);
+                        rt_thread_mdelay(100);
                     }
                 }else{
                     if(s_ykc_monitor_ota_info->flag.permit_ota == 0x00){
@@ -181,7 +171,7 @@ static void ykc_monitor_ota_thread_entry(void *parameter)
                     ftp_callback_init(ykc_monitor_parse_ota_data);
                     uint8_t rentry = 0;
                     int32_t result = 0;
-                    uint16_t ver_data = 0x00;
+
                     while(rentry < NET_YKC_MONITOR_OTA_LOGIN_RENTRY){
                         result = ftp_linkkie_new(s_ykc_monitor_server_info.host, s_ykc_monitor_server_info.user, s_ykc_monitor_server_info.password, s_ykc_monitor_server_info.path);
                         if (0 <= result) {
@@ -374,7 +364,7 @@ static int32_t ykc_monitor_parse_ota_data(const uint8_t *data, uint32_t len)
         s_ykc_monitor_ota_info->progress = 9999; /* 将进度条保持在（99.99%） */
     }
 
-    LOG_W("ykc monitor data len is %d |%d |%d", len, s_ykc_monitor_spiflash_addr - NET_OTA_DATA_ADDR, s_ykc_monitor_ota_storage_info.pack_len);
+    LOG_W("ykcm data len %d |%d |%d", len, s_ykc_monitor_spiflash_addr - NET_OTA_DATA_ADDR, s_ykc_monitor_ota_storage_info.pack_len);
 
     if (s_ykc_monitor_spiflash_addr >= NET_OTA_DATA_ADDR + s_ykc_monitor_ota_storage_info.pack_len) {
         return 0x00;
