@@ -5847,6 +5847,7 @@ void SerialScreen_NeedPageReset(int port)
 {
 	//port = port;
 	LcdData.menuflg = 1;
+	LcdData.Homeflg = 0;
 	//LcdData.NeedMenuOffFlg = 1;
 	//LcdData.NeedMenuOffTimer = 2000; //100s*20
 	for(u8 i = 0; i < LCD_GUN_NUM; i++){
@@ -8650,6 +8651,11 @@ void SerialScreen_Process(struct SerialScreenObj *cmd)
             LcdAssistantData.SeveralGunFlag[i].IsPWStartAuthen = FALSE;
         }
         //
+    }
+
+    if(LcdData.Homeflg == 1){
+        LcdData.menuflg = 0;
+        LcdData.NeedMenuOffFlg = 0;
     }
 
     //sSCREEN_DEBUGMSG("**************SerialScreen_PageReset*******************\r\n");
