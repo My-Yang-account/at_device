@@ -45,7 +45,7 @@ int main(void)
     extern void SerialScreen_InputInfoGet(void);
     extern void SerialScreen_SetInputInfo(void);
     extern int32_t app_nfunc_config_init(void);
-    LOG_I("current program version: V%d.%d.%d\n", SOFTWARE_VERSION, SOFTWARE_SUBVERSION, SOFTWARE_REVISION);
+    LOG_I("current program version: V%d.%d.%c\n", SOFTWARE_VERSION, SOFTWARE_SUBVERSION, (SOFTWARE_REVISION + 'A'));
 
     rt_base_t level;
     level = rt_hw_interrupt_disable();

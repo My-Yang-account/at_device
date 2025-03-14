@@ -92,9 +92,9 @@ struct app_version *thaisen_app_get_app_version(void)
 	s_version.version[1] = '.';
     sprintf((char *)&s_version.version[2], "%.2ld", SOFTWARE_SUBVERSION);
 	s_version.version[4] = '.';
-	sprintf((char *)&s_version.version[5], "%.2ld", SOFTWARE_REVISION);
-    s_version.version[7] = '-';
-    sprintf((char *)&s_version.version[8], "%.2ld", CP_PLATFORM_ID);
+	sprintf((char *)&s_version.version[5], "%c", (SOFTWARE_REVISION + 'A'));
+    s_version.version[6] = '-';
+    sprintf((char *)&s_version.version[7], "%.2ld", CP_PLATFORM_ID);
 
 	return &s_version;
 }

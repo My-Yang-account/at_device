@@ -1464,7 +1464,7 @@ void ykc_monitor_message_field_init(uint8_t gun)
     g_ykc_monitor_preq_login.body.software_ver[1] = '.';
     g_ykc_monitor_preq_login.body.software_ver[2] = base->soft_ver_sub + '0';
     g_ykc_monitor_preq_login.body.software_ver[3] = '.';
-    sprintf((char *)&g_ykc_monitor_preq_login.body.software_ver[3 + 1], "%02d", base->soft_ver_revise);
+    sprintf((char *)&g_ykc_monitor_preq_login.body.software_ver[3 + 1], "%c", (base->soft_ver_revise + 'A'));
 
     g_ykc_monitor_preq_login.body.net_link_type = NET_YKC_MONITOR_NET_LINK_TYPE_SIM;
 
