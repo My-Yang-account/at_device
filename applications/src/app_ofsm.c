@@ -2318,7 +2318,7 @@ static void ofsm_starting_fun(uint8_t gunno)
                 s_ofsm_info[gunno].base.system_fault = system_fault;
                 s_ofsm_info[gunno].base.charge_fault = charge_fault;
 
-                s_thaisen_transaction[gunno].stop_reason = mw_system_stop_way_convert(system_fault);
+                s_thaisen_transaction[gunno].stop_reason = system_fault;
                 s_ofsm_info[gunno].base.reason_code = s_thaisen_transaction[gunno].stop_reason;
                 s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_TRUE;
 
@@ -3249,7 +3249,7 @@ static void ofsm_charging_fun(uint8_t gunno)
                 s_ofsm_info[gunno].base.system_fault = system_fault;
                 s_ofsm_info[gunno].base.charge_fault = charge_fault;
 
-                s_thaisen_transaction[gunno].stop_reason = mw_system_stop_way_convert(system_fault);
+                s_thaisen_transaction[gunno].stop_reason = system_fault;
                 s_ofsm_info[gunno].base.reason_code = s_thaisen_transaction[gunno].stop_reason;
                 s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_TRUE;
 
@@ -3380,7 +3380,7 @@ static void ofsm_charging_fun(uint8_t gunno)
                 s_ofsm_info[gunno].base.system_fault = system_fault;
                 s_ofsm_info[gunno].base.charge_fault = charge_fault;
 
-                s_thaisen_transaction[gunno].stop_reason = mw_system_stop_way_convert(system_fault);
+                s_thaisen_transaction[gunno].stop_reason = system_fault;
                 s_ofsm_info[gunno].base.reason_code = s_thaisen_transaction[gunno].stop_reason;
                 s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_TRUE;
 
