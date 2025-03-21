@@ -2693,6 +2693,9 @@ static void ofsm_starting_fun(uint8_t gunno)
                     s_ofsm_info[gunno].base.charge_elect_last = mw_get_meter_total_wh(gunno);
                 }
 
+                if((stop_way == APP_SYSTEM_STOP_WAY_PASSIVE) || (stop_way == APP_SYSTEM_STOP_WAY_NULL)){
+                    stop_way = APP_SYSTEM_STOP_WAY_COMMINICATION;
+                }
                 s_thaisen_transaction[gunno].stop_reason = stop_way;
                 s_ofsm_info[gunno].base.reason_code = stop_way;
 
