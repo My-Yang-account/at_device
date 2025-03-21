@@ -19,8 +19,13 @@
 #define DBG_LVL DBG_LOG
 #include <rtdbg.h>
 
+#ifdef NET_ETHERNET_USING_DOUBLEGUN_DEV
 #define ETHCH395_RST_PIN      GET_PIN(A, 3)             /** 硬件复位管脚 */
 #define ETHCH395_CFG_PIN      GET_PIN(A, 2)             /** 消息中断信号管脚 */
+#else
+#define ETHCH395_RST_PIN      GET_PIN(E, 3)             /** 硬件复位管脚 */
+#define ETHCH395_CFG_PIN      GET_PIN(E, 2)             /** 消息中断信号管脚 */
+#endif /* NET_ETHERNET_USING_DOUBLEGUN_DEV */
 
 ETH_DEF_SRAM2 static uint32_t s_ethch395_irq_notice = 0x00;
 ETH_DEF_SRAM2 static struct rt_semaphore s_ethch395_netdev_sem;

@@ -17,7 +17,13 @@
 
 #ifdef NET_INCLUDE_ETHERNET_PACK
 
+//#define NET_ETHERNET_USING_DOUBLEGUN_DEV                             /* 使用双枪设备 */
+
+#ifdef NET_ETHERNET_USING_DOUBLEGUN_DEV
 #define NET_ETHERNET_NETDEV_NAME                          "uart7"    /* 以太网网络设备名 */
+#else
+#define NET_ETHERNET_NETDEV_NAME                          "uart4"    /* 以太网网络设备名 */
+#endif /* NET_ETHERNET_USING_DOUBLEGUN_DEV */
 
 #define ETH_DESIGNATE_REGION                                         /* 变量定义到指定区 */
 

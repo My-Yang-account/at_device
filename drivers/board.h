@@ -136,11 +136,11 @@ extern "C"
 //#define BSP_UART6_RX_USING_DMA
 
 /* 以太网 */
-#define BSP_USING_UART7
-#define BSP_UART7_TX_PIN       "PF7"
-#define BSP_UART7_RX_PIN       "PF6"
-#define BSP_UART7_TX_USING_DMA
-#define BSP_UART7_RX_USING_DMA
+#define BSP_USING_UART4
+#define BSP_UART4_TX_PIN       "PA1"
+#define BSP_UART4_RX_PIN       "PA0"
+#define BSP_UART4_TX_USING_DMA
+#define BSP_UART4_RX_USING_DMA
 
 #endif /* USING_DOUBLE_GUN */
 /*-------------------------- UART CONFIG END --------------------------*/
