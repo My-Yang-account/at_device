@@ -992,7 +992,28 @@ static void ec20_init_thread_entry(void *parameter)
                 s_at_device_appinfo.init_complete = 0;
             }
 
-            rt_thread_mdelay(1000);
+            rt_thread_mdelay(3000);
+            continue;
+        }
+
+        if((net_query_netdev_type() &NET_NETDEV_TYPE_4G) == 0){
+            LOG_W("net device selected is not 4G, quit");
+            rt_thread_mdelay(3000);
+            continue;
+        }
+        if(*(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_SUPORT_OFFLINE_BILLING, 0x00))){
+            LOG_W("device current mode is offline billing, quit");
+            rt_thread_mdelay(3000);
+            continue;
+        }
+        if(*(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_NET_TYPE, 0x00)) == CP_NETTYPE_OFFLINE){
+            LOG_W("device current mode is offline, quit");
+            rt_thread_mdelay(3000);
+            continue;
+        }
+        if(*(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_SUPORT_PLUGCHARGE, 0x00))){
+            LOG_W("device current mode is plug and play, quit");
+            rt_thread_mdelay(3000);
             continue;
         }
 
@@ -1007,22 +1028,6 @@ static void ec20_init_thread_entry(void *parameter)
         s_at_device_appinfo.mnc = -1;
         s_at_device_appinfo.init_complete = 0;
 
-        if((net_query_netdev_type() &NET_NETDEV_TYPE_4G) == 0){
-            LOG_W("net device selected is not 4G, quit");
-            break;
-        }
-        if(*(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_SUPORT_OFFLINE_BILLING, 0x00))){
-            LOG_W("device current mode is offline billing, quit");
-            break;
-        }
-        if(*(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_NET_TYPE, 0x00)) == CP_NETTYPE_OFFLINE){
-            LOG_W("device current mode is offline, quit");
-            break;
-        }
-        if(*(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_SUPORT_PLUGCHARGE, 0x00))){
-            LOG_W("device current mode is plug and play, quit");
-            break;
-        }
         /* power on the ec20 device */
         if(ec20_power_on(device) >= 0){
             s_at_device_appinfo.boot = 1;
