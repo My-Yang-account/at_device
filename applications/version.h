@@ -71,9 +71,9 @@ extern "C" {
 
 #else
 
-#define APP_SOFT_MODULE_USING_GB_TERMINAL_7101H_ZG              /* 软件型号使用国标单枪终端7101H-470ZG(芯片型号) */
-//#define APP_SOFT_MODULE_USING_GB_WHOLE_7101H_ZG                 /* 软件型号使用国标单枪一体机7101H-470ZG(芯片型号) */
-//#define APP_SOFT_MODULE_USING_EN_WHOLE_7101H_ZG                 /* 软件型号使用国标单枪一体机7101H-470ZG(芯片型号) */
+//#define APP_SOFT_MODULE_USING_GB_TERMINAL_7101H_ZG              /* 软件型号使用国标单枪终端7101H-470ZG(芯片型号) */
+#define APP_SOFT_MODULE_USING_GB_WHOLE_7101H_ZG                 /* 软件型号使用国标单枪一体机7101H-470ZG(芯片型号) */
+//#define APP_SOFT_MODULE_USING_EN_WHOLE_7101H_ZG                 /* 软件型号使用欧标单枪一体机7101H-470ZG(芯片型号) */
 
 #if defined(APP_SOFT_MODULE_USING_GB_TERMINAL_7101H_ZG)
 #define SOFTWARE_MODULE                                         "7101-V61"          /* 软件型号 */
@@ -86,7 +86,7 @@ extern "C" {
 #endif /* APP_SOFT_MODULE_USING_GB_TERMINAL_7101H_ZG */
 
 #define SOFTWARE_VERSION       1L
-#define SOFTWARE_SUBVERSION    6L
+#define SOFTWARE_SUBVERSION    7L
 #define SOFTWARE_REVISION      2L
 
 #endif /* APP_USING_DOUBLEGUN */
