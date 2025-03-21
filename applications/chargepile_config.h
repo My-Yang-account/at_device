@@ -276,7 +276,7 @@
 
 #define CHARGEPILE_MIN_OUTVOLT_DEF                200       /* 桩最小输出电压默认值值 */
 #define CHARGEPILE_MIN_OUTVOLT_MAX                300       /* 桩最小输出电压最大值 */
-#define CHARGEPILE_MIN_OUTVOLT_MIN                100       /* 桩最小输出电压最小值 */
+#define CHARGEPILE_MIN_OUTVOLT_MIN                30       /* 桩最小输出电压最小值 */
 
 #define MODULE_RATED_LIMIT_CURR_DEF               30        /* 模块额定限电流默认值值 */
 #define MODULE_RATED_LIMIT_CURR_MAX               150       /* 模块额定限电流最大值 */
