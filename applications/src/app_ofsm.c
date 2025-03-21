@@ -3872,6 +3872,7 @@ static void ofsm_charging_fun(uint8_t gunno)
                             LOG_D("gunno(%d) charge finish deal to offline card(uid) stop\n", gunno);
                         }
                         s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_FALSE;
+                        app_rfidr_send_mail(APP_BUZZON_STATE_OK);
                         is_stop_charge_authorization = true;
 
                     }else{
