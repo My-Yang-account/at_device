@@ -174,6 +174,17 @@ enum ycp_abnormal_stop{
     NETYCP_AS_REASON74_BSM_WARNNING = 0x74,                  /* 充电异常中止，BSM 告警 */
     NETYCP_AS_REASON75_GATE = 0x75,                          /* 充电异常中止，门禁故障 */
     NETYCP_AS_REASON76_BATTERY_VOLTAGE = 0x76,               /* 充电异常中止，电池电压 */
+    NETYCP_AS_REASON77_VIN_AUTHEN_FAIL = 0x77,               /* 充电异常中止，VIN 码鉴权失败 */
+    NETYCP_AS_REASON78_LIGHTPROTECT = 0x78,                  /* 充电异常中止，防雷器 */
+    NETYCP_AS_REASON79_GUNSITE = 0x79,                       /* 充电异常中止，枪座 */
+    NETYCP_AS_REASON7A_CIRCUIT_BREAKER = 0x7A,               /* 充电异常中止，断路器 */
+    NETYCP_AS_REASON7B_FLOODING = 0x7B,                      /* 充电异常中止，水浸 */
+    NETYCP_AS_REASON7C_SMOKE = 0x7C,                         /* 充电异常中止，烟感 */
+    NETYCP_AS_REASON7D_POUR = 0x7D,                          /* 充电异常中止，倾倒 */
+    NETYCP_AS_REASON7E_LIQUIDCOOLING = 0x7E,                 /* 充电异常中止，液冷 */
+    NETYCP_AS_REASON7F_FUSE = 0x7F,                          /* 充电异常中止，熔断器 */
+    NETYCP_AS_REASON80_MAIN_CABINET = 0x80,                  /* 充电异常中止，主机柜禁止充电 */
+    NETYCP_AS_REASON81_YT_BFC = 0x81,                        /* 充电异常中止，宇通BFC */
     NETYCP_AS_REASONFF_UNKNOW = 0xFF,                        /* 充电异常中止，未知原因停止 */
 };
 

@@ -75,7 +75,7 @@ NET_DEF_SRAM2 static struct rt_thread s_ykc_realtime_process_thread;
 NET_DEF_SRAM0 static uint8_t s_ykc_realtime_process_thread_stack[YKC_REALTIME_PROCESS_THREAD_STACK_SIZE];
 NET_DEF_SRAM2 static struct net_handle* s_ykc_handle = NULL;
 
-static uint16_t ykc_chargepile_stop_reason_converted(uint8_t bit, uint8_t stop_in_starting);
+static uint16_t ykc_chargepile_stop_reason_converted(uint16_t bit, uint8_t stop_in_starting);
 static uint8_t ykc_chargepile_transaction_identity_converted(uint8_t identity);
 
 /*******************************************************
@@ -2599,7 +2599,7 @@ static uint8_t ykc_chargepile_transaction_identity_converted(uint8_t identity)
  * 函数名      ykc_chargepile_stop_reason_converted
  * 功能          停充原因转换
  * **********************************************/
-static uint16_t ykc_chargepile_stop_reason_converted(uint8_t reason, uint8_t stop_in_starting)
+static uint16_t ykc_chargepile_stop_reason_converted(uint16_t reason, uint8_t stop_in_starting)
 {
     uint16_t _reason = NETYKC_AS_REASON90_UNKNOW;
 
@@ -2743,6 +2743,7 @@ static uint16_t ykc_chargepile_stop_reason_converted(uint8_t reason, uint8_t sto
         _reason = NETYKC_CC_REASON40_APP;
         break;
     /* 刷卡 */
+    case APP_SYSTEM_STOP_WAY_OFFLINECARD_STOP:
     case APP_SYSTEM_STOP_WAY_ONLINECARD_STOP:
         _reason = NETYKC_CC_REASON45_MANUAL_STOP;
         break;
@@ -2773,6 +2774,50 @@ static uint16_t ykc_chargepile_stop_reason_converted(uint8_t reason, uint8_t sto
     /* 达到SOC 限定值 */
     case APP_SYSTEM_STOP_WAY_SOC_LIMIT:
         _reason = NETYKC_CC_REASON46_RESERVE;
+        break;
+    /* VIN 码鉴权失败 */
+    case APP_SYSTEM_STOP_WAY_AUTHEN_FAIL:
+        _reason = NETYKC_AS_REASON93_VIN_AUTHEN_FAIL;
+        break;
+    /* 防雷器 */
+    case APP_SYSTEM_STOP_WAY_LIGHTPROTECT:
+        _reason = NETYKC_AS_REASON94_LIGHTPROTECT;
+        break;
+    /* 枪座 */
+    case APP_SYSTEM_STOP_WAY_GUNSITE:
+        _reason = NETYKC_AS_REASON95_GUNSITE;
+        break;
+    /* 断路器 */
+    case APP_SYSTEM_STOP_WAY_CIRCUIT_BREAKER:
+        _reason = NETYKC_AS_REASON96_CIRCUIT_BREAKER;
+        break;
+    /* 水浸 */
+    case APP_SYSTEM_STOP_WAY_FLOODING:
+        _reason = NETYKC_AS_REASON97_FLOODING;
+        break;
+    /* 烟感 */
+    case APP_SYSTEM_STOP_WAY_SMOKE:
+        _reason = NETYKC_AS_REASON98_SMOKE;
+        break;
+    /* 倾倒 */
+    case APP_SYSTEM_STOP_WAY_POUR:
+        _reason = NETYKC_AS_REASON99_POUR;
+        break;
+    /* 液冷 */
+    case APP_SYSTEM_STOP_WAY_LIQUIDCOOLING:
+        _reason = NETYKC_AS_REASON9A_LIQUIDCOOLING;
+        break;
+    /* 熔断器 */
+    case APP_SYSTEM_STOP_WAY_FUSE:
+        _reason = NETYKC_AS_REASON9B_FUSE;
+        break;
+    /* 主机柜禁止充电 */
+    case APP_SYSTEM_STOP_WAY_MAIN_CABINET:
+        _reason = NETYKC_AS_REASON9C_MAIN_CABINET;
+        break;
+    /* 宇通BFC */
+    case APP_SYSTEM_STOP_WAY_YT_BFC:
+        _reason = NETYKC_AS_REASON9D_YT_BFC;
         break;
     default:
         break;

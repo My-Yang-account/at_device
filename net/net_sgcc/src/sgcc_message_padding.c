@@ -134,7 +134,7 @@ NET_DEF_SRAM0 static uint8_t s_sgcc_realtime_process_thread_stack[4096];
 NET_DEF_SRAM2 static struct net_handle* s_sgcc_handle = NULL;
 
 static uint8_t sgcc_chargepile_transaction_identity_converted(uint8_t identity, uint8_t online_order);
-static uint16_t sgcc_chargepile_stop_reason_converted(uint8_t reason, uint8_t stop_in_starting);
+static uint16_t sgcc_chargepile_stop_reason_converted(uint16_t reason, uint8_t stop_in_starting);
 
 /*******************************************************
  * 函数名               sgcc_enter_critical
@@ -3490,9 +3490,9 @@ uint16_t sgcc_chargepile_fault_converted(uint16_t bit, uint8_t *rank)
  * 功能          停充原因转换
  * **********************************************/
 #ifdef NET_SGCC_PRO_USING_DC
-static uint16_t sgcc_chargepile_stop_reason_converted(uint8_t reason, uint8_t stop_in_starting)
+static uint16_t sgcc_chargepile_stop_reason_converted(uint16_t reason, uint8_t stop_in_starting)
 {
-    uint16_t _reason = NETSGCC_DCA_REASON7009_UNKNOW;
+    uint16_t _reason = NETSGCC_DCA_REASON7019_UNKNOW;
 
     switch(reason){
     /* 急停 */
@@ -3606,6 +3606,7 @@ static uint16_t sgcc_chargepile_stop_reason_converted(uint8_t reason, uint8_t st
         _reason = NETSGCC_GS_REASON1002_SERVER;
         break;
     /* 刷卡 */
+    case APP_SYSTEM_STOP_WAY_OFFLINECARD_STOP:
     case APP_SYSTEM_STOP_WAY_ONLINECARD_STOP:
         _reason = NETSGCC_GS_REASON1012_SWIP_CARD;
         break;
@@ -3645,6 +3646,46 @@ static uint16_t sgcc_chargepile_stop_reason_converted(uint8_t reason, uint8_t st
 //    case APP_SYSTEM_STOP_WAY_OFFLINE_CHARGE_TIME:
 //        _reason = NETSGCC_GS_REASON1006_OFFLINE_TIME;
 //        break;
+    /* VIN 码鉴权失败 */
+    case APP_SYSTEM_STOP_WAY_AUTHEN_FAIL:
+        _reason = NETSGCC_DCA_REASON7009_VIN_AUTHEN_FAIL;
+        break;
+    /* 防雷器 */
+    case APP_SYSTEM_STOP_WAY_LIGHTPROTECT:
+        _reason = NETSGCC_DCA_REASON7010_LIGHTPROTECT;
+        break;
+    /* 枪座 */
+    case APP_SYSTEM_STOP_WAY_GUNSITE:
+        _reason = NETSGCC_DCA_REASON7011_GUNSITE;
+        break;
+    /* 断路器 */
+    case APP_SYSTEM_STOP_WAY_CIRCUIT_BREAKER:
+        _reason = NETSGCC_DCA_REASON7012_CIRCUIT_BREAKER;
+        break;
+    /* 水浸 */
+    case APP_SYSTEM_STOP_WAY_FLOODING:
+        _reason = NETSGCC_DCA_REASON7013_FLOODING;
+        break;
+    /* 烟感 */
+    case APP_SYSTEM_STOP_WAY_SMOKE:
+        _reason = NETSGCC_DCA_REASON7014_SMOKE;
+        break;
+    /* 倾倒 */
+    case APP_SYSTEM_STOP_WAY_POUR:
+        _reason = NETSGCC_DCA_REASON7015_POUR;
+        break;
+    /* 液冷 */
+    case APP_SYSTEM_STOP_WAY_LIQUIDCOOLING:
+        _reason = NETSGCC_DCA_REASON7016_LIQUIDCOOLING;
+        break;
+    /* 熔断器 */
+    case APP_SYSTEM_STOP_WAY_FUSE:
+        _reason = NETSGCC_DCA_REASON7017_FUSE;
+        break;
+    /* 宇通BFC */
+    case APP_SYSTEM_STOP_WAY_YT_BFC:
+        _reason = NETSGCC_DCA_REASON7018_YT_BFC;
+        break;
     default:
         break;
     }

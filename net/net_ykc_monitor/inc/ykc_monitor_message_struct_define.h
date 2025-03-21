@@ -243,6 +243,17 @@ enum ykc_monitor_abnormal_stop{
     NETYKC_MONITOR_AS_REASON90_UNKNOW = 0x90,                        /* 充电异常中止，未知原因停止 */
     NETYKC_MONITOR_AS_REASON91_GATE = 0x91,                          /* 充电异常中止，门禁故障 */
     NETYKC_MONITOR_AS_REASON92_BATTERY_VOLTAGE = 0x92,               /* 充电异常中止，电池电压 */
+    NETYKC_MONITOR_AS_REASON93_VIN_AUTHEN_FAIL = 0x93,               /* 充电异常中止，VIN 码鉴权失败 */
+    NETYKC_MONITOR_AS_REASON94_LIGHTPROTECT = 0x94,                  /* 充电异常中止，防雷器 */
+    NETYKC_MONITOR_AS_REASON95_GUNSITE = 0x95,                       /* 充电异常中止，枪座 */
+    NETYKC_MONITOR_AS_REASON96_CIRCUIT_BREAKER = 0x96,               /* 充电异常中止，断路器 */
+    NETYKC_MONITOR_AS_REASON97_FLOODING = 0x97,                      /* 充电异常中止，水浸 */
+    NETYKC_MONITOR_AS_REASON98_SMOKE = 0x98,                         /* 充电异常中止，烟感 */
+    NETYKC_MONITOR_AS_REASON99_POUR = 0x99,                          /* 充电异常中止，倾倒 */
+    NETYKC_MONITOR_AS_REASON9A_LIQUIDCOOLING = 0x9A,                 /* 充电异常中止，液冷 */
+    NETYKC_MONITOR_AS_REASON9B_FUSE = 0x9B,                          /* 充电异常中止，熔断器 */
+    NETYKC_MONITOR_AS_REASON9C_MAIN_CABINET = 0x9C,                  /* 充电异常中止，主机柜禁止充电 */
+    NETYKC_MONITOR_AS_REASON9D_YT_BFC = 0x9D,                        /* 充电异常中止，宇通BFC */
 };
 
 enum ykc_monitor_cmd{

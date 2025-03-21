@@ -250,7 +250,17 @@ enum sgcc_dc_abnormal{
     NETSGCC_DCA_REASON7006_OFFLINE_CHARGE_TIME = 7006,  /* 直流充电设备异常代码：达到离线可充电最长时间 */
     NETSGCC_DCA_REASON7007_BILLING_RULE_INVALID = 7007, /* 直流充电设备异常代码：计费规则无效 */
     NETSGCC_DCA_REASON7008_INSERT_GUN_TIME = 7008,      /* 直流充电设备异常代码：插枪时间不匹配 */
-    NETSGCC_DCA_REASON7009_UNKNOW = 7009,               /* 直流充电设备异常代码：未知  */
+    NETSGCC_DCA_REASON7009_VIN_AUTHEN_FAIL = 7009,      /* 充电异常中止，VIN 码鉴权失败 */
+    NETSGCC_DCA_REASON7010_LIGHTPROTECT = 7010,         /* 充电异常中止，防雷器 */
+    NETSGCC_DCA_REASON7011_GUNSITE = 7011,              /* 充电异常中止，枪座 */
+    NETSGCC_DCA_REASON7012_CIRCUIT_BREAKER = 7012,      /* 充电异常中止，断路器 */
+    NETSGCC_DCA_REASON7013_FLOODING = 7013,             /* 充电异常中止，水浸 */
+    NETSGCC_DCA_REASON7014_SMOKE = 7014,                /* 充电异常中止，烟感 */
+    NETSGCC_DCA_REASON7015_POUR = 7015,                 /* 充电异常中止，倾倒 */
+    NETSGCC_DCA_REASON7016_LIQUIDCOOLING = 7016,        /* 充电异常中止，液冷 */
+    NETSGCC_DCA_REASON7017_FUSE = 7017,                 /* 充电异常中止，熔断器 */
+    NETSGCC_DCA_REASON7018_YT_BFC = 7018,               /* 充电异常中止，宇通BFC */
+    NETSGCC_DCA_REASON7019_UNKNOW = 7019,               /* 直流充电设备异常代码：未知  */
 };
 
 /** DCPA as DC power abnormal (直流充电电源异常代码)*/
