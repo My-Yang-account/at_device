@@ -1578,14 +1578,14 @@ int32_t thaisen_set_trigger_event(enum thaisen_trig_event event, uint16_t durati
 }
 
 /********************************************
- * 函数名      thaisen_is_online_start
- * 功能         判断是否是在线启动
- *        gunno  枪号
+ * 函数名      thaisen_is_allow_loacl_stop
+ * 功能         判断是否允许本地停止
+ *      gunno  枪号
  * 返回         > 0:是，<=0:不是
  *******************************************/
-uint8_t thaisen_is_online_start(uint8_t gunno)
+uint8_t thaisen_is_allow_loacl_stop(uint8_t gunno)
 {
-    if(get_ofsm_info(gunno)->base.flag.is_local_charging){
+    if((get_ofsm_info(gunno)->base.flag.is_local_charging) && (get_ofsm_info(gunno)->base.start_type != APP_CHARGE_START_WAY_PASSWORD)){
         return 0x00;
     }
     return 0x01;

@@ -574,7 +574,7 @@ int32_t thaisen_set_trigger_event(enum thaisen_trig_event event, uint16_t durati
 /**
  * 判断是否是在线启动
  **/
-uint8_t thaisen_is_online_start(uint8_t gunno);
+uint8_t thaisen_is_allow_loacl_stop(uint8_t gunno);
 
 /**
  * 判断是否是不允许刷卡启动的页面

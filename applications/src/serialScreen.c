@@ -2439,7 +2439,7 @@ void SerialScreen_StopCharge(int port)
     sSCREEN_EVENT_DEBUGMSG("##########Port[%d] Stop Charge###########\r\n");
     if((TRUE == LcdData.setData.sup_Local) ||   \
             (LcdAssistantData.SeveralGunFlag[port].IsVinStart) ||   \
-            ((TRUE == LcdData.setData.sup_Local_stop) && (thaisen_is_online_start(port))))
+            ((TRUE == LcdData.setData.sup_Local_stop) && (thaisen_is_allow_loacl_stop(port))))
     	thaisen_app_set_screen_stop_charge(port);
 	else ;
 }
@@ -8299,7 +8299,7 @@ int SerialScreen_DataProcess()
             if(LcdData.setData.sup_Local == FALSE){
                 if(LcdAssistantData.SeveralGunFlag[i].IsVinStart == TRUE){
                     LcdData.setData.Sup_Stop = ICON_CHARGE_LOCAL;
-                }else if((LcdData.setData.sup_Local_stop == TRUE) && (thaisen_is_online_start(i))){ /** 停止使能目前只针对于在线启动方式(因为前面出去的屏幕工程没有停止使能按键，如果从flash中读出配置停止使能是开启则无法关闭) */
+                }else if((LcdData.setData.sup_Local_stop == TRUE) && (thaisen_is_allow_loacl_stop(i))){ /** 停止使能目前只针对于在线启动或密码启动方式(因为前面出去的屏幕工程没有停止使能按键，如果从flash中读出配置停止使能是开启则无法关闭) */
                     LcdData.setData.Sup_Stop = ICON_CHARGE_LOCAL;
                 }else{
                     u8 AnotherGun = LCD_GUN_1;
@@ -8309,7 +8309,7 @@ int SerialScreen_DataProcess()
                     if(LcdData.gun[AnotherGun].workState == SysMainStatus_Chrging){
                         if(LcdAssistantData.SeveralGunFlag[AnotherGun].IsVinStart == TRUE){
                             LcdData.setData.Sup_Stop = ICON_CHARGE_LOCAL;
-                        }else if((LcdData.setData.sup_Local_stop == TRUE) && (thaisen_is_online_start(AnotherGun))){
+                        }else if((LcdData.setData.sup_Local_stop == TRUE) && (thaisen_is_allow_loacl_stop(AnotherGun))){
                             LcdData.setData.Sup_Stop = ICON_CHARGE_LOCAL;
                         }else{
                             LcdData.setData.Sup_Stop = ICON_CHARGE_NULL;
@@ -8330,7 +8330,7 @@ int SerialScreen_DataProcess()
                 if(LcdData.gun[AnotherGun].workState == SysMainStatus_Chrging){
                     if(LcdAssistantData.SeveralGunFlag[AnotherGun].IsVinStart == TRUE){
                         LcdData.setData.Sup_Stop = ICON_CHARGE_LOCAL;
-                    }else if((LcdData.setData.sup_Local_stop == TRUE) && (thaisen_is_online_start(AnotherGun))){
+                    }else if((LcdData.setData.sup_Local_stop == TRUE) && (thaisen_is_allow_loacl_stop(AnotherGun))){
                         LcdData.setData.Sup_Stop = ICON_CHARGE_LOCAL;
                     }else{
                         LcdData.setData.Sup_Stop = ICON_CHARGE_NULL;
