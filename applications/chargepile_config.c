@@ -185,7 +185,8 @@ struct _function_enable{
     uint8_t local_stop;            /* 本地停止 */
     uint8_t plug_charge;           /* 即插即充 */
     uint8_t password_start;        /* 密码启动 */
-    uint8_t reserve[90];
+    uint8_t offline_card;          /* 离线卡 */
+    uint8_t reserve[89];
 };
 
 struct _state_reversal{
@@ -364,6 +365,11 @@ APP_DEF_SRAM2 static struct config_item s_config_item_set[CONFIG_ITEM_SIZE] =
         {CONFIG_ITEM_SUPORT_PASSWORD_START,
         (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.password_start)),       /*配置项：密码启动*/
         (uint8_t*)&s_chargepile_config_info.function_enable.password_start,
+        NULL},
+
+        {CONFIG_ITEM_SUPORT_OFFLINE_CARD,
+        (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.offline_card)),       /*配置项：离线卡支持*/
+        (uint8_t*)&s_chargepile_config_info.function_enable.offline_card,
         NULL},
 
         {CONFIG_ITEM_CARD_TYPE,
@@ -801,6 +807,9 @@ void sys_chargeplie_config_info_init(void)
     /** 启用密码启动功能 */
     sys_config_item_init(CONFIG_ITEM_SUPORT_PASSWORD_START, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.password_start)), \
             (uint8_t*)&s_chargepile_config_info.function_enable.password_start, NULL);
+    /** 启用离线卡功能 */
+    sys_config_item_init(CONFIG_ITEM_SUPORT_OFFLINE_CARD, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.offline_card)), \
+            (uint8_t*)&s_chargepile_config_info.function_enable.offline_card, NULL);
     /** 卡类型 */
     sys_config_item_init(CONFIG_ITEM_CARD_TYPE, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_info.card_type)), \
             (uint8_t*)&s_chargepile_config_info.config_info.card_type, NULL);

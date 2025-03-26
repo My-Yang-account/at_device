@@ -534,6 +534,7 @@ struct LCD_DISPLAY_SETDATA_TYPE{
     u8 sup_auxp_24V;                        //24V辅源支持
 	u8 sup_parallelchg;						//并充支持
 	u8 sup_parallelrelay;                   //支持并联
+    u8 sup_offline_card;                    //离线卡支持
 	u8 fan_type;							//风扇类型
 	u8 fan_frequency;						//风扇频率
 	u8 FanCtrlPulse;						//风扇占空比
@@ -551,6 +552,7 @@ struct LCD_DISPLAY_SETDATA_TYPE{
     u8 Icon_SupPlugAndPlay;                    //即插即充使能icon
     u8 Icon_SupOfflineBilling;              //离线计费使能icon
     u8 Icon_SupPWStart;                     //密码启动使能icon
+    u8 Icon_SupOffCard;                     //离线卡支持icon
     /***********************protect info***************************/
 	u32 Input_OverVolt;                     // 输入过压
     u32 Input_UnderVolt;                    // 输入欠压
@@ -3412,6 +3414,14 @@ void SerialScreen_IsSupportPWStartSet(void)
         LcdData.setData.Icon_SupPWStart = FALSE;
 }
 
+void SerialScreen_IsSupportOfflineCardSet(void)
+{
+    if(LcdData.setData.Icon_SupOffCard != TRUE)
+        LcdData.setData.Icon_SupOffCard = TRUE;
+    else
+        LcdData.setData.Icon_SupOffCard = FALSE;
+}
+
 /********************************输入信息*******************************************/
 void SerialScreen_ScramIsSupportSet(void)
 {
@@ -3858,6 +3868,7 @@ static void SerialScreen_IsSupportInfoJudge(u32 *ret)
     LcdData.setData.sup_offbilling = LcdData.setData.Icon_SupOfflineBilling;
     LcdData.setData.Sup_PlugAndPlay = LcdData.setData.Icon_SupPlugAndPlay;
     LcdData.setData.sup_pw_start = LcdData.setData.Icon_SupPWStart;
+    LcdData.setData.sup_offline_card = LcdData.setData.Icon_SupOffCard;
 
     if(ret){
         *ret = result;
@@ -3888,6 +3899,7 @@ void SerialScreen_IsSupportSetFlash(void)
     UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_MODULE_SLIENCE, (u8 *)&(LcdData.setData.sup_mslience), sizeof(LcdData.setData.sup_mslience));
     UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_OFFLINE_BILLING, (u8 *)&(LcdData.setData.sup_offbilling), sizeof(LcdData.setData.sup_offbilling));
     UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_PASSWORD_START, (u8 *)&(LcdData.setData.sup_pw_start), sizeof(LcdData.setData.sup_pw_start));
+    UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_OFFLINE_CARD, (u8 *)&(LcdData.setData.Icon_SupOffCard), sizeof(LcdData.setData.Icon_SupOffCard));
 
     for(u8 i = 0; i < sizeof(LcdData.setData.UserPasswdShow); i++){
         if((LcdData.setData.UserPasswdShow[i] < 0x20) ||  \
@@ -4056,6 +4068,8 @@ void SerialScreen_IsSupportGet(void)
 #endif /* SCREEN_USING_OFFLINE_BILLING */
     if(TRUE != *(u8 *)(UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_PASSWORD_START, 0)))   /* 密码启动配置默认不启用 */
         LcdData.setData.sup_pw_start = FALSE;
+    if(FALSE != *(u8 *)(UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_OFFLINE_CARD, 0)))     /* 离线刷卡配置默认启用 */
+        LcdData.setData.sup_offline_card = TRUE;
 
     LcdData.setData.Icon_SuplocalStop = FALSE;
     if(LcdData.setData.sup_Local_stop){
@@ -4078,6 +4092,11 @@ void SerialScreen_IsSupportGet(void)
     LcdData.setData.Icon_SupPWStart = FALSE;
     if(LcdData.setData.sup_pw_start){
         LcdData.setData.Icon_SupPWStart = TRUE;
+    }
+
+    LcdData.setData.Icon_SupOffCard = FALSE;
+    if(LcdData.setData.sup_offline_card){
+        LcdData.setData.Icon_SupOffCard = TRUE;
     }
 
     if(LcdData.setData.sup_insulation == FALSE){
@@ -6694,6 +6713,7 @@ struct LCD_DATA_FIFO_TYPE *SerialScreen_Init(struct SerialScreenObj *cmd)
     LcdData.setData.sup_mslience = *((u8*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_MODULE_SLIENCE, 0));
     LcdData.setData.sup_offbilling = *((u8*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_OFFLINE_BILLING, 0));
     LcdData.setData.sup_pw_start = *((u8*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_PASSWORD_START, 0));
+    LcdData.setData.sup_offline_card = *((u8*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_OFFLINE_CARD, 0));
     LcdData.setData.supin_ac = *((u8*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_INEN_ACRELAY, 0));
 
     memset(LcdData.setData.UserPasswdShow, '\0', sizeof(LcdData.setData.UserPasswdShow));
@@ -6769,6 +6789,9 @@ struct LCD_DATA_FIFO_TYPE *SerialScreen_Init(struct SerialScreenObj *cmd)
 
     if(LcdData.setData.sup_pw_start > TRUE)        /* 密码启动默认不启用 */
         LcdData.setData.sup_pw_start = FALSE;
+
+    if(LcdData.setData.sup_offline_card > TRUE)        /* 离线刷卡默认启用 */
+        LcdData.setData.sup_offline_card = TRUE;
 
     if(LcdData.setData.Sup_PlugAndPlay > TRUE)       /* 即插即充默认不启用 */
         LcdData.setData.Sup_PlugAndPlay = FALSE;
@@ -6893,6 +6916,11 @@ struct LCD_DATA_FIFO_TYPE *SerialScreen_Init(struct SerialScreenObj *cmd)
     LcdData.setData.Icon_SupPWStart = FALSE;
     if(LcdData.setData.sup_pw_start){
         LcdData.setData.Icon_SupPWStart = TRUE;
+    }
+
+    LcdData.setData.Icon_SupOffCard = FALSE;
+    if(LcdData.setData.sup_offline_card){
+        LcdData.setData.Icon_SupOffCard = TRUE;
     }
 
 	LcdData.setData.SerialScreen_PassWordShow = FALSE;
@@ -9311,7 +9339,9 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_CONFIG, NULL, "module slience set", LCD_BtnType, 0x0001, 0x1005, page_type, LCD_PAGE_MENU_CONFIG, (void *)SerialScreen_IsSupportModuleSlienceSet);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_CONFIG, NULL, "offline billing set", LCD_BtnType, 0x0001, 0x1009, page_type, LCD_PAGE_MENU_CONFIG, (void *)SerialScreen_IsSupportOfflineBillingSet);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_CONFIG, NULL, "pw start set", LCD_BtnType, 0x0004, 0x1001, page_type, LCD_PAGE_MENU_CONFIG, (void *)SerialScreen_IsSupportPWStartSet);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_CONFIG, NULL, "off card set", LCD_BtnType, 0x006E, 0x1003, page_type, LCD_PAGE_MENU_CONFIG, (void *)SerialScreen_IsSupportOfflineCardSet);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_CONFIG, NULL, "plug and play", LCD_IconType, LCD_10sReflash, 0x412A, pu8_type, sizeof(LcdData.setData.Icon_SupPlugAndPlay), (void *)&LcdData.setData.Icon_SupPlugAndPlay);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_CONFIG, NULL, "offline card", LCD_IconType, LCD_10sReflash, 0x6A00, pu8_type, sizeof(LcdData.setData.Icon_SupOffCard), (void *)&LcdData.setData.Icon_SupOffCard);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_CONFIG, NULL, "locoal charge", LCD_IconType, LCD_10sReflash, 0x412E, pu8_type, sizeof(LcdData.setData.sup_Local), (void *)&LcdData.setData.sup_Local);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_CONFIG, NULL, "locoal stop", LCD_IconType, LCD_10sReflash, 0x6110, pu8_type, sizeof(LcdData.setData.Icon_SuplocalStop), (void *)&LcdData.setData.Icon_SuplocalStop);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_CONFIG, NULL, "auxp24v", LCD_IconType, LCD_10sReflash, 0x465A, pu8_type, sizeof(LcdData.setData.sup_auxp_24V), (void *)&LcdData.setData.sup_auxp_24V);

@@ -79,6 +79,7 @@ void SerialScreen_IsSupportIsulationSet(void);
 void SerialScreen_IsSupportModuleSlienceSet(void);
 void SerialScreen_IsSupportOfflineBillingSet(void);
 void SerialScreen_IsSupportPWStartSet(void);
+void SerialScreen_IsSupportOfflineCardSet(void);
 struct charge_data *SerialScreen_GetChargeInfo(int port);
 struct bms_info *SerialScreen_GetBmsInfo(int port);
 struct temperature* SerialScreen_GetBatTemp(int port);

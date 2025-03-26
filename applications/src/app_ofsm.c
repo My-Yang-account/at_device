@@ -1493,15 +1493,23 @@ static uint8_t ofsm_swip_card_judge(uint8_t gunno)
                 }
             }
             if(count >= compare_count){
-                app_rfidr_send_mail(APP_BUZZON_STATE_OK);
-                LOG_D("gunno(%d) start charge by local pile number card", gunno);
+                if((*(sys_read_config_item_content(CONFIG_ITEM_SUPORT_OFFLINE_CARD, 0))) == APP_THA_ENUM_TRUE){
+                    app_rfidr_send_mail(APP_BUZZON_STATE_OK);
+                    LOG_D("gunno(%d) start charge by local pile number card", gunno);
+                }else{
+                    need_authorize_online = APP_THA_ENUM_TRUE;
+                }
             }
         }
 
         if((compare_len < compare_count) || (count < compare_count)){
             if(sys_card_number_whitelists_query(card_number, card_number_len) >= 0x00){
-                app_rfidr_send_mail(APP_BUZZON_STATE_OK);
-                LOG_D("gunno(%d) start charge by local whitelist card", gunno);
+                if((*(sys_read_config_item_content(CONFIG_ITEM_SUPORT_OFFLINE_CARD, 0))) == APP_THA_ENUM_TRUE){
+                    app_rfidr_send_mail(APP_BUZZON_STATE_OK);
+                    LOG_D("gunno(%d) start charge by local whitelist card", gunno);
+                }else{
+                    need_authorize_online = APP_THA_ENUM_TRUE;
+                }
             }else{
 #ifdef APP_USING_OFFLINE_BILLING
                 if(s_ofsm_info[gunno].base.run_mode == APP_RUN_MODE_OFFLINE_BILLING){
@@ -1559,8 +1567,12 @@ static uint8_t ofsm_swip_card_judge(uint8_t gunno)
 #endif /* APP_USING_OFFLINE_BILLING */
 
         if(sys_card_uid_whitelists_query(rfidr_query_uuid(), uid_len) >= 0x00){
-            app_rfidr_send_mail(APP_BUZZON_STATE_OK);
-            LOG_D("gunno(%d) start charge by local whitelist card uid", gunno);
+            if((*(sys_read_config_item_content(CONFIG_ITEM_SUPORT_OFFLINE_CARD, 0))) == APP_THA_ENUM_TRUE){
+                app_rfidr_send_mail(APP_BUZZON_STATE_OK);
+                LOG_D("gunno(%d) start charge by local whitelist card uid", gunno);
+            }else{
+                need_authorize_online = APP_THA_ENUM_TRUE;
+            }
         }else{
             need_authorize_online = APP_THA_ENUM_TRUE;
         }
