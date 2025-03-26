@@ -3007,7 +3007,6 @@ static void ofsm_starting_fun(uint8_t gunno)
         return;
     }
     case APP_CHARGE_STATE_FINISH:
-        break;
     case APP_CHARGE_STATE_FAULTING:
     case APP_CHARGE_STATE_WAIT_PULL_GUN:
     {
@@ -3016,8 +3015,6 @@ static void ofsm_starting_fun(uint8_t gunno)
             s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_STOPING];
             s_ofsm_info[gunno].state = APP_OFSM_STATE_STOPING;
 
-            s_ofsm_info[gunno].base.system_fault = system_fault;
-            s_ofsm_info[gunno].base.charge_fault = charge_fault;
             s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
 
 #ifdef APP_INCLUDE_YKC17_PROTOCOL
@@ -3034,36 +3031,6 @@ static void ofsm_starting_fun(uint8_t gunno)
                 s_ofsm_info[gunno].base.charge_elect_last = mw_get_meter_total_wh(gunno);
             }
 
-            stop_way = mw_get_system_stop_way(gunno);
-
-            /** 防止状态异常，上层已停止但下层还在充电 */
-            mw_charge_stop_cmd(gunno);
-            if(stop_way == APP_SYSTEM_STOP_WAY_NULL){
-                uint8_t rentry = 0x00;
-                while(rentry <= 20){  /** 最多等待 10s，等下层赋值完停充原因 */
-                    rt_thread_mdelay(500);
-                    stop_way = mw_get_system_stop_way(gunno);
-                    if(stop_way != APP_SYSTEM_STOP_WAY_NULL){
-                        break;
-                    }
-                    rentry++;
-                }
-            }
-
-            s_thaisen_transaction[gunno].stop_reason = stop_way;
-            s_ofsm_info[gunno].base.reason_code = stop_way;
-
-            LOG_D("gunno(%d) charge stop deal to stop way|%d\n", gunno, stop_way);
-
-            if((stop_way < APP_SYSTEM_STOP_WAY_NULL) &&
-                    (stop_way != APP_SYSTEM_STOP_WAY_PULL_GUN) &&
-                    (stop_way != APP_SYSTEM_STOP_WAY_CHARGE_FULL) &&
-                    (stop_way != APP_SYSTEM_STOP_WAY_PASSIVE) &&
-                    (stop_way != APP_SYSTEM_STOP_WAY_BST)){
-                s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_TRUE;
-            }else{
-                s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_FALSE;
-            }
             s_ofsm_info[gunno].base.flag.start_result = APP_THA_ENUM_FALSE;
             s_thaisen_transaction[gunno].boot_result = s_ofsm_info[gunno].base.flag.start_result;
             s_thaisen_transaction[gunno].order_state.is_charging = APP_THA_ENUM_FALSE;
@@ -3095,11 +3062,6 @@ static void ofsm_starting_fun(uint8_t gunno)
             }
 
             app_billing_info_init(s_ofsm_info[gunno].base.start_elect, gunno);
-
-            app_nsal_report_remote_start_result(gunno, s_ofsm_info[gunno].base.flag.start_result,  \
-                    s_ofsm_info[gunno].base.reason_code, s_ofsm_info[gunno].base.reason_code);
-
-            app_charge_fault_occur(gunno, s_ofsm_info[gunno].base.reason_code, (*mw_get_charge_fault_set(gunno)));
 
             app_nsal_state_charged(gunno);
             app_nsal_event_occurded(gunno);
@@ -3706,6 +3668,7 @@ static void ofsm_charging_fun(uint8_t gunno)
     }
     case APP_CHARGE_STATE_CHARGING:
         break;
+    case APP_CHARGE_STATE_FINISH:
     case APP_CHARGE_STATE_FAULTING:
     case APP_CHARGE_STATE_WAIT_PULL_GUN:
     {
@@ -3714,8 +3677,6 @@ static void ofsm_charging_fun(uint8_t gunno)
             s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_STOPING];
             s_ofsm_info[gunno].state = APP_OFSM_STATE_STOPING;
 
-            s_ofsm_info[gunno].base.system_fault = system_fault;
-            s_ofsm_info[gunno].base.charge_fault = charge_fault;
             s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
 
 #ifdef APP_INCLUDE_YKC17_PROTOCOL
@@ -3730,37 +3691,6 @@ static void ofsm_charging_fun(uint8_t gunno)
                 s_ofsm_info[gunno].base.charge_elect_last = (mw_get_meter_total_wh(gunno) + mw_get_meter_total_wh(deputy_gunno));
             }else{
                 s_ofsm_info[gunno].base.charge_elect_last = mw_get_meter_total_wh(gunno);
-            }
-
-            stop_way = mw_get_system_stop_way(gunno);
-
-            /** 防止状态异常，上层已停止但下层还在充电 */
-            mw_charge_stop_cmd(gunno);
-            if(stop_way == APP_SYSTEM_STOP_WAY_NULL){
-                uint8_t rentry = 0x00;
-                while(rentry <= 20){  /** 最多等待 10s，等下层赋值完停充原因 */
-                    rt_thread_mdelay(500);
-                    stop_way = mw_get_system_stop_way(gunno);
-                    if(stop_way != APP_SYSTEM_STOP_WAY_NULL){
-                        break;
-                    }
-                    rentry++;
-                }
-            }
-
-            LOG_D("gunno(%d) charge stop deal to stop way|%d\n", gunno, stop_way);
-
-            s_thaisen_transaction[gunno].stop_reason = stop_way;
-            s_ofsm_info[gunno].base.reason_code = stop_way;
-
-            if((stop_way < APP_SYSTEM_STOP_WAY_NULL) &&
-                    (stop_way != APP_SYSTEM_STOP_WAY_PULL_GUN) &&
-                    (stop_way != APP_SYSTEM_STOP_WAY_CHARGE_FULL) &&
-                    (stop_way != APP_SYSTEM_STOP_WAY_PASSIVE) &&
-                    (stop_way != APP_SYSTEM_STOP_WAY_BST)){
-                s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_TRUE;
-            }else{
-                s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_FALSE;
             }
 
             /* 对时后时间要修改 */
@@ -3785,10 +3715,6 @@ static void ofsm_charging_fun(uint8_t gunno)
             }
 
             s_thaisen_transaction[gunno].order_state.is_charging = APP_THA_ENUM_FALSE;
-
-            app_charge_fault_occur(gunno, s_ofsm_info[gunno].base.reason_code, (*mw_get_charge_fault_set(gunno)));
-
-            app_nsal_report_remote_stop_result(gunno, APP_THA_ENUM_TRUE, s_ofsm_info[gunno].base.reason_code, s_ofsm_info[gunno].base.reason_code);
 
             app_nsal_state_charged(gunno);
             app_nsal_event_occurded(gunno);
@@ -4277,6 +4203,9 @@ static void ofsm_stoping_fun(uint8_t gunno)
 
     bool is_stop_complete = APP_THA_ENUM_FALSE;  /* 充电已停止完成 */
     enum charge_state_t charge_state = mw_get_charge_state(gunno);
+    enum system_stop_way stop_way = APP_SYSTEM_STOP_WAY_SIZE;
+    enum charge_fault_t charge_fault = app_get_highest_priority_charge_fault(gunno);
+    enum system_fault_t system_fault = app_get_highest_priority_system_fault(gunno);
 #ifdef APP_INCLUDE_YKC17_PROTOCOL
     uint32_t meter_reading_tick = 0x00;
 #endif /* APP_INCLUDE_YKC17_PROTOCOL */
@@ -4332,6 +4261,7 @@ static void ofsm_stoping_fun(uint8_t gunno)
         is_stop_complete = APP_THA_ENUM_TRUE;
         break;
     case APP_CHARGE_STATE_FINISH:
+        break;
     case APP_CHARGE_STATE_WAIT_PULL_GUN:
         is_stop_complete = APP_THA_ENUM_TRUE;
         break;
@@ -4370,6 +4300,32 @@ static void ofsm_stoping_fun(uint8_t gunno)
         s_thaisen_transaction[gunno].bms_fault_reason.hv_relay = bms->BST.HVRelaysFault;
         s_thaisen_transaction[gunno].bms_fault_reason.detect_point2_volt = bms->BST.Check2Ft;
         s_thaisen_transaction[gunno].bms_fault_reason.other = bms->BST.OtherFt;
+
+        s_ofsm_info[gunno].base.system_fault = system_fault;
+        s_ofsm_info[gunno].base.charge_fault = charge_fault;
+
+        if(s_thaisen_transaction[gunno].stop_reason != APP_SYSTEM_STOP_WAY_POWER_OFF){
+            stop_way = s_thaisen_transaction[gunno].stop_reason;
+        }else{
+            stop_way = mw_get_system_stop_way(gunno);
+        }
+        s_thaisen_transaction[gunno].stop_reason = stop_way;
+        s_ofsm_info[gunno].base.reason_code = stop_way;
+
+        LOG_D("gunno(%d) charge stop deal to stop way|%d\n", gunno, stop_way);
+
+        if((stop_way < APP_SYSTEM_STOP_WAY_NULL) &&
+                (stop_way != APP_SYSTEM_STOP_WAY_PULL_GUN) &&
+                (stop_way != APP_SYSTEM_STOP_WAY_CHARGE_FULL) &&
+                (stop_way != APP_SYSTEM_STOP_WAY_PASSIVE) &&
+                (stop_way != APP_SYSTEM_STOP_WAY_BST)){
+            s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_TRUE;
+        }else{
+            s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_FALSE;
+        }
+
+        app_charge_fault_occur(gunno, s_ofsm_info[gunno].base.reason_code, (*mw_get_charge_fault_set(gunno)));
+        app_nsal_report_remote_stop_result(gunno, APP_THA_ENUM_TRUE, s_ofsm_info[gunno].base.reason_code, s_ofsm_info[gunno].base.reason_code);
 
         app_nsal_report_bms_message_end(gunno);
         app_nsal_report_bms_message_error(gunno);
@@ -4624,7 +4580,6 @@ static void ofsm_stoping_fun(uint8_t gunno)
         app_nsal_transaction_record_report_monitor(gunno, &(s_thaisen_transaction_report[MONITOR_PLATFORM_INDEX][gunno]), 0x00);
         s_transaction_sending[MONITOR_PLATFORM_INDEX][gunno] = APP_THA_ENUM_TRUE;
 
-        rt_thread_mdelay(3000);  /* 等待电子锁解锁 */
 #ifdef APP_USING_OFFLINE_BILLING
         if(s_ofsm_info[gunno].base.run_mode == APP_RUN_MODE_OFFLINE_BILLING){
             app_card_event_send(APP_CARD_EVENT_CHARGE_STOP, gunno, NULL);
