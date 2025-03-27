@@ -300,6 +300,11 @@ uint8_t thaisen_app_get_connect_state(uint8_t gunno);
  **/
 enum system_stop_way thaisen_app_get_charge_stop_way(uint8_t gunno);
 /**
+ * 获取中文停充方式
+ **/
+void thaisen_app_get_charge_stopway_chinese(uint32_t code, uint8_t *olen, uint8_t *buf, uint8_t ilen);
+
+/**
  * 获取充电数据
  **/
 struct charge_data{
@@ -366,6 +371,11 @@ struct fault_info{
     enum system_fault_t system_fault;
 };
 struct fault_info *thaisen_app_get_fault_info(uint8_t gunno);
+
+/**
+ * 获取中文故障信息
+ **/
+void thaisen_app_get_fault_chinese(uint32_t code, uint8_t *olen, uint8_t *buf, uint8_t ilen);
 
 /**
  * 清除指定区域记录信息

@@ -605,6 +605,19 @@ enum system_stop_way thaisen_app_get_charge_stop_way(uint8_t gunno) // OK
     return mw_system_stop_way_convert(charge_stop_way);
 }
 
+/********************************************
+ * 函数名      thaisen_app_get_charge_stopway_chinese
+ * 功能          获取中文停充原因
+ * 参数           code      故障码
+ *        olen      用于保存中文停充原因信息实际长度
+ *        buf       用于保存中文停充原因信息
+ *        ilen      buf  的长度
+ * 返回
+ *******************************************/
+void thaisen_app_get_charge_stopway_chinese(uint32_t code, uint8_t *olen, uint8_t *buf, uint8_t ilen)
+{
+    app_get_charge_stopway_chinese(code, olen, buf, ilen);
+}
 
 /********************************************
  * 函数名      thaisen_app_get_charge_info
@@ -771,6 +784,21 @@ struct fault_info *thaisen_app_get_fault_info(uint8_t gunno)
     s_fault_info.system_fault = mw_system_fault_convert(app_get_highest_priority_system_fault(gunno));
 
     return &s_fault_info;
+}
+
+
+/********************************************
+ * 函数名      thaisen_app_get_fault_chinese
+ * 功能          获取中文故障信息
+ * 参数          code      故障码
+ *        olen      用于保存中文故障信息实际长度
+ *        buf       用于保存中文故障信息
+ *        ilen      buf  的长度
+ * 返回
+ *******************************************/
+void thaisen_app_get_fault_chinese(uint32_t code, uint8_t *olen, uint8_t *buf, uint8_t ilen)
+{
+    app_get_fault_chinese(code, olen, buf, ilen);
 }
 
 /*

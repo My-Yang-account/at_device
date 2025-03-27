@@ -5,7 +5,7 @@
  *
  * Change Logs:
  * Date           Author       Notes
- * 2023-04-25     æˆ‘çš„æ¨yang       the first version
+ * 2023-04-25     ÎÒµÄÑîyang       the first version
  */
 
 #include "app_support_func.h"
@@ -19,6 +19,9 @@
 #define DBG_TAG "support"
 #define DBG_LVL DBG_LOG
 #include <rtdbg.h>
+
+#define APP_CHINESE_FAULT_LEN_MAX                   0x20               /* ÖĞÎÄ¹ÊÕÏÂëÊı¾İ×î´ó³¤¶È */
+#define APP_CHINESE_STOPWAY_LEN_MAX                 0x20               /* ÖĞÎÄÍ£³äÔ­ÒòÊı¾İ×î´ó³¤¶È */
 
 #if 0
 static const char* library_fault_str[] =
@@ -78,26 +81,26 @@ static const char* owner_fault_str[] =
 };
 
 /*********************************************
- * å‡½æ•°å             get_stopway_string
- * åŠŸèƒ½                 æ ¹æ®åœå……ç è·å–åœå……åŸå› å­—ç¬¦ä¸²
- * å‚æ•°                code  åœå……ç 
- * è¿”å›                åœå……åŸå› å­—ç¬¦ä¸²
+ * º¯ÊıÃû             get_stopway_string
+ * ¹¦ÄÜ                 ¸ù¾İÍ£³äÂë»ñÈ¡Í£³äÔ­Òò×Ö·û´®
+ * ²ÎÊı                code  Í£³äÂë
+ * ·µ»Ø                Í£³äÔ­Òò×Ö·û´®
  ********************************************/
 const char* get_stopway_string(uint16_t code)
 {
-#define STOPWAY_LIBRARY_MAX       APP_SYSTEM_STOP_WAY_NULL - 1       /* åº“åœæ­¢ç æœ€å¤§å€¼ */
-#define STOPWAY_OWNER_MAX         APP_SYSTEM_STOP_WAY_SOC_LIMIT       /* è‡ªå®šä¹‰åœæ­¢ç æœ€å¤§å€¼ */
-#define STOPWAY_OWNER_MIN         APP_SYSTEM_STOP_WAY_APP_STOP       /* è‡ªå®šä¹‰åœæ­¢ç æœ€å°å€¼ */
+#define STOPWAY_LIBRARY_MAX       APP_SYSTEM_STOP_WAY_NULL - 1
+#define STOPWAY_OWNER_MAX         APP_SYSTEM_STOP_WAY_SOC_LIMIT
+#define STOPWAY_OWNER_MIN         APP_SYSTEM_STOP_WAY_APP_STOP
 
-#define STOPWAY_LIBRARY_NONE_FAULT_MAX        APP_SYSTEM_STOP_WAY_NULL - 1       /* åº“éæ•…éšœåœå……ç æœ€å¤§å€¼ */
-#define STOPWAY_LIBRARY_NONE_FAULT_MIN        APP_SYSTEM_STOP_WAY_SHORTS       /* åº“éæ•…éšœåœå……ç æœ€å¤§å€¼ */
+#define STOPWAY_LIBRARY_NONE_FAULT_MAX        APP_SYSTEM_STOP_WAY_NULL - 1
+#define STOPWAY_LIBRARY_NONE_FAULT_MIN        APP_SYSTEM_STOP_WAY_SHORTS
 
-    if(code <= STOPWAY_LIBRARY_MAX){                                       /** åº“åœå……åŸå›  */
+    if(code <= STOPWAY_LIBRARY_MAX){
         if((code >= STOPWAY_LIBRARY_NONE_FAULT_MIN) && (code <= STOPWAY_LIBRARY_NONE_FAULT_MAX)){
             return library_fault_str[code - STOPWAY_LIBRARY_NONE_FAULT_MIN];
         }
         return library_fault_str[code];
-    }else if((code >= STOPWAY_OWNER_MIN) && (code <= STOPWAY_OWNER_MAX)){  /** è‡ªå®šä¹‰åœå……åŸå›  */
+    }else if((code >= STOPWAY_OWNER_MIN) && (code <= STOPWAY_OWNER_MAX)){
         return owner_fault_str[code - STOPWAY_OWNER_MIN];
     }else{
         uint8_t unknow_index = (sizeof(owner_fault_str) /4 - 1);
@@ -109,53 +112,53 @@ const char* get_stopway_string(uint16_t code)
 APP_DEF_SRAM1 static const char* system_fault_str[APP_SYS_FAULT_NO_ERROR] =
 {
 #ifndef APP_DESIGNATE_REGION
-     "scram",                     /** ç³»ç»Ÿæ•…éšœç å­—ç¬¦ä¸² 0ï¼šæ€¥åœ */
-     "card reader",               /** ç³»ç»Ÿæ•…éšœç å­—ç¬¦ä¸² 1ï¼šè¯»å¡å™¨ */
-     "door",                      /** ç³»ç»Ÿæ•…éšœç å­—ç¬¦ä¸² 2ï¼šé—¨ç¦ */
-     "ammeter",                   /** ç³»ç»Ÿæ•…éšœç å­—ç¬¦ä¸² 3ï¼šç”µè¡¨ */
-     "charge module",             /** ç³»ç»Ÿæ•…éšœç å­—ç¬¦ä¸² 4ï¼šå……ç”µæ¨¡å— */
-     "over temp",                 /** ç³»ç»Ÿæ•…éšœç å­—ç¬¦ä¸² 5ï¼šè¿‡æ¸© */
-     "over voltage",              /** ç³»ç»Ÿæ•…éšœç å­—ç¬¦ä¸² 6ï¼šè¿‡å‹ */
-     "under voltage",             /** ç³»ç»Ÿæ•…éšœç å­—ç¬¦ä¸² 7æ¬ å‹ */
-     "over current",              /** ç³»ç»Ÿæ•…éšœç å­—ç¬¦ä¸² 8ï¼šè¿‡æµ */
-     "dc relay",                  /** ç³»ç»Ÿæ•…éšœç å­—ç¬¦ä¸² 9ï¼šç›´æµç»§ç”µå™¨ */
-     "parallel relay",            /** ç³»ç»Ÿæ•…éšœç å­—ç¬¦ä¸² 10ï¼šå¹¶è”ç»§ç”µå™¨ */
-     "ac relay",                  /** ç³»ç»Ÿæ•…éšœç å­—ç¬¦ä¸² 11ï¼šäº¤æµæ¥è§¦å™¨ */
-     "electronic lock",           /** ç³»ç»Ÿæ•…éšœç å­—ç¬¦ä¸² 12ï¼šç”µå­é” */
-     "auxiliary power",           /** ç³»ç»Ÿæ•…éšœç å­—ç¬¦ä¸² 13ï¼šè¾…æº */
-     "flash chip",                /** ç³»ç»Ÿæ•…éšœç å­—ç¬¦ä¸² 14ï¼šFLASH */
-     "eeprom chip",               /** ç³»ç»Ÿæ•…éšœç å­—ç¬¦ä¸² 15ï¼šEEPROM */
-     "lighting pro",              /** ç³»ç»Ÿæ•…éšœç å­—ç¬¦ä¸² 16ï¼šé˜²é›·å™¨ */
-     "gun site",                  /** ç³»ç»Ÿæ•…éšœç å­—ç¬¦ä¸² 17ï¼šæªåº§ */
-     "circuit breaker",           /** ç³»ç»Ÿæ•…éšœç å­—ç¬¦ä¸² 18ï¼šæ–­è·¯å™¨ */
-     "flooding",                  /** ç³»ç»Ÿæ•…éšœç å­—ç¬¦ä¸² 19ï¼šæ°´æµ¸ */
-     "smoke",                     /** ç³»ç»Ÿæ•…éšœç å­—ç¬¦ä¸² 20ï¼šçƒŸæ„Ÿ */
-     "pour",                      /** ç³»ç»Ÿæ•…éšœç å­—ç¬¦ä¸² 21ï¼šå€¾å€’ */
-     "liquid cool",               /** ç³»ç»Ÿæ•…éšœç å­—ç¬¦ä¸² 22ï¼šæ¶²å†· */
-     "fuse",                      /** ç³»ç»Ÿæ•…éšœç å­—ç¬¦ä¸² 23ï¼šç†”æ–­å™¨ */
-     "main cabinet",              /** ç³»ç»Ÿæ•…éšœç å­—ç¬¦ä¸² 24ï¼šä¸»æœºæŸœ */
+     "scram",                     /** ÏµÍ³¹ÊÕÏÂë×Ö·û´® 0£º¼±Í£ */
+     "card reader",               /** ÏµÍ³¹ÊÕÏÂë×Ö·û´® 1£º¶Á¿¨Æ÷ */
+     "door",                      /** ÏµÍ³¹ÊÕÏÂë×Ö·û´® 2£ºÃÅ½û */
+     "ammeter",                   /** ÏµÍ³¹ÊÕÏÂë×Ö·û´® 3£ºµç±í */
+     "charge module",             /** ÏµÍ³¹ÊÕÏÂë×Ö·û´® 4£º³äµçÄ£¿é */
+     "over temp",                 /** ÏµÍ³¹ÊÕÏÂë×Ö·û´® 5£º¹ıÎÂ */
+     "over voltage",              /** ÏµÍ³¹ÊÕÏÂë×Ö·û´® 6£º¹ıÑ¹ */
+     "under voltage",             /** ÏµÍ³¹ÊÕÏÂë×Ö·û´® 7Ç·Ñ¹ */
+     "over current",              /** ÏµÍ³¹ÊÕÏÂë×Ö·û´® 8£º¹ıÁ÷ */
+     "dc relay",                  /** ÏµÍ³¹ÊÕÏÂë×Ö·û´® 9£ºÖ±Á÷¼ÌµçÆ÷ */
+     "parallel relay",            /** ÏµÍ³¹ÊÕÏÂë×Ö·û´® 10£º²¢Áª¼ÌµçÆ÷ */
+     "ac relay",                  /** ÏµÍ³¹ÊÕÏÂë×Ö·û´® 11£º½»Á÷½Ó´¥Æ÷ */
+     "electronic lock",           /** ÏµÍ³¹ÊÕÏÂë×Ö·û´® 12£ºµç×ÓËø */
+     "auxiliary power",           /** ÏµÍ³¹ÊÕÏÂë×Ö·û´® 13£º¸¨Ô´ */
+     "flash chip",                /** ÏµÍ³¹ÊÕÏÂë×Ö·û´® 14£ºFLASH */
+     "eeprom chip",               /** ÏµÍ³¹ÊÕÏÂë×Ö·û´® 15£ºEEPROM */
+     "lighting pro",              /** ÏµÍ³¹ÊÕÏÂë×Ö·û´® 16£º·ÀÀ×Æ÷ */
+     "gun site",                  /** ÏµÍ³¹ÊÕÏÂë×Ö·û´® 17£ºÇ¹×ù */
+     "circuit breaker",           /** ÏµÍ³¹ÊÕÏÂë×Ö·û´® 18£º¶ÏÂ·Æ÷ */
+     "flooding",                  /** ÏµÍ³¹ÊÕÏÂë×Ö·û´® 19£ºË®½ş */
+     "smoke",                     /** ÏµÍ³¹ÊÕÏÂë×Ö·û´® 20£ºÑÌ¸Ğ */
+     "pour",                      /** ÏµÍ³¹ÊÕÏÂë×Ö·û´® 21£ºÇãµ¹ */
+     "liquid cool",               /** ÏµÍ³¹ÊÕÏÂë×Ö·û´® 22£ºÒºÀä */
+     "fuse",                      /** ÏµÍ³¹ÊÕÏÂë×Ö·û´® 23£ºÈÛ¶ÏÆ÷ */
+     "main cabinet",              /** ÏµÍ³¹ÊÕÏÂë×Ö·û´® 24£ºÖ÷»ú¹ñ */
 #endif /* APP_DESIGNATE_REGION */
 };
 
 APP_DEF_SRAM1 static const char* charge_fault_str[APP_CHARGE_FAULT_NO_ERROR] =
 {
 #ifndef APP_DESIGNATE_REGION
-    "gun voltage",                /** å……ç”µæ•…éšœç å­—ç¬¦ä¸² 0ï¼šæªå¤´ç”µå‹ */
-    "IMD",                        /** å……ç”µæ•…éšœç å­—ç¬¦ä¸² 1ï¼šç»ç¼˜ */
-    "bms commu",                  /** å……ç”µæ•…éšœç å­—ç¬¦ä¸² 2ï¼šBMSé€šè®¯ */
-    "battery voltage",            /** å……ç”µæ•…éšœç å­—ç¬¦ä¸² 3ï¼šç”µæ± ç”µå‹ */
-    "ready voltage",              /** å……ç”µæ•…éšœç å­—ç¬¦ä¸² 4ï¼šå‡†å¤‡ç”µå‹ */
-    "IMD voltage",                /** å……ç”µæ•…éšœç å­—ç¬¦ä¸² 5ï¼šç»ç¼˜ç”µå‹ */
-    "YT BFC",                     /** å……ç”µæ•…éšœç å­—ç¬¦ä¸² 6ï¼šå®‡é€šBFC */
+    "gun voltage",                /** ³äµç¹ÊÕÏÂë×Ö·û´® 0£ºÇ¹Í·µçÑ¹ */
+    "IMD",                        /** ³äµç¹ÊÕÏÂë×Ö·û´® 1£º¾øÔµ */
+    "bms commu",                  /** ³äµç¹ÊÕÏÂë×Ö·û´® 2£ºBMSÍ¨Ñ¶ */
+    "battery voltage",            /** ³äµç¹ÊÕÏÂë×Ö·û´® 3£ºµç³ØµçÑ¹ */
+    "ready voltage",              /** ³äµç¹ÊÕÏÂë×Ö·û´® 4£º×¼±¸µçÑ¹ */
+    "IMD voltage",                /** ³äµç¹ÊÕÏÂë×Ö·û´® 5£º¾øÔµµçÑ¹ */
+    "YT BFC",                     /** ³äµç¹ÊÕÏÂë×Ö·û´® 6£ºÓîÍ¨BFC */
 #endif /* APP_DESIGNATE_REGION */
 };
 
 #ifdef APP_DESIGNATE_REGION
 /*************************************
- * å‡½æ•°å       app_support_func_info_init
- * åŠŸèƒ½           è¾…åŠ©å‡½æ•°ä¿¡æ¯ã€å˜é‡åˆå§‹åŒ–
- * å‚æ•°
- * è¿”å›
+ * º¯ÊıÃû       app_support_func_info_init
+ * ¹¦ÄÜ           ¸¨Öúº¯ÊıĞÅÏ¢¡¢±äÁ¿³õÊ¼»¯
+ * ²ÎÊı
+ * ·µ»Ø
  ************************************/
 void app_support_func_info_init(void)
 {
@@ -196,10 +199,10 @@ void app_support_func_info_init(void)
 #endif /* APP_DESIGNATE_REGION */
 
 /*********************************************
- * å‡½æ•°å             get_fault_string
- * åŠŸèƒ½                 æ ¹æ®æ•…éšœç è·å–æ•…éšœå­—ç¬¦ä¸²
- * å‚æ•°                code  æ•…éšœç 
- * è¿”å›                æ•…éšœå­—ç¬¦ä¸²
+ * º¯ÊıÃû             get_fault_string
+ * ¹¦ÄÜ                 ¸ù¾İ¹ÊÕÏÂë»ñÈ¡¹ÊÕÏ×Ö·û´®
+ * ²ÎÊı                code  ¹ÊÕÏÂë
+ * ·µ»Ø                ¹ÊÕÏ×Ö·û´®
  ********************************************/
 const char* get_fault_string(uint16_t code)
 {
@@ -236,17 +239,465 @@ const char* get_fault_string(uint16_t code)
     return "unknow";
 }
 
+
+/********************************************
+ * º¯ÊıÃû      app_get_fault_chinese
+ * ¹¦ÄÜ          »ñÈ¡ÖĞÎÄ¹ÊÕÏĞÅÏ¢
+ * ²ÎÊı          code      ¹ÊÕÏÂë
+ *        olen      ÓÃÓÚ±£´æÖĞÎÄ¹ÊÕÏĞÅÏ¢Êµ¼Ê³¤¶È
+ *        buf       ÓÃÓÚ±£´æÖĞÎÄ¹ÊÕÏĞÅÏ¢
+ *        ilen      buf  µÄ³¤¶È
+ * ·µ»Ø
+ *******************************************/
+void app_get_fault_chinese(uint32_t code, uint8_t *olen, uint8_t *buf, uint8_t ilen)
+{
+    memset(buf, 0x00, ilen);
+
+    if(ilen < APP_CHINESE_FAULT_LEN_MAX){
+        memcpy(buf, "Î´Öª", strlen("Î´Öª"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        return;
+    }
+
+    switch(code){
+    case APP_SYS_FAULT_SCRAM:
+        memcpy(buf, "¼±Í£", strlen("¼±Í£"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        break;
+    case APP_SYS_FAULT_CARD_READER:
+        memcpy(buf, "¶Á¿¨Æ÷", strlen("¶Á¿¨Æ÷"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        break;
+    case APP_SYS_FAULT_DOOR:
+        memcpy(buf, "ÃÅ½û", strlen("ÃÅ½û"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        break;
+    case APP_SYS_FAULT_AMMETER:
+        memcpy(buf, "µç±í", strlen("µç±í"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        break;
+    case APP_SYS_FAULT_CHARGE_MODULE:
+        memcpy(buf, "³äµçÄ£¿é", strlen("³äµçÄ£¿é"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        break;
+    case APP_SYS_FAULT_OVER_TEMP:
+        memcpy(buf, "Ç¹Í·¹ıÎÂ", strlen("Ç¹Í·¹ıÎÂ"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        break;
+    case APP_SYS_FAULT_OVER_VOLT:
+        memcpy(buf, "¹ıÑ¹", strlen("¹ıÑ¹"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        break;
+    case APP_SYS_FAULT_UNDER_VOLT:
+        memcpy(buf, "Ç·Ñ¹", strlen("Ç·Ñ¹"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        break;
+    case APP_SYS_FAULT_OVER_CURR:
+        memcpy(buf, "¹ıÁ÷", strlen("¹ıÁ÷"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        break;
+    case APP_SYS_FAULT_RELAY:
+        memcpy(buf, "Ö±Á÷¼ÌµçÆ÷", strlen("Ö±Á÷¼ÌµçÆ÷"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        break;
+    case APP_SYS_FAULT_PARALLEL_RELAY:
+        memcpy(buf, "Ä¸Áª¼ÌµçÆ÷", strlen("Ä¸Áª¼ÌµçÆ÷"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        break;
+    case APP_SYS_FAULT_AC_RELAY:
+        memcpy(buf, "½»Á÷½Ó´¥Æ÷", strlen("½»Á÷½Ó´¥Æ÷"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        break;
+    case APP_SYS_FAULT_ELOCK:
+        memcpy(buf, "µç×ÓËø", strlen("µç×ÓËø"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        break;
+    case APP_SYS_FAULT_AUXPOWER:
+        memcpy(buf, "¸¨ÖúµçÔ´", strlen("¸¨ÖúµçÔ´"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        break;
+    case APP_SYS_FAULT_FLASH:
+    case APP_SYS_FAULT_EEPROM:
+        memcpy(buf, "´æ´¢Ğ¾Æ¬", strlen("´æ´¢Ğ¾Æ¬"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        break;
+    case APP_SYS_FAULT_LIGHT_PRPTECT:
+        memcpy(buf, "·ÀÀ×Æ÷", strlen("·ÀÀ×Æ÷"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        break;
+    case APP_SYS_FAULT_GUN_SITE:
+        memcpy(buf, "Ç¹×ù", strlen("Ç¹×ù"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        break;
+    case APP_SYS_FAULT_CIRCUIT_BREAKER:
+        memcpy(buf, "¶ÏÂ·Æ÷", strlen("¶ÏÂ·Æ÷"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        break;
+    case APP_SYS_FAULT_FLOODING:
+        memcpy(buf, "Ë®½ş", strlen("Ë®½ş"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        break;
+    case APP_SYS_FAULT_SMOKE:
+        memcpy(buf, "ÑÌ¸Ğ", strlen("ÑÌ¸Ğ"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        break;
+    case APP_SYS_FAULT_POUR:
+        memcpy(buf, "Çãµ¹", strlen("Çãµ¹"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        break;
+    case APP_SYS_FAULT_LIQUID_COOLING:
+        memcpy(buf, "ÒºÀä", strlen("ÒºÀä"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        break;
+    case APP_SYS_FAULT_FUSE:
+        memcpy(buf, "ÈÛ¶ÏÆ÷", strlen("ÈÛ¶ÏÆ÷"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        break;
+    case APP_SYS_FAULT_MAIN_CABINET:
+        memcpy(buf, "Ö÷»ú¹ñ", strlen("Ö÷»ú¹ñ"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        break;
+    default:
+        memcpy(buf, "Î´Öª", strlen("Î´Öª"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        break;
+    }
+}
+
+/********************************************
+ * º¯ÊıÃû      app_get_charge_stopway_chinese
+ * ¹¦ÄÜ          »ñÈ¡ÖĞÎÄÍ£³äÔ­Òò
+ * ²ÎÊı          code      ¹ÊÕÏÂë
+ *        olen      ÓÃÓÚ±£´æÖĞÎÄÍ£³äÔ­ÒòĞÅÏ¢Êµ¼Ê³¤¶È
+ *        buf       ÓÃÓÚ±£´æÖĞÎÄÍ£³äÔ­ÒòĞÅÏ¢
+ *        ilen      buf  µÄ³¤¶È
+ * ·µ»Ø
+ *******************************************/
+void app_get_charge_stopway_chinese(uint32_t code, uint8_t *olen, uint8_t *buf, uint8_t ilen)
+{
+    int16_t i = APP_SYSTEM_STOP_WAY_MAIN_CABINET_FORBID;
+    memset(buf, 0x00, ilen);
+
+    if(ilen < APP_CHINESE_STOPWAY_LEN_MAX){
+        memcpy(buf, "Î´Öª", strlen("Î´Öª"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        return;
+    }
+
+    for(; i >= APP_SYSTEM_STOP_WAY_SHORTS; i--){
+        if(code == mw_system_stop_way_convert(i)){
+            break;
+        }
+    }
+    if(i >= APP_SYSTEM_STOP_WAY_SHORTS){
+        switch(i){
+        case APP_SYSTEM_STOP_WAY_SHORTS:
+            memcpy(buf, "¶ÌÂ·", strlen("¶ÌÂ·"));
+            if(olen)
+                *olen = strlen((char*)buf);
+            return;
+        case APP_SYSTEM_STOP_WAY_GUNVOLT:
+            memcpy(buf, "Ç¹Í·µçÑ¹", strlen("Ç¹Í·µçÑ¹"));
+            if(olen)
+                *olen = strlen((char*)buf);
+            return;
+        case APP_SYSTEM_STOP_WAY_INSULT:
+            memcpy(buf, "¾øÔµ¹ÊÕÏ", strlen("¾øÔµ¹ÊÕÏ"));
+            if(olen)
+                *olen = strlen((char*)buf);
+            return;
+        case APP_SYSTEM_STOP_WAY_COMMINICATION:
+            memcpy(buf, "BMS Í¨Ñ¶", strlen("BMS Í¨Ñ¶"));
+            if(olen)
+                *olen = strlen((char*)buf);
+            return;
+        case APP_SYSTEM_STOP_WAY_BATTERY_VOLT:
+            memcpy(buf, "µç³ØµçÑ¹", strlen("µç³ØµçÑ¹"));
+            if(olen)
+                *olen = strlen((char*)buf);
+            return;
+        case APP_SYSTEM_STOP_WAY_PULL_GUN:
+            memcpy(buf, "³äµçÁ¬½ÓÆ÷", strlen("³äµçÁ¬½ÓÆ÷"));
+            if(olen)
+                *olen = strlen((char*)buf);
+            return;
+        case APP_SYSTEM_STOP_WAY_CHARGE_FULL:
+            memcpy(buf, "³äÂú", strlen("³äÂú"));
+            if(olen)
+                *olen = strlen((char*)buf);
+            return;
+        case APP_SYSTEM_STOP_WAY_PASSIVE:
+            memcpy(buf, "Ö÷¶¯Í£Ö¹", strlen("Ö÷¶¯Í£Ö¹"));
+            if(olen)
+                *olen = strlen((char*)buf);
+            return;
+        case APP_SYSTEM_STOP_WAY_BST:
+            memcpy(buf, "³µ¶ËÍ£Ö¹", strlen("³µ¶ËÍ£Ö¹"));
+            if(olen)
+                *olen = strlen((char*)buf);
+            return;
+        case APP_SYSTEM_STOP_WAY_READY_VOLT:
+            memcpy(buf, "×¼±¸µçÑ¹", strlen("×¼±¸µçÑ¹"));
+            if(olen)
+                *olen = strlen((char*)buf);
+            return;
+        case APP_SYSTEM_STOP_WAY_INSULT_VOLT:
+            memcpy(buf, "¾øÔµµçÑ¹", strlen("¾øÔµµçÑ¹"));
+            if(olen)
+                *olen = strlen((char*)buf);
+            return;
+        case APP_SYSTEM_STOP_WAY_BSM:
+            memcpy(buf, "³µ¶Ë¹ÊÕÏ", strlen("³µ¶Ë¹ÊÕÏ"));
+            if(olen)
+                *olen = strlen((char*)buf);
+            return;
+        case APP_SYSTEM_STOP_WAY_APP_STOP:
+            memcpy(buf, "·şÎñÆ÷", strlen("·şÎñÆ÷"));
+            if(olen)
+                *olen = strlen((char*)buf);
+            return;
+        case APP_SYSTEM_STOP_WAY_ONLINECARD_STOP:
+            memcpy(buf, "ÔÚÏß¿¨", strlen("ÔÚÏß¿¨"));
+            if(olen)
+                *olen = strlen((char*)buf);
+            return;
+        case APP_SYSTEM_STOP_WAY_OFFLINECARD_STOP:
+            memcpy(buf, "ÀëÏß¿¨", strlen("ÀëÏß¿¨"));
+            if(olen)
+                *olen = strlen((char*)buf);
+            return;
+        case APP_SYSTEM_STOP_WAY_SCREEN_STOP:
+            memcpy(buf, "ÆÁÄ»", strlen("ÆÁÄ»"));
+            if(olen)
+                *olen = strlen((char*)buf);
+            return;
+        case APP_SYSTEM_STOP_WAY_NO_BALLANCE:
+            memcpy(buf, "Óà¶î²»×ã", strlen("Óà¶î²»×ã"));
+            if(olen)
+                *olen = strlen((char*)buf);
+            return;
+        case APP_SYSTEM_STOP_WAY_REACH_ELECT:
+            memcpy(buf, "µ½´ïÉè¶¨µçÁ¿", strlen("µ½´ïÉè¶¨µçÁ¿"));
+            if(olen)
+                *olen = strlen((char*)buf);
+            return;
+        case APP_SYSTEM_STOP_WAY_REACH_TIME:
+            memcpy(buf, "µ½´ïÉè¶¨Ê±¼ä", strlen("µ½´ïÉè¶¨Ê±¼ä"));
+            if(olen)
+                *olen = strlen((char*)buf);
+            return;
+        case APP_SYSTEM_STOP_WAY_REACH_MONEY:
+            memcpy(buf, "µ½´ïÉè¶¨Óà¶î", strlen("µ½´ïÉè¶¨Óà¶î"));
+            if(olen)
+                *olen = strlen((char*)buf);
+            return;
+        case APP_SYSTEM_STOP_WAY_AUTHEN_FAIL:
+            memcpy(buf, "VIN ¼øÈ¨Ê§°Ü", strlen("VIN ¼øÈ¨Ê§°Ü"));
+            if(olen)
+                *olen = strlen((char*)buf);
+            return;
+        case APP_SYSTEM_STOP_WAY_POWER_OFF:
+            memcpy(buf, "¶Ïµç", strlen("¶Ïµç"));
+            if(olen)
+                *olen = strlen((char*)buf);
+            return;
+        case APP_SYSTEM_STOP_WAY_CURRENT_ABNORMAL:
+            memcpy(buf, "µçÁ÷Òì³£", strlen("µçÁ÷Òì³£"));
+            if(olen)
+                *olen = strlen((char*)buf);
+            return;
+        case APP_SYSTEM_STOP_WAY_SOC_LIMIT:
+            memcpy(buf, "´ïµ½Ö¸¶¨SOC", strlen("´ïµ½Ö¸¶¨SOC"));
+            if(olen)
+                *olen = strlen((char*)buf);
+            return;
+        case APP_SYSTEM_STOP_WAY_MAIN_CABINET_FORBID:
+            memcpy(buf, "Ö÷»ú¹ñ½ûÖ¹³äµç", strlen("Ö÷»ú¹ñ½ûÖ¹³äµç"));
+            if(olen)
+                *olen = strlen((char*)buf);
+            return;
+        default:
+            memcpy(buf, "Î´Öª", strlen("Î´Öª"));
+            if(olen)
+                *olen = strlen((char*)buf);
+            return;
+        }
+    }
+
+    switch(code){
+    case APP_SYSTEM_STOP_WAY_SCRAM:
+        memcpy(buf, "¼±Í£", strlen("¼±Í£"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        break;
+    case APP_SYSTEM_STOP_WAY_CARDREADER:
+        memcpy(buf, "¶Á¿¨Æ÷", strlen("¶Á¿¨Æ÷"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        break;
+    case APP_SYSTEM_STOP_WAY_DOOR:
+        memcpy(buf, "ÃÅ½û", strlen("ÃÅ½û"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        break;
+    case APP_SYSTEM_STOP_WAY_AMMETER:
+        memcpy(buf, "µç±í", strlen("µç±í"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        break;
+    case APP_SYSTEM_STOP_WAY_CHARGEMODULE:
+        memcpy(buf, "³äµçÄ£¿é", strlen("³äµçÄ£¿é"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        break;
+    case APP_SYSTEM_STOP_WAY_OVERTEMP:
+        memcpy(buf, "Ç¹Í·¹ıÎÂ", strlen("Ç¹Í·¹ıÎÂ"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        break;
+    case APP_SYSTEM_STOP_WAY_OVERVOLT:
+        memcpy(buf, "¹ıÑ¹", strlen("¹ıÑ¹"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        break;
+    case APP_SYSTEM_STOP_WAY_UNDERVOLT:
+        memcpy(buf, "Ç·Ñ¹", strlen("Ç·Ñ¹"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        break;
+    case APP_SYSTEM_STOP_WAY_OVERCURRENT:
+        memcpy(buf, "¹ıÁ÷", strlen("¹ıÁ÷"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        break;
+    case APP_SYSTEM_STOP_WAY_RELAY:
+        memcpy(buf, "Ö±Á÷¼ÌµçÆ÷", strlen("Ö±Á÷¼ÌµçÆ÷"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        break;
+    case APP_SYSTEM_STOP_WAY_PARALLEL_RELAY:
+        memcpy(buf, "Ä¸Áª¼ÌµçÆ÷", strlen("Ä¸Áª¼ÌµçÆ÷"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        break;
+    case APP_SYSTEM_STOP_WAY_AC_RELAY:
+        memcpy(buf, "½»Á÷½Ó´¥Æ÷", strlen("½»Á÷½Ó´¥Æ÷"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        break;
+    case APP_SYSTEM_STOP_WAY_ELECTRY_LOCK:
+        memcpy(buf, "µç×ÓËø", strlen("µç×ÓËø"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        break;
+    case APP_SYSTEM_STOP_WAY_AUXPOWER:
+        memcpy(buf, "¸¨ÖúµçÔ´", strlen("¸¨ÖúµçÔ´"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        break;
+    case APP_SYSTEM_STOP_WAY_FLASH:
+    case APP_SYSTEM_STOP_WAY_EEPROM:
+        memcpy(buf, "´æ´¢Ğ¾Æ¬", strlen("´æ´¢Ğ¾Æ¬"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        break;
+    case APP_SYSTEM_STOP_WAY_LIGHTPROTECT:
+        memcpy(buf, "·ÀÀ×Æ÷", strlen("·ÀÀ×Æ÷"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        break;
+    case APP_SYSTEM_STOP_WAY_GUNSITE:
+        memcpy(buf, "Ç¹×ù", strlen("Ç¹×ù"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        break;
+    case APP_SYSTEM_STOP_WAY_CIRCUIT_BREAKER:
+        memcpy(buf, "¶ÏÂ·Æ÷", strlen("¶ÏÂ·Æ÷"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        break;
+    case APP_SYSTEM_STOP_WAY_FLOODING:
+        memcpy(buf, "Ë®½ş", strlen("Ë®½ş"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        break;
+    case APP_SYSTEM_STOP_WAY_SMOKE:
+        memcpy(buf, "ÑÌ¸Ğ", strlen("ÑÌ¸Ğ"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        break;
+    case APP_SYSTEM_STOP_WAY_POUR:
+        memcpy(buf, "Çãµ¹", strlen("Çãµ¹"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        break;
+    case APP_SYSTEM_STOP_WAY_LIQUIDCOOLING:
+        memcpy(buf, "ÒºÀä", strlen("ÒºÀä"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        break;
+    case APP_SYSTEM_STOP_WAY_FUSE:
+        memcpy(buf, "ÈÛ¶ÏÆ÷", strlen("ÈÛ¶ÏÆ÷"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        break;
+    case APP_SYSTEM_STOP_WAY_MAIN_CABINET:
+        memcpy(buf, "Ö÷»ú¹ñ", strlen("Ö÷»ú¹ñ"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        break;
+    case APP_SYSTEM_STOP_WAY_YT_BFC:
+        memcpy(buf, "ÓîÍ¨Ğ­ÒéBFC¹ÊÕÏ", strlen("ÓîÍ¨Ğ­ÒéBFC¹ÊÕÏ"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        break;
+    default:
+        memcpy(buf, "Î´Öª", strlen("Î´Öª"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        break;
+    }
+}
+
+
 /*************************************************************
- * å‡½æ•°å           packing_data
- * åŠŸèƒ½                                                                  å°†æ•°æ®å°è£…åˆ°æŒ‡å®šç¼“å­˜
- * å‚æ•°               buff                æŒ‡å‘ç¼“å­˜
- *        buff_free_len       ç¼“å­˜å¯ç”¨é•¿åº¦
- *        data                æŒ‡å‘è¢«å°è£…çš„æ•°æ®
- *        data_len            è¢«å°è£…æ•°æ®é•¿åº¦
- *        flag                å¤„ç†é€‰æ‹©
- * è¿”å›               RT_ERROR             å¤±è´¥
- *        RT_EOK               æˆåŠŸ
- * ä½œè€…               Yang
+ * º¯ÊıÃû           packing_data
+ * ¹¦ÄÜ                                                                  ½«Êı¾İ·â×°µ½Ö¸¶¨»º´æ
+ * ²ÎÊı               buff                Ö¸Ïò»º´æ
+ *        buff_free_len       »º´æ¿ÉÓÃ³¤¶È
+ *        data                Ö¸Ïò±»·â×°µÄÊı¾İ
+ *        data_len            ±»·â×°Êı¾İ³¤¶È
+ *        flag                ´¦ÀíÑ¡Ôñ
+ * ·µ»Ø               RT_ERROR             Ê§°Ü
+ *        RT_EOK               ³É¹¦
+ * ×÷Õß               Yang
  ************************************************************/
 int8_t packing_data(uint8_t* buff, uint8_t buff_free_len, uint32_t data, uint8_t data_len, uint8_t flag)
 {
@@ -265,13 +716,13 @@ int8_t packing_data(uint8_t* buff, uint8_t buff_free_len, uint32_t data, uint8_t
 }
 
 /*************************************************
- * å‡½æ•°å         calculate_data_from_byte
- * åŠŸèƒ½                                                             å°†è¢«æ‹†åˆ†æˆå­—èŠ‚çš„æ•°æ®é‡æ–°åˆæˆ
- *       data               å­—èŠ‚æ•°æ®æ•°æ®ä½“
- *       len                å­—èŠ‚é•¿åº¦
- *       flag               å¤„ç†æ ‡å¿—(é«˜å­—èŠ‚åœ¨å‰æˆ–ä½å­—èŠ‚åœ¨å‰)
- * è¿”å›             result             åˆæˆç»“æœ
- * ä½œè€…            Yang
+ * º¯ÊıÃû         calculate_data_from_byte
+ * ¹¦ÄÜ                                                             ½«±»²ğ·Ö³É×Ö½ÚµÄÊı¾İÖØĞÂºÏ³É
+ *       data               ×Ö½ÚÊı¾İÊı¾İÌå
+ *       len                ×Ö½Ú³¤¶È
+ *       flag               ´¦Àí±êÖ¾(¸ß×Ö½ÚÔÚÇ°»òµÍ×Ö½ÚÔÚÇ°)
+ * ·µ»Ø             result             ºÏ³É½á¹û
+ * ×÷Õß            Yang
  ************************************************/
 uint32_t calculate_data_from_byte(uint8_t* data, uint8_t len, uint8_t flag)
 {
@@ -283,7 +734,7 @@ uint32_t calculate_data_from_byte(uint8_t* data, uint8_t len, uint8_t flag)
     uint32_t result = 0;
     int8_t i = 0;
 
-    /* é«˜å­—èŠ‚åœ¨å‰ */
+    /* ¸ß×Ö½ÚÔÚÇ° */
     if(flag &START_FROM_HIGH_BYTE)
     {
         for(i = len - 1; i >= 0; i--)
@@ -292,7 +743,7 @@ uint32_t calculate_data_from_byte(uint8_t* data, uint8_t len, uint8_t flag)
             if(i > 0)       result <<= 8;
         }
     }
-    /* ä½å­—èŠ‚åœ¨å‰ */
+    /* µÍ×Ö½ÚÔÚÇ° */
     else if(flag &START_FROM_LOW_BYTE)
     {
         for(i = 0; i < len; i++)
