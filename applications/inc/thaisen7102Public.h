@@ -2763,4 +2763,59 @@ void *thaisen_ammeter_query_encrypt_data(uint8_t gunNum);
  */
 uint16_t thaisen_get_current_offset(uint8_t gunNum);
 
+/*********************************************************** 输入输出端口 *************************************************************/
+/** 输入端口 */
+typedef enum
+{
+    thaisenGeneralInPortStaAbnormal,                   //通用输入端口状态: 异常
+    thaisenGeneralInPortStaNormal,                     //通用输入端口状态: 正常
+    thaisenGeneralInPortStaSize,                       //通用输入端口状态
+}thaisenGeneralInPortSta;
+
+typedef enum
+{
+    thaisenGeneralInPortAbnormalLow,                   //通用输入端口异常时状态: 低电平
+    thaisenGeneralInPortAbnormalHigh,                  //通用输入端口异常时状态: 高电平
+    thaisenGeneralInPortAbnormaSize,                   //通用输入端口状态
+}thaisenGeneralInPortAbnormalStaEnum;
+
+typedef enum
+{
+    thaisenGeneralInPortLightningProtection,           //通用输入端口: 防雷
+    thaisenGeneralInPortGunSit_A,                      //通用输入端口: A枪枪座
+    thaisenGeneralInPortGunSit_B,                      //通用输入端口: B枪枪座
+//    thaisenGeneralInPortCircuitBreaker,                //通用输入端口: 断路器
+    thaisenGeneralInPortFlooding,                      //通用输入端口: 水浸
+    thaisenGeneralInPortSmoke,                         //通用输入端口: 烟感
+    thaisenGeneralInPortPour,                          //通用输入端口: 倾倒
+//    thaisenGeneralInPortLiquid,                        //通用输入端口: 液冷
+//    thaisenGeneralInPortFuse,                          //通用输入端口: 熔断器
+    thaisenGeneralInPortSize,                          //通用输入端口
+}thaisenGeneralInPortEnum;
+
+/* 功能说明:
+ *          thaisenGetGeneralInPortSta:获取通用输入端口状态
+ * 输入参数:
+ *          port    输入端口枚举
+ * 返回参数:
+ *          无
+ * 调用方法:
+ *          可实时调用
+ */
+uint8_t thaisenGetGeneralInPortSta(thaisenGeneralInPortEnum port);
+
+
+
+/* 功能说明:
+ *          thaisenSetGeneralInPortAbnormalSta:设置通用输入端口异常时的状态
+ * 输入参数:
+ *          sta:    只能输入0或1,输入其他值保持原先状态
+ *          port    输入端口枚举
+ * 返回参数:
+ *          无
+ * 调用方法:
+ *          可实时调用
+ */
+void thaisenSetGeneralInPortAbnormalSta(thaisenGeneralInPortEnum port, thaisenGeneralInPortAbnormalStaEnum sta);
+
 #endif /* APPLICATIONS_THAISEN7102PUBLIC_H_ */

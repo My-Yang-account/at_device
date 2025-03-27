@@ -186,7 +186,15 @@ struct _function_enable{
     uint8_t plug_charge;           /* 即插即充 */
     uint8_t password_start;        /* 密码启动 */
     uint8_t offline_card;          /* 离线卡 */
-    uint8_t reserve[89];
+    uint8_t protectlight_in;       /* 防雷器 */
+    uint8_t gunsite_in;            /* 枪座 */
+    uint8_t circuit_breaker_in;    /* 断路器 */
+    uint8_t flood_in;              /* 水浸 */
+    uint8_t smoke_in;              /* 烟感 */
+    uint8_t pour_in;               /* 倾倒 */
+    uint8_t liquid_in;             /* 液冷 */
+    uint8_t fuse_in;               /* 熔断器 */
+    uint8_t reserve[81];
 };
 
 struct _state_reversal{
@@ -197,7 +205,15 @@ struct _state_reversal{
     uint8_t parallel_relay;        /* 状态取反：直流继电器 */
     uint8_t fan;                   /* 状态取反：风扇 */
     uint8_t elock;                 /* 状态取反：电子锁反馈 */
-    uint8_t reserve[64];
+    uint8_t protectlight;          /* 防雷器 */
+    uint8_t gunsite;               /* 枪座 */
+    uint8_t circuit_breaker;       /* 断路器 */
+    uint8_t flood;                 /* 水浸 */
+    uint8_t smoke;                 /* 烟感 */
+    uint8_t pour;                  /* 倾倒 */
+    uint8_t liquid;                /* 液冷 */
+    uint8_t fuse;                  /* 熔断器 */
+    uint8_t reserve[56];
 };
 
 struct _target_plat{
@@ -532,6 +548,46 @@ APP_DEF_SRAM2 static struct config_item s_config_item_set[CONFIG_ITEM_SIZE] =
         (uint8_t*)&s_chargepile_config_info.function_enable.temp_protect,
         NULL},
 
+        {CONFIG_ITEM_INEN_PROTECT_LIGHT,                                            /* 配置项: 防雷器检测使能 */
+        (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.protectlight_in)),
+        (uint8_t*)&s_chargepile_config_info.function_enable.protectlight_in,
+        NULL},
+
+        {CONFIG_ITEM_INEN_GUNSITE,                                                    /* 配置项: 枪座检测使能 */
+        (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.gunsite_in)),
+        (uint8_t*)&s_chargepile_config_info.function_enable.gunsite_in,
+        NULL},
+
+        {CONFIG_ITEM_INEN_CIRCUIT_BREAKER,                                            /* 配置项: 断路器检测使能 */
+        (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.circuit_breaker_in)),
+        (uint8_t*)&s_chargepile_config_info.function_enable.circuit_breaker_in,
+        NULL},
+
+        {CONFIG_ITEM_INEN_FLOOD,                                                      /* 配置项: 水浸检测使能 */
+        (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.flood_in)),
+        (uint8_t*)&s_chargepile_config_info.function_enable.flood_in,
+        NULL},
+
+        {CONFIG_ITEM_INEN_SMOKE,                                                      /* 配置项: 烟感检测使能 */
+        (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.smoke_in)),
+        (uint8_t*)&s_chargepile_config_info.function_enable.smoke_in,
+        NULL},
+
+        {CONFIG_ITEM_INEN_POUR,                                                      /* 配置项: 倾倒检测使能 */
+        (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.pour_in)),
+        (uint8_t*)&s_chargepile_config_info.function_enable.pour_in,
+        NULL},
+
+        {CONFIG_ITEM_INEN_LIQUID,                                                      /* 配置项: 液冷检测使能 */
+        (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.liquid_in)),
+        (uint8_t*)&s_chargepile_config_info.function_enable.liquid_in,
+        NULL},
+
+        {CONFIG_ITEM_INEN_FUSE,                                                      /* 配置项: 熔断器检测使能 */
+        (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.fuse_in)),
+        (uint8_t*)&s_chargepile_config_info.function_enable.fuse_in,
+        NULL},
+
         {CONFIG_ITEM_INNEG_SCRAM,                                           /* 配置项: 急停输入取反*/
         (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.state_reversal.emergency_stop)),
         (uint8_t*)&s_chargepile_config_info.state_reversal.emergency_stop,
@@ -560,6 +616,46 @@ APP_DEF_SRAM2 static struct config_item s_config_item_set[CONFIG_ITEM_SIZE] =
         {CONFIG_ITEM_INNEG_ELOCK,                                       /* 配置项: 电子锁反馈取反*/
         (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.state_reversal.elock)),
         (uint8_t*)&s_chargepile_config_info.state_reversal.elock,
+        NULL},
+
+        {CONFIG_ITEM_INNEG_PROTECT_LIGHT,                                       /* 配置项: 防雷器反馈取反*/
+        (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.state_reversal.protectlight)),
+        (uint8_t*)&s_chargepile_config_info.state_reversal.protectlight,
+        NULL},
+
+        {CONFIG_ITEM_INNEG_GUNSITE,                                       /* 配置项: 枪座反馈取反*/
+        (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.state_reversal.gunsite)),
+        (uint8_t*)&s_chargepile_config_info.state_reversal.gunsite,
+        NULL},
+
+        {CONFIG_ITEM_INNEG_CIRCUIT_BREAKER,                                       /* 配置项: 断路器反馈取反*/
+        (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.state_reversal.circuit_breaker)),
+        (uint8_t*)&s_chargepile_config_info.state_reversal.circuit_breaker,
+        NULL},
+
+        {CONFIG_ITEM_INNEG_FLOOD,                                       /* 配置项: 水浸反馈取反*/
+        (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.state_reversal.flood)),
+        (uint8_t*)&s_chargepile_config_info.state_reversal.flood,
+        NULL},
+
+        {CONFIG_ITEM_INNEG_SMOKE,                                       /* 配置项:烟感反馈取反*/
+        (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.state_reversal.smoke)),
+        (uint8_t*)&s_chargepile_config_info.state_reversal.smoke,
+        NULL},
+
+        {CONFIG_ITEM_INNEG_POUR,                                       /* 配置项: 倾倒反馈取反*/
+        (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.state_reversal.pour)),
+        (uint8_t*)&s_chargepile_config_info.state_reversal.pour,
+        NULL},
+
+        {CONFIG_ITEM_INNEG_LIQUID,                                       /* 配置项: 液冷反馈取反*/
+        (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.state_reversal.liquid)),
+        (uint8_t*)&s_chargepile_config_info.state_reversal.liquid,
+        NULL},
+
+        {CONFIG_ITEM_INNEG_FUSE,                                       /* 配置项: 熔断器反馈取反*/
+        (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.state_reversal.fuse)),
+        (uint8_t*)&s_chargepile_config_info.state_reversal.fuse,
         NULL},
 
         {CONFIG_ITEM_QRCODE_PRE,                                                              /* 配置项：二维码前缀 */
@@ -906,6 +1002,30 @@ void sys_chargeplie_config_info_init(void)
     /** 温度保护使能 */
     sys_config_item_init(CONFIG_ITEM_INEN_TEMPPRO, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.temp_protect)), \
             (uint8_t*)&s_chargepile_config_info.function_enable.temp_protect, NULL);
+    /** 防雷器检测使能 */
+    sys_config_item_init(CONFIG_ITEM_INEN_PROTECT_LIGHT, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.protectlight_in)), \
+            (uint8_t*)&s_chargepile_config_info.function_enable.protectlight_in, NULL);
+    /** 枪座检测使能 */
+    sys_config_item_init(CONFIG_ITEM_INEN_GUNSITE, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.gunsite_in)), \
+            (uint8_t*)&s_chargepile_config_info.function_enable.gunsite_in, NULL);
+    /** 断路器检测使能 */
+    sys_config_item_init(CONFIG_ITEM_INEN_CIRCUIT_BREAKER, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.circuit_breaker_in)), \
+            (uint8_t*)&s_chargepile_config_info.function_enable.circuit_breaker_in, NULL);
+    /** 水浸检测使能 */
+    sys_config_item_init(CONFIG_ITEM_INEN_FLOOD, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.flood_in)), \
+            (uint8_t*)&s_chargepile_config_info.function_enable.flood_in, NULL);
+    /** 烟感检测使能 */
+    sys_config_item_init(CONFIG_ITEM_INEN_SMOKE, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.smoke_in)), \
+            (uint8_t*)&s_chargepile_config_info.function_enable.smoke_in, NULL);
+    /** 倾倒检测使能 */
+    sys_config_item_init(CONFIG_ITEM_INEN_POUR, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.pour_in)), \
+            (uint8_t*)&s_chargepile_config_info.function_enable.pour_in, NULL);
+    /**  液冷检测使能 */
+    sys_config_item_init(CONFIG_ITEM_INEN_LIQUID, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.liquid_in)), \
+            (uint8_t*)&s_chargepile_config_info.function_enable.liquid_in, NULL);
+    /** 熔断器检测使能 */
+    sys_config_item_init(CONFIG_ITEM_INEN_FUSE, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.fuse_in)), \
+            (uint8_t*)&s_chargepile_config_info.function_enable.fuse_in, NULL);
     /** 急停反馈取反 */
     sys_config_item_init(CONFIG_ITEM_INNEG_SCRAM, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.state_reversal.emergency_stop)), \
             (uint8_t*)&s_chargepile_config_info.state_reversal.emergency_stop, NULL);
@@ -924,6 +1044,30 @@ void sys_chargeplie_config_info_init(void)
     /** 电子锁反馈取反 */
     sys_config_item_init(CONFIG_ITEM_INNEG_ELOCK, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.state_reversal.elock)), \
             (uint8_t*)&s_chargepile_config_info.state_reversal.elock, NULL);
+    /** 防雷器反馈取反 */
+    sys_config_item_init(CONFIG_ITEM_INNEG_PROTECT_LIGHT, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.state_reversal.protectlight)), \
+            (uint8_t*)&s_chargepile_config_info.state_reversal.protectlight, NULL);
+    /** 枪座反馈取反 */
+    sys_config_item_init(CONFIG_ITEM_INNEG_GUNSITE, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.state_reversal.gunsite)), \
+            (uint8_t*)&s_chargepile_config_info.state_reversal.gunsite, NULL);
+    /** 断路器反馈取反 */
+    sys_config_item_init(CONFIG_ITEM_INNEG_CIRCUIT_BREAKER, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.state_reversal.circuit_breaker)), \
+            (uint8_t*)&s_chargepile_config_info.state_reversal.circuit_breaker, NULL);
+    /** 水浸反馈取反 */
+    sys_config_item_init(CONFIG_ITEM_INNEG_FLOOD, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.state_reversal.flood)), \
+            (uint8_t*)&s_chargepile_config_info.state_reversal.flood, NULL);
+    /** 烟感反馈取反 */
+    sys_config_item_init(CONFIG_ITEM_INNEG_SMOKE, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.state_reversal.smoke)), \
+            (uint8_t*)&s_chargepile_config_info.state_reversal.smoke, NULL);
+    /** 倾倒反馈取反 */
+    sys_config_item_init(CONFIG_ITEM_INNEG_POUR, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.state_reversal.pour)), \
+            (uint8_t*)&s_chargepile_config_info.state_reversal.pour, NULL);
+    /** 液冷反馈取反 */
+    sys_config_item_init(CONFIG_ITEM_INNEG_LIQUID, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.state_reversal.liquid)), \
+            (uint8_t*)&s_chargepile_config_info.state_reversal.liquid, NULL);
+    /** 熔断器反馈取反 */
+    sys_config_item_init(CONFIG_ITEM_INNEG_FUSE, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.state_reversal.fuse)), \
+            (uint8_t*)&s_chargepile_config_info.state_reversal.fuse, NULL);
     /** 二维码前缀 */
     sys_config_item_init(CONFIG_ITEM_QRCODE_PRE, (1 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_info.qrcode_prefix) - 1), \
             (uint8_t*)s_chargepile_config_info.config_info.qrcode_prefix, &s_chargepile_config_info.config_info.prefix_length);
@@ -1550,6 +1694,15 @@ static void chargepile_config_data_reset(void)
     s_chargepile_config_info.function_enable.module_slience = 0x00;
     s_chargepile_config_info.function_enable.password_start = 0x00;
     s_chargepile_config_info.function_enable.offline_billing = 0x00;
+    s_chargepile_config_info.function_enable.offline_card = 0x00;
+    s_chargepile_config_info.function_enable.protectlight_in = 0x00;
+    s_chargepile_config_info.function_enable.gunsite_in = 0x00;
+    s_chargepile_config_info.function_enable.circuit_breaker_in = 0x00;
+    s_chargepile_config_info.function_enable.flood_in = 0x00;
+    s_chargepile_config_info.function_enable.smoke_in = 0x00;
+    s_chargepile_config_info.function_enable.pour_in = 0x00;
+    s_chargepile_config_info.function_enable.liquid_in = 0x00;
+    s_chargepile_config_info.function_enable.fuse_in = 0x00;
 
     s_chargepile_config_info.state_reversal.emergency_stop = 0x00;
     s_chargepile_config_info.state_reversal.gate = 0x00;
@@ -1558,6 +1711,14 @@ static void chargepile_config_data_reset(void)
     s_chargepile_config_info.state_reversal.parallel_relay = 0x00;
     s_chargepile_config_info.state_reversal.fan = 0x00;
     s_chargepile_config_info.state_reversal.elock = 0x00;
+    s_chargepile_config_info.state_reversal.protectlight = 0x00;
+    s_chargepile_config_info.state_reversal.gunsite = 0x00;
+    s_chargepile_config_info.state_reversal.circuit_breaker = 0x00;
+    s_chargepile_config_info.state_reversal.flood = 0x00;
+    s_chargepile_config_info.state_reversal.smoke = 0x00;
+    s_chargepile_config_info.state_reversal.pour = 0x00;
+    s_chargepile_config_info.state_reversal.liquid = 0x00;
+    s_chargepile_config_info.state_reversal.fuse = 0x00;
 
     s_chargepile_config_info.target_plat.verify_result = 0x00;
     s_chargepile_config_info.monitor_plat.verify_result = 0x00;
@@ -1955,6 +2116,9 @@ int32_t chargepile_check_config(void)
     if(s_chargepile_config_info.function_enable.bsm > 0x01){               /* BSM功能默认关闭 */
         s_chargepile_config_info.function_enable.bsm = 0x00;
     }
+    if(s_chargepile_config_info.function_enable.offline_card > 0x01){      /* 离线卡功能默认开启 */
+        s_chargepile_config_info.function_enable.offline_card = 0x01;
+    }
     if(s_chargepile_config_info.function_enable.acrelay_out > 0x01){       /* 交流接触器输出启用默认关闭 */
         s_chargepile_config_info.function_enable.acrelay_out = 0x00;
     }
@@ -1963,6 +2127,30 @@ int32_t chargepile_check_config(void)
     }
     if(s_chargepile_config_info.function_enable.elock_in > 0x01){          /* 电子锁输入检测默认开启 */
         s_chargepile_config_info.function_enable.elock_in = 0x01;
+    }
+    if(s_chargepile_config_info.function_enable.protectlight_in > 0x01){     /* 防雷器输入检测默认关闭 */
+        s_chargepile_config_info.function_enable.protectlight_in = 0x00;
+    }
+    if(s_chargepile_config_info.function_enable.gunsite_in > 0x01){          /* 枪座输入检测默认关闭 */
+        s_chargepile_config_info.function_enable.gunsite_in = 0x00;
+    }
+    if(s_chargepile_config_info.function_enable.circuit_breaker_in > 0x01){  /* 断路器输入检测默认关闭 */
+        s_chargepile_config_info.function_enable.circuit_breaker_in = 0x00;
+    }
+    if(s_chargepile_config_info.function_enable.flood_in > 0x01){          /* 水浸输入检测默认关闭 */
+        s_chargepile_config_info.function_enable.flood_in = 0x00;
+    }
+    if(s_chargepile_config_info.function_enable.smoke_in > 0x01){          /* 烟感输入检测默认关闭 */
+        s_chargepile_config_info.function_enable.smoke_in = 0x00;
+    }
+    if(s_chargepile_config_info.function_enable.pour_in > 0x01){          /* 倾倒输入检测默认关闭 */
+        s_chargepile_config_info.function_enable.pour_in = 0x00;
+    }
+    if(s_chargepile_config_info.function_enable.liquid_in > 0x01){          /* 液冷输入检测默认关闭 */
+        s_chargepile_config_info.function_enable.liquid_in = 0x00;
+    }
+    if(s_chargepile_config_info.function_enable.fuse_in > 0x01){          /* 熔断器输入检测默认关闭 */
+        s_chargepile_config_info.function_enable.fuse_in = 0x00;
     }
 
     if(s_chargepile_config_info.state_reversal.emergency_stop > 0x01){   /* 急停默认不取反 */
@@ -1985,6 +2173,30 @@ int32_t chargepile_check_config(void)
     }
     if(s_chargepile_config_info.state_reversal.elock > 0x01){   /* 电子锁默认不取反 */
         s_chargepile_config_info.state_reversal.elock = 0x00;
+    }
+    if(s_chargepile_config_info.state_reversal.protectlight > 0x01){   /* 防雷器默认不取反 */
+        s_chargepile_config_info.state_reversal.protectlight = 0x00;
+    }
+    if(s_chargepile_config_info.state_reversal.gunsite > 0x01){   /* 枪座默认不取反 */
+        s_chargepile_config_info.state_reversal.gunsite = 0x00;
+    }
+    if(s_chargepile_config_info.state_reversal.circuit_breaker > 0x01){   /* 断路器默认不取反 */
+        s_chargepile_config_info.state_reversal.circuit_breaker = 0x00;
+    }
+    if(s_chargepile_config_info.state_reversal.flood > 0x01){   /* 水浸默认不取反 */
+        s_chargepile_config_info.state_reversal.flood = 0x00;
+    }
+    if(s_chargepile_config_info.state_reversal.smoke > 0x01){   /* 烟感默认不取反 */
+        s_chargepile_config_info.state_reversal.smoke = 0x00;
+    }
+    if(s_chargepile_config_info.state_reversal.pour > 0x01){   /* 倾倒默认不取反 */
+        s_chargepile_config_info.state_reversal.pour = 0x00;
+    }
+    if(s_chargepile_config_info.state_reversal.liquid > 0x01){   /* 液冷默认不取反 */
+        s_chargepile_config_info.state_reversal.liquid = 0x00;
+    }
+    if(s_chargepile_config_info.state_reversal.fuse > 0x01){   /* 熔断器默认不取反 */
+        s_chargepile_config_info.state_reversal.fuse = 0x00;
     }
 
     if(s_chargepile_config_info.function_enable.offline_billing == 0x01){        /* 离线计费第一优先 */

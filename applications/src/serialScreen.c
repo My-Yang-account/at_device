@@ -505,13 +505,29 @@ struct LCD_DISPLAY_SETDATA_TYPE{
 	u8 supin_fan;							//风扇输入启用
 	u8 supin_elock;							//电子输入锁启用
     u8 supin_temp_pro;                      //温度保护启用
+    u8 supin_protectlight;                  //防雷器检测启用
+    u8 supin_gunsite;                       //枪座检测启用
+    u8 supin_circuit_breaker;               //断路器检测启用
+    u8 supin_flood;                         //水浸检测启用
+    u8 supin_smoke;                         //烟感检测启用
+    u8 supin_pour;                          //倾倒检测启用
+    u8 supin_liquid;                        //液冷检测启用
+    u8 supin_fuse;                          //熔断器检测启用
 	/***********************neg set***************************/
 	u8 neg_scram;							//急停输入取反
 	u8 neg_gate;							//门禁输入取反
 	u8 neg_ac;								//交流接触器输入取反
 	u8 neg_dc;								//直流接触器输入取反
 	u8 neg_fan;								//风扇输入取反
-	u8 neg_elcok;							//电子输入锁取反
+	u8 neg_elcok;							//电子锁输入取反
+    u8 neg_protectlight;                    //防雷器输入取反
+    u8 neg_gunsite;                         //枪座输入取反
+    u8 neg_circuit_breaker;                 //断路器输入取反
+    u8 neg_flood;                           //水浸输入取反
+    u8 neg_smoke;                           //烟感输入取反
+    u8 neg_pour;                            //倾倒输入取反
+    u8 neg_liquid;                          //液冷输入取反
+    u8 neg_fuse;                            //熔断器输入取反
 
 	u8 supout_ac;							//交流输入接触器启用
 	u8 supout_elock;						//电子输入锁启用
@@ -535,6 +551,7 @@ struct LCD_DISPLAY_SETDATA_TYPE{
 	u8 sup_parallelchg;						//并充支持
 	u8 sup_parallelrelay;                   //支持并联
     u8 sup_offline_card;                    //离线卡支持
+
 	u8 fan_type;							//风扇类型
 	u8 fan_frequency;						//风扇频率
 	u8 FanCtrlPulse;						//风扇占空比
@@ -549,10 +566,27 @@ struct LCD_DISPLAY_SETDATA_TYPE{
     u8 s_selectaux[LCD_GUN_NUM];            // 辅源选择
     /***********************set icon***************************/
     u8 Icon_SuplocalStop;                   //本地停止使能icon
-    u8 Icon_SupPlugAndPlay;                    //即插即充使能icon
+    u8 Icon_SupPlugAndPlay;                 //即插即充使能icon
     u8 Icon_SupOfflineBilling;              //离线计费使能icon
     u8 Icon_SupPWStart;                     //密码启动使能icon
     u8 Icon_SupOffCard;                     //离线卡支持icon
+    u8 Icon_SupProtectLight;                //防雷器检测支持icon
+    u8 Icon_SupGunSite;                     //枪座检测支持icon
+    u8 Icon_SupCircuitBreaker;              //断路器检测支持icon
+    u8 Icon_SupFlood;                       //水浸检测支持icon
+    u8 Icon_SupSmoke;                       //烟感检测支持icon
+    u8 Icon_SupPour;                        //倾倒检测支持icon
+    u8 Icon_SupLiquid;                      //液冷检测支持icon
+    u8 Icon_SupFuse;                        //熔断器检测支持icon
+    /***********************neg icon***************************/
+    u8 Icon_NegProtectLight;                //防雷器输入取反icon
+    u8 Icon_NegGunSite;                     //枪座输入取反icon
+    u8 Icon_NegCircuitBreaker;              //断路器输入取反icon
+    u8 Icon_NegFlood;                       //水浸输入取反icon
+    u8 Icon_NegSmoke;                       //烟感输入取反icon
+    u8 Icon_NegPour;                        //倾倒输入取反icon
+    u8 Icon_NegLiquid;                      //液冷输入取反icon
+    u8 Icon_NegFuse;                        //熔断器输入取反icon
     /***********************protect info***************************/
 	u32 Input_OverVolt;                     // 输入过压
     u32 Input_UnderVolt;                    // 输入欠压
@@ -3314,12 +3348,12 @@ void SerialScreen_SingleChargeSet(void)
 
 void SerialScreen_IsSupportSet(void)
 {
-	sSCREEN_EVENT_DEBUGMSG("##########IsSupportSet = %d###########\r\n",LcdData.setData.sup_Local);	
+	sSCREEN_EVENT_DEBUGMSG("##########IsSupportSet = %d###########\r\n",LcdData.setData.sup_Local);
 	if(LcdData.setData.sup_Local != TRUE)
 		LcdData.setData.sup_Local = TRUE;
 	else
 		LcdData.setData.sup_Local = FALSE;
-	sSCREEN_EVENT_DEBUGMSG("sup_Local=%d\r\n",LcdData.setData.sup_Local );	
+	sSCREEN_EVENT_DEBUGMSG("sup_Local=%d\r\n",LcdData.setData.sup_Local );
 }
 
 void SerialScreen_IsSupportPlugAndPlaySet(void)
@@ -3372,12 +3406,12 @@ void SerialScreen_IsSupportParaRelaySet(void)
 
 void SerialScreen_IsSupportVINSet(void)
 {
-	sSCREEN_EVENT_DEBUGMSG("##########IsSupportVINSet = %d###########\r\n",LcdData.setData.sup_VIN);	
+	sSCREEN_EVENT_DEBUGMSG("##########IsSupportVINSet = %d###########\r\n",LcdData.setData.sup_VIN);
 	if(LcdData.setData.sup_VIN != TRUE)
 		LcdData.setData.sup_VIN = TRUE;
 	else
 		LcdData.setData.sup_VIN = FALSE;
-	sSCREEN_EVENT_DEBUGMSG("sup_VIN=%d\r\n",LcdData.setData.sup_VIN );	
+	sSCREEN_EVENT_DEBUGMSG("sup_VIN=%d\r\n",LcdData.setData.sup_VIN );
 }
 
 void SerialScreen_IsSupportIsulationSet(void)
@@ -3425,113 +3459,113 @@ void SerialScreen_IsSupportOfflineCardSet(void)
 /********************************输入信息*******************************************/
 void SerialScreen_ScramIsSupportSet(void)
 {
-	sSCREEN_EVENT_DEBUGMSG("##########ScramIsSupportSet = %d###########\r\n",LcdData.setData.supin_scram);	
+	sSCREEN_EVENT_DEBUGMSG("##########ScramIsSupportSet = %d###########\r\n",LcdData.setData.supin_scram);
 	if(LcdData.setData.supin_scram != TRUE)
 		LcdData.setData.supin_scram = TRUE;
 	else
 		LcdData.setData.supin_scram = FALSE;
-	sSCREEN_EVENT_DEBUGMSG("supin_scram=%d\r\n",LcdData.setData.supin_scram );	
+	sSCREEN_EVENT_DEBUGMSG("supin_scram=%d\r\n",LcdData.setData.supin_scram );
 }
 
 void SerialScreen_ScramNegIsSupportSet(void)
 {
-	sSCREEN_EVENT_DEBUGMSG("##########ScramIsSupportSet = %d###########\r\n",LcdData.setData.neg_scram);	
+	sSCREEN_EVENT_DEBUGMSG("##########ScramIsSupportSet = %d###########\r\n",LcdData.setData.neg_scram);
 	if(LcdData.setData.neg_scram != TRUE)
 		LcdData.setData.neg_scram = TRUE;
 	else
 		LcdData.setData.neg_scram = FALSE;
-	sSCREEN_EVENT_DEBUGMSG("neg_scram=%d\r\n",LcdData.setData.neg_scram );	
+	sSCREEN_EVENT_DEBUGMSG("neg_scram=%d\r\n",LcdData.setData.neg_scram );
 }
 
 void SerialScreen_GateIsSupportSet(void)
 {
-	sSCREEN_EVENT_DEBUGMSG("##########GateIsSupportSet = %d###########\r\n",LcdData.setData.supin_gate);	
+	sSCREEN_EVENT_DEBUGMSG("##########GateIsSupportSet = %d###########\r\n",LcdData.setData.supin_gate);
 	if(LcdData.setData.supin_gate != TRUE)
 		LcdData.setData.supin_gate = TRUE;
 	else
 		LcdData.setData.supin_gate = FALSE;
-	sSCREEN_EVENT_DEBUGMSG("supin_gate=%d\r\n",LcdData.setData.supin_gate );	
+	sSCREEN_EVENT_DEBUGMSG("supin_gate=%d\r\n",LcdData.setData.supin_gate );
 }
 
 void SerialScreen_GateNegIsSupportSet(void)
 {
-	sSCREEN_EVENT_DEBUGMSG("##########GateNegIsSupportSet = %d###########\r\n",LcdData.setData.neg_gate);	
+	sSCREEN_EVENT_DEBUGMSG("##########GateNegIsSupportSet = %d###########\r\n",LcdData.setData.neg_gate);
 	if(LcdData.setData.neg_gate != TRUE)
 		LcdData.setData.neg_gate = TRUE;
 	else
 		LcdData.setData.neg_gate = FALSE;
-	sSCREEN_EVENT_DEBUGMSG("neg_gate=%d\r\n",LcdData.setData.neg_gate );	
+	sSCREEN_EVENT_DEBUGMSG("neg_gate=%d\r\n",LcdData.setData.neg_gate );
 }
 
 void SerialScreen_DcIsSupportSet(void)
 {
-	sSCREEN_EVENT_DEBUGMSG("##########GateIsSupportSet = %d###########\r\n",LcdData.setData.supin_dc);	
+	sSCREEN_EVENT_DEBUGMSG("##########GateIsSupportSet = %d###########\r\n",LcdData.setData.supin_dc);
 	if(LcdData.setData.supin_dc != TRUE)
 		LcdData.setData.supin_dc = TRUE;
 	else
 		LcdData.setData.supin_dc = FALSE;
-	sSCREEN_EVENT_DEBUGMSG("supin_gate=%d\r\n",LcdData.setData.supin_dc );	
+	sSCREEN_EVENT_DEBUGMSG("supin_gate=%d\r\n",LcdData.setData.supin_dc );
 }
 
 void SerialScreen_DcNegIsSupportSet(void)
 {
-	sSCREEN_EVENT_DEBUGMSG("##########GateNegIsSupportSet = %d###########\r\n",LcdData.setData.neg_dc);	
+	sSCREEN_EVENT_DEBUGMSG("##########GateNegIsSupportSet = %d###########\r\n",LcdData.setData.neg_dc);
 	if(LcdData.setData.neg_dc != TRUE)
 		LcdData.setData.neg_dc = TRUE;
 	else
 		LcdData.setData.neg_dc = FALSE;
-	sSCREEN_EVENT_DEBUGMSG("neg_gate=%d\r\n",LcdData.setData.neg_dc );	
+	sSCREEN_EVENT_DEBUGMSG("neg_gate=%d\r\n",LcdData.setData.neg_dc );
 }
 
 
 void SerialScreen_AcIsSupportSet(void)
 {
-	sSCREEN_EVENT_DEBUGMSG("##########AcIsSupportSet = %d###########\r\n",LcdData.setData.supin_ac);	
+	sSCREEN_EVENT_DEBUGMSG("##########AcIsSupportSet = %d###########\r\n",LcdData.setData.supin_ac);
 	if(LcdData.setData.supin_ac != TRUE)
 		LcdData.setData.supin_ac = TRUE;
 	else
 		LcdData.setData.supin_ac = FALSE;
-	sSCREEN_EVENT_DEBUGMSG("supin_ac=%d\r\n",LcdData.setData.supin_ac );	
+	sSCREEN_EVENT_DEBUGMSG("supin_ac=%d\r\n",LcdData.setData.supin_ac );
 }
 
 void SerialScreen_AcNegIsSupportSet(void)
 {
-	sSCREEN_EVENT_DEBUGMSG("##########AcNegIsSupportSet = %d###########\r\n",LcdData.setData.neg_ac);	
+	sSCREEN_EVENT_DEBUGMSG("##########AcNegIsSupportSet = %d###########\r\n",LcdData.setData.neg_ac);
 	if(LcdData.setData.neg_ac != TRUE)
 		LcdData.setData.neg_ac = TRUE;
 	else
 		LcdData.setData.neg_ac = FALSE;
-	sSCREEN_EVENT_DEBUGMSG("neg_ac=%d\r\n",LcdData.setData.neg_ac );	
+	sSCREEN_EVENT_DEBUGMSG("neg_ac=%d\r\n",LcdData.setData.neg_ac );
 }
 
 void SerialScreen_FanIsSupportSet(void)
 {
-	sSCREEN_EVENT_DEBUGMSG("##########FanIsSupportSet = %d###########\r\n",LcdData.setData.supin_fan);	
+	sSCREEN_EVENT_DEBUGMSG("##########FanIsSupportSet = %d###########\r\n",LcdData.setData.supin_fan);
 	if(LcdData.setData.supin_fan != TRUE)
 		LcdData.setData.supin_fan = TRUE;
 	else
 		LcdData.setData.supin_fan = FALSE;
-	sSCREEN_EVENT_DEBUGMSG("supin_fan=%d\r\n",LcdData.setData.supin_fan );	
+	sSCREEN_EVENT_DEBUGMSG("supin_fan=%d\r\n",LcdData.setData.supin_fan );
 }
 
 void SerialScreen_FanNegIsSupportSet(void)
 {
-	sSCREEN_EVENT_DEBUGMSG("##########FanNegIsSupportSet = %d###########\r\n",LcdData.setData.neg_fan);	
+	sSCREEN_EVENT_DEBUGMSG("##########FanNegIsSupportSet = %d###########\r\n",LcdData.setData.neg_fan);
 	if(LcdData.setData.neg_fan != TRUE)
 		LcdData.setData.neg_fan = TRUE;
 	else
 		LcdData.setData.neg_fan = FALSE;
-	sSCREEN_EVENT_DEBUGMSG("neg_fan=%d\r\n",LcdData.setData.neg_fan );	
+	sSCREEN_EVENT_DEBUGMSG("neg_fan=%d\r\n",LcdData.setData.neg_fan );
 }
 
 void SerialScreen_ElockIsSupportSet(void)
 {
-	sSCREEN_EVENT_DEBUGMSG("##########ElockIsSupportSet = %d###########\r\n",LcdData.setData.supin_elock);	
+	sSCREEN_EVENT_DEBUGMSG("##########ElockIsSupportSet = %d###########\r\n",LcdData.setData.supin_elock);
 	if(LcdData.setData.supin_elock != TRUE)
 		LcdData.setData.supin_elock = TRUE;
 	else
 		LcdData.setData.supin_elock = FALSE;
-	sSCREEN_EVENT_DEBUGMSG("supin_elock=%d\r\n",LcdData.setData.supin_elock );	
+	sSCREEN_EVENT_DEBUGMSG("supin_elock=%d\r\n",LcdData.setData.supin_elock );
 }
 
 void SerialScreen_TempProIsSupportSet(void)
@@ -3544,12 +3578,140 @@ void SerialScreen_TempProIsSupportSet(void)
 
 void SerialScreen_ElockNegIsSupportSet(void)
 {
-	sSCREEN_EVENT_DEBUGMSG("##########ElockNegIsSupportSet = %d###########\r\n",LcdData.setData.neg_elcok);	
+	sSCREEN_EVENT_DEBUGMSG("##########ElockNegIsSupportSet = %d###########\r\n",LcdData.setData.neg_elcok);
 	if(LcdData.setData.neg_elcok != TRUE)
 		LcdData.setData.neg_elcok = TRUE;
 	else
 		LcdData.setData.neg_elcok = FALSE;
-	sSCREEN_EVENT_DEBUGMSG("neg_elcok=%d\r\n",LcdData.setData.neg_elcok );	
+	sSCREEN_EVENT_DEBUGMSG("neg_elcok=%d\r\n",LcdData.setData.neg_elcok );
+}
+
+void SerialScreen_ProLightIsSupportSet(void)
+{
+    if(LcdData.setData.Icon_SupProtectLight != TRUE)
+        LcdData.setData.Icon_SupProtectLight = TRUE;
+    else
+        LcdData.setData.Icon_SupProtectLight = FALSE;
+}
+
+void SerialScreen_ProLightNegIsSupportSet(void)
+{
+    if(LcdData.setData.Icon_NegProtectLight != TRUE)
+        LcdData.setData.Icon_NegProtectLight = TRUE;
+    else
+        LcdData.setData.Icon_NegProtectLight = FALSE;
+}
+
+void SerialScreen_GunSiteIsSupportSet(void)
+{
+    if(LcdData.setData.Icon_SupGunSite != TRUE)
+        LcdData.setData.Icon_SupGunSite = TRUE;
+    else
+        LcdData.setData.Icon_SupGunSite = FALSE;
+}
+
+void SerialScreen_GunSiteNegIsSupportSet(void)
+{
+    if(LcdData.setData.Icon_NegGunSite != TRUE)
+        LcdData.setData.Icon_NegGunSite = TRUE;
+    else
+        LcdData.setData.Icon_NegGunSite = FALSE;
+}
+
+void SerialScreen_BreakerIsSupportSet(void)
+{
+    if(LcdData.setData.Icon_SupCircuitBreaker != TRUE)
+        LcdData.setData.Icon_SupCircuitBreaker = TRUE;
+    else
+        LcdData.setData.Icon_SupCircuitBreaker = FALSE;
+}
+
+void SerialScreen_BreakerNegIsSupportSet(void)
+{
+    if(LcdData.setData.Icon_NegCircuitBreaker != TRUE)
+        LcdData.setData.Icon_NegCircuitBreaker = TRUE;
+    else
+        LcdData.setData.Icon_NegCircuitBreaker = FALSE;
+}
+
+void SerialScreen_FloodIsSupportSet(void)
+{
+    if(LcdData.setData.Icon_SupFlood != TRUE)
+        LcdData.setData.Icon_SupFlood = TRUE;
+    else
+        LcdData.setData.Icon_SupFlood = FALSE;
+}
+
+void SerialScreen_FloodNegIsSupportSet(void)
+{
+    if(LcdData.setData.Icon_NegFlood != TRUE)
+        LcdData.setData.Icon_NegFlood = TRUE;
+    else
+        LcdData.setData.Icon_NegFlood = FALSE;
+}
+
+void SerialScreen_SmokeIsSupportSet(void)
+{
+    if(LcdData.setData.Icon_SupSmoke != TRUE)
+        LcdData.setData.Icon_SupSmoke = TRUE;
+    else
+        LcdData.setData.Icon_SupSmoke = FALSE;
+}
+
+void SerialScreen_SmokeNegIsSupportSet(void)
+{
+    if(LcdData.setData.Icon_NegSmoke != TRUE)
+        LcdData.setData.Icon_NegSmoke = TRUE;
+    else
+        LcdData.setData.Icon_NegSmoke = FALSE;
+}
+
+void SerialScreen_PourIsSupportSet(void)
+{
+    if(LcdData.setData.Icon_SupPour != TRUE)
+        LcdData.setData.Icon_SupPour = TRUE;
+    else
+        LcdData.setData.Icon_SupPour = FALSE;
+}
+
+void SerialScreen_PourNegIsSupportSet(void)
+{
+    if(LcdData.setData.Icon_NegPour != TRUE)
+        LcdData.setData.Icon_NegPour = TRUE;
+    else
+        LcdData.setData.Icon_NegPour = FALSE;
+}
+
+void SerialScreen_LiquidIsSupportSet(void)
+{
+    if(LcdData.setData.Icon_SupLiquid != TRUE)
+        LcdData.setData.Icon_SupLiquid = TRUE;
+    else
+        LcdData.setData.Icon_SupLiquid = FALSE;
+}
+
+void SerialScreen_LiquidNegIsSupportSet(void)
+{
+    if(LcdData.setData.Icon_NegLiquid != TRUE)
+        LcdData.setData.Icon_NegLiquid = TRUE;
+    else
+        LcdData.setData.Icon_NegLiquid = FALSE;
+}
+
+void SerialScreen_FuseIsSupportSet(void)
+{
+    if(LcdData.setData.Icon_SupFuse != TRUE)
+        LcdData.setData.Icon_SupFuse = TRUE;
+    else
+        LcdData.setData.Icon_SupFuse = FALSE;
+}
+
+void SerialScreen_FuseNegIsSupportSet(void)
+{
+    if(LcdData.setData.Icon_NegFuse != TRUE)
+        LcdData.setData.Icon_NegFuse = TRUE;
+    else
+        LcdData.setData.Icon_NegFuse = FALSE;
 }
 /********************************输出信息*******************************************/
 
@@ -3993,18 +4155,126 @@ void SerialScreen_SetInputInfo(void)
 	else
         thaisenSetSysFaultCheckBit(thaisenElock);
 
+    if(FALSE == LcdData.setData.supin_protectlight)                           //防雷器
+        thaisenClearSysFaultCheckBit(thaisenFaultLightProtect);
+    else
+        thaisenSetSysFaultCheckBit(thaisenFaultLightProtect);
+
+    if(FALSE == LcdData.setData.supin_gunsite)                                //枪座
+        thaisenClearSysFaultCheckBit(thaisenFaultGunSite);
+    else
+        thaisenSetSysFaultCheckBit(thaisenFaultGunSite);
+
+//    if(FALSE == LcdData.setData.supin_circuit_breaker)                        //断路器
+//        thaisenClearSysFaultCheckBit(thaisenFaultCircuitBreaker);
+//    else
+//        thaisenSetSysFaultCheckBit(thaisenFaultCircuitBreaker);
+
+    if(FALSE == LcdData.setData.supin_flood)                                  //水浸
+        thaisenClearSysFaultCheckBit(thaisenFaultFlooding);
+    else
+        thaisenSetSysFaultCheckBit(thaisenFaultFlooding);
+
+    if(FALSE == LcdData.setData.supin_smoke)                                  //烟感
+        thaisenClearSysFaultCheckBit(thaisenFaultSmoke);
+    else
+        thaisenSetSysFaultCheckBit(thaisenFaultSmoke);
+
+    if(FALSE == LcdData.setData.supin_pour)                                   //倾倒
+        thaisenClearSysFaultCheckBit(thaisenFaultPour);
+    else
+        thaisenSetSysFaultCheckBit(thaisenFaultPour);
+
+//    if(FALSE == LcdData.setData.supin_liquid)                                 //液冷
+//        thaisenClearSysFaultCheckBit(thaisenFaultLiquidCooling);
+//    else
+//        thaisenSetSysFaultCheckBit(thaisenFaultLiquidCooling);
+//
+//    if(FALSE == LcdData.setData.supin_fuse)                                    //熔断器
+//        thaisenClearSysFaultCheckBit(thaisenFaultFuse);
+//    else
+//        thaisenSetSysFaultCheckBit(thaisenFaultFuse);
+
 	thaisenSetScramPressStatua(LcdData.setData.neg_scram);
 //	thaisenSetDoorPressStatua(LcdData.setData.neg_gate);
 	thaisenSetDoorOpendStatua(LcdData.setData.neg_gate);
     thaisenSetElectLockFeedbackSta(LcdData.setData.neg_elcok);
 	thaisenSetElectLockBFeedbackSta(LcdData.setData.neg_elcok);
+
+	if(LcdData.setData.neg_protectlight)
+	    thaisenSetGeneralInPortAbnormalSta(thaisenGeneralInPortLightningProtection, thaisenGeneralInPortAbnormalHigh);
+	else
+        thaisenSetGeneralInPortAbnormalSta(thaisenGeneralInPortLightningProtection, thaisenGeneralInPortAbnormalLow);
+
+    if(LcdData.setData.neg_gunsite){
+        thaisenSetGeneralInPortAbnormalSta(thaisenGeneralInPortGunSit_A, thaisenGeneralInPortAbnormalHigh);
+        thaisenSetGeneralInPortAbnormalSta(thaisenGeneralInPortGunSit_B, thaisenGeneralInPortAbnormalHigh);
+    }else{
+        thaisenSetGeneralInPortAbnormalSta(thaisenGeneralInPortGunSit_A, thaisenGeneralInPortAbnormalLow);
+        thaisenSetGeneralInPortAbnormalSta(thaisenGeneralInPortGunSit_B, thaisenGeneralInPortAbnormalLow);
+    }
+
+//    if(LcdData.setData.neg_circuit_breaker)
+//        thaisenSetGeneralInPortAbnormalSta(thaisenGeneralInPortCircuitBreaker, thaisenGeneralInPortAbnormalHigh);
+//    else
+//        thaisenSetGeneralInPortAbnormalSta(thaisenGeneralInPortCircuitBreaker, thaisenGeneralInPortAbnormalLow);
+
+    if(LcdData.setData.neg_flood)
+        thaisenSetGeneralInPortAbnormalSta(thaisenGeneralInPortFlooding, thaisenGeneralInPortAbnormalHigh);
+    else
+        thaisenSetGeneralInPortAbnormalSta(thaisenGeneralInPortFlooding, thaisenGeneralInPortAbnormalLow);
+
+    if(LcdData.setData.neg_smoke)
+        thaisenSetGeneralInPortAbnormalSta(thaisenGeneralInPortSmoke, thaisenGeneralInPortAbnormalHigh);
+    else
+        thaisenSetGeneralInPortAbnormalSta(thaisenGeneralInPortSmoke, thaisenGeneralInPortAbnormalLow);
+
+    if(LcdData.setData.neg_pour)
+        thaisenSetGeneralInPortAbnormalSta(thaisenGeneralInPortPour, thaisenGeneralInPortAbnormalHigh);
+    else
+        thaisenSetGeneralInPortAbnormalSta(thaisenGeneralInPortPour, thaisenGeneralInPortAbnormalLow);
+
+//    if(LcdData.setData.neg_liquid)
+//        thaisenSetGeneralInPortAbnormalSta(thaisenGeneralInPortLiquid, thaisenGeneralInPortAbnormalHigh);
+//    else
+//        thaisenSetGeneralInPortAbnormalSta(thaisenGeneralInPortLiquid, thaisenGeneralInPortAbnormalLow);
+//
+//    if(LcdData.setData.neg_fuse)
+//        thaisenSetGeneralInPortAbnormalSta(thaisenGeneralInPortFuse, thaisenGeneralInPortAbnormalHigh);
+//    else
+//        thaisenSetGeneralInPortAbnormalSta(thaisenGeneralInPortFuse, thaisenGeneralInPortAbnormalLow);
 }
+
 void SerialScreen_InputSetFlash(void)
 {
 	sSCREEN_EVENT_DEBUGMSG("set Flash supin_scram[%d] neg_scram[%d] supin_gate[%d] neg_gate[%d] supin_ac[%d]\r\n neg_ac[%d] supin_dc[%d] neg_dc[%d] supin_fan[%d] neg_fan[%d] supin_elock[%d] neg_elcok[%d]\r\n",
 		LcdData.setData.supin_scram,LcdData.setData.neg_scram,\
 		LcdData.setData.supin_gate,LcdData.setData.neg_gate,LcdData.setData.supin_ac,LcdData.setData.neg_ac,LcdData.setData.supin_dc,LcdData.setData.neg_dc,\
 		LcdData.setData.supin_fan,LcdData.setData.neg_fan,LcdData.setData.supin_elock,LcdData.setData.neg_elcok);
+
+	LcdData.setData.supin_protectlight = LcdData.setData.Icon_SupProtectLight;
+	LcdData.setData.neg_protectlight = LcdData.setData.Icon_NegProtectLight;
+
+    LcdData.setData.supin_gunsite = LcdData.setData.Icon_SupGunSite;
+    LcdData.setData.neg_gunsite = LcdData.setData.Icon_NegGunSite;
+
+//    LcdData.setData.supin_circuit_breaker = LcdData.setData.Icon_SupCircuitBreaker;
+//    LcdData.setData.neg_circuit_breaker = LcdData.setData.Icon_NegCircuitBreaker;
+
+    LcdData.setData.supin_flood = LcdData.setData.Icon_SupFlood;
+    LcdData.setData.neg_flood = LcdData.setData.Icon_NegFlood;
+
+    LcdData.setData.supin_smoke = LcdData.setData.Icon_SupSmoke;
+    LcdData.setData.neg_smoke = LcdData.setData.Icon_NegSmoke;
+
+    LcdData.setData.supin_pour = LcdData.setData.Icon_SupPour;
+    LcdData.setData.neg_pour = LcdData.setData.Icon_NegPour;
+
+//    LcdData.setData.supin_liquid = LcdData.setData.Icon_SupLiquid;
+//    LcdData.setData.neg_liquid = LcdData.setData.Icon_NegLiquid;
+
+//    LcdData.setData.supin_fuse = LcdData.setData.Icon_SupFuse;
+//    LcdData.setData.neg_fuse = LcdData.setData.Icon_NegFuse;
 
     SerialScreen_JumpPage(&SerialScreen, LCD_PAGE_STORAGE_WAITING);
 
@@ -4021,6 +4291,23 @@ void SerialScreen_InputSetFlash(void)
 	UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_INEN_ELOCK, (u8 *)&(LcdData.setData.supin_elock), sizeof(LcdData.setData.supin_elock));
 	UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_INNEG_ELOCK, (u8 *)&(LcdData.setData.neg_elcok), sizeof(LcdData.setData.neg_elcok));
     UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_INEN_TEMPPRO, (u8 *)&(LcdData.setData.supin_temp_pro), sizeof(LcdData.setData.supin_temp_pro));
+
+    UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_INEN_PROTECT_LIGHT, (u8 *)&(LcdData.setData.supin_protectlight), sizeof(LcdData.setData.supin_protectlight));
+    UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_INNEG_PROTECT_LIGHT, (u8 *)&(LcdData.setData.neg_protectlight), sizeof(LcdData.setData.neg_protectlight));
+    UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_INEN_GUNSITE, (u8 *)&(LcdData.setData.supin_gunsite), sizeof(LcdData.setData.supin_gunsite));
+    UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_INNEG_GUNSITE, (u8 *)&(LcdData.setData.neg_gunsite), sizeof(LcdData.setData.neg_gunsite));
+//    UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_INEN_CIRCUIT_BREAKER, (u8 *)&(LcdData.setData.supin_circuit_breaker), sizeof(LcdData.setData.supin_circuit_breaker));
+//    UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_INNEG_CIRCUIT_BREAKER, (u8 *)&(LcdData.setData.neg_circuit_breaker), sizeof(LcdData.setData.neg_circuit_breaker));
+    UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_INEN_FLOOD, (u8 *)&(LcdData.setData.supin_flood), sizeof(LcdData.setData.supin_flood));
+    UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_INNEG_FLOOD, (u8 *)&(LcdData.setData.neg_flood), sizeof(LcdData.setData.neg_flood));
+    UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_INEN_SMOKE, (u8 *)&(LcdData.setData.supin_smoke), sizeof(LcdData.setData.supin_smoke));
+    UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_INNEG_SMOKE, (u8 *)&(LcdData.setData.neg_smoke), sizeof(LcdData.setData.neg_smoke));
+    UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_INEN_POUR, (u8 *)&(LcdData.setData.supin_pour), sizeof(LcdData.setData.supin_pour));
+    UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_INNEG_POUR, (u8 *)&(LcdData.setData.neg_pour), sizeof(LcdData.setData.neg_pour));
+//    UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_INEN_LIQUID, (u8 *)&(LcdData.setData.supin_liquid), sizeof(LcdData.setData.supin_liquid));
+//    UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_INNEG_LIQUID, (u8 *)&(LcdData.setData.neg_liquid), sizeof(LcdData.setData.neg_liquid));
+//    UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_INEN_FUSE, (u8 *)&(LcdData.setData.supin_fuse), sizeof(LcdData.setData.supin_fuse));
+//    UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_INNEG_FUSE, (u8 *)&(LcdData.setData.neg_fuse), sizeof(LcdData.setData.neg_fuse));
 
     LcdAssistantData.Flag.IsConfigFail = TRUE;
     if(UI_STORAGE_CFG_DATA >= 0){
@@ -4183,6 +4470,102 @@ void SerialScreen_InputInfoGet(void)
     if(function_enable > TRUE)
         function_enable = TRUE;          /* 温度保护默认启用 */
     LcdData.setData.supin_temp_pro = function_enable;
+
+    function_enable = *(u8 *)(UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_INEN_PROTECT_LIGHT, 0));
+    if(function_enable > TRUE)
+        function_enable = FALSE;          /* 防雷器故障检测默认关闭 */
+    LcdData.setData.supin_protectlight = function_enable;
+    LcdData.setData.Icon_SupProtectLight = function_enable;
+
+    function_enable = *(u8 *)(UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_INNEG_PROTECT_LIGHT, 0));
+    if(function_enable > TRUE)
+        function_enable = FALSE;          /* 防雷器故障默认不取反 */
+    LcdData.setData.neg_protectlight = function_enable;
+    LcdData.setData.Icon_NegProtectLight = function_enable;
+
+    function_enable = *(u8 *)(UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_INEN_GUNSITE, 0));
+    if(function_enable > TRUE)
+        function_enable = FALSE;          /* 枪座故障检测默认关闭 */
+    LcdData.setData.supin_gunsite = function_enable;
+    LcdData.setData.Icon_SupGunSite = function_enable;
+
+    function_enable = *(u8 *)(UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_INNEG_GUNSITE, 0));
+    if(function_enable > TRUE)
+        function_enable = FALSE;          /* 枪座故障默认不取反 */
+    LcdData.setData.neg_gunsite = function_enable;
+    LcdData.setData.Icon_NegGunSite = function_enable;
+
+//    function_enable = *(u8 *)(UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_INEN_CIRCUIT_BREAKER, 0));
+//    if(function_enable > TRUE)
+//        function_enable = FALSE;          /* 断路器故障检测默认关闭 */
+//    LcdData.setData.supin_circuit_breaker = function_enable;
+//    LcdData.setData.Icon_SupCircuitBreaker = function_enable;
+//
+//    function_enable = *(u8 *)(UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_INNEG_CIRCUIT_BREAKER, 0));
+//    if(function_enable > TRUE)
+//        function_enable = FALSE;          /* 断路器故障默认不取反 */
+//    LcdData.setData.neg_circuit_breaker = function_enable;
+//    LcdData.setData.Icon_NegCircuitBreaker = function_enable;
+
+    function_enable = *(u8 *)(UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_INEN_FLOOD, 0));
+    if(function_enable > TRUE)
+        function_enable = FALSE;          /* 水浸故障检测默认关闭 */
+    LcdData.setData.supin_flood = function_enable;
+    LcdData.setData.Icon_SupFlood = function_enable;
+
+    function_enable = *(u8 *)(UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_INNEG_FLOOD, 0));
+    if(function_enable > TRUE)
+        function_enable = FALSE;          /* 水浸故障默认不取反 */
+    LcdData.setData.neg_flood = function_enable;
+    LcdData.setData.Icon_NegFlood = function_enable;
+
+    function_enable = *(u8 *)(UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_INEN_SMOKE, 0));
+    if(function_enable > TRUE)
+        function_enable = FALSE;          /* 烟感故障检测默认关闭 */
+    LcdData.setData.supin_smoke = function_enable;
+    LcdData.setData.Icon_SupSmoke = function_enable;
+
+    function_enable = *(u8 *)(UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_INNEG_SMOKE, 0));
+    if(function_enable > TRUE)
+        function_enable = FALSE;          /* 烟感故障默认不取反 */
+    LcdData.setData.neg_smoke = function_enable;
+    LcdData.setData.Icon_NegSmoke = function_enable;
+
+    function_enable = *(u8 *)(UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_INEN_POUR, 0));
+    if(function_enable > TRUE)
+        function_enable = FALSE;          /* 倾倒故障检测默认关闭 */
+    LcdData.setData.supin_pour = function_enable;
+    LcdData.setData.Icon_SupPour = function_enable;
+
+    function_enable = *(u8 *)(UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_INNEG_POUR, 0));
+    if(function_enable > TRUE)
+        function_enable = FALSE;          /* 倾倒故障默认不取反 */
+    LcdData.setData.neg_pour = function_enable;
+    LcdData.setData.Icon_NegPour = function_enable;
+
+//    function_enable = *(u8 *)(UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_INEN_LIQUID, 0));
+//    if(function_enable > TRUE)
+//        function_enable = FALSE;          /* 液冷故障检测默认关闭 */
+//    LcdData.setData.supin_liquid = function_enable;
+//    LcdData.setData.Icon_SupLiquid = function_enable;
+//
+//    function_enable = *(u8 *)(UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_INNEG_LIQUID, 0));
+//    if(function_enable > TRUE)
+//        function_enable = FALSE;          /* 液冷故障默认不取反 */
+//    LcdData.setData.neg_liquid = function_enable;
+//    LcdData.setData.Icon_NegLiquid = function_enable;
+
+//    function_enable = *(u8 *)(UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_INEN_FUSE, 0));
+//    if(function_enable > TRUE)
+//        function_enable = FALSE;          /* 熔断器故障检测默认关闭 */
+//    LcdData.setData.supin_fuse = function_enable;
+//    LcdData.setData.Icon_SupFuse = function_enable;
+//
+//    function_enable = *(u8 *)(UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_INNEG_FUSE, 0));
+//    if(function_enable > TRUE)
+//        function_enable = FALSE;          /* 熔断器故障默认不取反 */
+//    LcdData.setData.neg_fuse = function_enable;
+//    LcdData.setData.Icon_NegFuse = function_enable;
 }
 
 
@@ -9265,12 +9648,28 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INPUT, NULL, "Icon Fan sup", LCD_IconType, LCD_10sReflash, 0x4108, pu8_type, sizeof(LcdData.setData.supin_fan), (void *)&LcdData.setData.supin_fan);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INPUT, NULL, "Icon Elock sup", LCD_IconType, LCD_10sReflash, 0x410A, pu8_type, sizeof(LcdData.setData.supin_elock), (void *)&LcdData.setData.supin_elock);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INPUT, NULL, "Icon TempPro sup", LCD_IconType, LCD_10sReflash, 0x411E, pu8_type, sizeof(LcdData.setData.supin_temp_pro), (void *)&LcdData.setData.supin_temp_pro);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_INPUT, NULL, "Icon ProLight sup", LCD_IconType, LCD_10sReflash, 0x6508, pu8_type, sizeof(LcdData.setData.Icon_SupProtectLight), (void *)&LcdData.setData.Icon_SupProtectLight);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_INPUT, NULL, "Icon GunSite sup", LCD_IconType, LCD_10sReflash, 0x650E, pu8_type, sizeof(LcdData.setData.Icon_SupGunSite), (void *)&LcdData.setData.Icon_SupGunSite);
+//    SerialScreen_ItemSetUp(LCD_PAGE_MENU_INPUT, NULL, "Icon Breaker sup", LCD_IconType, LCD_10sReflash, 0x6512, pu8_type, sizeof(LcdData.setData.Icon_SupCircuitBreaker), (void *)&LcdData.setData.Icon_SupCircuitBreaker);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_INPUT, NULL, "Icon Flood sup", LCD_IconType, LCD_10sReflash, 0x650A, pu8_type, sizeof(LcdData.setData.Icon_SupFlood), (void *)&LcdData.setData.Icon_SupFlood);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_INPUT, NULL, "Icon Smoke sup", LCD_IconType, LCD_10sReflash, 0x650C, pu8_type, sizeof(LcdData.setData.Icon_SupSmoke), (void *)&LcdData.setData.Icon_SupSmoke);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_INPUT, NULL, "Icon Pour sup", LCD_IconType, LCD_10sReflash, 0x6506, pu8_type, sizeof(LcdData.setData.Icon_SupPour), (void *)&LcdData.setData.Icon_SupPour);
+//    SerialScreen_ItemSetUp(LCD_PAGE_MENU_INPUT, NULL, "Icon Liquid sup", LCD_IconType, LCD_10sReflash, 0x6514, pu8_type, sizeof(LcdData.setData.Icon_SupLiquid), (void *)&LcdData.setData.Icon_SupLiquid);
+//    SerialScreen_ItemSetUp(LCD_PAGE_MENU_INPUT, NULL, "Icon Fuse sup", LCD_IconType, LCD_10sReflash, 0x6510, pu8_type, sizeof(LcdData.setData.Icon_SupFuse), (void *)&LcdData.setData.Icon_SupFuse);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INPUT, NULL, "Icon Scram neg", LCD_IconType, LCD_10sReflash, 0x410C, pu8_type, sizeof(LcdData.setData.neg_scram), (void *)&LcdData.setData.neg_scram);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INPUT, NULL, "Icon Gate neg", LCD_IconType, LCD_10sReflash, 0x410E, pu8_type, sizeof(LcdData.setData.neg_gate), (void *)&LcdData.setData.neg_gate);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INPUT, NULL, "Icon Ac neg", LCD_IconType, LCD_10sReflash, 0x4110, pu8_type, sizeof(LcdData.setData.neg_ac), (void *)&LcdData.setData.neg_ac);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INPUT, NULL, "Icon Dc neg", LCD_IconType, LCD_10sReflash, 0x4112, pu8_type, sizeof(LcdData.setData.neg_dc), (void *)&LcdData.setData.neg_dc);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INPUT, NULL, "Icon Fan neg", LCD_IconType, LCD_10sReflash, 0x4114, pu8_type, sizeof(LcdData.setData.neg_fan), (void *)&LcdData.setData.neg_fan);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INPUT, NULL, "Icon Elock neg", LCD_IconType, LCD_10sReflash, 0x4116, pu8_type, sizeof(LcdData.setData.neg_elcok), (void *)&LcdData.setData.neg_elcok);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_INPUT, NULL, "Icon ProLight neg", LCD_IconType, LCD_10sReflash, 0x6509, pu8_type, sizeof(LcdData.setData.Icon_NegProtectLight), (void *)&LcdData.setData.Icon_NegProtectLight);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_INPUT, NULL, "Icon GunSite neg", LCD_IconType, LCD_10sReflash, 0x650F, pu8_type, sizeof(LcdData.setData.Icon_NegGunSite), (void *)&LcdData.setData.Icon_NegGunSite);
+//    SerialScreen_ItemSetUp(LCD_PAGE_MENU_INPUT, NULL, "Icon Breaker neg", LCD_IconType, LCD_10sReflash, 0x6513, pu8_type, sizeof(LcdData.setData.Icon_NegCircuitBreaker), (void *)&LcdData.setData.Icon_NegCircuitBreaker);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_INPUT, NULL, "Icon Flood neg", LCD_IconType, LCD_10sReflash, 0x650B, pu8_type, sizeof(LcdData.setData.Icon_NegFlood), (void *)&LcdData.setData.Icon_NegFlood);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_INPUT, NULL, "Icon Smoke neg", LCD_IconType, LCD_10sReflash, 0x650D, pu8_type, sizeof(LcdData.setData.Icon_NegSmoke), (void *)&LcdData.setData.Icon_NegSmoke);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_INPUT, NULL, "Icon Pour neg", LCD_IconType, LCD_10sReflash, 0x6507, pu8_type, sizeof(LcdData.setData.Icon_NegPour), (void *)&LcdData.setData.Icon_NegPour);
+//    SerialScreen_ItemSetUp(LCD_PAGE_MENU_INPUT, NULL, "Icon Liquid neg", LCD_IconType, LCD_10sReflash, 0x6515, pu8_type, sizeof(LcdData.setData.Icon_NegLiquid), (void *)&LcdData.setData.Icon_NegLiquid);
+//    SerialScreen_ItemSetUp(LCD_PAGE_MENU_INPUT, NULL, "Icon Fuse neg", LCD_IconType, LCD_10sReflash, 0x6511, pu8_type, sizeof(LcdData.setData.Icon_NegFuse), (void *)&LcdData.setData.Icon_NegFuse);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INPUT, NULL, "Scram set", LCD_BtnType, 0x0026, 0x1000, page_type, LCD_PAGE_MENU_INPUT, (void *)SerialScreen_ScramIsSupportSet);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INPUT, NULL, "Scram neg set", LCD_BtnType, 0x002C, 0x1000, page_type, LCD_PAGE_MENU_INPUT, (void *)SerialScreen_ScramNegIsSupportSet);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INPUT, NULL, "Gate set", LCD_BtnType, 0x0027, 0x1000, page_type, LCD_PAGE_MENU_INPUT, (void *)SerialScreen_GateIsSupportSet);
@@ -9284,6 +9683,22 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INPUT, NULL, "Elock set", LCD_BtnType, 0x002B, 0x1000, page_type, LCD_PAGE_MENU_INPUT, (void *)SerialScreen_ElockIsSupportSet);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INPUT, NULL, "Elock neg set", LCD_BtnType, 0x0031, 0x1000, page_type, LCD_PAGE_MENU_INPUT, (void *)SerialScreen_ElockNegIsSupportSet);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INPUT, NULL, "TempPro set", LCD_BtnType, 0x0032, 0x1000, page_type, LCD_PAGE_MENU_INPUT, (void *)SerialScreen_TempProIsSupportSet);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_INPUT, NULL, "ProLight set", LCD_BtnType, 0x0052, 0x1003, page_type, LCD_PAGE_MENU_INPUT, (void *)SerialScreen_ProLightIsSupportSet);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_INPUT, NULL, "ProLight neg set", LCD_BtnType, 0x0053, 0x1003, page_type, LCD_PAGE_MENU_INPUT, (void *)SerialScreen_ProLightNegIsSupportSet);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_INPUT, NULL, "GunSite set", LCD_BtnType, 0x0058, 0x1003, page_type, LCD_PAGE_MENU_INPUT, (void *)SerialScreen_GunSiteIsSupportSet);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_INPUT, NULL, "GunSite neg set", LCD_BtnType, 0x0059, 0x1003, page_type, LCD_PAGE_MENU_INPUT, (void *)SerialScreen_GunSiteNegIsSupportSet);
+//    SerialScreen_ItemSetUp(LCD_PAGE_MENU_INPUT, NULL, "Breaker set", LCD_BtnType, 0x0059, 0x1003, page_type, LCD_PAGE_MENU_INPUT, (void *)SerialScreen_BreakerIsSupportSet);
+//    SerialScreen_ItemSetUp(LCD_PAGE_MENU_INPUT, NULL, "Breaker neg set", LCD_BtnType, 0x0059, 0x1003, page_type, LCD_PAGE_MENU_INPUT, (void *)SerialScreen_BreakerNegIsSupportSet);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_INPUT, NULL, "Flood set", LCD_BtnType, 0x0054, 0x1003, page_type, LCD_PAGE_MENU_INPUT, (void *)SerialScreen_FloodIsSupportSet);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_INPUT, NULL, "Flood neg set", LCD_BtnType, 0x0055, 0x1003, page_type, LCD_PAGE_MENU_INPUT, (void *)SerialScreen_FloodNegIsSupportSet);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_INPUT, NULL, "Smoke set", LCD_BtnType, 0x0056, 0x1003, page_type, LCD_PAGE_MENU_INPUT, (void *)SerialScreen_SmokeIsSupportSet);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_INPUT, NULL, "Smoke neg set", LCD_BtnType, 0x0057, 0x1003, page_type, LCD_PAGE_MENU_INPUT, (void *)SerialScreen_SmokeNegIsSupportSet);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_INPUT, NULL, "Pour set", LCD_BtnType, 0x0050, 0x1003, page_type, LCD_PAGE_MENU_INPUT, (void *)SerialScreen_PourIsSupportSet);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_INPUT, NULL, "Pour neg set", LCD_BtnType, 0x0051, 0x1003, page_type, LCD_PAGE_MENU_INPUT, (void *)SerialScreen_PourNegIsSupportSet);
+//    SerialScreen_ItemSetUp(LCD_PAGE_MENU_INPUT, NULL, "Liquid set", LCD_BtnType, 0x0050, 0x1003, page_type, LCD_PAGE_MENU_INPUT, (void *)SerialScreen_LiquidIsSupportSet);
+//    SerialScreen_ItemSetUp(LCD_PAGE_MENU_INPUT, NULL, "Liquid neg set", LCD_BtnType, 0x0051, 0x1003, page_type, LCD_PAGE_MENU_INPUT, (void *)SerialScreen_LiquidNegIsSupportSet);
+//    SerialScreen_ItemSetUp(LCD_PAGE_MENU_INPUT, NULL, "Fuse set", LCD_BtnType, 0x005A, 0x1003, page_type, LCD_PAGE_MENU_INPUT, (void *)SerialScreen_FuseIsSupportSet);
+//    SerialScreen_ItemSetUp(LCD_PAGE_MENU_INPUT, NULL, "Fuse neg set", LCD_BtnType, 0x005B, 0x1003, page_type, LCD_PAGE_MENU_INPUT, (void *)SerialScreen_FuseNegIsSupportSet);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INPUT, NULL, "subok", LCD_BtnType, 0x0014, 0x1000, page_type, LCD_PAGE_ROOT_MAIN, (void *)SerialScreen_InputSetFlash);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INPUT, NULL, "cd up", LCD_BtnType, 0x0050, 0x1000, page_type, LCD_PAGE_ROOT_MAIN, (void *)NULL);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INPUT, NULL, "Home", LCD_BtnHomeType, 0x0002, 0x1000, page_type, LCD_PAGE_NONE, (void *)NULL);

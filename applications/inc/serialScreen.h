@@ -179,6 +179,30 @@ void SerialScreen_ElockIsSupportSet(void);
 void SerialScreen_TempProIsSupportSet(void);
 void SerialScreen_ElockNegIsSupportSet(void);
 
+void SerialScreen_ProLightIsSupportSet(void);
+void SerialScreen_ProLightNegIsSupportSet(void);
+
+void SerialScreen_GunSiteIsSupportSet(void);
+void SerialScreen_GunSiteNegIsSupportSet(void);
+
+void SerialScreen_BreakerIsSupportSet(void);
+void SerialScreen_BreakerNegIsSupportSet(void);
+
+void SerialScreen_FloodIsSupportSet(void);
+void SerialScreen_FloodNegIsSupportSet(void);
+
+void SerialScreen_SmokeIsSupportSet(void);
+void SerialScreen_SmokeNegIsSupportSet(void);
+
+void SerialScreen_PourIsSupportSet(void);
+void SerialScreen_PourNegIsSupportSet(void);
+
+void SerialScreen_LiquidIsSupportSet(void);
+void SerialScreen_LiquidNegIsSupportSet(void);
+
+void SerialScreen_FuseIsSupportSet(void);
+void SerialScreen_FuseNegIsSupportSet(void);
+
 void SerialScreen_ScreenRequest_Time(void);
 s8 SerialScreen_Get_ScreenTimeSync_Flag(void);
 s8 SerialScreen_Get_SetPowerPercent_Flag(void);
