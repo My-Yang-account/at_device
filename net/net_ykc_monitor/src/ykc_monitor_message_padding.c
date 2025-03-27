@@ -283,8 +283,8 @@ static void ykc_monitor_storage_data_check(void)
     config->reset_count++;
     config->reset_reason = base->reset_reason;
     config->flag.is_thread_error = NET_ENUM_FALSE;
-    /** 重新保存一次 */
-    s_ykc_monitor_handle->set_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, 0x00, NET_SYSTEM_DATA_OPTION_MONITOR_PLAT);
+//    /** 重新保存一次 */
+//    s_ykc_monitor_handle->set_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, 0x00, NET_SYSTEM_DATA_OPTION_MONITOR_PLAT);
 
     LOG_D("ykc monitor tplat_log lock:%d, pile lock:%d", !config->fswitch.tplat_log, !config->fswitch.lock);
     LOG_D("ykc monitor reset count:%d, reset reason:%X", config->reset_count, config->reset_reason);
