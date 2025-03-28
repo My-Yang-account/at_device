@@ -680,9 +680,9 @@ struct LCD_DISPLAY_GUN_VALUE_TYPE{
 	f32 Unit_Price;
 
 	u8 ErrCode[10];	//错误码
-    u8 ErrCode_Chiness[32]; //错误码(中文)
+    u8 ErrCode_Chinese[32]; //错误码(中文)
 	u8 code_stopResaon[6];	//错误码
-    u8 code_stopResaon_Chiness[32]; //错误码(中文)
+    u8 code_stopResaon_Chinese[32]; //错误码(中文)
 //	u8 stopReson[80];	//停止原因
 //	u8 Aux12v;	//1 12 2 24
 	u32 vol;	//输出电压
@@ -4623,7 +4623,7 @@ void SerialScreen_GetSysFault(int port)
 	{
 		LcdData.gun[port].ErrCode[0] = 0x20;
 	}
-	thaisen_app_get_fault_chinese(chgFault->system_fault, 0, LcdData.gun[port].ErrCode_Chiness, sizeof(LcdData.gun[port].ErrCode_Chiness));
+	thaisen_app_get_fault_chinese(chgFault->system_fault, 0, LcdData.gun[port].ErrCode_Chinese, sizeof(LcdData.gun[port].ErrCode_Chinese));
 }
 
 enum system_stop_way SerialScreen_DataGetstopReson(int port)
@@ -4639,7 +4639,7 @@ enum system_stop_way SerialScreen_DataGetstopReson(int port)
 	{
 		LcdData.gun[port].code_stopResaon[0] = 0x20;
 	}
-	thaisen_app_get_charge_stopway_chinese(stopReason, 0, LcdData.gun[port].code_stopResaon_Chiness, sizeof(LcdData.gun[port].code_stopResaon_Chiness));
+	thaisen_app_get_charge_stopway_chinese(stopReason, 0, LcdData.gun[port].code_stopResaon_Chinese, sizeof(LcdData.gun[port].code_stopResaon_Chinese));
 }
 
 void SerialScreen_BtnModuleStartA(void)
@@ -9402,7 +9402,7 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_A_ACOUNT, NULL, "Soc", LCD_DataType, LCD_1sReflash, 0x1616, pu32_type, sizeof(LcdData.gun[LCD_GUN_1].curSoc), (void *)&LcdData.gun[LCD_GUN_1].curSoc);
     SerialScreen_ItemSetUp(LCD_PAGE_A_ACOUNT, NULL, "Chg Money", LCD_DataType, LCD_NoReflash, 0x1618, pu32_type, sizeof(LcdData.gun[LCD_GUN_1].totalFee), (void *)&LcdData.gun[LCD_GUN_1].totalFee);
     SerialScreen_ItemSetUp(LCD_PAGE_A_ACOUNT, NULL, "ChgStopReason", LCD_TextType, LCD_NoReflash, 0x161A, pstr_type, (sizeof(LcdData.gun[LCD_GUN_1].code_stopResaon) - 1), (void *)&LcdData.gun[LCD_GUN_1].code_stopResaon[0]);
-    SerialScreen_ItemSetUp(LCD_PAGE_A_ACOUNT, NULL, "ChgStopReason", LCD_TextType, LCD_NoReflash, 0x6A81, pstr_type, (sizeof(LcdData.gun[LCD_GUN_1].code_stopResaon_Chiness) - 1), (void *)&LcdData.gun[LCD_GUN_1].code_stopResaon_Chiness[0]);
+    SerialScreen_ItemSetUp(LCD_PAGE_A_ACOUNT, NULL, "ChgStopReason", LCD_TextType, LCD_NoReflash, 0x6A81, pstr_type, (sizeof(LcdData.gun[LCD_GUN_1].code_stopResaon_Chinese) - 1), (void *)&LcdData.gun[LCD_GUN_1].code_stopResaon_Chinese[0]);
     SerialScreen_ItemSetUp(LCD_PAGE_A_ACOUNT, NULL, "back", LCD_BtnHomeType, 0x0002, 0x1000, page_type, 0, (void *)NULL);
     SerialScreen_ItemSetUp(LCD_PAGE_A_ACOUNT, NULL, "unlock_ela", LCD_BtnType, 0x0007, 0x1000, page_type, LCD_PAGE_A_ACOUNT, (void *)SerialScreen_BtnUnElockA);
     SerialScreen_ItemSetUp(LCD_PAGE_A_ACOUNT, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
@@ -9414,21 +9414,21 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_B_ACOUNT, NULL, "Soc", LCD_DataType, LCD_1sReflash, 0x2616, pu32_type, sizeof(LcdData.gun[LCD_GUN_2].curSoc), (void *)&LcdData.gun[LCD_GUN_2].curSoc);
     SerialScreen_ItemSetUp(LCD_PAGE_B_ACOUNT, NULL, "Chg Money", LCD_DataType, LCD_NoReflash, 0x2618, pu32_type, sizeof(LcdData.gun[LCD_GUN_2].totalFee), (void *)&LcdData.gun[LCD_GUN_2].totalFee);
     SerialScreen_ItemSetUp(LCD_PAGE_B_ACOUNT, NULL, "ChgStopReason", LCD_TextType, LCD_NoReflash, 0x261A, pstr_type, (sizeof(LcdData.gun[LCD_GUN_2].code_stopResaon) - 1), (void *)&LcdData.gun[LCD_GUN_2].code_stopResaon[0]);
-    SerialScreen_ItemSetUp(LCD_PAGE_B_ACOUNT, NULL, "ChgStopReason", LCD_TextType, LCD_NoReflash, 0x6AA1, pstr_type, (sizeof(LcdData.gun[LCD_GUN_2].code_stopResaon_Chiness) - 1), (void *)&LcdData.gun[LCD_GUN_2].code_stopResaon_Chiness[0]);
+    SerialScreen_ItemSetUp(LCD_PAGE_B_ACOUNT, NULL, "ChgStopReason", LCD_TextType, LCD_NoReflash, 0x6AA1, pstr_type, (sizeof(LcdData.gun[LCD_GUN_2].code_stopResaon_Chinese) - 1), (void *)&LcdData.gun[LCD_GUN_2].code_stopResaon_Chinese[0]);
     SerialScreen_ItemSetUp(LCD_PAGE_B_ACOUNT, NULL, "back", LCD_BtnHomeType, 0x0002, 0x1000, page_type, 0, (void *)NULL);
     SerialScreen_ItemSetUp(LCD_PAGE_B_ACOUNT, NULL, "unlock_elb", LCD_BtnType, 0x0008, 0x1000, page_type, LCD_PAGE_B_ACOUNT, (void *)SerialScreen_BtnUnElockB);
     SerialScreen_ItemSetUp(LCD_PAGE_B_ACOUNT, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
 
     /** 12.A枪故障  [page:12]*/
     SerialScreen_ItemSetUp(LCD_PAGE_A_ERR, NULL, "Agun_Fault", LCD_TextType, LCD_NoReflash, 0x1530, pstr_type, (sizeof(LcdData.gun[LCD_GUN_1].ErrCode) - 1), (void *)&LcdData.gun[LCD_GUN_1].ErrCode[0]);
-    SerialScreen_ItemSetUp(LCD_PAGE_A_ERR, NULL, "Agun_Fault", LCD_TextType, LCD_NoReflash, 0x6A01, pstr_type, (sizeof(LcdData.gun[LCD_GUN_1].ErrCode_Chiness) - 1), (void *)&LcdData.gun[LCD_GUN_1].ErrCode_Chiness[0]);
+    SerialScreen_ItemSetUp(LCD_PAGE_A_ERR, NULL, "Agun_Fault", LCD_TextType, LCD_NoReflash, 0x6A01, pstr_type, (sizeof(LcdData.gun[LCD_GUN_1].ErrCode_Chinese) - 1), (void *)&LcdData.gun[LCD_GUN_1].ErrCode_Chinese[0]);
     SerialScreen_ItemSetUp(LCD_PAGE_A_ERR, NULL, "Home", LCD_BtnHomeType, 0x0002, 0x1000, page_type, 0, (void *)NULL);
     SerialScreen_ItemSetUp(LCD_PAGE_A_ERR, NULL, "unlock_ela", LCD_BtnType, 0x0007, 0x1000, page_type, LCD_PAGE_A_ERR, (void *)SerialScreen_BtnUnElockA);
     SerialScreen_ItemSetUp(LCD_PAGE_A_ERR, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
 
     /** 13.B枪故障 [page:13] */
     SerialScreen_ItemSetUp(LCD_PAGE_B_ERR, NULL, "Bgun_Fault", LCD_TextType, LCD_NoReflash, 0x2530, pstr_type, (sizeof(LcdData.gun[LCD_GUN_2].ErrCode) - 1), (void *)&LcdData.gun[LCD_GUN_2].ErrCode[0]);
-    SerialScreen_ItemSetUp(LCD_PAGE_B_ERR, NULL, "Bgun_Fault", LCD_TextType, LCD_NoReflash, 0x6A51, pstr_type, (sizeof(LcdData.gun[LCD_GUN_2].ErrCode_Chiness) - 1), (void *)&LcdData.gun[LCD_GUN_2].ErrCode_Chiness[1]);
+    SerialScreen_ItemSetUp(LCD_PAGE_B_ERR, NULL, "Bgun_Fault", LCD_TextType, LCD_NoReflash, 0x6A51, pstr_type, (sizeof(LcdData.gun[LCD_GUN_2].ErrCode_Chinese) - 1), (void *)&LcdData.gun[LCD_GUN_2].ErrCode_Chinese[0]);
     SerialScreen_ItemSetUp(LCD_PAGE_B_ERR, NULL, "Home", LCD_BtnHomeType, 0x0002, 0x1000, page_type, 0, (void *)NULL);
     SerialScreen_ItemSetUp(LCD_PAGE_B_ERR, NULL, "unlock_elb", LCD_BtnType, 0x0008, 0x1000, page_type, LCD_PAGE_B_ERR, (void *)SerialScreen_BtnUnElockB);
     SerialScreen_ItemSetUp(LCD_PAGE_B_ERR, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
