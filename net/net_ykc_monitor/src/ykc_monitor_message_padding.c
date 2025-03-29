@@ -5238,6 +5238,30 @@ static int32_t ykc_monitor_config_info_process_input_7103_7101_info(uint8_t opti
 
         response->tempprotect.enable = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INEN_TEMPPRO, 0x00));
         response->tempprotect.reversal = 0x00;
+
+        response->pour.enable = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INEN_POUR, 0x00));
+        response->pour.reversal = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INNEG_POUR, 0x00));
+
+        response->protect_light.enable = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INEN_PROTECT_LIGHT, 0x00));
+        response->protect_light.reversal = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INNEG_PROTECT_LIGHT, 0x00));
+
+        response->flood.enable = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INEN_FLOOD, 0x00));
+        response->flood.reversal = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INNEG_FLOOD, 0x00));
+
+        response->smoke.enable = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INEN_SMOKE, 0x00));
+        response->smoke.reversal = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INNEG_SMOKE, 0x00));
+
+        response->gunsite.enable = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INEN_GUNSITE, 0x00));
+        response->gunsite.reversal = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INNEG_GUNSITE, 0x00));
+
+        response->fuse.enable = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INEN_FUSE, 0x00));
+        response->fuse.reversal = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INNEG_FUSE, 0x00));
+
+        response->liquid.enable = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INEN_LIQUID, 0x00));
+        response->liquid.reversal = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INNEG_LIQUID, 0x00));
+
+        response->circuit_breaker.enable = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INEN_CIRCUIT_BREAKER, 0x00));
+        response->circuit_breaker.reversal = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INNEG_CIRCUIT_BREAKER, 0x00));
     }
     /** 配置信息设置 */
     else{

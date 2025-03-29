@@ -1875,6 +1875,14 @@ struct ykcm_input_info_7103_7101{
     struct ykcm_input_pair_7103_7101 fan;        /* 风扇 */
     struct ykcm_input_pair_7103_7101 elock;      /* 电子锁 */
     struct ykcm_input_pair_7103_7101 tempprotect;/* 温度保护 */
+    struct ykcm_input_pair_7103_7101 pour;       /* 倾倒 */
+    struct ykcm_input_pair_7103_7101 protect_light;/* 防雷 */
+    struct ykcm_input_pair_7103_7101 flood;      /* 水浸 */
+    struct ykcm_input_pair_7103_7101 smoke;      /* 烟感 */
+    struct ykcm_input_pair_7103_7101 gunsite;    /* 枪座 */
+    struct ykcm_input_pair_7103_7101 fuse;       /* 熔断器 */
+    struct ykcm_input_pair_7103_7101 liquid;     /* 液冷 */
+    struct ykcm_input_pair_7103_7101 circuit_breaker; /* 断路器 */
 };
 /************************************* 7104 *********************************************/
 /** 输入信息 */

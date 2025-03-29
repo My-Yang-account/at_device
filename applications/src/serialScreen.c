@@ -1750,6 +1750,78 @@ static s32 SerialScreen_ConfigExecute_Input_7103_7101(u8 port, void *data, void 
         LcdData.setData.supin_temp_pro = TRUE;
     }
 
+    LcdData.setData.supin_pour = FALSE;
+    if(config->pour.enable){
+        LcdData.setData.supin_pour = TRUE;
+    }
+    LcdData.setData.neg_pour = FALSE;
+    if(config->pour.reversal){
+        LcdData.setData.neg_pour = TRUE;
+    }
+
+    LcdData.setData.supin_protectlight = FALSE;
+    if(config->protect_light.enable){
+        LcdData.setData.supin_protectlight = TRUE;
+    }
+    LcdData.setData.neg_protectlight = FALSE;
+    if(config->protect_light.reversal){
+        LcdData.setData.neg_protectlight = TRUE;
+    }
+
+    LcdData.setData.supin_flood = FALSE;
+    if(config->flood.enable){
+        LcdData.setData.supin_flood = TRUE;
+    }
+    LcdData.setData.neg_flood = FALSE;
+    if(config->flood.reversal){
+        LcdData.setData.neg_flood = TRUE;
+    }
+
+    LcdData.setData.supin_smoke = FALSE;
+    if(config->smoke.enable){
+        LcdData.setData.supin_smoke = TRUE;
+    }
+    LcdData.setData.neg_smoke = FALSE;
+    if(config->smoke.reversal){
+        LcdData.setData.neg_smoke = TRUE;
+    }
+
+    LcdData.setData.supin_gunsite = FALSE;
+    if(config->gunsite.enable){
+        LcdData.setData.supin_gunsite = TRUE;
+    }
+    LcdData.setData.neg_gunsite = FALSE;
+    if(config->gunsite.reversal){
+        LcdData.setData.neg_gunsite = TRUE;
+    }
+
+    LcdData.setData.supin_fuse = FALSE;
+    if(config->fuse.enable){
+        LcdData.setData.supin_fuse = TRUE;
+    }
+    LcdData.setData.neg_fuse = FALSE;
+    if(config->fuse.reversal){
+        LcdData.setData.neg_fuse = TRUE;
+    }
+
+    LcdData.setData.supin_liquid = FALSE;
+    if(config->liquid.enable){
+        LcdData.setData.supin_liquid = TRUE;
+    }
+    LcdData.setData.neg_liquid = FALSE;
+    if(config->liquid.reversal){
+        LcdData.setData.neg_liquid = TRUE;
+    }
+
+    LcdData.setData.supin_circuit_breaker = FALSE;
+    if(config->circuit_breaker.enable){
+        LcdData.setData.supin_circuit_breaker = TRUE;
+    }
+    LcdData.setData.neg_circuit_breaker = FALSE;
+    if(config->circuit_breaker.reversal){
+        LcdData.setData.neg_circuit_breaker = TRUE;
+    }
+
     SerialScreen_InputSetFlash();
 
     return LcdAssistantData.Flag.IsConfigFail;
