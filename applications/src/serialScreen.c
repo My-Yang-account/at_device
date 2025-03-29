@@ -619,6 +619,15 @@ struct LCD_DISPLAY_SETDATA_TYPE{
 	u32 g_emergency;							//急停按钮反馈
 	u8 s_fan[LCD_GUN_NUM];								//风扇控制
 	u32 g_door;								//门禁反馈
+    u32 g_aux24v[LCD_GUN_NUM];              //24V辅源反馈
+    u32 g_pour;                             //倾倒反馈
+    u32 g_protect_light;                    //防雷反馈
+    u32 g_flood;                            //水浸反馈
+    u32 g_smoke;                            //烟感反馈
+    u32 g_gunsite[LCD_GUN_NUM];             //枪座反馈
+    u32 g_fuse[LCD_GUN_NUM];                //熔断器反馈
+
+    u8 aux24v_set[LCD_GUN_NUM];             //24v辅电接触器设置
 	/***********************Module debug***************************/
 	u32 g_chargeVol[LCD_GUN_NUM];			//充电电压
 	u32 g_chargeCur[LCD_GUN_NUM];			//充电电流
@@ -671,6 +680,8 @@ struct LCD_DISPLAY_SETDATA_TYPE{
     u32 ScreenBaseTime;
     u32 ScreenBaseTick;
 #endif /* SCREEN_USING_TXT_RTC */
+    /***********************保护信息底图icon***************************/
+    u8 Icon_ProtectInfo;                        //保护信息底图icon
 
 }LCD_DISPLAY_SETDATA_TYPE_t;
 
@@ -5998,6 +6009,13 @@ void SerialScreen_GetIOStatus(int port)
     LcdData.setData.g_auxRelay[port] = REALAY_OFF;
 	LcdData.setData.g_auxRelay[port] = LcdData.setData.s_auxRelay[port];
 
+    if(port == LCD_GUN_1)
+        thaisenAux_A_24V_Disable();
+    else if(port == LCD_GUN_2)
+        thaisenAux_B_24V_Disable();
+
+    LcdData.setData.aux24v_set[port] = REALAY_OFF;
+
 	return ;
 }
 
@@ -6170,6 +6188,34 @@ void SerialScreen_BtnAuxSet(u8 port)
 
 }
 
+void SerialScreen_BtnAux24VSetA()
+{
+    SerialScreen_BtnAux24VSet(LCD_GUN_1);
+}
+
+void SerialScreen_BtnAux24VSetB()
+{
+    SerialScreen_BtnAux24VSet(LCD_GUN_2);
+}
+
+void SerialScreen_BtnAux24VSet(u8 port)
+{
+    LcdData.setData.aux24v_set[port]= !LcdData.setData.aux24v_set[port];
+    if(LcdData.setData.aux24v_set[port] != TRUE)
+    {
+        if(port == LCD_GUN_1)
+            thaisenAux_A_24V_Disable();
+        else if(port == LCD_GUN_2)
+            thaisenAux_B_24V_Disable();
+    }
+    else
+    {
+        if(port == LCD_GUN_1)
+            thaisenAux_A_24V_Enable();
+        else if(port == LCD_GUN_2)
+            thaisenAux_B_24V_Enable();
+    }
+}
 
 void SerialScreen_BtnFanSetA()
 {
@@ -8774,6 +8820,16 @@ int SerialScreen_DataProcess()
 
 		LcdData.setData.g_auxRelay[LCD_GUN_1] =!(thaisenGetAux_A_Status_debug());
 		LcdData.setData.g_auxRelay[LCD_GUN_2] =!(thaisenGetAux_B_Status_debug());
+        LcdData.setData.g_aux24v[LCD_GUN_1] = LcdData.setData.g_auxRelay[LCD_GUN_1];
+        LcdData.setData.g_aux24v[LCD_GUN_2] = LcdData.setData.g_auxRelay[LCD_GUN_2];
+		LcdData.setData.g_gunsite[LCD_GUN_1] = !(thaisenGetGeneralInPortSta(thaisenGeneralInPortGunSit_A));
+        LcdData.setData.g_gunsite[LCD_GUN_2] = !(thaisenGetGeneralInPortSta(thaisenGeneralInPortGunSit_B));
+        LcdData.setData.g_fuse[LCD_GUN_1] = 0;
+        LcdData.setData.g_fuse[LCD_GUN_2] = 0;
+        LcdData.setData.g_pour = !(thaisenGetGeneralInPortSta(thaisenGeneralInPortPour));
+        LcdData.setData.g_protect_light = !(thaisenGetGeneralInPortSta(thaisenGeneralInPortLightningProtection));
+        LcdData.setData.g_flood = !(thaisenGetGeneralInPortSta(thaisenGeneralInPortFlooding));
+        LcdData.setData.g_smoke = !(thaisenGetGeneralInPortSta(thaisenGeneralInPortSmoke));
 	}
 	
     LcdData.runData.netstate = thaisen_app_get_net_state();
@@ -9173,7 +9229,12 @@ void SerialScreen_Process(struct SerialScreenObj *cmd)
             SerialScreen_CurrentPageShow(cmd,1);
         }
     }
-
+    LcdData.setData.Icon_ProtectInfo = 0;
+    LcdData.setData.Input_OverVolt = 0xFF00;
+    LcdData.setData.Input_UnderVolt = 0xFF00;
+    LcdData.setData.Onput_OverVolt = 0xFF00;
+    LcdData.setData.Onput_UnderVolt = 0xFF00;
+    LcdData.setData.Onput_OverCurr = 0xFF00;
 }
 
 int SerialScreen_chksum(u8 *ptr,s32 len)
@@ -9729,11 +9790,20 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_PROTECT, NULL, "cd up", LCD_BtnType, 0x0050, 0x1000, page_type, LCD_PAGE_ROOT_MAIN, (void *)NULL);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_PROTECT, NULL, "Home", LCD_BtnHomeType, 0x0002, 0x1000, page_type, LCD_PAGE_NONE, (void *)NULL);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_PROTECT, NULL, "subok", LCD_BtnType, 0x0014, 0x1000, page_type, LCD_PAGE_ROOT_MAIN, (void *)SerialScreen_BtnProtectInfoSet);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_PROTECT, NULL, "Icon shield", LCD_IconType, LCD_10sReflash, 0x6516, pu8_type, sizeof(LcdData.setData.Icon_ProtectInfo), (void *)&LcdData.setData.Icon_ProtectInfo);
+#if 0
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_PROTECT, NULL, "In_OV", LCD_InputType, 0, 0x414E, pu32_type, sizeof(LcdData.setData.Input_OverVolt), (void *)&LcdData.setData.Input_OverVolt);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_PROTECT, NULL, "In_UV", LCD_InputType, 0, 0x4130, pu32_type, sizeof(LcdData.setData.Input_UnderVolt), (void *)&LcdData.setData.Input_UnderVolt);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_PROTECT, NULL, "Ou_OV", LCD_InputType, 0, 0x4132, pu32_type, sizeof(LcdData.setData.Onput_OverVolt), (void *)&LcdData.setData.Onput_OverVolt);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_PROTECT, NULL, "Ou_UV", LCD_InputType, 0, 0x4134, pu32_type, sizeof(LcdData.setData.Onput_UnderVolt), (void *)&LcdData.setData.Onput_UnderVolt);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_PROTECT, NULL, "Ou_OC", LCD_InputType, 0, 0x4136, pu32_type, sizeof(LcdData.setData.Onput_OverCurr), (void *)&LcdData.setData.Onput_OverCurr);
+#else
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_PROTECT, NULL, "In_OV", LCD_InputType, 0, 0x8010, pu32_type, sizeof(LcdData.setData.Input_OverVolt), (void *)&LcdData.setData.Input_OverVolt);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_PROTECT, NULL, "In_UV", LCD_InputType, 0, 0x8020, pu32_type, sizeof(LcdData.setData.Input_UnderVolt), (void *)&LcdData.setData.Input_UnderVolt);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_PROTECT, NULL, "Ou_OV", LCD_InputType, 0, 0x8030, pu32_type, sizeof(LcdData.setData.Onput_OverVolt), (void *)&LcdData.setData.Onput_OverVolt);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_PROTECT, NULL, "Ou_UV", LCD_InputType, 0, 0x8040, pu32_type, sizeof(LcdData.setData.Onput_UnderVolt), (void *)&LcdData.setData.Onput_UnderVolt);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_PROTECT, NULL, "Ou_OC", LCD_InputType, 0, 0x8050, pu32_type, sizeof(LcdData.setData.Onput_OverCurr), (void *)&LcdData.setData.Onput_OverCurr);
+#endif
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_PROTECT, NULL, "StopSOC", LCD_InputType, 0, 0x4138, pu32_type, sizeof(LcdData.setData.Stop_SOC), (void *)&LcdData.setData.Stop_SOC);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_PROTECT, NULL, "OT_W", LCD_InputType, 0, 0x413A, pu32_type, sizeof(LcdData.setData.OverTemp_Warnning), (void *)&LcdData.setData.OverTemp_Warnning);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_PROTECT, NULL, "OT_S", LCD_InputType, 0, 0x413C, pu32_type, sizeof(LcdData.setData.OverTemp_Stop), (void *)&LcdData.setData.OverTemp_Stop);
@@ -9805,7 +9875,7 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
 
     /** 35.出厂调试-B枪监控信息 [page:46] */
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_MONITOR_B, NULL, "a gun", LCD_BtnType, 0x0026, 0x1000, page_type, LCD_PAGE_MENU_MONITOR, (void *)NULL);
-    SerialScreen_ItemSetUp(LCD_PAGE_MENU_MONITOR_B, NULL, "in out", LCD_BtnType, 0x0023, 0x1000, page_type, LCD_PAGE_MENU_INOUT_B, (void *)SerialScreen_GetIOStatusA);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_MONITOR_B, NULL, "in out", LCD_BtnType, 0x0023, 0x1000, page_type, LCD_PAGE_MENU_INOUT_B, (void *)SerialScreen_GetIOStatusB);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_MONITOR_B, NULL, "modeule state", LCD_BtnType, 0x0024, 0x1000, page_type, LCD_PAGE_MENU_STATE_MODULE_B, (void *)SerialScreen_BtnModuleStateB);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_MONITOR_B, NULL, "charge vol", LCD_DataType, LCD_1sReflash, 0x5150, pu32_type, sizeof(LcdData.setData.g_chargeVol[LCD_GUN_2]), (void *)&LcdData.setData.g_chargeVol[LCD_GUN_2]);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_MONITOR_B, NULL, "charge cur", LCD_DataType, LCD_1sReflash, 0x5152, pu32_type, sizeof(LcdData.setData.g_chargeCur[LCD_GUN_2]), (void *)&LcdData.setData.g_chargeCur[LCD_GUN_2]);
@@ -9833,6 +9903,7 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT, NULL, "ElockA set", LCD_BtnType, 0x0041, 0x1000, page_type, LCD_PAGE_MENU_INOUT, (void *)SerialScreen_BtnElockSetA);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT, NULL, "FanA set", LCD_BtnType, 0x0042, 0x1000, page_type, LCD_PAGE_MENU_INOUT, (void *)SerialScreen_BtnFanSetA);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT, NULL, "aux set", LCD_BtnType, 0x0053, 0x1000, page_type, LCD_PAGE_MENU_INOUT, (void *)SerialScreen_BtnAuxSetA);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT, NULL, "aux24v set", LCD_BtnType, 0x0060, 0x1003, page_type, LCD_PAGE_MENU_INOUT, (void *)SerialScreen_BtnAux24VSetA);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT, NULL, "b gun", LCD_BtnType, 0x0026, 0x1000, page_type, LCD_PAGE_MENU_INOUT_B, (void *)SerialScreen_GetIOStatusB);
 
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT, NULL, "monitor info", LCD_BtnType, 0x0022, 0x1000, page_type, LCD_PAGE_MENU_MONITOR, (void *)NULL);
@@ -9848,6 +9919,13 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT, NULL, "aux Status", LCD_TextType, LCD_1sReflash, 0x41B2, pu32_type, sizeof(LcdData.setData.g_auxRelay[LCD_GUN_1]), (void *)&LcdData.setData.g_auxRelay[LCD_GUN_1]);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT, NULL, "Relay Parallel2", LCD_TextType, LCD_1sReflash, 0x5184, pu8_nH_type, 1, (void *)&LcdData.setData.g_paraRely1);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT, NULL, "Relay Parallel3", LCD_TextType, LCD_1sReflash, 0x5188, pu8_nH_type, 1, (void *)&LcdData.setData.g_paraRely2);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT, NULL, "aux24v", LCD_TextType, LCD_1sReflash, 0x6700, pu32_type, 1, (void *)&LcdData.setData.g_aux24v[LCD_GUN_1]);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT, NULL, "pour", LCD_TextType, LCD_1sReflash, 0x6704, pu32_type, 1, (void *)&LcdData.setData.g_pour);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT, NULL, "protect light", LCD_TextType, LCD_1sReflash, 0x6706, pu32_type, 1, (void *)&LcdData.setData.g_protect_light);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT, NULL, "flood", LCD_TextType, LCD_1sReflash, 0x6708, pu32_type, 1, (void *)&LcdData.setData.g_flood);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT, NULL, "smoke", LCD_TextType, LCD_1sReflash, 0x670A, pu32_type, 1, (void *)&LcdData.setData.g_smoke);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT, NULL, "gunsite", LCD_TextType, LCD_1sReflash, 0x670C, pu32_type, 1, (void *)&LcdData.setData.g_gunsite[LCD_GUN_1]);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT, NULL, "fuse", LCD_TextType, LCD_1sReflash, 0x670E, pu32_type, 1, (void *)&LcdData.setData.g_fuse[LCD_GUN_1]);
 
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT, NULL, "Icon AC", LCD_IconType, LCD_10sReflash, 0x4172, pu8_type, sizeof(LcdData.setData.s_acRely), (void *)&LcdData.setData.s_acRely);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT, NULL, "Icon DC", LCD_IconType, LCD_10sReflash, 0x4174, pu8_type, sizeof(LcdData.setData.s_dcRelay[LCD_GUN_1]), (void *)&LcdData.setData.s_dcRelay[LCD_GUN_1]);
@@ -9857,6 +9935,7 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT, NULL, "Icon ElectlockA", LCD_IconType, LCD_10sReflash, 0x4178, pu8_type, sizeof(LcdData.setData.s_elElock[LCD_GUN_1]), (void *)&LcdData.setData.s_elElock[LCD_GUN_1]);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT, NULL, "Icon FanA", LCD_IconType, LCD_10sReflash, 0x417A, pu8_type, sizeof(LcdData.setData.s_fan[LCD_GUN_1]), (void *)&LcdData.setData.s_fan[LCD_GUN_1]);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT, NULL, "Icon aux", LCD_IconType, LCD_10sReflash, 0x41B4, pu8_type, sizeof(LcdData.setData.s_auxRelay[LCD_GUN_1]), (void *)&LcdData.setData.s_auxRelay[LCD_GUN_1]);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT, NULL, "Icon aux24v", LCD_IconType, LCD_10sReflash, 0x6702, pu8_type, sizeof(LcdData.setData.aux24v_set[LCD_GUN_1]), (void *)&LcdData.setData.aux24v_set[LCD_GUN_1]);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT, NULL, "modeule state", LCD_BtnType, 0x0024, 0x1000, page_type, LCD_PAGE_MENU_STATE_MODULE, (void *)SerialScreen_BtnModuleStateA);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT, NULL, "cd up", LCD_BtnType, 0x0050, 0x1000, page_type, LCD_PAGE_ROOT_MAIN, (void *)SerialScreen_QuitDebugIO);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT, NULL, "Home", LCD_BtnHomeType, 0x0002, 0x1000, page_type, LCD_PAGE_NONE, (void *)SerialScreen_QuitDebugIO);
@@ -9871,6 +9950,7 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT_B, NULL, "ElockB set", LCD_BtnType, 0x0048, 0x1000, page_type, LCD_PAGE_MENU_INOUT_B, (void *)SerialScreen_BtnElockSetB);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT_B, NULL, "FanB set", LCD_BtnType, 0x0049, 0x1000, page_type, LCD_PAGE_MENU_INOUT_B, (void *)SerialScreen_BtnFanSetB);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT_B, NULL, "aux set", LCD_BtnType, 0x0054, 0x1000, page_type, LCD_PAGE_MENU_INOUT_B, (void *)SerialScreen_BtnAuxSetB);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT_B, NULL, "aux24v set", LCD_BtnType, 0x0061, 0x1003, page_type, LCD_PAGE_MENU_INOUT_B, (void *)SerialScreen_BtnAux24VSetB);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT_B, NULL, "a gun", LCD_BtnType, 0x0026, 0x1000, page_type, LCD_PAGE_MENU_INOUT, (void *)SerialScreen_GetIOStatusA);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT_B, NULL, "monitor info", LCD_BtnType, 0x0022, 0x1000, page_type, LCD_PAGE_MENU_MONITOR_B, (void *)NULL);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT_B, NULL, "Relay AC", LCD_TextType, LCD_1sReflash, 0x5164, pu32_type, sizeof(LcdData.setData.g_acRely), (void *)&LcdData.setData.g_acRely);
@@ -9884,6 +9964,14 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT_B, NULL, "Scram Status", LCD_TextType, LCD_1sReflash, 0x516E, pu32_type, sizeof(LcdData.setData.g_emergency), (void *)&LcdData.setData.g_emergency);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT_B, NULL, "Door Status", LCD_TextType, LCD_1sReflash, 0x5170, pu32_type, sizeof(LcdData.setData.g_door), (void *)&LcdData.setData.g_door);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT_B, NULL, "aux Status", LCD_TextType, LCD_1sReflash, 0x51B2, pu32_type, sizeof(LcdData.setData.g_auxRelay[LCD_GUN_2]), (void *)&LcdData.setData.g_auxRelay[LCD_GUN_2]);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT_B, NULL, "aux24v", LCD_TextType, LCD_1sReflash, 0x6780, pu32_type, 1, (void *)&LcdData.setData.g_aux24v[LCD_GUN_2]);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT_B, NULL, "pour", LCD_TextType, LCD_1sReflash, 0x6784, pu32_type, 1, (void *)&LcdData.setData.g_pour);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT_B, NULL, "protect light", LCD_TextType, LCD_1sReflash, 0x6786, pu32_type, 1, (void *)&LcdData.setData.g_protect_light);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT_B, NULL, "flood", LCD_TextType, LCD_1sReflash, 0x6788, pu32_type, 1, (void *)&LcdData.setData.g_flood);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT_B, NULL, "smoke", LCD_TextType, LCD_1sReflash, 0x678A, pu32_type, 1, (void *)&LcdData.setData.g_smoke);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT_B, NULL, "gunsite", LCD_TextType, LCD_1sReflash, 0x678C, pu32_type, 1, (void *)&LcdData.setData.g_gunsite[LCD_GUN_2]);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT_B, NULL, "fuse", LCD_TextType, LCD_1sReflash, 0x678E, pu32_type, 1, (void *)&LcdData.setData.g_fuse[LCD_GUN_2]);
+
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT_B, NULL, "Icon AC", LCD_IconType, LCD_10sReflash, 0x5172, pu8_type, sizeof(LcdData.setData.s_acRely), (void *)&LcdData.setData.s_acRely);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT_B, NULL, "Icon DC", LCD_IconType, LCD_10sReflash, 0x5174, pu8_type, sizeof(LcdData.setData.s_dcRelay[LCD_GUN_2]), (void *)&LcdData.setData.s_dcRelay[LCD_GUN_2]);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT_B, NULL, "Icon Parallel1", LCD_IconType, LCD_10sReflash, 0x5176, pu8_type, sizeof(LcdData.setData.s_paraRely0), (void *)&LcdData.setData.s_paraRely0);
@@ -9892,6 +9980,7 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT_B, NULL, "Icon ElectlockB", LCD_IconType, LCD_10sReflash, 0x5178, pu8_type, sizeof(LcdData.setData.s_elElock[LCD_GUN_2]), (void *)&LcdData.setData.s_elElock[LCD_GUN_2]);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT_B, NULL, "Icon FanB", LCD_IconType, LCD_10sReflash, 0x517A, pu8_type, sizeof(LcdData.setData.s_fan[LCD_GUN_1]), (void *)&LcdData.setData.s_fan[LCD_GUN_1]);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT_B, NULL, "Icon aux", LCD_IconType, LCD_10sReflash, 0x51B4, pu8_type, sizeof(LcdData.setData.s_auxRelay[LCD_GUN_2]), (void *)&LcdData.setData.s_auxRelay[LCD_GUN_2]);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT_B, NULL, "Icon aux24v", LCD_IconType, LCD_10sReflash, 0x6782, pu8_type, sizeof(LcdData.setData.aux24v_set[LCD_GUN_2]), (void *)&LcdData.setData.aux24v_set[LCD_GUN_2]);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT_B, NULL, "modeule state", LCD_BtnType, 0x0024, 0x1000, page_type, LCD_PAGE_MENU_STATE_MODULE_B, (void *)SerialScreen_BtnModuleStateB);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT_B, NULL, "cd up", LCD_BtnType, 0x0050, 0x1000, page_type, LCD_PAGE_ROOT_MAIN, (void *)SerialScreen_QuitDebugIO);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT_B, NULL, "Home", LCD_BtnHomeType, 0x0002, 0x1000, page_type, LCD_PAGE_NONE, (void *)SerialScreen_QuitDebugIO);

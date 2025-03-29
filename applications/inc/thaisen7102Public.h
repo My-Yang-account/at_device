@@ -2798,7 +2798,7 @@ typedef enum
  * 输入参数:
  *          port    输入端口枚举
  * 返回参数:
- *          无
+ *          @thaisenGeneralInPortSta
  * 调用方法:
  *          可实时调用
  */
