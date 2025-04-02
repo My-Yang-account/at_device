@@ -194,7 +194,8 @@ struct _function_enable{
     uint8_t pour_in;               /* 倾倒 */
     uint8_t liquid_in;             /* 液冷 */
     uint8_t fuse_in;               /* 熔断器 */
-    uint8_t reserve[81];
+    uint8_t mode_select;           /* 模式选择 */
+    uint8_t reserve[80];
 };
 
 struct _state_reversal{
@@ -386,6 +387,11 @@ APP_DEF_SRAM2 static struct config_item s_config_item_set[CONFIG_ITEM_SIZE] =
         {CONFIG_ITEM_SUPORT_OFFLINE_CARD,
         (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.offline_card)),       /*配置项：离线卡支持*/
         (uint8_t*)&s_chargepile_config_info.function_enable.offline_card,
+        NULL},
+
+        {CONFIG_ITEM_SUPORT_MODE_SELECT,
+        (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.mode_select)),       /*配置项：模式选择支持*/
+        (uint8_t*)&s_chargepile_config_info.function_enable.mode_select,
         NULL},
 
         {CONFIG_ITEM_CARD_TYPE,
@@ -906,6 +912,9 @@ void sys_chargeplie_config_info_init(void)
     /** 启用离线卡功能 */
     sys_config_item_init(CONFIG_ITEM_SUPORT_OFFLINE_CARD, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.offline_card)), \
             (uint8_t*)&s_chargepile_config_info.function_enable.offline_card, NULL);
+    /** 启用模式选择功能 */
+    sys_config_item_init(CONFIG_ITEM_SUPORT_MODE_SELECT, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.mode_select)), \
+            (uint8_t*)&s_chargepile_config_info.function_enable.mode_select, NULL);
     /** 卡类型 */
     sys_config_item_init(CONFIG_ITEM_CARD_TYPE, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_info.card_type)), \
             (uint8_t*)&s_chargepile_config_info.config_info.card_type, NULL);
@@ -1703,6 +1712,7 @@ static void chargepile_config_data_reset(void)
     s_chargepile_config_info.function_enable.pour_in = 0x00;
     s_chargepile_config_info.function_enable.liquid_in = 0x00;
     s_chargepile_config_info.function_enable.fuse_in = 0x00;
+    s_chargepile_config_info.function_enable.mode_select = 0x00;
 
     s_chargepile_config_info.state_reversal.emergency_stop = 0x00;
     s_chargepile_config_info.state_reversal.gate = 0x00;
@@ -2119,6 +2129,10 @@ int32_t chargepile_check_config(void)
     if(s_chargepile_config_info.function_enable.offline_card > 0x01){      /* 离线卡功能默认开启 */
         s_chargepile_config_info.function_enable.offline_card = 0x01;
     }
+    if(s_chargepile_config_info.function_enable.mode_select > 0x01){      /* 模式选择功能默认关闭 */
+        s_chargepile_config_info.function_enable.mode_select = 0x00;
+    }
+
     if(s_chargepile_config_info.function_enable.acrelay_out > 0x01){       /* 交流接触器输出启用默认关闭 */
         s_chargepile_config_info.function_enable.acrelay_out = 0x00;
     }
