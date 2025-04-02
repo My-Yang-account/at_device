@@ -1807,7 +1807,7 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
                 ykc_monitor_response_buff_release_sem();
                 rt_thread_mdelay(250);
 
-                s_ykc_monitor_tplat_socket_tick = rt_tick_get();
+                s_ykc_monitor_billing_rule_tick = rt_tick_get();
 #endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
             }
         }
