@@ -24,6 +24,7 @@ APP_DEF_SRAM1 static struct charge_data s_data_of_charging;
 APP_DEF_SRAM1 static struct battery_info s_battery_info;
 APP_DEF_SRAM1 static struct bms_info s_bms_info;
 APP_DEF_SRAM1 static struct fault_info s_fault_info;
+APP_DEF_SRAM1 static struct ammeter_data s_ammeter_data;
 
 #ifdef APP_DESIGNATE_REGION
 /*************************************
@@ -42,6 +43,7 @@ void app_data_info_interface_init(void)
     memset(&s_battery_info, 0x00, sizeof(s_battery_info));
     memset(&s_bms_info, 0x00, sizeof(s_bms_info));
     memset(&s_fault_info, 0x00, sizeof(s_fault_info));
+    memset(&s_ammeter_data, 0x00, sizeof(s_ammeter_data));
 }
 #endif /* APP_DESIGNATE_REGION */
 
@@ -1313,31 +1315,23 @@ int32_t thaisen_get_gun_temp(uint8_t gunno)
 }
 
 /********************************************
- * 函数名      thaisen_get_ammeter_voltage
- * 功能         获取电表电压
-* 返回           无
+ * 函数名      thaisen_get_ammeter_data
+ * 功能         获取电表数据
+* 返回           @struct ammeter_data
  *******************************************/
-uint32_t thaisen_get_ammeter_voltage(uint8_t gunno)
+struct ammeter_data *thaisen_get_ammeter_data(uint8_t gunno)
 {
     if(gunno >= APP_SYSTEM_GUNNO_SIZE){
-        return 0x00;
+        memset(&s_ammeter_data, 0x00, sizeof(s_ammeter_data));
+        return &s_ammeter_data;
     }
 
-    return mw_get_meter_ua(gunno);
-}
+    s_ammeter_data.voltage = mw_get_meter_ua(gunno);
+    s_ammeter_data.current = mw_get_meter_ia(gunno);
+    s_ammeter_data.power = mw_get_meter_pa(gunno);
+    s_ammeter_data.elect = mw_get_meter_total_wh(gunno);
 
-/********************************************
- * 函数名      thaisen_get_ammeter_current
- * 功能         获取电表电流
-* 返回           无
- *******************************************/
-uint32_t thaisen_get_ammeter_current(uint8_t gunno)
-{
-    if(gunno >= APP_SYSTEM_GUNNO_SIZE){
-        return 0x00;
-    }
-
-    return mw_get_meter_ia(gunno);
+    return &s_ammeter_data;
 }
 
 /********************************************

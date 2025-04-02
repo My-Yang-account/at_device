@@ -445,6 +445,7 @@ struct LCD_DISPLAY_SETDATA_TYPE{
     u16 MeterModel;
     u16 MeterCheckWay;
     u16 MeterBaudrate;
+    u32 MeterElect[LCD_GUN_NUM];
 	u8 ErWeiCode[LCD_GUN_NUM][QRCODE_LEN];
 	u8 ErWeiCodePre[128];
 	u8 SerialScreen_PassWordShow;           //屏幕密码显示
@@ -2403,16 +2404,19 @@ static void SerialScreen_RealTime_InfoGet(void)
     }
 
     for(u8 gunno = 0; gunno < LCD_GUN_NUM; gunno++){
+        struct ammeter_data *ammeter = thaisen_get_ammeter_data(gunno);
+
         LcdData.setData.g_cc1Vol[gunno] = thaisen_get_cc1_voltage(gunno) *10;
         LcdData.setData.g_portTemp[gunno] = thaisen_get_gun_temp(gunno);
-        LcdData.setData.g_meterVol[gunno] = thaisen_get_ammeter_voltage(gunno);
-        LcdData.setData.g_meterCur[gunno] = thaisen_get_ammeter_current(gunno);
+        LcdData.setData.g_meterVol[gunno] = ammeter->voltage;
+        LcdData.setData.g_meterCur[gunno] = ammeter->current;
         if(thaisenGetModuleOutputVoltage(gunno) < 100){
             LcdData.setData.g_chargeVol[gunno] = 0;
         }else{
             LcdData.setData.g_chargeVol[gunno] = thaisenGetModuleOutputVoltage(gunno);
         }
-        LcdData.setData.g_chargeCur[gunno] = thaisen_get_ammeter_current(gunno);
+        LcdData.setData.g_chargeCur[gunno] = ammeter->current;
+        LcdData.setData.MeterElect[gunno] = ammeter->elect;
 #if 0
         if(thaisen_get_InsultInfo(gunno) == thaisenInsultAnomaly){
             LcdData.setData.warnning[gunno] = SYSTEM_WARNNING_INFO_INSULT_PROPERTIES;
@@ -9619,6 +9623,8 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_3, NULL, "meter model", LCD_InputType, 0, 0x4640, menu_type, sizeof(LcdData.setData.MeterModel), (void *)&LcdData.setData.MeterModel);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_3, NULL, "meter check", LCD_InputType, 0, 0x53C2, menu_type, sizeof(LcdData.setData.MeterCheckWay), (void *)&LcdData.setData.MeterCheckWay);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_3, NULL, "meter baudrate", LCD_InputType, 0, 0x53B2, menu_type, sizeof(LcdData.setData.MeterBaudrate), (void *)&LcdData.setData.MeterBaudrate);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_3, NULL, "meterElectA", LCD_DataType, LCD_1sReflash, 0x6550, pu32_type, sizeof(LcdData.setData.MeterElect[LCD_GUN_1]), (void *)&LcdData.setData.MeterElect[LCD_GUN_1]);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_3, NULL, "meterElectB", LCD_DataType, LCD_1sReflash, 0x6554, pu32_type, sizeof(LcdData.setData.MeterElect[LCD_GUN_2]), (void *)&LcdData.setData.MeterElect[LCD_GUN_2]);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_3, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
 
     /** 19.系统信息-模块信息 [page:21] */

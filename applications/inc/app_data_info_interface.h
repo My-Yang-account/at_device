@@ -508,13 +508,15 @@ uint8_t thaisen_get_cc1_voltage(uint8_t gunno);
  **/
 int32_t thaisen_get_gun_temp(uint8_t gunno);
 /**
- * 获取电表电压
+ * 获取电表数据
  **/
-uint32_t thaisen_get_ammeter_voltage(uint8_t gunno);
-/**
- * 获取电表电流
- **/
-uint32_t thaisen_get_ammeter_current(uint8_t gunno);
+struct ammeter_data{
+    int16_t voltage;       /* 电表电压(单位：0.1V) */
+    int16_t current;       /* 电表电流(单位：0.1A) */
+    uint32_t power;        /* 电表功率(单位：0.1W) */
+    uint32_t elect;        /* 电表电量(单位：0.001度) */
+};
+struct ammeter_data *thaisen_get_ammeter_data(uint8_t gunno);
 /**
  * 判断是否已经设置了电损比
  **/
