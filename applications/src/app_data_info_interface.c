@@ -25,6 +25,7 @@ APP_DEF_SRAM1 static struct battery_info s_battery_info;
 APP_DEF_SRAM1 static struct bms_info s_bms_info;
 APP_DEF_SRAM1 static struct fault_info s_fault_info;
 APP_DEF_SRAM1 static struct ammeter_data s_ammeter_data;
+APP_DEF_SRAM1 static struct card_data_info s_card_data;
 
 #ifdef APP_DESIGNATE_REGION
 /*************************************
@@ -44,6 +45,7 @@ void app_data_info_interface_init(void)
     memset(&s_bms_info, 0x00, sizeof(s_bms_info));
     memset(&s_fault_info, 0x00, sizeof(s_fault_info));
     memset(&s_ammeter_data, 0x00, sizeof(s_ammeter_data));
+    memset(&s_card_data, 0x00, sizeof(s_card_data));
 }
 #endif /* APP_DESIGNATE_REGION */
 
@@ -1670,5 +1672,42 @@ uint8_t thaisen_is_countdown_finish(uint8_t gunno)
 int32_t thaisen_trigger_config_execute(uint8_t gunno, thaisen_cfg_page page, void *config, void *sub_config, void *sub_sub_config)
 {
     return SerialScreen_Trigger_ConfigExecute(gunno, page, config, sub_config, sub_sub_config);
+}
+
+/**************************************************************************
+ * 函数名      thaisen_get_card_info
+ * 功能         获取卡信息
+ * 参数          gunno     枪号
+ * 返回          @struct card_data_info
+ *************************************************************************/
+struct card_data_info *thaisen_get_card_info(uint8_t gunno)
+{
+    memset(&s_card_data, 0x00, sizeof(s_card_data));
+    if(gunno >= APP_SYSTEM_GUNNO_SIZE){
+        return &s_card_data;
+    }
+
+    uint8_t valid_len = 0x00;
+    struct ofsm_info *ofsm_temp = get_ofsm_info(gunno);
+
+    if(((ofsm_temp->base.charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL) || (ofsm_temp->base.charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD)) &&
+            (ofsm_temp->base.main_gunno != gunno) && (ofsm_temp->base.main_gunno < APP_SYSTEM_GUNNO_SIZE)){
+        ofsm_temp = get_ofsm_info(ofsm_temp->base.main_gunno);
+    }
+
+    valid_len = strlen((char*)ofsm_temp->base.card_number);
+    if(valid_len > sizeof(ofsm_temp->base.card_number)){
+        valid_len = sizeof(ofsm_temp->base.card_number);
+    }
+    if(valid_len > sizeof(s_card_data.card_number)){
+        valid_len = sizeof(s_card_data.card_number);
+    }
+    memcpy(s_card_data.card_number, ofsm_temp->base.card_number, valid_len);
+
+    valid_len = sizeof(s_card_data.card_uuid);
+    valid_len = valid_len > ofsm_temp->base.card_uid_len ? ofsm_temp->base.card_uid_len : valid_len;
+    memcpy(s_card_data.card_uuid, ofsm_temp->base.card_uid, valid_len);
+
+    return &s_card_data;
 }
 

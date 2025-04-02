@@ -616,6 +616,17 @@ void thaisen_exit_critical(void);
  **/
 uint8_t thaisen_is_countdown_finish(uint8_t gunno);
 
+/**
+ * 获取卡数据
+ **/
+struct card_data_info{
+    uint8_t card_number[16];        /* 卡号 */
+    uint8_t card_uuid[8];           /* 卡UUID */
+    uint8_t card_type;              /* 卡类型 */
+};
+
+struct card_data_info *thaisen_get_card_info(uint8_t gunno);
+
 #endif /* APPLICATIONS_INC_APP_DATA_INFO_INTERFACE_H_ */
 
 

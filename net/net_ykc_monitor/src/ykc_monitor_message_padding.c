@@ -945,7 +945,7 @@ int8_t ykc_monitor_message_pro_apply_charge_active_response(uint8_t gunno, void 
     valid_len = sizeof(request->body.logic_card_number);
     valid_len = valid_len > sizeof(base->card_number) ? sizeof(base->card_number) : valid_len;
     memset(base->card_number, 0x00, sizeof(base->card_number));
-    memcpy(base->card_number, request->body.logic_card_number, valid_len);
+    ykc_monitor_bcd_to_ascii(base->card_number, sizeof(base->card_number), request->body.logic_card_number, NET_YKC_MONITOR_CARD_NUMBER_LENGTH_MAX);
 
     valid_len = sizeof(request->body.serial_number);
     valid_len = valid_len > sizeof(base->transaction_number) ? sizeof(base->transaction_number) : valid_len;

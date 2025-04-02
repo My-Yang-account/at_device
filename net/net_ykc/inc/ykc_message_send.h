@@ -203,6 +203,7 @@ uint8_t ykc_exist_message_wait_response(uint8_t gunno, uint32_t *state);
 void ykc_clear_message_wait_response_state(uint8_t gunno, uint32_t message_bit);
 uint8_t ykc_get_message_wait_response_timeout_state(uint8_t gunno, uint32_t timeout, uint32_t message_bit);
 
+void ykc_bcd_to_ascii(uint8_t *ascii, uint8_t alen, uint8_t *bcd, uint8_t blen);
 void ykc_ascii_to_bcd(uint8_t *ascii, uint8_t alen, uint8_t *bcd, uint8_t blen);
 
 int32_t ykc_message_send_init(void);

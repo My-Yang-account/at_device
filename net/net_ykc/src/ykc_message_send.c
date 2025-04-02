@@ -364,6 +364,28 @@ uint8_t ykc_get_message_wait_response_timeout_state(uint8_t gunno, uint32_t time
 }
 
 /**************************************************************************
+ * 函数名                 ykc_bcd_to_ascii
+ * 功能                     将BCD转成字符码
+ * 说明
+ * ***********************************************************************/
+void ykc_bcd_to_ascii(uint8_t *ascii, uint8_t alen, uint8_t *bcd, uint8_t blen)
+{
+    if((ascii == NULL) || (bcd == NULL) || (alen == 0x00) || (blen == 0x00)){
+        return;
+    }
+    int16_t aindex, bindex;
+
+    memset(ascii, 0x00, alen);
+
+    for(aindex = 0, bindex = 0; ((aindex + 1) < alen) && (bindex < blen); aindex += 2, bindex++){
+        ascii[aindex] = (uint8_t)((bcd[bindex] &0xf0) >>4);
+        ascii[aindex] += 0x30;
+        ascii[aindex + 1] = (bcd[bindex] &0x0f);
+        ascii[aindex + 1] += 0x30;
+    }
+}
+
+/**************************************************************************
  * 函数名                 ykc_ascii_to_bcd
  * 功能                     将字符码转成BCD
  * 说明

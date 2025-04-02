@@ -565,6 +565,7 @@ struct LCD_DISPLAY_SETDATA_TYPE{
 	u8 Sup_StartStyle[3][LCD_MODULE_GROUP_MAX];	//[0]:本地 [1]:VIN [2]:并充
 	u8 manufacturer;						// 0:thaisen 1:NULL
     u8 s_selectaux[LCD_GUN_NUM];            // 辅源选择
+    u8 s_card_number[LCD_GUN_NUM][17];      // 卡号
     /***********************set icon***************************/
     u8 Icon_SuplocalStop;                   //本地停止使能icon
     u8 Icon_SupPlugAndPlay;                 //即插即充使能icon
@@ -2351,6 +2352,7 @@ static void SerialScreen_RealTime_InfoGet(void)
 
     if(++LcdAssistantData.RefrenshPeriod > 1000 /100){   //线程运行时基10ms， 每1s更新一次数据
         u8 valid_len = sizeof(LcdData.setData.Help_Number), *data = NULL;
+        struct card_data_info *card = NULL;
 
         LcdData.setData.SIM_Strength = thaisen_app_get_signal_strength();
         memcpy(LcdData.setData.SIM_card, thaisen_app_get_sim_number(), 21);
@@ -2371,6 +2373,18 @@ static void SerialScreen_RealTime_InfoGet(void)
         for(int i = 0; i< LCD_GUN_NUM; i++)
         {
             thaisen_get_device_sn((char*)LcdData.runData.chgcode[i], sizeof(LcdData.runData.chgcode[i]), i);
+
+            card = thaisen_get_card_info(i);
+
+            memset(LcdData.setData.s_card_number[i], 0x00, sizeof(LcdData.setData.s_card_number[i]));
+            valid_len = strlen((char*)card->card_number);
+            if(valid_len > sizeof(card->card_number)){
+                valid_len = sizeof(card->card_number);
+            }
+            if(valid_len > (sizeof(LcdData.setData.s_card_number[i]) - 1)){
+                valid_len = (sizeof(LcdData.setData.s_card_number[i]) - 1);
+            }
+            memcpy(LcdData.setData.s_card_number[i], card->card_number, valid_len);
         }
 
         if(LcdData.CurrentPage != LCD_PAGE_ADMIN_PASWD){
@@ -9458,6 +9472,9 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_A_CHGING, NULL, "consume", LCD_DataType, LCD_1sReflash, 0x1618, pu32_type, sizeof(LcdData.gun[LCD_GUN_1].totalFee), (void *)&LcdData.gun[LCD_GUN_1].totalFee);
     SerialScreen_ItemSetUp(LCD_PAGE_A_CHGING, NULL, "RemainH_A", LCD_DataType, LCD_1sReflash, 0x6250, pu8_type, sizeof(LcdData.gun[LCD_GUN_1].RemainTime[0]), (void *)&LcdData.gun[LCD_GUN_1].RemainTime[0]);
     SerialScreen_ItemSetUp(LCD_PAGE_A_CHGING, NULL, "RemainM_A", LCD_DataType, LCD_1sReflash, 0x6252, pu8_type, sizeof(LcdData.gun[LCD_GUN_1].RemainTime[1]), (void *)&LcdData.gun[LCD_GUN_1].RemainTime[1]);
+
+
+    SerialScreen_ItemSetUp(LCD_PAGE_A_CHGING, NULL, "card num", LCD_TextType, LCD_NoReflash, 0x656C, pstr_type, sizeof(LcdData.setData.s_card_number[LCD_GUN_1]), (void *)&LcdData.setData.s_card_number[LCD_GUN_1]);
     SerialScreen_ItemSetUp(LCD_PAGE_A_CHGING, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
 
     /** 7.B枪充电信息 [page:07] */
@@ -9478,6 +9495,8 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_B_CHGING, NULL, "consume", LCD_DataType, LCD_1sReflash, 0x2618, pu32_type, sizeof(LcdData.gun[LCD_GUN_2].totalFee), (void *)&LcdData.gun[LCD_GUN_2].totalFee);
     SerialScreen_ItemSetUp(LCD_PAGE_B_CHGING, NULL, "RemainH_B", LCD_DataType, LCD_1sReflash, 0x6254, pu8_type, sizeof(LcdData.gun[LCD_GUN_2].RemainTime[0]), (void *)&LcdData.gun[LCD_GUN_2].RemainTime[0]);
     SerialScreen_ItemSetUp(LCD_PAGE_B_CHGING, NULL, "RemainM_B", LCD_DataType, LCD_1sReflash, 0x6256, pu8_type, sizeof(LcdData.gun[LCD_GUN_2].RemainTime[1]), (void *)&LcdData.gun[LCD_GUN_2].RemainTime[1]);
+
+    SerialScreen_ItemSetUp(LCD_PAGE_B_CHGING, NULL, "card num", LCD_TextType, LCD_NoReflash, 0x657C, pstr_type, sizeof(LcdData.setData.s_card_number[LCD_GUN_2]), (void *)&LcdData.setData.s_card_number[LCD_GUN_2]);
     SerialScreen_ItemSetUp(LCD_PAGE_B_CHGING, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
 
     /** 8.A枪电池信息 [page:08] */
@@ -9498,6 +9517,9 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_A_CHGING_BAT, NULL, "consume", LCD_DataType, LCD_1sReflash, 0x1618, pu32_type, sizeof(LcdData.gun[LCD_GUN_1].totalFee), (void *)&LcdData.gun[LCD_GUN_1].totalFee);
     SerialScreen_ItemSetUp(LCD_PAGE_A_CHGING_BAT, NULL, "RemainH_A", LCD_DataType, LCD_1sReflash, 0x6250, pu8_type, sizeof(LcdData.gun[LCD_GUN_1].RemainTime[0]), (void *)&LcdData.gun[LCD_GUN_1].RemainTime[0]);
     SerialScreen_ItemSetUp(LCD_PAGE_A_CHGING_BAT, NULL, "RemainM_A", LCD_DataType, LCD_1sReflash, 0x6252, pu8_type, sizeof(LcdData.gun[LCD_GUN_1].RemainTime[1]), (void *)&LcdData.gun[LCD_GUN_1].RemainTime[1]);
+
+
+    SerialScreen_ItemSetUp(LCD_PAGE_A_CHGING_BAT, NULL, "card num", LCD_TextType, LCD_NoReflash, 0x656C, pstr_type, sizeof(LcdData.setData.s_card_number[LCD_GUN_1]), (void *)&LcdData.setData.s_card_number[LCD_GUN_1]);
     SerialScreen_ItemSetUp(LCD_PAGE_A_CHGING_BAT, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
 
     /** 9.B枪电池信息 [page:09] */
@@ -9518,6 +9540,8 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_B_CHGING_BAT, NULL, "consume", LCD_DataType, LCD_1sReflash, 0x2618, pu32_type, sizeof(LcdData.gun[LCD_GUN_2].totalFee), (void *)&LcdData.gun[LCD_GUN_2].totalFee);
     SerialScreen_ItemSetUp(LCD_PAGE_B_CHGING_BAT, NULL, "RemainH_B", LCD_DataType, LCD_1sReflash, 0x6254, pu8_type, sizeof(LcdData.gun[LCD_GUN_2].RemainTime[0]), (void *)&LcdData.gun[LCD_GUN_2].RemainTime[0]);
     SerialScreen_ItemSetUp(LCD_PAGE_B_CHGING_BAT, NULL, "RemainM_B", LCD_DataType, LCD_1sReflash, 0x6256, pu8_type, sizeof(LcdData.gun[LCD_GUN_2].RemainTime[1]), (void *)&LcdData.gun[LCD_GUN_2].RemainTime[1]);
+
+    SerialScreen_ItemSetUp(LCD_PAGE_B_CHGING_BAT, NULL, "card num", LCD_TextType, LCD_NoReflash, 0x657C, pstr_type, sizeof(LcdData.setData.s_card_number[LCD_GUN_2]), (void *)&LcdData.setData.s_card_number[LCD_GUN_2]);
     SerialScreen_ItemSetUp(LCD_PAGE_B_CHGING_BAT, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
 
     /** 10.A枪结算 [page:10] */
