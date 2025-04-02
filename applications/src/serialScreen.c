@@ -109,10 +109,10 @@
 #define SCREEN_USING_OFFLINE_BILLING     /* 使用离线计费 */
 #endif /* CP_USING_OFFLINE_BILLING */
 
-#ifdef CP_CONFIG_USING_QBJ
+#ifdef SCREEN_USING_QBJ
 #define SCREEN_LIGHTSCREEN_LOCATION_X   700 /* 模拟点亮屏幕的坐标X轴 */
 #define SCREEN_LIGHTSCREEN_LOCATION_Y   0   /* 模拟点亮屏幕的坐标Y轴 */
-#endif /* CP_CONFIG_USING_QBJ */
+#endif /* SCREEN_USING_QBJ */
 
 #define SCREEN_TRIGGER_WARN_ICON_CARD_LOCKED              0x00    /* 外部触发告警ICON：卡被锁 */
 #define SCREEN_TRIGGER_WARN_ICON_INVALID_CARD             0x01    /* 外部触发告警ICON：无效卡 */
@@ -710,9 +710,7 @@ struct LCD_DISPLAY_GUN_VALUE_TYPE{
 	u32 ChrgeTime;
 	u32 ChrgeTimeHour;
 	u32 ChrgeTImeMin;
-#ifdef SCREEN_USING_QBJ
 	u32 RemainTime[2]; //小时：分钟
-#endif /* SCREEN_USING_QBJ */
 //	u8 waitCardReadTimer;
     u8 workStateLast;
 	u8 workState;
@@ -6937,7 +6935,7 @@ void SerialScreen_RtcShow(struct SerialScreenObj *cmd)
     SerialScreen_SendTxt(cmd, 0x9C, rtc_buf, rtc_len);
 }
 
-#ifdef CP_CONFIG_USING_QBJ
+#ifdef SCREEN_USING_QBJ
 static void SerialScreen_ScreenLight(struct SerialScreenObj *cmd)
 {
     u8 buf[14];
@@ -6961,7 +6959,7 @@ static void SerialScreen_ScreenLight(struct SerialScreenObj *cmd)
 
     cmd->SendData(cmd ,buf, sizeof(buf));
 }
-#endif /* CP_CONFIG_USING_QBJ */
+#endif /* SCREEN_USING_QBJ */
 
 #ifdef SCREEN_USING_TXT_RTC
 static void SerialScreen_RtcTxtSend(struct SerialScreenObj *cmd)
@@ -8985,10 +8983,8 @@ int SerialScreen_DataProcess()
 				LcdData.gun[i].VolNeed = bmsInfo[i]->bms_require_voltage*LCD_POW_1;
 				LcdData.gun[i].CurNeed = bmsInfo[i]->bms_require_current*LCD_POW_1;
 				LcdData.gun[i].SigleVol = bmsInfo[i]->single_battery_max_voltage;
-#ifdef CP_CONFIG_USING_QBJ
                 LcdData.gun[i].RemainTime[0] = bmsInfo[i]->bms_remain_time /60;
                 LcdData.gun[i].RemainTime[1] = bmsInfo[i]->bms_remain_time %60;
-#endif /* CP_CONFIG_USING_QBJ */
 				LcdData.gun[i].BatTemp = bmsTemp[i].temp;
 				
 				//sSCREEN_DEBUGMSG("LcdData.gun[%d].cur = %.2f A\r\n",i,(f32)chargeInfo[i].charge_current/LCD_POW_2);
@@ -9001,9 +8997,9 @@ int SerialScreen_DataProcess()
 				//sSCREEN_DEBUGMSG("LcdData.gun[%d].CurNeed = %.1f A\r\n",i,LcdData.gun[i].CurNeed/LCD_POW_1);
 				//sSCREEN_DEBUGMSG("LcdData.gun[%d].SigleVol = %.2f \r\n",i,LcdData.gun[i].SigleVol/LCD_POW_2);
 			}else{
-#ifdef CP_CONFIG_USING_QBJ
 			    LcdData.gun[i].RemainTime[0] = 0;
 			    LcdData.gun[i].RemainTime[1] = 0;
+#ifdef SCREEN_USING_QBJ
                 LcdData.gun[i].cur = 0;
                 LcdData.gun[i].vol = 0;
                 if((LcdData.gun[i].workState >= SysMainStatus_StandBy) && (LcdData.gun[i].workState <= SysMainStatus_PlugIn)){
@@ -9012,7 +9008,7 @@ int SerialScreen_DataProcess()
                     LcdData.gun[i].ChrgeTimeHour = 0;
                     LcdData.gun[i].ChrgeTImeMin = 0;
                 }
-#endif /* CP_CONFIG_USING_QBJ */
+#endif /* SCREEN_USING_QBJ */
 			}
 			SerialScreen_GetSysFault(i);
 			SerialScreen_DataGetstopReson(i);
@@ -9460,10 +9456,8 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_A_CHGING, NULL, "period price", LCD_DataType, LCD_1sReflash, 0x474A, pu32_type, sizeof(LcdData.setData.period_price), (void *)&LcdData.setData.period_price);
     SerialScreen_ItemSetUp(LCD_PAGE_A_CHGING, NULL, "ballance", LCD_DataType, LCD_1sReflash, 0x172C, pu32_type, sizeof(LcdData.gun[LCD_GUN_1].AccountBallance), (void *)&LcdData.gun[LCD_GUN_1].AccountBallance);
     SerialScreen_ItemSetUp(LCD_PAGE_A_CHGING, NULL, "consume", LCD_DataType, LCD_1sReflash, 0x1618, pu32_type, sizeof(LcdData.gun[LCD_GUN_1].totalFee), (void *)&LcdData.gun[LCD_GUN_1].totalFee);
-#ifdef SCREEN_USING_QBJ
     SerialScreen_ItemSetUp(LCD_PAGE_A_CHGING, NULL, "RemainH_A", LCD_DataType, LCD_1sReflash, 0x6250, pu8_type, sizeof(LcdData.gun[LCD_GUN_1].RemainTime[0]), (void *)&LcdData.gun[LCD_GUN_1].RemainTime[0]);
     SerialScreen_ItemSetUp(LCD_PAGE_A_CHGING, NULL, "RemainM_A", LCD_DataType, LCD_1sReflash, 0x6252, pu8_type, sizeof(LcdData.gun[LCD_GUN_1].RemainTime[1]), (void *)&LcdData.gun[LCD_GUN_1].RemainTime[1]);
-#endif /* SCREEN_USING_QBJ */
     SerialScreen_ItemSetUp(LCD_PAGE_A_CHGING, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
 
     /** 7.B枪充电信息 [page:07] */
@@ -9482,10 +9476,8 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_B_CHGING, NULL, "period price", LCD_DataType, LCD_1sReflash, 0x474A, pu32_type, sizeof(LcdData.setData.period_price), (void *)&LcdData.setData.period_price);
     SerialScreen_ItemSetUp(LCD_PAGE_B_CHGING, NULL, "ballance", LCD_DataType, LCD_1sReflash, 0x174A, pu32_type, sizeof(LcdData.gun[LCD_GUN_2].AccountBallance), (void *)&LcdData.gun[LCD_GUN_2].AccountBallance);
     SerialScreen_ItemSetUp(LCD_PAGE_B_CHGING, NULL, "consume", LCD_DataType, LCD_1sReflash, 0x2618, pu32_type, sizeof(LcdData.gun[LCD_GUN_2].totalFee), (void *)&LcdData.gun[LCD_GUN_2].totalFee);
-#ifdef SCREEN_USING_QBJ
     SerialScreen_ItemSetUp(LCD_PAGE_B_CHGING, NULL, "RemainH_B", LCD_DataType, LCD_1sReflash, 0x6254, pu8_type, sizeof(LcdData.gun[LCD_GUN_2].RemainTime[0]), (void *)&LcdData.gun[LCD_GUN_2].RemainTime[0]);
     SerialScreen_ItemSetUp(LCD_PAGE_B_CHGING, NULL, "RemainM_B", LCD_DataType, LCD_1sReflash, 0x6256, pu8_type, sizeof(LcdData.gun[LCD_GUN_2].RemainTime[1]), (void *)&LcdData.gun[LCD_GUN_2].RemainTime[1]);
-#endif /* SCREEN_USING_QBJ */
     SerialScreen_ItemSetUp(LCD_PAGE_B_CHGING, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
 
     /** 8.A枪电池信息 [page:08] */
@@ -9504,10 +9496,8 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_A_CHGING_BAT, NULL, "period price", LCD_DataType, LCD_1sReflash, 0x474A, pu32_type, sizeof(LcdData.setData.period_price), (void *)&LcdData.setData.period_price);
     SerialScreen_ItemSetUp(LCD_PAGE_A_CHGING_BAT, NULL, "ballance", LCD_DataType, LCD_1sReflash, 0x172C, pu32_type, sizeof(LcdData.gun[LCD_GUN_1].AccountBallance), (void *)&LcdData.gun[LCD_GUN_1].AccountBallance);
     SerialScreen_ItemSetUp(LCD_PAGE_A_CHGING_BAT, NULL, "consume", LCD_DataType, LCD_1sReflash, 0x1618, pu32_type, sizeof(LcdData.gun[LCD_GUN_1].totalFee), (void *)&LcdData.gun[LCD_GUN_1].totalFee);
-#ifdef SCREEN_USING_QBJ
     SerialScreen_ItemSetUp(LCD_PAGE_A_CHGING_BAT, NULL, "RemainH_A", LCD_DataType, LCD_1sReflash, 0x6250, pu8_type, sizeof(LcdData.gun[LCD_GUN_1].RemainTime[0]), (void *)&LcdData.gun[LCD_GUN_1].RemainTime[0]);
     SerialScreen_ItemSetUp(LCD_PAGE_A_CHGING_BAT, NULL, "RemainM_A", LCD_DataType, LCD_1sReflash, 0x6252, pu8_type, sizeof(LcdData.gun[LCD_GUN_1].RemainTime[1]), (void *)&LcdData.gun[LCD_GUN_1].RemainTime[1]);
-#endif /* SCREEN_USING_QBJ */
     SerialScreen_ItemSetUp(LCD_PAGE_A_CHGING_BAT, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
 
     /** 9.B枪电池信息 [page:09] */
@@ -9526,10 +9516,8 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_B_CHGING_BAT, NULL, "period price", LCD_DataType, LCD_1sReflash, 0x474A, pu32_type, sizeof(LcdData.setData.period_price), (void *)&LcdData.setData.period_price);
     SerialScreen_ItemSetUp(LCD_PAGE_B_CHGING_BAT, NULL, "ballance", LCD_DataType, LCD_1sReflash, 0x174A, pu32_type, sizeof(LcdData.gun[LCD_GUN_2].AccountBallance), (void *)&LcdData.gun[LCD_GUN_2].AccountBallance);
     SerialScreen_ItemSetUp(LCD_PAGE_B_CHGING_BAT, NULL, "consume", LCD_DataType, LCD_1sReflash, 0x2618, pu32_type, sizeof(LcdData.gun[LCD_GUN_2].totalFee), (void *)&LcdData.gun[LCD_GUN_2].totalFee);
-#ifdef SCREEN_USING_QBJ
     SerialScreen_ItemSetUp(LCD_PAGE_B_CHGING_BAT, NULL, "RemainH_B", LCD_DataType, LCD_1sReflash, 0x6254, pu8_type, sizeof(LcdData.gun[LCD_GUN_2].RemainTime[0]), (void *)&LcdData.gun[LCD_GUN_2].RemainTime[0]);
     SerialScreen_ItemSetUp(LCD_PAGE_B_CHGING_BAT, NULL, "RemainM_B", LCD_DataType, LCD_1sReflash, 0x6256, pu8_type, sizeof(LcdData.gun[LCD_GUN_2].RemainTime[1]), (void *)&LcdData.gun[LCD_GUN_2].RemainTime[1]);
-#endif /* SCREEN_USING_QBJ */
     SerialScreen_ItemSetUp(LCD_PAGE_B_CHGING_BAT, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
 
     /** 10.A枪结算 [page:10] */
