@@ -206,6 +206,8 @@ void SerialScreen_LiquidNegIsSupportSet(void);
 void SerialScreen_FuseIsSupportSet(void);
 void SerialScreen_FuseNegIsSupportSet(void);
 
+void SerialScreen_BtnSelfCheckSet(void);
+
 void SerialScreen_ScreenRequest_Time(void);
 s8 SerialScreen_Get_ScreenTimeSync_Flag(void);
 s8 SerialScreen_Get_SetPowerPercent_Flag(void);
