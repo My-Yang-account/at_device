@@ -194,8 +194,11 @@ struct _function_enable{
     uint8_t pour_in;               /* 倾倒 */
     uint8_t liquid_in;             /* 液冷 */
     uint8_t fuse_in;               /* 熔断器 */
-    uint8_t mode_select;           /* 模式选择 */
-    uint8_t reserve[80];
+    uint8_t mode_select;           /* 模式选择启用 */
+    uint8_t mode_full;             /* 模式选择：充满 */
+    uint8_t mode_reservation;      /* 模式选择：预约 */
+    uint8_t mode_v2g;              /* 模式选择：V2G */
+    uint8_t reserve[77];
 };
 
 struct _state_reversal{
@@ -2129,6 +2132,7 @@ int32_t chargepile_check_config(void)
     if(s_chargepile_config_info.function_enable.offline_card > 0x01){      /* 离线卡功能默认开启 */
         s_chargepile_config_info.function_enable.offline_card = 0x01;
     }
+    s_chargepile_config_info.function_enable.mode_select = 0;
     if(s_chargepile_config_info.function_enable.mode_select > 0x01){      /* 模式选择功能默认关闭 */
         s_chargepile_config_info.function_enable.mode_select = 0x00;
     }

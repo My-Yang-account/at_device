@@ -207,6 +207,8 @@ void SerialScreen_LiquidNegIsSupportSet(void);
 void SerialScreen_FuseIsSupportSet(void);
 void SerialScreen_FuseNegIsSupportSet(void);
 
+void SerialScreen_GetModeInfoA(void);
+void SerialScreen_GetModeInfoB(void);
 void SerialScreen_BtnSelfCheckSet(void);
 
 void SerialScreen_ScreenRequest_Time(void);
