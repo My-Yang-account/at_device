@@ -194,11 +194,10 @@ struct _function_enable{
     uint8_t pour_in;               /* 倾倒 */
     uint8_t liquid_in;             /* 液冷 */
     uint8_t fuse_in;               /* 熔断器 */
-    uint8_t mode_select;           /* 模式选择启用 */
-    uint8_t mode_full;             /* 模式选择：充满 */
-    uint8_t mode_reservation;      /* 模式选择：预约 */
-    uint8_t mode_v2g;              /* 模式选择：V2G */
-    uint8_t reserve[77];
+    uint8_t mode_select;           /* 模式选择功能启用 */
+    uint8_t normal_mode;           /* 已选择的模式 */
+    uint8_t mode_v2g;              /* 是否启用V2G */
+    uint8_t reserve[78];
 };
 
 struct _state_reversal{
