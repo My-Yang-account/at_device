@@ -627,6 +627,11 @@ struct card_data_info{
 
 struct card_data_info *thaisen_get_card_info(uint8_t gunno);
 
+/**
+ * 查询充电是否已停止
+ **/
+uint8_t thaisen_is_stoped_charge(uint8_t gunno);
+
 #endif /* APPLICATIONS_INC_APP_DATA_INFO_INTERFACE_H_ */
 
 

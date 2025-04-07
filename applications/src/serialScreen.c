@@ -8832,13 +8832,21 @@ int SerialScreen_DataProcess()
 				LcdData.gun[i].workState = SysMainStatus_PlugIn;
 				break;				
 			case APP_OFSM_STATE_STARTING:
-				LcdData.gun[i].workState = SysMainStatus_StartReady;
+			    if(thaisen_is_stoped_charge(i)){
+                    LcdData.gun[i].workState = SysMainStatus_StopChg;
+			    }else{
+	                LcdData.gun[i].workState = SysMainStatus_StartReady;
+			    }
                 for(u8 i = 0; i < LCD_GUN_NUM; i++){
                     LcdAssistantData.SeveralGunFlag[i].IsPWStartAuthen = FALSE;
                 }
 				break;	
 			case APP_OFSM_STATE_CHARGING:
-				LcdData.gun[i].workState = SysMainStatus_Chrging;
+                if(thaisen_is_stoped_charge(i)){
+                    LcdData.gun[i].workState = SysMainStatus_StopChg;
+                }else{
+                    LcdData.gun[i].workState = SysMainStatus_Chrging;
+                }
 		        LcdAssistantData.SeveralGunFlag[i].IsPWStartAuthen = FALSE;
 				break;
 			case APP_OFSM_STATE_STOPING:

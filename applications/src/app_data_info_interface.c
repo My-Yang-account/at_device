@@ -1711,3 +1711,25 @@ struct card_data_info *thaisen_get_card_info(uint8_t gunno)
     return &s_card_data;
 }
 
+/**************************************************************************
+ * 函数名      thaisen_is_stoped_charge
+ * 功能         查询充电是否已停止
+ * 参数          gunno     枪号
+ * 返回          1：是      0：否
+ *************************************************************************/
+uint8_t thaisen_is_stoped_charge(uint8_t gunno)
+{
+    enum charge_state_t charge_state = mw_get_charge_state(gunno);
+    switch(charge_state){
+    case APP_CHARGE_STATE_FINISH:
+    case APP_CHARGE_STATE_FAULTING:
+    case APP_CHARGE_STATE_WAIT_PULL_GUN:
+        return 0x01;
+        break;
+    default:
+        break;
+    }
+
+    return 0x00;
+}
+
