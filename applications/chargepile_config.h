@@ -231,10 +231,10 @@
 #define POWER_ALLOCATION_WAY_POWER_PRIORITY       2           /* 功率分配方式:功率优先 */
 #define POWER_ALLOCATION_WAY_SIZE                 3           /* 功率分配方式 */
 
-#define SYSTEM_FUNCTION_SINGLE_TERMINAL           0         /* 单枪终端 */
+#define SYSTEM_FUNCTION_SINGLE_TERMINAL           0         /* 单枪超充 */
 #define SYSTEM_FUNCTION_AVERAGE_DOUBLE            1         /* 均充双枪 */
 #define SYSTEM_FUNCTION_DOUBLE_WHOLE              2         /* 双枪终端 */
-#define SYSTEM_FUNCTION_RECTIFIER_CABINET         3         /* 整流柜 */
+#define SYSTEM_FUNCTION_RECTIFIER_CABINET         3         /* 单枪快充 */
 #define SYSTEM_FUNCTION_DYNAMIC_SWITCH            4         /* 动态切换 */
 #define SYSTEM_FUNCTION_SIZE                      5         /* 系统功能 */
 
