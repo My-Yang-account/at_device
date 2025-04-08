@@ -1733,3 +1733,17 @@ uint8_t thaisen_is_stoped_charge(uint8_t gunno)
     return 0x00;
 }
 
+/********************************************
+ * 函数名      thaisen_selfcheck_debug_info
+ * 功能          一键自检中文信息
+ * 参数          item      自检项
+ *      language  语言
+ *      ret       自检结果(1：成功   0：失败)
+ *      buf       用于保存中文信息
+ *      ilen      buf  的长度
+ * 返回
+ *******************************************/
+void thaisen_selfcheck_debug_info(tha_debug_chinese_en item, uint8_t language, uint8_t ret, uint8_t *buf, uint8_t ilen)
+{
+    app_selfcheck_debug_info(item, language, ret, buf, ilen);
+}

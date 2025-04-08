@@ -48,4 +48,15 @@ void app_get_fault_chinese(uint32_t code, uint8_t *olen, uint8_t *buf, uint8_t i
  *******************************************/
 void app_get_charge_stopway_chinese(uint32_t code, uint8_t *olen, uint8_t *buf, uint8_t ilen);
 
+/********************************************
+ * 函数名      app_get_selfcheck_chinese
+ * 功能          一键自检中文信息
+ * 参数          item      自检项
+ *      ret       自检结果(1：成功   0：失败)
+ *      buf       用于保存中文信息
+ *      ilen      buf  的长度
+ * 返回
+ *******************************************/
+void app_selfcheck_debug_info(uint8_t item, uint8_t language, uint8_t ret, uint8_t *buf, uint8_t ilen);
+
 #endif /* APPLICATIONS_INC_APP_SUPPORT_FUNC_H_ */

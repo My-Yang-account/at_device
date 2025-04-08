@@ -632,6 +632,45 @@ struct card_data_info *thaisen_get_card_info(uint8_t gunno);
  **/
 uint8_t thaisen_is_stoped_charge(uint8_t gunno);
 
+typedef enum{
+  THA_DEBUG_ITEM_ACRELAY_ON,                        /** 一键自检项信息：交流接触器闭合 */
+  THA_DEBUG_ITEM_ACRELAY_OFF,                       /** 一键自检项信息：交流接触器断开 */
+  THA_DEBUG_ITEM_PARARELAY_1_ON,                    /** 一键自检项信息：母联1闭合 */
+  THA_DEBUG_ITEM_PARARELAY_1_OFF,                   /** 一键自检项信息：母联1断开 */
+  THA_DEBUG_ITEM_PARARELAY_2_ON,                    /** 一键自检项信息：母联2闭合 */
+  THA_DEBUG_ITEM_PARARELAY_2_OFF,                   /** 一键自检项信息：母联2断开 */
+  THA_DEBUG_ITEM_PARARELAY_3_ON,                    /** 一键自检项信息：母联3闭合 */
+  THA_DEBUG_ITEM_PARARELAY_3_OFF,                   /** 一键自检项信息：母联3断开 */
+  THA_DEBUG_ITEM_DCRELAY_A_ON,                      /** 一键自检项信息：A枪直流继电器闭合 */
+  THA_DEBUG_ITEM_DCRELAY_A_OFF,                     /** 一键自检项信息：A枪直流继电器断开 */
+  THA_DEBUG_ITEM_DCRELAY_B_ON,                      /** 一键自检项信息：B枪直流继电器闭合 */
+  THA_DEBUG_ITEM_DCRELAY_B_OFF,                     /** 一键自检项信息：B枪直流继电器断开 */
+  THA_DEBUG_ITEM_ELOCK_A_ON,                        /** 一键自检项信息：A枪电子锁上锁 */
+  THA_DEBUG_ITEM_ELOCK_A_OFF,                       /** 一键自检项信息：A枪电子锁解锁 */
+  THA_DEBUG_ITEM_ELOCK_B_ON,                        /** 一键自检项信息：B枪电子锁上锁*/
+  THA_DEBUG_ITEM_ELOCK_B_OFF,                       /** 一键自检项信息：B枪电子锁解锁 */
+  THA_DEBUG_ITEM_AUX12V_A_ON,                      /** 一键自检项信息：A枪12V辅源闭合 */
+  THA_DEBUG_ITEM_AUX12V_A_OFF,                     /** 一键自检项信息：A枪12V辅源断开 */
+  THA_DEBUG_ITEM_AUX12V_B_ON,                      /** 一键自检项信息：B枪12V辅源闭合 */
+  THA_DEBUG_ITEM_AUX12V_B_OFF,                     /** 一键自检项信息：B枪12V辅源断开 */
+  THA_DEBUG_ITEM_AUX24V_A_ON,                      /** 一键自检项信息：A枪24V辅源闭合 */
+  THA_DEBUG_ITEM_AUX24V_A_OFF,                     /** 一键自检项信息：A枪24V辅源断开 */
+  THA_DEBUG_ITEM_AUX24V_B_ON,                      /** 一键自检项信息：B枪24V辅源闭合*/
+  THA_DEBUG_ITEM_AUX24V_B_OFF,                     /** 一键自检项信息：B枪24V辅源断开 */
+
+  THA_DEBUG_ITEM_COMPLETE,                         /** 一键自检项信息：自检完成 */
+}tha_debug_chinese_en;
+
+typedef enum{
+  THA_DEBUG_LANGUAGE_ENGLISH,                          /** 一键自检信息语言：英文 */
+  THA_DEBUG_LANGUAGE_CHINESE,                          /** 一键自检信息语言：中文 */
+}tha_debug_language_en;
+
+/**
+ *  获取一键自检中文信息
+ **/
+void thaisen_selfcheck_debug_info(tha_debug_chinese_en item, uint8_t language, uint8_t ret, uint8_t *buf, uint8_t ilen);
+
 #endif /* APPLICATIONS_INC_APP_DATA_INFO_INTERFACE_H_ */
 
 

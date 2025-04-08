@@ -689,6 +689,7 @@ struct LCD_DISPLAY_SETDATA_TYPE{
     u8 Icon_ProtectInfo;                        //保护信息底图icon
     /***********************self check***************************/
     u8 selfCheck_icon;                          //一键自检icon
+    u8 selfCheck_Info[2][20];                   //一键自检信息
 
 }LCD_DISPLAY_SETDATA_TYPE_t;
 
@@ -6022,6 +6023,11 @@ s32 SerialScreen_BtnClearAll(void)
 
 void SerialScreen_GetIOStatusA(void)
 {
+    memset(LcdData.setData.selfCheck_Info, 0x00, sizeof(LcdData.setData.selfCheck_Info));
+    SerialScreen_SendTxt(&SerialScreen, 0x6715, LcdData.setData.selfCheck_Info[0], sizeof(LcdData.setData.selfCheck_Info[0]));
+    rt_thread_mdelay(100);
+    SerialScreen_SendTxt(&SerialScreen, 0x6735, LcdData.setData.selfCheck_Info[1], sizeof(LcdData.setData.selfCheck_Info[1]));
+
     SerialScreen_GetIOStatus(LCD_GUN_1);
 }
 
@@ -6394,7 +6400,867 @@ void SerialScreen_AuxsetB()
 
 void SerialScreen_BtnSelfCheckSet(void)
 {
+#define SCREEN_WAIT_FB_TIME              200           /** 等待反馈状态时长(ms) */
+#define SCREEN_INFO_SEND_INTERVAL        50            /** 自检信息发送间隔(ms) */
+#define SCREEN_TEST_ITEM_INTERVAL        1000          /** 两个自检项间隔时长(ms) */
 
+    u16 txtaddr[2] = {0x6715, 0x6735};
+    u8 fb[2], is_fail = 0, index = 0, indexmax = 0, language = THA_DEBUG_LANGUAGE_ENGLISH;
+
+    indexmax = sizeof(LcdData.setData.selfCheck_Info) /sizeof(LcdData.setData.selfCheck_Info[0]);
+    memset(LcdData.setData.selfCheck_Info, 0x00, sizeof(LcdData.setData.selfCheck_Info));
+
+    LcdData.setData.selfCheck_icon = TRUE;
+    SerialScreen_SendIco(&SerialScreen, 0x6713, LcdData.setData.selfCheck_icon);
+    rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
+    /*************************************************** 自检开始 ***************************************************/
+    /*************************************************** 自检开始 ***************************************************/
+
+    /*************************************************** 交流接触器 ***************************************************/
+
+    memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
+    thaisen_relay_AC_on();                      /** 闭合 */
+    rt_thread_mdelay(SCREEN_WAIT_FB_TIME);      /** 等待状态 */
+    fb[0] = !thaisen_relay_AC_FB();
+    if(fb[0] != TRUE){
+        is_fail = 1;
+        thaisen_selfcheck_debug_info(THA_DEBUG_ITEM_ACRELAY_ON, language, 0, LcdData.setData.selfCheck_Info[index], sizeof(LcdData.setData.selfCheck_Info[index]));
+    }else{
+        thaisen_selfcheck_debug_info(THA_DEBUG_ITEM_ACRELAY_ON, language, 1, LcdData.setData.selfCheck_Info[index], sizeof(LcdData.setData.selfCheck_Info[index]));
+    }
+    /** 信息显示 */
+    fb[0] += '0';
+    LcdData.setData.g_acRely = fb[0];
+    SerialScreen_SendTxt(&SerialScreen, 0x4164, &fb[0], sizeof(fb[0]));
+    rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
+
+    for(u8 i = 0; i < indexmax; i++){
+        SerialScreen_SendTxt(&SerialScreen, txtaddr[i], LcdData.setData.selfCheck_Info[i], sizeof(LcdData.setData.selfCheck_Info[i]));
+        if((i + 1) < indexmax)
+            rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
+    }
+    if(++index >= indexmax){
+        for(u8 i = 0; (i + 1) < indexmax; i++){
+            memcpy(LcdData.setData.selfCheck_Info[i], LcdData.setData.selfCheck_Info[i + 1], sizeof(LcdData.setData.selfCheck_Info[i]));
+        }
+        index = indexmax - 1;
+    }
+    if(is_fail){
+        goto Check_end;
+    }
+
+    rt_thread_mdelay(SCREEN_TEST_ITEM_INTERVAL);      /** 等待一定时长再进行下一个自检项 */
+
+    memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
+    thaisen_relay_AC_off();                     /** 断开 */
+    rt_thread_mdelay(SCREEN_WAIT_FB_TIME);      /** 等待状态 */
+    fb[0] = !thaisen_relay_AC_FB();
+    if(fb[0] != FALSE){
+        is_fail = 1;
+        thaisen_selfcheck_debug_info(THA_DEBUG_ITEM_ACRELAY_OFF, language, 0, LcdData.setData.selfCheck_Info[index], sizeof(LcdData.setData.selfCheck_Info[index]));
+    }else{
+        thaisen_selfcheck_debug_info(THA_DEBUG_ITEM_ACRELAY_OFF, language, 1, LcdData.setData.selfCheck_Info[index], sizeof(LcdData.setData.selfCheck_Info[index]));
+    }
+    /** 信息显示 */
+    fb[0] += '0';
+    LcdData.setData.g_acRely = fb[0];
+    SerialScreen_SendTxt(&SerialScreen, 0x4164, &fb[0], sizeof(fb[0]));
+    rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
+
+    for(u8 i = 0; i < indexmax; i++){
+        SerialScreen_SendTxt(&SerialScreen, txtaddr[i], LcdData.setData.selfCheck_Info[i], sizeof(LcdData.setData.selfCheck_Info[i]));
+        if((i + 1) < indexmax)
+            rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
+    }
+    if(++index >= indexmax){
+        for(u8 i = 0; (i + 1) < indexmax; i++){
+            memcpy(LcdData.setData.selfCheck_Info[i], LcdData.setData.selfCheck_Info[i + 1], sizeof(LcdData.setData.selfCheck_Info[i]));
+        }
+        index = indexmax - 1;
+    }
+    if(is_fail){
+        goto Check_end;
+    }
+    rt_thread_mdelay(SCREEN_TEST_ITEM_INTERVAL);      /** 等待一定时长再进行下一个自检项 */
+
+    /*************************************************** 母联1 ***************************************************/
+
+    memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
+    thaisen_relay_parallel_on_f();              /** 闭合 */
+    thaisen_relay_parallel_on_z();
+    rt_thread_mdelay(SCREEN_WAIT_FB_TIME);      /** 等待状态 */
+    fb[0] = !thaisen_relay_parallel_FB_Z();
+    fb[1] = !thaisen_relay_parallel_FB_F();
+    if(fb[0] != TRUE || fb[1] != TRUE){
+        is_fail = 1;
+        thaisen_selfcheck_debug_info(THA_DEBUG_ITEM_PARARELAY_1_ON, language, 0, LcdData.setData.selfCheck_Info[index], sizeof(LcdData.setData.selfCheck_Info[index]));
+    }else{
+        thaisen_selfcheck_debug_info(THA_DEBUG_ITEM_PARARELAY_1_ON, language, 1, LcdData.setData.selfCheck_Info[index], sizeof(LcdData.setData.selfCheck_Info[index]));
+    }
+    /** 信息显示 */
+    fb[0] += '0';
+    fb[1] += '0';
+    LcdData.setData.g_paraRely0 = 0;
+    memcpy(&LcdData.setData.g_paraRely0, fb, sizeof(fb));
+    SerialScreen_SendTxt(&SerialScreen, 0x4164, fb, sizeof(fb));
+    rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
+
+    for(u8 i = 0; i < indexmax; i++){
+        SerialScreen_SendTxt(&SerialScreen, txtaddr[i], LcdData.setData.selfCheck_Info[i], sizeof(LcdData.setData.selfCheck_Info[i]));
+        if((i + 1) < indexmax)
+            rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
+    }
+    if(++index >= indexmax){
+        for(u8 i = 0; (i + 1) < indexmax; i++){
+            memcpy(LcdData.setData.selfCheck_Info[i], LcdData.setData.selfCheck_Info[i + 1], sizeof(LcdData.setData.selfCheck_Info[i]));
+        }
+        index = indexmax - 1;
+    }
+    if(is_fail){
+        goto Check_end;
+    }
+    rt_thread_mdelay(SCREEN_TEST_ITEM_INTERVAL);      /** 等待一定时长再进行下一个自检项 */
+
+    memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
+    thaisen_relay_parallel_off_f();                     /** 断开 */
+    thaisen_relay_parallel_off_z();
+    rt_thread_mdelay(SCREEN_WAIT_FB_TIME);              /** 等待状态 */
+    fb[0] = !thaisen_relay_parallel_FB_Z();
+    fb[1] = !thaisen_relay_parallel_FB_F();
+    if(fb[0] != FALSE || fb[1] != FALSE){
+        is_fail = 1;
+        thaisen_selfcheck_debug_info(THA_DEBUG_ITEM_PARARELAY_1_OFF, language, 0, LcdData.setData.selfCheck_Info[index], sizeof(LcdData.setData.selfCheck_Info[index]));
+    }else{
+        thaisen_selfcheck_debug_info(THA_DEBUG_ITEM_PARARELAY_1_OFF, language, 1, LcdData.setData.selfCheck_Info[index], sizeof(LcdData.setData.selfCheck_Info[index]));
+    }
+    /** 信息显示 */
+    fb[0] += '0';
+    fb[1] += '0';
+    LcdData.setData.g_paraRely0 = 0;
+    memcpy(&LcdData.setData.g_paraRely0, fb, sizeof(fb));
+    SerialScreen_SendTxt(&SerialScreen, 0x4164, fb, sizeof(fb));
+    rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
+
+    for(u8 i = 0; i < indexmax; i++){
+        SerialScreen_SendTxt(&SerialScreen, txtaddr[i], LcdData.setData.selfCheck_Info[i], sizeof(LcdData.setData.selfCheck_Info[i]));
+        if((i + 1) < indexmax)
+            rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
+    }
+    if(++index >= indexmax){
+        for(u8 i = 0; (i + 1) < indexmax; i++){
+            memcpy(LcdData.setData.selfCheck_Info[i], LcdData.setData.selfCheck_Info[i + 1], sizeof(LcdData.setData.selfCheck_Info[i]));
+        }
+        index = indexmax - 1;
+    }
+    if(is_fail){
+        goto Check_end;
+    }
+    rt_thread_mdelay(SCREEN_TEST_ITEM_INTERVAL);      /** 等待一定时长再进行下一个自检项 */
+
+    /*************************************************** 母联2 ***************************************************/
+
+    memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
+    thaisen_relay_k7_k8_on();                   /** 闭合 */
+    rt_thread_mdelay(SCREEN_WAIT_FB_TIME);      /** 等待状态 */
+    fb[0] = !thaisen_relay_K7_FB();
+    fb[1] = !thaisen_relay_K8_FB();
+    if(fb[0] != TRUE || fb[1] != TRUE){
+        is_fail = 1;
+        thaisen_selfcheck_debug_info(THA_DEBUG_ITEM_PARARELAY_2_ON, language, 0, LcdData.setData.selfCheck_Info[index], sizeof(LcdData.setData.selfCheck_Info[index]));
+    }else{
+        thaisen_selfcheck_debug_info(THA_DEBUG_ITEM_PARARELAY_2_ON, language, 1, LcdData.setData.selfCheck_Info[index], sizeof(LcdData.setData.selfCheck_Info[index]));
+    }
+    /** 信息显示 */
+    fb[0] += '0';
+    fb[1] += '0';
+    LcdData.setData.g_paraRely1 = 0;
+    memcpy(&LcdData.setData.g_paraRely1, fb, sizeof(fb));
+    SerialScreen_SendTxt(&SerialScreen, 0x5184, fb, sizeof(fb));
+    rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
+
+    for(u8 i = 0; i < indexmax; i++){
+        SerialScreen_SendTxt(&SerialScreen, txtaddr[i], LcdData.setData.selfCheck_Info[i], sizeof(LcdData.setData.selfCheck_Info[i]));
+        if((i + 1) < indexmax)
+            rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
+    }
+    if(++index >= indexmax){
+        for(u8 i = 0; (i + 1) < indexmax; i++){
+            memcpy(LcdData.setData.selfCheck_Info[i], LcdData.setData.selfCheck_Info[i + 1], sizeof(LcdData.setData.selfCheck_Info[i]));
+        }
+        index = indexmax - 1;
+    }
+    if(is_fail){
+        goto Check_end;
+    }
+    rt_thread_mdelay(SCREEN_TEST_ITEM_INTERVAL);      /** 等待一定时长再进行下一个自检项 */
+
+    memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
+    thaisen_relay_k7k8_off();                           /** 断开 */
+    rt_thread_mdelay(SCREEN_WAIT_FB_TIME);              /** 等待状态 */
+    fb[0] = !thaisen_relay_K7_FB();
+    fb[1] = !thaisen_relay_K8_FB();
+    if(fb[0] != FALSE || fb[1] != FALSE){
+        is_fail = 1;
+        thaisen_selfcheck_debug_info(THA_DEBUG_ITEM_PARARELAY_2_OFF, language, 0, LcdData.setData.selfCheck_Info[index], sizeof(LcdData.setData.selfCheck_Info[index]));
+    }else{
+        thaisen_selfcheck_debug_info(THA_DEBUG_ITEM_PARARELAY_2_OFF, language, 1, LcdData.setData.selfCheck_Info[index], sizeof(LcdData.setData.selfCheck_Info[index]));
+    }
+    /** 信息显示 */
+    fb[0] += '0';
+    fb[1] += '0';
+    LcdData.setData.g_paraRely1 = 0;
+    memcpy(&LcdData.setData.g_paraRely1, fb, sizeof(fb));
+    SerialScreen_SendTxt(&SerialScreen, 0x5184, fb, sizeof(fb));
+    rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
+
+    for(u8 i = 0; i < indexmax; i++){
+        SerialScreen_SendTxt(&SerialScreen, txtaddr[i], LcdData.setData.selfCheck_Info[i], sizeof(LcdData.setData.selfCheck_Info[i]));
+        if((i + 1) < indexmax)
+            rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
+    }
+    if(++index >= indexmax){
+        for(u8 i = 0; (i + 1) < indexmax; i++){
+            memcpy(LcdData.setData.selfCheck_Info[i], LcdData.setData.selfCheck_Info[i + 1], sizeof(LcdData.setData.selfCheck_Info[i]));
+        }
+        index = indexmax - 1;
+    }
+    if(is_fail){
+        goto Check_end;
+    }
+    rt_thread_mdelay(SCREEN_TEST_ITEM_INTERVAL);      /** 等待一定时长再进行下一个自检项 */
+
+    /*************************************************** 母联3 ***************************************************/
+
+    memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
+    thaisen_relay_k9_k10_on();                   /** 闭合 */
+    rt_thread_mdelay(SCREEN_WAIT_FB_TIME);      /** 等待状态 */
+    fb[0] = !thaisen_relay_K9_FB();
+    fb[1] = !thaisen_relay_K10_FB();
+    if(fb[0] != TRUE || fb[1] != TRUE){
+        is_fail = 1;
+        thaisen_selfcheck_debug_info(THA_DEBUG_ITEM_PARARELAY_3_ON, language, 0, LcdData.setData.selfCheck_Info[index], sizeof(LcdData.setData.selfCheck_Info[index]));
+    }else{
+        thaisen_selfcheck_debug_info(THA_DEBUG_ITEM_PARARELAY_3_ON, language, 1, LcdData.setData.selfCheck_Info[index], sizeof(LcdData.setData.selfCheck_Info[index]));
+    }
+    /** 信息显示 */
+    fb[0] += '0';
+    fb[1] += '0';
+    LcdData.setData.g_paraRely2 = 0;
+    memcpy(&LcdData.setData.g_paraRely2, fb, sizeof(fb));
+    SerialScreen_SendTxt(&SerialScreen, 0x5188, fb, sizeof(fb));
+    rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
+
+    for(u8 i = 0; i < indexmax; i++){
+        SerialScreen_SendTxt(&SerialScreen, txtaddr[i], LcdData.setData.selfCheck_Info[i], sizeof(LcdData.setData.selfCheck_Info[i]));
+        if((i + 1) < indexmax)
+            rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
+    }
+    if(++index >= indexmax){
+        for(u8 i = 0; (i + 1) < indexmax; i++){
+            memcpy(LcdData.setData.selfCheck_Info[i], LcdData.setData.selfCheck_Info[i + 1], sizeof(LcdData.setData.selfCheck_Info[i]));
+        }
+        index = indexmax - 1;
+    }
+    if(is_fail){
+        goto Check_end;
+    }
+    rt_thread_mdelay(SCREEN_TEST_ITEM_INTERVAL);      /** 等待一定时长再进行下一个自检项 */
+
+    memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
+    thaisen_relay_k9k10_off();                           /** 断开 */
+    rt_thread_mdelay(SCREEN_WAIT_FB_TIME);              /** 等待状态 */
+    fb[0] = !thaisen_relay_K9_FB();
+    fb[1] = !thaisen_relay_K10_FB();
+    if(fb[0] != FALSE || fb[1] != FALSE){
+        is_fail = 1;
+        thaisen_selfcheck_debug_info(THA_DEBUG_ITEM_PARARELAY_3_OFF, language, 0, LcdData.setData.selfCheck_Info[index], sizeof(LcdData.setData.selfCheck_Info[index]));
+    }else{
+        thaisen_selfcheck_debug_info(THA_DEBUG_ITEM_PARARELAY_3_OFF, language, 1, LcdData.setData.selfCheck_Info[index], sizeof(LcdData.setData.selfCheck_Info[index]));
+    }
+    /** 信息显示 */
+    fb[0] += '0';
+    fb[1] += '0';
+    LcdData.setData.g_paraRely2 = 0;
+    memcpy(&LcdData.setData.g_paraRely2, fb, sizeof(fb));
+    SerialScreen_SendTxt(&SerialScreen, 0x5188, fb, sizeof(fb));
+    rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
+
+    for(u8 i = 0; i < indexmax; i++){
+        SerialScreen_SendTxt(&SerialScreen, txtaddr[i], LcdData.setData.selfCheck_Info[i], sizeof(LcdData.setData.selfCheck_Info[i]));
+        if((i + 1) < indexmax)
+            rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
+    }
+    if(++index >= indexmax){
+        for(u8 i = 0; (i + 1) < indexmax; i++){
+            memcpy(LcdData.setData.selfCheck_Info[i], LcdData.setData.selfCheck_Info[i + 1], sizeof(LcdData.setData.selfCheck_Info[i]));
+        }
+        index = indexmax - 1;
+    }
+    if(is_fail){
+        goto Check_end;
+    }
+    rt_thread_mdelay(SCREEN_TEST_ITEM_INTERVAL);      /** 等待一定时长再进行下一个自检项 */
+
+    /*************************************************** A枪直流继电器A ***************************************************/
+
+    memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
+    thaisen_relay_on_A();                   /** 闭合 */
+    rt_thread_mdelay(SCREEN_WAIT_FB_TIME);      /** 等待状态 */
+    fb[0] = !thaisen_relay_A_FB_Z();
+    fb[1] = !thaisen_relay_A_FB_F();
+    if(fb[0] != TRUE || fb[1] != TRUE){
+        is_fail = 1;
+        thaisen_selfcheck_debug_info(THA_DEBUG_ITEM_DCRELAY_A_ON, language, 0, LcdData.setData.selfCheck_Info[index], sizeof(LcdData.setData.selfCheck_Info[index]));
+    }else{
+        thaisen_selfcheck_debug_info(THA_DEBUG_ITEM_DCRELAY_A_ON, language, 1, LcdData.setData.selfCheck_Info[index], sizeof(LcdData.setData.selfCheck_Info[index]));
+    }
+    /** 信息显示 */
+    fb[0] += '0';
+    fb[1] += '0';
+    LcdData.setData.g_dcRelay[LCD_GUN_1] = 0;
+    memcpy(&LcdData.setData.g_dcRelay[LCD_GUN_1], fb, sizeof(fb));
+    SerialScreen_SendTxt(&SerialScreen, 0x4166, fb, sizeof(fb));
+    rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
+
+    for(u8 i = 0; i < indexmax; i++){
+        SerialScreen_SendTxt(&SerialScreen, txtaddr[i], LcdData.setData.selfCheck_Info[i], sizeof(LcdData.setData.selfCheck_Info[i]));
+        if((i + 1) < indexmax)
+            rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
+    }
+    if(++index >= indexmax){
+        for(u8 i = 0; (i + 1) < indexmax; i++){
+            memcpy(LcdData.setData.selfCheck_Info[i], LcdData.setData.selfCheck_Info[i + 1], sizeof(LcdData.setData.selfCheck_Info[i]));
+        }
+        index = indexmax - 1;
+    }
+    if(is_fail){
+        goto Check_end;
+    }
+    rt_thread_mdelay(SCREEN_TEST_ITEM_INTERVAL);      /** 等待一定时长再进行下一个自检项 */
+
+    memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
+    thaisen_relay_off_A();                           /** 断开 */
+    rt_thread_mdelay(SCREEN_WAIT_FB_TIME);              /** 等待状态 */
+    fb[0] = !thaisen_relay_A_FB_Z();
+    fb[1] = !thaisen_relay_A_FB_F();
+    if(fb[0] != FALSE || fb[1] != FALSE){
+        is_fail = 1;
+        thaisen_selfcheck_debug_info(THA_DEBUG_ITEM_DCRELAY_A_OFF, language, 0, LcdData.setData.selfCheck_Info[index], sizeof(LcdData.setData.selfCheck_Info[index]));
+    }else{
+        thaisen_selfcheck_debug_info(THA_DEBUG_ITEM_DCRELAY_A_OFF, language, 1, LcdData.setData.selfCheck_Info[index], sizeof(LcdData.setData.selfCheck_Info[index]));
+    }
+    /** 信息显示 */
+    fb[0] += '0';
+    fb[1] += '0';
+    LcdData.setData.g_dcRelay[LCD_GUN_1] = 0;
+    memcpy(&LcdData.setData.g_dcRelay[LCD_GUN_1], fb, sizeof(fb));
+    SerialScreen_SendTxt(&SerialScreen, 0x4166, fb, sizeof(fb));
+    rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
+
+    for(u8 i = 0; i < indexmax; i++){
+        SerialScreen_SendTxt(&SerialScreen, txtaddr[i], LcdData.setData.selfCheck_Info[i], sizeof(LcdData.setData.selfCheck_Info[i]));
+        if((i + 1) < indexmax)
+            rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
+    }
+    if(++index >= indexmax){
+        for(u8 i = 0; (i + 1) < indexmax; i++){
+            memcpy(LcdData.setData.selfCheck_Info[i], LcdData.setData.selfCheck_Info[i + 1], sizeof(LcdData.setData.selfCheck_Info[i]));
+        }
+        index = indexmax - 1;
+    }
+    if(is_fail){
+        goto Check_end;
+    }
+    rt_thread_mdelay(SCREEN_TEST_ITEM_INTERVAL);      /** 等待一定时长再进行下一个自检项 */
+
+    /*************************************************** B枪直流继电器B ***************************************************/
+
+    memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
+    thaisen_relay_on_B();                   /** 闭合 */
+    rt_thread_mdelay(SCREEN_WAIT_FB_TIME);      /** 等待状态 */
+    fb[0] = !thaisen_relay_B_FB_Z();
+    fb[1] = !thaisen_relay_B_FB_F();
+    if(fb[0] != TRUE || fb[1] != TRUE){
+        is_fail = 1;
+        thaisen_selfcheck_debug_info(THA_DEBUG_ITEM_DCRELAY_B_ON, language, 0, LcdData.setData.selfCheck_Info[index], sizeof(LcdData.setData.selfCheck_Info[index]));
+    }else{
+        thaisen_selfcheck_debug_info(THA_DEBUG_ITEM_DCRELAY_B_ON, language, 1, LcdData.setData.selfCheck_Info[index], sizeof(LcdData.setData.selfCheck_Info[index]));
+    }
+    /** 信息显示 */
+    fb[0] += '0';
+    fb[1] += '0';
+    LcdData.setData.g_dcRelay[LCD_GUN_2] = 0;
+    memcpy(&LcdData.setData.g_dcRelay[LCD_GUN_2], fb, sizeof(fb));
+    SerialScreen_SendTxt(&SerialScreen, 0x5166, fb, sizeof(fb));
+    rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
+
+    for(u8 i = 0; i < indexmax; i++){
+        SerialScreen_SendTxt(&SerialScreen, txtaddr[i], LcdData.setData.selfCheck_Info[i], sizeof(LcdData.setData.selfCheck_Info[i]));
+        if((i + 1) < indexmax)
+            rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
+    }
+    if(++index >= indexmax){
+        for(u8 i = 0; (i + 1) < indexmax; i++){
+            memcpy(LcdData.setData.selfCheck_Info[i], LcdData.setData.selfCheck_Info[i + 1], sizeof(LcdData.setData.selfCheck_Info[i]));
+        }
+        index = indexmax - 1;
+    }
+    if(is_fail){
+        goto Check_end;
+    }
+    rt_thread_mdelay(SCREEN_TEST_ITEM_INTERVAL);      /** 等待一定时长再进行下一个自检项 */
+
+    memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
+    thaisen_relay_off_B();                           /** 断开 */
+    rt_thread_mdelay(SCREEN_WAIT_FB_TIME);              /** 等待状态 */
+    fb[0] = !thaisen_relay_B_FB_Z();
+    fb[1] = !thaisen_relay_B_FB_F();
+    if(fb[0] != FALSE || fb[1] != FALSE){
+        is_fail = 1;
+        thaisen_selfcheck_debug_info(THA_DEBUG_ITEM_DCRELAY_B_OFF, language, 0, LcdData.setData.selfCheck_Info[index], sizeof(LcdData.setData.selfCheck_Info[index]));
+    }else{
+        thaisen_selfcheck_debug_info(THA_DEBUG_ITEM_DCRELAY_B_OFF, language, 1, LcdData.setData.selfCheck_Info[index], sizeof(LcdData.setData.selfCheck_Info[index]));
+    }
+    /** 信息显示 */
+    fb[0] += '0';
+    fb[1] += '0';
+    LcdData.setData.g_dcRelay[LCD_GUN_2] = 0;
+    memcpy(&LcdData.setData.g_dcRelay[LCD_GUN_2], fb, sizeof(fb));
+    SerialScreen_SendTxt(&SerialScreen, 0x5166, fb, sizeof(fb));
+    rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
+
+    for(u8 i = 0; i < indexmax; i++){
+        SerialScreen_SendTxt(&SerialScreen, txtaddr[i], LcdData.setData.selfCheck_Info[i], sizeof(LcdData.setData.selfCheck_Info[i]));
+        if((i + 1) < indexmax)
+            rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
+    }
+    if(++index >= indexmax){
+        for(u8 i = 0; (i + 1) < indexmax; i++){
+            memcpy(LcdData.setData.selfCheck_Info[i], LcdData.setData.selfCheck_Info[i + 1], sizeof(LcdData.setData.selfCheck_Info[i]));
+        }
+        index = indexmax - 1;
+    }
+    if(is_fail){
+        goto Check_end;
+    }
+    rt_thread_mdelay(SCREEN_TEST_ITEM_INTERVAL);      /** 等待一定时长再进行下一个自检项 */
+
+    /*************************************************** A枪电子锁A ***************************************************/
+
+    memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
+    thaisenElectLockA_debug();                  /** 上锁 */
+    rt_thread_mdelay(SCREEN_WAIT_FB_TIME);      /** 等待状态 */
+    fb[0] = !thaisenGetElectLockStaA();
+    if(fb[0] != TRUE){
+        is_fail = 1;
+        thaisen_selfcheck_debug_info(THA_DEBUG_ITEM_ELOCK_A_ON, language, 0, LcdData.setData.selfCheck_Info[index], sizeof(LcdData.setData.selfCheck_Info[index]));
+    }else{
+        thaisen_selfcheck_debug_info(THA_DEBUG_ITEM_ELOCK_A_ON, language, 1, LcdData.setData.selfCheck_Info[index], sizeof(LcdData.setData.selfCheck_Info[index]));
+    }
+    /** 信息显示 */
+    fb[0] += '0';
+    LcdData.setData.g_elElock[LCD_GUN_1] = fb[0];
+    SerialScreen_SendTxt(&SerialScreen, 0x416A, &fb[0], sizeof(fb[0]));
+    rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
+
+    for(u8 i = 0; i < indexmax; i++){
+        SerialScreen_SendTxt(&SerialScreen, txtaddr[i], LcdData.setData.selfCheck_Info[i], sizeof(LcdData.setData.selfCheck_Info[i]));
+        if((i + 1) < indexmax)
+            rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
+    }
+    if(++index >= indexmax){
+        for(u8 i = 0; (i + 1) < indexmax; i++){
+            memcpy(LcdData.setData.selfCheck_Info[i], LcdData.setData.selfCheck_Info[i + 1], sizeof(LcdData.setData.selfCheck_Info[i]));
+        }
+        index = indexmax - 1;
+    }
+    if(is_fail){
+        goto Check_end;
+    }
+    rt_thread_mdelay(SCREEN_TEST_ITEM_INTERVAL);      /** 等待一定时长再进行下一个自检项 */
+
+    memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
+    thaisenElectUnlockA_debug();                /** 解锁 */
+    rt_thread_mdelay(SCREEN_WAIT_FB_TIME);      /** 等待状态 */
+    fb[0] = !thaisenGetElectLockStaA();
+    if(fb[0] != FALSE){
+        is_fail = 1;
+        thaisen_selfcheck_debug_info(THA_DEBUG_ITEM_ELOCK_A_OFF, language, 0, LcdData.setData.selfCheck_Info[index], sizeof(LcdData.setData.selfCheck_Info[index]));
+    }else{
+        thaisen_selfcheck_debug_info(THA_DEBUG_ITEM_ELOCK_A_OFF, language, 1, LcdData.setData.selfCheck_Info[index], sizeof(LcdData.setData.selfCheck_Info[index]));
+    }
+    /** 信息显示 */
+    fb[0] += '0';
+    LcdData.setData.g_elElock[LCD_GUN_1] = fb[0];
+    SerialScreen_SendTxt(&SerialScreen, 0x416A, &fb[0], sizeof(fb[0]));
+    rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
+
+    for(u8 i = 0; i < indexmax; i++){
+        SerialScreen_SendTxt(&SerialScreen, txtaddr[i], LcdData.setData.selfCheck_Info[i], sizeof(LcdData.setData.selfCheck_Info[i]));
+        if((i + 1) < indexmax)
+            rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
+    }
+    if(++index >= indexmax){
+        for(u8 i = 0; (i + 1) < indexmax; i++){
+            memcpy(LcdData.setData.selfCheck_Info[i], LcdData.setData.selfCheck_Info[i + 1], sizeof(LcdData.setData.selfCheck_Info[i]));
+        }
+        index = indexmax - 1;
+    }
+    if(is_fail){
+        goto Check_end;
+    }
+    rt_thread_mdelay(SCREEN_TEST_ITEM_INTERVAL);      /** 等待一定时长再进行下一个自检项 */
+
+    /*************************************************** B枪电子锁B ***************************************************/
+
+    memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
+    thaisenElectLockB_debug();                  /** 上锁 */
+    rt_thread_mdelay(SCREEN_WAIT_FB_TIME);      /** 等待状态 */
+    fb[0] = !thaisenGetElectLockStaB();
+    if(fb[0] != TRUE){
+        is_fail = 1;
+        thaisen_selfcheck_debug_info(THA_DEBUG_ITEM_ELOCK_B_ON, language, 0, LcdData.setData.selfCheck_Info[index], sizeof(LcdData.setData.selfCheck_Info[index]));
+    }else{
+        thaisen_selfcheck_debug_info(THA_DEBUG_ITEM_ELOCK_B_ON, language, 1, LcdData.setData.selfCheck_Info[index], sizeof(LcdData.setData.selfCheck_Info[index]));
+    }
+    /** 信息显示 */
+    fb[0] += '0';
+    LcdData.setData.g_elElock[LCD_GUN_2] = fb[0];
+    SerialScreen_SendTxt(&SerialScreen, 0x516A, &fb[0], sizeof(fb[0]));
+    rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
+
+    for(u8 i = 0; i < indexmax; i++){
+        SerialScreen_SendTxt(&SerialScreen, txtaddr[i], LcdData.setData.selfCheck_Info[i], sizeof(LcdData.setData.selfCheck_Info[i]));
+        if((i + 1) < indexmax)
+            rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
+    }
+    if(++index >= indexmax){
+        for(u8 i = 0; (i + 1) < indexmax; i++){
+            memcpy(LcdData.setData.selfCheck_Info[i], LcdData.setData.selfCheck_Info[i + 1], sizeof(LcdData.setData.selfCheck_Info[i]));
+        }
+        index = indexmax - 1;
+    }
+    if(is_fail){
+        goto Check_end;
+    }
+    rt_thread_mdelay(SCREEN_TEST_ITEM_INTERVAL);      /** 等待一定时长再进行下一个自检项 */
+
+    memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
+    thaisenElectUnlockB_debug();                /** 解锁 */
+    rt_thread_mdelay(SCREEN_WAIT_FB_TIME);      /** 等待状态 */
+    fb[0] = !thaisenGetElectLockStaB();
+    if(fb[0] != FALSE){
+        is_fail = 1;
+        thaisen_selfcheck_debug_info(THA_DEBUG_ITEM_ELOCK_B_OFF, language, 0, LcdData.setData.selfCheck_Info[index], sizeof(LcdData.setData.selfCheck_Info[index]));
+    }else{
+        thaisen_selfcheck_debug_info(THA_DEBUG_ITEM_ELOCK_B_OFF, language, 1, LcdData.setData.selfCheck_Info[index], sizeof(LcdData.setData.selfCheck_Info[index]));
+    }
+    /** 信息显示 */
+    fb[0] += '0';
+    LcdData.setData.g_elElock[LCD_GUN_2] = fb[0];
+    SerialScreen_SendTxt(&SerialScreen, 0x516A, &fb[0], sizeof(fb[0]));
+    rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
+
+    for(u8 i = 0; i < indexmax; i++){
+        SerialScreen_SendTxt(&SerialScreen, txtaddr[i], LcdData.setData.selfCheck_Info[i], sizeof(LcdData.setData.selfCheck_Info[i]));
+        if((i + 1) < indexmax)
+            rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
+    }
+    if(++index >= indexmax){
+        for(u8 i = 0; (i + 1) < indexmax; i++){
+            memcpy(LcdData.setData.selfCheck_Info[i], LcdData.setData.selfCheck_Info[i + 1], sizeof(LcdData.setData.selfCheck_Info[i]));
+        }
+        index = indexmax - 1;
+    }
+    if(is_fail){
+        goto Check_end;
+    }
+    rt_thread_mdelay(SCREEN_TEST_ITEM_INTERVAL);      /** 等待一定时长再进行下一个自检项 */
+
+    /*************************************************** A枪12V辅源A ***************************************************/
+
+    memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
+    thaisenAux_A_Enable();                      /** 闭合 */
+    rt_thread_mdelay(SCREEN_WAIT_FB_TIME);      /** 等待状态 */
+    fb[0] = !thaisenGetAux_A_Status_debug();
+    if(fb[0] != TRUE){
+        is_fail = 1;
+        thaisen_selfcheck_debug_info(THA_DEBUG_ITEM_AUX12V_A_ON, language, 0, LcdData.setData.selfCheck_Info[index], sizeof(LcdData.setData.selfCheck_Info[index]));
+    }else{
+        thaisen_selfcheck_debug_info(THA_DEBUG_ITEM_AUX12V_A_ON, language, 1, LcdData.setData.selfCheck_Info[index], sizeof(LcdData.setData.selfCheck_Info[index]));
+    }
+    /** 信息显示 */
+    fb[0] += '0';
+    LcdData.setData.g_auxRelay[LCD_GUN_1] = fb[0];
+    SerialScreen_SendTxt(&SerialScreen, 0x41B2, &fb[0], sizeof(fb[0]));
+    rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
+
+    for(u8 i = 0; i < indexmax; i++){
+        SerialScreen_SendTxt(&SerialScreen, txtaddr[i], LcdData.setData.selfCheck_Info[i], sizeof(LcdData.setData.selfCheck_Info[i]));
+        if((i + 1) < indexmax)
+            rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
+    }
+    if(++index >= indexmax){
+        for(u8 i = 0; (i + 1) < indexmax; i++){
+            memcpy(LcdData.setData.selfCheck_Info[i], LcdData.setData.selfCheck_Info[i + 1], sizeof(LcdData.setData.selfCheck_Info[i]));
+        }
+        index = indexmax - 1;
+    }
+    if(is_fail){
+        goto Check_end;
+    }
+    rt_thread_mdelay(SCREEN_TEST_ITEM_INTERVAL);      /** 等待一定时长再进行下一个自检项 */
+
+    memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
+    thaisenAux_A_Disable();                     /** 断开 */
+    rt_thread_mdelay(SCREEN_WAIT_FB_TIME);      /** 等待状态 */
+    fb[0] = !thaisenGetAux_A_Status_debug();
+    if(fb[0] != FALSE){
+        is_fail = 1;
+        thaisen_selfcheck_debug_info(THA_DEBUG_ITEM_AUX12V_A_OFF, language, 0, LcdData.setData.selfCheck_Info[index], sizeof(LcdData.setData.selfCheck_Info[index]));
+    }else{
+        thaisen_selfcheck_debug_info(THA_DEBUG_ITEM_AUX12V_A_OFF, language, 1, LcdData.setData.selfCheck_Info[index], sizeof(LcdData.setData.selfCheck_Info[index]));
+    }
+    /** 信息显示 */
+    fb[0] += '0';
+    LcdData.setData.g_auxRelay[LCD_GUN_1] = fb[0];
+    SerialScreen_SendTxt(&SerialScreen, 0x41B2, &fb[0], sizeof(fb[0]));
+    rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
+
+    for(u8 i = 0; i < indexmax; i++){
+        SerialScreen_SendTxt(&SerialScreen, txtaddr[i], LcdData.setData.selfCheck_Info[i], sizeof(LcdData.setData.selfCheck_Info[i]));
+        if((i + 1) < indexmax)
+            rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
+    }
+    if(++index >= indexmax){
+        for(u8 i = 0; (i + 1) < indexmax; i++){
+            memcpy(LcdData.setData.selfCheck_Info[i], LcdData.setData.selfCheck_Info[i + 1], sizeof(LcdData.setData.selfCheck_Info[i]));
+        }
+        index = indexmax - 1;
+    }
+    if(is_fail){
+        goto Check_end;
+    }
+    rt_thread_mdelay(SCREEN_TEST_ITEM_INTERVAL);      /** 等待一定时长再进行下一个自检项 */
+
+    /*************************************************** B枪12V辅源B ***************************************************/
+
+    memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
+    thaisenAux_B_Enable();                      /** 闭合 */
+    rt_thread_mdelay(SCREEN_WAIT_FB_TIME);      /** 等待状态 */
+    fb[0] = !thaisenGetAux_B_Status_debug();
+    if(fb[0] != TRUE){
+        is_fail = 1;
+        thaisen_selfcheck_debug_info(THA_DEBUG_ITEM_AUX12V_B_ON, language, 0, LcdData.setData.selfCheck_Info[index], sizeof(LcdData.setData.selfCheck_Info[index]));
+    }else{
+        thaisen_selfcheck_debug_info(THA_DEBUG_ITEM_AUX12V_B_ON, language, 1, LcdData.setData.selfCheck_Info[index], sizeof(LcdData.setData.selfCheck_Info[index]));
+    }
+    /** 信息显示 */
+    fb[0] += '0';
+    LcdData.setData.g_auxRelay[LCD_GUN_2] = fb[0];
+    SerialScreen_SendTxt(&SerialScreen, 0x51B2, &fb[0], sizeof(fb[0]));
+    rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
+
+    for(u8 i = 0; i < indexmax; i++){
+        SerialScreen_SendTxt(&SerialScreen, txtaddr[i], LcdData.setData.selfCheck_Info[i], sizeof(LcdData.setData.selfCheck_Info[i]));
+        if((i + 1) < indexmax)
+            rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
+    }
+    if(++index >= indexmax){
+        for(u8 i = 0; (i + 1) < indexmax; i++){
+            memcpy(LcdData.setData.selfCheck_Info[i], LcdData.setData.selfCheck_Info[i + 1], sizeof(LcdData.setData.selfCheck_Info[i]));
+        }
+        index = indexmax - 1;
+    }
+    if(is_fail){
+        goto Check_end;
+    }
+    rt_thread_mdelay(SCREEN_TEST_ITEM_INTERVAL);      /** 等待一定时长再进行下一个自检项 */
+
+    memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
+    thaisenAux_B_Disable();                     /** 断开 */
+    rt_thread_mdelay(SCREEN_WAIT_FB_TIME);      /** 等待状态 */
+    fb[0] = !thaisenGetAux_B_Status_debug();
+    if(fb[0] != FALSE){
+        is_fail = 1;
+        thaisen_selfcheck_debug_info(THA_DEBUG_ITEM_AUX12V_B_OFF, language, 0, LcdData.setData.selfCheck_Info[index], sizeof(LcdData.setData.selfCheck_Info[index]));
+    }else{
+        thaisen_selfcheck_debug_info(THA_DEBUG_ITEM_AUX12V_B_OFF, language, 1, LcdData.setData.selfCheck_Info[index], sizeof(LcdData.setData.selfCheck_Info[index]));
+    }
+    /** 信息显示 */
+    fb[0] += '0';
+    LcdData.setData.g_auxRelay[LCD_GUN_2] = fb[0];
+    SerialScreen_SendTxt(&SerialScreen, 0x51B2, &fb[0], sizeof(fb[0]));
+    rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
+
+    for(u8 i = 0; i < indexmax; i++){
+        SerialScreen_SendTxt(&SerialScreen, txtaddr[i], LcdData.setData.selfCheck_Info[i], sizeof(LcdData.setData.selfCheck_Info[i]));
+        if((i + 1) < indexmax)
+            rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
+    }
+    if(++index >= indexmax){
+        for(u8 i = 0; (i + 1) < indexmax; i++){
+            memcpy(LcdData.setData.selfCheck_Info[i], LcdData.setData.selfCheck_Info[i + 1], sizeof(LcdData.setData.selfCheck_Info[i]));
+        }
+        index = indexmax - 1;
+    }
+    if(is_fail){
+        goto Check_end;
+    }
+    rt_thread_mdelay(SCREEN_TEST_ITEM_INTERVAL);      /** 等待一定时长再进行下一个自检项 */
+
+    /*************************************************** A枪24V辅源A ***************************************************/
+
+    memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
+    thaisenAux_A_24V_Enable();                      /** 闭合 */
+    rt_thread_mdelay(SCREEN_WAIT_FB_TIME);      /** 等待状态 */
+    fb[0] = !thaisenGetAux_A_Status_debug();
+    if(fb[0] != TRUE){
+        is_fail = 1;
+        thaisen_selfcheck_debug_info(THA_DEBUG_ITEM_AUX24V_A_ON, language, 0, LcdData.setData.selfCheck_Info[index], sizeof(LcdData.setData.selfCheck_Info[index]));
+    }else{
+        thaisen_selfcheck_debug_info(THA_DEBUG_ITEM_AUX24V_A_ON, language, 1, LcdData.setData.selfCheck_Info[index], sizeof(LcdData.setData.selfCheck_Info[index]));
+    }
+    /** 信息显示 */
+    fb[0] += '0';
+    LcdData.setData.g_aux24v[LCD_GUN_1] = fb[0];
+    SerialScreen_SendTxt(&SerialScreen, 0x6700, &fb[0], sizeof(fb[0]));
+    rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
+
+    for(u8 i = 0; i < indexmax; i++){
+        SerialScreen_SendTxt(&SerialScreen, txtaddr[i], LcdData.setData.selfCheck_Info[i], sizeof(LcdData.setData.selfCheck_Info[i]));
+        if((i + 1) < indexmax)
+            rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
+    }
+    if(++index >= indexmax){
+        for(u8 i = 0; (i + 1) < indexmax; i++){
+            memcpy(LcdData.setData.selfCheck_Info[i], LcdData.setData.selfCheck_Info[i + 1], sizeof(LcdData.setData.selfCheck_Info[i]));
+        }
+        index = indexmax - 1;
+    }
+    if(is_fail){
+        goto Check_end;
+    }
+    rt_thread_mdelay(SCREEN_TEST_ITEM_INTERVAL);      /** 等待一定时长再进行下一个自检项 */
+
+    memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
+    thaisenAux_A_24V_Disable();                     /** 断开 */
+    rt_thread_mdelay(SCREEN_WAIT_FB_TIME);      /** 等待状态 */
+    fb[0] = !thaisenGetAux_A_Status_debug();
+    if(fb[0] != FALSE){
+        is_fail = 1;
+        thaisen_selfcheck_debug_info(THA_DEBUG_ITEM_AUX24V_A_OFF, language, 0, LcdData.setData.selfCheck_Info[index], sizeof(LcdData.setData.selfCheck_Info[index]));
+    }else{
+        thaisen_selfcheck_debug_info(THA_DEBUG_ITEM_AUX24V_A_OFF, language, 1, LcdData.setData.selfCheck_Info[index], sizeof(LcdData.setData.selfCheck_Info[index]));
+    }
+    /** 信息显示 */
+    fb[0] += '0';
+    LcdData.setData.g_aux24v[LCD_GUN_1] = fb[0];
+    SerialScreen_SendTxt(&SerialScreen, 0x6700, &fb[0], sizeof(fb[0]));
+    rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
+
+    for(u8 i = 0; i < indexmax; i++){
+        SerialScreen_SendTxt(&SerialScreen, txtaddr[i], LcdData.setData.selfCheck_Info[i], sizeof(LcdData.setData.selfCheck_Info[i]));
+        if((i + 1) < indexmax)
+            rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
+    }
+    if(++index >= indexmax){
+        for(u8 i = 0; (i + 1) < indexmax; i++){
+            memcpy(LcdData.setData.selfCheck_Info[i], LcdData.setData.selfCheck_Info[i + 1], sizeof(LcdData.setData.selfCheck_Info[i]));
+        }
+        index = indexmax - 1;
+    }
+    if(is_fail){
+        goto Check_end;
+    }
+    rt_thread_mdelay(SCREEN_TEST_ITEM_INTERVAL);      /** 等待一定时长再进行下一个自检项 */
+
+    /*************************************************** B枪24V辅源B ***************************************************/
+
+    memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
+    thaisenAux_B_24V_Enable();                      /** 闭合 */
+    rt_thread_mdelay(SCREEN_WAIT_FB_TIME);      /** 等待状态 */
+    fb[0] = !thaisenGetAux_B_Status_debug();
+    if(fb[0] != TRUE){
+        is_fail = 1;
+        thaisen_selfcheck_debug_info(THA_DEBUG_ITEM_AUX24V_B_ON, language, 0, LcdData.setData.selfCheck_Info[index], sizeof(LcdData.setData.selfCheck_Info[index]));
+    }else{
+        thaisen_selfcheck_debug_info(THA_DEBUG_ITEM_AUX24V_B_ON, language, 1, LcdData.setData.selfCheck_Info[index], sizeof(LcdData.setData.selfCheck_Info[index]));
+    }
+    /** 信息显示 */
+    fb[0] += '0';
+    LcdData.setData.g_aux24v[LCD_GUN_2] = fb[0];
+    SerialScreen_SendTxt(&SerialScreen, 0x6780, &fb[0], sizeof(fb[0]));
+    rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
+
+    for(u8 i = 0; i < indexmax; i++){
+        SerialScreen_SendTxt(&SerialScreen, txtaddr[i], LcdData.setData.selfCheck_Info[i], sizeof(LcdData.setData.selfCheck_Info[i]));
+        if((i + 1) < indexmax)
+            rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
+    }
+    if(++index >= indexmax){
+        for(u8 i = 0; (i + 1) < indexmax; i++){
+            memcpy(LcdData.setData.selfCheck_Info[i], LcdData.setData.selfCheck_Info[i + 1], sizeof(LcdData.setData.selfCheck_Info[i]));
+        }
+        index = indexmax - 1;
+    }
+    if(is_fail){
+        goto Check_end;
+    }
+    rt_thread_mdelay(SCREEN_TEST_ITEM_INTERVAL);      /** 等待一定时长再进行下一个自检项 */
+
+    memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
+    thaisenAux_B_24V_Disable();                     /** 断开 */
+    rt_thread_mdelay(SCREEN_WAIT_FB_TIME);      /** 等待状态 */
+    fb[0] = !thaisenGetAux_B_Status_debug();
+    if(fb[0] != FALSE){
+        is_fail = 1;
+        thaisen_selfcheck_debug_info(THA_DEBUG_ITEM_AUX24V_B_OFF, language, 0, LcdData.setData.selfCheck_Info[index], sizeof(LcdData.setData.selfCheck_Info[index]));
+    }else{
+        thaisen_selfcheck_debug_info(THA_DEBUG_ITEM_AUX24V_B_OFF, language, 1, LcdData.setData.selfCheck_Info[index], sizeof(LcdData.setData.selfCheck_Info[index]));
+    }
+    /** 信息显示 */
+    fb[0] += '0';
+    LcdData.setData.g_aux24v[LCD_GUN_2] = fb[0];
+    SerialScreen_SendTxt(&SerialScreen, 0x6780, &fb[0], sizeof(fb[0]));
+    rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
+
+    for(u8 i = 0; i < indexmax; i++){
+        SerialScreen_SendTxt(&SerialScreen, txtaddr[i], LcdData.setData.selfCheck_Info[i], sizeof(LcdData.setData.selfCheck_Info[i]));
+        if((i + 1) < indexmax)
+            rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
+    }
+    if(++index >= indexmax){
+        for(u8 i = 0; (i + 1) < indexmax; i++){
+            memcpy(LcdData.setData.selfCheck_Info[i], LcdData.setData.selfCheck_Info[i + 1], sizeof(LcdData.setData.selfCheck_Info[i]));
+        }
+        index = indexmax - 1;
+    }
+    if(is_fail){
+        goto Check_end;
+    }
+
+Check_end:
+
+    rt_thread_mdelay(SCREEN_TEST_ITEM_INTERVAL);      /** 等待一定时长再进行下一个自检项 */
+
+    /*************************************************** 自检完成 ***************************************************/
+    memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
+    thaisen_selfcheck_debug_info(THA_DEBUG_ITEM_COMPLETE, language, 1, LcdData.setData.selfCheck_Info[index], sizeof(LcdData.setData.selfCheck_Info[index]));
+
+    for(u8 i = 0; i < indexmax; i++){
+        SerialScreen_SendTxt(&SerialScreen, txtaddr[i], LcdData.setData.selfCheck_Info[i], sizeof(LcdData.setData.selfCheck_Info[i]));
+        if((i + 1) < indexmax)
+            rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
+    }
+    rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
+
+    LcdData.setData.selfCheck_icon = FALSE;
+    SerialScreen_SendIco(&SerialScreen, 0x6713, LcdData.setData.selfCheck_icon);
+
+#undef SCREEN_WAIT_FB_TIME
+#undef SCREEN_INFO_SEND_INTERVAL
+#undef SCREEN_TEST_ITEM_INTERVAL
 }
 
 //NET--读取INT16
@@ -10097,7 +10963,7 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT, NULL, "FanA set", LCD_BtnType, 0x0042, 0x1000, page_type, LCD_PAGE_MENU_INOUT, (void *)SerialScreen_BtnFanSetA);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT, NULL, "aux set", LCD_BtnType, 0x0053, 0x1000, page_type, LCD_PAGE_MENU_INOUT, (void *)SerialScreen_BtnAuxSetA);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT, NULL, "aux24v set", LCD_BtnType, 0x0060, 0x1003, page_type, LCD_PAGE_MENU_INOUT, (void *)SerialScreen_BtnAux24VSetA);
-//    SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT, NULL, "selfCheck set", LCD_BtnType, 0x0062, 0x1003, page_type, LCD_PAGE_MENU_INOUT, (void *)SerialScreen_BtnSelfCheckSet);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT, NULL, "selfCheck set", LCD_BtnType, 0x0062, 0x1003, page_type, LCD_PAGE_MENU_INOUT, (void *)SerialScreen_BtnSelfCheckSet);
 
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT, NULL, "b gun", LCD_BtnType, 0x0026, 0x1000, page_type, LCD_PAGE_MENU_INOUT_B, (void *)SerialScreen_GetIOStatusB);
 
@@ -10131,7 +10997,7 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT, NULL, "Icon FanA", LCD_IconType, LCD_10sReflash, 0x417A, pu8_type, sizeof(LcdData.setData.s_fan[LCD_GUN_1]), (void *)&LcdData.setData.s_fan[LCD_GUN_1]);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT, NULL, "Icon aux", LCD_IconType, LCD_10sReflash, 0x41B4, pu8_type, sizeof(LcdData.setData.s_auxRelay[LCD_GUN_1]), (void *)&LcdData.setData.s_auxRelay[LCD_GUN_1]);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT, NULL, "Icon aux24v", LCD_IconType, LCD_10sReflash, 0x6702, pu8_type, sizeof(LcdData.setData.aux24v_set[LCD_GUN_1]), (void *)&LcdData.setData.aux24v_set[LCD_GUN_1]);
-//    SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT, NULL, "Icon selfCheck", LCD_IconType, LCD_10sReflash, 0x6713, pu8_type, sizeof(LcdData.setData.selfCheck_icon), (void *)&LcdData.setData.selfCheck_icon);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT, NULL, "Icon selfCheck", LCD_IconType, LCD_10sReflash, 0x6713, pu8_type, sizeof(LcdData.setData.selfCheck_icon), (void *)&LcdData.setData.selfCheck_icon);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT, NULL, "modeule state", LCD_BtnType, 0x0024, 0x1000, page_type, LCD_PAGE_MENU_STATE_MODULE, (void *)SerialScreen_BtnModuleStateA);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT, NULL, "cd up", LCD_BtnType, 0x0050, 0x1000, page_type, LCD_PAGE_ROOT_MAIN, (void *)SerialScreen_QuitDebugIO);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT, NULL, "Home", LCD_BtnHomeType, 0x0002, 0x1000, page_type, LCD_PAGE_NONE, (void *)SerialScreen_QuitDebugIO);
