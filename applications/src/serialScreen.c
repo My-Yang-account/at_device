@@ -8490,6 +8490,7 @@ void SerialScreen_GetKeyProcess(struct SerialScreenObj *cmd)
                                  if((keyreg == 0x1000) && (keyval == 0x0013)){        //输密码页面点击返回
                                      if(LcdAssistantData.Flag.IsLongLiSerialScreen){
                                          LcdData.CurrentPage = LCD_PAGE_STANDBY;
+                                         LcdData.menuflg = 0;
                                      }else if(LcdAssistantData.SeveralGunFlag[LcdData.gunIndex].IsPWStartAuthen == TRUE){
                                          if(LcdData.gunIndex == LCD_GUN_1){
                                              LcdData.CurrentPage = LCD_PAGE_A_SELECT;
@@ -8497,8 +8498,8 @@ void SerialScreen_GetKeyProcess(struct SerialScreenObj *cmd)
                                              LcdData.CurrentPage = LCD_PAGE_B_SELECT;
                                          }
                                          LcdAssistantData.SeveralGunFlag[LcdData.gunIndex].IsPWStartAuthen = FALSE;
+                                         LcdData.menuflg = 0;
                                      }
-                                     LcdData.menuflg = 0;
                                  }
                                  page_selected = 1;
                              }
