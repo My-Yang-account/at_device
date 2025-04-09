@@ -134,6 +134,8 @@ void SerialScreen_BtnAux24VSet(u8 port);
 void SerialScreen_SysInfoGet(void);
 void SerialScreen_SetInputInfo(void);
 void SerialScreen_InputInfoGet(void);
+void SerialScreen_DisChargeInfoGet(void);
+void SerialScreen_NormalModeInfoGet(void);
 void SerialScreen_ParaChargeSet(void);
 void SerialScreen_SingleChargeSet(void);
 void SerialScreen_IsSupportSet(void);
@@ -228,6 +230,8 @@ s32 SerialScreen_ScreenSet_Trigger_Event(u8 Event, u16 DurationTime, u8 JustNoti
 void SerialScreen_AcIsSupportOutSet(void);
 void SerialScreen_ElockIsSupportOutSet(void);
 void SerialScreen_FanIsSupportOutSet(void);
+
+void SerialScreen_V2GIsSupportSet(void);
 
 void SerialScreen_OfflineBillingSet(void);
 void SerialScreen_OfflineBillingGet(void);

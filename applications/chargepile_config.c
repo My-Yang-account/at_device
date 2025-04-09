@@ -2131,7 +2131,6 @@ int32_t chargepile_check_config(void)
     if(s_chargepile_config_info.function_enable.offline_card > 0x01){      /* 离线卡功能默认开启 */
         s_chargepile_config_info.function_enable.offline_card = 0x01;
     }
-    s_chargepile_config_info.function_enable.mode_select = 0;
     if(s_chargepile_config_info.function_enable.mode_select > 0x01){      /* 模式选择功能默认关闭 */
         s_chargepile_config_info.function_enable.mode_select = 0x00;
     }
