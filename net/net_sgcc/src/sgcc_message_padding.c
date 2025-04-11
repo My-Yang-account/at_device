@@ -1724,7 +1724,7 @@ int8_t sgcc_message_pro_reservation_request(uint8_t gunno, void *data, uint8_t l
     evs_service_rsvCharge *request = (evs_service_rsvCharge*)data;
 
     if(request->appomathod == 11){
-        if(base->state.current == APP_OFSM_STATE_RESERVATION){
+        if((base->state.current == APP_OFSM_STATE_RESERVATION) && (base->flag.is_local_reservation == NET_ENUM_FALSE)){
             net_operation_set_event(gunno, NET_OPERATION_EVENT_CANCEL_RESERVATION);
             net_operation_clear_event(gunno, NET_OPERATION_EVENT_OFFLINECHARGE_LIMIT);
             return 0x00;
@@ -1732,7 +1732,7 @@ int8_t sgcc_message_pro_reservation_request(uint8_t gunno, void *data, uint8_t l
     }else{
         switch(base->state.current){
         case APP_OFSM_STATE_READYING:
-            base->reservation_time_sec = request->appoDelay *60;
+            base->reservation_time_remain = request->appoDelay *60;
             base->reservation_strategy_para = 0x00;
             base->reservation_strategy = (uint8_t)(APP_RESERVATE_STRATEGY_PULLGUN_CANCEL | \
                     APP_RESERVATE_STRATEGY_TIMEOUT_CANCEL |APP_RESERVATE_STRATEGY_VIN_AUTH |  \
@@ -3285,7 +3285,7 @@ static uint8_t sgcc_chargepile_transaction_identity_converted(uint8_t identity, 
         break;
     case APP_CHARGE_START_WAY_SCREEN:
         break;
-    case APP_CHARGE_START_WAY_TIMING:
+    case APP_CHARGE_START_WAY_RESERVATION:
         break;
     case APP_CHARGE_START_WAY_PLUG_AND_CHARGE:
         if(online_order){
@@ -4047,6 +4047,8 @@ static void sgcc_realtime_process_thread_entry(void *parameter)
                 if(app_billingrule_is_valid(gunno) == NET_ENUM_FALSE){
                     if((rt_tick_get() - request_billing_tick) > 30000){
                         request_billing_tick = rt_tick_get();
+                        memset(evs_event_ask_feeModels[gunno].eleModelId, 0x00, sizeof(evs_event_ask_feeModels[gunno].eleModelId));
+                        memset(evs_event_ask_feeModels[gunno].serModeId, 0x00, sizeof(evs_event_ask_feeModels[gunno].serModeId));
                         sgcc_net_event_send(NET_SGCC_EVENT_HANDLE_CHARGEPILE, NET_SGCC_EVENT_TYPE_REQUEST, 0x00, NET_SGCC_PREQ_EVENT_REQUEST_BILLING_MODE);
                     }
                     break;

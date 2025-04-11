@@ -928,10 +928,7 @@ static void sgcc_message_send_thread_entry(void *parameter)
                 rt_kprintf("BILLING_MODE 00000000000000000000000000(%d)\n", gunno);
                 sgcc_net_event_receive(NET_SGCC_EVENT_HANDLE_SERVER, NET_SGCC_EVENT_TYPE_REQUEST, gunno,
                                         (NET_SGCC_EVENT_OPTION_OR |NET_SGCC_EVENT_OPTION_CLEAR), NET_SGCC_SREQ_EVENT_BILLING_MODEL_SET, NULL);
-
                 s_sgcc_flag_set.is_recved_billing = 0x00;
-                memset(evs_event_ask_feeModels[gunno].eleModelId, 0x00, sizeof(evs_event_ask_feeModels[gunno].eleModelId));
-                memset(evs_event_ask_feeModels[gunno].serModeId, 0x00, sizeof(evs_event_ask_feeModels[gunno].serModeId));
 
                 sgcc_set_message_send_state(gunno, NET_SGCC_SEND_STATE_ONGOING, NET_SGCC_PREQ_EVENT_REQUEST_BILLING_MODE);
                 evs_send_event(EVS_CMD_EVENT_ASK_FEEMODEL, &evs_event_ask_feeModels[gunno]);

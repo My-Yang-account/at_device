@@ -86,7 +86,7 @@ extern "C" {
 
 #define APP_RESERVATE_STRATEGY_PULLGUN_CANCEL  (0x01 <<0x00)     /* 预约策略：拔枪取消 */
 #define APP_RESERVATE_STRATEGY_FAULT_CANCEL    (0x01 <<0x01)     /* 预约策略：故障取消取消 */
-#define APP_RESERVATE_STRATEGY_TIMEOUT_CANCEL  (0x01 <<0x02)     /* 预约策略：预约超时取消(最大超时时间有预约策略参数规定[单位：s]) */
+#define APP_RESERVATE_STRATEGY_TIMEOUT_CANCEL  (0x01 <<0x02)     /* 预约策略：预约超时取消(最大超时时间由预约策略参数规定[单位：s]) */
 #define APP_RESERVATE_STRATEGY_VIN_AUTH        (0x01 <<0x03)     /* 预约策略：预约时间到后需要VIN码鉴权启动 */
 #define APP_RESERVATE_STRATEGY_START_DIRECTLY  (0x01 <<0x04)     /* 预约策略：预约时间到后直接启动 */
 
@@ -146,7 +146,7 @@ enum system_start_way{
     APP_CHARGE_START_WAY_SCREEN,                       /* 启动方式：屏幕 */
     APP_CHARGE_START_WAY_BLUE,                         /* 启动方式：蓝牙 */
     APP_CHARGE_START_WAY_PLUG_AND_CHARGE,              /* 启动方式：即插即充 */
-    APP_CHARGE_START_WAY_TIMING,                       /* 启动方式：定时预约 */
+    APP_CHARGE_START_WAY_RESERVATION,                  /* 启动方式：定时预约 */
     APP_CHARGE_START_WAY_PASSWORD,                     /* 启动方式：密码 */
 };
 
@@ -406,6 +406,7 @@ typedef struct{
         uint32_t is_pay_complete : 1;                        /* 已结算完成(用于离线计费) */
         uint32_t is_ammeter_elect_error : 1;                 /* 电表电量错误(防止一开始时读取到的电表电量是0) */
         uint32_t paracharge_is_identified : 1;               /* 是否并充已识别 */
+        uint32_t is_local_reservation : 1;                   /* 是否本地预约 */
     }flag;
 
     uint8_t cc1_state;                /* CC1 状态 */
@@ -477,7 +478,8 @@ typedef struct{
 
     uint8_t reservation_strategy;     /* 预约策略 */
     uint8_t reservation_strategy_para;/* 预约策略参数 */
-    uint8_t reservation_time_sec;     /* 预约时间(单位:s) */
+    int32_t reservation_time_remain;  /* 预约剩余时间(单位:s) */
+    uint32_t reservation_time_base;   /* 预约基时间(单位:s(时间戳)) */
 
     uint8_t power_strategy;           /* 调功率策略 */
     uint8_t power_strategy_para;      /* 调功率策略参数 */
