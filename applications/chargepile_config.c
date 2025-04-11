@@ -122,7 +122,8 @@ struct _config_para{
     uint16_t overtemp_limitcur;                                       /* 过温限流值 */
 
     uint16_t eloss_proportion;                                        /* 电损比 */
-    uint8_t reserve1[256 - 2];                                        /* 预留 */
+    uint32_t mode_parameter[2];                                       /* 模式参数 */
+    uint8_t reserve1[256 - 10];                                       /* 预留 */
 };
 
 struct _config_info{
@@ -195,9 +196,9 @@ struct _function_enable{
     uint8_t liquid_in;             /* 液冷 */
     uint8_t fuse_in;               /* 熔断器 */
     uint8_t mode_select;           /* 模式选择功能启用 */
-    uint8_t normal_mode;           /* 已选择的模式 */
+    uint8_t current_mode[2];       /* 已选择的模式 */
     uint8_t mode_v2g;              /* 是否启用V2G */
-    uint8_t reserve[78];
+    uint8_t reserve[77];
 };
 
 struct _state_reversal{
@@ -396,6 +397,16 @@ APP_DEF_SRAM2 static struct config_item s_config_item_set[CONFIG_ITEM_SIZE] =
         (uint8_t*)&s_chargepile_config_info.function_enable.mode_select,
         NULL},
 
+        {CONFIG_ITEM_CURRENT_MODE_A,
+        (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.current_mode[0x00])),      /*配置项：当前模式*/
+        (uint8_t*)&s_chargepile_config_info.function_enable.current_mode[0x00],
+        NULL},
+
+        {CONFIG_ITEM_CURRENT_MODE_B,
+        (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.current_mode[0x01])),      /*配置项：当前模式*/
+        (uint8_t*)&s_chargepile_config_info.function_enable.current_mode[0x01],
+        NULL},
+
         {CONFIG_ITEM_CARD_TYPE,
         (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_info.card_type)),       /*配置项：读卡器密钥*/
         (uint8_t*)&s_chargepile_config_info.config_info.card_type,
@@ -504,6 +515,16 @@ APP_DEF_SRAM2 static struct config_item s_config_item_set[CONFIG_ITEM_SIZE] =
         {CONFIG_ITEM_ELOSS_PROPORTION,                                              /* 配置项：电损比*/
         (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.eloss_proportion)),
         (uint8_t*)&s_chargepile_config_info.config_para.eloss_proportion,
+        NULL},
+
+        {CONFIG_ITEM_MODE_PARAMETER_A,                                              /* 配置项：模式参数*/
+        (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.mode_parameter[0x00])),
+        (uint8_t*)&s_chargepile_config_info.config_para.mode_parameter[0x00],
+        NULL},
+
+        {CONFIG_ITEM_MODE_PARAMETER_B,                                              /* 配置项：模式参数*/
+        (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.mode_parameter[0x01])),
+        (uint8_t*)&s_chargepile_config_info.config_para.mode_parameter[0x01],
         NULL},
 
         {CONFIG_ITEM_OUTEN_AC,                                                      /* 配置项：交流接触器输出*/
@@ -917,6 +938,12 @@ void sys_chargeplie_config_info_init(void)
     /** 启用模式选择功能 */
     sys_config_item_init(CONFIG_ITEM_SUPORT_MODE_SELECT, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.mode_select)), \
             (uint8_t*)&s_chargepile_config_info.function_enable.mode_select, NULL);
+    /** 当前模式-A */
+    sys_config_item_init(CONFIG_ITEM_CURRENT_MODE_A, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.current_mode[0x00])), \
+            (uint8_t*)&s_chargepile_config_info.function_enable.current_mode[0x00], NULL);
+    /** 当前模式-B */
+    sys_config_item_init(CONFIG_ITEM_CURRENT_MODE_B, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.current_mode[0x01])), \
+            (uint8_t*)&s_chargepile_config_info.function_enable.current_mode[0x01], NULL);
     /** 卡类型 */
     sys_config_item_init(CONFIG_ITEM_CARD_TYPE, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_info.card_type)), \
             (uint8_t*)&s_chargepile_config_info.config_info.card_type, NULL);
@@ -983,6 +1010,12 @@ void sys_chargeplie_config_info_init(void)
     /** 电损比 */
     sys_config_item_init(CONFIG_ITEM_ELOSS_PROPORTION, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.eloss_proportion)), \
             (uint8_t*)&s_chargepile_config_info.config_para.eloss_proportion, NULL);
+    /** 模式参数-A */
+    sys_config_item_init(CONFIG_ITEM_MODE_PARAMETER_A, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.mode_parameter[0x00])), \
+            (uint8_t*)&s_chargepile_config_info.config_para.mode_parameter[0x00], NULL);
+    /** 模式参数-B */
+    sys_config_item_init(CONFIG_ITEM_MODE_PARAMETER_B, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.mode_parameter[0x01])), \
+            (uint8_t*)&s_chargepile_config_info.config_para.mode_parameter[0x01], NULL);
     /** 启用交流接触器 */
     sys_config_item_init(CONFIG_ITEM_OUTEN_AC, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.acrelay_out)), \
             (uint8_t*)&s_chargepile_config_info.function_enable.acrelay_out, NULL);
@@ -1648,6 +1681,7 @@ static void chargepile_config_data_reset(void)
     s_chargepile_config_info.config_para.overtemp_recovery = PROTECT_OVERTEMP_RESUME_VALUE_DEFAULT;
     s_chargepile_config_info.config_para.overtemp_limitcur = PROTECT_OVERTEMP_LIMITCURR_VALUE_DEFAULT;
     s_chargepile_config_info.config_para.eloss_proportion = CHARGEPILE_ELOSS_PROPORTION_DEF;
+    memset(s_chargepile_config_info.config_para.mode_parameter, 0x00, sizeof(s_chargepile_config_info.config_para.mode_parameter));
 
     s_chargepile_config_info.config_para.input_overvol = CHARGEPILE_INPUT_OVERVOLT_DEF;
     s_chargepile_config_info.config_para.input_undervol = CHARGEPILE_INPUT_UNDERVOLT_DEF;
@@ -1715,6 +1749,7 @@ static void chargepile_config_data_reset(void)
     s_chargepile_config_info.function_enable.liquid_in = 0x00;
     s_chargepile_config_info.function_enable.fuse_in = 0x00;
     s_chargepile_config_info.function_enable.mode_select = 0x00;
+    memset(s_chargepile_config_info.function_enable.current_mode, 0x00, sizeof(s_chargepile_config_info.function_enable.current_mode));
 
     s_chargepile_config_info.state_reversal.emergency_stop = 0x00;
     s_chargepile_config_info.state_reversal.gate = 0x00;
@@ -2133,6 +2168,11 @@ int32_t chargepile_check_config(void)
     }
     if(s_chargepile_config_info.function_enable.mode_select > 0x01){      /* 模式选择功能默认关闭 */
         s_chargepile_config_info.function_enable.mode_select = 0x00;
+    }
+    for(uint8_t i = 0x00; i < sizeof(s_chargepile_config_info.config_para.mode_parameter); i++){
+        if(s_chargepile_config_info.function_enable.current_mode[i] >= CP_MODE_SIZE){    /* 当前模式默认充满 */
+            s_chargepile_config_info.function_enable.current_mode[i] = CP_MODE_CHARGE_FULL;
+        }
     }
 
     if(s_chargepile_config_info.function_enable.acrelay_out > 0x01){       /* 交流接触器输出启用默认关闭 */
@@ -2559,6 +2599,45 @@ int32_t chargepile_check_config(void)
     /********************************************************************************************************/
     /********************************************************************************************************/
 #endif /* CP_USING_OFFLINE_BILLING */
+    /*************************************************** 模式选择 *****************************************************/
+    /*************************************************** 模式选择 *****************************************************/
+    for(uint8_t i = 0x00; i < sizeof(s_chargepile_config_info.config_para.mode_parameter); i++){
+        switch(s_chargepile_config_info.function_enable.current_mode[i]){
+        case CP_MODE_CHARGE_FULL:
+            s_chargepile_config_info.config_para.mode_parameter[i] = 0x00;
+            break;
+        case CP_MODE_LIMIT_MONEY:
+            if((s_chargepile_config_info.config_para.mode_parameter[i] > CP_MODE_PARA_MONEY_MAX) || \
+                    (s_chargepile_config_info.config_para.mode_parameter[i] < CP_MODE_PARA_MONEY_MIN)){
+                s_chargepile_config_info.config_para.mode_parameter[i] = CP_MODE_PARA_MONEY_DEF;
+            }
+            break;
+        case CP_MODE_LIMIT_ELECT:
+            if((s_chargepile_config_info.config_para.mode_parameter[i] > CP_MODE_PARA_ELECT_MAX) || \
+                    (s_chargepile_config_info.config_para.mode_parameter[i] < CP_MODE_PARA_ELECT_MIN)){
+                s_chargepile_config_info.config_para.mode_parameter[i] = CP_MODE_PARA_ELECT_DEF;
+            }
+            break;
+        case CP_MODE_LIMIT_TIMING:
+            if((s_chargepile_config_info.config_para.mode_parameter[i] > CP_MODE_PARA_TIMING_MAX) || \
+                    (s_chargepile_config_info.config_para.mode_parameter[i] < CP_MODE_PARA_TIMING_MIN)){
+                s_chargepile_config_info.config_para.mode_parameter[i] = CP_MODE_PARA_TIMING_DEF;
+            }
+            break;
+        case CP_MODE_LIMIT_RESERVATION:
+            if((s_chargepile_config_info.config_para.mode_parameter[i] > CP_MODE_PARA_RESERVATION_MAX) || \
+                    (s_chargepile_config_info.config_para.mode_parameter[i] < CP_MODE_PARA_RESERVATION_MIN)){
+                s_chargepile_config_info.config_para.mode_parameter[i] = CP_MODE_PARA_RESERVATION_DEF;
+            }
+            break;
+        default:
+            s_chargepile_config_info.function_enable.current_mode[i] = CP_MODE_CHARGE_FULL;
+            s_chargepile_config_info.config_para.mode_parameter[i] = 0x00;
+            break;
+        }
+    }
+    /********************************************************************************************************/
+    /********************************************************************************************************/
     return 0;
 }
 

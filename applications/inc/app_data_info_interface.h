@@ -26,6 +26,15 @@
 #include "mw_storage.h"
 #include "mw_charge_control.h"
 
+enum thaisen_mode{
+    THAISEN_MODE_CHARGE_FULL,                                     /** 当前模式：充满 */
+    THAISEN_MODE_LIMIT_MONEY,                                     /** 当前模式：限制金额(单位：0.0001元) */
+    THAISEN_MODE_LIMIT_ELECT,                                     /** 当前模式：限制电量(单位：0.001度) */
+    THAISEN_MODE_LIMIT_TIMING,                                    /** 当前模式：定时(单位：1S) */
+    THAISEN_MODE_LIMIT_RESERVATION,                               /** 当前模式：预约(单位：1S) */
+    THAISEN_MODE_SIZE,                                            /** 当前模式： */
+};
+
 /** 此枚举需要与 Trigger_Page 数组的下标对应 */
 enum thaisen_trig_event{
     THAISEN_TRIG_EVENT_CARD_LOCKED,                               /** 屏幕外部触发事件：卡被锁 */
@@ -670,6 +679,22 @@ typedef enum{
  *  获取一键自检中文信息
  **/
 void thaisen_selfcheck_debug_info(tha_debug_chinese_en item, uint8_t language, uint8_t ret, uint8_t *buf, uint8_t ilen);
+
+ /**
+ *  获取当前模式
+ **/
+enum thaisen_mode thaisen_get_current_mode(uint8_t gunno);
+
+/********************************************
+ * 函数名      thaisen_get_mode_parameter
+ * 功能          获取模式选择参数
+ * 参数          gunno     枪号
+ * 返回          模式选择参数
+ *******************************************/
+ /**
+  *  获取模式选择参数
+  **/
+uint32_t thaisen_get_mode_parameter(uint8_t gunno);
 
 #endif /* APPLICATIONS_INC_APP_DATA_INFO_INTERFACE_H_ */
 

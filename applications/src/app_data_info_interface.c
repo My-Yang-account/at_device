@@ -1747,3 +1747,25 @@ void thaisen_selfcheck_debug_info(tha_debug_chinese_en item, uint8_t language, u
 {
     app_selfcheck_debug_info(item, language, ret, buf, ilen);
 }
+
+/********************************************
+ * 函数名      thaisen_get_current_mode
+ * 功能          获取当前模式
+ * 参数          gunno    枪号
+ * 返回           @enum thaisen_mode(不启用模式选择时返回 THAISEN_MODE_SIZE)
+ *******************************************/
+enum thaisen_mode thaisen_get_current_mode(uint8_t gunno)
+{
+    return SerialScreen_Screen_GetCurrentMode(gunno);
+}
+
+/********************************************
+ * 函数名      thaisen_get_mode_parameter
+ * 功能          获取模式选择参数
+ * 参数          gunno     枪号
+ * 返回          模式选择参数
+ *******************************************/
+uint32_t thaisen_get_mode_parameter(uint8_t gunno)
+{
+    return SerialScreen_Screen_GetModeParameter(gunno);
+}

@@ -327,6 +327,29 @@
 #define CP_AMMETER_BAUDRATE_38400                 3         /* 电表串口波特率：38400 */
 #define CP_AMMETER_BAUDRATE_115200                4         /* 电表串口波特率：115200 */
 
+#define CP_MODE_CHARGE_FULL                       0         /* 当前充电模式：充满 */
+#define CP_MODE_LIMIT_MONEY                       1         /* 当前充电模式：限制金额 */
+#define CP_MODE_LIMIT_ELECT                       2         /* 当前充电模式：限制电量 */
+#define CP_MODE_LIMIT_TIMING                      3         /* 当前充电模式：定时 */
+#define CP_MODE_LIMIT_RESERVATION                 4         /* 当前充电模式：预约 */
+#define CP_MODE_SIZE                              5         /* 当前充电模式：*/
+
+#define CP_MODE_PARA_MONEY_DEF                    10000     /* 充电模式金额参数默认值(单位：0.01元)*/
+#define CP_MODE_PARA_MONEY_MAX                    500000    /* 充电模式金额参最大值(单位：0.01元)：*/
+#define CP_MODE_PARA_MONEY_MIN                    200       /* 充电模式金额参数最小值(单位：0.01元)*/
+
+#define CP_MODE_PARA_ELECT_DEF                    100000    /* 充电模式电量参数默认值(单位：0.001度)*/
+#define CP_MODE_PARA_ELECT_MAX                    1000000   /* 充电模式电量参最大值(单位：0.001度)：*/
+#define CP_MODE_PARA_ELECT_MIN                    1000      /* 充电模式电量参数最小值(单位：0.001度)*/
+
+#define CP_MODE_PARA_TIMING_DEF                   30        /* 充电模式定时参数默认值(单位：1min)*/
+#define CP_MODE_PARA_TIMING_MAX                   (24 *60)  /* 充电模式定时参最大值(单位：1min)：*/
+#define CP_MODE_PARA_TIMING_MIN                   1         /* 充电模式定时参数最小值(单位：1min)*/
+
+#define CP_MODE_PARA_RESERVATION_DEF              (22 *3600) /* 充电模式预约参数默认值(单位：1S[是当天启动时间的秒数])*/
+#define CP_MODE_PARA_RESERVATION_MAX              (24 *3600) /* 充电模式预约参最大值(单位：1S[是当天启动时间的秒数])*/
+#define CP_MODE_PARA_RESERVATION_MIN              0         /* 充电模式预约参数最小值(单位：1S[是当天启动时间的秒数])*/
+
 /* net type */
 #define CP_NETTYPE_4G                                 0x00             /* 联网方式：4G */
 #define CP_NETTYPE_ETH                                0x01             /* 联网方式：以太网 */
@@ -457,6 +480,8 @@ enum config_name{
     CONFIG_ITEM_SUPORT_PASSWORD_START,
     CONFIG_ITEM_SUPORT_OFFLINE_CARD,
     CONFIG_ITEM_SUPORT_MODE_SELECT,
+    CONFIG_ITEM_CURRENT_MODE_A,
+    CONFIG_ITEM_CURRENT_MODE_B,
 
     CONFIG_ITEM_CARD_TYPE,
     CONFIG_ITEM_CC14V_MAX,
@@ -481,6 +506,8 @@ enum config_name{
     CONFIG_ITEM_OVERTEMP_RECOVER,
     CONFIG_ITEM_OVERTEMP_SETCUR,
     CONFIG_ITEM_ELOSS_PROPORTION,
+    CONFIG_ITEM_MODE_PARAMETER_A,
+    CONFIG_ITEM_MODE_PARAMETER_B,
 
     /**************out***************/
     CONFIG_ITEM_OUTEN_AC,
