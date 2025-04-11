@@ -1290,6 +1290,35 @@ u32 SerialScreen_Screen_GetModeParameter(u8 port)
     return 0;
 }
 
+static void SerialScreen_Screen_ResetModeInfoDef(u8 port)
+{
+    if(port >= LCD_GUN_NUM)
+        return ;
+    if((LcdData.setData.CurrentMode[port][THAISEN_MODE_CHARGE_FULL] != TRUE) && (LcdData.setData.CurrentMode[port][THAISEN_MODE_LIMIT_RESERVATION] != TRUE)){
+        u8 mode = 0;
+        u32 parameter = 0;
+
+        LcdData.setData.MSLimitMoney[port] = 0;
+        LcdData.setData.MSLimitElect[port] = 0;
+        LcdData.setData.MSLimitTiming[port] = 0;
+        LcdData.setData.MSLimitReservationHour[port] = 0;
+        LcdData.setData.MSLimitReservationMin[port] = 0;
+        LcdData.setData.CurrentModePara[port] = 0;
+        memset(LcdData.setData.CurrentMode[port], 0, sizeof(LcdData.setData.CurrentMode[port]));
+        LcdData.setData.CurrentMode[port][THAISEN_MODE_CHARGE_FULL] = TRUE;
+
+        mode = THAISEN_MODE_CHARGE_FULL;
+        parameter = LcdData.setData.CurrentModePara[port];
+        if(port == LCD_GUN_1){
+            UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_CURRENT_MODE_A, &mode, sizeof(mode));
+            UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_MODE_PARAMETER_A, (u8*)&parameter, sizeof(parameter));
+        }else{
+            UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_CURRENT_MODE_B, &mode, sizeof(mode));
+            UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_MODE_PARAMETER_B, (u8*)&parameter, sizeof(parameter));
+        }
+    }
+}
+
 /*********************************************** 外部触发执行配置 ****************************************************/
 /*********************************************** 外部触发执行配置 ****************************************************/
 /*******************************************************************
@@ -4529,6 +4558,7 @@ void SerialScreen_BtnModeInfoStorage(int port)
     }
     SerialScreen_JumpPage(&SerialScreen, LCD_PAGE_STORAGE_WAITING);
 
+    memcpy(LcdData.setData.CurrentMode[port], LcdData.setData.CurrentMode[LCD_GUN_NUM], sizeof(LcdData.setData.CurrentMode[port]));
     if(port == LCD_GUN_1){
         UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_CURRENT_MODE_A, &mode, sizeof(mode));
         UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_MODE_PARAMETER_A, (u8*)&LcdData.setData.CurrentModePara[port], sizeof(LcdData.setData.CurrentModePara[port]));
@@ -4540,17 +4570,19 @@ void SerialScreen_BtnModeInfoStorage(int port)
     UI_STORAGE_CFG_DATA;
 }
 
-void SerialScreen_BtnModeInfoGet(void)
+void SerialScreen_BtnModeInfoGet(u8 port)
 {
-    u8 mode = 0x00, port = LcdData.gunIndex;
+    u8 mode = 0x00;
     u32 mpara = 0x00;
 
     if(port == LCD_GUN_1){
         mode = *(UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_CURRENT_MODE_A, 0));
         mpara = *((u32*)(UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_MODE_PARAMETER_A, 0)));
-    }else{
+    }else if(port == LCD_GUN_2){
         mode = *(UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_CURRENT_MODE_B, 0));
         mpara = *((u32*)(UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_MODE_PARAMETER_B, 0)));
+    }else{
+        return;
     }
 
     memset(LcdData.setData.CurrentMode[LCD_GUN_NUM], 0x00, sizeof(LcdData.setData.CurrentMode[LCD_GUN_NUM]));
@@ -4878,7 +4910,13 @@ void SerialScreen_DisChargeInfoGet(void)
 
 void SerialScreen_NormalModeInfoGet(void)
 {
-    SerialScreen_BtnModeInfoGet();
+    if(LcdData.gunIndex == LCD_GUN_1){
+        SerialScreen_BtnModeInfoGet(LCD_GUN_2);
+        SerialScreen_BtnModeInfoGet(LCD_GUN_1);
+    }else{
+        SerialScreen_BtnModeInfoGet(LCD_GUN_1);
+        SerialScreen_BtnModeInfoGet(LCD_GUN_2);
+    }
 }
 
 int SerialScreen_IsCarConnect(int port)
@@ -7544,12 +7582,12 @@ void SerialScreen_PWStartAuthen(void)
 
 void SerialScreen_GetModeInfoA(void)
 {
-    SerialScreen_BtnModeInfoGet();
+    SerialScreen_BtnModeInfoGet(LCD_GUN_1);
 }
 
 void SerialScreen_GetModeInfoB(void)
 {
-    SerialScreen_BtnModeInfoGet();
+    SerialScreen_BtnModeInfoGet(LCD_GUN_2);
 }
 
 void SerialScreen_SysInfoGet(void)
@@ -9949,6 +9987,8 @@ int SerialScreen_DataProcess()
 
 				LcdData.gun[i].workState = SysMainStatus_StandBy;
 		        LcdAssistantData.SeveralGunFlag[i].IsPWStartAuthen = FALSE;
+
+		        SerialScreen_Screen_ResetModeInfoDef(i);
 				break;
 			case APP_OFSM_STATE_READYING:
 				LcdData.gun[i].workState = SysMainStatus_PlugIn;
@@ -9976,10 +10016,12 @@ int SerialScreen_DataProcess()
                 for(u8 i = 0; i < LCD_GUN_NUM; i++){
                     LcdAssistantData.SeveralGunFlag[i].IsPWStartAuthen = FALSE;
                 }
+                SerialScreen_Screen_ResetModeInfoDef(i);
 				break;	
 			case APP_OFSM_STATE_FINISHING:
 				LcdData.gun[i].workState = SysMainStatus_Account;
 		        LcdAssistantData.SeveralGunFlag[i].IsPWStartAuthen = FALSE;
+                SerialScreen_Screen_ResetModeInfoDef(i);
 				break;
 			case APP_OFSM_STATE_FAULTING:
 				LcdData.gun[i].workState = SysMainStatus_Err;

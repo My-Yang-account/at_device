@@ -2169,8 +2169,10 @@ int32_t chargepile_check_config(void)
     if(s_chargepile_config_info.function_enable.mode_select > 0x01){      /* 模式选择功能默认关闭 */
         s_chargepile_config_info.function_enable.mode_select = 0x00;
     }
-    for(uint8_t i = 0x00; i < sizeof(s_chargepile_config_info.config_para.mode_parameter); i++){
-        if(s_chargepile_config_info.function_enable.current_mode[i] >= CP_MODE_SIZE){    /* 当前模式默认充满 */
+    for(i = 0x00; i < sizeof(s_chargepile_config_info.function_enable.current_mode); i++){
+        if((s_chargepile_config_info.function_enable.current_mode[i] >= CP_MODE_SIZE) || \
+                ((s_chargepile_config_info.function_enable.current_mode[i] != CP_MODE_CHARGE_FULL) && \
+                        (s_chargepile_config_info.function_enable.current_mode[i] != CP_MODE_LIMIT_RESERVATION))){    /* 当前模式默认充满 */
             s_chargepile_config_info.function_enable.current_mode[i] = CP_MODE_CHARGE_FULL;
         }
     }
@@ -2601,28 +2603,10 @@ int32_t chargepile_check_config(void)
 #endif /* CP_USING_OFFLINE_BILLING */
     /*************************************************** 模式选择 *****************************************************/
     /*************************************************** 模式选择 *****************************************************/
-    for(uint8_t i = 0x00; i < sizeof(s_chargepile_config_info.config_para.mode_parameter); i++){
+    for(uint8_t i = 0x00; i < sizeof(s_chargepile_config_info.function_enable.current_mode); i++){
         switch(s_chargepile_config_info.function_enable.current_mode[i]){
         case CP_MODE_CHARGE_FULL:
             s_chargepile_config_info.config_para.mode_parameter[i] = 0x00;
-            break;
-        case CP_MODE_LIMIT_MONEY:
-            if((s_chargepile_config_info.config_para.mode_parameter[i] > CP_MODE_PARA_MONEY_MAX) || \
-                    (s_chargepile_config_info.config_para.mode_parameter[i] < CP_MODE_PARA_MONEY_MIN)){
-                s_chargepile_config_info.config_para.mode_parameter[i] = CP_MODE_PARA_MONEY_DEF;
-            }
-            break;
-        case CP_MODE_LIMIT_ELECT:
-            if((s_chargepile_config_info.config_para.mode_parameter[i] > CP_MODE_PARA_ELECT_MAX) || \
-                    (s_chargepile_config_info.config_para.mode_parameter[i] < CP_MODE_PARA_ELECT_MIN)){
-                s_chargepile_config_info.config_para.mode_parameter[i] = CP_MODE_PARA_ELECT_DEF;
-            }
-            break;
-        case CP_MODE_LIMIT_TIMING:
-            if((s_chargepile_config_info.config_para.mode_parameter[i] > CP_MODE_PARA_TIMING_MAX) || \
-                    (s_chargepile_config_info.config_para.mode_parameter[i] < CP_MODE_PARA_TIMING_MIN)){
-                s_chargepile_config_info.config_para.mode_parameter[i] = CP_MODE_PARA_TIMING_DEF;
-            }
             break;
         case CP_MODE_LIMIT_RESERVATION:
             if((s_chargepile_config_info.config_para.mode_parameter[i] > CP_MODE_PARA_RESERVATION_MAX) || \
