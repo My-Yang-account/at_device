@@ -3934,10 +3934,16 @@ static void ofsm_charging_fun(uint8_t gunno)
         is_stop_charge_authorization = true;
         LOG_D("gunno(%d) charge finish deal to screen stop\n", gunno);
 
-    }else if((s_ofsm_info[gunno].base.charge_strategy != APP_CHARGE_STRATEGY_FULL) &&   \
-            (s_ofsm_info[gunno].base.charge_strategy != APP_CHARGE_STRATEGY_RESERVATION)){
-        if(s_ofsm_info[gunno].base.charge_strategy == APP_CHARGE_STRATEGY_TIME){
-            if(increase_sec >= s_ofsm_info[gunno].base.charge_strategy_para){
+    }else if(((s_ofsm_info[gunno].base.charge_strategy != APP_CHARGE_STRATEGY_FULL) && (s_ofsm_info[gunno].base.charge_strategy != APP_CHARGE_STRATEGY_RESERVATION)) || \
+            ((thaisen_get_current_mode(gunno) != THAISEN_MODE_CHARGE_FULL) && \
+            (thaisen_get_current_mode(gunno) != THAISEN_MODE_LIMIT_RESERVATION) && \
+            (thaisen_get_current_mode(gunno) != THAISEN_MODE_SIZE))){
+        if((s_ofsm_info[gunno].base.charge_strategy == APP_CHARGE_STRATEGY_TIME) || (thaisen_get_current_mode(gunno) == THAISEN_MODE_LIMIT_TIMING)){
+            uint32_t strategy_para = s_ofsm_info[gunno].base.charge_strategy_para;
+            if(thaisen_get_current_mode(gunno) == THAISEN_MODE_LIMIT_TIMING){
+                strategy_para = thaisen_get_mode_parameter(gunno) *60;
+            }
+            if(increase_sec >= strategy_para){
                 if(((s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD) && (s_ofsm_info[gunno].base.main_gunno == gunno)) ||
                         (s_ofsm_info[gunno].base.charge_way != APP_CHARGE_WAY_PARACHARGE_CLOUD)){
                     s_thaisen_transaction[gunno].stop_reason = APP_SYSTEM_STOP_WAY_REACH_TIME;
@@ -3945,11 +3951,16 @@ static void ofsm_charging_fun(uint8_t gunno)
                     s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_FALSE;
 
                     is_stop_charge_authorization = true;
-                    LOG_D("gunno(%d) charge finish deal to reach target time(%d, %d)\n", gunno, increase_sec, s_ofsm_info[gunno].base.charge_strategy_para);
+                    LOG_D("gunno(%d) charge finish deal to reach target time(%d, %d)\n", gunno, increase_sec, strategy_para);
                 }
             }
-        }else if(s_ofsm_info[gunno].base.charge_strategy == APP_CHARGE_STRATEGY_ELECT){
+        }
+        if((s_ofsm_info[gunno].base.charge_strategy == APP_CHARGE_STRATEGY_ELECT) || (thaisen_get_current_mode(gunno) == THAISEN_MODE_LIMIT_ELECT)){
             uint32_t _elect = s_ofsm_info[gunno].base.elect_a;
+            uint32_t strategy_para = s_ofsm_info[gunno].base.charge_strategy_para;
+            if(thaisen_get_current_mode(gunno) == THAISEN_MODE_LIMIT_ELECT){
+                strategy_para = thaisen_get_mode_parameter(gunno);
+            }
             if(s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
                 uint8_t another_gun = APP_SYSTEM_GUNNOA;
                 if(gunno == APP_SYSTEM_GUNNOA){
@@ -3957,7 +3968,7 @@ static void ofsm_charging_fun(uint8_t gunno)
                 }
                 _elect += s_ofsm_info[another_gun].base.elect_a;
             }
-            if(_elect >= s_ofsm_info[gunno].base.charge_strategy_para){
+            if(_elect >= strategy_para){
                 if(((s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD) && (s_ofsm_info[gunno].base.main_gunno == gunno)) ||
                         (s_ofsm_info[gunno].base.charge_way != APP_CHARGE_WAY_PARACHARGE_CLOUD)){
                     s_thaisen_transaction[gunno].stop_reason = APP_SYSTEM_STOP_WAY_REACH_ELECT;
@@ -3965,11 +3976,16 @@ static void ofsm_charging_fun(uint8_t gunno)
                     s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_FALSE;
 
                     is_stop_charge_authorization = true;
-                    LOG_D("gunno(%d) charge finish deal to reach target elect(%d, %d)\n", gunno, _elect, s_ofsm_info[gunno].base.charge_strategy_para);
+                    LOG_D("gunno(%d) charge finish deal to reach target elect(%d, %d)\n", gunno, _elect, strategy_para);
                 }
             }
-        }else if(s_ofsm_info[gunno].base.charge_strategy == APP_CHARGE_STRATEGY_MONEY){
+        }
+        if((s_ofsm_info[gunno].base.charge_strategy == APP_CHARGE_STRATEGY_MONEY) || (thaisen_get_current_mode(gunno) == THAISEN_MODE_LIMIT_MONEY)){
             uint32_t _money = s_ofsm_info[gunno].base.fees_total;
+            uint32_t strategy_para = s_ofsm_info[gunno].base.charge_strategy_para;
+            if(thaisen_get_current_mode(gunno) == THAISEN_MODE_LIMIT_MONEY){
+                strategy_para = thaisen_get_mode_parameter(gunno) *100;
+            }
             if(s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
                 uint8_t another_gun = APP_SYSTEM_GUNNOA;
                 if(gunno == APP_SYSTEM_GUNNOA){
@@ -3977,7 +3993,7 @@ static void ofsm_charging_fun(uint8_t gunno)
                 }
                 _money += s_ofsm_info[another_gun].base.fees_total;
             }
-            if((_money + 10000) > s_ofsm_info[gunno].base.charge_strategy_para){
+            if((_money + 10000) > strategy_para){
                 if(((s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD) && (s_ofsm_info[gunno].base.main_gunno == gunno)) ||
                         (s_ofsm_info[gunno].base.charge_way != APP_CHARGE_WAY_PARACHARGE_CLOUD)){
                     s_thaisen_transaction[gunno].stop_reason = APP_SYSTEM_STOP_WAY_NO_BALLANCE;
@@ -3985,10 +4001,11 @@ static void ofsm_charging_fun(uint8_t gunno)
                     s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_FALSE;
 
                     is_stop_charge_authorization = true;
-                    LOG_D("gunno(%d) charge finish deal to reach target money(%d, %d)\n", gunno, s_ofsm_info[gunno].base.charge_strategy_para, _money);
+                    LOG_D("gunno(%d) charge finish deal to reach target money(%d, %d)\n", gunno, strategy_para, _money);
                 }
             }
-        }else if(s_ofsm_info[gunno].base.charge_strategy == APP_CHARGE_STRATEGY_SOC){
+        }
+        if(s_ofsm_info[gunno].base.charge_strategy == APP_CHARGE_STRATEGY_SOC){
             if(((s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD) && (s_ofsm_info[gunno].base.main_gunno == gunno)) ||
                     (s_ofsm_info[gunno].base.charge_way != APP_CHARGE_WAY_PARACHARGE_CLOUD)){
                 if((bms_info->BCS.SOC >= s_ofsm_info[gunno].base.charge_strategy_para) &&
