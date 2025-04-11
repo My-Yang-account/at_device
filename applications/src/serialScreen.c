@@ -828,6 +828,7 @@ SERIALSCREEN_DEF_SRAM2 ConfigExecutPool LcdConfigExecutPool[THAISEN_CONFIG_PAGE_
 enum SYSMAIN_STATUS{
 	SysMainStatus_StandBy,		//空闲状态(主状态)0
 	SysMainStatus_PlugIn,		//已插枪 1
+    SysMainStatus_Reservation,  //预约
 	SysMainStatus_StartReady,	//过程状态 2
 	SysMainStatus_SelfCheck,	//自检状态 3
 	SysMainStatus_SelfCheck_Wait,//自检确认状态4
@@ -4522,10 +4523,25 @@ void SerialScreen_InputSetFlash(void)
 	SerialScreen_SetInputInfo();
 }
 
-
 void SerialScreen_BtnModeInfoStorage(int port)
 {
     u8 mode = THAISEN_MODE_CHARGE_FULL;
+
+    switch(LcdData.gun[port].workState){
+    case SysMainStatus_Chrging:
+    case SysMainStatus_Reservation:
+        /* 弹出提示：充电中、预约中不可修改策略 */
+//        LcdData.setData.OBwarning = ICON_OB_NOT_CONTINUOUS;
+        /* 此时不进行切页 */
+        if(LcdData.CurrentPage != LcdData.CurrentPageBack){
+            LcdData.CurrentPage = LcdData.CurrentPageBack;
+        }
+        return;
+        break;
+    default:
+        break;
+    }
+
     LcdData.setData.CurrentModePara[port] = 0;
 
     if(LcdData.setData.CurrentMode[LCD_GUN_NUM][THAISEN_MODE_LIMIT_MONEY]){
@@ -9992,7 +10008,12 @@ int SerialScreen_DataProcess()
 				break;
 			case APP_OFSM_STATE_READYING:
 				LcdData.gun[i].workState = SysMainStatus_PlugIn;
-				break;				
+				break;
+#if 0
+            case APP_OFSM_STATE_RESERVATION:
+                LcdData.gun[i].workState = SysMainStatus_Reservation;
+                break;
+#endif
 			case APP_OFSM_STATE_STARTING:
 			    if(thaisen_is_stoped_charge(i)){
                     LcdData.gun[i].workState = SysMainStatus_StopChg;
