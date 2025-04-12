@@ -807,6 +807,58 @@ void app_selfcheck_debug_info(uint8_t item, uint8_t language, uint8_t ret, uint8
                 memcpy(buf, "母联3断开：异常", strlen("母联3断开：异常"));
         }
         break;
+    case THA_DEBUG_ITEM_FAN_ON_A:
+        if(ret){
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH)
+                memcpy(buf, "FanAOpen:OK", strlen("FanAOpen:OK"));
+            else
+                memcpy(buf, "A枪风扇开启：正常", strlen("A枪风扇开启：正常"));
+        }else{
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH)
+                memcpy(buf, "FanAOpen:Fail", strlen("FanAOpen:Fail"));
+            else
+                memcpy(buf, "A枪风扇开启：异常", strlen("A枪风扇开启：异常"));
+        }
+        break;
+    case THA_DEBUG_ITEM_FAN_OFF_A:
+        if(ret){
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH)
+                memcpy(buf, "FanAClose:OK", strlen("FanAClose:OK"));
+            else
+                memcpy(buf, "A枪风扇关闭：正常", strlen("A枪风扇关闭：正常"));
+        }else{
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH)
+                memcpy(buf, "FanAClose:Fail", strlen("FanAClose:Fail"));
+            else
+                memcpy(buf, "A枪风扇关闭：异常", strlen("A枪风扇关闭：异常"));
+        }
+        break;
+    case THA_DEBUG_ITEM_FAN_ON_B:
+        if(ret){
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH)
+                memcpy(buf, "FanBOpen:OK", strlen("FanBOpen:OK"));
+            else
+                memcpy(buf, "B枪风扇开启：正常", strlen("B枪风扇开启：正常"));
+        }else{
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH)
+                memcpy(buf, "FanBOpen:Fail", strlen("FanBOpen:Fail"));
+            else
+                memcpy(buf, "B枪风扇开启：异常", strlen("B枪风扇开启：异常"));
+        }
+        break;
+    case THA_DEBUG_ITEM_FAN_OFF_B:
+        if(ret){
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH)
+                memcpy(buf, "FanBClose:OK", strlen("FanBClose:OK"));
+            else
+                memcpy(buf, "B枪风扇关闭：正常", strlen("B枪风扇关闭：正常"));
+        }else{
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH)
+                memcpy(buf, "FanBClose:Fail", strlen("FanBClose:Fail"));
+            else
+                memcpy(buf, "B枪风扇关闭：异常", strlen("B枪风扇关闭：异常"));
+        }
+        break;
     case THA_DEBUG_ITEM_DCRELAY_A_ON:
         if(ret){
             if(language == THA_DEBUG_LANGUAGE_ENGLISH)

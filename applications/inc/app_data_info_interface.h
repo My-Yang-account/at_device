@@ -650,6 +650,10 @@ typedef enum{
   THA_DEBUG_ITEM_PARARELAY_2_OFF,                   /** 一键自检项信息：母联2断开 */
   THA_DEBUG_ITEM_PARARELAY_3_ON,                    /** 一键自检项信息：母联3闭合 */
   THA_DEBUG_ITEM_PARARELAY_3_OFF,                   /** 一键自检项信息：母联3断开 */
+  THA_DEBUG_ITEM_FAN_ON_A,                          /** 一键自检项信息：A枪风扇闭合 */
+  THA_DEBUG_ITEM_FAN_OFF_A,                         /** 一键自检项信息：A枪风扇断开 */
+  THA_DEBUG_ITEM_FAN_ON_B,                          /** 一键自检项信息：B枪风扇闭合 */
+  THA_DEBUG_ITEM_FAN_OFF_B,                         /** 一键自检项信息：B枪风扇断开 */
   THA_DEBUG_ITEM_DCRELAY_A_ON,                      /** 一键自检项信息：A枪直流继电器闭合 */
   THA_DEBUG_ITEM_DCRELAY_A_OFF,                     /** 一键自检项信息：A枪直流继电器断开 */
   THA_DEBUG_ITEM_DCRELAY_B_ON,                      /** 一键自检项信息：B枪直流继电器闭合 */
