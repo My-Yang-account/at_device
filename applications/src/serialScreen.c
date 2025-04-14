@@ -707,6 +707,7 @@ struct LCD_DISPLAY_SETDATA_TYPE{
     u8 CurrentMode[LCD_GUN_NUM + 1][THAISEN_MODE_SIZE];          //模式选择：当前模式
 
     u32 CurrentModePara[LCD_GUN_NUM + 1];                        //当前模式参数：
+    u8 CurrentModeInfo[LCD_GUN_NUM][32];                         //当前模式显示信息：
 }LCD_DISPLAY_SETDATA_TYPE_t;
 
 
@@ -10567,6 +10568,7 @@ int SerialScreen_DataProcess()
                 LcdData.setData.selectmode[i] = ICON_CHARGE_MODE_SELECT;
             }else{
                 LcdData.setData.selectmode[i] = ICON_CHARGE_NULL;
+                memset(LcdData.setData.CurrentModeInfo, 0, sizeof(LcdData.setData.CurrentModeInfo));
             }
 			#if 1
 			if(LcdData.gun[i].workState==SysMainStatus_Chrging)
@@ -10670,6 +10672,16 @@ int SerialScreen_DataProcess()
 	        LcdAssistantData.Flag.ParaChargeSelect = FALSE;
             LcdData.setData.parallel_iocn = ICON_CHARGEWAY_NONE;
 		}
+
+        if(LcdData.setData.sup_mode_select){
+            if(LcdData.gunIndex == LCD_GUN_1){
+                thaisen_get_mode_info(LCD_GUN_1, THA_DEBUG_LANGUAGE_CHINESE, SerialScreen_Screen_GetCurrentMode(LCD_GUN_1), SerialScreen_Screen_GetModeParameter(LCD_GUN_1), \
+                        LcdData.setData.CurrentModeInfo[LCD_GUN_1], sizeof(LcdData.setData.CurrentModeInfo[LCD_GUN_1]));
+            }else if(LcdData.gunIndex == LCD_GUN_2){
+                thaisen_get_mode_info(LCD_GUN_2, THA_DEBUG_LANGUAGE_CHINESE, SerialScreen_Screen_GetCurrentMode(LCD_GUN_2), SerialScreen_Screen_GetModeParameter(LCD_GUN_2), \
+                        LcdData.setData.CurrentModeInfo[LCD_GUN_2], sizeof(LcdData.setData.CurrentModeInfo[LCD_GUN_2]));
+            }
+        }
 	}
 
 	return ret;
@@ -10908,6 +10920,9 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_A_SELECT, NULL, "unlock_ela", LCD_BtnType, 0x0007, 0x1000, page_type, LCD_PAGE_A_SELECT, (void *)SerialScreen_BtnUnElockA);
     SerialScreen_ItemSetUp(LCD_PAGE_A_SELECT, NULL, "pw authen", LCD_BtnType, 0x0001, 0x1001, page_type, LCD_PAGE_A_SELECT, (void *)SerialScreen_PWStartAuthen);
     SerialScreen_ItemSetUp(LCD_PAGE_A_SELECT, NULL, "ModeSelectSetA", LCD_BtnType, 0x0069, 0x1003, page_type, LCD_PAGE_MENU_MODE_SELECT, (void *)SerialScreen_GetModeInfoA);
+
+
+    SerialScreen_ItemSetUp(LCD_PAGE_A_SELECT, NULL, "ModeInfo", LCD_TextType, LCD_1sReflash, 0x6790, pstr_type, sizeof(LcdData.setData.CurrentModeInfo[LCD_GUN_1]), (void *)&LcdData.setData.CurrentModeInfo[LCD_GUN_1]);
     SerialScreen_ItemSetUp(LCD_PAGE_A_SELECT, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
 
     /** 3.B枪选择 [page:03]*/
@@ -10925,6 +10940,9 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_B_SELECT, NULL, "unlock_elb", LCD_BtnType, 0x0008, 0x1000, page_type, LCD_PAGE_B_SELECT, (void *)SerialScreen_BtnUnElockB);
     SerialScreen_ItemSetUp(LCD_PAGE_B_SELECT, NULL, "pw authen", LCD_BtnType, 0x0003, 0x1001, page_type, LCD_PAGE_B_SELECT, (void *)SerialScreen_PWStartAuthen);
     SerialScreen_ItemSetUp(LCD_PAGE_B_SELECT, NULL, "ModeSelectSetB", LCD_BtnType, 0x006A, 0x1003, page_type, LCD_PAGE_MENU_MODE_SELECT, (void *)SerialScreen_GetModeInfoB);
+
+
+    SerialScreen_ItemSetUp(LCD_PAGE_B_SELECT, NULL, "ModeInfo", LCD_TextType, LCD_1sReflash, 0x67C0, pstr_type, sizeof(LcdData.setData.CurrentModeInfo[LCD_GUN_1]), (void *)&LcdData.setData.CurrentModeInfo[LCD_GUN_2]);
     SerialScreen_ItemSetUp(LCD_PAGE_B_SELECT, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
 
     /** 4.A枪启动 [page:04]*/

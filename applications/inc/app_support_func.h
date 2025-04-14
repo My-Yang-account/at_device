@@ -59,4 +59,17 @@ void app_get_charge_stopway_chinese(uint32_t code, uint8_t *olen, uint8_t *buf, 
  *******************************************/
 void app_selfcheck_debug_info(uint8_t item, uint8_t language, uint8_t ret, uint8_t *buf, uint8_t ilen);
 
+/********************************************
+ * 函数名      app_get_mode_info
+ * 功能          获取模式显示信息
+ * 参数          gunno     枪号
+ *      language  语言
+ *      mode      模式
+ *      parameter 模式参数
+ *      buf       用于保存显示信息
+ *      ilen      缓存长度
+ * 返回
+ *******************************************/
+void app_get_mode_info(uint8_t gunno, uint8_t language, uint8_t mode, uint32_t parameter, uint8_t *buf, uint8_t ilen);
+
 #endif /* APPLICATIONS_INC_APP_SUPPORT_FUNC_H_ */

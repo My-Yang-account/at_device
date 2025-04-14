@@ -1769,3 +1769,19 @@ uint32_t thaisen_get_mode_parameter(uint8_t gunno)
 {
     return SerialScreen_Screen_GetModeParameter(gunno);
 }
+
+/********************************************
+ * 函数名      thaisen_get_mode_info
+ * 功能          获取模式显示信息
+ * 参数          gunno     枪号
+ *      language  语言
+ *      mode      模式
+ *      parameter 模式参数
+ *      buf       用于保存显示信息
+ *      ilen      缓存长度
+ * 返回
+ *******************************************/
+void thaisen_get_mode_info(uint8_t gunno, uint8_t language, enum thaisen_mode mode, uint32_t parameter, uint8_t *buf, uint8_t ilen)
+{
+    app_get_mode_info(gunno, language, mode, parameter, buf, ilen);
+}

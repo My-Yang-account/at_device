@@ -10,6 +10,7 @@
 
 #include "app_support_func.h"
 #include "string.h"
+#include "math.h"
 #include "app_ofsm.h"
 #include "chargepile_config.h"
 #include "app_data_info_interface.h"
@@ -705,389 +706,741 @@ void app_selfcheck_debug_info(uint8_t item, uint8_t language, uint8_t ret, uint8
     switch(item){
     case THA_DEBUG_ITEM_ACRELAY_ON:
         if(ret){
-            if(language == THA_DEBUG_LANGUAGE_ENGLISH)
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= strlen("AcRelayClose:OK"))
+                    return;
                 memcpy(buf, "AcRelayClose:OK", strlen("AcRelayClose:OK"));
-            else
+            }else{
+                if(ilen <= strlen("交流接触器闭合：正常"))
+                    return;
                 memcpy(buf, "交流接触器闭合：正常", strlen("交流接触器闭合：正常"));
+            }
         }else{
-            if(language == THA_DEBUG_LANGUAGE_ENGLISH)
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= strlen("AcRelayClose:Fail"))
+                    return;
                 memcpy(buf, "AcRelayClose:Fail", strlen("AcRelayClose:Fail"));
-            else
+            }else{
+                if(ilen <= strlen("交流接触器闭合：异常"))
+                    return;
                 memcpy(buf, "交流接触器闭合：异常", strlen("交流接触器闭合：异常"));
+            }
         }
         break;
     case THA_DEBUG_ITEM_ACRELAY_OFF:
         if(ret){
-            if(language == THA_DEBUG_LANGUAGE_ENGLISH)
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= strlen("AcRelayBreak:OK"))
+                    return;
                 memcpy(buf, "AcRelayBreak:OK", strlen("AcRelayBreak:OK"));
-            else
+            }else{
+                if(ilen <= strlen("交流接触器断开：正常"))
+                    return;
                 memcpy(buf, "交流接触器断开：正常", strlen("交流接触器断开：正常"));
+            }
         }else{
-            if(language == THA_DEBUG_LANGUAGE_ENGLISH)
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= strlen("AcRelayBreak:Fail"))
+                    return;
                 memcpy(buf, "AcRelayBreak:Fail", strlen("AcRelayBreak:Fail"));
-            else
+            }else{
+                if(ilen <= strlen("交流接触器断开：异常"))
+                    return;
                 memcpy(buf, "交流接触器断开：异常", strlen("交流接触器断开：异常"));
+            }
         }
         break;
     case THA_DEBUG_ITEM_PARARELAY_1_ON:
         if(ret){
-            if(language == THA_DEBUG_LANGUAGE_ENGLISH)
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= strlen("Para1RelayClose:OK"))
+                    return;
                 memcpy(buf, "Para1RelayClose:OK", strlen("Para1RelayClose:OK"));
-            else
+            }else{
+                if(ilen <= strlen("母联1闭合：正常"))
+                    return;
                 memcpy(buf, "母联1闭合：正常", strlen("母联1闭合：正常"));
+            }
         }else{
-            if(language == THA_DEBUG_LANGUAGE_ENGLISH)
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= strlen("Para1RelayClose:Fail"))
+                    return;
                 memcpy(buf, "Para1RelayClose:Fail", strlen("Para1RelayClose:Fail"));
-            else
+            }else{
+                if(ilen <= strlen("母联1闭合：异常"))
+                    return;
                 memcpy(buf, "母联1闭合：异常", strlen("母联1闭合：异常"));
+            }
         }
         break;
     case THA_DEBUG_ITEM_PARARELAY_1_OFF:
         if(ret){
-            if(language == THA_DEBUG_LANGUAGE_ENGLISH)
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= strlen("Para1RelayBreak:OK"))
+                    return;
                 memcpy(buf, "Para1RelayBreak:OK", strlen("Para1RelayBreak:OK"));
-            else
+            }else{
+                if(ilen <= strlen("母联1断开：正常"))
+                    return;
                 memcpy(buf, "母联1断开：正常", strlen("母联1断开：正常"));
+            }
         }else{
-            if(language == THA_DEBUG_LANGUAGE_ENGLISH)
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= strlen("Para1RelayBreak:Fail"))
+                    return;
                 memcpy(buf, "Para1RelayBreak:Fail", strlen("Para1RelayBreak:Fail"));
-            else
+            }else{
+                if(ilen <= strlen("母联1断开：异常"))
+                    return;
                 memcpy(buf, "母联1断开：异常", strlen("母联1断开：异常"));
+            }
         }
         break;
     case THA_DEBUG_ITEM_PARARELAY_2_ON:
         if(ret){
-            if(language == THA_DEBUG_LANGUAGE_ENGLISH)
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= strlen("Para2RelayClose:OK"))
+                    return;
                 memcpy(buf, "Para2RelayClose:OK", strlen("Para2RelayClose:OK"));
-            else
+            }else{
+                if(ilen <= strlen("母联2闭合：正常"))
+                    return;
                 memcpy(buf, "母联2闭合：正常", strlen("母联2闭合：正常"));
+            }
         }else{
-            if(language == THA_DEBUG_LANGUAGE_ENGLISH)
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= strlen("Para2RelayClose:Fail"))
+                    return;
                 memcpy(buf, "Para2RelayClose:Fail", strlen("Para2RelayClose:Fail"));
-            else
+            }else{
+                if(ilen <= strlen("母联2闭合：异常"))
+                    return;
                 memcpy(buf, "母联2闭合：异常", strlen("母联2闭合：异常"));
+            }
         }
         break;
     case THA_DEBUG_ITEM_PARARELAY_2_OFF:
         if(ret){
-            if(language == THA_DEBUG_LANGUAGE_ENGLISH)
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= strlen("Para2RelayBreak:OK"))
+                    return;
                 memcpy(buf, "Para2RelayBreak:OK", strlen("Para2RelayBreak:OK"));
-            else
+            }else{
+                if(ilen <= strlen("母联2断开：正常"))
+                    return;
                 memcpy(buf, "母联2断开：正常", strlen("母联2断开：正常"));
+            }
         }else{
-            if(language == THA_DEBUG_LANGUAGE_ENGLISH)
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= strlen("Para2RelayBreak:Fail"))
+                    return;
                 memcpy(buf, "Para2RelayBreak:Fail", strlen("Para2RelayBreak:Fail"));
-            else
+            }else{
+                if(ilen <= strlen("母联2断开：异常"))
+                    return;
                 memcpy(buf, "母联2断开：异常", strlen("母联2断开：异常"));
+            }
         }
         break;
     case THA_DEBUG_ITEM_PARARELAY_3_ON:
         if(ret){
-            if(language == THA_DEBUG_LANGUAGE_ENGLISH)
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= strlen("Para3RelayClose:OK"))
+                    return;
                 memcpy(buf, "Para3RelayClose:OK", strlen("Para3RelayClose:OK"));
-            else
+            }else{
+                if(ilen <= strlen("母联3闭合：正常"))
+                    return;
                 memcpy(buf, "母联3闭合：正常", strlen("母联3闭合：正常"));
+            }
         }else{
-            if(language == THA_DEBUG_LANGUAGE_ENGLISH)
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= strlen("Para3RelayClose:Fail"))
+                    return;
                 memcpy(buf, "Para3RelayClose:Fail", strlen("Para3RelayClose:Fail"));
-            else
+            }else{
+                if(ilen <= strlen("母联3闭合：异常"))
+                    return;
                 memcpy(buf, "母联3闭合：异常", strlen("母联3闭合：异常"));
+            }
         }
         break;
     case THA_DEBUG_ITEM_PARARELAY_3_OFF:
         if(ret){
-            if(language == THA_DEBUG_LANGUAGE_ENGLISH)
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= strlen("Para3RelayBreak:OK"))
+                    return;
                 memcpy(buf, "Para3RelayBreak:OK", strlen("Para3RelayBreak:OK"));
-            else
+            }else{
+                if(ilen <= strlen("母联3断开：正常"))
+                    return;
                 memcpy(buf, "母联3断开：正常", strlen("母联3断开：正常"));
+            }
         }else{
-            if(language == THA_DEBUG_LANGUAGE_ENGLISH)
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= strlen("Para3RelayBreak:Fail"))
+                    return;
                 memcpy(buf, "Para3RelayBreak:Fail", strlen("Para3RelayBreak:Fail"));
-            else
+            }else{
+                if(ilen <= strlen("母联3断开：异常"))
+                    return;
                 memcpy(buf, "母联3断开：异常", strlen("母联3断开：异常"));
+            }
         }
         break;
     case THA_DEBUG_ITEM_FAN_ON_A:
         if(ret){
-            if(language == THA_DEBUG_LANGUAGE_ENGLISH)
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= strlen("FanAOpen:OK"))
+                    return;
                 memcpy(buf, "FanAOpen:OK", strlen("FanAOpen:OK"));
-            else
+            }else{
+                if(ilen <= strlen("A枪风扇开启：正常"))
+                    return;
                 memcpy(buf, "A枪风扇开启：正常", strlen("A枪风扇开启：正常"));
+            }
         }else{
-            if(language == THA_DEBUG_LANGUAGE_ENGLISH)
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= strlen("FanAOpen:Fail"))
+                    return;
                 memcpy(buf, "FanAOpen:Fail", strlen("FanAOpen:Fail"));
-            else
+            }else{
+                if(ilen <= strlen("A枪风扇开启：异常"))
+                    return;
                 memcpy(buf, "A枪风扇开启：异常", strlen("A枪风扇开启：异常"));
+            }
         }
         break;
     case THA_DEBUG_ITEM_FAN_OFF_A:
         if(ret){
-            if(language == THA_DEBUG_LANGUAGE_ENGLISH)
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= strlen("FanAClose:OK"))
+                    return;
                 memcpy(buf, "FanAClose:OK", strlen("FanAClose:OK"));
-            else
+            }else{
+                if(ilen <= strlen("A枪风扇关闭：正常"))
+                    return;
                 memcpy(buf, "A枪风扇关闭：正常", strlen("A枪风扇关闭：正常"));
+            }
         }else{
-            if(language == THA_DEBUG_LANGUAGE_ENGLISH)
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= strlen("FanAClose:Fail"))
+                    return;
                 memcpy(buf, "FanAClose:Fail", strlen("FanAClose:Fail"));
-            else
+            }else{
+                if(ilen <= strlen("A枪风扇关闭：异常"))
+                    return;
                 memcpy(buf, "A枪风扇关闭：异常", strlen("A枪风扇关闭：异常"));
+            }
         }
         break;
     case THA_DEBUG_ITEM_FAN_ON_B:
         if(ret){
-            if(language == THA_DEBUG_LANGUAGE_ENGLISH)
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= strlen("FanBOpen:OK"))
+                    return;
                 memcpy(buf, "FanBOpen:OK", strlen("FanBOpen:OK"));
-            else
+            }else{
+                if(ilen <= strlen("B枪风扇开启：正常"))
+                    return;
                 memcpy(buf, "B枪风扇开启：正常", strlen("B枪风扇开启：正常"));
+            }
         }else{
-            if(language == THA_DEBUG_LANGUAGE_ENGLISH)
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= strlen("FanBOpen:Fail"))
+                    return;
                 memcpy(buf, "FanBOpen:Fail", strlen("FanBOpen:Fail"));
-            else
+            }else{
+                if(ilen <= strlen("B枪风扇开启：异常"))
+                    return;
                 memcpy(buf, "B枪风扇开启：异常", strlen("B枪风扇开启：异常"));
+            }
         }
         break;
     case THA_DEBUG_ITEM_FAN_OFF_B:
         if(ret){
-            if(language == THA_DEBUG_LANGUAGE_ENGLISH)
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= strlen("FanBClose:OK"))
+                    return;
                 memcpy(buf, "FanBClose:OK", strlen("FanBClose:OK"));
-            else
+            }else{
+                if(ilen <= strlen("B枪风扇关闭：正常"))
+                    return;
                 memcpy(buf, "B枪风扇关闭：正常", strlen("B枪风扇关闭：正常"));
+            }
         }else{
-            if(language == THA_DEBUG_LANGUAGE_ENGLISH)
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= strlen("FanBClose:Fail"))
+                    return;
                 memcpy(buf, "FanBClose:Fail", strlen("FanBClose:Fail"));
-            else
+            }else{
+                if(ilen <= strlen("B枪风扇关闭：异常"))
+                    return;
                 memcpy(buf, "B枪风扇关闭：异常", strlen("B枪风扇关闭：异常"));
+            }
         }
         break;
     case THA_DEBUG_ITEM_DCRELAY_A_ON:
         if(ret){
-            if(language == THA_DEBUG_LANGUAGE_ENGLISH)
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= strlen("DcRelayAClose:OK"))
+                    return;
                 memcpy(buf, "DcRelayAClose:OK", strlen("DcRelayAClose:OK"));
-            else
+            }else{
+                if(ilen <= strlen("A枪直流继电器闭合：正常"))
+                    return;
                 memcpy(buf, "A枪直流继电器闭合：正常", strlen("A枪直流继电器闭合：正常"));
+            }
         }else{
-            if(language == THA_DEBUG_LANGUAGE_ENGLISH)
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= strlen("DcRelayAClose:Fail"))
+                    return;
                 memcpy(buf, "DcRelayAClose:Fail", strlen("DcRelayAClose:Fail"));
-            else
+            }else{
+                if(ilen <= strlen("A枪直流继电器闭合：异常"))
+                    return;
                 memcpy(buf, "A枪直流继电器闭合：异常", strlen("A枪直流继电器闭合：异常"));
+            }
         }
         break;
     case THA_DEBUG_ITEM_DCRELAY_A_OFF:
         if(ret){
-            if(language == THA_DEBUG_LANGUAGE_ENGLISH)
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= strlen("DcRelayABreak:OK"))
+                    return;
                 memcpy(buf, "DcRelayABreak:OK", strlen("DcRelayABreak:OK"));
-            else
+            }else{
+                if(ilen <= strlen("A枪直流继电器断开：正常"))
+                    return;
                 memcpy(buf, "A枪直流继电器断开：正常", strlen("A枪直流继电器断开：正常"));
+            }
         }else{
-            if(language == THA_DEBUG_LANGUAGE_ENGLISH)
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= strlen("DcRelayABreak:Fail"))
+                    return;
                 memcpy(buf, "DcRelayABreak:Fail", strlen("DcRelayABreak:Fail"));
-            else
+            }else{
+                if(ilen <= strlen("A枪直流继电器断开：异常"))
+                    return;
                 memcpy(buf, "A枪直流继电器断开：异常", strlen("A枪直流继电器断开：异常"));
+            }
         }
         break;
     case THA_DEBUG_ITEM_DCRELAY_B_ON:
         if(ret){
-            if(language == THA_DEBUG_LANGUAGE_ENGLISH)
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= strlen("DcRelayBClose:OK"))
+                    return;
                 memcpy(buf, "DcRelayBClose:OK", strlen("DcRelayBClose:OK"));
-            else
+            }else{
+                if(ilen <= strlen("B枪直流继电器闭合：正常"))
+                    return;
                 memcpy(buf, "B枪直流继电器闭合：正常", strlen("B枪直流继电器闭合：正常"));
+            }
         }else{
-            if(language == THA_DEBUG_LANGUAGE_ENGLISH)
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= strlen("DcRelayBClose:Fail"))
+                    return;
                 memcpy(buf, "DcRelayBClose:Fail", strlen("DcRelayBClose:Fail"));
-            else
+            }else{
+                if(ilen <= strlen("B枪直流继电器闭合：异常"))
+                    return;
                 memcpy(buf, "B枪直流继电器闭合：异常", strlen("B枪直流继电器闭合：异常"));
+            }
         }
         break;
     case THA_DEBUG_ITEM_DCRELAY_B_OFF:
         if(ret){
-            if(language == THA_DEBUG_LANGUAGE_ENGLISH)
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= strlen("DcRelayBBreak:OK"))
+                    return;
                 memcpy(buf, "DcRelayBBreak:OK", strlen("DcRelayBBreak:OK"));
-            else
+            }else{
+                if(ilen <= strlen("B枪直流继电器断开：正常"))
+                    return;
                 memcpy(buf, "B枪直流继电器断开：正常", strlen("B枪直流继电器断开：正常"));
+            }
         }else{
-            if(language == THA_DEBUG_LANGUAGE_ENGLISH)
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= strlen("DcRelayBBreak:Fail"))
+                    return;
                 memcpy(buf, "DcRelayBBreak:Fail", strlen("DcRelayBBreak:Fail"));
-            else
+            }else{
+                if(ilen <= strlen("B枪直流继电器断开：异常"))
+                    return;
                 memcpy(buf, "B枪直流继电器断开：异常", strlen("B枪直流继电器断开：异常"));
+            }
         }
         break;
     case THA_DEBUG_ITEM_ELOCK_A_ON:
         if(ret){
-            if(language == THA_DEBUG_LANGUAGE_ENGLISH)
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= strlen("ELockA Lock:OK"))
+                    return;
                 memcpy(buf, "ELockA Lock:OK", strlen("ELockA Lock:OK"));
-            else
+            }else{
+                if(ilen <= strlen("A枪电子锁上锁：正常"))
+                    return;
                 memcpy(buf, "A枪电子锁上锁：正常", strlen("A枪电子锁上锁：正常"));
+            }
         }else{
-            if(language == THA_DEBUG_LANGUAGE_ENGLISH)
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= strlen("ELockA Lock:Fail"))
+                    return;
                 memcpy(buf, "ELockA Lock:Fail", strlen("ELockA Lock:Fail"));
-            else
+            }else{
+                if(ilen <= strlen("A枪电子锁上锁：异常"))
+                    return;
                 memcpy(buf, "A枪电子锁上锁：异常", strlen("A枪电子锁上锁：异常"));
+            }
         }
         break;
     case THA_DEBUG_ITEM_ELOCK_A_OFF:
         if(ret){
-            if(language == THA_DEBUG_LANGUAGE_ENGLISH)
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= strlen("ELockA UnLock:OK"))
+                    return;
                 memcpy(buf, "ELockA UnLock:OK", strlen("ELockA UnLock:OK"));
-            else
+            }else{
+                if(ilen <= strlen("A枪电子锁解锁：正常"))
+                    return;
                 memcpy(buf, "A枪电子锁解锁：正常", strlen("A枪电子锁解锁：正常"));
+            }
         }else{
-            if(language == THA_DEBUG_LANGUAGE_ENGLISH)
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= strlen("ELockA UnLock:Fail"))
+                    return;
                 memcpy(buf, "ELockA UnLock:Fail", strlen("ELockA UnLock:Fail"));
-            else
+            }else{
+                if(ilen <= strlen("A枪电子锁解锁：异常"))
+                    return;
                 memcpy(buf, "A枪电子锁解锁：异常", strlen("A枪电子锁解锁：异常"));
+            }
         }
         break;
     case THA_DEBUG_ITEM_ELOCK_B_ON:
         if(ret){
-            if(language == THA_DEBUG_LANGUAGE_ENGLISH)
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= strlen("ELockB Lock:OK"))
+                    return;
                 memcpy(buf, "ELockB Lock:OK", strlen("ELockB Lock:OK"));
-            else
+            }else{
+                if(ilen <= strlen("B枪电子锁上锁：正常"))
+                    return;
                 memcpy(buf, "B枪电子锁上锁：正常", strlen("B枪电子锁上锁：正常"));
+            }
         }else{
-            if(language == THA_DEBUG_LANGUAGE_ENGLISH)
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= strlen("ELockB Lock:Fail"))
+                    return;
                 memcpy(buf, "ELockB Lock:Fail", strlen("ELockB Lock:Fail"));
-            else
+            }else{
+                if(ilen <= strlen("B枪电子锁上锁：异常"))
+                    return;
                 memcpy(buf, "B枪电子锁上锁：异常", strlen("B枪电子锁上锁：异常"));
+            }
         }
         break;
     case THA_DEBUG_ITEM_ELOCK_B_OFF:
         if(ret){
-            if(language == THA_DEBUG_LANGUAGE_ENGLISH)
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= strlen("ELockB UnLock:OK"))
+                    return;
                 memcpy(buf, "ELockB UnLock:OK", strlen("ELockB UnLock:OK"));
-            else
+            }else{
+                if(ilen <= strlen("B枪电子锁解锁：正常"))
+                    return;
                 memcpy(buf, "B枪电子锁解锁：正常", strlen("B枪电子锁解锁：正常"));
+            }
         }else{
-            if(language == THA_DEBUG_LANGUAGE_ENGLISH)
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= strlen("ELockB UnLock:Fail"))
+                    return;
                 memcpy(buf, "ELockB UnLock:Fail", strlen("ELockB UnLock:Fail"));
-            else
+            }else{
+                if(ilen <= strlen("B枪电子锁解锁：异常"))
+                    return;
                 memcpy(buf, "B枪电子锁解锁：异常", strlen("B枪电子锁解锁：异常"));
+            }
         }
         break;
-
-
-
-
     case THA_DEBUG_ITEM_AUX12V_A_ON:
         if(ret){
-            if(language == THA_DEBUG_LANGUAGE_ENGLISH)
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= strlen("Aux12VCloseA:OK"))
+                    return;
                 memcpy(buf, "Aux12VCloseA:OK", strlen("Aux12VCloseA:OK"));
-            else
+            }else{
+                if(ilen <= strlen("A枪12V辅源闭合：正常"))
+                    return;
                 memcpy(buf, "A枪12V辅源闭合：正常", strlen("A枪12V辅源闭合：正常"));
+            }
         }else{
-            if(language == THA_DEBUG_LANGUAGE_ENGLISH)
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= strlen("Aux12VCloseA:Fail"))
+                    return;
                 memcpy(buf, "Aux12VCloseA:Fail", strlen("Aux12VCloseA:Fail"));
-            else
+            }else{
+                if(ilen <= strlen("A枪12V辅源闭合：异常"))
+                    return;
                 memcpy(buf, "A枪12V辅源闭合：异常", strlen("A枪12V辅源闭合：异常"));
+            }
         }
         break;
     case THA_DEBUG_ITEM_AUX12V_A_OFF:
         if(ret){
-            if(language == THA_DEBUG_LANGUAGE_ENGLISH)
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= strlen("Aux12VBreakA:OK"))
+                    return;
                 memcpy(buf, "Aux12VBreakA:OK", strlen("Aux12VBreakA:OK"));
-            else
+            }else{
+                if(ilen <= strlen("A枪12V辅源断开：正常"))
+                    return;
                 memcpy(buf, "A枪12V辅源断开：正常", strlen("A枪12V辅源断开：正常"));
+            }
         }else{
-            if(language == THA_DEBUG_LANGUAGE_ENGLISH)
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= strlen("Aux12VBreakA:Fail"))
+                    return;
                 memcpy(buf, "Aux12VBreakA:Fail", strlen("Aux12VBreakA:Fail"));
-            else
+            }else{
+                if(ilen <= strlen("A枪12V辅源断开：异常"))
+                    return;
                 memcpy(buf, "A枪12V辅源断开：异常", strlen("A枪12V辅源断开：异常"));
+            }
         }
         break;
-
-
     case THA_DEBUG_ITEM_AUX12V_B_ON:
         if(ret){
-            if(language == THA_DEBUG_LANGUAGE_ENGLISH)
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= strlen("Aux12VCloseB:OK"))
+                    return;
                 memcpy(buf, "Aux12VCloseB:OK", strlen("Aux12VCloseB:OK"));
-            else
+            }else{
+                if(ilen <= strlen("B枪12V辅源闭合：正常"))
+                    return;
                 memcpy(buf, "B枪12V辅源闭合：正常", strlen("B枪12V辅源闭合：正常"));
+            }
         }else{
-            if(language == THA_DEBUG_LANGUAGE_ENGLISH)
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= strlen("Aux12VCloseB:Fail"))
+                    return;
                 memcpy(buf, "Aux12VCloseB:Fail", strlen("Aux12VCloseB:Fail"));
-            else
+            }else{
+                if(ilen <= strlen("B枪12V辅源闭合：异常"))
+                    return;
                 memcpy(buf, "B枪12V辅源闭合：异常", strlen("B枪12V辅源闭合：异常"));
+            }
         }
         break;
     case THA_DEBUG_ITEM_AUX12V_B_OFF:
         if(ret){
-            if(language == THA_DEBUG_LANGUAGE_ENGLISH)
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= strlen("Aux12VBreakB:OK"))
+                    return;
                 memcpy(buf, "Aux12VBreakB:OK", strlen("Aux12VBreakB:OK"));
-            else
+            }else{
+                if(ilen <= strlen("B枪12V辅源断开：正常"))
+                    return;
                 memcpy(buf, "B枪12V辅源断开：正常", strlen("B枪12V辅源断开：正常"));
+            }
         }else{
-            if(language == THA_DEBUG_LANGUAGE_ENGLISH)
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= strlen("Aux12VBreakB:Fail"))
+                    return;
                 memcpy(buf, "Aux12VBreakB:Fail", strlen("Aux12VBreakB:Fail"));
-            else
+            }else{
+                if(ilen <= strlen("B枪12V辅源断开：异常"))
+                    return;
                 memcpy(buf, "B枪12V辅源断开：异常", strlen("B枪12V辅源断开：异常"));
+            }
         }
         break;
-
-
-
     case THA_DEBUG_ITEM_AUX24V_A_ON:
         if(ret){
-            if(language == THA_DEBUG_LANGUAGE_ENGLISH)
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= strlen("Aux24VCloseA:OK"))
+                    return;
                 memcpy(buf, "Aux24VCloseA:OK", strlen("Aux24VCloseA:OK"));
-            else
+            }else{
+                if(ilen <= strlen("A枪24V辅源闭合：正常"))
+                    return;
                 memcpy(buf, "A枪24V辅源闭合：正常", strlen("A枪24V辅源闭合：正常"));
+            }
         }else{
-            if(language == THA_DEBUG_LANGUAGE_ENGLISH)
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= strlen("Aux24VCloseA:Fail"))
+                    return;
                 memcpy(buf, "Aux24VCloseA:Fail", strlen("Aux24VCloseA:Fail"));
-            else
+            }else{
+                if(ilen <= strlen("A枪24V辅源闭合：异常"))
+                    return;
                 memcpy(buf, "A枪24V辅源闭合：异常", strlen("A枪24V辅源闭合：异常"));
+            }
         }
         break;
     case THA_DEBUG_ITEM_AUX24V_A_OFF:
         if(ret){
-            if(language == THA_DEBUG_LANGUAGE_ENGLISH)
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= strlen("Aux24VBreakA:OK"))
+                    return;
                 memcpy(buf, "Aux24VBreakA:OK", strlen("Aux24VBreakA:OK"));
-            else
+            }else{
+                if(ilen <= strlen("A枪24V辅源断开：正常"))
+                    return;
                 memcpy(buf, "A枪24V辅源断开：正常", strlen("A枪24V辅源断开：正常"));
+            }
         }else{
-            if(language == THA_DEBUG_LANGUAGE_ENGLISH)
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= strlen("Aux24VBreakA:Fail"))
+                    return;
                 memcpy(buf, "Aux24VBreakA:Fail", strlen("Aux24VBreakA:Fail"));
-            else
+            }else{
+                if(ilen <= strlen("A枪24V辅源断开：异常"))
+                    return;
                 memcpy(buf, "A枪24V辅源断开：异常", strlen("A枪24V辅源断开：异常"));
+            }
         }
         break;
-
-
-
     case THA_DEBUG_ITEM_AUX24V_B_ON:
         if(ret){
-            if(language == THA_DEBUG_LANGUAGE_ENGLISH)
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= strlen("Aux24VCloseB:OK"))
+                    return;
                 memcpy(buf, "Aux24VCloseB:OK", strlen("Aux24VCloseB:OK"));
-            else
+            }else{
+                if(ilen <= strlen("B枪24V辅源闭合：正常"))
+                    return;
                 memcpy(buf, "B枪24V辅源闭合：正常", strlen("B枪24V辅源闭合：正常"));
+            }
         }else{
-            if(language == THA_DEBUG_LANGUAGE_ENGLISH)
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= strlen("Aux24VCloseB:Fail"))
+                    return;
                 memcpy(buf, "Aux24VCloseB:Fail", strlen("Aux24VCloseB:Fail"));
-            else
+            }else{
+                if(ilen <= strlen("B枪24V辅源闭合：异常"))
+                    return;
                 memcpy(buf, "B枪24V辅源闭合：异常", strlen("B枪24V辅源闭合：异常"));
+            }
         }
         break;
     case THA_DEBUG_ITEM_AUX24V_B_OFF:
         if(ret){
-            if(language == THA_DEBUG_LANGUAGE_ENGLISH)
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= strlen("Aux24VBreakB:OK"))
+                    return;
                 memcpy(buf, "Aux24VBreakB:OK", strlen("Aux24VBreakB:OK"));
-            else
+            }else{
+                if(ilen <= strlen("B枪24V辅源断开：正常"))
+                    return;
                 memcpy(buf, "B枪24V辅源断开：正常", strlen("B枪24V辅源断开：正常"));
+            }
         }else{
-            if(language == THA_DEBUG_LANGUAGE_ENGLISH)
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= strlen("Aux24VBreakB:Fail"))
+                    return;
                 memcpy(buf, "Aux24VBreakB:Fail", strlen("Aux24VBreakB:Fail"));
-            else
+            }else{
+                if(ilen <= strlen("B枪24V辅源断开：异常"))
+                    return;
                 memcpy(buf, "B枪24V辅源断开：异常", strlen("B枪24V辅源断开：异常"));
+            }
         }
         break;
     case THA_DEBUG_ITEM_COMPLETE:
-        if(language == THA_DEBUG_LANGUAGE_ENGLISH)
+        if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+            if(ilen <= strlen("SelfCheck Complete"))
+                return;
             memcpy(buf, "SelfCheck Complete", strlen("SelfCheck Complete"));
-        else
+        }else{
+            if(ilen <= strlen("自检完成"))
+                return;
             memcpy(buf, "自检完成", strlen("自检完成"));
+        }
         break;
     }
 }
 
+/********************************************
+ * 函数名      app_get_mode_info
+ * 功能          获取模式显示信息
+ * 参数          gunno     枪号
+ *      language  语言
+ *      mode      模式
+ *      parameter 模式参数
+ *      buf       用于保存显示信息
+ *      ilen      缓存长度
+ * 返回
+ *******************************************/
+void app_get_mode_info(uint8_t gunno, uint8_t language, uint8_t mode, uint32_t parameter, uint8_t *buf, uint8_t ilen)
+{
+    memset(buf, 0x00, ilen);
+
+    switch(mode){
+    case THAISEN_MODE_CHARGE_FULL:
+        if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+            if(ilen <= strlen("Mode:Charge Full"))
+                return;
+            memcpy(buf, "Mode:Charge Full", strlen("Mode:Charge Full"));
+        }else{
+            if(ilen <= strlen("模式:自动充满"))
+                return;
+            memcpy(buf, "模式:自动充满", strlen("模式:自动充满"));
+        }
+        break;
+    case THAISEN_MODE_LIMIT_MONEY:
+        if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+            if(ilen <= (strlen("Mode:LimitMoney  ") + (uint32_t)(log10((double)parameter) + 0x01) + 0x03 + 0x01))
+                return;
+            sprintf((char*)buf, "%s%lu.%lu%lu%s", "Mode:LimitMoney  ", (parameter /100), ((parameter /10) %10), (parameter %10), "RMB");   /** 两位小数 */
+        }else{
+            if(ilen <= (strlen("模式:定额充电  ") + (uint32_t)(log10((double)parameter) + 0x01) + 0x02 + 0x01))
+                return;
+            sprintf((char*)buf, "%s%lu.%lu%lu%s", "模式:定额充电  ", (parameter /100), ((parameter /10) %10), (parameter %10), "元");   /** 两位小数 */
+        }
+        break;
+    case THAISEN_MODE_LIMIT_ELECT:
+        if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+            if(ilen <= (strlen("Mode:LimitElect  ") + (uint32_t)(log10((double)parameter) + 0x01) + 0x04 + 0x01))
+                return;
+            sprintf((char*)buf, "%s%lu.%lu%lu%lu%s", "Mode:LimitElect ", (parameter /1000), ((parameter /100) %10), ((parameter /10) %10), (parameter %10), "KW*h");   /** 三位小数 */
+        }else{
+            if(ilen <= (strlen("模式:定量充电  ") + (uint32_t)(log10((double)parameter) + 0x01) + 0x02 + 0x01))
+                return;
+            sprintf((char*)buf, "%s%lu.%lu%lu%lu%s", "模式:定量充电  ", (parameter /1000), ((parameter /100) %10), ((parameter /10) %10), (parameter %10), "度");   /** 三位小数 */
+        }
+        break;
+    case THAISEN_MODE_LIMIT_TIMING:
+    {
+        if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+            if(ilen <= (strlen("Mode:Timing  ") + (uint32_t)(log10((double)parameter) + 0x01) + 0x03))
+                return;
+            sprintf((char*)buf, "%s%lu%s", "Mode:Timing ", parameter, "min");   /** 分钟 */
+        }else{
+            if(ilen <= (strlen("模式:定时充电  ") + (uint32_t)(log10((double)parameter) + 0x01) + 0x04))
+                return;
+            sprintf((char*)buf, "%s%lu%s", "模式:定时充电  ", parameter, "分钟");   /** 分钟 */
+        }
+    }
+        break;
+    case THAISEN_MODE_LIMIT_RESERVATION:
+    {
+        if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+            if(ilen <= (strlen("Mode:Reservation  ") + (uint32_t)(log10((double)(parameter /3600)) + 0x01) + 0x01 + (uint32_t)(log10((double)((parameter %3600) /60)) + 0x01)))
+                return;
+            sprintf((char*)buf, "%s%02lu%c%02lu", "Mode:Reservation ", (parameter /3600), ':', ((parameter %3600) /60));   /** 启动充电时间 */
+        }else{
+            if(ilen <= (strlen("模式:定时充电  ") + (uint32_t)(log10((double)(parameter /3600)) + 0x01) + 0x01 + (uint32_t)(log10((double)((parameter %3600) /60)) + 0x01)))
+                return;
+            sprintf((char*)buf, "%s%02lu%c%02lu", "模式:预约充电  ", (parameter /3600), ':', ((parameter %3600) /60));   /** 启动充电时间 */
+        }
+    }
+        break;
+    default:
+        break;
+    }
+}
 
 /*************************************************************
  * 函数名           packing_data
