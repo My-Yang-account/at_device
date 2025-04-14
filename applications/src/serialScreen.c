@@ -6681,6 +6681,7 @@ void SerialScreen_BtnSelfCheckSet(void)
 
     memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
     thaisen_relay_AC_on();                      /** 闭合 */
+    SerialScreen_SendIco(&SerialScreen, 0x4172, TRUE);
     rt_thread_mdelay(SCREEN_WAIT_FB_TIME);      /** 等待状态 */
     fb[0] = !thaisen_relay_AC_FB();
     if(fb[0] != TRUE){
@@ -6691,7 +6692,6 @@ void SerialScreen_BtnSelfCheckSet(void)
     }
     /** 信息显示 */
     fb[0] += '0';
-    LcdData.setData.g_acRely = fb[0];
     SerialScreen_SendTxt(&SerialScreen, 0x4164, &fb[0], sizeof(fb[0]));
     rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
 
@@ -6714,6 +6714,7 @@ void SerialScreen_BtnSelfCheckSet(void)
 
     memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
     thaisen_relay_AC_off();                     /** 断开 */
+    SerialScreen_SendIco(&SerialScreen, 0x4172, FALSE);
     rt_thread_mdelay(SCREEN_WAIT_FB_TIME);      /** 等待状态 */
     fb[0] = !thaisen_relay_AC_FB();
     if(fb[0] != FALSE){
@@ -6724,7 +6725,6 @@ void SerialScreen_BtnSelfCheckSet(void)
     }
     /** 信息显示 */
     fb[0] += '0';
-    LcdData.setData.g_acRely = fb[0];
     SerialScreen_SendTxt(&SerialScreen, 0x4164, &fb[0], sizeof(fb[0]));
     rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
 
@@ -6749,6 +6749,7 @@ void SerialScreen_BtnSelfCheckSet(void)
     memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
     thaisen_relay_parallel_on_f();              /** 闭合 */
     thaisen_relay_parallel_on_z();
+    SerialScreen_SendIco(&SerialScreen, 0x4176, TRUE);
     rt_thread_mdelay(SCREEN_WAIT_FB_TIME);      /** 等待状态 */
     fb[0] = !thaisen_relay_parallel_FB_Z();
     fb[1] = !thaisen_relay_parallel_FB_F();
@@ -6761,8 +6762,6 @@ void SerialScreen_BtnSelfCheckSet(void)
     /** 信息显示 */
     fb[0] += '0';
     fb[1] += '0';
-    LcdData.setData.g_paraRely0 = 0;
-    memcpy(&LcdData.setData.g_paraRely0, fb, sizeof(fb));
     SerialScreen_SendTxt(&SerialScreen, 0x4168, fb, sizeof(fb));
     rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
 
@@ -6785,6 +6784,7 @@ void SerialScreen_BtnSelfCheckSet(void)
     memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
     thaisen_relay_parallel_off_f();                     /** 断开 */
     thaisen_relay_parallel_off_z();
+    SerialScreen_SendIco(&SerialScreen, 0x4176, FALSE);
     rt_thread_mdelay(SCREEN_WAIT_FB_TIME);              /** 等待状态 */
     fb[0] = !thaisen_relay_parallel_FB_Z();
     fb[1] = !thaisen_relay_parallel_FB_F();
@@ -6797,8 +6797,6 @@ void SerialScreen_BtnSelfCheckSet(void)
     /** 信息显示 */
     fb[0] += '0';
     fb[1] += '0';
-    LcdData.setData.g_paraRely0 = 0;
-    memcpy(&LcdData.setData.g_paraRely0, fb, sizeof(fb));
     SerialScreen_SendTxt(&SerialScreen, 0x4168, fb, sizeof(fb));
     rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
 
@@ -6822,6 +6820,7 @@ void SerialScreen_BtnSelfCheckSet(void)
 
     memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
     thaisen_fan_A_on();                         /** 闭合 */
+    SerialScreen_SendIco(&SerialScreen, 0x417A, TRUE);
     rt_thread_mdelay(SCREEN_WAIT_FB_TIME);      /** 等待状态 */
     fb[0] = !thaisen_relay_AC_FB();
 #if 0
@@ -6837,10 +6836,8 @@ void SerialScreen_BtnSelfCheckSet(void)
     /** 信息显示 */
 #if 0
     fb[0] += '0';
-    LcdData.setData.s_fan[LCD_GUN_1] = fb[0];
 #else
     fb[0] = '1';
-    LcdData.setData.s_fan[LCD_GUN_1] = fb[0];
 #endif
     SerialScreen_SendTxt(&SerialScreen, 0x416C, &fb[0], sizeof(fb[0]));
     rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
@@ -6864,6 +6861,7 @@ void SerialScreen_BtnSelfCheckSet(void)
 
     memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
     thaisen_fan_A_off();                     /** 断开 */
+    SerialScreen_SendIco(&SerialScreen, 0x417A, FALSE);
     rt_thread_mdelay(SCREEN_WAIT_FB_TIME);      /** 等待状态 */
     fb[0] = !thaisen_relay_AC_FB();
 #if 0
@@ -6879,10 +6877,8 @@ void SerialScreen_BtnSelfCheckSet(void)
     /** 信息显示 */
 #if 0
     fb[0] = '0';
-    LcdData.setData.s_fan[LCD_GUN_1] = fb[0];
 #else
     fb[0] = '0';
-    LcdData.setData.s_fan[LCD_GUN_1] = fb[0];
 #endif
     SerialScreen_SendTxt(&SerialScreen, 0x416C, &fb[0], sizeof(fb[0]));
     rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
@@ -6907,6 +6903,7 @@ void SerialScreen_BtnSelfCheckSet(void)
 
     memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
     thaisen_fan_B_on();                         /** 闭合 */
+    SerialScreen_SendIco(&SerialScreen, 0x517A, TRUE);
     rt_thread_mdelay(SCREEN_WAIT_FB_TIME);      /** 等待状态 */
     fb[0] = !thaisen_relay_AC_FB();
 #if 0
@@ -6922,10 +6919,8 @@ void SerialScreen_BtnSelfCheckSet(void)
     /** 信息显示 */
 #if 0
     fb[0] += '0';
-    LcdData.setData.s_fan[LCD_GUN_2] = fb[0];
 #else
     fb[0] = '1';
-    LcdData.setData.s_fan[LCD_GUN_2] = fb[0];
 #endif
     SerialScreen_SendTxt(&SerialScreen, 0x516C, &fb[0], sizeof(fb[0]));
     rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
@@ -6949,6 +6944,7 @@ void SerialScreen_BtnSelfCheckSet(void)
 
     memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
     thaisen_fan_B_off();                     /** 断开 */
+    SerialScreen_SendIco(&SerialScreen, 0x517A, FALSE);
     rt_thread_mdelay(SCREEN_WAIT_FB_TIME);      /** 等待状态 */
     fb[0] = !thaisen_relay_AC_FB();
 #if 0
@@ -6964,10 +6960,8 @@ void SerialScreen_BtnSelfCheckSet(void)
     /** 信息显示 */
 #if 0
     fb[0] = '0';
-    LcdData.setData.s_fan[LCD_GUN_2] = fb[0];
 #else
     fb[0] = '0';
-    LcdData.setData.s_fan[LCD_GUN_2] = fb[0];
 #endif
     SerialScreen_SendTxt(&SerialScreen, 0x516C, &fb[0], sizeof(fb[0]));
     rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
@@ -6993,6 +6987,7 @@ void SerialScreen_BtnSelfCheckSet(void)
     if(thaisenGetChargGunRunType() == thaisenDeviceType_average){
         memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
         thaisen_relay_k7_k8_on();                   /** 闭合 */
+        SerialScreen_SendIco(&SerialScreen, 0x5186, TRUE);
         rt_thread_mdelay(SCREEN_WAIT_FB_TIME);      /** 等待状态 */
         fb[0] = !thaisen_relay_K7_FB();
         fb[1] = !thaisen_relay_K8_FB();
@@ -7005,8 +7000,6 @@ void SerialScreen_BtnSelfCheckSet(void)
         /** 信息显示 */
         fb[0] += '0';
         fb[1] += '0';
-        LcdData.setData.g_paraRely1 = 0;
-        memcpy(&LcdData.setData.g_paraRely1, fb, sizeof(fb));
         SerialScreen_SendTxt(&SerialScreen, 0x5184, fb, sizeof(fb));
         rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
 
@@ -7028,6 +7021,7 @@ void SerialScreen_BtnSelfCheckSet(void)
 
         memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
         thaisen_relay_k7k8_off();                           /** 断开 */
+        SerialScreen_SendIco(&SerialScreen, 0x5186, FALSE);
         rt_thread_mdelay(SCREEN_WAIT_FB_TIME);              /** 等待状态 */
         fb[0] = !thaisen_relay_K7_FB();
         fb[1] = !thaisen_relay_K8_FB();
@@ -7040,8 +7034,6 @@ void SerialScreen_BtnSelfCheckSet(void)
         /** 信息显示 */
         fb[0] += '0';
         fb[1] += '0';
-        LcdData.setData.g_paraRely1 = 0;
-        memcpy(&LcdData.setData.g_paraRely1, fb, sizeof(fb));
         SerialScreen_SendTxt(&SerialScreen, 0x5184, fb, sizeof(fb));
         rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
 
@@ -7067,6 +7059,7 @@ void SerialScreen_BtnSelfCheckSet(void)
     if(thaisenGetChargGunRunType() == thaisenDeviceType_average){
         memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
         thaisen_relay_k9_k10_on();                   /** 闭合 */
+        SerialScreen_SendIco(&SerialScreen, 0x518A, TRUE);
         rt_thread_mdelay(SCREEN_WAIT_FB_TIME);      /** 等待状态 */
         fb[0] = !thaisen_relay_K9_FB();
         fb[1] = !thaisen_relay_K10_FB();
@@ -7079,8 +7072,6 @@ void SerialScreen_BtnSelfCheckSet(void)
         /** 信息显示 */
         fb[0] += '0';
         fb[1] += '0';
-        LcdData.setData.g_paraRely2 = 0;
-        memcpy(&LcdData.setData.g_paraRely2, fb, sizeof(fb));
         SerialScreen_SendTxt(&SerialScreen, 0x5188, fb, sizeof(fb));
         rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
 
@@ -7102,6 +7093,7 @@ void SerialScreen_BtnSelfCheckSet(void)
 
         memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
         thaisen_relay_k9k10_off();                           /** 断开 */
+        SerialScreen_SendIco(&SerialScreen, 0x518A, FALSE);
         rt_thread_mdelay(SCREEN_WAIT_FB_TIME);              /** 等待状态 */
         fb[0] = !thaisen_relay_K9_FB();
         fb[1] = !thaisen_relay_K10_FB();
@@ -7114,8 +7106,6 @@ void SerialScreen_BtnSelfCheckSet(void)
         /** 信息显示 */
         fb[0] += '0';
         fb[1] += '0';
-        LcdData.setData.g_paraRely2 = 0;
-        memcpy(&LcdData.setData.g_paraRely2, fb, sizeof(fb));
         SerialScreen_SendTxt(&SerialScreen, 0x5188, fb, sizeof(fb));
         rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
 
@@ -7140,6 +7130,7 @@ void SerialScreen_BtnSelfCheckSet(void)
 
     memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
     thaisen_relay_on_A();                   /** 闭合 */
+    SerialScreen_SendIco(&SerialScreen, 0x4174, TRUE);
     rt_thread_mdelay(SCREEN_WAIT_FB_TIME);      /** 等待状态 */
     fb[0] = !thaisen_relay_A_FB_Z();
     fb[1] = !thaisen_relay_A_FB_F();
@@ -7152,8 +7143,6 @@ void SerialScreen_BtnSelfCheckSet(void)
     /** 信息显示 */
     fb[0] += '0';
     fb[1] += '0';
-    LcdData.setData.g_dcRelay[LCD_GUN_1] = 0;
-    memcpy(&LcdData.setData.g_dcRelay[LCD_GUN_1], fb, sizeof(fb));
     SerialScreen_SendTxt(&SerialScreen, 0x4166, fb, sizeof(fb));
     rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
 
@@ -7175,6 +7164,7 @@ void SerialScreen_BtnSelfCheckSet(void)
 
     memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
     thaisen_relay_off_A();                           /** 断开 */
+    SerialScreen_SendIco(&SerialScreen, 0x4174, FALSE);
     rt_thread_mdelay(SCREEN_WAIT_FB_TIME);              /** 等待状态 */
     fb[0] = !thaisen_relay_A_FB_Z();
     fb[1] = !thaisen_relay_A_FB_F();
@@ -7187,8 +7177,6 @@ void SerialScreen_BtnSelfCheckSet(void)
     /** 信息显示 */
     fb[0] += '0';
     fb[1] += '0';
-    LcdData.setData.g_dcRelay[LCD_GUN_1] = 0;
-    memcpy(&LcdData.setData.g_dcRelay[LCD_GUN_1], fb, sizeof(fb));
     SerialScreen_SendTxt(&SerialScreen, 0x4166, fb, sizeof(fb));
     rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
 
@@ -7212,6 +7200,7 @@ void SerialScreen_BtnSelfCheckSet(void)
 
     memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
     thaisen_relay_on_B();                   /** 闭合 */
+    SerialScreen_SendIco(&SerialScreen, 0x5174, TRUE);
     rt_thread_mdelay(SCREEN_WAIT_FB_TIME);      /** 等待状态 */
     fb[0] = !thaisen_relay_B_FB_Z();
     fb[1] = !thaisen_relay_B_FB_F();
@@ -7224,8 +7213,6 @@ void SerialScreen_BtnSelfCheckSet(void)
     /** 信息显示 */
     fb[0] += '0';
     fb[1] += '0';
-    LcdData.setData.g_dcRelay[LCD_GUN_2] = 0;
-    memcpy(&LcdData.setData.g_dcRelay[LCD_GUN_2], fb, sizeof(fb));
     SerialScreen_SendTxt(&SerialScreen, 0x5166, fb, sizeof(fb));
     rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
 
@@ -7247,6 +7234,7 @@ void SerialScreen_BtnSelfCheckSet(void)
 
     memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
     thaisen_relay_off_B();                           /** 断开 */
+    SerialScreen_SendIco(&SerialScreen, 0x5174, FALSE);
     rt_thread_mdelay(SCREEN_WAIT_FB_TIME);              /** 等待状态 */
     fb[0] = !thaisen_relay_B_FB_Z();
     fb[1] = !thaisen_relay_B_FB_F();
@@ -7259,8 +7247,6 @@ void SerialScreen_BtnSelfCheckSet(void)
     /** 信息显示 */
     fb[0] += '0';
     fb[1] += '0';
-    LcdData.setData.g_dcRelay[LCD_GUN_2] = 0;
-    memcpy(&LcdData.setData.g_dcRelay[LCD_GUN_2], fb, sizeof(fb));
     SerialScreen_SendTxt(&SerialScreen, 0x5166, fb, sizeof(fb));
     rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
 
@@ -7284,6 +7270,7 @@ void SerialScreen_BtnSelfCheckSet(void)
 
     memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
     thaisenElectLockA_debug();                  /** 上锁 */
+    SerialScreen_SendIco(&SerialScreen, 0x4178, TRUE);
     rt_thread_mdelay(SCREEN_WAIT_FB_TIME);      /** 等待状态 */
     fb[0] = !thaisenGetElectLockStaA();
     if(fb[0] != TRUE){
@@ -7294,7 +7281,6 @@ void SerialScreen_BtnSelfCheckSet(void)
     }
     /** 信息显示 */
     fb[0] += '0';
-    LcdData.setData.g_elElock[LCD_GUN_1] = fb[0];
     SerialScreen_SendTxt(&SerialScreen, 0x416A, &fb[0], sizeof(fb[0]));
     rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
 
@@ -7316,6 +7302,7 @@ void SerialScreen_BtnSelfCheckSet(void)
 
     memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
     thaisenElectUnlockA_debug();                /** 解锁 */
+    SerialScreen_SendIco(&SerialScreen, 0x4178, FALSE);
     rt_thread_mdelay(SCREEN_WAIT_FB_TIME);      /** 等待状态 */
     fb[0] = !thaisenGetElectLockStaA();
     if(fb[0] != FALSE){
@@ -7326,7 +7313,6 @@ void SerialScreen_BtnSelfCheckSet(void)
     }
     /** 信息显示 */
     fb[0] += '0';
-    LcdData.setData.g_elElock[LCD_GUN_1] = fb[0];
     SerialScreen_SendTxt(&SerialScreen, 0x416A, &fb[0], sizeof(fb[0]));
     rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
 
@@ -7350,6 +7336,7 @@ void SerialScreen_BtnSelfCheckSet(void)
 
     memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
     thaisenElectLockB_debug();                  /** 上锁 */
+    SerialScreen_SendIco(&SerialScreen, 0x5178, TRUE);
     rt_thread_mdelay(SCREEN_WAIT_FB_TIME);      /** 等待状态 */
     fb[0] = !thaisenGetElectLockStaB();
     if(fb[0] != TRUE){
@@ -7360,7 +7347,6 @@ void SerialScreen_BtnSelfCheckSet(void)
     }
     /** 信息显示 */
     fb[0] += '0';
-    LcdData.setData.g_elElock[LCD_GUN_2] = fb[0];
     SerialScreen_SendTxt(&SerialScreen, 0x516A, &fb[0], sizeof(fb[0]));
     rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
 
@@ -7382,6 +7368,7 @@ void SerialScreen_BtnSelfCheckSet(void)
 
     memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
     thaisenElectUnlockB_debug();                /** 解锁 */
+    SerialScreen_SendIco(&SerialScreen, 0x5178, FALSE);
     rt_thread_mdelay(SCREEN_WAIT_FB_TIME);      /** 等待状态 */
     fb[0] = !thaisenGetElectLockStaB();
     if(fb[0] != FALSE){
@@ -7392,7 +7379,6 @@ void SerialScreen_BtnSelfCheckSet(void)
     }
     /** 信息显示 */
     fb[0] += '0';
-    LcdData.setData.g_elElock[LCD_GUN_2] = fb[0];
     SerialScreen_SendTxt(&SerialScreen, 0x516A, &fb[0], sizeof(fb[0]));
     rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
 
@@ -7416,6 +7402,7 @@ void SerialScreen_BtnSelfCheckSet(void)
 
     memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
     thaisenAux_A_Enable();                      /** 闭合 */
+    SerialScreen_SendIco(&SerialScreen, 0x41B4, TRUE);
     rt_thread_mdelay(SCREEN_WAIT_FB_TIME);      /** 等待状态 */
     fb[0] = !thaisenGetAux_A_Status_debug();
 #if 0
@@ -7430,7 +7417,6 @@ void SerialScreen_BtnSelfCheckSet(void)
 #endif
     /** 信息显示 */
     fb[0] += '0';
-    LcdData.setData.g_auxRelay[LCD_GUN_1] = fb[0];
     SerialScreen_SendTxt(&SerialScreen, 0x41B2, &fb[0], sizeof(fb[0]));
     rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
 
@@ -7452,6 +7438,7 @@ void SerialScreen_BtnSelfCheckSet(void)
 
     memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
     thaisenAux_A_Disable();                     /** 断开 */
+    SerialScreen_SendIco(&SerialScreen, 0x41B4, FALSE);
     rt_thread_mdelay(SCREEN_WAIT_FB_TIME);      /** 等待状态 */
     fb[0] = !thaisenGetAux_A_Status_debug();
 #if 0
@@ -7466,7 +7453,6 @@ void SerialScreen_BtnSelfCheckSet(void)
 #endif
     /** 信息显示 */
     fb[0] += '0';
-    LcdData.setData.g_auxRelay[LCD_GUN_1] = fb[0];
     SerialScreen_SendTxt(&SerialScreen, 0x41B2, &fb[0], sizeof(fb[0]));
     rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
 
@@ -7490,6 +7476,7 @@ void SerialScreen_BtnSelfCheckSet(void)
 
     memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
     thaisenAux_B_Enable();                      /** 闭合 */
+    SerialScreen_SendIco(&SerialScreen, 0x51B4, TRUE);
     rt_thread_mdelay(SCREEN_WAIT_FB_TIME);      /** 等待状态 */
     fb[0] = !thaisenGetAux_B_Status_debug();
 #if 0
@@ -7504,7 +7491,6 @@ void SerialScreen_BtnSelfCheckSet(void)
 #endif
     /** 信息显示 */
     fb[0] += '0';
-    LcdData.setData.g_auxRelay[LCD_GUN_2] = fb[0];
     SerialScreen_SendTxt(&SerialScreen, 0x51B2, &fb[0], sizeof(fb[0]));
     rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
 
@@ -7526,6 +7512,7 @@ void SerialScreen_BtnSelfCheckSet(void)
 
     memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
     thaisenAux_B_Disable();                     /** 断开 */
+    SerialScreen_SendIco(&SerialScreen, 0x51B4, FALSE);
     rt_thread_mdelay(SCREEN_WAIT_FB_TIME);      /** 等待状态 */
     fb[0] = !thaisenGetAux_B_Status_debug();
 #if 0
@@ -7540,7 +7527,6 @@ void SerialScreen_BtnSelfCheckSet(void)
 #endif
     /** 信息显示 */
     fb[0] += '0';
-    LcdData.setData.g_auxRelay[LCD_GUN_2] = fb[0];
     SerialScreen_SendTxt(&SerialScreen, 0x51B2, &fb[0], sizeof(fb[0]));
     rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
 
@@ -7564,6 +7550,7 @@ void SerialScreen_BtnSelfCheckSet(void)
 
     memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
     thaisenAux_A_24V_Enable();                      /** 闭合 */
+    SerialScreen_SendIco(&SerialScreen, 0x6702, TRUE);
     rt_thread_mdelay(SCREEN_WAIT_FB_TIME);      /** 等待状态 */
     fb[0] = !thaisenGetAux_A_Status_debug();
 #if 0
@@ -7578,7 +7565,6 @@ void SerialScreen_BtnSelfCheckSet(void)
 #endif
     /** 信息显示 */
     fb[0] += '0';
-    LcdData.setData.g_aux24v[LCD_GUN_1] = fb[0];
     SerialScreen_SendTxt(&SerialScreen, 0x6700, &fb[0], sizeof(fb[0]));
     rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
 
@@ -7600,6 +7586,7 @@ void SerialScreen_BtnSelfCheckSet(void)
 
     memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
     thaisenAux_A_24V_Disable();                     /** 断开 */
+    SerialScreen_SendIco(&SerialScreen, 0x6702, FALSE);
     rt_thread_mdelay(SCREEN_WAIT_FB_TIME);      /** 等待状态 */
     fb[0] = !thaisenGetAux_A_Status_debug();
 #if 0
@@ -7614,7 +7601,6 @@ void SerialScreen_BtnSelfCheckSet(void)
 #endif
     /** 信息显示 */
     fb[0] += '0';
-    LcdData.setData.g_aux24v[LCD_GUN_1] = fb[0];
     SerialScreen_SendTxt(&SerialScreen, 0x6700, &fb[0], sizeof(fb[0]));
     rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
 
@@ -7638,6 +7624,7 @@ void SerialScreen_BtnSelfCheckSet(void)
 
     memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
     thaisenAux_B_24V_Enable();                      /** 闭合 */
+    SerialScreen_SendIco(&SerialScreen, 0x6782, TRUE);
     rt_thread_mdelay(SCREEN_WAIT_FB_TIME);      /** 等待状态 */
     fb[0] = !thaisenGetAux_B_Status_debug();
 #if 0
@@ -7652,7 +7639,6 @@ void SerialScreen_BtnSelfCheckSet(void)
 #endif
     /** 信息显示 */
     fb[0] += '0';
-    LcdData.setData.g_aux24v[LCD_GUN_2] = fb[0];
     SerialScreen_SendTxt(&SerialScreen, 0x6780, &fb[0], sizeof(fb[0]));
     rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
 
@@ -7674,6 +7660,7 @@ void SerialScreen_BtnSelfCheckSet(void)
 
     memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
     thaisenAux_B_24V_Disable();                     /** 断开 */
+    SerialScreen_SendIco(&SerialScreen, 0x6782, FALSE);
     rt_thread_mdelay(SCREEN_WAIT_FB_TIME);      /** 等待状态 */
     fb[0] = !thaisenGetAux_B_Status_debug();
 #if 0
@@ -7688,7 +7675,6 @@ void SerialScreen_BtnSelfCheckSet(void)
 #endif
     /** 信息显示 */
     fb[0] += '0';
-    LcdData.setData.g_aux24v[LCD_GUN_2] = fb[0];
     SerialScreen_SendTxt(&SerialScreen, 0x6780, &fb[0], sizeof(fb[0]));
     rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
 
