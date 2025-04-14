@@ -337,6 +337,7 @@ struct LCD_ASSISTANT_DATA{
         u8 IsVinStart : 1;               //启动方式为VIN码
         u8 DataIsVerify : 1;             //配置数据已确认
         u8 IsPWStartAuthen : 1;          //填密码是密码启动鉴权
+        u8 IsSetReservation : 1;         //已设置预约
     }SeveralGunFlag[LCD_GUN_NUM];
 
     u8 OccupyGunNum;                     //处于占用但未充电的枪数量
@@ -829,7 +830,6 @@ SERIALSCREEN_DEF_SRAM2 ConfigExecutPool LcdConfigExecutPool[THAISEN_CONFIG_PAGE_
 enum SYSMAIN_STATUS{
 	SysMainStatus_StandBy,		//空闲状态(主状态)0
 	SysMainStatus_PlugIn,		//已插枪 1
-    SysMainStatus_Reservation,  //预约
 	SysMainStatus_StartReady,	//过程状态 2
 	SysMainStatus_SelfCheck,	//自检状态 3
 	SysMainStatus_SelfCheck_Wait,//自检确认状态4
@@ -1290,6 +1290,23 @@ u32 SerialScreen_Screen_GetModeParameter(u8 port)
         return LcdData.setData.CurrentModePara[port];
     }
     return 0;
+}
+
+u8 SerialScreen_Screen_IsSetReservationMode(u8 port)
+{
+    if(LcdData.setData.sup_mode_select == TRUE){
+        if(port >= LCD_GUN_NUM)
+            return 0;
+        if(LcdAssistantData.SeveralGunFlag[port].IsSetReservation == TRUE)
+            return 1;
+    }
+    return 0;
+}
+
+void SerialScreen_Screen_ClearReservationModeFlag(u8 port)
+{
+    if(port < LCD_GUN_NUM)
+        LcdAssistantData.SeveralGunFlag[port].IsSetReservation = FALSE;
 }
 
 static void SerialScreen_Screen_ResetModeInfoDef(u8 port)
@@ -4530,7 +4547,7 @@ void SerialScreen_BtnModeInfoStorage(int port)
 
     switch(LcdData.gun[port].workState){
     case SysMainStatus_Chrging:
-    case SysMainStatus_Reservation:
+//    case SysMainStatus_Reservation:
         /* 弹出提示：充电中、预约中不可修改策略 */
 //        LcdData.setData.OBwarning = ICON_OB_NOT_CONTINUOUS;
         /* 此时不进行切页 */
@@ -4572,6 +4589,7 @@ void SerialScreen_BtnModeInfoStorage(int port)
             LcdData.setData.MSLimitReservationMin[LCD_GUN_NUM] = 0;
         }
         LcdData.setData.CurrentModePara[port] = LcdData.setData.MSLimitReservationHour[LCD_GUN_NUM] *3600 + LcdData.setData.MSLimitReservationMin[LCD_GUN_NUM] *60;
+        LcdAssistantData.SeveralGunFlag[port].IsSetReservation = TRUE;
     }
     SerialScreen_JumpPage(&SerialScreen, LCD_PAGE_STORAGE_WAITING);
 
@@ -8828,6 +8846,10 @@ struct LCD_DATA_FIFO_TYPE *SerialScreen_Init(struct SerialScreenObj *cmd)
 	    LcdData.setData.selectmode[i] = ICON_CHARGE_NULL;
 	    if(LcdData.setData.sup_mode_select){
 	        LcdData.setData.selectmode[i] = ICON_CHARGE_MODE_SELECT;
+	    }
+
+	    if(SerialScreen_Screen_GetCurrentMode(i) == THAISEN_MODE_LIMIT_RESERVATION){
+	        LcdAssistantData.SeveralGunFlag[i].IsSetReservation = TRUE;
 	    }
 	}
 

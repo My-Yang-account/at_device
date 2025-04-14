@@ -699,6 +699,16 @@ uint32_t thaisen_get_mode_parameter(uint8_t gunno);
  **/
 void thaisen_get_mode_info(uint8_t gunno, uint8_t language, enum thaisen_mode mode, uint32_t parameter, uint8_t *buf, uint8_t ilen);
 
+/**
+ *  判断是否设置了预约模式
+ **/
+uint8_t thaisen_is_set_reservation_mode(uint8_t gunno);
+
+/**
+ *  清除预约模式设置标志
+ **/
+void thaisen_clear_reservation_mode_flag(uint8_t gunno);
+
 #endif /* APPLICATIONS_INC_APP_DATA_INFO_INTERFACE_H_ */
 
 

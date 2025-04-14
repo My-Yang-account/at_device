@@ -2152,7 +2152,7 @@ static void ofsm_readying_fun(uint8_t gunno)
             if(app_nsal_is_set_reservation(gunno)){
                 continue_reservation = APP_THA_ENUM_TRUE;
                 s_ofsm_info[gunno].base.flag.is_local_reservation = APP_THA_ENUM_FALSE;
-            }else if((thaisen_get_current_mode(gunno) == THAISEN_MODE_LIMIT_RESERVATION)){
+            }else if(thaisen_get_current_mode(gunno) == THAISEN_MODE_LIMIT_RESERVATION){
                 struct tm tmp;
 
                 localtime_r(&t_base, &tmp);
@@ -2162,9 +2162,11 @@ static void ofsm_readying_fun(uint8_t gunno)
                     continue_reservation = APP_THA_ENUM_TRUE;
                     s_ofsm_info[gunno].base.reservation_strategy = (APP_RESERVATE_STRATEGY_PULLGUN_CANCEL |APP_RESERVATE_STRATEGY_FAULT_CANCEL |APP_RESERVATE_STRATEGY_START_DIRECTLY);
                 }else if((thaisen_get_mode_parameter(gunno) + 15 *60) > (tmp.tm_hour *3600 + tmp.tm_min *60)){
-                    s_ofsm_info[gunno].base.reservation_time_remain = 0x00;
-                    continue_reservation = APP_THA_ENUM_TRUE;
-                    s_ofsm_info[gunno].base.reservation_strategy = (APP_RESERVATE_STRATEGY_PULLGUN_CANCEL |APP_RESERVATE_STRATEGY_FAULT_CANCEL |APP_RESERVATE_STRATEGY_START_DIRECTLY);
+                    if(thaisen_is_set_reservation_mode(gunno)){
+                        s_ofsm_info[gunno].base.reservation_time_remain = 0x00;
+                        continue_reservation = APP_THA_ENUM_TRUE;
+                        s_ofsm_info[gunno].base.reservation_strategy = (APP_RESERVATE_STRATEGY_PULLGUN_CANCEL |APP_RESERVATE_STRATEGY_FAULT_CANCEL |APP_RESERVATE_STRATEGY_START_DIRECTLY);
+                    }
                 }
             }
             s_ofsm_info[gunno].base.reservation_time_remain = s_ofsm_info[gunno].base.reservation_time_remain > 0 ? s_ofsm_info[gunno].base.reservation_time_remain : 0;
@@ -2278,6 +2280,7 @@ static void ofsm_reservation_fun(uint8_t gunno)
     /********* 预约时间到 **********/
     if((s_ofsm_info[gunno].base.reservation_time_base + s_ofsm_info[gunno].base.reservation_time_remain) <= s_ofsm_info[gunno].base.current_time){
         LOG_D("gunno(%d) reach reservation time, start charge\n", gunno);
+        thaisen_clear_reservation_mode_flag(gunno);
         ofsm_start_info_padding_reservation(gunno);
         is_charging_authorization = true;
     }

@@ -1785,3 +1785,26 @@ void thaisen_get_mode_info(uint8_t gunno, uint8_t language, enum thaisen_mode mo
 {
     app_get_mode_info(gunno, language, mode, parameter, buf, ilen);
 }
+
+/**************************************************************************
+ * 函数名      thaisen_is_set_reservation_mode
+ * 功能         判断是否设置了预约模式
+ * 参数          gunno     枪号
+ * 返回          1：是      0：否
+ *************************************************************************/
+uint8_t thaisen_is_set_reservation_mode(uint8_t gunno)
+{
+    return SerialScreen_Screen_IsSetReservationMode(gunno);
+}
+
+/**************************************************************************
+ * 函数名      thaisen_clear_reservation_mode_flag
+ * 功能         清除预约模式设置标志
+ * 参数          gunno     枪号
+ * 返回
+ *************************************************************************/
+void thaisen_clear_reservation_mode_flag(uint8_t gunno)
+{
+    SerialScreen_Screen_ClearReservationModeFlag(gunno);
+}
+
