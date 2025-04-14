@@ -165,6 +165,9 @@ void ykc_monitor_mreceive_info_init(void)
     memset(&s_ykc_monitor_qrcode_buf, 0x00, sizeof(s_ykc_monitor_qrcode_buf));
     memset(&s_ykc_monitor_card_vin_buf, 0x00, sizeof(s_ykc_monitor_card_vin_buf));
     memset(&s_ykc_monitor_dev_info_buf, 0x00, sizeof(s_ykc_monitor_dev_info_buf));
+#ifdef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL
+    memset(&s_ykc_monitor_config_info_buf, 0x00, sizeof(s_ykc_monitor_config_info_buf));
+#endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
 }
 #endif /* NET_DESIGNATE_REGION */
 

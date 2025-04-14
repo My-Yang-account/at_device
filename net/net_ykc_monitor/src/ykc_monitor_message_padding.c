@@ -5762,6 +5762,126 @@ static int32_t ykc_monitor_config_info_process_gun_output_7104_info(uint8_t opti
 #endif
 }
 
+/** 模式选择：正常模式 */
+/*************************************************
+ * 函数名      ykc_monitor_config_info_mode_select_normal
+ * 功能          处理服务器下发的正常模式配置请求
+ * 返回          <0：失败(无效数据-系统故障，不执行响应)
+ *      =0：成功
+ *      >0：失败(作为失败原因进行响应)
+ * **********************************************/
+static int32_t ykc_monitor_config_info_mode_select_normal(uint8_t option, uint8_t gunno, void *data, uint16_t dlen, void *buf, uint16_t blen)
+{
+    if((buf == NULL) || (blen < sizeof(struct ykcm_mode_select_normal))){
+        LOG_E("ykcm input buf invalid with mode select normal|%d,%d", blen, sizeof(struct ykcm_mode_select_normal));
+        return (NETYKCM_CONFIG_RES_SYS_ITEM_ASSERT_BASE + 0x00);
+    }
+    /** 配置信息查询 */
+    if(option == NETYKCM_CONFIG_INFO_OPTION_QUERY){
+        struct ykcm_mode_select_normal *response = (struct ykcm_mode_select_normal*)buf;
+
+        memset(response, 0x00, sizeof(struct ykcm_mode_select_normal));
+
+        if(gunno == 0x01){
+            response->mode = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_CURRENT_MODE_A, 0x00));
+            response->mode_parameter = *(uint32_t*)(sys_read_config_item_content(CONFIG_ITEM_MODE_PARAMETER_A, 0x00));
+        }else if(gunno == 0x02){
+            response->mode = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_CURRENT_MODE_B, 0x00));
+            response->mode_parameter = *(uint32_t*)(sys_read_config_item_content(CONFIG_ITEM_MODE_PARAMETER_B, 0x00));
+        }else{
+            LOG_W("ykcm config query mode select normal error(%d)", gunno);
+            return (NETYKCM_CONFIG_RES_SYS_ITEM_ASSERT_BASE + 0x01);
+        }
+    }
+    /** 配置信息设置 */
+    else{
+        if((data == NULL) || (dlen < sizeof(struct ykcm_mode_select_normal))){
+            LOG_E("ykcm input data invalid with mode select normal|%d,%d", dlen, sizeof(struct ykcm_mode_select_normal));
+            return (NETYKCM_CONFIG_RES_SYS_ITEM_ASSERT_BASE + 0x02);
+        }
+        struct ykcm_mode_select_normal *info = (struct ykcm_mode_select_normal*)data;
+
+        if(gunno == 0x01){
+            if(ykc_monitor_is_config_data_valid(&info->mode, sizeof(info->mode), 0x00) == NET_ENUM_FALSE){
+                info->mode = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_CURRENT_MODE_A, 0x00));
+            }
+            if(ykc_monitor_is_config_data_valid(&info->mode_parameter, sizeof(info->mode_parameter), 0x00) == NET_ENUM_FALSE){
+                info->mode_parameter = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_MODE_PARAMETER_A, 0x00));
+            }
+        }else if(gunno == 0x02){
+            if(ykc_monitor_is_config_data_valid(&info->mode, sizeof(info->mode), 0x00) == NET_ENUM_FALSE){
+                info->mode = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_CURRENT_MODE_B, 0x00));
+            }
+            if(ykc_monitor_is_config_data_valid(&info->mode_parameter, sizeof(info->mode_parameter), 0x00) == NET_ENUM_FALSE){
+                info->mode_parameter = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_MODE_PARAMETER_B, 0x00));
+            }
+        }else{
+            LOG_W("ykcm config set mode select normal error(%d)", gunno);
+            return (NETYKCM_CONFIG_RES_SYS_ITEM_ASSERT_BASE + 0x03);
+        }
+
+        return ykc_monitor_config_execute((gunno - 0x01), THAISEN_CONFIG_PAGE_MODE_SELECT_NORMAL, data, NULL, NULL);
+    }
+
+    return 0x00;
+}
+
+/** 模式选择：V2G模式 */
+/*************************************************
+ * 函数名      ykc_monitor_config_info_mode_select_v2g
+ * 功能          处理服务器下发的V2G模式配置请求
+ * 返回          <0：失败(无效数据-系统故障，不执行响应)
+ *      =0：成功
+ *      >0：失败(作为失败原因进行响应)
+ * **********************************************/
+static int32_t ykc_monitor_config_info_mode_select_v2g(uint8_t option, uint8_t gunno, void *data, uint16_t dlen, void *buf, uint16_t blen)
+{
+    if((buf == NULL) || (blen < sizeof(struct ykcm_mode_select_v2g))){
+        LOG_E("ykcm input buf invalid with mode select v2g|%d,%d", blen, sizeof(struct ykcm_mode_select_v2g));
+        return (NETYKCM_CONFIG_RES_SYS_ITEM_ASSERT_BASE + 0x00);
+    }
+    /** 配置信息查询 */
+    if(option == NETYKCM_CONFIG_INFO_OPTION_QUERY){
+        struct ykcm_mode_select_v2g *response = (struct ykcm_mode_select_v2g*)buf;
+
+        memset(response, 0x00, sizeof(struct ykcm_mode_select_v2g));
+
+        if(gunno == 0x01){
+            response->mode = 0x00;
+        }else if(gunno == 0x02){
+            response->mode = 0x00;
+        }else{
+            LOG_W("ykcm config query mode select v2g error(%d)", gunno);
+            return (NETYKCM_CONFIG_RES_SYS_ITEM_ASSERT_BASE + 0x01);
+        }
+    }
+    /** 配置信息设置 */
+    else{
+        if((data == NULL) || (dlen < sizeof(struct ykcm_mode_select_v2g))){
+            LOG_E("ykcm input data invalid with mode select v2g|%d,%d", dlen, sizeof(struct ykcm_mode_select_v2g));
+            return (NETYKCM_CONFIG_RES_SYS_ITEM_ASSERT_BASE + 0x02);
+        }
+        struct ykcm_mode_select_v2g *info = (struct ykcm_mode_select_v2g*)data;
+
+        if(gunno == 0x01){
+            if(ykc_monitor_is_config_data_valid(&info->mode, sizeof(info->mode), 0x00) == NET_ENUM_FALSE){
+                info->mode = 0x00;
+            }
+        }else if(gunno == 0x02){
+            if(ykc_monitor_is_config_data_valid(&info->mode, sizeof(info->mode), 0x00) == NET_ENUM_FALSE){
+                info->mode = 0x00;
+            }
+        }else{
+            LOG_W("ykcm config set mode select v2g error(%d)", gunno);
+            return (NETYKCM_CONFIG_RES_SYS_ITEM_ASSERT_BASE + 0x03);
+        }
+
+//        return ykc_monitor_config_execute((gunno - 0x01), THAISEN_CONFIG_PAGE_MODE_SELECT_V2G, data, NULL, NULL);
+    }
+
+    return 0x00;
+}
+
 /*************************************************
  * 函数名      ykc_monitor_config_info_process
  * 功能          处理服务器下发的配置信息修改、查询请求
@@ -5903,6 +6023,22 @@ int8_t ykc_monitor_config_info_process(void *data, uint16_t dlen, void *buf, uin
                 ((uint8_t*)&request->body.option + 0x01), cdata_len, ((uint8_t*)&response->body.option + 0x01), rbuf_len);
         if(request->body.option == NETYKCM_CONFIG_INFO_OPTION_QUERY){
             out_len += sizeof(struct ykcm_gun_output_info_7104);
+        }
+        break;
+    case NETYKCM_CONFIG_INFO_MODE_SELECT_NORMAL:
+        LOG_D("ykcm config info query set --- mode select normal info(%d)", request->body.option);
+        ret = ykc_monitor_config_info_mode_select_normal(request->body.option, request->body.gunno, \
+                ((uint8_t*)&request->body.option + 0x01), cdata_len, ((uint8_t*)&response->body.option + 0x01), rbuf_len);
+        if(request->body.option == NETYKCM_CONFIG_INFO_OPTION_QUERY){
+            out_len += sizeof(struct ykcm_mode_select_normal);
+        }
+        break;
+    case NETYKCM_CONFIG_INFO_MODE_SELECT_V2G:
+        LOG_D("ykcm config info query set --- mode select V2G info(%d)", request->body.option);
+        ret = ykc_monitor_config_info_mode_select_v2g(request->body.option, request->body.gunno, \
+                ((uint8_t*)&request->body.option + 0x01), cdata_len, ((uint8_t*)&response->body.option + 0x01), rbuf_len);
+        if(request->body.option == NETYKCM_CONFIG_INFO_OPTION_QUERY){
+            out_len += sizeof(struct ykcm_mode_select_v2g);
         }
         break;
     default:

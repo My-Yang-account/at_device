@@ -63,6 +63,8 @@ typedef enum{
     THAISEN_CONFIG_PAGE_GUN_INPUT_7104_INFO,                      /** 屏幕配置页：枪输入信息(7104) */
     THAISEN_CONFIG_PAGE_PUBLIC_OUTPUT_7104_INFO,                  /** 屏幕配置页：通用输出信息(7104) */
     THAISEN_CONFIG_PAGE_GUN_OUTPUT_7104_INFO,                     /** 屏幕配置页：枪输出信息(7104) */
+    THAISEN_CONFIG_PAGE_MODE_SELECT_NORMAL,                       /** 配置信息类型：模式选择：正常模式 */
+    THAISEN_CONFIG_PAGE_MODE_SELECT_V2G,                          /** 配置信息类型：模式选择：V2G模式 */
     THAISEN_CONFIG_PAGE_SIZE,                                     /** 屏幕配置页： */
 }thaisen_cfg_page;
 
@@ -180,6 +182,22 @@ typedef struct{
     struct _time_info vtime1;                                     /** 谷时段1 */
     struct _time_info vtime2;                                     /** 谷时段2 */
 }thaisen_cfg_info_offline_billing;
+
+/** 模式选择页面：屏幕-选择枪-正常模式 */
+typedef struct{
+    uint8_t mode;                                                 /** 当前模式： 0：自动充满，1：限制金额，2：限制电量，3：限制时间，4：预约 */
+    uint32_t mode_parameter;                                      /** 模式参数 ：
+                                                                                                                                                                                      对于模式0：无用，默认填0
+                                                                                                                                                                                      对于模式1：单位：0.01元
+                                                                                                                                                                                      对于模式2：单位：0.001度
+                                                                                                                                                                                      对于模式3：单位：1s
+                                                                                                                                                                                      对于模式4：单位：1s(当天启动时间秒数：例 预约 13：56 充电，则为：13 *60 *60 + 56 *60)*/
+}thaisen_mode_select_normal;
+
+/** 模式选择页面：屏幕-选择枪-V2G模式 */
+typedef struct{
+    uint8_t mode;                                /** 当前模式 */
+}thaisen_mode_select_v2g;
 
 /************************************* 7103/7101 *********************************************/
 /** 参数配置页面:屏幕-设置-出厂设置-输入信息 */

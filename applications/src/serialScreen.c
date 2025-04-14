@@ -1784,6 +1784,92 @@ static s32 SerialScreen_ConfigExecute_OfflineBilling(u8 port, void *data, void *
 }
 
 /*******************************************************************
+ * 函数名      SerialScreen_ConfigExecute_NormalMode
+ * 功能         外部触发执行模式选择-正常模式信息配置
+ * 参数          data         配置数据
+ *      port         枪口号
+ * 返回          <0:配置失败(参数无效)，=0:配置成功  1:配置存储失败， >1:写入配置成功，但是写入的内容与输入的内容有差异
+ *******************************************************************/
+static s32 SerialScreen_ConfigExecute_NormalMode(u8 port, void *data, void *sub_data, void *sub_sub_data)
+{
+#define SSCREEN_NORMAL_MODE_INVALID_MODE     0         /* 模式选择-正常模式 无效模式错误码*/
+#define SSCREEN_NORMAL_MODE_INVALID_PARA     1         /* 模式选择-正常模式 无效参数错误码*/
+
+    thaisen_mode_select_normal *config = (thaisen_mode_select_normal*)data;
+
+    switch(config->mode){
+    case THAISEN_MODE_CHARGE_FULL:
+        break;
+    case THAISEN_MODE_LIMIT_MONEY:
+        if((config->mode_parameter > CP_MODE_PARA_MONEY_MAX) || (config->mode_parameter < CP_MODE_PARA_MONEY_MIN)){
+            return (SSCREEN_NORMAL_MODE_INVALID_PARA + THAISEN_CONFIG_FAIL_OFFSET);
+        }
+        LcdData.setData.MSLimitMoney[LCD_GUN_NUM] = config->mode_parameter;
+        LcdData.setData.MSLimitElect[LCD_GUN_NUM] = 0x00;
+        LcdData.setData.MSLimitTiming[LCD_GUN_NUM] = 0x00;
+        LcdData.setData.MSLimitReservationHour[LCD_GUN_NUM] = 0x00;
+        LcdData.setData.MSLimitReservationMin[LCD_GUN_NUM] = 0x00;
+        break;
+    case THAISEN_MODE_LIMIT_ELECT:
+        if((config->mode_parameter > CP_MODE_PARA_ELECT_MAX) || (config->mode_parameter < CP_MODE_PARA_ELECT_MIN)){
+            return (SSCREEN_NORMAL_MODE_INVALID_PARA + THAISEN_CONFIG_FAIL_OFFSET);
+        }
+        LcdData.setData.MSLimitMoney[LCD_GUN_NUM] = 0x00;
+        LcdData.setData.MSLimitElect[LCD_GUN_NUM] = config->mode_parameter;
+        LcdData.setData.MSLimitTiming[LCD_GUN_NUM] = 0x00;
+        LcdData.setData.MSLimitReservationHour[LCD_GUN_NUM] = 0x00;
+        LcdData.setData.MSLimitReservationMin[LCD_GUN_NUM] = 0x00;
+        break;
+    case THAISEN_MODE_LIMIT_TIMING:
+        if((config->mode_parameter > CP_MODE_PARA_TIMING_MAX) || (config->mode_parameter < CP_MODE_PARA_TIMING_MIN)){
+            return (SSCREEN_NORMAL_MODE_INVALID_PARA + THAISEN_CONFIG_FAIL_OFFSET);
+        }
+        LcdData.setData.MSLimitMoney[LCD_GUN_NUM] = 0x00;
+        LcdData.setData.MSLimitElect[LCD_GUN_NUM] = 0x00;
+        LcdData.setData.MSLimitTiming[LCD_GUN_NUM] = config->mode_parameter;
+        LcdData.setData.MSLimitReservationHour[LCD_GUN_NUM] = 0x00;
+        LcdData.setData.MSLimitReservationMin[LCD_GUN_NUM] = 0x00;
+        break;
+    case THAISEN_MODE_LIMIT_RESERVATION:
+        if((config->mode_parameter > CP_MODE_PARA_RESERVATION_MAX) || (config->mode_parameter < CP_MODE_PARA_RESERVATION_MIN)){
+            return (SSCREEN_NORMAL_MODE_INVALID_PARA + THAISEN_CONFIG_FAIL_OFFSET);
+        }
+        LcdData.setData.MSLimitMoney[LCD_GUN_NUM] = 0x00;
+        LcdData.setData.MSLimitElect[LCD_GUN_NUM] = 0x00;
+        LcdData.setData.MSLimitTiming[LCD_GUN_NUM] = 0x00;
+        LcdData.setData.MSLimitReservationHour[LCD_GUN_NUM] = config->mode_parameter /3600;
+        LcdData.setData.MSLimitReservationMin[LCD_GUN_NUM] = (config->mode_parameter %3600) /60;
+        break;
+    default:
+        return (SSCREEN_NORMAL_MODE_INVALID_MODE + THAISEN_CONFIG_FAIL_OFFSET);
+    }
+    memset(LcdData.setData.CurrentMode[LCD_GUN_NUM], 0x00, sizeof(LcdData.setData.CurrentMode[LCD_GUN_NUM]));
+    LcdData.setData.CurrentMode[LCD_GUN_NUM][config->mode] = TRUE;
+
+    LcdAssistantData.SeveralGunFlag[LCD_GUN_1].DataIsVerify = TRUE;
+    extern void SerialScreen_BtnModeInfoStorage(int port);
+    SerialScreen_BtnModeInfoStorage(port);
+
+    return LcdAssistantData.Flag.IsConfigFail;
+}
+
+/*******************************************************************
+ * 函数名      SerialScreen_ConfigExecute_V2GMode
+ * 功能         外部触发执行模式选择-V2G模式信息配置
+ * 参数          data         配置数据
+ *      port         枪口号
+ * 返回          <0:配置失败(参数无效)，=0:配置成功  1:配置存储失败， >1:写入配置成功，但是写入的内容与输入的内容有差异
+ *******************************************************************/
+static s32 SerialScreen_ConfigExecute_V2GMode(u8 port, void *data, void *sub_data, void *sub_sub_data)
+{
+#define SSCREEN_V2G_MODE_INVALID_MODE     0         /* 模式选择-V2G模式 无效模式错误码*/
+
+    thaisen_mode_select_v2g *config = (thaisen_mode_select_v2g*)data;
+
+    return (SSCREEN_V2G_MODE_INVALID_MODE + THAISEN_CONFIG_FAIL_OFFSET);
+}
+
+/*******************************************************************
  * 函数名      SerialScreen_ConfigExecute_Input_7103_7101
  * 功能         外部触发执行 7103/7101输入信息配置
  * 参数          data         配置数据
@@ -4554,11 +4640,14 @@ void SerialScreen_BtnModeInfoStorage(int port)
         if(LcdData.CurrentPage != LcdData.CurrentPageBack){
             LcdData.CurrentPage = LcdData.CurrentPageBack;
         }
+        LcdAssistantData.Flag.IsConfigFail = TRUE;
         return;
         break;
     default:
         break;
     }
+
+    LcdAssistantData.Flag.IsConfigFail = FALSE;
 
     LcdData.setData.CurrentModePara[port] = 0;
 
@@ -10928,8 +11017,6 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_A_SELECT, NULL, "unlock_ela", LCD_BtnType, 0x0007, 0x1000, page_type, LCD_PAGE_A_SELECT, (void *)SerialScreen_BtnUnElockA);
     SerialScreen_ItemSetUp(LCD_PAGE_A_SELECT, NULL, "pw authen", LCD_BtnType, 0x0001, 0x1001, page_type, LCD_PAGE_A_SELECT, (void *)SerialScreen_PWStartAuthen);
     SerialScreen_ItemSetUp(LCD_PAGE_A_SELECT, NULL, "ModeSelectSetA", LCD_BtnType, 0x0069, 0x1003, page_type, LCD_PAGE_MENU_MODE_SELECT, (void *)SerialScreen_GetModeInfoA);
-
-
     SerialScreen_ItemSetUp(LCD_PAGE_A_SELECT, NULL, "ModeInfo", LCD_TextType, LCD_1sReflash, 0x6790, pstr_type, sizeof(LcdData.setData.CurrentModeInfo[LCD_GUN_1]), (void *)&LcdData.setData.CurrentModeInfo[LCD_GUN_1]);
     SerialScreen_ItemSetUp(LCD_PAGE_A_SELECT, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
 
@@ -10948,8 +11035,6 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_B_SELECT, NULL, "unlock_elb", LCD_BtnType, 0x0008, 0x1000, page_type, LCD_PAGE_B_SELECT, (void *)SerialScreen_BtnUnElockB);
     SerialScreen_ItemSetUp(LCD_PAGE_B_SELECT, NULL, "pw authen", LCD_BtnType, 0x0003, 0x1001, page_type, LCD_PAGE_B_SELECT, (void *)SerialScreen_PWStartAuthen);
     SerialScreen_ItemSetUp(LCD_PAGE_B_SELECT, NULL, "ModeSelectSetB", LCD_BtnType, 0x006A, 0x1003, page_type, LCD_PAGE_MENU_MODE_SELECT, (void *)SerialScreen_GetModeInfoB);
-
-
     SerialScreen_ItemSetUp(LCD_PAGE_B_SELECT, NULL, "ModeInfo", LCD_TextType, LCD_1sReflash, 0x67C0, pstr_type, sizeof(LcdData.setData.CurrentModeInfo[LCD_GUN_1]), (void *)&LcdData.setData.CurrentModeInfo[LCD_GUN_2]);
     SerialScreen_ItemSetUp(LCD_PAGE_B_SELECT, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
 
@@ -11885,6 +11970,8 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     LcdConfigExecutPool[THAISEN_CONFIG_PAGE_GUN_INPUT_7104_INFO] = SerialScreen_ConfigExecute_GunInput_7104;
     LcdConfigExecutPool[THAISEN_CONFIG_PAGE_PUBLIC_OUTPUT_7104_INFO] = SerialScreen_ConfigExecute_PublicOutput_7104;
     LcdConfigExecutPool[THAISEN_CONFIG_PAGE_GUN_OUTPUT_7104_INFO] = SerialScreen_ConfigExecute_GunOutput_7104;
+    LcdConfigExecutPool[THAISEN_CONFIG_PAGE_MODE_SELECT_NORMAL] = SerialScreen_ConfigExecute_NormalMode;
+    LcdConfigExecutPool[THAISEN_CONFIG_PAGE_MODE_SELECT_V2G] = SerialScreen_ConfigExecute_V2GMode;
 
     return SerialScreen.Initialize(&SerialScreen);
 }

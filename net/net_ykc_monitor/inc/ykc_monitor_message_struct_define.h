@@ -120,6 +120,8 @@ enum ykcm_config_info_type{
      NETYKCM_CONFIG_INFO_TYPE_GUN_INPUT_7104,                        /* 配置信息类型：枪输入信息(7104) */
      NETYKCM_CONFIG_INFO_TYPE_PUBLIC_OUTPUT_7104,                    /* 配置信息类型：通用输出信息(7104) */
      NETYKCM_CONFIG_INFO_TYPE_GUN_OUTPUT_7104,                       /* 配置信息类型：枪输出信息(7104) */
+     NETYKCM_CONFIG_INFO_MODE_SELECT_NORMAL,                         /* 配置信息类型：模式选择：正常模式 */
+     NETYKCM_CONFIG_INFO_MODE_SELECT_V2G,                            /* 配置信息类型：模式选择：V2G模式 */
      NETYKCM_CONFIG_INFO_TYPE_SIZE,                                  /* 配置信息类型： */
 };
 enum ykcm_config_info_option{
@@ -1841,6 +1843,25 @@ struct ykcm_fees_time_info{
     uint8_t end_min;                             /* 时段结束分钟(范围：0-59) */
     uint8_t rated_number;                        /* 时段费率号(0：尖尖，1：尖，2：峰，3：平，4：谷) */
 };
+
+/** 模式选择：正常模式 */
+/** 信息设置响应结果：0：成功  1：保存失败   2及以上表示某一配置项配置失败,按配置项次序升序排列(类似系统信息的响应) */
+struct ykcm_mode_select_normal{
+    uint8_t mode;                                /* 当前模式： 0：自动充满，1：限制金额，2：限制电量，3：限制时间，4：预约 */
+    uint32_t mode_parameter;                     /* 模式参数 ：
+                                                                                                                                       对于模式0：无用，默认填0
+                                                                                                                                       对于模式1：单位：0.01元
+                                                                                                                                       对于模式2：单位：0.001度
+                                                                                                                                       对于模式3：单位：1min
+                                                                                                                                       对于模式4：单位：1s(当天启动时间秒数：例 预约 13：56 充电，则为：13 *60 *60 + 56 *60)*/
+};
+
+/** 模式选择：V2G模式 */
+/** 信息设置响应结果：0：成功  1：保存失败   2及以上表示某一配置项配置失败,按配置项次序升序排列(类似系统信息的响应) */
+struct ykcm_mode_select_v2g{
+    uint8_t mode;                                /* 当前模式 */
+};
+
 struct ykcm_offline_billing{
     uint32_t service_price;                      /* 服务费价格(单位：元，10000倍) */
     uint32_t sharp_sharp_price;                  /* 尖尖电费价格(单位：元，10000倍) */
@@ -1875,6 +1896,8 @@ struct ykcm_input_info_7103_7101{
     struct ykcm_input_pair_7103_7101 fan;        /* 风扇 */
     struct ykcm_input_pair_7103_7101 elock;      /* 电子锁 */
     struct ykcm_input_pair_7103_7101 tempprotect;/* 温度保护 */
+
+    /** 新增：2025/03/29 */
     struct ykcm_input_pair_7103_7101 pour;       /* 倾倒 */
     struct ykcm_input_pair_7103_7101 protect_light;/* 防雷 */
     struct ykcm_input_pair_7103_7101 flood;      /* 水浸 */
