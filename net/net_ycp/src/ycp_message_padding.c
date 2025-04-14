@@ -1957,7 +1957,7 @@ uint8_t ycp_chargepile_request_padding_transaction_record(uint8_t gunno, void *t
         }
 
         g_ycp_preq_transaction_records[gunno].body.start_way = ycp_chargepile_transaction_identity_converted(_transaction->start_type);
-        g_ycp_preq_transaction_records[gunno].body.stop_reason = ycp_chargepile_stop_reason_converted(_transaction->stop_reason, _transaction->order_state.is_start_fail);
+        g_ycp_preq_transaction_records[gunno].body.stop_reason = ycp_chargepile_stop_reason_converted(_transaction->stop_reason, _transaction->order_info.is_start_fail);
 
         ycp_net_event_send(NET_YCP_EVENT_HANDLE_CHARGEPILE, NET_YCP_EVENT_TYPE_REQUEST, gunno, NET_YCP_PREQ_EVENT_TRANSACTION_RECORD);
         return 0x01;
@@ -2474,6 +2474,38 @@ static uint16_t ycp_chargepile_stop_reason_converted(uint16_t reason, uint8_t st
         }else{
             _reason = NETYCP_AS_REASON68_RECV_BCS_TIMEOUT;
         }
+    break;
+    /* 接收BRM超时 */
+    case APP_SYSTEM_STOP_WAY_BRM_TIMEOUT:
+        _reason = NETYCP_SF_REASON1F_RECV_BRM_TIMEOUT;
+        break;
+    /* 接收BCP超时 */
+    case APP_SYSTEM_STOP_WAY_BCP_TIMEOUT:
+        _reason = NETYCP_SF_REASON20_RECV_BCP_TIMEOUT;
+        break;
+    /* 接收BRO超时 */
+    case APP_SYSTEM_STOP_WAY_BRO_TIMEOUT:
+        _reason = NETYCP_SF_REASON21_RECV_BRO_AA_TIMEOUT;
+        break;
+    /* 接收BRO_AA超时 */
+    case APP_SYSTEM_STOP_WAY_BRO_AA_TIMEOUT:
+        _reason = NETYCP_SF_REASON21_RECV_BRO_AA_TIMEOUT;
+        break;
+    /* 启动中接收BCS超时 */
+    case APP_SYSTEM_STOP_WAY_STARTING_BCS_TIMEOUT:
+        _reason = NETYCP_SF_REASON22_RECV_BCS_TIMEOUT;
+        break;
+    /* 启动中接收BCL超时 */
+    case APP_SYSTEM_STOP_WAY_STARTING_BCL_TIMEOUT:
+        _reason = NETYCP_SF_REASON23_RECV_BCL_TIMEOUT;
+        break;
+    /* 充电中接收BCS超时 */
+    case APP_SYSTEM_STOP_WAY_CHARGEING_BCS_TIMEOUT:
+        _reason = NETYCP_AS_REASON68_RECV_BCS_TIMEOUT;
+        break;
+    /* 充电中接收BCL超时 */
+    case APP_SYSTEM_STOP_WAY_CHARGING_BCL_TIMEOUT:
+        _reason = NETYCP_AS_REASON69_RECV_BCL_TIMEOUT;
         break;
     /* 辅源 */
     case APP_SYSTEM_STOP_WAY_AUXPOWER:

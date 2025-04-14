@@ -1954,7 +1954,7 @@ int8_t sgcc_message_pro_query_dev_record_request(uint8_t gunno, void *data, uint
         evs_event_logQuery_Results[gunno].dataArea.tradeInfo.startSoc = _transaction->start_soc;
         evs_event_logQuery_Results[gunno].dataArea.tradeInfo.endSoc = _transaction->stop_soc;
 
-        evs_event_logQuery_Results[gunno].dataArea.tradeInfo.reason = sgcc_chargepile_stop_reason_converted(_transaction->stop_reason, _transaction->order_state.is_start_fail);                            // 11 停止充电原因
+        evs_event_logQuery_Results[gunno].dataArea.tradeInfo.reason = sgcc_chargepile_stop_reason_converted(_transaction->stop_reason, _transaction->order_info.is_start_fail);                            // 11 停止充电原因
 
         valid_len = sizeof(_transaction->elect_model_sn);
         valid_len = valid_len > EVS_MAX_MODEL_ID_LEN ? EVS_MAX_MODEL_ID_LEN : valid_len;
@@ -2758,7 +2758,7 @@ uint8_t sgcc_chargepile_request_padding_transaction_record(uint8_t gunno, void *
         evs_event_tradeInfos[gunno].startSoc = _transaction->start_soc;
         evs_event_tradeInfos[gunno].endSoc = _transaction->stop_soc;
 
-        evs_event_tradeInfos[gunno].reason = sgcc_chargepile_stop_reason_converted(_transaction->stop_reason, _transaction->order_state.is_start_fail);
+        evs_event_tradeInfos[gunno].reason = sgcc_chargepile_stop_reason_converted(_transaction->stop_reason, _transaction->order_info.is_start_fail);
 
         valid_len = sizeof(_transaction->elect_model_sn);
         valid_len = valid_len > EVS_MAX_MODEL_ID_LEN ? EVS_MAX_MODEL_ID_LEN : valid_len;
@@ -3555,6 +3555,38 @@ static uint16_t sgcc_chargepile_stop_reason_converted(uint16_t reason, uint8_t s
     /* 通讯 */
     case APP_SYSTEM_STOP_WAY_COMMINICATION:
         _reason = NETSGCC_DCCA_REASON5001_BMS_COMM;
+        break;
+    /* 接收BRM超时 */
+    case APP_SYSTEM_STOP_WAY_BRM_TIMEOUT:
+        _reason = NETSGCC_DCCA_REASON5011_BRM_TIMEOUT;
+        break;
+    /* 接收BCP超时 */
+    case APP_SYSTEM_STOP_WAY_BCP_TIMEOUT:
+        _reason = NETSGCC_DCCA_REASON5002_BCP_TIMEOUT;
+        break;
+    /* 接收BRO超时 */
+    case APP_SYSTEM_STOP_WAY_BRO_TIMEOUT:
+        _reason = NETSGCC_DCCA_REASON5003_BRO_TIMEOUT;
+        break;
+    /* 接收BRO_AA超时 */
+    case APP_SYSTEM_STOP_WAY_BRO_AA_TIMEOUT:
+        _reason = NETSGCC_DCCA_REASON5003_BRO_TIMEOUT;
+        break;
+    /* 启动中接收BCS超时 */
+    case APP_SYSTEM_STOP_WAY_STARTING_BCS_TIMEOUT:
+        _reason = NETSGCC_DCCA_REASON5004_BCS_TIMEOUT;
+        break;
+    /* 启动中接收BCL超时 */
+    case APP_SYSTEM_STOP_WAY_STARTING_BCL_TIMEOUT:
+        _reason = NETSGCC_DCCA_REASON5005_BCL_TIMEOUT;
+        break;
+    /* 充电中接收BCS超时 */
+    case APP_SYSTEM_STOP_WAY_CHARGEING_BCS_TIMEOUT:
+        _reason = NETSGCC_DCCA_REASON5004_BCS_TIMEOUT;
+        break;
+    /* 充电中接收BCL超时 */
+    case APP_SYSTEM_STOP_WAY_CHARGING_BCL_TIMEOUT:
+        _reason = NETSGCC_DCCA_REASON5005_BCL_TIMEOUT;
         break;
     /* 辅源 */
     case APP_SYSTEM_STOP_WAY_AUXPOWER:

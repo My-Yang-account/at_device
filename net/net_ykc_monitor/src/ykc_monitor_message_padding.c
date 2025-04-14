@@ -2197,7 +2197,7 @@ uint8_t ykc_monitor_chargepile_request_padding_transaction_record(uint8_t gunno,
         }
 
         g_ykc_monitor_preq_transaction_records[gunno].body.transaction_date = ykc_monitor_get_cp56time2a_from_timestamp(base->current_time);
-        g_ykc_monitor_preq_transaction_records[gunno].body.stop_reason = ykc_monitor_chargepile_stop_reason_converted(_transaction->stop_reason, _transaction->order_state.is_start_fail);
+        g_ykc_monitor_preq_transaction_records[gunno].body.stop_reason = ykc_monitor_chargepile_stop_reason_converted(_transaction->stop_reason, _transaction->order_info.is_start_fail);
 
         ykc_monitor_net_event_send(NET_YKC_MONITOR_EVENT_HANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, gunno, NET_YKC_MONITOR_PREQ_EVENT_TRANSACTION_RECORD);
         return 0x01;
@@ -2720,6 +2720,38 @@ static uint16_t ykc_monitor_chargepile_stop_reason_converted(uint16_t reason, ui
         }else{
             _reason = NETYKC_MONITOR_AS_REASON84_RECV_BCS_TIMEOUT;
         }
+        break;
+    /* 接收BRM超时 */
+    case APP_SYSTEM_STOP_WAY_BRM_TIMEOUT:
+        _reason = NETYKC_MONITOR_SF_REASON5A_RECV_BRM_TIMEOUT;
+        break;
+    /* 接收BCP超时 */
+    case APP_SYSTEM_STOP_WAY_BCP_TIMEOUT:
+        _reason = NETYKC_MONITOR_SF_REASON5B_RECV_BCP_TIMEOUT;
+        break;
+    /* 接收BRO超时 */
+    case APP_SYSTEM_STOP_WAY_BRO_TIMEOUT:
+        _reason = NETYKC_MONITOR_SF_REASON5C_RECV_BRO_AA_TIMEOUT;
+        break;
+    /* 接收BRO_AA超时 */
+    case APP_SYSTEM_STOP_WAY_BRO_AA_TIMEOUT:
+        _reason = NETYKC_MONITOR_SF_REASON5C_RECV_BRO_AA_TIMEOUT;
+        break;
+    /* 启动中接收BCS超时 */
+    case APP_SYSTEM_STOP_WAY_STARTING_BCS_TIMEOUT:
+        _reason = NETYKC_MONITOR_SF_REASON5D_RECV_BCS_TIMEOUT;
+        break;
+    /* 启动中接收BCL超时 */
+    case APP_SYSTEM_STOP_WAY_STARTING_BCL_TIMEOUT:
+        _reason = NETYKC_MONITOR_SF_REASON5E_RECV_BCL_TIMEOUT;
+        break;
+    /* 充电中接收BCS超时 */
+    case APP_SYSTEM_STOP_WAY_CHARGEING_BCS_TIMEOUT:
+        _reason = NETYKC_MONITOR_AS_REASON84_RECV_BCS_TIMEOUT;
+        break;
+    /* 充电中接收BCL超时 */
+    case APP_SYSTEM_STOP_WAY_CHARGING_BCL_TIMEOUT:
+        _reason = NETYKC_MONITOR_AS_REASON85_RECV_BCL_TIMEOUT;
         break;
     /* 辅源 */
     case APP_SYSTEM_STOP_WAY_AUXPOWER:

@@ -238,6 +238,24 @@ const char* get_fault_string(uint16_t code)
         return charge_fault_str[APP_CHARGE_FAULT_YT_BFC];
     }
 
+    else if(code == mw_system_stop_way_convert(APP_SYSTEM_STOP_WAY_BRM_TIMEOUT)){
+        return "BRM timeout";
+    }else if(code == mw_system_stop_way_convert(APP_SYSTEM_STOP_WAY_BCP_TIMEOUT)){
+        return "BCP timeout";
+    }else if(code == mw_system_stop_way_convert(APP_SYSTEM_STOP_WAY_BRO_TIMEOUT)){
+        return "BRO timeout";
+    }else if(code == mw_system_stop_way_convert(APP_SYSTEM_STOP_WAY_BRO_AA_TIMEOUT)){
+        return "BROAA timeout";
+    }else if(code == mw_system_stop_way_convert(APP_SYSTEM_STOP_WAY_STARTING_BCL_TIMEOUT)){
+        return "S-BCL timeout";
+    }else if(code == mw_system_stop_way_convert(APP_SYSTEM_STOP_WAY_STARTING_BCS_TIMEOUT)){
+        return "S-BCS timeout";
+    }else if(code == mw_system_stop_way_convert(APP_SYSTEM_STOP_WAY_CHARGING_BCL_TIMEOUT)){
+        return "C-BCL timeout";
+    }else if(code == mw_system_stop_way_convert(APP_SYSTEM_STOP_WAY_CHARGEING_BCS_TIMEOUT)){
+        return "C-BCS timeout";
+    }
+
     return "unknow";
 }
 
@@ -403,7 +421,7 @@ void app_get_fault_chinese(uint32_t code, uint8_t *olen, uint8_t *buf, uint8_t i
  *******************************************/
 void app_get_charge_stopway_chinese(uint32_t code, uint8_t *olen, uint8_t *buf, uint8_t ilen)
 {
-    int16_t i = APP_SYSTEM_STOP_WAY_MAIN_CABINET_FORBID;
+    int16_t i = APP_SYSTEM_STOP_WAY_CHARGEING_BCS_TIMEOUT;
     memset(buf, 0x00, ilen);
 
     if(ilen < APP_CHINESE_STOPWAY_LEN_MAX){
@@ -542,6 +560,46 @@ void app_get_charge_stopway_chinese(uint32_t code, uint8_t *olen, uint8_t *buf, 
             return;
         case APP_SYSTEM_STOP_WAY_MAIN_CABINET_FORBID:
             memcpy(buf, "主机柜禁止充电", strlen("主机柜禁止充电"));
+            if(olen)
+                *olen = strlen((char*)buf);
+            return;
+        case APP_SYSTEM_STOP_WAY_BRM_TIMEOUT:
+            memcpy(buf, "接收BRM超时", strlen("接收BRM超时"));
+            if(olen)
+                *olen = strlen((char*)buf);
+            return;
+        case APP_SYSTEM_STOP_WAY_BCP_TIMEOUT:
+            memcpy(buf, "接收BCP超时", strlen("接收BCP超时"));
+            if(olen)
+                *olen = strlen((char*)buf);
+            return;
+        case APP_SYSTEM_STOP_WAY_BRO_TIMEOUT:
+            memcpy(buf, "接收BRO超时", strlen("接收BRO超时"));
+            if(olen)
+                *olen = strlen((char*)buf);
+            return;
+        case APP_SYSTEM_STOP_WAY_BRO_AA_TIMEOUT:
+            memcpy(buf, "接收BRO_AA超时", strlen("接收BRO_AA超时"));
+            if(olen)
+                *olen = strlen((char*)buf);
+            return;
+        case APP_SYSTEM_STOP_WAY_STARTING_BCL_TIMEOUT:
+            memcpy(buf, "启动-接收BCL超时", strlen("启动-接收BCL超时"));
+            if(olen)
+                *olen = strlen((char*)buf);
+            return;
+        case APP_SYSTEM_STOP_WAY_STARTING_BCS_TIMEOUT:
+            memcpy(buf, "启动-接收BCS超时", strlen("启动-接收BCS超时"));
+            if(olen)
+                *olen = strlen((char*)buf);
+            return;
+        case APP_SYSTEM_STOP_WAY_CHARGING_BCL_TIMEOUT:
+            memcpy(buf, "充电-接收BCL超时", strlen("充电-接收BCL超时"));
+            if(olen)
+                *olen = strlen((char*)buf);
+            return;
+        case APP_SYSTEM_STOP_WAY_CHARGEING_BCS_TIMEOUT:
+            memcpy(buf, "充电-接收BCS超时", strlen("充电-接收BCS超时"));
             if(olen)
                 *olen = strlen((char*)buf);
             return;

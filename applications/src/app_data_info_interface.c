@@ -906,7 +906,7 @@ int32_t thaisen_app_clear_region_record_info(enum record_region region)
 //    uint32_t transaction_date;            /* 交易日期 */
 //    uint32_t stop_reason;                 /* 停止原因 */
 //    uint8_t stop_reason_type;             /* 停止原因类型 */
-//    uint8_t order_state;                  /* 订单状态(平台确认:1, 未确认：2) */
+//    uint8_t order_info;                  /* 订单状态(平台确认:1, 未确认：2) */
 //    uint8_t order_type;                   /* 订单类型：本地、在线 */
 //
 //}thaisen_default_bill_t;

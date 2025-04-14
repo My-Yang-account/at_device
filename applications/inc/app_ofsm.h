@@ -252,12 +252,13 @@ struct _info_charged{
 
 /****************************************** 充电账单信息 *************************************************/
 /****************************************** 充电账单信息 *************************************************/
-struct _order_state{
+struct _order_info{
     uint8_t verify_fail : 1;              /* 上报确认失败 */
     uint8_t is_start_fail : 1;            /* 启动失败 */
     uint8_t is_charging : 1;              /* 正在充电 */
     uint8_t online_order : 1;             /* 在线订单 */
-    uint8_t reserve : 4;
+    uint8_t bms_recommunicate : 1;        /* BMS通信重连 */
+    uint8_t reserve : 3;
 };
 
 typedef struct
@@ -300,7 +301,7 @@ typedef struct
     uint32_t ammeter_stop;                /* 电表电量结束值 */
 
     uint32_t stop_reason;                 /* 停止原因 */
-    struct _order_state order_state;      /* 订单状态(平台确认:1, 未确认：2,  启动失败：3，充电结束：4) */
+    struct _order_info order_info;        /* 订单信息 */
 
     uint32_t total_elect;                 /* 充电总电量 */
     uint32_t total_loss_elect;            /* 总计损电量 */

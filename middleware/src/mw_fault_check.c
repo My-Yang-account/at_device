@@ -94,5 +94,53 @@ uint16_t mw_system_stop_way_convert(uint16_t stopway)
     return APP_SYSTEM_STOP_WAY_SIZE;
 }
 
+/**********************************************************************
+ * 函数名         mw_query_bms_communicate_fault
+ * 功能             查询BMS具体通讯故障
+ * 参数             gunno      枪号
+ * 返回             @enum communication_fault_t
+ *********************************************************************/
+enum communication_fault_t mw_query_bms_communicate_fault(uint8_t gunno)
+{
+    if(gunno >= APP_SYSTEM_GUNNO_SIZE){
+        return APP_COMMUNICATE_FAULT_SIZE;
+    }
+    struct thaisenBMS_Charger_struct* bms = thaisen_get_bms_data(gunno);
+
+    if(bms->CEM.BRMOVtime){
+        return APP_COMMUNICATE_FAULT_BRM;                  /** BRM 接收超时 */
+    }else if(bms->CEM.BCPOVtime){
+        return APP_COMMUNICATE_FAULT_BCP;                  /** BCP 接收超时 */
+    }else if(bms->CEM.BROOVtime){
+        if(bms->BRO.rev_info)
+            return APP_COMMUNICATE_FAULT_BRO_AA;           /** BRO_AA 接收超时 */
+        else
+            return APP_COMMUNICATE_FAULT_BRO;              /** BRO 接收超时 */
+    }else if(bms->CEM.BCSOVtime){
+        return APP_COMMUNICATE_FAULT_BCS;                  /** BCS 接收超时 */
+    }else if(bms->CEM.BCLOVtime){
+        return APP_COMMUNICATE_FAULT_BCL;                  /** BCL 接收超时 */
+    }
+
+    return APP_COMMUNICATE_FAULT_SIZE;
+}
+
+/**********************************************************************
+ * 函数名         mw_is_bms_communicate_repeat
+ * 功能             判断是否与BMS进行了通讯重连
+ * 参数             gunno      枪号
+ * 返回             1：是     0：否
+ *********************************************************************/
+uint8_t mw_is_bms_communicate_repeat(uint8_t gunno)
+{
+    if(gunno >= APP_SYSTEM_GUNNO_SIZE){
+        return 0x00;
+    }
+    if(thaisen_get_ChargeWarnningInfo(gunno) == thaisenChargeWarnCommu){
+        return 0x01;
+    }
+    return 0x00;
+}
+
 
 

@@ -36,6 +36,25 @@ extern "C" {
 #define APP_USER_STOPWAY_OFFSET                   (APP_ORIGIN_USER_STOPWAY_MIN - APP_ORIGIN_NONE_SYSFAULT_STOPWAY_MAX - 0x01)    /* 自定义的停充原因偏移 */
 #define APP_ORIGIN_USER_STOPWAY_POWEROFF          56            /* 原来的自定义的停充原因:断电 */
 
+/** 通信故障 */
+enum communication_fault_t{
+    APP_COMMUNICATE_FAULT_BHM = 0x01,                              /* BMS通讯故障：接收BHM 报文超时 */
+    APP_COMMUNICATE_FAULT_BRM,                                     /* BMS通讯故障：接收BRM 报文超时 */
+    APP_COMMUNICATE_FAULT_BCP,                                     /* BMS通讯故障：接收BCP 报文超时 */
+    APP_COMMUNICATE_FAULT_BRO,                                     /* BMS通讯故障：接收BRO 报文超时 */
+    APP_COMMUNICATE_FAULT_BRO_AA,                                  /* BMS通讯故障：接收BRO_AA 报文超时 */
+    APP_COMMUNICATE_FAULT_BRO_AA_TO_00,                            /* BMS通讯故障：接收BRO 由AA变为00 */
+    APP_COMMUNICATE_FAULT_BCS,                                     /* BMS通讯故障：接收BCS 报文超时 */
+    APP_COMMUNICATE_FAULT_BCL,                                     /* BMS通讯故障：接收BCL 报文超时 */
+    APP_COMMUNICATE_FAULT_BSM,                                     /* BMS通讯故障：接收BSM 报文超时 */
+    APP_COMMUNICATE_FAULT_BMV,                                     /* BMS通讯故障：接收BMV 报文超时 */
+    APP_COMMUNICATE_FAULT_BMT,                                     /* BMS通讯故障：接收BMT 报文超时 */
+    APP_COMMUNICATE_FAULT_BSP,                                     /* BMS通讯故障：接收BSP 报文超时 */
+    APP_COMMUNICATE_FAULT_BST,                                     /* BMS通讯故障：接收BST 报文超时 */
+    APP_COMMUNICATE_FAULT_BSD,                                     /* BMS通讯故障：接收BSD 报文超时 */
+    APP_COMMUNICATE_FAULT_SIZE,                                    /* BMS通讯故障： */
+};
+
 /** 充电故障 */
 enum charge_fault_t{
     APP_CHARGE_FAULT_GUN_VOLT = thaisenGunVolt,                    /* 枪头电压故障 */
@@ -149,6 +168,14 @@ enum system_stop_way{
     APP_SYSTEM_STOP_WAY_CURRENT_ABNORMAL,       /* 电流异常 */
     APP_SYSTEM_STOP_WAY_SOC_LIMIT,              /* SOC限制 */
     APP_SYSTEM_STOP_WAY_MAIN_CABINET_FORBID,    /* 主机柜禁止充电 */
+    APP_SYSTEM_STOP_WAY_BRM_TIMEOUT,            /* 接收BRM超时 */
+    APP_SYSTEM_STOP_WAY_BCP_TIMEOUT,            /* 接收BCP超时 */
+    APP_SYSTEM_STOP_WAY_BRO_TIMEOUT,            /* 接收BRO超时 */
+    APP_SYSTEM_STOP_WAY_BRO_AA_TIMEOUT,         /* 接收BRO_AA超时 */
+    APP_SYSTEM_STOP_WAY_STARTING_BCL_TIMEOUT,   /* 启动中接收BCL超时 */
+    APP_SYSTEM_STOP_WAY_STARTING_BCS_TIMEOUT,   /* 启动中接收BCS超时 */
+    APP_SYSTEM_STOP_WAY_CHARGING_BCL_TIMEOUT,   /* 充电中接收BCL超时 */
+    APP_SYSTEM_STOP_WAY_CHARGEING_BCS_TIMEOUT,  /* 充电中接收BCS超时 */
 //    APP_SYSTEM_STOP_WAY_OFFLINE_CHARGE_TIME,    /* 达到离线可充电最长时间 */
 
     APP_SYSTEM_STOP_WAY_LIGHTPROTECT = thaisen_chargeCtl_stopWay_LightProtect + APP_SYSFAULT_STOPWAY_OFFSET,        /* 防雷器 */
@@ -324,6 +351,22 @@ uint32_t* mw_get_charge_fault_set(uint8_t gunno);
 uint16_t mw_get_system_stop_way(uint8_t gunno);
 uint16_t mw_system_fault_convert(uint16_t code);
 uint16_t mw_system_stop_way_convert(uint16_t stopway);
+
+/**********************************************************************
+ * 函数名         mw_query_bms_communicate_fault
+ * 功能             查询BMS具体通讯故障
+ * 参数             gunno      枪号
+ * 返回             @enum communication_fault_t
+ *********************************************************************/
+enum communication_fault_t mw_query_bms_communicate_fault(uint8_t gunno);
+
+/**********************************************************************
+ * 函数名         mw_is_bms_communicate_repeat
+ * 功能             判断是否与BMS进行了通讯重连
+ * 参数             gunno      枪号
+ * 返回             1：是     0：否
+ *********************************************************************/
+uint8_t mw_is_bms_communicate_repeat(uint8_t gunno);
 
 #ifdef __cplusplus
 }

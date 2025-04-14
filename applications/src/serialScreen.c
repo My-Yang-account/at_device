@@ -5352,7 +5352,7 @@ void SerialScreen_BtnBillGet(int port)
             }
         }
         /** 结束时间 **/
-        if(billBuf.order_state.is_charging == 0x00){
+        if(billBuf.order_info.is_charging == 0x00){
             thaisen_enter_critical();
             _tm = localtime((time_t*)(&(billBuf.end_time)));
             sprintf(((char*)LcdData.billInfo[i] + used_len), "%02d/%02d %02d:%02d ", (_tm->tm_mon + 1),
@@ -5377,8 +5377,8 @@ void SerialScreen_BtnBillGet(int port)
             }
         }
         /** 停充原因 **/
-        if(billBuf.order_state.is_charging == 0x00){
-            if(billBuf.order_state.verify_fail == 0x01){
+        if(billBuf.order_info.is_charging == 0x00){
+            if(billBuf.order_info.verify_fail == 0x01){
                 sprintf(((char*)LcdData.billInfo[i] + used_len), "%c%c%02ud", ' ', 'A', mw_system_stop_way_convert(billBuf.stop_reason));
             }else{
                 sprintf(((char*)LcdData.billInfo[i] + used_len), "%c%03ud", ' ', mw_system_stop_way_convert(billBuf.stop_reason));
@@ -5545,7 +5545,7 @@ void SerialScreen_BtnBillUp(int port)
             }
         }
         /** 结束时间 **/
-        if(billBuf.order_state.is_charging == 0x00){
+        if(billBuf.order_info.is_charging == 0x00){
             thaisen_enter_critical();
             _tm = localtime((time_t*)(&(billBuf.end_time)));
             sprintf(((char*)LcdData.billInfo[i] + used_len), "%02d/%02d %02d:%02d ", (_tm->tm_mon + 1),
@@ -5571,8 +5571,8 @@ void SerialScreen_BtnBillUp(int port)
         }
 
         /** 停充原因 **/
-        if(billBuf.order_state.is_charging == 0x00){
-            if(billBuf.order_state.verify_fail == 0x01){
+        if(billBuf.order_info.is_charging == 0x00){
+            if(billBuf.order_info.verify_fail == 0x01){
                 sprintf(((char*)LcdData.billInfo[i] + used_len), "%c%c%02ud", ' ', 'A', mw_system_stop_way_convert(billBuf.stop_reason));
             }else{
                 sprintf(((char*)LcdData.billInfo[i] + used_len), "%c%03ud", ' ', mw_system_stop_way_convert(billBuf.stop_reason));
@@ -5702,7 +5702,7 @@ void SerialScreen_BtnBillDown(int port)
             }
         }
         /** 结束时间 **/
-        if(billBuf.order_state.is_charging == 0x00){
+        if(billBuf.order_info.is_charging == 0x00){
             thaisen_enter_critical();
             _tm = localtime((time_t*)(&(billBuf.end_time)));
             sprintf(((char*)LcdData.billInfo[i] + used_len), "%02d/%02d %02d:%02d ", (_tm->tm_mon + 1),
@@ -5728,8 +5728,8 @@ void SerialScreen_BtnBillDown(int port)
         }
 
         /** 停充原因 **/
-        if(billBuf.order_state.is_charging == 0x00){
-            if(billBuf.order_state.verify_fail == 0x01){
+        if(billBuf.order_info.is_charging == 0x00){
+            if(billBuf.order_info.verify_fail == 0x01){
                 sprintf(((char*)LcdData.billInfo[i] + used_len), "%c%c%02ud", ' ', 'A', mw_system_stop_way_convert(billBuf.stop_reason));
             }else{
                 sprintf(((char*)LcdData.billInfo[i] + used_len), "%c%03ud", ' ', mw_system_stop_way_convert(billBuf.stop_reason));
