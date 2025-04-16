@@ -1674,6 +1674,7 @@ static s32 SerialScreen_ConfigExecute_Function(u8 port, void *data, void *sub_da
     LcdData.setData.sup_parallelrelay = config->parallel_relay;
     LcdData.setData.sup_mslience = config->module_silence;
     LcdData.setData.Icon_SupOfflineBilling = config->offline_billing;
+    LcdData.setData.Icon_SupPWStart = config->password_start;
 
     /** 功能配置信息有效性判断 */
     SerialScreen_IsSupportInfoJudge(&ret);
