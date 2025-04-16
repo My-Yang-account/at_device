@@ -2572,7 +2572,7 @@ static void ofsm_starting_fun(uint8_t gunno)
             (s_ofsm_info[gunno].base.main_gunno != gunno)){
         /** 副枪有故障导致整机停止 */
         if(s_ofsm_info[gunno].base.flag.is_deputygun_stop == APP_THA_ENUM_FALSE){
-            if(system_fault != APP_SYS_FAULT_NO_ERROR){
+            if((system_fault != APP_SYS_FAULT_NO_ERROR) && (system_fault != APP_SYS_FAULT_CARD_READER) && (system_fault != APP_SYS_FAULT_DOOR)){
                 s_ofsm_info[gunno].base.system_fault = system_fault;
                 s_ofsm_info[gunno].base.charge_fault = charge_fault;
 
@@ -3542,7 +3542,7 @@ static void ofsm_charging_fun(uint8_t gunno)
     if((s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL) && (s_ofsm_info[gunno].base.main_gunno != gunno)){
         /** 副枪有故障导致整机停止 */
         if(s_ofsm_info[gunno].base.flag.is_deputygun_stop == APP_THA_ENUM_FALSE){
-            if(system_fault != APP_SYS_FAULT_NO_ERROR){
+            if((system_fault != APP_SYS_FAULT_NO_ERROR) && (system_fault != APP_SYS_FAULT_CARD_READER) && (system_fault != APP_SYS_FAULT_DOOR)){
                 s_thaisen_transaction[gunno].order_info.is_charging = APP_THA_ENUM_FALSE;
 
                 s_ofsm_info[gunno].base.system_fault = system_fault;
@@ -3673,7 +3673,7 @@ static void ofsm_charging_fun(uint8_t gunno)
     if((s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD) && (s_ofsm_info[gunno].base.main_gunno != gunno)){
         /** 副枪有故障导致整机停止 */
         if(s_ofsm_info[gunno].base.flag.is_deputygun_stop == APP_THA_ENUM_FALSE){
-            if(system_fault != APP_SYS_FAULT_NO_ERROR){
+            if((system_fault != APP_SYS_FAULT_NO_ERROR) && (system_fault != APP_SYS_FAULT_CARD_READER) && (system_fault != APP_SYS_FAULT_DOOR)){
                 s_thaisen_transaction[gunno].order_info.is_charging = APP_THA_ENUM_FALSE;
 
                 s_ofsm_info[gunno].base.system_fault = system_fault;
