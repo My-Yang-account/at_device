@@ -28,6 +28,7 @@
 #include "app_data_info_interface.h"
 #include "app_rfid_reader.h"
 #include "app_terminal.h"
+#include "app_can.h"
 
 #include "mw_cc1.h"
 #include "mw_charge_control.h"
@@ -864,7 +865,7 @@ void chargepile_power_adjust(void)
     }
 //    LOG_W("s_power_adjust_delay|%d, %d, %d, %d", s_power_adjust_delay, set_volt, s_system_power_output *10 /set_volt, charge_type);
     /** 经过一次调整后需等待一定时间使其输出稳定后再进行查询并调节 */
-    if((++s_power_adjust_delay > ADJUST_PERIOD) || server_adjust_power || s_power_on == 0 || terminal_is_ems_adjust_power()){
+    if((++s_power_adjust_delay > ADJUST_PERIOD) || server_adjust_power || s_power_on == 0 || terminal_is_ems_adjust_power() || app_charge_mode_is_changed()){
         uint8_t module_tnum = 0x00;
         for(gunno = 0; gunno < APP_SYSTEM_GUNNO_SIZE; gunno++){
             module_tnum += sys_get_single_group_module_num(gunno);
@@ -879,6 +880,11 @@ void chargepile_power_adjust(void)
             if(set_volt[gunno]){
                 if(s_chargepile_output_steady[gunno] || gun_idle[gunno]){
                     s_ofsm_info[gunno].base.gun_set_curr = allocation_power[gunno]/ set_volt[gunno];  /* 10倍 */
+                    if(app_is_using_maintenance_mode()){
+                        if(s_ofsm_info[gunno].base.gun_set_curr > APP_MAINTENTANCE_MODE_CURR_MAX){
+                            s_ofsm_info[gunno].base.gun_set_curr = APP_MAINTENTANCE_MODE_CURR_MAX;
+                        }
+                    }
                     if(s_ofsm_info[gunno].base.gun_set_curr > ((*((uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_MAX_LIMIT_CURRENT, 0)))) *10 *sys_get_single_group_module_num(gunno) /module_tnum)){
                         s_ofsm_info[gunno].base.gun_set_curr = ((*((uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_MAX_LIMIT_CURRENT, 0)))) *10 *sys_get_single_group_module_num(gunno) /module_tnum);
                     }

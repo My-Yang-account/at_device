@@ -43,6 +43,8 @@ extern "C" {
 
 #define APP_USING_DOUBLEGUN                            /* 使用双枪 */
 
+#define APP_MAINTENTANCE_MODE_CURR_MAX       200       /* 保养模式最大电流20A(0.1) */
+
 #define APP_CURRENT_OFFSET_DEFAULT           4000      /* 电流偏移默认值(0.1) */
 #define APP_MCURRENT_SINGLEGUN_DEFAULT       25000     /* 单枪最大电流默认值(0.01) */
 #define APP_MCURRENT_SINGLEGUN_PARACHARGE    30000     /* 并充时单枪最大电流值(0.01) */

@@ -34,7 +34,7 @@
 #define APP_THREAD_ENTRY_PERIOD         15000   /** 线程不正常超过一定时长(ms)，容忍次数加1(这个时间需要参考看门狗复位时间) */
 
 #ifdef USING_TCU_CAN
-#define APP_CAN_THREAD                  1       /* 监控 CAN 线程 */
+#define APP_CAN_THREAD                  2       /* 监控 CAN 线程 */
 #else
 #define APP_CAN_THREAD                  0       /* 监控 CAN 线程 */
 #endif /* USING_TCU_CAN */
@@ -97,8 +97,11 @@ APP_DEF_SRAM0 static rt_uint8_t terminal_req_thread_stack[1024];
 #endif /* CP_CONFIG_USING_DUPU */
 
 #ifdef USING_TCU_CAN
-APP_DEF_SRAM1 static struct rt_thread tcan_thread;
-APP_DEF_SRAM0 static rt_uint8_t tcan_thread_stack[1024];
+APP_DEF_SRAM1 static struct rt_thread tcan_send_thread;
+APP_DEF_SRAM0 static rt_uint8_t tcan_send_thread_stack[1024];
+
+APP_DEF_SRAM1 static struct rt_thread tcan_recv_thread;
+APP_DEF_SRAM0 static rt_uint8_t tcan_recv_thread_stack[1024];
 #endif /* USING_TCU_CAN */
 
 APP_DEF_SRAM2 static uint8_t s_system_reset_set = 0x00;
@@ -515,16 +518,28 @@ void app_init(void)
     }
 
 #ifdef USING_TCU_CAN
-    result = rt_thread_init(&tcan_thread, "task_tcan",
-            app_tcan_thread_entry, RT_NULL, &tcan_thread_stack, sizeof(tcan_thread_stack), 16, 10);
+    result = rt_thread_init(&tcan_send_thread, "tcans",
+            app_tcan_send_thread_entry, RT_NULL, &tcan_send_thread_stack, sizeof(tcan_send_thread_stack), 16, 10);
     if (RT_EOK == result) {
-        rt_thread_startup(&tcan_thread);
+        rt_thread_startup(&tcan_send_thread);
 
-        app_thread_monitor_add(&tcan_thread, &entry, sizeof(entry), APP_THREAD_MONITOR_OPT_ENTRY);
+        app_thread_monitor_add(&tcan_send_thread, &entry, sizeof(entry), APP_THREAD_MONITOR_OPT_ENTRY);
 
         memset(name, 0x00, sizeof(name));
-        memcpy(name, "tcan", strlen("tcan"));
-        app_thread_monitor_add(&tcan_thread, name, strlen((char*)name), APP_THREAD_MONITOR_OPT_NAME);
+        memcpy(name, "tcans", strlen("tcans"));
+        app_thread_monitor_add(&tcan_send_thread, name, strlen((char*)name), APP_THREAD_MONITOR_OPT_NAME);
+    }
+
+    result = rt_thread_init(&tcan_recv_thread, "tcanr",
+            app_tcan_recv_thread_entry, RT_NULL, &tcan_recv_thread_stack, sizeof(tcan_recv_thread_stack), 16, 10);
+    if (RT_EOK == result) {
+        rt_thread_startup(&tcan_recv_thread);
+
+        app_thread_monitor_add(&tcan_recv_thread, &entry, sizeof(entry), APP_THREAD_MONITOR_OPT_ENTRY);
+
+        memset(name, 0x00, sizeof(name));
+        memcpy(name, "tcanr", strlen("tcanr"));
+        app_thread_monitor_add(&tcan_recv_thread, name, strlen((char*)name), APP_THREAD_MONITOR_OPT_NAME);
     }
 #endif /* USING_TCU_CAN */
 

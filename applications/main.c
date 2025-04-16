@@ -52,6 +52,11 @@ int main(void)
 
     SerialScreen_SetInputInfo();  /* �ϵ���������ϼ��ʹ�� */
 
+#ifdef APP_DESIGNATE_REGION
+    extern void app_tcu_can_info_init(void);
+    app_tcu_can_info_init();
+#endif /* APP_DESIGNATE_REGION */
+
 #ifndef APP_USING_DOUBLEGUN
     MX_GPIO_Init();
     MX_DMA_Init();
