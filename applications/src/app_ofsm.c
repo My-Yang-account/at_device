@@ -2195,6 +2195,7 @@ static void ofsm_readying_fun(uint8_t gunno)
             thaisen_request_screen_time();
 
             ofsm_start_info_padding_public(gunno);
+            app_get_hci_event(gunno, HCI_EVENT_SCREEN_STOP, APP_THA_ENUM_TRUE);    /** 清除屏幕停止事件(启动中可屏幕停止) */
 
             s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_STARTING];
             s_ofsm_info[gunno].state = APP_OFSM_STATE_STARTING;
@@ -2816,6 +2817,81 @@ static void ofsm_starting_fun(uint8_t gunno)
                 }
             }
         }
+    }
+
+    /******************************[屏幕停止]******************************/
+    /******************************[屏幕停止]******************************/
+    if(app_get_hci_event(gunno, HCI_EVENT_SCREEN_STOP, APP_THA_ENUM_TRUE)){
+        s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_STOPING];
+        s_ofsm_info[gunno].state = APP_OFSM_STATE_STOPING;
+
+        s_ofsm_info[gunno].base.system_fault = system_fault;
+        s_ofsm_info[gunno].base.charge_fault = charge_fault;
+        s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
+
+#ifdef APP_INCLUDE_YKC17_PROTOCOL
+        thaisen_ammeter_encry_scmd(gunno, THAISEN_AMMETER_ENCRY_TYPE_STOP);
+#endif /* APP_INCLUDE_YKC17_PROTOCOL */
+
+        if((s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL) && (gunno == s_ofsm_info[gunno].base.main_gunno)){
+            uint8_t deputy_gunno = APP_SYSTEM_GUNNOA;
+            if(gunno == APP_SYSTEM_GUNNOA){
+                deputy_gunno = APP_SYSTEM_GUNNOA + 0x01;
+            }
+            s_ofsm_info[gunno].base.charge_elect_last = (mw_get_meter_total_wh(gunno) + mw_get_meter_total_wh(deputy_gunno));
+        }else{
+            s_ofsm_info[gunno].base.charge_elect_last = mw_get_meter_total_wh(gunno);
+        }
+
+        /** 防止状态异常，上层已停止但下层还在充电 */
+        mw_charge_stop_cmd(gunno);
+
+        LOG_D("gunno(%d) start fail deal to screen(starting)\n", gunno);
+
+        s_thaisen_transaction[gunno].stop_reason = APP_SYSTEM_STOP_WAY_SCREEN_STOP;
+        s_ofsm_info[gunno].base.reason_code = APP_SYSTEM_STOP_WAY_SCREEN_STOP;
+
+        s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_FALSE;
+        s_ofsm_info[gunno].base.flag.start_result = APP_THA_ENUM_FALSE;
+        s_thaisen_transaction[gunno].boot_result = s_ofsm_info[gunno].base.flag.start_result;
+        s_thaisen_transaction[gunno].order_info.is_charging = APP_THA_ENUM_FALSE;
+
+        /* 对时后时间要修改 */
+        if(mw_get_time_sync_flag(gunno)){
+            mw_clear_time_sync_flag(gunno);
+            uint32_t curr_time = mw_get_current_timestamp();
+
+            s_ofsm_info[gunno].base.stop_time = curr_time;
+            if(s_ofsm_info[gunno].base.stop_time >= s_ofsm_info[gunno].base.charge_time){
+                s_ofsm_info[gunno].base.start_time = (s_ofsm_info[gunno].base.stop_time - s_ofsm_info[gunno].base.charge_time);
+            }else{
+                /* 这种情况是不对的 */
+                s_ofsm_info[gunno].base.start_time = s_ofsm_info[gunno].base.stop_time;
+            }
+            s_thaisen_transaction[gunno].end_time = s_ofsm_info[gunno].base.stop_time;
+            s_thaisen_transaction[gunno].start_time = s_ofsm_info[gunno].base.start_time;
+
+            app_nsal_time_sync_revise(gunno);
+
+            s_ofsm_info[gunno].base.start_period = app_calculate_current_period(s_ofsm_info[gunno].base.start_time);
+            s_ofsm_info[gunno].base.current_period = s_ofsm_info[gunno].base.start_period;
+
+            s_thaisen_transaction[gunno].start_period_number = s_ofsm_info[gunno].base.start_period;
+
+            /** 与时段有关的信息也要更新 */
+            LOG_I("chargepile is synchronized, modify correlation time|%x\n", curr_time);
+        }
+
+        app_billing_info_init(s_ofsm_info[gunno].base.start_elect, gunno);
+
+        app_nsal_report_remote_start_result(gunno, s_ofsm_info[gunno].base.flag.start_result,  \
+                s_ofsm_info[gunno].base.reason_code, s_ofsm_info[gunno].base.reason_code);
+
+        app_charge_fault_occur(gunno, s_ofsm_info[gunno].base.reason_code, (*mw_get_charge_fault_set(gunno)));
+
+        app_nsal_state_charged(gunno);
+        app_nsal_event_occurded(gunno);
+        return;
     }
 
     /******************************[余额不足判断]******************************/
@@ -3493,7 +3569,6 @@ static void ofsm_starting_fun(uint8_t gunno)
     mw_clear_time_sync_flag(gunno);
     rfidr_clear_swipe_state(gunno);
     app_get_hci_event(gunno, HCI_EVENT_SCREEN_START, APP_THA_ENUM_TRUE);
-    app_get_hci_event(gunno, HCI_EVENT_SCREEN_STOP, APP_THA_ENUM_TRUE);
     app_get_hci_event(gunno, HCI_EVENT_VIN_START, APP_THA_ENUM_TRUE);
     app_get_hci_event(gunno, HCI_EVENT_PASSWORD_START, APP_THA_ENUM_TRUE);
 

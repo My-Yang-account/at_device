@@ -9,6 +9,7 @@
  */
 #include "app_can.h"
 #include "app.h"
+#include "app_hci.h"
 #include "app_ofsm.h"
 #include "app_osupport.h"
 #include "rtthread.h"
@@ -17,6 +18,10 @@
 
 #ifdef USING_TCU_CAN
 
+#define APP_KS_CHARGER_CTRL_CMD_CAN_ID  0x2B02F                 /* 科式充电机控制帧CANID */
+
+#define APP_KS_LOCAL_START_CMD_CAN_ID   0x18F1C1C0              /* 科式是否允许本地启动帧CANID */
+#define APP_KS_SWIP_CARD_CMD_CAN_ID     0x18F4C1C0              /* 科式是否允许刷卡启动帧CANID */
 #define APP_KS_FUNCTION_CMD_CAN_ID      0x18F5C1C0              /* 科式功能指令帧CANID */
 
 #define APP_KS_CHARGE_DATA_CAN_ID       0x18F6C1C0              /* 科式充电数据CANID */
@@ -37,7 +42,9 @@ struct can_info{
         uint8_t maintenance_enable : 1;                         /** 使用保养模式 */
         uint8_t maintenance_enable_last : 1;                    /** 使用保养模式(前一次的状态) */
         uint8_t is_recvec_func_cmd : 1;                         /** 是否接收到了功能指令帧 */
-        uint8_t reserve : 4;                                    /** 预留 */
+        uint8_t is_guna_start : 1;                              /** A枪已启动 */
+        uint8_t is_gunb_start : 1;                              /** B枪已启动 */
+        uint8_t reserve : 2;                                    /** 预留 */
     }flag;
 };
 #pragma pack()
@@ -61,6 +68,14 @@ void thaisen_can_tcu_isrCallback(void)
     }
 }
 
+/******************************************************************************
+ * 函数名          ks_padding_charge_info
+ * 功能             充电信息填充
+ * 参数             data         填充缓存
+ *       len          缓存长度
+ *       gunno        枪号
+ * 返回            >=0：成功       <0：失败
+ *****************************************************************************/
 static int8_t ks_padding_charge_info(uint8_t* data, uint8_t len, uint8_t gunno)
 {
     if(gunno >= APP_SYSTEM_GUNNO_SIZE){
@@ -116,6 +131,14 @@ static int8_t ks_padding_charge_info(uint8_t* data, uint8_t len, uint8_t gunno)
     }
 }
 
+/******************************************************************************
+ * 函数名          ks_padding_bms_info_01
+ * 功能            BMS信息填充
+ * 参数             data         填充缓存
+ *       len          缓存长度
+ *       gunno        枪号
+ * 返回            >=0：成功       <0：失败
+ *****************************************************************************/
 static int8_t ks_padding_bms_info_01(uint8_t* data, uint8_t len, uint8_t gunno)
 {
     if(gunno >= APP_SYSTEM_GUNNO_SIZE){
@@ -152,6 +175,14 @@ static int8_t ks_padding_bms_info_01(uint8_t* data, uint8_t len, uint8_t gunno)
     }
 }
 
+/******************************************************************************
+ * 函数名          ks_padding_bms_info_02
+ * 功能            BMS信息填充
+ * 参数             data         填充缓存
+ *       len          缓存长度
+ *       gunno        枪号
+ * 返回            >=0：成功       <0：失败
+ *****************************************************************************/
 static int8_t ks_padding_bms_info_02(uint8_t* data, uint8_t len, uint8_t gunno)
 {
     if(gunno >= APP_SYSTEM_GUNNO_SIZE){
@@ -184,6 +215,56 @@ static int8_t ks_padding_bms_info_02(uint8_t* data, uint8_t len, uint8_t gunno)
             break;
         default:
             break;
+        }
+        return 0x00;
+    }else{
+        return -0x02;
+    }
+}
+
+/******************************************************************************
+ * 函数名          ks_padding_local_enable
+ * 功能            是否允许本地启动信息填充
+ * 参数             data         填充缓存
+ *       len          缓存长度
+ *       gunno        枪号
+ * 返回            >=0：成功       <0：失败
+ *****************************************************************************/
+static int8_t ks_padding_local_enable(uint8_t* data, uint8_t len, uint8_t gunno)
+{
+    if(data && len >= 0x08){
+        uint8_t function = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_SUPORT_LOCAL, 0));
+
+        memset(data, 0x00, len);
+        if(function == 0x01){
+            data[0x01] = 0x03;
+        }else{
+            data[0x01] = 0x0C;
+        }
+        return 0x00;
+    }else{
+        return -0x02;
+    }
+}
+
+/******************************************************************************
+ * 函数名          ks_padding_swip_card_enable
+ * 功能            是否允许刷卡启动信息填充
+ * 参数             data         填充缓存
+ *       len          缓存长度
+ *       gunno        枪号
+ * 返回            >=0：成功       <0：失败
+ *****************************************************************************/
+static int8_t ks_padding_swip_card_enable(uint8_t* data, uint8_t len, uint8_t gunno)
+{
+    if(data && len >= 0x08){
+        uint8_t function = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_SUPORT_CARD, 0));
+
+        memset(data, 0x00, len);
+        if(function == 0x01){
+            data[0x01] = 0x02;   /* 先做不刷卡版本 */
+        }else{
+            data[0x01] = 0x02;   /* 先做不刷卡版本 */
         }
         return 0x00;
     }else{
@@ -230,21 +311,60 @@ void app_tcan_send_thread_entry(void *parameter)
         if(ks_padding_charge_info(can_send_message.data, sizeof(can_send_message.data), gunno) >= 0){
             can_send_message.CANID = APP_KS_CHARGE_DATA_CAN_ID;
             thaisen_tcu_can_send(&can_send_message);
-            rt_thread_mdelay(100);
+            rt_thread_mdelay(50);
         }
         if(ks_padding_bms_info_01(can_send_message.data, sizeof(can_send_message.data), gunno) >= 0){
             can_send_message.CANID = APP_KS_BMS_DATA_01_CAN_ID;
             thaisen_tcu_can_send(&can_send_message);
-            rt_thread_mdelay(100);
+            rt_thread_mdelay(50);
         }
         if(ks_padding_bms_info_02(can_send_message.data, sizeof(can_send_message.data), gunno) >= 0){
             can_send_message.CANID = APP_KS_BMS_DATA_02_CAN_ID;
             thaisen_tcu_can_send(&can_send_message);
-            rt_thread_mdelay(100);
+            rt_thread_mdelay(50);
+        }
+        if(ks_padding_local_enable(can_send_message.data, sizeof(can_send_message.data), gunno) >= 0){
+            can_send_message.CANID = APP_KS_LOCAL_START_CMD_CAN_ID;
+            thaisen_tcu_can_send(&can_send_message);
+            rt_thread_mdelay(50);
+        }
+        if(ks_padding_swip_card_enable(can_send_message.data, sizeof(can_send_message.data), gunno) >= 0){
+            can_send_message.CANID = APP_KS_SWIP_CARD_CMD_CAN_ID;
+            thaisen_tcu_can_send(&can_send_message);
+            rt_thread_mdelay(50);
         }
 
         if(++gunno >= APP_SYSTEM_GUNNO_SIZE){
             gunno = 0x00;
+        }
+    }
+}
+
+/******************************************************************************
+ * 函数名          ks_recv_process_charger_ctrl
+ * 功能            充电机控制帧处理
+ * 参数             data         数据
+ *       len          数据长度
+ * 返回
+ *****************************************************************************/
+static void ks_recv_process_charger_ctrl(uint8_t* data, uint8_t len)
+{
+    if(data && len >= 0x08){
+        if((data[0x02] <= 0x01) && (data[0x02] != s_can_info.flag.is_guna_start)){
+            s_can_info.flag.is_guna_start = data[0x02];
+            if(s_can_info.flag.is_guna_start){
+                app_set_hci_event(0x00, HCI_EVENT_SCREEN_START);
+            }else{
+                app_set_hci_event(0x00, HCI_EVENT_SCREEN_STOP);
+            }
+        }
+        if((data[0x03] <= 0x01) && (data[0x03] != s_can_info.flag.is_gunb_start)){
+            s_can_info.flag.is_gunb_start = data[0x03];
+            if(s_can_info.flag.is_gunb_start){
+                app_set_hci_event(0x01, HCI_EVENT_SCREEN_START);
+            }else{
+                app_set_hci_event(0x01, HCI_EVENT_SCREEN_STOP);
+            }
         }
     }
 }
@@ -298,6 +418,8 @@ void app_tcan_recv_thread_entry(void *parameter)
                 }else{
                     s_can_info.flag.maintenance_enable = 0x00;
                 }
+            }else if(data.can_id == APP_KS_CHARGER_CTRL_CMD_CAN_ID){
+                ks_recv_process_charger_ctrl(data.data, sizeof(data.data));
             }
         }
 
