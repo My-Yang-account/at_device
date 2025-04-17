@@ -8,6 +8,8 @@
  * 2023-06-24     我的杨yang       the first version
  */
 #include "app_data_info_interface.h"
+#include "app_rfid_reader.h"
+#include "app_card.h"
 #include "serialScreen.h"
 #include "chargepile_config.h"
 #include "mw_temp.h"
@@ -26,6 +28,7 @@ APP_DEF_SRAM1 static struct bms_info s_bms_info;
 APP_DEF_SRAM1 static struct fault_info s_fault_info;
 APP_DEF_SRAM1 static struct ammeter_data s_ammeter_data;
 APP_DEF_SRAM1 static struct card_data_info s_card_data;
+APP_DEF_SRAM1 static struct offline_billing_card_info s_offline_billing_card_info;
 
 #ifdef APP_DESIGNATE_REGION
 /*************************************
@@ -46,6 +49,7 @@ void app_data_info_interface_init(void)
     memset(&s_fault_info, 0x00, sizeof(s_fault_info));
     memset(&s_ammeter_data, 0x00, sizeof(s_ammeter_data));
     memset(&s_card_data, 0x00, sizeof(s_card_data));
+    memset(&s_offline_billing_card_info, 0x00, sizeof(s_offline_billing_card_info));
 }
 #endif /* APP_DESIGNATE_REGION */
 
@@ -1808,3 +1812,26 @@ void thaisen_clear_reservation_mode_flag(uint8_t gunno)
     SerialScreen_Screen_ClearReservationModeFlag(gunno);
 }
 
+/**************************************************************************
+ * 函数名      thaisen_get_offline_billing_card_info
+ * 功能         获取离线计费卡信息
+ * 参数          gunno     枪号
+ * 返回          @struct offline_billing_card_info
+ *************************************************************************/
+struct offline_billing_card_info *thaisen_get_offline_billing_card_info(uint8_t gunno)
+{
+    memset(&s_offline_billing_card_info, 0x00, sizeof(s_offline_billing_card_info));
+    if(gunno >= APP_SYSTEM_GUNNO_SIZE){
+        return &s_offline_billing_card_info;
+    }
+    if((rfidr_query_info_type() != APP_RFIDR_INFO_TYPE_UUID) && (rfidr_query_info_type() != APP_RFIDR_INFO_TYPE_ERROR)){
+        uint8_t card_number_len = rfidr_query_card_number_len();
+        if(card_number_len > (sizeof(s_offline_billing_card_info.card_number) - 0x01)){
+            card_number_len = (sizeof(s_offline_billing_card_info.card_number) - 0x01);
+        }
+        memcpy(s_offline_billing_card_info.card_number, rfidr_query_card_number(), card_number_len);
+        s_offline_billing_card_info.card_ballance = app_card_query_ballance(gunno);
+    }
+
+    return &s_offline_billing_card_info;
+}

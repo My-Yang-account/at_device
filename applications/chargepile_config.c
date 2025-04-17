@@ -2169,11 +2169,11 @@ int32_t chargepile_check_config(void)
     if(s_chargepile_config_info.function_enable.mode_select > 0x01){      /* 模式选择功能默认关闭 */
         s_chargepile_config_info.function_enable.mode_select = 0x00;
     }
-    for(i = 0x00; i < sizeof(s_chargepile_config_info.function_enable.current_mode); i++){
-        if((s_chargepile_config_info.function_enable.current_mode[i] >= CP_MODE_SIZE) || \
-                ((s_chargepile_config_info.function_enable.current_mode[i] != CP_MODE_CHARGE_FULL) && \
-                        (s_chargepile_config_info.function_enable.current_mode[i] != CP_MODE_LIMIT_RESERVATION))){    /* 当前模式默认充满 */
-            s_chargepile_config_info.function_enable.current_mode[i] = CP_MODE_CHARGE_FULL;
+    for(uint8_t mode = 0x00; mode < sizeof(s_chargepile_config_info.function_enable.current_mode); mode++){
+        if((s_chargepile_config_info.function_enable.current_mode[mode] >= CP_MODE_SIZE) || \
+                ((s_chargepile_config_info.function_enable.current_mode[mode] != CP_MODE_CHARGE_FULL) && \
+                        (s_chargepile_config_info.function_enable.current_mode[mode] != CP_MODE_LIMIT_RESERVATION))){    /* 当前模式默认充满 */
+            s_chargepile_config_info.function_enable.current_mode[mode] = CP_MODE_CHARGE_FULL;
         }
     }
 

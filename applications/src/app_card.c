@@ -734,6 +734,7 @@ static int32_t app_card_info_process(void* handle)
     }
 
     s_card_info_sector2.block_10.detail.ballance = APP_ENDIANNESS_CONVERT(s_card_info_sector2.block_10.detail.ballance);
+    s_card_ballance[port] = s_card_info_sector2.block_10.detail.ballance;
     memcpy(s_card_info_sector2.card_number, s_rfidr->card_number, sizeof(s_card_info_sector2.card_number));
 
     LOG_D("gunno(%d) this card locked state(%d) ballance(%d) device id[%s] card number[%s]", port, s_card_info_sector2.block_10.detail.is_lock, \

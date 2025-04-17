@@ -678,6 +678,8 @@ struct LCD_DISPLAY_SETDATA_TYPE{
     u8 OBCountDown;                         //离线计费倒计时
     u8 OBwarning;                           //offline billing信息告警
     u8 OBEventwarning;                      //offline billing触发事件告警
+    u8 OBCardNumber[17];                    //offline billing卡号
+    u8 OBCardBallance[8];                  //offline billing卡内余额(txt)
     u32 ServicePrice;                       //服务费
     u32 SsElectPrice;                       //尖尖电费(Ss:sharp sharp)
     u32 SElectPrice;                        //尖电费(S:sharp)
@@ -2330,7 +2332,30 @@ s32 SerialScreen_ScreenSet_Trigger_Event(u8 Event, u16 DurationTime, u8 JustNoti
     if(port >= LCD_GUN_NUM){
         return FALSE;
     }
+#ifdef SCREEN_USING_OFFLINE_BILLING
+    if(Event == THAISEN_TRIG_EVENT_INSERT_GUN){
+        struct offline_billing_card_info *info = thaisen_get_offline_billing_card_info(port);
+        s8 valid_len = strlen((char*)info->card_number), value_len = 0;
 
+        memset(LcdData.setData.OBCardNumber, 0x00, sizeof(LcdData.setData.OBCardNumber));
+        memset(LcdData.setData.OBCardBallance, 0x00, sizeof(LcdData.setData.OBCardBallance));
+
+        if(valid_len >= sizeof(LcdData.setData.OBCardNumber)){
+            valid_len = (sizeof(LcdData.setData.OBCardNumber) - 1);
+            valid_len = valid_len < 0 ? 0 : valid_len;
+        }
+        memcpy(LcdData.setData.OBCardNumber, info->card_number, valid_len);
+
+        valid_len = sizeof(LcdData.setData.OBCardBallance);
+        value_len = (u32)(log10((double)info->card_ballance) + 1) + 1;
+        if(valid_len > value_len){
+            sprintf((char*)LcdData.setData.OBCardBallance, "%lu.%02lu", info->card_ballance /100, info->card_ballance %100);  /* 两位小数 */
+        }
+    }else{
+        memset(LcdData.setData.OBCardNumber, 0x00, sizeof(LcdData.setData.OBCardNumber));
+        memset(LcdData.setData.OBCardBallance, 0x00, sizeof(LcdData.setData.OBCardBallance));
+    }
+#endif /* SCREEN_USING_OFFLINE_BILLING */
     LcdTriggerEvent[port].Flag.IsModify = TRUE;
 
     LcdTriggerEvent[port].item.Flag.JustNotice = FALSE;
@@ -11097,8 +11122,6 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_A_CHGING, NULL, "consume", LCD_DataType, LCD_1sReflash, 0x1618, pu32_type, sizeof(LcdData.gun[LCD_GUN_1].totalFee), (void *)&LcdData.gun[LCD_GUN_1].totalFee);
     SerialScreen_ItemSetUp(LCD_PAGE_A_CHGING, NULL, "RemainH_A", LCD_DataType, LCD_1sReflash, 0x6250, pu8_type, sizeof(LcdData.gun[LCD_GUN_1].RemainTime[0]), (void *)&LcdData.gun[LCD_GUN_1].RemainTime[0]);
     SerialScreen_ItemSetUp(LCD_PAGE_A_CHGING, NULL, "RemainM_A", LCD_DataType, LCD_1sReflash, 0x6252, pu8_type, sizeof(LcdData.gun[LCD_GUN_1].RemainTime[1]), (void *)&LcdData.gun[LCD_GUN_1].RemainTime[1]);
-
-
     SerialScreen_ItemSetUp(LCD_PAGE_A_CHGING, NULL, "card num", LCD_TextType, LCD_NoReflash, 0x656C, pstr_type, sizeof(LcdData.setData.s_card_number[LCD_GUN_1]), (void *)&LcdData.setData.s_card_number[LCD_GUN_1]);
     SerialScreen_ItemSetUp(LCD_PAGE_A_CHGING, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
 
@@ -11120,7 +11143,6 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_B_CHGING, NULL, "consume", LCD_DataType, LCD_1sReflash, 0x2618, pu32_type, sizeof(LcdData.gun[LCD_GUN_2].totalFee), (void *)&LcdData.gun[LCD_GUN_2].totalFee);
     SerialScreen_ItemSetUp(LCD_PAGE_B_CHGING, NULL, "RemainH_B", LCD_DataType, LCD_1sReflash, 0x6254, pu8_type, sizeof(LcdData.gun[LCD_GUN_2].RemainTime[0]), (void *)&LcdData.gun[LCD_GUN_2].RemainTime[0]);
     SerialScreen_ItemSetUp(LCD_PAGE_B_CHGING, NULL, "RemainM_B", LCD_DataType, LCD_1sReflash, 0x6256, pu8_type, sizeof(LcdData.gun[LCD_GUN_2].RemainTime[1]), (void *)&LcdData.gun[LCD_GUN_2].RemainTime[1]);
-
     SerialScreen_ItemSetUp(LCD_PAGE_B_CHGING, NULL, "card num", LCD_TextType, LCD_NoReflash, 0x657C, pstr_type, sizeof(LcdData.setData.s_card_number[LCD_GUN_2]), (void *)&LcdData.setData.s_card_number[LCD_GUN_2]);
     SerialScreen_ItemSetUp(LCD_PAGE_B_CHGING, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
 
@@ -11876,6 +11898,8 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_WARNNING_INFO, NULL, "home", LCD_BtnHomeType, 0x0002, 0x1000, page_type, LCD_PAGE_NONE, (void *)NULL);    //0K
     SerialScreen_ItemSetUp(LCD_PAGE_WARNNING_INFO, NULL, "count down", LCD_TextType, LCD_1sReflash, 0x2040, pstr_type, sizeof(LcdData.setData.OB_CountDownString), (void *)LcdData.setData.OB_CountDownString);
     SerialScreen_ItemSetUp(LCD_PAGE_WARNNING_INFO, NULL, "Icon warn", LCD_IconType, LCD_10sReflash, 0x173F, pu8_type, sizeof(LcdData.setData.OBEventwarning), (void *)&LcdData.setData.OBEventwarning);
+    SerialScreen_ItemSetUp(LCD_PAGE_WARNNING_INFO, NULL, "card num", LCD_TextType, LCD_NoReflash, 0x65E5, pstr_type, sizeof(LcdData.setData.OBCardNumber), (void *)&LcdData.setData.OBCardNumber);
+    SerialScreen_ItemSetUp(LCD_PAGE_WARNNING_INFO, NULL, "ballance", LCD_TextType, LCD_NoReflash, 0x65C5, pstr_type, sizeof(LcdData.setData.OBCardBallance), (void *)&LcdData.setData.OBCardBallance);
     SerialScreen_ItemSetUp(LCD_PAGE_WARNNING_INFO, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
 
     /** 44.A枪离线计费结算 [page:79] */

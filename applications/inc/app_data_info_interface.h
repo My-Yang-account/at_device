@@ -727,6 +727,15 @@ uint8_t thaisen_is_set_reservation_mode(uint8_t gunno);
  **/
 void thaisen_clear_reservation_mode_flag(uint8_t gunno);
 
+/**
+ * 获取离线计费卡信息
+ **/
+struct offline_billing_card_info{
+    uint8_t card_number[17];        /* 卡号 */
+    uint32_t card_ballance;         /* 卡余额 */
+};
+struct offline_billing_card_info *thaisen_get_offline_billing_card_info(uint8_t gunno);
+
 #endif /* APPLICATIONS_INC_APP_DATA_INFO_INTERFACE_H_ */
 
 
