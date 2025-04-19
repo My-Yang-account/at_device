@@ -41,7 +41,8 @@
 #define NET_GENERAL_FAULT_POUR                         0x15    /* 倾倒故障 */
 #define NET_GENERAL_FAULT_LIQUID_COOLING               0x16    /* 液冷故障 */
 #define NET_GENERAL_FAULT_FUSE                         0x17    /* 熔断器故障 */
-#define NET_GENERAL_FAULT_SIZE                         0x18    /* 无故障 */
+#define NET_GENERAL_FAULT_MAIN_CABINET                 0x18    /* 主机柜故障 */
+#define NET_GENERAL_FAULT_SIZE                         0x19    /* 无故障 */
 
 /** system stop reason code */
 #define NET_STOP_REASON_SCRAM                          0x00    /* 急停故障 */

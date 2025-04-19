@@ -421,7 +421,8 @@ void app_get_fault_chinese(uint32_t code, uint8_t *olen, uint8_t *buf, uint8_t i
  *******************************************/
 void app_get_charge_stopway_chinese(uint32_t code, uint8_t *olen, uint8_t *buf, uint8_t ilen)
 {
-    int16_t i = APP_SYSTEM_STOP_WAY_CHARGEING_BCS_TIMEOUT;
+    uint8_t is_matched = 0x00;
+    int16_t i = 0x00;
     memset(buf, 0x00, ilen);
 
     if(ilen < APP_CHINESE_STOPWAY_LEN_MAX){
@@ -431,12 +432,22 @@ void app_get_charge_stopway_chinese(uint32_t code, uint8_t *olen, uint8_t *buf, 
         return;
     }
 
-    for(; i >= APP_SYSTEM_STOP_WAY_SHORTS; i--){
+    for(i = thaisen_chargeCtl_stopWay_BSM; i >= thaisen_chargeCtl_stopWay_short; i--){
         if(code == mw_system_stop_way_convert(i)){
+            is_matched = 0x01;
             break;
         }
     }
-    if(i >= APP_SYSTEM_STOP_WAY_SHORTS){
+    if((i < thaisen_chargeCtl_stopWay_short) && (is_matched == 0x00)){
+        for(i = APP_SYSTEM_STOP_WAY_APP_STOP; i <= APP_SYSTEM_STOP_WAY_CHARGEING_BCS_TIMEOUT; i++){
+            if(code == mw_system_stop_way_convert(i)){
+                is_matched = 0x01;
+                break;
+            }
+        }
+    }
+
+    if(is_matched){
         switch(i){
         case APP_SYSTEM_STOP_WAY_SHORTS:
             memcpy(buf, "¶ÌÂ·", strlen("¶ÌÂ·"));

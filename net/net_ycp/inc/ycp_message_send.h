@@ -105,6 +105,7 @@
 #define NET_YCP_FAULT_CODE_FLOODING                          0x1036   /* 故障码：水浸故障 */
 #define NET_YCP_FAULT_CODE_POUR                              0x1037   /* 故障码：倾倒检测故障 */
 #define NET_YCP_FAULT_CODE_LIQUID_COOLING                    0x1038   /* 故障码：液冷故障 */
+#define NET_YCP_FAULT_CODE_MAIN_CABINET                      0x1039   /* 故障码：主机柜故障 */
 
 /** chargepile request event */
 #define NET_YCP_PREQ_EVENT_SIGNIN                            0    /* 充电桩请求事件：登录 */

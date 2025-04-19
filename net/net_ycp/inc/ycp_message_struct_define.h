@@ -183,8 +183,9 @@ enum ycp_abnormal_stop{
     NETYCP_AS_REASON7D_POUR = 0x7D,                          /* 充电异常中止，倾倒 */
     NETYCP_AS_REASON7E_LIQUIDCOOLING = 0x7E,                 /* 充电异常中止，液冷 */
     NETYCP_AS_REASON7F_FUSE = 0x7F,                          /* 充电异常中止，熔断器 */
-    NETYCP_AS_REASON80_MAIN_CABINET = 0x80,                  /* 充电异常中止，主机柜禁止充电 */
-    NETYCP_AS_REASON81_YT_BFC = 0x81,                        /* 充电异常中止，宇通BFC */
+    NETYCP_AS_REASON9C_MAIN_CABINET_FORBID = 0x80,           /* 充电异常中止，主机柜禁止充电 */
+    NETYCP_AS_REASON9D_YT_BFC = 0x81,                        /* 充电异常中止，宇通BFC */
+    NETYCP_AS_REASON9D_MAIN_CABINET_FAULT = 0x82,            /* 充电异常中止，主机柜故障 */
     NETYCP_AS_REASONFF_UNKNOW = 0xFF,                        /* 充电异常中止，未知原因停止 */
 };
 

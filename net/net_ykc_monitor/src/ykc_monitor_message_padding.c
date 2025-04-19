@@ -2592,6 +2592,8 @@ uint16_t ykc_monitor_chargepile_fault_converted(uint16_t bit)
         return NET_GENERAL_FAULT_LIQUID_COOLING;
     case APP_SYS_FAULT_FUSE :
         return NET_GENERAL_FAULT_FUSE;
+    case APP_SYS_FAULT_MAIN_CABINET :
+        return NET_GENERAL_FAULT_MAIN_CABINET;
     default:
         return NET_GENERAL_FAULT_SIZE;
     }
@@ -2839,47 +2841,58 @@ static uint16_t ykc_monitor_chargepile_stop_reason_converted(uint16_t reason, ui
     case APP_SYSTEM_STOP_WAY_AUTHEN_FAIL:
         _reason = NETYKC_MONITOR_AS_REASON93_VIN_AUTHEN_FAIL;
         break;
-    /* 防雷器 */
-    case APP_SYSTEM_STOP_WAY_LIGHTPROTECT:
-        _reason = NETYKC_MONITOR_AS_REASON94_LIGHTPROTECT;
-        break;
-    /* 枪座 */
-    case APP_SYSTEM_STOP_WAY_GUNSITE:
-        _reason = NETYKC_MONITOR_AS_REASON95_GUNSITE;
-        break;
-    /* 断路器 */
-    case APP_SYSTEM_STOP_WAY_CIRCUIT_BREAKER:
-        _reason = NETYKC_MONITOR_AS_REASON96_CIRCUIT_BREAKER;
-        break;
-    /* 水浸 */
-    case APP_SYSTEM_STOP_WAY_FLOODING:
-        _reason = NETYKC_MONITOR_AS_REASON97_FLOODING;
-        break;
-    /* 烟感 */
-    case APP_SYSTEM_STOP_WAY_SMOKE:
-        _reason = NETYKC_MONITOR_AS_REASON98_SMOKE;
-        break;
-    /* 倾倒 */
-    case APP_SYSTEM_STOP_WAY_POUR:
-        _reason = NETYKC_MONITOR_AS_REASON99_POUR;
-        break;
-    /* 液冷 */
-    case APP_SYSTEM_STOP_WAY_LIQUIDCOOLING:
-        _reason = NETYKC_MONITOR_AS_REASON9A_LIQUIDCOOLING;
-        break;
-    /* 熔断器 */
-    case APP_SYSTEM_STOP_WAY_FUSE:
-        _reason = NETYKC_MONITOR_AS_REASON9B_FUSE;
-        break;
     /* 主机柜禁止充电 */
-    case APP_SYSTEM_STOP_WAY_MAIN_CABINET:
-        _reason = NETYKC_MONITOR_AS_REASON9C_MAIN_CABINET;
-        break;
-    /* 宇通BFC */
-    case APP_SYSTEM_STOP_WAY_YT_BFC:
-        _reason = NETYKC_MONITOR_AS_REASON9D_YT_BFC;
+    case APP_SYSTEM_STOP_WAY_MAIN_CABINET_FORBID:
+        _reason = NETYKC_MONITOR_AS_REASON9C_MAIN_CABINET_FORBID;
         break;
     default:
+    {
+        uint16_t _way = mw_system_stop_way_convert(reason);
+        switch(_way){
+        /* 防雷器 */
+        case APP_SYSTEM_STOP_WAY_LIGHTPROTECT:
+            _reason = NETYKC_MONITOR_AS_REASON94_LIGHTPROTECT;
+            break;
+        /* 枪座 */
+        case APP_SYSTEM_STOP_WAY_GUNSITE:
+            _reason = NETYKC_MONITOR_AS_REASON95_GUNSITE;
+            break;
+        /* 断路器 */
+        case APP_SYSTEM_STOP_WAY_CIRCUIT_BREAKER:
+            _reason = NETYKC_MONITOR_AS_REASON96_CIRCUIT_BREAKER;
+            break;
+        /* 水浸 */
+        case APP_SYSTEM_STOP_WAY_FLOODING:
+            _reason = NETYKC_MONITOR_AS_REASON97_FLOODING;
+            break;
+        /* 烟感 */
+        case APP_SYSTEM_STOP_WAY_SMOKE:
+            _reason = NETYKC_MONITOR_AS_REASON98_SMOKE;
+            break;
+        /* 倾倒 */
+        case APP_SYSTEM_STOP_WAY_POUR:
+            _reason = NETYKC_MONITOR_AS_REASON99_POUR;
+            break;
+        /* 液冷 */
+        case APP_SYSTEM_STOP_WAY_LIQUIDCOOLING:
+            _reason = NETYKC_MONITOR_AS_REASON9A_LIQUIDCOOLING;
+            break;
+        /* 熔断器 */
+        case APP_SYSTEM_STOP_WAY_FUSE:
+            _reason = NETYKC_MONITOR_AS_REASON9B_FUSE;
+            break;
+        /* 主机柜故障 */
+        case APP_SYSTEM_STOP_WAY_MAIN_CABINET:
+            _reason = NETYKC_MONITOR_AS_REASON9D_MAIN_CABINET_FAULT;
+            break;
+        /* 宇通BFC */
+        case APP_SYSTEM_STOP_WAY_YT_BFC:
+            _reason = NETYKC_MONITOR_AS_REASON9D_YT_BFC;
+            break;
+        default:
+            break;
+        }
+    }
         break;
     }
     return _reason;
@@ -3089,6 +3102,7 @@ static void ykc_monitor_state_changed_check(uint8_t gunno, System_BaseData * bas
             uint16_t _fault = s_ykc_monitor_state_info[gunno].fault_code;
 
             if(_state == NETYKC_MONITOR_DEVICE_STATE_FAULTING){
+#if 0
                 if((_fault != 0x00) || (base->device_state == APP_DEVICE_STATE_OVERHAUL) || (base->device_state == APP_DEVICE_STATE_FREEZE)){
                     g_ykc_monitor_preq_report_realtime_data[gunno].body.hardware_fault = _fault;
                     g_ykc_monitor_preq_report_realtime_data[gunno].body.plug_gun = _connect;
@@ -3097,6 +3111,14 @@ static void ykc_monitor_state_changed_check(uint8_t gunno, System_BaseData * bas
                     s_ykc_monitor_realtime_data_count[gunno] = rt_tick_get();
                     ykc_monitor_net_event_send(NET_YKC_MONITOR_EVENT_HANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, gunno, NET_YKC_MONITOR_PREQ_EVENT_REPORT_REALTIME_DATA);
                 }
+#else
+                g_ykc_monitor_preq_report_realtime_data[gunno].body.hardware_fault = _fault;
+                g_ykc_monitor_preq_report_realtime_data[gunno].body.plug_gun = _connect;
+                g_ykc_monitor_preq_report_realtime_data[gunno].body.state = _state;
+
+                s_ykc_monitor_realtime_data_count[gunno] = rt_tick_get();
+                ykc_monitor_net_event_send(NET_YKC_MONITOR_EVENT_HANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, gunno, NET_YKC_MONITOR_PREQ_EVENT_REPORT_REALTIME_DATA);
+#endif
             }else{
                 if(_fault == 0x00){
                     g_ykc_monitor_preq_report_realtime_data[gunno].body.hardware_fault = _fault;

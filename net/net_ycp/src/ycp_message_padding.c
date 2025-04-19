@@ -2348,6 +2348,8 @@ uint16_t ycp_chargepile_fault_converted(uint16_t bit)
         return NET_GENERAL_FAULT_LIQUID_COOLING;
     case APP_SYS_FAULT_FUSE :
         return NET_GENERAL_FAULT_FUSE;
+    case APP_SYS_FAULT_MAIN_CABINET :
+        return NET_GENERAL_FAULT_MAIN_CABINET;
     default:
         return NET_GENERAL_FAULT_SIZE;
     }
@@ -2597,47 +2599,58 @@ static uint16_t ycp_chargepile_stop_reason_converted(uint16_t reason, uint8_t st
     case APP_SYSTEM_STOP_WAY_AUTHEN_FAIL:
         _reason = NETYCP_AS_REASON77_VIN_AUTHEN_FAIL;
         break;
-    /* 防雷器 */
-    case APP_SYSTEM_STOP_WAY_LIGHTPROTECT:
-        _reason = NETYCP_AS_REASON78_LIGHTPROTECT;
-        break;
-    /* 枪座 */
-    case APP_SYSTEM_STOP_WAY_GUNSITE:
-        _reason = NETYCP_AS_REASON79_GUNSITE;
-        break;
-    /* 断路器 */
-    case APP_SYSTEM_STOP_WAY_CIRCUIT_BREAKER:
-        _reason = NETYCP_AS_REASON7A_CIRCUIT_BREAKER;
-        break;
-    /* 水浸 */
-    case APP_SYSTEM_STOP_WAY_FLOODING:
-        _reason = NETYCP_AS_REASON7B_FLOODING;
-        break;
-    /* 烟感 */
-    case APP_SYSTEM_STOP_WAY_SMOKE:
-        _reason = NETYCP_AS_REASON7C_SMOKE;
-        break;
-    /* 倾倒 */
-    case APP_SYSTEM_STOP_WAY_POUR:
-        _reason = NETYCP_AS_REASON7D_POUR;
-        break;
-    /* 液冷 */
-    case APP_SYSTEM_STOP_WAY_LIQUIDCOOLING:
-        _reason = NETYCP_AS_REASON7E_LIQUIDCOOLING;
-        break;
-    /* 熔断器 */
-    case APP_SYSTEM_STOP_WAY_FUSE:
-        _reason = NETYCP_AS_REASON7F_FUSE;
-        break;
     /* 主机柜禁止充电 */
-    case APP_SYSTEM_STOP_WAY_MAIN_CABINET:
-        _reason = NETYCP_AS_REASON80_MAIN_CABINET;
-        break;
-    /* 宇通BFC */
-    case APP_SYSTEM_STOP_WAY_YT_BFC:
-        _reason = NETYCP_AS_REASON81_YT_BFC;
+    case APP_SYSTEM_STOP_WAY_MAIN_CABINET_FORBID:
+        _reason = NETYCP_AS_REASON9C_MAIN_CABINET_FORBID;
         break;
     default:
+    {
+        uint16_t _way = mw_system_stop_way_convert(reason);
+        switch(_way){
+        /* 防雷器 */
+        case APP_SYSTEM_STOP_WAY_LIGHTPROTECT:
+            _reason = NETYCP_AS_REASON78_LIGHTPROTECT;
+            break;
+        /* 枪座 */
+        case APP_SYSTEM_STOP_WAY_GUNSITE:
+            _reason = NETYCP_AS_REASON79_GUNSITE;
+            break;
+        /* 断路器 */
+        case APP_SYSTEM_STOP_WAY_CIRCUIT_BREAKER:
+            _reason = NETYCP_AS_REASON7A_CIRCUIT_BREAKER;
+            break;
+        /* 水浸 */
+        case APP_SYSTEM_STOP_WAY_FLOODING:
+            _reason = NETYCP_AS_REASON7B_FLOODING;
+            break;
+        /* 烟感 */
+        case APP_SYSTEM_STOP_WAY_SMOKE:
+            _reason = NETYCP_AS_REASON7C_SMOKE;
+            break;
+        /* 倾倒 */
+        case APP_SYSTEM_STOP_WAY_POUR:
+            _reason = NETYCP_AS_REASON7D_POUR;
+            break;
+        /* 液冷 */
+        case APP_SYSTEM_STOP_WAY_LIQUIDCOOLING:
+            _reason = NETYCP_AS_REASON7E_LIQUIDCOOLING;
+            break;
+        /* 熔断器 */
+        case APP_SYSTEM_STOP_WAY_FUSE:
+            _reason = NETYCP_AS_REASON7F_FUSE;
+            break;
+        /* 主机柜故障 */
+        case APP_SYSTEM_STOP_WAY_MAIN_CABINET:
+            _reason = NETYCP_AS_REASON9D_MAIN_CABINET_FAULT;
+            break;
+        /* 宇通BFC */
+        case APP_SYSTEM_STOP_WAY_YT_BFC:
+            _reason = NETYCP_AS_REASON9D_YT_BFC;
+            break;
+        default:
+            break;
+        }
+    }
         break;
     }
     return _reason;

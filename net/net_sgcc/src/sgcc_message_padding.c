@@ -3473,6 +3473,11 @@ uint16_t sgcc_chargepile_fault_converted(uint16_t bit, uint8_t *rank)
             *rank = 0x01;
         }
         return NETSGCC_DCA_REASON3047_DC_FUSE;
+    case APP_SYS_FAULT_MAIN_CABINET :
+        if(rank){
+            *rank = 0x01;
+        }
+        return NETSGCC_DCA_REASON7019_MAIN_CABINET_FAULT;
     default:
         return 0x00;
     }
@@ -3492,7 +3497,7 @@ uint16_t sgcc_chargepile_fault_converted(uint16_t bit, uint8_t *rank)
 #ifdef NET_SGCC_PRO_USING_DC
 static uint16_t sgcc_chargepile_stop_reason_converted(uint16_t reason, uint8_t stop_in_starting)
 {
-    uint16_t _reason = NETSGCC_DCA_REASON7019_UNKNOW;
+    uint16_t _reason = NETSGCC_DCA_REASON7020_UNKNOW;
 
     switch(reason){
     /* 急停 */
@@ -3682,43 +3687,54 @@ static uint16_t sgcc_chargepile_stop_reason_converted(uint16_t reason, uint8_t s
     case APP_SYSTEM_STOP_WAY_AUTHEN_FAIL:
         _reason = NETSGCC_DCA_REASON7009_VIN_AUTHEN_FAIL;
         break;
-    /* 防雷器 */
-    case APP_SYSTEM_STOP_WAY_LIGHTPROTECT:
-        _reason = NETSGCC_DCA_REASON7010_LIGHTPROTECT;
-        break;
-    /* 枪座 */
-    case APP_SYSTEM_STOP_WAY_GUNSITE:
-        _reason = NETSGCC_DCA_REASON7011_GUNSITE;
-        break;
-    /* 断路器 */
-    case APP_SYSTEM_STOP_WAY_CIRCUIT_BREAKER:
-        _reason = NETSGCC_DCA_REASON7012_CIRCUIT_BREAKER;
-        break;
-    /* 水浸 */
-    case APP_SYSTEM_STOP_WAY_FLOODING:
-        _reason = NETSGCC_DCA_REASON7013_FLOODING;
-        break;
-    /* 烟感 */
-    case APP_SYSTEM_STOP_WAY_SMOKE:
-        _reason = NETSGCC_DCA_REASON7014_SMOKE;
-        break;
-    /* 倾倒 */
-    case APP_SYSTEM_STOP_WAY_POUR:
-        _reason = NETSGCC_DCA_REASON7015_POUR;
-        break;
-    /* 液冷 */
-    case APP_SYSTEM_STOP_WAY_LIQUIDCOOLING:
-        _reason = NETSGCC_DCA_REASON7016_LIQUIDCOOLING;
-        break;
-    /* 熔断器 */
-    case APP_SYSTEM_STOP_WAY_FUSE:
-        _reason = NETSGCC_DCA_REASON7017_FUSE;
-        break;
-    /* 宇通BFC */
-    case APP_SYSTEM_STOP_WAY_YT_BFC:
-        _reason = NETSGCC_DCA_REASON7018_YT_BFC;
-        break;
     default:
+    {
+        uint16_t _way = mw_system_stop_way_convert(reason);
+        switch(_way){
+        /* 防雷器 */
+        case APP_SYSTEM_STOP_WAY_LIGHTPROTECT:
+            _reason = NETSGCC_DCA_REASON7010_LIGHTPROTECT;
+            break;
+        /* 枪座 */
+        case APP_SYSTEM_STOP_WAY_GUNSITE:
+            _reason = NETSGCC_DCA_REASON7011_GUNSITE;
+            break;
+        /* 断路器 */
+        case APP_SYSTEM_STOP_WAY_CIRCUIT_BREAKER:
+            _reason = NETSGCC_DCA_REASON7012_CIRCUIT_BREAKER;
+            break;
+        /* 水浸 */
+        case APP_SYSTEM_STOP_WAY_FLOODING:
+            _reason = NETSGCC_DCA_REASON7013_FLOODING;
+            break;
+        /* 烟感 */
+        case APP_SYSTEM_STOP_WAY_SMOKE:
+            _reason = NETSGCC_DCA_REASON7014_SMOKE;
+            break;
+        /* 倾倒 */
+        case APP_SYSTEM_STOP_WAY_POUR:
+            _reason = NETSGCC_DCA_REASON7015_POUR;
+            break;
+        /* 液冷 */
+        case APP_SYSTEM_STOP_WAY_LIQUIDCOOLING:
+            _reason = NETSGCC_DCA_REASON7016_LIQUIDCOOLING;
+            break;
+        /* 熔断器 */
+        case APP_SYSTEM_STOP_WAY_FUSE:
+            _reason = NETSGCC_DCA_REASON7017_FUSE;
+            break;
+        /* 主机柜故障 */
+        case APP_SYSTEM_STOP_WAY_MAIN_CABINET:
+            _reason = NETSGCC_DCA_REASON7019_MAIN_CABINET_FAULT;
+            break;
+        /* 宇通BFC */
+        case APP_SYSTEM_STOP_WAY_YT_BFC:
+            _reason = NETSGCC_DCA_REASON7018_YT_BFC;
+            break;
+        default:
+            break;
+        }
+    }
         break;
     }
     return _reason;
@@ -3726,7 +3742,7 @@ static uint16_t sgcc_chargepile_stop_reason_converted(uint16_t reason, uint8_t s
 #else
 static uint16_t sgcc_chargepile_stop_reason_converted(uint8_t reason, uint8_t stop_in_starting)
 {
-    uint16_t _reason = NETSGCC_ACA_REASON6002_UNKNOW;
+    uint16_t _reason = NETSGCC_DCA_REASON7020_UNKNOW;
 
     return _reason;
 }

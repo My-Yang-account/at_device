@@ -188,7 +188,7 @@ enum system_stop_way{
     APP_SYSTEM_STOP_WAY_FUSE = thaisen_chargeCtl_stopWay_Fuse + APP_SYSFAULT_STOPWAY_OFFSET,                        /* 熔断器 */
     APP_SYSTEM_STOP_WAY_MAIN_CABINET = tthaisen_chargeCtl_stopWay_MainCabinet + APP_SYSFAULT_STOPWAY_OFFSET,        /* 主机柜故障 */
 
-    APP_SYSTEM_STOP_WAY_YT_BFC = thaisen_chargeCtl_stopWay_BFC + APP_NONE_SYSFAULT_STOPWAY_OFFSET,                  /* 宇通协议BFC故障 */
+    APP_SYSTEM_STOP_WAY_YT_BFC = (thaisen_chargeCtl_stopWay_BFC -( APP_SYS_FAULT_NO_ERROR + 0x01 - APP_ORIGIN_SYSFAULT_MAX)) + APP_NONE_SYSFAULT_STOPWAY_OFFSET,                  /* 宇通协议BFC故障 */
 
     APP_SYSTEM_STOP_WAY_SIZE,
 };

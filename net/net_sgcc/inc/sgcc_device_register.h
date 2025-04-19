@@ -260,7 +260,8 @@ enum sgcc_dc_abnormal{
     NETSGCC_DCA_REASON7016_LIQUIDCOOLING = 7016,        /* 充电异常中止，液冷 */
     NETSGCC_DCA_REASON7017_FUSE = 7017,                 /* 充电异常中止，熔断器 */
     NETSGCC_DCA_REASON7018_YT_BFC = 7018,               /* 充电异常中止，宇通BFC */
-    NETSGCC_DCA_REASON7019_UNKNOW = 7019,               /* 直流充电设备异常代码：未知  */
+    NETSGCC_DCA_REASON7019_MAIN_CABINET_FAULT = 7019,   /* 充电异常中止，主机柜故障 */
+    NETSGCC_DCA_REASON7020_UNKNOW = 7020,               /* 直流充电设备异常代码：未知  */
 };
 
 /** DCPA as DC power abnormal (直流充电电源异常代码)*/

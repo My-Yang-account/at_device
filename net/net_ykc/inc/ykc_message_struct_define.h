@@ -177,8 +177,9 @@ enum ykc_abnormal_stop{
     NETYKC_AS_REASON99_POUR = 0x99,                          /* 充电异常中止，倾倒 */
     NETYKC_AS_REASON9A_LIQUIDCOOLING = 0x9A,                 /* 充电异常中止，液冷 */
     NETYKC_AS_REASON9B_FUSE = 0x9B,                          /* 充电异常中止，熔断器 */
-    NETYKC_AS_REASON9C_MAIN_CABINET = 0x9C,                  /* 充电异常中止，主机柜禁止充电 */
+    NETYKC_AS_REASON9C_MAIN_CABINET_FORBID = 0x9C,           /* 充电异常中止，主机柜禁止充电 */
     NETYKC_AS_REASON9D_YT_BFC = 0x9D,                        /* 充电异常中止，宇通BFC */
+    NETYKC_AS_REASON9D_MAIN_CABINET_FAULT = 0x9E,            /* 充电异常中止，主机柜故障 */
 };
 
 enum ykc_cmd{

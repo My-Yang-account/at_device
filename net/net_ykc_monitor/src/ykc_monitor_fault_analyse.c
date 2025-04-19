@@ -220,7 +220,8 @@ static int32_t ykc_monitor_get_fault_code(uint32_t bit, uint8_t gunno, uint8_t i
             s_ykc_monitor_realtime_fault[gunno] |= YKC_MONITOR_REALTIME_FAULT_DC_FUSE;
         }
         break;
-        break;
+    case NET_GENERAL_FAULT_MAIN_CABINET:
+        return 0x00;
     default:
         return 0x00;
         break;
