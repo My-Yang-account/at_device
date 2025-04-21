@@ -692,8 +692,10 @@ struct LCD_DISPLAY_SETDATA_TYPE{
 #endif /* SCREEN_USING_OFFLINE_BILLING */
 #ifdef SCREEN_USING_TXT_RTC
     u8 rtc_time[SCREEN_TXT_RTC_STRLEN];
+#if 0
     u32 ScreenBaseTime;
     u32 ScreenBaseTick;
+#endif
 #endif /* SCREEN_USING_TXT_RTC */
     /***********************保护信息底图icon***************************/
     u8 Icon_ProtectInfo;                        //保护信息底图icon
@@ -8526,6 +8528,7 @@ static void SerialScreen_RtcTxtSend(struct SerialScreenObj *cmd)
 {
     time_t _time = 0;
     struct tm _tm;
+#if 0
     u32 CurrTick = 0;
 
     if(LcdData.setData.ScreenBaseTime != 0){
@@ -8539,11 +8542,13 @@ static void SerialScreen_RtcTxtSend(struct SerialScreenObj *cmd)
     }else{
         _time = time(NULL);
     }
-
+#else
+    _time = time(NULL);
+#endif
+    memset(LcdData.setData.rtc_time, 0, sizeof(LcdData.setData.rtc_time));
     localtime_r(&_time, &_tm);
     sprintf((char*)LcdData.setData.rtc_time, "%d-%02d-%02d %02d:%02d:%02d", (_tm.tm_year + 1900), (_tm.tm_mon + 1), \
             _tm.tm_mday, _tm.tm_hour, _tm.tm_min, _tm.tm_sec);
-
     SerialScreen_SendTxt(cmd, SCREEN_TXT_RTC_ADDR, LcdData.setData.rtc_time, strlen((char*)LcdData.setData.rtc_time));
 }
 #endif /* SCREEN_USING_TXT_RTC */
@@ -10251,8 +10256,10 @@ void SerialScreen_CurrentPageShow(struct SerialScreenObj *cmd,u8 state)
 			LcdData.runData.syncTimeFlg = FALSE;
 			sSCREEN_EVENT_DEBUGMSG("##################RTC Sync");
 #ifdef SCREEN_USING_TXT_RTC
+#if 0
 			LcdData.setData.ScreenBaseTick = thaisen_app_get_system_tick();
 			LcdData.setData.ScreenBaseTime = time(NULL);
+#endif
 #endif /* SCREEN_USING_TXT_RTC */
 		}	
         timeshow = 0;
@@ -10574,7 +10581,7 @@ int SerialScreen_DataProcess()
 		timeSync = thaisen_app_get_time_sync_flag();
 		if(TRUE == timeSync)
 		{
-			LcdData.runData.syncTimeFlg = TRUE;	
+			LcdData.runData.syncTimeFlg = TRUE;
 		}
 			
 		//getSecToTimeStr(LcdData.runData.timer,timesec);

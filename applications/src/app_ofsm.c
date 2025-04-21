@@ -64,7 +64,7 @@ APP_DEF_SRAM1 static uint32_t s_request_screen_time_tick = 0x00;
 APP_DEF_SRAM1 static uint8_t s_request_screen_time_step = 0x01;
 APP_DEF_SRAM1 static uint8_t s_transaction_sending[LINK_PLATFORM_MAX][APP_SYSTEM_GUNNO_SIZE];
 APP_DEF_SRAM1 static uint8_t s_chargegun_idle_count = 0x00;
-APP_DEF_SRAM1 static uint32_t s_timestamp_base = 0x00, s_tick_base = 0x00;
+//APP_DEF_SRAM1 static uint32_t s_timestamp_base = 0x00, s_tick_base = 0x00;
 
 APP_DEF_SRAM1 static uint8_t s_issue_power_adjust = false, s_chargepile_output_steady[APP_SYSTEM_GUNNO_SIZE];
 APP_DEF_SRAM1 static uint8_t s_charge_steady_delay[APP_SYSTEM_GUNNO_SIZE], s_power_adjust_delay = 0, s_power_on = 0;
@@ -122,9 +122,10 @@ void app_ofsm_info_init(void)
     s_power_adjust_delay = 0x00;
     s_power_on = 0x00;
     s_system_power_output = 0x00;
-
+#if 0
     s_timestamp_base = 0x00;
     s_tick_base = 0x00;
+#endif
 }
 #endif /* APP_DESIGNATE_REGION */
 
@@ -218,14 +219,20 @@ static uint8_t ofsm_is_belong_one_car(uint8_t gunno)
 uint8_t ofsm_get_current_period(void)
 {
     uint8_t period;
+#if 0
     uint32_t current_time = s_timestamp_base, tick = rt_tick_get();
+#else
+    uint32_t current_time = time(NULL);
+#endif
     struct tm *_tm;
 
+#if 0
     if(s_tick_base > tick){
         current_time += ((tick + 0xFFFFFFFF - s_tick_base) /1000);
     }else{
         current_time += ((tick - s_tick_base) /1000);
     }
+#endif
 
     rt_enter_critical();
     _tm = localtime((time_t*)&current_time);
@@ -293,12 +300,16 @@ uint32_t ofsm_get_period_price(uint8_t gunno, uint8_t period)
             app_billingrule_get_period_delay_price(gunno, period);
 
     if(s_ofsm_info[gunno].base.run_mode == APP_RUN_MODE_OFFLINE_BILLING){
+#if 0
         uint32_t current_time = s_timestamp_base, tick = rt_tick_get();
         if(s_tick_base > tick){
             current_time += ((tick + 0xFFFFFFFF - s_tick_base) /1000);
         }else{
             current_time += ((tick - s_tick_base) /1000);
         }
+#else
+        uint32_t current_time = time(NULL);
+#endif
         price = sys_get_offbilling_unit_price(current_time);
     }
 
@@ -2190,10 +2201,11 @@ static void ofsm_readying_fun(uint8_t gunno)
 
         /************** 【充电桩已授权】 *************/
         if(is_charging_authorization == true){
+#if 0
             /** 启动前向屏幕对时 */
             s_request_screen_time_step = 1;
             thaisen_request_screen_time();
-
+#endif
             ofsm_start_info_padding_public(gunno);
             app_get_hci_event(gunno, HCI_EVENT_SCREEN_STOP, APP_THA_ENUM_TRUE);    /** 清除屏幕停止事件(启动中可屏幕停止) */
 
@@ -2406,10 +2418,11 @@ static void ofsm_reservation_fun(uint8_t gunno)
 
         /************** 【充电桩已授权】 *************/
         if(is_charging_authorization == true){
+#if 0
             /** 启动前向屏幕对时 */
             s_request_screen_time_step = 1;
             thaisen_request_screen_time();
-
+#endif
             ofsm_start_info_padding_public(gunno);
 
             s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_STARTING];
@@ -5406,10 +5419,11 @@ static void ofsm_finishing_fun(uint8_t gunno)
                 app_card_event_recv(APP_CARD_EVENT_CHARGE_STOP, 0x00, gunno, NULL, APP_THA_ENUM_TRUE);
             }
 #endif /* #ifdef APP_USING_OFFLINE_BILLING */
+#if 0
             /** 启动前向屏幕对时 */
             s_request_screen_time_step = 1;
             thaisen_request_screen_time();
-
+#endif
             ofsm_start_info_padding_public(gunno);
 
             s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_STARTING];
@@ -5668,10 +5682,11 @@ static void ofsm_faulting_fun(uint8_t gunno)
                         app_card_event_recv(APP_CARD_EVENT_CHARGE_STOP, 0x00, gunno, NULL, APP_THA_ENUM_TRUE);
                     }
 #endif /* APP_USING_OFFLINE_BILLING */
+#if 0
                     /** 启动前向屏幕对时 */
                     s_request_screen_time_step = 1;
                     thaisen_request_screen_time();
-
+#endif
                     ofsm_start_info_padding_public(gunno);
 
                     s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_STARTING];
@@ -5851,7 +5866,7 @@ void ofsm_thread_entry(void *parameter)
                 thaisenModuleSetMaxCurrSingleGun(APP_MCURRENT_SINGLEGUN_DEFAULT);
             }
         }
-
+#if 0
         if(thaisen_get_screen_timesync_flag()){
             struct tm t = { 0 };
             uint32_t timestamp;
@@ -5895,9 +5910,10 @@ void ofsm_thread_entry(void *parameter)
 
         if(mw_get_time_sync_flag(APP_TIME_SYNC_FLAG_FEES)){
             mw_clear_time_sync_flag(APP_TIME_SYNC_FLAG_FEES);
-
+#if 0
             s_timestamp_base = mw_get_current_timestamp();
             s_tick_base = rt_tick_get();
+#endif
         }
 
         if(s_request_screen_time_step == 1){
@@ -5906,7 +5922,7 @@ void ofsm_thread_entry(void *parameter)
                 s_request_screen_time_tick = rt_tick_get();
             }
         }
-
+#endif
         if(app_nsal_is_time_sync()){
             app_nsal_clear_time_sync();
             extern void mw_set_time_sync_flag(void);
