@@ -5866,7 +5866,7 @@ void ofsm_thread_entry(void *parameter)
                 thaisenModuleSetMaxCurrSingleGun(APP_MCURRENT_SINGLEGUN_DEFAULT);
             }
         }
-#if 0
+
         if(thaisen_get_screen_timesync_flag()){
             struct tm t = { 0 };
             uint32_t timestamp;
@@ -5897,13 +5897,13 @@ void ofsm_thread_entry(void *parameter)
 
             timestamp = mktime(&t);
 
-            s_request_screen_time_step = 1;
+//            s_request_screen_time_step = 1;
             if(data_valid){
                 mw_set_datetime_from_timestamp(timestamp);
 
                 extern void mw_set_time_sync_flag(void);
                 mw_set_time_sync_flag();
-                s_request_screen_time_step = 2;
+//                s_request_screen_time_step = 2;
                 LOG_D("time sync :%d, %d, %d, %d, %d, %d", _time[0], _time[1], _time[2], _time[3], _time[4], _time[5]);
             }
         }
@@ -5915,7 +5915,7 @@ void ofsm_thread_entry(void *parameter)
             s_tick_base = rt_tick_get();
 #endif
         }
-
+#if 0
         if(s_request_screen_time_step == 1){
             if((rt_tick_get() - s_request_screen_time_tick) >= 3000){
                 thaisen_request_screen_time();

@@ -1282,7 +1282,7 @@ void thaisen_get_screen_timesync_time(uint16_t* buf, uint8_t len)
  *******************************************/
 void thaisen_request_screen_time(void)
 {
-    SerialScreen_ScreenRequest_Time();
+//    SerialScreen_ScreenRequest_Time();
 }
 
 /*********************************************

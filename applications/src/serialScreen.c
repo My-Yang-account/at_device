@@ -9063,7 +9063,7 @@ struct LCD_DATA_FIFO_TYPE *SerialScreen_Init(struct SerialScreenObj *cmd)
 
 	Q_INIT(LcdData.List, u8, 250);
 //	SerialScreen_RtcShow(cmd);
-	SerialScreen_ReadData(cmd, 0x0010, 4);
+//	SerialScreen_ReadData(cmd, 0x0010, 4);
 
 	LcdRxData.rstep = LCD_DATA_STEP_HEAD;
 	LcdRxData.pDataFifo = LCD_FifoOpen();
@@ -9692,7 +9692,7 @@ void SerialScreen_GetKeyProcess(struct SerialScreenObj *cmd)
         LcdData.setData.s_TimeSync[4] = ptr[5];
         LcdData.setData.s_TimeSync[5] = ptr[6];
 
-        SerialScreen_ScreenSet_TimeSync_Flag();
+//        SerialScreen_ScreenSet_TimeSync_Flag();
     }
 
     //离线计费页面
