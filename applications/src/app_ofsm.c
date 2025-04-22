@@ -2473,7 +2473,7 @@ static void ofsm_starting_fun(uint8_t gunno)
         return;
     }
 
-    uint8_t vin_authentication_complete = APP_THA_ENUM_FALSE;
+    uint8_t vin_authentication_complete = APP_THA_ENUM_FALSE, using_vin_authentication = APP_THA_ENUM_FALSE;
     enum system_stop_way stop_way = APP_SYSTEM_STOP_WAY_SIZE;
     enum charge_state_t charge_state = mw_get_charge_state(gunno);
     enum charge_fault_t charge_fault = app_get_highest_priority_charge_fault(gunno);
@@ -3203,8 +3203,24 @@ static void ofsm_starting_fun(uint8_t gunno)
                 break;
             }
 
+            if((s_ofsm_info[gunno].base.start_type == APP_CHARGE_START_WAY_RESERVATION) && (app_billingrule_is_valid(gunno) == NET_ENUM_TRUE)){
+                if((s_ofsm_info[gunno].base.net_state == APP_NET_STATE_AUTH_SECCESS) && (*(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_SUPORT_VIN, 0x00)) == APP_THA_ENUM_TRUE)){
+                    using_vin_authentication = APP_THA_ENUM_TRUE;
+                }else{
+                    if(s_ofsm_info[gunno].base.flag.vin_is_authorized == APP_THA_ENUM_FALSE){
+                        using_vin_authentication = APP_THA_ENUM_FALSE;
+                    }else{
+                        using_vin_authentication = APP_THA_ENUM_TRUE;
+                    }
+                }
+            }else if(s_ofsm_info[gunno].base.start_type == APP_CHARGE_START_WAY_VIN){
+                using_vin_authentication = APP_THA_ENUM_TRUE;
+            }else{
+                using_vin_authentication = APP_THA_ENUM_FALSE;
+            }
+
             s_booting_step[gunno] = APP_BOOTING_STEP_CONFIG;
-            if(s_ofsm_info[gunno].base.start_type == APP_CHARGE_START_WAY_VIN){
+            if(using_vin_authentication == APP_THA_ENUM_TRUE){
                 if(s_ofsm_info[gunno].base.flag.vin_is_authorized == APP_THA_ENUM_FALSE){
                     struct thaisenBMS_Charger_struct* bms = (struct thaisenBMS_Charger_struct*)(s_ofsm_info[gunno].base.bms_data);
                     s_thaisen_transaction[gunno].start_soc = bms->BCP.SOC;
@@ -3282,7 +3298,7 @@ static void ofsm_starting_fun(uint8_t gunno)
                 memcpy(s_thaisen_transaction[gunno].car_vin, bms->BRM.CarDiscern, sizeof(bms->BRM.CarDiscern));
             }
 
-            if((vin_authentication_complete == APP_THA_ENUM_FALSE) && (s_ofsm_info[gunno].base.start_type == APP_CHARGE_START_WAY_VIN)){
+            if((vin_authentication_complete == APP_THA_ENUM_FALSE) && (using_vin_authentication == APP_THA_ENUM_TRUE)){
                 break;
             }
 
