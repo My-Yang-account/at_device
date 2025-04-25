@@ -5866,21 +5866,26 @@ void ofsm_thread_entry(void *parameter)
         }
 
         if(s_ofsm_info[thread_gunno].base.state.current == APP_OFSM_STATE_CHARGING){         /** 进入充电时才可设置BMS是否禁止充电 */
+            uint32_t singlegun_max_curr = 0x00;
             if((s_ofsm_info[thread_gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL) ||  \
                     (s_ofsm_info[thread_gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD)){
                 if(s_ofsm_info[thread_gunno].base.main_gunno == thread_gunno){      /** 并充时只有主枪才可设置BMS是否禁止充电 */
                     /** 设置BMS是否禁止充电 */
                     thaisenModuleSetBMSAllowCharge(thaisen_get_charging_pause_activate(thread_gunno), thread_gunno);
+                    singlegun_max_curr = (*((uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_MAX_LIMIT_CURRENT, 0)))) *100 / APP_SYSTEM_GUNNO_SIZE;
+                    singlegun_max_curr = singlegun_max_curr > APP_MCURRENT_SINGLEGUN_PARACHARGE ? APP_MCURRENT_SINGLEGUN_PARACHARGE : singlegun_max_curr;
                     if(thaisen_get_current_offset(thread_gunno) > APP_CURRENT_OFFSET_DEFAULT){
-                        thaisenModuleSetMaxCurrSingleGun(APP_MCURRENT_SINGLEGUN_PARACHARGE);
+                        thaisenModuleSetMaxCurrSingleGun(singlegun_max_curr);
                     }else{
-                        thaisenModuleSetMaxCurrSingleGun(APP_MCURRENT_SINGLEGUN_DEFAULT);
+                        thaisenModuleSetMaxCurrSingleGun(singlegun_max_curr);
                     }
                 }
             }else{
                 /** 设置BMS是否禁止充电 */
                 thaisenModuleSetBMSAllowCharge(thaisen_get_charging_pause_activate(thread_gunno), thread_gunno);
-                thaisenModuleSetMaxCurrSingleGun(APP_MCURRENT_SINGLEGUN_DEFAULT);
+                singlegun_max_curr = (*((uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_MAX_LIMIT_CURRENT, 0)))) *100 / APP_SYSTEM_GUNNO_SIZE;
+                singlegun_max_curr = singlegun_max_curr > APP_MCURRENT_SINGLEGUN_PARACHARGE ? APP_MCURRENT_SINGLEGUN_PARACHARGE : singlegun_max_curr;
+                thaisenModuleSetMaxCurrSingleGun(singlegun_max_curr);
             }
         }
 

@@ -47,7 +47,7 @@ extern "C" {
 
 #define APP_CURRENT_OFFSET_DEFAULT           4000      /* 电流偏移默认值(0.1) */
 #define APP_MCURRENT_SINGLEGUN_DEFAULT       25000     /* 单枪最大电流默认值(0.01) */
-#define APP_MCURRENT_SINGLEGUN_PARACHARGE    30000     /* 并充时单枪最大电流值(0.01) */
+#define APP_MCURRENT_SINGLEGUN_PARACHARGE    40000     /* 并充时单枪最大电流值(0.01) */
 
 #define APP_PARACHARGE_IDENTIFY_CAN_ID       0x1FFFFFFF /* 并充自动识别CAN ID */
 #define APP_PARACHARGE_IDENTIFY_CAN_DATA     0x5A       /* 并充自动识别CAN 数据 */
