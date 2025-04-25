@@ -644,6 +644,7 @@ int8_t sgcc_message_pro_remote_start_charge_request(uint8_t gunno, void *data, u
         return NET_SGCC_START_RESULT_DISCONNECT;
         break;
     case APP_OFSM_STATE_READYING:
+    case APP_OFSM_STATE_RESERVATION:
     case APP_OFSM_STATE_FINISHING:
         memset(base->card_number, 0x00, sizeof(base->card_number));
         memset(base->card_uid, 0x00, sizeof(base->card_uid));
@@ -776,6 +777,7 @@ int8_t sgcc_message_pro_remote_start_charge_request(uint8_t gunno, void *data, u
         return NET_SGCC_START_RESULT_DISCONNECT;
         break;
     case APP_OFSM_STATE_READYING:
+    case APP_OFSM_STATE_RESERVATION:
     case APP_OFSM_STATE_FINISHING:
         memset(base->card_number, 0x00, sizeof(base->card_number));
         memset(base->card_uid, 0x00, sizeof(base->card_uid));
@@ -2968,6 +2970,7 @@ void sgcc_chargepile_state_changed(uint8_t gunno)
 
         break;
     case APP_OFSM_STATE_READYING:
+    case APP_OFSM_STATE_RESERVATION:
         s_sgcc_state_info[gunno].state.state = SGCC_WORKSTATE_INSERT;
 
         s_sgcc_state_info[gunno].state.electlock = SGCC_OPSCTL_ACTION;
@@ -3894,6 +3897,7 @@ static void sgcc_data_realtime_process(uint8_t gunno)
     case APP_OFSM_STATE_STOPING:
         sgcc_clear_message_wait_response_state(gunno, NET_SGCC_PREQ_EVENT_APPLY_START_CHARGE);
         break;
+    case APP_OFSM_STATE_RESERVATION:
     case APP_OFSM_STATE_FINISHING:
     case APP_OFSM_STATE_FAULTING:
         break;

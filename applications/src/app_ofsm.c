@@ -2292,8 +2292,9 @@ static void ofsm_reservation_fun(uint8_t gunno)
         if(s_ofsm_info[gunno].base.flag.is_local_reservation == APP_THA_ENUM_FALSE){
             app_nsal_is_cancel_reservation(gunno);
 
-            s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_RESERVATION];
-            s_ofsm_info[gunno].state = APP_OFSM_STATE_RESERVATION;
+            s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_IDLEING];
+            s_ofsm_info[gunno].state = APP_OFSM_STATE_IDLEING;
+            return;
         }
     }
     /********* 预约时间到 **********/
@@ -2437,8 +2438,8 @@ static void ofsm_reservation_fun(uint8_t gunno)
         s_ofsm_info[gunno].base.flag.connect_state = APP_CONNECT_STATE_CONNECT;
         app_nsal_event_occurded(gunno);
     }
-    if((s_ofsm_info[gunno].base.state.current != APP_OFSM_STATE_READYING) && (is_charging_authorization == false)){
-        s_ofsm_info[gunno].base.state.current = APP_OFSM_STATE_READYING;
+    if((s_ofsm_info[gunno].base.state.current != APP_OFSM_STATE_RESERVATION) && (is_charging_authorization == false)){
+        s_ofsm_info[gunno].base.state.current = APP_OFSM_STATE_RESERVATION;
         app_nsal_state_charged(gunno);
     }
 

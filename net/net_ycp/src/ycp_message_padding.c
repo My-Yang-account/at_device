@@ -925,6 +925,7 @@ int16_t ycp_message_pro_remote_start_charge_request(uint8_t gunno, void *data, u
         return NET_YCP_START_FAIL_CODE_NO_GUN;
         break;
     case APP_OFSM_STATE_READYING:
+    case APP_OFSM_STATE_RESERVATION:
     case APP_OFSM_STATE_FINISHING:
     case APP_OFSM_STATE_FAULTING:
         memset(base->card_number, 0x00, sizeof(base->card_number));
@@ -2052,6 +2053,7 @@ void ycp_chargepile_state_changed(uint8_t gunno)
     switch(base->state.current){
     case APP_OFSM_STATE_IDLEING:
     case APP_OFSM_STATE_READYING:
+    case APP_OFSM_STATE_RESERVATION:
     case APP_OFSM_STATE_STARTING:
         state = 0x02;
         break;
@@ -2753,6 +2755,7 @@ static void ycp_data_realtime_process(uint8_t gunno, System_BaseData *base)
     case APP_OFSM_STATE_STOPING:
         ycp_clear_message_wait_response_state(gunno, NET_YCP_PREQ_EVENT_APPLY_START_CHARGE);
         break;
+    case APP_OFSM_STATE_RESERVATION:
     case APP_OFSM_STATE_FINISHING:
     case APP_OFSM_STATE_FAULTING:
         break;

@@ -926,6 +926,7 @@ int8_t ykc_message_pro_remote_start_charge_request(uint8_t gunno, void *data, ui
         return NET_YKC_START_FAIL_REASON_NO_GUN;
         break;
     case APP_OFSM_STATE_READYING:
+    case APP_OFSM_STATE_RESERVATION:
     case APP_OFSM_STATE_FINISHING:
     case APP_OFSM_STATE_FAULTING:
         valid_len = sizeof(request->body.logic_card_number);
@@ -2417,6 +2418,7 @@ void ykc_chargepile_state_changed(uint8_t gunno)
     switch(base->state.current){
     case APP_OFSM_STATE_IDLEING:
     case APP_OFSM_STATE_READYING:
+    case APP_OFSM_STATE_RESERVATION:
     case APP_OFSM_STATE_STARTING:
         s_ykc_state_info[gunno].state.state = NETYKC_DEVICE_STATE_IDLE;
         break;
@@ -2963,6 +2965,7 @@ static void ykc_data_realtime_process(uint8_t gunno, System_BaseData *base)
         s_ykc_flag_info[gunno].is_start_mergecharge = NET_ENUM_FALSE;
         ykc_clear_message_wait_response_state(gunno, NET_YKC_PREQ_EVENT_APPLY_START_CHARGE);
         break;
+    case APP_OFSM_STATE_RESERVATION:
     case APP_OFSM_STATE_FINISHING:
     case APP_OFSM_STATE_FAULTING:
         s_ykc_flag_info[gunno].is_refuse_mergecharge = NET_ENUM_FALSE;
