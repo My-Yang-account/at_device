@@ -2369,10 +2369,11 @@ int32_t chargepile_check_config(void)
     if(sys_string_contain_ctrl_char((const char*)&s_chargepile_config_info.pile_info.help_number, valid_len)){
         s_chargepile_config_info.pile_info.help_number_len = strlen(CP_HELP_PHONE_DEFAULT);
         memset(s_chargepile_config_info.pile_info.help_number, 0x00, sizeof(s_chargepile_config_info.pile_info.help_number));
-
+#if 0
         valid_len = sizeof(s_chargepile_config_info.pile_info.help_number);
         valid_len = valid_len > strlen((char*)CP_HELP_PHONE_DEFAULT) ? strlen((char*)CP_HELP_PHONE_DEFAULT) : valid_len;
         memcpy(&s_chargepile_config_info.pile_info.help_number, CP_HELP_PHONE_DEFAULT, valid_len);
+#endif
     }
 
     for(uint8_t count = 0x00; count < 0x02; count++){
