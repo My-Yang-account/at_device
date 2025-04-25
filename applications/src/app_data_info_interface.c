@@ -137,6 +137,10 @@ struct qrcode_info *thaisen_app_get_gunno_qrcode(uint8_t gunno) // OK
         memcpy(s_qrcode.qrcode, QRCODE_FEFAULT, strlen(QRCODE_FEFAULT));
         qrcode_len = strlen(QRCODE_FEFAULT);
         s_qrcode.qrcode_len = qrcode_len;
+#ifdef CP_QRCODE_CONFIG_USING_SGCC
+        set_type = CP_SET_QRCODE_FORMAT_PREFIX_DEVICE_SN_PORT;
+        generate_type = CP_GENERATE_QRCODE_FORMAT_PREFIX_DEVICE_SN_PORT;
+#endif /* CP_QRCODE_CONFIG_USING_SGCC */
     }else{
         if(storage_len <= 0x02){
             return &s_qrcode;
