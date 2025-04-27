@@ -418,7 +418,7 @@ void app_led_init(void)
 void app_hci_init(void)
 {
     rt_err_t result = RT_EOK;
-    uint8_t entry = 0x03, name[8];
+    uint8_t entry = 0x05, name[8];
 
     result = rt_thread_init(&hci_req_thread, "task_hci_req",
             app_hci_req_thread_entry, RT_NULL, &hci_req_thread_stack, sizeof(hci_req_thread_stack), 13, 10);  // 18
