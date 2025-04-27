@@ -479,11 +479,13 @@ static void ykc_callback_request_remote_start_charge(uint8_t* data, uint16_t len
         LOG_E("ykc input data is null when call tha_callback_request_remote_start_charge");
         return;
     }
+#if 0
     if(length != sizeof(Net_YkcPro_SReq_Remote_StartCharge_t)){
         LOG_E("ykc input length error when call tha_callback_request_remote_start_charge|%d, %d", length,
                 sizeof(Net_YkcPro_SReq_Remote_StartCharge_t));
         return;
     }
+#endif
     uint8_t gunno = ((Net_YkcPro_SReq_Remote_StartCharge_t*)data)->body.gunno;
     uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_YKC |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
     struct net_handle* handle = net_get_net_handle();
@@ -492,6 +494,7 @@ static void ykc_callback_request_remote_start_charge(uint8_t* data, uint16_t len
     uint8_t pile_numberbcd[NET_YKC_CHARGEPILE_LENGTH_DEFAULT];
     uint16_t valid_len = strlen((char*)pile_number);
 
+    length = sizeof(Net_YkcPro_SReq_Remote_StartCharge_t);
     valid_len = valid_len > (NET_YKC_CHARGEPILE_LENGTH_DEFAULT *0x02) ? (NET_YKC_CHARGEPILE_LENGTH_DEFAULT *0x02) : valid_len;
     ykc_ascii_to_bcd((uint8_t*)pile_number, valid_len, pile_numberbcd, NET_YKC_CHARGEPILE_LENGTH_DEFAULT);
     if(!((gunno > 0x00) && (gunno <= NET_SYSTEM_GUN_NUMBER))){
