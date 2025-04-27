@@ -470,7 +470,6 @@ static int callback_service_EVS_STOP_CHARGE_SRV(evs_service_stopCharge *request,
     uint8_t gunno = request->gunNo;
 
     if(!((gunno > 0x00) && (gunno <= NET_SYSTEM_GUN_NUMBER))){
-        memcpy(request->tradeNo, evs_service_startCharges[0x00].tradeNo, EVS_MAX_TRADE_LEN);
         sgcc_input_recv_message_item(EVS_STOP_CHARGE_SRV, 0x01, 0x00);
         memcpy(&(evs_service_stopCharges[0x00]), request, sizeof(evs_service_stopCharge));
 
@@ -483,9 +482,6 @@ static int callback_service_EVS_STOP_CHARGE_SRV(evs_service_stopCharge *request,
 
         LOG_E("gunno error when call callback_service_EVS_STOP_CHARGE_SRV(%d)", gunno);
     }
-
-    memcpy(request->tradeNo, evs_service_startCharges[(gunno - 0x01)].tradeNo, EVS_MAX_TRADE_LEN);
-
     sgcc_input_recv_message_item(EVS_STOP_CHARGE_SRV, 0x00, (gunno - 0x01));
     memcpy(&(evs_service_stopCharges[(gunno - 0x01)]), request, sizeof(evs_service_stopCharge));
 
