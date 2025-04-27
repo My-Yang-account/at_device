@@ -610,7 +610,7 @@ int16_t thaisen_get_insult_voltage(uint8_t gunno);
  **/
 int32_t thaisen_set_trigger_event(enum thaisen_trig_event event, uint16_t duration_time, uint8_t just_notice, uint8_t gunno);
 /**
- * 判断是否是在线启动
+ * 判断是否允许本地停止
  **/
 uint8_t thaisen_is_allow_loacl_stop(uint8_t gunno);
 

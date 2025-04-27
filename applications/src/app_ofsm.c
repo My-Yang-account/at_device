@@ -2173,16 +2173,18 @@ static void ofsm_readying_fun(uint8_t gunno)
                 struct tm tmp;
 
                 localtime_r(&t_base, &tmp);
-                /** 屏幕预约-超过预约时间15分钟内还是可以启动的 */
-                if(thaisen_get_mode_parameter(gunno) >= (tmp.tm_hour *3600 + tmp.tm_min *60)){
-                    s_ofsm_info[gunno].base.reservation_time_remain = (thaisen_get_mode_parameter(gunno) - (tmp.tm_hour *3600 + tmp.tm_min *60));
-                    continue_reservation = APP_THA_ENUM_TRUE;
-                    s_ofsm_info[gunno].base.reservation_strategy = (APP_RESERVATE_STRATEGY_PULLGUN_CANCEL |APP_RESERVATE_STRATEGY_FAULT_CANCEL |APP_RESERVATE_STRATEGY_START_DIRECTLY);
-                }else if((thaisen_get_mode_parameter(gunno) + 15 *60) > (tmp.tm_hour *3600 + tmp.tm_min *60)){
-                    if(thaisen_is_set_reservation_mode(gunno)){
-                        s_ofsm_info[gunno].base.reservation_time_remain = 0x00;
+                if((tmp.tm_year + 1900) >= 2025){
+                    /** 屏幕预约-超过预约时间15分钟内还是可以启动的 */
+                    if(thaisen_get_mode_parameter(gunno) >= (tmp.tm_hour *3600 + tmp.tm_min *60)){
+                        s_ofsm_info[gunno].base.reservation_time_remain = (thaisen_get_mode_parameter(gunno) - (tmp.tm_hour *3600 + tmp.tm_min *60));
                         continue_reservation = APP_THA_ENUM_TRUE;
                         s_ofsm_info[gunno].base.reservation_strategy = (APP_RESERVATE_STRATEGY_PULLGUN_CANCEL |APP_RESERVATE_STRATEGY_FAULT_CANCEL |APP_RESERVATE_STRATEGY_START_DIRECTLY);
+                    }else if((thaisen_get_mode_parameter(gunno) + 15 *60) > (tmp.tm_hour *3600 + tmp.tm_min *60)){
+                        if(thaisen_is_set_reservation_mode(gunno)){
+                            s_ofsm_info[gunno].base.reservation_time_remain = 0x00;
+                            continue_reservation = APP_THA_ENUM_TRUE;
+                            s_ofsm_info[gunno].base.reservation_strategy = (APP_RESERVATE_STRATEGY_PULLGUN_CANCEL |APP_RESERVATE_STRATEGY_FAULT_CANCEL |APP_RESERVATE_STRATEGY_START_DIRECTLY);
+                        }
                     }
                 }
             }
@@ -4398,7 +4400,7 @@ static void ofsm_charging_fun(uint8_t gunno)
                     s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_FALSE;
 
                     is_stop_charge_authorization = true;
-                    LOG_D("gunno(%d) charge finish deal to reach target time(%d, %d)\n", gunno, increase_sec, strategy_para);
+                    LOG_D("gunno(%d) charge finish deal to reach target time(%d, %d)\n", gunno, s_ofsm_info[gunno].base.charge_time, strategy_para);
                 }
             }
         }
