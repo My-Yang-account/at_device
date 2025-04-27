@@ -2066,7 +2066,7 @@ void sgcc_message_info_init(uint8_t gunno)  ///////// 这是网络部分外部�
     }
 
     uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_SGCC |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
-    uint8_t *data = NULL, count = 0x00;
+    uint8_t *data = NULL, count = 0x00, valid_len = 0x00;
     sgcc_storage_struct *config = NULL;
 
     s_sgcc_handle = net_get_net_handle();
@@ -2087,7 +2087,7 @@ void sgcc_message_info_init(uint8_t gunno)  ///////// 这是网络部分外部�
 #endif /* NET_SGCC_PRO_USING_DC */
 
     evs_event_firmware_infos.vendorCode = 1287;
-#if 0
+#if 1
     valid_len = strlen(data);
     valid_len = valid_len > EVS_MAX_DEV_SN_LEN ? EVS_MAX_DEV_SN_LEN : valid_len;
     memset(evs_event_firmware_infos.devSn, 0x00, EVS_MAX_DEV_SN_LEN);
@@ -2217,14 +2217,14 @@ void sgcc_message_info_init(uint8_t gunno)  ///////// 这是网络部分外部�
 #endif
 
     memset(evs_event_ver_infos.pileSoftwareVer, 0x00, EVS_MAX_SOFTWAREVER_LEN);
-#if 0
-    sprintf("V%02d.%02d.%02d", base->soft_ver_main, base->soft_ver_sub, base->soft_ver_revise);
+#if 1
+    sprintf(evs_event_ver_infos.pileSoftwareVer, "V%d.%d.%d", base->soft_ver_main, base->soft_ver_sub, base->soft_ver_revise);
 #else
     memcpy(evs_event_ver_infos.pileSoftwareVer, "V1.3.2", strlen("V1.3.2"));
 #endif
 
     memset(evs_event_ver_infos.sdkVer, 0x00, EVS_MAX_SDKVER_LEN);
-    memcpy(evs_event_ver_infos.sdkVer, "SDK_V1.1.10", strlen("SDK_V1.1.10"));
+    memcpy(evs_event_ver_infos.sdkVer, "SDK_V1.1.7", strlen("SDK_V1.1.7"));
 
     sgcc_storage_data_check();
 

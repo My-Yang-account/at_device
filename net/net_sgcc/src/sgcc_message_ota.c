@@ -14,6 +14,7 @@
 #include "sgcc_message_send.h"
 #include "net_operation.h"
 #include "ota_support.h"
+#include "app_ofsm.h"
 
 #define DBG_TAG "gw_ota"
 #define DBG_LVL DBG_LOG
@@ -511,9 +512,11 @@ int sgcc_ota_init(void)
 int sgcc_firmware_version(char *version)
 {
     int len = strlen(firmware_version);
+    System_BaseData *base = (System_BaseData*)(net_get_net_handle()->get_base_data(0x00));
 
     memset(version, 0x0, sizeof(firmware_version));
-    strncpy(version, "V1.3.2", strlen("V1.3.2"));
+
+    sprintf(version, "V%d.%d.%d", base->soft_ver_main, base->soft_ver_sub, base->soft_ver_revise);
 
     version[len] = '\0';
 
