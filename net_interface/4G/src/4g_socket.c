@@ -197,24 +197,33 @@ int netdev_4g_socket_send_port(int socket_fd, void *data, uint16_t len)
     }
     int32_t result = 0x00;
     uint8_t overreturn = 0x00;
-    uint8_t sendbytes = 0x00;
-    uint32_t start_tick = rt_tick_get(), remain_tick = 0x00, timeout = 5000;
+    uint16_t sendbytes = 0x00;
+    uint32_t start_tick = rt_tick_get(), current_tick = rt_tick_get(), remain_tick = 0x00, timeout = 5000;
     fd_set writefds;
     struct timeval timeselect;
 
     while(1){
-        if(start_tick > rt_tick_get()){
+        current_tick = rt_tick_get();
+        if(start_tick > current_tick){
             if(overreturn == 0x00){
                 overreturn = 0x01;
             }
         }
-        if((start_tick + overreturn *0xFFFFFFFF - rt_tick_get()) > timeout){
-            return -0x05;
+
+        if(overreturn){
+            if((current_tick + (overreturn *0xFFFFFFFF - start_tick)) > timeout){
+                return -0x05;
+            }
+            remain_tick = timeout - (current_tick + (overreturn *0xFFFFFFFF - start_tick));
         }else{
-            remain_tick = timeout - (start_tick + overreturn *0xFFFFFFFF - rt_tick_get());
-            timeselect.tv_sec = remain_tick /1000;
-            timeselect.tv_usec = remain_tick %1000;
+            if((current_tick - start_tick) > timeout){
+                return -0x05;
+            }
+            remain_tick = timeout - (current_tick - start_tick);
         }
+        timeselect.tv_sec = remain_tick /1000;
+        timeselect.tv_usec = remain_tick %1000;
+
         FD_ZERO(&writefds);
         FD_SET(socket_fd, &writefds);
         result = select(socket_fd + 1, NULL, &writefds, NULL, &timeselect);
