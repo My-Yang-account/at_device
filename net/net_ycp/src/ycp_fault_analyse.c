@@ -94,7 +94,7 @@ static int32_t ycp_get_fault_code(uint32_t bit, uint8_t gunno, uint8_t *rank)
     case NET_GENERAL_FAULT_SCRAM:
         s_ycp_realtime_fault[gunno] = NET_YCP_FAULT_CODE_EMERGENCY;
         if(rank){
-            *rank = NET_YCP_FAULT_CODE_TYPE_DEVICE;
+            *rank = NET_YCP_FAULT_CODE_TYPE_PORT;
         }
         break;
     case NET_GENERAL_FAULT_CARD_READER:
