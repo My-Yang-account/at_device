@@ -5337,11 +5337,11 @@ static void SerialScreen_BtnModuleStateShow(int port)
                 if(fault[count].state.fault.bit.SameId){
                     warnning |= SAMEID_INDEX;
                 }
-            }
-            if(fault[count].state.warn.warn_val != 0){
                 if(fault[count].state.fault.bit.OverTemp){
                     warnning |= OVERTEMP_INDEX;
                 }
+            }
+            if(fault[count].state.warn.warn_val != 0){
                 if(fault[count].state.warn.bit.Fan){
                     warnning |= FAN_INDEX;
                 }
