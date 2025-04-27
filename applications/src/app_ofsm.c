@@ -3626,7 +3626,7 @@ static void ofsm_charging_fun(uint8_t gunno)
     }
 
     extern uint32_t thaisen_get_module_curr(uint8_t gunNum);
-    uint32_t current_tick = rt_tick_get(), increase_sec = 0, bms_ccs_curr = 4000;
+    uint32_t current_tick = rt_tick_get(), bms_ccs_curr = 4000;
     bool is_stop_charge_authorization = APP_THA_ENUM_FALSE;  /* 停充已授权 */
     enum system_stop_way stop_way = APP_SYSTEM_STOP_WAY_SIZE;
     enum charge_state_t charge_state = mw_get_charge_state(gunno);
@@ -3803,12 +3803,6 @@ static void ofsm_charging_fun(uint8_t gunno)
     /************************************************************************************************************/
     /************************************************************************************************************/
 
-    if(s_ofsm_info[gunno].timing_tick > current_tick){
-        increase_sec = ((current_tick + 0xFFFFFFFF) - s_ofsm_info[gunno].timing_tick) /1000;
-    }else{
-        increase_sec = (current_tick - s_ofsm_info[gunno].timing_tick) /1000;
-    }
-
     if((s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL) && (gunno == s_ofsm_info[gunno].base.main_gunno)){
         uint8_t deputy_gunno = APP_SYSTEM_GUNNOA;
         if(gunno == APP_SYSTEM_GUNNOA){
@@ -3820,7 +3814,7 @@ static void ofsm_charging_fun(uint8_t gunno)
             if((current_tick + 0xFFFFFFFF - s_ofsm_info[gunno].elect_calculate_tick) > 1000){  /** 一秒计算一次 */
                 uint32_t _elect = mw_get_meter_total_wh(gunno) + mw_get_meter_total_wh(deputy_gunno);
                 if((_elect <= (s_ofsm_info[gunno].base.charge_elect_last + APP_CALCULATE_ELECT_DIFF_MAX)) && (_elect > s_ofsm_info[gunno].base.charge_elect_last)){ /** 按三秒的电量来算 */
-                    app_billing_info_calculate((s_ofsm_info[gunno].base.start_time + increase_sec), _elect, (_elect - s_ofsm_info[gunno].base.charge_elect_last), gunno);
+                    app_billing_info_calculate(s_ofsm_info[gunno].base.current_time, _elect, (_elect - s_ofsm_info[gunno].base.charge_elect_last), gunno);
                 }
                 s_ofsm_info[gunno].elect_calculate_tick = current_tick;
                 s_ofsm_info[gunno].base.charge_elect_last = _elect;
@@ -3829,7 +3823,7 @@ static void ofsm_charging_fun(uint8_t gunno)
             if((current_tick - s_ofsm_info[gunno].elect_calculate_tick) > 1000){  /** 一秒计算一次 */
                 uint32_t _elect = mw_get_meter_total_wh(gunno) + mw_get_meter_total_wh(deputy_gunno);
                 if((_elect <= (s_ofsm_info[gunno].base.charge_elect_last + APP_CALCULATE_ELECT_DIFF_MAX)) && (_elect > s_ofsm_info[gunno].base.charge_elect_last)){
-                    app_billing_info_calculate((s_ofsm_info[gunno].base.start_time + increase_sec), _elect, (_elect - s_ofsm_info[gunno].base.charge_elect_last), gunno);
+                    app_billing_info_calculate(s_ofsm_info[gunno].base.current_time, _elect, (_elect - s_ofsm_info[gunno].base.charge_elect_last), gunno);
                 }
                 s_ofsm_info[gunno].elect_calculate_tick = current_tick;
                 s_ofsm_info[gunno].base.charge_elect_last = _elect;
@@ -3844,7 +3838,7 @@ static void ofsm_charging_fun(uint8_t gunno)
             if((current_tick + 0xFFFFFFFF - s_ofsm_info[gunno].elect_calculate_tick) > 1000){  /** 一秒计算一次 */
                 uint32_t _elect = mw_get_meter_total_wh(gunno);
                 if((_elect <= (s_ofsm_info[gunno].base.charge_elect_last + APP_CALCULATE_ELECT_DIFF_MAX)) && (_elect > s_ofsm_info[gunno].base.charge_elect_last)){ /** 按三秒的电量来算 */
-                    app_billing_info_calculate((s_ofsm_info[gunno].base.start_time + increase_sec), _elect, (_elect - s_ofsm_info[gunno].base.charge_elect_last), gunno);
+                    app_billing_info_calculate(s_ofsm_info[gunno].base.current_time, _elect, (_elect - s_ofsm_info[gunno].base.charge_elect_last), gunno);
                 }
                 s_ofsm_info[gunno].elect_calculate_tick = current_tick;
                 s_ofsm_info[gunno].base.charge_elect_last = _elect;
@@ -3853,7 +3847,7 @@ static void ofsm_charging_fun(uint8_t gunno)
             if((current_tick - s_ofsm_info[gunno].elect_calculate_tick) > 1000){  /** 一秒计算一次 */
                 uint32_t _elect = mw_get_meter_total_wh(gunno);
                 if((_elect <= (s_ofsm_info[gunno].base.charge_elect_last + APP_CALCULATE_ELECT_DIFF_MAX)) && (_elect > s_ofsm_info[gunno].base.charge_elect_last)){
-                    app_billing_info_calculate((s_ofsm_info[gunno].base.start_time + increase_sec), _elect, (_elect - s_ofsm_info[gunno].base.charge_elect_last), gunno);
+                    app_billing_info_calculate(s_ofsm_info[gunno].base.current_time, _elect, (_elect - s_ofsm_info[gunno].base.charge_elect_last), gunno);
                 }
                 s_ofsm_info[gunno].elect_calculate_tick = current_tick;
                 s_ofsm_info[gunno].base.charge_elect_last = _elect;
@@ -3866,7 +3860,7 @@ static void ofsm_charging_fun(uint8_t gunno)
 
     s_ofsm_info[gunno].base.voltage_a = mw_get_meter_ua(gunno) *10;
     s_ofsm_info[gunno].base.current_soc = bms_info->BCS.SOC;
-    s_ofsm_info[gunno].base.stop_time = (s_ofsm_info[gunno].base.start_time + increase_sec);
+    s_ofsm_info[gunno].base.stop_time = s_ofsm_info[gunno].base.current_time;
     s_ofsm_info[gunno].base.charge_time = s_ofsm_info[gunno].base.stop_time - s_ofsm_info[gunno].base.start_time;
     s_ofsm_info[gunno].base.start_elect = app_billingrule_get_start_elcet(gunno);
     s_ofsm_info[gunno].base.current_elect = app_billingrule_get_stop_elcet(gunno);
@@ -3892,8 +3886,8 @@ static void ofsm_charging_fun(uint8_t gunno)
     if(s_ofsm_info[gunno].base.elect_a > APP_CHARGE_ELECT_MAX){
         s_ofsm_info[gunno].base.elect_a = APP_CHARGE_ELECT_MAX;
     }
-    if(s_ofsm_info[gunno].base.current_period != app_calculate_current_period((s_ofsm_info[gunno].base.start_time + increase_sec))){
-        s_ofsm_info[gunno].base.current_period = app_calculate_current_period((s_ofsm_info[gunno].base.start_time + increase_sec));
+    if(s_ofsm_info[gunno].base.current_period != app_calculate_current_period(s_ofsm_info[gunno].base.stop_time)){
+        s_ofsm_info[gunno].base.current_period = app_calculate_current_period(s_ofsm_info[gunno].base.stop_time);
         if(s_ofsm_info[gunno].base.period_num < APP_BILLING_RULE_PERIOD_MAX){
             s_ofsm_info[gunno].base.period_num++;
         }
@@ -4396,7 +4390,7 @@ static void ofsm_charging_fun(uint8_t gunno)
             if(thaisen_get_current_mode(gunno) == THAISEN_MODE_LIMIT_TIMING){
                 strategy_para = thaisen_get_mode_parameter(gunno) *60;
             }
-            if(increase_sec >= strategy_para){
+            if(s_ofsm_info[gunno].base.charge_time >= strategy_para){
                 if(((s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD) && (s_ofsm_info[gunno].base.main_gunno == gunno)) ||
                         (s_ofsm_info[gunno].base.charge_way != APP_CHARGE_WAY_PARACHARGE_CLOUD)){
                     s_thaisen_transaction[gunno].stop_reason = APP_SYSTEM_STOP_WAY_REACH_TIME;
