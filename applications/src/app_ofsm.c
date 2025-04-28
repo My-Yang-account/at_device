@@ -1401,6 +1401,24 @@ static void ofsm_start_info_padding_public(uint8_t gunno)
                 s_ofsm_info[gunno].base.start_elect = (mw_get_meter_total_wh(gunno) + mw_get_meter_total_wh(deputy_gunno));
             }
             s_thaisen_transaction[gunno].charge_way = APP_CHARGE_WAY_PARACHARGE_LOCAL;
+
+            memset(s_ofsm_info[deputy_gunno].base.transaction_number, 0x00, sizeof(s_ofsm_info[deputy_gunno].base.transaction_number));
+            memcpy(s_ofsm_info[deputy_gunno].base.transaction_number, s_ofsm_info[gunno].base.transaction_number, \
+                    sizeof(s_ofsm_info[gunno].base.transaction_number));
+
+            memset(s_thaisen_transaction[deputy_gunno].serial_number, 0x00, sizeof(s_thaisen_transaction[deputy_gunno].serial_number));
+            memcpy(s_thaisen_transaction[deputy_gunno].serial_number, s_thaisen_transaction[gunno].serial_number, \
+                    sizeof(s_thaisen_transaction[gunno].serial_number));
+
+#ifdef APP_INCLUDE_SGCC_PROTOCOL
+            memset(s_ofsm_info[deputy_gunno].base.device_transaction_number, 0x00, sizeof(s_ofsm_info[deputy_gunno].base.device_transaction_number));
+            memcpy(s_ofsm_info[deputy_gunno].base.device_transaction_number, s_ofsm_info[gunno].base.device_transaction_number, \
+                    sizeof(s_ofsm_info[gunno].base.device_transaction_number));
+
+            memset(s_thaisen_transaction[deputy_gunno].device_serial_number, 0x00, sizeof(s_thaisen_transaction[deputy_gunno].device_serial_number));
+            memcpy(s_thaisen_transaction[deputy_gunno].device_serial_number, s_thaisen_transaction[gunno].device_serial_number, \
+                    sizeof(s_thaisen_transaction[gunno].device_serial_number));
+#endif /* APP_INCLUDE_SGCC_PROTOCOL */
         }else{
             s_thaisen_transaction[gunno].charge_way = APP_CHARGE_WAY_SINGLEGUN;
             s_ofsm_info[gunno].base.start_elect = mw_get_meter_total_wh(gunno);
@@ -1514,6 +1532,9 @@ static void ofsm_start_info_padding_public(uint8_t gunno)
     s_booting_step[gunno] = APP_BOOTING_STEP_IDLE;                 /* 初始化充电步骤 */
 
     app_nsal_init_charge_data(gunno);
+    if(s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL){
+        app_nsal_init_charge_data(deputy_gunno);
+    }
 
     app_nsal_state_charged(gunno);
     app_nsal_event_occurded(gunno);
