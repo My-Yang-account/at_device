@@ -1803,7 +1803,7 @@ static s32 SerialScreen_ConfigExecute_NormalMode(u8 port, void *data, void *sub_
 #define SSCREEN_NORMAL_MODE_FORBID_STATE     2         /* 模式选择-正常模式 禁止修改状态错误码*/
 
     thaisen_mode_select_normal *config = (thaisen_mode_select_normal*)data;
-
+#if 0
     switch(thaisen_app_get_ofsm_charge_state(port)){
     case APP_OFSM_STATE_RESERVATION:
         /* 弹出提示：预约中不可修改策略 */
@@ -1816,7 +1816,7 @@ static s32 SerialScreen_ConfigExecute_NormalMode(u8 port, void *data, void *sub_
     default:
         break;
     }
-
+#endif
     switch(config->mode){
     case THAISEN_MODE_CHARGE_FULL:
         break;
@@ -4674,7 +4674,7 @@ void SerialScreen_InputSetFlash(void)
 void SerialScreen_BtnModeInfoStorage(int port)
 {
     u8 mode = THAISEN_MODE_CHARGE_FULL;
-
+#if 0
     switch(thaisen_app_get_ofsm_charge_state(port)){
     case APP_OFSM_STATE_RESERVATION:
         /* 弹出提示：预约中不可修改策略 */
@@ -4694,7 +4694,7 @@ void SerialScreen_BtnModeInfoStorage(int port)
     default:
         break;
     }
-
+#endif
     LcdAssistantData.Flag.IsConfigFail = FALSE;
 
     LcdData.setData.CurrentModePara[port] = 0;

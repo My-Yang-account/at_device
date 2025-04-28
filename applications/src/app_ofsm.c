@@ -2268,6 +2268,38 @@ static void ofsm_reservation_fun(uint8_t gunno)
                 s_ofsm_info[gunno].base.reservation_time_base, s_ofsm_info[gunno].base.reservation_time_remain, \
                 (s_ofsm_info[gunno].base.current_time - s_ofsm_info[gunno].base.reservation_time_base));
     }
+    /** 预约信息修改 */
+    if(thaisen_get_current_mode(gunno) == THAISEN_MODE_LIMIT_RESERVATION){
+        if(thaisen_is_set_reservation_mode(gunno)){
+            uint8_t continue_reservation = APP_THA_ENUM_FALSE;
+            time_t t_base = time(NULL);
+            struct tm tmp;
+
+            localtime_r(&t_base, &tmp);
+            if((tmp.tm_year + 1900) >= 2025){
+                s_ofsm_info[gunno].base.reservation_time_base = t_base;
+                /** 屏幕预约-超过预约时间15分钟内还是可以启动的 */
+                if(thaisen_get_mode_parameter(gunno) >= (tmp.tm_hour *3600 + tmp.tm_min *60)){
+                    s_ofsm_info[gunno].base.reservation_time_remain = (thaisen_get_mode_parameter(gunno) - (tmp.tm_hour *3600 + tmp.tm_min *60));
+                    continue_reservation = APP_THA_ENUM_TRUE;
+                    s_ofsm_info[gunno].base.reservation_strategy = (APP_RESERVATE_STRATEGY_PULLGUN_CANCEL |APP_RESERVATE_STRATEGY_FAULT_CANCEL |APP_RESERVATE_STRATEGY_START_DIRECTLY);
+                }else if((thaisen_get_mode_parameter(gunno) + 15 *60) > (tmp.tm_hour *3600 + tmp.tm_min *60)){
+                    s_ofsm_info[gunno].base.reservation_time_remain = 0x00;
+                    continue_reservation = APP_THA_ENUM_TRUE;
+                    s_ofsm_info[gunno].base.reservation_strategy = (APP_RESERVATE_STRATEGY_PULLGUN_CANCEL |APP_RESERVATE_STRATEGY_FAULT_CANCEL |APP_RESERVATE_STRATEGY_START_DIRECTLY);
+                }
+            }
+
+            if(continue_reservation == APP_THA_ENUM_TRUE){
+                s_ofsm_info[gunno].base.flag.is_reservation = APP_THA_ENUM_TRUE;
+                s_ofsm_info[gunno].base.reservation_time_remain = s_ofsm_info[gunno].base.reservation_time_remain > 0 ? s_ofsm_info[gunno].base.reservation_time_remain : 0;
+
+                LOG_D("gunno(%d) local reservation info modify[%d]", gunno, s_ofsm_info[gunno].base.reservation_time_remain);
+            }
+            thaisen_clear_reservation_mode_flag(gunno);
+        }
+    }
+
     /********* 锁桩 **********/
     if((s_ofsm_info[gunno].base.device_state == APP_DEVICE_STATE_OVERHAUL) ||
             (s_ofsm_info[gunno].base.device_state == APP_DEVICE_STATE_FREEZE)){
@@ -2276,6 +2308,8 @@ static void ofsm_reservation_fun(uint8_t gunno)
 
         s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
         app_nsal_state_charged(gunno);
+
+        LOG_D("gunno(%d) chargepile is locked", gunno);
         return;
     }
     /********* 故障 **********/
@@ -2286,16 +2320,30 @@ static void ofsm_reservation_fun(uint8_t gunno)
 
             s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
             app_nsal_state_charged(gunno);
+
+            LOG_D("gunno(%d) occured fault[%d]", gunno, app_get_highest_priority_system_fault(gunno));
             return;
         }
     }
-    /********* 云端取消预约 **********/
-    if(app_nsal_is_cancel_reservation(gunno)){
-        if(s_ofsm_info[gunno].base.flag.is_local_reservation == APP_THA_ENUM_FALSE){
+    if(s_ofsm_info[gunno].base.flag.is_local_reservation == APP_THA_ENUM_FALSE){
+        /********* 云端取消预约 **********/
+        if(app_nsal_is_cancel_reservation(gunno)){
             app_nsal_is_cancel_reservation(gunno);
 
             s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_IDLEING];
             s_ofsm_info[gunno].state = APP_OFSM_STATE_IDLEING;
+
+            LOG_D("gunno(%d) net cancel reservation", gunno);
+            return;
+        }
+    }else{
+        if(thaisen_get_current_mode(gunno) != THAISEN_MODE_LIMIT_RESERVATION){
+            thaisen_clear_reservation_mode_flag(gunno);
+
+            s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_IDLEING];
+            s_ofsm_info[gunno].state = APP_OFSM_STATE_IDLEING;
+
+            LOG_D("gunno(%d) local cancel reservation", gunno);
             return;
         }
     }
