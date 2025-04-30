@@ -12,6 +12,8 @@
 
 #include "rfid_dev_api.h"
 
+//#define RFIDR_USING_XJ_CARD                                                            /** 使用小桔的卡 */
+
 #define RFIDR_NODE_RUNNING_OPTION_ENTRY_MAX             (1 <<0x01)                     /** 节点运行选项字：最大容忍次数 */
 #define RFIDR_NODE_RUNNING_OPTION_URGENT                (1 <<0x02)                     /** 节点运行选项字：紧急(无需判断，直接处理) */
 #define RFIDR_NODE_RUNNING_OPTION_NAME                  (1 <<0x03)                     /** 节点运行选项字：线程名字 */
@@ -50,8 +52,12 @@ enum{
 };
 
 enum{
+#ifdef RFIDR_USING_XJ_CARD
+    APP_RFIDR_KEY_TYPE_XJ,                                                            /** 卡密钥类型：小桔 */
+#else
     APP_RFIDR_KEY_TYPE_THA,                                                            /** 卡密钥类型：钛昕 */
     APP_RFIDR_KEY_TYPE_YKC,                                                            /** 卡密钥类型：云快充 */
+#endif /* RFIDR_USING_XJ_CARD */
     APP_RFIDR_KEY_TYPE_SIZE,
 };
 
@@ -72,8 +78,10 @@ typedef struct{
     int (*node_init)(void *node, void *para, unsigned int plen, unsigned int option);  /** 节点初始化 */
     int (*node_running)(void *node, void *para, unsigned int plen, unsigned int option); /** 节点运行(外部调用) */
     void (*data_update)(void *handle);                                                 /** 数据更新(外部调用) */
-    int (*bolck_read)(unsigned char bolck, unsigned char *buf, unsigned char blen);    /** 读块数据(外部调用) */
-    int (*bolck_write)(unsigned char bolck, unsigned char *data, unsigned char dlen);  /** 写块数据(外部调用) */
+    int (*active_card)(void);                                                          /** 寻卡(外部调用) */
+    int (*bolck_read)(unsigned char sector, unsigned char bolck, unsigned char *buf, unsigned char blen);    /** 读块数据(外部调用) */
+    int (*bolck_write)(unsigned char sector, unsigned char bolck, unsigned char *data, unsigned char dlen);  /** 写块数据(外部调用) */
+    int (*key_authenticate)(unsigned char sector, unsigned char block, unsigned char *key, unsigned char klen);  /** 扇区密钥验证(外部调用) */
     int (*info_process)(void *handle);                                                 /** 信息处理(卡鉴权通过、进入读、写块状态后自动调用) */
 
 }rfid_reader;

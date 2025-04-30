@@ -16,7 +16,11 @@
 
 #define APP_RFIDR_DEBUG
 
+#ifdef RFIDR_USING_XJ_CARD
+#define RFIDR_CARD_KEY_NUM                            0x01                  /** 卡密钥个数 */
+#else
 #define RFIDR_CARD_KEY_NUM                            0x02                  /** 卡密钥个数 */
+#endif /* RFIDR_USING_XJ_CARD */
 
 #define RFIDR_THREAD_PERIOD                           10                    /** 线程运行周期 */
 #define RFIDR_DETECT_LEAVE_MAX                        20                    /** 检测卡离场次数(时基按10ms算) */
@@ -30,9 +34,15 @@ static rfid_reader s_rfidr_handle = {
 };
 
 RFID_DEF_SRAM2 static unsigned char s_rfidr_state = APP_RFIDR_STATE_DOWN;
+#ifdef RFIDR_USING_XJ_CARD
+RFID_DEF_SRAM2 static unsigned char s_rfidr_block = 0x08;     /** 卡号所在块 */
+RFID_DEF_SRAM2 static unsigned char s_rfidr_sector = 0x02;     /** 卡号所在扇区 */
+RFID_DEF_SRAM2 static unsigned char s_rfidr_card_key[RFIDR_CARD_KEY_NUM][0x06] = {{0x52, 0x11, 0x1A, 0xB3, 0x93, 0x55}};
+#else
 RFID_DEF_SRAM2 static unsigned char s_rfidr_block = 0x09;     /** 卡号所在块 */
 RFID_DEF_SRAM2 static unsigned char s_rfidr_sector = 0x02;     /** 卡号所在扇区 */
 RFID_DEF_SRAM2 static unsigned char s_rfidr_card_key[RFIDR_CARD_KEY_NUM][0x06] = {{0x41, 0x31, 0x53, 0x4D, 0x31, 0x50}, {0x72, 0x28, 0x92, 0x63, 0x46, 0x23}};
+#endif /* RFIDR_USING_XJ_CARD */
 
 RFID_DEF_SRAM2 static struct rt_mailbox s_rfidr_mailbox;
 RFID_DEF_SRAM2 static unsigned long s_rfidr_mail, s_rfidr_mail_pool[RFIDR_MAIL_NUM_MAX];
@@ -41,29 +51,55 @@ RFID_DEF_SRAM0 static unsigned char s_rfidr_thread_stack[RFIDR_THREAD_STACK_SIZE
 
 
 /*********************************************************************
+ *  函数名   app_rfidr_active_card
+ *  功能       寻卡(卡激活)
+ *  参数
+ * 返回        >0：寻到卡   0：未寻到卡   <0：射频识别设备未回复(或回复有误)
+ ********************************************************************/
+static int app_rfidr_active_card(void)
+{
+    return rfid_dev_api_active_card(APP_RFIDR_ENUM_TRUE, NULL, 0x00, NULL);
+}
+/*********************************************************************
  * 函数名        app_rfidr_read_block
  * 功能            射频读卡器读取块数据
- * 参数            bolck         块号
+ * 参数            sector         扇区
+ *         bolck         块号
  *         buf           存放块数据的缓存
  *         blen          缓存长度
  * 返回            >=0：成功   <0：失败
  ********************************************************************/
-static int app_rfidr_read_block(unsigned char bolck, unsigned char *buf, unsigned char blen)
+static int app_rfidr_read_block(unsigned char sector, unsigned char bolck, unsigned char *buf, unsigned char blen)
 {
-    return rfid_dev_api_read_block_info(s_rfidr_sector, bolck, buf, blen);
+    return rfid_dev_api_read_block_info(sector, bolck, buf, blen);
 }
 /*********************************************************************
  * 函数名        app_rfidr_write_block
  * 功能            射频读卡器写块数据
- * 参数            bolck         块号
+ * 参数            sector        扇区
+ *         bolck         块号
  *         buf           数据
  *         blen          数据长度
  * 返回            >=0：成功   <0：失败
  ********************************************************************/
-static int app_rfidr_write_block(unsigned char bolck, unsigned char *data, unsigned char dlen)
+static int app_rfidr_write_block(unsigned char sector, unsigned char bolck, unsigned char *data, unsigned char dlen)
 {
-    return rfid_dev_api_write_block_info(s_rfidr_sector, bolck, data, dlen);
+    return rfid_dev_api_write_block_info(sector, bolck, data, dlen);
 }
+/*********************************************************************
+ * 函数名        app_rfidr_key_authentication
+ * 功能            射频读卡器扇区密钥验证
+ * 参数            sector        扇区号
+ *         bolck         块号
+ *         key           密钥
+ *         klen          密钥长度
+ * 返回            >=0：成功   <0：失败
+ ********************************************************************/
+static int app_rfidr_key_authentication(unsigned char sector, unsigned char block, unsigned char *key, unsigned char klen)
+{
+    return rfid_dev_api_key_authentication(sector, block, key, klen);
+}
+
 
 /*********************************************************************
  * 函数名        rfidr_thread_entry
@@ -274,6 +310,8 @@ static int rfidr_thread_init(void)
 {
     s_rfidr_handle.bolck_read = app_rfidr_read_block;
     s_rfidr_handle.bolck_write = app_rfidr_write_block;
+    s_rfidr_handle.key_authenticate = app_rfidr_key_authentication;
+    s_rfidr_handle.active_card = app_rfidr_active_card;
 
     if(rt_mb_init(&s_rfidr_mailbox, "rfidrmb", s_rfidr_mail_pool, RFIDR_MAIL_NUM_MAX, RT_IPC_FLAG_PRIO) < 0x00){
         LOG_E("rfid reader mailbox create fail, please check");
@@ -398,10 +436,21 @@ int app_rfidr_init(void)
 
 #ifdef RFID_DESIGNATE_REGION
     s_rfidr_state = APP_RFIDR_STATE_DOWN;
-    s_rfidr_block = 0x09;     /** 卡号所在块 */
-    s_rfidr_sector = 0x02;     /** 卡号所在扇区 */
     s_rfidr_handle.flag.is_forbid = APP_RFIDR_ENUM_FALSE;
 
+#ifdef RFIDR_USING_XJ_CARD
+    s_rfidr_block = 0x08;     /** 卡号所在块 */
+    s_rfidr_sector = 0x02;     /** 卡号所在扇区 */
+    /** 小桔密钥 */
+    s_rfidr_card_key[0x00][0x00] = 0x52;
+    s_rfidr_card_key[0x00][0x01] = 0x11;
+    s_rfidr_card_key[0x00][0x02] = 0x1A;
+    s_rfidr_card_key[0x00][0x03] = 0xB3;
+    s_rfidr_card_key[0x00][0x04] = 0x93;
+    s_rfidr_card_key[0x00][0x05] = 0x55;
+#else
+    s_rfidr_block = 0x09;     /** 卡号所在块 */
+    s_rfidr_sector = 0x02;     /** 卡号所在扇区 */
     /** 钛昕密钥 */
     s_rfidr_card_key[0x00][0x00] = 0x41;
     s_rfidr_card_key[0x00][0x01] = 0x31;
@@ -417,7 +466,7 @@ int app_rfidr_init(void)
     s_rfidr_card_key[0x01][0x03] = 0x63;
     s_rfidr_card_key[0x01][0x04] = 0x46;
     s_rfidr_card_key[0x01][0x05] = 0x23;
-
+#endif /* RFIDR_USING_XJ_CARD */
 #endif /* RFID_DESIGNATE_REGION */
 
     ret = rfid_dev_api_init();

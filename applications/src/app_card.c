@@ -1,5 +1,4 @@
 
-#include "app_rfid_reader.h"
 #include <rtthread.h>
 #include "string.h"
 
@@ -17,6 +16,21 @@
 #include <rtdbg.h>
 
 #define CARD_BLOCK_SIZE                                0x10          /* 卡一个块的大小(字节) */
+
+#define CARD_OFFLINE_BILLING_SECTOR                    0x02          /* 离线计费卡信息扇区 */
+#ifdef RFIDR_USING_XJ_CARD
+#define CARD_XJ_CRC_SECTOR                             0x01          /* 小桔卡CRC信息扇区 */
+#define CARD_RANDOM_NUMBER_SECTOR                      0x05          /* 小桔卡随机数信息扇区 */
+
+#define CARD_XJ_CRC_SERIAL_NUMBER_BLOCK                0x04          /* 小桔卡计算CRC用序列数信息扇区 */
+#define CARD_XJ_CRC_VALUE_BLOCK                        0x05          /* 小桔卡CRC信息扇区 */
+
+#define CARD_RANDOM_NUMBER_1_BLOCK                     0x14          /* 小桔卡随机数1信息扇区 */
+#define CARD_RANDOM_NUMBER_2_BLOCK                     0x15          /* 小桔卡随机数2信息扇区 */
+#define CARD_RANDOM_NUMBER_3_BLOCK                     0x16          /* 小桔卡随机数3信息扇区 */
+
+#define CARD_XJ_CRC_POLYNOM                            0xA001
+#endif /* #ifdef RFIDR_USING_XJ_CARD */
 
 #pragma pack(1)
 
@@ -37,6 +51,18 @@ struct card_info_sector2{
     union block block_10;                      /** 块10 */
 };
 
+#ifdef RFIDR_USING_XJ_CARD
+struct card_info_sector1{
+    uint8_t serial_number[16];                 /** 计算CRC用序列数 */
+    uint8_t crc[16];                           /** CRC */
+};
+
+struct card_info_sector5{
+    uint8_t random_number_1[16];               /** 随机数1 */
+    uint8_t random_number_2[16];               /** 随机数2 */
+    uint8_t random_number_3[16];               /** 随机数3 */
+};
+#endif /* #ifdef RFIDR_USING_XJ_CARD */
 #pragma pack()
 
 #define APP_ENDIANNESS_CONVERT(value)        \
@@ -47,6 +73,136 @@ APP_DEF_SRAM2 static int8_t s_card_operate_ret[APP_SYSTEM_GUNNO_SIZE];
 APP_DEF_SRAM2 static struct card_info_sector2 s_card_info_sector2;
 APP_DEF_SRAM2 static uint32_t s_card_ballance[APP_SYSTEM_GUNNO_SIZE];  /** 卡内余额(0.0001) */
 APP_DEF_SRAM2 static struct rt_event s_card_event[APP_SYSTEM_GUNNO_SIZE];
+#ifdef RFIDR_USING_XJ_CARD
+APP_DEF_SRAM2 static struct card_info_sector1 s_card_info_sector1;
+APP_DEF_SRAM2 static struct card_info_sector5 s_card_info_sector5;
+
+RFID_DEF_SRAM2 static uint8_t s_card_sector1_key[0x06] = {0x34, 0x71, 0x4C, 0x80, 0x01, 0x77};
+RFID_DEF_SRAM2 static uint8_t s_card_sector5_key[0x06] = {0x92, 0x5C, 0x9A, 0x4B, 0x83, 0x74};
+#endif /* #ifdef RFIDR_USING_XJ_CARD */
+
+
+#ifdef RFIDR_USING_XJ_CARD
+/******************************************
+ * 函数名     xj_card_crc16
+ * 功能         计算小桔卡信息CRC16校验码
+ * 参数         ptr     数据
+ *       len     数据长度
+ * 返回        CRC16校验码
+ * ***************************************/
+static uint16_t xj_card_crc16(uint8_t *ptr, uint16_t len)
+{
+    uint8_t i;
+    uint16_t crc = 0xffff;
+
+    if (len == 0x00){
+        len = 1;
+    }
+    while(len--){
+        crc ^= *ptr;
+        for (i = 0x00; i < 0x08; i++){
+            if (crc & 0x01){
+                crc >>= 0x01;
+                crc ^= CARD_XJ_CRC_POLYNOM;
+            }else{
+                crc >>= 0x01;
+            }
+        }
+        ptr++;
+    }
+    return(crc);
+}
+
+/******************************************
+ * 函数名     xj_card_info_verify
+ * 功能         确认小桔卡信息
+ * 参数         handle        卡操作句柄
+ * 返回        1：校验成功        0：校验失败
+ * ***************************************/
+static uint8_t xj_card_info_verify(void *handle)
+{
+    uint8_t entry = 0x00, verify_data[20], *uuid = NULL;
+    uint16_t verify_crc = 0x00, storage_crc;
+    s_rfidr = (rfid_reader*)handle;
+
+    memset(s_card_info_sector1.serial_number, 0x00, sizeof(s_card_info_sector1.serial_number));
+    memset(s_card_info_sector1.crc, 0x00, sizeof(s_card_info_sector1.crc));
+
+    memset(s_card_info_sector5.random_number_1, 0x00, sizeof(s_card_info_sector5.random_number_1));
+    memset(s_card_info_sector5.random_number_2, 0x00, sizeof(s_card_info_sector5.random_number_2));
+    memset(s_card_info_sector5.random_number_3, 0x00, sizeof(s_card_info_sector5.random_number_3));
+
+    while(1){
+        if(s_rfidr->active_card() <= 0x00){
+            if(++entry >= 0x02){
+                LOG_W("xj card is not found 0");
+                return -0x01;
+            }
+            rt_thread_mdelay(10);
+            continue;
+        }
+        break;
+    }
+    /** 扇区1 */
+    if(s_rfidr->key_authenticate(CARD_XJ_CRC_SECTOR, CARD_XJ_CRC_SERIAL_NUMBER_BLOCK, s_card_sector1_key, sizeof(s_card_sector1_key)) < 0x00){
+        LOG_W("xj card sector 1 key authenticate fail");
+        return -0x01;
+    }
+    if(s_rfidr->bolck_read(CARD_XJ_CRC_SECTOR, CARD_XJ_CRC_SERIAL_NUMBER_BLOCK, s_card_info_sector1.serial_number, CARD_BLOCK_SIZE) < 0x00){
+        LOG_W("xj card sector 1 block 0 data read fail");
+        return -0x01;
+    }
+    if(s_rfidr->bolck_read(CARD_XJ_CRC_SECTOR, CARD_XJ_CRC_VALUE_BLOCK, s_card_info_sector1.crc, CARD_BLOCK_SIZE) < 0x00){
+        LOG_W("xj card sector 1 block 1 data read fail");
+        return -0x01;
+    }
+
+    entry = 0x00;
+    while(1){
+        if(s_rfidr->active_card() <= 0x00){
+            if(++entry >= 0x02){
+                LOG_W("xj card is not found 1");
+                return -0x01;
+            }
+            rt_thread_mdelay(10);
+            continue;
+        }
+        break;
+    }
+    /** 扇区5 */
+    if(s_rfidr->key_authenticate(CARD_RANDOM_NUMBER_SECTOR, CARD_RANDOM_NUMBER_1_BLOCK, s_card_sector5_key, sizeof(s_card_sector5_key)) < 0x00){
+        LOG_W("xj card sector 5 key authenticate fail");
+        return -0x01;
+    }
+    if(s_rfidr->bolck_read(CARD_RANDOM_NUMBER_SECTOR, CARD_RANDOM_NUMBER_1_BLOCK, s_card_info_sector5.random_number_1, CARD_BLOCK_SIZE) < 0x00){
+        LOG_W("xj card sector 5 block 0 data read fail");
+        return -0x01;
+    }
+    if(s_rfidr->bolck_read(CARD_RANDOM_NUMBER_SECTOR, CARD_RANDOM_NUMBER_2_BLOCK, s_card_info_sector5.random_number_2, CARD_BLOCK_SIZE) < 0x00){
+        LOG_W("xj card sector 5 block 1 data read fail");
+        return -0x01;
+    }
+    if(s_rfidr->bolck_read(CARD_RANDOM_NUMBER_SECTOR, CARD_RANDOM_NUMBER_3_BLOCK, s_card_info_sector5.random_number_3, CARD_BLOCK_SIZE) < 0x00){
+        LOG_W("xj card sector 5 block 2 data read fail");
+        return -0x01;
+    }
+
+    memcpy(verify_data, s_card_info_sector1.serial_number, CARD_BLOCK_SIZE);
+    uuid = rfidr_query_uuid();
+    for(uint8_t i = 0x00; i < 0x04; i++){
+        verify_data[CARD_BLOCK_SIZE + i] = uuid[0x04 - 0x01 - i];
+    }
+    verify_crc = xj_card_crc16(verify_data, (CARD_BLOCK_SIZE + 0x04));
+    storage_crc = s_card_info_sector1.crc[CARD_BLOCK_SIZE - 0x02];
+    storage_crc <<=0x08;
+    storage_crc |= s_card_info_sector1.crc[CARD_BLOCK_SIZE - 0x01];
+
+    if(verify_crc != storage_crc){
+        return 0;
+    }
+    return 0x01;
+}
+#endif /* #ifdef RFIDR_USING_XJ_CARD */
 
 /******************************************
  * 函数名     card_node_init_hook
@@ -255,7 +411,7 @@ static int32_t app_card_swip_card_stop(uint8_t gunno)
 
         /** 保存设备ID */
         card_info_block = 0x08;
-        if(s_rfidr->bolck_write(card_info_block, s_card_info_sector2.device_id, CARD_BLOCK_SIZE) < 0x00){
+        if(s_rfidr->bolck_write(CARD_OFFLINE_BILLING_SECTOR, card_info_block, s_card_info_sector2.device_id, CARD_BLOCK_SIZE) < 0x00){
             LOG_E("card storage dev id fail!!");
 
             s_card_info_sector2.block_10.detail.is_lock = locked;
@@ -267,7 +423,7 @@ static int32_t app_card_swip_card_stop(uint8_t gunno)
         }
         /** 保存充电信息 */
         card_info_block = 0x0A;
-        if(s_rfidr->bolck_write(card_info_block, s_card_info_sector2.block_10.data, CARD_BLOCK_SIZE) < 0x00){
+        if(s_rfidr->bolck_write(CARD_OFFLINE_BILLING_SECTOR, card_info_block, s_card_info_sector2.block_10.data, CARD_BLOCK_SIZE) < 0x00){
             LOG_E("card storage charge info fail!!");
             s_card_operate_ret[gunno] = APP_CARD_OPERATE_RET_STORAGE_ERROR;
 
@@ -355,7 +511,7 @@ static int32_t app_card_pay_history_bill(uint8_t *gunno)
 
         /** 保存设备ID */
         card_info_block = 0x08;
-        if(s_rfidr->bolck_write(card_info_block, s_card_info_sector2.device_id, CARD_BLOCK_SIZE) < 0x00){
+        if(s_rfidr->bolck_write(CARD_OFFLINE_BILLING_SECTOR, card_info_block, s_card_info_sector2.device_id, CARD_BLOCK_SIZE) < 0x00){
             LOG_E("card storage dev id fail(history bill)!!");
 
             s_card_info_sector2.block_10.detail.is_lock = locked;
@@ -368,7 +524,7 @@ static int32_t app_card_pay_history_bill(uint8_t *gunno)
         }
         /** 保存充电信息 */
         card_info_block = 0x0A;
-        if(s_rfidr->bolck_write(card_info_block, s_card_info_sector2.block_10.data, CARD_BLOCK_SIZE) < 0x00){
+        if(s_rfidr->bolck_write(CARD_OFFLINE_BILLING_SECTOR, card_info_block, s_card_info_sector2.block_10.data, CARD_BLOCK_SIZE) < 0x00){
             LOG_E("card storage charge info fail(history bill)!!");
 
             s_card_info_sector2.block_10.detail.is_lock = locked;
@@ -440,7 +596,7 @@ static int32_t app_card_non_swip_card_stop(uint8_t gunno)
 
         /** 保存设备ID */
         card_info_block = 0x08;
-        if(s_rfidr->bolck_write(card_info_block, s_card_info_sector2.device_id, CARD_BLOCK_SIZE) < 0x00){
+        if(s_rfidr->bolck_write(CARD_OFFLINE_BILLING_SECTOR, card_info_block, s_card_info_sector2.device_id, CARD_BLOCK_SIZE) < 0x00){
             LOG_E("card storage dev id fail(non swip card)!!");
 
             s_card_info_sector2.block_10.detail.is_lock = locked;
@@ -453,7 +609,7 @@ static int32_t app_card_non_swip_card_stop(uint8_t gunno)
         }
         /** 保存充电信息 */
         card_info_block = 0x0A;
-        if(s_rfidr->bolck_write(card_info_block, s_card_info_sector2.block_10.data, CARD_BLOCK_SIZE) < 0x00){
+        if(s_rfidr->bolck_write(CARD_OFFLINE_BILLING_SECTOR, card_info_block, s_card_info_sector2.block_10.data, CARD_BLOCK_SIZE) < 0x00){
             LOG_E("card storage charge info fail(non swip card)!!");
 
             s_card_info_sector2.block_10.detail.is_lock = locked;
@@ -524,7 +680,7 @@ static int32_t app_card_swip_card_start(uint8_t gunno)
 
     /** 保存设备ID */
     card_info_block = 0x08;
-    if(s_rfidr->bolck_write(card_info_block, s_card_info_sector2.device_id, CARD_BLOCK_SIZE) < 0x00){
+    if(s_rfidr->bolck_write(CARD_OFFLINE_BILLING_SECTOR, card_info_block, s_card_info_sector2.device_id, CARD_BLOCK_SIZE) < 0x00){
         LOG_E("card storage dev id fail(swip card start)!!");
 
         s_card_info_sector2.block_10.detail.is_lock = locked;
@@ -536,7 +692,7 @@ static int32_t app_card_swip_card_start(uint8_t gunno)
     }
     /** 保存充电信息 */
     card_info_block = 0x0A;
-    if(s_rfidr->bolck_write(card_info_block, s_card_info_sector2.block_10.data, CARD_BLOCK_SIZE) < 0x00){
+    if(s_rfidr->bolck_write(CARD_OFFLINE_BILLING_SECTOR, card_info_block, s_card_info_sector2.block_10.data, CARD_BLOCK_SIZE) < 0x00){
         LOG_E("card storage charge info fail(swip card start)!!");
 
         s_card_info_sector2.block_10.detail.is_lock = locked;
@@ -672,6 +828,12 @@ static int32_t app_card_info_process(void* handle)
 {
 #ifndef APP_USING_OFFLINE_BILLING
     if(get_ofsm_info(0x00)->base.run_mode != APP_RUN_MODE_OFFLINE_BILLING){
+#ifdef RFIDR_USING_XJ_CARD
+        if(xj_card_info_verify(handle) == 0x00){
+            LOG_W("xj card info verify fail");
+            return -0x01;
+        }
+#endif /* RFIDR_USING_XJ_CARD */
         if((rfidr_query_info_type() == APP_RFIDR_INFO_TYPE_UUID) ||
                 (rfidr_query_info_type() == APP_RFIDR_INFO_TYPE_CARD_NUMBER)){
 
@@ -717,7 +879,7 @@ static int32_t app_card_info_process(void* handle)
 
     /** 读取设备ID */
     card_info_block = 0x08;
-    if(s_rfidr->bolck_read(card_info_block, s_card_info_sector2.device_id, CARD_BLOCK_SIZE) < 0x00){
+    if(s_rfidr->bolck_read(CARD_OFFLINE_BILLING_SECTOR, card_info_block, s_card_info_sector2.device_id, CARD_BLOCK_SIZE) < 0x00){
         /** 提示无效卡 */
         LOG_E("reader read device ID fail!!");
         s_card_operate_ret[port] = APP_CARD_OPERATE_RET_READ_ERROR;
@@ -726,7 +888,7 @@ static int32_t app_card_info_process(void* handle)
 
     /** 读取充电信息 */
     card_info_block = 0x0A;
-    if(s_rfidr->bolck_read(card_info_block, s_card_info_sector2.block_10.data, CARD_BLOCK_SIZE) < 0x00){
+    if(s_rfidr->bolck_read(CARD_OFFLINE_BILLING_SECTOR, card_info_block, s_card_info_sector2.block_10.data, CARD_BLOCK_SIZE) < 0x00){
         /** 提示无效卡 */
         LOG_E("reader read charge info fail!!");
         s_card_operate_ret[port] = APP_CARD_OPERATE_RET_READ_ERROR;
@@ -979,7 +1141,7 @@ static int32_t app_card_info_process(void* handle)
             break;
         }
     }
-#endif APP_USING_OFFLINE_BILLING
+#endif /* APP_USING_OFFLINE_BILLING */
     return 0x00;
 }
 
@@ -1008,7 +1170,7 @@ int32_t app_card_event_send(uint32_t event, uint8_t gunno, uint32_t *set)
     return res;
 #else
     return -0x01;
-#endif APP_USING_OFFLINE_BILLING
+#endif /* APP_USING_OFFLINE_BILLING */
 }
 
 /*****************************************************************************
@@ -1036,7 +1198,7 @@ int32_t app_card_event_recv(uint32_t event, uint32_t timeout, uint8_t gunno, uin
     return rt_event_recv(&s_card_event[gunno], event, RT_EVENT_FLAG_OR, timeout, set);
 #else
     return -0x01;
-#endif APP_USING_OFFLINE_BILLING
+#endif /* APP_USING_OFFLINE_BILLING */
 }
 
 /*****************************************************************************
@@ -1079,7 +1241,7 @@ uint32_t app_card_query_ballance(uint8_t gunno)
     return s_card_ballance[gunno];
 #else
     return 0x00;
-#endif APP_USING_OFFLINE_BILLING
+#endif /* APP_USING_OFFLINE_BILLING */
 }
 
 /*****************************************************************************
@@ -1097,6 +1259,60 @@ int8_t app_card_query_operate_ret(uint8_t gunno)
     return s_card_operate_ret[gunno];
 }
 
+#ifdef RFIDR_USING_XJ_CARD
+/*****************************************************************************
+ *  函数名   app_query_xj_crc_serial_number
+ *  功能       查询小桔卡计算用CRC序列号
+ *  参数
+ *  返回       计算用CRC序列号
+ ****************************************************************************/
+uint8_t *app_query_xj_crc_serial_number(void)
+{
+    return s_card_info_sector1.serial_number;
+}
+/*****************************************************************************
+ *  函数名   app_query_xj_crc
+ *  功能       查询小桔卡CRC值
+ *  参数
+ * 返回       CRC值
+ ****************************************************************************/
+uint8_t *app_query_xj_crc(void)
+{
+    return s_card_info_sector1.crc;
+}
+
+/*****************************************************************************
+ *  函数名   app_query_xj_random_number_1
+ *  功能       查询小桔卡随机数1
+ *  参数
+ *  返回       随机数1
+ ****************************************************************************/
+uint8_t *app_query_xj_random_number_1(void)
+{
+    return s_card_info_sector5.random_number_1;
+}
+/*****************************************************************************
+ *  函数名   app_query_xj_random_number_2
+ *  功能       查询小桔卡随机数2
+ *  参数
+ *  返回       随机数2
+ ****************************************************************************/
+uint8_t *app_query_xj_random_number_2(void)
+{
+    return s_card_info_sector5.random_number_2;
+}
+/*****************************************************************************
+ *  函数名   app_query_xj_random_number_3
+ *  功能       查询小桔卡随机数3
+ *  参数
+ *  返回       随机数3
+ ****************************************************************************/
+uint8_t *app_query_xj_random_number_3(void)
+{
+    return s_card_info_sector5.random_number_3;
+}
+#endif /* #ifdef RFIDR_USING_XJ_CARD */
+
 /*****************************************************************************
  *  函数名   app_card_init
  *  功能       卡部分初始化
@@ -1113,6 +1329,25 @@ int32_t app_card_init(void)
 
     s_rfidr = NULL;
     memset(&s_card_info_sector2, 0x00, sizeof(s_card_info_sector2));
+#ifdef RFIDR_USING_XJ_CARD
+    memset(&s_card_info_sector1, 0x00, sizeof(s_card_info_sector1));
+    memset(&s_card_info_sector5, 0x00, sizeof(s_card_info_sector5));
+
+    /** 小桔卡扇区1密钥 */
+    s_card_sector1_key[0x00] = 0x34;
+    s_card_sector1_key[0x01] = 0x71;
+    s_card_sector1_key[0x02] = 0x4C;
+    s_card_sector1_key[0x03] = 0x80;
+    s_card_sector1_key[0x04] = 0x01;
+    s_card_sector1_key[0x05] = 0x77;
+    /** 小桔卡扇区5密钥 */
+    s_card_sector5_key[0x00] = 0x92;
+    s_card_sector5_key[0x01] = 0x5C;
+    s_card_sector5_key[0x02] = 0x9A;
+    s_card_sector5_key[0x03] = 0x4B;
+    s_card_sector5_key[0x04] = 0x83;
+    s_card_sector5_key[0x05] = 0x74;
+#endif /* #ifdef RFIDR_USING_XJ_CARD */
 #endif /* APP_DESIGNATE_REGION */
 
     app_rfidr_config_handle_fault(app_card_online_status);
