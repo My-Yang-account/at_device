@@ -47,8 +47,8 @@
 #define YKC_MONITOR_MODULE_GROUP_MAX                      0x04                  /* 最大模块组数  */
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
 
-#define YKC_MONITOR_CHARGE_ELECT_MAX                      500000                /* 最大充电电量值(精度：0.001) */
-#define YKC_MONITOR_SPEND_AMOUNT_MAX                      5000000               /* 最大消费金额值(精度：0.0001) */
+#define YKC_MONITOR_CHARGE_ELECT_MAX                      1000000               /* 最大充电电量值(精度：0.001) */
+#define YKC_MONITOR_SPEND_AMOUNT_MAX                      30000000              /* 最大消费金额值(精度：0.0001) */
 
 #define YKC_MONITOR_REALTIME_DATA_INTERVAL_INIT           0x05                  /* 刚连上网时实时数据上报间隔 */
 #define YKC_MONITOR_REALTIME_DATA_INTERVAL_CHARGING       0x0F                  /* 充电中实时数据上报间隔  */

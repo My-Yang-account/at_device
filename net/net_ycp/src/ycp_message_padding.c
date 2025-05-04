@@ -25,8 +25,8 @@
 #define YCP_HOST_FAULT_NUM_MAX_DEFAULT            0x10         /* 默认上报主机故障数目最大值 */
 #define YCP_PORT_FAULT_NUM_MAX_DEFAULT            0x20         /* 默认上报枪口故障数目最大值 */
 
-#define YCP_CHARGE_ELECT_MAX                      500000        /* 最大充电电量值(精度：0.001) */
-#define YCP_SPEND_AMOUNT_MAX                      5000000       /* 最大消费金额值(精度：0.0001) */
+#define YCP_CHARGE_ELECT_MAX                      1000000       /* 最大充电电量值(精度：0.001) */
+#define YCP_SPEND_AMOUNT_MAX                      30000000      /* 最大消费金额值(精度：0.0001) */
 
 #define YCP_DISPOSABLE_EVENT_STATE                0x00          /* 漏报事件：桩状态 */
 

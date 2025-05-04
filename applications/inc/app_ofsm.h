@@ -52,8 +52,8 @@ extern "C" {
 #define APP_PARACHARGE_IDENTIFY_CAN_ID       0x1FFFFFFF /* 并充自动识别CAN ID */
 #define APP_PARACHARGE_IDENTIFY_CAN_DATA     0x5A       /* 并充自动识别CAN 数据 */
 
-#define APP_CHARGE_ELECT_MAX                 500000    /* 最大充电电量值(精度：0.001) */
-#define APP_SPEND_AMOUNT_MAX                 5000000   /* 最大消费金额值(精度：0.0001) */
+#define APP_CHARGE_ELECT_MAX                 1000000   /* 最大充电电量值(精度：0.001) */
+#define APP_SPEND_AMOUNT_MAX                 30000000  /* 最大消费金额值(精度：0.0001) */
 #define APP_CALCULATE_ELECT_DIFF_MAX         510       /* 最大计算电量差值(精度：0.001) */
 #define APP_EMS_STOP_POWER_MIN               5         /* ems停充功率最小值(精度：0.1KW) */
 

@@ -24,8 +24,8 @@
 
 #ifdef NET_PACK_USING_SGCC
 
-#define SGCC_CHARGE_ELECT_MAX                      500000          /* 最大充电电量值(精度：0.001) */
-#define SGCC_SPEND_AMOUNT_MAX                      5000000         /* 最大消费金额值(精度：0.0001) */
+#define SGCC_CHARGE_ELECT_MAX                      1000000         /* 最大充电电量值(精度：0.001) */
+#define SGCC_SPEND_AMOUNT_MAX                      30000000        /* 最大消费金额值(精度：0.0001) */
 
 #define SGCC_STATE_PERIOD_CHARGING_FIRST_DEF       (60 *1000)      /* 启动充电时前1min 充电中实时数据上报间隔为5s  */
 #define SGCC_STATE_INTERVAL_STARTING_DEF           (5 *1000)       /* 充电中实时数据上报间隔(启动前2min)  */
