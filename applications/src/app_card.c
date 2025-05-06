@@ -866,6 +866,9 @@ static int32_t app_card_info_process(void* handle)
         }
         return 0x00;
     }
+    if((*(sys_read_config_item_content(CONFIG_ITEM_SUPORT_OFFLINE_CARD, 0))) == APP_THA_ENUM_FALSE){
+        return APP_CARD_OPERATE_RET_NULL;
+    }
     s_rfidr = (rfid_reader*)handle;
 
     int32_t ret = 0x00;
