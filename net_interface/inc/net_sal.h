@@ -197,5 +197,6 @@ uint8_t app_nsal_offlinecharge_is_limit(uint8_t gunno);
 void app_nsal_clear_offlinecharge_limit(uint8_t gunno);
 void app_nsal_storage_thread_monitor_info(char *name);
 
+void app_nsal_info_modify_notice(uint8_t info);
 
 #endif /* NET_INTERFACE_INC_NET_SAL_H_ */

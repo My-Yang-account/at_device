@@ -2838,6 +2838,7 @@ void SerialScreen_BtnChgInfoGet(int port)
 
 void SerialScreen_BtnChgInfoSet(int port)
 {
+    u8 is_changed = 0, *data = NULL, valid_len = 0;
     SerialScreen_JumpPage(&SerialScreen, LCD_PAGE_STORAGE_WAITING);
 
     /** 平台配置 */
@@ -2860,8 +2861,38 @@ void SerialScreen_BtnChgInfoSet(int port)
             UI_SYNC_SINGLE_CFG_STR(CONFIG_ITEM_QRCODE_PRE,temp,str_len(temp));
         }
     }
+
+    data = UI_READ_SINGLE_CFG_STR(CONFIG_ITEM_PILE_NUMBER, 0);
+    if(data){
+        u8 set_dev_id_len = 0, storag_edev_id_len = 0;
+
+        storag_edev_id_len = *(u8*)(UI_READ_SINGLE_CFG_STR(CONFIG_ITEM_PILE_NUMBER, 0));
+        if(storag_edev_id_len > strlen((char*)data)){
+            storag_edev_id_len = strlen((char*)data);
+        }
+        set_dev_id_len = sizeof(LcdData.setData.pileID);
+        if(set_dev_id_len > strlen((char*)LcdData.setData.pileID)){
+            set_dev_id_len = strlen((char*)LcdData.setData.pileID);
+        }
+        if(set_dev_id_len == storag_edev_id_len){
+            valid_len = set_dev_id_len;
+        }else if(set_dev_id_len > storag_edev_id_len){
+            valid_len = set_dev_id_len;
+        }else if(set_dev_id_len < storag_edev_id_len){
+            valid_len = storag_edev_id_len;
+        }
+
+        if(memcmp(data, LcdData.setData.pileID, valid_len)){
+            is_changed = 1;
+        }
+    }
+
     UI_SYNC_SINGLE_CFG_STR(CONFIG_ITEM_PILE_NUMBER,LcdData.setData.pileID,str_len(LcdData.setData.pileID));
     UI_SYNC_SINGLE_CFG_STR(CONFIG_ITEM_HELP_PHONE,LcdData.setData.Help_Number,str_len(LcdData.setData.Help_Number));
+
+    if(is_changed){
+        thaisen_info_modify_notice(THAISEN_NOTICE_PILE_INFO);
+    }
 
     LcdAssistantData.Flag.IsConfigFail = TRUE;
     if(UI_STORAGE_CFG_DATA >= 0){

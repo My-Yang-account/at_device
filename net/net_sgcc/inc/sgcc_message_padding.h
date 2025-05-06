@@ -24,6 +24,8 @@ uint8_t sgcc_get_remotestop_result(uint8_t gunno);
 uint16_t sgcc_get_remotestop_fault_reason(uint8_t gunno);
 uint16_t sgcc_get_remotestop_fail_reason(uint8_t gunno);
 
+void sgcc_info_modify_notice(uint8_t info);
+
 int8_t sgcc_response_padding_remote_start_charge(uint8_t gunno, uint8_t *buf, uint16_t ilen, uint16_t *olen);
 int8_t sgcc_response_padding_remote_stop_charge(uint8_t gunno, uint8_t *buf, uint16_t ilen, uint16_t *olen);
 int8_t sgcc_response_padding_apply_charge_result(uint8_t gunno, uint8_t *buf, uint16_t ilen, uint16_t *olen);

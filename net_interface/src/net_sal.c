@@ -1104,4 +1104,34 @@ void app_nsal_storage_thread_monitor_info(char *name)
 #endif /* NET_PACK_USING_YKC_MONITOR */
 }
 
+/*******************************************
+ * 函数名    app_nsal_info_modify_notice
+ * 功能        信息修改提醒
+ * 参数        info   所修改的信息码
+ * 返回
+ *****************************************/
+void app_nsal_info_modify_notice(uint8_t info)
+{
+#ifdef NET_PACK_USING_YKC
+//    ykc_info_modify_notice(info);
+#endif /* NET_PACK_USING_YKC */
+
+#ifdef NET_PACK_USING_THA
+//    tha_info_modify_notice(info);
+#endif /* NET_PACK_USING_THA */
+
+#ifdef NET_PACK_USING_YKC_MONITOR
+#ifndef NET_YKC_MONITOR_AS_MONITOR
+//    ykc_monitor_info_modify_notice(info);
+#endif /* NET_YKC_MONITOR_AS_MONITOR */
+#endif /* NET_PACK_USING_YKC_MONITOR */
+
+#ifdef NET_PACK_USING_YCP
+//    ycp_info_modify_notice(info);
+#endif /* NET_PACK_USING_YCP */
+
+#ifdef NET_PACK_USING_SGCC
+    sgcc_info_modify_notice(info);
+#endif /* NET_PACK_USING_SGCC */
+}
 

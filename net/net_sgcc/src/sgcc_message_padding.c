@@ -13,6 +13,7 @@
 #include "sgcc_message_receive.h"
 #include "sgcc_device_register.h"
 
+#include "app_data_info_interface.h"
 #include "app_ofsm.h"
 #include "app_billing_rule.h"
 #include "net_operation.h"
@@ -237,6 +238,29 @@ uint16_t sgcc_get_remotestop_fault_reason(uint8_t gunno)
 uint16_t sgcc_get_remotestop_fail_reason(uint8_t gunno)
 {
     return s_agcc_remotestop_fail_reason[gunno];
+}
+
+/*************************************************
+ * 函数名      sgcc_info_modify_notice
+ * 功能          信息修改提醒
+ * **********************************************/
+void sgcc_info_modify_notice(uint8_t info)
+{
+    if(info == THAISEN_NOTICE_PILE_INFO){
+        sgcc_storage_struct *config = (sgcc_storage_struct*)(s_sgcc_handle->get_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, 0x00, NET_SYSTEM_DATA_OPTION_TARGET_PLAT));
+        if(config){
+            memset(config->product_key, 0x00, sizeof(config->product_key));
+            memset(config->product_secret, 0x00, sizeof(config->product_secret));
+            memset(config->device_name, 0x00, sizeof(config->device_name));
+            memset(config->device_secret, 0x00, sizeof(config->device_secret));
+            memset(config->device_reg_code, 0x00, sizeof(config->device_reg_code));
+        }
+    }else if(info == THAISEN_NOTICE_OTHER){
+        sgcc_storage_struct *config = (sgcc_storage_struct*)(s_sgcc_handle->get_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, 0x00, NET_SYSTEM_DATA_OPTION_TARGET_PLAT));
+        if(config){
+            /** 获取注册码 */
+        }
+    }
 }
 
 /*************************************************

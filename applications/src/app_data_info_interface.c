@@ -1839,3 +1839,14 @@ struct offline_billing_card_info *thaisen_get_offline_billing_card_info(uint8_t 
 
     return &s_offline_billing_card_info;
 }
+
+/**************************************************************************
+ * 函数名      thaisen_info_modify_notice
+ * 功能         信息修改提醒
+ * 参数          info     信息@enum thaisen_notice
+ * 返回
+ *************************************************************************/
+void thaisen_info_modify_notice(enum thaisen_notice info)
+{
+    app_nsal_info_modify_notice(info);
+}

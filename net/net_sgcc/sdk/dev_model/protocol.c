@@ -2751,13 +2751,22 @@ int evs_linkkit_new(const int evs_is_ready, const int is_device_uid)
             IOT_Get_Regcode(region, &dev_reg_meta);
             //PROTOCOL_TRACE("IOT_Get_Regcode dev_reg_meta.device_reg_code is %s\n",dev_reg_meta.device_reg_code);
             regCodeLenth = strlen(dev_reg_meta.device_reg_code);
+
+            if ((regCodeLenth < 5) || (regCodeLenth > IOTX_DEVICE_REG_CODE_LEN))
+            {
+                callback = evs_service_callback(EVS_DEVICE_REG_CODE_GET);
+                if (callback)
+                {
+                    regCodeLenth = ((int (*)(char *device_reg_code))callback)(reg_code);
+                    memcpy(dev_reg_meta.device_reg_code, reg_code, sizeof(reg_code));
+                }
+            }
         }
         else
         {
             callback = evs_service_callback(EVS_DEVICE_REG_CODE_GET);
             if (callback)
             {
-
                 regCodeLenth = ((int (*)(char *device_reg_code))callback)(reg_code);
                 memcpy(dev_reg_meta.device_reg_code, reg_code, sizeof(reg_code));
             }
