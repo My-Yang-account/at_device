@@ -90,6 +90,9 @@
 #define CP_INFO_METER_ADDRESS_LEN_MAX      13                      /* 电表地址最大长度 */
 #define CP_INFO_SCREEN_PASSWORD_LEN_MAX    15                      /* 屏幕密码最大长度 */
 
+#define CP_INFO_USER_IDENTITY_LEN_MAX      9                       /* 用户识别码最大长度 */
+#define CP_INFO_REGISTER_CODE_LEN_MAX      64                      /* 注册码最大长度 */
+
 #define CARD_NUMBER_LENGTH_DEF             0x10                    /* 卡号长度默认值 */
 #define CARD_NUMBER_LENGTH_MIN             0x06                    /* 卡号长度最小值 */
 #define CARD_NUMBER_LENGTH_MAX             0x10                    /* 卡号长度最大值 */
@@ -198,7 +201,7 @@
 #endif /* APP_USING_DOUBLEGUN */
 
 #define CP_QRCODE_PARA_PRODUCT_IDENTIFICATION     "gwwl//"                                          /* 二维码配置参数：产品标识 */
-#define CP_QRCODE_PARA_VENDOR_CODE                "1001"                                            /* 二维码配置参数：厂商代码 */
+#define CP_QRCODE_PARA_VENDOR_CODE                "1002"                                            /* 二维码配置参数：厂商代码 */
 #define CP_QRCODE_PARA_RULE_VERSION               "1.0.1"                                           /* 二维码配置参数：二维码规则版本 */
 #define CP_QRCODE_PARA_STRING_CODE_TYPE           "3"                                               /* 二维码配置参数：字符码类型 */
 
@@ -567,6 +570,8 @@ enum config_name{
     CONFIG_ITEM_CARD_WHITELIST,
     CONFIG_ITEM_SCREEN_PASSWORD,
     CONFIG_ITEM_HELP_PHONE,
+    CONFIG_ITEM_USER_IDENTITY,
+    CONFIG_ITEM_REGISTER_CODE,
     CONFIG_ITEM_NET_TYPE,
     CONFIG_ITEM_TEMINAL_ADDRA,
     CONFIG_ITEM_TEMINAL_ADDRB,
