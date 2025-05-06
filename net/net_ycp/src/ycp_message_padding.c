@@ -96,7 +96,7 @@ NET_DEF_SRAM2 static struct net_handle* s_ycp_handle = NULL;
 NET_DEF_SRAM2 static struct ycp_pfaut_info s_ycp_pfaut_info;
 NET_DEF_SRAM2 static struct ycp_hfaut_info s_ycp_hfaut_info;
 
-static uint16_t ycp_chargepile_stop_reason_converted(uint16_t bit, uint8_t stop_in_starting);
+static uint16_t ycp_chargepile_stop_reason_converted(void *handle, uint16_t bit, uint8_t stop_in_starting);
 static uint8_t ycp_chargepile_transaction_identity_converted(uint8_t identity);
 
 /*************************************************
@@ -1958,7 +1958,7 @@ uint8_t ycp_chargepile_request_padding_transaction_record(uint8_t gunno, void *t
         }
 
         g_ycp_preq_transaction_records[gunno].body.start_way = ycp_chargepile_transaction_identity_converted(_transaction->start_type);
-        g_ycp_preq_transaction_records[gunno].body.stop_reason = ycp_chargepile_stop_reason_converted(_transaction->stop_reason, _transaction->order_info.is_start_fail);
+        g_ycp_preq_transaction_records[gunno].body.stop_reason = ycp_chargepile_stop_reason_converted(_transaction, _transaction->stop_reason, _transaction->order_info.is_start_fail);
 
         ycp_net_event_send(NET_YCP_EVENT_HANDLE_CHARGEPILE, NET_YCP_EVENT_TYPE_REQUEST, gunno, NET_YCP_PREQ_EVENT_TRANSACTION_RECORD);
         return 0x01;
@@ -2385,9 +2385,10 @@ static uint8_t ycp_chargepile_transaction_identity_converted(uint8_t identity)
  * 函数名      ycp_chargepile_stop_reason_converted
  * 功能          停充原因转换
  * **********************************************/
-static uint16_t ycp_chargepile_stop_reason_converted(uint16_t reason, uint8_t stop_in_starting)
+static uint16_t ycp_chargepile_stop_reason_converted(void *handle, uint16_t reason, uint8_t stop_in_starting)
 {
     uint16_t _reason = NETYCP_AS_REASONFF_UNKNOW;
+    thaisen_transaction_t *_transaction = (thaisen_transaction_t*)handle;
 
     switch(reason){
     /* 急停 */
@@ -2543,6 +2544,15 @@ static uint16_t ycp_chargepile_stop_reason_converted(uint16_t reason, uint8_t st
     /* 车机停止 */
     case APP_SYSTEM_STOP_WAY_BST:
         _reason = NETYCP_AS_REASON66_CAR_COMMAND_STOP;
+        if(_transaction){
+            if(_transaction->bms_fault_reason.battery_ot){
+                _reason = NETYCP_AS_REASON60_BATTERY_GROUP_OVERTEMP;
+            }else if(_transaction->bms_error_reason.over_current){
+                _reason = NETYCP_AS_REASON5E_CHARGE_TCURRENT_ABNORMAL;
+            }else if(_transaction->bms_error_reason.volt_abnormal){
+                _reason = NETYCP_AS_REASON5D_CHARGE_TVOLTAGE_ABNORMAL;
+            }
+        }
         break;
     /* 准备电压 */
     case APP_SYSTEM_STOP_WAY_READY_VOLT:

@@ -135,7 +135,7 @@ NET_DEF_SRAM0 static uint8_t s_sgcc_realtime_process_thread_stack[4096];
 NET_DEF_SRAM2 static struct net_handle* s_sgcc_handle = NULL;
 
 static uint8_t sgcc_chargepile_transaction_identity_converted(uint8_t identity, uint8_t online_order);
-static uint16_t sgcc_chargepile_stop_reason_converted(uint16_t reason, uint8_t stop_in_starting);
+static uint16_t sgcc_chargepile_stop_reason_converted(void *handle, uint16_t reason, uint8_t stop_in_starting);
 
 /*******************************************************
  * 函数名               sgcc_enter_critical
@@ -1990,7 +1990,7 @@ int8_t sgcc_message_pro_query_dev_record_request(uint8_t gunno, void *data, uint
         evs_event_logQuery_Results[gunno].dataArea.tradeInfo.startSoc = _transaction->start_soc;
         evs_event_logQuery_Results[gunno].dataArea.tradeInfo.endSoc = _transaction->stop_soc;
 
-        evs_event_logQuery_Results[gunno].dataArea.tradeInfo.reason = sgcc_chargepile_stop_reason_converted(_transaction->stop_reason, _transaction->order_info.is_start_fail);                            // 11 停止充电原因
+        evs_event_logQuery_Results[gunno].dataArea.tradeInfo.reason = sgcc_chargepile_stop_reason_converted(_transaction, _transaction->stop_reason, _transaction->order_info.is_start_fail);                            // 11 停止充电原因
 
         valid_len = sizeof(_transaction->elect_model_sn);
         valid_len = valid_len > EVS_MAX_MODEL_ID_LEN ? EVS_MAX_MODEL_ID_LEN : valid_len;
@@ -2794,7 +2794,7 @@ uint8_t sgcc_chargepile_request_padding_transaction_record(uint8_t gunno, void *
         evs_event_tradeInfos[gunno].startSoc = _transaction->start_soc;
         evs_event_tradeInfos[gunno].endSoc = _transaction->stop_soc;
 
-        evs_event_tradeInfos[gunno].reason = sgcc_chargepile_stop_reason_converted(_transaction->stop_reason, _transaction->order_info.is_start_fail);
+        evs_event_tradeInfos[gunno].reason = sgcc_chargepile_stop_reason_converted(_transaction, _transaction->stop_reason, _transaction->order_info.is_start_fail);
 
         valid_len = sizeof(_transaction->elect_model_sn);
         valid_len = valid_len > EVS_MAX_MODEL_ID_LEN ? EVS_MAX_MODEL_ID_LEN : valid_len;
@@ -2910,7 +2910,7 @@ void sgcc_start_charge_response_asynchronously(uint8_t gunno, uint8_t result, ui
         if(s_agcc_remotecharge_result[gunno] == 10){
             s_agcc_remotecharge_fail_reason[gunno] = 0x00;
         }else{
-            s_agcc_remotecharge_fail_reason[gunno] = sgcc_chargepile_stop_reason_converted(reason, NET_ENUM_TRUE);
+            s_agcc_remotecharge_fail_reason[gunno] = sgcc_chargepile_stop_reason_converted(NULL, reason, NET_ENUM_TRUE);
         }
 
         s_agcc_remotecharge_fault_reason[gunno] = s_agcc_remotecharge_fail_reason[gunno];
@@ -2919,7 +2919,7 @@ void sgcc_start_charge_response_asynchronously(uint8_t gunno, uint8_t result, ui
         if(s_agcc_applycharge_result[gunno] == 10){
             s_agcc_applycharge_fail_reason[gunno] = 0x00;
         }else{
-            s_agcc_applycharge_fail_reason[gunno] = sgcc_chargepile_stop_reason_converted(reason, NET_ENUM_TRUE);
+            s_agcc_applycharge_fail_reason[gunno] = sgcc_chargepile_stop_reason_converted(NULL, reason, NET_ENUM_TRUE);
         }
 
         s_agcc_applycharge_fault_reason[gunno] = s_agcc_applycharge_fail_reason[gunno];
@@ -2960,7 +2960,7 @@ void sgcc_stop_charge_response_asynchronously(uint8_t gunno, uint8_t result, uin
         s_agcc_remotestop_result[gunno] = 11;
     }
 
-    s_agcc_remotestop_fail_reason[gunno] = sgcc_chargepile_stop_reason_converted(reason, NET_ENUM_TRUE);
+    s_agcc_remotestop_fail_reason[gunno] = sgcc_chargepile_stop_reason_converted(NULL, reason, NET_ENUM_TRUE);
     s_agcc_remotestop_fault_reason[gunno] = 11;
     s_sgcc_flag_info[gunno].is_stop_charge = NET_ENUM_FALSE;
 
@@ -3532,9 +3532,10 @@ uint16_t sgcc_chargepile_fault_converted(uint16_t bit, uint8_t *rank)
  * 功能          停充原因转换
  * **********************************************/
 #ifdef NET_SGCC_PRO_USING_DC
-static uint16_t sgcc_chargepile_stop_reason_converted(uint16_t reason, uint8_t stop_in_starting)
+static uint16_t sgcc_chargepile_stop_reason_converted(void *handle, uint16_t reason, uint8_t stop_in_starting)
 {
     uint16_t _reason = NETSGCC_DCA_REASON7020_UNKNOW;
+    thaisen_transaction_t *_transaction = (thaisen_transaction_t*)handle;
 
     switch(reason){
     /* 急停 */
@@ -3662,6 +3663,23 @@ static uint16_t sgcc_chargepile_stop_reason_converted(uint16_t reason, uint8_t s
     /* 车机停止 */
     case APP_SYSTEM_STOP_WAY_BST:
         _reason = NETSGCC_GS_REASON1011_BMS_STOP;
+        if(_transaction){
+            if(_transaction->bms_fault_reason.insultion){
+                _reason = NETSGCC_DCCA_REASON5014_BMS_INSULATION;
+            }else if(_transaction->bms_fault_reason.bms_comp_olink_ot){
+                _reason = NETSGCC_DCCA_REASON5015_BMS_COMPONENT_OVERTEMP;
+            }else if(_transaction->bms_fault_reason.clink_fault){
+                _reason = NETSGCC_DCCA_REASON5026_BATTERY_LINKER;
+            }else if(_transaction->bms_fault_reason.battery_ot){
+                _reason = NETSGCC_DCCA_REASON5024_BATTERY_OVERTEMP;
+            }else if(_transaction->bms_fault_reason.other){
+                _reason = NETSGCC_DCCA_REASON5018_BMS_OTHER;
+            }else if(_transaction->bms_error_reason.over_current){
+                _reason = NETSGCC_DCCA_REASON5023_BATTERY_OVERCURR;
+            }else if(_transaction->bms_error_reason.volt_abnormal){
+                _reason = NETSGCC_DCCA_REASON5016_BMS_OVERVOLT;
+            }
+        }
         break;
     /* 准备电压 */
     case APP_SYSTEM_STOP_WAY_READY_VOLT:
@@ -3777,9 +3795,10 @@ static uint16_t sgcc_chargepile_stop_reason_converted(uint16_t reason, uint8_t s
     return _reason;
 }
 #else
-static uint16_t sgcc_chargepile_stop_reason_converted(uint8_t reason, uint8_t stop_in_starting)
+static uint16_t sgcc_chargepile_stop_reason_converted(void *handle, uint8_t reason, uint8_t stop_in_starting)
 {
     uint16_t _reason = NETSGCC_DCA_REASON7020_UNKNOW;
+    thaisen_transaction_t *_transaction = (thaisen_transaction_t*)handle;
 
     return _reason;
 }

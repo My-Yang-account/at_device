@@ -126,7 +126,7 @@ NET_DEF_SRAM2 static struct rt_thread s_ykc_monitor_realtime_process_thread;
 NET_DEF_SRAM0 static uint8_t s_ykc_monitor_realtime_process_thread_stack[YKC_MONITOR_REALTIME_PROCESS_THREAD_STACK_SIZE];
 NET_DEF_SRAM2 static struct net_handle* s_ykc_monitor_handle = NULL;
 
-static uint16_t ykc_monitor_chargepile_stop_reason_converted(uint16_t bit, uint8_t stop_in_starting);
+static uint16_t ykc_monitor_chargepile_stop_reason_converted(void *handle, uint16_t bit, uint8_t stop_in_starting);
 static uint8_t ykc_monitor_chargepile_transaction_identity_converted(uint8_t identity);
 
 /*******************************************************
@@ -2198,7 +2198,7 @@ uint8_t ykc_monitor_chargepile_request_padding_transaction_record(uint8_t gunno,
         }
 
         g_ykc_monitor_preq_transaction_records[gunno].body.transaction_date = ykc_monitor_get_cp56time2a_from_timestamp(base->current_time);
-        g_ykc_monitor_preq_transaction_records[gunno].body.stop_reason = ykc_monitor_chargepile_stop_reason_converted(_transaction->stop_reason, _transaction->order_info.is_start_fail);
+        g_ykc_monitor_preq_transaction_records[gunno].body.stop_reason = ykc_monitor_chargepile_stop_reason_converted(_transaction, _transaction->stop_reason, _transaction->order_info.is_start_fail);
 
         ykc_monitor_net_event_send(NET_YKC_MONITOR_EVENT_HANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, gunno, NET_YKC_MONITOR_PREQ_EVENT_TRANSACTION_RECORD);
         return 0x01;
@@ -2631,9 +2631,10 @@ static uint8_t ykc_monitor_chargepile_transaction_identity_converted(uint8_t ide
  * 函数名      ykc_monitor_chargepile_stop_reason_converted
  * 功能          停充原因转换
  * **********************************************/
-static uint16_t ykc_monitor_chargepile_stop_reason_converted(uint16_t reason, uint8_t stop_in_starting)
+static uint16_t ykc_monitor_chargepile_stop_reason_converted(void *handle, uint16_t reason, uint8_t stop_in_starting)
 {
     uint16_t _reason = NETYKC_MONITOR_AS_REASON90_UNKNOW;
+    thaisen_transaction_t *_transaction = (thaisen_transaction_t*)handle;
 
     switch(reason){
     /* 急停 */
@@ -2789,6 +2790,15 @@ static uint16_t ykc_monitor_chargepile_stop_reason_converted(uint16_t reason, ui
     /* 车机停止 */
     case APP_SYSTEM_STOP_WAY_BST:
         _reason = NETYKC_MONITOR_AS_REASON82_CAR_COMMAND_STOP;
+        if(_transaction){
+            if(_transaction->bms_fault_reason.battery_ot){
+                _reason = NETYKC_MONITOR_AS_REASON7C_BATTERY_GROUP_OVERTEMP;
+            }else if(_transaction->bms_error_reason.over_current){
+                _reason = NETYKC_MONITOR_AS_REASON7A_CHARGE_TCURRENT_ABNORMAL;
+            }else if(_transaction->bms_error_reason.volt_abnormal){
+                _reason = NETYKC_MONITOR_AS_REASON79_CHARGE_TVOLTAGE_ABNORMAL;
+            }
+        }
         break;
     /* 准备电压 */
     case APP_SYSTEM_STOP_WAY_READY_VOLT:

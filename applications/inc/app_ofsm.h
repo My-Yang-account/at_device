@@ -379,7 +379,13 @@ typedef struct
 #endif /* APP_INCLUDE_YKC17_PROTOCOL */
 
     uint8_t run_mode;                     /* 运行模式：0：4G、以太网联网，1：离线计费，2：蓝牙联网，3：wifi联网，4：非联网、非离线计费 */
-    uint8_t reserve[15];                  /* 预留 */
+    struct{
+        uint8_t volt_abnormal : 2;        /* 电压异常 */
+        uint8_t over_current : 2;         /* 电流过大 */
+        uint8_t reserve : 4;              /* 预留 */
+    }bms_error_reason;
+
+    uint8_t reserve[14];                  /* 预留 */
 }thaisen_transaction_t;
 /*******************************************************************************************/
 

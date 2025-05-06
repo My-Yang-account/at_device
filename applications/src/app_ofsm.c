@@ -1528,6 +1528,7 @@ static void ofsm_start_info_padding_public(uint8_t gunno)
 
     memset(&(s_thaisen_transaction[gunno].bms_stop_reason), 0x00, sizeof(s_thaisen_transaction[gunno].bms_stop_reason));
     memset(&(s_thaisen_transaction[gunno].bms_fault_reason), 0x00, sizeof(s_thaisen_transaction[gunno].bms_fault_reason));
+    memset(&(s_thaisen_transaction[gunno].bms_error_reason), 0x00, sizeof(s_thaisen_transaction[gunno].bms_error_reason));
 
     s_booting_step[gunno] = APP_BOOTING_STEP_IDLE;                 /* 初始化充电步骤 */
 
@@ -4893,6 +4894,9 @@ static void ofsm_stoping_fun(uint8_t gunno)
         s_thaisen_transaction[gunno].bms_fault_reason.hv_relay = bms->BST.HVRelaysFault;
         s_thaisen_transaction[gunno].bms_fault_reason.detect_point2_volt = bms->BST.Check2Ft;
         s_thaisen_transaction[gunno].bms_fault_reason.other = bms->BST.OtherFt;
+
+        s_thaisen_transaction[gunno].bms_error_reason.over_current = bms->BST.OverCurlt;
+        s_thaisen_transaction[gunno].bms_error_reason.volt_abnormal = bms->BST.Voltfault;
 
         app_nsal_report_bms_message_end(gunno);
         app_nsal_report_bms_message_error(gunno);
