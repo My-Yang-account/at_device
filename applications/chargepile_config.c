@@ -85,9 +85,9 @@ struct _pile_info{
     uint8_t help_number[CP_INFO_HELP_NUMBER_LEN_MAX];                 /* 帮助电话 */
     uint8_t help_number_len;                                          /* 帮助电话实际长度 */
 
-    uint32_t user_identity;                                           /* 用户识别码 */
+    uint8_t user_identity[CP_INFO_USER_IDENTITY_LEN_MAX];             /* 用户识别码 */
 
-    uint8_t reserve[32];                                              /* 预留 */
+    uint8_t reserve[32 - 5];                                          /* 预留 */
 };
 
 struct _config_para{
@@ -157,7 +157,8 @@ struct _config_info{
 
     uint8_t ammeter_check_way;                                        /* 电表串口校验方式 */
     uint8_t ammeter_baudrate;                                         /* 电表串口波特率 */
-    uint8_t reserve[256 - 6];                                         /* 保留 */
+    uint8_t register_code[CP_INFO_REGISTER_CODE_LEN_MAX];             /* 注册码 */
+    uint8_t reserve[256 - 70];                                        /* 保留 */
 };
 
 struct _function_enable{
@@ -792,6 +793,16 @@ APP_DEF_SRAM2 static struct config_item s_config_item_set[CONFIG_ITEM_SIZE] =
         (uint8_t*)&s_chargepile_config_info.pile_info.help_number,
         &s_chargepile_config_info.pile_info.help_number_len},
 
+        {CONFIG_ITEM_USER_IDENTITY,                                                        /* 用户识别码 */
+        (1 <<(32 - 4))| (sizeof(s_chargepile_config_info.pile_info.user_identity)),
+        (uint8_t*)&s_chargepile_config_info.pile_info.user_identity,
+        NULL},
+
+        {CONFIG_ITEM_REGISTER_CODE,                                                        /* 注册码 */
+        (1 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_info.register_code)),
+        (uint8_t*)&s_chargepile_config_info.config_info.register_code,
+        NULL},
+
         {CONFIG_ITEM_NET_TYPE,                                                             /* 联网方式 */
         (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.network.nettype)),
         (uint8_t*)&s_chargepile_config_info.network.nettype,
@@ -1175,6 +1186,12 @@ void sys_chargeplie_config_info_init(void)
     /** 帮助电话 */
     sys_config_item_init(CONFIG_ITEM_HELP_PHONE, (1 <<(32 - 4))| (sizeof(s_chargepile_config_info.pile_info.help_number)), \
             (uint8_t*)&s_chargepile_config_info.pile_info.help_number, &s_chargepile_config_info.pile_info.help_number_len);
+    /** 用户识别码 */
+    sys_config_item_init(CONFIG_ITEM_USER_IDENTITY, (1 <<(32 - 4))| (sizeof(s_chargepile_config_info.pile_info.user_identity)), \
+            (uint8_t*)&s_chargepile_config_info.pile_info.user_identity, NULL);
+    /** 注册码 */
+    sys_config_item_init(CONFIG_ITEM_REGISTER_CODE, (1 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_info.register_code)), \
+            (uint8_t*)&s_chargepile_config_info.config_info.register_code, NULL);
     /** 网络类型 */
     sys_config_item_init(CONFIG_ITEM_NET_TYPE, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.network.nettype)), \
             (uint8_t*)&s_chargepile_config_info.network.nettype, NULL);
@@ -1658,7 +1675,8 @@ static void chargepile_config_data_reset(void)
     memset(s_chargepile_config_info.pile_info.serial_number, '\0', sizeof(s_chargepile_config_info.pile_info.serial_number));
     s_chargepile_config_info.pile_info.help_number_len = 0x00;
     memset(s_chargepile_config_info.pile_info.help_number, '\0', sizeof(s_chargepile_config_info.pile_info.help_number));
-    s_chargepile_config_info.pile_info.user_identity = 0x00;
+    memset(s_chargepile_config_info.pile_info.user_identity, '\0', sizeof(s_chargepile_config_info.pile_info.user_identity));
+    memset(s_chargepile_config_info.config_info.register_code, '\0', sizeof(s_chargepile_config_info.config_info.register_code));
 
     s_chargepile_config_info.config_para.cc1_12_max = CHARGEPILE_CC12V_MAX;
     s_chargepile_config_info.config_para.cc1_12_min = CHARGEPILE_CC12V_MIN;
@@ -2376,6 +2394,30 @@ int32_t chargepile_check_config(void)
 #endif
     }
 
+    valid_len = sizeof(s_chargepile_config_info.pile_info.user_identity);
+    valid_len = valid_len > strlen((char*)s_chargepile_config_info.pile_info.user_identity) ? \
+            strlen((char*)s_chargepile_config_info.pile_info.user_identity) : valid_len;
+
+    if(sys_string_contain_ctrl_char((const char*)&s_chargepile_config_info.pile_info.user_identity, valid_len)){
+#ifdef CP_QRCODE_CONFIG_USING_SGCC
+        memset(s_chargepile_config_info.pile_info.user_identity, 0x00, sizeof(s_chargepile_config_info.pile_info.user_identity));
+        valid_len = sizeof(s_chargepile_config_info.pile_info.user_identity);
+        valid_len = valid_len > strlen((char*)CP_QRCODE_PARA_VENDOR_CODE) ? strlen((char*)CP_QRCODE_PARA_VENDOR_CODE) : valid_len;
+        memcpy(&s_chargepile_config_info.pile_info.user_identity, CP_QRCODE_PARA_VENDOR_CODE, valid_len);
+#endif /* CP_QRCODE_CONFIG_USING_SGCC */
+    }
+    valid_len = sizeof(s_chargepile_config_info.config_info.register_code);
+    valid_len = valid_len > strlen((char*)s_chargepile_config_info.config_info.register_code) ? \
+            strlen((char*)s_chargepile_config_info.config_info.register_code) : valid_len;
+
+    if(sys_string_contain_ctrl_char((const char*)&s_chargepile_config_info.config_info.register_code, valid_len)){
+        memset(s_chargepile_config_info.config_info.register_code, 0x00, sizeof(s_chargepile_config_info.config_info.register_code));
+#if 0
+        valid_len = sizeof(s_chargepile_config_info.config_info.register_code);
+        valid_len = valid_len > strlen((char*)CP_QRCODE_PARA_VENDOR_CODE) ? strlen((char*)CP_QRCODE_PARA_VENDOR_CODE) : valid_len;
+        memcpy(&s_chargepile_config_info.config_info.register_code, CP_QRCODE_PARA_VENDOR_CODE, valid_len);
+#endif
+    }
     for(uint8_t count = 0x00; count < 0x02; count++){
         if(sys_string_contain_ctrl_char((const char*)s_chargepile_config_info.config_info.meter_address[count], (CP_INFO_METER_ADDRESS_LEN_MAX - 0x01))){
             memset(s_chargepile_config_info.config_info.meter_address[count], 0x00, CP_INFO_METER_ADDRESS_LEN_MAX);

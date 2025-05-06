@@ -738,7 +738,7 @@ struct offline_billing_card_info *thaisen_get_offline_billing_card_info(uint8_t 
 
 enum thaisen_notice{
     THAISEN_NOTICE_PILE_INFO,                                     /** 信息修改提醒：桩信息 */
-    THAISEN_NOTICE_OTHER,                                         /** 信息修改提醒：桩信息 */
+    THAISEN_NOTICE_REGISTER_CODE,                                 /** 信息修改提醒：注册码 */
     THAISEN_NOTICE_SIZE,                                          /** 信息修改提醒： */
 };
 

@@ -253,12 +253,22 @@ void sgcc_info_modify_notice(uint8_t info)
             memset(config->product_secret, 0x00, sizeof(config->product_secret));
             memset(config->device_name, 0x00, sizeof(config->device_name));
             memset(config->device_secret, 0x00, sizeof(config->device_secret));
-            memset(config->device_reg_code, 0x00, sizeof(config->device_reg_code));
         }
-    }else if(info == THAISEN_NOTICE_OTHER){
+    }else if(info == THAISEN_NOTICE_REGISTER_CODE){
         sgcc_storage_struct *config = (sgcc_storage_struct*)(s_sgcc_handle->get_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, 0x00, NET_SYSTEM_DATA_OPTION_TARGET_PLAT));
         if(config){
-            /** 获取注册码 */
+            uint8_t valid_len = sizeof(config->device_reg_code), *data = NULL;
+
+            memset(config->product_key, 0x00, sizeof(config->product_key));
+            memset(config->product_secret, 0x00, sizeof(config->product_secret));
+            memset(config->device_name, 0x00, sizeof(config->device_name));
+            memset(config->device_secret, 0x00, sizeof(config->device_secret));
+            memset(config->device_reg_code, 0x00, sizeof(config->device_reg_code));
+            data = sys_read_config_item_content(CONFIG_ITEM_REGISTER_CODE, 0x00);
+            if(valid_len > strlen((char*)data)){
+                valid_len = strlen((char*)data);
+            }
+            memcpy(config->device_reg_code, data, valid_len);
         }
     }
 }

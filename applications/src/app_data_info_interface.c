@@ -288,7 +288,12 @@ struct qrcode_info *thaisen_app_get_gunno_qrcode(uint8_t gunno) // OK
         if((qrcode_len + strlen(CP_QRCODE_PARA_VENDOR_CODE) + 0x01) > QRCODE_BUFF_LEN){
             return &s_qrcode;
         }
-        sprintf((char*)(s_qrcode.qrcode + qrcode_len), "%s:", CP_QRCODE_PARA_VENDOR_CODE);
+        p = sys_read_config_item_content(CONFIG_ITEM_USER_IDENTITY, 0);
+        if(strlen((char*)p) == strlen(CP_QRCODE_PARA_VENDOR_CODE)){
+            sprintf((char*)(s_qrcode.qrcode + qrcode_len), "%s:", p);
+        }else{
+            sprintf((char*)(s_qrcode.qrcode + qrcode_len), "%s:", CP_QRCODE_PARA_VENDOR_CODE);
+        }
         qrcode_len += (strlen(CP_QRCODE_PARA_VENDOR_CODE) + 0x01);
 
         /** 二维码规则版本 */

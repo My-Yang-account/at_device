@@ -459,6 +459,8 @@ struct LCD_DISPLAY_SETDATA_TYPE{
     u8 TimeSync_Flag;                       //对时设置标志
 //	u8 PowerDividerIsSupport;
 //	u8 passwd[20];	
+    u8 UserIdentity[5];                     //客户识别码(厂商编码)
+    u8 RegisterCode[62];                    //注册码
 
 //	struct LCD_DISPLAY_DATE_TYPE Date;
 
@@ -2817,7 +2819,7 @@ void SerialScreen_StopCharge(int port)
 void SerialScreen_BtnChgInfoGet(int port)
 {
     u8 *qrcode_pre = NULL;
-    u8 qrcode_pre_len = 0;
+    u8 para_len = 0, *data = NULL;
 
 	sSCREEN_EVENT_DEBUGMSG("##########ChgInfo###########\r\n");
 	mem_set(LcdData.setData.pileID, 0, sizeof(LcdData.setData.pileID));
@@ -2828,9 +2830,23 @@ void SerialScreen_BtnChgInfoGet(int port)
 	str_ncpy((char *)(LcdData.setData.Help_Number), (char *)(UI_READ_SINGLE_CFG_STR(CONFIG_ITEM_HELP_PHONE, 0)), \
 					 sizeof(LcdData.setData.Help_Number));
 
-    qrcode_pre = thaisen_app_get_qrcode_prefix(&qrcode_pre_len);
-    if(qrcode_pre_len && qrcode_pre){
-        str_ncpy((char *)(LcdData.setData.ErWeiCodePre), qrcode_pre, qrcode_pre_len);
+	data = (char *)(UI_READ_SINGLE_CFG_STR(CONFIG_ITEM_USER_IDENTITY, 0));
+	para_len = sizeof(LcdData.setData.UserIdentity);
+	if(para_len > strlen((char*)data)){
+	    para_len = strlen((char*)data);
+	}
+	memcpy(LcdData.setData.UserIdentity, data, para_len);
+
+    data = (char *)(UI_READ_SINGLE_CFG_STR(CONFIG_ITEM_REGISTER_CODE, 0));
+    para_len = sizeof(LcdData.setData.RegisterCode);
+    if(para_len > strlen((char*)data)){
+        para_len = strlen((char*)data);
+    }
+    memcpy(LcdData.setData.RegisterCode, data, para_len);
+
+    qrcode_pre = thaisen_app_get_qrcode_prefix(&para_len);
+    if(para_len && qrcode_pre){
+        str_ncpy((char *)(LcdData.setData.ErWeiCodePre), qrcode_pre, para_len);
     }
 
 	sSCREEN_EVENT_DEBUGMSG("##########pileID=%s helpnum:%s  qrcodefrex:%s###########\r\n",(char *)(LcdData.setData.pileID),(char *)(LcdData.setData.Help_Number),(char *)(LcdData.setData.ErWeiCodePre));
@@ -2838,7 +2854,7 @@ void SerialScreen_BtnChgInfoGet(int port)
 
 void SerialScreen_BtnChgInfoSet(int port)
 {
-    u8 is_changed = 0, *data = NULL, valid_len = 0;
+    u8 pile_number_is_changed = 0, register_code_is_changed = 0, *data = NULL, valid_len = 0;
     SerialScreen_JumpPage(&SerialScreen, LCD_PAGE_STORAGE_WAITING);
 
     /** 平台配置 */
@@ -2864,34 +2880,61 @@ void SerialScreen_BtnChgInfoSet(int port)
 
     data = UI_READ_SINGLE_CFG_STR(CONFIG_ITEM_PILE_NUMBER, 0);
     if(data){
-        u8 set_dev_id_len = 0, storag_edev_id_len = 0;
+        u8 set_para_len = 0, storag_para_len = 0;
 
-        storag_edev_id_len = *(u8*)(UI_READ_SINGLE_CFG_STR(CONFIG_ITEM_PILE_NUMBER, 0));
-        if(storag_edev_id_len > strlen((char*)data)){
-            storag_edev_id_len = strlen((char*)data);
+        storag_para_len = *(u8*)(UI_READ_SINGLE_CFG_STR(CONFIG_ITEM_PILE_NUMBER, 0));
+        if(storag_para_len > strlen((char*)data)){
+            storag_para_len = strlen((char*)data);
         }
-        set_dev_id_len = sizeof(LcdData.setData.pileID);
-        if(set_dev_id_len > strlen((char*)LcdData.setData.pileID)){
-            set_dev_id_len = strlen((char*)LcdData.setData.pileID);
+        set_para_len = sizeof(LcdData.setData.pileID);
+        if(set_para_len > strlen((char*)LcdData.setData.pileID)){
+            set_para_len = strlen((char*)LcdData.setData.pileID);
         }
-        if(set_dev_id_len == storag_edev_id_len){
-            valid_len = set_dev_id_len;
-        }else if(set_dev_id_len > storag_edev_id_len){
-            valid_len = set_dev_id_len;
-        }else if(set_dev_id_len < storag_edev_id_len){
-            valid_len = storag_edev_id_len;
+        if(set_para_len == storag_para_len){
+            valid_len = set_para_len;
+        }else if(set_para_len > storag_para_len){
+            valid_len = set_para_len;
+        }else if(set_para_len < storag_para_len){
+            valid_len = storag_para_len;
         }
 
         if(memcmp(data, LcdData.setData.pileID, valid_len)){
-            is_changed = 1;
+            pile_number_is_changed = 1;
         }
     }
 
+    data = UI_READ_SINGLE_CFG_STR(CONFIG_ITEM_REGISTER_CODE, 0);
+    if(data){
+        u8 set_para_len = 0, storag_para_len = 0;
+
+        storag_para_len = strlen((char*)data);
+        set_para_len = sizeof(LcdData.setData.RegisterCode);
+        if(set_para_len > strlen((char*)LcdData.setData.RegisterCode)){
+            set_para_len = strlen((char*)LcdData.setData.RegisterCode);
+        }
+        if(set_para_len == storag_para_len){
+            valid_len = set_para_len;
+        }else if(set_para_len > storag_para_len){
+            valid_len = set_para_len;
+        }else if(set_para_len < storag_para_len){
+            valid_len = storag_para_len;
+        }
+
+        if(memcmp(data, LcdData.setData.RegisterCode, valid_len)){
+            register_code_is_changed = 1;
+        }
+    }
+
+    UI_SYNC_SINGLE_CFG_STR(CONFIG_ITEM_USER_IDENTITY, LcdData.setData.UserIdentity,str_len(LcdData.setData.UserIdentity));
+    UI_SYNC_SINGLE_CFG_STR(CONFIG_ITEM_REGISTER_CODE, LcdData.setData.RegisterCode,str_len(LcdData.setData.RegisterCode));
     UI_SYNC_SINGLE_CFG_STR(CONFIG_ITEM_PILE_NUMBER,LcdData.setData.pileID,str_len(LcdData.setData.pileID));
     UI_SYNC_SINGLE_CFG_STR(CONFIG_ITEM_HELP_PHONE,LcdData.setData.Help_Number,str_len(LcdData.setData.Help_Number));
 
-    if(is_changed){
+    if(pile_number_is_changed){
         thaisen_info_modify_notice(THAISEN_NOTICE_PILE_INFO);
+    }
+    if(register_code_is_changed){
+        thaisen_info_modify_notice(THAISEN_NOTICE_REGISTER_CODE);
     }
 
     LcdAssistantData.Flag.IsConfigFail = TRUE;
@@ -11288,6 +11331,8 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_1, NULL, "subok", LCD_BtnType, 0x0014, 0x1000, page_type, LCD_PAGE_ROOT_MAIN, (void *)SerialScreen_BtnChgInfoSet);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_1, NULL, "cd up", LCD_BtnType, 0x0050, 0x1000, page_type, LCD_PAGE_ROOT_MAIN, (void *)NULL);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_1, NULL, "back", LCD_BtnHomeType, 0x0002, 0x1000, page_type, LCD_PAGE_NONE, (void *)NULL);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_1, NULL, "identity", LCD_InputType, 0, 0x6BF0, pstr_type, sizeof(LcdData.setData.UserIdentity), (void *)LcdData.setData.UserIdentity);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_1, NULL, "registerCode", LCD_InputType, 0, 0x6BD0, pstr_type, sizeof(LcdData.setData.RegisterCode), (void *)LcdData.setData.RegisterCode);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_1, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
 
     /** 17.系统信息-服务器信息 [page:19] */
