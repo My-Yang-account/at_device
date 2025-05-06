@@ -645,6 +645,7 @@ static void net_ykc_message_send_thread_entry(void *parameter)
                     LOG_D("ykc login fail(timeout) num|%d", s_ykc_socket_info.operate_fail.login);
                 }else{
                     rt_thread_mdelay(100);
+                    ykc_net_event_send(NET_YKC_EVENT_HANDLE_CHARGEPILE, NET_YKC_EVENT_TYPE_REQUEST, 0x00, NET_YKC_PREQ_EVENT_BILLING_MODEL_VERIFY);
                     ykc_net_event_send(NET_YKC_EVENT_HANDLE_CHARGEPILE, NET_YKC_EVENT_TYPE_REQUEST, 0x00, NET_YKC_PREQ_EVENT_BILLING_MODEL_REQUEST);
                 }
                 /** socket 状态可能有变，上报一次 */

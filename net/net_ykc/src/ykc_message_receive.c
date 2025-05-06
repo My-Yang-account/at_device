@@ -252,7 +252,7 @@ static void ykc_callback_response_billing_model_verify(uint8_t* data, uint16_t l
 
     memcpy(&g_ykc_sres_billing_model_verify, data, length - NET_YKC_PROTOCOL_CHECK_REGION_SIZE);
     ykc_clear_message_wait_response_state(0x00, NET_YKC_PREQ_EVENT_BILLING_MODEL_VERIFY);
-    ykc_net_event_send(NET_YKC_EVENT_HANDLE_SERVER, NET_YKC_EVENT_TYPE_RESPONSE, 0x00, NET_YKC_PREQ_EVENT_BILLING_MODEL_VERIFY);
+//    ykc_net_event_send(NET_YKC_EVENT_HANDLE_SERVER, NET_YKC_EVENT_TYPE_RESPONSE, 0x00, NET_YKC_PREQ_EVENT_BILLING_MODEL_VERIFY);
 }
 
 /*****************************************************************
