@@ -1206,7 +1206,11 @@ static void ykc_callback_request_qrcode_config_ykc15(uint8_t* data, uint16_t len
         s_ykc_qrcode_buf.general_type = NET_GENERATE_QRCODE_FORMAT_PREFIX_DEVICE_SN_PORT;
     }else{
         s_ykc_qrcode_buf.set_type = NET_SET_QRCODE_FORMAT_PREFIX;
-        s_ykc_qrcode_buf.general_type = NET_GENERATE_QRCODE_FORMAT_PREFIX_DEVICE_SN_PORT;
+        if(g_ykc_sreq_qrcode_config_ykc15.body.format == 0x00){
+            s_ykc_qrcode_buf.general_type = NET_GENERATE_QRCODE_FORMAT_PREFIX_DEVICE_SN;
+        }else{
+            s_ykc_qrcode_buf.general_type = NET_GENERATE_QRCODE_FORMAT_PREFIX_DEVICE_SN_PORT;
+        }
     }
 
     s_ykc_qrcode_buf.qrcode[0x00] = s_ykc_qrcode_buf.set_type;
