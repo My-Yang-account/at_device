@@ -2370,7 +2370,19 @@ static void ofsm_reservation_fun(uint8_t gunno)
         }
     }
     /********* 预约时间到 **********/
-    if((s_ofsm_info[gunno].base.reservation_time_base + s_ofsm_info[gunno].base.reservation_time_remain) <= s_ofsm_info[gunno].base.current_time){
+    if((s_ofsm_info[gunno].base.reservation_time_base + s_ofsm_info[gunno].base.reservation_time_remain) <= (s_ofsm_info[gunno].base.current_time + 60)){ /** 时间精确到分钟 */
+        time_t t_base = time(NULL);
+        uint32_t reservation_time_sec = thaisen_get_mode_parameter(gunno);
+        struct tm tmp;
+
+        localtime_r(&t_base, &tmp);
+        if(tmp.tm_min == ((reservation_time_sec %3600) /60)){
+            LOG_D("gunno(%d) reach reservation time, start charge\n", gunno);
+            thaisen_clear_reservation_mode_flag(gunno);
+            ofsm_start_info_padding_reservation(gunno);
+            is_charging_authorization = true;
+        }
+    }else if((s_ofsm_info[gunno].base.reservation_time_base + s_ofsm_info[gunno].base.reservation_time_remain) <= s_ofsm_info[gunno].base.current_time){
         LOG_D("gunno(%d) reach reservation time, start charge\n", gunno);
         thaisen_clear_reservation_mode_flag(gunno);
         ofsm_start_info_padding_reservation(gunno);

@@ -4628,7 +4628,7 @@ void SerialScreen_SetInputInfo(void)
 	thaisenSetDoorOpendStatua(LcdData.setData.neg_gate);
     thaisenSetElectLockFeedbackSta(LcdData.setData.neg_elcok);
 	thaisenSetElectLockBFeedbackSta(LcdData.setData.neg_elcok);
-
+#ifdef SCREEN_USING_DOUBLE_GUN
 	if(LcdData.setData.neg_protectlight)
 	    thaisenSetGeneralInPortAbnormalSta(thaisenGeneralInPortLightningProtection, thaisenGeneralInPortAbnormalHigh);
 	else
@@ -4641,12 +4641,13 @@ void SerialScreen_SetInputInfo(void)
         thaisenSetGeneralInPortAbnormalSta(thaisenGeneralInPortGunSit_A, thaisenGeneralInPortAbnormalLow);
         thaisenSetGeneralInPortAbnormalSta(thaisenGeneralInPortGunSit_B, thaisenGeneralInPortAbnormalLow);
     }
+#endif /* SCREEN_USING_DOUBLE_GUN */
 
 //    if(LcdData.setData.neg_circuit_breaker)
 //        thaisenSetGeneralInPortAbnormalSta(thaisenGeneralInPortCircuitBreaker, thaisenGeneralInPortAbnormalHigh);
 //    else
 //        thaisenSetGeneralInPortAbnormalSta(thaisenGeneralInPortCircuitBreaker, thaisenGeneralInPortAbnormalLow);
-
+#ifdef SCREEN_USING_DOUBLE_GUN
     if(LcdData.setData.neg_flood)
         thaisenSetGeneralInPortAbnormalSta(thaisenGeneralInPortFlooding, thaisenGeneralInPortAbnormalHigh);
     else
@@ -4661,7 +4662,7 @@ void SerialScreen_SetInputInfo(void)
         thaisenSetGeneralInPortAbnormalSta(thaisenGeneralInPortPour, thaisenGeneralInPortAbnormalHigh);
     else
         thaisenSetGeneralInPortAbnormalSta(thaisenGeneralInPortPour, thaisenGeneralInPortAbnormalLow);
-
+#endif /* SCREEN_USING_DOUBLE_GUN */
 //    if(LcdData.setData.neg_liquid)
 //        thaisenSetGeneralInPortAbnormalSta(thaisenGeneralInPortLiquid, thaisenGeneralInPortAbnormalHigh);
 //    else
@@ -6597,12 +6598,12 @@ void SerialScreen_GetIOStatus(int port)
 
     LcdData.setData.g_auxRelay[port] = REALAY_OFF;
 	LcdData.setData.g_auxRelay[port] = LcdData.setData.s_auxRelay[port];
-
+#ifdef SCREEN_USING_DOUBLE_GUN
     if(port == LCD_GUN_1)
         thaisenAux_A_24V_Disable();
     else if(port == LCD_GUN_2)
         thaisenAux_B_24V_Disable();
-
+#endif /* SCREEN_USING_DOUBLE_GUN */
     LcdData.setData.aux24v_set[port] = REALAY_OFF;
 
     LcdData.setData.selfCheck_icon = FALSE;
@@ -6794,17 +6795,21 @@ void SerialScreen_BtnAux24VSet(u8 port)
     LcdData.setData.aux24v_set[port]= !LcdData.setData.aux24v_set[port];
     if(LcdData.setData.aux24v_set[port] != TRUE)
     {
+#ifdef SCREEN_USING_DOUBLE_GUN
         if(port == LCD_GUN_1)
             thaisenAux_A_24V_Disable();
         else if(port == LCD_GUN_2)
             thaisenAux_B_24V_Disable();
+#endif /* SCREEN_USING_DOUBLE_GUN */
     }
     else
     {
+#ifdef SCREEN_USING_DOUBLE_GUN
         if(port == LCD_GUN_1)
             thaisenAux_A_24V_Enable();
         else if(port == LCD_GUN_2)
             thaisenAux_B_24V_Enable();
+#endif /* SCREEN_USING_DOUBLE_GUN */
     }
 }
 
@@ -7760,7 +7765,7 @@ void SerialScreen_BtnSelfCheckSet(void)
     rt_thread_mdelay(SCREEN_TEST_ITEM_INTERVAL);      /** 等待一定时长再进行下一个自检项 */
 
     /*************************************************** A枪24V辅源A ***************************************************/
-
+#ifdef SCREEN_USING_DOUBLE_GUN
     memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
     thaisenAux_A_24V_Enable();                      /** 闭合 */
     SerialScreen_SendIco(&SerialScreen, 0x6702, TRUE);
@@ -7905,7 +7910,7 @@ void SerialScreen_BtnSelfCheckSet(void)
     if(ret == SCREEN_RET_FAIL){
         goto Check_end;
     }
-
+#endif /* SCREEN_USING_DOUBLE_GUN */
 Check_end:
 
     rt_thread_mdelay(SCREEN_TEST_ITEM_INTERVAL);      /** 等待一定时长再进行下一个自检项 */
@@ -10619,14 +10624,18 @@ int SerialScreen_DataProcess()
 		LcdData.setData.g_auxRelay[LCD_GUN_2] =!(thaisenGetAux_B_Status_debug());
         LcdData.setData.g_aux24v[LCD_GUN_1] = LcdData.setData.g_auxRelay[LCD_GUN_1];
         LcdData.setData.g_aux24v[LCD_GUN_2] = LcdData.setData.g_auxRelay[LCD_GUN_2];
+#ifdef SCREEN_USING_DOUBLE_GUN
 		LcdData.setData.g_gunsite[LCD_GUN_1] = !(thaisenGetGeneralInPortSta(thaisenGeneralInPortGunSit_A));
         LcdData.setData.g_gunsite[LCD_GUN_2] = !(thaisenGetGeneralInPortSta(thaisenGeneralInPortGunSit_B));
+#endif /* SCREEN_USING_DOUBLE_GUN */
         LcdData.setData.g_fuse[LCD_GUN_1] = 0;
         LcdData.setData.g_fuse[LCD_GUN_2] = 0;
+#ifdef SCREEN_USING_DOUBLE_GUN
         LcdData.setData.g_pour = !(thaisenGetGeneralInPortSta(thaisenGeneralInPortPour));
         LcdData.setData.g_protect_light = !(thaisenGetGeneralInPortSta(thaisenGeneralInPortLightningProtection));
         LcdData.setData.g_flood = !(thaisenGetGeneralInPortSta(thaisenGeneralInPortFlooding));
         LcdData.setData.g_smoke = !(thaisenGetGeneralInPortSta(thaisenGeneralInPortSmoke));
+#endif /* SCREEN_USING_DOUBLE_GUN */
 	}
 	
     LcdData.runData.netstate = thaisen_app_get_net_state();
