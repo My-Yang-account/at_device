@@ -133,6 +133,7 @@
 #define NET_YKC_MONITOR_EXTERNAL_PREQ_EVENT_CHARGE_FINISH            3    /* 充电桩监控外部触发请求事件：充电结束信息 */
 #define NET_YKC_MONITOR_EXTERNAL_PREQ_EVENT_TSOCKET_INFO             4    /* 充电桩监控外部触发请求事件：目标平台socket信息 */
 #define NET_YKC_MONITOR_EXTERNAL_PREQ_EVENT_BILLING_INFO             5    /* 充电桩监控外部触发请求事件：目标平台计费信息 */
+#define NET_YKC_MONITOR_EXTERNAL_PREQ_EVENT_MFAULT_INFO              6    /* 充电桩监控外部触发请求事件：模块故障信息 */
 
 /** chargepile user request event */
 #define NET_YKC_MONITOR_USER_PREQ_EVENT_REPORT_MODULE_INFO           0    /* 充电桩监控请求事件：上报模块信息 */
@@ -146,8 +147,9 @@
 #define NET_YKC_MONITOR_USER_PREQ_EVENT_INFOPARA_CONFIRM             8    /* 充电桩监控请求事件：桩信息、参数确认 */
 #define NET_YKC_MONITOR_USER_PREQ_EVENT_REPORT_TSOCKET_INFO          9    /* 充电桩监控请求事件：上报目标平台socket信息 */
 #define NET_YKC_MONITOR_USER_PREQ_EVENT_REPORT_BILLING_INFO          10   /* 充电桩监控请求事件：上报目标平台计费信息 */
+#define NET_YKC_MONITOR_USER_PREQ_EVENT_REPORT_MFAULT_INFO           11   /* 充电桩监控请求事件：上报模块故障信息 */
 
-#define NET_YKC_MONITOR_USER_PREQ_EVENT_REPORT_DEV_INFO_ASYNCHRONOUSLY  11    /* 充电桩监控请求事件：上报设备信息异步(用于填充数据) */
+#define NET_YKC_MONITOR_USER_PREQ_EVENT_REPORT_DEV_INFO_ASYNCHRONOUSLY  12    /* 充电桩监控请求事件：上报设备信息异步(用于填充数据) */
 
 /** chargepile user response event */
 #define NET_YKC_MONITOR_USER_PRES_EVENT_QUERY_MODULE_INFO            0    /* 充电桩监控响应事件：查询模块信息 */

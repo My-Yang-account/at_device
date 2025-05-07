@@ -59,6 +59,13 @@ typedef struct
     uint16_t current;                      /* 模块当前电流 */
 }thaisenModuleVoltCurrStruct;
 
+/* 模块故障集 */
+typedef struct
+{
+    uint32_t main_fault;                   /* 主故障集 */
+    uint32_t sub_fault;                    /* 子故障集 */
+}thaisenModuleFaultSetStruct;
+
 typedef struct thasienModuleSetStruct
 {
     uint8_t moduleProNo;//模块类型
@@ -377,6 +384,19 @@ thaisenModuleFaultInfoStruct *thaisenGetModuleFaultInfo(uint8_t *Number, uint8_t
  *          可实时调用
  */
 thaisenModuleVoltCurrStruct *thaisenGetModuleVoltCurrInfo(uint8_t *Number, uint8_t gunNum);
+
+/* 功能说明:
+ *          thaisenGetModuleFaultSetInfo:获取模块故障集(单个模块)
+ *
+ * 输入参数:
+ *          Group:模块归属组
+ *          Sequence:模块在组内的序号(从0开始)
+ * 返回参数:           @thaisenModuleFaultSetStruct
+ *
+ * 调用方法:
+ *          可实时调用
+ */
+thaisenModuleFaultSetStruct thaisenGetModuleFaultSetInfo(uint8_t Group, uint8_t Sequence);
 
 /* 功能说明:
  *          thaisenSetModuleSetupVolt:模块调试部分:设置模块电压输出设定值

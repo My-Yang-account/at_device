@@ -400,6 +400,8 @@ enum ykc_monitor_cmd{
 #ifdef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL
     NETYKC_MONITOR_PRESCMD_QUERY_SET_CONFIG_INFO = 0xDC,             /* 指令：桩响应运营平台下发的查询、修改桩配置信息指令 */
     NETYKC_MONITOR_SREQCMD_QUERY_SET_CONFIG_INFO = 0xDB,             /* 指令：运营平台下发查询、修改桩配置信息 */
+
+    NETYKC_MONITOR_PREQ_SRESCMD_MFAULT_INFO = 0xDF,                  /* 指令：上报、响应模块故障信息 */
 #endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
 
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
@@ -1997,6 +1999,33 @@ typedef struct{
     }body;
     uint16_t check_sum;                          /* 校验码 */
 }Net_YkcMonitorPro_Pres_QuerySet_ConfigInfo_t;
+
+/** 模块故障预处理信息 */
+struct ykcm_mfault_pre_process_info{
+    uint32_t timestamp;                      /* 发生时间 */
+    uint8_t faddr;                           /* 检测到有故障的第一个模块的地址(只要一个模块有故障就上报) */
+    uint8_t group_num;                       /* 有效模块组数 */
+    uint8_t is_resume;                       /* 1:是故障恢复  0：是故障发生 */
+};
+
+/** 模块具体故障信息 */
+struct ykcm_mfault_info{
+    uint8_t addr;                                /* 模块地址 */
+    uint32_t main_fault;                         /* 模块主故障集 */
+    uint32_t sub_fault;                          /* 模块子故障集 */
+};
+/** 0xDF 模块故障信息帧 */
+typedef struct{
+    Net_YkcMonitorPro_Head_t head;
+    struct{
+        uint8_t pile_number[NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT];  /* 桩号*/
+        uint8_t info_type;                       /* 信息类型(0：信息上报，1：信息上报响应) */
+        /* 预处理@struct ykcm_mfault_pre_process_info */
+        /* 信息数据@struct ykcm_mfault_info */
+    }body;
+    uint16_t check_sum;                          /* 校验码 */
+}Net_YkcMonitorPro_Preq_Sres_ModuleFaultInfo_t;
+
 #endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
 
 #endif /* NET_YKC_MONITOR_AS_MONITOR */

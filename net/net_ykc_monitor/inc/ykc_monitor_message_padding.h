@@ -114,6 +114,7 @@ int8_t ykc_monitor_message_padding_billing_rule(uint8_t *buf, uint16_t ilen, uin
 
 #ifdef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL
 int8_t ykc_monitor_config_info_process(void *data, uint16_t dlen, void *buf, uint16_t blen, uint16_t *olen);
+int8_t ykc_monitor_message_padding_module_fault_info(uint8_t *buf, uint16_t ilen, uint16_t *olen);
 #endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
 
 /******************************** 以下是外部调用触发 *******************************/

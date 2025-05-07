@@ -1832,6 +1832,19 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
                 s_ykc_monitor_billing_rule_tick = rt_tick_get();
 #endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
             }
+            /***** [上报模块故障信息请求] *****/
+            if(ykc_monitor_net_event_receive(NET_YKC_MONITOR_USER_EVENT_HANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, gunno,
+                    (NET_YKC_MONITOR_EVENT_OPTION_OR |NET_YKC_MONITOR_EVENT_OPTION_CLEAR), NET_YKC_MONITOR_USER_PREQ_EVENT_REPORT_MFAULT_INFO, NULL) > 0){
+#ifdef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL
+                Net_YkcMonitorPro_Preq_Sres_ModuleFaultInfo_t *mfault = (Net_YkcMonitorPro_Preq_Sres_ModuleFaultInfo_t*)(s_ykc_monitor_response_buff.general_transmit_buff);
+                mfault->head.sequence = s_ykc_monitor_message_serial_number[gunno]++;
+                ykc_monitor_message_send_port(NETYKC_MONITOR_PREQ_SRESCMD_MFAULT_INFO, s_ykc_monitor_socket_info.fd, s_ykc_monitor_response_buff.general_transmit_buff,
+                        s_ykc_monitor_response_buff.length, NULL);
+//                ykc_monitor_set_message_wait_response_state(gunno, NET_YKC_MONITOR_USER_PREQ_EVENT_REPORT_TSOCKET_INFO);
+                ykc_monitor_response_buff_release_sem();
+                rt_thread_mdelay(250);
+#endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
+            }
         }
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
         rt_thread_mdelay(100);
@@ -2791,6 +2804,19 @@ static void net_ykc_monitor_server_message_pro_entry(void *parameter)
                 result = ykc_monitor_message_padding_billing_rule(response->general_transmit_buff, NET_YKC_MONITOR_GENERA_RESPONSE_BUFF_LENGTH, &(response->length));
                 if(result >= 0x00){
                     ykc_monitor_net_event_send(NET_YKC_MONITOR_USER_EVENT_HANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, gunno, NET_YKC_MONITOR_USER_PREQ_EVENT_REPORT_BILLING_INFO);
+                }else{
+                    ykc_monitor_response_buff_release_sem();
+                }
+#endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
+            }
+            /***** [上报模块故障信息请求] *****/
+            if(ykc_monitor_net_event_receive(NET_YKC_MONITOR_EXTERNAL_EHANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, gunno,
+                    (NET_YKC_MONITOR_EVENT_OPTION_OR |NET_YKC_MONITOR_EVENT_OPTION_CLEAR), NET_YKC_MONITOR_EXTERNAL_PREQ_EVENT_MFAULT_INFO, NULL) > 0){
+#ifdef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL
+                response = ykc_monitor_get_response_buff(RT_WAITING_FOREVER);
+                result = ykc_monitor_message_padding_module_fault_info(response->general_transmit_buff, NET_YKC_MONITOR_GENERA_RESPONSE_BUFF_LENGTH, &(response->length));
+                if(result >= 0x00){
+                    ykc_monitor_net_event_send(NET_YKC_MONITOR_USER_EVENT_HANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, 0x00, NET_YKC_MONITOR_USER_PREQ_EVENT_REPORT_MFAULT_INFO);
                 }else{
                     ykc_monitor_response_buff_release_sem();
                 }

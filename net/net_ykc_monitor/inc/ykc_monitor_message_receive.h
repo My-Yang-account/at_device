@@ -83,6 +83,7 @@
 #define NET_YKC_MONITOR_USER_SRES_EVENT_REPORT_TPLAT_LOG             0    /* 服务器监控响应事件：上报目标平台日志 */
 #define NET_YKC_MONITOR_USER_SRES_EVENT_REPORT_DEV_INFO              1    /* 服务器监控响应事件：上报设备信息 */
 #define NET_YKC_MONITOR_USER_SRES_EVENT_INFOPARA_CONFIRM_RES         2    /* 服务器监控响应事件：修改的桩信息、参数确认结果 */
+#define NET_YKC_MONITOR_USER_SRES_EVENT_MFAULT_RES                   3    /* 服务器监控响应事件：上报模块故障信息响应 */
 
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
 

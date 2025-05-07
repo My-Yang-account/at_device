@@ -1851,6 +1851,37 @@ static void ykc_monitor_callback_request_query_set_config_info(uint8_t* data, ui
 #endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
 }
 
+/*****************************************************************
+ * 函数名                   ykc_monitor_callback_response_module_fault_info
+ * 功能                       处理运营平台的上报模块故障信息响应
+ *           data       数据
+ *           length     数据长度
+ * 返回                        无
+ ****************************************************************/
+static void ykc_monitor_callback_response_module_fault_info(uint8_t* data, uint16_t length)
+{
+#ifdef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL
+    if(data == NULL){
+        LOG_E("ykc monitor input data is null when call ykc_monitor_callback_response_module_fault_info");
+        return;
+    }
+    if(length < sizeof(Net_YkcMonitorPro_Preq_Sres_ModuleFaultInfo_t)){
+        LOG_E("ykc monitor input data length out of range when call ykc_monitor_callback_response_module_fault_info|%d, %d", \
+                length, sizeof(Net_YkcMonitorPro_Preq_Sres_ModuleFaultInfo_t));
+        return;
+    }
+
+    Net_YkcMonitorPro_Preq_Sres_ModuleFaultInfo_t *request = (Net_YkcMonitorPro_Preq_Sres_ModuleFaultInfo_t*)data;
+    if(ykc_monitor_pile_number_invalid(request->body.pile_number, request->head.type)){
+        LOG_W("ykc monitor module fault info pile number error(%s)", request->body.pile_number);
+        return;
+    }
+    if(request->body.info_type == 0x01){
+        ykc_monitor_net_event_send(NET_YKC_MONITOR_USER_EVENT_HANDLE_SERVER, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, 0x00, NET_YKC_MONITOR_USER_SREQ_EVENT_QUERY_SET_CONFIG_INFO);
+    }
+#endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
+}
+
 #endif /* NET_PACK_USING_YKC_MONITOR */
 
 int32_t ykc_monitor_message_recv_init(void)
@@ -1896,6 +1927,7 @@ int32_t ykc_monitor_message_recv_init(void)
     ykc_monitor_service_callback_register(NETYKC_MONITOR_SREQCMD_MODIFY_PILE_INFO,           ykc_monitor_callback_request_modify_device_info);
     ykc_monitor_service_callback_register(NETYKC_MONITOR_SREQCMD_QUERY_BILLING_RULE,         ykc_monitor_callback_request_query_billing_rule_info);
     ykc_monitor_service_callback_register(NETYKC_MONITOR_SREQCMD_QUERY_SET_CONFIG_INFO,      ykc_monitor_callback_request_query_set_config_info);
+    ykc_monitor_service_callback_register(NETYKC_MONITOR_PREQ_SRESCMD_MFAULT_INFO,           ykc_monitor_callback_response_module_fault_info);
 #endif /* #ifdef NET_YKC_MONITOR_AS_MONITOR */
 
     s_ykc_monitor_qrcode_buf.flag.is_used = 0x00;

@@ -45,6 +45,11 @@
 
 #define YKC_MONITOR_BUF_PUBLIC_LENGTH                     0xFF                  /* 充电数据公用缓存长度  */
 #define YKC_MONITOR_MODULE_GROUP_MAX                      0x04                  /* 最大模块组数  */
+
+#define YKC_MONITOR_MFAULT_CHECK_PERIOD                   500                   /* 模块故障检测周期(ms)  */
+#define YKC_MONITOR_MFAULT_REPEAT_FAST_PERIOD             5000                  /* 模块故障快速上报周期(ms，用于上报信息无响应时)  */
+#define YKC_MONITOR_MFAULT_REPEAT_NORMAL_PERIOD           (60 *1000)            /* 模块故障正常上报周期(ms， 用于有故障时定时上报)  */
+
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
 
 #define YKC_MONITOR_CHARGE_ELECT_MAX                      1000000               /* 最大充电电量值(精度：0.001) */
@@ -107,6 +112,18 @@ typedef struct{
     uint8_t is_locked;                            /*  */
     struct charging_info info[NET_YKC_MONITOR_CHARGING_INFO_MAX]; /* 连续采14次，1.5秒采一次 */
 }ykc_monitor_charging_info;
+
+/** 模块故障信息 */
+typedef struct{
+    uint32_t check_tick;                          /* 故障检测时基 */
+    uint32_t report_tick;                         /* 故障上报时基 */
+    uint8_t faddr;                                /* 检测到有故障的第一个模块的地址(只要一个模块有故障就上报) */
+    struct{
+        uint8_t is_report : 1;                    /* 已执行上报 */
+        uint8_t is_resume : 1;                    /* 1:是故障恢复  0：是故障发生 */
+        uint8_t is_waiting_response : 1;          /* 1:正在等待响应  0：已响应 */
+    }flag;
+}ykc_monitor_mfault_info;
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
 
 #pragma pack()
@@ -115,6 +132,7 @@ typedef struct{
 NET_DEF_SRAM2 static ykc_monitor_setvoltcurr s_ykc_monitor_setvoltcurr;
 NET_DEF_SRAM2 static ykc_monitor_starting_info s_ykc_monitor_starting_info[NET_SYSTEM_GUN_NUMBER];
 NET_DEF_SRAM2 static ykc_monitor_charging_info s_ykc_monitor_charging_info[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 static ykc_monitor_mfault_info s_ykc_monitor_mfault_info;
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
 
 NET_DEF_SRAM2 static struct ykc_monitor_flag_info s_ykc_monitor_flag_info[NET_SYSTEM_GUN_NUMBER];
@@ -128,6 +146,7 @@ NET_DEF_SRAM2 static struct net_handle* s_ykc_monitor_handle = NULL;
 
 static uint16_t ykc_monitor_chargepile_stop_reason_converted(void *handle, uint16_t bit, uint8_t stop_in_starting);
 static uint8_t ykc_monitor_chargepile_transaction_identity_converted(uint8_t identity);
+static void ykc_monitor_module_fault_check(void);
 
 /*******************************************************
  * 函数名               ykc_monitor_enter_critical
@@ -3151,6 +3170,8 @@ static void ykc_monitor_realtime_process_thread_entry(void *parameter)
     System_BaseData *base = NULL;
     uint8_t gunno = 0x00;
 
+    s_ykc_monitor_mfault_info.check_tick = rt_tick_get();
+
     while(1){
         net_thread_running(rt_thread_self(), NULL, 0x00, 0x00);
         if((net_get_ota_info()->state >= NET_OTA_STATE_LOGIN_WAIT) && (net_get_ota_info()->state <= NET_OTA_STATE_UPDATING)){
@@ -3167,6 +3188,11 @@ static void ykc_monitor_realtime_process_thread_entry(void *parameter)
             ykc_monitor_fault_detect_report(gunno);
             ykc_monitor_data_realtime_process(gunno, base);
             ykc_monitor_state_changed_check(gunno, base);
+
+            if((rt_tick_get() - s_ykc_monitor_mfault_info.check_tick) > YKC_MONITOR_MFAULT_CHECK_PERIOD){
+                ykc_monitor_module_fault_check();
+                s_ykc_monitor_mfault_info.check_tick = rt_tick_get();
+            }
         }
 
         rt_thread_mdelay(100);
@@ -3188,6 +3214,7 @@ int32_t ykc_monitor_realtime_process_init(void)
 #ifdef NET_YKC_MONITOR_AS_MONITOR
         memset(&s_ykc_monitor_starting_info[gunno], 0x00, sizeof(s_ykc_monitor_starting_info[gunno]));
         memset(&s_ykc_monitor_charging_info[gunno], 0x00, sizeof(s_ykc_monitor_charging_info[gunno]));
+        memset(&s_ykc_monitor_mfault_info, 0x00, sizeof(s_ykc_monitor_mfault_info));
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
     }
 
@@ -6106,6 +6133,167 @@ int8_t ykc_monitor_config_info_process(void *data, uint16_t dlen, void *buf, uin
     }
     return 0x00;
 }
+
+/*************************************************
+ * 函数名      ykc_monitor_module_fault_check
+ * 功能          模块故障检测
+ * **********************************************/
+static void ykc_monitor_module_fault_check(void)
+{
+    thaisenModuleFaultInfoStruct * fault = NULL;
+    uint8_t group = 0x00, number = 0x00, i, j;
+
+    if(s_ykc_monitor_mfault_info.flag.is_report != NET_ENUM_TRUE){
+        s_ykc_monitor_mfault_info.report_tick = rt_tick_get();
+    }
+    group = *(sys_read_config_item_content(CONFIG_ITEM_MODULE_GROUP_NUM, 0x00));
+
+    for(i = 0; i < group; i++){
+        fault = thaisenGetModuleFaultInfo(&number, i);
+        if(fault){
+            for(j = 0; j < number; j++){
+                if((fault[j].state.fault.fault_val) || (fault[j].state.warn.warn_val)){   /** 模块有告警或故障 */
+                    /** 触发上报模块故障 */
+                    s_ykc_monitor_mfault_info.faddr = fault[j].addr;
+                    s_ykc_monitor_mfault_info.flag.is_resume = NET_ENUM_FALSE;
+                    if(s_ykc_monitor_mfault_info.flag.is_report == NET_ENUM_FALSE){
+                        s_ykc_monitor_mfault_info.flag.is_waiting_response = NET_ENUM_TRUE;
+                        ykc_monitor_net_event_send(NET_YKC_MONITOR_EXTERNAL_EHANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST,  \
+                                0x00, NET_YKC_MONITOR_EXTERNAL_PREQ_EVENT_MFAULT_INFO);
+                    }
+                    s_ykc_monitor_mfault_info.flag.is_report = NET_ENUM_TRUE;
+                    break;
+                }
+            }
+            if(j < number){
+                break;
+            }
+        }
+    }
+    if(ykc_monitor_net_event_receive(NET_YKC_MONITOR_EVENT_HANDLE_SERVER, NET_YKC_MONITOR_EVENT_TYPE_RESPONSE, 0x00,
+            (NET_YKC_MONITOR_EVENT_OPTION_OR |NET_YKC_MONITOR_EVENT_OPTION_CLEAR), NET_YKC_MONITOR_USER_SRES_EVENT_MFAULT_RES, NULL) > 0){
+        s_ykc_monitor_mfault_info.flag.is_waiting_response = NET_ENUM_FALSE;
+        if(s_ykc_monitor_mfault_info.flag.is_resume == NET_ENUM_TRUE){
+            s_ykc_monitor_mfault_info.flag.is_report = NET_ENUM_FALSE;
+        }
+    }
+#if 1
+    s_ykc_monitor_mfault_info.flag.is_waiting_response = NET_ENUM_FALSE;
+#endif
+    if(i >= group){
+        /** 故障已恢复，上报信息 */
+        if(s_ykc_monitor_mfault_info.flag.is_report == NET_ENUM_TRUE){
+            if(s_ykc_monitor_mfault_info.flag.is_resume == NET_ENUM_FALSE){
+                s_ykc_monitor_mfault_info.flag.is_resume = NET_ENUM_TRUE;
+                s_ykc_monitor_mfault_info.flag.is_waiting_response = NET_ENUM_TRUE;
+#if 1
+                s_ykc_monitor_mfault_info.flag.is_report = NET_ENUM_FALSE;
+#endif
+                ykc_monitor_net_event_send(NET_YKC_MONITOR_EXTERNAL_EHANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST,  \
+                        0x00, NET_YKC_MONITOR_EXTERNAL_PREQ_EVENT_MFAULT_INFO);
+            }else{
+                if(s_ykc_monitor_mfault_info.flag.is_waiting_response == NET_ENUM_TRUE){
+                    if((rt_tick_get() - s_ykc_monitor_mfault_info.report_tick) > YKC_MONITOR_MFAULT_REPEAT_FAST_PERIOD){
+                        ykc_monitor_net_event_send(NET_YKC_MONITOR_EXTERNAL_EHANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST,  \
+                                0x00, NET_YKC_MONITOR_EXTERNAL_PREQ_EVENT_MFAULT_INFO);
+                        s_ykc_monitor_mfault_info.flag.is_waiting_response = NET_ENUM_TRUE;
+                        s_ykc_monitor_mfault_info.report_tick = rt_tick_get();
+                    }
+                }
+            }
+        }
+    }else{
+        /** 有故障时定时上报 */
+        if(s_ykc_monitor_mfault_info.flag.is_report == NET_ENUM_TRUE){
+            if(s_ykc_monitor_mfault_info.flag.is_waiting_response == NET_ENUM_TRUE){
+                if((rt_tick_get() - s_ykc_monitor_mfault_info.report_tick) > YKC_MONITOR_MFAULT_REPEAT_FAST_PERIOD){
+                    ykc_monitor_net_event_send(NET_YKC_MONITOR_EXTERNAL_EHANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST,  \
+                            0x00, NET_YKC_MONITOR_EXTERNAL_PREQ_EVENT_MFAULT_INFO);
+                    s_ykc_monitor_mfault_info.flag.is_waiting_response = NET_ENUM_TRUE;
+                    s_ykc_monitor_mfault_info.report_tick = rt_tick_get();
+                }
+            }else{
+                if((rt_tick_get() - s_ykc_monitor_mfault_info.report_tick) > YKC_MONITOR_MFAULT_REPEAT_NORMAL_PERIOD){
+                    ykc_monitor_net_event_send(NET_YKC_MONITOR_EXTERNAL_EHANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST,  \
+                            0x00, NET_YKC_MONITOR_EXTERNAL_PREQ_EVENT_MFAULT_INFO);
+                    s_ykc_monitor_mfault_info.flag.is_waiting_response = NET_ENUM_TRUE;
+                    s_ykc_monitor_mfault_info.report_tick = rt_tick_get();
+                }
+            }
+        }
+    }
+}
+
+/*************************************************
+ * 函数名      ykc_monitor_message_padding_module_fault_info
+ * 功能         组包：填充模块故障信息
+ * 参数         gunno   枪号
+ *       buf      缓存
+ *       ilen    输入缓存长度
+ *       olen    填写数据总长度
+ * 返回         >=0：成功       <0：失败
+ * **********************************************/
+int8_t ykc_monitor_message_padding_module_fault_info(uint8_t *buf, uint16_t ilen, uint16_t *olen)
+{
+    if(buf == NULL){
+        return -0x01;
+    }
+
+    thaisenModuleFaultSetStruct info;
+    thaisenModuleFaultInfoStruct * fault = NULL;
+    struct ykcm_mfault_pre_process_info *pre_head = NULL;
+    struct ykcm_mfault_info *body = NULL;
+    Net_YkcMonitorPro_Preq_Sres_ModuleFaultInfo_t *message = (Net_YkcMonitorPro_Preq_Sres_ModuleFaultInfo_t*)buf;
+    uint32_t total_len = sizeof(Net_YkcMonitorPro_Preq_Sres_ModuleFaultInfo_t) + sizeof(struct ykcm_mfault_pre_process_info);
+    uint8_t group = 0x00, num = 0x00, count = 0x00, i, j, num_item = CONFIG_ITEM_MODULE_NUM_GROUP_1;
+
+    memset(buf, 0x00, ilen);
+    pre_head = (struct ykcm_mfault_pre_process_info*)(buf + sizeof(Net_YkcMonitorPro_Preq_Sres_ModuleFaultInfo_t) - NET_YKC_MONITOR_PROTOCOL_CHECK_REGION_SIZE);
+    body = (struct ykcm_mfault_info*)(buf + sizeof(Net_YkcMonitorPro_Preq_Sres_ModuleFaultInfo_t) - NET_YKC_MONITOR_PROTOCOL_CHECK_REGION_SIZE + sizeof(struct ykcm_mfault_pre_process_info));
+
+    if(total_len > ilen){
+        return -0x02;
+    }
+    group = *(sys_read_config_item_content(CONFIG_ITEM_MODULE_GROUP_NUM, 0x00));
+    for(i = 0; i < group; i++){
+        num = *(sys_read_config_item_content(num_item, 0x00));
+        total_len += (num *sizeof(struct ykcm_mfault_info));
+        pre_head->group_num += num;
+    }
+    if(total_len > ilen){
+        return -0x02;
+    }
+
+    memcpy(message->body.pile_number, g_ykc_monitor_preq_login.body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
+    message->body.info_type = 0x00;
+
+    pre_head->timestamp = time(NULL);
+    pre_head->faddr = s_ykc_monitor_mfault_info.faddr;
+    pre_head->is_resume = s_ykc_monitor_mfault_info.flag.is_resume;
+    num_item = CONFIG_ITEM_MODULE_NUM_GROUP_1;
+    for(i = 0; i < group; i++){
+        num = *(sys_read_config_item_content(num_item, 0x00));
+        fault = thaisenGetModuleFaultInfo(NULL, i);
+        for(j = 0; j < num; j++){
+            info = thaisenGetModuleFaultSetInfo(i, j);
+            if(fault){
+                body[count].addr = fault[j].addr;
+            }
+            body[count].main_fault = info.main_fault;
+            body[count].sub_fault = info.sub_fault;
+            count++;
+        }
+    }
+
+    s_ykc_monitor_mfault_info.report_tick = rt_tick_get();
+
+    if(olen){
+        *olen = total_len;
+    }
+
+    return 0x00;
+}
+
 
 #endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
 /******************************** 以下是外部调用触发 *******************************/
