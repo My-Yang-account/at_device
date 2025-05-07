@@ -1987,7 +1987,7 @@ int8_t sgcc_message_pro_query_dev_record_request(uint8_t gunno, void *data, uint
         evs_event_logQuery_Results[gunno].dataArea.tradeInfo.timeDivType = SGCC_OPSCTL_ACTION;
         evs_event_logQuery_Results[gunno].dataArea.tradeInfo.chargeStartTime = _transaction->start_time;
         evs_event_logQuery_Results[gunno].dataArea.tradeInfo.chargeEndTime = _transaction->end_time;
-        evs_event_logQuery_Results[gunno].dataArea.tradeInfo.startSoc = _transaction->start_soc;
+        evs_event_logQuery_Results[gunno].dataArea.tradeInfo.startSoc = _transaction->start_soc /10;
         evs_event_logQuery_Results[gunno].dataArea.tradeInfo.endSoc = _transaction->stop_soc;
 
         evs_event_logQuery_Results[gunno].dataArea.tradeInfo.reason = sgcc_chargepile_stop_reason_converted(_transaction, _transaction->stop_reason, _transaction->order_info.is_start_fail);                            // 11 停止充电原因
@@ -2791,7 +2791,7 @@ uint8_t sgcc_chargepile_request_padding_transaction_record(uint8_t gunno, void *
         }
         evs_event_tradeInfos[gunno].chargeStartTime = _transaction->start_time;
         evs_event_tradeInfos[gunno].chargeEndTime = _transaction->end_time;
-        evs_event_tradeInfos[gunno].startSoc = _transaction->start_soc;
+        evs_event_tradeInfos[gunno].startSoc = _transaction->start_soc /10;
         evs_event_tradeInfos[gunno].endSoc = _transaction->stop_soc;
 
         evs_event_tradeInfos[gunno].reason = sgcc_chargepile_stop_reason_converted(_transaction, _transaction->stop_reason, _transaction->order_info.is_start_fail);
