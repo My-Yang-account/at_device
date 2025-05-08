@@ -2008,6 +2008,7 @@ struct ykcm_mfault_pre_process_info{
     uint32_t timestamp;                      /* 发生时间 */
     uint8_t faddr;                           /* 检测到有故障的第一个模块的地址(只要一个模块有故障就上报) */
     uint8_t group_num;                       /* 有效模块组数 */
+    uint8_t module_protocol;                 /* 模块协议- 0：英飞源   1：国网    2：永联   3：优优   4：易能    5：科士达 */
     uint8_t is_resume;                       /* 1:是故障恢复  0：是故障发生 */
 };
 

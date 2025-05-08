@@ -6274,6 +6274,7 @@ int8_t ykc_monitor_message_padding_module_fault_info(uint8_t *buf, uint16_t ilen
     pre_head->timestamp = time(NULL);
     pre_head->faddr = s_ykc_monitor_mfault_info.faddr;
     pre_head->is_resume = s_ykc_monitor_mfault_info.flag.is_resume;
+    pre_head->module_protocol = *(sys_read_config_item_content(CONFIG_ITEM_MODULE_MODEL, 0x00));
     num_item = CONFIG_ITEM_MODULE_NUM_GROUP_1;
     for(i = 0; i < group; i++){
         num = *(sys_read_config_item_content(num_item, 0x00));
