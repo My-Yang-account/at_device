@@ -26,6 +26,9 @@
 
 #define NET_YKC_MONITOR_BILL_SERIAL_NUMBER_COUNT_MAX                 0x03       /* 账单流水号记录最大个数 */
 
+/** request info type */
+#define NET_YKC_MONITOR_REQ_SERVER_TIMESYNC                          0x00       /* 向服务器请求：对时 */
+
 /** net state */
 #define NET_YKC_MONITOR_NET_STATE_OPEN_SOCKET                        0x00       /* 打开socket */
 #define NET_YKC_MONITOR_NET_STATE_LOGIN                              0x01       /* 登录 */
@@ -134,6 +137,7 @@
 #define NET_YKC_MONITOR_EXTERNAL_PREQ_EVENT_TSOCKET_INFO             4    /* 充电桩监控外部触发请求事件：目标平台socket信息 */
 #define NET_YKC_MONITOR_EXTERNAL_PREQ_EVENT_BILLING_INFO             5    /* 充电桩监控外部触发请求事件：目标平台计费信息 */
 #define NET_YKC_MONITOR_EXTERNAL_PREQ_EVENT_MFAULT_INFO              6    /* 充电桩监控外部触发请求事件：模块故障信息 */
+#define NET_YKC_MONITOR_EXTERNAL_PREQ_EVENT_REQUEST_SERVER           7    /* 充电桩监控外部触发请求事件：请求服务器信息 */
 
 /** chargepile user request event */
 #define NET_YKC_MONITOR_USER_PREQ_EVENT_REPORT_MODULE_INFO           0    /* 充电桩监控请求事件：上报模块信息 */
@@ -148,8 +152,9 @@
 #define NET_YKC_MONITOR_USER_PREQ_EVENT_REPORT_TSOCKET_INFO          9    /* 充电桩监控请求事件：上报目标平台socket信息 */
 #define NET_YKC_MONITOR_USER_PREQ_EVENT_REPORT_BILLING_INFO          10   /* 充电桩监控请求事件：上报目标平台计费信息 */
 #define NET_YKC_MONITOR_USER_PREQ_EVENT_REPORT_MFAULT_INFO           11   /* 充电桩监控请求事件：上报模块故障信息 */
+#define NET_YKC_MONITOR_USER_PREQ_EVENT_REPORT_REQUEST_SERVER        12   /* 充电桩监控请求事件：请求服务器信息 */
 
-#define NET_YKC_MONITOR_USER_PREQ_EVENT_REPORT_DEV_INFO_ASYNCHRONOUSLY  12    /* 充电桩监控请求事件：上报设备信息异步(用于填充数据) */
+#define NET_YKC_MONITOR_USER_PREQ_EVENT_REPORT_DEV_INFO_ASYNCHRONOUSLY  13    /* 充电桩监控请求事件：上报设备信息异步(用于填充数据) */
 
 /** chargepile user response event */
 #define NET_YKC_MONITOR_USER_PRES_EVENT_QUERY_MODULE_INFO            0    /* 充电桩监控响应事件：查询模块信息 */

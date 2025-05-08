@@ -3190,7 +3190,9 @@ static void ykc_monitor_realtime_process_thread_entry(void *parameter)
             ykc_monitor_state_changed_check(gunno, base);
 
             if((rt_tick_get() - s_ykc_monitor_mfault_info.check_tick) > YKC_MONITOR_MFAULT_CHECK_PERIOD){
+#ifdef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL
                 ykc_monitor_module_fault_check();
+#endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
                 s_ykc_monitor_mfault_info.check_tick = rt_tick_get();
             }
         }
@@ -3744,9 +3746,9 @@ int8_t ykc_monitor_message_padding_dev_info(uint8_t *buf, uint16_t ilen, uint16_
             memcpy(message->body.reset_lable, config->reset_lable, strlen((char*)config->reset_lable));
         }
     }
-#endif /* #ifdef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
 
     (void)(s_ykc_monitor_handle->get_system_data(NET_SYSTEM_DATA_NAME_ICCID, message->body.sim_no, sizeof(message->body.sim_no), option));
+#endif /* #ifdef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
 
     if(olen){
         *olen = total;
@@ -6296,6 +6298,48 @@ int8_t ykc_monitor_message_padding_module_fault_info(uint8_t *buf, uint16_t ilen
     return 0x00;
 }
 
+/*************************************************
+ * 函数名      ykc_monitor_message_padding_request_server_info
+ * 功能          组包：向服务器请求信息
+ * **********************************************/
+int8_t ykc_monitor_message_padding_request_server_info(uint8_t *buf, uint16_t ilen, uint16_t *olen)
+{
+#ifdef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL
+    uint16_t total = sizeof(Net_YkcMonitorPro_Preq_RequestServerInfo_t);
+
+    if(buf == NULL){
+        return -0x01;
+    }
+    if(ilen < total){
+        return -0x02;
+    }
+
+    uint8_t gunno = 0x00;
+    System_BaseData *base = NULL;
+    Net_YkcMonitorPro_Preq_RequestServerInfo_t *message = (Net_YkcMonitorPro_Preq_RequestServerInfo_t*)buf;
+
+    for(gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
+        base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
+        if((base->state.current >= APP_OFSM_STATE_STARTING) && (base->state.current <= APP_OFSM_STATE_STOPING)){
+            break;
+        }
+    }
+    if(gunno < NET_SYSTEM_GUN_NUMBER){
+        return -0x03;
+    }
+
+    memset(message, 0x00, ilen);
+    memcpy(message->body.pile_number, g_ykc_monitor_preq_login.body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
+
+    if(olen){
+        *olen = total;
+    }
+
+    return 0x00;
+#else
+    return -0x01;
+#endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
+}
 
 #endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
 /******************************** 以下是外部调用触发 *******************************/

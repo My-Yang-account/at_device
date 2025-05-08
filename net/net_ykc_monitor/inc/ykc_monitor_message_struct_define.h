@@ -402,6 +402,8 @@ enum ykc_monitor_cmd{
     NETYKC_MONITOR_SREQCMD_QUERY_SET_CONFIG_INFO = 0xDB,             /* 指令：运营平台下发查询、修改桩配置信息 */
 
     NETYKC_MONITOR_PREQ_SRESCMD_MFAULT_INFO = 0xDF,                  /* 指令：上报、响应模块故障信息 */
+
+    NETYKC_MONITOR_PREQ_SRESCMD_REQUEST_SERVER_INFO = 0xE1,          /* 指令：向服务器请求信息或服务器响应请求 */
 #endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
 
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
@@ -2026,6 +2028,17 @@ typedef struct{
     }body;
     uint16_t check_sum;                          /* 校验码 */
 }Net_YkcMonitorPro_Preq_Sres_ModuleFaultInfo_t;
+
+/** 0xE1 向平台请求信息帧 */
+typedef struct{
+    Net_YkcMonitorPro_Head_t head;
+    struct{
+        uint8_t pile_number[NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT];  /* 桩号*/
+        uint8_t info_type;                       /* 信息类型(0：对时请求[无请求/响应参数]) */
+        /* 请求/响应参数 */
+    }body;
+    uint16_t check_sum;                          /* 校验码 */
+}Net_YkcMonitorPro_Preq_RequestServerInfo_t;
 
 #endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
 

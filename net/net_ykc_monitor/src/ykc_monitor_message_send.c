@@ -23,6 +23,7 @@
 #ifdef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL
 #define NET_YKC_MONITOR_TPLAT_SOCKET_INFO_INTERVAL                   (5 *60000)  /* 目标平台socket信息上报间隔 */
 #define NET_YKC_MONITOR_BILLING_RULE_INFO_INTERVAL                   (5 *60000)  /* 目标平台计费信息上报间隔 */
+#define NET_YKC_MONITOR_TIMESYNC_INTERVAL                            (8 *3600 *1000)  /* 向平台请求对时间隔 */
 #endif /* #ifdef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
 
 #define NET_YKC_MONITOR_HEARTBEAT_TIMEOUT_RENTRY                     3           /* 心跳超时次数 */
@@ -41,6 +42,7 @@
 
 #define NET_YKC_MONITOR_WAIT_DEV_INFO_RESPONSE_TIME                  5000        /* 等待设备信息响应时间(ms)，用于重发报文 */
 #define NET_YKC_MONITOR_WAIT_INFO_PARA_CONFIRM_TIME                  5000        /* 等待对桩信息、参数修改的确认结果时间(ms) */
+#define NET_YKC_MONITOR_WAIT_TIMESYNC_RESPONSE_TIME                  10000       /* 等待时间同步响应时间(ms)，用于重发报文 */
 
 #ifdef NET_YKC_MONITOR_AS_MONITOR
 
@@ -74,9 +76,13 @@ typedef struct{
     struct{
         uint8_t recved_info_modify : 1;                                          /* 辅助信息：已接收到了信息修改报文 */
         uint8_t dev_info_reported : 1;                                           /* 辅助信息：设备信息已上报 */
+        uint8_t is_time_sync : 1;                                                /* 辅助信息：已进行时间同步 */
+        uint8_t is_requesting_info : 1;                                          /* 辅助信息：正在向服务器请求信息 */
     }flag;
     uint32_t info_modify_tick;                                                   /* 信息修改时基 */
     uint32_t dev_info_tick;                                                      /* 设备信息上报时基 */
+
+    uint8_t request_info_type;                                                   /* 向服务器请求信息类型 */
 }ykc_monitor_assistant_info;
 
 #pragma pack()
@@ -101,6 +107,7 @@ NET_DEF_SRAM2 static uint32_t s_ykc_monitor_server_event[NET_YKC_MONITOR_EVENT_T
 #ifdef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL
 NET_DEF_SRAM2 static uint32_t s_ykc_monitor_tplat_socket_tick = 0x00;
 NET_DEF_SRAM2 static uint32_t s_ykc_monitor_billing_rule_tick = 0x00;
+NET_DEF_SRAM2 static uint32_t s_ykc_monitor_timesync_tick = 0x00;
 #endif /* #ifdef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
 NET_DEF_SRAM2 static uint32_t s_ykc_monitor_current_log_id = 0x00;
 NET_DEF_SRAM2 static uint32_t s_ykc_monitor_log_tick = 0x00;
@@ -976,7 +983,9 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
 #ifdef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL
             s_ykc_monitor_tplat_socket_tick = rt_tick_get();
             s_ykc_monitor_billing_rule_tick = rt_tick_get();
+            s_ykc_monitor_timesync_tick = rt_tick_get();
 #endif /* #ifdef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
+            s_ykc_monitor_assistant_info.flag.is_time_sync = 0x00;
             rt_thread_mdelay(1000);
             continue;
         }else{
@@ -1003,6 +1012,28 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
         if((rt_tick_get() - s_ykc_monitor_billing_rule_tick) > NET_YKC_MONITOR_BILLING_RULE_INFO_INTERVAL){
             s_ykc_monitor_billing_rule_tick = rt_tick_get();
             net_operation_updated_billing_trigger();
+        }
+
+        if(s_ykc_monitor_assistant_info.flag.is_time_sync){
+            if((rt_tick_get() - s_ykc_monitor_timesync_tick) > NET_YKC_MONITOR_TIMESYNC_INTERVAL){
+                s_ykc_monitor_timesync_tick = rt_tick_get();
+                s_ykc_monitor_assistant_info.flag.is_time_sync = 0x00;
+                s_ykc_monitor_assistant_info.flag.is_requesting_info = 0x01;
+                s_ykc_monitor_assistant_info.request_info_type = NET_YKC_MONITOR_REQ_SERVER_TIMESYNC;
+                ykc_monitor_net_event_send(NET_YKC_MONITOR_EXTERNAL_EHANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, 0x00, NET_YKC_MONITOR_EXTERNAL_PREQ_EVENT_REQUEST_SERVER);
+            }
+        }else{
+            if((rt_tick_get() - s_ykc_monitor_timesync_tick) > NET_YKC_MONITOR_WAIT_TIMESYNC_RESPONSE_TIME){
+#if 0
+                s_ykc_monitor_timesync_tick = rt_tick_get();
+                s_ykc_monitor_assistant_info.flag.is_time_sync = 0x00;
+                s_ykc_monitor_assistant_info.flag.is_requesting_info = 0x01;
+                s_ykc_monitor_assistant_info.request_info_type = NET_YKC_MONITOR_REQ_SERVER_TIMESYNC;
+                ykc_monitor_net_event_send(NET_YKC_MONITOR_EXTERNAL_EHANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, 0x00, NET_YKC_MONITOR_EXTERNAL_PREQ_EVENT_REQUEST_SERVER);
+#else
+                s_ykc_monitor_assistant_info.flag.is_time_sync = 0x01;
+#endif
+            }
         }
 #endif /* #ifdef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
         if(s_ykc_monitor_assistant_info.flag.dev_info_reported == 0x00){
@@ -1845,6 +1876,20 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
                 rt_thread_mdelay(250);
 #endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
             }
+            /***** [向服务器请求信息] *****/
+            if(ykc_monitor_net_event_receive(NET_YKC_MONITOR_USER_EVENT_HANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, gunno,
+                    (NET_YKC_MONITOR_EVENT_OPTION_OR |NET_YKC_MONITOR_EVENT_OPTION_CLEAR), NET_YKC_MONITOR_USER_PREQ_EVENT_REPORT_REQUEST_SERVER, NULL) > 0){
+#ifdef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL
+                Net_YkcMonitorPro_Preq_RequestServerInfo_t *req_server = (Net_YkcMonitorPro_Preq_RequestServerInfo_t*)(s_ykc_monitor_response_buff.general_transmit_buff);
+                req_server->head.sequence = s_ykc_monitor_message_serial_number[gunno]++;
+                req_server->body.info_type = s_ykc_monitor_assistant_info.request_info_type;
+                ykc_monitor_message_send_port(NETYKC_MONITOR_PREQ_SRESCMD_REQUEST_SERVER_INFO, s_ykc_monitor_socket_info.fd, s_ykc_monitor_response_buff.general_transmit_buff,
+                        s_ykc_monitor_response_buff.length, NULL);
+//                ykc_monitor_set_message_wait_response_state(gunno, NET_YKC_MONITOR_USER_PREQ_EVENT_REPORT_TSOCKET_INFO);
+                ykc_monitor_response_buff_release_sem();
+                rt_thread_mdelay(250);
+#endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
+            }
         }
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
         rt_thread_mdelay(100);
@@ -2160,6 +2205,10 @@ static void net_ykc_monitor_server_message_pro_entry(void *parameter)
                     response = ykc_monitor_get_response_buff(RT_WAITING_FOREVER);
                     result = ykc_monitor_response_padding_time_sync(response->general_transmit_buff, NET_YKC_MONITOR_GENERA_RESPONSE_BUFF_LENGTH, &(response->length));
                     if(result >= 0x00){
+                        s_ykc_monitor_assistant_info.flag.is_time_sync = 0x01;
+                        if(s_ykc_monitor_assistant_info.request_info_type == NET_YKC_MONITOR_REQ_SERVER_TIMESYNC){
+                            s_ykc_monitor_assistant_info.flag.is_requesting_info = 0x00;
+                        }
                         ykc_monitor_net_event_send(NET_YKC_MONITOR_EVENT_HANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_RESPONSE, gunno, NET_YKC_MONITOR_PRES_EVENT_TIME_SYNC);
                     }else{
                         ykc_monitor_response_buff_release_sem();
@@ -2817,6 +2866,19 @@ static void net_ykc_monitor_server_message_pro_entry(void *parameter)
                 result = ykc_monitor_message_padding_module_fault_info(response->general_transmit_buff, NET_YKC_MONITOR_GENERA_RESPONSE_BUFF_LENGTH, &(response->length));
                 if(result >= 0x00){
                     ykc_monitor_net_event_send(NET_YKC_MONITOR_USER_EVENT_HANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, 0x00, NET_YKC_MONITOR_USER_PREQ_EVENT_REPORT_MFAULT_INFO);
+                }else{
+                    ykc_monitor_response_buff_release_sem();
+                }
+#endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
+            }
+            /***** [向服务器请求信息] *****/
+            if(ykc_monitor_net_event_receive(NET_YKC_MONITOR_EXTERNAL_EHANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, gunno,
+                    (NET_YKC_MONITOR_EVENT_OPTION_OR |NET_YKC_MONITOR_EVENT_OPTION_CLEAR), NET_YKC_MONITOR_EXTERNAL_PREQ_EVENT_REQUEST_SERVER, NULL) > 0){
+#ifdef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL
+                response = ykc_monitor_get_response_buff(RT_WAITING_FOREVER);
+                result = ykc_monitor_message_padding_request_server_info(response->general_transmit_buff, NET_YKC_MONITOR_GENERA_RESPONSE_BUFF_LENGTH, &(response->length));
+                if(result >= 0x00){
+                    ykc_monitor_net_event_send(NET_YKC_MONITOR_USER_EVENT_HANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, 0x00, NET_YKC_MONITOR_USER_PREQ_EVENT_REPORT_REQUEST_SERVER);
                 }else{
                     ykc_monitor_response_buff_release_sem();
                 }
