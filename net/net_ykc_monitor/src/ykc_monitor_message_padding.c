@@ -3746,6 +3746,8 @@ int8_t ykc_monitor_message_padding_dev_info(uint8_t *buf, uint16_t ilen, uint16_
     }
 #endif /* #ifdef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
 
+    (void)(s_ykc_monitor_handle->get_system_data(NET_SYSTEM_DATA_NAME_ICCID, message->body.sim_no, sizeof(message->body.sim_no), option));
+
     if(olen){
         *olen = total;
     }

@@ -1463,6 +1463,7 @@ typedef struct{
             uint16_t verify_result :1;           /* 存储数据校验结果：1：成功，0：失败 */
             uint16_t freserve : 15;
         }flag;                                   /* 标志位 */
+        uint8_t sim_no[NET_YKC_MONITOR_SIM_BCD_LENGTH_DEFAULT *0x02];   /* SIM卡卡号(20字节，可包含字母) */
 #endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
     }body;
     uint16_t check_sum;                          /* 校验码 */
