@@ -2194,19 +2194,40 @@ static void ofsm_readying_fun(uint8_t gunno)
             }else if(thaisen_get_current_mode(gunno) == THAISEN_MODE_LIMIT_RESERVATION){
                 struct tm tmp;
 
+                if(thaisen_is_set_reservation_mode(gunno)){
+                    s_ofsm_info[gunno].base.flag.is_reser_normal_started = APP_THA_ENUM_FALSE;
+                    s_ofsm_info[gunno].base.flag.is_reser_timeout_started = APP_THA_ENUM_FALSE;
+                    thaisen_clear_reservation_mode_flag(gunno);
+                }
                 localtime_r(&t_base, &tmp);
                 if((tmp.tm_year + 1900) >= 2025){
                     /** 屏幕预约-超过预约时间15分钟内还是可以启动的 */
                     if(thaisen_get_mode_parameter(gunno) >= (tmp.tm_hour *3600 + tmp.tm_min *60)){
                         s_ofsm_info[gunno].base.reservation_time_remain = (thaisen_get_mode_parameter(gunno) - (tmp.tm_hour *3600 + tmp.tm_min *60));
+                        if(s_ofsm_info[gunno].base.reservation_time_remain > 60){
+                            s_ofsm_info[gunno].base.flag.is_reser_normal_started = APP_THA_ENUM_FALSE;
+                            s_ofsm_info[gunno].base.flag.is_reser_timeout_started = APP_THA_ENUM_FALSE;
+                        }
+                        if(s_ofsm_info[gunno].base.flag.is_reser_normal_started == APP_THA_ENUM_FALSE){
+                            continue_reservation = APP_THA_ENUM_TRUE;
+                        }
+                        s_ofsm_info[gunno].base.flag.is_reser_normal_started = APP_THA_ENUM_TRUE;
+                        s_ofsm_info[gunno].base.reservation_strategy = (APP_RESERVATE_STRATEGY_PULLGUN_CANCEL |APP_RESERVATE_STRATEGY_FAULT_CANCEL |APP_RESERVATE_STRATEGY_START_DIRECTLY);
+                    }else if((thaisen_get_mode_parameter(gunno) + 15 *60) >= (tmp.tm_hour *3600 + tmp.tm_min *60)){
+                        if((s_ofsm_info[gunno].base.flag.is_reser_normal_started == APP_THA_ENUM_FALSE) && \
+                                (s_ofsm_info[gunno].base.flag.is_reser_timeout_started == APP_THA_ENUM_FALSE)){
+                            continue_reservation = APP_THA_ENUM_TRUE;
+                        }
+                        s_ofsm_info[gunno].base.reservation_time_remain = 0x00;
+                        s_ofsm_info[gunno].base.flag.is_reser_timeout_started = APP_THA_ENUM_TRUE;
+                        s_ofsm_info[gunno].base.reservation_strategy = (APP_RESERVATE_STRATEGY_PULLGUN_CANCEL |APP_RESERVATE_STRATEGY_FAULT_CANCEL |APP_RESERVATE_STRATEGY_START_DIRECTLY);
+                    }else{
+                        s_ofsm_info[gunno].base.flag.is_reser_normal_started = APP_THA_ENUM_FALSE;
+                        s_ofsm_info[gunno].base.flag.is_reser_timeout_started = APP_THA_ENUM_FALSE;
+
+                        s_ofsm_info[gunno].base.reservation_time_remain = (thaisen_get_mode_parameter(gunno) + (24 *3600) - (tmp.tm_hour *3600 + tmp.tm_min *60));
                         continue_reservation = APP_THA_ENUM_TRUE;
                         s_ofsm_info[gunno].base.reservation_strategy = (APP_RESERVATE_STRATEGY_PULLGUN_CANCEL |APP_RESERVATE_STRATEGY_FAULT_CANCEL |APP_RESERVATE_STRATEGY_START_DIRECTLY);
-                    }else if((thaisen_get_mode_parameter(gunno) + 15 *60) > (tmp.tm_hour *3600 + tmp.tm_min *60)){
-                        if(thaisen_is_set_reservation_mode(gunno)){
-                            s_ofsm_info[gunno].base.reservation_time_remain = 0x00;
-                            continue_reservation = APP_THA_ENUM_TRUE;
-                            s_ofsm_info[gunno].base.reservation_strategy = (APP_RESERVATE_STRATEGY_PULLGUN_CANCEL |APP_RESERVATE_STRATEGY_FAULT_CANCEL |APP_RESERVATE_STRATEGY_START_DIRECTLY);
-                        }
                     }
                 }
             }
@@ -2292,11 +2313,16 @@ static void ofsm_reservation_fun(uint8_t gunno)
     }
     /** 预约信息修改 */
     if(thaisen_get_current_mode(gunno) == THAISEN_MODE_LIMIT_RESERVATION){
-        if(thaisen_is_set_reservation_mode(gunno)){
+        if(thaisen_is_set_reservation_mode(gunno) || (mw_get_time_sync_flag(gunno))){
             uint8_t continue_reservation = APP_THA_ENUM_FALSE;
             time_t t_base = time(NULL);
             struct tm tmp;
 
+            if(thaisen_is_set_reservation_mode(gunno)){
+                s_ofsm_info[gunno].base.flag.is_reser_normal_started = APP_THA_ENUM_FALSE;
+                s_ofsm_info[gunno].base.flag.is_reser_timeout_started = APP_THA_ENUM_FALSE;
+                thaisen_clear_reservation_mode_flag(gunno);
+            }
             localtime_r(&t_base, &tmp);
             if((tmp.tm_year + 1900) >= 2025){
                 s_ofsm_info[gunno].base.reservation_time_base = t_base;
@@ -2304,11 +2330,19 @@ static void ofsm_reservation_fun(uint8_t gunno)
                 if(thaisen_get_mode_parameter(gunno) >= (tmp.tm_hour *3600 + tmp.tm_min *60)){
                     s_ofsm_info[gunno].base.reservation_time_remain = (thaisen_get_mode_parameter(gunno) - (tmp.tm_hour *3600 + tmp.tm_min *60));
                     continue_reservation = APP_THA_ENUM_TRUE;
+                    s_ofsm_info[gunno].base.flag.is_reser_normal_started = APP_THA_ENUM_TRUE;
                     s_ofsm_info[gunno].base.reservation_strategy = (APP_RESERVATE_STRATEGY_PULLGUN_CANCEL |APP_RESERVATE_STRATEGY_FAULT_CANCEL |APP_RESERVATE_STRATEGY_START_DIRECTLY);
-                }else if((thaisen_get_mode_parameter(gunno) + 15 *60) > (tmp.tm_hour *3600 + tmp.tm_min *60)){
-                    s_ofsm_info[gunno].base.reservation_time_remain = 0x00;
+                }else if((thaisen_get_mode_parameter(gunno) + 15 *60) >= (tmp.tm_hour *3600 + tmp.tm_min *60)){
                     continue_reservation = APP_THA_ENUM_TRUE;
+                    s_ofsm_info[gunno].base.reservation_time_remain = 0x00;
+                    s_ofsm_info[gunno].base.flag.is_reser_timeout_started = APP_THA_ENUM_TRUE;
                     s_ofsm_info[gunno].base.reservation_strategy = (APP_RESERVATE_STRATEGY_PULLGUN_CANCEL |APP_RESERVATE_STRATEGY_FAULT_CANCEL |APP_RESERVATE_STRATEGY_START_DIRECTLY);
+                }else{
+                    s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_IDLEING];
+                    s_ofsm_info[gunno].state = APP_OFSM_STATE_IDLEING;
+
+                    LOG_D("gunno(%d) current reservation time error ", gunno);
+                    return;
                 }
             }
 
@@ -2318,7 +2352,9 @@ static void ofsm_reservation_fun(uint8_t gunno)
 
                 LOG_D("gunno(%d) local reservation info modify[%d]", gunno, s_ofsm_info[gunno].base.reservation_time_remain);
             }
-            thaisen_clear_reservation_mode_flag(gunno);
+            if(mw_get_time_sync_flag(gunno)){
+                mw_clear_time_sync_flag(gunno);
+            }
         }
     }
 
@@ -2331,6 +2367,10 @@ static void ofsm_reservation_fun(uint8_t gunno)
         s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
         app_nsal_state_charged(gunno);
 
+        if(s_ofsm_info[gunno].base.flag.is_local_reservation == APP_THA_ENUM_TRUE){
+            s_ofsm_info[gunno].base.flag.is_reser_timeout_started = APP_THA_ENUM_FALSE;
+            s_ofsm_info[gunno].base.flag.is_reser_normal_started = APP_THA_ENUM_FALSE;
+        }
         LOG_D("gunno(%d) chargepile is locked", gunno);
         return;
     }
@@ -2343,6 +2383,10 @@ static void ofsm_reservation_fun(uint8_t gunno)
             s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
             app_nsal_state_charged(gunno);
 
+            if(s_ofsm_info[gunno].base.flag.is_local_reservation == APP_THA_ENUM_TRUE){
+                s_ofsm_info[gunno].base.flag.is_reser_timeout_started = APP_THA_ENUM_FALSE;
+                s_ofsm_info[gunno].base.flag.is_reser_normal_started = APP_THA_ENUM_FALSE;
+            }
             LOG_D("gunno(%d) occured fault[%d]", gunno, app_get_highest_priority_system_fault(gunno));
             return;
         }
@@ -2365,27 +2409,52 @@ static void ofsm_reservation_fun(uint8_t gunno)
             s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_IDLEING];
             s_ofsm_info[gunno].state = APP_OFSM_STATE_IDLEING;
 
+            s_ofsm_info[gunno].base.flag.is_reser_timeout_started = APP_THA_ENUM_FALSE;
+            s_ofsm_info[gunno].base.flag.is_reser_normal_started = APP_THA_ENUM_FALSE;
             LOG_D("gunno(%d) local cancel reservation", gunno);
             return;
         }
     }
     /********* 预约时间到 **********/
-    if((s_ofsm_info[gunno].base.reservation_time_base + s_ofsm_info[gunno].base.reservation_time_remain) <= (s_ofsm_info[gunno].base.current_time + 60)){ /** 时间精确到分钟 */
+    /** 预约中修改预约时间小于当前时间15分钟以内 */
+    if(s_ofsm_info[gunno].base.reservation_time_remain == 0x00){
+        LOG_D("gunno(%d) reach reservation time, start charge0\n", gunno);
+        thaisen_clear_reservation_mode_flag(gunno);
+        ofsm_start_info_padding_reservation(gunno);
+        if(s_ofsm_info[gunno].base.reservation_time_remain == 0x00){
+            s_ofsm_info[gunno].base.flag.is_reser_timeout_started = APP_THA_ENUM_TRUE;
+        }else{
+            s_ofsm_info[gunno].base.flag.is_reser_normal_started = APP_THA_ENUM_TRUE;
+        }
+        is_charging_authorization = true;
+    }
+    /** 预约时间大于当前时间且相差1分钟以内 */
+    else if((s_ofsm_info[gunno].base.reservation_time_base + s_ofsm_info[gunno].base.reservation_time_remain) <= (s_ofsm_info[gunno].base.current_time + 60)){ /** 时间精确到分钟 */
         time_t t_base = time(NULL);
         uint32_t reservation_time_sec = thaisen_get_mode_parameter(gunno);
         struct tm tmp;
 
         localtime_r(&t_base, &tmp);
         if(tmp.tm_min == ((reservation_time_sec %3600) /60)){
-            LOG_D("gunno(%d) reach reservation time, start charge\n", gunno);
+            LOG_D("gunno(%d) reach reservation time, start charge1\n", gunno);
             thaisen_clear_reservation_mode_flag(gunno);
             ofsm_start_info_padding_reservation(gunno);
+            if(s_ofsm_info[gunno].base.reservation_time_remain == 0x00){
+                s_ofsm_info[gunno].base.flag.is_reser_timeout_started = APP_THA_ENUM_TRUE;
+            }else{
+                s_ofsm_info[gunno].base.flag.is_reser_normal_started = APP_THA_ENUM_TRUE;
+            }
             is_charging_authorization = true;
         }
     }else if((s_ofsm_info[gunno].base.reservation_time_base + s_ofsm_info[gunno].base.reservation_time_remain) <= s_ofsm_info[gunno].base.current_time){
-        LOG_D("gunno(%d) reach reservation time, start charge\n", gunno);
+        LOG_D("gunno(%d) reach reservation time, start charge2\n", gunno);
         thaisen_clear_reservation_mode_flag(gunno);
         ofsm_start_info_padding_reservation(gunno);
+        if(s_ofsm_info[gunno].base.reservation_time_remain == 0x00){
+            s_ofsm_info[gunno].base.flag.is_reser_timeout_started = APP_THA_ENUM_TRUE;
+        }else{
+            s_ofsm_info[gunno].base.flag.is_reser_normal_started = APP_THA_ENUM_TRUE;
+        }
         is_charging_authorization = true;
     }
     /********* 预约期间其他方式启动 **********/
@@ -2404,6 +2473,11 @@ static void ofsm_reservation_fun(uint8_t gunno)
             s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
             app_nsal_state_charged(gunno);
             app_nsal_event_occurded(gunno);
+
+            if(s_ofsm_info[gunno].base.flag.is_local_reservation == APP_THA_ENUM_TRUE){
+                s_ofsm_info[gunno].base.flag.is_reser_timeout_started = APP_THA_ENUM_FALSE;
+                s_ofsm_info[gunno].base.flag.is_reser_normal_started = APP_THA_ENUM_FALSE;
+            }
             return;
         }
         break;
@@ -2510,6 +2584,12 @@ static void ofsm_reservation_fun(uint8_t gunno)
 #endif
             ofsm_start_info_padding_public(gunno);
 
+            if(s_ofsm_info[gunno].base.start_type != APP_CHARGE_START_WAY_RESERVATION){
+                if(s_ofsm_info[gunno].base.flag.is_local_reservation == APP_THA_ENUM_TRUE){
+                    s_ofsm_info[gunno].base.flag.is_reser_timeout_started = APP_THA_ENUM_FALSE;
+                    s_ofsm_info[gunno].base.flag.is_reser_normal_started = APP_THA_ENUM_FALSE;
+                }
+            }
             s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_STARTING];
             s_ofsm_info[gunno].state = APP_OFSM_STATE_STARTING;
         }
@@ -5924,6 +6004,9 @@ void ofsm_thread_entry(void *parameter)
         s_ofsm_info[thread_gunno].base.ota_state = app_nsal_get_ota_state();
 
         app_thread_monitor_process(rt_thread_self(), NULL, 0x00, 0x00);
+
+        s_ofsm_info[thread_gunno].base.flag.is_reser_normal_started = APP_THA_ENUM_FALSE;
+        s_ofsm_info[thread_gunno].base.flag.is_reser_timeout_started = APP_THA_ENUM_FALSE;
 
         switch (s_ofsm_info[thread_gunno].base.ota_state) {
         case APP_OTA_STATE_NULL:
