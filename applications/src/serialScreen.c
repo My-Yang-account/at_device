@@ -89,6 +89,16 @@
 #define SERIALSCREEN_DEF_SRAM2
 #endif /* SERIALSCREEN_DESIGNATE_REGION */
 
+#define SCREEN_AUX_A_SELCT_REG_NEW              0x1007          /* 新屏幕A枪辅源选择控件地址 */
+#define SCREEN_AUX_A_SELCT_KEY_NEW              0x000D          /* 新屏幕A枪辅源选择控件键值 */
+#define SCREEN_AUX_B_SELCT_REG_NEW              0x1007          /* 新屏幕B枪辅源选择控件地址 */
+#define SCREEN_AUX_B_SELCT_KEY_NEW              0x000E          /* 新屏幕B枪辅源选择控件键值 */
+
+#define SCREEN_AUX_A_SELCT_REG_OLD              0x1007          /* 老屏幕A枪辅源选择控件地址 */
+#define SCREEN_AUX_A_SELCT_KEY_OLD              0x000D          /* 老屏幕A枪辅源选择控件键值 */
+#define SCREEN_AUX_B_SELCT_REG_OLD              0x1007          /* 老屏幕B枪辅源选择控件地址 */
+#define SCREEN_AUX_B_SELCT_KEY_OLD              0x000E          /* 老屏幕B枪辅源选择控件键值 */
+
 
 #define SCREEN_USING_TXT_RTC                 /* 发送RTC TXT */
 #ifdef SCREEN_USING_TXT_RTC
@@ -337,6 +347,7 @@ struct LCD_ASSISTANT_DATA{
         u8 IsVinStart : 1;               //启动方式为VIN码
         u8 DataIsVerify : 1;             //配置数据已确认
         u8 IsPWStartAuthen : 1;          //填密码是密码启动鉴权
+        u8 Aux24VNotice : 1;             //辅源24V选择提示
         u8 IsSetReservation : 1;         //已设置预约
     }SeveralGunFlag[LCD_GUN_NUM];
 
@@ -576,6 +587,7 @@ struct LCD_DISPLAY_SETDATA_TYPE{
     u8 s_selectaux[LCD_GUN_NUM];            // 辅源选择
     u8 selectmode[LCD_GUN_NUM];             // 模式选择
     u8 s_card_number[LCD_GUN_NUM][17];      // 卡号
+    u8 selectAuxNotice[LCD_GUN_NUM];        // 辅源选择提示
     /***********************set icon***************************/
     u8 Icon_SuplocalStop;                   //本地停止使能icon
     u8 Icon_SupPlugAndPlay;                 //即插即充使能icon
@@ -6875,6 +6887,69 @@ void SerialScreen_AuxsetB()
     }
 }
 
+void SerialScreen_AuxsetA_New()
+{
+    if(LcdAssistantData.Flag.IsEnableAuxPower24V == TRUE){
+        if(LcdData.setData.s_selectaux[LCD_GUN_1] != ICON_AUXPOWER_NONE){
+            if(LcdData.setData.s_selectaux[LCD_GUN_1] == (ICON_AUXPOWER_12V + 2 *LCD_GUN_1)){
+                LcdAssistantData.SeveralGunFlag[LCD_GUN_1].Aux24VNotice = TRUE;
+            }else{
+                LcdData.setData.s_selectaux[LCD_GUN_1] = (ICON_AUXPOWER_12V + 2 *LCD_GUN_1);
+                thaisenSetAuxPowerTypeA(thaisen_auxPowerType_12V);
+                LcdAssistantData.SeveralGunFlag[LCD_GUN_1].Aux24VNotice = FALSE;
+            }
+        }
+    }
+}
+
+void SerialScreen_AuxsetB_New()
+{
+    if(LcdAssistantData.Flag.IsEnableAuxPower24V == TRUE){
+        if(LcdData.setData.s_selectaux[LCD_GUN_2] != ICON_AUXPOWER_NONE){
+            if(LcdData.setData.s_selectaux[LCD_GUN_2] == (ICON_AUXPOWER_12V + 2 *LCD_GUN_2)){
+                LcdAssistantData.SeveralGunFlag[LCD_GUN_2].Aux24VNotice = TRUE;
+            }else{
+                LcdData.setData.s_selectaux[LCD_GUN_2] = (ICON_AUXPOWER_12V + 2 *LCD_GUN_2);
+                thaisenSetAuxPowerTypeB(thaisen_auxPowerType_12V);
+                LcdAssistantData.SeveralGunFlag[LCD_GUN_2].Aux24VNotice = FALSE;
+            }
+        }
+    }
+}
+
+void SerialScreen_AuxSelectVerifyA(void)
+{
+    if(LcdAssistantData.Flag.IsEnableAuxPower24V == TRUE){
+        if(LcdAssistantData.SeveralGunFlag[LCD_GUN_1].Aux24VNotice == TRUE){
+            LcdData.setData.s_selectaux[LCD_GUN_1] = (ICON_AUXPOWER_24V + 2 *LCD_GUN_1);
+            thaisenSetAuxPowerTypeA(thaisen_auxPowerType_24V);
+        }
+    }
+    LcdAssistantData.SeveralGunFlag[LCD_GUN_1].Aux24VNotice = FALSE;
+}
+
+void SerialScreen_AuxSelectVerifyB(void)
+{
+    if(LcdAssistantData.Flag.IsEnableAuxPower24V == TRUE){
+        if(LcdAssistantData.SeveralGunFlag[LCD_GUN_2].Aux24VNotice == TRUE){
+            LcdData.setData.s_selectaux[LCD_GUN_2] = (ICON_AUXPOWER_24V + 2 *LCD_GUN_2);
+            thaisenSetAuxPowerTypeB(thaisen_auxPowerType_24V);
+        }
+    }
+    LcdAssistantData.SeveralGunFlag[LCD_GUN_2].Aux24VNotice = FALSE;
+}
+
+void SerialScreen_AuxSelectCancelA(void)
+{
+    LcdAssistantData.SeveralGunFlag[LCD_GUN_1].Aux24VNotice = FALSE;
+}
+
+void SerialScreen_AuxSelectCancelB(void)
+{
+    LcdAssistantData.SeveralGunFlag[LCD_GUN_2].Aux24VNotice = FALSE;
+}
+
+
 void SerialScreen_BtnSelfCheckSet(void)
 {
 #define SCREEN_WAIT_FB_TIME              200           /** 等待反馈状态时长(ms) */
@@ -10065,33 +10140,18 @@ void SerialScreen_GetKeyProcess(struct SerialScreenObj *cmd)
 						 //如果目标页面相同，则刷新
 						 sSCREEN_DEBUGPROMSG("LCD_BtnType menuflg=%d CurrentPage[%d]=%d\r\n",LcdData.menuflg,LcdData.gunIndex,LcdData.CurrentPage);
 
-						 if(LcdData.CurrentPage == LCD_PAGE_STANDBY){        /* 只有第一页能进入系统信息页面 */
-                             if((keyreg == 0x1003) && (keyval == 0x0001)){
-                                 LcdAssistantData.Flag.IsLongLiSerialScreen = 1;
-                                  LcdData.CurrentPage = LCD_PAGE_ADMIN_PASWD;
-                             }else if((keyreg == 0x1000) && (keyval == 0x0013)){
-                                 LcdAssistantData.Flag.IsLongLiSerialScreen = 0;
-                                 LcdData.CurrentPage = pPageIndex->item[i].vallen;
-                             }else{
-                                 LcdData.CurrentPage = pPageIndex->item[i].vallen;
-                             }
-                             page_selected = 1;
-                         }
-
                          if(((LcdData.CurrentPage == LCD_PAGE_SYS_INFO) ||
                                  (LcdData.CurrentPage == LCD_PAGE_MENU_COM_5) ||
                                  (LcdData.CurrentPage == LCD_PAGE_MENU_COM_6) ||
                                  (LcdData.CurrentPage == LCD_PAGE_MENU_COM_6B) ||
                                  (LcdData.CurrentPage == LCD_PAGE_MENU_COM_5B))
                                  && LcdAssistantData.Flag.IsLongLiSerialScreen){
-                             if(page_selected == 0){
-                                 if((keyreg == 0x1000) && (keyval == 0x0017)){
-                                     LcdData.CurrentPage = LCD_PAGE_ROOT_MAIN;
-                                 }else{
-                                     LcdData.CurrentPage = pPageIndex->item[i].vallen;
-                                 }
-                                 page_selected = 1;
+                             if((keyreg == 0x1000) && (keyval == 0x0017)){
+                                 LcdData.CurrentPage = LCD_PAGE_ROOT_MAIN;
+                             }else{
+                                 LcdData.CurrentPage = pPageIndex->item[i].vallen;
                              }
+                             page_selected = 1;
                          }
 
                          if(LcdData.CurrentPage == LCD_PAGE_ADMIN_PASWD){
@@ -10115,28 +10175,67 @@ void SerialScreen_GetKeyProcess(struct SerialScreenObj *cmd)
                              }
                          }
 
-                         if(LcdData.CurrentPage == LCD_PAGE_A_SELECT){
-                             if(((keyreg == 0x1003) && (keyval == 0x0069)) && (page_selected == 0)){        //A枪模式选择
-                                 if(LcdData.setData.sup_mode_select){
+                         if(LcdData.CurrentPage == LCD_PAGE_STANDBY){        /* 只有第一页能进入系统信息页面 */
+                             if(page_selected == 0){
+                                 if((keyreg == 0x1003) && (keyval == 0x0001)){
+                                     LcdAssistantData.Flag.IsLongLiSerialScreen = 1;
+                                     LcdData.CurrentPage = LCD_PAGE_ADMIN_PASWD;
+                                     page_selected = 1;
+                                 }else if((keyreg == 0x1000) && (keyval == 0x0013)){
+                                     LcdAssistantData.Flag.IsLongLiSerialScreen = 0;
                                      LcdData.CurrentPage = pPageIndex->item[i].vallen;
                                      page_selected = 1;
-                                 }
-                             }else{
-                                 if(page_selected == 0){
+                                 }else if((keyreg == SCREEN_AUX_A_SELCT_REG_NEW) && (keyval == SCREEN_AUX_A_SELCT_KEY_NEW)){
+                                     if(LcdAssistantData.SeveralGunFlag[LCD_GUN_1].Aux24VNotice != TRUE){
+                                         LcdData.CurrentPage = pPageIndex->item[i].vallen;
+                                         page_selected = 1;
+                                     }
+                                 }else if((keyreg == SCREEN_AUX_B_SELCT_REG_NEW) && (keyval == SCREEN_AUX_B_SELCT_KEY_NEW)){
+                                     if(LcdAssistantData.SeveralGunFlag[LCD_GUN_2].Aux24VNotice != TRUE){
+                                         LcdData.CurrentPage = pPageIndex->item[i].vallen;
+                                         page_selected = 1;
+                                     }
+                                 }else{
                                      LcdData.CurrentPage = pPageIndex->item[i].vallen;
                                      page_selected = 1;
                                  }
                              }
+                          }else if(LcdData.CurrentPage == LCD_PAGE_A_SELECT){
+                              if(page_selected == 0){
+                                  if(((keyreg == 0x1003) && (keyval == 0x0069)) && (page_selected == 0)){        //A枪模式选择
+                                      if(LcdData.setData.sup_mode_select){
+                                          LcdData.CurrentPage = pPageIndex->item[i].vallen;
+                                          page_selected = 1;
+                                      }
+                                  }else if((keyreg == SCREEN_AUX_A_SELCT_REG_NEW) && (keyval == SCREEN_AUX_A_SELCT_KEY_NEW)){
+                                      if(LcdAssistantData.SeveralGunFlag[LCD_GUN_1].Aux24VNotice != TRUE){
+                                          LcdData.CurrentPage = pPageIndex->item[i].vallen;
+                                          page_selected = 1;
+                                      }
+                                  }else{
+                                      if(page_selected == 0){
+                                          LcdData.CurrentPage = pPageIndex->item[i].vallen;
+                                          page_selected = 1;
+                                      }
+                                  }
+                              }
                          }else if(LcdData.CurrentPage == LCD_PAGE_B_SELECT){
-                             if(((keyreg == 0x1003) && (keyval == 0x006A)) && (page_selected == 0)){        //B枪模式选择
-                                 if(LcdData.setData.sup_mode_select){
-                                     LcdData.CurrentPage = pPageIndex->item[i].vallen;
-                                     page_selected = 1;
-                                 }
-                             }else {
-                                 if(page_selected == 0){
-                                     LcdData.CurrentPage = pPageIndex->item[i].vallen;
-                                     page_selected = 1;
+                             if(page_selected == 0){
+                                 if(((keyreg == 0x1003) && (keyval == 0x006A)) && (page_selected == 0)){        //B枪模式选择
+                                     if(LcdData.setData.sup_mode_select){
+                                         LcdData.CurrentPage = pPageIndex->item[i].vallen;
+                                         page_selected = 1;
+                                     }
+                                 }else if((keyreg == SCREEN_AUX_B_SELCT_REG_NEW) && (keyval == SCREEN_AUX_B_SELCT_KEY_NEW)){
+                                     if(LcdAssistantData.SeveralGunFlag[LCD_GUN_2].Aux24VNotice != TRUE){
+                                         LcdData.CurrentPage = pPageIndex->item[i].vallen;
+                                         page_selected = 1;
+                                     }
+                                 }else {
+                                     if(page_selected == 0){
+                                         LcdData.CurrentPage = pPageIndex->item[i].vallen;
+                                         page_selected = 1;
+                                     }
                                  }
                              }
                          }else{
@@ -10604,6 +10703,15 @@ int SerialScreen_DataProcess()
             }else{
                 LcdData.setData.Sup_Stop = ICON_CHARGE_LOCAL;
             }
+        }
+
+        if(LcdData.gun[i].workState != SysMainStatus_PlugIn){
+            LcdAssistantData.SeveralGunFlag[i].Aux24VNotice = FALSE;
+        }
+        if(LcdAssistantData.SeveralGunFlag[i].Aux24VNotice){
+            LcdData.setData.selectAuxNotice[i] = TRUE;
+        }else{
+            LcdData.setData.selectAuxNotice[i] = FALSE;
         }
 	}
 
@@ -11115,12 +11223,19 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_STANDBY, NULL, "root paswd", LCD_BtnType, 0x0001, 0x1003, page_type, LCD_PAGE_ADMIN_PASWD, (void *)SerialScreen_NeedPageReset);
     SerialScreen_ItemSetUp(LCD_PAGE_STANDBY, NULL, "Icon Saux", LCD_IconType, LCD_10sReflash, 0x4630, pu8_type, sizeof(LcdData.setData.s_selectaux[LCD_GUN_1]), (void *)&LcdData.setData.s_selectaux[LCD_GUN_1]);
     SerialScreen_ItemSetUp(LCD_PAGE_STANDBY, NULL, "Icon Saux", LCD_IconType, LCD_10sReflash, 0x4632, pu8_type, sizeof(LcdData.setData.s_selectaux[LCD_GUN_2]), (void *)&LcdData.setData.s_selectaux[LCD_GUN_2]);
-
+    SerialScreen_ItemSetUp(LCD_PAGE_STANDBY, NULL, "auxA noticeA", LCD_IconType, LCD_10sReflash, 0x6C00, pu8_type, sizeof(LcdData.setData.selectAuxNotice[LCD_GUN_1]), (void *)&LcdData.setData.selectAuxNotice[LCD_GUN_1]);
+    SerialScreen_ItemSetUp(LCD_PAGE_STANDBY, NULL, "auxB noticeB", LCD_IconType, LCD_10sReflash, 0x6C01, pu8_type, sizeof(LcdData.setData.selectAuxNotice[LCD_GUN_2]), (void *)&LcdData.setData.selectAuxNotice[LCD_GUN_2]);
     SerialScreen_ItemSetUp(LCD_PAGE_STANDBY, NULL, "paracharge_icon", LCD_IconType, LCD_10sReflash, 0x4656, pu8_type, 1, (void *)&LcdData.setData.parallel_iocn);
     SerialScreen_ItemSetUp(LCD_PAGE_STANDBY, NULL, "set paracharge", LCD_BtnType, 0x0004, 0x1007, page_type, LCD_PAGE_STANDBY, (void *)SerialScreen_ParaChargeSet);
     SerialScreen_ItemSetUp(LCD_PAGE_STANDBY, NULL, "set singlecharge", LCD_BtnType, 0x0003, 0x1007, page_type, LCD_PAGE_STANDBY, (void *)SerialScreen_SingleChargeSet);
     SerialScreen_ItemSetUp(LCD_PAGE_STANDBY, NULL, "auxA set", LCD_BtnType, 0x0001, 0x1007, page_type, LCD_PAGE_STANDBY, (void *)SerialScreen_AuxsetA);
     SerialScreen_ItemSetUp(LCD_PAGE_STANDBY, NULL, "auxB set", LCD_BtnType, 0x0002, 0x1007, page_type, LCD_PAGE_STANDBY, (void *)SerialScreen_AuxsetB);
+    SerialScreen_ItemSetUp(LCD_PAGE_STANDBY, NULL, "auxA set", LCD_BtnType, 0x000D, 0x1007, page_type, LCD_PAGE_STANDBY, (void *)SerialScreen_AuxsetA_New);
+    SerialScreen_ItemSetUp(LCD_PAGE_STANDBY, NULL, "auxB set", LCD_BtnType, 0x000E, 0x1007, page_type, LCD_PAGE_STANDBY, (void *)SerialScreen_AuxsetB_New);
+    SerialScreen_ItemSetUp(LCD_PAGE_STANDBY, NULL, "auxA verifyA", LCD_BtnType, 0x0009, 0x1007, page_type, LCD_PAGE_STANDBY, (void *)SerialScreen_AuxSelectVerifyA);
+    SerialScreen_ItemSetUp(LCD_PAGE_STANDBY, NULL, "auxA cancelA", LCD_BtnType, 0x000A, 0x1007, page_type, LCD_PAGE_STANDBY, (void *)SerialScreen_AuxSelectCancelA);
+    SerialScreen_ItemSetUp(LCD_PAGE_STANDBY, NULL, "auxB verifyB", LCD_BtnType, 0x000B, 0x1007, page_type, LCD_PAGE_STANDBY, (void *)SerialScreen_AuxSelectVerifyB);
+    SerialScreen_ItemSetUp(LCD_PAGE_STANDBY, NULL, "auxB cancelB", LCD_BtnType, 0x000C, 0x1007, page_type, LCD_PAGE_STANDBY, (void *)SerialScreen_AuxSelectCancelB);
 
     SerialScreen_ItemSetUp(LCD_PAGE_STANDBY, NULL, "period0", LCD_DataType, LCD_1sReflash, 0x4306, pu32_type, sizeof(LcdData.setData.period_time[0]), (void *)&LcdData.setData.period_time[0]);
     SerialScreen_ItemSetUp(LCD_PAGE_STANDBY, NULL, "period1", LCD_DataType, LCD_1sReflash, 0x4308, pu32_type, sizeof(LcdData.setData.period_time[1]), (void *)&LcdData.setData.period_time[1]);
@@ -11150,8 +11265,13 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_A_SELECT, NULL, "Vin charge", LCD_IconType, LCD_10sReflash, 0x1057, pu8_type, 1, (void *)&LcdData.setData.Sup_StartStyle[CHARGE_STYLE_START_VIN][LCD_GUN_1]);
     SerialScreen_ItemSetUp(LCD_PAGE_A_SELECT, NULL, "PW charge", LCD_IconType, LCD_10sReflash, 0x6500, pu8_type, 1, (void *)&LcdData.setData.Sup_StartStyle[CHARGE_STYLE_START_PW][LCD_GUN_1]);
     SerialScreen_ItemSetUp(LCD_PAGE_A_SELECT, NULL, "Icon Saux", LCD_IconType, LCD_10sReflash, 0x4630, pu8_type, sizeof(LcdData.setData.s_selectaux[LCD_GUN_1]), (void *)&LcdData.setData.s_selectaux[LCD_GUN_1]);
+    SerialScreen_ItemSetUp(LCD_PAGE_A_SELECT, NULL, "auxA noticeA", LCD_IconType, LCD_10sReflash, 0x6C00, pu8_type, sizeof(LcdData.setData.selectAuxNotice[LCD_GUN_1]), (void *)&LcdData.setData.selectAuxNotice[LCD_GUN_1]);
     SerialScreen_ItemSetUp(LCD_PAGE_A_SELECT, NULL, "Icon ModeA", LCD_IconType, LCD_10sReflash, 0x65C2, pu8_type, sizeof(LcdData.setData.selectmode[LCD_GUN_1]), (void *)&LcdData.setData.selectmode[LCD_GUN_1]);
     SerialScreen_ItemSetUp(LCD_PAGE_A_SELECT, NULL, "auxA set", LCD_BtnType, 0x0001, 0x1007, page_type, LCD_PAGE_A_SELECT, (void *)SerialScreen_AuxsetA);
+    SerialScreen_ItemSetUp(LCD_PAGE_A_SELECT, NULL, "auxA set", LCD_BtnType, 0x000D, 0x1007, page_type, LCD_PAGE_A_SELECT, (void *)SerialScreen_AuxsetA_New);
+    SerialScreen_ItemSetUp(LCD_PAGE_A_SELECT, NULL, "auxA verifyA", LCD_BtnType, 0x0009, 0x1007, page_type, LCD_PAGE_A_SELECT, (void *)SerialScreen_AuxSelectVerifyA);
+    SerialScreen_ItemSetUp(LCD_PAGE_A_SELECT, NULL, "auxA cancelA", LCD_BtnType, 0x000A, 0x1007, page_type, LCD_PAGE_A_SELECT, (void *)SerialScreen_AuxSelectCancelA);
+
     SerialScreen_ItemSetUp(LCD_PAGE_A_SELECT, NULL, "unlock_ela", LCD_BtnType, 0x0007, 0x1000, page_type, LCD_PAGE_A_SELECT, (void *)SerialScreen_BtnUnElockA);
     SerialScreen_ItemSetUp(LCD_PAGE_A_SELECT, NULL, "pw authen", LCD_BtnType, 0x0001, 0x1001, page_type, LCD_PAGE_A_SELECT, (void *)SerialScreen_PWStartAuthen);
     SerialScreen_ItemSetUp(LCD_PAGE_A_SELECT, NULL, "ModeSelectSetA", LCD_BtnType, 0x0069, 0x1003, page_type, LCD_PAGE_MENU_MODE_SELECT, (void *)SerialScreen_GetModeInfoA);
@@ -11168,8 +11288,13 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_B_SELECT, NULL, "Vin charge", LCD_IconType, LCD_10sReflash, 0x1057, pu8_type, 1, (void *)&LcdData.setData.Sup_StartStyle[CHARGE_STYLE_START_VIN][LCD_GUN_2]);
     SerialScreen_ItemSetUp(LCD_PAGE_B_SELECT, NULL, "PW charge", LCD_IconType, LCD_10sReflash, 0x6501, pu8_type, 1, (void *)&LcdData.setData.Sup_StartStyle[CHARGE_STYLE_START_PW][LCD_GUN_2]);
     SerialScreen_ItemSetUp(LCD_PAGE_B_SELECT, NULL, "Icon Saux", LCD_IconType, LCD_10sReflash, 0x4632, pu8_type, sizeof(LcdData.setData.s_selectaux[LCD_GUN_2]), (void *)&LcdData.setData.s_selectaux[LCD_GUN_2]);
+    SerialScreen_ItemSetUp(LCD_PAGE_B_SELECT, NULL, "auxB noticeB", LCD_IconType, LCD_10sReflash, 0x6C01, pu8_type, sizeof(LcdData.setData.selectAuxNotice[LCD_GUN_2]), (void *)&LcdData.setData.selectAuxNotice[LCD_GUN_2]);
     SerialScreen_ItemSetUp(LCD_PAGE_B_SELECT, NULL, "Icon ModeB", LCD_IconType, LCD_10sReflash, 0x65C3, pu8_type, sizeof(LcdData.setData.selectmode[LCD_GUN_2]), (void *)&LcdData.setData.selectmode[LCD_GUN_2]);
     SerialScreen_ItemSetUp(LCD_PAGE_B_SELECT, NULL, "auxB set", LCD_BtnType, 0x0002, 0x1007, page_type, LCD_PAGE_B_SELECT, (void *)SerialScreen_AuxsetB);
+    SerialScreen_ItemSetUp(LCD_PAGE_B_SELECT, NULL, "auxB set", LCD_BtnType, 0x000E, 0x1007, page_type, LCD_PAGE_B_SELECT, (void *)SerialScreen_AuxsetB_New);
+    SerialScreen_ItemSetUp(LCD_PAGE_B_SELECT, NULL, "auxB verifyB", LCD_BtnType, 0x000B, 0x1007, page_type, LCD_PAGE_B_SELECT, (void *)SerialScreen_AuxSelectVerifyB);
+    SerialScreen_ItemSetUp(LCD_PAGE_B_SELECT, NULL, "auxB cancelB", LCD_BtnType, 0x000C, 0x1007, page_type, LCD_PAGE_B_SELECT, (void *)SerialScreen_AuxSelectCancelB);
+
     SerialScreen_ItemSetUp(LCD_PAGE_B_SELECT, NULL, "unlock_elb", LCD_BtnType, 0x0008, 0x1000, page_type, LCD_PAGE_B_SELECT, (void *)SerialScreen_BtnUnElockB);
     SerialScreen_ItemSetUp(LCD_PAGE_B_SELECT, NULL, "pw authen", LCD_BtnType, 0x0003, 0x1001, page_type, LCD_PAGE_B_SELECT, (void *)SerialScreen_PWStartAuthen);
     SerialScreen_ItemSetUp(LCD_PAGE_B_SELECT, NULL, "ModeSelectSetB", LCD_BtnType, 0x006A, 0x1003, page_type, LCD_PAGE_MENU_MODE_SELECT, (void *)SerialScreen_GetModeInfoB);

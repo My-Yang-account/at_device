@@ -218,6 +218,11 @@ void SerialScreen_GetModeInfoA(void);
 void SerialScreen_GetModeInfoB(void);
 void SerialScreen_BtnSelfCheckSet(void);
 
+void SerialScreen_AuxSelectVerifyA(void);
+void SerialScreen_AuxSelectVerifyB(void);
+void SerialScreen_AuxSelectCancelA(void);
+void SerialScreen_AuxSelectCancelB(void);
+
 void SerialScreen_ScreenRequest_Time(void);
 s8 SerialScreen_Get_ScreenTimeSync_Flag(void);
 s8 SerialScreen_Get_SetPowerPercent_Flag(void);
