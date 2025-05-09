@@ -31,10 +31,10 @@
 
 #define NET_YKC_PROTOCOL_CHECK_REGION_SIZE                     0x02        /* 校验码域长度：单位字节 */
 
-#define NET_YKC_NET_LINK_TYPE_SIM                              0x01        /* 网络链接类型：SIM 卡 */
-#define NET_YKC_NET_LINK_TYPE_LAN                              0x02        /* 网络链接类型：LAN */
-#define NET_YKC_NET_LINK_TYPE_WAN                              0x03        /* 网络链接类型：WAN */
-#define NET_YKC_NET_LINK_TYPE_OTHER                            0x04        /* 网络链接类型：其它 */
+#define NET_YKC_NET_LINK_TYPE_SIM                              0x00        /* 网络链接类型：SIM 卡 */
+#define NET_YKC_NET_LINK_TYPE_LAN                              0x01        /* 网络链接类型：LAN */
+#define NET_YKC_NET_LINK_TYPE_WAN                              0x02        /* 网络链接类型：WAN */
+#define NET_YKC_NET_LINK_TYPE_OTHER                            0x03        /* 网络链接类型：其它 */
 
 #define NET_YKC_OPERATOR_MOBILE                                0x00        /* 运营商名称：中国移动 */
 #define NET_YKC_OPERATOR_TELECOM                               0x02        /* 运营商名称：中国电信 */
