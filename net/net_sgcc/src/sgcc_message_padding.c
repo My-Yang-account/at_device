@@ -1972,12 +1972,12 @@ int8_t sgcc_message_pro_query_dev_record_request(uint8_t gunno, void *data, uint
     if(request->askType == 10){
         evs_event_logQuery_Results[gunno].dataArea.tradeInfo.gunNo = request->gunNo;
         valid_len = sizeof(_transaction->serial_number);
-        valid_len = valid_len > EVS_MAX_TRADE_LEN ? EVS_MAX_TRADE_LEN : valid_len;
+        valid_len = valid_len > (EVS_MAX_TRADE_LEN - 0x01) ? (EVS_MAX_TRADE_LEN - 0x01) : valid_len;
         memset(evs_event_logQuery_Results[gunno].dataArea.tradeInfo.preTradeNo, 0x00, sizeof(evs_event_logQuery_Results[gunno].dataArea.tradeInfo.preTradeNo));
         memcpy(evs_event_logQuery_Results[gunno].dataArea.tradeInfo.preTradeNo, _transaction->serial_number, valid_len);
 
         valid_len = sizeof(_transaction->device_serial_number);
-        valid_len = valid_len > EVS_MAX_TRADE_LEN ? EVS_MAX_TRADE_LEN : valid_len;
+        valid_len = valid_len > (EVS_MAX_TRADE_LEN - 0x01) ? (EVS_MAX_TRADE_LEN - 0x01) : valid_len;
         memset(evs_event_logQuery_Results[gunno].dataArea.tradeInfo.tradeNo, 0x00, sizeof(evs_event_logQuery_Results[gunno].dataArea.tradeInfo.preTradeNo));
         memcpy(evs_event_logQuery_Results[gunno].dataArea.tradeInfo.tradeNo, _transaction->device_serial_number, valid_len);
 
@@ -2769,12 +2769,12 @@ uint8_t sgcc_chargepile_request_padding_transaction_record(uint8_t gunno, void *
 
     if((sgcc_get_message_send_state(gunno, NET_SGCC_PREQ_EVENT_TRANSACTION_RECORD) == NET_SGCC_SEND_STATE_COMPLETE)){
         valid_len = sizeof(_transaction->serial_number);
-        valid_len = valid_len > EVS_MAX_TRADE_LEN ? EVS_MAX_TRADE_LEN : valid_len;
+        valid_len = valid_len > (EVS_MAX_TRADE_LEN - 0x01) ? (EVS_MAX_TRADE_LEN - 0x01) : valid_len;
         memset(evs_event_tradeInfos[gunno].preTradeNo, 0x00, sizeof(evs_event_tradeInfos[gunno].preTradeNo));
         memcpy(evs_event_tradeInfos[gunno].preTradeNo, _transaction->serial_number, valid_len);
 
         valid_len = sizeof(_transaction->device_serial_number);
-        valid_len = valid_len > EVS_MAX_TRADE_LEN ? EVS_MAX_TRADE_LEN : valid_len;
+        valid_len = valid_len > (EVS_MAX_TRADE_LEN - 0x01) ? (EVS_MAX_TRADE_LEN - 0x01) : valid_len;
         memset(evs_event_tradeInfos[gunno].tradeNo, 0x00, sizeof(evs_event_tradeInfos[gunno].preTradeNo));
         memcpy(evs_event_tradeInfos[gunno].tradeNo, _transaction->device_serial_number, valid_len);
 
@@ -4073,10 +4073,11 @@ static void sgcc_state_changed_check(uint8_t gunno)
                 evs_property_dc_works[gunno].DCK2Status = s_sgcc_state_info[gunno].state.dck2;
                 evs_property_dc_works[gunno].DCPlusFuseStatus = s_sgcc_state_info[gunno].state.dc_plusFuse;
                 evs_property_dc_works[gunno].DCMinusFuseStatus = s_sgcc_state_info[gunno].state.dc_minusFuse;
-
+#if 0
                 s_sgcc_state_charging_count[gunno] = rt_tick_get();
 
                 sgcc_net_event_send(NET_SGCC_EVENT_HANDLE_CHARGEPILE, NET_SGCC_EVENT_TYPE_REQUEST, gunno, NET_SGCC_PREQ_EVENT_REPORT_STATE_DATA_CHARGING);
+#endif
             }
         }
 #else
@@ -4089,10 +4090,11 @@ static void sgcc_state_changed_check(uint8_t gunno)
                 evs_property_ac_works[gunno].workStatus = SGCC_WORKSTATE_CHARGINGING;
                 evs_property_ac_works[gunno].eLockStatus = s_sgcc_state_info[gunno].state.electlock;
                 evs_property_ac_works[gunno].outRelayStatus = s_sgcc_state_info[gunno].state.dck1;
-
+#if 0
                 s_sgcc_state_charging_count[gunno] = rt_tick_get();
 
                 sgcc_net_event_send(NET_SGCC_EVENT_HANDLE_CHARGEPILE, NET_SGCC_EVENT_TYPE_REQUEST, gunno, NET_SGCC_PREQ_EVENT_REPORT_STATE_DATA_CHARGING);
+#endif
             }
         }
 #endif /* NET_SGCC_PRO_USING_DC */
