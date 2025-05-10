@@ -29,7 +29,8 @@ extern "C" {
                                          [1.5.1 为打开电流比较，测试版本])
                                          [1.6.2 能佳测试版本(联网会断开)、绍兴临时版本]
                                          [1.6.3 能佳版本(修复断网问题)]
-                                         [1.6.8 /1.7.0 为不启用网络部分、去掉联网图标、屏幕二维码只显示桩号+枪号]*/
+                                         [1.6.8 /1.7.0 为不启用网络部分、去掉联网图标、屏幕二维码只显示桩号+枪号]
+                                         [1.7.3(单枪) 最后一次提交(增加厂商编码、注册码屏幕可输入，修改注册码后会清空三元组) 2025/05/06]*/
 
 #ifdef APP_USING_DOUBLEGUN
 
@@ -67,7 +68,7 @@ extern "C" {
 
 #define SOFTWARE_VERSION       1L
 #define SOFTWARE_SUBVERSION    9
-#define SOFTWARE_REVISION      5L  /** 02 */
+#define SOFTWARE_REVISION      7L  /** 01 */
 
 #else
 
