@@ -6005,6 +6005,8 @@ void ofsm_thread_entry(void *parameter)
 
         app_thread_monitor_process(rt_thread_self(), NULL, 0x00, 0x00);
 
+        thaisenDrvSetProtocolTestEnable(0);
+
         s_ofsm_info[thread_gunno].base.flag.is_reser_normal_started = APP_THA_ENUM_FALSE;
         s_ofsm_info[thread_gunno].base.flag.is_reser_timeout_started = APP_THA_ENUM_FALSE;
 

@@ -15,6 +15,29 @@
 #include <board.h>
 #include "stm32f4xx_hal.h"
 
+/*******************************协议一致性/互操作测试版本使能****************************************************/
+
+/* 功能说明:
+ *      thaisenDrvSetProtocolTestEnable:设置协议一致性/互操作测试版本使能状态
+ * 输入参数:   state   >0：使能   0：不使能
+ *         无
+ * 返回参数:
+ *         无
+ * 调用方法:
+ *          实时调用
+ */
+void thaisenDrvSetProtocolTestEnable(uint8_t state);
+
+/* 功能说明:
+ *      thaisenDrvIsEnableProtocolTest: 检查是否是否使能了协议一致性/互操作测试版本
+ * 输入参数:
+ *         无
+ * 返回参数:
+ *         1：使能   0：不使能
+ * 调用方法:
+ *          实时调用
+ */
+uint8_t thaisenDrvIsEnableProtocolTest(void);
 
 /*******************************系统函数****************************************************/
 /* 功能说明:
