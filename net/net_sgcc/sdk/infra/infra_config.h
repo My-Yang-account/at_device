@@ -3,7 +3,7 @@
 
 #define PLATFORM_HAS_MBEDTLS
 #define PLATFORM_HAS_STDINT
-#define PLATFORM_IS_DEBUG
+//#define PLATFORM_IS_DEBUG
 #define PLATFORM_HAS_DYNMEM
 #define INFRA_STRING
 #define INFRA_NET
@@ -35,7 +35,7 @@
 #define LOG_REPORT_TO_CLOUD
 #define DEVICE_MODEL_ENABLED
 #define HAL_KV
-#define SUPPORT_TLS
+//#define SUPPORT_TLS
 #define OTA_ENABLED
 
 #endif

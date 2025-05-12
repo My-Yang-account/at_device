@@ -748,7 +748,7 @@ static int callback_service_EVS_OTA_UPDATE(const char *request)
 
     net_get_ota_info()->state = NET_OTA_STATE_UPDATING;
 
-//    sgcc_set_ota_was_requested_flag();
+    sgcc_set_ota_was_requested_flag();
 
     extern int evs_linkkit_fota(unsigned char *buffer, int buffer_length);
     evs_linkkit_fota(sgcc_get_ota_buff(), sgcc_get_ota_blen());
