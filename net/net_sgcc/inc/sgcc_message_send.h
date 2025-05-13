@@ -189,6 +189,7 @@ typedef struct{
 
 uint8_t sgcc_is_recved_billing_rule(void);
 void sgcc_set_recv_billing_state(uint8_t state);
+uint8_t sgcc_is_recved_timesync(void);
 
 sgcc_socket_info_t* sgcc_get_socket_info(void);
 

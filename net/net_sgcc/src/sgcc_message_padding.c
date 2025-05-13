@@ -1722,6 +1722,9 @@ int8_t sgcc_message_pro_time_sync_request(void *data, uint8_t len)
     if(data_len > len){
         return -0x03;
     }
+    if(sgcc_is_recved_timesync() == NET_ENUM_TRUE){
+        return 0x00;
+    }
 
     struct tm *_tm = NULL;
     uint32_t timestamp;
