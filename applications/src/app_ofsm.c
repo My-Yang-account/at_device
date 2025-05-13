@@ -5428,6 +5428,7 @@ static void ofsm_finishing_fun(uint8_t gunno)
         return;
     }
     case CC1_4V:
+#if 0
         if(s_ofsm_info[gunno].base.flag.is_fault_stop == APP_THA_ENUM_TRUE){
             if(rfidr_query_swipe_state(gunno)){
                 rfidr_clear_swipe_state(gunno);
@@ -5445,6 +5446,7 @@ static void ofsm_finishing_fun(uint8_t gunno)
             }
             break;          /* 故障停必须要拔枪 */
         }
+#endif
         if(charge_state != APP_CHARGE_STATE_IDLE){
             break;                               /* 充电结束必须等待充电状态为空闲时才可响应拔枪动作，已与充电控制同步 */
         }
