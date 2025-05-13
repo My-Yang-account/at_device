@@ -164,6 +164,7 @@ int32_t app_thread_monitor_add(void *thread, void *para, uint32_t plen, uint32_t
     }
     if(count >= s_thread_moniotr.thread_num){
         if(s_thread_moniotr.thread_num >= APP_APPLICATION_THREAD_MAX){
+            rt_exit_critical();
             return -0x01;
         }
 
