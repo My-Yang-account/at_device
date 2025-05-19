@@ -3389,6 +3389,7 @@ static void ofsm_starting_fun(uint8_t gunno)
                 if(s_ofsm_info[gunno].base.flag.vin_is_authorized == APP_THA_ENUM_FALSE){
                     struct thaisenBMS_Charger_struct* bms = (struct thaisenBMS_Charger_struct*)(s_ofsm_info[gunno].base.bms_data);
                     s_thaisen_transaction[gunno].start_soc = bms->BCP.SOC;
+                    s_ofsm_info[gunno].base.current_soc = bms->BCP.SOC /10;
                     memcpy(s_ofsm_info[gunno].base.car_vin, bms->BRM.CarDiscern, sizeof(s_ofsm_info[gunno].base.car_vin));
                     memcpy(s_thaisen_transaction[gunno].car_vin, bms->BRM.CarDiscern, sizeof(bms->BRM.CarDiscern));
                     if(sys_vin_whitelists_query(bms->BRM.CarDiscern, sizeof(bms->BRM.CarDiscern)) >= 0x00){
@@ -3460,6 +3461,7 @@ static void ofsm_starting_fun(uint8_t gunno)
                 struct thaisenBMS_Charger_struct* bms = (struct thaisenBMS_Charger_struct*)(s_ofsm_info[gunno].base.bms_data);
                 memcpy(s_ofsm_info[gunno].base.car_vin, bms->BRM.CarDiscern, sizeof(s_ofsm_info[gunno].base.car_vin));
                 s_thaisen_transaction[gunno].start_soc = bms->BCP.SOC;
+                s_ofsm_info[gunno].base.current_soc = bms->BCP.SOC /10;
                 memcpy(s_thaisen_transaction[gunno].car_vin, bms->BRM.CarDiscern, sizeof(bms->BRM.CarDiscern));
             }
 
@@ -3537,6 +3539,8 @@ static void ofsm_starting_fun(uint8_t gunno)
                 app_nsal_event_occurded(gunno);
                 return;
             }
+
+            app_nsal_padding_charge_data(gunno);
 
             s_ofsm_info[gunno].base.flag.start_result = APP_THA_ENUM_TRUE;
             s_thaisen_transaction[gunno].boot_result = s_ofsm_info[gunno].base.flag.start_result;
@@ -5072,7 +5076,7 @@ static void ofsm_stoping_fun(uint8_t gunno)
             s_ofsm_info[gunno].base.service_fees_total = 0x00;
             s_ofsm_info[gunno].base.elect_fees_total = 0x00;
             if(s_ofsm_info[gunno].base.account_ballance_before > (s_ofsm_info[gunno].base.fees_total /100)){
-                s_ofsm_info[gunno].base.account_ballance_after = s_ofsm_info[gunno].base.account_ballance_before - s_ofsm_info[gunno].base.fees_total;
+                s_ofsm_info[gunno].base.account_ballance_after = s_ofsm_info[gunno].base.account_ballance_before - s_ofsm_info[gunno].base.fees_total /100;
             }
             s_thaisen_transaction[gunno].ammeter_stop = s_ofsm_info[gunno].base.current_elect;
             s_thaisen_transaction[gunno].total_elect = s_ofsm_info[gunno].base.elect_a;
