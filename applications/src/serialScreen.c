@@ -4570,13 +4570,13 @@ void SerialScreen_SetInputInfo(void)
 #ifdef SCREEN_USING_DOUBLE_GUN
         thaisenClearSysFaultCheckBit(thaisenRelayAc);
 #else
-        thaisenSetACRelayEnableState(0);
+        thaisenSetACRelayIoEnableState(thaisenAcRelayIoEn_Fan);
 #endif /* SCREEN_USING_DOUBLE_GUN */
     }else{
 #ifdef SCREEN_USING_DOUBLE_GUN
         thaisenSetSysFaultCheckBit(thaisenRelayAc);
 #else
-        thaisenSetACRelayEnableState(1);
+        thaisenSetACRelayIoEnableState(thaisenAcRelayIoEn_AcRelay);
 #endif /* SCREEN_USING_DOUBLE_GUN */
     }
     if(FALSE == LcdData.setData.supin_dc){
@@ -9279,7 +9279,10 @@ struct LCD_DATA_FIFO_TYPE *SerialScreen_Init(struct SerialScreenObj *cmd)
     if(LcdData.setData.supin_ac > TRUE)
         LcdData.setData.supin_ac = FALSE;
 
-    thaisenSetACRelayEnableState(LcdData.setData.supin_ac);
+    if(LcdData.setData.supin_ac)
+        thaisenSetACRelayIoEnableState(thaisenAcRelayIoEn_AcRelay);
+    else
+        thaisenSetACRelayIoEnableState(thaisenAcRelayIoEn_Fan);
 #else
         if(LcdData.setData.supin_ac > TRUE)
             LcdData.setData.supin_ac = TRUE;

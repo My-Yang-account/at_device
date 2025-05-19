@@ -414,6 +414,14 @@ uint8_t thaisenGetDCRelayBCloseStaus(void);
 void thaisenSetParaRelayCloseStaus(uint8_t sta);
 uint8_t thaisenGetParaRelayCloseStaus(void);
 
+
+typedef enum
+{
+    thaisenAcRelayIoEn_AcRelay,               //交流接触器控制IO作为:交流接触器控制使用
+    thaisenAcRelayIoEn_Fan,                   //交流接触器控制IO作为:风扇控制使用
+    thaisenAcRelayIoEn_Null,                  //交流接触器控制IO作为:不做任何使用
+    thaisenAcRelayIoEn_Size,                  //交流接触器控制IO作为:
+}thaisenAcRelayIoEn_enum;
 /* 功能说明:
  *      thaisenSetACRelayEnableState:设置交流接触器使能状态
  * 输入参数:  状态：0：不使能    其它：使能
@@ -423,10 +431,10 @@ uint8_t thaisenGetParaRelayCloseStaus(void);
  * 调用方法:
  *      反馈时调用
  */
-void thaisenSetACRelayEnableState(uint8_t state);
+void thaisenSetACRelayIoEnableState(thaisenAcRelayIoEn_enum en);
 
 /* 功能说明:
- *      thaisenGetACRelayEnableState:获取交流接触器使能状态
+ *      thaisenGetACRelayIoEnableState:获取交流接触器使能状态
  * 输入参数:
  *
  * 返回参数:    状态：0：不使能    1：使能
@@ -434,7 +442,8 @@ void thaisenSetACRelayEnableState(uint8_t state);
  * 调用方法:
  *      反馈时调用
  */
-uint8_t thaisenGetACRelayEnableState(void);
+thaisenAcRelayIoEn_enum thaisenGetACRelayIoEnableState(void);
+
 
 /*****************************************************************************************************/
 /*************************************辅助电源函数******************************************************/
