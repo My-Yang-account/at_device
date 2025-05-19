@@ -5258,6 +5258,11 @@ void SerialScreen_BtnModuleStartA(void)
     if(gunno < LCD_GUN_NUM){
         return;
     }
+
+    thaisen_relay_AC_on();                      /** 闭合 */
+    SerialScreen_SendIco(&SerialScreen, 0x4172, TRUE);
+    LcdData.setData.s_acRely = TRUE;
+
     LcdData.setData.s_moduleVol[LCD_GUN_1] = SerialScreen_GetPara_ValidValue(LcdData.setData.s_moduleVol[LCD_GUN_1],
             COMPULSION_SET_VOLTAGE_DEF, COMPULSION_SET_VOLTAGE_MIN, COMPULSION_SET_VOLTAGE_MAX);
     LcdData.setData.s_moduleCur[LCD_GUN_1] = SerialScreen_GetPara_ValidValue(LcdData.setData.s_moduleCur[LCD_GUN_1],
@@ -5280,6 +5285,11 @@ void SerialScreen_BtnModuleStartB(void)
     if(gunno < LCD_GUN_NUM){
         return;
     }
+
+    thaisen_relay_AC_on();                      /** 闭合 */
+    SerialScreen_SendIco(&SerialScreen, 0x4172, TRUE);
+    LcdData.setData.s_acRely = TRUE;
+
     LcdData.setData.s_moduleVol[LCD_GUN_2] = SerialScreen_GetPara_ValidValue(LcdData.setData.s_moduleVol[LCD_GUN_2],
             COMPULSION_SET_VOLTAGE_DEF, COMPULSION_SET_VOLTAGE_MIN, COMPULSION_SET_VOLTAGE_MAX);
     LcdData.setData.s_moduleCur[LCD_GUN_2] = SerialScreen_GetPara_ValidValue(LcdData.setData.s_moduleCur[LCD_GUN_2],
