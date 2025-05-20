@@ -4571,12 +4571,14 @@ void SerialScreen_SetInputInfo(void)
         thaisenClearSysFaultCheckBit(thaisenRelayAc);
 #else
         thaisenSetACRelayIoEnableState(thaisenAcRelayIoEn_Fan);
+        thaisenClearSysFaultCheckBit(thaisenRelayAc);
 #endif /* SCREEN_USING_DOUBLE_GUN */
     }else{
 #ifdef SCREEN_USING_DOUBLE_GUN
         thaisenSetSysFaultCheckBit(thaisenRelayAc);
 #else
         thaisenSetACRelayIoEnableState(thaisenAcRelayIoEn_AcRelay);
+        thaisenSetSysFaultCheckBit(thaisenRelayAc);
 #endif /* SCREEN_USING_DOUBLE_GUN */
     }
     if(FALSE == LcdData.setData.supin_dc){
@@ -7014,6 +7016,7 @@ void SerialScreen_BtnSelfCheckSet(void)
 
     rt_thread_mdelay(SCREEN_TEST_ITEM_INTERVAL);      /** 等待一定时长再进行下一个自检项 */
 
+    ret = SCREEN_RET_SUCCESS;
     memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
     thaisen_relay_AC_off();                     /** 断开 */
     SerialScreen_SendIco(&SerialScreen, 0x4172, FALSE);
@@ -7048,6 +7051,7 @@ void SerialScreen_BtnSelfCheckSet(void)
     }
     rt_thread_mdelay(SCREEN_TEST_ITEM_INTERVAL);      /** 等待一定时长再进行下一个自检项 */
 
+#ifdef SCREEN_USING_DOUBLE_GUN
     /*************************************************** 母联1 ***************************************************/
     ret = SCREEN_RET_SUCCESS;
     memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
@@ -7087,6 +7091,7 @@ void SerialScreen_BtnSelfCheckSet(void)
     }
     rt_thread_mdelay(SCREEN_TEST_ITEM_INTERVAL);      /** 等待一定时长再进行下一个自检项 */
 
+    ret = SCREEN_RET_SUCCESS;
     memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
     thaisen_relay_parallel_off_f();                     /** 断开 */
     thaisen_relay_parallel_off_z();
@@ -7123,6 +7128,7 @@ void SerialScreen_BtnSelfCheckSet(void)
         }
     }
     rt_thread_mdelay(SCREEN_TEST_ITEM_INTERVAL);      /** 等待一定时长再进行下一个自检项 */
+#endif /* SCREEN_USING_DOUBLE_GUN */
 
     /*************************************************** A枪风扇 ***************************************************/
     ret = SCREEN_RET_SUCCESS;
@@ -7167,6 +7173,7 @@ void SerialScreen_BtnSelfCheckSet(void)
 
     rt_thread_mdelay(SCREEN_TEST_ITEM_INTERVAL + SCREEN_TEST_ITEM_INTERVAL);      /** 等待一定时长再进行下一个自检项 */
 
+    ret = SCREEN_RET_SUCCESS;
     memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
     thaisen_fan_A_off();                     /** 断开 */
     SerialScreen_SendIco(&SerialScreen, 0x417A, FALSE);
@@ -7207,6 +7214,7 @@ void SerialScreen_BtnSelfCheckSet(void)
     }
     rt_thread_mdelay(SCREEN_TEST_ITEM_INTERVAL);      /** 等待一定时长再进行下一个自检项 */
 
+#ifdef SCREEN_USING_DOUBLE_GUN
     /*************************************************** B枪风扇 ***************************************************/
     ret = SCREEN_RET_SUCCESS;
     memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
@@ -7250,6 +7258,7 @@ void SerialScreen_BtnSelfCheckSet(void)
 
     rt_thread_mdelay(SCREEN_TEST_ITEM_INTERVAL + SCREEN_TEST_ITEM_INTERVAL);      /** 等待一定时长再进行下一个自检项 */
 
+    ret = SCREEN_RET_SUCCESS;
     memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
     thaisen_fan_B_off();                     /** 断开 */
     SerialScreen_SendIco(&SerialScreen, 0x517A, FALSE);
@@ -7289,6 +7298,7 @@ void SerialScreen_BtnSelfCheckSet(void)
 //        goto Check_end;
     }
     rt_thread_mdelay(SCREEN_TEST_ITEM_INTERVAL);      /** 等待一定时长再进行下一个自检项 */
+#endif /* SCREEN_USING_DOUBLE_GUN */
 
     /*************************************************** 母联2 ***************************************************/
     ret = SCREEN_RET_SUCCESS;
@@ -7329,6 +7339,7 @@ void SerialScreen_BtnSelfCheckSet(void)
         }
         rt_thread_mdelay(SCREEN_TEST_ITEM_INTERVAL);      /** 等待一定时长再进行下一个自检项 */
 
+        ret = SCREEN_RET_SUCCESS;
         memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
         thaisen_relay_k7k8_off();                           /** 断开 */
         SerialScreen_SendIco(&SerialScreen, 0x5186, FALSE);
@@ -7405,6 +7416,7 @@ void SerialScreen_BtnSelfCheckSet(void)
         }
         rt_thread_mdelay(SCREEN_TEST_ITEM_INTERVAL);      /** 等待一定时长再进行下一个自检项 */
 
+        ret = SCREEN_RET_SUCCESS;
         memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
         thaisen_relay_k9k10_off();                           /** 断开 */
         SerialScreen_SendIco(&SerialScreen, 0x518A, FALSE);
@@ -7480,6 +7492,7 @@ void SerialScreen_BtnSelfCheckSet(void)
     }
     rt_thread_mdelay(SCREEN_TEST_ITEM_INTERVAL);      /** 等待一定时长再进行下一个自检项 */
 
+    ret = SCREEN_RET_SUCCESS;
     memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
     thaisen_relay_off_A();                           /** 断开 */
     SerialScreen_SendIco(&SerialScreen, 0x4174, FALSE);
@@ -7516,6 +7529,7 @@ void SerialScreen_BtnSelfCheckSet(void)
     }
     rt_thread_mdelay(SCREEN_TEST_ITEM_INTERVAL);      /** 等待一定时长再进行下一个自检项 */
 
+#ifdef SCREEN_USING_DOUBLE_GUN
     /*************************************************** B枪直流继电器B ***************************************************/
     ret = SCREEN_RET_SUCCESS;
     memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
@@ -7554,6 +7568,7 @@ void SerialScreen_BtnSelfCheckSet(void)
     }
     rt_thread_mdelay(SCREEN_TEST_ITEM_INTERVAL);      /** 等待一定时长再进行下一个自检项 */
 
+    ret = SCREEN_RET_SUCCESS;
     memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
     thaisen_relay_off_B();                           /** 断开 */
     SerialScreen_SendIco(&SerialScreen, 0x5174, FALSE);
@@ -7589,6 +7604,7 @@ void SerialScreen_BtnSelfCheckSet(void)
         }
     }
     rt_thread_mdelay(SCREEN_TEST_ITEM_INTERVAL);      /** 等待一定时长再进行下一个自检项 */
+#endif /* SCREEN_USING_DOUBLE_GUN */
 
     /*************************************************** A枪电子锁A ***************************************************/
     ret = SCREEN_RET_SUCCESS;
@@ -7596,8 +7612,8 @@ void SerialScreen_BtnSelfCheckSet(void)
     thaisenElectLockA_debug();                  /** 上锁 */
     SerialScreen_SendIco(&SerialScreen, 0x4178, TRUE);
     rt_thread_mdelay(SCREEN_WAIT_FB_TIME);      /** 等待状态 */
-    fb[0] = !thaisenGetElectLockStaA();
-    if(fb[0] != TRUE){
+    fb[0] = thaisenGetElectLockStaA();
+    if(fb[0] != LcdData.setData.neg_elcok){
         ret = SCREEN_RET_FAIL;
         thaisen_selfcheck_debug_info(THA_DEBUG_ITEM_ELOCK_A_ON, language, 0, LcdData.setData.selfCheck_Info[index], sizeof(LcdData.setData.selfCheck_Info[index]));
     }else{
@@ -7626,12 +7642,13 @@ void SerialScreen_BtnSelfCheckSet(void)
     }
     rt_thread_mdelay(SCREEN_TEST_ITEM_INTERVAL);      /** 等待一定时长再进行下一个自检项 */
 
+    ret = SCREEN_RET_SUCCESS;
     memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
     thaisenElectUnlockA_debug();                /** 解锁 */
     SerialScreen_SendIco(&SerialScreen, 0x4178, FALSE);
     rt_thread_mdelay(SCREEN_WAIT_FB_TIME);      /** 等待状态 */
     fb[0] = !thaisenGetElectLockStaA();
-    if(fb[0] != FALSE){
+    if(fb[0] != LcdData.setData.neg_elcok){
         ret = SCREEN_RET_FAIL;
         thaisen_selfcheck_debug_info(THA_DEBUG_ITEM_ELOCK_A_OFF, language, 0, LcdData.setData.selfCheck_Info[index], sizeof(LcdData.setData.selfCheck_Info[index]));
     }else{
@@ -7660,14 +7677,15 @@ void SerialScreen_BtnSelfCheckSet(void)
     }
     rt_thread_mdelay(SCREEN_TEST_ITEM_INTERVAL);      /** 等待一定时长再进行下一个自检项 */
 
+#ifdef SCREEN_USING_DOUBLE_GUN
     /*************************************************** B枪电子锁B ***************************************************/
     ret = SCREEN_RET_SUCCESS;
     memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
     thaisenElectLockB_debug();                  /** 上锁 */
     SerialScreen_SendIco(&SerialScreen, 0x5178, TRUE);
     rt_thread_mdelay(SCREEN_WAIT_FB_TIME);      /** 等待状态 */
-    fb[0] = !thaisenGetElectLockStaB();
-    if(fb[0] != TRUE){
+    fb[0] = thaisenGetElectLockStaB();
+    if(fb[0] != LcdData.setData.neg_elcok){
         ret = SCREEN_RET_FAIL;
         thaisen_selfcheck_debug_info(THA_DEBUG_ITEM_ELOCK_B_ON, language, 0, LcdData.setData.selfCheck_Info[index], sizeof(LcdData.setData.selfCheck_Info[index]));
     }else{
@@ -7696,12 +7714,13 @@ void SerialScreen_BtnSelfCheckSet(void)
     }
     rt_thread_mdelay(SCREEN_TEST_ITEM_INTERVAL);      /** 等待一定时长再进行下一个自检项 */
 
+    ret = SCREEN_RET_SUCCESS;
     memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
     thaisenElectUnlockB_debug();                /** 解锁 */
     SerialScreen_SendIco(&SerialScreen, 0x5178, FALSE);
     rt_thread_mdelay(SCREEN_WAIT_FB_TIME);      /** 等待状态 */
     fb[0] = !thaisenGetElectLockStaB();
-    if(fb[0] != FALSE){
+    if(fb[0] != LcdData.setData.neg_elcok){
         ret = SCREEN_RET_FAIL;
         thaisen_selfcheck_debug_info(THA_DEBUG_ITEM_ELOCK_B_OFF, language, 0, LcdData.setData.selfCheck_Info[index], sizeof(LcdData.setData.selfCheck_Info[index]));
     }else{
@@ -7729,7 +7748,7 @@ void SerialScreen_BtnSelfCheckSet(void)
         }
     }
     rt_thread_mdelay(SCREEN_TEST_ITEM_INTERVAL);      /** 等待一定时长再进行下一个自检项 */
-
+#endif /* SCREEN_USING_DOUBLE_GUN */
     /*************************************************** A枪12V辅源A ***************************************************/
     ret = SCREEN_RET_SUCCESS;
     memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
@@ -7772,6 +7791,7 @@ void SerialScreen_BtnSelfCheckSet(void)
     }
     rt_thread_mdelay(SCREEN_TEST_ITEM_INTERVAL);      /** 等待一定时长再进行下一个自检项 */
 
+    ret = SCREEN_RET_SUCCESS;
     memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
     thaisenAux_A_Disable();                     /** 断开 */
     SerialScreen_SendIco(&SerialScreen, 0x41B4, FALSE);
@@ -7812,6 +7832,7 @@ void SerialScreen_BtnSelfCheckSet(void)
     }
     rt_thread_mdelay(SCREEN_TEST_ITEM_INTERVAL);      /** 等待一定时长再进行下一个自检项 */
 
+#ifdef SCREEN_USING_DOUBLE_GUN
     /*************************************************** B枪12V辅源B ***************************************************/
     ret = SCREEN_RET_SUCCESS;
     memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
@@ -7854,6 +7875,7 @@ void SerialScreen_BtnSelfCheckSet(void)
     }
     rt_thread_mdelay(SCREEN_TEST_ITEM_INTERVAL);      /** 等待一定时长再进行下一个自检项 */
 
+    ret = SCREEN_RET_SUCCESS;
     memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
     thaisenAux_B_Disable();                     /** 断开 */
     SerialScreen_SendIco(&SerialScreen, 0x51B4, FALSE);
@@ -7893,6 +7915,7 @@ void SerialScreen_BtnSelfCheckSet(void)
 //        goto Check_end;
     }
     rt_thread_mdelay(SCREEN_TEST_ITEM_INTERVAL);      /** 等待一定时长再进行下一个自检项 */
+#endif /* SCREEN_USING_DOUBLE_GUN */
 
     /*************************************************** A枪24V辅源A ***************************************************/
     ret = SCREEN_RET_SUCCESS;
@@ -7936,6 +7959,7 @@ void SerialScreen_BtnSelfCheckSet(void)
     }
     rt_thread_mdelay(SCREEN_TEST_ITEM_INTERVAL);      /** 等待一定时长再进行下一个自检项 */
 
+    ret = SCREEN_RET_SUCCESS;
     memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
     thaisenAux_A_24V_Disable();                     /** 断开 */
     SerialScreen_SendIco(&SerialScreen, 0x6702, FALSE);
@@ -7976,6 +8000,7 @@ void SerialScreen_BtnSelfCheckSet(void)
     }
     rt_thread_mdelay(SCREEN_TEST_ITEM_INTERVAL);      /** 等待一定时长再进行下一个自检项 */
 
+#ifdef SCREEN_USING_DOUBLE_GUN
     /*************************************************** B枪24V辅源B ***************************************************/
     ret = SCREEN_RET_SUCCESS;
     memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
@@ -8018,6 +8043,7 @@ void SerialScreen_BtnSelfCheckSet(void)
     }
     rt_thread_mdelay(SCREEN_TEST_ITEM_INTERVAL);      /** 等待一定时长再进行下一个自检项 */
 
+    ret = SCREEN_RET_SUCCESS;
     memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
     thaisenAux_B_24V_Disable();                     /** 断开 */
     SerialScreen_SendIco(&SerialScreen, 0x6782, FALSE);
@@ -8056,6 +8082,7 @@ void SerialScreen_BtnSelfCheckSet(void)
     if(ret == SCREEN_RET_FAIL){
 //        goto Check_end;
     }
+#endif /* SCREEN_USING_DOUBLE_GUN */
 Check_end:
 
     rt_thread_mdelay(SCREEN_TEST_ITEM_INTERVAL);      /** 等待一定时长再进行下一个自检项 */
@@ -9279,10 +9306,13 @@ struct LCD_DATA_FIFO_TYPE *SerialScreen_Init(struct SerialScreenObj *cmd)
     if(LcdData.setData.supin_ac > TRUE)
         LcdData.setData.supin_ac = FALSE;
 
-    if(LcdData.setData.supin_ac)
+    if(LcdData.setData.supin_ac){
         thaisenSetACRelayIoEnableState(thaisenAcRelayIoEn_AcRelay);
-    else
+        thaisenSetSysFaultCheckBit(thaisenRelayAc);
+    }else{
         thaisenSetACRelayIoEnableState(thaisenAcRelayIoEn_Fan);
+        thaisenClearSysFaultCheckBit(thaisenRelayAc);
+    }
 #else
         if(LcdData.setData.supin_ac > TRUE)
             LcdData.setData.supin_ac = TRUE;
