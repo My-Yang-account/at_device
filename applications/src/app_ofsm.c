@@ -5692,6 +5692,12 @@ static void ofsm_faulting_fun(uint8_t gunno)
 
             rfidr_clear_swipe_state(gunno);
             thaisen_set_trigger_event(THAISEN_TRIG_EVENT_PAY_COMPLETE, 30, APP_THA_ENUM_TRUE, gunno);
+            if(s_ofsm_info[gunno].base.flag.is_charge_complete == APP_THA_ENUM_TRUE){
+                s_ofsm_info[gunno].base.flag.is_pay_complete = APP_THA_ENUM_TRUE;
+
+                memset(s_ofsm_info[gunno].base.card_uid, 0x00, sizeof(s_ofsm_info[gunno].base.card_uid));
+                memset(s_ofsm_info[gunno].base.card_number, 0x00, sizeof(s_ofsm_info[gunno].base.card_number));
+            }
         }
     }
 #endif /* APP_USING_OFFLINE_BILLING */
@@ -6010,11 +6016,10 @@ void ofsm_thread_entry(void *parameter)
         s_ofsm_info[thread_gunno].base.ota_state = app_nsal_get_ota_state();
 
         app_thread_monitor_process(rt_thread_self(), NULL, 0x00, 0x00);
-
-        thaisenDrvSetProtocolTestEnable(0);
-
         s_ofsm_info[thread_gunno].base.flag.is_reser_normal_started = APP_THA_ENUM_FALSE;
         s_ofsm_info[thread_gunno].base.flag.is_reser_timeout_started = APP_THA_ENUM_FALSE;
+
+        thaisenDrvSetProtocolTestEnable(0);
 
         switch (s_ofsm_info[thread_gunno].base.ota_state) {
         case APP_OTA_STATE_NULL:
