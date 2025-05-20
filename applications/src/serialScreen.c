@@ -7612,8 +7612,8 @@ void SerialScreen_BtnSelfCheckSet(void)
     thaisenElectLockA_debug();                  /** 上锁 */
     SerialScreen_SendIco(&SerialScreen, 0x4178, TRUE);
     rt_thread_mdelay(SCREEN_WAIT_FB_TIME);      /** 等待状态 */
-    fb[0] = thaisenGetElectLockStaA();
-    if(fb[0] != LcdData.setData.neg_elcok){
+    fb[0] = !thaisenGetElectLockStaA();
+    if(fb[0] != TRUE){
         ret = SCREEN_RET_FAIL;
         thaisen_selfcheck_debug_info(THA_DEBUG_ITEM_ELOCK_A_ON, language, 0, LcdData.setData.selfCheck_Info[index], sizeof(LcdData.setData.selfCheck_Info[index]));
     }else{
@@ -7648,7 +7648,7 @@ void SerialScreen_BtnSelfCheckSet(void)
     SerialScreen_SendIco(&SerialScreen, 0x4178, FALSE);
     rt_thread_mdelay(SCREEN_WAIT_FB_TIME);      /** 等待状态 */
     fb[0] = !thaisenGetElectLockStaA();
-    if(fb[0] != LcdData.setData.neg_elcok){
+    if(fb[0] != FALSE){
         ret = SCREEN_RET_FAIL;
         thaisen_selfcheck_debug_info(THA_DEBUG_ITEM_ELOCK_A_OFF, language, 0, LcdData.setData.selfCheck_Info[index], sizeof(LcdData.setData.selfCheck_Info[index]));
     }else{
@@ -7684,8 +7684,8 @@ void SerialScreen_BtnSelfCheckSet(void)
     thaisenElectLockB_debug();                  /** 上锁 */
     SerialScreen_SendIco(&SerialScreen, 0x5178, TRUE);
     rt_thread_mdelay(SCREEN_WAIT_FB_TIME);      /** 等待状态 */
-    fb[0] = thaisenGetElectLockStaB();
-    if(fb[0] != LcdData.setData.neg_elcok){
+    fb[0] = !thaisenGetElectLockStaB();
+    if(fb[0] != TRUE){
         ret = SCREEN_RET_FAIL;
         thaisen_selfcheck_debug_info(THA_DEBUG_ITEM_ELOCK_B_ON, language, 0, LcdData.setData.selfCheck_Info[index], sizeof(LcdData.setData.selfCheck_Info[index]));
     }else{
@@ -7720,7 +7720,7 @@ void SerialScreen_BtnSelfCheckSet(void)
     SerialScreen_SendIco(&SerialScreen, 0x5178, FALSE);
     rt_thread_mdelay(SCREEN_WAIT_FB_TIME);      /** 等待状态 */
     fb[0] = !thaisenGetElectLockStaB();
-    if(fb[0] != LcdData.setData.neg_elcok){
+    if(fb[0] != FALSE){
         ret = SCREEN_RET_FAIL;
         thaisen_selfcheck_debug_info(THA_DEBUG_ITEM_ELOCK_B_OFF, language, 0, LcdData.setData.selfCheck_Info[index], sizeof(LcdData.setData.selfCheck_Info[index]));
     }else{
