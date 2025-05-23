@@ -2204,7 +2204,7 @@ static void ofsm_readying_fun(uint8_t gunno)
                     thaisen_clear_reservation_mode_flag(gunno);
                 }
                 localtime_r(&t_base, &tmp);
-                if((tmp.tm_year + 1900) >= 2025){
+                if(((tmp.tm_year + 1900) >= 2025) || (s_ofsm_info[gunno].base.run_mode == APP_RUN_MODE_OFFLINE)){
                     /** 屏幕预约-超过预约时间15分钟内还是可以启动的 */
                     if(thaisen_get_mode_parameter(gunno) >= (tmp.tm_hour *3600 + tmp.tm_min *60)){
                         s_ofsm_info[gunno].base.reservation_time_remain = (thaisen_get_mode_parameter(gunno) - (tmp.tm_hour *3600 + tmp.tm_min *60));
@@ -2328,7 +2328,7 @@ static void ofsm_reservation_fun(uint8_t gunno)
                 thaisen_clear_reservation_mode_flag(gunno);
             }
             localtime_r(&t_base, &tmp);
-            if((tmp.tm_year + 1900) >= 2025){
+            if(((tmp.tm_year + 1900) >= 2025) || (s_ofsm_info[gunno].base.run_mode == APP_RUN_MODE_OFFLINE)){
                 s_ofsm_info[gunno].base.reservation_time_base = t_base;
                 /** 屏幕预约-超过预约时间15分钟内还是可以启动的 */
                 if(thaisen_get_mode_parameter(gunno) >= (tmp.tm_hour *3600 + tmp.tm_min *60)){
