@@ -1433,7 +1433,11 @@ static void ofsm_start_info_padding_public(uint8_t gunno)
     s_ofsm_info[gunno].base.flag.permit_judge_complete = APP_THA_ENUM_FALSE;
     s_ofsm_info[gunno].base.flag.start_result = APP_THA_ENUM_FALSE;
     s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_FALSE;
-    s_ofsm_info[gunno].base.flag.paracharge_is_identified = APP_THA_ENUM_FALSE;
+    if(s_ofsm_info[gunno].base.charge_way != APP_CHARGE_WAY_PARACHARGE_CLOUD){
+        s_ofsm_info[gunno].base.flag.paracharge_is_identified = APP_THA_ENUM_FALSE;
+    }else{
+        s_ofsm_info[gunno].base.flag.paracharge_is_identified = APP_THA_ENUM_TRUE;
+    }
     s_ofsm_info[gunno].base.voltage_a = 0x00;
     s_ofsm_info[gunno].base.current_a = 0x00;
     s_ofsm_info[gunno].base.power_a = 0x00;
@@ -2706,6 +2710,24 @@ static void ofsm_starting_fun(uint8_t gunno)
                         s_thaisen_transaction[gunno].ammeter_start = s_ofsm_info[gunno].base.start_elect;
                         s_thaisen_transaction[gunno].ammeter_stop = s_thaisen_transaction[gunno].ammeter_start;
 
+                        memset(s_ofsm_info[deputy_gunno].base.transaction_number, 0x00, sizeof(s_ofsm_info[deputy_gunno].base.transaction_number));
+                        memcpy(s_ofsm_info[deputy_gunno].base.transaction_number, s_ofsm_info[gunno].base.transaction_number, \
+                                sizeof(s_ofsm_info[gunno].base.transaction_number));
+
+                        memset(s_thaisen_transaction[deputy_gunno].serial_number, 0x00, sizeof(s_thaisen_transaction[deputy_gunno].serial_number));
+                        memcpy(s_thaisen_transaction[deputy_gunno].serial_number, s_thaisen_transaction[gunno].serial_number, \
+                                sizeof(s_thaisen_transaction[gunno].serial_number));
+
+#ifdef APP_INCLUDE_SGCC_PROTOCOL
+                        memset(s_ofsm_info[deputy_gunno].base.device_transaction_number, 0x00, sizeof(s_ofsm_info[deputy_gunno].base.device_transaction_number));
+                        memcpy(s_ofsm_info[deputy_gunno].base.device_transaction_number, s_ofsm_info[gunno].base.device_transaction_number, \
+                                sizeof(s_ofsm_info[gunno].base.device_transaction_number));
+
+                        memset(s_thaisen_transaction[deputy_gunno].device_serial_number, 0x00, sizeof(s_thaisen_transaction[deputy_gunno].device_serial_number));
+                        memcpy(s_thaisen_transaction[deputy_gunno].device_serial_number, s_thaisen_transaction[gunno].device_serial_number, \
+                                sizeof(s_thaisen_transaction[gunno].device_serial_number));
+#endif /* APP_INCLUDE_SGCC_PROTOCOL */
+                        app_nsal_init_charge_data(deputy_gunno);
                         /** 此处不再次保存订单，由时间同步修正是统一再次保存，目前程序，启动时都会校时一次，如果不校时则需要在此处保存一次 */
                         break;
                     }
