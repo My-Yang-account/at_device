@@ -2597,7 +2597,7 @@ static void SerialScreen_RealTime_InfoGet(void)
     u8 buf[4];
 
     if(++LcdAssistantData.RefrenshPeriod > 1000 /100){   //线程运行时基10ms， 每1s更新一次数据
-        u8 valid_len = sizeof(LcdData.setData.Help_Number), *data = NULL, compare_len = 0;
+        u8 valid_len = sizeof(LcdData.setData.Help_Number), *data = NULL, compare_len = 0, i = 0;
         struct card_data_info *card = NULL;
 
         LcdData.setData.SIM_Strength = thaisen_app_get_signal_strength();
@@ -2640,11 +2640,19 @@ static void SerialScreen_RealTime_InfoGet(void)
             if(valid_len >= compare_len){
                 valid_len = (compare_len - 1);
             }
-            compare_len = valid_len > strlen((char*)LcdData.setData.UserPasswd) ? valid_len : strlen((char*)LcdData.setData.UserPasswd);
 
-            if(memcmp(data, LcdData.setData.UserPasswd, compare_len)){
-                memset(LcdData.setData.UserPasswd, 0, sizeof(LcdData.setData.UserPasswd));
-                memcpy(LcdData.setData.UserPasswd, data, valid_len);
+            compare_len = valid_len > strlen((char*)LcdData.setData.UserPasswd) ? valid_len : strlen((char*)LcdData.setData.UserPasswd);
+            for(i = 0; i < compare_len; i++){
+                if((data[i] < 0x20) || (data[i] > 0x7E)){
+                    break;
+                }
+            }
+
+            if(i >= compare_len){
+                if(memcmp(data, LcdData.setData.UserPasswd, compare_len)){
+                    memset(LcdData.setData.UserPasswd, 0, sizeof(LcdData.setData.UserPasswd));
+                    memcpy(LcdData.setData.UserPasswd, data, valid_len);
+                }
             }
         }
     }
