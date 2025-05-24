@@ -2641,14 +2641,14 @@ static void SerialScreen_RealTime_InfoGet(void)
                 valid_len = (compare_len - 1);
             }
 
-            compare_len = valid_len > strlen((char*)LcdData.setData.UserPasswd) ? valid_len : strlen((char*)LcdData.setData.UserPasswd);
-            for(i = 0; i < compare_len; i++){
+            for(i = 0; i < valid_len; i++){
                 if((data[i] < 0x20) || (data[i] > 0x7E)){
                     break;
                 }
             }
+            compare_len = valid_len > strlen((char*)LcdData.setData.UserPasswd) ? valid_len : strlen((char*)LcdData.setData.UserPasswd);
 
-            if(i >= compare_len){
+            if(i >= valid_len){
                 if(memcmp(data, LcdData.setData.UserPasswd, compare_len)){
                     memset(LcdData.setData.UserPasswd, 0, sizeof(LcdData.setData.UserPasswd));
                     memcpy(LcdData.setData.UserPasswd, data, valid_len);
@@ -10043,40 +10043,64 @@ void SerialScreen_GetKeyProcess(struct SerialScreenObj *cmd)
 					struct tm pt;
 					//getLocalCurTime_r(&pt);
 					//sprintf(tbuf,"%02d%02d",pt.tm_hour,pt.tm_min);
-
-					sSCREEN_DEBUGPROMSG("input %s==%d\r\n",LcdData.KeyInput,str_len(LcdData.KeyInput));
-                    if((str_ncmp(LcdData.KeyInput, LcdData.setData.UserPasswd, strlen(LcdData.setData.UserPasswd))==0)
-                            ||((str_ncmp((u8 *)pPageIndex->item[i].valaddr, LcdData.KeyInput, pPageIndex->item[i].reflash)==0)&&(str_len(LcdData.KeyInput)>5)))
-					{
-                        if(LcdAssistantData.SeveralGunFlag[LcdData.gunIndex].IsPWStartAuthen == TRUE){
-                            SerialScreen_PWStartCharge(LcdData.gunIndex);
-                        }else{
-                            if(LcdAssistantData.Flag.IsLongLiSerialScreen){
-                                LcdData.CurrentPage = LCD_PAGE_SYS_INFO;
-                            }else{
-                                LcdData.CurrentPage = pPageIndex->item[i].vallen;
-                            }
+                    for(u32 i=0;(i<LcdData.KeyInputLen)&&(i<sizeof(LcdData.KeyInput));i++)
+                    {
+                        if(LcdData.KeyInput[i]==0xff){
+                            LcdData.KeyInput[i] = 0;          //如果输入的是字符串，则帧的最后2字节是0xFF
                         }
-						 LcdData.menuflg = 1;
-						 LcdAssistantData.SeveralGunFlag[LcdData.gunIndex].IsPWStartAuthen = FALSE;
+                    }
+
+					if(strlen((char*)LcdData.KeyInput) == strlen((char*)LcdData.setData.UserPasswd)){  /* +2是因为后面有两个0xFF */
+	                    if((str_ncmp(LcdData.KeyInput, LcdData.setData.UserPasswd, strlen(LcdData.setData.UserPasswd))==0)
+	                            ||((str_ncmp((u8 *)pPageIndex->item[i].valaddr, LcdData.KeyInput, pPageIndex->item[i].reflash)==0)&&(str_len(LcdData.KeyInput)>5)))
+	                    {
+	                        if(LcdAssistantData.SeveralGunFlag[LcdData.gunIndex].IsPWStartAuthen == TRUE){
+	                            SerialScreen_PWStartCharge(LcdData.gunIndex);
+	                        }else{
+	                            if(LcdAssistantData.Flag.IsLongLiSerialScreen){
+	                                LcdData.CurrentPage = LCD_PAGE_SYS_INFO;
+	                            }else{
+	                                LcdData.CurrentPage = pPageIndex->item[i].vallen;
+	                            }
+	                        }
+	                         LcdData.menuflg = 1;
+	                         LcdAssistantData.SeveralGunFlag[LcdData.gunIndex].IsPWStartAuthen = FALSE;
+	                    }
+	                    else
+	                    {
+	                        LcdData.CurrentPage = LCD_PAGE_PASWD_ERR;
+	                        LcdData.menuflg = 1;
+
+	                        #if 0
+	                        if((str_ncmp(LcdData.KeyInput, LcdData.setData.UserPasswd, 5)==0)
+	                                ||((str_ncmp((u8 *)pPageIndex->item[i].valaddr, LcdData.KeyInput, pPageIndex->item[i].reflash)==0)&&(str_len(LcdData.KeyInput)>5)))
+	                        {
+	                             LcdData.CurrentPage = LCD_PAGE_MENU_COM_5;
+	                             LcdData.menuflg = 1;
+	                        }
+	                        else
+	                        #endif
+	                            //passwd err
+	                            SerialScreen_PageNeedRefresh(LcdData.gunIndex);
+	                    }
 					}
 					else
 					{
-						LcdData.CurrentPage = LCD_PAGE_PASWD_ERR;
-						LcdData.menuflg = 1;
+                        LcdData.CurrentPage = LCD_PAGE_PASWD_ERR;
+                        LcdData.menuflg = 1;
 
-						#if 0
-						if((str_ncmp(LcdData.KeyInput, LcdData.setData.UserPasswd, 5)==0)
-								||((str_ncmp((u8 *)pPageIndex->item[i].valaddr, LcdData.KeyInput, pPageIndex->item[i].reflash)==0)&&(str_len(LcdData.KeyInput)>5)))
-						{
-							 LcdData.CurrentPage = LCD_PAGE_MENU_COM_5;
-							 LcdData.menuflg = 1;
-						}
-						else
-						#endif
-							//passwd err
-							SerialScreen_PageNeedRefresh(LcdData.gunIndex);
-					}
+                        #if 0
+                        if((str_ncmp(LcdData.KeyInput, LcdData.setData.UserPasswd, 5)==0)
+                                ||((str_ncmp((u8 *)pPageIndex->item[i].valaddr, LcdData.KeyInput, pPageIndex->item[i].reflash)==0)&&(str_len(LcdData.KeyInput)>5)))
+                        {
+                             LcdData.CurrentPage = LCD_PAGE_MENU_COM_5;
+                             LcdData.menuflg = 1;
+                        }
+                        else
+                        #endif
+                            //passwd err
+                            SerialScreen_PageNeedRefresh(LcdData.gunIndex);
+                    }
 					sSCREEN_DEBUGPROMSG("input next page=%d\r\n",LcdData.CurrentPage);
 
 					break;
