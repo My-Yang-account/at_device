@@ -134,7 +134,7 @@
 //#define CP_PLATFORM_USING_XXCD                          /* 平台使用星星充电 */
 //#define CP_PLATFORM_USING_TLD                           /* 平台使用特来电 */
 //#define CP_PLATFORM_USING_SGCC                          /* 平台使用国网 */
-#define CP_PLATFORM_USING_QBJ                          /* 平台使用柒捌玖 */
+//#define CP_PLATFORM_USING_QBJ                          /* 平台使用柒捌玖 */
 
 #define CP_USING_OFFLINE_BILLING                        /* 包含离线计费 */
 
@@ -213,6 +213,9 @@
 #define CP_QRCODE_PREFIX_DEFAULT                  "http://www.ykccn.com/MPAGE/index.html?pNum="     /* 云快充二维码前缀 */
 #endif
 
+/** 屏幕密码默认 */
+/**------------------------------------------------------------*/
+#define CP_SCREEN_PASSWORD_DEFAULT                "0909"                                            /* 默认屏幕密码 */
 /** 桩号默认 */
 /**------------------------------------------------------------*/
 #define CP_PILE_NUMBER_DEFAULT                    "TX000000000001"                                  /* 默认桩号 */

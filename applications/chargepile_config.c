@@ -1857,8 +1857,8 @@ int32_t chargepile_config_init(void)
                     init_flag = SYSTEM_INIT_KEY;
                     mw_norflash_write(SYSTEM_CONFIG_INIT_FLAG_ADDRESS, (uint8_t *)&init_flag, sizeof(init_flag));
                     s_storage_chip_entry = 0x00;
-                    return 0x00;
                 }
+                return 0x00;
             }
         }
         s_config_info_address = SYSTEM_CONFIG_MAIN_ADDRESS;
@@ -2418,6 +2418,16 @@ int32_t chargepile_check_config(void)
         memcpy(&s_chargepile_config_info.config_info.register_code, CP_QRCODE_PARA_VENDOR_CODE, valid_len);
 #endif
     }
+
+    valid_len = sizeof(s_chargepile_config_info.config_info.screen_password);
+    valid_len = valid_len > strlen((char*)s_chargepile_config_info.config_info.screen_password) ? \
+            strlen((char*)s_chargepile_config_info.config_info.screen_password) : valid_len;
+
+    if(sys_string_contain_ctrl_char((const char*)&s_chargepile_config_info.config_info.screen_password, valid_len)){
+        memset(s_chargepile_config_info.config_info.screen_password, 0x00, sizeof(s_chargepile_config_info.config_info.screen_password));
+        memcpy(&s_chargepile_config_info.config_info.screen_password, CP_SCREEN_PASSWORD_DEFAULT, strlen(CP_SCREEN_PASSWORD_DEFAULT));
+    }
+
     for(uint8_t count = 0x00; count < 0x02; count++){
         if(sys_string_contain_ctrl_char((const char*)s_chargepile_config_info.config_info.meter_address[count], (CP_INFO_METER_ADDRESS_LEN_MAX - 0x01))){
             memset(s_chargepile_config_info.config_info.meter_address[count], 0x00, CP_INFO_METER_ADDRESS_LEN_MAX);
