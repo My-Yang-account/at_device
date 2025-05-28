@@ -1974,6 +1974,21 @@ int8_t ykc_chargepile_request_padding_vin_authority(uint8_t gunno)
 }
 
 /*************************************************
+ * 函数名      ykc_padding_transaction_record_updata_time
+ * 功能          更新账单交易时间（防止断定订单在未联网对时情况下时间有误）
+ * **********************************************/
+void ykc_padding_transaction_record_updata_time(uint8_t gunno)
+{
+    if(gunno >= NET_SYSTEM_GUN_NUMBER){
+        return;
+    }
+
+    System_BaseData *base = (System_BaseData*)(s_ykc_handle->get_base_data(gunno));
+    g_ykc_preq_transaction_records[gunno].body.transaction_date = ykc_get_cp56time2a_from_timestamp(base->current_time);
+}
+
+
+/*************************************************
  * 函数名      ykc_chargepile_request_padding_transaction_record
  * 功能          充电桩请求报文填报：交易记录信息
  * **********************************************/
