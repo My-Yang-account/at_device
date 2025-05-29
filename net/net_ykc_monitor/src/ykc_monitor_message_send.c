@@ -1272,28 +1272,34 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
             }
             /***** [交易记录] *****/
             if(ykc_monitor_net_event_receive(NET_YKC_MONITOR_EVENT_HANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, gunno,
-                    (NET_YKC_MONITOR_EVENT_OPTION_OR |NET_YKC_MONITOR_EVENT_OPTION_CLEAR), NET_YKC_MONITOR_PREQ_EVENT_TRANSACTION_RECORD, NULL) > 0){
+                    NET_YKC_MONITOR_EVENT_OPTION_OR, NET_YKC_MONITOR_PREQ_EVENT_TRANSACTION_RECORD, NULL) > 0){
 
-                ykc_monitor_set_message_send_state(gunno, NET_YKC_MONITOR_SEND_STATE_ONGOING, NET_YKC_MONITOR_PREQ_EVENT_TRANSACTION_RECORD);
-                g_ykc_monitor_preq_transaction_records[gunno].head.sequence = s_ykc_monitor_message_serial_number[gunno]++;
-                ykc_monitor_message_send_port(NETYKC_MONITOR_PREQCMD_TRANSACTION_RECORD, s_ykc_monitor_socket_info.fd, &g_ykc_monitor_preq_transaction_records[gunno],
-                        sizeof(g_ykc_monitor_preq_transaction_records[gunno]), NULL);
-                ykc_monitor_set_message_wait_response_state(gunno, NET_YKC_MONITOR_PREQ_EVENT_TRANSACTION_RECORD);
-                ykc_monitor_set_message_send_state(gunno, NET_YKC_MONITOR_SEND_STATE_COMPLETE, NET_YKC_MONITOR_PREQ_EVENT_TRANSACTION_RECORD);
+                if(s_ykc_monitor_assistant_info.flag.is_time_sync){
+                    ykc_monitor_net_event_receive(NET_YKC_MONITOR_EVENT_HANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, gunno,
+                                        (NET_YKC_MONITOR_EVENT_OPTION_OR |NET_YKC_MONITOR_EVENT_OPTION_CLEAR), NET_YKC_MONITOR_PREQ_EVENT_TRANSACTION_RECORD, NULL);
 
-                ykc_monitor_set_transaction_verify_state(gunno, 0x00);
-                if(memcmp(g_ykc_monitor_preq_transaction_records[gunno].body.serial_number, s_ykc_monitor_current_transaction_number[gunno], NET_YKC_MONITOR_SERIAL_NUMBER_LENGTH_DEFAULT)){
-                    s_ykc_monitor_same_transaction_report_count[gunno] = 0x00;
-                    memcpy(s_ykc_monitor_current_transaction_number[gunno], g_ykc_monitor_preq_transaction_records[gunno].body.serial_number, NET_YKC_MONITOR_SERIAL_NUMBER_LENGTH_DEFAULT);
-                }else{
-                    if(++s_ykc_monitor_same_transaction_report_count[gunno] > NET_YKC_MONITOR_SAME_TRANSATION_REPORT_COUNT_MAX){
-                        ykc_monitor_set_transaction_verify_state(gunno, 0x01);
+                    ykc_monitor_set_message_send_state(gunno, NET_YKC_MONITOR_SEND_STATE_ONGOING, NET_YKC_MONITOR_PREQ_EVENT_TRANSACTION_RECORD);
+                    ykc_monitor_transaction_record_time_updata(gunno);
+                    g_ykc_monitor_preq_transaction_records[gunno].head.sequence = s_ykc_monitor_message_serial_number[gunno]++;
+                    ykc_monitor_message_send_port(NETYKC_MONITOR_PREQCMD_TRANSACTION_RECORD, s_ykc_monitor_socket_info.fd, &g_ykc_monitor_preq_transaction_records[gunno],
+                            sizeof(g_ykc_monitor_preq_transaction_records[gunno]), NULL);
+                    ykc_monitor_set_message_wait_response_state(gunno, NET_YKC_MONITOR_PREQ_EVENT_TRANSACTION_RECORD);
+                    ykc_monitor_set_message_send_state(gunno, NET_YKC_MONITOR_SEND_STATE_COMPLETE, NET_YKC_MONITOR_PREQ_EVENT_TRANSACTION_RECORD);
+
+                    ykc_monitor_set_transaction_verify_state(gunno, 0x00);
+                    if(memcmp(g_ykc_monitor_preq_transaction_records[gunno].body.serial_number, s_ykc_monitor_current_transaction_number[gunno], NET_YKC_MONITOR_SERIAL_NUMBER_LENGTH_DEFAULT)){
                         s_ykc_monitor_same_transaction_report_count[gunno] = 0x00;
-                        ykc_monitor_clear_message_wait_response_state(gunno, NET_YKC_MONITOR_PREQ_EVENT_TRANSACTION_RECORD);
+                        memcpy(s_ykc_monitor_current_transaction_number[gunno], g_ykc_monitor_preq_transaction_records[gunno].body.serial_number, NET_YKC_MONITOR_SERIAL_NUMBER_LENGTH_DEFAULT);
+                    }else{
+                        if(++s_ykc_monitor_same_transaction_report_count[gunno] > NET_YKC_MONITOR_SAME_TRANSATION_REPORT_COUNT_MAX){
+                            ykc_monitor_set_transaction_verify_state(gunno, 0x01);
+                            s_ykc_monitor_same_transaction_report_count[gunno] = 0x00;
+                            ykc_monitor_clear_message_wait_response_state(gunno, NET_YKC_MONITOR_PREQ_EVENT_TRANSACTION_RECORD);
+                        }
                     }
-                }
 
-                rt_thread_mdelay(250);
+                    rt_thread_mdelay(250);
+                }
             }
             /***** [地锁数据上送] *****/
             if(ykc_monitor_net_event_receive(NET_YKC_MONITOR_EVENT_HANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, gunno,
