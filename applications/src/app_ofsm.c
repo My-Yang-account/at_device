@@ -1364,7 +1364,7 @@ static void ofsm_start_info_padding_public(uint8_t gunno)
         return;
     }
 
-    uint8_t deputy_gunno = APP_SYSTEM_GUNNOA;
+    uint8_t deputy_gunno = APP_SYSTEM_GUNNOA, valid_len = 0x00;
 
 #ifdef APP_INCLUDE_YKC17_PROTOCOL
     thaisen_ammeter_encry_scmd(gunno, THAISEN_AMMETER_ENCRY_TYPE_START);
@@ -1402,22 +1402,22 @@ static void ofsm_start_info_padding_public(uint8_t gunno)
             }
             s_thaisen_transaction[gunno].charge_way = APP_CHARGE_WAY_PARACHARGE_LOCAL;
 
-            memset(s_ofsm_info[deputy_gunno].base.transaction_number, 0x00, sizeof(s_ofsm_info[deputy_gunno].base.transaction_number));
-            memcpy(s_ofsm_info[deputy_gunno].base.transaction_number, s_ofsm_info[gunno].base.transaction_number, \
-                    sizeof(s_ofsm_info[gunno].base.transaction_number));
+            app_nsal_create_local_transaction_number(deputy_gunno, &(s_ofsm_info[deputy_gunno].base.transaction_number),  \
+                    sizeof(s_ofsm_info[deputy_gunno].base.transaction_number));
 
+            valid_len = sizeof(s_ofsm_info[deputy_gunno].base.transaction_number);
+            valid_len = valid_len > sizeof(s_thaisen_transaction[deputy_gunno].serial_number) ? sizeof(s_thaisen_transaction[deputy_gunno].serial_number) : valid_len;
             memset(s_thaisen_transaction[deputy_gunno].serial_number, 0x00, sizeof(s_thaisen_transaction[deputy_gunno].serial_number));
-            memcpy(s_thaisen_transaction[deputy_gunno].serial_number, s_thaisen_transaction[gunno].serial_number, \
-                    sizeof(s_thaisen_transaction[gunno].serial_number));
+            memcpy(s_thaisen_transaction[deputy_gunno].serial_number, s_ofsm_info[deputy_gunno].base.transaction_number, valid_len);
 
 #ifdef APP_INCLUDE_SGCC_PROTOCOL
             memset(s_ofsm_info[deputy_gunno].base.device_transaction_number, 0x00, sizeof(s_ofsm_info[deputy_gunno].base.device_transaction_number));
-            memcpy(s_ofsm_info[deputy_gunno].base.device_transaction_number, s_ofsm_info[gunno].base.device_transaction_number, \
-                    sizeof(s_ofsm_info[gunno].base.device_transaction_number));
+            memcpy(s_ofsm_info[deputy_gunno].base.device_transaction_number, s_ofsm_info[deputy_gunno].base.device_transaction_number, \
+                    sizeof(s_ofsm_info[deputy_gunno].base.device_transaction_number));
 
             memset(s_thaisen_transaction[deputy_gunno].device_serial_number, 0x00, sizeof(s_thaisen_transaction[deputy_gunno].device_serial_number));
-            memcpy(s_thaisen_transaction[deputy_gunno].device_serial_number, s_thaisen_transaction[gunno].device_serial_number, \
-                    sizeof(s_thaisen_transaction[gunno].device_serial_number));
+            memcpy(s_thaisen_transaction[deputy_gunno].device_serial_number, s_thaisen_transaction[deputy_gunno].device_serial_number, \
+                    sizeof(s_thaisen_transaction[deputy_gunno].device_serial_number));
 #endif /* APP_INCLUDE_SGCC_PROTOCOL */
         }else{
             s_thaisen_transaction[gunno].charge_way = APP_CHARGE_WAY_SINGLEGUN;
@@ -2673,7 +2673,7 @@ static void ofsm_starting_fun(uint8_t gunno)
                 ((*sys_read_config_item_content(CONFIG_ITEM_SUPORT_PARALLEL, 0x00)) == APP_THA_ENUM_TRUE) &&  \
                 ((*sys_read_config_item_content(CONFIG_ITEM_DEVICE_TYPE, 0x00)) != SYSTEM_FUNCTION_DYNAMIC_SWITCH)){
             mw_can_info data;
-            uint8_t rentry = 0x00, deputy_gunno = APP_SYSTEM_GUNNOA, deputy_gun_enum = THAISEN_BMS_A_CAN_RECV;
+            uint8_t rentry = 0x00, deputy_gunno = APP_SYSTEM_GUNNOA, deputy_gun_enum = THAISEN_BMS_A_CAN_RECV, valid_len = 0x00;
 
             if(gunno == APP_SYSTEM_GUNNOA){
                 deputy_gunno = APP_SYSTEM_GUNNOA + 0x01;
@@ -2710,23 +2710,23 @@ static void ofsm_starting_fun(uint8_t gunno)
                         s_thaisen_transaction[gunno].ammeter_start = s_ofsm_info[gunno].base.start_elect;
                         s_thaisen_transaction[gunno].ammeter_stop = s_thaisen_transaction[gunno].ammeter_start;
 
-                        memset(s_ofsm_info[deputy_gunno].base.transaction_number, 0x00, sizeof(s_ofsm_info[deputy_gunno].base.transaction_number));
-                        memcpy(s_ofsm_info[deputy_gunno].base.transaction_number, s_ofsm_info[gunno].base.transaction_number, \
-                                sizeof(s_ofsm_info[gunno].base.transaction_number));
+                        app_nsal_create_local_transaction_number(deputy_gunno, &(s_ofsm_info[deputy_gunno].base.transaction_number),  \
+                                sizeof(s_ofsm_info[deputy_gunno].base.transaction_number));
 
+                        valid_len = sizeof(s_ofsm_info[deputy_gunno].base.transaction_number);
+                        valid_len = valid_len > sizeof(s_thaisen_transaction[deputy_gunno].serial_number) ? sizeof(s_thaisen_transaction[deputy_gunno].serial_number) : valid_len;
                         memset(s_thaisen_transaction[deputy_gunno].serial_number, 0x00, sizeof(s_thaisen_transaction[deputy_gunno].serial_number));
-                        memcpy(s_thaisen_transaction[deputy_gunno].serial_number, s_thaisen_transaction[gunno].serial_number, \
-                                sizeof(s_thaisen_transaction[gunno].serial_number));
+                        memcpy(s_thaisen_transaction[deputy_gunno].serial_number, s_ofsm_info[deputy_gunno].base.transaction_number, valid_len);
 
-#ifdef APP_INCLUDE_SGCC_PROTOCOL
+            #ifdef APP_INCLUDE_SGCC_PROTOCOL
                         memset(s_ofsm_info[deputy_gunno].base.device_transaction_number, 0x00, sizeof(s_ofsm_info[deputy_gunno].base.device_transaction_number));
-                        memcpy(s_ofsm_info[deputy_gunno].base.device_transaction_number, s_ofsm_info[gunno].base.device_transaction_number, \
-                                sizeof(s_ofsm_info[gunno].base.device_transaction_number));
+                        memcpy(s_ofsm_info[deputy_gunno].base.device_transaction_number, s_ofsm_info[deputy_gunno].base.device_transaction_number, \
+                                sizeof(s_ofsm_info[deputy_gunno].base.device_transaction_number));
 
                         memset(s_thaisen_transaction[deputy_gunno].device_serial_number, 0x00, sizeof(s_thaisen_transaction[deputy_gunno].device_serial_number));
-                        memcpy(s_thaisen_transaction[deputy_gunno].device_serial_number, s_thaisen_transaction[gunno].device_serial_number, \
-                                sizeof(s_thaisen_transaction[gunno].device_serial_number));
-#endif /* APP_INCLUDE_SGCC_PROTOCOL */
+                        memcpy(s_thaisen_transaction[deputy_gunno].device_serial_number, s_thaisen_transaction[deputy_gunno].device_serial_number, \
+                                sizeof(s_thaisen_transaction[deputy_gunno].device_serial_number));
+            #endif /* APP_INCLUDE_SGCC_PROTOCOL */
                         app_nsal_init_charge_data(deputy_gunno);
                         /** 此处不再次保存订单，由时间同步修正是统一再次保存，目前程序，启动时都会校时一次，如果不校时则需要在此处保存一次 */
                         break;
