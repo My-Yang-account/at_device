@@ -5025,6 +5025,18 @@ static void ofsm_stoping_fun(uint8_t gunno)
         memset(s_ofsm_info[gunno].base.car_vin, 0x00, sizeof(s_ofsm_info[gunno].base.car_vin));
         memset(s_ofsm_info[gunno].base.user_number, 0x00, sizeof(s_ofsm_info[gunno].base.user_number));
 
+        if(s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL){
+            uint8_t deputy_gun = APP_SYSTEM_GUNNOA;
+            if(deputy_gun == s_ofsm_info[gunno].base.main_gunno){
+                deputy_gun = (APP_SYSTEM_GUNNOA + 0x01);
+            }
+            memset(s_ofsm_info[deputy_gun].base.transaction_number, 0x00, sizeof(s_ofsm_info[deputy_gun].base.transaction_number));
+            memset(s_ofsm_info[deputy_gun].base.car_vin, 0x00, sizeof(s_ofsm_info[deputy_gun].base.car_vin));
+            memset(s_ofsm_info[deputy_gun].base.user_number, 0x00, sizeof(s_ofsm_info[deputy_gun].base.user_number));
+
+            app_nsal_init_charge_data(deputy_gun);
+        }
+
         app_nsal_init_charge_data(gunno);
 
         rt_thread_mdelay(1000);  /* 错峰上报订单 */
