@@ -419,6 +419,7 @@ void app_get_fault_chinese(uint32_t code, uint8_t *olen, uint8_t *buf, uint8_t i
  *        ilen      buf  的长度
  * 返回
  *******************************************/
+
 void app_get_charge_stopway_chinese(uint32_t code, uint8_t *olen, uint8_t *buf, uint8_t ilen)
 {
     uint8_t is_matched = 0x00;
@@ -1508,6 +1509,208 @@ void app_get_mode_info(uint8_t gunno, uint8_t language, uint8_t mode, uint32_t p
         break;
     default:
         break;
+    }
+}
+
+/********************************************
+ * 函数名      app_get_module_fault_info
+ * 功能          获取模块故障信息
+ * 参数          gunno     枪号
+ *      language   语言
+ *      addr       模块地址
+ *      fault_code 故障码
+ *      buf        用于保存显示信息
+ *      ilen       缓存长度
+ * 返回
+ *******************************************/
+void app_get_module_fault_info(uint8_t gunno, uint8_t language, uint8_t addr, uint16_t fault_code, uint8_t *buf, uint8_t ilen)
+{
+#define INOVERVOLT_INDEX         (1 <<0)            /* 输入过压 */
+#define INUNDERVOLT_INDEX        (1 <<1)            /* 输入欠压 */
+#define OUTOVERVOLT_INDEX        (1 <<2)            /* 输出过压 */
+#define OUTUNDERVOLT_INDEX       (1 <<3)            /* 输出欠压 */
+#define SAMEID_INDEX             (1 <<4)            /* 相同ID */
+#define MODULEFAULT_INDEX        (1 <<5)            /* 模块故障 */
+#define OVERCURR_INDEX           (1 <<6)            /* 过流 */
+#define OVERTEMP_INDEX           (1 <<7)            /* 过温 */
+#define FAN_INDEX                (1 <<8)            /* 风扇 */
+
+#define FAULT_MASK               0x1FF              /* 有效故障掩码 */
+
+#define FAULT_SHOW_NUM_MAX       0x02               /* 同时显示故障的个数 */
+
+    if((buf == NULL) || (ilen == 0x00)){
+        return;
+    }
+    uint8_t used_len = strlen((char*)buf), used_count = 0x00, is_multiple = 0x20;  /** 是否有多个故障(用于添加分隔符“,”) */
+
+    fault_code &= FAULT_MASK;
+    if(fault_code){
+        if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+            if(ilen <= (strlen("addr:") + 0x02 + used_len))
+                return;
+            sprintf(((char*)buf + used_len), "%s%02X", "addr:", addr);
+        }else{
+            if(ilen <= (strlen("地址:") + 0x02 + used_len))
+                return;
+            sprintf(((char*)buf + used_len), "%s%02X", "地址:", addr);
+        }
+        used_len = strlen((char*)buf);
+    }else{
+        return;
+    }
+
+    if(fault_code &INOVERVOLT_INDEX){
+//        if(used_count >= FAULT_SHOW_NUM_MAX)
+//            return;
+        if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+            if(ilen <= (strlen("in OverVolt") + 0x01 + used_len))
+                return;
+            sprintf(((char*)buf + used_len), "%c%s", is_multiple, "in OverVolt");
+        }else{
+            if(ilen <= (strlen("输入过压") + 0x01 + used_len))
+                return;
+            sprintf(((char*)buf + used_len), "%c%s", is_multiple, "输入过压");
+        }
+        is_multiple = ',';
+        used_len = strlen((char*)buf);
+        used_count++;
+    }
+
+    if(fault_code &INUNDERVOLT_INDEX){
+//        if(used_count >= FAULT_SHOW_NUM_MAX)
+//            return;
+        if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+            if(ilen <= (strlen("In UnderVolt") + 0x01 + used_len))
+                return;
+            sprintf(((char*)buf + used_len), "%c%s", is_multiple, "In UnderVolt");
+        }else{
+            if(ilen <= (strlen("输入欠压") + 0x01 + used_len))
+                return;
+            sprintf(((char*)buf + used_len), "%c%s", is_multiple, "输入欠压");
+        }
+        is_multiple = ',';
+        used_len = strlen((char*)buf);
+        used_count++;
+    }
+
+    if(fault_code &OUTOVERVOLT_INDEX){
+        if(used_count >= FAULT_SHOW_NUM_MAX)
+            return;
+        if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+            if(ilen <= (strlen("Out OverVolt") + 0x01 + used_len))
+                return;
+            sprintf(((char*)buf + used_len), "%c%s", is_multiple, "Out OverVolt");
+        }else{
+            if(ilen <= (strlen("输出过压") + 0x01 + used_len))
+                return;
+            sprintf(((char*)buf + used_len), "%c%s", is_multiple, "输出过压");
+        }
+        is_multiple = ',';
+        used_len = strlen((char*)buf);
+        used_count++;
+    }
+
+    if(fault_code &OUTUNDERVOLT_INDEX){
+        if(used_count >= FAULT_SHOW_NUM_MAX)
+            return;
+        if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+            if(ilen <= (strlen("Out UnderVolt") + 0x01 + used_len))
+                return;
+            sprintf(((char*)buf + used_len), "%c%s", is_multiple, "Out UnderVolt");
+        }else{
+            if(ilen <= (strlen("输出欠压") + 0x01 + used_len))
+                return;
+            sprintf(((char*)buf + used_len), "%c%s", is_multiple, "输出欠压");
+        }
+        is_multiple = ',';
+        used_len = strlen((char*)buf);
+        used_count++;
+    }
+
+    if(fault_code &SAMEID_INDEX){
+        if(used_count >= FAULT_SHOW_NUM_MAX)
+            return;
+        if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+            if(ilen <= (strlen("SameID") + 0x01 + used_len))
+                return;
+            sprintf(((char*)buf + used_len), "%c%s", is_multiple, "SameID");
+        }else{
+            if(ilen <= (strlen("同地址") + 0x01 + used_len))
+                return;
+            sprintf(((char*)buf + used_len), "%c%s", is_multiple, "同地址");
+        }
+        is_multiple = ',';
+        used_len = strlen((char*)buf);
+        used_count++;
+    }
+
+    if(fault_code &MODULEFAULT_INDEX){
+        if(used_count >= FAULT_SHOW_NUM_MAX)
+            return;
+        if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+            if(ilen <= (strlen("Fault/Offline") + 0x01 + used_len))
+                return;
+            sprintf(((char*)buf + used_len), "%c%s", is_multiple, "Fault/Offline");
+        }else{
+            if(ilen <= (strlen("故障或离线") + 0x01 + used_len))
+                return;
+            sprintf(((char*)buf + used_len), "%c%s", is_multiple, "故障或离线");
+        }
+        is_multiple = ',';
+        used_len = strlen((char*)buf);
+        used_count++;
+    }
+
+    if(fault_code &OVERCURR_INDEX){
+        if(used_count >= FAULT_SHOW_NUM_MAX)
+            return;
+        if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+            if(ilen <= (strlen("in OverCurr") + 0x01 + used_len))
+                return;
+            sprintf(((char*)buf + used_len), "%c%s", is_multiple, "in OverCurr");
+        }else{
+            if(ilen <= (strlen("过流") + 0x01 + used_len))
+                return;
+            sprintf(((char*)buf + used_len), "%c%s", is_multiple, "过流");
+        }
+        is_multiple = ',';
+        used_len = strlen((char*)buf);
+        used_count++;
+    }
+
+    if(fault_code &OVERTEMP_INDEX){
+        if(used_count >= FAULT_SHOW_NUM_MAX)
+            return;
+        if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+            if(ilen <= (strlen("in OverTemp") + 0x01 + used_len))
+                return;
+            sprintf(((char*)buf + used_len), "%c%s", is_multiple, "in OverTemp");
+        }else{
+            if(ilen <= (strlen("过温") + 0x01 + used_len))
+                return;
+            sprintf(((char*)buf + used_len), "%c%s", is_multiple, "过温");
+        }
+        is_multiple = ',';
+        used_len = strlen((char*)buf);
+        used_count++;
+    }
+
+    if(fault_code &FAN_INDEX){
+        if(used_count >= FAULT_SHOW_NUM_MAX)
+            return;
+        if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+            if(ilen <= (strlen("Fan") + 0x01 + used_len))
+                return;
+            sprintf(((char*)buf + used_len), "%c%s", is_multiple, "Fan");
+        }else{
+            if(ilen <= (strlen("风扇") + 0x01 + used_len))
+                return;
+            sprintf(((char*)buf + used_len), "%c%s", is_multiple, "风扇");
+        }
+        is_multiple = ',';
+        used_len = strlen((char*)buf);
+        used_count++;
     }
 }
 

@@ -741,6 +741,12 @@ struct offline_billing_card_info{
 };
 struct offline_billing_card_info *thaisen_get_offline_billing_card_info(uint8_t gunno);
 
+/**
+ * 获取模块故障显示信息
+ **/
+void thaisen_get_module_fault_info(uint8_t gunno, uint8_t language, uint8_t addr, uint16_t code, uint8_t *buf, uint8_t ilen);
+
+
 enum thaisen_notice{
     THAISEN_NOTICE_PILE_INFO,                                     /** 信息修改提醒：桩信息 */
     THAISEN_NOTICE_REGISTER_CODE,                                 /** 信息修改提醒：注册码 */

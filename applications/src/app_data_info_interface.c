@@ -1863,6 +1863,22 @@ struct offline_billing_card_info *thaisen_get_offline_billing_card_info(uint8_t 
     return &s_offline_billing_card_info;
 }
 
+/********************************************
+ * 函数名      thaisen_get_module_fault_info
+ * 功能          获取模块故障显示信息
+ * 参数          gunno     枪号
+ *      language  语言
+ *      addr      模块地址
+ *      code      故障码
+ *      buf       用于保存显示信息
+ *      ilen      缓存长度
+ * 返回
+ *******************************************/
+void thaisen_get_module_fault_info(uint8_t gunno, uint8_t language, uint8_t addr, uint16_t code, uint8_t *buf, uint8_t ilen)
+{
+    app_get_module_fault_info(gunno, language, addr, code, buf, ilen);
+}
+
 /**************************************************************************
  * 函数名      thaisen_info_modify_notice
  * 功能         信息修改提醒

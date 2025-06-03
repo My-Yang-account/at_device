@@ -804,6 +804,7 @@ struct LCD_DISPLAY_VALUE_TYPE{
 //	u8 RxData;
     /***********************Module state***************************/
     u8 ModuleStateString[16][30];  // 模块状态
+    u8 ModuleFaultInfoShow[LCD_GUN_NUM][2][30];
 
 	struct LCD_DISPLAY_RUNDATA_TYPE runData;
 	struct LCD_DISPLAY_SETDATA_TYPE setData;
@@ -5397,8 +5398,10 @@ static void SerialScreen_BtnModuleStateShow(int port)
     if(thaisenGetChargGunRunType() == thaisenDeviceType_average){
         extern void *sys_get_module_config_info(void);
         group_max = ((struct thasienModuleSetStruct *)(sys_get_module_config_info()))->moduleGroupNum;
+        memset(LcdData.ModuleFaultInfoShow, 0, sizeof(LcdData.ModuleFaultInfoShow));
     }else{
         group_max = 1;
+        memset(LcdData.ModuleFaultInfoShow[port], 0, sizeof(LcdData.ModuleFaultInfoShow[port]));
     }
 
     for(u8 group = 0; group < group_max; group++){
@@ -5414,7 +5417,7 @@ static void SerialScreen_BtnModuleStateShow(int port)
             u8 used_len = 0, remain_len = 0;
             warnning = 0;
             memset(LcdData.ModuleStateString[count + base], '\0', sizeof(LcdData.ModuleStateString[count + base]));
-            sprintf((char*)(LcdData.ModuleStateString[count + base] + used_len), "%2X", voltcurr[count].addr);
+            sprintf((char*)(LcdData.ModuleStateString[count + base] + used_len), "%02X", voltcurr[count].addr);
             used_len += 4;
             if(used_len > strlen((char*)LcdData.ModuleStateString[count + base])){    /* 未使用字节填充空格字符 */
                 remain_len = used_len - strlen((char*)LcdData.ModuleStateString[count + base]);
@@ -5454,6 +5457,36 @@ static void SerialScreen_BtnModuleStateShow(int port)
                     warnning |= FAN_INDEX;
                 }
             }
+
+            if(thaisenGetChargGunRunType() == thaisenDeviceType_average){
+                u8 i, j;
+                for(i = 0; i < (sizeof(LcdData.ModuleFaultInfoShow) /sizeof(LcdData.ModuleFaultInfoShow[port])); i++){
+                    for(j = 0; j < (sizeof(LcdData.ModuleFaultInfoShow[port]) /sizeof(LcdData.ModuleFaultInfoShow[port][0])); j++){
+                        if(strlen((char*)LcdData.ModuleFaultInfoShow[i][j]) <= 0){
+                            uint16_t code = fault[count].state.fault.fault_val;
+
+                            code |= (fault[count].state.warn.warn_val <<0x08);
+                            thaisen_get_module_fault_info(port, THA_DEBUG_LANGUAGE_CHINESE, voltcurr[count].addr, code, \
+                                    LcdData.ModuleFaultInfoShow[i][j], sizeof(LcdData.ModuleFaultInfoShow[i][j]));
+                            break;
+                        }
+                    }
+                    if(j < (sizeof(LcdData.ModuleFaultInfoShow[port]) /sizeof(LcdData.ModuleFaultInfoShow[port][0])))
+                        break;
+                }
+            }else{
+                for(u8 i = 0; i < (sizeof(LcdData.ModuleFaultInfoShow[port]) /sizeof(LcdData.ModuleFaultInfoShow[port][0])); i++){
+                    if(strlen((char*)LcdData.ModuleFaultInfoShow[port][i]) <= 0){
+                        uint16_t code = fault[count].state.fault.fault_val;
+
+                        code |= (fault[count].state.warn.warn_val <<0x08);
+                        thaisen_get_module_fault_info(port, THA_DEBUG_LANGUAGE_CHINESE, voltcurr[count].addr, code, \
+                                LcdData.ModuleFaultInfoShow[port][i], sizeof(LcdData.ModuleFaultInfoShow[port][i]));
+                        break;
+                    }
+                }
+            }
+
             sprintf((char*)(LcdData.ModuleStateString[count + base] + used_len), "%2d", fault[count].state.state.bit.BootState);
             used_len += 4;
             if(used_len > strlen((char*)LcdData.ModuleStateString[count + base])){    /* 未使用字节填充空格字符 */
@@ -12128,6 +12161,9 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_STATE_MODULE, NULL, "modulestate", LCD_TextType, LCD_NoReflash, 0x52D0, pstr_type, sizeof(LcdData.ModuleStateString[13]), (void *)LcdData.ModuleStateString[13]);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_STATE_MODULE, NULL, "modulestate", LCD_TextType, LCD_NoReflash, 0x52E0, pstr_type, sizeof(LcdData.ModuleStateString[14]), (void *)LcdData.ModuleStateString[14]);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_STATE_MODULE, NULL, "modulestate", LCD_TextType, LCD_NoReflash, 0x52F0, pstr_type, sizeof(LcdData.ModuleStateString[15]), (void *)LcdData.ModuleStateString[15]);
+
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_STATE_MODULE, NULL, "moduleFault", LCD_TextType, LCD_NoReflash, 0x6AC1, pstr_type, sizeof(LcdData.ModuleFaultInfoShow[LCD_GUN_1][0]), (void *)LcdData.ModuleFaultInfoShow[LCD_GUN_1][0]);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_STATE_MODULE, NULL, "moduleFault", LCD_TextType, LCD_NoReflash, 0x6AE1, pstr_type, sizeof(LcdData.ModuleFaultInfoShow[LCD_GUN_1][1]), (void *)LcdData.ModuleFaultInfoShow[LCD_GUN_1][1]);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_STATE_MODULE, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
 
     /** 40.出厂调试-B枪模块信息 [page:50] */
@@ -12152,6 +12188,9 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_STATE_MODULE_B, NULL, "modulestate", LCD_TextType, LCD_NoReflash, 0x52D0, pstr_type, sizeof(LcdData.ModuleStateString[13]), (void *)LcdData.ModuleStateString[13]);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_STATE_MODULE_B, NULL, "modulestate", LCD_TextType, LCD_NoReflash, 0x52E0, pstr_type, sizeof(LcdData.ModuleStateString[14]), (void *)LcdData.ModuleStateString[14]);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_STATE_MODULE_B, NULL, "modulestate", LCD_TextType, LCD_NoReflash, 0x52F0, pstr_type, sizeof(LcdData.ModuleStateString[15]), (void *)LcdData.ModuleStateString[15]);
+
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_STATE_MODULE_B, NULL, "moduleFault", LCD_TextType, LCD_NoReflash, 0x6B01, pstr_type, sizeof(LcdData.ModuleFaultInfoShow[LCD_GUN_2][0]), (void *)LcdData.ModuleFaultInfoShow[LCD_GUN_2][0]);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_STATE_MODULE_B, NULL, "moduleFault", LCD_TextType, LCD_NoReflash, 0x6B21, pstr_type, sizeof(LcdData.ModuleFaultInfoShow[LCD_GUN_2][1]), (void *)LcdData.ModuleFaultInfoShow[LCD_GUN_2][1]);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_STATE_MODULE_B, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
 
     /** 41.系统信息-系统 [page:54] */

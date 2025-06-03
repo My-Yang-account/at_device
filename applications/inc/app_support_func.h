@@ -72,4 +72,17 @@ void app_selfcheck_debug_info(uint8_t item, uint8_t language, uint8_t ret, uint8
  *******************************************/
 void app_get_mode_info(uint8_t gunno, uint8_t language, uint8_t mode, uint32_t parameter, uint8_t *buf, uint8_t ilen);
 
+/********************************************
+ * 函数名      app_get_module_fault_info
+ * 功能          获取模块故障信息
+ * 参数          gunno     枪号
+ *      language   语言
+ *      addr       模块地址
+ *      fault_code 故障码
+ *      buf        用于保存显示信息
+ *      ilen       缓存长度
+ * 返回
+ *******************************************/
+void app_get_module_fault_info(uint8_t gunno, uint8_t language, uint8_t addr, uint16_t fault_code, uint8_t *buf, uint8_t ilen);
+
 #endif /* APPLICATIONS_INC_APP_SUPPORT_FUNC_H_ */
