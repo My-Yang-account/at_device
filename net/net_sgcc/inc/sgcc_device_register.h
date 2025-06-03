@@ -14,7 +14,7 @@
 
 #ifdef NET_PACK_USING_SGCC
 
-#define NET_SGCC_STORAGE_INIT_FLAG                              0x12345678  /* 平台数据存储标志 */
+#define NET_SGCC_STORAGE_INIT_FLAG                              0x12345679  /* 平台数据存储标志 */
 
 /** start charge result */
 #define NET_SGCC_START_RESULT_SUCCESS                           10          /* 启动充电结果：成功 */
@@ -352,6 +352,9 @@ typedef struct{
     uint8_t dev_state;                                  /* 设备状态 */
 
     evs_service_issue_feeModel billing_rule;            /* 计费规则 */
+
+    uint16_t charge_sn[2];                              /* 充电序号 */
+    uint8_t operation_sn[2];                            /* 操作序号 */
 }sgcc_storage_struct;
 
 #pragma pack()
