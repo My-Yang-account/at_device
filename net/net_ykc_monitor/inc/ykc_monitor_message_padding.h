@@ -109,6 +109,7 @@ int8_t ykc_monitor_padding_charging_info(uint8_t gunno);
 int8_t ykc_monitor_message_padding_charging_info(uint8_t gunno, uint8_t *buf, uint16_t ilen, uint16_t *olen);
 int8_t ykc_monitor_message_padding_charge_finish_info(uint8_t gunno, uint8_t *buf, uint16_t ilen, uint16_t *olen);
 int8_t ykc_monitor_response_padding_function_switch(uint8_t *buf, uint16_t ilen, uint16_t *olen);
+int8_t ykc_monitor_response_padding_lock_module(uint8_t *buf, uint16_t ilen, uint16_t *olen);
 int8_t ykc_monitor_response_padding_info_para_confirm(uint8_t *buf, uint16_t ilen, uint16_t *olen);
 int8_t ykc_monitor_response_padding_modify_dev_info(uint8_t *buf, uint16_t ilen, uint16_t *olen);
 int8_t ykc_monitor_message_padding_billing_rule(uint8_t *buf, uint16_t ilen, uint16_t *olen);

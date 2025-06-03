@@ -124,6 +124,16 @@ typedef struct{
         uint8_t is_waiting_response : 1;          /* 1:正在等待响应  0：已响应 */
     }flag;
 }ykc_monitor_mfault_info;
+
+/** 模块故障信息 */
+typedef struct{
+    uint32_t base_tick;                          /* 定时时基 */
+    struct{
+        uint8_t is_wait_response : 1;            /* 正在等待响应 */
+        uint8_t operate_result : 1;              /* 操作结果(1：成功，0：失败) */
+    }flag;
+}ykc_monitor_lock_module;
+
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
 
 #pragma pack()
@@ -133,6 +143,7 @@ NET_DEF_SRAM2 static ykc_monitor_setvoltcurr s_ykc_monitor_setvoltcurr;
 NET_DEF_SRAM2 static ykc_monitor_starting_info s_ykc_monitor_starting_info[NET_SYSTEM_GUN_NUMBER];
 NET_DEF_SRAM2 static ykc_monitor_charging_info s_ykc_monitor_charging_info[NET_SYSTEM_GUN_NUMBER];
 NET_DEF_SRAM2 static ykc_monitor_mfault_info s_ykc_monitor_mfault_info;
+NET_DEF_SRAM2 static ykc_monitor_lock_module s_ykc_monitor_lock_module;
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
 
 NET_DEF_SRAM2 static struct ykc_monitor_flag_info s_ykc_monitor_flag_info[NET_SYSTEM_GUN_NUMBER];
@@ -2120,7 +2131,6 @@ void ykc_monitor_transaction_record_time_updata(uint8_t gunno)
 }
 
 
-
 /*************************************************
  * 函数名      ykc_monitor_chargepile_request_padding_transaction_record
  * 功能          充电桩请求报文填报：交易记录信息
@@ -3183,6 +3193,9 @@ static void ykc_monitor_state_changed_check(uint8_t gunno, System_BaseData * bas
 
 static void ykc_monitor_realtime_process_thread_entry(void *parameter)
 {
+    extern uint8_t thaisenGetEnableModuleOperateState(void);
+    extern uint8_t thaisenGetEnableModuleOperateResult(void);
+
     System_BaseData *base = NULL;
     uint8_t gunno = 0x00;
 
@@ -3212,6 +3225,29 @@ static void ykc_monitor_realtime_process_thread_entry(void *parameter)
                 s_ykc_monitor_mfault_info.check_tick = rt_tick_get();
             }
         }
+#ifdef NET_YKC_MONITOR_AS_MONITOR
+        if(s_ykc_monitor_lock_module.flag.is_wait_response == NET_ENUM_TRUE){
+            if((rt_tick_get() - s_ykc_monitor_lock_module.base_tick) > 10000){
+                s_ykc_monitor_lock_module.flag.operate_result = 0x00;
+                s_ykc_monitor_lock_module.flag.is_wait_response = NET_ENUM_FALSE;
+                ykc_monitor_net_event_send(NET_YKC_MONITOR_EXTERNAL_EHANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST,  \
+                        0x00, NET_YKC_MONITOR_EXTERNAL_PREQ_EVENT_LOCK_MODULE_RESPONSE);
+            }
+            if(thaisenGetEnableModuleOperateState()){
+                if(thaisenGetEnableModuleOperateResult()){
+                    s_ykc_monitor_lock_module.flag.operate_result = 0x01;
+                }else{
+                    s_ykc_monitor_lock_module.flag.operate_result = 0x00;
+                }
+                s_ykc_monitor_lock_module.flag.is_wait_response = NET_ENUM_FALSE;
+                ykc_monitor_net_event_send(NET_YKC_MONITOR_EXTERNAL_EHANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST,  \
+                        0x00, NET_YKC_MONITOR_EXTERNAL_PREQ_EVENT_LOCK_MODULE_RESPONSE);
+            }
+        }else{
+            s_ykc_monitor_lock_module.base_tick = rt_tick_get();
+        }
+#endif /* NET_DESIGNATE_REGION */
+
 
         rt_thread_mdelay(100);
     }
@@ -3233,6 +3269,7 @@ int32_t ykc_monitor_realtime_process_init(void)
         memset(&s_ykc_monitor_starting_info[gunno], 0x00, sizeof(s_ykc_monitor_starting_info[gunno]));
         memset(&s_ykc_monitor_charging_info[gunno], 0x00, sizeof(s_ykc_monitor_charging_info[gunno]));
         memset(&s_ykc_monitor_mfault_info, 0x00, sizeof(s_ykc_monitor_mfault_info));
+        memset(&s_ykc_monitor_lock_module, 0x00, sizeof(s_ykc_monitor_lock_module));
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
     }
 
@@ -4300,6 +4337,35 @@ int8_t ykc_monitor_response_padding_function_switch(uint8_t *buf, uint16_t ilen,
 }
 
 /*************************************************
+ * 函数名      ykc_monitor_response_padding_lock_module
+ * 功能          组包：锁、解锁模块控制结果响应
+ * **********************************************/
+int8_t ykc_monitor_response_padding_lock_module(uint8_t *buf, uint16_t ilen, uint16_t *olen)
+{
+    uint16_t data_len = sizeof(Net_YkcMonitorPro_Pres_FunctionSwitch_t);
+
+    if(buf == NULL){
+        return -0x01;
+    }
+    if(ilen < data_len){
+        return -0x02;
+    }
+
+    Net_YkcMonitorPro_Pres_FunctionSwitch_t *fswitch = (Net_YkcMonitorPro_Pres_FunctionSwitch_t*)buf;
+
+    memset(fswitch, 0x00, sizeof(Net_YkcMonitorPro_Pres_FunctionSwitch_t));
+    if(s_ykc_monitor_lock_module.flag.operate_result){
+        fswitch->body.result = 0x01;
+    }
+
+    if(olen){
+        *olen = data_len;
+    }
+
+    return 0x00;
+}
+
+/*************************************************
  * 函数名      ykc_monitor_response_padding_info_para_confirm
  * 功能          组包：确认修改的桩信息、参数
  * **********************************************/
@@ -4564,23 +4630,42 @@ int8_t ykc_monitor_message_pro_function_switch(void *data, uint8_t len)
 
     Net_YkcMonitorPro_Sreq_FunctionSwitch_t *fswitch = (Net_YkcMonitorPro_Sreq_FunctionSwitch_t*)data;
     ykc_monitor_storage_struct *config = (ykc_monitor_storage_struct*)(s_ykc_monitor_handle->get_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, 0x00, NET_SYSTEM_DATA_OPTION_MONITOR_PLAT));
-    if(config == NULL){
-        return -0x03;
-    }
 
-    config->storage_init_flag = NET_YKC_MONITOR_STORAGE_INIT_FLAG;
-    if(fswitch->body.tplat_log){
-        config->fswitch.tplat_log = NET_ENUM_FALSE;
-    }else{
-        config->fswitch.tplat_log = NET_ENUM_TRUE;
-    }
+    /** 0xFF为无效值 */
+    if(fswitch->body.tplat_log != 0xFF){
+        if(config == NULL){
+            return -0x03;
+        }
+        config->storage_init_flag = NET_YKC_MONITOR_STORAGE_INIT_FLAG;
+        if(fswitch->body.tplat_log){
+            config->fswitch.tplat_log = NET_ENUM_FALSE;
+        }else{
+            config->fswitch.tplat_log = NET_ENUM_TRUE;
+        }
 
-    if(s_ykc_monitor_handle->set_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, 0x00, NET_SYSTEM_DATA_OPTION_MONITOR_PLAT) < 0x00){
-        config->storage_init_flag = NET_YKC_MONITOR_STORAGE_INIT_FLAG - 0x01;
-        return -0x04;
-    }
+        if(s_ykc_monitor_handle->set_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, 0x00, NET_SYSTEM_DATA_OPTION_MONITOR_PLAT) < 0x00){
+            config->storage_init_flag = NET_YKC_MONITOR_STORAGE_INIT_FLAG - 0x01;
+            return -0x04;
+        }
 
-    ykc_monitor_function_switch_set(config);
+        ykc_monitor_function_switch_set(config);
+    }
+    /** 0xFF为无效值 */
+    if(fswitch->body.lock_module != 0xFF){
+        s_ykc_monitor_lock_module.flag.is_wait_response = NET_ENUM_TRUE;
+        s_ykc_monitor_lock_module.base_tick = rt_tick_get();
+        if(fswitch->body.lock_module){
+            thaisenSetEnableModuleState(0x00);
+        }else{
+            thaisenSetEnableModuleState(0x01);
+        }
+    }
+    /** 除了0x01,其他值为无效值 */
+    if(fswitch->body.clear_record == 0x01){
+        if(SerialScreen_BtnClearAll() < 0x00){
+            return -0x05;
+        }
+    }
 
     return 0x00;
 }
@@ -6276,7 +6361,7 @@ int8_t ykc_monitor_message_padding_module_fault_info(uint8_t *buf, uint16_t ilen
     }
     group = *(sys_read_config_item_content(CONFIG_ITEM_MODULE_GROUP_NUM, 0x00));
     for(i = 0; i < group; i++){
-        num = *(sys_read_config_item_content(num_item, 0x00));
+        num = *(sys_read_config_item_content((num_item + i), 0x00));
         total_len += (num *sizeof(struct ykcm_mfault_info));
         pre_head->group_num += num;
     }
@@ -6293,7 +6378,7 @@ int8_t ykc_monitor_message_padding_module_fault_info(uint8_t *buf, uint16_t ilen
     pre_head->module_protocol = *(sys_read_config_item_content(CONFIG_ITEM_MODULE_MODEL, 0x00));
     num_item = CONFIG_ITEM_MODULE_NUM_GROUP_1;
     for(i = 0; i < group; i++){
-        num = *(sys_read_config_item_content(num_item, 0x00));
+        num = *(sys_read_config_item_content((num_item + i), 0x00));
         fault = thaisenGetModuleFaultInfo(NULL, i);
         for(j = 0; j < num; j++){
             info = thaisenGetModuleFaultSetInfo(i, j);

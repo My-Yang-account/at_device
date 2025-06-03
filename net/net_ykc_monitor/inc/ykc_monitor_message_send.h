@@ -138,6 +138,7 @@
 #define NET_YKC_MONITOR_EXTERNAL_PREQ_EVENT_BILLING_INFO             5    /* 充电桩监控外部触发请求事件：目标平台计费信息 */
 #define NET_YKC_MONITOR_EXTERNAL_PREQ_EVENT_MFAULT_INFO              6    /* 充电桩监控外部触发请求事件：模块故障信息 */
 #define NET_YKC_MONITOR_EXTERNAL_PREQ_EVENT_REQUEST_SERVER           7    /* 充电桩监控外部触发请求事件：请求服务器信息 */
+#define NET_YKC_MONITOR_EXTERNAL_PREQ_EVENT_LOCK_MODULE_RESPONSE     8    /* 充电桩监控外部触发请求事件：锁、解锁模块响应 */
 
 /** chargepile user request event */
 #define NET_YKC_MONITOR_USER_PREQ_EVENT_REPORT_MODULE_INFO           0    /* 充电桩监控请求事件：上报模块信息 */

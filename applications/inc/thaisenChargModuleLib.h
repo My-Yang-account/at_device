@@ -761,4 +761,76 @@ void thaisenModuleSetMaxCurrSingleGun(uint32_t curr);
  */
 uint32_t thaisenModuleGetMaxCurrSingleGun(void);
 
+/* 功能说明:
+ *          thaisenSetEnableModuleState: 设置使能模块状态
+ *
+ * 输入参数:   state(1:使能，0:不使能)
+ *
+ * 返回参数:
+ *
+ * 调用方法:
+ *          可实时调用
+ */
+void thaisenSetEnableModuleState(uint8_t state);
+
+/* 功能说明:
+ *          thaisenGetEnableModuleState: 获取使能模块状态
+ *
+ * 输入参数:
+ *
+ * 返回参数:    (1:使能，0:不使能)
+ *
+ * 调用方法:
+ *          可实时调用
+ */
+uint8_t thaisenGetEnableModuleState(void);
+
+/* 功能说明:
+ *          thaisenSetEnableModuleOperateResult: 设置使能模块操作结果
+ *
+ * 输入参数:  (1:成功，0:失败)
+ *
+ * 返回参数:
+ *
+ * 调用方法:
+ *          可实时调用
+ */
+void thaisenSetEnableModuleOperateResult(uint8_t state);
+
+/* 功能说明:
+ *          thaisenGetEnableModuleOperateResult: 获取使能模块操作结果
+ *
+ * 输入参数:
+ *
+ * 返回参数:    (1:成功，0:失败)
+ *
+ * 调用方法:
+ *          可实时调用
+ */
+uint8_t thaisenGetEnableModuleOperateResult(void);
+
+/* 功能说明:
+ *          thaisenSetEnableModuleOperateState: 设置模块使能操作状态
+ *
+ * 输入参数:           state (1:完成，0:未完成)
+ *
+ * 返回参数:
+ *
+ * 调用方法:
+ *          可实时调用
+ */
+void thaisenSetEnableModuleOperateState(uint8_t state);
+
+/* 功能说明:
+ *          thaisenGetEnableModuleOperateState: 获取模块使能操作状态
+ *
+ * 输入参数:
+ *
+ * 返回参数:          (1:完成，0:未完成)
+ *
+ * 调用方法:
+ *          可实时调用
+ */
+uint8_t thaisenGetEnableModuleOperateState(void);
+
 #endif /* APPLICATIONS_THAISENCHARGMODULELIB_H_ */

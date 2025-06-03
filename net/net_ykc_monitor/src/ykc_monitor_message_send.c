@@ -2762,14 +2762,16 @@ static void net_ykc_monitor_server_message_pro_entry(void *parameter)
                 if(result >= 0x00){
                     res = 0x01;
                 }
-
-                response = ykc_monitor_get_response_buff(RT_WAITING_FOREVER);
-                result = ykc_monitor_response_padding_function_switch(response->general_transmit_buff, NET_YKC_MONITOR_GENERA_RESPONSE_BUFF_LENGTH, &(response->length));
-                if(result >= 0x00){
-                    ((Net_YkcMonitorPro_Pres_FunctionSwitch_t*)response->general_transmit_buff)->body.result = res;
-                    ykc_monitor_net_event_send(NET_YKC_MONITOR_USER_EVENT_HANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_RESPONSE, 0x00, NET_YKC_MONITOR_USER_PRES_EVENT_FUNCTION_SWITCH);
-                }else{
-                    ykc_monitor_response_buff_release_sem();
+                /** 锁模块需要异步上报 */
+                if(g_ykc_monitor_sreq_function_switch.body.lock_module == 0xFF){
+                    response = ykc_monitor_get_response_buff(RT_WAITING_FOREVER);
+                    result = ykc_monitor_response_padding_function_switch(response->general_transmit_buff, NET_YKC_MONITOR_GENERA_RESPONSE_BUFF_LENGTH, &(response->length));
+                    if(result >= 0x00){
+                        ((Net_YkcMonitorPro_Pres_FunctionSwitch_t*)response->general_transmit_buff)->body.result = res;
+                        ykc_monitor_net_event_send(NET_YKC_MONITOR_USER_EVENT_HANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_RESPONSE, 0x00, NET_YKC_MONITOR_USER_PRES_EVENT_FUNCTION_SWITCH);
+                    }else{
+                        ykc_monitor_response_buff_release_sem();
+                    }
                 }
             }
             /***** [查询计费信息请求] *****/
@@ -2889,6 +2891,17 @@ static void net_ykc_monitor_server_message_pro_entry(void *parameter)
                     ykc_monitor_response_buff_release_sem();
                 }
 #endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
+            }
+            /***** [锁、解锁模块结果响应] *****/
+            if(ykc_monitor_net_event_receive(NET_YKC_MONITOR_EXTERNAL_EHANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, gunno,
+                    (NET_YKC_MONITOR_EVENT_OPTION_OR |NET_YKC_MONITOR_EVENT_OPTION_CLEAR), NET_YKC_MONITOR_EXTERNAL_PREQ_EVENT_LOCK_MODULE_RESPONSE, NULL) > 0){
+                response = ykc_monitor_get_response_buff(RT_WAITING_FOREVER);
+                result = ykc_monitor_response_padding_lock_module(response->general_transmit_buff, NET_YKC_MONITOR_GENERA_RESPONSE_BUFF_LENGTH, &(response->length));
+                if(result >= 0x00){
+                    ykc_monitor_net_event_send(NET_YKC_MONITOR_USER_EVENT_HANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_RESPONSE, 0x00, NET_YKC_MONITOR_USER_PRES_EVENT_FUNCTION_SWITCH);
+                }else{
+                    ykc_monitor_response_buff_release_sem();
+                }
             }
         }
 
