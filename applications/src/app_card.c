@@ -402,9 +402,15 @@ static int32_t app_card_swip_card_stop(uint8_t gunno)
 
     memcpy(s_card_info_sector2.device_id, dev_id, CARD_BLOCK_SIZE);
 
+#ifdef APP_USING_NO_BMS
+    LOG_D("this charge infomation consume:%d, ballance:%d", ofsm->base.elect_a, s_card_info_sector2.block_10.detail.ballance);
+    if(s_card_info_sector2.block_10.detail.ballance >= (ofsm->base.elect_a /10)){
+        s_card_info_sector2.block_10.detail.ballance -= (ofsm->base.elect_a /10);
+#else
     LOG_D("this charge infomation consume:%d, ballance:%d", ofsm->base.fees_total, s_card_info_sector2.block_10.detail.ballance);
     if(s_card_info_sector2.block_10.detail.ballance >= (ofsm->base.fees_total /100)){
         s_card_info_sector2.block_10.detail.ballance -= (ofsm->base.fees_total /100);
+#endif /* APP_USING_NO_BMS */
         s_card_info_sector2.block_10.detail.ballance = APP_ENDIANNESS_CONVERT(s_card_info_sector2.block_10.detail.ballance);
         s_card_info_sector2.block_10.detail.ballance_check = get_check_sum((uint8_t*)&s_card_info_sector2.block_10.detail.ballance, sizeof(s_card_info_sector2.block_10.detail.ballance));
         s_card_info_sector2.block_10.detail.is_lock = 0x00;
@@ -444,7 +450,11 @@ static int32_t app_card_swip_card_stop(uint8_t gunno)
         LOG_D("stop_soc:%d", ofsm->base.current_soc);
     }else{
         /** 触发跳页 */
+#ifdef APP_USING_NO_BMS
+        LOG_E("this card is not enough to pay the bill(%d, %d)!!", ofsm->base.elect_a, s_card_info_sector2.block_10.detail.ballance);
+#else
         LOG_E("this card is not enough to pay the bill(%d, %d)!!", ofsm->base.fees_total, s_card_info_sector2.block_10.detail.ballance);
+#endif /* APP_USING_NO_BMS */
         s_card_operate_ret[gunno] = APP_CARD_OPERATE_RET_NO_BALLANCE;
         return s_card_operate_ret[gunno];
     }
@@ -500,9 +510,13 @@ static int32_t app_card_pay_history_bill(uint8_t *gunno)
 
     ofsm = get_ofsm_info(*gunno);
     s_card_operate_ret[*gunno] = APP_CARD_OPERATE_RET_SUCCESS;
-
+#ifdef APP_USING_NO_BMS
+    if(s_card_info_sector2.block_10.detail.ballance >= (ofsm->base.elect_a /10)){
+        s_card_info_sector2.block_10.detail.ballance -= (ofsm->base.elect_a /10);
+#else
     if(s_card_info_sector2.block_10.detail.ballance >= (ofsm->base.fees_total /100)){
         s_card_info_sector2.block_10.detail.ballance -= (ofsm->base.fees_total /100);
+#endif /* APP_USING_NO_BMS */
         ofsm->base.account_ballance_before = s_card_info_sector2.block_10.detail.ballance;
 
         s_card_info_sector2.block_10.detail.ballance = APP_ENDIANNESS_CONVERT(s_card_info_sector2.block_10.detail.ballance);
@@ -542,7 +556,11 @@ static int32_t app_card_pay_history_bill(uint8_t *gunno)
 
     }else{
         rt_free(transaction);
+#ifdef APP_USING_NO_BMS
+        LOG_E("this card is not enough to pay the bill(%d, %d)(history bill)!!", ofsm->base.elect_a, s_card_info_sector2.block_10.detail.ballance);
+#else
         LOG_E("this card is not enough to pay the bill(%d, %d)(history bill)!!", ofsm->base.fees_total, s_card_info_sector2.block_10.detail.ballance);
+#endif /* APP_USING_NO_BMS */
         s_card_operate_ret[*gunno] = APP_CARD_OPERATE_RET_NO_BALLANCE;
         return s_card_operate_ret[*gunno];
     }
@@ -587,9 +605,13 @@ static int32_t app_card_non_swip_card_stop(uint8_t gunno)
     }
 
     memcpy(s_card_info_sector2.device_id, dev_id, CARD_BLOCK_SIZE);
-
+#ifdef APP_USING_NO_BMS
+    if(s_card_info_sector2.block_10.detail.ballance >= (ofsm->base.elect_a /10)){
+        s_card_info_sector2.block_10.detail.ballance -= (ofsm->base.elect_a /10);
+#else
     if(s_card_info_sector2.block_10.detail.ballance >= (ofsm->base.fees_total /100)){
         s_card_info_sector2.block_10.detail.ballance -= (ofsm->base.fees_total /100);
+#endif /* APP_USING_NO_BMS */
         s_card_info_sector2.block_10.detail.ballance = APP_ENDIANNESS_CONVERT(s_card_info_sector2.block_10.detail.ballance);
         s_card_info_sector2.block_10.detail.ballance_check = get_check_sum((uint8_t*)&s_card_info_sector2.block_10.detail.ballance, sizeof(s_card_info_sector2.block_10.detail.ballance));
         s_card_info_sector2.block_10.detail.is_lock = 0x00;
@@ -636,7 +658,11 @@ static int32_t app_card_non_swip_card_stop(uint8_t gunno)
     }else{
         rt_free(transaction);
         /** 提示余额不足 */
+#ifdef APP_USING_NO_BMS
+        LOG_E("this card is not enough to pay the bill(%d, %d)(non swip card)!!", ofsm->base.elect_a, s_card_info_sector2.block_10.detail.ballance);
+#else
         LOG_E("this card is not enough to pay the bill(%d, %d)(non swip card)!!", ofsm->base.fees_total, s_card_info_sector2.block_10.detail.ballance);
+#endif /* APP_USING_NO_BMS */
         s_card_operate_ret[gunno] = APP_CARD_OPERATE_RET_NO_BALLANCE;
         return s_card_operate_ret[gunno];
     }
@@ -664,8 +690,11 @@ static int32_t app_card_swip_card_start(uint8_t gunno)
     uint32_t ballance = s_card_info_sector2.block_10.detail.ballance, stime = s_card_info_sector2.block_10.detail.start_time;
 
     s_card_operate_ret[gunno] = APP_CARD_OPERATE_RET_SUCCESS;
-
+#ifdef APP_USING_NO_BMS
+    if(s_card_info_sector2.block_10.detail.ballance <= 200){  /** 启动时余额不能小于2度电 */
+#else
     if(s_card_info_sector2.block_10.detail.ballance <= 100){  /** 启动时余额不能小于1元 */
+#endif /* APP_USING_NO_BMS */
         /** 提示余额不足 */
         LOG_E("card no ballance when swip card start(%d)!!", s_card_info_sector2.block_10.detail.ballance);
         s_card_operate_ret[gunno] = APP_CARD_OPERATE_RET_NO_BALLANCE;

@@ -747,6 +747,16 @@ enum thaisen_notice{
  **/
 void thaisen_info_modify_notice(enum thaisen_notice info);
 
+/**
+*  启动充电模块(强制启动)
+**/
+void thaisen_open_charge_module(uint8_t gunno, uint32_t voltage, uint32_t current);
+
+/**
+*  关闭充电模块(强启后关闭)
+**/
+void thaisen_close_charge_module(uint8_t gunno);
+
 #endif /* APPLICATIONS_INC_APP_DATA_INFO_INTERFACE_H_ */
 
 

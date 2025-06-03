@@ -137,6 +137,7 @@
 //#define CP_PLATFORM_USING_QBJ                          /* 平台使用柒捌玖 */
 
 #define CP_USING_OFFLINE_BILLING                        /* 包含离线计费 */
+//#define CP_USING_NO_BMS                                 /* 使用无BMS版本 */
 
 /** 域名默认 */
 /**------------------------------------------------------------*/

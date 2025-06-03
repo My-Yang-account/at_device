@@ -122,4 +122,42 @@ int16_t mw_get_bhm_voltage(uint8_t gunno)
     return (mw_get_bms_data(gunno)->BHM.MaxAllowVol);
 }
 
+int16_t mw_get_sampling_voltage(uint8_t gunno)
+{
+    if(gunno < APP_SYSTEM_GUNNO_SIZE){
+        if(gunno == APP_SYSTEM_GUNNOA){
+            return TH_get_A_Insult_Volt();
+        }else{
+#ifdef APP_USING_DOUBLEGUN
+            return TH_get_B_Insult_Volt();
+#endif /* APP_USING_DOUBLEGUN */
+        }
+    }
+}
+
+void mw_enable_dcrelay(uint8_t gunno)
+{
+    if(gunno < APP_SYSTEM_GUNNO_SIZE){
+        if(gunno == APP_SYSTEM_GUNNOA){
+            thaisen_relay_on_A();
+        }else{
+#ifdef APP_USING_DOUBLEGUN
+            thaisen_relay_on_B();
+#endif /* APP_USING_DOUBLEGUN */
+        }
+    }
+}
+
+void mw_disable_dcrelay(uint8_t gunno)
+{
+    if(gunno < APP_SYSTEM_GUNNO_SIZE){
+        if(gunno == APP_SYSTEM_GUNNOA){
+            thaisen_relay_off_A();
+        }else{
+#ifdef APP_USING_DOUBLEGUN
+            thaisen_relay_off_B();
+#endif /* APP_USING_DOUBLEGUN */
+        }
+    }
+}
 

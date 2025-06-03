@@ -536,7 +536,15 @@ uint8_t thaisen_app_get_connect_state(uint8_t gunno) // OK
     {
     case CC1_12V:
     case CC1_6V:
+#ifdef APP_USING_NO_BMS
+        if(ofsm_temp->base.cc1_state == CC1_6V){
+            state = APP_GUN_CONNECT_STATE_YES;
+        }else{
+            state = APP_GUN_CONNECT_STATE_NO;
+        }
+#else
         state = APP_GUN_CONNECT_STATE_NO;
+#endif /* APP_USING_NO_BMS */
         break;
     case CC1_4V:
         state = APP_GUN_CONNECT_STATE_YES;
@@ -1855,3 +1863,37 @@ void thaisen_info_modify_notice(enum thaisen_notice info)
 {
     app_nsal_info_modify_notice(info);
 }
+
+/**************************************************************************
+ * 函数名      thaisen_open_charge_module
+ * 功能         启动充电模块(强制启动)
+ * 参数         gunno        枪号
+ *      voltage      启动电压(0.1V)
+ *      current      启动的电流(0.1A)
+ * 返回
+ *************************************************************************/
+void thaisen_open_charge_module(uint8_t gunno, uint32_t voltage, uint32_t current)
+{
+    extern void thaisenSetModuleSetupVolt(uint16_t setupVolt, uint8_t gunNum);
+    extern void thaisenSetModuleSetupCurr(uint16_t setupCurr, uint8_t gunNum);
+    extern void thaisenSetModuleDebugEnableOutput(uint8_t gunNum);
+    thaisenSetModuleSetupVolt(voltage, gunno);
+    thaisenSetModuleSetupCurr(current, gunno);
+    thaisenSetModuleDebugEnableOutput(gunno);
+}
+
+/**************************************************************************
+ * 函数名      thaisen_close_charge_module
+ * 功能         关闭充电模块(强启后关闭)
+ * 参数          gunno        枪号
+ * 返回
+ *************************************************************************/
+void thaisen_close_charge_module(uint8_t gunno)
+{
+    extern void thaisenClearModuleDebugEnableOutput(uint8_t gunNum);
+    extern void thaisenSetModuleDebugDisableOutput(uint8_t gunNum);
+    thaisenClearModuleDebugEnableOutput(gunno);
+    thaisenSetModuleDebugDisableOutput(gunno);
+}
+
+
