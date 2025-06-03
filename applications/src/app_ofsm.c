@@ -3777,6 +3777,23 @@ static void ofsm_starting_fun(uint8_t gunno)
             s_ofsm_info[gunno].base.offline_tick = rt_tick_get();
             s_ofsm_info[gunno].elect_calculate_tick = rt_tick_get();
 
+            /** 电表电量检验 */
+            s_ofsm_info[gunno].base.melect_check_tick = rt_tick_get();           /** 用于功率积分计算 */
+            s_ofsm_info[gunno].base.melect_last = mw_get_meter_total_wh(gunno);  /** 上一次电量值 */
+            s_ofsm_info[gunno].base.melect_inc = 0x00;                           /** 积分电量增量 */
+            s_ofsm_info[gunno].base.melect_detect_count = 0x00;                  /** 电量错误检测次数 */
+            /** 电池电压检验 */
+            s_ofsm_info[gunno].base.bvolt_check_tick = rt_tick_get();            /** 电池电压检测时基 */
+            s_ofsm_info[gunno].base.bvolt_err_count = 0x00;                      /** 电池电压错误计数 */
+            s_ofsm_info[gunno].base.bvolt_err_i = 0x00;
+            s_ofsm_info[gunno].base.bvolt_init = ((struct thaisenBMS_Charger_struct*)(s_ofsm_info[gunno].base.bms_data))->BCP.BatVolt;
+            /** 电流检验 */
+            s_ofsm_info[gunno].base.current_check_tick = rt_tick_get();
+            s_ofsm_info[gunno].base.meter_curr_last = 0x00;
+            s_ofsm_info[gunno].base.module_curr_last = 0x00;
+            s_ofsm_info[gunno].base.meter_curr_steady_count = 0x00;
+            s_ofsm_info[gunno].base.module_curr_steady_count = 0x00;
+
             s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_CHARGING];
             s_ofsm_info[gunno].state = APP_OFSM_STATE_CHARGING;
 
@@ -4027,6 +4044,7 @@ static void ofsm_charging_fun(uint8_t gunno)
     }
 
     extern uint32_t thaisen_get_module_curr(uint8_t gunNum);
+    extern uint32_t thaisen_get_module_volt(uint8_t gunNum);
     uint32_t current_tick = rt_tick_get(), bms_ccs_curr = 4000;
     bool is_stop_charge_authorization = APP_THA_ENUM_FALSE;  /* 停充已授权 */
     enum system_stop_way stop_way = APP_SYSTEM_STOP_WAY_SIZE;
@@ -4042,6 +4060,165 @@ static void ofsm_charging_fun(uint8_t gunno)
                 s_ofsm_info[gunno].base.current_a, s_ofsm_info[gunno].base.power_a, s_ofsm_info[gunno].base.charge_time);
     }
 
+    /** 电流检验 */
+    if((rt_tick_get() - s_ofsm_info[gunno].base.current_check_tick) >= APP_CURRENT_DETECT_PERIOD){
+        s_ofsm_info[gunno].base.current_check_tick = rt_tick_get();
+        if((abs(s_ofsm_info[gunno].base.module_curr_last - thaisen_get_module_curr(gunno)) <= APP_CURRENT_STEADY_DIFF) && \
+                (abs(s_ofsm_info[gunno].base.meter_curr_last - mw_get_meter_ia(gunno)) <= APP_CURRENT_STEADY_DIFF)){
+            s_ofsm_info[gunno].base.meter_curr_steady_count++;
+            s_ofsm_info[gunno].base.module_curr_steady_count++;
+            if((s_ofsm_info[gunno].base.meter_curr_steady_count > APP_CURRENT_STEADY_COUNT) && (s_ofsm_info[gunno].base.module_curr_steady_count > APP_CURRENT_STEADY_COUNT)){
+                if(abs(s_ofsm_info[gunno].base.module_curr_last - s_ofsm_info[gunno].base.meter_curr_last) > APP_CURRENT_COMPARE_DIFF){
+                    /** 电流异常 */
+                    s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_STOPING];
+                    s_ofsm_info[gunno].state = APP_OFSM_STATE_STOPING;
+
+                    s_ofsm_info[gunno].base.system_fault = system_fault;
+                    s_ofsm_info[gunno].base.charge_fault = APP_SYSTEM_STOP_WAY_CURRENT_ABNORMAL;
+                    s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_TRUE;
+                    s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
+
+            #ifdef APP_INCLUDE_YKC17_PROTOCOL
+                    thaisen_ammeter_encry_scmd(gunno, THAISEN_AMMETER_ENCRY_TYPE_STOP);
+            #endif /* APP_INCLUDE_YKC17_PROTOCOL */
+
+                    if((s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL) && (gunno == s_ofsm_info[gunno].base.main_gunno)){
+                        uint8_t deputy_gunno = APP_SYSTEM_GUNNOA;
+                        if(gunno == APP_SYSTEM_GUNNOA){
+                            deputy_gunno = APP_SYSTEM_GUNNOA + 0x01;
+                        }
+                        s_ofsm_info[gunno].base.charge_elect_last = (mw_get_meter_total_wh(gunno) + mw_get_meter_total_wh(deputy_gunno));
+                    }else{
+                        s_ofsm_info[gunno].base.charge_elect_last = mw_get_meter_total_wh(gunno);
+                    }
+
+                    mw_charge_stop_cmd(gunno);
+
+                    stop_way = APP_SYSTEM_STOP_WAY_CURRENT_ABNORMAL;
+                    s_thaisen_transaction[gunno].stop_reason = stop_way;
+                    s_ofsm_info[gunno].base.reason_code = stop_way;
+
+                    LOG_D("gunno(%d) charge finish deal to stop way(%d)\n", gunno, stop_way);
+
+                    /* 对时后时间要修改 */
+                    if(mw_get_time_sync_flag(gunno)){
+                        mw_clear_time_sync_flag(gunno);
+                        uint32_t curr_time = mw_get_current_timestamp();
+
+                        s_ofsm_info[gunno].base.stop_time = curr_time;
+                        if(s_ofsm_info[gunno].base.stop_time >= s_ofsm_info[gunno].base.charge_time){
+                            s_ofsm_info[gunno].base.start_time = (s_ofsm_info[gunno].base.stop_time - s_ofsm_info[gunno].base.charge_time);
+                        }else{
+                            /* 这种情况是不对的 */
+                            s_ofsm_info[gunno].base.start_time = s_ofsm_info[gunno].base.stop_time;
+                        }
+                        s_thaisen_transaction[gunno].end_time = s_ofsm_info[gunno].base.stop_time;
+                        s_thaisen_transaction[gunno].start_time = s_ofsm_info[gunno].base.start_time;
+
+                        app_nsal_time_sync_revise(gunno);
+
+                        /** 与时段有关的信息也要更新 */
+                        LOG_I("chargepile is synchronized, modify correlation time|%x\n", curr_time);
+                    }
+
+                    s_thaisen_transaction[gunno].order_info.is_charging = APP_THA_ENUM_FALSE;
+
+                    app_nsal_state_charged(gunno);
+                    app_nsal_event_occurded(gunno);
+                    return;
+                }
+                s_ofsm_info[gunno].base.meter_curr_steady_count = 0x00;
+                s_ofsm_info[gunno].base.module_curr_steady_count = 0x00;
+            }
+        }else{
+            s_ofsm_info[gunno].base.meter_curr_steady_count = 0x00;
+            s_ofsm_info[gunno].base.module_curr_steady_count = 0x00;
+        }
+        s_ofsm_info[gunno].base.module_curr_last = thaisen_get_module_curr(gunno);
+        s_ofsm_info[gunno].base.meter_curr_last = mw_get_meter_ia(gunno);
+    }
+
+    /** 电池电压检验 */
+    if((rt_tick_get() - s_ofsm_info[gunno].base.bvolt_check_tick) <= APP_BATTERY_VOLTAGE_DETECT_PERIOD){
+        if(abs(s_ofsm_info[gunno].base.bvolt_init - thaisen_get_module_volt(gunno)) > APP_BATTERY_VOLTAGE_FLOAT_VALUE){
+            if(s_ofsm_info[gunno].base.bvolt_err_i < 255){   /** 超过变量所能表示的最大值后会回到0 */
+                s_ofsm_info[gunno].base.bvolt_err_i++;
+            }
+        }
+    }else{
+        if(s_ofsm_info[gunno].base.bvolt_err_i > (APP_BATTERY_VOLTAGE_DETECT_PERIOD /100 *2 /3)){
+            if(s_ofsm_info[gunno].base.bvolt_err_count < 255){   /** 超过变量所能表示的最大值后会回到0 */
+                s_ofsm_info[gunno].base.bvolt_err_count++;
+            }
+        }else{
+            s_ofsm_info[gunno].base.bvolt_err_count = 0x00;
+        }
+
+        s_ofsm_info[gunno].base.bvolt_check_tick = rt_tick_get();
+        s_ofsm_info[gunno].base.bvolt_init = thaisen_get_module_volt(gunno);
+        s_ofsm_info[gunno].base.bvolt_err_i = 0x00;
+    }
+
+    if(s_ofsm_info[gunno].base.bvolt_err_count > APP_BATTERY_VOLTAGE_ERR_COUNT_MAX){
+        /** 电池电压故障 */
+        s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_STOPING];
+        s_ofsm_info[gunno].state = APP_OFSM_STATE_STOPING;
+
+        s_ofsm_info[gunno].base.system_fault = system_fault;
+        s_ofsm_info[gunno].base.charge_fault = APP_SYSTEM_STOP_WAY_BATTERY_VOLT;
+        s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_TRUE;
+        s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
+
+#ifdef APP_INCLUDE_YKC17_PROTOCOL
+        thaisen_ammeter_encry_scmd(gunno, THAISEN_AMMETER_ENCRY_TYPE_STOP);
+#endif /* APP_INCLUDE_YKC17_PROTOCOL */
+
+        if((s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL) && (gunno == s_ofsm_info[gunno].base.main_gunno)){
+            uint8_t deputy_gunno = APP_SYSTEM_GUNNOA;
+            if(gunno == APP_SYSTEM_GUNNOA){
+                deputy_gunno = APP_SYSTEM_GUNNOA + 0x01;
+            }
+            s_ofsm_info[gunno].base.charge_elect_last = (mw_get_meter_total_wh(gunno) + mw_get_meter_total_wh(deputy_gunno));
+        }else{
+            s_ofsm_info[gunno].base.charge_elect_last = mw_get_meter_total_wh(gunno);
+        }
+
+        mw_charge_stop_cmd(gunno);
+
+        stop_way = APP_SYSTEM_STOP_WAY_BATTERY_VOLT;
+        s_thaisen_transaction[gunno].stop_reason = stop_way;
+        s_ofsm_info[gunno].base.reason_code = stop_way;
+
+        LOG_D("gunno(%d) charge finish deal to stop way\n", gunno, stop_way);
+
+        /* 对时后时间要修改 */
+        if(mw_get_time_sync_flag(gunno)){
+            mw_clear_time_sync_flag(gunno);
+            uint32_t curr_time = mw_get_current_timestamp();
+
+            s_ofsm_info[gunno].base.stop_time = curr_time;
+            if(s_ofsm_info[gunno].base.stop_time >= s_ofsm_info[gunno].base.charge_time){
+                s_ofsm_info[gunno].base.start_time = (s_ofsm_info[gunno].base.stop_time - s_ofsm_info[gunno].base.charge_time);
+            }else{
+                /* 这种情况是不对的 */
+                s_ofsm_info[gunno].base.start_time = s_ofsm_info[gunno].base.stop_time;
+            }
+            s_thaisen_transaction[gunno].end_time = s_ofsm_info[gunno].base.stop_time;
+            s_thaisen_transaction[gunno].start_time = s_ofsm_info[gunno].base.start_time;
+
+            app_nsal_time_sync_revise(gunno);
+
+            /** 与时段有关的信息也要更新 */
+            LOG_I("chargepile is synchronized, modify correlation time|%x\n", curr_time);
+        }
+
+        s_thaisen_transaction[gunno].order_info.is_charging = APP_THA_ENUM_FALSE;
+
+        app_nsal_state_charged(gunno);
+        app_nsal_event_occurded(gunno);
+        return;
+    }
+	
     /** 无BMS版本 */
 #if (defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING))
     switch(s_ofsm_info[gunno].base.bat_charge_stage){
@@ -4462,6 +4639,92 @@ static void ofsm_charging_fun(uint8_t gunno)
         }
     }
 #endif /* (defined (APP_INCLUDE_SGCC_PROTOCOL)) */
+
+    /** 只检测前20次 */
+    if((s_ofsm_info[gunno].base.melect_detect_count < APP_METER_ELECT_DETEC_COUNT)){
+        /** 每隔1计算一次功率积分 */
+        if((rt_tick_get() - s_ofsm_info[gunno].base.melect_check_tick) > APP_SIMULATE_ELECT_CALCULATE_PERIOD){
+            uint32_t _e = thaisen_get_module_curr(gunno) *thaisen_get_module_volt(gunno) /100 *((rt_tick_get() - s_ofsm_info[gunno].base.melect_check_tick)) /60 /60 /1000;
+            if(_e <= APP_CALCULATE_ELECT_DIFF_MAX){
+                s_ofsm_info[gunno].base.melect_inc += _e;
+            }
+            s_ofsm_info[gunno].base.melect_check_tick = rt_tick_get();
+        }
+        /** 电量每增1度对比一次 */
+        if(s_ofsm_info[gunno].base.melect_inc > APP_SIMULATE_ELECT_COMPARE_VALUE){
+            if((mw_get_meter_total_wh(gunno) - s_ofsm_info[gunno].base.melect_last) < s_ofsm_info[gunno].base.melect_inc /0x02){
+                if(s_ofsm_info[gunno].base.melect_err_count < 255){   /** 超过变量所能表示的最大值后会回到0 */
+                    s_ofsm_info[gunno].base.melect_err_count++;
+                }
+            }else{
+                s_ofsm_info[gunno].base.melect_err_count = 0x00;
+            }
+
+            if(s_ofsm_info[gunno].base.melect_err_count > APP_METER_ELECT_ERR_COUNT_MAX){
+                /** 电表有错误 */
+                s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_STOPING];
+                s_ofsm_info[gunno].state = APP_OFSM_STATE_STOPING;
+
+                s_ofsm_info[gunno].base.system_fault = system_fault;
+                s_ofsm_info[gunno].base.charge_fault = APP_SYSTEM_STOP_WAY_AMMETER;
+                s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_TRUE;
+                s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
+
+        #ifdef APP_INCLUDE_YKC17_PROTOCOL
+                thaisen_ammeter_encry_scmd(gunno, THAISEN_AMMETER_ENCRY_TYPE_STOP);
+        #endif /* APP_INCLUDE_YKC17_PROTOCOL */
+
+                if((s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL) && (gunno == s_ofsm_info[gunno].base.main_gunno)){
+                    uint8_t deputy_gunno = APP_SYSTEM_GUNNOA;
+                    if(gunno == APP_SYSTEM_GUNNOA){
+                        deputy_gunno = APP_SYSTEM_GUNNOA + 0x01;
+                    }
+                    s_ofsm_info[gunno].base.charge_elect_last = (mw_get_meter_total_wh(gunno) + mw_get_meter_total_wh(deputy_gunno));
+                }else{
+                    s_ofsm_info[gunno].base.charge_elect_last = mw_get_meter_total_wh(gunno);
+                }
+
+                mw_charge_stop_cmd(gunno);
+
+                stop_way = APP_SYSTEM_STOP_WAY_AMMETER;
+                s_thaisen_transaction[gunno].stop_reason = stop_way;
+                s_ofsm_info[gunno].base.reason_code = stop_way;
+
+                LOG_D("gunno(%d) charge finish deal to stop way\n", gunno, stop_way);
+
+                /* 对时后时间要修改 */
+                if(mw_get_time_sync_flag(gunno)){
+                    mw_clear_time_sync_flag(gunno);
+                    uint32_t curr_time = mw_get_current_timestamp();
+
+                    s_ofsm_info[gunno].base.stop_time = curr_time;
+                    if(s_ofsm_info[gunno].base.stop_time >= s_ofsm_info[gunno].base.charge_time){
+                        s_ofsm_info[gunno].base.start_time = (s_ofsm_info[gunno].base.stop_time - s_ofsm_info[gunno].base.charge_time);
+                    }else{
+                        /* 这种情况是不对的 */
+                        s_ofsm_info[gunno].base.start_time = s_ofsm_info[gunno].base.stop_time;
+                    }
+                    s_thaisen_transaction[gunno].end_time = s_ofsm_info[gunno].base.stop_time;
+                    s_thaisen_transaction[gunno].start_time = s_ofsm_info[gunno].base.start_time;
+
+                    app_nsal_time_sync_revise(gunno);
+
+                    /** 与时段有关的信息也要更新 */
+                    LOG_I("chargepile is synchronized, modify correlation time|%x\n", curr_time);
+                }
+
+                s_thaisen_transaction[gunno].order_info.is_charging = APP_THA_ENUM_FALSE;
+
+                app_nsal_state_charged(gunno);
+                app_nsal_event_occurded(gunno);
+                return;
+            }
+            s_ofsm_info[gunno].base.melect_inc = 0x00;
+            s_ofsm_info[gunno].base.melect_last = mw_get_meter_total_wh(gunno);
+            s_ofsm_info[gunno].base.melect_check_tick = rt_tick_get();
+            s_ofsm_info[gunno].base.melect_detect_count++;
+        }
+    }
 
     /** 电表开始电量不对, 要重新赋值 */
     if(s_ofsm_info[gunno].base.flag.is_ammeter_elect_error == APP_THA_ENUM_TRUE){
@@ -6442,6 +6705,12 @@ void ofsm_thread_entry(void *parameter)
     rt_thread_mdelay(6000);  /** 等待底层驱动正常(电表要获取到电量) */
     s_request_screen_time_tick = rt_tick_get();
     s_ofsm_info[thread_gunno].base.order_fixes_tick = rt_tick_get();
+    s_ofsm_info[thread_gunno].base.elock_check_tick = rt_tick_get();
+    s_ofsm_info[thread_gunno].base.elock_resume_tick = rt_tick_get();
+    s_ofsm_info[thread_gunno].base.dcrealy_check_tick = rt_tick_get();
+    s_ofsm_info[thread_gunno].base.dcrealy_resume_tick = rt_tick_get();
+    s_ofsm_info[thread_gunno].base.acrelay_check_tick = rt_tick_get();
+    s_ofsm_info[thread_gunno].base.acrelay_resume_tick = rt_tick_get();
 
 #ifdef APP_INCLUDE_YKC17_PROTOCOL
     s_ofsm_info[thread_gunno].base.meter_step = APP_AMMETER_ENCRY_STEP_NULL;
@@ -6477,6 +6746,201 @@ void ofsm_thread_entry(void *parameter)
             break;
         default:
             break;
+        }
+
+        if(s_ofsm_info[thread_gunno].base.state.current != APP_OFSM_STATE_FAULTING){
+            /** 电子锁、继电器状态检验 */
+            switch(mw_get_charge_library_state(thread_gunno)){
+            case APP_CHARGE_CTRL_IDLE:
+            case APP_CHARGE_CTRL_AUA_POWER:
+            case APP_CHARGE_CTRL_WAIT_GUN:
+                if(thaisen_is_debug() == APP_THA_ENUM_FALSE){
+                    if(thaisenElectLock_StateQuery(thread_gunno) == thaisen_elock_break){
+                        s_ofsm_info[thread_gunno].base.elock_check_tick = rt_tick_get();
+                        thaisenClearSysFaultLib(thaisenElock, thread_gunno);
+                    }
+                    if((rt_tick_get() - s_ofsm_info[thread_gunno].base.elock_check_tick) > APP_ELOCK_RELAY_CHECK_TIME){
+                        if(thaisenGetSysFaultCheckEnBit(thaisenElock)){
+                            /** 电子锁故障 */
+                            if((s_ofsm_info[thread_gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL) || (s_ofsm_info[thread_gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD)){
+                                if(s_ofsm_info[thread_gunno].base.main_gunno == thread_gunno){
+                                    thaisenSetSysFaultLib(thaisenElock, thread_gunno);
+                                }else{
+                                    s_ofsm_info[thread_gunno].base.elock_check_tick = rt_tick_get();
+                                    thaisenClearSysFaultLib(thaisenElock, thread_gunno);
+                                }
+                            }else{
+                                thaisenSetSysFaultLib(thaisenElock, thread_gunno);
+                            }
+                        }else{
+                            s_ofsm_info[thread_gunno].base.elock_check_tick = rt_tick_get();
+                        }
+                    }
+
+                    if(thaisenGetModuleDebugEnableOutput(thread_gunno) == APP_THA_ENUM_FALSE){
+                        if(thaisenDcRelay_StateQuery(thread_gunno, thaisenRelayBreak)){
+                            s_ofsm_info[thread_gunno].base.dcrealy_check_tick = rt_tick_get();
+                            thaisenClearSysFaultLib(thaisenRelay, thread_gunno);
+                        }
+                        if((rt_tick_get() - s_ofsm_info[thread_gunno].base.dcrealy_check_tick) > APP_ELOCK_RELAY_CHECK_TIME){
+                            if(thaisenGetSysFaultCheckEnBit(thaisenRelay)){
+                                /** 直流继电器故障 */
+                                if((s_ofsm_info[thread_gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL) || (s_ofsm_info[thread_gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD)){
+                                    if(s_ofsm_info[thread_gunno].base.main_gunno == thread_gunno){
+                                        thaisenSetSysFaultLib(thaisenRelay, thread_gunno);
+                                    }else{
+                                        s_ofsm_info[thread_gunno].base.dcrealy_check_tick = rt_tick_get();
+                                        thaisenClearSysFaultLib(thaisenRelay, thread_gunno);
+                                    }
+                                }else{
+                                    thaisenSetSysFaultLib(thaisenRelay, thread_gunno);
+                                }
+                            }else{
+                                s_ofsm_info[thread_gunno].base.dcrealy_check_tick = rt_tick_get();
+                            }
+                        }
+                    }else{
+                        s_ofsm_info[thread_gunno].base.dcrealy_check_tick = rt_tick_get();
+                    }
+
+                }else{
+                    s_ofsm_info[thread_gunno].base.elock_check_tick = rt_tick_get();
+                    s_ofsm_info[thread_gunno].base.dcrealy_check_tick = rt_tick_get();
+                    s_ofsm_info[thread_gunno].base.acrelay_check_tick = rt_tick_get();
+                }
+                break;
+            case APP_CHARGE_CTRL_CRM:
+            case APP_CHARGE_CTRL_CTSCML:
+            case APP_CHARGE_CTRL_CRO:
+                if(thaisenElectLock_StateQuery(thread_gunno) == thaisen_elock_close){
+                    s_ofsm_info[thread_gunno].base.elock_check_tick = rt_tick_get();
+                    thaisenClearSysFaultLib(thaisenElock, thread_gunno);
+                }
+                if((rt_tick_get() - s_ofsm_info[thread_gunno].base.elock_check_tick) > APP_ELOCK_RELAY_CHECK_TIME){
+                    if(thaisenGetSysFaultCheckEnBit(thaisenElock)){
+                        /** 电子锁故障 */
+                        thaisenSetSysFaultLib(thaisenElock, thread_gunno);
+                    }else{
+                        s_ofsm_info[thread_gunno].base.elock_check_tick = rt_tick_get();
+                    }
+                }
+
+                if(thaisenDcRelay_StateQuery(thread_gunno, thaisenRelayBreak)){
+                    s_ofsm_info[thread_gunno].base.dcrealy_check_tick = rt_tick_get();
+                    thaisenClearSysFaultLib(thaisenRelay, thread_gunno);
+                }
+                if((rt_tick_get() - s_ofsm_info[thread_gunno].base.dcrealy_check_tick) > APP_ELOCK_RELAY_CHECK_TIME){
+                    if(thaisenGetSysFaultCheckEnBit(thaisenRelay)){
+                        /** 直流继电器故障 */
+                        thaisenSetSysFaultLib(thaisenRelay, thread_gunno);
+                    }else{
+                        s_ofsm_info[thread_gunno].base.dcrealy_check_tick = rt_tick_get();
+                    }
+                }
+
+                if(thaisenAcRelay_StateQuery() == thaisenRelayClose){
+                    s_ofsm_info[thread_gunno].base.acrelay_check_tick = rt_tick_get();
+                    thaisenClearSysFaultLib(thaisenRelayAc, thread_gunno);
+                }
+                if((rt_tick_get() - s_ofsm_info[thread_gunno].base.acrelay_check_tick) > APP_ELOCK_RELAY_CHECK_TIME){
+                    if(thaisenGetSysFaultCheckEnBit(thaisenRelayAc)){
+                        /** 交流接触器故障 */
+                        thaisenSetSysFaultLib(thaisenRelayAc, thread_gunno);
+                    }else{
+                        s_ofsm_info[thread_gunno].base.acrelay_check_tick = rt_tick_get();
+                    }
+                }
+                break;
+            case APP_CHARGE_CTRL_CROAA:
+            case APP_CHARGE_CTRL_CCS:
+            case APP_CHARGE_CTRL_CHM:
+            case APP_CHARGE_CTRL_INSULT:
+            case APP_CHARGE_CTRL_FINISH:
+                if(thaisenElectLock_StateQuery(thread_gunno) == thaisen_elock_close){
+                    s_ofsm_info[thread_gunno].base.elock_check_tick = rt_tick_get();
+                    thaisenClearSysFaultLib(thaisenElock, thread_gunno);
+                }
+                if((rt_tick_get() - s_ofsm_info[thread_gunno].base.elock_check_tick) > APP_ELOCK_RELAY_CHECK_TIME){
+                    if(thaisenGetSysFaultCheckEnBit(thaisenElock)){
+                        /** 电子锁故障 */
+                        thaisenSetSysFaultLib(thaisenElock, thread_gunno);
+                    }else{
+                        s_ofsm_info[thread_gunno].base.elock_check_tick = rt_tick_get();
+                    }
+                }
+
+                if(thaisen_get_charging_pause_activate(thread_gunno)){
+                    if(thaisenDcRelay_StateQuery(thread_gunno, thaisenRelayClose)){
+                        s_ofsm_info[thread_gunno].base.dcrealy_check_tick = rt_tick_get();
+                        thaisenClearSysFaultLib(thaisenRelay, thread_gunno);
+                    }
+                    if((rt_tick_get() - s_ofsm_info[thread_gunno].base.dcrealy_check_tick) > APP_ELOCK_RELAY_CHECK_TIME){
+                        if(thaisenGetSysFaultCheckEnBit(thaisenRelay)){
+                            /** 直流继电器故障 */
+                            thaisenSetSysFaultLib(thaisenRelay, thread_gunno);
+                        }else{
+                            s_ofsm_info[thread_gunno].base.dcrealy_check_tick = rt_tick_get();
+                        }
+                    }
+                }else{
+                    s_ofsm_info[thread_gunno].base.dcrealy_check_tick = rt_tick_get();
+                }
+
+                if(thaisenAcRelay_StateQuery() == thaisenRelayClose){
+                    s_ofsm_info[thread_gunno].base.acrelay_check_tick = rt_tick_get();
+                    thaisenClearSysFaultLib(thaisenRelayAc, thread_gunno);
+                }
+                if((rt_tick_get() - s_ofsm_info[thread_gunno].base.acrelay_check_tick) > APP_ELOCK_RELAY_CHECK_TIME){
+                    if(thaisenGetSysFaultCheckEnBit(thaisenRelayAc)){
+                        /** 交流接触器故障 */
+                        thaisenSetSysFaultLib(thaisenRelayAc, thread_gunno);
+                    }else{
+                        s_ofsm_info[thread_gunno].base.acrelay_check_tick = rt_tick_get();
+                    }
+                }
+                break;
+            default:
+                s_ofsm_info[thread_gunno].base.elock_check_tick = rt_tick_get();
+                s_ofsm_info[thread_gunno].base.dcrealy_check_tick = rt_tick_get();
+                s_ofsm_info[thread_gunno].base.acrelay_check_tick = rt_tick_get();
+                break;
+            }
+            s_ofsm_info[thread_gunno].base.elock_resume_tick = rt_tick_get();
+            s_ofsm_info[thread_gunno].base.dcrealy_resume_tick = rt_tick_get();
+            s_ofsm_info[thread_gunno].base.acrelay_resume_tick = rt_tick_get();
+        }else{
+            if((thaisenElectLock_StateQuery(thread_gunno) == thaisen_elock_break) || (thaisenGetSysFaultCheckEnBit(thaisenElock) == APP_THA_ENUM_FALSE)){
+                if(((rt_tick_get() - s_ofsm_info[thread_gunno].base.elock_resume_tick) > 4000) || (thaisenGetSysFaultCheckEnBit(thaisenElock) == APP_THA_ENUM_FALSE)){
+                    thaisenClearSysFaultLib(thaisenElock, thread_gunno);
+                }
+            }else{
+                if(thaisenGetSysFaultCheckEnBit(thaisenElock) == APP_THA_ENUM_TRUE){
+                    s_ofsm_info[thread_gunno].base.elock_resume_tick = rt_tick_get();
+                }
+            }
+
+            if((thaisenDcRelay_StateQuery(thread_gunno, thaisenRelayBreak)) || (thaisenGetSysFaultCheckEnBit(thaisenRelay) == APP_THA_ENUM_FALSE)){
+                if(((rt_tick_get() - s_ofsm_info[thread_gunno].base.dcrealy_resume_tick) > 1000) || (thaisenGetSysFaultCheckEnBit(thaisenRelay) == APP_THA_ENUM_FALSE)){
+                    thaisenClearSysFaultLib(thaisenRelay, thread_gunno);
+                }
+            }else{
+                if(thaisenGetSysFaultCheckEnBit(thaisenRelay) == APP_THA_ENUM_TRUE){
+                    s_ofsm_info[thread_gunno].base.dcrealy_resume_tick = rt_tick_get();
+                }
+            }
+
+            if((thaisenAcRelay_StateQuery() == thaisenRelayBreak) || (thaisenGetSysFaultCheckEnBit(thaisenRelayAc) == APP_THA_ENUM_FALSE)){
+                if(((rt_tick_get() - s_ofsm_info[thread_gunno].base.acrelay_resume_tick) > 1000) || (thaisenGetSysFaultCheckEnBit(thaisenRelayAc) == APP_THA_ENUM_FALSE)){
+                    thaisenClearSysFaultLib(thaisenRelayAc, thread_gunno);
+                }
+            }else{
+                if(thaisenGetSysFaultCheckEnBit(thaisenRelayAc) == APP_THA_ENUM_TRUE){
+                    s_ofsm_info[thread_gunno].base.acrelay_resume_tick = rt_tick_get();
+                }
+            }
+            s_ofsm_info[thread_gunno].base.elock_check_tick = rt_tick_get();
+            s_ofsm_info[thread_gunno].base.dcrealy_check_tick = rt_tick_get();
+            s_ofsm_info[thread_gunno].base.acrelay_check_tick = rt_tick_get();
         }
 
         if(s_ofsm_info[thread_gunno].base.state.current == APP_OFSM_STATE_CHARGING){         /** 进入充电时才可设置BMS是否禁止充电 */

@@ -1328,6 +1328,10 @@ void SerialScreen_Screen_ClearReservationModeFlag(u8 port)
         LcdAssistantData.SeveralGunFlag[port].IsSetReservation = FALSE;
 }
 
+u8 SerialScreen_Screen_IsBebug(void)
+{
+    return LcdData.debugIOflg;
+}
 static void SerialScreen_Screen_ResetModeInfoDef(u8 port)
 {
     if(port >= LCD_GUN_NUM)

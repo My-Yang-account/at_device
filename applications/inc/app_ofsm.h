@@ -126,6 +126,22 @@ extern "C" {
 #define APP_RESERVATE_STRATEGY_VIN_AUTH        (0x01 <<0x03)     /* 预约策略：预约时间到后需要VIN码鉴权启动 */
 #define APP_RESERVATE_STRATEGY_START_DIRECTLY  (0x01 <<0x04)     /* 预约策略：预约时间到后直接启动 */
 
+#define APP_METER_ELECT_DETEC_COUNT                     20       /* 电表电量检测次数 */
+#define APP_METER_ELECT_ERR_COUNT_MAX                   10       /* 电表电量检测最大错误次数 */
+#define APP_SIMULATE_ELECT_CALCULATE_PERIOD             1000     /* 电量模拟计算周期 */
+#define APP_SIMULATE_ELECT_COMPARE_VALUE                1000     /* 电量模拟值对比值(单位：0.001度) */
+
+#define APP_BATTERY_VOLTAGE_DETECT_PERIOD               15000    /* 电池电压检测周期(ms) */
+#define APP_BATTERY_VOLTAGE_FLOAT_VALUE                 500      /* 电池电压检测浮动值(单位：0.1V) */
+#define APP_BATTERY_VOLTAGE_ERR_COUNT_MAX               5        /* 电池电压检测错误次数 */
+
+#define APP_ELOCK_RELAY_CHECK_TIME                      10000    /* 电子锁、继电器检测故障时间(ms) */
+
+#define APP_CURRENT_DETECT_PERIOD                       5000     /* 电流检测周期(ms) */
+#define APP_CURRENT_STEADY_DIFF                         30       /* 电流稳定比较差值(单位：0.1V) */
+#define APP_CURRENT_COMPARE_DIFF                        100      /* 电流异常比较差值(单位：0.1V) */
+#define APP_CURRENT_STEADY_COUNT                        5        /* 电流稳定次数 */
+
 enum buzzon_state {
     APP_BUZZON_STATE_NULL = 0,
     APP_BUZZON_STATE_OK,
@@ -266,6 +282,28 @@ enum charge_way{
     APP_CHARGE_WAY_SINGLEGUN,           /* 充电方式：单枪 */
     APP_CHARGE_WAY_PARACHARGE_LOCAL,    /* 充电方式：并充(本地选择:最终只上报一把枪的交易) */
     APP_CHARGE_WAY_PARACHARGE_CLOUD,    /* 充电方式：并充(云端选择:最终需上报两把枪的交易) */
+};
+
+enum{
+    APP_CHARGE_CTRL_IDLE,
+    APP_CHARGE_CTRL_AUA_POWER,
+    APP_CHARGE_CTRL_CHM,
+    APP_CHARGE_CTRL_INSULT,
+    APP_CHARGE_CTRL_FINISH,
+    APP_CHARGE_CTRL_CRM,
+    APP_CHARGE_CTRL_CTSCML,
+    APP_CHARGE_CTRL_CRO,
+    APP_CHARGE_CTRL_CROAA,
+    APP_CHARGE_CTRL_CCS,
+    APP_CHARGE_CTRL_CST,
+    APP_CHARGE_CTRL_CSD,
+    APP_CHARGE_CTRL_STOP,
+    APP_CHARGE_CTRL_WAIT_GUN,
+    APP_CHARGE_CTRL_FAULT,
+    APP_CHARGE_CTRL_CHARGING_FAULT,
+    APP_CHARGE_CTRL_COMMON_FAULT,
+    APP_CHARGE_CTRL_COMMON_END_FAULT,
+    APP_CHARGE_CTRL_SIZE,
 };
 
 #if (defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING))
@@ -569,6 +607,31 @@ typedef struct{
     uint8_t run_mode;                /* 运行模式：0：4G、以太网联网，1：离线计费，2：离线模式，3.即插即充 */
     void *bms_data;                  /* BMS 数据 */
     uint32_t reset_reason;           /* 重启原因：RCC->CSR 寄存器 */
+
+    /** 电表电量检验 */
+    uint32_t melect_check_tick;      /* 用于功率积分计算 */
+    uint32_t melect_last;            /* 上一次电量值 */
+    uint16_t melect_inc;             /* 积分电量增量 */
+    uint8_t melect_err_count;        /* 电量错误次数 */
+    uint8_t melect_detect_count;     /* 电量错误检测次数 */
+    /** 电子锁、继电器状态检验 */
+    uint32_t elock_resume_tick;      /* 电子锁故障恢复时基 */
+    uint32_t elock_check_tick;       /* 电子锁状态检测时基 */
+    uint32_t dcrealy_resume_tick;    /* 直流继电器故障恢复时基 */
+    uint32_t dcrealy_check_tick;     /* 直流继电器状态检测时基 */
+    uint32_t acrelay_resume_tick;    /* 交流接触器故障恢复时基 */
+    uint32_t acrelay_check_tick;     /* 交流接触器状态检测时基 */
+    /** 电池电压检验 */
+    uint32_t bvolt_check_tick;       /* 电池电压检测时基 */
+    uint16_t bvolt_init;             /* 电池电压初始值 */
+    uint8_t bvolt_err_i;             /* 电池电压错误计数 */
+    uint8_t bvolt_err_count;         /* 电池电压错误计数 */
+    /** 电流检验 */
+    uint32_t current_check_tick;     /* 电流检测时基 */
+    uint32_t meter_curr_last;        /* 前一次电表电流 */
+    uint32_t module_curr_last;       /* 前一次模块电流 */
+    uint8_t meter_curr_steady_count; /* 电表电流稳定次数 */
+    uint8_t module_curr_steady_count; /* 模块电流稳定次数 */
 }System_BaseData;
 
 struct ofsm_info {

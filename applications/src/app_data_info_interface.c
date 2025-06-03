@@ -1732,6 +1732,16 @@ struct card_data_info *thaisen_get_card_info(uint8_t gunno)
     return &s_card_data;
 }
 
+/********************************************
+ * 函数名      thaisen_is_debug
+ * 功能         判断屏幕是否处于调试模式
+ * 返回          1:是，0:不是
+ *******************************************/
+uint8_t thaisen_is_debug(void)
+{
+    return SerialScreen_Screen_IsBebug();
+}
+
 /**************************************************************************
  * 函数名      thaisen_is_stoped_charge
  * 功能         查询充电是否已停止

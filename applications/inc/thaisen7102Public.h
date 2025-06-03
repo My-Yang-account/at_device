@@ -294,6 +294,24 @@ thaisenElectLockEn thaisenElectLockB(void);
 thaisenElectLockEn thaisenElectUnlock(void);
 thaisenElectLockEn thaisenElectUnlockB(void);
 
+typedef enum
+{
+    thaisen_elock_close,
+    thaisen_elock_break,
+}thaisenElectLockSta;
+
+/* 功能说明:
+ *          thaisenElectLock_StateQuery:查询电子锁状态
+ *
+ * 输入参数:
+ *         gunNum      枪号
+ * 返回参数:
+ *          @thaisenElectLockSta
+ * 调用方法:
+ *          可实时调用
+ */
+thaisenElectLockSta thaisenElectLock_StateQuery(uint8_t gunNum);
+
 /*****************************************************************************************************/
 /************************************系统故障信息*********************************************************/
 typedef enum thaisenFaultEnum
@@ -444,6 +462,29 @@ void thaisenSetACRelayIoEnableState(thaisenAcRelayIoEn_enum en);
  */
 thaisenAcRelayIoEn_enum thaisenGetACRelayIoEnableState(void);
 
+
+/* 功能说明:
+ *          thaisenDcRelay_StateQuery:查询直流继电器状态
+ * 输入参数:
+ *          gunNum      枪号
+ *          sta         期望状态
+ * 返回参数:
+ *          1：与期望状态相符      0：与期望状态不符
+ * 调用方法:
+ *          实时调用
+ */
+uint8_t thaisenDcRelay_StateQuery(uint8_t gunNum, thaisenRelayEn sta);
+
+/* 功能说明:
+ *          thaisenAcRelay_StateQuery:查询交流接触器状态
+ * 输入参数:
+ *
+ * 返回参数:
+ *          @thaisenRelayEn
+ * 调用方法:
+ *          实时调用
+ */
+thaisenRelayEn thaisenAcRelay_StateQuery(void);
 
 /*****************************************************************************************************/
 /*************************************辅助电源函数******************************************************/

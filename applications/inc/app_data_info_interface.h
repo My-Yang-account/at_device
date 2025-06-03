@@ -646,6 +646,11 @@ struct card_data_info{
 struct card_data_info *thaisen_get_card_info(uint8_t gunno);
 
 /**
+ * 判断屏幕是否处于调试模式
+ **/
+uint8_t thaisen_is_debug(void);
+
+/**
  * 查询充电是否已停止
  **/
 uint8_t thaisen_is_stoped_charge(uint8_t gunno);
