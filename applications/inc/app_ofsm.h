@@ -137,10 +137,11 @@ extern "C" {
 
 #define APP_ELOCK_RELAY_CHECK_TIME                      10000    /* 电子锁、继电器检测故障时间(ms) */
 
+#define APP_DETECT_TOTAL_PERIOD                         (5 *60 *1000)   /* 检测总周期(ms) */
 #define APP_CURRENT_DETECT_PERIOD                       5000     /* 电流检测周期(ms) */
 #define APP_CURRENT_STEADY_DIFF                         30       /* 电流稳定比较差值(单位：0.1V) */
-#define APP_CURRENT_COMPARE_DIFF                        100      /* 电流异常比较差值(单位：0.1V) */
-#define APP_CURRENT_STEADY_COUNT                        5        /* 电流稳定次数 */
+#define APP_CURRENT_COMPARE_DIFF                        100      /* 电流异常比较差值(单位：0.1A) */
+#define APP_CURRENT_STEADY_COUNT                        12       /* 电流稳定次数 */
 
 enum buzzon_state {
     APP_BUZZON_STATE_NULL = 0,
@@ -627,6 +628,7 @@ typedef struct{
     uint8_t bvolt_err_i;             /* 电池电压错误计数 */
     uint8_t bvolt_err_count;         /* 电池电压错误计数 */
     /** 电流检验 */
+    uint32_t total_period_tick;      /* 检测总周期时基 */
     uint32_t current_check_tick;     /* 电流检测时基 */
     uint32_t meter_curr_last;        /* 前一次电表电流 */
     uint32_t module_curr_last;       /* 前一次模块电流 */

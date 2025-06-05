@@ -3788,6 +3788,7 @@ static void ofsm_starting_fun(uint8_t gunno)
             s_ofsm_info[gunno].base.bvolt_err_i = 0x00;
             s_ofsm_info[gunno].base.bvolt_init = ((struct thaisenBMS_Charger_struct*)(s_ofsm_info[gunno].base.bms_data))->BCP.BatVolt;
             /** 电流检验 */
+            s_ofsm_info[gunno].base.total_period_tick = rt_tick_get();
             s_ofsm_info[gunno].base.current_check_tick = rt_tick_get();
             s_ofsm_info[gunno].base.meter_curr_last = 0x00;
             s_ofsm_info[gunno].base.module_curr_last = 0x00;
@@ -4067,6 +4068,11 @@ static void ofsm_charging_fun(uint8_t gunno)
                 (abs(s_ofsm_info[gunno].base.meter_curr_last - mw_get_meter_ia(gunno)) <= APP_CURRENT_STEADY_DIFF)){
             s_ofsm_info[gunno].base.meter_curr_steady_count++;
             s_ofsm_info[gunno].base.module_curr_steady_count++;
+            /** 只检测前5分钟 */
+            if((rt_tick_get() - s_ofsm_info[gunno].base.total_period_tick) > APP_DETECT_TOTAL_PERIOD){
+                s_ofsm_info[gunno].base.meter_curr_steady_count = 0x00;
+                s_ofsm_info[gunno].base.module_curr_steady_count = 0x00;
+            }
             if((s_ofsm_info[gunno].base.meter_curr_steady_count > APP_CURRENT_STEADY_COUNT) && (s_ofsm_info[gunno].base.module_curr_steady_count > APP_CURRENT_STEADY_COUNT)){
                 if(abs(s_ofsm_info[gunno].base.module_curr_last - s_ofsm_info[gunno].base.meter_curr_last) > APP_CURRENT_COMPARE_DIFF){
                     /** 电流异常 */
@@ -4670,9 +4676,9 @@ static void ofsm_charging_fun(uint8_t gunno)
                 s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_TRUE;
                 s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
 
-        #ifdef APP_INCLUDE_YKC17_PROTOCOL
+#ifdef APP_INCLUDE_YKC17_PROTOCOL
                 thaisen_ammeter_encry_scmd(gunno, THAISEN_AMMETER_ENCRY_TYPE_STOP);
-        #endif /* APP_INCLUDE_YKC17_PROTOCOL */
+#endif /* APP_INCLUDE_YKC17_PROTOCOL */
 
                 if((s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL) && (gunno == s_ofsm_info[gunno].base.main_gunno)){
                     uint8_t deputy_gunno = APP_SYSTEM_GUNNOA;
