@@ -45,6 +45,10 @@ extern "C" {
 #define APP_USING_NO_BMS                               /* 使用无BMS版本(强制启动模块充电(需要在离线计费模式下)) */
 #endif /* CP_USING_NO_BMS */
 
+#ifdef CP_USING_LV_MODULE
+#define APP_USING_LV_MODULE                            /* 使用低压模块版本 */
+#endif /* CP_USING_LV_MODULE */
+
 #define APP_USING_DOUBLEGUN                            /* 使用双枪 */
 
 #define APP_MAINTENTANCE_MODE_CURR_MAX       200       /* 保养模式最大电流20A(0.1) */
@@ -126,10 +130,16 @@ extern "C" {
 #define APP_RESERVATE_STRATEGY_VIN_AUTH        (0x01 <<0x03)     /* 预约策略：预约时间到后需要VIN码鉴权启动 */
 #define APP_RESERVATE_STRATEGY_START_DIRECTLY  (0x01 <<0x04)     /* 预约策略：预约时间到后直接启动 */
 
-#define APP_METER_ELECT_DETEC_COUNT                     20       /* 电表电量检测次数 */
-#define APP_METER_ELECT_ERR_COUNT_MAX                   10       /* 电表电量检测最大错误次数 */
-#define APP_SIMULATE_ELECT_CALCULATE_PERIOD             1000     /* 电量模拟计算周期 */
-#define APP_SIMULATE_ELECT_COMPARE_VALUE                1000     /* 电量模拟值对比值(单位：0.001度) */
+#define APP_MELECT_DETECT_CURR_RANGE_0                  0        /* 电流范围0：0A <= I >= 5A */
+#define APP_MELECT_DETECT_CURR_RANGE_1                  1        /* 电流范围1：5A < I >= 20A */
+#define APP_MELECT_DETECT_CURR_RANGE_2                  2        /* 电流范围2：0A < 20A */
+#define APP_MDETECT_CURR_RANGE_0_MAX                    50       /* 电流范围0电流最大值 */
+#define APP_MDETECT_CURR_RANGE_1_MAX                    200      /* 电流范围1电流最大值 */
+#define APP_MELECT_DETECT_RANGE_THRESHOLD               20       /* 电流范围切换阈值(0.1A， 电流上升时要超过阈值，下降时直接切换) */
+#define APP_METER_ELECT_ERR_COUNT_MAX                   2        /* 电表电量检测最大错误次数 */
+#define APP_SIMULATE_ELECT_CALCULATE_PERIOD             (60 *1000)  /* 电量模拟计算周期(ms) */
+#define APP_SIMULATE_ELECT_COMPARE_VALUE_1              10       /* 电量模拟值对比值(单位：0.001度， 对应范围1) */
+#define APP_SIMULATE_ELECT_COMPARE_VALUE_2              50       /* 电量模拟值对比值(单位：0.001度， 对应范围2) */
 
 #define APP_BATTERY_VOLTAGE_DETECT_PERIOD               15000    /* 电池电压检测周期(ms) */
 #define APP_BATTERY_VOLTAGE_FLOAT_VALUE                 500      /* 电池电压检测浮动值(单位：0.1V) */
@@ -507,6 +517,7 @@ typedef struct{
         uint32_t is_local_reservation : 1;                   /* 是否本地预约 */
         uint32_t is_reser_normal_started : 1;                /* 是否本地预约已正常启动(用于预约时间一分钟内多次启动限制) */
         uint32_t is_reser_timeout_started : 1;               /* 是否本地预约已超时启动(用于超过预约时间15分钟内启动检测) */
+        uint32_t is_meter_elect_error : 1;                   /* 是否检测出电表电量有错 */
     }flag;
 
     uint8_t cc1_state;                /* CC1 状态 */
@@ -610,11 +621,11 @@ typedef struct{
     uint32_t reset_reason;           /* 重启原因：RCC->CSR 寄存器 */
 
     /** 电表电量检验 */
-    uint32_t melect_check_tick;      /* 用于功率积分计算 */
+    uint32_t melect_check_tick;      /* 电表电量检测周期 */
     uint32_t melect_last;            /* 上一次电量值 */
-    uint16_t melect_inc;             /* 积分电量增量 */
+    uint8_t melect_check_stage;      /* 电表电量检测阶段 */
     uint8_t melect_err_count;        /* 电量错误次数 */
-    uint8_t melect_detect_count;     /* 电量错误检测次数 */
+
     /** 电子锁、继电器状态检验 */
     uint32_t elock_resume_tick;      /* 电子锁故障恢复时基 */
     uint32_t elock_check_tick;       /* 电子锁状态检测时基 */
