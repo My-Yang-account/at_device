@@ -298,7 +298,7 @@ static uint8_t sgcc_calculate_period_with_hm(uint8_t hour, uint8_t min)
  * **********************************************/
 static void sgcc_storage_data_check(void)
 {
-    uint8_t verify_success = 0x01;
+    uint8_t verify_success = 0x01, valid_len = 0x00;
     System_BaseData *base = NULL;
     sgcc_storage_struct *config = (sgcc_storage_struct*)(s_sgcc_handle->get_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, 0x00, NET_SYSTEM_DATA_OPTION_TARGET_PLAT));
 
@@ -385,6 +385,14 @@ static void sgcc_storage_data_check(void)
 
             sgcc_message_pro_billing_model_request_response(&config->billing_rule, sizeof(config->billing_rule), 0x01);
         }
+        valid_len = (sizeof(config->charge_sn) /sizeof(config->charge_sn[0x00]));
+        if(valid_len > NET_SYSTEM_GUN_NUMBER){
+            valid_len = NET_SYSTEM_GUN_NUMBER;
+        }
+        for(uint8_t gunno = 0x00; gunno < valid_len; gunno++){
+            s_sgcc_charge_sn[gunno] = config->charge_sn[gunno];
+            s_sgcc_operation_sn[gunno] = 0x00;
+        }
     }else{
         evs_data_dev_configs.equipParamFreq = SGCC_MONITOR_PROPERTY_INTERVAL_DEF;
         evs_data_dev_configs.gunElecFreq = SGCC_STATE_INTERVAL_CHARGING_DEF;
@@ -402,6 +410,15 @@ static void sgcc_storage_data_check(void)
         for(uint8_t gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
             memset(evs_event_ask_feeModels[gunno].eleModelId, 0x00, EVS_MAX_MODEL_ID_LEN);
             memset(evs_event_ask_feeModels[gunno].serModeId, 0x00, EVS_MAX_MODEL_ID_LEN);
+        }
+
+        valid_len = (sizeof(config->charge_sn) /sizeof(config->charge_sn[0x00]));
+        if(valid_len > NET_SYSTEM_GUN_NUMBER){
+            valid_len = NET_SYSTEM_GUN_NUMBER;
+        }
+        for(uint8_t gunno = 0x00; gunno < valid_len; gunno++){
+            config->charge_sn[gunno] = 0x00;
+            config->operation_sn[gunno] = 0x00;
         }
     }
 
@@ -3005,6 +3022,7 @@ void sgcc_chargepile_state_changed(uint8_t gunno)
         s_sgcc_state_info[gunno].state.dc_plusFuse = SGCC_OPSCTL_NONE;
         s_sgcc_state_info[gunno].state.dc_minusFuse = SGCC_OPSCTL_NONE;
 
+        s_sgcc_operation_sn[gunno] = 0x00;
         break;
     case APP_OFSM_STATE_READYING:
     case APP_OFSM_STATE_RESERVATION:
@@ -3019,14 +3037,14 @@ void sgcc_chargepile_state_changed(uint8_t gunno)
         break;
     case APP_OFSM_STATE_STARTING:
     {
-        if(s_sgcc_state_info[gunno].state.state != SGCC_WORKSTATE_STARTING){
-            if((base->flag.is_local_charging == NET_ENUM_FALSE) && (base->start_type != APP_CHARGE_START_WAY_VIN)){
-                if(++s_sgcc_charge_sn[gunno] >= 10000){
-                    s_sgcc_charge_sn[gunno] = 0x01;
-                }
-                s_sgcc_operation_sn[gunno] = 0x00;
-            }
-        }
+//        if(s_sgcc_state_info[gunno].state.state != SGCC_WORKSTATE_STARTING){
+//            if((base->flag.is_local_charging == NET_ENUM_FALSE) && (base->start_type != APP_CHARGE_START_WAY_VIN)){
+//                if(++s_sgcc_charge_sn[gunno] >= 10000){
+//                    s_sgcc_charge_sn[gunno] = 0x01;
+//                }
+//                s_sgcc_operation_sn[gunno] = 0x00;
+//            }
+//        }
 
         s_sgcc_state_info[gunno].state.state = SGCC_WORKSTATE_STARTING;
         switch(base->charctrl_state.current){
@@ -3090,14 +3108,14 @@ void sgcc_chargepile_state_changed(uint8_t gunno)
     }
         break;
     case APP_OFSM_STATE_CHARGING:
-        if(s_sgcc_state_info[gunno].state.state != SGCC_WORKSTATE_CHARGINGING){
-            if((base->flag.is_local_charging == NET_ENUM_FALSE) && (base->start_type == APP_CHARGE_START_WAY_VIN)){
-                if(++s_sgcc_charge_sn[gunno] >= 10000){
-                    s_sgcc_charge_sn[gunno] = 0x01;
-                }
-                s_sgcc_operation_sn[gunno] = 0x00;
-            }
-        }
+//        if(s_sgcc_state_info[gunno].state.state != SGCC_WORKSTATE_CHARGINGING){
+//            if((base->flag.is_local_charging == NET_ENUM_FALSE) && (base->start_type == APP_CHARGE_START_WAY_VIN)){
+//                if(++s_sgcc_charge_sn[gunno] >= 10000){
+//                    s_sgcc_charge_sn[gunno] = 0x01;
+//                }
+//                s_sgcc_operation_sn[gunno] = 0x00;
+//            }
+//        }
         s_sgcc_state_info[gunno].state.state = SGCC_WORKSTATE_CHARGINGING;
 
         s_sgcc_state_info[gunno].state.electlock = SGCC_OPSCTL_SILENT;
@@ -3117,6 +3135,8 @@ void sgcc_chargepile_state_changed(uint8_t gunno)
         s_sgcc_state_info[gunno].state.dc_plusFuse = SGCC_OPSCTL_NONE;
         s_sgcc_state_info[gunno].state.dc_minusFuse = SGCC_OPSCTL_NONE;
 
+        s_sgcc_operation_sn[gunno] = 0x00;
+
         break;
     case APP_OFSM_STATE_FAULTING:
         s_sgcc_state_info[gunno].state.state = SGCC_WORKSTATE_FAULTING;
@@ -3127,6 +3147,7 @@ void sgcc_chargepile_state_changed(uint8_t gunno)
         s_sgcc_state_info[gunno].state.dc_plusFuse = SGCC_OPSCTL_NONE;
         s_sgcc_state_info[gunno].state.dc_minusFuse = SGCC_OPSCTL_NONE;
 
+        s_sgcc_operation_sn[gunno] = 0x00;
         break;
     default:
         break;
@@ -3246,7 +3267,7 @@ int8_t sgcc_chargepile_create_local_transaction_number(uint8_t gunno, void *vect
 #define SGCC_DEVICE_NAME_VALID_LEN      24     /** 序列号中设备资产码所需长度 */
 
     sgcc_storage_struct *config = (sgcc_storage_struct*)(s_sgcc_handle->get_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, 0x00, NET_SYSTEM_DATA_OPTION_TARGET_PLAT));
-    uint8_t sn_len = 0x00;
+    uint8_t sn_len = 0x00, valid_len = 0x00;
     struct tm _tm;
     System_BaseData *base = (System_BaseData*)(s_sgcc_handle->get_base_data(gunno));
 
@@ -3290,6 +3311,10 @@ int8_t sgcc_chargepile_create_local_transaction_number(uint8_t gunno, void *vect
         s_sgcc_operation_sn[gunno] = 0x01;
     }
 
+    if(++s_sgcc_charge_sn[gunno] >= 10000){
+        s_sgcc_charge_sn[gunno] = 0x01;
+    }
+
     sprintf((vector + sn_len), "%04d", s_sgcc_charge_sn[gunno]);
     sn_len += 0x04;
     if((sn_len + 0x02) >= len){
@@ -3299,6 +3324,12 @@ int8_t sgcc_chargepile_create_local_transaction_number(uint8_t gunno, void *vect
     sprintf((vector + sn_len), "%02d", s_sgcc_operation_sn[gunno]);
     sn_len += 0x02;
 
+    valid_len = sizeof(config->charge_sn) /sizeof(config->charge_sn[0x00]);
+    if(gunno < valid_len){
+        config->charge_sn[gunno] = s_sgcc_charge_sn[gunno];
+        config->operation_sn[gunno] = s_sgcc_operation_sn[gunno];
+        s_sgcc_handle->set_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, 0x00, NET_SYSTEM_DATA_OPTION_TARGET_PLAT);
+    }
 #undef SGCC_DEVICE_NAME_VALID_LEN
 
     LOG_D("sgcc create local transaction number(%d)[%s]\n", gunno, (char*)vector);
@@ -4235,7 +4266,7 @@ int sgcc_realtime_process_init(void)
     uint8_t entry = 0x03, name[NET_THREAD_MONITOR_NAME_MAX];
 
     for(uint8_t gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
-        s_sgcc_charge_sn[gunno] = 0x01;
+        s_sgcc_charge_sn[gunno] = 0x00;
         s_sgcc_state_info[gunno].state.connect = SGCC_OPSCTL_SILENT;
 #ifdef NET_DESIGNATE_REGION
         s_sgcc_state_noncharging_count[gunno] = 0x00;
