@@ -1441,7 +1441,7 @@ static s32 SerialScreen_ConfigExecute_Pile(u8 port, void *data, void *sub_data, 
             memcpy(LcdData.setData.UserPasswdShow, config->screen_password, len);
             memcpy(LcdData.setData.UserPasswd, LcdData.setData.UserPasswdShow, sizeof(LcdData.setData.UserPasswdShow));
 
-            UI_SYNC_SINGLE_CFG_STR(CONFIG_ITEM_SCREEN_PASSWORD, (u8 *)(LcdData.setData.UserPasswd), len);
+            UI_SYNC_SINGLE_CFG_STR(CONFIG_ITEM_SCREEN_PASSWORD, (u8 *)(config->screen_password), len);
         }else{
             return (SSCREEN_PASSWORD_POSITION + THAISEN_CONFIG_FAIL_OFFSET);
         }
@@ -1978,76 +1978,76 @@ static s32 SerialScreen_ConfigExecute_Input_7103_7101(u8 port, void *data, void 
         LcdData.setData.supin_temp_pro = TRUE;
     }
 
-    LcdData.setData.supin_pour = FALSE;
+    LcdData.setData.Icon_SupPour = FALSE;
     if(config->pour.enable){
-        LcdData.setData.supin_pour = TRUE;
+        LcdData.setData.Icon_SupPour = TRUE;
     }
-    LcdData.setData.neg_pour = FALSE;
+    LcdData.setData.Icon_NegPour = FALSE;
     if(config->pour.reversal){
-        LcdData.setData.neg_pour = TRUE;
+        LcdData.setData.Icon_NegPour = TRUE;
     }
 
-    LcdData.setData.supin_protectlight = FALSE;
+    LcdData.setData.Icon_SupProtectLight = FALSE;
     if(config->protect_light.enable){
-        LcdData.setData.supin_protectlight = TRUE;
+        LcdData.setData.Icon_SupProtectLight = TRUE;
     }
-    LcdData.setData.neg_protectlight = FALSE;
+    LcdData.setData.Icon_NegProtectLight = FALSE;
     if(config->protect_light.reversal){
-        LcdData.setData.neg_protectlight = TRUE;
+        LcdData.setData.Icon_NegProtectLight = TRUE;
     }
 
-    LcdData.setData.supin_flood = FALSE;
+    LcdData.setData.Icon_SupFlood = FALSE;
     if(config->flood.enable){
-        LcdData.setData.supin_flood = TRUE;
+        LcdData.setData.Icon_SupFlood = TRUE;
     }
-    LcdData.setData.neg_flood = FALSE;
+    LcdData.setData.Icon_NegFlood = FALSE;
     if(config->flood.reversal){
-        LcdData.setData.neg_flood = TRUE;
+        LcdData.setData.Icon_NegFlood = TRUE;
     }
 
-    LcdData.setData.supin_smoke = FALSE;
+    LcdData.setData.Icon_SupSmoke = FALSE;
     if(config->smoke.enable){
-        LcdData.setData.supin_smoke = TRUE;
+        LcdData.setData.Icon_SupSmoke = TRUE;
     }
-    LcdData.setData.neg_smoke = FALSE;
+    LcdData.setData.Icon_NegSmoke = FALSE;
     if(config->smoke.reversal){
-        LcdData.setData.neg_smoke = TRUE;
+        LcdData.setData.Icon_NegSmoke = TRUE;
     }
 
-    LcdData.setData.supin_gunsite = FALSE;
+    LcdData.setData.Icon_SupGunSite = FALSE;
     if(config->gunsite.enable){
-        LcdData.setData.supin_gunsite = TRUE;
+        LcdData.setData.Icon_SupGunSite = TRUE;
     }
-    LcdData.setData.neg_gunsite = FALSE;
+    LcdData.setData.Icon_NegGunSite = FALSE;
     if(config->gunsite.reversal){
-        LcdData.setData.neg_gunsite = TRUE;
+        LcdData.setData.Icon_NegGunSite = TRUE;
     }
 
-    LcdData.setData.supin_fuse = FALSE;
+    LcdData.setData.Icon_SupFuse = FALSE;
     if(config->fuse.enable){
-        LcdData.setData.supin_fuse = TRUE;
+        LcdData.setData.Icon_SupFuse = TRUE;
     }
-    LcdData.setData.neg_fuse = FALSE;
+    LcdData.setData.Icon_NegFuse = FALSE;
     if(config->fuse.reversal){
-        LcdData.setData.neg_fuse = TRUE;
+        LcdData.setData.Icon_NegFuse = TRUE;
     }
 
-    LcdData.setData.supin_liquid = FALSE;
+    LcdData.setData.Icon_SupLiquid = FALSE;
     if(config->liquid.enable){
-        LcdData.setData.supin_liquid = TRUE;
+        LcdData.setData.Icon_SupLiquid = TRUE;
     }
-    LcdData.setData.neg_liquid = FALSE;
+    LcdData.setData.Icon_NegLiquid = FALSE;
     if(config->liquid.reversal){
-        LcdData.setData.neg_liquid = TRUE;
+        LcdData.setData.Icon_NegLiquid = TRUE;
     }
 
-    LcdData.setData.supin_circuit_breaker = FALSE;
+    LcdData.setData.Icon_SupCircuitBreaker = FALSE;
     if(config->circuit_breaker.enable){
-        LcdData.setData.supin_circuit_breaker = TRUE;
+        LcdData.setData.Icon_SupCircuitBreaker = TRUE;
     }
-    LcdData.setData.neg_circuit_breaker = FALSE;
+    LcdData.setData.Icon_NegCircuitBreaker = FALSE;
     if(config->circuit_breaker.reversal){
-        LcdData.setData.neg_circuit_breaker = TRUE;
+        LcdData.setData.Icon_NegCircuitBreaker = TRUE;
     }
 
     SerialScreen_InputSetFlash();
