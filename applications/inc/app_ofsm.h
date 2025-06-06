@@ -49,6 +49,22 @@ extern "C" {
 #define APP_USING_LV_MODULE                            /* 使用低压模块版本 */
 #endif /* CP_USING_LV_MODULE */
 
+#ifdef CP_USING_METER_ELECT_DETECT_STRATEGY
+#define APP_USING_METER_ELECT_DETECT_STRATEGY          /* 使用电表电量检测策略 */
+#endif /* CP_USING_METER_ELECT_DETECT_STRATEGY */
+
+#ifdef CP_USING_BAT_VOLT_DETECT_STRATEGY
+#define APP_USING_BAT_VOLT_DETECT_STRATEGY             /* 使用电池电压检测策略 */
+#endif /* CP_USING_BAT_VOLT_DETECT_STRATEGY */
+
+#ifdef CP_USING_CHARGE_CURR_DETECT_STRATEGY
+#define APP_USING_CHARGE_CURR_DETECT_STRATEGY          /* 使用充电电流检测策略 */
+#endif /* CP_USING_CHARGE_CURR_DETECT_STRATEGY */
+
+#ifdef CP_USING_FB_DETECT
+#define APP_USING_FB_DETECT                            /* 使用反馈实时检测 */
+#endif /* CP_USING_FB_DETECT */
+
 #define APP_USING_DOUBLEGUN                            /* 使用双枪 */
 
 #define APP_MAINTENTANCE_MODE_CURR_MAX       200       /* 保养模式最大电流20A(0.1) */
@@ -130,6 +146,7 @@ extern "C" {
 #define APP_RESERVATE_STRATEGY_VIN_AUTH        (0x01 <<0x03)     /* 预约策略：预约时间到后需要VIN码鉴权启动 */
 #define APP_RESERVATE_STRATEGY_START_DIRECTLY  (0x01 <<0x04)     /* 预约策略：预约时间到后直接启动 */
 
+#ifdef APP_USING_METER_ELECT_DETECT_STRATEGY
 #define APP_MELECT_DETECT_CURR_RANGE_0                  0        /* 电流范围0：0A <= I >= 5A */
 #define APP_MELECT_DETECT_CURR_RANGE_1                  1        /* 电流范围1：5A < I >= 20A */
 #define APP_MELECT_DETECT_CURR_RANGE_2                  2        /* 电流范围2：0A < 20A */
@@ -140,18 +157,25 @@ extern "C" {
 #define APP_SIMULATE_ELECT_CALCULATE_PERIOD             (60 *1000)  /* 电量模拟计算周期(ms) */
 #define APP_SIMULATE_ELECT_COMPARE_VALUE_1              10       /* 电量模拟值对比值(单位：0.001度， 对应范围1) */
 #define APP_SIMULATE_ELECT_COMPARE_VALUE_2              50       /* 电量模拟值对比值(单位：0.001度， 对应范围2) */
+#endif /* APP_USING_METER_ELECT_DETECT_STRATEGY */
 
+#ifdef APP_USING_BAT_VOLT_DETECT_STRATEGY
 #define APP_BATTERY_VOLTAGE_DETECT_PERIOD               15000    /* 电池电压检测周期(ms) */
 #define APP_BATTERY_VOLTAGE_FLOAT_VALUE                 500      /* 电池电压检测浮动值(单位：0.1V) */
 #define APP_BATTERY_VOLTAGE_ERR_COUNT_MAX               5        /* 电池电压检测错误次数 */
+#endif /* APP_USING_BAT_VOLT_DETECT_STRATEGY */
 
-#define APP_ELOCK_RELAY_CHECK_TIME                      10000    /* 电子锁、继电器检测故障时间(ms) */
-
+#ifdef APP_USING_CHARGE_CURR_DETECT_STRATEGY
 #define APP_DETECT_TOTAL_PERIOD                         (5 *60 *1000)   /* 检测总周期(ms) */
 #define APP_CURRENT_DETECT_PERIOD                       5000     /* 电流检测周期(ms) */
 #define APP_CURRENT_STEADY_DIFF                         30       /* 电流稳定比较差值(单位：0.1V) */
 #define APP_CURRENT_COMPARE_DIFF                        100      /* 电流异常比较差值(单位：0.1A) */
 #define APP_CURRENT_STEADY_COUNT                        12       /* 电流稳定次数 */
+#endif /* APP_USING_CHARGE_CURR_DETECT_STRATEGY */
+
+#ifdef APP_USING_FB_DETECT
+#define APP_ELOCK_RELAY_CHECK_TIME                      10000    /* 电子锁、继电器检测故障时间(ms) */
+#endif /* APP_USING_FB_DETECT */
 
 enum buzzon_state {
     APP_BUZZON_STATE_NULL = 0,
@@ -295,6 +319,7 @@ enum charge_way{
     APP_CHARGE_WAY_PARACHARGE_CLOUD,    /* 充电方式：并充(云端选择:最终需上报两把枪的交易) */
 };
 
+#ifdef APP_USING_FB_DETECT
 enum{
     APP_CHARGE_CTRL_IDLE,
     APP_CHARGE_CTRL_AUA_POWER,
@@ -316,6 +341,7 @@ enum{
     APP_CHARGE_CTRL_COMMON_END_FAULT,
     APP_CHARGE_CTRL_SIZE,
 };
+#endif /* APP_USING_FB_DETECT */
 
 #if (defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING))
 /** 电池类型 */
@@ -619,25 +645,23 @@ typedef struct{
     uint8_t run_mode;                /* 运行模式：0：4G、以太网联网，1：离线计费，2：离线模式，3.即插即充 */
     void *bms_data;                  /* BMS 数据 */
     uint32_t reset_reason;           /* 重启原因：RCC->CSR 寄存器 */
-
+#ifdef APP_USING_METER_ELECT_DETECT_STRATEGY
     /** 电表电量检验 */
     uint32_t melect_check_tick;      /* 电表电量检测周期 */
     uint32_t melect_last;            /* 上一次电量值 */
     uint8_t melect_check_stage;      /* 电表电量检测阶段 */
     uint8_t melect_err_count;        /* 电量错误次数 */
+#endif /* APP_USING_METER_ELECT_DETECT_STRATEGY */
 
-    /** 电子锁、继电器状态检验 */
-    uint32_t elock_resume_tick;      /* 电子锁故障恢复时基 */
-    uint32_t elock_check_tick;       /* 电子锁状态检测时基 */
-    uint32_t dcrealy_resume_tick;    /* 直流继电器故障恢复时基 */
-    uint32_t dcrealy_check_tick;     /* 直流继电器状态检测时基 */
-    uint32_t acrelay_resume_tick;    /* 交流接触器故障恢复时基 */
-    uint32_t acrelay_check_tick;     /* 交流接触器状态检测时基 */
+#ifdef APP_USING_BAT_VOLT_DETECT_STRATEGY
     /** 电池电压检验 */
     uint32_t bvolt_check_tick;       /* 电池电压检测时基 */
     uint16_t bvolt_init;             /* 电池电压初始值 */
     uint8_t bvolt_err_i;             /* 电池电压错误计数 */
     uint8_t bvolt_err_count;         /* 电池电压错误计数 */
+#endif /* APP_USING_BAT_VOLT_DETECT_STRATEGY */
+
+#ifdef APP_USING_CHARGE_CURR_DETECT_STRATEGY
     /** 电流检验 */
     uint32_t total_period_tick;      /* 检测总周期时基 */
     uint32_t current_check_tick;     /* 电流检测时基 */
@@ -645,6 +669,17 @@ typedef struct{
     uint32_t module_curr_last;       /* 前一次模块电流 */
     uint8_t meter_curr_steady_count; /* 电表电流稳定次数 */
     uint8_t module_curr_steady_count; /* 模块电流稳定次数 */
+#endif /* APP_USING_CHARGE_CURR_DETECT_STRATEGY */
+
+#ifdef APP_USING_FB_DETECT
+    /** 电子锁、继电器状态检验 */
+    uint32_t elock_resume_tick;      /* 电子锁故障恢复时基 */
+    uint32_t elock_check_tick;       /* 电子锁状态检测时基 */
+    uint32_t dcrealy_resume_tick;    /* 直流继电器故障恢复时基 */
+    uint32_t dcrealy_check_tick;     /* 直流继电器状态检测时基 */
+    uint32_t acrelay_resume_tick;    /* 交流接触器故障恢复时基 */
+    uint32_t acrelay_check_tick;     /* 交流接触器状态检测时基 */
+#endif /* APP_USING_FB_DETECT */
 }System_BaseData;
 
 struct ofsm_info {

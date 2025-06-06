@@ -3777,17 +3777,24 @@ static void ofsm_starting_fun(uint8_t gunno)
             s_ofsm_info[gunno].base.offline_tick = rt_tick_get();
             s_ofsm_info[gunno].elect_calculate_tick = rt_tick_get();
 
+#ifdef APP_USING_METER_ELECT_DETECT_STRATEGY
             /** 电表电量检验 */
             s_ofsm_info[gunno].base.melect_check_tick = rt_tick_get();           /** 用于功率积分计算 */
             s_ofsm_info[gunno].base.melect_last = mw_get_meter_total_wh(gunno);  /** 上一次电量值 */
             s_ofsm_info[gunno].base.melect_check_stage = APP_MELECT_DETECT_CURR_RANGE_0;  /** 检测阶段 */
             s_ofsm_info[gunno].base.melect_err_count = 0x00;                     /** 电量错误检测次数 */
             s_ofsm_info[gunno].base.flag.is_meter_elect_error = APP_THA_ENUM_FALSE; /** 是否检测出电表电量有错 */
+#endif /* APP_USING_METER_ELECT_DETECT_STRATEGY */
+
+#ifdef APP_USING_BAT_VOLT_DETECT_STRATEGY
             /** 电池电压检验 */
             s_ofsm_info[gunno].base.bvolt_check_tick = rt_tick_get();            /** 电池电压检测时基 */
             s_ofsm_info[gunno].base.bvolt_err_count = 0x00;                      /** 电池电压错误计数 */
             s_ofsm_info[gunno].base.bvolt_err_i = 0x00;
             s_ofsm_info[gunno].base.bvolt_init = ((struct thaisenBMS_Charger_struct*)(s_ofsm_info[gunno].base.bms_data))->BCP.BatVolt;
+#endif /* APP_USING_BAT_VOLT_DETECT_STRATEGY */
+
+#ifdef APP_USING_CHARGE_CURR_DETECT_STRATEGY
             /** 电流检验 */
             s_ofsm_info[gunno].base.total_period_tick = rt_tick_get();
             s_ofsm_info[gunno].base.current_check_tick = rt_tick_get();
@@ -3795,7 +3802,7 @@ static void ofsm_starting_fun(uint8_t gunno)
             s_ofsm_info[gunno].base.module_curr_last = 0x00;
             s_ofsm_info[gunno].base.meter_curr_steady_count = 0x00;
             s_ofsm_info[gunno].base.module_curr_steady_count = 0x00;
-
+#endif /* APP_USING_CHARGE_CURR_DETECT_STRATEGY */
             s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_CHARGING];
             s_ofsm_info[gunno].state = APP_OFSM_STATE_CHARGING;
 
@@ -4062,6 +4069,7 @@ static void ofsm_charging_fun(uint8_t gunno)
                 s_ofsm_info[gunno].base.current_a, s_ofsm_info[gunno].base.power_a, s_ofsm_info[gunno].base.charge_time);
     }
 
+#ifdef APP_USING_CHARGE_CURR_DETECT_STRATEGY
     /** 电流检验 */
     if((rt_tick_get() - s_ofsm_info[gunno].base.current_check_tick) >= APP_CURRENT_DETECT_PERIOD){
         s_ofsm_info[gunno].base.current_check_tick = rt_tick_get();
@@ -4144,7 +4152,9 @@ static void ofsm_charging_fun(uint8_t gunno)
         s_ofsm_info[gunno].base.module_curr_last = thaisen_get_module_curr(gunno);
         s_ofsm_info[gunno].base.meter_curr_last = mw_get_meter_ia(gunno);
     }
+#endif /* APP_USING_CHARGE_CURR_DETECT_STRATEGY */
 
+#ifdef APP_USING_BAT_VOLT_DETECT_STRATEGY
     /** 电池电压检验 */
     if((rt_tick_get() - s_ofsm_info[gunno].base.bvolt_check_tick) <= APP_BATTERY_VOLTAGE_DETECT_PERIOD){
         if(abs(s_ofsm_info[gunno].base.bvolt_init - thaisen_get_module_volt(gunno)) > APP_BATTERY_VOLTAGE_FLOAT_VALUE){
@@ -4225,6 +4235,7 @@ static void ofsm_charging_fun(uint8_t gunno)
         app_nsal_event_occurded(gunno);
         return;
     }
+#endif /* APP_USING_BAT_VOLT_DETECT_STRATEGY */
 	
     /** 无BMS版本 */
 #if (defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING))
@@ -4647,6 +4658,7 @@ static void ofsm_charging_fun(uint8_t gunno)
     }
 #endif /* (defined (APP_INCLUDE_SGCC_PROTOCOL)) */
 
+#ifdef APP_USING_METER_ELECT_DETECT_STRATEGY
     /** 电表电量检测 */
     /** 范围切换检查 */
 #ifdef APP_USING_LV_MODULE
@@ -4786,6 +4798,7 @@ static void ofsm_charging_fun(uint8_t gunno)
         app_nsal_event_occurded(gunno);
         return;
     }
+#endif /* APP_USING_METER_ELECT_DETECT_STRATEGY */
 
     /** 电表开始电量不对, 要重新赋值 */
     if(s_ofsm_info[gunno].base.flag.is_ammeter_elect_error == APP_THA_ENUM_TRUE){
@@ -6766,12 +6779,14 @@ void ofsm_thread_entry(void *parameter)
     rt_thread_mdelay(6000);  /** 等待底层驱动正常(电表要获取到电量) */
     s_request_screen_time_tick = rt_tick_get();
     s_ofsm_info[thread_gunno].base.order_fixes_tick = rt_tick_get();
+#ifdef APP_USING_FB_DETECT
     s_ofsm_info[thread_gunno].base.elock_check_tick = rt_tick_get();
     s_ofsm_info[thread_gunno].base.elock_resume_tick = rt_tick_get();
     s_ofsm_info[thread_gunno].base.dcrealy_check_tick = rt_tick_get();
     s_ofsm_info[thread_gunno].base.dcrealy_resume_tick = rt_tick_get();
     s_ofsm_info[thread_gunno].base.acrelay_check_tick = rt_tick_get();
     s_ofsm_info[thread_gunno].base.acrelay_resume_tick = rt_tick_get();
+#endif /* APP_USING_FB_DETECT */
 
 #ifdef APP_INCLUDE_YKC17_PROTOCOL
     s_ofsm_info[thread_gunno].base.meter_step = APP_AMMETER_ENCRY_STEP_NULL;
@@ -6809,6 +6824,7 @@ void ofsm_thread_entry(void *parameter)
             break;
         }
 
+#ifdef APP_USING_FB_DETECT
         if(s_ofsm_info[thread_gunno].base.state.current != APP_OFSM_STATE_FAULTING){
             /** 电子锁、继电器状态检验 */
             switch(mw_get_charge_library_state(thread_gunno)){
@@ -7003,6 +7019,7 @@ void ofsm_thread_entry(void *parameter)
             s_ofsm_info[thread_gunno].base.dcrealy_check_tick = rt_tick_get();
             s_ofsm_info[thread_gunno].base.acrelay_check_tick = rt_tick_get();
         }
+#endif /* APP_USING_FB_DETECT */
 
         if(s_ofsm_info[thread_gunno].base.state.current == APP_OFSM_STATE_CHARGING){         /** 进入充电时才可设置BMS是否禁止充电 */
             uint32_t singlegun_max_curr = 0x00;
