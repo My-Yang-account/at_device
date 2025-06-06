@@ -4936,7 +4936,7 @@ static int32_t ykc_monitor_config_info_process_server_info(uint8_t option, void 
         }
         struct ykcm_server_info *info = (struct ykcm_server_info*)data;
 
-        if(ykc_monitor_is_config_data_valid(&info->net_mode, sizeof(info->net_mode), 0x00)){
+        if(ykc_monitor_is_config_data_valid(&info->net_mode, sizeof(info->net_mode), 0x00) == NET_ENUM_FALSE){
             info->net_mode = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_NET_TYPE, 0x00));
         }
         return ykc_monitor_config_execute(0x00, THAISEN_CONFIG_PAGE_SERVER_INFO, data, NULL, NULL);
