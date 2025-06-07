@@ -111,7 +111,7 @@ extern "C" {
 #endif /* APP_INCLUDE_YKC17_PROTOCOL */
 
 #if (defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING))
-#define APP_NO_BMS_PRECHARGE_SAMPLING_STEADY_TIME                8000            /* 预充时等待采样稳定时间(ms) */
+#define APP_NO_BMS_PRECHARGE_SAMPLING_STEADY_TIME                5000            /* 预充时等待采样稳定时间(ms) */
 #define APP_NO_BMS_BOOT_TIMEOUT                                  50000           /* 启动超时时间(ms) */
 #define APP_NO_BMS_RISE_CURRENT_PERIOD                           1000            /* 电流爬升时间间隔(ms) */
 #define APP_NO_BMS_STAGE_1_CHARGE_TIME_MAX_64V125AH              3600            /* 64V125AH型电池第一阶段最大充电时长(s) */
