@@ -6275,25 +6275,21 @@ static void ykc_monitor_module_fault_check(void)
             }
         }
     }
-    if(ykc_monitor_net_event_receive(NET_YKC_MONITOR_EVENT_HANDLE_SERVER, NET_YKC_MONITOR_EVENT_TYPE_RESPONSE, 0x00,
+    if(ykc_monitor_net_event_receive(NET_YKC_MONITOR_USER_EVENT_HANDLE_SERVER, NET_YKC_MONITOR_EVENT_TYPE_RESPONSE, 0x00,
             (NET_YKC_MONITOR_EVENT_OPTION_OR |NET_YKC_MONITOR_EVENT_OPTION_CLEAR), NET_YKC_MONITOR_USER_SRES_EVENT_MFAULT_RES, NULL) > 0){
         s_ykc_monitor_mfault_info.flag.is_waiting_response = NET_ENUM_FALSE;
         if(s_ykc_monitor_mfault_info.flag.is_resume == NET_ENUM_TRUE){
             s_ykc_monitor_mfault_info.flag.is_report = NET_ENUM_FALSE;
         }
     }
-#if 1
-    s_ykc_monitor_mfault_info.flag.is_waiting_response = NET_ENUM_FALSE;
-#endif
+
     if(i >= group){
         /** 故障已恢复，上报信息 */
         if(s_ykc_monitor_mfault_info.flag.is_report == NET_ENUM_TRUE){
             if(s_ykc_monitor_mfault_info.flag.is_resume == NET_ENUM_FALSE){
                 s_ykc_monitor_mfault_info.flag.is_resume = NET_ENUM_TRUE;
                 s_ykc_monitor_mfault_info.flag.is_waiting_response = NET_ENUM_TRUE;
-#if 1
-                s_ykc_monitor_mfault_info.flag.is_report = NET_ENUM_FALSE;
-#endif
+
                 ykc_monitor_net_event_send(NET_YKC_MONITOR_EXTERNAL_EHANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST,  \
                         0x00, NET_YKC_MONITOR_EXTERNAL_PREQ_EVENT_MFAULT_INFO);
             }else{

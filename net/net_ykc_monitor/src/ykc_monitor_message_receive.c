@@ -1877,7 +1877,7 @@ static void ykc_monitor_callback_response_module_fault_info(uint8_t* data, uint1
         return;
     }
     if(request->body.info_type == 0x01){
-        ykc_monitor_net_event_send(NET_YKC_MONITOR_USER_EVENT_HANDLE_SERVER, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, 0x00, NET_YKC_MONITOR_USER_SREQ_EVENT_QUERY_SET_CONFIG_INFO);
+        ykc_monitor_net_event_send(NET_YKC_MONITOR_USER_EVENT_HANDLE_SERVER, NET_YKC_MONITOR_EVENT_TYPE_RESPONSE, 0x00, NET_YKC_MONITOR_USER_SRES_EVENT_MFAULT_RES);
     }
 #endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
 }
