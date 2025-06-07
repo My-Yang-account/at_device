@@ -1024,15 +1024,11 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
             }
         }else{
             if((rt_tick_get() - s_ykc_monitor_timesync_tick) > NET_YKC_MONITOR_WAIT_TIMESYNC_RESPONSE_TIME){
-#if 0
                 s_ykc_monitor_timesync_tick = rt_tick_get();
                 s_ykc_monitor_assistant_info.flag.is_time_sync = 0x00;
                 s_ykc_monitor_assistant_info.flag.is_requesting_info = 0x01;
                 s_ykc_monitor_assistant_info.request_info_type = NET_YKC_MONITOR_REQ_SERVER_TIMESYNC;
                 ykc_monitor_net_event_send(NET_YKC_MONITOR_EXTERNAL_EHANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, 0x00, NET_YKC_MONITOR_EXTERNAL_PREQ_EVENT_REQUEST_SERVER);
-#else
-                s_ykc_monitor_assistant_info.flag.is_time_sync = 0x01;
-#endif
             }
         }
 #endif /* #ifdef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
