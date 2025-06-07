@@ -3086,8 +3086,6 @@ static void ofsm_starting_fun(uint8_t gunno)
                 if((s_ofsm_info[gunno].base.charge_way != APP_CHARGE_WAY_PARACHARGE_LOCAL) || (s_ofsm_info[gunno].base.charge_way != APP_CHARGE_WAY_PARACHARGE_CLOUD)){
 #if (defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING))
                     s_ofsm_info[gunno].base.parameter_steady_tick = rt_tick_get();
-                    /* 闭合继电器 */
-                    mw_enable_dcrelay(gunno);
 #else
                     mw_charge_start_cmd(gunno);
 #endif /* defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING) */
@@ -3095,8 +3093,6 @@ static void ofsm_starting_fun(uint8_t gunno)
                     if(s_ofsm_info[gunno].base.main_gunno == gunno){
 #if (defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING))
                         s_ofsm_info[gunno].base.parameter_steady_tick = rt_tick_get();
-                        /* 闭合继电器 */
-                        mw_enable_dcrelay(gunno);
 #else
                         mw_charge_start_cmd(gunno);
 #endif /* defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING) */
@@ -3105,6 +3101,12 @@ static void ofsm_starting_fun(uint8_t gunno)
             }
         }
     }
+#if (defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING))
+    else{
+        s_ofsm_info[gunno].base.parameter_steady_tick = rt_tick_get();
+    }
+#endif /* defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING) */
+
     /** 无BMS版本 */
 #if (defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING))
     /** 等待采样稳定 */
@@ -3114,6 +3116,7 @@ static void ofsm_starting_fun(uint8_t gunno)
         thaisen_open_charge_module(gunno, sampling_voltage, APP_NO_BMS_PRECHARGE_CURRENT);
         /** 电压判定符合 */
         if(abs((sampling_voltage - module_voltage) < APP_NO_BMS_PRECHARGE_VOLTAGE_THRESHOLD) && (sampling_voltage >APP_NO_BMS_PRECHARGE_SAMPLING_VOLTAGE_MIN)){
+            mw_enable_dcrelay(gunno);    /** 闭合继电器 */
             charge_state = APP_CHARGE_STATE_CHARGING;
         }
     }
@@ -5299,7 +5302,11 @@ static void ofsm_charging_fun(uint8_t gunno)
                 _money += s_ofsm_info[another_gun].base.fees_total;
 #endif /* defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING) */
             }
+#if (defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING))
+            if((_money + 1000) > strategy_para){
+#else
             if((_money + 10000) > strategy_para){
+#endif /* defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING) */
                 if(((s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD) && (s_ofsm_info[gunno].base.main_gunno == gunno)) ||
                         (s_ofsm_info[gunno].base.charge_way != APP_CHARGE_WAY_PARACHARGE_CLOUD)){
                     s_thaisen_transaction[gunno].stop_reason = APP_SYSTEM_STOP_WAY_NO_BALLANCE;
