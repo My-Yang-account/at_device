@@ -2798,8 +2798,10 @@ uint8_t sgcc_chargepile_request_padding_transaction_record(uint8_t gunno, void *
         memset(evs_event_tradeInfos[gunno].tradeNo, 0x00, sizeof(evs_event_tradeInfos[gunno].preTradeNo));
         memcpy(evs_event_tradeInfos[gunno].tradeNo, _transaction->device_serial_number, valid_len);
 
+        valid_len = sizeof(_transaction->car_vin);
+        valid_len = valid_len > (EVS_MAX_CAR_VIN_LEN - 0x01) ? (EVS_MAX_CAR_VIN_LEN - 0x01) : valid_len;
         memset(evs_event_tradeInfos[gunno].vinCode, 0x00, sizeof(evs_event_tradeInfos[gunno].vinCode));
-        memcpy(evs_event_tradeInfos[gunno].vinCode, _transaction->car_vin, sizeof(_transaction->car_vin));
+        memcpy(evs_event_tradeInfos[gunno].vinCode, _transaction->car_vin, valid_len);
 
         evs_event_tradeInfos[gunno].timeDivType = SGCC_OPSCTL_ACTION;
 
@@ -2817,12 +2819,12 @@ uint8_t sgcc_chargepile_request_padding_transaction_record(uint8_t gunno, void *
         evs_event_tradeInfos[gunno].reason = sgcc_chargepile_stop_reason_converted(_transaction, _transaction->stop_reason, _transaction->order_info.is_start_fail);
 
         valid_len = sizeof(_transaction->elect_model_sn);
-        valid_len = valid_len > EVS_MAX_MODEL_ID_LEN ? EVS_MAX_MODEL_ID_LEN : valid_len;
+        valid_len = valid_len > (EVS_MAX_MODEL_ID_LEN - 0x01) ? (EVS_MAX_MODEL_ID_LEN - 0x01) : valid_len;
         memset(evs_event_tradeInfos[gunno].eleModelId, 0x00, sizeof(evs_event_tradeInfos[gunno].eleModelId));
         memcpy(evs_event_tradeInfos[gunno].eleModelId, _transaction->elect_model_sn, valid_len);
 
         valid_len = sizeof(_transaction->service_model_sn);
-        valid_len = valid_len > EVS_MAX_MODEL_ID_LEN ? EVS_MAX_MODEL_ID_LEN : valid_len;
+        valid_len = valid_len > (EVS_MAX_MODEL_ID_LEN - 0x01) ? (EVS_MAX_MODEL_ID_LEN - 0x01) : valid_len;
         memset(evs_event_tradeInfos[gunno].serModelId, 0x00, sizeof(evs_event_tradeInfos[gunno].serModelId));
         memcpy(evs_event_tradeInfos[gunno].serModelId, _transaction->service_model_sn, valid_len);
 

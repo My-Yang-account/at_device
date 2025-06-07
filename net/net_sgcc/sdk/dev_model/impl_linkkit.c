@@ -412,6 +412,7 @@ static void _iotx_linkkit_upstream_callback_remove(int msgid, int code)
     int  report_sample = 0;
 #endif
 
+static unsigned int s_sgcc_request_ptr = 0;
 static void _iotx_linkkit_event_callback(iotx_dm_event_types_t type, char *payload)
 {
     int res = 0;
@@ -601,10 +602,14 @@ static void _iotx_linkkit_event_callback(iotx_dm_event_types_t type, char *paylo
             memcpy(request, lite_item_payload.value, lite_item_payload.value_length);
 
             callback = iotx_event_callback(ITE_SERVICE_REQUEST);
+
+            s_sgcc_request_ptr = (unsigned int)request;
+
             if (callback) {
                 res = ((int (*)(const int, const char *, const int, const char *, const int, char **,
                                 int *))callback)(lite_item_devid.value_int, lite_item_serviceid.value,
                                                  lite_item_serviceid.value_length, request, lite_item_payload.value_length, &response, &response_len);
+                request = (char*)s_sgcc_request_ptr;
                 if (response != NULL && response_len > 0) {
                     /* service response exist */
                     iotx_dm_error_code_t code = (res == 0) ? (IOTX_DM_ERR_CODE_SUCCESS) : (IOTX_DM_ERR_CODE_REQUEST_ERROR);
