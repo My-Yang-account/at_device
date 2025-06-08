@@ -5286,6 +5286,8 @@ static int32_t ykc_monitor_config_info_process_function_config_info(uint8_t opti
         response->auxpower_24V = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_SUPORT_AUXPOWER24V, 0x00));
         response->offline_billing = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_SUPORT_OFFLINE_BILLING, 0x00));
         response->password_start = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_SUPORT_PASSWORD_START, 0x00));
+        response->mode_select = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_SUPORT_MODE_SELECT, 0x00));
+        response->offline_card = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_SUPORT_OFFLINE_CARD, 0x00));
     }
     /** 配置信息设置 */
     else{
@@ -5415,7 +5417,7 @@ static int32_t ykc_monitor_config_info_process_input_7103_7101_info(uint8_t opti
     if(option == NETYKCM_CONFIG_INFO_OPTION_QUERY){
         struct ykcm_input_info_7103_7101 *response = (struct ykcm_input_info_7103_7101*)buf;
 
-        memset(response, 0x00, sizeof(struct ykcm_function_config));
+        memset(response, 0x00, sizeof(struct ykcm_input_info_7103_7101));
 
         response->scram.enable = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INEN_SCRAM, 0x00));
         response->scram.reversal = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INNEG_SCRAM, 0x00));

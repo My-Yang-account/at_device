@@ -155,6 +155,9 @@ typedef struct{
     uint16_t auxpower_24V : 1;                                    /** 24V辅源(1：启用，0：禁用) */
     uint16_t offline_billing : 1;                                 /** 离线计费(1：启用，0：禁用) */
     uint16_t password_start : 1;                                  /** 密码启动(1：启用，0：禁用) */
+    /** 新增：2025/06/08 */
+    uint16_t mode_select : 1;                                     /** 模式选择(1：启用，0：禁用) */
+    uint16_t offline_card : 1;                                    /** 离线卡(1：启用，0：禁用) */
 }thaisen_cfg_info_function;
 /** 参数配置页面:屏幕-设置-出厂设置-离线计费 */
 struct _time_info{
