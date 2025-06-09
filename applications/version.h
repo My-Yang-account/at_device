@@ -31,7 +31,8 @@ extern "C" {
                                          [1.6.3 能佳版本(修复断网问题)]
                                          [1.6.8 /1.7.0 为不启用网络部分、去掉联网图标、屏幕二维码只显示桩号+枪号]
                                          [1.7.3(单枪) 最后一次提交(增加厂商编码、注册码屏幕可输入，修改注册码后会清空三元组) 2025/05/06]
-                                         [1.9.8(双枪) 最后一次提交(fix: 故障停也可以二次启动 + 并充模式下才发CFC报文) 2025/05/13]*/
+                                         [1.9.8(双枪) 最后一次提交(fix: 故障停也可以二次启动 + 并充模式下才发CFC报文) 2025/05/13]
+                                         [2.0.0(双枪国网) 最后一次提交(fix: 上报模块故障开启重发机制) 2025/06/07]*/
 
 #ifdef APP_USING_DOUBLEGUN
 
@@ -67,9 +68,9 @@ extern "C" {
 #define SOFTWARE_MODULE                                         "7103-V30"          /* 软件型号 */
 #endif /* APP_SOFT_MODULE_USING_GB_WHOLE_7103F_ZG */
 
-#define SOFTWARE_VERSION       1L
-#define SOFTWARE_SUBVERSION    9
-#define SOFTWARE_REVISION      9L  /** 01 */
+#define SOFTWARE_VERSION       2L
+#define SOFTWARE_SUBVERSION    0
+#define SOFTWARE_REVISION      0L  /** 01 */
 
 #else
 
