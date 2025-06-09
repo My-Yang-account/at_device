@@ -4245,7 +4245,7 @@ static void ofsm_charging_fun(uint8_t gunno)
     switch(s_ofsm_info[gunno].base.bat_charge_stage){
     case APP_BATTERY_CHARGE_STAGE_1:
     {
-        int32_t sampling_voltage = mw_get_sampling_voltage(gunno);
+        int32_t sampling_voltage = thaisen_get_module_voltage(gunno);
         if(s_ofsm_info[gunno].base.battery_type == APP_BATTERY_TYPE_64V125AH){
             if((rt_tick_get() - s_ofsm_info[gunno].base.current_rise_tick) > APP_NO_BMS_RISE_CURRENT_PERIOD){
                 s_ofsm_info[gunno].base.current_rise_tick = rt_tick_get();
