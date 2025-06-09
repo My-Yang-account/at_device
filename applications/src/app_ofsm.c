@@ -6837,7 +6837,6 @@ void ofsm_thread_entry(void *parameter)
             switch(mw_get_charge_library_state(thread_gunno)){
             case APP_CHARGE_CTRL_IDLE:
             case APP_CHARGE_CTRL_AUA_POWER:
-            case APP_CHARGE_CTRL_WAIT_GUN:
                 if(thaisen_is_debug() == APP_THA_ENUM_FALSE){
                     if(thaisenElectLock_StateQuery(thread_gunno) == thaisen_elock_break){
                         s_ofsm_info[thread_gunno].base.elock_check_tick = rt_tick_get();
@@ -6893,53 +6892,7 @@ void ofsm_thread_entry(void *parameter)
                     s_ofsm_info[thread_gunno].base.acrelay_check_tick = rt_tick_get();
                 }
                 break;
-            case APP_CHARGE_CTRL_CRM:
-            case APP_CHARGE_CTRL_CTSCML:
-            case APP_CHARGE_CTRL_CRO:
-                if(thaisenElectLock_StateQuery(thread_gunno) == thaisen_elock_close){
-                    s_ofsm_info[thread_gunno].base.elock_check_tick = rt_tick_get();
-                    thaisenClearSysFaultLib(thaisenElock, thread_gunno);
-                }
-                if((rt_tick_get() - s_ofsm_info[thread_gunno].base.elock_check_tick) > APP_ELOCK_RELAY_CHECK_TIME){
-                    if(thaisenGetSysFaultCheckEnBit(thaisenElock)){
-                        /** 电子锁故障 */
-                        thaisenSetSysFaultLib(thaisenElock, thread_gunno);
-                    }else{
-                        s_ofsm_info[thread_gunno].base.elock_check_tick = rt_tick_get();
-                    }
-                }
-
-                if(thaisenDcRelay_StateQuery(thread_gunno, thaisenRelayBreak)){
-                    s_ofsm_info[thread_gunno].base.dcrealy_check_tick = rt_tick_get();
-                    thaisenClearSysFaultLib(thaisenRelay, thread_gunno);
-                }
-                if((rt_tick_get() - s_ofsm_info[thread_gunno].base.dcrealy_check_tick) > APP_ELOCK_RELAY_CHECK_TIME){
-                    if(thaisenGetSysFaultCheckEnBit(thaisenRelay)){
-                        /** 直流继电器故障 */
-                        thaisenSetSysFaultLib(thaisenRelay, thread_gunno);
-                    }else{
-                        s_ofsm_info[thread_gunno].base.dcrealy_check_tick = rt_tick_get();
-                    }
-                }
-
-                if(thaisenAcRelay_StateQuery() == thaisenRelayClose){
-                    s_ofsm_info[thread_gunno].base.acrelay_check_tick = rt_tick_get();
-                    thaisenClearSysFaultLib(thaisenRelayAc, thread_gunno);
-                }
-                if((rt_tick_get() - s_ofsm_info[thread_gunno].base.acrelay_check_tick) > APP_ELOCK_RELAY_CHECK_TIME){
-                    if(thaisenGetSysFaultCheckEnBit(thaisenRelayAc)){
-                        /** 交流接触器故障 */
-                        thaisenSetSysFaultLib(thaisenRelayAc, thread_gunno);
-                    }else{
-                        s_ofsm_info[thread_gunno].base.acrelay_check_tick = rt_tick_get();
-                    }
-                }
-                break;
-            case APP_CHARGE_CTRL_CROAA:
             case APP_CHARGE_CTRL_CCS:
-            case APP_CHARGE_CTRL_CHM:
-            case APP_CHARGE_CTRL_INSULT:
-            case APP_CHARGE_CTRL_FINISH:
                 if(thaisenElectLock_StateQuery(thread_gunno) == thaisen_elock_close){
                     s_ofsm_info[thread_gunno].base.elock_check_tick = rt_tick_get();
                     thaisenClearSysFaultLib(thaisenElock, thread_gunno);
