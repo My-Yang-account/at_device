@@ -2845,11 +2845,16 @@ static void ofsm_starting_fun(uint8_t gunno)
             (s_ofsm_info[gunno].base.main_gunno != gunno)){
         /** 副枪有故障导致整机停止 */
         if(s_ofsm_info[gunno].base.flag.is_deputygun_stop == APP_THA_ENUM_FALSE){
-            if((system_fault != APP_SYS_FAULT_NO_ERROR) && (system_fault != APP_SYS_FAULT_CARD_READER) && (system_fault != APP_SYS_FAULT_DOOR)){
+            if(((system_fault != APP_SYS_FAULT_NO_ERROR) && (system_fault != APP_SYS_FAULT_CARD_READER) && (system_fault != APP_SYS_FAULT_DOOR)) || \
+                    (s_ofsm_info[gunno].base.cc1_state != CC1_4V)){
                 s_ofsm_info[gunno].base.system_fault = system_fault;
                 s_ofsm_info[gunno].base.charge_fault = charge_fault;
 
-                s_thaisen_transaction[gunno].stop_reason = system_fault;
+                if(s_ofsm_info[gunno].base.cc1_state != CC1_4V){
+                    s_thaisen_transaction[gunno].stop_reason = APP_SYSTEM_STOP_WAY_PULL_GUN;
+                }else{
+                    s_thaisen_transaction[gunno].stop_reason = system_fault;
+                }
                 s_ofsm_info[gunno].base.reason_code = s_thaisen_transaction[gunno].stop_reason;
                 s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_TRUE;
 
@@ -2909,7 +2914,9 @@ static void ofsm_starting_fun(uint8_t gunno)
 
     if((s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL) || (s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD)){
         /** 主枪停止，副枪获取主枪信息，副枪根据主枪状态跳转 */
-        if((gunno != s_ofsm_info[gunno].base.main_gunno) && (s_ofsm_info[gunno].state != s_ofsm_info[s_ofsm_info[gunno].base.main_gunno].state)){
+        if((gunno != s_ofsm_info[gunno].base.main_gunno) &&  \
+                (s_ofsm_info[gunno].state != s_ofsm_info[s_ofsm_info[gunno].base.main_gunno].state) && \
+                (s_ofsm_info[s_ofsm_info[gunno].base.main_gunno].state > APP_OFSM_STATE_STARTING)){
             if(s_ofsm_info[s_ofsm_info[gunno].base.main_gunno].state < APP_OFSM_STATE_SIZE){
                 s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][s_ofsm_info[s_ofsm_info[gunno].base.main_gunno].state];
                 s_ofsm_info[gunno].state = s_ofsm_info[s_ofsm_info[gunno].base.main_gunno].state;
@@ -4346,13 +4353,18 @@ static void ofsm_charging_fun(uint8_t gunno)
     if((s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL) && (s_ofsm_info[gunno].base.main_gunno != gunno)){
         /** 副枪有故障导致整机停止 */
         if(s_ofsm_info[gunno].base.flag.is_deputygun_stop == APP_THA_ENUM_FALSE){
-            if((system_fault != APP_SYS_FAULT_NO_ERROR) && (system_fault != APP_SYS_FAULT_CARD_READER) && (system_fault != APP_SYS_FAULT_DOOR)){
+            if(((system_fault != APP_SYS_FAULT_NO_ERROR) && (system_fault != APP_SYS_FAULT_CARD_READER) && (system_fault != APP_SYS_FAULT_DOOR)) || \
+                    (s_ofsm_info[gunno].base.cc1_state != CC1_4V)){
                 s_thaisen_transaction[gunno].order_info.is_charging = APP_THA_ENUM_FALSE;
 
                 s_ofsm_info[gunno].base.system_fault = system_fault;
                 s_ofsm_info[gunno].base.charge_fault = charge_fault;
 
-                s_thaisen_transaction[gunno].stop_reason = system_fault;
+                if(s_ofsm_info[gunno].base.cc1_state != CC1_4V){
+                    s_thaisen_transaction[gunno].stop_reason = APP_SYSTEM_STOP_WAY_PULL_GUN;
+                }else{
+                    s_thaisen_transaction[gunno].stop_reason = system_fault;
+                }
                 s_ofsm_info[gunno].base.reason_code = s_thaisen_transaction[gunno].stop_reason;
                 s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_TRUE;
 
@@ -4364,7 +4376,9 @@ static void ofsm_charging_fun(uint8_t gunno)
     }
     if(s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL){
         /** 主枪停止，副枪获取主枪信息，副枪根据主枪状态跳转 */
-        if((gunno != s_ofsm_info[gunno].base.main_gunno) && (s_ofsm_info[gunno].state != s_ofsm_info[s_ofsm_info[gunno].base.main_gunno].state)){
+        if((gunno != s_ofsm_info[gunno].base.main_gunno) && \
+                (s_ofsm_info[gunno].state != s_ofsm_info[s_ofsm_info[gunno].base.main_gunno].state) && \
+                (s_ofsm_info[s_ofsm_info[gunno].base.main_gunno].state > APP_OFSM_STATE_CHARGING)){
             if(s_ofsm_info[s_ofsm_info[gunno].base.main_gunno].state < APP_OFSM_STATE_SIZE){
                 s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][s_ofsm_info[s_ofsm_info[gunno].base.main_gunno].state];
                 s_ofsm_info[gunno].state = s_ofsm_info[s_ofsm_info[gunno].base.main_gunno].state;
@@ -4425,7 +4439,9 @@ static void ofsm_charging_fun(uint8_t gunno)
     /************************************************************************************************************/
     if(s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
         /** 主枪停止，副枪获取主枪信息，副枪根据主枪状态跳转 */
-        if((gunno != s_ofsm_info[gunno].base.main_gunno) && (s_ofsm_info[gunno].state != s_ofsm_info[s_ofsm_info[gunno].base.main_gunno].state)){
+        if((gunno != s_ofsm_info[gunno].base.main_gunno) && \
+                (s_ofsm_info[gunno].state != s_ofsm_info[s_ofsm_info[gunno].base.main_gunno].state) && \
+                (s_ofsm_info[s_ofsm_info[gunno].base.main_gunno].state > APP_OFSM_STATE_CHARGING)){
             if(s_ofsm_info[s_ofsm_info[gunno].base.main_gunno].state < APP_OFSM_STATE_SIZE){
                 s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][s_ofsm_info[s_ofsm_info[gunno].base.main_gunno].state];
                 s_ofsm_info[gunno].state = s_ofsm_info[s_ofsm_info[gunno].base.main_gunno].state;
@@ -4477,13 +4493,18 @@ static void ofsm_charging_fun(uint8_t gunno)
     if((s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD) && (s_ofsm_info[gunno].base.main_gunno != gunno)){
         /** 副枪有故障导致整机停止 */
         if(s_ofsm_info[gunno].base.flag.is_deputygun_stop == APP_THA_ENUM_FALSE){
-            if((system_fault != APP_SYS_FAULT_NO_ERROR) && (system_fault != APP_SYS_FAULT_CARD_READER) && (system_fault != APP_SYS_FAULT_DOOR)){
+            if(((system_fault != APP_SYS_FAULT_NO_ERROR) && (system_fault != APP_SYS_FAULT_CARD_READER) && (system_fault != APP_SYS_FAULT_DOOR)) || \
+                    (s_ofsm_info[gunno].base.cc1_state != CC1_4V)){
                 s_thaisen_transaction[gunno].order_info.is_charging = APP_THA_ENUM_FALSE;
 
                 s_ofsm_info[gunno].base.system_fault = system_fault;
                 s_ofsm_info[gunno].base.charge_fault = charge_fault;
 
-                s_thaisen_transaction[gunno].stop_reason = system_fault;
+                if(s_ofsm_info[gunno].base.cc1_state != CC1_4V){
+                    s_thaisen_transaction[gunno].stop_reason = APP_SYSTEM_STOP_WAY_PULL_GUN;
+                }else{
+                    s_thaisen_transaction[gunno].stop_reason = system_fault;
+                }
                 s_ofsm_info[gunno].base.reason_code = s_thaisen_transaction[gunno].stop_reason;
                 s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_TRUE;
 
