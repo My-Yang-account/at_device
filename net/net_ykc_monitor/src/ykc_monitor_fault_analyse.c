@@ -14,6 +14,34 @@
 
 #define YKC_MONITOR_FAULT_MSG_NUM_MAX                            0x05
 
+#ifdef NET_YKC_MONITOR_FAULT_USING_EXTEND
+#define YKC_MONITOR_REALTIME_FAULT_SCRAM                         (0x01 <<0)       /* 云快充实时故障：急停按钮动作故障 */
+#define YKC_MONITOR_REALTIME_FAULT_CARDREADER                    (0x01 <<1)       /* 云快充实时故障：读卡器故障 */
+#define YKC_MONITOR_REALTIME_FAULT_DOOR                          (0x01 <<2)       /* 云快充实时故障：门禁故障 */
+#define YKC_MONITOR_REALTIME_FAULT_AMMETER                       (0x01 <<3)       /* 云快充实时故障：电表故障 */
+#define YKC_MONITOR_REALTIME_FAULT_CHARGE_MODULE                 (0x01 <<4)       /* 云快充实时故障：充电模块故障 */
+#define YKC_MONITOR_REALTIME_FAULT_OVERTEMP                      (0x01 <<5)       /* 云快充实时故障：过温故障 */
+#define YKC_MONITOR_REALTIME_FAULT_OVER_VOLT                     (0x01 <<6)       /* 云快充实时故障：过压故障 */
+#define YKC_MONITOR_REALTIME_FAULT_UNDER_VOLT                    (0x01 <<7)       /* 云快充实时故障：欠压故障 */
+#define YKC_MONITOR_REALTIME_FAULT_OVER_CURR                     (0x01 <<8)       /* 云快充实时故障：过流故障 */
+#define YKC_MONITOR_REALTIME_FAULT_DC_RELAY                      (0x01 <<9)       /* 云快充实时故障：直流继电器故障 */
+#define YKC_MONITOR_REALTIME_FAULT_PARALLEL_RELAY                (0x01 <<10)      /* 云快充实时故障：母联继电器故障 */
+#define YKC_MONITOR_REALTIME_FAULT_AC_RELAY                      (0x01 <<11)      /* 云快充实时故障：交流接触器故障 */
+#define YKC_MONITOR_REALTIME_FAULT_ELOCK                         (0x01 <<12)      /* 云快充实时故障：电子锁故障 */
+#define YKC_MONITOR_REALTIME_FAULT_AUXPOWER                      (0x01 <<13)      /* 云快充实时故障：辅助电源故障 */
+#define YKC_MONITOR_REALTIME_FAULT_FLASH                         (0x01 <<14)      /* 云快充实时故障：FLASH故障 */
+#define YKC_MONITOR_REALTIME_FAULT_EEPROM                        (0x01 <<15)      /* 云快充实时故障：EEPROM故障 */
+#define YKC_MONITOR_REALTIME_FAULT_LIGHTPROTECT                  (0x01 <<16)      /* 云快充实时故障：防雷器故障 */
+#define YKC_MONITOR_REALTIME_FAULT_GUNSITE                       (0x01 <<17)      /* 云快充实时故障：枪座故障 */
+#define YKC_MONITOR_REALTIME_FAULT_CIRCUIT_BREAKER               (0x01 <<18)      /* 云快充实时故障：断路器故障 */
+#define YKC_MONITOR_REALTIME_FAULT_FLOODING                      (0x01 <<19)      /* 云快充实时故障：水浸故障 */
+#define YKC_MONITOR_REALTIME_FAULT_SMOKE                         (0x01 <<20)      /* 云快充实时故障：烟感故障 */
+#define YKC_MONITOR_REALTIME_FAULT_POUR                          (0x01 <<21)      /* 云快充实时故障：倾倒故障 */
+#define YKC_MONITOR_REALTIME_FAULT_LIQUID_COOLING                (0x01 <<22)      /* 云快充实时故障：液冷故障 */
+#define YKC_MONITOR_REALTIME_FAULT_FUSE                          (0x01 <<23)      /* 云快充实时故障：熔断器故障 */
+#define YKC_MONITOR_REALTIME_FAULT_MAIN_CABINET                  (0x01 <<24)      /* 云快充实时故障：主机柜故障 */
+#define YKC_MONITOR_REALTIME_FAULT_LOCK_DEVICE                   (0x01 <<25)      /* 云快充实时故障：锁桩 */
+#else
 #define YKC_MONITOR_REALTIME_FAULT_SCRAM                         (0x01 <<0)       /* 云快充实时故障：急停按钮动作故障 */
 #define YKC_MONITOR_REALTIME_FAULT_RECTIFIER                     (0x01 <<1)       /* 云快充实时故障：无可用整流模块 */
 #define YKC_MONITOR_REALTIME_FAULT_AIR_OUTLET_OVERTEMP           (0x01 <<2)       /* 云快充实时故障：出风口温度过高 */
@@ -30,6 +58,7 @@
 #define YKC_MONITOR_REALTIME_FAULT_FLASH                         (0x01 <<13)      /* 云快充实时故障：flash */
 #define YKC_MONITOR_REALTIME_FAULT_OVER_VOLTAGE                  (0x01 <<14)      /* 云快充实时故障：过压 */
 #define YKC_MONITOR_REALTIME_FAULT_UNDER_VOLTAGE                 (0x01 <<15)      /* 云快充实时故障：欠压 */
+#endif /* NET_YKC_MONITOR_FAULT_USING_EXTEND */
 
 #pragma pack(1)
 struct ykc_monitor_fault_head{
@@ -50,7 +79,11 @@ struct ykc_monitor_fault_info{
 };
 #pragma pack()
 
+#ifdef NET_YKC_MONITOR_FAULT_USING_EXTEND
+NET_DEF_SRAM2 static uint32_t s_ykc_monitor_realtime_fault[NET_SYSTEM_GUN_NUMBER][NET_YKC_MONITOR_FAULT_SET_NUM];
+#else
 NET_DEF_SRAM2 static uint16_t s_ykc_monitor_realtime_fault[NET_SYSTEM_GUN_NUMBER];
+#endif /* NET_YKC_MONITOR_FAULT_USING_EXTEND */
 NET_DEF_SRAM2 static struct ykc_monitor_fault_info s_ykc_monitor_fault_info[NET_SYSTEM_GUN_NUMBER];
 
 #ifdef NET_DESIGNATE_REGION
@@ -61,7 +94,11 @@ NET_DEF_SRAM2 static struct ykc_monitor_fault_info s_ykc_monitor_fault_info[NET_
 void ykc_monitor_fault_info_init(void)
 {
     for(uint8_t gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
+#ifdef NET_YKC_MONITOR_FAULT_USING_EXTEND
+        memset(&s_ykc_monitor_realtime_fault[gunno], 0x00, sizeof(s_ykc_monitor_realtime_fault[gunno]));
+#else
         s_ykc_monitor_realtime_fault[gunno] = 0x00;
+#endif /* NET_YKC_MONITOR_FAULT_USING_EXTEND */
         memset(&s_ykc_monitor_fault_info[gunno], 0x00, sizeof(s_ykc_monitor_fault_info[gunno]));
     }
 }
@@ -103,125 +140,358 @@ static int32_t ykc_monitor_get_fault_code(uint32_t bit, uint8_t gunno, uint8_t i
     if(gunno >= NET_SYSTEM_GUN_NUMBER){
         return -0x01;
     }
-
+    extern uint16_t ykc_monitor_chargepile_fault_converted(uint16_t bit);
     bit = ykc_monitor_chargepile_fault_converted(bit);
 
     switch(bit){
+    /** 急停故障 */
     case NET_GENERAL_FAULT_SCRAM:
+#ifdef NET_YKC_MONITOR_FAULT_USING_EXTEND
+        if(is_resume){
+            s_ykc_monitor_realtime_fault[gunno][NET_YKC_MONITOR_FAULT_SET_1] &= ~YKC_MONITOR_REALTIME_FAULT_SCRAM;
+        }else{
+            s_ykc_monitor_realtime_fault[gunno][NET_YKC_MONITOR_FAULT_SET_1] |= YKC_MONITOR_REALTIME_FAULT_SCRAM;
+        }
+#else
         if(is_resume){
             s_ykc_monitor_realtime_fault[gunno] &= ~YKC_MONITOR_REALTIME_FAULT_SCRAM;
         }else{
             s_ykc_monitor_realtime_fault[gunno] |= YKC_MONITOR_REALTIME_FAULT_SCRAM;
         }
+#endif /* NET_YKC_MONITOR_FAULT_USING_EXTEND */
         break;
+     /** 读卡器故障 */
     case NET_GENERAL_FAULT_CARD_READER:
+#ifdef NET_YKC_MONITOR_FAULT_USING_EXTEND
+        if(is_resume){
+            s_ykc_monitor_realtime_fault[gunno][NET_YKC_MONITOR_FAULT_SET_1] &= ~YKC_MONITOR_REALTIME_FAULT_CARDREADER;
+        }else{
+            s_ykc_monitor_realtime_fault[gunno][NET_YKC_MONITOR_FAULT_SET_1] |= YKC_MONITOR_REALTIME_FAULT_CARDREADER;
+        }
+#else
         if(is_resume){
             s_ykc_monitor_realtime_fault[gunno] &= ~YKC_MONITOR_REALTIME_FAULT_CARD_READER_COMMUNICATION;
         }else{
             s_ykc_monitor_realtime_fault[gunno] |= YKC_MONITOR_REALTIME_FAULT_CARD_READER_COMMUNICATION;
         }
+#endif /* NET_YKC_MONITOR_FAULT_USING_EXTEND */
         break;
+    /** 门禁故障 */
     case NET_GENERAL_FAULT_DOOR:
+#ifdef NET_YKC_MONITOR_FAULT_USING_EXTEND
+        if(is_resume){
+            s_ykc_monitor_realtime_fault[gunno][NET_YKC_MONITOR_FAULT_SET_1] &= ~YKC_MONITOR_REALTIME_FAULT_DOOR;
+        }else{
+            s_ykc_monitor_realtime_fault[gunno][NET_YKC_MONITOR_FAULT_SET_1] |= YKC_MONITOR_REALTIME_FAULT_DOOR;
+        }
+#else
         if(is_resume){
             s_ykc_monitor_realtime_fault[gunno] &= ~YKC_MONITOR_REALTIME_FAULT_DOOR;
         }else{
             s_ykc_monitor_realtime_fault[gunno] |= YKC_MONITOR_REALTIME_FAULT_DOOR;
         }
+#endif /* NET_YKC_MONITOR_FAULT_USING_EXTEND */
         break;
+    /** 电表故障 */
     case NET_GENERAL_FAULT_AMMETER:
+#ifdef NET_YKC_MONITOR_FAULT_USING_EXTEND
+        if(is_resume){
+            s_ykc_monitor_realtime_fault[gunno][NET_YKC_MONITOR_FAULT_SET_1] &= ~YKC_MONITOR_REALTIME_FAULT_AMMETER;
+        }else{
+            s_ykc_monitor_realtime_fault[gunno][NET_YKC_MONITOR_FAULT_SET_1] |= YKC_MONITOR_REALTIME_FAULT_AMMETER;
+        }
+#else
         if(is_resume){
             s_ykc_monitor_realtime_fault[gunno] &= ~YKC_MONITOR_REALTIME_FAULT_AMMETER_COMMUNICATION;
         }else{
             s_ykc_monitor_realtime_fault[gunno] |= YKC_MONITOR_REALTIME_FAULT_AMMETER_COMMUNICATION;
         }
+#endif /* NET_YKC_MONITOR_FAULT_USING_EXTEND */
         break;
+    /** 充电模块故障 */
     case NET_GENERAL_FAULT_CHARGE_MODULE:
+#ifdef NET_YKC_MONITOR_FAULT_USING_EXTEND
+        if(is_resume){
+            s_ykc_monitor_realtime_fault[gunno][NET_YKC_MONITOR_FAULT_SET_1] &= ~YKC_MONITOR_REALTIME_FAULT_CHARGE_MODULE;
+        }else{
+            s_ykc_monitor_realtime_fault[gunno][NET_YKC_MONITOR_FAULT_SET_1] |= YKC_MONITOR_REALTIME_FAULT_CHARGE_MODULE;
+        }
+#else
         if(is_resume){
             s_ykc_monitor_realtime_fault[gunno] &= ~YKC_MONITOR_REALTIME_FAULT_RECTIFIER;
         }else{
             s_ykc_monitor_realtime_fault[gunno] |= YKC_MONITOR_REALTIME_FAULT_RECTIFIER;
         }
+#endif /* NET_YKC_MONITOR_FAULT_USING_EXTEND */
         break;
+    /** 过温故障 */
     case NET_GENERAL_FAULT_OVER_TEMP:
+#ifdef NET_YKC_MONITOR_FAULT_USING_EXTEND
+        if(is_resume){
+            s_ykc_monitor_realtime_fault[gunno][NET_YKC_MONITOR_FAULT_SET_1] &= ~YKC_MONITOR_REALTIME_FAULT_OVERTEMP;
+        }else{
+            s_ykc_monitor_realtime_fault[gunno][NET_YKC_MONITOR_FAULT_SET_1] |= YKC_MONITOR_REALTIME_FAULT_OVERTEMP;
+        }
+#else
         if(is_resume){
             s_ykc_monitor_realtime_fault[gunno] &= ~YKC_MONITOR_REALTIME_FAULT_AIR_OUTLET_OVERTEMP;
         }else{
             s_ykc_monitor_realtime_fault[gunno] |= YKC_MONITOR_REALTIME_FAULT_AIR_OUTLET_OVERTEMP;
         }
+#endif /* NET_YKC_MONITOR_FAULT_USING_EXTEND */
         break;
+    /** 过压故障 */
     case NET_GENERAL_FAULT_OVER_VOLT:
+#ifdef NET_YKC_MONITOR_FAULT_USING_EXTEND
+        if(is_resume){
+            s_ykc_monitor_realtime_fault[gunno][NET_YKC_MONITOR_FAULT_SET_1] &= ~YKC_MONITOR_REALTIME_FAULT_OVER_VOLT;
+        }else{
+            s_ykc_monitor_realtime_fault[gunno][NET_YKC_MONITOR_FAULT_SET_1] |= YKC_MONITOR_REALTIME_FAULT_OVER_VOLT;
+        }
+#else
         if(is_resume){
             s_ykc_monitor_realtime_fault[gunno] &= ~YKC_MONITOR_REALTIME_FAULT_OVER_VOLTAGE;
         }else{
             s_ykc_monitor_realtime_fault[gunno] |= YKC_MONITOR_REALTIME_FAULT_OVER_VOLTAGE;
         }
+#endif /* NET_YKC_MONITOR_FAULT_USING_EXTEND */
         break;
+    /** 欠压故障 */
     case NET_GENERAL_FAULT_UNDER_VOLT:
+#ifdef NET_YKC_MONITOR_FAULT_USING_EXTEND
+        if(is_resume){
+            s_ykc_monitor_realtime_fault[gunno][NET_YKC_MONITOR_FAULT_SET_1] &= ~YKC_MONITOR_REALTIME_FAULT_UNDER_VOLT;
+        }else{
+            s_ykc_monitor_realtime_fault[gunno][NET_YKC_MONITOR_FAULT_SET_1] |= YKC_MONITOR_REALTIME_FAULT_UNDER_VOLT;
+        }
+#else
         if(is_resume){
             s_ykc_monitor_realtime_fault[gunno] &= ~YKC_MONITOR_REALTIME_FAULT_UNDER_VOLTAGE;
         }else{
             s_ykc_monitor_realtime_fault[gunno] |= YKC_MONITOR_REALTIME_FAULT_UNDER_VOLTAGE;
         }
+#endif /* NET_YKC_MONITOR_FAULT_USING_EXTEND */
         break;
+    /** 过流故障 */
     case NET_GENERAL_FAULT_OVER_CURR:
-        return 0x00;
+#ifdef NET_YKC_MONITOR_FAULT_USING_EXTEND
+        if(is_resume){
+            s_ykc_monitor_realtime_fault[gunno][NET_YKC_MONITOR_FAULT_SET_1] &= ~YKC_MONITOR_REALTIME_FAULT_OVER_CURR;
+        }else{
+            s_ykc_monitor_realtime_fault[gunno][NET_YKC_MONITOR_FAULT_SET_1] |= YKC_MONITOR_REALTIME_FAULT_OVER_CURR;
+        }
         break;
+#else
+        return 0x00;
+#endif /* NET_YKC_MONITOR_FAULT_USING_EXTEND */
+    /** 直流继电器故障 */
     case NET_GENERAL_FAULT_MAIN_RELAY:
+#ifdef NET_YKC_MONITOR_FAULT_USING_EXTEND
+        if(is_resume){
+            s_ykc_monitor_realtime_fault[gunno][NET_YKC_MONITOR_FAULT_SET_1] &= ~YKC_MONITOR_REALTIME_FAULT_DC_RELAY;
+        }else{
+            s_ykc_monitor_realtime_fault[gunno][NET_YKC_MONITOR_FAULT_SET_1] |= YKC_MONITOR_REALTIME_FAULT_DC_RELAY;
+        }
+#else
         if(is_resume){
             s_ykc_monitor_realtime_fault[gunno] &= ~YKC_MONITOR_REALTIME_FAULT_HV_RELAY;
         }else{
             s_ykc_monitor_realtime_fault[gunno] |= YKC_MONITOR_REALTIME_FAULT_HV_RELAY;
         }
+#endif /* NET_YKC_MONITOR_FAULT_USING_EXTEND */
         break;
+    /** 母联继电器故障 */
     case NET_GENERAL_FAULT_PARALLEL_RELAY:
-        return 0x00;
+#ifdef NET_YKC_MONITOR_FAULT_USING_EXTEND
+        if(is_resume){
+            s_ykc_monitor_realtime_fault[gunno][NET_YKC_MONITOR_FAULT_SET_1] &= ~YKC_MONITOR_REALTIME_FAULT_PARALLEL_RELAY;
+        }else{
+            s_ykc_monitor_realtime_fault[gunno][NET_YKC_MONITOR_FAULT_SET_1] |= YKC_MONITOR_REALTIME_FAULT_PARALLEL_RELAY;
+        }
         break;
+#else
+        return 0x00;
+#endif /* NET_YKC_MONITOR_FAULT_USING_EXTEND */
+    /** 交流接触器故障 */
     case NET_GENERAL_FAULT_AC_RELAY:
-        return 0x00;
+#ifdef NET_YKC_MONITOR_FAULT_USING_EXTEND
+        if(is_resume){
+            s_ykc_monitor_realtime_fault[gunno][NET_YKC_MONITOR_FAULT_SET_1] &= ~YKC_MONITOR_REALTIME_FAULT_AC_RELAY;
+        }else{
+            s_ykc_monitor_realtime_fault[gunno][NET_YKC_MONITOR_FAULT_SET_1] |= YKC_MONITOR_REALTIME_FAULT_AC_RELAY;
+        }
         break;
+#else
+        return 0x00;
+#endif /* NET_YKC_MONITOR_FAULT_USING_EXTEND */
+    /** 电子锁故障 */
     case NET_GENERAL_FAULT_ELOCK:
-        return 0x00;
+#ifdef NET_YKC_MONITOR_FAULT_USING_EXTEND
+        if(is_resume){
+            s_ykc_monitor_realtime_fault[gunno][NET_YKC_MONITOR_FAULT_SET_1] &= ~YKC_MONITOR_REALTIME_FAULT_ELOCK;
+        }else{
+            s_ykc_monitor_realtime_fault[gunno][NET_YKC_MONITOR_FAULT_SET_1] |= YKC_MONITOR_REALTIME_FAULT_ELOCK;
+        }
         break;
+#else
+        return 0x00;
+#endif /* NET_YKC_MONITOR_FAULT_USING_EXTEND */
+    /** 辅助电源故障 */
     case NET_GENERAL_FAULT_AUXPOWER:
-        return 0x00;
+#ifdef NET_YKC_MONITOR_FAULT_USING_EXTEND
+        if(is_resume){
+            s_ykc_monitor_realtime_fault[gunno][NET_YKC_MONITOR_FAULT_SET_1] &= ~YKC_MONITOR_REALTIME_FAULT_AUXPOWER;
+        }else{
+            s_ykc_monitor_realtime_fault[gunno][NET_YKC_MONITOR_FAULT_SET_1] |= YKC_MONITOR_REALTIME_FAULT_AUXPOWER;
+        }
         break;
+#else
+        return 0x00;
+#endif /* NET_YKC_MONITOR_FAULT_USING_EXTEND */
+    /** FLASH故障 */
     case NET_GENERAL_FAULT_FLASH:
+#ifdef NET_YKC_MONITOR_FAULT_USING_EXTEND
+        if(is_resume){
+            s_ykc_monitor_realtime_fault[gunno][NET_YKC_MONITOR_FAULT_SET_1] &= ~YKC_MONITOR_REALTIME_FAULT_FLASH;
+        }else{
+            s_ykc_monitor_realtime_fault[gunno][NET_YKC_MONITOR_FAULT_SET_1] |= YKC_MONITOR_REALTIME_FAULT_FLASH;
+        }
+#else
         if(is_resume){
             s_ykc_monitor_realtime_fault[gunno] &= ~YKC_MONITOR_REALTIME_FAULT_FLASH;
         }else{
             s_ykc_monitor_realtime_fault[gunno] |= YKC_MONITOR_REALTIME_FAULT_FLASH;
         }
+#endif /* NET_YKC_MONITOR_FAULT_USING_EXTEND */
         break;
+    /** EEPROM故障 */
     case NET_GENERAL_FAULT_EEPROM:
+#ifdef NET_YKC_MONITOR_FAULT_USING_EXTEND
+        if(is_resume){
+            s_ykc_monitor_realtime_fault[gunno][NET_YKC_MONITOR_FAULT_SET_1] &= ~YKC_MONITOR_REALTIME_FAULT_EEPROM;
+        }else{
+            s_ykc_monitor_realtime_fault[gunno][NET_YKC_MONITOR_FAULT_SET_1] |= YKC_MONITOR_REALTIME_FAULT_EEPROM;
+        }
+        break;
+#else
         return 0x00;
+#endif /* NET_YKC_MONITOR_FAULT_USING_EXTEND */
+    /** 防雷器故障 */
     case NET_GENERAL_FAULT_LIGHT_PRPTECT:
+#ifdef NET_YKC_MONITOR_FAULT_USING_EXTEND
+        if(is_resume){
+            s_ykc_monitor_realtime_fault[gunno][NET_YKC_MONITOR_FAULT_SET_1] &= ~YKC_MONITOR_REALTIME_FAULT_LIGHTPROTECT;
+        }else{
+            s_ykc_monitor_realtime_fault[gunno][NET_YKC_MONITOR_FAULT_SET_1] |= YKC_MONITOR_REALTIME_FAULT_LIGHTPROTECT;
+        }
+#else
         if(is_resume){
             s_ykc_monitor_realtime_fault[gunno] &= ~YKC_MONITOR_REALTIME_FAULT_AC_LIGHTNING_ARRETER;
         }else{
             s_ykc_monitor_realtime_fault[gunno] |= YKC_MONITOR_REALTIME_FAULT_AC_LIGHTNING_ARRETER;
         }
+#endif /* NET_YKC_MONITOR_FAULT_USING_EXTEND */
         break;
+    /** 枪座故障 */
     case NET_GENERAL_FAULT_GUN_SITE:
+#ifdef NET_YKC_MONITOR_FAULT_USING_EXTEND
+        if(is_resume){
+            s_ykc_monitor_realtime_fault[gunno][NET_YKC_MONITOR_FAULT_SET_1] &= ~YKC_MONITOR_REALTIME_FAULT_GUNSITE;
+        }else{
+            s_ykc_monitor_realtime_fault[gunno][NET_YKC_MONITOR_FAULT_SET_1] |= YKC_MONITOR_REALTIME_FAULT_GUNSITE;
+        }
+        break;
+#else
         return 0x00;
+#endif /* NET_YKC_MONITOR_FAULT_USING_EXTEND */
+    /** 断路器故障 */
     case NET_GENERAL_FAULT_CIRCUIT_BREAKER:
+#ifdef NET_YKC_MONITOR_FAULT_USING_EXTEND
+        if(is_resume){
+            s_ykc_monitor_realtime_fault[gunno][NET_YKC_MONITOR_FAULT_SET_1] &= ~YKC_MONITOR_REALTIME_FAULT_CIRCUIT_BREAKER;
+        }else{
+            s_ykc_monitor_realtime_fault[gunno][NET_YKC_MONITOR_FAULT_SET_1] |= YKC_MONITOR_REALTIME_FAULT_CIRCUIT_BREAKER;
+        }
+        break;
+#else
         return 0x00;
+#endif /* NET_YKC_MONITOR_FAULT_USING_EXTEND */
+    /** 水浸故障 */
     case NET_GENERAL_FAULT_FLOODING:
+#ifdef NET_YKC_MONITOR_FAULT_USING_EXTEND
+        if(is_resume){
+            s_ykc_monitor_realtime_fault[gunno][NET_YKC_MONITOR_FAULT_SET_1] &= ~YKC_MONITOR_REALTIME_FAULT_FLOODING;
+        }else{
+            s_ykc_monitor_realtime_fault[gunno][NET_YKC_MONITOR_FAULT_SET_1] |= YKC_MONITOR_REALTIME_FAULT_FLOODING;
+        }
+        break;
+#else
         return 0x00;
+#endif /* NET_YKC_MONITOR_FAULT_USING_EXTEND */
+    /** 烟感故障 */
     case NET_GENERAL_FAULT_SMOKE:
+#ifdef NET_YKC_MONITOR_FAULT_USING_EXTEND
+        if(is_resume){
+            s_ykc_monitor_realtime_fault[gunno][NET_YKC_MONITOR_FAULT_SET_1] &= ~YKC_MONITOR_REALTIME_FAULT_SMOKE;
+        }else{
+            s_ykc_monitor_realtime_fault[gunno][NET_YKC_MONITOR_FAULT_SET_1] |= YKC_MONITOR_REALTIME_FAULT_SMOKE;
+        }
+        break;
+#else
         return 0x00;
+#endif /* NET_YKC_MONITOR_FAULT_USING_EXTEND */
+    /** 倾倒故障 */
     case NET_GENERAL_FAULT_POUR:
+#ifdef NET_YKC_MONITOR_FAULT_USING_EXTEND
+        if(is_resume){
+            s_ykc_monitor_realtime_fault[gunno][NET_YKC_MONITOR_FAULT_SET_1] &= ~YKC_MONITOR_REALTIME_FAULT_POUR;
+        }else{
+            s_ykc_monitor_realtime_fault[gunno][NET_YKC_MONITOR_FAULT_SET_1] |= YKC_MONITOR_REALTIME_FAULT_POUR;
+        }
+        break;
+#else
         return 0x00;
+#endif /* NET_YKC_MONITOR_FAULT_USING_EXTEND */
+    /** 液冷故障 */
     case NET_GENERAL_FAULT_LIQUID_COOLING:
+#ifdef NET_YKC_MONITOR_FAULT_USING_EXTEND
+        if(is_resume){
+            s_ykc_monitor_realtime_fault[gunno][NET_YKC_MONITOR_FAULT_SET_1] &= ~YKC_MONITOR_REALTIME_FAULT_LIQUID_COOLING;
+        }else{
+            s_ykc_monitor_realtime_fault[gunno][NET_YKC_MONITOR_FAULT_SET_1] |= YKC_MONITOR_REALTIME_FAULT_LIQUID_COOLING;
+        }
+        break;
+#else
         return 0x00;
+#endif /* NET_YKC_MONITOR_FAULT_USING_EXTEND */
+    /** 熔断器故障 */
     case NET_GENERAL_FAULT_FUSE:
+#ifdef NET_YKC_MONITOR_FAULT_USING_EXTEND
+        if(is_resume){
+            s_ykc_monitor_realtime_fault[gunno][NET_YKC_MONITOR_FAULT_SET_1] &= ~YKC_MONITOR_REALTIME_FAULT_FUSE;
+        }else{
+            s_ykc_monitor_realtime_fault[gunno][NET_YKC_MONITOR_FAULT_SET_1] |= YKC_MONITOR_REALTIME_FAULT_FUSE;
+        }
+#else
         if(is_resume){
             s_ykc_monitor_realtime_fault[gunno] &= ~YKC_MONITOR_REALTIME_FAULT_DC_FUSE;
         }else{
             s_ykc_monitor_realtime_fault[gunno] |= YKC_MONITOR_REALTIME_FAULT_DC_FUSE;
         }
+#endif /* NET_YKC_MONITOR_FAULT_USING_EXTEND */
         break;
+    /** 主机柜故障 */
     case NET_GENERAL_FAULT_MAIN_CABINET:
+#ifdef NET_YKC_MONITOR_FAULT_USING_EXTEND
+        if(is_resume){
+            s_ykc_monitor_realtime_fault[gunno][NET_YKC_MONITOR_FAULT_SET_1] &= ~YKC_MONITOR_REALTIME_FAULT_MAIN_CABINET;
+        }else{
+            s_ykc_monitor_realtime_fault[gunno][NET_YKC_MONITOR_FAULT_SET_1] |= YKC_MONITOR_REALTIME_FAULT_MAIN_CABINET;
+        }
+        break;
+#else
         return 0x00;
+#endif /* NET_YKC_MONITOR_FAULT_USING_EXTEND */
     default:
         return 0x00;
         break;
@@ -254,7 +524,13 @@ void ykc_monitor_fault_detect_report(uint8_t gunno)
 
     if((result = ykc_monitor_get_fault_code(s_ykc_monitor_fault_info[gunno].body[index].code, gunno, s_ykc_monitor_fault_info[gunno].body[index].flag.is_resume)) >= 0x00){
         if(result > 0x00){
+#ifdef NET_YKC_MONITOR_FAULT_USING_EXTEND
+            extern void ykc_monitor_chargepile_fault_report(uint8_t gunno, uint32_t *code);
             ykc_monitor_chargepile_fault_report(gunno, s_ykc_monitor_realtime_fault[gunno]);
+#else
+            extern void ykc_monitor_chargepile_fault_report(uint8_t gunno, uint16_t code);
+            ykc_monitor_chargepile_fault_report(gunno, s_ykc_monitor_realtime_fault[gunno]);
+#endif /* NET_YKC_MONITOR_FAULT_USING_EXTEND */
         }
     }
 

@@ -75,7 +75,11 @@ void ykc_monitor_set_power_percent_response_asynchronously(uint8_t result);
 
 void ykc_monitor_chargepile_state_changed(uint8_t gunno);
 void ykc_monitor_chargepile_update_result_report(uint8_t result);
+#ifdef NET_YKC_MONITOR_FAULT_USING_EXTEND
+void ykc_monitor_chargepile_fault_report(uint8_t gunno, uint32_t *code);
+#else
 void ykc_monitor_chargepile_fault_report(uint8_t gunno, uint16_t code);
+#endif /* NET_YKC_MONITOR_FAULT_USING_EXTEND */
 int8_t ykc_monitor_chargepile_create_local_transaction_number(uint8_t gunno, void *vector, uint8_t len);
 void ykc_monitor_chargepile_time_sync_revise(uint8_t gunno);
 uint16_t ykc_monitor_chargepile_fault_converted(uint16_t bit);

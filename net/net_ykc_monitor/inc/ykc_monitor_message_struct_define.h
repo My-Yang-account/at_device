@@ -14,6 +14,7 @@
 
 #ifdef NET_PACK_USING_YKC_MONITOR
 
+#define NET_YKC_MONITOR_FAULT_USING_EXTEND                                         /* 使用扩展故障字段 */
 #define NET_YKC_MONITOR_USING_EXTEND_PROTOCOL                                      /* 使用监控扩展协议 */
 
 #define NET_YKC_MONITOR_STORAGE_INIT_FLAG                              0x12345678  /* 平台数据存储标志 */
@@ -83,6 +84,12 @@
 #define NET_YKC_MONITOR_FINISH_INFO_MAX                                0x01        /* 单次上报充电结束信息的最大个数 */
 
 #define NET_YKC_MONITOR_SCREEN_PW_LENGTH_DEFAULT                       0x0F        /* 默认屏幕密码长度 */
+
+#ifdef NET_YKC_MONITOR_FAULT_USING_EXTEND
+#define NET_YKC_MONITOR_FAULT_SET_NUM                                  0x02        /* 扩展故障集数量 */
+#define NET_YKC_MONITOR_FAULT_SET_1                                    0x00        /* 扩展故障集1 */
+#define NET_YKC_MONITOR_FAULT_SET_2                                    0x01        /* 扩展故障集2 */
+#endif /* NET_YKC_MONITOR_FAULT_USING_EXTEND */
 
 /*********************************************************************************
  * 设备配置信息报文
@@ -611,7 +618,11 @@ typedef struct{
         uint32_t charge_elect;                   /* 充电电量 */
         uint32_t loss_elect;                     /* 计损电量 */
         uint32_t consume_amount;                 /* 消费 */
+#ifdef NET_YKC_MONITOR_FAULT_USING_EXTEND
+        uint32_t fault_set[NET_YKC_MONITOR_FAULT_SET_NUM]; /* 故障集 */
+#else
         uint16_t hardware_fault;                 /* 硬件故障 */
+#endif /* NET_YKC_MONITOR_FAULT_USING_EXTEND */
     }body;
     uint16_t check_sum;                          /* 校验码 */
 }Net_YkcMonitorPro_PRes_Query_PReq_Report_RealTimeData_t;

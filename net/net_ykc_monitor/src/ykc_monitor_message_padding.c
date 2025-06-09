@@ -59,6 +59,10 @@
 #define YKC_MONITOR_REALTIME_DATA_INTERVAL_CHARGING       0x0F                  /* 充电中实时数据上报间隔  */
 #define YKC_MONITOR_REALTIME_DATA_INTERVAL_IDLE           0x05 *60              /* 空闲实时数据上报间隔  */
 
+#ifdef NET_YKC_MONITOR_FAULT_USING_EXTEND
+#define YKC_MONITOR_DEVICE_FAULT_LOCK_DEVICE              (0x01 <<25)           /* 实时故障：锁桩(这个要和 ykc_monitor_fault_analyse.c  YKC_MONITOR_REALTIME_FAULT_LOCK_DEVICE 一样) */
+#endif /* NET_YKC_MONITOR_FAULT_USING_EXTEND */
+
 #define YKC_MONITOR_REALTIME_PROCESS_THREAD_STACK_SIZE    1536                  /* 实时处理线程栈大小 */
 
 #pragma pack(1)
@@ -69,7 +73,11 @@ struct ykc_monitor_state_info{
         uint8_t connect : 2;
         uint8_t reserve : 2;
     }state;                                       /* 桩状态 */
+#ifdef NET_YKC_MONITOR_FAULT_USING_EXTEND
+    uint32_t fault_code[NET_YKC_MONITOR_FAULT_SET_NUM]; /* 故障码 */
+#else
     uint16_t fault_code;                          /* 故障码 */
+#endif /* NET_YKC_MONITOR_FAULT_USING_EXTEND */
 };
 
 struct ykc_monitor_flag_info{
@@ -1510,7 +1518,11 @@ void ykc_monitor_message_field_init(uint8_t gun)
         g_ykc_monitor_preq_report_realtime_data[gunno].head.encrypt = NET_YKC_MONITOR_MESSAGE_ENCRYPT_DISABLE;
         memcpy(g_ykc_monitor_preq_report_realtime_data[gunno].body.pile_number, g_ykc_monitor_preq_login.body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
         g_ykc_monitor_preq_report_realtime_data[gunno].body.gunno = gunno + 0x01;
+#ifdef NET_YKC_MONITOR_FAULT_USING_EXTEND
+        memset(g_ykc_monitor_preq_report_realtime_data[gunno].body.fault_set, 0x00, sizeof(g_ykc_monitor_preq_report_realtime_data[gunno].body.fault_set));
+#else
         g_ykc_monitor_preq_report_realtime_data[gunno].body.hardware_fault = 0x00;
+#endif /* NET_YKC_MONITOR_FAULT_USING_EXTEND */
 
         /** 初始化充电握手请求 */
         g_ykc_monitor_preq_shake_hand[gunno].head.encrypt = NET_YKC_MONITOR_MESSAGE_ENCRYPT_DISABLE;
@@ -2512,6 +2524,21 @@ void ykc_monitor_chargepile_update_result_report(uint8_t result)
     ykc_monitor_net_event_send(NET_YKC_MONITOR_EVENT_HANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_RESPONSE, 0x00, NET_YKC_MONITOR_PRES_EVENT_REMOTE_UPDATE);
 }
 
+#ifdef NET_YKC_MONITOR_FAULT_USING_EXTEND
+void ykc_monitor_chargepile_fault_report(uint8_t gunno, uint32_t *code)
+{
+    if(gunno >= NET_SYSTEM_GUN_NUMBER){
+        return;
+    }
+    if(code == NULL){
+        return;
+    }
+
+    for(uint8_t i = 0x00; i < NET_YKC_MONITOR_FAULT_SET_NUM; i++){
+        s_ykc_monitor_state_info[gunno].fault_code[i] = code[i];
+    }
+}
+#else
 void ykc_monitor_chargepile_fault_report(uint8_t gunno, uint16_t code)
 {
     if(gunno >= NET_SYSTEM_GUN_NUMBER){
@@ -2520,6 +2547,7 @@ void ykc_monitor_chargepile_fault_report(uint8_t gunno, uint16_t code)
 
     s_ykc_monitor_state_info[gunno].fault_code = code;
 }
+#endif /* NET_YKC_MONITOR_FAULT_USING_EXTEND */
 
 /*************************************************
  * 函数名      ykc_monitor_chargepile_create_local_transaction_number
@@ -3147,39 +3175,65 @@ static void ykc_monitor_state_changed_check(uint8_t gunno, System_BaseData * bas
         return;
     }
 
+#ifdef NET_YKC_MONITOR_FAULT_USING_EXTEND
+    if((g_ykc_monitor_preq_report_realtime_data[gunno].body.plug_gun != s_ykc_monitor_state_info[gunno].state.connect) ||
+            (g_ykc_monitor_preq_report_realtime_data[gunno].body.state != s_ykc_monitor_state_info[gunno].state.state) ||
+            (memcmp(g_ykc_monitor_preq_report_realtime_data[gunno].body.fault_set, s_ykc_monitor_state_info[gunno].fault_code, sizeof(s_ykc_monitor_state_info[gunno].fault_code)))){
+#else
     if((g_ykc_monitor_preq_report_realtime_data[gunno].body.plug_gun != s_ykc_monitor_state_info[gunno].state.connect) ||
             (g_ykc_monitor_preq_report_realtime_data[gunno].body.state != s_ykc_monitor_state_info[gunno].state.state) ||
             (g_ykc_monitor_preq_report_realtime_data[gunno].body.hardware_fault != s_ykc_monitor_state_info[gunno].fault_code)){
-
+#endif /* NET_YKC_MONITOR_FAULT_USING_EXTEND */
         if(ykc_monitor_get_message_send_state(gunno, NET_YKC_MONITOR_PREQ_EVENT_REPORT_REALTIME_DATA) == NET_YKC_MONITOR_SEND_STATE_COMPLETE){
             /** 由于 s_ykc_monitor_state_info[gunno].state.connect 和 s_ykc_monitor_state_info[gunno].state.state 和
              *  s_ykc_monitor_state_info[gunno].fault_code 会在其它线程被赋值，为了防止用这几个值做判断时和赋值时可能存在的不一致而导致
                             *     状态错乱问题，将这几个值进行临时存储用于判断和赋值*/
             uint8_t _connect = s_ykc_monitor_state_info[gunno].state.connect;
             uint8_t _state = s_ykc_monitor_state_info[gunno].state.state;
+            uint8_t is_faulting = NET_ENUM_FALSE;        /** 是故障状态 */
+#ifdef NET_YKC_MONITOR_FAULT_USING_EXTEND
+            uint32_t _fault[NET_YKC_MONITOR_FAULT_SET_NUM];
+            for(uint8_t i = 0x00; i < NET_YKC_MONITOR_FAULT_SET_NUM; i++){
+                _fault[i] = s_ykc_monitor_state_info[gunno].fault_code[i];
+                if(_fault[i] != 0x00){
+                    is_faulting = NET_ENUM_TRUE;
+                }
+            }
+#else
             uint16_t _fault = s_ykc_monitor_state_info[gunno].fault_code;
+            if(_fault){
+                is_faulting = NET_ENUM_TRUE;
+            }
+#endif /* #ifdef NET_YKC_MONITOR_FAULT_USING_EXTEND */
 
             if(_state == NETYKC_MONITOR_DEVICE_STATE_FAULTING){
-#if 0
-                if((_fault != 0x00) || (base->device_state == APP_DEVICE_STATE_OVERHAUL) || (base->device_state == APP_DEVICE_STATE_FREEZE)){
+                if((is_faulting == NET_ENUM_TRUE) || (base->device_state == APP_DEVICE_STATE_OVERHAUL) || (base->device_state == APP_DEVICE_STATE_FREEZE)){
+#ifdef NET_YKC_MONITOR_FAULT_USING_EXTEND
+                    for(uint8_t i = 0x00; i < NET_YKC_MONITOR_FAULT_SET_NUM; i++){
+                        g_ykc_monitor_preq_report_realtime_data[gunno].body.fault_set[i] = _fault[i];
+                    }
+#else
                     g_ykc_monitor_preq_report_realtime_data[gunno].body.hardware_fault = _fault;
+#endif /* NET_YKC_MONITOR_FAULT_USING_EXTEND */
                     g_ykc_monitor_preq_report_realtime_data[gunno].body.plug_gun = _connect;
                     g_ykc_monitor_preq_report_realtime_data[gunno].body.state = _state;
 
                     s_ykc_monitor_realtime_data_count[gunno] = rt_tick_get();
                     ykc_monitor_net_event_send(NET_YKC_MONITOR_EVENT_HANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, gunno, NET_YKC_MONITOR_PREQ_EVENT_REPORT_REALTIME_DATA);
                 }
-#else
-                g_ykc_monitor_preq_report_realtime_data[gunno].body.hardware_fault = _fault;
-                g_ykc_monitor_preq_report_realtime_data[gunno].body.plug_gun = _connect;
-                g_ykc_monitor_preq_report_realtime_data[gunno].body.state = _state;
-
-                s_ykc_monitor_realtime_data_count[gunno] = rt_tick_get();
-                ykc_monitor_net_event_send(NET_YKC_MONITOR_EVENT_HANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, gunno, NET_YKC_MONITOR_PREQ_EVENT_REPORT_REALTIME_DATA);
-#endif
+                if((base->device_state == APP_DEVICE_STATE_OVERHAUL) || (base->device_state == APP_DEVICE_STATE_FREEZE)){
+                    g_ykc_monitor_preq_report_realtime_data[gunno].body.fault_set[NET_YKC_MONITOR_FAULT_SET_1] |= YKC_MONITOR_DEVICE_FAULT_LOCK_DEVICE;
+                }
             }else{
-                if(_fault == 0x00){
+                if(is_faulting == NET_ENUM_FALSE){
+#ifdef NET_YKC_MONITOR_FAULT_USING_EXTEND
+                    for(uint8_t i = 0x00; i < NET_YKC_MONITOR_FAULT_SET_NUM; i++){
+                        g_ykc_monitor_preq_report_realtime_data[gunno].body.fault_set[i] = _fault[i];
+                        g_ykc_monitor_preq_report_realtime_data[gunno].body.fault_set[i] &= ~(YKC_MONITOR_DEVICE_FAULT_LOCK_DEVICE);
+                    }
+#else
                     g_ykc_monitor_preq_report_realtime_data[gunno].body.hardware_fault = _fault;
+#endif /* NET_YKC_MONITOR_FAULT_USING_EXTEND */
                     g_ykc_monitor_preq_report_realtime_data[gunno].body.plug_gun = _connect;
                     g_ykc_monitor_preq_report_realtime_data[gunno].body.state = _state;
 
