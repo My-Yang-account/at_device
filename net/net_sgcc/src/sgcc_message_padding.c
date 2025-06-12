@@ -670,7 +670,7 @@ int8_t sgcc_message_pro_remote_start_charge_request(uint8_t gunno, void *data, u
     uint8_t valid_len = 0x00;
     System_BaseData *base = (System_BaseData*)(s_sgcc_handle->get_base_data(gunno));
     evs_service_startCharge *request = (evs_service_startCharge*)data;
-
+#if 0
     if(evs_event_pile_stutus_changes[gunno].yxOccurTime != request->insertGunTime){
         if(reason){
             *reason = NETSGCC_DCA_REASON7008_INSERT_GUN_TIME;
@@ -678,7 +678,7 @@ int8_t sgcc_message_pro_remote_start_charge_request(uint8_t gunno, void *data, u
         LOG_D("gunno(%d) sgcc insert gun time not match(%d, %d)", gunno, evs_event_pile_stutus_changes[gunno].yxOccurTime, request->insertGunTime);
         return NET_SGCC_START_RESULT_FAULTING;
     }
-
+#endif
     /** 并充时不能让平台启动副枪 */
     if(base->charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL){
         if(reason){
@@ -803,7 +803,7 @@ int8_t sgcc_message_pro_remote_start_charge_request(uint8_t gunno, void *data, u
     uint8_t valid_len = 0x00;
     System_BaseData *base = (System_BaseData*)(s_sgcc_handle->get_base_data(gunno));
     evs_service_startCharge *request = (evs_service_startCharge*)data;
-
+#if 0
     if(evs_event_pile_stutus_changes[gunno].yxOccurTime != request->insertGunTime){
         if(reason){
             *reason = NETSGCC_ACA_REASON6001_INSERT_GUN_TIME;
@@ -811,7 +811,7 @@ int8_t sgcc_message_pro_remote_start_charge_request(uint8_t gunno, void *data, u
         LOG_D("gunno(%d) sgcc insert gun time not match(%d, %d)", gunno, evs_event_pile_stutus_changes[gunno].yxOccurTime, request->insertGunTime);
         return NET_SGCC_START_RESULT_FAULTING;
     }
-
+#endif
     /** 并充时不能让平台启动副枪 */
     if(base->charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL){
         if(reason){
@@ -1049,11 +1049,12 @@ int8_t sgcc_message_pro_apply_charge_response(uint8_t gunno, void *data, uint16_
 #endif
         return 0x06;
     }
+#if 0
     if(evs_event_pile_stutus_changes[gunno].yxOccurTime != response->insertGunTime){
         LOG_D("gunno(%d) sgcc insert gun time not match(%d, %d)", gunno, evs_event_pile_stutus_changes[gunno].yxOccurTime, response->insertGunTime);
         return 0x07;
     }
-
+#endif
     /** 并充时不能让平台启动副枪 */
     if(base->charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL){
         return 0x02;
@@ -2900,6 +2901,69 @@ uint8_t sgcc_chargepile_request_padding_transaction_record(uint8_t gunno, void *
     }
 
     return 0x00;
+}
+
+/*************************************************
+ * 函数名      sgcc_update_insert_gun_time
+ * 功能          更新插枪时间
+ * **********************************************/
+void sgcc_update_insert_gun_time(uint8_t gunno)
+{
+    System_BaseData* base = (System_BaseData*)(s_sgcc_handle->get_base_data(gunno));
+    evs_event_pile_stutus_changes[gunno].yxOccurTime = base->current_time;
+}
+
+/*************************************************
+ * 函数名      sgcc_update_input_meter_sampling_time
+ * 功能          更新输入电表底值采样时间
+ * **********************************************/
+void sgcc_update_input_meter_sampling_time(uint8_t gunno)
+{
+    System_BaseData* base = (System_BaseData*)(s_sgcc_handle->get_base_data(gunno));
+//    evs_property_dc_input_meters[gunno].acqTime = base->current_time;
+}
+
+/*************************************************
+ * 函数名      sgcc_update_output_meter_sampling_time
+ * 功能          更新输出电表底值采样时间
+ * **********************************************/
+void sgcc_update_output_meter_sampling_time(uint8_t gunno)
+{
+    struct tm _tm;
+    uint8_t used_len = 0x00;
+    System_BaseData* base = (System_BaseData*)(s_sgcc_handle->get_base_data(gunno));
+
+    sgcc_enter_critical();
+    _tm = *(localtime((const time_t*)&(base->current_time)));
+    sgcc_exit_critical();
+
+    memset(evs_property_meters[gunno].acqTime, 0x00, EVS_MAX_TIMESTAMP_LEN);
+    sprintf((char*)(evs_property_meters[gunno].acqTime + used_len), "%d", (_tm.tm_year + 1900));
+    used_len = strlen((char*)(evs_property_meters[gunno].acqTime));
+    if((used_len + 0x02) > EVS_MAX_TIMESTAMP_LEN){
+        return;
+    }
+    sprintf((char*)(evs_property_meters[gunno].acqTime + used_len), "%02d", (_tm.tm_mon + 0x01));
+    used_len = strlen((char*)(evs_property_meters[gunno].acqTime));
+    if((used_len + 0x02) > EVS_MAX_TIMESTAMP_LEN){
+        return;
+    }
+    sprintf((char*)(evs_property_meters[gunno].acqTime + used_len), "%02d", _tm.tm_mday);
+    used_len = strlen((char*)(evs_property_meters[gunno].acqTime));
+    if((used_len + 0x02) > EVS_MAX_TIMESTAMP_LEN){
+        return;
+    }
+    sprintf((char*)(evs_property_meters[gunno].acqTime + used_len), "%02d", _tm.tm_hour);
+    used_len = strlen((char*)(evs_property_meters[gunno].acqTime));
+    if((used_len + 0x02) > EVS_MAX_TIMESTAMP_LEN){
+        return;
+    }
+    sprintf((char*)(evs_property_meters[gunno].acqTime + used_len), "%02d", _tm.tm_min);
+    used_len = strlen((char*)(evs_property_meters[gunno].acqTime));
+    if((used_len + 0x02) > EVS_MAX_TIMESTAMP_LEN){
+        return;
+    }
+    sprintf((char*)(evs_property_meters[gunno].acqTime + used_len), "%02d", _tm.tm_sec);
 }
 
 /*************************************************

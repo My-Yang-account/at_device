@@ -45,6 +45,10 @@ int8_t sgcc_message_pro_reservation_request(uint8_t gunno, void *data, uint8_t l
 int8_t sgcc_message_pro_orderly_charge_request(void *data, uint8_t len);
 int8_t sgcc_message_pro_query_dev_record_request(uint8_t gunno, void *data, uint8_t len);
 
+void sgcc_update_insert_gun_time(uint8_t gunno);
+void sgcc_update_input_meter_sampling_time(uint8_t gunno);
+void sgcc_update_output_meter_sampling_time(uint8_t gunno);
+
 void sgcc_start_charge_response_asynchronously(uint8_t gunno, uint8_t result, uint16_t reason, uint16_t fault);
 void sgcc_stop_charge_response_asynchronously(uint8_t gunno, uint8_t result, uint16_t reason, uint16_t fault);
 void sgcc_chargepile_state_changed(uint8_t gunno);

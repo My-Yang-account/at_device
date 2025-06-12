@@ -949,17 +949,23 @@ static void sgcc_message_send_thread_entry(void *parameter)
             }
             /***** [充电枪状态变更] *****/
             if(sgcc_net_event_receive(NET_SGCC_EVENT_HANDLE_CHARGEPILE, NET_SGCC_EVENT_TYPE_REQUEST, gunno,
-                    (NET_SGCC_EVENT_OPTION_OR |NET_SGCC_EVENT_OPTION_CLEAR), NET_SGCC_PREQ_EVENT_GUNSTATE_CHANGED, NULL) > 0){
-                sgcc_set_message_send_state(gunno, NET_SGCC_SEND_STATE_ONGOING, NET_SGCC_PREQ_EVENT_GUNSTATE_CHANGED);
-                rt_kprintf("GUNSTATE_CHANGED 00000000000000000000000000(%d)\n", gunno);
+                    NET_SGCC_EVENT_OPTION_OR, NET_SGCC_PREQ_EVENT_GUNSTATE_CHANGED, NULL) > 0){
+                if(s_sgcc_flag_set.is_time_sync == NET_ENUM_TRUE){
+                    sgcc_set_message_send_state(gunno, NET_SGCC_SEND_STATE_ONGOING, NET_SGCC_PREQ_EVENT_GUNSTATE_CHANGED);
+                    sgcc_update_insert_gun_time(gunno);
+                    rt_kprintf("GUNSTATE_CHANGED 00000000000000000000000000(%d, %d)\n", gunno, evs_event_pile_stutus_changes[gunno].yxOccurTime);
+
+                    sgcc_net_event_receive(NET_SGCC_EVENT_HANDLE_CHARGEPILE, NET_SGCC_EVENT_TYPE_REQUEST, gunno,
+                                        (NET_SGCC_EVENT_OPTION_OR |NET_SGCC_EVENT_OPTION_CLEAR), NET_SGCC_PREQ_EVENT_GUNSTATE_CHANGED, NULL);
 #ifdef NET_SGCC_PRO_USING_DC
-                evs_send_event(EVS_CMD_EVENT_DCPILE_CHANGE, &evs_event_pile_stutus_changes[gunno]);
+                    evs_send_event(EVS_CMD_EVENT_DCPILE_CHANGE, &evs_event_pile_stutus_changes[gunno]);
 #else
-                evs_send_event(EVS_CMD_EVENT_ACPILE_CHANGE, &evs_event_pile_stutus_changes[gunno]);
+                    evs_send_event(EVS_CMD_EVENT_ACPILE_CHANGE, &evs_event_pile_stutus_changes[gunno]);
 #endif /* NET_SGCC_PRO_USING_DC */
 //                sgcc_set_message_wait_response_state(gunno, NET_SGCC_PREQ_EVENT_GUNSTATE_CHANGED);
-                sgcc_set_message_send_state(gunno, NET_SGCC_SEND_STATE_COMPLETE, NET_SGCC_PREQ_EVENT_GUNSTATE_CHANGED);
-                rt_thread_mdelay(250);
+                    sgcc_set_message_send_state(gunno, NET_SGCC_SEND_STATE_COMPLETE, NET_SGCC_PREQ_EVENT_GUNSTATE_CHANGED);
+                    rt_thread_mdelay(250);
+                }
             }
             /***** [上送实时数据(非充电中)] *****/
             if(sgcc_net_event_receive(NET_SGCC_EVENT_HANDLE_CHARGEPILE, NET_SGCC_EVENT_TYPE_REQUEST, gunno,
@@ -1017,16 +1023,21 @@ static void sgcc_message_send_thread_entry(void *parameter)
             }
             /***** [上送电表底值] *****/
             if(sgcc_net_event_receive(NET_SGCC_EVENT_HANDLE_CHARGEPILE, NET_SGCC_EVENT_TYPE_REQUEST, gunno,
-                    (NET_SGCC_EVENT_OPTION_OR |NET_SGCC_EVENT_OPTION_CLEAR), NET_SGCC_PREQ_EVENT_REPORT_AMMETER_VALUE, NULL) > 0){
-                rt_kprintf("AMMETER_VALUE 00000000000000000000000000(%d, %d, %d)[%s, %s]\n", gunno,
-                        evs_property_meters[gunno].sumMeter, evs_property_meters[gunno].elec,
-                        evs_property_meters[gunno].lastTrade, evs_property_meters[gunno].acqTime);
+                    NET_SGCC_EVENT_OPTION_OR, NET_SGCC_PREQ_EVENT_REPORT_AMMETER_VALUE, NULL) > 0){
+                if(s_sgcc_flag_set.is_time_sync == NET_ENUM_TRUE){
+                    rt_kprintf("AMMETER_VALUE 00000000000000000000000000(%d, %d, %d)[%s, %s]\n", gunno,
+                            evs_property_meters[gunno].sumMeter, evs_property_meters[gunno].elec,
+                            evs_property_meters[gunno].lastTrade, evs_property_meters[gunno].acqTime);
+                    sgcc_set_message_send_state(gunno, NET_SGCC_SEND_STATE_ONGOING, NET_SGCC_PREQ_EVENT_REPORT_AMMETER_VALUE);
+                    sgcc_update_output_meter_sampling_time(gunno);
+                    sgcc_net_event_receive(NET_SGCC_EVENT_HANDLE_CHARGEPILE, NET_SGCC_EVENT_TYPE_REQUEST, gunno,
+                                        (NET_SGCC_EVENT_OPTION_OR |NET_SGCC_EVENT_OPTION_CLEAR), NET_SGCC_PREQ_EVENT_REPORT_AMMETER_VALUE, NULL);
 
-                sgcc_set_message_send_state(gunno, NET_SGCC_SEND_STATE_ONGOING, NET_SGCC_PREQ_EVENT_REPORT_AMMETER_VALUE);
-                evs_send_property(EVS_CMD_PROPERTY_DC_OUTMETER, &evs_property_meters[gunno]);
-//                sgcc_set_message_wait_response_state(gunno, NET_SGCC_PREQ_EVENT_REPORT_AMMETER_VALUE);
-                sgcc_set_message_send_state(gunno, NET_SGCC_SEND_STATE_COMPLETE, NET_SGCC_PREQ_EVENT_REPORT_AMMETER_VALUE);
-                rt_thread_mdelay(250);
+                    evs_send_property(EVS_CMD_PROPERTY_DC_OUTMETER, &evs_property_meters[gunno]);
+    //                sgcc_set_message_wait_response_state(gunno, NET_SGCC_PREQ_EVENT_REPORT_AMMETER_VALUE);
+                    sgcc_set_message_send_state(gunno, NET_SGCC_SEND_STATE_COMPLETE, NET_SGCC_PREQ_EVENT_REPORT_AMMETER_VALUE);
+                    rt_thread_mdelay(250);
+                }
             }
 #ifdef NET_SGCC_PRO_USING_DC
             /***** [上送BMS数据] *****/
