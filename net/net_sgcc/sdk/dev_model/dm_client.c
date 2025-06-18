@@ -94,6 +94,7 @@ int dm_client_subscribe_all(int devid, char product_key[IOTX_PRODUCT_KEY_LEN + 1
     if (res == SUCCESS_RETURN)
     {
         _dm_client_subscribe_filter(uri, (iotx_cm_data_handle_cb)g_dm_client_uri_map[0].callback);
+        /** 此处也有订阅，如果订阅失败是否需要关闭连接？ */
         DM_free(uri);
     }
     index = 1;
@@ -129,6 +130,11 @@ int dm_client_subscribe_all(int devid, char product_key[IOTX_PRODUCT_KEY_LEN + 1
         local_sub = 1;
         res = dm_client_subscribe(uri, (iotx_cm_data_handle_cb)g_dm_client_uri_map[index].callback, &local_sub);
         DM_free(uri);
+        if (res < SUCCESS_RETURN)
+        {
+            /** 这是连上平台后逐条发送订阅，在此处增加：如果其中一条订阅失败则重新连接平台再全部重新开始订阅 */
+            return -0x01;
+        }
 #else
         res = dm_utils_service_name((char *)g_dm_client_uri_map[index].uri_prefix, (char *)g_dm_client_uri_map[index].uri_name,
                                     product_key, device_name, &uri);

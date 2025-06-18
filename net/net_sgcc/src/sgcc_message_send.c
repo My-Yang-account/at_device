@@ -30,6 +30,8 @@
 #define NET_SGCC_WAIT_LOGIN_RENTRY                            100         /* 等待登录结果尝试次数 */
 #define NET_SGCC_WAIT_UNLOCK_TIMEOUT                          (10 *1000)  /* 等待socket 解锁超时时间(单位：ms) */
 
+#define NET_SGCC_MQTT_STATE_ERROR_TIME                        10000       /* mqtt连接状态错误持续时间，超过此时间则按心跳超时处理(单位ms:10 *1000 = 10s) */
+
 #define NET_SGCC_LOGIN_OPERATION_INTERVAL                     30000       /* 登录操作间隔(单位ms:30 *1000 = 30s) */
 #define NET_SGCC_HEARTBEAT_INIT_INTERVAL                      5000        /* 心跳初始间隔(单位ms:5 *1000 = 5s) */
 #define NET_SGCC_HEARTBEAT_REPORT_INTERVAL                    50000       /* 心跳间隔(单位ms:50 *1000 = 50s) */
@@ -833,8 +835,10 @@ static void sgcc_connect_thread_entry(void *parameter)
 
 static void sgcc_message_send_thread_entry(void *parameter)
 {
-    s_sgcc_flag_set.disconnect = 0x00;
+    uint32_t sgcc_mqtt_error_tick = rt_tick_get();
 
+    s_sgcc_flag_set.disconnect = 0x00;
+    extern int IOT_MQTT_Server_IsConnect(void);
     while(1)
     {
         g_net_target_platform_tick = rt_tick_get();
@@ -846,8 +850,20 @@ static void sgcc_message_send_thread_entry(void *parameter)
 
         if(s_sgcc_socket_info.socket_state != SGCC_SOCKET_STATE_LOGIN_SUCCESS){   /* 未登录上服务器前不进行网络数据交互事件处理 */
             s_sgcc_flag_set.disconnect = 0x01;
+            sgcc_mqtt_error_tick = rt_tick_get();
             rt_thread_mdelay(1000);
             continue;
+        }
+        if(IOT_MQTT_Server_IsConnect() <= NET_ENUM_FALSE){
+            LOG_W("sgcc mqtt client state is error, wait......");
+            if((rt_tick_get() - sgcc_mqtt_error_tick) > NET_SGCC_MQTT_STATE_ERROR_TIME){
+                LOG_W("sgcc waiting for mqtt server reconnect timeout, close");
+                s_sgcc_socket_info.operate_fail.sync = NET_ENUM_TRUE;
+            }
+            rt_thread_mdelay(1000);
+            continue;
+        }else{
+            sgcc_mqtt_error_tick = rt_tick_get();
         }
 
         if(s_sgcc_flag_set.disconnect){

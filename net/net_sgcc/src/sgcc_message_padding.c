@@ -81,6 +81,8 @@ struct sgcc_flag_info{
     uint8_t omit_bms_data : 1;                    /* 遗漏：上报BMS 数据 */
     uint8_t omit_monitor_property : 1;            /* 遗漏：上报实时监测属性数据 */
     uint8_t init_complete : 1;                    /* 初始化完成 */
+
+    uint8_t is_charge_start : 1;                  /* 充电已启动 */
 };
 
 /** 有序充电 */
@@ -1132,7 +1134,7 @@ static void sgcc_billing_info_set(void *data, uint8_t gunno, uint8_t speriod, ui
     evs_service_issue_feeModel *request = (evs_service_issue_feeModel*)data;
 
     for(period = speriod; period < eperiod; period++){
-        LOG_D("[%d, %d, %d, %d, %d]\n", gunno, period, speriod, eperiod, fees_number);
+//        LOG_D("[%d, %d, %d, %d, %d]\n", gunno, period, speriod, eperiod, fees_number);
         app_billingrule_set_period_rate_number(gunno, period, fees_number);
         switch(fees_number){
         case APP_RATE_TYPE_SHARP :
@@ -3103,15 +3105,9 @@ void sgcc_chargepile_state_changed(uint8_t gunno)
         break;
     case APP_OFSM_STATE_STARTING:
     {
-//        if(s_sgcc_state_info[gunno].state.state != SGCC_WORKSTATE_STARTING){
-//            if((base->flag.is_local_charging == NET_ENUM_FALSE) && (base->start_type != APP_CHARGE_START_WAY_VIN)){
-//                if(++s_sgcc_charge_sn[gunno] >= 10000){
-//                    s_sgcc_charge_sn[gunno] = 0x01;
-//                }
-//                s_sgcc_operation_sn[gunno] = 0x00;
-//            }
-//        }
-
+        if(s_sgcc_state_info[gunno].state.state != SGCC_WORKSTATE_STARTING){
+            s_sgcc_flag_info[gunno].is_charge_start = NET_ENUM_TRUE;
+        }
         s_sgcc_state_info[gunno].state.state = SGCC_WORKSTATE_STARTING;
         switch(base->charctrl_state.current){
         case APP_CHARGE_CTRL_STATE_SHAKE_HAND:
@@ -3174,14 +3170,6 @@ void sgcc_chargepile_state_changed(uint8_t gunno)
     }
         break;
     case APP_OFSM_STATE_CHARGING:
-//        if(s_sgcc_state_info[gunno].state.state != SGCC_WORKSTATE_CHARGINGING){
-//            if((base->flag.is_local_charging == NET_ENUM_FALSE) && (base->start_type == APP_CHARGE_START_WAY_VIN)){
-//                if(++s_sgcc_charge_sn[gunno] >= 10000){
-//                    s_sgcc_charge_sn[gunno] = 0x01;
-//                }
-//                s_sgcc_operation_sn[gunno] = 0x00;
-//            }
-//        }
         s_sgcc_state_info[gunno].state.state = SGCC_WORKSTATE_CHARGINGING;
 
         s_sgcc_state_info[gunno].state.electlock = SGCC_OPSCTL_SILENT;
@@ -3333,7 +3321,7 @@ int8_t sgcc_chargepile_create_local_transaction_number(uint8_t gunno, void *vect
 #define SGCC_DEVICE_NAME_VALID_LEN      24     /** 序列号中设备资产码所需长度 */
 
     sgcc_storage_struct *config = (sgcc_storage_struct*)(s_sgcc_handle->get_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, 0x00, NET_SYSTEM_DATA_OPTION_TARGET_PLAT));
-    uint8_t sn_len = 0x00, valid_len = 0x00;
+    uint8_t sn_len = 0x00;
     struct tm _tm;
     System_BaseData *base = (System_BaseData*)(s_sgcc_handle->get_base_data(gunno));
 
@@ -3390,12 +3378,6 @@ int8_t sgcc_chargepile_create_local_transaction_number(uint8_t gunno, void *vect
     sprintf((vector + sn_len), "%02d", s_sgcc_operation_sn[gunno]);
     sn_len += 0x02;
 
-    valid_len = sizeof(config->charge_sn) /sizeof(config->charge_sn[0x00]);
-    if(gunno < valid_len){
-        config->charge_sn[gunno] = s_sgcc_charge_sn[gunno];
-        config->operation_sn[gunno] = s_sgcc_operation_sn[gunno];
-        s_sgcc_handle->set_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, 0x00, NET_SYSTEM_DATA_OPTION_TARGET_PLAT);
-    }
 #undef SGCC_DEVICE_NAME_VALID_LEN
 
     LOG_D("sgcc create local transaction number(%d)[%s]\n", gunno, (char*)vector);
@@ -4247,6 +4229,21 @@ static void sgcc_realtime_process_thread_entry(void *parameter)
             sgcc_fault_detect_report(gunno);
             sgcc_data_realtime_process(gunno);
             sgcc_state_changed_check(gunno);
+            /** 充电已启动，流水号有效，保存充电序号和操作序号 */
+            if(s_sgcc_flag_info[gunno].is_charge_start == NET_ENUM_TRUE){
+                uint8_t valid_len = 0x00;
+                sgcc_storage_struct *config = (sgcc_storage_struct*)(s_sgcc_handle->get_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, 0x00, NET_SYSTEM_DATA_OPTION_TARGET_PLAT));
+
+                s_sgcc_flag_info[gunno].is_charge_start = NET_ENUM_FALSE;
+                valid_len = sizeof(config->charge_sn) /sizeof(config->charge_sn[0x00]);
+                if(gunno < valid_len){
+                    config->charge_sn[gunno] = s_sgcc_charge_sn[gunno];
+                    config->operation_sn[gunno] = s_sgcc_operation_sn[gunno];
+                    s_sgcc_handle->set_system_data(NET_SYSTEM_DATA_NAME_PLATFORM_DATA, NULL, 0x00, NET_SYSTEM_DATA_OPTION_TARGET_PLAT);
+                }
+                LOG_D("sgcc gunno(%d) is charge start, transaction number is valid, storage charge sn[%d] and operate sn[%d]", \
+                        gunno, s_sgcc_charge_sn[gunno], s_sgcc_operation_sn[gunno]);
+            }
         }
 
         if(sgcc_is_recved_billing_rule()){

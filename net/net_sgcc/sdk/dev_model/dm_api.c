@@ -137,6 +137,7 @@ int iotx_dm_connect(_IN_ iotx_dm_init_params_t *init_params)
 #if defined(OTA_ENABLED) && !defined(BUILD_AOS)
     /* DM OTA Module Init */
     res = dm_ota_sub();
+    /** OTA 相关订阅失败是否需要关闭连接？ */
     if (res == SUCCESS_RETURN) {
         /* DM Config OTA Module Init */
         dm_cota_init();

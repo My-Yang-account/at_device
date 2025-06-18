@@ -2912,8 +2912,7 @@ int wrapper_mqtt_subscribe(void *client,
 
     if (!wrapper_mqtt_check_state(c)) {
         mqtt_err("mqtt client state is error,state = %d", iotx_mc_get_client_state(c));
-        rt_kprintf("dddddddddddddddd mmmmm(%d)\n", wrapper_mqtt_check_state(c));
-//        return STATE_MQTT_IN_OFFLINE_STATUS;
+        return STATE_MQTT_IN_OFFLINE_STATUS;
     }
 
     rc = iotx_mc_check_topic(topicFilter, TOPIC_FILTER_TYPE);

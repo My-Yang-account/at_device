@@ -464,4 +464,13 @@ int _get_mqtt_socketfd(void)
     return -1;
 }
 
+void *_get_mqtt_conncection_context(void)
+{
+    if(_mqtt_conncection)
+    {
+        return _mqtt_conncection->context;
+    }
+    return NULL;
+}
+
 #endif
