@@ -158,7 +158,8 @@ struct _config_info{
     uint8_t ammeter_check_way;                                        /* 电表串口校验方式 */
     uint8_t ammeter_baudrate;                                         /* 电表串口波特率 */
     uint8_t register_code[CP_INFO_REGISTER_CODE_LEN_MAX];             /* 注册码 */
-    uint8_t reserve[256 - 70];                                        /* 保留 */
+    uint8_t card_key[CP_INFO_CARD_KEY_LEN_MAX];                       /* 卡密钥 */
+    uint8_t reserve[256 - 82];                                        /* 保留 */
 };
 
 struct _function_enable{
