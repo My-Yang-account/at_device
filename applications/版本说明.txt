@@ -1,0 +1,91 @@
+
+2025/06/19
+
+文件：app_ofsm.h  ------------>        APP_USING_DOUBLEGUN           是否使用双枪(打开即启用双枪)
+文件：app.h  ----------------->        USING_DOUBLE_GUN              是否使用双枪(打开即启用双枪)
+文件：app.h  ----------------->        USING_THREAD_MONITOR          是否使用线程监控(默认都打开)
+文件：app.h  ----------------->        USING_TCU_CAN                 是否使用TCU CAN(打开即启用，只有双枪版本才可以打开)
+文件：chargepile_config.h  --->        [默认配置]                    看默认配置部分
+      /* IP配置 */
+      CP_DOMAIN_USING_NJ   --->                                      IP域名默认使用能佳(能佳版本打开)
+	  CP_DOMAIN_USING_YCP   --->                                     IP域名默认使用越城公用(越城公用版本打开)
+	  /* 二维码配置 */
+	  CP_QRCODE_CONFIG_USING_XXCD  --->                              二维码格式使用星星充电(平台协议选择云快充衍生-星星充电版本时打开，配合平台协议包使用)
+      CP_QRCODE_CONFIG_USING_TLD   --->                              二维码格式使用特来电(平台协议选择云快充衍生-特来电版本时打开，配合平台协议包使用)
+	  CP_QRCODE_CONFIG_USING_DUPU   --->                             二维码格式使用度普(平台协议选择云快充衍生-度普版本时打开，配合平台协议包使用)
+	  CP_QRCODE_CONFIG_USING_NJ   --->                               二维码格式使用能佳(IP域名默认使用能佳版本时打开)
+	  CP_QRCODE_CONFIG_USING_SGCC   --->                             二维码格式使用国网(平台协议选择国网版本时打开，配合平台协议包使用)
+	  CP_QRCODE_CONFIG_USING_QBJ   --->                              二维码格式使用七八九(平台协议选择七八九版本时打开)
+	  /* 平台配置(用以通过屏幕了解当前连接的平台) */
+	  CP_PLATFORM_USING_YCP   --->                                   平台ID是越城公用(IP域名默认使用越城公用版本时打开)
+	  CP_PLATFORM_USING_XXCD   --->                                  平台ID是星星充电(平台协议选择云快充衍生-星星充电版本时打开)
+	  CP_QRCODE_CONFIG_USING_DUPU   --->                             平台ID是度普(平台协议选择云快充衍生-度普版本时打开)
+	  CP_PLATFORM_USING_SGCC   --->                                  平台ID是国网(平台协议选择国网版本时打开)
+	  CP_PLATFORM_USING_QBJ   --->                                   平台ID是七八九(平台协议选择七八九版本时打开)
+	  
+	  CP_USING_OFFLINE_BILLING   --->                                使用离线计费功能(默认打开，打开后可配置成离线计费模式)
+	  
+	  CP_USING_NO_BMS   --->                                         使用无BMS(低压模块-模块强制启动充电版本)(无BMS版本打开)
+	  CP_USING_LV_MODULE   --->                                      使用低压模块版本(低压模块版本打开)
+	  CP_USING_METER_ELECT_DETECT_STRATEGY   --->                    使用电表电量检测策略(默认打开打开)
+	  CP_USING_BAT_VOLT_DETECT_STRATEGY   --->                       使用电池电压检测策略(默认打开打开)
+	  CP_USING_CHARGE_CURR_DETECT_STRATEGY   --->                    使用充电电流检测策略(默认打开打开)
+	  CP_USING_FB_DETECT   --->                                      使用器件反馈实时检测策略(默认打开打开[目前只有电子锁、直流见电器、交流接触器检测])
+
+文件：rfid_dev hardware.c  ------------->                            射频读卡器串口打开方式(双枪版本使用DMA，单枪版本使用中断[INT])
+文件：eth_ch395_config.h   -----> NET_ETHERNET_USING_DOUBLEGUN_DEV   用于管理以太网操作管脚，单、双枪版本管脚不一样(打开即使用双枪版本)
+文件：app_led.c  ------------->                                      app_led_thread_entry 线程中的宏 #if 0(灯语使用大气版本)，#if 1(灯语使用公版)
+文件：link.lds  -------------->                                      链接脚本文件(区别单[link_singlegun]、双枪[link_doublegun])
+文件：net_pack_config.h  ----->       [平台协议包选择]               28行开始(选一个监控平台协议包和一个目标平台协议包；目标平台选择国网时不用选监控平台)
+      NET_PACK_USING_THA  ------------->                             钛享充协议(目标平台)[已废除]
+	  NET_PACK_USING_YKC  ------------->                             云快充协议(目标平台)
+	  NET_PACK_USING_YKC_MONITOR  ------------->                     云快充监控协议(监控平台)[默认打开]
+	  NET_PACK_USING_YCP  ------------->                             越城公用协议(目标平台)
+	  NET_PACK_USING_YND  ------------->                             一电、南电协议(目标平台)[未实现]
+	  NET_PACK_USING_XJ  ------------->                              小桔协议(目标平台)[未实现]
+	  NET_PACK_USING_SL  ------------->                              阳光乐通协议(目标平台)[未实现]
+	  NET_PACK_USING_SGCC  ------------->                            国网协议(目标平台)
+	  
+文件：net_pack_config.h  ------->    NET_SYSTEM_GUN_NUMBER           单板枪总数(单枪为1，双枪为2)
+文件：net_pack_config.h  ------->    当平台协议包选择有云快充时      72行开始(云快充衍生协议)
+      NET_YKC_DERIVE_PRO_XXCD  --------->                            云快充衍生协议：星星充电
+	  NET_YKC_DERIVE_PRO_TLD  --------->                             云快充衍生协议：特来电
+	  NET_YKC_DERIVE_PRO_DUPU  --------->                            云快充衍生协议：度普
+	  NET_YKC_DERIVE_PRO_XDT  --------->                             云快充衍生协议：新电途
+	  NET_YKC_DERIVE_PRO_TT  --------->                              云快充衍生协议：铁塔
+	  NET_YKC_DERIVE_PRO_XJ  --------->                              云快充衍生协议：小桔
+
+文件：ykc_message_struct_define.h ----> NET_YKC_MESSAGE_USING_DUPU   云快充协议包中的附加选项-在云快充协议基础上增加度普自定义协议(配合平台协议包使用)
+文件：ykc_message_struct_define.h ----> NET_YKC_MESSAGE_USING_TLD    云快充协议包中的附加选项-在云快充协议基础上增加特来电自定义协议(配合平台协议包使用)
+文件：ykc_message_struct_define.h ----> NET_YKC_MESSAGE_USING_YKC17  云快充协议包中的附加选项-在云快充协议基础上增加云快充1.7自定义协议(配合平台协议包使用)
+
+文件：ykc_monitor_message_struct_define.h ----> NET_YKC_MONITOR_FAULT_USING_EXTEND  使用扩展故障字段(默认都打开)
+文件：ykc_monitor_message_struct_define.h ----> NET_YKC_MONITOR_USING_EXTEND_PROTOCOL  使用监控扩展协议(默认都打开)
+
+文件：LIB 库文件：
+      充电库：
+	  libChargCtl(BMS版本固定为0)  ---->                             预充阶段不检电池电压
+	  libChargCtl(LV module)  ---->                                  低压模块版本
+	  libChargCtl(no sampling)  ---->                                无绝缘采样版本
+	  libChargCtl(YUTONG)  ---->                                     正常版本
+	  libChargCtl(LV module[not clear fault])  ---->                 低压模块版本(故障恢复并拔枪后不清除交流接触器、直流继电器、电子锁故障[由上层的器件反馈实时检测策略清除])
+	  libChargCtl(no sampling[not clear fault])  ---->               无绝缘采样版本(故障恢复并拔枪后不清除交流接触器、直流继电器、电子锁故障[由上层的器件反馈实时检测策略清除])
+	  libChargCtl(YUTONG[not clear fault])  ---->                    正常版本(故障恢复并拔枪后不清除交流接触器、直流继电器、电子锁故障[由上层的器件反馈实时检测策略清除])
+	  模块库：
+	  libChargModule_7102(eliminate_module) ----->                   插枪快速剔除故障或离线模块版本
+	  libChargModule_7102(KeShiDa) ----->                            模块协议使用科士达版本
+	  libChargModule_7102(LM_LV) ----->                              模块协议使用联明低压模块(配合上层无BMS版本使用)版本
+	  libChargModule_7102(LV module) ----->                          低压模块(部分判定参数监控低压模块)版本
+	  libChargModule_7102(normal) ----->                             正常版本版本
+	  libChargModule_7102(yfy_broadcast) ----->                      英飞源全广播版本
+	  libChargModule_7102(yy_asb_hv_auto) ----->                     模块协议使用安世博(在优优协议基础上高低压可自动切换)版本
+	  双枪驱动库：
+	  libDrive_GD32427_7102(external rtc) ----->                     新硬件版本(7103F使用)
+	  libDrive_GD32427_7102(internal rtc) ----->                     旧硬件版本(7103D使用)
+	  单枪驱动库：
+	  libDrive_GD32427_DC_Single(normal)  ----->                     正常版本
+	  libDrive_GD32427_DC_Single(NTC)  -------->                     枪头温度采样使用NTC版本
+	  
+
+
+	  
