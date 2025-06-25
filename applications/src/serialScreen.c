@@ -4555,8 +4555,12 @@ void SerialScreen_IsSupportSetFlash(void)
 
     if(LcdData.setData.sup_parallelrelay == FALSE){
         thaisenModuleSetParallelEnable(thaisenFunction_disable);
+        thaisenClearSysFaultCheckBit(thaisenRelayParallel);
     }else{
         thaisenModuleSetParallelEnable(thaisenFunction_enable);
+        if(TRUE == LcdData.setData.supin_dc){
+            thaisenSetSysFaultCheckBit(thaisenRelayParallel);
+        }
     }
 
     LcdAssistantData.Flag.IsEnableParaCharge = LcdData.setData.sup_parallelchg;
@@ -4601,7 +4605,9 @@ void SerialScreen_SetInputInfo(void)
         thaisenClearSysFaultCheckBit(thaisenRelayParallel);
     }else{
         thaisenSetSysFaultCheckBit(thaisenRelay);
-        thaisenSetSysFaultCheckBit(thaisenRelayParallel);
+        if(LcdData.setData.sup_parallelrelay == TRUE){
+            thaisenSetSysFaultCheckBit(thaisenRelayParallel);
+        }
     }
 
 	if(FALSE == LcdData.setData.supin_elock)
@@ -9345,8 +9351,12 @@ struct LCD_DATA_FIFO_TYPE *SerialScreen_Init(struct SerialScreenObj *cmd)
 
     if(LcdData.setData.sup_parallelrelay == FALSE){
         thaisenModuleSetParallelEnable(thaisenFunction_disable);
+        thaisenClearSysFaultCheckBit(thaisenRelayParallel);
     }else{
         thaisenModuleSetParallelEnable(thaisenFunction_enable);
+        if(TRUE == LcdData.setData.supin_dc){
+            thaisenSetSysFaultCheckBit(thaisenRelayParallel);
+        }
     }
 
 #ifndef SCREEN_USING_DOUBLE_GUN
