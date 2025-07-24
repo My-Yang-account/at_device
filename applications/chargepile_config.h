@@ -238,7 +238,7 @@
 #define MODULE_GROUP_NUMBER_DEFAULT               4           /* 默认模块组数：4组 */
 #define MODULE_GROUP_NUMBER_MAX                   4           /* 最大模块组数：4组 */
 #define MODULE_NUMBER_SINGLE_DEFAULT              3           /* 默认单个组的模块数：3 */
-#define MODULE_NUMBER_SINGLE_MAX                  8           /* 最大单个组的模块数：8 */
+#define MODULE_NUMBER_SINGLE_MAX                  16          /* 最大单个组的模块数：8 */
 
 #define POWER_ALLOCATION_WAY_AVERAGE              0           /* 功率分配方式:均充 */
 #define POWER_ALLOCATION_WAY_SEQ_PRIORITY         1           /* 功率分配方式:先到先得 */
