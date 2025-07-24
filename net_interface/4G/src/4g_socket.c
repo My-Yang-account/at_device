@@ -373,7 +373,7 @@ int netdev_4g_socket_control(int socket_fd, uint8_t cmd, void *para, uint8_t par
 
         _port_uint2str(2000, port_str);
 
-        if(getaddrinfo((const char*)para, (const char*)port_str, &hints, &addr_list) < 0x00){
+        if(getaddrinfo((const char*)para, (const char*)port_str, &hints, &addr_list) != 0x00){
             if(addr_list){
                 freeaddrinfo(addr_list);
             }
