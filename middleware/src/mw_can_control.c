@@ -10,14 +10,14 @@
 #include "mw_can_control.h"
 
 
-uint8_t mw_is_can_recved(thaisenIsCANRecv en)
+uint8_t mw_is_can_recved(thaisenIsCANEnum en)
 {
 #ifndef APP_USING_DOUBLEGUN
     return thaisen_is_can_recved(en);
 #endif /* APP_USING_DOUBLEGUN */
 }
 
-void mw_clear_can_recved(thaisenIsCANRecv en)
+void mw_clear_can_recved(thaisenIsCANEnum en)
 {
 #ifndef APP_USING_DOUBLEGUN
     thaisen_clear_can_recved(en);

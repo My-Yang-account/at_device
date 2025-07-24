@@ -158,6 +158,8 @@ static void ofsm_bms_can_send(uint8_t gunno, mw_can_info *data)
 #endif /* APP_USING_DOUBLEGUN */
 }
 
+#if 0
+/** 由于此方法是上层直接去查询并读取CAN报文，但底层只有一个CAN报文缓存，当空闲时CAN总线上有交互报文时就不适用了 */
 /*************************************
  * 函数名       ofsm_is_belong_one_car
  * 功能           并充自动识别，判断两把枪是否插在同一辆车上(CNA 线相连)
@@ -208,6 +210,35 @@ static uint8_t ofsm_is_belong_one_car(uint8_t gunno)
     }
 
     return APP_THA_ENUM_TRUE;
+}
+#endif
+
+/*************************************
+ * 函数名       ofsm_bsm_a_can_cb
+ * 功能           BMS A can 接收回调
+ * 参数           msg   报文数据
+ * 返回
+ ************************************/
+static void ofsm_bsm_a_can_cb(can_msg_buf *msg)
+{
+    if(msg->CANID == APP_PARACHARGE_IDENTIFY_CAN_ID){
+        s_ofsm_info[APP_SYSTEM_GUNNOA].base.flag.recved_paracharge_identify_id = APP_THA_ENUM_TRUE;
+    }
+}
+
+/*************************************
+ * 函数名       ofsm_bsm_b_can_cb
+ * 功能           BMS B can 接收回调
+ * 参数           msg   报文数据
+ * 返回
+ ************************************/
+static void ofsm_bsm_b_can_cb(can_msg_buf *msg)
+{
+#ifdef APP_USING_DOUBLEGUN
+    if(msg->CANID == APP_PARACHARGE_IDENTIFY_CAN_ID){
+        s_ofsm_info[APP_SYSTEM_GUNNOB].base.flag.recved_paracharge_identify_id = APP_THA_ENUM_TRUE;
+    }
+#endif /* APP_USING_DOUBLEGUN */
 }
 
 /*************************************
@@ -1438,6 +1469,8 @@ static void ofsm_start_info_padding_public(uint8_t gunno)
     }else{
         s_ofsm_info[gunno].base.flag.paracharge_is_identified = APP_THA_ENUM_TRUE;
     }
+    s_ofsm_info[gunno].base.flag.recved_paracharge_identify_id = APP_THA_ENUM_FALSE;
+
     s_ofsm_info[gunno].base.voltage_a = 0x00;
     s_ofsm_info[gunno].base.current_a = 0x00;
     s_ofsm_info[gunno].base.power_a = 0x00;
@@ -2092,6 +2125,7 @@ static void ofsm_readying_fun(uint8_t gunno)
                 s_ofsm_info[gunno].base.flag.start_result = APP_THA_ENUM_FALSE;
                 s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_FALSE;
                 s_ofsm_info[gunno].base.flag.paracharge_is_identified = APP_THA_ENUM_TRUE;
+                s_ofsm_info[gunno].base.flag.recved_paracharge_identify_id = APP_THA_ENUM_FALSE;
 
                 rfidr_clear_swipe_state(gunno);
                 app_get_hci_event(gunno, HCI_EVENT_SCREEN_START, APP_THA_ENUM_TRUE);
@@ -2745,16 +2779,15 @@ static void ofsm_starting_fun(uint8_t gunno)
                 ((*sys_read_config_item_content(CONFIG_ITEM_SUPORT_PARALLEL, 0x00)) == APP_THA_ENUM_TRUE) &&  \
                 ((*sys_read_config_item_content(CONFIG_ITEM_DEVICE_TYPE, 0x00)) != SYSTEM_FUNCTION_DYNAMIC_SWITCH)){
             mw_can_info data;
-            uint8_t rentry = 0x00, deputy_gunno = APP_SYSTEM_GUNNOA, deputy_gun_enum = THAISEN_BMS_A_CAN_RECV, valid_len = 0x00;
+            uint8_t rentry = 0x00, deputy_gunno = APP_SYSTEM_GUNNOA, valid_len = 0x00;
 
             if(gunno == APP_SYSTEM_GUNNOA){
                 deputy_gunno = APP_SYSTEM_GUNNOA + 0x01;
-                deputy_gun_enum = THAISEN_BMS_B_CAN_RECV;
             }
             /** 并充自动识别前提条件2：并充时两把枪都要插上  副枪要处于未充电状态 */
             if((s_ofsm_info[deputy_gunno].base.flag.connect_state == APP_CONNECT_STATE_CONNECT) &&  \
                     (s_ofsm_info[deputy_gunno].state == APP_OFSM_STATE_READYING)){
-                mw_clear_can_recved(deputy_gun_enum);
+                s_ofsm_info[deputy_gunno].base.flag.recved_paracharge_identify_id = APP_THA_ENUM_FALSE;
                 /** 等待响应，最多等待500ms */
                 while(1){
                     ofsm_bms_can_send(gunno, &data);          /** 发送并充识别报文 */
@@ -2762,12 +2795,7 @@ static void ofsm_starting_fun(uint8_t gunno)
                         break;
                     }
 
-                    if(mw_is_can_recved(deputy_gun_enum)){
-                        mw_clear_can_recved(deputy_gun_enum);
-                        if(ofsm_is_belong_one_car(gunno) != APP_THA_ENUM_TRUE){
-                            LOG_D("gunno(%d) identify paracharge, both gun is not belong to the same car", gunno);
-                            break;
-                        }
+                    if(s_ofsm_info[deputy_gunno].base.flag.recved_paracharge_identify_id == APP_THA_ENUM_TRUE){
                         /** 这是两把枪插在一辆车上了，启动并充模式 */
                         s_ofsm_info[gunno].base.main_gunno = gunno;
                         s_ofsm_info[gunno].base.charge_way = APP_CHARGE_WAY_PARACHARGE_LOCAL;
@@ -5748,6 +5776,9 @@ static void ofsm_stoping_fun(uint8_t gunno)
         memset(s_ofsm_info[gunno].base.transaction_number, 0x00, sizeof(s_ofsm_info[gunno].base.transaction_number));
         memset(s_ofsm_info[gunno].base.car_vin, 0x00, sizeof(s_ofsm_info[gunno].base.car_vin));
         memset(s_ofsm_info[gunno].base.user_number, 0x00, sizeof(s_ofsm_info[gunno].base.user_number));
+        s_ofsm_info[gunno].base.current_soc = 0x00;
+        s_ofsm_info[gunno].base.flag.paracharge_is_identified = APP_THA_ENUM_FALSE;
+        s_ofsm_info[gunno].base.flag.recved_paracharge_identify_id = APP_THA_ENUM_FALSE;
 
         if(s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL){
             uint8_t deputy_gun = APP_SYSTEM_GUNNOA;
@@ -5757,6 +5788,9 @@ static void ofsm_stoping_fun(uint8_t gunno)
             memset(s_ofsm_info[deputy_gun].base.transaction_number, 0x00, sizeof(s_ofsm_info[deputy_gun].base.transaction_number));
             memset(s_ofsm_info[deputy_gun].base.car_vin, 0x00, sizeof(s_ofsm_info[deputy_gun].base.car_vin));
             memset(s_ofsm_info[deputy_gun].base.user_number, 0x00, sizeof(s_ofsm_info[deputy_gun].base.user_number));
+            s_ofsm_info[deputy_gun].base.current_soc = 0x00;
+            s_ofsm_info[deputy_gun].base.flag.paracharge_is_identified = APP_THA_ENUM_FALSE;
+            s_ofsm_info[deputy_gun].base.flag.recved_paracharge_identify_id = APP_THA_ENUM_FALSE;
 
             app_nsal_init_charge_data(deputy_gun);
         }
@@ -6135,6 +6169,7 @@ static void ofsm_finishing_fun(uint8_t gunno)
                 s_ofsm_info[gunno].base.flag.start_result = APP_THA_ENUM_FALSE;
                 s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_FALSE;
                 s_ofsm_info[gunno].base.flag.paracharge_is_identified = APP_THA_ENUM_TRUE;
+                s_ofsm_info[gunno].base.flag.recved_paracharge_identify_id = APP_THA_ENUM_FALSE;
 
                 rfidr_clear_swipe_state(gunno);
                 app_get_hci_event(gunno, HCI_EVENT_SCREEN_START, APP_THA_ENUM_TRUE);
@@ -6780,6 +6815,10 @@ void ofsm_thread_entry(void *parameter)
     thaisenChargeGunInfo info;
 
     extern int32_t app_thread_monitor_process(void *thread, void *para, uint32_t plen, uint32_t option);
+
+    /** CAN 报文接收回调注册 */
+    thaisen_user_can_cb_register(THAISEN_BMS_A_CAN_ENUM, ofsm_bsm_a_can_cb);
+    thaisen_user_can_cb_register(THAISEN_BMS_B_CAN_ENUM, ofsm_bsm_b_can_cb);
 
     memset(&info, 0x00, sizeof(thaisenChargeGunInfo));
     if(thread_gunno >= APP_SYSTEM_GUNNO_SIZE){

@@ -540,6 +540,7 @@ typedef struct{
         uint32_t is_pay_complete : 1;                        /* 已结算完成(用于离线计费) */
         uint32_t is_ammeter_elect_error : 1;                 /* 电表电量错误(防止一开始时读取到的电表电量是0) */
         uint32_t paracharge_is_identified : 1;               /* 是否并充已识别 */
+        uint32_t recved_paracharge_identify_id : 1;          /* 是否已接收到并充识别CANID */
         uint32_t is_local_reservation : 1;                   /* 是否本地预约 */
         uint32_t is_reser_normal_started : 1;                /* 是否本地预约已正常启动(用于预约时间一分钟内多次启动限制) */
         uint32_t is_reser_timeout_started : 1;               /* 是否本地预约已超时启动(用于超过预约时间15分钟内启动检测) */

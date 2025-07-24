@@ -18,8 +18,8 @@ typedef struct{
     uint8_t data[8];
 }mw_can_info;
 
-uint8_t mw_is_can_recved(thaisenIsCANRecv en);
-void mw_clear_can_recved(thaisenIsCANRecv en);
+uint8_t mw_is_can_recved(thaisenIsCANEnum en);
+void mw_clear_can_recved(thaisenIsCANEnum en);
 
 void mw_bmsa_can_send(uint32_t id, uint8_t *data, uint8_t dlen);
 void mw_bmsb_can_send(uint32_t id, uint8_t *data, uint8_t dlen);

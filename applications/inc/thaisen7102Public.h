@@ -782,12 +782,12 @@ can_msg_buf thaisen_get_can_bmsB_dat(void);
 can_msg_buf thaisen_get_tcu_dat(void);
 
 typedef enum{
-    THAISEN_BMS_A_CAN_RECV,       //BMS A CAN 接收到数据
-    THAISEN_BMS_B_CAN_RECV,       //BMS B CAN 接收到数据
-    THAISEN_BMS_TCU_CAN_RECV,     //TCU CAN 接收到数据
-    THAISEN_BMS_MODULE_CAN_RECV,  //充电模块 CAN 接收到数据
-    THAISEN_CAN_RECV_SIZE,
-}thaisenIsCANRecv;
+    THAISEN_BMS_A_CAN_ENUM,       //BMS A CAN
+    THAISEN_BMS_B_CAN_ENUM,       //BMS B CAN
+    THAISEN_TCU_CAN_ENUM,         //TCU CAN
+    THAISEN_MODULE_CAN_ENUM,      //充电模块 CAN
+    THAISEN_CAN_ENUM_SIZE,
+}thaisenIsCANEnum;
 
 /* 功能说明:
  *      thaisen_is_can_recved 查询CAN是否接收到了数据
@@ -798,7 +798,7 @@ typedef enum{
  * 调用方法:
  *      CAN 空闲时调用
  */
-unsigned char thaisen_is_can_recved(thaisenIsCANRecv en);
+unsigned char thaisen_is_can_recved(thaisenIsCANEnum en);
 
 /* 功能说明:
  *      thaisen_clear_can_recved 清除CAN接收数据标志
@@ -809,7 +809,19 @@ unsigned char thaisen_is_can_recved(thaisenIsCANRecv en);
  * 调用方法:
  *      CAN 空闲时调用
  */
-void thaisen_clear_can_recved(thaisenIsCANRecv en);
+void thaisen_clear_can_recved(thaisenIsCANEnum en);
+
+/* 功能说明:
+ *      thaisen_user_can_cb_register 应用层CAN数据接收回调函数注册
+ * 输入参数:
+*              en CAN 枚举
+*              cb 回调句柄
+ * 返回参数:
+ *
+ * 调用方法:
+ *      上电时注册，类型为：void (*)(can_msg_buf*)
+ */
+void thaisen_user_can_cb_register(thaisenIsCANEnum en, void *cb);
 
 /*******************************************************************************/
 
