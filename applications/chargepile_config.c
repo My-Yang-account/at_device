@@ -1737,10 +1737,10 @@ static void chargepile_config_data_reset(void)
     s_chargepile_config_info.function_enable.local_stop = 0x00;
     s_chargepile_config_info.function_enable.insulation_detect = 0x01;
     s_chargepile_config_info.function_enable.vin_charge = 0x00;
-    s_chargepile_config_info.function_enable.parallel_charge = 0x01;
-    s_chargepile_config_info.function_enable.plug_charge = 0x01;
-    s_chargepile_config_info.function_enable.bcs = 0x01;
-    s_chargepile_config_info.function_enable.bsm = 0x01;
+    s_chargepile_config_info.function_enable.parallel_charge = 0x00;
+    s_chargepile_config_info.function_enable.plug_charge = 0x00;
+    s_chargepile_config_info.function_enable.bcs = 0x00;
+    s_chargepile_config_info.function_enable.bsm = 0x00;
     s_chargepile_config_info.function_enable.auxpower_24V = 0x00;
     s_chargepile_config_info.function_enable.parallel_charge = 0x00;
     s_chargepile_config_info.function_enable.acrelay_out = 0x01;
@@ -1826,7 +1826,7 @@ static void chargepile_config_data_reset(void)
 #if (APP_TARGET_PLATFORM_ID == NET_OCPP_PLATFORM_ID)
     s_system_config_tp_additional.verify_result = 0x00;
 #endif /* (APP_TARGET_PLATFORM_ID == NET_OCPP_PLATFORM_ID) */
-#endif /* #ifdef APP_INCLUDE_TARGET_PLATFORM */
+#endif /* APP_INCLUDE_TARGET_PLATFORM */
 }
 
 int32_t chargepile_config_init(void)
