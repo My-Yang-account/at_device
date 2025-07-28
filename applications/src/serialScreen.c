@@ -119,6 +119,10 @@
 #define SCREEN_USING_OFFLINE_BILLING     /* 使用离线计费 */
 #endif /* CP_USING_OFFLINE_BILLING */
 
+#ifdef CP_INCLUDE_BATVOLT_DETECT_QRCODE
+#define SCREEN_INCLUDE_BATVOLT_DETECT_QRCODE       /* 包含电池电压报告检测二维码 */
+#endif /* CP_INCLUDE_BATVOLT_DETECT_QRCODE */
+
 #ifdef SCREEN_USING_QBJ
 #define SCREEN_LIGHTSCREEN_LOCATION_X   700 /* 模拟点亮屏幕的坐标X轴 */
 #define SCREEN_LIGHTSCREEN_LOCATION_Y   0   /* 模拟点亮屏幕的坐标Y轴 */
@@ -463,6 +467,9 @@ struct LCD_DISPLAY_SETDATA_TYPE{
     u32 MeterElect[LCD_GUN_NUM];
 	u8 ErWeiCode[LCD_GUN_NUM][QRCODE_LEN];
 	u8 ErWeiCodePre[128];
+#ifdef SCREEN_INCLUDE_BATVOLT_DETECT_QRCODE
+    u8 BatVoltDetectQrCode[LCD_GUN_NUM][QRCODE_LEN];
+#endif /* SCREEN_INCLUDE_BATVOLT_DETECT_QRCODE */
 	u8 SerialScreen_PassWordShow;           //屏幕密码显示
 //	f32 Magnification;						//电表倍率
 //	u32 Accuracy;							//电表精度(小数点位数)
@@ -2831,6 +2838,7 @@ void SerialScreen_PWStartCharge(u8 port)
 
 void SerialScreen_StopCharge(int port)
 {
+#if 0
     sSCREEN_EVENT_DEBUGMSG("##########Port[%d] Stop Charge###########\r\n");
     if((TRUE == LcdData.setData.sup_Local) ||   \
             (LcdAssistantData.SeveralGunFlag[port].IsVinStart) ||   \
@@ -2838,6 +2846,12 @@ void SerialScreen_StopCharge(int port)
             LcdData.setData.Sup_PlugAndPlay)
     	thaisen_app_set_screen_stop_charge(port);
 	else ;
+#else
+    sSCREEN_EVENT_DEBUGMSG("##########Port[%d] Stop Charge###########\r\n");
+    if((TRUE == LcdData.setData.sup_Local) || (TRUE == LcdData.setData.sup_Local_stop))
+        thaisen_app_set_screen_stop_charge(port);
+    else ;
+#endif
 }
 
 void SerialScreen_BtnChgInfoGet(int port)
@@ -10845,9 +10859,17 @@ int SerialScreen_DataProcess()
             if(LcdData.setData.sup_Local == FALSE){
                 if(LcdAssistantData.SeveralGunFlag[i].IsVinStart == TRUE){
                     LcdData.setData.Sup_Stop = ICON_CHARGE_LOCAL;
-                }else if(((LcdData.setData.sup_Local_stop == TRUE) && (thaisen_is_allow_loacl_stop(i))) || LcdData.setData.Sup_PlugAndPlay){ /** 停止使能目前只针对于在线启动或密码启动方式(因为前面出去的屏幕工程没有停止使能按键，如果从flash中读出配置停止使能是开启则无法关闭) */
+                }
+#if 0
+                else if(((LcdData.setData.sup_Local_stop == TRUE) && (thaisen_is_allow_loacl_stop(i))) || LcdData.setData.Sup_PlugAndPlay){ /** 停止使能目前只针对于在线启动或密码启动方式(因为前面出去的屏幕工程没有停止使能按键，如果从flash中读出配置停止使能是开启则无法关闭) */
                     LcdData.setData.Sup_Stop = ICON_CHARGE_LOCAL;
-                }else{
+                }
+#else
+                else if((LcdData.setData.sup_Local_stop == TRUE) || LcdData.setData.Sup_PlugAndPlay){ /** 停止使能目前只针对于在线启动或密码启动方式(因为前面出去的屏幕工程没有停止使能按键，如果从flash中读出配置停止使能是开启则无法关闭) */
+                    LcdData.setData.Sup_Stop = ICON_CHARGE_LOCAL;
+                }
+#endif
+                else{
                     u8 AnotherGun = LCD_GUN_1;
                     if(i == LCD_GUN_1){
                         AnotherGun = LCD_GUN_2;
@@ -10855,9 +10877,17 @@ int SerialScreen_DataProcess()
                     if(LcdData.gun[AnotherGun].workState == SysMainStatus_Chrging){
                         if(LcdAssistantData.SeveralGunFlag[AnotherGun].IsVinStart == TRUE){
                             LcdData.setData.Sup_Stop = ICON_CHARGE_LOCAL;
-                        }else if(((LcdData.setData.sup_Local_stop == TRUE) && (thaisen_is_allow_loacl_stop(AnotherGun))) || LcdData.setData.Sup_PlugAndPlay){
+                        }
+#if 0
+                        else if(((LcdData.setData.sup_Local_stop == TRUE) && (thaisen_is_allow_loacl_stop(AnotherGun))) || LcdData.setData.Sup_PlugAndPlay){
                             LcdData.setData.Sup_Stop = ICON_CHARGE_LOCAL;
-                        }else{
+                        }
+#else
+                        else if((LcdData.setData.sup_Local_stop == TRUE) || LcdData.setData.Sup_PlugAndPlay){
+                            LcdData.setData.Sup_Stop = ICON_CHARGE_LOCAL;
+                        }
+#endif
+                        else{
                             LcdData.setData.Sup_Stop = ICON_CHARGE_NULL;
                         }
                     }else{
@@ -10876,9 +10906,17 @@ int SerialScreen_DataProcess()
                 if(LcdData.gun[AnotherGun].workState == SysMainStatus_Chrging){
                     if(LcdAssistantData.SeveralGunFlag[AnotherGun].IsVinStart == TRUE){
                         LcdData.setData.Sup_Stop = ICON_CHARGE_LOCAL;
-                    }else if(((LcdData.setData.sup_Local_stop == TRUE) && (thaisen_is_allow_loacl_stop(AnotherGun))) || LcdData.setData.Sup_PlugAndPlay){
+                    }
+#if 0
+                    else if(((LcdData.setData.sup_Local_stop == TRUE) && (thaisen_is_allow_loacl_stop(AnotherGun))) || LcdData.setData.Sup_PlugAndPlay){
                         LcdData.setData.Sup_Stop = ICON_CHARGE_LOCAL;
-                    }else{
+                    }
+#else
+                    else if((LcdData.setData.sup_Local_stop == TRUE) || LcdData.setData.Sup_PlugAndPlay){
+                        LcdData.setData.Sup_Stop = ICON_CHARGE_LOCAL;
+                    }
+#endif
+                    else{
                         LcdData.setData.Sup_Stop = ICON_CHARGE_NULL;
                     }
                 }else{
@@ -11010,16 +11048,9 @@ int SerialScreen_DataProcess()
                 LcdData.gun[i].RemainTime[0] = bmsInfo[i]->bms_remain_time /60;
                 LcdData.gun[i].RemainTime[1] = bmsInfo[i]->bms_remain_time %60;
 				LcdData.gun[i].BatTemp = bmsTemp[i].temp;
-				
-				//sSCREEN_DEBUGMSG("LcdData.gun[%d].cur = %.2f A\r\n",i,(f32)chargeInfo[i].charge_current/LCD_POW_2);
-				//sSCREEN_DEBUGMSG("LcdData.gun[%d].vol = %.2f V\r\n",i,(f32)chargeInfo[i].charge_voltage/LCD_POW_2);
-				//sSCREEN_DEBUGMSG("LcdData.gun[%d].engery = %.3f KWH\r\n",i,(f32) chargeInfo[i].charge_elect/LCD_POW_3);
-				//sSCREEN_DEBUGMSG("LcdData.gun[%d].soc = %d \r\n",i,LcdData.gun[i].curSoc);
-				//sSCREEN_DEBUGMSG("LcdData.gun[%d].ChrgeTime = %d \r\n",i,LcdData.gun[i].ChrgeTime);
-				//sSCREEN_DEBUGMSG("LcdData.gun[%d].ErrCode = %s \r\n",i,LcdData.gun[i].ErrCode);
-				//sSCREEN_DEBUGMSG("LcdData.gun[%d].VolNeed = %.1f V\r\n",i,LcdData.gun[i].VolNeed/LCD_POW_1);
-				//sSCREEN_DEBUGMSG("LcdData.gun[%d].CurNeed = %.1f A\r\n",i,LcdData.gun[i].CurNeed/LCD_POW_1);
-				//sSCREEN_DEBUGMSG("LcdData.gun[%d].SigleVol = %.2f \r\n",i,LcdData.gun[i].SigleVol/LCD_POW_2);
+#ifdef SCREEN_INCLUDE_BATVOLT_DETECT_QRCODE
+				thaisen_get_batvolt_detect_qrcode(i, LcdData.setData.BatVoltDetectQrCode[i], (sizeof(LcdData.setData.BatVoltDetectQrCode[i]) - 1));
+#endif /* SCREEN_INCLUDE_BATVOLT_DETECT_QRCODE */
 			}else{
 			    LcdData.gun[i].RemainTime[0] = 0;
 			    LcdData.gun[i].RemainTime[1] = 0;
@@ -11600,6 +11631,9 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_A_ACOUNT, NULL, "ChgStopReason", LCD_TextType, LCD_NoReflash, 0x6A81, pstr_type, (sizeof(LcdData.gun[LCD_GUN_1].code_stopResaon_Chinese) - 1), (void *)&LcdData.gun[LCD_GUN_1].code_stopResaon_Chinese[0]);
     SerialScreen_ItemSetUp(LCD_PAGE_A_ACOUNT, NULL, "back", LCD_BtnHomeType, 0x0002, 0x1000, page_type, 0, (void *)NULL);
     SerialScreen_ItemSetUp(LCD_PAGE_A_ACOUNT, NULL, "unlock_ela", LCD_BtnType, 0x0007, 0x1000, page_type, LCD_PAGE_A_ACOUNT, (void *)SerialScreen_BtnUnElockA);
+#ifdef SCREEN_INCLUDE_BATVOLT_DETECT_QRCODE
+    SerialScreen_ItemSetUp(LCD_PAGE_A_ACOUNT, NULL, "Det_QrCode", LCD_QRCodeType, LCD_NoReflash, 0x7000, pstr_type, sizeof(LcdData.setData.BatVoltDetectQrCode[LCD_GUN_1]), (void *)LcdData.setData.BatVoltDetectQrCode[LCD_GUN_1]);
+#endif /* SCREEN_INCLUDE_BATVOLT_DETECT_QRCODE */
     SerialScreen_ItemSetUp(LCD_PAGE_A_ACOUNT, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
 
     /** 11.B枪结算 [page:11] */
@@ -11612,6 +11646,9 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_B_ACOUNT, NULL, "ChgStopReason", LCD_TextType, LCD_NoReflash, 0x6AA1, pstr_type, (sizeof(LcdData.gun[LCD_GUN_2].code_stopResaon_Chinese) - 1), (void *)&LcdData.gun[LCD_GUN_2].code_stopResaon_Chinese[0]);
     SerialScreen_ItemSetUp(LCD_PAGE_B_ACOUNT, NULL, "back", LCD_BtnHomeType, 0x0002, 0x1000, page_type, 0, (void *)NULL);
     SerialScreen_ItemSetUp(LCD_PAGE_B_ACOUNT, NULL, "unlock_elb", LCD_BtnType, 0x0008, 0x1000, page_type, LCD_PAGE_B_ACOUNT, (void *)SerialScreen_BtnUnElockB);
+#ifdef SCREEN_INCLUDE_BATVOLT_DETECT_QRCODE
+    SerialScreen_ItemSetUp(LCD_PAGE_B_ACOUNT, NULL, "Det_QrCode", LCD_QRCodeType, LCD_NoReflash, 0x7080, pstr_type, sizeof(LcdData.setData.BatVoltDetectQrCode[LCD_GUN_2]), (void *)LcdData.setData.BatVoltDetectQrCode[LCD_GUN_2]);
+#endif /* SCREEN_INCLUDE_BATVOLT_DETECT_QRCODE */
     SerialScreen_ItemSetUp(LCD_PAGE_B_ACOUNT, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
 
     /** 12.A枪故障  [page:12]*/

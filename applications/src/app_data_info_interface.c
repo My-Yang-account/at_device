@@ -29,6 +29,9 @@ APP_DEF_SRAM1 static struct fault_info s_fault_info;
 APP_DEF_SRAM1 static struct ammeter_data s_ammeter_data;
 APP_DEF_SRAM1 static struct card_data_info s_card_data;
 APP_DEF_SRAM1 static struct offline_billing_card_info s_offline_billing_card_info;
+#ifdef APP_INCLUDE_BATVOLT_DETECT_QRCODE
+APP_DEF_SRAM1 static uint8_t s_batvolt_detect_sn[APP_SYSTEM_GUNNO_SIZE][THAISEN_BATVOLT_DETECT_SN_LEN];
+#endif /* APP_INCLUDE_BATVOLT_DETECT_QRCODE */
 
 #ifdef APP_DESIGNATE_REGION
 /*************************************
@@ -50,6 +53,9 @@ void app_data_info_interface_init(void)
     memset(&s_ammeter_data, 0x00, sizeof(s_ammeter_data));
     memset(&s_card_data, 0x00, sizeof(s_card_data));
     memset(&s_offline_billing_card_info, 0x00, sizeof(s_offline_billing_card_info));
+#ifdef APP_INCLUDE_BATVOLT_DETECT_QRCODE
+    memset(&s_batvolt_detect_sn, 0x00, sizeof(s_batvolt_detect_sn));
+#endif /* APP_INCLUDE_BATVOLT_DETECT_QRCODE */
 }
 #endif /* APP_DESIGNATE_REGION */
 
@@ -1923,3 +1929,76 @@ void thaisen_close_charge_module(uint8_t gunno)
 }
 
 
+#ifdef APP_INCLUDE_BATVOLT_DETECT_QRCODE
+/**************************************************************************
+ * 函数名      thaisen_set_batvolt_detect_sn
+ * 功能          设置电池电压检测报告交易号
+ * 参数          gunno        枪号
+ *        sn           交易号
+ *        slen         交易号长度
+ * 返回
+ *************************************************************************/
+void thaisen_set_batvolt_detect_sn(uint8_t gunno, uint8_t *sn, uint8_t slen)
+{
+    if(gunno >= APP_SYSTEM_GUNNO_SIZE){
+        return;
+    }
+    memset(s_batvolt_detect_sn[gunno], 0x00, THAISEN_BATVOLT_DETECT_SN_LEN);
+#if 0
+    if(slen > (THAISEN_BATVOLT_DETECT_SN_LEN - 0x01)){
+        memcpy(s_batvolt_detect_sn[gunno], sn, (THAISEN_BATVOLT_DETECT_SN_LEN - 0x01));
+    }else{
+        memcpy(s_batvolt_detect_sn[gunno], sn, slen);
+    }
+#else
+    memcpy(s_batvolt_detect_sn[gunno], sn, 16);
+#endif
+}
+
+/**************************************************************************
+ * 函数名      thaisen_close_charge_module
+ * 功能         获取电池电压检测报告二维码信息
+ * 参数          gunno        枪号
+ *       buf          存放信息的缓存
+ *       blen          缓存长度
+ * 返回
+ *************************************************************************/
+void thaisen_get_batvolt_detect_qrcode(uint8_t gunno, uint8_t *buf, uint8_t blen)
+{
+#define THAISEN_BATVOLT_DETECT_QRPREFIX  "https://charge.thaisen.cn:5050/scanner/download/downloadData.html?orderId="
+    memset(buf, 0x00, blen);
+    if(gunno >= APP_SYSTEM_GUNNO_SIZE){
+        return;
+    }
+    uint8_t used_len = strlen(THAISEN_BATVOLT_DETECT_QRPREFIX), bcd = 0x00;
+    if(blen > (strlen(THAISEN_BATVOLT_DETECT_QRPREFIX) + THAISEN_BATVOLT_DETECT_SN_LEN - 0x01)){
+        /** 拼接二维码前缀 */
+        memcpy(buf, THAISEN_BATVOLT_DETECT_QRPREFIX, strlen(THAISEN_BATVOLT_DETECT_QRPREFIX));
+        /** 交易号暂时按照云快充的格式来 */
+        for(uint8_t i = 0x00, j = 0x00; i < 16; i++, j += 2){
+            bcd = ((s_batvolt_detect_sn[gunno][i] &0xF0) >>4);
+            /** 是数字 */
+            if(bcd <= 0x09){
+                buf[j + used_len] = bcd + '0';
+            }
+            /** 是字母，按小写字母来 */
+            else{
+                buf[j + used_len] = (bcd - 0x0a) + 'a';
+//                buf[j + used_len] = (bcd - 0x0a) + 'A';
+            }
+
+            bcd = (s_batvolt_detect_sn[gunno][i] &0x0F);
+            /** 是数字 */
+            if(bcd <= 0x09){
+                buf[j + 1 + used_len] = bcd + '0';
+            }
+            /** 是字母，按小写字母来 */
+            else{
+                buf[j + 1 + used_len] = (bcd - 0x0a) + 'a';
+//                buf[j + 1 + used_len] = (bcd - 0x0a) + 'A';
+            }
+        }
+    }
+}
+
+#endif /* APP_INCLUDE_BATVOLT_DETECT_QRCODE */

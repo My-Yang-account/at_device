@@ -771,6 +771,20 @@ void thaisen_open_charge_module(uint8_t gunno, uint32_t voltage, uint32_t curren
 **/
 void thaisen_close_charge_module(uint8_t gunno);
 
+#ifdef APP_INCLUDE_BATVOLT_DETECT_QRCODE
+#define THAISEN_BATVOLT_DETECT_SN_LEN                       40
+/**
+*  设置电池电压检测报告交易号
+**/
+void thaisen_set_batvolt_detect_sn(uint8_t gunno, uint8_t *sn, uint8_t slen);
+
+/**
+*  获取电池电压检测报告二维码信息
+**/
+void thaisen_get_batvolt_detect_qrcode(uint8_t gunno, uint8_t *buf, uint8_t blen);
+
+#endif /* APP_INCLUDE_BATVOLT_DETECT_QRCODE */
+
 #endif /* APPLICATIONS_INC_APP_DATA_INFO_INTERFACE_H_ */
 
 

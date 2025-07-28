@@ -65,6 +65,10 @@ extern "C" {
 #define APP_USING_FB_DETECT                            /* 使用反馈实时检测 */
 #endif /* CP_USING_FB_DETECT */
 
+#ifdef CP_INCLUDE_BATVOLT_DETECT_QRCODE
+#define APP_INCLUDE_BATVOLT_DETECT_QRCODE              /* 包含电池电压报告检测二维码 */
+#endif /* CP_INCLUDE_BATVOLT_DETECT_QRCODE */
+
 #define APP_USING_DOUBLEGUN                            /* 使用双枪 */
 
 #define APP_MAINTENTANCE_MODE_CURR_MAX       200       /* 保养模式最大电流20A(0.1) */

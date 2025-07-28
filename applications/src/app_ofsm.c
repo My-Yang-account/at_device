@@ -1571,6 +1571,10 @@ static void ofsm_start_info_padding_public(uint8_t gunno)
     memset(&(s_thaisen_transaction[gunno].bms_fault_reason), 0x00, sizeof(s_thaisen_transaction[gunno].bms_fault_reason));
     memset(&(s_thaisen_transaction[gunno].bms_error_reason), 0x00, sizeof(s_thaisen_transaction[gunno].bms_error_reason));
 
+#ifdef APP_INCLUDE_BATVOLT_DETECT_QRCODE
+    thaisen_set_batvolt_detect_sn(gunno, s_ofsm_info[gunno].base.transaction_number, strlen((char*)s_ofsm_info[gunno].base.transaction_number));
+#endif /* APP_INCLUDE_BATVOLT_DETECT_QRCODE */
+
     s_booting_step[gunno] = APP_BOOTING_STEP_IDLE;                 /* 初始化充电步骤 */
 
     app_nsal_init_charge_data(gunno);
