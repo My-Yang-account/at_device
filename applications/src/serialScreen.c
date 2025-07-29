@@ -119,6 +119,10 @@
 #define SCREEN_USING_OFFLINE_BILLING     /* 使用离线计费 */
 #endif /* CP_USING_OFFLINE_BILLING */
 
+#ifdef USING_DOUBLE_GUN
+#define SCREEN_USING_DOUBLE_GUN          /* 使用双枪 */
+#endif /* USING_DOUBLE_GUN */
+
 #ifdef CP_INCLUDE_BATVOLT_DETECT_QRCODE
 #define SCREEN_INCLUDE_BATVOLT_DETECT_QRCODE       /* 包含电池电压报告检测二维码 */
 #endif /* CP_INCLUDE_BATVOLT_DETECT_QRCODE */
@@ -206,10 +210,6 @@ SERIALSCREEN_DEF_SRAM2 u8 SerialScreenRxbuf[sSCREEN_RX_CMD_MAX_LEN+sSCREEN_RX_CM
 #define SERIALSCREEN_PAGE_ITEM_MAX     54  // 屏幕每页信息项总数
 #endif /* SCREEN_USING_OFFLINE_BILLING */
 #define CONFIG_ITEM_MODULE_GROUP_NUM_(X) 
-
-#ifdef USING_DOUBLE_GUN
-#define SCREEN_USING_DOUBLE_GUN  /* 使用双枪 */
-#endif /* USING_DOUBLE_GUN */
 
 typedef enum SerialScreenReflashTimer
 {
@@ -5288,11 +5288,15 @@ void SerialScreen_BtnModuleStartA(void)
     thaisen_relay_AC_on();                      /** 闭合 */
     SerialScreen_SendIco(&SerialScreen, 0x4172, TRUE);
     LcdData.setData.s_acRely = TRUE;
-
     LcdData.setData.s_moduleVol[LCD_GUN_1] = SerialScreen_GetPara_ValidValue(LcdData.setData.s_moduleVol[LCD_GUN_1],
             COMPULSION_SET_VOLTAGE_DEF, COMPULSION_SET_VOLTAGE_MIN, COMPULSION_SET_VOLTAGE_MAX);
+#ifdef SCREEN_USING_DOUBLE_GUN
     LcdData.setData.s_moduleCur[LCD_GUN_1] = SerialScreen_GetPara_ValidValue(LcdData.setData.s_moduleCur[LCD_GUN_1],
-            COMPULSION_SET_CURRENT_DEF, COMPULSION_SET_CURRENT_MIN, COMPULSION_SET_CURRENT_MAX);
+            COMPULSION_SET_CURRENT_DEF, COMPULSION_SET_CURRENT_MIN, (LcdData.setData.Max_Limit_Current *10 /2));
+#else
+    LcdData.setData.s_moduleCur[LCD_GUN_1] = SerialScreen_GetPara_ValidValue(LcdData.setData.s_moduleCur[LCD_GUN_1],
+            COMPULSION_SET_CURRENT_DEF, COMPULSION_SET_CURRENT_MIN, (LcdData.setData.Max_Limit_Current *10));
+#endif
     thaisenSetModuleSetupVolt(LcdData.setData.s_moduleVol[LCD_GUN_1] *10, LCD_GUN_1);
     thaisenSetModuleSetupCurr(LcdData.setData.s_moduleCur[LCD_GUN_1] *10, LCD_GUN_1);
     thaisenSetModuleDebugEnableOutput(LCD_GUN_1);
@@ -5318,8 +5322,13 @@ void SerialScreen_BtnModuleStartB(void)
 
     LcdData.setData.s_moduleVol[LCD_GUN_2] = SerialScreen_GetPara_ValidValue(LcdData.setData.s_moduleVol[LCD_GUN_2],
             COMPULSION_SET_VOLTAGE_DEF, COMPULSION_SET_VOLTAGE_MIN, COMPULSION_SET_VOLTAGE_MAX);
+#ifdef SCREEN_USING_DOUBLE_GUN
     LcdData.setData.s_moduleCur[LCD_GUN_2] = SerialScreen_GetPara_ValidValue(LcdData.setData.s_moduleCur[LCD_GUN_2],
-            COMPULSION_SET_CURRENT_DEF, COMPULSION_SET_CURRENT_MIN, COMPULSION_SET_CURRENT_MAX);
+            COMPULSION_SET_CURRENT_DEF, COMPULSION_SET_CURRENT_MIN, (LcdData.setData.Max_Limit_Current *10 /2));
+#else
+    LcdData.setData.s_moduleCur[LCD_GUN_2] = SerialScreen_GetPara_ValidValue(LcdData.setData.s_moduleCur[LCD_GUN_2],
+            COMPULSION_SET_CURRENT_DEF, COMPULSION_SET_CURRENT_MIN, (LcdData.setData.Max_Limit_Current *10));
+#endif
     thaisenSetModuleSetupVolt(LcdData.setData.s_moduleVol[LCD_GUN_2] *10, LCD_GUN_2);
     thaisenSetModuleSetupCurr(LcdData.setData.s_moduleCur[LCD_GUN_2] *10, LCD_GUN_2);
     thaisenSetModuleDebugEnableOutput(LCD_GUN_2);

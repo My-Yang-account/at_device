@@ -306,11 +306,11 @@
 #define MODULE_MIN_LIMIT_CURR_MIN                 0         /* 模块最小限电流最小值 */
 
 #define COMPULSION_SET_VOLTAGE_DEF                750       /* 强制启动设定电压默认值 */
-#define COMPULSION_SET_VOLTAGE_MAX                1200      /* 强制启动设定电压最大值 */
+#define COMPULSION_SET_VOLTAGE_MAX                1500      /* 强制启动设定电压最大值 */
 #define COMPULSION_SET_VOLTAGE_MIN                1         /* 强制启动设定电压最小值 */
 
 #define COMPULSION_SET_CURRENT_DEF                0         /* 强制启动设定电流默认值 */
-#define COMPULSION_SET_CURRENT_MAX                1500      /* 强制启动设定电流最大值 */
+#define COMPULSION_SET_CURRENT_MAX                4000      /* 强制启动设定电流最大值 */
 #define COMPULSION_SET_CURRENT_MIN                0         /* 强制启动设定电流最小值 */
 
 #define CHARGEPILE_INPUT_OVERVOLT_DEF             550       /* 充电桩输入过压默认值值 */
