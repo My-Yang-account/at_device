@@ -32,7 +32,11 @@ extern "C" {
                                          [1.6.8 /1.7.0 为不启用网络部分、去掉联网图标、屏幕二维码只显示桩号+枪号]
                                          [1.7.3(单枪) 最后一次提交(增加厂商编码、注册码屏幕可输入，修改注册码后会清空三元组) 2025/05/06]
                                          [1.9.8(双枪) 最后一次提交(fix: 故障停也可以二次启动 + 并充模式下才发CFC报文) 2025/05/13]
-                                         [2.0.0(双枪国网) 最后一次提交(fix: 上报模块故障开启重发机制) 2025/06/07]*/
+                                         [2.0.0(双枪国网) 最后一次提交(fix: 上报模块故障开启重发机制) 2025/06/07]
+                                         [2.0.2(双枪) 最后一次提交(fix: 不使能并联继电器时不检测并联继电器反馈) 2025/06/25]
+                                         [2.0.3(双枪) 修改温度检测算法，继电器、电锁反馈检测增加滤波 2025/06/25]
+                                         [2.0.4(双枪) 充电结束清除SOC，修复并充自动识别失败问题[空闲时总线有数据] 2025/07/24]
+                                         [1.7.5(单枪) 屏幕使能本地停止功能后，无论何种方式启动都可以本地停止 2025/07/25]  */
 
 #ifdef APP_USING_DOUBLEGUN
 
@@ -70,7 +74,7 @@ extern "C" {
 
 #define SOFTWARE_VERSION       2L
 #define SOFTWARE_SUBVERSION    0
-#define SOFTWARE_REVISION      1L  /** 02 */
+#define SOFTWARE_REVISION      4L  /** 01 */
 
 #else
 
@@ -90,7 +94,7 @@ extern "C" {
 
 #define SOFTWARE_VERSION       1L
 #define SOFTWARE_SUBVERSION    7L
-#define SOFTWARE_REVISION      4L  /* 02 */
+#define SOFTWARE_REVISION      5L  /* 01 */
 
 #endif /* APP_USING_DOUBLEGUN */
 
