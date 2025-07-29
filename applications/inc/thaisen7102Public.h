@@ -312,6 +312,54 @@ typedef enum
  */
 thaisenElectLockSta thaisenElectLock_StateQuery(uint8_t gunNum);
 
+/* 功能说明:
+ *          thaisenElectLockA_Directly:直接上锁A枪电子锁(不检测反馈、仅操作IO口)
+ *
+ * 输入参数:
+ *
+ * 返回参数:
+ *
+ * 调用方法:
+ *          可实时调用
+ */
+void thaisenElectLockA_Directly(void);
+
+/* 功能说明:
+ *          thaisenElectUnlockA_Directly:直接解锁A枪电子锁(不检测反馈、仅操作IO口)
+ *
+ * 输入参数:
+ *
+ * 返回参数:
+ *
+ * 调用方法:
+ *          可实时调用
+ */
+void thaisenElectUnlockA_Directly(void);
+
+/* 功能说明:
+ *          thaisenElectLockB_Directly:直接上锁B枪电子锁(不检测反馈、仅操作IO口)
+ *
+ * 输入参数:
+ *
+ * 返回参数:
+ *
+ * 调用方法:
+ *          可实时调用
+ */
+void thaisenElectLockB_Directly(void);
+
+/* 功能说明:
+ *          thaisenElectUnlockB_Directly:直接解锁B枪电子锁(不检测反馈、仅操作IO口)
+ *
+ * 输入参数:
+ *
+ * 返回参数:
+ *
+ * 调用方法:
+ *          可实时调用
+ */
+void thaisenElectUnlockB_Directly(void);
+
 /*****************************************************************************************************/
 /************************************系统故障信息*********************************************************/
 typedef enum thaisenFaultEnum

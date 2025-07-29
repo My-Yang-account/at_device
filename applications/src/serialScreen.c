@@ -6666,10 +6666,10 @@ void SerialScreen_GetIOStatus(int port)
 	else
 		LcdData.setData.g_elElock[port] = REALAY_CLOSE;
 #endif
-//	if(port == LCD_GUN_1)
-//		thaisenElectUnlockA_debug();
-//	else if(port == LCD_GUN_2)
-//		thaisenElectUnlockB_debug();
+	if(port == LCD_GUN_1)
+		thaisenElectUnlockA_Directly();
+	else if(port == LCD_GUN_2)
+	    thaisenElectUnlockB_Directly();
 	LcdData.setData.g_elElock[port]= REALAY_OFF;
 	LcdData.setData.s_elElock[port]  = LcdData.setData.g_elElock[port];
 
@@ -6819,16 +6819,16 @@ void SerialScreen_BtnElockSet(u8 port)
 	if(LcdData.setData.s_elElock[port] != TRUE)
 	{
 		if(port == LCD_GUN_1)
-			thaisenElectUnlockA_debug();
+		    thaisenElectUnlockA_Directly();
 		else if(port == LCD_GUN_2)
-			thaisenElectUnlockB_debug();
+		    thaisenElectUnlockB_Directly();
 	}
 	else
 	{
 	if(port == LCD_GUN_1)
-		thaisenElectLockA_debug();
+	    thaisenElectLockA_Directly();
 	else if(port == LCD_GUN_2)
-		thaisenElectLockB_debug();
+	    thaisenElectLockB_Directly();
 	}
 	sSCREEN_EVENT_DEBUGMSG("BtnElock%dSet = %d\r\n",port,LcdData.setData.s_elElock[port]);
 }
