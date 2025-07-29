@@ -345,14 +345,15 @@ struct LCD_ASSISTANT_DATA{
     }Flag;
 
     struct{
-        u8 AuxPower24VSelect : 1;        //24V辅源选择状态
-        u8 AuxPower24VSelectLast : 1;    //24V辅源前一次选择状态
-        u8 IsPowerOn : 1;                //上电开机
-        u8 IsVinStart : 1;               //启动方式为VIN码
-        u8 DataIsVerify : 1;             //配置数据已确认
-        u8 IsPWStartAuthen : 1;          //填密码是密码启动鉴权
-        u8 Aux24VNotice : 1;             //辅源24V选择提示
-        u8 IsSetReservation : 1;         //已设置预约
+        u16 AuxPower24VSelect : 1;       //24V辅源选择状态
+        u16 AuxPower24VSelectLast : 1;   //24V辅源前一次选择状态
+        u16 IsPowerOn : 1;               //上电开机
+        u16 IsVinStart : 1;              //启动方式为VIN码
+        u16 DataIsVerify : 1;            //配置数据已确认
+        u16 IsPWStartAuthen : 1;         //填密码是密码启动鉴权
+        u16 Aux24VNotice : 1;            //辅源24V选择提示
+        u16 IsSetReservation : 1;        //已设置预约
+        u16 IsLocalStart : 1;            //是本地启动
     }SeveralGunFlag[LCD_GUN_NUM];
 
     u8 OccupyGunNum;                     //处于占用但未充电的枪数量
@@ -2455,6 +2456,7 @@ static u8 SerialScreen_TriggerItem_Execute(struct LCD_TRIGGER_ITEM *item)
         LcdData.CurrentPage = LcdTriggerEvent[LcdData.gunIndex].item.page;                   /* 强制跳页 */
         for(u8 i = 0; i < LCD_GUN_NUM; i++){
             LcdAssistantData.SeveralGunFlag[i].IsPWStartAuthen = FALSE;
+            LcdAssistantData.SeveralGunFlag[i].IsLocalStart = FALSE;
         }
     }
 
@@ -2510,6 +2512,7 @@ static void SerialScreen_TriggerItem_Repeat_WaitPay(u8 port)
     LcdData.CurrentPage = LCD_PAGE_WARNNING_INFO;                   /* 强制跳页 */
     for(u8 i = 0; i < LCD_GUN_NUM; i++){
         LcdAssistantData.SeveralGunFlag[i].IsPWStartAuthen = FALSE;
+        LcdAssistantData.SeveralGunFlag[i].IsLocalStart = FALSE;
     }
 #endif /* SCREEN_USING_OFFLINE_BILLING */
 }
@@ -2541,6 +2544,7 @@ static u8 SerialScreen_TriggerItem_Page_Warnning(void)
 
     for(u8 i = 0; i < LCD_GUN_NUM; i++){
         LcdAssistantData.SeveralGunFlag[i].IsPWStartAuthen = FALSE;
+        LcdAssistantData.SeveralGunFlag[i].IsLocalStart = FALSE;
     }
 #endif /* SCREEN_USING_OFFLINE_BILLING */
     return TRUE;
@@ -2560,6 +2564,7 @@ static u8 SerialScreen_TriggerItem_Page_Payed(void)
     LcdData.CurrentPage = LCD_PAGE_A_ACOUNT + LcdData.gunIndex;
     for(u8 i = 0; i < LCD_GUN_NUM; i++){
         LcdAssistantData.SeveralGunFlag[i].IsPWStartAuthen = FALSE;
+        LcdAssistantData.SeveralGunFlag[i].IsLocalStart = FALSE;
     }
 #endif /* SCREEN_USING_OFFLINE_BILLING */
     return TRUE;
@@ -2786,19 +2791,39 @@ void SerialScreen_StartCharge(int port)
 
 void SerialScreen_StartChargeA(void)
 {
-    sSCREEN_EVENT_DEBUGMSG("##########Port[LCD_GUN_1] Start Charge###########\r\n");
-	if(TRUE == LcdData.setData.sup_Local)
-    	thaisen_app_set_screen_start_charge(LCD_GUN_1);
-	else ;
+    if((LcdData.setData.sup_offbilling == FALSE) && (LcdData.setData.NetType == CP_NETTYPE_OFFLINE)){
+        if(TRUE == LcdData.setData.sup_Local)
+            thaisen_app_set_screen_start_charge(LCD_GUN_1);
+        else ;
+        LcdAssistantData.SeveralGunFlag[LCD_GUN_1].IsPWStartAuthen = FALSE;
+    }
+    /** 这是在线模式或离线计费模式 */
+    else{
+        LcdAssistantData.SeveralGunFlag[LCD_GUN_1].IsPWStartAuthen = FALSE;
+        if(TRUE == LcdData.setData.sup_Local){
+            LcdAssistantData.SeveralGunFlag[LCD_GUN_1].IsPWStartAuthen = TRUE;
+            LcdAssistantData.SeveralGunFlag[LCD_GUN_1].IsLocalStart = TRUE;
+        }
+    }
 }
 
 
 void SerialScreen_StartChargeB(void)
 {
-    sSCREEN_EVENT_DEBUGMSG("##########Port[LCD_GUN_2] Start Charge###########\r\n");
-	if(TRUE == LcdData.setData.sup_Local)
-    	thaisen_app_set_screen_start_charge(LCD_GUN_2);
-	else ;
+    if((LcdData.setData.sup_offbilling == FALSE) && (LcdData.setData.NetType == CP_NETTYPE_OFFLINE)){
+        if(TRUE == LcdData.setData.sup_Local)
+            thaisen_app_set_screen_start_charge(LCD_GUN_2);
+        else ;
+        LcdAssistantData.SeveralGunFlag[LCD_GUN_2].IsPWStartAuthen = FALSE;
+    }
+    /** 这是在线模式或离线计费模式 */
+    else{
+        LcdAssistantData.SeveralGunFlag[LCD_GUN_2].IsPWStartAuthen = FALSE;
+        if(TRUE == LcdData.setData.sup_Local){
+            LcdAssistantData.SeveralGunFlag[LCD_GUN_2].IsPWStartAuthen = TRUE;
+            LcdAssistantData.SeveralGunFlag[LCD_GUN_2].IsLocalStart = TRUE;
+        }
+    }
 }
 
 
@@ -2831,9 +2856,15 @@ void SerialScreen_VinStartChargeB(void)
 
 void SerialScreen_PWStartCharge(u8 port)
 {
-    if(TRUE == LcdData.setData.sup_pw_start){
-        thaisen_app_set_password_start_charge(port);
-    }else;
+    if(LcdAssistantData.SeveralGunFlag[port].IsLocalStart == TRUE){
+        if(TRUE == LcdData.setData.sup_Local)
+            thaisen_app_set_screen_start_charge(port);
+        else ;
+    }else{
+        if(TRUE == LcdData.setData.sup_pw_start){
+            thaisen_app_set_password_start_charge(port);
+        }else;
+    }
 }
 
 void SerialScreen_StopCharge(int port)
@@ -8250,6 +8281,7 @@ void SerialScreen_NeedPageReset(int port)
 	//LcdData.NeedMenuOffTimer = 2000; //100s*20
 	for(u8 i = 0; i < LCD_GUN_NUM; i++){
 	    LcdAssistantData.SeveralGunFlag[i].IsPWStartAuthen = FALSE;
+        LcdAssistantData.SeveralGunFlag[i].IsLocalStart = FALSE;
 	}
 }
 
@@ -9286,6 +9318,7 @@ struct LCD_DATA_FIFO_TYPE *SerialScreen_Init(struct SerialScreenObj *cmd)
 
 	    LcdAssistantData.SeveralGunFlag[i].DataIsVerify = FALSE;
 	    LcdAssistantData.SeveralGunFlag[i].IsPWStartAuthen = FALSE;
+        LcdAssistantData.SeveralGunFlag[i].IsLocalStart = FALSE;
 
 	    LcdData.setData.selectmode[i] = ICON_CHARGE_NULL;
 	    if(LcdData.setData.sup_mode_select){
@@ -10145,6 +10178,7 @@ void SerialScreen_GetKeyProcess(struct SerialScreenObj *cmd)
                         }
                          LcdData.menuflg = 1;
                          LcdAssistantData.SeveralGunFlag[LcdData.gunIndex].IsPWStartAuthen = FALSE;
+                         LcdAssistantData.SeveralGunFlag[LcdData.gunIndex].IsLocalStart = FALSE;
                     }
                     else
                     {
@@ -10353,6 +10387,7 @@ void SerialScreen_GetKeyProcess(struct SerialScreenObj *cmd)
                                              LcdData.CurrentPage = LCD_PAGE_B_SELECT;
                                          }
                                          LcdAssistantData.SeveralGunFlag[LcdData.gunIndex].IsPWStartAuthen = FALSE;
+                                         LcdAssistantData.SeveralGunFlag[LcdData.gunIndex].IsLocalStart = FALSE;
                                          LcdData.menuflg = 0;
                                      }
                                  }
@@ -10725,6 +10760,7 @@ int SerialScreen_DataProcess()
 
 				LcdData.gun[i].workState = SysMainStatus_StandBy;
 		        LcdAssistantData.SeveralGunFlag[i].IsPWStartAuthen = FALSE;
+	            LcdAssistantData.SeveralGunFlag[i].IsLocalStart = FALSE;
 
 		        SerialScreen_Screen_ResetModeInfoDef(i);
 				break;
@@ -10744,6 +10780,7 @@ int SerialScreen_DataProcess()
 			    }
                 for(u8 i = 0; i < LCD_GUN_NUM; i++){
                     LcdAssistantData.SeveralGunFlag[i].IsPWStartAuthen = FALSE;
+                    LcdAssistantData.SeveralGunFlag[i].IsLocalStart = FALSE;
                 }
 				break;	
 			case APP_OFSM_STATE_CHARGING:
@@ -10753,22 +10790,26 @@ int SerialScreen_DataProcess()
                     LcdData.gun[i].workState = SysMainStatus_Chrging;
                 }
 		        LcdAssistantData.SeveralGunFlag[i].IsPWStartAuthen = FALSE;
+	            LcdAssistantData.SeveralGunFlag[i].IsLocalStart = FALSE;
 				break;
 			case APP_OFSM_STATE_STOPING:
 				LcdData.gun[i].workState = SysMainStatus_StopChg;
                 for(u8 i = 0; i < LCD_GUN_NUM; i++){
                     LcdAssistantData.SeveralGunFlag[i].IsPWStartAuthen = FALSE;
+                    LcdAssistantData.SeveralGunFlag[i].IsLocalStart = FALSE;
                 }
                 SerialScreen_Screen_ResetModeInfoDef(i);
 				break;	
 			case APP_OFSM_STATE_FINISHING:
 				LcdData.gun[i].workState = SysMainStatus_Account;
 		        LcdAssistantData.SeveralGunFlag[i].IsPWStartAuthen = FALSE;
+	            LcdAssistantData.SeveralGunFlag[i].IsLocalStart = FALSE;
                 SerialScreen_Screen_ResetModeInfoDef(i);
 				break;
 			case APP_OFSM_STATE_FAULTING:
 				LcdData.gun[i].workState = SysMainStatus_Err;
 		        LcdAssistantData.SeveralGunFlag[i].IsPWStartAuthen = FALSE;
+	            LcdAssistantData.SeveralGunFlag[i].IsLocalStart = FALSE;
 				break;	
 			default:
 				break;				
@@ -11138,6 +11179,7 @@ int SerialScreen_DataProcess()
                                 SerialScreen_QuitDebugIO();
                                 for(u8 i = 0; i < LCD_GUN_NUM; i++){
                                     LcdAssistantData.SeveralGunFlag[i].IsPWStartAuthen = FALSE;
+                                    LcdAssistantData.SeveralGunFlag[i].IsLocalStart = FALSE;
 								}
                                 LcdData.menuflg = 0;
                             }
@@ -11153,6 +11195,7 @@ int SerialScreen_DataProcess()
                                 SerialScreen_QuitDebugIO();
                                 for(u8 i = 0; i < LCD_GUN_NUM; i++){
                                     LcdAssistantData.SeveralGunFlag[i].IsPWStartAuthen = FALSE;
+                                    LcdAssistantData.SeveralGunFlag[i].IsLocalStart = FALSE;
                                 }
                                 LcdData.menuflg = 0;
                             }
@@ -11167,6 +11210,7 @@ int SerialScreen_DataProcess()
                                 SerialScreen_QuitDebugIO();
                                 for(u8 i = 0; i < LCD_GUN_NUM; i++){
                                     LcdAssistantData.SeveralGunFlag[i].IsPWStartAuthen = FALSE;
+                                    LcdAssistantData.SeveralGunFlag[i].IsLocalStart = FALSE;
                                 }
                             }
                         }else{
@@ -11176,6 +11220,7 @@ int SerialScreen_DataProcess()
                                 SerialScreen_QuitDebugIO();
                                 for(u8 i = 0; i < LCD_GUN_NUM; i++){
                                     LcdAssistantData.SeveralGunFlag[i].IsPWStartAuthen = FALSE;
+                                    LcdAssistantData.SeveralGunFlag[i].IsLocalStart = FALSE;
                                 }
                             }
                         }
@@ -11239,6 +11284,7 @@ void SerialScreen_Process(struct SerialScreenObj *cmd)
         SerialScreen_PageNeedRefresh(LcdData.gunIndex);
         for(u8 i = 0; i < LCD_GUN_NUM; i++){
             LcdAssistantData.SeveralGunFlag[i].IsPWStartAuthen = FALSE;
+            LcdAssistantData.SeveralGunFlag[i].IsLocalStart = FALSE;
         }
         //
     }
@@ -11256,6 +11302,7 @@ void SerialScreen_Process(struct SerialScreenObj *cmd)
         LcdData.CurrentPage = LCD_PAGE_SYS_UPDATE;
         for(u8 i = 0; i < LCD_GUN_NUM; i++){
             LcdAssistantData.SeveralGunFlag[i].IsPWStartAuthen = FALSE;
+            LcdAssistantData.SeveralGunFlag[i].IsLocalStart = FALSE;
         }
     }
 
@@ -11269,6 +11316,7 @@ void SerialScreen_Process(struct SerialScreenObj *cmd)
             LcdData.PageCountDown = thaisen_app_get_system_tick();
             for(u8 i = 0; i < LCD_GUN_NUM; i++){
                 LcdAssistantData.SeveralGunFlag[i].IsPWStartAuthen = FALSE;
+                LcdAssistantData.SeveralGunFlag[i].IsLocalStart = FALSE;
             }
         }
     }else if((LcdData.CurrentPage == LCD_PAGE_B_ACOUNT) && (LcdData.gunIndex == LCD_GUN_2)){
@@ -11281,6 +11329,7 @@ void SerialScreen_Process(struct SerialScreenObj *cmd)
             LcdData.PageCountDown = thaisen_app_get_system_tick();
             for(u8 i = 0; i < LCD_GUN_NUM; i++){
                 LcdAssistantData.SeveralGunFlag[i].IsPWStartAuthen = FALSE;
+                LcdAssistantData.SeveralGunFlag[i].IsLocalStart = FALSE;
             }
         }
     }else if(((LcdData.CurrentPage == LCD_PAGE_A_CHGING) || (LcdData.CurrentPage == LCD_PAGE_A_CHGING_BAT)) && (LcdData.gunIndex == LCD_GUN_1)){
@@ -11293,6 +11342,7 @@ void SerialScreen_Process(struct SerialScreenObj *cmd)
             LcdData.PageCountDown = thaisen_app_get_system_tick();
             for(u8 i = 0; i < LCD_GUN_NUM; i++){
                 LcdAssistantData.SeveralGunFlag[i].IsPWStartAuthen = FALSE;
+                LcdAssistantData.SeveralGunFlag[i].IsLocalStart = FALSE;
             }
         }
     }else if(((LcdData.CurrentPage == LCD_PAGE_B_CHGING) || (LcdData.CurrentPage == LCD_PAGE_B_CHGING_BAT)) && (LcdData.gunIndex == LCD_GUN_2)){
@@ -11305,6 +11355,7 @@ void SerialScreen_Process(struct SerialScreenObj *cmd)
             LcdData.PageCountDown = thaisen_app_get_system_tick();
             for(u8 i = 0; i < LCD_GUN_NUM; i++){
                 LcdAssistantData.SeveralGunFlag[i].IsPWStartAuthen = FALSE;
+                LcdAssistantData.SeveralGunFlag[i].IsLocalStart = FALSE;
             }
         }
     }else{
