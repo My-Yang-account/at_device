@@ -2838,20 +2838,9 @@ void SerialScreen_PWStartCharge(u8 port)
 
 void SerialScreen_StopCharge(int port)
 {
-#if 0
-    sSCREEN_EVENT_DEBUGMSG("##########Port[%d] Stop Charge###########\r\n");
-    if((TRUE == LcdData.setData.sup_Local) ||   \
-            (LcdAssistantData.SeveralGunFlag[port].IsVinStart) ||   \
-            ((TRUE == LcdData.setData.sup_Local_stop) && (thaisen_is_allow_loacl_stop(port))) || \
-            LcdData.setData.Sup_PlugAndPlay)
-    	thaisen_app_set_screen_stop_charge(port);
-	else ;
-#else
-    sSCREEN_EVENT_DEBUGMSG("##########Port[%d] Stop Charge###########\r\n");
     if((TRUE == LcdData.setData.sup_Local) || (TRUE == LcdData.setData.sup_Local_stop))
         thaisen_app_set_screen_stop_charge(port);
     else ;
-#endif
 }
 
 void SerialScreen_BtnChgInfoGet(int port)
@@ -10860,15 +10849,9 @@ int SerialScreen_DataProcess()
                 if(LcdAssistantData.SeveralGunFlag[i].IsVinStart == TRUE){
                     LcdData.setData.Sup_Stop = ICON_CHARGE_LOCAL;
                 }
-#if 0
-                else if(((LcdData.setData.sup_Local_stop == TRUE) && (thaisen_is_allow_loacl_stop(i))) || LcdData.setData.Sup_PlugAndPlay){ /** 停止使能目前只针对于在线启动或密码启动方式(因为前面出去的屏幕工程没有停止使能按键，如果从flash中读出配置停止使能是开启则无法关闭) */
-                    LcdData.setData.Sup_Stop = ICON_CHARGE_LOCAL;
-                }
-#else
                 else if((LcdData.setData.sup_Local_stop == TRUE) || LcdData.setData.Sup_PlugAndPlay){ /** 停止使能目前只针对于在线启动或密码启动方式(因为前面出去的屏幕工程没有停止使能按键，如果从flash中读出配置停止使能是开启则无法关闭) */
                     LcdData.setData.Sup_Stop = ICON_CHARGE_LOCAL;
                 }
-#endif
                 else{
                     u8 AnotherGun = LCD_GUN_1;
                     if(i == LCD_GUN_1){
@@ -10878,15 +10861,9 @@ int SerialScreen_DataProcess()
                         if(LcdAssistantData.SeveralGunFlag[AnotherGun].IsVinStart == TRUE){
                             LcdData.setData.Sup_Stop = ICON_CHARGE_LOCAL;
                         }
-#if 0
-                        else if(((LcdData.setData.sup_Local_stop == TRUE) && (thaisen_is_allow_loacl_stop(AnotherGun))) || LcdData.setData.Sup_PlugAndPlay){
-                            LcdData.setData.Sup_Stop = ICON_CHARGE_LOCAL;
-                        }
-#else
                         else if((LcdData.setData.sup_Local_stop == TRUE) || LcdData.setData.Sup_PlugAndPlay){
                             LcdData.setData.Sup_Stop = ICON_CHARGE_LOCAL;
                         }
-#endif
                         else{
                             LcdData.setData.Sup_Stop = ICON_CHARGE_NULL;
                         }
@@ -10907,15 +10884,9 @@ int SerialScreen_DataProcess()
                     if(LcdAssistantData.SeveralGunFlag[AnotherGun].IsVinStart == TRUE){
                         LcdData.setData.Sup_Stop = ICON_CHARGE_LOCAL;
                     }
-#if 0
-                    else if(((LcdData.setData.sup_Local_stop == TRUE) && (thaisen_is_allow_loacl_stop(AnotherGun))) || LcdData.setData.Sup_PlugAndPlay){
-                        LcdData.setData.Sup_Stop = ICON_CHARGE_LOCAL;
-                    }
-#else
                     else if((LcdData.setData.sup_Local_stop == TRUE) || LcdData.setData.Sup_PlugAndPlay){
                         LcdData.setData.Sup_Stop = ICON_CHARGE_LOCAL;
                     }
-#endif
                     else{
                         LcdData.setData.Sup_Stop = ICON_CHARGE_NULL;
                     }
