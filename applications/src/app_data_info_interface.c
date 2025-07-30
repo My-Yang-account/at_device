@@ -1722,14 +1722,52 @@ struct card_data_info *thaisen_get_card_info(uint8_t gunno)
         ofsm_temp = get_ofsm_info(ofsm_temp->base.main_gunno);
     }
 
-    valid_len = strlen((char*)ofsm_temp->base.card_number);
-    if(valid_len > sizeof(ofsm_temp->base.card_number)){
-        valid_len = sizeof(ofsm_temp->base.card_number);
+    /** 离线卡启动，一定是通过卡号鉴权的；在线卡启动大部分是只有UUID */
+    if(1/*ofsm_temp->base.start_type == APP_CHARGE_START_WAY_OFFLINE_CARD*/){
+        valid_len = strlen((char*)ofsm_temp->base.card_number);
+        if(valid_len > sizeof(ofsm_temp->base.card_number)){
+            valid_len = sizeof(ofsm_temp->base.card_number);
+        }
+        if(valid_len > sizeof(s_card_data.card_number)){
+            valid_len = sizeof(s_card_data.card_number);
+        }
+        memcpy(s_card_data.card_number, ofsm_temp->base.card_number, valid_len);
+    }else if(1/*ofsm_temp->base.start_type == APP_CHARGE_START_WAY_ONLINE_CARD*/){
+        uint8_t i = 0x00, j = 0x00, ascii_len = 0x00, bcd = 0x00;
+
+        ascii_len = sizeof(s_card_data.card_number);
+        for(i = 0x00; i < ofsm_temp->base.card_uid_len; i++){
+            bcd = ((ofsm_temp->base.card_uid[i] &0xF0) >>4);
+            /** 是数字 */
+            if(bcd <= 0x09){
+                s_card_data.card_number[j] = bcd + '0';
+            }
+            /** 是字母，按大写字母来 */
+            else{
+//                s_card_data.card_number[j] = (bcd - 0x0a) + 'a';
+                s_card_data.card_number[j] = (bcd - 0x0A) + 'A';
+            }
+            /** 长度已超出缓存 */
+            if(++j >= ascii_len){
+                break;
+            }
+
+            bcd = (ofsm_temp->base.card_uid[i] &0x0F);
+            /** 是数字 */
+            if(bcd <= 0x09){
+                s_card_data.card_number[j] = bcd + '0';
+            }
+            /** 是字母，按大写字母来 */
+            else{
+//                s_card_data.card_number[j] = (bcd - 0x0a) + 'a';
+                s_card_data.card_number[j] = (bcd - 0x0A) + 'A';
+            }
+            /** 长度已超出缓存 */
+            if(++j >= ascii_len){
+                break;
+            }
+        }
     }
-    if(valid_len > sizeof(s_card_data.card_number)){
-        valid_len = sizeof(s_card_data.card_number);
-    }
-    memcpy(s_card_data.card_number, ofsm_temp->base.card_number, valid_len);
 
     valid_len = sizeof(s_card_data.card_uuid);
     valid_len = valid_len > ofsm_temp->base.card_uid_len ? ofsm_temp->base.card_uid_len : valid_len;
