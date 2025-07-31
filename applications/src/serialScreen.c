@@ -5795,12 +5795,13 @@ void SerialScreen_BtnBillGet(int port)
 
 void SerialScreen_BtnBillGetB(void)
 {
-	sSCREEN_EVENT_DEBUGMSG("##########SerialScreen_BtnBillGetB###########\r\n");
+    SerialScreen_JumpPage(&SerialScreen, LCD_PAGE_MENU_COM_6B);
 	SerialScreen_BtnBillGet(LCD_GUN_2);
 }
 
 void SerialScreen_BtnBillGetA(void)
 {
+    SerialScreen_JumpPage(&SerialScreen, LCD_PAGE_MENU_COM_6);
     SerialScreen_BtnBillGet(LCD_GUN_1);
 }
 
@@ -6294,11 +6295,13 @@ void SerialScreen_BtnErrGet(int port)
 
 void SerialScreen_BtnErrGetB(void)
 {
+    SerialScreen_JumpPage(&SerialScreen, LCD_PAGE_MENU_COM_5B);
 	SerialScreen_BtnErrGet(LCD_GUN_2);
 }
 
 void SerialScreen_BtnErrGetA(void)
 {
+    SerialScreen_JumpPage(&SerialScreen, LCD_PAGE_MENU_COM_5);
     SerialScreen_BtnErrGet(LCD_GUN_1);
 }
 
@@ -6698,7 +6701,7 @@ void SerialScreen_GetIOStatus(int port)
 		LcdData.setData.g_elElock[port] = REALAY_CLOSE;
 #endif
 	if(port == LCD_GUN_1)
-		thaisenElectUnlockA_Directly();
+	    thaisenElectUnlockA_Directly();
 	else if(port == LCD_GUN_2)
 	    thaisenElectUnlockB_Directly();
 	LcdData.setData.g_elElock[port]= REALAY_OFF;
