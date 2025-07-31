@@ -29,8 +29,7 @@ struct at_device_ec20 *get_ec20_device(void)
 {
     return &e0;
 }
-
-static int ec20_device_register(void)
+int ec20_device_register(void)
 {
     struct at_device_ec20 *ec20 = &e0;
 
@@ -40,4 +39,4 @@ static int ec20_device_register(void)
                               AT_DEVICE_CLASS_EC20,
                               (void *) ec20);
 }
-INIT_APP_EXPORT(ec20_device_register);
+//INIT_APP_EXPORT(ec20_device_register);
