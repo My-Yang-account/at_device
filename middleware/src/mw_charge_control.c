@@ -161,3 +161,41 @@ void mw_disable_dcrelay(uint8_t gunno)
     }
 }
 
+/*****************************************************
+ * 函数名    mw_charglib_clear_before_charge
+ * 功能        启动前清除充电库指定信息
+ * 参数        gunno    枪号
+ * 返回        1：成功      0：失败
+ ****************************************************/
+uint8_t mw_charglib_clear_before_charge(uint8_t gunno)
+{
+    if(gunno >= APP_SYSTEM_GUNNO_SIZE){
+        return 0x00;
+    }
+    thaisenChargCtrlHandle_t *handle = thaisenChargGetCtrlHandle();
+
+    if((handle == NULL) || (handle->FunctionExecute == NULL)){
+        return 0x00;
+    }
+    handle->FunctionExecute(gunno, thaisenChargFunctionExecute_Init);
+}
+
+/*****************************************************
+ * 函数名    mw_charglib_set_no_offset_enable
+ * 功能        设置无电流偏移协议使能状态
+ * 参数        gunno    枪号
+ *        state    状态(1：使能    0：不使能)
+ * 返回        1：设置成功      0：设置失败
+ ****************************************************/
+uint8_t mw_charglib_set_no_offset_enable(uint8_t gunno, uint8_t state)
+{
+    if(gunno >= APP_SYSTEM_GUNNO_SIZE){
+        return 0x00;
+    }
+    thaisenChargCtrlHandle_t *handle = thaisenChargGetCtrlHandle();
+
+    if((handle == NULL) || (handle->SetupFunctionEnable == NULL)){
+        return 0x00;
+    }
+    handle->SetupFunctionEnable(gunno, thaisenChargFunctionEnable_NoOffset, state);
+}

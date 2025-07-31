@@ -1589,6 +1589,8 @@ static void ofsm_start_info_padding_public(uint8_t gunno)
             0x00, APP_THA_ENUM_FALSE, gunno);
     s_current_order_index[MONITOR_PLATFORM_INDEX][gunno] = mw_storage_record_get_current_index(gunno);
     s_current_order_index[TARGET_PLATFORM_INDEX][gunno] = s_current_order_index[MONITOR_PLATFORM_INDEX][gunno];
+
+    mw_charglib_clear_before_charge(gunno);
 }
 
 /***************************************************************
@@ -7294,6 +7296,12 @@ void ofsm_thread_entry(void *parameter)
                 s_ofsm_info[thread_gunno].base.run_mode = APP_RUN_MODE_OFFLINE;
             }
             LOG_D("system run mode is:%d-%d", thread_gunno, s_ofsm_info[thread_gunno].base.run_mode);
+        }
+
+        if(*sys_read_config_item_content(CONFIG_ITEM_SUPORT_PARALLEL, 0x00)){
+            mw_charglib_set_no_offset_enable(thread_gunno, 0x01);
+        }else{
+            mw_charglib_set_no_offset_enable(thread_gunno, 0x00);
         }
         s_ofsm_info[thread_gunno].base.ammeter_elect = mw_get_meter_total_wh(thread_gunno);
         s_ofsm_info[thread_gunno].base.net_state = app_nsal_get_link_state();

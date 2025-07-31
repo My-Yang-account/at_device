@@ -319,4 +319,59 @@ typedef enum thaisenChargingInfoEnum
 void thaisen_set_charging_pause_activate(uint8_t gunNum,thaisenChargingInfo info);
 thaisenChargingInfo thaisen_get_charging_pause_activate(uint8_t gunNum);
 
+/*****************************************************************************/
+/************************功能控制*********************************************/
+typedef enum
+{
+    thaisenChargFunctionEnable_NoOffset,                  /** 功能使能：无电流偏移协议 */
+    thaisenChargFunctionEnable_YuTong,                    /** 功能使能：宇通 协议 */
+    thaisenChargFunctionEnable_Size,                      /** 功能使能 */
+}thaisenChargFunctionEnable_t;
+
+typedef enum
+{
+    thaisenChargFunctionExecute_Init,                     /** 功能执行：启动前信息初始化 */
+    thaisenChargFunctionExecute_Size,                     /** 功能执行 */
+}thaisenChargFunctionExecute_t;
+
+#pragma pack(1)
+typedef struct
+{
+    /****************************************************************************
+     * 函数名       SetupFunctionEnable
+     * 功能           设置功能项使能状态
+     * 参数           gunNum    枪号
+     *         function   功能项@thaisenChargFunctionEnable_t
+     *         state     使能状态(1：使能    0：不使能)
+     * 返回
+     ***************************************************************************/
+    void (*SetupFunctionEnable)(uint8_t gunNum, uint8_t function, uint8_t state);
+    /****************************************************************************
+     * 函数名       QueryFunctionEnable
+     * 功能           查询功能项使能状态
+     * 参数           gunNum    枪号
+     *         function   功能项@thaisenChargFunctionEnable_t
+     * 返回           1：使能       0：未使能
+     ***************************************************************************/
+    uint8_t (*QueryFunctionEnable)(uint8_t gunNum, uint8_t function);
+    /****************************************************************************
+     * 函数名       FunctionExecute
+     * 功能           功能执行
+     * 参数           gunNum    枪号
+     *         function   功能码@thaisenChargFunctionExecute_t
+     * 返回          1：执行成功    0：执行失败
+     ***************************************************************************/
+    uint8_t (*FunctionExecute)(uint8_t gunNum, uint8_t function);
+}thaisenChargCtrlHandle_t;
+#pragma pack()
+
+/***********************************************************************************
+ * 函数名       thaisenChargGetCtrlHandle
+ * 功能           获取控制句柄
+ * 参数
+ * 返回           控制句柄
+ *********************************************************************************/
+thaisenChargCtrlHandle_t *thaisenChargGetCtrlHandle(void);
+
+
 #endif

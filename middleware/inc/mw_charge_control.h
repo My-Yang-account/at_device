@@ -54,6 +54,23 @@ int16_t mw_get_sampling_voltage(uint8_t gunno);
 void mw_enable_dcrelay(uint8_t gunno);
 void mw_disable_dcrelay(uint8_t gunno);
 
+/*****************************************************
+ * 函数名    mw_charglib_clear_before_charge
+ * 功能        启动前清除充电库指定信息
+ * 参数        gunno    枪号
+ * 返回        1：成功      0：失败
+ ****************************************************/
+uint8_t mw_charglib_clear_before_charge(uint8_t gunno);
+
+/*****************************************************
+ * 函数名    mw_charglib_set_no_offset_enable
+ * 功能        设置无电流偏移协议使能状态
+ * 参数        gunno    枪号
+ *        state    状态(1：使能    0：不使能)
+ * 返回        1：设置成功      0：设置失败
+ ****************************************************/
+uint8_t mw_charglib_set_no_offset_enable(uint8_t gunno, uint8_t state);
+
 #ifdef __cplusplus
 }
 #endif
