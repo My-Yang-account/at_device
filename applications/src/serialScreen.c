@@ -6733,22 +6733,25 @@ void SerialScreen_GetIOStatus(int port)
 
 void SerialScreen_BtnAcSet(void)
 {
-	sSCREEN_EVENT_DEBUGMSG("##########BtnAcSet = %d###########\r\n",LcdData.setData.s_acRely);
 	LcdData.setData.s_acRely = !LcdData.setData.s_acRely;
+	 SerialScreen_SendIco(&SerialScreen, 0x4172, LcdData.setData.s_acRely);
+	 SerialScreen_SendIco(&SerialScreen, 0x5172, LcdData.setData.s_acRely);
+
 	if(LcdData.setData.s_acRely != TRUE)
 		thaisen_relay_AC_off();
 	else
 		thaisen_relay_AC_on();
-	sSCREEN_EVENT_DEBUGMSG("s_acRely=%d\r\n",LcdData.setData.s_acRely);
 }
 
 void SerialScreen_BtnDcSetA()
 {
+    SerialScreen_SendIco(&SerialScreen, 0x4174, (!LcdData.setData.s_dcRelay[LCD_GUN_1]));
 	SerialScreen_BtnDcSet(LCD_GUN_1);
 }
 
 void SerialScreen_BtnDcSetB()
 {
+    SerialScreen_SendIco(&SerialScreen, 0x5174, (!LcdData.setData.s_dcRelay[LCD_GUN_2]));
 	SerialScreen_BtnDcSet(LCD_GUN_2);
 }
 
@@ -6779,8 +6782,10 @@ void SerialScreen_BtnDcSet(u8 port)
 
 void SerialScreen_BtnParaSet1(void)
 {
-	sSCREEN_EVENT_DEBUGMSG("##########s_paraRely0 = %d###########\r\n",LcdData.setData.s_paraRely0);
 	LcdData.setData.s_paraRely0 = !LcdData.setData.s_paraRely0;
+    SerialScreen_SendIco(&SerialScreen, 0x4176, LcdData.setData.s_paraRely0);
+    SerialScreen_SendIco(&SerialScreen, 0x5176, LcdData.setData.s_paraRely0);
+
 	if(LcdData.setData.s_paraRely0 != TRUE)
 	{
 		thaisen_relay_parallel_off_f();
@@ -6796,8 +6801,10 @@ void SerialScreen_BtnParaSet1(void)
 
 void SerialScreen_BtnParaSet2(void)
 {
-    sSCREEN_EVENT_DEBUGMSG("##########s_paraRely1 = %d###########\r\n",LcdData.setData.s_paraRely1);
     LcdData.setData.s_paraRely1 = !LcdData.setData.s_paraRely1;
+    SerialScreen_SendIco(&SerialScreen, 0x5186, LcdData.setData.s_paraRely1);
+    SerialScreen_SendIco(&SerialScreen, 0x518E, LcdData.setData.s_paraRely1);
+
     if(LcdData.setData.s_paraRely1 != TRUE)
     {
         thaisen_relay_k7k8_off();
@@ -6811,8 +6818,10 @@ void SerialScreen_BtnParaSet2(void)
 
 void SerialScreen_BtnParaSet3(void)
 {
-    sSCREEN_EVENT_DEBUGMSG("##########s_paraRely2 = %d###########\r\n",LcdData.setData.s_paraRely2);
     LcdData.setData.s_paraRely2 = !LcdData.setData.s_paraRely2;
+    SerialScreen_SendIco(&SerialScreen, 0x518A, LcdData.setData.s_paraRely2);
+    SerialScreen_SendIco(&SerialScreen, 0x5192, LcdData.setData.s_paraRely2);
+
     if(LcdData.setData.s_paraRely2 != TRUE)
     {
         thaisen_relay_k9k10_off();
@@ -6935,17 +6944,18 @@ void SerialScreen_BtnAux24VSet(u8 port)
 
 void SerialScreen_BtnFanSetA()
 {
+    SerialScreen_SendIco(&SerialScreen, 0x417A, (!LcdData.setData.s_fan[LCD_GUN_1]));
 	SerialScreen_BtnFanSet(LCD_GUN_1);
 }
 
 void SerialScreen_BtnFanSetB()
 {
+    SerialScreen_SendIco(&SerialScreen, 0x517A, (!LcdData.setData.s_fan[LCD_GUN_2]));
 	SerialScreen_BtnFanSet(LCD_GUN_2);
 }
 
 void SerialScreen_BtnFanSet(u8 port)
 {
-	sSCREEN_EVENT_DEBUGMSG("##########BtnFan%dSet = %d###########\r\n",port,LcdData.setData.s_fan[port]);
     port = LCD_GUN_1;
 	LcdData.setData.s_fan[port]= !LcdData.setData.s_fan[port];
 	if(LcdData.setData.s_fan[port] != TRUE)
