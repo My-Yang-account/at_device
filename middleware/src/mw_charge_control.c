@@ -199,3 +199,23 @@ uint8_t mw_charglib_set_no_offset_enable(uint8_t gunno, uint8_t state)
     }
     handle->SetupFunctionEnable(gunno, thaisenChargFunctionEnable_NoOffset, state);
 }
+
+/*****************************************************
+ * 函数名    mw_charglib_set_yu_tong_enable
+ * 功能        设置宇通协议使能状态
+ * 参数        gunno    枪号
+ *        state    状态(1：使能    0：不使能)
+ * 返回        1：设置成功      0：设置失败
+ ****************************************************/
+uint8_t mw_charglib_set_yu_tong_enable(uint8_t gunno, uint8_t state)
+{
+    if(gunno >= APP_SYSTEM_GUNNO_SIZE){
+        return 0x00;
+    }
+    thaisenChargCtrlHandle_t *handle = thaisenChargGetCtrlHandle();
+
+    if((handle == NULL) || (handle->SetupFunctionEnable == NULL)){
+        return 0x00;
+    }
+    handle->SetupFunctionEnable(gunno, thaisenChargFunctionEnable_YuTong, state);
+}

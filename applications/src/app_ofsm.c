@@ -2143,6 +2143,7 @@ static void ofsm_readying_fun(uint8_t gunno)
                 app_nsal_clear_remote_stop(gunno);
                 app_get_hci_event(gunno, HCI_EVENT_PASSWORD_START, APP_THA_ENUM_TRUE);
 
+                mw_charglib_clear_before_charge(gunno);
                 return;
             }
         }
@@ -7300,8 +7301,10 @@ void ofsm_thread_entry(void *parameter)
 
         if(*sys_read_config_item_content(CONFIG_ITEM_SUPORT_PARALLEL, 0x00)){
             mw_charglib_set_no_offset_enable(thread_gunno, 0x01);
+            mw_charglib_set_yu_tong_enable(thread_gunno, 0x01);
         }else{
             mw_charglib_set_no_offset_enable(thread_gunno, 0x00);
+            mw_charglib_set_yu_tong_enable(thread_gunno, 0x00);
         }
         s_ofsm_info[thread_gunno].base.ammeter_elect = mw_get_meter_total_wh(thread_gunno);
         s_ofsm_info[thread_gunno].base.net_state = app_nsal_get_link_state();
