@@ -150,6 +150,8 @@ extern "C" {
 #define APP_RESERVATE_STRATEGY_VIN_AUTH        (0x01 <<0x03)     /* 预约策略：预约时间到后需要VIN码鉴权启动 */
 #define APP_RESERVATE_STRATEGY_START_DIRECTLY  (0x01 <<0x04)     /* 预约策略：预约时间到后直接启动 */
 
+#define APP_SYSTEM_RUN_TIME_PERIOD                      100      /* 系统业务运行周期(ms) */
+
 #ifdef APP_USING_METER_ELECT_DETECT_STRATEGY
 #define APP_MELECT_DETECT_CURR_RANGE_0                  0        /* 电流范围0：0A <= I >= 5A */
 #define APP_MELECT_DETECT_CURR_RANGE_1                  1        /* 电流范围1：5A < I >= 20A */
@@ -158,27 +160,27 @@ extern "C" {
 #define APP_MDETECT_CURR_RANGE_1_MAX                    200      /* 电流范围1电流最大值 */
 #define APP_MELECT_DETECT_RANGE_THRESHOLD               20       /* 电流范围切换阈值(0.1A， 电流上升时要超过阈值，下降时直接切换) */
 #define APP_METER_ELECT_ERR_COUNT_MAX                   2        /* 电表电量检测最大错误次数 */
-#define APP_SIMULATE_ELECT_CALCULATE_PERIOD             (60 *1000)  /* 电量模拟计算周期(ms) */
+#define APP_SIMULATE_ELECT_CALCULATE_PERIOD             ((60 *1000) /APP_SYSTEM_RUN_TIME_PERIOD)  /* 电量模拟计算周期(ms) */
 #define APP_SIMULATE_ELECT_COMPARE_VALUE_1              10       /* 电量模拟值对比值(单位：0.001度， 对应范围1) */
 #define APP_SIMULATE_ELECT_COMPARE_VALUE_2              50       /* 电量模拟值对比值(单位：0.001度， 对应范围2) */
 #endif /* APP_USING_METER_ELECT_DETECT_STRATEGY */
 
 #ifdef APP_USING_BAT_VOLT_DETECT_STRATEGY
-#define APP_BATTERY_VOLTAGE_DETECT_PERIOD               15000    /* 电池电压检测周期(ms) */
+#define APP_BATTERY_VOLTAGE_DETECT_PERIOD               (15000 /APP_SYSTEM_RUN_TIME_PERIOD)    /* 电池电压检测周期(ms) */
 #define APP_BATTERY_VOLTAGE_FLOAT_VALUE                 500      /* 电池电压检测浮动值(单位：0.1V) */
 #define APP_BATTERY_VOLTAGE_ERR_COUNT_MAX               5        /* 电池电压检测错误次数 */
 #endif /* APP_USING_BAT_VOLT_DETECT_STRATEGY */
 
 #ifdef APP_USING_CHARGE_CURR_DETECT_STRATEGY
-#define APP_DETECT_TOTAL_PERIOD                         (5 *60 *1000)   /* 检测总周期(ms) */
-#define APP_CURRENT_DETECT_PERIOD                       5000     /* 电流检测周期(ms) */
+#define APP_DETECT_TOTAL_PERIOD                         ((5 *60 *1000) /APP_SYSTEM_RUN_TIME_PERIOD)   /* 检测总周期(ms) */
+#define APP_CURRENT_DETECT_PERIOD                       (5000 /APP_SYSTEM_RUN_TIME_PERIOD)     /* 电流检测周期(ms) */
 #define APP_CURRENT_STEADY_DIFF                         30       /* 电流稳定比较差值(单位：0.1V) */
 #define APP_CURRENT_COMPARE_DIFF                        100      /* 电流异常比较差值(单位：0.1A) */
 #define APP_CURRENT_STEADY_COUNT                        12       /* 电流稳定次数 */
 #endif /* APP_USING_CHARGE_CURR_DETECT_STRATEGY */
 
 #ifdef APP_USING_FB_DETECT
-#define APP_ELOCK_RELAY_CHECK_TIME                      10000    /* 电子锁、继电器检测故障时间(ms) */
+#define APP_ELOCK_RELAY_CHECK_TIME                      (10000 /APP_SYSTEM_RUN_TIME_PERIOD)    /* 电子锁、继电器检测故障时间(ms) */
 #endif /* APP_USING_FB_DETECT */
 
 enum buzzon_state {
@@ -652,7 +654,7 @@ typedef struct{
     uint32_t reset_reason;           /* 重启原因：RCC->CSR 寄存器 */
 #ifdef APP_USING_METER_ELECT_DETECT_STRATEGY
     /** 电表电量检验 */
-    uint32_t melect_check_tick;      /* 电表电量检测周期 */
+    uint8_t melect_check_time;       /* 电表电量检测周期 */
     uint32_t melect_last;            /* 上一次电量值 */
     uint8_t melect_check_stage;      /* 电表电量检测阶段 */
     uint8_t melect_err_count;        /* 电量错误次数 */
@@ -660,7 +662,7 @@ typedef struct{
 
 #ifdef APP_USING_BAT_VOLT_DETECT_STRATEGY
     /** 电池电压检验 */
-    uint32_t bvolt_check_tick;       /* 电池电压检测时基 */
+    uint8_t bvolt_check_time;        /* 电池电压检测时基 */
     uint16_t bvolt_init;             /* 电池电压初始值 */
     uint8_t bvolt_err_i;             /* 电池电压错误计数 */
     uint8_t bvolt_err_count;         /* 电池电压错误计数 */
@@ -668,8 +670,8 @@ typedef struct{
 
 #ifdef APP_USING_CHARGE_CURR_DETECT_STRATEGY
     /** 电流检验 */
-    uint32_t total_period_tick;      /* 检测总周期时基 */
-    uint32_t current_check_tick;     /* 电流检测时基 */
+    uint16_t total_period_time;      /* 检测总周期时基 */
+    uint8_t current_check_time;      /* 电流检测时基 */
     uint32_t meter_curr_last;        /* 前一次电表电流 */
     uint32_t module_curr_last;       /* 前一次模块电流 */
     uint8_t meter_curr_steady_count; /* 电表电流稳定次数 */
@@ -678,12 +680,12 @@ typedef struct{
 
 #ifdef APP_USING_FB_DETECT
     /** 电子锁、继电器状态检验 */
-    uint32_t elock_resume_tick;      /* 电子锁故障恢复时基 */
-    uint32_t elock_check_tick;       /* 电子锁状态检测时基 */
-    uint32_t dcrealy_resume_tick;    /* 直流继电器故障恢复时基 */
-    uint32_t dcrealy_check_tick;     /* 直流继电器状态检测时基 */
-    uint32_t acrelay_resume_tick;    /* 交流接触器故障恢复时基 */
-    uint32_t acrelay_check_tick;     /* 交流接触器状态检测时基 */
+    uint8_t elock_resume_time;       /* 电子锁故障恢复时基 */
+    uint8_t elock_check_time;        /* 电子锁状态检测时基 */
+    uint8_t dcrealy_resume_time;     /* 直流继电器故障恢复时基 */
+    uint8_t dcrealy_check_time;      /* 直流继电器状态检测时基 */
+    uint8_t acrelay_resume_time;     /* 交流接触器故障恢复时基 */
+    uint8_t acrelay_check_time;      /* 交流接触器状态检测时基 */
 #endif /* APP_USING_FB_DETECT */
 }System_BaseData;
 

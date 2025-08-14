@@ -3824,7 +3824,7 @@ static void ofsm_starting_fun(uint8_t gunno)
 
 #ifdef APP_USING_METER_ELECT_DETECT_STRATEGY
             /** 电表电量检验 */
-            s_ofsm_info[gunno].base.melect_check_tick = rt_tick_get();           /** 用于功率积分计算 */
+            s_ofsm_info[gunno].base.melect_check_time = 0x00;           /** 用于功率积分计算 */
             s_ofsm_info[gunno].base.melect_last = mw_get_meter_total_wh(gunno);  /** 上一次电量值 */
             s_ofsm_info[gunno].base.melect_check_stage = APP_MELECT_DETECT_CURR_RANGE_0;  /** 检测阶段 */
             s_ofsm_info[gunno].base.melect_err_count = 0x00;                     /** 电量错误检测次数 */
@@ -3833,7 +3833,7 @@ static void ofsm_starting_fun(uint8_t gunno)
 
 #ifdef APP_USING_BAT_VOLT_DETECT_STRATEGY
             /** 电池电压检验 */
-            s_ofsm_info[gunno].base.bvolt_check_tick = rt_tick_get();            /** 电池电压检测时基 */
+            s_ofsm_info[gunno].base.bvolt_check_time = 0x00;            /** 电池电压检测时基 */
             s_ofsm_info[gunno].base.bvolt_err_count = 0x00;                      /** 电池电压错误计数 */
             s_ofsm_info[gunno].base.bvolt_err_i = 0x00;
             s_ofsm_info[gunno].base.bvolt_init = ((struct thaisenBMS_Charger_struct*)(s_ofsm_info[gunno].base.bms_data))->BCP.BatVolt;
@@ -3841,8 +3841,8 @@ static void ofsm_starting_fun(uint8_t gunno)
 
 #ifdef APP_USING_CHARGE_CURR_DETECT_STRATEGY
             /** 电流检验 */
-            s_ofsm_info[gunno].base.total_period_tick = rt_tick_get();
-            s_ofsm_info[gunno].base.current_check_tick = rt_tick_get();
+            s_ofsm_info[gunno].base.total_period_time = 0x00;
+            s_ofsm_info[gunno].base.current_check_time = 0x00;
             s_ofsm_info[gunno].base.meter_curr_last = 0x00;
             s_ofsm_info[gunno].base.module_curr_last = 0x00;
             s_ofsm_info[gunno].base.meter_curr_steady_count = 0x00;
@@ -4116,14 +4116,20 @@ static void ofsm_charging_fun(uint8_t gunno)
 
 #ifdef APP_USING_CHARGE_CURR_DETECT_STRATEGY
     /** 电流检验 */
-    if((rt_tick_get() - s_ofsm_info[gunno].base.current_check_tick) >= APP_CURRENT_DETECT_PERIOD){
-        s_ofsm_info[gunno].base.current_check_tick = rt_tick_get();
+    if(s_ofsm_info[gunno].base.current_check_time < (0xFF - 0x01)){
+        s_ofsm_info[gunno].base.current_check_time++;
+    }
+    if(s_ofsm_info[gunno].base.total_period_time < (0xFFFF - 0x01)){
+        s_ofsm_info[gunno].base.total_period_time++;
+    }
+    if(s_ofsm_info[gunno].base.current_check_time >= APP_CURRENT_DETECT_PERIOD){
+        s_ofsm_info[gunno].base.current_check_time = 0x00;
         if((abs(s_ofsm_info[gunno].base.module_curr_last - thaisen_get_module_curr(gunno)) <= APP_CURRENT_STEADY_DIFF) && \
                 (abs(s_ofsm_info[gunno].base.meter_curr_last - mw_get_meter_ia(gunno)) <= APP_CURRENT_STEADY_DIFF)){
             s_ofsm_info[gunno].base.meter_curr_steady_count++;
             s_ofsm_info[gunno].base.module_curr_steady_count++;
             /** 只检测前5分钟 */
-            if((rt_tick_get() - s_ofsm_info[gunno].base.total_period_tick) > APP_DETECT_TOTAL_PERIOD){
+            if(s_ofsm_info[gunno].base.total_period_time > APP_DETECT_TOTAL_PERIOD){
                 s_ofsm_info[gunno].base.meter_curr_steady_count = 0x00;
                 s_ofsm_info[gunno].base.module_curr_steady_count = 0x00;
             }
@@ -4201,7 +4207,10 @@ static void ofsm_charging_fun(uint8_t gunno)
 
 #ifdef APP_USING_BAT_VOLT_DETECT_STRATEGY
     /** 电池电压检验 */
-    if((rt_tick_get() - s_ofsm_info[gunno].base.bvolt_check_tick) <= APP_BATTERY_VOLTAGE_DETECT_PERIOD){
+    if(s_ofsm_info[gunno].base.bvolt_check_time < (0xFF - 0x01)){
+        s_ofsm_info[gunno].base.bvolt_check_time++;
+    }
+    if(s_ofsm_info[gunno].base.bvolt_check_time <= APP_BATTERY_VOLTAGE_DETECT_PERIOD){
         if(abs(s_ofsm_info[gunno].base.bvolt_init - thaisen_get_module_volt(gunno)) > APP_BATTERY_VOLTAGE_FLOAT_VALUE){
             if(s_ofsm_info[gunno].base.bvolt_err_i < 255){   /** 超过变量所能表示的最大值后会回到0 */
                 s_ofsm_info[gunno].base.bvolt_err_i++;
@@ -4216,7 +4225,7 @@ static void ofsm_charging_fun(uint8_t gunno)
             s_ofsm_info[gunno].base.bvolt_err_count = 0x00;
         }
 
-        s_ofsm_info[gunno].base.bvolt_check_tick = rt_tick_get();
+        s_ofsm_info[gunno].base.bvolt_check_time = 0x00;
         s_ofsm_info[gunno].base.bvolt_init = thaisen_get_module_volt(gunno);
         s_ofsm_info[gunno].base.bvolt_err_i = 0x00;
     }
@@ -4723,13 +4732,16 @@ static void ofsm_charging_fun(uint8_t gunno)
 #ifdef APP_USING_LV_MODULE
 
 #else
+    if(s_ofsm_info[gunno].base.melect_check_time < (0xFF - 0x01)){
+        s_ofsm_info[gunno].base.melect_check_time++;
+    }
     switch(s_ofsm_info[gunno].base.melect_check_stage){
     case APP_MELECT_DETECT_CURR_RANGE_0:
     {
         int32_t curr = thaisen_get_module_curr(gunno);
         if(curr > (APP_MDETECT_CURR_RANGE_0_MAX + APP_MELECT_DETECT_RANGE_THRESHOLD)){
             s_ofsm_info[gunno].base.melect_check_stage = APP_MELECT_DETECT_CURR_RANGE_1;
-            s_ofsm_info[gunno].base.melect_check_tick = rt_tick_get();
+            s_ofsm_info[gunno].base.melect_check_time = 0x00;
             s_ofsm_info[gunno].base.melect_last = mw_get_meter_total_wh(gunno);
             s_ofsm_info[gunno].base.melect_err_count = 0x00;
         }
@@ -4740,12 +4752,12 @@ static void ofsm_charging_fun(uint8_t gunno)
         int32_t curr = thaisen_get_module_curr(gunno);
         if(curr > (APP_MDETECT_CURR_RANGE_1_MAX + APP_MELECT_DETECT_RANGE_THRESHOLD)){
             s_ofsm_info[gunno].base.melect_check_stage = APP_MELECT_DETECT_CURR_RANGE_2;
-            s_ofsm_info[gunno].base.melect_check_tick = rt_tick_get();
+            s_ofsm_info[gunno].base.melect_check_time = 0x00;
             s_ofsm_info[gunno].base.melect_last = mw_get_meter_total_wh(gunno);
             s_ofsm_info[gunno].base.melect_err_count = 0x00;
         }else if(curr <= APP_MDETECT_CURR_RANGE_0_MAX){
             s_ofsm_info[gunno].base.melect_check_stage = APP_MELECT_DETECT_CURR_RANGE_0;
-            s_ofsm_info[gunno].base.melect_check_tick = rt_tick_get();
+            s_ofsm_info[gunno].base.melect_check_time = 0x00;
             s_ofsm_info[gunno].base.melect_last = mw_get_meter_total_wh(gunno);
             s_ofsm_info[gunno].base.melect_err_count = 0x00;
         }
@@ -4756,7 +4768,7 @@ static void ofsm_charging_fun(uint8_t gunno)
         int32_t curr = thaisen_get_module_curr(gunno);
         if(curr <= APP_MDETECT_CURR_RANGE_1_MAX){
             s_ofsm_info[gunno].base.melect_check_stage = APP_MELECT_DETECT_CURR_RANGE_1;
-            s_ofsm_info[gunno].base.melect_check_tick = rt_tick_get();
+            s_ofsm_info[gunno].base.melect_check_time = 0x00;
             s_ofsm_info[gunno].base.melect_last = mw_get_meter_total_wh(gunno);
             s_ofsm_info[gunno].base.melect_err_count = 0x00;
         }
@@ -4764,14 +4776,14 @@ static void ofsm_charging_fun(uint8_t gunno)
         break;
     default:
         s_ofsm_info[gunno].base.melect_check_stage = APP_MELECT_DETECT_CURR_RANGE_0;
-        s_ofsm_info[gunno].base.melect_check_tick = rt_tick_get();
+        s_ofsm_info[gunno].base.melect_check_time = 0x00;
         s_ofsm_info[gunno].base.melect_last = mw_get_meter_total_wh(gunno);
         s_ofsm_info[gunno].base.melect_err_count = 0x00;
         break;
     }
 
     /** 每隔1分钟对比一次 */
-    if((rt_tick_get() - s_ofsm_info[gunno].base.melect_check_tick) > APP_SIMULATE_ELECT_CALCULATE_PERIOD){
+    if(s_ofsm_info[gunno].base.melect_check_time > APP_SIMULATE_ELECT_CALCULATE_PERIOD){
         switch(s_ofsm_info[gunno].base.melect_check_stage){
         case APP_MELECT_DETECT_CURR_RANGE_0:
             s_ofsm_info[gunno].base.melect_err_count = 0x00;
@@ -4795,7 +4807,7 @@ static void ofsm_charging_fun(uint8_t gunno)
             break;
         }
         s_ofsm_info[gunno].base.melect_last = mw_get_meter_total_wh(gunno);
-        s_ofsm_info[gunno].base.melect_check_tick = rt_tick_get();
+        s_ofsm_info[gunno].base.melect_check_time = 0x00;
     }
 #endif /* APP_USING_LV_MODULE */
     if(s_ofsm_info[gunno].base.flag.is_meter_elect_error == APP_THA_ENUM_TRUE){
@@ -6854,12 +6866,12 @@ void ofsm_thread_entry(void *parameter)
     s_request_screen_time_tick = rt_tick_get();
     s_ofsm_info[thread_gunno].base.order_fixes_tick = rt_tick_get();
 #ifdef APP_USING_FB_DETECT
-    s_ofsm_info[thread_gunno].base.elock_check_tick = rt_tick_get();
-    s_ofsm_info[thread_gunno].base.elock_resume_tick = rt_tick_get();
-    s_ofsm_info[thread_gunno].base.dcrealy_check_tick = rt_tick_get();
-    s_ofsm_info[thread_gunno].base.dcrealy_resume_tick = rt_tick_get();
-    s_ofsm_info[thread_gunno].base.acrelay_check_tick = rt_tick_get();
-    s_ofsm_info[thread_gunno].base.acrelay_resume_tick = rt_tick_get();
+    s_ofsm_info[thread_gunno].base.elock_check_time = 0x00;
+    s_ofsm_info[thread_gunno].base.elock_resume_time = 0x00;
+    s_ofsm_info[thread_gunno].base.dcrealy_check_time = 0x00;
+    s_ofsm_info[thread_gunno].base.dcrealy_resume_time = 0x00;
+    s_ofsm_info[thread_gunno].base.acrelay_check_time = 0x00;
+    s_ofsm_info[thread_gunno].base.acrelay_resume_time = 0x00;
 #endif /* APP_USING_FB_DETECT */
 
 #ifdef APP_INCLUDE_YKC17_PROTOCOL
@@ -6906,146 +6918,170 @@ void ofsm_thread_entry(void *parameter)
             case APP_CHARGE_CTRL_IDLE:
             case APP_CHARGE_CTRL_AUA_POWER:
                 if(thaisen_is_debug() == APP_THA_ENUM_FALSE){
+                    if(s_ofsm_info[thread_gunno].base.elock_check_time < (0xFF - 0x01)){
+                        s_ofsm_info[thread_gunno].base.elock_check_time++;
+                    }
                     if(thaisenElectLock_StateQuery(thread_gunno) == thaisen_elock_break){
-                        s_ofsm_info[thread_gunno].base.elock_check_tick = rt_tick_get();
+                        s_ofsm_info[thread_gunno].base.elock_check_time = 0x00;
                         thaisenClearSysFaultLib(thaisenElock, thread_gunno);
                     }
-                    if((rt_tick_get() - s_ofsm_info[thread_gunno].base.elock_check_tick) > APP_ELOCK_RELAY_CHECK_TIME){
+                    if(s_ofsm_info[thread_gunno].base.elock_check_time > APP_ELOCK_RELAY_CHECK_TIME){
                         if(thaisenGetSysFaultCheckEnBit(thaisenElock)){
                             /** 电子锁故障 */
                             if((s_ofsm_info[thread_gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL) || (s_ofsm_info[thread_gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD)){
                                 if(s_ofsm_info[thread_gunno].base.main_gunno == thread_gunno){
                                     thaisenSetSysFaultLib(thaisenElock, thread_gunno);
                                 }else{
-                                    s_ofsm_info[thread_gunno].base.elock_check_tick = rt_tick_get();
+                                    s_ofsm_info[thread_gunno].base.elock_check_time = 0x00;
                                     thaisenClearSysFaultLib(thaisenElock, thread_gunno);
                                 }
                             }else{
                                 thaisenSetSysFaultLib(thaisenElock, thread_gunno);
                             }
                         }else{
-                            s_ofsm_info[thread_gunno].base.elock_check_tick = rt_tick_get();
+                            s_ofsm_info[thread_gunno].base.elock_check_time = 0x00;
                         }
                     }
 
+                    if(s_ofsm_info[thread_gunno].base.dcrealy_check_time < (0xFF - 0x01)){
+                        s_ofsm_info[thread_gunno].base.dcrealy_check_time++;
+                    }
                     if(thaisenGetModuleDebugEnableOutput(thread_gunno) == APP_THA_ENUM_FALSE){
                         if(thaisenDcRelay_StateQuery(thread_gunno, thaisenRelayBreak)){
-                            s_ofsm_info[thread_gunno].base.dcrealy_check_tick = rt_tick_get();
+                            s_ofsm_info[thread_gunno].base.dcrealy_check_time = 0x00;
                             thaisenClearSysFaultLib(thaisenRelay, thread_gunno);
                         }
-                        if((rt_tick_get() - s_ofsm_info[thread_gunno].base.dcrealy_check_tick) > APP_ELOCK_RELAY_CHECK_TIME){
+                        if(s_ofsm_info[thread_gunno].base.dcrealy_check_time > APP_ELOCK_RELAY_CHECK_TIME){
                             if(thaisenGetSysFaultCheckEnBit(thaisenRelay)){
                                 /** 直流继电器故障 */
                                 if((s_ofsm_info[thread_gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL) || (s_ofsm_info[thread_gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD)){
                                     if(s_ofsm_info[thread_gunno].base.main_gunno == thread_gunno){
                                         thaisenSetSysFaultLib(thaisenRelay, thread_gunno);
                                     }else{
-                                        s_ofsm_info[thread_gunno].base.dcrealy_check_tick = rt_tick_get();
+                                        s_ofsm_info[thread_gunno].base.dcrealy_check_time = 0x00;
                                         thaisenClearSysFaultLib(thaisenRelay, thread_gunno);
                                     }
                                 }else{
                                     thaisenSetSysFaultLib(thaisenRelay, thread_gunno);
                                 }
                             }else{
-                                s_ofsm_info[thread_gunno].base.dcrealy_check_tick = rt_tick_get();
+                                s_ofsm_info[thread_gunno].base.dcrealy_check_time = 0x00;
                             }
                         }
                     }else{
-                        s_ofsm_info[thread_gunno].base.dcrealy_check_tick = rt_tick_get();
+                        s_ofsm_info[thread_gunno].base.dcrealy_check_time = 0x00;
                     }
 
                 }else{
-                    s_ofsm_info[thread_gunno].base.elock_check_tick = rt_tick_get();
-                    s_ofsm_info[thread_gunno].base.dcrealy_check_tick = rt_tick_get();
-                    s_ofsm_info[thread_gunno].base.acrelay_check_tick = rt_tick_get();
+                    s_ofsm_info[thread_gunno].base.elock_check_time = 0x00;
+                    s_ofsm_info[thread_gunno].base.dcrealy_check_time = 0x00;
+                    s_ofsm_info[thread_gunno].base.acrelay_check_time = 0x00;
                 }
                 break;
             case APP_CHARGE_CTRL_CCS:
+                if(s_ofsm_info[thread_gunno].base.elock_check_time < (0xFF - 0x01)){
+                    s_ofsm_info[thread_gunno].base.elock_check_time++;
+                }
                 if(thaisenElectLock_StateQuery(thread_gunno) == thaisen_elock_close){
-                    s_ofsm_info[thread_gunno].base.elock_check_tick = rt_tick_get();
+                    s_ofsm_info[thread_gunno].base.elock_check_time = 0x00;
                     thaisenClearSysFaultLib(thaisenElock, thread_gunno);
                 }
-                if((rt_tick_get() - s_ofsm_info[thread_gunno].base.elock_check_tick) > APP_ELOCK_RELAY_CHECK_TIME){
+                if(s_ofsm_info[thread_gunno].base.elock_check_time > APP_ELOCK_RELAY_CHECK_TIME){
                     if(thaisenGetSysFaultCheckEnBit(thaisenElock)){
                         /** 电子锁故障 */
                         thaisenSetSysFaultLib(thaisenElock, thread_gunno);
                     }else{
-                        s_ofsm_info[thread_gunno].base.elock_check_tick = rt_tick_get();
+                        s_ofsm_info[thread_gunno].base.elock_check_time = 0x00;
                     }
                 }
 
+                if(s_ofsm_info[thread_gunno].base.dcrealy_check_time < (0xFF - 0x01)){
+                    s_ofsm_info[thread_gunno].base.dcrealy_check_time++;
+                }
                 if(thaisen_get_charging_pause_activate(thread_gunno)){
                     if(thaisenDcRelay_StateQuery(thread_gunno, thaisenRelayClose)){
-                        s_ofsm_info[thread_gunno].base.dcrealy_check_tick = rt_tick_get();
+                        s_ofsm_info[thread_gunno].base.dcrealy_check_time = 0x00;
                         thaisenClearSysFaultLib(thaisenRelay, thread_gunno);
                     }
-                    if((rt_tick_get() - s_ofsm_info[thread_gunno].base.dcrealy_check_tick) > APP_ELOCK_RELAY_CHECK_TIME){
+                    if(s_ofsm_info[thread_gunno].base.dcrealy_check_time > APP_ELOCK_RELAY_CHECK_TIME){
                         if(thaisenGetSysFaultCheckEnBit(thaisenRelay)){
                             /** 直流继电器故障 */
                             thaisenSetSysFaultLib(thaisenRelay, thread_gunno);
                         }else{
-                            s_ofsm_info[thread_gunno].base.dcrealy_check_tick = rt_tick_get();
+                            s_ofsm_info[thread_gunno].base.dcrealy_check_time = 0x00;
                         }
                     }
                 }else{
-                    s_ofsm_info[thread_gunno].base.dcrealy_check_tick = rt_tick_get();
+                    s_ofsm_info[thread_gunno].base.dcrealy_check_time = 0x00;
                 }
 
+                if(s_ofsm_info[thread_gunno].base.acrelay_check_time < (0xFF - 0x01)){
+                    s_ofsm_info[thread_gunno].base.acrelay_check_time++;
+                }
                 if(thaisenAcRelay_StateQuery() == thaisenRelayClose){
-                    s_ofsm_info[thread_gunno].base.acrelay_check_tick = rt_tick_get();
+                    s_ofsm_info[thread_gunno].base.acrelay_check_time = 0x00;
                     thaisenClearSysFaultLib(thaisenRelayAc, thread_gunno);
                 }
-                if((rt_tick_get() - s_ofsm_info[thread_gunno].base.acrelay_check_tick) > APP_ELOCK_RELAY_CHECK_TIME){
+                if(s_ofsm_info[thread_gunno].base.acrelay_check_time > APP_ELOCK_RELAY_CHECK_TIME){
                     if(thaisenGetSysFaultCheckEnBit(thaisenRelayAc)){
                         /** 交流接触器故障 */
                         thaisenSetSysFaultLib(thaisenRelayAc, thread_gunno);
                     }else{
-                        s_ofsm_info[thread_gunno].base.acrelay_check_tick = rt_tick_get();
+                        s_ofsm_info[thread_gunno].base.acrelay_check_time = 0x00;
                     }
                 }
                 break;
             default:
-                s_ofsm_info[thread_gunno].base.elock_check_tick = rt_tick_get();
-                s_ofsm_info[thread_gunno].base.dcrealy_check_tick = rt_tick_get();
-                s_ofsm_info[thread_gunno].base.acrelay_check_tick = rt_tick_get();
+                s_ofsm_info[thread_gunno].base.elock_check_time = 0x00;
+                s_ofsm_info[thread_gunno].base.dcrealy_check_time = 0x00;
+                s_ofsm_info[thread_gunno].base.acrelay_check_time = 0x00;
                 break;
             }
-            s_ofsm_info[thread_gunno].base.elock_resume_tick = rt_tick_get();
-            s_ofsm_info[thread_gunno].base.dcrealy_resume_tick = rt_tick_get();
-            s_ofsm_info[thread_gunno].base.acrelay_resume_tick = rt_tick_get();
+            s_ofsm_info[thread_gunno].base.elock_resume_time = 0x00;
+            s_ofsm_info[thread_gunno].base.dcrealy_resume_time = 0x00;
+            s_ofsm_info[thread_gunno].base.acrelay_resume_time = 0x00;
         }else{
+            if(s_ofsm_info[thread_gunno].base.elock_resume_time < (0xFF - 0x01)){
+                s_ofsm_info[thread_gunno].base.elock_resume_time++;
+            }
             if((thaisenElectLock_StateQuery(thread_gunno) == thaisen_elock_break) || (thaisenGetSysFaultCheckEnBit(thaisenElock) == APP_THA_ENUM_FALSE)){
-                if(((rt_tick_get() - s_ofsm_info[thread_gunno].base.elock_resume_tick) > 4000) || (thaisenGetSysFaultCheckEnBit(thaisenElock) == APP_THA_ENUM_FALSE)){
+                if((s_ofsm_info[thread_gunno].base.elock_resume_time > (4000 /APP_SYSTEM_RUN_TIME_PERIOD)) || (thaisenGetSysFaultCheckEnBit(thaisenElock) == APP_THA_ENUM_FALSE)){
                     thaisenClearSysFaultLib(thaisenElock, thread_gunno);
                 }
             }else{
                 if(thaisenGetSysFaultCheckEnBit(thaisenElock) == APP_THA_ENUM_TRUE){
-                    s_ofsm_info[thread_gunno].base.elock_resume_tick = rt_tick_get();
+                    s_ofsm_info[thread_gunno].base.elock_resume_time = 0x00;
                 }
             }
 
+            if(s_ofsm_info[thread_gunno].base.dcrealy_resume_time < (0xFF - 0x01)){
+                s_ofsm_info[thread_gunno].base.dcrealy_resume_time++;
+            }
             if((thaisenDcRelay_StateQuery(thread_gunno, thaisenRelayBreak)) || (thaisenGetSysFaultCheckEnBit(thaisenRelay) == APP_THA_ENUM_FALSE)){
-                if(((rt_tick_get() - s_ofsm_info[thread_gunno].base.dcrealy_resume_tick) > 1000) || (thaisenGetSysFaultCheckEnBit(thaisenRelay) == APP_THA_ENUM_FALSE)){
+                if((s_ofsm_info[thread_gunno].base.dcrealy_resume_time > (1000 /APP_SYSTEM_RUN_TIME_PERIOD)) || (thaisenGetSysFaultCheckEnBit(thaisenRelay) == APP_THA_ENUM_FALSE)){
                     thaisenClearSysFaultLib(thaisenRelay, thread_gunno);
                 }
             }else{
                 if(thaisenGetSysFaultCheckEnBit(thaisenRelay) == APP_THA_ENUM_TRUE){
-                    s_ofsm_info[thread_gunno].base.dcrealy_resume_tick = rt_tick_get();
+                    s_ofsm_info[thread_gunno].base.dcrealy_resume_time = 0x00;
                 }
             }
 
+            if(s_ofsm_info[thread_gunno].base.acrelay_resume_time < (0xFF - 0x01)){
+                s_ofsm_info[thread_gunno].base.acrelay_resume_time++;
+            }
             if((thaisenAcRelay_StateQuery() == thaisenRelayBreak) || (thaisenGetSysFaultCheckEnBit(thaisenRelayAc) == APP_THA_ENUM_FALSE)){
-                if(((rt_tick_get() - s_ofsm_info[thread_gunno].base.acrelay_resume_tick) > 1000) || (thaisenGetSysFaultCheckEnBit(thaisenRelayAc) == APP_THA_ENUM_FALSE)){
+                if((s_ofsm_info[thread_gunno].base.acrelay_resume_time > (1000/ APP_SYSTEM_RUN_TIME_PERIOD)) || (thaisenGetSysFaultCheckEnBit(thaisenRelayAc) == APP_THA_ENUM_FALSE)){
                     thaisenClearSysFaultLib(thaisenRelayAc, thread_gunno);
                 }
             }else{
                 if(thaisenGetSysFaultCheckEnBit(thaisenRelayAc) == APP_THA_ENUM_TRUE){
-                    s_ofsm_info[thread_gunno].base.acrelay_resume_tick = rt_tick_get();
+                    s_ofsm_info[thread_gunno].base.acrelay_resume_time = 0x00;
                 }
             }
-            s_ofsm_info[thread_gunno].base.elock_check_tick = rt_tick_get();
-            s_ofsm_info[thread_gunno].base.dcrealy_check_tick = rt_tick_get();
-            s_ofsm_info[thread_gunno].base.acrelay_check_tick = rt_tick_get();
+            s_ofsm_info[thread_gunno].base.elock_check_time = 0x00;
+            s_ofsm_info[thread_gunno].base.dcrealy_check_time = 0x00;
+            s_ofsm_info[thread_gunno].base.acrelay_check_time = 0x00;
         }
 #endif /* APP_USING_FB_DETECT */
 
@@ -7318,7 +7354,7 @@ void ofsm_thread_entry(void *parameter)
             app_billingrule_set_eloss_proportion(*((uint16_t*)sys_read_config_item_content(CONFIG_ITEM_ELOSS_PROPORTION, 0x00)));
         }
 
-        rt_thread_mdelay(100);
+        rt_thread_mdelay(APP_SYSTEM_RUN_TIME_PERIOD);
     }
 }
 
