@@ -4472,6 +4472,7 @@ static void ofsm_charging_fun(uint8_t gunno)
         }
         if(gunno != s_ofsm_info[gunno].base.main_gunno){
             s_ofsm_info[gunno].base.voltage_a = mw_get_meter_ua(gunno) *10;
+            s_ofsm_info[gunno].base.current_a = mw_get_meter_ia(gunno) *10;
             return;
         }
     }
@@ -4694,7 +4695,7 @@ static void ofsm_charging_fun(uint8_t gunno)
     defined (APP_INCLUDE_SGCC_PROTOCOL)) */
 
 #if (defined (APP_INCLUDE_SL_PROTOCOL) || defined (APP_INCLUDE_SGCC_PROTOCOL))
-    for(uint8_t period = s_ofsm_info[gunno].base.start_period; period <= s_ofsm_info[gunno].base.current_period; period++){
+    for(uint8_t period = 0x00; period < APP_BILLING_RULE_PERIOD_MAX; period++){
         s_thaisen_transaction[gunno].period_elect[period] = app_billingrule_get_period_elect(gunno, period);
         s_thaisen_transaction[gunno].period_elect_fees[period] = app_billingrule_get_period_elect_fees(gunno, period);
         s_thaisen_transaction[gunno].period_service_fees[period] = app_billingrule_get_period_service_fees(gunno, period);
@@ -5913,7 +5914,7 @@ static void ofsm_stoping_fun(uint8_t gunno)
         defined (APP_INCLUDE_SGCC_PROTOCOL)) */
 
 #if (defined (APP_INCLUDE_SL_PROTOCOL) || defined (APP_INCLUDE_SGCC_PROTOCOL))
-            for(uint8_t period = s_ofsm_info[gunno].base.start_period; period <= s_ofsm_info[gunno].base.current_period; period++){
+            for(uint8_t period = 0x00; period < APP_BILLING_RULE_PERIOD_MAX; period++){
                 s_thaisen_transaction[gunno].period_elect[period] = 0x00;
                 s_thaisen_transaction[gunno].period_elect_fees[period] = 0x00;
                 s_thaisen_transaction[gunno].period_service_fees[period] = 0x00;
@@ -6003,7 +6004,7 @@ static void ofsm_stoping_fun(uint8_t gunno)
             defined (APP_INCLUDE_SGCC_PROTOCOL)) */
 
 #if (defined (APP_INCLUDE_SL_PROTOCOL) || defined (APP_INCLUDE_SGCC_PROTOCOL))
-                for(uint8_t period = s_ofsm_info[gunno].base.start_period; period <= s_ofsm_info[gunno].base.current_period; period++){
+                for(uint8_t period = 0x00; period < APP_BILLING_RULE_PERIOD_MAX; period++){
                     s_thaisen_transaction[gunno].period_elect[period] = app_billingrule_get_period_elect(gunno, period);
                     s_thaisen_transaction[gunno].period_elect_fees[period] = app_billingrule_get_period_elect_fees(gunno, period);
                     s_thaisen_transaction[gunno].period_service_fees[period] = app_billingrule_get_period_service_fees(gunno, period);
