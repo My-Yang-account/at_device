@@ -87,7 +87,7 @@ enum temp_check mw_temperature_protect_check(uint8_t gunno, int32_t temperature)
         }
         break;
     case TCHECK_RESULT_OVERTEMP_1:
-        if(temperature > *((uint16_t*)sys_read_config_item_content(CONFIG_ITEM_OVERTEMP_WARN, 0x00))) {
+        if(temperature > *((uint16_t*)sys_read_config_item_content(CONFIG_ITEM_OVERTEMP_STOP, 0x00))) {
             s_state[gunno] = TCHECK_RESULT_OVERTEMP_2;
             s_overtemp_time_base[gunno] = rt_tick_get();
         }else if(temperature > *((uint16_t*)sys_read_config_item_content(CONFIG_ITEM_OVERTEMP_SETCUR, 0x00))){
