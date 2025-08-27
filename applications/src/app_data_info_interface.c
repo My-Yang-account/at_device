@@ -1723,7 +1723,7 @@ struct card_data_info *thaisen_get_card_info(uint8_t gunno)
     }
 
     /** 离线卡启动，一定是通过卡号鉴权的；在线卡启动大部分是只有UUID */
-    if(1/*ofsm_temp->base.start_type == APP_CHARGE_START_WAY_OFFLINE_CARD*/){
+    if(ofsm_temp->base.start_type == APP_CHARGE_START_WAY_OFFLINE_CARD){
         valid_len = strlen((char*)ofsm_temp->base.card_number);
         if(valid_len > sizeof(ofsm_temp->base.card_number)){
             valid_len = sizeof(ofsm_temp->base.card_number);
@@ -1732,7 +1732,7 @@ struct card_data_info *thaisen_get_card_info(uint8_t gunno)
             valid_len = sizeof(s_card_data.card_number);
         }
         memcpy(s_card_data.card_number, ofsm_temp->base.card_number, valid_len);
-    }else if(1/*ofsm_temp->base.start_type == APP_CHARGE_START_WAY_ONLINE_CARD*/){
+    }else if(ofsm_temp->base.start_type == APP_CHARGE_START_WAY_ONLINE_CARD){
         uint8_t i = 0x00, j = 0x00, ascii_len = 0x00, bcd = 0x00;
 
         ascii_len = sizeof(s_card_data.card_number);
