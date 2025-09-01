@@ -129,6 +129,9 @@ int main(void)
 
     thaisenChargInit();
 	thaisen_chargModule_Init(thaisen_get_charg_status, mw_get_bms_data(0), mw_get_bms_data(1),(struct thasienModuleSetStruct *)sys_get_module_config_info());
+
+    SerialScreen_SetInputInfo();
+
 	MX_IWDG_Init();
     app_init();
 	app_hci_init();

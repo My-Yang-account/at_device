@@ -4610,6 +4610,8 @@ void SerialScreen_IsSupportSetFlash(void)
 
 void SerialScreen_SetInputInfo(void)
 {
+    extern void thaisenSetIncludeAcRelayState(uint8_t state);
+
 	if(FALSE == LcdData.setData.supin_scram)
     	thaisenClearSysFaultCheckBit(thaisenFaultScram);
 	else 
@@ -4626,6 +4628,7 @@ void SerialScreen_SetInputInfo(void)
         thaisenSetACRelayIoEnableState(thaisenAcRelayIoEn_Fan);
         thaisenClearSysFaultCheckBit(thaisenRelayAc);
 #endif /* SCREEN_USING_DOUBLE_GUN */
+        thaisenSetIncludeAcRelayState(0);
     }else{
 #ifdef SCREEN_USING_DOUBLE_GUN
         thaisenSetSysFaultCheckBit(thaisenRelayAc);
@@ -4633,6 +4636,7 @@ void SerialScreen_SetInputInfo(void)
         thaisenSetACRelayIoEnableState(thaisenAcRelayIoEn_AcRelay);
         thaisenSetSysFaultCheckBit(thaisenRelayAc);
 #endif /* SCREEN_USING_DOUBLE_GUN */
+        thaisenSetIncludeAcRelayState(1);
     }
     if(FALSE == LcdData.setData.supin_dc){
         thaisenClearSysFaultCheckBit(thaisenRelay);

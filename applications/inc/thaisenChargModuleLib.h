@@ -833,4 +833,28 @@ void thaisenSetEnableModuleOperateState(uint8_t state);
  */
 uint8_t thaisenGetEnableModuleOperateState(void);
 
+/* 功能说明:
+ *          thaisenSetIncludeAcRelayState: 设置是否包含交流接触器状态
+ *
+ * 输入参数:           state (1:包含，0:不包含)
+ *
+ * 返回参数:
+ *
+ * 调用方法:
+ *          可实时调用
+ */
+void thaisenSetIncludeAcRelayState(uint8_t state);
+
+/* 功能说明:
+ *          thaisenIsIncludeAcRelay: 是否包含交流接触器状态
+ *
+ * 输入参数:
+ *
+ * 返回参数:         (1:包含，0:不包含)
+ *
+ * 调用方法:
+ *          可实时调用
+ */
+uint8_t thaisenIsIncludeAcRelay(void);
+
 #endif /* APPLICATIONS_THAISENCHARGMODULELIB_H_ */
