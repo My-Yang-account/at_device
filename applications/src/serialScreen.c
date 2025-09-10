@@ -10366,16 +10366,12 @@ void SerialScreen_GetKeyProcess(struct SerialScreenObj *cmd)
                             dofun_void pdofun = (dofun_void)pPageIndex->item[i].valaddr;
                             (*pdofun)(LcdData.gunIndex);
                         }
-						sSCREEN_DEBUGPROMSG("LCD_BtnType CurrentPage=%d\r\n",LcdData.CurrentPage);
 					}
 #endif /* 0 */
-					//pPageIndex->item[i].vallen 页面
 					//如果目标页面为0，未知
 					{
 					    u8 page_selected = 0;
 						 //如果目标页面相同，则刷新
-						 sSCREEN_DEBUGPROMSG("LCD_BtnType menuflg=%d CurrentPage[%d]=%d\r\n",LcdData.menuflg,LcdData.gunIndex,LcdData.CurrentPage);
-
                          if(((LcdData.CurrentPage == LCD_PAGE_SYS_INFO) ||
                                  (LcdData.CurrentPage == LCD_PAGE_MENU_COM_5) ||
                                  (LcdData.CurrentPage == LCD_PAGE_MENU_COM_6) ||
@@ -10811,10 +10807,8 @@ int SerialScreen_DataProcess()
 				break;
 			case APP_OFSM_STATE_STOPING:
 				LcdData.gun[i].workState = SysMainStatus_StopChg;
-                for(u8 i = 0; i < LCD_GUN_NUM; i++){
-                    LcdAssistantData.SeveralGunFlag[i].IsPWStartAuthen = FALSE;
-                    LcdAssistantData.SeveralGunFlag[i].IsLocalStart = FALSE;
-                }
+                LcdAssistantData.SeveralGunFlag[i].IsPWStartAuthen = FALSE;
+                LcdAssistantData.SeveralGunFlag[i].IsLocalStart = FALSE;
                 SerialScreen_Screen_ResetModeInfoDef(i);
 				break;	
 			case APP_OFSM_STATE_FINISHING:
