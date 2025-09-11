@@ -878,6 +878,11 @@ enum ICON_CHARGING_SOC{
 	ICON_CHARGING_SOC100,
 };
 
+enum ICON_GUN_STATE{
+    ICON_GUN_STATE_PLEASE_SWIPCARD = 22,  //枪状态：请刷卡充电
+    ICON_GUN_STATE_RESERVATION = 23,      //枪状态：预约中
+};
+
 enum ICON_CHARGE_STYLE{
 	ICON_CHARGE_LOCAL = 0,
 	ICON_CHARGE_NULL ,
@@ -10801,6 +10806,7 @@ int SerialScreen_DataProcess()
 		        SerialScreen_Screen_ResetModeInfoDef(i);
 				break;
 			case APP_OFSM_STATE_READYING:
+			case APP_OFSM_STATE_RESERVATION:
 				LcdData.gun[i].workState = SysMainStatus_PlugIn;
 				break;
 #if 0
@@ -10865,7 +10871,8 @@ int SerialScreen_DataProcess()
 		else
 #endif /* SCREEN_USING_QBJ */
 		{
-	        LcdData.gun[i].iocnState = LcdData.gun[i].workState;
+		    if(LcdData.gun[i].workState != SysMainStatus_PlugIn)
+		        LcdData.gun[i].iocnState = LcdData.gun[i].workState;
 		}
 
 #ifdef SCREEN_USING_TXT_RTC
@@ -11129,22 +11136,55 @@ int SerialScreen_DataProcess()
 			#endif
 
             mem_set(LcdData.setData.ErWeiCode[i],0,sizeof(LcdData.setData.ErWeiCode[i]));
+            /************************************* 插枪 *************************************/
 			if((LcdData.gun[i].portState == GUN_CONNECT_STATE_YES)&&(LcdData.gun[i].workState==SysMainStatus_PlugIn)){
-			    u8 validLen = sizeof(LcdData.setData.ErWeiCode[i]);
-			    if((LcdData.setData.sup_offbilling == FALSE) &&
-			            (LcdData.setData.Sup_PlugAndPlay == FALSE) &&
-			            (LcdData.setData.NetType != CP_NETTYPE_OFFLINE)){
-	                if(validLen > thaisen_app_get_gunno_qrcode(i)->qrcode_len){
-	                    str_ncpy(LcdData.setData.ErWeiCode[i],thaisen_app_get_gunno_qrcode(i)->qrcode,thaisen_app_get_gunno_qrcode(i)->qrcode_len);
-	                }else{
-	                    str_ncpy(LcdData.setData.ErWeiCode[i],thaisen_app_get_gunno_qrcode(i)->qrcode,validLen);
-	                }
-			    }else{
-	                if(validLen > strlen((char*)LcdData.runData.chgcode[i])){
-	                    str_ncpy(LcdData.setData.ErWeiCode[i],LcdData.runData.chgcode[i],strlen((char*)LcdData.runData.chgcode[i]));
-	                }else{
-	                    str_ncpy(LcdData.setData.ErWeiCode[i],LcdData.runData.chgcode[i],validLen);
-	                }
+			    u8 validLen = 0;
+			    /** 此时有四个显示状态：1.在线模式显示平台二维码(预约模式下显示预约中)       2.离线模式显示请刷卡充电(预约模式下显示预约中)     3.离线计费模式显示请刷卡充电      4.即插即充模式显示仅桩号的二维码 */
+			    /** 各种模式优先级如下：离线计费->即插即充->离线模式->在线模式 */
+			    /** 离线计费 */
+#ifdef SCREEN_USING_OFFLINE_BILLING
+			    if(LcdData.setData.sup_offbilling == TRUE){
+                    chargeState[i] = thaisen_app_get_ofsm_charge_state(i);
+                    if(chargeState[i] == APP_OFSM_STATE_RESERVATION)
+                        LcdData.gun[i].iocnState = ICON_GUN_STATE_RESERVATION;
+                    else
+                        LcdData.gun[i].iocnState = ICON_GUN_STATE_PLEASE_SWIPCARD;
+			    }
+#else
+                if(FALSE){
+
+                }
+#endif /* SCREEN_USING_OFFLINE_BILLING */
+			    /** 即插即充 */
+			    else if(LcdData.setData.Sup_PlugAndPlay == TRUE){
+			        validLen = sizeof(LcdData.setData.ErWeiCode[i]);
+                    if(validLen > strlen((char*)LcdData.runData.chgcode[i])){
+                        str_ncpy(LcdData.setData.ErWeiCode[i],LcdData.runData.chgcode[i],strlen((char*)LcdData.runData.chgcode[i]));
+                    }else{
+                        str_ncpy(LcdData.setData.ErWeiCode[i],LcdData.runData.chgcode[i],validLen);
+                    }
+			    }
+			    /** 离线模式 */
+			    else if(LcdData.setData.NetType == CP_NETTYPE_OFFLINE){
+			        chargeState[i] = thaisen_app_get_ofsm_charge_state(i);
+			        if(chargeState[i] == APP_OFSM_STATE_RESERVATION)
+			            LcdData.gun[i].iocnState = ICON_GUN_STATE_RESERVATION;
+			        else
+			            LcdData.gun[i].iocnState = ICON_GUN_STATE_PLEASE_SWIPCARD;
+			    }
+			    /** 在线模式 */
+			    else{
+                    chargeState[i] = thaisen_app_get_ofsm_charge_state(i);
+                    if(chargeState[i] == APP_OFSM_STATE_RESERVATION)
+                        LcdData.gun[i].iocnState = ICON_GUN_STATE_RESERVATION;
+                    else{
+                        validLen = sizeof(LcdData.setData.ErWeiCode[i]);
+                        if(validLen > thaisen_app_get_gunno_qrcode(i)->qrcode_len){
+                            str_ncpy(LcdData.setData.ErWeiCode[i],thaisen_app_get_gunno_qrcode(i)->qrcode,thaisen_app_get_gunno_qrcode(i)->qrcode_len);
+                        }else{
+                            str_ncpy(LcdData.setData.ErWeiCode[i],thaisen_app_get_gunno_qrcode(i)->qrcode,validLen);
+                        }
+                    }
 			    }
                 LcdAssistantData.OccupyGunNum++;
 			}else{
