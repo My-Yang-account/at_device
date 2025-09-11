@@ -719,8 +719,6 @@ struct LCD_DISPLAY_SETDATA_TYPE{
     u32 ScreenBaseTick;
 #endif
 #endif /* SCREEN_USING_TXT_RTC */
-    /***********************保护信息底图icon***************************/
-    u8 Icon_ProtectInfo;                        //保护信息底图icon
     /***********************self check***************************/
     u8 selfCheck_icon;                          //一键自检icon
     u8 selfCheck_lable;                         //一键自检图标
@@ -3612,13 +3610,11 @@ void SerialScreen_BtnSystemFuncSet(void)
 
 void SerialScreen_BtnProtectInfoGet(void)
 {
-#if 0
     LcdData.setData.Input_OverVolt = *(u32 *)(UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_INPUT_OVERVOL, 0));
     LcdData.setData.Input_UnderVolt = *(u32 *)(UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_INPUT_UNDERVOL, 0));
     LcdData.setData.Onput_OverVolt = *(u32 *)(UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_OUTPUT_OVERVOL, 0));
     LcdData.setData.Onput_UnderVolt = *(u32 *)(UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_OUTPUT_UNDERVOL, 0));
     LcdData.setData.Onput_OverCurr = *(u32 *)(UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_OUTPUT_OVERCUR, 0));
-#endif
 
     LcdData.setData.Stop_SOC = *(u16 *)(UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_SOC_STOP, 0));
     LcdData.setData.OverTemp_Warnning = *(u16 *)(UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_OVERTEMP_WARN, 0));
@@ -3629,22 +3625,22 @@ void SerialScreen_BtnProtectInfoGet(void)
     LcdData.setData.ElossProprotion = *(u16 *)(UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_ELOSS_PROPORTION, 0));
     LcdData.setData.PowerPercent = thaisen_get_power_percent();
 
-#if 0
+    rt_kprintf("SerialScreen_BtnProtectInfoGet(%d, %d)\n", LcdData.setData.Onput_OverVolt);
     LcdData.setData.Input_OverVolt = SerialScreen_GetPara_ValidValue(LcdData.setData.Input_OverVolt,
-            750, 500, 1200);
+            CHARGEPILE_INPUT_OVERVOLT_DEF, CHARGEPILE_INPUT_OVERVOLT_MIN, CHARGEPILE_INPUT_OVERVOLT_MAX);
 
     LcdData.setData.Input_UnderVolt = SerialScreen_GetPara_ValidValue(LcdData.setData.Input_UnderVolt,
-            750, 500, 1200);
+            CHARGEPILE_INPUT_UNDERVOLT_DEF, CHARGEPILE_INPUT_UNDERVOLT_MIN, CHARGEPILE_INPUT_UNDERVOLT_MAX);
 
     LcdData.setData.Onput_OverVolt = SerialScreen_GetPara_ValidValue(LcdData.setData.Onput_OverVolt,
-            750, 500, 1200);
+            CHARGEPILE_OUTPUT_OVERVOLT_DEF, CHARGEPILE_OUTPUT_OVERVOLT_MIN, CHARGEPILE_OUTPUT_OVERVOLT_MAX);
 
     LcdData.setData.Onput_UnderVolt = SerialScreen_GetPara_ValidValue(LcdData.setData.Onput_UnderVolt,
-            750, 500, 1200);
+            CHARGEPILE_OUTPUT_UNDERVOLT_DEF, CHARGEPILE_OUTPUT_UNDERVOLT_MIN, CHARGEPILE_OUTPUT_UNDERVOLT_MAX);
 
     LcdData.setData.Onput_OverCurr = SerialScreen_GetPara_ValidValue(LcdData.setData.Onput_OverCurr,
-            750, 500, 1200);
-#endif
+            CHARGEPILE_OUTPUT_OVERCURR_DEF, CHARGEPILE_OUTPUT_OVERCURR_MIN, CHARGEPILE_OUTPUT_OVERCURR_MAX);
+
     LcdData.setData.Stop_SOC = SerialScreen_GetPara_ValidValue(LcdData.setData.Stop_SOC,
             PROTECT_STOP_SOC_VALUE_DEFAULT, PROTECT_STOP_SOC_VALUE_MIN, PROTECT_STOP_SOC_VALUE_MAX);
 
@@ -3738,6 +3734,27 @@ static void SerialScreen_BtnProtectInfoJudge(u32 *ret)
         result |= (1 <<SSCREEN_OT_LIMIT_POSITION);
     }
 
+    if((LcdData.setData.Input_OverVolt < CHARGEPILE_INPUT_OVERVOLT_MIN) || (LcdData.setData.Input_OverVolt > CHARGEPILE_INPUT_OVERVOLT_MAX)){
+        LcdData.setData.Input_OverVolt = CHARGEPILE_INPUT_OVERVOLT_DEF;
+//        result |= (1 <<SSCREEN_ELOSS_PROPROTION_POSITION);
+    }
+    if((LcdData.setData.Input_UnderVolt < CHARGEPILE_INPUT_UNDERVOLT_MIN) || (LcdData.setData.Input_UnderVolt > CHARGEPILE_INPUT_UNDERVOLT_MAX)){
+        LcdData.setData.Input_UnderVolt = CHARGEPILE_INPUT_UNDERVOLT_DEF;
+//        result |= (1 <<SSCREEN_ELOSS_PROPROTION_POSITION);
+    }
+    if((LcdData.setData.Onput_OverVolt < CHARGEPILE_OUTPUT_OVERVOLT_MIN) || (LcdData.setData.Onput_OverVolt > CHARGEPILE_OUTPUT_OVERVOLT_MAX)){
+        LcdData.setData.Onput_OverVolt = CHARGEPILE_OUTPUT_OVERVOLT_DEF;
+//        result |= (1 <<SSCREEN_ELOSS_PROPROTION_POSITION);
+    }
+    if((LcdData.setData.Onput_UnderVolt < CHARGEPILE_OUTPUT_UNDERVOLT_MIN) || (LcdData.setData.Onput_UnderVolt > CHARGEPILE_OUTPUT_UNDERVOLT_MAX)){
+        LcdData.setData.Onput_UnderVolt = CHARGEPILE_OUTPUT_UNDERVOLT_DEF;
+//        result |= (1 <<SSCREEN_ELOSS_PROPROTION_POSITION);
+    }
+    if((LcdData.setData.Onput_OverCurr < CHARGEPILE_OUTPUT_OVERCURR_MIN) || (LcdData.setData.Onput_OverCurr > CHARGEPILE_OUTPUT_OVERCURR_MAX)){
+        LcdData.setData.Onput_OverCurr = CHARGEPILE_OUTPUT_OVERCURR_DEF;
+//        result |= (1 <<SSCREEN_ELOSS_PROPROTION_POSITION);
+    }
+
     LcdData.setData.Stop_SOC = Stop_SOC;
     LcdData.setData.OverTemp_Warnning = OverTemp_Warnning;
     LcdData.setData.OverTemp_Stop = OverTemp_Stop;
@@ -3781,6 +3798,12 @@ void SerialScreen_BtnProtectInfoSet(void)
     UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_OVERTEMP_SETCUR, &LcdData.setData.OverTemp_LimitCurr, sizeof(LcdData.setData.OverTemp_LimitCurr) - 0x02);
     UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_GUNVOLT_LIMIT, &LcdData.setData.GunVolt_LimitValue, sizeof(LcdData.setData.GunVolt_LimitValue));
     UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_ELOSS_PROPORTION, &LcdData.setData.ElossProprotion, sizeof(LcdData.setData.ElossProprotion));
+
+    UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_INPUT_OVERVOL, &LcdData.setData.Input_OverVolt, sizeof(LcdData.setData.Input_OverVolt));
+    UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_INPUT_UNDERVOL, &LcdData.setData.Input_UnderVolt, sizeof(LcdData.setData.Input_UnderVolt));
+    UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_OUTPUT_OVERVOL, &LcdData.setData.Onput_OverVolt, sizeof(LcdData.setData.Onput_OverVolt));
+    UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_OUTPUT_UNDERVOL, &LcdData.setData.Onput_UnderVolt, sizeof(LcdData.setData.Onput_UnderVolt));
+    UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_OUTPUT_OVERCUR, &LcdData.setData.Onput_OverCurr, sizeof(LcdData.setData.Onput_OverCurr));
 
     LcdAssistantData.Flag.IsConfigFail = TRUE;
     if(UI_STORAGE_CFG_DATA >= 0){
@@ -11403,12 +11426,6 @@ void SerialScreen_Process(struct SerialScreenObj *cmd)
             SerialScreen_CurrentPageShow(cmd,1);
         }
     }
-    LcdData.setData.Icon_ProtectInfo = 0;
-    LcdData.setData.Input_OverVolt = 0xFF00;
-    LcdData.setData.Input_UnderVolt = 0xFF00;
-    LcdData.setData.Onput_OverVolt = 0xFF00;
-    LcdData.setData.Onput_UnderVolt = 0xFF00;
-    LcdData.setData.Onput_OverCurr = 0xFF00;
 }
 
 int SerialScreen_chksum(u8 *ptr,s32 len)
@@ -12017,20 +12034,13 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_PROTECT, NULL, "cd up", LCD_BtnType, 0x0050, 0x1000, page_type, LCD_PAGE_ROOT_MAIN, (void *)NULL);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_PROTECT, NULL, "Home", LCD_BtnHomeType, 0x0002, 0x1000, page_type, LCD_PAGE_NONE, (void *)NULL);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_PROTECT, NULL, "subok", LCD_BtnType, 0x0014, 0x1000, page_type, LCD_PAGE_ROOT_MAIN, (void *)SerialScreen_BtnProtectInfoSet);
-    SerialScreen_ItemSetUp(LCD_PAGE_MENU_PROTECT, NULL, "Icon shield", LCD_IconType, LCD_10sReflash, 0x6516, pu8_type, sizeof(LcdData.setData.Icon_ProtectInfo), (void *)&LcdData.setData.Icon_ProtectInfo);
-#if 0
+
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_PROTECT, NULL, "In_OV", LCD_InputType, 0, 0x414E, pu32_type, sizeof(LcdData.setData.Input_OverVolt), (void *)&LcdData.setData.Input_OverVolt);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_PROTECT, NULL, "In_UV", LCD_InputType, 0, 0x4130, pu32_type, sizeof(LcdData.setData.Input_UnderVolt), (void *)&LcdData.setData.Input_UnderVolt);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_PROTECT, NULL, "Ou_OV", LCD_InputType, 0, 0x4132, pu32_type, sizeof(LcdData.setData.Onput_OverVolt), (void *)&LcdData.setData.Onput_OverVolt);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_PROTECT, NULL, "Ou_UV", LCD_InputType, 0, 0x4134, pu32_type, sizeof(LcdData.setData.Onput_UnderVolt), (void *)&LcdData.setData.Onput_UnderVolt);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_PROTECT, NULL, "Ou_OC", LCD_InputType, 0, 0x4136, pu32_type, sizeof(LcdData.setData.Onput_OverCurr), (void *)&LcdData.setData.Onput_OverCurr);
-#else
-    SerialScreen_ItemSetUp(LCD_PAGE_MENU_PROTECT, NULL, "In_OV", LCD_InputType, 0, 0x8010, pu32_type, sizeof(LcdData.setData.Input_OverVolt), (void *)&LcdData.setData.Input_OverVolt);
-    SerialScreen_ItemSetUp(LCD_PAGE_MENU_PROTECT, NULL, "In_UV", LCD_InputType, 0, 0x8020, pu32_type, sizeof(LcdData.setData.Input_UnderVolt), (void *)&LcdData.setData.Input_UnderVolt);
-    SerialScreen_ItemSetUp(LCD_PAGE_MENU_PROTECT, NULL, "Ou_OV", LCD_InputType, 0, 0x8030, pu32_type, sizeof(LcdData.setData.Onput_OverVolt), (void *)&LcdData.setData.Onput_OverVolt);
-    SerialScreen_ItemSetUp(LCD_PAGE_MENU_PROTECT, NULL, "Ou_UV", LCD_InputType, 0, 0x8040, pu32_type, sizeof(LcdData.setData.Onput_UnderVolt), (void *)&LcdData.setData.Onput_UnderVolt);
-    SerialScreen_ItemSetUp(LCD_PAGE_MENU_PROTECT, NULL, "Ou_OC", LCD_InputType, 0, 0x8050, pu32_type, sizeof(LcdData.setData.Onput_OverCurr), (void *)&LcdData.setData.Onput_OverCurr);
-#endif
+
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_PROTECT, NULL, "StopSOC", LCD_InputType, 0, 0x4138, pu32_type, sizeof(LcdData.setData.Stop_SOC), (void *)&LcdData.setData.Stop_SOC);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_PROTECT, NULL, "OT_W", LCD_InputType, 0, 0x413A, pu32_type, sizeof(LcdData.setData.OverTemp_Warnning), (void *)&LcdData.setData.OverTemp_Warnning);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_PROTECT, NULL, "OT_S", LCD_InputType, 0, 0x413C, pu32_type, sizeof(LcdData.setData.OverTemp_Stop), (void *)&LcdData.setData.OverTemp_Stop);

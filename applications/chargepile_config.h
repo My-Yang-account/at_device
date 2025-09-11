@@ -313,11 +313,25 @@
 #define COMPULSION_SET_CURRENT_MAX                4000      /* 强制启动设定电流最大值 */
 #define COMPULSION_SET_CURRENT_MIN                0         /* 强制启动设定电流最小值 */
 
-#define CHARGEPILE_INPUT_OVERVOLT_DEF             550       /* 充电桩输入过压默认值值 */
-#define CHARGEPILE_INPUT_UNDERVOLT_DEF            150       /* 充电桩输入欠压默认值值 */
-#define CHARGEPILE_OUTPUT_OVERVOLT_DEF            2000      /* 充电桩输出过压默认值值 */
-#define CHARGEPILE_OUTPUT_UNDERVOLT_DEF           100       /* 充电桩输出欠压默认值值 */
-#define CHARGEPILE_OUTPUT_OVERCURR_DEF            500       /*充电桩输出过流默认值值 */
+#define CHARGEPILE_INPUT_OVERVOLT_DEF             55000     /* 充电桩输入过压默认值(0.01V) */
+#define CHARGEPILE_INPUT_OVERVOLT_MAX             100000    /* 充电桩输入过压最大值(0.01V) */
+#define CHARGEPILE_INPUT_OVERVOLT_MIN             0         /* 充电桩输入过压最小值(0.01V) */
+
+#define CHARGEPILE_INPUT_UNDERVOLT_DEF            15000     /* 充电桩输入欠压默认值(0.01V) */
+#define CHARGEPILE_INPUT_UNDERVOLT_MAX            50000     /* 充电桩输入欠压最大值(0.01V) */
+#define CHARGEPILE_INPUT_UNDERVOLT_MIN            0         /* 充电桩输入欠压最小值(0.01V) */
+
+#define CHARGEPILE_OUTPUT_OVERVOLT_DEF            200000    /* 充电桩输出过压默认值(0.01V) */
+#define CHARGEPILE_OUTPUT_OVERVOLT_MAX            300000    /* 充电桩输出过压最大值(0.01V) */
+#define CHARGEPILE_OUTPUT_OVERVOLT_MIN            0         /* 充电桩输出过压最小值(0.01V) */
+
+#define CHARGEPILE_OUTPUT_UNDERVOLT_DEF           5000      /* 充电桩输出欠压默认值(0.01V) */
+#define CHARGEPILE_OUTPUT_UNDERVOLT_MAX           150000    /* 充电桩输出欠压最大值(0.01V) */
+#define CHARGEPILE_OUTPUT_UNDERVOLT_MIN           0         /* 充电桩输出欠压最小值(0.01V) */
+
+#define CHARGEPILE_OUTPUT_OVERCURR_DEF            160000    /*充电桩输出过流默认值(0.01A) */
+#define CHARGEPILE_OUTPUT_OVERCURR_MAX            160000    /*充电桩输出过流最大值(0.01A) */
+#define CHARGEPILE_OUTPUT_OVERCURR_MIN            0         /*充电桩输出过流最小值(0.01A) */
 
 #define CHARGEPILE_CC12V_MAX                      125       /* CC1 12V上限 */
 #define CHARGEPILE_CC12V_MIN                      115       /* CC1 12V下限 */

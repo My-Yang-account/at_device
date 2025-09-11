@@ -2113,6 +2113,26 @@ int32_t chargepile_check_config(void)
             (s_chargepile_config_info.config_para.overtemp_limitcur > PROTECT_OVERTEMP_LIMITCURR_VALUE_MAX)){
         s_chargepile_config_info.config_para.overtemp_limitcur = PROTECT_OVERTEMP_LIMITCURR_VALUE_DEFAULT;
     }
+    if((s_chargepile_config_info.config_para.input_overvol < CHARGEPILE_INPUT_OVERVOLT_MIN) || \
+            (s_chargepile_config_info.config_para.input_overvol > CHARGEPILE_INPUT_OVERVOLT_MAX)){
+        s_chargepile_config_info.config_para.input_overvol = CHARGEPILE_INPUT_OVERVOLT_DEF;
+    }
+    if((s_chargepile_config_info.config_para.input_undervol < CHARGEPILE_INPUT_UNDERVOLT_MIN) || \
+            (s_chargepile_config_info.config_para.input_undervol > CHARGEPILE_INPUT_UNDERVOLT_MAX)){
+        s_chargepile_config_info.config_para.input_undervol = CHARGEPILE_INPUT_UNDERVOLT_DEF;
+    }
+    if((s_chargepile_config_info.config_para.output_overvol < CHARGEPILE_OUTPUT_OVERVOLT_MIN) || \
+            (s_chargepile_config_info.config_para.output_overvol > CHARGEPILE_OUTPUT_OVERVOLT_MAX)){
+        s_chargepile_config_info.config_para.output_overvol = CHARGEPILE_OUTPUT_OVERVOLT_DEF;
+    }
+    if((s_chargepile_config_info.config_para.output_undervol < CHARGEPILE_OUTPUT_UNDERVOLT_MIN) || \
+            (s_chargepile_config_info.config_para.output_undervol > CHARGEPILE_OUTPUT_UNDERVOLT_MAX)){
+        s_chargepile_config_info.config_para.output_undervol = CHARGEPILE_OUTPUT_UNDERVOLT_DEF;
+    }
+    if((s_chargepile_config_info.config_para.output_overcur < CHARGEPILE_OUTPUT_OVERCURR_MIN) || \
+            (s_chargepile_config_info.config_para.output_overcur > CHARGEPILE_OUTPUT_OVERCURR_MAX)){
+        s_chargepile_config_info.config_para.output_overcur = CHARGEPILE_OUTPUT_OVERCURR_DEF;
+    }
 
     if((s_chargepile_config_info.config_para.eloss_proportion < CHARGEPILE_ELOSS_PROPORTION_MIN) ||
             (s_chargepile_config_info.config_para.eloss_proportion > CHARGEPILE_ELOSS_PROPORTION_MAX)){
