@@ -2278,12 +2278,15 @@ static void ofsm_readying_fun(uint8_t gunno)
             time_t t_base = time(NULL);
 
             s_ofsm_info[gunno].base.reservation_time_base = t_base;
+            /** 云端预约 */
             if(app_nsal_is_set_reservation(gunno)){
                 continue_reservation = APP_THA_ENUM_TRUE;
                 s_ofsm_info[gunno].base.flag.is_local_reservation = APP_THA_ENUM_FALSE;
-            }else if(thaisen_get_current_mode(gunno) == THAISEN_MODE_LIMIT_RESERVATION){
+            }
+            /** 本地预约(屏幕充电模式选择预约充电) */
+            else if(thaisen_get_current_mode(gunno) == THAISEN_MODE_LIMIT_RESERVATION){
                 struct tm tmp;
-
+                /** 重新设置了预约时间 */
                 if(thaisen_is_set_reservation_mode(gunno)){
                     s_ofsm_info[gunno].base.flag.is_reser_normal_started = APP_THA_ENUM_FALSE;
                     s_ofsm_info[gunno].base.flag.is_reser_timeout_started = APP_THA_ENUM_FALSE;
@@ -2291,9 +2294,11 @@ static void ofsm_readying_fun(uint8_t gunno)
                 }
                 localtime_r(&t_base, &tmp);
                 if(((tmp.tm_year + 1900) >= 2025) || (s_ofsm_info[gunno].base.run_mode == APP_RUN_MODE_OFFLINE)){
-                    /** 屏幕预约-超过预约时间15分钟内还是可以启动的 */
+                    /** 未到或刚好到达预约时间 */
                     if(thaisen_get_mode_parameter(gunno) >= (tmp.tm_hour *3600 + tmp.tm_min *60)){
+                        /** 计算预约剩余秒数 */
                         s_ofsm_info[gunno].base.reservation_time_remain = (thaisen_get_mode_parameter(gunno) - (tmp.tm_hour *3600 + tmp.tm_min *60));
+                        /** 时间只精确到分钟，如果剩余秒数 */
                         if(s_ofsm_info[gunno].base.reservation_time_remain > 60){
                             s_ofsm_info[gunno].base.flag.is_reser_normal_started = APP_THA_ENUM_FALSE;
                             s_ofsm_info[gunno].base.flag.is_reser_timeout_started = APP_THA_ENUM_FALSE;
@@ -2301,9 +2306,11 @@ static void ofsm_readying_fun(uint8_t gunno)
                         if(s_ofsm_info[gunno].base.flag.is_reser_normal_started == APP_THA_ENUM_FALSE){
                             continue_reservation = APP_THA_ENUM_TRUE;
                         }
-                        s_ofsm_info[gunno].base.flag.is_reser_normal_started = APP_THA_ENUM_TRUE;
+                        s_ofsm_info[gunno].base.flag.is_reser_normal_started = APP_THA_ENUM_TRUE;   /** 如果能正常预约到启动，就说明已经进行过一次充电 */
                         s_ofsm_info[gunno].base.reservation_strategy = (APP_RESERVATE_STRATEGY_PULLGUN_CANCEL |APP_RESERVATE_STRATEGY_FAULT_CANCEL |APP_RESERVATE_STRATEGY_START_DIRECTLY);
-                    }else if((thaisen_get_mode_parameter(gunno) + 15 *60) >= (tmp.tm_hour *3600 + tmp.tm_min *60)){
+                    }
+                    /** 已超过预约时间但未超过10min */
+                    else if((thaisen_get_mode_parameter(gunno) + 10 *60) >= (tmp.tm_hour *3600 + tmp.tm_min *60)){
                         if((s_ofsm_info[gunno].base.flag.is_reser_normal_started == APP_THA_ENUM_FALSE) && \
                                 (s_ofsm_info[gunno].base.flag.is_reser_timeout_started == APP_THA_ENUM_FALSE)){
                             continue_reservation = APP_THA_ENUM_TRUE;
@@ -2314,7 +2321,7 @@ static void ofsm_readying_fun(uint8_t gunno)
                     }else{
                         s_ofsm_info[gunno].base.flag.is_reser_normal_started = APP_THA_ENUM_FALSE;
                         s_ofsm_info[gunno].base.flag.is_reser_timeout_started = APP_THA_ENUM_FALSE;
-
+                        /** 计算预约剩余秒数 */
                         s_ofsm_info[gunno].base.reservation_time_remain = (thaisen_get_mode_parameter(gunno) + (24 *3600) - (tmp.tm_hour *3600 + tmp.tm_min *60));
                         continue_reservation = APP_THA_ENUM_TRUE;
                         s_ofsm_info[gunno].base.reservation_strategy = (APP_RESERVATE_STRATEGY_PULLGUN_CANCEL |APP_RESERVATE_STRATEGY_FAULT_CANCEL |APP_RESERVATE_STRATEGY_START_DIRECTLY);
@@ -2407,7 +2414,7 @@ static void ofsm_reservation_fun(uint8_t gunno)
             uint8_t continue_reservation = APP_THA_ENUM_FALSE;
             time_t t_base = time(NULL);
             struct tm tmp;
-
+            /** 修改了预约时间 */
             if(thaisen_is_set_reservation_mode(gunno)){
                 s_ofsm_info[gunno].base.flag.is_reser_normal_started = APP_THA_ENUM_FALSE;
                 s_ofsm_info[gunno].base.flag.is_reser_timeout_started = APP_THA_ENUM_FALSE;
@@ -2416,13 +2423,13 @@ static void ofsm_reservation_fun(uint8_t gunno)
             localtime_r(&t_base, &tmp);
             if(((tmp.tm_year + 1900) >= 2025) || (s_ofsm_info[gunno].base.run_mode == APP_RUN_MODE_OFFLINE)){
                 s_ofsm_info[gunno].base.reservation_time_base = t_base;
-                /** 屏幕预约-超过预约时间15分钟内还是可以启动的 */
+                /** 屏幕预约-超过预约时间10分钟内还是可以启动的 */
                 if(thaisen_get_mode_parameter(gunno) >= (tmp.tm_hour *3600 + tmp.tm_min *60)){
                     s_ofsm_info[gunno].base.reservation_time_remain = (thaisen_get_mode_parameter(gunno) - (tmp.tm_hour *3600 + tmp.tm_min *60));
                     continue_reservation = APP_THA_ENUM_TRUE;
                     s_ofsm_info[gunno].base.flag.is_reser_normal_started = APP_THA_ENUM_TRUE;
                     s_ofsm_info[gunno].base.reservation_strategy = (APP_RESERVATE_STRATEGY_PULLGUN_CANCEL |APP_RESERVATE_STRATEGY_FAULT_CANCEL |APP_RESERVATE_STRATEGY_START_DIRECTLY);
-                }else if((thaisen_get_mode_parameter(gunno) + 15 *60) >= (tmp.tm_hour *3600 + tmp.tm_min *60)){
+                }else if((thaisen_get_mode_parameter(gunno) + 10 *60) >= (tmp.tm_hour *3600 + tmp.tm_min *60)){
                     continue_reservation = APP_THA_ENUM_TRUE;
                     s_ofsm_info[gunno].base.reservation_time_remain = 0x00;
                     s_ofsm_info[gunno].base.flag.is_reser_timeout_started = APP_THA_ENUM_TRUE;
@@ -2451,18 +2458,20 @@ static void ofsm_reservation_fun(uint8_t gunno)
     /********* 锁桩 **********/
     if((s_ofsm_info[gunno].base.device_state == APP_DEVICE_STATE_OVERHAUL) ||
             (s_ofsm_info[gunno].base.device_state == APP_DEVICE_STATE_FREEZE)){
-        s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_FAULTING];
-        s_ofsm_info[gunno].state = APP_OFSM_STATE_FAULTING;
+        if(s_ofsm_info[gunno].base.reservation_strategy &APP_RESERVATE_STRATEGY_FAULT_CANCEL){
+            s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_FAULTING];
+            s_ofsm_info[gunno].state = APP_OFSM_STATE_FAULTING;
 
-        s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
-        app_nsal_state_charged(gunno);
-
-        if(s_ofsm_info[gunno].base.flag.is_local_reservation == APP_THA_ENUM_TRUE){
-            s_ofsm_info[gunno].base.flag.is_reser_timeout_started = APP_THA_ENUM_FALSE;
-            s_ofsm_info[gunno].base.flag.is_reser_normal_started = APP_THA_ENUM_FALSE;
+            s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
+            app_nsal_state_charged(gunno);
+            /** 取消本次预约，清除预约已充电标志 */
+            if(s_ofsm_info[gunno].base.flag.is_local_reservation == APP_THA_ENUM_TRUE){
+                s_ofsm_info[gunno].base.flag.is_reser_timeout_started = APP_THA_ENUM_FALSE;
+                s_ofsm_info[gunno].base.flag.is_reser_normal_started = APP_THA_ENUM_FALSE;
+            }
+            LOG_D("gunno(%d) chargepile is locked", gunno);
+            return;
         }
-        LOG_D("gunno(%d) chargepile is locked", gunno);
-        return;
     }
     /********* 故障 **********/
     if(app_get_highest_priority_system_fault(gunno) != APP_SYS_FAULT_NO_ERROR){
@@ -2472,7 +2481,7 @@ static void ofsm_reservation_fun(uint8_t gunno)
 
             s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
             app_nsal_state_charged(gunno);
-
+            /** 取消本次预约，清除预约已充电标志 */
             if(s_ofsm_info[gunno].base.flag.is_local_reservation == APP_THA_ENUM_TRUE){
                 s_ofsm_info[gunno].base.flag.is_reser_timeout_started = APP_THA_ENUM_FALSE;
                 s_ofsm_info[gunno].base.flag.is_reser_normal_started = APP_THA_ENUM_FALSE;
@@ -2481,6 +2490,7 @@ static void ofsm_reservation_fun(uint8_t gunno)
             return;
         }
     }
+
     if(s_ofsm_info[gunno].base.flag.is_local_reservation == APP_THA_ENUM_FALSE){
         /********* 云端取消预约 **********/
         if(app_nsal_is_cancel_reservation(gunno)){
@@ -2493,12 +2503,13 @@ static void ofsm_reservation_fun(uint8_t gunno)
             return;
         }
     }else{
+        /** 这是本地预约情况下，在预约过程中取消预约 */
         if(thaisen_get_current_mode(gunno) != THAISEN_MODE_LIMIT_RESERVATION){
             thaisen_clear_reservation_mode_flag(gunno);
 
             s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_IDLEING];
             s_ofsm_info[gunno].state = APP_OFSM_STATE_IDLEING;
-
+            /** 清除预约已充电标志 */
             s_ofsm_info[gunno].base.flag.is_reser_timeout_started = APP_THA_ENUM_FALSE;
             s_ofsm_info[gunno].base.flag.is_reser_normal_started = APP_THA_ENUM_FALSE;
             LOG_D("gunno(%d) local cancel reservation", gunno);
@@ -2506,16 +2517,13 @@ static void ofsm_reservation_fun(uint8_t gunno)
         }
     }
     /********* 预约时间到 **********/
-    /** 预约中修改预约时间小于当前时间15分钟以内 */
+    /** 预约中修改预约时间小于当前时间10分钟以内 */
     if(s_ofsm_info[gunno].base.reservation_time_remain == 0x00){
         LOG_D("gunno(%d) reach reservation time, start charge0\n", gunno);
         thaisen_clear_reservation_mode_flag(gunno);
         ofsm_start_info_padding_reservation(gunno);
-        if(s_ofsm_info[gunno].base.reservation_time_remain == 0x00){
-            s_ofsm_info[gunno].base.flag.is_reser_timeout_started = APP_THA_ENUM_TRUE;
-        }else{
-            s_ofsm_info[gunno].base.flag.is_reser_normal_started = APP_THA_ENUM_TRUE;
-        }
+        /** 是预约超时启动 */
+        s_ofsm_info[gunno].base.flag.is_reser_timeout_started = APP_THA_ENUM_TRUE;
         is_charging_authorization = true;
     }
     /** 预约时间大于当前时间且相差1分钟以内 */
@@ -2547,7 +2555,7 @@ static void ofsm_reservation_fun(uint8_t gunno)
         }
         is_charging_authorization = true;
     }
-    /********* 预约期间其他方式启动 **********/
+    /********* 预约期间(预约时间未到)其他方式启动 **********/
     switch(mw_get_cc1(gunno)) {
 #if (defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING))
     case CC1_12V:
@@ -2567,7 +2575,7 @@ static void ofsm_reservation_fun(uint8_t gunno)
             s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
             app_nsal_state_charged(gunno);
             app_nsal_event_occurded(gunno);
-
+            /** 如果是本地预约，将清除预约已充电标志 */
             if(s_ofsm_info[gunno].base.flag.is_local_reservation == APP_THA_ENUM_TRUE){
                 s_ofsm_info[gunno].base.flag.is_reser_timeout_started = APP_THA_ENUM_FALSE;
                 s_ofsm_info[gunno].base.flag.is_reser_normal_started = APP_THA_ENUM_FALSE;
@@ -2697,7 +2705,7 @@ static void ofsm_reservation_fun(uint8_t gunno)
             thaisen_request_screen_time();
 #endif
             ofsm_start_info_padding_public(gunno);
-
+            /** 预约中已选择其它方式启动，将清除预约已充电标志 */
             if(s_ofsm_info[gunno].base.start_type != APP_CHARGE_START_WAY_RESERVATION){
                 if(s_ofsm_info[gunno].base.flag.is_local_reservation == APP_THA_ENUM_TRUE){
                     s_ofsm_info[gunno].base.flag.is_reser_timeout_started = APP_THA_ENUM_FALSE;
@@ -6886,9 +6894,10 @@ void ofsm_thread_entry(void *parameter)
         s_ofsm_info[thread_gunno].base.ota_state = app_nsal_get_ota_state();
 
         app_thread_monitor_process(rt_thread_self(), NULL, 0x00, 0x00);
+#if 0
         s_ofsm_info[thread_gunno].base.flag.is_reser_normal_started = APP_THA_ENUM_FALSE;
         s_ofsm_info[thread_gunno].base.flag.is_reser_timeout_started = APP_THA_ENUM_FALSE;
-
+#endif
         thaisenDrvSetProtocolTestEnable(0);
 
         switch (s_ofsm_info[thread_gunno].base.ota_state) {

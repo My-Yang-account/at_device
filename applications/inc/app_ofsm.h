@@ -549,7 +549,7 @@ typedef struct{
         uint32_t recved_paracharge_identify_id : 1;          /* 是否已接收到并充识别CANID */
         uint32_t is_local_reservation : 1;                   /* 是否本地预约 */
         uint32_t is_reser_normal_started : 1;                /* 是否本地预约已正常启动(用于预约时间一分钟内多次启动限制) */
-        uint32_t is_reser_timeout_started : 1;               /* 是否本地预约已超时启动(用于超过预约时间15分钟内启动检测) */
+        uint32_t is_reser_timeout_started : 1;               /* 是否本地预约已超时启动(用于超过预约时间10分钟内启动检测) */
         uint32_t is_meter_elect_error : 1;                   /* 是否检测出电表电量有错 */
     }flag;
 
