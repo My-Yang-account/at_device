@@ -21,6 +21,7 @@
 #include "mw_iwdg.h"
 
 #include "chargepile_config.h"
+#include "app_state_check.h"
 
 #include "thaisenChargLib.h"
 #include "thaisen7102Public.h"
@@ -135,6 +136,7 @@ int main(void)
 	MX_IWDG_Init();
     app_init();
 	app_hci_init();
+	app_state_check_init();
 
 #ifndef APP_USING_DOUBLEGUN
     TH_CAN1_FilterConf();

@@ -317,7 +317,7 @@
 #define CHARGEPILE_INPUT_OVERVOLT_MAX             100000    /* 充电桩输入过压最大值(0.01V) */
 #define CHARGEPILE_INPUT_OVERVOLT_MIN             0         /* 充电桩输入过压最小值(0.01V) */
 
-#define CHARGEPILE_INPUT_UNDERVOLT_DEF            15000     /* 充电桩输入欠压默认值(0.01V) */
+#define CHARGEPILE_INPUT_UNDERVOLT_DEF            0         /* 充电桩输入欠压默认值(0.01V) */
 #define CHARGEPILE_INPUT_UNDERVOLT_MAX            50000     /* 充电桩输入欠压最大值(0.01V) */
 #define CHARGEPILE_INPUT_UNDERVOLT_MIN            0         /* 充电桩输入欠压最小值(0.01V) */
 
@@ -325,7 +325,7 @@
 #define CHARGEPILE_OUTPUT_OVERVOLT_MAX            300000    /* 充电桩输出过压最大值(0.01V) */
 #define CHARGEPILE_OUTPUT_OVERVOLT_MIN            0         /* 充电桩输出过压最小值(0.01V) */
 
-#define CHARGEPILE_OUTPUT_UNDERVOLT_DEF           5000      /* 充电桩输出欠压默认值(0.01V) */
+#define CHARGEPILE_OUTPUT_UNDERVOLT_DEF           0         /* 充电桩输出欠压默认值(0.01V) */
 #define CHARGEPILE_OUTPUT_UNDERVOLT_MAX           150000    /* 充电桩输出欠压最大值(0.01V) */
 #define CHARGEPILE_OUTPUT_UNDERVOLT_MIN           0         /* 充电桩输出欠压最小值(0.01V) */
 

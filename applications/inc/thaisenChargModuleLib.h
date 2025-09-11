@@ -857,4 +857,66 @@ void thaisenSetIncludeAcRelayState(uint8_t state);
  */
 uint8_t thaisenIsIncludeAcRelay(void);
 
+typedef enum
+{
+    THAISEN_MODULE_FAULT_OUT_OV,                          /* 故障：输出过压 */
+    THAISEN_MODULE_FAULT_OUT_UV,                          /* 故障：输出欠压 */
+    THAISEN_MODULE_FAULT_OUT_OC,                          /* 故障：输出过流 */
+    THAISEN_MODULE_FAULT_SIZE,                            /* 故障 */
+}thaisenModuleFEnum_t;
+
+/* 功能说明:
+ *          thaisenModuleSetFEnState: 设置故障使能状态
+ *
+ * 输入参数:           f       故障枚举
+ *            state   状态(1：使能   0：不使能)
+ *            gunNum  枪号
+ *
+ * 返回参数:
+ *
+ * 调用方法:
+ *          可实时调用
+ */
+void thaisenModuleSetFEnState(thaisenModuleFEnum_t f, uint8_t state, uint8_t gunNum);
+
+/* 功能说明:
+ *          thaisenModuleGetFEnState: 获取故障使能状态
+ *
+ * 输入参数:       f       故障枚举
+ *          gunNum  枪号
+ *
+ * 返回参数:   故障使能状态(1：已使能   0：未使能)
+ *
+ * 调用方法:
+ *          可实时调用
+ */
+uint8_t thaisenModuleGetFEnState(thaisenModuleFEnum_t f, uint8_t gunNum);
+
+/* 功能说明:
+ *          thaisenModuleSetFOccurState: 设置故障发生状态
+ *
+ * 输入参数:           f       故障枚举
+ *            state   状态(1：已发生   0：未发生)
+ *            gunNum  枪号
+ *
+ * 返回参数:
+ *
+ * 调用方法:
+ *          可实时调用
+ */
+void thaisenModuleSetFOccurState(thaisenModuleFEnum_t f, uint8_t state, uint8_t gunNum);
+
+/* 功能说明:
+ *          thaisenModuleGetFOccurState: 获取故障发生状态
+ *
+ * 输入参数:       f       故障枚举
+ *          gunNum  枪号
+ *
+ * 返回参数:   故障使能状态(1：已发生   0：未发生)
+ *
+ * 调用方法:
+ *          可实时调用
+ */
+uint8_t thaisenModuleGetFOccurState(thaisenModuleFEnum_t f, uint8_t gunNum);
+
 #endif /* APPLICATIONS_THAISENCHARGMODULELIB_H_ */
