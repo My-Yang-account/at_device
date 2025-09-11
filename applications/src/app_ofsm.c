@@ -3638,18 +3638,37 @@ static void ofsm_starting_fun(uint8_t gunno)
             default:
                 break;
             }
-
-            if((s_ofsm_info[gunno].base.start_type == APP_CHARGE_START_WAY_RESERVATION) && (app_billingrule_is_valid(gunno) == NET_ENUM_TRUE)){
-                if((s_ofsm_info[gunno].base.net_state == APP_NET_STATE_AUTH_SECCESS) && (*(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_SUPORT_VIN, 0x00)) == APP_THA_ENUM_TRUE)){
+            /************************************ 未开启VIN码启动功能  *************************************/
+            if(*(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_SUPORT_VIN, 0x00)) == APP_THA_ENUM_FALSE){
+                using_vin_authentication = APP_THA_ENUM_FALSE;
+            }
+            /************************************ 启动方式为预约启动  *************************************/
+            else if(s_ofsm_info[gunno].base.start_type == APP_CHARGE_START_WAY_RESERVATION){
+                /** 当前运行模式为离线计费模式 */
+                if(s_ofsm_info[gunno].base.run_mode == APP_RUN_MODE_OFFLINE_BILLING){
+                    using_vin_authentication = APP_THA_ENUM_FALSE;
+                }
+                /** 当前运行模式为离线模式 */
+                else if(s_ofsm_info[gunno].base.run_mode == APP_RUN_MODE_OFFLINE){
                     using_vin_authentication = APP_THA_ENUM_TRUE;
-                }else{
-                    if(s_ofsm_info[gunno].base.flag.vin_is_authorized == APP_THA_ENUM_FALSE){
-                        using_vin_authentication = APP_THA_ENUM_FALSE;
-                    }else{
+                }
+                /** 当前运行模式为在线模式 */
+                else if(s_ofsm_info[gunno].base.run_mode == APP_RUN_MODE_4G_ETH){
+                    /** 计费规则必须有效 */
+                    if((app_billingrule_is_valid(gunno) == NET_ENUM_TRUE)){
                         using_vin_authentication = APP_THA_ENUM_TRUE;
+                    }else{
+                        /** 防止上报鉴权后短暂断网或关闭VIN码充电功能，导致判断出错 */
+                        if(s_ofsm_info[gunno].base.flag.vin_is_authorized == APP_THA_ENUM_FALSE){
+                            using_vin_authentication = APP_THA_ENUM_FALSE;
+                        }else{
+                            using_vin_authentication = APP_THA_ENUM_TRUE;
+                        }
                     }
                 }
-            }else if(s_ofsm_info[gunno].base.start_type == APP_CHARGE_START_WAY_VIN){
+            }
+            /** 启动方式为VIN码 */
+            else if(s_ofsm_info[gunno].base.start_type == APP_CHARGE_START_WAY_VIN){
                 using_vin_authentication = APP_THA_ENUM_TRUE;
             }else{
                 using_vin_authentication = APP_THA_ENUM_FALSE;
@@ -3668,7 +3687,7 @@ static void ofsm_starting_fun(uint8_t gunno)
                         s_ofsm_info[gunno].base.flag.vin_authorization_success = APP_THA_ENUM_TRUE;
                         LOG_D("gunno(%d) local VIN(%s) start", gunno, bms->BRM.CarDiscern);
                     }else{
-                        if(s_ofsm_info[gunno].base.net_state != APP_NET_STATE_AUTH_SECCESS){
+                        if((s_ofsm_info[gunno].base.net_state != APP_NET_STATE_AUTH_SECCESS) || (s_ofsm_info[gunno].base.run_mode != APP_RUN_MODE_4G_ETH)){
                             vin_authentication_complete = APP_THA_ENUM_TRUE;
                         }
                         if(app_nsal_vin_authorize(gunno) < 0x00){
