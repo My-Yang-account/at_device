@@ -134,10 +134,8 @@ int32_t mw_storage_record_get_designate_index_record(uint8_t *buf, uint32_t data
     int32_t result = STORAGE_ERR_NONE;
 
     while(check_rentry < STORAGE_READ_RENTRY_MAX){
-        rt_kprintf("vvvvvvvvvvvvvvvv(%d, %d)\n", check_rentry, index);
         result = notfs_get_subregion_designate_index_record_data((enum notfs_subregion)region, buf, data_len, index);
         if(result != STORAGE_ERR_NONE){
-            rt_kprintf("fffffffsssssssss(%d, %d)\n", check_rentry, result);
             OS_MDELAY_PORT(STORAGE_OPERATE_WAIT_TIME);
             check_rentry++;
         }else{

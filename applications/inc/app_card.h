@@ -26,6 +26,7 @@ extern "C" {
 #define APP_CARD_EVENT_IS_NOT_SAME_PORT              (0x01 <<0x07)    /* 卡事件：结算枪号不是当前枪号 */
 
 enum{
+    APP_CARD_OPERATE_RET_START_AFTER_OBR = 0x01,                              /** 卡操作结果：离线计费模式下预约后刷卡启动(OBR:offline billing reservation) */
     APP_CARD_OPERATE_RET_SUCCESS = 0x00,                                      /** 卡操作结果：成功 */
     APP_CARD_OPERATE_RET_INTERNAL_ERROR = -0x01,                              /** 卡操作结果：系统内部错误 */
     APP_CARD_OPERATE_RET_NO_BALLANCE = -0x02,                                 /** 卡操作结果：余额不足 */

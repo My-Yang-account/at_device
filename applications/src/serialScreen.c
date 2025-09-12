@@ -764,7 +764,8 @@ struct LCD_DISPLAY_GUN_VALUE_TYPE{
 //	u8 waitCardReadTimer;
     u8 workStateLast;
 	u8 workState;
-	u8 iocnState;	
+	u8 iocnState;
+    u8 iocnStateSelectGun;
 	u8 portState;	//枪口状态 1 连接 0 断开
 	u32 totalFee;      //费用：精度3位
 	u32 AccountBallance;  //账户余额
@@ -879,6 +880,10 @@ enum ICON_CHARGING_SOC{
 };
 
 enum ICON_GUN_STATE{
+    ICON_GUN_STATE_SELECT_SWIPCARD_SCAN = 0,//枪状态：选择枪页面：请刷卡充电或扫码
+    ICON_GUN_STATE_SELECT_SWIPCARD = 1,     //枪状态：选择枪页面：请刷卡充电
+    ICON_GUN_STATE_SELECT_RESERVATION = 2,  //枪状态：选择枪页面：预约中
+
     ICON_GUN_STATE_PLEASE_SWIPCARD = 22,  //枪状态：请刷卡充电
     ICON_GUN_STATE_RESERVATION = 23,      //枪状态：预约中
 };
@@ -5719,12 +5724,13 @@ void SerialScreen_BtnBillGet(int port)
         }
 
         /** 开始时间 **/
-        thaisen_enter_critical();
-        _tm = localtime((time_t*)(&(billBuf.start_time)));
-        sprintf(((char*)LcdData.billInfo[i] + used_len), "%02d/%02d/%02d %02d:%02d", (_tm->tm_year + 1900),
-                (_tm->tm_mon + 1),_tm->tm_mday, _tm->tm_hour, _tm->tm_min);
-        thaisen_exit_critical();
-
+        if(billBuf.order_info.waiting_charge == 0x00){
+            thaisen_enter_critical();
+            _tm = localtime((time_t*)(&(billBuf.start_time)));
+            sprintf(((char*)LcdData.billInfo[i] + used_len), "%02d/%02d/%02d %02d:%02d", (_tm->tm_year + 1900),
+                    (_tm->tm_mon + 1),_tm->tm_mday, _tm->tm_hour, _tm->tm_min);
+            thaisen_exit_critical();
+        }
         used_len += START_TIME_LEN;
         if(used_len > strlen((char*)LcdData.billInfo[i])){    /* 未使用字节填充空格字符 */
             remain_len = used_len - strlen((char*)LcdData.billInfo[i]);
@@ -5733,7 +5739,7 @@ void SerialScreen_BtnBillGet(int port)
             }
         }
         /** 结束时间 **/
-        if(billBuf.order_info.is_charging == 0x00){
+        if((billBuf.order_info.is_charging == 0x00) && (billBuf.order_info.waiting_charge == 0x00)){
             thaisen_enter_critical();
             _tm = localtime((time_t*)(&(billBuf.end_time)));
             sprintf(((char*)LcdData.billInfo[i] + used_len), "%02d/%02d %02d:%02d ", (_tm->tm_mon + 1),
@@ -5758,7 +5764,7 @@ void SerialScreen_BtnBillGet(int port)
             }
         }
         /** 停充原因 **/
-        if(billBuf.order_info.is_charging == 0x00){
+        if((billBuf.order_info.is_charging == 0x00) && (billBuf.order_info.waiting_charge == 0x00)){
             if(billBuf.order_info.verify_fail == 0x01){
                 sprintf(((char*)LcdData.billInfo[i] + used_len), "%c%c%02ud", ' ', 'A', mw_system_stop_way_convert(billBuf.stop_reason));
             }else{
@@ -5913,12 +5919,13 @@ void SerialScreen_BtnBillUp(int port)
         }
 
         /** 开始时间 **/
-        thaisen_enter_critical();
-        _tm = localtime((time_t*)(&(billBuf.start_time)));
-        sprintf(((char*)LcdData.billInfo[i] + used_len), "%02d/%02d/%02d %02d:%02d", (_tm->tm_year + 1900),
-                (_tm->tm_mon + 1),_tm->tm_mday, _tm->tm_hour, _tm->tm_min);
-        thaisen_exit_critical();
-
+        if(billBuf.order_info.waiting_charge == 0x00){
+            thaisen_enter_critical();
+            _tm = localtime((time_t*)(&(billBuf.start_time)));
+            sprintf(((char*)LcdData.billInfo[i] + used_len), "%02d/%02d/%02d %02d:%02d", (_tm->tm_year + 1900),
+                    (_tm->tm_mon + 1),_tm->tm_mday, _tm->tm_hour, _tm->tm_min);
+            thaisen_exit_critical();
+        }
         used_len += START_TIME_LEN;
         if(used_len > strlen((char*)LcdData.billInfo[i])){    /* 未使用字节填充空格字符 */
             remain_len = used_len - strlen((char*)LcdData.billInfo[i]);
@@ -5927,7 +5934,7 @@ void SerialScreen_BtnBillUp(int port)
             }
         }
         /** 结束时间 **/
-        if(billBuf.order_info.is_charging == 0x00){
+        if((billBuf.order_info.is_charging == 0x00) && (billBuf.order_info.waiting_charge == 0x00)){
             thaisen_enter_critical();
             _tm = localtime((time_t*)(&(billBuf.end_time)));
             sprintf(((char*)LcdData.billInfo[i] + used_len), "%02d/%02d %02d:%02d ", (_tm->tm_mon + 1),
@@ -5953,7 +5960,7 @@ void SerialScreen_BtnBillUp(int port)
         }
 
         /** 停充原因 **/
-        if(billBuf.order_info.is_charging == 0x00){
+        if((billBuf.order_info.is_charging == 0x00) && (billBuf.order_info.waiting_charge == 0x00)){
             if(billBuf.order_info.verify_fail == 0x01){
                 sprintf(((char*)LcdData.billInfo[i] + used_len), "%c%c%02ud", ' ', 'A', mw_system_stop_way_convert(billBuf.stop_reason));
             }else{
@@ -6070,12 +6077,13 @@ void SerialScreen_BtnBillDown(int port)
         }
 
         /** 开始时间 **/
-        thaisen_enter_critical();
-        _tm = localtime((time_t*)(&(billBuf.start_time)));
-        sprintf(((char*)LcdData.billInfo[i] + used_len), "%02d/%02d/%02d %02d:%02d", (_tm->tm_year + 1900),
-                (_tm->tm_mon + 1),_tm->tm_mday, _tm->tm_hour, _tm->tm_min);
-        thaisen_exit_critical();
-
+        if(billBuf.order_info.waiting_charge == 0x00){
+            thaisen_enter_critical();
+            _tm = localtime((time_t*)(&(billBuf.start_time)));
+            sprintf(((char*)LcdData.billInfo[i] + used_len), "%02d/%02d/%02d %02d:%02d", (_tm->tm_year + 1900),
+                    (_tm->tm_mon + 1),_tm->tm_mday, _tm->tm_hour, _tm->tm_min);
+            thaisen_exit_critical();
+        }
         used_len += START_TIME_LEN;
         if(used_len > strlen((char*)LcdData.billInfo[i])){    /* 未使用字节填充空格字符 */
             remain_len = used_len - strlen((char*)LcdData.billInfo[i]);
@@ -6084,7 +6092,7 @@ void SerialScreen_BtnBillDown(int port)
             }
         }
         /** 结束时间 **/
-        if(billBuf.order_info.is_charging == 0x00){
+        if((billBuf.order_info.is_charging == 0x00) && (billBuf.order_info.waiting_charge == 0x00)){
             thaisen_enter_critical();
             _tm = localtime((time_t*)(&(billBuf.end_time)));
             sprintf(((char*)LcdData.billInfo[i] + used_len), "%02d/%02d %02d:%02d ", (_tm->tm_mon + 1),
@@ -6110,7 +6118,7 @@ void SerialScreen_BtnBillDown(int port)
         }
 
         /** 停充原因 **/
-        if(billBuf.order_info.is_charging == 0x00){
+        if((billBuf.order_info.is_charging == 0x00) && (billBuf.order_info.waiting_charge == 0x00)){
             if(billBuf.order_info.verify_fail == 0x01){
                 sprintf(((char*)LcdData.billInfo[i] + used_len), "%c%c%02ud", ' ', 'A', mw_system_stop_way_convert(billBuf.stop_reason));
             }else{
@@ -11145,10 +11153,13 @@ int SerialScreen_DataProcess()
 #ifdef SCREEN_USING_OFFLINE_BILLING
 			    if(LcdData.setData.sup_offbilling == TRUE){
                     chargeState[i] = thaisen_app_get_ofsm_charge_state(i);
-                    if(chargeState[i] == APP_OFSM_STATE_RESERVATION)
+                    if(chargeState[i] == APP_OFSM_STATE_RESERVATION){
                         LcdData.gun[i].iocnState = ICON_GUN_STATE_RESERVATION;
-                    else
+                        LcdData.gun[i].iocnStateSelectGun = ICON_GUN_STATE_SELECT_RESERVATION;
+                    }else{
                         LcdData.gun[i].iocnState = ICON_GUN_STATE_PLEASE_SWIPCARD;
+                        LcdData.gun[i].iocnStateSelectGun = ICON_GUN_STATE_SELECT_SWIPCARD;
+                    }
 			    }
 #else
                 if(FALSE){
@@ -11167,17 +11178,21 @@ int SerialScreen_DataProcess()
 			    /** 离线模式 */
 			    else if(LcdData.setData.NetType == CP_NETTYPE_OFFLINE){
 			        chargeState[i] = thaisen_app_get_ofsm_charge_state(i);
-			        if(chargeState[i] == APP_OFSM_STATE_RESERVATION)
+			        if(chargeState[i] == APP_OFSM_STATE_RESERVATION){
 			            LcdData.gun[i].iocnState = ICON_GUN_STATE_RESERVATION;
-			        else
+                        LcdData.gun[i].iocnStateSelectGun = ICON_GUN_STATE_SELECT_RESERVATION;
+			        }else{
 			            LcdData.gun[i].iocnState = ICON_GUN_STATE_PLEASE_SWIPCARD;
+                        LcdData.gun[i].iocnStateSelectGun = ICON_GUN_STATE_SELECT_SWIPCARD;
+			        }
 			    }
 			    /** 在线模式 */
 			    else{
                     chargeState[i] = thaisen_app_get_ofsm_charge_state(i);
-                    if(chargeState[i] == APP_OFSM_STATE_RESERVATION)
+                    if(chargeState[i] == APP_OFSM_STATE_RESERVATION){
                         LcdData.gun[i].iocnState = ICON_GUN_STATE_RESERVATION;
-                    else{
+                        LcdData.gun[i].iocnStateSelectGun = ICON_GUN_STATE_SELECT_RESERVATION;
+			        }else{
                         validLen = sizeof(LcdData.setData.ErWeiCode[i]);
                         if(validLen > thaisen_app_get_gunno_qrcode(i)->qrcode_len){
                             str_ncpy(LcdData.setData.ErWeiCode[i],thaisen_app_get_gunno_qrcode(i)->qrcode,thaisen_app_get_gunno_qrcode(i)->qrcode_len);
@@ -11560,6 +11575,7 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
 
     /** 2.A枪选择 [page:02]*/
     SerialScreen_ItemSetUp(LCD_PAGE_A_SELECT, NULL, "net_sign", LCD_IconType, LCD_10sReflash, 0x1700, pu8_type, sizeof(LcdData.runData.netstate), (void *)&LcdData.runData.netstate);
+    SerialScreen_ItemSetUp(LCD_PAGE_A_SELECT, NULL, "state_Agun", LCD_IconType, LCD_10sReflash, 0x6D20, pu8_type, sizeof(LcdData.gun[LCD_GUN_1].iocnStateSelectGun), (void *)&LcdData.gun[LCD_GUN_1].iocnStateSelectGun);
     SerialScreen_ItemSetUp(LCD_PAGE_A_SELECT, NULL, "Agun_QrCode", LCD_QRCodeType, LCD_NoReflash, 0x6000, pstr_type, sizeof(LcdData.setData.ErWeiCode[LCD_GUN_1]), (void *)LcdData.setData.ErWeiCode[LCD_GUN_1]);
     SerialScreen_ItemSetUp(LCD_PAGE_A_SELECT, NULL, "back", LCD_BtnType, 0x0002, 0x1000, page_type, LCD_PAGE_STANDBY, (void *)SerialScreen_BtnReturn1);
     SerialScreen_ItemSetUp(LCD_PAGE_A_SELECT, NULL, "Agun_Charge", LCD_BtnType, 0x0008, 0x1010, page_type, LCD_PAGE_A_SELECT, (void *)SerialScreen_StartChargeA);
@@ -11583,6 +11599,7 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
 
     /** 3.B枪选择 [page:03]*/
     SerialScreen_ItemSetUp(LCD_PAGE_B_SELECT, NULL, "net_sign", LCD_IconType, LCD_10sReflash, 0x1700, pu8_type, sizeof(LcdData.runData.netstate), (void *)&LcdData.runData.netstate);
+    SerialScreen_ItemSetUp(LCD_PAGE_B_SELECT, NULL, "state_Bgun", LCD_IconType, LCD_10sReflash, 0x6D21, pu8_type, sizeof(LcdData.gun[LCD_GUN_2].iocnStateSelectGun), (void *)&LcdData.gun[LCD_GUN_2].iocnStateSelectGun);
     SerialScreen_ItemSetUp(LCD_PAGE_B_SELECT, NULL, "Bgun_QrCode", LCD_QRCodeType, LCD_NoReflash, 0x6080, pstr_type, sizeof(LcdData.setData.ErWeiCode[LCD_GUN_2]), (void *)LcdData.setData.ErWeiCode[LCD_GUN_2]);
     SerialScreen_ItemSetUp(LCD_PAGE_B_SELECT, NULL, "back", LCD_BtnType, 0x0002, 0x1000, page_type, LCD_PAGE_STANDBY, (void *)SerialScreen_BtnReturn1);
     SerialScreen_ItemSetUp(LCD_PAGE_B_SELECT, NULL, "Bgun_Charge", LCD_BtnType, 0x0008, 0x1010, page_type, LCD_PAGE_B_SELECT, (void *)SerialScreen_StartChargeB);

@@ -391,7 +391,8 @@ struct _order_info{
     uint8_t is_charging : 1;              /* 正在充电 */
     uint8_t online_order : 1;             /* 在线订单 */
     uint8_t bms_recommunicate : 1;        /* BMS通信重连 */
-    uint8_t reserve : 3;
+    uint8_t waiting_charge : 1;           /* 订单已创建，正在等待充电(离线计费模式下的预约启动) */
+    uint8_t reserve : 2;
 };
 
 typedef struct
@@ -551,6 +552,7 @@ typedef struct{
         uint32_t is_reser_normal_started : 1;                /* 是否本地预约已正常启动(用于预约时间一分钟内多次启动限制) */
         uint32_t is_reser_timeout_started : 1;               /* 是否本地预约已超时启动(用于超过预约时间10分钟内启动检测) */
         uint32_t is_meter_elect_error : 1;                   /* 是否检测出电表电量有错 */
+        uint32_t is_ob_authenticated : 1;                    /* 离线计费模式下已进行预约鉴权(ob:offline billing) */
     }flag;
 
     uint8_t cc1_state;                /* CC1 状态 */

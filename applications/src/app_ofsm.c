@@ -378,7 +378,10 @@ static void transaction_record_query_report(uint8_t gunno)
 
         if(rtransaction.stop_reason == APP_SYSTEM_STOP_WAY_POWER_OFF){
             uint32_t loss_elect = 0x00, _total_elect = 0x00, _price = 0x00;
-
+            /** 这是离线计费模式下预约鉴权创建的订单，要等到预约时间到才能启动，此时这个订单不需要矫正 */
+            if((rtransaction.run_mode == APP_RUN_MODE_OFFLINE_BILLING) && (s_ofsm_info[gunno].base.flag.is_ob_authenticated == APP_THA_ENUM_TRUE) && (rtransaction.order_info.waiting_charge == APP_THA_ENUM_TRUE)){
+                return;
+            }
             if(rtransaction.charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL){
                 for(uint8_t count = 0x00; count < APP_SYSTEM_GUNNO_SIZE; count++){
                     _total_elect += mw_get_meter_total_wh(count);
@@ -552,6 +555,7 @@ static void transaction_record_query_report(uint8_t gunno)
                 need_check = 1;
             }
             rtransaction.order_info.is_charging = APP_THA_ENUM_FALSE;
+            rtransaction.order_info.waiting_charge = APP_THA_ENUM_FALSE;
         }else{
             need_check = 1;
             s_ofsm_info[gunno].base.order_fixes_tick = rt_tick_get();
@@ -1566,6 +1570,7 @@ static void ofsm_start_info_padding_public(uint8_t gunno)
     s_thaisen_transaction[gunno].order_info.is_start_fail = APP_THA_ENUM_TRUE;
     s_thaisen_transaction[gunno].order_info.is_charging = APP_THA_ENUM_TRUE;
     s_thaisen_transaction[gunno].order_info.bms_recommunicate = APP_THA_ENUM_FALSE;
+    s_thaisen_transaction[gunno].order_info.waiting_charge = APP_THA_ENUM_TRUE;
 
     memset(&(s_thaisen_transaction[gunno].bms_stop_reason), 0x00, sizeof(s_thaisen_transaction[gunno].bms_stop_reason));
     memset(&(s_thaisen_transaction[gunno].bms_fault_reason), 0x00, sizeof(s_thaisen_transaction[gunno].bms_fault_reason));
@@ -1590,6 +1595,63 @@ static void ofsm_start_info_padding_public(uint8_t gunno)
     s_current_order_index[MONITOR_PLATFORM_INDEX][gunno] = mw_storage_record_get_current_index(gunno);
     s_current_order_index[TARGET_PLATFORM_INDEX][gunno] = s_current_order_index[MONITOR_PLATFORM_INDEX][gunno];
 
+    mw_charglib_clear_before_charge(gunno);
+}
+
+/***************************************************************
+ * 函数名          ofsm_start_info_padding_ob_reservation_public
+ * 功能               启动充电  离线计费模式下的预约启动公用信息填充
+ * 参数              gunno   枪号
+ * 返回
+ **************************************************************/
+static void ofsm_start_info_padding_ob_reservation_public(uint8_t gunno)
+{
+    if(gunno >= APP_SYSTEM_GUNNO_SIZE){   /* 枪号不对 */
+        return;
+    }
+
+    uint8_t deputy_gunno = APP_SYSTEM_GUNNOA, valid_len = 0x00;
+
+    if(s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL){
+        if(gunno == APP_SYSTEM_GUNNOA){
+            deputy_gunno = APP_SYSTEM_GUNNOA + 0x01;
+        }
+        s_ofsm_info[gunno].base.start_elect = (mw_get_meter_total_wh(gunno) + mw_get_meter_total_wh(deputy_gunno));
+    }else{
+        s_ofsm_info[gunno].base.start_elect = mw_get_meter_total_wh(gunno);
+    }
+
+    s_ofsm_info[gunno].base.current_elect = mw_get_meter_total_wh(gunno);
+    s_ofsm_info[gunno].base.start_time = s_ofsm_info[gunno].base.current_time;
+    s_ofsm_info[gunno].base.stop_time = s_ofsm_info[gunno].base.current_time;
+    s_ofsm_info[gunno].base.start_period = app_calculate_current_period(s_ofsm_info[gunno].base.start_time);
+    s_ofsm_info[gunno].base.current_period = s_ofsm_info[gunno].base.start_period;
+    s_ofsm_info[gunno].charge_timeout = rt_tick_get();
+    s_ofsm_info[gunno].base.start_charge_tick = rt_tick_get();
+    s_ofsm_info[gunno].base.charge_elect_last = s_ofsm_info[gunno].base.start_elect;
+    if((s_ofsm_info[gunno].base.start_elect == 0x00) || (s_ofsm_info[gunno].base.current_elect == 0x00)){
+        s_ofsm_info[gunno].base.flag.is_ammeter_elect_error = APP_THA_ENUM_TRUE;
+    }else{
+        s_ofsm_info[gunno].base.flag.is_ammeter_elect_error = APP_THA_ENUM_FALSE;
+    }
+
+    s_thaisen_transaction[gunno].start_time = s_ofsm_info[gunno].base.start_time;
+    s_thaisen_transaction[gunno].end_time = s_thaisen_transaction[gunno].start_time;
+    s_thaisen_transaction[gunno].ammeter_start = s_ofsm_info[gunno].base.start_elect;
+    s_thaisen_transaction[gunno].ammeter_stop = s_thaisen_transaction[gunno].ammeter_start;
+
+#if (defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING))
+    s_ofsm_info[gunno].base.parameter_steady_tick = rt_tick_get();
+#endif /* defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING) */
+
+    s_thaisen_transaction[gunno].start_period_number = s_ofsm_info[gunno].base.start_period;
+    s_thaisen_transaction[gunno].period_count = s_ofsm_info[gunno].base.period_num;
+
+    app_nsal_state_charged(gunno);
+    app_nsal_event_occurded(gunno);
+
+    mw_storage_record_designate_index_updated(&s_thaisen_transaction[gunno], sizeof(s_thaisen_transaction[gunno]), USER_DATA_TYPE_STORAGE,  \
+            0x00, APP_THA_ENUM_FALSE, gunno, s_current_order_index[TARGET_PLATFORM_INDEX][gunno]);
     mw_charglib_clear_before_charge(gunno);
 }
 
@@ -1673,33 +1735,45 @@ static uint8_t ofsm_swip_card_judge(uint8_t gunno)
             }
         }
 
-        compare_len = sizeof(s_ofsm_info[gunno].base.card_number);
-        compare_len = compare_len > card_number_len ? card_number_len : compare_len;
-        memset(s_ofsm_info[gunno].base.card_number, 0x00, sizeof(s_ofsm_info[gunno].base.card_number));
-        memcpy(s_ofsm_info[gunno].base.card_number, card_number, compare_len);
+        /** 如果当前运行模式是离线计费模式而且状态机状态为预约，这可能是离线计费的预约状态下要用刷卡启动，由于由于已经进入了预约状态，说明订单已创建 */
+        if((s_ofsm_info[gunno].base.run_mode != APP_RUN_MODE_OFFLINE_BILLING) || \
+                (s_ofsm_info[gunno].state != APP_OFSM_STATE_RESERVATION) || \
+                (app_card_query_operate_ret(gunno) != APP_CARD_OPERATE_RET_START_AFTER_OBR)){
+            compare_len = sizeof(s_ofsm_info[gunno].base.card_number);
+            compare_len = compare_len > card_number_len ? card_number_len : compare_len;
+            memset(s_ofsm_info[gunno].base.card_number, 0x00, sizeof(s_ofsm_info[gunno].base.card_number));
+            memcpy(s_ofsm_info[gunno].base.card_number, card_number, compare_len);
 
-        compare_len = sizeof(s_ofsm_info[gunno].base.card_uid);
-        compare_len = compare_len > rfidr_query_uuid_len() ? rfidr_query_uuid_len() : compare_len;
-        memset(s_ofsm_info[gunno].base.card_uid, 0x00, sizeof(s_ofsm_info[gunno].base.card_uid));
-        memcpy(s_ofsm_info[gunno].base.card_uid, rfidr_query_uuid(), compare_len);
+            compare_len = sizeof(s_ofsm_info[gunno].base.card_uid);
+            compare_len = compare_len > rfidr_query_uuid_len() ? rfidr_query_uuid_len() : compare_len;
+            memset(s_ofsm_info[gunno].base.card_uid, 0x00, sizeof(s_ofsm_info[gunno].base.card_uid));
+            memcpy(s_ofsm_info[gunno].base.card_uid, rfidr_query_uuid(), compare_len);
 
-        s_ofsm_info[gunno].base.flag.card_info_is_uid = APP_THA_ENUM_FALSE;
-        s_ofsm_info[gunno].base.flag.is_local_charging = APP_THA_ENUM_TRUE;
+            s_ofsm_info[gunno].base.flag.card_info_is_uid = APP_THA_ENUM_FALSE;
+            s_ofsm_info[gunno].base.flag.is_local_charging = APP_THA_ENUM_TRUE;
+        }
 
         /** 桩号卡、白名单卡；不需要平台鉴权 */
         if(need_authorize_online == APP_THA_ENUM_FALSE){
-            ofsm_start_info_padding_offline_card(gunno);
+            /** 如果当前运行模式是离线计费模式而且状态机状态为预约，这可能是离线计费的预约状态下要用刷卡启动，由于由于已经进入了预约状态，说明订单已创建 */
+            if((s_ofsm_info[gunno].base.run_mode != APP_RUN_MODE_OFFLINE_BILLING) || \
+                    (s_ofsm_info[gunno].state != APP_OFSM_STATE_RESERVATION) || \
+                    (app_card_query_operate_ret(gunno) != APP_CARD_OPERATE_RET_START_AFTER_OBR)){
+                ofsm_start_info_padding_offline_card(gunno);
 
-            if(s_ofsm_info[gunno].base.run_mode == APP_RUN_MODE_OFFLINE_BILLING){
-                s_ofsm_info[gunno].base.account_ballance_before = app_card_query_ballance(gunno);
-                s_ofsm_info[gunno].base.account_ballance_after = app_card_query_ballance(gunno);
+                if(s_ofsm_info[gunno].base.run_mode == APP_RUN_MODE_OFFLINE_BILLING){
+                    s_ofsm_info[gunno].base.account_ballance_before = app_card_query_ballance(gunno);
+                    s_ofsm_info[gunno].base.account_ballance_after = app_card_query_ballance(gunno);
 
-                s_ofsm_info[gunno].base.charge_strategy = APP_CHARGE_STRATEGY_MONEY;
+                    s_ofsm_info[gunno].base.charge_strategy = APP_CHARGE_STRATEGY_MONEY;
 #if (defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING))
-                s_ofsm_info[gunno].base.charge_strategy_para = s_ofsm_info[gunno].base.account_ballance_before *10;
+                    s_ofsm_info[gunno].base.charge_strategy_para = s_ofsm_info[gunno].base.account_ballance_before *10;
 #else
-                s_ofsm_info[gunno].base.charge_strategy_para = s_ofsm_info[gunno].base.account_ballance_before *100;
+                    s_ofsm_info[gunno].base.charge_strategy_para = s_ofsm_info[gunno].base.account_ballance_before *100;
 #endif /* defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING) */
+                }
+            }else{
+                LOG_D("gunno(%d) swip card start after reservation in offline billing mode", gunno);
             }
             return APP_THA_ENUM_TRUE;
         }
@@ -1939,6 +2013,7 @@ static void ofsm_idleing_fun(uint8_t gunno)
     s_ofsm_info[gunno].base.flag.card_authorization = APP_THA_ENUM_FALSE;
     s_ofsm_info[gunno].base.flag.start_result = APP_THA_ENUM_FALSE;
     s_ofsm_info[gunno].base.flag.is_deputygun_stop = APP_THA_ENUM_FALSE;
+    s_ofsm_info[gunno].base.flag.is_ob_authenticated = APP_THA_ENUM_FALSE;
 
     memset(s_ofsm_info[gunno].base.card_uid, 0x00, sizeof(s_ofsm_info[gunno].base.card_uid));
     memset(s_ofsm_info[gunno].base.card_number, 0x00, sizeof(s_ofsm_info[gunno].base.card_number));
@@ -2286,45 +2361,66 @@ static void ofsm_readying_fun(uint8_t gunno)
             /** 本地预约(屏幕充电模式选择预约充电) */
             else if(thaisen_get_current_mode(gunno) == THAISEN_MODE_LIMIT_RESERVATION){
                 struct tm tmp;
-                /** 重新设置了预约时间 */
-                if(thaisen_is_set_reservation_mode(gunno)){
-                    s_ofsm_info[gunno].base.flag.is_reser_normal_started = APP_THA_ENUM_FALSE;
-                    s_ofsm_info[gunno].base.flag.is_reser_timeout_started = APP_THA_ENUM_FALSE;
-                    thaisen_clear_reservation_mode_flag(gunno);
-                }
-                localtime_r(&t_base, &tmp);
-                if(((tmp.tm_year + 1900) >= 2025) || (s_ofsm_info[gunno].base.run_mode == APP_RUN_MODE_OFFLINE)){
-                    /** 未到或刚好到达预约时间 */
-                    if(thaisen_get_mode_parameter(gunno) >= (tmp.tm_hour *3600 + tmp.tm_min *60)){
-                        /** 计算预约剩余秒数 */
-                        s_ofsm_info[gunno].base.reservation_time_remain = (thaisen_get_mode_parameter(gunno) - (tmp.tm_hour *3600 + tmp.tm_min *60));
-                        /** 时间只精确到分钟，如果剩余秒数 */
-                        if(s_ofsm_info[gunno].base.reservation_time_remain > 60){
-                            s_ofsm_info[gunno].base.flag.is_reser_normal_started = APP_THA_ENUM_FALSE;
-                            s_ofsm_info[gunno].base.flag.is_reser_timeout_started = APP_THA_ENUM_FALSE;
-                        }
-                        if(s_ofsm_info[gunno].base.flag.is_reser_normal_started == APP_THA_ENUM_FALSE){
-                            continue_reservation = APP_THA_ENUM_TRUE;
-                        }
-                        s_ofsm_info[gunno].base.flag.is_reser_normal_started = APP_THA_ENUM_TRUE;   /** 如果能正常预约到启动，就说明已经进行过一次充电 */
-                        s_ofsm_info[gunno].base.reservation_strategy = (APP_RESERVATE_STRATEGY_PULLGUN_CANCEL |APP_RESERVATE_STRATEGY_FAULT_CANCEL |APP_RESERVATE_STRATEGY_START_DIRECTLY);
+                /** 当前运行模式为离线计费模式 */
+                if(s_ofsm_info[gunno].base.run_mode == APP_RUN_MODE_OFFLINE_BILLING){
+                    /** 离线计费模式进行预约需要刷卡鉴权，此时订单已创建 */
+                    if(s_ofsm_info[gunno].base.flag.is_ob_authenticated == APP_THA_ENUM_TRUE){
+                        continue_reservation = APP_THA_ENUM_TRUE;
                     }
-                    /** 已超过预约时间但未超过10min */
-                    else if((thaisen_get_mode_parameter(gunno) + 10 *60) >= (tmp.tm_hour *3600 + tmp.tm_min *60)){
-                        if((s_ofsm_info[gunno].base.flag.is_reser_normal_started == APP_THA_ENUM_FALSE) && \
-                                (s_ofsm_info[gunno].base.flag.is_reser_timeout_started == APP_THA_ENUM_FALSE)){
-                            continue_reservation = APP_THA_ENUM_TRUE;
-                        }
-                        s_ofsm_info[gunno].base.reservation_time_remain = 0x00;
-                        s_ofsm_info[gunno].base.flag.is_reser_timeout_started = APP_THA_ENUM_TRUE;
-                        s_ofsm_info[gunno].base.reservation_strategy = (APP_RESERVATE_STRATEGY_PULLGUN_CANCEL |APP_RESERVATE_STRATEGY_FAULT_CANCEL |APP_RESERVATE_STRATEGY_START_DIRECTLY);
-                    }else{
+                }
+                /** 当前运行模式为离线模式 */
+                else if(s_ofsm_info[gunno].base.run_mode == APP_RUN_MODE_OFFLINE){
+                    continue_reservation = APP_THA_ENUM_TRUE;       /** 离线模式下预约不需要鉴权 */
+                }
+                /** 当前运行模式为在线模式 */
+                else if(s_ofsm_info[gunno].base.run_mode == APP_RUN_MODE_4G_ETH){
+                    /************************************ 未开启VIN码启动功能  *************************************/
+                    if(*(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_SUPORT_VIN, 0x00)) == APP_THA_ENUM_TRUE){
+                        continue_reservation = APP_THA_ENUM_TRUE;   /** 在线模式需要开启VIN码启动功能才能进入预约状态 */
+                    }
+                }
+                if(continue_reservation == APP_THA_ENUM_TRUE){
+                    continue_reservation = APP_THA_ENUM_FALSE;
+                    /** 重新设置了预约时间 */
+                    if(thaisen_is_set_reservation_mode(gunno)){
                         s_ofsm_info[gunno].base.flag.is_reser_normal_started = APP_THA_ENUM_FALSE;
                         s_ofsm_info[gunno].base.flag.is_reser_timeout_started = APP_THA_ENUM_FALSE;
-                        /** 计算预约剩余秒数 */
-                        s_ofsm_info[gunno].base.reservation_time_remain = (thaisen_get_mode_parameter(gunno) + (24 *3600) - (tmp.tm_hour *3600 + tmp.tm_min *60));
-                        continue_reservation = APP_THA_ENUM_TRUE;
-                        s_ofsm_info[gunno].base.reservation_strategy = (APP_RESERVATE_STRATEGY_PULLGUN_CANCEL |APP_RESERVATE_STRATEGY_FAULT_CANCEL |APP_RESERVATE_STRATEGY_START_DIRECTLY);
+                        thaisen_clear_reservation_mode_flag(gunno);
+                    }
+                    localtime_r(&t_base, &tmp);
+                    if(((tmp.tm_year + 1900) >= 2025) || (s_ofsm_info[gunno].base.run_mode == APP_RUN_MODE_OFFLINE) || (s_ofsm_info[gunno].base.flag.is_ob_authenticated == APP_THA_ENUM_TRUE)){
+                        /** 未到或刚好到达预约时间 */
+                        if(thaisen_get_mode_parameter(gunno) >= (tmp.tm_hour *3600 + tmp.tm_min *60)){
+                            /** 计算预约剩余秒数 */
+                            s_ofsm_info[gunno].base.reservation_time_remain = (thaisen_get_mode_parameter(gunno) - (tmp.tm_hour *3600 + tmp.tm_min *60));
+                            /** 时间只精确到分钟，如果剩余秒数 */
+                            if(s_ofsm_info[gunno].base.reservation_time_remain > 60){
+                                s_ofsm_info[gunno].base.flag.is_reser_normal_started = APP_THA_ENUM_FALSE;
+                                s_ofsm_info[gunno].base.flag.is_reser_timeout_started = APP_THA_ENUM_FALSE;
+                            }
+                            if(s_ofsm_info[gunno].base.flag.is_reser_normal_started == APP_THA_ENUM_FALSE){
+                                continue_reservation = APP_THA_ENUM_TRUE;
+                            }
+                            s_ofsm_info[gunno].base.flag.is_reser_normal_started = APP_THA_ENUM_TRUE;   /** 如果能正常预约到启动，就说明已经进行过一次充电 */
+                            s_ofsm_info[gunno].base.reservation_strategy = (APP_RESERVATE_STRATEGY_PULLGUN_CANCEL |APP_RESERVATE_STRATEGY_FAULT_CANCEL |APP_RESERVATE_STRATEGY_START_DIRECTLY);
+                        }
+                        /** 已超过预约时间但未超过10min */
+                        else if((thaisen_get_mode_parameter(gunno) + 10 *60) >= (tmp.tm_hour *3600 + tmp.tm_min *60)){
+                            if((s_ofsm_info[gunno].base.flag.is_reser_normal_started == APP_THA_ENUM_FALSE) && \
+                                    (s_ofsm_info[gunno].base.flag.is_reser_timeout_started == APP_THA_ENUM_FALSE)){
+                                continue_reservation = APP_THA_ENUM_TRUE;
+                            }
+                            s_ofsm_info[gunno].base.reservation_time_remain = 0x00;
+                            s_ofsm_info[gunno].base.flag.is_reser_timeout_started = APP_THA_ENUM_TRUE;
+                            s_ofsm_info[gunno].base.reservation_strategy = (APP_RESERVATE_STRATEGY_PULLGUN_CANCEL |APP_RESERVATE_STRATEGY_FAULT_CANCEL |APP_RESERVATE_STRATEGY_START_DIRECTLY);
+                        }else{
+                            s_ofsm_info[gunno].base.flag.is_reser_normal_started = APP_THA_ENUM_FALSE;
+                            s_ofsm_info[gunno].base.flag.is_reser_timeout_started = APP_THA_ENUM_FALSE;
+                            /** 计算预约剩余秒数 */
+                            s_ofsm_info[gunno].base.reservation_time_remain = (thaisen_get_mode_parameter(gunno) + (24 *3600) - (tmp.tm_hour *3600 + tmp.tm_min *60));
+                            continue_reservation = APP_THA_ENUM_TRUE;
+                            s_ofsm_info[gunno].base.reservation_strategy = (APP_RESERVATE_STRATEGY_PULLGUN_CANCEL |APP_RESERVATE_STRATEGY_FAULT_CANCEL |APP_RESERVATE_STRATEGY_START_DIRECTLY);
+                        }
                     }
                 }
             }
@@ -2351,8 +2447,40 @@ static void ofsm_readying_fun(uint8_t gunno)
             ofsm_start_info_padding_public(gunno);
             app_get_hci_event(gunno, HCI_EVENT_SCREEN_STOP, APP_THA_ENUM_TRUE);    /** 清除屏幕停止事件(启动中可屏幕停止) */
 
-            s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_STARTING];
-            s_ofsm_info[gunno].state = APP_OFSM_STATE_STARTING;
+            /** 当前运行模式不是离线计费模式 */
+            if(s_ofsm_info[gunno].base.run_mode != APP_RUN_MODE_OFFLINE_BILLING){
+                s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_STARTING];
+                s_ofsm_info[gunno].state = APP_OFSM_STATE_STARTING;
+            }
+            /** 启动方式不是离线卡 */
+            else if(s_ofsm_info[gunno].base.start_type != APP_CHARGE_START_WAY_OFFLINE_CARD){
+                s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_STARTING];
+                s_ofsm_info[gunno].state = APP_OFSM_STATE_STARTING;
+            }
+            /** 到此处时的条件满足：1. 当前运行模式为离线计费模式   2. 启动方式为离线卡  3.该枪当前模式是预约模式 */
+            else if(thaisen_get_current_mode(gunno) == THAISEN_MODE_LIMIT_RESERVATION){
+#if 0
+                /** 此条件在刷卡时就已经判定(如果此条件不过则到不了此处)，因此此处可以不用判定 */
+                struct tm tmp;
+                time_t t_base = time(NULL);
+
+                localtime_r(&t_base, &tmp);
+                if((tmp.tm_year + 1900) >= 2025)
+#else
+                if(APP_THA_ENUM_TRUE)
+#endif
+                {
+                    s_ofsm_info[gunno].base.flag.is_ob_authenticated = APP_THA_ENUM_TRUE;    /** 这是离线计费模式下的预约刷卡鉴权 */
+                }
+                /** 当前时间条件不允许预约，此次鉴权就直接启动 */
+                else{
+                    s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_STARTING];
+                    s_ofsm_info[gunno].state = APP_OFSM_STATE_STARTING;
+                }
+            }else{
+                s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_STARTING];
+                s_ofsm_info[gunno].state = APP_OFSM_STATE_STARTING;
+            }
         }
         break;
     default:
@@ -2521,7 +2649,21 @@ static void ofsm_reservation_fun(uint8_t gunno)
     if(s_ofsm_info[gunno].base.reservation_time_remain == 0x00){
         LOG_D("gunno(%d) reach reservation time, start charge0\n", gunno);
         thaisen_clear_reservation_mode_flag(gunno);
-        ofsm_start_info_padding_reservation(gunno);
+        /** 当前运行模式不是离线计费模式 */
+        if(s_ofsm_info[gunno].base.run_mode != APP_RUN_MODE_OFFLINE_BILLING){
+            ofsm_start_info_padding_reservation(gunno);
+        }
+        /** 启动方式不是离线卡 */
+        else if(s_ofsm_info[gunno].base.start_type != APP_CHARGE_START_WAY_OFFLINE_CARD){
+            ofsm_start_info_padding_reservation(gunno);
+        }
+        /** 到此处时的条件满足：1. 当前运行模式为离线计费模式   2. 启动方式为离线卡  3.该枪当前模式是预约模式 */
+        /** 订单已创建 */
+        else if(thaisen_get_current_mode(gunno) == THAISEN_MODE_LIMIT_RESERVATION){
+            LOG_D("gunno(%d) reach reservation time in offline billing mode(reach0)", gunno);
+        }else{
+            ofsm_start_info_padding_reservation(gunno);
+        }
         /** 是预约超时启动 */
         s_ofsm_info[gunno].base.flag.is_reser_timeout_started = APP_THA_ENUM_TRUE;
         is_charging_authorization = true;
@@ -2536,7 +2678,21 @@ static void ofsm_reservation_fun(uint8_t gunno)
         if(tmp.tm_min == ((reservation_time_sec %3600) /60)){
             LOG_D("gunno(%d) reach reservation time, start charge1\n", gunno);
             thaisen_clear_reservation_mode_flag(gunno);
-            ofsm_start_info_padding_reservation(gunno);
+            /** 当前运行模式不是离线计费模式 */
+            if(s_ofsm_info[gunno].base.run_mode != APP_RUN_MODE_OFFLINE_BILLING){
+                ofsm_start_info_padding_reservation(gunno);
+            }
+            /** 启动方式不是离线卡 */
+            else if(s_ofsm_info[gunno].base.start_type != APP_CHARGE_START_WAY_OFFLINE_CARD){
+                ofsm_start_info_padding_reservation(gunno);
+            }
+            /** 到此处时的条件满足：1. 当前运行模式为离线计费模式   2. 启动方式为离线卡  3.该枪当前模式是预约模式 */
+            /** 订单已创建 */
+            else if(thaisen_get_current_mode(gunno) == THAISEN_MODE_LIMIT_RESERVATION){
+                LOG_D("gunno(%d) reach reservation time in offline billing mode(reach1)", gunno);
+            }else{
+                ofsm_start_info_padding_reservation(gunno);
+            }
             if(s_ofsm_info[gunno].base.reservation_time_remain == 0x00){
                 s_ofsm_info[gunno].base.flag.is_reser_timeout_started = APP_THA_ENUM_TRUE;
             }else{
@@ -2547,7 +2703,21 @@ static void ofsm_reservation_fun(uint8_t gunno)
     }else if((s_ofsm_info[gunno].base.reservation_time_base + s_ofsm_info[gunno].base.reservation_time_remain) <= s_ofsm_info[gunno].base.current_time){
         LOG_D("gunno(%d) reach reservation time, start charge2\n", gunno);
         thaisen_clear_reservation_mode_flag(gunno);
-        ofsm_start_info_padding_reservation(gunno);
+        /** 当前运行模式不是离线计费模式 */
+        if(s_ofsm_info[gunno].base.run_mode != APP_RUN_MODE_OFFLINE_BILLING){
+            ofsm_start_info_padding_reservation(gunno);
+        }
+        /** 启动方式不是离线卡 */
+        else if(s_ofsm_info[gunno].base.start_type != APP_CHARGE_START_WAY_OFFLINE_CARD){
+            ofsm_start_info_padding_reservation(gunno);
+        }
+        /** 到此处时的条件满足：1. 当前运行模式为离线计费模式   2. 启动方式为离线卡  3.该枪当前模式是预约模式 */
+        /** 订单已创建 */
+        else if(thaisen_get_current_mode(gunno) == THAISEN_MODE_LIMIT_RESERVATION){
+            LOG_D("gunno(%d) reach reservation time in offline billing mode(reach2)", gunno);
+        }else{
+            ofsm_start_info_padding_reservation(gunno);
+        }
         if(s_ofsm_info[gunno].base.reservation_time_remain == 0x00){
             s_ofsm_info[gunno].base.flag.is_reser_timeout_started = APP_THA_ENUM_TRUE;
         }else{
@@ -2699,14 +2869,31 @@ static void ofsm_reservation_fun(uint8_t gunno)
 
         /************** 【充电桩已授权】 *************/
         if(is_charging_authorization == true){
+            uint8_t is_reservation_start = APP_THA_ENUM_FALSE;
 #if 0
             /** 启动前向屏幕对时 */
             s_request_screen_time_step = 1;
             thaisen_request_screen_time();
 #endif
-            ofsm_start_info_padding_public(gunno);
+            /** 当前运行模式不是离线计费模式 */
+            if(s_ofsm_info[gunno].base.run_mode != APP_RUN_MODE_OFFLINE_BILLING){
+                ofsm_start_info_padding_public(gunno);
+            }
+            /** 启动方式不是离线卡 */
+            else if(s_ofsm_info[gunno].base.start_type != APP_CHARGE_START_WAY_OFFLINE_CARD){
+                ofsm_start_info_padding_public(gunno);
+            }
+            /** 到此处时的条件满足：1. 当前运行模式为离线计费模式   2. 启动方式为离线卡  3.该枪当前模式是预约模式 */
+            else if(thaisen_get_current_mode(gunno) == THAISEN_MODE_LIMIT_RESERVATION){
+                is_reservation_start = APP_THA_ENUM_TRUE;
+                /** 虽然订单已创建，但是如果开始预约时间到启动时间较长时需要更新订单的部分信息(如开始时间) */
+                ofsm_start_info_padding_ob_reservation_public(gunno);
+                LOG_D("gunno(%d) reach reservation time in offline billing mode", gunno);
+            }else{
+                ofsm_start_info_padding_public(gunno);
+            }
             /** 预约中已选择其它方式启动，将清除预约已充电标志 */
-            if(s_ofsm_info[gunno].base.start_type != APP_CHARGE_START_WAY_RESERVATION){
+            if((s_ofsm_info[gunno].base.start_type != APP_CHARGE_START_WAY_RESERVATION) && (is_reservation_start == APP_THA_ENUM_FALSE)){
                 if(s_ofsm_info[gunno].base.flag.is_local_reservation == APP_THA_ENUM_TRUE){
                     s_ofsm_info[gunno].base.flag.is_reser_timeout_started = APP_THA_ENUM_FALSE;
                     s_ofsm_info[gunno].base.flag.is_reser_normal_started = APP_THA_ENUM_FALSE;
@@ -2778,6 +2965,7 @@ static void ofsm_starting_fun(uint8_t gunno)
 
     s_ofsm_info[gunno].base.flag.is_pay_complete = APP_THA_ENUM_FALSE;
     s_ofsm_info[gunno].base.flag.bms_require_decrease = APP_THA_ENUM_FALSE;
+    s_ofsm_info[gunno].base.flag.is_ob_authenticated = APP_THA_ENUM_FALSE;
     s_compare_module_bcl_count[gunno] = rt_tick_get();
     s_compare_ccs_module_count[gunno] = rt_tick_get();
     s_tiny_current_count[gunno] = rt_tick_get();
@@ -2844,6 +3032,8 @@ static void ofsm_starting_fun(uint8_t gunno)
             #endif /* APP_INCLUDE_SGCC_PROTOCOL */
                         app_nsal_init_charge_data(deputy_gunno);
                         /** 此处不再次保存订单，由时间同步修正是统一再次保存，目前程序，启动时都会校时一次，如果不校时则需要在此处保存一次 */
+                        mw_storage_record_designate_index_updated(&s_thaisen_transaction[gunno], sizeof(s_thaisen_transaction[gunno]), USER_DATA_TYPE_STORAGE,  \
+                                0x00, APP_THA_ENUM_FALSE, gunno, s_current_order_index[TARGET_PLATFORM_INDEX][gunno]);
                         break;
                     }
                     rt_thread_mdelay(50);
@@ -2904,6 +3094,7 @@ static void ofsm_starting_fun(uint8_t gunno)
                 s_ofsm_info[gunno].base.flag.start_result = APP_THA_ENUM_FALSE;
                 s_thaisen_transaction[gunno].boot_result = s_ofsm_info[gunno].base.flag.start_result;
                 s_thaisen_transaction[gunno].order_info.is_charging = APP_THA_ENUM_FALSE;
+                s_thaisen_transaction[gunno].order_info.waiting_charge = APP_THA_ENUM_FALSE;
 
                 for(uint8_t i = 0x00; i < APP_SYSTEM_GUNNO_SIZE; i++){
                     s_ofsm_info[i].base.flag.is_deputygun_stop = APP_THA_ENUM_TRUE;
@@ -2945,6 +3136,7 @@ static void ofsm_starting_fun(uint8_t gunno)
                     s_ofsm_info[gunno].base.flag.start_result = APP_THA_ENUM_FALSE;
                     s_thaisen_transaction[gunno].boot_result = s_ofsm_info[gunno].base.flag.start_result;
                     s_thaisen_transaction[gunno].order_info.is_charging = APP_THA_ENUM_FALSE;
+                    s_thaisen_transaction[gunno].order_info.waiting_charge = APP_THA_ENUM_FALSE;
 
                     for(uint8_t i = 0x00; i < APP_SYSTEM_GUNNO_SIZE; i++){
                         s_ofsm_info[i].base.flag.is_deputygun_stop = APP_THA_ENUM_TRUE;
@@ -3003,6 +3195,7 @@ static void ofsm_starting_fun(uint8_t gunno)
                     /** 如果不是副枪故障导致的停机，则副枪需要获取主枪的信息 */
                     if(s_ofsm_info[gunno].base.flag.is_deputygun_stop != APP_THA_ENUM_TRUE){
                         s_thaisen_transaction[gunno].order_info.is_charging = APP_THA_ENUM_FALSE;
+                        s_thaisen_transaction[gunno].order_info.waiting_charge = APP_THA_ENUM_FALSE;
 
                         s_ofsm_info[gunno].base.system_fault = s_ofsm_info[s_ofsm_info[gunno].base.main_gunno].base.system_fault;
                         s_ofsm_info[gunno].base.charge_fault = s_ofsm_info[s_ofsm_info[gunno].base.main_gunno].base.charge_fault;
@@ -3092,6 +3285,7 @@ static void ofsm_starting_fun(uint8_t gunno)
             s_ofsm_info[gunno].base.flag.start_result = APP_THA_ENUM_FALSE;
             s_thaisen_transaction[gunno].boot_result = s_ofsm_info[gunno].base.flag.start_result;
             s_thaisen_transaction[gunno].order_info.is_charging = APP_THA_ENUM_FALSE;
+            s_thaisen_transaction[gunno].order_info.waiting_charge = APP_THA_ENUM_FALSE;
 
             /* 对时后时间要修改 */
             if(mw_get_time_sync_flag(gunno)){
@@ -3219,6 +3413,7 @@ static void ofsm_starting_fun(uint8_t gunno)
         s_ofsm_info[gunno].base.flag.start_result = APP_THA_ENUM_FALSE;
         s_thaisen_transaction[gunno].boot_result = s_ofsm_info[gunno].base.flag.start_result;
         s_thaisen_transaction[gunno].order_info.is_charging = APP_THA_ENUM_FALSE;
+        s_thaisen_transaction[gunno].order_info.waiting_charge = APP_THA_ENUM_FALSE;
 
         /* 对时后时间要修改 */
         if(mw_get_time_sync_flag(gunno)){
@@ -3298,6 +3493,7 @@ static void ofsm_starting_fun(uint8_t gunno)
         s_ofsm_info[gunno].base.flag.start_result = APP_THA_ENUM_FALSE;
         s_thaisen_transaction[gunno].boot_result = s_ofsm_info[gunno].base.flag.start_result;
         s_thaisen_transaction[gunno].order_info.is_charging = APP_THA_ENUM_FALSE;
+        s_thaisen_transaction[gunno].order_info.waiting_charge = APP_THA_ENUM_FALSE;
 
         /* 对时后时间要修改 */
         if(mw_get_time_sync_flag(gunno)){
@@ -3383,6 +3579,7 @@ static void ofsm_starting_fun(uint8_t gunno)
                 s_ofsm_info[gunno].base.flag.start_result = APP_THA_ENUM_FALSE;
                 s_thaisen_transaction[gunno].boot_result = s_ofsm_info[gunno].base.flag.start_result;
                 s_thaisen_transaction[gunno].order_info.is_charging = APP_THA_ENUM_FALSE;
+                s_thaisen_transaction[gunno].order_info.waiting_charge = APP_THA_ENUM_FALSE;
 
                 /* 对时后时间要修改 */
                 if(mw_get_time_sync_flag(gunno)){
@@ -3520,6 +3717,7 @@ static void ofsm_starting_fun(uint8_t gunno)
                 s_thaisen_transaction[gunno].boot_result = s_ofsm_info[gunno].base.flag.start_result;
                 s_thaisen_transaction[gunno].order_info.is_charging = APP_THA_ENUM_FALSE;
                 s_thaisen_transaction[gunno].order_info.bms_recommunicate = mw_is_bms_communicate_repeat(gunno);
+                s_thaisen_transaction[gunno].order_info.waiting_charge = APP_THA_ENUM_FALSE;
 
                 /* 对时后时间要修改 */
                 if(mw_get_time_sync_flag(gunno)){
@@ -3795,6 +3993,7 @@ static void ofsm_starting_fun(uint8_t gunno)
                 s_ofsm_info[gunno].base.flag.start_result = APP_THA_ENUM_FALSE;
                 s_thaisen_transaction[gunno].boot_result = s_ofsm_info[gunno].base.flag.start_result;
                 s_thaisen_transaction[gunno].order_info.is_charging = APP_THA_ENUM_FALSE;
+                s_thaisen_transaction[gunno].order_info.waiting_charge = APP_THA_ENUM_FALSE;
 
                 /* 对时后时间要修改 */
                 if(mw_get_time_sync_flag(gunno)){
@@ -3965,6 +4164,7 @@ static void ofsm_starting_fun(uint8_t gunno)
             s_thaisen_transaction[gunno].boot_result = s_ofsm_info[gunno].base.flag.start_result;
             s_thaisen_transaction[gunno].order_info.is_charging = APP_THA_ENUM_FALSE;
             s_thaisen_transaction[gunno].order_info.bms_recommunicate = mw_is_bms_communicate_repeat(gunno);
+            s_thaisen_transaction[gunno].order_info.waiting_charge = APP_THA_ENUM_FALSE;
 
             /* 对时后时间要修改 */
             if(mw_get_time_sync_flag(gunno)){
@@ -4040,6 +4240,7 @@ static void ofsm_starting_fun(uint8_t gunno)
             s_ofsm_info[gunno].base.flag.start_result = APP_THA_ENUM_FALSE;
             s_thaisen_transaction[gunno].boot_result = s_thaisen_transaction[deputy_gunno].boot_result;
             s_thaisen_transaction[gunno].order_info.is_charging = APP_THA_ENUM_FALSE;
+            s_thaisen_transaction[gunno].order_info.waiting_charge = APP_THA_ENUM_FALSE;
 
             /* 对时后时间要修改 */
             if(mw_get_time_sync_flag(gunno)){
@@ -4140,6 +4341,7 @@ static void ofsm_charging_fun(uint8_t gunno)
                 s_ofsm_info[gunno].base.elect_a, s_ofsm_info[gunno].base.fees_total, s_ofsm_info[gunno].base.voltage_a,
                 s_ofsm_info[gunno].base.current_a, s_ofsm_info[gunno].base.power_a, s_ofsm_info[gunno].base.charge_time);
     }
+    s_ofsm_info[gunno].base.flag.is_ob_authenticated = APP_THA_ENUM_FALSE;
 
 #ifdef APP_USING_CHARGE_CURR_DETECT_STRATEGY
     /** 电流检验 */
@@ -4215,6 +4417,7 @@ static void ofsm_charging_fun(uint8_t gunno)
                     }
 
                     s_thaisen_transaction[gunno].order_info.is_charging = APP_THA_ENUM_FALSE;
+                    s_thaisen_transaction[gunno].order_info.waiting_charge = APP_THA_ENUM_FALSE;
 
                     app_nsal_state_charged(gunno);
                     app_nsal_event_occurded(gunno);
@@ -4311,6 +4514,7 @@ static void ofsm_charging_fun(uint8_t gunno)
         }
 
         s_thaisen_transaction[gunno].order_info.is_charging = APP_THA_ENUM_FALSE;
+        s_thaisen_transaction[gunno].order_info.waiting_charge = APP_THA_ENUM_FALSE;
 
         app_nsal_state_charged(gunno);
         app_nsal_event_occurded(gunno);
@@ -4427,6 +4631,7 @@ static void ofsm_charging_fun(uint8_t gunno)
             if(((system_fault != APP_SYS_FAULT_NO_ERROR) && (system_fault != APP_SYS_FAULT_CARD_READER) && (system_fault != APP_SYS_FAULT_DOOR)) || \
                     (s_ofsm_info[gunno].base.cc1_state != CC1_4V)){
                 s_thaisen_transaction[gunno].order_info.is_charging = APP_THA_ENUM_FALSE;
+                s_thaisen_transaction[gunno].order_info.waiting_charge = APP_THA_ENUM_FALSE;
 
                 s_ofsm_info[gunno].base.system_fault = system_fault;
                 s_ofsm_info[gunno].base.charge_fault = charge_fault;
@@ -4480,6 +4685,7 @@ static void ofsm_charging_fun(uint8_t gunno)
                 /** 如果不是副枪故障导致的停机，则副枪需要获取主枪的信息 */
                 if(s_ofsm_info[gunno].base.flag.is_deputygun_stop != APP_THA_ENUM_TRUE){
                     s_thaisen_transaction[gunno].order_info.is_charging = APP_THA_ENUM_FALSE;
+                    s_thaisen_transaction[gunno].order_info.waiting_charge = APP_THA_ENUM_FALSE;
 
                     s_ofsm_info[gunno].base.system_fault = s_ofsm_info[s_ofsm_info[gunno].base.main_gunno].base.system_fault;
                     s_ofsm_info[gunno].base.charge_fault = s_ofsm_info[s_ofsm_info[gunno].base.main_gunno].base.charge_fault;
@@ -4544,6 +4750,7 @@ static void ofsm_charging_fun(uint8_t gunno)
                 /** 如果不是副枪故障导致的停机，则副枪需要获取主枪的信息 */
                 if(s_ofsm_info[gunno].base.flag.is_deputygun_stop != APP_THA_ENUM_TRUE){
                     s_thaisen_transaction[gunno].order_info.is_charging = APP_THA_ENUM_FALSE;
+                    s_thaisen_transaction[gunno].order_info.waiting_charge = APP_THA_ENUM_FALSE;
 
                     s_ofsm_info[gunno].base.system_fault = s_ofsm_info[s_ofsm_info[gunno].base.main_gunno].base.system_fault;
                     s_ofsm_info[gunno].base.charge_fault = s_ofsm_info[s_ofsm_info[gunno].base.main_gunno].base.charge_fault;
@@ -4568,6 +4775,7 @@ static void ofsm_charging_fun(uint8_t gunno)
             if(((system_fault != APP_SYS_FAULT_NO_ERROR) && (system_fault != APP_SYS_FAULT_CARD_READER) && (system_fault != APP_SYS_FAULT_DOOR)) || \
                     (s_ofsm_info[gunno].base.cc1_state != CC1_4V)){
                 s_thaisen_transaction[gunno].order_info.is_charging = APP_THA_ENUM_FALSE;
+                s_thaisen_transaction[gunno].order_info.waiting_charge = APP_THA_ENUM_FALSE;
 
                 s_ofsm_info[gunno].base.system_fault = system_fault;
                 s_ofsm_info[gunno].base.charge_fault = charge_fault;
@@ -4892,6 +5100,7 @@ static void ofsm_charging_fun(uint8_t gunno)
         }
 
         s_thaisen_transaction[gunno].order_info.is_charging = APP_THA_ENUM_FALSE;
+        s_thaisen_transaction[gunno].order_info.waiting_charge = APP_THA_ENUM_FALSE;
 
         app_nsal_state_charged(gunno);
         app_nsal_event_occurded(gunno);
@@ -5060,6 +5269,7 @@ static void ofsm_charging_fun(uint8_t gunno)
 
             s_thaisen_transaction[gunno].order_info.is_charging = APP_THA_ENUM_FALSE;
             s_thaisen_transaction[gunno].order_info.bms_recommunicate = mw_is_bms_communicate_repeat(gunno);
+            s_thaisen_transaction[gunno].order_info.waiting_charge = APP_THA_ENUM_FALSE;
 
             app_charge_fault_occur(gunno, s_ofsm_info[gunno].base.reason_code, (*mw_get_charge_fault_set(gunno)));
 
@@ -5168,6 +5378,7 @@ static void ofsm_charging_fun(uint8_t gunno)
             }
 
             s_thaisen_transaction[gunno].order_info.is_charging = APP_THA_ENUM_FALSE;
+            s_thaisen_transaction[gunno].order_info.waiting_charge = APP_THA_ENUM_FALSE;
             s_thaisen_transaction[gunno].order_info.bms_recommunicate = mw_is_bms_communicate_repeat(gunno);
 
             app_charge_fault_occur(gunno, s_ofsm_info[gunno].base.reason_code, (*mw_get_charge_fault_set(gunno)));
@@ -5591,6 +5802,7 @@ static void ofsm_charging_fun(uint8_t gunno)
             mw_charge_stop_cmd(gunno);
 
             s_thaisen_transaction[gunno].order_info.is_charging = APP_THA_ENUM_FALSE;
+            s_thaisen_transaction[gunno].order_info.waiting_charge = APP_THA_ENUM_FALSE;
 
             s_ofsm_info[gunno].base.system_fault = s_ofsm_info[deputy_gunno].base.system_fault;
             s_ofsm_info[gunno].base.charge_fault = s_ofsm_info[deputy_gunno].base.charge_fault;
@@ -5649,6 +5861,7 @@ static void ofsm_charging_fun(uint8_t gunno)
 #endif /* defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING) */
 
         s_thaisen_transaction[gunno].order_info.is_charging = APP_THA_ENUM_FALSE;
+        s_thaisen_transaction[gunno].order_info.waiting_charge = APP_THA_ENUM_FALSE;
 
         s_ofsm_info[gunno].base.system_fault = APP_SYS_FAULT_NO_ERROR;
         s_ofsm_info[gunno].base.charge_fault = APP_CHARGE_FAULT_NO_ERROR;
@@ -5706,6 +5919,8 @@ static void ofsm_stoping_fun(uint8_t gunno)
 #if (defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING))
     bool module_is_close = APP_THA_ENUM_FALSE;   /* 模块已关闭 */
 #endif /* defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING) */
+
+    s_ofsm_info[gunno].base.flag.is_ob_authenticated = APP_THA_ENUM_FALSE;
 
     if(s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
         charge_state = mw_get_charge_state(s_ofsm_info[gunno].base.main_gunno);
@@ -6180,6 +6395,7 @@ static void ofsm_finishing_fun(uint8_t gunno)
     s_ofsm_info[gunno].base.flag.is_charge_complete = APP_THA_ENUM_TRUE;
     s_ofsm_info[gunno].base.flag.is_deputygun_stop = APP_THA_ENUM_FALSE;
     s_ofsm_info[gunno].base.flag.is_local_reservation = APP_THA_ENUM_TRUE;
+    s_ofsm_info[gunno].base.flag.is_ob_authenticated = APP_THA_ENUM_FALSE;
 
     if((s_ofsm_info[gunno].base.device_state == APP_DEVICE_STATE_OVERHAUL) ||
             (s_ofsm_info[gunno].base.device_state == APP_DEVICE_STATE_FREEZE)){
@@ -6561,6 +6777,7 @@ static void ofsm_faulting_fun(uint8_t gunno)
     enum system_fault_t system_fault = app_get_highest_priority_system_fault(gunno);
 
     s_ofsm_info[gunno].base.flag.is_deputygun_stop = APP_THA_ENUM_FALSE;
+    s_ofsm_info[gunno].base.flag.is_ob_authenticated = APP_THA_ENUM_FALSE;
 
     if(++s_debug_count[gunno] > (3000 + 500 *gunno) / 100){
         s_debug_count[gunno] = 0;
@@ -6913,10 +7130,11 @@ void ofsm_thread_entry(void *parameter)
         s_ofsm_info[thread_gunno].base.ota_state = app_nsal_get_ota_state();
 
         app_thread_monitor_process(rt_thread_self(), NULL, 0x00, 0x00);
-#if 0
-        s_ofsm_info[thread_gunno].base.flag.is_reser_normal_started = APP_THA_ENUM_FALSE;
-        s_ofsm_info[thread_gunno].base.flag.is_reser_timeout_started = APP_THA_ENUM_FALSE;
-#endif
+        /** 离线计费模式下预约需要刷卡鉴权，因此可以不需要超过预约时间10分钟内只能预约一次的限制 */
+        if(s_ofsm_info[thread_gunno].base.run_mode == APP_RUN_MODE_OFFLINE_BILLING){
+            s_ofsm_info[thread_gunno].base.flag.is_reser_normal_started = APP_THA_ENUM_FALSE;
+            s_ofsm_info[thread_gunno].base.flag.is_reser_timeout_started = APP_THA_ENUM_FALSE;
+        }
         thaisenDrvSetProtocolTestEnable(0);
 
         switch (s_ofsm_info[thread_gunno].base.ota_state) {

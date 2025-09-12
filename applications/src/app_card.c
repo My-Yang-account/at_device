@@ -551,6 +551,7 @@ static int32_t app_card_pay_history_bill(uint8_t *gunno)
         }
 
         LOG_D("gunno(%d) storage modified transaction(%d)(history bill)", *gunno, index);
+        transaction->order_info.waiting_charge = 0x00;
         mw_storage_record_designate_index_updated(transaction, sizeof(thaisen_transaction_t), USER_DATA_TYPE_REPORTED,  \
                 0x00, 0x01, *gunno, index);
 
@@ -653,6 +654,7 @@ static int32_t app_card_non_swip_card_stop(uint8_t gunno)
         LOG_D("stop_soc:%d", ofsm->base.current_soc);
 
         LOG_D("gunno(%d) storage modified transaction", gunno);
+        transaction->order_info.waiting_charge = 0x00;
         mw_storage_record_designate_index_updated(transaction, sizeof(thaisen_transaction_t), USER_DATA_TYPE_REPORTED,  \
                 0x00, 0x01, gunno, index);
     }else{
@@ -689,6 +691,17 @@ static int32_t app_card_swip_card_start(uint8_t gunno)
     uint8_t *dev_id = sys_read_config_item_content(CONFIG_ITEM_PILE_NUMBER, 0x00), card_info_block = 0x00, locked = s_card_info_sector2.block_10.detail.is_lock;
     uint32_t ballance = s_card_info_sector2.block_10.detail.ballance, stime = s_card_info_sector2.block_10.detail.start_time;
 
+    /** 此处要兼顾预约时刷卡鉴权的场景，进入预约需要满足当前年份大于2025年 */
+    if((ofsm->base.flag.is_ob_authenticated == 0x00) && (thaisen_get_current_mode(gunno) == THAISEN_MODE_LIMIT_RESERVATION)){
+        struct tm tmp;
+        time_t t_base = time(NULL);
+
+        localtime_r(&t_base, &tmp);
+        if((tmp.tm_year + 1900) < 2025){
+            s_card_operate_ret[gunno] = APP_CARD_OPERATE_RET_INTERNAL_ERROR;
+            return s_card_operate_ret[gunno];
+        }
+    }
     s_card_operate_ret[gunno] = APP_CARD_OPERATE_RET_SUCCESS;
 #ifdef APP_USING_NO_BMS
     if(s_card_info_sector2.block_10.detail.ballance <= 200){  /** 启动时余额不能小于2度电 */
@@ -983,7 +996,7 @@ static int32_t app_card_info_process(void* handle)
                     s_card_operate_ret[port] = APP_CARD_OPERATE_RET_PAYED;
                     return s_card_operate_ret[port];
                 }
-                /** 卡被锁而且桩不是启动或充电状态，但未接收到充电桩已停止充电事件，说明这是上一笔订单未结算场景 */
+                /** 卡被锁而且桩不是启动或充电状态，但未接收到充电桩已停止充电事件，说明这是上一笔订单未结算场景或预约鉴权后希望刷卡启动 */
                 else{
                     /**
                                                        * 此种情况分析：
@@ -994,6 +1007,42 @@ static int32_t app_card_info_process(void* handle)
                      * 1：这是上一笔订单未结算
                      * 2：这是用这张卡先启了一把，然后选择了另一把枪(这把枪状态：非启动或空闲)然后刷卡
                      */
+                    /** 预约鉴权后希望刷卡启动场景 */
+                    uint8_t each_i = 0x00;
+                    for(each_i = 0x00; each_i < APP_SYSTEM_GUNNO_SIZE; each_i++){
+                        ofsm = get_ofsm_info(each_i);
+                        if(ofsm->base.state.current == APP_OFSM_STATE_RESERVATION){
+                            /** 这是预约模式下已刷卡鉴权后不希望通过预约启动而是直接刷卡启动的场景 */
+                            if(ofsm->base.flag.is_ob_authenticated){
+                                /** 是预约时鉴权的卡 */
+                                if((memcmp(s_card_info_sector2.card_number, ofsm->base.card_number, APP_CARD_NUMBER_COMPARE_LEN_MIN_OFFLINE_BILLING) == 0x00) &&
+                                        (memcmp(s_rfidr->uuid, ofsm->base.card_uid, s_rfidr->uuid_len) == 0x00)){
+                                    /** 当前枪号和已鉴权时的枪号不一致，说明这张卡已经被用于另一把枪的预约，退出 */
+                                    if(each_i != port){
+                                        break;
+                                    }
+                                    if(thaisen_is_not_allow_swip_card()){
+                                        LOG_D("gunno(%d) current page is not allow swip card charge", port);
+                                        s_card_operate_ret[port] = APP_CARD_OPERATE_RET_NULL;
+                                        return s_card_operate_ret[port];
+                                    }
+                                    app_card_event_send(APP_CARD_EVENT_CHARGE_START, port, NULL);
+                                    s_card_ballance[port] = APP_ENDIANNESS_CONVERT(s_card_info_sector2.block_10.detail.ballance);
+                                    s_card_operate_ret[port] = APP_CARD_OPERATE_RET_START_AFTER_OBR;
+
+                                    LOG_D("port(%d) start after authentication", port);
+                                    return s_card_operate_ret[port];
+                                }
+                            }
+                        }
+                    }
+                    /** 这张卡已经在另一把枪上预约了 */
+                    if(each_i < APP_SYSTEM_GUNNO_SIZE){
+                        s_card_operate_ret[port] = APP_CARD_OPERATE_RET_NULL;
+                        return s_card_operate_ret[port];
+                    }
+                    /** 以下是这张卡没有进行预约，可能只是要结算订单 */
+
                     /** 判断情况2 */
                     if(app_card_another_gun_judge(port)){
                         if(APP_SYSTEM_GUNNO_SIZE >= 0x02){   /** 双枪情况下才进行此判断 */
@@ -1168,6 +1217,7 @@ static int32_t app_card_info_process(void* handle)
             }
             break;
         default:
+            /** 有个预约状态，预约枪不允许其它的卡启动 */
             s_card_operate_ret[port] = APP_CARD_OPERATE_RET_NULL;
             return s_card_operate_ret[port];
             break;
