@@ -349,6 +349,7 @@ struct charge_data{
     uint32_t charge_time;           /* 充电时间：单位s */
     uint32_t remain_charge_time;    /* 剩余充电时间：单位s */
     uint16_t current_soc;           /* 当前SOC */
+    uint16_t start_soc;             /* 结束SOC */
 };
 struct charge_data *thaisen_app_get_charge_info(uint8_t gunno);
 /**

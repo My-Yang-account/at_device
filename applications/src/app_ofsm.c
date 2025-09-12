@@ -1475,6 +1475,8 @@ static void ofsm_start_info_padding_public(uint8_t gunno)
     }
     s_ofsm_info[gunno].base.flag.recved_paracharge_identify_id = APP_THA_ENUM_FALSE;
 
+    s_ofsm_info[gunno].base.start_soc = 0x00;
+    s_ofsm_info[gunno].base.current_soc = 0x00;
     s_ofsm_info[gunno].base.voltage_a = 0x00;
     s_ofsm_info[gunno].base.current_a = 0x00;
     s_ofsm_info[gunno].base.power_a = 0x00;
@@ -1584,6 +1586,8 @@ static void ofsm_start_info_padding_public(uint8_t gunno)
 
     app_nsal_init_charge_data(gunno);
     if(s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL){
+        s_ofsm_info[deputy_gunno].base.start_soc = 0x00;
+        s_ofsm_info[deputy_gunno].base.current_soc = 0x00;
         app_nsal_init_charge_data(deputy_gunno);
     }
 
@@ -3030,6 +3034,8 @@ static void ofsm_starting_fun(uint8_t gunno)
                         memcpy(s_thaisen_transaction[deputy_gunno].device_serial_number, s_thaisen_transaction[deputy_gunno].device_serial_number, \
                                 sizeof(s_thaisen_transaction[deputy_gunno].device_serial_number));
             #endif /* APP_INCLUDE_SGCC_PROTOCOL */
+                        s_ofsm_info[deputy_gunno].base.start_soc = 0x00;
+                        s_ofsm_info[deputy_gunno].base.current_soc = 0x00;
                         app_nsal_init_charge_data(deputy_gunno);
                         /** 此处不再次保存订单，由时间同步修正是统一再次保存，目前程序，启动时都会校时一次，如果不校时则需要在此处保存一次 */
                         mw_storage_record_designate_index_updated(&s_thaisen_transaction[gunno], sizeof(s_thaisen_transaction[gunno]), USER_DATA_TYPE_STORAGE,  \
@@ -3878,6 +3884,7 @@ static void ofsm_starting_fun(uint8_t gunno)
                     struct thaisenBMS_Charger_struct* bms = (struct thaisenBMS_Charger_struct*)(s_ofsm_info[gunno].base.bms_data);
                     s_thaisen_transaction[gunno].start_soc = bms->BCP.SOC;
                     s_ofsm_info[gunno].base.current_soc = bms->BCP.SOC /10;
+                    s_ofsm_info[gunno].base.start_soc = bms->BCP.SOC;
                     memcpy(s_ofsm_info[gunno].base.car_vin, bms->BRM.CarDiscern, sizeof(s_ofsm_info[gunno].base.car_vin));
                     memcpy(s_thaisen_transaction[gunno].car_vin, bms->BRM.CarDiscern, sizeof(bms->BRM.CarDiscern));
                     if(sys_vin_whitelists_query(bms->BRM.CarDiscern, sizeof(bms->BRM.CarDiscern)) >= 0x00){
@@ -3950,6 +3957,7 @@ static void ofsm_starting_fun(uint8_t gunno)
                 memcpy(s_ofsm_info[gunno].base.car_vin, bms->BRM.CarDiscern, sizeof(s_ofsm_info[gunno].base.car_vin));
                 s_thaisen_transaction[gunno].start_soc = bms->BCP.SOC;
                 s_ofsm_info[gunno].base.current_soc = bms->BCP.SOC /10;
+                s_ofsm_info[gunno].base.start_soc = bms->BCP.SOC;
                 memcpy(s_thaisen_transaction[gunno].car_vin, bms->BRM.CarDiscern, sizeof(bms->BRM.CarDiscern));
             }
 
@@ -4327,7 +4335,7 @@ static void ofsm_charging_fun(uint8_t gunno)
 
     extern uint32_t thaisen_get_module_curr(uint8_t gunNum);
     extern uint32_t thaisen_get_module_volt(uint8_t gunNum);
-    uint32_t current_tick = rt_tick_get(), bms_ccs_curr = 4000;
+    uint32_t current_tick = rt_tick_get(), bms_ccs_curr = 4000, data_temp = 0x00;
     bool is_stop_charge_authorization = APP_THA_ENUM_FALSE;  /* 停充已授权 */
     enum system_stop_way stop_way = APP_SYSTEM_STOP_WAY_SIZE;
     enum charge_state_t charge_state = mw_get_charge_state(gunno);
@@ -4859,7 +4867,11 @@ static void ofsm_charging_fun(uint8_t gunno)
     }
 
     s_ofsm_info[gunno].base.voltage_a = mw_get_meter_ua(gunno) *10;
-    s_ofsm_info[gunno].base.current_soc = bms_info->BCS.SOC;
+    /** BMS通讯重连时会把所有BMS报文清空 */
+    data_temp = bms_info->BCS.SOC;
+    if(data_temp != 0x00){
+        s_ofsm_info[gunno].base.current_soc = data_temp;
+    }
     s_ofsm_info[gunno].base.stop_time = s_ofsm_info[gunno].base.current_time;
     s_ofsm_info[gunno].base.charge_time = s_ofsm_info[gunno].base.stop_time - s_ofsm_info[gunno].base.start_time;
     s_ofsm_info[gunno].base.start_elect = app_billingrule_get_start_elcet(gunno);
@@ -6038,7 +6050,6 @@ static void ofsm_stoping_fun(uint8_t gunno)
         memset(s_ofsm_info[gunno].base.transaction_number, 0x00, sizeof(s_ofsm_info[gunno].base.transaction_number));
         memset(s_ofsm_info[gunno].base.car_vin, 0x00, sizeof(s_ofsm_info[gunno].base.car_vin));
         memset(s_ofsm_info[gunno].base.user_number, 0x00, sizeof(s_ofsm_info[gunno].base.user_number));
-        s_ofsm_info[gunno].base.current_soc = 0x00;
         s_ofsm_info[gunno].base.flag.paracharge_is_identified = APP_THA_ENUM_FALSE;
         s_ofsm_info[gunno].base.flag.recved_paracharge_identify_id = APP_THA_ENUM_FALSE;
 
@@ -6050,7 +6061,6 @@ static void ofsm_stoping_fun(uint8_t gunno)
             memset(s_ofsm_info[deputy_gun].base.transaction_number, 0x00, sizeof(s_ofsm_info[deputy_gun].base.transaction_number));
             memset(s_ofsm_info[deputy_gun].base.car_vin, 0x00, sizeof(s_ofsm_info[deputy_gun].base.car_vin));
             memset(s_ofsm_info[deputy_gun].base.user_number, 0x00, sizeof(s_ofsm_info[deputy_gun].base.user_number));
-            s_ofsm_info[deputy_gun].base.current_soc = 0x00;
             s_ofsm_info[deputy_gun].base.flag.paracharge_is_identified = APP_THA_ENUM_FALSE;
             s_ofsm_info[deputy_gun].base.flag.recved_paracharge_identify_id = APP_THA_ENUM_FALSE;
 

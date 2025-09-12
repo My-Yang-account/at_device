@@ -690,7 +690,8 @@ struct charge_data *thaisen_app_get_charge_info(uint8_t gunno) // OK
     s_data_of_charging.charge_stop_time = ofsm_temp->base.stop_time;
     s_data_of_charging.charge_time = ofsm_temp->base.charge_time;
     s_data_of_charging.remain_charge_time = bms_data->BCS.SurplChgTime;
-    s_data_of_charging.current_soc = bms_data->BCS.SOC;
+    s_data_of_charging.current_soc = ofsm_temp->base.current_soc;
+    s_data_of_charging.start_soc = (ofsm_temp->base.start_soc /10);
 
     return &s_data_of_charging;
 }

@@ -99,7 +99,7 @@
 #define SCREEN_AUX_B_SELCT_REG_OLD              0x1007          /* 老屏幕B枪辅源选择控件地址 */
 #define SCREEN_AUX_B_SELCT_KEY_OLD              0x000E          /* 老屏幕B枪辅源选择控件键值 */
 
-
+#define SCREEN_ADD_START_SOC                 /* 结束页面增加起始soc */
 #define SCREEN_USING_TXT_RTC                 /* 发送RTC TXT */
 #ifdef SCREEN_USING_TXT_RTC
 #define SCREEN_TXT_RTC_STRLEN       21       /* RTC TXT 字符串长度 */
@@ -751,6 +751,9 @@ struct LCD_DISPLAY_GUN_VALUE_TYPE{
 	u32 cur; 	//输出电流
 	u32 engery;	//电量
 	u32 curSoc;//100
+#ifdef SCREEN_ADD_START_SOC
+    u32 StartSoc;//100
+#endif /* SCREEN_ADD_START_SOC */
 	u8 soc[5];		//首页soc
 	u32 VolNeed;	//电压需求
 	u32 CurNeed;	//电流需求
@@ -11096,6 +11099,12 @@ int SerialScreen_DataProcess()
 				}
 				LcdData.gun[i].engery = chargeInfo[i]->charge_elect;
 				LcdData.gun[i].curSoc = chargeInfo[i]->current_soc;
+#ifdef SCREEN_ADD_START_SOC
+                LcdData.gun[i].StartSoc = chargeInfo[i]->start_soc;
+                if(LcdData.gun[i].StartSoc > LcdData.gun[i].curSoc){
+                    LcdData.gun[i].StartSoc = LcdData.gun[i].curSoc;
+                }
+#endif /* SCREEN_ADD_START_SOC */
 				LcdData.gun[i].ChrgeTime = chargeInfo[i]->charge_time/60;
 				LcdData.gun[i].ChrgeTimeHour = LcdData.gun[i].ChrgeTime/60;
 				LcdData.gun[i].ChrgeTImeMin = LcdData.gun[i].ChrgeTime%60;
@@ -11731,6 +11740,9 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_A_ACOUNT, NULL, "Hour Used", LCD_DataType, LCD_1sReflash, 0x1612, pu32_type, sizeof(LcdData.gun[LCD_GUN_1].ChrgeTimeHour), (void *)&LcdData.gun[LCD_GUN_1].ChrgeTimeHour);
     SerialScreen_ItemSetUp(LCD_PAGE_A_ACOUNT, NULL, "Min Used", LCD_DataType, LCD_1sReflash, 0x1614, pu32_type, sizeof(LcdData.gun[LCD_GUN_1].ChrgeTImeMin), (void *)&LcdData.gun[LCD_GUN_1].ChrgeTImeMin);
     SerialScreen_ItemSetUp(LCD_PAGE_A_ACOUNT, NULL, "Soc", LCD_DataType, LCD_1sReflash, 0x1616, pu32_type, sizeof(LcdData.gun[LCD_GUN_1].curSoc), (void *)&LcdData.gun[LCD_GUN_1].curSoc);
+#ifdef SCREEN_ADD_START_SOC
+    SerialScreen_ItemSetUp(LCD_PAGE_A_ACOUNT, NULL, "StartSoc", LCD_DataType, LCD_1sReflash, 0x6D11, pu32_type, sizeof(LcdData.gun[LCD_GUN_1].StartSoc), (void *)&LcdData.gun[LCD_GUN_1].StartSoc);
+#endif /* SCREEN_ADD_START_SOC */
     SerialScreen_ItemSetUp(LCD_PAGE_A_ACOUNT, NULL, "Chg Money", LCD_DataType, LCD_NoReflash, 0x1618, pu32_type, sizeof(LcdData.gun[LCD_GUN_1].totalFee), (void *)&LcdData.gun[LCD_GUN_1].totalFee);
     SerialScreen_ItemSetUp(LCD_PAGE_A_ACOUNT, NULL, "ChgStopReason", LCD_TextType, LCD_NoReflash, 0x161A, pstr_type, (sizeof(LcdData.gun[LCD_GUN_1].code_stopResaon) - 1), (void *)&LcdData.gun[LCD_GUN_1].code_stopResaon[0]);
     SerialScreen_ItemSetUp(LCD_PAGE_A_ACOUNT, NULL, "ChgStopReason", LCD_TextType, LCD_NoReflash, 0x6A81, pstr_type, (sizeof(LcdData.gun[LCD_GUN_1].code_stopResaon_Chinese) - 1), (void *)&LcdData.gun[LCD_GUN_1].code_stopResaon_Chinese[0]);
@@ -11746,6 +11758,9 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_B_ACOUNT, NULL, "Hour Used", LCD_DataType, LCD_1sReflash, 0x2612, pu32_type, sizeof(LcdData.gun[LCD_GUN_2].ChrgeTimeHour), (void *)&LcdData.gun[LCD_GUN_2].ChrgeTimeHour);
     SerialScreen_ItemSetUp(LCD_PAGE_B_ACOUNT, NULL, "Min Used", LCD_DataType, LCD_1sReflash, 0x2614, pu32_type, sizeof(LcdData.gun[LCD_GUN_2].ChrgeTImeMin), (void *)&LcdData.gun[LCD_GUN_2].ChrgeTImeMin);
     SerialScreen_ItemSetUp(LCD_PAGE_B_ACOUNT, NULL, "Soc", LCD_DataType, LCD_1sReflash, 0x2616, pu32_type, sizeof(LcdData.gun[LCD_GUN_2].curSoc), (void *)&LcdData.gun[LCD_GUN_2].curSoc);
+#ifdef SCREEN_ADD_START_SOC
+    SerialScreen_ItemSetUp(LCD_PAGE_B_ACOUNT, NULL, "StartSoc", LCD_DataType, LCD_1sReflash, 0x6D14, pu32_type, sizeof(LcdData.gun[LCD_GUN_2].StartSoc), (void *)&LcdData.gun[LCD_GUN_2].StartSoc);
+#endif /* SCREEN_ADD_START_SOC */
     SerialScreen_ItemSetUp(LCD_PAGE_B_ACOUNT, NULL, "Chg Money", LCD_DataType, LCD_NoReflash, 0x2618, pu32_type, sizeof(LcdData.gun[LCD_GUN_2].totalFee), (void *)&LcdData.gun[LCD_GUN_2].totalFee);
     SerialScreen_ItemSetUp(LCD_PAGE_B_ACOUNT, NULL, "ChgStopReason", LCD_TextType, LCD_NoReflash, 0x261A, pstr_type, (sizeof(LcdData.gun[LCD_GUN_2].code_stopResaon) - 1), (void *)&LcdData.gun[LCD_GUN_2].code_stopResaon[0]);
     SerialScreen_ItemSetUp(LCD_PAGE_B_ACOUNT, NULL, "ChgStopReason", LCD_TextType, LCD_NoReflash, 0x6AA1, pstr_type, (sizeof(LcdData.gun[LCD_GUN_2].code_stopResaon_Chinese) - 1), (void *)&LcdData.gun[LCD_GUN_2].code_stopResaon_Chinese[0]);

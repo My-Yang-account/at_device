@@ -583,6 +583,7 @@ typedef struct{
     uint8_t card_uid_len;             /* 卡UID长度 */
     uint8_t user_number[32];         /* 用户号 */
 
+    uint8_t start_soc;                /* 起始SOC */
     uint8_t current_soc;              /* 当前SOC */
     uint32_t system_power_max;        /* 系统最大功率 */
     uint16_t gun_set_curr;            /* 枪设置电流 */
