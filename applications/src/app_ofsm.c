@@ -7586,7 +7586,9 @@ void ofsm_thread_entry(void *parameter)
             LOG_D("system run mode is:%d-%d", thread_gunno, s_ofsm_info[thread_gunno].base.run_mode);
         }
 
-        if(*sys_read_config_item_content(CONFIG_ITEM_SUPORT_PARALLEL, 0x00)){
+        if((*sys_read_config_item_content(CONFIG_ITEM_SUPORT_PARALLEL, 0x00)) || \
+                (s_ofsm_info[thread_gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL) || \
+                (s_ofsm_info[thread_gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD)){
             mw_charglib_set_no_offset_enable(thread_gunno, 0x01);
             mw_charglib_set_yu_tong_enable(thread_gunno, 0x01);
         }else{
