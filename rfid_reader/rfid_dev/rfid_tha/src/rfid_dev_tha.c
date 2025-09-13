@@ -32,7 +32,7 @@
 #define RFID_THA_BLOCK_SIZE                       0x10    /* 一个块的大小(B) */
 #define RFID_THA_CARD_UUID_LEN                    0x08    /* 卡的UUID长度(B) */
 #define RFID_THA_WAIT_LOCK_TIME_MAX               10000   /* 等待操作锁最大时长 */
-#define RFID_THA_WAIT_SEM_TIME_MAX                80      /* 等待数据信号量最大时长(从发送寻卡指令到接收到回复大概40-60ms) */
+#define RFID_THA_WAIT_SEM_TIME_MAX                145      /* 等待数据信号量最大时长(从发送寻卡指令到接收到回复大概40-60ms)  130ms不行\140可以(20250909) */
 #define RFID_THA_WAIT_LOCK_TIME_MAX               10000   /* 等大操作锁最大时长(ms) */
 #define RFID_THA_REQUEST_BUFF_SIZE                0x20    /* 数据请求缓存大小(B) */
 #define RFID_THA_RESPONSE_BUFF_SIZE               0x40    /* 数据响应缓存大小(B) */
@@ -464,6 +464,9 @@ int rfid_tha_read_block_info(unsigned char block, unsigned char *buf, unsigned c
             rentry++;
             continue;
         }
+        /** 发送前先把上一次接收到的数据清空 */
+        rfid_tha_clear_data();
+
         if(rfid_dev_send(s_rfid_tha_request, (RFID_THA_FRAME_FIX_LEN + sizeof(block))) < 0x00){
             rt_thread_mdelay(10);
             rentry++;
@@ -558,6 +561,9 @@ int rfid_tha_write_block_info(unsigned char block, unsigned char *data, unsigned
             LOG_E("tha reader not response when write block info(%d) entry(%d)", block, rentry);
             continue;
         }
+        /** 发送前先把上一次接收到的数据清空 */
+        rfid_tha_clear_data();
+
         if(rfid_dev_send(s_rfid_tha_request, (RFID_THA_FRAME_FIX_LEN + (RFID_THA_BLOCK_SIZE + 0x01))) < 0x00){
             rentry++;
             rt_thread_mdelay(10);

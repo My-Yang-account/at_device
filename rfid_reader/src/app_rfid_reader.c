@@ -23,9 +23,9 @@
 #endif /* RFIDR_USING_XJ_CARD */
 
 #define RFIDR_THREAD_PERIOD                           10                    /** 线程运行周期 */
-#define RFIDR_DETECT_LEAVE_MAX                        20                    /** 检测卡离场次数(时基按10ms算) */
-#define RFIDR_DETECT_EXIT_MAX                         10                    /** 检测卡存在次数(时基按10ms算) */
-#define RFIDR_DETECT_OFFLINE_MAX                      10                    /** 检测读卡器离线次数 */
+#define RFIDR_DETECT_LEAVE_MAX                        8                     /** 检测卡离场次数(时基按10ms算) */
+#define RFIDR_DETECT_EXIT_MAX                         8                     /** 检测卡存在次数(时基按10ms算) */
+#define RFIDR_DETECT_OFFLINE_MAX                      8                     /** 检测读卡器离线次数 */
 #define RFIDR_DEV_IDENTIFY_PERIOD                     10000                 /** 设备识别周期(ms) */
 
 /** rfidr:rfid reader */

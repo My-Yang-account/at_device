@@ -30,7 +30,7 @@
 #define RFID_MT_RES_CMD_PARA_REGION               0x04    /* 响应帧指令参数域 */
 #define RFID_MT_RES_STATUS_REGION                 0x05    /* 响应帧状态域 */
 
-#define RFID_MT_WAIT_SEM_TIME_MAX                 80      /* 等待数据信号量最大时长(待测试) */
+#define RFID_MT_WAIT_SEM_TIME_MAX                 145     /* 等待数据信号量最大时长ms */
 #define RFID_MT_WAIT_LOCK_TIME_MAX                10000   /* 等大操作锁最大时长(ms) */
 
 #define RFID_MT_FRAME_FIX_LEN                     0x05    /* 帧的固定长度 */
@@ -610,6 +610,9 @@ int rfid_mt_read_block_info(unsigned char sector, unsigned char block, unsigned 
             rentry++;
             continue;
         }
+        /** 发送前先把上一次接收到的数据清空 */
+        rfid_mt_clear_data();
+
         if(rfid_dev_send(s_rfid_mt_request, (RFID_MT_FRAME_FIX_LEN + RFID_MT_REQ_DATA_REGION_FIX_LENGTH + sizeof(request))) < 0x00){
             rt_thread_mdelay(10);
             rentry++;
@@ -721,6 +724,9 @@ int rfid_mt_write_block_info(unsigned char sector, unsigned char block, unsigned
             LOG_E("mt reader not response when write block info(%d) entry(%d)", block, rentry);
             continue;
         }
+        /** 发送前先把上一次接收到的数据清空 */
+        rfid_mt_clear_data();
+
         if(rfid_dev_send(s_rfid_mt_request, (RFID_MT_FRAME_FIX_LEN + RFID_MT_REQ_DATA_REGION_FIX_LENGTH + sizeof(wbuff))) < 0x00){
             rentry++;
             rt_thread_mdelay(10);
