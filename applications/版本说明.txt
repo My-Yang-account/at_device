@@ -79,6 +79,9 @@
 	  libChargModule_7102(normal) ----->                             正常版本版本
 	  libChargModule_7102(yfy_broadcast) ----->                      英飞源全广播版本
 	  libChargModule_7102(yy_asb_hv_auto) ----->                     模块协议使用安世博(在优优协议基础上高低压可自动切换)版本
+	  libChargModule_7102(lock and liquid) ----->                    有锁模快功能和液冷功能版本(目前7104B云星在用)
+	  libChargModule_7102(no lock have liquid) ----->                没有锁模快功能但有液冷功能版本(目前预留给7104B云星用)
+	  libChargModule_7102(no lock and liquid) ----->                 没有锁模快功也没有液冷功能版本(目前给7104B中科全速用)
 	  双枪驱动库：
 	  libDrive_GD32427_7102(external rtc) ----->                     新硬件版本(7103F使用)
 	  libDrive_GD32427_7102(internal rtc) ----->                     旧硬件版本(7103D使用)
