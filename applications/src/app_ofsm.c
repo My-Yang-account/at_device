@@ -5177,6 +5177,16 @@ static void ofsm_charging_fun(uint8_t gunno)
     app_nsal_padding_charge_data(gunno);
     app_nsal_report_bms_message_bmsrequire_pileoutput(gunno, 0x00);
     app_nsal_report_bms_message_bmsstate(gunno, 0x00);
+    if(s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL){
+        /** 本地并充时只有主枪才能来到这里 */
+        uint8_t deputy_gun = APP_SYSTEM_GUNNOA;
+        if(deputy_gun == gunno){
+            deputy_gun++;
+        }
+        app_nsal_padding_charge_data(deputy_gun);
+        app_nsal_report_bms_message_bmsrequire_pileoutput(deputy_gun, 0x00);
+        app_nsal_report_bms_message_bmsstate(deputy_gun, 0x00);
+    }
 
     switch (charge_state){
     case APP_CHARGE_STATE_IDLE:

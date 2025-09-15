@@ -1662,23 +1662,48 @@ void ykc_monitor_chargepile_request_padding_realtime_data(uint8_t gunno, uint8_t
 
         ykc_monitor_chargepile_request_padding_bmscommand_chargerout(gunno, NET_ENUM_TRUE);
         ykc_monitor_chargepile_request_padding_bmsinfo_duringcharge(gunno, NET_ENUM_TRUE);
+
+        g_ykc_monitor_preq_report_realtime_data[gunno].body.platform_id = 0x00;
+        /** 这是并充 */
+        if((base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD) || (base->charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL)){
+            if(base->main_gunno != gunno){
+                g_ykc_monitor_preq_report_realtime_data[gunno].body.belong_main_gun = (base->main_gunno + 0x01);
+                g_ykc_monitor_preq_report_realtime_data[gunno].body.is_parallel_deputy = NET_ENUM_TRUE;
+            }else{
+                g_ykc_monitor_preq_report_realtime_data[gunno].body.belong_main_gun = 0x00;
+                g_ykc_monitor_preq_report_realtime_data[gunno].body.is_parallel_deputy = NET_ENUM_FALSE;
+            }
+        }
     }else{
         if(ykc_monitor_get_message_send_state(gunno, NET_YKC_MONITOR_PREQ_EVENT_REPORT_REALTIME_DATA) == NET_YKC_MONITOR_SEND_STATE_COMPLETE){
             if((base->state.current == APP_OFSM_STATE_CHARGING) || (base->state.current == APP_OFSM_STATE_STARTING)){
                 struct thaisenBMS_Charger_struct *bms = (struct thaisenBMS_Charger_struct*)(base->bms_data);
 
+                g_ykc_monitor_preq_report_realtime_data[gunno].body.platform_id = 0x00;
                 g_ykc_monitor_preq_report_realtime_data[gunno].body.output_voltage = base->voltage_a /10;
                 g_ykc_monitor_preq_report_realtime_data[gunno].body.output_current = base->current_a /10;
+                g_ykc_monitor_preq_report_realtime_data[gunno].body.charge_elect = base->elect_a *10;
                 if(base->gunline_temperature[0] > base->gunline_temperature[1]){
                     g_ykc_monitor_preq_report_realtime_data[gunno].body.gun_temperature = (base->gunline_temperature[0] /10 + 50);
                 }else{
                     g_ykc_monitor_preq_report_realtime_data[gunno].body.gun_temperature = (base->gunline_temperature[1] /10 + 50);
                 }
+                /** 这是并充 */
+                if((base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD) || (base->charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL)){
+                    if(base->main_gunno != gunno){
+                        g_ykc_monitor_preq_report_realtime_data[gunno].body.belong_main_gun = (base->main_gunno + 0x01);
+                        g_ykc_monitor_preq_report_realtime_data[gunno].body.is_parallel_deputy = NET_ENUM_TRUE;
+                    }else{
+                        g_ykc_monitor_preq_report_realtime_data[gunno].body.belong_main_gun = 0x00;
+                        g_ykc_monitor_preq_report_realtime_data[gunno].body.is_parallel_deputy = NET_ENUM_FALSE;
+                    }
+                    base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(base->main_gunno));
+                }
+
                 g_ykc_monitor_preq_report_realtime_data[gunno].body.soc = base->current_soc;
                 g_ykc_monitor_preq_report_realtime_data[gunno].body.battery_group_temp_max = (bms->BSM.HigTemp + 50);
                 g_ykc_monitor_preq_report_realtime_data[gunno].body.charge_time = base->charge_time /60;
                 g_ykc_monitor_preq_report_realtime_data[gunno].body.remain_time = bms->BCS.SurplChgTime;
-                g_ykc_monitor_preq_report_realtime_data[gunno].body.charge_elect = base->elect_a *10;
                 g_ykc_monitor_preq_report_realtime_data[gunno].body.loss_elect = 0x00;
                 g_ykc_monitor_preq_report_realtime_data[gunno].body.consume_amount = base->fees_total;
             }else{
@@ -1716,7 +1741,7 @@ void ykc_monitor_chargepile_request_padding_bms_shakehand(uint8_t gunno)
     memset(g_ykc_monitor_preq_shake_hand[gunno].body.serial_number, 0x00, sizeof(g_ykc_monitor_preq_shake_hand[gunno].body.serial_number));
     memcpy(g_ykc_monitor_preq_shake_hand[gunno].body.serial_number, base->transaction_number, valid_len);
 
-    if(base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
+    if((base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD) || (base->charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL)){
         base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(base->main_gunno));
         bms = (struct thaisenBMS_Charger_struct*)(base->bms_data);
     }
@@ -1756,7 +1781,7 @@ void ykc_monitor_chargepile_request_padding_bms_paraconfig(uint8_t gunno)
     memset(g_ykc_monitor_preq_parameter_config[gunno].body.serial_number, 0x00, sizeof(g_ykc_monitor_preq_parameter_config[gunno].body.serial_number));
     memcpy(g_ykc_monitor_preq_parameter_config[gunno].body.serial_number, base->transaction_number, valid_len);
 
-    if(base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
+    if((base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD) || (base->charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL)){
         base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(base->main_gunno));
         bms = (struct thaisenBMS_Charger_struct*)(base->bms_data);
     }
@@ -1798,7 +1823,7 @@ void ykc_monitor_chargepile_request_padding_bms_chargeend(uint8_t gunno)
     memset(g_ykc_monitor_preq_charge_finish[gunno].body.serial_number, 0x00, sizeof(g_ykc_monitor_preq_charge_finish[gunno].body.serial_number));
     memcpy(g_ykc_monitor_preq_charge_finish[gunno].body.serial_number, base->transaction_number, valid_len);
 
-    if(base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
+    if((base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD) || (base->charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL)){
         base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(base->main_gunno));
         bms = (struct thaisenBMS_Charger_struct*)(base->bms_data);
     }
@@ -1832,7 +1857,7 @@ void ykc_monitor_chargepile_request_padding_bms_error(uint8_t gunno)
     memset(g_ykc_monitor_preq_error_message[gunno].body.serial_number, 0x00, sizeof(g_ykc_monitor_preq_error_message[gunno].body.serial_number));
     memcpy(g_ykc_monitor_preq_error_message[gunno].body.serial_number, base->transaction_number, valid_len);
 
-    if(base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
+    if((base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD) || (base->charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL)){
         base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(base->main_gunno));
         bms = (struct thaisenBMS_Charger_struct*)(base->bms_data);
     }
@@ -1881,7 +1906,7 @@ void ykc_monitor_chargepile_request_padding_bmsend_duringcharge(uint8_t gunno)
     memset(g_ykc_monitor_preq_bms_end[gunno].body.serial_number, 0x00, sizeof(g_ykc_monitor_preq_bms_end[gunno].body.serial_number));
     memcpy(g_ykc_monitor_preq_bms_end[gunno].body.serial_number, base->transaction_number, valid_len);
 
-    if(base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
+    if((base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD) || (base->charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL)){
         base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(base->main_gunno));
         bms = (struct thaisenBMS_Charger_struct*)(base->bms_data);
     }
@@ -1924,7 +1949,7 @@ void ykc_monitor_chargepile_request_padding_chargerend_duringcharge(uint8_t gunn
     memset(g_ykc_monitor_preq_charger_end[gunno].body.serial_number, 0x00, sizeof(g_ykc_monitor_preq_charger_end[gunno].body.serial_number));
     memcpy(g_ykc_monitor_preq_charger_end[gunno].body.serial_number, base->transaction_number, valid_len);
 
-    if(base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
+    if((base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD) || (base->charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL)){
         base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(base->main_gunno));
         bms = (struct thaisenBMS_Charger_struct*)(base->bms_data);
     }
@@ -1979,7 +2004,7 @@ void ykc_monitor_chargepile_request_padding_bmscommand_chargerout(uint8_t gunno,
             }
             g_ykc_monitor_preq_bmscommand_chargerout[gunno].body.charge_time = base->charge_time /60;
 
-            if(base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
+            if((base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD) || (base->charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL)){
                 base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(base->main_gunno));
                 bms = (struct thaisenBMS_Charger_struct*)(base->bms_data);
             }
@@ -2028,7 +2053,7 @@ void ykc_monitor_chargepile_request_padding_bmsinfo_duringcharge(uint8_t gunno, 
             System_BaseData *base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
             struct thaisenBMS_Charger_struct *bms = (struct thaisenBMS_Charger_struct*)(base->bms_data);
 
-            if(base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
+            if((base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD) || (base->charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL)){
                 base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(base->main_gunno));
                 bms = (struct thaisenBMS_Charger_struct*)(base->bms_data);
             }
@@ -3978,37 +4003,6 @@ int8_t ykc_monitor_padding_starting_info(uint8_t gunno)
         s_ykc_monitor_starting_info[gunno].timestamp = base->current_time;
     }
 
-    s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].state = mw_get_charge_library_state(gunno);
-    if(bms->BHM.rev_info){
-        s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].bms_message |= YKC_MONITOR_STARTING_BMS_MESSAGE_BHM;
-    }else{
-        s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].bms_message &= (~YKC_MONITOR_STARTING_BMS_MESSAGE_BHM);
-    }
-
-    if(bms->BRM.rev_info){
-        s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].bms_message |= YKC_MONITOR_STARTING_BMS_MESSAGE_BRM;
-    }else{
-        s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].bms_message &= (~YKC_MONITOR_STARTING_BMS_MESSAGE_BRM);
-    }
-
-    if(bms->BCP.rev_info){
-        s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].bms_message |= YKC_MONITOR_STARTING_BMS_MESSAGE_BCP;
-    }else{
-        s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].bms_message &= (~YKC_MONITOR_STARTING_BMS_MESSAGE_BCP);
-    }
-
-    if(bms->BRO.rev_info){
-        s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].bms_message |= YKC_MONITOR_STARTING_BMS_MESSAGE_BRO;
-    }else{
-        s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].bms_message &= (~YKC_MONITOR_STARTING_BMS_MESSAGE_BRO);
-    }
-
-    if(bms->BRO.BMSReady == 0xAA){
-        s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].bms_message |= YKC_MONITOR_STARTING_BMS_IS_READY;
-    }else{
-        s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].bms_message &= (~YKC_MONITOR_STARTING_BMS_IS_READY);
-    }
-
     /** 暂时按双枪做 */
     if(gunno == 0x00){
         extern int16_t TH_get_A_Insult_Volt(void);
@@ -4024,12 +4018,6 @@ int8_t ykc_monitor_padding_starting_info(uint8_t gunno)
         s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].sampling_voltage.symbol = 0x00;
         s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].sampling_voltage.data = value0;
     }
-
-    s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].max_alllow_voltage.symbol = 0x00;
-    s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].max_alllow_voltage.data = bms->BHM.MaxAllowVol;
-
-    s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].battery_voltage.symbol = 0x00;
-    s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].battery_voltage.data = bms->BCP.BatVolt;
 
     s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].module_voltage.symbol = 0x00;
     s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].module_voltage.data = thaisen_get_module_volt(gunno);
@@ -4065,6 +4053,50 @@ int8_t ykc_monitor_padding_starting_info(uint8_t gunno)
     value1 = thaisen_get_Insult_ResCat(gunno);
     s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].positive_insul_resistance = value0;
     s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].negative_insul_resistance = value1;
+
+    if((base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD) || (base->charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL)){
+        base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(base->main_gunno));
+        bms = (struct thaisenBMS_Charger_struct*)(base->bms_data);
+        s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].state = mw_get_charge_library_state(base->main_gunno);
+    }else{
+        s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].state = mw_get_charge_library_state(gunno);
+    }
+
+    if(bms->BHM.rev_info){
+        s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].bms_message |= YKC_MONITOR_STARTING_BMS_MESSAGE_BHM;
+    }else{
+        s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].bms_message &= (~YKC_MONITOR_STARTING_BMS_MESSAGE_BHM);
+    }
+
+    if(bms->BRM.rev_info){
+        s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].bms_message |= YKC_MONITOR_STARTING_BMS_MESSAGE_BRM;
+    }else{
+        s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].bms_message &= (~YKC_MONITOR_STARTING_BMS_MESSAGE_BRM);
+    }
+
+    if(bms->BCP.rev_info){
+        s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].bms_message |= YKC_MONITOR_STARTING_BMS_MESSAGE_BCP;
+    }else{
+        s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].bms_message &= (~YKC_MONITOR_STARTING_BMS_MESSAGE_BCP);
+    }
+
+    if(bms->BRO.rev_info){
+        s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].bms_message |= YKC_MONITOR_STARTING_BMS_MESSAGE_BRO;
+    }else{
+        s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].bms_message &= (~YKC_MONITOR_STARTING_BMS_MESSAGE_BRO);
+    }
+
+    if(bms->BRO.BMSReady == 0xAA){
+        s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].bms_message |= YKC_MONITOR_STARTING_BMS_IS_READY;
+    }else{
+        s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].bms_message &= (~YKC_MONITOR_STARTING_BMS_IS_READY);
+    }
+
+    s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].max_alllow_voltage.symbol = 0x00;
+    s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].max_alllow_voltage.data = bms->BHM.MaxAllowVol;
+
+    s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].battery_voltage.symbol = 0x00;
+    s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].battery_voltage.data = bms->BCP.BatVolt;
 
     s_ykc_monitor_starting_info[gunno].count++;
 
@@ -4149,7 +4181,26 @@ int8_t ykc_monitor_padding_charging_info(uint8_t gunno)
         s_ykc_monitor_charging_info[gunno].timestamp = base->current_time;
     }
 
-    s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].state = mw_get_charge_library_state(gunno);
+    s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].module_voltage.symbol = 0x00;
+    s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].module_voltage.data = thaisen_get_module_volt(gunno);
+
+    s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].module_current.symbol = 0x00;
+    s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].module_current.data = thaisen_get_module_curr(gunno);
+
+//    s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].pile_measure_voltage.symbol = 0x01;
+//    s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].pile_measure_voltage.data = base->voltage_a /10;
+
+    s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].pile_measure_current.symbol = 0x00;
+    s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].pile_measure_current.data = base->current_a /10;
+
+    if((base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD) || (base->charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL)){
+        base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(base->main_gunno));
+        bms = (struct thaisenBMS_Charger_struct*)(base->bms_data);
+        s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].state = mw_get_charge_library_state(base->main_gunno);
+    }else{
+        s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].state = mw_get_charge_library_state(gunno);
+    }
+
     if(bms->BCL.rev_info){
         s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].bms_message |= YKC_MONITOR_CHARGING_BMS_MESSAGE_BCL;
     }else{
@@ -4210,12 +4261,6 @@ int8_t ykc_monitor_padding_charging_info(uint8_t gunno)
         s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].require_current.data = value;
     }
 
-    s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].module_voltage.symbol = 0x00;
-    s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].module_voltage.data = thaisen_get_module_volt(gunno);
-
-    s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].module_current.symbol = 0x00;
-    s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].module_current.data = thaisen_get_module_curr(gunno);
-
     s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].bms_measure_voltage.symbol = 0x00;
     s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].bms_measure_voltage.data = bms->BCS.ChargVolt;
 
@@ -4227,12 +4272,6 @@ int8_t ykc_monitor_padding_charging_info(uint8_t gunno)
         s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].bms_measure_current.symbol = 0x00;
         s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].bms_measure_current.data = value;
     }
-
-//    s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].pile_measure_voltage.symbol = 0x01;
-//    s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].pile_measure_voltage.data = base->voltage_a /10;
-
-    s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].pile_measure_current.symbol = 0x00;
-    s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].pile_measure_current.data = base->current_a /10;
 
     s_ykc_monitor_charging_info[gunno].count++;
 

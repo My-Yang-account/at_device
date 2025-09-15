@@ -623,6 +623,9 @@ typedef struct{
 #else
         uint16_t hardware_fault;                 /* 硬件故障 */
 #endif /* NET_YKC_MONITOR_FAULT_USING_EXTEND */
+        uint8_t is_parallel_deputy;              /* 是并充副枪 */
+        uint8_t belong_main_gun;                 /* 归属主枪(是并充副枪时有效) */
+        uint8_t platform_id;                     /* 报文来源的平台编号 */
     }body;
     uint16_t check_sum;                          /* 校验码 */
 }Net_YkcMonitorPro_PRes_Query_PReq_Report_RealTimeData_t;
