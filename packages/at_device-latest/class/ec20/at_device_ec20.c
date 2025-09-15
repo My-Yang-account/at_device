@@ -1047,7 +1047,7 @@ static void ec20_init_thread_entry(void *parameter)
         /* set response format to ATV1 */
         AT_SEND_CMD(client, resp, 0, 300, "ATV1");
         /* disable echo */
-        AT_SEND_CMD(client, resp, 0, 300, "ATE0");
+        AT_SEND_CMD(client, resp, 0, 300, "ATE1");
         /* Use AT+CMEE=2 to enable result code and use verbose values */
         AT_SEND_CMD(client, resp, 0, 300, "AT+CMEE=2");
         /* Get the baudrate */

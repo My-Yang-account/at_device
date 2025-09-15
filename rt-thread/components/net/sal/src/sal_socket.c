@@ -174,6 +174,10 @@ static void check_netdev_internet_up_work(struct rt_work *work, void *work_data)
     struct sal_proto_family *pf = (struct sal_proto_family *) netdev->sal_user_data;
     const struct sal_socket_ops *skt_ops;
 
+    netdev_low_level_set_internet_status(netdev, RT_TRUE);
+
+    return ;
+
     if (work)
     {
         rt_free(work);
