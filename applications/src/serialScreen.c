@@ -9585,6 +9585,7 @@ int SerialScreen_CheckFrame(struct SerialScreenObj *cmd, void *frameBuf,u16 *cou
 
 void SerialScreen_PageReset(int GunIdx)
 {
+    u8 i = 0;
 	if((LcdData.menuflg>0)||(LcdData.NeedMenuOffFlg>0)){
 	    if((LcdData.gun[LCD_GUN_1].workState != SysMainStatus_StartReady) && (LcdData.gun[LCD_GUN_2].workState != SysMainStatus_StartReady)){
 	        return;
@@ -9631,33 +9632,31 @@ void SerialScreen_PageReset(int GunIdx)
             }
             return;
         }else{
-            if(LcdData.gun[LCD_GUN_1].workState == SysMainStatus_StartReady){
-                LcdData.gunIndex = LCD_GUN_1;
-                LcdData.CurrentPage = LCD_PAGE_A_START;
-                LcdData.Homeflg = 0;
-                LcdData.menuflg = 0;
-                LcdData.NeedMenuOffFlg = 0;
-#ifdef SCREEN_USING_OFFLINE_BILLING
-                for(u8 i = 0; i < LCD_GUN_NUM; i++){
-                    LcdTriggerEvent[i].Flag.IsTriggerExternal = FALSE;
+            for(i = 0; i < LCD_GUN_NUM; i++){
+                if(LcdData.gun[i].workState == SysMainStatus_StartReady){
+                    u8 MainGun = thaisen_get_parallel_main_gunno(i);
+
+                    if(MainGun >= LCD_GUN_NUM){
+                        MainGun = i;
+                    }
+                    if(MainGun != i){
+                        if(LcdData.gun[MainGun].workState != SysMainStatus_StartReady)
+                            continue;
+                    }
+                    LcdData.Homeflg = 0;
+                    LcdData.menuflg = 0;
+                    LcdData.NeedMenuOffFlg = 0;
+                    if(MainGun == LCD_GUN_1){
+                        LcdData.gunIndex = LCD_GUN_1;
+                        LcdData.CurrentPage = LCD_PAGE_A_START;
+                    }else{
+                        LcdData.gunIndex = LCD_GUN_2;
+                        LcdData.CurrentPage = LCD_PAGE_B_START;
+                    }
+                    break;
                 }
-                LcdTriggerEvent[LCD_GUN_1].Flag.IsWaitPay = FALSE;
-                LcdTriggerEvent[LCD_GUN_1].Flag.IsPayed = FALSE;
-#endif /* SCREEN_USING_OFFLINE_BILLING */
-            }else if(LcdData.gun[LCD_GUN_2].workState == SysMainStatus_StartReady){
-                LcdData.gunIndex = LCD_GUN_2;
-                LcdData.CurrentPage = LCD_PAGE_B_START;
-                LcdData.Homeflg = 0;
-                LcdData.menuflg = 0;
-                LcdData.NeedMenuOffFlg = 0;
-#ifdef SCREEN_USING_OFFLINE_BILLING
-                for(u8 i = 0; i < LCD_GUN_NUM; i++){
-                    LcdTriggerEvent[i].Flag.IsTriggerExternal = FALSE;
-                }
-                LcdTriggerEvent[LCD_GUN_2].Flag.IsWaitPay = FALSE;
-                LcdTriggerEvent[LCD_GUN_2].Flag.IsPayed = FALSE;
-#endif /* SCREEN_USING_OFFLINE_BILLING */
-            }else{
+            }
+            if(i >= LCD_GUN_NUM){
                 switch(LCD_GUN_NUM)//枪个数
                 {
                     case LCD_GUN_NUM:
@@ -9673,35 +9672,34 @@ void SerialScreen_PageReset(int GunIdx)
         }
 	}
 
-    if(LcdData.gun[LCD_GUN_1].workState == SysMainStatus_StartReady){
-        LcdData.gunIndex = LCD_GUN_1;
-        LcdData.CurrentPage = LCD_PAGE_A_START;
-        LcdData.Homeflg = 0;
-        LcdData.menuflg = 0;
-        LcdData.NeedMenuOffFlg = 0;
-#ifdef SCREEN_USING_OFFLINE_BILLING
-        for(u8 i = 0; i < LCD_GUN_NUM; i++){
-            LcdTriggerEvent[i].Flag.IsTriggerExternal = FALSE;
+    for(i = 0; i < LCD_GUN_NUM; i++){
+        if(LcdData.gun[i].workState == SysMainStatus_StartReady){
+            u8 MainGun = thaisen_get_parallel_main_gunno(i);
+
+            if(MainGun >= LCD_GUN_NUM){
+                MainGun = i;
+            }
+            if(MainGun != i){
+                if(LcdData.gun[MainGun].workState != SysMainStatus_StartReady)
+                    continue;
+            }
+            LcdData.Homeflg = 0;
+            LcdData.menuflg = 0;
+            LcdData.NeedMenuOffFlg = 0;
+            if(MainGun == LCD_GUN_1){
+                LcdData.gunIndex = LCD_GUN_1;
+                LcdData.CurrentPage = LCD_PAGE_A_START;
+            }else{
+                LcdData.gunIndex = LCD_GUN_2;
+                LcdData.CurrentPage = LCD_PAGE_B_START;
+            }
+            break;
         }
-        LcdTriggerEvent[LCD_GUN_1].Flag.IsWaitPay = FALSE;
-        LcdTriggerEvent[LCD_GUN_1].Flag.IsPayed = FALSE;
-#endif /* SCREEN_USING_OFFLINE_BILLING */
-        return;
-    }else if(LcdData.gun[LCD_GUN_2].workState == SysMainStatus_StartReady){
-        LcdData.gunIndex = LCD_GUN_2;
-        LcdData.CurrentPage = LCD_PAGE_B_START;
-        LcdData.Homeflg = 0;
-        LcdData.menuflg = 0;
-        LcdData.NeedMenuOffFlg = 0;
-#ifdef SCREEN_USING_OFFLINE_BILLING
-        for(u8 i = 0; i < LCD_GUN_NUM; i++){
-            LcdTriggerEvent[i].Flag.IsTriggerExternal = FALSE;
-        }
-        LcdTriggerEvent[LCD_GUN_2].Flag.IsWaitPay = FALSE;
-        LcdTriggerEvent[LCD_GUN_2].Flag.IsPayed = FALSE;
-#endif /* SCREEN_USING_OFFLINE_BILLING */
+    }
+    if(i < LCD_GUN_NUM){
         return;
     }
+
 	//主状态巡检
 	switch(LcdData.gun[GunIdx].workState)
 	{
@@ -10834,7 +10832,14 @@ int SerialScreen_DataProcess()
                 for(u8 i = 0; i < LCD_GUN_NUM; i++){
                     LcdAssistantData.SeveralGunFlag[i].IsPWStartAuthen = FALSE;
                     LcdAssistantData.SeveralGunFlag[i].IsLocalStart = FALSE;
+#ifdef SCREEN_USING_OFFLINE_BILLING
+                    LcdTriggerEvent[i].Flag.IsTriggerExternal = FALSE;
+#endif /* SCREEN_USING_OFFLINE_BILLING */
                 }
+#ifdef SCREEN_USING_OFFLINE_BILLING
+                LcdTriggerEvent[i].Flag.IsWaitPay = FALSE;
+                LcdTriggerEvent[i].Flag.IsPayed = FALSE;
+#endif /* SCREEN_USING_OFFLINE_BILLING */
 				break;	
 			case APP_OFSM_STATE_CHARGING:
                 if(thaisen_is_stoped_charge(i)){

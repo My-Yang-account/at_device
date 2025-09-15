@@ -71,13 +71,13 @@ enum ofsm_state thaisen_app_get_ofsm_charge_state(uint8_t gunno)    // OK
         return APP_OFSM_STATE_SIZE;
     }
     struct ofsm_info *ofsm_temp = get_ofsm_info(gunno);
-
+#if 0
     if((ofsm_temp->base.charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL) && (ofsm_temp->base.main_gunno != gunno) &&  \
             (ofsm_temp->base.main_gunno < APP_SYSTEM_GUNNO_SIZE)){
         uint8_t main_gunno = ofsm_temp->base.main_gunno;
         ofsm_temp = get_ofsm_info(main_gunno);
     }
-
+#endif
     return ofsm_temp->state;
 }
 
@@ -1441,6 +1441,24 @@ enum charge_way thaisen_get_charge_way(void)
 void thaisen_set_charge_way(uint8_t way)
 {
     SerialScreen_SetChargeWay(way);
+}
+
+/********************************************
+ * 函数名      thaisen_get_parallel_main_gunno
+ * 功能         根据指定枪号获取其并充主枪枪号
+* 返回           并充主枪枪号
+ *******************************************/
+uint8_t thaisen_get_parallel_main_gunno(uint8_t gunno)
+{
+    if(gunno >= APP_SYSTEM_GUNNO_SIZE){
+        return gunno;
+    }
+    struct ofsm_info *ofsm_temp = get_ofsm_info(gunno);
+
+    if((ofsm_temp->base.charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL) || (ofsm_temp->base.charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD)){
+        return ofsm_temp->base.main_gunno;
+    }
+    return gunno;
 }
 
 /********************************************

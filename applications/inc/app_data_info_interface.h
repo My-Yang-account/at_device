@@ -572,6 +572,10 @@ enum charge_way thaisen_get_charge_way(void);
  **/
 void thaisen_set_charge_way(uint8_t way);
 /**
+ * 根据指定枪号获取其并充主枪枪号
+ **/
+uint8_t thaisen_get_parallel_main_gunno(uint8_t gunno);
+/**
  * 获取当前时段时间
  **/
 int32_t thaisen_get_current_period_time_hm(uint8_t *buf, uint8_t blen);
