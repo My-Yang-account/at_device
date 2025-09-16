@@ -11207,6 +11207,9 @@ int SerialScreen_DataProcess()
                         LcdData.gun[i].iocnState = ICON_GUN_STATE_RESERVATION;
                         LcdData.gun[i].iocnStateSelectGun = ICON_GUN_STATE_SELECT_RESERVATION;
 			        }else{
+                        LcdData.gun[i].iocnState = ICON_GUN_STATE_PLEASE_SWIPCARD;
+                        LcdData.gun[i].iocnStateSelectGun = ICON_GUN_STATE_SELECT_SWIPCARD_SCAN;
+
                         validLen = sizeof(LcdData.setData.ErWeiCode[i]);
                         if(validLen > thaisen_app_get_gunno_qrcode(i)->qrcode_len){
                             str_ncpy(LcdData.setData.ErWeiCode[i],thaisen_app_get_gunno_qrcode(i)->qrcode,thaisen_app_get_gunno_qrcode(i)->qrcode_len);
