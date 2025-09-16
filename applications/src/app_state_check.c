@@ -27,7 +27,7 @@
 #define APP_OUT_UV_STEP_FILTER           1     /** 输出欠压检测步骤：过渡阶段(滤波) */
 #define APP_OUT_UV_STEP_ABNORMAL         2     /** 输出欠压检测步骤：异常 */
 #define APP_OUT_UV_FILTER_VALUE          1000  /** 输出欠压检测过渡差值(0.01V) */
-#define APP_OUT_UV_VERIFY_TIME           (4900 /APP_STATE_CHECK_PERIOD)     /** 输出欠压发生确认时间(ms) */
+#define APP_OUT_UV_VERIFY_TIME           (6900 /APP_STATE_CHECK_PERIOD)     /** 输出欠压发生确认时间(ms) */
 
 #define APP_OUT_OC_STEP_NORMAL           0     /** 输出过流检测步骤：正常 */
 #define APP_OUT_OC_STEP_FILTER           1     /** 输出过流检测步骤：过渡阶段(滤波) */
