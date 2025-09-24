@@ -307,7 +307,7 @@ static void app_out_uv_check(uint8_t gunno)
     uint32_t out_volt_value = app_get_out_volt_value(gunno);
     struct ofsm_info *ofsm = get_ofsm_info(gunno);
 
-    if(ofsm->state != APP_OFSM_STATE_CHARGING){
+    if((ofsm->state != APP_OFSM_STATE_CHARGING) || (thaisen_get_charging_pause_activate(gunno) == thaisenChargingPause)){
         s_state_check[gunno].out_uv_step = APP_OUT_UV_STEP_NORMAL;
         s_state_check[gunno].out_uv_count = 0x00;
         /** 清除故障 */
