@@ -36,6 +36,22 @@ uint8_t app_is_out_uv(uint8_t gunno);
  **********************************/
 uint8_t app_is_out_oc(uint8_t gunno);
 
+/***********************************
+ * 函数名      app_acrelay_action_magnetic
+ * 功能          磁保持类交流接触器动作
+ * 参数
+ * 返回
+ **********************************/
+void app_acrelay_action_magnetic(void);
+
+/***********************************
+ * 函数名      app_acrelay_release_magnetic
+ * 功能          磁保持类交流接触器释放
+ * 参数
+ * 返回
+ **********************************/
+void app_acrelay_release_magnetic(void);
+
 /*****************************
  * 函数名      app_state_check_init
  * 功能          状态检测部分初始化

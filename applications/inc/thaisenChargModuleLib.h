@@ -857,6 +857,64 @@ void thaisenSetIncludeAcRelayState(uint8_t state);
  */
 uint8_t thaisenIsIncludeAcRelay(void);
 
+/*************************************************** 模块输入电源连接状态 ****************************************************/
+/* 功能说明:
+ *          thaisenSetIncludeAcRelayState: 设置模块输入电源连接状态
+ *
+ * 输入参数:           state (1:已连接，0:未连接)
+ *
+ * 返回参数:
+ *
+ * 调用方法:
+ *          可实时调用
+ */
+void thaisenModule_SetInPowerConnectState(uint8_t state);
+
+/* 功能说明:
+ *          thaisenModule_IsInPowerConnected: 获取模块输入电源连接状态
+ *
+ * 输入参数:
+ *
+ * 返回参数:         (1:已连接，0:未连接)
+ *
+ * 调用方法:
+ *          可实时调用
+ */
+uint8_t thaisenModule_IsInPowerConnected(void);
+
+/*************************************************** 模块输入电源类型 ****************************************************/
+enum
+{
+    THAISEN_MODULE_INPOWER_TYPE_CONTROL_FB,          /** 模块输入电源类型：需要控制而且有反馈 */
+    THAISEN_MODULE_INPOWER_TYPE_ONLY_CONTROL,        /** 模块输入电源类型：需要控制但是控制无反馈 */
+    THAISEN_MODULE_INPOWER_TYPE_DIRECTLY,            /** 模块输入电源类型：直连的 */
+    THAISEN_MODULE_INPOWER_TYPE_SIZE,                /** 模块输入电源类型： */
+};
+
+/* 功能说明:
+ *          thaisenModule_SetInPowerType: 设置模块输入电源类型
+ *
+ * 输入参数:           type     类型
+ *
+ * 返回参数:
+ *
+ * 调用方法:
+ *          可实时调用
+ */
+void thaisenModule_SetInPowerType(uint8_t type);
+
+/* 功能说明:
+ *          thaisenModule_GetInPowerType: 获取模块输入电源类型
+ *
+ * 输入参数:
+ *
+ * 返回参数:        模块输入电源类型
+ *
+ * 调用方法:
+ *          可实时调用
+ */
+uint8_t thaisenModule_GetInPowerType(void);
+
 typedef enum
 {
     THAISEN_MODULE_FAULT_OUT_OV,                          /* 故障：输出过压 */
