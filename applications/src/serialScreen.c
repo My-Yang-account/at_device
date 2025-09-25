@@ -500,6 +500,7 @@ struct LCD_DISPLAY_SETDATA_TYPE{
     u16 AllocWay;                           //分配方式
     u16 DevType;                            //设备类型
     u16 NetType;                            //联网方式
+    u16 LPModule;                           //低功耗模块
 	u16 RmType;								//模块类型
 	u8 AgunRmNum;							//A枪模块个数
 	u8 BgunRmNum;							//B枪模块个数
@@ -3294,7 +3295,6 @@ void SerialScreen_BtnModuleGet(void)
     u16 Max_Limit_Current = 0;
     u16 Min_Limit_Current = 0;
 
-	sSCREEN_EVENT_DEBUGMSG("##########ModuleGet###########\r\n");
 	mem_set(LcdData.setData.ModuleGroupNum, 0, sizeof(LcdData.setData.ModuleGroupNum));
 	mem_set(LcdData.setData.ModuleNum,0,sizeof(LcdData.setData.ModuleNum));
 	mem_set(LcdData.setData.RmType,0,sizeof(LcdData.setData.RmType));
@@ -3308,7 +3308,6 @@ void SerialScreen_BtnModuleGet(void)
         ModuleGroup = MODULE_GROUP_NUMBER_DEFAULT;
 
 	LcdData.setData.ModuleGroupNum = ModuleGroup;
-	sSCREEN_EVENT_DEBUGMSG("ModuleGroupNum=%d RmType=%d\r\n",LcdData.setData.ModuleGroupNum,LcdData.setData.RmType);
 	for(i= 0; i < LcdData.setData.ModuleGroupNum; i++)
 	{
 	    ModuleNumberSingle = *(UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_MODULE_NUM_GROUP_1+i, 0));
@@ -3316,8 +3315,11 @@ void SerialScreen_BtnModuleGet(void)
 	        ModuleNumberSingle = MODULE_NUMBER_SINGLE_DEFAULT;
 
 		LcdData.setData.ModuleNum[i] = ModuleNumberSingle;
-		sSCREEN_EVENT_DEBUGMSG("ModuleNum[%d]=%d ",i,LcdData.setData.ModuleNum[i]);
 	}
+	LcdData.setData.LPModule = *(UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_LP_MODULE, 0));
+    if(LcdData.setData.LPModule >= CONFIG_LP_CONSUMPTION_MODULE_SIZE){
+        LcdData.setData.LPModule = CONFIG_LP_CONSUMPTION_MODULE_NULL;
+    }
 
     LcdData.setData.Rated_Output_Voltage = *(u16 *)(UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_RATED_OUTPUT_VOLTAGE, 0));
     LcdData.setData.Max_Output_Voltage = *(u16 *)(UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_MAX_OUTPUT_VOLTAGE, 0));
@@ -3454,6 +3456,11 @@ static void SerialScreen_BtnModuleInfoJudge(u32 *ret)
         result |= (1 <<SSCREEN_MODULE_MIN_LCURR_POSITION);
     }
 
+    if(LcdData.setData.LPModule >= CONFIG_LP_CONSUMPTION_MODULE_SIZE){
+        LcdData.setData.LPModule = CONFIG_LP_CONSUMPTION_MODULE_NULL;
+//        result |= (1 <<SSCREEN_MODULE_PROTOCOL_POSITION);
+    }
+
     LcdData.setData.Rated_Output_Voltage = Rated_Output_Voltage;
     LcdData.setData.Max_Output_Voltage = Max_Output_Voltage;
     LcdData.setData.Min_Output_Voltage = Min_Output_Voltage;
@@ -3479,7 +3486,7 @@ static void SerialScreen_BtnModuleInfoJudge(u32 *ret)
 void SerialScreen_BtnModuleSet(void)
 {
     u32 power = 0;
-    u8 ModuleModel = LcdData.setData.RmType;
+    u8 data = LcdData.setData.RmType;
 
     SerialScreen_JumpPage(&SerialScreen, LCD_PAGE_STORAGE_WAITING);
 
@@ -3492,7 +3499,7 @@ void SerialScreen_BtnModuleSet(void)
         UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_MODULE_NUM_GROUP_1+i,&LcdData.setData.ModuleNum[i], sizeof(LcdData.setData.ModuleNum[i]));
     }
     UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_MODULE_GROUP_NUM, &LcdData.setData.ModuleGroupNum, sizeof(LcdData.setData.ModuleGroupNum));
-    UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_MODULE_MODEL, &ModuleModel, sizeof(ModuleModel));
+    UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_MODULE_MODEL, &data, sizeof(data));
 
     UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_RATED_OUTPUT_VOLTAGE, &LcdData.setData.Rated_Output_Voltage, sizeof(LcdData.setData.Rated_Output_Voltage));
     UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_MAX_OUTPUT_VOLTAGE, &LcdData.setData.Max_Output_Voltage, sizeof(LcdData.setData.Max_Output_Voltage));
@@ -3500,6 +3507,9 @@ void SerialScreen_BtnModuleSet(void)
     UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_RATED_LIMIT_CURRENT, &LcdData.setData.Rated_Limit_Current, sizeof(LcdData.setData.Rated_Limit_Current));
     UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_MAX_LIMIT_CURRENT, &LcdData.setData.Max_Limit_Current, sizeof(LcdData.setData.Max_Limit_Current));
     UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_MIN_LIMIT_CURRENT, &LcdData.setData.Min_Limit_Current, sizeof(LcdData.setData.Min_Limit_Current));
+
+    data = LcdData.setData.LPModule;
+    UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_LP_MODULE, &data, sizeof(data));
 
     LcdAssistantData.Flag.IsConfigFail = TRUE;
     if(UI_STORAGE_CFG_DATA >= 0){
@@ -5352,9 +5362,15 @@ void SerialScreen_BtnModuleStartA(void)
         return;
     }
 
-    thaisen_relay_AC_on();                      /** 闭合 */
-    SerialScreen_SendIco(&SerialScreen, 0x4172, TRUE);
+   SerialScreen_SendIco(&SerialScreen, 0x4172, TRUE);
+    if(LcdData.setData.LPModule == CONFIG_LP_CONSUMPTION_MODULE_YN){
+        extern void app_acrelay_action_magnetic(void);
+        app_acrelay_action_magnetic();
+    }else{
+        thaisen_relay_AC_on();                      /** 闭合 */
+    }
     LcdData.setData.s_acRely = TRUE;
+
     LcdData.setData.s_moduleVol[LCD_GUN_1] = SerialScreen_GetPara_ValidValue(LcdData.setData.s_moduleVol[LCD_GUN_1],
             COMPULSION_SET_VOLTAGE_DEF, COMPULSION_SET_VOLTAGE_MIN, COMPULSION_SET_VOLTAGE_MAX);
 #ifdef SCREEN_USING_DOUBLE_GUN
@@ -5383,8 +5399,14 @@ void SerialScreen_BtnModuleStartB(void)
         return;
     }
 
-    thaisen_relay_AC_on();                      /** 闭合 */
     SerialScreen_SendIco(&SerialScreen, 0x4172, TRUE);
+    if(LcdData.setData.LPModule == CONFIG_LP_CONSUMPTION_MODULE_YN){
+        extern void app_acrelay_action_magnetic(void);
+        app_acrelay_action_magnetic();
+    }else{
+        thaisen_relay_AC_on();                      /** 闭合 */
+    }
+
     LcdData.setData.s_acRely = TRUE;
 
     LcdData.setData.s_moduleVol[LCD_GUN_2] = SerialScreen_GetPara_ValidValue(LcdData.setData.s_moduleVol[LCD_GUN_2],
@@ -6776,10 +6798,21 @@ void SerialScreen_BtnAcSet(void)
 	 SerialScreen_SendIco(&SerialScreen, 0x4172, LcdData.setData.s_acRely);
 	 SerialScreen_SendIco(&SerialScreen, 0x5172, LcdData.setData.s_acRely);
 
-	if(LcdData.setData.s_acRely != TRUE)
-		thaisen_relay_AC_off();
-	else
-		thaisen_relay_AC_on();
+	if(LcdData.setData.s_acRely != TRUE){
+        if(LcdData.setData.LPModule == CONFIG_LP_CONSUMPTION_MODULE_YN){
+            extern void app_acrelay_release_magnetic(void);
+            app_acrelay_release_magnetic();
+        }else{
+            thaisen_relay_AC_off();                      /** 断开 */
+        }
+	}else{
+	    if(LcdData.setData.LPModule == CONFIG_LP_CONSUMPTION_MODULE_YN){
+	        extern void app_acrelay_action_magnetic(void);
+	        app_acrelay_action_magnetic();
+	    }else{
+	        thaisen_relay_AC_on();                      /** 闭合 */
+	    }
+	}
 }
 
 void SerialScreen_BtnDcSetA()
@@ -7130,8 +7163,13 @@ void SerialScreen_BtnSelfCheckSet(void)
     /*************************************************** 交流接触器 ***************************************************/
     ret = SCREEN_RET_SUCCESS;
     memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
-    thaisen_relay_AC_on();                      /** 闭合 */
     SerialScreen_SendIco(&SerialScreen, 0x4172, TRUE);
+    if(LcdData.setData.LPModule == CONFIG_LP_CONSUMPTION_MODULE_YN){
+        extern void app_acrelay_action_magnetic(void);
+        app_acrelay_action_magnetic();
+    }else{
+        thaisen_relay_AC_on();                      /** 闭合 */
+    }
     rt_thread_mdelay(SCREEN_WAIT_FB_TIME);      /** 等待状态 */
     fb[0] = !thaisen_relay_AC_FB();
     if(fb[0] != TRUE){
@@ -7166,7 +7204,12 @@ void SerialScreen_BtnSelfCheckSet(void)
 
     ret = SCREEN_RET_SUCCESS;
     memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
-    thaisen_relay_AC_off();                     /** 断开 */
+    if(LcdData.setData.LPModule == CONFIG_LP_CONSUMPTION_MODULE_YN){
+        extern void app_acrelay_release_magnetic(void);
+        app_acrelay_release_magnetic();
+    }else{
+        thaisen_relay_AC_off();                      /** 断开 */
+    }
     SerialScreen_SendIco(&SerialScreen, 0x4172, FALSE);
     rt_thread_mdelay(SCREEN_WAIT_FB_TIME);      /** 等待状态 */
     fb[0] = !thaisen_relay_AC_FB();
@@ -11854,6 +11897,7 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_4, NULL, "COM_2", LCD_BtnType, 0x000B, 0x1000, page_type, LCD_PAGE_MENU_COM_2, (void *)SerialScreen_BtnServerGet);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_4, NULL, "COM_3", LCD_BtnType, 0x000C, 0x1000, page_type, LCD_PAGE_MENU_COM_3, (void *)SerialScreen_BtnMeterNoInfoGet);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_4, NULL, "COM_7", LCD_BtnType, 0x001C, 0x1000, page_type, LCD_PAGE_MENU_COM_7, (void *)NULL);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_4, NULL, "LPModule", LCD_InputType, 0, 0x6D22, menu_type, sizeof(LcdData.setData.LPModule), (void *)&LcdData.setData.LPModule);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_4, NULL, "Rm Pro", LCD_InputType, 0, 0x1340, menu_type, sizeof(LcdData.setData.RmType), (void *)&LcdData.setData.RmType);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_4, NULL, "Group Num", LCD_InputType, 0, 0x1350, pu8_type, sizeof(LcdData.setData.ModuleGroupNum), (void *)&LcdData.setData.ModuleGroupNum);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_4, NULL, "Group1 Num", LCD_InputType, 0, 0x1352, pu8_type, sizeof(LcdData.setData.ModuleNum[0]), (void *)&LcdData.setData.ModuleNum[0]);

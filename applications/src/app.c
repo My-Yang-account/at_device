@@ -45,7 +45,7 @@
 #define APP_DUPU_THREAD                 0       /* 监控 杜普 线程 */
 #endif /* CP_CONFIG_USING_DUPU */
 
-#define APP_APPLICATION_THREAD_MAX      (19 + APP_CAN_THREAD + APP_DUPU_THREAD)      /** 应用线程数量 */
+#define APP_APPLICATION_THREAD_MAX      (20 + APP_CAN_THREAD + APP_DUPU_THREAD)      /** 应用线程数量 */
 
 #pragma pack(1)
 

@@ -246,6 +246,9 @@
 #define POWER_ALLOCATION_WAY_POWER_PRIORITY       2           /* 功率分配方式:功率优先 */
 #define POWER_ALLOCATION_WAY_SIZE                 3           /* 功率分配方式 */
 
+#define CONFIG_LP_CONSUMPTION_MODULE_NULL         0           /* 低功耗模块：无 */
+#define CONFIG_LP_CONSUMPTION_MODULE_YN           1           /* 低功耗模块：易能 */
+#define CONFIG_LP_CONSUMPTION_MODULE_SIZE         2           /* 低功耗模块 */
 #define SYSTEM_FUNCTION_SINGLE_TERMINAL           0         /* 单枪超充 */
 #define SYSTEM_FUNCTION_AVERAGE_DOUBLE            1         /* 均充双枪 */
 #define SYSTEM_FUNCTION_DOUBLE_WHOLE              2         /* 双枪终端 */
@@ -591,6 +594,7 @@ enum config_name{
     CONFIG_ITEM_SYSTEM_POWER_TOTAL,
     CONFIG_ITEM_ALLOCATION_WAY,
     CONFIG_ITEM_DEVICE_TYPE,
+    CONFIG_ITEM_LP_MODULE,
     CONFIG_ITEM_GUNVOLT_LIMIT,
     CONFIG_ITEM_VIN_WHITELIST,
     CONFIG_ITEM_CARD_WHITELIST,

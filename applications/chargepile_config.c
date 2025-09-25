@@ -159,7 +159,8 @@ struct _config_info{
     uint8_t ammeter_baudrate;                                         /* 电表串口波特率 */
     uint8_t register_code[CP_INFO_REGISTER_CODE_LEN_MAX];             /* 注册码 */
     uint8_t card_key[CP_INFO_CARD_KEY_LEN_MAX];                       /* 卡密钥 */
-    uint8_t reserve[256 - 82];                                        /* 保留 */
+    uint8_t lp_consumption_module;                                    /* 低功耗模块(lp:low power) */
+    uint8_t reserve[256 - 83];                                        /* 保留 */
 };
 
 struct _function_enable{
@@ -767,6 +768,12 @@ APP_DEF_SRAM2 static struct config_item s_config_item_set[CONFIG_ITEM_SIZE] =
         {CONFIG_ITEM_DEVICE_TYPE,                                                        /* 设备类型 */
         (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_info.system_function)),
         (uint8_t*)&s_chargepile_config_info.config_info.system_function,
+        NULL},
+
+
+        {CONFIG_ITEM_LP_MODULE,                                                        /* 低功耗模块 */
+        (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_info.lp_consumption_module)),
+        (uint8_t*)&s_chargepile_config_info.config_info.lp_consumption_module,
         NULL},
 
         {CONFIG_ITEM_GUNVOLT_LIMIT,                                                       /* 枪头电压限值 */
@@ -1727,6 +1734,7 @@ static void chargepile_config_data_reset(void)
     for(uint8_t count = 0x00; count < s_chargepile_config_info.config_info.module_group_num; count++){
         s_chargepile_config_info.config_info.module_num_singlegroup[count] = MODULE_NUMBER_SINGLE_DEFAULT;
     }
+	s_chargepile_config_info.config_info.lp_consumption_module = CONFIG_LP_CONSUMPTION_MODULE_NULL;
 
     s_chargepile_config_info.config_info.gunvolt_limit = GUNVOLT_LIMIT_VALUE_MIN;
     s_chargepile_config_info.config_info.gun_num = 0x02;
@@ -2055,6 +2063,11 @@ int32_t chargepile_check_config(void)
     /** 设备类型默认均充双枪(注：这是普通双枪版本做法，其它版本需要根据实际来) */
     if(s_chargepile_config_info.config_info.system_function != SYSTEM_FUNCTION_DYNAMIC_SWITCH){
         s_chargepile_config_info.config_info.system_function = SYSTEM_FUNCTION_AVERAGE_DOUBLE;
+    }
+    /** 低功耗模块默认无 */
+    s_chargepile_config_info.config_info.lp_consumption_module = CONFIG_LP_CONSUMPTION_MODULE_NULL;
+    if(s_chargepile_config_info.config_info.lp_consumption_module >= CONFIG_LP_CONSUMPTION_MODULE_SIZE){
+        s_chargepile_config_info.config_info.lp_consumption_module = CONFIG_LP_CONSUMPTION_MODULE_NULL;
     }
 
     /** 电表串口校验方式模式偶校验 */
