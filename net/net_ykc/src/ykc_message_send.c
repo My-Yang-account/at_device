@@ -919,7 +919,7 @@ static void net_ykc_message_send_thread_entry(void *parameter)
                 rt_thread_mdelay(250);
             }
             /***** [交易记录] *****/
-            if(s_ykc_flag_set.is_set_time>0x00){
+            if(s_ykc_flag_set.is_set_time>0x00 || net_operation_get_event(0x00, NET_OPERATION_EVENT_SYNC_MONITOR)){
                 if(ykc_net_event_receive(NET_YKC_EVENT_HANDLE_CHARGEPILE, NET_YKC_EVENT_TYPE_REQUEST, gunno,
                         (NET_YKC_EVENT_OPTION_OR |NET_YKC_EVENT_OPTION_CLEAR), NET_YKC_PREQ_EVENT_TRANSACTION_RECORD, NULL) > 0){
 

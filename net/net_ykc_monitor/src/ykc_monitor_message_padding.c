@@ -1228,6 +1228,7 @@ int8_t ykc_monitor_message_pro_time_sync_request(void *data, uint8_t len)
             request->body.current_time.cp56time2a_tm.min, request->body.current_time.cp56time2a_tm.msec /1000);
 
     net_operation_set_event(0x00, NET_OPERATION_EVENT_TIME_SYNC);
+    net_operation_set_event(0x00, NET_OPERATION_EVENT_SYNC_MONITOR);
 
     return 0x00;
 }
