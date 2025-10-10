@@ -128,7 +128,19 @@
 #define NET_SYSTEM_DATA_NAME_SOFTWARE_MODEL            0x20    /* 系统数据名： 软件型号*/
 #define NET_SYSTEM_DATA_NAME_DEV_TYPE                  0x21    /* 系统数据名： 设备类型*/
 #define NET_SYSTEM_DATA_NAME_SCREEN_PW                 0x22    /* 系统数据名： 屏幕密码*/
-#define NET_SYSTEM_DATA_NAME_SIZE                      0x23
+//////////////////////////////////////
+#define NET_SYSTEM_DATA_NAME_SUPPORT_PLUG_AND_PLAY     0x23        /* 系统数据名：即插即充(VIN码充电)支持开关 */
+#define NET_SYSTEM_DATA_NAME_SUPPORT_SWIP_CARD         0x24        /* 系统数据名：刷卡充电支持开关 */
+#define NET_SYSTEM_DATA_NAME_ENABLE_GUN_VOLTAGE_10V    0x25        /* 系统数据名：外侧电压大于10V功能开关（开启关闭绝缘检查兼容逻辑设计） */
+//#define NET_SYSTEM_DATA_NAME_ENABLE_BMS_FAULT_STOP     0x26      /* 系统数据名：BSM故障停止充电的开关 */
+#define NET_SYSTEM_DATA_NAME_ENABLE_ELOCK_DETECT       0x27        /* 系统数据名：电子锁故障检测的开关 */
+#define NET_SYSTEM_DATA_NAME_ENABLE_DOOR_DETECT        0x28        /* 系统数据名：门禁检测的开关 */
+#define NET_SYSTEM_DATA_NAME_ENABLE_DOUBLEGUN_CHARGE   0x29        /* 系统数据名：双枪并充功能 */
+#define NET_SYSTEM_DATA_NAME_ENABLE_CHARGE_OFFLINE     0x2A        /* 系统数据名：离线充电功能 */
+#define NET_SYSTEM_DATA_NAME_ENABLE_AUX_DETECT         0x2B        /* 系统数据名：12/24V辅助电源选择功能开关 */
+#define NET_SYSTEM_DATA_NAME__GUN_VOLTAGE_RANGE         0x2C       /* 系统数据名：外侧电压大于阀值 */
+//////////////////////////////////////
+#define NET_SYSTEM_DATA_NAME_SIZE                      0x2D
 
 /** operator name */
 #define NET_OPERATOR_NAME_CHINA_MOBILE                 0x00    /* 运营商名称：中国移动*/
