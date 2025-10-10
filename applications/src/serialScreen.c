@@ -10268,12 +10268,19 @@ void SerialScreen_GetKeyProcess(struct SerialScreenObj *cmd)
                     }
 
                     if(is_pw_correct){
-                        if(LcdAssistantData.SeveralGunFlag[LcdData.gunIndex].IsPWStartAuthen == TRUE){
-                            if(LcdData.gunIndex < LCD_GUN_NUM){
+                        if((LcdAssistantData.SeveralGunFlag[LcdData.gunIndex].IsPWStartAuthen == TRUE) && (LcdData.gunIndex < LCD_GUN_NUM)){
+                            /** 密码鉴权期间，枪口状态必须为插枪 */
+                            if(LcdData.gun[LcdData.gunIndex].workState == SysMainStatus_PlugIn){
                                 SerialScreen_PWStartCharge(LcdData.gunIndex);
                                 LcdData.CurrentPage = (LCD_PAGE_A_START + LcdData.gunIndex);
                                 SerialScreen_JumpPage(&SerialScreen, LcdData.CurrentPage);
                                 LcdAssistantData.SeveralGunFlag[LcdData.gunIndex].IsStarting = TRUE;
+                            }else{
+                                /** 鉴权期间拔枪了 */
+                                LcdData.Homeflg = 1;
+                                LcdData.CurrentPage = LCD_PAGE_STANDBY;
+                                SerialScreen_JumpPage(&SerialScreen, LcdData.CurrentPage);
+                                LcdAssistantData.SeveralGunFlag[LcdData.gunIndex].IsStarting = FALSE;
                             }
                         }else{
                             if(LcdAssistantData.Flag.IsLongLiSerialScreen){
@@ -10861,10 +10868,12 @@ int SerialScreen_DataProcess()
                 LcdAssistantData.SeveralGunFlag[i].IsVinStart = FALSE;
 
 				LcdData.gun[i].workState = SysMainStatus_StandBy;
-		        LcdAssistantData.SeveralGunFlag[i].IsPWStartAuthen = FALSE;
-	            LcdAssistantData.SeveralGunFlag[i].IsLocalStart = FALSE;
-
 		        SerialScreen_Screen_ResetModeInfoDef(i);
+                /** 密码鉴权期间不允许清除鉴权标志 */
+                if((LcdData.CurrentPage != LCD_PAGE_ADMIN_PASWD) && (LcdData.CurrentPage != LCD_PAGE_PASWD_ERR)){
+                    LcdAssistantData.SeveralGunFlag[i].IsPWStartAuthen = FALSE;
+                    LcdAssistantData.SeveralGunFlag[i].IsLocalStart = FALSE;
+                }
                 LcdAssistantData.SeveralGunFlag[i].IsStarting = FALSE;
 				break;
 			case APP_OFSM_STATE_READYING:
@@ -10921,8 +10930,11 @@ int SerialScreen_DataProcess()
 				break;
 			case APP_OFSM_STATE_FAULTING:
 				LcdData.gun[i].workState = SysMainStatus_Err;
-		        LcdAssistantData.SeveralGunFlag[i].IsPWStartAuthen = FALSE;
-	            LcdAssistantData.SeveralGunFlag[i].IsLocalStart = FALSE;
+                /** 密码鉴权期间不允许清除鉴权标志 */
+                if((LcdData.CurrentPage != LCD_PAGE_ADMIN_PASWD) && (LcdData.CurrentPage != LCD_PAGE_PASWD_ERR)){
+                    LcdAssistantData.SeveralGunFlag[i].IsPWStartAuthen = FALSE;
+                    LcdAssistantData.SeveralGunFlag[i].IsLocalStart = FALSE;
+                }
                 LcdAssistantData.SeveralGunFlag[i].IsStarting = FALSE;
 				break;	
 			default:
