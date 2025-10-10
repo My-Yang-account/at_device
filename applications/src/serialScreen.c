@@ -354,6 +354,7 @@ struct LCD_ASSISTANT_DATA{
         u16 Aux24VNotice : 1;            //辅源24V选择提示
         u16 IsSetReservation : 1;        //已设置预约
         u16 IsLocalStart : 1;            //是本地启动
+        u16 IsStarting : 1;              //已启动
     }SeveralGunFlag[LCD_GUN_NUM];
 
     u8 OccupyGunNum;                     //处于占用但未充电的枪数量
@@ -2868,14 +2869,18 @@ void SerialScreen_VinStartChargeB(void)
 
 void SerialScreen_PWStartCharge(u8 port)
 {
+    if(port >= LCD_GUN_NUM)
+        return;
     if(LcdAssistantData.SeveralGunFlag[port].IsLocalStart == TRUE){
         if(TRUE == LcdData.setData.sup_Local)
             thaisen_app_set_screen_start_charge(port);
-        else ;
+        else
+            LcdAssistantData.SeveralGunFlag[port].IsStarting = FALSE;
     }else{
-        if(TRUE == LcdData.setData.sup_pw_start){
+        if(TRUE == LcdData.setData.sup_pw_start)
             thaisen_app_set_password_start_charge(port);
-        }else;
+        else
+            LcdAssistantData.SeveralGunFlag[port].IsStarting = FALSE;
     }
 }
 
@@ -9630,6 +9635,9 @@ void SerialScreen_PageReset(int GunIdx)
 	        return;
 	    }
 	}
+    if((LcdAssistantData.SeveralGunFlag[GunIdx].IsStarting == TRUE) && (LcdData.gun[GunIdx].workState != SysMainStatus_StartReady)){
+        return;
+    }
 
 	if(LcdData.Homeflg>0) //首页标志
 	{
@@ -10261,7 +10269,12 @@ void SerialScreen_GetKeyProcess(struct SerialScreenObj *cmd)
 
                     if(is_pw_correct){
                         if(LcdAssistantData.SeveralGunFlag[LcdData.gunIndex].IsPWStartAuthen == TRUE){
-                            SerialScreen_PWStartCharge(LcdData.gunIndex);
+                            if(LcdData.gunIndex < LCD_GUN_NUM){
+                                SerialScreen_PWStartCharge(LcdData.gunIndex);
+                                LcdData.CurrentPage = (LCD_PAGE_A_START + LcdData.gunIndex);
+                                SerialScreen_JumpPage(&SerialScreen, LcdData.CurrentPage);
+                                LcdAssistantData.SeveralGunFlag[LcdData.gunIndex].IsStarting = TRUE;
+                            }
                         }else{
                             if(LcdAssistantData.Flag.IsLongLiSerialScreen){
                                 LcdData.CurrentPage = LCD_PAGE_SYS_INFO;
@@ -10852,6 +10865,7 @@ int SerialScreen_DataProcess()
 	            LcdAssistantData.SeveralGunFlag[i].IsLocalStart = FALSE;
 
 		        SerialScreen_Screen_ResetModeInfoDef(i);
+                LcdAssistantData.SeveralGunFlag[i].IsStarting = FALSE;
 				break;
 			case APP_OFSM_STATE_READYING:
 			case APP_OFSM_STATE_RESERVATION:
@@ -10879,6 +10893,7 @@ int SerialScreen_DataProcess()
                 LcdTriggerEvent[i].Flag.IsWaitPay = FALSE;
                 LcdTriggerEvent[i].Flag.IsPayed = FALSE;
 #endif /* SCREEN_USING_OFFLINE_BILLING */
+                LcdAssistantData.SeveralGunFlag[i].IsStarting = FALSE;
 				break;	
 			case APP_OFSM_STATE_CHARGING:
                 if(thaisen_is_stoped_charge(i)){
@@ -10888,23 +10903,27 @@ int SerialScreen_DataProcess()
                 }
 		        LcdAssistantData.SeveralGunFlag[i].IsPWStartAuthen = FALSE;
 	            LcdAssistantData.SeveralGunFlag[i].IsLocalStart = FALSE;
+                LcdAssistantData.SeveralGunFlag[i].IsStarting = FALSE;
 				break;
 			case APP_OFSM_STATE_STOPING:
 				LcdData.gun[i].workState = SysMainStatus_StopChg;
                 LcdAssistantData.SeveralGunFlag[i].IsPWStartAuthen = FALSE;
                 LcdAssistantData.SeveralGunFlag[i].IsLocalStart = FALSE;
+                LcdAssistantData.SeveralGunFlag[i].IsStarting = FALSE;
                 SerialScreen_Screen_ResetModeInfoDef(i);
 				break;	
 			case APP_OFSM_STATE_FINISHING:
 				LcdData.gun[i].workState = SysMainStatus_Account;
 		        LcdAssistantData.SeveralGunFlag[i].IsPWStartAuthen = FALSE;
 	            LcdAssistantData.SeveralGunFlag[i].IsLocalStart = FALSE;
+                LcdAssistantData.SeveralGunFlag[i].IsStarting = FALSE;
                 SerialScreen_Screen_ResetModeInfoDef(i);
 				break;
 			case APP_OFSM_STATE_FAULTING:
 				LcdData.gun[i].workState = SysMainStatus_Err;
 		        LcdAssistantData.SeveralGunFlag[i].IsPWStartAuthen = FALSE;
 	            LcdAssistantData.SeveralGunFlag[i].IsLocalStart = FALSE;
+                LcdAssistantData.SeveralGunFlag[i].IsStarting = FALSE;
 				break;	
 			default:
 				break;				

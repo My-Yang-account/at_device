@@ -1110,7 +1110,6 @@ void thaisen_app_set_screen_start_charge(uint8_t gunno)
     if(gunno >= APP_SYSTEM_GUNNO_SIZE){
         return;
     }
-    rt_kprintf("screen_start_charge gunno(%d)\n", gunno);
     app_set_hci_event(gunno, HCI_EVENT_SCREEN_START);
 }
 
