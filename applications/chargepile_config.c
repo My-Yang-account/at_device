@@ -1179,6 +1179,9 @@ void sys_chargeplie_config_info_init(void)
     /** 设备类型 */
     sys_config_item_init(CONFIG_ITEM_DEVICE_TYPE, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_info.system_function)), \
             (uint8_t*)&s_chargepile_config_info.config_info.system_function, NULL);
+    /** 低功耗模块 */
+    sys_config_item_init(CONFIG_ITEM_LP_MODULE, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_info.lp_consumption_module)), \
+            (uint8_t*)&s_chargepile_config_info.config_info.lp_consumption_module, NULL);
     /** 枪头电压 */
     sys_config_item_init(CONFIG_ITEM_GUNVOLT_LIMIT, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_info.gunvolt_limit)), \
             (uint8_t*)&s_chargepile_config_info.config_info.gunvolt_limit, NULL);
