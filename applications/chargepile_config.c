@@ -159,8 +159,10 @@ struct _config_info{
     uint8_t ammeter_baudrate;                                         /* 电表串口波特率 */
     uint8_t register_code[CP_INFO_REGISTER_CODE_LEN_MAX];             /* 注册码 */
     uint8_t card_key[CP_INFO_CARD_KEY_LEN_MAX];                       /* 卡密钥 */
+    uint8_t user_name[CP_INFO_LOGIN_USER_NAME_LEN_MAX];               /* 登录用户名 */
+    uint8_t user_password[CP_INFO_LOGIN_USER_PASSWORD_LEN_MAX];       /* 登录密码 */
     uint8_t lp_consumption_module;                                    /* 低功耗模块(lp:low power) */
-    uint8_t reserve[256 - 83];                                        /* 保留 */
+    uint8_t reserve[256 - 147];                                        /* 保留 */
 };
 
 struct _function_enable{
