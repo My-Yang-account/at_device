@@ -772,6 +772,8 @@ static void state_check_thread_entry(void *parameter)
 
     while(1){
         app_thread_monitor_process(rt_thread_self(), NULL, 0x00, 0x00);
+
+        app_module_inpower_judge();
         for(gunno = 0x00; gunno < APP_SYSTEM_GUNNO_SIZE; gunno++){
             thaisenModuleSetFEnState(THAISEN_MODULE_FAULT_OUT_OV, 0x01, gunno);
             thaisenModuleSetFEnState(THAISEN_MODULE_FAULT_OUT_UV, 0x01, gunno);
