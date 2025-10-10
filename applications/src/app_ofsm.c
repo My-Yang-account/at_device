@@ -2061,6 +2061,7 @@ static void ofsm_idleing_fun(uint8_t gunno)
     {
     case CC1_12V:
     case CC1_6V:
+    case CC1_0V:
         if(s_ofsm_info[gunno].base.cc1_state == CC1_12V){
             if(s_ofsm_info[gunno].base.flag.connect_state != APP_CONNECT_STATE_HALFWAY){
                 s_ofsm_info[gunno].base.flag.connect_state = APP_CONNECT_STATE_HALFWAY;
@@ -2235,6 +2236,7 @@ static void ofsm_readying_fun(uint8_t gunno)
     case CC1_12V:
     case CC1_6V:
 #endif /* defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING) */
+    case CC1_0V:
         s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_IDLEING];
         s_ofsm_info[gunno].state = APP_OFSM_STATE_IDLEING;
 
@@ -2737,6 +2739,7 @@ static void ofsm_reservation_fun(uint8_t gunno)
     case CC1_12V:
     case CC1_6V:
 #endif /* defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING) */
+    case CC1_0V:
         if(s_ofsm_info[gunno].base.reservation_strategy &APP_RESERVATE_STRATEGY_PULLGUN_CANCEL){
             s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_IDLEING];
             s_ofsm_info[gunno].state = APP_OFSM_STATE_IDLEING;
@@ -6501,6 +6504,7 @@ static void ofsm_finishing_fun(uint8_t gunno)
     case CC1_12V:
     case CC1_6V:
 #endif /* defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING) */
+    case CC1_0V:
     {
         if(charge_state != APP_CHARGE_STATE_IDLE){
             break;                               /* 充电结束必须等待充电状态为空闲时才可响应拔枪动作，已与充电控制同步 */
@@ -6746,6 +6750,7 @@ static void ofsm_finishing_fun(uint8_t gunno)
         }
         break;
     case CC1_6V:
+    case CC1_0V:
         if(s_ofsm_info[gunno].base.flag.connect_state != APP_CONNECT_STATE_DISCONNECT){
             s_ofsm_info[gunno].base.flag.connect_state = APP_CONNECT_STATE_DISCONNECT;
             app_nsal_event_occurded(gunno);
@@ -6832,6 +6837,7 @@ static void ofsm_faulting_fun(uint8_t gunno)
             }
             break;
         case CC1_6V:
+        case CC1_0V:
             if(s_ofsm_info[gunno].base.flag.connect_state != APP_CONNECT_STATE_DISCONNECT){
                 s_ofsm_info[gunno].base.flag.connect_state = APP_CONNECT_STATE_DISCONNECT;
                 app_nsal_event_occurded(gunno);
@@ -7041,6 +7047,7 @@ static void ofsm_faulting_fun(uint8_t gunno)
             }
             break;
         case CC1_6V:
+        case CC1_0V:
             if(s_ofsm_info[gunno].base.flag.connect_state != APP_CONNECT_STATE_DISCONNECT){
                 s_ofsm_info[gunno].base.flag.connect_state = APP_CONNECT_STATE_DISCONNECT;
                 app_nsal_event_occurded(gunno);

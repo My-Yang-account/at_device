@@ -535,9 +535,12 @@ uint8_t thaisen_app_get_connect_state(uint8_t gunno) // OK
         return APP_GUN_CONNECT_STATE_NO;
     }
 
-    enum connect_state state;
+    enum connect_state state = APP_GUN_CONNECT_STATE_NO;
     struct ofsm_info *ofsm_temp = get_ofsm_info(gunno);
 
+    if(ofsm_temp->base.flag.connect_state == APP_CONNECT_STATE_CONNECT){
+        return APP_GUN_CONNECT_STATE_YES;
+    }
     switch(ofsm_temp->base.cc1_state)
     {
     case CC1_12V:
