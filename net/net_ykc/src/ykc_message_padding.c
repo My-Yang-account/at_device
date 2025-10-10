@@ -1513,6 +1513,10 @@ void ykc_chargepile_request_padding_realtime_data(uint8_t gunno, uint8_t is_init
                 struct thaisenBMS_Charger_struct *bms = (struct thaisenBMS_Charger_struct*)(base->bms_data);
 
                 g_ykc_preq_report_realtime_data[gunno].body.output_voltage = base->voltage_a /10;
+                if((g_ykc_preq_report_realtime_data[gunno].body.output_current == 0x00) && (base->current_a /10 != 0x00)){
+                    s_ykc_realtime_data_count[gunno] = rt_tick_get();
+                    ykc_net_event_send(NET_YKC_EVENT_HANDLE_CHARGEPILE, NET_YKC_EVENT_TYPE_REQUEST, gunno, NET_YKC_PREQ_EVENT_REPORT_REALTIME_DATA);
+                }
                 g_ykc_preq_report_realtime_data[gunno].body.output_current = base->current_a /10;
                 if(base->gunline_temperature[0] > base->gunline_temperature[1]){
                     g_ykc_preq_report_realtime_data[gunno].body.gun_temperature = (base->gunline_temperature[0] /10 + 50);
