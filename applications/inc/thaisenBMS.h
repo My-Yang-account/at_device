@@ -76,6 +76,7 @@ struct thaisenBCPstruct
         int16_t  BatAlowHigTemp;    //最高允许充电温度   0.1°/bit   偏移-50
         uint16_t SOC;               //动力电池电荷状态   0.1%/bit
         uint16_t BatVolt;             //动力电池当前电压   0.1V/bit
+        uint16_t BatVoltTemp;       //动力电池当前电压   0.1V/bit
         uint16_t  rev_info;
 };
 
