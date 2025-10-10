@@ -95,6 +95,9 @@
 
 #define CP_INFO_CARD_KEY_LEN_MAX           12                      /* 卡密钥最大长度 */
 
+#define CP_INFO_LOGIN_USER_NAME_LEN_MAX    32                      /* 登录用户名最大长度 */
+#define CP_INFO_LOGIN_USER_PASSWORD_LEN_MAX 32                     /* 登录密码最大长度 */
+
 #define CARD_NUMBER_LENGTH_DEF             0x10                    /* 卡号长度默认值 */
 #define CARD_NUMBER_LENGTH_MIN             0x06                    /* 卡号长度最小值 */
 #define CARD_NUMBER_LENGTH_MAX             0x10                    /* 卡号长度最大值 */
