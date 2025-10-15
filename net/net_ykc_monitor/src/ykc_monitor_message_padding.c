@@ -15,6 +15,7 @@
 #include "chargepile_config.h"
 #include "net_operation.h"
 #include "thaisenChargModuleLib.h"
+#include "thaisenChargLib.h"
 #include "app_data_info_interface.h"
 
 #define DBG_TAG "ykc_mrl"
@@ -2888,16 +2889,7 @@ static uint16_t ykc_monitor_chargepile_stop_reason_converted(void *handle, uint1
         break;
     /* 车机停止 */
     case APP_SYSTEM_STOP_WAY_BST:
-        _reason = NETYKC_MONITOR_AS_REASON82_CAR_COMMAND_STOP;
-        if(_transaction){
-            if(_transaction->bms_fault_reason.battery_ot){
-                _reason = NETYKC_MONITOR_AS_REASON7C_BATTERY_GROUP_OVERTEMP;
-            }else if(_transaction->bms_error_reason.over_current){
-                _reason = NETYKC_MONITOR_AS_REASON7A_CHARGE_TCURRENT_ABNORMAL;
-            }else if(_transaction->bms_error_reason.volt_abnormal){
-                _reason = NETYKC_MONITOR_AS_REASON79_CHARGE_TVOLTAGE_ABNORMAL;
-            }
-        }
+        _reason = NETYKC_MONITOR_AS_REASONA7_CAR_STOP;
         break;
     /* 准备电压 */
     case APP_SYSTEM_STOP_WAY_READY_VOLT:
@@ -2999,6 +2991,86 @@ static uint16_t ykc_monitor_chargepile_stop_reason_converted(void *handle, uint1
         /* 宇通BFC */
         case APP_SYSTEM_STOP_WAY_YT_BFC:
             _reason = NETYKC_MONITOR_AS_REASON9D_YT_BFC;
+            break;
+        /* 车端停详细原因：SOC达到目标值  */
+        case APP_SYSTEM_STOP_WAY_BST_TARGET_SOC:
+            _reason = NETYKC_MONITOR_AS_REASONA8_BST_TARGET_SOC;
+            break;
+        /* 车端停详细原因：总电压达到目标值  */
+        case APP_SYSTEM_STOP_WAY_BST_TARGET_TOTAL_VOLT:
+            _reason = NETYKC_MONITOR_AS_REASONA9_BST_TARGET_TVOLT;
+            break;
+        /* 车端停详细原因：单体电压达到目标值  */
+        case APP_SYSTEM_STOP_WAY_BST_TARGET_SINGLE_VOLT:
+            _reason = NETYKC_MONITOR_AS_REASONAA_BST_TARGET_SVOLT;
+            break;
+        /* 车端停详细原因：充电机主动停止  */
+        case APP_SYSTEM_STOP_WAY_BST_CHARGER_END:
+            _reason = NETYKC_MONITOR_AS_REASONAB_BST_CHARGER_END;
+            break;
+        /* 车端停详细原因：绝缘故障  */
+        case APP_SYSTEM_STOP_WAY_BST_INSULATION_FAULT:
+            _reason = NETYKC_MONITOR_AS_REASONAC_BST_INSULT;
+            break;
+        /* 车端停详细原因：输出连接器故障  */
+        case APP_SYSTEM_STOP_WAY_BST_OUT_LINKER_FAULT:
+            _reason = NETYKC_MONITOR_AS_REASONAD_BST_OUT_LINKER;
+            break;
+        /* 车端停详细原因：BMS元件故障  */
+        case APP_SYSTEM_STOP_WAY_BST_BMS_ELEMENT:
+            _reason = NETYKC_MONITOR_AS_REASONAE_BST_ELEMENT;
+            break;
+        /* 车端停详细原因：充电连接故障  */
+        case APP_SYSTEM_STOP_WAY_BST_CHARGE_LINKER_FAULT:
+            _reason = NETYKC_MONITOR_AS_REASONAF_BST_CHARGE_LINKER;
+            break;
+        /* 车端停详细原因：电池组温度故障  */
+        case APP_SYSTEM_STOP_WAY_BST_BAT_GROUP_OT:
+            _reason = NETYKC_MONITOR_AS_REASON7C_BATTERY_GROUP_OVERTEMP;
+            break;
+        /* 车端停详细原因：高压继电器故障  */
+        case APP_SYSTEM_STOP_WAY_BST_HV_RELAY:
+            _reason = NETYKC_MONITOR_AS_REASONB0_BST_HV_RELAY;
+            break;
+        /* 车端停详细原因：检测点2电压检测故障  */
+        case APP_SYSTEM_STOP_WAY_BST_DETECT_PIONT_2:
+            _reason = NETYKC_MONITOR_AS_REASONB1_BST_POINT_2;
+            break;
+        /* 车端停详细原因：充电电流过流  */
+        case APP_SYSTEM_STOP_WAY_BST_OVER_CURRENT:
+            _reason = NETYKC_MONITOR_AS_REASON7A_CHARGE_TCURRENT_ABNORMAL;
+            break;
+        /* 车端停详细原因：充电电压异常  */
+        case APP_SYSTEM_STOP_WAY_BST_ABNORMAL_VOLTAGE:
+            _reason = NETYKC_MONITOR_AS_REASON79_CHARGE_TVOLTAGE_ABNORMAL;
+            break;
+        /* BSM详细原因：单体电压异常 */
+        case APP_SYSTEM_STOP_WAY_BSM_SINGLE_BAT_OV:
+            _reason = NETYKC_MONITOR_AS_REASONB2_BSM_SVOLT;
+            break;
+        /* BSM详细原因：SOC状态异常 */
+        case APP_SYSTEM_STOP_WAY_BSM_ABNORMAL_SOC:
+            _reason = NETYKC_MONITOR_AS_REASONB3_BSM_SOC_STATE;
+            break;
+        /* BSM详细原因：电池充电过流 */
+        case APP_SYSTEM_STOP_WAY_BSM_OVER_CURRENT:
+            _reason = NETYKC_MONITOR_AS_REASONB4_BSM_OVERCURR;
+            break;
+        /* BSM详细原因：电池温度过高 */
+        case APP_SYSTEM_STOP_WAY_BSM_BATTERY_OT:
+            _reason = NETYKC_MONITOR_AS_REASONB5_BSM_BATGRP_OT;
+            break;
+        /* BSM详细原因：电池绝缘状态异常 */
+        case APP_SYSTEM_STOP_WAY_BSM_BAT_INSULATION_ABNORMAL:
+            _reason = NETYKC_MONITOR_AS_REASONB6_BSM_BAT_INSULT;
+            break;
+        /* BSM详细原因：输出连接器状态异常 */
+        case APP_SYSTEM_STOP_WAY_BSM_OUT_LINKER_ABNORMAL:
+            _reason = NETYKC_MONITOR_AS_REASONB7_BSM_OUT_LINKER;
+            break;
+        /* BSM详细原因：禁止充电 */
+        case APP_SYSTEM_STOP_WAY_BSM_FORBID:
+            _reason = NETYKC_MONITOR_AS_REASON82_CAR_COMMAND_STOP;
             break;
         default:
             break;
@@ -3999,6 +4071,8 @@ int8_t ykc_monitor_padding_starting_info(uint8_t gunno)
     int32_t value0 = 0x00, value1 = 0x00;
     System_BaseData *base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
     struct thaisenBMS_Charger_struct *bms = (struct thaisenBMS_Charger_struct*)(base->bms_data);
+    thaisenMsgRecved_t msg_recved;
+    thaisenMsgSended_t msg_sended;
 
     if(s_ykc_monitor_starting_info[gunno].count == 0x00){
         s_ykc_monitor_starting_info[gunno].timestamp = base->current_time;
@@ -4063,31 +4137,36 @@ int8_t ykc_monitor_padding_starting_info(uint8_t gunno)
         s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].state = mw_get_charge_library_state(gunno);
     }
 
-    if(bms->BHM.rev_info){
+    rt_enter_critical();
+    msg_recved = thaisenGetMsgRecved(gunno);
+    msg_sended = thaisenGetMsgSended(gunno);
+    rt_exit_critical();
+
+    if(msg_recved.BHM){
         s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].bms_message |= YKC_MONITOR_STARTING_BMS_MESSAGE_BHM;
     }else{
         s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].bms_message &= (~YKC_MONITOR_STARTING_BMS_MESSAGE_BHM);
     }
 
-    if(bms->BRM.rev_info){
+    if(msg_recved.BRM){
         s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].bms_message |= YKC_MONITOR_STARTING_BMS_MESSAGE_BRM;
     }else{
         s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].bms_message &= (~YKC_MONITOR_STARTING_BMS_MESSAGE_BRM);
     }
 
-    if(bms->BCP.rev_info){
+    if(msg_recved.BCP){
         s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].bms_message |= YKC_MONITOR_STARTING_BMS_MESSAGE_BCP;
     }else{
         s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].bms_message &= (~YKC_MONITOR_STARTING_BMS_MESSAGE_BCP);
     }
 
-    if(bms->BRO.rev_info){
+    if(msg_recved.BRO){
         s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].bms_message |= YKC_MONITOR_STARTING_BMS_MESSAGE_BRO;
     }else{
         s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].bms_message &= (~YKC_MONITOR_STARTING_BMS_MESSAGE_BRO);
     }
 
-    if(bms->BRO.BMSReady == 0xAA){
+    if(msg_recved.BRO_AA){
         s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].bms_message |= YKC_MONITOR_STARTING_BMS_IS_READY;
     }else{
         s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].bms_message &= (~YKC_MONITOR_STARTING_BMS_IS_READY);
@@ -4177,6 +4256,8 @@ int8_t ykc_monitor_padding_charging_info(uint8_t gunno)
     int32_t value = 0x00;
     System_BaseData *base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
     struct thaisenBMS_Charger_struct *bms = (struct thaisenBMS_Charger_struct*)(base->bms_data);
+    thaisenMsgRecved_t msg_recved;
+    thaisenMsgSended_t msg_sended;
 
     if(s_ykc_monitor_charging_info[gunno].count == 0x00){
         s_ykc_monitor_charging_info[gunno].timestamp = base->current_time;
@@ -4202,19 +4283,24 @@ int8_t ykc_monitor_padding_charging_info(uint8_t gunno)
         s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].state = mw_get_charge_library_state(gunno);
     }
 
-    if(bms->BCL.rev_info){
+    rt_enter_critical();
+    msg_recved = thaisenGetMsgRecved(gunno);
+    msg_sended = thaisenGetMsgSended(gunno);
+    rt_exit_critical();
+
+    if(msg_recved.BCL){
         s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].bms_message |= YKC_MONITOR_CHARGING_BMS_MESSAGE_BCL;
     }else{
         s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].bms_message &= (~YKC_MONITOR_CHARGING_BMS_MESSAGE_BCL);
     }
 
-    if(bms->BCS.rev_info){
+    if(msg_recved.BCS){
         s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].bms_message |= YKC_MONITOR_CHARGING_BMS_MESSAGE_BCS;
     }else{
         s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].bms_message &= (~YKC_MONITOR_CHARGING_BMS_MESSAGE_BCS);
     }
 
-    if(bms->BSM.rev_info){
+    if(msg_recved.BSM){
         s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].bms_message |= YKC_MONITOR_CHARGING_BMS_MESSAGE_BSM;
     }else{
         s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].bms_message &= (~YKC_MONITOR_CHARGING_BMS_MESSAGE_BSM);
@@ -4238,7 +4324,7 @@ int8_t ykc_monitor_padding_charging_info(uint8_t gunno)
         s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].bms_message &= (~YKC_MONITOR_CHARGING_BMS_MESSAGE_BSP);
     }
 
-    if(bms->BEM.rev_info){
+    if(msg_recved.BEM){
         s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].bms_message |= YKC_MONITOR_CHARGING_BMS_MESSAGE_BEM;
     }else{
         s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].bms_message &= (~YKC_MONITOR_CHARGING_BMS_MESSAGE_BEM);
@@ -4359,6 +4445,8 @@ int8_t ykc_monitor_message_padding_charge_finish_info(uint8_t gunno, uint8_t *bu
     struct finish_info *info = (struct finish_info*)(&message->body.group_num + 0x01);
     System_BaseData *base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
     struct thaisenBMS_Charger_struct *bms = (struct thaisenBMS_Charger_struct*)(base->bms_data);
+    thaisenMsgRecved_t msg_recved;
+    thaisenMsgSended_t msg_sended;
 
     memset(message, 0x00, data_len);
     memcpy(message->body.pile_number, g_ykc_monitor_preq_login.body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
@@ -4369,13 +4457,18 @@ int8_t ykc_monitor_message_padding_charge_finish_info(uint8_t gunno, uint8_t *bu
 
     info->state = mw_get_charge_library_state(gunno);
 
-    if(bms->BST.rev_info){
+    rt_enter_critical();
+    msg_recved = thaisenGetMsgRecved(gunno);
+    msg_sended = thaisenGetMsgSended(gunno);
+    rt_exit_critical();
+
+    if(msg_recved.BST){
         info->bms_message |= YKC_MONITOR_FINISH_BMS_MESSAGE_BST;
     }else{
         info->bms_message &= (~YKC_MONITOR_FINISH_BMS_MESSAGE_BST);
     }
 
-    if(bms->BSD.rev_info){
+    if(msg_recved.BSD){
         info->bms_message |= YKC_MONITOR_FINISH_BMS_MESSAGE_BSD;
     }else{
         info->bms_message &= (~YKC_MONITOR_FINISH_BMS_MESSAGE_BSD);

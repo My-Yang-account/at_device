@@ -36,25 +36,6 @@ extern "C" {
 #define APP_USER_STOPWAY_OFFSET                   (APP_ORIGIN_USER_STOPWAY_MIN - APP_ORIGIN_NONE_SYSFAULT_STOPWAY_MAX - 0x01)    /* 自定义的停充原因偏移 */
 #define APP_ORIGIN_USER_STOPWAY_POWEROFF          56            /* 原来的自定义的停充原因:断电 */
 
-/** 通信故障 */
-enum communication_fault_t{
-    APP_COMMUNICATE_FAULT_BHM = 0x01,                              /* BMS通讯故障：接收BHM 报文超时 */
-    APP_COMMUNICATE_FAULT_BRM,                                     /* BMS通讯故障：接收BRM 报文超时 */
-    APP_COMMUNICATE_FAULT_BCP,                                     /* BMS通讯故障：接收BCP 报文超时 */
-    APP_COMMUNICATE_FAULT_BRO,                                     /* BMS通讯故障：接收BRO 报文超时 */
-    APP_COMMUNICATE_FAULT_BRO_AA,                                  /* BMS通讯故障：接收BRO_AA 报文超时 */
-    APP_COMMUNICATE_FAULT_BRO_AA_TO_00,                            /* BMS通讯故障：接收BRO 由AA变为00 */
-    APP_COMMUNICATE_FAULT_BCS,                                     /* BMS通讯故障：接收BCS 报文超时 */
-    APP_COMMUNICATE_FAULT_BCL,                                     /* BMS通讯故障：接收BCL 报文超时 */
-    APP_COMMUNICATE_FAULT_BSM,                                     /* BMS通讯故障：接收BSM 报文超时 */
-    APP_COMMUNICATE_FAULT_BMV,                                     /* BMS通讯故障：接收BMV 报文超时 */
-    APP_COMMUNICATE_FAULT_BMT,                                     /* BMS通讯故障：接收BMT 报文超时 */
-    APP_COMMUNICATE_FAULT_BSP,                                     /* BMS通讯故障：接收BSP 报文超时 */
-    APP_COMMUNICATE_FAULT_BST,                                     /* BMS通讯故障：接收BST 报文超时 */
-    APP_COMMUNICATE_FAULT_BSD,                                     /* BMS通讯故障：接收BSD 报文超时 */
-    APP_COMMUNICATE_FAULT_SIZE,                                    /* BMS通讯故障： */
-};
-
 /** 充电故障 */
 enum charge_fault_t{
     APP_CHARGE_FAULT_GUN_VOLT = thaisenGunVolt,                    /* 枪头电压故障 */
@@ -189,6 +170,26 @@ enum system_stop_way{
     APP_SYSTEM_STOP_WAY_MAIN_CABINET = tthaisen_chargeCtl_stopWay_MainCabinet + APP_SYSFAULT_STOPWAY_OFFSET,        /* 主机柜故障 */
 
     APP_SYSTEM_STOP_WAY_YT_BFC = (thaisen_chargeCtl_stopWay_BFC -( APP_SYS_FAULT_NO_ERROR + 0x01 - APP_ORIGIN_SYSFAULT_MAX)) + APP_NONE_SYSFAULT_STOPWAY_OFFSET,                  /* 宇通协议BFC故障 */
+    APP_SYSTEM_STOP_WAY_BST_TARGET_SOC = (thaisen_chargeCtl_stopWay_BST_TargetSOC -( APP_SYS_FAULT_NO_ERROR + 0x01 - APP_ORIGIN_SYSFAULT_MAX)) + APP_NONE_SYSFAULT_STOPWAY_OFFSET,                                         /** 系统停充原因：车端停详细原因：SOC达到目标值 */
+    APP_SYSTEM_STOP_WAY_BST_TARGET_TOTAL_VOLT = (thaisen_chargeCtl_stopWay_BST_TargetTotalVolt -( APP_SYS_FAULT_NO_ERROR + 0x01 - APP_ORIGIN_SYSFAULT_MAX)) + APP_NONE_SYSFAULT_STOPWAY_OFFSET,                                        /** 系统停充原因：车端停详细原因：总电压达到目标值 */
+    APP_SYSTEM_STOP_WAY_BST_TARGET_SINGLE_VOLT = (thaisen_chargeCtl_stopWay_BST_TargetSingleVolt -( APP_SYS_FAULT_NO_ERROR + 0x01 - APP_ORIGIN_SYSFAULT_MAX)) + APP_NONE_SYSFAULT_STOPWAY_OFFSET,                                       /** 系统停充原因：车端停详细原因：单体电压达到目标值 */
+    APP_SYSTEM_STOP_WAY_BST_CHARGER_END = (thaisen_chargeCtl_stopWay_BST_ChargerEnd -( APP_SYS_FAULT_NO_ERROR + 0x01 - APP_ORIGIN_SYSFAULT_MAX)) + APP_NONE_SYSFAULT_STOPWAY_OFFSET,                                              /** 系统停充原因：车端停详细原因：充电机主动停止 */
+    APP_SYSTEM_STOP_WAY_BST_INSULATION_FAULT = (thaisen_chargeCtl_stopWay_BST_InsultionFault -( APP_SYS_FAULT_NO_ERROR + 0x01 - APP_ORIGIN_SYSFAULT_MAX)) + APP_NONE_SYSFAULT_STOPWAY_OFFSET,                                         /** 系统停充原因：车端停详细原因：绝缘故障 */
+    APP_SYSTEM_STOP_WAY_BST_OUT_LINKER_FAULT = (thaisen_chargeCtl_stopWay_BST_OutLinkerFault -( APP_SYS_FAULT_NO_ERROR + 0x01 - APP_ORIGIN_SYSFAULT_MAX)) + APP_NONE_SYSFAULT_STOPWAY_OFFSET,                                         /** 系统停充原因：车端停详细原因：输出连接器故障 */
+    APP_SYSTEM_STOP_WAY_BST_BMS_ELEMENT = (thaisen_chargeCtl_stopWay_BST_BMSElement -( APP_SYS_FAULT_NO_ERROR + 0x01 - APP_ORIGIN_SYSFAULT_MAX)) + APP_NONE_SYSFAULT_STOPWAY_OFFSET,                                              /** 系统停充原因：车端停详细原因：BMS元件故障 */
+    APP_SYSTEM_STOP_WAY_BST_CHARGE_LINKER_FAULT = (thaisen_chargeCtl_stopWay_BST_ChargeLinkerFault -( APP_SYS_FAULT_NO_ERROR + 0x01 - APP_ORIGIN_SYSFAULT_MAX)) + APP_NONE_SYSFAULT_STOPWAY_OFFSET,                                      /** 系统停充原因：车端停详细原因：充电连接故障 */
+    APP_SYSTEM_STOP_WAY_BST_BAT_GROUP_OT = (thaisen_chargeCtl_stopWay_BST_BatGroupOT -( APP_SYS_FAULT_NO_ERROR + 0x01 - APP_ORIGIN_SYSFAULT_MAX)) + APP_NONE_SYSFAULT_STOPWAY_OFFSET,                                             /** 系统停充原因：车端停详细原因：电池组温度故障 */
+    APP_SYSTEM_STOP_WAY_BST_HV_RELAY = (thaisen_chargeCtl_stopWay_BST_HV_Relay -( APP_SYS_FAULT_NO_ERROR + 0x01 - APP_ORIGIN_SYSFAULT_MAX)) + APP_NONE_SYSFAULT_STOPWAY_OFFSET,                                                 /** 系统停充原因：车端停详细原因：高压继电器故障 */
+    APP_SYSTEM_STOP_WAY_BST_DETECT_PIONT_2 = (thaisen_chargeCtl_stopWay_BST_DetectPiont_2 -( APP_SYS_FAULT_NO_ERROR + 0x01 - APP_ORIGIN_SYSFAULT_MAX)) + APP_NONE_SYSFAULT_STOPWAY_OFFSET,                                           /** 系统停充原因：车端停详细原因：检测点2电压检测故障 */
+    APP_SYSTEM_STOP_WAY_BST_OVER_CURRENT = (thaisen_chargeCtl_stopWay_BST_OverCurrent -( APP_SYS_FAULT_NO_ERROR + 0x01 - APP_ORIGIN_SYSFAULT_MAX)) + APP_NONE_SYSFAULT_STOPWAY_OFFSET,                                             /** 系统停充原因：车端停详细原因：充电电流过流 */
+    APP_SYSTEM_STOP_WAY_BST_ABNORMAL_VOLTAGE = (thaisen_chargeCtl_stopWay_BST_AbnormalVoltage -( APP_SYS_FAULT_NO_ERROR + 0x01 - APP_ORIGIN_SYSFAULT_MAX)) + APP_NONE_SYSFAULT_STOPWAY_OFFSET,                                         /** 系统停充原因：车端停详细原因：充电电压异常 */
+    APP_SYSTEM_STOP_WAY_BSM_SINGLE_BAT_OV = (thaisen_chargeCtl_stopWay_BSM_SingleBat_OV -( APP_SYS_FAULT_NO_ERROR + 0x01 - APP_ORIGIN_SYSFAULT_MAX)) + APP_NONE_SYSFAULT_STOPWAY_OFFSET,                                            /** 系统停充原因：BSM详细原因：单体电压异常 */
+    APP_SYSTEM_STOP_WAY_BSM_ABNORMAL_SOC = (thaisen_chargeCtl_stopWay_BSM_AbnormalSOC -( APP_SYS_FAULT_NO_ERROR + 0x01 - APP_ORIGIN_SYSFAULT_MAX)) + APP_NONE_SYSFAULT_STOPWAY_OFFSET,                                             /** 系统停充原因：BSM详细原因：SOC状态异常 */
+    APP_SYSTEM_STOP_WAY_BSM_OVER_CURRENT = (thaisen_chargeCtl_stopWay_BSM_OverCurrent -( APP_SYS_FAULT_NO_ERROR + 0x01 - APP_ORIGIN_SYSFAULT_MAX)) + APP_NONE_SYSFAULT_STOPWAY_OFFSET,                                             /** 系统停充原因：BSM详细原因：电池充电过流 */
+    APP_SYSTEM_STOP_WAY_BSM_BATTERY_OT = (thaisen_chargeCtl_stopWay_BSM_BatteryOT -( APP_SYS_FAULT_NO_ERROR + 0x01 - APP_ORIGIN_SYSFAULT_MAX)) + APP_NONE_SYSFAULT_STOPWAY_OFFSET,                                               /** 系统停充原因：BSM详细原因：电池温度过高 */
+    APP_SYSTEM_STOP_WAY_BSM_BAT_INSULATION_ABNORMAL = (thaisen_chargeCtl_stopWay_BSM_BatInsultionAbnormal -( APP_SYS_FAULT_NO_ERROR + 0x01 - APP_ORIGIN_SYSFAULT_MAX)) + APP_NONE_SYSFAULT_STOPWAY_OFFSET,                                  /** 系统停充原因：BSM详细原因：电池绝缘状态异常 */
+    APP_SYSTEM_STOP_WAY_BSM_OUT_LINKER_ABNORMAL = (thaisen_chargeCtl_stopWay_BSM_OutLinkerAbnormal -( APP_SYS_FAULT_NO_ERROR + 0x01 - APP_ORIGIN_SYSFAULT_MAX)) + APP_NONE_SYSFAULT_STOPWAY_OFFSET,                                      /** 系统停充原因：BSM详细原因：输出连接器状态异常 */
+    APP_SYSTEM_STOP_WAY_BSM_FORBID = (thaisen_chargeCtl_stopWay_BSM_Forbid -( APP_SYS_FAULT_NO_ERROR + 0x01 - APP_ORIGIN_SYSFAULT_MAX)) + APP_NONE_SYSFAULT_STOPWAY_OFFSET,                                                   /** 系统停充原因：BSM详细原因：禁止充电 */
 
     APP_SYSTEM_STOP_WAY_SIZE,
 };
@@ -356,9 +357,9 @@ uint16_t mw_system_stop_way_convert(uint16_t stopway);
  * 函数名         mw_query_bms_communicate_fault
  * 功能             查询BMS具体通讯故障
  * 参数             gunno      枪号
- * 返回             @enum communication_fault_t
+ * 返回            BMS具体通讯故障
  *********************************************************************/
-enum communication_fault_t mw_query_bms_communicate_fault(uint8_t gunno);
+uint16_t mw_query_bms_communicate_fault(uint8_t gunno);
 
 /**********************************************************************
  * 函数名         mw_is_bms_communicate_repeat

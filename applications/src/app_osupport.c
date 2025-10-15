@@ -539,47 +539,45 @@ void app_osupport_thread_entry(void *parameter)
                             case APP_CHARGE_FAULT_COMMON:
                             {
                                 switch(mw_query_bms_communicate_fault(gunno)){
-                                case APP_COMMUNICATE_FAULT_BRM:
+                                case APP_SYSTEM_STOP_WAY_BRM_TIMEOUT:
                                     s_charge_error_info[gunno].error_index = 0x00FFFFF8;
                                     s_charge_error_info[gunno].error_code = mw_system_stop_way_convert(APP_SYSTEM_STOP_WAY_BRM_TIMEOUT);
                                     _cfault = APP_SYSTEM_STOP_WAY_BRM_TIMEOUT;
                                     break;
-                                case APP_COMMUNICATE_FAULT_BCP:
+                                case APP_SYSTEM_STOP_WAY_BCP_TIMEOUT:
                                     s_charge_error_info[gunno].error_index = 0x00FFFFF7;
                                     s_charge_error_info[gunno].error_code = mw_system_stop_way_convert(APP_SYSTEM_STOP_WAY_BCP_TIMEOUT);
                                     _cfault = APP_SYSTEM_STOP_WAY_BCP_TIMEOUT;
                                     break;
-                                case APP_COMMUNICATE_FAULT_BRO:
+                                case APP_SYSTEM_STOP_WAY_BRO_TIMEOUT:
                                     s_charge_error_info[gunno].error_index = 0x00FFFFF6;
                                     s_charge_error_info[gunno].error_code = mw_system_stop_way_convert(APP_SYSTEM_STOP_WAY_BRO_TIMEOUT);
                                     _cfault = APP_SYSTEM_STOP_WAY_BRO_TIMEOUT;
                                     break;
-                                case APP_COMMUNICATE_FAULT_BRO_AA:
+                                case APP_SYSTEM_STOP_WAY_BRO_AA_TIMEOUT:
                                     s_charge_error_info[gunno].error_index = 0x00FFFFF5;
                                     s_charge_error_info[gunno].error_code = mw_system_stop_way_convert(APP_SYSTEM_STOP_WAY_BRO_AA_TIMEOUT);
                                     _cfault = APP_SYSTEM_STOP_WAY_BRO_AA_TIMEOUT;
                                     break;
-                                case APP_COMMUNICATE_FAULT_BCL:
-                                    if(get_ofsm_info(gunno)->base.flag.start_result){
-                                        s_charge_error_info[gunno].error_index = 0x00FFFFF4;
-                                        s_charge_error_info[gunno].error_code = mw_system_stop_way_convert(APP_SYSTEM_STOP_WAY_CHARGING_BCL_TIMEOUT);
-                                        _cfault = APP_SYSTEM_STOP_WAY_CHARGING_BCL_TIMEOUT;
-                                    }else{
-                                        s_charge_error_info[gunno].error_index = 0x00FFFFF3;
-                                        s_charge_error_info[gunno].error_code = mw_system_stop_way_convert(APP_SYSTEM_STOP_WAY_STARTING_BCL_TIMEOUT);
-                                        _cfault = APP_SYSTEM_STOP_WAY_STARTING_BCL_TIMEOUT;
-                                    }
+                                case APP_SYSTEM_STOP_WAY_CHARGING_BCL_TIMEOUT:
+                                    s_charge_error_info[gunno].error_index = 0x00FFFFF4;
+                                    s_charge_error_info[gunno].error_code = mw_system_stop_way_convert(APP_SYSTEM_STOP_WAY_CHARGING_BCL_TIMEOUT);
+                                    _cfault = APP_SYSTEM_STOP_WAY_CHARGING_BCL_TIMEOUT;
                                     break;
-                                case APP_COMMUNICATE_FAULT_BCS:
-                                    if(get_ofsm_info(gunno)->base.flag.start_result){
-                                        s_charge_error_info[gunno].error_index = 0x00FFFFF2;
-                                        s_charge_error_info[gunno].error_code = mw_system_stop_way_convert(APP_SYSTEM_STOP_WAY_CHARGEING_BCS_TIMEOUT);
-                                        _cfault = APP_SYSTEM_STOP_WAY_CHARGEING_BCS_TIMEOUT;
-                                    }else{
-                                        s_charge_error_info[gunno].error_index = 0x00FFFFF1;
-                                        s_charge_error_info[gunno].error_code = mw_system_stop_way_convert(APP_SYSTEM_STOP_WAY_STARTING_BCS_TIMEOUT);
-                                        _cfault = APP_SYSTEM_STOP_WAY_STARTING_BCS_TIMEOUT;
-                                    }
+                                case APP_SYSTEM_STOP_WAY_STARTING_BCL_TIMEOUT:
+                                    s_charge_error_info[gunno].error_index = 0x00FFFFF3;
+                                    s_charge_error_info[gunno].error_code = mw_system_stop_way_convert(APP_SYSTEM_STOP_WAY_STARTING_BCL_TIMEOUT);
+                                    _cfault = APP_SYSTEM_STOP_WAY_STARTING_BCL_TIMEOUT;
+                                    break;
+                                case APP_SYSTEM_STOP_WAY_CHARGEING_BCS_TIMEOUT:
+                                    s_charge_error_info[gunno].error_index = 0x00FFFFF2;
+                                    s_charge_error_info[gunno].error_code = mw_system_stop_way_convert(APP_SYSTEM_STOP_WAY_CHARGEING_BCS_TIMEOUT);
+                                    _cfault = APP_SYSTEM_STOP_WAY_CHARGEING_BCS_TIMEOUT;
+                                    break;
+                                case APP_SYSTEM_STOP_WAY_STARTING_BCS_TIMEOUT:
+                                    s_charge_error_info[gunno].error_index = 0x00FFFFF1;
+                                    s_charge_error_info[gunno].error_code = mw_system_stop_way_convert(APP_SYSTEM_STOP_WAY_STARTING_BCS_TIMEOUT);
+                                    _cfault = APP_SYSTEM_STOP_WAY_STARTING_BCS_TIMEOUT;
                                     break;
                                 default:
                                     s_charge_error_info[gunno].error_index = 0x00FFFFFD;

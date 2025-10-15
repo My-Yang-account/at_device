@@ -264,6 +264,38 @@ enum ykc_monitor_abnormal_stop{
     NETYKC_MONITOR_AS_REASON9C_MAIN_CABINET_FORBID = 0x9C,           /* 充电异常中止，主机柜禁止充电 */
     NETYKC_MONITOR_AS_REASON9D_YT_BFC = 0x9D,                        /* 充电异常中止，宇通BFC */
     NETYKC_MONITOR_AS_REASON9D_MAIN_CABINET_FAULT = 0x9E,            /* 充电异常中止，主机柜故障 */
+    NETYKC_MONITOR_AS_REASON9F_MATRIX_RELAY_KPN1_1 = 0x9F,           /* 充电异常中止，矩阵正负接触器KPN1-1故障 */
+    NETYKC_MONITOR_AS_REASONA0_MATRIX_RELAY_KPN1_2 = 0xA0,           /* 充电异常中止，矩阵正负接触器KPN1-2故障 */
+    NETYKC_MONITOR_AS_REASONA1_MATRIX_RELAY_KPN1_3 = 0xA1,           /* 充电异常中止，矩阵正负接触器KPN1-3故障 */
+    NETYKC_MONITOR_AS_REASONA2_MATRIX_RELAY_KPN2_1 = 0xA2,           /* 充电异常中止，矩阵正负接触器KPN2-1故障 */
+    NETYKC_MONITOR_AS_REASONA3_MATRIX_RELAY_KPN2_2 = 0xA3,           /* 充电异常中止，矩阵正负接触器KPN2-2故障 */
+    NETYKC_MONITOR_AS_REASONA4_MATRIX_RELAY_KPN3_1 = 0xA4,           /* 充电异常中止，矩阵正负接触器KPN3-1故障 */
+    NETYKC_MONITOR_AS_REASONA5_SLAVE_DEVICE_OFFLINE = 0xA5,          /* 充电异常中止，从设备离线故障 */
+    NETYKC_MONITOR_AS_REASONA6_BASE_COMMUNICATION = 0xA6,            /* 充电异常中止，通信(总原因，无详细原因填这个) */
+    NETYKC_MONITOR_AS_REASONA7_CAR_STOP = 0xA7,                      /* 充电异常中止，车端停(总原因，无详细原因填这个) */
+    NETYKC_MONITOR_AS_REASONA8_BST_TARGET_SOC = 0xA8,                /* 充电异常中止，车端停详细原因：SOC达到目标值 */
+    NETYKC_MONITOR_AS_REASONA9_BST_TARGET_TVOLT = 0xA9,              /* 充电异常中止，车端停详细原因：总电压达到目标值 */
+    NETYKC_MONITOR_AS_REASONAA_BST_TARGET_SVOLT = 0xAA,              /* 充电异常中止，车端停详细原因：单体电压达到目标值 */
+    NETYKC_MONITOR_AS_REASONAB_BST_CHARGER_END = 0xAB,               /* 充电异常中止，车端停详细原因：充电机主动停止 */
+    NETYKC_MONITOR_AS_REASONAC_BST_INSULT = 0xAC,                    /* 充电异常中止，车端停详细原因：绝缘故障 */
+    NETYKC_MONITOR_AS_REASONAD_BST_OUT_LINKER = 0xAD,                /* 充电异常中止，车端停详细原因：输出连接器故障 */
+    NETYKC_MONITOR_AS_REASONAE_BST_ELEMENT = 0xAE,                   /* 充电异常中止，车端停详细原因：BMS元件故障 */
+    NETYKC_MONITOR_AS_REASONAF_BST_CHARGE_LINKER = 0xAF,             /* 充电异常中止，车端停详细原因：充电连接故障 */
+    NETYKC_MONITOR_AS_REASONB0_BST_HV_RELAY = 0xB0,                  /* 充电异常中止，车端停详细原因：高压继电器故障 */
+    NETYKC_MONITOR_AS_REASONB1_BST_POINT_2 = 0xB1,                   /* 充电异常中止，车端停详细原因：检测点2电压检测故障 */
+    NETYKC_MONITOR_AS_REASONB2_BSM_SVOLT = 0xB2,                     /* 充电异常中止，BSM详细原因：单体电压异常 */
+    NETYKC_MONITOR_AS_REASONB3_BSM_SOC_STATE = 0xB3,                 /* 充电异常中止，BSM详细原因：SOC状态异常 */
+    NETYKC_MONITOR_AS_REASONB4_BSM_OVERCURR = 0xB4,                  /* 充电异常中止，BSM详细原因：电池充电过流 */
+    NETYKC_MONITOR_AS_REASONB5_BSM_BATGRP_OT = 0xB5,                 /* 充电异常中止，BSM详细原因：电池温度过高 */
+    NETYKC_MONITOR_AS_REASONB6_BSM_BAT_INSULT = 0xB6,                /* 充电异常中止，BSM详细原因：电池绝缘状态异常 */
+    NETYKC_MONITOR_AS_REASONB7_BSM_OUT_LINKER = 0xB7,                /* 充电异常中止，BSM详细原因：输出连接器状态异常 */
+    NETYKC_MONITOR_AS_REASONB8_TARGET_OFFLINE_TIME = 0xB8,           /* 充电异常中止，达到离线可充电时长 */
+    NETYKC_MONITOR_AS_REASONB9_START_TIMEOUT = 0xB9,                 /* 充电异常中止，启动超时 */
+    NETYKC_MONITOR_AS_REASONBA_SCREEN = 0xBA,                        /* 充电异常中止：屏幕 */
+    NETYKC_MONITOR_AS_REASONBB_BLUE = 0xBB,                          /* 充电异常中止：蓝牙 */
+    NETYKC_MONITOR_AS_REASONBC_PASSWORD = 0xBC,                      /* 充电异常中止：密码 */
+    NETYKC_MONITOR_AS_REASONBD_FINGER_PRINT = 0xBD,                  /* 充电异常中止：指纹 */
+    NETYKC_MONITOR_AS_REASONBE_RECV_BRO_00_TIMEOUT = 0xBE,           /* 充电异常中止，接收 BMS 充电准备报文超时 BRO_00 */
 };
 
 enum ykc_monitor_cmd{

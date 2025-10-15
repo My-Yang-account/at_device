@@ -8,6 +8,116 @@
 
 #include "mw_fault_check.h"
 
+/**********************************************
+ * 函数名         mw_convert_to_system_stopway
+ * 功能            系统停充原因转换
+ * 参数             gunno    枪号
+ * 返回            指定枪库停充原因
+ *********************************************/
+static uint16_t mw_convert_to_system_stopway(uint8_t gunno, thaisenChargeCtlStopWayEn way)
+{
+    switch(way){
+    case thaisen_chargeCtl_stopWay_Common:
+    {
+        if(gunno >= APP_SYSTEM_GUNNO_SIZE){
+            return way;
+        }
+        thaisenMsgSended_t sended = thaisenGetMsgSended(gunno);
+        thaisenCommuTimeoutEnum reason = thaisenGetCommuTimeoutDetailed(gunno);
+        switch(reason){
+        case THAISEN_COMMUTIMEOUT_BRM:
+            return APP_SYSTEM_STOP_WAY_BRM_TIMEOUT;
+        case THAISEN_COMMUTIMEOUT_BCP:
+            return APP_SYSTEM_STOP_WAY_BCP_TIMEOUT;
+        case THAISEN_COMMUTIMEOUT_BRO:
+            return APP_SYSTEM_STOP_WAY_BRO_TIMEOUT;
+        case THAISEN_COMMUTIMEOUT_BRO_AA:
+            return APP_SYSTEM_STOP_WAY_BRO_AA_TIMEOUT;
+        case THAISEN_COMMUTIMEOUT_BCL:
+            /** CCS 报文已发送，说明已经进入了充电状态 */
+            if(sended.CCS){
+                return APP_SYSTEM_STOP_WAY_CHARGING_BCL_TIMEOUT;
+            }else{
+                return APP_SYSTEM_STOP_WAY_STARTING_BCL_TIMEOUT;
+            }
+        case THAISEN_COMMUTIMEOUT_BCS:
+            /** CCS 报文已发送，说明已经进入了充电状态 */
+            if(sended.CCS){
+                return APP_SYSTEM_STOP_WAY_CHARGEING_BCS_TIMEOUT;
+            }else{
+                return APP_SYSTEM_STOP_WAY_STARTING_BCS_TIMEOUT;
+            }
+        default:
+            break;
+        }
+        return thaisen_chargeCtl_stopWay_Common;
+    }
+    case thaisen_chargeCtl_stopWay_BST:
+    {
+        if(gunno >= APP_SYSTEM_GUNNO_SIZE){
+            return way;
+        }
+        thaisenBSTDetailed_t reason = thaisenGetBSTDetailed(gunno);
+        if(reason.SOCGetObj){
+            return thaisen_chargeCtl_stopWay_BST_TargetSOC;
+        }else if(reason.VoltGetObj){
+            return thaisen_chargeCtl_stopWay_BST_TargetTotalVolt;
+        }else if(reason.CeliVoltGetObj){
+            return thaisen_chargeCtl_stopWay_BST_TargetSingleVolt;
+        }else if(reason.ChargInitiStop){
+            return thaisen_chargeCtl_stopWay_BST_ChargerEnd;
+        }else if(reason.InsltFault){
+            return thaisen_chargeCtl_stopWay_BST_InsultionFault;
+        }else if(reason.OutConectOVtemp){
+            return thaisen_chargeCtl_stopWay_BST_OutLinkerFault;
+        }else if(reason.BMSCompOVtemp){
+            return thaisen_chargeCtl_stopWay_BST_BMSElement;
+        }else if(reason.Conectfault){
+            return thaisen_chargeCtl_stopWay_BST_ChargeLinkerFault;
+        }else if(reason.BatOVtemp){
+            return thaisen_chargeCtl_stopWay_BST_BatGroupOT;
+        }else if(reason.HVRelaysFault){
+            return thaisen_chargeCtl_stopWay_BST_HV_Relay;
+        }else if(reason.Check2Ft){
+            return thaisen_chargeCtl_stopWay_BST_DetectPiont_2;
+        }else if(reason.OverCurlt){
+            return thaisen_chargeCtl_stopWay_BST_OverCurrent;
+        }else if(reason.Voltfault){
+            return thaisen_chargeCtl_stopWay_BST_AbnormalVoltage;
+        }else{
+            return thaisen_chargeCtl_stopWay_BST;
+        }
+    }
+    case thaisen_chargeCtl_stopWay_BSM:
+    {
+        if(gunno >= APP_SYSTEM_GUNNO_SIZE){
+            return way;
+        }
+        thaisenBSMDetailed_t reason = thaisenGetBSMDetailed(gunno);
+        if(reason.CellOverVolt){
+            return thaisen_chargeCtl_stopWay_BSM_SingleBat_OV;
+        }else if(reason.SOCState){
+            return thaisen_chargeCtl_stopWay_BSM_AbnormalSOC;
+        }else if(reason.BatOverCurlt){
+            return thaisen_chargeCtl_stopWay_BSM_OverCurrent;
+        }else if(reason.BatOverTemp){
+            return thaisen_chargeCtl_stopWay_BSM_BatteryOT;
+        }else if(reason.Insulat){
+            return thaisen_chargeCtl_stopWay_BSM_BatInsultionAbnormal;
+        }else if(reason.OutConect){
+            return thaisen_chargeCtl_stopWay_BSM_OutLinkerAbnormal;
+        }else if(reason.AllowChg){
+            return thaisen_chargeCtl_stopWay_BSM_Forbid;
+        }else{
+            return APP_SYSTEM_STOP_WAY_BSM;
+        }
+    }
+    default:
+        break;
+    }
+    return way;
+}
+
 uint32_t* mw_get_system_fault_set(uint8_t gunno)
 {
     if(gunno < APP_SYSTEM_GUNNO_SIZE){
@@ -29,6 +139,7 @@ uint16_t mw_get_system_stop_way(uint8_t gunno)
     if(gunno < APP_SYSTEM_GUNNO_SIZE){
         uint16_t stop_way;
         stop_way = thaisenGetChargCtlStopWay(gunno);
+        stop_way = mw_convert_to_system_stopway(gunno, stop_way);
 
         rt_kprintf("gunno(%d) stop charge, reason is(%d)\n", gunno, stop_way);
         return stop_way;
@@ -100,29 +211,41 @@ uint16_t mw_system_stop_way_convert(uint16_t stopway)
  * 参数             gunno      枪号
  * 返回             @enum communication_fault_t
  *********************************************************************/
-enum communication_fault_t mw_query_bms_communicate_fault(uint8_t gunno)
+uint16_t mw_query_bms_communicate_fault(uint8_t gunno)
 {
     if(gunno >= APP_SYSTEM_GUNNO_SIZE){
-        return APP_COMMUNICATE_FAULT_SIZE;
-    }
-    struct thaisenBMS_Charger_struct* bms = thaisen_get_bms_data(gunno);
-
-    if(bms->CEM.BRMOVtime){
-        return APP_COMMUNICATE_FAULT_BRM;                  /** BRM 接收超时 */
-    }else if(bms->CEM.BCPOVtime){
-        return APP_COMMUNICATE_FAULT_BCP;                  /** BCP 接收超时 */
-    }else if(bms->CEM.BROOVtime){
-        if(bms->BRO.rev_info)
-            return APP_COMMUNICATE_FAULT_BRO_AA;           /** BRO_AA 接收超时 */
-        else
-            return APP_COMMUNICATE_FAULT_BRO;              /** BRO 接收超时 */
-    }else if(bms->CEM.BCSOVtime){
-        return APP_COMMUNICATE_FAULT_BCS;                  /** BCS 接收超时 */
-    }else if(bms->CEM.BCLOVtime){
-        return APP_COMMUNICATE_FAULT_BCL;                  /** BCL 接收超时 */
+        return APP_SYSTEM_STOP_WAY_COMMINICATION;
     }
 
-    return APP_COMMUNICATE_FAULT_SIZE;
+    thaisenMsgSended_t sended = thaisenGetMsgSended(gunno);
+    thaisenCommuTimeoutEnum reason = thaisenGetCommuTimeoutDetailed(gunno);
+    switch(reason){
+    case THAISEN_COMMUTIMEOUT_BRM:
+        return APP_SYSTEM_STOP_WAY_BRM_TIMEOUT;
+    case THAISEN_COMMUTIMEOUT_BCP:
+        return APP_SYSTEM_STOP_WAY_BCP_TIMEOUT;
+    case THAISEN_COMMUTIMEOUT_BRO:
+        return APP_SYSTEM_STOP_WAY_BRO_TIMEOUT;
+    case THAISEN_COMMUTIMEOUT_BRO_AA:
+        return APP_SYSTEM_STOP_WAY_BRO_AA_TIMEOUT;
+    case THAISEN_COMMUTIMEOUT_BCL:
+        /** CCS 报文已发送，说明已经进入了充电状态 */
+        if(sended.CCS){
+            return APP_SYSTEM_STOP_WAY_CHARGING_BCL_TIMEOUT;
+        }else{
+            return APP_SYSTEM_STOP_WAY_STARTING_BCL_TIMEOUT;
+        }
+    case THAISEN_COMMUTIMEOUT_BCS:
+        /** CCS 报文已发送，说明已经进入了充电状态 */
+        if(sended.CCS){
+            return APP_SYSTEM_STOP_WAY_CHARGEING_BCS_TIMEOUT;
+        }else{
+            return APP_SYSTEM_STOP_WAY_STARTING_BCS_TIMEOUT;
+        }
+    default:
+        break;
+    }
+    return APP_SYSTEM_STOP_WAY_COMMINICATION;
 }
 
 /**********************************************************************

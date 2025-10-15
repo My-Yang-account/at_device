@@ -3685,31 +3685,6 @@ static void ofsm_starting_fun(uint8_t gunno)
                 if((stop_way == APP_SYSTEM_STOP_WAY_PASSIVE) || (stop_way == APP_SYSTEM_STOP_WAY_NULL)){
                     stop_way = APP_SYSTEM_STOP_WAY_COMMINICATION;
                 }
-                if(stop_way == APP_SYSTEM_STOP_WAY_COMMINICATION){
-                    switch(mw_query_bms_communicate_fault(gunno)){
-                    case APP_COMMUNICATE_FAULT_BRM:
-                        stop_way = APP_SYSTEM_STOP_WAY_BRM_TIMEOUT;
-                        break;
-                    case APP_COMMUNICATE_FAULT_BCP:
-                        stop_way = APP_SYSTEM_STOP_WAY_BCP_TIMEOUT;
-                        break;
-                    case APP_COMMUNICATE_FAULT_BRO:
-                        stop_way = APP_SYSTEM_STOP_WAY_BRO_TIMEOUT;
-                        break;
-                    case APP_COMMUNICATE_FAULT_BRO_AA:
-                        stop_way = APP_SYSTEM_STOP_WAY_BRO_AA_TIMEOUT;
-                        break;
-                    case APP_COMMUNICATE_FAULT_BCS:
-                        stop_way = APP_SYSTEM_STOP_WAY_STARTING_BCS_TIMEOUT;
-                        break;
-                    case APP_COMMUNICATE_FAULT_BCL:
-                        stop_way = APP_SYSTEM_STOP_WAY_STARTING_BCL_TIMEOUT;
-                        break;
-                    default:
-                        break;
-                    }
-                }
-
                 s_thaisen_transaction[gunno].stop_reason = stop_way;
                 s_ofsm_info[gunno].base.reason_code = stop_way;
 
@@ -4131,31 +4106,6 @@ static void ofsm_starting_fun(uint8_t gunno)
             }
 
             stop_way = mw_get_system_stop_way(gunno);
-            if(stop_way == APP_SYSTEM_STOP_WAY_COMMINICATION){
-                switch(mw_query_bms_communicate_fault(gunno)){
-                case APP_COMMUNICATE_FAULT_BRM:
-                    stop_way = APP_SYSTEM_STOP_WAY_BRM_TIMEOUT;
-                    break;
-                case APP_COMMUNICATE_FAULT_BCP:
-                    stop_way = APP_SYSTEM_STOP_WAY_BCP_TIMEOUT;
-                    break;
-                case APP_COMMUNICATE_FAULT_BRO:
-                    stop_way = APP_SYSTEM_STOP_WAY_BRO_TIMEOUT;
-                    break;
-                case APP_COMMUNICATE_FAULT_BRO_AA:
-                    stop_way = APP_SYSTEM_STOP_WAY_BRO_AA_TIMEOUT;
-                    break;
-                case APP_COMMUNICATE_FAULT_BCS:
-                    stop_way = APP_SYSTEM_STOP_WAY_STARTING_BCS_TIMEOUT;
-                    break;
-                case APP_COMMUNICATE_FAULT_BCL:
-                    stop_way = APP_SYSTEM_STOP_WAY_STARTING_BCL_TIMEOUT;
-                    break;
-                default:
-                    break;
-                }
-            }
-
             s_thaisen_transaction[gunno].stop_reason = stop_way;
             s_ofsm_info[gunno].base.reason_code = stop_way;
 
@@ -5244,30 +5194,6 @@ static void ofsm_charging_fun(uint8_t gunno)
                 s_thaisen_transaction[gunno].stop_reason = APP_SYSTEM_STOP_WAY_PULL_GUN;
                 s_ofsm_info[gunno].base.reason_code = s_thaisen_transaction[gunno].stop_reason;
             }
-            if(stop_way == APP_SYSTEM_STOP_WAY_COMMINICATION){
-                switch(mw_query_bms_communicate_fault(gunno)){
-                case APP_COMMUNICATE_FAULT_BRM:
-                    stop_way = APP_SYSTEM_STOP_WAY_BRM_TIMEOUT;
-                    break;
-                case APP_COMMUNICATE_FAULT_BCP:
-                    stop_way = APP_SYSTEM_STOP_WAY_BCP_TIMEOUT;
-                    break;
-                case APP_COMMUNICATE_FAULT_BRO:
-                    stop_way = APP_SYSTEM_STOP_WAY_BRO_TIMEOUT;
-                    break;
-                case APP_COMMUNICATE_FAULT_BRO_AA:
-                    stop_way = APP_SYSTEM_STOP_WAY_BRO_AA_TIMEOUT;
-                    break;
-                case APP_COMMUNICATE_FAULT_BCS:
-                    stop_way = APP_SYSTEM_STOP_WAY_CHARGEING_BCS_TIMEOUT;
-                    break;
-                case APP_COMMUNICATE_FAULT_BCL:
-                    stop_way = APP_SYSTEM_STOP_WAY_CHARGING_BCL_TIMEOUT;
-                    break;
-                default:
-                    break;
-                }
-            }
 
             LOG_D("gunno(%d) charge finish deal to pull gun\n", gunno);
 
@@ -5342,31 +5268,6 @@ static void ofsm_charging_fun(uint8_t gunno)
             stop_way = mw_get_system_stop_way(gunno);
 
             LOG_D("gunno(%d) charge stop deal to stop way|%d\n", gunno, stop_way);
-
-            if(stop_way == APP_SYSTEM_STOP_WAY_COMMINICATION){
-                switch(mw_query_bms_communicate_fault(gunno)){
-                case APP_COMMUNICATE_FAULT_BRM:
-                    stop_way = APP_SYSTEM_STOP_WAY_BRM_TIMEOUT;
-                    break;
-                case APP_COMMUNICATE_FAULT_BCP:
-                    stop_way = APP_SYSTEM_STOP_WAY_BCP_TIMEOUT;
-                    break;
-                case APP_COMMUNICATE_FAULT_BRO:
-                    stop_way = APP_SYSTEM_STOP_WAY_BRO_TIMEOUT;
-                    break;
-                case APP_COMMUNICATE_FAULT_BRO_AA:
-                    stop_way = APP_SYSTEM_STOP_WAY_BRO_AA_TIMEOUT;
-                    break;
-                case APP_COMMUNICATE_FAULT_BCS:
-                    stop_way = APP_SYSTEM_STOP_WAY_CHARGEING_BCS_TIMEOUT;
-                    break;
-                case APP_COMMUNICATE_FAULT_BCL:
-                    stop_way = APP_SYSTEM_STOP_WAY_CHARGING_BCL_TIMEOUT;
-                    break;
-                default:
-                    break;
-                }
-            }
 
             s_thaisen_transaction[gunno].stop_reason = stop_way;
             s_ofsm_info[gunno].base.reason_code = stop_way;

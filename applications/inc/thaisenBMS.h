@@ -256,7 +256,41 @@ struct thaisenCEMstruct
     uint8_t                   :6;
 };
 
+struct thaisenCFCstruct
+{
+    uint8_t  CurrOffset;          //电流偏移(8bits，100A/bit；范围 4-20， 双枪充电默认为6，受电弓充电默认 12)
+    uint8_t  GunNum           :4; //表示充电机检测到的有效插枪数量
+    uint8_t  Ack              :2; //应答信号(00：与 CRM 一起发送，作为通知 BMS 充电机的协议为电流偏移量自动识别
+                                  //         01：已经收到 BFC 的反馈，但 BMS 回复的电流偏移量或检测到的充电枪数量等信息不符
+                                  //         10：无效
+                                  //         11：已经收到 BFC 的反馈，且 BMS 回复的电流偏移量和检测到的充电枪数量等信息均一致)
+    uint8_t  Reserve0         :2; //保留(填充不做要求)
+    uint8_t  Reserve1;            //保留(填充0xFF)
+    uint8_t  Reserve2;            //保留(填充0xFF)
+    uint8_t  Reserve3;            //保留(填充0xFF)
+    uint8_t  Reserve4;            //保留(填充0xFF)
+    uint8_t  Reserve5;            //保留(填充0xFF)
+    uint8_t  Reserve6;            //保留(填充0xFF)
+    uint8_t  IsStop;              //停止
+};
 
+struct thaisenBFCstruct
+{
+    uint8_t  CurrOffset;          //电流偏移(8bits，100A/bit；范围 4-20)(电流偏移量随CFC 发送的值而改动 )
+    uint8_t  GunNum           :4; //表示 BMS 检测到的有效插枪数量
+    uint8_t  Ack              :2; //应答信号(00：没有收到充电机发送的 CFC 报文
+                                  //         01：已经收到 CFC 报文，但报文中的充电枪数量等与 BMS 检测到的不一致；电流偏移量由充电机决定，BMS 随之更改，此不做检测
+                                  //         10：无效
+                                  //         11：已经收到 CFC 报文，且报文中的充电枪数量与 BMS 检测到的一致)
+    uint8_t  Reserve0         :2; //保留(填充不做要求)
+    uint8_t  Reserve1;            //保留(填充0xFF)
+    uint8_t  Reserve2;            //保留(填充0xFF)
+    uint8_t  Reserve3;            //保留(填充0xFF)
+    uint8_t  Reserve4;            //保留(填充0xFF)
+    uint8_t  Reserve5;            //保留(填充0xFF)
+    uint8_t  Reserve6;            //保留(填充0xFF)
+    uint16_t rev_info;
+};
 
 
 
@@ -283,6 +317,8 @@ struct thaisenBMS_Charger_struct
     struct thaisenCSDstruct CSD;       /* 充电机统计数据报文 */
     struct thaisenBEMstruct BEM;       /* BMS错误报文 */
     struct thaisenCEMstruct CEM;       /* 充电机错误报文 */
+    struct thaisenCFCstruct CFC;
+    struct thaisenBFCstruct BFC;
     uint32_t overTick[2];
     uint8_t commonCnt;
 };

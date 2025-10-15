@@ -140,6 +140,175 @@ uint8_t thaisenGetChargWorkStatus(uint8_t gunNum);
  */
 struct thaisenBMS_Charger_struct* thaisen_get_bms_data(uint8_t gunNum);
 
+/*****************************车主动停祥因(BST)*****************************************/
+typedef struct
+{
+    uint8_t  SOCGetObj           :2; //SOC达到目标值           00:未达到  01:达到 11:不可信状态
+    uint8_t  VoltGetObj          :2; //总电压达到目标值        00:未达到  01:达到 11:不可信状态
+    uint8_t  CeliVoltGetObj      :2; //单体电压达到目标值      00:未达到  01:达到 11:不可信状态
+    uint8_t  ChargInitiStop      :2; //充电机主动停止
+
+    uint8_t  InsltFault          :2; //绝缘故障           00:正常  01:故障 10:不可信状态
+    uint8_t  OutConectOVtemp     :2; //输出连接器故障     00:正常  01:故障 10:不可信状态
+    uint8_t  BMSCompOVtemp       :2; //BMS元件故障        00:正常  01:故障 10:不可信状态
+    uint8_t  Conectfault         :2; //充电连接故障
+
+    uint8_t  BatOVtemp           :2; //电池组温度故障     00:正常  01:故障 10:不可信状态
+    uint8_t  HVRelaysFault       :2; //高压继电器故障     00:正常  01:故障 10:不可信状态
+    uint8_t  Check2Ft            :2; //检测点2电压检测故障00:正常  01:故障 10:不可信状态
+    uint8_t  OtherFt             :2; //其他故障
+
+    uint8_t  OverCurlt           :2; //充电电流过流       00:正常  01:超过需求值 01:不可信状态
+    uint8_t  Voltfault           :2; //充电电压异常       00:正常  01:电压异常   01:不可信状态
+    uint8_t  :4;
+}thaisenBSTDetailed_t;
+
+/* 功能说明:
+ *          thaisenGetBSTDetailed:获取BST报文详细原因
+ * 输入参数:
+ *                  gunNum:充电枪号
+ * 返回参数:
+ *         BST报文详细原因@thaisenBSTDetailed_t
+ * 调用方法:
+ *          充电结束调用
+ */
+thaisenBSTDetailed_t thaisenGetBSTDetailed(uint8_t gunNum);
+
+/*****************************车故障停祥因(BSM)*****************************************/
+typedef struct
+{
+    uint8_t  CellOverVolt:2;  //单体过压           00:正常  01:过高 01:过低
+    uint8_t  SOCState    :2;  //SOC状态            00:正常  01:过高 01:过低
+    uint8_t  BatOverCurlt:2;  //电池充电过流       00:正常  01:过高 01:过低
+    uint8_t  BatOverTemp :2;  //电池温度过高       00:正常  01:过高 01:过低
+
+    uint8_t  Insulat     :2;  //电池绝缘状态       00:正常  01:不正常 01:不可信状态
+    uint8_t  OutConect   :2;  //输出连接器状态     00:正常  01:不正常 01:不可信状态
+    uint8_t  AllowChg    :2;  //允许充电           00:禁止  01:允许
+    uint8_t  :2;
+}thaisenBSMDetailed_t;
+
+/* 功能说明:
+ *          thaisenBSMDetailed_t:获取BSM报文详细原因
+ * 输入参数:
+ *                  gunNum:充电枪号
+ * 返回参数:
+ *         BSM报文详细原因@thaisenBSMDetailed_t
+ * 调用方法:
+ *          充电结束调用
+ */
+thaisenBSMDetailed_t thaisenGetBSMDetailed(uint8_t gunNum);
+
+/*****************************桩通讯超时祥因(BEM)*****************************************/
+typedef struct
+{
+    uint8_t  CRM00OVtime      :2; //接收CRM_A 00超时   00:正常   01:超时  01:不可信状态
+    uint8_t  CRMAAOVtime      :2; //接收CRM_A AA超时   00:正常   01:超时  01:不可信状态
+    uint8_t                   :4;
+
+    uint8_t  CTSCMLOVtime     :2; //接收CTS_A.CML_A超时  00:正常   01:超时  01:不可信状态
+    uint8_t  CROOVtime        :2; //接收CRO_A超时      00:正常   01:超时  01:不可信状态
+    uint8_t                   :4;
+
+    uint8_t  CCSOVtime        :2; //接收CCS_A超时      00:正常   01:超时  01:不可信状态
+    uint8_t  CSTOVtime        :2; //接收CST_A超时      00:正常   01:超时  01:不可信状态
+    uint8_t                   :4;
+
+    uint8_t  CSDOVtime        :2; //接收CSD_A超时      00:正常   01:超时  01:不可信状态
+    uint8_t                   :6;
+}thaisenBEMDetailed_t;
+
+/* 功能说明:
+ *          thaisenGetBSMDetailed:获取BEM报文详细原因
+ * 输入参数:
+ *                  gunNum:充电枪号
+ * 返回参数:
+ *         BEM报文详细原因@thaisenBEMDetailed_t
+ * 调用方法:
+ *          充电结束调用
+ */
+thaisenBEMDetailed_t thaisenGetBEMDetailed(uint8_t gunNum);
+
+/*****************************车通讯超时祥因*****************************************/
+typedef enum
+{
+    THAISEN_COMMUTIMEOUT_BRM,
+    THAISEN_COMMUTIMEOUT_BCP,
+    THAISEN_COMMUTIMEOUT_BRO,
+    THAISEN_COMMUTIMEOUT_BRO_AA,
+    THAISEN_COMMUTIMEOUT_BCL,
+    THAISEN_COMMUTIMEOUT_BCS,
+    THAISEN_COMMUTIMEOUT_SIZE,
+}thaisenCommuTimeoutEnum;
+
+/* 功能说明:
+ *          thaisenGetCommuTimeoutDetailed:获取BMS通讯超时详细原因
+ * 输入参数:
+ *                  gunNum:充电枪号
+ * 返回参数:
+ *         BMS通讯超时详细原因@thaisenCommuTimeoutEnum(枪号不对返回THAISEN_COMMUTIMEOUT_SIZE)
+ * 调用方法:
+ *          充电结束调用
+ */
+thaisenCommuTimeoutEnum thaisenGetCommuTimeoutDetailed(uint8_t gunNum);
+
+/*****************************报文接收情况(1：收到  0：未收到)*****************************************/
+typedef struct
+{
+    uint16_t BHM : 1;                           // 报文接收：BHM
+    uint16_t BRM : 1;                           // 报文接收：BRM
+    uint16_t BCP : 1;                           // 报文接收：BCP
+    uint16_t BRO : 1;                           // 报文接收：BRO
+    uint16_t BRO_AA : 1;                        // 报文接收：BRO_AA
+    uint16_t BCL : 1;                           // 报文接收：BCL
+    uint16_t BCS : 1;                           // 报文接收：BCS
+    uint16_t BSM : 1;                           // 报文接收：BSM
+    uint16_t BST : 1;                           // 报文接收：BST
+    uint16_t BSD : 1;                           // 报文接收：BSD
+    uint16_t BEM : 1;                           // 报文接收：BEM
+    uint16_t BFC : 1;                           // 报文接收：BFC
+    uint16_t Reserve : 4;
+}thaisenMsgRecved_t;
+
+/* 功能说明:
+ *          thaisenGetMsgRecved:获取报文接收详情
+ * 输入参数:
+ *                  gunNum:充电枪号
+ * 返回参数:
+ *         报文接收详情 @thaisenMsgRecved_t
+ * 调用方法:
+ *          实时调用
+ */
+thaisenMsgRecved_t thaisenGetMsgRecved(uint8_t gunNum);
+
+/*****************************报文发送情况(1：已发送  0：未发送)*****************************************/
+typedef struct
+{
+    uint16_t CHM : 1;                           // 报文发送：CHM
+    uint16_t CRM : 1;                           // 报文发送：CRM
+    uint16_t CRM_AA : 1;                        // 报文发送：CRM_AA
+    uint16_t CFC : 1;                           // 报文发送：CFC
+    uint16_t CTS : 1;                           // 报文发送：CTS
+    uint16_t CML : 1;                           // 报文发送：CML
+    uint16_t CRO : 1;                           // 报文发送：CRO
+    uint16_t CRO_AA : 1;                        // 报文发送：CRO_AA
+    uint16_t CCS : 1;                           // 报文发送：CCS
+    uint16_t CST : 1;                           // 报文发送：CST
+    uint16_t CSD : 1;                           // 报文发送：CSD
+    uint16_t CEM : 1;                           // 报文发送：CEM
+    uint16_t Reserve : 4;
+}thaisenMsgSended_t;
+
+/* 功能说明:
+ *          thaisenGetMsgSended:获取报文发送详情
+ * 输入参数:
+ *                  gunNum:充电枪号
+ * 返回参数:
+ *         报文发送详情 @thaisenMsgSended_t
+ * 调用方法:
+ *          实时调用
+ */
+thaisenMsgSended_t thaisenGetMsgSended(uint8_t gunNum);
 
 /*****************************************************************************/
 /************************停止原因*********************************************/
@@ -217,6 +386,26 @@ typedef enum{
     thaisen_chargeCtl_stopWay_InsultVolt,
     thaisen_chargeCtl_stopWay_BSM,
     thaisen_chargeCtl_stopWay_BFC,
+    thaisen_chargeCtl_stopWay_BST_TargetSOC,                                              /** 系统停充原因：车端停详细原因：SOC达到目标值 */
+    thaisen_chargeCtl_stopWay_BST_TargetTotalVolt,                                        /** 系统停充原因：车端停详细原因：总电压达到目标值 */
+    thaisen_chargeCtl_stopWay_BST_TargetSingleVolt,                                       /** 系统停充原因：车端停详细原因：单体电压达到目标值 */
+    thaisen_chargeCtl_stopWay_BST_ChargerEnd,                                             /** 系统停充原因：车端停详细原因：充电机主动停止 */
+    thaisen_chargeCtl_stopWay_BST_InsultionFault,                                         /** 系统停充原因：车端停详细原因：绝缘故障 */
+    thaisen_chargeCtl_stopWay_BST_OutLinkerFault,                                         /** 系统停充原因：车端停详细原因：输出连接器故障 */
+    thaisen_chargeCtl_stopWay_BST_BMSElement,                                             /** 系统停充原因：车端停详细原因：BMS元件故障 */
+    thaisen_chargeCtl_stopWay_BST_ChargeLinkerFault,                                      /** 系统停充原因：车端停详细原因：充电连接故障 */
+    thaisen_chargeCtl_stopWay_BST_BatGroupOT,                                             /** 系统停充原因：车端停详细原因：电池组温度故障 */
+    thaisen_chargeCtl_stopWay_BST_HV_Relay,                                               /** 系统停充原因：车端停详细原因：高压继电器故障 */
+    thaisen_chargeCtl_stopWay_BST_DetectPiont_2,                                          /** 系统停充原因：车端停详细原因：检测点2电压检测故障 */
+    thaisen_chargeCtl_stopWay_BST_OverCurrent,                                            /** 系统停充原因：车端停详细原因：充电电流过流 */
+    thaisen_chargeCtl_stopWay_BST_AbnormalVoltage,                                        /** 系统停充原因：车端停详细原因：充电电压异常 */
+    thaisen_chargeCtl_stopWay_BSM_SingleBat_OV,                                           /** 系统停充原因：BSM详细原因：单体电压异常 */
+    thaisen_chargeCtl_stopWay_BSM_AbnormalSOC,                                            /** 系统停充原因：BSM详细原因：SOC状态异常 */
+    thaisen_chargeCtl_stopWay_BSM_OverCurrent,                                            /** 系统停充原因：BSM详细原因：电池充电过流 */
+    thaisen_chargeCtl_stopWay_BSM_BatteryOT,                                              /** 系统停充原因：BSM详细原因：电池温度过高 */
+    thaisen_chargeCtl_stopWay_BSM_BatInsultionAbnormal,                                   /** 系统停充原因：BSM详细原因：电池绝缘状态异常 */
+    thaisen_chargeCtl_stopWay_BSM_OutLinkerAbnormal,                                      /** 系统停充原因：BSM详细原因：输出连接器状态异常 */
+    thaisen_chargeCtl_stopWay_BSM_Forbid,                                                 /** 系统停充原因：BSM详细原因：禁止充电 */
 
     thaisen_chargeCtl_stopWay_size,
 }thaisenChargeCtlStopWayEn;

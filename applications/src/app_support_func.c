@@ -750,6 +750,111 @@ void app_get_charge_stopway_chinese(uint32_t code, uint8_t *olen, uint8_t *buf, 
         if(olen)
             *olen = strlen((char*)buf);
         break;
+    case APP_SYSTEM_STOP_WAY_BST_TARGET_SOC:
+        memcpy(buf, "BST-SOC达到目标值", strlen("BST-SOC达到目标值"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        return;
+    case APP_SYSTEM_STOP_WAY_BST_TARGET_TOTAL_VOLT:
+        memcpy(buf, "BST-总电压达到目标值", strlen("BST-总电压达到目标值"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        return;
+    case APP_SYSTEM_STOP_WAY_BST_TARGET_SINGLE_VOLT:
+        memcpy(buf, "BST-单体电压达到目标值", strlen("BST-单体电压达到目标值"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        return;
+    case APP_SYSTEM_STOP_WAY_BST_CHARGER_END:
+        memcpy(buf, "BST-充电机主动停止", strlen("BST-充电机主动停止"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        return;
+    case APP_SYSTEM_STOP_WAY_BST_INSULATION_FAULT:
+        memcpy(buf, "BST-车端绝缘故障", strlen("BST-车端绝缘故障"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        return;
+    case APP_SYSTEM_STOP_WAY_BST_OUT_LINKER_FAULT:
+        memcpy(buf, "BST-输出连接器故障", strlen("BST-输出连接器故障"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        return;
+    case APP_SYSTEM_STOP_WAY_BST_BMS_ELEMENT:
+        memcpy(buf, "BST-BMS元件故障", strlen("BST-BMS元件故障"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        return;
+    case APP_SYSTEM_STOP_WAY_BST_CHARGE_LINKER_FAULT:
+        memcpy(buf, "BST-充电连接故障", strlen("BST-充电连接故障"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        return;
+    case APP_SYSTEM_STOP_WAY_BST_BAT_GROUP_OT:
+        memcpy(buf, "BST-电池组温度故障", strlen("BST-电池组温度故障"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        return;
+    case APP_SYSTEM_STOP_WAY_BST_HV_RELAY:
+        memcpy(buf, "BST-高压继电器故障", strlen("BST-高压继电器故障"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        return;
+    case APP_SYSTEM_STOP_WAY_BST_DETECT_PIONT_2:
+        memcpy(buf, "BST-检测点2电压故障", strlen("BST-检测点2电压故障"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        return;
+    case APP_SYSTEM_STOP_WAY_BST_OVER_CURRENT:
+        memcpy(buf, "BST-充电电流过流", strlen("BST-充电电流过流"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        return;
+    case APP_SYSTEM_STOP_WAY_BST_ABNORMAL_VOLTAGE:
+        memcpy(buf, "BST-充电电压异常", strlen("BST-充电电压异常"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        return;
+    case APP_SYSTEM_STOP_WAY_BSM:
+        memcpy(buf, "BSM-车端故障", strlen("BSM-车端故障"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        return;
+    case APP_SYSTEM_STOP_WAY_BSM_SINGLE_BAT_OV:
+        memcpy(buf, "BSM-单体电压异常", strlen("BSM-单体电压异常"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        return;
+    case APP_SYSTEM_STOP_WAY_BSM_ABNORMAL_SOC:
+        memcpy(buf, "BSM-SOC状态异常", strlen("BSM-SOC状态异常"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        return;
+    case APP_SYSTEM_STOP_WAY_BSM_OVER_CURRENT:
+        memcpy(buf, "BSM-电池充电过流", strlen("BSM-电池充电过流"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        return;
+    case APP_SYSTEM_STOP_WAY_BSM_BATTERY_OT:
+        memcpy(buf, "BSM-电池温度过高", strlen("BSM-电池温度过高"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        return;
+    case APP_SYSTEM_STOP_WAY_BSM_BAT_INSULATION_ABNORMAL:
+        memcpy(buf, "BSM-电池绝缘状态异常", strlen("BSM-电池绝缘状态异常"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        return;
+    case APP_SYSTEM_STOP_WAY_BSM_OUT_LINKER_ABNORMAL:
+        memcpy(buf, "BSM-车端输出连接器状态异常", strlen("BSM-车端输出连接器状态异常"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        return;
+    case APP_SYSTEM_STOP_WAY_BSM_FORBID:
+        memcpy(buf, "BSM-车端禁止充电", strlen("BSM-车端禁止充电"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        return;
     default:
         memcpy(buf, "未知", strlen("未知"));
         if(olen)
