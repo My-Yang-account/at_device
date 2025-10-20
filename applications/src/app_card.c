@@ -876,6 +876,7 @@ static int32_t app_card_info_process(void* handle)
             return -0x01;
         }
 #endif /* RFIDR_USING_XJ_CARD */
+#if 0
         if((rfidr_query_info_type() == APP_RFIDR_INFO_TYPE_UUID) ||
                 (rfidr_query_info_type() == APP_RFIDR_INFO_TYPE_CARD_NUMBER)){
 
@@ -889,10 +890,12 @@ static int32_t app_card_info_process(void* handle)
                 }
             }
         }
+#endif
         return 0x00;
     }
 #else
     if(get_ofsm_info(0x00)->base.run_mode != APP_RUN_MODE_OFFLINE_BILLING){
+#if 0
         if((rfidr_query_info_type() == APP_RFIDR_INFO_TYPE_UUID) ||
                 (rfidr_query_info_type() == APP_RFIDR_INFO_TYPE_CARD_NUMBER)){
 
@@ -906,6 +909,7 @@ static int32_t app_card_info_process(void* handle)
                 }
             }
         }
+#endif
         return 0x00;
     }
     if((*(sys_read_config_item_content(CONFIG_ITEM_SUPORT_OFFLINE_CARD, 0))) == APP_THA_ENUM_FALSE){
