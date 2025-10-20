@@ -157,7 +157,9 @@ enum system_stop_way{
     APP_SYSTEM_STOP_WAY_STARTING_BCS_TIMEOUT,   /* 启动中接收BCS超时 */
     APP_SYSTEM_STOP_WAY_CHARGING_BCL_TIMEOUT,   /* 充电中接收BCL超时 */
     APP_SYSTEM_STOP_WAY_CHARGEING_BCS_TIMEOUT,  /* 充电中接收BCS超时 */
-//    APP_SYSTEM_STOP_WAY_OFFLINE_CHARGE_TIME,    /* 达到离线可充电最长时间 */
+    APP_SYSTEM_STOP_WAY_OFFLINE_CHARGE_TIME,    /* 系统停充原因：达到离线可充电最长时间 */
+    APP_SYSTEM_STOP_WAY_START_TIMEOUT,          /* 系统停充原因：启动超时 */
+    APP_SYSTEM_STOP_WAY_MASTER_DEV_OFFLINE,     /* 系统停充原因：主设备离线 */
 
     APP_SYSTEM_STOP_WAY_LIGHTPROTECT = thaisen_chargeCtl_stopWay_LightProtect + APP_SYSFAULT_STOPWAY_OFFSET,        /* 防雷器 */
     APP_SYSTEM_STOP_WAY_GUNSITE = thaisen_chargeCtl_stopWay_GunSite + APP_SYSFAULT_STOPWAY_OFFSET,                  /* 枪座 */
