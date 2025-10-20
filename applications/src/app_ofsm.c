@@ -3862,7 +3862,7 @@ static void ofsm_starting_fun(uint8_t gunno)
                     struct thaisenBMS_Charger_struct* bms = (struct thaisenBMS_Charger_struct*)(s_ofsm_info[gunno].base.bms_data);
                     s_thaisen_transaction[gunno].start_soc = bms->BCP.SOC;
                     s_ofsm_info[gunno].base.current_soc = bms->BCP.SOC /10;
-                    s_ofsm_info[gunno].base.start_soc = bms->BCP.SOC;
+                    s_ofsm_info[gunno].base.start_soc = s_ofsm_info[gunno].base.current_soc;
                     memcpy(s_ofsm_info[gunno].base.car_vin, bms->BRM.CarDiscern, sizeof(s_ofsm_info[gunno].base.car_vin));
                     memcpy(s_thaisen_transaction[gunno].car_vin, bms->BRM.CarDiscern, sizeof(bms->BRM.CarDiscern));
                     if(sys_vin_whitelists_query(bms->BRM.CarDiscern, sizeof(bms->BRM.CarDiscern)) >= 0x00){
@@ -3935,7 +3935,7 @@ static void ofsm_starting_fun(uint8_t gunno)
                 memcpy(s_ofsm_info[gunno].base.car_vin, bms->BRM.CarDiscern, sizeof(s_ofsm_info[gunno].base.car_vin));
                 s_thaisen_transaction[gunno].start_soc = bms->BCP.SOC;
                 s_ofsm_info[gunno].base.current_soc = bms->BCP.SOC /10;
-                s_ofsm_info[gunno].base.start_soc = bms->BCP.SOC;
+                s_ofsm_info[gunno].base.start_soc = s_ofsm_info[gunno].base.current_soc;
                 memcpy(s_thaisen_transaction[gunno].car_vin, bms->BRM.CarDiscern, sizeof(bms->BRM.CarDiscern));
             }
 
