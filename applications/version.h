@@ -38,7 +38,9 @@ extern "C" {
                                          [2.0.4(双枪) 充电结束清除SOC，修复并充自动识别失败问题[空闲时总线有数据] 2025/07/24]
                                          [1.7.5(单枪) 屏幕使能本地停止功能后，无论何种方式启动都可以本地停止 2025/07/25]
                                          [2.0.H(2.0.7 双枪)  电瑞储能+特来电平台版本 2025/08/25]
-                                         [1.7.H(1.7.7 单枪)  更新CROAA 阶段先发CCS(状态切换到CCS) 2025/08/12]  */
+                                         [1.7.H(1.7.7 单枪)  更新CROAA 阶段先发CCS(状态切换到CCS) 2025/08/12]
+                                         [2.1.A(2.1.0 双枪)  实验测试：1.充电结束2min后风扇停转   2.启动时BHM最大允许值小于系统最小电压时报电池电压故障停充   3.CC1 4V下线改为 3.3V) 2025/10/10]
+                                         [2.1.B(2.1.1 双枪枪)  实验测试 2025/10/13]  */
 
 #ifdef APP_USING_DOUBLEGUN
 
@@ -75,8 +77,8 @@ extern "C" {
 #endif /* APP_SOFT_MODULE_USING_GB_WHOLE_7103F_ZG */
 
 #define SOFTWARE_VERSION       2L
-#define SOFTWARE_SUBVERSION    0
-#define SOFTWARE_REVISION      9L  /** 03 */
+#define SOFTWARE_SUBVERSION    1
+#define SOFTWARE_REVISION      2L  /** 01 */
 
 #else
 
