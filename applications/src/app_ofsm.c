@@ -5330,8 +5330,17 @@ static void ofsm_charging_fun(uint8_t gunno)
         LOG_D("gunno(%d) charge finish deal to APP stop\n", gunno);
 
     }else if(rfidr_query_swipe_state(gunno)){
+        uint8_t is_forbid_swipe = 0x00;
+
         rfidr_clear_swipe_state(gunno);
-        if(rfidr_query_info_type() == APP_RFIDR_INFO_TYPE_CARD_NUMBER){
+        /** 非离线计费模式首页不能刷卡 */
+        if(s_ofsm_info[gunno].base.run_mode != APP_RUN_MODE_OFFLINE_BILLING){
+            if(thaisen_is_not_allow_swip_card()){
+                LOG_D("gunno(%d) current page is not allow swip card charge", gunno);
+                is_forbid_swipe = 0x01;;
+            }
+        }
+        if((rfidr_query_info_type() == APP_RFIDR_INFO_TYPE_CARD_NUMBER) && (is_forbid_swipe == 0x00)){
             uint8_t compare_len = sizeof(s_ofsm_info[gunno].base.card_number), compare_count = APP_CARD_NUMBER_COMPARE_LEN_MIN;
             compare_len = compare_len > rfidr_query_card_number_len() ? rfidr_query_card_number_len() : compare_len;
 #ifdef APP_USING_OFFLINE_BILLING
@@ -5372,7 +5381,7 @@ static void ofsm_charging_fun(uint8_t gunno)
             s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_FALSE;
             is_stop_charge_authorization = true;
 
-        }else if(rfidr_query_info_type() == APP_RFIDR_INFO_TYPE_UUID){
+        }else if((rfidr_query_info_type() == APP_RFIDR_INFO_TYPE_UUID) && (is_forbid_swipe == 0x00)){
             uint8_t* uid = rfidr_query_uuid(), valid_len = sizeof(s_ofsm_info[gunno].base.card_uid);
 #ifdef APP_USING_OFFLINE_BILLING
             if((s_ofsm_info[gunno].base.run_mode == APP_RUN_MODE_OFFLINE_BILLING) && (s_ofsm_info[gunno].base.start_type == APP_CHARGE_START_WAY_OFFLINE_CARD)){
@@ -5407,7 +5416,7 @@ static void ofsm_charging_fun(uint8_t gunno)
                     LOG_W("gunno error when get card uid in ready state");
                 }
             }
-        }else if(rfidr_query_info_type() == APP_RFIDR_INFO_TYPE_ERROR){
+        }else if((rfidr_query_info_type() == APP_RFIDR_INFO_TYPE_ERROR) && (is_forbid_swipe == 0x00)){
 #ifdef APP_USING_OFFLINE_BILLING
             /** 提示：无效卡 */
             LOG_D("gunno(%d) invalid card in offline billing mode, read card number fail", gunno);
@@ -5417,7 +5426,7 @@ static void ofsm_charging_fun(uint8_t gunno)
             app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
 #endif /* APP_USING_OFFLINE_BILLING */
 
-        }else if(rfidr_query_info_type() == APP_RFIDR_INFO_TYPE_RW_FAIL){
+        }else if((rfidr_query_info_type() == APP_RFIDR_INFO_TYPE_RW_FAIL) && (is_forbid_swipe == 0x00)){
 #ifdef APP_USING_OFFLINE_BILLING
             switch(app_card_query_operate_ret(gunno)){
             case APP_CARD_OPERATE_RET_PAYED:
@@ -5444,7 +5453,7 @@ static void ofsm_charging_fun(uint8_t gunno)
 #else
             app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
 #endif /* APP_USING_OFFLINE_BILLING */
-        }else{
+        }else if(is_forbid_swipe == 0x00){
 #ifdef APP_USING_OFFLINE_BILLING
             if((s_ofsm_info[gunno].base.run_mode == APP_RUN_MODE_OFFLINE_BILLING) && (s_ofsm_info[gunno].base.start_type == APP_CHARGE_START_WAY_OFFLINE_CARD)){
                 /** 提示鉴权失败, 信息有误 */;
