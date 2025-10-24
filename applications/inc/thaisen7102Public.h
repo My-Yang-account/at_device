@@ -312,6 +312,7 @@ typedef enum
  */
 thaisenElectLockSta thaisenElectLock_StateQuery(uint8_t gunNum);
 
+/***************************** 以下是调试函数 *****************************/
 /* 功能说明:
  *          thaisenElectLockA_Directly:直接上锁A枪电子锁(不检测反馈、仅操作IO口)
  *
@@ -359,6 +360,32 @@ void thaisenElectLockB_Directly(void);
  *          可实时调用
  */
 void thaisenElectUnlockB_Directly(void);
+
+/*********************** 手动解锁 ***********************/
+
+/* 功能说明:
+ *          thaisenElectUnlockA_Manual:人工手动解锁A枪电子锁(不检测反馈、先上锁再解锁)
+ *
+ * 输入参数:
+ *
+ * 返回参数:
+ *
+ * 调用方法:
+ *          可实时调用
+ */
+void thaisenElectUnlockA_Manual(void);
+
+/* 功能说明:
+ *          thaisenElectUnlockB_Directly:人工手动解锁B枪电子锁(不检测反馈、先上锁再解锁)
+ *
+ * 输入参数:
+ *
+ * 返回参数:
+ *
+ * 调用方法:
+ *          可实时调用
+ */
+void thaisenElectUnlockB_Manual(void);
 
 /*****************************************************************************************************/
 /************************************系统故障信息*********************************************************/
@@ -534,7 +561,152 @@ uint8_t thaisenDcRelay_StateQuery(uint8_t gunNum, thaisenRelayEn sta);
  */
 thaisenRelayEn thaisenAcRelay_StateQuery(void);
 
+/******************************************* 以下是调试函数 *******************************************/
+/************* 直流继电器 *************/
+void thaisenDcRelay_A_Enable_Debug(void);
+void thaisenDcRelay_A_Disable_Debug(void);
+
+void thaisenDcRelay_B_Enable_Debug(void);
+void thaisenDcRelay_B_Disable_Debug(void);
+
+/************* 母联继电器 *************/
+void thaisenParallelRelay_1_Enable_Debug(void);
+void thaisenParallelRelay_1_Disable_Debug(void);
+
+void thaisenParallelRelay_2_Enable_Debug(void);
+void thaisenParallelRelay_2_Disable_Debug(void);
+
+void thaisenParallelRelay_3_Enable_Debug(void);
+void thaisenParallelRelay_3_Disable_Debug(void);
+
+/************* 交流接触器 *************/
+void thaisenAcRelay_Enable_Debug(void);
+void thaisenAcRelay_Disable_Debug(void);
+
 /*****************************************************************************************************/
+
+/*************************************器件状态变化******************************************************/
+/** 器件枚举 */
+typedef enum
+{
+    THAISEN_DEVICE_ENUM_DCRELAY,                          /** 器件枚举：直流继电器 */
+    THAISEN_DEVICE_ENUM_ACRELAY,                          /** 器件枚举：交流接触器 */
+    THAISEN_DEVICE_ENUM_POS_PARALLEL_RELAY_0,             /** 器件枚举：母联继电器0正极 */
+    THAISEN_DEVICE_ENUM_NEG_PARALLEL_RELAY_0,             /** 器件枚举：母联继电器0负极 */
+    THAISEN_DEVICE_ENUM_POS_PARALLEL_RELAY_1,             /** 器件枚举：母联继电器1正极 */
+    THAISEN_DEVICE_ENUM_NEG_PARALLEL_RELAY_1,             /** 器件枚举：母联继电器1负极 */
+    THAISEN_DEVICE_ENUM_POS_PARALLEL_RELAY_2,             /** 器件枚举：母联继电器2正极 */
+    THAISEN_DEVICE_ENUM_NEG_PARALLEL_RELAY_2,             /** 器件枚举：母联继电器2负极 */
+    THAISEN_DEVICE_ENUM_AUXPOWER_12V,                     /** 器件枚举：12V辅源 */
+    THAISEN_DEVICE_ENUM_AUXPOWER_24V,                     /** 器件枚举：24V辅源 */
+    THAISEN_DEVICE_ENUM_ELOCK,                            /** 器件枚举：电子锁 */
+    THAISEN_DEVICE_ENUM_FAN,                              /** 器件枚举：风扇 */
+    THAISEN_DEVICE_ENUM_LIQUID,                           /** 器件枚举：液冷 */
+    THAISEN_DEVICE_ENUM_SIZE,                             /** 器件枚举 */
+}thaisenDeviceEnum;
+
+/** 器件所执行的操作 */
+typedef enum
+{
+    THAISEN_DEVICE_OPT_CONTROL,                           /** 器件操作枚举：控制 */
+    THAISEN_DEVICE_OPT_RELEASE,                           /** 器件操作枚举：控制 */
+    THAISEN_DEVICE_OPT_DEBUG_CONTROL,                     /** 器件操作枚举：控制 */
+    THAISEN_DEVICE_OPT_DEBUG_RELEASE,                     /** 器件操作枚举：控制 */
+    THAISEN_DEVICE_OPT_SIZE,                              /** 器件操作枚举 */
+}thaisenDeviceOptEnum;
+
+/** 直流继电器操作结果 */
+typedef enum
+{
+    THAISEN_DEV_DCRELAY_RESULT_SUCCESS_0,                 /** 直流继电器器件操作结果：第一次操作成功 */
+    THAISEN_DEV_DCRELAY_RESULT_SUCCESS_1,                 /** 直流继电器器件操作结果：第二次操作成功 */
+    THAISEN_DEV_DCRELAY_RESULT_SUCCESS_2,                 /** 直流继电器器件操作结果：第三次操作成功 */
+    THAISEN_DEV_DCRELAY_RESULT_PRESS_SCRAM,               /** 直流继电器器件操作结果：操作成功-急停按下 */
+    THAISEN_DEV_DCRELAY_RESULT_OPT_DIRECTLT,              /** 直流继电器器件操作结果：直接操作，不检反馈 */
+    THAISEN_DEV_DCRELAY_RESULT_FAIL,                      /** 直流继电器器件操作结果：操作失败 */
+    THAISEN_DEV_DCRELAY_RESULT_SIZE,                      /** 直流继电器器件操作结果：无 */
+}thaisenDeviceDCRelayOptResult;
+
+/** 母联继电器操作结果 */
+typedef enum
+{
+    THAISEN_DEV_PARARELAY_RESULT_SUCCESS_0,               /** 母联继电器器件操作结果：第一次操作成功 */
+    THAISEN_DEV_PARARELAY_RESULT_SUCCESS_1,               /** 母联继电器器件操作结果：第二次操作成功 */
+    THAISEN_DEV_PARARELAY_RESULT_SUCCESS_2,               /** 母联继电器器件操作结果：第三次操作成功 */
+    THAISEN_DEV_PARARELAY_RESULT_PRESS_SCRAM,             /** 母联继电器器件操作结果：操作成功-急停按下 */
+    THAISEN_DEV_PARARELAY_RESULT_OPT_DIRECTLT,            /** 母联继电器器件操作结果：直接操作，不检反馈 */
+    THAISEN_DEV_PARARELAY_RESULT_FAIL,                    /** 母联继电器器件操作结果：操作失败 */
+    THAISEN_DEV_PARARELAY_RESULT_SIZE,                    /** 母联继电器器件操作结果：无 */
+}thaisenDeviceParaRelayOptResult;
+
+/** 交流接触器操作结果 */
+typedef enum
+{
+    THAISEN_DEV_ACRELAY_RESULT_SUCCESS_0,                 /** 交流接触器器件操作结果：第一次操作成功(正常模式) */
+    THAISEN_DEV_ACRELAY_RESULT_SUCCESS_1,                 /** 交流接触器器件操作结果：第二次操作成功(正常模式)  */
+    THAISEN_DEV_ACRELAY_RESULT_SUCCESS_2,                 /** 交流接触器器件操作结果：第三次操作成功(正常模式)  */
+    THAISEN_DEV_ACRELAY_RESULT_OPT_DIRECTLT,              /** 交流接触器器件操作结果：直接操作，不检反馈(正常模式)  */
+    THAISEN_DEV_ACRELAY_RESULT_SUCCESS_MAGNRTIC,          /** 交流接触器器件操作结果：操作成功(磁保持模式) */
+    THAISEN_DEV_ACRELAY_RESULT_FAIL_FB_N,                 /** 交流接触器器件操作结果：操作失败-反馈不对(正常模式)  */
+    THAISEN_DEV_ACRELAY_RESULT_FAIL_FB_M,                 /** 交流接触器器件操作结果：操作失败-反馈不对(磁保持模式)  */
+    THAISEN_DEV_ACRELAY_RESULT_FAIL_NORMAL,               /** 交流接触器器件操作结果：操作失败-不是正常模式 */
+    THAISEN_DEV_ACRELAY_RESULT_FAIL_MAGNRTIC,             /** 交流接触器器件操作结果：操作失败-不是磁保持模式 */
+    THAISEN_DEV_ACRELAY_RESULT_SIZE,                      /** 交流接触器器件操作结果：无 */
+}thaisenDeviceACRelayOptResult;
+
+/** 电子锁操作结果 */
+typedef enum
+{
+    THAISEN_DEV_ELOCK_RESULT_SUCCESS_0,                   /** 电子锁器件操作结果：第一次操作成功 */
+    THAISEN_DEV_ELOCK_RESULT_SUCCESS_1,                   /** 电子锁器件操作结果：第二次操作成功 */
+    THAISEN_DEV_ELOCK_RESULT_SUCCESS_2,                   /** 电子锁器件操作结果：第二次操作成功 */
+    THAISEN_DEV_ELOCK_RESULT_OPT_DIRECTLT,                /** 电子锁器件操作结果：直接操作，不检反馈 */
+    THAISEN_DEV_ELOCK_RESULT_FAIL,                        /** 电子锁器件操作结果：操作失败 */
+    THAISEN_DEV_ELOCK_RESULT_SIZE,                        /** 电子锁器件操作结果：无 */
+}thaisenDeviceELockOptResult;
+
+/** 风扇操作结果 */
+typedef enum
+{
+    THAISEN_DEV_FAN_RESULT_SUCCESS,                      /** 风扇器件操作结果：操作成功 */
+    THAISEN_DEV_FAN_RESULT_SIZE,                         /** 风扇器件操作结果：无 */
+}thaisenDeviceFanOptResult;
+
+/** 辅源操作结果 */
+typedef enum
+{
+    THAISEN_DEV_AUXPOWER_RESULT_SUCCESS,                 /** 辅源器件操作结果：操作成功 */
+    THAISEN_DEV_AUXPOWER_RESULT_SIZE,                    /** 辅源器件操作结果：无 */
+}thaisenDeviceAuxPowerOptResult;
+
+/** 液冷操作结果 */
+typedef enum
+{
+    THAISEN_DEV_LIQUID_RESULT_SUCCESS,                  /** 液冷器件操作结果：操作成功 */
+    THAISEN_DEV_LIQUID_RESULT_FAIL_OFFLINE,             /** 液冷器件操作结果：操作失败-离线 */
+    THAISEN_DEV_LIQUID_RESULT_SIZE,                     /** 液冷器件操作结果：无 */
+}thaisenDeviceLiquidOptResult;
+
+/** 器件变化参数 */
+typedef struct
+{
+    uint8_t opt;                                          /** 所执行的操作(0：控制，1：释放，2：调试控制，3：调试释放) */
+    uint8_t result;                                       /** 操作结果 */
+}thaisenDeviceParameter;
+
+/* 功能说明:
+ *          thaisenDeviceChangedCallbackRegister:器件状态变化处理回调注册
+ * 输入参数:           cb    回调
+ *
+ * 返回参数:
+ *
+ * 调用方法:
+ *          上电初始化调用
+ */
+void thaisenDeviceChangedCallbackRegister(void *cb);
+
+/*****************************************************************************************************/
+
 /*************************************辅助电源函数******************************************************/
 
 /* 功能说明:
@@ -560,27 +732,29 @@ thaisenAuxPowerEn thaisen_auxPower_off_A(void);
 thaisenAuxPowerEn thaisen_auxPower_on_B(void);
 thaisenAuxPowerEn thaisen_auxPower_off_B(void);
 
-
-thaisenAuxPowerEn thaisenGetAux_A_Status_debug(void);
-thaisenAuxPowerEn thaisenGetAux_B_Status_debug(void);
-
 void thaisenSetAuxPowerTypeA(uint8_t type);
 thaisenAuxPowerTypeEn thaisenGetAuxPowerTypeA(void);
 
 void thaisenSetAuxPowerTypeB(uint8_t type);
 thaisenAuxPowerTypeEn thaisenGetAuxPowerTypeB(void);
 
-thaisenAuxPowerEn thaisenAux_A_12V_Enable(void);
-thaisenAuxPowerEn thaisenAux_A_12V_Disable(void);
+/******************************************** 以下是调试用函数 ********************************************/
+/**************** 24V辅源控制24V ****************/
+thaisenAuxPowerEn thaisenAux_A_24V_Enable_Debug(void);
+thaisenAuxPowerEn thaisenAux_A_24V_Disable_Debug(void);
+thaisenAuxPowerEn thaisenAux_B_24V_Enable_Debug(void);
+thaisenAuxPowerEn thaisenAux_B_24V_Disable_Debug(void);
 
-thaisenAuxPowerEn thaisenAux_A_24V_Enable(void);
-thaisenAuxPowerEn thaisenAux_A_24V_Disable(void);
+/**************** 12V辅源控制12V ****************/
+thaisenAuxPowerEn thaisenAux_A_12V_Enable_Debug(void);
+thaisenAuxPowerEn thaisenAux_A_12V_Disable_Debug(void);
+thaisenAuxPowerEn thaisenAux_B_12V_Enable_Debug(void);
+thaisenAuxPowerEn thaisenAux_B_12V_Disable_Debug(void);
 
-thaisenAuxPowerEn thaisenAux_B_12V_Enable(void);
-thaisenAuxPowerEn thaisenAux_B_12V_Disable(void);
+/**************** 辅源反馈 ****************/
 
-thaisenAuxPowerEn thaisenAux_B_24V_Enable(void);
-thaisenAuxPowerEn thaisenAux_B_24V_Disable(void);
+thaisenAuxPowerEn thaisenGetAux_A_Status_Debug(void);
+thaisenAuxPowerEn thaisenGetAux_B_Status_Debug(void);
 
 /*****************************************************************************************************/
 
@@ -616,6 +790,40 @@ enum
 uint8_t thaisen_get_CC1_status(void);
 uint8_t thaisen_get_CC1_statusB(void);
 
+typedef enum{
+    THAISEN_GUIDANCE_CHANGED_12V_TO_6V,                           /** 导引状态变化：12V-6V */
+    THAISEN_GUIDANCE_CHANGED_12V_TO_4V,                           /** 导引状态变化：12V-4V */
+    THAISEN_GUIDANCE_CHANGED_12V_TO_0V,                           /** 导引状态变化：12V-0V */
+    THAISEN_GUIDANCE_CHANGED_6V_TO_12V,                           /** 导引状态变化：6V-12V */
+    THAISEN_GUIDANCE_CHANGED_6V_TO_4V,                            /** 导引状态变化：6V-4V */
+    THAISEN_GUIDANCE_CHANGED_6V_TO_0V,                            /** 导引状态变化：6V-0V */
+    THAISEN_GUIDANCE_CHANGED_4V_TO_12V,                           /** 导引状态变化：4V-12V */
+    THAISEN_GUIDANCE_CHANGED_4V_TO_6V,                            /** 导引状态变化：4V-6V */
+    THAISEN_GUIDANCE_CHANGED_4V_TO_0V,                            /** 导引状态变化：4V-0V */
+    THAISEN_GUIDANCE_CHANGED_0V_TO_12V,                           /** 导引状态变化：0V-12V */
+    THAISEN_GUIDANCE_CHANGED_0V_TO_6V,                            /** 导引状态变化：0V-6V */
+    THAISEN_GUIDANCE_CHANGED_0V_TO_4V,                            /** 导引状态变化：0V-4V */
+    THAISEN_GUIDANCE_CHANGED_SIZE,                                /** 导引状态变化 */
+}thaisenGuidanceChanged_t;
+
+typedef struct{
+    int voltage;                                                  /** 导引当前电压值(0.01V) */
+    int voltage_last;                                             /** 导引前一次电压值(0.01V) */
+    uint16_t channel_adc;                                         /** 当前ADC */
+    uint16_t channel_adc_last;                                    /** 前一次ADC */
+}thaisenGuidanceInfo_t;
+
+/******************************************************************
+ * 函数名            thaisen_GuidanceChangedCallback_Register
+ * 功能               导引状态变化回调注册
+ * 参数
+ * 返回
+ * 注      void (*GuidanceChanged)(thaisenGuidanceInfo_t info, uint8_t flag, uint8_t gunNum);
+ *     info        导引变化信息@thaisenGuidanceInfo_t
+ *     flag        导引变化标志@thaisenGuidanceChanged_t
+ *     gunNum      枪号
+ *****************************************************************/
+void thaisen_GuidanceChangedCallback_Register(void *cb);
 
 /****************************************************************************/
 
