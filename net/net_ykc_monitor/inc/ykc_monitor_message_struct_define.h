@@ -82,6 +82,7 @@
 #define NET_YKC_MONITOR_STARTING_INFO_MAX                              0x0A        /* 单次上报启动中信息的最大个数 */
 #define NET_YKC_MONITOR_CHARGING_INFO_MAX                              0x0E        /* 单次上报充电中中信息的最大个数 */
 #define NET_YKC_MONITOR_FINISH_INFO_MAX                                0x01        /* 单次上报充电结束信息的最大个数 */
+#define NET_YKC_MONITOR_GUIDANCE_CHANGED_INFO_MAX                      0x05        /* 导引状态变化信息的最大个数 */
 
 #define NET_YKC_MONITOR_SCREEN_PW_LENGTH_DEFAULT                       0x0F        /* 默认屏幕密码长度 */
 
@@ -108,6 +109,16 @@
 
 
 #ifdef NET_YKC_MONITOR_AS_MONITOR
+/*********************************************************************************
+ * 设备运行实时信息指令码
+ ********************************************************************************/
+enum ykcm_dev_running{
+    NETYKCM_DEV_RUNNING_CONTROL_INFO,                                /* 设备运行实时信息指令码：控制信息 */
+    NETYKCM_DEV_RUNNING_STATUS_INFO,                                 /* 设备运行实时信息指令码：状态信息 */
+    NETYKCM_DEV_RUNNING_DATA_INFO_GUIDANCE,                          /* 设备运行实时信息指令码：数据信息-导引 */
+    NETYKCM_DEV_RUNNING_SIZE,                                        /* 设备运行实时信息指令码 */
+};
+/*********************************************************************************
 /*********************************************************************************
  * 设备配置信息报文
  ********************************************************************************/
@@ -443,6 +454,9 @@ enum ykc_monitor_cmd{
     NETYKC_MONITOR_PREQ_SRESCMD_MFAULT_INFO = 0xDF,                  /* 指令：上报、响应模块故障信息 */
 
     NETYKC_MONITOR_PREQ_SRESCMD_REQUEST_SERVER_INFO = 0xE1,          /* 指令：向服务器请求信息或服务器响应请求 */
+
+    NETYKC_MONITOR_PREQ_SREQCMD_RUNNING_REALTIME_INFO = 0xF9,        /* 指令：服务器查询、设备上报设备运行实时信息帧 */
+
 #endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
 
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
@@ -2089,6 +2103,150 @@ typedef struct{
     }body;
     uint16_t check_sum;                          /* 校验码 */
 }Net_YkcMonitorPro_Preq_RequestServerInfo_t;
+
+
+
+/** 0xF9 服务器查询、设备上报设备运行实时信息帧 */
+/** 控制段 */
+struct running_control_segment{
+    uint32_t dcrelay_positive_ctrl : 1;          /* 正直流继电器控制(1：动作，0：释放) */
+    uint32_t dcrelay_negtive_ctrl : 1;           /* 负直流继电器控制(1：动作，0：释放) */
+
+    uint32_t parallelrelay_0_positive_ctrl : 1;  /* 正母联0继电器控制(1：动作，0：释放) */
+    uint32_t parallelrelay_0_negtive_ctrl : 1;   /* 负母联0继电器控制(1：动作，0：释放) */
+
+    uint32_t parallelrelay_1_positive_ctrl : 1;  /* 正母联1继电器控制(1：动作，0：释放) */
+    uint32_t parallelrelay_1_negtive_ctrl : 1;   /* 负母联1继电器控制(1：动作，0：释放) */
+
+    uint32_t parallelrelay_2_positive_ctrl : 1;  /* 正母联2继电器控制(1：动作，0：释放) */
+    uint32_t parallelrelay_2_negtive_ctrl : 1;   /* 负母联2继电器控制(1：动作，0：释放) */
+
+    uint32_t matrixrelay_1_1_positive_ctrl : 1;  /* 正矩阵继电器KP1-1控制(1：动作，0：释放) */
+    uint32_t matrixrelay_1_1_negtive_ctrl : 1;   /* 负矩阵继电器KP1-1控制(1：动作，0：释放) */
+
+    uint32_t matrixrelay_1_2_positive_ctrl : 1;  /* 正矩阵继电器KP1-2控制(1：动作，0：释放) */
+    uint32_t matrixrelay_1_2_negtive_ctrl : 1;   /* 负矩阵继电器KP1-2控制(1：动作，0：释放) */
+
+    uint32_t matrixrelay_1_3_positive_ctrl : 1;  /* 正矩阵继电器KP1-3控制(1：动作，0：释放) */
+    uint32_t matrixrelay_1_3_negtive_ctrl : 1;   /* 负矩阵继电器KP1-3控制(1：动作，0：释放) */
+
+    uint32_t matrixrelay_2_1_positive_ctrl : 1;  /* 正矩阵继电器KP2-1控制(1：动作，0：释放) */
+    uint32_t matrixrelay_2_1_negtive_ctrl : 1;   /* 负矩阵继电器KP2-1控制(1：动作，0：释放) */
+
+    uint32_t matrixrelay_2_2_positive_ctrl : 1;  /* 正矩阵继电器KP2-2控制(1：动作，0：释放) */
+    uint32_t matrixrelay_2_2_negtive_ctrl : 1;   /* 负矩阵继电器KP2-2控制(1：动作，0：释放) */
+
+    uint32_t matrixrelay_3_1_positive_ctrl : 1;  /* 正矩阵继电器KP3-1控制(1：动作，0：释放) */
+    uint32_t matrixrelay_3_1_negtive_ctrl : 1;   /* 负矩阵继电器KP3-1控制(1：动作，0：释放) */
+
+    uint32_t elock_ctrl : 1;                     /* 电子锁控制(1：动作，0：释放) */
+    uint32_t acrelay_ctrl : 1;                   /* 交流接触器控制(1：动作，0：释放) */
+    uint32_t liquid_ctrl : 1;                    /* 液冷控制(1：开，0：关) */
+    uint32_t fan_ctrl : 1;                       /* 风扇控制(1：开，0：关) */
+
+    uint32_t auxpower_12v_ctrl : 1;              /* 12V辅源控制(1 闭合，0：断开) */
+    uint32_t auxpower_24v_ctrl : 1;              /* 24V辅源控制(1：闭合，0：断开) */
+
+    uint32_t reserve;                            /* 预留 */
+};
+
+/** 控制信息 */
+struct running_control_info{
+    uint8_t segment_num;                         /* 有效段数 */
+    struct{
+        uint32_t tick;                           /* 系统时基(ms) */
+        struct running_control_segment data;     /* 状态数据 */
+    }segment;
+};
+
+
+/** 设备运行实时信息：状态信息 */
+/** 信息段 */
+struct running_status_segment{
+    uint32_t dcrelay_positive_status : 1;          /* 正直流继电器状态(1：动作，0：释放) */
+    uint32_t dcrelay_negtive_status : 1;           /* 负直流继电器状态(1：动作，0：释放) */
+
+    uint32_t parallelrelay_0_positive_status : 1;  /* 正母联0继电器状态(1：动作，0：释放) */
+    uint32_t parallelrelay_0_negtive_status : 1;   /* 负母联0继电器状态(1：动作，0：释放) */
+
+    uint32_t parallelrelay_1_positive_status : 1;  /* 正母联1继电器状态(1：动作，0：释放) */
+    uint32_t parallelrelay_1_negtive_status : 1;   /* 负母联1继电器状态(1：动作，0：释放) */
+
+    uint32_t parallelrelay_2_positive_status : 1;  /* 正母联2继电器状态(1：动作，0：释放) */
+    uint32_t parallelrelay_2_negtive_status : 1;   /* 负母联2继电器状态(1：动作，0：释放) */
+
+    uint32_t matrixrelay_1_1_positive_status : 1;  /* 正矩阵继电器KP1-1状态(1：动作，0：释放) */
+    uint32_t matrixrelay_1_1_negtive_status : 1;   /* 负矩阵继电器KP1-1状态(1：动作，0：释放) */
+
+    uint32_t matrixrelay_1_2_positive_status : 1;  /* 正矩阵继电器KP1-2状态(1：动作，0：释放) */
+    uint32_t matrixrelay_1_2_negtive_status : 1;   /* 负矩阵继电器KP1-2状态(1：动作，0：释放) */
+
+    uint32_t matrixrelay_1_3_positive_status : 1;  /* 正矩阵继电器KP1-3状态(1：动作，0：释放) */
+    uint32_t matrixrelay_1_3_negtive_status : 1;   /* 负矩阵继电器KP1-3状态(1：动作，0：释放) */
+
+    uint32_t matrixrelay_2_1_positive_status : 1;  /* 正矩阵继电器KP2-1状态(1：动作，0：释放) */
+    uint32_t matrixrelay_2_1_negtive_status : 1;   /* 负矩阵继电器KP2-1状态(1：动作，0：释放) */
+
+    uint32_t matrixrelay_2_2_positive_status : 1;  /* 正矩阵继电器KP2-2状态(1：动作，0：释放) */
+    uint32_t matrixrelay_2_2_negtive_status : 1;   /* 负矩阵继电器KP2-2状态(1：动作，0：释放) */
+
+    uint32_t matrixrelay_3_1_positive_status : 1;  /* 正矩阵继电器KP3-1状态(1：动作，0：释放) */
+    uint32_t matrixrelay_3_1_negtive_status : 1;   /* 负矩阵继电器KP3-1状态(1：动作，0：释放) */
+
+    uint32_t elock_status : 1;                     /* 电子锁状态(1：动作，0：释放) */
+    uint32_t acrelay_status : 1;                   /* 交流接触器状态(1：动作，0：释放) */
+    uint32_t liquid_status : 1;                    /* 液冷状态(1：开，0：关) */
+    uint32_t fan_status : 1;                       /* 风扇状态(1：开，0：关) */
+
+    uint32_t auxpower_12v_status : 1;              /* 12V辅源状态(1：闭合，0：断开) */
+    uint32_t auxpower_24v_status : 1;              /* 24V辅源状态(1：闭合，0：断开) */
+
+    uint32_t reserve;                              /* 预留 */
+};
+/** 状态信息 */
+struct running_status_info{
+    uint8_t segment_num;                           /* 有效段数 */
+    struct{
+        uint32_t tick;                             /* 系统时基(ms) */
+        struct running_status_segment data;        /* 状态数据 */
+    }segment;
+};
+
+/********** 运行数据段 **********/
+/** 导引数据段 */
+struct guidance_segment{
+    uint32_t tick;                               /* 变化时的时间(系统运行时基(ms)) */
+    int16_t voltage;                             /* 导引当前电压值(0.01V) */
+    int16_t voltage_last;                        /* 导引前一次电压值(0.01V) */
+    uint16_t diff_positive_adc;                  /* 当前差分正ADC */
+    uint16_t diff_negtive_adc;                   /* 当前差分负ADC */
+    uint16_t diff_positive_adc_last;             /* 前一次差分正ADC */
+    uint16_t diff_negtive_adc_last;              /* 前一次差分负ADC */
+    uint8_t flag;                                /* 标志 */
+};
+
+/** 可能后续会增加其它数据段 */
+
+/** 设备运行实时信息：数据信息 */
+struct running_data_info{
+    uint8_t segment_num;                         /* 有效段数 */
+    struct{
+        /** 以下是数据段信息 */
+    }segment;
+};
+
+typedef struct{
+    Net_YkcMonitorPro_Head_t head;
+    struct{
+        uint8_t pile_number[NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT];  /* 桩号*/
+        uint8_t gunno;                           /* 枪号 */
+        uint8_t info_type;                       /* 信息类型@enum ykcm_dev_running */
+        uint8_t option;                          /* 查询：0或上报：1 */
+        uint8_t msg_version;                     /* 报文版本(初始版本为0) */
+        /* 信息数据 */
+    }body;
+    uint16_t check_sum;                          /* 校验码 */
+}Net_YkcMonitorPro_PreqReport_SreqQuery_RealtimeInfo_t;
 
 #endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
 

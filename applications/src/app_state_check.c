@@ -987,6 +987,8 @@ int32_t app_state_check_init(void)
 
 /********************************************************** 导引状态变化 **********************************************************/
 /********************************************************** 导引状态变化 **********************************************************/
+extern void ykc_monitor_guidance_changed_callback(uint8_t gunno, uint8_t flag, uint32_t tick, int voltage, int voltage_last, uint16_t diff_positive_adc, \
+        uint16_t diff_negtive_adc, uint16_t diff_positive_adc_last, uint16_t diff_negtive_adc_last);
 /*************************************************************************************
  * 函数名        app_state_guidance_changed
  * 功能            导引状态变化回调
@@ -997,9 +999,9 @@ int32_t app_state_check_init(void)
  ************************************************************************************/
 void app_state_guidance_changed(thaisenGuidanceInfo_t info, uint8_t flag, uint8_t port)
 {
-    rt_kprintf("app_state_guidance_changed(%d, %d, %d ,%d)(%d, %d)\n", info.voltage, info.voltage_last, info.channel_adc, info.channel_adc_last, \
-            flag, port);
+    uint32_t tick = rt_tick_get();
 
+    ykc_monitor_guidance_changed_callback(port, flag, tick, info.voltage, info.voltage_last, info.channel_adc, 0x00, info.channel_adc_last, 0x00);
 }
 
 /********************************************************** 器件状态变化 **********************************************************/

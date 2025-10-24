@@ -143,6 +143,22 @@ typedef struct{
     }flag;
 }ykc_monitor_lock_module;
 
+/** 导引状态变化信息 */
+typedef struct{
+    uint8_t count;                               /* 有效数量 */
+    uint8_t is_sending;                          /* 数据正在发送 */
+    struct{
+        uint32_t tick;                           /* 系统运行时基 */
+        int voltage;                             /* 导引当前电压值(0.001V) */
+        int voltage_last;                        /* 导引前一次电压值(0.001V) */
+        uint16_t diff_positive_adc;              /* 当前差分正ADC */
+        uint16_t diff_negtive_adc;               /* 当前差分负ADC */
+        uint16_t diff_positive_adc_last;         /* 前一次差分正ADC */
+        uint16_t diff_negtive_adc_last;          /* 前一次差分负ADC */
+        uint8_t flag;                            /* 标志 */
+    }data[NET_YKC_MONITOR_GUIDANCE_CHANGED_INFO_MAX];
+}ykc_monitor_guidance_changed;
+
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
 
 #pragma pack()
@@ -163,6 +179,7 @@ NET_DEF_SRAM2 static struct ykc_monitor_state_info s_ykc_monitor_state_info[NET_
 NET_DEF_SRAM2 static struct rt_thread s_ykc_monitor_realtime_process_thread;
 NET_DEF_SRAM0 static uint8_t s_ykc_monitor_realtime_process_thread_stack[YKC_MONITOR_REALTIME_PROCESS_THREAD_STACK_SIZE];
 NET_DEF_SRAM2 static struct net_handle* s_ykc_monitor_handle = NULL;
+NET_DEF_SRAM2 static ykc_monitor_guidance_changed s_ykc_monitor_guidance_changed[NET_SYSTEM_GUN_NUMBER];
 
 static uint16_t ykc_monitor_chargepile_stop_reason_converted(void *handle, uint16_t bit, uint8_t stop_in_starting);
 static uint8_t ykc_monitor_chargepile_transaction_identity_converted(uint8_t identity);
@@ -3398,11 +3415,35 @@ static void ykc_monitor_realtime_process_thread_entry(void *parameter)
         }else{
             s_ykc_monitor_lock_module.base_tick = rt_tick_get();
         }
+
+#ifdef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL
+        for(gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
+            if(s_ykc_monitor_guidance_changed[gunno].is_sending == NET_ENUM_FALSE){
+                if(s_ykc_monitor_guidance_changed[gunno].count){
+                    s_ykc_monitor_guidance_changed[gunno].is_sending = NET_ENUM_TRUE;
+                    ykc_monitor_net_event_send(NET_YKC_MONITOR_EXTERNAL_EHANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST,  \
+                            gunno, NET_YKC_MONITOR_USER_PREQ_EVENT_REPORT_GUIDANCE_CHANGED);
+                }
+            }
+        }
+#endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
 #endif /* NET_DESIGNATE_REGION */
 
 
         rt_thread_mdelay(100);
     }
+}
+
+/****************************************************
+ * 函数名            ykc_monitor_clear_guidance_changed_sending
+ * 功能               清除导引状态变化数据正在发送标志
+ ***************************************************/
+void ykc_monitor_clear_guidance_changed_sending(uint8_t gunno)
+{
+    if(gunno >= NET_SYSTEM_GUN_NUMBER){
+        return;
+    }
+    s_ykc_monitor_guidance_changed[gunno].is_sending = NET_ENUM_FALSE;
 }
 
 int32_t ykc_monitor_realtime_process_init(void)
@@ -3422,6 +3463,7 @@ int32_t ykc_monitor_realtime_process_init(void)
         memset(&s_ykc_monitor_charging_info[gunno], 0x00, sizeof(s_ykc_monitor_charging_info[gunno]));
         memset(&s_ykc_monitor_mfault_info, 0x00, sizeof(s_ykc_monitor_mfault_info));
         memset(&s_ykc_monitor_lock_module, 0x00, sizeof(s_ykc_monitor_lock_module));
+        memset(s_ykc_monitor_guidance_changed, 0x00, sizeof(s_ykc_monitor_guidance_changed));
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
     }
 
@@ -6626,6 +6668,93 @@ int8_t ykc_monitor_message_padding_request_server_info(uint8_t *buf, uint16_t il
 #else
     return -0x01;
 #endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
+}
+
+/*************************************************
+ * 函数名      ykc_monitor_guidance_changed_info_padding
+ * 功能          组包：填充导引状态变化信息
+ * **********************************************/
+int8_t ykc_monitor_guidance_changed_info_padding(uint8_t gunno, uint8_t *buf, uint16_t ilen, uint16_t *olen)
+{
+    uint16_t total = sizeof(Net_YkcMonitorPro_PreqReport_SreqQuery_RealtimeInfo_t) + 0x01;
+
+    if(buf == NULL){
+        return -0x01;
+    }
+    if(ilen < (total + (NET_YKC_MONITOR_GUIDANCE_CHANGED_INFO_MAX *sizeof(struct guidance_segment)))){
+        return -0x02;
+    }
+    if(gunno >= NET_SYSTEM_GUN_NUMBER){
+        return -0x03;
+    }
+
+    Net_YkcMonitorPro_PreqReport_SreqQuery_RealtimeInfo_t *message = (Net_YkcMonitorPro_PreqReport_SreqQuery_RealtimeInfo_t*)buf;
+    struct running_data_info *running_data = ((uint8_t*)&(message->body.msg_version) + 0x01);
+    struct guidance_segment *segment = ((uint8_t*)&(running_data->segment_num) + 0x01);
+
+    memset(message, 0x00, sizeof(ilen));
+
+    rt_enter_critical();
+
+    if(s_ykc_monitor_guidance_changed[gunno].count == 0x00){
+        rt_exit_critical();
+        return -0x03;
+    }
+    if(s_ykc_monitor_guidance_changed[gunno].count > NET_YKC_MONITOR_GUIDANCE_CHANGED_INFO_MAX){
+        s_ykc_monitor_guidance_changed[gunno].count = NET_YKC_MONITOR_GUIDANCE_CHANGED_INFO_MAX;
+    }
+    running_data->segment_num = s_ykc_monitor_guidance_changed[gunno].count;
+    for(uint8_t i = 0x00; i < running_data->segment_num; i++){
+        segment[i].tick = s_ykc_monitor_guidance_changed[gunno].data[i].tick;
+        segment[i].voltage = s_ykc_monitor_guidance_changed[gunno].data[i].voltage;
+        segment[i].voltage_last = s_ykc_monitor_guidance_changed[gunno].data[i].voltage_last;
+        segment[i].diff_positive_adc = s_ykc_monitor_guidance_changed[gunno].data[i].diff_positive_adc;
+        segment[i].diff_negtive_adc = s_ykc_monitor_guidance_changed[gunno].data[i].diff_negtive_adc;
+        segment[i].diff_positive_adc_last = s_ykc_monitor_guidance_changed[gunno].data[i].diff_positive_adc_last;
+        segment[i].diff_negtive_adc_last = s_ykc_monitor_guidance_changed[gunno].data[i].diff_negtive_adc_last;
+        segment[i].flag = s_ykc_monitor_guidance_changed[gunno].data[i].flag;
+    }
+    s_ykc_monitor_guidance_changed[gunno].count = 0x00;
+
+    rt_exit_critical();
+
+    message->body.info_type = NETYKCM_DEV_RUNNING_DATA_INFO_GUIDANCE;
+    message->body.option = 0x01;        /** 数据上报 */
+    message->body.msg_version = 0x00;   /** 报文版本 */
+    message->body.gunno = (gunno + 0x01);
+    memcpy(message->body.pile_number, g_ykc_monitor_preq_login.body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
+
+    total += (running_data->segment_num *sizeof(struct guidance_segment));
+
+    if(olen){
+        *olen = total;
+    }
+
+    return 0x00;
+}
+
+/*************************************************
+ * 函数名      ykc_monitor_relay_info_callback
+ * 功能         导引状态信息变化回调
+ * **********************************************/
+void ykc_monitor_guidance_changed_callback(uint8_t gunno, uint8_t flag, uint32_t tick, int voltage, int voltage_last, uint16_t diff_positive_adc, \
+        uint16_t diff_negtive_adc, uint16_t diff_positive_adc_last, uint16_t diff_negtive_adc_last)
+{
+    if(gunno >= NET_SYSTEM_GUN_NUMBER){
+        return;
+    }
+    if(s_ykc_monitor_guidance_changed[gunno].count >= NET_YKC_MONITOR_GUIDANCE_CHANGED_INFO_MAX){
+        return;
+    }
+    s_ykc_monitor_guidance_changed[gunno].data[s_ykc_monitor_guidance_changed[gunno].count].tick = tick;
+    s_ykc_monitor_guidance_changed[gunno].data[s_ykc_monitor_guidance_changed[gunno].count].voltage = voltage;
+    s_ykc_monitor_guidance_changed[gunno].data[s_ykc_monitor_guidance_changed[gunno].count].voltage_last = voltage_last;
+    s_ykc_monitor_guidance_changed[gunno].data[s_ykc_monitor_guidance_changed[gunno].count].diff_positive_adc = diff_positive_adc;
+    s_ykc_monitor_guidance_changed[gunno].data[s_ykc_monitor_guidance_changed[gunno].count].diff_negtive_adc = diff_negtive_adc;
+    s_ykc_monitor_guidance_changed[gunno].data[s_ykc_monitor_guidance_changed[gunno].count].diff_positive_adc_last = diff_positive_adc_last;
+    s_ykc_monitor_guidance_changed[gunno].data[s_ykc_monitor_guidance_changed[gunno].count].diff_negtive_adc_last = diff_negtive_adc_last;
+    s_ykc_monitor_guidance_changed[gunno].data[s_ykc_monitor_guidance_changed[gunno].count].flag = flag;
+    s_ykc_monitor_guidance_changed[gunno].count++;
 }
 
 #endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */

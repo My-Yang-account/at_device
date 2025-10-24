@@ -122,6 +122,19 @@ int8_t ykc_monitor_message_padding_billing_rule(uint8_t *buf, uint16_t ilen, uin
 int8_t ykc_monitor_config_info_process(void *data, uint16_t dlen, void *buf, uint16_t blen, uint16_t *olen);
 int8_t ykc_monitor_message_padding_module_fault_info(uint8_t *buf, uint16_t ilen, uint16_t *olen);
 int8_t ykc_monitor_message_padding_request_server_info(uint8_t *buf, uint16_t ilen, uint16_t *olen);
+/*************************************************
+ * 函数名      ykc_monitor_guidance_changed_info_padding
+ * 功能          组包：填充导引状态变化信息
+ * **********************************************/
+int8_t ykc_monitor_guidance_changed_info_padding(uint8_t gunno, uint8_t *buf, uint16_t ilen, uint16_t *olen);
+
+
+/****************************************************
+ * 函数名            ykc_monitor_clear_guidance_changed_sending
+ * 功能               清除导引状态变化数据正在发送标志
+ ***************************************************/
+void ykc_monitor_clear_guidance_changed_sending(uint8_t gunno);
+
 #endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
 
 /******************************** 以下是外部调用触发 *******************************/
