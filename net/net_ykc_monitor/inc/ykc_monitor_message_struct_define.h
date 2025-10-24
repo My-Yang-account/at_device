@@ -83,6 +83,7 @@
 #define NET_YKC_MONITOR_CHARGING_INFO_MAX                              0x0E        /* 单次上报充电中中信息的最大个数 */
 #define NET_YKC_MONITOR_FINISH_INFO_MAX                                0x01        /* 单次上报充电结束信息的最大个数 */
 #define NET_YKC_MONITOR_GUIDANCE_CHANGED_INFO_MAX                      0x05        /* 导引状态变化信息的最大个数 */
+#define NET_YKC_MONITOR_DEVICE_CHANGED_INFO_MAX                        0x0A        /* 器件状态变化信息的最大个数 */
 
 #define NET_YKC_MONITOR_SCREEN_PW_LENGTH_DEFAULT                       0x0F        /* 默认屏幕密码长度 */
 
@@ -118,7 +119,7 @@ enum ykcm_dev_running{
     NETYKCM_DEV_RUNNING_DATA_INFO_GUIDANCE,                          /* 设备运行实时信息指令码：数据信息-导引 */
     NETYKCM_DEV_RUNNING_SIZE,                                        /* 设备运行实时信息指令码 */
 };
-/*********************************************************************************
+/*********************************************************************************/
 /*********************************************************************************
  * 设备配置信息报文
  ********************************************************************************/
@@ -2106,66 +2107,159 @@ typedef struct{
 
 
 
-/** 0xF9 服务器查询、设备上报设备运行实时信息帧 */
-/** 控制段 */
-struct running_control_segment{
-    uint32_t dcrelay_positive_ctrl : 1;          /* 正直流继电器控制(1：动作，0：释放) */
-    uint32_t dcrelay_negtive_ctrl : 1;           /* 负直流继电器控制(1：动作，0：释放) */
+/******************************************** 0xF9 服务器查询、设备上报设备运行实时信息帧 0xF9 *********************************************/
+/** 器件枚举 */
+typedef enum{
+    /** 枪口类型器件(解析时按枪分) */
+    NETYKCM_DEVICE_ENUM_POS_DCRELAY,             /* 器件枚举：正极直流继电器 */
+    NETYKCM_DEVICE_ENUM_NEG_DCRELAY,             /* 器件枚举：负极直流继电器 */
 
-    uint32_t parallelrelay_0_positive_ctrl : 1;  /* 正母联0继电器控制(1：动作，0：释放) */
-    uint32_t parallelrelay_0_negtive_ctrl : 1;   /* 负母联0继电器控制(1：动作，0：释放) */
+    NETYKCM_DEVICE_ENUM_AUXPOWER_12V,            /* 器件枚举：12V辅源 */
+    NETYKCM_DEVICE_ENUM_AUXPOWER_24V,            /* 器件枚举：24V辅源 */
+    NETYKCM_DEVICE_ENUM_ELOCK,                   /* 器件枚举：电子锁 */
+    NETYKCM_DEVICE_ENUM_FAN,                     /* 器件枚举：风扇 */
+    NETYKCM_DEVICE_ENUM_LIQUID,                  /* 器件枚举：液冷 */
 
-    uint32_t parallelrelay_1_positive_ctrl : 1;  /* 正母联1继电器控制(1：动作，0：释放) */
-    uint32_t parallelrelay_1_negtive_ctrl : 1;   /* 负母联1继电器控制(1：动作，0：释放) */
+    /** 整机类型器件(是整桩的，解析时要分配到所有枪，只有在枪号值最小的枪上报的才是有效的) */
+    NETYKCM_DEVICE_ENUM_POS_PARALLEL_RELAY_0,    /* 器件枚举：母联继电器0正极 */
+    NETYKCM_DEVICE_ENUM_NEG_PARALLEL_RELAY_0,    /* 器件枚举：母联继电器0负极 */
+    NETYKCM_DEVICE_ENUM_POS_PARALLEL_RELAY_1,    /* 器件枚举：母联继电器1正极 */
+    NETYKCM_DEVICE_ENUM_NEG_PARALLEL_RELAY_1,    /* 器件枚举：母联继电器1负极 */
+    NETYKCM_DEVICE_ENUM_POS_PARALLEL_RELAY_2,    /* 器件枚举：母联继电器2正极 */
+    NETYKCM_DEVICE_ENUM_NEG_PARALLEL_RELAY_2,    /* 器件枚举：母联继电器2负极 */
 
-    uint32_t parallelrelay_2_positive_ctrl : 1;  /* 正母联2继电器控制(1：动作，0：释放) */
-    uint32_t parallelrelay_2_negtive_ctrl : 1;   /* 负母联2继电器控制(1：动作，0：释放) */
+    NETYKCM_DEVICE_ENUM_MATRIX_RELAY_1_1_POS,    /* 正极矩阵继电器KP1-1控制 */
+    NETYKCM_DEVICE_ENUM_MATRIX_RELAY_1_1_NEG,    /* 负极矩阵继电器KP1-1控制 */
+    NETYKCM_DEVICE_ENUM_MATRIX_RELAY_1_2_POS,    /* 正极矩阵继电器KP1-2控制 */
+    NETYKCM_DEVICE_ENUM_MATRIX_RELAY_1_2_NEG,    /* 负极矩阵继电器KP1-2控制 */
+    NETYKCM_DEVICE_ENUM_MATRIX_RELAY_1_3_POS,    /* 正极矩阵继电器KP1-3控制 */
+    NETYKCM_DEVICE_ENUM_MATRIX_RELAY_1_3_NEG,    /* 负极矩阵继电器KP1-3控制 */
+    NETYKCM_DEVICE_ENUM_MATRIX_RELAY_2_1_POS,    /* 正极矩阵继电器KP2-1控制 */
+    NETYKCM_DEVICE_ENUM_MATRIX_RELAY_2_1_NEG,    /* 负极矩阵继电器KP2-1控制 */
+    NETYKCM_DEVICE_ENUM_MATRIX_RELAY_2_2_POS,    /* 正极矩阵继电器KP2-2控制 */
+    NETYKCM_DEVICE_ENUM_MATRIX_RELAY_2_2_NEG,    /* 负极矩阵继电器KP2-2控制 */
+    NETYKCM_DEVICE_ENUM_MATRIX_RELAY_3_1_POS,    /* 正极矩阵继电器KP3-1控制 */
+    NETYKCM_DEVICE_ENUM_MATRIX_RELAY_3_1_NEG,    /* 负极矩阵继电器KP3-1控制 */
 
-    uint32_t matrixrelay_1_1_positive_ctrl : 1;  /* 正矩阵继电器KP1-1控制(1：动作，0：释放) */
-    uint32_t matrixrelay_1_1_negtive_ctrl : 1;   /* 负矩阵继电器KP1-1控制(1：动作，0：释放) */
+    NETYKCM_DEVICE_ENUM_ACRELAY,                 /* 器件枚举：交流接触器 */
 
-    uint32_t matrixrelay_1_2_positive_ctrl : 1;  /* 正矩阵继电器KP1-2控制(1：动作，0：释放) */
-    uint32_t matrixrelay_1_2_negtive_ctrl : 1;   /* 负矩阵继电器KP1-2控制(1：动作，0：释放) */
+    NETYKCM_DEVICE_ENUM_SIZE,                    /* 器件枚举 */
+}ykcm_device_enum;
 
-    uint32_t matrixrelay_1_3_positive_ctrl : 1;  /* 正矩阵继电器KP1-3控制(1：动作，0：释放) */
-    uint32_t matrixrelay_1_3_negtive_ctrl : 1;   /* 负矩阵继电器KP1-3控制(1：动作，0：释放) */
+/** 直流继电器操作结果 */
+typedef enum{
+    NETYKCM_DEV_DCRELAY_RESULT_SUCCESS_0,        /** 直流继电器器件操作结果：第一次操作成功 */
+    NETYKCM_DEV_DCRELAY_RESULT_SUCCESS_1,        /** 直流继电器器件操作结果：第二次操作成功 */
+    NETYKCM_DEV_DCRELAY_RESULT_SUCCESS_2,        /** 直流继电器器件操作结果：第三次操作成功 */
+    NETYKCM_DEV_DCRELAY_RESULT_PRESS_SCRAM,      /** 直流继电器器件操作结果：操作成功-急停按下 */
+    NETYKCM_DEV_DCRELAY_RESULT_OPT_DIRECTLT,     /** 直流继电器器件操作结果：直接操作，不检反馈 */
+    NETYKCM_DEV_DCRELAY_RESULT_FAIL,             /** 直流继电器器件操作结果：操作失败 */
+    NETYKCM_DEV_DCRELAY_RESULT_SIZE,             /** 直流继电器器件操作结果：无 */
+}ykcm_dev_dcrelay_opt_result;
 
-    uint32_t matrixrelay_2_1_positive_ctrl : 1;  /* 正矩阵继电器KP2-1控制(1：动作，0：释放) */
-    uint32_t matrixrelay_2_1_negtive_ctrl : 1;   /* 负矩阵继电器KP2-1控制(1：动作，0：释放) */
+/** 母联继电器操作结果 */
+typedef enum{
+    NETYKCM_DEV_PARARELAY_RESULT_SUCCESS_0,               /** 母联继电器器件操作结果：第一次操作成功 */
+    NETYKCM_DEV_PARARELAY_RESULT_SUCCESS_1,               /** 母联继电器器件操作结果：第二次操作成功 */
+    NETYKCM_DEV_PARARELAY_RESULT_SUCCESS_2,               /** 母联继电器器件操作结果：第三次操作成功 */
+    NETYKCM_DEV_PARARELAY_RESULT_PRESS_SCRAM,             /** 母联继电器器件操作结果：操作成功-急停按下 */
+    NETYKCM_DEV_PARARELAY_RESULT_OPT_DIRECTLT,            /** 母联继电器器件操作结果：直接操作，不检反馈 */
+    NETYKCM_DEV_PARARELAY_RESULT_FAIL,                    /** 母联继电器器件操作结果：操作失败 */
+    NETYKCM_DEV_PARARELAY_RESULT_SIZE,                    /** 母联继电器器件操作结果：无 */
+}ykcm_dev_pararelay_opt_result;
 
-    uint32_t matrixrelay_2_2_positive_ctrl : 1;  /* 正矩阵继电器KP2-2控制(1：动作，0：释放) */
-    uint32_t matrixrelay_2_2_negtive_ctrl : 1;   /* 负矩阵继电器KP2-2控制(1：动作，0：释放) */
+/** 交流接触器操作结果 */
+typedef enum{
+    NETYKCM_DEV_ACRELAY_RESULT_SUCCESS_0,                 /** 交流接触器器件操作结果：第一次操作成功(正常模式) */
+    NETYKCM_DEV_ACRELAY_RESULT_SUCCESS_1,                 /** 交流接触器器件操作结果：第二次操作成功(正常模式)  */
+    NETYKCM_DEV_ACRELAY_RESULT_SUCCESS_2,                 /** 交流接触器器件操作结果：第三次操作成功(正常模式)  */
+    NETYKCM_DEV_ACRELAY_RESULT_OPT_DIRECTLT,              /** 交流接触器器件操作结果：直接操作，不检反馈(正常模式)  */
+    NETYKCM_DEV_ACRELAY_RESULT_SUCCESS_MAGNRTIC,          /** 交流接触器器件操作结果：操作成功(磁保持模式) */
+    NETYKCM_DEV_ACRELAY_RESULT_FAIL_FB_N,                 /** 交流接触器器件操作结果：操作失败-反馈不对(正常模式)  */
+    NETYKCM_DEV_ACRELAY_RESULT_FAIL_FB_M,                 /** 交流接触器器件操作结果：操作失败-反馈不对(磁保持模式)  */
+    NETYKCM_DEV_ACRELAY_RESULT_FAIL_NORMAL,               /** 交流接触器器件操作结果：操作失败-不是正常模式 */
+    NETYKCM_DEV_ACRELAY_RESULT_FAIL_MAGNRTIC,             /** 交流接触器器件操作结果：操作失败-不是磁保持模式 */
+    NETYKCM_DEV_ACRELAY_RESULT_SIZE,                      /** 交流接触器器件操作结果：无 */
+}ykcm_dev_acrelay_opt_result;
 
-    uint32_t matrixrelay_3_1_positive_ctrl : 1;  /* 正矩阵继电器KP3-1控制(1：动作，0：释放) */
-    uint32_t matrixrelay_3_1_negtive_ctrl : 1;   /* 负矩阵继电器KP3-1控制(1：动作，0：释放) */
+/** 电子锁操作结果 */
+typedef enum{
+    NETYKCM_DEV_ELOCK_RESULT_SUCCESS_0,                   /** 电子锁器件操作结果：第一次操作成功 */
+    NETYKCM_DEV_ELOCK_RESULT_SUCCESS_1,                   /** 电子锁器件操作结果：第二次操作成功 */
+    NETYKCM_DEV_ELOCK_RESULT_SUCCESS_2,                   /** 电子锁器件操作结果：第二次操作成功 */
+    NETYKCM_DEV_ELOCK_RESULT_OPT_DIRECTLT,                /** 电子锁器件操作结果：直接操作，不检反馈 */
+    NETYKCM_DEV_ELOCK_RESULT_FAIL,                        /** 电子锁器件操作结果：操作失败 */
+    NETYKCM_DEV_ELOCK_RESULT_SIZE,                        /** 电子锁器件操作结果：无 */
+}ykcm_device_eLock_opt_result;
 
-    uint32_t elock_ctrl : 1;                     /* 电子锁控制(1：动作，0：释放) */
-    uint32_t acrelay_ctrl : 1;                   /* 交流接触器控制(1：动作，0：释放) */
-    uint32_t liquid_ctrl : 1;                    /* 液冷控制(1：开，0：关) */
-    uint32_t fan_ctrl : 1;                       /* 风扇控制(1：开，0：关) */
+/** 风扇操作结果 */
+typedef enum{
+    NETYKCM_DEV_FAN_RESULT_SUCCESS,                      /** 风扇器件操作结果：操作成功 */
+    NETYKCM_DEV_FAN_RESULT_SIZE,                         /** 风扇器件操作结果：无 */
+}ykcm_dev_fan_opt_result;
 
-    uint32_t auxpower_12v_ctrl : 1;              /* 12V辅源控制(1 闭合，0：断开) */
-    uint32_t auxpower_24v_ctrl : 1;              /* 24V辅源控制(1：闭合，0：断开) */
+/** 辅源操作结果 */
+typedef enum{
+    NETYKCM_DEV_AUXPOWER_RESULT_SUCCESS,                 /** 辅源器件操作结果：操作成功 */
+    NETYKCM_DEV_AUXPOWER_RESULT_SIZE,                    /** 辅源器件操作结果：无 */
+}ykcm_device_auxpower_opt_result;
 
-    uint32_t reserve;                            /* 预留 */
+/** 液冷操作结果 */
+typedef enum{
+    NETYKCM_DEV_LIQUID_RESULT_SUCCESS,                   /** 液冷器件操作结果：操作成功 */
+    NETYKCM_DEV_LIQUID_RESULT_FAIL_OFFLINE,              /** 液冷器件操作结果：操作失败-离线 */
+    NETYKCM_DEV_LIQUID_RESULT_SIZE,                      /** 液冷器件操作结果：无 */
+}ykcm_device_liquid_opt_result;
+
+
+/** 控制器件小段 */
+struct control_segment{
+    uint32_t timestamp;                          /* 变化时的时间(时间戳) */
+    uint8_t device;                              /* 器件名@ykcm_device_enum */
+    struct{
+        uint8_t ctrl : 1;                        /* 控制操作(1：动作，0：释放) */
+        uint8_t is_debug : 1;                    /* 是否是调试控制(1：是，0：否) */
+        uint8_t result : 4;                      /* 控制操作结果 */
+        uint8_t type : 2;                        /* 器件类型：0：枪口类型(解析时按枪分)
+                                                                                                                                                          1：整机类型(是整桩的，解析时要分配到所有枪，只有在枪号值最小的枪上报的才是有效的) */
+    }info;
 };
 
 /** 控制信息 */
 struct running_control_info{
     uint8_t segment_num;                         /* 有效段数 */
+#if 0
+    /** 控制段1 */
     struct{
-        uint32_t tick;                           /* 系统时基(ms) */
-        struct running_control_segment data;     /* 状态数据 */
+        /** 以下是控制段信息 */
+        struct control_segment segment1
     }segment;
+    /** 控制段2 */
+    struct{
+        /** 以下是控制段信息 */
+        struct control_segment segment2
+    }segment;
+    .......
+#endif
 };
 
 
 /** 设备运行实时信息：状态信息 */
 /** 信息段 */
 struct running_status_segment{
+    uint32_t timestamp;                          /* 变化时的时间(时间戳) */
+    /** 枪口类型器件(解析时按枪分) */
     uint32_t dcrelay_positive_status : 1;          /* 正直流继电器状态(1：动作，0：释放) */
     uint32_t dcrelay_negtive_status : 1;           /* 负直流继电器状态(1：动作，0：释放) */
 
+    uint32_t elock_status : 1;                     /* 电子锁状态(1：动作，0：释放) */
+    uint32_t liquid_status : 1;                    /* 液冷状态(1：开，0：关) */
+    uint32_t fan_status : 1;                       /* 风扇状态(1：开，0：关) */
+
+    uint32_t auxpower_12v_status : 1;              /* 12V辅源状态(1：闭合，0：断开) */
+    uint32_t auxpower_24v_status : 1;              /* 24V辅源状态(1：闭合，0：断开) */
+
+    /** 整机类型器件(是整桩的，解析时要分配到所有枪，只有在枪号值最小的枪上报的才是有效的) */
     uint32_t parallelrelay_0_positive_status : 1;  /* 正母联0继电器状态(1：动作，0：释放) */
     uint32_t parallelrelay_0_negtive_status : 1;   /* 负母联0继电器状态(1：动作，0：释放) */
 
@@ -2193,13 +2287,7 @@ struct running_status_segment{
     uint32_t matrixrelay_3_1_positive_status : 1;  /* 正矩阵继电器KP3-1状态(1：动作，0：释放) */
     uint32_t matrixrelay_3_1_negtive_status : 1;   /* 负矩阵继电器KP3-1状态(1：动作，0：释放) */
 
-    uint32_t elock_status : 1;                     /* 电子锁状态(1：动作，0：释放) */
     uint32_t acrelay_status : 1;                   /* 交流接触器状态(1：动作，0：释放) */
-    uint32_t liquid_status : 1;                    /* 液冷状态(1：开，0：关) */
-    uint32_t fan_status : 1;                       /* 风扇状态(1：开，0：关) */
-
-    uint32_t auxpower_12v_status : 1;              /* 12V辅源状态(1：闭合，0：断开) */
-    uint32_t auxpower_24v_status : 1;              /* 24V辅源状态(1：闭合，0：断开) */
 
     uint32_t reserve;                              /* 预留 */
 };
@@ -2207,7 +2295,7 @@ struct running_status_segment{
 struct running_status_info{
     uint8_t segment_num;                           /* 有效段数 */
     struct{
-        uint32_t tick;                             /* 系统时基(ms) */
+        uint32_t timestamp;                        /* 变化时的时间(时间戳) */
         struct running_status_segment data;        /* 状态数据 */
     }segment;
 };
@@ -2215,7 +2303,7 @@ struct running_status_info{
 /********** 运行数据段 **********/
 /** 导引数据段 */
 struct guidance_segment{
-    uint32_t tick;                               /* 变化时的时间(系统运行时基(ms)) */
+    uint32_t timestamp;                          /* 变化时的时间(时间戳) */
     int16_t voltage;                             /* 导引当前电压值(0.01V) */
     int16_t voltage_last;                        /* 导引前一次电压值(0.01V) */
     uint16_t diff_positive_adc;                  /* 当前差分正ADC */
@@ -2230,9 +2318,17 @@ struct guidance_segment{
 /** 设备运行实时信息：数据信息 */
 struct running_data_info{
     uint8_t segment_num;                         /* 有效段数 */
+#if 0
+    /** 数据段1 */
     struct{
         /** 以下是数据段信息 */
     }segment;
+    /** 数据段2 */
+    struct{
+        /** 以下是数据段信息 */
+    }segment;
+    .......
+#endif
 };
 
 typedef struct{

@@ -128,12 +128,23 @@ int8_t ykc_monitor_message_padding_request_server_info(uint8_t *buf, uint16_t il
  * **********************************************/
 int8_t ykc_monitor_guidance_changed_info_padding(uint8_t gunno, uint8_t *buf, uint16_t ilen, uint16_t *olen);
 
+/*************************************************
+ * 函数名      ykc_monitor_guidance_changed_info_padding
+ * 功能          组包：填充导引状态变化信息
+ * **********************************************/
+int8_t ykc_monitor_device_status_changed_info_padding(uint8_t gunno, uint8_t *buf, uint16_t ilen, uint16_t *olen);
 
 /****************************************************
  * 函数名            ykc_monitor_clear_guidance_changed_sending
  * 功能               清除导引状态变化数据正在发送标志
  ***************************************************/
 void ykc_monitor_clear_guidance_changed_sending(uint8_t gunno);
+
+/****************************************************
+ * 函数名            ykc_monitor_clear_device_changed_sending
+ * 功能               清除器件状态变化数据正在发送标志
+ ***************************************************/
+void ykc_monitor_clear_device_changed_sending(uint8_t gunno);
 
 #endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
 

@@ -987,7 +987,7 @@ int32_t app_state_check_init(void)
 
 /********************************************************** 导引状态变化 **********************************************************/
 /********************************************************** 导引状态变化 **********************************************************/
-extern void ykc_monitor_guidance_changed_callback(uint8_t gunno, uint8_t flag, uint32_t tick, int voltage, int voltage_last, uint16_t diff_positive_adc, \
+extern void ykc_monitor_guidance_changed_callback(uint8_t gunno, uint8_t flag, uint32_t timestamp, int voltage, int voltage_last, uint16_t diff_positive_adc, \
         uint16_t diff_negtive_adc, uint16_t diff_positive_adc_last, uint16_t diff_negtive_adc_last);
 /*************************************************************************************
  * 函数名        app_state_guidance_changed
@@ -999,59 +999,15 @@ extern void ykc_monitor_guidance_changed_callback(uint8_t gunno, uint8_t flag, u
  ************************************************************************************/
 void app_state_guidance_changed(thaisenGuidanceInfo_t info, uint8_t flag, uint8_t port)
 {
-    uint32_t tick = rt_tick_get();
+    uint32_t timestamp = time(NULL);
 
-    ykc_monitor_guidance_changed_callback(port, flag, tick, info.voltage, info.voltage_last, info.channel_adc, 0x00, info.channel_adc_last, 0x00);
+    ykc_monitor_guidance_changed_callback(port, flag, timestamp, info.voltage, info.voltage_last, info.channel_adc, 0x00, info.channel_adc_last, 0x00);
 }
 
 /********************************************************** 器件状态变化 **********************************************************/
 /********************************************************** 器件状态变化 **********************************************************/
-/*************************************************************************************
- * 函数名        app_state_device_status_reset
- * 功能            器件状态复位
- * 参数            port      枪口号(0-254表示有枪号属性的器件， 255表示无枪号属性的公共器件)
- * 返回
- ************************************************************************************/
-void app_state_device_status_reset(uint8_t port)
-{
-    if(port == 0xFF){
-        for(uint8_t i = 0x00; i < APP_SYSTEM_GUNNO_SIZE; i++){
-            s_state_device[i].opt.dcrealy_status = THAISEN_DEVICE_OPT_RELEASE;
-            s_state_device[i].opt.auxpower_24v_status = THAISEN_DEVICE_OPT_RELEASE;
-            s_state_device[i].opt.auxpower_12v_status = THAISEN_DEVICE_OPT_RELEASE;
-            s_state_device[i].opt.elock_status = THAISEN_DEVICE_OPT_RELEASE;
-            s_state_device[i].opt.fan_status = THAISEN_DEVICE_OPT_RELEASE;
-            s_state_device[i].opt.liquid_status = THAISEN_DEVICE_OPT_RELEASE;
-            s_state_device[i].opt.acrealy_status = THAISEN_DEVICE_OPT_RELEASE;
-            s_state_device[i].opt.pararealy_0_neg_status = THAISEN_DEVICE_OPT_RELEASE;
-            s_state_device[i].opt.pararealy_0_pos_status = THAISEN_DEVICE_OPT_RELEASE;
-            s_state_device[i].opt.pararealy_1_neg_status = THAISEN_DEVICE_OPT_RELEASE;
-            s_state_device[i].opt.pararealy_1_pos_status = THAISEN_DEVICE_OPT_RELEASE;
-            s_state_device[i].opt.pararealy_2_neg_status = THAISEN_DEVICE_OPT_RELEASE;
-            s_state_device[i].opt.pararealy_2_pos_status = THAISEN_DEVICE_OPT_RELEASE;
-        }
-    }else{
-        for(uint8_t i = 0x00; i < APP_SYSTEM_GUNNO_SIZE; i++){
-            s_state_device[i].opt.dcrealy_status = THAISEN_DEVICE_OPT_RELEASE;
-            s_state_device[i].opt.auxpower_24v_status = THAISEN_DEVICE_OPT_RELEASE;
-            s_state_device[i].opt.auxpower_12v_status = THAISEN_DEVICE_OPT_RELEASE;
-            s_state_device[i].opt.elock_status = THAISEN_DEVICE_OPT_RELEASE;
-
-
-
-            s_state_device[i].opt.fan_status = THAISEN_DEVICE_OPT_RELEASE;
-            s_state_device[i].opt.liquid_status = THAISEN_DEVICE_OPT_RELEASE;
-            s_state_device[i].opt.acrealy_status = THAISEN_DEVICE_OPT_RELEASE;
-            s_state_device[i].opt.pararealy_0_neg_status = THAISEN_DEVICE_OPT_RELEASE;
-            s_state_device[i].opt.pararealy_0_pos_status = THAISEN_DEVICE_OPT_RELEASE;
-            s_state_device[i].opt.pararealy_1_neg_status = THAISEN_DEVICE_OPT_RELEASE;
-            s_state_device[i].opt.pararealy_1_pos_status = THAISEN_DEVICE_OPT_RELEASE;
-            s_state_device[i].opt.pararealy_2_neg_status = THAISEN_DEVICE_OPT_RELEASE;
-            s_state_device[i].opt.pararealy_2_pos_status = THAISEN_DEVICE_OPT_RELEASE;
-        }
-    }
-}
-
+extern void ykc_monitor_device_status_changed_callback(uint8_t gunno, uint8_t device, uint8_t type, uint8_t is_debug, uint8_t control, \
+        uint8_t result, uint32_t timestamp);
 /*************************************************************************************
  * 函数名        app_state_device_status_changed
  * 功能            器件状态变化回调
@@ -1066,6 +1022,8 @@ void app_state_device_status_changed(uint8_t device, void *parameter, uint8_t pl
     if((parameter == NULL) || (port >= APP_SYSTEM_GUNNO_SIZE)){
         return;
     }
+    uint8_t is_changed = 0x00, is_whole_device = 0x00;
+    uint32_t timestamp = time(NULL);
     thaisenDeviceParameter *p = (thaisenDeviceParameter*)parameter;
 
     switch(device){
@@ -1073,83 +1031,119 @@ void app_state_device_status_changed(uint8_t device, void *parameter, uint8_t pl
         if(s_state_device[port].opt.dcrealy_status != p->opt){
             rt_kprintf("device dcrelay status changed(%d, %d, %d)\n", port, p->opt, p->result);
             s_state_device[port].opt.dcrealy_status = p->opt;
+            is_changed = 0x01;
         }
         break;
     case THAISEN_DEVICE_ENUM_ACRELAY:
         if(s_state_device[port].opt.acrealy_status != p->opt){
             rt_kprintf("device acrelay status changed(%d, %d, %d)\n", port, p->opt, p->result);
             s_state_device[port].opt.acrealy_status = p->opt;
+            is_changed = 0x01;
+            is_whole_device = 0x01;
+            port = 0x00;
         }
         break;
     case THAISEN_DEVICE_ENUM_POS_PARALLEL_RELAY_0:
         if(s_state_device[port].opt.pararealy_0_pos_status != p->opt){
             rt_kprintf("device pararelay 0 pos status changed(%d, %d, %d)\n", port, p->opt, p->result);
             s_state_device[port].opt.pararealy_0_pos_status = p->opt;
+            is_changed = 0x01;
+            is_whole_device = 0x01;
+            port = 0x00;
         }
         break;
     case THAISEN_DEVICE_ENUM_NEG_PARALLEL_RELAY_0:
         if(s_state_device[port].opt.pararealy_0_neg_status != p->opt){
             rt_kprintf("device pararelay 0 neg status changed(%d, %d, %d)\n", port, p->opt, p->result);
             s_state_device[port].opt.pararealy_0_neg_status = p->opt;
+            is_changed = 0x01;
+            is_whole_device = 0x01;
+            port = 0x00;
         }
         break;
     case THAISEN_DEVICE_ENUM_POS_PARALLEL_RELAY_1:
         if(s_state_device[port].opt.pararealy_1_pos_status != p->opt){
             rt_kprintf("device pararelay 1 pos status changed(%d, %d, %d)\n", port, p->opt, p->result);
             s_state_device[port].opt.pararealy_1_pos_status = p->opt;
+            is_changed = 0x01;
+            is_whole_device = 0x01;
+            port = 0x00;
         }
         break;
     case THAISEN_DEVICE_ENUM_NEG_PARALLEL_RELAY_1:
         if(s_state_device[port].opt.pararealy_1_neg_status != p->opt){
             rt_kprintf("device pararelay 1 neg status changed(%d, %d, %d)\n", port, p->opt, p->result);
             s_state_device[port].opt.pararealy_1_neg_status = p->opt;
+            is_changed = 0x01;
+            is_whole_device = 0x01;
+            port = 0x00;
         }
         break;
     case THAISEN_DEVICE_ENUM_POS_PARALLEL_RELAY_2:
-        rt_kprintf("jjjjjjjjjjj 0000000000000\n");
         if(s_state_device[port].opt.pararealy_2_pos_status != p->opt){
             rt_kprintf("device pararelay 2 pos status changed(%d, %d, %d)\n", port, p->opt, p->result);
             s_state_device[port].opt.pararealy_2_pos_status = p->opt;
+            is_changed = 0x01;
+            is_whole_device = 0x01;
+            port = 0x00;
         }
         break;
     case THAISEN_DEVICE_ENUM_NEG_PARALLEL_RELAY_2:
-        rt_kprintf("jjjjjjjjjjj 111111111111111\n");
         if(s_state_device[port].opt.pararealy_2_neg_status != p->opt){
             rt_kprintf("device pararelay 2 neg status changed(%d, %d, %d)\n", port, p->opt, p->result);
             s_state_device[port].opt.pararealy_2_neg_status = p->opt;
+            is_changed = 0x01;
+            is_whole_device = 0x01;
+            port = 0x00;
         }
         break;
     case THAISEN_DEVICE_ENUM_AUXPOWER_12V:
         if(s_state_device[port].opt.auxpower_12v_status != p->opt){
             rt_kprintf("device auxpower_12v status changed(%d, %d, %d)\n", port, p->opt, p->result);
             s_state_device[port].opt.auxpower_12v_status = p->opt;
+            is_changed = 0x01;
         }
         break;
     case THAISEN_DEVICE_ENUM_AUXPOWER_24V:
         if(s_state_device[port].opt.auxpower_24v_status != p->opt){
             rt_kprintf("device auxpower_24v status changed(%d, %d, %d)\n", port, p->opt, p->result);
             s_state_device[port].opt.auxpower_24v_status = p->opt;
+            is_changed = 0x01;
         }
         break;
     case THAISEN_DEVICE_ENUM_ELOCK:
         if(s_state_device[port].opt.elock_status != p->opt){
             rt_kprintf("device elock status changed(%d, %d, %d)\n", port, p->opt, p->result);
             s_state_device[port].opt.elock_status = p->opt;
+            is_changed = 0x01;
         }
         break;
     case THAISEN_DEVICE_ENUM_FAN:
         if(s_state_device[port].opt.fan_status != p->opt){
             rt_kprintf("device fan status changed(%d, %d, %d)\n", port, p->opt, p->result);
             s_state_device[port].opt.fan_status = p->opt;
+            is_changed = 0x01;
         }
         break;
     case THAISEN_DEVICE_ENUM_LIQUID:
         if(s_state_device[port].opt.liquid_status != p->opt){
             rt_kprintf("device liquid status changed(%d, %d, %d)\n", port, p->opt, p->result);
             s_state_device[port].opt.liquid_status = p->opt;
+            is_changed = 0x01;
         }
         break;
     default:
         break;
+    }
+    if(is_changed){
+        uint8_t ctrl = 0x00, is_debug = 0x00;
+
+        if((p->opt == THAISEN_DEVICE_OPT_DEBUG_CONTROL) || (p->opt == THAISEN_DEVICE_OPT_DEBUG_RELEASE)){
+            is_debug = 0x01;
+        }
+        if((p->opt == THAISEN_DEVICE_OPT_CONTROL) || (p->opt == THAISEN_DEVICE_OPT_DEBUG_CONTROL)){
+            ctrl = 0x01;
+        }
+        ykc_monitor_device_status_changed_callback(port, device, is_whole_device, is_debug, ctrl, p->result, timestamp);
     }
 }
