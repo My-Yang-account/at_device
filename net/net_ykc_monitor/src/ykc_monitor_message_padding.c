@@ -168,6 +168,12 @@ typedef struct{
     struct control_segment segment[NET_YKC_MONITOR_DEVICE_CTRL_CHANGED_INFO_MAX]; /* 数据段 */
 }ykc_monitor_device_control_changed;
 
+/** 器件控制状态变化信息 */
+typedef struct{
+    uint8_t delay_count;                         /* 延时上报(预防有多个器件接连发生变化：提高报文中有效数据的占比) */
+    uint8_t is_recved;                           /* 已接收到变化 */
+}ykc_monitor_device_status_changed;
+
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
 
 #pragma pack()
@@ -190,6 +196,7 @@ NET_DEF_SRAM0 static uint8_t s_ykc_monitor_realtime_process_thread_stack[YKC_MON
 NET_DEF_SRAM2 static struct net_handle* s_ykc_monitor_handle = NULL;
 NET_DEF_SRAM2 static ykc_monitor_guidance_changed s_ykc_monitor_guidance_changed[NET_SYSTEM_GUN_NUMBER];
 NET_DEF_SRAM2 static ykc_monitor_device_control_changed s_ykc_monitor_device_control_changed[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 static ykc_monitor_device_status_changed s_ykc_monitor_device_status_changed[NET_SYSTEM_GUN_NUMBER];
 
 static uint16_t ykc_monitor_chargepile_stop_reason_converted(void *handle, uint16_t bit, uint8_t stop_in_starting);
 static uint8_t ykc_monitor_chargepile_transaction_identity_converted(uint8_t identity);
@@ -3428,6 +3435,7 @@ static void ykc_monitor_realtime_process_thread_entry(void *parameter)
 
 #ifdef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL
         for(gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
+            /********************** 导引变化信息 **********************/
             if(s_ykc_monitor_guidance_changed[gunno].is_sending == NET_ENUM_FALSE){
                 if(s_ykc_monitor_guidance_changed[gunno].count){
                     s_ykc_monitor_guidance_changed[gunno].is_sending = NET_ENUM_TRUE;
@@ -3435,6 +3443,7 @@ static void ykc_monitor_realtime_process_thread_entry(void *parameter)
                             gunno, NET_YKC_MONITOR_EXTERNAL_PREQ_EVENT_GUIDANCE_CHANGED);
                 }
             }
+            /********************** 器件控制变化信息 **********************/
             if(s_ykc_monitor_device_control_changed[gunno].is_sending == NET_ENUM_FALSE){
                 if(s_ykc_monitor_device_control_changed[gunno].count){
                     if(s_ykc_monitor_device_control_changed[gunno].delay_count < (0xFF - 0x01)){
@@ -3451,6 +3460,26 @@ static void ykc_monitor_realtime_process_thread_entry(void *parameter)
                 }
             }else{
                 s_ykc_monitor_device_control_changed[gunno].delay_count = 0x00;
+            }
+
+            /********************** 器件反馈变化信息 **********************/
+            if(s_ykc_monitor_device_status_changed[gunno].is_recved == NET_ENUM_TRUE){
+                if(s_ykc_monitor_device_status_changed[gunno].delay_count < (0xFF - 0x01)){
+                    s_ykc_monitor_device_status_changed[gunno].delay_count++;
+                }
+                /** 连续2s内器件控制状态无变化再上报反馈状态(线程运行时间100ms) */
+                if(s_ykc_monitor_device_status_changed[gunno].delay_count > (2000 /100)){
+                    rt_enter_critical();
+                    /** 防止其它线程修改 delay_count */
+                    if(s_ykc_monitor_device_status_changed[gunno].delay_count > (2000 /100)){
+                        s_ykc_monitor_device_status_changed[gunno].is_recved = NET_ENUM_FALSE;
+                        ykc_monitor_net_event_send(NET_YKC_MONITOR_EXTERNAL_EHANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST,  \
+                                gunno, NET_YKC_MONITOR_EXTERNAL_PREQ_EVENT_DEVICE_FB_CHANGED);
+                    }
+                    rt_exit_critical();
+                }
+            }else{
+                s_ykc_monitor_device_status_changed[gunno].delay_count = 0x00;
             }
         }
 #endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
@@ -3504,6 +3533,7 @@ int32_t ykc_monitor_realtime_process_init(void)
         memset(&s_ykc_monitor_lock_module, 0x00, sizeof(s_ykc_monitor_lock_module));
         memset(s_ykc_monitor_guidance_changed, 0x00, sizeof(s_ykc_monitor_guidance_changed));
         memset(s_ykc_monitor_device_control_changed, 0x00, sizeof(s_ykc_monitor_device_control_changed));
+        memset(s_ykc_monitor_device_status_changed, 0x00, sizeof(s_ykc_monitor_device_status_changed));
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
     }
 
@@ -6908,15 +6938,19 @@ int8_t ykc_monitor_dev_control_changed_info_padding(uint8_t gunno, uint8_t *buf,
 void ykc_monitor_dev_control_changed_callback(uint8_t gunno, uint8_t device, uint8_t type, uint8_t is_debug, uint8_t control, \
         uint8_t result, uint32_t timestamp)
 {
+    uint8_t count = 0x00;
+
     if(gunno >= NET_SYSTEM_GUN_NUMBER){
         return;
     }
+    rt_enter_critical();
+
+    s_ykc_monitor_device_status_changed[gunno].delay_count = 0x00;
+    s_ykc_monitor_device_status_changed[gunno].is_recved = NET_ENUM_TRUE;
     if(s_ykc_monitor_device_control_changed[gunno].count >= NET_YKC_MONITOR_DEVICE_CTRL_CHANGED_INFO_MAX){
+        rt_exit_critical();
         return;
     }
-    uint8_t count = 0x00;
-
-    rt_enter_critical();
 
     count = s_ykc_monitor_device_control_changed[gunno].count;
     s_ykc_monitor_device_control_changed[gunno].count++;
@@ -6929,6 +6963,124 @@ void ykc_monitor_dev_control_changed_callback(uint8_t gunno, uint8_t device, uin
     s_ykc_monitor_device_control_changed[gunno].segment[count].info.type = type;
 
     rt_exit_critical();
+}
+
+/*************************************************
+ * 函数名      ykc_monitor_dev_feedback_changed_info_padding
+ * 功能          组包：填充器件反馈状态变化信息
+ * **********************************************/
+int8_t ykc_monitor_dev_feedback_changed_info_padding(uint8_t gunno, uint8_t *buf, uint16_t ilen, uint16_t *olen)
+{
+    uint16_t total = (sizeof(Net_YkcMonitorPro_PreqReport_SreqQuery_RealtimeInfo_t) + sizeof(struct running_status_info));
+
+    if(buf == NULL){
+        return -0x01;
+    }
+    if(ilen < total){
+        return -0x02;
+    }
+    if(gunno >= NET_SYSTEM_GUN_NUMBER){
+        return -0x03;
+    }
+
+    Net_YkcMonitorPro_PreqReport_SreqQuery_RealtimeInfo_t *message = (Net_YkcMonitorPro_PreqReport_SreqQuery_RealtimeInfo_t*)buf;
+    struct running_status_info *running_data = ((uint8_t*)&(message->body.msg_version) + 0x01);
+
+    memset(message, 0x00, sizeof(ilen));
+
+    running_data->segment_num = 0x01;
+    running_data->segment.data.timestamp = time(NULL);
+
+    /********************* 直流继电器 *********************/
+    if(thaisenDcRelay_StateQuery(gunno, thaisenRelayClose)){
+        running_data->segment.data.info.dcrelay_positive_status = 0x01;
+        running_data->segment.data.info.dcrelay_negtive_status = 0x01;
+    }else{
+        running_data->segment.data.info.dcrelay_positive_status = 0x00;
+        running_data->segment.data.info.dcrelay_negtive_status = 0x00;
+    }
+    /********************* 电子锁 *********************/
+    if(thaisenElectLock_StateQuery(gunno) == thaisen_elock_close){
+        running_data->segment.data.info.elock_status = 0x01;
+    }else{
+        running_data->segment.data.info.elock_status = 0x00;
+    }
+    /********************* 液冷 *********************/
+    running_data->segment.data.info.liquid_status = 0x00;
+    /********************* 风扇 *********************/
+    running_data->segment.data.info.fan_status = 0x00;
+    /********************* 12V辅源 *********************/
+    /********************* 24V辅源 *********************/
+    running_data->segment.data.info.auxpower_12v_status = 0x00;
+    running_data->segment.data.info.auxpower_24v_status = 0x00;
+    if(gunno == 0x00){
+        if(thaisenGetAux_A_Status_Debug() == thaisen_auxPower_ok){
+            running_data->segment.data.info.auxpower_12v_status = 0x01;
+            running_data->segment.data.info.auxpower_24v_status = 0x01;
+        }
+    }else{
+        if(thaisenGetAux_B_Status_Debug() == thaisen_auxPower_ok){
+            running_data->segment.data.info.auxpower_12v_status = 0x01;
+            running_data->segment.data.info.auxpower_24v_status = 0x01;
+        }
+    }
+    /********************* 交流接触器 *********************/
+    running_data->segment.data.info.acrelay_status = 0x00;
+    if(thaisenAcRelay_StateQuery() == thaisenRelayClose){
+        running_data->segment.data.info.acrelay_status = 0x01;
+    }
+    /********************* 母联继电器 *********************/
+    running_data->segment.data.info.parallelrelay_0_positive_status = 0x00;
+    running_data->segment.data.info.parallelrelay_0_negtive_status = 0x00;
+    if(thaisen_relay_parallel_FB_Z() == thaisenRelayClose){
+        running_data->segment.data.info.parallelrelay_0_positive_status = 0x01;
+    }
+    if(thaisen_relay_parallel_FB_F() == thaisenRelayClose){
+        running_data->segment.data.info.parallelrelay_0_negtive_status = 0x01;
+    }
+    running_data->segment.data.info.parallelrelay_1_positive_status = 0x00;
+    running_data->segment.data.info.parallelrelay_1_negtive_status = 0x00;
+    if(thaisen_relay_K7_FB() == thaisenRelayClose){
+        running_data->segment.data.info.parallelrelay_1_positive_status = 0x01;
+    }
+    if(thaisen_relay_K8_FB() == thaisenRelayClose){
+        running_data->segment.data.info.parallelrelay_1_negtive_status = 0x01;
+    }
+    running_data->segment.data.info.parallelrelay_2_positive_status = 0x00;
+    running_data->segment.data.info.parallelrelay_2_negtive_status = 0x00;
+    if(thaisen_relay_K9_FB() == thaisenRelayClose){
+        running_data->segment.data.info.parallelrelay_2_positive_status = 0x01;
+    }
+    if(thaisen_relay_K10_FB() == thaisenRelayClose){
+        running_data->segment.data.info.parallelrelay_2_negtive_status = 0x01;
+    }
+
+    /********************* 矩阵继电器 *********************/
+    running_data->segment.data.info.matrixrelay_1_1_positive_status = 0x00;
+    running_data->segment.data.info.matrixrelay_1_1_negtive_status = 0x00;
+    running_data->segment.data.info.matrixrelay_1_2_positive_status = 0x00;
+    running_data->segment.data.info.matrixrelay_1_2_negtive_status = 0x00;
+    running_data->segment.data.info.matrixrelay_1_3_positive_status = 0x00;
+    running_data->segment.data.info.matrixrelay_1_3_negtive_status = 0x00;
+    running_data->segment.data.info.matrixrelay_2_1_positive_status = 0x00;
+    running_data->segment.data.info.matrixrelay_2_1_negtive_status = 0x00;
+    running_data->segment.data.info.matrixrelay_2_2_positive_status = 0x00;
+    running_data->segment.data.info.matrixrelay_2_2_negtive_status = 0x00;
+    running_data->segment.data.info.matrixrelay_3_1_positive_status = 0x00;
+    running_data->segment.data.info.matrixrelay_3_1_negtive_status = 0x00;
+    running_data->segment.data.info.reserve = 0x00;
+
+    message->body.info_type = NETYKCM_DEV_RUNNING_STATUS_INFO;
+    message->body.option = 0x01;        /** 数据上报 */
+    message->body.msg_version = 0x00;   /** 报文版本 */
+    message->body.gunno = (gunno + 0x01);
+    memcpy(message->body.pile_number, g_ykc_monitor_preq_login.body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
+
+    if(olen){
+        *olen = total;
+    }
+
+    return 0x00;
 }
 
 #endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */

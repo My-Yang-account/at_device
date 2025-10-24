@@ -134,6 +134,12 @@ int8_t ykc_monitor_guidance_changed_info_padding(uint8_t gunno, uint8_t *buf, ui
  * **********************************************/
 int8_t ykc_monitor_dev_control_changed_info_padding(uint8_t gunno, uint8_t *buf, uint16_t ilen, uint16_t *olen);
 
+/*************************************************
+ * 函数名      ykc_monitor_dev_feedback_changed_info_padding
+ * 功能          组包：填充器件反馈状态变化信息
+ * **********************************************/
+int8_t ykc_monitor_dev_feedback_changed_info_padding(uint8_t gunno, uint8_t *buf, uint16_t ilen, uint16_t *olen);
+
 /****************************************************
  * 函数名            ykc_monitor_clear_guidance_changed_sending
  * 功能               清除导引状态变化数据正在发送标志

@@ -2248,54 +2248,54 @@ struct running_control_info{
 /** 信息段 */
 struct running_status_segment{
     uint32_t timestamp;                          /* 变化时的时间(时间戳) */
-    /** 枪口类型器件(解析时按枪分) */
-    uint32_t dcrelay_positive_status : 1;          /* 正直流继电器状态(1：动作，0：释放) */
-    uint32_t dcrelay_negtive_status : 1;           /* 负直流继电器状态(1：动作，0：释放) */
+    struct{
+        /** 枪口类型器件(解析时按枪分) */
+        uint32_t dcrelay_positive_status : 1;          /* 正直流继电器状态(1：动作，0：释放) */
+        uint32_t dcrelay_negtive_status : 1;           /* 负直流继电器状态(1：动作，0：释放) */
 
-    uint32_t elock_status : 1;                     /* 电子锁状态(1：动作，0：释放) */
-    uint32_t liquid_status : 1;                    /* 液冷状态(1：开，0：关) */
-    uint32_t fan_status : 1;                       /* 风扇状态(1：开，0：关) */
+        uint32_t elock_status : 1;                     /* 电子锁状态(1：动作，0：释放) */
+        uint32_t liquid_status : 1;                    /* 液冷状态(1：开，0：关) */
+        uint32_t fan_status : 1;                       /* 风扇状态(1：开，0：关) */
 
-    uint32_t auxpower_12v_status : 1;              /* 12V辅源状态(1：闭合，0：断开) */
-    uint32_t auxpower_24v_status : 1;              /* 24V辅源状态(1：闭合，0：断开) */
+        uint32_t auxpower_12v_status : 1;              /* 12V辅源状态(1：闭合，0：断开) */
+        uint32_t auxpower_24v_status : 1;              /* 24V辅源状态(1：闭合，0：断开) */
 
-    /** 整机类型器件(是整桩的，解析时要分配到所有枪，只有在枪号值最小的枪上报的才是有效的) */
-    uint32_t parallelrelay_0_positive_status : 1;  /* 正母联0继电器状态(1：动作，0：释放) */
-    uint32_t parallelrelay_0_negtive_status : 1;   /* 负母联0继电器状态(1：动作，0：释放) */
+        /** 整机类型器件(是整桩的，解析时要分配到所有枪，只有在枪号值最小的枪上报的才是有效的) */
+        uint32_t parallelrelay_0_positive_status : 1;  /* 正母联0继电器状态(1：动作，0：释放) */
+        uint32_t parallelrelay_0_negtive_status : 1;   /* 负母联0继电器状态(1：动作，0：释放) */
 
-    uint32_t parallelrelay_1_positive_status : 1;  /* 正母联1继电器状态(1：动作，0：释放) */
-    uint32_t parallelrelay_1_negtive_status : 1;   /* 负母联1继电器状态(1：动作，0：释放) */
+        uint32_t parallelrelay_1_positive_status : 1;  /* 正母联1继电器状态(1：动作，0：释放) */
+        uint32_t parallelrelay_1_negtive_status : 1;   /* 负母联1继电器状态(1：动作，0：释放) */
 
-    uint32_t parallelrelay_2_positive_status : 1;  /* 正母联2继电器状态(1：动作，0：释放) */
-    uint32_t parallelrelay_2_negtive_status : 1;   /* 负母联2继电器状态(1：动作，0：释放) */
+        uint32_t parallelrelay_2_positive_status : 1;  /* 正母联2继电器状态(1：动作，0：释放) */
+        uint32_t parallelrelay_2_negtive_status : 1;   /* 负母联2继电器状态(1：动作，0：释放) */
 
-    uint32_t matrixrelay_1_1_positive_status : 1;  /* 正矩阵继电器KP1-1状态(1：动作，0：释放) */
-    uint32_t matrixrelay_1_1_negtive_status : 1;   /* 负矩阵继电器KP1-1状态(1：动作，0：释放) */
+        uint32_t matrixrelay_1_1_positive_status : 1;  /* 正矩阵继电器KP1-1状态(1：动作，0：释放) */
+        uint32_t matrixrelay_1_1_negtive_status : 1;   /* 负矩阵继电器KP1-1状态(1：动作，0：释放) */
 
-    uint32_t matrixrelay_1_2_positive_status : 1;  /* 正矩阵继电器KP1-2状态(1：动作，0：释放) */
-    uint32_t matrixrelay_1_2_negtive_status : 1;   /* 负矩阵继电器KP1-2状态(1：动作，0：释放) */
+        uint32_t matrixrelay_1_2_positive_status : 1;  /* 正矩阵继电器KP1-2状态(1：动作，0：释放) */
+        uint32_t matrixrelay_1_2_negtive_status : 1;   /* 负矩阵继电器KP1-2状态(1：动作，0：释放) */
 
-    uint32_t matrixrelay_1_3_positive_status : 1;  /* 正矩阵继电器KP1-3状态(1：动作，0：释放) */
-    uint32_t matrixrelay_1_3_negtive_status : 1;   /* 负矩阵继电器KP1-3状态(1：动作，0：释放) */
+        uint32_t matrixrelay_1_3_positive_status : 1;  /* 正矩阵继电器KP1-3状态(1：动作，0：释放) */
+        uint32_t matrixrelay_1_3_negtive_status : 1;   /* 负矩阵继电器KP1-3状态(1：动作，0：释放) */
 
-    uint32_t matrixrelay_2_1_positive_status : 1;  /* 正矩阵继电器KP2-1状态(1：动作，0：释放) */
-    uint32_t matrixrelay_2_1_negtive_status : 1;   /* 负矩阵继电器KP2-1状态(1：动作，0：释放) */
+        uint32_t matrixrelay_2_1_positive_status : 1;  /* 正矩阵继电器KP2-1状态(1：动作，0：释放) */
+        uint32_t matrixrelay_2_1_negtive_status : 1;   /* 负矩阵继电器KP2-1状态(1：动作，0：释放) */
 
-    uint32_t matrixrelay_2_2_positive_status : 1;  /* 正矩阵继电器KP2-2状态(1：动作，0：释放) */
-    uint32_t matrixrelay_2_2_negtive_status : 1;   /* 负矩阵继电器KP2-2状态(1：动作，0：释放) */
+        uint32_t matrixrelay_2_2_positive_status : 1;  /* 正矩阵继电器KP2-2状态(1：动作，0：释放) */
+        uint32_t matrixrelay_2_2_negtive_status : 1;   /* 负矩阵继电器KP2-2状态(1：动作，0：释放) */
 
-    uint32_t matrixrelay_3_1_positive_status : 1;  /* 正矩阵继电器KP3-1状态(1：动作，0：释放) */
-    uint32_t matrixrelay_3_1_negtive_status : 1;   /* 负矩阵继电器KP3-1状态(1：动作，0：释放) */
+        uint32_t matrixrelay_3_1_positive_status : 1;  /* 正矩阵继电器KP3-1状态(1：动作，0：释放) */
+        uint32_t matrixrelay_3_1_negtive_status : 1;   /* 负矩阵继电器KP3-1状态(1：动作，0：释放) */
 
-    uint32_t acrelay_status : 1;                   /* 交流接触器状态(1：动作，0：释放) */
-
-    uint32_t reserve;                              /* 预留 */
+        uint32_t acrelay_status : 1;                   /* 交流接触器状态(1：动作，0：释放) */
+        uint32_t reserve : 6;                          /* 预留 */
+    }info;
 };
 /** 状态信息 */
 struct running_status_info{
     uint8_t segment_num;                           /* 有效段数 */
     struct{
-        uint32_t timestamp;                        /* 变化时的时间(时间戳) */
         struct running_status_segment data;        /* 状态数据 */
     }segment;
 };
