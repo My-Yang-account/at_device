@@ -160,13 +160,13 @@ typedef struct{
     }data[NET_YKC_MONITOR_GUIDANCE_CHANGED_INFO_MAX];
 }ykc_monitor_guidance_changed;
 
-/** 器件状态变化信息 */
+/** 器件控制状态变化信息 */
 typedef struct{
     uint8_t delay_count;                         /* 延时上报(预防有多个器件接连发生变化：提高报文中有效数据的占比) */
     uint8_t count;                               /* 有效数量 */
     uint8_t is_sending;                          /* 数据正在发送 */
-    struct control_segment segment[NET_YKC_MONITOR_DEVICE_CHANGED_INFO_MAX]; /* 数据段 */
-}ykc_monitor_device_status_changed;
+    struct control_segment segment[NET_YKC_MONITOR_DEVICE_CTRL_CHANGED_INFO_MAX]; /* 数据段 */
+}ykc_monitor_device_control_changed;
 
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
 
@@ -189,7 +189,7 @@ NET_DEF_SRAM2 static struct rt_thread s_ykc_monitor_realtime_process_thread;
 NET_DEF_SRAM0 static uint8_t s_ykc_monitor_realtime_process_thread_stack[YKC_MONITOR_REALTIME_PROCESS_THREAD_STACK_SIZE];
 NET_DEF_SRAM2 static struct net_handle* s_ykc_monitor_handle = NULL;
 NET_DEF_SRAM2 static ykc_monitor_guidance_changed s_ykc_monitor_guidance_changed[NET_SYSTEM_GUN_NUMBER];
-NET_DEF_SRAM2 static ykc_monitor_device_status_changed s_ykc_monitor_device_status_changed[NET_SYSTEM_GUN_NUMBER];
+NET_DEF_SRAM2 static ykc_monitor_device_control_changed s_ykc_monitor_device_control_changed[NET_SYSTEM_GUN_NUMBER];
 
 static uint16_t ykc_monitor_chargepile_stop_reason_converted(void *handle, uint16_t bit, uint8_t stop_in_starting);
 static uint8_t ykc_monitor_chargepile_transaction_identity_converted(uint8_t identity);
@@ -3435,22 +3435,22 @@ static void ykc_monitor_realtime_process_thread_entry(void *parameter)
                             gunno, NET_YKC_MONITOR_EXTERNAL_PREQ_EVENT_GUIDANCE_CHANGED);
                 }
             }
-            if(s_ykc_monitor_device_status_changed[gunno].is_sending == NET_ENUM_FALSE){
-                if(s_ykc_monitor_device_status_changed[gunno].count){
-                    if(s_ykc_monitor_device_status_changed[gunno].delay_count < (0xFF - 0x01)){
-                        s_ykc_monitor_device_status_changed[gunno].delay_count++;
+            if(s_ykc_monitor_device_control_changed[gunno].is_sending == NET_ENUM_FALSE){
+                if(s_ykc_monitor_device_control_changed[gunno].count){
+                    if(s_ykc_monitor_device_control_changed[gunno].delay_count < (0xFF - 0x01)){
+                        s_ykc_monitor_device_control_changed[gunno].delay_count++;
                     }
                     /** 一次上报3s内器件的变化(线程运行时间100ms) */
-                    if(s_ykc_monitor_device_status_changed[gunno].delay_count > (3000 /100)){
-                        s_ykc_monitor_device_status_changed[gunno].is_sending = NET_ENUM_TRUE;
+                    if(s_ykc_monitor_device_control_changed[gunno].delay_count > (3000 /100)){
+                        s_ykc_monitor_device_control_changed[gunno].is_sending = NET_ENUM_TRUE;
                         ykc_monitor_net_event_send(NET_YKC_MONITOR_EXTERNAL_EHANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST,  \
-                                gunno, NET_YKC_MONITOR_EXTERNAL_PREQ_EVENT_DEVICE_CHANGED);
+                                gunno, NET_YKC_MONITOR_EXTERNAL_PREQ_EVENT_DEVICE_CTRL_CHANGED);
                     }
                 }else{
-                    s_ykc_monitor_device_status_changed[gunno].delay_count = 0x00;
+                    s_ykc_monitor_device_control_changed[gunno].delay_count = 0x00;
                 }
             }else{
-                s_ykc_monitor_device_status_changed[gunno].delay_count = 0x00;
+                s_ykc_monitor_device_control_changed[gunno].delay_count = 0x00;
             }
         }
 #endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
@@ -3474,15 +3474,15 @@ void ykc_monitor_clear_guidance_changed_sending(uint8_t gunno)
 }
 
 /****************************************************
- * 函数名            ykc_monitor_clear_device_changed_sending
- * 功能               清除器件状态变化数据正在发送标志
+ * 函数名            ykc_monitor_clear_dev_control_changed_sending
+ * 功能               清除器件控制状态变化数据正在发送标志
  ***************************************************/
-void ykc_monitor_clear_device_changed_sending(uint8_t gunno)
+void ykc_monitor_clear_dev_control_changed_sending(uint8_t gunno)
 {
     if(gunno >= NET_SYSTEM_GUN_NUMBER){
         return;
     }
-    s_ykc_monitor_device_status_changed[gunno].is_sending = NET_ENUM_FALSE;
+    s_ykc_monitor_device_control_changed[gunno].is_sending = NET_ENUM_FALSE;
 }
 
 int32_t ykc_monitor_realtime_process_init(void)
@@ -3503,7 +3503,7 @@ int32_t ykc_monitor_realtime_process_init(void)
         memset(&s_ykc_monitor_mfault_info, 0x00, sizeof(s_ykc_monitor_mfault_info));
         memset(&s_ykc_monitor_lock_module, 0x00, sizeof(s_ykc_monitor_lock_module));
         memset(s_ykc_monitor_guidance_changed, 0x00, sizeof(s_ykc_monitor_guidance_changed));
-        memset(s_ykc_monitor_device_status_changed, 0x00, sizeof(s_ykc_monitor_device_status_changed));
+        memset(s_ykc_monitor_device_control_changed, 0x00, sizeof(s_ykc_monitor_device_control_changed));
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
     }
 
@@ -6798,17 +6798,17 @@ void ykc_monitor_guidance_changed_callback(uint8_t gunno, uint8_t flag, uint32_t
 }
 
 /*************************************************
- * 函数名      ykc_monitor_guidance_changed_info_padding
- * 功能          组包：填充导引状态变化信息
+ * 函数名      ykc_monitor_dev_control_changed_info_padding
+ * 功能          组包：填充器件控制状态变化信息
  * **********************************************/
-int8_t ykc_monitor_device_status_changed_info_padding(uint8_t gunno, uint8_t *buf, uint16_t ilen, uint16_t *olen)
+int8_t ykc_monitor_dev_control_changed_info_padding(uint8_t gunno, uint8_t *buf, uint16_t ilen, uint16_t *olen)
 {
     uint16_t total = sizeof(Net_YkcMonitorPro_PreqReport_SreqQuery_RealtimeInfo_t) + 0x01;
 
     if(buf == NULL){
         return -0x01;
     }
-    if(ilen < (total + (NET_YKC_MONITOR_DEVICE_CHANGED_INFO_MAX *sizeof(struct control_segment)))){
+    if(ilen < (total + (NET_YKC_MONITOR_DEVICE_CTRL_CHANGED_INFO_MAX *sizeof(struct control_segment)))){
         return -0x02;
     }
     if(gunno >= NET_SYSTEM_GUN_NUMBER){
@@ -6823,22 +6823,22 @@ int8_t ykc_monitor_device_status_changed_info_padding(uint8_t gunno, uint8_t *bu
 
     rt_enter_critical();
 
-    if(s_ykc_monitor_device_status_changed[gunno].count == 0x00){
+    if(s_ykc_monitor_device_control_changed[gunno].count == 0x00){
         rt_exit_critical();
         return -0x03;
     }
-    if(s_ykc_monitor_device_status_changed[gunno].count > NET_YKC_MONITOR_DEVICE_CHANGED_INFO_MAX){
-        s_ykc_monitor_device_status_changed[gunno].count = NET_YKC_MONITOR_DEVICE_CHANGED_INFO_MAX;
+    if(s_ykc_monitor_device_control_changed[gunno].count > NET_YKC_MONITOR_DEVICE_CTRL_CHANGED_INFO_MAX){
+        s_ykc_monitor_device_control_changed[gunno].count = NET_YKC_MONITOR_DEVICE_CTRL_CHANGED_INFO_MAX;
     }
-    running_data->segment_num = s_ykc_monitor_device_status_changed[gunno].count;
+    running_data->segment_num = s_ykc_monitor_device_control_changed[gunno].count;
     for(uint8_t i = 0x00; i < running_data->segment_num; i++){
-        segment[i].timestamp = s_ykc_monitor_device_status_changed[gunno].segment[i].timestamp;
-        segment[i].info.ctrl = s_ykc_monitor_device_status_changed[gunno].segment[i].info.ctrl;
-        segment[i].info.is_debug = s_ykc_monitor_device_status_changed[gunno].segment[i].info.is_debug;
-        segment[i].info.result = s_ykc_monitor_device_status_changed[gunno].segment[i].info.result;
-        segment[i].info.type = s_ykc_monitor_device_status_changed[gunno].segment[i].info.type;
+        segment[i].timestamp = s_ykc_monitor_device_control_changed[gunno].segment[i].timestamp;
+        segment[i].info.ctrl = s_ykc_monitor_device_control_changed[gunno].segment[i].info.ctrl;
+        segment[i].info.is_debug = s_ykc_monitor_device_control_changed[gunno].segment[i].info.is_debug;
+        segment[i].info.result = s_ykc_monitor_device_control_changed[gunno].segment[i].info.result;
+        segment[i].info.type = s_ykc_monitor_device_control_changed[gunno].segment[i].info.type;
         segment[i].device = NETYKCM_DEVICE_ENUM_SIZE;
-        switch(s_ykc_monitor_device_status_changed[gunno].segment[i].device){
+        switch(s_ykc_monitor_device_control_changed[gunno].segment[i].device){
         case THAISEN_DEVICE_ENUM_DCRELAY:
             segment[i].device = NETYKCM_DEVICE_ENUM_POS_DCRELAY;
             break;
@@ -6882,7 +6882,7 @@ int8_t ykc_monitor_device_status_changed_info_padding(uint8_t gunno, uint8_t *bu
             break;
         }
     }
-    s_ykc_monitor_device_status_changed[gunno].count = 0x00;
+    s_ykc_monitor_device_control_changed[gunno].count = 0x00;
 
     rt_exit_critical();
 
@@ -6902,31 +6902,31 @@ int8_t ykc_monitor_device_status_changed_info_padding(uint8_t gunno, uint8_t *bu
 }
 
 /*************************************************
- * 函数名      ykc_monitor_relay_info_callback
- * 功能         导引状态信息变化回调
+ * 函数名      ykc_monitor_dev_control_changed_callback
+ * 功能         器件控制状态信息变化回调
  * **********************************************/
-void ykc_monitor_device_status_changed_callback(uint8_t gunno, uint8_t device, uint8_t type, uint8_t is_debug, uint8_t control, \
+void ykc_monitor_dev_control_changed_callback(uint8_t gunno, uint8_t device, uint8_t type, uint8_t is_debug, uint8_t control, \
         uint8_t result, uint32_t timestamp)
 {
     if(gunno >= NET_SYSTEM_GUN_NUMBER){
         return;
     }
-    if(s_ykc_monitor_device_status_changed[gunno].count >= NET_YKC_MONITOR_DEVICE_CHANGED_INFO_MAX){
+    if(s_ykc_monitor_device_control_changed[gunno].count >= NET_YKC_MONITOR_DEVICE_CTRL_CHANGED_INFO_MAX){
         return;
     }
     uint8_t count = 0x00;
 
     rt_enter_critical();
 
-    count = s_ykc_monitor_device_status_changed[gunno].count;
-    s_ykc_monitor_device_status_changed[gunno].count++;
+    count = s_ykc_monitor_device_control_changed[gunno].count;
+    s_ykc_monitor_device_control_changed[gunno].count++;
 
-    s_ykc_monitor_device_status_changed[gunno].segment[count].timestamp = timestamp;
-    s_ykc_monitor_device_status_changed[gunno].segment[count].device = device;
-    s_ykc_monitor_device_status_changed[gunno].segment[count].info.ctrl = control;
-    s_ykc_monitor_device_status_changed[gunno].segment[count].info.is_debug = is_debug;
-    s_ykc_monitor_device_status_changed[gunno].segment[count].info.result = result;
-    s_ykc_monitor_device_status_changed[gunno].segment[count].info.type = type;
+    s_ykc_monitor_device_control_changed[gunno].segment[count].timestamp = timestamp;
+    s_ykc_monitor_device_control_changed[gunno].segment[count].device = device;
+    s_ykc_monitor_device_control_changed[gunno].segment[count].info.ctrl = control;
+    s_ykc_monitor_device_control_changed[gunno].segment[count].info.is_debug = is_debug;
+    s_ykc_monitor_device_control_changed[gunno].segment[count].info.result = result;
+    s_ykc_monitor_device_control_changed[gunno].segment[count].info.type = type;
 
     rt_exit_critical();
 }

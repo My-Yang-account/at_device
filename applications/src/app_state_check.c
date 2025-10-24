@@ -1006,7 +1006,7 @@ void app_state_guidance_changed(thaisenGuidanceInfo_t info, uint8_t flag, uint8_
 
 /********************************************************** 器件状态变化 **********************************************************/
 /********************************************************** 器件状态变化 **********************************************************/
-extern void ykc_monitor_device_status_changed_callback(uint8_t gunno, uint8_t device, uint8_t type, uint8_t is_debug, uint8_t control, \
+extern void ykc_monitor_dev_control_changed_callback(uint8_t gunno, uint8_t device, uint8_t type, uint8_t is_debug, uint8_t control, \
         uint8_t result, uint32_t timestamp);
 /*************************************************************************************
  * 函数名        app_state_device_status_changed
@@ -1144,6 +1144,6 @@ void app_state_device_status_changed(uint8_t device, void *parameter, uint8_t pl
         if((p->opt == THAISEN_DEVICE_OPT_CONTROL) || (p->opt == THAISEN_DEVICE_OPT_DEBUG_CONTROL)){
             ctrl = 0x01;
         }
-        ykc_monitor_device_status_changed_callback(port, device, is_whole_device, is_debug, ctrl, p->result, timestamp);
+        ykc_monitor_dev_control_changed_callback(port, device, is_whole_device, is_debug, ctrl, p->result, timestamp);
     }
 }

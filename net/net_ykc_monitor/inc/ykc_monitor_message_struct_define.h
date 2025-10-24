@@ -83,7 +83,7 @@
 #define NET_YKC_MONITOR_CHARGING_INFO_MAX                              0x0E        /* 单次上报充电中中信息的最大个数 */
 #define NET_YKC_MONITOR_FINISH_INFO_MAX                                0x01        /* 单次上报充电结束信息的最大个数 */
 #define NET_YKC_MONITOR_GUIDANCE_CHANGED_INFO_MAX                      0x05        /* 导引状态变化信息的最大个数 */
-#define NET_YKC_MONITOR_DEVICE_CHANGED_INFO_MAX                        0x0A        /* 器件状态变化信息的最大个数 */
+#define NET_YKC_MONITOR_DEVICE_CTRL_CHANGED_INFO_MAX                   0x0A        /* 器件控制状态变化信息的最大个数 */
 
 #define NET_YKC_MONITOR_SCREEN_PW_LENGTH_DEFAULT                       0x0F        /* 默认屏幕密码长度 */
 

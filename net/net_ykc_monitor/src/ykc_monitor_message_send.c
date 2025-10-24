@@ -1906,9 +1906,9 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
                 rt_thread_mdelay(250);
 #endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
             }
-            /***** [上报器件状态信息] *****/
+            /***** [上报器件控制状态信息] *****/
             if(ykc_monitor_net_event_receive(NET_YKC_MONITOR_USER_EVENT_HANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, gunno,
-                    (NET_YKC_MONITOR_EVENT_OPTION_OR |NET_YKC_MONITOR_EVENT_OPTION_CLEAR), NET_YKC_MONITOR_USER_PREQ_EVENT_REPORT_DEVICE_CHANGED, NULL) > 0){
+                    (NET_YKC_MONITOR_EVENT_OPTION_OR |NET_YKC_MONITOR_EVENT_OPTION_CLEAR), NET_YKC_MONITOR_USER_PREQ_EVENT_REPORT_DEVICE_CTRL_CHANGED, NULL) > 0){
 #ifdef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL
                 Net_YkcMonitorPro_PreqReport_SreqQuery_RealtimeInfo_t *guidance = (Net_YkcMonitorPro_PreqReport_SreqQuery_RealtimeInfo_t*)(s_ykc_monitor_response_buff.general_transmit_buff);
                 guidance->head.sequence = s_ykc_monitor_message_serial_number[gunno]++;
@@ -1916,7 +1916,7 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
                         s_ykc_monitor_response_buff.length, NULL);
 //                ykc_monitor_set_message_wait_response_state(gunno, NET_YKC_MONITOR_USER_PREQ_EVENT_REPORT_TSOCKET_INFO);
                 ykc_monitor_response_buff_release_sem();
-                ykc_monitor_clear_device_changed_sending(gunno);
+                ykc_monitor_clear_dev_control_changed_sending(gunno);
                 rt_thread_mdelay(250);
 #endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
             }
@@ -2939,15 +2939,15 @@ static void net_ykc_monitor_server_message_pro_entry(void *parameter)
                     ykc_monitor_response_buff_release_sem();
                 }
             }
-            /** 器件状态信息填充 */
+            /** 器件控制状态信息填充 */
             if(ykc_monitor_net_event_receive(NET_YKC_MONITOR_EXTERNAL_EHANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, gunno,
-                    (NET_YKC_MONITOR_EVENT_OPTION_OR |NET_YKC_MONITOR_EVENT_OPTION_CLEAR), NET_YKC_MONITOR_EXTERNAL_PREQ_EVENT_DEVICE_CHANGED, NULL) > 0){
+                    (NET_YKC_MONITOR_EVENT_OPTION_OR |NET_YKC_MONITOR_EVENT_OPTION_CLEAR), NET_YKC_MONITOR_EXTERNAL_PREQ_EVENT_DEVICE_CTRL_CHANGED, NULL) > 0){
                 response = ykc_monitor_get_response_buff(RT_WAITING_FOREVER);
-                result = ykc_monitor_device_status_changed_info_padding(gunno, response->general_transmit_buff, NET_YKC_MONITOR_GENERA_RESPONSE_BUFF_LENGTH, &(response->length));
+                result = ykc_monitor_dev_control_changed_info_padding(gunno, response->general_transmit_buff, NET_YKC_MONITOR_GENERA_RESPONSE_BUFF_LENGTH, &(response->length));
                 if(result >= 0x00){
-                    ykc_monitor_net_event_send(NET_YKC_MONITOR_USER_EVENT_HANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, gunno, NET_YKC_MONITOR_USER_PREQ_EVENT_REPORT_DEVICE_CHANGED);
+                    ykc_monitor_net_event_send(NET_YKC_MONITOR_USER_EVENT_HANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, gunno, NET_YKC_MONITOR_USER_PREQ_EVENT_REPORT_DEVICE_CTRL_CHANGED);
                 }else{
-                    ykc_monitor_clear_device_changed_sending(gunno);
+                    ykc_monitor_clear_dev_control_changed_sending(gunno);
                     ykc_monitor_response_buff_release_sem();
                 }
             }
