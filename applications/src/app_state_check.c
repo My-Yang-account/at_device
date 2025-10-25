@@ -176,7 +176,7 @@ static void app_out_ov_fault_operate(uint8_t gunno, uint8_t state)
                 thaisenModuleSetFEnState(THAISEN_MODULE_FAULT_OUT_OV, 0x01, gunno);
             }
         }else{
-            if(thaisenGetSysFaultCheckEnBit(thaisenFaultOverVolt)){
+            if(thaisenGetSysFaultCheckEnBit(thaisenFaultOverVolt, gunno)){
                 if(thaisenModuleGetFOccurState(THAISEN_MODULE_FAULT_OUT_OV, gunno) == 0x00){
                     thaisenSetSysFaultLib(thaisenFaultOverVolt, gunno);
                     thaisenModuleSetFEnState(THAISEN_MODULE_FAULT_OUT_OV, 0x00, gunno);
@@ -209,7 +209,7 @@ static void app_out_uv_fault_operate(uint8_t gunno, uint8_t state)
                 thaisenModuleSetFEnState(THAISEN_MODULE_FAULT_OUT_UV, 0x01, gunno);
             }
         }else{
-            if(thaisenGetSysFaultCheckEnBit(thaisenFaultUnderVolt)){
+            if(thaisenGetSysFaultCheckEnBit(thaisenFaultUnderVolt, gunno)){
                 if(thaisenModuleGetFOccurState(THAISEN_MODULE_FAULT_OUT_UV, gunno) == 0x00){
                     thaisenSetSysFaultLib(thaisenFaultUnderVolt, gunno);
                     thaisenModuleSetFEnState(THAISEN_MODULE_FAULT_OUT_UV, 0x00, gunno);
@@ -242,7 +242,7 @@ static void app_out_oc_fault_operate(uint8_t gunno, uint8_t state)
                 thaisenModuleSetFEnState(THAISEN_MODULE_FAULT_OUT_OC, 0x01, gunno);
             }
         }else{
-            if(thaisenGetSysFaultCheckEnBit(thaisenFaultOverCurrent)){
+            if(thaisenGetSysFaultCheckEnBit(thaisenFaultOverCurrent, gunno)){
                 if(thaisenModuleGetFOccurState(THAISEN_MODULE_FAULT_OUT_OC, gunno) == 0x00){
                     thaisenSetSysFaultLib(thaisenFaultOverCurrent, gunno);
                     thaisenModuleSetFEnState(THAISEN_MODULE_FAULT_OUT_OC, 0x00, gunno);
@@ -471,7 +471,7 @@ static void app_module_inpower_judge(void)
      ****************************************************************************************************************/
 
     /** 交流接触器开启反馈检测，说明有交流接触器(模块的输入电源控制接触器) */
-    if(thaisenGetSysFaultCheckEnBit(thaisenRelayAc)){
+    if(thaisenGetSysFaultCheckEnBit(thaisenRelayAc, 0x00)){
         /** 交流接触器已闭合(模块的输入电源已连接) */
         if(thaisen_relay_AC_FB() == thaisenRelayClose){
             inpower_connected = 0x01;
@@ -616,7 +616,7 @@ static void app_acrelay_control(void)
         fb_detect_count = 0x00;
         fb_filter = 0x00;
         app_acrelay_action_magnetic();
-        if(thaisenGetSysFaultCheckEnBit(thaisenRelayAc)){
+        if(thaisenGetSysFaultCheckEnBit(thaisenRelayAc, 0x00)){
             while(1){
                 if(fb_detect_count < (0xFF - 0x01)){
                     fb_detect_count++;
@@ -700,7 +700,7 @@ static void app_acrelay_control(void)
         fb_filter = 0x00;
         app_acrelay_release_magnetic();
 
-        if(thaisenGetSysFaultCheckEnBit(thaisenRelayAc)){
+        if(thaisenGetSysFaultCheckEnBit(thaisenRelayAc, 0x00)){
             while(1){
                 if(fb_detect_count < (0xFF - 0x01)){
                     fb_detect_count++;

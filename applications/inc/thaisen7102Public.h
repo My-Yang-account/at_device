@@ -415,23 +415,30 @@ typedef enum thaisenFaultEnum
   thaisenFaultPour,
   thaisenFaultLiquidCooling,
   thaisenFaultFuse,
-  thaisenFaultMainCabinet,
+  thaisenFaultMainCabinet_Offline,                                            /** 系统故障：主机柜离线 */
+  thaisenFaultMatrixRelay_KPN1_1,                                             /** 系统故障：矩阵正负接触器KPN1-1 */
+  thaisenFaultMatrixRelay_KPN1_2,                                             /** 系统故障：矩阵正负接触器KPN1-2 */
+  thaisenFaultMatrixRelay_KPN1_3,                                             /** 系统故障：矩阵正负接触器KPN1-3 */
+  thaisenFaultMatrixRelay_KPN2_1,                                             /** 系统故障：矩阵正负接触器KPN2-1 */
+  thaisenFaultMatrixRelay_KPN2_2,                                             /** 系统故障：矩阵正负接触器KPN2-2 */
+  thaisenFaultMatrixRelay_KPN3_1,                                             /** 系统故障：矩阵正负接触器KPN3-1 */
+  thaisenFaultSlaveDevice_Offline,                                            /** 系统故障：从设备离线 */
+  thaisenFaultFan,                                                            /** 系统故障：风扇 */
+  thaisenFaultMainCabinet_Scram,                                              /** 系统故障：主机柜急停 */
+  thaisenFaultMainCabinet_Gate,                                               /** 系统故障：主机柜门禁 */
+  thaisenFaultMainCabinet_PduFault,                                           /** 系统故障：主机柜开关板故障 */
+  thaisenFaultMainCabinet_ModuleFault,                                        /** 系统故障：主机柜模块 */
+  thaisenFaultMainCabinet_Config,                                             /** 系统故障：主机柜配置项 */
+  thaisenFaultMainCabinet_AcRelay,                                            /** 系统故障：主机柜交流接触器 */
+  thaisenFaultMainCabinet_Smoke,                                              /** 系统故障：主机柜烟感报警 */
+  thaisenFaultMainCabinet_Pour,                                               /** 系统故障：主机柜倾倒 */
+  thaisenFaultMainCabinet_Flooding,                                           /** 系统故障：主机柜水浸 */
+  thaisenFaultMainCabinet_Other,                                              /** 系统故障：主机柜其它故障 */
+  thaisenFaultMainCabinet_LightProtect,                                       /** 系统故障：主机柜防雷故障 */
+  thaisenFaultDeviceIsLocked,                                                 /** 系统故障：设备已锁定 */
 
   thaisenFaultSize,
 }thaisenFaultTy;
-
-
-/* 功能说明:
- *          thaisenGetSysFault:查询系统故障信息
- * 输入参数:
- *
- * 返回参数:
- *          无
- * 调用方法:
- *          实时调用
- */
-
-uint32_t* thaisenGetSysFault(uint8_t gunNum);
 
 /*********************************继电器控制函数******************************************************/
 
@@ -1629,6 +1636,18 @@ unsigned short thaisenW25qxxReadID(void);
 
  /*****************************故障信息*****************************************/
  /* 功能说明:
+  *          thaisenGetSysFault:查询系统故障信息
+  * 输入参数:
+  *
+  * 返回参数:
+  *          无
+  * 调用方法:
+  *          实时调用
+  */
+
+ uint32_t* thaisenGetSysFault(uint8_t gunNum);
+
+ /* 功能说明:
   *          thaisenSetSysFaultLib:设置系统故障
   * 输入参数:
   *         thaisenFaultTy:故障类型
@@ -1658,12 +1677,14 @@ unsigned short thaisenW25qxxReadID(void);
   * 输入参数:
   *         uint32_t:故障码
   *         每个Bit代表一位故障
+  *         gunNum     枪号
+  *         set        故障集号
   * 返回参数:
   *          无
   * 调用方法:
   *          可实时调用
   */
- void thaisenSetSysFaultCheckAllBit(uint32_t faultValue);
+ void thaisenSetSysFaultCheckAllBit(uint32_t faultValue, uint8_t gunNum, uint8_t set);
 
  /* 功能说明:
   *          thaisenSetSysFaultCheckBit:故障检测使能,按照BIT位使能
@@ -1671,12 +1692,13 @@ unsigned short thaisenW25qxxReadID(void);
   * 输入参数:
   *         uint32_t:故障码
   *         每个Bit代表一位故障
+  *         gunNum      枪号
   * 返回参数:
   *          无
   * 调用方法:
   *          可实时调用
   */
- void thaisenSetSysFaultCheckBit(thaisenFaultTy faultValue);
+ void thaisenSetSysFaultCheckBit(thaisenFaultTy faultValue, uint8_t gunNum);
 
 
  /* 功能说明:
@@ -1685,40 +1707,52 @@ unsigned short thaisenW25qxxReadID(void);
   * 输入参数:
   *         uint32_t:故障码
   *         每个Bit代表一位故障
+  *         gunNum     枪号
   * 返回参数:
   *          无
   * 调用方法:
   *          可实时调用
   */
- void thaisenClearSysFaultCheckBit(thaisenFaultTy faultValue);
+ void thaisenClearSysFaultCheckBit(thaisenFaultTy faultValue, uint8_t gunNum);
 
 
  /* 功能说明:
   *          thaisenGetSysFaultCheckBit:获取故障检测使能
   *
   * 输入参数:
+  *          gunNum     枪号
+  *          set        故障集号
   *
   * 返回参数:
   *          uint32_t
   * 调用方法:
   *          可实时调用
   */
- uint32_t thaisenGetSysFaultCheckBit(void);
+ uint32_t thaisenGetSysFaultCheckBit(uint8_t gunNum, uint8_t set);
 
 
  /* 功能说明:
   *          thaisenGetSysFaultCheckEnBit:获取故障检测是否使能
   *
   * 输入参数:
+  *          gunNum    枪号
   *
   * 返回参数:
   *          uint8_t
   * 调用方法:
   *          可实时调用
   */
- uint8_t thaisenGetSysFaultCheckEnBit(thaisenFaultTy faultBit);
+ uint8_t thaisenGetSysFaultCheckEnBit(thaisenFaultTy faultBit, uint8_t gunNum);
 
+ /* 功能说明:
+  *          thaisenGetSysFaultSetNum:获取系统故障集数量
 
+  * 返回参数:
+  *          gunNum：枪号
+  * 调用方法:
+  *          空闲状态中调用
+  */
+ uint8_t thaisenGetSysFaultSetNum(uint8_t gunNum);
 
  /**********************************************************************************/
  /*****************************屏幕调试模式*****************************************/

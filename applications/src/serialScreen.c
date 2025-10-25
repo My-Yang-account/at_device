@@ -4640,11 +4640,15 @@ void SerialScreen_IsSupportSetFlash(void)
 
     if(LcdData.setData.sup_parallelrelay == FALSE){
         thaisenModuleSetParallelEnable(thaisenFunction_disable);
-        thaisenClearSysFaultCheckBit(thaisenRelayParallel);
+        for(u8 i = 0; i < LCD_GUN_NUM; i++){
+            thaisenClearSysFaultCheckBit(thaisenRelayParallel, i);
+        }
     }else{
         thaisenModuleSetParallelEnable(thaisenFunction_enable);
         if(TRUE == LcdData.setData.supin_dc){
-            thaisenSetSysFaultCheckBit(thaisenRelayParallel);
+            for(u8 i = 0; i < LCD_GUN_NUM; i++){
+                thaisenSetSysFaultCheckBit(thaisenRelayParallel, i);
+            }
         }
     }
 
@@ -4661,88 +4665,146 @@ void SerialScreen_IsSupportSetFlash(void)
 
 void SerialScreen_SetInputInfo(void)
 {
-	if(FALSE == LcdData.setData.supin_scram)
-    	thaisenClearSysFaultCheckBit(thaisenFaultScram);
-	else 
-		thaisenSetSysFaultCheckBit(thaisenFaultScram);
-	if(FALSE == LcdData.setData.supin_gate)
-    	thaisenClearSysFaultCheckBit(thaisenDoor);
-	else 
-		thaisenSetSysFaultCheckBit(thaisenDoor); 
+	if(FALSE == LcdData.setData.supin_scram){
+        for(u8 i = 0; i < LCD_GUN_NUM; i++){
+            thaisenClearSysFaultCheckBit(thaisenFaultScram, i);
+        }
+	}else{
+        for(u8 i = 0; i < LCD_GUN_NUM; i++){
+            thaisenSetSysFaultCheckBit(thaisenFaultScram, i);
+        }
+	}
+	if(FALSE == LcdData.setData.supin_gate){
+        for(u8 i = 0; i < LCD_GUN_NUM; i++){
+            thaisenClearSysFaultCheckBit(thaisenDoor, i);
+        }
+	}else{
+        for(u8 i = 0; i < LCD_GUN_NUM; i++){
+            thaisenSetSysFaultCheckBit(thaisenDoor, i);
+        }
+	}
 
     if(FALSE == LcdData.setData.supin_ac){
-#ifdef SCREEN_USING_DOUBLE_GUN
-        thaisenClearSysFaultCheckBit(thaisenRelayAc);
-#else
+#ifndef SCREEN_USING_DOUBLE_GUN
         if(LcdData.setData.neg_ac)
             thaisenSetACRelayIoEnableState(thaisenAcRelayIoEn_AcRelay);
         else
             thaisenSetACRelayIoEnableState(thaisenAcRelayIoEn_Fan);
-
-        thaisenClearSysFaultCheckBit(thaisenRelayAc);
 #endif /* SCREEN_USING_DOUBLE_GUN */
+        for(u8 i = 0; i < LCD_GUN_NUM; i++){
+            thaisenClearSysFaultCheckBit(thaisenRelayAc, i);
+        }
     }else{
-#ifdef SCREEN_USING_DOUBLE_GUN
-        thaisenSetSysFaultCheckBit(thaisenRelayAc);
-#else
+#ifndef SCREEN_USING_DOUBLE_GUN
         thaisenSetACRelayIoEnableState(thaisenAcRelayIoEn_AcRelay);
         thaisenSetSysFaultCheckBit(thaisenRelayAc);
 #endif /* SCREEN_USING_DOUBLE_GUN */
+        for(u8 i = 0; i < LCD_GUN_NUM; i++){
+            thaisenSetSysFaultCheckBit(thaisenRelayAc, i);
+        }
     }
     if(FALSE == LcdData.setData.supin_dc){
-        thaisenClearSysFaultCheckBit(thaisenRelay);
-        thaisenClearSysFaultCheckBit(thaisenRelayParallel);
+        for(u8 i = 0; i < LCD_GUN_NUM; i++){
+            thaisenClearSysFaultCheckBit(thaisenRelay, i);
+            thaisenClearSysFaultCheckBit(thaisenRelayParallel, i);
+        }
     }else{
-        thaisenSetSysFaultCheckBit(thaisenRelay);
-        if(LcdData.setData.sup_parallelrelay == TRUE){
-            thaisenSetSysFaultCheckBit(thaisenRelayParallel);
+        for(u8 i = 0; i < LCD_GUN_NUM; i++){
+            thaisenSetSysFaultCheckBit(thaisenRelay, i);
+            if(LcdData.setData.sup_parallelrelay == TRUE){
+                thaisenSetSysFaultCheckBit(thaisenRelayParallel, i);
+            }
         }
     }
 
-	if(FALSE == LcdData.setData.supin_elock)
-        thaisenClearSysFaultCheckBit(thaisenElock);
-	else
-        thaisenSetSysFaultCheckBit(thaisenElock);
+	if(FALSE == LcdData.setData.supin_elock){
+        for(u8 i = 0; i < LCD_GUN_NUM; i++){
+            thaisenClearSysFaultCheckBit(thaisenElock, i);
+        }
+	}else{
+        for(u8 i = 0; i < LCD_GUN_NUM; i++){
+            thaisenSetSysFaultCheckBit(thaisenElock, i);
+        }
+	}
 
-    if(FALSE == LcdData.setData.supin_protectlight)                           //防雷器
-        thaisenClearSysFaultCheckBit(thaisenFaultLightProtect);
-    else
-        thaisenSetSysFaultCheckBit(thaisenFaultLightProtect);
+    if(FALSE == LcdData.setData.supin_protectlight){                           //防雷器
+        for(u8 i = 0; i < LCD_GUN_NUM; i++){
+            thaisenClearSysFaultCheckBit(thaisenFaultLightProtect, i);
+        }
+    }else{
+        for(u8 i = 0; i < LCD_GUN_NUM; i++){
+            thaisenSetSysFaultCheckBit(thaisenFaultLightProtect, i);
+        }
+    }
 
-    if(FALSE == LcdData.setData.supin_gunsite)                                //枪座
-        thaisenClearSysFaultCheckBit(thaisenFaultGunSite);
-    else
-        thaisenSetSysFaultCheckBit(thaisenFaultGunSite);
+    if(FALSE == LcdData.setData.supin_gunsite){                                //枪座
+        for(u8 i = 0; i < LCD_GUN_NUM; i++){
+            thaisenClearSysFaultCheckBit(thaisenFaultGunSite, i);
+        }
+    }else{
+        for(u8 i = 0; i < LCD_GUN_NUM; i++){
+            thaisenSetSysFaultCheckBit(thaisenFaultGunSite, i);
+        }
+    }
 
-//    if(FALSE == LcdData.setData.supin_circuit_breaker)                        //断路器
-//        thaisenClearSysFaultCheckBit(thaisenFaultCircuitBreaker);
-//    else
-//        thaisenSetSysFaultCheckBit(thaisenFaultCircuitBreaker);
+//    if(FALSE == LcdData.setData.supin_circuit_breaker){                        //断路器
+//        for(u8 i = 0; i < LCD_GUN_NUM; i++){
+//           thaisenClearSysFaultCheckBit(thaisenFaultCircuitBreaker, i);
+//        }
+//    }else{
+//        for(u8 i = 0; i < LCD_GUN_NUM; i++){
+//           thaisenSetSysFaultCheckBit(thaisenFaultCircuitBreaker, i);
+//        }
+//	  }
 
-    if(FALSE == LcdData.setData.supin_flood)                                  //水浸
-        thaisenClearSysFaultCheckBit(thaisenFaultFlooding);
-    else
-        thaisenSetSysFaultCheckBit(thaisenFaultFlooding);
+    if(FALSE == LcdData.setData.supin_flood){                                  //水浸
+        for(u8 i = 0; i < LCD_GUN_NUM; i++){
+            thaisenClearSysFaultCheckBit(thaisenFaultFlooding, i);
+        }
+    }else{
+        for(u8 i = 0; i < LCD_GUN_NUM; i++){
+            thaisenSetSysFaultCheckBit(thaisenFaultFlooding, i);
+        }
+    }
 
-    if(FALSE == LcdData.setData.supin_smoke)                                  //烟感
-        thaisenClearSysFaultCheckBit(thaisenFaultSmoke);
-    else
-        thaisenSetSysFaultCheckBit(thaisenFaultSmoke);
+    if(FALSE == LcdData.setData.supin_smoke){                                  //烟感
+        for(u8 i = 0; i < LCD_GUN_NUM; i++){
+            thaisenClearSysFaultCheckBit(thaisenFaultSmoke, i);
+        }
+    }else{
+        for(u8 i = 0; i < LCD_GUN_NUM; i++){
+            thaisenSetSysFaultCheckBit(thaisenFaultSmoke, i);
+        }
+    }
+    if(FALSE == LcdData.setData.supin_pour){                                   //倾倒
+        for(u8 i = 0; i < LCD_GUN_NUM; i++){
+            thaisenClearSysFaultCheckBit(thaisenFaultPour, i);
+        }
+    }else{
+        for(u8 i = 0; i < LCD_GUN_NUM; i++){
+            thaisenSetSysFaultCheckBit(thaisenFaultPour, i);
+        }
+    }
 
-    if(FALSE == LcdData.setData.supin_pour)                                   //倾倒
-        thaisenClearSysFaultCheckBit(thaisenFaultPour);
-    else
-        thaisenSetSysFaultCheckBit(thaisenFaultPour);
-
-//    if(FALSE == LcdData.setData.supin_liquid)                                 //液冷
-//        thaisenClearSysFaultCheckBit(thaisenFaultLiquidCooling);
-//    else
-//        thaisenSetSysFaultCheckBit(thaisenFaultLiquidCooling);
+//    if(FALSE == LcdData.setData.supin_liquid){                                 //液冷
+//        for(u8 i = 0; i < LCD_GUN_NUM; i++){
+//           thaisenClearSysFaultCheckBit(thaisenFaultLiquidCooling, i);
+//        }
+//    }else{
+//        for(u8 i = 0; i < LCD_GUN_NUM; i++){
+//           thaisenSetSysFaultCheckBit(thaisenFaultLiquidCooling, i);
+//        }
+//	  }
 //
-//    if(FALSE == LcdData.setData.supin_fuse)                                    //熔断器
-//        thaisenClearSysFaultCheckBit(thaisenFaultFuse);
-//    else
-//        thaisenSetSysFaultCheckBit(thaisenFaultFuse);
+//    if(FALSE == LcdData.setData.supin_fuse){                                    //熔断器
+//        for(u8 i = 0; i < LCD_GUN_NUM; i++){
+//           thaisenClearSysFaultCheckBit(thaisenFaultFuse, i);
+//        }
+//    }else{
+//        for(u8 i = 0; i < LCD_GUN_NUM; i++){
+//           thaisenSetSysFaultCheckBit(thaisenFaultFuse, i);
+//        }
+//	  }
 
 	thaisenSetScramPressStatua(LcdData.setData.neg_scram);
 //	thaisenSetDoorPressStatua(LcdData.setData.neg_gate);
@@ -7183,7 +7245,7 @@ void SerialScreen_BtnSelfCheckSet(void)
         index = indexmax - 1;
     }
     if(ret == SCREEN_RET_FAIL){
-        if(thaisenGetSysFaultCheckEnBit(thaisenRelayAc)){
+        if(thaisenGetSysFaultCheckEnBit(thaisenRelayAc, 0x00)){
             goto Check_end;
         }
     }
@@ -7224,7 +7286,7 @@ void SerialScreen_BtnSelfCheckSet(void)
         index = indexmax - 1;
     }
     if(ret == SCREEN_RET_FAIL){
-        if(thaisenGetSysFaultCheckEnBit(thaisenRelayAc)){
+        if(thaisenGetSysFaultCheckEnBit(thaisenRelayAc, 0x00)){
             goto Check_end;
         }
     }
@@ -7263,7 +7325,7 @@ void SerialScreen_BtnSelfCheckSet(void)
         index = indexmax - 1;
     }
     if(ret == SCREEN_RET_FAIL){
-        if(thaisenGetSysFaultCheckEnBit(thaisenRelayParallel)){
+        if(thaisenGetSysFaultCheckEnBit(thaisenRelayParallel, 0x00)){
             goto Check_end;
         }
     }
@@ -7300,7 +7362,7 @@ void SerialScreen_BtnSelfCheckSet(void)
         index = indexmax - 1;
     }
     if(ret == SCREEN_RET_FAIL){
-        if(thaisenGetSysFaultCheckEnBit(thaisenRelayParallel)){
+        if(thaisenGetSysFaultCheckEnBit(thaisenRelayParallel, 0x00)){
             goto Check_end;
         }
     }
@@ -7510,7 +7572,7 @@ void SerialScreen_BtnSelfCheckSet(void)
             index = indexmax - 1;
         }
         if(ret == SCREEN_RET_FAIL){
-            if(thaisenGetSysFaultCheckEnBit(thaisenRelayParallel)){
+            if(thaisenGetSysFaultCheckEnBit(thaisenRelayParallel, 0x00)){
                 goto Check_end;
             }
         }
@@ -7547,7 +7609,7 @@ void SerialScreen_BtnSelfCheckSet(void)
             index = indexmax - 1;
         }
         if(ret == SCREEN_RET_FAIL){
-            if(thaisenGetSysFaultCheckEnBit(thaisenRelayParallel)){
+            if(thaisenGetSysFaultCheckEnBit(thaisenRelayParallel, 0x00)){
                 goto Check_end;
             }
         }
@@ -7587,7 +7649,7 @@ void SerialScreen_BtnSelfCheckSet(void)
             index = indexmax - 1;
         }
         if(ret == SCREEN_RET_FAIL){
-            if(thaisenGetSysFaultCheckEnBit(thaisenRelayParallel)){
+            if(thaisenGetSysFaultCheckEnBit(thaisenRelayParallel, 0x00)){
                 goto Check_end;
             }
         }
@@ -7624,7 +7686,7 @@ void SerialScreen_BtnSelfCheckSet(void)
             index = indexmax - 1;
         }
         if(ret == SCREEN_RET_FAIL){
-            if(thaisenGetSysFaultCheckEnBit(thaisenRelayParallel)){
+            if(thaisenGetSysFaultCheckEnBit(thaisenRelayParallel, 0x00)){
                 goto Check_end;
             }
         }
@@ -7663,7 +7725,7 @@ void SerialScreen_BtnSelfCheckSet(void)
         index = indexmax - 1;
     }
     if(ret == SCREEN_RET_FAIL){
-        if(thaisenGetSysFaultCheckEnBit(thaisenRelay)){
+        if(thaisenGetSysFaultCheckEnBit(thaisenRelay, LCD_GUN_1)){
             goto Check_end;
         }
     }
@@ -7700,7 +7762,7 @@ void SerialScreen_BtnSelfCheckSet(void)
         index = indexmax - 1;
     }
     if(ret == SCREEN_RET_FAIL){
-        if(thaisenGetSysFaultCheckEnBit(thaisenRelay)){
+        if(thaisenGetSysFaultCheckEnBit(thaisenRelay, LCD_GUN_1)){
             goto Check_end;
         }
     }
@@ -7739,7 +7801,7 @@ void SerialScreen_BtnSelfCheckSet(void)
         index = indexmax - 1;
     }
     if(ret == SCREEN_RET_FAIL){
-        if(thaisenGetSysFaultCheckEnBit(thaisenRelay)){
+        if(thaisenGetSysFaultCheckEnBit(thaisenRelay, LCD_GUN_2)){
             goto Check_end;
         }
     }
@@ -7776,7 +7838,7 @@ void SerialScreen_BtnSelfCheckSet(void)
         index = indexmax - 1;
     }
     if(ret == SCREEN_RET_FAIL){
-        if(thaisenGetSysFaultCheckEnBit(thaisenRelay)){
+        if(thaisenGetSysFaultCheckEnBit(thaisenRelay, LCD_GUN_2)){
             goto Check_end;
         }
     }
@@ -7813,7 +7875,7 @@ void SerialScreen_BtnSelfCheckSet(void)
         index = indexmax - 1;
     }
     if(ret == SCREEN_RET_FAIL){
-        if(thaisenGetSysFaultCheckEnBit(thaisenElock)){
+        if(thaisenGetSysFaultCheckEnBit(thaisenElock, LCD_GUN_1)){
             goto Check_end;
         }
     }
@@ -7848,7 +7910,7 @@ void SerialScreen_BtnSelfCheckSet(void)
         index = indexmax - 1;
     }
     if(ret == SCREEN_RET_FAIL){
-        if(thaisenGetSysFaultCheckEnBit(thaisenElock)){
+        if(thaisenGetSysFaultCheckEnBit(thaisenElock, LCD_GUN_1)){
             goto Check_end;
         }
     }
@@ -7885,7 +7947,7 @@ void SerialScreen_BtnSelfCheckSet(void)
         index = indexmax - 1;
     }
     if(ret == SCREEN_RET_FAIL){
-        if(thaisenGetSysFaultCheckEnBit(thaisenElock)){
+        if(thaisenGetSysFaultCheckEnBit(thaisenElock, LCD_GUN_2)){
             goto Check_end;
         }
     }
@@ -7920,7 +7982,7 @@ void SerialScreen_BtnSelfCheckSet(void)
         index = indexmax - 1;
     }
     if(ret == SCREEN_RET_FAIL){
-        if(thaisenGetSysFaultCheckEnBit(thaisenElock)){
+        if(thaisenGetSysFaultCheckEnBit(thaisenElock, LCD_GUN_2)){
             goto Check_end;
         }
     }
@@ -9477,11 +9539,15 @@ struct LCD_DATA_FIFO_TYPE *SerialScreen_Init(struct SerialScreenObj *cmd)
 
     if(LcdData.setData.sup_parallelrelay == FALSE){
         thaisenModuleSetParallelEnable(thaisenFunction_disable);
-        thaisenClearSysFaultCheckBit(thaisenRelayParallel);
+        for(int i=0;i<LCD_GUN_NUM;i++){
+            thaisenClearSysFaultCheckBit(thaisenRelayParallel, i);
+        }
     }else{
         thaisenModuleSetParallelEnable(thaisenFunction_enable);
         if(TRUE == LcdData.setData.supin_dc){
-            thaisenSetSysFaultCheckBit(thaisenRelayParallel);
+            for(int i=0;i<LCD_GUN_NUM;i++){
+                thaisenSetSysFaultCheckBit(thaisenRelayParallel, i);
+            }
         }
     }
 
@@ -9491,14 +9557,17 @@ struct LCD_DATA_FIFO_TYPE *SerialScreen_Init(struct SerialScreenObj *cmd)
 
     if(LcdData.setData.supin_ac){
         thaisenSetACRelayIoEnableState(thaisenAcRelayIoEn_AcRelay);
-        thaisenSetSysFaultCheckBit(thaisenRelayAc);
+        for(int i=0;i<LCD_GUN_NUM;i++){
+            thaisenSetSysFaultCheckBit(thaisenRelayAc, i);
+        }
     }else{
         if(LcdData.setData.neg_ac)
             thaisenSetACRelayIoEnableState(thaisenAcRelayIoEn_AcRelay);
         else
             thaisenSetACRelayIoEnableState(thaisenAcRelayIoEn_Fan);
-
-        thaisenClearSysFaultCheckBit(thaisenRelayAc);
+        for(int i=0;i<LCD_GUN_NUM;i++){
+            thaisenClearSysFaultCheckBit(thaisenRelayAc, i);
+        }
     }
 #else
         if(LcdData.setData.supin_ac > TRUE)

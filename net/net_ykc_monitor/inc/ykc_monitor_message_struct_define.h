@@ -308,6 +308,19 @@ enum ykc_monitor_abnormal_stop{
     NETYKC_MONITOR_AS_REASONBC_PASSWORD = 0xBC,                      /* 充电异常中止：密码 */
     NETYKC_MONITOR_AS_REASONBD_FINGER_PRINT = 0xBD,                  /* 充电异常中止：指纹 */
     NETYKC_MONITOR_AS_REASONBE_RECV_BRO_00_TIMEOUT = 0xBE,           /* 充电异常中止，接收 BMS 充电准备报文超时 BRO_00 */
+    NETYKC_MONITOR_AS_REASONBF_MAIN_CABINET_SCRAM = 0xBF,            /* 充电异常中止，主机柜急停 */
+    NETYKC_MONITOR_AS_REASONC0_MAIN_CABINET_DOOR = 0xC0,             /* 充电异常中止，主机柜门禁 */
+    NETYKC_MONITOR_AS_REASONC1_MAIN_CABINET_PDU = 0xC1,              /* 充电异常中止，主机柜开关板 */
+    NETYKC_MONITOR_AS_REASONC2_MAIN_CABINET_MODULEFAULT = 0xC2,      /* 充电异常中止，主机柜模块 */
+    NETYKC_MONITOR_AS_REASONC3_MAIN_CABINET_CONFIG = 0xC3,           /* 充电异常中止，主机柜配置 */
+    NETYKC_MONITOR_AS_REASONC4_MAIN_CABINET_ACRELAY = 0xC4,          /* 充电异常中止，主机柜交流接触器 */
+    NETYKC_MONITOR_AS_REASONC5_MAIN_CABINET_SMOKE = 0xC5,            /* 充电异常中止，主机柜烟感故障 */
+    NETYKC_MONITOR_AS_REASONC6_MAIN_CABINET_POUR = 0xC6,             /* 充电异常中止，主机柜倾倒故障 */
+    NETYKC_MONITOR_AS_REASONC7_MAIN_CABINET_FLOODING = 0xC7,         /* 充电异常中止，主机柜水浸故障 */
+    NETYKC_MONITOR_AS_REASONC8_MAIN_CABINET_OTHER = 0xC8,            /* 充电异常中止，主机柜其它故障 */
+    NETYKC_MONITOR_AS_REASONC9_MAIN_CABINET_LIGHTPROTECT = 0xC9,     /* 充电异常中止，主机柜防雷故障 */
+    NETYKC_MONITOR_AS_REASONCA_FAN_FAULT = 0xCA,                     /* 充电异常中止，风扇故障 */
+    NETYKC_MONITOR_AS_REASONCB_IS_LOCKED = 0xCB,                     /* 充电异常中止，设备已锁定 */
 };
 
 enum ykc_monitor_cmd{

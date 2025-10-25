@@ -761,12 +761,12 @@ static void app_card_online_status(uint8_t state)
     if(state == APP_RFIDR_OFFLINE){
         if(*(sys_read_config_item_content(CONFIG_ITEM_SUPORT_CARD, 0)) == 0x01){
             for(uint8_t gunno = 0x00; gunno < APP_SYSTEM_GUNNO_SIZE; gunno++){
-                app_set_system_fault_enum(APP_SYS_FAULT_CARD_READER, APP_GENERAL_SYSTEM_FAULT_SET_LOW, gunno);
+                app_set_system_fault_enum(APP_SYS_FAULT_CARD_READER, gunno);
             }
         }
     }else{
         for(uint8_t gunno = 0x00; gunno < APP_SYSTEM_GUNNO_SIZE; gunno++){
-            app_clear_system_fault_enum(APP_SYS_FAULT_CARD_READER, APP_GENERAL_SYSTEM_FAULT_SET_LOW, gunno);
+            app_clear_system_fault_enum(APP_SYS_FAULT_CARD_READER, gunno);
         }
     }
 }
@@ -791,7 +791,7 @@ static void app_card_data_update(void* handle)
 
     if((*(sys_read_config_item_content(CONFIG_ITEM_SUPORT_CARD, 0))) != 0x01){
         for(uint8_t gunno = 0x00; gunno < APP_SYSTEM_GUNNO_SIZE; gunno++){
-            app_clear_system_fault_enum(APP_SYS_FAULT_CARD_READER, APP_GENERAL_SYSTEM_FAULT_SET_LOW, gunno);
+            app_clear_system_fault_enum(APP_SYS_FAULT_CARD_READER, gunno);
         }
         s_rfidr->flag.is_forbid = 0x01;
     }else{

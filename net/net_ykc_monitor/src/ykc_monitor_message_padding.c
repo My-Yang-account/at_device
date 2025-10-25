@@ -2728,8 +2728,44 @@ uint16_t ykc_monitor_chargepile_fault_converted(uint16_t bit)
         return NET_GENERAL_FAULT_LIQUID_COOLING;
     case APP_SYS_FAULT_FUSE :
         return NET_GENERAL_FAULT_FUSE;
-    case APP_SYS_FAULT_MAIN_CABINET :
-        return NET_GENERAL_FAULT_MAIN_CABINET;
+    case APP_SYS_FAULT_MAIN_CABINET_OFFLINE :
+        return NET_GENERAL_FAULT_MAIN_CABINET_OFFLINE;
+    case APP_SYSTEM_FAULT_MATRIX_RELAY_KPN1_1 :
+        return NET_GENERAL_FAULT_MATRIX_RELAY_KPN1_1;
+    case APP_SYSTEM_FAULT_MATRIX_RELAY_KPN1_2 :
+        return NET_GENERAL_FAULT_MATRIX_RELAY_KPN1_2;
+    case APP_SYSTEM_FAULT_MATRIX_RELAY_KPN1_3 :
+        return NET_GENERAL_FAULT_MATRIX_RELAY_KPN1_3;
+    case APP_SYSTEM_FAULT_MATRIX_RELAY_KPN2_1 :
+        return NET_GENERAL_FAULT_MATRIX_RELAY_KPN2_1;
+    case APP_SYSTEM_FAULT_MATRIX_RELAY_KPN2_2 :
+        return NET_GENERAL_FAULT_MATRIX_RELAY_KPN2_2;
+    case APP_SYSTEM_FAULT_MATRIX_RELAY_KPN3_1 :
+        return NET_GENERAL_FAULT_MATRIX_RELAY_KPN3_1;
+    case APP_SYSTEM_FAULT_SLAVE_DEVICE_OFFLINE :
+        return NET_GENERAL_FAULT_SLAVE_DEVICE_OFFLINE;
+    case APP_SYSTEM_FAULT_FAN :
+        return NET_GENERAL_FAULT_FAN;
+    case APP_SYSTEM_FAULT_MAINCABINET_SCRAM :
+        return NET_GENERAL_FAULT_MAINCABINET_SCRAM;
+    case APP_SYSTEM_FAULT_MAINCABINET_GATE :
+        return NET_GENERAL_FAULT_MAINCABINET_GATE;
+    case APP_SYSTEM_FAULT_MAINCABINET_PDUFAULT :
+        return NET_GENERAL_FAULT_MAINCABINET_PDUFAULT;
+    case APP_SYSTEM_FAULT_MAINCABINET_MODULEFAULT :
+        return NET_GENERAL_FAULT_MAINCABINET_MODULEFAULT;
+    case APP_SYSTEM_FAULT_MAINCABINET_CONFIG :
+        return NET_GENERAL_FAULT_MAINCABINET_CONFIG;
+    case APP_SYSTEM_FAULT_MAINCABINET_ACRELAY :
+        return NET_GENERAL_FAULT_MAINCABINET_ACRELAY;
+    case APP_SYSTEM_FAULT_MAINCABINET_SMOKE :
+        return NET_GENERAL_FAULT_MAINCABINET_SMOKE;
+    case APP_SYSTEM_FAULT_MAINCABINET_POUR :
+        return NET_GENERAL_FAULT_MAINCABINET_POUR;
+    case APP_SYSTEM_FAULT_MAINCABINET_FLOODING :
+        return NET_GENERAL_FAULT_MAINCABINET_FLOODING;
+    case APP_SYSTEM_FAULT_DEVICE_IS_LOCKED :
+        return NET_GENERAL_FAULT_DEVICE_IS_LOCKED;
     default:
         return NET_GENERAL_FAULT_SIZE;
     }
@@ -3019,8 +3055,88 @@ static uint16_t ykc_monitor_chargepile_stop_reason_converted(void *handle, uint1
             _reason = NETYKC_MONITOR_AS_REASON9B_FUSE;
             break;
         /* 主机柜故障 */
-        case APP_SYSTEM_STOP_WAY_MAIN_CABINET:
+        case APP_SYSTEM_STOP_WAY_MAIN_CABINET_OFFLINE:
             _reason = NETYKC_MONITOR_AS_REASON9D_MAIN_CABINET_FAULT;
+            break;
+        /* 矩阵正负接触器KPN1-1 */
+        case APP_SYSTEM_STOP_WAY_MATRIX_RELAY_KPN1_1:
+            _reason = NETYKC_MONITOR_AS_REASON9F_MATRIX_RELAY_KPN1_1;
+            break;
+        /* 矩阵正负接触器KPN1-2 */
+        case APP_SYSTEM_STOP_WAY_MATRIX_RELAY_KPN1_2:
+            _reason = NETYKC_MONITOR_AS_REASONA0_MATRIX_RELAY_KPN1_2;
+            break;
+        /* 矩阵正负接触器KPN1-3 */
+        case APP_SYSTEM_STOP_WAY_MATRIX_RELAY_KPN1_3:
+            _reason = NETYKC_MONITOR_AS_REASONA1_MATRIX_RELAY_KPN1_3;
+            break;
+        /* 矩阵正负接触器KPN2-1 */
+        case APP_SYSTEM_STOP_WAY_MATRIX_RELAY_KPN2_1:
+            _reason = NETYKC_MONITOR_AS_REASONA2_MATRIX_RELAY_KPN2_1;
+            break;
+        /* 矩阵正负接触器KPN2-2 */
+        case APP_SYSTEM_STOP_WAY_MATRIX_RELAY_KPN2_2:
+            _reason = NETYKC_MONITOR_AS_REASONA3_MATRIX_RELAY_KPN2_2;
+            break;
+        /* 矩阵正负接触器KPN3-1 */
+        case APP_SYSTEM_STOP_WAY_MATRIX_RELAY_KPN3_1:
+            _reason = NETYKC_MONITOR_AS_REASONA4_MATRIX_RELAY_KPN3_1;
+            break;
+        /* 从设备离线 */
+        case APP_SYSTEM_STOP_WAY_SLAVE_DEVICE_OFFLINE:
+            _reason = NETYKC_MONITOR_AS_REASONA5_SLAVE_DEVICE_OFFLINE;
+            break;
+        /* 风扇 */
+        case APP_SYSTEM_STOP_WAY_FAN:
+            _reason = NETYKC_MONITOR_AS_REASONCA_FAN_FAULT;
+            break;
+        /* 主机柜急停 */
+        case APP_SYSTEM_STOP_WAY_MAINCABINET_SCRAM:
+            _reason = NETYKC_MONITOR_AS_REASONBF_MAIN_CABINET_SCRAM;
+            break;
+        /* 主机柜门禁 */
+        case APP_SYSTEM_STOP_WAY_MAINCABINET_GATE:
+            _reason = NETYKC_MONITOR_AS_REASONC0_MAIN_CABINET_DOOR;
+            break;
+        /* 主机柜开关板故障 */
+        case APP_SYSTEM_STOP_WAY_MAINCABINET_PDUFAULT:
+            _reason = NETYKC_MONITOR_AS_REASONC1_MAIN_CABINET_PDU;
+            break;
+        /* 主机柜模块 */
+        case APP_SYSTEM_STOP_WAY_MAINCABINET_MODULEFAULT:
+            _reason = NETYKC_MONITOR_AS_REASONC2_MAIN_CABINET_MODULEFAULT;
+            break;
+        /* 主机柜配置项 */
+        case APP_SYSTEM_STOP_WAY_MAINCABINET_CONFIG:
+            _reason = NETYKC_MONITOR_AS_REASONC3_MAIN_CABINET_CONFIG;
+            break;
+        /* 主机柜交流接触器 */
+        case APP_SYSTEM_STOP_WAY_MAINCABINET_ACRELAY:
+            _reason = NETYKC_MONITOR_AS_REASONC4_MAIN_CABINET_ACRELAY;
+            break;
+        /* 主机柜烟感报警 */
+        case APP_SYSTEM_STOP_WAY_MAINCABINET_SMOKE:
+            _reason = NETYKC_MONITOR_AS_REASONC5_MAIN_CABINET_SMOKE;
+            break;
+        /* 主机柜倾倒 */
+        case APP_SYSTEM_STOP_WAY_MAINCABINET_POUR:
+            _reason = NETYKC_MONITOR_AS_REASONC6_MAIN_CABINET_POUR;
+            break;
+        /* 主机柜水浸 */
+        case APP_SYSTEM_STOP_WAY_MAINCABINET_FLOODING:
+            _reason = NETYKC_MONITOR_AS_REASONC7_MAIN_CABINET_FLOODING;
+            break;
+        /* 主机柜其它故障 */
+        case APP_SYSTEM_STOP_WAY_MAINCABINET_OTHER:
+            _reason = NETYKC_MONITOR_AS_REASONC8_MAIN_CABINET_OTHER;
+            break;
+        /* 主机柜防雷故障 */
+        case APP_SYSTEM_STOP_WAY_MAINCABINET_LIGHT_PROTECT:
+            _reason = NETYKC_MONITOR_AS_REASONC9_MAIN_CABINET_LIGHTPROTECT;
+            break;
+        /* 设备已锁定 */
+        case APP_SYSTEM_STOP_WAY_DEVICE_IS_LOCKED:
+            _reason = NETYKC_MONITOR_AS_REASONCB_IS_LOCKED;
             break;
         /* 宇通BFC */
         case APP_SYSTEM_STOP_WAY_YT_BFC:

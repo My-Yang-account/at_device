@@ -2942,6 +2942,7 @@ static void ofsm_reservation_fun(uint8_t gunno)
     }
 #endif /* APP_USING_OFFLINE_BILLING */
 }
+
 /*****************************************************
  * 函数名          ofsm_starting_fun
  * 功能               业务状态机 启动中 状态
@@ -7110,7 +7111,7 @@ void ofsm_thread_entry(void *parameter)
                         thaisenClearSysFaultLib(thaisenElock, thread_gunno);
                     }
                     if(s_ofsm_info[thread_gunno].base.elock_check_time > APP_ELOCK_RELAY_CHECK_TIME){
-                        if(thaisenGetSysFaultCheckEnBit(thaisenElock)){
+                        if(thaisenGetSysFaultCheckEnBit(thaisenElock, thread_gunno)){
                             /** 电子锁故障 */
                             if((s_ofsm_info[thread_gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL) || (s_ofsm_info[thread_gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD)){
                                 if(s_ofsm_info[thread_gunno].base.main_gunno == thread_gunno){
@@ -7136,7 +7137,7 @@ void ofsm_thread_entry(void *parameter)
                             thaisenClearSysFaultLib(thaisenRelay, thread_gunno);
                         }
                         if(s_ofsm_info[thread_gunno].base.dcrealy_check_time > APP_ELOCK_RELAY_CHECK_TIME){
-                            if(thaisenGetSysFaultCheckEnBit(thaisenRelay)){
+                            if(thaisenGetSysFaultCheckEnBit(thaisenRelay, thread_gunno)){
                                 /** 直流继电器故障 */
                                 if((s_ofsm_info[thread_gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL) || (s_ofsm_info[thread_gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD)){
                                     if(s_ofsm_info[thread_gunno].base.main_gunno == thread_gunno){
@@ -7171,7 +7172,7 @@ void ofsm_thread_entry(void *parameter)
                     thaisenClearSysFaultLib(thaisenElock, thread_gunno);
                 }
                 if(s_ofsm_info[thread_gunno].base.elock_check_time > APP_ELOCK_RELAY_CHECK_TIME){
-                    if(thaisenGetSysFaultCheckEnBit(thaisenElock)){
+                    if(thaisenGetSysFaultCheckEnBit(thaisenElock, thread_gunno)){
                         /** 电子锁故障 */
                         thaisenSetSysFaultLib(thaisenElock, thread_gunno);
                     }else{
@@ -7188,7 +7189,7 @@ void ofsm_thread_entry(void *parameter)
                         thaisenClearSysFaultLib(thaisenRelay, thread_gunno);
                     }
                     if(s_ofsm_info[thread_gunno].base.dcrealy_check_time > APP_ELOCK_RELAY_CHECK_TIME){
-                        if(thaisenGetSysFaultCheckEnBit(thaisenRelay)){
+                        if(thaisenGetSysFaultCheckEnBit(thaisenRelay, thread_gunno)){
                             /** 直流继电器故障 */
                             thaisenSetSysFaultLib(thaisenRelay, thread_gunno);
                         }else{
@@ -7207,7 +7208,7 @@ void ofsm_thread_entry(void *parameter)
                     thaisenClearSysFaultLib(thaisenRelayAc, thread_gunno);
                 }
                 if(s_ofsm_info[thread_gunno].base.acrelay_check_time > APP_ELOCK_RELAY_CHECK_TIME){
-                    if(thaisenGetSysFaultCheckEnBit(thaisenRelayAc)){
+                    if(thaisenGetSysFaultCheckEnBit(thaisenRelayAc, thread_gunno)){
                         /** 交流接触器故障 */
                         thaisenSetSysFaultLib(thaisenRelayAc, thread_gunno);
                     }else{
@@ -7228,12 +7229,12 @@ void ofsm_thread_entry(void *parameter)
             if(s_ofsm_info[thread_gunno].base.elock_resume_time < (0xFF - 0x01)){
                 s_ofsm_info[thread_gunno].base.elock_resume_time++;
             }
-            if((thaisenElectLock_StateQuery(thread_gunno) == thaisen_elock_break) || (thaisenGetSysFaultCheckEnBit(thaisenElock) == APP_THA_ENUM_FALSE)){
-                if((s_ofsm_info[thread_gunno].base.elock_resume_time > (4000 /APP_SYSTEM_RUN_TIME_PERIOD)) || (thaisenGetSysFaultCheckEnBit(thaisenElock) == APP_THA_ENUM_FALSE)){
+            if((thaisenElectLock_StateQuery(thread_gunno) == thaisen_elock_break) || (thaisenGetSysFaultCheckEnBit(thaisenElock, thread_gunno) == APP_THA_ENUM_FALSE)){
+                if((s_ofsm_info[thread_gunno].base.elock_resume_time > (4000 /APP_SYSTEM_RUN_TIME_PERIOD)) || (thaisenGetSysFaultCheckEnBit(thaisenElock, thread_gunno) == APP_THA_ENUM_FALSE)){
                     thaisenClearSysFaultLib(thaisenElock, thread_gunno);
                 }
             }else{
-                if(thaisenGetSysFaultCheckEnBit(thaisenElock) == APP_THA_ENUM_TRUE){
+                if(thaisenGetSysFaultCheckEnBit(thaisenElock, thread_gunno) == APP_THA_ENUM_TRUE){
                     s_ofsm_info[thread_gunno].base.elock_resume_time = 0x00;
                 }
             }
@@ -7241,12 +7242,12 @@ void ofsm_thread_entry(void *parameter)
             if(s_ofsm_info[thread_gunno].base.dcrealy_resume_time < (0xFF - 0x01)){
                 s_ofsm_info[thread_gunno].base.dcrealy_resume_time++;
             }
-            if((thaisenDcRelay_StateQuery(thread_gunno, thaisenRelayBreak)) || (thaisenGetSysFaultCheckEnBit(thaisenRelay) == APP_THA_ENUM_FALSE)){
-                if((s_ofsm_info[thread_gunno].base.dcrealy_resume_time > (1000 /APP_SYSTEM_RUN_TIME_PERIOD)) || (thaisenGetSysFaultCheckEnBit(thaisenRelay) == APP_THA_ENUM_FALSE)){
+            if((thaisenDcRelay_StateQuery(thread_gunno, thaisenRelayBreak)) || (thaisenGetSysFaultCheckEnBit(thaisenRelay, thread_gunno) == APP_THA_ENUM_FALSE)){
+                if((s_ofsm_info[thread_gunno].base.dcrealy_resume_time > (1000 /APP_SYSTEM_RUN_TIME_PERIOD)) || (thaisenGetSysFaultCheckEnBit(thaisenRelay, thread_gunno) == APP_THA_ENUM_FALSE)){
                     thaisenClearSysFaultLib(thaisenRelay, thread_gunno);
                 }
             }else{
-                if(thaisenGetSysFaultCheckEnBit(thaisenRelay) == APP_THA_ENUM_TRUE){
+                if(thaisenGetSysFaultCheckEnBit(thaisenRelay, thread_gunno) == APP_THA_ENUM_TRUE){
                     s_ofsm_info[thread_gunno].base.dcrealy_resume_time = 0x00;
                 }
             }
@@ -7254,12 +7255,12 @@ void ofsm_thread_entry(void *parameter)
             if(s_ofsm_info[thread_gunno].base.acrelay_resume_time < (0xFF - 0x01)){
                 s_ofsm_info[thread_gunno].base.acrelay_resume_time++;
             }
-            if((thaisenAcRelay_StateQuery() == thaisenRelayBreak) || (thaisenGetSysFaultCheckEnBit(thaisenRelayAc) == APP_THA_ENUM_FALSE)){
-                if((s_ofsm_info[thread_gunno].base.acrelay_resume_time > (1000/ APP_SYSTEM_RUN_TIME_PERIOD)) || (thaisenGetSysFaultCheckEnBit(thaisenRelayAc) == APP_THA_ENUM_FALSE)){
+            if((thaisenAcRelay_StateQuery() == thaisenRelayBreak) || (thaisenGetSysFaultCheckEnBit(thaisenRelayAc, thread_gunno) == APP_THA_ENUM_FALSE)){
+                if((s_ofsm_info[thread_gunno].base.acrelay_resume_time > (1000/ APP_SYSTEM_RUN_TIME_PERIOD)) || (thaisenGetSysFaultCheckEnBit(thaisenRelayAc, thread_gunno) == APP_THA_ENUM_FALSE)){
                     thaisenClearSysFaultLib(thaisenRelayAc, thread_gunno);
                 }
             }else{
-                if(thaisenGetSysFaultCheckEnBit(thaisenRelayAc) == APP_THA_ENUM_TRUE){
+                if(thaisenGetSysFaultCheckEnBit(thaisenRelayAc, thread_gunno) == APP_THA_ENUM_TRUE){
                     s_ofsm_info[thread_gunno].base.acrelay_resume_time = 0x00;
                 }
             }

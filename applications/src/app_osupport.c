@@ -93,6 +93,17 @@ static uint32_t *app_query_system_fault_set(uint8_t gunno)
     return mw_get_system_fault_set(gunno);
 }
 
+/************************************************
+ * 函数名         app_query_system_fset_num
+ * 功能             查询系统故障集数量
+ * 参数             gunno    枪号
+ * 返回
+ ***********************************************/
+static uint8_t app_query_system_fset_num(uint8_t gunno)
+{
+    return mw_get_system_fset_num(gunno);
+}
+
 
 /************************************************
  * 函数名         app_charge_fault_occur
@@ -149,7 +160,7 @@ uint8_t app_exist_forbid_charge_fault(uint8_t gunno)
         return 0x00;
     }
 
-    if(s_system_fault_current[gunno][APP_GENERAL_SYSTEM_FAULT_SET_LOW] &APP_ALLOW_CHARGE_FAULT_MASK){
+    if(s_system_fault_current[gunno][APP_GENERAL_SYSTEM_FAULT_SET_0] &APP_ALLOW_CHARGE_FAULT_MASK){
         return 0x01;
     }
     return 0x00;
@@ -161,8 +172,8 @@ void app_shield_allow_charge_fautl(uint8_t gunno)
         return;
     }
 
-    thaisenClearSysFaultCheckBit(APP_SYS_FAULT_CARD_READER);
-    thaisenClearSysFaultCheckBit(APP_SYS_FAULT_DOOR);
+    thaisenClearSysFaultCheckBit(APP_SYS_FAULT_CARD_READER, gunno);
+    thaisenClearSysFaultCheckBit(APP_SYS_FAULT_DOOR, gunno);
 
     thaisenClearSysFaultLib(APP_SYS_FAULT_CARD_READER, gunno);
     thaisenClearSysFaultLib(APP_SYS_FAULT_DOOR, gunno);
@@ -174,8 +185,8 @@ void app_enable_detect_allow_charge_fautl(uint8_t gunno)
         return;
     }
 
-    thaisenSetSysFaultCheckBit(APP_SYS_FAULT_CARD_READER);
-    thaisenSetSysFaultCheckBit(APP_SYS_FAULT_DOOR);
+    thaisenSetSysFaultCheckBit(APP_SYS_FAULT_CARD_READER, gunno);
+    thaisenSetSysFaultCheckBit(APP_SYS_FAULT_DOOR, gunno);
 }
 
 enum charge_fault_t app_get_highest_priority_charge_fault(uint8_t gunno)
@@ -191,7 +202,7 @@ enum charge_fault_t app_get_highest_priority_charge_fault(uint8_t gunno)
 
     for(set = 0x00; set < APP_GENERAL_SYSTEM_FAULT_SET_NUM; set++){
         for(bit = 0; bit < (end_bit - start_bit); bit++){
-            if(s_charge_fault_last[gunno][set] &(1 <<(bit + start_bit))){
+            if(s_charge_fault_last[gunno][set] &(1 <<bit)){
                 return (enum charge_fault_t)(bit + start_bit);
             }
         }
@@ -210,14 +221,16 @@ enum system_fault_t app_get_highest_priority_system_fault(uint8_t gunno)
         return APP_SYS_FAULT_NO_ERROR;
     }
 
-    uint8_t bit = 0x00, start_bit = 0x00, end_bit = 0x00, remain_bit = 0x00, set = 0x00;
+    uint8_t bit = 0x00, start_bit = 0x00, end_bit = 0x00, remain_bit = 0x00, set = 0x00, fset_num = 0x00;
 
     end_bit = APP_SYS_FAULT_NO_ERROR >= 32 ? 32 : APP_SYS_FAULT_NO_ERROR;
     remain_bit = APP_SYS_FAULT_NO_ERROR - end_bit;
+    fset_num = app_query_system_fset_num(gunno);
+    fset_num = fset_num > APP_GENERAL_SYSTEM_FAULT_SET_NUM ? APP_GENERAL_SYSTEM_FAULT_SET_NUM : fset_num;
 
-    for(set = 0x00; set < APP_GENERAL_SYSTEM_FAULT_SET_NUM; set++){
+    for(set = 0x00; set < fset_num; set++){
         for(bit = 0; bit < (end_bit - start_bit); bit++){
-            if(s_system_fault_last[gunno][set] &(1 <<(bit + start_bit))){
+            if(s_system_fault_last[gunno][set] &(1 <<bit)){
                 return (enum system_fault_t)(bit + start_bit);
             }
         }
@@ -246,46 +259,58 @@ uint32_t *app_get_system_fault_set(uint8_t gunno)
     return s_system_fault_current[gunno];
 }
 
-void app_set_system_fault_enum(enum system_fault_t _fault, uint8_t set, uint8_t gunno)
+void app_set_system_fault_enum(enum system_fault_t _fault, uint8_t gunno)
 {
-    if(set >= APP_GENERAL_SYSTEM_FAULT_SET_NUM){
+    if(_fault >= APP_SYS_FAULT_MAX){
         return;
     }
-    if(_fault >= APP_SYS_FAULT_NO_ERROR){
-        return;
-    }
+    uint8_t set = 0x00;
+    uint16_t convert_f = 0x00;
+
+    convert_f = mw_system_fault_convert(_fault, APP_FCONVERT_APP_TO_LIB);
+    set = (convert_f /32);
+    set = set > APP_GENERAL_SYSTEM_FAULT_SET_NUM ? APP_GENERAL_SYSTEM_FAULT_SET_NUM : set;
+
     if(gunno < APP_SYSTEM_GUNNO_SIZE){
-        s_system_fault_current[set][gunno] |= (1 <<_fault);
+        s_system_fault_current[set][gunno] |= (1 <<(convert_f %32));
     }
 }
 
-uint8_t app_get_system_fault_enum(enum system_fault_t _fault, uint8_t set, uint8_t gunno)
+uint8_t app_get_system_fault_enum(enum system_fault_t _fault, uint8_t gunno)
 {
-    if(set >= APP_GENERAL_SYSTEM_FAULT_SET_NUM){
-        return 0x00;
-    }
-    if(_fault >= APP_SYS_FAULT_NO_ERROR){
+    if(_fault >= APP_SYS_FAULT_MAX){
         return 0x00;
     }
     if(gunno >= APP_SYSTEM_GUNNO_SIZE){
         return 0x00;
     }
-    if(s_system_fault_current[set][gunno] & (1 <<_fault)){
+    uint8_t set = 0x00;
+    uint16_t convert_f = 0x00;
+
+    convert_f = mw_system_fault_convert(_fault, APP_FCONVERT_APP_TO_LIB);
+    set = (convert_f /32);
+    set = set > APP_GENERAL_SYSTEM_FAULT_SET_NUM ? APP_GENERAL_SYSTEM_FAULT_SET_NUM : set;
+
+    if(s_system_fault_current[set][gunno] & (1 <<(convert_f %32))){
         return 0x01;
     }
     return 0x00;
 }
 
-void app_clear_system_fault_enum(enum system_fault_t _fault, uint8_t set, uint8_t gunno)
+void app_clear_system_fault_enum(enum system_fault_t _fault, uint8_t gunno)
 {
-    if(set >= APP_GENERAL_CHARGE_FAULT_SET_NUM){
+    if(_fault >= APP_SYS_FAULT_MAX){
         return;
     }
-    if(_fault >= APP_SYS_FAULT_NO_ERROR){
-        return;
-    }
+    uint8_t set = 0x00;
+    uint16_t convert_f = 0x00;
+
+    convert_f = mw_system_fault_convert(_fault, APP_FCONVERT_APP_TO_LIB);
+    set = (convert_f /32);
+    set = set > APP_GENERAL_SYSTEM_FAULT_SET_NUM ? APP_GENERAL_SYSTEM_FAULT_SET_NUM : set;
+
     if(gunno < APP_SYSTEM_GUNNO_SIZE){
-        s_system_fault_current[set][gunno] &= (~(1 <<_fault));
+        s_system_fault_current[set][gunno] &= (~(1 <<(convert_f %32)));
     }
 }
 
@@ -326,13 +351,13 @@ static int32_t app_fault_storage(struct error_info *error_info, uint32_t resume_
 void app_osupport_thread_entry(void *parameter)
 {
     for(uint8_t gunno = 0x00; gunno < APP_SYSTEM_GUNNO_SIZE; gunno++){
-        s_system_fault_last[gunno][APP_GENERAL_SYSTEM_FAULT_SET_LOW] = 0x00;
-        s_system_fault_current[gunno][APP_GENERAL_SYSTEM_FAULT_SET_LOW] = 0x00;
+        memset(s_system_fault_last[gunno], 0x00, sizeof(s_system_fault_last[gunno]));
+        memset(s_system_fault_current[gunno], 0x00, sizeof(s_system_fault_current[gunno]));
 #ifdef APP_INCLUDE_SGCC_PROTOCOL
         s_stopway_fault_flag[gunno] = APP_STOPWAY_FAULT_INFO_NULL;
 #endif /* APP_INCLUDE_SGCC_PROTOCOL */
     }
-    uint8_t bit = 0x00, start_bit = 0x00, end_bit = 0x00, remain_bit = 0x00;
+    uint8_t bit = 0x00, start_bit = 0x00, end_bit = 0x00, remain_bit = 0x00, fset_num = 0x00;
     uint32_t fault_xor = 0x00, fault_temp = 0x00, *current_fault_ptr = NULL;
 
     extern int32_t app_thread_monitor_process(void *thread, void *para, uint32_t plen, uint32_t option);
@@ -370,8 +395,10 @@ void app_osupport_thread_entry(void *parameter)
             end_bit = APP_SYS_FAULT_NO_ERROR >= 32 ? 32 : APP_SYS_FAULT_NO_ERROR;
             remain_bit = APP_SYS_FAULT_NO_ERROR - end_bit;
             current_fault_ptr = app_query_system_fault_set(gunno);
+            fset_num = app_query_system_fset_num(gunno);
+            fset_num = fset_num > APP_GENERAL_SYSTEM_FAULT_SET_NUM ? APP_GENERAL_SYSTEM_FAULT_SET_NUM : fset_num;
 
-            for(uint8_t set = 0x00; set < APP_GENERAL_SYSTEM_FAULT_SET_NUM; set++){
+            for(uint8_t set = 0x00; set < fset_num; set++){
                 fault_temp = current_fault_ptr[set];
 
                 fault_temp &= APP_LIBRARY_DETECT_FAULT_MASK;
@@ -383,7 +410,7 @@ void app_osupport_thread_entry(void *parameter)
                 if(fault_xor){
                     for(bit = 0; bit < (end_bit - start_bit); bit++){
                         if(fault_xor &(1 <<bit)){
-                            switch(mw_system_fault_convert(bit + start_bit))
+                            switch(mw_system_fault_convert((bit + start_bit), APP_FCONVERT_LIB_TO_APP))
                             {
                             case APP_SYS_FAULT_SCRAM:
                                 s_system_error_info[gunno].error_index = 0x0000;
@@ -481,15 +508,95 @@ void app_osupport_thread_entry(void *parameter)
                                 s_system_error_info[gunno].error_index = 0x0017;
                                 s_system_error_info[gunno].error_code = APP_SYSTEM_STOP_WAY_FUSE;
                                 break;
-                            case APP_SYS_FAULT_MAIN_CABINET:
+                            case APP_SYS_FAULT_MAIN_CABINET_OFFLINE:
                                 s_system_error_info[gunno].error_index = 0x0018;
-                                s_system_error_info[gunno].error_code = APP_SYSTEM_STOP_WAY_MAIN_CABINET;
+                                s_system_error_info[gunno].error_code = APP_SYS_FAULT_MAIN_CABINET_OFFLINE;
+                                break;
+                            case APP_SYSTEM_FAULT_MATRIX_RELAY_KPN1_1:
+                                s_system_error_info[gunno].error_index = 0x0019;
+                                s_system_error_info[gunno].error_code = APP_SYSTEM_FAULT_MATRIX_RELAY_KPN1_1;
+                                break;
+                            case APP_SYSTEM_FAULT_MATRIX_RELAY_KPN1_2:
+                                s_system_error_info[gunno].error_index = 0x001A;
+                                s_system_error_info[gunno].error_code = APP_SYSTEM_FAULT_MATRIX_RELAY_KPN1_2;
+                                break;
+                            case APP_SYSTEM_FAULT_MATRIX_RELAY_KPN1_3:
+                                s_system_error_info[gunno].error_index = 0x001B;
+                                s_system_error_info[gunno].error_code = APP_SYSTEM_FAULT_MATRIX_RELAY_KPN1_3;
+                                break;
+                            case APP_SYSTEM_FAULT_MATRIX_RELAY_KPN2_1:
+                                s_system_error_info[gunno].error_index = 0x001C;
+                                s_system_error_info[gunno].error_code = APP_SYSTEM_FAULT_MATRIX_RELAY_KPN2_1;
+                                break;
+                            case APP_SYSTEM_FAULT_MATRIX_RELAY_KPN2_2:
+                                s_system_error_info[gunno].error_index = 0x001D;
+                                s_system_error_info[gunno].error_code = APP_SYSTEM_FAULT_MATRIX_RELAY_KPN2_2;
+                                break;
+                            case APP_SYSTEM_FAULT_MATRIX_RELAY_KPN3_1:
+                                s_system_error_info[gunno].error_index = 0x001E;
+                                s_system_error_info[gunno].error_code = APP_SYSTEM_FAULT_MATRIX_RELAY_KPN3_1;
+                                break;
+                            case APP_SYSTEM_FAULT_SLAVE_DEVICE_OFFLINE:
+                                s_system_error_info[gunno].error_index = 0x001F;
+                                s_system_error_info[gunno].error_code = APP_SYSTEM_FAULT_SLAVE_DEVICE_OFFLINE;
+                                break;
+                            case APP_SYSTEM_FAULT_FAN:
+                                s_system_error_info[gunno].error_index = 0x0020;
+                                s_system_error_info[gunno].error_code = APP_SYSTEM_FAULT_FAN;
+                                break;
+                            case APP_SYSTEM_FAULT_MAINCABINET_SCRAM:
+                                s_system_error_info[gunno].error_index = 0x0021;
+                                s_system_error_info[gunno].error_code = APP_SYSTEM_FAULT_MAINCABINET_SCRAM;
+                                break;
+                            case APP_SYSTEM_FAULT_MAINCABINET_GATE:
+                                s_system_error_info[gunno].error_index = 0x0022;
+                                s_system_error_info[gunno].error_code = APP_SYSTEM_FAULT_MAINCABINET_GATE;
+                                break;
+                            case APP_SYSTEM_FAULT_MAINCABINET_PDUFAULT:
+                                s_system_error_info[gunno].error_index = 0x0023;
+                                s_system_error_info[gunno].error_code = APP_SYSTEM_FAULT_MAINCABINET_PDUFAULT;
+                                break;
+                            case APP_SYSTEM_FAULT_MAINCABINET_MODULEFAULT:
+                                s_system_error_info[gunno].error_index = 0x0024;
+                                s_system_error_info[gunno].error_code = APP_SYSTEM_FAULT_MAINCABINET_MODULEFAULT;
+                                break;
+                            case APP_SYSTEM_FAULT_MAINCABINET_CONFIG:
+                                s_system_error_info[gunno].error_index = 0x0025;
+                                s_system_error_info[gunno].error_code = APP_SYSTEM_FAULT_MAINCABINET_CONFIG;
+                                break;
+                            case APP_SYSTEM_FAULT_MAINCABINET_ACRELAY:
+                                s_system_error_info[gunno].error_index = 0x0026;
+                                s_system_error_info[gunno].error_code = APP_SYSTEM_FAULT_MAINCABINET_ACRELAY;
+                                break;
+                            case APP_SYSTEM_FAULT_MAINCABINET_SMOKE:
+                                s_system_error_info[gunno].error_index = 0x0027;
+                                s_system_error_info[gunno].error_code = APP_SYSTEM_FAULT_MAINCABINET_SMOKE;
+                                break;
+                            case APP_SYSTEM_FAULT_MAINCABINET_POUR:
+                                s_system_error_info[gunno].error_index = 0x0028;
+                                s_system_error_info[gunno].error_code = APP_SYSTEM_FAULT_MAINCABINET_POUR;
+                                break;
+                            case APP_SYSTEM_FAULT_MAINCABINET_FLOODING:
+                                s_system_error_info[gunno].error_index = 0x0029;
+                                s_system_error_info[gunno].error_code = APP_SYSTEM_FAULT_MAINCABINET_FLOODING;
+                                break;
+                            case APP_SYSTEM_FAULT_DEVICE_IS_LOCKED:
+                                s_system_error_info[gunno].error_index = 0x002A;
+                                s_system_error_info[gunno].error_code = APP_SYSTEM_FAULT_DEVICE_IS_LOCKED;
+                                break;
+                            case APP_SYSTEM_FAULT_MAINCABINET_OTHER:
+                                s_system_error_info[gunno].error_index = 0x002B;
+                                s_system_error_info[gunno].error_code = APP_SYSTEM_FAULT_MAINCABINET_OTHER;
+                                break;
+                            case APP_SYSTEM_FAULT_MAINCABINET_LIGHT_PROTECT:
+                                s_system_error_info[gunno].error_index = 0x002C;
+                                s_system_error_info[gunno].error_code = APP_SYSTEM_FAULT_MAINCABINET_LIGHT_PROTECT;
                                 break;
                             default:
                                 break;
                             }
 
-                            if(s_system_fault_last[gunno][set] &(1 <<(bit + start_bit))){
+                            if(s_system_fault_last[gunno][set] &(1 <<bit)){
                                 s_system_error_info[gunno].error_flag = 0x01;  /* 故障恢复 */
                                 s_system_error_info[gunno].resume_time = mw_get_current_timestamp();
                                 app_nsal_system_fault_report(gunno, s_system_error_info[gunno].error_code, s_system_error_info[gunno].resume_time, 0x01);
@@ -497,7 +604,6 @@ void app_osupport_thread_entry(void *parameter)
                                 s_system_error_info[gunno].error_flag = 0x00;  /* 故障产生 */
                                 memset(&s_system_error_info[gunno].resume_time, 0x00, sizeof(s_system_error_info[gunno].resume_time));
                                 s_system_error_info[gunno].occur_time = mw_get_current_timestamp();
-
                                 app_nsal_system_fault_report(gunno, s_system_error_info[gunno].error_code, s_system_error_info[gunno].occur_time, 0x00);
                             }
                             app_fault_storage(&s_system_error_info[gunno], s_system_error_info[gunno].resume_time, gunno);
@@ -611,7 +717,7 @@ void app_osupport_thread_entry(void *parameter)
                                 break;
                             }
 
-                            if(s_charge_fault_last[gunno][set] &(1 <<(bit + start_bit))){
+                            if(s_charge_fault_last[gunno][set] &(1 <<bit)){
                                 s_charge_error_info[gunno].error_flag = 0x01;  /* 故障恢复 */
                                 s_charge_error_info[gunno].resume_time = mw_get_current_timestamp();
                                 app_nsal_system_fault_report(gunno, _cfault, s_charge_error_info[gunno].resume_time, 0x01);

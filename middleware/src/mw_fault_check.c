@@ -126,6 +126,14 @@ uint32_t* mw_get_system_fault_set(uint8_t gunno)
     return NULL;
 }
 
+uint8_t mw_get_system_fset_num(uint8_t gunno)
+{
+    if(gunno < APP_SYSTEM_GUNNO_SIZE){
+        return thaisenGetSysFaultSetNum(gunno);
+    }
+    return 0x00;
+}
+
 uint32_t* mw_get_charge_fault_set(uint8_t gunno)
 {
     if(gunno < APP_SYSTEM_GUNNO_SIZE){
@@ -148,21 +156,28 @@ uint16_t mw_get_system_stop_way(uint8_t gunno)
 }
 
 
-uint16_t mw_system_fault_convert(uint16_t code)
+uint16_t mw_system_fault_convert(uint16_t code, uint8_t opt)
 {
-    uint16_t diff = 0x00;
+    if(opt == APP_FCONVERT_LIB_TO_APP){
+        if(code >= APP_SYS_FAULT_MAX){
+            return APP_SYS_FAULT_MAX;
+        }
 
-    if(code >= APP_SYS_FAULT_MAX){
+        if(code < APP_ORIGIN_SYSFAULT_MAX){
+            return code;
+        }else if(code < APP_SYS_FAULT_NO_ERROR){
+            return (code + APP_SYSFAULT_OFFSET_MIN);
+        }
         return APP_SYS_FAULT_MAX;
+    }else{
+        if(code < APP_ORIGIN_SYSFAULT_MAX){
+            return code;
+        }else if(code >= APP_USER_SYSFAULT_MIN_NEW_DEF){
+            return (code - APP_SYSFAULT_OFFSET_MIN);
+        }
     }
 
-    if(code < APP_ORIGIN_SYSFAULT_MAX){
-        return code;
-    }else if(code < APP_SYS_FAULT_NO_ERROR){
-        return (code + APP_SYSFAULT_OFFSET_MIN);
-    }
-
-    return APP_SYS_FAULT_MAX;
+    return code;
 }
 
 /** stopway 需是直接从 mw_get_system_stop_way 中获取的 */

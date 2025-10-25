@@ -16,6 +16,9 @@ extern "C" {
 #include "thaisenChargLib.h"
 #include "app_ofsm.h"
 
+#define APP_FCONVERT_APP_TO_LIB                   0             /* 系统故障转换选项：应用层故障码转换成底层库故障码 */
+#define APP_FCONVERT_LIB_TO_APP                   1             /* 系统故障转换选项：底层库故障码转换成应用层故障码 */
+
 #define APP_ORIGIN_SYSFAULT_MAX                   16            /* 原来系统故障最大值(包含SIZE) */
 #define APP_NEW_SYSFAULT_NUM                      500           /* 新系统故障数量 */
 #define APP_SYSFAULT_OFFSET_MIN                   (360 - APP_ORIGIN_SYSFAULT_MAX)                     /* 系统故障偏移最小值 */
@@ -87,10 +90,30 @@ enum system_fault_t{
     APP_SYS_FAULT_POUR = thaisenFaultPour + APP_SYSFAULT_OFFSET_MIN,                         /* 倾倒故障 */ //!< APP_SYS_FAULT_POUR
     APP_SYS_FAULT_LIQUID_COOLING = thaisenFaultLiquidCooling + APP_SYSFAULT_OFFSET_MIN,      /* 液冷故障 */ //!< APP_SYS_FAULT_LIQUID_COOLING
     APP_SYS_FAULT_FUSE = thaisenFaultFuse + APP_SYSFAULT_OFFSET_MIN,                         /* 熔断器故障 *///!< APP_SYS_FAULT_FUSE
-    APP_SYS_FAULT_MAIN_CABINET = thaisenFaultMainCabinet + APP_SYSFAULT_OFFSET_MIN,          /* 主机柜故障 *///!< APP_SYS_FAULT_FUSE
+    APP_SYS_FAULT_MAIN_CABINET_OFFLINE = thaisenFaultMainCabinet_Offline + APP_SYSFAULT_OFFSET_MIN,           /* 主机柜离线 *///!< APP_SYS_FAULT_FUSE
+    APP_SYSTEM_FAULT_MATRIX_RELAY_KPN1_1 = thaisenFaultMatrixRelay_KPN1_1 + APP_SYSFAULT_OFFSET_MIN,          /* 系统故障：矩阵正负接触器KPN1-1 */
+    APP_SYSTEM_FAULT_MATRIX_RELAY_KPN1_2 = thaisenFaultMatrixRelay_KPN1_2 + APP_SYSFAULT_OFFSET_MIN,          /* 系统故障：矩阵正负接触器KPN1-2 */
+    APP_SYSTEM_FAULT_MATRIX_RELAY_KPN1_3 = thaisenFaultMatrixRelay_KPN1_3 + APP_SYSFAULT_OFFSET_MIN,          /* 系统故障：矩阵正负接触器KPN1-3 */
+    APP_SYSTEM_FAULT_MATRIX_RELAY_KPN2_1 = thaisenFaultMatrixRelay_KPN2_1 + APP_SYSFAULT_OFFSET_MIN,          /* 系统故障：矩阵正负接触器KPN2-1 */
+    APP_SYSTEM_FAULT_MATRIX_RELAY_KPN2_2 = thaisenFaultMatrixRelay_KPN2_2 + APP_SYSFAULT_OFFSET_MIN,          /* 系统故障：矩阵正负接触器KPN2-2 */
+    APP_SYSTEM_FAULT_MATRIX_RELAY_KPN3_1 = thaisenFaultMatrixRelay_KPN3_1 + APP_SYSFAULT_OFFSET_MIN,          /* 系统故障：矩阵正负接触器KPN3-1 */
+    APP_SYSTEM_FAULT_SLAVE_DEVICE_OFFLINE = thaisenFaultSlaveDevice_Offline + APP_SYSFAULT_OFFSET_MIN,        /* 系统故障：从设备离线 */
+    APP_SYSTEM_FAULT_FAN = thaisenFaultFan + APP_SYSFAULT_OFFSET_MIN,                                         /* 系统故障：风扇 */
+    APP_SYSTEM_FAULT_MAINCABINET_SCRAM = thaisenFaultMainCabinet_Scram + APP_SYSFAULT_OFFSET_MIN,             /* 系统故障：主机柜急停 */
+    APP_SYSTEM_FAULT_MAINCABINET_GATE = thaisenFaultMainCabinet_Gate + APP_SYSFAULT_OFFSET_MIN,               /* 系统故障：主机柜门禁 */
+    APP_SYSTEM_FAULT_MAINCABINET_PDUFAULT = thaisenFaultMainCabinet_PduFault + APP_SYSFAULT_OFFSET_MIN,       /* 系统故障：主机柜开关板故障 */
+    APP_SYSTEM_FAULT_MAINCABINET_MODULEFAULT = thaisenFaultMainCabinet_ModuleFault + APP_SYSFAULT_OFFSET_MIN, /* 系统故障：主机柜模块 */
+    APP_SYSTEM_FAULT_MAINCABINET_CONFIG = thaisenFaultMainCabinet_Config + APP_SYSFAULT_OFFSET_MIN,           /* 系统故障：主机柜配置项 */
+    APP_SYSTEM_FAULT_MAINCABINET_ACRELAY = thaisenFaultMainCabinet_AcRelay + APP_SYSFAULT_OFFSET_MIN,         /* 系统故障：主机柜交流接触器 */
+    APP_SYSTEM_FAULT_MAINCABINET_SMOKE = thaisenFaultMainCabinet_Smoke + APP_SYSFAULT_OFFSET_MIN,             /* 系统故障：主机柜烟感报警 */
+    APP_SYSTEM_FAULT_MAINCABINET_POUR = thaisenFaultMainCabinet_Pour + APP_SYSFAULT_OFFSET_MIN,               /* 系统故障：主机柜倾倒 */
+    APP_SYSTEM_FAULT_MAINCABINET_FLOODING = thaisenFaultMainCabinet_Flooding + APP_SYSFAULT_OFFSET_MIN,       /* 系统故障：主机柜水浸 */
+    APP_SYSTEM_FAULT_MAINCABINET_OTHER = thaisenFaultMainCabinet_Other + APP_SYSFAULT_OFFSET_MIN,             /* 系统故障：主机柜其它故障 */
+    APP_SYSTEM_FAULT_MAINCABINET_LIGHT_PROTECT = thaisenFaultMainCabinet_LightProtect + APP_SYSFAULT_OFFSET_MIN, /* 系统故障：主机柜防雷故障 */
+    APP_SYSTEM_FAULT_DEVICE_IS_LOCKED = thaisenFaultDeviceIsLocked + APP_SYSFAULT_OFFSET_MIN,                 /* 系统故障：设备已锁定 */
 
     APP_SYS_FAULT_MAX,
-    APP_SYS_FAULT_NO_ERROR = thaisenFaultSize,                     /* 无故障 */                        //!< APP_SYS_FAULT_NO_ERROR
+    APP_SYS_FAULT_NO_ERROR = thaisenFaultSize,                                                                /* 无故障 */                        //!< APP_SYS_FAULT_NO_ERROR
 };
 
 /** 新的停充原因格式 */
@@ -169,7 +192,27 @@ enum system_stop_way{
     APP_SYSTEM_STOP_WAY_POUR = thaisen_chargeCtl_stopWay_Pour + APP_SYSFAULT_STOPWAY_OFFSET,                        /* 倾倒 */
     APP_SYSTEM_STOP_WAY_LIQUIDCOOLING = thaisen_chargeCtl_stopWay_LiquidCooling + APP_SYSFAULT_STOPWAY_OFFSET,      /* 液冷 */
     APP_SYSTEM_STOP_WAY_FUSE = thaisen_chargeCtl_stopWay_Fuse + APP_SYSFAULT_STOPWAY_OFFSET,                        /* 熔断器 */
-    APP_SYSTEM_STOP_WAY_MAIN_CABINET = tthaisen_chargeCtl_stopWay_MainCabinet + APP_SYSFAULT_STOPWAY_OFFSET,        /* 主机柜故障 */
+    APP_SYSTEM_STOP_WAY_MAIN_CABINET_OFFLINE = thaisen_chargeCtl_stopWay_MainCabinet_Offline + APP_SYSFAULT_STOPWAY_OFFSET,     /* 主机柜故障离线 */
+    APP_SYSTEM_STOP_WAY_MATRIX_RELAY_KPN1_1 = thaisen_chargeCtl_stopWay_MatrixRelay_KPN1_1 + APP_SYSFAULT_STOPWAY_OFFSET,        /* 矩阵正负接触器KPN1-1 */
+    APP_SYSTEM_STOP_WAY_MATRIX_RELAY_KPN1_2 = thaisen_chargeCtl_stopWay_MatrixRelay_KPN1_2 + APP_SYSFAULT_STOPWAY_OFFSET,        /* 矩阵正负接触器KPN1-2 */
+    APP_SYSTEM_STOP_WAY_MATRIX_RELAY_KPN1_3 = thaisen_chargeCtl_stopWay_MatrixRelay_KPN1_3 + APP_SYSFAULT_STOPWAY_OFFSET,        /* 矩阵正负接触器KPN1-3 */
+    APP_SYSTEM_STOP_WAY_MATRIX_RELAY_KPN2_1 = thaisen_chargeCtl_stopWay_MatrixRelay_KPN2_1 + APP_SYSFAULT_STOPWAY_OFFSET,        /* 矩阵正负接触器KPN2-1 */
+    APP_SYSTEM_STOP_WAY_MATRIX_RELAY_KPN2_2 = thaisen_chargeCtl_stopWay_MatrixRelay_KPN2_2 + APP_SYSFAULT_STOPWAY_OFFSET,        /* 矩阵正负接触器KPN2-2 */
+    APP_SYSTEM_STOP_WAY_MATRIX_RELAY_KPN3_1 = thaisen_chargeCtl_stopWay_MatrixRelay_KPN3_1 + APP_SYSFAULT_STOPWAY_OFFSET,        /* 矩阵正负接触器KPN3-1 */
+    APP_SYSTEM_STOP_WAY_SLAVE_DEVICE_OFFLINE = thaisen_chargeCtl_stopWay_SlaveDevice_Offline + APP_SYSFAULT_STOPWAY_OFFSET,      /* 从设备离线 */
+    APP_SYSTEM_STOP_WAY_FAN = thaisen_chargeCtl_stopWay_Fan + APP_SYSFAULT_STOPWAY_OFFSET,                                       /* 风扇 */
+    APP_SYSTEM_STOP_WAY_MAINCABINET_SCRAM = thaisen_chargeCtl_stopWay_MainCabinet_Scram + APP_SYSFAULT_STOPWAY_OFFSET,           /* 主机柜急停 */
+    APP_SYSTEM_STOP_WAY_MAINCABINET_GATE = thaisen_chargeCtl_stopWay_MainCabinet_Gate + APP_SYSFAULT_STOPWAY_OFFSET,             /* 主机柜门禁 */
+    APP_SYSTEM_STOP_WAY_MAINCABINET_PDUFAULT = thaisen_chargeCtl_stopWay_MainCabinet_PduFault + APP_SYSFAULT_STOPWAY_OFFSET,     /* 主机柜开关板故障 */
+    APP_SYSTEM_STOP_WAY_MAINCABINET_MODULEFAULT = thaisen_chargeCtl_stopWay_MainCabinet_ModuleFault + APP_SYSFAULT_STOPWAY_OFFSET, /* 主机柜模块 */
+    APP_SYSTEM_STOP_WAY_MAINCABINET_CONFIG = thaisen_chargeCtl_stopWay_MainCabinet_Config + APP_SYSFAULT_STOPWAY_OFFSET,         /* 主机柜配置项 */
+    APP_SYSTEM_STOP_WAY_MAINCABINET_ACRELAY = thaisen_chargeCtl_stopWay_MainCabinet_AcRelay + APP_SYSFAULT_STOPWAY_OFFSET,       /* 主机柜交流接触器 */
+    APP_SYSTEM_STOP_WAY_MAINCABINET_SMOKE = thaisen_chargeCtl_stopWay_MainCabinet_Smoke + APP_SYSFAULT_STOPWAY_OFFSET,           /* 主机柜烟感报警 */
+    APP_SYSTEM_STOP_WAY_MAINCABINET_POUR = thaisen_chargeCtl_stopWay_MainCabinet_Pour + APP_SYSFAULT_STOPWAY_OFFSET,             /* 主机柜倾倒 */
+    APP_SYSTEM_STOP_WAY_MAINCABINET_FLOODING = thaisen_chargeCtl_stopWay_MainCabinet_Flooding + APP_SYSFAULT_STOPWAY_OFFSET,     /* 主机柜水浸 */
+    APP_SYSTEM_STOP_WAY_MAINCABINET_OTHER = thaisen_chargeCtl_stopWay_MainCabinet_Other + APP_SYSFAULT_STOPWAY_OFFSET,           /* 主机柜其它故障 */
+    APP_SYSTEM_STOP_WAY_MAINCABINET_LIGHT_PROTECT = thaisen_chargeCtl_stopWay_MainCabinet_LightProtect + APP_SYSFAULT_STOPWAY_OFFSET, /* 主机柜防雷故障 */
+    APP_SYSTEM_STOP_WAY_DEVICE_IS_LOCKED = thaisen_chargeCtl_stopWay_DeviceIsLocked + APP_SYSFAULT_STOPWAY_OFFSET,               /* 设备已锁定 */
 
     APP_SYSTEM_STOP_WAY_YT_BFC = (thaisen_chargeCtl_stopWay_BFC -( APP_SYS_FAULT_NO_ERROR + 0x01 - APP_ORIGIN_SYSFAULT_MAX)) + APP_NONE_SYSFAULT_STOPWAY_OFFSET,                  /* 宇通协议BFC故障 */
     APP_SYSTEM_STOP_WAY_BST_TARGET_SOC = (thaisen_chargeCtl_stopWay_BST_TargetSOC -( APP_SYS_FAULT_NO_ERROR + 0x01 - APP_ORIGIN_SYSFAULT_MAX)) + APP_NONE_SYSFAULT_STOPWAY_OFFSET,                                         /** 系统停充原因：车端停详细原因：SOC达到目标值 */
@@ -351,8 +394,9 @@ enum system_stop_way
 
 uint32_t* mw_get_system_fault_set(uint8_t gunno);
 uint32_t* mw_get_charge_fault_set(uint8_t gunno);
+uint8_t mw_get_system_fset_num(uint8_t gunno);
 uint16_t mw_get_system_stop_way(uint8_t gunno);
-uint16_t mw_system_fault_convert(uint16_t code);
+uint16_t mw_system_fault_convert(uint16_t code, uint8_t opt);
 uint16_t mw_system_stop_way_convert(uint16_t stopway);
 
 /**********************************************************************

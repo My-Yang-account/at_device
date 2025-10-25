@@ -17,11 +17,13 @@ extern "C" {
 
 #include "stdio.h"
 
-#define APP_GENERAL_SYSTEM_FAULT_SET_NUM          1
+#define APP_GENERAL_SYSTEM_FAULT_SET_NUM          4
 #define APP_GENERAL_CHARGE_FAULT_SET_NUM          1
 
-#define APP_GENERAL_SYSTEM_FAULT_SET_LOW          0
-#define APP_GENERAL_SYSTEM_FAULT_SET_HIGH         1
+#define APP_GENERAL_SYSTEM_FAULT_SET_0            0
+#define APP_GENERAL_SYSTEM_FAULT_SET_1            1
+#define APP_GENERAL_SYSTEM_FAULT_SET_2            2
+#define APP_GENERAL_SYSTEM_FAULT_SET_3            3
 
 #define APP_GENERAL_CHARGE_FAULT_SET_LOW          0
 #define APP_GENERAL_CHARGE_FAULT_SET_HIGH         1
@@ -48,9 +50,9 @@ enum system_fault_t app_get_highest_priority_system_fault(uint8_t gunno);
 uint8_t *app_get_charge_fault_set(uint8_t gunno);
 uint32_t *app_get_system_fault_set(uint8_t gunno);
 
-void app_set_system_fault_enum(enum system_fault_t _fault, uint8_t set, uint8_t gunno);
-uint8_t app_get_system_fault_enum(enum system_fault_t _fault, uint8_t set, uint8_t gunno);
-void app_clear_system_fault_enum(enum system_fault_t _fault, uint8_t set, uint8_t gunno);
+void app_set_system_fault_enum(enum system_fault_t _fault, uint8_t gunno);
+uint8_t app_get_system_fault_enum(enum system_fault_t _fault, uint8_t gunno);
+void app_clear_system_fault_enum(enum system_fault_t _fault, uint8_t gunno);
 
 void app_osupport_thread_entry(void *parameter);
 

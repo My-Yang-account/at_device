@@ -139,6 +139,26 @@ APP_DEF_SRAM1 static const char* system_fault_str[APP_SYS_FAULT_NO_ERROR] =
      "liquid cool",               /** 系统故障码字符串 22：液冷 */
      "fuse",                      /** 系统故障码字符串 23：熔断器 */
      "main cabinet",              /** 系统故障码字符串 24：主机柜 */
+     "matrelayK1-1",              /** 系统故障码字符串 25：矩阵正负接触器KPN1-1 */
+     "matrelayK1-2",              /** 系统故障码字符串 26：矩阵正负接触器KPN1-2 */
+     "matrelayK1-3",              /** 系统故障码字符串 27：矩阵正负接触器KPN1-3 */
+     "matrelayK2-1",              /** 系统故障码字符串 28：矩阵正负接触器KPN2-1 */
+     "matrelayK2-2",              /** 系统故障码字符串 29：矩阵正负接触器KPN2-2 */
+     "matrelayK3-1",              /** 系统故障码字符串 30：矩阵正负接触器KPN3-1 */
+     "slave offline",             /** 系统故障码字符串 31：从设备离线 */
+     "fan",                       /** 系统故障码字符串 32：风扇 */
+     "cabinet scram",             /** 系统故障码字符串 33：主机柜急停 */
+     "cabinet door",              /** 系统故障码字符串 34：主机柜门禁 */
+     "cabinet pdu",               /** 系统故障码字符串 35：主机柜开关板故障 */
+     "cabinet module",            /** 系统故障码字符串 36：主机柜模块 */
+     "cabinet config",            /** 系统故障码字符串 37：主机柜配置项 */
+     "cabinet acrelay",           /** 系统故障码字符串 38：主机柜交流接触器 */
+     "cabinet smoke",             /** 系统故障码字符串 39：主机柜烟感报警 */
+     "cabinet pour",              /** 系统故障码字符串 40：主机柜倾倒 */
+     "cabinet flood",             /** 系统故障码字符串 41：主机柜水浸 */
+     "cabinet other",             /** 系统故障码字符串 42：主机柜其它故障 */
+     "cabinet lightprotect",      /** 系统故障码字符串 43：主机柜防雷故障 */
+     "dev locked",                /** 系统故障码字符串 44：设备锁定 */
 #endif /* APP_DESIGNATE_REGION */
 };
 
@@ -189,6 +209,26 @@ void app_support_func_info_init(void)
     system_fault_str[22] = "liquid cool";
     system_fault_str[23] = "fuse";
     system_fault_str[24] = "main cabinet";
+    system_fault_str[25] = "matrelayK1-1";              /** 系统故障码字符串 25：矩阵正负接触器KPN1-1 */
+    system_fault_str[26] = "matrelayK1-2";              /** 系统故障码字符串 26：矩阵正负接触器KPN1-2 */
+    system_fault_str[27] = "matrelayK1-3";              /** 系统故障码字符串 27：矩阵正负接触器KPN1-3 */
+    system_fault_str[28] = "matrelayK2-1";              /** 系统故障码字符串 28：矩阵正负接触器KPN2-1 */
+    system_fault_str[29] = "matrelayK2-2";              /** 系统故障码字符串 29：矩阵正负接触器KPN2-2 */
+    system_fault_str[30] = "matrelayK3-1";              /** 系统故障码字符串 30：矩阵正负接触器KPN3-1 */
+    system_fault_str[31] = "slave offline";             /** 系统故障码字符串 31：从设备离线 */
+    system_fault_str[32] = "fan";                      /** 系统故障码字符串 32：风扇 */
+    system_fault_str[33] = "cabinet scram";            /** 系统故障码字符串 33：主机柜急停 */
+    system_fault_str[34] = "cabinet door";              /** 系统故障码字符串 34：主机柜门禁 */
+    system_fault_str[35] = "cabinet pdu";               /** 系统故障码字符串 35：主机柜开关板故障 */
+    system_fault_str[36] = "cabinet module";            /** 系统故障码字符串 36：主机柜模块 */
+    system_fault_str[37] = "cabinet config";            /** 系统故障码字符串 37：主机柜配置项 */
+    system_fault_str[38] = "cabinet acrelay";           /** 系统故障码字符串 38：主机柜交流接触器 */
+    system_fault_str[39] = "cabinet smoke";             /** 系统故障码字符串 39：主机柜烟感报警 */
+    system_fault_str[40] = "cabinet pour";              /** 系统故障码字符串 40：主机柜倾倒 */
+    system_fault_str[41] = "cabinet flood";             /** 系统故障码字符串 41：主机柜水浸 */
+    system_fault_str[42] = "cabinet other";             /** 系统故障码字符串 42：主机柜其它故障 */
+    system_fault_str[43] = "cabinet lightprotect";      /** 系统故障码字符串 43：主机柜防雷故障 */
+    system_fault_str[44] = "dev locked";                /** 系统故障码字符串 44：设备锁定 */
 
     charge_fault_str[0] = "gun voltage";
     charge_fault_str[1] = "IMD";
@@ -397,8 +437,108 @@ void app_get_fault_chinese(uint32_t code, uint8_t *olen, uint8_t *buf, uint8_t i
         if(olen)
             *olen = strlen((char*)buf);
         break;
-    case APP_SYS_FAULT_MAIN_CABINET:
+    case APP_SYS_FAULT_MAIN_CABINET_OFFLINE:
         memcpy(buf, "主机柜", strlen("主机柜"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        break;
+    case APP_SYSTEM_FAULT_MATRIX_RELAY_KPN1_1:
+        memcpy(buf, "矩阵继电器K1-1", strlen("矩阵继电器K1-1"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        break;
+    case APP_SYSTEM_FAULT_MATRIX_RELAY_KPN1_2:
+        memcpy(buf, "矩阵继电器K1-2", strlen("矩阵继电器K1-2"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        break;
+    case APP_SYSTEM_FAULT_MATRIX_RELAY_KPN1_3:
+        memcpy(buf, "矩阵继电器K1-3", strlen("矩阵继电器K1-3"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        break;
+    case APP_SYSTEM_FAULT_MATRIX_RELAY_KPN2_1:
+        memcpy(buf, "矩阵继电器K2-1", strlen("矩阵继电器K2-1"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        break;
+    case APP_SYSTEM_FAULT_MATRIX_RELAY_KPN2_2:
+        memcpy(buf, "矩阵继电器K2-2", strlen("矩阵继电器K2-2"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        break;
+    case APP_SYSTEM_FAULT_MATRIX_RELAY_KPN3_1:
+        memcpy(buf, "矩阵继电器K3-1", strlen("矩阵继电器K3-1"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        break;
+    case APP_SYSTEM_FAULT_SLAVE_DEVICE_OFFLINE:
+        memcpy(buf, "从设备离线", strlen("从设备离线"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        break;
+    case APP_SYSTEM_FAULT_FAN:
+        memcpy(buf, "风扇", strlen("风扇"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        break;
+    case APP_SYSTEM_FAULT_MAINCABINET_SCRAM:
+        memcpy(buf, "主机柜急停", strlen("主机柜急停"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        break;
+    case APP_SYSTEM_FAULT_MAINCABINET_GATE:
+        memcpy(buf, "主机柜门禁", strlen("主机柜门禁"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        break;
+    case APP_SYSTEM_FAULT_MAINCABINET_PDUFAULT:
+        memcpy(buf, "主机柜PDU", strlen("主机柜PDU"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        break;
+    case APP_SYSTEM_FAULT_MAINCABINET_MODULEFAULT:
+        memcpy(buf, "主机柜模块", strlen("主机柜模块"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        break;
+    case APP_SYSTEM_FAULT_MAINCABINET_CONFIG:
+        memcpy(buf, "主机柜配置", strlen("主机柜配置"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        break;
+    case APP_SYSTEM_FAULT_MAINCABINET_ACRELAY:
+        memcpy(buf, "主机柜交流接触器", strlen("主机柜交流接触器"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        break;
+    case APP_SYSTEM_FAULT_MAINCABINET_SMOKE:
+        memcpy(buf, "主机柜烟感", strlen("主机柜烟感"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        break;
+    case APP_SYSTEM_FAULT_MAINCABINET_POUR:
+        memcpy(buf, "主机柜倾倒", strlen("主机柜倾倒"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        break;
+    case APP_SYSTEM_FAULT_MAINCABINET_FLOODING:
+        memcpy(buf, "主机柜水浸", strlen("主机柜水浸"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        break;
+    case APP_SYSTEM_FAULT_MAINCABINET_OTHER:
+        memcpy(buf, "主机柜其它", strlen("主机柜其它"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        break;
+    case APP_SYSTEM_FAULT_MAINCABINET_LIGHT_PROTECT:
+        memcpy(buf, "主机柜防雷", strlen("主机柜防雷"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        break;
+    case APP_SYSTEM_FAULT_DEVICE_IS_LOCKED:
+        memcpy(buf, "设备锁定", strlen("设备锁定"));
         if(olen)
             *olen = strlen((char*)buf);
         break;
@@ -740,8 +880,108 @@ void app_get_charge_stopway_chinese(uint32_t code, uint8_t *olen, uint8_t *buf, 
         if(olen)
             *olen = strlen((char*)buf);
         break;
-    case APP_SYSTEM_STOP_WAY_MAIN_CABINET:
+    case APP_SYSTEM_STOP_WAY_MAIN_CABINET_OFFLINE:
         memcpy(buf, "主机柜", strlen("主机柜"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        break;
+    case APP_SYSTEM_STOP_WAY_MATRIX_RELAY_KPN1_1:
+        memcpy(buf, "矩阵继电器K1-1", strlen("矩阵继电器K1-1"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        break;
+    case APP_SYSTEM_STOP_WAY_MATRIX_RELAY_KPN1_2:
+        memcpy(buf, "矩阵继电器K1-2", strlen("矩阵继电器K1-2"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        break;
+    case APP_SYSTEM_STOP_WAY_MATRIX_RELAY_KPN1_3:
+        memcpy(buf, "矩阵继电器K1-3", strlen("矩阵继电器K1-3"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        break;
+    case APP_SYSTEM_STOP_WAY_MATRIX_RELAY_KPN2_1:
+        memcpy(buf, "矩阵继电器K2-1", strlen("矩阵继电器K2-1"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        break;
+    case APP_SYSTEM_STOP_WAY_MATRIX_RELAY_KPN2_2:
+        memcpy(buf, "矩阵继电器K2-2", strlen("矩阵继电器K2-2"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        break;
+    case APP_SYSTEM_STOP_WAY_MATRIX_RELAY_KPN3_1:
+        memcpy(buf, "矩阵继电器K3-1", strlen("矩阵继电器K3-1"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        break;
+    case APP_SYSTEM_STOP_WAY_SLAVE_DEVICE_OFFLINE:
+        memcpy(buf, "从设备离线", strlen("从设备离线"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        break;
+    case APP_SYSTEM_STOP_WAY_FAN:
+        memcpy(buf, "风扇", strlen("风扇"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        break;
+    case APP_SYSTEM_STOP_WAY_MAINCABINET_SCRAM:
+        memcpy(buf, "主机柜急停", strlen("主机柜急停"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        break;
+    case APP_SYSTEM_STOP_WAY_MAINCABINET_GATE:
+        memcpy(buf, "主机柜门禁", strlen("主机柜门禁"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        break;
+    case APP_SYSTEM_STOP_WAY_MAINCABINET_PDUFAULT:
+        memcpy(buf, "主机柜PDU", strlen("主机柜PDU"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        break;
+    case APP_SYSTEM_STOP_WAY_MAINCABINET_MODULEFAULT:
+        memcpy(buf, "主机柜模块", strlen("主机柜模块"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        break;
+    case APP_SYSTEM_STOP_WAY_MAINCABINET_CONFIG:
+        memcpy(buf, "主机柜配置", strlen("主机柜配置"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        break;
+    case APP_SYSTEM_STOP_WAY_MAINCABINET_ACRELAY:
+        memcpy(buf, "主机柜交流接触器", strlen("主机柜交流接触器"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        break;
+    case APP_SYSTEM_STOP_WAY_MAINCABINET_SMOKE:
+        memcpy(buf, "主机柜烟感", strlen("主机柜烟感"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        break;
+    case APP_SYSTEM_STOP_WAY_MAINCABINET_POUR:
+        memcpy(buf, "主机柜倾倒", strlen("主机柜倾倒"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        break;
+    case APP_SYSTEM_STOP_WAY_MAINCABINET_FLOODING:
+        memcpy(buf, "主机柜水浸", strlen("主机柜水浸"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        break;
+    case APP_SYSTEM_STOP_WAY_MAINCABINET_OTHER:
+        memcpy(buf, "主机柜其它", strlen("主机柜其它"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        break;
+    case APP_SYSTEM_STOP_WAY_MAINCABINET_LIGHT_PROTECT:
+        memcpy(buf, "主机柜防雷", strlen("主机柜防雷"));
+        if(olen)
+            *olen = strlen((char*)buf);
+        break;
+    case APP_SYSTEM_STOP_WAY_DEVICE_IS_LOCKED:
+        memcpy(buf, "设备锁定", strlen("设备锁定"));
         if(olen)
             *olen = strlen((char*)buf);
         break;

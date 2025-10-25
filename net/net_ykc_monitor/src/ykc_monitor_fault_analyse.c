@@ -15,6 +15,7 @@
 #define YKC_MONITOR_FAULT_MSG_NUM_MAX                            0x05
 
 #ifdef NET_YKC_MONITOR_FAULT_USING_EXTEND
+/*************************************************** 故障集 1 ***************************************************/
 #define YKC_MONITOR_REALTIME_FAULT_SCRAM                         (0x01 <<0)       /* 云快充实时故障：急停按钮动作故障 */
 #define YKC_MONITOR_REALTIME_FAULT_CARDREADER                    (0x01 <<1)       /* 云快充实时故障：读卡器故障 */
 #define YKC_MONITOR_REALTIME_FAULT_DOOR                          (0x01 <<2)       /* 云快充实时故障：门禁故障 */
@@ -41,6 +42,26 @@
 #define YKC_MONITOR_REALTIME_FAULT_FUSE                          (0x01 <<23)      /* 云快充实时故障：熔断器故障 */
 #define YKC_MONITOR_REALTIME_FAULT_MAIN_CABINET                  (0x01 <<24)      /* 云快充实时故障：主机柜故障 */
 #define YKC_MONITOR_REALTIME_FAULT_LOCK_DEVICE                   (0x01 <<25)      /* 云快充实时故障：锁桩 */
+#define YKC_MONITOR_REALTIME_FAULT_MATRIX_RELAY_KPN1_1           (0x01 <<26)      /* 云快充实时故障：矩阵正负接触器KPN1-1 */
+#define YKC_MONITOR_REALTIME_FAULT_MATRIX_RELAY_KPN1_2           (0x01 <<27)      /* 云快充实时故障：矩阵正负接触器KPN1-2 */
+#define YKC_MONITOR_REALTIME_FAULT_MATRIX_RELAY_KPN1_3           (0x01 <<28)      /* 云快充实时故障：矩阵正负接触器KPN1-3 */
+#define YKC_MONITOR_REALTIME_FAULT_MATRIX_RELAY_KPN2_1           (0x01 <<29)      /* 云快充实时故障：矩阵正负接触器KPN2-1 */
+#define YKC_MONITOR_REALTIME_FAULT_MATRIX_RELAY_KPN2_2           (0x01 <<30)      /* 云快充实时故障：矩阵正负接触器KPN2-2 */
+#define YKC_MONITOR_REALTIME_FAULT_MATRIX_RELAY_KPN3_1           (0x01 <<31)      /* 云快充实时故障：矩阵正负接触器KPN3-1 */
+/*************************************************** 故障集 2 ***************************************************/
+#define YKC_MONITOR_REALTIME_FAULT_SLAVE_DEVICE_OFFLINE          (0x01 <<0)       /* 云快充实时故障：从设备离线 */
+#define YKC_MONITOR_REALTIME_FAULT_MAINCABINET_SCRAM             (0x01 <<1)       /* 云快充实时故障：主机柜急停 */
+#define YKC_MONITOR_REALTIME_FAULT_MAINCABINET_GATE              (0x01 <<2)       /* 云快充实时故障：主机柜门禁 */
+#define YKC_MONITOR_REALTIME_FAULT_MAINCABINET_PDUFAULT          (0x01 <<3)       /* 云快充实时故障：主机柜开关板故障 */
+#define YKC_MONITOR_REALTIME_FAULT_MAINCABINET_MODULEFAULT       (0x01 <<4)       /* 云快充实时故障：主机柜模块 */
+#define YKC_MONITOR_REALTIME_FAULT_MAINCABINET_CONFIG            (0x01 <<5)       /* 云快充实时故障：主机柜配置项 */
+#define YKC_MONITOR_REALTIME_FAULT_MAINCABINET_ACRELAY           (0x01 <<6)       /* 云快充实时故障：主机柜交流接触器 */
+#define YKC_MONITOR_REALTIME_FAULT_MAINCABINET_SMOKE             (0x01 <<7)       /* 云快充实时故障：主机柜烟感报警 */
+#define YKC_MONITOR_REALTIME_FAULT_MAINCABINET_POUR              (0x01 <<8)       /* 云快充实时故障：主机柜倾倒 */
+#define YKC_MONITOR_REALTIME_FAULT_MAINCABINET_FLOODING          (0x01 <<9)       /* 云快充实时故障：主机柜水浸 */
+#define YKC_MONITOR_REALTIME_FAULT_MAINCABINET_OTHER             (0x01 <<10)      /* 云快充实时故障：主机柜其它故障 */
+#define YKC_MONITOR_REALTIME_FAULT_MAINCABINET_LIGHT_PROTECT     (0x01 <<11)      /* 云快充实时故障：主机柜防雷故障 */
+#define YKC_MONITOR_REALTIME_FAULT_FAN                           (0x01 <<12)       /* 云快充实时故障：风扇 */
 #else
 #define YKC_MONITOR_REALTIME_FAULT_SCRAM                         (0x01 <<0)       /* 云快充实时故障：急停按钮动作故障 */
 #define YKC_MONITOR_REALTIME_FAULT_RECTIFIER                     (0x01 <<1)       /* 云快充实时故障：无可用整流模块 */
@@ -481,12 +502,252 @@ static int32_t ykc_monitor_get_fault_code(uint32_t bit, uint8_t gunno, uint8_t i
 #endif /* NET_YKC_MONITOR_FAULT_USING_EXTEND */
         break;
     /** 主机柜故障 */
-    case NET_GENERAL_FAULT_MAIN_CABINET:
+    case NET_GENERAL_FAULT_MAIN_CABINET_OFFLINE:
 #ifdef NET_YKC_MONITOR_FAULT_USING_EXTEND
         if(is_resume){
             s_ykc_monitor_realtime_fault[gunno][NET_YKC_MONITOR_FAULT_SET_1] &= ~YKC_MONITOR_REALTIME_FAULT_MAIN_CABINET;
         }else{
             s_ykc_monitor_realtime_fault[gunno][NET_YKC_MONITOR_FAULT_SET_1] |= YKC_MONITOR_REALTIME_FAULT_MAIN_CABINET;
+        }
+        break;
+#else
+        return 0x00;
+#endif /* NET_YKC_MONITOR_FAULT_USING_EXTEND */
+    /** 设备已锁定 */
+    case NET_GENERAL_FAULT_DEVICE_IS_LOCKED:
+#ifdef NET_YKC_MONITOR_FAULT_USING_EXTEND
+        if(is_resume){
+            s_ykc_monitor_realtime_fault[gunno][NET_YKC_MONITOR_FAULT_SET_1] &= ~YKC_MONITOR_REALTIME_FAULT_LOCK_DEVICE;
+        }else{
+            s_ykc_monitor_realtime_fault[gunno][NET_YKC_MONITOR_FAULT_SET_1] |= YKC_MONITOR_REALTIME_FAULT_LOCK_DEVICE;
+        }
+        break;
+#else
+        return 0x00;
+#endif /* NET_YKC_MONITOR_FAULT_USING_EXTEND */
+    /** 矩阵继电器KPN1-1故障 */
+    case NET_GENERAL_FAULT_MATRIX_RELAY_KPN1_1:
+#ifdef NET_YKC_MONITOR_FAULT_USING_EXTEND
+        if(is_resume){
+            s_ykc_monitor_realtime_fault[gunno][NET_YKC_MONITOR_FAULT_SET_1] &= ~YKC_MONITOR_REALTIME_FAULT_MATRIX_RELAY_KPN1_1;
+        }else{
+            s_ykc_monitor_realtime_fault[gunno][NET_YKC_MONITOR_FAULT_SET_1] |= YKC_MONITOR_REALTIME_FAULT_MATRIX_RELAY_KPN1_1;
+        }
+        break;
+#else
+        return 0x00;
+#endif /* NET_YKC_MONITOR_FAULT_USING_EXTEND */
+    /** 矩阵继电器KPN1-2故障 */
+    case NET_GENERAL_FAULT_MATRIX_RELAY_KPN1_2:
+#ifdef NET_YKC_MONITOR_FAULT_USING_EXTEND
+        if(is_resume){
+            s_ykc_monitor_realtime_fault[gunno][NET_YKC_MONITOR_FAULT_SET_1] &= ~YKC_MONITOR_REALTIME_FAULT_MATRIX_RELAY_KPN1_2;
+        }else{
+            s_ykc_monitor_realtime_fault[gunno][NET_YKC_MONITOR_FAULT_SET_1] |= YKC_MONITOR_REALTIME_FAULT_MATRIX_RELAY_KPN1_2;
+        }
+        break;
+#else
+        return 0x00;
+#endif /* NET_YKC_MONITOR_FAULT_USING_EXTEND */
+    /** 矩阵继电器KPN1-3故障 */
+    case NET_GENERAL_FAULT_MATRIX_RELAY_KPN1_3:
+#ifdef NET_YKC_MONITOR_FAULT_USING_EXTEND
+        if(is_resume){
+            s_ykc_monitor_realtime_fault[gunno][NET_YKC_MONITOR_FAULT_SET_1] &= ~YKC_MONITOR_REALTIME_FAULT_MATRIX_RELAY_KPN1_3;
+        }else{
+            s_ykc_monitor_realtime_fault[gunno][NET_YKC_MONITOR_FAULT_SET_1] |= YKC_MONITOR_REALTIME_FAULT_MATRIX_RELAY_KPN1_3;
+        }
+        break;
+#else
+        return 0x00;
+#endif /* NET_YKC_MONITOR_FAULT_USING_EXTEND */
+    /** 矩阵继电器KPN2-1故障 */
+    case NET_GENERAL_FAULT_MATRIX_RELAY_KPN2_1:
+#ifdef NET_YKC_MONITOR_FAULT_USING_EXTEND
+        if(is_resume){
+            s_ykc_monitor_realtime_fault[gunno][NET_YKC_MONITOR_FAULT_SET_1] &= ~YKC_MONITOR_REALTIME_FAULT_MATRIX_RELAY_KPN2_1;
+        }else{
+            s_ykc_monitor_realtime_fault[gunno][NET_YKC_MONITOR_FAULT_SET_1] |= YKC_MONITOR_REALTIME_FAULT_MATRIX_RELAY_KPN2_1;
+        }
+        break;
+#else
+        return 0x00;
+#endif /* NET_YKC_MONITOR_FAULT_USING_EXTEND */
+    /** 矩阵继电器KPN2-2故障 */
+    case NET_GENERAL_FAULT_MATRIX_RELAY_KPN2_2:
+#ifdef NET_YKC_MONITOR_FAULT_USING_EXTEND
+        if(is_resume){
+            s_ykc_monitor_realtime_fault[gunno][NET_YKC_MONITOR_FAULT_SET_1] &= ~YKC_MONITOR_REALTIME_FAULT_MATRIX_RELAY_KPN2_2;
+        }else{
+            s_ykc_monitor_realtime_fault[gunno][NET_YKC_MONITOR_FAULT_SET_1] |= YKC_MONITOR_REALTIME_FAULT_MATRIX_RELAY_KPN2_2;
+        }
+        break;
+#else
+        return 0x00;
+#endif /* NET_YKC_MONITOR_FAULT_USING_EXTEND */
+    /** 矩阵继电器KPN3-1故障 */
+    case NET_GENERAL_FAULT_MATRIX_RELAY_KPN3_1:
+#ifdef NET_YKC_MONITOR_FAULT_USING_EXTEND
+        if(is_resume){
+            s_ykc_monitor_realtime_fault[gunno][NET_YKC_MONITOR_FAULT_SET_1] &= ~YKC_MONITOR_REALTIME_FAULT_MATRIX_RELAY_KPN3_1;
+        }else{
+            s_ykc_monitor_realtime_fault[gunno][NET_YKC_MONITOR_FAULT_SET_1] |= YKC_MONITOR_REALTIME_FAULT_MATRIX_RELAY_KPN3_1;
+        }
+        break;
+#else
+        return 0x00;
+#endif /* NET_YKC_MONITOR_FAULT_USING_EXTEND */
+    /** 从设备离线故障 */
+    case NET_GENERAL_FAULT_SLAVE_DEVICE_OFFLINE:
+#ifdef NET_YKC_MONITOR_FAULT_USING_EXTEND
+        if(is_resume){
+            s_ykc_monitor_realtime_fault[gunno][NET_YKC_MONITOR_FAULT_SET_2] &= ~YKC_MONITOR_REALTIME_FAULT_SLAVE_DEVICE_OFFLINE;
+        }else{
+            s_ykc_monitor_realtime_fault[gunno][NET_YKC_MONITOR_FAULT_SET_2] |= YKC_MONITOR_REALTIME_FAULT_SLAVE_DEVICE_OFFLINE;
+        }
+        break;
+#else
+        return 0x00;
+#endif /* NET_YKC_MONITOR_FAULT_USING_EXTEND */
+    /** 风扇故障 */
+    case NET_GENERAL_FAULT_FAN:
+#ifdef NET_YKC_MONITOR_FAULT_USING_EXTEND
+        if(is_resume){
+            s_ykc_monitor_realtime_fault[gunno][NET_YKC_MONITOR_FAULT_SET_2] &= ~YKC_MONITOR_REALTIME_FAULT_FAN;
+        }else{
+            s_ykc_monitor_realtime_fault[gunno][NET_YKC_MONITOR_FAULT_SET_2] |= YKC_MONITOR_REALTIME_FAULT_FAN;
+        }
+        break;
+#else
+        return 0x00;
+#endif /* NET_YKC_MONITOR_FAULT_USING_EXTEND */
+    /** 主机柜急停故障 */
+    case NET_GENERAL_FAULT_MAINCABINET_SCRAM:
+#ifdef NET_YKC_MONITOR_FAULT_USING_EXTEND
+        if(is_resume){
+            s_ykc_monitor_realtime_fault[gunno][NET_YKC_MONITOR_FAULT_SET_2] &= ~YKC_MONITOR_REALTIME_FAULT_MAINCABINET_SCRAM;
+        }else{
+            s_ykc_monitor_realtime_fault[gunno][NET_YKC_MONITOR_FAULT_SET_2] |= YKC_MONITOR_REALTIME_FAULT_MAINCABINET_SCRAM;
+        }
+        break;
+#else
+        return 0x00;
+#endif /* NET_YKC_MONITOR_FAULT_USING_EXTEND */
+    /** 主机柜门禁故障 */
+    case NET_GENERAL_FAULT_MAINCABINET_GATE:
+#ifdef NET_YKC_MONITOR_FAULT_USING_EXTEND
+        if(is_resume){
+            s_ykc_monitor_realtime_fault[gunno][NET_YKC_MONITOR_FAULT_SET_2] &= ~YKC_MONITOR_REALTIME_FAULT_MAINCABINET_GATE;
+        }else{
+            s_ykc_monitor_realtime_fault[gunno][NET_YKC_MONITOR_FAULT_SET_2] |= YKC_MONITOR_REALTIME_FAULT_MAINCABINET_GATE;
+        }
+        break;
+#else
+        return 0x00;
+#endif /* NET_YKC_MONITOR_FAULT_USING_EXTEND */
+    /** 主机柜PDU故障 */
+    case NET_GENERAL_FAULT_MAINCABINET_PDUFAULT:
+#ifdef NET_YKC_MONITOR_FAULT_USING_EXTEND
+        if(is_resume){
+            s_ykc_monitor_realtime_fault[gunno][NET_YKC_MONITOR_FAULT_SET_2] &= ~YKC_MONITOR_REALTIME_FAULT_MAINCABINET_PDUFAULT;
+        }else{
+            s_ykc_monitor_realtime_fault[gunno][NET_YKC_MONITOR_FAULT_SET_2] |= YKC_MONITOR_REALTIME_FAULT_MAINCABINET_PDUFAULT;
+        }
+        break;
+#else
+        return 0x00;
+#endif /* NET_YKC_MONITOR_FAULT_USING_EXTEND */
+    /** 主机柜模块故障 */
+    case NET_GENERAL_FAULT_MAINCABINET_MODULEFAULT:
+#ifdef NET_YKC_MONITOR_FAULT_USING_EXTEND
+        if(is_resume){
+            s_ykc_monitor_realtime_fault[gunno][NET_YKC_MONITOR_FAULT_SET_2] &= ~YKC_MONITOR_REALTIME_FAULT_MAINCABINET_MODULEFAULT;
+        }else{
+            s_ykc_monitor_realtime_fault[gunno][NET_YKC_MONITOR_FAULT_SET_2] |= YKC_MONITOR_REALTIME_FAULT_MAINCABINET_MODULEFAULT;
+        }
+        break;
+#else
+        return 0x00;
+#endif /* NET_YKC_MONITOR_FAULT_USING_EXTEND */
+    /** 主机柜配置故障 */
+    case NET_GENERAL_FAULT_MAINCABINET_CONFIG:
+#ifdef NET_YKC_MONITOR_FAULT_USING_EXTEND
+        if(is_resume){
+            s_ykc_monitor_realtime_fault[gunno][NET_YKC_MONITOR_FAULT_SET_2] &= ~YKC_MONITOR_REALTIME_FAULT_MAINCABINET_CONFIG;
+        }else{
+            s_ykc_monitor_realtime_fault[gunno][NET_YKC_MONITOR_FAULT_SET_2] |= YKC_MONITOR_REALTIME_FAULT_MAINCABINET_CONFIG;
+        }
+        break;
+#else
+        return 0x00;
+#endif /* NET_YKC_MONITOR_FAULT_USING_EXTEND */
+    /** 主机柜交流接触器故障 */
+    case NET_GENERAL_FAULT_MAINCABINET_ACRELAY:
+#ifdef NET_YKC_MONITOR_FAULT_USING_EXTEND
+        if(is_resume){
+            s_ykc_monitor_realtime_fault[gunno][NET_YKC_MONITOR_FAULT_SET_2] &= ~YKC_MONITOR_REALTIME_FAULT_MAINCABINET_ACRELAY;
+        }else{
+            s_ykc_monitor_realtime_fault[gunno][NET_YKC_MONITOR_FAULT_SET_2] |= YKC_MONITOR_REALTIME_FAULT_MAINCABINET_ACRELAY;
+        }
+        break;
+#else
+        return 0x00;
+#endif /* NET_YKC_MONITOR_FAULT_USING_EXTEND */
+    /** 主机柜烟感故障 */
+    case NET_GENERAL_FAULT_MAINCABINET_SMOKE:
+#ifdef NET_YKC_MONITOR_FAULT_USING_EXTEND
+        if(is_resume){
+            s_ykc_monitor_realtime_fault[gunno][NET_YKC_MONITOR_FAULT_SET_2] &= ~YKC_MONITOR_REALTIME_FAULT_MAINCABINET_SMOKE;
+        }else{
+            s_ykc_monitor_realtime_fault[gunno][NET_YKC_MONITOR_FAULT_SET_2] |= YKC_MONITOR_REALTIME_FAULT_MAINCABINET_SMOKE;
+        }
+        break;
+#else
+        return 0x00;
+#endif /* NET_YKC_MONITOR_FAULT_USING_EXTEND */
+    /** 主机柜倾倒故障 */
+    case NET_GENERAL_FAULT_MAINCABINET_POUR:
+#ifdef NET_YKC_MONITOR_FAULT_USING_EXTEND
+        if(is_resume){
+            s_ykc_monitor_realtime_fault[gunno][NET_YKC_MONITOR_FAULT_SET_2] &= ~YKC_MONITOR_REALTIME_FAULT_MAINCABINET_POUR;
+        }else{
+            s_ykc_monitor_realtime_fault[gunno][NET_YKC_MONITOR_FAULT_SET_2] |= YKC_MONITOR_REALTIME_FAULT_MAINCABINET_POUR;
+        }
+        break;
+#else
+        return 0x00;
+#endif /* NET_YKC_MONITOR_FAULT_USING_EXTEND */
+    /** 主机柜水浸故障 */
+    case NET_GENERAL_FAULT_MAINCABINET_FLOODING:
+#ifdef NET_YKC_MONITOR_FAULT_USING_EXTEND
+        if(is_resume){
+            s_ykc_monitor_realtime_fault[gunno][NET_YKC_MONITOR_FAULT_SET_2] &= ~YKC_MONITOR_REALTIME_FAULT_MAINCABINET_FLOODING;
+        }else{
+            s_ykc_monitor_realtime_fault[gunno][NET_YKC_MONITOR_FAULT_SET_2] |= YKC_MONITOR_REALTIME_FAULT_MAINCABINET_FLOODING;
+        }
+        break;
+#else
+        return 0x00;
+#endif /* NET_YKC_MONITOR_FAULT_USING_EXTEND */
+    /** 主机柜其它故障 */
+    case NET_GENERAL_FAULT_MAINCABINET_OTHER:
+#ifdef NET_YKC_MONITOR_FAULT_USING_EXTEND
+        if(is_resume){
+            s_ykc_monitor_realtime_fault[gunno][NET_YKC_MONITOR_FAULT_SET_2] &= ~YKC_MONITOR_REALTIME_FAULT_MAINCABINET_OTHER;
+        }else{
+            s_ykc_monitor_realtime_fault[gunno][NET_YKC_MONITOR_FAULT_SET_2] |= YKC_MONITOR_REALTIME_FAULT_MAINCABINET_OTHER;
+        }
+        break;
+#else
+        return 0x00;
+#endif /* NET_YKC_MONITOR_FAULT_USING_EXTEND */
+    /** 主机柜防雷故障 */
+    case NET_GENERAL_FAULT_MAINCABINET_LIGHT_PROTECT:
+#ifdef NET_YKC_MONITOR_FAULT_USING_EXTEND
+        if(is_resume){
+            s_ykc_monitor_realtime_fault[gunno][NET_YKC_MONITOR_FAULT_SET_2] &= ~YKC_MONITOR_REALTIME_FAULT_MAINCABINET_LIGHT_PROTECT;
+        }else{
+            s_ykc_monitor_realtime_fault[gunno][NET_YKC_MONITOR_FAULT_SET_2] |= YKC_MONITOR_REALTIME_FAULT_MAINCABINET_LIGHT_PROTECT;
         }
         break;
 #else
