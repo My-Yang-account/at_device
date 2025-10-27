@@ -251,6 +251,14 @@ void SerialScreen_V2GIsSupportSet(void);
 void SerialScreen_OfflineBillingSet(void);
 void SerialScreen_OfflineBillingGet(void);
 
+void SerialScreen_CmdDebugInfoSet(void);
+void SerialScreen_CmdDebugInfoGet(void);
+/**************************** 指令调试 ****************************/
+void SerialScreen_IsSupportBatVoltDetectSet(void);
+void SerialScreen_IsSupportBCLTimeoutDetectSet(void);
+void SerialScreen_IsSupportFASTProtocolSet(void);
+void SerialScreen_IsSupportYTProtocolSet(void);
+void SerialScreen_IsSupportBayProtocolSet(void);
 u8 SerialScreen_GetChargeWay(void);
 void SerialScreen_SetChargeWay(u8 way);
 

@@ -163,7 +163,7 @@ struct _config_info{
     uint8_t user_password[CP_INFO_LOGIN_USER_PASSWORD_LEN_MAX];       /* 登录密码 */
     uint8_t lp_consumption_module;                                    /* 低功耗模块(lp:low power) */
     uint8_t card_block_sn;                                            /* 卡号所在块(范围：0-63，默认 CONFIG_CARD_BLOCK_SN_DEFAULT) */
-    uint8_t reserve[256 - 161];                                       /* 保留 */
+    uint8_t reserve[256 - 148];                                       /* 保留 */
 };
 
 struct _function_enable{
@@ -204,7 +204,12 @@ struct _function_enable{
     uint8_t mode_select;           /* 模式选择功能启用 */
     uint8_t current_mode[2];       /* 已选择的模式 */
     uint8_t mode_v2g;              /* 是否启用V2G */
-    uint8_t reserve[77];
+    uint8_t bat_voltage_switch;                                       /** 电池电压检测开关 */
+    uint8_t bcl_timeout_switch;                                       /** BCL报文超时检测开关 */
+    uint8_t fast_protocol_switch;                                     /** FAST协议开关 */
+    uint8_t yt_protocol_switch;                                       /** 宇通协议开关 */
+    uint8_t bay_protocol_switch;                                      /** 湾区协议开关 */
+    uint8_t reserve[72];
 };
 
 struct _state_reversal{
@@ -396,6 +401,31 @@ APP_DEF_SRAM2 static struct config_item s_config_item_set[CONFIG_ITEM_SIZE] =
         {CONFIG_ITEM_SUPORT_OFFLINE_CARD,
         (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.offline_card)),       /*配置项：离线卡支持*/
         (uint8_t*)&s_chargepile_config_info.function_enable.offline_card,
+        NULL},
+
+        {CONFIG_ITEM_SUPORT_BATVOLT_DETECT,
+        (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.bat_voltage_switch)),       /*配置项：电池电压检测支持*/
+        (uint8_t*)&s_chargepile_config_info.function_enable.bat_voltage_switch,
+        NULL},
+
+        {CONFIG_ITEM_SUPORT_BCLTIMOUT_DETECT,
+        (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.bcl_timeout_switch)),       /*配置项：BCL报文超时检测支持*/
+        (uint8_t*)&s_chargepile_config_info.function_enable.bcl_timeout_switch,
+        NULL},
+
+        {CONFIG_ITEM_SUPORT_FAST_PROTOCOL,
+        (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.fast_protocol_switch)),       /*配置项：FAST协议支持*/
+        (uint8_t*)&s_chargepile_config_info.function_enable.fast_protocol_switch,
+        NULL},
+
+        {CONFIG_ITEM_SUPORT_YT_PROTOCOL,
+        (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.yt_protocol_switch)),       /*配置项：宇通协议支持*/
+        (uint8_t*)&s_chargepile_config_info.function_enable.yt_protocol_switch,
+        NULL},
+
+        {CONFIG_ITEM_SUPORT_BAY_PROTOCOL,
+        (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.bay_protocol_switch)),       /*配置项：湾区协议支持*/
+        (uint8_t*)&s_chargepile_config_info.function_enable.bay_protocol_switch,
         NULL},
 
         {CONFIG_ITEM_SUPORT_MODE_SELECT,
@@ -970,6 +1000,21 @@ void sys_chargeplie_config_info_init(void)
     /** 启用模式选择功能 */
     sys_config_item_init(CONFIG_ITEM_SUPORT_MODE_SELECT, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.mode_select)), \
             (uint8_t*)&s_chargepile_config_info.function_enable.mode_select, NULL);
+    /** 启用电池电压检测功能 */
+    sys_config_item_init(CONFIG_ITEM_SUPORT_BATVOLT_DETECT, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.bat_voltage_switch)), \
+            (uint8_t*)&s_chargepile_config_info.function_enable.bat_voltage_switch, NULL);
+    /** 启用BCL报文超时检测功能 */
+    sys_config_item_init(CONFIG_ITEM_SUPORT_BCLTIMOUT_DETECT, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.bcl_timeout_switch)), \
+            (uint8_t*)&s_chargepile_config_info.function_enable.bcl_timeout_switch, NULL);
+    /** 启用FAST协议 */
+    sys_config_item_init(CONFIG_ITEM_SUPORT_FAST_PROTOCOL, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.fast_protocol_switch)), \
+            (uint8_t*)&s_chargepile_config_info.function_enable.fast_protocol_switch, NULL);
+    /** 启用宇通协议 */
+    sys_config_item_init(CONFIG_ITEM_SUPORT_YT_PROTOCOL, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.yt_protocol_switch)), \
+            (uint8_t*)&s_chargepile_config_info.function_enable.yt_protocol_switch, NULL);
+    /** 启用湾区协议 */
+    sys_config_item_init(CONFIG_ITEM_SUPORT_BAY_PROTOCOL, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.bay_protocol_switch)), \
+            (uint8_t*)&s_chargepile_config_info.function_enable.bay_protocol_switch, NULL);
     /** 当前模式-A */
     sys_config_item_init(CONFIG_ITEM_CURRENT_MODE_A, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.current_mode[0x00])), \
             (uint8_t*)&s_chargepile_config_info.function_enable.current_mode[0x00], NULL);
@@ -1800,6 +1845,11 @@ static void chargepile_config_data_reset(void)
     s_chargepile_config_info.function_enable.liquid_in = 0x00;
     s_chargepile_config_info.function_enable.fuse_in = 0x00;
     s_chargepile_config_info.function_enable.mode_select = 0x00;
+    s_chargepile_config_info.function_enable.bat_voltage_switch = 0x00;
+    s_chargepile_config_info.function_enable.bcl_timeout_switch = 0x00;
+    s_chargepile_config_info.function_enable.fast_protocol_switch = 0x00;
+    s_chargepile_config_info.function_enable.yt_protocol_switch = 0x00;
+    s_chargepile_config_info.function_enable.bay_protocol_switch = 0x00;
     memset(s_chargepile_config_info.function_enable.current_mode, 0x00, sizeof(s_chargepile_config_info.function_enable.current_mode));
 
     s_chargepile_config_info.state_reversal.emergency_stop = 0x00;
@@ -2289,6 +2339,21 @@ int32_t chargepile_check_config(void)
     }
     if(s_chargepile_config_info.function_enable.fuse_in > 0x01){          /* 熔断器输入检测默认关闭 */
         s_chargepile_config_info.function_enable.fuse_in = 0x00;
+    }
+    if(s_chargepile_config_info.function_enable.bat_voltage_switch > 0x01){          /* 电池电压检测默认开启 */
+        s_chargepile_config_info.function_enable.bat_voltage_switch = 0x01;
+    }
+    if(s_chargepile_config_info.function_enable.bcl_timeout_switch > 0x01){          /* BCL超时检测默认开启 */
+        s_chargepile_config_info.function_enable.bcl_timeout_switch = 0x01;
+    }
+    if(s_chargepile_config_info.function_enable.fast_protocol_switch > 0x01){        /* FAST协议默认开启 */
+        s_chargepile_config_info.function_enable.fast_protocol_switch = 0x01;
+    }
+    if(s_chargepile_config_info.function_enable.yt_protocol_switch > 0x01){          /* 宇通协议默认开启 */
+        s_chargepile_config_info.function_enable.yt_protocol_switch = 0x01;
+    }
+    if(s_chargepile_config_info.function_enable.bay_protocol_switch > 0x01){         /* 湾区协议默认开启 */
+        s_chargepile_config_info.function_enable.bay_protocol_switch = 0x01;
     }
 
     if(s_chargepile_config_info.state_reversal.emergency_stop > 0x01){   /* 急停默认不取反 */

@@ -582,6 +582,11 @@ struct LCD_DISPLAY_SETDATA_TYPE{
 	u8 sup_parallelrelay;                   //支持并联
     u8 sup_offline_card;                    //离线卡支持
     u8 sup_mode_select;                     //模式选择支持
+    u8 sup_BatVoltDetect;                   //电池检测支持
+    u8 sup_BCLTimeoutDetect;                //BCL超时检测支持
+    u8 sup_SupFASTProtocol;                 //FAST协议支持
+    u8 sup_SupYTProtocol;                   //宇通协议支持
+    u8 sup_SupBayProtocol;                  //湾区协议支持
 
     u8 sup_V2G;                             //V2G支持
 
@@ -615,6 +620,11 @@ struct LCD_DISPLAY_SETDATA_TYPE{
     u8 Icon_SupPour;                        //倾倒检测支持icon
     u8 Icon_SupLiquid;                      //液冷检测支持icon
     u8 Icon_SupFuse;                        //熔断器检测支持icon
+    u8 Icon_BatVoltDetect;                  //电池检测支持icon
+    u8 Icon_BCLTimeoutDetect;               //BCL超时检测支持icon
+    u8 Icon_SupFASTProtocol;                //FAST协议支持icon
+    u8 Icon_SupYTProtocol;                  //宇通协议支持icon
+    u8 Icon_SupBayProtocol;                 //湾区协议支持icon
 
     u8 Icon_SupV2G;                         //V2G支持icon
     /***********************neg icon***************************/
@@ -1028,6 +1038,7 @@ static void SerialScreen_BtnModuleInfoJudge(u32 *ret);
 static void SerialScreen_BtnProtectInfoJudge(u32 *ret);
 static void SerialScreen_IsSupportInfoJudge(u32 *ret);
 static void SerialScreen_OfflineBillingInfoJudge(u32 *ret);
+static void SerialScreen_CmdDebugInfoJudge(u32 *ret);
 
 typedef void(*dofun_void)(int);
 
@@ -2368,6 +2379,37 @@ static s32 SerialScreen_ConfigExecute_GunOutput_7104(u8 port, void *data, void *
 #else
     return (SSCREEN_7104_GUN_OUTPORT_DUPLICATE + THAISEN_CONFIG_FAIL_OFFSET);
 #endif
+}
+
+/*******************************************************************
+ * 函数名      SerialScreen_CmdDebugInfoJudge
+ * 功能         外部触发执行指令调试配置
+ * 参数          data         配置数据
+ *         port         枪口号
+ * 返回          <0:配置失败(参数无效)，=0:配置成功  1:配置存储失败， >1:写入配置成功，但是写入的内容与输入的内容有差异
+ *******************************************************************/
+static s32 SerialScreen_ConfigExecute_CmdDebugCtrl(u8 port, void *data, void *sub_data, void *sub_sub_data)  //OK
+{
+    u32 ret = 0;
+    thaisen_cfg_fixed_cmd_debug *config = (thaisen_cfg_fixed_cmd_debug*)data;
+
+    LcdData.setData.Icon_BatVoltDetect = config->info.batvolt_detect;
+    LcdData.setData.Icon_BCLTimeoutDetect = config->info.bcltimeout_detect;
+    LcdData.setData.Icon_SupFASTProtocol = config->info.fast_protocol;
+    LcdData.setData.Icon_SupYTProtocol = config->info.cfc_protocol;
+    LcdData.setData.Icon_SupBayProtocol = config->info.bay_area_protocol;
+
+    /** 功能配置信息有效性判断 */
+    SerialScreen_CmdDebugInfoJudge(&ret);
+    if(ret != 0){
+        for(u8 i = 0; i < 32; i++){
+            if(ret &(1 <<i))   return (i + THAISEN_CONFIG_FAIL_OFFSET);
+        }
+    }
+    LcdAssistantData.SeveralGunFlag[LCD_GUN_1].DataIsVerify = TRUE;
+    SerialScreen_CmdDebugInfoSet();
+
+    return LcdAssistantData.Flag.IsConfigFail;
 }
 
 /*******************************************************************************************
@@ -4287,35 +4329,74 @@ void SerialScreen_FuseNegIsSupportSet(void)
 
 void SerialScreen_AcIsSupportOutSet(void)
 {
-	sSCREEN_EVENT_DEBUGMSG("##########AcIsSupportOutSet = %d###########\r\n",LcdData.setData.supout_ac);	
+	sSCREEN_EVENT_DEBUGMSG("##########AcIsSupportOutSet = %d###########\r\n",LcdData.setData.supout_ac);
 	if(LcdData.setData.supout_ac != TRUE)
 		LcdData.setData.supout_ac = TRUE;
 	else
 		LcdData.setData.supout_ac = FALSE;
-	sSCREEN_EVENT_DEBUGMSG("supout_ac=%d\r\n",LcdData.setData.supout_ac );	
+	sSCREEN_EVENT_DEBUGMSG("supout_ac=%d\r\n",LcdData.setData.supout_ac );
 }
 
 void SerialScreen_ElockIsSupportOutSet(void)
 {
-	sSCREEN_EVENT_DEBUGMSG("##########ElockIsSupportOutSet = %d###########\r\n",LcdData.setData.supout_elock);	
+	sSCREEN_EVENT_DEBUGMSG("##########ElockIsSupportOutSet = %d###########\r\n",LcdData.setData.supout_elock);
 	if(LcdData.setData.supout_elock != TRUE)
 		LcdData.setData.supout_elock = TRUE;
 	else
 		LcdData.setData.supout_elock = FALSE;
-	sSCREEN_EVENT_DEBUGMSG("supin_elock=%d\r\n",LcdData.setData.supout_elock );	
+	sSCREEN_EVENT_DEBUGMSG("supin_elock=%d\r\n",LcdData.setData.supout_elock );
 }
 
 void SerialScreen_FanIsSupportOutSet(void)
 {
-	sSCREEN_EVENT_DEBUGMSG("##########FanIsSupportOutSet = %d###########\r\n",LcdData.setData.supout_fan);	
+	sSCREEN_EVENT_DEBUGMSG("##########FanIsSupportOutSet = %d###########\r\n",LcdData.setData.supout_fan);
 	if(LcdData.setData.supout_fan != TRUE)
 		LcdData.setData.supout_fan = TRUE;
 	else
 		LcdData.setData.supout_fan = FALSE;
-	sSCREEN_EVENT_DEBUGMSG("supin_elock=%d\r\n",LcdData.setData.supout_fan );	
+	sSCREEN_EVENT_DEBUGMSG("supin_elock=%d\r\n",LcdData.setData.supout_fan );
 }
 
+/**************************** 指令调试 ****************************/
+void SerialScreen_IsSupportBatVoltDetectSet(void)
+{
+    if(LcdData.setData.Icon_BatVoltDetect != TRUE)
+        LcdData.setData.Icon_BatVoltDetect = TRUE;
+    else
+        LcdData.setData.Icon_BatVoltDetect = FALSE;
+}
 
+void SerialScreen_IsSupportBCLTimeoutDetectSet(void)
+{
+    if(LcdData.setData.Icon_BCLTimeoutDetect != TRUE)
+        LcdData.setData.Icon_BCLTimeoutDetect = TRUE;
+    else
+        LcdData.setData.Icon_BCLTimeoutDetect = FALSE;
+}
+
+void SerialScreen_IsSupportFASTProtocolSet(void)
+{
+    if(LcdData.setData.Icon_SupFASTProtocol != TRUE)
+        LcdData.setData.Icon_SupFASTProtocol = TRUE;
+    else
+        LcdData.setData.Icon_SupFASTProtocol = FALSE;
+}
+
+void SerialScreen_IsSupportYTProtocolSet(void)
+{
+    if(LcdData.setData.Icon_SupYTProtocol != TRUE)
+        LcdData.setData.Icon_SupYTProtocol = TRUE;
+    else
+        LcdData.setData.Icon_SupYTProtocol = FALSE;
+}
+
+void SerialScreen_IsSupportBayProtocolSet(void)
+{
+    if(LcdData.setData.Icon_SupBayProtocol != TRUE)
+        LcdData.setData.Icon_SupBayProtocol = TRUE;
+    else
+        LcdData.setData.Icon_SupBayProtocol = FALSE;
+}
 
 void SerialScreen_V2GIsSupportSet(void)
 {
@@ -4323,6 +4404,156 @@ void SerialScreen_V2GIsSupportSet(void)
         LcdData.setData.Icon_SupV2G = TRUE;
     else
         LcdData.setData.Icon_SupV2G = FALSE;
+}
+
+static void SerialScreen_CmdDebugInfoJudge(u32 *ret)
+{
+#define SSCREEN_BATVOLT_DETECT_POSITION                            0   /* 指令调试控制信息配置失败原因：电池电压检测配置  */
+#define SSCREEN_BCLTIMEOUT_DETECT_POSITION                         1   /* 指令调试控制信息配置失败原因：BCL超时检测配置  */
+#define SSCREEN_FAST_PROTOCOL_POSITION                             2   /* 指令调试控制信息配置失败原因：FAST协议配置  */
+#define SSCREEN_YT_PROTOCOL_POSITION                               3   /* 指令调试控制信息配置失败原因：宇通协议配置  */
+#define SSCREEN_BAY_PROTOCOL_POSITION                              4   /* 指令调试控制信息配置失败原因：湾区协议配置  */
+
+    u32 result = 0;
+
+    if(LcdData.setData.Icon_BatVoltDetect > TRUE){
+        LcdData.setData.Icon_BatVoltDetect = TRUE;
+        result |= (1 <<SSCREEN_BATVOLT_DETECT_POSITION);
+    }
+    if(LcdData.setData.Icon_BCLTimeoutDetect > TRUE){
+        LcdData.setData.Icon_BCLTimeoutDetect = TRUE;
+        result |= (1 <<SSCREEN_BCLTIMEOUT_DETECT_POSITION);
+    }
+    if(LcdData.setData.Icon_SupFASTProtocol > TRUE){
+        LcdData.setData.Icon_SupFASTProtocol = TRUE;
+        result |= (1 <<SSCREEN_FAST_PROTOCOL_POSITION);
+    }
+    if(LcdData.setData.Icon_SupYTProtocol > TRUE){
+        LcdData.setData.Icon_SupYTProtocol = TRUE;
+        result |= (1 <<SSCREEN_YT_PROTOCOL_POSITION);
+    }
+    if(LcdData.setData.Icon_SupBayProtocol > TRUE){
+        LcdData.setData.Icon_SupBayProtocol = TRUE;
+        result |= (1 <<SSCREEN_BAY_PROTOCOL_POSITION);
+    }
+
+    if(ret){
+        *ret = result;
+    }
+
+#undef SSCREEN_BATVOLT_DETECT_POSITION
+#undef SSCREEN_BCLTIMEOUT_DETECT_POSITION
+#undef SSCREEN_FAST_PROTOCOL_POSITION
+#undef SSCREEN_YT_PROTOCOL_POSITION
+#undef SSCREEN_BAY_PROTOCOL_POSITION
+}
+
+void SerialScreen_CmdDebugInfoSet(void)
+{
+    u8 is_changed = 0;
+
+    if(LcdAssistantData.SeveralGunFlag[LCD_GUN_1].DataIsVerify == FALSE){
+        SerialScreen_CmdDebugInfoJudge(NULL);
+    }
+    LcdAssistantData.SeveralGunFlag[LCD_GUN_1].DataIsVerify = FALSE;
+
+    /** 此处需要判断是否有数据要修改，有修改时才执行保存操作 */
+
+    if(LcdData.setData.Icon_BatVoltDetect != LcdData.setData.sup_BatVoltDetect){
+        is_changed = 1;
+    }
+    if(LcdData.setData.Icon_BCLTimeoutDetect != LcdData.setData.sup_BCLTimeoutDetect){
+        is_changed = 1;
+    }
+    if(LcdData.setData.Icon_SupFASTProtocol != LcdData.setData.sup_SupFASTProtocol){
+        is_changed = 1;
+    }
+    if(LcdData.setData.Icon_SupYTProtocol != LcdData.setData.sup_SupYTProtocol){
+        is_changed = 1;
+    }
+    if(LcdData.setData.Icon_SupBayProtocol != LcdData.setData.sup_SupBayProtocol){
+        is_changed = 1;
+    }
+
+    if(is_changed){
+        SerialScreen_JumpPage(&SerialScreen, LCD_PAGE_STORAGE_WAITING);
+
+        LcdData.setData.sup_BatVoltDetect = LcdData.setData.Icon_BatVoltDetect;
+        LcdData.setData.sup_BCLTimeoutDetect = LcdData.setData.Icon_BCLTimeoutDetect;
+        LcdData.setData.sup_SupFASTProtocol = LcdData.setData.Icon_SupFASTProtocol;
+        LcdData.setData.sup_SupYTProtocol = LcdData.setData.Icon_SupYTProtocol;
+        LcdData.setData.sup_SupBayProtocol = LcdData.setData.Icon_SupBayProtocol;
+
+        UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_BATVOLT_DETECT, &LcdData.setData.sup_BatVoltDetect, sizeof(LcdData.setData.sup_BatVoltDetect));
+        UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_BCLTIMOUT_DETECT, &LcdData.setData.sup_BCLTimeoutDetect, sizeof(LcdData.setData.sup_BCLTimeoutDetect));
+        UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_FAST_PROTOCOL, &LcdData.setData.sup_SupFASTProtocol, sizeof(LcdData.setData.sup_SupFASTProtocol));
+        UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_YT_PROTOCOL, &LcdData.setData.sup_SupYTProtocol, sizeof(LcdData.setData.sup_SupYTProtocol));
+        UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_BAY_PROTOCOL, &LcdData.setData.sup_SupBayProtocol, sizeof(LcdData.setData.sup_SupBayProtocol));
+
+        LcdAssistantData.Flag.IsConfigFail = TRUE;
+        if(UI_STORAGE_CFG_DATA >= 0){
+            LcdAssistantData.Flag.IsConfigFail = FALSE;
+        }
+    }
+}
+
+void SerialScreen_CmdDebugInfoGet(void)
+{
+    LcdData.setData.sup_BatVoltDetect = *((u8*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_BATVOLT_DETECT, 0));
+    LcdData.setData.sup_BCLTimeoutDetect = *((u8*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_BCLTIMOUT_DETECT, 0));
+    LcdData.setData.sup_SupFASTProtocol = *((u8*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_FAST_PROTOCOL, 0));
+    LcdData.setData.sup_SupYTProtocol = *((u8*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_YT_PROTOCOL, 0));
+    LcdData.setData.sup_SupBayProtocol = *((u8*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_BAY_PROTOCOL, 0));
+
+    if(LcdData.setData.sup_BatVoltDetect > TRUE)        /* 电池电压检测默认启用 */
+        LcdData.setData.sup_BatVoltDetect = TRUE;
+
+    if(LcdData.setData.sup_BCLTimeoutDetect > TRUE)     /* BCL超时检测默认启用 */
+        LcdData.setData.sup_BCLTimeoutDetect = TRUE;
+
+    if(LcdData.setData.sup_SupFASTProtocol > TRUE)      /* FAST协议默认启用 */
+        LcdData.setData.sup_SupFASTProtocol = TRUE;
+
+    if(LcdData.setData.sup_SupYTProtocol > TRUE)        /* 宇通协议默认启用 */
+        LcdData.setData.sup_SupYTProtocol = TRUE;
+
+    if(LcdData.setData.sup_SupBayProtocol > TRUE)       /* 湾区协议默认启用 */
+        LcdData.setData.sup_SupBayProtocol = TRUE;
+
+    LcdData.setData.Icon_BatVoltDetect = FALSE;
+    if(LcdData.setData.sup_BatVoltDetect){
+        LcdData.setData.Icon_BatVoltDetect = TRUE;
+    }
+
+    LcdData.setData.Icon_BCLTimeoutDetect = FALSE;
+    if(LcdData.setData.sup_BCLTimeoutDetect){
+        LcdData.setData.Icon_BCLTimeoutDetect = TRUE;
+    }
+
+    LcdData.setData.Icon_SupFASTProtocol = FALSE;
+    if(LcdData.setData.sup_SupFASTProtocol){
+        LcdData.setData.Icon_SupFASTProtocol = TRUE;
+    }
+
+    LcdData.setData.Icon_SupYTProtocol = FALSE;
+    if(LcdData.setData.sup_SupYTProtocol){
+        LcdData.setData.Icon_SupYTProtocol = TRUE;
+    }
+
+    LcdData.setData.Icon_SupBayProtocol = FALSE;
+    if(LcdData.setData.sup_SupBayProtocol){
+        LcdData.setData.Icon_SupBayProtocol = TRUE;
+    }
+}
+
+void SerialScreen_CmdDebugBack(int port)
+{
+    SerialScreen_CmdDebugInfoSet();
+}
+
+void SerialScreen_CmdDebugHome(int port)
+{
+    SerialScreen_CmdDebugInfoSet();
 }
 
 static void SerialScreen_OfflineBillingInfoJudge(u32 *ret)
@@ -9336,6 +9567,11 @@ struct LCD_DATA_FIFO_TYPE *SerialScreen_Init(struct SerialScreenObj *cmd)
     LcdData.setData.sup_mode_select = *((u8*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_MODE_SELECT, 0));
     LcdData.setData.supin_ac = *((u8*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_INEN_ACRELAY, 0));
     LcdData.setData.Card_BlockSn = *((u8*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_CARD_BLOCK_SN, 0));
+    LcdData.setData.sup_BatVoltDetect = *((u8*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_BATVOLT_DETECT, 0));
+    LcdData.setData.sup_BCLTimeoutDetect = *((u8*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_BCLTIMOUT_DETECT, 0));
+    LcdData.setData.sup_SupFASTProtocol = *((u8*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_FAST_PROTOCOL, 0));
+    LcdData.setData.sup_SupYTProtocol = *((u8*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_YT_PROTOCOL, 0));
+    LcdData.setData.sup_SupBayProtocol = *((u8*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_BAY_PROTOCOL, 0));
 
     memset(LcdData.setData.UserPasswdShow, '\0', sizeof(LcdData.setData.UserPasswdShow));
     memcpy(LcdData.setData.UserPasswdShow, data, sizeof(LcdData.setData.UserPasswdShow));
@@ -9422,6 +9658,21 @@ struct LCD_DATA_FIFO_TYPE *SerialScreen_Init(struct SerialScreenObj *cmd)
 
     if(LcdData.setData.sup_mode_select > TRUE)        /* 模式选择默认不启用 */
         LcdData.setData.sup_mode_select = FALSE;
+
+    if(LcdData.setData.sup_BatVoltDetect > TRUE)        /* 电池电压检测默认启用 */
+        LcdData.setData.sup_BatVoltDetect = TRUE;
+
+    if(LcdData.setData.sup_BCLTimeoutDetect > TRUE)     /* BCL超时检测默认启用 */
+        LcdData.setData.sup_BCLTimeoutDetect = TRUE;
+
+    if(LcdData.setData.sup_SupFASTProtocol > TRUE)      /* FAST协议默认启用 */
+        LcdData.setData.sup_SupFASTProtocol = TRUE;
+
+    if(LcdData.setData.sup_SupYTProtocol > TRUE)        /* 宇通协议默认启用 */
+        LcdData.setData.sup_SupYTProtocol = TRUE;
+
+    if(LcdData.setData.sup_SupBayProtocol > TRUE)       /* 湾区协议默认启用 */
+        LcdData.setData.sup_SupBayProtocol = TRUE;
 
     if(LcdData.setData.AllocWay >= POWER_ALLOCATION_WAY_SIZE){        /* 功率分配默认使用先到先得 */
         LcdData.setData.AllocWay = POWER_ALLOCATION_WAY_SEQ_PRIORITY;
@@ -9529,6 +9780,31 @@ struct LCD_DATA_FIFO_TYPE *SerialScreen_Init(struct SerialScreenObj *cmd)
 	        LcdAssistantData.SeveralGunFlag[i].IsSetReservation = TRUE;
 	    }
 	}
+
+    LcdData.setData.Icon_BatVoltDetect = FALSE;
+    if(LcdData.setData.sup_BatVoltDetect){
+        LcdData.setData.Icon_BatVoltDetect = TRUE;
+    }
+
+    LcdData.setData.Icon_BCLTimeoutDetect = FALSE;
+    if(LcdData.setData.sup_BCLTimeoutDetect){
+        LcdData.setData.Icon_BCLTimeoutDetect = TRUE;
+    }
+
+    LcdData.setData.Icon_SupFASTProtocol = FALSE;
+    if(LcdData.setData.sup_SupFASTProtocol){
+        LcdData.setData.Icon_SupFASTProtocol = TRUE;
+    }
+
+    LcdData.setData.Icon_SupYTProtocol = FALSE;
+    if(LcdData.setData.sup_SupYTProtocol){
+        LcdData.setData.Icon_SupYTProtocol = TRUE;
+    }
+
+    LcdData.setData.Icon_SupBayProtocol = FALSE;
+    if(LcdData.setData.sup_SupBayProtocol){
+        LcdData.setData.Icon_SupBayProtocol = TRUE;
+    }
 
     LcdData.setData.Sup_Stop = ICON_CHARGE_NULL;
     LcdData.setData.Icon_SuplocalStop = FALSE;
@@ -12011,8 +12287,20 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
 #ifdef SCREEN_USING_OFFLINE_BILLING
     SerialScreen_ItemSetUp(LCD_PAGE_CMD_DEBUG, NULL, "menu offbilling", LCD_BtnType, 0x0053, 0x1000, page_type, LCD_PAGE_OFFLINE_BILLING, (void *)SerialScreen_OfflineBillingGet);
 #endif /* SCREEN_USING_OFFLINE_BILLING */
-    SerialScreen_ItemSetUp(LCD_PAGE_CMD_DEBUG, NULL, "back", LCD_BtnType, 0x0050, 0x1000, page_type, LCD_PAGE_ROOT_MAIN, (void *)NULL);
-    SerialScreen_ItemSetUp(LCD_PAGE_CMD_DEBUG, NULL, "Home", LCD_BtnHomeType, 0x0002, 0x1000, page_type, LCD_PAGE_NONE, (void *)NULL);
+    SerialScreen_ItemSetUp(LCD_PAGE_CMD_DEBUG, NULL, "IconBatVoltDetect", LCD_IconType, LCD_10sReflash, 0x6CA6, pu8_type, sizeof(LcdData.setData.Icon_BatVoltDetect), (void *)&LcdData.setData.Icon_BatVoltDetect);
+    SerialScreen_ItemSetUp(LCD_PAGE_CMD_DEBUG, NULL, "IconBCLTimeDetect", LCD_IconType, LCD_10sReflash, 0x6CA8, pu8_type, sizeof(LcdData.setData.Icon_BCLTimeoutDetect), (void *)&LcdData.setData.Icon_BCLTimeoutDetect);
+    SerialScreen_ItemSetUp(LCD_PAGE_CMD_DEBUG, NULL, "IconFASTProtocol", LCD_IconType, LCD_10sReflash, 0x6CAA, pu8_type, sizeof(LcdData.setData.Icon_SupFASTProtocol), (void *)&LcdData.setData.Icon_SupFASTProtocol);
+    SerialScreen_ItemSetUp(LCD_PAGE_CMD_DEBUG, NULL, "IconYTProtocol", LCD_IconType, LCD_10sReflash, 0x6CAC, pu8_type, sizeof(LcdData.setData.Icon_SupYTProtocol), (void *)&LcdData.setData.Icon_SupYTProtocol);
+    SerialScreen_ItemSetUp(LCD_PAGE_CMD_DEBUG, NULL, "IconBayProtocol", LCD_IconType, LCD_10sReflash, 0x6CAE, pu8_type, sizeof(LcdData.setData.Icon_SupBayProtocol), (void *)&LcdData.setData.Icon_SupBayProtocol);
+
+    SerialScreen_ItemSetUp(LCD_PAGE_CMD_DEBUG, NULL, "BatVoltDetectSet", LCD_BtnType, 0x0064, 0x1009, page_type, LCD_PAGE_CMD_DEBUG, (void *)SerialScreen_IsSupportBatVoltDetectSet);
+    SerialScreen_ItemSetUp(LCD_PAGE_CMD_DEBUG, NULL, "BCLTimeDetectSet", LCD_BtnType, 0x0065, 0x1009, page_type, LCD_PAGE_CMD_DEBUG, (void *)SerialScreen_IsSupportBCLTimeoutDetectSet);
+    SerialScreen_ItemSetUp(LCD_PAGE_CMD_DEBUG, NULL, "FASTProtocolSet", LCD_BtnType, 0x0066, 0x1009, page_type, LCD_PAGE_CMD_DEBUG, (void *)SerialScreen_IsSupportFASTProtocolSet);
+    SerialScreen_ItemSetUp(LCD_PAGE_CMD_DEBUG, NULL, "YTProtocolSet", LCD_BtnType, 0x0067, 0x1009, page_type, LCD_PAGE_CMD_DEBUG, (void *)SerialScreen_IsSupportYTProtocolSet);
+    SerialScreen_ItemSetUp(LCD_PAGE_CMD_DEBUG, NULL, "BayProtocolSet", LCD_BtnType, 0x0068, 0x1009, page_type, LCD_PAGE_CMD_DEBUG, (void *)SerialScreen_IsSupportBayProtocolSet);
+
+    SerialScreen_ItemSetUp(LCD_PAGE_CMD_DEBUG, NULL, "back", LCD_BtnType, 0x0050, 0x1000, page_type, LCD_PAGE_ROOT_MAIN, (void *)SerialScreen_CmdDebugBack);
+    SerialScreen_ItemSetUp(LCD_PAGE_CMD_DEBUG, NULL, "Home", LCD_BtnHomeType, 0x0002, 0x1000, page_type, LCD_PAGE_NONE, (void *)SerialScreen_CmdDebugHome);
 
     /** 17.系统信息-桩信息 [page:18] */
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_1, NULL, "menu sys", LCD_BtnType, 0x0025, 0x1000, page_type, LCD_PAGE_MENU_SYS, (void *)NULL);
@@ -12234,7 +12522,7 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
 #ifdef SCREEN_USING_OFFLINE_BILLING
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INPUT, NULL, "menu offbilling", LCD_BtnType, 0x0053, 0x1000, page_type, LCD_PAGE_OFFLINE_BILLING, (void *)SerialScreen_OfflineBillingGet);
 #endif /* SCREEN_USING_OFFLINE_BILLING */
-    SerialScreen_ItemSetUp(LCD_PAGE_MENU_INPUT, NULL, "cmd debug", LCD_BtnType, 0x0061, 0x1009, page_type, LCD_PAGE_CMD_DEBUG, (void *)NULL);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_INPUT, NULL, "cmd debug", LCD_BtnType, 0x0061, 0x1009, page_type, LCD_PAGE_CMD_DEBUG, (void *)SerialScreen_CmdDebugInfoGet);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INPUT, NULL, "Icon Scram sup", LCD_IconType, LCD_10sReflash, 0x4100, pu8_type, sizeof(LcdData.setData.supin_scram), (void *)&LcdData.setData.supin_scram);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INPUT, NULL, "Icon Gate sup", LCD_IconType, LCD_10sReflash, 0x4102, pu8_type, sizeof(LcdData.setData.supin_gate), (void *)&LcdData.setData.supin_gate);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INPUT, NULL, "Icon AC sup", LCD_IconType, LCD_10sReflash, 0x4104, pu8_type, sizeof(LcdData.setData.supin_ac), (void *)&LcdData.setData.supin_ac);
@@ -12326,7 +12614,7 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
 #ifdef SCREEN_USING_OFFLINE_BILLING
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_PROTECT, NULL, "menu offbilling", LCD_BtnType, 0x0053, 0x1000, page_type, LCD_PAGE_OFFLINE_BILLING, (void *)SerialScreen_OfflineBillingGet);
 #endif /* SCREEN_USING_OFFLINE_BILLING */
-    SerialScreen_ItemSetUp(LCD_PAGE_MENU_PROTECT, NULL, "cmd debug", LCD_BtnType, 0x0061, 0x1009, page_type, LCD_PAGE_CMD_DEBUG, (void *)NULL);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_PROTECT, NULL, "cmd debug", LCD_BtnType, 0x0061, 0x1009, page_type, LCD_PAGE_CMD_DEBUG, (void *)SerialScreen_CmdDebugInfoGet);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_PROTECT, NULL, "cd up", LCD_BtnType, 0x0050, 0x1000, page_type, LCD_PAGE_ROOT_MAIN, (void *)NULL);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_PROTECT, NULL, "Home", LCD_BtnHomeType, 0x0002, 0x1000, page_type, LCD_PAGE_NONE, (void *)NULL);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_PROTECT, NULL, "subok", LCD_BtnType, 0x0014, 0x1000, page_type, LCD_PAGE_ROOT_MAIN, (void *)SerialScreen_BtnProtectInfoSet);
@@ -12362,7 +12650,7 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
 #ifdef SCREEN_USING_OFFLINE_BILLING
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_CONFIG, NULL, "menu offbilling", LCD_BtnType, 0x0053, 0x1000, page_type, LCD_PAGE_OFFLINE_BILLING, (void *)SerialScreen_OfflineBillingGet);
 #endif /* SCREEN_USING_OFFLINE_BILLING */
-    SerialScreen_ItemSetUp(LCD_PAGE_MENU_CONFIG, NULL, "cmd debug", LCD_BtnType, 0x0061, 0x1009, page_type, LCD_PAGE_CMD_DEBUG, (void *)NULL);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_CONFIG, NULL, "cmd debug", LCD_BtnType, 0x0061, 0x1009, page_type, LCD_PAGE_CMD_DEBUG, (void *)SerialScreen_CmdDebugInfoGet);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_CONFIG, NULL, "module slience set", LCD_BtnType, 0x0001, 0x1005, page_type, LCD_PAGE_MENU_CONFIG, (void *)SerialScreen_IsSupportModuleSlienceSet);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_CONFIG, NULL, "offline billing set", LCD_BtnType, 0x0001, 0x1009, page_type, LCD_PAGE_MENU_CONFIG, (void *)SerialScreen_IsSupportOfflineBillingSet);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_CONFIG, NULL, "pw start set", LCD_BtnType, 0x0004, 0x1001, page_type, LCD_PAGE_MENU_CONFIG, (void *)SerialScreen_IsSupportPWStartSet);
@@ -12614,7 +12902,7 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_OFFLINE_BILLING, NULL, "input info", LCD_BtnType, 0x001E, 0x1000, page_type, LCD_PAGE_MENU_INPUT, (void *)SerialScreen_InputInfoGet);   //OK
     SerialScreen_ItemSetUp(LCD_PAGE_OFFLINE_BILLING, NULL, "protect info", LCD_BtnType, 0x0020, 0x1000, page_type, LCD_PAGE_MENU_PROTECT, (void *)SerialScreen_BtnProtectInfoGet);  //OK
     SerialScreen_ItemSetUp(LCD_PAGE_OFFLINE_BILLING, NULL, "func config", LCD_BtnType, 0x0021, 0x1000, page_type, LCD_PAGE_MENU_CONFIG, (void *)SerialScreen_IsSupportGet);  //OK
-    SerialScreen_ItemSetUp(LCD_PAGE_OFFLINE_BILLING, NULL, "cmd debug", LCD_BtnType, 0x0061, 0x1009, page_type, LCD_PAGE_CMD_DEBUG, (void *)NULL);
+    SerialScreen_ItemSetUp(LCD_PAGE_OFFLINE_BILLING, NULL, "cmd debug", LCD_BtnType, 0x0061, 0x1009, page_type, LCD_PAGE_CMD_DEBUG, (void *)SerialScreen_CmdDebugInfoGet);
     SerialScreen_ItemSetUp(LCD_PAGE_OFFLINE_BILLING, NULL, "subok", LCD_BtnType, 0x0014, 0x1000, page_type, LCD_PAGE_ROOT_MAIN, (void *)SerialScreen_OfflineBillingSet);
     SerialScreen_ItemSetUp(LCD_PAGE_OFFLINE_BILLING, NULL, "Icon warn", LCD_IconType, LCD_10sReflash, 0x1740, pu8_type, sizeof(LcdData.setData.OBwarning), (void *)&LcdData.setData.OBwarning);
     SerialScreen_ItemSetUp(LCD_PAGE_OFFLINE_BILLING, NULL, "service fees", LCD_InputType, 0, 0x474D, pu32_type, sizeof(LcdData.setData.ServicePrice), (void *)&LcdData.setData.ServicePrice);

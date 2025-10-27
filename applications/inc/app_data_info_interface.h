@@ -208,6 +208,18 @@ typedef struct{
 typedef struct{
     uint8_t mode;                                /** 当前模式 */
 }thaisen_mode_select_v2g;
+/** 参数配置页面:屏幕-设置-出厂设置-固定类型指令调试修改 */
+typedef struct{
+    uint8_t msg_version;                                          /** 报文版本(初始版本为0) */
+    struct{
+        uint8_t batvolt_detect : 1;                               /** 电池电压检测(1：启用，0：禁用) */
+        uint8_t bcltimeout_detect : 1;                            /** BCL超时检测(1：启用，0：禁用) */
+        uint8_t fast_protocol : 1;                                /** FAST协议(1：启用，0：禁用) */
+        uint8_t cfc_protocol : 1;                                 /** CFC协议(1：启用，0：禁用) */
+        uint8_t bay_area_protocol : 1;                            /** 湾区协议(1：启用，0：禁用) */
+        uint8_t reserve : 3;                                      /** 预留 */
+    }info;
+}thaisen_cfg_fixed_cmd_debug;
 
 /************************************* 7103/7101 *********************************************/
 /** 参数配置页面:屏幕-设置-出厂设置-输入信息 */
