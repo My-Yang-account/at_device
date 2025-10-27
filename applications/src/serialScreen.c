@@ -1504,6 +1504,7 @@ static s32 SerialScreen_ConfigExecute_Pile(u8 port, void *data, void *sub_data, 
     if((config->cardnumber_block < CONFIG_CARD_BLOCK_SN_MIN) || (config->cardnumber_block > CONFIG_CARD_BLOCK_SN_MAX)){
         return (SSCREEN_CARD_BLOCK_POSITION + THAISEN_CONFIG_FAIL_OFFSET);
     }
+    LcdData.setData.Card_BlockSn = config->cardnumber_block;
     config_item = LcdData.setData.Card_BlockSn;
     UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_CARD_BLOCK_SN, (u8 *)&config_item, sizeof(config_item));
 
