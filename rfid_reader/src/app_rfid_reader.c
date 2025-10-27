@@ -113,18 +113,20 @@ static void rfidr_thread_entry(void *parameter)
     rfid_dev_api_device_identify();   /** 上电先识别读卡器设备 */
 
     while(1){
+        /** 线程运行回调，可将线程运行信息实时向外部传输 */
         if(s_rfidr_handle.node_running){
             s_rfidr_handle.node_running(rt_thread_self(), NULL, 0x00, 0x00);
         }
-
+        /** 实时更新数据(有外部判断) */
         if(s_rfidr_handle.data_update){
             s_rfidr_handle.data_update(&s_rfidr_handle);
         }
+        /** 禁止运行 */
         if(s_rfidr_handle.flag.is_forbid){
             rt_thread_mdelay(3000);
             continue;
         }
-
+        /** 蜂鸣 */
         if(rt_mb_recv(&s_rfidr_mailbox, &s_rfidr_mail, 0x00) >= 0x00){
             rfid_dev_api_buzzer(s_rfidr_mail);
         }
@@ -168,38 +170,45 @@ static void rfidr_thread_entry(void *parameter)
             }
             break;
         case APP_RFIDR_STATE_IDLE:
-            for(key = 0x00; key < APP_RFIDR_KEY_TYPE_SIZE; key++){
-                ret = rfid_dev_api_key_authentication(s_rfidr_sector, s_rfidr_block, s_rfidr_card_key[key], sizeof(s_rfidr_card_key[key]));
-                if(ret >= 0x00){
-                    s_rfidr_state = APP_RFIDR_STATE_ACTIVATION;
-                    s_rfidr_handle.key_type = key;
-                    LOG_D("rfidr card key authen success");
-                    break;
-                }else{
+            ret = -0x01;
+            /** 先鉴权外部密钥 */
+            if(s_rfidr_handle.info_process){
+                unsigned char parameter[2];
+
+                parameter[0x00] = s_rfidr_sector;
+                parameter[0x01] = s_rfidr_block;
+                LOG_D("rfidr using external key authenticate");
+                ret = s_rfidr_handle.info_process(&s_rfidr_handle, APP_RFIDR_INFO_PROCESS_AUTHENTICATE, parameter, sizeof(parameter));
+                if(ret < 0x00){
                     rt_thread_mdelay(100);
                     rfid_dev_api_active_card(APP_RFIDR_ENUM_TRUE, uuid, RFIDR_UUID_LEN_MAX, &uuid_len);
+                }else if(ret > 0x00){
+                    key = APP_RFIDR_KEY_TYPE_SIZE;
+                }else{
+                    key = 0x00;
+                    s_rfidr_state = APP_RFIDR_STATE_ACTIVATION;
+                    s_rfidr_handle.key_type = APP_RFIDR_KEY_TYPE_SIZE;
+                    LOG_D("rfidr card key authen success(external)");
+                }
+            }
+            /** 外部密钥鉴权不通过，使用内部密钥 */
+            if(ret < 0x00){
+                LOG_D("rfidr using default key authenticate");
+                for(key = 0x00; key < APP_RFIDR_KEY_TYPE_SIZE; key++){
+                    ret = rfid_dev_api_key_authentication(s_rfidr_sector, s_rfidr_block, s_rfidr_card_key[key], sizeof(s_rfidr_card_key[key]));
+                    if(ret >= 0x00){
+                        s_rfidr_state = APP_RFIDR_STATE_ACTIVATION;
+                        s_rfidr_handle.key_type = key;
+                        LOG_D("rfidr card key authen success");
+                        break;
+                    }else{
+                        rt_thread_mdelay(100);
+                        rfid_dev_api_active_card(APP_RFIDR_ENUM_TRUE, uuid, RFIDR_UUID_LEN_MAX, &uuid_len);
+                    }
                 }
             }
 
             s_rfidr_handle.info_type = APP_RFIDR_INFO_TYPE_UUID;
-
-            /***************** 内部设定的密钥不能通过，查看是否有外部提供的密钥 *****************/
-            if(key >= APP_RFIDR_KEY_TYPE_SIZE){
-                if(s_rfidr_handle.info_process){
-                    unsigned char parameter[2];
-
-                    parameter[0x00] = s_rfidr_sector;
-                    parameter[0x01] = s_rfidr_block;
-                    LOG_D("rfidr using external key authenticate");
-                    ret = s_rfidr_handle.info_process(&s_rfidr_handle, APP_RFIDR_INFO_PROCESS_AUTHENTICATE, parameter, sizeof(parameter));
-                    if(ret >= 0x00){
-                        s_rfidr_state = APP_RFIDR_STATE_ACTIVATION;
-                        s_rfidr_handle.key_type = APP_RFIDR_KEY_TYPE_SIZE;
-                        LOG_D("rfidr card key authen success(external)");
-                        break;
-                    }
-                }
-            }
 
             if(key >= APP_RFIDR_KEY_TYPE_SIZE){
                 s_rfidr_state = APP_RFIDR_STATE_OFFFIELD;
@@ -213,7 +222,16 @@ static void rfidr_thread_entry(void *parameter)
             }
             break;
         case APP_RFIDR_STATE_ACTIVATION:
-            ret = rfid_dev_api_read_block_info(s_rfidr_sector, s_rfidr_block, s_rfidr_handle.card_number, RFIDR_CARD_NUMBER_LEN_MAX);
+            /** 这是内部默认密钥鉴权通过 */
+            if(s_rfidr_handle.key_type < APP_RFIDR_KEY_TYPE_SIZE){
+                LOG_D("rfidr read internal default block\n");
+                ret = rfid_dev_api_read_block_info(s_rfidr_sector, s_rfidr_block, s_rfidr_handle.card_number, RFIDR_CARD_NUMBER_LEN_MAX);
+            }
+            /** 这是使用外部密钥鉴权通过 */
+            else{
+                LOG_D("rfidr read external designated block\n");
+                ret = s_rfidr_handle.info_process(&s_rfidr_handle, APP_RFIDR_INFO_PROCESS_READ_ONLY, s_rfidr_handle.card_number, RFIDR_CARD_NUMBER_LEN_MAX);
+            }
             if(ret >= 0x00){
                 s_rfidr_handle.info_type = APP_RFIDR_INFO_TYPE_CARD_NUMBER;
                 s_rfidr_handle.card_number_len = RFIDR_CARD_NUMBER_LEN_MAX;

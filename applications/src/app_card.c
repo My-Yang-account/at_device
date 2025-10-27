@@ -210,7 +210,7 @@ static uint8_t xj_card_info_verify(void *handle)
  * 参数        handle   操作句柄
  *        sector   块所在扇区
  *        block    指定块号
- * 返回        >=0：成功      <0：失败
+ * 返回        =0：成功      <0：数据非法      >0：数据有效但鉴权失败
  * ***************************************/
 static int32_t card_block_using_external_key_authenticate(void *handle, uint8_t sector, uint8_t block)
 {
@@ -226,7 +226,16 @@ static int32_t card_block_using_external_key_authenticate(void *handle, uint8_t 
     /** 获取卡密钥 */
     data = sys_read_config_item_content(CONFIG_ITEM_CARD_KEY, 0x00);
     dlen = strlen((char*)data);
+    if(dlen < (2 *APP_CARD_KEY_LEN_MAX)){
+        LOG_D("app_card external card key invalid(len error)");
+        return -0x01;
+    }
     dlen = dlen > (2 *APP_CARD_KEY_LEN_MAX) ? (2 *APP_CARD_KEY_LEN_MAX) : dlen;
+    if(sys_string_contain_ctrl_char((const char*)data, dlen)){
+        LOG_D("app_card external card key invalid(include control char)");
+        return -0x01;
+    }
+    LOG_D("app_card external card key(%s), card sector(%d) card block(%d)", data, sector, block);
     /** 卡密钥转换 */
     memset(key, 0x00, APP_CARD_KEY_LEN_MAX);
     for(i = 0x00; i < dlen; i++){
@@ -273,6 +282,30 @@ static int32_t card_block_using_external_key_authenticate(void *handle, uint8_t 
     /** 密钥鉴权 */
     if(s_rfidr->key_authenticate(sector, block, key, sizeof(key)) < 0x00){
         LOG_W("external card key authenticate fail(%d, %d)", sector, block);
+        return 0x01;
+    }
+    return 0x00;
+}
+
+/******************************************
+ * 函数名     card_read_external_block_data
+ * 功能         读取指定块数据
+ * 参数         handle   操作句柄
+ *        sector   块所在扇区
+ *        block    指定块号
+ *        buf      用于保存读取到的数据缓存
+ *        blen     缓存长度(B)
+ * 返回        =0：成功      <0：数据非法      >0：数据有效但鉴权失败
+ * ***************************************/
+static int32_t card_read_external_block_data(void *handle, uint8_t sector, uint8_t block, uint8_t *buf, uint8_t blen)
+{
+    if((handle == NULL) ||(buf == NULL) || (blen < RFIDR_CARD_NUMBER_LEN_MAX)){
+        return -0x01;
+    }
+    s_rfidr = (rfid_reader*)handle;
+    /** 读卡块数据 */
+    if(s_rfidr->bolck_read(sector, block, buf, blen) < 0x00){
+        LOG_W("read external block fail(%d, %d)", sector, block);
         return -0x01;
     }
     return 0x00;
@@ -938,16 +971,36 @@ static uint8_t app_card_another_gun_judge(uint8_t gunno)
  *  函数名   app_card_info_process
  *  功能       卡信息读、写处理
  *  参数       handle  卡信息总句柄
- * 返回        >=0：成功   <0：失败
+ * 返回        =0：成功      <0：数据非法      >0：数据有效但鉴权失败
  ****************************************************************************/
 static int32_t app_card_info_process(void* handle, uint8_t info_type, uint8_t *parameter, uint8_t plen)
 {
-    if(info_type == APP_RFIDR_INFO_PROCESS_AUTHENTICATE){
-        if((parameter == NULL) || (handle == NULL) || (plen < 0x02)){
+    switch(info_type){
+    case APP_RFIDR_INFO_PROCESS_NONE:
+    case APP_RFIDR_INFO_PROCESS_RW:
+        break;
+    case APP_RFIDR_INFO_PROCESS_AUTHENTICATE:
+    case APP_RFIDR_INFO_PROCESS_READ_ONLY:
+    {
+        uint8_t block = *(sys_read_config_item_content(CONFIG_ITEM_CARD_BLOCK_SN, 0));
+
+        if((block < CONFIG_CARD_BLOCK_SN_MIN) || (block > CONFIG_CARD_BLOCK_SN_MAX)){
+            LOG_D("app_card external card block invalid(%d)", block);
             return -0x01;
         }
-        uint8_t sector = parameter[0x00], block = parameter[0x01];
-        return card_block_using_external_key_authenticate(handle, sector, block);
+        LOG_D("rfidr read external block info| block(%d) sector(%d)\n", block, (block /0x04));
+        if(info_type == APP_RFIDR_INFO_PROCESS_AUTHENTICATE){
+            return card_block_using_external_key_authenticate(handle, (block /0x04), block);
+        }else if(info_type == APP_RFIDR_INFO_PROCESS_READ_ONLY){
+            if((parameter == NULL) || (plen < RFIDR_CARD_NUMBER_LEN_MAX)){
+                return -0x01;
+            }
+            return card_read_external_block_data(handle, (block /0x04), block, parameter, plen);
+        }
+    }
+        break;
+    default:
+        break;
     }
 
 #ifndef APP_USING_OFFLINE_BILLING
