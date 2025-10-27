@@ -272,7 +272,7 @@ void app_set_system_fault_enum(enum system_fault_t _fault, uint8_t gunno)
     set = set > APP_GENERAL_SYSTEM_FAULT_SET_NUM ? APP_GENERAL_SYSTEM_FAULT_SET_NUM : set;
 
     if(gunno < APP_SYSTEM_GUNNO_SIZE){
-        s_system_fault_current[set][gunno] |= (1 <<(convert_f %32));
+        s_system_fault_current[gunno][set] |= (1 <<(convert_f %32));
     }
 }
 
@@ -291,7 +291,7 @@ uint8_t app_get_system_fault_enum(enum system_fault_t _fault, uint8_t gunno)
     set = (convert_f /32);
     set = set > APP_GENERAL_SYSTEM_FAULT_SET_NUM ? APP_GENERAL_SYSTEM_FAULT_SET_NUM : set;
 
-    if(s_system_fault_current[set][gunno] & (1 <<(convert_f %32))){
+    if(s_system_fault_current[gunno][set] & (1 <<(convert_f %32))){
         return 0x01;
     }
     return 0x00;
@@ -310,7 +310,7 @@ void app_clear_system_fault_enum(enum system_fault_t _fault, uint8_t gunno)
     set = set > APP_GENERAL_SYSTEM_FAULT_SET_NUM ? APP_GENERAL_SYSTEM_FAULT_SET_NUM : set;
 
     if(gunno < APP_SYSTEM_GUNNO_SIZE){
-        s_system_fault_current[set][gunno] &= (~(1 <<(convert_f %32)));
+        s_system_fault_current[gunno][set] &= (~(1 <<(convert_f %32)));
     }
 }
 
