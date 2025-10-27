@@ -162,7 +162,7 @@ struct _config_info{
     uint8_t user_name[CP_INFO_LOGIN_USER_NAME_LEN_MAX];               /* 登录用户名 */
     uint8_t user_password[CP_INFO_LOGIN_USER_PASSWORD_LEN_MAX];       /* 登录密码 */
     uint8_t lp_consumption_module;                                    /* 低功耗模块(lp:low power) */
-    uint8_t reserve[256 - 147];                                        /* 保留 */
+    uint8_t reserve[256 - 160];                                       /* 保留 */
 };
 
 struct _function_enable{
@@ -798,6 +798,11 @@ APP_DEF_SRAM2 static struct config_item s_config_item_set[CONFIG_ITEM_SIZE] =
         (uint8_t*)&s_chargepile_config_info.config_info.screen_password,
         NULL},
 
+        {CONFIG_ITEM_CARD_KEY,                                                             /* 卡密钥 */
+        (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_info.card_key) - 0x01),
+        (uint8_t*)&s_chargepile_config_info.config_info.card_key,
+        NULL},
+
         {CONFIG_ITEM_HELP_PHONE,                                                           /* 帮助电话 */
         (1 <<(32 - 4))| (sizeof(s_chargepile_config_info.pile_info.help_number)),
         (uint8_t*)&s_chargepile_config_info.pile_info.help_number,
@@ -1196,6 +1201,9 @@ void sys_chargeplie_config_info_init(void)
     /** 屏幕密码 */
     sys_config_item_init(CONFIG_ITEM_SCREEN_PASSWORD, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_info.screen_password)), \
             (uint8_t*)&s_chargepile_config_info.config_info.screen_password, NULL);
+    /** 卡密钥 */
+    sys_config_item_init(CONFIG_ITEM_CARD_KEY, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_info.card_key)), \
+            (uint8_t*)&s_chargepile_config_info.config_info.card_key, NULL);
     /** 帮助电话 */
     sys_config_item_init(CONFIG_ITEM_HELP_PHONE, (1 <<(32 - 4))| (sizeof(s_chargepile_config_info.pile_info.help_number)), \
             (uint8_t*)&s_chargepile_config_info.pile_info.help_number, &s_chargepile_config_info.pile_info.help_number_len);
@@ -1732,6 +1740,7 @@ static void chargepile_config_data_reset(void)
     memset(s_chargepile_config_info.config_info.meter_address, '\0', sizeof(s_chargepile_config_info.config_info.meter_address));
     memset(s_chargepile_config_info.config_info.screen_password, '\0', sizeof(s_chargepile_config_info.config_info.screen_password));
     memcpy(s_chargepile_config_info.config_info.screen_password, "0909", strlen("0909"));
+    memset(s_chargepile_config_info.config_info.card_key, '\0', sizeof(s_chargepile_config_info.config_info.card_key));
 
     s_chargepile_config_info.config_info.module_model = MODULE_MODEL_DEFAULT;
     s_chargepile_config_info.config_info.module_group_num = MODULE_GROUP_NUMBER_DEFAULT;
@@ -2458,6 +2467,7 @@ int32_t chargepile_check_config(void)
 #endif
     }
 
+    /******************************************* 屏幕密码 *******************************************/
     valid_len = sizeof(s_chargepile_config_info.config_info.screen_password);
     valid_len = valid_len > strlen((char*)s_chargepile_config_info.config_info.screen_password) ? \
             strlen((char*)s_chargepile_config_info.config_info.screen_password) : valid_len;
@@ -2465,6 +2475,15 @@ int32_t chargepile_check_config(void)
     if(sys_string_contain_ctrl_char((const char*)&s_chargepile_config_info.config_info.screen_password, valid_len)){
         memset(s_chargepile_config_info.config_info.screen_password, 0x00, sizeof(s_chargepile_config_info.config_info.screen_password));
         memcpy(&s_chargepile_config_info.config_info.screen_password, CP_SCREEN_PASSWORD_DEFAULT, strlen(CP_SCREEN_PASSWORD_DEFAULT));
+    }
+
+    /******************************************* 卡密钥 *******************************************/
+    valid_len = sizeof(s_chargepile_config_info.config_info.card_key);
+    valid_len = valid_len > strlen((char*)s_chargepile_config_info.config_info.card_key) ? \
+            strlen((char*)s_chargepile_config_info.config_info.card_key) : valid_len;
+
+    if(sys_string_contain_ctrl_char((const char*)&s_chargepile_config_info.config_info.card_key, valid_len)){
+        memset(s_chargepile_config_info.config_info.card_key, '\0', sizeof(s_chargepile_config_info.config_info.card_key));
     }
 
     for(uint8_t count = 0x00; count < 0x02; count++){

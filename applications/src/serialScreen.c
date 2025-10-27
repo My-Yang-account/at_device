@@ -517,6 +517,7 @@ struct LCD_DISPLAY_SETDATA_TYPE{
 	//u8 AdmindPasswd[10];				//管理员密码     1314
 	u8 UserPasswd[10];					//用户密码 0909
     u8 UserPasswdShow[10];              //用户密码(用于展示)
+    u8 Card_Key[13];                    //卡密钥
 
 	u32 Longitude;					//经度 0.000000
 	u32 Latitude;					//纬度 0.000000
@@ -1467,6 +1468,8 @@ static s32 SerialScreen_ConfigExecute_Pile(u8 port, void *data, void *sub_data, 
             return (SSCREEN_PASSWORD_POSITION + THAISEN_CONFIG_FAIL_OFFSET);
         }
     }
+    /** 此处增加卡密钥判定 */
+
     if((valid_len = strlen((char*)config->help_number)) > 0){
         valid_len = valid_len > (sizeof(LcdData.setData.Help_Number) - 1) ? (sizeof(LcdData.setData.Help_Number) - 1) : valid_len;
         UI_SYNC_SINGLE_CFG_STR(CONFIG_ITEM_HELP_PHONE, config->help_number, valid_len);
@@ -4599,6 +4602,7 @@ void SerialScreen_IsSupportSetFlash(void)
     UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_PASSWORD_START, (u8 *)&(LcdData.setData.sup_pw_start), sizeof(LcdData.setData.sup_pw_start));
     UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_OFFLINE_CARD, (u8 *)&(LcdData.setData.Icon_SupOffCard), sizeof(LcdData.setData.Icon_SupOffCard));
     UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_MODE_SELECT, (u8 *)&(LcdData.setData.Icon_SupModeSelect), sizeof(LcdData.setData.Icon_SupModeSelect));
+    UI_SYNC_SINGLE_CFG_STR(CONFIG_ITEM_CARD_KEY, (u8 *)(LcdData.setData.Card_Key), (sizeof(LcdData.setData.Card_Key) - 1));
 
     for(u8 i = 0; i < sizeof(LcdData.setData.UserPasswdShow); i++){
         if((LcdData.setData.UserPasswdShow[i] < 0x20) ||  \
@@ -9254,6 +9258,7 @@ struct LCD_DATA_FIFO_TYPE *SerialScreen_Init(struct SerialScreenObj *cmd)
     data = UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_SCREEN_PASSWORD, 0);
 
     str_ncpy((char *)LcdData.setData.UserPasswdShow,UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_SCREEN_PASSWORD, 0),sizeof(LcdData.setData.UserPasswd));
+    str_ncpy((char *)LcdData.setData.Card_Key, UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_CARD_KEY, 0), (sizeof(LcdData.setData.Card_Key) - 1));
 	str_ncpy((char *)LcdData.setData.App_SoftWareVersion,(char *)(thaisen_app_get_app_version()->version), strlen((char *)(thaisen_app_get_app_version()->version)));
 	str_ncpy((char *)(LcdData.setData.Help_Number), (char *)(UI_READ_SINGLE_CFG_STR(CONFIG_ITEM_HELP_PHONE, 0)), \
 					 sizeof(LcdData.setData.Help_Number));	
@@ -12294,6 +12299,7 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_CONFIG, NULL, "cd up", LCD_BtnType, 0x0050, 0x1000, page_type, LCD_PAGE_ROOT_MAIN, (void *)NULL);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_CONFIG, NULL, "Home", LCD_BtnHomeType, 0x0002, 0x1000, page_type, LCD_PAGE_NONE, (void *)NULL);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_CONFIG, NULL, "password", LCD_InputType, 0, 0x3928, pstr_type, (sizeof(LcdData.setData.UserPasswdShow) + 1), (void *)(LcdData.setData.UserPasswdShow));
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_CONFIG, NULL, "card key", LCD_InputType, 0, 0x6C04, pstr_type, sizeof(LcdData.setData.Card_Key), (void *)(LcdData.setData.Card_Key));
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_CONFIG, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
 
     /** 35.出厂调试-A枪监控信息 [page:45] */
