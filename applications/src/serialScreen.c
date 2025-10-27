@@ -1429,9 +1429,12 @@ static s32 SerialScreen_ConfigExecute_System(u8 port, void *data, void *sub_data
 static s32 SerialScreen_ConfigExecute_Pile(u8 port, void *data, void *sub_data, void *sub_sub_data)  // OK
 {
 #define SSCREEN_PASSWORD_POSITION    3         /* 屏幕密码(配置条目)在结构体 thaisen_cfg_info_pile 中的成员次序(从0开始)*/
+#define SSCREEN_CARD_BLOCK_POSITION    5         /* 卡号所在块号(配置条目)在结构体 thaisen_cfg_info_pile 中的成员次序(从0开始)*/
+#define SSCREEN_QRCODE_RULE_POSITION   6         /* 二维码规则(配置条目)在结构体 thaisen_cfg_info_pile 中的成员次序(从0开始)*/
 
     u32 ret = 0;
     u16 valid_len = 0;
+    u8 config_item = 0;
     thaisen_cfg_info_pile *config = (thaisen_cfg_info_pile*)data;
 
     /** 获取桩信息 */
@@ -1469,14 +1472,51 @@ static s32 SerialScreen_ConfigExecute_Pile(u8 port, void *data, void *sub_data, 
             return (SSCREEN_PASSWORD_POSITION + THAISEN_CONFIG_FAIL_OFFSET);
         }
     }
-    /** 此处增加卡密钥判定 */
-
+    /** 帮助电话 */
     if((valid_len = strlen((char*)config->help_number)) > 0){
         valid_len = valid_len > (sizeof(LcdData.setData.Help_Number) - 1) ? (sizeof(LcdData.setData.Help_Number) - 1) : valid_len;
         UI_SYNC_SINGLE_CFG_STR(CONFIG_ITEM_HELP_PHONE, config->help_number, valid_len);
         memset(LcdData.setData.Help_Number, 0, sizeof(LcdData.setData.Help_Number));
         memcpy(LcdData.setData.Help_Number, config->help_number, valid_len);
     }
+    /** 卡密钥 */
+    if((valid_len = strlen((char*)config->card_key)) > 0){
+        valid_len = valid_len > (sizeof(LcdData.setData.Card_Key) - 1) ? (sizeof(LcdData.setData.Card_Key) - 1) : valid_len;
+        UI_SYNC_SINGLE_CFG_STR(CONFIG_ITEM_CARD_KEY, config->card_key, valid_len);
+        memset(LcdData.setData.Card_Key, 0, sizeof(LcdData.setData.Card_Key));
+        memcpy(LcdData.setData.Card_Key, config->card_key, valid_len);
+    }
+    /** 注册码 */
+    if((valid_len = strlen((char*)config->register_code)) > 0){
+        valid_len = valid_len > (sizeof(LcdData.setData.RegisterCode) - 1) ? (sizeof(LcdData.setData.RegisterCode) - 1) : valid_len;
+        UI_SYNC_SINGLE_CFG_STR(CONFIG_ITEM_REGISTER_CODE, config->register_code, valid_len);
+        memset(LcdData.setData.RegisterCode, 0, sizeof(LcdData.setData.RegisterCode));
+        memcpy(LcdData.setData.RegisterCode, config->register_code, valid_len);
+    }
+    /** 厂商编码 */
+    if((valid_len = strlen((char*)config->manufacturer_sn)) > 0){
+        valid_len = valid_len > (sizeof(LcdData.setData.manufacturer) - 1) ? (sizeof(LcdData.setData.UserIdentity) - 1) : valid_len;
+        UI_SYNC_SINGLE_CFG_STR(CONFIG_ITEM_USER_IDENTITY, config->manufacturer_sn, valid_len);
+        memset(LcdData.setData.UserIdentity, 0, sizeof(LcdData.setData.UserIdentity));
+        memcpy(LcdData.setData.UserIdentity, config->manufacturer_sn, valid_len);
+    }
+    /** 卡号所在块号 */
+    if((config->cardnumber_block < CONFIG_CARD_BLOCK_SN_MIN) || (config->cardnumber_block > CONFIG_CARD_BLOCK_SN_MAX)){
+        return (SSCREEN_CARD_BLOCK_POSITION + THAISEN_CONFIG_FAIL_OFFSET);
+    }
+    config_item = LcdData.setData.Card_BlockSn;
+    UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_CARD_BLOCK_SN, (u8 *)&config_item, sizeof(config_item));
+
+#if 0
+    /** 随机串 */
+    if((valid_len = strlen((char*)config->random_str)) > 0){
+        valid_len = valid_len > (sizeof(LcdData.setData.R) - 1) ? (sizeof(LcdData.setData.Card_Key) - 1) : valid_len;
+        UI_SYNC_SINGLE_CFG_STR(CONFIG_ITEM_CARD_KEY, config->random_str, valid_len);
+        memset(LcdData.setData.Card_Key, 0, sizeof(LcdData.setData.Card_Key));
+        memcpy(LcdData.setData.Card_Key, config->random_str, valid_len);
+    }
+#endif
+
 #if 0
     /** 桩信息有效性判断 */
     SerialScreen_BtnChgInfoJudge(&ret);

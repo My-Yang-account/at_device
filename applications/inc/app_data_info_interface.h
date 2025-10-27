@@ -92,6 +92,13 @@ typedef struct{
     uint8_t qrcode_suffix[128];                                   /** 二维码后缀 */
     uint8_t help_number[32];                                      /** 帮助电话 */
     uint8_t screen_password[15];                                  /** 屏幕密码 */
+    /**  新增：2025/09/05*/
+    uint8_t card_key[13];                                         /** 卡密钥：ASCII(前12字节有效) */
+    uint8_t cardnumber_block;                                     /** 卡号所在块号(0-69) */
+    uint8_t qrcode_rule;                                          /** 二维码规则(0：云快充，1：星星充电，2：新电途， 3：小桔， 4：云端下发，其它：非法) */
+    uint8_t register_code[64];                                    /** 注册码：ASCII(前63字节有效) */
+    uint8_t manufacturer_sn[9];                                   /** 厂商编码：ASCII(前8字节有效) */
+    uint8_t random_str[32];                                       /** 随机串：ASCII(前31字节有效) */
 }thaisen_cfg_info_pile;
 /** 参数配置页面:屏幕-设置-系统设置-服务器信息 */
 typedef struct{

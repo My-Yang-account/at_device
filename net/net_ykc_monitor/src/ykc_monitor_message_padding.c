@@ -2203,6 +2203,20 @@ void ykc_monitor_transaction_record_time_updata(uint8_t gunno)
     g_ykc_monitor_preq_transaction_records[gunno].body.transaction_date = ykc_monitor_get_cp56time2a_from_timestamp(base->current_time);
 }
 
+/*************************************************
+ * 函数名      ykc_monitor_chargepile_request_padding_heartbeat
+ * 功能          心跳数据填充
+ * **********************************************/
+void ykc_monitor_chargepile_request_padding_heartbeat(uint8_t gunno, void *data)
+{
+    if((gunno >= NET_SYSTEM_GUN_NUMBER) || (data == NULL)){
+        return;
+    }
+    Net_YkcMonitorPro_PReq_HeartBeat_t *msg = (Net_YkcMonitorPro_PReq_HeartBeat_t*)data;
+    System_BaseData *base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
+
+    msg->body.meter_value = (base->ammeter_elect /10);
+}
 
 /*************************************************
  * 函数名      ykc_monitor_chargepile_request_padding_transaction_record
@@ -5296,6 +5310,28 @@ static int32_t ykc_monitor_config_info_process_pile_info(uint8_t option, void *d
         valid_len = strlen(config_item);
         valid_len = valid_len > sizeof(response->screen_password) ? sizeof(response->screen_password) : valid_len;
         memcpy(response->screen_password, config_item, valid_len);
+
+        config_item = (char*)(sys_read_config_item_content(CONFIG_ITEM_CARD_KEY, 0x00));
+        valid_len = strlen(config_item);
+        valid_len = valid_len > sizeof(response->card_key) ? sizeof(response->card_key) : valid_len;
+        memcpy(response->card_key, config_item, valid_len);
+
+        config_item = (char*)(sys_read_config_item_content(CONFIG_ITEM_REGISTER_CODE, 0x00));
+        valid_len = strlen(config_item);
+        valid_len = valid_len > sizeof(response->register_code) ? sizeof(response->register_code) : valid_len;
+        memcpy(response->register_code, config_item, valid_len);
+
+        config_item = (char*)(sys_read_config_item_content(CONFIG_ITEM_USER_IDENTITY, 0x00));
+        valid_len = strlen(config_item);
+        valid_len = valid_len > sizeof(response->manufacturer_sn) ? sizeof(response->manufacturer_sn) : valid_len;
+        memcpy(response->manufacturer_sn, config_item, valid_len);
+#if 0
+        config_item = (char*)(sys_read_config_item_content(CONFIG_ITEM_SCREEN_PASSWORD, 0x00));
+        valid_len = strlen(config_item);
+        valid_len = valid_len > sizeof(response->random_str) ? sizeof(response->random_str) : valid_len;
+        memcpy(response->random_str, config_item, valid_len);
+#endif
+        response->cardnumber_block = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_CARD_BLOCK_SN, 0x00));
     }
     /** 配置信息设置 */
     else{

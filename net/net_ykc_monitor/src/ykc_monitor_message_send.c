@@ -1122,6 +1122,7 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
                     s_ykc_monitor_socket_info.heartbeat[gunno]++;
                 }
                 g_ykc_monitor_preq_heartbeat[gunno].head.sequence = s_ykc_monitor_message_serial_number[gunno]++;
+                ykc_monitor_chargepile_request_padding_heartbeat(gunno, &g_ykc_monitor_preq_heartbeat[gunno]);
                 ykc_monitor_message_send_port(NETYKC_MONITOR_PREQCMD_HEARTBEAT, s_ykc_monitor_socket_info.fd, &g_ykc_monitor_preq_heartbeat[gunno],
                         sizeof(g_ykc_monitor_preq_heartbeat[gunno]), NULL);
                 ykc_monitor_set_message_send_state(gunno, NET_YKC_MONITOR_SEND_STATE_COMPLETE, NET_YKC_MONITOR_PREQ_EVENT_HEARTBEAT);

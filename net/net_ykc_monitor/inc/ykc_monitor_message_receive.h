@@ -19,7 +19,7 @@
 #define NET_YKC_MONITOR_DEV_INFO_BUF_MAX                             32        /* 设备西信息缓存长度 */
 
 #ifdef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL
-#define NET_YKC_MONITOR_CONFIG_INFO_BUF_MAX                          400       /* 设备配置信息缓存长度 */
+#define NET_YKC_MONITOR_CONFIG_INFO_BUF_MAX                          600       /* 设备配置信息缓存长度 */
 #endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
 
 #define NET_YKC_MONITOR_WHITELIST_TYPE_CARD                          0x00      /* 白名单类型：卡白名单 */

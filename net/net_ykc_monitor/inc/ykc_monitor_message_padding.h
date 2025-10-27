@@ -87,6 +87,7 @@ uint8_t ykc_monitor_query_transaction_verify_state(uint8_t gunno);
 void ykc_monitor_transaction_record_time_updata(uint8_t gunno);
 void ykc_monitor_disposable_message_check(uint8_t gunno);
 
+void ykc_monitor_chargepile_request_padding_heartbeat(uint8_t gunno, void *data);
 
 /******************************** 以下是监控报文 *******************************/
 /******************************** 以下是监控报文 *******************************/
