@@ -16,12 +16,6 @@
 
 #define APP_RFIDR_DEBUG
 
-#ifdef RFIDR_USING_XJ_CARD
-#define RFIDR_CARD_KEY_NUM                            0x01                  /** 卡密钥个数 */
-#else
-#define RFIDR_CARD_KEY_NUM                            0x02                  /** 卡密钥个数 */
-#endif /* RFIDR_USING_XJ_CARD */
-
 #define RFIDR_THREAD_PERIOD                           10                    /** 线程运行周期 */
 #define RFIDR_DETECT_LEAVE_MAX                        8                     /** 检测卡离场次数(时基按10ms算) */
 #define RFIDR_DETECT_EXIT_MAX                         8                     /** 检测卡存在次数(时基按10ms算) */
@@ -37,11 +31,11 @@ RFID_DEF_SRAM2 static unsigned char s_rfidr_state = APP_RFIDR_STATE_DOWN;
 #ifdef RFIDR_USING_XJ_CARD
 RFID_DEF_SRAM2 static unsigned char s_rfidr_block = 0x08;     /** 卡号所在块 */
 RFID_DEF_SRAM2 static unsigned char s_rfidr_sector = 0x02;     /** 卡号所在扇区 */
-RFID_DEF_SRAM2 static unsigned char s_rfidr_card_key[RFIDR_CARD_KEY_NUM][0x06] = {{0x52, 0x11, 0x1A, 0xB3, 0x93, 0x55}};
+RFID_DEF_SRAM2 static unsigned char s_rfidr_card_key[APP_RFIDR_KEY_TYPE_SIZE][0x06] = {{0x52, 0x11, 0x1A, 0xB3, 0x93, 0x55}};
 #else
 RFID_DEF_SRAM2 static unsigned char s_rfidr_block = 0x09;     /** 卡号所在块 */
 RFID_DEF_SRAM2 static unsigned char s_rfidr_sector = 0x02;     /** 卡号所在扇区 */
-RFID_DEF_SRAM2 static unsigned char s_rfidr_card_key[RFIDR_CARD_KEY_NUM][0x06] = {{0x41, 0x31, 0x53, 0x4D, 0x31, 0x50}, {0x72, 0x28, 0x92, 0x63, 0x46, 0x23}};
+RFID_DEF_SRAM2 static unsigned char s_rfidr_card_key[APP_RFIDR_KEY_TYPE_SIZE][0x06] = {{0x41, 0x31, 0x53, 0x4D, 0x31, 0x50}, {0x72, 0x28, 0x92, 0x63, 0x46, 0x23}};
 #endif /* RFIDR_USING_XJ_CARD */
 
 RFID_DEF_SRAM2 static struct rt_mailbox s_rfidr_mailbox;
@@ -189,11 +183,29 @@ static void rfidr_thread_entry(void *parameter)
 
             s_rfidr_handle.info_type = APP_RFIDR_INFO_TYPE_UUID;
 
+            /***************** 内部设定的密钥不能通过，查看是否有外部提供的密钥 *****************/
+            if(key >= APP_RFIDR_KEY_TYPE_SIZE){
+                if(s_rfidr_handle.info_process){
+                    unsigned char parameter[2];
+
+                    parameter[0x00] = s_rfidr_sector;
+                    parameter[0x01] = s_rfidr_block;
+                    LOG_D("rfidr using external key authenticate");
+                    ret = s_rfidr_handle.info_process(&s_rfidr_handle, APP_RFIDR_INFO_PROCESS_AUTHENTICATE, parameter, sizeof(parameter));
+                    if(ret >= 0x00){
+                        s_rfidr_state = APP_RFIDR_STATE_ACTIVATION;
+                        s_rfidr_handle.key_type = APP_RFIDR_KEY_TYPE_SIZE;
+                        LOG_D("rfidr card key authen success(external)");
+                        break;
+                    }
+                }
+            }
+
             if(key >= APP_RFIDR_KEY_TYPE_SIZE){
                 s_rfidr_state = APP_RFIDR_STATE_OFFFIELD;
 
                 if(s_rfidr_handle.info_process){
-                    ret = s_rfidr_handle.info_process(&s_rfidr_handle);
+                    ret = s_rfidr_handle.info_process(&s_rfidr_handle, APP_RFIDR_INFO_PROCESS_NONE, NULL, 0x00);
                 }
                 s_rfidr_handle.swip_state |= (1 <<s_rfidr_handle.current_port);
 
@@ -224,7 +236,7 @@ static void rfidr_thread_entry(void *parameter)
             break;
         case APP_RFIDR_STATE_RW_INFO:
             if(s_rfidr_handle.info_process){
-                ret = s_rfidr_handle.info_process(&s_rfidr_handle);
+                ret = s_rfidr_handle.info_process(&s_rfidr_handle, APP_RFIDR_INFO_PROCESS_RW, NULL, 0x00);
                 if(ret < 0x00){
                     s_rfidr_handle.info_type = APP_RFIDR_INFO_TYPE_RW_FAIL;
                 }

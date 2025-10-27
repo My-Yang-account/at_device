@@ -162,7 +162,8 @@ struct _config_info{
     uint8_t user_name[CP_INFO_LOGIN_USER_NAME_LEN_MAX];               /* 登录用户名 */
     uint8_t user_password[CP_INFO_LOGIN_USER_PASSWORD_LEN_MAX];       /* 登录密码 */
     uint8_t lp_consumption_module;                                    /* 低功耗模块(lp:low power) */
-    uint8_t reserve[256 - 160];                                       /* 保留 */
+    uint8_t card_block_sn;                                            /* 卡号所在块(范围：0-63，默认 CONFIG_CARD_BLOCK_SN_DEFAULT) */
+    uint8_t reserve[256 - 161];                                       /* 保留 */
 };
 
 struct _function_enable{
@@ -803,6 +804,11 @@ APP_DEF_SRAM2 static struct config_item s_config_item_set[CONFIG_ITEM_SIZE] =
         (uint8_t*)&s_chargepile_config_info.config_info.card_key,
         NULL},
 
+        {CONFIG_ITEM_CARD_BLOCK_SN,                                                             /* 卡号所在块 */
+        (0 <<(32 - 4))| (sizeof(s_chargepile_config.config_info.card_block_sn) <<SYSTEM_CONFIG_ITEM_LEN_POS),
+        (uint8_t*)&s_chargepile_config.config_info.card_block_sn,
+        NULL},
+
         {CONFIG_ITEM_HELP_PHONE,                                                           /* 帮助电话 */
         (1 <<(32 - 4))| (sizeof(s_chargepile_config_info.pile_info.help_number)),
         (uint8_t*)&s_chargepile_config_info.pile_info.help_number,
@@ -1204,6 +1210,9 @@ void sys_chargeplie_config_info_init(void)
     /** 卡密钥 */
     sys_config_item_init(CONFIG_ITEM_CARD_KEY, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_info.card_key)), \
             (uint8_t*)&s_chargepile_config_info.config_info.card_key, NULL);
+    /** 卡号所在块 */
+    sys_config_item_init(CONFIG_ITEM_CARD_BLOCK_SN, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_info.card_block_sn)), \
+            (uint8_t*)&s_chargepile_config_info.config_info.card_block_sn, NULL);
     /** 帮助电话 */
     sys_config_item_init(CONFIG_ITEM_HELP_PHONE, (1 <<(32 - 4))| (sizeof(s_chargepile_config_info.pile_info.help_number)), \
             (uint8_t*)&s_chargepile_config_info.pile_info.help_number, &s_chargepile_config_info.pile_info.help_number_len);
@@ -1754,6 +1763,7 @@ static void chargepile_config_data_reset(void)
     s_chargepile_config_info.config_info.gun_num = 0x02;
     s_chargepile_config_info.config_info.ammeter_check_way = CP_AMMETER_CHECK_WAY_EVEN;
     s_chargepile_config_info.config_info.ammeter_baudrate = CP_AMMETER_BAUDRATE_9600;
+    s_chargepile_config_info.config_info.card_block_sn = CONFIG_CARD_BLOCK_SN_DEFAULT;
 
     s_chargepile_config_info.function_enable.local_charge = 0x00;
     s_chargepile_config_info.function_enable.local_stop = 0x00;
@@ -2084,6 +2094,10 @@ int32_t chargepile_check_config(void)
         s_chargepile_config_info.config_info.lp_consumption_module = CONFIG_LP_CONSUMPTION_MODULE_NULL;
     }
 
+    /** 卡号所在块默认块 CONFIG_CARD_BLOCK_SN_DEFAULT */
+    if((s_chargepile_config_info.config_info.card_block_sn < CONFIG_CARD_BLOCK_SN_MIN) || (s_chargepile_config_info.config_info.card_block_sn > CONFIG_CARD_BLOCK_SN_MAX)){
+        s_chargepile_config_info.config_info.card_block_sn = CONFIG_CARD_BLOCK_SN_DEFAULT;
+    }
     /** 电表串口校验方式模式偶校验 */
     if((s_chargepile_config_info.config_info.ammeter_check_way < CP_AMMETER_CHECK_WAY_EVEN) ||\
             (s_chargepile_config_info.config_info.ammeter_check_way > CP_AMMETER_CHECK_WAY_NONE)){

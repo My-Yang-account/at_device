@@ -205,6 +205,80 @@ static uint8_t xj_card_info_verify(void *handle)
 #endif /* #ifdef RFIDR_USING_XJ_CARD */
 
 /******************************************
+ * 函数名     card_block_using_external_key_authenticate
+ * 功能         使用外部卡密钥鉴权指定块
+ * 参数        handle   操作句柄
+ *        sector   块所在扇区
+ *        block    指定块号
+ * 返回        >=0：成功      <0：失败
+ * ***************************************/
+static int32_t card_block_using_external_key_authenticate(void *handle, uint8_t sector, uint8_t block)
+{
+#define APP_CARD_ACTIVE_RENTRY      2         /** 卡激活尝试次数 */
+#define APP_CARD_KEY_LEN_MAX        6         /** 卡密钥长度(B) */
+
+    if(handle == NULL)
+    {
+        return -0x01;
+    }
+    uint8_t entry = 0x00, *data = NULL, dlen = 0x00, i = 0x00, key[APP_CARD_KEY_LEN_MAX];
+    s_rfidr = (rfid_reader*)handle;
+    /** 获取卡密钥 */
+    data = sys_read_config_item_content(CONFIG_ITEM_CARD_KEY, 0x00);
+    dlen = strlen((char*)data);
+    dlen = dlen > (2 *APP_CARD_KEY_LEN_MAX) ? (2 *APP_CARD_KEY_LEN_MAX) : dlen;
+    /** 卡密钥转换 */
+    memset(key, 0x00, APP_CARD_KEY_LEN_MAX);
+    for(i = 0x00; i < dlen; i++){
+        uint8_t _bin = 0x00;
+        /** 数字 */
+        if((data[i] >= 0x30) && (data[i] <= 0x39)){
+            _bin = (data[i] - 0x30);
+        }
+        /** 小写字母 */
+        else if((data[i] >= 0x61) && (data[i] <= 0x66)){
+            _bin = ((data[i] - 0x61) + 0x0A);
+        }
+        /** 大写字母 */
+        else if((data[i] >= 0x41) && (data[i] <= 0x46)){
+            _bin = ((data[i] - 0x41) + 0x0A);
+        }
+        /** 非法字符 */
+        else{
+            return -0x01;
+        }
+
+        if((i %2) == 0x00){
+            key[i /2] = (_bin &0x0F);
+        }else{
+            key[i /2] <<=0x04;
+            key[i /2] |= (_bin &0x0F);
+        }
+    }
+
+#if 0
+    /** 寻卡 */
+    while(1){
+        if(s_rfidr->active_card() <= 0x00){
+            if(++entry >= APP_CARD_ACTIVE_RENTRY){
+                LOG_W("external card key authenticate fail(card is not found)");
+                return -0x01;
+            }
+            rt_thread_mdelay(10);
+            continue;
+        }
+        break;
+    }
+#endif
+    /** 密钥鉴权 */
+    if(s_rfidr->key_authenticate(sector, block, key, sizeof(key)) < 0x00){
+        LOG_W("external card key authenticate fail(%d, %d)", sector, block);
+        return -0x01;
+    }
+    return 0x00;
+}
+
+/******************************************
  * 函数名     card_node_init_hook
  * 功能         读卡器部分线程初始化回调
  * 参数         node   节点句柄
@@ -866,8 +940,16 @@ static uint8_t app_card_another_gun_judge(uint8_t gunno)
  *  参数       handle  卡信息总句柄
  * 返回        >=0：成功   <0：失败
  ****************************************************************************/
-static int32_t app_card_info_process(void* handle)
+static int32_t app_card_info_process(void* handle, uint8_t info_type, uint8_t *parameter, uint8_t plen)
 {
+    if(info_type == APP_RFIDR_INFO_PROCESS_AUTHENTICATE){
+        if((parameter == NULL) || (handle == NULL) || (plen < 0x02)){
+            return -0x01;
+        }
+        uint8_t sector = parameter[0x00], block = parameter[0x01];
+        return card_block_using_external_key_authenticate(handle, sector, block);
+    }
+
 #ifndef APP_USING_OFFLINE_BILLING
     if(get_ofsm_info(0x00)->base.run_mode != APP_RUN_MODE_OFFLINE_BILLING){
 #ifdef RFIDR_USING_XJ_CARD

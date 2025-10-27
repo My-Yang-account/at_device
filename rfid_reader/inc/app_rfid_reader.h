@@ -61,6 +61,12 @@ enum{
     APP_RFIDR_KEY_TYPE_SIZE,
 };
 
+enum{
+    APP_RFIDR_INFO_PROCESS_NONE,                                                       /** 信息处理操作：不做处理 */
+    APP_RFIDR_INFO_PROCESS_AUTHENTICATE,                                               /** 信息处理操作：密钥认证 */
+    APP_RFIDR_INFO_PROCESS_RW,                                                         /** 信息处理操作：读、写数据 */
+};
+
 typedef struct{
     struct{
         unsigned char is_forbid : 1;                                                   /** 禁止运行 */
@@ -82,7 +88,7 @@ typedef struct{
     int (*bolck_read)(unsigned char sector, unsigned char bolck, unsigned char *buf, unsigned char blen);    /** 读块数据(外部调用) */
     int (*bolck_write)(unsigned char sector, unsigned char bolck, unsigned char *data, unsigned char dlen);  /** 写块数据(外部调用) */
     int (*key_authenticate)(unsigned char sector, unsigned char block, unsigned char *key, unsigned char klen);  /** 扇区密钥验证(外部调用) */
-    int (*info_process)(void *handle);                                                 /** 信息处理(卡鉴权通过、进入读、写块状态后自动调用) */
+    int (*info_process)(void *handle, unsigned char info_type, unsigned char *parameter, unsigned char plen);    /** 信息处理(卡鉴权通过、进入读、写块状态后自动调用) */
 
 }rfid_reader;
 

@@ -259,6 +259,10 @@
 #define SYSTEM_FUNCTION_DYNAMIC_SWITCH            4         /* 动态切换 */
 #define SYSTEM_FUNCTION_SIZE                      5         /* 系统功能 */
 
+#define CONFIG_CARD_BLOCK_SN_DEFAULT              9           /* 卡号所在块号：默认 */
+#define CONFIG_CARD_BLOCK_SN_MIN                  0           /* 卡号所在块号：最小值 */
+#define CONFIG_CARD_BLOCK_SN_MAX                  63          /* 卡号所在块号：最大值 */
+
 /* protect info config */
 #define PROTECT_POWER_PERCENT_VALUE_DEFAULT       1000      /* 保护信息：默认功率百分比值 */
 #define PROTECT_POWER_PERCENT_VALUE_MAX           1000      /* 保护信息：功率百分比最大值 */
@@ -602,6 +606,8 @@ enum config_name{
     CONFIG_ITEM_VIN_WHITELIST,
     CONFIG_ITEM_CARD_WHITELIST,
     CONFIG_ITEM_SCREEN_PASSWORD,
+    CONFIG_ITEM_CARD_KEY,
+    CONFIG_ITEM_CARD_BLOCK_SN,
     CONFIG_ITEM_HELP_PHONE,
     CONFIG_ITEM_USER_IDENTITY,
     CONFIG_ITEM_REGISTER_CODE,

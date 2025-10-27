@@ -518,6 +518,7 @@ struct LCD_DISPLAY_SETDATA_TYPE{
 	u8 UserPasswd[10];					//用户密码 0909
     u8 UserPasswdShow[10];              //用户密码(用于展示)
     u8 Card_Key[13];                    //卡密钥
+    u32 Card_BlockSn;                    //卡号所在块号
 
 	u32 Longitude;					//经度 0.000000
 	u32 Latitude;					//纬度 0.000000
@@ -4530,7 +4531,8 @@ void SerialScreen_OfflineBillingGet(void)
 static void SerialScreen_IsSupportInfoJudge(u32 *ret)
 {
 //@ thaisen_cfg_info_function
-#define SSCREEN_PLUG_AND_PLAY_POSITION                        6   /* 即插即充功能在结构体 thaisen_cfg_info_function 中的成员次序(从0开始)  */
+#define SSCREEN_PLUG_AND_PLAY_POSITION                        6    /* 即插即充功能在结构体 thaisen_cfg_info_function 中的成员次序(从0开始)  */
+#define SSCREEN_CARD_BLOCK_SN_POSITION                        14   /* 卡号所在块号在结构体 thaisen_cfg_info_function 中的成员次序(从0开始)  */
     u32 result = 0;
 
 #ifndef SCREEN_USING_OFFLINE_BILLING
@@ -4564,6 +4566,11 @@ static void SerialScreen_IsSupportInfoJudge(u32 *ret)
         LcdData.setData.Icon_SupPlugAndPlay = FALSE;
     }
 
+    if((LcdData.setData.Card_BlockSn < CONFIG_CARD_BLOCK_SN_MIN) || (LcdData.setData.Card_BlockSn > CONFIG_CARD_BLOCK_SN_MAX)){
+        result |= (1 <<SSCREEN_CARD_BLOCK_SN_POSITION);
+        LcdData.setData.Card_BlockSn = CONFIG_CARD_BLOCK_SN_DEFAULT;
+    }
+
     LcdData.setData.sup_Local_stop = LcdData.setData.Icon_SuplocalStop;
     LcdData.setData.sup_offbilling = LcdData.setData.Icon_SupOfflineBilling;
     LcdData.setData.Sup_PlugAndPlay = LcdData.setData.Icon_SupPlugAndPlay;
@@ -4579,7 +4586,7 @@ static void SerialScreen_IsSupportInfoJudge(u32 *ret)
 }
 void SerialScreen_IsSupportSetFlash(void)
 {
-    u8 function_disable = TRUE, len = 0, count = 0;
+    u8 config_item = TRUE, len = 0, count = 0, is_fail = 0;
 
     SerialScreen_JumpPage(&SerialScreen, LCD_PAGE_STORAGE_WAITING);
 
@@ -4587,6 +4594,8 @@ void SerialScreen_IsSupportSetFlash(void)
         SerialScreen_IsSupportInfoJudge(NULL);
     }
     LcdAssistantData.SeveralGunFlag[LCD_GUN_1].DataIsVerify = FALSE;
+
+    config_item = LcdData.setData.Card_BlockSn;
 
     UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_LOCAL, (u8 *)&(LcdData.setData.sup_Local), sizeof(LcdData.setData.sup_Local));
     UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_PLUGCHARGE, (u8 *)&(LcdData.setData.Sup_PlugAndPlay), sizeof(LcdData.setData.Sup_PlugAndPlay));
@@ -4602,6 +4611,7 @@ void SerialScreen_IsSupportSetFlash(void)
     UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_PASSWORD_START, (u8 *)&(LcdData.setData.sup_pw_start), sizeof(LcdData.setData.sup_pw_start));
     UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_OFFLINE_CARD, (u8 *)&(LcdData.setData.Icon_SupOffCard), sizeof(LcdData.setData.Icon_SupOffCard));
     UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_MODE_SELECT, (u8 *)&(LcdData.setData.Icon_SupModeSelect), sizeof(LcdData.setData.Icon_SupModeSelect));
+    UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_CARD_BLOCK_SN, (u8 *)&config_item, sizeof(config_item));
     UI_SYNC_SINGLE_CFG_STR(CONFIG_ITEM_CARD_KEY, (u8 *)(LcdData.setData.Card_Key), (sizeof(LcdData.setData.Card_Key) - 1));
 
     for(u8 i = 0; i < sizeof(LcdData.setData.UserPasswdShow); i++){
@@ -4629,12 +4639,12 @@ void SerialScreen_IsSupportSetFlash(void)
     }
 
     if(LcdData.setData.sup_insulation == FALSE){
-        function_disable = TRUE;
+        config_item = TRUE;
     }else{
-        function_disable = FALSE;
+        config_item = FALSE;
     }
-    thaisen_set_insult_mode(function_disable, FALSE);
-    thaisen_set_insult_mode(function_disable, TRUE);
+    thaisen_set_insult_mode(config_item, FALSE);
+    thaisen_set_insult_mode(config_item, TRUE);
 
     if(LcdData.setData.sup_mslience == FALSE){
         thaisenSetYouYouSlienceMode(FALSE);
@@ -9284,6 +9294,7 @@ struct LCD_DATA_FIFO_TYPE *SerialScreen_Init(struct SerialScreenObj *cmd)
     LcdData.setData.sup_offline_card = *((u8*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_OFFLINE_CARD, 0));
     LcdData.setData.sup_mode_select = *((u8*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_MODE_SELECT, 0));
     LcdData.setData.supin_ac = *((u8*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_INEN_ACRELAY, 0));
+    LcdData.setData.Card_BlockSn = *((u8*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_CARD_BLOCK_SN, 0));
 
     memset(LcdData.setData.UserPasswdShow, '\0', sizeof(LcdData.setData.UserPasswdShow));
     memcpy(LcdData.setData.UserPasswdShow, data, sizeof(LcdData.setData.UserPasswdShow));
@@ -9530,6 +9541,10 @@ struct LCD_DATA_FIFO_TYPE *SerialScreen_Init(struct SerialScreenObj *cmd)
         LcdAssistantData.DeviceType = SYSTEM_FUNCTION_AVERAGE_DOUBLE;
         thaisenSetChargGunRunType(thaisenDeviceType_doubleGun);
         break;
+    }
+    /** 卡号所在块默认块 CONFIG_CARD_BLOCK_SN_DEFAULT */
+    if((LcdData.setData.Card_BlockSn < CONFIG_CARD_BLOCK_SN_MIN) || (LcdData.setData.Card_BlockSn > CONFIG_CARD_BLOCK_SN_MAX)){
+        LcdData.setData.Card_BlockSn = CONFIG_CARD_BLOCK_SN_DEFAULT;
     }
 
     if(LcdData.setData.NetType >= CP_NETTYPE_SIZE){
@@ -10388,15 +10403,21 @@ void SerialScreen_GetKeyProcess(struct SerialScreenObj *cmd)
 #endif /* SCREEN_USING_OFFLINE_BILLING */
 						        SerialScreen_CombineData(pPageIndex->item[i].valtype,pPageIndex->item[i].valaddr,LcdData.KeyInput,4,(1 <<0));
 						    }else{
-	                            sSCREEN_EVENT_DEBUGMSG("#########valtype = %d vallen = %d  valaddr = %s  KeyInput = %s\r\n",pPageIndex->item[i].valtype,pPageIndex->item[i].vallen,pPageIndex->item[i].valaddr,LcdData.KeyInput);
-
-	                            for(u32 i=0;(i<LcdData.KeyInputLen)&&(i<sizeof(LcdData.KeyInput));i++)
-	                            {
-	                                if(LcdData.KeyInput[i]==0xff){
-	                                    LcdData.KeyInput[i] = 0;          //如果输入的是字符串，则帧的最后2字节是0xFF
-	                                }
-	                            }
-	                            SerialScreen_StrToData(pPageIndex->item[i].valtype,pPageIndex->item[i].vallen,pPageIndex->item[i].valaddr,LcdData.KeyInput);
+                                /**********************************
+                                 * LCD_PAGE_MENU_CONFIG：功能配置页：
+                                 * keyreg = 0x7A00：卡号所在块键值
+                                 *********************************/
+                                if((LcdData.CurrentPage == LCD_PAGE_MENU_CONFIG) && (keyreg == 0x6C02)){
+                                    SerialScreen_CombineData(pPageIndex->item[i].valtype,pPageIndex->item[i].valaddr,LcdData.KeyInput,4,(1 <<0));
+                                }else{
+                                    for(u32 i=0;(i<LcdData.KeyInputLen)&&(i<sizeof(LcdData.KeyInput));i++)
+                                    {
+                                        if(LcdData.KeyInput[i]==0xff){
+                                            LcdData.KeyInput[i] = 0;          //如果输入的是字符串，则帧的最后2字节是0xFF
+                                        }
+                                    }
+                                    SerialScreen_StrToData(pPageIndex->item[i].valtype,pPageIndex->item[i].vallen,pPageIndex->item[i].valaddr,LcdData.KeyInput);
+                                }
 						    }
 						}
 
@@ -10752,16 +10773,28 @@ void SerialScreen_CurrentPageItem(struct SerialScreenObj *cmd,struct LCD_DISPLAY
                                 sSCREEN_DEBUGMSG("--screen type %d=%d strlen=%d \r\n",index, pPageIndex->item[index].type, str_len(tbuf));
                                 u16 string_len = str_len(tbuf);
 
+                                /**********************************
+                                 * LCD_PAGE_MENU_CONFIG：功能配置页：
+                                 * keyreg = 0x3928：密码修改键值
+                                 *********************************/
                                 if((LcdData.CurrentPage == LCD_PAGE_MENU_CONFIG) && ( pPageIndex->item[index].regaddr == 0x3928)){
                                     if(!LcdData.setData.SerialScreen_PassWordShow){
                                         memset(tbuf, '*', string_len);
                                     }
                                 }
-
-                                if(string_len == 0){
-                                    SerialScreen_SendTxt(cmd,pPageIndex->item[index].regaddr,tbuf,pPageIndex->item[index].vallen);   /* 此目的是为了清空屏幕字符显示(传入长度参数为0时清空不了) */
+                                /**********************************
+                                 * LCD_PAGE_MENU_CONFIG：功能配置页：
+                                 * keyreg = 0x7A00：卡号所在块键值
+                                 *********************************/
+                                if((LcdData.CurrentPage == LCD_PAGE_MENU_CONFIG) && (pPageIndex->item[index].regaddr == 0x6C02)){
+                                    u32 data = SerialScreen_GetData_WithType(pPageIndex->item[index].valtype, pPageIndex->item[index].valaddr);
+                                    SerialScreen_SendData(cmd, pPageIndex->item[index].regaddr, data);
                                 }else{
-                                    SerialScreen_SendTxt(cmd,pPageIndex->item[index].regaddr,tbuf,string_len);
+                                    if(string_len == 0){
+                                        SerialScreen_SendTxt(cmd,pPageIndex->item[index].regaddr,tbuf,pPageIndex->item[index].vallen);   /* 此目的是为了清空屏幕字符显示(传入长度参数为0时清空不了) */
+                                    }else{
+                                        SerialScreen_SendTxt(cmd,pPageIndex->item[index].regaddr,tbuf,string_len);
+                                    }
                                 }
                             }
 						}
@@ -12300,6 +12333,7 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_CONFIG, NULL, "Home", LCD_BtnHomeType, 0x0002, 0x1000, page_type, LCD_PAGE_NONE, (void *)NULL);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_CONFIG, NULL, "password", LCD_InputType, 0, 0x3928, pstr_type, (sizeof(LcdData.setData.UserPasswdShow) + 1), (void *)(LcdData.setData.UserPasswdShow));
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_CONFIG, NULL, "card key", LCD_InputType, 0, 0x6C04, pstr_type, sizeof(LcdData.setData.Card_Key), (void *)(LcdData.setData.Card_Key));
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_CONFIG, NULL, "card block sn", LCD_InputType, 0, 0x6C02, pu32_type, sizeof(LcdData.setData.Card_BlockSn), (void *)&LcdData.setData.Card_BlockSn);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_CONFIG, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
 
     /** 35.出厂调试-A枪监控信息 [page:45] */
