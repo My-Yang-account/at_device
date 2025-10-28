@@ -125,23 +125,31 @@ enum ykcm_dev_running{
  ********************************************************************************/
 #ifdef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL
 enum ykcm_config_info_type{
-     NETYKCM_CONFIG_INFO_TYPE_SYSTEM,                                /* 配置信息类型：系统信息 */
-     NETYKCM_CONFIG_INFO_TYPE_PILE,                                  /* 配置信息类型：桩信息 */
-     NETYKCM_CONFIG_INFO_TYPE_SERVER,                                /* 配置信息类型：服务器信息 */
-     NETYKCM_CONFIG_INFO_TYPE_AMMETER,                               /* 配置信息类型：电表信息 */
-     NETYKCM_CONFIG_INFO_TYPE_MODULE,                                /* 配置信息类型：模块信息 */
-     NETYKCM_CONFIG_INFO_TYPE_VIN,                                   /* 配置信息类型：VIN码信息 */
-     NETYKCM_CONFIG_INFO_TYPE_PROTECT_INFO,                          /* 配置信息类型：保护信息 */
-     NETYKCM_CONFIG_INFO_TYPE_FUNCTION_CONFIG,                       /* 配置信息类型：功能配置 */
-     NETYKCM_CONFIG_INFO_TYPE_OFFLINE_BILLING,                       /* 配置信息类型：离线计费 */
-     NETYKCM_CONFIG_INFO_TYPE_INPUT_7103_7101,                       /* 配置信息类型：输入信息(7103/7101) */
-     NETYKCM_CONFIG_INFO_TYPE_PUBLIC_INPUT_7104,                     /* 配置信息类型：通用输入信息(7104) */
-     NETYKCM_CONFIG_INFO_TYPE_GUN_INPUT_7104,                        /* 配置信息类型：枪输入信息(7104) */
-     NETYKCM_CONFIG_INFO_TYPE_PUBLIC_OUTPUT_7104,                    /* 配置信息类型：通用输出信息(7104) */
-     NETYKCM_CONFIG_INFO_TYPE_GUN_OUTPUT_7104,                       /* 配置信息类型：枪输出信息(7104) */
-     NETYKCM_CONFIG_INFO_MODE_SELECT_NORMAL,                         /* 配置信息类型：模式选择：正常模式 */
-     NETYKCM_CONFIG_INFO_MODE_SELECT_V2G,                            /* 配置信息类型：模式选择：V2G模式 */
-     NETYKCM_CONFIG_INFO_TYPE_SIZE,                                  /* 配置信息类型： */
+    NETYKCM_CONFIG_INFO_TYPE_SYSTEM,                                /* 配置信息类型：系统信息 */
+    NETYKCM_CONFIG_INFO_TYPE_PILE,                                  /* 配置信息类型：桩信息 */
+    NETYKCM_CONFIG_INFO_TYPE_SERVER,                                /* 配置信息类型：服务器信息 */
+    NETYKCM_CONFIG_INFO_TYPE_AMMETER,                               /* 配置信息类型：电表信息 */
+    NETYKCM_CONFIG_INFO_TYPE_MODULE,                                /* 配置信息类型：模块信息 */
+    NETYKCM_CONFIG_INFO_TYPE_VIN,                                   /* 配置信息类型：VIN码信息 */
+    NETYKCM_CONFIG_INFO_TYPE_PROTECT_INFO,                          /* 配置信息类型：保护信息 */
+    NETYKCM_CONFIG_INFO_TYPE_FUNCTION_CONFIG,                       /* 配置信息类型：功能配置 */
+    NETYKCM_CONFIG_INFO_TYPE_OFFLINE_BILLING,                       /* 配置信息类型：离线计费 */
+    NETYKCM_CONFIG_INFO_TYPE_INPUT_7103_7101,                       /* 配置信息类型：输入信息(7103/7101) */
+    NETYKCM_CONFIG_INFO_TYPE_PUBLIC_INPUT_7104,                     /* 配置信息类型：通用输入信息(7104) */
+    NETYKCM_CONFIG_INFO_TYPE_GUN_INPUT_7104,                        /* 配置信息类型：枪输入信息(7104) */
+    NETYKCM_CONFIG_INFO_TYPE_PUBLIC_OUTPUT_7104,                    /* 配置信息类型：通用输出信息(7104) */
+    NETYKCM_CONFIG_INFO_TYPE_GUN_OUTPUT_7104,                       /* 配置信息类型：枪输出信息(7104) */
+    NETYKCM_CONFIG_INFO_MODE_SELECT_NORMAL,                         /* 配置信息类型：模式选择：正常模式 */
+    NETYKCM_CONFIG_INFO_MODE_SELECT_V2G,                            /* 配置信息类型：模式选择：V2G模式 */
+    NETYKCM_DEBUG_INFO_MONITOR,                                     /* 调试信息类型：监控信息 */
+    NETYKCM_DEBUG_INFO_LIQUID,                                      /* 调试信息类型：液冷调试 */
+    NETYKCM_DEBUG_INFO_IO,                                          /* 调试信息类型：输入输出 */
+    NETYKCM_DEBUG_INFO_MODULE,                                      /* 调试信息类型：模块信息 */
+    NETYKCM_DEBUG_INFO_MATRIX_RELAY,                                /* 调试信息类型：矩阵继电器调试 */
+    NETYKCM_CONFIG_INFO_OTHER_CONFIG,                               /* 配置信息类型：其它配置 */
+    NETYKCM_CONFIG_INFO_DYNAMIC_CMD_INFO,                           /* 配置信息类型：动态类型指令信息 */
+    NETYKCM_CONFIG_INFO_FIXED_CMD_INFO,                             /* 配置信息类型：固定类型指令信息 */
+    NETYKCM_CONFIG_INFO_TYPE_SIZE,                                  /* 配置信息类型： */
 };
 enum ykcm_config_info_option{
     NETYKCM_CONFIG_INFO_OPTION_QUERY,                                /* 配置信息操作类型：查询 */
@@ -1971,6 +1979,45 @@ struct ykcm_offline_billing{
     uint32_t valley_price;                       /* 谷电费价格(单位：元，10000倍) */
     struct ykcm_fees_time_info vtime1;           /* 谷时段1 */
     struct ykcm_fees_time_info vtime2;           /* 谷时段2 */
+};
+
+/** 固定类型指令信息配置 */
+/** 信息设置响应结果：0：成功  1：保存失败   2.报文版本不对， 3.及以上表示某一配置项配置失败,按配置项次序升序排列(类似系统信息的响应) */
+struct ykcm_fixed_cmd_info{
+    uint8_t msg_version;                         /* 报文版本(初始版本为0) */
+    struct{
+        uint8_t batvolt_detect : 1;              /* 电池电压检测(1：启用，0：禁用) */
+        uint8_t bcltimeout_detect : 1;           /* BCL超时检测(1：启用，0：禁用) */
+        uint8_t fast_protocol : 1;               /* FAST协议(1：启用，0：禁用) */
+        uint8_t cfc_protocol : 1;                /* CFC协议(1：启用，0：禁用) */
+        uint8_t bay_area_protocol : 1;           /* 湾区协议(1：启用，0：禁用) */
+        uint8_t reserve : 3;                     /* 预留 */
+    }info;
+};
+
+/** 动态类型指令信息配置 */
+/** 信息设置响应结果：0：成功  1：保存失败   2.报文版本不对， 3.及以上表示某一配置项配置失败,按配置项次序升序排列(类似系统信息的响应) */
+/** 平台下发修改或桩上报格式 */
+struct cmd_modify_segment{
+    uint8_t parameter_len;                       /* 参数长度 */
+    uint8_t cmd[17];                             /* 指令 */
+    uint8_t parameter[33];                       /* 参数 */
+};
+struct ykcm_dynamic_cmd_modify{
+    uint8_t msg_version;                         /* 报文版本(初始版本为0) */
+    uint8_t cmd_num;                             /* 指令个数 */
+    /** 以下是指令组数据 */
+    /** @struct cmd_modify_segment */
+};
+/** 动态类型指令-读，段 */
+struct cmd_read_segment{
+    uint8_t cmd[17];                                              /** 指令 */
+};
+/** 平台下发读取格式 */
+struct ykcm_dynamic_cmd_read{
+    uint8_t msg_version;                         /* 报文版本(初始版本为0) */
+    uint8_t cmd_num;                             /* 指令个数 */
+    /** 以下是指令码数据，每个指令码占17字节 */
 };
 
 /************************************* 7103/7101 *********************************************/

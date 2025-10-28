@@ -26,6 +26,12 @@
 #ifdef NET_PACK_USING_YKC_MONITOR
 
 #ifdef NET_YKC_MONITOR_AS_MONITOR
+
+#define YKC_MONITOR_FIXED_CMD_MSG_VER                     0x00                  /* 固定类型指令报文版本 */
+
+#define YKC_MONITOR_DYNAMIC_CMD_MSG_VER                   0x00                  /* 动态类型指令报文版本 */
+#define YKC_MONITOR_DYNAMIC_CMD_SINGLE_NUM                0x05                  /* 单次操作动态类型指令最大个数，超过的不执行，也不报错 */
+
 /** 启动中报文 */
 #define YKC_MONITOR_STARTING_BMS_MESSAGE_BHM              (0x01 <<0x00)         /* 是否接收到了BHM报文 */
 #define YKC_MONITOR_STARTING_BMS_MESSAGE_BRM              (0x01 <<0x01)         /* 是否接收到了BRM报文 */
@@ -6502,6 +6508,130 @@ static int32_t ykc_monitor_config_info_mode_select_v2g(uint8_t option, uint8_t g
     return 0x00;
 }
 
+/** 固定类型指令信息配置 */
+/*************************************************
+ * 函数名      ykc_monitor_config_info_fixed_cmd
+ * 功能          处理服务器下发的固定类型指令信息请求
+ * 返回          <0：失败(无效数据-系统故障，不执行响应)
+ *      =0：成功
+ *      >0：失败(作为失败原因进行响应)
+ * **********************************************/
+static int32_t ykc_monitor_config_info_fixed_cmd(uint8_t option, uint8_t gunno, void *data, uint16_t dlen, void *buf, uint16_t blen)
+{
+    if((buf == NULL) || (blen < sizeof(struct ykcm_fixed_cmd_info))){
+        LOG_E("ykcm input buf invalid with fixed cmd config|%d,%d", blen, sizeof(struct ykcm_fixed_cmd_info));
+        return (NETYKCM_CONFIG_RES_SYS_ITEM_ASSERT_BASE + 0x00);
+    }
+    /** 配置信息查询 */
+    if(option == NETYKCM_CONFIG_INFO_OPTION_QUERY){
+        struct ykcm_fixed_cmd_info *response = (struct ykcm_fixed_cmd_info*)buf;
+
+        /** 读的时候不限制版本信息 */
+        memset(response, 0x00, sizeof(struct ykcm_fixed_cmd_info));
+        response->msg_version = YKC_MONITOR_FIXED_CMD_MSG_VER;
+        response->info.batvolt_detect = *(sys_read_config_item_content(CONFIG_ITEM_SUPORT_BATVOLT_DETECT, 0x00));
+        response->info.bcltimeout_detect = *(sys_read_config_item_content(CONFIG_ITEM_SUPORT_BCLTIMOUT_DETECT, 0x00));
+        response->info.fast_protocol = *(sys_read_config_item_content(CONFIG_ITEM_SUPORT_FAST_PROTOCOL, 0x00));
+        response->info.cfc_protocol = *(sys_read_config_item_content(CONFIG_ITEM_SUPORT_YT_PROTOCOL, 0x00));
+        response->info.bay_area_protocol = *(sys_read_config_item_content(CONFIG_ITEM_SUPORT_BAY_PROTOCOL, 0x00));
+    }
+    /** 配置信息设置 */
+    else{
+        if((data == NULL) || (dlen < sizeof(struct ykcm_fixed_cmd_info))){
+            LOG_E("ykcm input data invalid with fixed cmd config|%d,%d", dlen, sizeof(struct ykcm_fixed_cmd_info));
+            return (NETYKCM_CONFIG_RES_SYS_ITEM_ASSERT_BASE + 0x02);
+        }
+        struct ykcm_fixed_cmd_info *info = (struct ykcm_fixed_cmd_info*)data;
+
+        if(YKC_MONITOR_FIXED_CMD_MSG_VER != info->msg_version){
+            LOG_E("ykcm fixed cmd config msg version error|%d,%d", YKC_MONITOR_FIXED_CMD_MSG_VER, info->msg_version);
+            return (NETYKCM_CONFIG_RES_ITEM_FAIL_BASE + 0x00);
+        }
+
+        /** 针对所有枪 */
+        if(gunno == 0xFF){
+            return ykc_monitor_config_execute(0x00, THAISEN_CONFIG_PAGE_FIXED_CMD_INFO, data, NULL, NULL);
+        }else{
+            return ykc_monitor_config_execute((gunno - 0x01), THAISEN_CONFIG_PAGE_FIXED_CMD_INFO, data, NULL, NULL);
+        }
+    }
+
+    return 0x00;
+}
+
+/** 动态类型指令信息配置 */
+/*************************************************
+ * 函数名      ykc_monitor_config_info_dynamic_cmd
+ * 功能          处理服务器下发的动态类型指令信息请求
+ * 返回          <0：失败(无效数据-系统故障，不执行响应)
+ *      =0：成功
+ *      >0：失败(作为失败原因进行响应)
+ * **********************************************/
+static int32_t ykc_monitor_config_info_dynamic_cmd(uint8_t option, uint8_t gunno, void *data, uint16_t dlen, void *buf, uint16_t blen)
+{
+    if((buf == NULL) || (blen < sizeof(struct ykcm_fixed_cmd_info))){
+        LOG_E("ykcm input buf invalid with dynamic cmd config|%d,%d", blen, sizeof(struct ykcm_fixed_cmd_info));
+        return (NETYKCM_CONFIG_RES_SYS_ITEM_ASSERT_BASE + 0x00);
+    }
+    /** 配置信息查询 */
+    if(option == NETYKCM_CONFIG_INFO_OPTION_QUERY){
+        struct ykcm_dynamic_cmd_read *info = (struct ykcm_dynamic_cmd_read*)data;
+        struct ykcm_dynamic_cmd_modify *response = (struct ykcm_dynamic_cmd_modify*)buf;
+
+        if(info->cmd_num > YKC_MONITOR_DYNAMIC_CMD_SINGLE_NUM){
+            info->cmd_num = YKC_MONITOR_DYNAMIC_CMD_SINGLE_NUM;
+        }
+        /** 读的时候不限制版本信息 */
+        memset(response, 0x00, blen);
+        response->msg_version = YKC_MONITOR_DYNAMIC_CMD_MSG_VER;
+        response->cmd_num = info->cmd_num;
+
+        /** 在此处回调用以从业务获取指令信息 */
+        /** 针对所有枪 */
+        if(gunno == 0xFF){
+            ykc_monitor_config_execute(0x00, THAISEN_CONFIG_PAGE_DYNAMIC_CMD_INFO_READ, response, &blen, data);
+        }else{
+            ykc_monitor_config_execute((gunno - 0x01), THAISEN_CONFIG_PAGE_DYNAMIC_CMD_INFO_READ, response, &blen, data);
+        }
+    }
+    /** 配置信息设置 */
+    else{
+        if(data == NULL){
+            LOG_E("00000 ykcm input data invalid with dynamic cmd config|%d", data);
+            return (NETYKCM_CONFIG_RES_SYS_ITEM_ASSERT_BASE + 0x02);
+        }
+        int32_t ret = 0x00;
+        struct ykcm_dynamic_cmd_modify *info = (struct ykcm_dynamic_cmd_modify*)data;
+        /** 检查版本信息 */
+        if(YKC_MONITOR_DYNAMIC_CMD_MSG_VER != info->msg_version){
+            LOG_E("ykcm dynamic cmd config msg version error|%d,%d", YKC_MONITOR_DYNAMIC_CMD_MSG_VER, info->msg_version);
+            return (NETYKCM_CONFIG_RES_ITEM_FAIL_BASE + 0x00);
+        }
+        /** 限制单次操作指令数量 */
+        if(info->cmd_num > YKC_MONITOR_DYNAMIC_CMD_SINGLE_NUM){
+            info->cmd_num = YKC_MONITOR_DYNAMIC_CMD_SINGLE_NUM;
+        }
+        /** 报文总长度不对 */
+        if(dlen < (sizeof(struct ykcm_dynamic_cmd_modify) + (info->cmd_num *sizeof(struct cmd_modify_segment)))){
+            LOG_E("11111 ykcm input data invalid with dynamic cmd config|%d, %d", dlen, info->cmd_num);
+            return (NETYKCM_CONFIG_RES_SYS_ITEM_ASSERT_BASE + 0x02);
+        }
+
+        /** 针对所有枪 */
+        if(gunno == 0xFF){
+            ret = ykc_monitor_config_execute(0x00, THAISEN_CONFIG_PAGE_DYNAMIC_CMD_INFO_ISSUE, data, NULL, NULL);
+        }else{
+            ret = ykc_monitor_config_execute((gunno - 0x01), THAISEN_CONFIG_PAGE_DYNAMIC_CMD_INFO_ISSUE, data, NULL, NULL);
+        }
+        if(ret >= NETYKCM_CONFIG_RES_ITEM_FAIL_BASE){
+            ret++;
+        }
+        return ret;
+    }
+
+    return 0x00;
+}
+
 /*************************************************
  * 函数名      ykc_monitor_config_info_process
  * 功能          处理服务器下发的配置信息修改、查询请求
@@ -6659,6 +6789,27 @@ int8_t ykc_monitor_config_info_process(void *data, uint16_t dlen, void *buf, uin
                 ((uint8_t*)&request->body.option + 0x01), cdata_len, ((uint8_t*)&response->body.option + 0x01), rbuf_len);
         if(request->body.option == NETYKCM_CONFIG_INFO_OPTION_QUERY){
             out_len += sizeof(struct ykcm_mode_select_v2g);
+        }
+        break;
+    case NETYKCM_CONFIG_INFO_DYNAMIC_CMD_INFO:
+        LOG_D("ykcm config info query set --- dynamic cmd info(%d)", request->body.option);
+        ret = ykc_monitor_config_info_dynamic_cmd(request->body.option, request->body.gunno, \
+                ((uint8_t*)&request->body.option + 0x01), cdata_len, ((uint8_t*)&response->body.option + 0x01), rbuf_len);
+        if(request->body.option == NETYKCM_CONFIG_INFO_OPTION_QUERY){
+            /** 获取报文数据部分长度 */
+            struct ykcm_dynamic_cmd_modify *info = (struct ykcm_dynamic_cmd_modify*)((uint8_t*)&response->body.option + 0x01);
+            if(info->cmd_num > YKC_MONITOR_DYNAMIC_CMD_SINGLE_NUM){
+                info->cmd_num = YKC_MONITOR_DYNAMIC_CMD_SINGLE_NUM;
+            }
+            out_len += (sizeof(struct ykcm_dynamic_cmd_modify) + (info->cmd_num *sizeof(struct cmd_modify_segment)));
+        }
+        break;
+    case NETYKCM_CONFIG_INFO_FIXED_CMD_INFO:
+        LOG_D("ykcm config info query set --- fixed cmd info(%d)", request->body.option);
+        ret = ykc_monitor_config_info_fixed_cmd(request->body.option, request->body.gunno, \
+                ((uint8_t*)&request->body.option + 0x01), cdata_len, ((uint8_t*)&response->body.option + 0x01), rbuf_len);
+        if(request->body.option == NETYKCM_CONFIG_INFO_OPTION_QUERY){
+            out_len += sizeof(struct ykcm_fixed_cmd_info);
         }
         break;
     default:
