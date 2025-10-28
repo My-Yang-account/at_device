@@ -150,6 +150,12 @@ typedef struct{
     uint16_t cc1_6_min;                                           /** CC1 6V 下限(100倍) */
     uint16_t cc1_4_max;                                           /** CC1 4V 上限(100倍) */
     uint16_t cc1_4_min;                                           /** CC1 4V 下限(100倍) */
+    /**  新增：2025/10/28*/
+    uint32_t out_overvolt;                                        /** 输出过压值(0.01V) */
+    uint32_t out_undervolt;                                       /** 输出欠压值(0.01V) */
+    uint32_t in_overvolt;                                         /** 输入过压值(0.01V) */
+    uint16_t in_undervolt;                                        /** 输入欠压值(0.01V) */
+    uint32_t out_overcurr;                                        /** 输出过流值(0.01A) */
 }thaisen_cfg_info_protect;
 /** 参数配置页面:屏幕-设置-出厂设置-功能配置 */
 typedef struct{

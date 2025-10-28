@@ -1748,6 +1748,11 @@ static s32 SerialScreen_ConfigExecute_Protect(u8 port, void *data, void *sub_dat
     LcdData.setData.OverTemp_Resume = config->overtemp_recovery;
     LcdData.setData.OverTemp_LimitCurr = config->overtemp_limitcur;
 
+    LcdData.setData.Onput_OverVolt = config->out_overvolt *10;
+    LcdData.setData.Onput_UnderVolt = config->out_undervolt *10;
+    LcdData.setData.Input_OverVolt = config->in_overvolt *10;
+    LcdData.setData.Input_UnderVolt = config->in_undervolt *10;
+    LcdData.setData.Onput_OverCurr = config->out_overcurr *10;
     /** 保护信息有效性判断 */
     SerialScreen_BtnProtectInfoJudge(&ret);
     if(ret != 0){
@@ -3918,6 +3923,11 @@ static void SerialScreen_BtnProtectInfoJudge(u32 *ret)
 #define SSCREEN_STOP_SOC_POSITION                           5   /* 停充 SOC在结构体 thaisen_cfg_info_protect 中的成员次序(从0开始)  */
 #define SSCREEN_POWER_PERCENT_POSITION                      6   /* 功率百分比在结构体 thaisen_cfg_info_protect 中的成员次序(从0开始)  */
 #define SSCREEN_ELOSS_PROPROTION_POSITION                   7   /* 电损比在结构体 thaisen_cfg_info_protect 中的成员次序(从0开始)  */
+#define SSCREEN_OUT_OV_POSITION                             14  /* 输出过压值在结构体 thaisen_cfg_info_protect 中的成员次序(从0开始)  */
+#define SSCREEN_OUT_UV_POSITION                             15  /* 输出欠压值在结构体 thaisen_cfg_info_protect 中的成员次序(从0开始)  */
+#define SSCREEN_IN_OV_POSITION                              16  /* 输入过压值在结构体 thaisen_cfg_info_protect 中的成员次序(从0开始)  */
+#define SSCREEN_IN_UV_POSITION                              17  /* 输入欠压值在结构体 thaisen_cfg_info_protect 中的成员次序(从0开始)  */
+#define SSCREEN_OUT_OC_POSITION                             18  /* 输出过流值在结构体 thaisen_cfg_info_protect 中的成员次序(从0开始)  */
 
     u32 result = 0;
     u32 Stop_SOC = 0;
@@ -3977,23 +3987,23 @@ static void SerialScreen_BtnProtectInfoJudge(u32 *ret)
 
     if((LcdData.setData.Input_OverVolt < CHARGEPILE_INPUT_OVERVOLT_MIN) || (LcdData.setData.Input_OverVolt > CHARGEPILE_INPUT_OVERVOLT_MAX)){
         LcdData.setData.Input_OverVolt = CHARGEPILE_INPUT_OVERVOLT_DEF;
-//        result |= (1 <<SSCREEN_ELOSS_PROPROTION_POSITION);
+        result |= (1 <<SSCREEN_IN_OV_POSITION);
     }
     if((LcdData.setData.Input_UnderVolt < CHARGEPILE_INPUT_UNDERVOLT_MIN) || (LcdData.setData.Input_UnderVolt > CHARGEPILE_INPUT_UNDERVOLT_MAX)){
         LcdData.setData.Input_UnderVolt = CHARGEPILE_INPUT_UNDERVOLT_DEF;
-//        result |= (1 <<SSCREEN_ELOSS_PROPROTION_POSITION);
+        result |= (1 <<SSCREEN_IN_UV_POSITION);
     }
     if((LcdData.setData.Onput_OverVolt < CHARGEPILE_OUTPUT_OVERVOLT_MIN) || (LcdData.setData.Onput_OverVolt > CHARGEPILE_OUTPUT_OVERVOLT_MAX)){
         LcdData.setData.Onput_OverVolt = CHARGEPILE_OUTPUT_OVERVOLT_DEF;
-//        result |= (1 <<SSCREEN_ELOSS_PROPROTION_POSITION);
+        result |= (1 <<SSCREEN_OUT_OV_POSITION);
     }
     if((LcdData.setData.Onput_UnderVolt < CHARGEPILE_OUTPUT_UNDERVOLT_MIN) || (LcdData.setData.Onput_UnderVolt > CHARGEPILE_OUTPUT_UNDERVOLT_MAX)){
         LcdData.setData.Onput_UnderVolt = CHARGEPILE_OUTPUT_UNDERVOLT_DEF;
-//        result |= (1 <<SSCREEN_ELOSS_PROPROTION_POSITION);
+        result |= (1 <<SSCREEN_OUT_UV_POSITION);
     }
     if((LcdData.setData.Onput_OverCurr < CHARGEPILE_OUTPUT_OVERCURR_MIN) || (LcdData.setData.Onput_OverCurr > CHARGEPILE_OUTPUT_OVERCURR_MAX)){
         LcdData.setData.Onput_OverCurr = CHARGEPILE_OUTPUT_OVERCURR_DEF;
-//        result |= (1 <<SSCREEN_ELOSS_PROPROTION_POSITION);
+        result |= (1 <<SSCREEN_OUT_OC_POSITION);
     }
 
     LcdData.setData.Stop_SOC = Stop_SOC;
@@ -4014,6 +4024,11 @@ static void SerialScreen_BtnProtectInfoJudge(u32 *ret)
 #undef SSCREEN_STOP_SOC_POSITION
 #undef SSCREEN_POWER_PERCENT_POSITION
 #undef SSCREEN_ELOSS_PROPROTION_POSITION
+#undef SSCREEN_OUT_OV_POSITION
+#undef SSCREEN_OUT_UV_POSITION
+#undef SSCREEN_IN_OV_POSITION
+#undef SSCREEN_IN_UV_POSITION
+#undef SSCREEN_OUT_OC_POSITION
 }
 
 void SerialScreen_BtnProtectInfoSet(void)

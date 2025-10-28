@@ -1916,6 +1916,12 @@ struct ykcm_protect_info{
     uint16_t cc1_6_min;                          /* CC1 6V 下限(100倍) */
     uint16_t cc1_4_max;                          /* CC1 4V 上限(100倍) */
     uint16_t cc1_4_min;                          /* CC1 4V 下限(100倍) */
+    /**  新增：2025/10/28*/
+    uint32_t out_overvolt;                       /* 输出过压值(0.01V) */
+    uint32_t out_undervolt;                      /* 输出欠压值(0.01V) */
+    uint32_t in_overvolt;                        /* 输入过压值(0.01V) */
+    uint16_t in_undervolt;                       /* 输入欠压值(0.01V) */
+    uint32_t out_overcurr;                       /* 输出过流值(0.01A) */
 };
 /** 功能配置 */
 /** 信息设置响应结果：0：成功  1：保存失败   2及以上表示某一配置项配置失败,按配置项次序升序排列(类似系统信息的响应) */

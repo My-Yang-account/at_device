@@ -5721,6 +5721,11 @@ static int32_t ykc_monitor_config_info_process_protect_info(uint8_t option, void
         response->cc1_6_min = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_CC16V_MIN, 0x00));
         response->cc1_4_max = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_CC14V_MAX, 0x00));
         response->cc1_4_min = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_CC14V_MIN, 0x00));
+        response->out_overvolt = (*(uint32_t*)(sys_read_config_item_content(CONFIG_ITEM_OUTPUT_OVERVOL, 0x00)) /10);
+        response->out_undervolt = (*(uint32_t*)(sys_read_config_item_content(CONFIG_ITEM_OUTPUT_UNDERVOL, 0x00)) /10);
+        response->in_overvolt = (*(uint32_t*)(sys_read_config_item_content(CONFIG_ITEM_INPUT_OVERVOL, 0x00)) /10);
+        response->in_undervolt = (*(uint32_t*)(sys_read_config_item_content(CONFIG_ITEM_INPUT_UNDERVOL, 0x00)) /10);
+        response->out_overcurr = (*(uint32_t*)(sys_read_config_item_content(CONFIG_ITEM_OUTPUT_OVERCUR, 0x00)) /10);
     }
     /** 配置信息设置 */
     else{
@@ -5771,6 +5776,21 @@ static int32_t ykc_monitor_config_info_process_protect_info(uint8_t option, void
         }
         if(ykc_monitor_is_config_data_valid(&info->cc1_4_min, sizeof(info->cc1_4_min), 0x00) == NET_ENUM_FALSE){
             info->cc1_4_min = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_CC14V_MIN, 0x00));
+        }
+        if(ykc_monitor_is_config_data_valid(&info->out_overvolt, sizeof(info->out_overvolt), 0x00) == NET_ENUM_FALSE){
+            info->out_overvolt = *(uint32_t*)(sys_read_config_item_content(CONFIG_ITEM_OUTPUT_OVERVOL, 0x00));
+        }
+        if(ykc_monitor_is_config_data_valid(&info->out_undervolt, sizeof(info->out_undervolt), 0x00) == NET_ENUM_FALSE){
+            info->out_undervolt = *(uint32_t*)(sys_read_config_item_content(CONFIG_ITEM_OUTPUT_UNDERVOL, 0x00));
+        }
+        if(ykc_monitor_is_config_data_valid(&info->in_overvolt, sizeof(info->in_overvolt), 0x00) == NET_ENUM_FALSE){
+            info->in_overvolt = *(uint32_t*)(sys_read_config_item_content(CONFIG_ITEM_INPUT_OVERVOL, 0x00));
+        }
+        if(ykc_monitor_is_config_data_valid(&info->in_undervolt, sizeof(info->in_undervolt), 0x00) == NET_ENUM_FALSE){
+            info->in_undervolt = *(uint32_t*)(sys_read_config_item_content(CONFIG_ITEM_INPUT_UNDERVOL, 0x00));
+        }
+        if(ykc_monitor_is_config_data_valid(&info->out_overcurr, sizeof(info->out_overcurr), 0x00) == NET_ENUM_FALSE){
+            info->out_overcurr = *(uint32_t*)(sys_read_config_item_content(CONFIG_ITEM_OUTPUT_OVERCUR, 0x00));
         }
 
         return ykc_monitor_config_execute(0x00, THAISEN_CONFIG_PAGE_PROTECT_INFO, data, NULL, NULL);
