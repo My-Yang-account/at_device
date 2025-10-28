@@ -3362,7 +3362,8 @@ static void ykc_monitor_data_realtime_process(uint8_t gunno, System_BaseData* ba
 
         /*********************************** 充电中信息 ************************************/
         /*********************************** 充电中信息 ************************************/
-        if(base->state.current == APP_OFSM_STATE_CHARGING){
+        if((base->state.current == APP_OFSM_STATE_CHARGING) || \
+                ((base->state.current == APP_OFSM_STATE_STOPING) && (base->flag.start_result == NET_ENUM_TRUE))){
             if((rt_tick_get() - s_ykc_monitor_charging_info[gunno].base_tick) > 1500){   /** 1.5秒采一次数据 */
                 ykc_monitor_padding_charging_info(gunno);
                 s_ykc_monitor_charging_info[gunno].base_tick = rt_tick_get();
