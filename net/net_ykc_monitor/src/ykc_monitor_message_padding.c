@@ -3625,8 +3625,8 @@ static void ykc_monitor_realtime_process_thread_entry(void *parameter)
                 if(s_ykc_monitor_device_status_changed[gunno].delay_count < (0xFF - 0x01)){
                     s_ykc_monitor_device_status_changed[gunno].delay_count++;
                 }
-                /** 连续2s内器件控制状态无变化再上报反馈状态(线程运行时间100ms) */
-                if(s_ykc_monitor_device_status_changed[gunno].delay_count > (2000 /100)){
+                /** 连续4s内器件控制状态无变化再上报反馈状态(线程运行时间100ms) */
+                if(s_ykc_monitor_device_status_changed[gunno].delay_count > (4000 /100)){
                     rt_enter_critical();
                     /** 防止其它线程修改 delay_count */
                     if(s_ykc_monitor_device_status_changed[gunno].delay_count > (2000 /100)){
