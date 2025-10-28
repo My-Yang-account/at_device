@@ -2392,13 +2392,13 @@ static s32 SerialScreen_ConfigExecute_GunOutput_7104(u8 port, void *data, void *
 }
 
 /*******************************************************************
- * 函数名      SerialScreen_CmdDebugInfoJudge
- * 功能         外部触发执行指令调试配置
+ * 函数名      SerialScreen_ConfigExecute_FixedCmdDebug
+ * 功能         外部触发执行固定类型指令调试配置
  * 参数          data         配置数据
  *         port         枪口号
  * 返回          <0:配置失败(参数无效)，=0:配置成功  1:配置存储失败， >1:写入配置成功，但是写入的内容与输入的内容有差异
  *******************************************************************/
-static s32 SerialScreen_ConfigExecute_CmdDebugCtrl(u8 port, void *data, void *sub_data, void *sub_sub_data)  //OK
+static s32 SerialScreen_ConfigExecute_FixedCmdDebug(u8 port, void *data, void *sub_data, void *sub_sub_data)  //OK
 {
     u32 ret = 0;
     thaisen_cfg_fixed_cmd_debug *config = (thaisen_cfg_fixed_cmd_debug*)data;
@@ -2420,6 +2420,122 @@ static s32 SerialScreen_ConfigExecute_CmdDebugCtrl(u8 port, void *data, void *su
     SerialScreen_CmdDebugInfoSet();
 
     return LcdAssistantData.Flag.IsConfigFail;
+}
+
+/*******************************************************************
+ * 函数名      SerialScreen_ConfigExecute_DynamicCmdDebugModify
+ * 功能         外部触发执行动态类型指令调试配置-修改
+ * 参数          data         配置数据
+ *         port         枪口号
+ * 返回          <0:配置失败(参数无效)，=0:配置成功  1:配置存储失败， >1:写入配置成功，但是写入的内容与输入的内容有差异
+ *******************************************************************/
+static s32 SerialScreen_ConfigExecute_DynamicCmdDebugModify(u8 port, void *data, void *sub_data, void *sub_sub_data)  //OK
+{
+    u32 ret = 0;
+    u8 DebugCmdParaLen = sizeof(LcdData.setData.DebugCmdPara);
+    thaisen_dynamic_cmd_modify *config = (thaisen_dynamic_cmd_modify*)data;
+    thaisen_dynamic_cmd_modify_segment *config_segment = (thaisen_dynamic_cmd_modify_segment*)((u8*)&config->cmd_num + 1);
+
+    for(u8 i = 0; i < config->cmd_num; i++){
+        /** 模块最大输出电流 */
+        if((memcmp(config_segment[i].cmd, "MCMAX", strlen("MCMAX")) == 0) && (strlen((char*)config_segment[i].cmd) == strlen("MCMAX"))){
+            if(strlen((char*)config_segment[i].parameter) == 0x00){
+                /** 参数非法，配置失败 */
+                return (i + THAISEN_CONFIG_FAIL_OFFSET);
+            }
+            memset(LcdData.setData.DebugCmd, 0, sizeof(LcdData.setData.DebugCmd));
+            memset(LcdData.setData.DebugCmdPara, 0, sizeof(LcdData.setData.DebugCmdPara));
+
+            memcpy(LcdData.setData.DebugCmd, "MCMAX", strlen("MCMAX"));
+            if(config_segment[i].parameter_len > DebugCmdParaLen){
+                memcpy(LcdData.setData.DebugCmdPara, config_segment[i].parameter, DebugCmdParaLen);
+            }else{
+                memcpy(LcdData.setData.DebugCmdPara, config_segment[i].parameter, config_segment[i].parameter_len);
+            }
+            /** 同步指令信息 */
+            SerialScreen_CmdDebugIssue();
+        }
+        /** 测试 */
+        else if((memcmp(config_segment[i].cmd, "TEST", strlen("TEST")) == 0) && (strlen((char*)config_segment[i].cmd) == strlen("TEST"))){
+            if(strlen((char*)config_segment[i].parameter) == 0x00){
+                /** 参数非法，配置失败 */
+                return (i + THAISEN_CONFIG_FAIL_OFFSET);
+            }
+            memset(LcdData.setData.DebugCmd, 0, sizeof(LcdData.setData.DebugCmd));
+            memset(LcdData.setData.DebugCmdPara, 0, sizeof(LcdData.setData.DebugCmdPara));
+
+            memcpy(LcdData.setData.DebugCmd, "TEST", strlen("TEST"));
+            if(config_segment[i].parameter_len > DebugCmdParaLen){
+                memcpy(LcdData.setData.DebugCmdPara, config_segment[i].parameter, DebugCmdParaLen);
+            }else{
+                memcpy(LcdData.setData.DebugCmdPara, config_segment[i].parameter, config_segment[i].parameter_len);
+            }
+            /** 同步指令信息 */
+            SerialScreen_CmdDebugIssue();
+        }else{
+            /** 没有这个指令，配置失败 */
+            return (i + THAISEN_CONFIG_FAIL_OFFSET);
+        }
+    }
+
+    /** 功能配置信息有效性判断 */
+    SerialScreen_CmdDebugInfoJudge(&ret);
+    if(ret != 0){
+        for(u8 i = 0; i < 32; i++){
+            if(ret &(1 <<i))   return (i + THAISEN_CONFIG_FAIL_OFFSET);
+        }
+    }
+    LcdAssistantData.SeveralGunFlag[LCD_GUN_1].DataIsVerify = TRUE;
+    SerialScreen_CmdDebugInfoSet();
+
+    return LcdAssistantData.Flag.IsConfigFail;
+}
+
+/*******************************************************************
+ * 函数名      SerialScreen_ConfigExecute_DynamicCmdDebugRead
+ * 功能         外部触发执行动态类型指令调试配置-读取
+ * 参数          data         配置数据
+ *         port         枪口号
+ * 返回          <0:配置失败(参数无效)，=0:配置成功  1:配置存储失败， >1:写入配置成功，但是写入的内容与输入的内容有差异
+ *******************************************************************/
+static s32 SerialScreen_ConfigExecute_DynamicCmdDebugRead(u8 port, void *data, void *sub_data, void *sub_sub_data)  //OK
+{
+    u16 iblen = *(u16*)sub_data;
+    thaisen_dynamic_cmd_read *cmd = (thaisen_dynamic_cmd_read*)sub_sub_data;
+    thaisen_dynamic_cmd_read_segment *read_segment = (thaisen_dynamic_cmd_read_segment*)((u8*)&cmd->cmd_num + 1);
+
+    thaisen_dynamic_cmd_modify *config = (thaisen_dynamic_cmd_modify*)data;
+    thaisen_dynamic_cmd_modify_segment *config_segment = (thaisen_dynamic_cmd_modify_segment*)((u8*)&config->cmd_num + 1);
+
+    if(iblen < sizeof(thaisen_dynamic_cmd_read)){
+        iblen = 0;
+    }else{
+        iblen -= sizeof(thaisen_dynamic_cmd_read);
+    }
+    /** 单次读取数量不能大于总数量 */
+    if(config->cmd_num > (THAISEN_DEBUG_CMD_SIZE /2)){
+        config->cmd_num = (THAISEN_DEBUG_CMD_SIZE /2);
+    }
+    /** 判断缓存是否能够保存指定数量的指令段 */
+    if(config->cmd_num > (iblen /sizeof(thaisen_dynamic_cmd_modify_segment))){
+        config->cmd_num = (iblen /sizeof(thaisen_dynamic_cmd_modify_segment));
+    }
+
+    for(u8 i = 0; i < config->cmd_num; i++){
+        /** 模块最大输出电流 */
+        if((memcmp(read_segment[i].cmd, "MCMAX", strlen("MCMAX")) == 0) && (strlen((char*)read_segment[i].cmd) == strlen("MCMAX"))){
+            sprintf((char*)config_segment[i].parameter, "%u", LcdData.setData.DebugCmdPara_MCMax);
+            config_segment[i].parameter_len = strlen((char*)config_segment[i].parameter);
+        }
+        /** 测试 */
+        else if((memcmp(read_segment[i].cmd, "TEST", strlen("TEST")) == 0) && (strlen((char*)read_segment[i].cmd) == strlen("TEST"))){
+            sprintf((char*)config_segment[i].parameter, "%u", LcdData.setData.DebugCmdPara_Test);
+            config_segment[i].parameter_len = strlen((char*)config_segment[i].parameter);
+        }
+        memcpy(config_segment[i].cmd, read_segment[i].cmd, sizeof(read_segment[i].cmd));
+    }
+
+    return 0;
 }
 
 /*******************************************************************************************
@@ -4416,6 +4532,8 @@ void SerialScreen_V2GIsSupportSet(void)
         LcdData.setData.Icon_SupV2G = FALSE;
 }
 
+void SerialScreen_CmdDebugIssue(void);
+
 static void SerialScreen_CmdDebugInfoJudge(u32 *ret)
 {
 #define SSCREEN_BATVOLT_DETECT_POSITION                            0   /* 指令调试控制信息配置失败原因：电池电压检测配置  */
@@ -4562,6 +4680,9 @@ void SerialScreen_CmdDebugInfoGet(void)
     if(LcdData.setData.sup_SupBayProtocol){
         LcdData.setData.Icon_SupBayProtocol = TRUE;
     }
+
+    LcdData.setData.DebugCmdPara_TestTemp = LcdData.setData.DebugCmdPara_Test;
+    LcdData.setData.DebugCmdPara_MCMaxTemp = LcdData.setData.DebugCmdPara_MCMax;
 }
 
 void SerialScreen_CmdDebugIssue(void)
@@ -13235,6 +13356,9 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     LcdConfigExecutPool[THAISEN_CONFIG_PAGE_GUN_OUTPUT_7104_INFO] = SerialScreen_ConfigExecute_GunOutput_7104;
     LcdConfigExecutPool[THAISEN_CONFIG_PAGE_MODE_SELECT_NORMAL] = SerialScreen_ConfigExecute_NormalMode;
     LcdConfigExecutPool[THAISEN_CONFIG_PAGE_MODE_SELECT_V2G] = SerialScreen_ConfigExecute_V2GMode;
+    LcdConfigExecutPool[THAISEN_CONFIG_PAGE_DYNAMIC_CMD_INFO_ISSUE] = SerialScreen_ConfigExecute_DynamicCmdDebugModify;
+    LcdConfigExecutPool[THAISEN_CONFIG_PAGE_DYNAMIC_CMD_INFO_READ] = SerialScreen_ConfigExecute_DynamicCmdDebugRead;
+    LcdConfigExecutPool[THAISEN_CONFIG_PAGE_FIXED_CMD_INFO] = SerialScreen_ConfigExecute_FixedCmdDebug;
 
     return SerialScreen.Initialize(&SerialScreen);
 }

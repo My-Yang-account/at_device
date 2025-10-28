@@ -65,6 +65,9 @@ typedef enum{
     THAISEN_CONFIG_PAGE_GUN_OUTPUT_7104_INFO,                     /** 屏幕配置页：枪输出信息(7104) */
     THAISEN_CONFIG_PAGE_MODE_SELECT_NORMAL,                       /** 配置信息类型：模式选择：正常模式 */
     THAISEN_CONFIG_PAGE_MODE_SELECT_V2G,                          /** 配置信息类型：模式选择：V2G模式 */
+    THAISEN_CONFIG_PAGE_DYNAMIC_CMD_INFO_ISSUE,                   /** 配置信息类型：动态类型指令信息-下发 */
+    THAISEN_CONFIG_PAGE_DYNAMIC_CMD_INFO_READ,                    /** 配置信息类型：动态类型指令信息-读取 */
+    THAISEN_CONFIG_PAGE_FIXED_CMD_INFO,                           /** 配置信息类型：固定类型指令信息 */
     THAISEN_CONFIG_PAGE_SIZE,                                     /** 屏幕配置页： */
 }thaisen_cfg_page;
 
@@ -208,6 +211,7 @@ typedef struct{
 typedef struct{
     uint8_t mode;                                /** 当前模式 */
 }thaisen_mode_select_v2g;
+
 /** 参数配置页面:屏幕-设置-出厂设置-固定类型指令调试修改 */
 typedef struct{
     uint8_t msg_version;                                          /** 报文版本(初始版本为0) */
@@ -220,6 +224,33 @@ typedef struct{
         uint8_t reserve : 3;                                      /** 预留 */
     }info;
 }thaisen_cfg_fixed_cmd_debug;
+
+/** 参数配置页面:屏幕-设置-出厂设置-动态类型指令调试 */
+/** 动态类型指令-修改，段 */
+typedef struct{
+    uint8_t parameter_len;                                        /** 参数长度 */
+    uint8_t cmd[17];                                              /** 指令 */
+    uint8_t parameter[33];                                        /** 参数 */
+}thaisen_dynamic_cmd_modify_segment;
+/** 动态类型指令修改 */
+typedef struct{
+    uint8_t msg_version;                                          /** 报文版本(初始版本为0) */
+    uint8_t cmd_num;                                              /** 指令个数 */
+    /** 以下是指令组数据 */
+    /** thaisen_dynamic_cmd_modify_segment */
+}thaisen_dynamic_cmd_modify;
+
+/** 动态类型指令-读，段 */
+typedef struct{
+    uint8_t cmd[17];                                              /** 指令 */
+}thaisen_dynamic_cmd_read_segment;
+/** 动态类型指令读取 */
+typedef struct{
+    uint8_t msg_version;                                          /** 报文版本(初始版本为0) */
+    uint8_t cmd_num;                                              /** 指令个数 */
+    /** 以下是指令码数据，每个指令码占17字节 */
+    /** @thaisen_dynamic_cmd_segment */
+}thaisen_dynamic_cmd_read;
 
 /************************************* 7103/7101 *********************************************/
 /** 参数配置页面:屏幕-设置-出厂设置-输入信息 */
