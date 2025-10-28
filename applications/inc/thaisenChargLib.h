@@ -252,6 +252,30 @@ typedef enum
  */
 thaisenCommuTimeoutEnum thaisenGetCommuTimeoutDetailed(uint8_t gunNum);
 
+/*****************************启动或充电中正在等待的车的报文*****************************************/
+typedef enum
+{
+    THAISEN_WAITING_MSG_BHM,
+    THAISEN_WAITING_MSG_BRM,
+    THAISEN_WAITING_MSG_BCP,
+    THAISEN_WAITING_MSG_BRO,
+    THAISEN_WAITING_MSG_BRO_AA,
+    THAISEN_WAITING_MSG_BCL,
+    THAISEN_WAITING_MSG_BCS,
+    THAISEN_WAITING_MSG_SIZE,
+}thaisenWaitingMsgEnum;
+
+/* 功能说明:
+ *          thaisenGetWaitingMsgDetailed:获取启动或充电中正在等待的车的报文
+ * 输入参数:
+ *                  gunNum:充电枪号
+ * 返回参数:
+ *         启动或充电中正在等待的车的报文@thaisenWaitingMsgEnum(枪号不对返回THAISEN_WAITING_MSG_SIZE)
+ * 调用方法:
+ *          充电结束调用
+ */
+thaisenWaitingMsgEnum thaisenGetWaitingMsgDetailed(uint8_t gunNum);
+
 /*****************************报文接收情况(1：收到  0：未收到)*****************************************/
 typedef struct
 {
@@ -534,6 +558,9 @@ typedef enum
 {
     thaisenChargFunctionEnable_NoOffset,                  /** 功能使能：无电流偏移协议 */
     thaisenChargFunctionEnable_YuTong,                    /** 功能使能：宇通 协议 */
+    thaisenChargFunctionEnable_BayArea,                   /** 功能使能：湾区 协议 */
+    thaisenChargFunctionEnable_BatVolt,                   /** 功能使能：预充电池电压检测 */
+    thaisenChargFunctionEnable_BCLTimeout,                /** 功能使能：BCL报文超时检测 */
     thaisenChargFunctionEnable_Size,                      /** 功能使能 */
 }thaisenChargFunctionEnable_t;
 

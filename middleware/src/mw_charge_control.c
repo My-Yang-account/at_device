@@ -181,41 +181,80 @@ uint8_t mw_charglib_clear_before_charge(uint8_t gunno)
 }
 
 /*****************************************************
- * 函数名    mw_charglib_set_no_offset_enable
- * 功能        设置无电流偏移协议使能状态
- * 参数        gunno    枪号
- *        state    状态(1：使能    0：不使能)
- * 返回        1：设置成功      0：设置失败
+* 函数名        mw_charglib_set_function_enable
+* 功能            设置功能使能状态
+* 参数            port       指定枪口
+*          function   功能
+*          state      使能状态(1：使能、0：不使能)
+* 返回
  ****************************************************/
-uint8_t mw_charglib_set_no_offset_enable(uint8_t gunno, uint8_t state)
+void mw_charglib_set_function_enable(uint8_t port, app_funcenable_t function, uint8_t state)
 {
-    if(gunno >= APP_SYSTEM_GUNNO_SIZE){
-        return 0x00;
+    if(port >= APP_SYSTEM_GUNNO_SIZE){
+        return;
     }
     thaisenChargCtrlHandle_t *handle = thaisenChargGetCtrlHandle();
 
-    if((handle == NULL) || (handle->SetupFunctionEnable == NULL)){
-        return 0x00;
+    if((handle == NULL) || (handle->SetupFunctionEnable == NULL))
+        return;
+
+    state = state > 0x01 ? 0x01 : state;
+    switch(function){
+    case APP_FUNCTION_NO_OFFSET:
+        handle->SetupFunctionEnable(port, thaisenChargFunctionEnable_NoOffset, state);
+        break;
+    case APP_FUNCTION_YUTONG:
+        handle->SetupFunctionEnable(port, thaisenChargFunctionEnable_YuTong, state);
+        break;
+    case APP_FUNCTION_BAY_AREA:
+        handle->SetupFunctionEnable(port, thaisenChargFunctionEnable_BayArea, state);
+        break;
+    case APP_FUNCTION_BATVOLT_DETECT:
+        handle->SetupFunctionEnable(port, thaisenChargFunctionEnable_BatVolt, state);
+        break;
+    case APP_FUNCTION_BCLTIMEOUT_DETECT:
+        handle->SetupFunctionEnable(port, thaisenChargFunctionEnable_BCLTimeout, state);
+        break;
+    default:
+        break;
     }
-    handle->SetupFunctionEnable(gunno, thaisenChargFunctionEnable_NoOffset, state);
 }
 
 /*****************************************************
- * 函数名    mw_charglib_set_yu_tong_enable
- * 功能        设置宇通协议使能状态
- * 参数        gunno    枪号
- *        state    状态(1：使能    0：不使能)
- * 返回        1：设置成功      0：设置失败
+* 函数名        mw_charglib_get_function_enable
+* 功能            获取功能使能状态
+* 参数            port       指定枪口
+*          function   功能
+* 返回            使能状态(1：使能、0：不使能)
  ****************************************************/
-uint8_t mw_charglib_set_yu_tong_enable(uint8_t gunno, uint8_t state)
+uint8_t mw_charglib_get_function_enable(uint8_t port, app_funcenable_t function)
 {
-    if(gunno >= APP_SYSTEM_GUNNO_SIZE){
+    if(port >= APP_SYSTEM_GUNNO_SIZE){
         return 0x00;
     }
     thaisenChargCtrlHandle_t *handle = thaisenChargGetCtrlHandle();
 
-    if((handle == NULL) || (handle->SetupFunctionEnable == NULL)){
+    if((handle == NULL) || (handle->QueryFunctionEnable == NULL))
         return 0x00;
+
+    switch(function){
+    case APP_FUNCTION_NO_OFFSET:
+        return handle->QueryFunctionEnable(port, thaisenChargFunctionEnable_NoOffset);
+        break;
+    case APP_FUNCTION_YUTONG:
+        return handle->QueryFunctionEnable(port, thaisenChargFunctionEnable_YuTong);
+        break;
+    case APP_FUNCTION_BAY_AREA:
+        return handle->QueryFunctionEnable(port, thaisenChargFunctionEnable_BayArea);
+        break;
+    case APP_FUNCTION_BATVOLT_DETECT:
+        return handle->QueryFunctionEnable(port, thaisenChargFunctionEnable_BatVolt);
+        break;
+    case APP_FUNCTION_BCLTIMEOUT_DETECT:
+        return handle->QueryFunctionEnable(port, thaisenChargFunctionEnable_BCLTimeout);
+        break;
+    default:
+        break;
     }
-    handle->SetupFunctionEnable(gunno, thaisenChargFunctionEnable_YuTong, state);
+    return 0x00;
 }

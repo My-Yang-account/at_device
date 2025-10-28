@@ -35,6 +35,16 @@ enum charge_state_t{
     APP_CHARGE_STATE_SIZE,                                     /* 枪号不对时返回此值 */
 };
 
+/** 功能使能 */
+typedef enum{
+    APP_FUNCTION_NO_OFFSET,                                    /* 电流无偏移协议 */
+    APP_FUNCTION_YUTONG,                                       /* 宇通 协议 */
+    APP_FUNCTION_BAY_AREA,                                     /* 湾区 协议 */
+    APP_FUNCTION_BATVOLT_DETECT,                               /* 预充电池电压检测 */
+    APP_FUNCTION_BCLTIMEOUT_DETECT,                            /* BCL报文超时检测 */
+    APP_FUNCTION_SIZE,                                         /* 功能使能 */
+}app_funcenable_t;
+
 void mw_charge_start_cmd(uint8_t gunno);
 void mw_charge_stop_cmd(uint8_t gunno);
 enum charge_state_t mw_get_charge_state(uint8_t gunno);
@@ -63,22 +73,23 @@ void mw_disable_dcrelay(uint8_t gunno);
 uint8_t mw_charglib_clear_before_charge(uint8_t gunno);
 
 /*****************************************************
- * 函数名    mw_charglib_set_no_offset_enable
- * 功能        设置无电流偏移协议使能状态
- * 参数        gunno    枪号
- *        state    状态(1：使能    0：不使能)
- * 返回        1：设置成功      0：设置失败
+* 函数名        mw_charglib_set_function_enable
+* 功能            设置功能使能状态
+* 参数            port       指定枪口
+*          function   功能
+*          state      使能状态(1：使能、0：不使能)
+* 返回
  ****************************************************/
-uint8_t mw_charglib_set_no_offset_enable(uint8_t gunno, uint8_t state);
+void mw_charglib_set_function_enable(uint8_t port, app_funcenable_t function, uint8_t state);
 
 /*****************************************************
- * 函数名    mw_charglib_set_yu_tong_enable
- * 功能        设置宇通协议使能状态
- * 参数        gunno    枪号
- *        state    状态(1：使能    0：不使能)
- * 返回        1：设置成功      0：设置失败
+* 函数名        mw_charglib_get_function_enable
+* 功能            获取功能使能状态
+* 参数            port       指定枪口
+*          function   功能
+* 返回            使能状态(1：使能、0：不使能)
  ****************************************************/
-uint8_t mw_charglib_set_yu_tong_enable(uint8_t gunno, uint8_t state);
+uint8_t mw_charglib_get_function_enable(uint8_t port, app_funcenable_t function);
 
 #ifdef __cplusplus
 }
