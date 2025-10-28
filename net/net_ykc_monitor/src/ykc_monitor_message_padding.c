@@ -56,7 +56,7 @@
 
 #define YKC_MONITOR_MFAULT_CHECK_PERIOD                   500                   /* 模块故障检测周期(ms)  */
 #define YKC_MONITOR_MFAULT_REPEAT_FAST_PERIOD             5000                  /* 模块故障快速上报周期(ms，用于上报信息无响应时)  */
-#define YKC_MONITOR_MFAULT_REPEAT_NORMAL_PERIOD           (60 *1000)            /* 模块故障正常上报周期(ms， 用于有故障时定时上报)  */
+#define YKC_MONITOR_MFAULT_REPEAT_NORMAL_PERIOD           (5 *60 *1000)         /* 模块故障正常上报周期(ms， 用于有故障时定时上报)  */
 
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
 
