@@ -140,7 +140,12 @@ void check_simcard_signal_strength(void)
 
 void ec20_at_device_reset(void)
 {
+    extern void app_net_occured_close_communicate_module(int fd);
     uint8_t rentry = 0x00;
+
+    app_net_occured_close_communicate_module(0);
+    rt_thread_mdelay(1000);
+
     LOG_E("ec20 AT device close");
     netdev_set_down(netdev_default);
 
@@ -1038,6 +1043,8 @@ static void ec20_init_thread_entry(void *parameter)
         /* wait ec20 startup finish, send AT every 500ms, if receive OK, SYNC success*/
         if (at_client_obj_wait_connect(client, EC20_WAIT_CONNECT_TIME))
         {
+            extern void app_net_occured_at_physics_error(int fd);
+            app_net_occured_at_physics_error(0);
             result = -RT_ETIMEOUT;
             goto __exit;
         }
@@ -1095,6 +1102,8 @@ static void ec20_init_thread_entry(void *parameter)
         }
 
         if(i == CPIN_RETRY){
+            extern void app_net_occured_cpin_lk_mac_error(int fd);
+            app_net_occured_cpin_lk_mac_error(0);
             LOG_E("%s device SIM card detection failed.", device->name);
             result = -RT_ERROR;
             goto __exit;
@@ -1112,6 +1121,8 @@ static void ec20_init_thread_entry(void *parameter)
             i++;
             if(i > CIMI_RETRY)
             {
+                extern void app_net_occured_cimi_lk_mac_error(int fd);
+                app_net_occured_cimi_lk_mac_error(0);
                 LOG_E("%s device read CIMI failed.", device->name);
                 result = -RT_ERROR;
                 goto __exit;
@@ -1143,6 +1154,8 @@ static void ec20_init_thread_entry(void *parameter)
         }
         if (i == CSQ_RETRY)
         {
+            extern void app_net_occured_signal_strength_error(int fd);
+            app_net_occured_signal_strength_error(0);
             LOG_E("%s device signal strength check failed (%s)", device->name, parsed_data);
             result = -RT_ERROR;
             goto __exit;
@@ -1164,6 +1177,8 @@ static void ec20_init_thread_entry(void *parameter)
         }
         if (i == CREG_RETRY)
         {
+            extern void app_net_occured_gsm_registered_error(int fd);
+            app_net_occured_gsm_registered_error(0);
             LOG_E("%s device GSM is register failed (%s)", device->name, parsed_data);
             result = -RT_ERROR;
             goto __exit;
@@ -1186,6 +1201,8 @@ static void ec20_init_thread_entry(void *parameter)
         }
         if (i == CGREG_RETRY)
         {
+            extern void app_net_occured_gprs_registered_error(int fd);
+            app_net_occured_gprs_registered_error(0);
             LOG_E("%s device GPRS is register failed (%s)", device->name, parsed_data);
             result = -RT_ERROR;
             goto __exit;

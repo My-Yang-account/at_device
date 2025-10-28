@@ -506,6 +506,7 @@ static void sgcc_connect_thread_entry(void *parameter)
         handle->data_updata();
         if((handle->net_fault) &NET_FAULT_PHYSICAL_LAYER){
             if((s_sgcc_socket_info.fd >= 0x00) && (step >= NET_SGCC_NET_STATE_LOGIN)){   /** 平台已建立连接，但是通信模块出错(关机) */
+                net_dis_reason_store(s_sgcc_socket_info.fd, NET_DIS_REASON_CLOSE_ACTIVE);
                 evs_mainclose();
                 s_sgcc_socket_info.fd = -0x01;
             }
@@ -525,6 +526,7 @@ static void sgcc_connect_thread_entry(void *parameter)
         }
         if((handle->net_fault) &NET_FAULT_SIM_CARD){
             if((s_sgcc_socket_info.fd >= 0x00) && (step >= NET_SGCC_NET_STATE_LOGIN)){   /** 平台已建立连接，但是通信模块出错(关机) */
+                net_dis_reason_store(s_sgcc_socket_info.fd, NET_DIS_REASON_CLOSE_ACTIVE);
                 evs_mainclose();
                 s_sgcc_socket_info.fd = -0x01;
             }
@@ -544,6 +546,7 @@ static void sgcc_connect_thread_entry(void *parameter)
         }
         if((handle->net_fault) &NET_FAULT_DATA_LINK_LAYER){
             if((s_sgcc_socket_info.fd >= 0x00) && (step >= NET_SGCC_NET_STATE_LOGIN)){   /** 平台已建立连接，但是通信模块出错(关机) */
+                net_dis_reason_store(s_sgcc_socket_info.fd, NET_DIS_REASON_CLOSE_ACTIVE);
                 evs_mainclose();
                 s_sgcc_socket_info.fd = -0x01;
             }
@@ -563,6 +566,7 @@ static void sgcc_connect_thread_entry(void *parameter)
         }
         if((handle->net_fault) &NET_FAULT_MODULE_INIT){
             if((s_sgcc_socket_info.fd >= 0x00) && (step >= NET_SGCC_NET_STATE_LOGIN)){   /** 平台已建立连接，但是通信模块出错(关机) */
+                net_dis_reason_store(s_sgcc_socket_info.fd, NET_DIS_REASON_CLOSE_ACTIVE);
                 evs_mainclose();
                 s_sgcc_socket_info.fd = -0x01;
             }
@@ -694,6 +698,7 @@ static void sgcc_connect_thread_entry(void *parameter)
                 sgcc_net_event_send(NET_SGCC_EVENT_HANDLE_CHARGEPILE, NET_SGCC_EVENT_TYPE_REQUEST, 0x00, NET_SGCC_PREQ_EVENT_REPORT_FIRMWARE_INFO);
                 sgcc_net_event_send(NET_SGCC_EVENT_HANDLE_CHARGEPILE, NET_SGCC_EVENT_TYPE_REQUEST, 0x00, NET_SGCC_PREQ_EVENT_REQUEST_BILLING_MODE);
             }else{
+                net_dis_reason_store(s_sgcc_socket_info.fd, NET_DIS_REASON_CLOSE_ACTIVE);
                 evs_mainclose();
                 s_sgcc_socket_info.operate_fail.login++;
                 delay = rt_tick_get();
@@ -728,6 +733,7 @@ static void sgcc_connect_thread_entry(void *parameter)
                 s_sgcc_socket_info.socket_state = SGCC_SOCKET_STATE_OPEN;
                 handle->net_state = NET_SOCKET_STATE_OPEN;
 
+                net_dis_reason_store(s_sgcc_socket_info.fd, NET_DIS_REASON_CLOSE_ACTIVE);
                 evs_mainclose();
 
                 /** socket 可能有变，上报一次 */
@@ -757,6 +763,7 @@ static void sgcc_connect_thread_entry(void *parameter)
             s_sgcc_socket_info.socket_state = SGCC_SOCKET_STATE_OPEN;
             handle->net_state = NET_SOCKET_STATE_OPEN;
 
+            net_dis_reason_store(s_sgcc_socket_info.fd, NET_DIS_REASON_CLOSE_ACTIVE);
             evs_mainclose();
 
             /** socket 状态可能有变，上报一次 */
@@ -790,6 +797,7 @@ static void sgcc_connect_thread_entry(void *parameter)
             /** 状态变化，提前改变状态 */
             s_sgcc_socket_info.program_state = step;
 
+            net_dis_reason_store(s_sgcc_socket_info.fd, NET_DIS_REASON_CLOSE_ACTIVE);
             evs_mainclose();
 
             /** socket 状态有变，上报一次 */
@@ -808,6 +816,7 @@ static void sgcc_connect_thread_entry(void *parameter)
         /********************* 心跳超时检测  **************************/
         if(s_sgcc_socket_info.socket_state == SGCC_SOCKET_STATE_LOGIN_SUCCESS){
             if(s_sgcc_socket_info.operate_fail.sync == NET_ENUM_TRUE){      /* 相当于心跳超时 */
+                net_dis_reason_store(s_sgcc_socket_info.fd, NET_DIS_REASON_HEARTBEAT_TIMEOUT);
                 delay = rt_tick_get();
                 step = NET_SGCC_NET_STATE_OPEN;
                 /** 状态变化，提前改变状态 */

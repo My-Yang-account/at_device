@@ -815,6 +815,7 @@ static void urc_close_func(struct at_client *client, const char *data, rt_size_t
     struct at_socket *socket = RT_NULL;
     struct at_device *device = RT_NULL;
     char *client_name = client->device->parent.name;
+    extern void app_net_occured_socket_close_passive(int fd);
 
     RT_ASSERT(data && size);
 
@@ -828,6 +829,7 @@ static void urc_close_func(struct at_client *client, const char *data, rt_size_t
     sscanf(data, "+QIURC: \"closed\",%d", &device_socket);
     /* get at socket object by device socket descriptor */
     socket = &(device->sockets[device_socket]);
+    app_net_occured_socket_close_passive(device_socket);
 
     /* notice the socket is disconnect by remote */
     if (at_evt_cb_set[AT_SOCKET_EVT_CLOSED])
@@ -910,6 +912,7 @@ static void urc_pdpdeact_func(struct at_client *client, const char *data, rt_siz
     struct at_socket *socket = RT_NULL;
     struct at_device *device = RT_NULL;
     char *client_name = client->device->parent.name;
+    extern void app_net_occured_socket_pdp_invalid(int fd);
 
     RT_ASSERT(data && size);
 
@@ -925,6 +928,7 @@ static void urc_pdpdeact_func(struct at_client *client, const char *data, rt_siz
     LOG_E("context (%d) is deactivated.", connectID);
 
     s_at_socket_deactivated = true; /* ����ʧЧ�� */
+    app_net_occured_socket_pdp_invalid(0);
 
     for(count = 0; count < device->class->socket_num; count++){
         if(device->sockets[count].magic == AT_SOCKET_MAGIC){

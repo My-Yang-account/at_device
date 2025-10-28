@@ -1225,8 +1225,10 @@ static void ethch395_event_pro_thread_entry(void* parameter)
                     }else{
                         /** TCP连接断开中断 */
                         if(s_ethch395_socket_int->bit.tcp_disconnect){
+                            extern void app_net_occured_socket_close_passive(int fd);
                             LOG_D("socket(%d) disconnect interrupt", socket);
                             s_ethch395_socket_info[socket].flag.connected = ETHCH395_ENUM_FALSE;
+                            app_net_occured_socket_close_passive(socket);
                         }
                     }
                     /** 发送缓冲区非空中断 */
@@ -1241,8 +1243,10 @@ static void ethch395_event_pro_thread_entry(void* parameter)
                     }
                     /** 超时中断(多种原因：看协议) */
                     if(s_ethch395_socket_int->bit.timeout){
+                        extern void app_net_occured_socket_close_passive(int fd);
                         LOG_D("socket(%d) send timeout interrupt", socket);
                         s_ethch395_socket_info[socket].flag.timeout = ETHCH395_ENUM_TRUE;
+                        app_net_occured_socket_close_passive(socket);
                     }
 
                     if(s_ethch395_socket_int->bit.recv || s_ethch395_socket_int->bit.tcp_disconnect){
@@ -1279,6 +1283,10 @@ static void ethch395_event_pro_thread_entry(void* parameter)
  *************************************************/
 static void ethch395_device_init(void)
 {
+    extern void app_net_occured_at_physics_error(int fd);
+    extern void app_net_occured_cpin_lk_mac_error(int fd);
+    extern void app_net_occured_gprs_registered_error(int fd);
+
     uint8_t resp[32], rentry = 0x00, is_reset = ETHCH395_ENUM_TRUE;
     int32_t res = 0x00;
     uint32_t baudrate = ETHCH395_NETDEV_BAUDRATE_9600, wait_tick;
@@ -1316,12 +1324,14 @@ static void ethch395_device_init(void)
 #endif
         /** 查询  ethch395 通信状态 */
         if(ethch395_cmd_test_communication_status() < 0x00){
+            app_net_occured_at_physics_error(0x00);
             LOG_E("ethch395 communication status abnormal");
             res = -0x01;
             goto _is_end;
         }
         /** 查询  ethch395 版本 */
         if(ethch395_cmd_query_ic_version(resp, sizeof(resp)) < 0x00){
+            app_net_occured_at_physics_error(0x00);
             LOG_E("ethch395 query chip version fail");
             res = -0x01;
             goto _is_end;
@@ -1330,6 +1340,7 @@ static void ethch395_device_init(void)
 
         /** 设置 ethch395 TCP MSS */
         if(ethch395_cmd_set_tcp_mss(ETHCH395_TCP_MSS_DEF) < 0x00){
+            app_net_occured_at_physics_error(0x00);
             LOG_E("ethch395 set tcp mss fail");
             res = -0x01;
             goto _is_end;
@@ -1341,6 +1352,7 @@ static void ethch395_device_init(void)
 
             /** 修改 ethch395 通信波特率 */
             if(ethch395_cmd_set_baudrate(ETHCH395_CMD_BAUDRATE_115200) < 0x00){
+                app_net_occured_at_physics_error(0x00);
                 LOG_E("ethch395 modify baudrate fail(%d)", ETHCH395_CMD_BAUDRATE_115200);
                 res = -0x01;
                 goto _is_end;
@@ -1352,6 +1364,7 @@ static void ethch395_device_init(void)
             /**  查询 ethch395 版本(只是为了验证波特率修改是否成功) */
             memset(resp, 0x00, sizeof(resp));
             if(ethch395_cmd_query_ic_version(resp, sizeof(resp)) < 0x00){
+                app_net_occured_at_physics_error(0x00);
                 LOG_E("ethch395 query chip version fail when detect new baudrate");
                 res = -0x01;
                 goto _is_end;
@@ -1372,6 +1385,7 @@ static void ethch395_device_init(void)
         s_ethch395_state = NETDEV_ETHCH395_STATE_LINK_LCC;    /** 芯片状态：初始化链路LCC层 */
         /** 命令初始化  ethch395 */
         if(ethch395_cmd_init() < 0x00){
+            app_net_occured_cpin_lk_mac_error(0x00);
             LOG_E("ethch395 init fail");
             res = -0x01;
             goto _is_end;
@@ -1386,6 +1400,7 @@ static void ethch395_device_init(void)
                 wait_tick = rt_tick_get();
             }
             if((rt_tick_get() - wait_tick) > 30000){
+                app_net_occured_cpin_lk_mac_error(0x00);
                 LOG_E("ethch395 wait PHY interrupt timeout");
                 res = -0x01;
                 goto _is_end;
@@ -1401,6 +1416,7 @@ static void ethch395_device_init(void)
 
         /** 启动 DHCP，IP动态分配，但socket 原端口还需配置 */
         if(ethch395_cmd_set_dhcp_status(0x01) < 0x00){
+            app_net_occured_cpin_lk_mac_error(0x00);
             LOG_E("ethch395 set dhcp status fail(%d)", 0x01);
             res = -0x01;
             goto _is_end;
@@ -1416,6 +1432,7 @@ static void ethch395_device_init(void)
                 wait_tick = rt_tick_get();
             }
             if((rt_tick_get() - wait_tick) > 30000){
+                app_net_occured_gprs_registered_error(0x00);
                 LOG_E("ethch395 wait dhcp interrupt timeout");
                 res = -0x01;
                 goto _is_end;
@@ -1432,6 +1449,7 @@ static void ethch395_device_init(void)
         /** 查询 DHCP 是否启动成功 */
         while(rentry < 100){
             if(ethch395_cmd_query_dhcp_status() != 0x00){    /** 发送命令 CMD_GET_DHCP_STATUS 获取 DHCP 状态，如果状态码为 0 则表示成功 */
+                app_net_occured_gprs_registered_error(0x00);
                 LOG_E("ethch395 query dhcp status fail(%d)", rentry);
                 rentry++;
                 rt_thread_mdelay(100);
@@ -1440,6 +1458,7 @@ static void ethch395_device_init(void)
             break;
         }
         if(rentry >= 100){
+            app_net_occured_gprs_registered_error(0x00);
             LOG_E("ethch395 query dhcp status timeout", rentry);
             res = -0x01;                                 /** DHCP 有时会出现返回失败，但是后续交互正常的情况，故如果返回失败暂时不认为是失败 */
             goto _is_end;
@@ -1447,6 +1466,7 @@ static void ethch395_device_init(void)
 
         /** 获取DHCP相关信息 */
         if(ethch395_cmd_query_ip_info(resp, sizeof(resp)) < 0x00){
+            app_net_occured_gprs_registered_error(0x00);
             LOG_E("ethch395 query ip info fail");
             res = -0x01;
             goto _is_end;
@@ -1461,6 +1481,7 @@ static void ethch395_device_init(void)
         s_ethch395_state = NETDEV_ETHCH395_STATE_MODULE_INIT;    /** 芯片状态：芯片相关信息初始化 */
         /** 查询设备MAC地址 */
         if(ethch395_cmd_query_dev_mac(resp, sizeof(resp)) < 0x00){
+            app_net_occured_gprs_registered_error(0x00);
             LOG_E("ethch395 query device MAC fail");
             res = -0x01;
             goto _is_end;
@@ -1503,8 +1524,12 @@ _is_end:
  *************************************************/
 int32_t ethch395_device_reset(void)
 {
+    extern void app_net_occured_close_communicate_module(int fd);
+
     int32_t ret = 0x00;
     uint32_t baudrate = ETHCH395_NETDEV_BAUDRATE_9600;
+
+    app_net_occured_close_communicate_module(0x00);
 
     LOG_D("ethch395_device_reset");
     s_ethch395_state = NETDEV_ETHCH395_STATE_PHY;    /** 芯片状态：初始化物理层 */

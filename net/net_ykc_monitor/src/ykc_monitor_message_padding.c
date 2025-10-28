@@ -180,6 +180,18 @@ typedef struct{
     uint8_t is_recved;                           /* 已接收到变化 */
 }ykc_monitor_device_status_changed;
 
+/** 断网原因 */
+typedef struct{
+    uint8_t count;
+    struct socket_dis_group group;
+}ykcm_socket_disconnect_t;
+
+typedef struct{
+    uint8_t count;
+    struct module_dis_group group;
+}ykcm_module_disconnect_t;
+
+
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
 
 #pragma pack()
@@ -203,6 +215,18 @@ NET_DEF_SRAM2 static struct net_handle* s_ykc_monitor_handle = NULL;
 NET_DEF_SRAM2 static ykc_monitor_guidance_changed s_ykc_monitor_guidance_changed[NET_SYSTEM_GUN_NUMBER];
 NET_DEF_SRAM2 static ykc_monitor_device_control_changed s_ykc_monitor_device_control_changed[NET_SYSTEM_GUN_NUMBER];
 NET_DEF_SRAM2 static ykc_monitor_device_status_changed s_ykc_monitor_device_status_changed[NET_SYSTEM_GUN_NUMBER];
+
+NET_DEF_SRAM2 static ykcm_socket_disconnect_t s_ykc_monitor_close_passive;                     /** socket 被动关闭 */
+NET_DEF_SRAM2 static ykcm_socket_disconnect_t s_ykc_monitor_close_active;                      /** socket 主动关闭 */
+NET_DEF_SRAM2 static ykcm_socket_disconnect_t s_ykc_monitor_heartbeat_timeout;                 /** socket 心跳超时 */
+NET_DEF_SRAM2 static ykcm_module_disconnect_t s_ykc_monitor_socket_pdp;                        /** socket PDP场景失效 */
+NET_DEF_SRAM2 static ykcm_module_disconnect_t s_ykc_monitor_close_module;                      /** 通信模块关闭 */
+NET_DEF_SRAM2 static ykcm_module_disconnect_t s_ykc_monitor_at_physice;                        /** AT指令(以太网物理层：查是否在线、查版本、修改波特率) */
+NET_DEF_SRAM2 static ykcm_module_disconnect_t s_ykc_monitor_cpin_lk_mac;                       /** 查找SIM卡(以太网数据链路层：初始化芯片、寻线、开DHCP) */
+NET_DEF_SRAM2 static ykcm_module_disconnect_t s_ykc_monitor_cimi_lk_mac;                       /** 查找CIMI号(以太网数据链路层：初始化芯片、寻线、开DHCP) */
+NET_DEF_SRAM2 static ykcm_module_disconnect_t s_ykc_monitor_signal_strength_lk_mac;            /** 查询信号强度(以太网数据链路层：初始化芯片、寻线、开DHCP) */
+NET_DEF_SRAM2 static ykcm_module_disconnect_t s_ykc_monitor_gsm_registered;                    /** 注册GSM网络(以太网网络层：判断DHCP是否启动、获取IP信息、查询MAC地址) */
+NET_DEF_SRAM2 static ykcm_module_disconnect_t s_ykc_monitor_gprs_registered;                   /** 注册GPRS网络(以太网网络层：判断DHCP是否启动、获取IP信息、查询MAC地址) */
 
 static uint16_t ykc_monitor_chargepile_stop_reason_converted(void *handle, uint16_t bit, uint8_t stop_in_starting);
 static uint8_t ykc_monitor_chargepile_transaction_identity_converted(uint8_t identity);
@@ -3672,6 +3696,27 @@ void ykc_monitor_clear_dev_control_changed_sending(uint8_t gunno)
     s_ykc_monitor_device_control_changed[gunno].is_sending = NET_ENUM_FALSE;
 }
 
+/*******************************************************
+ * 函数名               ykc_monitor_clear_disconnect_reason
+ * 功能                  清除断网原因信息
+ * 参数
+ * 返回
+ ******************************************************/
+void ykc_monitor_clear_disconnect_reason(void)
+{
+    memset(&s_ykc_monitor_close_passive, 0x00, sizeof(s_ykc_monitor_close_passive));
+    memset(&s_ykc_monitor_close_active, 0x00, sizeof(s_ykc_monitor_close_active));
+    memset(&s_ykc_monitor_heartbeat_timeout, 0x00, sizeof(s_ykc_monitor_heartbeat_timeout));
+    memset(&s_ykc_monitor_socket_pdp, 0x00, sizeof(s_ykc_monitor_socket_pdp));
+    memset(&s_ykc_monitor_close_module, 0x00, sizeof(s_ykc_monitor_close_module));
+    memset(&s_ykc_monitor_at_physice, 0x00, sizeof(s_ykc_monitor_at_physice));
+    memset(&s_ykc_monitor_cpin_lk_mac, 0x00, sizeof(s_ykc_monitor_cpin_lk_mac));
+    memset(&s_ykc_monitor_cimi_lk_mac, 0x00, sizeof(s_ykc_monitor_cimi_lk_mac));
+    memset(&s_ykc_monitor_signal_strength_lk_mac, 0x00, sizeof(s_ykc_monitor_signal_strength_lk_mac));
+    memset(&s_ykc_monitor_gsm_registered, 0x00, sizeof(s_ykc_monitor_gsm_registered));
+    memset(&s_ykc_monitor_gprs_registered, 0x00, sizeof(s_ykc_monitor_gprs_registered));
+}
+
 int32_t ykc_monitor_realtime_process_init(void)
 {
     uint8_t entry = 0x03, name[NET_THREAD_MONITOR_NAME_MAX];
@@ -3692,6 +3737,8 @@ int32_t ykc_monitor_realtime_process_init(void)
         memset(s_ykc_monitor_guidance_changed, 0x00, sizeof(s_ykc_monitor_guidance_changed));
         memset(s_ykc_monitor_device_control_changed, 0x00, sizeof(s_ykc_monitor_device_control_changed));
         memset(s_ykc_monitor_device_status_changed, 0x00, sizeof(s_ykc_monitor_device_status_changed));
+
+        ykc_monitor_clear_disconnect_reason();
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
     }
 
@@ -7084,8 +7131,8 @@ int8_t ykc_monitor_guidance_changed_info_padding(uint8_t gunno, uint8_t *buf, ui
     }
 
     Net_YkcMonitorPro_PreqReport_SreqQuery_RealtimeInfo_t *message = (Net_YkcMonitorPro_PreqReport_SreqQuery_RealtimeInfo_t*)buf;
-    struct running_data_info *running_data = ((uint8_t*)&(message->body.msg_version) + 0x01);
-    struct guidance_segment *segment = ((uint8_t*)&(running_data->segment_num) + 0x01);
+    struct running_data_info *running_data = (struct running_data_info*)((uint8_t*)&(message->body.msg_version) + 0x01);
+    struct guidance_segment *segment = (struct guidance_segment*)((uint8_t*)&(running_data->segment_num) + 0x01);
 
     memset(message, 0x00, sizeof(ilen));
 
@@ -7171,8 +7218,8 @@ int8_t ykc_monitor_dev_control_changed_info_padding(uint8_t gunno, uint8_t *buf,
     }
 
     Net_YkcMonitorPro_PreqReport_SreqQuery_RealtimeInfo_t *message = (Net_YkcMonitorPro_PreqReport_SreqQuery_RealtimeInfo_t*)buf;
-    struct running_control_info *running_data = ((uint8_t*)&(message->body.msg_version) + 0x01);
-    struct control_segment *segment = ((uint8_t*)&(running_data->segment_num) + 0x01);
+    struct running_control_info *running_data = (struct running_control_info*)((uint8_t*)&(message->body.msg_version) + 0x01);
+    struct control_segment *segment = (struct control_segment*)((uint8_t*)&(running_data->segment_num) + 0x01);
 
     memset(message, 0x00, sizeof(ilen));
 
@@ -7309,7 +7356,7 @@ int8_t ykc_monitor_dev_feedback_changed_info_padding(uint8_t gunno, uint8_t *buf
     }
 
     Net_YkcMonitorPro_PreqReport_SreqQuery_RealtimeInfo_t *message = (Net_YkcMonitorPro_PreqReport_SreqQuery_RealtimeInfo_t*)buf;
-    struct running_status_info *running_data = ((uint8_t*)&(message->body.msg_version) + 0x01);
+    struct running_status_info *running_data = (struct running_status_info*)((uint8_t*)&(message->body.msg_version) + 0x01);
 
     memset(message, 0x00, sizeof(ilen));
 
@@ -7406,6 +7453,178 @@ int8_t ykc_monitor_dev_feedback_changed_info_padding(uint8_t gunno, uint8_t *buf
     }
 
     return 0x00;
+}
+
+/*************************************************
+ * 函数名      ykc_monitor_message_padding_request_disconnect_reason
+ * 功能          组包：填充断网原因信息
+ * **********************************************/
+int8_t ykc_monitor_message_padding_request_disconnect_reason(uint8_t *buf, uint16_t ilen, uint16_t *olen)
+{
+    uint16_t total = sizeof(Net_YkcMonitorPro_PreqReport_SreqQuery_RealtimeInfo_t) + 0x01 + sizeof(struct disconnect_reason_segment);
+
+    if(buf == NULL){
+        return -0x01;
+    }
+    if(ilen < total){
+        return -0x02;
+    }
+
+    Net_YkcMonitorPro_PreqReport_SreqQuery_RealtimeInfo_t *message = (Net_YkcMonitorPro_PreqReport_SreqQuery_RealtimeInfo_t*)buf;
+    struct running_data_info *running_data = ((uint8_t*)&(message->body.msg_version) + 0x01);
+    struct disconnect_reason_segment *segment = (struct disconnect_reason_segment*)((uint8_t*)&(running_data->segment_num) + 0x01);
+
+    memset(message, 0x00, sizeof(ilen));
+
+    rt_enter_critical();
+
+    running_data->segment_num = 0x01;
+    for(uint8_t i = 0x00; i< NET_YKC_MONITOR_DISCONNECT_REASON_INFO_MAX; i++){
+        segment->close_passive.info[i].fd = s_ykc_monitor_close_passive.group.info[i].fd;
+        segment->close_passive.info[i].timestamp = s_ykc_monitor_close_passive.group.info[i].timestamp;
+
+        segment->close_active.info[i].fd = s_ykc_monitor_close_active.group.info[i].fd;
+        segment->close_active.info[i].timestamp = s_ykc_monitor_close_active.group.info[i].timestamp;
+
+        segment->heartbeat_timeout.info[i].fd = s_ykc_monitor_heartbeat_timeout.group.info[i].fd;
+        segment->heartbeat_timeout.info[i].timestamp = s_ykc_monitor_heartbeat_timeout.group.info[i].timestamp;
+
+        segment->socket_pdp.timestamp[i] = s_ykc_monitor_socket_pdp.group.timestamp[i];
+        segment->close_module.timestamp[i] = s_ykc_monitor_close_module.group.timestamp[i];
+        segment->at_physics.timestamp[i] = s_ykc_monitor_at_physice.group.timestamp[i];
+        segment->cpin_lk_mac.timestamp[i] = s_ykc_monitor_cpin_lk_mac.group.timestamp[i];
+        segment->cimi_lk_mac.timestamp[i] = s_ykc_monitor_cimi_lk_mac.group.timestamp[i];
+        segment->signal_strength_lk_mac.timestamp[i] = s_ykc_monitor_signal_strength_lk_mac.group.timestamp[i];
+        segment->gsm_registered.timestamp[i] = s_ykc_monitor_gsm_registered.group.timestamp[i];
+        segment->gprs_registered.timestamp[i] = s_ykc_monitor_gprs_registered.group.timestamp[i];
+    }
+
+    ykc_monitor_clear_disconnect_reason();
+
+    rt_exit_critical();
+
+    message->body.info_type = NETYKCM_DEV_RUNNING_DATA_DISCONNECT_REASON;
+    message->body.option = 0x01;        /** 数据上报 */
+    message->body.msg_version = 0x00;   /** 报文版本 */
+    message->body.gunno = (0x00 + 0x01);
+    memcpy(message->body.pile_number, g_ykc_monitor_preq_login.body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
+
+    rt_exit_critical();
+
+    if(olen){
+        *olen = total;
+    }
+
+    return 0x00;
+}
+
+/*******************************************************
+ * 函数名               ykc_monitor_disconnect_reason_callback
+ * 功能                  断网原因回调
+ * 参数                  fd         文件描述符
+ * 返回                  reason_en  原因枚举
+ ******************************************************/
+void ykc_monitor_disconnect_reason_callback(int8_t fd, uint8_t reason_en)
+{
+    rt_enter_critical();
+
+    switch(reason_en){
+    case NET_DIS_REASON_CLOSE_PASSIVE:
+        if(s_ykc_monitor_close_passive.count < NET_YKC_MONITOR_DISCONNECT_REASON_INFO_MAX){
+            s_ykc_monitor_close_passive.group.info[s_ykc_monitor_close_passive.count].fd = fd;
+            s_ykc_monitor_close_passive.group.info[s_ykc_monitor_close_passive.count].timestamp = time(NULL);
+            if(s_ykc_monitor_close_passive.count < (NET_YKC_MONITOR_DISCONNECT_REASON_INFO_MAX - 1)){
+                s_ykc_monitor_close_passive.count++;
+            }
+        }
+        break;
+    case NET_DIS_REASON_CLOSE_ACTIVE:
+        if(s_ykc_monitor_close_active.count < NET_YKC_MONITOR_DISCONNECT_REASON_INFO_MAX){
+            s_ykc_monitor_close_active.group.info[s_ykc_monitor_close_active.count].fd = fd;
+            s_ykc_monitor_close_active.group.info[s_ykc_monitor_close_active.count].timestamp = time(NULL);
+            if(s_ykc_monitor_close_active.count < (NET_YKC_MONITOR_DISCONNECT_REASON_INFO_MAX - 1)){
+                s_ykc_monitor_close_active.count++;
+            }
+        }
+        break;
+    case NET_DIS_REASON_HEARTBEAT_TIMEOUT:
+        if(s_ykc_monitor_heartbeat_timeout.count < NET_YKC_MONITOR_DISCONNECT_REASON_INFO_MAX){
+            s_ykc_monitor_heartbeat_timeout.group.info[s_ykc_monitor_heartbeat_timeout.count].fd = fd;
+            s_ykc_monitor_heartbeat_timeout.group.info[s_ykc_monitor_heartbeat_timeout.count].timestamp = time(NULL);
+            if(s_ykc_monitor_heartbeat_timeout.count < (NET_YKC_MONITOR_DISCONNECT_REASON_INFO_MAX - 1)){
+                s_ykc_monitor_heartbeat_timeout.count++;
+            }
+        }
+        break;
+    case NET_DIS_REASON_SOCKET_PDP:
+        if(s_ykc_monitor_socket_pdp.count < NET_YKC_MONITOR_DISCONNECT_REASON_INFO_MAX){
+            s_ykc_monitor_socket_pdp.group.timestamp[s_ykc_monitor_socket_pdp.count] = time(NULL);
+            if(s_ykc_monitor_socket_pdp.count < (NET_YKC_MONITOR_DISCONNECT_REASON_INFO_MAX - 1)){
+                s_ykc_monitor_socket_pdp.count++;
+            }
+        }
+        break;
+    case NET_DIS_REASON_CLOSE_MODULE:
+        if(s_ykc_monitor_close_module.count < NET_YKC_MONITOR_DISCONNECT_REASON_INFO_MAX){
+            s_ykc_monitor_close_module.group.timestamp[s_ykc_monitor_close_module.count] = time(NULL);
+            if(s_ykc_monitor_close_module.count < (NET_YKC_MONITOR_DISCONNECT_REASON_INFO_MAX - 1)){
+                s_ykc_monitor_close_module.count++;
+            }
+        }
+        break;
+    case NET_DIS_REASON_AT_PHYSICS:
+        if(s_ykc_monitor_at_physice.count < NET_YKC_MONITOR_DISCONNECT_REASON_INFO_MAX){
+            s_ykc_monitor_at_physice.group.timestamp[s_ykc_monitor_at_physice.count] = time(NULL);
+            if(s_ykc_monitor_at_physice.count < (NET_YKC_MONITOR_DISCONNECT_REASON_INFO_MAX - 1)){
+                s_ykc_monitor_at_physice.count++;
+            }
+        }
+        break;
+    case NET_DIS_REASON_CPIN_LK_MAC:
+        if(s_ykc_monitor_cpin_lk_mac.count < NET_YKC_MONITOR_DISCONNECT_REASON_INFO_MAX){
+            s_ykc_monitor_cpin_lk_mac.group.timestamp[s_ykc_monitor_cpin_lk_mac.count] = time(NULL);
+            if(s_ykc_monitor_cpin_lk_mac.count < (NET_YKC_MONITOR_DISCONNECT_REASON_INFO_MAX - 1)){
+                s_ykc_monitor_cpin_lk_mac.count++;
+            }
+        }
+        break;
+    case NET_DIS_REASON_CIMI_LK_MAC:
+        if(s_ykc_monitor_cimi_lk_mac.count < NET_YKC_MONITOR_DISCONNECT_REASON_INFO_MAX){
+            s_ykc_monitor_cimi_lk_mac.group.timestamp[s_ykc_monitor_cimi_lk_mac.count] = time(NULL);
+            if(s_ykc_monitor_cimi_lk_mac.count < (NET_YKC_MONITOR_DISCONNECT_REASON_INFO_MAX - 1)){
+                s_ykc_monitor_cimi_lk_mac.count++;
+            }
+        }
+        break;
+    case NET_DIS_REASON_SIGNAL_STRENGTH_LK_MAC:
+        if(s_ykc_monitor_signal_strength_lk_mac.count < NET_YKC_MONITOR_DISCONNECT_REASON_INFO_MAX){
+            s_ykc_monitor_signal_strength_lk_mac.group.timestamp[s_ykc_monitor_signal_strength_lk_mac.count] = time(NULL);
+            if(s_ykc_monitor_signal_strength_lk_mac.count < (NET_YKC_MONITOR_DISCONNECT_REASON_INFO_MAX - 1)){
+                s_ykc_monitor_signal_strength_lk_mac.count++;
+            }
+        }
+        break;
+    case NET_DIS_REASON_GSM_REGISTERED:
+        if(s_ykc_monitor_gsm_registered.count < NET_YKC_MONITOR_DISCONNECT_REASON_INFO_MAX){
+            s_ykc_monitor_gsm_registered.group.timestamp[s_ykc_monitor_gsm_registered.count] = time(NULL);
+            if(s_ykc_monitor_gsm_registered.count < (NET_YKC_MONITOR_DISCONNECT_REASON_INFO_MAX - 1)){
+                s_ykc_monitor_gsm_registered.count++;
+            }
+        }
+        break;
+    case NET_DIS_REASON_GPRS_REGISTERED:
+        if(s_ykc_monitor_gprs_registered.count < NET_YKC_MONITOR_DISCONNECT_REASON_INFO_MAX){
+            s_ykc_monitor_gprs_registered.group.timestamp[s_ykc_monitor_gprs_registered.count] = time(NULL);
+            if(s_ykc_monitor_gprs_registered.count < (NET_YKC_MONITOR_DISCONNECT_REASON_INFO_MAX - 1)){
+                s_ykc_monitor_gprs_registered.count++;
+            }
+        }
+        break;
+    default:
+        break;
+    }
+
+    rt_exit_critical();
 }
 
 #endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */

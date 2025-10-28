@@ -140,6 +140,11 @@ int8_t ykc_monitor_dev_control_changed_info_padding(uint8_t gunno, uint8_t *buf,
  * 功能          组包：填充器件反馈状态变化信息
  * **********************************************/
 int8_t ykc_monitor_dev_feedback_changed_info_padding(uint8_t gunno, uint8_t *buf, uint16_t ilen, uint16_t *olen);
+/*************************************************
+ * 函数名      ykc_monitor_message_padding_request_disconnect_reason
+ * 功能          组包：填充断网原因信息
+ * **********************************************/
+int8_t ykc_monitor_message_padding_request_disconnect_reason(uint8_t *buf, uint16_t ilen, uint16_t *olen);
 
 /****************************************************
  * 函数名            ykc_monitor_clear_guidance_changed_sending
@@ -152,6 +157,14 @@ void ykc_monitor_clear_guidance_changed_sending(uint8_t gunno);
  * 功能               清除器件控制状态变化数据正在发送标志
  ***************************************************/
 void ykc_monitor_clear_dev_control_changed_sending(uint8_t gunno);
+
+/*******************************************************
+ * 函数名               ykc_monitor_clear_disconnect_reason
+ * 功能                  清除断网原因信息
+ * 参数
+ * 返回
+ ******************************************************/
+void ykc_monitor_clear_disconnect_reason(void);
 
 #endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
 

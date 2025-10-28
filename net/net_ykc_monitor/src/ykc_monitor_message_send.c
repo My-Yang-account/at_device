@@ -677,6 +677,8 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
         handle->data_updata();
         if((handle->net_fault) &NET_FAULT_PHYSICAL_LAYER){
             if((s_ykc_monitor_socket_info.fd >= 0x00) && (step >= NET_YKC_MONITOR_NET_STATE_LOGIN)){   /** 平台已建立连接，但是通信模块出错(关机) */
+                /** 监控的FD从64开始 */
+                net_dis_reason_store((s_ykc_monitor_socket_info.fd + 64), NET_DIS_REASON_CLOSE_ACTIVE);
                 ykc_monitor_socket_close(s_ykc_monitor_socket_info.fd);
                 s_ykc_monitor_socket_info.fd = -0x01;
             }
@@ -695,6 +697,8 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
         }
         if((handle->net_fault) &NET_FAULT_SIM_CARD){
             if((s_ykc_monitor_socket_info.fd >= 0x00) && (step >= NET_YKC_MONITOR_NET_STATE_LOGIN)){   /** 平台已建立连接，但是通信模块出错(关机) */
+                /** 监控的FD从64开始 */
+                net_dis_reason_store((s_ykc_monitor_socket_info.fd + 64), NET_DIS_REASON_CLOSE_ACTIVE);
                 ykc_monitor_socket_close(s_ykc_monitor_socket_info.fd);
                 s_ykc_monitor_socket_info.fd = -0x01;
             }
@@ -713,6 +717,8 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
         }
         if((handle->net_fault) &NET_FAULT_DATA_LINK_LAYER){
             if((s_ykc_monitor_socket_info.fd >= 0x00) && (step >= NET_YKC_MONITOR_NET_STATE_LOGIN)){   /** 平台已建立连接，但是通信模块出错(关机) */
+                /** 监控的FD从64开始 */
+                net_dis_reason_store((s_ykc_monitor_socket_info.fd + 64), NET_DIS_REASON_CLOSE_ACTIVE);
                 ykc_monitor_socket_close(s_ykc_monitor_socket_info.fd);
                 s_ykc_monitor_socket_info.fd = -0x01;
             }
@@ -731,6 +737,8 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
         }
         if((handle->net_fault) &NET_FAULT_MODULE_INIT){
             if((s_ykc_monitor_socket_info.fd >= 0x00) && (step >= NET_YKC_MONITOR_NET_STATE_LOGIN)){   /** 平台已建立连接，但是通信模块出错(关机) */
+                /** 监控的FD从64开始 */
+                net_dis_reason_store((s_ykc_monitor_socket_info.fd + 64), NET_DIS_REASON_CLOSE_ACTIVE);
                 ykc_monitor_socket_close(s_ykc_monitor_socket_info.fd);
                 s_ykc_monitor_socket_info.fd = -0x01;
             }
@@ -898,6 +906,7 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
                             s_ykc_monitor_socket_info.heartbeat[gunno] = 0x00;
                         }
 #ifdef NET_YKC_MONITOR_AS_MONITOR
+                        ykc_monitor_net_event_send(NET_YKC_MONITOR_EXTERNAL_EHANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, 0x00, NET_YKC_MONITOR_EXTERNAL_PREQ_EVENT_DISCONNECT_REASON);
                         ykc_monitor_net_event_send(NET_YKC_MONITOR_USER_EVENT_HANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, 0x00, NET_YKC_MONITOR_USER_PREQ_EVENT_REPORT_DEV_INFO_ASYNCHRONOUSLY);
                         s_ykc_monitor_assistant_info.dev_info_tick = rt_tick_get();
                         s_ykc_monitor_assistant_info.flag.dev_info_reported = 0x00;
@@ -918,7 +927,8 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
                         }
                         rt_thread_mdelay(50);
                     }
-
+                    /** 监控的FD从64开始 */
+                    net_dis_reason_store((s_ykc_monitor_socket_info.fd + 64), NET_DIS_REASON_CLOSE_ACTIVE);
                     ykc_monitor_socket_close(s_ykc_monitor_socket_info.fd);
                     s_ykc_monitor_socket_info.fd = -0x01;
                     s_ykc_monitor_socket_info.operate_fail.login++;
@@ -946,6 +956,8 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
                     rt_thread_mdelay(50);
                 }
 
+                /** 监控的FD从64开始 */
+                net_dis_reason_store((s_ykc_monitor_socket_info.fd + 64), NET_DIS_REASON_CLOSE_ACTIVE);
                 ykc_monitor_socket_close(s_ykc_monitor_socket_info.fd);
                 s_ykc_monitor_socket_info.fd = -0x01;
 #ifndef NET_YKC_MONITOR_AS_MONITOR
@@ -1061,6 +1073,8 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
             if(s_ykc_monitor_socket_info.heartbeat[gunno] > NET_YKC_MONITOR_HEARTBEAT_TIMEOUT_RENTRY){
                 s_ykc_monitor_socket_info.heartbeat[gunno] = 0x00;
 
+                /** 监控的FD从64开始 */
+                net_dis_reason_store((s_ykc_monitor_socket_info.fd + 64), NET_DIS_REASON_HEARTBEAT_TIMEOUT);
                 delay = rt_tick_get();
                 wait_unlock = rt_tick_get();
 
@@ -1927,6 +1941,19 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
 #ifdef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL
                 Net_YkcMonitorPro_PreqReport_SreqQuery_RealtimeInfo_t *guidance = (Net_YkcMonitorPro_PreqReport_SreqQuery_RealtimeInfo_t*)(s_ykc_monitor_response_buff.general_transmit_buff);
                 guidance->head.sequence = s_ykc_monitor_message_serial_number[gunno]++;
+                ykc_monitor_message_send_port(NETYKC_MONITOR_PREQ_SREQCMD_RUNNING_REALTIME_INFO, s_ykc_monitor_socket_info.fd, s_ykc_monitor_response_buff.general_transmit_buff,
+                        s_ykc_monitor_response_buff.length, NULL);
+//                ykc_monitor_set_message_wait_response_state(gunno, NET_YKC_MONITOR_USER_PREQ_EVENT_REPORT_TSOCKET_INFO);
+                ykc_monitor_response_buff_release_sem();
+                rt_thread_mdelay(250);
+#endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
+            }
+            /***** [上报断网原因请求] *****/
+            if(ykc_monitor_net_event_receive(NET_YKC_MONITOR_USER_EVENT_HANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, gunno,
+                    (NET_YKC_MONITOR_EVENT_OPTION_OR |NET_YKC_MONITOR_EVENT_OPTION_CLEAR), NET_YKC_MONITOR_USER_PREQ_EVENT_REPORT_DISCONNECT_REASON, NULL) > 0){
+#ifdef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL
+                Net_YkcMonitorPro_PreqReport_SreqQuery_RealtimeInfo_t *dis_reason = (Net_YkcMonitorPro_PreqReport_SreqQuery_RealtimeInfo_t*)(s_ykc_monitor_response_buff.general_transmit_buff);
+                dis_reason->head.sequence = s_ykc_monitor_message_serial_number[gunno]++;
                 ykc_monitor_message_send_port(NETYKC_MONITOR_PREQ_SREQCMD_RUNNING_REALTIME_INFO, s_ykc_monitor_socket_info.fd, s_ykc_monitor_response_buff.general_transmit_buff,
                         s_ykc_monitor_response_buff.length, NULL);
 //                ykc_monitor_set_message_wait_response_state(gunno, NET_YKC_MONITOR_USER_PREQ_EVENT_REPORT_TSOCKET_INFO);
@@ -2975,6 +3002,19 @@ static void net_ykc_monitor_server_message_pro_entry(void *parameter)
                 }else{
                     ykc_monitor_response_buff_release_sem();
                 }
+            }
+            /***** [上报断网原因请求] *****/
+            if(ykc_monitor_net_event_receive(NET_YKC_MONITOR_EXTERNAL_EHANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, gunno,
+                    (NET_YKC_MONITOR_EVENT_OPTION_OR |NET_YKC_MONITOR_EVENT_OPTION_CLEAR), NET_YKC_MONITOR_EXTERNAL_PREQ_EVENT_DISCONNECT_REASON, NULL) > 0){
+#ifdef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL
+                response = ykc_monitor_get_response_buff(RT_WAITING_FOREVER);
+                result = ykc_monitor_message_padding_request_disconnect_reason(response->general_transmit_buff, NET_YKC_MONITOR_GENERA_RESPONSE_BUFF_LENGTH, &(response->length));
+                if(result >= 0x00){
+                    ykc_monitor_net_event_send(NET_YKC_MONITOR_USER_EVENT_HANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, 0x00, NET_YKC_MONITOR_USER_PREQ_EVENT_REPORT_DISCONNECT_REASON);
+                }else{
+                    ykc_monitor_response_buff_release_sem();
+                }
+#endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
             }
         }
 

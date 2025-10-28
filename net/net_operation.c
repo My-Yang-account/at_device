@@ -476,6 +476,22 @@ void net_operation_updated_billing_trigger(void)
 #endif /* NET_INCLUDE_MONITOR_PLATFORM */
 }
 
+/******************************************
+ * 函数名     net_dis_reason_store
+ * 功能         保存断网原因信息
+ * 参数         fd          文件描述符
+ *       en           原因枚举
+ * 返回
+ * ***************************************/
+void net_dis_reason_store(int fd, uint8_t en)
+{
+#ifdef NET_INCLUDE_MONITOR_PLATFORM
+#ifdef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL
+    extern void ykc_monitor_disconnect_reason_callback(int8_t fd, uint8_t reason_en);
+    ykc_monitor_disconnect_reason_callback(fd, en);
+#endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
+#endif /* NET_INCLUDE_MONITOR_PLATFORM */
+}
 
 static void net_start_function(void* handle)
 {

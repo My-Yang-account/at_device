@@ -20,6 +20,87 @@
 
 
 /***********************************************
+ * 函数名     app_net_occured_socket_close_passive
+ * 功能         出现了socket 被动关闭
+ **********************************************/
+void app_net_occured_socket_close_passive(int fd)
+{
+    net_dis_reason_store(fd, NET_DIS_REASON_CLOSE_PASSIVE);
+}
+
+/***********************************************
+ * 函数名     app_net_occured_socket_pdp_invalid
+ * 功能         出现了socket PDP 场景失效
+ **********************************************/
+void app_net_occured_socket_pdp_invalid(int fd)
+{
+    net_dis_reason_store(fd, NET_DIS_REASON_SOCKET_PDP);
+}
+
+/***********************************************
+ * 函数名     app_net_occured_close_communicate_module
+ * 功能         出现了关闭通信模块
+ **********************************************/
+void app_net_occured_close_communicate_module(int fd)
+{
+    net_dis_reason_store(fd, NET_DIS_REASON_CLOSE_MODULE);
+}
+
+/***********************************************
+ * 函数名     app_net_occured_at_physics_error
+ * 功能         出现了通信模块物理层故障
+ **********************************************/
+void app_net_occured_at_physics_error(int fd)
+{
+    net_dis_reason_store(fd, NET_DIS_REASON_AT_PHYSICS);
+}
+
+/***********************************************
+ * 函数名     app_net_occured_cpin_lk_mac_error
+ * 功能         出现了通信模块数据链路故障(MAC CPIN)
+ **********************************************/
+void app_net_occured_cpin_lk_mac_error(int fd)
+{
+    net_dis_reason_store(fd, NET_DIS_REASON_CPIN_LK_MAC);
+}
+
+/***********************************************
+ * 函数名     app_net_occured_cimi_lk_mac_error
+ * 功能         出现了通信模块数据链路故障(LCC CIMI)
+ **********************************************/
+void app_net_occured_cimi_lk_mac_error(int fd)
+{
+    net_dis_reason_store(fd, NET_DIS_REASON_CIMI_LK_MAC);
+}
+
+/***********************************************
+ * 函数名     app_net_occured_signal_strength_error
+ * 功能         出现了通信模块查询信号强度失败
+ **********************************************/
+void app_net_occured_signal_strength_error(int fd)
+{
+    net_dis_reason_store(fd, NET_DIS_REASON_SIGNAL_STRENGTH_LK_MAC);
+}
+
+/***********************************************
+ * 函数名     app_net_occured_gsm_registered_error
+ * 功能         出现了通信模块GSM网络注册失败
+ **********************************************/
+void app_net_occured_gsm_registered_error(int fd)
+{
+    net_dis_reason_store(fd, NET_DIS_REASON_GSM_REGISTERED);
+}
+
+/***********************************************
+ * 函数名     app_net_occured_gprs_registered_error
+ * 功能         出现了通信模块GPRS网络注册失败
+ **********************************************/
+void app_net_occured_gprs_registered_error(int fd)
+{
+    net_dis_reason_store(fd, NET_DIS_REASON_GPRS_REGISTERED);
+}
+
+/***********************************************
  * 函数名     app_ndata_update
  * 功能         更新外部数据
  **********************************************/

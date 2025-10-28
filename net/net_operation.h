@@ -318,6 +318,22 @@ enum net_external_socket_state{
     NET_ESOCKET_OPEN,
 };
 
+/********* 断网原因 *********/
+enum net_dis_reason{
+    NET_DIS_REASON_CLOSE_PASSIVE,                                    /** socket 被动关闭 */
+    NET_DIS_REASON_CLOSE_ACTIVE,                                     /** socket 主动关闭 */
+    NET_DIS_REASON_HEARTBEAT_TIMEOUT,                                /** socket 心跳超时 */
+    NET_DIS_REASON_SOCKET_PDP,                                       /** 4G模块PDP场景失效 */
+    NET_DIS_REASON_CLOSE_MODULE,                                     /** 通信模块关闭 */
+    NET_DIS_REASON_AT_PHYSICS,                                       /** AT指令(以太网物理层：查是否在线、查版本、修改波特率) */
+    NET_DIS_REASON_CPIN_LK_MAC,                                      /** 查找SIM卡(以太网数据链路层：初始化芯片、寻线、开DHCP) */
+    NET_DIS_REASON_CIMI_LK_MAC,                                      /** 查找CIMI号(以太网数据链路层：初始化芯片、寻线、开DHCP) */
+    NET_DIS_REASON_SIGNAL_STRENGTH_LK_MAC,                           /** 查询信号强度(以太网数据链路层：初始化芯片、寻线、开DHCP) */
+    NET_DIS_REASON_GSM_REGISTERED,                                   /** 注册GSM网络(以太网网络层：判断DHCP是否启动、获取IP信息、查询MAC地址) */
+    NET_DIS_REASON_GPRS_REGISTERED,                                  /** 注册GPRS网络(以太网网络层：判断DHCP是否启动、获取IP信息、查询MAC地址) */
+    NET_DIS_REASON_SIZE,                                             /**  */
+};
+
 enum net_enum{
     NET_ENUM_FALSE,
     NET_ENUM_TRUE,
@@ -419,5 +435,6 @@ void net_operation_tplat_info_trigger(uint8_t sync_data);
 void net_operation_set_fees_gunno(uint8_t gunno, uint8_t is_appand);
 uint8_t net_operation_is_gunno_updated_fees(uint8_t gunno);
 void net_operation_updated_billing_trigger(void);
+void net_dis_reason_store(int fd, uint8_t en);
 
 #endif /* NET_PACK_NET_OPERATION_H_ */

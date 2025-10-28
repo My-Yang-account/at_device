@@ -454,6 +454,7 @@ static void net_ykc_message_send_thread_entry(void *parameter)
         handle->data_updata();
         if((handle->net_fault) &NET_FAULT_PHYSICAL_LAYER){
             if((s_ykc_socket_info.fd >= 0x00) && (step >= NET_YKC_NET_STATE_LOGIN)){   /** 平台已建立连接，但是通信模块出错(关机) */
+                net_dis_reason_store(s_ykc_socket_info.fd, NET_DIS_REASON_CLOSE_ACTIVE);
                 ykc_socket_close(s_ykc_socket_info.fd);
                 s_ykc_socket_info.fd = -0x01;
             }
@@ -470,6 +471,7 @@ static void net_ykc_message_send_thread_entry(void *parameter)
         }
         if((handle->net_fault) &NET_FAULT_SIM_CARD){
             if((s_ykc_socket_info.fd >= 0x00) && (step >= NET_YKC_NET_STATE_LOGIN)){   /** 平台已建立连接，但是通信模块出错(关机) */
+                net_dis_reason_store(s_ykc_socket_info.fd, NET_DIS_REASON_CLOSE_ACTIVE);
                 ykc_socket_close(s_ykc_socket_info.fd);
                 s_ykc_socket_info.fd = -0x01;
             }
@@ -486,6 +488,7 @@ static void net_ykc_message_send_thread_entry(void *parameter)
         }
         if((handle->net_fault) &NET_FAULT_DATA_LINK_LAYER){
             if((s_ykc_socket_info.fd >= 0x00) && (step >= NET_YKC_NET_STATE_LOGIN)){   /** 平台已建立连接，但是通信模块出错(关机) */
+                net_dis_reason_store(s_ykc_socket_info.fd, NET_DIS_REASON_CLOSE_ACTIVE);
                 ykc_socket_close(s_ykc_socket_info.fd);
                 s_ykc_socket_info.fd = -0x01;
             }
@@ -502,6 +505,7 @@ static void net_ykc_message_send_thread_entry(void *parameter)
         }
         if((handle->net_fault) &NET_FAULT_MODULE_INIT){
             if((s_ykc_socket_info.fd >= 0x00) && (step >= NET_YKC_NET_STATE_LOGIN)){   /** 平台已建立连接，但是通信模块出错(关机) */
+                net_dis_reason_store(s_ykc_socket_info.fd, NET_DIS_REASON_CLOSE_ACTIVE);
                 ykc_socket_close(s_ykc_socket_info.fd);
                 s_ykc_socket_info.fd = -0x01;
             }
@@ -639,7 +643,7 @@ static void net_ykc_message_send_thread_entry(void *parameter)
                         }
                         rt_thread_mdelay(50);
                     }
-
+                    net_dis_reason_store(s_ykc_socket_info.fd, NET_DIS_REASON_CLOSE_ACTIVE);
                     ykc_socket_close(s_ykc_socket_info.fd);
                     s_ykc_socket_info.fd = -0x01;
                     s_ykc_socket_info.operate_fail.login++;
@@ -671,7 +675,7 @@ static void net_ykc_message_send_thread_entry(void *parameter)
                     }
                     rt_thread_mdelay(50);
                 }
-
+                net_dis_reason_store(s_ykc_socket_info.fd, NET_DIS_REASON_CLOSE_ACTIVE);
                 ykc_socket_close(s_ykc_socket_info.fd);
                 s_ykc_socket_info.fd = -0x01;
                 /** socket 状态可能有变，上报一次 */
@@ -711,6 +715,7 @@ static void net_ykc_message_send_thread_entry(void *parameter)
 
         for(uint8_t gunno = 0; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
             if(s_ykc_socket_info.heartbeat[gunno] > NET_YKC_HEARTBEAT_TIMEOUT_RENTRY){
+                net_dis_reason_store(s_ykc_socket_info.fd, NET_DIS_REASON_HEARTBEAT_TIMEOUT);
                 delay = rt_tick_get();
                 wait_unlock = rt_tick_get();
 

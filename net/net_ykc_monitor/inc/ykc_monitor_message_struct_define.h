@@ -84,6 +84,7 @@
 #define NET_YKC_MONITOR_FINISH_INFO_MAX                                0x01        /* 单次上报充电结束信息的最大个数 */
 #define NET_YKC_MONITOR_GUIDANCE_CHANGED_INFO_MAX                      0x05        /* 导引状态变化信息的最大个数 */
 #define NET_YKC_MONITOR_DEVICE_CTRL_CHANGED_INFO_MAX                   0x0A        /* 器件控制状态变化信息的最大个数 */
+#define NET_YKC_MONITOR_DISCONNECT_REASON_INFO_MAX                     0x05        /* 断网原因信息的最大个数 */
 
 #define NET_YKC_MONITOR_SCREEN_PW_LENGTH_DEFAULT                       0x0F        /* 默认屏幕密码长度 */
 
@@ -117,6 +118,7 @@ enum ykcm_dev_running{
     NETYKCM_DEV_RUNNING_CONTROL_INFO,                                /* 设备运行实时信息指令码：控制信息 */
     NETYKCM_DEV_RUNNING_STATUS_INFO,                                 /* 设备运行实时信息指令码：状态信息 */
     NETYKCM_DEV_RUNNING_DATA_INFO_GUIDANCE,                          /* 设备运行实时信息指令码：数据信息-导引 */
+    NETYKCM_DEV_RUNNING_DATA_DISCONNECT_REASON,                      /* 设备运行实时信息指令码：数据信息-断网原因 */
     NETYKCM_DEV_RUNNING_SIZE,                                        /* 设备运行实时信息指令码 */
 };
 /*********************************************************************************/
@@ -2369,8 +2371,8 @@ struct running_status_info{
     }segment;
 };
 
-/********** 运行数据段 **********/
-/** 导引数据段 */
+/******************************* 运行数据段 *******************************/
+/***************** 导引数据段 *****************/
 struct guidance_segment{
     uint32_t timestamp;                          /* 变化时的时间(时间戳) */
     int16_t voltage;                             /* 导引当前电压值(0.01V) */
@@ -2380,6 +2382,35 @@ struct guidance_segment{
     uint16_t diff_positive_adc_last;             /* 前一次差分正ADC */
     uint16_t diff_negtive_adc_last;              /* 前一次差分负ADC */
     uint8_t flag;                                /* 标志 */
+};
+
+/***************** 断网原因数据段 *****************/
+/** socket 断网信息小组 */
+struct socket_dis_group{
+    struct{
+        int8_t fd;
+        uint32_t timestamp;                                    /** 时间戳 */
+    }info[NET_YKC_MONITOR_DISCONNECT_REASON_INFO_MAX];
+};
+
+/** 通信模块断网信息小组 */
+struct module_dis_group{
+    uint32_t timestamp[NET_YKC_MONITOR_DISCONNECT_REASON_INFO_MAX];    /** 时间戳 */
+};
+
+/** 断网原因信息信息段 */
+struct disconnect_reason_segment{
+    struct socket_dis_group close_passive;                     /** socket 被动关闭 */
+    struct socket_dis_group close_active;                      /** socket 主动关闭 */
+    struct socket_dis_group heartbeat_timeout;                 /** socket 心跳超时 */
+    struct module_dis_group socket_pdp;                        /** socket PDP场景失效 */
+    struct module_dis_group close_module;                      /** 通信模块关闭 */
+    struct module_dis_group at_physics;                        /** AT指令(以太网物理层：查是否在线、查版本、修改波特率) */
+    struct module_dis_group cpin_lk_mac;                       /** 查找SIM卡(以太网数据链路层：初始化芯片、寻线、开DHCP) */
+    struct module_dis_group cimi_lk_mac;                       /** 查找CIMI号(以太网数据链路层：初始化芯片、寻线、开DHCP) */
+    struct module_dis_group signal_strength_lk_mac;            /** 查询信号强度(以太网数据链路层：初始化芯片、寻线、开DHCP) */
+    struct module_dis_group gsm_registered;                    /** 注册GSM网络(以太网网络层：判断DHCP是否启动、获取IP信息、查询MAC地址) */
+    struct module_dis_group gprs_registered;                   /** 注册GPRS网络(以太网网络层：判断DHCP是否启动、获取IP信息、查询MAC地址) */
 };
 
 /** 可能后续会增加其它数据段 */
