@@ -24,6 +24,7 @@ static uint16_t mw_convert_to_system_stopway(uint8_t gunno, thaisenChargeCtlStop
         }
         thaisenMsgSended_t sended = thaisenGetMsgSended(gunno);
         thaisenCommuTimeoutEnum reason = thaisenGetCommuTimeoutDetailed(gunno);
+        thaisenWaitingMsgEnum waiting_msg = thaisenGetWaitingMsgDetailed(gunno);
         switch(reason){
         case THAISEN_COMMUTIMEOUT_BRM:
             return APP_SYSTEM_STOP_WAY_BRM_TIMEOUT;
@@ -41,6 +42,35 @@ static uint16_t mw_convert_to_system_stopway(uint8_t gunno, thaisenChargeCtlStop
                 return APP_SYSTEM_STOP_WAY_STARTING_BCL_TIMEOUT;
             }
         case THAISEN_COMMUTIMEOUT_BCS:
+            /** CCS 报文已发送，说明已经进入了充电状态 */
+            if(sended.CCS){
+                return APP_SYSTEM_STOP_WAY_CHARGEING_BCS_TIMEOUT;
+            }else{
+                return APP_SYSTEM_STOP_WAY_STARTING_BCS_TIMEOUT;
+            }
+        default:
+            break;
+        }
+
+        switch(waiting_msg){
+        case THAISEN_WAITING_MSG_BHM:
+            break;
+        case THAISEN_WAITING_MSG_BRM:
+            return APP_SYSTEM_STOP_WAY_BRM_TIMEOUT;
+        case THAISEN_WAITING_MSG_BCP:
+            return APP_SYSTEM_STOP_WAY_BCP_TIMEOUT;
+        case THAISEN_WAITING_MSG_BRO:
+            return APP_SYSTEM_STOP_WAY_BRO_TIMEOUT;
+        case THAISEN_WAITING_MSG_BRO_AA:
+            return APP_SYSTEM_STOP_WAY_BRO_AA_TIMEOUT;
+        case THAISEN_WAITING_MSG_BCL:
+            /** CCS 报文已发送，说明已经进入了充电状态 */
+            if(sended.CCS){
+                return APP_SYSTEM_STOP_WAY_CHARGING_BCL_TIMEOUT;
+            }else{
+                return APP_SYSTEM_STOP_WAY_STARTING_BCL_TIMEOUT;
+            }
+        case THAISEN_WAITING_MSG_BCS:
             /** CCS 报文已发送，说明已经进入了充电状态 */
             if(sended.CCS){
                 return APP_SYSTEM_STOP_WAY_CHARGEING_BCS_TIMEOUT;
