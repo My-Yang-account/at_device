@@ -85,4 +85,18 @@ void app_get_mode_info(uint8_t gunno, uint8_t language, uint8_t mode, uint32_t p
  *******************************************/
 void app_get_module_fault_info(uint8_t gunno, uint8_t language, uint8_t addr, uint16_t fault_code, uint8_t *buf, uint8_t ilen);
 
+
+/********************************************
+ * 函数名      app_cmd_debug_result_info
+ * 功能          获取获取指令调试结果信息
+ * 参数          language  语言
+ *         cmd       指令
+ *         para      参数
+ *         plen      参数长度
+ *         buf       用于保存显示信息
+ *         ilen      缓存长度
+ * 返回
+ *******************************************/
+void app_cmd_debug_result_info(uint8_t language, uint8_t cmd, uint8_t *para, uint8_t plen, uint8_t *buf, uint8_t ilen);
+
 #endif /* APPLICATIONS_INC_APP_SUPPORT_FUNC_H_ */

@@ -2059,6 +2059,95 @@ void app_get_module_fault_info(uint8_t gunno, uint8_t language, uint8_t addr, ui
     }
 }
 
+
+/********************************************
+ * 函数名      app_cmd_debug_result_info
+ * 功能          获取获取指令调试结果信息
+ * 参数          language  语言
+ *         cmd       指令
+ *         para      参数
+ *         plen      参数长度
+ *         buf       用于保存显示信息
+ *         ilen      缓存长度
+ * 返回
+ *******************************************/
+void app_cmd_debug_result_info(uint8_t language, uint8_t cmd, uint8_t *para, uint8_t plen, uint8_t *buf, uint8_t ilen)
+{
+    if((buf == NULL) || (ilen == 0x00)){
+        return;
+    }
+    memset(buf, 0x00, ilen);
+
+    switch(cmd){
+    case THAISEN_DEBUG_CMD_ISSUE_MODULE_CURR_MAX:
+        if(para && (plen >= 0x04)){
+            uint32_t curr = *(uint32_t*)para;
+            /** 电流值最大4位 */
+            curr = curr >= 10000 ? 9999 : curr;
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= (strlen("Issue>ModuleCurrMax:") + 0x04))
+                    return;
+                sprintf((char*)buf, "%s%d", "Issue>ModuleCurrMax:", curr);
+            }else{
+                if(ilen <= (strlen("下发>模块最大输出电流：") + 0x04))
+                    return;
+                sprintf((char*)buf, "%s%d", "下发>模块最大输出电流：", curr);
+            }
+        }
+        break;
+    case THAISEN_DEBUG_CMD_ISSUE_TEST:
+        if(para && (plen >= 0x04)){
+            uint32_t test = *(uint32_t*)para;
+            /** 测试值最大4位 */
+            test = test >= 10000 ? 9999 : test;
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= (strlen("Issue>Test:") + 0x04))
+                    return;
+                sprintf((char*)buf, "%s%d", "Issue>Test:", test);
+            }else{
+                if(ilen <= (strlen("下发>测试：") + 0x04))
+                    return;
+                sprintf((char*)buf, "%s%d", "下发>测试：", test);
+            }
+        }
+        break;
+    case THAISEN_DEBUG_CMD_READ_MODULE_CURR_MAX:
+        if(para && (plen >= 0x04)){
+            uint32_t curr = *(uint32_t*)para;
+            /** 电流值最大4位 */
+            curr = curr >= 10000 ? 9999 : curr;
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= (strlen("Read>ModuleCurrMax:") + 0x04))
+                    return;
+                sprintf((char*)buf, "%s%d", "Read>ModuleCurrMax:", curr);
+            }else{
+                if(ilen <= (strlen("读取>模块最大输出电流：") + 0x04))
+                    return;
+                sprintf((char*)buf, "%s%d", "读取>模块最大输出电流：", curr);
+            }
+        }
+        break;
+    case THAISEN_DEBUG_CMD_READ_TEST:
+        if(para && (plen >= 0x04)){
+            uint32_t test = *(uint32_t*)para;
+            /** 测试值最大4位 */
+            test = test >= 10000 ? 9999 : test;
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= (strlen("Read>Test:") + 0x04))
+                    return;
+                sprintf((char*)buf, "%s%d", "Read>Test:", test);
+            }else{
+                if(ilen <= (strlen("读取>测试：") + 0x04))
+                    return;
+                sprintf((char*)buf, "%s%d", "读取>测试：", test);
+            }
+        }
+        break;
+    default:
+        break;
+    }
+}
+
 /*************************************************************
  * 函数名           packing_data
  * 功能                                                                  将数据封装到指定缓存
@@ -2184,4 +2273,3 @@ uint16_t get_crc16_modbus(uint16_t crc, uint8_t *data, uint32_t len)
     }
     return crc;
 }
-

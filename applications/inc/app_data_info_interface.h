@@ -678,6 +678,21 @@ struct card_data_info *thaisen_get_card_info(uint8_t gunno);
 uint8_t thaisen_is_debug(void);
 
 /**
+ * 调试指令码
+ */
+enum thaisen_debug_cmd{
+    THAISEN_DEBUG_CMD_ISSUE_MODULE_CURR_MAX,                     /** 调试指令码：下发模块最大输出电流 */
+    THAISEN_DEBUG_CMD_ISSUE_TEST,                                /** 调试指令码：下发测试 */
+    THAISEN_DEBUG_CMD_READ_MODULE_CURR_MAX,                      /** 调试指令码：读取模块最大输出电流 */
+    THAISEN_DEBUG_CMD_READ_TEST,                                 /** 调试指令码：读取测试 */
+    THAISEN_DEBUG_CMD_SIZE,                                      /** 调试指令码 */
+};
+/**
+ * 获取指令调试结果信息
+ */
+void thaisen_get_cmd_debug_result_info(uint8_t language, uint8_t cmd, uint8_t *para, uint8_t plen, uint8_t *buf, uint8_t ilen);
+
+/**
  * 查询充电是否已停止
  **/
 uint8_t thaisen_is_stoped_charge(uint8_t gunno);

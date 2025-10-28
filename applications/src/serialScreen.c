@@ -748,6 +748,16 @@ struct LCD_DISPLAY_SETDATA_TYPE{
     u32 CurrentModePara[LCD_GUN_NUM + 1];                        //当前模式参数：
     u8 CurrentModeInfo[LCD_GUN_NUM][32];                         //当前模式显示信息：
     u8 Modewarning;                                              //模式信息告警
+    /*********************** cmd debug ***************************/
+    uint8_t DebugCmd[32];                                        //调试指令
+    uint8_t DebugCmdPara[32];                                    //调试指令参数
+    uint8_t DebugResult[64];                                     //调试结果
+    /** 参数 */
+    u32 DebugCmdPara_MCMax;                                      //指令调试参数：模块最大输出电流
+    u32 DebugCmdPara_Test;                                       //指令调试参数：测试值
+    /** 参数中间值 */
+    u32 DebugCmdPara_MCMaxTemp;                                  //指令调试参数：模块最大输出电流中间值
+    u32 DebugCmdPara_TestTemp;                                   //指令调试参数：测试值中间值
 }LCD_DISPLAY_SETDATA_TYPE_t;
 
 
@@ -4459,6 +4469,12 @@ void SerialScreen_CmdDebugInfoSet(void)
 
     /** 此处需要判断是否有数据要修改，有修改时才执行保存操作 */
 
+    if(LcdData.setData.DebugCmdPara_Test != LcdData.setData.DebugCmdPara_TestTemp){
+        is_changed = 1;
+    }
+    if(LcdData.setData.DebugCmdPara_MCMax != LcdData.setData.DebugCmdPara_MCMaxTemp){
+        is_changed = 1;
+    }
     if(LcdData.setData.Icon_BatVoltDetect != LcdData.setData.sup_BatVoltDetect){
         is_changed = 1;
     }
@@ -4483,6 +4499,8 @@ void SerialScreen_CmdDebugInfoSet(void)
         LcdData.setData.sup_SupFASTProtocol = LcdData.setData.Icon_SupFASTProtocol;
         LcdData.setData.sup_SupYTProtocol = LcdData.setData.Icon_SupYTProtocol;
         LcdData.setData.sup_SupBayProtocol = LcdData.setData.Icon_SupBayProtocol;
+        LcdData.setData.DebugCmdPara_Test = LcdData.setData.DebugCmdPara_TestTemp;
+        LcdData.setData.DebugCmdPara_MCMax = LcdData.setData.DebugCmdPara_MCMaxTemp;
 
         UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_BATVOLT_DETECT, &LcdData.setData.sup_BatVoltDetect, sizeof(LcdData.setData.sup_BatVoltDetect));
         UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_BCLTIMOUT_DETECT, &LcdData.setData.sup_BCLTimeoutDetect, sizeof(LcdData.setData.sup_BCLTimeoutDetect));
@@ -4544,6 +4562,123 @@ void SerialScreen_CmdDebugInfoGet(void)
     if(LcdData.setData.sup_SupBayProtocol){
         LcdData.setData.Icon_SupBayProtocol = TRUE;
     }
+}
+
+void SerialScreen_CmdDebugIssue(void)
+{
+    u8 used_len = 0, blen = sizeof(LcdData.setData.DebugResult);
+    char CmdBuf[32], CmdParaBuf[32];
+    char *save_cmdptr = NULL, *CmdStr = NULL;
+    char *save_paraptr = NULL, *ParaStr = NULL;
+
+    memset(CmdBuf, 0, sizeof(CmdBuf));
+    if(sizeof(LcdData.setData.DebugCmd) > sizeof(CmdBuf)){
+        memcpy(CmdBuf, LcdData.setData.DebugCmd, sizeof(CmdBuf));
+    }else{
+        memcpy(CmdBuf, LcdData.setData.DebugCmd, sizeof(LcdData.setData.DebugCmd));
+    }
+
+    memset(CmdParaBuf, 0, sizeof(CmdParaBuf));
+    if(sizeof(LcdData.setData.DebugCmdPara) > sizeof(CmdParaBuf)){
+        memcpy(CmdParaBuf, LcdData.setData.DebugCmdPara, sizeof(CmdParaBuf));
+    }else{
+        memcpy(CmdParaBuf, LcdData.setData.DebugCmdPara, sizeof(LcdData.setData.DebugCmdPara));
+    }
+    save_cmdptr = CmdBuf;
+    save_paraptr = CmdParaBuf;
+
+    memset(LcdData.setData.DebugResult, 0, sizeof(LcdData.setData.DebugResult));
+    do{
+        CmdStr = strtok_r(save_cmdptr, ",", &save_cmdptr);
+        ParaStr = strtok_r(save_paraptr, ",", &save_paraptr);
+
+        /** 无有效指令，所有指令已处理完，退出 */
+        if(CmdStr == NULL)
+            break;
+        /** 多条指令之间使用分隔符分开 */
+        if((used_len != 0)){
+            used_len = used_len >= blen ? (blen - 1) : used_len;
+            LcdData.setData.DebugResult[used_len] = '/';
+            used_len++;
+        }
+
+        /** 指令下发：模块最大输出电流值 */
+        if((memcmp(CmdStr, "MCMAX", strlen("MCMAX")) == 0) && (strlen(CmdStr) == strlen("MCMAX")))
+        {
+            if((used_len < blen) && ParaStr){
+                u32 para = atol(ParaStr);
+                thaisen_get_cmd_debug_result_info(THA_DEBUG_LANGUAGE_ENGLISH, THAISEN_DEBUG_CMD_ISSUE_MODULE_CURR_MAX, (u8*)&para, sizeof(para), \
+                        (LcdData.setData.DebugResult + used_len), (blen - used_len));
+                /** 保存指令参数 */
+                LcdData.setData.DebugCmdPara_MCMaxTemp = para;
+            }
+        }
+        /** 指令下发：测试值 */
+        else if((memcmp(CmdStr, "TEST", strlen("TEST")) == 0) && (strlen(CmdStr) == strlen("TEST")))
+        {
+            if((used_len < blen) && ParaStr){
+                u32 para = atol(ParaStr);
+                thaisen_get_cmd_debug_result_info(THA_DEBUG_LANGUAGE_ENGLISH, THAISEN_DEBUG_CMD_ISSUE_TEST, (u8*)&para, sizeof(para), \
+                        (LcdData.setData.DebugResult + used_len), (blen - used_len));
+                /** 保存指令参数 */
+                LcdData.setData.DebugCmdPara_TestTemp = para;
+            }
+        }
+        used_len = strlen((char*)LcdData.setData.DebugResult);
+        if(used_len >= blen)
+            used_len = (blen - 1);
+    }while(1);
+}
+
+void SerialScreen_CmdDebugRead(void)
+{
+    u8 used_len = 0, blen = sizeof(LcdData.setData.DebugResult);
+    char CmdBuf[32];
+    char *save_cmdptr = NULL, *CmdStr = NULL;
+
+    memset(CmdBuf, 0, sizeof(CmdBuf));
+    if(sizeof(LcdData.setData.DebugCmd) > sizeof(CmdBuf)){
+        memcpy(CmdBuf, LcdData.setData.DebugCmd, sizeof(CmdBuf));
+    }else{
+        memcpy(CmdBuf, LcdData.setData.DebugCmd, sizeof(LcdData.setData.DebugCmd));
+    }
+    save_cmdptr = CmdBuf;
+
+    memset(LcdData.setData.DebugResult, 0, sizeof(LcdData.setData.DebugResult));
+    do{
+        CmdStr = strtok_r(save_cmdptr, ",", &save_cmdptr);
+        /** 无有效指令，所有指令已处理完，退出 */
+        if(CmdStr == NULL)
+            break;
+        /** 多条指令之间使用分隔符分开 */
+        if((used_len != 0)){
+            used_len = used_len >= blen ? (blen - 1) : used_len;
+            LcdData.setData.DebugResult[used_len] = '/';
+            used_len++;
+        }
+
+        /** 指令下发：模块最大输出电流值 */
+        if((memcmp(CmdStr, "MCMAX", strlen("MCMAX")) == 0) && (strlen(CmdStr) == strlen("MCMAX")))
+        {
+            if(used_len < blen){
+                u32 para = LcdData.setData.DebugCmdPara_MCMaxTemp;
+                thaisen_get_cmd_debug_result_info(THA_DEBUG_LANGUAGE_ENGLISH, THAISEN_DEBUG_CMD_READ_MODULE_CURR_MAX, (u8*)&para, sizeof(para), \
+                        (LcdData.setData.DebugResult + used_len), (blen - used_len));
+            }
+        }
+        /** 指令下发：测试值 */
+        else if((memcmp(CmdStr, "TEST", strlen("TEST")) == 0) && (strlen(CmdStr) == strlen("TEST")))
+        {
+            if(used_len < blen){
+                u32 para = LcdData.setData.DebugCmdPara_TestTemp;
+                thaisen_get_cmd_debug_result_info(THA_DEBUG_LANGUAGE_ENGLISH, THAISEN_DEBUG_CMD_READ_TEST, (u8*)&para, sizeof(para), \
+                        (LcdData.setData.DebugResult + used_len), (blen - used_len));
+            }
+        }
+        used_len = strlen((char*)LcdData.setData.DebugResult);
+        if(used_len >= blen)
+            used_len = (blen - 1);
+    }while(1);
 }
 
 void SerialScreen_CmdDebugBack(int port)
@@ -12298,6 +12433,13 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_CMD_DEBUG, NULL, "FASTProtocolSet", LCD_BtnType, 0x0066, 0x1009, page_type, LCD_PAGE_CMD_DEBUG, (void *)SerialScreen_IsSupportFASTProtocolSet);
     SerialScreen_ItemSetUp(LCD_PAGE_CMD_DEBUG, NULL, "YTProtocolSet", LCD_BtnType, 0x0067, 0x1009, page_type, LCD_PAGE_CMD_DEBUG, (void *)SerialScreen_IsSupportYTProtocolSet);
     SerialScreen_ItemSetUp(LCD_PAGE_CMD_DEBUG, NULL, "BayProtocolSet", LCD_BtnType, 0x0068, 0x1009, page_type, LCD_PAGE_CMD_DEBUG, (void *)SerialScreen_IsSupportBayProtocolSet);
+
+    SerialScreen_ItemSetUp(LCD_PAGE_CMD_DEBUG, NULL, "CmdIssue", LCD_BtnType, 0x0062, 0x1009, page_type, LCD_PAGE_CMD_DEBUG, (void *)SerialScreen_CmdDebugIssue);
+    SerialScreen_ItemSetUp(LCD_PAGE_CMD_DEBUG, NULL, "CmdRead", LCD_BtnType, 0x0063, 0x1009, page_type, LCD_PAGE_CMD_DEBUG, (void *)SerialScreen_CmdDebugRead);
+
+    SerialScreen_ItemSetUp(LCD_PAGE_CMD_DEBUG, NULL, "Cmd", LCD_InputType, 0, 0x6C24, pstr_type, (sizeof(LcdData.setData.DebugCmd) - 2), (void *)LcdData.setData.DebugCmd);
+    SerialScreen_ItemSetUp(LCD_PAGE_CMD_DEBUG, NULL, "CmdPara", LCD_InputType, 0, 0x6C34, pstr_type, (sizeof(LcdData.setData.DebugCmdPara) - 2), (void *)LcdData.setData.DebugCmdPara);
+    SerialScreen_ItemSetUp(LCD_PAGE_CMD_DEBUG, NULL, "DebugResult", LCD_TextType, LCD_1sReflash, 0x6C44, pstr_type, sizeof(LcdData.setData.DebugResult), (void *)LcdData.setData.DebugResult);
 
     SerialScreen_ItemSetUp(LCD_PAGE_CMD_DEBUG, NULL, "back", LCD_BtnType, 0x0050, 0x1000, page_type, LCD_PAGE_ROOT_MAIN, (void *)SerialScreen_CmdDebugBack);
     SerialScreen_ItemSetUp(LCD_PAGE_CMD_DEBUG, NULL, "Home", LCD_BtnHomeType, 0x0002, 0x1000, page_type, LCD_PAGE_NONE, (void *)SerialScreen_CmdDebugHome);
