@@ -3316,20 +3316,6 @@ static void ykc_monitor_data_realtime_process(uint8_t gunno, System_BaseData* ba
         }
 
 #ifdef NET_YKC_MONITOR_AS_MONITOR
-        if((rt_tick_get() - s_ykc_monitor_setvoltcurr.base_tick) > 1500){   /** 1.5秒采一次数据 */
-            ykc_monitor_padding_setvoltcurr_data();
-            s_ykc_monitor_setvoltcurr.base_tick = rt_tick_get();
-        }
-        if(s_ykc_monitor_setvoltcurr.count >= NET_YKC_MONITOR_SETVOLTCURR_PAIR_MAX){
-            if(s_ykc_monitor_setvoltcurr.is_locked == NET_ENUM_FALSE){
-                ykc_monitor_net_event_send(NET_YKC_MONITOR_EXTERNAL_EHANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST,  \
-                        0x00, NET_YKC_MONITOR_EXTERNAL_PREQ_EVENT_SET_VOLTCURR);
-                s_ykc_monitor_setvoltcurr.is_locked = NET_ENUM_TRUE;
-            }
-        }else{
-            s_ykc_monitor_setvoltcurr.is_locked = NET_ENUM_FALSE;
-        }
-
         /*********************************** 启动中信息 ************************************/
         /*********************************** 启动中信息 ************************************/
         if((base->state.current == APP_OFSM_STATE_STARTING) ||
@@ -3392,7 +3378,6 @@ static void ykc_monitor_data_realtime_process(uint8_t gunno, System_BaseData* ba
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
     }else{
 #ifdef NET_YKC_MONITOR_AS_MONITOR
-        s_ykc_monitor_setvoltcurr.base_tick = rt_tick_get();
         s_ykc_monitor_starting_info[gunno].base_tick = rt_tick_get();
         s_ykc_monitor_charging_info[gunno].base_tick = rt_tick_get();
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
@@ -3520,7 +3505,7 @@ static void ykc_monitor_realtime_process_thread_entry(void *parameter)
     extern uint8_t thaisenGetEnableModuleOperateResult(void);
 
     System_BaseData *base = NULL;
-    uint8_t gunno = 0x00;
+    uint8_t gunno = 0x00, system_is_idle = 0x00;
 
     s_ykc_monitor_mfault_info.check_tick = rt_tick_get();
 
@@ -3535,6 +3520,7 @@ static void ykc_monitor_realtime_process_thread_entry(void *parameter)
             continue;
         }
 
+        system_is_idle = 0x00;   /** 系统是空闲状态 */
         for(gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
             base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(gunno));
             ykc_monitor_fault_detect_report(gunno);
@@ -3547,8 +3533,43 @@ static void ykc_monitor_realtime_process_thread_entry(void *parameter)
 #endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
                 s_ykc_monitor_mfault_info.check_tick = rt_tick_get();
             }
+            if(!((base->state.current >= APP_OFSM_STATE_STARTING) && (base->state.current <= APP_OFSM_STATE_CHARGING))){
+                system_is_idle++;
+            }
         }
 #ifdef NET_YKC_MONITOR_AS_MONITOR
+
+        /************************************** 上报给每个模块设置的电压、电流 **************************************/
+        /******************* 系统非空闲，有枪在充电 ********************/
+        if(system_is_idle < NET_SYSTEM_GUN_NUMBER){
+            if((rt_tick_get() - s_ykc_monitor_setvoltcurr.base_tick) > 1500){   /** 1.5秒采一次数据 */
+                ykc_monitor_padding_setvoltcurr_data();
+                s_ykc_monitor_setvoltcurr.base_tick = rt_tick_get();
+            }
+            if(s_ykc_monitor_setvoltcurr.count >= NET_YKC_MONITOR_SETVOLTCURR_PAIR_MAX){
+                if(s_ykc_monitor_setvoltcurr.is_locked == NET_ENUM_FALSE){
+                    ykc_monitor_net_event_send(NET_YKC_MONITOR_EXTERNAL_EHANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST,  \
+                            0x00, NET_YKC_MONITOR_EXTERNAL_PREQ_EVENT_SET_VOLTCURR);
+                    s_ykc_monitor_setvoltcurr.is_locked = NET_ENUM_TRUE;
+                }
+            }else{
+                s_ykc_monitor_setvoltcurr.is_locked = NET_ENUM_FALSE;
+            }
+        }else{
+            if(s_ykc_monitor_setvoltcurr.count != 0x00){
+                if(s_ykc_monitor_setvoltcurr.is_locked == NET_ENUM_FALSE){
+                    ykc_monitor_net_event_send(NET_YKC_MONITOR_EXTERNAL_EHANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST,  \
+                            0x00, NET_YKC_MONITOR_EXTERNAL_PREQ_EVENT_SET_VOLTCURR);
+                    s_ykc_monitor_setvoltcurr.is_locked = NET_ENUM_TRUE;
+                }
+            }else{
+                s_ykc_monitor_setvoltcurr.count = 0x00;
+                s_ykc_monitor_setvoltcurr.is_locked = NET_ENUM_FALSE;
+            }
+        }
+
+        /********************************************** 凌康锁模块处理 **********************************************/
+
         if(s_ykc_monitor_lock_module.flag.is_wait_response == NET_ENUM_TRUE){
             if((rt_tick_get() - s_ykc_monitor_lock_module.base_tick) > 10000){
                 s_ykc_monitor_lock_module.flag.operate_result = 0x00;
