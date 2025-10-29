@@ -1759,7 +1759,8 @@ struct value{
 /** 启动中信息 */
 struct starting_info{
     uint8_t state;                               /* 充电状态 */
-    uint8_t bms_message;                         /* BMS报文接收情况(按位来，1是已接到) */
+    uint16_t recved_message;                     /* BMS报文接收情况(按位来，1是已接到) */
+    uint16_t sended_message;                     /* BMS报文发送情况(按位来，1是已接到) */
     struct value sampling_voltage;               /* 采样电压(精度：0.1) */
     struct value max_alllow_voltage;             /* 最大允许电压(精度：0.1) */
     struct value battery_voltage;                /* 电池电压(精度：0.1) */
@@ -1768,24 +1769,27 @@ struct starting_info{
     struct value negative_insul_volt;            /* 负极绝缘电压(精度：0.1) */
     uint16_t positive_insul_resistance;          /* 正极绝缘电阻(单位K欧) */
     uint16_t negative_insul_resistance;          /* 负极绝缘电阻(单位K欧) */
+    uint16_t pile_measure_voltage;               /* 桩测量电压(精度：0.1) */
 };
 /** 充电中信息 */
 struct charging_info{
     uint8_t state;                               /* 充电状态 */
-    uint8_t bms_message;                         /* BMS报文接收情况(按位来，1是已接到) */
+    uint16_t recved_message;                     /* BMS报文接收情况(按位来，1是已接到) */
+    uint16_t sended_message;                     /* BMS报文发送情况(按位来，1是已接到) */
     struct value require_voltage;                /* 需求电压(精度：0.1) */
     struct value require_current;                /* 需求电流(精度：0.1) */
     struct value module_voltage;                 /* 模块电压(精度：0.1) */
     struct value module_current;                 /* 模块电流(精度：0.1) */
     struct value bms_measure_voltage;            /* BMS测量电压(精度：0.1) */
     struct value bms_measure_current;            /* BMS测量电流(精度：0.1) */
-//    struct value pile_measure_voltage;           /* 桩测量电压(精度：0.1) */
     struct value pile_measure_current;           /* 桩测量电流(精度：0.1) */
+    uint16_t pile_measure_voltage;               /* 桩测量电压(精度：0.1) */
 };
 /** 充电结束信息 */
 struct finish_info{
     uint8_t state;                               /* 充电状态 */
-    uint8_t bms_message;                         /* BMS报文接收情况(按位来，1是已接到) */
+    uint8_t recved_message;                      /* BMS报文接收情况(按位来，1是已接到) */
+    uint8_t sended_message;                      /* BMS报文发送情况(按位来，1是已接到) */
     struct{
         uint8_t msingle_bat_sn;                  /* 最高单体动力蓄电池电压所在编号 */
         uint8_t max_bat_temp;                    /* 最高动力蓄电池温度 */
@@ -1811,7 +1815,10 @@ typedef struct{
         uint8_t pile_number[NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT];  /* 桩号*/
         uint8_t gunno;                           /* 枪号 */
         uint32_t timestamp;                      /* 采样时间 */
-        uint8_t info_type;                       /* 信息类型(0：启动中信息，1：充电中信息，2：充电结束信息) */
+        struct{
+            uint8_t info_type : 4;               /* 信息类型(0：启动中信息，1：充电中信息，2：充电结束信息) */
+            uint8_t msg_version : 4;             /* 报文版本(为兼容之前的格式，版本从1开始) */
+        }info;
         uint8_t group_num;                       /* 有效采样组数 */
         /* 信息数据 */
     }body;

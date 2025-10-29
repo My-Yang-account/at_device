@@ -32,24 +32,32 @@
 #define YKC_MONITOR_DYNAMIC_CMD_MSG_VER                   0x00                  /* 动态类型指令报文版本 */
 #define YKC_MONITOR_DYNAMIC_CMD_SINGLE_NUM                0x05                  /* 单次操作动态类型指令最大个数，超过的不执行，也不报错 */
 
-/** 启动中报文 */
-#define YKC_MONITOR_STARTING_BMS_MESSAGE_BHM              (0x01 <<0x00)         /* 是否接收到了BHM报文 */
-#define YKC_MONITOR_STARTING_BMS_MESSAGE_BRM              (0x01 <<0x01)         /* 是否接收到了BRM报文 */
-#define YKC_MONITOR_STARTING_BMS_MESSAGE_BCP              (0x01 <<0x02)         /* 是否接收到了BCP报文 */
-#define YKC_MONITOR_STARTING_BMS_MESSAGE_BRO              (0x01 <<0x03)         /* 是否接收到了BRO报文 */
-#define YKC_MONITOR_STARTING_BMS_IS_READY                 (0x01 <<0x04)         /* BMS是否已准备好 */
-/** 充电中报文 */
-#define YKC_MONITOR_CHARGING_BMS_MESSAGE_BCL              (0x01 <<0x00)         /* 是否接收到了BCL报文 */
-#define YKC_MONITOR_CHARGING_BMS_MESSAGE_BCS              (0x01 <<0x01)         /* 是否接收到了BCS报文 */
-#define YKC_MONITOR_CHARGING_BMS_MESSAGE_BSM              (0x01 <<0x02)         /* 是否接收到了BSM报文 */
-#define YKC_MONITOR_CHARGING_BMS_MESSAGE_BMV              (0x01 <<0x03)         /* 是否接收到了BMV报文 */
-#define YKC_MONITOR_CHARGING_BMS_MESSAGE_BMT              (0x01 <<0x04)         /* 是否接收到了BMT报文 */
-#define YKC_MONITOR_CHARGING_BMS_MESSAGE_BSP              (0x01 <<0x05)         /* 是否接收到了BSP报文 */
-#define YKC_MONITOR_CHARGING_BMS_MESSAGE_BEM              (0x01 <<0x06)         /* 是否接收到了BEM报文 */
-#define YKC_MONITOR_CHARGING_BMS_IS_ALLOW                 (0x01 <<0x07)         /* BMS 允许充电 */
-/** 充电结束报文 */
-#define YKC_MONITOR_FINISH_BMS_MESSAGE_BST                (0x01 <<0x00)         /* 是否接收到了BST报文 */
-#define YKC_MONITOR_FINISH_BMS_MESSAGE_BSD                (0x01 <<0x01)         /* 是否接收到了BSD报文 */
+/** 接收BMS报文 */
+#define YKC_MONITOR_RECVED_MSG_BHM                       (0x01 <<0x00)          /* 是否接收到了BHM报文 */
+#define YKC_MONITOR_RECVED_MSG_BRM                       (0x01 <<0x01)          /* 是否接收到了BRM报文 */
+#define YKC_MONITOR_RECVED_MSG_BFC                       (0x01 <<0x02)          /* 是否接收到了BFC报文 */
+#define YKC_MONITOR_RECVED_MSG_BCP                       (0x01 <<0x03)          /* 是否接收到了BCP报文 */
+#define YKC_MONITOR_RECVED_MSG_BRO_00                    (0x01 <<0x04)          /* 是否接收到了BRO_00报文 */
+#define YKC_MONITOR_RECVED_MSG_BRO_AA                    (0x01 <<0x05)          /* 是否接收到了BRO_AA报文 */
+#define YKC_MONITOR_RECVED_MSG_BCL                       (0x01 <<0x06)          /* 是否接收到了BCL报文 */
+#define YKC_MONITOR_RECVED_MSG_BCS                       (0x01 <<0x07)          /* 是否接收到了BCS报文 */
+#define YKC_MONITOR_RECVED_MSG_BEM                       (0x01 <<0x08)          /* 是否接收到了BEM报文 */
+#define YKC_MONITOR_RECVED_MSG_BSM                       (0x01 <<0x09)          /* 是否接收到了BSM报文 */
+#define YKC_MONITOR_RECVED_MSG_BST                       (0x01 <<0x0A)          /* 是否接收到了BST报文 */
+#define YKC_MONITOR_RECVED_MSG_BSD                       (0x01 <<0x0B)          /* 是否接收到了BSD报文 */
+/** 发送充电机报文报文 */
+#define YKC_MONITOR_SENDED_MSG_CHM                       (0x01 <<0x00)          /* 是否发送了CHM报文 */
+#define YKC_MONITOR_SENDED_MSG_CRM                       (0x01 <<0x01)          /* 是否发送了CRM报文 */
+#define YKC_MONITOR_SENDED_MSG_CRM_AA                    (0x01 <<0x02)          /* 是否发送了CRM_AA报文 */
+#define YKC_MONITOR_SENDED_MSG_CFC                       (0x01 <<0x03)          /* 是否发送了CFC报文 */
+#define YKC_MONITOR_SENDED_MSG_CTS                       (0x01 <<0x04)          /* 是否发送了CTS报文 */
+#define YKC_MONITOR_SENDED_MSG_CML                       (0x01 <<0x05)          /* 是否发送了CML报文 */
+#define YKC_MONITOR_SENDED_MSG_CRO                       (0x01 <<0x06)          /* 是否发送了CRO报文 */
+#define YKC_MONITOR_SENDED_MSG_CRO_AA                    (0x01 <<0x07)          /* 是否发送了CRO_AA报文 */
+#define YKC_MONITOR_SENDED_MSG_CCS                       (0x01 <<0x08)          /* 是否发送了CCS报文 */
+#define YKC_MONITOR_SENDED_MSG_CEM                       (0x01 <<0x09)          /* 是否发送了CEM报文 */
+#define YKC_MONITOR_SENDED_MSG_CST                       (0x01 <<0x0A)          /* 是否发送了CST报文 */
+#define YKC_MONITOR_SENDED_MSG_CSD                       (0x01 <<0x0B)          /* 是否发送了CSD报文 */
 
 #define YKC_MONITOR_BUF_PUBLIC_LENGTH                     0xFF                  /* 充电数据公用缓存长度  */
 #define YKC_MONITOR_MODULE_GROUP_MAX                      0x04                  /* 最大模块组数  */
@@ -4414,6 +4422,8 @@ int8_t ykc_monitor_padding_starting_info(uint8_t gunno)
     s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].module_voltage.symbol = 0x00;
     s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].module_voltage.data = thaisen_get_module_volt(gunno);
 
+    s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].pile_measure_voltage = base->voltage_a /10;
+
     /** 暂时按双枪做 */
     if(gunno == 0x00){
         extern int16_t TH_get_A_Insult_Positive_PE_Volt(void);
@@ -4458,35 +4468,106 @@ int8_t ykc_monitor_padding_starting_info(uint8_t gunno)
     msg_recved = thaisenGetMsgRecved(gunno);
     msg_sended = thaisenGetMsgSended(gunno);
     rt_exit_critical();
-
+    /********************************************** 报文接收 **********************************************/
+    s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].recved_message = 0x00;
+    /** BHM */
     if(msg_recved.BHM){
-        s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].bms_message |= YKC_MONITOR_STARTING_BMS_MESSAGE_BHM;
-    }else{
-        s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].bms_message &= (~YKC_MONITOR_STARTING_BMS_MESSAGE_BHM);
+        s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].recved_message |= YKC_MONITOR_RECVED_MSG_BHM;
     }
-
+    /** BRM */
     if(msg_recved.BRM){
-        s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].bms_message |= YKC_MONITOR_STARTING_BMS_MESSAGE_BRM;
-    }else{
-        s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].bms_message &= (~YKC_MONITOR_STARTING_BMS_MESSAGE_BRM);
+        s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].recved_message |= YKC_MONITOR_RECVED_MSG_BRM;
     }
-
+    /** BCP */
     if(msg_recved.BCP){
-        s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].bms_message |= YKC_MONITOR_STARTING_BMS_MESSAGE_BCP;
-    }else{
-        s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].bms_message &= (~YKC_MONITOR_STARTING_BMS_MESSAGE_BCP);
+        s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].recved_message |= YKC_MONITOR_RECVED_MSG_BCP;
     }
-
+    /** BRO_00 */
     if(msg_recved.BRO){
-        s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].bms_message |= YKC_MONITOR_STARTING_BMS_MESSAGE_BRO;
-    }else{
-        s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].bms_message &= (~YKC_MONITOR_STARTING_BMS_MESSAGE_BRO);
+        s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].recved_message |= YKC_MONITOR_RECVED_MSG_BRO_00;
+    }
+    /** BRO_AA */
+    if(msg_recved.BRO_AA){
+        s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].recved_message |= YKC_MONITOR_RECVED_MSG_BRO_AA;
+    }
+    /** BCL */
+    if(msg_recved.BCL){
+        s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].recved_message |= YKC_MONITOR_RECVED_MSG_BCL;
+    }
+    /** BCS */
+    if(msg_recved.BCS){
+        s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].recved_message |= YKC_MONITOR_RECVED_MSG_BCS;
+    }
+    /** BSM */
+    if(msg_recved.BSM){
+        s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].recved_message |= YKC_MONITOR_RECVED_MSG_BSM;
+    }
+    /** BST */
+    if(msg_recved.BST){
+        s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].recved_message |= YKC_MONITOR_RECVED_MSG_BST;
+    }
+    /** BSD */
+    if(msg_recved.BSD){
+        s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].recved_message |= YKC_MONITOR_RECVED_MSG_BSD;
+    }
+    /** BEM */
+    if(msg_recved.BEM){
+        s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].recved_message |= YKC_MONITOR_RECVED_MSG_BEM;
+    }
+    /** BFC */
+    if(msg_recved.BFC){
+        s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].recved_message |= YKC_MONITOR_RECVED_MSG_BFC;
     }
 
-    if(msg_recved.BRO_AA){
-        s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].bms_message |= YKC_MONITOR_STARTING_BMS_IS_READY;
-    }else{
-        s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].bms_message &= (~YKC_MONITOR_STARTING_BMS_IS_READY);
+    /********************************************** 报文发送 **********************************************/
+    s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].sended_message = 0x00;
+    /** CHM */
+    if(msg_sended.CHM){
+        s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].sended_message |= YKC_MONITOR_SENDED_MSG_CHM;
+    }
+    /** CRM */
+    if(msg_sended.CRM){
+        s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].sended_message |= YKC_MONITOR_SENDED_MSG_CRM;
+    }
+    /** CRM_AA */
+    if(msg_sended.CRM_AA){
+        s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].sended_message |= YKC_MONITOR_SENDED_MSG_CRM_AA;
+    }
+    /** CFC */
+    if(msg_sended.CFC){
+        s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].sended_message |= YKC_MONITOR_SENDED_MSG_CFC;
+    }
+    /** CTS */
+    if(msg_sended.CTS){
+        s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].sended_message |= YKC_MONITOR_SENDED_MSG_CTS;
+    }
+    /** CML */
+    if(msg_sended.CML){
+        s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].sended_message |= YKC_MONITOR_SENDED_MSG_CML;
+    }
+    /** CRO */
+    if(msg_sended.CRO){
+        s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].sended_message |= YKC_MONITOR_SENDED_MSG_CRO;
+    }
+    /** CRO_AA */
+    if(msg_sended.CRO_AA){
+        s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].sended_message |= YKC_MONITOR_SENDED_MSG_CRO_AA;
+    }
+    /** CCS */
+    if(msg_sended.CCS){
+        s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].sended_message |= YKC_MONITOR_SENDED_MSG_CCS;
+    }
+    /** CST */
+    if(msg_sended.CST){
+        s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].sended_message |= YKC_MONITOR_SENDED_MSG_CST;
+    }
+    /** CSD */
+    if(msg_sended.CSD){
+        s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].sended_message |= YKC_MONITOR_SENDED_MSG_CSD;
+    }
+    /** CEM */
+    if(msg_sended.CEM){
+        s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].sended_message |= YKC_MONITOR_SENDED_MSG_CEM;
     }
 
     s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].max_alllow_voltage.symbol = 0x00;
@@ -4529,7 +4610,8 @@ int8_t ykc_monitor_message_padding_starting_info(uint8_t gunno, uint8_t *buf, ui
     memset(message, 0x00, data_len);
     memcpy(message->body.pile_number, g_ykc_monitor_preq_login.body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
     message->body.timestamp = s_ykc_monitor_starting_info[gunno].timestamp;
-    message->body.info_type = NET_YKC_MONITOR_PROCESS_INFO_TYPE_STARTING;
+    message->body.info.msg_version = 0x01;
+    message->body.info.info_type = NET_YKC_MONITOR_PROCESS_INFO_TYPE_STARTING;
     message->body.gunno = (gunno + 0x01);
     if(s_ykc_monitor_starting_info[gunno].count > NET_YKC_MONITOR_STARTING_INFO_MAX){
         message->body.group_num = NET_YKC_MONITOR_STARTING_INFO_MAX;
@@ -4586,8 +4668,7 @@ int8_t ykc_monitor_padding_charging_info(uint8_t gunno)
     s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].module_current.symbol = 0x00;
     s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].module_current.data = thaisen_get_module_curr(gunno);
 
-//    s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].pile_measure_voltage.symbol = 0x01;
-//    s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].pile_measure_voltage.data = base->voltage_a /10;
+    s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].pile_measure_voltage = base->voltage_a /10;
 
     s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].pile_measure_current.symbol = 0x00;
     s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].pile_measure_current.data = base->current_a /10;
@@ -4605,52 +4686,106 @@ int8_t ykc_monitor_padding_charging_info(uint8_t gunno)
     msg_sended = thaisenGetMsgSended(gunno);
     rt_exit_critical();
 
+    /********************************************** 报文接收 **********************************************/
+    s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].recved_message = 0x00;
+    /** BHM */
+    if(msg_recved.BHM){
+        s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].recved_message |= YKC_MONITOR_RECVED_MSG_BHM;
+    }
+    /** BRM */
+    if(msg_recved.BRM){
+        s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].recved_message |= YKC_MONITOR_RECVED_MSG_BRM;
+    }
+    /** BCP */
+    if(msg_recved.BCP){
+        s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].recved_message |= YKC_MONITOR_RECVED_MSG_BCP;
+    }
+    /** BRO_00 */
+    if(msg_recved.BRO){
+        s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].recved_message |= YKC_MONITOR_RECVED_MSG_BRO_00;
+    }
+    /** BRO_AA */
+    if(msg_recved.BRO_AA){
+        s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].recved_message |= YKC_MONITOR_RECVED_MSG_BRO_AA;
+    }
+    /** BCL */
     if(msg_recved.BCL){
-        s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].bms_message |= YKC_MONITOR_CHARGING_BMS_MESSAGE_BCL;
-    }else{
-        s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].bms_message &= (~YKC_MONITOR_CHARGING_BMS_MESSAGE_BCL);
+        s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].recved_message |= YKC_MONITOR_RECVED_MSG_BCL;
     }
-
+    /** BCS */
     if(msg_recved.BCS){
-        s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].bms_message |= YKC_MONITOR_CHARGING_BMS_MESSAGE_BCS;
-    }else{
-        s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].bms_message &= (~YKC_MONITOR_CHARGING_BMS_MESSAGE_BCS);
+        s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].recved_message |= YKC_MONITOR_RECVED_MSG_BCS;
     }
-
+    /** BSM */
     if(msg_recved.BSM){
-        s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].bms_message |= YKC_MONITOR_CHARGING_BMS_MESSAGE_BSM;
-    }else{
-        s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].bms_message &= (~YKC_MONITOR_CHARGING_BMS_MESSAGE_BSM);
+        s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].recved_message |= YKC_MONITOR_RECVED_MSG_BSM;
     }
-
-    if(0/*bms->BMV.rev_info*/){
-        s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].bms_message |= YKC_MONITOR_CHARGING_BMS_MESSAGE_BMV;
-    }else{
-        s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].bms_message &= (~YKC_MONITOR_CHARGING_BMS_MESSAGE_BMV);
+    /** BST */
+    if(msg_recved.BST){
+        s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].recved_message |= YKC_MONITOR_RECVED_MSG_BST;
     }
-
-    if(0/*bms->BMT.rev_info*/){
-        s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].bms_message |= YKC_MONITOR_CHARGING_BMS_MESSAGE_BMT;
-    }else{
-        s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].bms_message &= (~YKC_MONITOR_CHARGING_BMS_MESSAGE_BMT);
+    /** BSD */
+    if(msg_recved.BSD){
+        s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].recved_message |= YKC_MONITOR_RECVED_MSG_BSD;
     }
-
-    if(0/*bms->BSP.rev_info*/){
-        s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].bms_message |= YKC_MONITOR_CHARGING_BMS_MESSAGE_BSP;
-    }else{
-        s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].bms_message &= (~YKC_MONITOR_CHARGING_BMS_MESSAGE_BSP);
-    }
-
+    /** BEM */
     if(msg_recved.BEM){
-        s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].bms_message |= YKC_MONITOR_CHARGING_BMS_MESSAGE_BEM;
-    }else{
-        s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].bms_message &= (~YKC_MONITOR_CHARGING_BMS_MESSAGE_BEM);
+        s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].recved_message |= YKC_MONITOR_RECVED_MSG_BEM;
+    }
+    /** BFC */
+    if(msg_recved.BFC){
+        s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].recved_message |= YKC_MONITOR_RECVED_MSG_BFC;
     }
 
-    if(bms->BSM.AllowChg){
-        s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].bms_message |= YKC_MONITOR_CHARGING_BMS_IS_ALLOW;
-    }else{
-        s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].bms_message &= (~YKC_MONITOR_CHARGING_BMS_IS_ALLOW);
+    /********************************************** 报文发送 **********************************************/
+    s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].sended_message = 0x00;
+    /** CHM */
+    if(msg_sended.CHM){
+        s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].sended_message |= YKC_MONITOR_SENDED_MSG_CHM;
+    }
+    /** CRM */
+    if(msg_sended.CRM){
+        s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].sended_message |= YKC_MONITOR_SENDED_MSG_CRM;
+    }
+    /** CRM_AA */
+    if(msg_sended.CRM_AA){
+        s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].sended_message |= YKC_MONITOR_SENDED_MSG_CRM_AA;
+    }
+    /** CFC */
+    if(msg_sended.CFC){
+        s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].sended_message |= YKC_MONITOR_SENDED_MSG_CFC;
+    }
+    /** CTS */
+    if(msg_sended.CTS){
+        s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].sended_message |= YKC_MONITOR_SENDED_MSG_CTS;
+    }
+    /** CML */
+    if(msg_sended.CML){
+        s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].sended_message |= YKC_MONITOR_SENDED_MSG_CML;
+    }
+    /** CRO */
+    if(msg_sended.CRO){
+        s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].sended_message |= YKC_MONITOR_SENDED_MSG_CRO;
+    }
+    /** CRO_AA */
+    if(msg_sended.CRO_AA){
+        s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].sended_message |= YKC_MONITOR_SENDED_MSG_CRO_AA;
+    }
+    /** CCS */
+    if(msg_sended.CCS){
+        s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].sended_message |= YKC_MONITOR_SENDED_MSG_CCS;
+    }
+    /** CST */
+    if(msg_sended.CST){
+        s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].sended_message |= YKC_MONITOR_SENDED_MSG_CST;
+    }
+    /** CSD */
+    if(msg_sended.CSD){
+        s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].sended_message |= YKC_MONITOR_SENDED_MSG_CSD;
+    }
+    /** CEM */
+    if(msg_sended.CEM){
+        s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].sended_message |= YKC_MONITOR_SENDED_MSG_CEM;
     }
 
     s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].require_voltage.symbol = 0x00;
@@ -4711,7 +4846,8 @@ int8_t ykc_monitor_message_padding_charging_info(uint8_t gunno, uint8_t *buf, ui
     memset(message, 0x00, data_len);
     memcpy(message->body.pile_number, g_ykc_monitor_preq_login.body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
     message->body.timestamp = s_ykc_monitor_charging_info[gunno].timestamp;
-    message->body.info_type = NET_YKC_MONITOR_PROCESS_INFO_TYPE_CHARGING;
+    message->body.info.msg_version = 0x01;
+    message->body.info.info_type = NET_YKC_MONITOR_PROCESS_INFO_TYPE_CHARGING;
     message->body.gunno = (gunno + 0x01);
     if(s_ykc_monitor_charging_info[gunno].count > NET_YKC_MONITOR_CHARGING_INFO_MAX){
         message->body.group_num = NET_YKC_MONITOR_CHARGING_INFO_MAX;
@@ -4756,6 +4892,9 @@ int8_t ykc_monitor_message_padding_charge_finish_info(uint8_t gunno, uint8_t *bu
         return -0x03;
     }
 
+#define YKC_MONITOR_RECVED_MSG_OFFSET       8
+#define YKC_MONITOR_SENDED_MSG_OFFSET       9
+
     extern uint8_t mw_get_charge_library_state(uint8_t gunno);
 
     Net_YkcMonitorPro_Preq_ProcessInfo_t *message = (Net_YkcMonitorPro_Preq_ProcessInfo_t*)buf;
@@ -4768,7 +4907,8 @@ int8_t ykc_monitor_message_padding_charge_finish_info(uint8_t gunno, uint8_t *bu
     memset(message, 0x00, data_len);
     memcpy(message->body.pile_number, g_ykc_monitor_preq_login.body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
     message->body.timestamp = base->current_time;
-    message->body.info_type = NET_YKC_MONITOR_PROCESS_INFO_TYPE_FINISH;
+    message->body.info.msg_version = 0x01;
+    message->body.info.info_type = NET_YKC_MONITOR_PROCESS_INFO_TYPE_FINISH;
     message->body.gunno = (gunno + 0x01);
     message->body.group_num = NET_YKC_MONITOR_FINISH_INFO_MAX;
 
@@ -4779,16 +4919,37 @@ int8_t ykc_monitor_message_padding_charge_finish_info(uint8_t gunno, uint8_t *bu
     msg_sended = thaisenGetMsgSended(gunno);
     rt_exit_critical();
 
-    if(msg_recved.BST){
-        info->bms_message |= YKC_MONITOR_FINISH_BMS_MESSAGE_BST;
-    }else{
-        info->bms_message &= (~YKC_MONITOR_FINISH_BMS_MESSAGE_BST);
+    /********************************************** 报文接收 **********************************************/
+    info->recved_message = 0x00;
+    /** BEM */
+    if(msg_recved.BEM){
+        info->recved_message |= (YKC_MONITOR_RECVED_MSG_BEM >>YKC_MONITOR_RECVED_MSG_OFFSET);
     }
-
+    /** BSM */
+    if(msg_recved.BSM){
+        info->recved_message |= (YKC_MONITOR_RECVED_MSG_BSM >>YKC_MONITOR_RECVED_MSG_OFFSET);
+    }
+    /** BST */
+    if(msg_recved.BST){
+        info->recved_message |= (YKC_MONITOR_RECVED_MSG_BST >>YKC_MONITOR_RECVED_MSG_OFFSET);
+    }
+    /** BSD */
     if(msg_recved.BSD){
-        info->bms_message |= YKC_MONITOR_FINISH_BMS_MESSAGE_BSD;
-    }else{
-        info->bms_message &= (~YKC_MONITOR_FINISH_BMS_MESSAGE_BSD);
+        info->recved_message |= (YKC_MONITOR_RECVED_MSG_BSD >>YKC_MONITOR_RECVED_MSG_OFFSET);
+    }
+    /********************************************** 报文发送 **********************************************/
+    info->sended_message = 0x00;
+    /** CEM */
+    if(msg_sended.CEM){
+        info->sended_message |= (YKC_MONITOR_SENDED_MSG_CEM >>YKC_MONITOR_SENDED_MSG_OFFSET);
+    }
+    /** CST */
+    if(msg_sended.CST){
+        info->sended_message |= (YKC_MONITOR_SENDED_MSG_CST >>YKC_MONITOR_SENDED_MSG_OFFSET);
+    }
+    /** CSD */
+    if(msg_sended.CSD){
+        info->sended_message |= (YKC_MONITOR_SENDED_MSG_CSD >>YKC_MONITOR_SENDED_MSG_OFFSET);
     }
 
     info->bsm.msingle_bat_sn = bms->BSM.HigVoltCellNum;
