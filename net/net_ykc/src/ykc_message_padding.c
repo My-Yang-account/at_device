@@ -1654,6 +1654,9 @@ void ykc_chargepile_request_padding_bms_chargeend(uint8_t gunno)
         bms = (struct thaisenBMS_Charger_struct*)(base->bms_data);
     }
     g_ykc_preq_charge_finish[gunno].body.bms_end_soc = bms->BSD.StopSOC;
+    if(g_ykc_preq_charge_finish[gunno].body.bms_end_soc < base->current_soc){
+        g_ykc_preq_charge_finish[gunno].body.bms_end_soc = base->current_soc;
+    }
     g_ykc_preq_charge_finish[gunno].body.bms_single_bat_volt_min = bms->BSD.CellLowVolt;
     g_ykc_preq_charge_finish[gunno].body.bms_single_bat_volt_max = bms->BSD.CellHigVolt;
     g_ykc_preq_charge_finish[gunno].body.bms_bat_temp_min = (bms->BSD.LowTemp + 50);
