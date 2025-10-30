@@ -797,14 +797,9 @@ static void state_check_thread_entry(void *parameter)
 
         app_module_inpower_judge();
         for(gunno = 0x00; gunno < APP_SYSTEM_GUNNO_SIZE; gunno++){
-            thaisenModuleSetFEnState(THAISEN_MODULE_FAULT_OUT_OV, 0x01, gunno);
-            thaisenModuleSetFEnState(THAISEN_MODULE_FAULT_OUT_UV, 0x01, gunno);
-            thaisenModuleSetFEnState(THAISEN_MODULE_FAULT_OUT_OC, 0x01, gunno);
-#if 0
             app_out_ov_check(gunno);
             app_out_uv_check(gunno);
             app_out_oc_check(gunno);
-#endif
         }
         rt_thread_mdelay(APP_STATE_CHECK_PERIOD);
     }
