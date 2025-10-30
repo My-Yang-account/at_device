@@ -160,7 +160,7 @@ typedef struct
 
     uint8_t  OverCurlt           :2; //充电电流过流       00:正常  01:超过需求值 01:不可信状态
     uint8_t  Voltfault           :2; //充电电压异常       00:正常  01:电压异常   01:不可信状态
-    uint8_t  :4;
+    uint8_t  Reserve : 4;            //预留
 }thaisenBSTDetailed_t;
 
 /* 功能说明:
@@ -177,6 +177,12 @@ thaisenBSTDetailed_t thaisenGetBSTDetailed(uint8_t gunNum);
 /*****************************车故障停祥因(BSM)*****************************************/
 typedef struct
 {
+    uint8_t  HigVoltCellNum;  //最高单体电压单体所在编号
+    int8_t   HigTemp;         //动力电池最高温度   1°/bit  -50-200 偏移-50
+    uint8_t  HigTempNum;      //最高温度检测点编号
+    int8_t   LowTemp;         //动力电池最低温度   1°/bit  -50-200 偏移-50
+    uint8_t  LowTempNum;      //最低温度检测点编号
+
     uint8_t  CellOverVolt:2;  //单体过压           00:正常  01:过高 01:过低
     uint8_t  SOCState    :2;  //SOC状态            00:正常  01:过高 01:过低
     uint8_t  BatOverCurlt:2;  //电池充电过流       00:正常  01:过高 01:过低
@@ -185,7 +191,7 @@ typedef struct
     uint8_t  Insulat     :2;  //电池绝缘状态       00:正常  01:不正常 01:不可信状态
     uint8_t  OutConect   :2;  //输出连接器状态     00:正常  01:不正常 01:不可信状态
     uint8_t  AllowChg    :2;  //允许充电           00:禁止  01:允许
-    uint8_t  :2;
+    uint8_t  Reserve : 2;     //预留
 }thaisenBSMDetailed_t;
 
 /* 功能说明:
@@ -228,6 +234,27 @@ typedef struct
  *          充电结束调用
  */
 thaisenBEMDetailed_t thaisenGetBEMDetailed(uint8_t gunNum);
+
+/*****************************BMS统计报文祥因(BSD)*****************************************/
+typedef struct
+{
+    uint8_t  StopSOC;      //终止电荷状态       1%/bit    0-100%
+    uint16_t CellLowVolt;  //最低单体电压       0.01V/bit  0-24V
+    uint16_t CellHigVolt;  //最高单体电压       0.01V/bit  0-24V
+    uint8_t  LowTemp;      //动力电池最低温度   0.1°/bit  -50-200 偏移-50
+    uint8_t  HigTemp;      //动力电池最高温度   0.1°/bit  -50-200 偏移-50
+}thaisenBSDDetailed_t;
+
+/* 功能说明:
+ *          thaisenGetBSDDetailed:获取BSD报文详细原因
+ * 输入参数:
+ *                  gunNum:充电枪号
+ * 返回参数:
+ *         BSD报文详细原因@thaisenBSDDetailed_t
+ * 调用方法:
+ *          充电结束调用
+ */
+thaisenBSDDetailed_t thaisenGetBSDDetailed(uint8_t gunNum);
 
 /*****************************车通讯超时祥因*****************************************/
 typedef enum
@@ -333,6 +360,109 @@ typedef struct
  *          实时调用
  */
 thaisenMsgSended_t thaisenGetMsgSended(uint8_t gunNum);
+
+/************************************************** 超级电流流协议信息 **************************************************/
+typedef enum
+{
+    thaisen_superCurrProtocol_None,             //超级电流协议：无
+    thaisen_superCurrProtocol_YuTong,           //超级电流协议：宇通CFC
+    thaisen_superCurrProtocol_Fast,             //超级电流协议：FAST
+    thaisen_superCurrProtocol_Size,             //超级电流协议
+}thaisenSuperCurrProtocolEnum;
+
+/************************* 宇通 CFC/BFC 协议 *************************/
+typedef struct
+{
+    uint8_t  CurrOffset;                       //电流偏移(8bits，100A/bit；范围 4-20， 双枪充电默认为6，受电弓充电默认 12)
+    uint8_t  GunNum           :4;              //表示充电机检测到的有效插枪数量
+    uint8_t  Ack              :2;              //应答信号(00：与 CRM 一起发送，作为通知 BMS 充电机的协议为电流偏移量自动识别
+                                               //         01：已经收到 BFC 的反馈，但 BMS 回复的电流偏移量或检测到的充电枪数量等信息不符
+                                               //         10：无效
+                                               //         11：已经收到 BFC 的反馈，且 BMS 回复的电流偏移量和检测到的充电枪数量等信息均一致)
+    uint8_t  Reserve0         :2;              //保留(填充不做要求)
+    uint8_t  Reserve1;                         //保留(填充0xFF)
+    uint8_t  Reserve2;                         //保留(填充0xFF)
+    uint8_t  Reserve3;                         //保留(填充0xFF)
+    uint8_t  Reserve4;                         //保留(填充0xFF)
+    uint8_t  Reserve5;                         //保留(填充0xFF)
+    uint8_t  Reserve6;                         //保留(填充0xFF)
+}thaisenYT_CFC;
+
+typedef struct
+{
+    uint8_t  CurrOffset;                       //电流偏移(8bits，100A/bit；范围 4-20)(电流偏移量随CFC 发送的值而改动 )
+    uint8_t  GunNum           :4;              //表示 BMS 检测到的有效插枪数量
+    uint8_t  Ack              :2;              //应答信号(00：没有收到充电机发送的 CFC 报文
+                                               //         01：已经收到 CFC 报文，但报文中的充电枪数量等与 BMS 检测到的不一致；电流偏移量由充电机决定，BMS 随之更改，此不做检测
+                                               //         10：无效
+                                               //         11：已经收到 CFC 报文，且报文中的充电枪数量与 BMS 检测到的一致)
+    uint8_t  Reserve0         :2;              //保留(填充不做要求)
+    uint8_t  Reserve1;                         //保留(填充0xFF)
+    uint8_t  Reserve2;                         //保留(填充0xFF)
+    uint8_t  Reserve3;                         //保留(填充0xFF)
+    uint8_t  Reserve4;                         //保留(填充0xFF)
+    uint8_t  Reserve5;                         //保留(填充0xFF)
+    uint8_t  Reserve6;                         //保留(填充0xFF)
+}thaisenYT_BFC;
+
+/************************* 电流无偏移FAST 协议 *************************/
+typedef struct
+{
+     uint8_t  Discern;     //辨识结果 00:未识别 AA:识别
+     uint32_t ChagNum;     //充电机编号
+     uint8_t  ChagPlace[3];//充电机所在区域编号 ASCII码 3byte
+}thaisenCRM;
+
+typedef struct
+{
+     uint8_t  BMSVer[3];         //BMS版本号 3byte
+     uint8_t  BatType;           //电池类型 01:铅酸 02:镍氢 03:磷酸铁锂 04:锰酸锂 05:钴酸锂 06:三元材料 07:聚合物锂 08:钛酸锂 FF:其他
+     uint16_t BatRateCap;        //动力电池额定容量       0.1AH/bit 0-1000AH
+     uint16_t BatRateVolt;       //动力电池额定总电压     0.1V/bit 0-750V
+     uint8_t  BatFirm[4];        //电池生产厂商 ASCII码 4byte
+     uint8_t  SerialNum[4];      //电池组序号 4byte
+     uint8_t  BatBuldyear;       //电池生产日期 1年/bit 偏移1985 1985-2235
+     uint8_t  BatBuldmonth;      //1月/bit
+     uint8_t  BatBuldday;        //1日/bit
+     uint8_t  Chagtimer[3];      //电池充电次数 3byte
+     uint8_t  BatProperty;       //电池组产权标识 0:租赁 1:自有
+     uint8_t  reserved ;         //预留
+     uint8_t  CarDiscern[17];    //车辆识别信息 17byte
+     uint8_t  BMSVerNum[8];
+}thaisenBRM;
+
+typedef struct
+{
+    thaisenYT_CFC YT_CFC;                      //宇通CFC报文
+    thaisenYT_BFC YT_BFC;                      //宇通BFC报文
+    thaisenCRM    CRM_Start;                   //起始CRM报文
+    thaisenCRM    CRM_End;                     //结束CRM报文
+    thaisenBRM    BRM;                         //BRM报文
+
+    uint8_t ProtocolType;                      //大电流协议类型@thaisenSuperCurrProtocolEnum
+    uint16_t CurrOffset;                       //电流偏移(0.1A)
+    struct
+    {
+        uint8_t IsMatchingProtocol : 1;        //已匹配到大电流协议
+        uint8_t IsLockedYT_CFC : 1;            //已锁定宇通CFC报文
+        uint8_t IsLockedYT_BFC : 1;            //已锁定宇通BFC报文
+        uint8_t IsLockedCRM_Start : 1;         //已锁定宇通CRM起始报文
+        uint8_t IsLockedCRM_End : 1;           //已锁定宇通CRM结束报文
+        uint8_t IsLockedBRM : 1;               //已锁定BRM报文
+        uint8_t reserve : 2;                   //预留
+    }bit;
+}thaisenSuperCurrProtocol;
+
+/* 功能说明:
+ *          thaisenGetSuperCurrProtocolInfo:获取超级电流协议信息
+ * 输入参数:
+ *                  gunNum:充电枪号
+ * 返回参数:
+ *         超级电流协议信息@thaisenSuperCurrProtocol(枪号不对返回NULL)
+ * 调用方法:
+ *         实时调用
+ */
+thaisenSuperCurrProtocol *thaisenGetSuperCurrProtocolInfo(uint8_t gunNum);
 
 /*****************************************************************************/
 /************************停止原因*********************************************/
