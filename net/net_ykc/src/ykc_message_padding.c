@@ -1025,8 +1025,10 @@ int8_t ykc_message_pro_account_ballance_update_request(uint8_t gunno, void *data
     Net_YkcPro_SReq_AccountBallance_Update_t *request = (Net_YkcPro_SReq_AccountBallance_Update_t*)data;
     System_BaseData *base = (System_BaseData*)(s_ykc_handle->get_base_data(gunno));
 
-    base->account_ballance_before = request->body.account_amount;
-    base->account_ballance_after = request->body.account_amount;
+    if((base->state.current == APP_OFSM_STATE_CHARGING)){
+        base->account_ballance_before = request->body.account_amount;
+        base->charge_strategy_para = request->body.account_amount *100;
+    }
 
     return 0x00;
 }
