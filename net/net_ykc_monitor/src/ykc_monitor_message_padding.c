@@ -2616,6 +2616,8 @@ void ykc_monitor_chargepile_state_changed(uint8_t gunno)
 #ifdef NET_YKC_MONITOR_AS_MONITOR
             ykc_monitor_net_event_send(NET_YKC_MONITOR_EXTERNAL_EHANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST,  \
                     gunno, NET_YKC_MONITOR_EXTERNAL_PREQ_EVENT_CHARGE_FINISH);
+            ykc_monitor_net_event_send(NET_YKC_MONITOR_EXTERNAL_EHANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST,  \
+                    gunno, NET_YKC_MONITOR_EXTERNAL_PREQ_EVENT_BMS_MESSAGE);
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
         }
         s_ykc_monitor_flag_info[gunno].is_charge_finish = NET_ENUM_TRUE;
@@ -7652,7 +7654,7 @@ int8_t ykc_monitor_message_padding_request_disconnect_reason(uint8_t *buf, uint1
     }
 
     Net_YkcMonitorPro_PreqReport_SreqQuery_RealtimeInfo_t *message = (Net_YkcMonitorPro_PreqReport_SreqQuery_RealtimeInfo_t*)buf;
-    struct running_data_info *running_data = ((uint8_t*)&(message->body.msg_version) + 0x01);
+    struct running_data_info *running_data = (struct running_data_info*)((uint8_t*)&(message->body.msg_version) + 0x01);
     struct disconnect_reason_segment *segment = (struct disconnect_reason_segment*)((uint8_t*)&(running_data->segment_num) + 0x01);
 
     memset(message, 0x00, sizeof(ilen));
@@ -7806,6 +7808,262 @@ void ykc_monitor_disconnect_reason_callback(int8_t fd, uint8_t reason_en)
     }
 
     rt_exit_critical();
+}
+
+/*************************************************
+ * 函数名      ykc_monitor_message_padding_request_bms_message
+ * 功能          组包：填充BMS报文信息
+ * **********************************************/
+int8_t ykc_monitor_message_padding_request_bms_message(uint8_t gunno, uint8_t *buf, uint16_t ilen, uint16_t *olen)
+{
+    uint16_t total = sizeof(Net_YkcMonitorPro_PreqReport_SreqQuery_RealtimeInfo_t) + 0x01;
+
+    /** 计算所有报文长度 */
+    total += (sizeof(struct yt_cfc) + sizeof(struct yt_bfc) + sizeof(struct start_crm) + sizeof(struct end_crm) + sizeof(struct brm) + \
+            sizeof(struct bst) + sizeof(struct bsm) + sizeof(struct bem) + sizeof(struct bsd) + sizeof(struct other_data));
+    /** 计算所有报文头的长度(目前10个报文) */
+    total += (0x0A *sizeof(struct bms_msg_info_head));
+
+    if(buf == NULL){
+        return -0x01;
+    }
+    if(ilen < total){
+        return -0x02;
+    }
+    if(gunno >= NET_SYSTEM_GUN_NUMBER){
+        return -0x03;
+    }
+
+    uint8_t max_len = 0x00, head_len = sizeof(struct bms_msg_info_head);
+    Net_YkcMonitorPro_PreqReport_SreqQuery_RealtimeInfo_t *message = (Net_YkcMonitorPro_PreqReport_SreqQuery_RealtimeInfo_t*)buf;
+    struct running_data_info *running_data = (struct running_data_info*)((uint8_t*)&(message->body.msg_version) + 0x01);
+    uint8_t *segment = ((uint8_t*)&(running_data->segment_num) + 0x01);
+    struct bms_msg_info_head *head = NULL;
+    struct brm *brm_info = NULL;
+    thaisenSuperCurrProtocol *info = thaisenGetSuperCurrProtocolInfo(gunno);
+    thaisenBSDDetailed_t bsd = thaisenGetBSDDetailed(gunno);
+    thaisenBEMDetailed_t bem = thaisenGetBEMDetailed(gunno);
+    thaisenBSMDetailed_t bsm = thaisenGetBSMDetailed(gunno);
+    thaisenBSTDetailed_t bst = thaisenGetBSTDetailed(gunno);
+
+    memset(message, 0x00, sizeof(ilen));
+    /** 固定10个段 */
+    running_data->segment_num = 0x0A;
+    /********************************** 宇通CFC报文 **********************************/
+    head = (struct bms_msg_info_head*)segment;
+
+    head->msg_type = NETYKCM_BMS_MSG_YT_CFC;
+    head->msg_len = sizeof(struct yt_cfc);
+    segment += head_len;
+    ((struct yt_cfc*)segment)->curr_offset = info->YT_CFC.CurrOffset;
+    ((struct yt_cfc*)segment)->gun_num = info->YT_CFC.GunNum;
+    ((struct yt_cfc*)segment)->ack = info->YT_CFC.Ack;
+    ((struct yt_cfc*)segment)->reserve0 = info->YT_CFC.Reserve0;
+    ((struct yt_cfc*)segment)->reserve1 = info->YT_CFC.Reserve1;
+    ((struct yt_cfc*)segment)->reserve2 = info->YT_CFC.Reserve2;
+    ((struct yt_cfc*)segment)->reserve3 = info->YT_CFC.Reserve3;
+    ((struct yt_cfc*)segment)->reserve4 = info->YT_CFC.Reserve4;
+    ((struct yt_cfc*)segment)->reserve5 = info->YT_CFC.Reserve5;
+    ((struct yt_cfc*)segment)->reserve6 = info->YT_CFC.Reserve6;
+
+    /********************************** 宇通BFC报文 **********************************/
+    segment += sizeof(struct yt_cfc);
+    head = (struct bms_msg_info_head*)segment;
+
+    head->msg_type = NETYKCM_BMS_MSG_YT_BFC;
+    head->msg_len = sizeof(struct yt_bfc);
+    segment += head_len;
+    ((struct yt_bfc*)segment)->curr_offset = info->YT_BFC.CurrOffset;
+    ((struct yt_bfc*)segment)->gun_num = info->YT_BFC.GunNum;
+    ((struct yt_bfc*)segment)->ack = info->YT_BFC.Ack;
+    ((struct yt_bfc*)segment)->reserve0 = info->YT_BFC.Reserve0;
+    ((struct yt_bfc*)segment)->reserve1 = info->YT_BFC.Reserve1;
+    ((struct yt_bfc*)segment)->reserve2 = info->YT_BFC.Reserve2;
+    ((struct yt_bfc*)segment)->reserve3 = info->YT_BFC.Reserve3;
+    ((struct yt_bfc*)segment)->reserve4 = info->YT_BFC.Reserve4;
+    ((struct yt_bfc*)segment)->reserve5 = info->YT_BFC.Reserve5;
+    ((struct yt_bfc*)segment)->reserve6 = info->YT_BFC.Reserve6;
+
+    /********************************** 起始CRM报文 **********************************/
+    segment += sizeof(struct yt_cfc);
+    head = (struct bms_msg_info_head*)segment;
+
+    head->msg_type = NETYKCM_BMS_MSG_CRM_START;
+    head->msg_len = sizeof(struct start_crm);
+    segment += head_len;
+    ((struct start_crm*)segment)->discern = info->CRM_Start.Discern;
+    ((struct start_crm*)segment)->chage_number = info->CRM_Start.ChagNum;
+    memcpy(((struct start_crm*)segment)->chage_place, info->CRM_Start.ChagPlace, sizeof(((struct start_crm*)segment)->chage_place));
+
+    /********************************** 结束CRM报文 **********************************/
+    segment += sizeof(struct start_crm);
+    head = (struct bms_msg_info_head*)segment;
+
+    head->msg_type = NETYKCM_BMS_MSG_CRM_END;
+    head->msg_len = sizeof(struct end_crm);
+    segment += head_len;
+    ((struct end_crm*)segment)->discern = info->CRM_End.Discern;
+    ((struct end_crm*)segment)->chage_number = info->CRM_End.ChagNum;
+    memcpy(((struct end_crm*)segment)->chage_place, info->CRM_End.ChagPlace, sizeof(((struct end_crm*)segment)->chage_place));
+
+    /********************************** BRM报文 **********************************/
+    segment += sizeof(struct end_crm);
+    head = (struct bms_msg_info_head*)segment;
+
+    head->msg_type = NETYKCM_BMS_MSG_BRM;
+    head->msg_len = sizeof(struct brm);
+    segment += head_len;
+    brm_info = (struct brm*)segment;
+
+    if(head->msg_len > sizeof(info->BRM.BMSVer)){
+        memcpy(brm_info->bms_version, &(info->BRM.BMSVer), sizeof(info->BRM.BMSVer));
+    }else{
+        memcpy(brm_info->bms_version, &(info->BRM.BMSVer), head->msg_len);
+    }
+
+    brm_info->bat_type = info->BRM.BatType;
+    brm_info->bat_rate_capacity = info->BRM.BatRateCap;
+    brm_info->bat_rate_volt = info->BRM.BatRateVolt;
+
+    max_len = sizeof(brm_info->bat_firm);
+    if(max_len > sizeof(info->BRM.BatFirm)){
+        memcpy(brm_info->bat_firm, &(info->BRM.BatFirm), sizeof(info->BRM.BatFirm));
+    }else{
+        memcpy(brm_info->bat_firm, &(info->BRM.BatFirm), max_len);
+    }
+
+    max_len = sizeof(brm_info->serial_number);
+    if(max_len > sizeof(info->BRM.SerialNum)){
+        memcpy(brm_info->serial_number, &(info->BRM.SerialNum), sizeof(info->BRM.SerialNum));
+    }else{
+        memcpy(brm_info->serial_number, &(info->BRM.SerialNum), max_len);
+    }
+
+    brm_info->bat_buld_year = info->BRM.BatBuldyear;
+    brm_info->bat_buld_month = info->BRM.BatBuldmonth;
+    brm_info->bat_buld_day = info->BRM.BatBuldday;
+
+    max_len = sizeof(brm_info->chage_timer);
+    if(max_len > sizeof(info->BRM.Chagtimer)){
+        memcpy(brm_info->chage_timer, &(info->BRM.Chagtimer), sizeof(info->BRM.Chagtimer));
+    }else{
+        memcpy(brm_info->chage_timer, &(info->BRM.Chagtimer), max_len);
+    }
+
+    brm_info->bat_property = info->BRM.BatProperty;
+    brm_info->reserved = info->BRM.reserved;
+
+    max_len = sizeof(brm_info->car_vin);
+    if(max_len > sizeof(info->BRM.CarDiscern)){
+        memcpy(brm_info->car_vin, &(info->BRM.CarDiscern), sizeof(info->BRM.CarDiscern));
+    }else{
+        memcpy(brm_info->car_vin, &(info->BRM.CarDiscern), max_len);
+    }
+
+    max_len = sizeof(brm_info->bms_ver_number);
+    if(max_len > sizeof(info->BRM.BMSVerNum)){
+        memcpy(brm_info->bms_ver_number, &(info->BRM.BMSVerNum), sizeof(info->BRM.BMSVerNum));
+    }else{
+        memcpy(brm_info->bms_ver_number, &(info->BRM.BMSVerNum), max_len);
+    }
+
+    rt_enter_critical();
+
+    /********************************** BST报文 **********************************/
+    segment += sizeof(struct brm);
+    head = (struct bms_msg_info_head*)segment;
+
+    head->msg_type = NETYKCM_BMS_MSG_BST;
+    head->msg_len = sizeof(struct bst);
+    segment += head_len;
+    ((struct bst*)segment)->target_soc = bst.SOCGetObj;
+    ((struct bst*)segment)->target_total_volt = bst.VoltGetObj;
+    ((struct bst*)segment)->target_single_volt = bst.CeliVoltGetObj;
+    ((struct bst*)segment)->charger_end = bst.ChargInitiStop;
+    ((struct bst*)segment)->insultion_fault = bst.InsltFault;
+    ((struct bst*)segment)->outlinker_fault = bst.OutConectOVtemp;
+    ((struct bst*)segment)->bms_element_fault = bst.BMSCompOVtemp;
+    ((struct bst*)segment)->charge_linker_fault = bst.Conectfault;
+    ((struct bst*)segment)->bat_group_fault = bst.BatOVtemp;
+    ((struct bst*)segment)->hv_relay_fault = bst.HVRelaysFault;
+    ((struct bst*)segment)->detect_point_2 = bst.Check2Ft;
+    ((struct bst*)segment)->other_fault = bst.OtherFt;
+    ((struct bst*)segment)->over_curr = bst.OverCurlt;
+    ((struct bst*)segment)->volt_abnormal = bst.Voltfault;
+    ((struct bst*)segment)->reserve = bst.Reserve;
+
+    /********************************** BSM报文 **********************************/
+    segment += sizeof(struct bst);
+    head = (struct bms_msg_info_head*)segment;
+
+    head->msg_type = NETYKCM_BMS_MSG_BSM;
+    head->msg_len = sizeof(struct bsm);
+    segment += head_len;
+    ((struct bsm*)segment)->max_singlevolt_sn = bsm.HigVoltCellNum;
+    ((struct bsm*)segment)->highest_temp = bsm.HigTemp;
+    ((struct bsm*)segment)->highest_temp_sn = bsm.HigTempNum;
+    ((struct bsm*)segment)->lowest_temp = bsm.LowTemp;
+    ((struct bsm*)segment)->lowest_temp_sn = bsm.LowTempNum;
+    ((struct bsm*)segment)->singlevolt_over = bsm.CellOverVolt;
+    ((struct bsm*)segment)->soc_state = bsm.SOCState;
+    ((struct bsm*)segment)->bat_overcurrr = bsm.BatOverCurlt;
+    ((struct bsm*)segment)->bat_overtemp = bsm.BatOverTemp;
+    ((struct bsm*)segment)->insultion_state = bsm.Insulat;
+    ((struct bsm*)segment)->outlinker_state = bsm.OutConect;
+    ((struct bsm*)segment)->is_allow_charge = bsm.AllowChg;
+    ((struct bsm*)segment)->reserve = bsm.Reserve;
+
+    /********************************** BEM报文 **********************************/
+    segment += sizeof(struct bsm);
+    head = (struct bms_msg_info_head*)segment;
+
+    head->msg_type = NETYKCM_BMS_MSG_BEM;
+    head->msg_len = sizeof(struct bem);
+    segment += head_len;
+    ((struct bem*)segment)->crm_00_timeout = bem.CRM00OVtime;
+    ((struct bem*)segment)->crm_aa_timeout = bem.CRMAAOVtime;
+    ((struct bem*)segment)->cts_cml_timeout = bem.CTSCMLOVtime;
+    ((struct bem*)segment)->cro_aa_timeout = bem.CROOVtime;
+    ((struct bem*)segment)->ccs_timeout = bem.CCSOVtime;
+    ((struct bem*)segment)->cst_timeout = bem.CSTOVtime;
+    ((struct bem*)segment)->csd_timeout = bem.CSDOVtime;
+
+    /********************************** BSD报文 **********************************/
+    segment += sizeof(struct bem);
+    head = (struct bms_msg_info_head*)segment;
+
+    head->msg_type = NETYKCM_BMS_MSG_BSD;
+    head->msg_len = sizeof(struct bsd);
+    segment += head_len;
+    ((struct bsd*)segment)->end_soc = bsd.StopSOC;
+    ((struct bsd*)segment)->singlevolt_lowest = bsd.CellLowVolt;
+    ((struct bsd*)segment)->singlevolt_highest = bsd.CellHigVolt;
+    ((struct bsd*)segment)->temp_lowest = bsd.LowTemp;
+    ((struct bsd*)segment)->temp_highest = bsd.HigTemp;
+
+    rt_exit_critical();
+
+    /********************************** 其它报文 **********************************/
+    segment += sizeof(struct bsd);
+    head = (struct bms_msg_info_head*)segment;
+
+    head->msg_type = NETYKCM_BMS_MSG_OTHER;
+    head->msg_len = sizeof(struct other_data);
+    segment += head_len;
+    ((struct other_data*)segment)->protocol_type = info->ProtocolType;
+    ((struct other_data*)segment)->current_offset = info->CurrOffset;
+
+    message->body.info_type = NETYKCM_DEV_RUNNING_DATA_BMS_MESSAGE;
+    message->body.option = 0x01;        /** 数据上报 */
+    message->body.msg_version = 0x00;   /** 报文版本 */
+    message->body.gunno = (gunno + 0x01);
+    memcpy(message->body.pile_number, g_ykc_monitor_preq_login.body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
+
+    if(olen){
+        *olen = total;
+    }
+
+    return 0x00;
 }
 
 #endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */

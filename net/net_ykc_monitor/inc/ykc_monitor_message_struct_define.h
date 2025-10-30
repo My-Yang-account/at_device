@@ -112,6 +112,22 @@
 
 #ifdef NET_YKC_MONITOR_AS_MONITOR
 /*********************************************************************************
+ * BMS报文信息类型码
+ ********************************************************************************/
+enum ykcm_bms_msg{
+    NETYKCM_BMS_MSG_YT_CFC,                                          /* BMS报文：宇通CFC */
+    NETYKCM_BMS_MSG_YT_BFC,                                          /* BMS报文：宇通BFC */
+    NETYKCM_BMS_MSG_CRM_START,                                       /* BMS报文：开始的CRM */
+    NETYKCM_BMS_MSG_CRM_END,                                         /* BMS报文：结束的CRM */
+    NETYKCM_BMS_MSG_BRM,                                             /* BMS报文：BRM */
+    NETYKCM_BMS_MSG_BST,                                             /* BMS报文：BST */
+    NETYKCM_BMS_MSG_BSM,                                             /* BMS报文：BSM */
+    NETYKCM_BMS_MSG_BEM,                                             /* BMS报文：BEM */
+    NETYKCM_BMS_MSG_BSD,                                             /* BMS报文：BSD */
+    NETYKCM_BMS_MSG_OTHER,                                           /* BMS报文：其它数据 */
+    NETYKCM_BMS_MSG_SIZE,                                            /* BMS报文 */
+};
+/*********************************************************************************
  * 设备运行实时信息指令码
  ********************************************************************************/
 enum ykcm_dev_running{
@@ -119,6 +135,7 @@ enum ykcm_dev_running{
     NETYKCM_DEV_RUNNING_STATUS_INFO,                                 /* 设备运行实时信息指令码：状态信息 */
     NETYKCM_DEV_RUNNING_DATA_INFO_GUIDANCE,                          /* 设备运行实时信息指令码：数据信息-导引 */
     NETYKCM_DEV_RUNNING_DATA_DISCONNECT_REASON,                      /* 设备运行实时信息指令码：数据信息-断网原因 */
+    NETYKCM_DEV_RUNNING_DATA_BMS_MESSAGE,                            /* 设备运行实时信息指令码：数据信息-BMS报文 */
     NETYKCM_DEV_RUNNING_SIZE,                                        /* 设备运行实时信息指令码 */
 };
 /*********************************************************************************/
@@ -2424,6 +2441,159 @@ struct disconnect_reason_segment{
     struct module_dis_group signal_strength_lk_mac;            /** 查询信号强度(以太网数据链路层：初始化芯片、寻线、开DHCP) */
     struct module_dis_group gsm_registered;                    /** 注册GSM网络(以太网网络层：判断DHCP是否启动、获取IP信息、查询MAC地址) */
     struct module_dis_group gprs_registered;                   /** 注册GPRS网络(以太网网络层：判断DHCP是否启动、获取IP信息、查询MAC地址) */
+};
+
+/***************** BMS报文数据段 *****************/
+/** BMS 报文信息头 */
+struct bms_msg_info_head{
+    uint8_t msg_type;                                          /** 报文类型 */
+    uint16_t msg_len;                                          /** 报文内容长度(B) */
+};
+/****** 超级(大)电流协议报文 ******/
+enum currprotocol{
+    NETYKCM_SUPER_CURR_PROTOCOL_NONE,                          /** 超级电流协议：无 */
+    NETYKCM_SUPER_CURR_PROTOCOL_YUTONG,                        /** 超级电流协议：宇通CFC */
+    NETYKCM_SUPER_CURR_PROTOCOL_FAST,                          /** 超级电流协议：FAST */
+    NETYKCM_SUPER_CURR_PROTOCOL_SIZE,                          /** 超级电流协议 */
+};
+
+/** 宇通CFC报文 */
+struct yt_cfc{
+    uint8_t curr_offset;                                   /** 电流偏移(8bits，100A/bit；范围 4-20， 双枪充电默认为6，受电弓充电默认 12) */
+    uint8_t gun_num : 4;                                   /** 表示充电机检测到的有效插枪数量 */
+    uint8_t ack : 2;                                       /** 应答信号(00：与 CRM 一起发送，作为通知 BMS 充电机的协议为电流偏移量自动识别 */
+                                                           /**        01：已经收到 BFC 的反馈，但 BMS 回复的电流偏移量或检测到的充电枪数量等信息不符 */
+                                                           /**        10：无效 */
+                                                           /**        11：已经收到 BFC 的反馈，且 BMS 回复的电流偏移量和检测到的充电枪数量等信息均一致) */
+    uint8_t reserve0 : 2;                                  /** 保留(填充不做要求) */
+    uint8_t reserve1;                                      /** 保留(填充0xFF) */
+    uint8_t reserve2;                                      /** 保留(填充0xFF) */
+    uint8_t reserve3;                                      /** 保留(填充0xFF) */
+    uint8_t reserve4;                                      /** 保留(填充0xFF) */
+    uint8_t reserve5;                                      /** 保留(填充0xFF) */
+    uint8_t reserve6;                                      /** 保留(填充0xFF) */
+};
+/** 宇通BFC报文 */
+struct yt_bfc{
+    uint8_t curr_offset;                                   /** 电流偏移(8bits，100A/bit；范围 4-20， 双枪充电默认为6，受电弓充电默认 12) */
+    uint8_t gun_num : 4;                                   /** 表示充电机检测到的有效插枪数量 */
+    uint8_t ack : 2;                                       /** 应答信号(00：与 CRM 一起发送，作为通知 BMS 充电机的协议为电流偏移量自动识别 */
+                                                           /**        01：已经收到 BFC 的反馈，但 BMS 回复的电流偏移量或检测到的充电枪数量等信息不符 */
+                                                           /**        10：无效 */
+                                                           /**        11：已经收到 BFC 的反馈，且 BMS 回复的电流偏移量和检测到的充电枪数量等信息均一致) */
+    uint8_t reserve0 : 2;                                  /** 保留(填充不做要求) */
+    uint8_t reserve1;                                      /** 保留(填充0xFF) */
+    uint8_t reserve2;                                      /** 保留(填充0xFF) */
+    uint8_t reserve3;                                      /** 保留(填充0xFF) */
+    uint8_t reserve4;                                      /** 保留(填充0xFF) */
+    uint8_t reserve5;                                      /** 保留(填充0xFF) */
+    uint8_t reserve6;                                      /** 保留(填充0xFF) */
+};
+
+/** 开始CRM报文 */
+struct start_crm{
+    uint8_t  discern;                                          /** 辨识结果 00:未识别 AA:识别 */
+    uint32_t chage_number;                                     /** 充电机编号 */
+    uint8_t  chage_place[3];                                   /** 充电机所在区域编号 ASCII码 3byte */
+};
+
+/** 结束CRM报文 */
+struct end_crm{
+    uint8_t  discern;                                          /** 辨识结果 00:未识别 AA:识别 */
+    uint32_t chage_number;                                     /** 充电机编号 */
+    uint8_t  chage_place[3];                                   /** 充电机所在区域编号 ASCII码 3byte */
+};
+
+/** BRM报文 */
+struct brm{
+    uint8_t  bms_version[3];                                   /** BMS版本号 3byte */
+    uint8_t  bat_type;                                         /** 电池类型 01:铅酸 02:镍氢 03:磷酸铁锂 04:锰酸锂 05:钴酸锂 06:三元材料 07:聚合物锂 08:钛酸锂 FF:其他 */
+    uint16_t bat_rate_capacity;                                /** 动力电池额定容量       0.1AH/bit 0-1000AH */
+    uint16_t bat_rate_volt;                                    /** 动力电池额定总电压     0.1V/bit 0-750V */
+    uint8_t  bat_firm[4];                                      /** 电池生产厂商 ASCII码 4byte */
+    uint8_t  serial_number[4];                                 /** 电池组序号 4byte */
+    uint8_t  bat_buld_year;                                    /** 电池生产日期 1年/bit 偏移1985 1985-2235 */
+    uint8_t  bat_buld_month;                                   /** 1月/bit */
+    uint8_t  bat_buld_day;                                     /** 1日/bit */
+    uint8_t  chage_timer[3];                                   /** 电池充电次数 3byte */
+    uint8_t  bat_property;                                     /** 电池组产权标识 0:租赁 1:自有 */
+    uint8_t  reserved ;                                        /** 预留 */
+    uint8_t  car_vin[17];                                      /** 车辆识别信息 17byte */
+    uint8_t  bms_ver_number[8];
+};
+/****** BMS标准报文 ******/
+/** BST报文 */
+struct bst{
+    uint8_t target_soc : 2;                                    /** SOC达到目标值           00:未达到  01:达到 11:不可信状态 */
+    uint8_t target_total_volt : 2;                             /** 总电压达到目标值        00:未达到  01:达到 11:不可信状态 */
+    uint8_t target_single_volt : 2;                            /** 单体电压达到目标值      00:未达到  01:达到 11:不可信状态 */
+    uint8_t charger_end : 2;                                   /** 充电机主动停止 */
+
+    uint8_t insultion_fault : 2;                               /** 绝缘故障           00:正常  01:故障 10:不可信状态 */
+    uint8_t outlinker_fault : 2;                               /** 输出连接器故障     00:正常  01:故障 10:不可信状态 */
+    uint8_t bms_element_fault : 2;                             /** BMS元件故障        00:正常  01:故障 10:不可信状态 */
+    uint8_t charge_linker_fault : 2;                           /** 充电连接故障 */
+
+    uint8_t bat_group_fault : 2;                               /** 电池组温度故障     00:正常  01:故障 10:不可信状态 */
+    uint8_t hv_relay_fault : 2;                                /** 高压继电器故障     00:正常  01:故障 10:不可信状态 */
+    uint8_t detect_point_2 : 2;                                /** 检测点2电压检测故障00:正常  01:故障 10:不可信状态 */
+    uint8_t other_fault : 2;                                   /** 其他故障 */
+
+    uint8_t over_curr : 2;                                     /** 充电电流过流       00:正常  01:超过需求值 01:不可信状态 */
+    uint8_t volt_abnormal : 2;                                 /** 充电电压异常       00:正常  01:电压异常   01:不可信状态 */
+    uint8_t reserve : 4;                                       /** 预留 */
+};
+
+/** BSM报文 */
+struct bsm{
+    uint8_t max_singlevolt_sn;                                 /** 最高单体电压单体所在编号 */
+    int8_t highest_temp;                                       /** 动力电池最高温度   1°/bit  -50-200 偏移-50 */
+    uint8_t highest_temp_sn;                                   /** 最高温度检测点编号 */
+    int8_t lowest_temp;                                        /** 动力电池最低温度   1°/bit  -50-200 偏移-50 */
+    uint8_t lowest_temp_sn;                                    /** 最低温度检测点编号 */
+
+    uint8_t singlevolt_over : 2;                               /** 单体过压           00:正常  01:过高 01:过低 */
+    uint8_t soc_state : 2;                                     /** SOC状态            00:正常  01:过高 01:过低 */
+    uint8_t bat_overcurrr : 2;                                 /** 电池充电过流       00:正常  01:过高 01:过低 */
+    uint8_t bat_overtemp : 2;                                  /** 电池温度过高       00:正常  01:过高 01:过低 */
+
+    uint8_t insultion_state : 2;                               /** 电池绝缘状态       00:正常  01:不正常 01:不可信状态 */
+    uint8_t outlinker_state : 2;                               /** 输出连接器状态     00:正常  01:不正常 01:不可信状态 */
+    uint8_t is_allow_charge : 2;                               /** 允许充电           00:禁止  01:允许 */
+    uint8_t reserve : 2;                                       /** 预留 */
+};
+
+/** BEM报文 */
+struct bem{
+    uint8_t crm_00_timeout : 2;                                /** 接收CRM_A 00超时   00:正常   01:超时  01:不可信状态 */
+    uint8_t crm_aa_timeout : 2;                                /** 接收CRM_A AA超时   00:正常   01:超时  01:不可信状态 */
+    uint8_t : 4;
+
+    uint8_t cts_cml_timeout : 2;                               /** 接收CTS_A.CML_A超时  00:正常   01:超时  01:不可信状态 */
+    uint8_t cro_aa_timeout : 2;                                /** 接收CRO_A超时      00:正常   01:超时  01:不可信状态 */
+    uint8_t : 4;
+
+    uint8_t ccs_timeout : 2;                                   /** 接收CCS_A超时      00:正常   01:超时  01:不可信状态 */
+    uint8_t cst_timeout : 2;                                   /** 接收CST_A超时      00:正常   01:超时  01:不可信状态 */
+    uint8_t : 4;
+
+    uint8_t csd_timeout : 2;                                   /** 接收CSD_A超时      00:正常   01:超时  01:不可信状态 */
+    uint8_t : 6;
+};
+
+/** BSD报文 */
+struct bsd{
+    uint8_t end_soc;                                           /** 终止电荷状态       1%/bit    0-100% */
+    uint16_t singlevolt_lowest;                                /** 最低单体电压       0.01V/bit  0-24V */
+    uint16_t singlevolt_highest;                               /** 最高单体电压       0.01V/bit  0-24V */
+    uint8_t temp_lowest;                                       /** 动力电池最低温度   0.1°/bit  -50-200 偏移-50 */
+    uint8_t temp_highest;                                      /** 动力电池最高温度   0.1°/bit  -50-200 偏移-50 */
+};
+
+/** 其它数据 */
+struct other_data{
+    uint8_t protocol_type;                                     /** 超级(大)电流协议类型@enum currprotocol */
+    uint16_t current_offset;                                   /** 电流偏移(0.1A) */
 };
 
 /** 可能后续会增加其它数据段 */

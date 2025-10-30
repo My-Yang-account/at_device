@@ -145,6 +145,11 @@ int8_t ykc_monitor_dev_feedback_changed_info_padding(uint8_t gunno, uint8_t *buf
  * 功能          组包：填充断网原因信息
  * **********************************************/
 int8_t ykc_monitor_message_padding_request_disconnect_reason(uint8_t *buf, uint16_t ilen, uint16_t *olen);
+/*************************************************
+ * 函数名      ykc_monitor_message_padding_request_bms_message
+ * 功能          组包：填充BMS报文信息
+ * **********************************************/
+int8_t ykc_monitor_message_padding_request_bms_message(uint8_t gunno, uint8_t *buf, uint16_t ilen, uint16_t *olen);
 
 /****************************************************
  * 函数名            ykc_monitor_clear_guidance_changed_sending
