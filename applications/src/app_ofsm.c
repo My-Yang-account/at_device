@@ -7255,6 +7255,9 @@ void ofsm_thread_entry(void *parameter)
             if(s_ofsm_info[thread_gunno].base.acrelay_resume_time < (0xFF - 0x01)){
                 s_ofsm_info[thread_gunno].base.acrelay_resume_time++;
             }
+            if(thaisen_relay_AC_SetFB() == thaisenRelayClose){
+                s_ofsm_info[thread_gunno].base.acrelay_resume_time = 0x00;
+            }
             if((thaisenAcRelay_StateQuery() == thaisenRelayBreak) || (thaisenGetSysFaultCheckEnBit(thaisenRelayAc, thread_gunno) == APP_THA_ENUM_FALSE)){
                 if((s_ofsm_info[thread_gunno].base.acrelay_resume_time > (1000/ APP_SYSTEM_RUN_TIME_PERIOD)) || (thaisenGetSysFaultCheckEnBit(thaisenRelayAc, thread_gunno) == APP_THA_ENUM_FALSE)){
                     thaisenClearSysFaultLib(thaisenRelayAc, thread_gunno);
