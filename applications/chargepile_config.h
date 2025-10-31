@@ -63,6 +63,8 @@
 /** internal flash */
 #define SYSTEM_CONFIG_INFO_ADDR_IF        0x08010000
 /******************************************************************************/
+#define CONFIG_ENABLE_ENUM                 0xAA                    /** 功能使能 */
+#define CONFIG_DISABLE_ENUM                0x55                    /** 功能失能 */
 
 #define CP_NETWORK_DOMAIN_LEN_MAX          256                     /* 域名最大长度 */
 #define CP_NETWORK_MAC_ADDR_LEN_MAX        6                       /* MAC地址最大长度 */

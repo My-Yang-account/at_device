@@ -4601,13 +4601,14 @@ void SerialScreen_CmdDebugInfoSet(void)
     LcdAssistantData.SeveralGunFlag[LCD_GUN_1].DataIsVerify = FALSE;
 
     /** 此处需要判断是否有数据要修改，有修改时才执行保存操作 */
-
+#if 0
     if(LcdData.setData.DebugCmdPara_Test != LcdData.setData.DebugCmdPara_TestTemp){
         is_changed = 1;
     }
     if(LcdData.setData.DebugCmdPara_MCMax != LcdData.setData.DebugCmdPara_MCMaxTemp){
         is_changed = 1;
     }
+#endif
     if(LcdData.setData.Icon_BatVoltDetect != LcdData.setData.sup_BatVoltDetect){
         is_changed = 1;
     }
@@ -4627,11 +4628,36 @@ void SerialScreen_CmdDebugInfoSet(void)
     if(is_changed){
         SerialScreen_JumpPage(&SerialScreen, LCD_PAGE_STORAGE_WAITING);
 
-        LcdData.setData.sup_BatVoltDetect = LcdData.setData.Icon_BatVoltDetect;
-        LcdData.setData.sup_BCLTimeoutDetect = LcdData.setData.Icon_BCLTimeoutDetect;
-        LcdData.setData.sup_SupFASTProtocol = LcdData.setData.Icon_SupFASTProtocol;
-        LcdData.setData.sup_SupYTProtocol = LcdData.setData.Icon_SupYTProtocol;
-        LcdData.setData.sup_SupBayProtocol = LcdData.setData.Icon_SupBayProtocol;
+        if(LcdData.setData.Icon_BatVoltDetect == TRUE){
+            LcdData.setData.sup_BatVoltDetect = CONFIG_ENABLE_ENUM;
+        }else{
+            LcdData.setData.sup_BatVoltDetect = CONFIG_DISABLE_ENUM;
+        }
+
+        if(LcdData.setData.Icon_BCLTimeoutDetect == TRUE){
+            LcdData.setData.sup_BCLTimeoutDetect = CONFIG_ENABLE_ENUM;
+        }else{
+            LcdData.setData.sup_BCLTimeoutDetect = CONFIG_DISABLE_ENUM;
+        }
+
+        if(LcdData.setData.Icon_SupFASTProtocol == TRUE){
+            LcdData.setData.sup_SupFASTProtocol = CONFIG_ENABLE_ENUM;
+        }else{
+            LcdData.setData.sup_SupFASTProtocol = CONFIG_DISABLE_ENUM;
+        }
+
+        if(LcdData.setData.Icon_SupYTProtocol == TRUE){
+            LcdData.setData.sup_SupYTProtocol = CONFIG_ENABLE_ENUM;
+        }else{
+            LcdData.setData.sup_SupYTProtocol = CONFIG_DISABLE_ENUM;
+        }
+
+        if(LcdData.setData.Icon_SupBayProtocol == TRUE){
+            LcdData.setData.sup_SupBayProtocol = CONFIG_ENABLE_ENUM;
+        }else{
+            LcdData.setData.sup_SupBayProtocol = CONFIG_DISABLE_ENUM;
+        }
+
         LcdData.setData.DebugCmdPara_Test = LcdData.setData.DebugCmdPara_TestTemp;
         LcdData.setData.DebugCmdPara_MCMax = LcdData.setData.DebugCmdPara_MCMaxTemp;
 
@@ -4650,26 +4676,53 @@ void SerialScreen_CmdDebugInfoSet(void)
 
 void SerialScreen_CmdDebugInfoGet(void)
 {
-    LcdData.setData.sup_BatVoltDetect = *((u8*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_BATVOLT_DETECT, 0));
-    LcdData.setData.sup_BCLTimeoutDetect = *((u8*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_BCLTIMOUT_DETECT, 0));
-    LcdData.setData.sup_SupFASTProtocol = *((u8*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_FAST_PROTOCOL, 0));
-    LcdData.setData.sup_SupYTProtocol = *((u8*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_YT_PROTOCOL, 0));
-    LcdData.setData.sup_SupBayProtocol = *((u8*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_BAY_PROTOCOL, 0));
+    u8 data = 0;
 
-    if(LcdData.setData.sup_BatVoltDetect > TRUE)        /* 电池电压检测默认启用 */
+    /* 电池电压检测默认开启 */
+    data = *((u8*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_BATVOLT_DETECT, 0));
+    if(data == CONFIG_ENABLE_ENUM){
         LcdData.setData.sup_BatVoltDetect = TRUE;
-
-    if(LcdData.setData.sup_BCLTimeoutDetect > TRUE)     /* BCL超时检测默认启用 */
+    }else if(data == CONFIG_DISABLE_ENUM){
+        LcdData.setData.sup_BatVoltDetect = FALSE;
+    }else{
+        LcdData.setData.sup_BatVoltDetect = TRUE;
+    }
+    /* BCL超时检测默认启用 */
+    data = *((u8*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_BCLTIMOUT_DETECT, 0));
+    if(data == CONFIG_ENABLE_ENUM){
         LcdData.setData.sup_BCLTimeoutDetect = TRUE;
-
-    if(LcdData.setData.sup_SupFASTProtocol > TRUE)      /* FAST协议默认启用 */
+    }else if(data == CONFIG_DISABLE_ENUM){
+        LcdData.setData.sup_BCLTimeoutDetect = FALSE;
+    }else{
+        LcdData.setData.sup_BCLTimeoutDetect = TRUE;
+    }
+    /* FAST协议默认启用 */
+    data = *((u8*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_FAST_PROTOCOL, 0));
+    if(data == CONFIG_ENABLE_ENUM){
         LcdData.setData.sup_SupFASTProtocol = TRUE;
-
-    if(LcdData.setData.sup_SupYTProtocol > TRUE)        /* 宇通协议默认启用 */
+    }else if(data == CONFIG_DISABLE_ENUM){
+        LcdData.setData.sup_SupFASTProtocol = FALSE;
+    }else{
+        LcdData.setData.sup_SupFASTProtocol = TRUE;
+    }
+    /* 宇通协议默认启用 */
+    data = *((u8*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_YT_PROTOCOL, 0));
+    if(data == CONFIG_ENABLE_ENUM){
         LcdData.setData.sup_SupYTProtocol = TRUE;
-
-    if(LcdData.setData.sup_SupBayProtocol > TRUE)       /* 湾区协议默认启用 */
+    }else if(data == CONFIG_DISABLE_ENUM){
+        LcdData.setData.sup_SupYTProtocol = FALSE;
+    }else{
+        LcdData.setData.sup_SupYTProtocol = TRUE;
+    }
+    /* 湾区协议默认启用 */
+    data = *((u8*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_BAY_PROTOCOL, 0));
+    if(data == CONFIG_ENABLE_ENUM){
         LcdData.setData.sup_SupBayProtocol = TRUE;
+    }else if(data == CONFIG_DISABLE_ENUM){
+        LcdData.setData.sup_SupBayProtocol = FALSE;
+    }else{
+        LcdData.setData.sup_SupBayProtocol = TRUE;
+    }
 
     LcdData.setData.Icon_BatVoltDetect = FALSE;
     if(LcdData.setData.sup_BatVoltDetect){
@@ -9930,20 +9983,45 @@ struct LCD_DATA_FIFO_TYPE *SerialScreen_Init(struct SerialScreenObj *cmd)
     if(LcdData.setData.sup_mode_select > TRUE)        /* 模式选择默认不启用 */
         LcdData.setData.sup_mode_select = FALSE;
 
-    if(LcdData.setData.sup_BatVoltDetect > TRUE)        /* 电池电压检测默认启用 */
+    if(LcdData.setData.sup_BatVoltDetect == CONFIG_ENABLE_ENUM){          /* 电池电压检测默认启用 */
         LcdData.setData.sup_BatVoltDetect = TRUE;
+    }else if(LcdData.setData.sup_BatVoltDetect == CONFIG_DISABLE_ENUM){
+        LcdData.setData.sup_BatVoltDetect = FALSE;
+    }else{
+        LcdData.setData.sup_BatVoltDetect = TRUE;
+    }
 
-    if(LcdData.setData.sup_BCLTimeoutDetect > TRUE)     /* BCL超时检测默认启用 */
+    if(LcdData.setData.sup_BCLTimeoutDetect == CONFIG_ENABLE_ENUM){          /* BCL超时检测默认启用 */
         LcdData.setData.sup_BCLTimeoutDetect = TRUE;
+    }else if(LcdData.setData.sup_BCLTimeoutDetect == CONFIG_DISABLE_ENUM){
+        LcdData.setData.sup_BCLTimeoutDetect = FALSE;
+    }else{
+        LcdData.setData.sup_BCLTimeoutDetect = TRUE;
+    }
 
-    if(LcdData.setData.sup_SupFASTProtocol > TRUE)      /* FAST协议默认启用 */
+    if(LcdData.setData.sup_SupFASTProtocol == CONFIG_ENABLE_ENUM){          /* FAST协议默认启用 */
         LcdData.setData.sup_SupFASTProtocol = TRUE;
+    }else if(LcdData.setData.sup_SupFASTProtocol == CONFIG_DISABLE_ENUM){
+        LcdData.setData.sup_SupFASTProtocol = FALSE;
+    }else{
+        LcdData.setData.sup_SupFASTProtocol = TRUE;
+    }
 
-    if(LcdData.setData.sup_SupYTProtocol > TRUE)        /* 宇通协议默认启用 */
+    if(LcdData.setData.sup_SupYTProtocol == CONFIG_ENABLE_ENUM){          /* 宇通协议默认启用 */
         LcdData.setData.sup_SupYTProtocol = TRUE;
+    }else if(LcdData.setData.sup_SupYTProtocol == CONFIG_DISABLE_ENUM){
+        LcdData.setData.sup_SupYTProtocol = FALSE;
+    }else{
+        LcdData.setData.sup_SupYTProtocol = TRUE;
+    }
 
-    if(LcdData.setData.sup_SupBayProtocol > TRUE)       /* 湾区协议默认启用 */
+    if(LcdData.setData.sup_SupBayProtocol == CONFIG_ENABLE_ENUM){          /* 湾区协议默认启用 */
         LcdData.setData.sup_SupBayProtocol = TRUE;
+    }else if(LcdData.setData.sup_SupBayProtocol == CONFIG_DISABLE_ENUM){
+        LcdData.setData.sup_SupBayProtocol = FALSE;
+    }else{
+        LcdData.setData.sup_SupBayProtocol = TRUE;
+    }
 
     if(LcdData.setData.AllocWay >= POWER_ALLOCATION_WAY_SIZE){        /* 功率分配默认使用先到先得 */
         LcdData.setData.AllocWay = POWER_ALLOCATION_WAY_SEQ_PRIORITY;

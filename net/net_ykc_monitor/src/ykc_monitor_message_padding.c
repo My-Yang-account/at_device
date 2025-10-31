@@ -6776,16 +6776,57 @@ static int32_t ykc_monitor_config_info_fixed_cmd(uint8_t option, uint8_t gunno, 
     }
     /** 配置信息查询 */
     if(option == NETYKCM_CONFIG_INFO_OPTION_QUERY){
+        uint8_t data = 0x00;
         struct ykcm_fixed_cmd_info *response = (struct ykcm_fixed_cmd_info*)buf;
 
         /** 读的时候不限制版本信息 */
         memset(response, 0x00, sizeof(struct ykcm_fixed_cmd_info));
         response->msg_version = YKC_MONITOR_FIXED_CMD_MSG_VER;
-        response->info.batvolt_detect = *(sys_read_config_item_content(CONFIG_ITEM_SUPORT_BATVOLT_DETECT, 0x00));
-        response->info.bcltimeout_detect = *(sys_read_config_item_content(CONFIG_ITEM_SUPORT_BCLTIMOUT_DETECT, 0x00));
-        response->info.fast_protocol = *(sys_read_config_item_content(CONFIG_ITEM_SUPORT_FAST_PROTOCOL, 0x00));
-        response->info.cfc_protocol = *(sys_read_config_item_content(CONFIG_ITEM_SUPORT_YT_PROTOCOL, 0x00));
-        response->info.bay_area_protocol = *(sys_read_config_item_content(CONFIG_ITEM_SUPORT_BAY_PROTOCOL, 0x00));
+
+        data = *(sys_read_config_item_content(CONFIG_ITEM_SUPORT_BATVOLT_DETECT, 0x00));
+        if(data == CONFIG_ENABLE_ENUM){
+            response->info.batvolt_detect = NET_ENUM_TRUE;
+        }else if(data == CONFIG_DISABLE_ENUM){
+            response->info.batvolt_detect = NET_ENUM_FALSE;
+        }else{
+            response->info.batvolt_detect = NET_ENUM_TRUE;
+        }
+
+        data = *(sys_read_config_item_content(CONFIG_ITEM_SUPORT_BCLTIMOUT_DETECT, 0x00));
+        if(data == CONFIG_ENABLE_ENUM){
+            response->info.bcltimeout_detect = NET_ENUM_TRUE;
+        }else if(data == CONFIG_DISABLE_ENUM){
+            response->info.bcltimeout_detect = NET_ENUM_FALSE;
+        }else{
+            response->info.bcltimeout_detect = NET_ENUM_TRUE;
+        }
+
+        data = *(sys_read_config_item_content(CONFIG_ITEM_SUPORT_FAST_PROTOCOL, 0x00));
+        if(data == CONFIG_ENABLE_ENUM){
+            response->info.fast_protocol = NET_ENUM_TRUE;
+        }else if(data == CONFIG_DISABLE_ENUM){
+            response->info.fast_protocol = NET_ENUM_FALSE;
+        }else{
+            response->info.fast_protocol = NET_ENUM_TRUE;
+        }
+
+        data = *(sys_read_config_item_content(CONFIG_ITEM_SUPORT_YT_PROTOCOL, 0x00));
+        if(data == CONFIG_ENABLE_ENUM){
+            response->info.cfc_protocol = NET_ENUM_TRUE;
+        }else if(data == CONFIG_DISABLE_ENUM){
+            response->info.cfc_protocol = NET_ENUM_FALSE;
+        }else{
+            response->info.cfc_protocol = NET_ENUM_TRUE;
+        }
+
+        data = *(sys_read_config_item_content(CONFIG_ITEM_SUPORT_BAY_PROTOCOL, 0x00));
+        if(data == CONFIG_ENABLE_ENUM){
+            response->info.bay_area_protocol = NET_ENUM_TRUE;
+        }else if(data == CONFIG_DISABLE_ENUM){
+            response->info.bay_area_protocol = NET_ENUM_FALSE;
+        }else{
+            response->info.bay_area_protocol = NET_ENUM_TRUE;
+        }
     }
     /** 配置信息设置 */
     else{
