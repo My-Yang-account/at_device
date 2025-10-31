@@ -7073,7 +7073,12 @@ void ofsm_thread_entry(void *parameter)
             s_ofsm_info[thread_gunno].base.flag.is_reser_normal_started = APP_THA_ENUM_FALSE;
             s_ofsm_info[thread_gunno].base.flag.is_reser_timeout_started = APP_THA_ENUM_FALSE;
         }
-        thaisenDrvSetProtocolTestEnable(0);
+        /** 协议一致性测试 */
+        if((*(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_SUPORT_PROTOCOL_GB_T, 0x00))) == CONFIG_ENABLE_ENUM){
+            thaisenDrvSetProtocolTestEnable(1);
+        }else{
+            thaisenDrvSetProtocolTestEnable(0);
+        }
 
         switch (s_ofsm_info[thread_gunno].base.ota_state) {
         case APP_OTA_STATE_NULL:
