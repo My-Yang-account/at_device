@@ -977,4 +977,56 @@ void thaisenModuleSetFOccurState(thaisenModuleFEnum_t f, uint8_t state, uint8_t 
  */
 uint8_t thaisenModuleGetFOccurState(thaisenModuleFEnum_t f, uint8_t gunNum);
 
+/*************************************************** 模块最大输出电流 ****************************************************/
+/* 功能说明:
+ *          thaisenSetModuleOutCurrMax: 设置模块最大输出电流
+ *
+ * 输入参数:  curr      模块最大输出电流值(0.01A)
+ *
+ * 返回参数:
+ *
+ * 调用方法:
+ *          可实时调用
+ */
+void thaisenSetModuleOutCurrMax(uint32_t curr);
+
+/* 功能说明:
+ *          thaisenGetModuleOutCurrMax: 获取模块最大输出电流
+ *
+ * 输入参数:
+ *
+ * 返回参数:   模块最大输出电流(0.01A)
+ *
+ * 调用方法:
+ *          可实时调用
+ */
+uint32_t thaisenGetModuleOutCurrMax(void);
+
+/*************************************************** 模块最小输出电流 ****************************************************/
+
+/* 功能说明:
+ *          thaisenSetModuleOutCurrMin: 设置模块最小输出电流
+ *
+ * 输入参数:  curr      模块最小输出电流值(0.01A)
+ *
+ * 返回参数:
+ *
+ * 调用方法:
+ *          可实时调用
+ */
+void thaisenSetModuleOutCurrMin(uint16_t curr);
+
+/* 功能说明:
+ *          thaisenGetModuleOutCurrMin: 获取模块最大输出电流
+ *
+ * 输入参数:       f       故障枚举
+ *          gunNum  枪号
+ *
+ * 返回参数:   模块最小输出电流(0.01A)
+ *
+ * 调用方法:
+ *          可实时调用
+ */
+uint16_t thaisenGetModuleOutCurrMin(void);
+
 #endif /* APPLICATIONS_THAISENCHARGMODULELIB_H_ */
