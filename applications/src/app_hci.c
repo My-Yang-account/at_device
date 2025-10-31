@@ -105,6 +105,7 @@ void app_hci_res_thread_entry(void *parameter)
     }
 }
 
+extern uint8_t thaisen_query_screen_reboot(void);
 void app_hci_req_thread_entry(void *parameter)
 {
     (void)parameter;
@@ -123,11 +124,15 @@ void app_hci_req_thread_entry(void *parameter)
 
     while (1)
     {
+        /** 屏幕点击了重启后将不在运行屏幕部分(在此如果误判了屏幕点击重启，由于无法调用app_thread_monitor_process进行喂狗，到时间也会复位，防止屏幕部分误判而卡死) */
+        if(thaisen_query_screen_reboot()){
+            rt_thread_mdelay(10);
+            continue;
+        }
         app_thread_monitor_process(rt_thread_self(), NULL, 0x00, 0x00);
         /* 调取屏幕处理函数 */
         serialScreen_ObjectAi_main();
         rt_thread_mdelay(10);
-        
     }
 }
 

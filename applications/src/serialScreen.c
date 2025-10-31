@@ -1288,7 +1288,16 @@ static void SerialScreen_ScreenSet_TimeSync_Flag(void)
 
 void SerialScreen_ScreenSet_Reboot_Flag(void)
 {
-    LcdAssistantData.Flag.IsClickReboot = TRUE;
+    u8 i = 0;
+
+    for(i = 0; i < LCD_GUN_NUM; i++){
+        if(LcdData.gun[i].workState != SysMainStatus_StandBy)
+            break;
+    }
+    if(i >= LCD_GUN_NUM){
+        LcdAssistantData.Flag.IsClickReboot = TRUE;
+        SerialScreen_JumpPage(&SerialScreen, LCD_PAGE_NONE);
+    }
 }
 
 u8 SerialScreen_ScreenGet_Reboot_Flag(void)
@@ -12317,6 +12326,10 @@ void SerialScreen_Process(struct SerialScreenObj *cmd)
     SerialScreen_RealTime_InfoGet();   /* 获取外部实时信息 */
     SerialScreen_TimeingRefrensh();    /* 定时刷新 */
     SerialScreen_GetKeyProcess(cmd);
+    /** 系统准备重启：退出 */
+    if(LcdAssistantData.Flag.IsClickReboot == TRUE){
+        return;
+    }
     SerialScreen_CheckKey();//按键间隔
     SerialScreen_CheckPageReset();//触发界面自动消失
     //返回或页面重置

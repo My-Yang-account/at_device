@@ -229,7 +229,8 @@ int main(void)
                     break;
                 }
             }
-            if(gunno == APP_SYSTEM_GUNNO_SIZE){
+            /** 屏幕重启生效前已确认所有枪都空闲 */
+            if((gunno == APP_SYSTEM_GUNNO_SIZE) || thaisen_query_screen_reboot()){
                 LOG_D("remote reset system");
                 /** 在此处需要保存重启信息 */
                 extern uint8_t app_thread_monitor_occur_error(void);
