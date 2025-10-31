@@ -6827,6 +6827,24 @@ static int32_t ykc_monitor_config_info_fixed_cmd(uint8_t option, uint8_t gunno, 
         }else{
             response->info.bay_area_protocol = NET_ENUM_TRUE;
         }
+
+        data = *(sys_read_config_item_content(CONFIG_ITEM_SUPORT_PROTOCOL_GB_T, 0x00));
+        if(data == CONFIG_ENABLE_ENUM){
+            response->info.protocol_gb_t = NET_ENUM_TRUE;
+        }else if(data == CONFIG_DISABLE_ENUM){
+            response->info.protocol_gb_t = NET_ENUM_FALSE;
+        }else{
+            response->info.protocol_gb_t = NET_ENUM_FALSE;
+        }
+
+        data = *(sys_read_config_item_content(CONFIG_ITEM_SUPORT_BMS_SEVERAL_FRAME, 0x00));
+        if(data == CONFIG_ENABLE_ENUM){
+            response->info.bms_several_frame = NET_ENUM_TRUE;
+        }else if(data == CONFIG_DISABLE_ENUM){
+            response->info.bms_several_frame = NET_ENUM_FALSE;
+        }else{
+            response->info.bms_several_frame = NET_ENUM_TRUE;
+        }
     }
     /** 配置信息设置 */
     else{

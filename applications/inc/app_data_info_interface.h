@@ -227,7 +227,9 @@ typedef struct{
         uint8_t fast_protocol : 1;                                /** FAST协议(1：启用，0：禁用) */
         uint8_t cfc_protocol : 1;                                 /** CFC协议(1：启用，0：禁用) */
         uint8_t bay_area_protocol : 1;                            /** 湾区协议(1：启用，0：禁用) */
-        uint8_t reserve : 3;                                      /** 预留 */
+        uint8_t protocol_gb_t : 1;                                /** 国标协议(27930)(1：启用，0：禁用) */
+        uint8_t bms_several_frame : 1;                            /** BMS多帧(1：启用，0：禁用) */
+        uint8_t reserve : 1;                                      /** 预留 */
     }info;
 }thaisen_cfg_fixed_cmd_debug;
 
