@@ -2082,64 +2082,64 @@ void app_cmd_debug_result_info(uint8_t language, uint8_t cmd, uint8_t *para, uin
     case THAISEN_DEBUG_CMD_ISSUE_MODULE_CURR_MAX:
         if(para && (plen >= 0x04)){
             uint32_t curr = *(uint32_t*)para;
-            /** 电流值最大4位 */
-            curr = curr >= 10000 ? 9999 : curr;
+            /** 电流值最大6位:XXXX.XXA */
+            curr = curr >= 1000000 ? 999999 : curr;
             if(language == THA_DEBUG_LANGUAGE_ENGLISH){
-                if(ilen <= (strlen("Issue>ModuleCurrMax:") + 0x04))
+                if(ilen <= (strlen("Issue>ModuleCurrMax:") + 0x06))
                     return;
                 sprintf((char*)buf, "%s%d", "Issue>ModuleCurrMax:", curr);
             }else{
-                if(ilen <= (strlen("下发>模块最大输出电流：") + 0x04))
+                if(ilen <= (strlen("下发>模块最大输出电流：") + 0x06))
                     return;
                 sprintf((char*)buf, "%s%d", "下发>模块最大输出电流：", curr);
             }
         }
         break;
-    case THAISEN_DEBUG_CMD_ISSUE_TEST:
+    case THAISEN_DEBUG_CMD_ISSUE_MODULE_CURR_MIN:
         if(para && (plen >= 0x04)){
-            uint32_t test = *(uint32_t*)para;
-            /** 测试值最大4位 */
-            test = test >= 10000 ? 9999 : test;
+            uint32_t curr = *(uint32_t*)para;
+            /** 电流值最大6位:XXXX.XXA */
+            curr = curr >= 1000000 ? 999999 : curr;
             if(language == THA_DEBUG_LANGUAGE_ENGLISH){
-                if(ilen <= (strlen("Issue>Test:") + 0x04))
+                if(ilen <= (strlen("Issue>ModuleCurrMin:") + 0x06))
                     return;
-                sprintf((char*)buf, "%s%d", "Issue>Test:", test);
+                sprintf((char*)buf, "%s%d", "Issue>ModuleCurrMin:", curr);
             }else{
-                if(ilen <= (strlen("下发>测试：") + 0x04))
+                if(ilen <= (strlen("下发>模块最小输出电流：") + 0x06))
                     return;
-                sprintf((char*)buf, "%s%d", "下发>测试：", test);
+                sprintf((char*)buf, "%s%d", "下发>模块最小输出电流：", curr);
             }
         }
         break;
     case THAISEN_DEBUG_CMD_READ_MODULE_CURR_MAX:
         if(para && (plen >= 0x04)){
             uint32_t curr = *(uint32_t*)para;
-            /** 电流值最大4位 */
-            curr = curr >= 10000 ? 9999 : curr;
+            /** 电流值最大6位:XXXX.XXA */
+            curr = curr >= 1000000 ? 999999 : curr;
             if(language == THA_DEBUG_LANGUAGE_ENGLISH){
-                if(ilen <= (strlen("Read>ModuleCurrMax:") + 0x04))
+                if(ilen <= (strlen("Read>ModuleCurrMax:") + 0x06))
                     return;
                 sprintf((char*)buf, "%s%d", "Read>ModuleCurrMax:", curr);
             }else{
-                if(ilen <= (strlen("读取>模块最大输出电流：") + 0x04))
+                if(ilen <= (strlen("读取>模块最大输出电流：") + 0x06))
                     return;
                 sprintf((char*)buf, "%s%d", "读取>模块最大输出电流：", curr);
             }
         }
         break;
-    case THAISEN_DEBUG_CMD_READ_TEST:
+    case THAISEN_DEBUG_CMD_READ_MODULE_CURR_MIN:
         if(para && (plen >= 0x04)){
-            uint32_t test = *(uint32_t*)para;
-            /** 测试值最大4位 */
-            test = test >= 10000 ? 9999 : test;
+            uint32_t curr = *(uint32_t*)para;
+            /** 电流值最大6位:XXXX.XXA */
+            curr = curr >= 1000000 ? 999999 : curr;
             if(language == THA_DEBUG_LANGUAGE_ENGLISH){
-                if(ilen <= (strlen("Read>Test:") + 0x04))
+                if(ilen <= (strlen("Read>ModuleCurrMin:") + 0x06))
                     return;
-                sprintf((char*)buf, "%s%d", "Read>Test:", test);
+                sprintf((char*)buf, "%s%d", "Read>ModuleCurrMin:", curr);
             }else{
-                if(ilen <= (strlen("读取>测试：") + 0x04))
+                if(ilen <= (strlen("读取>模块最小输出电流：") + 0x06))
                     return;
-                sprintf((char*)buf, "%s%d", "读取>测试：", test);
+                sprintf((char*)buf, "%s%d", "读取>模块最小输出电流：", curr);
             }
         }
         break;

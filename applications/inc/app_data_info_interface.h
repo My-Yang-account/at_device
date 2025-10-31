@@ -719,9 +719,9 @@ uint8_t thaisen_is_debug(void);
  */
 enum thaisen_debug_cmd{
     THAISEN_DEBUG_CMD_ISSUE_MODULE_CURR_MAX,                     /** 调试指令码：下发模块最大输出电流 */
-    THAISEN_DEBUG_CMD_ISSUE_TEST,                                /** 调试指令码：下发测试 */
+    THAISEN_DEBUG_CMD_ISSUE_MODULE_CURR_MIN,                     /** 调试指令码：下发模块最小输出电流 */
     THAISEN_DEBUG_CMD_READ_MODULE_CURR_MAX,                      /** 调试指令码：读取模块最大输出电流 */
-    THAISEN_DEBUG_CMD_READ_TEST,                                 /** 调试指令码：读取测试 */
+    THAISEN_DEBUG_CMD_READ_MODULE_CURR_MIN,                      /** 调试指令码：读取模块最小输出电流 */
     THAISEN_DEBUG_CMD_SIZE,                                      /** 调试指令码 */
 };
 /**
