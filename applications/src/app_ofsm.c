@@ -7524,34 +7524,40 @@ void ofsm_thread_entry(void *parameter)
 
         /************************************ 充电功能配置  ************************************/
         /** 电池电压检测 */
-        if((*(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_SUPORT_BATVOLT_DETECT, 0x00))) == APP_THA_ENUM_TRUE){
+        if((*(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_SUPORT_BATVOLT_DETECT, 0x00))) == CONFIG_ENABLE_ENUM){
             mw_charglib_set_function_enable(thread_gunno, APP_FUNCTION_BATVOLT_DETECT, APP_THA_ENUM_TRUE);
         }else{
             mw_charglib_set_function_enable(thread_gunno, APP_FUNCTION_BATVOLT_DETECT, APP_THA_ENUM_FALSE);
         }
         /** BCL 报文超时检测 */
-        if((*(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_SUPORT_BCLTIMOUT_DETECT, 0x00))) == APP_THA_ENUM_TRUE){
+        if((*(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_SUPORT_BCLTIMOUT_DETECT, 0x00))) == CONFIG_ENABLE_ENUM){
             mw_charglib_set_function_enable(thread_gunno, APP_FUNCTION_BCLTIMEOUT_DETECT, APP_THA_ENUM_TRUE);
         }else{
             mw_charglib_set_function_enable(thread_gunno, APP_FUNCTION_BCLTIMEOUT_DETECT, APP_THA_ENUM_FALSE);
         }
         /** FAST 协议启用 */
-        if((*(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_SUPORT_FAST_PROTOCOL, 0x00))) == APP_THA_ENUM_TRUE){
+        if((*(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_SUPORT_FAST_PROTOCOL, 0x00))) == CONFIG_ENABLE_ENUM){
             mw_charglib_set_function_enable(thread_gunno, APP_FUNCTION_NO_OFFSET, APP_THA_ENUM_TRUE);
         }else{
             mw_charglib_set_function_enable(thread_gunno, APP_FUNCTION_NO_OFFSET, APP_THA_ENUM_FALSE);
         }
         /** 宇通协议启用 */
-        if((*(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_SUPORT_YT_PROTOCOL, 0x00))) == APP_THA_ENUM_TRUE){
+        if((*(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_SUPORT_YT_PROTOCOL, 0x00))) == CONFIG_ENABLE_ENUM){
             mw_charglib_set_function_enable(thread_gunno, APP_FUNCTION_YUTONG, APP_THA_ENUM_TRUE);
         }else{
             mw_charglib_set_function_enable(thread_gunno, APP_FUNCTION_YUTONG, APP_THA_ENUM_FALSE);
         }
         /** 湾区协议启用 */
-        if((*(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_SUPORT_BAY_PROTOCOL, 0x00))) == APP_THA_ENUM_TRUE){
+        if((*(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_SUPORT_BAY_PROTOCOL, 0x00))) == CONFIG_ENABLE_ENUM){
             mw_charglib_set_function_enable(thread_gunno, APP_FUNCTION_BAY_AREA, APP_THA_ENUM_TRUE);
         }else{
             mw_charglib_set_function_enable(thread_gunno, APP_FUNCTION_BAY_AREA, APP_THA_ENUM_FALSE);
+        }
+        /** BMS多帧启用 */
+        if((*(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_SUPORT_BMS_SEVERAL_FRAME, 0x00))) == CONFIG_ENABLE_ENUM){
+            mw_charglib_set_function_enable(thread_gunno, APP_FUNCTION_BMS_SEVERAL_FRAME, APP_THA_ENUM_TRUE);
+        }else{
+            mw_charglib_set_function_enable(thread_gunno, APP_FUNCTION_BMS_SEVERAL_FRAME, APP_THA_ENUM_FALSE);
         }
 
         s_ofsm_info[thread_gunno].base.ammeter_elect = mw_get_meter_total_wh(thread_gunno);

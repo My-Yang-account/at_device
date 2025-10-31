@@ -42,6 +42,7 @@ typedef enum{
     APP_FUNCTION_BAY_AREA,                                     /* 湾区 协议 */
     APP_FUNCTION_BATVOLT_DETECT,                               /* 预充电池电压检测 */
     APP_FUNCTION_BCLTIMEOUT_DETECT,                            /* BCL报文超时检测 */
+    APP_FUNCTION_BMS_SEVERAL_FRAME,                            /* BMS多帧 */
     APP_FUNCTION_SIZE,                                         /* 功能使能 */
 }app_funcenable_t;
 
