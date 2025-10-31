@@ -4604,10 +4604,12 @@ void SerialScreen_CmdDebugInfoSet(void)
     if(LcdData.setData.DebugCmdPara_MCMin != LcdData.setData.DebugCmdPara_MCMinTemp){
 //        is_changed = 1;
         LcdData.setData.DebugCmdPara_MCMin = LcdData.setData.DebugCmdPara_MCMinTemp;
+        thaisenSetModuleOutCurrMin(LcdData.setData.DebugCmdPara_MCMin);
     }
     if(LcdData.setData.DebugCmdPara_MCMax != LcdData.setData.DebugCmdPara_MCMaxTemp){
 //        is_changed = 1;
         LcdData.setData.DebugCmdPara_MCMax = LcdData.setData.DebugCmdPara_MCMaxTemp;
+        thaisenSetModuleOutCurrMax(LcdData.setData.DebugCmdPara_MCMax);
     }
 
     if(LcdData.setData.Icon_BatVoltDetect != LcdData.setData.sup_BatVoltDetect){
