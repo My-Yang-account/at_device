@@ -204,12 +204,14 @@ struct _function_enable{
     uint8_t mode_select;           /* 模式选择功能启用 */
     uint8_t current_mode[2];       /* 已选择的模式 */
     uint8_t mode_v2g;              /* 是否启用V2G */
-    uint8_t bat_voltage_switch;                                       /** 电池电压检测开关 */
-    uint8_t bcl_timeout_switch;                                       /** BCL报文超时检测开关 */
-    uint8_t fast_protocol_switch;                                     /** FAST协议开关 */
-    uint8_t yt_protocol_switch;                                       /** 宇通协议开关 */
-    uint8_t bay_protocol_switch;                                      /** 湾区协议开关 */
-    uint8_t reserve[72];
+    uint8_t bat_voltage_switch;    /* 电池电压检测开关 */
+    uint8_t bcl_timeout_switch;    /* BCL报文超时检测开关 */
+    uint8_t fast_protocol_switch;  /* FAST协议开关 */
+    uint8_t yt_protocol_switch;    /* 宇通协议开关 */
+    uint8_t bay_protocol_switch;   /* 湾区协议开关 */
+    uint8_t protocol_gb_t;         /* 国标协议(27930) */
+    uint8_t bms_several_frame;     /* BMS多帧 */
+    uint8_t reserve[70];
 };
 
 struct _state_reversal{
@@ -426,6 +428,16 @@ APP_DEF_SRAM2 static struct config_item s_config_item_set[CONFIG_ITEM_SIZE] =
         {CONFIG_ITEM_SUPORT_BAY_PROTOCOL,
         (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.bay_protocol_switch)),       /*配置项：湾区协议支持*/
         (uint8_t*)&s_chargepile_config_info.function_enable.bay_protocol_switch,
+        NULL},
+
+        {CONFIG_ITEM_SUPORT_PROTOCOL_GB_T,
+        (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.protocol_gb_t)),           /*配置项：国标协议(27930)支持*/
+        (uint8_t*)&s_chargepile_config_info.function_enable.protocol_gb_t,
+        NULL},
+
+        {CONFIG_ITEM_SUPORT_BMS_SEVERAL_FRAME,
+        (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.bms_several_frame)),       /*配置项：BMS多帧支持*/
+        (uint8_t*)&s_chargepile_config_info.function_enable.bms_several_frame,
         NULL},
 
         {CONFIG_ITEM_SUPORT_MODE_SELECT,
@@ -1015,6 +1027,12 @@ void sys_chargeplie_config_info_init(void)
     /** 启用湾区协议 */
     sys_config_item_init(CONFIG_ITEM_SUPORT_BAY_PROTOCOL, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.bay_protocol_switch)), \
             (uint8_t*)&s_chargepile_config_info.function_enable.bay_protocol_switch, NULL);
+    /** 启用国标协议(27930) */
+    sys_config_item_init(CONFIG_ITEM_SUPORT_PROTOCOL_GB_T, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.protocol_gb_t)), \
+            (uint8_t*)&s_chargepile_config_info.function_enable.protocol_gb_t, NULL);
+    /** 启用BMS多帧 */
+    sys_config_item_init(CONFIG_ITEM_SUPORT_BMS_SEVERAL_FRAME, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.bms_several_frame)), \
+            (uint8_t*)&s_chargepile_config_info.function_enable.bms_several_frame, NULL);
     /** 当前模式-A */
     sys_config_item_init(CONFIG_ITEM_CURRENT_MODE_A, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.current_mode[0x00])), \
             (uint8_t*)&s_chargepile_config_info.function_enable.current_mode[0x00], NULL);
@@ -1850,6 +1868,9 @@ static void chargepile_config_data_reset(void)
     s_chargepile_config_info.function_enable.fast_protocol_switch = CONFIG_DISABLE_ENUM;
     s_chargepile_config_info.function_enable.yt_protocol_switch = CONFIG_DISABLE_ENUM;
     s_chargepile_config_info.function_enable.bay_protocol_switch = CONFIG_DISABLE_ENUM;
+    s_chargepile_config_info.function_enable.protocol_gb_t = CONFIG_DISABLE_ENUM;
+    s_chargepile_config_info.function_enable.bms_several_frame = CONFIG_ENABLE_ENUM;
+
     memset(s_chargepile_config_info.function_enable.current_mode, 0x00, sizeof(s_chargepile_config_info.function_enable.current_mode));
 
     s_chargepile_config_info.state_reversal.emergency_stop = 0x00;
@@ -2360,6 +2381,14 @@ int32_t chargepile_check_config(void)
     if((s_chargepile_config_info.function_enable.bay_protocol_switch != CONFIG_ENABLE_ENUM) && \
             (s_chargepile_config_info.function_enable.bay_protocol_switch != CONFIG_DISABLE_ENUM)){         /* 湾区协议默认开启 */
         s_chargepile_config_info.function_enable.bay_protocol_switch = CONFIG_ENABLE_ENUM;
+    }
+    if((s_chargepile_config_info.function_enable.protocol_gb_t != CONFIG_ENABLE_ENUM) && \
+            (s_chargepile_config_info.function_enable.protocol_gb_t != CONFIG_DISABLE_ENUM)){             /* 国标协议(27930)默认关闭 */
+        s_chargepile_config_info.function_enable.protocol_gb_t = CONFIG_DISABLE_ENUM;
+    }
+    if((s_chargepile_config_info.function_enable.bms_several_frame != CONFIG_ENABLE_ENUM) && \
+            (s_chargepile_config_info.function_enable.bms_several_frame != CONFIG_DISABLE_ENUM)){         /* BMS多帧默认开启 */
+        s_chargepile_config_info.function_enable.bms_several_frame = CONFIG_ENABLE_ENUM;
     }
 
     if(s_chargepile_config_info.state_reversal.emergency_stop > 0x01){   /* 急停默认不取反 */

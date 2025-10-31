@@ -259,6 +259,8 @@ void SerialScreen_IsSupportBCLTimeoutDetectSet(void);
 void SerialScreen_IsSupportFASTProtocolSet(void);
 void SerialScreen_IsSupportYTProtocolSet(void);
 void SerialScreen_IsSupportBayProtocolSet(void);
+void SerialScreen_IsSupportProtocolGB_TSet(void);
+void SerialScreen_IsSupportBMSSeveralFrameSet(void);
 u8 SerialScreen_GetChargeWay(void);
 void SerialScreen_SetChargeWay(u8 way);
 

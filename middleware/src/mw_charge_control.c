@@ -215,6 +215,9 @@ void mw_charglib_set_function_enable(uint8_t port, app_funcenable_t function, ui
     case APP_FUNCTION_BCLTIMEOUT_DETECT:
         handle->SetupFunctionEnable(port, thaisenChargFunctionEnable_BCLTimeout, state);
         break;
+    case APP_FUNCTION_BMS_SEVERAL_FRAME:
+        handle->SetupFunctionEnable(port, thaisenChargFunctionEnable_BMSSFrame, state);
+        break;
     default:
         break;
     }
@@ -252,6 +255,9 @@ uint8_t mw_charglib_get_function_enable(uint8_t port, app_funcenable_t function)
         break;
     case APP_FUNCTION_BCLTIMEOUT_DETECT:
         return handle->QueryFunctionEnable(port, thaisenChargFunctionEnable_BCLTimeout);
+        break;
+    case APP_FUNCTION_BMS_SEVERAL_FRAME:
+        return handle->QueryFunctionEnable(port, thaisenChargFunctionEnable_BMSSFrame);
         break;
     default:
         break;

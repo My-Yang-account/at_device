@@ -691,6 +691,7 @@ typedef enum
     thaisenChargFunctionEnable_BayArea,                   /** 功能使能：湾区 协议 */
     thaisenChargFunctionEnable_BatVolt,                   /** 功能使能：预充电池电压检测 */
     thaisenChargFunctionEnable_BCLTimeout,                /** 功能使能：BCL报文超时检测 */
+    thaisenChargFunctionEnable_BMSSFrame,                 /** 功能使能：BMS多帧支持 */
     thaisenChargFunctionEnable_Size,                      /** 功能使能 */
 }thaisenChargFunctionEnable_t;
 
