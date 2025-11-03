@@ -6158,7 +6158,7 @@ void SerialScreen_BtnModuleStartA(void)
     thaisenSetModuleSetupCurr(LcdData.setData.s_moduleCur[LCD_GUN_1] *10, LCD_GUN_1);
     thaisenSetModuleDebugEnableOutput(LCD_GUN_1);
 
-    LcdData.setData.s_dcRelay[LCD_GUN_1]= !LcdData.setData.s_dcRelay[LCD_GUN_1];
+    LcdData.setData.s_dcRelay[LCD_GUN_1]= TRUE;
 }
 
 void SerialScreen_BtnModuleStartB(void)
@@ -6196,7 +6196,7 @@ void SerialScreen_BtnModuleStartB(void)
     thaisenSetModuleSetupCurr(LcdData.setData.s_moduleCur[LCD_GUN_2] *10, LCD_GUN_2);
     thaisenSetModuleDebugEnableOutput(LCD_GUN_2);
 
-    LcdData.setData.s_dcRelay[LCD_GUN_2]= !LcdData.setData.s_dcRelay[LCD_GUN_2];
+    LcdData.setData.s_dcRelay[LCD_GUN_2]= TRUE;
 }
 
 void SerialScreen_BtnModuleStopA(void)
@@ -6216,7 +6216,7 @@ void SerialScreen_BtnModuleStopA(void)
     thaisenClearModuleDebugEnableOutput(LCD_GUN_1);
     thaisenSetModuleDebugDisableOutput(LCD_GUN_1);
 
-    LcdData.setData.s_dcRelay[LCD_GUN_1]= !LcdData.setData.s_dcRelay[LCD_GUN_1];
+    LcdData.setData.s_dcRelay[LCD_GUN_1]= FALSE;
 }
 
 void SerialScreen_BtnModuleStopB(void)
@@ -6236,7 +6236,7 @@ void SerialScreen_BtnModuleStopB(void)
     thaisenClearModuleDebugEnableOutput(LCD_GUN_2);
     thaisenSetModuleDebugDisableOutput(LCD_GUN_2);
 
-    LcdData.setData.s_dcRelay[LCD_GUN_2]= !LcdData.setData.s_dcRelay[LCD_GUN_2];
+    LcdData.setData.s_dcRelay[LCD_GUN_2]= FALSE;
 }
 
 static void SerialScreen_BtnModuleStateClear(void)
@@ -7466,6 +7466,77 @@ void SerialScreen_GetIOStatusB(void)
 void SerialScreen_QuitDebugIO(void)
 {
 	LcdData.debugIOflg = FALSE;
+	/************* 没有强制启动 *************/
+	for(u8 port = 0; port < LCD_GUN_NUM; port++){
+	    if(thaisenGetModuleDebugEnableOutput(port) == 0)
+	    {
+	        if(thaisenGetChargGunRunType() == thaisenDeviceType_average){
+	            if(port == LCD_GUN_1){
+	                thaisenParallelRelay_1_Disable_Debug();
+	                LcdData.setData.g_paraRely0 = REALAY_OFF;
+	                LcdData.setData.s_paraRely0 = LcdData.setData.g_paraRely0;
+	            }else{
+	                thaisenParallelRelay_3_Disable_Debug();
+	                LcdData.setData.g_paraRely2 = REALAY_OFF;
+	                LcdData.setData.s_paraRely2 = LcdData.setData.g_paraRely2;
+	            }
+	            thaisenParallelRelay_2_Disable_Debug();
+	            LcdData.setData.g_paraRely1 = REALAY_OFF;
+	            LcdData.setData.s_paraRely1 = LcdData.setData.g_paraRely1;
+	        }else{
+	            thaisenParallelRelay_1_Disable_Debug();
+	            LcdData.setData.g_paraRely0 = REALAY_OFF;
+	            LcdData.setData.s_paraRely0 = LcdData.setData.g_paraRely0;
+
+	            thaisenParallelRelay_2_Disable_Debug();
+	            LcdData.setData.g_paraRely1 = REALAY_OFF;
+	            LcdData.setData.s_paraRely1 = LcdData.setData.g_paraRely1;
+
+	            thaisenParallelRelay_3_Disable_Debug();
+	            LcdData.setData.g_paraRely2 = REALAY_OFF;
+	            LcdData.setData.s_paraRely2 = LcdData.setData.g_paraRely2;
+	        }
+
+            if(port == LCD_GUN_1){
+                thaisenDcRelay_A_Disable_Debug();
+            }else{
+                thaisenDcRelay_B_Disable_Debug();
+            }
+	        LcdData.setData.g_dcRelay[port] = REALAY_OFF;
+	        LcdData.setData.s_dcRelay[port]  = LcdData.setData.g_dcRelay[port];
+	    }
+	}
+
+    thaisenElectUnlockA_Directly();
+    LcdData.setData.g_elElock[LCD_GUN_1]= REALAY_OFF;
+    LcdData.setData.s_elElock[LCD_GUN_1]  = LcdData.setData.g_elElock[LCD_GUN_1];
+
+    thaisenElectUnlockB_Directly();
+    LcdData.setData.g_elElock[LCD_GUN_2]= REALAY_OFF;
+    LcdData.setData.s_elElock[LCD_GUN_2]  = LcdData.setData.g_elElock[LCD_GUN_2];
+
+    thaisen_auxPower_off_A();
+    LcdData.setData.g_auxRelay[LCD_GUN_1] = REALAY_OFF;
+    LcdData.setData.g_auxRelay[LCD_GUN_1] = LcdData.setData.s_auxRelay[LCD_GUN_1];
+
+    thaisen_auxPower_off_B();
+    LcdData.setData.g_auxRelay[LCD_GUN_2] = REALAY_OFF;
+    LcdData.setData.g_auxRelay[LCD_GUN_2] = LcdData.setData.s_auxRelay[LCD_GUN_2];
+
+#ifdef SCREEN_USING_DOUBLE_GUN
+    thaisenAux_A_24V_Disable_Debug();
+    LcdData.setData.aux24v_set[LCD_GUN_1] = REALAY_OFF;
+
+    thaisenAux_B_24V_Disable_Debug();
+    LcdData.setData.aux24v_set[LCD_GUN_2] = REALAY_OFF;
+#endif /* SCREEN_USING_DOUBLE_GUN */
+
+    LcdData.setData.selfCheck_icon = FALSE;
+    LcdData.setData.selfCheck_lable = TRUE;
+
+	SerialScreen_BtnModuleStopA();
+	SerialScreen_BtnModuleStopB();
+
 	thaisen_set_debug_mode(0);
 }
 
