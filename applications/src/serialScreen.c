@@ -5398,7 +5398,9 @@ void SerialScreen_SetInputInfo(void)
     }else{
 #ifndef SCREEN_USING_DOUBLE_GUN
         thaisenSetACRelayIoEnableState(thaisenAcRelayIoEn_AcRelay);
-        thaisenSetSysFaultCheckBit(thaisenRelayAc);
+        for(u8 i = 0; i < LCD_GUN_NUM; i++){
+            thaisenSetSysFaultCheckBit(thaisenRelayAc, i);
+        }
 #endif /* SCREEN_USING_DOUBLE_GUN */
         for(u8 i = 0; i < LCD_GUN_NUM; i++){
             thaisenSetSysFaultCheckBit(thaisenRelayAc, i);
