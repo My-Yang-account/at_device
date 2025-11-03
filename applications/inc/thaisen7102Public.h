@@ -1112,7 +1112,7 @@ enum
  * 调用方法:
  *          实时调用
  */
-uint32_t thaisen_get_ammeterVolt(uint8_t gunNum);
+int32_t thaisen_get_ammeterVolt(uint8_t gunNum);
 
 
 
@@ -1126,7 +1126,7 @@ uint32_t thaisen_get_ammeterVolt(uint8_t gunNum);
  * 调用方法:
  *          实时调用
  */
-uint32_t thaisen_get_ammeterCurrent(uint8_t gunNum);
+int32_t thaisen_get_ammeterCurrent(uint8_t gunNum);
 
 
 
