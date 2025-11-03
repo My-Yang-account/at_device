@@ -15,7 +15,7 @@
 static uint8_t s_ammeter_data_count[4];
 #endif /* AMMETER_DATA_DEBUG */
 
-uint32_t mw_get_meter_ua(uint8_t gunno)
+int32_t mw_get_meter_ua(uint8_t gunno)
 {
 #ifdef AMMETER_DATA_DEBUG
     if(s_ammeter_data_count[0]++ > 15){
@@ -25,33 +25,38 @@ uint32_t mw_get_meter_ua(uint8_t gunno)
     }
 #endif /* AMMETER_DATA_DEBUG */
     if(gunno < APP_SYSTEM_GUNNO_SIZE){
-        return thaisen_get_ammeterVolt(gunno);
+        int32_t voltage = thaisen_get_ammeterVolt(gunno);
+
+        if(voltage < 0x00){
+            voltage = 0x00 - voltage;
+        }
+        return voltage;
     }
     return 0;
 }
-uint32_t mw_get_meter_ub(uint8_t gunno)
+int32_t mw_get_meter_ub(uint8_t gunno)
 {
     return 0;
 }
-uint32_t mw_get_meter_uc(uint8_t gunno)
-{
-    return 0;
-}
-
-uint32_t mw_get_meter_uab(uint8_t gunno)
-{
-    return 0;
-}
-uint32_t mw_get_meter_ubc(uint8_t gunno)
-{
-    return 0;
-}
-uint32_t mw_get_meter_uca(uint8_t gunno)
+int32_t mw_get_meter_uc(uint8_t gunno)
 {
     return 0;
 }
 
-uint32_t mw_get_meter_ia(uint8_t gunno)
+int32_t mw_get_meter_uab(uint8_t gunno)
+{
+    return 0;
+}
+int32_t mw_get_meter_ubc(uint8_t gunno)
+{
+    return 0;
+}
+int32_t mw_get_meter_uca(uint8_t gunno)
+{
+    return 0;
+}
+
+int32_t mw_get_meter_ia(uint8_t gunno)
 {
 #ifdef AMMETER_DATA_DEBUG
     if(s_ammeter_data_count[1]++ > 15){
@@ -61,15 +66,20 @@ uint32_t mw_get_meter_ia(uint8_t gunno)
     }
 #endif /* AMMETER_DATA_DEBUG */
     if(gunno < APP_SYSTEM_GUNNO_SIZE){
-        return thaisen_get_ammeterCurrent(gunno);
+        int32_t current = thaisen_get_ammeterCurrent(gunno);
+
+        if(current < 0x00){
+            current = 0x00 - current;
+        }
+        return current;
     }
     return 0;
 }
-uint32_t mw_get_meter_ib(uint8_t gunno)
+int32_t mw_get_meter_ib(uint8_t gunno)
 {
     return 0;
 }
-uint32_t mw_get_meter_ic(uint8_t gunno)
+int32_t mw_get_meter_ic(uint8_t gunno)
 {
     return 0;
 }

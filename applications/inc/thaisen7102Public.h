@@ -1104,7 +1104,7 @@ enum
 
 /* 功能说明:
  *          thaisen_get_ammeterVolt:获取电表电压
- *                  分辨率:0.1
+ *                  分辨率:0.01
  * 输入参数:
  *                  gunNum:充电枪号，填0
  * 返回参数:
@@ -1118,7 +1118,7 @@ int32_t thaisen_get_ammeterVolt(uint8_t gunNum);
 
 /* 功能说明:
  *          thaisen_get_ammeterCurrent:获取电表电流
- *                  分辨率:0.1
+ *                  分辨率:0.0001
  * 输入参数:
  *                  gunNum:充电枪号，填0
  * 返回参数:

@@ -875,16 +875,16 @@ void chargepile_power_adjust(void)
         gun_idle[APP_SYSTEM_GUNNOA] = 1;
         gun_idle[APP_SYSTEM_GUNNOB] = 1;
     }else if(get_ofsm_info(APP_SYSTEM_GUNNOA)->state == APP_OFSM_STATE_CHARGING && get_ofsm_info(APP_SYSTEM_GUNNOB)->state == APP_OFSM_STATE_CHARGING){
-        set_volt[APP_SYSTEM_GUNNOA] = mw_get_meter_ua(APP_SYSTEM_GUNNOA);  /* 10倍 */
-        set_volt[APP_SYSTEM_GUNNOB] = mw_get_meter_ua(APP_SYSTEM_GUNNOB);  /* 10倍 */
+        set_volt[APP_SYSTEM_GUNNOA] = mw_get_meter_ua(APP_SYSTEM_GUNNOA) /10;  /* 10倍 */
+        set_volt[APP_SYSTEM_GUNNOB] = mw_get_meter_ua(APP_SYSTEM_GUNNOB) /10;  /* 10倍 */
     }else{
         if(get_ofsm_info(APP_SYSTEM_GUNNOA)->state == APP_OFSM_STATE_CHARGING){
-            set_volt[APP_SYSTEM_GUNNOA] = mw_get_meter_ua(APP_SYSTEM_GUNNOA);  /* 10倍 */
-            set_volt[APP_SYSTEM_GUNNOB] = mw_get_meter_ua(APP_SYSTEM_GUNNOA);  /* 10倍 */
+            set_volt[APP_SYSTEM_GUNNOA] = mw_get_meter_ua(APP_SYSTEM_GUNNOA) /10;  /* 10倍 */
+            set_volt[APP_SYSTEM_GUNNOB] = mw_get_meter_ua(APP_SYSTEM_GUNNOA) /10;  /* 10倍 */
             gun_idle[APP_SYSTEM_GUNNOB] = 1;
         }else{
-            set_volt[APP_SYSTEM_GUNNOA] = mw_get_meter_ua(APP_SYSTEM_GUNNOB);  /* 10倍 */
-            set_volt[APP_SYSTEM_GUNNOB] = mw_get_meter_ua(APP_SYSTEM_GUNNOB);  /* 10倍 */
+            set_volt[APP_SYSTEM_GUNNOA] = mw_get_meter_ua(APP_SYSTEM_GUNNOB) /10;  /* 10倍 */
+            set_volt[APP_SYSTEM_GUNNOB] = mw_get_meter_ua(APP_SYSTEM_GUNNOB) /10;  /* 10倍 */
             gun_idle[APP_SYSTEM_GUNNOA] = 1;
         }
     }
@@ -893,7 +893,7 @@ void chargepile_power_adjust(void)
         set_volt[APP_SYSTEM_GUNNOA] = thaisenGetModuleMaxChargVolt();
         gun_idle[APP_SYSTEM_GUNNOA] = 1;
     }else if(get_ofsm_info(APP_SYSTEM_GUNNOA)->state == APP_OFSM_STATE_CHARGING){
-        set_volt[APP_SYSTEM_GUNNOA] = mw_get_meter_ua(APP_SYSTEM_GUNNOA);
+        set_volt[APP_SYSTEM_GUNNOA] = mw_get_meter_ua(APP_SYSTEM_GUNNOA) /10;
     }
 #endif /* APP_USING_DOUBLEGUN */
 
@@ -3233,7 +3233,7 @@ static void ofsm_starting_fun(uint8_t gunno)
             }
         }
         if(gunno != s_ofsm_info[gunno].base.main_gunno){
-            s_ofsm_info[gunno].base.voltage_a = mw_get_meter_ua(gunno) *10;
+            s_ofsm_info[gunno].base.voltage_a = mw_get_meter_ua(gunno);
             return;
         }
     }
@@ -4316,7 +4316,7 @@ static void ofsm_charging_fun(uint8_t gunno)
     if(s_ofsm_info[gunno].base.current_check_time >= APP_CURRENT_DETECT_PERIOD){
         s_ofsm_info[gunno].base.current_check_time = 0x00;
         if((abs(s_ofsm_info[gunno].base.module_curr_last - thaisen_get_module_curr(gunno)) <= APP_CURRENT_STEADY_DIFF) && \
-                (abs(s_ofsm_info[gunno].base.meter_curr_last - mw_get_meter_ia(gunno)) <= APP_CURRENT_STEADY_DIFF)){
+                (abs(s_ofsm_info[gunno].base.meter_curr_last - (mw_get_meter_ia(gunno) /1000)) <= APP_CURRENT_STEADY_DIFF)){
             s_ofsm_info[gunno].base.meter_curr_steady_count++;
             s_ofsm_info[gunno].base.module_curr_steady_count++;
             /** 只检测前5分钟 */
@@ -4393,7 +4393,7 @@ static void ofsm_charging_fun(uint8_t gunno)
             s_ofsm_info[gunno].base.module_curr_steady_count = 0x00;
         }
         s_ofsm_info[gunno].base.module_curr_last = thaisen_get_module_curr(gunno);
-        s_ofsm_info[gunno].base.meter_curr_last = mw_get_meter_ia(gunno);
+        s_ofsm_info[gunno].base.meter_curr_last = (mw_get_meter_ia(gunno) /1000);
     }
 #endif /* APP_USING_CHARGE_CURR_DETECT_STRATEGY */
 
@@ -4533,7 +4533,7 @@ static void ofsm_charging_fun(uint8_t gunno)
         break;
     case APP_BATTERY_CHARGE_STAGE_2:
     {
-        int32_t sampling_current = mw_get_meter_ia(gunno);
+        int32_t sampling_current = (mw_get_meter_ia(gunno) /1000);
         if(s_ofsm_info[gunno].base.battery_type == APP_BATTERY_TYPE_64V125AH){
             s_ofsm_info[gunno].base.setup_current = APP_NO_BMS_STAGE_2_REQUEST_CURRENT_64V125AH;    /** 第二阶段相较于第一阶段电流是下降的，无需再阶梯爬升 */
             /** 启动模块 */
@@ -4666,8 +4666,8 @@ static void ofsm_charging_fun(uint8_t gunno)
             }
         }
         if(gunno != s_ofsm_info[gunno].base.main_gunno){
-            s_ofsm_info[gunno].base.voltage_a = mw_get_meter_ua(gunno) *10;
-            s_ofsm_info[gunno].base.current_a = mw_get_meter_ia(gunno) *10;
+            s_ofsm_info[gunno].base.voltage_a = mw_get_meter_ua(gunno);
+            s_ofsm_info[gunno].base.current_a = (mw_get_meter_ia(gunno) /100);
             return;
         }
     }
@@ -4792,7 +4792,7 @@ static void ofsm_charging_fun(uint8_t gunno)
             }
         }
 
-        s_ofsm_info[gunno].base.current_a = (mw_get_meter_ia(gunno) *10 + mw_get_meter_ia(deputy_gunno) *10);
+        s_ofsm_info[gunno].base.current_a = ((mw_get_meter_ia(gunno) /100) + (mw_get_meter_ia(deputy_gunno) /100));
         s_ofsm_info[gunno].base.power_a = (mw_get_meter_pa(gunno) + mw_get_meter_pa(deputy_gunno));
     }else{
         /** 按600KW算，一小时600度，一分钟10度，一秒钟 1/6 度，三位小数，大概是：166， 约等于170， 每次计算两次之间的差值不能大于一定值 */
@@ -4816,11 +4816,11 @@ static void ofsm_charging_fun(uint8_t gunno)
             }
         }
 
-        s_ofsm_info[gunno].base.current_a = mw_get_meter_ia(gunno) *10;
+        s_ofsm_info[gunno].base.current_a = (mw_get_meter_ia(gunno) /100);
         s_ofsm_info[gunno].base.power_a = mw_get_meter_pa(gunno);
     }
 
-    s_ofsm_info[gunno].base.voltage_a = mw_get_meter_ua(gunno) *10;
+    s_ofsm_info[gunno].base.voltage_a = mw_get_meter_ua(gunno);
     /** BMS通讯重连时会把所有BMS报文清空 */
     data_temp = bms_info->BCS.SOC;
     if(data_temp != 0x00){
@@ -7484,7 +7484,7 @@ void ofsm_thread_entry(void *parameter)
                         }
                     }
                     if((s_gun_charging_curr[thread_gunno] == 0) && (s_chargepile_output_steady[thread_gunno] == true)){
-                        s_gun_charging_curr[thread_gunno] = mw_get_meter_ia(thread_gunno);
+                        s_gun_charging_curr[thread_gunno] = (mw_get_meter_ia(thread_gunno) /1000);
                     }
                     thaisenClearSysFaultLib(thaisenFaultOverTemp, thread_gunno);
                     break;

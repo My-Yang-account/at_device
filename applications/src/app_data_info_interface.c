@@ -1358,8 +1358,8 @@ struct ammeter_data *thaisen_get_ammeter_data(uint8_t gunno)
         return &s_ammeter_data;
     }
 
-    s_ammeter_data.voltage = mw_get_meter_ua(gunno);
-    s_ammeter_data.current = mw_get_meter_ia(gunno);
+    s_ammeter_data.voltage = (mw_get_meter_ua(gunno) /10);
+    s_ammeter_data.current = (mw_get_meter_ia(gunno) /1000);
     s_ammeter_data.power = mw_get_meter_pa(gunno);
     s_ammeter_data.elect = mw_get_meter_total_wh(gunno);
 

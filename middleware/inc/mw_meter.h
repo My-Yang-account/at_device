@@ -15,17 +15,17 @@ extern "C" {
 
 #include <stdint.h>
 
-uint32_t mw_get_meter_ua(uint8_t gunno);
-uint32_t mw_get_meter_ub(uint8_t gunno);
-uint32_t mw_get_meter_uc(uint8_t gunno);
+int32_t mw_get_meter_ua(uint8_t gunno);
+int32_t mw_get_meter_ub(uint8_t gunno);
+int32_t mw_get_meter_uc(uint8_t gunno);
 
-uint32_t mw_get_meter_uab(uint8_t gunno);
-uint32_t mw_get_meter_ubc(uint8_t gunno);
-uint32_t mw_get_meter_uca(uint8_t gunno);
+int32_t mw_get_meter_uab(uint8_t gunno);
+int32_t mw_get_meter_ubc(uint8_t gunno);
+int32_t mw_get_meter_uca(uint8_t gunno);
 
-uint32_t mw_get_meter_ia(uint8_t gunno);
-uint32_t mw_get_meter_ib(uint8_t gunno);
-uint32_t mw_get_meter_ic(uint8_t gunno);
+int32_t mw_get_meter_ia(uint8_t gunno);
+int32_t mw_get_meter_ib(uint8_t gunno);
+int32_t mw_get_meter_ic(uint8_t gunno);
 
 uint32_t mw_get_meter_pa(uint8_t gunno);
 uint32_t mw_get_meter_pb(uint8_t gunno);
