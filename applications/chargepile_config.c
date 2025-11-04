@@ -2160,7 +2160,6 @@ int32_t chargepile_check_config(void)
         s_chargepile_config_info.config_info.system_function = SYSTEM_FUNCTION_AVERAGE_DOUBLE;
     }
     /** 低功耗模块默认无 */
-    s_chargepile_config_info.config_info.lp_consumption_module = CONFIG_LP_CONSUMPTION_MODULE_NULL;
     if(s_chargepile_config_info.config_info.lp_consumption_module >= CONFIG_LP_CONSUMPTION_MODULE_SIZE){
         s_chargepile_config_info.config_info.lp_consumption_module = CONFIG_LP_CONSUMPTION_MODULE_NULL;
     }

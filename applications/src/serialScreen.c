@@ -3632,6 +3632,7 @@ static void SerialScreen_BtnModuleInfoJudge(u32 *ret)
 #define SSCREEN_MODULE_MIN_OVOLT_POSITION                   13   /* 桩最小输出电压在结构体 thaisen_cfg_info_module 中的成员次序(从0开始)  */
 #define SSCREEN_MODULE_MAX_LCURR_POSITION                   14   /* 桩最大输出电流在结构体 thaisen_cfg_info_module 中的成员次序(从0开始)  */
 #define SSCREEN_MODULE_MIN_LCURR_POSITION                   15   /* 桩最小输出电流在结构体 thaisen_cfg_info_module 中的成员次序(从0开始)  */
+#define SSCREEN_MODULE_LP_MODULE                            16   /* 低功耗模块配置在结构体 thaisen_cfg_info_module 中的成员次序(从0开始)  */
 
     u32 result = 0;
     u16 Rated_Output_Voltage = 0;
@@ -3696,7 +3697,7 @@ static void SerialScreen_BtnModuleInfoJudge(u32 *ret)
 
     if(LcdData.setData.LPModule >= CONFIG_LP_CONSUMPTION_MODULE_SIZE){
         LcdData.setData.LPModule = CONFIG_LP_CONSUMPTION_MODULE_NULL;
-//        result |= (1 <<SSCREEN_MODULE_PROTOCOL_POSITION);
+        result |= (1 <<SSCREEN_MODULE_LP_MODULE);
     }
 
     LcdData.setData.Rated_Output_Voltage = Rated_Output_Voltage;
@@ -6137,12 +6138,16 @@ void SerialScreen_BtnModuleStartA(void)
     }
 
    SerialScreen_SendIco(&SerialScreen, 0x4172, TRUE);
+#ifdef SCREEN_USING_DOUBLE_GUN
     if(LcdData.setData.LPModule == CONFIG_LP_CONSUMPTION_MODULE_YN){
         extern void app_acrelay_action_magnetic(void);
         app_acrelay_action_magnetic();
     }else{
         thaisenAcRelay_Enable_Debug();                      /** 闭合 */
     }
+#else
+    thaisenAcRelay_Enable_Debug();                      /** 闭合 */
+#endif /* SCREEN_USING_DOUBLE_GUN */
     LcdData.setData.s_acRely = TRUE;
 
     LcdData.setData.s_moduleVol[LCD_GUN_1] = SerialScreen_GetPara_ValidValue(LcdData.setData.s_moduleVol[LCD_GUN_1],
@@ -6174,13 +6179,16 @@ void SerialScreen_BtnModuleStartB(void)
     }
 
     SerialScreen_SendIco(&SerialScreen, 0x4172, TRUE);
+#ifdef SCREEN_USING_DOUBLE_GUN
     if(LcdData.setData.LPModule == CONFIG_LP_CONSUMPTION_MODULE_YN){
         extern void app_acrelay_action_magnetic(void);
         app_acrelay_action_magnetic();
     }else{
         thaisenAcRelay_Enable_Debug();                      /** 闭合 */
     }
-
+#else
+    thaisenAcRelay_Enable_Debug();                      /** 闭合 */
+#endif /* SCREEN_USING_DOUBLE_GUN */
     LcdData.setData.s_acRely = TRUE;
 
     LcdData.setData.s_moduleVol[LCD_GUN_2] = SerialScreen_GetPara_ValidValue(LcdData.setData.s_moduleVol[LCD_GUN_2],
@@ -7569,8 +7577,16 @@ void SerialScreen_GetIOStatus(int port)
         LcdData.setData.g_paraRely2 = REALAY_OFF;
         LcdData.setData.s_paraRely2 = LcdData.setData.g_paraRely2;
 
-
+#ifdef SCREEN_USING_DOUBLE_GUN
+        if(LcdData.setData.LPModule == CONFIG_LP_CONSUMPTION_MODULE_YN){
+//            extern void app_acrelay_release_magnetic(void);
+//            app_acrelay_release_magnetic();
+        }else{
+            thaisenAcRelay_Disable_Debug();                      /** 断开 */
+        }
+#else
         thaisenAcRelay_Disable_Debug();
+#endif /* SCREEN_USING_DOUBLE_GUN */
         LcdData.setData.g_acRely = REALAY_OFF;
 
         LcdData.setData.g_acRely = REALAY_OFF;
@@ -7595,9 +7611,9 @@ void SerialScreen_GetIOStatus(int port)
 	LcdData.setData.s_elElock[port]  = LcdData.setData.g_elElock[port];
 
 	if(port == LCD_GUN_1)
-		res = (u8)thaisen_auxPower_off_A();
+		res = (u8)thaisenAux_A_12V_Disable_Debug();
 	else if(port == LCD_GUN_2)
-		res = (u8)thaisen_auxPower_off_B();
+		res = (u8)thaisenAux_B_12V_Disable_Debug();
 	if(res == 0)//ok
 		LcdData.setData.g_auxRelay[port] = REALAY_CLOSE;
 	else
@@ -7625,19 +7641,27 @@ void SerialScreen_BtnAcSet(void)
 	 SerialScreen_SendIco(&SerialScreen, 0x5172, LcdData.setData.s_acRely);
 
 	if(LcdData.setData.s_acRely != TRUE){
+#ifdef SCREEN_USING_DOUBLE_GUN
         if(LcdData.setData.LPModule == CONFIG_LP_CONSUMPTION_MODULE_YN){
             extern void app_acrelay_release_magnetic(void);
             app_acrelay_release_magnetic();
         }else{
             thaisenAcRelay_Disable_Debug();                      /** 断开 */
         }
+#else
+        thaisenAcRelay_Disable_Debug();                      /** 断开 */
+#endif /* SCREEN_USING_DOUBLE_GUN */
 	}else{
+#ifdef SCREEN_USING_DOUBLE_GUN
 	    if(LcdData.setData.LPModule == CONFIG_LP_CONSUMPTION_MODULE_YN){
 	        extern void app_acrelay_action_magnetic(void);
 	        app_acrelay_action_magnetic();
 	    }else{
 	        thaisenAcRelay_Enable_Debug();                      /** 闭合 */
 	    }
+#else
+	    thaisenAcRelay_Enable_Debug();                      /** 闭合 */
+#endif /* SCREEN_USING_DOUBLE_GUN */
 	}
 }
 
@@ -7988,12 +8012,16 @@ void SerialScreen_BtnSelfCheckSet(void)
     ret = SCREEN_RET_SUCCESS;
     memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
     SerialScreen_SendIco(&SerialScreen, 0x4172, TRUE);
+#ifdef SCREEN_USING_DOUBLE_GUN
     if(LcdData.setData.LPModule == CONFIG_LP_CONSUMPTION_MODULE_YN){
         extern void app_acrelay_action_magnetic(void);
         app_acrelay_action_magnetic();
     }else{
         thaisenAcRelay_Enable_Debug();                      /** 闭合 */
     }
+#else
+    thaisenAcRelay_Enable_Debug();                      /** 闭合 */
+#endif /* SCREEN_USING_DOUBLE_GUN */
     rt_thread_mdelay(SCREEN_WAIT_FB_TIME);      /** 等待状态 */
     fb[0] = !thaisen_relay_AC_FB();
     if(fb[0] != TRUE){
@@ -8028,12 +8056,17 @@ void SerialScreen_BtnSelfCheckSet(void)
 
     ret = SCREEN_RET_SUCCESS;
     memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
+#ifdef SCREEN_USING_DOUBLE_GUN
     if(LcdData.setData.LPModule == CONFIG_LP_CONSUMPTION_MODULE_YN){
         extern void app_acrelay_release_magnetic(void);
         app_acrelay_release_magnetic();
     }else{
         thaisenAcRelay_Disable_Debug();                      /** 断开 */
     }
+#else
+    thaisenAcRelay_Disable_Debug();
+#endif /* SCREEN_USING_DOUBLE_GUN */
+
     SerialScreen_SendIco(&SerialScreen, 0x4172, FALSE);
     rt_thread_mdelay(SCREEN_WAIT_FB_TIME);      /** 等待状态 */
     fb[0] = !thaisen_relay_AC_FB();
