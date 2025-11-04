@@ -221,6 +221,7 @@ int main(void)
         extern uint8_t app_nsal_is_remote_reset(void);
         extern uint8_t thaisen_query_screen_reboot(void);
         extern void thaisen_clear_screen_reboot(void);
+        extern void thaisen_set_screen_reboot(void);
         extern uint8_t app_system_monitor_need_reset(void);
         if(app_nsal_is_remote_reset() || thaisen_query_screen_reboot() || app_system_monitor_need_reset()){
             uint8_t gunno = 0x00;
@@ -236,6 +237,8 @@ int main(void)
                 extern uint8_t app_thread_monitor_occur_error(void);
                 extern char *app_thread_monitor_get_err_thread_name(void);
                 extern void app_nsal_storage_thread_monitor_info(char *name);
+                /** 控制屏幕返回首页 */
+                thaisen_set_screen_reboot();
                 if(app_thread_monitor_occur_error()){
                     LOG_D("storage thread monitor error info:%s", app_thread_monitor_get_err_thread_name());
                     /** 保存错误线程名 */
