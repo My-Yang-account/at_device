@@ -659,6 +659,29 @@ void thaisen_set_ChargGunVolt(uint16_t volt,uint8_t gunNum);
 uint16_t thaisen_get_ChargGunVolt(uint8_t gunNum);
 
 /*****************************************************************************/
+/************************风扇工作时间*********************************************/
+
+/* 功能说明:
+ *        thaisen_Set_FanCtrlTime:设置停充后风扇工作时间(ms)
+ * 输入参数:       _time    时间(ms)
+ * 返回参数:
+ *          无
+ * 调用方法:
+ *             可实时调用
+ */
+void thaisen_Set_FanCtrlTime(uint32_t _time);
+
+/* 功能说明:
+ *        thaisen_Get_FanCtrlTime:获取停充后风扇工作时间(ms)
+ * 输入参数:
+ * 返回参数:       停充后风扇工作时间(ms)
+ *          无
+ * 调用方法:
+ *             可实时调用
+ */
+uint32_t thaisen_Get_FanCtrlTime(void);
+
+/*****************************************************************************/
 /************************充电模式选择*********************************************/
 typedef enum thaisenChargModeEnum
 {
