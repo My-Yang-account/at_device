@@ -65,6 +65,7 @@ typedef enum{
     THAISEN_CONFIG_PAGE_GUN_OUTPUT_7104_INFO,                     /** 屏幕配置页：枪输出信息(7104) */
     THAISEN_CONFIG_PAGE_MODE_SELECT_NORMAL,                       /** 配置信息类型：模式选择：正常模式 */
     THAISEN_CONFIG_PAGE_MODE_SELECT_V2G,                          /** 配置信息类型：模式选择：V2G模式 */
+    THAISEN_CONFIG_PAGE_OTHER_CONFIG,                             /** 配置信息类型：其它配置 */
     THAISEN_CONFIG_PAGE_DYNAMIC_CMD_INFO_ISSUE,                   /** 配置信息类型：动态类型指令信息-下发 */
     THAISEN_CONFIG_PAGE_DYNAMIC_CMD_INFO_READ,                    /** 配置信息类型：动态类型指令信息-读取 */
     THAISEN_CONFIG_PAGE_FIXED_CMD_INFO,                           /** 配置信息类型：固定类型指令信息 */
@@ -127,6 +128,8 @@ typedef struct{
     uint16_t pile_outvoltage_min;                                 /** 桩最小输出电压 */
     uint16_t pile_outcurrent_max;                                 /** 桩最大输出电流 */
     uint16_t pile_outcurrent_min;                                 /** 桩最小输出电流 */
+    /** 新增 2025/11/04 */
+    uint8_t lowpower_module;                                      /** 低功耗模块(0：无，1：易能) */
 }thaisen_cfg_info_module;
 /** 参数配置页面:屏幕-设置-系统设置-VIN */
 typedef struct{
@@ -217,6 +220,19 @@ typedef struct{
 typedef struct{
     uint8_t mode;                                /** 当前模式 */
 }thaisen_mode_select_v2g;
+
+/** 参数配置页面:屏幕-设置-出厂设置-其它配置 */
+/** 液冷 */
+struct _liquid{
+    uint8_t used : 4;                                             /** 液冷使用与否：1：使用   0：不使用 */
+    uint8_t fdetect : 4;                                          /** 是否检测液冷故障：1：是   0：否 */
+    uint8_t address;                                              /** 液冷地址 */
+};
+
+typedef struct {
+    struct _liquid liquid[4];                                     /** 液冷 */
+    uint16_t fan_work_time;                                       /** 停充后风扇工作时间(S) */
+}thaisen_other_config;
 
 /** 参数配置页面:屏幕-设置-出厂设置-固定类型指令调试修改 */
 typedef struct{

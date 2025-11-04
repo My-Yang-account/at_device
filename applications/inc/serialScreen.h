@@ -253,6 +253,10 @@ void SerialScreen_OfflineBillingGet(void);
 
 void SerialScreen_CmdDebugInfoSet(void);
 void SerialScreen_CmdDebugInfoGet(void);
+
+void SerialScreen_OtherInfoSet(void);
+void SerialScreen_OtherInfoGet(void);
+
 /**************************** 指令调试 ****************************/
 void SerialScreen_IsSupportBatVoltDetectSet(void);
 void SerialScreen_IsSupportBCLTimeoutDetectSet(void);

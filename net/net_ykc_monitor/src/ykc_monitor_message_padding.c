@@ -5728,6 +5728,7 @@ static int32_t ykc_monitor_config_info_process_module_info(uint8_t option, void 
         if(response->module_group > 0x03){
             response->module_num_single[0x03] = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_MODULE_NUM_GROUP_4, 0x00));
         }
+        response->lowpower_module = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_LP_MODULE, 0x00));
         response->module_rated_voltage = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_RATED_OUTPUT_VOLTAGE, 0x00));
         response->module_rated_current = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_RATED_LIMIT_CURRENT, 0x00));
         response->pile_outvoltage_max = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_MAX_OUTPUT_VOLTAGE, 0x00));
@@ -5778,6 +5779,9 @@ static int32_t ykc_monitor_config_info_process_module_info(uint8_t option, void 
         }
         if(ykc_monitor_is_config_data_valid(&info->pile_outcurrent_min, sizeof(info->pile_outcurrent_min), 0x00) == NET_ENUM_FALSE){
             info->pile_outcurrent_min = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_MIN_LIMIT_CURRENT, 0x00));
+        }
+        if(ykc_monitor_is_config_data_valid(&info->lowpower_module, sizeof(info->lowpower_module), 0x00) == NET_ENUM_FALSE){
+            info->lowpower_module = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_LP_MODULE, 0x00));
         }
 
         return ykc_monitor_config_execute(0x00, THAISEN_CONFIG_PAGE_MODULE_INFO, data, NULL, NULL);
@@ -6760,6 +6764,84 @@ static int32_t ykc_monitor_config_info_mode_select_v2g(uint8_t option, uint8_t g
     return 0x00;
 }
 
+/** 其它配置 */
+/*************************************************
+ * 函数名      ykc_monitor_config_info_other
+ * 功能          处理服务器下发的其它配置请求
+ * 返回          <0：失败(无效数据-系统故障，不执行响应)
+ *      =0：成功
+ *      >0：失败(作为失败原因进行响应)
+ * **********************************************/
+static int32_t ykc_monitor_config_info_other(uint8_t option, uint8_t gunno, void *data, uint16_t dlen, void *buf, uint16_t blen)
+{
+    if((buf == NULL) || (blen < sizeof(struct ykcm_other_config))){
+        LOG_E("ykcm input buf invalid with other config|%d,%d", blen, sizeof(struct ykcm_other_config));
+        return (NETYKCM_CONFIG_RES_SYS_ITEM_ASSERT_BASE + 0x00);
+    }
+    /** 配置信息查询 */
+    if(option == NETYKCM_CONFIG_INFO_OPTION_QUERY){
+        uint8_t *_config_data = NULL, i = 0x00;
+        struct ykcm_other_config *response = (struct ykcm_other_config*)buf;
+
+        memset(response, 0x00, sizeof(struct ykcm_other_config));
+#if 0
+        _config_data = sys_read_config_item_content(CONFIG_ITEM_LIQUID_ENABLE, 0x00);
+        if(_config_data){
+            for(i = 0x00; i < (sizeof(response->liquid) /sizeof(response->liquid[0x00])); i++){
+                if(_config_data[i]){
+                    response->liquid[i].used = 0x01;
+                }
+            }
+        }
+        _config_data = sys_read_config_item_content(CONFIG_ITEM_LIQUID_DETECT, 0x00);
+        if(_config_data){
+            for(i = 0x00; i < (sizeof(response->liquid) /sizeof(response->liquid[0x00])); i++){
+                if(_config_data[i]){
+                    response->liquid[i].fdetect = 0x01;
+                }
+            }
+        }
+        _config_data = sys_read_config_item_content(CONFIG_ITEM_LIQUID_ADDR, 0x00);
+        if(_config_data){
+            for(i = 0x00; i < (sizeof(response->liquid) /sizeof(response->liquid[0x00])); i++){
+                response->liquid[i].address = _config_data[i];
+            }
+        }
+#endif
+        response->fan_work_time = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_FAN_WORK_TIME, 0x00));
+    }
+    /** 配置信息设置 */
+    else{
+        if((data == NULL) || (dlen < sizeof(struct ykcm_other_config))){
+            LOG_E("ykcm input data invalid with other config|%d,%d", dlen, sizeof(struct ykcm_other_config));
+            return (NETYKCM_CONFIG_RES_SYS_ITEM_ASSERT_BASE + 0x02);
+        }
+        uint8_t *_config_data = NULL, i = 0x00;
+        struct ykcm_other_config *info = (struct ykcm_other_config*)data;
+#if 0
+        _config_data = sys_read_config_item_content(CONFIG_ITEM_LIQUID_ADDR, 0x00);
+        for(i = 0x00; i < (sizeof(info->liquid) /sizeof(info->liquid[0x00])); i++){
+            if(ykc_monitor_is_config_data_valid(&info->liquid[i].address, sizeof(info->liquid[i].address), 0x00) == NET_ENUM_FALSE){
+                if(_config_data){
+                    info->liquid[i].address = _config_data[i];
+                }
+            }
+        }
+#endif
+        if(ykc_monitor_is_config_data_valid(&info->fan_work_time, sizeof(info->fan_work_time), 0x00) == NET_ENUM_FALSE){
+            info->fan_work_time = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_FAN_WORK_TIME, 0x00));
+        }
+        /** 针对所有枪 */
+        if(gunno == 0xFF){
+            return ykc_monitor_config_execute(0x00, THAISEN_CONFIG_PAGE_OTHER_CONFIG, data, NULL, NULL);
+        }else{
+            return ykc_monitor_config_execute((gunno - 0x01), THAISEN_CONFIG_PAGE_OTHER_CONFIG, data, NULL, NULL);
+        }
+    }
+
+    return 0x00;
+}
+
 /** 固定类型指令信息配置 */
 /*************************************************
  * 函数名      ykc_monitor_config_info_fixed_cmd
@@ -7100,6 +7182,14 @@ int8_t ykc_monitor_config_info_process(void *data, uint16_t dlen, void *buf, uin
                 ((uint8_t*)&request->body.option + 0x01), cdata_len, ((uint8_t*)&response->body.option + 0x01), rbuf_len);
         if(request->body.option == NETYKCM_CONFIG_INFO_OPTION_QUERY){
             out_len += sizeof(struct ykcm_mode_select_v2g);
+        }
+        break;
+    case NETYKCM_CONFIG_INFO_OTHER_CONFIG:
+        LOG_D("ykcm config info query set --- other info(%d)", request->body.option);
+        ret = ykc_monitor_config_info_other(request->body.option, request->body.gunno, \
+                ((uint8_t*)&request->body.option + 0x01), cdata_len, ((uint8_t*)&response->body.option + 0x01), rbuf_len);
+        if(request->body.option == NETYKCM_CONFIG_INFO_OPTION_QUERY){
+            out_len += sizeof(struct ykcm_other_config);
         }
         break;
     case NETYKCM_CONFIG_INFO_DYNAMIC_CMD_INFO:

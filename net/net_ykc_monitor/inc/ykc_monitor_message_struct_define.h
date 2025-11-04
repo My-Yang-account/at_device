@@ -1917,6 +1917,8 @@ struct ykcm_module_info{
     uint16_t pile_outvoltage_min;                /* 桩最小输出电压 */
     uint16_t pile_outcurrent_max;                /* 桩最大输出电流 */
     uint16_t pile_outcurrent_min;                /* 桩最小输出电流 */
+    /** 新增 2025/11/04 */
+    uint8_t lowpower_module;                     /* 低功耗模块(0：无，1：易能) */
 };
 /** VIN码信息 */
 /** 信息设置响应结果：0：成功  1：保存失败   2及以上表示某一配置项配置失败,按配置项次序升序排列(类似系统信息的响应) */
@@ -2011,6 +2013,20 @@ struct ykcm_offline_billing{
     uint32_t valley_price;                       /* 谷电费价格(单位：元，10000倍) */
     struct ykcm_fees_time_info vtime1;           /* 谷时段1 */
     struct ykcm_fees_time_info vtime2;           /* 谷时段2 */
+};
+
+/** 其它配置 */
+/** 信息设置响应结果：0：成功  1：保存失败   2及以上表示某一配置项配置失败,按配置项次序升序排列(类似系统信息的响应) */
+/** 液冷 */
+struct ykcm_liquid{
+    uint8_t used : 4;                            /* 液冷使用与否：1：使用   0：不使用 */
+    uint8_t fdetect : 4;                         /* 是否检测液冷故障：1：是   0：否 */
+    uint8_t address;                             /* 液冷地址 */
+};
+
+struct ykcm_other_config{
+    struct ykcm_liquid liquid[4];
+    uint16_t fan_work_time;                      /* 停充后风扇工作时间(S) */
 };
 
 /** 固定类型指令信息配置 */
