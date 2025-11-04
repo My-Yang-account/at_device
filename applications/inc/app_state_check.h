@@ -40,17 +40,17 @@ uint8_t app_is_out_oc(uint8_t gunno);
  * 函数名      app_acrelay_action_magnetic
  * 功能          磁保持类交流接触器动作
  * 参数
- * 返回
+ * 返回          1：控制成功   0：控制失败
  **********************************/
-void app_acrelay_action_magnetic(void);
+uint8_t app_acrelay_action_magnetic(void);
 
 /***********************************
  * 函数名      app_acrelay_release_magnetic
  * 功能          磁保持类交流接触器释放
  * 参数
- * 返回
+ * 返回          1：控制成功   0：控制失败
  **********************************/
-void app_acrelay_release_magnetic(void);
+uint8_t app_acrelay_release_magnetic(void);
 
 /*****************************
  * 函数名      app_state_check_init

@@ -42,6 +42,7 @@
 #define APP_AC_RELAY_RELEASE_TIME        ((2 *1000) /APP_CTRL_CHECK_PERIOD)            /** 确认交流接触器释放时间(ms) */
 
 #pragma pack(1)
+
 typedef struct{
     uint8_t out_ov_step;                       /** 输出过压检测步骤(ov:over voltage) */
     uint8_t out_uv_step;                       /** 输出欠压检测步骤(ov:over voltage) */
@@ -70,6 +71,7 @@ typedef struct{
         uint16_t reserve : 3;
     }opt;
 }state_device_t;
+
 #pragma pack()
 
 APP_DEF_SRAM1 static struct rt_thread ctrl_check_thread;
@@ -482,18 +484,14 @@ static void app_module_inpower_judge(void)
     else{
         /** 这是取反了 */
         if(*(sys_read_config_item_content(CONFIG_ITEM_INNEG_ACRELAY, 0x00))){
-#if 0
             /** 这是低功耗模块 */
-            if(*(sys_read_config_item_content(CONFIG_ITEM_LP_MODULE, 0x00)) == CONFIG_LP_CONSUMPTION_MODULE_YN)
-            {
+            if(*(sys_read_config_item_content(CONFIG_ITEM_LP_MODULE, 0x00)) == CONFIG_LP_CONSUMPTION_MODULE_YN){
                 if(s_module_inpower_enable){
                     inpower_connected = 0x01;
                 }
             }
             /** 这是正常的模块 */
-            else
-#endif
-            {
+            else{
                 /** 交流接触器已闭合(接触器控制IO口已被控制) */
                 if(thaisen_relay_AC_SetFB() == thaisenRelayClose){
                     inpower_connected = 0x01;
@@ -617,16 +615,31 @@ static void app_acrelay_control(void)
         fb_filter = 0x00;
         app_acrelay_action_magnetic();
         if(thaisenGetSysFaultCheckEnBit(thaisenRelayAc, 0x00)){
+            uint8_t in_power_type = thaisenModule_GetInPowerType();
             while(1){
                 if(fb_detect_count < (0xFF - 0x01)){
                     fb_detect_count++;
                 }
-                /** 反馈正确 */
-                if(thaisen_relay_AC_FB() == thaisenGetACRelayCloseStaus()){
-                    fb_filter++;
-                }else{
-                    fb_filter = 0x00;
+                switch(in_power_type){
+                case THAISEN_MODULE_INPOWER_TYPE_CONTROL_FB:
+                    /** 反馈正确 */
+                    if(thaisen_relay_AC_FB() == thaisenRelayClose){
+                        fb_filter++;
+                    }else{
+                        fb_filter = 0x00;
+                    }
+                    break;
+                /** 默认是直连的 */
+                default:
+                    /** 控制已动作 */
+                    if(s_module_inpower_enable){
+                        fb_filter++;
+                    }else{
+                        fb_filter = 0x00;
+                    }
+                    break;
                 }
+
                 /** 已连续多次反馈正确，故判定继电器已动作 */
                 if(fb_filter >= 0x03){
                     judge_timing = 0x00;
@@ -648,8 +661,19 @@ static void app_acrelay_control(void)
                 rt_thread_mdelay(10);
             }
         }else{
+            /** 控制已动作 */
+            if(s_module_inpower_enable){
+                for(uint8_t i = 0x00; i < APP_SYSTEM_GUNNO_SIZE; i++){
+                    thaisenClearSysFaultLib(thaisenRelayAc, i);
+                }
+                ctrl_step = CTRL_STEP_RELEASE_JUDGE;
+            }else{
+                for(uint8_t i = 0x00; i < APP_SYSTEM_GUNNO_SIZE; i++){
+                    thaisenSetSysFaultLib(thaisenRelayAc, i);
+                }
+                ctrl_step = CTRL_STEP_NULL;
+            }
             judge_timing = 0x00;
-            ctrl_step = CTRL_STEP_RELEASE_JUDGE;
         }
     }
         break;
@@ -701,15 +725,31 @@ static void app_acrelay_control(void)
         app_acrelay_release_magnetic();
 
         if(thaisenGetSysFaultCheckEnBit(thaisenRelayAc, 0x00)){
+            uint8_t in_power_type = thaisenModule_GetInPowerType();
             while(1){
                 if(fb_detect_count < (0xFF - 0x01)){
                     fb_detect_count++;
                 }
-                if(thaisen_relay_AC_FB() != thaisenGetACRelayCloseStaus()){
-                    fb_filter++;
-                }else{
-                    fb_filter = 0x00;
+                switch(in_power_type){
+                case THAISEN_MODULE_INPOWER_TYPE_CONTROL_FB:
+                    /** 反馈正确 */
+                    if(thaisen_relay_AC_FB() != thaisenRelayClose){
+                        fb_filter++;
+                    }else{
+                        fb_filter = 0x00;
+                    }
+                    break;
+                /** 默认是直连的 */
+                default:
+                    /** 反馈正确 */
+                    if(s_module_inpower_enable == 0x00){
+                        fb_filter++;
+                    }else{
+                        fb_filter = 0x00;
+                    }
+                    break;
                 }
+
                 if(fb_filter >= 0x03){
                     judge_timing = 0x00;
                     ctrl_step = CTRL_STEP_NULL;
@@ -730,6 +770,16 @@ static void app_acrelay_control(void)
                 rt_thread_mdelay(10);
             }
         }else{
+            /** 控制已动作 */
+            if(s_module_inpower_enable == 0x00){
+                for(uint8_t i = 0x00; i < APP_SYSTEM_GUNNO_SIZE; i++){
+                    thaisenClearSysFaultLib(thaisenRelayAc, i);
+                }
+            }else{
+                for(uint8_t i = 0x00; i < APP_SYSTEM_GUNNO_SIZE; i++){
+                    thaisenSetSysFaultLib(thaisenRelayAc, i);
+                }
+            }
             ctrl_step = CTRL_STEP_NULL;
         }
     }
@@ -794,8 +844,6 @@ static void state_check_thread_entry(void *parameter)
 
     while(1){
         app_thread_monitor_process(rt_thread_self(), NULL, 0x00, 0x00);
-
-        app_module_inpower_judge();
         for(gunno = 0x00; gunno < APP_SYSTEM_GUNNO_SIZE; gunno++){
             app_out_ov_check(gunno);
             app_out_uv_check(gunno);
@@ -810,7 +858,6 @@ static void control_check_thread_entry(void *parameter)
     extern int32_t app_thread_monitor_process(void *thread, void *para, uint32_t plen, uint32_t option);
 
     while(1){
-#if 0
         app_thread_monitor_process(rt_thread_self(), NULL, 0x00, 0x00);
 
         app_module_inpower_judge();
@@ -821,7 +868,6 @@ static void control_check_thread_entry(void *parameter)
         }else{
             thaisenSetACRelayType(THADRV_ACRELAY_TYPE_NORMAL);
         }
-#endif
         rt_thread_mdelay(APP_CTRL_CHECK_PERIOD);
     }
 }
@@ -881,46 +927,60 @@ uint8_t app_is_out_oc(uint8_t gunno)
  * 函数名      app_acrelay_action_magnetic
  * 功能          磁保持类交流接触器动作
  * 参数
- * 返回
+ * 返回          1：控制成功   0：控制失败
  **********************************/
-void app_acrelay_action_magnetic(void)
+uint8_t app_acrelay_action_magnetic(void)
 {
-#if 0
     if(thaisenGetACRelayType() == THADRV_ACRELAY_TYPE_MAGNETIC){
         /** 易能模块磁保持继电器控制：闭合：一个250ms以上的正脉冲     断开：一个250ms以上的负脉冲 */
         /** 先拉低断开继电器 */
-        thaisen_relay_AC_NegtivePlus_Magnetic(0);
+        if(thaisen_relay_AC_NegtivePlus_Magnetic(0) != thaisen_Relay_ok){
+            return 0x00;
+        }
+
         rt_thread_mdelay(300);
         /** 再操作闭合继电器 */
-        thaisen_relay_AC_PositivePlus_Magnetic(1);
+        if(thaisen_relay_AC_PositivePlus_Magnetic(1) != thaisen_Relay_ok){
+            return 0x00;
+        }
         rt_thread_mdelay(2000);
-        thaisen_relay_AC_PositivePlus_Magnetic(0);
+        if(thaisen_relay_AC_PositivePlus_Magnetic(0) != thaisen_Relay_ok){
+            return 0x00;
+        }
         s_module_inpower_enable = 0x01;
+        return 0x01;
     }
-#endif
+    return 0x00;
 }
 
 /***********************************
  * 函数名      app_acrelay_release_magnetic
  * 功能          磁保持类交流接触器释放
  * 参数
- * 返回
+ * 返回          1：控制成功   0：控制失败
  **********************************/
-void app_acrelay_release_magnetic(void)
+uint8_t app_acrelay_release_magnetic(void)
 {
-#if 0
     if(thaisenGetACRelayType() == THADRV_ACRELAY_TYPE_MAGNETIC){
         /** 易能模块磁保持继电器控制：闭合：一个250ms以上的正脉冲     断开：一个250ms以上的负脉冲 */
         /** 先拉低闭合继电器 */
-        thaisen_relay_AC_PositivePlus_Magnetic(0);
+        if(thaisen_relay_AC_PositivePlus_Magnetic(0) != thaisen_Relay_ok){
+            return 0x00;
+        }
+
         rt_thread_mdelay(300);
         /** 再操作断开继电器 */
-        thaisen_relay_AC_NegtivePlus_Magnetic(1);
+        if(thaisen_relay_AC_NegtivePlus_Magnetic(1) != thaisen_Relay_ok){
+            return 0x00;
+        }
         rt_thread_mdelay(2000);
-        thaisen_relay_AC_NegtivePlus_Magnetic(0);
+        if(thaisen_relay_AC_NegtivePlus_Magnetic(0) != thaisen_Relay_ok){
+            return 0x00;
+        }
         s_module_inpower_enable = 0x00;
+        return 0x01;
     }
-#endif
+    return 0x00;
 }
 
 /*****************************
@@ -955,29 +1015,30 @@ int32_t app_state_check_init(void)
     if(rt_thread_init(&scheck_thread, "scheck", state_check_thread_entry, NULL, &scheck_thread_stack, sizeof(scheck_thread_stack), 13, 10) != RT_EOK){
         return -0x01;
     }
-//    /** 创建线程 */
-//    if(rt_thread_init(&ctrl_check_thread, "ctrlcheck", control_check_thread_entry, NULL, &ctrl_check_thread_stack, sizeof(ctrl_check_thread_stack), 16, 10) != RT_EOK){
-//        return -0x01;
-//    }
+    /** 创建线程 */
+    if(rt_thread_init(&ctrl_check_thread, "ctrlcheck", control_check_thread_entry, NULL, &ctrl_check_thread_stack, sizeof(ctrl_check_thread_stack), 16, 10) != RT_EOK){
+        return -0x01;
+    }
     /** 启动线程 */
     rt_thread_startup(&scheck_thread);
-//    /** 启动线程 */
-//    rt_thread_startup(&ctrl_check_thread);
+    /** 启动线程 */
+    rt_thread_startup(&ctrl_check_thread);
     /** 添加线程监控节点 */
     app_thread_monitor_add(&scheck_thread, &entry, sizeof(entry), APP_THREAD_MONITOR_OPT_ENTRY);
-//    /** 添加线程监控节点 */
-//    app_thread_monitor_add(&ctrl_check_thread, &entry, sizeof(entry), APP_THREAD_MONITOR_OPT_ENTRY);
+    /** 添加线程监控节点 */
+    app_thread_monitor_add(&ctrl_check_thread, &entry, sizeof(entry), APP_THREAD_MONITOR_OPT_ENTRY);
 
     memset(name, 0x00, sizeof(name));
     memcpy(name, "scheck", strlen("scheck"));
     app_thread_monitor_add(&scheck_thread, name, strlen((char*)name), APP_THREAD_MONITOR_OPT_NAME);
 
-//    memset(name, 0x00, sizeof(name));
-//    memcpy(name, "ctrlcheck", strlen("ctrlcheck"));
-//    app_thread_monitor_add(&ctrl_check_thread, name, strlen((char*)name), APP_THREAD_MONITOR_OPT_NAME);
+    memset(name, 0x00, sizeof(name));
+    memcpy(name, "ctrlcheck", strlen("ctrlcheck"));
+    app_thread_monitor_add(&ctrl_check_thread, name, strlen((char*)name), APP_THREAD_MONITOR_OPT_NAME);
 
     return 0x00;
 }
+
 
 
 /********************************************************** 导引状态变化 **********************************************************/
