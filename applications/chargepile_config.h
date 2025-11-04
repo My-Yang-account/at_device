@@ -271,7 +271,7 @@
 #define PROTECT_POWER_PERCENT_VALUE_MIN           10        /* 保护信息：功率百分比最小值 */
 
 #define PROTECT_STOP_SOC_VALUE_DEFAULT            100       /* 保护信息：默认SOC停充值 */
-#define PROTECT_STOP_SOC_VALUE_MAX                100       /* 保护信息：SOC停充值最大值 */
+#define PROTECT_STOP_SOC_VALUE_MAX                101       /* 保护信息：SOC停充值最大值 */
 #define PROTECT_STOP_SOC_VALUE_MIN                1         /* 保护信息：SOC停充值最小值 */
 
 #define PROTECT_OVERTEMP_WARNNING_VALUE_DEFAULT   75        /* 保护信息：默认过温告警值 */
