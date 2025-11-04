@@ -491,6 +491,50 @@ thaisenRelayEn thaisen_relay_K8_FB(void);
 thaisenRelayEn thaisen_relay_K9_FB(void);
 thaisenRelayEn thaisen_relay_K10_FB(void);
 
+/* 功能说明:
+ *          thaisen_relay_AC_PositivePlus_Magnetic:磁保持继电器正脉冲控制
+ * 输入参数:
+ *          option   控制选项(0：拉低   1：拉高)
+ * 返回参数:
+ *
+ * 调用方法:
+ *          实时调用
+ */
+thaisenRelayUEn thaisen_relay_AC_PositivePlus_Magnetic(uint8_t option);
+
+/* 功能说明:
+ *          thaisen_relay_AC_NegtivePlus_Magnetic:磁保持继电器负脉冲控制
+ * 输入参数:
+ *          option   控制选项(0：拉低   1：拉高)
+ * 返回参数:
+ *
+ * 调用方法:
+ *          实时调用
+ */
+thaisenRelayUEn thaisen_relay_AC_NegtivePlus_Magnetic(uint8_t option);
+
+/* 功能说明:
+ *          thaisen_relay_LightingLamp_on:照明灯打开
+ * 输入参数:
+ *
+ * 返回参数:
+ *
+ * 调用方法:
+ *          实时调用
+ */
+thaisenRelayUEn thaisen_relay_LightingLamp_on(void);
+
+/* 功能说明:
+ *          thaisen_relay_LightingLamp_off:照明灯关闭
+ * 输入参数:
+ *
+ * 返回参数:
+ *
+ * 调用方法:
+ *          实时调用
+ */
+thaisenRelayUEn thaisen_relay_LightingLamp_off(void);
+
 thaisenRelayEn thaisen_dcrelayA_pfeedback(void);
 thaisenRelayEn thaisen_dcrelayA_nfeedback(void);
 thaisenRelayEn thaisen_dcrelayB_pfeedback(void);
@@ -514,6 +558,33 @@ uint8_t thaisenGetDCRelayBCloseStaus(void);
 void thaisenSetParaRelayCloseStaus(uint8_t sta);
 uint8_t thaisenGetParaRelayCloseStaus(void);
 
+typedef enum{
+    THADRV_ACRELAY_TYPE_NORMAL,                       /** 交流接触器类型：正常的 */
+    THADRV_ACRELAY_TYPE_MAGNETIC,                     /** 交流接触器类型：磁保持的 */
+    THADRV_ACRELAY_TYPE_SIZE,                         /** 交流接触器类型： */
+}thaDrv_ACRelayType_t;
+
+/* 功能说明:
+ *          thaisenSetACRelayType:设置交流接触器类型
+ * 输入参数:
+ *          type   交流接触器类型
+ * 返回参数:
+ *
+ * 调用方法:
+ *          实时调用
+ */
+void thaisenSetACRelayType(uint8_t type);
+
+/* 功能说明:
+ *          thaisenGetACRelayType:获取交流接触器类型
+ * 输入参数:
+ *
+ * 返回参数:       交流接触器类型
+ *
+ * 调用方法:
+ *          实时调用
+ */
+uint8_t thaisenGetACRelayType(void);
 
 typedef enum
 {
@@ -522,6 +593,7 @@ typedef enum
     thaisenAcRelayIoEn_Null,                  //交流接触器控制IO作为:不做任何使用
     thaisenAcRelayIoEn_Size,                  //交流接触器控制IO作为:
 }thaisenAcRelayIoEn_enum;
+
 /* 功能说明:
  *      thaisenSetACRelayEnableState:设置交流接触器使能状态
  * 输入参数:  状态：0：不使能    其它：使能
