@@ -358,6 +358,10 @@
 #define CHARGEPILE_ELOSS_PROPORTION_MAX           100       /* 电损比最大值(一位小数) */
 #define CHARGEPILE_ELOSS_PROPORTION_DEF           0         /* 电损比默认值(一位小数) */
 
+#define CHARGEPILE_FAN_WORK_TIME_MIN              5         /* 停充后风扇工作时间最小值(s) */
+#define CHARGEPILE_FAN_WORK_TIME_MAX              0xFFFF    /* 停充后风扇工作时间最大值(s) */
+#define CHARGEPILE_FAN_WORK_TIME_DEF              (2 *60)   /* 停充后风扇工作时间默认值(s) */
+
 #define CP_AMMETER_CHECK_WAY_EVEN                 0         /* 电表串口校验方式：偶校验 */
 #define CP_AMMETER_CHECK_WAY_ODD                  1         /* 电表串口校验方式：奇校验 */
 #define CP_AMMETER_CHECK_WAY_NONE                 2         /* 电表串口校验方式：无校验 */
@@ -556,6 +560,7 @@ enum config_name{
     CONFIG_ITEM_ELOSS_PROPORTION,
     CONFIG_ITEM_MODE_PARAMETER_A,
     CONFIG_ITEM_MODE_PARAMETER_B,
+    CONFIG_ITEM_FAN_WORK_TIME,
 
     /**************out***************/
     CONFIG_ITEM_OUTEN_AC,
