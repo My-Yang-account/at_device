@@ -124,7 +124,8 @@ struct _config_para{
     uint16_t eloss_proportion;                                        /* 电损比 */
     uint32_t mode_parameter[2];                                       /* 模式参数 */
     uint16_t fan_work_time;                                           /* 风扇工作时间 */
-    uint8_t reserve1[256 - 12];                                       /* 预留 */
+    uint16_t module_current_max;                                      /* 单个模块最大输出电流(A) */
+    uint8_t reserve1[256 - 14];                                       /* 预留 */
 };
 
 struct _config_info{
@@ -579,6 +580,11 @@ APP_DEF_SRAM2 static struct config_item s_config_item_set[CONFIG_ITEM_SIZE] =
         {CONFIG_ITEM_FAN_WORK_TIME,                                                 /* 配置项：停充后风扇工作时间(s)*/
         (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.fan_work_time)),
         (uint8_t*)&s_chargepile_config_info.config_para.fan_work_time,
+        NULL},
+
+        {CONFIG_ITEM_SMODULE_OUTCURR_MAX,                                           /* 配置项：单个模块最大输出电流(A)*/
+        (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.module_current_max)),
+        (uint8_t*)&s_chargepile_config_info.config_para.module_current_max,
         NULL},
 
         {CONFIG_ITEM_OUTEN_AC,                                                      /* 配置项：交流接触器输出*/
@@ -1120,6 +1126,9 @@ void sys_chargeplie_config_info_init(void)
     /** 停充后风扇工作时间 */
     sys_config_item_init(CONFIG_ITEM_FAN_WORK_TIME, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.fan_work_time)), \
             (uint8_t*)&s_chargepile_config_info.config_para.fan_work_time, NULL);
+    /** 单个模块最大输出电流(A) */
+    sys_config_item_init(CONFIG_ITEM_SMODULE_OUTCURR_MAX, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.module_current_max)), \
+            (uint8_t*)&s_chargepile_config_info.config_para.module_current_max, NULL);
     /** 启用交流接触器 */
     sys_config_item_init(CONFIG_ITEM_OUTEN_AC, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.acrelay_out)), \
             (uint8_t*)&s_chargepile_config_info.function_enable.acrelay_out, NULL);
@@ -1802,6 +1811,7 @@ static void chargepile_config_data_reset(void)
     s_chargepile_config_info.config_para.overtemp_limitcur = PROTECT_OVERTEMP_LIMITCURR_VALUE_DEFAULT;
     s_chargepile_config_info.config_para.eloss_proportion = CHARGEPILE_ELOSS_PROPORTION_DEF;
     s_chargepile_config_info.config_para.fan_work_time = CHARGEPILE_FAN_WORK_TIME_DEF;
+    s_chargepile_config_info.config_para.module_current_max = MODULE_SMODULE_MAX_CURR_DEF;
 
     s_chargepile_config_info.config_para.input_overvol = CHARGEPILE_INPUT_OVERVOLT_DEF;
     s_chargepile_config_info.config_para.input_undervol = CHARGEPILE_INPUT_UNDERVOLT_DEF;
@@ -2261,6 +2271,10 @@ int32_t chargepile_check_config(void)
     if((s_chargepile_config_info.config_para.fan_work_time < CHARGEPILE_FAN_WORK_TIME_MIN) ||
             (s_chargepile_config_info.config_para.fan_work_time > CHARGEPILE_FAN_WORK_TIME_MAX)){
         s_chargepile_config_info.config_para.fan_work_time = CHARGEPILE_FAN_WORK_TIME_DEF;
+    }
+    if((s_chargepile_config_info.config_para.module_current_max < MODULE_SMODULE_MAX_CURR_MIN) ||
+            (s_chargepile_config_info.config_para.module_current_max > MODULE_SMODULE_MAX_CURR_MAX)){
+        s_chargepile_config_info.config_para.module_current_max = MODULE_SMODULE_MAX_CURR_DEF;
     }
 
     if(s_chargepile_config_info.function_enable.emergency_stop > 0x01){    /* 急停故障检测默认开启 */

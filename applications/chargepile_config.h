@@ -313,9 +313,13 @@
 #define MODULE_MAX_LIMIT_CURR_MAX                 1500      /* 模块最大限电流最大值 */
 #define MODULE_MAX_LIMIT_CURR_MIN                 10        /* 模块最大限电流最小值 */
 
-#define MODULE_MIN_LIMIT_CURR_DEF                 2         /* 模块最小限电流默认值值 */
-#define MODULE_MIN_LIMIT_CURR_MAX                 2         /* 模块最小限电流最大值 */
-#define MODULE_MIN_LIMIT_CURR_MIN                 0         /* 模块最小限电流最小值 */
+#define MODULE_MIN_LIMIT_CURR_DEF                 2         /* 模块最小限电流默认值(要和模块库的兼容) */
+#define MODULE_MIN_LIMIT_CURR_MAX                 2         /* 模块最小限电流最大值(要和模块库的兼容) */
+#define MODULE_MIN_LIMIT_CURR_MIN                 0         /* 模块最小限电流最小值(要和模块库的兼容) */
+
+#define MODULE_SMODULE_MAX_CURR_DEF               10000     /* 模块最大限电流值默认值(要和模块库的兼容) */
+#define MODULE_SMODULE_MAX_CURR_MAX               10000     /* 模块最大限电流值最大值(要和模块库的兼容) */
+#define MODULE_SMODULE_MAX_CURR_MIN               1         /* 模块最大限电流值最小值(要和模块库的兼容) */
 
 #define COMPULSION_SET_VOLTAGE_DEF                750       /* 强制启动设定电压默认值 */
 #define COMPULSION_SET_VOLTAGE_MAX                1500      /* 强制启动设定电压最大值 */
@@ -561,6 +565,7 @@ enum config_name{
     CONFIG_ITEM_MODE_PARAMETER_A,
     CONFIG_ITEM_MODE_PARAMETER_B,
     CONFIG_ITEM_FAN_WORK_TIME,
+    CONFIG_ITEM_SMODULE_OUTCURR_MAX,
 
     /**************out***************/
     CONFIG_ITEM_OUTEN_AC,

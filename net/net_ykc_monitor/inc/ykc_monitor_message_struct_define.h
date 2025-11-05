@@ -1923,6 +1923,7 @@ struct ykcm_module_info{
     uint16_t pile_outcurrent_min;                /* 桩最小输出电流 */
     /** 新增 2025/11/04 */
     uint8_t lowpower_module;                     /* 低功耗模块(0：无，1：易能) */
+    uint16_t module_outcurrent_max;              /* 模块最大输出电流(A，最小值1A，最大值以及无效值10000A) */
 };
 /** VIN码信息 */
 /** 信息设置响应结果：0：成功  1：保存失败   2及以上表示某一配置项配置失败,按配置项次序升序排列(类似系统信息的响应) */

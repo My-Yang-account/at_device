@@ -513,6 +513,7 @@ struct LCD_DISPLAY_SETDATA_TYPE{
     u16 Rated_Limit_Current;            // 额定限电流
     u16 Max_Limit_Current;              // 最高限电流
     u16 Min_Limit_Current;              // 最低限电流
+    u16 SModule_OutCurrentMax;          // 单个模块最大输出电流
 //	u8 ChargePasswd[6];					//充电密码
 	//u8 AdmindPasswd[10];				//管理员密码     1314
 	u8 UserPasswd[10];					//用户密码 0909
@@ -1701,6 +1702,7 @@ static s32 SerialScreen_ConfigExecute_Module(u8 port, void *data, void *sub_data
     LcdData.setData.Max_Limit_Current = config->pile_outcurrent_max;
     LcdData.setData.Min_Limit_Current = config->pile_outcurrent_min;
     LcdData.setData.LPModule = config->lowpower_module;
+    LcdData.setData.SModule_OutCurrentMax = config->module_outcurrent_max;
 
     /** 模块信息有效性判断 */
     SerialScreen_BtnModuleInfoJudge(&ret);
@@ -3562,6 +3564,7 @@ void SerialScreen_BtnModuleGet(void)
     u16 Rated_Limit_Current = 0;
     u16 Max_Limit_Current = 0;
     u16 Min_Limit_Current = 0;
+    u16 SModule_OutCurrentMax = 0;
 
 	mem_set(LcdData.setData.ModuleGroupNum, 0, sizeof(LcdData.setData.ModuleGroupNum));
 	mem_set(LcdData.setData.ModuleNum,0,sizeof(LcdData.setData.ModuleNum));
@@ -3595,6 +3598,7 @@ void SerialScreen_BtnModuleGet(void)
     LcdData.setData.Rated_Limit_Current = *(u16 *)(UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_RATED_LIMIT_CURRENT, 0));
     LcdData.setData.Max_Limit_Current = *(u16 *)(UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_MAX_LIMIT_CURRENT, 0));
     LcdData.setData.Min_Limit_Current = *(u16 *)(UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_MIN_LIMIT_CURRENT, 0));
+    LcdData.setData.SModule_OutCurrentMax = *(u16 *)(UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_SMODULE_OUTCURR_MAX, 0));
 
     Rated_Output_Voltage = SerialScreen_GetPara_ValidValue(LcdData.setData.Rated_Output_Voltage,
             MODULE_RATED_OUTVOLT_DEF, MODULE_RATED_OUTVOLT_MIN, MODULE_RATED_OUTVOLT_MAX);
@@ -3614,12 +3618,16 @@ void SerialScreen_BtnModuleGet(void)
     Min_Limit_Current = SerialScreen_GetPara_ValidValue(LcdData.setData.Min_Limit_Current,
             MODULE_MIN_LIMIT_CURR_DEF, MODULE_MIN_LIMIT_CURR_MIN, MODULE_MIN_LIMIT_CURR_MAX);
 
+    SModule_OutCurrentMax = SerialScreen_GetPara_ValidValue(LcdData.setData.SModule_OutCurrentMax,
+            MODULE_SMODULE_MAX_CURR_DEF, MODULE_SMODULE_MAX_CURR_MIN, MODULE_SMODULE_MAX_CURR_MAX);
+
     LcdData.setData.Rated_Output_Voltage = Rated_Output_Voltage;
     LcdData.setData.Max_Output_Voltage = Max_Output_Voltage;
     LcdData.setData.Min_Output_Voltage = Min_Output_Voltage;
     LcdData.setData.Rated_Limit_Current = Rated_Limit_Current;
     LcdData.setData.Max_Limit_Current = Max_Limit_Current;
     LcdData.setData.Min_Limit_Current = Min_Limit_Current;
+    LcdData.setData.SModule_OutCurrentMax = SModule_OutCurrentMax;
 
     extern void thaisenSetModuleMaxVolt(uint16_t volt);
     extern void thaisenSetModuleMinVolt(uint16_t volt);
@@ -3663,6 +3671,7 @@ static void SerialScreen_BtnModuleInfoJudge(u32 *ret)
 #define SSCREEN_MODULE_MAX_LCURR_POSITION                   14   /* 桩最大输出电流在结构体 thaisen_cfg_info_module 中的成员次序(从0开始)  */
 #define SSCREEN_MODULE_MIN_LCURR_POSITION                   15   /* 桩最小输出电流在结构体 thaisen_cfg_info_module 中的成员次序(从0开始)  */
 #define SSCREEN_MODULE_LP_MODULE                            16   /* 低功耗模块配置在结构体 thaisen_cfg_info_module 中的成员次序(从0开始)  */
+#define SSCREEN_MODULE_SINGLE_MAX_CURRENT                   17   /* 单个模块最大输出电流配置在结构体 thaisen_cfg_info_module 中的成员次序(从0开始)  */
 
     u32 result = 0;
     u16 Rated_Output_Voltage = 0;
@@ -3671,6 +3680,7 @@ static void SerialScreen_BtnModuleInfoJudge(u32 *ret)
     u16 Rated_Limit_Current = 0;
     u16 Max_Limit_Current = 0;
     u16 Min_Limit_Current = 0;
+    u16 SModule_OutCurrentMax = 0;
 
     if(LcdData.setData.RmType > MODULE_MODEL_NUMBER){
         LcdData.setData.RmType = MODULE_MODEL_DEFAULT;
@@ -3706,6 +3716,9 @@ static void SerialScreen_BtnModuleInfoJudge(u32 *ret)
     Min_Limit_Current = SerialScreen_GetPara_ValidValue(LcdData.setData.Min_Limit_Current,
             MODULE_MIN_LIMIT_CURR_DEF, MODULE_MIN_LIMIT_CURR_MIN, MODULE_MIN_LIMIT_CURR_MAX);
 
+    SModule_OutCurrentMax = SerialScreen_GetPara_ValidValue(LcdData.setData.SModule_OutCurrentMax,
+            MODULE_SMODULE_MAX_CURR_DEF, MODULE_SMODULE_MAX_CURR_MIN, MODULE_SMODULE_MAX_CURR_MAX);
+
     if(LcdData.setData.Rated_Output_Voltage != Rated_Output_Voltage){
         result |= (1 <<SSCREEN_MODULE_RATED_OVOLT_POSITION);
     }
@@ -3724,6 +3737,9 @@ static void SerialScreen_BtnModuleInfoJudge(u32 *ret)
     if(LcdData.setData.Min_Limit_Current != Min_Limit_Current){
         result |= (1 <<SSCREEN_MODULE_MIN_LCURR_POSITION);
     }
+    if(LcdData.setData.SModule_OutCurrentMax != SModule_OutCurrentMax){
+        result |= (1 <<SSCREEN_MODULE_SINGLE_MAX_CURRENT);
+    }
 
     if(LcdData.setData.LPModule >= CONFIG_LP_CONSUMPTION_MODULE_SIZE){
         LcdData.setData.LPModule = CONFIG_LP_CONSUMPTION_MODULE_NULL;
@@ -3736,6 +3752,7 @@ static void SerialScreen_BtnModuleInfoJudge(u32 *ret)
     LcdData.setData.Rated_Limit_Current = Rated_Limit_Current;
     LcdData.setData.Max_Limit_Current = Max_Limit_Current;
     LcdData.setData.Min_Limit_Current = Min_Limit_Current;
+    LcdData.setData.SModule_OutCurrentMax = SModule_OutCurrentMax;
 
     if(ret){
         *ret = result;
@@ -3750,6 +3767,8 @@ static void SerialScreen_BtnModuleInfoJudge(u32 *ret)
 #undef SSCREEN_MODULE_MIN_OVOLT_POSITION
 #undef SSCREEN_MODULE_MAX_LCURR_POSITION
 #undef SSCREEN_MODULE_MIN_LCURR_POSITION
+#undef SSCREEN_MODULE_LP_MODULE
+#undef SSCREEN_MODULE_SINGLE_MAX_CURRENT
 }
 
 void SerialScreen_BtnModuleSet(void)
@@ -3776,6 +3795,7 @@ void SerialScreen_BtnModuleSet(void)
     UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_RATED_LIMIT_CURRENT, &LcdData.setData.Rated_Limit_Current, sizeof(LcdData.setData.Rated_Limit_Current));
     UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_MAX_LIMIT_CURRENT, &LcdData.setData.Max_Limit_Current, sizeof(LcdData.setData.Max_Limit_Current));
     UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_MIN_LIMIT_CURRENT, &LcdData.setData.Min_Limit_Current, sizeof(LcdData.setData.Min_Limit_Current));
+    UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_SMODULE_OUTCURR_MAX, &LcdData.setData.SModule_OutCurrentMax, sizeof(LcdData.setData.SModule_OutCurrentMax));
 
     data = LcdData.setData.LPModule;
     UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_LP_MODULE, &data, sizeof(data));
@@ -13064,7 +13084,8 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_4, NULL, "Min_Output_Voltage", LCD_InputType, 0, 0x1364, pu16_type, sizeof(LcdData.setData.Min_Output_Voltage), (void *)&LcdData.setData.Min_Output_Voltage);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_4, NULL, "Rated_Current", LCD_InputType, 0, 0x1358, pu16_type, sizeof(LcdData.setData.Rated_Limit_Current), (void *)&LcdData.setData.Rated_Limit_Current);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_4, NULL, "Max_Limit_Current", LCD_InputType, 0, 0x1360, pu16_type, sizeof(LcdData.setData.Max_Limit_Current), (void *)&LcdData.setData.Max_Limit_Current);
-    SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_4, NULL, "Min_Limit_Curren", LCD_InputType, 0, 0x1368, pu16_type, sizeof(LcdData.setData.Min_Limit_Current), (void *)&LcdData.setData.Min_Limit_Current);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_4, NULL, "Min_Limit_Current", LCD_InputType, 0, 0x1368, pu16_type, sizeof(LcdData.setData.Min_Limit_Current), (void *)&LcdData.setData.Min_Limit_Current);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_4, NULL, "SModuleOutCurrent", LCD_InputType, 0, 0x6D2A, pu16_type, sizeof(LcdData.setData.SModule_OutCurrentMax), (void *)&LcdData.setData.SModule_OutCurrentMax);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_4, NULL, "subok", LCD_BtnType, 0x0014, 0x1000, page_type, LCD_PAGE_ROOT_MAIN, (void *)SerialScreen_BtnModuleSet);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_4, NULL, "COM_5", LCD_BtnType, 0x000E, 0x1000, page_type, LCD_PAGE_MENU_COM_5, (void *)SerialScreen_BtnErrGetA);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_4, NULL, "cd up", LCD_BtnType, 0x0050, 0x1000, page_type, LCD_PAGE_ROOT_MAIN, (void *)NULL);

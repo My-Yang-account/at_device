@@ -130,6 +130,7 @@ typedef struct{
     uint16_t pile_outcurrent_min;                                 /** 桩最小输出电流 */
     /** 新增 2025/11/04 */
     uint8_t lowpower_module;                                      /** 低功耗模块(0：无，1：易能) */
+    uint16_t module_outcurrent_max;                               /** 模块最大输出电流(A) */
 }thaisen_cfg_info_module;
 /** 参数配置页面:屏幕-设置-系统设置-VIN */
 typedef struct{

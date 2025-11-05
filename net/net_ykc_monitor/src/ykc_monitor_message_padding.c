@@ -5744,6 +5744,7 @@ static int32_t ykc_monitor_config_info_process_module_info(uint8_t option, void 
         response->pile_outvoltage_min = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_MIN_OUTPUT_VOLTAGE, 0x00));
         response->pile_outcurrent_max = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_MAX_LIMIT_CURRENT, 0x00));
         response->pile_outcurrent_min = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_MIN_LIMIT_CURRENT, 0x00));
+        response->module_outcurrent_max = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_SMODULE_OUTCURR_MAX, 0x00));
     }
     /** 配置信息设置 */
     else{
@@ -5791,6 +5792,9 @@ static int32_t ykc_monitor_config_info_process_module_info(uint8_t option, void 
         }
         if(ykc_monitor_is_config_data_valid(&info->lowpower_module, sizeof(info->lowpower_module), 0x00) == NET_ENUM_FALSE){
             info->lowpower_module = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_LP_MODULE, 0x00));
+        }
+        if(ykc_monitor_is_config_data_valid(&info->module_outcurrent_max, sizeof(info->module_outcurrent_max), 0x00) == NET_ENUM_FALSE){
+            info->module_outcurrent_max = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_SMODULE_OUTCURR_MAX, 0x00));
         }
 
         return ykc_monitor_config_execute(0x00, THAISEN_CONFIG_PAGE_MODULE_INFO, data, NULL, NULL);
