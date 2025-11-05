@@ -3645,6 +3645,9 @@ void SerialScreen_BtnModuleGet(void)
     thaisenSetModuleMaxChargVolt(LcdData.setData.Max_Output_Voltage *10);
     thaisenSetModuleMaxChargCurr(LcdData.setData.Max_Limit_Current *10);
 
+    thaisenSetModuleOutCurrMax(LcdData.setData.SModule_OutCurrentMax *100);
+//    thaisenSetModuleOutCurrMin(LcdData.setData.Min_Limit_Current *100);
+
 #ifdef SCREEN_USING_DOUBLE_GUN
     thaisenSetModuleMaxChargCurrGroup(0, LcdData.setData.Max_Limit_Current *10 /2);
     thaisenSetModuleMaxChargCurrGroup(1, LcdData.setData.Max_Limit_Current *10 /2);
@@ -3828,6 +3831,9 @@ void SerialScreen_BtnModuleSet(void)
 
     thaisenSetModuleMaxChargVolt(LcdData.setData.Max_Output_Voltage *10);
     thaisenSetModuleMaxChargCurr(LcdData.setData.Max_Limit_Current *10);
+
+    thaisenSetModuleOutCurrMax(LcdData.setData.SModule_OutCurrentMax *100);
+//    thaisenSetModuleOutCurrMin(LcdData.setData.Min_Limit_Current *100);
 
 #ifdef SCREEN_USING_DOUBLE_GUN
     thaisenSetModuleMaxChargCurrGroup(0, LcdData.setData.Max_Limit_Current *10 /2);
