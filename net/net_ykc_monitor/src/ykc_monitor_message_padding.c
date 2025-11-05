@@ -1748,6 +1748,8 @@ void ykc_monitor_chargepile_request_padding_realtime_data(uint8_t gunno, uint8_t
                 g_ykc_monitor_preq_report_realtime_data[gunno].body.is_parallel_deputy = NET_ENUM_FALSE;
             }
         }
+        g_ykc_monitor_preq_report_realtime_data[gunno].body.is_v2g = 0x00;
+        g_ykc_monitor_preq_report_realtime_data[gunno].body.bms_protocol_type = 0xFF;
     }else{
         if(ykc_monitor_get_message_send_state(gunno, NET_YKC_MONITOR_PREQ_EVENT_REPORT_REALTIME_DATA) == NET_YKC_MONITOR_SEND_STATE_COMPLETE){
             if((base->state.current == APP_OFSM_STATE_CHARGING) || (base->state.current == APP_OFSM_STATE_STARTING)){
@@ -1780,6 +1782,8 @@ void ykc_monitor_chargepile_request_padding_realtime_data(uint8_t gunno, uint8_t
                 g_ykc_monitor_preq_report_realtime_data[gunno].body.remain_time = bms->BCS.SurplChgTime;
                 g_ykc_monitor_preq_report_realtime_data[gunno].body.loss_elect = 0x00;
                 g_ykc_monitor_preq_report_realtime_data[gunno].body.consume_amount = base->fees_total;
+                g_ykc_monitor_preq_report_realtime_data[gunno].body.is_v2g = 0x00;
+                g_ykc_monitor_preq_report_realtime_data[gunno].body.bms_protocol_type = 0xFF;
             }else{
                 g_ykc_monitor_preq_report_realtime_data[gunno].body.homing = 0x02;
                 g_ykc_monitor_preq_report_realtime_data[gunno].body.output_voltage = 0x00;
@@ -1792,6 +1796,8 @@ void ykc_monitor_chargepile_request_padding_realtime_data(uint8_t gunno, uint8_t
                 g_ykc_monitor_preq_report_realtime_data[gunno].body.charge_elect = 0x00;
                 g_ykc_monitor_preq_report_realtime_data[gunno].body.loss_elect = 0x00;
                 g_ykc_monitor_preq_report_realtime_data[gunno].body.consume_amount = 0x00;
+                g_ykc_monitor_preq_report_realtime_data[gunno].body.is_v2g = 0x00;
+                g_ykc_monitor_preq_report_realtime_data[gunno].body.bms_protocol_type = 0xFF;
             }
         }
     }
@@ -2369,6 +2375,9 @@ uint8_t ykc_monitor_chargepile_request_padding_transaction_record(uint8_t gunno,
 
         g_ykc_monitor_preq_transaction_records[gunno].body.transaction_date = ykc_monitor_get_cp56time2a_from_timestamp(base->current_time);
         g_ykc_monitor_preq_transaction_records[gunno].body.stop_reason = ykc_monitor_chargepile_stop_reason_converted(_transaction, _transaction->stop_reason, _transaction->order_info.is_start_fail);
+
+        g_ykc_monitor_preq_transaction_records[gunno].body.is_v2g = 0x00;
+        g_ykc_monitor_preq_transaction_records[gunno].body.bms_protocol_type = 0xFF;
 
         ykc_monitor_net_event_send(NET_YKC_MONITOR_EVENT_HANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, gunno, NET_YKC_MONITOR_PREQ_EVENT_TRANSACTION_RECORD);
         return 0x01;

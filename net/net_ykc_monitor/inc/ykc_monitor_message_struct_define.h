@@ -714,6 +714,8 @@ typedef struct{
         uint8_t is_parallel_deputy;              /* 是并充副枪 */
         uint8_t belong_main_gun;                 /* 归属主枪(是并充副枪时有效) */
         uint8_t platform_id;                     /* 报文来源的平台编号 */
+        uint8_t is_v2g;                          /* 是否是V2G订单 */
+        uint8_t bms_protocol_type;               /* 使用的BMS协议类型 */
     }body;
     uint16_t check_sum;                          /* 校验码 */
 }Net_YkcMonitorPro_PRes_Query_PReq_Report_RealTimeData_t;
@@ -1042,6 +1044,8 @@ typedef struct{
         cp56time2a_monitor_t transaction_date;           /* 交易日期 */
         uint8_t stop_reason;                             /* 停止原因 */
         uint8_t physics_card_number[NET_YKC_MONITOR_CARD_NUMBER_LENGTH_MAX];  /* 物理卡号 */
+        uint8_t is_v2g;                                  /* 是否是V2G订单 */
+        uint8_t bms_protocol_type;                       /* 使用的BMS协议类型 */
     }body;
     uint16_t check_sum;                          /* 校验码 */
 }Net_YkcMonitorPro_PReq_TransactionRecords_t;
