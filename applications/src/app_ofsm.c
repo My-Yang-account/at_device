@@ -4934,7 +4934,7 @@ static void ofsm_charging_fun(uint8_t gunno)
 #ifdef APP_USING_LV_MODULE
 
 #else
-    if(s_ofsm_info[gunno].base.melect_check_time < (0xFF - 0x01)){
+    if(s_ofsm_info[gunno].base.melect_check_time < (0xFFFF - 0x01)){
         s_ofsm_info[gunno].base.melect_check_time++;
     }
     switch(s_ofsm_info[gunno].base.melect_check_stage){

@@ -657,7 +657,7 @@ typedef struct{
     uint32_t reset_reason;           /* 重启原因：RCC->CSR 寄存器 */
 #ifdef APP_USING_METER_ELECT_DETECT_STRATEGY
     /** 电表电量检验 */
-    uint8_t melect_check_time;       /* 电表电量检测周期 */
+    uint16_t melect_check_time;      /* 电表电量检测周期 */
     uint32_t melect_last;            /* 上一次电量值 */
     uint8_t melect_check_stage;      /* 电表电量检测阶段 */
     uint8_t melect_err_count;        /* 电量错误次数 */
