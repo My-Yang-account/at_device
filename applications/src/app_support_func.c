@@ -138,7 +138,7 @@ APP_DEF_SRAM1 static const char* system_fault_str[APP_SYS_FAULT_NO_ERROR] =
      "pour",                      /** 系统故障码字符串 21：倾倒 */
      "liquid cool",               /** 系统故障码字符串 22：液冷 */
      "fuse",                      /** 系统故障码字符串 23：熔断器 */
-     "main cabinet",              /** 系统故障码字符串 24：主机柜 */
+     "cabinet offline",           /** 系统故障码字符串 24：主机柜离线 */
      "matrelayK1-1",              /** 系统故障码字符串 25：矩阵正负接触器KPN1-1 */
      "matrelayK1-2",              /** 系统故障码字符串 26：矩阵正负接触器KPN1-2 */
      "matrelayK1-3",              /** 系统故障码字符串 27：矩阵正负接触器KPN1-3 */
@@ -208,7 +208,7 @@ void app_support_func_info_init(void)
     system_fault_str[21] = "pour";
     system_fault_str[22] = "liquid cool";
     system_fault_str[23] = "fuse";
-    system_fault_str[24] = "main cabinet";
+    system_fault_str[24] = "cabinet offline";           /** 主机柜离线 */
     system_fault_str[25] = "matrelayK1-1";              /** 系统故障码字符串 25：矩阵正负接触器KPN1-1 */
     system_fault_str[26] = "matrelayK1-2";              /** 系统故障码字符串 26：矩阵正负接触器KPN1-2 */
     system_fault_str[27] = "matrelayK1-3";              /** 系统故障码字符串 27：矩阵正负接触器KPN1-3 */
@@ -438,7 +438,7 @@ void app_get_fault_chinese(uint32_t code, uint8_t *olen, uint8_t *buf, uint8_t i
             *olen = strlen((char*)buf);
         break;
     case APP_SYS_FAULT_MAIN_CABINET_OFFLINE:
-        memcpy(buf, "主机柜", strlen("主机柜"));
+        memcpy(buf, "主机柜离线", strlen("主机柜离线"));
         if(olen)
             *olen = strlen((char*)buf);
         break;
@@ -881,7 +881,7 @@ void app_get_charge_stopway_chinese(uint32_t code, uint8_t *olen, uint8_t *buf, 
             *olen = strlen((char*)buf);
         break;
     case APP_SYSTEM_STOP_WAY_MAIN_CABINET_OFFLINE:
-        memcpy(buf, "主机柜", strlen("主机柜"));
+        memcpy(buf, "主机柜离线", strlen("主机柜离线"));
         if(olen)
             *olen = strlen((char*)buf);
         break;
