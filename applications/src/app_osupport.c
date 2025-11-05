@@ -401,10 +401,13 @@ void app_osupport_thread_entry(void *parameter)
             for(uint8_t set = 0x00; set < fset_num; set++){
                 fault_temp = current_fault_ptr[set];
 
-                fault_temp &= APP_LIBRARY_DETECT_FAULT_MASK;
-                s_system_fault_current[gunno][set] &= ~(APP_LIBRARY_DETECT_FAULT_MASK);
-                s_system_fault_current[gunno][set] |= fault_temp;
-
+                if(set == APP_GENERAL_SYSTEM_FAULT_SET_0){
+                    fault_temp &= APP_LIBRARY_DETECT_FAULT_MASK;
+                    s_system_fault_current[gunno][set] &= ~(APP_LIBRARY_DETECT_FAULT_MASK);
+                    s_system_fault_current[gunno][set] |= fault_temp;
+                }else{
+                    s_system_fault_current[gunno][set] = fault_temp;
+                }
                 fault_xor = s_system_fault_current[gunno][set] ^s_system_fault_last[gunno][set];
                 /*************************** 系统故障检测 **********************************/
                 if(fault_xor){

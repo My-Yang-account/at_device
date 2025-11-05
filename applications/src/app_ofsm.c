@@ -2027,12 +2027,18 @@ static void ofsm_idleing_fun(uint8_t gunno)
 
     if((s_ofsm_info[gunno].base.device_state == APP_DEVICE_STATE_OVERHAUL) ||
             (s_ofsm_info[gunno].base.device_state == APP_DEVICE_STATE_FREEZE)){
-        s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_FAULTING];
-        s_ofsm_info[gunno].state = APP_OFSM_STATE_FAULTING;
+        /** 让解故障模块先把故障解析出来再切换到故障状态 */
+        thaisenSetSysFaultLib(thaisenFaultDeviceIsLocked, gunno);
+        rt_thread_mdelay(2000);
+        if((s_ofsm_info[gunno].base.device_state == APP_DEVICE_STATE_OVERHAUL) ||
+                (s_ofsm_info[gunno].base.device_state == APP_DEVICE_STATE_FREEZE)){
+            s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_FAULTING];
+            s_ofsm_info[gunno].state = APP_OFSM_STATE_FAULTING;
 
-        s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
-        app_nsal_state_charged(gunno);
-        return;
+            s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
+            app_nsal_state_charged(gunno);
+            return;
+        }
     }
 
     if(app_get_highest_priority_system_fault(gunno) != APP_SYS_FAULT_NO_ERROR){
@@ -2164,12 +2170,18 @@ static void ofsm_readying_fun(uint8_t gunno)
 
     if((s_ofsm_info[gunno].base.device_state == APP_DEVICE_STATE_OVERHAUL) ||
             (s_ofsm_info[gunno].base.device_state == APP_DEVICE_STATE_FREEZE)){
-        s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_FAULTING];
-        s_ofsm_info[gunno].state = APP_OFSM_STATE_FAULTING;
+        /** 让解故障模块先把故障解析出来再切换到故障状态 */
+        thaisenSetSysFaultLib(thaisenFaultDeviceIsLocked, gunno);
+        rt_thread_mdelay(2000);
+        if((s_ofsm_info[gunno].base.device_state == APP_DEVICE_STATE_OVERHAUL) ||
+                (s_ofsm_info[gunno].base.device_state == APP_DEVICE_STATE_FREEZE)){
+            s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_FAULTING];
+            s_ofsm_info[gunno].state = APP_OFSM_STATE_FAULTING;
 
-        s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
-        app_nsal_state_charged(gunno);
-        return;
+            s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
+            app_nsal_state_charged(gunno);
+            return;
+        }
     }
 
     if(app_get_highest_priority_system_fault(gunno) != APP_SYS_FAULT_NO_ERROR){
@@ -2593,18 +2605,24 @@ static void ofsm_reservation_fun(uint8_t gunno)
     if((s_ofsm_info[gunno].base.device_state == APP_DEVICE_STATE_OVERHAUL) ||
             (s_ofsm_info[gunno].base.device_state == APP_DEVICE_STATE_FREEZE)){
         if(s_ofsm_info[gunno].base.reservation_strategy &APP_RESERVATE_STRATEGY_FAULT_CANCEL){
-            s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_FAULTING];
-            s_ofsm_info[gunno].state = APP_OFSM_STATE_FAULTING;
+            /** 让解故障模块先把故障解析出来再切换到故障状态 */
+            thaisenSetSysFaultLib(thaisenFaultDeviceIsLocked, gunno);
+            rt_thread_mdelay(2000);
+            if((s_ofsm_info[gunno].base.device_state == APP_DEVICE_STATE_OVERHAUL) ||
+                    (s_ofsm_info[gunno].base.device_state == APP_DEVICE_STATE_FREEZE)){
+                s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_FAULTING];
+                s_ofsm_info[gunno].state = APP_OFSM_STATE_FAULTING;
 
-            s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
-            app_nsal_state_charged(gunno);
-            /** 取消本次预约，清除预约已充电标志 */
-            if(s_ofsm_info[gunno].base.flag.is_local_reservation == APP_THA_ENUM_TRUE){
-                s_ofsm_info[gunno].base.flag.is_reser_timeout_started = APP_THA_ENUM_FALSE;
-                s_ofsm_info[gunno].base.flag.is_reser_normal_started = APP_THA_ENUM_FALSE;
+                s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
+                app_nsal_state_charged(gunno);
+                /** 取消本次预约，清除预约已充电标志 */
+                if(s_ofsm_info[gunno].base.flag.is_local_reservation == APP_THA_ENUM_TRUE){
+                    s_ofsm_info[gunno].base.flag.is_reser_timeout_started = APP_THA_ENUM_FALSE;
+                    s_ofsm_info[gunno].base.flag.is_reser_normal_started = APP_THA_ENUM_FALSE;
+                }
+                LOG_D("gunno(%d) chargepile is locked", gunno);
+                return;
             }
-            LOG_D("gunno(%d) chargepile is locked", gunno);
-            return;
         }
     }
     /********* 故障 **********/
@@ -6333,12 +6351,18 @@ static void ofsm_finishing_fun(uint8_t gunno)
 
     if((s_ofsm_info[gunno].base.device_state == APP_DEVICE_STATE_OVERHAUL) ||
             (s_ofsm_info[gunno].base.device_state == APP_DEVICE_STATE_FREEZE)){
-        s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_FAULTING];
-        s_ofsm_info[gunno].state = APP_OFSM_STATE_FAULTING;
+        /** 让解故障模块先把故障解析出来再切换到故障状态 */
+        thaisenSetSysFaultLib(thaisenFaultDeviceIsLocked, gunno);
+        rt_thread_mdelay(2000);
+        if((s_ofsm_info[gunno].base.device_state == APP_DEVICE_STATE_OVERHAUL) ||
+                (s_ofsm_info[gunno].base.device_state == APP_DEVICE_STATE_FREEZE)){
+            s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_FAULTING];
+            s_ofsm_info[gunno].state = APP_OFSM_STATE_FAULTING;
 
-        s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
-        app_nsal_state_charged(gunno);
-        return;
+            s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
+            app_nsal_state_charged(gunno);
+            return;
+        }
     }
 
     if(fault != APP_SYS_FAULT_NO_ERROR){
@@ -6769,8 +6793,10 @@ static void ofsm_faulting_fun(uint8_t gunno)
             memset(s_ofsm_info[gunno].base.transaction_number, 0x00, sizeof(s_ofsm_info[gunno].base.transaction_number));
             memset(s_ofsm_info[gunno].base.car_vin, 0x00, sizeof(s_ofsm_info[gunno].base.car_vin));
             memset(s_ofsm_info[gunno].base.user_number, 0x00, sizeof(s_ofsm_info[gunno].base.user_number));
-
+            thaisenSetSysFaultLib(thaisenFaultDeviceIsLocked, gunno);
             return;
+        }else{
+            thaisenClearSysFaultLib(thaisenFaultDeviceIsLocked, gunno);
         }
         if(s_ofsm_info[gunno].base.flag.is_charge_complete == APP_THA_ENUM_TRUE){
             s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_FINISHING];
@@ -6794,6 +6820,13 @@ static void ofsm_faulting_fun(uint8_t gunno)
     }else{
         s_ofsm_info[gunno].base.system_fault = system_fault;
         s_ofsm_info[gunno].base.charge_fault = charge_fault;
+
+        if((s_ofsm_info[gunno].base.device_state == APP_DEVICE_STATE_OVERHAUL) ||
+                (s_ofsm_info[gunno].base.device_state == APP_DEVICE_STATE_FREEZE)){
+            thaisenSetSysFaultLib(thaisenFaultDeviceIsLocked, gunno);
+        }else{
+            thaisenClearSysFaultLib(thaisenFaultDeviceIsLocked, gunno);
+        }
 
         /** 以下是可充电故障 **/
         if((app_exist_forbid_charge_fault(gunno) == 0x00) && s_ofsm_info[gunno].base.flag.is_charge_complete == APP_THA_ENUM_FALSE){
