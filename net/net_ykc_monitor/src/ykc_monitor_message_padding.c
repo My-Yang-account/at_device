@@ -7259,8 +7259,31 @@ int8_t ykc_monitor_config_info_process(void *data, uint16_t dlen, void *buf, uin
  * **********************************************/
 static void ykc_monitor_module_fault_check(void)
 {
+    static uint8_t in_power_connect = NET_ENUM_TRUE, in_power_connect_delay = 0x00;
     thaisenModuleFaultInfoStruct * fault = NULL;
     uint8_t group = 0x00, number = 0x00, i, j;
+
+    extern uint8_t thaisenModule_IsInPowerConnected(void);
+
+    /** 模块输入电源已断开，不再上报模块相关故障 */
+    if(thaisenModule_IsInPowerConnected() == NET_ENUM_TRUE){
+        in_power_connect = NET_ENUM_TRUE;
+    }else{
+        in_power_connect = NET_ENUM_FALSE;
+    }
+    /** 模块输入电源连接后再延迟一定时间再检测模块故障(要等待模块通讯建立) */
+    if(in_power_connect == NET_ENUM_TRUE){
+        if(in_power_connect_delay < (0xFF - 0x01)){
+            in_power_connect_delay++;
+        }
+        /** 外部调用此函数时基是500ms，大概2s */
+        if(in_power_connect_delay <= 0x04){
+            return;
+        }
+    }else{
+        in_power_connect_delay = 0x00;
+        return;
+    }
 
     if(s_ykc_monitor_mfault_info.flag.is_report != NET_ENUM_TRUE){
         s_ykc_monitor_mfault_info.report_tick = rt_tick_get();
