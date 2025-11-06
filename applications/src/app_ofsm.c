@@ -5917,6 +5917,8 @@ static void ofsm_stoping_fun(uint8_t gunno)
                 s_ofsm_info[gunno].base.elect_a = s_ofsm_info[s_ofsm_info[gunno].base.main_gunno].base.elect_a;
                 s_ofsm_info[gunno].base.charge_time = s_ofsm_info[s_ofsm_info[gunno].base.main_gunno].base.charge_time;
             }
+            s_ofsm_info[gunno].base.start_soc = s_ofsm_info[s_ofsm_info[gunno].base.main_gunno].base.start_soc;
+            s_ofsm_info[gunno].base.current_soc = s_ofsm_info[s_ofsm_info[gunno].base.main_gunno].base.current_soc;
         }
 
         if(gunno != s_ofsm_info[gunno].base.main_gunno){
