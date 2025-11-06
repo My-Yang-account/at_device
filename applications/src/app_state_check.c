@@ -887,11 +887,9 @@ static void state_check_lighting_lamp(void)
         }
 
         if(need_lighting){
-            chak = 0x01;
             thaisen_relay_LightingLamp_on();
         }else{
             thaisen_relay_LightingLamp_off();
-            chak = 0x00;
         }
     }
 }
