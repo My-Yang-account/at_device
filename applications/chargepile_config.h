@@ -321,6 +321,18 @@
 #define MODULE_SMODULE_MAX_CURR_MAX               10000     /* 模块最大限电流值最大值(要和模块库的兼容) */
 #define MODULE_SMODULE_MAX_CURR_MIN               1         /* 模块最大限电流值最小值(要和模块库的兼容) */
 
+#define CONFIG_LIGHTING_LAMP_SHOUR_MIN            0         /* 照明起始小时最小值(24小时制) */
+#define CONFIG_LIGHTING_LAMP_SHOUR_MAX            23        /* 照明起始小时最大值(24小时制) */
+
+#define CONFIG_LIGHTING_LAMP_EHOUR_MIN            0         /* 照明结束小时最小值(24小时制) */
+#define CONFIG_LIGHTING_LAMP_EHOUR_MAX            23        /* 照明结束小时最大值(24小时制) */
+
+#define CONFIG_LIGHTING_LAMP_SMIN_MIN             0         /* 照明起始分钟最小值 */
+#define CONFIG_LIGHTING_LAMP_SMIN_MAX             59        /* 照明起始分钟最大值 */
+
+#define CONFIG_LIGHTING_LAMP_EMIN_MIN             0         /* 照明结束分钟最小值 */
+#define CONFIG_LIGHTING_LAMP_EMIN_MAX             59        /* 照明结束分钟最大值 */
+
 #define COMPULSION_SET_VOLTAGE_DEF                750       /* 强制启动设定电压默认值 */
 #define COMPULSION_SET_VOLTAGE_MAX                1500      /* 强制启动设定电压最大值 */
 #define COMPULSION_SET_VOLTAGE_MIN                1         /* 强制启动设定电压最小值 */
@@ -363,7 +375,7 @@
 #define CHARGEPILE_ELOSS_PROPORTION_DEF           0         /* 电损比默认值(一位小数) */
 
 #define CHARGEPILE_FAN_WORK_TIME_MIN              5         /* 停充后风扇工作时间最小值(s) */
-#define CHARGEPILE_FAN_WORK_TIME_MAX              0xFFFF    /* 停充后风扇工作时间最大值(s) */
+#define CHARGEPILE_FAN_WORK_TIME_MAX              (0xFFFF - 0x01)    /* 停充后风扇工作时间最大值(s) */
 #define CHARGEPILE_FAN_WORK_TIME_DEF              (2 *60)   /* 停充后风扇工作时间默认值(s) */
 
 #define CP_AMMETER_CHECK_WAY_EVEN                 0         /* 电表串口校验方式：偶校验 */
@@ -566,6 +578,10 @@ enum config_name{
     CONFIG_ITEM_MODE_PARAMETER_B,
     CONFIG_ITEM_FAN_WORK_TIME,
     CONFIG_ITEM_SMODULE_OUTCURR_MAX,
+    CONFIG_ITEM_LIGHTING_LAMP_SHOUR,
+    CONFIG_ITEM_LIGHTING_LAMP_EHOUR,
+    CONFIG_ITEM_LIGHTING_LAMP_SMIN,
+    CONFIG_ITEM_LIGHTING_LAMP_EMIN,
 
     /**************out***************/
     CONFIG_ITEM_OUTEN_AC,
@@ -742,5 +758,9 @@ uint32_t sys_get_offbilling_unit_price(uint32_t curr_time);
 uint32_t sys_get_offbilling_elect_price(uint8_t rate_number);
 uint32_t sys_get_offbilling_service_price(uint8_t rate_number);
 uint32_t sys_get_offbilling_delay_price(uint8_t rate_number);
+
+/**********************************************[照明灯相关]********************************************************/
+/**********************************************[照明灯相关]********************************************************/
+int32_t sys_lighting_lamp_time_valid(uint8_t shour, uint8_t ehour, uint8_t smin, uint8_t emin);
 
 #endif /* APPLICATIONS_CHARGEPILE_CONFIG_H_ */

@@ -125,7 +125,11 @@ struct _config_para{
     uint32_t mode_parameter[2];                                       /* 模式参数 */
     uint16_t fan_work_time;                                           /* 风扇工作时间 */
     uint16_t module_current_max;                                      /* 单个模块最大输出电流(A) */
-    uint8_t reserve1[256 - 14];                                       /* 预留 */
+    uint8_t lighting_lamp_shour;                                      /* 照明起始小时(24小时制) */
+    uint8_t lighting_lamp_ehour;                                      /* 照明结束小时(24小时制) */
+    uint8_t lighting_lamp_smin;                                       /* 照明起始分钟 */
+    uint8_t lighting_lamp_emin;                                       /* 照明结束分钟 */
+    uint8_t reserve1[256 - 18];                                       /* 预留 */
 };
 
 struct _config_info{
@@ -585,6 +589,26 @@ APP_DEF_SRAM2 static struct config_item s_config_item_set[CONFIG_ITEM_SIZE] =
         {CONFIG_ITEM_SMODULE_OUTCURR_MAX,                                           /* 配置项：单个模块最大输出电流(A)*/
         (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.module_current_max)),
         (uint8_t*)&s_chargepile_config_info.config_para.module_current_max,
+        NULL},
+
+        {CONFIG_ITEM_LIGHTING_LAMP_SHOUR,                                           /* 配置项：照明起始小时(24小时制)*/
+        (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.lighting_lamp_shour)),
+        (uint8_t*)&s_chargepile_config_info.config_para.lighting_lamp_shour,
+        NULL},
+
+        {CONFIG_ITEM_LIGHTING_LAMP_EHOUR,                                           /* 配置项：照明结束小时(24小时制)*/
+        (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.lighting_lamp_ehour)),
+        (uint8_t*)&s_chargepile_config_info.config_para.lighting_lamp_ehour,
+        NULL},
+
+        {CONFIG_ITEM_LIGHTING_LAMP_SMIN,                                           /* 配置项：照明起始分钟 */
+        (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.lighting_lamp_smin)),
+        (uint8_t*)&s_chargepile_config_info.config_para.lighting_lamp_smin,
+        NULL},
+
+        {CONFIG_ITEM_LIGHTING_LAMP_EMIN,                                           /* 配置项：照明结束分钟 */
+        (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.lighting_lamp_emin)),
+        (uint8_t*)&s_chargepile_config_info.config_para.lighting_lamp_emin,
         NULL},
 
         {CONFIG_ITEM_OUTEN_AC,                                                      /* 配置项：交流接触器输出*/
@@ -1129,6 +1153,21 @@ void sys_chargeplie_config_info_init(void)
     /** 单个模块最大输出电流(A) */
     sys_config_item_init(CONFIG_ITEM_SMODULE_OUTCURR_MAX, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.module_current_max)), \
             (uint8_t*)&s_chargepile_config_info.config_para.module_current_max, NULL);
+    /** 照明起始小时(24小时制) */
+    sys_config_item_init(CONFIG_ITEM_LIGHTING_LAMP_SHOUR, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.lighting_lamp_shour)), \
+            (uint8_t*)&s_chargepile_config_info.config_para.lighting_lamp_shour, NULL);
+
+    /** 照明结束小时(24小时制) */
+    sys_config_item_init(CONFIG_ITEM_LIGHTING_LAMP_EHOUR, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.lighting_lamp_ehour)), \
+            (uint8_t*)&s_chargepile_config_info.config_para.lighting_lamp_ehour, NULL);
+
+    /** 照明起始分钟 */
+    sys_config_item_init(CONFIG_ITEM_LIGHTING_LAMP_SMIN, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.lighting_lamp_smin)), \
+            (uint8_t*)&s_chargepile_config_info.config_para.lighting_lamp_smin, NULL);
+
+    /** 照明结束分钟 */
+    sys_config_item_init(CONFIG_ITEM_LIGHTING_LAMP_EMIN, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.lighting_lamp_emin)), \
+            (uint8_t*)&s_chargepile_config_info.config_para.lighting_lamp_emin, NULL);
     /** 启用交流接触器 */
     sys_config_item_init(CONFIG_ITEM_OUTEN_AC, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.acrelay_out)), \
             (uint8_t*)&s_chargepile_config_info.function_enable.acrelay_out, NULL);
@@ -1812,6 +1851,10 @@ static void chargepile_config_data_reset(void)
     s_chargepile_config_info.config_para.eloss_proportion = CHARGEPILE_ELOSS_PROPORTION_DEF;
     s_chargepile_config_info.config_para.fan_work_time = CHARGEPILE_FAN_WORK_TIME_DEF;
     s_chargepile_config_info.config_para.module_current_max = MODULE_SMODULE_MAX_CURR_DEF;
+    s_chargepile_config_info.config_para.lighting_lamp_shour = CONFIG_LIGHTING_LAMP_SHOUR_MIN;
+    s_chargepile_config_info.config_para.lighting_lamp_ehour = CONFIG_LIGHTING_LAMP_EHOUR_MIN;
+    s_chargepile_config_info.config_para.lighting_lamp_smin = CONFIG_LIGHTING_LAMP_SMIN_MIN;
+    s_chargepile_config_info.config_para.lighting_lamp_emin = CONFIG_LIGHTING_LAMP_EMIN_MIN;
 
     s_chargepile_config_info.config_para.input_overvol = CHARGEPILE_INPUT_OVERVOLT_DEF;
     s_chargepile_config_info.config_para.input_undervol = CHARGEPILE_INPUT_UNDERVOLT_DEF;
@@ -2275,6 +2318,31 @@ int32_t chargepile_check_config(void)
     if((s_chargepile_config_info.config_para.module_current_max < MODULE_SMODULE_MAX_CURR_MIN) ||
             (s_chargepile_config_info.config_para.module_current_max > MODULE_SMODULE_MAX_CURR_MAX)){
         s_chargepile_config_info.config_para.module_current_max = MODULE_SMODULE_MAX_CURR_DEF;
+    }
+
+    if((s_chargepile_config_info.config_para.lighting_lamp_shour < CONFIG_LIGHTING_LAMP_SHOUR_MIN) ||
+            (s_chargepile_config_info.config_para.lighting_lamp_shour > CONFIG_LIGHTING_LAMP_SHOUR_MAX)){
+        s_chargepile_config_info.config_para.lighting_lamp_shour = CONFIG_LIGHTING_LAMP_SHOUR_MIN;
+    }
+    if((s_chargepile_config_info.config_para.lighting_lamp_ehour < CONFIG_LIGHTING_LAMP_EHOUR_MIN) ||
+            (s_chargepile_config_info.config_para.lighting_lamp_ehour > CONFIG_LIGHTING_LAMP_EHOUR_MAX)){
+        s_chargepile_config_info.config_para.lighting_lamp_ehour = CONFIG_LIGHTING_LAMP_EHOUR_MIN;
+    }
+    if((s_chargepile_config_info.config_para.lighting_lamp_smin < CONFIG_LIGHTING_LAMP_SMIN_MIN) ||
+            (s_chargepile_config_info.config_para.lighting_lamp_smin > CONFIG_LIGHTING_LAMP_SMIN_MAX)){
+        s_chargepile_config_info.config_para.lighting_lamp_smin = CONFIG_LIGHTING_LAMP_SMIN_MIN;
+    }
+    if((s_chargepile_config_info.config_para.lighting_lamp_emin < CONFIG_LIGHTING_LAMP_EMIN_MIN) ||
+            (s_chargepile_config_info.config_para.lighting_lamp_emin > CONFIG_LIGHTING_LAMP_EMIN_MAX)){
+        s_chargepile_config_info.config_para.lighting_lamp_emin = CONFIG_LIGHTING_LAMP_EMIN_MIN;
+    }
+    /** 时间格式不对，改成默认时间 */
+    if(sys_lighting_lamp_time_valid(s_chargepile_config_info.config_para.lighting_lamp_shour, s_chargepile_config_info.config_para.lighting_lamp_ehour, \
+            s_chargepile_config_info.config_para.lighting_lamp_smin, s_chargepile_config_info.config_para.lighting_lamp_emin) < 0x00){
+        s_chargepile_config_info.config_para.lighting_lamp_shour = CONFIG_LIGHTING_LAMP_SHOUR_MIN;
+        s_chargepile_config_info.config_para.lighting_lamp_ehour = CONFIG_LIGHTING_LAMP_EHOUR_MIN;
+        s_chargepile_config_info.config_para.lighting_lamp_smin = CONFIG_LIGHTING_LAMP_SMIN_MIN;
+        s_chargepile_config_info.config_para.lighting_lamp_emin = CONFIG_LIGHTING_LAMP_EMIN_MIN;
     }
 
     if(s_chargepile_config_info.function_enable.emergency_stop > 0x01){    /* 急停故障检测默认开启 */
@@ -3752,4 +3820,28 @@ uint32_t sys_get_offbilling_delay_price(uint8_t rate_number)
 #endif /* CP_USING_OFFLINE_BILLING */
 }
 
+/**********************************************[照明灯相关]********************************************************/
+/**********************************************[照明灯相关]********************************************************/
+/*********************************************************
+ * 函数名        sys_lighting_lamp_time_valid
+ * 功能            判断照明时间时间是否有效
+ * 参数           shour   起始小时
+ *      ehour   结束小时
+ *      smin    起始分钟
+ *      emin    结束分钟
+ * 返回           0：有效      <0：无效
+ ********************************************************/
+int32_t sys_lighting_lamp_time_valid(uint8_t shour, uint8_t ehour, uint8_t smin, uint8_t emin)
+{
+    if((shour >= 24) || (ehour >= 24)){
+        return -0x01;
+    }
+    if((smin >= 60) || (emin >= 60)){
+        return -0x01;
+    }
 
+    if((shour == ehour) && (smin > emin)){
+        return -0x01;
+    }
+     return 0x00;
+}

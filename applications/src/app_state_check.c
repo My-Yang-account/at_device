@@ -837,6 +837,65 @@ static void app_acrelay_control(void)
     }
 }
 
+static void state_check_lighting_lamp(void)
+{
+    static uint8_t check_period = 0x00;
+
+    if(check_period < (0xFF - 0x01)){
+        check_period++;
+    }
+    /** 大概间隔1s检测一次 */
+    if(check_period >= (1000 /APP_STATE_CHECK_PERIOD)){
+        time_t _time = 0;
+        struct tm _tm;
+        uint8_t config_shour = 0x00, config_smin = 0x00, config_ehour = 0x00, config_emin = 0x00, need_lighting = 0x00;
+        uint16_t smin_total = 0x00, emin_total = 0x00, cmin_total = 0x00;
+
+        check_period = 0x00;
+        _time = time(NULL);
+        localtime_r(&_time, &_tm);
+
+        config_shour = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_LIGHTING_LAMP_SHOUR, 0x00));
+        config_ehour = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_LIGHTING_LAMP_EHOUR, 0x00));
+        config_smin = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_LIGHTING_LAMP_SMIN, 0x00));
+        config_emin = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_LIGHTING_LAMP_EMIN, 0x00));
+
+        smin_total = (config_shour *60) + config_smin;
+        emin_total = (config_ehour *60) + config_emin;
+        cmin_total = (_tm.tm_hour *60) + _tm.tm_min;
+
+        /***************************** 这是跨天的定时 *****************************/
+        if(config_shour > config_ehour){
+            if((cmin_total <= emin_total) || (cmin_total >= smin_total)){
+                need_lighting = 0x01;
+            }
+        }
+        /***************************** 这是一个小时内的定时 *****************************/
+        else if(config_shour == config_ehour){
+            /** 起始分钟必须小于结束分钟，否则不亮照明灯 */
+            if(config_smin <= config_emin){
+                if((cmin_total >= smin_total) && (cmin_total <= emin_total)){
+                    need_lighting = 0x01;
+                }
+            }
+        }
+        /***************************** 这是不跨天、跨小时的定时 *****************************/
+        else{
+            if((cmin_total >= smin_total) && (cmin_total <= emin_total)){
+                need_lighting = 0x01;
+            }
+        }
+
+        if(need_lighting){
+            chak = 0x01;
+            thaisen_relay_LightingLamp_on();
+        }else{
+            thaisen_relay_LightingLamp_off();
+            chak = 0x00;
+        }
+    }
+}
+
 static void state_check_thread_entry(void *parameter)
 {
     extern int32_t app_thread_monitor_process(void *thread, void *para, uint32_t plen, uint32_t option);
@@ -849,6 +908,8 @@ static void state_check_thread_entry(void *parameter)
             app_out_uv_check(gunno);
             app_out_oc_check(gunno);
         }
+        state_check_lighting_lamp();
+
         rt_thread_mdelay(APP_STATE_CHECK_PERIOD);
     }
 }

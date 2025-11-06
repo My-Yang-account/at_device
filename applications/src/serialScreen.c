@@ -765,6 +765,11 @@ struct LCD_DISPLAY_SETDATA_TYPE{
     u32 DebugCmdPara_MCMinTemp;                                  //指令调试参数：模块最小输出电流中间值
     /*********************** fan ***************************/
     u32 FanWorkTime;                                             //停充后风扇工作时间(s)
+    /*********************** 照明灯 ***************************/
+    u32 LightingLamp_Shour;                                      // 照明起始小时(24小时制)
+    u32 LightingLamp_Ehour;                                      // 照明结束小时(24小时制)
+    u32 LightingLamp_Smin;                                       // 照明起始分钟
+    u32 LightingLamp_Emin;                                       // 照明结束分钟
 }LCD_DISPLAY_SETDATA_TYPE_t;
 
 
@@ -5034,12 +5039,18 @@ static void SerialScreen_OtherInfoJudge(u32 *ret)
 #define SSCREEN_OTHER_LIQUID_ADDR_POSITION                          1   /* 其它信息配置失败原因：液冷地址配置  */
 #define SSCREEN_OTHER_LIQUID_DETECT_POSITION                        2   /* 其它信息配置失败原因：液冷检测配置  */
 #define SSCREEN_OTHER_FAN_WORK_TIME_POSITION                        3   /* 其它信息配置失败原因：风扇工作时间配置  */
+#define SSCREEN_OTHER_LIGHTING_LAMP_TIME_POSITION                   4   /* 其它信息配置失败原因：照明时间配置  */
 
     u32 result = 0;
 
     if((LcdData.setData.FanWorkTime < CHARGEPILE_FAN_WORK_TIME_MIN) || (LcdData.setData.FanWorkTime > CHARGEPILE_FAN_WORK_TIME_MAX)){
         LcdData.setData.FanWorkTime = CHARGEPILE_FAN_WORK_TIME_DEF;
         result |= (1 <<SSCREEN_OTHER_FAN_WORK_TIME_POSITION);
+    }
+
+    if(sys_lighting_lamp_time_valid(LcdData.setData.LightingLamp_Shour, LcdData.setData.LightingLamp_Ehour, \
+            LcdData.setData.LightingLamp_Smin, LcdData.setData.LightingLamp_Emin) < 0){
+//        result |= (1 <<SSCREEN_OTHER_LIGHTING_LAMP_TIME_POSITION);
     }
     if(ret){
         *ret = result;
@@ -5048,22 +5059,45 @@ static void SerialScreen_OtherInfoJudge(u32 *ret)
 #undef SSCREEN_OTHER_LIQUID_ADDR_POSITION
 #undef SSCREEN_OTHER_LIQUID_DETECT_POSITION
 #undef SSCREEN_FAN_WORK_TIME_POSITION
+#undef SSCREEN_OTHER_LIGHTING_LAMP_TIME_POSITION
 }
 
 void SerialScreen_OtherInfoSet(void)
 {
-    u16 config_data = 0;
+    u8 config_u8_data = 0;
+    u16 config_u16_data = 0;
 
     if(LcdAssistantData.SeveralGunFlag[LCD_GUN_1].DataIsVerify == FALSE){
         SerialScreen_OtherInfoJudge(NULL);
     }
     LcdAssistantData.SeveralGunFlag[LCD_GUN_1].DataIsVerify = FALSE;
 
-    config_data = LcdData.setData.FanWorkTime;
+    /** 时间无效，改为默认时间 */
+    if(sys_lighting_lamp_time_valid(LcdData.setData.LightingLamp_Shour, LcdData.setData.LightingLamp_Ehour, \
+            LcdData.setData.LightingLamp_Smin, LcdData.setData.LightingLamp_Emin) < 0){
+        LcdData.setData.LightingLamp_Shour = CONFIG_LIGHTING_LAMP_SHOUR_MIN;
+        LcdData.setData.LightingLamp_Ehour = CONFIG_LIGHTING_LAMP_EHOUR_MIN;
+        LcdData.setData.LightingLamp_Smin = CONFIG_LIGHTING_LAMP_SMIN_MIN;
+        LcdData.setData.LightingLamp_Emin = CONFIG_LIGHTING_LAMP_EMIN_MIN;
+    }
+
+    config_u16_data = LcdData.setData.FanWorkTime;
 
     SerialScreen_JumpPage(&SerialScreen, LCD_PAGE_STORAGE_WAITING);
 
-    UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_FAN_WORK_TIME, &config_data, sizeof(config_data));
+    UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_FAN_WORK_TIME, &config_u16_data, sizeof(config_u16_data));
+
+    config_u8_data = LcdData.setData.LightingLamp_Shour;
+    UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_LIGHTING_LAMP_SHOUR, &config_u8_data, sizeof(config_u8_data));
+
+    config_u8_data = LcdData.setData.LightingLamp_Ehour;
+    UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_LIGHTING_LAMP_EHOUR, &config_u8_data, sizeof(config_u8_data));
+
+    config_u8_data = LcdData.setData.LightingLamp_Smin;
+    UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_LIGHTING_LAMP_SMIN, &config_u8_data, sizeof(config_u8_data));
+
+    config_u8_data = LcdData.setData.LightingLamp_Emin;
+    UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_LIGHTING_LAMP_EMIN, &config_u8_data, sizeof(config_u8_data));
 
     LcdAssistantData.Flag.IsConfigFail = TRUE;
     if(UI_STORAGE_CFG_DATA >= 0){
@@ -5076,10 +5110,23 @@ void SerialScreen_OtherInfoSet(void)
 void SerialScreen_OtherInfoGet(void)
 {
     LcdData.setData.FanWorkTime = *(u16 *)(UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_FAN_WORK_TIME, 0));
+    LcdData.setData.LightingLamp_Shour = *(u8 *)(UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_LIGHTING_LAMP_SHOUR, 0));
+    LcdData.setData.LightingLamp_Ehour = *(u8 *)(UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_LIGHTING_LAMP_EHOUR, 0));
+    LcdData.setData.LightingLamp_Smin = *(u8 *)(UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_LIGHTING_LAMP_SMIN, 0));
+    LcdData.setData.LightingLamp_Emin = *(u8 *)(UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_LIGHTING_LAMP_EMIN, 0));
 
     if((LcdData.setData.FanWorkTime < CHARGEPILE_FAN_WORK_TIME_MIN) || (LcdData.setData.FanWorkTime > CHARGEPILE_FAN_WORK_TIME_MAX)){
         LcdData.setData.FanWorkTime = CHARGEPILE_FAN_WORK_TIME_DEF;
     }
+    /** 时间无效，改为默认时间 */
+    if(sys_lighting_lamp_time_valid(LcdData.setData.LightingLamp_Shour, LcdData.setData.LightingLamp_Ehour, \
+            LcdData.setData.LightingLamp_Smin, LcdData.setData.LightingLamp_Emin) < 0){
+        LcdData.setData.LightingLamp_Shour = CONFIG_LIGHTING_LAMP_SHOUR_MIN;
+        LcdData.setData.LightingLamp_Ehour = CONFIG_LIGHTING_LAMP_EHOUR_MIN;
+        LcdData.setData.LightingLamp_Smin = CONFIG_LIGHTING_LAMP_SMIN_MIN;
+        LcdData.setData.LightingLamp_Emin = CONFIG_LIGHTING_LAMP_EMIN_MIN;
+    }
+
     thaisen_Set_FanCtrlTime(LcdData.setData.FanWorkTime *1000);
     rt_kprintf("SerialScreen_OtherInfoGet-FanWorkTime:%d\n", LcdData.setData.FanWorkTime);
 }
@@ -13016,6 +13063,12 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
 #endif /* SCREEN_USING_OFFLINE_BILLING */
     SerialScreen_ItemSetUp(LCD_PAGE_OTHER_CONFIG, NULL, "cmd debug", LCD_BtnType, 0x0061, 0x1009, page_type, LCD_PAGE_CMD_DEBUG, (void *)SerialScreen_CmdDebugInfoGet);
     SerialScreen_ItemSetUp(LCD_PAGE_OTHER_CONFIG, NULL, "FanWorkTime", LCD_InputType, 0, 0x6D28, pu32_type, sizeof(LcdData.setData.FanWorkTime), (void *)&LcdData.setData.FanWorkTime);
+
+    SerialScreen_ItemSetUp(LCD_PAGE_OTHER_CONFIG, NULL, "LightLampShour", LCD_InputType, 0, 0x6D30, pu32_type, sizeof(LcdData.setData.LightingLamp_Shour), (void *)&LcdData.setData.LightingLamp_Shour);
+    SerialScreen_ItemSetUp(LCD_PAGE_OTHER_CONFIG, NULL, "LightLampEhour", LCD_InputType, 0, 0x6D34, pu32_type, sizeof(LcdData.setData.LightingLamp_Ehour), (void *)&LcdData.setData.LightingLamp_Ehour);
+    SerialScreen_ItemSetUp(LCD_PAGE_OTHER_CONFIG, NULL, "LightLampSmin", LCD_InputType, 0, 0x6D32, pu32_type, sizeof(LcdData.setData.LightingLamp_Smin), (void *)&LcdData.setData.LightingLamp_Smin);
+    SerialScreen_ItemSetUp(LCD_PAGE_OTHER_CONFIG, NULL, "LightLampEmin", LCD_InputType, 0, 0x6D36, pu32_type, sizeof(LcdData.setData.LightingLamp_Emin), (void *)&LcdData.setData.LightingLamp_Emin);
+
     SerialScreen_ItemSetUp(LCD_PAGE_OTHER_CONFIG, NULL, "subok", LCD_BtnType, 0x0014, 0x1000, page_type, LCD_PAGE_ROOT_MAIN, (void *)SerialScreen_OtherInfoSet);
     SerialScreen_ItemSetUp(LCD_PAGE_OTHER_CONFIG, NULL, "back", LCD_BtnType, 0x0050, 0x1000, page_type, LCD_PAGE_ROOT_MAIN, (void *)NULL);
     SerialScreen_ItemSetUp(LCD_PAGE_OTHER_CONFIG, NULL, "Home", LCD_BtnHomeType, 0x0002, 0x1000, page_type, LCD_PAGE_NONE, (void *)NULL);
