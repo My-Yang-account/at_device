@@ -69,7 +69,7 @@ int32_t mw_get_meter_ia(uint8_t gunno)
         int32_t current = thaisen_get_ammeterCurrent(gunno);
 
         if(current < 0x00){
-            current = 0x00 - current;
+            current = 0x00;
         }
         return current;
     }

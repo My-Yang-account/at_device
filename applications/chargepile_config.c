@@ -859,7 +859,7 @@ APP_DEF_SRAM2 static struct config_item s_config_item_set[CONFIG_ITEM_SIZE] =
         NULL},
 
         {CONFIG_ITEM_CARD_BLOCK_SN,                                                             /* 卡号所在块 */
-        (0 <<(32 - 4))| (sizeof(s_chargepile_config.config_info.card_block_sn) <<SYSTEM_CONFIG_ITEM_LEN_POS),
+        (0 <<(32 - 4))| (sizeof(s_chargepile_config.config_info.card_block_sn)),
         (uint8_t*)&s_chargepile_config.config_info.card_block_sn,
         NULL},
 
