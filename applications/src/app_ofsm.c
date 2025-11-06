@@ -3762,6 +3762,8 @@ static void ofsm_starting_fun(uint8_t gunno)
         }
     }
 
+    s_ofsm_info[gunno].base.voltage_a = mw_get_meter_ua(gunno);
+
     switch(charge_state){
     case APP_CHARGE_STATE_IDLE:
         s_booting_step[gunno] = APP_BOOTING_STEP_IDLE;
