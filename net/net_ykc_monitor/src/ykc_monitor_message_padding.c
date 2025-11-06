@@ -2910,14 +2910,17 @@ static uint16_t ykc_monitor_chargepile_stop_reason_converted(void *handle, uint1
             _reason = NETYKC_MONITOR_AS_REASON74_TEMPERATURE_ABNORMAL;
         }
         break;
-    /* 过、欠压 */
+    /* 过压 */
     case APP_SYSTEM_STOP_WAY_OVERVOLT:
+        _reason = NETYKC_MONITOR_AS_REASONCC_PILE_OVERVOLT;
+        break;
+    /* 欠压 */
     case APP_SYSTEM_STOP_WAY_UNDERVOLT:
-        _reason = NETYKC_MONITOR_AS_REASON79_CHARGE_TVOLTAGE_ABNORMAL;
+        _reason = NETYKC_MONITOR_AS_REASONCD_PILE_UNDERVOLT;
         break;
     /* 过流 */
     case APP_SYSTEM_STOP_WAY_OVERCURRENT:
-        _reason = NETYKC_MONITOR_AS_REASON7A_CHARGE_TCURRENT_ABNORMAL;
+        _reason = NETYKC_MONITOR_AS_REASONCE_PILE_OVERCURR;
         break;
     /* DC 继电器 */
     case APP_SYSTEM_STOP_WAY_RELAY:
@@ -2969,7 +2972,7 @@ static uint16_t ykc_monitor_chargepile_stop_reason_converted(void *handle, uint1
         break;
     /* 接收BRO超时 */
     case APP_SYSTEM_STOP_WAY_BRO_TIMEOUT:
-        _reason = NETYKC_MONITOR_SF_REASON5C_RECV_BRO_AA_TIMEOUT;
+        _reason = NETYKC_MONITOR_AS_REASONCF_WAIT_BRO;
         break;
     /* 接收BRO_AA超时 */
     case APP_SYSTEM_STOP_WAY_BRO_AA_TIMEOUT:
@@ -3040,10 +3043,13 @@ static uint16_t ykc_monitor_chargepile_stop_reason_converted(void *handle, uint1
     case APP_SYSTEM_STOP_WAY_APP_STOP:
         _reason = NETYKC_MONITOR_CC_REASON40_APP;
         break;
-    /* 刷卡 */
+    /* 刷离线卡 */
     case APP_SYSTEM_STOP_WAY_OFFLINECARD_STOP:
+        _reason = NETYKC_MONITOR_AS_REASOND1_OFFLINE_CARD;
+        break;
+    /* 刷在线卡 */
     case APP_SYSTEM_STOP_WAY_ONLINECARD_STOP:
-        _reason = NETYKC_MONITOR_CC_REASON45_MANUAL_STOP;
+        _reason = NETYKC_MONITOR_AS_REASOND0_ONLINE_CARD;
         break;
     /* 余额不足 */
     case APP_SYSTEM_STOP_WAY_NO_BALLANCE:
@@ -3051,7 +3057,7 @@ static uint16_t ykc_monitor_chargepile_stop_reason_converted(void *handle, uint1
         break;
     /* 屏幕 */
     case APP_SYSTEM_STOP_WAY_SCREEN_STOP:
-        _reason = NETYKC_MONITOR_CC_REASON45_MANUAL_STOP;
+        _reason = NETYKC_MONITOR_AS_REASONBA_SCREEN;
         break;
     /* 到达设定电量 */
     case APP_SYSTEM_STOP_WAY_REACH_ELECT:

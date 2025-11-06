@@ -348,6 +348,12 @@ enum ykc_monitor_abnormal_stop{
     NETYKC_MONITOR_AS_REASONC9_MAIN_CABINET_LIGHTPROTECT = 0xC9,     /* 充电异常中止，主机柜防雷故障 */
     NETYKC_MONITOR_AS_REASONCA_FAN_FAULT = 0xCA,                     /* 充电异常中止，风扇故障 */
     NETYKC_MONITOR_AS_REASONCB_IS_LOCKED = 0xCB,                     /* 充电异常中止，设备已锁定 */
+    NETYKC_MONITOR_AS_REASONCC_PILE_OVERVOLT = 0xCC,                 /* 充电异常中止，桩侧过压 */
+    NETYKC_MONITOR_AS_REASONCD_PILE_UNDERVOLT = 0xCD,                /* 充电异常中止，桩侧欠压 */
+    NETYKC_MONITOR_AS_REASONCE_PILE_OVERCURR = 0xCE,                 /* 充电异常中止，桩侧过流 */
+    NETYKC_MONITOR_AS_REASONCF_WAIT_BRO = 0xCF,                      /* 充电异常中止，等待BRO超时 */
+    NETYKC_MONITOR_AS_REASOND0_ONLINE_CARD = 0xD0,                   /* 充电异常中止，刷在线卡 */
+    NETYKC_MONITOR_AS_REASOND1_OFFLINE_CARD = 0xD1,                  /* 充电异常中止，刷离线卡 */
 };
 
 enum ykc_monitor_cmd{
