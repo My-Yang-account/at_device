@@ -7633,6 +7633,14 @@ void SerialScreen_GetIOStatusB(void)
 void SerialScreen_QuitDebugIO(void)
 {
 	LcdData.debugIOflg = FALSE;
+    thaisen_set_debug_mode(0);
+
+    for(u8 gunno = 0; gunno < LCD_GUN_NUM; gunno++){
+        if((LcdData.gun[gunno].workState == SysMainStatus_StartReady) || (LcdData.gun[gunno].workState == SysMainStatus_Chrging)){
+            return;
+        }
+    }
+
 	/************* 没有强制启动 *************/
 	for(u8 port = 0; port < LCD_GUN_NUM; port++){
 	    if(thaisenGetModuleDebugEnableOutput(port) == 0)
@@ -7703,8 +7711,6 @@ void SerialScreen_QuitDebugIO(void)
 
 	SerialScreen_BtnModuleStopA();
 	SerialScreen_BtnModuleStopB();
-
-	thaisen_set_debug_mode(0);
 }
 
 void SerialScreen_GetIOStatus(int port)
