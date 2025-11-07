@@ -180,10 +180,16 @@ static void rfidr_thread_entry(void *parameter)
                 LOG_D("rfidr using external key authenticate");
                 ret = s_rfidr_handle.info_process(&s_rfidr_handle, APP_RFIDR_INFO_PROCESS_AUTHENTICATE, parameter, sizeof(parameter));
                 if(ret < 0x00){
+                    /** 这属于遇到非法数据，没有给射频读卡器发送任何指令，无需再次寻卡 */
+#if 0
                     rt_thread_mdelay(100);
                     rfid_dev_api_active_card(APP_RFIDR_ENUM_TRUE, uuid, RFIDR_UUID_LEN_MAX, &uuid_len);
+#endif
                 }else if(ret > 0x00){
                     key = APP_RFIDR_KEY_TYPE_SIZE;
+                    /** 这是使用了外部密钥进行了鉴权，但鉴权失败，此时要重新开始流程 */
+                    rt_thread_mdelay(100);
+                    rfid_dev_api_active_card(APP_RFIDR_ENUM_TRUE, uuid, RFIDR_UUID_LEN_MAX, &uuid_len);
                 }else{
                     key = 0x00;
                     s_rfidr_state = APP_RFIDR_STATE_ACTIVATION;
@@ -192,7 +198,7 @@ static void rfidr_thread_entry(void *parameter)
                 }
             }
             /** 外部密钥鉴权不通过，使用内部密钥 */
-            if(ret < 0x00){
+            if(ret != 0x00){
                 LOG_D("rfidr using default key authenticate");
                 for(key = 0x00; key < APP_RFIDR_KEY_TYPE_SIZE; key++){
                     ret = rfid_dev_api_key_authentication(s_rfidr_sector, s_rfidr_block, s_rfidr_card_key[key], sizeof(s_rfidr_card_key[key]));

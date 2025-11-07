@@ -227,7 +227,7 @@ static int32_t card_block_using_external_key_authenticate(void *handle, uint8_t 
     data = sys_read_config_item_content(CONFIG_ITEM_CARD_KEY, 0x00);
     dlen = strlen((char*)data);
     if(dlen < (2 *APP_CARD_KEY_LEN_MAX)){
-        LOG_D("app_card external card key invalid(len error)");
+        LOG_D("app_card external card key invalid(len error(len:%d, key:%s))", dlen, data);
         return -0x01;
     }
     dlen = dlen > (2 *APP_CARD_KEY_LEN_MAX) ? (2 *APP_CARD_KEY_LEN_MAX) : dlen;
