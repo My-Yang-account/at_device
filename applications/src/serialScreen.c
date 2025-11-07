@@ -5459,7 +5459,7 @@ void SerialScreen_IsSupportSetFlash(void)
     UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_OFFLINE_CARD, (u8 *)&(LcdData.setData.Icon_SupOffCard), sizeof(LcdData.setData.Icon_SupOffCard));
     UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_MODE_SELECT, (u8 *)&(LcdData.setData.Icon_SupModeSelect), sizeof(LcdData.setData.Icon_SupModeSelect));
     UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_CARD_BLOCK_SN, (u8 *)&config_item, sizeof(config_item));
-    UI_SYNC_SINGLE_CFG_STR(CONFIG_ITEM_CARD_KEY, (u8 *)(LcdData.setData.Card_Key), (sizeof(LcdData.setData.Card_Key) - 1));
+    UI_SYNC_SINGLE_CFG_STR(CONFIG_ITEM_CARD_KEY, (u8 *)(LcdData.setData.Card_Key), strlen((char*)LcdData.setData.Card_Key));
 
     for(u8 i = 0; i < sizeof(LcdData.setData.UserPasswdShow); i++){
         if((LcdData.setData.UserPasswdShow[i] < 0x20) ||  \

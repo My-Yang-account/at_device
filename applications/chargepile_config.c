@@ -878,7 +878,7 @@ APP_DEF_SRAM2 static struct config_item s_config_item_set[CONFIG_ITEM_SIZE] =
         NULL},
 
         {CONFIG_ITEM_CARD_KEY,                                                             /* 卡密钥 */
-        (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_info.card_key) - 0x01),
+        (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_info.card_key)),
         (uint8_t*)&s_chargepile_config_info.config_info.card_key,
         NULL},
 
