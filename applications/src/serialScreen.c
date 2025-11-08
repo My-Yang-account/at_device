@@ -514,6 +514,8 @@ struct LCD_DISPLAY_SETDATA_TYPE{
     u16 Max_Limit_Current;              // 最高限电流
     u16 Min_Limit_Current;              // 最低限电流
     u16 SModule_OutCurrentMax;          // 单个模块最大输出电流
+    u16 Min_Limit_Current_Temp;         // 最低限电流(临时保存)
+    u16 SModule_OutCurrentMax_Temp;     // 单个模块最大输出电流(临时保存)
 //	u8 ChargePasswd[6];					//充电密码
 	//u8 AdmindPasswd[10];				//管理员密码     1314
 	u8 UserPasswd[10];					//用户密码 0909
@@ -1691,6 +1693,14 @@ static s32 SerialScreen_ConfigExecute_Module(u8 port, void *data, void *sub_data
     u16 valid_len = 0;
     thaisen_cfg_info_module *config = (thaisen_cfg_info_module*)data;
 
+    /** 获取当前已保存的值 */
+    LcdData.setData.Min_Limit_Current_Temp = *(u16 *)(UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_MIN_LIMIT_CURRENT, 0));
+    LcdData.setData.SModule_OutCurrentMax_Temp = *(u16 *)(UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_SMODULE_OUTCURR_MAX, 0));
+
+    LcdData.setData.Min_Limit_Current_Temp = SerialScreen_GetPara_ValidValue(LcdData.setData.Min_Limit_Current_Temp,
+            MODULE_MIN_LIMIT_CURR_DEF, MODULE_MIN_LIMIT_CURR_MIN, MODULE_MIN_LIMIT_CURR_MAX);
+    LcdData.setData.SModule_OutCurrentMax_Temp = SerialScreen_GetPara_ValidValue(LcdData.setData.SModule_OutCurrentMax_Temp,
+            MODULE_SMODULE_MAX_CURR_DEF, MODULE_SMODULE_MAX_CURR_MIN, MODULE_SMODULE_MAX_CURR_MAX);
 //    SerialScreen_BtnModuleGet();
 
     LcdData.setData.RmType = config->module_protocol;
@@ -3634,6 +3644,43 @@ void SerialScreen_BtnModuleGet(void)
     LcdData.setData.Min_Limit_Current = Min_Limit_Current;
     LcdData.setData.SModule_OutCurrentMax = SModule_OutCurrentMax;
 
+    /** 已修改模块最大输出电流 */
+    if(LcdData.setData.SModule_OutCurrentMax_Temp != LcdData.setData.SModule_OutCurrentMax){
+        LcdData.setData.SModule_OutCurrentMax_Temp = LcdData.setData.SModule_OutCurrentMax;
+        /** 同步指令调试部分 */
+        memset(LcdData.setData.DebugCmd, 0, sizeof(LcdData.setData.DebugCmd));
+        memset(LcdData.setData.DebugCmdPara, 0, sizeof(LcdData.setData.DebugCmdPara));
+
+        memcpy(LcdData.setData.DebugCmd, "MCMAX", strlen("MCMAX"));
+        sprintf((char*)LcdData.setData.DebugCmdPara, "%u", (LcdData.setData.SModule_OutCurrentMax *100));
+        SerialScreen_CmdDebugIssue();
+        LcdData.setData.DebugCmdPara_MCMax = LcdData.setData.DebugCmdPara_MCMaxTemp;
+
+        thaisenSetModuleOutCurrMax(LcdData.setData.SModule_OutCurrentMax *100);
+    }
+    /** 已修改模块最小输出电流 */
+    if(LcdData.setData.Min_Limit_Current_Temp != LcdData.setData.Min_Limit_Current){
+        LcdData.setData.Min_Limit_Current_Temp = LcdData.setData.Min_Limit_Current;
+        /** 同步指令调试部分 */
+        memset(LcdData.setData.DebugCmd, 0, sizeof(LcdData.setData.DebugCmd));
+        memset(LcdData.setData.DebugCmdPara, 0, sizeof(LcdData.setData.DebugCmdPara));
+
+        memcpy(LcdData.setData.DebugCmd, "MCMIN", strlen("MCMIN"));
+        if(LcdData.setData.Min_Limit_Current == 0){
+            sprintf((char*)LcdData.setData.DebugCmdPara, "%u", 50);
+        }else{
+            sprintf((char*)LcdData.setData.DebugCmdPara, "%u", (LcdData.setData.Min_Limit_Current *100));
+        }
+        SerialScreen_CmdDebugIssue();
+        LcdData.setData.DebugCmdPara_MCMin = LcdData.setData.DebugCmdPara_MCMinTemp;
+
+        if(LcdData.setData.Min_Limit_Current == 0){
+            thaisenSetModuleOutCurrMin(50);
+        }else{
+            thaisenSetModuleOutCurrMin(LcdData.setData.Min_Limit_Current *100);
+        }
+    }
+
     extern void thaisenSetModuleMaxVolt(uint16_t volt);
     extern void thaisenSetModuleMinVolt(uint16_t volt);
     extern void thaisenSetModuleMaxCurr(uint16_t curr);
@@ -3649,9 +3696,6 @@ void SerialScreen_BtnModuleGet(void)
 
     thaisenSetModuleMaxChargVolt(LcdData.setData.Max_Output_Voltage *10);
     thaisenSetModuleMaxChargCurr(LcdData.setData.Max_Limit_Current *10);
-
-    thaisenSetModuleOutCurrMax(LcdData.setData.SModule_OutCurrentMax *100);
-//    thaisenSetModuleOutCurrMin(LcdData.setData.Min_Limit_Current *100);
 
 #ifdef SCREEN_USING_DOUBLE_GUN
     thaisenSetModuleMaxChargCurrGroup(0, LcdData.setData.Max_Limit_Current *10 /2);
@@ -3805,6 +3849,43 @@ void SerialScreen_BtnModuleSet(void)
     UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_MIN_LIMIT_CURRENT, &LcdData.setData.Min_Limit_Current, sizeof(LcdData.setData.Min_Limit_Current));
     UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_SMODULE_OUTCURR_MAX, &LcdData.setData.SModule_OutCurrentMax, sizeof(LcdData.setData.SModule_OutCurrentMax));
 
+    /** 已修改模块最大输出电流 */
+    if(LcdData.setData.SModule_OutCurrentMax_Temp != LcdData.setData.SModule_OutCurrentMax){
+        LcdData.setData.SModule_OutCurrentMax_Temp = LcdData.setData.SModule_OutCurrentMax;
+        /** 同步指令调试部分 */
+        memset(LcdData.setData.DebugCmd, 0, sizeof(LcdData.setData.DebugCmd));
+        memset(LcdData.setData.DebugCmdPara, 0, sizeof(LcdData.setData.DebugCmdPara));
+
+        memcpy(LcdData.setData.DebugCmd, "MCMAX", strlen("MCMAX"));
+        sprintf((char*)LcdData.setData.DebugCmdPara, "%u", (LcdData.setData.SModule_OutCurrentMax *100));
+        SerialScreen_CmdDebugIssue();
+        LcdData.setData.DebugCmdPara_MCMax = LcdData.setData.DebugCmdPara_MCMaxTemp;
+
+        thaisenSetModuleOutCurrMax(LcdData.setData.SModule_OutCurrentMax *100);
+    }
+    /** 已修改模块最小输出电流 */
+    if(LcdData.setData.Min_Limit_Current_Temp != LcdData.setData.Min_Limit_Current){
+        LcdData.setData.Min_Limit_Current_Temp = LcdData.setData.Min_Limit_Current;
+        /** 同步指令调试部分 */
+        memset(LcdData.setData.DebugCmd, 0, sizeof(LcdData.setData.DebugCmd));
+        memset(LcdData.setData.DebugCmdPara, 0, sizeof(LcdData.setData.DebugCmdPara));
+
+        memcpy(LcdData.setData.DebugCmd, "MCMIN", strlen("MCMIN"));
+        if(LcdData.setData.Min_Limit_Current == 0){
+            sprintf((char*)LcdData.setData.DebugCmdPara, "%u", 50);
+        }else{
+            sprintf((char*)LcdData.setData.DebugCmdPara, "%u", (LcdData.setData.Min_Limit_Current *100));
+        }
+        SerialScreen_CmdDebugIssue();
+        LcdData.setData.DebugCmdPara_MCMin = LcdData.setData.DebugCmdPara_MCMinTemp;
+
+        if(LcdData.setData.Min_Limit_Current == 0){
+            thaisenSetModuleOutCurrMin(50);
+        }else{
+            thaisenSetModuleOutCurrMin(LcdData.setData.Min_Limit_Current *100);
+        }
+    }
+
     data = LcdData.setData.LPModule;
     UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_LP_MODULE, &data, sizeof(data));
 
@@ -3836,9 +3917,6 @@ void SerialScreen_BtnModuleSet(void)
 
     thaisenSetModuleMaxChargVolt(LcdData.setData.Max_Output_Voltage *10);
     thaisenSetModuleMaxChargCurr(LcdData.setData.Max_Limit_Current *10);
-
-    thaisenSetModuleOutCurrMax(LcdData.setData.SModule_OutCurrentMax *100);
-//    thaisenSetModuleOutCurrMin(LcdData.setData.Min_Limit_Current *100);
 
 #ifdef SCREEN_USING_DOUBLE_GUN
     thaisenSetModuleMaxChargCurrGroup(0, LcdData.setData.Max_Limit_Current *10 /2);
@@ -4707,14 +4785,32 @@ void SerialScreen_CmdDebugInfoSet(void)
 
     /** 此处需要判断是否有数据要修改，有修改时才执行保存操作 */
     if(LcdData.setData.DebugCmdPara_MCMin != LcdData.setData.DebugCmdPara_MCMinTemp){
-//        is_changed = 1;
+        u16 data = *(u16 *)(UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_MIN_LIMIT_CURRENT, 0));
+
         LcdData.setData.DebugCmdPara_MCMin = LcdData.setData.DebugCmdPara_MCMinTemp;
         thaisenSetModuleOutCurrMin(LcdData.setData.DebugCmdPara_MCMin);
+
+        data = SerialScreen_GetPara_ValidValue(data, MODULE_MIN_LIMIT_CURR_DEF, MODULE_MIN_LIMIT_CURR_MIN, MODULE_MIN_LIMIT_CURR_MAX);
+        LcdData.setData.Min_Limit_Current = (LcdData.setData.DebugCmdPara_MCMinTemp /100);
+        LcdData.setData.Min_Limit_Current_Temp = LcdData.setData.Min_Limit_Current;
+        if(data != LcdData.setData.Min_Limit_Current){
+            is_changed = 1;
+            UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_MIN_LIMIT_CURRENT, &LcdData.setData.Min_Limit_Current, sizeof(LcdData.setData.Min_Limit_Current));
+        }
     }
     if(LcdData.setData.DebugCmdPara_MCMax != LcdData.setData.DebugCmdPara_MCMaxTemp){
-//        is_changed = 1;
+        u16 data = *(u16 *)(UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_SMODULE_OUTCURR_MAX, 0));
+
         LcdData.setData.DebugCmdPara_MCMax = LcdData.setData.DebugCmdPara_MCMaxTemp;
         thaisenSetModuleOutCurrMax(LcdData.setData.DebugCmdPara_MCMax);
+
+        data = SerialScreen_GetPara_ValidValue(data, MODULE_SMODULE_MAX_CURR_DEF, MODULE_SMODULE_MAX_CURR_MIN, MODULE_SMODULE_MAX_CURR_MAX);
+        LcdData.setData.SModule_OutCurrentMax = (LcdData.setData.DebugCmdPara_MCMaxTemp /100);
+        LcdData.setData.SModule_OutCurrentMax_Temp = LcdData.setData.SModule_OutCurrentMax;
+        if(data != LcdData.setData.SModule_OutCurrentMax){
+            is_changed = 1;
+            UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_SMODULE_OUTCURR_MAX, &LcdData.setData.SModule_OutCurrentMax, sizeof(LcdData.setData.SModule_OutCurrentMax));
+        }
     }
 
     if(LcdData.setData.Icon_BatVoltDetect != LcdData.setData.sup_BatVoltDetect){
@@ -4960,6 +5056,8 @@ void SerialScreen_CmdDebugIssue(void)
         {
             if((used_len < blen) && ParaStr){
                 u32 para = atol(ParaStr);
+
+                para = SerialScreen_GetPara_ValidValue(para, (MODULE_MIN_LIMIT_CURR_DEF *100), (MODULE_MIN_LIMIT_CURR_MIN *100), (MODULE_MIN_LIMIT_CURR_MAX *100));
                 thaisen_get_cmd_debug_result_info(THA_DEBUG_LANGUAGE_CHINESE, THAISEN_DEBUG_CMD_ISSUE_MODULE_CURR_MIN, (u8*)&para, sizeof(para), \
                         (LcdData.setData.DebugResult + used_len), (blen - used_len));
                 /** 保存指令参数 */
@@ -10287,6 +10385,10 @@ struct LCD_DATA_FIFO_TYPE *SerialScreen_Init(struct SerialScreenObj *cmd)
     len = strlen((char*)(LcdData.setData.UserPasswdShow));
     memcpy(LcdData.setData.UserPasswd, LcdData.setData.UserPasswdShow, sizeof(LcdData.setData.UserPasswdShow));
     memset(LcdData.setData.UserPasswdShow, '*', len);
+
+    /** 保证初始化顺利进行 */
+    LcdData.setData.SModule_OutCurrentMax_Temp = (MODULE_SMODULE_MAX_CURR_MAX + 1);
+    LcdData.setData.Min_Limit_Current_Temp = 0xFFFF;
 
     SerialScreen_InitInfo_Pro();
 

@@ -314,7 +314,7 @@
 #define MODULE_MAX_LIMIT_CURR_MIN                 10        /* 模块最大限电流最小值 */
 
 #define MODULE_MIN_LIMIT_CURR_DEF                 2         /* 模块最小限电流默认值(要和模块库的兼容) */
-#define MODULE_MIN_LIMIT_CURR_MAX                 2         /* 模块最小限电流最大值(要和模块库的兼容) */
+#define MODULE_MIN_LIMIT_CURR_MAX                 10        /* 模块最小限电流最大值(要和模块库的兼容) */
 #define MODULE_MIN_LIMIT_CURR_MIN                 0         /* 模块最小限电流最小值(要和模块库的兼容) */
 
 #define MODULE_SMODULE_MAX_CURR_DEF               10000     /* 模块最大限电流值默认值(要和模块库的兼容) */
