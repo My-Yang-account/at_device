@@ -78,7 +78,7 @@ extern "C" {
 
 #define SOFTWARE_VERSION       2L
 #define SOFTWARE_SUBVERSION    1
-#define SOFTWARE_REVISION      3L  /** 02 */
+#define SOFTWARE_REVISION      3L  /* 02 */
 
 #else
 
