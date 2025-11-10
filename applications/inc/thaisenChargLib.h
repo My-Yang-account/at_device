@@ -143,24 +143,28 @@ struct thaisenBMS_Charger_struct* thaisen_get_bms_data(uint8_t gunNum);
 /*****************************车主动停祥因(BST)*****************************************/
 typedef struct
 {
-    uint8_t  SOCGetObj           :2; //SOC达到目标值           00:未达到  01:达到 11:不可信状态
-    uint8_t  VoltGetObj          :2; //总电压达到目标值        00:未达到  01:达到 11:不可信状态
-    uint8_t  CeliVoltGetObj      :2; //单体电压达到目标值      00:未达到  01:达到 11:不可信状态
-    uint8_t  ChargInitiStop      :2; //充电机主动停止
+    struct
+    {
+        uint8_t  SOCGetObj           :2; //SOC达到目标值           00:未达到  01:达到 11:不可信状态
+        uint8_t  VoltGetObj          :2; //总电压达到目标值        00:未达到  01:达到 11:不可信状态
+        uint8_t  CeliVoltGetObj      :2; //单体电压达到目标值      00:未达到  01:达到 11:不可信状态
+        uint8_t  ChargInitiStop      :2; //充电机主动停止
 
-    uint8_t  InsltFault          :2; //绝缘故障           00:正常  01:故障 10:不可信状态
-    uint8_t  OutConectOVtemp     :2; //输出连接器故障     00:正常  01:故障 10:不可信状态
-    uint8_t  BMSCompOVtemp       :2; //BMS元件故障        00:正常  01:故障 10:不可信状态
-    uint8_t  Conectfault         :2; //充电连接故障
+        uint8_t  InsltFault          :2; //绝缘故障           00:正常  01:故障 10:不可信状态
+        uint8_t  OutConectOVtemp     :2; //输出连接器故障     00:正常  01:故障 10:不可信状态
+        uint8_t  BMSCompOVtemp       :2; //BMS元件故障        00:正常  01:故障 10:不可信状态
+        uint8_t  Conectfault         :2; //充电连接故障
 
-    uint8_t  BatOVtemp           :2; //电池组温度故障     00:正常  01:故障 10:不可信状态
-    uint8_t  HVRelaysFault       :2; //高压继电器故障     00:正常  01:故障 10:不可信状态
-    uint8_t  Check2Ft            :2; //检测点2电压检测故障00:正常  01:故障 10:不可信状态
-    uint8_t  OtherFt             :2; //其他故障
+        uint8_t  BatOVtemp           :2; //电池组温度故障     00:正常  01:故障 10:不可信状态
+        uint8_t  HVRelaysFault       :2; //高压继电器故障     00:正常  01:故障 10:不可信状态
+        uint8_t  Check2Ft            :2; //检测点2电压检测故障00:正常  01:故障 10:不可信状态
+        uint8_t  OtherFt             :2; //其他故障
 
-    uint8_t  OverCurlt           :2; //充电电流过流       00:正常  01:超过需求值 01:不可信状态
-    uint8_t  Voltfault           :2; //充电电压异常       00:正常  01:电压异常   01:不可信状态
-    uint8_t  Reserve : 4;            //预留
+        uint8_t  OverCurlt           :2; //充电电流过流       00:正常  01:超过需求值 01:不可信状态
+        uint8_t  Voltfault           :2; //充电电压异常       00:正常  01:电压异常   01:不可信状态
+        uint8_t  Reserve : 4;            //预留
+    }data;
+    uint8_t Recved;                      //报文已接收到
 }thaisenBSTDetailed_t;
 
 /* 功能说明:
@@ -177,21 +181,25 @@ thaisenBSTDetailed_t thaisenGetBSTDetailed(uint8_t gunNum);
 /*****************************车故障停祥因(BSM)*****************************************/
 typedef struct
 {
-    uint8_t  HigVoltCellNum;  //最高单体电压单体所在编号
-    int8_t   HigTemp;         //动力电池最高温度   1°/bit  -50-200 偏移-50
-    uint8_t  HigTempNum;      //最高温度检测点编号
-    int8_t   LowTemp;         //动力电池最低温度   1°/bit  -50-200 偏移-50
-    uint8_t  LowTempNum;      //最低温度检测点编号
+    struct
+    {
+        uint8_t  HigVoltCellNum;  //最高单体电压单体所在编号
+        int8_t   HigTemp;         //动力电池最高温度   1°/bit  -50-200 偏移-50
+        uint8_t  HigTempNum;      //最高温度检测点编号
+        int8_t   LowTemp;         //动力电池最低温度   1°/bit  -50-200 偏移-50
+        uint8_t  LowTempNum;      //最低温度检测点编号
 
-    uint8_t  CellOverVolt:2;  //单体过压           00:正常  01:过高 01:过低
-    uint8_t  SOCState    :2;  //SOC状态            00:正常  01:过高 01:过低
-    uint8_t  BatOverCurlt:2;  //电池充电过流       00:正常  01:过高 01:过低
-    uint8_t  BatOverTemp :2;  //电池温度过高       00:正常  01:过高 01:过低
+        uint8_t  CellOverVolt:2;  //单体过压           00:正常  01:过高 01:过低
+        uint8_t  SOCState    :2;  //SOC状态            00:正常  01:过高 01:过低
+        uint8_t  BatOverCurlt:2;  //电池充电过流       00:正常  01:过高 01:过低
+        uint8_t  BatOverTemp :2;  //电池温度过高       00:正常  01:过高 01:过低
 
-    uint8_t  Insulat     :2;  //电池绝缘状态       00:正常  01:不正常 01:不可信状态
-    uint8_t  OutConect   :2;  //输出连接器状态     00:正常  01:不正常 01:不可信状态
-    uint8_t  AllowChg    :2;  //允许充电           00:禁止  01:允许
-    uint8_t  Reserve : 2;     //预留
+        uint8_t  Insulat     :2;  //电池绝缘状态       00:正常  01:不正常 01:不可信状态
+        uint8_t  OutConect   :2;  //输出连接器状态     00:正常  01:不正常 01:不可信状态
+        uint8_t  AllowChg    :2;  //允许充电           00:禁止  01:允许
+        uint8_t  Reserve : 2;     //预留
+    }data;
+    uint8_t Recved;               //报文已接收到
 }thaisenBSMDetailed_t;
 
 /* 功能说明:
@@ -208,20 +216,24 @@ thaisenBSMDetailed_t thaisenGetBSMDetailed(uint8_t gunNum);
 /*****************************桩通讯超时祥因(BEM)*****************************************/
 typedef struct
 {
-    uint8_t  CRM00OVtime      :2; //接收CRM_A 00超时   00:正常   01:超时  01:不可信状态
-    uint8_t  CRMAAOVtime      :2; //接收CRM_A AA超时   00:正常   01:超时  01:不可信状态
-    uint8_t                   :4;
+    struct
+    {
+        uint8_t  CRM00OVtime      :2; //接收CRM_A 00超时   00:正常   01:超时  01:不可信状态
+        uint8_t  CRMAAOVtime      :2; //接收CRM_A AA超时   00:正常   01:超时  01:不可信状态
+        uint8_t                   :4;
 
-    uint8_t  CTSCMLOVtime     :2; //接收CTS_A.CML_A超时  00:正常   01:超时  01:不可信状态
-    uint8_t  CROOVtime        :2; //接收CRO_A超时      00:正常   01:超时  01:不可信状态
-    uint8_t                   :4;
+        uint8_t  CTSCMLOVtime     :2; //接收CTS_A.CML_A超时  00:正常   01:超时  01:不可信状态
+        uint8_t  CROOVtime        :2; //接收CRO_A超时      00:正常   01:超时  01:不可信状态
+        uint8_t                   :4;
 
-    uint8_t  CCSOVtime        :2; //接收CCS_A超时      00:正常   01:超时  01:不可信状态
-    uint8_t  CSTOVtime        :2; //接收CST_A超时      00:正常   01:超时  01:不可信状态
-    uint8_t                   :4;
+        uint8_t  CCSOVtime        :2; //接收CCS_A超时      00:正常   01:超时  01:不可信状态
+        uint8_t  CSTOVtime        :2; //接收CST_A超时      00:正常   01:超时  01:不可信状态
+        uint8_t                   :4;
 
-    uint8_t  CSDOVtime        :2; //接收CSD_A超时      00:正常   01:超时  01:不可信状态
-    uint8_t                   :6;
+        uint8_t  CSDOVtime        :2; //接收CSD_A超时      00:正常   01:超时  01:不可信状态
+        uint8_t                   :6;
+    }data;
+    uint8_t Recved;               //报文已接收到
 }thaisenBEMDetailed_t;
 
 /* 功能说明:
@@ -243,6 +255,8 @@ typedef struct
     uint16_t CellHigVolt;  //最高单体电压       0.01V/bit  0-24V
     uint8_t  LowTemp;      //动力电池最低温度   0.1°/bit  -50-200 偏移-50
     uint8_t  HigTemp;      //动力电池最高温度   0.1°/bit  -50-200 偏移-50
+
+    uint8_t Recved;        //报文已接收到
 }thaisenBSDDetailed_t;
 
 /* 功能说明:
@@ -403,6 +417,8 @@ typedef struct
     uint8_t  Reserve4;                         //保留(填充0xFF)
     uint8_t  Reserve5;                         //保留(填充0xFF)
     uint8_t  Reserve6;                         //保留(填充0xFF)
+
+    uint8_t  Recved;                           //报文已收到
 }thaisenYT_BFC;
 
 /************************* 电流无偏移FAST 协议 *************************/

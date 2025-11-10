@@ -2517,6 +2517,8 @@ struct yt_bfc{
     uint8_t reserve4;                                      /** 保留(填充0xFF) */
     uint8_t reserve5;                                      /** 保留(填充0xFF) */
     uint8_t reserve6;                                      /** 保留(填充0xFF) */
+
+    uint8_t is_recved;                                     /** 已接收到报文 */
 };
 
 /** 开始CRM报文 */
@@ -2553,61 +2555,70 @@ struct brm{
 /****** BMS标准报文 ******/
 /** BST报文 */
 struct bst{
-    uint8_t target_soc : 2;                                    /** SOC达到目标值           00:未达到  01:达到 11:不可信状态 */
-    uint8_t target_total_volt : 2;                             /** 总电压达到目标值        00:未达到  01:达到 11:不可信状态 */
-    uint8_t target_single_volt : 2;                            /** 单体电压达到目标值      00:未达到  01:达到 11:不可信状态 */
-    uint8_t charger_end : 2;                                   /** 充电机主动停止 */
+    struct{
+        uint8_t target_soc : 2;                                /** SOC达到目标值           00:未达到  01:达到 11:不可信状态 */
+        uint8_t target_total_volt : 2;                         /** 总电压达到目标值        00:未达到  01:达到 11:不可信状态 */
+        uint8_t target_single_volt : 2;                        /** 单体电压达到目标值      00:未达到  01:达到 11:不可信状态 */
+        uint8_t charger_end : 2;                               /** 充电机主动停止 */
 
-    uint8_t insultion_fault : 2;                               /** 绝缘故障           00:正常  01:故障 10:不可信状态 */
-    uint8_t outlinker_fault : 2;                               /** 输出连接器故障     00:正常  01:故障 10:不可信状态 */
-    uint8_t bms_element_fault : 2;                             /** BMS元件故障        00:正常  01:故障 10:不可信状态 */
-    uint8_t charge_linker_fault : 2;                           /** 充电连接故障 */
+        uint8_t insultion_fault : 2;                           /** 绝缘故障           00:正常  01:故障 10:不可信状态 */
+        uint8_t outlinker_fault : 2;                           /** 输出连接器故障     00:正常  01:故障 10:不可信状态 */
+        uint8_t bms_element_fault : 2;                         /** BMS元件故障        00:正常  01:故障 10:不可信状态 */
+        uint8_t charge_linker_fault : 2;                       /** 充电连接故障 */
 
-    uint8_t bat_group_fault : 2;                               /** 电池组温度故障     00:正常  01:故障 10:不可信状态 */
-    uint8_t hv_relay_fault : 2;                                /** 高压继电器故障     00:正常  01:故障 10:不可信状态 */
-    uint8_t detect_point_2 : 2;                                /** 检测点2电压检测故障00:正常  01:故障 10:不可信状态 */
-    uint8_t other_fault : 2;                                   /** 其他故障 */
+        uint8_t bat_group_fault : 2;                           /** 电池组温度故障     00:正常  01:故障 10:不可信状态 */
+        uint8_t hv_relay_fault : 2;                            /** 高压继电器故障     00:正常  01:故障 10:不可信状态 */
+        uint8_t detect_point_2 : 2;                            /** 检测点2电压检测故障00:正常  01:故障 10:不可信状态 */
+        uint8_t other_fault : 2;                               /** 其他故障 */
 
-    uint8_t over_curr : 2;                                     /** 充电电流过流       00:正常  01:超过需求值 01:不可信状态 */
-    uint8_t volt_abnormal : 2;                                 /** 充电电压异常       00:正常  01:电压异常   01:不可信状态 */
-    uint8_t reserve : 4;                                       /** 预留 */
+        uint8_t over_curr : 2;                                 /** 充电电流过流       00:正常  01:超过需求值 01:不可信状态 */
+        uint8_t volt_abnormal : 2;                             /** 充电电压异常       00:正常  01:电压异常   01:不可信状态 */
+        uint8_t reserve : 4;                                   /** 预留 */
+    }data;
+    uint8_t is_recved;                                         /** 已接收到报文 */
 };
 
 /** BSM报文 */
 struct bsm{
-    uint8_t max_singlevolt_sn;                                 /** 最高单体电压单体所在编号 */
-    int8_t highest_temp;                                       /** 动力电池最高温度   1°/bit  -50-200 偏移-50 */
-    uint8_t highest_temp_sn;                                   /** 最高温度检测点编号 */
-    int8_t lowest_temp;                                        /** 动力电池最低温度   1°/bit  -50-200 偏移-50 */
-    uint8_t lowest_temp_sn;                                    /** 最低温度检测点编号 */
+    struct{
+        uint8_t max_singlevolt_sn;                             /** 最高单体电压单体所在编号 */
+        int8_t highest_temp;                                   /** 动力电池最高温度   1°/bit  -50-200 偏移-50 */
+        uint8_t highest_temp_sn;                               /** 最高温度检测点编号 */
+        int8_t lowest_temp;                                    /** 动力电池最低温度   1°/bit  -50-200 偏移-50 */
+        uint8_t lowest_temp_sn;                                /** 最低温度检测点编号 */
 
-    uint8_t singlevolt_over : 2;                               /** 单体过压           00:正常  01:过高 01:过低 */
-    uint8_t soc_state : 2;                                     /** SOC状态            00:正常  01:过高 01:过低 */
-    uint8_t bat_overcurrr : 2;                                 /** 电池充电过流       00:正常  01:过高 01:过低 */
-    uint8_t bat_overtemp : 2;                                  /** 电池温度过高       00:正常  01:过高 01:过低 */
+        uint8_t singlevolt_over : 2;                           /** 单体过压           00:正常  01:过高 01:过低 */
+        uint8_t soc_state : 2;                                 /** SOC状态            00:正常  01:过高 01:过低 */
+        uint8_t bat_overcurrr : 2;                             /** 电池充电过流       00:正常  01:过高 01:过低 */
+        uint8_t bat_overtemp : 2;                              /** 电池温度过高       00:正常  01:过高 01:过低 */
 
-    uint8_t insultion_state : 2;                               /** 电池绝缘状态       00:正常  01:不正常 01:不可信状态 */
-    uint8_t outlinker_state : 2;                               /** 输出连接器状态     00:正常  01:不正常 01:不可信状态 */
-    uint8_t is_allow_charge : 2;                               /** 允许充电           00:禁止  01:允许 */
-    uint8_t reserve : 2;                                       /** 预留 */
+        uint8_t insultion_state : 2;                           /** 电池绝缘状态       00:正常  01:不正常 01:不可信状态 */
+        uint8_t outlinker_state : 2;                           /** 输出连接器状态     00:正常  01:不正常 01:不可信状态 */
+        uint8_t is_allow_charge : 2;                           /** 允许充电           00:禁止  01:允许 */
+        uint8_t reserve : 2;                                   /** 预留 */
+    }data;
+    uint8_t is_recved;                                         /** 已接收到报文 */
 };
 
 /** BEM报文 */
 struct bem{
-    uint8_t crm_00_timeout : 2;                                /** 接收CRM_A 00超时   00:正常   01:超时  01:不可信状态 */
-    uint8_t crm_aa_timeout : 2;                                /** 接收CRM_A AA超时   00:正常   01:超时  01:不可信状态 */
-    uint8_t : 4;
+    struct{
+        uint8_t crm_00_timeout : 2;                            /** 接收CRM_A 00超时   00:正常   01:超时  01:不可信状态 */
+        uint8_t crm_aa_timeout : 2;                            /** 接收CRM_A AA超时   00:正常   01:超时  01:不可信状态 */
+        uint8_t : 4;
 
-    uint8_t cts_cml_timeout : 2;                               /** 接收CTS_A.CML_A超时  00:正常   01:超时  01:不可信状态 */
-    uint8_t cro_aa_timeout : 2;                                /** 接收CRO_A超时      00:正常   01:超时  01:不可信状态 */
-    uint8_t : 4;
+        uint8_t cts_cml_timeout : 2;                           /** 接收CTS_A.CML_A超时  00:正常   01:超时  01:不可信状态 */
+        uint8_t cro_aa_timeout : 2;                            /** 接收CRO_A超时      00:正常   01:超时  01:不可信状态 */
+        uint8_t : 4;
 
-    uint8_t ccs_timeout : 2;                                   /** 接收CCS_A超时      00:正常   01:超时  01:不可信状态 */
-    uint8_t cst_timeout : 2;                                   /** 接收CST_A超时      00:正常   01:超时  01:不可信状态 */
-    uint8_t : 4;
+        uint8_t ccs_timeout : 2;                               /** 接收CCS_A超时      00:正常   01:超时  01:不可信状态 */
+        uint8_t cst_timeout : 2;                               /** 接收CST_A超时      00:正常   01:超时  01:不可信状态 */
+        uint8_t : 4;
 
-    uint8_t csd_timeout : 2;                                   /** 接收CSD_A超时      00:正常   01:超时  01:不可信状态 */
-    uint8_t : 6;
+        uint8_t csd_timeout : 2;                               /** 接收CSD_A超时      00:正常   01:超时  01:不可信状态 */
+        uint8_t : 6;
+    }data;
+    uint8_t is_recved;                                         /** 已接收到报文 */
 };
 
 /** BSD报文 */
@@ -2617,6 +2628,8 @@ struct bsd{
     uint16_t singlevolt_highest;                               /** 最高单体电压       0.01V/bit  0-24V */
     uint8_t temp_lowest;                                       /** 动力电池最低温度   0.1°/bit  -50-200 偏移-50 */
     uint8_t temp_highest;                                      /** 动力电池最高温度   0.1°/bit  -50-200 偏移-50 */
+
+    uint8_t is_recved;                                         /** 已接收到报文 */
 };
 
 /** 其它数据 */

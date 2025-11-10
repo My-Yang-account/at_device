@@ -88,31 +88,31 @@ static uint16_t mw_convert_to_system_stopway(uint8_t gunno, thaisenChargeCtlStop
             return way;
         }
         thaisenBSTDetailed_t reason = thaisenGetBSTDetailed(gunno);
-        if(reason.SOCGetObj){
+        if(reason.data.SOCGetObj){
             return thaisen_chargeCtl_stopWay_BST_TargetSOC;
-        }else if(reason.VoltGetObj){
+        }else if(reason.data.VoltGetObj){
             return thaisen_chargeCtl_stopWay_BST_TargetTotalVolt;
-        }else if(reason.CeliVoltGetObj){
+        }else if(reason.data.CeliVoltGetObj){
             return thaisen_chargeCtl_stopWay_BST_TargetSingleVolt;
-        }else if(reason.ChargInitiStop){
+        }else if(reason.data.ChargInitiStop){
             return thaisen_chargeCtl_stopWay_BST_ChargerEnd;
-        }else if(reason.InsltFault){
+        }else if(reason.data.InsltFault){
             return thaisen_chargeCtl_stopWay_BST_InsultionFault;
-        }else if(reason.OutConectOVtemp){
+        }else if(reason.data.OutConectOVtemp){
             return thaisen_chargeCtl_stopWay_BST_OutLinkerFault;
-        }else if(reason.BMSCompOVtemp){
+        }else if(reason.data.BMSCompOVtemp){
             return thaisen_chargeCtl_stopWay_BST_BMSElement;
-        }else if(reason.Conectfault){
+        }else if(reason.data.Conectfault){
             return thaisen_chargeCtl_stopWay_BST_ChargeLinkerFault;
-        }else if(reason.BatOVtemp){
+        }else if(reason.data.BatOVtemp){
             return thaisen_chargeCtl_stopWay_BST_BatGroupOT;
-        }else if(reason.HVRelaysFault){
+        }else if(reason.data.HVRelaysFault){
             return thaisen_chargeCtl_stopWay_BST_HV_Relay;
-        }else if(reason.Check2Ft){
+        }else if(reason.data.Check2Ft){
             return thaisen_chargeCtl_stopWay_BST_DetectPiont_2;
-        }else if(reason.OverCurlt){
+        }else if(reason.data.OverCurlt){
             return thaisen_chargeCtl_stopWay_BST_OverCurrent;
-        }else if(reason.Voltfault){
+        }else if(reason.data.Voltfault){
             return thaisen_chargeCtl_stopWay_BST_AbnormalVoltage;
         }else{
             return thaisen_chargeCtl_stopWay_BST;
@@ -124,19 +124,19 @@ static uint16_t mw_convert_to_system_stopway(uint8_t gunno, thaisenChargeCtlStop
             return way;
         }
         thaisenBSMDetailed_t reason = thaisenGetBSMDetailed(gunno);
-        if(reason.CellOverVolt){
+        if(reason.data.CellOverVolt){
             return thaisen_chargeCtl_stopWay_BSM_SingleBat_OV;
-        }else if(reason.SOCState){
+        }else if(reason.data.SOCState){
             return thaisen_chargeCtl_stopWay_BSM_AbnormalSOC;
-        }else if(reason.BatOverCurlt){
+        }else if(reason.data.BatOverCurlt){
             return thaisen_chargeCtl_stopWay_BSM_OverCurrent;
-        }else if(reason.BatOverTemp){
+        }else if(reason.data.BatOverTemp){
             return thaisen_chargeCtl_stopWay_BSM_BatteryOT;
-        }else if(reason.Insulat){
+        }else if(reason.data.Insulat){
             return thaisen_chargeCtl_stopWay_BSM_BatInsultionAbnormal;
-        }else if(reason.OutConect){
+        }else if(reason.data.OutConect){
             return thaisen_chargeCtl_stopWay_BSM_OutLinkerAbnormal;
-        }else if(reason.AllowChg){
+        }else if(reason.data.AllowChg){
             return thaisen_chargeCtl_stopWay_BSM_Forbid;
         }else{
             return APP_SYSTEM_STOP_WAY_BSM;

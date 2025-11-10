@@ -8074,9 +8074,10 @@ int8_t ykc_monitor_message_padding_request_bms_message(uint8_t gunno, uint8_t *b
     ((struct yt_bfc*)segment)->reserve4 = info->YT_BFC.Reserve4;
     ((struct yt_bfc*)segment)->reserve5 = info->YT_BFC.Reserve5;
     ((struct yt_bfc*)segment)->reserve6 = info->YT_BFC.Reserve6;
+    ((struct yt_bfc*)segment)->is_recved = info->YT_BFC.Recved;
 
     /********************************** 起始CRM报文 **********************************/
-    segment += sizeof(struct yt_cfc);
+    segment += sizeof(struct yt_bfc);
     head = (struct bms_msg_info_head*)segment;
 
     head->msg_type = NETYKCM_BMS_MSG_CRM_START;
@@ -8167,21 +8168,22 @@ int8_t ykc_monitor_message_padding_request_bms_message(uint8_t gunno, uint8_t *b
     head->msg_type = NETYKCM_BMS_MSG_BST;
     head->msg_len = sizeof(struct bst);
     segment += head_len;
-    ((struct bst*)segment)->target_soc = bst.SOCGetObj;
-    ((struct bst*)segment)->target_total_volt = bst.VoltGetObj;
-    ((struct bst*)segment)->target_single_volt = bst.CeliVoltGetObj;
-    ((struct bst*)segment)->charger_end = bst.ChargInitiStop;
-    ((struct bst*)segment)->insultion_fault = bst.InsltFault;
-    ((struct bst*)segment)->outlinker_fault = bst.OutConectOVtemp;
-    ((struct bst*)segment)->bms_element_fault = bst.BMSCompOVtemp;
-    ((struct bst*)segment)->charge_linker_fault = bst.Conectfault;
-    ((struct bst*)segment)->bat_group_fault = bst.BatOVtemp;
-    ((struct bst*)segment)->hv_relay_fault = bst.HVRelaysFault;
-    ((struct bst*)segment)->detect_point_2 = bst.Check2Ft;
-    ((struct bst*)segment)->other_fault = bst.OtherFt;
-    ((struct bst*)segment)->over_curr = bst.OverCurlt;
-    ((struct bst*)segment)->volt_abnormal = bst.Voltfault;
-    ((struct bst*)segment)->reserve = bst.Reserve;
+    ((struct bst*)segment)->data.target_soc = bst.data.SOCGetObj;
+    ((struct bst*)segment)->data.target_total_volt = bst.data.VoltGetObj;
+    ((struct bst*)segment)->data.target_single_volt = bst.data.CeliVoltGetObj;
+    ((struct bst*)segment)->data.charger_end = bst.data.ChargInitiStop;
+    ((struct bst*)segment)->data.insultion_fault = bst.data.InsltFault;
+    ((struct bst*)segment)->data.outlinker_fault = bst.data.OutConectOVtemp;
+    ((struct bst*)segment)->data.bms_element_fault = bst.data.BMSCompOVtemp;
+    ((struct bst*)segment)->data.charge_linker_fault = bst.data.Conectfault;
+    ((struct bst*)segment)->data.bat_group_fault = bst.data.BatOVtemp;
+    ((struct bst*)segment)->data.hv_relay_fault = bst.data.HVRelaysFault;
+    ((struct bst*)segment)->data.detect_point_2 = bst.data.Check2Ft;
+    ((struct bst*)segment)->data.other_fault = bst.data.OtherFt;
+    ((struct bst*)segment)->data.over_curr = bst.data.OverCurlt;
+    ((struct bst*)segment)->data.volt_abnormal = bst.data.Voltfault;
+    ((struct bst*)segment)->data.reserve = bst.data.Reserve;
+    ((struct bst*)segment)->is_recved = bst.Recved;
 
     /********************************** BSM报文 **********************************/
     segment += sizeof(struct bst);
@@ -8190,19 +8192,20 @@ int8_t ykc_monitor_message_padding_request_bms_message(uint8_t gunno, uint8_t *b
     head->msg_type = NETYKCM_BMS_MSG_BSM;
     head->msg_len = sizeof(struct bsm);
     segment += head_len;
-    ((struct bsm*)segment)->max_singlevolt_sn = bsm.HigVoltCellNum;
-    ((struct bsm*)segment)->highest_temp = bsm.HigTemp;
-    ((struct bsm*)segment)->highest_temp_sn = bsm.HigTempNum;
-    ((struct bsm*)segment)->lowest_temp = bsm.LowTemp;
-    ((struct bsm*)segment)->lowest_temp_sn = bsm.LowTempNum;
-    ((struct bsm*)segment)->singlevolt_over = bsm.CellOverVolt;
-    ((struct bsm*)segment)->soc_state = bsm.SOCState;
-    ((struct bsm*)segment)->bat_overcurrr = bsm.BatOverCurlt;
-    ((struct bsm*)segment)->bat_overtemp = bsm.BatOverTemp;
-    ((struct bsm*)segment)->insultion_state = bsm.Insulat;
-    ((struct bsm*)segment)->outlinker_state = bsm.OutConect;
-    ((struct bsm*)segment)->is_allow_charge = bsm.AllowChg;
-    ((struct bsm*)segment)->reserve = bsm.Reserve;
+    ((struct bsm*)segment)->data.max_singlevolt_sn = bsm.data.HigVoltCellNum;
+    ((struct bsm*)segment)->data.highest_temp = bsm.data.HigTemp;
+    ((struct bsm*)segment)->data.highest_temp_sn = bsm.data.HigTempNum;
+    ((struct bsm*)segment)->data.lowest_temp = bsm.data.LowTemp;
+    ((struct bsm*)segment)->data.lowest_temp_sn = bsm.data.LowTempNum;
+    ((struct bsm*)segment)->data.singlevolt_over = bsm.data.CellOverVolt;
+    ((struct bsm*)segment)->data.soc_state = bsm.data.SOCState;
+    ((struct bsm*)segment)->data.bat_overcurrr = bsm.data.BatOverCurlt;
+    ((struct bsm*)segment)->data.bat_overtemp = bsm.data.BatOverTemp;
+    ((struct bsm*)segment)->data.insultion_state = bsm.data.Insulat;
+    ((struct bsm*)segment)->data.outlinker_state = bsm.data.OutConect;
+    ((struct bsm*)segment)->data.is_allow_charge = bsm.data.AllowChg;
+    ((struct bsm*)segment)->data.reserve = bsm.data.Reserve;
+    ((struct bsm*)segment)->is_recved = bsm.Recved;
 
     /********************************** BEM报文 **********************************/
     segment += sizeof(struct bsm);
@@ -8211,13 +8214,14 @@ int8_t ykc_monitor_message_padding_request_bms_message(uint8_t gunno, uint8_t *b
     head->msg_type = NETYKCM_BMS_MSG_BEM;
     head->msg_len = sizeof(struct bem);
     segment += head_len;
-    ((struct bem*)segment)->crm_00_timeout = bem.CRM00OVtime;
-    ((struct bem*)segment)->crm_aa_timeout = bem.CRMAAOVtime;
-    ((struct bem*)segment)->cts_cml_timeout = bem.CTSCMLOVtime;
-    ((struct bem*)segment)->cro_aa_timeout = bem.CROOVtime;
-    ((struct bem*)segment)->ccs_timeout = bem.CCSOVtime;
-    ((struct bem*)segment)->cst_timeout = bem.CSTOVtime;
-    ((struct bem*)segment)->csd_timeout = bem.CSDOVtime;
+    ((struct bem*)segment)->data.crm_00_timeout = bem.data.CRM00OVtime;
+    ((struct bem*)segment)->data.crm_aa_timeout = bem.data.CRMAAOVtime;
+    ((struct bem*)segment)->data.cts_cml_timeout = bem.data.CTSCMLOVtime;
+    ((struct bem*)segment)->data.cro_aa_timeout = bem.data.CROOVtime;
+    ((struct bem*)segment)->data.ccs_timeout = bem.data.CCSOVtime;
+    ((struct bem*)segment)->data.cst_timeout = bem.data.CSTOVtime;
+    ((struct bem*)segment)->data.csd_timeout = bem.data.CSDOVtime;
+    ((struct bem*)segment)->is_recved = bem.Recved;
 
     /********************************** BSD报文 **********************************/
     segment += sizeof(struct bem);
@@ -8231,6 +8235,7 @@ int8_t ykc_monitor_message_padding_request_bms_message(uint8_t gunno, uint8_t *b
     ((struct bsd*)segment)->singlevolt_highest = bsd.CellHigVolt;
     ((struct bsd*)segment)->temp_lowest = bsd.LowTemp;
     ((struct bsd*)segment)->temp_highest = bsd.HigTemp;
+    ((struct bsd*)segment)->is_recved = bsd.Recved;
 
     rt_exit_critical();
 
