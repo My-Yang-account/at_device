@@ -5631,7 +5631,8 @@ static void ofsm_charging_fun(uint8_t gunno)
     if(((s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD) && (s_ofsm_info[gunno].base.main_gunno == gunno)) ||
             (s_ofsm_info[gunno].base.charge_way != APP_CHARGE_WAY_PARACHARGE_CLOUD)){
         if(bms_info->BCS.SOC >= *(sys_read_config_item_content(CONFIG_ITEM_SOC_STOP, 0))){
-            if(*(sys_read_config_item_content(CONFIG_ITEM_SOC_STOP, 0)) < 100){
+//            if(*(sys_read_config_item_content(CONFIG_ITEM_SOC_STOP, 0)) < 100)
+            {
                 if(is_stop_charge_authorization == false){
                     s_thaisen_transaction[gunno].stop_reason = APP_SYSTEM_STOP_WAY_SOC_LIMIT;
                     s_ofsm_info[gunno].base.reason_code = s_thaisen_transaction[gunno].stop_reason;
