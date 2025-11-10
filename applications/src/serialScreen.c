@@ -5766,12 +5766,22 @@ void SerialScreen_SetInputInfo(void)
 //           thaisenSetSysFaultCheckBit(thaisenFaultFuse, i);
 //        }
 //	  }
+    if(FALSE == LcdData.setData.supin_fan){                                    //风扇
+        for(u8 i = 0; i < LCD_GUN_NUM; i++){
+            thaisenClearSysFaultCheckBit(thaisenFaultFan, i);
+        }
+    }else{
+        for(u8 i = 0; i < LCD_GUN_NUM; i++){
+            thaisenSetSysFaultCheckBit(thaisenFaultFan, i);
+        }
+    }
 
 	thaisenSetScramPressStatua(LcdData.setData.neg_scram);
 //	thaisenSetDoorPressStatua(LcdData.setData.neg_gate);
 	thaisenSetDoorOpendStatua(LcdData.setData.neg_gate);
     thaisenSetElectLockFeedbackSta(LcdData.setData.neg_elcok);
 	thaisenSetElectLockBFeedbackSta(LcdData.setData.neg_elcok);
+	thaisenSetFanOpendStatua(0x01, LcdData.setData.neg_fan);
 #ifdef SCREEN_USING_DOUBLE_GUN
 	if(LcdData.setData.neg_protectlight)
 	    thaisenSetGeneralInPortAbnormalSta(thaisenGeneralInPortLightningProtection, thaisenGeneralInPortAbnormalHigh);
