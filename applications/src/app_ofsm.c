@@ -4346,64 +4346,92 @@ static void ofsm_charging_fun(uint8_t gunno)
             }
             if((s_ofsm_info[gunno].base.meter_curr_steady_count > APP_CURRENT_STEADY_COUNT) && (s_ofsm_info[gunno].base.module_curr_steady_count > APP_CURRENT_STEADY_COUNT)){
                 if(abs(s_ofsm_info[gunno].base.module_curr_last - s_ofsm_info[gunno].base.meter_curr_last) > APP_CURRENT_COMPARE_DIFF){
-                    /** 电流异常 */
-                    s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_STOPING];
-                    s_ofsm_info[gunno].state = APP_OFSM_STATE_STOPING;
+                    uint8_t is_deputy_abnormal = APP_THA_ENUM_FALSE;    /** 是副枪异常停止 */
 
-                    s_ofsm_info[gunno].base.system_fault = system_fault;
-                    s_ofsm_info[gunno].base.charge_fault = APP_SYSTEM_STOP_WAY_CURRENT_ABNORMAL;
-                    s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_TRUE;
-                    s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
-
-            #ifdef APP_INCLUDE_YKC17_PROTOCOL
-                    thaisen_ammeter_encry_scmd(gunno, THAISEN_AMMETER_ENCRY_TYPE_STOP);
-            #endif /* APP_INCLUDE_YKC17_PROTOCOL */
-
-                    if((s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL) && (gunno == s_ofsm_info[gunno].base.main_gunno)){
-                        uint8_t deputy_gunno = APP_SYSTEM_GUNNOA;
-                        if(gunno == APP_SYSTEM_GUNNOA){
-                            deputy_gunno = APP_SYSTEM_GUNNOA + 0x01;
+                    /******************************************** 电流异常 ********************************************/
+                    /** 这是并充 */
+                    if((s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL) || (s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD)){
+                        if(gunno != s_ofsm_info[gunno].base.main_gunno){
+                            is_deputy_abnormal = APP_THA_ENUM_TRUE;
                         }
-                        s_ofsm_info[gunno].base.charge_elect_last = (mw_get_meter_total_wh(gunno) + mw_get_meter_total_wh(deputy_gunno));
+                    }
+                    /** 这是副枪异常停止 */
+                    if(is_deputy_abnormal == APP_THA_ENUM_TRUE){
+                        /** 副枪有故障导致整机停止 */
+                        if(s_ofsm_info[gunno].base.flag.is_deputygun_stop == APP_THA_ENUM_FALSE){
+                            s_thaisen_transaction[gunno].order_info.is_charging = APP_THA_ENUM_FALSE;
+                            s_thaisen_transaction[gunno].order_info.waiting_charge = APP_THA_ENUM_FALSE;
+
+                            s_ofsm_info[gunno].base.system_fault = system_fault;
+                            s_ofsm_info[gunno].base.charge_fault = charge_fault;
+
+                            s_thaisen_transaction[gunno].stop_reason = APP_SYSTEM_STOP_WAY_CURRENT_ABNORMAL;
+                            s_ofsm_info[gunno].base.reason_code = s_thaisen_transaction[gunno].stop_reason;
+                            s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_TRUE;
+
+                            for(uint8_t i = 0x00; i < APP_SYSTEM_GUNNO_SIZE; i++){
+                                s_ofsm_info[i].base.flag.is_deputygun_stop = APP_THA_ENUM_TRUE;
+                            }
+                        }
                     }else{
-                        s_ofsm_info[gunno].base.charge_elect_last = mw_get_meter_total_wh(gunno);
-                    }
+                        s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_STOPING];
+                        s_ofsm_info[gunno].state = APP_OFSM_STATE_STOPING;
 
-                    mw_charge_stop_cmd(gunno);
+                        s_ofsm_info[gunno].base.system_fault = system_fault;
+                        s_ofsm_info[gunno].base.charge_fault = APP_SYSTEM_STOP_WAY_CURRENT_ABNORMAL;
+                        s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_TRUE;
+                        s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
 
-                    stop_way = APP_SYSTEM_STOP_WAY_CURRENT_ABNORMAL;
-                    s_thaisen_transaction[gunno].stop_reason = stop_way;
-                    s_ofsm_info[gunno].base.reason_code = stop_way;
+#ifdef APP_INCLUDE_YKC17_PROTOCOL
+                        thaisen_ammeter_encry_scmd(gunno, THAISEN_AMMETER_ENCRY_TYPE_STOP);
+#endif /* APP_INCLUDE_YKC17_PROTOCOL */
 
-                    LOG_D("gunno(%d) charge finish deal to stop way(%d)\n", gunno, stop_way);
-
-                    /* 对时后时间要修改 */
-                    if(mw_get_time_sync_flag(gunno)){
-                        mw_clear_time_sync_flag(gunno);
-                        uint32_t curr_time = mw_get_current_timestamp();
-
-                        s_ofsm_info[gunno].base.stop_time = curr_time;
-                        if(s_ofsm_info[gunno].base.stop_time >= s_ofsm_info[gunno].base.charge_time){
-                            s_ofsm_info[gunno].base.start_time = (s_ofsm_info[gunno].base.stop_time - s_ofsm_info[gunno].base.charge_time);
+                        if((s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL) && (gunno == s_ofsm_info[gunno].base.main_gunno)){
+                            uint8_t deputy_gunno = APP_SYSTEM_GUNNOA;
+                            if(gunno == APP_SYSTEM_GUNNOA){
+                                deputy_gunno = APP_SYSTEM_GUNNOA + 0x01;
+                            }
+                            s_ofsm_info[gunno].base.charge_elect_last = (mw_get_meter_total_wh(gunno) + mw_get_meter_total_wh(deputy_gunno));
                         }else{
-                            /* 这种情况是不对的 */
-                            s_ofsm_info[gunno].base.start_time = s_ofsm_info[gunno].base.stop_time;
+                            s_ofsm_info[gunno].base.charge_elect_last = mw_get_meter_total_wh(gunno);
                         }
-                        s_thaisen_transaction[gunno].end_time = s_ofsm_info[gunno].base.stop_time;
-                        s_thaisen_transaction[gunno].start_time = s_ofsm_info[gunno].base.start_time;
 
-                        app_nsal_time_sync_revise(gunno);
+                        mw_charge_stop_cmd(gunno);
 
-                        /** 与时段有关的信息也要更新 */
-                        LOG_I("chargepile is synchronized, modify correlation time|%x\n", curr_time);
+                        stop_way = APP_SYSTEM_STOP_WAY_CURRENT_ABNORMAL;
+                        s_thaisen_transaction[gunno].stop_reason = stop_way;
+                        s_ofsm_info[gunno].base.reason_code = stop_way;
+
+                        LOG_D("gunno(%d) charge finish deal to stop way(%d)\n", gunno, stop_way);
+
+                        /* 对时后时间要修改 */
+                        if(mw_get_time_sync_flag(gunno)){
+                            mw_clear_time_sync_flag(gunno);
+                            uint32_t curr_time = mw_get_current_timestamp();
+
+                            s_ofsm_info[gunno].base.stop_time = curr_time;
+                            if(s_ofsm_info[gunno].base.stop_time >= s_ofsm_info[gunno].base.charge_time){
+                                s_ofsm_info[gunno].base.start_time = (s_ofsm_info[gunno].base.stop_time - s_ofsm_info[gunno].base.charge_time);
+                            }else{
+                                /* 这种情况是不对的 */
+                                s_ofsm_info[gunno].base.start_time = s_ofsm_info[gunno].base.stop_time;
+                            }
+                            s_thaisen_transaction[gunno].end_time = s_ofsm_info[gunno].base.stop_time;
+                            s_thaisen_transaction[gunno].start_time = s_ofsm_info[gunno].base.start_time;
+
+                            app_nsal_time_sync_revise(gunno);
+
+                            /** 与时段有关的信息也要更新 */
+                            LOG_I("chargepile is synchronized, modify correlation time|%x\n", curr_time);
+                        }
+
+                        s_thaisen_transaction[gunno].order_info.is_charging = APP_THA_ENUM_FALSE;
+                        s_thaisen_transaction[gunno].order_info.waiting_charge = APP_THA_ENUM_FALSE;
+
+                        app_nsal_state_charged(gunno);
+                        app_nsal_event_occurded(gunno);
+                        return;
                     }
-
-                    s_thaisen_transaction[gunno].order_info.is_charging = APP_THA_ENUM_FALSE;
-                    s_thaisen_transaction[gunno].order_info.waiting_charge = APP_THA_ENUM_FALSE;
-
-                    app_nsal_state_charged(gunno);
-                    app_nsal_event_occurded(gunno);
-                    return;
                 }
                 s_ofsm_info[gunno].base.meter_curr_steady_count = 0x00;
                 s_ofsm_info[gunno].base.module_curr_steady_count = 0x00;
