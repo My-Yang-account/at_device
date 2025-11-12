@@ -161,6 +161,32 @@ void mw_disable_dcrelay(uint8_t gunno)
     }
 }
 
+void mw_enable_dcrelay_directly(uint8_t gunno)
+{
+    if(gunno < APP_SYSTEM_GUNNO_SIZE){
+        if(gunno == APP_SYSTEM_GUNNOA){
+            thaisen_relay_A_on();
+        }else{
+#ifdef APP_USING_DOUBLEGUN
+            thaisen_relay_B_on();
+#endif /* APP_USING_DOUBLEGUN */
+        }
+    }
+}
+
+void mw_disable_dcrelay_directly(uint8_t gunno)
+{
+    if(gunno < APP_SYSTEM_GUNNO_SIZE){
+        if(gunno == APP_SYSTEM_GUNNOA){
+            thaisen_relay_A_off();
+        }else{
+#ifdef APP_USING_DOUBLEGUN
+            thaisen_relay_B_off();
+#endif /* APP_USING_DOUBLEGUN */
+        }
+    }
+}
+
 /*****************************************************
  * 函数名    mw_charglib_clear_before_charge
  * 功能        启动前清除充电库指定信息

@@ -65,6 +65,9 @@ int16_t mw_get_sampling_voltage(uint8_t gunno);
 void mw_enable_dcrelay(uint8_t gunno);
 void mw_disable_dcrelay(uint8_t gunno);
 
+void mw_enable_dcrelay_directly(uint8_t gunno);
+void mw_disable_dcrelay_directly(uint8_t gunno);
+
 /*****************************************************
  * 函数名    mw_charglib_clear_before_charge
  * 功能        启动前清除充电库指定信息

@@ -553,6 +553,7 @@ typedef struct{
         uint32_t is_reser_timeout_started : 1;               /* 是否本地预约已超时启动(用于超过预约时间10分钟内启动检测) */
         uint32_t is_meter_elect_error : 1;                   /* 是否检测出电表电量有错 */
         uint32_t is_ob_authenticated : 1;                    /* 离线计费模式下已进行预约鉴权(ob:offline billing) */
+        uint32_t deputy_gun_dcrelay_action : 1;              /* 并充副枪直流继电器已动作 */
     }flag;
 
     uint8_t cc1_state;                /* CC1 状态 */
@@ -690,6 +691,8 @@ typedef struct{
     uint8_t acrelay_resume_time;     /* 交流接触器故障恢复时基 */
     uint8_t acrelay_check_time;      /* 交流接触器状态检测时基 */
 #endif /* APP_USING_FB_DETECT */
+    /** 电子锁、继电器状态检验 */
+    uint8_t deputygun_dcrelay_action_time;   /* 并充副枪直流继电器闭合判断时基 */
 }System_BaseData;
 
 struct ofsm_info {

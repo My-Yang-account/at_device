@@ -4047,13 +4047,24 @@ static void ofsm_starting_fun(uint8_t gunno)
             s_ofsm_info[gunno].base.current_rise_tick = rt_tick_get();
 #endif /* defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING) */
 
+            if((s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL) || (s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD)){
+                for(uint8_t i = 0x00; i < APP_SYSTEM_GUNNO_SIZE; i++){
+                    if((i != gunno) && (s_ofsm_info[i].base.main_gunno == gunno) && \
+                            ((s_ofsm_info[i].base.charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL) || (s_ofsm_info[i].base.charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD))){
+                        s_ofsm_info[i].base.flag.deputy_gun_dcrelay_action = APP_THA_ENUM_FALSE;
+                        s_ofsm_info[i].base.deputygun_dcrelay_action_time = 0x00;
+                    }
+                }
+            }
             s_ofsm_info[gunno].base.flag.start_result = APP_THA_ENUM_TRUE;
+            s_ofsm_info[gunno].base.flag.deputy_gun_dcrelay_action = APP_THA_ENUM_FALSE;
             s_thaisen_transaction[gunno].boot_result = s_ofsm_info[gunno].base.flag.start_result;
             s_thaisen_transaction[gunno].order_info.is_start_fail = APP_THA_ENUM_FALSE;
 
             s_ofsm_info[gunno].timing_tick = rt_tick_get();
             s_ofsm_info[gunno].base.offline_tick = rt_tick_get();
             s_ofsm_info[gunno].elect_calculate_tick = rt_tick_get();
+            s_ofsm_info[gunno].base.deputygun_dcrelay_action_time = 0x00;
 
 #ifdef APP_USING_METER_ELECT_DETECT_STRATEGY
             /** 电表电量检验 */
@@ -4324,6 +4335,55 @@ static void ofsm_charging_fun(uint8_t gunno)
                 s_ofsm_info[gunno].base.current_a, s_ofsm_info[gunno].base.power_a, s_ofsm_info[gunno].base.charge_time);
     }
     s_ofsm_info[gunno].base.flag.is_ob_authenticated = APP_THA_ENUM_FALSE;
+
+    /*********************************** 并充时副枪直流继电器由业务判断闭合 ***********************************/
+    if((s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL) || (s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD)){
+        if((gunno != s_ofsm_info[gunno].base.main_gunno) && (s_ofsm_info[s_ofsm_info[gunno].base.main_gunno].state == APP_OFSM_STATE_CHARGING) && \
+                (s_ofsm_info[gunno].base.flag.is_deputygun_stop == APP_THA_ENUM_FALSE)){
+            /** 直流继电器未闭合 */
+            if(s_ofsm_info[gunno].base.flag.deputy_gun_dcrelay_action == APP_THA_ENUM_FALSE){
+                if(s_ofsm_info[gunno].base.deputygun_dcrelay_action_time < (0xFF - 0x01)){
+                    s_ofsm_info[gunno].base.deputygun_dcrelay_action_time++;
+                }
+                /** 前15s差值必须在5V以内 */
+                /** 电池电压检测未开启 */
+                if((*(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_SUPORT_BATVOLT_DETECT, 0x00))) == CONFIG_DISABLE_ENUM){
+                    if((s_ofsm_info[s_ofsm_info[gunno].base.main_gunno].state == APP_OFSM_STATE_CHARGING) && (s_ofsm_info[gunno].base.flag.is_deputygun_stop == APP_THA_ENUM_FALSE)){
+                        mw_enable_dcrelay(gunno);
+                        s_ofsm_info[gunno].base.flag.deputy_gun_dcrelay_action = APP_THA_ENUM_TRUE;
+                    }
+                }else if(s_ofsm_info[gunno].base.deputygun_dcrelay_action_time < (15000 /APP_SYSTEM_RUN_TIME_PERIOD)){
+                    if((abs((int)(thaisen_get_module_volt(gunno) - (mw_get_meter_ua(s_ofsm_info[gunno].base.main_gunno) /10))) <= 50)){
+                        if((s_ofsm_info[s_ofsm_info[gunno].base.main_gunno].state == APP_OFSM_STATE_CHARGING) && (s_ofsm_info[gunno].base.flag.is_deputygun_stop == APP_THA_ENUM_FALSE)){
+                            mw_enable_dcrelay(gunno);
+                            s_ofsm_info[gunno].base.flag.deputy_gun_dcrelay_action = APP_THA_ENUM_TRUE;
+                        }
+                    }
+                }else if(s_ofsm_info[gunno].base.deputygun_dcrelay_action_time < (20000 /APP_SYSTEM_RUN_TIME_PERIOD)){
+                    if((abs((int)(thaisen_get_module_volt(gunno) - (mw_get_meter_ua(s_ofsm_info[gunno].base.main_gunno) /10))) <= 300)){
+                        if((s_ofsm_info[s_ofsm_info[gunno].base.main_gunno].state == APP_OFSM_STATE_CHARGING) && (s_ofsm_info[gunno].base.flag.is_deputygun_stop == APP_THA_ENUM_FALSE)){
+                            mw_enable_dcrelay(gunno);
+                            s_ofsm_info[gunno].base.flag.deputy_gun_dcrelay_action = APP_THA_ENUM_TRUE;
+                        }
+                    }
+                }
+#if 0
+                /** 不强制闭合 */
+                else{
+                    if((s_ofsm_info[s_ofsm_info[gunno].base.main_gunno].state == APP_OFSM_STATE_CHARGING) && (s_ofsm_info[gunno].base.flag.is_deputygun_stop == APP_THA_ENUM_FALSE)){
+                        mw_enable_dcrelay(gunno);
+                        s_ofsm_info[gunno].base.flag.deputy_gun_dcrelay_action = APP_THA_ENUM_TRUE;
+                    }
+                }
+#endif
+            }else{
+                if((s_ofsm_info[s_ofsm_info[gunno].base.main_gunno].state == APP_OFSM_STATE_CHARGING) && (s_ofsm_info[gunno].base.flag.is_deputygun_stop == APP_THA_ENUM_FALSE)){
+                    mw_enable_dcrelay_directly(gunno);
+                }
+                s_ofsm_info[gunno].base.deputygun_dcrelay_action_time = 0x00;
+            }
+        }
+    }
 
 #ifdef APP_USING_CHARGE_CURR_DETECT_STRATEGY
     /** 电流检验 */
