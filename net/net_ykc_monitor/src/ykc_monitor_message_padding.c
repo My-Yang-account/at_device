@@ -7550,7 +7550,7 @@ int8_t ykc_monitor_guidance_changed_info_padding(uint8_t gunno, uint8_t *buf, ui
 }
 
 /*************************************************
- * 函数名      ykc_monitor_relay_info_callback
+ * 函数名      ykc_monitor_guidance_changed_callback
  * 功能         导引状态信息变化回调
  * **********************************************/
 void ykc_monitor_guidance_changed_callback(uint8_t gunno, uint8_t flag, uint32_t timestamp, int voltage, int voltage_last, uint16_t diff_positive_adc, \
