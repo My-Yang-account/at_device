@@ -4908,14 +4908,14 @@ void SerialScreen_CmdDebugInfoGet(void)
     }else{
         LcdData.setData.sup_BatVoltDetect = TRUE;
     }
-    /* BCL超时检测默认启用 */
+    /* BCL超时检测默认关闭 */
     data = *((u8*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_BCLTIMOUT_DETECT, 0));
     if(data == CONFIG_ENABLE_ENUM){
         LcdData.setData.sup_BCLTimeoutDetect = TRUE;
     }else if(data == CONFIG_DISABLE_ENUM){
         LcdData.setData.sup_BCLTimeoutDetect = FALSE;
     }else{
-        LcdData.setData.sup_BCLTimeoutDetect = TRUE;
+        LcdData.setData.sup_BCLTimeoutDetect = FALSE;
     }
     /* FAST协议默认启用 */
     data = *((u8*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_FAST_PROTOCOL, 0));
@@ -10469,12 +10469,12 @@ struct LCD_DATA_FIFO_TYPE *SerialScreen_Init(struct SerialScreenObj *cmd)
         LcdData.setData.sup_BatVoltDetect = TRUE;
     }
 
-    if(LcdData.setData.sup_BCLTimeoutDetect == CONFIG_ENABLE_ENUM){          /* BCL超时检测默认启用 */
+    if(LcdData.setData.sup_BCLTimeoutDetect == CONFIG_ENABLE_ENUM){          /* BCL超时检测默认关闭 */
         LcdData.setData.sup_BCLTimeoutDetect = TRUE;
     }else if(LcdData.setData.sup_BCLTimeoutDetect == CONFIG_DISABLE_ENUM){
         LcdData.setData.sup_BCLTimeoutDetect = FALSE;
     }else{
-        LcdData.setData.sup_BCLTimeoutDetect = TRUE;
+        LcdData.setData.sup_BCLTimeoutDetect = FALSE;
     }
 
     if(LcdData.setData.sup_SupFASTProtocol == CONFIG_ENABLE_ENUM){          /* FAST协议默认启用 */

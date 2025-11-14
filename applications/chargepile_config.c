@@ -1925,11 +1925,11 @@ static void chargepile_config_data_reset(void)
     s_chargepile_config_info.function_enable.liquid_in = 0x00;
     s_chargepile_config_info.function_enable.fuse_in = 0x00;
     s_chargepile_config_info.function_enable.mode_select = 0x00;
-    s_chargepile_config_info.function_enable.bat_voltage_switch = CONFIG_DISABLE_ENUM;
+    s_chargepile_config_info.function_enable.bat_voltage_switch = CONFIG_ENABLE_ENUM;
     s_chargepile_config_info.function_enable.bcl_timeout_switch = CONFIG_DISABLE_ENUM;
-    s_chargepile_config_info.function_enable.fast_protocol_switch = CONFIG_DISABLE_ENUM;
-    s_chargepile_config_info.function_enable.yt_protocol_switch = CONFIG_DISABLE_ENUM;
-    s_chargepile_config_info.function_enable.bay_protocol_switch = CONFIG_DISABLE_ENUM;
+    s_chargepile_config_info.function_enable.fast_protocol_switch = CONFIG_ENABLE_ENUM;
+    s_chargepile_config_info.function_enable.yt_protocol_switch = CONFIG_ENABLE_ENUM;
+    s_chargepile_config_info.function_enable.bay_protocol_switch = CONFIG_ENABLE_ENUM;
     s_chargepile_config_info.function_enable.protocol_gb_t = CONFIG_DISABLE_ENUM;
     s_chargepile_config_info.function_enable.bms_several_frame = CONFIG_ENABLE_ENUM;
 
@@ -2461,8 +2461,8 @@ int32_t chargepile_check_config(void)
         s_chargepile_config_info.function_enable.bat_voltage_switch = CONFIG_ENABLE_ENUM;
     }
     if((s_chargepile_config_info.function_enable.bcl_timeout_switch != CONFIG_ENABLE_ENUM) && \
-            (s_chargepile_config_info.function_enable.bcl_timeout_switch != CONFIG_DISABLE_ENUM)){          /* BCL超时检测默认开启 */
-        s_chargepile_config_info.function_enable.bcl_timeout_switch = CONFIG_ENABLE_ENUM;
+            (s_chargepile_config_info.function_enable.bcl_timeout_switch != CONFIG_DISABLE_ENUM)){          /* BCL超时检测默认关闭 */
+        s_chargepile_config_info.function_enable.bcl_timeout_switch = CONFIG_DISABLE_ENUM;
     }
     if((s_chargepile_config_info.function_enable.fast_protocol_switch != CONFIG_ENABLE_ENUM) && \
             (s_chargepile_config_info.function_enable.fast_protocol_switch != CONFIG_DISABLE_ENUM)){        /* FAST协议默认开启 */
