@@ -3759,17 +3759,16 @@ int32_t ykc_monitor_realtime_process_init(void)
         memset(&s_ykc_monitor_charging_info[gunno], 0x00, sizeof(s_ykc_monitor_charging_info[gunno]));
         memset(&s_ykc_monitor_mfault_info, 0x00, sizeof(s_ykc_monitor_mfault_info));
         memset(&s_ykc_monitor_lock_module, 0x00, sizeof(s_ykc_monitor_lock_module));
-        memset(s_ykc_monitor_guidance_changed, 0x00, sizeof(s_ykc_monitor_guidance_changed));
-        memset(s_ykc_monitor_device_control_changed, 0x00, sizeof(s_ykc_monitor_device_control_changed));
-        memset(s_ykc_monitor_device_status_changed, 0x00, sizeof(s_ykc_monitor_device_status_changed));
-
-        ykc_monitor_clear_disconnect_reason();
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
     }
 
 #ifdef NET_YKC_MONITOR_AS_MONITOR
     memset(&s_ykc_monitor_setvoltcurr, 0x00, sizeof(s_ykc_monitor_setvoltcurr));
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
+    memset(s_ykc_monitor_guidance_changed, 0x00, sizeof(s_ykc_monitor_guidance_changed));
+    memset(s_ykc_monitor_device_control_changed, 0x00, sizeof(s_ykc_monitor_device_control_changed));
+    memset(s_ykc_monitor_device_status_changed, 0x00, sizeof(s_ykc_monitor_device_status_changed));
+	ykc_monitor_clear_disconnect_reason();
     s_ykc_monitor_local_start_sq = 0x00;
     s_ykc_monitor_handle = NULL;
 #endif /* NET_DESIGNATE_REGION */

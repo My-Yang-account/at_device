@@ -553,7 +553,6 @@ typedef struct{
         uint32_t is_reser_timeout_started : 1;               /* 是否本地预约已超时启动(用于超过预约时间10分钟内启动检测) */
         uint32_t is_meter_elect_error : 1;                   /* 是否检测出电表电量有错 */
         uint32_t is_ob_authenticated : 1;                    /* 离线计费模式下已进行预约鉴权(ob:offline billing) */
-        uint32_t deputy_gun_dcrelay_action : 1;              /* 并充副枪直流继电器已动作 */
     }flag;
 
     uint8_t cc1_state;                /* CC1 状态 */
