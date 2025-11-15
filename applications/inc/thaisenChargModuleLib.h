@@ -1029,4 +1029,31 @@ void thaisenSetModuleOutCurrMin(uint16_t curr);
  */
 uint16_t thaisenGetModuleOutCurrMin(void);
 
+/*************************************************** 并充枪电压检测闭合 ****************************************************/
+/* 功能说明:
+ *          thaisenModuleSetParaGunVoltDetectEn: 设置模块最小输出电流
+ *
+ * 输入参数:          gunNum      枪号
+ *         state       使能状态(1:使能  0:不使能)
+ *
+ * 返回参数:
+ *
+ * 调用方法:
+ *          可实时调用
+ */
+void thaisenModuleSetParaGunVoltDetectEn(uint8_t gunNum, uint8_t state);
+
+/* 功能说明:
+ *          thaisenModuleGetParaGunVoltDetectEn: 获取模块最大输出电流
+ *
+ * 输入参数:       gunNum    枪号
+ *
+ *
+ * 返回参数:   使能状态(1:使能  0:不使能)
+ *
+ * 调用方法:
+ *          可实时调用
+ */
+uint8_t thaisenModuleGetParaGunVoltDetectEn(uint8_t gunNum);
+
 #endif /* APPLICATIONS_THAISENCHARGMODULELIB_H_ */
