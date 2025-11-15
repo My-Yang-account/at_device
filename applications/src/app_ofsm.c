@@ -7592,8 +7592,10 @@ void ofsm_thread_entry(void *parameter)
         /** 电池电压检测 */
         if((*(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_SUPORT_BATVOLT_DETECT, 0x00))) == CONFIG_ENABLE_ENUM){
             mw_charglib_set_function_enable(thread_gunno, APP_FUNCTION_BATVOLT_DETECT, APP_THA_ENUM_TRUE);
+            thaisenModuleSetParaGunVoltDetectEn(thread_gunno, APP_THA_ENUM_TRUE);
         }else{
             mw_charglib_set_function_enable(thread_gunno, APP_FUNCTION_BATVOLT_DETECT, APP_THA_ENUM_FALSE);
+            thaisenModuleSetParaGunVoltDetectEn(thread_gunno, APP_THA_ENUM_FALSE);
         }
         /** BCL 报文超时检测 */
         if((*(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_SUPORT_BCLTIMOUT_DETECT, 0x00))) == CONFIG_ENABLE_ENUM){
