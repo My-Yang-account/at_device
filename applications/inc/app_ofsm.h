@@ -77,7 +77,7 @@ extern "C" {
 #define APP_MCURRENT_SINGLEGUN_DEFAULT       25000     /* 单枪最大电流默认值(0.01) */
 #define APP_MCURRENT_SINGLEGUN_PARACHARGE    45000     /* 并充时单枪最大电流值(0.01) */
 
-#define APP_PARACHARGE_IDENTIFY_CAN_ID       0x1FFFFFFF /* 并充自动识别CAN ID */
+#define APP_PARACHARGE_IDENTIFY_CAN_ID       0x1FFF56F4 /* 并充自动识别CAN ID */
 #define APP_PARACHARGE_IDENTIFY_CAN_DATA     0x5A       /* 并充自动识别CAN 数据 */
 
 #define APP_CHARGE_ELECT_MAX                 1000000   /* 最大充电电量值(精度：0.001) */
