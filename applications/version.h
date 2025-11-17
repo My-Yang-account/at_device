@@ -40,7 +40,8 @@ extern "C" {
                                          [2.0.H(2.0.7 双枪)  电瑞储能+特来电平台版本 2025/08/25]
                                          [1.7.H(1.7.7 单枪)  更新CROAA 阶段先发CCS(状态切换到CCS) 2025/08/12]
                                          [2.1.A(2.1.0 双枪)  实验测试：1.充电结束2min后风扇停转   2.启动时BHM最大允许值小于系统最小电压时报电池电压故障停充   3.CC1 4V下线改为 3.3V) 2025/10/10]
-                                         [2.1.B(2.1.1 双枪枪)  实验测试 2025/10/13]  */
+                                         [2.1.B(2.1.1 双枪枪)  实验测试 2025/10/13]
+                                         [1.8.1(1.8.B 单枪) 飞宇- 广州-车会发标准帧报文，程序接收全部按扩展帧来，导致误判；处理：CAN帧正常接收，但是只处理扩展帧 2025/11/17]  */
 
 #ifdef APP_USING_DOUBLEGUN
 
@@ -78,7 +79,7 @@ extern "C" {
 
 #define SOFTWARE_VERSION       2L
 #define SOFTWARE_SUBVERSION    1
-#define SOFTWARE_REVISION      3L  /* 02 */
+#define SOFTWARE_REVISION      3L  /* 03 */
 
 #else
 
