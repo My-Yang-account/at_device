@@ -15,7 +15,11 @@
 #define GUN_TEMP_VALUE_MIN                 -50    /* 枪头温度最小值 */
 #define GUN_TEMP_DETECT_TIME               5000   /* 枪头温度检测判定时长 */
 
+#ifdef APP_USING_DOUBLEGUN
 static uint8_t s_state[APP_SYSTEM_GUNNO_SIZE] = {TCHECK_RESULT_NORMAL, TCHECK_RESULT_NORMAL};
+#else
+static uint8_t s_state[APP_SYSTEM_GUNNO_SIZE] = {TCHECK_RESULT_NORMAL};
+#endif /* APP_USING_DOUBLEGUN */
 static uint32_t s_overtemp_time_base[APP_SYSTEM_GUNNO_SIZE] = {0};
 static enum temp_check s_result[APP_SYSTEM_GUNNO_SIZE] = {TCHECK_RESULT_NORMAL};
 
