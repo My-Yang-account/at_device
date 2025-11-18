@@ -750,7 +750,11 @@ static void temperature_protect_limitcurr(uint8_t gunno, uint16_t *set_curr)
 void chargepile_power_adjust(void)
 {
 #define RUNNING_PERIOD      200
-#define ADJUST_PERIOD       30000 /RUNNING_PERIOD
+#define ADJUST_PERIOD       10000 /RUNNING_PERIOD
+
+#define APP_ENTER_CHARGING_NULL           0
+#define APP_ENTER_CHARGING_FIRST          1
+#define APP_ENTER_CHARGING_ONING          2
 
     extern uint32_t get_meter_ua(uint8_t gunno);
     extern uint32_t get_meter_ia(uint8_t gunno);
@@ -765,6 +769,7 @@ void chargepile_power_adjust(void)
     extern uint8_t thaisenGetNormalModuleNum(uint8_t gunNum);
     extern void thaisenSetModuleMaxChargCurrGroup(uint8_t groupNum, uint16_t curr);
 
+    static uint8_t enter_charging_step[APP_SYSTEM_GUNNO_SIZE];
     static uint32_t original_power[APP_SYSTEM_GUNNO_SIZE], set_gunno = 0x00;
     bool server_adjust_power = false;      /* 服务器下发设置桩工作参数标志 */
     uint8_t gun_idle[APP_SYSTEM_GUNNO_SIZE], gunno = 0x00;
@@ -773,7 +778,7 @@ void chargepile_power_adjust(void)
 
     for(gunno = 0; gunno < APP_SYSTEM_GUNNO_SIZE; gunno++){
         set_volt[gunno] = 0;
-        gun_idle[gunno] = 0;
+        gun_idle[gunno] = APP_THA_ENUM_FALSE;
         allocation_power[gunno] = 0;
     }
     /** 服务器下发设置桩工作参数报文，需要进行功率调节 */
@@ -872,28 +877,56 @@ void chargepile_power_adjust(void)
     if(get_ofsm_info(APP_SYSTEM_GUNNOA)->state != APP_OFSM_STATE_CHARGING && get_ofsm_info(APP_SYSTEM_GUNNOB)->state != APP_OFSM_STATE_CHARGING){
         set_volt[APP_SYSTEM_GUNNOA] = thaisenGetModuleMaxChargVolt();  /* 10倍 */
         set_volt[APP_SYSTEM_GUNNOB] = thaisenGetModuleMaxChargVolt();  /* 10倍 */
-        gun_idle[APP_SYSTEM_GUNNOA] = 1;
-        gun_idle[APP_SYSTEM_GUNNOB] = 1;
+        gun_idle[APP_SYSTEM_GUNNOA] = APP_THA_ENUM_TRUE;
+        gun_idle[APP_SYSTEM_GUNNOB] = APP_THA_ENUM_TRUE;
+        enter_charging_step[APP_SYSTEM_GUNNOA] = APP_ENTER_CHARGING_NULL;
+        enter_charging_step[APP_SYSTEM_GUNNOB] = APP_ENTER_CHARGING_NULL;
     }else if(get_ofsm_info(APP_SYSTEM_GUNNOA)->state == APP_OFSM_STATE_CHARGING && get_ofsm_info(APP_SYSTEM_GUNNOB)->state == APP_OFSM_STATE_CHARGING){
         set_volt[APP_SYSTEM_GUNNOA] = mw_get_meter_ua(APP_SYSTEM_GUNNOA) /10;  /* 10倍 */
         set_volt[APP_SYSTEM_GUNNOB] = mw_get_meter_ua(APP_SYSTEM_GUNNOB) /10;  /* 10倍 */
+        if(enter_charging_step[APP_SYSTEM_GUNNOA] == APP_ENTER_CHARGING_NULL){
+            enter_charging_step[APP_SYSTEM_GUNNOA] = APP_ENTER_CHARGING_FIRST;
+        }else{
+            enter_charging_step[APP_SYSTEM_GUNNOA] = APP_ENTER_CHARGING_ONING;
+        }
+        if(enter_charging_step[APP_SYSTEM_GUNNOB] == APP_ENTER_CHARGING_NULL){
+            enter_charging_step[APP_SYSTEM_GUNNOB] = APP_ENTER_CHARGING_FIRST;
+        }else{
+            enter_charging_step[APP_SYSTEM_GUNNOB] = APP_ENTER_CHARGING_ONING;
+        }
     }else{
         if(get_ofsm_info(APP_SYSTEM_GUNNOA)->state == APP_OFSM_STATE_CHARGING){
             set_volt[APP_SYSTEM_GUNNOA] = mw_get_meter_ua(APP_SYSTEM_GUNNOA) /10;  /* 10倍 */
             set_volt[APP_SYSTEM_GUNNOB] = mw_get_meter_ua(APP_SYSTEM_GUNNOA) /10;  /* 10倍 */
-            gun_idle[APP_SYSTEM_GUNNOB] = 1;
+            gun_idle[APP_SYSTEM_GUNNOB] = APP_THA_ENUM_TRUE;
+            if(enter_charging_step[APP_SYSTEM_GUNNOA] == APP_ENTER_CHARGING_NULL){
+                enter_charging_step[APP_SYSTEM_GUNNOA] = APP_ENTER_CHARGING_FIRST;
+            }else{
+                enter_charging_step[APP_SYSTEM_GUNNOA] = APP_ENTER_CHARGING_ONING;
+            }
         }else{
             set_volt[APP_SYSTEM_GUNNOA] = mw_get_meter_ua(APP_SYSTEM_GUNNOB) /10;  /* 10倍 */
             set_volt[APP_SYSTEM_GUNNOB] = mw_get_meter_ua(APP_SYSTEM_GUNNOB) /10;  /* 10倍 */
-            gun_idle[APP_SYSTEM_GUNNOA] = 1;
+            gun_idle[APP_SYSTEM_GUNNOA] = APP_THA_ENUM_TRUE;
+            if(enter_charging_step[APP_SYSTEM_GUNNOB] == APP_ENTER_CHARGING_NULL){
+                enter_charging_step[APP_SYSTEM_GUNNOB] = APP_ENTER_CHARGING_FIRST;
+            }else{
+                enter_charging_step[APP_SYSTEM_GUNNOB] = APP_ENTER_CHARGING_ONING;
+            }
         }
     }
 #else
     if(get_ofsm_info(APP_SYSTEM_GUNNOA)->state != APP_OFSM_STATE_CHARGING){
         set_volt[APP_SYSTEM_GUNNOA] = thaisenGetModuleMaxChargVolt();
-        gun_idle[APP_SYSTEM_GUNNOA] = 1;
+        gun_idle[APP_SYSTEM_GUNNOA] = APP_THA_ENUM_TRUE;
+        enter_charging_step[APP_SYSTEM_GUNNOA] = APP_ENTER_CHARGING_NULL;
     }else if(get_ofsm_info(APP_SYSTEM_GUNNOA)->state == APP_OFSM_STATE_CHARGING){
         set_volt[APP_SYSTEM_GUNNOA] = mw_get_meter_ua(APP_SYSTEM_GUNNOA) /10;
+        if(enter_charging_step[APP_SYSTEM_GUNNOA] == APP_ENTER_CHARGING_NULL){
+            enter_charging_step[APP_SYSTEM_GUNNOA] = APP_ENTER_CHARGING_FIRST;
+        }else{
+            enter_charging_step[APP_SYSTEM_GUNNOA] = APP_ENTER_CHARGING_ONING;
+        }
     }
 #endif /* APP_USING_DOUBLEGUN */
 
@@ -907,6 +940,30 @@ void chargepile_power_adjust(void)
         }else{
             s_charge_steady_delay[gunno] = 0;
             s_chargepile_output_steady[gunno] = false;
+        }
+        /** 刚进入充电要快速调电流 */
+        if(enter_charging_step[gunno] == APP_ENTER_CHARGING_FIRST){
+            if(s_ofsm_info[gunno].base.bms_data){
+                set_volt[gunno] = ((struct thaisenBMS_Charger_struct*)s_ofsm_info[gunno].base.bms_data)->BCL.BMSneedVolt;  /* 10倍 */
+            }
+#ifdef APP_USING_DOUBLEGUN
+            uint8_t another_gun = APP_SYSTEM_GUNNOA;
+
+            if(gunno == another_gun){
+                another_gun++;
+            }
+            if(set_volt[gunno] == 0x00){
+                set_volt[gunno] = thaisenGetModuleMaxChargVolt();  /* 10倍 */
+            }
+            if(gun_idle[another_gun] == APP_THA_ENUM_TRUE){
+                set_volt[another_gun] = set_volt[gunno];
+            }
+#else
+            if(set_volt[gunno] == 0x00){
+                set_volt[gunno] = thaisenGetModuleMaxChargVolt();  /* 10倍 */
+            }
+#endif /* APP_USING_DOUBLEGUN */
+            s_power_adjust_delay = ADJUST_PERIOD;
         }
     }
 //    LOG_W("s_power_adjust_delay|%d, %d, %d, %d", s_power_adjust_delay, set_volt, s_system_power_output *10 /set_volt, charge_type);
@@ -924,19 +981,17 @@ void chargepile_power_adjust(void)
         for(gunno = 0; gunno < APP_SYSTEM_GUNNO_SIZE; gunno++){
             allocation_power[gunno] = (s_system_power_output *10 *sys_get_single_group_module_num(gunno)) / module_tnum;  /* 100倍 */
             if(set_volt[gunno]){
-                if(s_chargepile_output_steady[gunno] || gun_idle[gunno]){
-                    s_ofsm_info[gunno].base.gun_set_curr = allocation_power[gunno]/ set_volt[gunno];  /* 10倍 */
-                    if(app_is_using_maintenance_mode()){
-                        if(s_ofsm_info[gunno].base.gun_set_curr > APP_MAINTENTANCE_MODE_CURR_MAX){
-                            s_ofsm_info[gunno].base.gun_set_curr = APP_MAINTENTANCE_MODE_CURR_MAX;
-                        }
+                s_ofsm_info[gunno].base.gun_set_curr = allocation_power[gunno]/ set_volt[gunno];  /* 10倍 */
+                if(app_is_using_maintenance_mode()){
+                    if(s_ofsm_info[gunno].base.gun_set_curr > APP_MAINTENTANCE_MODE_CURR_MAX){
+                        s_ofsm_info[gunno].base.gun_set_curr = APP_MAINTENTANCE_MODE_CURR_MAX;
                     }
-                    if(s_ofsm_info[gunno].base.gun_set_curr > ((*((uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_MAX_LIMIT_CURRENT, 0)))) *10 *sys_get_single_group_module_num(gunno) /module_tnum)){
-                        s_ofsm_info[gunno].base.gun_set_curr = ((*((uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_MAX_LIMIT_CURRENT, 0)))) *10 *sys_get_single_group_module_num(gunno) /module_tnum);
-                    }
-                    rt_kprintf("gunno(%d) s_set_curr|%d, allocation_power|%d  set_volt|%d  chargecurr_max|%d  s_system_power_output|%d  power_percent|%d\n", gunno,
-                            s_ofsm_info[gunno].base.gun_set_curr, allocation_power[gunno], set_volt[gunno], (*((uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_MAX_LIMIT_CURRENT, 0)))), s_system_power_output, s_system_power_output);
                 }
+                if(s_ofsm_info[gunno].base.gun_set_curr > ((*((uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_MAX_LIMIT_CURRENT, 0)))) *10 *sys_get_single_group_module_num(gunno) /module_tnum)){
+                    s_ofsm_info[gunno].base.gun_set_curr = ((*((uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_MAX_LIMIT_CURRENT, 0)))) *10 *sys_get_single_group_module_num(gunno) /module_tnum);
+                }
+                rt_kprintf("gunno(%d) s_set_curr|%d, allocation_power|%d  set_volt|%d  chargecurr_max|%d  s_system_power_output|%d  power_percent|%d\n", gunno,
+                        s_ofsm_info[gunno].base.gun_set_curr, allocation_power[gunno], set_volt[gunno], (*((uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_MAX_LIMIT_CURRENT, 0)))), s_system_power_output, s_system_power_output);
             }
         }
         s_power_on = 1;
