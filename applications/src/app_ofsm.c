@@ -7541,8 +7541,8 @@ void ofsm_thread_entry(void *parameter)
         thaisenSetGunState(thread_gunno, info);
         extern uint32_t thaisen_get_module_volt(uint8_t gunNum);
         extern uint32_t thaisen_get_module_curr(uint8_t gunNum);
-        thaisen_set_gunVolt((thaisen_get_module_volt(thread_gunno) *10), thread_gunno);
-        thaisen_set_gunCurr((thaisen_get_module_curr(thread_gunno) *1000), thread_gunno);
+        thaisen_set_gunVolt((thaisen_get_module_volt(thread_gunno)), thread_gunno);
+        thaisen_set_gunCurr((thaisen_get_module_curr(thread_gunno)), thread_gunno);
 
         if(s_ofsm_info[thread_gunno].state == APP_OFSM_STATE_CHARGING){
             if(record_store > rt_tick_get()){
