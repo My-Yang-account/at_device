@@ -79,7 +79,7 @@ extern "C" {
 
 #define SOFTWARE_VERSION       2L
 #define SOFTWARE_SUBVERSION    1
-#define SOFTWARE_REVISION      3L  /* 03 */
+#define SOFTWARE_REVISION      4L  /* 01 */
 
 #else
 
@@ -99,7 +99,7 @@ extern "C" {
 
 #define SOFTWARE_VERSION       1L
 #define SOFTWARE_SUBVERSION    8L
-#define SOFTWARE_REVISION      2L  /* 01 */
+#define SOFTWARE_REVISION      2L  /* 02 */
 
 #endif /* APP_USING_DOUBLEGUN */
 
