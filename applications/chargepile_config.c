@@ -169,7 +169,9 @@ struct _config_info{
     uint8_t user_password[CP_INFO_LOGIN_USER_PASSWORD_LEN_MAX];       /* 登录密码 */
     uint8_t lp_consumption_module;                                    /* 低功耗模块(lp:low power) */
     uint8_t card_block_sn;                                            /* 卡号所在块(范围：0-63，默认 CONFIG_CARD_BLOCK_SN_DEFAULT) */
-    uint8_t reserve[256 - 148];                                       /* 保留 */
+    uint8_t liquid_dev;                                               /* 液冷设备类型 */
+    uint8_t liquid_cnt;                                               /* 液冷设备数量 */
+    uint8_t reserve[256 - 150];                                       /* 保留 */
 };
 
 struct _function_enable{
@@ -1351,6 +1353,12 @@ void sys_chargeplie_config_info_init(void)
     /** B枪终端地址 */
     sys_config_item_init(CONFIG_ITEM_TEMINAL_ADDRB, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_info.teminal_addrB)), \
             (uint8_t*)&s_chargepile_config_info.config_info.teminal_addrB, NULL);
+    /** 液冷设备类型 */
+    sys_config_item_init(CONFIG_ITEM_LIQUID_DEV, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_info.liquid_dev)), \
+            (uint8_t*)&s_chargepile_config_info.config_info.liquid_dev, NULL);
+    /** 液冷设备数量 */
+    sys_config_item_init(CONFIG_ITEM_LIQUID_CNT, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_info.liquid_cnt)), \
+            (uint8_t*)&s_chargepile_config_info.config_info.liquid_cnt, NULL);
 #ifdef CP_USING_OFFLINE_BILLING
     /** 计费规则信息 */
     sys_config_item_init(CONFIG_ITEM_BILLING_RULE, (1 <<(32 - 4))| (sizeof(s_chargepile_config_info.billing_rule)), \
@@ -1875,6 +1883,8 @@ static void chargepile_config_data_reset(void)
     memset(s_chargepile_config_info.config_info.screen_password, '\0', sizeof(s_chargepile_config_info.config_info.screen_password));
     memcpy(s_chargepile_config_info.config_info.screen_password, "0909", strlen("0909"));
     memset(s_chargepile_config_info.config_info.card_key, '\0', sizeof(s_chargepile_config_info.config_info.card_key));
+    s_chargepile_config_info.config_info.liquid_cnt = 0;
+    s_chargepile_config_info.config_info.liquid_dev = CP_LIQUID_DEVTYPE_YTND;
 
     s_chargepile_config_info.config_info.module_model = MODULE_MODEL_DEFAULT;
     s_chargepile_config_info.config_info.module_group_num = MODULE_GROUP_NUMBER_DEFAULT;
@@ -2220,6 +2230,10 @@ int32_t chargepile_check_config(void)
     /** 设备类型默认均充双枪(注：这是普通双枪版本做法，其它版本需要根据实际来) */
     if(s_chargepile_config_info.config_info.system_function != SYSTEM_FUNCTION_DYNAMIC_SWITCH){
         s_chargepile_config_info.config_info.system_function = SYSTEM_FUNCTION_AVERAGE_DOUBLE;
+    }
+    if(s_chargepile_config_info.config_info.liquid_dev >= CP_LIQUID_DEVTYPE_SIZE)
+    {
+        s_chargepile_config_info.config_info.liquid_dev = CP_LIQUID_DEVTYPE_YTND;
     }
     /** 低功耗模块默认无 */
     if(s_chargepile_config_info.config_info.lp_consumption_module >= CONFIG_LP_CONSUMPTION_MODULE_SIZE){
