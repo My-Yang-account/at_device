@@ -6591,6 +6591,12 @@ static void SerialScreen_BtnModuleStateClear(void)
     }
 }
 
+void SerialScreen_EnterMonitor(void)
+{
+    LcdData.debugIOflg = TRUE;
+    thaisen_set_debug_mode(1);
+}
+
 void SerialScreen_BtnModuleStateA(void)
 {
     SerialScreen_BtnModuleStateShow(LCD_GUN_1);
@@ -7810,15 +7816,17 @@ void SerialScreen_GetIOStatusB(void)
 
 void SerialScreen_QuitDebugIO(void)
 {
-	LcdData.debugIOflg = FALSE;
     thaisen_set_debug_mode(0);
 
+    if(LcdData.debugIOflg == FALSE){
+        return;
+    }
+    LcdData.debugIOflg = FALSE;
     for(u8 gunno = 0; gunno < LCD_GUN_NUM; gunno++){
         if((LcdData.gun[gunno].workState == SysMainStatus_StartReady) || (LcdData.gun[gunno].workState == SysMainStatus_Chrging)){
             return;
         }
     }
-
 	/************* 没有强制启动 *************/
 	for(u8 port = 0; port < LCD_GUN_NUM; port++){
 	    if(thaisenGetModuleDebugEnableOutput(port) == 0)
@@ -13538,7 +13546,7 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     /** 31.主界面 [page:39] */
     SerialScreen_ItemSetUp(LCD_PAGE_ROOT_MAIN, NULL, "sys info", LCD_BtnType, 0x0019, 0x1000, page_type, LCD_PAGE_MENU_SYS, (void *)NULL);
     SerialScreen_ItemSetUp(LCD_PAGE_ROOT_MAIN, NULL, "factory set", LCD_BtnType, 0x001A, 0x1000, page_type, LCD_PAGE_MENU_INPUT, (void *)SerialScreen_InputInfoGet);
-    SerialScreen_ItemSetUp(LCD_PAGE_ROOT_MAIN, NULL, "factory debug", LCD_BtnType, 0x001B, 0x1000, page_type, LCD_PAGE_MENU_MONITOR, (void *)NULL);
+    SerialScreen_ItemSetUp(LCD_PAGE_ROOT_MAIN, NULL, "factory debug", LCD_BtnType, 0x001B, 0x1000, page_type, LCD_PAGE_MENU_MONITOR, (void *)SerialScreen_EnterMonitor);
     SerialScreen_ItemSetUp(LCD_PAGE_ROOT_MAIN, NULL, "Home", LCD_BtnHomeType, 0x0002, 0x1000, page_type, LCD_PAGE_NONE, (void *)NULL);
     SerialScreen_ItemSetUp(LCD_PAGE_ROOT_MAIN, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
 
@@ -13783,7 +13791,7 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
 
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT, NULL, "b gun", LCD_BtnType, 0x0026, 0x1000, page_type, LCD_PAGE_MENU_INOUT_B, (void *)SerialScreen_GetIOStatusB);
 
-    SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT, NULL, "monitor info", LCD_BtnType, 0x0022, 0x1000, page_type, LCD_PAGE_MENU_MONITOR, (void *)NULL);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT, NULL, "monitor info", LCD_BtnType, 0x0022, 0x1000, page_type, LCD_PAGE_MENU_MONITOR, (void *)SerialScreen_EnterMonitor);
 
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT, NULL, "Relay AC", LCD_TextType, LCD_1sReflash, 0x4164, pu32_type, sizeof(LcdData.setData.g_acRely), (void *)&LcdData.setData.g_acRely);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT, NULL, "Relay A", LCD_TextType, LCD_1sReflash, 0x4166, pu8_nH_type, 1, (void *)&LcdData.setData.g_dcRelay[LCD_GUN_1]);
@@ -13832,7 +13840,7 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT_B, NULL, "aux set", LCD_BtnType, 0x0054, 0x1000, page_type, LCD_PAGE_MENU_INOUT_B, (void *)SerialScreen_BtnAuxSetB);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT_B, NULL, "aux24v set", LCD_BtnType, 0x0061, 0x1003, page_type, LCD_PAGE_MENU_INOUT_B, (void *)SerialScreen_BtnAux24VSetB);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT_B, NULL, "a gun", LCD_BtnType, 0x0026, 0x1000, page_type, LCD_PAGE_MENU_INOUT, (void *)SerialScreen_GetIOStatusA);
-    SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT_B, NULL, "monitor info", LCD_BtnType, 0x0022, 0x1000, page_type, LCD_PAGE_MENU_MONITOR_B, (void *)NULL);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT_B, NULL, "monitor info", LCD_BtnType, 0x0022, 0x1000, page_type, LCD_PAGE_MENU_MONITOR_B, (void *)SerialScreen_EnterMonitor);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT_B, NULL, "Relay AC", LCD_TextType, LCD_1sReflash, 0x5164, pu32_type, sizeof(LcdData.setData.g_acRely), (void *)&LcdData.setData.g_acRely);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT_B, NULL, "Relay B", LCD_TextType, LCD_1sReflash, 0x5166, pu8_nH_type, 1, (void *)&LcdData.setData.g_dcRelay[LCD_GUN_2]);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT_B, NULL, "Relay Parallel1", LCD_TextType, LCD_1sReflash, 0x5168, pu8_nH_type, 1, (void *)&LcdData.setData.g_paraRely0);
@@ -13869,7 +13877,7 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     /** 41.出厂调试-A枪模块信息 [page:49] */
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_STATE_MODULE, NULL, "liquid cool", LCD_BtnType, 0x0001, 0x1008, page_type, LCD_PAGE_LIQUID_COOLINGA, (void *)SerialScreen_GetIOStatusA);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_STATE_MODULE, NULL, "b gun", LCD_BtnType, 0x0026, 0x1000, page_type, LCD_PAGE_MENU_STATE_MODULE_B, (void *)SerialScreen_BtnModuleStateB);
-    SerialScreen_ItemSetUp(LCD_PAGE_MENU_STATE_MODULE, NULL, "monitor info", LCD_BtnType, 0x0022, 0x1000, page_type, LCD_PAGE_MENU_MONITOR, (void *)NULL);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_STATE_MODULE, NULL, "monitor info", LCD_BtnType, 0x0022, 0x1000, page_type, LCD_PAGE_MENU_MONITOR, (void *)SerialScreen_EnterMonitor);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_STATE_MODULE, NULL, "in out", LCD_BtnType, 0x0023, 0x1000, page_type, LCD_PAGE_MENU_INOUT, (void *)SerialScreen_GetIOStatusA);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_STATE_MODULE, NULL, "cd up", LCD_BtnType, 0x0050, 0x1000, page_type, LCD_PAGE_ROOT_MAIN, (void *)SerialScreen_QuitDebugIO);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_STATE_MODULE, NULL, "Home", LCD_BtnHomeType, 0x0002, 0x1000, page_type, LCD_PAGE_NONE, (void *)SerialScreen_QuitDebugIO);
@@ -13897,7 +13905,7 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     /** 42.出厂调试-B枪模块信息 [page:50] */
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_STATE_MODULE_B, NULL, "liquid cool", LCD_BtnType, 0x0001, 0x1008, page_type, LCD_PAGE_LIQUID_COOLINGA, (void *)SerialScreen_GetIOStatusA);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_STATE_MODULE_B, NULL, "a gun", LCD_BtnType, 0x0026, 0x1000, page_type, LCD_PAGE_MENU_STATE_MODULE, (void *)SerialScreen_BtnModuleStateA);
-    SerialScreen_ItemSetUp(LCD_PAGE_MENU_STATE_MODULE_B, NULL, "monitor info", LCD_BtnType, 0x0022, 0x1000, page_type, LCD_PAGE_MENU_MONITOR_B, (void *)NULL);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_STATE_MODULE_B, NULL, "monitor info", LCD_BtnType, 0x0022, 0x1000, page_type, LCD_PAGE_MENU_MONITOR_B, (void *)SerialScreen_EnterMonitor);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_STATE_MODULE_B, NULL, "in out", LCD_BtnType, 0x0023, 0x1000, page_type, LCD_PAGE_MENU_INOUT_B, (void *)SerialScreen_GetIOStatusB);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_STATE_MODULE_B, NULL, "cd up", LCD_BtnType, 0x0050, 0x1000, page_type, LCD_PAGE_ROOT_MAIN, (void *)SerialScreen_QuitDebugIO);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_STATE_MODULE_B, NULL, "Home", LCD_BtnHomeType, 0x0002, 0x1000, page_type, LCD_PAGE_NONE, (void *)SerialScreen_QuitDebugIO);
