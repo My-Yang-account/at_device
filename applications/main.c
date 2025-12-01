@@ -48,7 +48,12 @@ int main(void)
     extern int32_t app_nfunc_config_init(void);
     extern void app_state_guidance_changed(thaisenGuidanceInfo_t info, uint8_t flag, uint8_t port);
     extern void app_state_device_status_changed(uint8_t device, void *parameter, uint8_t plen, uint8_t port);
+    extern void app_system_delay(uint32_t ms);
+
     LOG_I("current program version: V%d.%d.%c\n", SOFTWARE_VERSION, SOFTWARE_SUBVERSION, (SOFTWARE_REVISION + 'A'));
+
+    /** 等待所有器件初始化正常，以下部分的初始化是在关闭中断的条件下进行的，无法实现OS延时 */
+    rt_thread_mdelay(2000);
 
 #ifdef APP_DESIGNATE_REGION
     extern void app_ofsm_info_init(void);
@@ -109,8 +114,6 @@ int main(void)
     MX_TIM1_Init();
     MX_IWDG_Init();
     thaisenW25qXX_init();
-    /** 底层驱动配置完后等待一定时间稳定再操作 */
-    rt_thread_mdelay(2000);
     get_eeprom_para();
     thaisenCCVoltInit();
 
@@ -133,7 +136,7 @@ int main(void)
 
     SerialScreen_InputInfoGet();
     SerialScreen_SetInputInfo();
-    rt_thread_mdelay(100);
+    app_system_delay(100);
 
     thaisenChargInit();
 	thaisen_chargModule_Init(thaisen_get_charg_status, mw_get_bms_data(0), mw_get_bms_data(1),(struct thasienModuleSetStruct *)sys_get_module_config_info());

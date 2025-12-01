@@ -32,17 +32,18 @@
 
 void prepose_init(void)
 {
+    extern void app_system_delay(uint32_t ms);
     /* 对指示灯进行初始化 */
     mw_led_init();
 
-    rt_thread_mdelay(1000);
+    app_system_delay(1000);
     /* 对HCI串口进行初始化 */
     while (1)
     {
         if(0 > bsp_hci_serial_init())
         {
             LOG_E("hci serial initialize failed, please check hci serial!");
-            rt_thread_mdelay(1000);
+            app_system_delay(1000);
         }
         else
         {
@@ -59,7 +60,7 @@ void prepose_init(void)
     if(system_config_init_if() < 0x00){
         while (1) {
             if(0 > chargepile_config_init()){
-                rt_thread_mdelay(1000);
+                app_system_delay(1000);
                 mw_iwdg_refresh();
 
             }else{
@@ -73,7 +74,7 @@ void prepose_init(void)
 #if (APP_TARGET_PLATFORM_ID == NET_OCPP_PLATFORM_ID)
     while (1) {
         if(0 > sys_tp_additional_config_init()){
-            rt_thread_mdelay(1000);
+            app_system_delay(1000);
             mw_iwdg_refresh();
 
         }else{
@@ -86,7 +87,7 @@ void prepose_init(void)
 
     while (1) {
         if(0 > chargepile_check_config()) {
-            rt_thread_mdelay(3000);
+            app_system_delay(3000);
             break;
         } else {
             break;
@@ -97,7 +98,7 @@ void prepose_init(void)
 #if (APP_TARGET_PLATFORM_ID == NET_OCPP_PLATFORM_ID)
     while (1) {
         if(0 > sys_tp_additional_check_config()) {
-            rt_thread_mdelay(3000);
+            app_system_delay(3000);
             break;
         } else {
             break;
@@ -110,7 +111,7 @@ void prepose_init(void)
 
     while (1) {
         if(0 > mw_storage_init()) {
-            rt_thread_mdelay(100);
+            app_system_delay(100);
             mw_iwdg_refresh();
 //            LOG_D("record initialize fail");
         } else {

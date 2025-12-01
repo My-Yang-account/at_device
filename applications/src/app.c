@@ -547,4 +547,17 @@ void app_init(void)
     app_card_init();
 }
 
+/************************************************
+ * 函数名           app_system_delay
+ * 功能               系统延时(用于无操作系统或关闭中断(不切换线程)时的延时)
+ * 参数               ms   延时毫秒
+ * 返回
+ ***********************************************/
+void app_system_delay(uint32_t ms)
+{
+    for(uint32_t i = 0x00; i < ms; i++){
+        rt_hw_us_delay(1000);
+    }
+}
+
 /*****************************(C)COPYRIGHT(c) 2021 Thaisen *****END OF FILE****/

@@ -225,9 +225,13 @@ int32_t ethch395_netdev_init(void)
 #endif
 
     rt_pin_write(ETHCH395_RST_PIN,PIN_LOW);                                                   /* 硬件复位 */
-    rt_thread_mdelay(10);
+    for(uint8_t i = 0x00; i < 10; i++){
+        rt_hw_us_delay(1000);
+    }
     rt_pin_write(ETHCH395_RST_PIN,PIN_HIGH);
-    rt_thread_mdelay(500);
+    for(uint16_t i = 0x00; i < 500; i++){
+        rt_hw_us_delay(1000);
+    }
 
     return 0x00;
 }

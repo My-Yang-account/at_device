@@ -300,7 +300,6 @@ static struct system_config_tp_additional s_system_config_tp_additional;
 
 SYS_DEF_SRAM2 static struct chargepile_config_info s_chargepile_config_info;
 SYS_DEF_SRAM1 static uint8_t s_storage_chip_entry = 0x00;
-SYS_DEF_SRAM1 static uint32_t s_config_info_address = SYSTEM_CONFIG_MAIN_ADDRESS;
 SYS_DEF_SRAM1 static uint32_t s_system_power_max = 0x00;
 SYS_DEF_SRAM1 static struct module_info s_module_info;
 
@@ -979,7 +978,6 @@ static void sys_config_item_init(uint8_t item, uint32_t user, uint8_t* config_pt
 void sys_chargeplie_config_info_init(void)
 {
     s_storage_chip_entry = 0x00;
-    s_config_info_address = SYSTEM_CONFIG_MAIN_ADDRESS;
     s_system_power_max = 0x00;
 
     memset(&s_chargepile_config_info, 0xFF, sizeof(s_chargepile_config_info));
@@ -1660,7 +1658,6 @@ static int32_t do_storage_if_config_content(uint32_t addr, uint8_t *buff, uint32
         if(mw_iflash_erase_sector(addr, blen, 0x00) < 0x00){
             LOG_E("execute flash erase fail when call do_storage_if_config_content");
         }
-
         if(mw_iflash_write_directly(addr, (const uint8_t*)&init_flag , sizeof(init_flag), 0x00) < 0x00){
             LOG_E("execute write init flag fail when call do_storage_if_config_content");
         }
@@ -2004,16 +2001,209 @@ static void chargepile_config_data_reset(void)
 #endif /* APP_INCLUDE_TARGET_PLATFORM */
 }
 
+/*********************************************
+ * 函数名         chargepile_config_compare
+ * 功能             充电桩内部、外部配置信息比较
+ * 参数
+ * 返回            >=0： 配置信息有效    <0：配置信息无效
+ ********************************************/
+static int32_t chargepile_config_compare(void)
+{
+    uint16_t compare_len = 0x00, i = 0x00, j = 0x00, is_if_data_correct = 0x00, data_valid = 0x00;
+    struct chargepile_config_info *_config_if = NULL;
+
+    _config_if = (struct chargepile_config_info*)(malloc(sizeof(struct chargepile_config_info)));
+    if(_config_if == NULL){
+        return -0x01;
+    }
+
+    /************ 读取内部的配置信息 ************/
+    memset(_config_if, 0xFF, sizeof(struct chargepile_config_info));
+    mw_iflash_read((SYSTEM_CONFIG_INFO_ADDR_IF + sizeof(uint32_t)), (uint8_t *)_config_if, sizeof(struct chargepile_config_info));
+    /************ 读取外部的配置信息 ************/
+    memset(&s_chargepile_config_info, 0xFF, sizeof(s_chargepile_config_info));
+    mw_norflash_read(SYSTEM_CONFIG_MAIN_ADDRESS, (uint8_t *)&s_chargepile_config_info, sizeof(s_chargepile_config_info));
+
+    /** 桩号字段比较 */
+    compare_len = sizeof(_config_if->pile_info.pile_number);
+    /** 桩号部分内、外配置数据相同 */
+    if(memcmp(_config_if->pile_info.pile_number, s_chargepile_config_info.pile_info.pile_number, compare_len) == 0x00){
+        for(i = 0x00; i < compare_len; i++){
+            if(_config_if->pile_info.pile_number[i] != 0xFF){
+                break;
+            }
+        }
+        /** 数据并非全是0xFF，认为数据是有效的 */
+        if(i < compare_len){
+            free(_config_if);
+            return 0x00;
+        }
+    }else{
+        data_valid = 0x01;
+        for(i = 0x00; i < compare_len; i++){
+            if(_config_if->pile_info.pile_number[i] != 0xFF){
+                is_if_data_correct = 0x01;
+                break;
+            }
+        }
+    }
+    /** IP域名字段比较 */
+    compare_len = sizeof(_config_if->network.domain);
+    /** IP域名部分内、外配置数据相同 */
+    if(memcmp(_config_if->network.domain, s_chargepile_config_info.network.domain, compare_len) == 0x00){
+        for(i = 0x00; i < compare_len; i++){
+            if(_config_if->network.domain[i] != 0xFF){
+                break;
+            }
+        }
+        /** 数据并非全是0xFF，认为数据是有效的 */
+        if(i < compare_len){
+            free(_config_if);
+            return 0x00;
+        }
+    }else{
+        data_valid = 0x01;
+        for(i = 0x00; i < compare_len; i++){
+            if(_config_if->network.domain[i] != 0xFF){
+                is_if_data_correct = 0x01;
+                break;
+            }
+        }
+    }
+    /** 二维码字段比较 */
+    compare_len = sizeof(_config_if->config_info.qrcode_prefix);
+    /** 二维码名部分内、外配置数据相同 */
+    if(memcmp(_config_if->config_info.qrcode_prefix, s_chargepile_config_info.config_info.qrcode_prefix, compare_len) == 0x00){
+        for(i = 0x00; i < compare_len; i++){
+            if(_config_if->config_info.qrcode_prefix[i] != 0xFF){
+                break;
+            }
+        }
+        /** 数据并非全是0xFF，认为数据是有效的 */
+        if(i < compare_len){
+            free(_config_if);
+            return 0x00;
+        }
+    }else{
+        data_valid = 0x01;
+        for(i = 0x00; i < compare_len; i++){
+            if(_config_if->config_info.qrcode_prefix[i] != 0xFF){
+                is_if_data_correct = 0x01;
+                break;
+            }
+        }
+    }
+    /** 模块信息部分比较 */
+    compare_len = sizeof(_config_if->config_info.module_num_singlegroup);
+    /** 模块信息名部分内、外配置数据相同 */
+    if(memcmp(_config_if->config_info.module_num_singlegroup, s_chargepile_config_info.config_info.module_num_singlegroup, compare_len) == 0x00){
+        for(i = 0x00; i < compare_len; i++){
+            if(_config_if->config_info.module_num_singlegroup[i] != 0xFF){
+                break;
+            }
+        }
+        /** 数据并非全是0xFF，认为数据是有效的 */
+        if(i < compare_len){
+            free(_config_if);
+            return 0x00;
+        }
+    }else{
+        data_valid = 0x01;
+        for(i = 0x00; i < compare_len; i++){
+            if(_config_if->config_info.module_num_singlegroup[i] != 0xFF){
+                is_if_data_correct = 0x01;
+                break;
+            }
+        }
+    }
+    /** 屏幕密码部分比较 */
+    compare_len = sizeof(_config_if->config_info.screen_password);
+    /** 屏幕密码名部分内、外配置数据相同 */
+    if(memcmp(_config_if->config_info.screen_password, s_chargepile_config_info.config_info.screen_password, compare_len) == 0x00){
+        for(i = 0x00; i < compare_len; i++){
+            if(_config_if->config_info.screen_password[i] != 0xFF){
+                break;
+            }
+        }
+        /** 数据并非全是0xFF，认为数据是有效的 */
+        if(i < compare_len){
+            free(_config_if);
+            return 0x00;
+        }
+    }else{
+        data_valid = 0x01;
+        for(i = 0x00; i < compare_len; i++){
+            if(_config_if->config_info.screen_password[i] != 0xFF){
+                is_if_data_correct = 0x01;
+                break;
+            }
+        }
+    }
+    /** 电表信息部分比较 */
+    compare_len = sizeof(_config_if->config_info.meter_address);
+    /** 电表信息名部分内、外配置数据相同 */
+    if(memcmp(_config_if->config_info.meter_address, s_chargepile_config_info.config_info.meter_address, compare_len) == 0x00){
+        compare_len = (sizeof(_config_if->config_info.meter_address) /sizeof(_config_if->config_info.meter_address[0x00]));
+        for(i = 0x00; i < compare_len; i++){
+            for(j = 0x00; j < CP_INFO_METER_ADDRESS_LEN_MAX; j++){
+                if(_config_if->config_info.meter_address[i][j] != 0xFF){
+                    break;
+                }
+            }
+            if(j < CP_INFO_METER_ADDRESS_LEN_MAX){
+                break;
+            }
+        }
+        /** 数据并非全是0xFF，认为数据是有效的 */
+        if(i < compare_len){
+            free(_config_if);
+            return 0x00;
+        }
+    }else{
+        data_valid = 0x01;
+        compare_len = (sizeof(_config_if->config_info.meter_address) /sizeof(_config_if->config_info.meter_address[0x00]));
+        for(i = 0x00; i < compare_len; i++){
+            for(j = 0x00; j < CP_INFO_METER_ADDRESS_LEN_MAX; j++){
+                if(_config_if->config_info.meter_address[i][j] != 0xFF){
+                    is_if_data_correct = 0x01;
+                    break;
+                }
+            }
+            if(j < CP_INFO_METER_ADDRESS_LEN_MAX){
+                break;
+            }
+        }
+    }
+    /** 数据有效 */
+    if(data_valid){
+        /** 以内部FLASH的为准 */
+        if(is_if_data_correct){
+            memcpy(&s_chargepile_config_info, _config_if, sizeof(struct chargepile_config_info));
+        }
+        free(_config_if);
+        return 0x00;
+    }
+
+    free(_config_if);
+    return -0x01;
+}
+
 int32_t chargepile_config_init(void)
 {
     uint32_t crc = 0x00, init_flag = 0x00;
 
     mw_norflash_read(SYSTEM_CONFIG_INIT_FLAG_ADDRESS, (uint8_t *)&init_flag, sizeof(init_flag));
     if (init_flag != SYSTEM_INIT_KEY) {
-        if(init_flag == 0xFFFFFFFF){
-            LOG_D("new board configure start initialization(%d)", sizeof(s_chargepile_config_info));
-            chargepile_config_data_reset();
-
+        if(++s_storage_chip_entry > 0x03){
+            if(chargepile_config_compare() >= 0x00){
+                init_flag = SYSTEM_INIT_KEY;
+                mw_norflash_write(SYSTEM_CONFIG_INIT_FLAG_ADDRESS, (uint8_t *)&init_flag, sizeof(init_flag));
+                return 0x00;
+            }
+            if(init_flag == 0xFFFFFFFF){
+                LOG_D("new board configure start initialization(%d)", sizeof(s_chargepile_config_info));
+                chargepile_config_data_reset();
+            }
             crc = crc32_ieee_update(0x00, (const uint8_t *)&s_chargepile_config_info, (sizeof(s_chargepile_config_info) - sizeof(s_chargepile_config_info.crc)));
             s_chargepile_config_info.crc = crc;
 
@@ -2021,27 +2211,11 @@ int32_t chargepile_config_init(void)
             mw_norflash_write(SYSTEM_CONFIG_INIT_FLAG_ADDRESS, (uint8_t *)&init_flag, sizeof(init_flag));
             s_storage_chip_entry = 0x00;
             return 0x00;
-        }else{
-            if(++s_storage_chip_entry > 0x03){
-                if(init_flag != 0x00){
-                    LOG_D("config init flag error, configure start initialization(%d)", sizeof(s_chargepile_config_info));
-                    chargepile_config_data_reset();
-
-                    crc = crc32_ieee_update(0x00, (const uint8_t *)&s_chargepile_config_info, (sizeof(s_chargepile_config_info) - sizeof(s_chargepile_config_info.crc)));
-                    s_chargepile_config_info.crc = crc;
-
-                    init_flag = SYSTEM_INIT_KEY;
-                    mw_norflash_write(SYSTEM_CONFIG_INIT_FLAG_ADDRESS, (uint8_t *)&init_flag, sizeof(init_flag));
-                    s_storage_chip_entry = 0x00;
-                }
-                return 0x00;
-            }
         }
-        s_config_info_address = SYSTEM_CONFIG_MAIN_ADDRESS;
         return -0x01;
     }else{
         memset(&s_chargepile_config_info, 0xFF, sizeof(s_chargepile_config_info));
-        mw_norflash_read(s_config_info_address, (uint8_t *)&s_chargepile_config_info, sizeof(s_chargepile_config_info));
+        mw_norflash_read(SYSTEM_CONFIG_MAIN_ADDRESS, (uint8_t *)&s_chargepile_config_info, sizeof(s_chargepile_config_info));
 
         crc = crc32_ieee_update(0x00, (const uint8_t *)&s_chargepile_config_info, (sizeof(s_chargepile_config_info) - sizeof(s_chargepile_config_info.crc)));
 
@@ -2050,18 +2224,10 @@ int32_t chargepile_config_init(void)
 
         if (crc != s_chargepile_config_info.crc) {
             if(++s_storage_chip_entry > 0x03){
-//                if(s_config_info_address == SYSTEM_CONFIG_MAIN_ADDRESS){
-                if(0){
-                    s_config_info_address = SYSTEM_CONFIG_BACKUP_ADDRESS;
-                    s_storage_chip_entry = 0x00;
-                    LOG_W("config info check error in main addr, read backup addr");
-                    return -0x01;
-                }else{
-                    LOG_E("system config crc error");
-                    s_chargepile_config_info.target_plat.verify_result = 0x00;
-                    s_chargepile_config_info.monitor_plat.verify_result = 0x00;
-                    s_storage_chip_entry = 0x00;
-                }
+                LOG_E("system config crc error");
+                s_chargepile_config_info.target_plat.verify_result = 0x00;
+                s_chargepile_config_info.monitor_plat.verify_result = 0x00;
+                s_storage_chip_entry = 0x00;
             }else{
                 return -0x01;
             }
@@ -2077,21 +2243,24 @@ int32_t chargepile_config_init(void)
 
 int32_t system_config_init_if(void)
 {
+    extern void app_system_delay(uint32_t ms);
+
     uint8_t init_flag_is_correct = 0x00;
     uint32_t crc = 0x00, init_flag = 0x00;
 
     while(1){
         mw_iflash_read(SYSTEM_CONFIG_INFO_ADDR_IF, (uint8_t *)&init_flag, sizeof(init_flag));
         if(init_flag != SYSTEM_INIT_KEY) {
-            if(init_flag == 0xFFFFFFFF){
-                LOG_D("new board system configure if(%d)", sizeof(s_chargepile_config_info));
-                return -0x01;
-            }else{
-                if(++s_storage_chip_entry > 0x03){
+            if(++s_storage_chip_entry > 0x03){
+                if(init_flag == 0xFFFFFFFF){
+                    LOG_D("new board system configure if(%d)", sizeof(s_chargepile_config_info));
+                    s_storage_chip_entry = 0x00;
+                    return -0x01;
+                }else{
                     break;
                 }
             }
-            rt_thread_mdelay(1000);
+            app_system_delay(1000);
             mw_iwdg_refresh();
             continue;
         }
@@ -2118,7 +2287,7 @@ int32_t system_config_init_if(void)
                     s_chargepile_config_info.monitor_plat.verify_result = 0x00;
                 }
             }else{
-                rt_thread_mdelay(1000);
+                app_system_delay(1000);
                 mw_iwdg_refresh();
                 continue;
             }
@@ -2127,10 +2296,12 @@ int32_t system_config_init_if(void)
     }
 
     if(s_storage_chip_entry > 0x03){
+        s_storage_chip_entry = 0x00;
         return -0x01;
     }
 
     LOG_D("system config if success");
+    s_storage_chip_entry = 0x00;
 
     return 0x00;
 }
