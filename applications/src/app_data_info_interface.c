@@ -671,6 +671,11 @@ struct charge_data *thaisen_app_get_charge_info(uint8_t gunno) // OK
     struct thaisenBMS_Charger_struct* bms_data = mw_get_bms_data(gunno);
 
     s_data_of_charging.charge_voltage = ofsm_temp->base.voltage_a;
+    s_data_of_charging.charge_current = ofsm_temp->base.current_a;
+    s_data_of_charging.charge_power = ofsm_temp->base.power_a;
+    s_data_of_charging.charge_elect = ofsm_temp->base.elect_a;
+    s_data_of_charging.charge_total_fee = ofsm_temp->base.fees_total;
+    s_data_of_charging.account_ballance = ofsm_temp->base.account_ballance_before;
 
     if(((ofsm_temp->base.charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL) || (ofsm_temp->base.charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD)) &&
             (ofsm_temp->base.main_gunno != gunno)){
@@ -684,11 +689,14 @@ struct charge_data *thaisen_app_get_charge_info(uint8_t gunno) // OK
     }
 
     memcpy(s_data_of_charging.trade_number, ofsm_temp->base.transaction_number, sizeof(s_data_of_charging.trade_number));
-    s_data_of_charging.charge_current = ofsm_temp->base.current_a;
-    s_data_of_charging.charge_power = ofsm_temp->base.power_a;
-    s_data_of_charging.charge_elect = ofsm_temp->base.elect_a;
-    s_data_of_charging.charge_total_fee = ofsm_temp->base.fees_total;
-    s_data_of_charging.account_ballance = ofsm_temp->base.account_ballance_before;
+    if((ofsm_temp->base.charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL) && (ofsm_temp->base.main_gunno != gunno)){
+        s_data_of_charging.charge_current = ofsm_temp->base.current_a;
+        s_data_of_charging.charge_power = ofsm_temp->base.power_a;
+        s_data_of_charging.charge_elect = ofsm_temp->base.elect_a;
+        s_data_of_charging.charge_total_fee = ofsm_temp->base.fees_total;
+        s_data_of_charging.account_ballance = ofsm_temp->base.account_ballance_before;
+    }
+
     s_data_of_charging.charge_start_time = ofsm_temp->base.start_time;
     s_data_of_charging.charge_stop_time = ofsm_temp->base.stop_time;
     s_data_of_charging.charge_time = ofsm_temp->base.charge_time;
