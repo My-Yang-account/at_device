@@ -1,4 +1,8 @@
 autoUpdatePkgs=true
 eclipse.preferences.version=1
+<<<<<<< Updated upstream
 encoding//applications/src/serialScreen_GBK.c=GBK
+=======
+encoding//applications/src/app_support_func.c=GBK
+>>>>>>> Stashed changes
 encoding/<project>=UTF-8

@@ -1836,7 +1836,7 @@ void ykc_monitor_chargepile_request_padding_bms_shakehand(uint8_t gunno)
     g_ykc_monitor_preq_shake_hand[gunno].body.bms_bat_date_day = bms->BRM.BatBuldday;
     memcpy(g_ykc_monitor_preq_shake_hand[gunno].body.bms_bat_charge_num, bms->BRM.Chagtimer, sizeof(bms->BRM.Chagtimer));
     g_ykc_monitor_preq_shake_hand[gunno].body.bms_bat_title_identification = bms->BRM.BatProperty;
-    g_ykc_monitor_preq_shake_hand[gunno].body.reserve = 0x00;
+    g_ykc_monitor_preq_shake_hand[gunno].body.reserve = bms->BRM.reserved;
     memcpy(g_ykc_monitor_preq_shake_hand[gunno].body.vin, bms->BRM.CarDiscern, NET_YKC_MONITOR_CAR_VIN_NUMBER_LENGTH_MAX);
     memcpy(g_ykc_monitor_preq_shake_hand[gunno].body.bms_software_ver, bms->BRM.BMSVerNum, sizeof(bms->BRM.BMSVerNum));
 

@@ -1112,8 +1112,9 @@ extern void ykc_monitor_guidance_changed_callback(uint8_t gunno, uint8_t flag, u
 void app_state_guidance_changed(thaisenGuidanceInfo_t info, uint8_t flag, uint8_t port)
 {
     uint32_t timestamp = time(NULL);
-
+#ifdef APP_INCLUDE_MONITOR_PLATFORM
     ykc_monitor_guidance_changed_callback(port, flag, timestamp, info.voltage, info.voltage_last, info.channel_adc, 0x00, info.channel_adc_last, 0x00);
+#endif /* APP_INCLUDE_MONITOR_PLATFORM */
 }
 
 /********************************************************** 器件状态变化 **********************************************************/
@@ -1256,6 +1257,8 @@ void app_state_device_status_changed(uint8_t device, void *parameter, uint8_t pl
         if((p->opt == THAISEN_DEVICE_OPT_CONTROL) || (p->opt == THAISEN_DEVICE_OPT_DEBUG_CONTROL)){
             ctrl = 0x01;
         }
+#ifdef APP_INCLUDE_MONITOR_PLATFORM
         ykc_monitor_dev_control_changed_callback(port, device, is_whole_device, is_debug, ctrl, p->result, timestamp);
+#endif /* APP_INCLUDE_MONITOR_PLATFORM */
     }
 }
