@@ -1160,7 +1160,10 @@ static void ykc_callback_request_qrcode_config_ykc15(uint8_t* data, uint16_t len
     struct net_handle* handle = net_get_net_handle();
     char *pile_number = (char*)(handle->get_system_data(NET_SYSTEM_DATA_NAME_PILE_NUMBER, NULL, 0x00, option));
     uint8_t pile_numberbcd[NET_YKC_CHARGEPILE_LENGTH_DEFAULT];
-    uint8_t qrcode_len = ((Net_YkcPro_SReq_Qrcode_Config_Ykc15_t*)data)->body.length;
+    uint8_t qrcode_len = strlen((char*)(&((Net_YkcPro_SReq_Qrcode_Config_Ykc15_t*)data)->body.result));
+    qrcode_len = qrcode_len > ((Net_YkcPro_SReq_Qrcode_Config_Ykc15_t*)data)->body.length ? ((Net_YkcPro_SReq_Qrcode_Config_Ykc15_t*)data)->body.length : qrcode_len;
+
+    rt_kprintf("当前二维码实际长度:%d::下发长度:%d\r\n", qrcode_len, ((Net_YkcPro_SReq_Qrcode_Config_Ykc15_t*)data)->body.length);
     uint16_t valid_len = strlen((char*)pile_number);
 
     memcpy(&(g_ykc_sreq_qrcode_config_ykc15), data, (sizeof(g_ykc_sreq_qrcode_config_ykc15) - NET_YKC_PROTOCOL_CHECK_REGION_SIZE));
