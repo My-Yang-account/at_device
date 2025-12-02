@@ -129,7 +129,8 @@ struct _config_para{
     uint8_t lighting_lamp_ehour;                                      /* 照明结束小时(24小时制) */
     uint8_t lighting_lamp_smin;                                       /* 照明起始分钟 */
     uint8_t lighting_lamp_emin;                                       /* 照明结束分钟 */
-    uint8_t reserve1[256 - 18];                                       /* 预留 */
+    uint8_t discharge_as_of_soc;                                      /* 放电截至SOC */
+    uint8_t reserve1[256 - 19];                                       /* 预留 */
 };
 
 struct _config_info{
@@ -610,6 +611,11 @@ APP_DEF_SRAM2 static struct config_item s_config_item_set[CONFIG_ITEM_SIZE] =
         {CONFIG_ITEM_LIGHTING_LAMP_EMIN,                                           /* 配置项：照明结束分钟 */
         (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.lighting_lamp_emin)),
         (uint8_t*)&s_chargepile_config_info.config_para.lighting_lamp_emin,
+        NULL},
+
+        {CONFIG_ITEM_DISCHARGE_AS_OF_SOC,                                          /* 配置项：放电截至SOC */
+        (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.discharge_as_of_soc)),
+        (uint8_t*)&s_chargepile_config_info.config_para.discharge_as_of_soc,
         NULL},
 
         {CONFIG_ITEM_OUTEN_AC,                                                      /* 配置项：交流接触器输出*/
@@ -1156,18 +1162,18 @@ void sys_chargeplie_config_info_init(void)
     /** 照明起始小时(24小时制) */
     sys_config_item_init(CONFIG_ITEM_LIGHTING_LAMP_SHOUR, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.lighting_lamp_shour)), \
             (uint8_t*)&s_chargepile_config_info.config_para.lighting_lamp_shour, NULL);
-
     /** 照明结束小时(24小时制) */
     sys_config_item_init(CONFIG_ITEM_LIGHTING_LAMP_EHOUR, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.lighting_lamp_ehour)), \
             (uint8_t*)&s_chargepile_config_info.config_para.lighting_lamp_ehour, NULL);
-
     /** 照明起始分钟 */
     sys_config_item_init(CONFIG_ITEM_LIGHTING_LAMP_SMIN, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.lighting_lamp_smin)), \
             (uint8_t*)&s_chargepile_config_info.config_para.lighting_lamp_smin, NULL);
-
     /** 照明结束分钟 */
     sys_config_item_init(CONFIG_ITEM_LIGHTING_LAMP_EMIN, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.lighting_lamp_emin)), \
             (uint8_t*)&s_chargepile_config_info.config_para.lighting_lamp_emin, NULL);
+    /** 放电截至SOC */
+    sys_config_item_init(CONFIG_ITEM_DISCHARGE_AS_OF_SOC, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.discharge_as_of_soc)), \
+            (uint8_t*)&s_chargepile_config_info.config_para.discharge_as_of_soc, NULL);
     /** 启用交流接触器 */
     sys_config_item_init(CONFIG_ITEM_OUTEN_AC, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.acrelay_out)), \
             (uint8_t*)&s_chargepile_config_info.function_enable.acrelay_out, NULL);
@@ -1860,6 +1866,7 @@ static void chargepile_config_data_reset(void)
     s_chargepile_config_info.config_para.lighting_lamp_ehour = CONFIG_LIGHTING_LAMP_EHOUR_MIN;
     s_chargepile_config_info.config_para.lighting_lamp_smin = CONFIG_LIGHTING_LAMP_SMIN_MIN;
     s_chargepile_config_info.config_para.lighting_lamp_emin = CONFIG_LIGHTING_LAMP_EMIN_MIN;
+    s_chargepile_config_info.config_para.discharge_as_of_soc = (PROTECT_DISCHARGE_AS_OF_SOC_DEFAULT + PROTECT_DISCHARGE_AS_OF_SOC_OFFSET);
 
     s_chargepile_config_info.config_para.input_overvol = CHARGEPILE_INPUT_OVERVOLT_DEF;
     s_chargepile_config_info.config_para.input_undervol = CHARGEPILE_INPUT_UNDERVOLT_DEF;
@@ -2528,6 +2535,10 @@ int32_t chargepile_check_config(void)
         s_chargepile_config_info.config_para.lighting_lamp_ehour = CONFIG_LIGHTING_LAMP_EHOUR_MIN;
         s_chargepile_config_info.config_para.lighting_lamp_smin = CONFIG_LIGHTING_LAMP_SMIN_MIN;
         s_chargepile_config_info.config_para.lighting_lamp_emin = CONFIG_LIGHTING_LAMP_EMIN_MIN;
+    }
+    if((s_chargepile_config_info.config_para.discharge_as_of_soc < (PROTECT_DISCHARGE_AS_OF_SOC_MIN + PROTECT_DISCHARGE_AS_OF_SOC_OFFSET)) ||
+            (s_chargepile_config_info.config_para.discharge_as_of_soc > (PROTECT_DISCHARGE_AS_OF_SOC_MAX + PROTECT_DISCHARGE_AS_OF_SOC_OFFSET))){
+        s_chargepile_config_info.config_para.discharge_as_of_soc = (PROTECT_DISCHARGE_AS_OF_SOC_DEFAULT + PROTECT_DISCHARGE_AS_OF_SOC_OFFSET);
     }
 
     if(s_chargepile_config_info.function_enable.emergency_stop > 0x01){    /* 急停故障检测默认开启 */

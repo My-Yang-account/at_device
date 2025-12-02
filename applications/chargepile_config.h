@@ -151,6 +151,7 @@
 //#define CP_USING_CHARGE_CURR_DETECT_STRATEGY            /* 使用充电电流检测策略 */
 //#define CP_USING_FB_DETECT                              /* 使用反馈实时检测 */
 //#define CP_INCLUDE_BATVOLT_DETECT_QRCODE                /* 包含电池电压报告检测二维码 */
+//#define CP_USING_V2G                                    /* 使用V2G */
 
 /** 域名默认 */
 /**------------------------------------------------------------*/
@@ -297,6 +298,11 @@
 #define PROTECT_OVERTEMP_LIMITCURR_VALUE_DEFAULT  95        /* 保护信息：默认过温限流值 */
 #define PROTECT_OVERTEMP_LIMITCURR_VALUE_MAX      300       /* 保护信息：过温限流值最大值 */
 #define PROTECT_OVERTEMP_LIMITCURR_VALUE_MIN      1         /* 保护信息：过温限流值最小值 */
+
+#define PROTECT_DISCHARGE_AS_OF_SOC_DEFAULT       20        /* 保护信息：放电截至SOC值 */
+#define PROTECT_DISCHARGE_AS_OF_SOC_MAX           101       /* 保护信息：放电截至SOC最大值 */
+#define PROTECT_DISCHARGE_AS_OF_SOC_MIN           0         /* 保护信息：放电截至SOC最小值 */
+#define PROTECT_DISCHARGE_AS_OF_SOC_OFFSET        100       /* 保护信息：放电截至SOC偏移(正偏移，范围 100 - 201, 防止老板子可能这部分空间被默认成了0或1) */
 
 #define GUNVOLT_LIMIT_VALUE_MIN                   10 *100   /* 枪头电压最小值 */
 #define GUNVOLT_LIMIT_VALUE_MAX                   600 *100  /* 枪头电压最大值 */
@@ -590,6 +596,7 @@ enum config_name{
     CONFIG_ITEM_LIGHTING_LAMP_EHOUR,
     CONFIG_ITEM_LIGHTING_LAMP_SMIN,
     CONFIG_ITEM_LIGHTING_LAMP_EMIN,
+    CONFIG_ITEM_DISCHARGE_AS_OF_SOC,
 
     /**************out***************/
     CONFIG_ITEM_OUTEN_AC,

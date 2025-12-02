@@ -69,6 +69,10 @@ extern "C" {
 #define APP_INCLUDE_BATVOLT_DETECT_QRCODE              /* 包含电池电压报告检测二维码 */
 #endif /* CP_INCLUDE_BATVOLT_DETECT_QRCODE */
 
+#ifdef CP_USING_V2G
+#define APP_INCLUDE_V2G                                /* 包含V2G */
+#endif /* CP_USING_V2G */
+
 #define APP_USING_DOUBLEGUN                            /* 使用双枪 */
 
 #define APP_MAINTENTANCE_MODE_CURR_MAX       200       /* 保养模式最大电流20A(0.1) */
@@ -553,6 +557,7 @@ typedef struct{
         uint32_t is_reser_timeout_started : 1;               /* 是否本地预约已超时启动(用于超过预约时间10分钟内启动检测) */
         uint32_t is_meter_elect_error : 1;                   /* 是否检测出电表电量有错 */
         uint32_t is_ob_authenticated : 1;                    /* 离线计费模式下已进行预约鉴权(ob:offline billing) */
+        uint32_t is_boot_timeout : 1;                        /* 是启动超时而停充 */
     }flag;
 
     uint8_t cc1_state;                /* CC1 状态 */

@@ -119,6 +119,10 @@
 #define SCREEN_USING_OFFLINE_BILLING     /* 使用离线计费 */
 #endif /* CP_USING_OFFLINE_BILLING */
 
+#ifdef CP_USING_V2G
+#define SCREEN_USING_V2G                 /* 使用V2G */
+#endif /* CP_USING_V2G */
+
 #ifdef USING_DOUBLE_GUN
 #define SCREEN_USING_DOUBLE_GUN          /* 使用双枪 */
 #endif /* USING_DOUBLE_GUN */
@@ -662,6 +666,9 @@ struct LCD_DISPLAY_SETDATA_TYPE{
     u16 PowerPercent;                       // 功率百分比
     u16 ElossProprotion;                    // 电损比
     u16 GunVolt_LimitValue;                 // 枪头电压限值
+#ifdef SCREEN_USING_V2G
+    u8 DisCharge_AsOf_SOC;                 // 放电截至SOC
+#endif /* SCREEN_USING_V2G */
 	/***********************factory debug***************************/
 	u8 s_elElock[LCD_GUN_NUM];				//电磁锁设置
 	u32 g_elElock[LCD_GUN_NUM];				//电磁锁反馈
@@ -4095,6 +4102,9 @@ void SerialScreen_BtnProtectInfoGet(void)
     LcdData.setData.GunVolt_LimitValue = *(u16 *)(UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_GUNVOLT_LIMIT, 0));
     LcdData.setData.ElossProprotion = *(u16 *)(UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_ELOSS_PROPORTION, 0));
     LcdData.setData.PowerPercent = thaisen_get_power_percent();
+#ifdef SCREEN_USING_V2G
+    LcdData.setData.DisCharge_AsOf_SOC = *(u8 *)(UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_DISCHARGE_AS_OF_SOC, 0));
+#endif /* SCREEN_USING_V2G */
 
     rt_kprintf("SerialScreen_BtnProtectInfoGet(%d, %d)\n", LcdData.setData.Onput_OverVolt);
     LcdData.setData.Input_OverVolt = SerialScreen_GetPara_ValidValue(LcdData.setData.Input_OverVolt,
@@ -4126,6 +4136,12 @@ void SerialScreen_BtnProtectInfoGet(void)
 
     LcdData.setData.OverTemp_LimitCurr = SerialScreen_GetPara_ValidValue(LcdData.setData.OverTemp_LimitCurr,
             PROTECT_OVERTEMP_LIMITCURR_VALUE_DEFAULT, PROTECT_OVERTEMP_LIMITCURR_VALUE_MIN, PROTECT_OVERTEMP_LIMITCURR_VALUE_MAX);
+#ifdef SCREEN_USING_V2G
+    LcdData.setData.DisCharge_AsOf_SOC = SerialScreen_GetPara_ValidValue(LcdData.setData.DisCharge_AsOf_SOC,  \
+            (PROTECT_DISCHARGE_AS_OF_SOC_DEFAULT + PROTECT_DISCHARGE_AS_OF_SOC_OFFSET), (PROTECT_DISCHARGE_AS_OF_SOC_MIN + PROTECT_DISCHARGE_AS_OF_SOC_OFFSET), \
+            (PROTECT_DISCHARGE_AS_OF_SOC_MAX + PROTECT_DISCHARGE_AS_OF_SOC_OFFSET));
+    LcdData.setData.DisCharge_AsOf_SOC -= PROTECT_DISCHARGE_AS_OF_SOC_OFFSET;
+#endif /* SCREEN_USING_V2G */
 
     if((LcdData.setData.GunVolt_LimitValue < GUNVOLT_LIMIT_VALUE_MIN) || (LcdData.setData.GunVolt_LimitValue > GUNVOLT_LIMIT_VALUE_MAX)){
         LcdData.setData.GunVolt_LimitValue = GUNVOLT_LIMIT_VALUE_MIN;
@@ -4153,6 +4169,7 @@ static void SerialScreen_BtnProtectInfoJudge(u32 *ret)
 #define SSCREEN_IN_OV_POSITION                              16  /* 输入过压值在结构体 thaisen_cfg_info_protect 中的成员次序(从0开始)  */
 #define SSCREEN_IN_UV_POSITION                              17  /* 输入欠压值在结构体 thaisen_cfg_info_protect 中的成员次序(从0开始)  */
 #define SSCREEN_OUT_OC_POSITION                             18  /* 输出过流值在结构体 thaisen_cfg_info_protect 中的成员次序(从0开始)  */
+#define SSCREEN_OUT_ASOF_SOC_POSITION                       19  /* 放电截至SOC值在结构体 thaisen_cfg_info_protect 中的成员次序(从0开始)  */
 
     u32 result = 0;
     u32 Stop_SOC = 0;
@@ -4230,6 +4247,12 @@ static void SerialScreen_BtnProtectInfoJudge(u32 *ret)
         LcdData.setData.Onput_OverCurr = CHARGEPILE_OUTPUT_OVERCURR_DEF;
         result |= (1 <<SSCREEN_OUT_OC_POSITION);
     }
+#ifdef SCREEN_USING_V2G
+    if((LcdData.setData.DisCharge_AsOf_SOC < PROTECT_DISCHARGE_AS_OF_SOC_MIN) || (LcdData.setData.DisCharge_AsOf_SOC > PROTECT_DISCHARGE_AS_OF_SOC_MAX)){
+        LcdData.setData.DisCharge_AsOf_SOC = PROTECT_DISCHARGE_AS_OF_SOC_DEFAULT;
+        result |= (1 <<SSCREEN_OUT_ASOF_SOC_POSITION);
+    }
+#endif /* SCREEN_USING_V2G */
 
     LcdData.setData.Stop_SOC = Stop_SOC;
     LcdData.setData.OverTemp_Warnning = OverTemp_Warnning;
@@ -4254,6 +4277,7 @@ static void SerialScreen_BtnProtectInfoJudge(u32 *ret)
 #undef SSCREEN_IN_OV_POSITION
 #undef SSCREEN_IN_UV_POSITION
 #undef SSCREEN_OUT_OC_POSITION
+#undef SSCREEN_OUT_ASOF_SOC_POSITION
 }
 
 void SerialScreen_BtnProtectInfoSet(void)
@@ -4285,6 +4309,10 @@ void SerialScreen_BtnProtectInfoSet(void)
     UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_OUTPUT_OVERVOL, &LcdData.setData.Onput_OverVolt, sizeof(LcdData.setData.Onput_OverVolt));
     UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_OUTPUT_UNDERVOL, &LcdData.setData.Onput_UnderVolt, sizeof(LcdData.setData.Onput_UnderVolt));
     UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_OUTPUT_OVERCUR, &LcdData.setData.Onput_OverCurr, sizeof(LcdData.setData.Onput_OverCurr));
+#ifdef SCREEN_USING_V2G
+    LcdData.setData.DisCharge_AsOf_SOC += PROTECT_DISCHARGE_AS_OF_SOC_OFFSET;
+    UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_DISCHARGE_AS_OF_SOC, &LcdData.setData.DisCharge_AsOf_SOC, sizeof(LcdData.setData.DisCharge_AsOf_SOC));
+#endif /* SCREEN_USING_V2G */
 
     LcdAssistantData.Flag.IsConfigFail = TRUE;
     if(UI_STORAGE_CFG_DATA >= 0){
@@ -13686,6 +13714,9 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_PROTECT, NULL, "GunVolt", LCD_InputType, 0, 0x4144, pu16_type, sizeof(LcdData.setData.GunVolt_LimitValue), (void *)&LcdData.setData.GunVolt_LimitValue);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_PROTECT, NULL, "powerP", LCD_InputType, 0, 0x4148, pu16_type, sizeof(LcdData.setData.PowerPercent), (void *)&LcdData.setData.PowerPercent);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_PROTECT, NULL, "ElossP", LCD_InputType, 0, 0x4660, pu16_type, sizeof(LcdData.setData.ElossProprotion), (void *)&LcdData.setData.ElossProprotion);
+#ifdef SCREEN_USING_V2G
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_PROTECT, NULL, "AsOf SOC", LCD_InputType, 0, 0x6D60, pu8_type, sizeof(LcdData.setData.DisCharge_AsOf_SOC), (void *)&LcdData.setData.DisCharge_AsOf_SOC);
+#endif /* SCREEN_USING_V2G */
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_PROTECT, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
 
     /** 36.出厂设置-功能配置 [page:44] */
