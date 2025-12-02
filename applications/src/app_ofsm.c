@@ -1519,6 +1519,7 @@ static void ofsm_start_info_padding_public(uint8_t gunno)
 
     thaisen_set_charge_way(s_ofsm_info[gunno].base.charge_way);
 
+    s_ofsm_info[gunno].base.flag.is_boot_timeout = APP_THA_ENUM_FALSE;
     s_ofsm_info[gunno].base.flag.is_starting = APP_THA_ENUM_FALSE;
     s_ofsm_info[gunno].base.flag.permit_judge_complete = APP_THA_ENUM_FALSE;
     s_ofsm_info[gunno].base.flag.start_result = APP_THA_ENUM_FALSE;
@@ -3735,6 +3736,7 @@ static void ofsm_starting_fun(uint8_t gunno)
                 s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_STOPING];
                 s_ofsm_info[gunno].state = APP_OFSM_STATE_STOPING;
 
+                s_ofsm_info[gunno].base.flag.is_boot_timeout = APP_THA_ENUM_TRUE;
                 s_ofsm_info[gunno].base.system_fault = system_fault;
                 s_ofsm_info[gunno].base.charge_fault = charge_fault;
                 s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
@@ -6082,6 +6084,58 @@ static void ofsm_stoping_fun(uint8_t gunno)
         memset(s_ofsm_info[gunno].base.user_number, 0x00, sizeof(s_ofsm_info[gunno].base.user_number));
         s_ofsm_info[gunno].base.flag.paracharge_is_identified = APP_THA_ENUM_FALSE;
         s_ofsm_info[gunno].base.flag.recved_paracharge_identify_id = APP_THA_ENUM_FALSE;
+
+        /** 这是启动超时导致的停充, 需要在此重新赋值停充原因 */
+        if(s_ofsm_info[gunno].base.flag.is_boot_timeout == APP_THA_ENUM_TRUE){
+            enum system_stop_way stop_way = APP_SYSTEM_STOP_WAY_SIZE;
+
+            s_ofsm_info[gunno].base.flag.is_boot_timeout = APP_THA_ENUM_FALSE;
+            /** 重新获取停充原因 */
+            stop_way = mw_get_system_stop_way(gunno);
+            /** 停充原因是设备发送指令让充电机停止 */
+            if((stop_way == APP_SYSTEM_STOP_WAY_PASSIVE) || (stop_way == APP_SYSTEM_STOP_WAY_NULL)){
+                stop_way = APP_SYSTEM_STOP_WAY_COMMINICATION;
+                /** 启动方式是VIN码，这表明是VIN鉴权期间响应超时导致  */
+                if(s_ofsm_info[gunno].base.start_type == APP_CHARGE_START_WAY_VIN){
+                    stop_way = APP_SYSTEM_STOP_WAY_AUTHEN_FAIL;
+                }
+            }
+            s_thaisen_transaction[gunno].stop_reason = stop_way;
+            s_ofsm_info[gunno].base.reason_code = stop_way;
+
+            if((stop_way < APP_SYSTEM_STOP_WAY_NULL) &&
+                    (stop_way != APP_SYSTEM_STOP_WAY_PULL_GUN) &&
+                    (stop_way != APP_SYSTEM_STOP_WAY_CHARGE_FULL) &&
+                    (stop_way != APP_SYSTEM_STOP_WAY_PASSIVE) &&
+                    (stop_way != APP_SYSTEM_STOP_WAY_BST)){
+                s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_TRUE;
+            }else{
+                s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_FALSE;
+            }
+            s_ofsm_info[gunno].base.flag.start_result = APP_THA_ENUM_FALSE;
+            s_thaisen_transaction[gunno].boot_result = s_ofsm_info[gunno].base.flag.start_result;
+            s_thaisen_transaction[gunno].order_info.is_charging = APP_THA_ENUM_FALSE;
+            s_thaisen_transaction[gunno].order_info.bms_recommunicate = mw_is_bms_communicate_repeat(gunno);
+            s_thaisen_transaction[gunno].order_info.waiting_charge = APP_THA_ENUM_FALSE;
+
+            if(s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL){
+                uint8_t deputy_gun = APP_SYSTEM_GUNNOA;
+                if(deputy_gun == s_ofsm_info[gunno].base.main_gunno){
+                    deputy_gun = (APP_SYSTEM_GUNNOA + 0x01);
+                }
+                s_ofsm_info[deputy_gun].base.flag.is_boot_timeout = APP_THA_ENUM_FALSE;
+
+                s_ofsm_info[deputy_gun].base.system_fault = s_ofsm_info[gunno].base.system_fault;
+                s_ofsm_info[deputy_gun].base.charge_fault = s_ofsm_info[gunno].base.charge_fault;
+
+                s_thaisen_transaction[deputy_gun].stop_reason = s_thaisen_transaction[gunno].stop_reason;
+                s_ofsm_info[deputy_gun].base.reason_code = s_ofsm_info[gunno].base.reason_code;
+                s_ofsm_info[deputy_gun].base.flag.is_fault_stop = s_ofsm_info[gunno].base.flag.is_fault_stop;
+
+                s_ofsm_info[deputy_gun].base.flag.start_result = APP_THA_ENUM_FALSE;
+                s_thaisen_transaction[deputy_gun].boot_result = s_thaisen_transaction[gunno].boot_result;
+            }
+        }
 
         if(s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL){
             uint8_t deputy_gun = APP_SYSTEM_GUNNOA;
