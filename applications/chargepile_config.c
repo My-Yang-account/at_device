@@ -453,6 +453,11 @@ APP_DEF_SRAM2 static struct config_item s_config_item_set[CONFIG_ITEM_SIZE] =
         (uint8_t*)&s_chargepile_config_info.function_enable.mode_select,
         NULL},
 
+        {CONFIG_ITEM_SUPORT_V2G,
+        (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.mode_v2g)),       /*配置项：V2G支持*/
+        (uint8_t*)&s_chargepile_config_info.function_enable.mode_v2g,
+        NULL},
+
         {CONFIG_ITEM_CURRENT_MODE_A,
         (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.current_mode[0x00])),      /*配置项：当前模式*/
         (uint8_t*)&s_chargepile_config_info.function_enable.current_mode[0x00],
@@ -1054,6 +1059,9 @@ void sys_chargeplie_config_info_init(void)
     /** 启用模式选择功能 */
     sys_config_item_init(CONFIG_ITEM_SUPORT_MODE_SELECT, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.mode_select)), \
             (uint8_t*)&s_chargepile_config_info.function_enable.mode_select, NULL);
+    /** 启用V2G功能 */
+    sys_config_item_init(CONFIG_ITEM_SUPORT_V2G, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.mode_v2g)), \
+            (uint8_t*)&s_chargepile_config_info.function_enable.mode_v2g, NULL);
     /** 启用电池电压检测功能 */
     sys_config_item_init(CONFIG_ITEM_SUPORT_BATVOLT_DETECT, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.bat_voltage_switch)), \
             (uint8_t*)&s_chargepile_config_info.function_enable.bat_voltage_switch, NULL);
@@ -1939,6 +1947,7 @@ static void chargepile_config_data_reset(void)
     s_chargepile_config_info.function_enable.liquid_in = 0x00;
     s_chargepile_config_info.function_enable.fuse_in = 0x00;
     s_chargepile_config_info.function_enable.mode_select = 0x00;
+    s_chargepile_config_info.function_enable.mode_v2g = CONFIG_DISABLE_ENUM;
     s_chargepile_config_info.function_enable.bat_voltage_switch = CONFIG_ENABLE_ENUM;
     s_chargepile_config_info.function_enable.bcl_timeout_switch = CONFIG_DISABLE_ENUM;
     s_chargepile_config_info.function_enable.fast_protocol_switch = CONFIG_ENABLE_ENUM;
@@ -2679,6 +2688,10 @@ int32_t chargepile_check_config(void)
     if((s_chargepile_config_info.function_enable.bms_several_frame != CONFIG_ENABLE_ENUM) && \
             (s_chargepile_config_info.function_enable.bms_several_frame != CONFIG_DISABLE_ENUM)){         /* BMS多帧默认开启 */
         s_chargepile_config_info.function_enable.bms_several_frame = CONFIG_ENABLE_ENUM;
+    }
+    if((s_chargepile_config_info.function_enable.mode_v2g != CONFIG_ENABLE_ENUM) && \
+            (s_chargepile_config_info.function_enable.mode_v2g != CONFIG_DISABLE_ENUM)){                  /* V2G默认关闭 */
+        s_chargepile_config_info.function_enable.mode_v2g = CONFIG_DISABLE_ENUM;
     }
 
     if(s_chargepile_config_info.state_reversal.emergency_stop > 0x01){   /* 急停默认不取反 */

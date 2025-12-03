@@ -81,6 +81,7 @@ void SerialScreen_IsSupportOfflineBillingSet(void);
 void SerialScreen_IsSupportPWStartSet(void);
 void SerialScreen_IsSupportOfflineCardSet(void);
 void SerialScreen_IsSupportModeSelectSet(void);
+void SerialScreen_IsSupportV2GSet(void);
 struct charge_data *SerialScreen_GetChargeInfo(int port);
 struct bms_info *SerialScreen_GetBmsInfo(int port);
 struct temperature* SerialScreen_GetBatTemp(int port);
@@ -247,8 +248,6 @@ void SerialScreen_Screen_ClearReservationModeFlag(u8 port);
 void SerialScreen_AcIsSupportOutSet(void);
 void SerialScreen_ElockIsSupportOutSet(void);
 void SerialScreen_FanIsSupportOutSet(void);
-
-void SerialScreen_V2GIsSupportSet(void);
 
 void SerialScreen_OfflineBillingSet(void);
 void SerialScreen_OfflineBillingGet(void);
