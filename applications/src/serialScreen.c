@@ -314,9 +314,9 @@ enum LCD_DISPLAY_PAGE_TYPE{
 	LCD_PAGE_MENU_COM_5B = 28,		//系统设置5B
 	LCD_PAGE_PASWD_ERR = 29,
 #ifdef SCREEN_USING_V2G
-    LCD_PAGE_V2G_DISCHARGING = 31,  //V2G放电中
-    LCD_PAGE_V2G_BATTERY = 32,      //V2G电池
-    LCD_PAGE_V2G_ACOUNT = 33,       //V2G结算
+    LCD_PAGE_V2G_DISCHARGING = 32,  //V2G放电中
+    LCD_PAGE_V2G_BATTERY = 33,      //V2G电池
+    LCD_PAGE_V2G_ACOUNT = 34,       //V2G结算
 #endif /* SCREEN_USING_V2G */
 	LCD_PAGE_SYS_UPDATE = 37,		//远程升级
 	LCD_PAGE_SYS_INFO = 38,			//系统信息
@@ -13846,8 +13846,8 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_V2G_ACOUNT, NULL, "StartSoc", LCD_DataType, LCD_1sReflash, 0x6D14, pu32_type, sizeof(LcdData.gun[LCD_GUN_NUM].StartSoc), (void *)&LcdData.gun[LCD_GUN_NUM].StartSoc);
 #endif /* SCREEN_ADD_START_SOC */
     SerialScreen_ItemSetUp(LCD_PAGE_V2G_ACOUNT, NULL, "Money", LCD_DataType, LCD_NoReflash, 0x6D46, pu32_type, sizeof(LcdData.gun[LCD_GUN_NUM].totalFee), (void *)&LcdData.gun[LCD_GUN_NUM].totalFee);
-    SerialScreen_ItemSetUp(LCD_PAGE_V2G_ACOUNT, NULL, "ChgStopReason", LCD_TextType, LCD_NoReflash, 0x6D44, pstr_type, (sizeof(LcdData.gun[LCD_GUN_NUM].code_stopResaon) - 1), (void *)&LcdData.gun[LCD_GUN_NUM].code_stopResaon[0]);
-    SerialScreen_ItemSetUp(LCD_PAGE_V2G_ACOUNT, NULL, "ChgStopReason", LCD_TextType, LCD_NoReflash, 0x6D5E, pstr_type, (sizeof(LcdData.gun[LCD_GUN_NUM].code_stopResaon_Chinese) - 1), (void *)&LcdData.gun[LCD_GUN_NUM].code_stopResaon_Chinese[0]);
+    SerialScreen_ItemSetUp(LCD_PAGE_V2G_ACOUNT, NULL, "ChgStopReason", LCD_TextType, LCD_NoReflash, 0x6D54, pstr_type, (sizeof(LcdData.gun[LCD_GUN_NUM].code_stopResaon) - 1), (void *)&LcdData.gun[LCD_GUN_NUM].code_stopResaon[0]);
+    SerialScreen_ItemSetUp(LCD_PAGE_V2G_ACOUNT, NULL, "ChgStopReason", LCD_TextType, LCD_NoReflash, 0x6D7C, pstr_type, (sizeof(LcdData.gun[LCD_GUN_NUM].code_stopResaon_Chinese) - 1), (void *)&LcdData.gun[LCD_GUN_NUM].code_stopResaon_Chinese[0]);
     SerialScreen_ItemSetUp(LCD_PAGE_V2G_ACOUNT, NULL, "back", LCD_BtnHomeType, 0x0002, 0x1000, page_type, LCD_PAGE_NONE, (void *)NULL);
     SerialScreen_ItemSetUp(LCD_PAGE_V2G_ACOUNT, NULL, "unlock_el", LCD_BtnType, 0x0071, 0x1009, page_type, LCD_PAGE_V2G_ACOUNT, (void *)SerialScreen_BtnUnElockV2G);
     SerialScreen_ItemSetUp(LCD_PAGE_V2G_ACOUNT, NULL, "gunIndex", LCD_IconType, LCD_10sReflash, 0x6D60, pu8_type, sizeof(LcdData.gunIndex), (void *)&LcdData.gunIndex);
