@@ -1646,6 +1646,18 @@ static void ofsm_start_info_padding_public(uint8_t gunno)
         s_ofsm_info[deputy_gunno].base.current_soc = 0x00;
         app_nsal_init_charge_data(deputy_gunno);
     }
+#ifdef APP_INCLUDE_V2G
+    s_ofsm_info[gunno].base.gun_running_mode = thaisen_get_gun_running_mode(gunno);     /** 枪运行模式 */
+    s_thaisen_transaction[gunno].gun_running_mode = s_ofsm_info[gunno].base.gun_running_mode;
+#else
+    s_ofsm_info[gunno].base.gun_running_mode = APP_GUN_RUNNING_MODE_CHARGE;
+    s_thaisen_transaction[gunno].gun_running_mode = APP_GUN_RUNNING_MODE_CHARGE;
+#endif /* APP_INCLUDE_V2G */
+    if(((s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL) || (s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD)) && \
+            s_ofsm_info[gunno].base.main_gunno == gunno){
+        s_ofsm_info[deputy_gunno].base.gun_running_mode = s_ofsm_info[gunno].base.gun_running_mode;
+        s_thaisen_transaction[deputy_gunno].gun_running_mode = s_thaisen_transaction[gunno].gun_running_mode;
+    }
 
     app_nsal_state_charged(gunno);
     app_nsal_event_occurded(gunno);
@@ -2003,6 +2015,7 @@ static void ofsm_info_init_fun(uint8_t gunno)
     s_ofsm_info[gunno].base.soft_ver_sub = SOFTWARE_SUBVERSION;
     s_ofsm_info[gunno].base.soft_ver_revise = SOFTWARE_REVISION;
     s_ofsm_info[gunno].base.bms_data = mw_get_bms_data(gunno);
+    s_ofsm_info[gunno].base.gun_running_mode = APP_GUN_RUNNING_MODE_CHARGE;        /** 枪运行模式：默认充电模式 */
 
     s_ofsm_info[gunno].base.system_power_max = 0x00;
     single_module_power = ((*((uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_RATED_OUTPUT_VOLTAGE, 0)))) *  \
@@ -2314,6 +2327,9 @@ static void ofsm_readying_fun(uint8_t gunno)
             s_ofsm_info[gunno].base.flag.connect_state = APP_CONNECT_STATE_DISCONNECT;
         }
         s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
+#ifdef APP_INCLUDE_V2G
+        thaisen_reset_gun_running_mode(gunno);
+#endif /* APP_INCLUDE_V2G */
         app_nsal_state_charged(gunno);
         app_nsal_event_occurded(gunno);
         return;
@@ -2331,6 +2347,9 @@ static void ofsm_readying_fun(uint8_t gunno)
                 s_ofsm_info[gunno].base.flag.connect_state = APP_CONNECT_STATE_DISCONNECT;
             }
             s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
+#ifdef APP_INCLUDE_V2G
+            thaisen_reset_gun_running_mode(gunno);
+#endif /* APP_INCLUDE_V2G */
             app_nsal_state_charged(gunno);
             app_nsal_event_occurded(gunno);
             return;
@@ -2639,7 +2658,9 @@ static void ofsm_reservation_fun(uint8_t gunno)
                 }else{
                     s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_IDLEING];
                     s_ofsm_info[gunno].state = APP_OFSM_STATE_IDLEING;
-
+#ifdef APP_INCLUDE_V2G
+                    thaisen_reset_gun_running_mode(gunno);
+#endif /* APP_INCLUDE_V2G */
                     LOG_D("gunno(%d) current reservation time error ", gunno);
                     return;
                 }
@@ -2706,7 +2727,9 @@ static void ofsm_reservation_fun(uint8_t gunno)
 
             s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_IDLEING];
             s_ofsm_info[gunno].state = APP_OFSM_STATE_IDLEING;
-
+#ifdef APP_INCLUDE_V2G
+            thaisen_reset_gun_running_mode(gunno);
+#endif /* APP_INCLUDE_V2G */
             LOG_D("gunno(%d) net cancel reservation", gunno);
             return;
         }
@@ -2720,6 +2743,9 @@ static void ofsm_reservation_fun(uint8_t gunno)
             /** 清除预约已充电标志 */
             s_ofsm_info[gunno].base.flag.is_reser_timeout_started = APP_THA_ENUM_FALSE;
             s_ofsm_info[gunno].base.flag.is_reser_normal_started = APP_THA_ENUM_FALSE;
+#ifdef APP_INCLUDE_V2G
+            thaisen_reset_gun_running_mode(gunno);
+#endif /* APP_INCLUDE_V2G */
             LOG_D("gunno(%d) local cancel reservation", gunno);
             return;
         }
@@ -2824,6 +2850,9 @@ static void ofsm_reservation_fun(uint8_t gunno)
                 s_ofsm_info[gunno].base.flag.connect_state = APP_CONNECT_STATE_DISCONNECT;
             }
             s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
+#ifdef APP_INCLUDE_V2G
+            thaisen_reset_gun_running_mode(gunno);
+#endif /* APP_INCLUDE_V2G */
             app_nsal_state_charged(gunno);
             app_nsal_event_occurded(gunno);
             /** 如果是本地预约，将清除预约已充电标志 */
@@ -2848,6 +2877,9 @@ static void ofsm_reservation_fun(uint8_t gunno)
                 s_ofsm_info[gunno].base.flag.connect_state = APP_CONNECT_STATE_DISCONNECT;
             }
             s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
+#ifdef APP_INCLUDE_V2G
+            thaisen_reset_gun_running_mode(gunno);
+#endif /* APP_INCLUDE_V2G */
             app_nsal_state_charged(gunno);
             app_nsal_event_occurded(gunno);
             return;
@@ -3087,7 +3119,7 @@ static void ofsm_starting_fun(uint8_t gunno)
 
                         s_ofsm_info[deputy_gunno].base.charge_way = s_ofsm_info[gunno].base.charge_way;
                         s_ofsm_info[deputy_gunno].base.main_gunno = s_ofsm_info[gunno].base.main_gunno;
-
+                        s_ofsm_info[deputy_gunno].base.gun_running_mode = s_ofsm_info[gunno].base.gun_running_mode;
                         s_ofsm_info[gunno].base.start_elect = (mw_get_meter_total_wh(gunno) + mw_get_meter_total_wh(deputy_gunno));
                         thaisen_set_charge_way(s_ofsm_info[gunno].base.charge_way);
 
@@ -3102,7 +3134,7 @@ static void ofsm_starting_fun(uint8_t gunno)
                         valid_len = valid_len > sizeof(s_thaisen_transaction[deputy_gunno].serial_number) ? sizeof(s_thaisen_transaction[deputy_gunno].serial_number) : valid_len;
                         memset(s_thaisen_transaction[deputy_gunno].serial_number, 0x00, sizeof(s_thaisen_transaction[deputy_gunno].serial_number));
                         memcpy(s_thaisen_transaction[deputy_gunno].serial_number, s_ofsm_info[deputy_gunno].base.transaction_number, valid_len);
-
+                        s_thaisen_transaction[deputy_gunno].gun_running_mode = s_thaisen_transaction[gunno].gun_running_mode;
             #ifdef APP_INCLUDE_SGCC_PROTOCOL
                         memset(s_ofsm_info[deputy_gunno].base.device_transaction_number, 0x00, sizeof(s_ofsm_info[deputy_gunno].base.device_transaction_number));
                         memcpy(s_ofsm_info[deputy_gunno].base.device_transaction_number, s_ofsm_info[deputy_gunno].base.device_transaction_number, \
@@ -6598,6 +6630,9 @@ static void ofsm_finishing_fun(uint8_t gunno)
             s_ofsm_info[gunno].base.flag.connect_state = APP_CONNECT_STATE_DISCONNECT;
         }
         s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
+#ifdef APP_INCLUDE_V2G
+        thaisen_reset_gun_running_mode(gunno);
+#endif /* APP_INCLUDE_V2G */
         app_nsal_state_charged(gunno);
         app_nsal_event_occurded(gunno);
 
@@ -6624,6 +6659,9 @@ static void ofsm_finishing_fun(uint8_t gunno)
                 s_ofsm_info[gunno].base.flag.connect_state = APP_CONNECT_STATE_DISCONNECT;
             }
             s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
+#ifdef APP_INCLUDE_V2G
+            thaisen_reset_gun_running_mode(gunno);
+#endif /* APP_INCLUDE_V2G */
             app_nsal_state_charged(gunno);
             app_nsal_event_occurded(gunno);
 
@@ -6950,6 +6988,9 @@ static void ofsm_faulting_fun(uint8_t gunno)
             s_ofsm_info[gunno].state = APP_OFSM_STATE_IDLEING;
 
             s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
+#ifdef APP_INCLUDE_V2G
+            thaisen_reset_gun_running_mode(gunno);
+#endif /* APP_INCLUDE_V2G */
         }
 
         memset(s_ofsm_info[gunno].base.transaction_number, 0x00, sizeof(s_ofsm_info[gunno].base.transaction_number));

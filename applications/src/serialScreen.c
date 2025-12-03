@@ -1017,16 +1017,6 @@ enum ICON_OB_WARNNING{
     ICON_OB_IS_CHARGING,     //启动或充电中不允许修改
 };
 
-#ifdef SCREEN_USING_V2G
-/** 枪运行模式 */
-enum GUN_RUN_MODE
-{
-    SS_GUN_RUN_MODE_CHARGE,  //枪运行模式：充电
-    SS_GUN_RUN_MODE_DISCHARGE,  //枪运行模式：放电
-    SS_GUN_RUN_MODE_SIZE,    //枪运行模式
-};
-#endif /* SCREEN_USING_V2G */
-
 
 enum MODEL_DATA_ENUM{
     pu8_type,
@@ -1465,6 +1455,7 @@ u8 SerialScreen_Screen_IsBebug(void)
 {
     return LcdData.debugIOflg;
 }
+
 static void SerialScreen_Screen_ResetModeInfoDef(u8 port)
 {
     if(port >= LCD_GUN_NUM)
@@ -1492,6 +1483,26 @@ static void SerialScreen_Screen_ResetModeInfoDef(u8 port)
             UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_MODE_PARAMETER_B, (u8*)&parameter, sizeof(parameter));
         }
     }
+}
+
+u8 SerialScreen_Screen_GetGunRunMode(u8 port)
+{
+#ifdef SCREEN_USING_V2G
+    if(port >= LCD_GUN_NUM)
+        return THAISEN_GUN_RUNING_MODE_SIZE;
+    return LcdData.runData.GunRunMode[port];
+#else
+    return 0xFF;
+#endif /* SCREEN_USING_V2G */
+}
+
+void SerialScreen_Screen_ResetGunRunMode(u8 port)
+{
+#ifdef SCREEN_USING_V2G
+    if(port >= LCD_GUN_NUM)
+        return;
+    LcdData.runData.GunRunMode[port] = THAISEN_GUN_RUNING_MODE_CHARGE;
+#endif /* SCREEN_USING_V2G */
 }
 
 /*********************************************** 外部触发执行配置 ****************************************************/
@@ -3073,7 +3084,7 @@ static void SerialScreen_RealTime_InfoGet(void)
         LcdData.setData.warnning[gunno] = SYSTEM_WARNNING_INFO_NORMAL;
 #endif
 #ifdef SCREEN_USING_V2G
-        if(LcdData.runData.GunRunMode[LcdData.gunIndex] == SS_GUN_RUN_MODE_DISCHARGE)
+        if(LcdData.runData.GunRunMode[LcdData.gunIndex] == THAISEN_GUN_RUNING_MODE_V2G)
             LcdData.setData.period_price = 20000;
         else
             LcdData.setData.period_price = thaisen_get_period_price(gunno, 0x00);
@@ -10516,7 +10527,7 @@ struct LCD_DATA_FIFO_TYPE *SerialScreen_Init(struct SerialScreenObj *cmd)
     LcdData.runData.LastChargeGun = LcdData.gunIndex;
     LcdData.runData.CurrentChargeGun = LcdData.gunIndex;
     for(int i = 0; i < LCD_GUN_NUM; i++){
-        LcdData.runData.GunRunMode[i] = SS_GUN_RUN_MODE_CHARGE;
+        LcdData.runData.GunRunMode[i] = THAISEN_GUN_RUNING_MODE_CHARGE;
     }
 #endif /* SCREEN_USING_V2G */
 	LcdData.menuflg = 0;
@@ -11364,7 +11375,7 @@ void SerialScreen_PageReset(int GunIdx)
                 if(LcdTriggerEvent[GunIdx].Flag.IsTriggerExternal == FALSE){     /** 这些是由外部触发跳的页 */
                     if(LcdData.ChargingPageCountDown_Over == 0){
 #ifdef SCREEN_USING_V2G
-                        if(LcdData.runData.GunRunMode[GunIdx] == SS_GUN_RUN_MODE_DISCHARGE){
+                        if(LcdData.runData.GunRunMode[GunIdx] == THAISEN_GUN_RUNING_MODE_V2G){
                             if(LcdData.CurrentPage == LCD_PAGE_V2G_BATTERY)
                                 LcdData.CurrentPage = LCD_PAGE_V2G_BATTERY;
                             else
@@ -11384,7 +11395,7 @@ void SerialScreen_PageReset(int GunIdx)
 #else
                 if(LcdData.ChargingPageCountDown_Over == 0){
 #ifdef SCREEN_USING_V2G
-                    if(LcdData.runData.GunRunMode[GunIdx] == SS_GUN_RUN_MODE_DISCHARGE){
+                    if(LcdData.runData.GunRunMode[GunIdx] == THAISEN_GUN_RUNING_MODE_V2G){
                         if(LcdData.CurrentPage == LCD_PAGE_V2G_BATTERY)
                             LcdData.CurrentPage = LCD_PAGE_V2G_BATTERY;
                         else
@@ -11411,7 +11422,7 @@ void SerialScreen_PageReset(int GunIdx)
                 if(LcdTriggerEvent[GunIdx].Flag.IsTriggerExternal == FALSE){     /** 这些是由外部触发跳的页 */
                     if(LcdData.ChargingPageCountDown_Over == 0){
 #ifdef SCREEN_USING_V2G
-                        if(LcdData.runData.GunRunMode[GunIdx] == SS_GUN_RUN_MODE_DISCHARGE){
+                        if(LcdData.runData.GunRunMode[GunIdx] == THAISEN_GUN_RUNING_MODE_V2G){
                             if(LcdData.CurrentPage == LCD_PAGE_V2G_BATTERY)
                                 LcdData.CurrentPage = LCD_PAGE_V2G_BATTERY;
                             else
@@ -11431,7 +11442,7 @@ void SerialScreen_PageReset(int GunIdx)
 #else
                 if(LcdData.ChargingPageCountDown_Over == 0){
 #ifdef SCREEN_USING_V2G
-                        if(LcdData.runData.GunRunMode[GunIdx] == SS_GUN_RUN_MODE_DISCHARGE){
+                        if(LcdData.runData.GunRunMode[GunIdx] == THAISEN_GUN_RUNING_MODE_V2G){
                             if(LcdData.CurrentPage == LCD_PAGE_V2G_BATTERY)
                                 LcdData.CurrentPage = LCD_PAGE_V2G_BATTERY;
                             else
@@ -11492,7 +11503,7 @@ void SerialScreen_PageReset(int GunIdx)
                     }
                     if(LcdData.AccountPageCountDown_Over == 0){
 #ifdef SCREEN_USING_V2G
-                        if(LcdData.runData.GunRunMode[GunIdx] == SS_GUN_RUN_MODE_DISCHARGE)
+                        if(LcdData.runData.GunRunMode[GunIdx] == THAISEN_GUN_RUNING_MODE_V2G)
                             LcdData.CurrentPage = LCD_PAGE_V2G_ACOUNT;
                         else
                             LcdData.CurrentPage = LCD_PAGE_A_ACOUNT;
@@ -11512,7 +11523,7 @@ void SerialScreen_PageReset(int GunIdx)
                     }
                     if(LcdData.AccountPageCountDown_Over == 0){
 #ifdef SCREEN_USING_V2G
-                        if(LcdData.runData.GunRunMode[GunIdx] == SS_GUN_RUN_MODE_DISCHARGE)
+                        if(LcdData.runData.GunRunMode[GunIdx] == THAISEN_GUN_RUNING_MODE_V2G)
                             LcdData.CurrentPage = LCD_PAGE_V2G_ACOUNT;
                         else
                             LcdData.CurrentPage = LCD_PAGE_B_ACOUNT;
@@ -11526,7 +11537,7 @@ void SerialScreen_PageReset(int GunIdx)
             if(GunIdx==LCD_GUN_1){
                 if(LcdData.AccountPageCountDown_Over == 0){
 #ifdef SCREEN_USING_V2G
-                    if(LcdData.runData.GunRunMode[GunIdx] == SS_GUN_RUN_MODE_DISCHARGE)
+                    if(LcdData.runData.GunRunMode[GunIdx] == THAISEN_GUN_RUNING_MODE_V2G)
                         LcdData.CurrentPage = LCD_PAGE_V2G_ACOUNT;
                     else
                         LcdData.CurrentPage = LCD_PAGE_A_ACOUNT;
@@ -11537,7 +11548,7 @@ void SerialScreen_PageReset(int GunIdx)
             }else{
                 if(LcdData.AccountPageCountDown_Over == 0){
 #ifdef SCREEN_USING_V2G
-                    if(LcdData.runData.GunRunMode[GunIdx] == SS_GUN_RUN_MODE_DISCHARGE)
+                    if(LcdData.runData.GunRunMode[GunIdx] == THAISEN_GUN_RUNING_MODE_V2G)
                         LcdData.CurrentPage = LCD_PAGE_V2G_ACOUNT;
                     else
                         LcdData.CurrentPage = LCD_PAGE_B_ACOUNT;
@@ -12695,17 +12706,17 @@ int SerialScreen_DataProcess()
         /** 枪的运行模式不同 */
         if(LcdData.runData.GunRunMode[LcdData.runData.CurrentChargeGun] != LcdData.runData.GunRunMode[LcdData.runData.LastChargeGun]){
             /** 当前枪的运行模式是充电 */
-            if(LcdData.runData.GunRunMode[LcdData.runData.CurrentChargeGun] == SS_GUN_RUN_MODE_CHARGE){
+            if(LcdData.runData.GunRunMode[LcdData.runData.CurrentChargeGun] == THAISEN_GUN_RUNING_MODE_CHARGE){
                 LcdData.setData.period_price = thaisen_get_period_price(LcdData.runData.CurrentChargeGun, 0x00);
             }
             /** 当前枪的运行模式是放电 */
-            else if(LcdData.runData.GunRunMode[LcdData.runData.CurrentChargeGun] == SS_GUN_RUN_MODE_DISCHARGE){
+            else if(LcdData.runData.GunRunMode[LcdData.runData.CurrentChargeGun] == THAISEN_GUN_RUNING_MODE_V2G){
                 LcdData.setData.period_price = 20000;
             }
         }
         /** 枪的运行模式都是放电 */
         else if((LcdData.runData.GunRunMode[LcdData.runData.CurrentChargeGun] == LcdData.runData.GunRunMode[LcdData.runData.LastChargeGun]) && \
-                (LcdData.runData.GunRunMode[LcdData.runData.CurrentChargeGun] == SS_GUN_RUN_MODE_DISCHARGE)){
+                (LcdData.runData.GunRunMode[LcdData.runData.CurrentChargeGun] == THAISEN_GUN_RUNING_MODE_V2G)){
             u8 valid_len = 0;
             struct card_data_info *card = thaisen_get_card_info(LcdData.runData.CurrentChargeGun);
 
@@ -13046,7 +13057,7 @@ int SerialScreen_DataProcess()
         if((LcdData.gun[LcdData.gunIndex].workState >= SysMainStatus_StartReady)&&(LcdData.gun[LcdData.gunIndex].workState <= SysMainStatus_Account))
 #endif /* SCREEN_USING_OFFLINE_BILLING */
         {
-            if(LcdData.runData.GunRunMode[LcdData.gunIndex] == SS_GUN_RUN_MODE_DISCHARGE){
+            if(LcdData.runData.GunRunMode[LcdData.gunIndex] == THAISEN_GUN_RUNING_MODE_V2G){
                 LcdData.gun[LCD_GUN_NUM].vol = LcdData.gun[LcdData.gunIndex].vol;
                 LcdData.gun[LCD_GUN_NUM].cur = LcdData.gun[LcdData.gunIndex].cur;
                 LcdData.gun[LCD_GUN_NUM].ChrgeTime = LcdData.gun[LcdData.gunIndex].ChrgeTime;
@@ -13230,16 +13241,14 @@ void SerialScreen_Process(struct SerialScreenObj *cmd)
             LcdData.AccountPageCountDown_Over = 0;
         }
 
-        if(((LcdData.CurrentPageBack != LCD_PAGE_B_CHGING) && (LcdData.CurrentPageBack != LCD_PAGE_B_CHGING_BAT) &&
-                (LcdData.CurrentPageBack != LCD_PAGE_A_CHGING) && (LcdData.CurrentPageBack != LCD_PAGE_A_CHGING_BAT))){
-            LcdData.ChargingPageCountDown_Over = 0;
-        }
+        if((LcdData.CurrentPageBack != LCD_PAGE_B_CHGING) && (LcdData.CurrentPageBack != LCD_PAGE_B_CHGING_BAT) &&
+                (LcdData.CurrentPageBack != LCD_PAGE_A_CHGING) && (LcdData.CurrentPageBack != LCD_PAGE_A_CHGING_BAT)
 #ifdef SCREEN_USING_V2G
-        if((LcdData.CurrentPageBack != LCD_PAGE_V2G_DISCHARGING) && (LcdData.CurrentPageBack != LCD_PAGE_V2G_BATTERY)){
+                && (LcdData.CurrentPageBack != LCD_PAGE_V2G_DISCHARGING) && (LcdData.CurrentPageBack != LCD_PAGE_V2G_BATTERY)
+#endif /* SCREEN_USING_V2G */
+            ){
             LcdData.ChargingPageCountDown_Over = 0;
         }
-#endif /* SCREEN_USING_V2G */
-
 
         LcdData.CurrentPageBack = LcdData.CurrentPage;
         //sSCREEN_DEBUGMSG("**************SerialScreen_CurrentPageShow*******************\r\n");

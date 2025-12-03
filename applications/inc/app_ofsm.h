@@ -317,16 +317,22 @@ enum{
 };
 
 enum{
-    APP_CONNECT_STATE_DISCONNECT,       /* 枪连接状态：未连接 */
-    APP_CONNECT_STATE_HALFWAY,          /* 枪连接状态：半连接 */
-    APP_CONNECT_STATE_CONNECT,          /* 枪连接状态：已连接 */
+    APP_CONNECT_STATE_DISCONNECT,          /** 枪连接状态：未连接 */
+    APP_CONNECT_STATE_HALFWAY,             /** 枪连接状态：半连接 */
+    APP_CONNECT_STATE_CONNECT,             /** 枪连接状态：已连接 */
 };
 
 enum charge_way{
-    APP_CHARGE_WAY_NONE,                /* 充电方式：无 */
-    APP_CHARGE_WAY_SINGLEGUN,           /* 充电方式：单枪 */
-    APP_CHARGE_WAY_PARACHARGE_LOCAL,    /* 充电方式：并充(本地选择:最终只上报一把枪的交易) */
-    APP_CHARGE_WAY_PARACHARGE_CLOUD,    /* 充电方式：并充(云端选择:最终需上报两把枪的交易) */
+    APP_CHARGE_WAY_NONE,                   /** 充电方式：无 */
+    APP_CHARGE_WAY_SINGLEGUN,              /** 充电方式：单枪 */
+    APP_CHARGE_WAY_PARACHARGE_LOCAL,       /** 充电方式：并充(本地选择:最终只上报一把枪的交易) */
+    APP_CHARGE_WAY_PARACHARGE_CLOUD,       /** 充电方式：并充(云端选择:最终需上报两把枪的交易) */
+};
+
+enum{
+    APP_GUN_RUNNING_MODE_CHARGE,           /** 枪运行模式：充电 */
+    APP_GUN_RUNNING_MODE_V2G,              /** 枪运行模式：半连接 */
+    APP_GUN_RUNNING_MODE_SIZE,             /** 枪运行模式：已连接 */
 };
 
 #ifdef APP_USING_FB_DETECT
@@ -521,7 +527,8 @@ typedef struct
         uint8_t reserve : 4;              /* 预留 */
     }bms_error_reason;
 
-    uint8_t reserve[14];                  /* 预留 */
+    uint8_t gun_running_mode;             /* 枪运行模式 */
+    uint8_t reserve[13];                  /* 预留 */
 }thaisen_transaction_t;
 /*******************************************************************************************/
 
@@ -697,6 +704,8 @@ typedef struct{
 #endif /* APP_USING_FB_DETECT */
     /** 电子锁、继电器状态检验 */
     uint8_t deputygun_dcrelay_action_time;   /* 并充副枪直流继电器闭合判断时基 */
+
+    uint8_t gun_running_mode;        /* 枪运行模式 */
 }System_BaseData;
 
 struct ofsm_info {

@@ -2085,3 +2085,33 @@ void thaisen_get_batvolt_detect_qrcode(uint8_t gunno, uint8_t *buf, uint8_t blen
 }
 
 #endif /* APP_INCLUDE_BATVOLT_DETECT_QRCODE */
+
+#ifdef APP_INCLUDE_V2G
+/**************************************************************************
+ * 函数名      thaisen_get_gun_running_mode
+ * 功能         获取枪运行模式
+ * 参数          gunno        枪号
+ * 返回          枪运行模式@thaisen_gun_run_mode_t(默认充电模式)
+ *************************************************************************/
+thaisen_gun_run_mode_t thaisen_get_gun_running_mode(uint8_t gunno)
+{
+    thaisen_gun_run_mode_t mode = SerialScreen_Screen_GetGunRunMode(gunno);
+
+    if(mode == THAISEN_GUN_RUNING_MODE_SIZE){
+        return THAISEN_GUN_RUNING_MODE_CHARGE;    /** 默认充电模式 */
+    }
+    return mode;
+}
+
+/**************************************************************************
+ * 函数名      thaisen_reset_gun_running_mode
+ * 功能         复位枪运行模式
+ * 参数          gunno        枪号
+ * 返回
+ *************************************************************************/
+void thaisen_reset_gun_running_mode(uint8_t gunno)
+{
+    SerialScreen_Screen_ResetGunRunMode(gunno);
+}
+
+#endif /* APP_INCLUDE_V2G */

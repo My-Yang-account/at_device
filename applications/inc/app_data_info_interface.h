@@ -880,6 +880,25 @@ void thaisen_get_batvolt_detect_qrcode(uint8_t gunno, uint8_t *buf, uint8_t blen
 
 #endif /* APP_INCLUDE_BATVOLT_DETECT_QRCODE */
 
+#ifdef APP_INCLUDE_V2G
+typedef enum{
+    THAISEN_GUN_RUNING_MODE_CHARGE,            /** 枪运行模式：充电 */
+    THAISEN_GUN_RUNING_MODE_V2G,               /** 枪运行模式：V2G(车放电至电网) */
+    THAISEN_GUN_RUNING_MODE_SIZE,              /** 枪运行模式 */
+}thaisen_gun_run_mode_t;
+
+/**
+*  获取枪运行模式(@thaisen_gun_run_mode_t(默认充电模式))
+**/
+thaisen_gun_run_mode_t thaisen_get_gun_running_mode(uint8_t gunno);
+
+/**
+*  复位枪运行模式
+**/
+void thaisen_reset_gun_running_mode(uint8_t gunno);
+
+#endif /* APP_INCLUDE_V2G */
+
 #endif /* APPLICATIONS_INC_APP_DATA_INFO_INTERFACE_H_ */
 
 
