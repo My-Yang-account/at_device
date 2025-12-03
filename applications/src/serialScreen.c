@@ -204,15 +204,28 @@ SERIALSCREEN_DEF_SRAM2 u8 SerialScreenRxbuf[sSCREEN_RX_CMD_MAX_LEN+sSCREEN_RX_CM
 #define VIN_LIST_NUM        6  // VIN 白名单个数
 
 #ifdef SCREEN_USING_OFFLINE_BILLING
-#define SERIALSCREEN_CONFIG_PAGE_MAX   49  // 屏幕页面总数
+#define SCREEN_OFFLINE_BILLING_PAGE_NUM   4   /** 离线计费页面总数 */
+#else
+#define SCREEN_OFFLINE_BILLING_PAGE_NUM   0   /** 离线计费页面总数 */
+#endif /* SCREEN_USING_OFFLINE_BILLING */
+
+#ifdef SCREEN_USING_V2G
+#define SCREEN_V2G_PAGE_NUM   3               /** V2G页面总数 */
+#else
+#define SCREEN_V2G_PAGE_NUM   0               /** V2G页面总数 */
+#endif /* SCREEN_USING_V2G */
+
+#ifdef SCREEN_USING_OFFLINE_BILLING
 #define SERIALSCREEN_PAGE_ITEM_MAX     56  // 屏幕每页信息项总数
 #define SERIALSCREEN_TRIGGER_PAGE_MAX  14   // 外部触发页面总数
 
 #define SERIALSCREEN_OB_COUNTDOWN_STRING_MAX   4  //离线计费告警倒计时字符串最大长度
 #else
-#define SERIALSCREEN_CONFIG_PAGE_MAX   45  // 屏幕页面总数
 #define SERIALSCREEN_PAGE_ITEM_MAX     54  // 屏幕每页信息项总数
 #endif /* SCREEN_USING_OFFLINE_BILLING */
+
+#define SERIALSCREEN_CONFIG_PAGE_MAX   (45 + SCREEN_OFFLINE_BILLING_PAGE_NUM + SCREEN_V2G_PAGE_NUM)  // 屏幕页面总数
+
 #define CONFIG_ITEM_MODULE_GROUP_NUM_(X) 
 
 typedef enum SerialScreenReflashTimer
@@ -300,6 +313,11 @@ enum LCD_DISPLAY_PAGE_TYPE{
 	LCD_PAGE_MENU_COM_6B = 27,		//系统设置6B
 	LCD_PAGE_MENU_COM_5B = 28,		//系统设置5B
 	LCD_PAGE_PASWD_ERR = 29,
+#ifdef SCREEN_USING_V2G
+    LCD_PAGE_V2G_DISCHARGING = 31,  //V2G放电中
+    LCD_PAGE_V2G_BATTERY = 32,      //V2G电池
+    LCD_PAGE_V2G_ACOUNT = 33,       //V2G结算
+#endif /* SCREEN_USING_V2G */
 	LCD_PAGE_SYS_UPDATE = 37,		//远程升级
 	LCD_PAGE_SYS_INFO = 38,			//系统信息
 	LCD_PAGE_ROOT_MAIN = 39,		//ROOT用户
@@ -454,6 +472,12 @@ struct LCD_DISPLAY_RUNDATA_TYPE{
 	u8 chgcode[LCD_GUN_NUM][30];			//设备编码
 	u8 pileID[20];							//设备地址
 	s8 syncTimeFlg;	//同步时间标志 0:需要
+#ifdef SCREEN_USING_V2G
+    u8 LastChargeGun;                       //前一把枪枪号
+    u8 CurrentChargeGun;                    //当前枪枪号
+
+    u8 GunRunMode[LCD_GUN_NUM];             //枪运行模式
+#endif /* SCREEN_USING_V2G */
 }LCD_DISPLAY_RUNDATA_TYPE_t;
 
 
@@ -617,7 +641,11 @@ struct LCD_DISPLAY_SETDATA_TYPE{
 	u8 manufacturer;						// 0:thaisen 1:NULL
     u8 s_selectaux[LCD_GUN_NUM];            // 辅源选择
     u8 selectmode[LCD_GUN_NUM];             // 模式选择
+#ifdef SCREEN_USING_V2G
+    u8 s_card_number[LCD_GUN_NUM + 1][17];      // 卡号
+#else
     u8 s_card_number[LCD_GUN_NUM][17];      // 卡号
+#endif /* SCREEN_USING_V2G */
     u8 selectAuxNotice[LCD_GUN_NUM];        // 辅源选择提示
     /***********************set icon***************************/
     u8 Icon_SuplocalStop;                   //本地停止使能icon
@@ -878,7 +906,11 @@ struct LCD_DISPLAY_VALUE_TYPE{
 
 	struct LCD_DISPLAY_RUNDATA_TYPE runData;
 	struct LCD_DISPLAY_SETDATA_TYPE setData;
+#ifdef SCREEN_USING_V2G
+    struct LCD_DISPLAY_GUN_VALUE_TYPE gun[LCD_GUN_NUM + 1];
+#else
     struct LCD_DISPLAY_GUN_VALUE_TYPE gun[LCD_GUN_NUM];
+#endif /* SCREEN_USING_V2G */
 }LCD_DISPLAY_VALUE_TYPE_t;
 
 #if 0
@@ -984,6 +1016,16 @@ enum ICON_OB_WARNNING{
     ICON_OB_NOT_CONTINUOUS,  //时间段不连续
     ICON_OB_IS_CHARGING,     //启动或充电中不允许修改
 };
+
+#ifdef SCREEN_USING_V2G
+/** 枪运行模式 */
+enum GUN_RUN_MODE
+{
+    SS_GUN_RUN_MODE_CHARGE,  //枪运行模式：充电
+    SS_GUN_RUN_MODE_DISCHARGE,  //枪运行模式：放电
+    SS_GUN_RUN_MODE_SIZE,    //枪运行模式
+};
+#endif /* SCREEN_USING_V2G */
 
 
 enum MODEL_DATA_ENUM{
@@ -2966,6 +3008,9 @@ static void SerialScreen_RealTime_InfoGet(void)
             }
             memcpy(LcdData.setData.s_card_number[i], card->card_number, valid_len);
         }
+#ifdef SCREEN_USING_V2G
+        memcpy(LcdData.setData.s_card_number[LCD_GUN_NUM], LcdData.setData.s_card_number[LcdData.gunIndex], sizeof(LcdData.setData.s_card_number[LCD_GUN_NUM]));
+#endif /* SCREEN_USING_V2G */
 
         if(LcdData.CurrentPage != LCD_PAGE_ADMIN_PASWD){
             data = UI_READ_SINGLE_CFG_STR(CONFIG_ITEM_SCREEN_PASSWORD, 0);
@@ -3027,7 +3072,14 @@ static void SerialScreen_RealTime_InfoGet(void)
 #else
         LcdData.setData.warnning[gunno] = SYSTEM_WARNNING_INFO_NORMAL;
 #endif
+#ifdef SCREEN_USING_V2G
+        if(LcdData.runData.GunRunMode[LcdData.gunIndex] == SS_GUN_RUN_MODE_DISCHARGE)
+            LcdData.setData.period_price = 20000;
+        else
+            LcdData.setData.period_price = thaisen_get_period_price(gunno, 0x00);
+#else
         LcdData.setData.period_price = thaisen_get_period_price(gunno, 0x00);
+#endif /* SCREEN_USING_V2G */
 
         LcdData.setData.chargeState[gunno] = thaisen_get_charge_state(gunno);
         LcdData.setData.batteryVolt[gunno] = thaisen_get_bcp_voltage(gunno) *10;
@@ -3198,6 +3250,9 @@ void SerialScreen_PWStartCharge(u8 port)
 
 void SerialScreen_StopCharge(int port)
 {
+#ifdef SCREEN_USING_V2G
+    port = LcdData.gunIndex;
+#endif /* SCREEN_USING_V2G */
     if((TRUE == LcdData.setData.sup_Local) || (TRUE == LcdData.setData.sup_Local_stop))
         thaisen_app_set_screen_stop_charge(port);
     else ;
@@ -8132,6 +8187,16 @@ void SerialScreen_BtnParaSet3(void)
     sSCREEN_EVENT_DEBUGMSG("s_paraRely2=%d\r\n",LcdData.setData.s_paraRely2);
 }
 
+#ifdef SCREEN_USING_V2G
+void SerialScreen_BtnUnElockV2G(void)
+{
+    if(LcdData.gunIndex == LCD_GUN_1)
+        SerialScreen_BtnUnElockA();
+    else
+        SerialScreen_BtnUnElockB();
+}
+#endif /* SCREEN_USING_V2G */
+
 void SerialScreen_BtnUnElockA(void)
 {
     thaisenElectUnlockA_Manual();
@@ -10447,6 +10512,13 @@ struct LCD_DATA_FIFO_TYPE *SerialScreen_Init(struct SerialScreenObj *cmd)
 	memset(&LcdRxData,0,sizeof(LcdRxData));
 	//LcdData init
     LcdData.gunIndex = 0;
+#ifdef SCREEN_USING_V2G
+    LcdData.runData.LastChargeGun = LcdData.gunIndex;
+    LcdData.runData.CurrentChargeGun = LcdData.gunIndex;
+    for(int i = 0; i < LCD_GUN_NUM; i++){
+        LcdData.runData.GunRunMode[i] = SS_GUN_RUN_MODE_CHARGE;
+    }
+#endif /* SCREEN_USING_V2G */
 	LcdData.menuflg = 0;
 	LcdData.runData.netstate = thaisen_app_get_net_state(); //
 	LcdData.Homeflg = 1;
@@ -11291,28 +11363,40 @@ void SerialScreen_PageReset(int GunIdx)
                 }
                 if(LcdTriggerEvent[GunIdx].Flag.IsTriggerExternal == FALSE){     /** 这些是由外部触发跳的页 */
                     if(LcdData.ChargingPageCountDown_Over == 0){
-                        switch(LcdData.CurrentPage)
+#ifdef SCREEN_USING_V2G
+                        if(LcdData.runData.GunRunMode[GunIdx] == SS_GUN_RUN_MODE_DISCHARGE){
+                            if(LcdData.CurrentPage == LCD_PAGE_V2G_BATTERY)
+                                LcdData.CurrentPage = LCD_PAGE_V2G_BATTERY;
+                            else
+                                LcdData.CurrentPage = LCD_PAGE_V2G_DISCHARGING;
+                        }
+                        else
+#endif /* SCREEN_USING_V2G */
                         {
-                            case LCD_PAGE_A_CHGING_BAT:
+                            if(LcdData.CurrentPage == LCD_PAGE_A_CHGING_BAT)
                                 LcdData.CurrentPage = LCD_PAGE_A_CHGING_BAT;
-                                break;
-                            default:
+                            else
                                 LcdData.CurrentPage = LCD_PAGE_A_CHGING;
-                                break;
                         }
                     }
                 }
                 LcdTriggerEvent[LCD_GUN_1].Flag.IsPayed = FALSE;
 #else
                 if(LcdData.ChargingPageCountDown_Over == 0){
-                    switch(LcdData.CurrentPage)
+#ifdef SCREEN_USING_V2G
+                    if(LcdData.runData.GunRunMode[GunIdx] == SS_GUN_RUN_MODE_DISCHARGE){
+                        if(LcdData.CurrentPage == LCD_PAGE_V2G_BATTERY)
+                            LcdData.CurrentPage = LCD_PAGE_V2G_BATTERY;
+                        else
+                            LcdData.CurrentPage = LCD_PAGE_V2G_DISCHARGING;
+                    }
+                    else
+#endif /* SCREEN_USING_V2G */
                     {
-                        case LCD_PAGE_A_CHGING_BAT:
+                        if(LcdData.CurrentPage == LCD_PAGE_A_CHGING_BAT)
                             LcdData.CurrentPage = LCD_PAGE_A_CHGING_BAT;
-                            break;
-                        default:
+                        else
                             LcdData.CurrentPage = LCD_PAGE_A_CHGING;
-                            break;
                     }
                 }
 #endif /* SCREEN_USING_OFFLINE_BILLING */
@@ -11326,29 +11410,41 @@ void SerialScreen_PageReset(int GunIdx)
                 }
                 if(LcdTriggerEvent[GunIdx].Flag.IsTriggerExternal == FALSE){     /** 这些是由外部触发跳的页 */
                     if(LcdData.ChargingPageCountDown_Over == 0){
-                        switch(LcdData.CurrentPage)
+#ifdef SCREEN_USING_V2G
+                        if(LcdData.runData.GunRunMode[GunIdx] == SS_GUN_RUN_MODE_DISCHARGE){
+                            if(LcdData.CurrentPage == LCD_PAGE_V2G_BATTERY)
+                                LcdData.CurrentPage = LCD_PAGE_V2G_BATTERY;
+                            else
+                                LcdData.CurrentPage = LCD_PAGE_V2G_DISCHARGING;
+                        }
+                        else
+#endif /* SCREEN_USING_V2G */
                         {
-                            case LCD_PAGE_B_CHGING_BAT:
+                            if(LcdData.CurrentPage == LCD_PAGE_B_CHGING_BAT)
                                 LcdData.CurrentPage = LCD_PAGE_B_CHGING_BAT;
-                                break;
-                            default:
+                            else
                                 LcdData.CurrentPage = LCD_PAGE_B_CHGING;
-                                break;
                         }
                     }
                 }
                 LcdTriggerEvent[LCD_GUN_2].Flag.IsPayed = FALSE;
 #else
                 if(LcdData.ChargingPageCountDown_Over == 0){
-                    switch(LcdData.CurrentPage)
-                    {
-                        case LCD_PAGE_B_CHGING_BAT:
-                            LcdData.CurrentPage = LCD_PAGE_B_CHGING_BAT;
-                            break;
-                        default:
-                            LcdData.CurrentPage = LCD_PAGE_B_CHGING;
-                            break;
-                    }
+#ifdef SCREEN_USING_V2G
+                        if(LcdData.runData.GunRunMode[GunIdx] == SS_GUN_RUN_MODE_DISCHARGE){
+                            if(LcdData.CurrentPage == LCD_PAGE_V2G_BATTERY)
+                                LcdData.CurrentPage = LCD_PAGE_V2G_BATTERY;
+                            else
+                                LcdData.CurrentPage = LCD_PAGE_V2G_DISCHARGING;
+                        }
+                        else
+#endif /* SCREEN_USING_V2G */
+                        {
+                            if(LcdData.CurrentPage == LCD_PAGE_B_CHGING_BAT)
+                                LcdData.CurrentPage = LCD_PAGE_B_CHGING_BAT;
+                            else
+                                LcdData.CurrentPage = LCD_PAGE_B_CHGING;
+                        }
                 }
 #endif /* SCREEN_USING_OFFLINE_BILLING */
 			}
@@ -11395,7 +11491,14 @@ void SerialScreen_PageReset(int GunIdx)
                         break;
                     }
                     if(LcdData.AccountPageCountDown_Over == 0){
+#ifdef SCREEN_USING_V2G
+                        if(LcdData.runData.GunRunMode[GunIdx] == SS_GUN_RUN_MODE_DISCHARGE)
+                            LcdData.CurrentPage = LCD_PAGE_V2G_ACOUNT;
+                        else
+                            LcdData.CurrentPage = LCD_PAGE_A_ACOUNT;
+#else
                         LcdData.CurrentPage = LCD_PAGE_A_ACOUNT;
+#endif /* SCREEN_USING_V2G */
                     }
                 }
 			}else{
@@ -11408,18 +11511,39 @@ void SerialScreen_PageReset(int GunIdx)
                         break;
                     }
                     if(LcdData.AccountPageCountDown_Over == 0){
+#ifdef SCREEN_USING_V2G
+                        if(LcdData.runData.GunRunMode[GunIdx] == SS_GUN_RUN_MODE_DISCHARGE)
+                            LcdData.CurrentPage = LCD_PAGE_V2G_ACOUNT;
+                        else
+                            LcdData.CurrentPage = LCD_PAGE_B_ACOUNT;
+#else
                         LcdData.CurrentPage = LCD_PAGE_B_ACOUNT;
+#endif /* SCREEN_USING_V2G */
                     }
                 }
 			}
 #else
             if(GunIdx==LCD_GUN_1){
                 if(LcdData.AccountPageCountDown_Over == 0){
+#ifdef SCREEN_USING_V2G
+                    if(LcdData.runData.GunRunMode[GunIdx] == SS_GUN_RUN_MODE_DISCHARGE)
+                        LcdData.CurrentPage = LCD_PAGE_V2G_ACOUNT;
+                    else
+                        LcdData.CurrentPage = LCD_PAGE_A_ACOUNT;
+#else
                     LcdData.CurrentPage = LCD_PAGE_A_ACOUNT;
+#endif /* SCREEN_USING_V2G */
                 }
             }else{
                 if(LcdData.AccountPageCountDown_Over == 0){
+#ifdef SCREEN_USING_V2G
+                    if(LcdData.runData.GunRunMode[GunIdx] == SS_GUN_RUN_MODE_DISCHARGE)
+                        LcdData.CurrentPage = LCD_PAGE_V2G_ACOUNT;
+                    else
+                        LcdData.CurrentPage = LCD_PAGE_B_ACOUNT;
+#else
                     LcdData.CurrentPage = LCD_PAGE_B_ACOUNT;
+#endif /* SCREEN_USING_V2G */
                 }
             }
 #endif /* SCREEN_USING_OFFLINE_BILLING */
@@ -12563,6 +12687,64 @@ int SerialScreen_DataProcess()
         LcdData.runData.netstate = 0x05;   //离线计费不显示网络图标
     }
 
+#ifdef SCREEN_USING_V2G
+    /********************************* 此处用于检测公共的变量在系统状态发生变化后进行快速同步 *********************************/
+    LcdData.runData.CurrentChargeGun = LcdData.gunIndex;
+    /** 显示枪号发生了变化 */
+    if(LcdData.runData.LastChargeGun != LcdData.runData.CurrentChargeGun){
+        /** 枪的运行模式不同 */
+        if(LcdData.runData.GunRunMode[LcdData.runData.CurrentChargeGun] != LcdData.runData.GunRunMode[LcdData.runData.LastChargeGun]){
+            /** 当前枪的运行模式是充电 */
+            if(LcdData.runData.GunRunMode[LcdData.runData.CurrentChargeGun] == SS_GUN_RUN_MODE_CHARGE){
+                LcdData.setData.period_price = thaisen_get_period_price(LcdData.runData.CurrentChargeGun, 0x00);
+            }
+            /** 当前枪的运行模式是放电 */
+            else if(LcdData.runData.GunRunMode[LcdData.runData.CurrentChargeGun] == SS_GUN_RUN_MODE_DISCHARGE){
+                LcdData.setData.period_price = 20000;
+            }
+        }
+        /** 枪的运行模式都是放电 */
+        else if((LcdData.runData.GunRunMode[LcdData.runData.CurrentChargeGun] == LcdData.runData.GunRunMode[LcdData.runData.LastChargeGun]) && \
+                (LcdData.runData.GunRunMode[LcdData.runData.CurrentChargeGun] == SS_GUN_RUN_MODE_DISCHARGE)){
+            u8 valid_len = 0;
+            struct card_data_info *card = thaisen_get_card_info(LcdData.runData.CurrentChargeGun);
+
+            LcdData.gun[LCD_GUN_NUM].vol = LcdData.gun[LcdData.gunIndex].vol;
+            LcdData.gun[LCD_GUN_NUM].cur = LcdData.gun[LcdData.gunIndex].cur;
+            LcdData.gun[LCD_GUN_NUM].ChrgeTime = LcdData.gun[LcdData.gunIndex].ChrgeTime;
+            LcdData.gun[LCD_GUN_NUM].engery = LcdData.gun[LcdData.gunIndex].engery;
+            LcdData.gun[LCD_GUN_NUM].curSoc = LcdData.gun[LcdData.gunIndex].curSoc;
+            LcdData.gun[LCD_GUN_NUM].totalFee = LcdData.gun[LcdData.gunIndex].totalFee;
+
+            LcdData.gun[LCD_GUN_NUM].VolNeed = LcdData.gun[LcdData.gunIndex].VolNeed;
+            LcdData.gun[LCD_GUN_NUM].CurNeed = LcdData.gun[LcdData.gunIndex].CurNeed;
+            LcdData.gun[LCD_GUN_NUM].BatTemp = LcdData.gun[LcdData.gunIndex].BatTemp;
+            LcdData.gun[LCD_GUN_NUM].SigleVol = LcdData.gun[LcdData.gunIndex].SigleVol;
+
+            LcdData.gun[LCD_GUN_NUM].ChrgeTimeHour = LcdData.gun[LcdData.gunIndex].ChrgeTimeHour;
+            LcdData.gun[LCD_GUN_NUM].ChrgeTImeMin = LcdData.gun[LcdData.gunIndex].ChrgeTImeMin;
+#ifdef SCREEN_ADD_START_SOC
+            LcdData.gun[LCD_GUN_NUM].StartSoc = LcdData.gun[LcdData.gunIndex].StartSoc;
+#endif /* SCREEN_ADD_START_SOC */
+            memcpy(LcdData.gun[LCD_GUN_NUM].code_stopResaon, LcdData.gun[LcdData.gunIndex].code_stopResaon, sizeof(LcdData.gun[LCD_GUN_NUM].code_stopResaon));
+            memcpy(LcdData.gun[LCD_GUN_NUM].code_stopResaon_Chinese, LcdData.gun[LcdData.gunIndex].code_stopResaon, sizeof(LcdData.gun[LCD_GUN_NUM].code_stopResaon_Chinese));
+
+            if(card){
+                memset(LcdData.setData.s_card_number[LcdData.runData.CurrentChargeGun], 0x00, sizeof(LcdData.setData.s_card_number[LcdData.runData.CurrentChargeGun]));
+                valid_len = strlen((char*)card->card_number);
+                if(valid_len > sizeof(card->card_number)){
+                    valid_len = sizeof(card->card_number);
+                }
+                if(valid_len > (sizeof(LcdData.setData.s_card_number[LcdData.runData.CurrentChargeGun]) - 1)){
+                    valid_len = (sizeof(LcdData.setData.s_card_number[LcdData.runData.CurrentChargeGun]) - 1);
+                }
+                memcpy(LcdData.setData.s_card_number[LcdData.runData.CurrentChargeGun], card->card_number, valid_len);
+            }
+        }
+        LcdData.runData.LastChargeGun = LcdData.runData.CurrentChargeGun;
+    }
+#endif /* SCREEN_USING_V2G */
+
 	if(++timesecbak>1000/BASE_SYS_TIMER)
 	{
 		timesecbak = 0;
@@ -12856,6 +13038,38 @@ int SerialScreen_DataProcess()
                 LcdData.gun[i].workStateLast = LcdData.gun[i].workState;
             }
 		}
+#ifdef SCREEN_USING_V2G
+#ifdef SCREEN_USING_OFFLINE_BILLING
+        if(((LcdData.gun[LcdData.gunIndex].workState >= SysMainStatus_StartReady)&&(LcdData.gun[LcdData.gunIndex].workState <= SysMainStatus_Account)) ||
+                    ((LcdTriggerEvent[LcdData.gunIndex].Flag.IsTriggerExternal == TRUE) && (LcdData.setData.sup_offbilling == TRUE)))
+#else
+        if((LcdData.gun[LcdData.gunIndex].workState >= SysMainStatus_StartReady)&&(LcdData.gun[LcdData.gunIndex].workState <= SysMainStatus_Account))
+#endif /* SCREEN_USING_OFFLINE_BILLING */
+        {
+            if(LcdData.runData.GunRunMode[LcdData.gunIndex] == SS_GUN_RUN_MODE_DISCHARGE){
+                LcdData.gun[LCD_GUN_NUM].vol = LcdData.gun[LcdData.gunIndex].vol;
+                LcdData.gun[LCD_GUN_NUM].cur = LcdData.gun[LcdData.gunIndex].cur;
+                LcdData.gun[LCD_GUN_NUM].ChrgeTime = LcdData.gun[LcdData.gunIndex].ChrgeTime;
+                LcdData.gun[LCD_GUN_NUM].engery = LcdData.gun[LcdData.gunIndex].engery;
+                LcdData.gun[LCD_GUN_NUM].curSoc = LcdData.gun[LcdData.gunIndex].curSoc;
+                LcdData.gun[LCD_GUN_NUM].totalFee = LcdData.gun[LcdData.gunIndex].totalFee;
+
+                LcdData.gun[LCD_GUN_NUM].VolNeed = LcdData.gun[LcdData.gunIndex].VolNeed;
+                LcdData.gun[LCD_GUN_NUM].CurNeed = LcdData.gun[LcdData.gunIndex].CurNeed;
+                LcdData.gun[LCD_GUN_NUM].BatTemp = LcdData.gun[LcdData.gunIndex].BatTemp;
+                LcdData.gun[LCD_GUN_NUM].SigleVol = LcdData.gun[LcdData.gunIndex].SigleVol;
+
+                LcdData.gun[LCD_GUN_NUM].ChrgeTimeHour = LcdData.gun[LcdData.gunIndex].ChrgeTimeHour;
+                LcdData.gun[LCD_GUN_NUM].ChrgeTImeMin = LcdData.gun[LcdData.gunIndex].ChrgeTImeMin;
+#ifdef SCREEN_ADD_START_SOC
+                LcdData.gun[LCD_GUN_NUM].StartSoc = LcdData.gun[LcdData.gunIndex].StartSoc;
+#endif /* SCREEN_ADD_START_SOC */
+                memcpy(LcdData.gun[LCD_GUN_NUM].code_stopResaon, LcdData.gun[LcdData.gunIndex].code_stopResaon, sizeof(LcdData.gun[LCD_GUN_NUM].code_stopResaon));
+                memcpy(LcdData.gun[LCD_GUN_NUM].code_stopResaon_Chinese, LcdData.gun[LcdData.gunIndex].code_stopResaon_Chinese, sizeof(LcdData.gun[LCD_GUN_NUM].code_stopResaon_Chinese));
+            }
+        }
+#endif /* SCREEN_USING_V2G */
+
 		ret = 1;
         if((LcdAssistantData.OccupyGunNum == LCD_GUN_NUM) && (LcdAssistantData.DeviceType != SYSTEM_FUNCTION_DYNAMIC_SWITCH)){
 	        if(LcdAssistantData.Flag.IsEnableParaCharge){
@@ -12989,7 +13203,24 @@ void SerialScreen_Process(struct SerialScreenObj *cmd)
                 LcdAssistantData.SeveralGunFlag[i].IsLocalStart = FALSE;
             }
         }
-    }else{
+    }
+#ifdef SCREEN_USING_V2G
+    else if((LcdData.CurrentPage == LCD_PAGE_V2G_DISCHARGING) || (LcdData.CurrentPage == LCD_PAGE_V2G_BATTERY)){
+        if(LcdData.PageCountDown > thaisen_app_get_system_tick()){
+            LcdData.PageCountDown = thaisen_app_get_system_tick();
+        }
+        if((thaisen_app_get_system_tick() - LcdData.PageCountDown) > 180 *1000){
+            LcdData.CurrentPage = LCD_PAGE_STANDBY;
+            LcdData.ChargingPageCountDown_Over = 1;
+            LcdData.PageCountDown = thaisen_app_get_system_tick();
+            for(u8 i = 0; i < LCD_GUN_NUM; i++){
+                LcdAssistantData.SeveralGunFlag[i].IsPWStartAuthen = FALSE;
+                LcdAssistantData.SeveralGunFlag[i].IsLocalStart = FALSE;
+            }
+        }
+    }
+#endif /* SCREEN_USING_V2G */
+    else{
         LcdData.PageCountDown = thaisen_app_get_system_tick();
     }
 
@@ -13003,6 +13234,13 @@ void SerialScreen_Process(struct SerialScreenObj *cmd)
                 (LcdData.CurrentPageBack != LCD_PAGE_A_CHGING) && (LcdData.CurrentPageBack != LCD_PAGE_A_CHGING_BAT))){
             LcdData.ChargingPageCountDown_Over = 0;
         }
+#ifdef SCREEN_USING_V2G
+        if((LcdData.CurrentPageBack != LCD_PAGE_V2G_DISCHARGING) && (LcdData.CurrentPageBack != LCD_PAGE_V2G_BATTERY)){
+            LcdData.ChargingPageCountDown_Over = 0;
+        }
+#endif /* SCREEN_USING_V2G */
+
+
         LcdData.CurrentPageBack = LcdData.CurrentPage;
         //sSCREEN_DEBUGMSG("**************SerialScreen_CurrentPageShow*******************\r\n");
         SerialScreen_CurrentPageShow(cmd,0);
@@ -13284,6 +13522,7 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
 #ifdef SCREEN_INCLUDE_BATVOLT_DETECT_QRCODE
     SerialScreen_ItemSetUp(LCD_PAGE_A_ACOUNT, NULL, "Det_QrCode", LCD_QRCodeType, LCD_NoReflash, 0x7000, pstr_type, sizeof(LcdData.setData.BatVoltDetectQrCode[LCD_GUN_1]), (void *)LcdData.setData.BatVoltDetectQrCode[LCD_GUN_1]);
 #endif /* SCREEN_INCLUDE_BATVOLT_DETECT_QRCODE */
+    SerialScreen_ItemSetUp(LCD_PAGE_A_ACOUNT, NULL, "help number", LCD_TextType, LCD_NoReflash, 0x11A0, pstr_type, sizeof(LcdData.setData.Help_Number), (void *)LcdData.setData.Help_Number);
     SerialScreen_ItemSetUp(LCD_PAGE_A_ACOUNT, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
 
     /** 11.B枪结算 [page:11] */
@@ -13302,6 +13541,7 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
 #ifdef SCREEN_INCLUDE_BATVOLT_DETECT_QRCODE
     SerialScreen_ItemSetUp(LCD_PAGE_B_ACOUNT, NULL, "Det_QrCode", LCD_QRCodeType, LCD_NoReflash, 0x7080, pstr_type, sizeof(LcdData.setData.BatVoltDetectQrCode[LCD_GUN_2]), (void *)LcdData.setData.BatVoltDetectQrCode[LCD_GUN_2]);
 #endif /* SCREEN_INCLUDE_BATVOLT_DETECT_QRCODE */
+    SerialScreen_ItemSetUp(LCD_PAGE_B_ACOUNT, NULL, "help number", LCD_TextType, LCD_NoReflash, 0x11A0, pstr_type, sizeof(LcdData.setData.Help_Number), (void *)LcdData.setData.Help_Number);
     SerialScreen_ItemSetUp(LCD_PAGE_B_ACOUNT, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
 
     /** 12.A枪故障  [page:12]*/
@@ -13552,6 +13792,59 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     /** 28.密码错误 [page:29] */
     SerialScreen_ItemSetUp(LCD_PAGE_PASWD_ERR, NULL, "cdup", LCD_BtnType, 0x0016, 0x1000, page_type, LCD_PAGE_ADMIN_PASWD, (void *)NULL);
     SerialScreen_ItemSetUp(LCD_PAGE_PASWD_ERR, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
+
+#ifdef SCREEN_USING_V2G
+    /** 29.V2G放电中信息 [page:31] */
+    SerialScreen_ItemSetUp(LCD_PAGE_V2G_DISCHARGING, NULL, "net_sign", LCD_IconType, LCD_10sReflash, 0x1700, pu8_type, sizeof(LcdData.runData.netstate), (void *)&LcdData.runData.netstate);
+    SerialScreen_ItemSetUp(LCD_PAGE_V2G_DISCHARGING, NULL, "Output Volt", LCD_DataType, LCD_1sReflash, 0x6D3A, pu32_type, sizeof(LcdData.gun[LCD_GUN_NUM].vol), (void *)&LcdData.gun[LCD_GUN_NUM].vol);
+    SerialScreen_ItemSetUp(LCD_PAGE_V2G_DISCHARGING, NULL, "Output Curr", LCD_DataType, LCD_1sReflash, 0x6D3C, pu32_type, sizeof(LcdData.gun[LCD_GUN_NUM].cur), (void *)&LcdData.gun[LCD_GUN_NUM].cur);
+    SerialScreen_ItemSetUp(LCD_PAGE_V2G_DISCHARGING, NULL, "Time Used", LCD_DataType, LCD_1sReflash, 0x6D3E, pu32_type, sizeof(LcdData.gun[LCD_GUN_NUM].ChrgeTime), (void *)&LcdData.gun[LCD_GUN_NUM].ChrgeTime);
+    SerialScreen_ItemSetUp(LCD_PAGE_V2G_DISCHARGING, NULL, "Energy", LCD_DataType, LCD_1sReflash, 0x6D40, pu32_type, sizeof(LcdData.gun[LCD_GUN_NUM].engery), (void *)&LcdData.gun[LCD_GUN_NUM].engery);
+    SerialScreen_ItemSetUp(LCD_PAGE_V2G_DISCHARGING, NULL, "Soc", LCD_DataType, LCD_1sReflash, 0x6D38, pu32_type, sizeof(LcdData.gun[LCD_GUN_NUM].curSoc), (void *)&LcdData.gun[LCD_GUN_NUM].curSoc);
+    SerialScreen_ItemSetUp(LCD_PAGE_V2G_DISCHARGING, NULL, "Agun_Bms", LCD_BtnType, 0x006F, 0x1009, page_type, LCD_PAGE_V2G_BATTERY, (void *)NULL);
+    SerialScreen_ItemSetUp(LCD_PAGE_V2G_DISCHARGING, NULL, "Agun_StopCharge", LCD_TrigType, 0x0070, 0x1009, page_type, LCD_GUN_NUM, (void *)SerialScreen_StopCharge);
+    SerialScreen_ItemSetUp(LCD_PAGE_V2G_DISCHARGING, NULL, "Home", LCD_BtnHomeType, 0x0002, 0x1000, page_type, 0, (void *)NULL);
+    SerialScreen_ItemSetUp(LCD_PAGE_V2G_DISCHARGING, NULL, "SupStop", LCD_IconType, LCD_10sReflash, 0x6D42, pu8_type, sizeof(LcdData.setData.Sup_Stop), (void *)&LcdData.setData.Sup_Stop);
+    SerialScreen_ItemSetUp(LCD_PAGE_V2G_DISCHARGING, NULL, "period price", LCD_DataType, LCD_1sReflash, 0x6D44, pu32_type, sizeof(LcdData.setData.period_price), (void *)&LcdData.setData.period_price);
+    SerialScreen_ItemSetUp(LCD_PAGE_V2G_DISCHARGING, NULL, "money", LCD_DataType, LCD_1sReflash, 0x6D46, pu32_type, sizeof(LcdData.gun[LCD_GUN_NUM].totalFee), (void *)&LcdData.gun[LCD_GUN_NUM].totalFee);
+    SerialScreen_ItemSetUp(LCD_PAGE_V2G_DISCHARGING, NULL, "card num", LCD_TextType, LCD_NoReflash, 0x656C, pstr_type, sizeof(LcdData.setData.s_card_number[LCD_GUN_NUM]), (void *)&LcdData.setData.s_card_number[LCD_GUN_NUM]);
+    SerialScreen_ItemSetUp(LCD_PAGE_V2G_DISCHARGING, NULL, "gunIndex", LCD_IconType, LCD_10sReflash, 0x6D64, pu8_type, sizeof(LcdData.gunIndex), (void *)&LcdData.gunIndex);
+    SerialScreen_ItemSetUp(LCD_PAGE_V2G_DISCHARGING, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
+
+    /** 30.V2G电池信息 [page:32] */
+    SerialScreen_ItemSetUp(LCD_PAGE_V2G_BATTERY, NULL, "net_sign", LCD_IconType, LCD_10sReflash, 0x1700, pu8_type, sizeof(LcdData.runData.netstate), (void *)&LcdData.runData.netstate);
+    SerialScreen_ItemSetUp(LCD_PAGE_V2G_BATTERY, NULL, "Volt Need", LCD_DataType, LCD_1sReflash, 0x6D48, pu32_type, sizeof(LcdData.gun[LCD_GUN_NUM].VolNeed), (void *)&LcdData.gun[LCD_GUN_NUM].VolNeed);
+    SerialScreen_ItemSetUp(LCD_PAGE_V2G_BATTERY, NULL, "Cur Need", LCD_DataType, LCD_1sReflash, 0x6D4A, pu32_type, sizeof(LcdData.gun[LCD_GUN_NUM].CurNeed), (void *)&LcdData.gun[LCD_GUN_NUM].CurNeed);
+    SerialScreen_ItemSetUp(LCD_PAGE_V2G_BATTERY, NULL, "Bat Tempture", LCD_DataType, LCD_1sReflash, 0x6D4C, pu32_type, sizeof(LcdData.gun[LCD_GUN_NUM].BatTemp), (void *)&LcdData.gun[LCD_GUN_NUM].BatTemp);
+    SerialScreen_ItemSetUp(LCD_PAGE_V2G_BATTERY, NULL, "Sigle Vol", LCD_DataType, LCD_1sReflash, 0x6D4E, pu32_type, sizeof(LcdData.gun[LCD_GUN_NUM].SigleVol), (void *)&LcdData.gun[LCD_GUN_NUM].SigleVol);
+    SerialScreen_ItemSetUp(LCD_PAGE_V2G_BATTERY, NULL, "Soc", LCD_DataType, LCD_1sReflash, 0x6D38, pu32_type, sizeof(LcdData.gun[LCD_GUN_NUM].curSoc), (void *)&LcdData.gun[LCD_GUN_NUM].curSoc);
+    SerialScreen_ItemSetUp(LCD_PAGE_V2G_BATTERY, NULL, "Bgun_Charge", LCD_BtnType, 0x006D, 0x1009, page_type, LCD_PAGE_V2G_DISCHARGING, (void *)NULL);
+    SerialScreen_ItemSetUp(LCD_PAGE_V2G_BATTERY, NULL, "Bgun_StopCharge", LCD_TrigType, 0x0070, 0x1009, page_type, LCD_GUN_2, (void *)SerialScreen_StopCharge);
+    SerialScreen_ItemSetUp(LCD_PAGE_V2G_BATTERY, NULL, "Home", LCD_BtnHomeType, 0x0002, 0x1000, page_type, LCD_PAGE_NONE, (void *)NULL);
+    SerialScreen_ItemSetUp(LCD_PAGE_V2G_BATTERY, NULL, "SupStop", LCD_IconType, LCD_10sReflash, 0x6D42, pu8_type, sizeof(LcdData.setData.Sup_Stop), (void *)&LcdData.setData.Sup_Stop);
+    SerialScreen_ItemSetUp(LCD_PAGE_V2G_BATTERY, NULL, "period price", LCD_DataType, LCD_1sReflash, 0x6D44, pu32_type, sizeof(LcdData.setData.period_price), (void *)&LcdData.setData.period_price);
+    SerialScreen_ItemSetUp(LCD_PAGE_V2G_BATTERY, NULL, "money", LCD_DataType, LCD_1sReflash, 0x6D46, pu32_type, sizeof(LcdData.gun[LCD_GUN_NUM].totalFee), (void *)&LcdData.gun[LCD_GUN_NUM].totalFee);
+    SerialScreen_ItemSetUp(LCD_PAGE_V2G_BATTERY, NULL, "card num", LCD_TextType, LCD_NoReflash, 0x656C, pstr_type, sizeof(LcdData.setData.s_card_number[LCD_GUN_NUM]), (void *)&LcdData.setData.s_card_number[LCD_GUN_NUM]);
+    SerialScreen_ItemSetUp(LCD_PAGE_V2G_BATTERY, NULL, "gunIndex", LCD_IconType, LCD_10sReflash, 0x6D64, pu8_type, sizeof(LcdData.gunIndex), (void *)&LcdData.gunIndex);
+    SerialScreen_ItemSetUp(LCD_PAGE_V2G_BATTERY, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
+
+    /** 31.V2G结算 [page:33] */
+    SerialScreen_ItemSetUp(LCD_PAGE_V2G_ACOUNT, NULL, "Energy", LCD_DataType, LCD_1sReflash, 0x6D40, pu32_type, sizeof(LcdData.gun[LCD_GUN_NUM].engery), (void *)&LcdData.gun[LCD_GUN_NUM].engery);
+    SerialScreen_ItemSetUp(LCD_PAGE_V2G_ACOUNT, NULL, "Hour Used", LCD_DataType, LCD_1sReflash, 0x6D50, pu32_type, sizeof(LcdData.gun[LCD_GUN_NUM].ChrgeTimeHour), (void *)&LcdData.gun[LCD_GUN_NUM].ChrgeTimeHour);
+    SerialScreen_ItemSetUp(LCD_PAGE_V2G_ACOUNT, NULL, "Min Used", LCD_DataType, LCD_1sReflash, 0x6D52, pu32_type, sizeof(LcdData.gun[LCD_GUN_NUM].ChrgeTImeMin), (void *)&LcdData.gun[LCD_GUN_NUM].ChrgeTImeMin);
+    SerialScreen_ItemSetUp(LCD_PAGE_V2G_ACOUNT, NULL, "Soc", LCD_DataType, LCD_1sReflash, 0x6D38, pu32_type, sizeof(LcdData.gun[LCD_GUN_NUM].curSoc), (void *)&LcdData.gun[LCD_GUN_NUM].curSoc);
+#ifdef SCREEN_ADD_START_SOC
+    SerialScreen_ItemSetUp(LCD_PAGE_V2G_ACOUNT, NULL, "StartSoc", LCD_DataType, LCD_1sReflash, 0x6D14, pu32_type, sizeof(LcdData.gun[LCD_GUN_NUM].StartSoc), (void *)&LcdData.gun[LCD_GUN_NUM].StartSoc);
+#endif /* SCREEN_ADD_START_SOC */
+    SerialScreen_ItemSetUp(LCD_PAGE_V2G_ACOUNT, NULL, "Money", LCD_DataType, LCD_NoReflash, 0x6D46, pu32_type, sizeof(LcdData.gun[LCD_GUN_NUM].totalFee), (void *)&LcdData.gun[LCD_GUN_NUM].totalFee);
+    SerialScreen_ItemSetUp(LCD_PAGE_V2G_ACOUNT, NULL, "ChgStopReason", LCD_TextType, LCD_NoReflash, 0x6D44, pstr_type, (sizeof(LcdData.gun[LCD_GUN_NUM].code_stopResaon) - 1), (void *)&LcdData.gun[LCD_GUN_NUM].code_stopResaon[0]);
+    SerialScreen_ItemSetUp(LCD_PAGE_V2G_ACOUNT, NULL, "ChgStopReason", LCD_TextType, LCD_NoReflash, 0x6D5E, pstr_type, (sizeof(LcdData.gun[LCD_GUN_NUM].code_stopResaon_Chinese) - 1), (void *)&LcdData.gun[LCD_GUN_NUM].code_stopResaon_Chinese[0]);
+    SerialScreen_ItemSetUp(LCD_PAGE_V2G_ACOUNT, NULL, "back", LCD_BtnHomeType, 0x0002, 0x1000, page_type, LCD_PAGE_NONE, (void *)NULL);
+    SerialScreen_ItemSetUp(LCD_PAGE_V2G_ACOUNT, NULL, "unlock_el", LCD_BtnType, 0x0071, 0x1009, page_type, LCD_PAGE_V2G_ACOUNT, (void *)SerialScreen_BtnUnElockV2G);
+    SerialScreen_ItemSetUp(LCD_PAGE_V2G_ACOUNT, NULL, "gunIndex", LCD_IconType, LCD_10sReflash, 0x6D60, pu8_type, sizeof(LcdData.gunIndex), (void *)&LcdData.gunIndex);
+    SerialScreen_ItemSetUp(LCD_PAGE_V2G_ACOUNT, NULL, "help number", LCD_TextType, LCD_NoReflash, 0x11A0, pstr_type, sizeof(LcdData.setData.Help_Number), (void *)LcdData.setData.Help_Number);
+    SerialScreen_ItemSetUp(LCD_PAGE_V2G_ACOUNT, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
+#endif /* SCREEN_USING_V2G */
 
     /** 29.远程升级 [page:37] */
     SerialScreen_ItemSetUp(LCD_PAGE_SYS_UPDATE, NULL, "Progress value", LCD_InputType, 0, 0x1800, pu16_type, sizeof(LcdData.setData.ota_progress), (void *)&LcdData.setData.ota_progress);
