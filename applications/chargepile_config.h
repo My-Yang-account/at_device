@@ -409,6 +409,13 @@
 #define CP_MODE_LIMIT_RESERVATION                 4         /* 当前充电模式：预约 */
 #define CP_MODE_SIZE                              5         /* 当前充电模式：*/
 
+#define CP_V2G_MODE_LIMIT_MONEY                   0x55      /* 当前放电模式：限制金额 */
+#define CP_V2G_MODE_LIMIT_ELECT                   0x56      /* 当前放电模式：限制电量 */
+#define CP_V2G_MODE_LIMIT_TIMING                  0x57      /* 当前放电模式：限制时间 */
+#define CP_V2G_MODE_AUTO                          0x58      /* 当前放电模式：自动(根据设置的放电截至SOC来) */
+#define CP_V2G_MODE_SIZE                          0x58      /* 当前放电模式：*/
+#define CP_V2G_MODE_NULL                          0xFF      /* 当前放电模式：空*/
+
 #define CP_MODE_PARA_MONEY_DEF                    10000     /* 充电模式金额参数默认值(单位：0.01元)*/
 #define CP_MODE_PARA_MONEY_MAX                    500000    /* 充电模式金额参最大值(单位：0.01元)：*/
 #define CP_MODE_PARA_MONEY_MIN                    200       /* 充电模式金额参数最小值(单位：0.01元)*/
@@ -424,6 +431,22 @@
 #define CP_MODE_PARA_RESERVATION_DEF              (22 *3600) /* 充电模式预约参数默认值(单位：1S[是当天启动时间的秒数])*/
 #define CP_MODE_PARA_RESERVATION_MAX              (24 *3600) /* 充电模式预约参最大值(单位：1S[是当天启动时间的秒数])*/
 #define CP_MODE_PARA_RESERVATION_MIN              0         /* 充电模式预约参数最小值(单位：1S[是当天启动时间的秒数])*/
+
+#define CP_V2G_MODE_PARA_MONEY_DEF                10000     /* 放电模式金额参数默认值(单位：0.01元)*/
+#define CP_V2G_MODE_PARA_MONEY_MAX                500000    /* 放电模式金额参最大值(单位：0.01元)：*/
+#define CP_V2G_MODE_PARA_MONEY_MIN                200       /* 放电模式金额参数最小值(单位：0.01元)*/
+
+#define CP_V2G_MODE_PARA_ELECT_DEF                100000    /* 放电模式电量参数默认值(单位：0.001度)*/
+#define CP_V2G_MODE_PARA_ELECT_MAX                1000000   /* 放电模式电量参最大值(单位：0.001度)：*/
+#define CP_V2G_MODE_PARA_ELECT_MIN                1000      /* 放电模式电量参数最小值(单位：0.001度)*/
+
+#define CP_V2G_MODE_PARA_TIMING_DEF               30        /* 放电模式定时参数默认值(单位：1min)*/
+#define CP_V2G_MODE_PARA_TIMING_MAX               (24 *60)  /* 放电模式定时参最大值(单位：1min)：*/
+#define CP_V2G_MODE_PARA_TIMING_MIN               1         /* 放电模式定时参数最小值(单位：1min)*/
+
+#define CP_V2G_MODE_PARA_RESERVATION_DEF          (22 *3600) /* 放电模式预约参数默认值(单位：1S[是当天启动时间的秒数])*/
+#define CP_V2G_MODE_PARA_RESERVATION_MAX          (24 *3600) /* 放电模式预约参最大值(单位：1S[是当天启动时间的秒数])*/
+#define CP_V2G_MODE_PARA_RESERVATION_MIN          0         /* 放电模式预约参数最小值(单位：1S[是当天启动时间的秒数])*/
 
 /* net type */
 #define CP_NETTYPE_4G                                 0x00             /* 联网方式：4G */
@@ -565,6 +588,8 @@ enum config_name{
     CONFIG_ITEM_SUPORT_BMS_SEVERAL_FRAME,
     CONFIG_ITEM_CURRENT_MODE_A,
     CONFIG_ITEM_CURRENT_MODE_B,
+    CONFIG_ITEM_CURRENT_V2G_MODE_A,
+    CONFIG_ITEM_CURRENT_V2G_MODE_B,
 
     CONFIG_ITEM_CARD_TYPE,
     CONFIG_ITEM_CC14V_MAX,
@@ -591,6 +616,8 @@ enum config_name{
     CONFIG_ITEM_ELOSS_PROPORTION,
     CONFIG_ITEM_MODE_PARAMETER_A,
     CONFIG_ITEM_MODE_PARAMETER_B,
+    CONFIG_ITEM_V2G_MODE_PARAMETER_A,
+    CONFIG_ITEM_V2G_MODE_PARAMETER_B,
     CONFIG_ITEM_FAN_WORK_TIME,
     CONFIG_ITEM_SMODULE_OUTCURR_MAX,
     CONFIG_ITEM_LIGHTING_LAMP_SHOUR,
