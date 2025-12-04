@@ -805,6 +805,14 @@ enum thaisen_mode{
     THAISEN_MODE_SIZE,                                            /** 当前模式： */
 };
 
+enum thaisen_v2g_mode{
+    THAISEN_V2G_MODE_LIMIT_MONEY,                                 /** V2G当前模式：限制金额(单位：0.01元) */
+    THAISEN_V2G_MODE_LIMIT_ELECT,                                 /** V2G当前模式：限制电量(单位：0.001度) */
+    THAISEN_V2G_MODE_LIMIT_TIMING,                                /** V2G当前模式：定时(单位：1S) */
+    THAISEN_V2G_MODE_AUTO,                                        /** V2G当前模式：自动(根据设置的放电截至SOC来) */
+    THAISEN_V2G_MODE_SIZE,                                        /** V2G当前模式：空 */
+};
+
  /**
  *  获取当前模式
  **/

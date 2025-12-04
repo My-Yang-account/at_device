@@ -177,6 +177,11 @@ void SerialScreen_BtnModeLimitElectSet(void);
 void SerialScreen_BtnModeChargeFullSet(void);
 void SerialScreen_BtnModeLimitTimingSet(void);
 void SerialScreen_BtnModeLimitReservationSet(void);
+void SerialScreen_BtnV2GLimitMoneySet(void);
+void SerialScreen_BtnV2GLimitElectSet(void);
+void SerialScreen_BtnV2GChargeAutoSet(void);
+void SerialScreen_BtnV2GLimitTimingSet(void);
+void SerialScreen_BtnV2GLimitReservationSet(void);
 void SerialScreen_ScramIsSupportSet(void);
 void SerialScreen_ScramNegIsSupportSet(void);
 void SerialScreen_GateIsSupportSet(void);
@@ -217,6 +222,7 @@ void SerialScreen_FuseNegIsSupportSet(void);
 
 void SerialScreen_GetModeInfoA(void);
 void SerialScreen_GetModeInfoB(void);
+
 void SerialScreen_BtnSelfCheckSet(void);
 
 void SerialScreen_AuxSelectVerifyA(void);

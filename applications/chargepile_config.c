@@ -130,7 +130,8 @@ struct _config_para{
     uint8_t lighting_lamp_smin;                                       /* 照明起始分钟 */
     uint8_t lighting_lamp_emin;                                       /* 照明结束分钟 */
     uint8_t discharge_as_of_soc;                                      /* 放电截至SOC */
-    uint8_t reserve1[256 - 19];                                       /* 预留 */
+    uint32_t v2g_mode_parameter[2];                                   /* V2G模式参数 */
+    uint8_t reserve1[256 - 27];                                       /* 预留 */
 };
 
 struct _config_info{
@@ -220,7 +221,8 @@ struct _function_enable{
     uint8_t bay_protocol_switch;   /* 湾区协议开关 */
     uint8_t protocol_gb_t;         /* 国标协议(27930) */
     uint8_t bms_several_frame;     /* BMS多帧 */
-    uint8_t reserve[70];
+    uint8_t v2g_mode[2];           /* 已选择的V2G模式 */
+    uint8_t reserve[68];
 };
 
 struct _state_reversal{
@@ -468,6 +470,16 @@ APP_DEF_SRAM2 static struct config_item s_config_item_set[CONFIG_ITEM_SIZE] =
         (uint8_t*)&s_chargepile_config_info.function_enable.current_mode[0x01],
         NULL},
 
+        {CONFIG_ITEM_CURRENT_V2G_MODE_A,
+        (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.v2g_mode[0x00])),      /*配置项：当前V2G模式*/
+        (uint8_t*)&s_chargepile_config_info.function_enable.v2g_mode[0x00],
+        NULL},
+
+        {CONFIG_ITEM_CURRENT_V2G_MODE_B,
+        (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.v2g_mode[0x01])),      /*配置项：当前V2G模式*/
+        (uint8_t*)&s_chargepile_config_info.function_enable.v2g_mode[0x01],
+        NULL},
+
         {CONFIG_ITEM_CARD_TYPE,
         (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_info.card_type)),       /*配置项：读卡器密钥*/
         (uint8_t*)&s_chargepile_config_info.config_info.card_type,
@@ -586,6 +598,16 @@ APP_DEF_SRAM2 static struct config_item s_config_item_set[CONFIG_ITEM_SIZE] =
         {CONFIG_ITEM_MODE_PARAMETER_B,                                              /* 配置项：模式参数*/
         (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.mode_parameter[0x01])),
         (uint8_t*)&s_chargepile_config_info.config_para.mode_parameter[0x01],
+        NULL},
+
+        {CONFIG_ITEM_V2G_MODE_PARAMETER_A,                                              /* 配置项：V2G模式参数*/
+        (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.v2g_mode_parameter[0x00])),
+        (uint8_t*)&s_chargepile_config_info.config_para.v2g_mode_parameter[0x00],
+        NULL},
+
+        {CONFIG_ITEM_V2G_MODE_PARAMETER_B,                                              /* 配置项：V2G模式参数*/
+        (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.v2g_mode_parameter[0x01])),
+        (uint8_t*)&s_chargepile_config_info.config_para.v2g_mode_parameter[0x01],
         NULL},
 
         {CONFIG_ITEM_FAN_WORK_TIME,                                                 /* 配置项：停充后风扇工作时间(s)*/
@@ -1089,6 +1111,12 @@ void sys_chargeplie_config_info_init(void)
     /** 当前模式-B */
     sys_config_item_init(CONFIG_ITEM_CURRENT_MODE_B, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.current_mode[0x01])), \
             (uint8_t*)&s_chargepile_config_info.function_enable.current_mode[0x01], NULL);
+    /** 当前V2G模式-A */
+    sys_config_item_init(CONFIG_ITEM_CURRENT_V2G_MODE_A, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.v2g_mode[0x00])), \
+            (uint8_t*)&s_chargepile_config_info.function_enable.v2g_mode[0x00], NULL);
+    /** 当前V2G模式-B */
+    sys_config_item_init(CONFIG_ITEM_CURRENT_V2G_MODE_B, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.v2g_mode[0x01])), \
+            (uint8_t*)&s_chargepile_config_info.function_enable.v2g_mode[0x01], NULL);
     /** 卡类型 */
     sys_config_item_init(CONFIG_ITEM_CARD_TYPE, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_info.card_type)), \
             (uint8_t*)&s_chargepile_config_info.config_info.card_type, NULL);
@@ -1161,6 +1189,12 @@ void sys_chargeplie_config_info_init(void)
     /** 模式参数-B */
     sys_config_item_init(CONFIG_ITEM_MODE_PARAMETER_B, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.mode_parameter[0x01])), \
             (uint8_t*)&s_chargepile_config_info.config_para.mode_parameter[0x01], NULL);
+    /** V2G模式参数-A */
+    sys_config_item_init(CONFIG_ITEM_V2G_MODE_PARAMETER_A, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.v2g_mode_parameter[0x00])), \
+            (uint8_t*)&s_chargepile_config_info.config_para.v2g_mode_parameter[0x00], NULL);
+    /** V2G模式参数-B */
+    sys_config_item_init(CONFIG_ITEM_V2G_MODE_PARAMETER_B, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.v2g_mode_parameter[0x01])), \
+            (uint8_t*)&s_chargepile_config_info.config_para.v2g_mode_parameter[0x01], NULL);
     /** 停充后风扇工作时间 */
     sys_config_item_init(CONFIG_ITEM_FAN_WORK_TIME, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.fan_work_time)), \
             (uint8_t*)&s_chargepile_config_info.config_para.fan_work_time, NULL);
@@ -1957,6 +1991,7 @@ static void chargepile_config_data_reset(void)
     s_chargepile_config_info.function_enable.bms_several_frame = CONFIG_ENABLE_ENUM;
 
     memset(s_chargepile_config_info.function_enable.current_mode, 0x00, sizeof(s_chargepile_config_info.function_enable.current_mode));
+    memset(s_chargepile_config_info.function_enable.v2g_mode, 0x00, sizeof(s_chargepile_config_info.function_enable.v2g_mode));
 
     s_chargepile_config_info.state_reversal.emergency_stop = 0x00;
     s_chargepile_config_info.state_reversal.gate = 0x00;
@@ -2625,6 +2660,16 @@ int32_t chargepile_check_config(void)
                         (s_chargepile_config_info.function_enable.current_mode[mode] != CP_MODE_LIMIT_RESERVATION))){    /* 当前模式默认充满 */
             s_chargepile_config_info.function_enable.current_mode[mode] = CP_MODE_CHARGE_FULL;
         }
+    }
+    for(uint8_t mode = 0x00; mode < sizeof(s_chargepile_config_info.function_enable.v2g_mode); mode++){
+#ifdef CP_USING_V2G
+        if((s_chargepile_config_info.function_enable.v2g_mode[mode] >= CP_V2G_MODE_SIZE) || (s_chargepile_config_info.function_enable.v2g_mode[mode] < CP_V2G_MODE_LIMIT_MONEY)){
+            s_chargepile_config_info.function_enable.v2g_mode[mode] = CP_V2G_MODE_NULL;     /* V2G模式默认空 */
+        }
+#else
+        s_chargepile_config_info.function_enable.v2g_mode[mode] = CP_V2G_MODE_NULL;     /* V2G模式默空 */
+#endif /* CP_USING_V2G */
+        s_chargepile_config_info.config_para.v2g_mode_parameter[mode] = 0x00;           /* 上电参数默认为0 */
     }
 
     if(s_chargepile_config_info.function_enable.acrelay_out > 0x01){       /* 交流接触器输出启用默认关闭 */

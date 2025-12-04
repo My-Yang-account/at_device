@@ -6847,6 +6847,9 @@ static void ofsm_finishing_fun(uint8_t gunno)
             s_request_screen_time_step = 1;
             thaisen_request_screen_time();
 #endif
+#ifdef APP_INCLUDE_V2G
+            thaisen_reset_gun_running_mode(gunno);   /** V2G放电是单次充电有效，二次启动是要复位枪运行模式 */
+#endif /* APP_INCLUDE_V2G */
             ofsm_start_info_padding_public(gunno);
 
             s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_STARTING];
