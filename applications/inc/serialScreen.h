@@ -246,8 +246,8 @@ u8 SerialScreen_Screen_GetGunRunMode(u8 port);
 void SerialScreen_Screen_ResetGunRunMode(u8 port);
 s32 SerialScreen_Trigger_ConfigExecute(u8 port, u8 cfg_page, void *data, void *sub_data, void *sub_sub_data);
 s32 SerialScreen_ScreenSet_Trigger_Event(u8 Event, u16 DurationTime, u8 JustNotice, u8 port);
-enum thaisen_mode SerialScreen_Screen_GetCurrentMode(u8 port);
-u32 SerialScreen_Screen_GetModeParameter(u8 port);
+enum thaisen_charge_mode SerialScreen_Screen_GetCurrentChargeMode(u8 port);
+u32 SerialScreen_Screen_GetChargeModeParameter(u8 port);
 u8 SerialScreen_Screen_IsSetReservationMode(u8 port);
 void SerialScreen_Screen_ClearReservationModeFlag(u8 port);
 /********************************输出信息*******************************************/

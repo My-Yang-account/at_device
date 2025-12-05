@@ -1804,32 +1804,32 @@ void app_get_mode_info(uint8_t gunno, uint8_t language, uint8_t mode, uint32_t p
             memcpy(buf, "模式:自动充满", strlen("模式:自动充满"));
         }
         break;
-    case THAISEN_MODE_LIMIT_MONEY:
+    case THAISEN_MODE_CHARGE_LIMIT_MONEY:
         if(language == THA_DEBUG_LANGUAGE_ENGLISH){
-            if(ilen <= (strlen("Mode:LimitMoney  ") + (uint32_t)(log10((double)parameter) + 0x01) + 0x03 + 0x01))
+            if(ilen <= (strlen("Mode:LimitMoney ") + (uint32_t)(log10((double)parameter) + 0x01) + 0x03 + 0x01))
                 return;
-            sprintf((char*)buf, "%s%lu.%lu%lu%s", "Mode:LimitMoney  ", (parameter /100), ((parameter /10) %10), (parameter %10), "RMB");   /** 两位小数 */
+            sprintf((char*)buf, "%s%lu.%lu%lu%s", "Mode:LimitMoney ", (parameter /100), ((parameter /10) %10), (parameter %10), "RMB");   /** 两位小数 */
         }else{
             if(ilen <= (strlen("模式:定额充电  ") + (uint32_t)(log10((double)parameter) + 0x01) + 0x02 + 0x01))
                 return;
             sprintf((char*)buf, "%s%lu.%lu%lu%s", "模式:定额充电  ", (parameter /100), ((parameter /10) %10), (parameter %10), "元");   /** 两位小数 */
         }
         break;
-    case THAISEN_MODE_LIMIT_ELECT:
+    case THAISEN_MODE_CHARGE_LIMIT_ELECT:
         if(language == THA_DEBUG_LANGUAGE_ENGLISH){
-            if(ilen <= (strlen("Mode:LimitElect  ") + (uint32_t)(log10((double)parameter) + 0x01) + 0x04 + 0x01))
+            if(ilen <= (strlen("Mode:LimitElect ") + (uint32_t)(log10((double)parameter) + 0x01) + 0x04 + 0x01))
                 return;
-            sprintf((char*)buf, "%s%lu.%lu%lu%lu%s", "Mode:LimitElect ", (parameter /1000), ((parameter /100) %10), ((parameter /10) %10), (parameter %10), "KW*h");   /** 三位小数 */
+            sprintf((char*)buf, "%s%lu.%lu%lu%lu%s", "Mode:LimitElect", (parameter /1000), ((parameter /100) %10), ((parameter /10) %10), (parameter %10), "KW*h");   /** 三位小数 */
         }else{
             if(ilen <= (strlen("模式:定量充电  ") + (uint32_t)(log10((double)parameter) + 0x01) + 0x02 + 0x01))
                 return;
             sprintf((char*)buf, "%s%lu.%lu%lu%lu%s", "模式:定量充电  ", (parameter /1000), ((parameter /100) %10), ((parameter /10) %10), (parameter %10), "度");   /** 三位小数 */
         }
         break;
-    case THAISEN_MODE_LIMIT_TIMING:
+    case THAISEN_MODE_CHARGE_LIMIT_TIMING:
     {
         if(language == THA_DEBUG_LANGUAGE_ENGLISH){
-            if(ilen <= (strlen("Mode:Timing  ") + (uint32_t)(log10((double)parameter) + 0x01) + 0x03))
+            if(ilen <= (strlen("Mode:Timing ") + (uint32_t)(log10((double)parameter) + 0x01) + 0x03))
                 return;
             sprintf((char*)buf, "%s%lu%s", "Mode:Timing ", parameter, "min");   /** 分钟 */
         }else{
@@ -1839,19 +1839,77 @@ void app_get_mode_info(uint8_t gunno, uint8_t language, uint8_t mode, uint32_t p
         }
     }
         break;
-    case THAISEN_MODE_LIMIT_RESERVATION:
+    case THAISEN_MODE_CHARGE_LIMIT_RESERVATION:
     {
         if(language == THA_DEBUG_LANGUAGE_ENGLISH){
-            if(ilen <= (strlen("Mode:Reservation  ") + (uint32_t)(log10((double)(parameter /3600)) + 0x01) + 0x01 + (uint32_t)(log10((double)((parameter %3600) /60)) + 0x01)))
+            if(ilen <= (strlen("Mode:Reservation ") + (uint32_t)(log10((double)(parameter /3600)) + 0x01) + 0x01 + (uint32_t)(log10((double)((parameter %3600) /60)) + 0x01)))
                 return;
             sprintf((char*)buf, "%s%02lu%c%02lu", "Mode:Reservation ", (parameter /3600), ':', ((parameter %3600) /60));   /** 启动充电时间 */
         }else{
-            if(ilen <= (strlen("模式:定时充电  ") + (uint32_t)(log10((double)(parameter /3600)) + 0x01) + 0x01 + (uint32_t)(log10((double)((parameter %3600) /60)) + 0x01)))
+            if(ilen <= (strlen("模式:预约充电  ") + (uint32_t)(log10((double)(parameter /3600)) + 0x01) + 0x01 + (uint32_t)(log10((double)((parameter %3600) /60)) + 0x01)))
                 return;
             sprintf((char*)buf, "%s%02lu%c%02lu", "模式:预约充电  ", (parameter /3600), ':', ((parameter %3600) /60));   /** 启动充电时间 */
         }
     }
         break;
+#ifdef APP_INCLUDE_V2G
+    case THAISEN_MODE_V2G_LIMIT_MONEY:
+    {
+        if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+            if(ilen <= (strlen("V2G:LimitMoney ") + (uint32_t)(log10((double)parameter) + 0x01) + 0x03 + 0x01))
+                return;
+            sprintf((char*)buf, "%s%lu.%lu%lu%s", "V2G:LimitMoney ", (parameter /100), ((parameter /10) %10), (parameter %10), "RMB");   /** 两位小数 */
+        }else{
+            if(ilen <= (strlen("模式:定额放电  ") + (uint32_t)(log10((double)parameter) + 0x01) + 0x02 + 0x01))
+                return;
+            sprintf((char*)buf, "%s%lu.%lu%lu%s", "模式:定额放电  ", (parameter /100), ((parameter /10) %10), (parameter %10), "元");   /** 两位小数 */
+        }
+    }
+        break;
+    case THAISEN_MODE_V2G_LIMIT_ELECT:
+    {
+        if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+            if(ilen <= (strlen("V2G:LimitElect ") + (uint32_t)(log10((double)parameter) + 0x01) + 0x04 + 0x01))
+                return;
+            sprintf((char*)buf, "%s%lu.%lu%lu%lu%s", "V2G:LimitElect", (parameter /1000), ((parameter /100) %10), ((parameter /10) %10), (parameter %10), "KW*h");   /** 三位小数 */
+        }else{
+            if(ilen <= (strlen("模式:定量放电  ") + (uint32_t)(log10((double)parameter) + 0x01) + 0x02 + 0x01))
+                return;
+            sprintf((char*)buf, "%s%lu.%lu%lu%lu%s", "模式:定量放电  ", (parameter /1000), ((parameter /100) %10), ((parameter /10) %10), (parameter %10), "度");   /** 三位小数 */
+        }
+    }
+        break;
+    case THAISEN_MODE_V2G_LIMIT_TIMING:
+    {
+        if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+            if(ilen <= (strlen("V2G:Timing ") + (uint32_t)(log10((double)parameter) + 0x01) + 0x03))
+                return;
+            sprintf((char*)buf, "%s%lu%s", "V2G:Timing ", parameter, "min");   /** 分钟 */
+        }else{
+            if(ilen <= (strlen("模式:定时放电  ") + (uint32_t)(log10((double)parameter) + 0x01) + 0x04))
+                return;
+            sprintf((char*)buf, "%s%lu%s", "模式:定时放电  ", parameter, "分钟");   /** 分钟 */
+        }
+    }
+        break;
+    case THAISEN_MODE_V2G_AUTO:
+    {
+        /** 最大3位数 */
+        while((parameter /1000)){
+            parameter /= 10;
+        }
+        if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+            if(ilen <= (strlen("V2G:Auto ") + 0x05))
+                return;
+            sprintf((char*)buf, "%s%02lu%c", "V2G:Auto ", parameter, '%');   /** 放电截至SOC */
+        }else{
+            if(ilen <= (strlen("模式:自动放电  ") + 0x04))
+                return;
+            sprintf((char*)buf, "%s%02lu%c", "模式:自动放电  ", parameter, '%');   /** 放电截至SOC */
+        }
+    }
+        break;
+#endif /* APP_INCLUDE_V2G */
     default:
         break;
     }

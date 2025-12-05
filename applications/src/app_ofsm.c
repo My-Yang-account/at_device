@@ -2441,7 +2441,7 @@ static void ofsm_readying_fun(uint8_t gunno)
             ofsm_start_info_padding_password(gunno);
             is_charging_authorization = true;
 
-        }else if(app_nsal_is_set_reservation(gunno) || (thaisen_get_current_mode(gunno) == THAISEN_MODE_LIMIT_RESERVATION)){
+        }else if(app_nsal_is_set_reservation(gunno) || (thaisen_get_current_charge_mode(gunno) == THAISEN_CHARGE_MODE_LIMIT_RESERVATION)){
             uint8_t continue_reservation = APP_THA_ENUM_FALSE;
             time_t t_base = time(NULL);
 
@@ -2452,7 +2452,7 @@ static void ofsm_readying_fun(uint8_t gunno)
                 s_ofsm_info[gunno].base.flag.is_local_reservation = APP_THA_ENUM_FALSE;
             }
             /** 本地预约(屏幕充电模式选择预约充电) */
-            else if(thaisen_get_current_mode(gunno) == THAISEN_MODE_LIMIT_RESERVATION){
+            else if(thaisen_get_current_charge_mode(gunno) == THAISEN_CHARGE_MODE_LIMIT_RESERVATION){
                 struct tm tmp;
                 /** 当前运行模式为离线计费模式 */
                 if(s_ofsm_info[gunno].base.run_mode == APP_RUN_MODE_OFFLINE_BILLING){
@@ -2483,9 +2483,9 @@ static void ofsm_readying_fun(uint8_t gunno)
                     localtime_r(&t_base, &tmp);
                     if(((tmp.tm_year + 1900) >= 2025) || (s_ofsm_info[gunno].base.run_mode == APP_RUN_MODE_OFFLINE) || (s_ofsm_info[gunno].base.flag.is_ob_authenticated == APP_THA_ENUM_TRUE)){
                         /** 未到或刚好到达预约时间 */
-                        if(thaisen_get_mode_parameter(gunno) >= (tmp.tm_hour *3600 + tmp.tm_min *60)){
+                        if(thaisen_get_charge_mode_parameter(gunno) >= (tmp.tm_hour *3600 + tmp.tm_min *60)){
                             /** 计算预约剩余秒数 */
-                            s_ofsm_info[gunno].base.reservation_time_remain = (thaisen_get_mode_parameter(gunno) - (tmp.tm_hour *3600 + tmp.tm_min *60));
+                            s_ofsm_info[gunno].base.reservation_time_remain = (thaisen_get_charge_mode_parameter(gunno) - (tmp.tm_hour *3600 + tmp.tm_min *60));
                             /** 时间只精确到分钟，如果剩余秒数 */
                             if(s_ofsm_info[gunno].base.reservation_time_remain > 60){
                                 s_ofsm_info[gunno].base.flag.is_reser_normal_started = APP_THA_ENUM_FALSE;
@@ -2498,7 +2498,7 @@ static void ofsm_readying_fun(uint8_t gunno)
                             s_ofsm_info[gunno].base.reservation_strategy = (APP_RESERVATE_STRATEGY_PULLGUN_CANCEL |APP_RESERVATE_STRATEGY_FAULT_CANCEL |APP_RESERVATE_STRATEGY_START_DIRECTLY);
                         }
                         /** 已超过预约时间但未超过10min */
-                        else if((thaisen_get_mode_parameter(gunno) + 10 *60) >= (tmp.tm_hour *3600 + tmp.tm_min *60)){
+                        else if((thaisen_get_charge_mode_parameter(gunno) + 10 *60) >= (tmp.tm_hour *3600 + tmp.tm_min *60)){
                             if((s_ofsm_info[gunno].base.flag.is_reser_normal_started == APP_THA_ENUM_FALSE) && \
                                     (s_ofsm_info[gunno].base.flag.is_reser_timeout_started == APP_THA_ENUM_FALSE)){
                                 continue_reservation = APP_THA_ENUM_TRUE;
@@ -2510,7 +2510,7 @@ static void ofsm_readying_fun(uint8_t gunno)
                             s_ofsm_info[gunno].base.flag.is_reser_normal_started = APP_THA_ENUM_FALSE;
                             s_ofsm_info[gunno].base.flag.is_reser_timeout_started = APP_THA_ENUM_FALSE;
                             /** 计算预约剩余秒数 */
-                            s_ofsm_info[gunno].base.reservation_time_remain = (thaisen_get_mode_parameter(gunno) + (24 *3600) - (tmp.tm_hour *3600 + tmp.tm_min *60));
+                            s_ofsm_info[gunno].base.reservation_time_remain = (thaisen_get_charge_mode_parameter(gunno) + (24 *3600) - (tmp.tm_hour *3600 + tmp.tm_min *60));
                             continue_reservation = APP_THA_ENUM_TRUE;
                             s_ofsm_info[gunno].base.reservation_strategy = (APP_RESERVATE_STRATEGY_PULLGUN_CANCEL |APP_RESERVATE_STRATEGY_FAULT_CANCEL |APP_RESERVATE_STRATEGY_START_DIRECTLY);
                         }
@@ -2520,7 +2520,7 @@ static void ofsm_readying_fun(uint8_t gunno)
             s_ofsm_info[gunno].base.reservation_time_remain = s_ofsm_info[gunno].base.reservation_time_remain > 0 ? s_ofsm_info[gunno].base.reservation_time_remain : 0;
 
             if(continue_reservation == APP_THA_ENUM_TRUE){
-                LOG_D("gunno(%d)[%d, %d] reservation|%d:%d", gunno, app_nsal_is_set_reservation(gunno), thaisen_get_current_mode(gunno), \
+                LOG_D("gunno(%d)[%d, %d] reservation|%d:%d", gunno, app_nsal_is_set_reservation(gunno), thaisen_get_current_charge_mode(gunno), \
                         s_ofsm_info[gunno].base.reservation_time_remain, continue_reservation);
                 app_nsal_clear_set_reservation(gunno);
                 s_ofsm_info[gunno].base.flag.is_reservation = APP_THA_ENUM_TRUE;
@@ -2551,7 +2551,7 @@ static void ofsm_readying_fun(uint8_t gunno)
                 s_ofsm_info[gunno].state = APP_OFSM_STATE_STARTING;
             }
             /** 到此处时的条件满足：1. 当前运行模式为离线计费模式   2. 启动方式为离线卡  3.该枪当前模式是预约模式 */
-            else if(thaisen_get_current_mode(gunno) == THAISEN_MODE_LIMIT_RESERVATION){
+            else if(thaisen_get_current_charge_mode(gunno) == THAISEN_CHARGE_MODE_LIMIT_RESERVATION){
 #if 0
                 /** 此条件在刷卡时就已经判定(如果此条件不过则到不了此处)，因此此处可以不用判定 */
                 struct tm tmp;
@@ -2630,7 +2630,7 @@ static void ofsm_reservation_fun(uint8_t gunno)
                 (s_ofsm_info[gunno].base.current_time - s_ofsm_info[gunno].base.reservation_time_base));
     }
     /** 预约信息修改 */
-    if(thaisen_get_current_mode(gunno) == THAISEN_MODE_LIMIT_RESERVATION){
+    if(thaisen_get_current_charge_mode(gunno) == THAISEN_CHARGE_MODE_LIMIT_RESERVATION){
         if(thaisen_is_set_reservation_mode(gunno) || (mw_get_time_sync_flag(gunno))){
             uint8_t continue_reservation = APP_THA_ENUM_FALSE;
             time_t t_base = time(NULL);
@@ -2645,12 +2645,12 @@ static void ofsm_reservation_fun(uint8_t gunno)
             if(((tmp.tm_year + 1900) >= 2025) || (s_ofsm_info[gunno].base.run_mode == APP_RUN_MODE_OFFLINE)){
                 s_ofsm_info[gunno].base.reservation_time_base = t_base;
                 /** 屏幕预约-超过预约时间10分钟内还是可以启动的 */
-                if(thaisen_get_mode_parameter(gunno) >= (tmp.tm_hour *3600 + tmp.tm_min *60)){
-                    s_ofsm_info[gunno].base.reservation_time_remain = (thaisen_get_mode_parameter(gunno) - (tmp.tm_hour *3600 + tmp.tm_min *60));
+                if(thaisen_get_charge_mode_parameter(gunno) >= (tmp.tm_hour *3600 + tmp.tm_min *60)){
+                    s_ofsm_info[gunno].base.reservation_time_remain = (thaisen_get_charge_mode_parameter(gunno) - (tmp.tm_hour *3600 + tmp.tm_min *60));
                     continue_reservation = APP_THA_ENUM_TRUE;
                     s_ofsm_info[gunno].base.flag.is_reser_normal_started = APP_THA_ENUM_TRUE;
                     s_ofsm_info[gunno].base.reservation_strategy = (APP_RESERVATE_STRATEGY_PULLGUN_CANCEL |APP_RESERVATE_STRATEGY_FAULT_CANCEL |APP_RESERVATE_STRATEGY_START_DIRECTLY);
-                }else if((thaisen_get_mode_parameter(gunno) + 10 *60) >= (tmp.tm_hour *3600 + tmp.tm_min *60)){
+                }else if((thaisen_get_charge_mode_parameter(gunno) + 10 *60) >= (tmp.tm_hour *3600 + tmp.tm_min *60)){
                     continue_reservation = APP_THA_ENUM_TRUE;
                     s_ofsm_info[gunno].base.reservation_time_remain = 0x00;
                     s_ofsm_info[gunno].base.flag.is_reser_timeout_started = APP_THA_ENUM_TRUE;
@@ -2735,7 +2735,7 @@ static void ofsm_reservation_fun(uint8_t gunno)
         }
     }else{
         /** 这是本地预约情况下，在预约过程中取消预约 */
-        if(thaisen_get_current_mode(gunno) != THAISEN_MODE_LIMIT_RESERVATION){
+        if(thaisen_get_current_charge_mode(gunno) != THAISEN_CHARGE_MODE_LIMIT_RESERVATION){
             thaisen_clear_reservation_mode_flag(gunno);
 
             s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_IDLEING];
@@ -2765,7 +2765,7 @@ static void ofsm_reservation_fun(uint8_t gunno)
         }
         /** 到此处时的条件满足：1. 当前运行模式为离线计费模式   2. 启动方式为离线卡  3.该枪当前模式是预约模式 */
         /** 订单已创建 */
-        else if(thaisen_get_current_mode(gunno) == THAISEN_MODE_LIMIT_RESERVATION){
+        else if(thaisen_get_current_charge_mode(gunno) == THAISEN_CHARGE_MODE_LIMIT_RESERVATION){
             LOG_D("gunno(%d) reach reservation time in offline billing mode(reach0)", gunno);
         }else{
             ofsm_start_info_padding_reservation(gunno);
@@ -2777,7 +2777,7 @@ static void ofsm_reservation_fun(uint8_t gunno)
     /** 预约时间大于当前时间且相差1分钟以内 */
     else if((s_ofsm_info[gunno].base.reservation_time_base + s_ofsm_info[gunno].base.reservation_time_remain) <= (s_ofsm_info[gunno].base.current_time + 60)){ /** 时间精确到分钟 */
         time_t t_base = time(NULL);
-        uint32_t reservation_time_sec = thaisen_get_mode_parameter(gunno);
+        uint32_t reservation_time_sec = thaisen_get_charge_mode_parameter(gunno);
         struct tm tmp;
 
         localtime_r(&t_base, &tmp);
@@ -2794,7 +2794,7 @@ static void ofsm_reservation_fun(uint8_t gunno)
             }
             /** 到此处时的条件满足：1. 当前运行模式为离线计费模式   2. 启动方式为离线卡  3.该枪当前模式是预约模式 */
             /** 订单已创建 */
-            else if(thaisen_get_current_mode(gunno) == THAISEN_MODE_LIMIT_RESERVATION){
+            else if(thaisen_get_current_charge_mode(gunno) == THAISEN_CHARGE_MODE_LIMIT_RESERVATION){
                 LOG_D("gunno(%d) reach reservation time in offline billing mode(reach1)", gunno);
             }else{
                 ofsm_start_info_padding_reservation(gunno);
@@ -2819,7 +2819,7 @@ static void ofsm_reservation_fun(uint8_t gunno)
         }
         /** 到此处时的条件满足：1. 当前运行模式为离线计费模式   2. 启动方式为离线卡  3.该枪当前模式是预约模式 */
         /** 订单已创建 */
-        else if(thaisen_get_current_mode(gunno) == THAISEN_MODE_LIMIT_RESERVATION){
+        else if(thaisen_get_current_charge_mode(gunno) == THAISEN_CHARGE_MODE_LIMIT_RESERVATION){
             LOG_D("gunno(%d) reach reservation time in offline billing mode(reach2)", gunno);
         }else{
             ofsm_start_info_padding_reservation(gunno);
@@ -2997,7 +2997,7 @@ static void ofsm_reservation_fun(uint8_t gunno)
                 ofsm_start_info_padding_public(gunno);
             }
             /** 到此处时的条件满足：1. 当前运行模式为离线计费模式   2. 启动方式为离线卡  3.该枪当前模式是预约模式 */
-            else if(thaisen_get_current_mode(gunno) == THAISEN_MODE_LIMIT_RESERVATION){
+            else if(thaisen_get_current_charge_mode(gunno) == THAISEN_CHARGE_MODE_LIMIT_RESERVATION){
                 is_reservation_start = APP_THA_ENUM_TRUE;
                 /** 虽然订单已创建，但是如果开始预约时间到启动时间较长时需要更新订单的部分信息(如开始时间) */
                 ofsm_start_info_padding_ob_reservation_public(gunno);
@@ -3947,7 +3947,7 @@ static void ofsm_starting_fun(uint8_t gunno)
                 /** 当前运行模式为在线模式 */
                 else if(s_ofsm_info[gunno].base.run_mode == APP_RUN_MODE_4G_ETH){
                     /** 计费规则必须有效 */
-                    if((app_billingrule_is_valid(gunno) == NET_ENUM_TRUE)){
+                    if(1/*(app_billingrule_is_valid(gunno) == NET_ENUM_TRUE)*/){
                         using_vin_authentication = APP_THA_ENUM_TRUE;
                     }else{
                         /** 防止上报鉴权后短暂断网或关闭VIN码充电功能，导致判断出错 */
@@ -5616,13 +5616,13 @@ static void ofsm_charging_fun(uint8_t gunno)
         LOG_D("gunno(%d) charge finish deal to screen stop\n", gunno);
 
     }else if(((s_ofsm_info[gunno].base.charge_strategy != APP_CHARGE_STRATEGY_FULL) && (s_ofsm_info[gunno].base.charge_strategy != APP_CHARGE_STRATEGY_RESERVATION)) || \
-            ((thaisen_get_current_mode(gunno) != THAISEN_MODE_CHARGE_FULL) && \
-            (thaisen_get_current_mode(gunno) != THAISEN_MODE_LIMIT_RESERVATION) && \
-            (thaisen_get_current_mode(gunno) != THAISEN_MODE_SIZE))){
-        if((s_ofsm_info[gunno].base.charge_strategy == APP_CHARGE_STRATEGY_TIME) || (thaisen_get_current_mode(gunno) == THAISEN_MODE_LIMIT_TIMING)){
+            ((thaisen_get_current_charge_mode(gunno) != THAISEN_CHARGE_MODE_FULL) && \
+            (thaisen_get_current_charge_mode(gunno) != THAISEN_CHARGE_MODE_LIMIT_RESERVATION) && \
+            (thaisen_get_current_charge_mode(gunno) != THAISEN_CHARGE_MODE_SIZE))){
+        if((s_ofsm_info[gunno].base.charge_strategy == APP_CHARGE_STRATEGY_TIME) || (thaisen_get_current_charge_mode(gunno) == THAISEN_CHARGE_MODE_LIMIT_TIMING)){
             uint32_t strategy_para = s_ofsm_info[gunno].base.charge_strategy_para;
-            if(thaisen_get_current_mode(gunno) == THAISEN_MODE_LIMIT_TIMING){
-                strategy_para = thaisen_get_mode_parameter(gunno) *60;
+            if(thaisen_get_current_charge_mode(gunno) == THAISEN_CHARGE_MODE_LIMIT_TIMING){
+                strategy_para = thaisen_get_charge_mode_parameter(gunno) *60;
             }
             if(s_ofsm_info[gunno].base.charge_time >= strategy_para){
                 if(((s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD) && (s_ofsm_info[gunno].base.main_gunno == gunno)) ||
@@ -5636,11 +5636,11 @@ static void ofsm_charging_fun(uint8_t gunno)
                 }
             }
         }
-        if((s_ofsm_info[gunno].base.charge_strategy == APP_CHARGE_STRATEGY_ELECT) || (thaisen_get_current_mode(gunno) == THAISEN_MODE_LIMIT_ELECT)){
+        if((s_ofsm_info[gunno].base.charge_strategy == APP_CHARGE_STRATEGY_ELECT) || (thaisen_get_current_charge_mode(gunno) == THAISEN_CHARGE_MODE_LIMIT_ELECT)){
             uint32_t _elect = s_ofsm_info[gunno].base.elect_a;
             uint32_t strategy_para = s_ofsm_info[gunno].base.charge_strategy_para;
-            if(thaisen_get_current_mode(gunno) == THAISEN_MODE_LIMIT_ELECT){
-                strategy_para = thaisen_get_mode_parameter(gunno);
+            if(thaisen_get_current_charge_mode(gunno) == THAISEN_CHARGE_MODE_LIMIT_ELECT){
+                strategy_para = thaisen_get_charge_mode_parameter(gunno);
             }
             if(s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
                 uint8_t another_gun = APP_SYSTEM_GUNNOA;
@@ -5661,15 +5661,15 @@ static void ofsm_charging_fun(uint8_t gunno)
                 }
             }
         }
-        if((s_ofsm_info[gunno].base.charge_strategy == APP_CHARGE_STRATEGY_MONEY) || (thaisen_get_current_mode(gunno) == THAISEN_MODE_LIMIT_MONEY)){
+        if((s_ofsm_info[gunno].base.charge_strategy == APP_CHARGE_STRATEGY_MONEY) || (thaisen_get_current_charge_mode(gunno) == THAISEN_CHARGE_MODE_LIMIT_MONEY)){
 #if (defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING))
             uint32_t _money = s_ofsm_info[gunno].base.elect_a;
 #else
             uint32_t _money = s_ofsm_info[gunno].base.fees_total;
 #endif /* defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING) */
             uint32_t strategy_para = s_ofsm_info[gunno].base.charge_strategy_para;
-            if(thaisen_get_current_mode(gunno) == THAISEN_MODE_LIMIT_MONEY){
-                strategy_para = thaisen_get_mode_parameter(gunno) *100;
+            if(thaisen_get_current_charge_mode(gunno) == THAISEN_CHARGE_MODE_LIMIT_MONEY){
+                strategy_para = thaisen_get_charge_mode_parameter(gunno) *100;
             }
             if(s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
                 uint8_t another_gun = APP_SYSTEM_GUNNOA;

@@ -801,7 +801,7 @@ struct LCD_DISPLAY_SETDATA_TYPE{
     u32 MSLimitTiming[LCD_GUN_NUM + 1];                          //模式选择：定时(单位：1min)
     u8 MSLimitReservationHour[LCD_GUN_NUM + 1];                  //模式选择：预约时间-小时(24制)
     u8 MSLimitReservationMin[LCD_GUN_NUM + 1];                   //模式选择：预约时间-分钟
-    u8 CurrentMode[LCD_GUN_NUM + 1][THAISEN_MODE_SIZE];          //模式选择：当前模式
+    u8 CurrentMode[LCD_GUN_NUM + 1][THAISEN_CHARGE_MODE_SIZE];          //模式选择：当前模式
 #ifdef SCREEN_USING_V2G
     u32 V2G_MSLimitMoney[LCD_GUN_NUM + 1];                       //V2G模式选择：限制金额(单位：0.01元)
     u32 V2G_MSLimitElect[LCD_GUN_NUM + 1];                       //V2G模式选择：限制电量(单位：0.001度)
@@ -1409,28 +1409,28 @@ u8 SerialScreen_Screen_IsCouDownFin_Flag(u8 port)
         return FALSE;
 }
 
-enum thaisen_mode SerialScreen_Screen_GetCurrentMode(u8 port)
+enum thaisen_charge_mode SerialScreen_Screen_GetCurrentChargeMode(u8 port)
 {
     if(LcdData.setData.sup_mode_select == TRUE){
         if(port >= LCD_GUN_NUM)
-            return THAISEN_MODE_CHARGE_FULL;
+            return THAISEN_CHARGE_MODE_FULL;
 
-        if(LcdData.setData.CurrentMode[port][THAISEN_MODE_LIMIT_MONEY]){
-            return THAISEN_MODE_LIMIT_MONEY;
-        }else if(LcdData.setData.CurrentMode[port][THAISEN_MODE_LIMIT_ELECT]){
-            return THAISEN_MODE_LIMIT_ELECT;
-        }else if(LcdData.setData.CurrentMode[port][THAISEN_MODE_LIMIT_TIMING]){
-            return THAISEN_MODE_LIMIT_TIMING;
-        }else if(LcdData.setData.CurrentMode[port][THAISEN_MODE_LIMIT_RESERVATION]){
-            return THAISEN_MODE_LIMIT_RESERVATION;
+        if(LcdData.setData.CurrentMode[port][THAISEN_CHARGE_MODE_LIMIT_MONEY]){
+            return THAISEN_CHARGE_MODE_LIMIT_MONEY;
+        }else if(LcdData.setData.CurrentMode[port][THAISEN_CHARGE_MODE_LIMIT_ELECT]){
+            return THAISEN_CHARGE_MODE_LIMIT_ELECT;
+        }else if(LcdData.setData.CurrentMode[port][THAISEN_CHARGE_MODE_LIMIT_TIMING]){
+            return THAISEN_CHARGE_MODE_LIMIT_TIMING;
+        }else if(LcdData.setData.CurrentMode[port][THAISEN_CHARGE_MODE_LIMIT_RESERVATION]){
+            return THAISEN_CHARGE_MODE_LIMIT_RESERVATION;
         }else{
-            return THAISEN_MODE_CHARGE_FULL;
+            return THAISEN_CHARGE_MODE_FULL;
         }
     }
-    return   THAISEN_MODE_SIZE;
+    return   THAISEN_CHARGE_MODE_SIZE;
 }
 
-u32 SerialScreen_Screen_GetModeParameter(u8 port)
+u32 SerialScreen_Screen_GetChargeModeParameter(u8 port)
 {
     if(LcdData.setData.sup_mode_select == TRUE){
         if(port >= LCD_GUN_NUM)
@@ -1439,6 +1439,89 @@ u32 SerialScreen_Screen_GetModeParameter(u8 port)
         return LcdData.setData.CurrentModePara[port];
     }
     return 0;
+}
+
+#ifdef SCREEN_USING_V2G
+enum thaisen_v2g_mode SerialScreen_Screen_GetCurrentV2GMode(u8 port)
+{
+    if((LcdData.setData.sup_mode_select == TRUE) && (LcdData.setData.sup_V2G == TRUE)){
+        if(port >= LCD_GUN_NUM)
+            return THAISEN_V2G_MODE_SIZE;
+
+        if(LcdData.setData.V2G_CurrentMode[port][THAISEN_V2G_MODE_LIMIT_MONEY]){
+            return THAISEN_V2G_MODE_LIMIT_MONEY;
+        }else if(LcdData.setData.V2G_CurrentMode[port][THAISEN_V2G_MODE_LIMIT_ELECT]){
+            return THAISEN_V2G_MODE_LIMIT_ELECT;
+        }else if(LcdData.setData.V2G_CurrentMode[port][THAISEN_V2G_MODE_LIMIT_TIMING]){
+            return THAISEN_V2G_MODE_LIMIT_TIMING;
+        }else if(LcdData.setData.V2G_CurrentMode[port][THAISEN_V2G_MODE_AUTO]){
+            return THAISEN_V2G_MODE_AUTO;
+        }else{
+            return THAISEN_V2G_MODE_SIZE;
+        }
+    }
+    return   THAISEN_V2G_MODE_SIZE;
+}
+
+u32 SerialScreen_Screen_GetV2GParameter(u8 port)
+{
+    if((LcdData.setData.sup_mode_select == TRUE) && (LcdData.setData.sup_V2G == TRUE)){
+        if(port >= LCD_GUN_NUM)
+            return 0;
+        if(LcdData.setData.V2G_CurrentMode[port][THAISEN_V2G_MODE_AUTO]){
+            return LcdData.setData.DisCharge_AsOf_SOC;
+        }
+        return LcdData.setData.V2G_CurrentModePara[port];
+    }
+    return 0;
+}
+#endif /* SCREEN_USING_V2G */
+
+static enum thaisen_mode SerialScreen_Screen_ConvertMode(u8 port)
+{
+    if(port >= LCD_GUN_NUM)
+        return THAISEN_MODE_SIZE;
+
+    u8 mode = 0;
+#ifdef SCREEN_USING_V2G
+    if(LcdData.runData.GunRunMode[port] == THAISEN_GUN_RUNING_MODE_CHARGE)
+#endif /* SCREEN_USING_V2G */
+    {
+        mode = SerialScreen_Screen_GetCurrentChargeMode(port);
+        switch(mode){
+        case THAISEN_CHARGE_MODE_FULL:
+            return THAISEN_MODE_CHARGE_FULL;
+        case THAISEN_CHARGE_MODE_LIMIT_MONEY:
+            return THAISEN_MODE_CHARGE_LIMIT_MONEY;
+        case THAISEN_CHARGE_MODE_LIMIT_ELECT:
+            return THAISEN_MODE_CHARGE_LIMIT_ELECT;
+        case THAISEN_CHARGE_MODE_LIMIT_TIMING:
+            return THAISEN_MODE_CHARGE_LIMIT_TIMING;
+        case THAISEN_CHARGE_MODE_LIMIT_RESERVATION:
+            return THAISEN_MODE_CHARGE_LIMIT_RESERVATION;
+        default:
+            break;
+        }
+    }
+#ifdef SCREEN_USING_V2G
+    else if(LcdData.runData.GunRunMode[port] == THAISEN_GUN_RUNING_MODE_V2G){
+        mode = SerialScreen_Screen_GetCurrentV2GMode(port);
+        switch(mode){
+        case THAISEN_V2G_MODE_LIMIT_MONEY:
+            return THAISEN_MODE_V2G_LIMIT_MONEY;
+        case THAISEN_V2G_MODE_LIMIT_ELECT:
+            return THAISEN_MODE_V2G_LIMIT_ELECT;
+        case THAISEN_V2G_MODE_LIMIT_TIMING:
+            return THAISEN_MODE_V2G_LIMIT_TIMING;
+        case THAISEN_V2G_MODE_AUTO:
+            return THAISEN_MODE_V2G_AUTO;
+        default:
+            break;
+        }
+    }
+#endif /* SCREEN_USING_V2G */
+
+    return THAISEN_MODE_SIZE;
 }
 
 u8 SerialScreen_Screen_IsSetReservationMode(u8 port)
@@ -1467,7 +1550,7 @@ static void SerialScreen_Screen_ResetModeInfoDef(u8 port)
 {
     if(port >= LCD_GUN_NUM)
         return ;
-    if((LcdData.setData.CurrentMode[port][THAISEN_MODE_CHARGE_FULL] != TRUE) && (LcdData.setData.CurrentMode[port][THAISEN_MODE_LIMIT_RESERVATION] != TRUE)){
+    if((LcdData.setData.CurrentMode[port][THAISEN_CHARGE_MODE_FULL] != TRUE) && (LcdData.setData.CurrentMode[port][THAISEN_CHARGE_MODE_LIMIT_RESERVATION] != TRUE)){
         u8 mode = 0;
         u32 parameter = 0;
 
@@ -1478,9 +1561,9 @@ static void SerialScreen_Screen_ResetModeInfoDef(u8 port)
         LcdData.setData.MSLimitReservationMin[port] = 0;
         LcdData.setData.CurrentModePara[port] = 0;
         memset(LcdData.setData.CurrentMode[port], 0, sizeof(LcdData.setData.CurrentMode[port]));
-        LcdData.setData.CurrentMode[port][THAISEN_MODE_CHARGE_FULL] = TRUE;
+        LcdData.setData.CurrentMode[port][THAISEN_CHARGE_MODE_FULL] = TRUE;
 
-        mode = THAISEN_MODE_CHARGE_FULL;
+        mode = THAISEN_CHARGE_MODE_FULL;
         parameter = LcdData.setData.CurrentModePara[port];
         if(port == LCD_GUN_1){
             UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_CURRENT_MODE_A, &mode, sizeof(mode));
@@ -2063,7 +2146,7 @@ static s32 SerialScreen_ConfigExecute_NormalMode(u8 port, void *data, void *sub_
     switch(thaisen_app_get_ofsm_charge_state(port)){
     case APP_OFSM_STATE_RESERVATION:
         /* 弹出提示：预约中不可修改策略 */
-        if((LcdData.setData.CurrentMode[LCD_GUN_NUM][THAISEN_MODE_LIMIT_RESERVATION] == TRUE) &&  (config->mode == THAISEN_MODE_LIMIT_RESERVATION)){
+        if((LcdData.setData.CurrentMode[LCD_GUN_NUM][THAISEN_CHARGE_MODE_LIMIT_RESERVATION] == TRUE) &&  (config->mode == THAISEN_MODE_LIMIT_RESERVATION)){
             if(config->mode_parameter != (LcdData.setData.MSLimitReservationHour[LCD_GUN_NUM] *3600 + LcdData.setData.MSLimitReservationMin[LCD_GUN_NUM] *60)){
                 return (SSCREEN_NORMAL_MODE_FORBID_STATE + THAISEN_CONFIG_FAIL_OFFSET);
             }
@@ -2074,9 +2157,9 @@ static s32 SerialScreen_ConfigExecute_NormalMode(u8 port, void *data, void *sub_
     }
 #endif
     switch(config->mode){
-    case THAISEN_MODE_CHARGE_FULL:
+    case THAISEN_CHARGE_MODE_FULL:
         break;
-    case THAISEN_MODE_LIMIT_MONEY:
+    case THAISEN_CHARGE_MODE_LIMIT_MONEY:
         if((config->mode_parameter > CP_MODE_PARA_MONEY_MAX) || (config->mode_parameter < CP_MODE_PARA_MONEY_MIN)){
             return (SSCREEN_NORMAL_MODE_INVALID_PARA + THAISEN_CONFIG_FAIL_OFFSET);
         }
@@ -2086,7 +2169,7 @@ static s32 SerialScreen_ConfigExecute_NormalMode(u8 port, void *data, void *sub_
         LcdData.setData.MSLimitReservationHour[LCD_GUN_NUM] = 0x00;
         LcdData.setData.MSLimitReservationMin[LCD_GUN_NUM] = 0x00;
         break;
-    case THAISEN_MODE_LIMIT_ELECT:
+    case THAISEN_CHARGE_MODE_LIMIT_ELECT:
         if((config->mode_parameter > CP_MODE_PARA_ELECT_MAX) || (config->mode_parameter < CP_MODE_PARA_ELECT_MIN)){
             return (SSCREEN_NORMAL_MODE_INVALID_PARA + THAISEN_CONFIG_FAIL_OFFSET);
         }
@@ -2096,7 +2179,7 @@ static s32 SerialScreen_ConfigExecute_NormalMode(u8 port, void *data, void *sub_
         LcdData.setData.MSLimitReservationHour[LCD_GUN_NUM] = 0x00;
         LcdData.setData.MSLimitReservationMin[LCD_GUN_NUM] = 0x00;
         break;
-    case THAISEN_MODE_LIMIT_TIMING:
+    case THAISEN_CHARGE_MODE_LIMIT_TIMING:
         if((config->mode_parameter > CP_MODE_PARA_TIMING_MAX) || (config->mode_parameter < CP_MODE_PARA_TIMING_MIN)){
             return (SSCREEN_NORMAL_MODE_INVALID_PARA + THAISEN_CONFIG_FAIL_OFFSET);
         }
@@ -2106,7 +2189,7 @@ static s32 SerialScreen_ConfigExecute_NormalMode(u8 port, void *data, void *sub_
         LcdData.setData.MSLimitReservationHour[LCD_GUN_NUM] = 0x00;
         LcdData.setData.MSLimitReservationMin[LCD_GUN_NUM] = 0x00;
         break;
-    case THAISEN_MODE_LIMIT_RESERVATION:
+    case THAISEN_CHARGE_MODE_LIMIT_RESERVATION:
         if((config->mode_parameter > CP_MODE_PARA_RESERVATION_MAX) || (config->mode_parameter < CP_MODE_PARA_RESERVATION_MIN)){
             return (SSCREEN_NORMAL_MODE_INVALID_PARA + THAISEN_CONFIG_FAIL_OFFSET);
         }
@@ -6111,13 +6194,13 @@ void SerialScreen_InputSetFlash(void)
 
 void SerialScreen_BtnModeInfoStorage(int port)
 {
-    u8 mode = THAISEN_MODE_CHARGE_FULL;
+    u8 mode = THAISEN_CHARGE_MODE_FULL;
 #if 0
     switch(thaisen_app_get_ofsm_charge_state(port)){
     case APP_OFSM_STATE_RESERVATION:
         /* 弹出提示：预约中不可修改策略 */
-        if((LcdData.setData.CurrentMode[LCD_GUN_NUM][THAISEN_MODE_LIMIT_RESERVATION] == TRUE) &&  \
-                (LcdData.setData.CurrentMode[port][THAISEN_MODE_LIMIT_RESERVATION] == TRUE)){
+        if((LcdData.setData.CurrentMode[LCD_GUN_NUM][THAISEN_CHARGE_MODE_LIMIT_RESERVATION] == TRUE) &&  \
+                (LcdData.setData.CurrentMode[port][THAISEN_CHARGE_MODE_LIMIT_RESERVATION] == TRUE)){
             if(LcdData.setData.CurrentModePara[port] != (LcdData.setData.MSLimitReservationHour[LCD_GUN_NUM] *3600 + LcdData.setData.MSLimitReservationMin[LCD_GUN_NUM] *60)){
                 LcdData.setData.Modewarning = TRUE;
                 /* 此时不进行切页 */
@@ -6137,29 +6220,35 @@ void SerialScreen_BtnModeInfoStorage(int port)
 
     LcdData.setData.CurrentModePara[port] = 0;
 
-    if(LcdData.setData.CurrentMode[LCD_GUN_NUM][THAISEN_MODE_LIMIT_MONEY]){
-        mode = THAISEN_MODE_LIMIT_MONEY;
+    if(LcdData.setData.CurrentMode[LCD_GUN_NUM][THAISEN_CHARGE_MODE_LIMIT_MONEY]){
+        mode = THAISEN_CHARGE_MODE_LIMIT_MONEY;
         if((LcdData.setData.MSLimitMoney[LCD_GUN_NUM] > CP_MODE_PARA_MONEY_MAX) || (LcdData.setData.MSLimitMoney[LCD_GUN_NUM] < CP_MODE_PARA_MONEY_MIN)){
             LcdData.setData.MSLimitMoney[LCD_GUN_NUM] = CP_MODE_PARA_MONEY_DEF;
         }
         LcdData.setData.CurrentModePara[port] = LcdData.setData.MSLimitMoney[LCD_GUN_NUM];
+#ifdef SCREEN_USING_V2G
         LcdData.runData.GunRunMode[port] = THAISEN_GUN_RUNING_MODE_CHARGE;   /** 当前枪模式为充电 */
-    }else if(LcdData.setData.CurrentMode[LCD_GUN_NUM][THAISEN_MODE_LIMIT_ELECT]){
-        mode = THAISEN_MODE_LIMIT_ELECT;
+#endif /* SCREEN_USING_V2G */
+    }else if(LcdData.setData.CurrentMode[LCD_GUN_NUM][THAISEN_CHARGE_MODE_LIMIT_ELECT]){
+        mode = THAISEN_CHARGE_MODE_LIMIT_ELECT;
         if((LcdData.setData.MSLimitElect[LCD_GUN_NUM] > CP_MODE_PARA_ELECT_MAX) || (LcdData.setData.MSLimitElect[LCD_GUN_NUM] < CP_MODE_PARA_ELECT_MIN)){
             LcdData.setData.MSLimitElect[LCD_GUN_NUM] = CP_MODE_PARA_ELECT_DEF;
         }
         LcdData.setData.CurrentModePara[port] = LcdData.setData.MSLimitElect[LCD_GUN_NUM];
+#ifdef SCREEN_USING_V2G
         LcdData.runData.GunRunMode[port] = THAISEN_GUN_RUNING_MODE_CHARGE;   /** 当前枪模式为充电 */
-    }else if(LcdData.setData.CurrentMode[LCD_GUN_NUM][THAISEN_MODE_LIMIT_TIMING]){
-        mode = THAISEN_MODE_LIMIT_TIMING;
+#endif /* SCREEN_USING_V2G */
+    }else if(LcdData.setData.CurrentMode[LCD_GUN_NUM][THAISEN_CHARGE_MODE_LIMIT_TIMING]){
+        mode = THAISEN_CHARGE_MODE_LIMIT_TIMING;
         if((LcdData.setData.MSLimitTiming[LCD_GUN_NUM] > CP_MODE_PARA_TIMING_MAX) || (LcdData.setData.MSLimitTiming[LCD_GUN_NUM] < CP_MODE_PARA_TIMING_MIN)){
             LcdData.setData.MSLimitTiming[LCD_GUN_NUM] = CP_MODE_PARA_TIMING_DEF;
         }
         LcdData.setData.CurrentModePara[port] = LcdData.setData.MSLimitTiming[LCD_GUN_NUM];
+#ifdef SCREEN_USING_V2G
         LcdData.runData.GunRunMode[port] = THAISEN_GUN_RUNING_MODE_CHARGE;   /** 当前枪模式为充电 */
-    }else if(LcdData.setData.CurrentMode[LCD_GUN_NUM][THAISEN_MODE_LIMIT_RESERVATION]){
-        mode = THAISEN_MODE_LIMIT_RESERVATION;
+#endif /* SCREEN_USING_V2G */
+    }else if(LcdData.setData.CurrentMode[LCD_GUN_NUM][THAISEN_CHARGE_MODE_LIMIT_RESERVATION]){
+        mode = THAISEN_CHARGE_MODE_LIMIT_RESERVATION;
         if(LcdData.setData.MSLimitReservationHour[LCD_GUN_NUM] >= 23){
             LcdData.setData.MSLimitReservationHour[LCD_GUN_NUM] = 23;
         }
@@ -6168,7 +6257,9 @@ void SerialScreen_BtnModeInfoStorage(int port)
         }
         LcdData.setData.CurrentModePara[port] = LcdData.setData.MSLimitReservationHour[LCD_GUN_NUM] *3600 + LcdData.setData.MSLimitReservationMin[LCD_GUN_NUM] *60;
         LcdAssistantData.SeveralGunFlag[port].IsSetReservation = TRUE;
+#ifdef SCREEN_USING_V2G
         LcdData.runData.GunRunMode[port] = THAISEN_GUN_RUNING_MODE_CHARGE;   /** 当前枪模式为充电 */
+#endif /* SCREEN_USING_V2G */
     }
     SerialScreen_JumpPage(&SerialScreen, LCD_PAGE_STORAGE_WAITING);
 
@@ -6212,7 +6303,7 @@ void SerialScreen_BtnModeInfoGet(u8 port)
 
     switch(mode){
     case CP_MODE_LIMIT_MONEY:
-        LcdData.setData.CurrentMode[LCD_GUN_NUM][THAISEN_MODE_LIMIT_MONEY] = TRUE;
+        LcdData.setData.CurrentMode[LCD_GUN_NUM][THAISEN_CHARGE_MODE_LIMIT_MONEY] = TRUE;
         if((mpara > CP_MODE_PARA_MONEY_MAX) || (mpara < CP_MODE_PARA_MONEY_MIN)){
             mpara = CP_MODE_PARA_MONEY_DEF;
         }
@@ -6220,7 +6311,7 @@ void SerialScreen_BtnModeInfoGet(u8 port)
         LcdData.setData.MSLimitMoney[LCD_GUN_NUM] = LcdData.setData.CurrentModePara[LCD_GUN_NUM];
         break;
     case CP_MODE_LIMIT_ELECT:
-        LcdData.setData.CurrentMode[LCD_GUN_NUM][THAISEN_MODE_LIMIT_ELECT] = TRUE;
+        LcdData.setData.CurrentMode[LCD_GUN_NUM][THAISEN_CHARGE_MODE_LIMIT_ELECT] = TRUE;
         if((mpara > CP_MODE_PARA_ELECT_MAX) || (mpara < CP_MODE_PARA_ELECT_MIN)){
             mpara = CP_MODE_PARA_ELECT_DEF;
         }
@@ -6228,7 +6319,7 @@ void SerialScreen_BtnModeInfoGet(u8 port)
         LcdData.setData.MSLimitElect[LCD_GUN_NUM] = LcdData.setData.CurrentModePara[LCD_GUN_NUM];
         break;
     case CP_MODE_LIMIT_TIMING:
-        LcdData.setData.CurrentMode[LCD_GUN_NUM][THAISEN_MODE_LIMIT_TIMING] = TRUE;
+        LcdData.setData.CurrentMode[LCD_GUN_NUM][THAISEN_CHARGE_MODE_LIMIT_TIMING] = TRUE;
         if(mpara > CP_MODE_PARA_TIMING_MAX){
             mpara = CP_MODE_PARA_TIMING_MAX;
         }
@@ -6236,7 +6327,7 @@ void SerialScreen_BtnModeInfoGet(u8 port)
         LcdData.setData.MSLimitTiming[LCD_GUN_NUM] = LcdData.setData.CurrentModePara[LCD_GUN_NUM];
         break;
     case CP_MODE_LIMIT_RESERVATION:
-        LcdData.setData.CurrentMode[LCD_GUN_NUM][THAISEN_MODE_LIMIT_RESERVATION] = TRUE;
+        LcdData.setData.CurrentMode[LCD_GUN_NUM][THAISEN_CHARGE_MODE_LIMIT_RESERVATION] = TRUE;
         if((mpara > CP_MODE_PARA_RESERVATION_MAX) || (mpara < CP_MODE_PARA_RESERVATION_MIN)){
             mpara = CP_MODE_PARA_RESERVATION_DEF;
         }
@@ -6245,7 +6336,7 @@ void SerialScreen_BtnModeInfoGet(u8 port)
         LcdData.setData.MSLimitReservationMin[LCD_GUN_NUM] = (LcdData.setData.CurrentModePara[LCD_GUN_NUM] %3600) /60;
         break;
     default:
-        LcdData.setData.CurrentMode[LCD_GUN_NUM][THAISEN_MODE_CHARGE_FULL] = TRUE;
+        LcdData.setData.CurrentMode[LCD_GUN_NUM][THAISEN_CHARGE_MODE_FULL] = TRUE;
 
         LcdData.setData.CurrentModePara[LCD_GUN_NUM] = 0;
         break;
@@ -6271,8 +6362,8 @@ void SerialScreen_BtnV2GInfoStorage(int port)
     switch(thaisen_app_get_ofsm_charge_state(port)){
     case APP_OFSM_STATE_RESERVATION:
         /* 弹出提示：预约中不可修改策略 */
-        if((LcdData.setData.V2G_CurrentMode[LCD_GUN_NUM][THAISEN_MODE_LIMIT_RESERVATION] == TRUE) &&  \
-                (LcdData.setData.V2G_CurrentMode[port][THAISEN_MODE_LIMIT_RESERVATION] == TRUE)){
+        if((LcdData.setData.V2G_CurrentMode[LCD_GUN_NUM][THAISEN_CHARGE_MODE_LIMIT_RESERVATION] == TRUE) &&  \
+                (LcdData.setData.V2G_CurrentMode[port][THAISEN_CHARGE_MODE_LIMIT_RESERVATION] == TRUE)){
             if(LcdData.setData.V2G_CurrentModePara[port] != (LcdData.setData.V2G_MSLimitReservationHour[LCD_GUN_NUM] *3600 + LcdData.setData.V2G_MSLimitReservationMin[LCD_GUN_NUM] *60)){
                 LcdData.setData.Modewarning = TRUE;
                 /* 此时不进行切页 */
@@ -6319,8 +6410,8 @@ void SerialScreen_BtnV2GInfoStorage(int port)
         LcdData.runData.GunRunMode[port] = THAISEN_GUN_RUNING_MODE_V2G;   /** 当前枪模式为V2G */
     }
 #if 0
-    else if(LcdData.setData.V2G_CurrentMode[LCD_GUN_NUM][THAISEN_MODE_LIMIT_RESERVATION]){
-        mode = THAISEN_MODE_LIMIT_RESERVATION;
+    else if(LcdData.setData.V2G_CurrentMode[LCD_GUN_NUM][THAISEN_CHARGE_MODE_LIMIT_RESERVATION]){
+        mode = THAISEN_CHARGE_MODE_LIMIT_RESERVATION;
         if(LcdData.setData.V2G_MSLimitReservationHour[LCD_GUN_NUM] >= 23){
             LcdData.setData.V2G_MSLimitReservationHour[LCD_GUN_NUM] = 23;
         }
@@ -9888,51 +9979,51 @@ Check_end:
 
 void SerialScreen_BtnModeLimitMoneySet(void)
 {
-    if(LcdData.setData.CurrentMode[LCD_GUN_NUM][THAISEN_MODE_LIMIT_MONEY] == TRUE){
-        LcdData.setData.CurrentMode[LCD_GUN_NUM][THAISEN_MODE_LIMIT_MONEY] = FALSE;
+    if(LcdData.setData.CurrentMode[LCD_GUN_NUM][THAISEN_CHARGE_MODE_LIMIT_MONEY] == TRUE){
+        LcdData.setData.CurrentMode[LCD_GUN_NUM][THAISEN_CHARGE_MODE_LIMIT_MONEY] = FALSE;
     }else{
         memset(LcdData.setData.CurrentMode[LCD_GUN_NUM], 0x00, sizeof(LcdData.setData.CurrentMode[LCD_GUN_NUM]));
-        LcdData.setData.CurrentMode[LCD_GUN_NUM][THAISEN_MODE_LIMIT_MONEY] = TRUE;
+        LcdData.setData.CurrentMode[LCD_GUN_NUM][THAISEN_CHARGE_MODE_LIMIT_MONEY] = TRUE;
     }
 }
 
 void SerialScreen_BtnModeLimitElectSet(void)
 {
-    if(LcdData.setData.CurrentMode[LCD_GUN_NUM][THAISEN_MODE_LIMIT_ELECT] == TRUE){
-        LcdData.setData.CurrentMode[LCD_GUN_NUM][THAISEN_MODE_LIMIT_ELECT] = FALSE;
+    if(LcdData.setData.CurrentMode[LCD_GUN_NUM][THAISEN_CHARGE_MODE_LIMIT_ELECT] == TRUE){
+        LcdData.setData.CurrentMode[LCD_GUN_NUM][THAISEN_CHARGE_MODE_LIMIT_ELECT] = FALSE;
     }else{
         memset(LcdData.setData.CurrentMode[LCD_GUN_NUM], 0x00, sizeof(LcdData.setData.CurrentMode[LCD_GUN_NUM]));
-        LcdData.setData.CurrentMode[LCD_GUN_NUM][THAISEN_MODE_LIMIT_ELECT] = TRUE;
+        LcdData.setData.CurrentMode[LCD_GUN_NUM][THAISEN_CHARGE_MODE_LIMIT_ELECT] = TRUE;
     }
 }
 
 void SerialScreen_BtnModeChargeFullSet(void)
 {
-    if(LcdData.setData.CurrentMode[LCD_GUN_NUM][THAISEN_MODE_CHARGE_FULL] == TRUE){
-        LcdData.setData.CurrentMode[LCD_GUN_NUM][THAISEN_MODE_CHARGE_FULL] = FALSE;
+    if(LcdData.setData.CurrentMode[LCD_GUN_NUM][THAISEN_CHARGE_MODE_FULL] == TRUE){
+        LcdData.setData.CurrentMode[LCD_GUN_NUM][THAISEN_CHARGE_MODE_FULL] = FALSE;
     }else{
         memset(LcdData.setData.CurrentMode[LCD_GUN_NUM], 0x00, sizeof(LcdData.setData.CurrentMode[LCD_GUN_NUM]));
-        LcdData.setData.CurrentMode[LCD_GUN_NUM][THAISEN_MODE_CHARGE_FULL] = TRUE;
+        LcdData.setData.CurrentMode[LCD_GUN_NUM][THAISEN_CHARGE_MODE_FULL] = TRUE;
     }
 }
 
 void SerialScreen_BtnModeLimitTimingSet(void)
 {
-    if(LcdData.setData.CurrentMode[LCD_GUN_NUM][THAISEN_MODE_LIMIT_TIMING] == TRUE){
-        LcdData.setData.CurrentMode[LCD_GUN_NUM][THAISEN_MODE_LIMIT_TIMING] = FALSE;
+    if(LcdData.setData.CurrentMode[LCD_GUN_NUM][THAISEN_CHARGE_MODE_LIMIT_TIMING] == TRUE){
+        LcdData.setData.CurrentMode[LCD_GUN_NUM][THAISEN_CHARGE_MODE_LIMIT_TIMING] = FALSE;
     }else{
         memset(LcdData.setData.CurrentMode[LCD_GUN_NUM], 0x00, sizeof(LcdData.setData.CurrentMode[LCD_GUN_NUM]));
-        LcdData.setData.CurrentMode[LCD_GUN_NUM][THAISEN_MODE_LIMIT_TIMING] = TRUE;
+        LcdData.setData.CurrentMode[LCD_GUN_NUM][THAISEN_CHARGE_MODE_LIMIT_TIMING] = TRUE;
     }
 }
 
 void SerialScreen_BtnModeLimitReservationSet(void)
 {
-    if(LcdData.setData.CurrentMode[LCD_GUN_NUM][THAISEN_MODE_LIMIT_RESERVATION] == TRUE){
-        LcdData.setData.CurrentMode[LCD_GUN_NUM][THAISEN_MODE_LIMIT_RESERVATION] = FALSE;
+    if(LcdData.setData.CurrentMode[LCD_GUN_NUM][THAISEN_CHARGE_MODE_LIMIT_RESERVATION] == TRUE){
+        LcdData.setData.CurrentMode[LCD_GUN_NUM][THAISEN_CHARGE_MODE_LIMIT_RESERVATION] = FALSE;
     }else{
         memset(LcdData.setData.CurrentMode[LCD_GUN_NUM], 0x00, sizeof(LcdData.setData.CurrentMode[LCD_GUN_NUM]));
-        LcdData.setData.CurrentMode[LCD_GUN_NUM][THAISEN_MODE_LIMIT_RESERVATION] = TRUE;
+        LcdData.setData.CurrentMode[LCD_GUN_NUM][THAISEN_CHARGE_MODE_LIMIT_RESERVATION] = TRUE;
     }
 }
 
@@ -11152,7 +11243,7 @@ struct LCD_DATA_FIFO_TYPE *SerialScreen_Init(struct SerialScreenObj *cmd)
 	        LcdData.setData.selectmode[i] = ICON_CHARGE_MODE_SELECT;
 	    }
 
-	    if(SerialScreen_Screen_GetCurrentMode(i) == THAISEN_MODE_LIMIT_RESERVATION){
+	    if(SerialScreen_Screen_GetCurrentChargeMode(i) == THAISEN_CHARGE_MODE_LIMIT_RESERVATION){
 	        LcdAssistantData.SeveralGunFlag[i].IsSetReservation = TRUE;
 	    }
 	}
@@ -13437,12 +13528,47 @@ int SerialScreen_DataProcess()
 		}
 
         if(LcdData.setData.sup_mode_select){
+            enum thaisen_mode mode = 0;
             if(LcdData.gunIndex == LCD_GUN_1){
-                thaisen_get_mode_info(LCD_GUN_1, THA_DEBUG_LANGUAGE_CHINESE, SerialScreen_Screen_GetCurrentMode(LCD_GUN_1), SerialScreen_Screen_GetModeParameter(LCD_GUN_1), \
-                        LcdData.setData.CurrentModeInfo[LCD_GUN_1], sizeof(LcdData.setData.CurrentModeInfo[LCD_GUN_1]));
+#ifdef SCREEN_USING_V2G
+                if((LcdData.runData.GunRunMode[LCD_GUN_1] == THAISEN_GUN_RUNING_MODE_V2G) && (SerialScreen_Screen_GetCurrentV2GMode(LCD_GUN_1) >= THAISEN_V2G_MODE_SIZE)){
+                    LcdData.runData.GunRunMode[LCD_GUN_1] = THAISEN_GUN_RUNING_MODE_CHARGE;
+                }
+                if(LcdData.setData.sup_V2G == FALSE){
+                    LcdData.runData.GunRunMode[LCD_GUN_1] = THAISEN_GUN_RUNING_MODE_CHARGE;
+                }
+                if(LcdData.runData.GunRunMode[LCD_GUN_1] == THAISEN_GUN_RUNING_MODE_V2G){
+                    mode = SerialScreen_Screen_ConvertMode(LCD_GUN_1);
+                    thaisen_get_mode_info(LCD_GUN_1, THA_DEBUG_LANGUAGE_CHINESE, mode, SerialScreen_Screen_GetV2GParameter(LCD_GUN_1), \
+                            LcdData.setData.CurrentModeInfo[LCD_GUN_1], sizeof(LcdData.setData.CurrentModeInfo[LCD_GUN_1]));
+                }
+                else
+#endif /* SCREEN_USING_V2G */
+                {
+                    mode = SerialScreen_Screen_ConvertMode(LCD_GUN_1);
+                    thaisen_get_mode_info(LCD_GUN_1, THA_DEBUG_LANGUAGE_CHINESE, mode, SerialScreen_Screen_GetChargeModeParameter(LCD_GUN_1), \
+                            LcdData.setData.CurrentModeInfo[LCD_GUN_1], sizeof(LcdData.setData.CurrentModeInfo[LCD_GUN_1]));
+                }
             }else if(LcdData.gunIndex == LCD_GUN_2){
-                thaisen_get_mode_info(LCD_GUN_2, THA_DEBUG_LANGUAGE_CHINESE, SerialScreen_Screen_GetCurrentMode(LCD_GUN_2), SerialScreen_Screen_GetModeParameter(LCD_GUN_2), \
-                        LcdData.setData.CurrentModeInfo[LCD_GUN_2], sizeof(LcdData.setData.CurrentModeInfo[LCD_GUN_2]));
+#ifdef SCREEN_USING_V2G
+                if((LcdData.runData.GunRunMode[LCD_GUN_2] == THAISEN_GUN_RUNING_MODE_V2G) && (SerialScreen_Screen_GetCurrentV2GMode(LCD_GUN_2) >= THAISEN_V2G_MODE_SIZE)){
+                    LcdData.runData.GunRunMode[LCD_GUN_2] = THAISEN_GUN_RUNING_MODE_CHARGE;
+                }
+                if(LcdData.setData.sup_V2G == FALSE){
+                    LcdData.runData.GunRunMode[LCD_GUN_2] = THAISEN_GUN_RUNING_MODE_CHARGE;
+                }
+                if(LcdData.runData.GunRunMode[LCD_GUN_2] == THAISEN_GUN_RUNING_MODE_V2G){
+                    mode = SerialScreen_Screen_ConvertMode(LCD_GUN_2);
+                    thaisen_get_mode_info(LCD_GUN_2, THA_DEBUG_LANGUAGE_CHINESE, mode, SerialScreen_Screen_GetV2GParameter(LCD_GUN_2), \
+                            LcdData.setData.CurrentModeInfo[LCD_GUN_2], sizeof(LcdData.setData.CurrentModeInfo[LCD_GUN_2]));
+                }
+                else
+#endif /* SCREEN_USING_V2G */
+                {
+                    mode = SerialScreen_Screen_ConvertMode(LCD_GUN_2);
+                    thaisen_get_mode_info(LCD_GUN_2, THA_DEBUG_LANGUAGE_CHINESE, mode, SerialScreen_Screen_GetChargeModeParameter(LCD_GUN_2), \
+                            LcdData.setData.CurrentModeInfo[LCD_GUN_2], sizeof(LcdData.setData.CurrentModeInfo[LCD_GUN_2]));
+                }
             }
         }
 	}
@@ -14332,11 +14458,11 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_MODE_SELECT, NULL, "Mode Full", LCD_BtnType, 0x006F, 0x1003, page_type, LCD_PAGE_MENU_MODE_SELECT, (void *)SerialScreen_BtnModeChargeFullSet);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_MODE_SELECT, NULL, "Mode Timing", LCD_BtnType, 0x0067, 0x1003, page_type, LCD_PAGE_MENU_MODE_SELECT, (void *)SerialScreen_BtnModeLimitTimingSet);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_MODE_SELECT, NULL, "Mode Reservation", LCD_BtnType, 0x0068, 0x1003, page_type, LCD_PAGE_MENU_MODE_SELECT, (void *)SerialScreen_BtnModeLimitReservationSet);
-    SerialScreen_ItemSetUp(LCD_PAGE_MENU_MODE_SELECT, NULL, "Icon Mode Money", LCD_IconType, LCD_10sReflash, 0x65A0, pu8_type, sizeof(LcdData.setData.CurrentMode[LCD_GUN_NUM][THAISEN_MODE_LIMIT_MONEY]), (void *)&LcdData.setData.CurrentMode[LCD_GUN_NUM][THAISEN_MODE_LIMIT_MONEY]);
-    SerialScreen_ItemSetUp(LCD_PAGE_MENU_MODE_SELECT, NULL, "Icon Mode Elect", LCD_IconType, LCD_10sReflash, 0x65A1, pu8_type, sizeof(LcdData.setData.CurrentMode[LCD_GUN_NUM][THAISEN_MODE_LIMIT_ELECT]), (void *)&LcdData.setData.CurrentMode[LCD_GUN_NUM][THAISEN_MODE_LIMIT_ELECT]);
-    SerialScreen_ItemSetUp(LCD_PAGE_MENU_MODE_SELECT, NULL, "Icon Mode Full", LCD_IconType, LCD_10sReflash, 0x65C1, pu8_type, sizeof(LcdData.setData.CurrentMode[LCD_GUN_NUM][THAISEN_MODE_CHARGE_FULL]), (void *)&LcdData.setData.CurrentMode[LCD_GUN_NUM][THAISEN_MODE_CHARGE_FULL]);
-    SerialScreen_ItemSetUp(LCD_PAGE_MENU_MODE_SELECT, NULL, "Icon Mode Timing", LCD_IconType, LCD_10sReflash, 0x65A2, pu8_type, sizeof(LcdData.setData.CurrentMode[LCD_GUN_NUM][THAISEN_MODE_LIMIT_TIMING]), (void *)&LcdData.setData.CurrentMode[LCD_GUN_NUM][THAISEN_MODE_LIMIT_TIMING]);
-    SerialScreen_ItemSetUp(LCD_PAGE_MENU_MODE_SELECT, NULL, "Icon Mode Reservation", LCD_IconType, LCD_10sReflash, 0x65A3, pu8_type, sizeof(LcdData.setData.CurrentMode[LCD_GUN_NUM][THAISEN_MODE_LIMIT_RESERVATION]), (void *)&LcdData.setData.CurrentMode[LCD_GUN_NUM][THAISEN_MODE_LIMIT_RESERVATION]);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_MODE_SELECT, NULL, "Icon Mode Money", LCD_IconType, LCD_10sReflash, 0x65A0, pu8_type, sizeof(LcdData.setData.CurrentMode[LCD_GUN_NUM][THAISEN_CHARGE_MODE_LIMIT_MONEY]), (void *)&LcdData.setData.CurrentMode[LCD_GUN_NUM][THAISEN_CHARGE_MODE_LIMIT_MONEY]);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_MODE_SELECT, NULL, "Icon Mode Elect", LCD_IconType, LCD_10sReflash, 0x65A1, pu8_type, sizeof(LcdData.setData.CurrentMode[LCD_GUN_NUM][THAISEN_CHARGE_MODE_LIMIT_ELECT]), (void *)&LcdData.setData.CurrentMode[LCD_GUN_NUM][THAISEN_CHARGE_MODE_LIMIT_ELECT]);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_MODE_SELECT, NULL, "Icon Mode Full", LCD_IconType, LCD_10sReflash, 0x65C1, pu8_type, sizeof(LcdData.setData.CurrentMode[LCD_GUN_NUM][THAISEN_CHARGE_MODE_FULL]), (void *)&LcdData.setData.CurrentMode[LCD_GUN_NUM][THAISEN_CHARGE_MODE_FULL]);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_MODE_SELECT, NULL, "Icon Mode Timing", LCD_IconType, LCD_10sReflash, 0x65A2, pu8_type, sizeof(LcdData.setData.CurrentMode[LCD_GUN_NUM][THAISEN_CHARGE_MODE_LIMIT_TIMING]), (void *)&LcdData.setData.CurrentMode[LCD_GUN_NUM][THAISEN_CHARGE_MODE_LIMIT_TIMING]);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_MODE_SELECT, NULL, "Icon Mode Reservation", LCD_IconType, LCD_10sReflash, 0x65A3, pu8_type, sizeof(LcdData.setData.CurrentMode[LCD_GUN_NUM][THAISEN_CHARGE_MODE_LIMIT_RESERVATION]), (void *)&LcdData.setData.CurrentMode[LCD_GUN_NUM][THAISEN_CHARGE_MODE_LIMIT_RESERVATION]);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_MODE_SELECT, NULL, "Icon warn", LCD_IconType, LCD_10sReflash, 0x65C4, pu8_type, sizeof(LcdData.setData.Modewarning), (void *)&LcdData.setData.Modewarning);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_MODE_SELECT, NULL, "Limit Money", LCD_InputType, 0, 0x6590, pu32_type, sizeof(LcdData.setData.MSLimitMoney[LCD_GUN_NUM]), (void *)&LcdData.setData.MSLimitMoney[LCD_GUN_NUM]);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_MODE_SELECT, NULL, "Limit Elect", LCD_InputType, 0, 0x6594, pu32_type, sizeof(LcdData.setData.MSLimitElect[LCD_GUN_NUM]), (void *)&LcdData.setData.MSLimitElect[LCD_GUN_NUM]);

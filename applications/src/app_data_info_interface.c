@@ -1869,25 +1869,25 @@ void thaisen_selfcheck_debug_info(tha_debug_chinese_en item, uint8_t language, u
 }
 
 /********************************************
- * 函数名      thaisen_get_current_mode
- * 功能          获取当前模式
+ * 函数名      thaisen_get_current_charge_mode
+ * 功能          获取当前充电模式
  * 参数          gunno    枪号
- * 返回           @enum thaisen_mode(不启用模式选择时返回 THAISEN_MODE_SIZE)
+ * 返回           @enum thaisen_charge_mode(不启用模式选择时返回 THAISEN_MODE_SIZE)
  *******************************************/
-enum thaisen_mode thaisen_get_current_mode(uint8_t gunno)
+enum thaisen_charge_mode thaisen_get_current_charge_mode(uint8_t gunno)
 {
-    return SerialScreen_Screen_GetCurrentMode(gunno);
+    return SerialScreen_Screen_GetCurrentChargeMode(gunno);
 }
 
 /********************************************
- * 函数名      thaisen_get_mode_parameter
- * 功能          获取模式选择参数
+ * 函数名      thaisen_get_charge_mode_parameter
+ * 功能          获取充电模式选择参数
  * 参数          gunno     枪号
  * 返回          模式选择参数
  *******************************************/
-uint32_t thaisen_get_mode_parameter(uint8_t gunno)
+uint32_t thaisen_get_charge_mode_parameter(uint8_t gunno)
 {
-    return SerialScreen_Screen_GetModeParameter(gunno);
+    return SerialScreen_Screen_GetChargeModeParameter(gunno);
 }
 
 /********************************************

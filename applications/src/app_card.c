@@ -799,7 +799,7 @@ static int32_t app_card_swip_card_start(uint8_t gunno)
     uint32_t ballance = s_card_info_sector2.block_10.detail.ballance, stime = s_card_info_sector2.block_10.detail.start_time;
 
     /** 此处要兼顾预约时刷卡鉴权的场景，进入预约需要满足当前年份大于2025年 */
-    if((ofsm->base.flag.is_ob_authenticated == 0x00) && (thaisen_get_current_mode(gunno) == THAISEN_MODE_LIMIT_RESERVATION)){
+    if((ofsm->base.flag.is_ob_authenticated == 0x00) && (thaisen_get_current_charge_mode(gunno) == THAISEN_CHARGE_MODE_LIMIT_RESERVATION)){
         struct tm tmp;
         time_t t_base = time(NULL);
 

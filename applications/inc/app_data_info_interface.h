@@ -797,31 +797,44 @@ typedef enum{
 void thaisen_selfcheck_debug_info(tha_debug_chinese_en item, uint8_t language, uint8_t ret, uint8_t *buf, uint8_t ilen);
 
 enum thaisen_mode{
-    THAISEN_MODE_CHARGE_FULL,                                     /** 当前模式：充满 */
-    THAISEN_MODE_LIMIT_MONEY,                                     /** 当前模式：限制金额(单位：0.01元) */
-    THAISEN_MODE_LIMIT_ELECT,                                     /** 当前模式：限制电量(单位：0.001度) */
-    THAISEN_MODE_LIMIT_TIMING,                                    /** 当前模式：定时(单位：1S) */
-    THAISEN_MODE_LIMIT_RESERVATION,                               /** 当前模式：预约(单位：1S) */
-    THAISEN_MODE_SIZE,                                            /** 当前模式： */
+    THAISEN_MODE_CHARGE_FULL,                                     /** 充电模式：充满 */
+    THAISEN_MODE_CHARGE_LIMIT_MONEY,                              /** 充电模式：限制金额(单位：0.01元) */
+    THAISEN_MODE_CHARGE_LIMIT_ELECT,                              /** 充电模式：限制电量(单位：0.001度) */
+    THAISEN_MODE_CHARGE_LIMIT_TIMING,                             /** 充电模式：定时(单位：1S) */
+    THAISEN_MODE_CHARGE_LIMIT_RESERVATION,                        /** 充电模式：预约(单位：1S) */
+    THAISEN_MODE_V2G_LIMIT_MONEY,                                 /** V2G模式：限制金额(单位：0.01元) */
+    THAISEN_MODE_V2G_LIMIT_ELECT,                                 /** V2G模式：限制电量(单位：0.001度) */
+    THAISEN_MODE_V2G_LIMIT_TIMING,                                /** V2G模式：定时(单位：1S) */
+    THAISEN_MODE_V2G_AUTO,                                        /** V2G模式：自动(根据设置的放电截至SOC来) */
+    THAISEN_MODE_SIZE,                                            /** 充电模式： */
+};
+
+enum thaisen_charge_mode{
+    THAISEN_CHARGE_MODE_FULL,                                     /** 当前充电模式：充满 */
+    THAISEN_CHARGE_MODE_LIMIT_MONEY,                              /** 当前充电模式：限制金额(单位：0.01元) */
+    THAISEN_CHARGE_MODE_LIMIT_ELECT,                              /** 当前充电模式：限制电量(单位：0.001度) */
+    THAISEN_CHARGE_MODE_LIMIT_TIMING,                             /** 当前充电模式：定时(单位：1S) */
+    THAISEN_CHARGE_MODE_LIMIT_RESERVATION,                        /** 当前充电模式：预约(单位：1S) */
+    THAISEN_CHARGE_MODE_SIZE,                                     /** 当前充电模式： */
 };
 
 enum thaisen_v2g_mode{
-    THAISEN_V2G_MODE_LIMIT_MONEY,                                 /** V2G当前模式：限制金额(单位：0.01元) */
-    THAISEN_V2G_MODE_LIMIT_ELECT,                                 /** V2G当前模式：限制电量(单位：0.001度) */
-    THAISEN_V2G_MODE_LIMIT_TIMING,                                /** V2G当前模式：定时(单位：1S) */
-    THAISEN_V2G_MODE_AUTO,                                        /** V2G当前模式：自动(根据设置的放电截至SOC来) */
-    THAISEN_V2G_MODE_SIZE,                                        /** V2G当前模式：空 */
+    THAISEN_V2G_MODE_LIMIT_MONEY,                                 /** 当前V2G模式：限制金额(单位：0.01元) */
+    THAISEN_V2G_MODE_LIMIT_ELECT,                                 /** 当前V2G模式：限制电量(单位：0.001度) */
+    THAISEN_V2G_MODE_LIMIT_TIMING,                                /** 当前V2G模式：定时(单位：1S) */
+    THAISEN_V2G_MODE_AUTO,                                        /** 当前V2G模式：自动(根据设置的放电截至SOC来) */
+    THAISEN_V2G_MODE_SIZE,                                        /** 当前V2G模式：空 */
 };
 
  /**
- *  获取当前模式
+ *  获取当前充电模式
  **/
-enum thaisen_mode thaisen_get_current_mode(uint8_t gunno);
+enum thaisen_charge_mode thaisen_get_current_charge_mode(uint8_t gunno);
 
  /**
-  *  获取模式选择参数
+  *  获取充电模式选择参数
   **/
-uint32_t thaisen_get_mode_parameter(uint8_t gunno);
+uint32_t thaisen_get_charge_mode_parameter(uint8_t gunno);
 
 /**
  *  获取模式显示信息
