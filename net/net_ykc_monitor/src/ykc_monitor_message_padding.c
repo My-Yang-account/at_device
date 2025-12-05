@@ -1747,6 +1747,9 @@ void ykc_monitor_chargepile_request_padding_realtime_data(uint8_t gunno, uint8_t
                 g_ykc_monitor_preq_report_realtime_data[gunno].body.belong_main_gun = 0x00;
                 g_ykc_monitor_preq_report_realtime_data[gunno].body.is_parallel_deputy = NET_ENUM_FALSE;
             }
+        }else{
+            g_ykc_monitor_preq_report_realtime_data[gunno].body.belong_main_gun = 0x00;
+            g_ykc_monitor_preq_report_realtime_data[gunno].body.is_parallel_deputy = NET_ENUM_FALSE;
         }
         g_ykc_monitor_preq_report_realtime_data[gunno].body.is_v2g = 0x00;
         if(base->gun_running_mode == APP_GUN_RUNNING_MODE_V2G){
@@ -1781,6 +1784,9 @@ void ykc_monitor_chargepile_request_padding_realtime_data(uint8_t gunno, uint8_t
                         g_ykc_monitor_preq_report_realtime_data[gunno].body.is_parallel_deputy = NET_ENUM_FALSE;
                     }
                     base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(base->main_gunno));
+                }else{
+                    g_ykc_monitor_preq_report_realtime_data[gunno].body.belong_main_gun = 0x00;
+                    g_ykc_monitor_preq_report_realtime_data[gunno].body.is_parallel_deputy = NET_ENUM_FALSE;
                 }
 
                 g_ykc_monitor_preq_report_realtime_data[gunno].body.soc = base->current_soc;
