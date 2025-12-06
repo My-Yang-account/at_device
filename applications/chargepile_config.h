@@ -454,6 +454,15 @@
 #define CP_NETTYPE_OFFLINE                            0x02             /* 联网方式：离线模式 */
 #define CP_NETTYPE_SIZE                               0x03
 
+/* led language */
+#define CP_LED_LANGUAGE_OFFSET                        0x55             /* 灯语值偏移 */
+#define CP_LED_LANGUAGE_0                             0x55             /* 灯语：0 */
+#define CP_LED_LANGUAGE_1                             0x56             /* 灯语：1 */
+#define CP_LED_LANGUAGE_2                             0x57             /* 灯语：2 */
+#define CP_LED_LANGUAGE_3                             0x58             /* 灯语：3 */
+#define CP_LED_LANGUAGE_4                             0x59             /* 灯语：4 */
+#define CP_LED_LANGUAGE_SIZE                          0x60             /* 灯语 */
+
 #ifdef CP_USING_OFFLINE_BILLING
 /* period num */
 #define CP_PERIOD_MAX                                 0x60             /* 时段总数 */
@@ -680,6 +689,7 @@ enum config_name{
     CONFIG_ITEM_ALLOCATION_WAY,
     CONFIG_ITEM_DEVICE_TYPE,
     CONFIG_ITEM_LP_MODULE,
+    CONFIG_ITEM_LED_LANGUAGE,
     CONFIG_ITEM_GUNVOLT_LIMIT,
     CONFIG_ITEM_VIN_WHITELIST,
     CONFIG_ITEM_CARD_WHITELIST,

@@ -819,9 +819,11 @@ struct LCD_DISPLAY_SETDATA_TYPE{
     /** 参数 */
     u32 DebugCmdPara_MCMax;                                      //指令调试参数：模块最大输出电流
     u32 DebugCmdPara_MCMin;                                      //指令调试参数：模块最小输出电流
+    u32 DebugCmdPara_LedLanguage;                                //指令调试参数：灯语
     /** 参数中间值 */
     u32 DebugCmdPara_MCMaxTemp;                                  //指令调试参数：模块最大输出电流中间值
     u32 DebugCmdPara_MCMinTemp;                                  //指令调试参数：模块最小输出电流中间值
+    u32 DebugCmdPara_LedLanguageTemp;                            //指令调试参数：灯语中间值
     /*********************** fan ***************************/
     u32 FanWorkTime;                                             //停充后风扇工作时间(s)
     /*********************** 照明灯 ***************************/
@@ -2750,7 +2752,26 @@ static s32 SerialScreen_ConfigExecute_DynamicCmdDebugModify(u8 port, void *data,
             }
             /** 同步指令信息 */
             SerialScreen_CmdDebugIssue();
-        }else{
+        }
+        /** 灯语 */
+        else if((memcmp(config_segment[i].cmd, "LED", strlen("LED")) == 0) && (strlen((char*)config_segment[i].cmd) == strlen("LED"))){
+            if(strlen((char*)config_segment[i].parameter) == 0x00){
+                /** 参数非法，配置失败 */
+                return (i + THAISEN_CONFIG_FAIL_OFFSET);
+            }
+            memset(LcdData.setData.DebugCmd, 0, sizeof(LcdData.setData.DebugCmd));
+            memset(LcdData.setData.DebugCmdPara, 0, sizeof(LcdData.setData.DebugCmdPara));
+
+            memcpy(LcdData.setData.DebugCmd, "LED", strlen("LED"));
+            if(config_segment[i].parameter_len > DebugCmdParaLen){
+                memcpy(LcdData.setData.DebugCmdPara, config_segment[i].parameter, DebugCmdParaLen);
+            }else{
+                memcpy(LcdData.setData.DebugCmdPara, config_segment[i].parameter, config_segment[i].parameter_len);
+            }
+            /** 同步指令信息 */
+            SerialScreen_CmdDebugIssue();
+        }
+        else{
             /** 没有这个指令，配置失败 */
             return (i + THAISEN_CONFIG_FAIL_OFFSET);
         }
@@ -2808,6 +2829,11 @@ static s32 SerialScreen_ConfigExecute_DynamicCmdDebugRead(u8 port, void *data, v
         /** 模块最小输出电流 */
         else if((memcmp(read_segment[i].cmd, "MCMIN", strlen("MCMIN")) == 0) && (strlen((char*)read_segment[i].cmd) == strlen("MCMIN"))){
             sprintf((char*)config_segment[i].parameter, "%u", LcdData.setData.DebugCmdPara_MCMin);
+            config_segment[i].parameter_len = strlen((char*)config_segment[i].parameter);
+        }
+        /** 灯语 */
+        else if((memcmp(read_segment[i].cmd, "LED", strlen("LED")) == 0) && (strlen((char*)read_segment[i].cmd) == strlen("LED"))){
+            sprintf((char*)config_segment[i].parameter, "%u", LcdData.setData.DebugCmdPara_LedLanguage);
             config_segment[i].parameter_len = strlen((char*)config_segment[i].parameter);
         }
         memcpy(config_segment[i].cmd, read_segment[i].cmd, sizeof(read_segment[i].cmd));
@@ -5117,6 +5143,20 @@ void SerialScreen_CmdDebugInfoSet(void)
             UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_SMODULE_OUTCURR_MAX, &LcdData.setData.SModule_OutCurrentMax, sizeof(LcdData.setData.SModule_OutCurrentMax));
         }
     }
+    if(LcdData.setData.DebugCmdPara_LedLanguage != LcdData.setData.DebugCmdPara_LedLanguageTemp){
+        u8 data = LcdData.setData.DebugCmdPara_LedLanguageTemp;
+
+        data += CP_LED_LANGUAGE_OFFSET;
+        if((data < CP_LED_LANGUAGE_0) || (data >= CP_LED_LANGUAGE_SIZE)){
+            data = CP_LED_LANGUAGE_0;
+        }
+        UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_LED_LANGUAGE, &data, sizeof(data));
+        data -= CP_LED_LANGUAGE_OFFSET;
+        LcdData.setData.DebugCmdPara_LedLanguage = data;
+        LcdData.setData.DebugCmdPara_LedLanguageTemp = data;
+
+        is_changed = 1;
+    }
 
     if(LcdData.setData.Icon_BatVoltDetect != LcdData.setData.sup_BatVoltDetect){
         is_changed = 1;
@@ -5267,6 +5307,14 @@ void SerialScreen_CmdDebugInfoGet(void)
     }else{
         LcdData.setData.sup_SupSeveralFrame = TRUE;
     }
+    /* 灯语默认使用灯语1 */
+    data = *((u8*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_LED_LANGUAGE, 0));
+    if((data < CP_LED_LANGUAGE_0) || (data >= CP_LED_LANGUAGE_SIZE)){
+        data = CP_LED_LANGUAGE_0;
+    }
+    data -= CP_LED_LANGUAGE_OFFSET;
+    LcdData.setData.DebugCmdPara_LedLanguage = data;
+
 
     LcdData.setData.Icon_BatVoltDetect = FALSE;
     if(LcdData.setData.sup_BatVoltDetect){
@@ -5305,6 +5353,7 @@ void SerialScreen_CmdDebugInfoGet(void)
 
     LcdData.setData.DebugCmdPara_MCMinTemp = LcdData.setData.DebugCmdPara_MCMin;
     LcdData.setData.DebugCmdPara_MCMaxTemp = LcdData.setData.DebugCmdPara_MCMax;
+    LcdData.setData.DebugCmdPara_LedLanguageTemp = LcdData.setData.DebugCmdPara_LedLanguage;
 }
 
 void SerialScreen_CmdDebugIssue(void)
@@ -5369,6 +5418,23 @@ void SerialScreen_CmdDebugIssue(void)
                 LcdData.setData.DebugCmdPara_MCMinTemp = para;
             }
         }
+        /** 指令下发：灯语 */
+        else if((memcmp(CmdStr, "LED", strlen("LED")) == 0) && (strlen(CmdStr) == strlen("LED")))
+        {
+            if((used_len < blen) && ParaStr){
+                uint8_t para = (uint8_t)(atol(ParaStr));
+
+                para += CP_LED_LANGUAGE_OFFSET;
+                if((para < CP_LED_LANGUAGE_0) || (para >= CP_LED_LANGUAGE_SIZE)){
+                    para = CP_LED_LANGUAGE_0;
+                }
+                para -= CP_LED_LANGUAGE_OFFSET;
+                thaisen_get_cmd_debug_result_info(THA_DEBUG_LANGUAGE_CHINESE, THAISEN_DEBUG_CMD_ISSUE_LED_LANGUAGE, (u8*)&para, sizeof(para), \
+                        (LcdData.setData.DebugResult + used_len), (blen - used_len));
+                /** 保存指令参数 */
+                LcdData.setData.DebugCmdPara_LedLanguageTemp = para;
+            }
+        }
         used_len = strlen((char*)LcdData.setData.DebugResult);
         if(used_len >= blen)
             used_len = (blen - 1);
@@ -5417,6 +5483,15 @@ void SerialScreen_CmdDebugRead(void)
             if(used_len < blen){
                 u32 para = LcdData.setData.DebugCmdPara_MCMinTemp;
                 thaisen_get_cmd_debug_result_info(THA_DEBUG_LANGUAGE_CHINESE, THAISEN_DEBUG_CMD_READ_MODULE_CURR_MIN, (u8*)&para, sizeof(para), \
+                        (LcdData.setData.DebugResult + used_len), (blen - used_len));
+            }
+        }
+        /** 指令读取：灯语 */
+        else if(strstr((const char*)CmdStr, "LED"))
+        {
+            uint8_t number = LcdData.setData.DebugCmdPara_LedLanguageTemp;
+            if(used_len < blen){
+                thaisen_get_cmd_debug_result_info(THA_DEBUG_LANGUAGE_CHINESE, THAISEN_DEBUG_CMD_READ_LED_LANGUAGE, (u8*)&number, sizeof(number), \
                         (LcdData.setData.DebugResult + used_len), (blen - used_len));
             }
         }
@@ -6311,6 +6386,7 @@ void SerialScreen_BtnModeInfoStorage(int port)
         UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_CURRENT_MODE_B, &mode, sizeof(mode));
         UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_MODE_PARAMETER_B, (u8*)&LcdData.setData.CurrentModePara[port], sizeof(LcdData.setData.CurrentModePara[port]));
     }
+#ifdef SCREEN_USING_V2G
     /** 本次修改的充电模式是长期有效的模式，需要复位V2G模式相关信息 */
     if(longTermValid == TRUE){
         u8 mode = CP_V2G_MODE_NULL;
@@ -6334,6 +6410,7 @@ void SerialScreen_BtnModeInfoStorage(int port)
             UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_V2G_MODE_PARAMETER_B, (u8*)&parameter, sizeof(parameter));
         }
     }
+#endif /* SCREEN_USING_V2G */
     UI_STORAGE_CFG_DATA;
 }
 

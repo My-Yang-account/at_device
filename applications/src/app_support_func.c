@@ -2169,6 +2169,20 @@ void app_cmd_debug_result_info(uint8_t language, uint8_t cmd, uint8_t *para, uin
             }
         }
         break;
+    case THAISEN_DEBUG_CMD_ISSUE_LED_LANGUAGE:
+        if(para){
+            uint8_t number = *(uint8_t*)para;
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= (strlen("Issue>LedLanguage-") + 0x01))
+                    return;
+                sprintf((char*)buf, "%s%d", "Issue>LedLanguage-", number);
+            }else{
+                if(ilen <= (strlen("下发>灯语-") + 0x01))
+                    return;
+                sprintf((char*)buf, "%s%d", "下发>灯语-", number);
+            }
+        }
+        break;
     case THAISEN_DEBUG_CMD_READ_MODULE_CURR_MAX:
         if(para && (plen >= 0x04)){
             uint32_t curr = *(uint32_t*)para;
@@ -2198,6 +2212,20 @@ void app_cmd_debug_result_info(uint8_t language, uint8_t cmd, uint8_t *para, uin
                 if(ilen <= (strlen("读取>模块最小输出电流：") + 0x06))
                     return;
                 sprintf((char*)buf, "%s%d", "读取>模块最小输出电流：", curr);
+            }
+        }
+        break;
+    case THAISEN_DEBUG_CMD_READ_LED_LANGUAGE:
+        if(para){
+            uint8_t number = *(uint8_t*)para;
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= (strlen("Read>LedLanguage-") + 0x01))
+                    return;
+                sprintf((char*)buf, "%s%d", "LedLanguage-", number);
+            }else{
+                if(ilen <= (strlen("读取>灯语-") + 0x01))
+                    return;
+                sprintf((char*)buf, "%s%d", "读取>灯语-", number);
             }
         }
         break;
