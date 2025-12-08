@@ -2994,7 +2994,8 @@ static void ykc_data_realtime_process(uint8_t gunno, System_BaseData *base)
         get_stable_gunsite_state_ext(gunno, 2);
 #endif
 #if (defined NET_YKC_MESSAGE_USING_TLD)
-        if((base->state.current == APP_OFSM_STATE_CHARGING) && (base->charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL) &&( base->main_gunno != gunno)){
+        if(((base->state.current == APP_OFSM_STATE_CHARGING) && (base->charge_way != APP_CHARGE_WAY_PARACHARGE_LOCAL)) || \
+                ((base->state.current == APP_OFSM_STATE_CHARGING) && (base->charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL) && (base->main_gunno == gunno))){
 #else
         if(base->state.current == APP_OFSM_STATE_CHARGING){
 #endif /* defined NET_YKC_MESSAGE_USING_TLD*/
