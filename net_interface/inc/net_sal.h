@@ -46,7 +46,31 @@
 
 #ifdef NET_YKC_MESSAGE_USING_YKC17
 #define APP_INCLUDE_YKC17_PROTOCOL                             /* 云快充1.7 */
-#endif /* NET_YKC_MESSAGE_USING_YKC17 */
+#elif (defined NET_YKC_MESSAGE_USING_QC)
+#define APP_INCLUDE_YKC17_PROTOCOL                             /* 云快充1.7 */
+#define APP_INCLUDE_YKC_QC_PROTOCOL                             /* 云快充衍生清晨 */
+#elif (defined NET_YKC_MESSAGE_USING_TT)
+#define APP_INCLUDE_YKC_FIVE_PROTOCOL                             /* 云快充五段计费*/
+#define APP_INCLUDE_YKC_TT_PROTOCOL                             /* 云快充衍生铁塔 */
+#elif (defined NET_YKC_MESSAGE_USING_HHD)
+#define APP_INCLUDE_YKC_HHD_PROTOCOL                             /* 云快充衍生海汇德 */
+#elif (defined NET_YKC_MESSAGE_USING_LL)
+#define APP_INCLUDE_YKC_LL_PROTOCOL                             /* 云快充衍生龙力 */
+#elif (defined NET_YKC_MESSAGE_USING_CA)
+#define APP_INCLUDE_YKC_CA_PROTOCOL                             /* 云快充衍生常安 */
+#elif (defined NET_YKC_MESSAGE_USING_SMY)
+#define APP_INCLUDE_YKC_SMY_PROTOCOL                             /* 云快充衍生神马云 */
+#elif (defined NET_YKC_MESSAGE_USING_XDT)
+#define APP_INCLUDE_YKC_XDT_PROTOCOL                             /* 云快充衍生新电途*/
+#elif (defined NET_YKC_MESSAGE_USING_XXCD_FIVE)
+#define APP_INCLUDE_YKC_XXCD_FIVE_PROTOCOL                             /* 云快充衍生星星充电五段计费*/
+#elif (defined NET_YKC_MESSAGE_USING_TLD)
+#define APP_INCLUDE_YKC_TLD_PROTOCOL                             /* 云快充衍生星星充电五段计费*/
+#define APP_INCLUDE_YKC_FIVE_PROTOCOL                             /* 云快充五段计费*/
+#else
+#define APP_INCLUDE_YKC_FIVE_PROTOCOL                             /* 云快充五段计费*/
+#endif /* ((defined NET_YKC_MESSAGE_USING_YKC17)*/
+
 
 #define APP_INCLUDE_YKC_PROTOCOL
 #endif /* NET_PACK_USING_YKC */

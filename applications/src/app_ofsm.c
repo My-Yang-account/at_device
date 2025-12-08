@@ -5274,9 +5274,11 @@ static void ofsm_charging_fun(uint8_t gunno)
         if(deputy_gun == gunno){
             deputy_gun++;
         }
+#ifndef APP_INCLUDE_YKC_TLD_PROTOCOL
         app_nsal_padding_charge_data(deputy_gun);
         app_nsal_report_bms_message_bmsrequire_pileoutput(deputy_gun, 0x00);
         app_nsal_report_bms_message_bmsstate(deputy_gun, 0x00);
+#endif /* APP_INCLUDE_YKC_TLD_PROTOCOL*/
     }
 
     switch (charge_state){
