@@ -5307,7 +5307,7 @@ void SerialScreen_CmdDebugInfoGet(void)
     }else{
         LcdData.setData.sup_SupSeveralFrame = TRUE;
     }
-    /* 灯语默认使用灯语1 */
+    /* 灯语默认使用灯语0 */
     data = *((u8*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_LED_LANGUAGE, 0));
     if((data < CP_LED_LANGUAGE_0) || (data >= CP_LED_LANGUAGE_SIZE)){
         data = CP_LED_LANGUAGE_0;
@@ -11184,6 +11184,7 @@ struct LCD_DATA_FIFO_TYPE *SerialScreen_Init(struct SerialScreenObj *cmd)
     LcdData.setData.sup_V2G = *((u8*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_V2G, 0));
     LcdData.setData.DisCharge_AsOf_SOC = *((u8*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_DISCHARGE_AS_OF_SOC, 0));
 #endif /* SCREEN_USING_V2G */
+    LcdData.setData.DebugCmdPara_LedLanguage = *((u8*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_LED_LANGUAGE, 0));
 
     memset(LcdData.setData.UserPasswdShow, '\0', sizeof(LcdData.setData.UserPasswdShow));
     memcpy(LcdData.setData.UserPasswdShow, data, sizeof(LcdData.setData.UserPasswdShow));
@@ -11332,6 +11333,13 @@ struct LCD_DATA_FIFO_TYPE *SerialScreen_Init(struct SerialScreenObj *cmd)
     }else{
         LcdData.setData.sup_SupSeveralFrame = TRUE;
     }
+
+    /* 灯语默认使用灯语0 */
+    if((LcdData.setData.DebugCmdPara_LedLanguage < CP_LED_LANGUAGE_0) || (LcdData.setData.DebugCmdPara_LedLanguage >= CP_LED_LANGUAGE_SIZE)){
+        LcdData.setData.DebugCmdPara_LedLanguage = CP_LED_LANGUAGE_0;
+    }
+    LcdData.setData.DebugCmdPara_LedLanguage -= CP_LED_LANGUAGE_OFFSET;
+    LcdData.setData.DebugCmdPara_LedLanguageTemp = LcdData.setData.DebugCmdPara_LedLanguage;
 
     if(LcdData.setData.AllocWay >= POWER_ALLOCATION_WAY_SIZE){        /* 功率分配默认使用先到先得 */
         LcdData.setData.AllocWay = POWER_ALLOCATION_WAY_SEQ_PRIORITY;
