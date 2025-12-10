@@ -2447,7 +2447,15 @@ void ykc_chargepile_state_changed(uint8_t gunno)
         s_ykc_state_info[gunno].state.state = NETYKC_DEVICE_STATE_IDLE;
         break;
     case APP_OFSM_STATE_CHARGING:
+#if (defined NET_YKC_MESSAGE_USING_TLD)
+        if((base->charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL) &&( base->main_gunno != gunno)){
+            s_ykc_state_info[gunno].state.state = NETYKC_DEVICE_STATE_IDLE;
+        }else {
+            s_ykc_state_info[gunno].state.state = NETYKC_DEVICE_STATE_CHARGING;
+        }
+#else
         s_ykc_state_info[gunno].state.state = NETYKC_DEVICE_STATE_CHARGING;
+#endif /* (defined NET_YKC_MESSAGE_USING_TLD) */
         break;
     case APP_OFSM_STATE_STOPING:
     case APP_OFSM_STATE_FINISHING:
@@ -2982,8 +2990,15 @@ static void ykc_data_realtime_process(uint8_t gunno, System_BaseData *base)
 
     if(ykc_get_socket_info()->socket_state == YKC_SOCKET_STATE_LOGIN_SUCCESS){
         ykc_request_message_repeat(gunno);
-
+#if  ((defined NET_YKC_MESSAGE_USING_HTYT))
+        get_stable_gunsite_state_ext(gunno, 2);
+#endif
+#if (defined NET_YKC_MESSAGE_USING_TLD)
+        if(((base->state.current == APP_OFSM_STATE_CHARGING) && (base->charge_way != APP_CHARGE_WAY_PARACHARGE_LOCAL)) || \
+                ((base->state.current == APP_OFSM_STATE_CHARGING) && (base->charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL) && (base->main_gunno == gunno))){
+#else
         if(base->state.current == APP_OFSM_STATE_CHARGING){
+#endif /* defined NET_YKC_MESSAGE_USING_TLD*/
             if(s_ykc_realtime_data_count[gunno] > rt_tick_get()){
                 s_ykc_realtime_data_count[gunno] = rt_tick_get();
             }
