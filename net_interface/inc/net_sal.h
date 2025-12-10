@@ -65,7 +65,7 @@
 #elif (defined NET_YKC_MESSAGE_USING_XXCD_FIVE)
 #define APP_INCLUDE_YKC_XXCD_FIVE_PROTOCOL                             /* 云快充衍生星星充电五段计费*/
 #elif (defined NET_YKC_MESSAGE_USING_TLD)
-#define APP_INCLUDE_YKC_TLD_PROTOCOL                             /* 云快充衍生星星充电五段计费*/
+#define APP_INCLUDE_YKC_TLD_PROTOCOL                             /* 云快充衍生特来电计费*/
 #define APP_INCLUDE_YKC_FIVE_PROTOCOL                             /* 云快充五段计费*/
 #else
 #define APP_INCLUDE_YKC_FIVE_PROTOCOL                             /* 云快充五段计费*/
