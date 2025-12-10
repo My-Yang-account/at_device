@@ -12344,7 +12344,7 @@ void SerialScreen_GetKeyProcess(struct SerialScreenObj *cmd)
             (LcdData.CurrentPage == LCD_PAGE_MENU_MONITOR_B) ||
             (LcdData.CurrentPage == LCD_PAGE_MENU_STATE_MODULE) ||
             (LcdData.CurrentPage == LCD_PAGE_MENU_STATE_MODULE_B)){
-        if((keyreg == 0x1000) && (keyval == 0x23)){
+        if(((keyreg == 0x1000) && (keyval == 0x23)) || ((keyreg == 0x1008) && (keyval == 0x0001))){
             for(u8 gunno = 0; gunno < LCD_GUN_NUM; gunno++){
                 if((LcdData.gun[gunno].workState == SysMainStatus_StartReady) || (LcdData.gun[gunno].workState == SysMainStatus_Chrging)){
                     return;
