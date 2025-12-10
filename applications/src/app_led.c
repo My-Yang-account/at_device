@@ -156,7 +156,8 @@ static void app_led_language_2(uint8_t gunno, uint32_t *time_base, uint32_t *_ti
         }
         break;
     case APP_OFSM_STATE_FAULTING:
-        mw_led_on_only(RED_LED, gunno);
+        mw_led_off_single(GREEN_LED, gunno);
+        mw_led_on_single(RED_LED, gunno);
         break;
     default:
         mw_led_on_single(BLUE_LED, gunno);
@@ -204,7 +205,8 @@ static void app_led_language_3(uint8_t gunno, uint32_t *time_base, uint32_t *_ti
         }
         break;
     case APP_OFSM_STATE_FAULTING:
-        mw_led_on_only(RED_LED, gunno);
+        mw_led_off_single(GREEN_LED, gunno);
+        mw_led_on_single(RED_LED, gunno);
         break;
     default:
         mw_led_on_single(BLUE_LED, gunno);
