@@ -2519,6 +2519,20 @@ void sgcc_chargepile_request_padding_bms_data(uint8_t gunno, uint8_t init)
 
     if(init){
         uint8_t valid_len = sizeof(base->transaction_number);
+
+        evs_property_BMSs[gunno].socVal = 0x00;
+        evs_property_BMSs[gunno].BMSVer = SGCC_OPSCTL_ACTION;
+        evs_property_BMSs[gunno].BMSMaxVol = 0x00;
+        evs_property_BMSs[gunno].batType = 99;
+        evs_property_BMSs[gunno].batRatedCap = 0x00;
+        evs_property_BMSs[gunno].batRatedTotalVol = 0x00;
+        evs_property_BMSs[gunno].singlBatMaxAllowVol = 0x00;
+        evs_property_BMSs[gunno].maxAllowCur = 4000;
+        evs_property_BMSs[gunno].battotalEnergy = 0x00;
+        evs_property_BMSs[gunno].maxVol = 0x00;
+        evs_property_BMSs[gunno].maxTemp = 0x00;
+        evs_property_BMSs[gunno].batCurVol = 0x00;
+
         valid_len = valid_len > EVS_MAX_TRADE_LEN ? EVS_MAX_TRADE_LEN : valid_len;
         memset(evs_property_BMSs[gunno].preTradeNo, 0x00, EVS_MAX_TRADE_LEN);
         memcpy(evs_property_BMSs[gunno].preTradeNo, base->transaction_number, valid_len);
@@ -3592,7 +3606,7 @@ uint16_t sgcc_chargepile_fault_converted(uint16_t bit, uint8_t *rank)
             *rank = 0x01;
         }
         return NETSGCC_DCA_REASON3047_DC_FUSE;
-    case APP_SYS_FAULT_MAIN_CABINET :
+    case APP_SYSTEM_STOP_WAY_MAIN_CABINET_OFFLINE :
         if(rank){
             *rank = 0x01;
         }
@@ -3861,7 +3875,7 @@ static uint16_t sgcc_chargepile_stop_reason_converted(void *handle, uint16_t rea
             _reason = NETSGCC_DCA_REASON7017_FUSE;
             break;
         /* 主机柜故障 */
-        case APP_SYSTEM_STOP_WAY_MAIN_CABINET:
+        case APP_SYSTEM_STOP_WAY_MAIN_CABINET_OFFLINE:
             _reason = NETSGCC_DCA_REASON7019_MAIN_CABINET_FAULT;
             break;
         /* 宇通BFC */

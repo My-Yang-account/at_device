@@ -1714,6 +1714,19 @@ void ycp_chargepile_request_padding_bmscommand_chargerout(uint8_t gunno, uint8_t
         uint8_t valid_len = 0x00;
         System_BaseData *base = (System_BaseData*)(s_ycp_handle->get_base_data(gunno));
 
+        g_ycp_preq_bmscommand_chargerout[gunno].body.bms_volt_command = 0x00;
+        g_ycp_preq_bmscommand_chargerout[gunno].body.bms_curr_command = 0x00;
+        g_ycp_preq_bmscommand_chargerout[gunno].body.bms_charge_mode = 0x00;
+        g_ycp_preq_bmscommand_chargerout[gunno].body.bms_volt_measure_value = 0x00;
+        g_ycp_preq_bmscommand_chargerout[gunno].body.bms_curr_measure_value = 0x00;
+        g_ycp_preq_bmscommand_chargerout[gunno].body.bms_max_single_bat_volt = 0x00;
+        g_ycp_preq_bmscommand_chargerout[gunno].body.max_single_bat_volt_gn = 0x00;
+        g_ycp_preq_bmscommand_chargerout[gunno].body.bms_current_soc = 0x00;
+        g_ycp_preq_bmscommand_chargerout[gunno].body.bms_remain_charge_time = 0x00;
+        g_ycp_preq_bmscommand_chargerout[gunno].body.pile_output_volt = 0x00;
+        g_ycp_preq_bmscommand_chargerout[gunno].body.pile_output_curr = 0x00;
+        g_ycp_preq_bmscommand_chargerout[gunno].body.charge_time = 0x00;
+
         valid_len = sizeof(g_ycp_preq_bmscommand_chargerout[gunno].body.serial_number);
         valid_len = valid_len > sizeof(base->transaction_number) ? sizeof(base->transaction_number) : valid_len;
         memset(g_ycp_preq_bmscommand_chargerout[gunno].body.serial_number, 0x00, sizeof(g_ycp_preq_bmscommand_chargerout[gunno].body.serial_number));
@@ -1761,6 +1774,19 @@ void ycp_chargepile_request_padding_bmsinfo_duringcharge(uint8_t gunno, uint8_t 
     if(is_init){
         uint8_t valid_len = 0x00;
         System_BaseData *base = (System_BaseData*)(s_ycp_handle->get_base_data(gunno));
+
+        g_ycp_preq_bms_info[gunno].body.bms_max_single_volt_bat_number = 0;
+        g_ycp_preq_bms_info[gunno].body.bms_bat_temp_max = 0;
+        g_ycp_preq_bms_info[gunno].body.bat_temp_max_measure_number = 0;
+        g_ycp_preq_bms_info[gunno].body.bms_bat_temp_min = 0;
+        g_ycp_preq_bms_info[gunno].body.bat_temp_min_measure_number = 0;
+        g_ycp_preq_bms_info[gunno].body.bms_single_volt = 0;
+        g_ycp_preq_bms_info[gunno].body.bms_bat_soc = 0;
+        g_ycp_preq_bms_info[gunno].body.bms_bat_curr = 0;
+        g_ycp_preq_bms_info[gunno].body.bms_bat_temp = 0;
+        g_ycp_preq_bms_info[gunno].body.bms_bat_isolate = 0;
+        g_ycp_preq_bms_info[gunno].body.bms_bat_output_linker = 0;
+        g_ycp_preq_bms_info[gunno].body.charge_forbid = 0;
 
         valid_len = sizeof(g_ycp_preq_bms_info[gunno].body.serial_number);
         valid_len = valid_len > sizeof(base->transaction_number) ? sizeof(base->transaction_number) : valid_len;
