@@ -550,7 +550,7 @@ int32_t ethch395_cmd_set_func_para(uint8_t para)
 int32_t ethch395_cmd_init(void)
 {
     int32_t res = 0x00;
-    uint32_t stime = rt_tick_get();
+    uint32_t stime = 0x00;
 
     ethch395_enter_critical();
 
@@ -558,6 +558,7 @@ int32_t ethch395_cmd_init(void)
 
     ethch395_exit_critical();
 
+    stime = rt_tick_get();
     while(1){
         if(stime > rt_tick_get()){
             stime = rt_tick_get();
@@ -591,7 +592,7 @@ int32_t ethch395_cmd_init(void)
 int32_t ethch395_cmd_set_dhcp_status(uint8_t status)
 {
     int32_t res = 0x00;
-    uint32_t stime = rt_tick_get();
+    uint32_t stime = 0x00;
 
     ethch395_enter_critical();
 
@@ -604,6 +605,7 @@ int32_t ethch395_cmd_set_dhcp_status(uint8_t status)
 
     ethch395_exit_critical();
 
+    stime = rt_tick_get();
     while(1){
         if(stime > rt_tick_get()){
             stime = rt_tick_get();
@@ -944,7 +946,7 @@ int32_t ethch395_cmd_open_socket(uint8_t fd)
     }
 
     int32_t res = 0x00;
-    uint32_t stime = rt_tick_get();
+    uint32_t stime = 0x00;
 
     ethch395_enter_critical();
 
@@ -953,6 +955,7 @@ int32_t ethch395_cmd_open_socket(uint8_t fd)
 
     ethch395_exit_critical();
 
+    stime = rt_tick_get();
     while(1){
         if(stime > rt_tick_get()){
             stime = rt_tick_get();
@@ -993,7 +996,7 @@ int32_t ethch395_cmd_connect_socket(uint8_t fd)
     }
 
     int32_t res = 0x00;
-    uint32_t stime = rt_tick_get();
+    uint32_t stime = 0x00;
 
     ethch395_enter_critical();
 
@@ -1002,6 +1005,7 @@ int32_t ethch395_cmd_connect_socket(uint8_t fd)
 
     ethch395_exit_critical();
 
+    stime = rt_tick_get();
     while(1){
         if(stime > rt_tick_get()){
             stime = rt_tick_get();
@@ -1155,7 +1159,7 @@ int32_t ethch395_cmd_close_socket(uint8_t fd)
     }
 
     int32_t res = 0x00;
-    uint32_t stime = rt_tick_get();
+    uint32_t stime = 0x00;
 
     ethch395_enter_critical();
 
@@ -1164,6 +1168,7 @@ int32_t ethch395_cmd_close_socket(uint8_t fd)
 
     ethch395_exit_critical();
 
+    stime = rt_tick_get();
     while(1){
         if(stime > rt_tick_get()){
             stime = rt_tick_get();
@@ -1206,7 +1211,7 @@ int32_t ethch395_cmd_disconnect_tcp(uint8_t fd)
 #endif
 
     int32_t res = 0x00;
-    uint32_t stime = rt_tick_get();
+    uint32_t stime = 0x00;
 
     ethch395_enter_critical();
 
@@ -1215,6 +1220,7 @@ int32_t ethch395_cmd_disconnect_tcp(uint8_t fd)
 
     ethch395_exit_critical();
 
+    stime = rt_tick_get();
     while(1){
         if(stime > rt_tick_get()){
             stime = rt_tick_get();

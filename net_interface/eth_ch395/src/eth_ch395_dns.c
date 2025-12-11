@@ -344,7 +344,11 @@ void ethch395_config_dns_ip(uint8_t *ip, uint8_t iplen)
     if((ip == NULL) || (iplen < 0x04)){   /** 点分十进制式 */
         return;
     }
-
+    /** 默认使用 8.8.8.8 的DNS */
+    ip[0x00] = 0x08;
+    ip[0x01] = 0x08;
+    ip[0x02] = 0x08;
+    ip[0x03] = 0x08;
     memcpy(s_ethch395_dns_ip, ip, sizeof(s_ethch395_dns_ip));
 }
 
