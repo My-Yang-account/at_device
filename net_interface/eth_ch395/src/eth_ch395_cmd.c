@@ -100,6 +100,8 @@ ETH_DEF_SRAM2 static struct ethch395_info s_ethch395_info = {
  * **********************************************/
 void ethch395_cmd_info_init(void)
 {
+    memset(&s_ethch395_info, 0x00, sizeof(s_ethch395_info));
+
     s_ethch395_info.socket[0x00].rbuf_block_num = 0x06;
     s_ethch395_info.socket[0x00].sbuf_block_num = 0x03;
 

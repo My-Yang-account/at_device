@@ -1536,6 +1536,9 @@ int32_t ethch395_device_reset(void)
     s_ethch395_assistant_info.flag.error = ETHCH395_ENUM_FALSE;
     s_ethch395_assistant_info.flag.init_complete = ETHCH395_ENUM_FALSE;
 
+    s_ethch395_globe_int->bit.phy_changed = ETHCH395_ENUM_FALSE;
+    s_ethch395_globe_int->bit.dhcp = ETHCH395_ENUM_FALSE;
+
     ethch395_netdev_ctrl(ETHCH395_NETDEV_CTRL_BAUDRATE, &baudrate, sizeof(baudrate));
 
     ret = ethch395_netdev_ctrl(ETHCH395_NETDEV_CTRL_HARDRESET, NULL, 0x00);
