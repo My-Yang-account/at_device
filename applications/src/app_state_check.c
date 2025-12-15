@@ -13,7 +13,9 @@
 #include "chargepile_config.h"
 #include "thaisen7102Public.h"
 #include "thaisenChargModuleLib.h"
+#include "thaisenChargLib.h"
 #include "mw_meter.h"
+#include "mw_charge_control.h"
 
 #define APP_STATE_CHECK_PERIOD           100  /** 状态检测周期(ms) */
 #define APP_CTRL_CHECK_PERIOD            100  /** 控制检测周期(ms) */
@@ -336,9 +338,8 @@ static void app_out_uv_check(uint8_t gunno)
     }
     uint32_t config_uv_value = app_get_config_out_uv_value(gunno);
     uint32_t out_volt_value = app_get_out_volt_value(gunno);
-    struct ofsm_info *ofsm = get_ofsm_info(gunno);
 
-    if((ofsm->state != APP_OFSM_STATE_CHARGING) || (thaisen_get_charging_pause_activate(gunno) == thaisenChargingPause)){
+    if((mw_get_charge_library_state(gunno) != APP_CHARGE_CTRL_CCS) || (thaisen_get_charging_pause_activate(gunno) == thaisenChargingPause)){
         s_state_check[gunno].out_uv_step = APP_OUT_UV_STEP_NORMAL;
         s_state_check[gunno].out_uv_count = 0x00;
         /** 清除故障 */
