@@ -5407,6 +5407,14 @@ void SerialScreen_CmdDebugInfoSet(void)
                 LcdData.setData.DebugCmdPara_CC4V_MinTemp[i] = LcdData.setData.DebugCmdPara_CC4V_Min[i];
             }
             /** 在此设置CC1上下限 */
+            thaisen_set_CC12V_Uplimit(i, LcdData.setData.DebugCmdPara_CC12V_Max[i]);
+            thaisen_set_CC12V_Lowlimit(i, LcdData.setData.DebugCmdPara_CC12V_Min[i]);
+
+            thaisen_set_CC6V_Uplimit(i, LcdData.setData.DebugCmdPara_CC6V_Max[i]);
+            thaisen_set_CC6V_Lowlimit(i, LcdData.setData.DebugCmdPara_CC6V_Min[i]);
+
+            thaisen_set_CC4V_Uplimit(i, LcdData.setData.DebugCmdPara_CC4V_Max[i]);
+            thaisen_set_CC4V_Lowlimit(i, LcdData.setData.DebugCmdPara_CC4V_Min[i]);
         }
     }
 
@@ -5636,9 +5644,16 @@ void SerialScreen_CmdDebugInfoGet(void)
             LcdData.setData.DebugCmdPara_CC4V_Max[i] = CHARGEPILE_CC4V_MAX_DEF;
             LcdData.setData.DebugCmdPara_CC4V_Min[i] = CHARGEPILE_CC4V_MIN_DEF;
         }
-    }
+        /** 在此设置CC1上下限 */
+        thaisen_set_CC12V_Uplimit(i, LcdData.setData.DebugCmdPara_CC12V_Max[i]);
+        thaisen_set_CC12V_Lowlimit(i, LcdData.setData.DebugCmdPara_CC12V_Min[i]);
 
-    /** 在此设置CC1上下限 */
+        thaisen_set_CC6V_Uplimit(i, LcdData.setData.DebugCmdPara_CC6V_Max[i]);
+        thaisen_set_CC6V_Lowlimit(i, LcdData.setData.DebugCmdPara_CC6V_Min[i]);
+
+        thaisen_set_CC4V_Uplimit(i, LcdData.setData.DebugCmdPara_CC4V_Max[i]);
+        thaisen_set_CC4V_Lowlimit(i, LcdData.setData.DebugCmdPara_CC4V_Min[i]);
+    }
 
     LcdData.setData.DebugCmdPara_MCMinTemp = LcdData.setData.DebugCmdPara_MCMin;
     LcdData.setData.DebugCmdPara_MCMaxTemp = LcdData.setData.DebugCmdPara_MCMax;
@@ -11925,6 +11940,15 @@ struct LCD_DATA_FIFO_TYPE *SerialScreen_Init(struct SerialScreenObj *cmd)
             LcdData.setData.DebugCmdPara_CC4V_Max[i] = CHARGEPILE_CC4V_MAX_DEF;
             LcdData.setData.DebugCmdPara_CC4V_Min[i] = CHARGEPILE_CC4V_MIN_DEF;
         }
+        /** 在此设置CC1上下限 */
+        thaisen_set_CC12V_Uplimit(i, LcdData.setData.DebugCmdPara_CC12V_Max[i]);
+        thaisen_set_CC12V_Lowlimit(i, LcdData.setData.DebugCmdPara_CC12V_Min[i]);
+
+        thaisen_set_CC6V_Uplimit(i, LcdData.setData.DebugCmdPara_CC6V_Max[i]);
+        thaisen_set_CC6V_Lowlimit(i, LcdData.setData.DebugCmdPara_CC6V_Min[i]);
+
+        thaisen_set_CC4V_Uplimit(i, LcdData.setData.DebugCmdPara_CC4V_Max[i]);
+        thaisen_set_CC4V_Lowlimit(i, LcdData.setData.DebugCmdPara_CC4V_Min[i]);
     }
     memcpy(LcdData.setData.DebugCmdPara_CC12V_MaxTemp, LcdData.setData.DebugCmdPara_CC12V_Max, sizeof(LcdData.setData.DebugCmdPara_CC12V_Max));
     memcpy(LcdData.setData.DebugCmdPara_CC12V_MinTemp, LcdData.setData.DebugCmdPara_CC12V_Min, sizeof(LcdData.setData.DebugCmdPara_CC12V_Min));
@@ -11934,8 +11958,6 @@ struct LCD_DATA_FIFO_TYPE *SerialScreen_Init(struct SerialScreenObj *cmd)
 
     memcpy(LcdData.setData.DebugCmdPara_CC4V_MaxTemp, LcdData.setData.DebugCmdPara_CC4V_Max, sizeof(LcdData.setData.DebugCmdPara_CC4V_Max));
     memcpy(LcdData.setData.DebugCmdPara_CC4V_MinTemp, LcdData.setData.DebugCmdPara_CC4V_Min, sizeof(LcdData.setData.DebugCmdPara_CC4V_Min));
-
-    /** 在此设置CC1上下限 */
 
     if(LcdData.setData.AllocWay >= POWER_ALLOCATION_WAY_SIZE){        /* 功率分配默认使用先到先得 */
         LcdData.setData.AllocWay = POWER_ALLOCATION_WAY_SEQ_PRIORITY;
