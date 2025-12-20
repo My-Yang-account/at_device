@@ -3754,6 +3754,10 @@ void SerialScreen_BtnChgInfoSet(int port)
     LcdAssistantData.Flag.IsConfigFail = TRUE;
     if(UI_STORAGE_CFG_DATA >= 0){
         LcdAssistantData.Flag.IsConfigFail = FALSE;
+        /* 保存成功时不进行切页 */
+        if(LcdData.CurrentPage != LcdData.CurrentPageBack){
+            LcdData.CurrentPage = LcdData.CurrentPageBack;
+        }
     }
 
     str_ncpy((char *)(LcdData.runData.pileID), (char *)(LcdData.setData.pileID), \
@@ -3855,6 +3859,10 @@ void SerialScreen_BtnMeterNoInfoSet(void)
     LcdAssistantData.Flag.IsConfigFail = TRUE;
     if(UI_STORAGE_CFG_DATA >= 0){
         LcdAssistantData.Flag.IsConfigFail = FALSE;
+        /* 保存成功时不进行切页 */
+        if(LcdData.CurrentPage != LcdData.CurrentPageBack){
+            LcdData.CurrentPage = LcdData.CurrentPageBack;
+        }
     }
 
     SerialScreen_SetMeterInfo();
@@ -3999,6 +4007,10 @@ void SerialScreen_BtnServerSet(void)
     LcdAssistantData.Flag.IsConfigFail = TRUE;
     if(UI_STORAGE_CFG_DATA >= 0){
         LcdAssistantData.Flag.IsConfigFail = FALSE;
+        /* 保存成功时不进行切页 */
+        if(LcdData.CurrentPage != LcdData.CurrentPageBack){
+            LcdData.CurrentPage = LcdData.CurrentPageBack;
+        }
     }
 
 	sSCREEN_EVENT_DEBUGMSG("##########svrIp=%s svrPort=%d###########\r\n",LcdData.setData.svrIp,LcdData.setData.svrPort);
@@ -4019,6 +4031,10 @@ void SerialScreen_BtnVinListSet(void)
     LcdAssistantData.Flag.IsConfigFail = TRUE;
     if(UI_STORAGE_CFG_DATA >= 0){
         LcdAssistantData.Flag.IsConfigFail = FALSE;
+        /* 保存成功时不进行切页 */
+        if(LcdData.CurrentPage != LcdData.CurrentPageBack){
+            LcdData.CurrentPage = LcdData.CurrentPageBack;
+        }
     }
 }
 
@@ -4351,6 +4367,10 @@ void SerialScreen_BtnModuleSet(void)
     LcdAssistantData.Flag.IsConfigFail = TRUE;
     if(UI_STORAGE_CFG_DATA >= 0){
         LcdAssistantData.Flag.IsConfigFail = FALSE;
+        /* 保存成功时不进行切页 */
+        if(LcdData.CurrentPage != LcdData.CurrentPageBack){
+            LcdData.CurrentPage = LcdData.CurrentPageBack;
+        }
     }
 
     power = thaisen_get_power_from_percent(thaisen_get_power_percent());
@@ -4359,6 +4379,10 @@ void SerialScreen_BtnModuleSet(void)
     LcdAssistantData.Flag.IsConfigFail = TRUE;
     if(UI_STORAGE_CFG_DATA >= 0){
         LcdAssistantData.Flag.IsConfigFail = FALSE;
+        /* 保存成功时不进行切页 */
+        if(LcdData.CurrentPage != LcdData.CurrentPageBack){
+            LcdData.CurrentPage = LcdData.CurrentPageBack;
+        }
     }
 
     extern void thaisenSetModuleMaxVolt(uint16_t volt);
@@ -4508,6 +4532,10 @@ void SerialScreen_BtnSystemFuncSet(void)
     LcdAssistantData.Flag.IsConfigFail = TRUE;
     if(UI_STORAGE_CFG_DATA >= 0){
         LcdAssistantData.Flag.IsConfigFail = FALSE;
+        /* 保存成功时不进行切页 */
+        if(LcdData.CurrentPage != LcdData.CurrentPageBack){
+            LcdData.CurrentPage = LcdData.CurrentPageBack;
+        }
     }
 
 //    thaisenSetAllocateStrategy(LcdData.setData.AllocWay);
@@ -4745,6 +4773,10 @@ void SerialScreen_BtnProtectInfoSet(void)
     LcdAssistantData.Flag.IsConfigFail = TRUE;
     if(UI_STORAGE_CFG_DATA >= 0){
         LcdAssistantData.Flag.IsConfigFail = FALSE;
+        /* 保存成功时不进行切页 */
+        if(LcdData.CurrentPage != LcdData.CurrentPageBack){
+            LcdData.CurrentPage = LcdData.CurrentPageBack;
+        }
     }
 
     LcdAssistantData.Flag.IsSetPowerPercent = TRUE;
@@ -5496,6 +5528,10 @@ void SerialScreen_CmdDebugInfoSet(void)
         LcdAssistantData.Flag.IsConfigFail = TRUE;
         if(UI_STORAGE_CFG_DATA >= 0){
             LcdAssistantData.Flag.IsConfigFail = FALSE;
+            /* 保存成功时不进行切页 */
+            if(LcdData.CurrentPage != LcdData.CurrentPageBack){
+                LcdData.CurrentPage = LcdData.CurrentPageBack;
+            }
         }
     }
 }
@@ -6146,6 +6182,10 @@ void SerialScreen_OtherInfoSet(void)
     LcdAssistantData.Flag.IsConfigFail = TRUE;
     if(UI_STORAGE_CFG_DATA >= 0){
         LcdAssistantData.Flag.IsConfigFail = FALSE;
+        /* 保存成功时不进行切页 */
+        if(LcdData.CurrentPage != LcdData.CurrentPageBack){
+            LcdData.CurrentPage = LcdData.CurrentPageBack;
+        }
     }
     thaisen_Set_FanCtrlTime(LcdData.setData.FanWorkTime *1000);
     rt_kprintf("SerialScreen_OtherInfoSet-FanWorkTime:%d\n", LcdData.setData.FanWorkTime);
@@ -6338,6 +6378,10 @@ void SerialScreen_OfflineBillingSet(void)
     LcdAssistantData.Flag.IsConfigFail = TRUE;
     if(UI_STORAGE_CFG_DATA >= 0){
         LcdAssistantData.Flag.IsConfigFail = FALSE;
+        /* 保存成功时不进行切页 */
+        if(LcdData.CurrentPage != LcdData.CurrentPageBack){
+            LcdData.CurrentPage = LcdData.CurrentPageBack;
+        }
     }
 #endif /* SCREEN_USING_OFFLINE_BILLING */
 
@@ -6536,6 +6580,10 @@ void SerialScreen_IsSupportSetFlash(void)
     LcdAssistantData.Flag.IsConfigFail = TRUE;
     if(UI_STORAGE_CFG_DATA >= 0){
         LcdAssistantData.Flag.IsConfigFail = FALSE;
+        /* 保存成功时不进行切页 */
+        if(LcdData.CurrentPage != LcdData.CurrentPageBack){
+            LcdData.CurrentPage = LcdData.CurrentPageBack;
+        }
     }
 
     if(LcdData.setData.sup_insulation == FALSE){
@@ -6850,6 +6898,10 @@ void SerialScreen_InputSetFlash(void)
     LcdAssistantData.Flag.IsConfigFail = TRUE;
     if(UI_STORAGE_CFG_DATA >= 0){
         LcdAssistantData.Flag.IsConfigFail = FALSE;
+        /* 保存成功时不进行切页 */
+        if(LcdData.CurrentPage != LcdData.CurrentPageBack){
+            LcdData.CurrentPage = LcdData.CurrentPageBack;
+        }
     }
 
 	SerialScreen_SetInputInfo();
@@ -6977,7 +7029,12 @@ void SerialScreen_BtnModeInfoStorage(int port)
         }
     }
 #endif /* SCREEN_USING_V2G */
-    UI_STORAGE_CFG_DATA;
+    if(UI_STORAGE_CFG_DATA >= 0){
+        /* 保存成功时不进行切页 */
+        if(LcdData.CurrentPage != LcdData.CurrentPageBack){
+            LcdData.CurrentPage = LcdData.CurrentPageBack;
+        }
+    }
 }
 
 void SerialScreen_BtnModeInfoGet(u8 port)
@@ -7172,7 +7229,12 @@ void SerialScreen_BtnV2GInfoStorage(int port)
             UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_MODE_PARAMETER_B, (u8*)&parameter, sizeof(parameter));
         }
 
-        UI_STORAGE_CFG_DATA;
+        if(UI_STORAGE_CFG_DATA >= 0){
+            /* 保存成功时不进行切页 */
+            if(LcdData.CurrentPage != LcdData.CurrentPageBack){
+                LcdData.CurrentPage = LcdData.CurrentPageBack;
+            }
+        }
     }else{
         /** 模拟保存等待 */
         rt_thread_mdelay(500);    /* 目前放电模式都是单次充电有效，不需要保存 */
