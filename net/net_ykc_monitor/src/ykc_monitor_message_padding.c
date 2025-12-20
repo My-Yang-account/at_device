@@ -30,7 +30,7 @@
 #define YKC_MONITOR_FIXED_CMD_MSG_VER                     0x00                  /* 固定类型指令报文版本 */
 
 #define YKC_MONITOR_DYNAMIC_CMD_MSG_VER                   0x00                  /* 动态类型指令报文版本 */
-#define YKC_MONITOR_DYNAMIC_CMD_SINGLE_NUM                0x05                  /* 单次操作动态类型指令最大个数，超过的不执行，也不报错 */
+#define YKC_MONITOR_DYNAMIC_CMD_SINGLE_NUM                0x06                  /* 单次操作动态类型指令最大个数，超过的不执行，也不报错 */
 
 /** 接收BMS报文 */
 #define YKC_MONITOR_RECVED_MSG_BHM                       (0x01 <<0x00)          /* 是否接收到了BHM报文 */
@@ -4104,12 +4104,12 @@ int8_t ykc_monitor_message_padding_function_setup(uint8_t *buf, uint16_t ilen, u
     message->body.plug_and_play = *(sys_read_config_item_content(CONFIG_ITEM_SUPORT_PLUGCHARGE, 0x00));
     message->body.card_reader = *(sys_read_config_item_content(CONFIG_ITEM_SUPORT_CARD, 0x00));
     message->body.local_charge = *(sys_read_config_item_content(CONFIG_ITEM_SUPORT_LOCAL, 0x00));
-    message->body.cc4_uplimit = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_CC14V_MAX, 0x00));
-    message->body.cc4_downlimit = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_CC14V_MIN, 0x00));
-    message->body.cc6_uplimit = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_CC16V_MAX, 0x00));
-    message->body.cc6_downlimit = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_CC16V_MIN, 0x00));
-    message->body.cc12_uplimit = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_CC112V_MAX, 0x00));
-    message->body.cc12_downlimit = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_CC112V_MIN, 0x00));
+    message->body.cc4_uplimit = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_GUN1_CC14V_MAX, 0x00));
+    message->body.cc4_downlimit = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_GUN1_CC14V_MIN, 0x00));
+    message->body.cc6_uplimit = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_GUN1_CC16V_MAX, 0x00));
+    message->body.cc6_downlimit = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_GUN1_CC16V_MIN, 0x00));
+    message->body.cc12_uplimit = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_GUN1_CC112V_MAX, 0x00));
+    message->body.cc12_downlimit = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_GUN1_CC112V_MIN, 0x00));
 
     if(olen){
         *olen = total;
@@ -5946,12 +5946,12 @@ static int32_t ykc_monitor_config_info_process_protect_info(uint8_t option, void
         response->soc_stop = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_SOC_STOP, 0x00));
         response->power_percent = sys_get_power_percent();
         response->eloss_proportion = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_ELOSS_PROPORTION, 0x00));
-        response->cc1_12_max = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_CC112V_MAX, 0x00));
-        response->cc1_12_min = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_CC112V_MIN, 0x00));
-        response->cc1_6_max = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_CC16V_MAX, 0x00));
-        response->cc1_6_min = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_CC16V_MIN, 0x00));
-        response->cc1_4_max = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_CC14V_MAX, 0x00));
-        response->cc1_4_min = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_CC14V_MIN, 0x00));
+        response->cc1_12_max = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_GUN1_CC112V_MAX, 0x00));
+        response->cc1_12_min = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_GUN1_CC112V_MIN, 0x00));
+        response->cc1_6_max = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_GUN1_CC16V_MAX, 0x00));
+        response->cc1_6_min = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_GUN1_CC16V_MIN, 0x00));
+        response->cc1_4_max = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_GUN1_CC14V_MAX, 0x00));
+        response->cc1_4_min = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_GUN1_CC14V_MIN, 0x00));
         response->out_overvolt = (*(uint32_t*)(sys_read_config_item_content(CONFIG_ITEM_OUTPUT_OVERVOL, 0x00)) /10);
         response->out_undervolt = (*(uint32_t*)(sys_read_config_item_content(CONFIG_ITEM_OUTPUT_UNDERVOL, 0x00)) /10);
         response->in_overvolt = (*(uint32_t*)(sys_read_config_item_content(CONFIG_ITEM_INPUT_OVERVOL, 0x00)) /10);
@@ -5991,22 +5991,22 @@ static int32_t ykc_monitor_config_info_process_protect_info(uint8_t option, void
             info->eloss_proportion = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_ELOSS_PROPORTION, 0x00));
         }
         if(ykc_monitor_is_config_data_valid(&info->cc1_12_max, sizeof(info->cc1_12_max), 0x00) == NET_ENUM_FALSE){
-            info->cc1_12_max = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_CC112V_MAX, 0x00));
+            info->cc1_12_max = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_GUN1_CC112V_MAX, 0x00));
         }
         if(ykc_monitor_is_config_data_valid(&info->cc1_12_min, sizeof(info->cc1_12_min), 0x00) == NET_ENUM_FALSE){
-            info->cc1_12_min = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_CC112V_MIN, 0x00));
+            info->cc1_12_min = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_GUN1_CC112V_MIN, 0x00));
         }
         if(ykc_monitor_is_config_data_valid(&info->cc1_6_max, sizeof(info->cc1_6_max), 0x00) == NET_ENUM_FALSE){
-            info->cc1_6_max = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_CC16V_MAX, 0x00));
+            info->cc1_6_max = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_GUN1_CC16V_MAX, 0x00));
         }
         if(ykc_monitor_is_config_data_valid(&info->cc1_6_min, sizeof(info->cc1_6_min), 0x00) == NET_ENUM_FALSE){
-            info->cc1_6_min = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_CC16V_MIN, 0x00));
+            info->cc1_6_min = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_GUN1_CC16V_MIN, 0x00));
         }
         if(ykc_monitor_is_config_data_valid(&info->cc1_4_max, sizeof(info->cc1_4_max), 0x00) == NET_ENUM_FALSE){
-            info->cc1_4_max = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_CC14V_MAX, 0x00));
+            info->cc1_4_max = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_GUN1_CC14V_MAX, 0x00));
         }
         if(ykc_monitor_is_config_data_valid(&info->cc1_4_min, sizeof(info->cc1_4_min), 0x00) == NET_ENUM_FALSE){
-            info->cc1_4_min = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_CC14V_MIN, 0x00));
+            info->cc1_4_min = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_GUN1_CC14V_MIN, 0x00));
         }
         if(ykc_monitor_is_config_data_valid(&info->out_overvolt, sizeof(info->out_overvolt), 0x00) == NET_ENUM_FALSE){
             info->out_overvolt = *(uint32_t*)(sys_read_config_item_content(CONFIG_ITEM_OUTPUT_OVERVOL, 0x00));

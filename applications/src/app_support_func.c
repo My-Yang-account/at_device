@@ -2121,7 +2121,8 @@ void app_get_module_fault_info(uint8_t gunno, uint8_t language, uint8_t addr, ui
 /********************************************
  * 函数名      app_cmd_debug_result_info
  * 功能          获取获取指令调试结果信息
- * 参数          language  语言
+ * 参数          gunno        枪号
+ *         language  语言
  *         cmd       指令
  *         para      参数
  *         plen      参数长度
@@ -2129,7 +2130,7 @@ void app_get_module_fault_info(uint8_t gunno, uint8_t language, uint8_t addr, ui
  *         ilen      缓存长度
  * 返回
  *******************************************/
-void app_cmd_debug_result_info(uint8_t language, uint8_t cmd, uint8_t *para, uint8_t plen, uint8_t *buf, uint8_t ilen)
+void app_cmd_debug_result_info(uint8_t gunno, uint8_t language, uint8_t cmd, uint8_t *para, uint8_t plen, uint8_t *buf, uint8_t ilen)
 {
     if((buf == NULL) || (ilen == 0x00)){
         return;
@@ -2143,13 +2144,13 @@ void app_cmd_debug_result_info(uint8_t language, uint8_t cmd, uint8_t *para, uin
             /** 电流值最大6位:XXXX.XXA */
             curr = curr >= 1000000 ? 999999 : curr;
             if(language == THA_DEBUG_LANGUAGE_ENGLISH){
-                if(ilen <= (strlen("Issue>ModuleCurrMax:") + 0x06))
+                if(ilen <= (strlen("Issue>ModuleCurrMax:") + (uint32_t)(log10((double)curr) + 0x01) + 0x01 + 0x01))
                     return;
-                sprintf((char*)buf, "%s%d", "Issue>ModuleCurrMax:", curr);
+                sprintf((char*)buf, "%s%lu.%lu%lu%c", "Issue>ModuleCurrMax:", (curr /100), ((curr /10) %10), (curr %10), 'A');
             }else{
-                if(ilen <= (strlen("下发>模块最大输出电流：") + 0x06))
+                if(ilen <= (strlen("下发>模块最大输出电流：") + (uint32_t)(log10((double)curr) + 0x01) + 0x02 + 0x01))
                     return;
-                sprintf((char*)buf, "%s%d", "下发>模块最大输出电流：", curr);
+                sprintf((char*)buf, "%s%lu.%lu%lu%c", "下发>模块最大输出电流：", (curr /100), ((curr /10) %10), (curr %10), 'A');
             }
         }
         break;
@@ -2159,13 +2160,13 @@ void app_cmd_debug_result_info(uint8_t language, uint8_t cmd, uint8_t *para, uin
             /** 电流值最大6位:XXXX.XXA */
             curr = curr >= 1000000 ? 999999 : curr;
             if(language == THA_DEBUG_LANGUAGE_ENGLISH){
-                if(ilen <= (strlen("Issue>ModuleCurrMin:") + 0x06))
+                if(ilen <= (strlen("Issue>ModuleCurrMin:") + (uint32_t)(log10((double)curr) + 0x01) + 0x01 + 0x01))
                     return;
-                sprintf((char*)buf, "%s%d", "Issue>ModuleCurrMin:", curr);
+                sprintf((char*)buf, "%s%lu.%lu%lu%c", "Issue>ModuleCurrMin:", (curr /100), ((curr /10) %10), (curr %10), 'A');
             }else{
-                if(ilen <= (strlen("下发>模块最小输出电流：") + 0x06))
+                if(ilen <= (strlen("下发>模块最小输出电流：") + (uint32_t)(log10((double)curr) + 0x01) + 0x01 + 0x01))
                     return;
-                sprintf((char*)buf, "%s%d", "下发>模块最小输出电流：", curr);
+                sprintf((char*)buf, "%s%lu.%lu%lu%c", "下发>模块最小输出电流：", (curr /100), ((curr /10) %10), (curr %10), 'A');
             }
         }
         break;
@@ -2183,19 +2184,115 @@ void app_cmd_debug_result_info(uint8_t language, uint8_t cmd, uint8_t *para, uin
             }
         }
         break;
+    case THAISEN_DEBUG_CMD_ISSUE_CC12V_UPLIMIT:
+        if(para && (plen >= 0x04)){
+            uint32_t cc1 = *(uint32_t*)para;
+            /** CC值最大5位:XX.XXXV */
+            cc1 = cc1 >= 100000 ? 99999 : cc1;
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= (strlen("Issue>gun1 CC12UpLimit:") + (uint32_t)(log10((double)cc1) + 0x01) + 0x02 + 0x01))
+                    return;
+                sprintf((char*)buf, "%s%lu %s%lu.%lu%lu%lu%c", "Issue>gun", (uint32_t)(gunno + 0x01), "CC12UpLimit:", (cc1 /1000), ((cc1 /100) %10), ((cc1 /10) %10), (cc1 %10), 'V');
+            }else{
+                if(ilen <= (strlen("下发>枪1 CC12V上限：") + (uint32_t)(log10((double)cc1) + 0x01) + 0x02 + 0x01))
+                    return;
+                sprintf((char*)buf, "%s%lu %s%lu.%lu%lu%lu%c", "下发>枪", (uint32_t)(gunno + 0x01), "CC12V上限：", (cc1 /1000), ((cc1 /100) %10), ((cc1 /10) %10), (cc1 %10), 'V');
+            }
+        }
+        break;
+    case THAISEN_DEBUG_CMD_ISSUE_CC12V_LOWLIMIT:
+        if(para && (plen >= 0x04)){
+            uint32_t cc1 = *(uint32_t*)para;
+            /** CC值最大5位:XX.XXXV */
+            cc1 = cc1 >= 100000 ? 99999 : cc1;
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= (strlen("Issue>gun1 CC12LowLimit:") + (uint32_t)(log10((double)cc1) + 0x01) + 0x02 + 0x01))
+                    return;
+                sprintf((char*)buf, "%s%lu %s%lu.%lu%lu%lu%c", "Issue>gun", (uint32_t)(gunno + 0x01), "CC12LowLimit:", (cc1 /1000), ((cc1 /100) %10), ((cc1 /10) %10), (cc1 %10), 'V');
+            }else{
+                if(ilen <= (strlen("下发>枪1 CC12V下限：") + (uint32_t)(log10((double)cc1) + 0x01) + 0x02 + 0x01))
+                    return;
+                sprintf((char*)buf, "%s%lu %s%lu.%lu%lu%lu%c", "下发>枪", (uint32_t)(gunno + 0x01), "CC12V下限：", (cc1 /1000), ((cc1 /100) %10), ((cc1 /10) %10), (cc1 %10), 'V');
+            }
+        }
+        break;
+    case THAISEN_DEBUG_CMD_ISSUE_CC6V_UPLIMIT:
+        if(para && (plen >= 0x04)){
+            uint32_t cc1 = *(uint32_t*)para;
+            /** CC值最大5位:XX.XXXV */
+            cc1 = cc1 >= 100000 ? 99999 : cc1;
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= (strlen("Issue>gun1 CC6UpLimit:") + (uint32_t)(log10((double)cc1) + 0x01) + 0x02 + 0x01))
+                    return;
+                sprintf((char*)buf, "%s%lu %s%lu.%lu%lu%lu%c", "Issue>gun", (uint32_t)(gunno + 0x01), "CC6UpLimit:", (cc1 /1000), ((cc1 /100) %10), ((cc1 /10) %10), (cc1 %10), 'V');
+            }else{
+                if(ilen <= (strlen("下发>枪1 CC6V上限：") + (uint32_t)(log10((double)cc1) + 0x01) + 0x02 + 0x01))
+                    return;
+                sprintf((char*)buf, "%s%lu %s%lu.%lu%lu%lu%c", "下发>枪", (uint32_t)(gunno + 0x01), "CC6V上限：", (cc1 /1000), ((cc1 /100) %10), ((cc1 /10) %10), (cc1 %10), 'V');
+            }
+        }
+        break;
+    case THAISEN_DEBUG_CMD_ISSUE_CC6V_LOWLIMIT:
+        if(para && (plen >= 0x04)){
+            uint32_t cc1 = *(uint32_t*)para;
+            /** CC值最大5位:XX.XXXV */
+            cc1 = cc1 >= 100000 ? 99999 : cc1;
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= (strlen("Issue>gun1 CC6LowLimit:") + (uint32_t)(log10((double)cc1) + 0x01) + 0x02 + 0x01))
+                    return;
+                sprintf((char*)buf, "%s%lu %s%lu.%lu%lu%lu%c", "Issue>gun", (uint32_t)(gunno + 0x01), "CC6LowLimit:", (cc1 /1000), ((cc1 /100) %10), ((cc1 /10) %10), (cc1 %10), 'V');
+            }else{
+                if(ilen <= (strlen("下发>枪1 CC6V下限：") + (uint32_t)(log10((double)cc1) + 0x01) + 0x02 + 0x01))
+                    return;
+                sprintf((char*)buf, "%s%lu %s%lu.%lu%lu%lu%c", "下发>枪", (uint32_t)(gunno + 0x01), "CC6V下限：", (cc1 /1000), ((cc1 /100) %10), ((cc1 /10) %10), (cc1 %10), 'V');
+            }
+        }
+        break;
+    case THAISEN_DEBUG_CMD_ISSUE_CC4V_UPLIMIT:
+        if(para && (plen >= 0x04)){
+            uint32_t cc1 = *(uint32_t*)para;
+            /** CC值最大5位:XX.XXXV */
+            cc1 = cc1 >= 100000 ? 99999 : cc1;
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= (strlen("Issue>gun1 CC4UpLimit:") + (uint32_t)(log10((double)cc1) + 0x01) + 0x02 + 0x01))
+                    return;
+                sprintf((char*)buf, "%s%lu %s%lu.%lu%lu%lu%c", "Issue>gun", (uint32_t)(gunno + 0x01), "CC4UpLimit:", (cc1 /1000), ((cc1 /100) %10), ((cc1 /10) %10), (cc1 %10), 'V');
+            }else{
+                if(ilen <= (strlen("下发>枪1 CC4V上限：") + (uint32_t)(log10((double)cc1) + 0x01) + 0x02 + 0x01))
+                    return;
+                sprintf((char*)buf, "%s%lu %s%lu.%lu%lu%lu%c", "下发>枪", (uint32_t)(gunno + 0x01), "CC4V上限：", (cc1 /1000), ((cc1 /100) %10), ((cc1 /10) %10), (cc1 %10), 'V');
+            }
+        }
+        break;
+    case THAISEN_DEBUG_CMD_ISSUE_CC4V_LOWLIMIT:
+        if(para && (plen >= 0x04)){
+            uint32_t cc1 = *(uint32_t*)para;
+            /** CC值最大5位:XX.XXXV */
+            cc1 = cc1 >= 100000 ? 99999 : cc1;
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= (strlen("Issue>gun1 CC4LowLimit:") + (uint32_t)(log10((double)cc1) + 0x01) + 0x02 + 0x01))
+                    return;
+                sprintf((char*)buf, "%s%lu %s%lu.%lu%lu%lu%c", "Issue>gun", (uint32_t)(gunno + 0x01), "CC4LowLimit:", (cc1 /1000), ((cc1 /100) %10), ((cc1 /10) %10), (cc1 %10), 'V');
+            }else{
+                if(ilen <= (strlen("下发>枪1 CC4V下限：") + (uint32_t)(log10((double)cc1) + 0x01) + 0x02 + 0x01))
+                    return;
+                sprintf((char*)buf, "%s%lu %s%lu.%lu%lu%lu%c", "下发>枪", (uint32_t)(gunno + 0x01), "CC4V下限：", (cc1 /1000), ((cc1 /100) %10), ((cc1 /10) %10), (cc1 %10), 'V');
+            }
+        }
+        break;
     case THAISEN_DEBUG_CMD_READ_MODULE_CURR_MAX:
         if(para && (plen >= 0x04)){
             uint32_t curr = *(uint32_t*)para;
             /** 电流值最大6位:XXXX.XXA */
             curr = curr >= 1000000 ? 999999 : curr;
             if(language == THA_DEBUG_LANGUAGE_ENGLISH){
-                if(ilen <= (strlen("Read>ModuleCurrMax:") + 0x06))
+                if(ilen <= (strlen("Read>ModuleCurrMax:") + (uint32_t)(log10((double)curr) + 0x01) + 0x01 + 0x01))
                     return;
-                sprintf((char*)buf, "%s%d", "Read>ModuleCurrMax:", curr);
+                sprintf((char*)buf, "%s%lu.%lu%lu%c", "Read>ModuleCurrMax:", (curr /100), ((curr /10) %10), (curr %10), 'A');
             }else{
-                if(ilen <= (strlen("读取>模块最大输出电流：") + 0x06))
+                if(ilen <= (strlen("读取>模块最大输出电流：") + (uint32_t)(log10((double)curr) + 0x01) + 0x02 + 0x01))
                     return;
-                sprintf((char*)buf, "%s%d", "读取>模块最大输出电流：", curr);
+                sprintf((char*)buf, "%s%lu.%lu%lu%c", "读取>模块最大输出电流：", (curr /100), ((curr /10) %10), (curr %10), 'A');
             }
         }
         break;
@@ -2205,13 +2302,13 @@ void app_cmd_debug_result_info(uint8_t language, uint8_t cmd, uint8_t *para, uin
             /** 电流值最大6位:XXXX.XXA */
             curr = curr >= 1000000 ? 999999 : curr;
             if(language == THA_DEBUG_LANGUAGE_ENGLISH){
-                if(ilen <= (strlen("Read>ModuleCurrMin:") + 0x06))
+                if(ilen <= (strlen("Read>ModuleCurrMin:") + (uint32_t)(log10((double)curr) + 0x01) + 0x01 + 0x01))
                     return;
-                sprintf((char*)buf, "%s%d", "Read>ModuleCurrMin:", curr);
+                sprintf((char*)buf, "%s%lu.%lu%lu%c", "Read>ModuleCurrMin:", (curr /100), ((curr /10) %10), (curr %10), 'A');
             }else{
-                if(ilen <= (strlen("读取>模块最小输出电流：") + 0x06))
+                if(ilen <= (strlen("读取>模块最小输出电流：") + (uint32_t)(log10((double)curr) + 0x01) + 0x02 + 0x01))
                     return;
-                sprintf((char*)buf, "%s%d", "读取>模块最小输出电流：", curr);
+                sprintf((char*)buf, "%s%lu.%lu%lu%c", "读取>模块最小输出电流：", (curr /100), ((curr /10) %10), (curr %10), 'A');
             }
         }
         break;
@@ -2226,6 +2323,102 @@ void app_cmd_debug_result_info(uint8_t language, uint8_t cmd, uint8_t *para, uin
                 if(ilen <= (strlen("读取>灯语-") + 0x01))
                     return;
                 sprintf((char*)buf, "%s%d", "读取>灯语-", number);
+            }
+        }
+        break;
+    case THAISEN_DEBUG_CMD_READ_CC12V_UPLIMIT:
+        if(para && (plen >= 0x04)){
+            uint32_t cc1 = *(uint32_t*)para;
+            /** CC值最大5位:XX.XXXV */
+            cc1 = cc1 >= 100000 ? 99999 : cc1;
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= (strlen("Read>gun1 CC12UpLimit:") + (uint32_t)(log10((double)cc1) + 0x01) + 0x02 + 0x01))
+                    return;
+                sprintf((char*)buf, "%s%lu %s%lu.%lu%lu%lu%c", "Read>gun", (uint32_t)(gunno + 0x01), "CC12UpLimit:", (cc1 /1000), ((cc1 /100) %10), ((cc1 /10) %10), (cc1 %10), 'V');
+            }else{
+                if(ilen <= (strlen("读取>枪1 CC12V上限：") + (uint32_t)(log10((double)cc1) + 0x01) + 0x02 + 0x01))
+                    return;
+                sprintf((char*)buf, "%s%lu %s%lu.%lu%lu%lu%c", "读取>枪", (uint32_t)(gunno + 0x01), "CC12V上限：", (cc1 /1000), ((cc1 /100) %10), ((cc1 /10) %10), (cc1 %10), 'V');
+            }
+        }
+        break;
+    case THAISEN_DEBUG_CMD_READ_CC12V_LOWLIMIT:
+        if(para && (plen >= 0x04)){
+            uint32_t cc1 = *(uint32_t*)para;
+            /** CC值最大5位:XX.XXXV */
+            cc1 = cc1 >= 100000 ? 99999 : cc1;
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= (strlen("Read>gun1 CC12LowLimit:") + (uint32_t)(log10((double)cc1) + 0x01) + 0x02 + 0x01))
+                    return;
+                sprintf((char*)buf, "%s%lu %s%lu.%lu%lu%lu%c", "Read>gun", (uint32_t)(gunno + 0x01), "CC12LowLimit:", (cc1 /1000), ((cc1 /100) %10), ((cc1 /10) %10), (cc1 %10), 'V');
+            }else{
+                if(ilen <= (strlen("读取>枪1 CC12V下限：") + (uint32_t)(log10((double)cc1) + 0x01) + 0x02 + 0x01))
+                    return;
+                sprintf((char*)buf, "%s%lu %s%lu.%lu%lu%lu%c", "读取>枪", (uint32_t)(gunno + 0x01), "CC12V下限：", (cc1 /1000), ((cc1 /100) %10), ((cc1 /10) %10), (cc1 %10), 'V');
+            }
+        }
+        break;
+    case THAISEN_DEBUG_CMD_READ_CC6V_UPLIMIT:
+        if(para && (plen >= 0x04)){
+            uint32_t cc1 = *(uint32_t*)para;
+            /** CC值最大5位:XX.XXXV */
+            cc1 = cc1 >= 100000 ? 99999 : cc1;
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= (strlen("Read>gun1 CC6UpLimit:") + (uint32_t)(log10((double)cc1) + 0x01) + 0x02 + 0x01))
+                    return;
+                sprintf((char*)buf, "%s%lu %s%lu.%lu%lu%lu%c", "Read>gun", (uint32_t)(gunno + 0x01), "CC6UpLimit:", (cc1 /1000), ((cc1 /100) %10), ((cc1 /10) %10), (cc1 %10), 'V');
+            }else{
+                if(ilen <= (strlen("读取>枪1 CC6V上限：") + (uint32_t)(log10((double)cc1) + 0x01) + 0x02 + 0x01))
+                    return;
+                sprintf((char*)buf, "%s%lu %s%lu.%lu%lu%lu%c", "读取>枪", (uint32_t)(gunno + 0x01), "CC6V上限：", (cc1 /1000), ((cc1 /100) %10), ((cc1 /10) %10), (cc1 %10), 'V');
+            }
+        }
+        break;
+    case THAISEN_DEBUG_CMD_READ_CC6V_LOWLIMIT:
+        if(para && (plen >= 0x04)){
+            uint32_t cc1 = *(uint32_t*)para;
+            /** CC值最大5位:XX.XXXV */
+            cc1 = cc1 >= 100000 ? 99999 : cc1;
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= (strlen("Read>gun1 CC6LowLimit:") + (uint32_t)(log10((double)cc1) + 0x01) + 0x02 + 0x01))
+                    return;
+                sprintf((char*)buf, "%s%lu %s%lu.%lu%lu%lu%c", "Read>gun", (uint32_t)(gunno + 0x01), "CC6LowLimit:", (cc1 /1000), ((cc1 /100) %10), ((cc1 /10) %10), (cc1 %10), 'V');
+            }else{
+                if(ilen <= (strlen("读取>枪1 CC6V下限：") + (uint32_t)(log10((double)cc1) + 0x01) + 0x02 + 0x01))
+                    return;
+                sprintf((char*)buf, "%s%lu %s%lu.%lu%lu%lu%c", "读取>枪", (uint32_t)(gunno + 0x01), "CC6V下限：", (cc1 /1000), ((cc1 /100) %10), ((cc1 /10) %10), (cc1 %10), 'V');
+            }
+        }
+        break;
+    case THAISEN_DEBUG_CMD_READ_CC4V_UPLIMIT:
+        if(para && (plen >= 0x04)){
+            uint32_t cc1 = *(uint32_t*)para;
+            /** CC值最大5位:XX.XXXV */
+            cc1 = cc1 >= 100000 ? 99999 : cc1;
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= (strlen("Read>gun1 CC4UpLimit:") + (uint32_t)(log10((double)cc1) + 0x01) + 0x02 + 0x01))
+                    return;
+                sprintf((char*)buf, "%s%lu %s%lu.%lu%lu%lu%c", "Read>gun", (uint32_t)(gunno + 0x01), "CC4UpLimit:", (cc1 /1000), ((cc1 /100) %10), ((cc1 /10) %10), (cc1 %10), 'V');
+            }else{
+                if(ilen <= (strlen("读取>枪1 CC4V上限：") + (uint32_t)(log10((double)cc1) + 0x01) + 0x02 + 0x01))
+                    return;
+                sprintf((char*)buf, "%s%lu %s%lu.%lu%lu%lu%c", "读取>枪", (uint32_t)(gunno + 0x01), "CC4V上限：", (cc1 /1000), ((cc1 /100) %10), ((cc1 /10) %10), (cc1 %10), 'V');
+            }
+        }
+        break;
+    case THAISEN_DEBUG_CMD_READ_CC4V_LOWLIMIT:
+        if(para && (plen >= 0x04)){
+            uint32_t cc1 = *(uint32_t*)para;
+            /** CC值最大5位:XX.XXXV */
+            cc1 = cc1 >= 100000 ? 99999 : cc1;
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= (strlen("Read>gun1 CC4LowLimit:") + (uint32_t)(log10((double)cc1) + 0x01) + 0x02 + 0x01))
+                    return;
+                sprintf((char*)buf, "%s%lu %s%lu.%lu%lu%lu%c", "Read>gun", (uint32_t)(gunno + 0x01), "CC4LowLimit:", (cc1 /1000), ((cc1 /100) %10), ((cc1 /10) %10), (cc1 %10), 'V');
+            }else{
+                if(ilen <= (strlen("读取>枪1 CC4V下限：") + (uint32_t)(log10((double)cc1) + 0x01) + 0x02 + 0x01))
+                    return;
+                sprintf((char*)buf, "%s%lu %s%lu.%lu%lu%lu%c", "读取>枪", (uint32_t)(gunno + 0x01), "CC4V下限：", (cc1 /1000), ((cc1 /100) %10), ((cc1 /10) %10), (cc1 %10), 'V');
             }
         }
         break;

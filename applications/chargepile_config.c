@@ -91,14 +91,14 @@ struct _pile_info{
 };
 
 struct _config_para{
-    uint16_t cc1_12_max;                                              /* CC1 12V 上限 */
-    uint16_t cc1_12_min;                                              /* CC1 12V 下限 */
+    uint16_t gun1_cc1_12_max;                                         /* 枪1 CC1 12V 上限 */
+    uint16_t gun1_cc1_12_min;                                         /* 枪1 CC1 12V 下限 */
 
-    uint16_t cc1_6_max;                                               /* CC1 6V 上限 */
-    uint16_t cc1_6_min;                                               /* CC1 6V 下限 */
+    uint16_t gun1_cc1_6_max;                                          /* 枪1 CC1 6V 上限 */
+    uint16_t gun1_cc1_6_min;                                          /* 枪1 CC1 6V 下限 */
 
-    uint16_t cc1_4_max;                                               /* CC1 4V 上限 */
-    uint16_t cc1_4_min;                                               /* CC1 4V 下限 */
+    uint16_t gun1_cc1_4_max;                                          /* 枪1 CC1 4V 上限 */
+    uint16_t gun1_cc1_4_min;                                          /* 枪1 CC1 4V 下限 */
 
     uint16_t module_rated_outvolt;                                    /* 模块额定输出电压 */
     uint16_t pile_max_outvolt;                                        /* 桩最大输出电压 */
@@ -131,7 +131,17 @@ struct _config_para{
     uint8_t lighting_lamp_emin;                                       /* 照明结束分钟 */
     uint8_t discharge_as_of_soc;                                      /* 放电截至SOC */
     uint32_t v2g_mode_parameter[2];                                   /* V2G模式参数 */
-    uint8_t reserve1[256 - 27];                                       /* 预留 */
+
+    uint16_t gun2_cc1_12_max;                                         /* 枪2 CC1 12V 上限 */
+    uint16_t gun2_cc1_12_min;                                         /* 枪2 CC1 12V 下限 */
+
+    uint16_t gun2_cc1_6_max;                                          /* 枪2 CC1 6V 上限 */
+    uint16_t gun2_cc1_6_min;                                          /* 枪2 CC1 6V 下限 */
+
+    uint16_t gun2_cc1_4_max;                                          /* 枪2 CC1 4V 上限 */
+    uint16_t gun2_cc1_4_min;                                          /* 枪2 CC1 4V 下限 */
+
+    uint8_t reserve1[256 - 39];                                       /* 预留 */
 };
 
 struct _config_info{
@@ -1126,24 +1136,42 @@ void sys_chargeplie_config_info_init(void)
     /** 卡类型 */
     sys_config_item_init(CONFIG_ITEM_CARD_TYPE, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_info.card_type)), \
             (uint8_t*)&s_chargepile_config_info.config_info.card_type, NULL);
-    /** CC1 4V 最大值 */
-    sys_config_item_init(CONFIG_ITEM_CC14V_MAX, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.cc1_4_max)), \
-            (uint8_t*)&s_chargepile_config_info.config_para.cc1_4_max, NULL);
-    /** CC1 4V 最小值 */
-    sys_config_item_init(CONFIG_ITEM_CC14V_MIN, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.cc1_4_min)), \
-            (uint8_t*)&s_chargepile_config_info.config_para.cc1_4_min, NULL);
-    /** CC1 6V 最大值  */
-    sys_config_item_init(CONFIG_ITEM_CC16V_MAX, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.cc1_6_max)), \
-            (uint8_t*)&s_chargepile_config_info.config_para.cc1_6_max, NULL);
-    /** CC1 6V 最小值 */
-    sys_config_item_init(CONFIG_ITEM_CC16V_MIN, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.cc1_6_min)), \
-            (uint8_t*)&s_chargepile_config_info.config_para.cc1_6_min, NULL);
-    /** CC1 12V 最大值 */
-    sys_config_item_init(CONFIG_ITEM_CC112V_MAX, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.cc1_12_max)), \
-            (uint8_t*)&s_chargepile_config_info.config_para.cc1_12_max, NULL);
-    /** CC1 12V 最小值 */
-    sys_config_item_init(CONFIG_ITEM_CC112V_MIN, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.cc1_12_min)), \
-            (uint8_t*)&s_chargepile_config_info.config_para.cc1_12_min, NULL);
+    /** 枪1 CC1 4V 最大值 */
+    sys_config_item_init(CONFIG_ITEM_GUN1_CC14V_MAX, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.gun1_cc1_4_max)), \
+            (uint8_t*)&s_chargepile_config_info.config_para.gun1_cc1_4_max, NULL);
+    /** 枪1 CC1 4V 最小值 */
+    sys_config_item_init(CONFIG_ITEM_GUN1_CC14V_MIN, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.gun1_cc1_4_min)), \
+            (uint8_t*)&s_chargepile_config_info.config_para.gun1_cc1_4_min, NULL);
+    /** 枪1 CC1 6V 最大值  */
+    sys_config_item_init(CONFIG_ITEM_GUN1_CC16V_MAX, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.gun1_cc1_6_max)), \
+            (uint8_t*)&s_chargepile_config_info.config_para.gun1_cc1_6_max, NULL);
+    /** 枪1 CC1 6V 最小值 */
+    sys_config_item_init(CONFIG_ITEM_GUN1_CC16V_MIN, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.gun1_cc1_6_min)), \
+            (uint8_t*)&s_chargepile_config_info.config_para.gun1_cc1_6_min, NULL);
+    /** 枪1 CC1 12V 最大值 */
+    sys_config_item_init(CONFIG_ITEM_GUN1_CC112V_MAX, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.gun1_cc1_12_max)), \
+            (uint8_t*)&s_chargepile_config_info.config_para.gun1_cc1_12_max, NULL);
+    /** 枪1 CC1 12V 最小值 */
+    sys_config_item_init(CONFIG_ITEM_GUN1_CC112V_MIN, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.gun1_cc1_12_min)), \
+            (uint8_t*)&s_chargepile_config_info.config_para.gun1_cc1_12_min, NULL);
+    /** 枪2 CC1 4V 最大值 */
+    sys_config_item_init(CONFIG_ITEM_GUN2_CC14V_MAX, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.gun2_cc1_4_max)), \
+            (uint8_t*)&s_chargepile_config_info.config_para.gun2_cc1_4_max, NULL);
+    /** 枪2 CC1 4V 最小值 */
+    sys_config_item_init(CONFIG_ITEM_GUN2_CC14V_MIN, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.gun2_cc1_4_min)), \
+            (uint8_t*)&s_chargepile_config_info.config_para.gun2_cc1_4_min, NULL);
+    /** 枪2 CC1 6V 最大值  */
+    sys_config_item_init(CONFIG_ITEM_GUN2_CC16V_MAX, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.gun2_cc1_6_max)), \
+            (uint8_t*)&s_chargepile_config_info.config_para.gun2_cc1_6_max, NULL);
+    /** 枪2 CC1 6V 最小值 */
+    sys_config_item_init(CONFIG_ITEM_GUN2_CC16V_MIN, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.gun2_cc1_6_min)), \
+            (uint8_t*)&s_chargepile_config_info.config_para.gun2_cc1_6_min, NULL);
+    /** 枪2 CC1 12V 最大值 */
+    sys_config_item_init(CONFIG_ITEM_GUN2_CC112V_MAX, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.gun2_cc1_12_max)), \
+            (uint8_t*)&s_chargepile_config_info.config_para.gun2_cc1_12_max, NULL);
+    /** 枪2 CC1 12V 最小值 */
+    sys_config_item_init(CONFIG_ITEM_GUN2_CC112V_MIN, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.gun2_cc1_12_min)), \
+            (uint8_t*)&s_chargepile_config_info.config_para.gun2_cc1_12_min, NULL);
     /** 启用BSM功能 */
     sys_config_item_init(CONFIG_ITEM_SUPORT_BSM, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.bsm)), \
             (uint8_t*)&s_chargepile_config_info.function_enable.bsm, NULL);
@@ -1890,12 +1918,19 @@ static void chargepile_config_data_reset(void)
     memset(s_chargepile_config_info.pile_info.user_identity, '\0', sizeof(s_chargepile_config_info.pile_info.user_identity));
     memset(s_chargepile_config_info.config_info.register_code, '\0', sizeof(s_chargepile_config_info.config_info.register_code));
 
-    s_chargepile_config_info.config_para.cc1_12_max = CHARGEPILE_CC12V_MAX;
-    s_chargepile_config_info.config_para.cc1_12_min = CHARGEPILE_CC12V_MIN;
-    s_chargepile_config_info.config_para.cc1_6_max = CHARGEPILE_CC6V_MAX;
-    s_chargepile_config_info.config_para.cc1_6_min = CHARGEPILE_CC6V_MIN;
-    s_chargepile_config_info.config_para.cc1_4_max = CHARGEPILE_CC4V_MAX;
-    s_chargepile_config_info.config_para.cc1_4_min = CHARGEPILE_CC4V_MIN;
+    s_chargepile_config_info.config_para.gun1_cc1_12_max = CHARGEPILE_CC12V_MAX_DEF;
+    s_chargepile_config_info.config_para.gun1_cc1_12_min = CHARGEPILE_CC12V_MIN_DEF;
+    s_chargepile_config_info.config_para.gun1_cc1_6_max = CHARGEPILE_CC6V_MAX_DEF;
+    s_chargepile_config_info.config_para.gun1_cc1_6_min = CHARGEPILE_CC6V_MIN_DEF;
+    s_chargepile_config_info.config_para.gun1_cc1_4_max = CHARGEPILE_CC4V_MAX_DEF;
+    s_chargepile_config_info.config_para.gun1_cc1_4_min = CHARGEPILE_CC4V_MIN_DEF;
+
+    s_chargepile_config_info.config_para.gun2_cc1_12_max = CHARGEPILE_CC12V_MAX_DEF;
+    s_chargepile_config_info.config_para.gun2_cc1_12_min = CHARGEPILE_CC12V_MIN_DEF;
+    s_chargepile_config_info.config_para.gun2_cc1_6_max = CHARGEPILE_CC6V_MAX_DEF;
+    s_chargepile_config_info.config_para.gun2_cc1_6_min = CHARGEPILE_CC6V_MIN_DEF;
+    s_chargepile_config_info.config_para.gun2_cc1_4_max = CHARGEPILE_CC4V_MAX_DEF;
+    s_chargepile_config_info.config_para.gun2_cc1_4_min = CHARGEPILE_CC4V_MIN_DEF;
 
     s_chargepile_config_info.config_para.module_rated_outvolt = MODULE_RATED_OUTVOLT_DEF;
     s_chargepile_config_info.config_para.pile_max_outvolt = CHARGEPILE_MAX_OUTVOLT_DEF;
@@ -2968,6 +3003,30 @@ int32_t chargepile_check_config(void)
             memset(s_chargepile_config_info.config_info.meter_address[count], 0x00, CP_INFO_METER_ADDRESS_LEN_MAX);
             memset(s_chargepile_config_info.config_info.meter_address[count], 'A', (CP_INFO_METER_ADDRESS_LEN_MAX - 0x01));
         }
+    }
+
+    /******************************************* CC1 *******************************************/
+    if(sys_cc1_range_valid(s_chargepile_config_info.config_para.gun1_cc1_12_max, s_chargepile_config_info.config_para.gun1_cc1_12_min, \
+            s_chargepile_config_info.config_para.gun1_cc1_6_max, s_chargepile_config_info.config_para.gun1_cc1_6_min, \
+            s_chargepile_config_info.config_para.gun1_cc1_4_max, s_chargepile_config_info.config_para.gun1_cc1_4_min) == 0x00){
+
+        s_chargepile_config_info.config_para.gun1_cc1_12_max = CHARGEPILE_CC12V_MAX_DEF;
+        s_chargepile_config_info.config_para.gun1_cc1_12_min = CHARGEPILE_CC12V_MIN_DEF;
+        s_chargepile_config_info.config_para.gun1_cc1_6_max = CHARGEPILE_CC6V_MAX_DEF;
+        s_chargepile_config_info.config_para.gun1_cc1_6_min = CHARGEPILE_CC6V_MIN_DEF;
+        s_chargepile_config_info.config_para.gun1_cc1_4_max = CHARGEPILE_CC4V_MAX_DEF;
+        s_chargepile_config_info.config_para.gun1_cc1_4_min = CHARGEPILE_CC4V_MIN_DEF;
+    }
+    if(sys_cc1_range_valid(s_chargepile_config_info.config_para.gun2_cc1_12_max, s_chargepile_config_info.config_para.gun2_cc1_12_min, \
+            s_chargepile_config_info.config_para.gun2_cc1_6_max, s_chargepile_config_info.config_para.gun2_cc1_6_min, \
+            s_chargepile_config_info.config_para.gun2_cc1_4_max, s_chargepile_config_info.config_para.gun2_cc1_4_min) == 0x00){
+
+        s_chargepile_config_info.config_para.gun2_cc1_12_max = CHARGEPILE_CC12V_MAX_DEF;
+        s_chargepile_config_info.config_para.gun2_cc1_12_min = CHARGEPILE_CC12V_MIN_DEF;
+        s_chargepile_config_info.config_para.gun2_cc1_6_max = CHARGEPILE_CC6V_MAX_DEF;
+        s_chargepile_config_info.config_para.gun2_cc1_6_min = CHARGEPILE_CC6V_MIN_DEF;
+        s_chargepile_config_info.config_para.gun2_cc1_4_max = CHARGEPILE_CC4V_MAX_DEF;
+        s_chargepile_config_info.config_para.gun2_cc1_4_min = CHARGEPILE_CC4V_MIN_DEF;
     }
 
 #ifdef CP_USING_OFFLINE_BILLING
@@ -4113,4 +4172,40 @@ int32_t sys_lighting_lamp_time_valid(uint8_t shour, uint8_t ehour, uint8_t smin,
         return -0x01;
     }
      return 0x00;
+}
+
+/**********************************************[CC1相关 CC1]********************************************************/
+/**********************************************[CC1相关 CC1]********************************************************/
+/*********************************************************
+ * 函数名        sys_cc1_range_valid
+ * 功能            判断CC1范围是否有效
+ * 参数           cc12_max   CC1 12V 上限(0.001V)
+ *      cc12_min   CC1 12V 下限(0.001V)
+ *      cc6_max    CC1 6V 上限(0.001V)
+ *      cc6_min    CC1 6V 下限(0.001V)
+ *      cc4_max    CC1 4V 上限(0.001V)
+ *      cc4_min    CC1 4V 下限(0.001V)
+ * 返回           1：有效      0：无效
+ ********************************************************/
+int32_t sys_cc1_range_valid(uint16_t cc12_max, uint16_t cc12_min, uint16_t cc6_max, uint16_t cc6_min, uint16_t cc4_max, uint16_t cc4_min)
+{
+    uint8_t valid = 0x01;
+
+    /** CC1 12V 判断 */
+    if((cc12_max < CHARGEPILE_CC12V_S) || (cc12_min > CHARGEPILE_CC12V_S)){
+        valid = 0x00;
+    }
+    /** CC1 6V 判断 */
+    if(valid){
+        if((cc6_max < CHARGEPILE_CC6V_S) || (cc6_min > CHARGEPILE_CC6V_S) || (cc6_max > cc12_min)){
+            valid = 0x00;
+        }
+    }
+    /** CC1 4V 判断 */
+    if(valid){
+        if((cc4_max < CHARGEPILE_CC4V_S) || (cc4_min > CHARGEPILE_CC4V_S) || (cc4_max > cc6_min)){
+            valid = 0x00;
+        }
+    }
+    return valid;
 }

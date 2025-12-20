@@ -740,15 +740,29 @@ enum thaisen_debug_cmd{
     THAISEN_DEBUG_CMD_ISSUE_MODULE_CURR_MAX,                     /** 调试指令码：下发模块最大输出电流 */
     THAISEN_DEBUG_CMD_ISSUE_MODULE_CURR_MIN,                     /** 调试指令码：下发模块最小输出电流 */
     THAISEN_DEBUG_CMD_ISSUE_LED_LANGUAGE,                        /** 调试指令码：下发灯语 */
+    THAISEN_DEBUG_CMD_ISSUE_CC12V_UPLIMIT,                       /** 调试指令码：下发 CC1 12V 上限值 */
+    THAISEN_DEBUG_CMD_ISSUE_CC12V_LOWLIMIT,                      /** 调试指令码：下发 CC1 12V 下限值 */
+    THAISEN_DEBUG_CMD_ISSUE_CC6V_UPLIMIT,                        /** 调试指令码：下发 CC1 4V 上限值 */
+    THAISEN_DEBUG_CMD_ISSUE_CC6V_LOWLIMIT,                       /** 调试指令码：下发 CC1 4V 下限值 */
+    THAISEN_DEBUG_CMD_ISSUE_CC4V_UPLIMIT,                        /** 调试指令码：下发 CC1 4V 上限值 */
+    THAISEN_DEBUG_CMD_ISSUE_CC4V_LOWLIMIT,                       /** 调试指令码：下发 CC1 4V 下限值 */
+
     THAISEN_DEBUG_CMD_READ_MODULE_CURR_MAX,                      /** 调试指令码：读取模块最大输出电流 */
     THAISEN_DEBUG_CMD_READ_MODULE_CURR_MIN,                      /** 调试指令码：读取模块最小输出电流 */
     THAISEN_DEBUG_CMD_READ_LED_LANGUAGE,                         /** 调试指令码：读取灯语 */
+    THAISEN_DEBUG_CMD_READ_CC12V_UPLIMIT,                        /** 调试指令码：读取 CC1 12V 上限值 */
+    THAISEN_DEBUG_CMD_READ_CC12V_LOWLIMIT,                       /** 调试指令码：读取 CC1 12V 下限值 */
+    THAISEN_DEBUG_CMD_READ_CC6V_UPLIMIT,                         /** 调试指令码：读取 CC1 4V 上限值 */
+    THAISEN_DEBUG_CMD_READ_CC6V_LOWLIMIT,                        /** 调试指令码：读取 CC1 4V 下限值 */
+    THAISEN_DEBUG_CMD_READ_CC4V_UPLIMIT,                         /** 调试指令码：读取 CC1 4V 上限值 */
+    THAISEN_DEBUG_CMD_READ_CC4V_LOWLIMIT,                        /** 调试指令码：读取 CC1 4V 下限值 */
+
     THAISEN_DEBUG_CMD_SIZE,                                      /** 调试指令码 */
 };
 /**
  * 获取指令调试结果信息
  */
-void thaisen_get_cmd_debug_result_info(uint8_t language, uint8_t cmd, uint8_t *para, uint8_t plen, uint8_t *buf, uint8_t ilen);
+void thaisen_get_cmd_debug_result_info(uint8_t gunno, uint8_t language, uint8_t cmd, uint8_t *para, uint8_t plen, uint8_t *buf, uint8_t ilen);
 
 /**
  * 查询充电是否已停止

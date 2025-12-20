@@ -1818,7 +1818,8 @@ uint8_t thaisen_is_debug(void)
 /********************************************
  * 函数名      thaisen_get_cmd_debug_result_info
  * 功能          获取指令调试结果信息
- * 参数         language  语言
+ * 参数         gunno        枪号
+ *         language  语言
  *         cmd       指令
  *         para      参数
  *         plen      参数长度
@@ -1826,9 +1827,9 @@ uint8_t thaisen_is_debug(void)
  *         ilen      缓存长度
  * 返回
  *******************************************/
-void thaisen_get_cmd_debug_result_info(uint8_t language, uint8_t cmd, uint8_t *para, uint8_t plen, uint8_t *buf, uint8_t ilen)
+void thaisen_get_cmd_debug_result_info(uint8_t gunno, uint8_t language, uint8_t cmd, uint8_t *para, uint8_t plen, uint8_t *buf, uint8_t ilen)
 {
-    app_cmd_debug_result_info(language, cmd, para, plen, buf, ilen);
+    app_cmd_debug_result_info(gunno, language, cmd, para, plen, buf, ilen);
 }
 
 /**************************************************************************

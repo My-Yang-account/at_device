@@ -97,6 +97,6 @@ void app_get_module_fault_info(uint8_t gunno, uint8_t language, uint8_t addr, ui
  *         ilen      缓存长度
  * 返回
  *******************************************/
-void app_cmd_debug_result_info(uint8_t language, uint8_t cmd, uint8_t *para, uint8_t plen, uint8_t *buf, uint8_t ilen);
+void app_cmd_debug_result_info(uint8_t gunno, uint8_t language, uint8_t cmd, uint8_t *para, uint8_t plen, uint8_t *buf, uint8_t ilen);
 
 #endif /* APPLICATIONS_INC_APP_SUPPORT_FUNC_H_ */

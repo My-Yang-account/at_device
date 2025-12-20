@@ -375,14 +375,17 @@
 #define CHARGEPILE_OUTPUT_OVERCURR_MAX            160000    /*充电桩输出过流最大值(0.01A) */
 #define CHARGEPILE_OUTPUT_OVERCURR_MIN            1         /*充电桩输出过流最小值(0.01A) */
 
-#define CHARGEPILE_CC12V_MAX                      125       /* CC1 12V上限 */
-#define CHARGEPILE_CC12V_MIN                      115       /* CC1 12V下限 */
+#define CHARGEPILE_CC12V_MAX_DEF                  13000     /* CC1 12V默认上限(0.001V, 包含边界值) */
+#define CHARGEPILE_CC12V_MIN_DEF                  11000     /* CC1 12V默认下限(0.001V, 包含边界值) */
+#define CHARGEPILE_CC12V_S                        12000     /* CC1 12V标准(0.001V) */
 
-#define CHARGEPILE_CC6V_MAX                       65        /* CC1 6V上限 */
-#define CHARGEPILE_CC6V_MIN                       55        /* CC1 6V下限 */
+#define CHARGEPILE_CC6V_MAX_DEF                   7000      /* CC1 6V默认上限(0.001V, 包含边界值) */
+#define CHARGEPILE_CC6V_MIN_DEF                   5000      /* CC1 6V默认下限(0.001V, 不包含边界值) */
+#define CHARGEPILE_CC6V_S                         6000      /* CC1 6V标准(0.001V) */
 
-#define CHARGEPILE_CC4V_MAX                       45        /* CC1 4V上限 */
-#define CHARGEPILE_CC4V_MIN                       35        /* CC1 4V下限 */
+#define CHARGEPILE_CC4V_MAX_DEF                   5000      /* CC1 4V默认上限(0.001V, 包含边界值) */
+#define CHARGEPILE_CC4V_MIN_DEF                   1000      /* CC1 4V默认下限(0.001V, 包含边界值) */
+#define CHARGEPILE_CC4V_S                         4000      /* CC1 4V标准(0.001V) */
 
 #define CHARGEPILE_ELOSS_PROPORTION_MIN           0         /* 电损比最小值(一位小数) */
 #define CHARGEPILE_ELOSS_PROPORTION_MAX           100       /* 电损比最大值(一位小数) */
@@ -601,12 +604,19 @@ enum config_name{
     CONFIG_ITEM_CURRENT_V2G_MODE_B,
 
     CONFIG_ITEM_CARD_TYPE,
-    CONFIG_ITEM_CC14V_MAX,
-    CONFIG_ITEM_CC14V_MIN,
-    CONFIG_ITEM_CC16V_MAX,
-    CONFIG_ITEM_CC16V_MIN,
-    CONFIG_ITEM_CC112V_MAX,
-    CONFIG_ITEM_CC112V_MIN,
+    CONFIG_ITEM_GUN1_CC14V_MAX,
+    CONFIG_ITEM_GUN1_CC14V_MIN,
+    CONFIG_ITEM_GUN1_CC16V_MAX,
+    CONFIG_ITEM_GUN1_CC16V_MIN,
+    CONFIG_ITEM_GUN1_CC112V_MAX,
+    CONFIG_ITEM_GUN1_CC112V_MIN,
+    CONFIG_ITEM_GUN2_CC14V_MAX,
+    CONFIG_ITEM_GUN2_CC14V_MIN,
+    CONFIG_ITEM_GUN2_CC16V_MAX,
+    CONFIG_ITEM_GUN2_CC16V_MIN,
+    CONFIG_ITEM_GUN2_CC112V_MAX,
+    CONFIG_ITEM_GUN2_CC112V_MIN,
+
     CONFIG_ITEM_SUPORT_BSM,
     CONFIG_ITEM_SUPORT_BCS,
     CONFIG_ITEM_SUPORT_AUXPOWER24V,
@@ -817,5 +827,9 @@ uint32_t sys_get_offbilling_delay_price(uint8_t rate_number);
 /**********************************************[照明灯相关]********************************************************/
 /**********************************************[照明灯相关]********************************************************/
 int32_t sys_lighting_lamp_time_valid(uint8_t shour, uint8_t ehour, uint8_t smin, uint8_t emin);
+
+/**********************************************[CC1相关 CC1]********************************************************/
+/**********************************************[CC1相关 CC1]********************************************************/
+int32_t sys_cc1_range_valid(uint16_t cc12_max, uint16_t cc12_min, uint16_t cc6_max, uint16_t cc6_min, uint16_t cc4_max, uint16_t cc4_min);
 
 #endif /* APPLICATIONS_CHARGEPILE_CONFIG_H_ */
