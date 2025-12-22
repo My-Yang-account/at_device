@@ -2334,6 +2334,37 @@ void app_cmd_debug_result_info(uint8_t gunno, uint8_t language, uint8_t cmd, uin
             }
         }
         break;
+    case THAISEN_DEBUG_CMD_ISSUE_SETUP_CURR_OFFSET:
+        if(para && (plen >= 0x02)){
+            int32_t offset = 0x00;
+
+            if(*(uint16_t*)para >= CP_CURRENT_OFFSET_SEPARATE){
+                offset = (*(uint16_t*)para - CP_CURRENT_OFFSET_SEPARATE);
+            }else{
+                offset = -(*(uint16_t*)para);
+            }
+
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= (strlen("Issue>gun1 CurrOffset:") + (uint32_t)(log10((double)(*(uint16_t*)para)) + 0x01) + 0x02 + 0x01))
+                    return;
+                if(offset >= 0x00){
+                    sprintf((char*)buf, "%s%lu %s%lu.%lu%lu%c", "Issue>gun", (uint32_t)(gunno + 0x01), "CurrOffset:", (offset /100), ((offset /10) %10), (offset %10), 'A');
+                }else{
+                    offset = 0x00 - offset;
+                    sprintf((char*)buf, "%s%lu %s%lu.%lu%lu%c", "Issue>gun", (uint32_t)(gunno + 0x01), "CurrOffset:-", (offset /100), ((offset /10) %10), (offset %10), 'A');
+                }
+            }else{
+                if(ilen <= (strlen("下发>枪1 设置电流偏移：") + (uint32_t)(log10((double)(*(uint16_t*)para)) + 0x01) + 0x02 + 0x01))
+                    return;
+                if(offset >= 0x00){
+                    sprintf((char*)buf, "%s%lu %s%lu.%lu%lu%c", "下发>枪", (uint32_t)(gunno + 0x01), "设置电流偏移：", (offset /100), ((offset /10) %10), (offset %10), 'A');
+                }else{
+                    offset = 0x00 - offset;
+                    sprintf((char*)buf, "%s%lu %s%lu.%lu%lu%c", "下发>枪", (uint32_t)(gunno + 0x01), "设置电流偏移：-", (offset /100), ((offset /10) %10), (offset %10), 'A');
+                }
+            }
+        }
+        break;
     case THAISEN_DEBUG_CMD_READ_MODULE_CURR_MAX:
         if(para && (plen >= 0x04)){
             uint32_t curr = *(uint32_t*)para;
@@ -2530,7 +2561,37 @@ void app_cmd_debug_result_info(uint8_t gunno, uint8_t language, uint8_t cmd, uin
             }
         }
         break;
+    case THAISEN_DEBUG_CMD_READ_SETUP_CURR_OFFSET:
+        if(para && (plen >= 0x02)){
+            int32_t offset = 0x00;
 
+            if(*(uint16_t*)para >= CP_CURRENT_OFFSET_SEPARATE){
+                offset = (*(uint16_t*)para - CP_CURRENT_OFFSET_SEPARATE);
+            }else{
+                offset = -(*(uint16_t*)para);
+            }
+
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= (strlen("Read>gun1 CurrOffset:") + (uint32_t)(log10((double)(*(uint16_t*)para)) + 0x01) + 0x02 + 0x01))
+                    return;
+                if(offset >= 0x00){
+                    sprintf((char*)buf, "%s%lu %s%lu.%lu%lu%c", "Read>gun", (uint32_t)(gunno + 0x01), "CurrOffset:", (offset /100), ((offset /10) %10), (offset %10), 'A');
+                }else{
+                    offset = 0x00 - offset;
+                    sprintf((char*)buf, "%s%lu %s%lu.%lu%lu%c", "Read>gun", (uint32_t)(gunno + 0x01), "CurrOffset:-", (offset /100), ((offset /10) %10), (offset %10), 'A');
+                }
+            }else{
+                if(ilen <= (strlen("读取>枪1 设置电流偏移：") + (uint32_t)(log10((double)(*(uint16_t*)para)) + 0x01) + 0x02 + 0x01))
+                    return;
+                if(offset >= 0x00){
+                    sprintf((char*)buf, "%s%lu %s%lu.%lu%lu%c", "读取>枪", (uint32_t)(gunno + 0x01), "设置电流偏移：", (offset /100), ((offset /10) %10), (offset %10), 'A');
+                }else{
+                    offset = 0x00 - offset;
+                    sprintf((char*)buf, "%s%lu %s%lu.%lu%lu%c", "读取>枪", (uint32_t)(gunno + 0x01), "设置电流偏移：-", (offset /100), ((offset /10) %10), (offset %10), 'A');
+                }
+            }
+        }
+        break;
     default:
         break;
     }

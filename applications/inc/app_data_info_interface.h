@@ -749,6 +749,8 @@ enum thaisen_debug_cmd{
     THAISEN_DEBUG_CMD_ISSUE_MELECT_STRATEGY,                     /** 调试指令码：下发电表电量检测策略 */
     THAISEN_DEBUG_CMD_ISSUE_BATVOLT_STRATEGY,                    /** 调试指令码：下发电池电压检测策略 */
     THAISEN_DEBUG_CMD_ISSUE_CURR_STRATEGY,                       /** 调试指令码：下发充电电流检测策略 */
+    THAISEN_DEBUG_CMD_ISSUE_SETUP_CURR_OFFSET,                   /** 调试指令码：下发设置电流偏移(0.01A) */
+
     THAISEN_DEBUG_CMD_READ_MODULE_CURR_MAX,                      /** 调试指令码：读取模块最大输出电流 */
     THAISEN_DEBUG_CMD_READ_MODULE_CURR_MIN,                      /** 调试指令码：读取模块最小输出电流 */
     THAISEN_DEBUG_CMD_READ_LED_LANGUAGE,                         /** 调试指令码：读取灯语 */
@@ -761,6 +763,7 @@ enum thaisen_debug_cmd{
     THAISEN_DEBUG_CMD_READ_MELECT_STRATEGY,                      /** 调试指令码：读取 电表电量检测策略 */
     THAISEN_DEBUG_CMD_READ_BATVOLT_STRATEGY,                     /** 调试指令码：读取 电池电压检测策略 */
     THAISEN_DEBUG_CMD_READ_CURR_STRATEGY,                        /** 调试指令码：读取 充电电流检测策略 */
+    THAISEN_DEBUG_CMD_READ_SETUP_CURR_OFFSET,                    /** 调试指令码：读取设置电流偏移(0.01A) */
 
     THAISEN_DEBUG_CMD_SIZE,                                      /** 调试指令码 */
 };

@@ -829,6 +829,8 @@ struct LCD_DISPLAY_SETDATA_TYPE{
     u8 DebugCmdPara_MElectStrategy;                              //指令调试参数：电表电量检测策略
     u8 DebugCmdPara_BatVoltStrategy;                             //指令调试参数：电池电压检测策略
     u8 DebugCmdPara_CurrStrategy;                                //指令调试参数：充电电流检测策略
+    u16 DebugCmdPara_Gun1_CurrOffset;                            //指令调试参数：枪1电流设置偏移(0.01A)
+    u16 DebugCmdPara_Gun2_CurrOffset;                            //指令调试参数：枪2电流设置偏移(0.01A)
     /** 参数中间值 */
     u32 DebugCmdPara_MCMaxTemp;                                  //指令调试参数：模块最大输出电流中间值
     u32 DebugCmdPara_MCMinTemp;                                  //指令调试参数：模块最小输出电流中间值
@@ -839,9 +841,11 @@ struct LCD_DISPLAY_SETDATA_TYPE{
     u16 DebugCmdPara_CC12V_MinTemp[LCD_GUN_NUM];                 //指令调试参数：CC1 12V 下限中间值(0.001V)
     u16 DebugCmdPara_CC6V_MinTemp[LCD_GUN_NUM];                  //指令调试参数：CC1 6V 下限中间值(0.001V)
     u16 DebugCmdPara_CC4V_MinTemp[LCD_GUN_NUM];                  //指令调试参数：CC1 4V 下限中间值(0.001V)
-    u8 DebugCmdPara_MElectStrategyTemp;                          //指令调试参数：电表电量检测策略间值
-    u8 DebugCmdPara_BatVoltStrategyTemp;                         //指令调试参数：电池电压检测策略间值
-    u8 DebugCmdPara_CurrStrategyTemp;                            //指令调试参数：充电电流检测策略间值
+    u8 DebugCmdPara_MElectStrategyTemp;                          //指令调试参数：电表电量检测策略中间值
+    u8 DebugCmdPara_BatVoltStrategyTemp;                         //指令调试参数：电池电压检测策略中间值
+    u8 DebugCmdPara_CurrStrategyTemp;                            //指令调试参数：充电电流检测策略中间值
+    u16 DebugCmdPara_Gun1_CurrOffsetTemp;                        //指令调试参数：枪1电流设置偏移中间值(0.01A)
+    u16 DebugCmdPara_Gun2_CurrOffsetTemp;                        //指令调试参数：枪2电流设置偏移中间值(0.01A)
     /*********************** fan ***************************/
     u32 FanWorkTime;                                             //停充后风扇工作时间(s)
     /*********************** 照明灯 ***************************/
@@ -2917,6 +2921,24 @@ static s32 SerialScreen_ConfigExecute_DynamicCmdDebugModify(u8 port, void *data,
             needIssue = 1;
             memcpy(LcdData.setData.DebugCmd, "CC_ST", strlen("CC_ST"));
         }
+        /** 枪1设置电流偏移(0.01A) */
+        else if((memcmp(config_segment[i].cmd, "SCO_1", strlen("SCO_1")) == 0) && (strlen((char*)config_segment[i].cmd) == strlen("SCO_1"))){
+            if(strlen((char*)config_segment[i].parameter) == 0x00){
+                /** 参数非法，配置失败 */
+                return (i + THAISEN_CONFIG_FAIL_OFFSET);
+            }
+            needIssue = 1;
+            memcpy(LcdData.setData.DebugCmd, "SCO_1", strlen("SCO_1"));
+        }
+        /** 枪2设置电流偏移(0.01A) */
+        else if((memcmp(config_segment[i].cmd, "SCO_2", strlen("SCO_2")) == 0) && (strlen((char*)config_segment[i].cmd) == strlen("SCO_2"))){
+            if(strlen((char*)config_segment[i].parameter) == 0x00){
+                /** 参数非法，配置失败 */
+                return (i + THAISEN_CONFIG_FAIL_OFFSET);
+            }
+            needIssue = 1;
+            memcpy(LcdData.setData.DebugCmd, "SCO_2", strlen("SCO_2"));
+        }
         else{
             /** 没有这个指令，配置失败 */
             return (i + THAISEN_CONFIG_FAIL_OFFSET);
@@ -2967,6 +2989,7 @@ static s32 SerialScreen_ConfigExecute_DynamicCmdDebugModify(u8 port, void *data,
  *******************************************************************/
 static s32 SerialScreen_ConfigExecute_DynamicCmdDebugRead(u8 port, void *data, void *sub_data, void *sub_sub_data)  //OK
 {
+    u32 parameter = 0;
     u16 iblen = *(u16*)sub_data;
     thaisen_dynamic_cmd_read *cmd = (thaisen_dynamic_cmd_read*)sub_sub_data;
     thaisen_dynamic_cmd_read_segment *read_segment = (thaisen_dynamic_cmd_read_segment*)((u8*)&cmd->cmd_num + 1);
@@ -2991,12 +3014,14 @@ static s32 SerialScreen_ConfigExecute_DynamicCmdDebugRead(u8 port, void *data, v
     for(u8 i = 0; i < config->cmd_num; i++){
         /** 模块最大输出电流 */
         if((memcmp(read_segment[i].cmd, "MCMAX", strlen("MCMAX")) == 0) && (strlen((char*)read_segment[i].cmd) == strlen("MCMAX"))){
-            sprintf((char*)config_segment[i].parameter, "%u", LcdData.setData.DebugCmdPara_MCMax);
+            parameter = LcdData.setData.DebugCmdPara_MCMax;
+            sprintf((char*)config_segment[i].parameter, "%lu.%lu%lu%c", (parameter /100), ((parameter /10) %10), (parameter %10), 'A');
             config_segment[i].parameter_len = strlen((char*)config_segment[i].parameter);
         }
         /** 模块最小输出电流 */
         else if((memcmp(read_segment[i].cmd, "MCMIN", strlen("MCMIN")) == 0) && (strlen((char*)read_segment[i].cmd) == strlen("MCMIN"))){
-            sprintf((char*)config_segment[i].parameter, "%u", LcdData.setData.DebugCmdPara_MCMin);
+            parameter = LcdData.setData.DebugCmdPara_MCMin;
+            sprintf((char*)config_segment[i].parameter, "%lu.%lu%lu%c", (parameter /100), ((parameter /10) %10), (parameter %10), 'A');
             config_segment[i].parameter_len = strlen((char*)config_segment[i].parameter);
         }
         /** 灯语 */
@@ -3006,63 +3031,75 @@ static s32 SerialScreen_ConfigExecute_DynamicCmdDebugRead(u8 port, void *data, v
         }
         /** 枪1 CC1 12V 上限(0.001V  U1 as uplimit gun1) */
         else if((memcmp(read_segment[i].cmd, "CC12_U1", strlen("CC12_U1")) == 0) && (strlen((char*)read_segment[i].cmd) == strlen("CC12_U1"))){
-            sprintf((char*)config_segment[i].parameter, "%u", LcdData.setData.DebugCmdPara_CC12V_Max[LCD_GUN_1]);
+            parameter = LcdData.setData.DebugCmdPara_CC12V_Max[LCD_GUN_1];
+            sprintf((char*)config_segment[i].parameter, "%lu.%lu%lu%lu%c", (parameter /1000), ((parameter /100) %10), ((parameter /10) %10), (parameter %10), 'V');
             config_segment[i].parameter_len = strlen((char*)config_segment[i].parameter);
         }
         /** 枪1 CC1 12V 下限(0.001V  L1 as lower limit gun1) */
         else if((memcmp(read_segment[i].cmd, "CC12_L1", strlen("CC12_L1")) == 0) && (strlen((char*)read_segment[i].cmd) == strlen("CC12_L1"))){
-            sprintf((char*)config_segment[i].parameter, "%u", LcdData.setData.DebugCmdPara_CC12V_Min[LCD_GUN_1]);
+            parameter = LcdData.setData.DebugCmdPara_CC12V_Min[LCD_GUN_1];
+            sprintf((char*)config_segment[i].parameter, "%lu.%lu%lu%lu%c", (parameter /1000), ((parameter /100) %10), ((parameter /10) %10), (parameter %10), 'V');
             config_segment[i].parameter_len = strlen((char*)config_segment[i].parameter);
         }
         /** 枪1 CC1 6V 上限 */
         else if((memcmp(read_segment[i].cmd, "CC6_U1", strlen("CC6_U1")) == 0) && (strlen((char*)read_segment[i].cmd) == strlen("CC6_U1"))){
-            sprintf((char*)config_segment[i].parameter, "%u", LcdData.setData.DebugCmdPara_CC6V_Max[LCD_GUN_1]);
+            parameter = LcdData.setData.DebugCmdPara_CC6V_Max[LCD_GUN_1];
+            sprintf((char*)config_segment[i].parameter, "%lu.%lu%lu%lu%c", (parameter /1000), ((parameter /100) %10), ((parameter /10) %10), (parameter %10), 'V');
             config_segment[i].parameter_len = strlen((char*)config_segment[i].parameter);
         }
         /** 枪1 CC1 6V 下限 */
         else if((memcmp(read_segment[i].cmd, "CC6_L1", strlen("CC6_L1")) == 0) && (strlen((char*)read_segment[i].cmd) == strlen("CC6_L1"))){
-            sprintf((char*)config_segment[i].parameter, "%u", LcdData.setData.DebugCmdPara_CC6V_Min[LCD_GUN_1]);
+            parameter = LcdData.setData.DebugCmdPara_CC6V_Min[LCD_GUN_1];
+            sprintf((char*)config_segment[i].parameter, "%lu.%lu%lu%lu%c", (parameter /1000), ((parameter /100) %10), ((parameter /10) %10), (parameter %10), 'V');
             config_segment[i].parameter_len = strlen((char*)config_segment[i].parameter);
         }
         /** 枪1 CC1 4V 上限 */
         else if((memcmp(read_segment[i].cmd, "CC4_U1", strlen("CC4_U1")) == 0) && (strlen((char*)read_segment[i].cmd) == strlen("CC4_U1"))){
-            sprintf((char*)config_segment[i].parameter, "%u", LcdData.setData.DebugCmdPara_CC4V_Max[LCD_GUN_1]);
+            parameter = LcdData.setData.DebugCmdPara_CC4V_Max[LCD_GUN_1];
+            sprintf((char*)config_segment[i].parameter, "%lu.%lu%lu%lu%c", (parameter /1000), ((parameter /100) %10), ((parameter /10) %10), (parameter %10), 'V');
             config_segment[i].parameter_len = strlen((char*)config_segment[i].parameter);
         }
         /** 枪1 CC1 4V 下限 */
         else if((memcmp(read_segment[i].cmd, "CC4_L1", strlen("CC4_L1")) == 0) && (strlen((char*)read_segment[i].cmd) == strlen("CC4_L1"))){
-            sprintf((char*)config_segment[i].parameter, "%u", LcdData.setData.DebugCmdPara_CC4V_Min[LCD_GUN_1]);
+            parameter = LcdData.setData.DebugCmdPara_CC4V_Min[LCD_GUN_1];
+            sprintf((char*)config_segment[i].parameter, "%lu.%lu%lu%lu%c", (parameter /1000), ((parameter /100) %10), ((parameter /10) %10), (parameter %10), 'V');
             config_segment[i].parameter_len = strlen((char*)config_segment[i].parameter);
         }
 
         /** 枪2 CC1 12V 上限(0.001V  U2 as uplimit gun2) */
         else if((memcmp(read_segment[i].cmd, "CC12_U2", strlen("CC12_U2")) == 0) && (strlen((char*)read_segment[i].cmd) == strlen("CC12_U2"))){
-            sprintf((char*)config_segment[i].parameter, "%u", LcdData.setData.DebugCmdPara_CC12V_Max[LCD_GUN_2]);
+            parameter = LcdData.setData.DebugCmdPara_CC12V_Max[LCD_GUN_2];
+            sprintf((char*)config_segment[i].parameter, "%lu.%lu%lu%lu%c", (parameter /1000), ((parameter /100) %10), ((parameter /10) %10), (parameter %10), 'V');
             config_segment[i].parameter_len = strlen((char*)config_segment[i].parameter);
         }
         /** 枪2 CC1 12V 下限(0.001V  L2 as lower limit gun2) */
         else if((memcmp(read_segment[i].cmd, "CC12_L2", strlen("CC12_L2")) == 0) && (strlen((char*)read_segment[i].cmd) == strlen("CC12_L2"))){
-            sprintf((char*)config_segment[i].parameter, "%u", LcdData.setData.DebugCmdPara_CC12V_Min[LCD_GUN_2]);
+            parameter = LcdData.setData.DebugCmdPara_CC12V_Min[LCD_GUN_2];
+            sprintf((char*)config_segment[i].parameter, "%lu.%lu%lu%lu%c", (parameter /1000), ((parameter /100) %10), ((parameter /10) %10), (parameter %10), 'V');
             config_segment[i].parameter_len = strlen((char*)config_segment[i].parameter);
         }
         /** 枪2 CC1 6V 上限 */
         else if((memcmp(read_segment[i].cmd, "CC6_U2", strlen("CC6_U2")) == 0) && (strlen((char*)read_segment[i].cmd) == strlen("CC6_U2"))){
-            sprintf((char*)config_segment[i].parameter, "%u", LcdData.setData.DebugCmdPara_CC6V_Max[LCD_GUN_2]);
+            parameter = LcdData.setData.DebugCmdPara_CC6V_Max[LCD_GUN_2];
+            sprintf((char*)config_segment[i].parameter, "%lu.%lu%lu%lu%c", (parameter /1000), ((parameter /100) %10), ((parameter /10) %10), (parameter %10), 'V');
             config_segment[i].parameter_len = strlen((char*)config_segment[i].parameter);
         }
         /** 枪2 CC1 6V 下限 */
         else if((memcmp(read_segment[i].cmd, "CC6_L2", strlen("CC6_L2")) == 0) && (strlen((char*)read_segment[i].cmd) == strlen("CC6_L2"))){
-            sprintf((char*)config_segment[i].parameter, "%u", LcdData.setData.DebugCmdPara_CC6V_Min[LCD_GUN_2]);
+            parameter = LcdData.setData.DebugCmdPara_CC6V_Min[LCD_GUN_2];
+            sprintf((char*)config_segment[i].parameter, "%lu.%lu%lu%lu%c", (parameter /1000), ((parameter /100) %10), ((parameter /10) %10), (parameter %10), 'V');
             config_segment[i].parameter_len = strlen((char*)config_segment[i].parameter);
         }
         /** 枪2 CC1 4V 上限 */
         else if((memcmp(read_segment[i].cmd, "CC4_U2", strlen("CC4_U2")) == 0) && (strlen((char*)read_segment[i].cmd) == strlen("CC4_U2"))){
-            sprintf((char*)config_segment[i].parameter, "%u", LcdData.setData.DebugCmdPara_CC4V_Max[LCD_GUN_2]);
+            parameter = LcdData.setData.DebugCmdPara_CC4V_Max[LCD_GUN_2];
+            sprintf((char*)config_segment[i].parameter, "%lu.%lu%lu%lu%c", (parameter /1000), ((parameter /100) %10), ((parameter /10) %10), (parameter %10), 'V');
             config_segment[i].parameter_len = strlen((char*)config_segment[i].parameter);
         }
         /** 枪2 CC1 4V 下限 */
         else if((memcmp(read_segment[i].cmd, "CC4_L2", strlen("CC4_L2")) == 0) && (strlen((char*)read_segment[i].cmd) == strlen("CC4_L2"))){
-            sprintf((char*)config_segment[i].parameter, "%u", LcdData.setData.DebugCmdPara_CC4V_Min[LCD_GUN_2]);
+            parameter = LcdData.setData.DebugCmdPara_CC4V_Min[LCD_GUN_2];
+            sprintf((char*)config_segment[i].parameter, "%lu.%lu%lu%lu%c", (parameter /1000), ((parameter /100) %10), ((parameter /10) %10), (parameter %10), 'V');
             config_segment[i].parameter_len = strlen((char*)config_segment[i].parameter);
         }
         /** 电表电量检测策略 */
@@ -3078,6 +3115,28 @@ static s32 SerialScreen_ConfigExecute_DynamicCmdDebugRead(u8 port, void *data, v
         /** 充电电流检测策略 */
         else if((memcmp(read_segment[i].cmd, "CC_ST", strlen("CC_ST")) == 0) && (strlen((char*)read_segment[i].cmd) == strlen("CC_ST"))){
             sprintf((char*)config_segment[i].parameter, "%u", LcdData.setData.DebugCmdPara_CurrStrategy);
+            config_segment[i].parameter_len = strlen((char*)config_segment[i].parameter);
+        }
+        /** 枪1设置电流偏移(0.01A) */
+        else if((memcmp(read_segment[i].cmd, "SCO_1", strlen("SCO_1")) == 0) && (strlen((char*)read_segment[i].cmd) == strlen("SCO_1"))){
+            if(LcdData.setData.DebugCmdPara_Gun1_CurrOffset < CP_CURRENT_OFFSET_SEPARATE){
+                parameter = LcdData.setData.DebugCmdPara_Gun1_CurrOffset;
+                sprintf((char*)config_segment[i].parameter, "-%lu.%lu%lu%c", (parameter /100), ((parameter /10) %10), (parameter %10), 'A');
+            }else{
+                parameter = (LcdData.setData.DebugCmdPara_Gun1_CurrOffset - CP_CURRENT_OFFSET_SEPARATE);
+                sprintf((char*)config_segment[i].parameter, "%lu.%lu%lu%c", (parameter /100), ((parameter /10) %10), (parameter %10), 'A');
+            }
+            config_segment[i].parameter_len = strlen((char*)config_segment[i].parameter);
+        }
+        /** 枪2设置电流偏移(0.01A) */
+        else if((memcmp(read_segment[i].cmd, "SCO_2", strlen("SCO_2")) == 0) && (strlen((char*)read_segment[i].cmd) == strlen("SCO_2"))){
+            if(LcdData.setData.DebugCmdPara_Gun2_CurrOffset < CP_CURRENT_OFFSET_SEPARATE){
+                parameter = LcdData.setData.DebugCmdPara_Gun2_CurrOffset;
+                sprintf((char*)config_segment[i].parameter, "-%lu.%lu%lu%c", (parameter /100), ((parameter /10) %10), (parameter %10), 'A');
+            }else{
+                parameter = (LcdData.setData.DebugCmdPara_Gun2_CurrOffset - CP_CURRENT_OFFSET_SEPARATE);
+                sprintf((char*)config_segment[i].parameter, "%lu.%lu%lu%c", (parameter /100), ((parameter /10) %10), (parameter %10), 'A');
+            }
             config_segment[i].parameter_len = strlen((char*)config_segment[i].parameter);
         }
 
@@ -5505,6 +5564,8 @@ void SerialScreen_CmdDebugInfoSet(void)
     if(LcdData.setData.DebugCmdPara_MElectStrategy != LcdData.setData.DebugCmdPara_MElectStrategyTemp){
         u8 data = CONFIG_ENABLE_ENUM;
 
+        if(LcdData.setData.DebugCmdPara_MElectStrategyTemp > TRUE)
+            LcdData.setData.DebugCmdPara_MElectStrategyTemp = TRUE;
         LcdData.setData.DebugCmdPara_MElectStrategy = LcdData.setData.DebugCmdPara_MElectStrategyTemp;
         if(LcdData.setData.DebugCmdPara_MElectStrategy == FALSE)
             data = CONFIG_DISABLE_ENUM;
@@ -5516,6 +5577,8 @@ void SerialScreen_CmdDebugInfoSet(void)
     if(LcdData.setData.DebugCmdPara_BatVoltStrategy != LcdData.setData.DebugCmdPara_BatVoltStrategyTemp){
         u8 data = CONFIG_DISABLE_ENUM;
 
+        if(LcdData.setData.DebugCmdPara_BatVoltStrategy > TRUE)
+            LcdData.setData.DebugCmdPara_BatVoltStrategy = FALSE;
         LcdData.setData.DebugCmdPara_BatVoltStrategy = LcdData.setData.DebugCmdPara_BatVoltStrategyTemp;
         if(LcdData.setData.DebugCmdPara_BatVoltStrategy == TRUE)
             data = CONFIG_ENABLE_ENUM;
@@ -5527,11 +5590,59 @@ void SerialScreen_CmdDebugInfoSet(void)
     if(LcdData.setData.DebugCmdPara_CurrStrategy != LcdData.setData.DebugCmdPara_CurrStrategyTemp){
         u8 data = CONFIG_ENABLE_ENUM;
 
+        if(LcdData.setData.DebugCmdPara_CurrStrategy > TRUE)
+            LcdData.setData.DebugCmdPara_CurrStrategy = TRUE;
         LcdData.setData.DebugCmdPara_CurrStrategy = LcdData.setData.DebugCmdPara_CurrStrategyTemp;
         if(LcdData.setData.DebugCmdPara_CurrStrategy == FALSE)
             data = CONFIG_DISABLE_ENUM;
 
         UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_CHARGE_CURR_STRATEGY, &data, sizeof(data));
+        is_changed = 1;
+    }
+    /*************************** 枪1设置电流偏移(0.01A) ***************************/
+    if(LcdData.setData.DebugCmdPara_Gun1_CurrOffset != LcdData.setData.DebugCmdPara_Gun1_CurrOffsetTemp){
+        /** 正偏移值 */
+        if(LcdData.setData.DebugCmdPara_Gun1_CurrOffsetTemp >= CP_CURRENT_OFFSET_SEPARATE){
+            LcdData.setData.DebugCmdPara_Gun1_CurrOffsetTemp -= CP_CURRENT_OFFSET_SEPARATE;
+            if((LcdData.setData.DebugCmdPara_Gun1_CurrOffsetTemp < CP_CURRENT_OFFSET_MIN) || \
+                    (LcdData.setData.DebugCmdPara_Gun1_CurrOffsetTemp > CP_CURRENT_OFFSET_MAX)){
+                LcdData.setData.DebugCmdPara_Gun1_CurrOffsetTemp = CP_CURRENT_OFFSET_DEF;
+            }
+            LcdData.setData.DebugCmdPara_Gun1_CurrOffsetTemp += CP_CURRENT_OFFSET_SEPARATE;
+        }
+        /** 负偏移值 */
+        else{
+            if((LcdData.setData.DebugCmdPara_Gun1_CurrOffsetTemp < CP_CURRENT_OFFSET_MIN) || \
+                    (LcdData.setData.DebugCmdPara_Gun1_CurrOffsetTemp > CP_CURRENT_OFFSET_MAX)){
+                LcdData.setData.DebugCmdPara_Gun1_CurrOffsetTemp = CP_CURRENT_OFFSET_DEF;
+            }
+        }
+        LcdData.setData.DebugCmdPara_Gun1_CurrOffset = LcdData.setData.DebugCmdPara_Gun1_CurrOffsetTemp;
+
+        UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_GUN1_CURR_OFFSET, &(LcdData.setData.DebugCmdPara_Gun1_CurrOffset), sizeof(LcdData.setData.DebugCmdPara_Gun1_CurrOffset));
+        is_changed = 1;
+    }
+    /*************************** 枪2设置电流偏移(0.01A) ***************************/
+    if(LcdData.setData.DebugCmdPara_Gun2_CurrOffset != LcdData.setData.DebugCmdPara_Gun2_CurrOffsetTemp){
+        /** 正偏移值 */
+        if(LcdData.setData.DebugCmdPara_Gun2_CurrOffsetTemp >= CP_CURRENT_OFFSET_SEPARATE){
+            LcdData.setData.DebugCmdPara_Gun2_CurrOffsetTemp -= CP_CURRENT_OFFSET_SEPARATE;
+            if((LcdData.setData.DebugCmdPara_Gun2_CurrOffsetTemp < CP_CURRENT_OFFSET_MIN) || \
+                    (LcdData.setData.DebugCmdPara_Gun2_CurrOffsetTemp > CP_CURRENT_OFFSET_MAX)){
+                LcdData.setData.DebugCmdPara_Gun2_CurrOffsetTemp = CP_CURRENT_OFFSET_DEF;
+            }
+            LcdData.setData.DebugCmdPara_Gun2_CurrOffsetTemp += CP_CURRENT_OFFSET_SEPARATE;
+        }
+        /** 负偏移值 */
+        else{
+            if((LcdData.setData.DebugCmdPara_Gun2_CurrOffsetTemp < CP_CURRENT_OFFSET_MIN) || \
+                    (LcdData.setData.DebugCmdPara_Gun2_CurrOffsetTemp > CP_CURRENT_OFFSET_MAX)){
+                LcdData.setData.DebugCmdPara_Gun2_CurrOffsetTemp = CP_CURRENT_OFFSET_DEF;
+            }
+        }
+        LcdData.setData.DebugCmdPara_Gun2_CurrOffset = LcdData.setData.DebugCmdPara_Gun2_CurrOffsetTemp;
+
+        UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_GUN2_CURR_OFFSET, &(LcdData.setData.DebugCmdPara_Gun2_CurrOffset), sizeof(LcdData.setData.DebugCmdPara_Gun2_CurrOffset));
         is_changed = 1;
     }
 
@@ -5742,6 +5853,44 @@ void SerialScreen_CmdDebugInfoGet(void)
         LcdData.setData.DebugCmdPara_CurrStrategy = TRUE;
     }
 
+
+    /* 枪1设置电流偏移(0.01A) */
+    LcdData.setData.DebugCmdPara_Gun1_CurrOffset = *((u16*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_GUN1_CURR_OFFSET, 0));
+    /** 正偏移值 */
+    if(LcdData.setData.DebugCmdPara_Gun1_CurrOffset >= CP_CURRENT_OFFSET_SEPARATE){
+        LcdData.setData.DebugCmdPara_Gun1_CurrOffset -= CP_CURRENT_OFFSET_SEPARATE;
+        if((LcdData.setData.DebugCmdPara_Gun1_CurrOffset < CP_CURRENT_OFFSET_MIN) || \
+                (LcdData.setData.DebugCmdPara_Gun1_CurrOffset > CP_CURRENT_OFFSET_MAX)){
+            LcdData.setData.DebugCmdPara_Gun1_CurrOffset = CP_CURRENT_OFFSET_DEF;
+        }
+        LcdData.setData.DebugCmdPara_Gun1_CurrOffset += CP_CURRENT_OFFSET_SEPARATE;
+    }
+    /** 负偏移值 */
+    else{
+        if((LcdData.setData.DebugCmdPara_Gun1_CurrOffset < CP_CURRENT_OFFSET_MIN) || \
+                (LcdData.setData.DebugCmdPara_Gun1_CurrOffset > CP_CURRENT_OFFSET_MAX)){
+            LcdData.setData.DebugCmdPara_Gun1_CurrOffset = CP_CURRENT_OFFSET_DEF;
+        }
+    }
+    /* 枪2设置电流偏移(0.01A) */
+    LcdData.setData.DebugCmdPara_Gun2_CurrOffset = *((u16*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_GUN2_CURR_OFFSET, 0));
+    /** 正偏移值 */
+    if(LcdData.setData.DebugCmdPara_Gun2_CurrOffset >= CP_CURRENT_OFFSET_SEPARATE){
+        LcdData.setData.DebugCmdPara_Gun2_CurrOffset -= CP_CURRENT_OFFSET_SEPARATE;
+        if((LcdData.setData.DebugCmdPara_Gun2_CurrOffset < CP_CURRENT_OFFSET_MIN) || \
+                (LcdData.setData.DebugCmdPara_Gun2_CurrOffset > CP_CURRENT_OFFSET_MAX)){
+            LcdData.setData.DebugCmdPara_Gun2_CurrOffset = CP_CURRENT_OFFSET_DEF;
+        }
+        LcdData.setData.DebugCmdPara_Gun2_CurrOffset += CP_CURRENT_OFFSET_SEPARATE;
+    }
+    /** 负偏移值 */
+    else{
+        if((LcdData.setData.DebugCmdPara_Gun2_CurrOffset < CP_CURRENT_OFFSET_MIN) || \
+                (LcdData.setData.DebugCmdPara_Gun2_CurrOffset > CP_CURRENT_OFFSET_MAX)){
+            LcdData.setData.DebugCmdPara_Gun2_CurrOffset = CP_CURRENT_OFFSET_DEF;
+        }
+    }
+
     LcdData.setData.Icon_BatVoltDetect = FALSE;
     if(LcdData.setData.sup_BatVoltDetect){
         LcdData.setData.Icon_BatVoltDetect = TRUE;
@@ -5818,6 +5967,8 @@ void SerialScreen_CmdDebugInfoGet(void)
     LcdData.setData.DebugCmdPara_MElectStrategyTemp = LcdData.setData.DebugCmdPara_MElectStrategy;
     LcdData.setData.DebugCmdPara_BatVoltStrategyTemp = LcdData.setData.DebugCmdPara_BatVoltStrategy;
     LcdData.setData.DebugCmdPara_CurrStrategyTemp = LcdData.setData.DebugCmdPara_CurrStrategy;
+    LcdData.setData.DebugCmdPara_Gun1_CurrOffsetTemp = LcdData.setData.DebugCmdPara_Gun1_CurrOffset;
+    LcdData.setData.DebugCmdPara_Gun2_CurrOffsetTemp = LcdData.setData.DebugCmdPara_Gun2_CurrOffset;
 }
 
 void SerialScreen_CmdDebugIssue(void)
@@ -6085,6 +6236,62 @@ void SerialScreen_CmdDebugIssue(void)
                 LcdData.setData.DebugCmdPara_CurrStrategyTemp = para;
             }
         }
+        /** 指令下发：枪1设置电流偏移(0.01A) */
+        else if((memcmp(CmdStr, "SCO_1", strlen("SCO_1")) == 0) && (strlen(CmdStr) == strlen("SCO_1")))
+        {
+            if((used_len < blen) && ParaStr){
+                uint16_t para = 0x00;
+
+                /** 这是负偏移 */
+                if((ParaStr[0x00] == '-') || (ParaStr[0x00] == '_')){
+                    para = (uint16_t)(atol((ParaStr + 0x01)));
+                    if((para < CP_CURRENT_OFFSET_MIN) || (para > CP_CURRENT_OFFSET_MAX)){
+                        para = CP_CURRENT_OFFSET_DEF;
+                    }
+                }
+                /** 这是正偏移 */
+                else{
+                    para = (uint16_t)(atol(ParaStr));
+                    if((para < CP_CURRENT_OFFSET_MIN) || (para > CP_CURRENT_OFFSET_MAX)){
+                        para = CP_CURRENT_OFFSET_DEF;
+                    }
+                    para += CP_CURRENT_OFFSET_SEPARATE;
+                }
+
+                thaisen_get_cmd_debug_result_info(LCD_GUN_1, THA_DEBUG_LANGUAGE_CHINESE, THAISEN_DEBUG_CMD_ISSUE_SETUP_CURR_OFFSET, (uint8_t*)&para, sizeof(para), \
+                        (LcdData.setData.DebugResult + used_len), (blen - used_len));
+                /** 保存指令参数 */
+                LcdData.setData.DebugCmdPara_Gun1_CurrOffsetTemp = para;
+            }
+        }
+        /** 指令下发：枪2设置电流偏移(0.01A) */
+        else if((memcmp(CmdStr, "SCO_2", strlen("SCO_2")) == 0) && (strlen(CmdStr) == strlen("SCO_2")))
+        {
+            if((used_len < blen) && ParaStr){
+                uint16_t para = 0x00;
+
+                /** 这是负偏移 */
+                if((ParaStr[0x00] == '-') || (ParaStr[0x00] == '_')){
+                    para = (uint16_t)(atol((ParaStr + 0x01)));
+                    if((para < CP_CURRENT_OFFSET_MIN) || (para > CP_CURRENT_OFFSET_MAX)){
+                        para = CP_CURRENT_OFFSET_DEF;
+                    }
+                }
+                /** 这是正偏移 */
+                else{
+                    para = (uint16_t)(atol(ParaStr));
+                    if((para < CP_CURRENT_OFFSET_MIN) || (para > CP_CURRENT_OFFSET_MAX)){
+                        para = CP_CURRENT_OFFSET_DEF;
+                    }
+                    para += CP_CURRENT_OFFSET_SEPARATE;
+                }
+
+                thaisen_get_cmd_debug_result_info(LCD_GUN_2, THA_DEBUG_LANGUAGE_CHINESE, THAISEN_DEBUG_CMD_ISSUE_SETUP_CURR_OFFSET, (uint8_t*)&para, sizeof(para), \
+                        (LcdData.setData.DebugResult + used_len), (blen - used_len));
+                /** 保存指令参数 */
+                LcdData.setData.DebugCmdPara_Gun2_CurrOffsetTemp = para;
+            }
+        }
 
         used_len = strlen((char*)LcdData.setData.DebugResult);
         if(used_len >= blen)
@@ -6278,6 +6485,24 @@ void SerialScreen_CmdDebugRead(void)
             uint8_t number = LcdData.setData.DebugCmdPara_CurrStrategyTemp;
             if(used_len < blen){
                 thaisen_get_cmd_debug_result_info(LCD_GUN_1, THA_DEBUG_LANGUAGE_CHINESE, THAISEN_DEBUG_CMD_READ_CURR_STRATEGY, (u8*)&number, sizeof(number), \
+                        (LcdData.setData.DebugResult + used_len), (blen - used_len));
+            }
+        }
+        /** 指令读取：枪1设置电流偏移(0.01A) */
+        else if(strstr((const char*)CmdStr, "SCO_1"))
+        {
+            uint16_t Offset = LcdData.setData.DebugCmdPara_Gun1_CurrOffsetTemp;
+            if(used_len < blen){
+                thaisen_get_cmd_debug_result_info(LCD_GUN_1, THA_DEBUG_LANGUAGE_CHINESE, THAISEN_DEBUG_CMD_READ_SETUP_CURR_OFFSET, (u8*)&Offset, sizeof(Offset), \
+                        (LcdData.setData.DebugResult + used_len), (blen - used_len));
+            }
+        }
+        /** 指令读取：枪2设置电流偏移(0.01A) */
+        else if(strstr((const char*)CmdStr, "SCO_2"))
+        {
+            uint16_t Offset = LcdData.setData.DebugCmdPara_Gun2_CurrOffsetTemp;
+            if(used_len < blen){
+                thaisen_get_cmd_debug_result_info(LCD_GUN_2, THA_DEBUG_LANGUAGE_CHINESE, THAISEN_DEBUG_CMD_READ_SETUP_CURR_OFFSET, (u8*)&Offset, sizeof(Offset), \
                         (LcdData.setData.DebugResult + used_len), (blen - used_len));
             }
         }
@@ -12021,6 +12246,9 @@ struct LCD_DATA_FIFO_TYPE *SerialScreen_Init(struct SerialScreenObj *cmd)
     LcdData.setData.DebugCmdPara_BatVoltStrategy = *((u8*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_BATVOLT_STRATEGY, 0));
     LcdData.setData.DebugCmdPara_CurrStrategy = *((u8*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_CHARGE_CURR_STRATEGY, 0));
 
+    LcdData.setData.DebugCmdPara_Gun1_CurrOffset = *((u16*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_GUN1_CURR_OFFSET, 0));
+    LcdData.setData.DebugCmdPara_Gun2_CurrOffset = *((u16*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_GUN2_CURR_OFFSET, 0));
+
     memset(LcdData.setData.UserPasswdShow, '\0', sizeof(LcdData.setData.UserPasswdShow));
     memcpy(LcdData.setData.UserPasswdShow, data, sizeof(LcdData.setData.UserPasswdShow));
     if(len == 0){
@@ -12201,9 +12429,47 @@ struct LCD_DATA_FIFO_TYPE *SerialScreen_Init(struct SerialScreenObj *cmd)
         LcdData.setData.DebugCmdPara_CurrStrategy = TRUE;
     }
 
+    /*************************** 枪1设置电流偏移(0.01A) ***************************/
+    /** 正偏移值 */
+    if(LcdData.setData.DebugCmdPara_Gun1_CurrOffset >= CP_CURRENT_OFFSET_SEPARATE){
+        LcdData.setData.DebugCmdPara_Gun1_CurrOffset -= CP_CURRENT_OFFSET_SEPARATE;
+        if((LcdData.setData.DebugCmdPara_Gun1_CurrOffset < CP_CURRENT_OFFSET_MIN) || \
+                (LcdData.setData.DebugCmdPara_Gun1_CurrOffset > CP_CURRENT_OFFSET_MAX)){
+            LcdData.setData.DebugCmdPara_Gun1_CurrOffset = CP_CURRENT_OFFSET_DEF;
+        }
+        LcdData.setData.DebugCmdPara_Gun1_CurrOffset += CP_CURRENT_OFFSET_SEPARATE;
+    }
+    /** 负偏移值 */
+    else{
+        if((LcdData.setData.DebugCmdPara_Gun1_CurrOffset < CP_CURRENT_OFFSET_MIN) || \
+                (LcdData.setData.DebugCmdPara_Gun1_CurrOffset > CP_CURRENT_OFFSET_MAX)){
+            LcdData.setData.DebugCmdPara_Gun1_CurrOffset = CP_CURRENT_OFFSET_DEF;
+        }
+    }
+    /*************************** 枪2设置电流偏移(0.01A) ***************************/
+    /** 正偏移值 */
+    if(LcdData.setData.DebugCmdPara_Gun2_CurrOffset >= CP_CURRENT_OFFSET_SEPARATE){
+        LcdData.setData.DebugCmdPara_Gun2_CurrOffset -= CP_CURRENT_OFFSET_SEPARATE;
+        if((LcdData.setData.DebugCmdPara_Gun2_CurrOffset < CP_CURRENT_OFFSET_MIN) || \
+                (LcdData.setData.DebugCmdPara_Gun2_CurrOffset > CP_CURRENT_OFFSET_MAX)){
+            LcdData.setData.DebugCmdPara_Gun2_CurrOffset = CP_CURRENT_OFFSET_DEF;
+        }
+        LcdData.setData.DebugCmdPara_Gun2_CurrOffset += CP_CURRENT_OFFSET_SEPARATE;
+    }
+    /** 负偏移值 */
+    else{
+        if((LcdData.setData.DebugCmdPara_Gun2_CurrOffset < CP_CURRENT_OFFSET_MIN) || \
+                (LcdData.setData.DebugCmdPara_Gun2_CurrOffset > CP_CURRENT_OFFSET_MAX)){
+            LcdData.setData.DebugCmdPara_Gun2_CurrOffset = CP_CURRENT_OFFSET_DEF;
+        }
+    }
+
     LcdData.setData.DebugCmdPara_MElectStrategyTemp = LcdData.setData.DebugCmdPara_MElectStrategy;
     LcdData.setData.DebugCmdPara_BatVoltStrategyTemp = LcdData.setData.DebugCmdPara_BatVoltStrategy;
     LcdData.setData.DebugCmdPara_CurrStrategyTemp = LcdData.setData.DebugCmdPara_CurrStrategy;
+
+    LcdData.setData.DebugCmdPara_Gun1_CurrOffsetTemp = LcdData.setData.DebugCmdPara_Gun1_CurrOffset;
+    LcdData.setData.DebugCmdPara_Gun2_CurrOffsetTemp = LcdData.setData.DebugCmdPara_Gun2_CurrOffset;
 
     for(int i = 0; i < LCD_GUN_NUM; i++)
     {
