@@ -141,7 +141,9 @@ struct _config_para{
     uint16_t gun2_cc1_4_max;                                          /* 枪2 CC1 4V 上限 */
     uint16_t gun2_cc1_4_min;                                          /* 枪2 CC1 4V 下限 */
 
-    uint8_t reserve1[256 - 39];                                       /* 预留 */
+    uint16_t gun1_curr_offset;                                        /* 枪1电流偏移(0.01A) */
+    uint16_t gun2_curr_offset;                                        /* 枪2电流偏移(0.01A) */
+    uint8_t reserve1[256 - 43];                                       /* 预留 */
 };
 
 struct _config_info{
@@ -233,7 +235,10 @@ struct _function_enable{
     uint8_t protocol_gb_t;         /* 国标协议(27930) */
     uint8_t bms_several_frame;     /* BMS多帧 */
     uint8_t v2g_mode[2];           /* 已选择的V2G模式 */
-    uint8_t reserve[68];
+    uint8_t melect_strategy;       /* 电表电量检测策略 */
+    uint8_t batvolt_strategy;      /* 电池电压检测策略 */
+    uint8_t charge_curr_strategy;    /* 充电电流检测策略 */
+    uint8_t reserve[65];
 };
 
 struct _state_reversal{
@@ -544,6 +549,21 @@ APP_DEF_SRAM2 static struct config_item s_config_item_set[CONFIG_ITEM_SIZE] =
         {CONFIG_ITEM_SUPORT_OFFLINE_BILLING,                                            /* 配置项：离线计费 */
         (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.offline_billing)),
         (uint8_t*)&s_chargepile_config_info.function_enable.offline_billing,
+        NULL},
+
+        {CONFIG_ITEM_SUPORT_MELECT_STRATEGY,                                            /* 配置项：电表电量检测策略 */
+        (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.melect_strategy)),
+        (uint8_t*)&s_chargepile_config_info.function_enable.melect_strategy,
+        NULL},
+
+        {CONFIG_ITEM_SUPORT_BATVOLT_STRATEGY,                                            /* 配置项：电池电压检测策略 */
+        (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.batvolt_strategy)),
+        (uint8_t*)&s_chargepile_config_info.function_enable.batvolt_strategy,
+        NULL},
+
+        {CONFIG_ITEM_SUPORT_CHARGE_CURR_STRATEGY,                                            /* 配置项：充电电流检测策略 */
+        (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.charge_curr_strategy)),
+        (uint8_t*)&s_chargepile_config_info.function_enable.charge_curr_strategy,
         NULL},
 
         {CONFIG_ITEM_INPUT_OVERVOL,                                                     /* 配置项：输入过压 */
@@ -1172,6 +1192,12 @@ void sys_chargeplie_config_info_init(void)
     /** 枪2 CC1 12V 最小值 */
     sys_config_item_init(CONFIG_ITEM_GUN2_CC112V_MIN, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.gun2_cc1_12_min)), \
             (uint8_t*)&s_chargepile_config_info.config_para.gun2_cc1_12_min, NULL);
+    /** 枪1 电流偏移值 */
+    sys_config_item_init(CONFIG_ITEM_GUN1_CURR_OFFSET, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.gun1_curr_offset)), \
+            (uint8_t*)&s_chargepile_config_info.config_para.gun1_curr_offset, NULL);
+    /** 枪2 电流偏移值 */
+    sys_config_item_init(CONFIG_ITEM_GUN2_CURR_OFFSET, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.gun2_curr_offset)), \
+            (uint8_t*)&s_chargepile_config_info.config_para.gun2_curr_offset, NULL);
     /** 启用BSM功能 */
     sys_config_item_init(CONFIG_ITEM_SUPORT_BSM, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.bsm)), \
             (uint8_t*)&s_chargepile_config_info.function_enable.bsm, NULL);
@@ -1184,6 +1210,15 @@ void sys_chargeplie_config_info_init(void)
     /** 启用离线计费功能 */
     sys_config_item_init(CONFIG_ITEM_SUPORT_OFFLINE_BILLING, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.offline_billing)), \
             (uint8_t*)&s_chargepile_config_info.function_enable.offline_billing, NULL);
+    /** 启用电表电量检测策略功能 */
+    sys_config_item_init(CONFIG_ITEM_SUPORT_MELECT_STRATEGY, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.melect_strategy)), \
+            (uint8_t*)&s_chargepile_config_info.function_enable.melect_strategy, NULL);
+    /** 启用电池电压检测策略功能 */
+    sys_config_item_init(CONFIG_ITEM_SUPORT_BATVOLT_STRATEGY, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.batvolt_strategy)), \
+            (uint8_t*)&s_chargepile_config_info.function_enable.batvolt_strategy, NULL);
+    /** 启用充电电流检测策略功能 */
+    sys_config_item_init(CONFIG_ITEM_SUPORT_CHARGE_CURR_STRATEGY, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.charge_curr_strategy)), \
+            (uint8_t*)&s_chargepile_config_info.function_enable.charge_curr_strategy, NULL);
     /** 输入过压值 */
     sys_config_item_init(CONFIG_ITEM_INPUT_OVERVOL, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.input_overvol)), \
             (uint8_t*)&s_chargepile_config_info.config_para.input_overvol, NULL);
@@ -1960,6 +1995,9 @@ static void chargepile_config_data_reset(void)
     s_chargepile_config_info.config_para.output_undervol = CHARGEPILE_OUTPUT_UNDERVOLT_DEF;
     s_chargepile_config_info.config_para.output_overcur = CHARGEPILE_OUTPUT_OVERCURR_DEF;
 
+    s_chargepile_config_info.config_para.gun1_curr_offset = CP_CURRENT_OFFSET_DEF;
+    s_chargepile_config_info.config_para.gun2_curr_offset = CP_CURRENT_OFFSET_DEF;
+
     s_chargepile_config_info.config_info.prefix_length = 0x00;
     memset(s_chargepile_config_info.config_info.qrcode_prefix, '\0', sizeof(s_chargepile_config_info.config_info.qrcode_prefix));
     s_chargepile_config_info.config_info.qrcode_prefix[0x00] = CP_SET_QRCODE_FORMAT_PREFIX;
@@ -2034,6 +2072,9 @@ static void chargepile_config_data_reset(void)
     s_chargepile_config_info.function_enable.bay_protocol_switch = CONFIG_ENABLE_ENUM;
     s_chargepile_config_info.function_enable.protocol_gb_t = CONFIG_DISABLE_ENUM;
     s_chargepile_config_info.function_enable.bms_several_frame = CONFIG_ENABLE_ENUM;
+    s_chargepile_config_info.function_enable.batvolt_strategy = CONFIG_DISABLE_ENUM;
+    s_chargepile_config_info.function_enable.melect_strategy = CONFIG_ENABLE_ENUM;
+    s_chargepile_config_info.function_enable.charge_curr_strategy = CONFIG_ENABLE_ENUM;
 
     memset(s_chargepile_config_info.function_enable.current_mode, 0x00, sizeof(s_chargepile_config_info.function_enable.current_mode));
     memset(s_chargepile_config_info.function_enable.v2g_mode, 0x00, sizeof(s_chargepile_config_info.function_enable.v2g_mode));
@@ -2788,6 +2829,18 @@ int32_t chargepile_check_config(void)
             (s_chargepile_config_info.function_enable.mode_v2g != CONFIG_DISABLE_ENUM)){                  /* V2G默认关闭 */
         s_chargepile_config_info.function_enable.mode_v2g = CONFIG_DISABLE_ENUM;
     }
+    if((s_chargepile_config_info.function_enable.batvolt_strategy != CONFIG_ENABLE_ENUM) && \
+            (s_chargepile_config_info.function_enable.batvolt_strategy != CONFIG_DISABLE_ENUM)){          /* 电池电压检测默认关闭 */
+        s_chargepile_config_info.function_enable.batvolt_strategy = CONFIG_DISABLE_ENUM;
+    }
+    if((s_chargepile_config_info.function_enable.melect_strategy != CONFIG_ENABLE_ENUM) && \
+            (s_chargepile_config_info.function_enable.melect_strategy != CONFIG_DISABLE_ENUM)){           /* 电表电量检测默认开启 */
+        s_chargepile_config_info.function_enable.melect_strategy = CONFIG_ENABLE_ENUM;
+    }
+    if((s_chargepile_config_info.function_enable.charge_curr_strategy != CONFIG_ENABLE_ENUM) && \
+            (s_chargepile_config_info.function_enable.charge_curr_strategy != CONFIG_DISABLE_ENUM)){      /* 充电电流检测默认开启 */
+        s_chargepile_config_info.function_enable.charge_curr_strategy = CONFIG_ENABLE_ENUM;
+    }
 
     if(s_chargepile_config_info.state_reversal.emergency_stop > 0x01){   /* 急停默认不取反 */
         s_chargepile_config_info.state_reversal.emergency_stop = 0x00;
@@ -3028,6 +3081,42 @@ int32_t chargepile_check_config(void)
         s_chargepile_config_info.config_para.gun2_cc1_4_max = CHARGEPILE_CC4V_MAX_DEF;
         s_chargepile_config_info.config_para.gun2_cc1_4_min = CHARGEPILE_CC4V_MIN_DEF;
     }
+
+    /******************************************* 电流偏移 *******************************************/
+    /** 正偏移值 */
+    if(s_chargepile_config_info.config_para.gun1_curr_offset >= CP_CURRENT_OFFSET_SEPARATE){
+        s_chargepile_config_info.config_para.gun1_curr_offset -= CP_CURRENT_OFFSET_SEPARATE;
+        if((s_chargepile_config_info.config_para.gun1_curr_offset < CP_CURRENT_OFFSET_MIN) || \
+                (s_chargepile_config_info.config_para.gun1_curr_offset > CP_CURRENT_OFFSET_MAX)){
+            s_chargepile_config_info.config_para.gun1_curr_offset = CP_CURRENT_OFFSET_DEF;
+        }
+        s_chargepile_config_info.config_para.gun1_curr_offset += CP_CURRENT_OFFSET_SEPARATE;
+    }
+    /** 负偏移值 */
+    else{
+        if((s_chargepile_config_info.config_para.gun1_curr_offset < CP_CURRENT_OFFSET_MIN) || \
+                (s_chargepile_config_info.config_para.gun1_curr_offset > CP_CURRENT_OFFSET_MAX)){
+            s_chargepile_config_info.config_para.gun1_curr_offset = CP_CURRENT_OFFSET_DEF;
+        }
+    }
+
+    /** 正偏移值 */
+    if(s_chargepile_config_info.config_para.gun2_curr_offset >= CP_CURRENT_OFFSET_SEPARATE){
+        s_chargepile_config_info.config_para.gun2_curr_offset -= CP_CURRENT_OFFSET_SEPARATE;
+        if((s_chargepile_config_info.config_para.gun2_curr_offset < CP_CURRENT_OFFSET_MIN) || \
+                (s_chargepile_config_info.config_para.gun2_curr_offset > CP_CURRENT_OFFSET_MAX)){
+            s_chargepile_config_info.config_para.gun2_curr_offset = CP_CURRENT_OFFSET_DEF;
+        }
+        s_chargepile_config_info.config_para.gun2_curr_offset += CP_CURRENT_OFFSET_SEPARATE;
+    }
+    /** 负偏移值 */
+    else{
+        if((s_chargepile_config_info.config_para.gun2_curr_offset < CP_CURRENT_OFFSET_MIN) || \
+                (s_chargepile_config_info.config_para.gun2_curr_offset > CP_CURRENT_OFFSET_MAX)){
+            s_chargepile_config_info.config_para.gun2_curr_offset = CP_CURRENT_OFFSET_DEF;
+        }
+    }
+
 
 #ifdef CP_USING_OFFLINE_BILLING
     /***************************************************[离线计费部分]*****************************************************/
@@ -4190,7 +4279,7 @@ int32_t sys_lighting_lamp_time_valid(uint8_t shour, uint8_t ehour, uint8_t smin,
 int32_t sys_cc1_range_valid(uint16_t cc12_max, uint16_t cc12_min, uint16_t cc6_max, uint16_t cc6_min, uint16_t cc4_max, uint16_t cc4_min)
 {
     uint8_t valid = 0x01;
-
+#if 0
     /** CC1 12V 判断 */
     if((cc12_max < CHARGEPILE_CC12V_S) || (cc12_min > CHARGEPILE_CC12V_S)){
         valid = 0x00;
@@ -4207,5 +4296,23 @@ int32_t sys_cc1_range_valid(uint16_t cc12_max, uint16_t cc12_min, uint16_t cc6_m
             valid = 0x00;
         }
     }
+#else
+    /** CC1 12V 判断 */
+    if(cc12_max < cc12_min){
+        valid = 0x00;
+    }
+    /** CC1 6V 判断 */
+    if(valid){
+        if((cc6_max < cc6_min) || (cc6_max > cc12_min)){
+            valid = 0x00;
+        }
+    }
+    /** CC1 4V 判断 */
+    if(valid){
+        if((cc4_max < cc4_min) || (cc4_max > cc6_min)){
+            valid = 0x00;
+        }
+    }
+#endif
     return valid;
 }

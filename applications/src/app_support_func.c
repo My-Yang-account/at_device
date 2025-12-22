@@ -2280,6 +2280,60 @@ void app_cmd_debug_result_info(uint8_t gunno, uint8_t language, uint8_t cmd, uin
             }
         }
         break;
+    case THAISEN_DEBUG_CMD_ISSUE_MELECT_STRATEGY:
+        if(para && (plen >= 0x01)){
+            uint8_t function = *(uint8_t*)para;
+            const char *e_str[2] = {"Close", "Open"};
+            const char *c_str[2] = {"关闭", "开启"};
+
+            function = function > 0x01 ? 0x01 : function;
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= (strlen("Issue>MElectStrategy:") + 0x06))
+                    return;
+                sprintf((char*)buf, "%s%s", "Issue>MElectStrategy:", e_str[function]);
+            }else{
+                if(ilen <= (strlen("下发>电表电量检测策略：") + 0x06))
+                    return;
+                sprintf((char*)buf, "%s%s", "下发>电表电量检测策略：", c_str[function]);
+            }
+        }
+        break;
+    case THAISEN_DEBUG_CMD_ISSUE_BATVOLT_STRATEGY:
+        if(para && (plen >= 0x01)){
+            uint8_t function = *(uint8_t*)para;
+            const char *e_str[2] = {"Close", "Open"};
+            const char *c_str[2] = {"关闭", "开启"};
+
+            function = function > 0x01 ? 0x00 : function;
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= (strlen("Issue>BatVoltStrategy:") + 0x06))
+                    return;
+                sprintf((char*)buf, "%s%s", "Issue>BatVoltStrategy:", e_str[function]);
+            }else{
+                if(ilen <= (strlen("下发>电池电压检测策略：") + 0x06))
+                    return;
+                sprintf((char*)buf, "%s%s", "下发>电池电压检测策略：", c_str[function]);
+            }
+        }
+        break;
+    case THAISEN_DEBUG_CMD_ISSUE_CURR_STRATEGY:
+        if(para && (plen >= 0x01)){
+            uint8_t function = *(uint8_t*)para;
+            const char *e_str[2] = {"Close", "Open"};
+            const char *c_str[2] = {"关闭", "开启"};
+
+            function = function > 0x01 ? 0x01 : function;
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= (strlen("Issue>CurrStrategy:") + 0x06))
+                    return;
+                sprintf((char*)buf, "%s%s", "Issue>CurrStrategy:", e_str[function]);
+            }else{
+                if(ilen <= (strlen("下发>充电电流检测策略：") + 0x06))
+                    return;
+                sprintf((char*)buf, "%s%s", "下发>充电电流检测策略：", c_str[function]);
+            }
+        }
+        break;
     case THAISEN_DEBUG_CMD_READ_MODULE_CURR_MAX:
         if(para && (plen >= 0x04)){
             uint32_t curr = *(uint32_t*)para;
@@ -2422,6 +2476,61 @@ void app_cmd_debug_result_info(uint8_t gunno, uint8_t language, uint8_t cmd, uin
             }
         }
         break;
+    case THAISEN_DEBUG_CMD_READ_MELECT_STRATEGY:
+        if(para && (plen >= 0x01)){
+            uint8_t function = *(uint8_t*)para;
+            const char *e_str[2] = {"Close", "Open"};
+            const char *c_str[2] = {"关闭", "开启"};
+
+            function = function > 0x01 ? 0x01 : function;
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= (strlen("Read>MElectStrategy:") + 0x06))
+                    return;
+                sprintf((char*)buf, "%s%s", "Read>MElectStrategy:", e_str[function]);
+            }else{
+                if(ilen <= (strlen("读取>电表电量检测策略：") + 0x06))
+                    return;
+                sprintf((char*)buf, "%s%s", "读取>电表电量检测策略：", c_str[function]);
+            }
+        }
+        break;
+    case THAISEN_DEBUG_CMD_READ_BATVOLT_STRATEGY:
+        if(para && (plen >= 0x01)){
+            uint8_t function = *(uint8_t*)para;
+            const char *e_str[2] = {"Close", "Open"};
+            const char *c_str[2] = {"关闭", "开启"};
+
+            function = function > 0x01 ? 0x00 : function;
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= (strlen("Read>BatVoltStrategy:") + 0x06))
+                    return;
+                sprintf((char*)buf, "%s%s", "Read>BatVoltStrategy:", e_str[function]);
+            }else{
+                if(ilen <= (strlen("读取>电池电压检测策略：") + 0x06))
+                    return;
+                sprintf((char*)buf, "%s%s", "读取>电池电压检测策略：", c_str[function]);
+            }
+        }
+        break;
+    case THAISEN_DEBUG_CMD_READ_CURR_STRATEGY:
+        if(para && (plen >= 0x01)){
+            uint8_t function = *(uint8_t*)para;
+            const char *e_str[2] = {"Close", "Open"};
+            const char *c_str[2] = {"关闭", "开启"};
+
+            function = function > 0x01 ? 0x01 : function;
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= (strlen("Read>CurrStrategy:") + 0x06))
+                    return;
+                sprintf((char*)buf, "%s%s", "Read>CurrStrategy:", e_str[function]);
+            }else{
+                if(ilen <= (strlen("读取>充电电流检测策略：") + 0x06))
+                    return;
+                sprintf((char*)buf, "%s%s", "读取>充电电流检测策略：", c_str[function]);
+            }
+        }
+        break;
+
     default:
         break;
     }

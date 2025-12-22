@@ -819,23 +819,29 @@ struct LCD_DISPLAY_SETDATA_TYPE{
     /** 参数 */
     u32 DebugCmdPara_MCMax;                                      //指令调试参数：模块最大输出电流
     u32 DebugCmdPara_MCMin;                                      //指令调试参数：模块最小输出电流
-    u32 DebugCmdPara_LedLanguage;                                //指令调试参数：灯语
+    u8 DebugCmdPara_LedLanguage;                                 //指令调试参数：灯语
     u16 DebugCmdPara_CC12V_Max[LCD_GUN_NUM];                     //指令调试参数：CC1 12V 上限(0.001V)
     u16 DebugCmdPara_CC6V_Max[LCD_GUN_NUM];                      //指令调试参数：CC1 6V 上限(0.001V)
     u16 DebugCmdPara_CC4V_Max[LCD_GUN_NUM];                      //指令调试参数：CC1 4V 上限(0.001V)
     u16 DebugCmdPara_CC12V_Min[LCD_GUN_NUM];                     //指令调试参数：CC1 12V 下限(0.001V)
     u16 DebugCmdPara_CC6V_Min[LCD_GUN_NUM];                      //指令调试参数：CC1 6V 下限(0.001V)
     u16 DebugCmdPara_CC4V_Min[LCD_GUN_NUM];                      //指令调试参数：CC1 4V 下限(0.001V)
+    u8 DebugCmdPara_MElectStrategy;                              //指令调试参数：电表电量检测策略
+    u8 DebugCmdPara_BatVoltStrategy;                             //指令调试参数：电池电压检测策略
+    u8 DebugCmdPara_CurrStrategy;                                //指令调试参数：充电电流检测策略
     /** 参数中间值 */
     u32 DebugCmdPara_MCMaxTemp;                                  //指令调试参数：模块最大输出电流中间值
     u32 DebugCmdPara_MCMinTemp;                                  //指令调试参数：模块最小输出电流中间值
-    u32 DebugCmdPara_LedLanguageTemp;                            //指令调试参数：灯语中间值
+    u8  DebugCmdPara_LedLanguageTemp;                            //指令调试参数：灯语中间值
     u16 DebugCmdPara_CC12V_MaxTemp[LCD_GUN_NUM];                 //指令调试参数：CC1 12V 上限中间值(0.001V)
     u16 DebugCmdPara_CC6V_MaxTemp[LCD_GUN_NUM];                  //指令调试参数：CC1 6V 上限中间值(0.001V)
     u16 DebugCmdPara_CC4V_MaxTemp[LCD_GUN_NUM];                  //指令调试参数：CC1 4V 上限中间值(0.001V)
     u16 DebugCmdPara_CC12V_MinTemp[LCD_GUN_NUM];                 //指令调试参数：CC1 12V 下限中间值(0.001V)
     u16 DebugCmdPara_CC6V_MinTemp[LCD_GUN_NUM];                  //指令调试参数：CC1 6V 下限中间值(0.001V)
     u16 DebugCmdPara_CC4V_MinTemp[LCD_GUN_NUM];                  //指令调试参数：CC1 4V 下限中间值(0.001V)
+    u8 DebugCmdPara_MElectStrategyTemp;                          //指令调试参数：电表电量检测策略间值
+    u8 DebugCmdPara_BatVoltStrategyTemp;                         //指令调试参数：电池电压检测策略间值
+    u8 DebugCmdPara_CurrStrategyTemp;                            //指令调试参数：充电电流检测策略间值
     /*********************** fan ***************************/
     u32 FanWorkTime;                                             //停充后风扇工作时间(s)
     /*********************** 照明灯 ***************************/
@@ -2884,6 +2890,33 @@ static s32 SerialScreen_ConfigExecute_DynamicCmdDebugModify(u8 port, void *data,
             needIssue = 1;
             memcpy(LcdData.setData.DebugCmd, "CC4_L2", strlen("CC4_L2"));
         }
+        /** 电表电量检测策略 */
+        else if((memcmp(config_segment[i].cmd, "ME_ST", strlen("ME_ST")) == 0) && (strlen((char*)config_segment[i].cmd) == strlen("ME_ST"))){
+            if(strlen((char*)config_segment[i].parameter) == 0x00){
+                /** 参数非法，配置失败 */
+                return (i + THAISEN_CONFIG_FAIL_OFFSET);
+            }
+            needIssue = 1;
+            memcpy(LcdData.setData.DebugCmd, "ME_ST", strlen("ME_ST"));
+        }
+        /** 电池电压检测策略 */
+        else if((memcmp(config_segment[i].cmd, "BV_ST", strlen("BV_ST")) == 0) && (strlen((char*)config_segment[i].cmd) == strlen("BV_ST"))){
+            if(strlen((char*)config_segment[i].parameter) == 0x00){
+                /** 参数非法，配置失败 */
+                return (i + THAISEN_CONFIG_FAIL_OFFSET);
+            }
+            needIssue = 1;
+            memcpy(LcdData.setData.DebugCmd, "BV_ST", strlen("BV_ST"));
+        }
+        /** 充电电流检测策略 */
+        else if((memcmp(config_segment[i].cmd, "CC_ST", strlen("CC_ST")) == 0) && (strlen((char*)config_segment[i].cmd) == strlen("CC_ST"))){
+            if(strlen((char*)config_segment[i].parameter) == 0x00){
+                /** 参数非法，配置失败 */
+                return (i + THAISEN_CONFIG_FAIL_OFFSET);
+            }
+            needIssue = 1;
+            memcpy(LcdData.setData.DebugCmd, "CC_ST", strlen("CC_ST"));
+        }
         else{
             /** 没有这个指令，配置失败 */
             return (i + THAISEN_CONFIG_FAIL_OFFSET);
@@ -3030,6 +3063,21 @@ static s32 SerialScreen_ConfigExecute_DynamicCmdDebugRead(u8 port, void *data, v
         /** 枪2 CC1 4V 下限 */
         else if((memcmp(read_segment[i].cmd, "CC4_L2", strlen("CC4_L2")) == 0) && (strlen((char*)read_segment[i].cmd) == strlen("CC4_L2"))){
             sprintf((char*)config_segment[i].parameter, "%u", LcdData.setData.DebugCmdPara_CC4V_Min[LCD_GUN_2]);
+            config_segment[i].parameter_len = strlen((char*)config_segment[i].parameter);
+        }
+        /** 电表电量检测策略 */
+        else if((memcmp(read_segment[i].cmd, "ME_ST", strlen("ME_ST")) == 0) && (strlen((char*)read_segment[i].cmd) == strlen("ME_ST"))){
+            sprintf((char*)config_segment[i].parameter, "%u", LcdData.setData.DebugCmdPara_MElectStrategy);
+            config_segment[i].parameter_len = strlen((char*)config_segment[i].parameter);
+        }
+        /** 电池电压检测策略 */
+        else if((memcmp(read_segment[i].cmd, "BV_ST", strlen("BV_ST")) == 0) && (strlen((char*)read_segment[i].cmd) == strlen("BV_ST"))){
+            sprintf((char*)config_segment[i].parameter, "%u", LcdData.setData.DebugCmdPara_BatVoltStrategy);
+            config_segment[i].parameter_len = strlen((char*)config_segment[i].parameter);
+        }
+        /** 充电电流检测策略 */
+        else if((memcmp(read_segment[i].cmd, "CC_ST", strlen("CC_ST")) == 0) && (strlen((char*)read_segment[i].cmd) == strlen("CC_ST"))){
+            sprintf((char*)config_segment[i].parameter, "%u", LcdData.setData.DebugCmdPara_CurrStrategy);
             config_segment[i].parameter_len = strlen((char*)config_segment[i].parameter);
         }
 
@@ -5344,6 +5392,7 @@ void SerialScreen_CmdDebugInfoSet(void)
     LcdAssistantData.SeveralGunFlag[LCD_GUN_1].DataIsVerify = FALSE;
 
     /** 此处需要判断是否有数据要修改，有修改时才执行保存操作 */
+    /*************************** 模块最小输出电流 ***************************/
     if(LcdData.setData.DebugCmdPara_MCMin != LcdData.setData.DebugCmdPara_MCMinTemp){
         u16 data = *(u16 *)(UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_MIN_LIMIT_CURRENT, 0));
 
@@ -5358,6 +5407,7 @@ void SerialScreen_CmdDebugInfoSet(void)
             UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_MIN_LIMIT_CURRENT, &LcdData.setData.Min_Limit_Current, sizeof(LcdData.setData.Min_Limit_Current));
         }
     }
+    /*************************** 模块最大输出电流 ***************************/
     if(LcdData.setData.DebugCmdPara_MCMax != LcdData.setData.DebugCmdPara_MCMaxTemp){
         u16 data = *(u16 *)(UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_SMODULE_OUTCURR_MAX, 0));
 
@@ -5372,6 +5422,7 @@ void SerialScreen_CmdDebugInfoSet(void)
             UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_SMODULE_OUTCURR_MAX, &LcdData.setData.SModule_OutCurrentMax, sizeof(LcdData.setData.SModule_OutCurrentMax));
         }
     }
+    /*************************** 灯语 ***************************/
     if(LcdData.setData.DebugCmdPara_LedLanguage != LcdData.setData.DebugCmdPara_LedLanguageTemp){
         u8 data = LcdData.setData.DebugCmdPara_LedLanguageTemp;
 
@@ -5386,6 +5437,7 @@ void SerialScreen_CmdDebugInfoSet(void)
 
         is_changed = 1;
     }
+    /*************************** CC1范围CC1 ***************************/
     for(u8 i = 0; i < LCD_GUN_NUM; i++){
         if((LcdData.setData.DebugCmdPara_CC12V_Max[i] != LcdData.setData.DebugCmdPara_CC12V_MaxTemp[i]) || \
                 (LcdData.setData.DebugCmdPara_CC12V_Min[i] != LcdData.setData.DebugCmdPara_CC12V_MinTemp[i]) || \
@@ -5448,6 +5500,39 @@ void SerialScreen_CmdDebugInfoSet(void)
             thaisen_set_CC4V_Uplimit(i, LcdData.setData.DebugCmdPara_CC4V_Max[i]);
             thaisen_set_CC4V_Lowlimit(i, LcdData.setData.DebugCmdPara_CC4V_Min[i]);
         }
+    }
+    /*************************** 电表电量检测策略 ***************************/
+    if(LcdData.setData.DebugCmdPara_MElectStrategy != LcdData.setData.DebugCmdPara_MElectStrategyTemp){
+        u8 data = CONFIG_ENABLE_ENUM;
+
+        LcdData.setData.DebugCmdPara_MElectStrategy = LcdData.setData.DebugCmdPara_MElectStrategyTemp;
+        if(LcdData.setData.DebugCmdPara_MElectStrategy == FALSE)
+            data = CONFIG_DISABLE_ENUM;
+
+        UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_MELECT_STRATEGY, &data, sizeof(data));
+        is_changed = 1;
+    }
+    /*************************** 电池电压检测策略 ***************************/
+    if(LcdData.setData.DebugCmdPara_BatVoltStrategy != LcdData.setData.DebugCmdPara_BatVoltStrategyTemp){
+        u8 data = CONFIG_DISABLE_ENUM;
+
+        LcdData.setData.DebugCmdPara_BatVoltStrategy = LcdData.setData.DebugCmdPara_BatVoltStrategyTemp;
+        if(LcdData.setData.DebugCmdPara_BatVoltStrategy == TRUE)
+            data = CONFIG_ENABLE_ENUM;
+
+        UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_BATVOLT_STRATEGY, &data, sizeof(data));
+        is_changed = 1;
+    }
+    /*************************** 充电电流检测策略 ***************************/
+    if(LcdData.setData.DebugCmdPara_CurrStrategy != LcdData.setData.DebugCmdPara_CurrStrategyTemp){
+        u8 data = CONFIG_ENABLE_ENUM;
+
+        LcdData.setData.DebugCmdPara_CurrStrategy = LcdData.setData.DebugCmdPara_CurrStrategyTemp;
+        if(LcdData.setData.DebugCmdPara_CurrStrategy == FALSE)
+            data = CONFIG_DISABLE_ENUM;
+
+        UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_CHARGE_CURR_STRATEGY, &data, sizeof(data));
+        is_changed = 1;
     }
 
     if(LcdData.setData.Icon_BatVoltDetect != LcdData.setData.sup_BatVoltDetect){
@@ -5629,6 +5714,33 @@ void SerialScreen_CmdDebugInfoGet(void)
     LcdData.setData.DebugCmdPara_CC4V_Min[LCD_GUN_1] = *((u16*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_GUN1_CC14V_MIN, 0));
     LcdData.setData.DebugCmdPara_CC4V_Min[LCD_GUN_2] = *((u16*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_GUN2_CC14V_MIN, 0));
 
+    /* 电表电量检测策略默认开启 */
+    data = *((u8*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_MELECT_STRATEGY, 0));
+    if(data == CONFIG_ENABLE_ENUM){
+        LcdData.setData.DebugCmdPara_MElectStrategy = TRUE;
+    }else if(data == CONFIG_DISABLE_ENUM){
+        LcdData.setData.DebugCmdPara_MElectStrategy = FALSE;
+    }else{
+        LcdData.setData.DebugCmdPara_MElectStrategy = TRUE;
+    }
+    /* 电池电压检测策略默认关闭 */
+    data = *((u8*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_BATVOLT_STRATEGY, 0));
+    if(data == CONFIG_ENABLE_ENUM){
+        LcdData.setData.DebugCmdPara_BatVoltStrategy = TRUE;
+    }else if(data == CONFIG_DISABLE_ENUM){
+        LcdData.setData.DebugCmdPara_BatVoltStrategy = FALSE;
+    }else{
+        LcdData.setData.DebugCmdPara_BatVoltStrategy = FALSE;
+    }
+    /* 充电电流检测策略默认开启 */
+    data = *((u8*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_CHARGE_CURR_STRATEGY, 0));
+    if(data == CONFIG_ENABLE_ENUM){
+        LcdData.setData.DebugCmdPara_CurrStrategy = TRUE;
+    }else if(data == CONFIG_DISABLE_ENUM){
+        LcdData.setData.DebugCmdPara_CurrStrategy = FALSE;
+    }else{
+        LcdData.setData.DebugCmdPara_CurrStrategy = TRUE;
+    }
 
     LcdData.setData.Icon_BatVoltDetect = FALSE;
     if(LcdData.setData.sup_BatVoltDetect){
@@ -5702,6 +5814,10 @@ void SerialScreen_CmdDebugInfoGet(void)
 
     memcpy(LcdData.setData.DebugCmdPara_CC4V_MaxTemp, LcdData.setData.DebugCmdPara_CC4V_Max, sizeof(LcdData.setData.DebugCmdPara_CC4V_Max));
     memcpy(LcdData.setData.DebugCmdPara_CC4V_MinTemp, LcdData.setData.DebugCmdPara_CC4V_Min, sizeof(LcdData.setData.DebugCmdPara_CC4V_Min));
+
+    LcdData.setData.DebugCmdPara_MElectStrategyTemp = LcdData.setData.DebugCmdPara_MElectStrategy;
+    LcdData.setData.DebugCmdPara_BatVoltStrategyTemp = LcdData.setData.DebugCmdPara_BatVoltStrategy;
+    LcdData.setData.DebugCmdPara_CurrStrategyTemp = LcdData.setData.DebugCmdPara_CurrStrategy;
 }
 
 void SerialScreen_CmdDebugIssue(void)
@@ -5927,6 +6043,48 @@ void SerialScreen_CmdDebugIssue(void)
                 LcdData.setData.DebugCmdPara_CC4V_MinTemp[LCD_GUN_2] = para;
             }
         }
+        /** 指令下发：电表电量检测策略 */
+        else if((memcmp(CmdStr, "ME_ST", strlen("ME_ST")) == 0) && (strlen(CmdStr) == strlen("ME_ST")))
+        {
+            if((used_len < blen) && ParaStr){
+                uint8_t para = (uint8_t)(atol(ParaStr));
+
+                if((para != TRUE) && (para != FALSE))
+                    para = TRUE;
+                thaisen_get_cmd_debug_result_info(LCD_GUN_1, THA_DEBUG_LANGUAGE_CHINESE, THAISEN_DEBUG_CMD_ISSUE_MELECT_STRATEGY, (u8*)&para, sizeof(para), \
+                        (LcdData.setData.DebugResult + used_len), (blen - used_len));
+                /** 保存指令参数 */
+                LcdData.setData.DebugCmdPara_MElectStrategyTemp = para;
+            }
+        }
+        /** 指令下发：电池电压检测策略 */
+        else if((memcmp(CmdStr, "BV_ST", strlen("BV_ST")) == 0) && (strlen(CmdStr) == strlen("BV_ST")))
+        {
+            if((used_len < blen) && ParaStr){
+                uint8_t para = (uint8_t)(atol(ParaStr));
+
+                if((para != TRUE) && (para != FALSE))
+                    para = FALSE;
+                thaisen_get_cmd_debug_result_info(LCD_GUN_1, THA_DEBUG_LANGUAGE_CHINESE, THAISEN_DEBUG_CMD_ISSUE_BATVOLT_STRATEGY, (u8*)&para, sizeof(para), \
+                        (LcdData.setData.DebugResult + used_len), (blen - used_len));
+                /** 保存指令参数 */
+                LcdData.setData.DebugCmdPara_BatVoltStrategyTemp = para;
+            }
+        }
+        /** 指令下发：充电电流检测策 */
+        else if((memcmp(CmdStr, "CC_ST", strlen("CC_ST")) == 0) && (strlen(CmdStr) == strlen("CC_ST")))
+        {
+            if((used_len < blen) && ParaStr){
+                uint8_t para = (uint8_t)(atol(ParaStr));
+
+                if((para != TRUE) && (para != FALSE))
+                    para = TRUE;
+                thaisen_get_cmd_debug_result_info(LCD_GUN_1, THA_DEBUG_LANGUAGE_CHINESE, THAISEN_DEBUG_CMD_ISSUE_CURR_STRATEGY, (u8*)&para, sizeof(para), \
+                        (LcdData.setData.DebugResult + used_len), (blen - used_len));
+                /** 保存指令参数 */
+                LcdData.setData.DebugCmdPara_CurrStrategyTemp = para;
+            }
+        }
 
         used_len = strlen((char*)LcdData.setData.DebugResult);
         if(used_len >= blen)
@@ -6093,6 +6251,33 @@ void SerialScreen_CmdDebugRead(void)
             if(used_len < blen){
                 u32 para = LcdData.setData.DebugCmdPara_CC4V_MinTemp[LCD_GUN_2];
                 thaisen_get_cmd_debug_result_info(LCD_GUN_2, THA_DEBUG_LANGUAGE_CHINESE, THAISEN_DEBUG_CMD_READ_CC4V_LOWLIMIT, (u8*)&para, sizeof(para), \
+                        (LcdData.setData.DebugResult + used_len), (blen - used_len));
+            }
+        }
+        /** 指令读取：电表电量检测策略 */
+        else if(strstr((const char*)CmdStr, "ME_ST"))
+        {
+            uint8_t number = LcdData.setData.DebugCmdPara_MElectStrategyTemp;
+            if(used_len < blen){
+                thaisen_get_cmd_debug_result_info(LCD_GUN_1, THA_DEBUG_LANGUAGE_CHINESE, THAISEN_DEBUG_CMD_READ_MELECT_STRATEGY, (u8*)&number, sizeof(number), \
+                        (LcdData.setData.DebugResult + used_len), (blen - used_len));
+            }
+        }
+        /** 指令读取：电池电压检测策略 */
+        else if(strstr((const char*)CmdStr, "BV_ST"))
+        {
+            uint8_t number = LcdData.setData.DebugCmdPara_BatVoltStrategyTemp;
+            if(used_len < blen){
+                thaisen_get_cmd_debug_result_info(LCD_GUN_1, THA_DEBUG_LANGUAGE_CHINESE, THAISEN_DEBUG_CMD_READ_BATVOLT_STRATEGY, (u8*)&number, sizeof(number), \
+                        (LcdData.setData.DebugResult + used_len), (blen - used_len));
+            }
+        }
+        /** 指令读取：充电电流检测策略 */
+        else if(strstr((const char*)CmdStr, "CC_ST"))
+        {
+            uint8_t number = LcdData.setData.DebugCmdPara_CurrStrategyTemp;
+            if(used_len < blen){
+                thaisen_get_cmd_debug_result_info(LCD_GUN_1, THA_DEBUG_LANGUAGE_CHINESE, THAISEN_DEBUG_CMD_READ_CURR_STRATEGY, (u8*)&number, sizeof(number), \
                         (LcdData.setData.DebugResult + used_len), (blen - used_len));
             }
         }
@@ -11832,6 +12017,10 @@ struct LCD_DATA_FIFO_TYPE *SerialScreen_Init(struct SerialScreenObj *cmd)
     LcdData.setData.DebugCmdPara_CC4V_Min[LCD_GUN_1] = *((u16*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_GUN1_CC14V_MIN, 0));
     LcdData.setData.DebugCmdPara_CC4V_Min[LCD_GUN_2] = *((u16*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_GUN2_CC14V_MIN, 0));
 
+    LcdData.setData.DebugCmdPara_MElectStrategy = *((u8*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_MELECT_STRATEGY, 0));
+    LcdData.setData.DebugCmdPara_BatVoltStrategy = *((u8*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_BATVOLT_STRATEGY, 0));
+    LcdData.setData.DebugCmdPara_CurrStrategy = *((u8*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_CHARGE_CURR_STRATEGY, 0));
+
     memset(LcdData.setData.UserPasswdShow, '\0', sizeof(LcdData.setData.UserPasswdShow));
     memcpy(LcdData.setData.UserPasswdShow, data, sizeof(LcdData.setData.UserPasswdShow));
     if(len == 0){
@@ -11986,6 +12175,35 @@ struct LCD_DATA_FIFO_TYPE *SerialScreen_Init(struct SerialScreenObj *cmd)
     }
     LcdData.setData.DebugCmdPara_LedLanguage -= CP_LED_LANGUAGE_OFFSET;
     LcdData.setData.DebugCmdPara_LedLanguageTemp = LcdData.setData.DebugCmdPara_LedLanguage;
+
+    /* 电表电量检测策略默认开启 */
+    if(LcdData.setData.DebugCmdPara_MElectStrategy == CONFIG_ENABLE_ENUM){
+        LcdData.setData.DebugCmdPara_MElectStrategy = TRUE;
+    }else if(LcdData.setData.DebugCmdPara_MElectStrategy == CONFIG_DISABLE_ENUM){
+        LcdData.setData.DebugCmdPara_MElectStrategy = FALSE;
+    }else{
+        LcdData.setData.DebugCmdPara_MElectStrategy = TRUE;
+    }
+    /* 电池电压检测策略默认关闭 */
+    if(LcdData.setData.DebugCmdPara_BatVoltStrategy == CONFIG_ENABLE_ENUM){
+        LcdData.setData.DebugCmdPara_BatVoltStrategy = TRUE;
+    }else if(LcdData.setData.DebugCmdPara_BatVoltStrategy == CONFIG_DISABLE_ENUM){
+        LcdData.setData.DebugCmdPara_BatVoltStrategy = FALSE;
+    }else{
+        LcdData.setData.DebugCmdPara_BatVoltStrategy = FALSE;
+    }
+    /* 充电电流检测策略默认开启 */
+    if(LcdData.setData.DebugCmdPara_CurrStrategy == CONFIG_ENABLE_ENUM){
+        LcdData.setData.DebugCmdPara_CurrStrategy = TRUE;
+    }else if(LcdData.setData.DebugCmdPara_CurrStrategy == CONFIG_DISABLE_ENUM){
+        LcdData.setData.DebugCmdPara_CurrStrategy = FALSE;
+    }else{
+        LcdData.setData.DebugCmdPara_CurrStrategy = TRUE;
+    }
+
+    LcdData.setData.DebugCmdPara_MElectStrategyTemp = LcdData.setData.DebugCmdPara_MElectStrategy;
+    LcdData.setData.DebugCmdPara_BatVoltStrategyTemp = LcdData.setData.DebugCmdPara_BatVoltStrategy;
+    LcdData.setData.DebugCmdPara_CurrStrategyTemp = LcdData.setData.DebugCmdPara_CurrStrategy;
 
     for(int i = 0; i < LCD_GUN_NUM; i++)
     {

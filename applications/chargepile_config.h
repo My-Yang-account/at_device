@@ -465,6 +465,12 @@
 #define CP_V2G_MODE_PARA_RESERVATION_MAX          (24 *3600) /* 放电模式预约参最大值(单位：1S[是当天启动时间的秒数])*/
 #define CP_V2G_MODE_PARA_RESERVATION_MIN          0         /* 放电模式预约参数最小值(单位：1S[是当天启动时间的秒数])*/
 
+/* current offset */
+#define CP_CURRENT_OFFSET_DEF                     0         /* 电流偏移默认值(0.01A) */
+#define CP_CURRENT_OFFSET_MAX                     10000     /* 电流偏移最大值(0.01A) */
+#define CP_CURRENT_OFFSET_MIN                     0         /* 电流偏移最小值(0.01A) */
+#define CP_CURRENT_OFFSET_SEPARATE                32768     /* 电流偏移分隔值(0.01A)(大于等于此值的为正偏移，否则为负偏移) */
+
 /* net type */
 #define CP_NETTYPE_4G                                 0x00             /* 联网方式：4G */
 #define CP_NETTYPE_ETH                                0x01             /* 联网方式：以太网 */
@@ -631,10 +637,17 @@ enum config_name{
     CONFIG_ITEM_GUN2_CC112V_MAX,
     CONFIG_ITEM_GUN2_CC112V_MIN,
 
+    CONFIG_ITEM_GUN1_CURR_OFFSET,
+    CONFIG_ITEM_GUN2_CURR_OFFSET,
+
     CONFIG_ITEM_SUPORT_BSM,
     CONFIG_ITEM_SUPORT_BCS,
     CONFIG_ITEM_SUPORT_AUXPOWER24V,
     CONFIG_ITEM_SUPORT_OFFLINE_BILLING,
+
+    CONFIG_ITEM_SUPORT_MELECT_STRATEGY,
+    CONFIG_ITEM_SUPORT_BATVOLT_STRATEGY,
+    CONFIG_ITEM_SUPORT_CHARGE_CURR_STRATEGY,
 
     CONFIG_ITEM_INPUT_OVERVOL,
     CONFIG_ITEM_INPUT_UNDERVOL,
