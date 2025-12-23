@@ -4433,6 +4433,11 @@ static void ofsm_charging_fun(uint8_t gunno)
                 s_ofsm_info[gunno].base.meter_curr_steady_count = 0x00;
                 s_ofsm_info[gunno].base.module_curr_steady_count = 0x00;
             }
+            /** 充电中电流检测策略 */
+            if((*(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_SUPORT_CHARGE_CURR_STRATEGY, 0x00))) == CONFIG_DISABLE_ENUM){
+                s_ofsm_info[gunno].base.meter_curr_steady_count = 0x00;
+                s_ofsm_info[gunno].base.module_curr_steady_count = 0x00;
+            }
             if((s_ofsm_info[gunno].base.meter_curr_steady_count > APP_CURRENT_STEADY_COUNT) && (s_ofsm_info[gunno].base.module_curr_steady_count > APP_CURRENT_STEADY_COUNT)){
                 if(abs(s_ofsm_info[gunno].base.module_curr_last - s_ofsm_info[gunno].base.meter_curr_last) > APP_CURRENT_COMPARE_DIFF){
                     uint8_t is_deputy_abnormal = APP_THA_ENUM_FALSE;    /** 是副枪异常停止 */
@@ -5002,6 +5007,12 @@ static void ofsm_charging_fun(uint8_t gunno)
         s_ofsm_info[gunno].base.bvolt_init = thaisen_get_module_volt(gunno);
         s_ofsm_info[gunno].base.bvolt_err_i = 0x00;
     }
+    /** 电池电压检测策略 */
+    if((*(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_SUPORT_BATVOLT_STRATEGY, 0x00))) == CONFIG_DISABLE_ENUM){
+        s_ofsm_info[gunno].base.bvolt_err_i = 0x00;
+        s_ofsm_info[gunno].base.bvolt_err_count = 0x00;
+        s_ofsm_info[gunno].base.bvolt_check_time = 0x00;
+    }
 
     if(s_ofsm_info[gunno].base.bvolt_err_count > APP_BATTERY_VOLTAGE_ERR_COUNT_MAX){
         /** 电池电压故障 */
@@ -5120,7 +5131,12 @@ static void ofsm_charging_fun(uint8_t gunno)
         s_ofsm_info[gunno].base.melect_err_count = 0x00;
         break;
     }
-
+    /** 电表电量检测策略 */
+    if((*(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_SUPORT_MELECT_STRATEGY, 0x00))) == CONFIG_DISABLE_ENUM){
+        s_ofsm_info[gunno].base.melect_err_count = 0x00;
+        s_ofsm_info[gunno].base.flag.is_meter_elect_error = APP_THA_ENUM_FALSE;
+        s_ofsm_info[gunno].base.melect_check_time = 0x00;
+    }
     /** 每隔1分钟对比一次 */
     if(s_ofsm_info[gunno].base.melect_check_time > APP_SIMULATE_ELECT_CALCULATE_PERIOD){
         switch(s_ofsm_info[gunno].base.melect_check_stage){
