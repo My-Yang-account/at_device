@@ -1056,4 +1056,31 @@ void thaisenModuleSetParaGunVoltDetectEn(uint8_t gunNum, uint8_t state);
  */
 uint8_t thaisenModuleGetParaGunVoltDetectEn(uint8_t gunNum);
 
+/*************************************************** 模块设置电流偏移 ****************************************************/
+/* 功能说明:
+ *          thaisenModuleSetMSetupCurrOffset: 设置模块设置电流偏移
+ *
+ * 输入参数:           gunNum      枪号
+ *          Offset      电流偏移(0.01A)
+ *
+ * 返回参数:
+ *
+ * 调用方法:
+ *          可实时调用
+ */
+void thaisenModuleSetMSetupCurrOffset(uint8_t gunNum, int16_t Offset);
+
+/* 功能说明:
+ *          thaisenModuleGetMSetupCurrOffset: 获取模块设置电流偏移
+ *
+ * 输入参数:   gunNum    枪号
+ *
+ *
+ * 返回参数:   电流偏移(0.01A)
+ *
+ * 调用方法:
+ *          可实时调用
+ */
+int16_t thaisenModuleGetMSetupCurrOffset(uint8_t gunNum);
+
 #endif /* APPLICATIONS_THAISENCHARGMODULELIB_H_ */
