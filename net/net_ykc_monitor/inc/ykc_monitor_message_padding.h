@@ -171,6 +171,16 @@ void ykc_monitor_clear_dev_control_changed_sending(uint8_t gunno);
  ******************************************************/
 void ykc_monitor_clear_disconnect_reason(void);
 
+/*************************************************
+ * 函数名      ykc_monitor_message_padding_liquid_fault_info
+ * 功能         组包：填充液冷故障信息
+ * 参数         buf      缓存
+ *       ilen    输入缓存长度
+ *       olen    填写数据总长度
+ * 返回         >=0：成功       <0：失败
+ * **********************************************/
+int8_t ykc_monitor_message_padding_liquid_fault_info(uint8_t *buf, uint16_t ilen, uint16_t *olen);
+
 #endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
 
 /******************************** 以下是外部调用触发 *******************************/

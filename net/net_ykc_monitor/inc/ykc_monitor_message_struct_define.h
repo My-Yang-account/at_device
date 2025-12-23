@@ -85,6 +85,7 @@
 #define NET_YKC_MONITOR_GUIDANCE_CHANGED_INFO_MAX                      0x05        /* 导引状态变化信息的最大个数 */
 #define NET_YKC_MONITOR_DEVICE_CTRL_CHANGED_INFO_MAX                   0x0A        /* 器件控制状态变化信息的最大个数 */
 #define NET_YKC_MONITOR_DISCONNECT_REASON_INFO_MAX                     0x05        /* 断网原因信息的最大个数 */
+#define NET_YKC_MONITOR_LIQUID_F_INFO_MAX                              0x05        /* 液冷故障信息的最大个数 */
 
 #define NET_YKC_MONITOR_SCREEN_PW_LENGTH_DEFAULT                       0x0F        /* 默认屏幕密码长度 */
 
@@ -136,6 +137,7 @@ enum ykcm_dev_running{
     NETYKCM_DEV_RUNNING_DATA_INFO_GUIDANCE,                          /* 设备运行实时信息指令码：数据信息-导引 */
     NETYKCM_DEV_RUNNING_DATA_DISCONNECT_REASON,                      /* 设备运行实时信息指令码：数据信息-断网原因 */
     NETYKCM_DEV_RUNNING_DATA_BMS_MESSAGE,                            /* 设备运行实时信息指令码：数据信息-BMS报文 */
+    NETYKCM_DEV_RUNNING_DATA_LIQUID_FAULT,                           /* 设备运行实时信息指令码：数据信息-液冷故障信息 */
     NETYKCM_DEV_RUNNING_SIZE,                                        /* 设备运行实时信息指令码 */
 };
 /*********************************************************************************/
@@ -2638,6 +2640,112 @@ struct other_data{
     uint16_t current_offset;                                   /** 电流偏移(0.1A) */
 };
 
+/******************************** 液冷故障信息数据段 ********************************/
+
+/** 液冷类型 */
+typedef enum{
+    NETYKCM_LIQUID_TYPE_YTND,                                  /** 液冷类型：英特尼迪 */
+    NETYKCM_LIQUID_TYPE_HL,                                    /** 液冷类型：毫厘 */
+    NETYKCM_LIQUID_TYPE_TBS,                                   /** 液冷类型：特倍斯 */
+    NETYKCM_LIQUID_TYPE_JGD,                                   /** 液冷类型：京工电 */
+    NETYKCM_LIQUID_TYPE_SIZE,                                  /** 液冷类型 */
+}ykcm_liquid_type;
+
+/** 英特尼迪液冷故障 */
+union ytnd_fault{
+    struct{
+        uint32_t highpressurealarm                : 1;         /* 0：高压报警反馈 */
+        uint32_t lowpressurealarm                 : 1;         /* 1：低压报警反馈*/
+        uint32_t overheatedgunalarm               : 1;         /* 2：枪头超温反馈 */
+        uint32_t fan1alarm                        : 1;         /* 3：风机1出错反馈 */
+        uint32_t fan2alarm                        : 1;         /* 4：风机2出错反馈 */
+        uint32_t highliquidalarm                  : 1;         /* 5：高液位报警 */
+        uint32_t lowliquidalarm                   : 1;         /* 6：低液位报警 */
+        uint32_t overflowpumpalarm                : 1;         /* 7：循环泵过流报警 */
+        uint32_t pumpunderpressurealarm           : 1;         /* 8：循环泵欠压报警*/
+        uint32_t pumpoverpressurealarm            : 1;         /* 9：循环泵过压报警 */
+        uint32_t pumpovertempalarm                : 1;         /* 10：过温报警 */
+        uint32_t blockagepumpalarm                : 1;         /* 11：循环泵堵转报警 */
+        uint32_t retainalarm                      : 1;         /* 12：预留 */
+        uint32_t lowflowalarm                     : 1;         /* 13：低流量报警 */
+        uint32_t highflowalarm                    : 1;         /* 14：高流量报警*/
+        uint32_t fanoverflowalarm                 : 1;         /* 15：风机过流报警*/
+        uint32_t reserve                          : 16;        /* 预留 */
+    }bit;
+    uint32_t f_value;
+};
+/** 毫厘液冷故障 */
+union hl_fault{
+    struct{
+        uint32_t lowliquiderr                      : 1;        //0:液位极低
+        uint32_t lowliquidfault                    : 1;        //1:液位过低
+        uint32_t returnfilterclogged               : 1;        //2:回液过滤器堵塞
+        uint32_t supplyfilterclogged               : 1;        //3:出液过滤器堵塞
+        uint32_t liquidgunclogged                  : 1;        //4:液冷枪堵塞
+        uint32_t radiatorclogged                   : 1;        //5:散热器脏堵
+        uint32_t returnliquidovertemp              : 1;        //6:回液温度过高
+        uint32_t ambinetovertemp                   : 1;        //7:环境温度过高
+        uint32_t supplytempsensorfault             : 1;        //8:出液温度传感器故障
+        uint32_t returntempsensorfault             : 1;        //9:回液温度传感器故障
+        uint32_t supplypressuresensorfault         : 1;        //10:出液压力传感器故障
+        uint32_t returnpressuresensorfault         : 1;        //11:回液压力传感器故障
+        uint32_t pumpfault                         : 1;        //12:水泵故障
+        uint32_t fansfault                         : 1;        //13:风机故障
+        uint32_t reserve                           : 18;       //预留
+    }bit;
+    uint32_t f_value;
+};
+/** 特倍斯液冷故障 */
+union tbs_fault{
+    struct{
+        uint32_t returnliquidovertemp              : 1;        //回液温度过高
+        uint32_t fansfault                         : 1;        //风扇故障
+        uint32_t pumpsupplyoverpressure            : 1;        //泵出口压力过高
+        uint32_t lowliquidfault                    : 1;        //冷却液液位过低
+        uint32_t returntempsensorfault             : 1;        //回液温度传感器故障
+        uint32_t temp_pressuresensorfault          : 1;        //温压传感器故障
+        uint32_t pumprunningdry                    : 1;        //泵空转
+        uint32_t pumpjam                           : 1;        //泵堵转
+        uint32_t pumppcbovertempwarning            : 1;        //泵PCB过温降功率
+        uint32_t pumppcbovertempfault              : 1;        //泵PCB过温停转
+        uint32_t pumppcbundertempwarning           : 1;        //泵PCB低温降功率
+        uint32_t pumppcbundertempfault             : 1;        //泵PCB低温停转
+        uint32_t pumpovervolt                      : 1;        //泵过电压
+        uint32_t pumpundervolt                     : 1;        //泵欠电压
+        uint32_t pumpovercurr                      : 1;        //泵过电流
+        uint32_t pumpoverload                      : 1;        //泵过载
+        uint32_t pumpdrivefault                    : 1;        //泵驱动故障
+        uint32_t pumpmcufault                      : 1;        //泵MCU故障
+        uint32_t pumpunresponsive                  : 1;        //泵无响应
+        uint32_t highliquidfault                   : 1;        //冷却液液位过高
+        uint32_t gunAleakage                       : 1;        //A枪漏液
+        uint32_t gunBleakage                       : 1;        //B枪漏液
+        uint32_t powersupplyfault                  : 1;        //12V供电故障
+        uint32_t reserve                           : 9;        //预留
+    }bit;
+    uint32_t f_value;
+};
+/** 京工电液冷故障 */
+union jgd_fault{
+    struct{
+        uint32_t is_fault                         : 1;         /* 液冷已故障 */
+        uint32_t reserve                          : 31;        /* 预留 */
+    }bit;
+    uint32_t f_value;
+};
+
+struct liquid_option{
+    uint8_t is_offline : 1;                                    /* 液冷离线 */
+    uint8_t reserve : 7;                                       /* 预留 */
+};
+
+/** 液冷故障段 */
+struct liquid_f_segment{
+    struct liquid_option option;                               /* 液冷选项 */
+    uint8_t liquid_type;                                       /* 液冷类型@ykcm_liquid_type */
+    uint32_t f_value;                                          /* 液冷故障值 */
+};
+
 /** 可能后续会增加其它数据段 */
 
 /** 设备运行实时信息：数据信息 */
@@ -2662,7 +2770,7 @@ typedef struct{
         uint8_t pile_number[NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT];  /* 桩号*/
         uint8_t gunno;                           /* 枪号 */
         uint8_t info_type;                       /* 信息类型@enum ykcm_dev_running */
-        uint8_t option;                          /* 查询：0或上报：1 */
+        uint8_t option;                          /* 查询：0或上报：1或响应：2 */
         uint8_t msg_version;                     /* 报文版本(初始版本为0) */
         /* 信息数据 */
     }body;

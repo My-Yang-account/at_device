@@ -199,6 +199,28 @@ typedef struct{
     struct module_dis_group group;
 }ykcm_module_disconnect_t;
 
+/** 液冷故障 */
+struct liquid_group{
+    struct{
+        uint8_t sequence : 3;                     /* 液冷序号 */
+        uint8_t type : 3;                         /* 液冷类型 */
+        uint8_t is_offline : 1;                   /* 已离线 */
+        uint8_t reserve : 1;                      /* 预留 */
+    }info;
+    uint32_t f_value;                             /* 液冷故障值 */
+    uint32_t f_value_last;                        /* 液冷故障值(前一次) */
+};
+
+typedef struct{
+    struct liquid_group group[NET_YKC_MONITOR_LIQUID_F_INFO_MAX];
+    struct{
+        uint8_t is_lock : 1;                      /* 已上锁 */
+        uint8_t wait_response : 1;                /* 等待服务器响应 */
+        uint8_t reserve : 6;                      /* 预留 */
+    }info;
+    uint8_t wait_unlock_time;                     /* 等待解锁时间 */
+    uint8_t wait_response_time;                   /* 等待服务器响应时间 */
+}ykcm_liquid_f_info_t;
 
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
 
@@ -236,9 +258,12 @@ NET_DEF_SRAM2 static ykcm_module_disconnect_t s_ykc_monitor_signal_strength_lk_m
 NET_DEF_SRAM2 static ykcm_module_disconnect_t s_ykc_monitor_gsm_registered;                    /** 注册GSM网络(以太网网络层：判断DHCP是否启动、获取IP信息、查询MAC地址) */
 NET_DEF_SRAM2 static ykcm_module_disconnect_t s_ykc_monitor_gprs_registered;                   /** 注册GPRS网络(以太网网络层：判断DHCP是否启动、获取IP信息、查询MAC地址) */
 
+NET_DEF_SRAM2 static ykcm_liquid_f_info_t s_ykcm_liquid_f_info;                                /** 液冷故障信息 */
+
 static uint16_t ykc_monitor_chargepile_stop_reason_converted(void *handle, uint16_t bit, uint8_t stop_in_starting);
 static uint8_t ykc_monitor_chargepile_transaction_identity_converted(uint8_t identity);
 static void ykc_monitor_module_fault_check(void);
+static void ykc_monitor_liquid_fault_check(void);
 
 /*******************************************************
  * 函数名               ykc_monitor_enter_critical
@@ -3633,6 +3658,8 @@ static void ykc_monitor_realtime_process_thread_entry(void *parameter)
             }
         }
 #ifdef NET_YKC_MONITOR_AS_MONITOR
+        /** 液冷故障检测 */
+        ykc_monitor_liquid_fault_check();
 
         /************************************** 上报给每个模块设置的电压、电流 **************************************/
         /******************* 系统非空闲，有枪在充电 ********************/
@@ -3814,6 +3841,7 @@ int32_t ykc_monitor_realtime_process_init(void)
     memset(s_ykc_monitor_guidance_changed, 0x00, sizeof(s_ykc_monitor_guidance_changed));
     memset(s_ykc_monitor_device_control_changed, 0x00, sizeof(s_ykc_monitor_device_control_changed));
     memset(s_ykc_monitor_device_status_changed, 0x00, sizeof(s_ykc_monitor_device_status_changed));
+    memset(&s_ykcm_liquid_f_info, 0x00, sizeof(s_ykcm_liquid_f_info));
 	ykc_monitor_clear_disconnect_reason();
     s_ykc_monitor_local_start_sq = 0x00;
     s_ykc_monitor_handle = NULL;
@@ -8299,6 +8327,171 @@ int8_t ykc_monitor_message_padding_request_bms_message(uint8_t gunno, uint8_t *b
     message->body.msg_version = 0x00;   /** 报文版本 */
     message->body.gunno = (gunno + 0x01);
     memcpy(message->body.pile_number, g_ykc_monitor_preq_login.body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
+
+    if(olen){
+        *olen = total;
+    }
+
+    return 0x00;
+}
+
+/*************************************************
+ * 函数名      ykc_monitor_liquid_fault_check
+ * 功能          液冷故障检测
+ * **********************************************/
+static void ykc_monitor_liquid_fault_check(void)
+{
+    extern thaisenLiquidDevType thaisenLiquid_get_LiquidDev(void);
+    extern thaisenLiquidSt *thaisenGetLiquidPara(uint8_t gunNum);
+    extern uint8_t thaisenGetLiquidNum(void);
+    uint8_t liquid_num = 0x00;
+    thaisenLiquidSt *liquid_info = NULL;
+
+    /************************************ 如果液冷数量为0则不检测 ************************************/
+    liquid_num = thaisenGetLiquidNum();
+    if(liquid_num == 0x00){
+        memset(&s_ykcm_liquid_f_info, 0x00, sizeof(s_ykcm_liquid_f_info));
+        return;
+    }
+#if 0
+    /************************************ 在此等待服务器响应 ************************************/
+    if(s_ykcm_liquid_f_info.info.wait_response == NET_ENUM_TRUE){
+        if(s_ykcm_liquid_f_info.wait_response_time < (0xFF - 0x01)){
+            s_ykcm_liquid_f_info.wait_response_time++;
+        }
+        /** 已接收到服务器响应 */
+        if(ykc_monitor_net_event_receive(NET_YKC_MONITOR_USER_EVENT_HANDLE_SERVER, NET_YKC_MONITOR_EVENT_TYPE_RESPONSE, 0x00,
+                (NET_YKC_MONITOR_EVENT_OPTION_OR |NET_YKC_MONITOR_EVENT_OPTION_CLEAR), NET_YKC_MONITOR_USER_SRES_EVENT_LFAULT_RES, NULL) > 0){
+            s_ykcm_liquid_f_info.info.wait_response = NET_ENUM_FALSE;
+            s_ykcm_liquid_f_info.wait_response_time = 0x00;
+        }
+        /** 函数调用时基100ms，大概5s，重发 */
+        if(s_ykcm_liquid_f_info.wait_response_time >= 50){
+            s_ykcm_liquid_f_info.wait_response_time = 0x00;
+            /** 发送事件，上报液冷故障信息 */
+            ykc_monitor_net_event_send(NET_YKC_MONITOR_EXTERNAL_EHANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST,  \
+                    0x00, NET_YKC_MONITOR_EXTERNAL_PREQ_EVENT_LIQUID_FAULT);
+        }
+    }else{
+        s_ykcm_liquid_f_info.wait_response_time = 0x00;
+    }
+#else
+    s_ykcm_liquid_f_info.info.wait_response = NET_ENUM_FALSE;
+    s_ykcm_liquid_f_info.wait_response_time = 0x00;
+#endif
+
+    /************************************ 上锁超过一定时间不解锁时，强制解锁 ************************************/
+    if(s_ykcm_liquid_f_info.info.is_lock == NET_ENUM_TRUE){
+        if(s_ykcm_liquid_f_info.wait_unlock_time < (0xFF - 0x01)){
+            s_ykcm_liquid_f_info.wait_unlock_time++;
+        }
+        /** 函数调用时基100ms，大概10s */
+        if(s_ykcm_liquid_f_info.wait_unlock_time < 100){
+            return;
+        }
+        /** 强制解锁 */
+        s_ykcm_liquid_f_info.info.is_lock = NET_ENUM_FALSE;
+        s_ykcm_liquid_f_info.wait_unlock_time = 0x00;
+    }else{
+        s_ykcm_liquid_f_info.wait_unlock_time = 0x00;
+    }
+
+    /************************************ 填写液冷故障信息 ************************************/
+    for(uint8_t i = 0x00; (i < NET_YKC_MONITOR_LIQUID_F_INFO_MAX) && (i < liquid_num); i++){
+        liquid_info = thaisenGetLiquidPara(i);
+        s_ykcm_liquid_f_info.group[i].info.sequence = 0x00;
+        s_ykcm_liquid_f_info.group[i].info.type = thaisenLiquid_get_LiquidDev();
+        s_ykcm_liquid_f_info.group[i].f_value = liquid_info->state_flag.fault_code;
+        /** 故障已变化 */
+        if(s_ykcm_liquid_f_info.group[i].f_value != s_ykcm_liquid_f_info.group[i].f_value_last){
+            s_ykcm_liquid_f_info.info.is_lock = NET_ENUM_TRUE;
+        }
+        /** 设备在线状态已发生变化 */
+        else if(s_ykcm_liquid_f_info.group[i].info.is_offline != liquid_info->offlineflag){
+            s_ykcm_liquid_f_info.info.is_lock = NET_ENUM_TRUE;
+        }
+        s_ykcm_liquid_f_info.group[i].info.is_offline = liquid_info->offlineflag;
+        s_ykcm_liquid_f_info.group[i].f_value_last = s_ykcm_liquid_f_info.group[i].f_value;
+    }
+    /************************************ 液冷故障信息有变，发送事件上报液冷故障信息 ************************************/
+    if(s_ykcm_liquid_f_info.info.is_lock == NET_ENUM_TRUE){
+        s_ykcm_liquid_f_info.info.wait_response = NET_ENUM_TRUE;
+        /** 发送事件，上报液冷故障信息 */
+        ykc_monitor_net_event_send(NET_YKC_MONITOR_EXTERNAL_EHANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST,  \
+                0x00, NET_YKC_MONITOR_EXTERNAL_PREQ_EVENT_LIQUID_FAULT);
+        /** 清除重发计时 */
+        s_ykcm_liquid_f_info.wait_response_time = 0x00;
+    }
+}
+
+/*************************************************
+ * 函数名      ykc_monitor_message_padding_liquid_fault_info
+ * 功能         组包：填充液冷故障信息
+ * 参数         buf      缓存
+ *       ilen    输入缓存长度
+ *       olen    填写数据总长度
+ * 返回         >=0：成功       <0：失败
+ * **********************************************/
+int8_t ykc_monitor_message_padding_liquid_fault_info(uint8_t *buf, uint16_t ilen, uint16_t *olen)
+{
+    extern uint8_t thaisenGetLiquidNum(void);
+
+    uint16_t total = sizeof(Net_YkcMonitorPro_PreqReport_SreqQuery_RealtimeInfo_t) + 0x01;
+    uint8_t liquid_num = thaisenGetLiquidNum();
+
+    if(liquid_num > NET_YKC_MONITOR_LIQUID_F_INFO_MAX){
+        liquid_num = NET_YKC_MONITOR_LIQUID_F_INFO_MAX;
+    }
+    total += (liquid_num *sizeof(struct liquid_f_segment));
+
+    if(buf == NULL){
+        return -0x01;
+    }
+    if(ilen < total){
+        return -0x02;
+    }
+
+    Net_YkcMonitorPro_PreqReport_SreqQuery_RealtimeInfo_t *message = (Net_YkcMonitorPro_PreqReport_SreqQuery_RealtimeInfo_t*)buf;
+    struct running_data_info *running_data = (struct running_data_info*)((uint8_t*)&(message->body.msg_version) + 0x01);
+    struct liquid_f_segment *segment = (struct liquid_f_segment*)((uint8_t*)&(running_data->segment_num) + 0x01);
+
+    memset(message, 0x00, sizeof(ilen));
+
+    rt_enter_critical();
+
+    running_data->segment_num = liquid_num;
+    for(uint8_t i = 0x00; i< liquid_num; i++){
+        switch(s_ykcm_liquid_f_info.group[i].info.type){
+        case thaisenLiquidDev_YTND:
+            segment[i].liquid_type = NETYKCM_LIQUID_TYPE_YTND;
+            break;
+        case thaisenLiquidDev_HL:
+            segment[i].liquid_type = NETYKCM_LIQUID_TYPE_HL;
+            break;
+        case thaisenLiquidDev_ImmersionJGD:
+            segment[i].liquid_type = NETYKCM_LIQUID_TYPE_JGD;
+            break;
+        case thaisenLiquidDev_TPS:
+            segment[i].liquid_type = NETYKCM_LIQUID_TYPE_TBS;
+            break;
+        default:
+            segment[i].liquid_type = NETYKCM_LIQUID_TYPE_SIZE;
+            break;
+        }
+        segment[i].f_value = s_ykcm_liquid_f_info.group[i].f_value;
+        segment[i].option.is_offline = s_ykcm_liquid_f_info.group[i].info.is_offline;
+        segment[i].option.reserve = 0x00;
+    }
+
+    rt_exit_critical();
+
+    message->body.info_type = NETYKCM_DEV_RUNNING_DATA_LIQUID_FAULT;
+    message->body.option = 0x01;        /** 数据上报 */
+    message->body.msg_version = 0x00;   /** 报文版本 */
+    message->body.gunno = (0x00 + 0x01);
+    memcpy(message->body.pile_number, g_ykc_monitor_preq_login.body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
+    /** 解锁 */
+    s_ykcm_liquid_f_info.info.is_lock = NET_ENUM_FALSE;
 
     if(olen){
         *olen = total;

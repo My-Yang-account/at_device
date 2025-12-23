@@ -1913,6 +1913,44 @@ static void ykc_monitor_callback_response_request_server_info(uint8_t* data, uin
 #endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
 }
 
+/*****************************************************************
+ * 函数名                   ykc_monitor_callback_response_realtime_running_info
+ * 功能                       处理运营平台的实时运行信息响应
+ *           data       数据
+ *           length     数据长度
+ * 返回                        无
+ ****************************************************************/
+static void ykc_monitor_callback_response_realtime_running_info(uint8_t* data, uint16_t length)
+{
+#ifdef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL
+    if(data == NULL){
+        LOG_E("ykc monitor input data is null when call ykc_monitor_callback_response_realtime_running_info");
+        return;
+    }
+    if(length < sizeof(Net_YkcMonitorPro_PreqReport_SreqQuery_RealtimeInfo_t)){
+        LOG_E("ykc monitor input data length out of range when call ykc_monitor_callback_response_realtime_running_info|%d, %d", \
+                length, sizeof(Net_YkcMonitorPro_PreqReport_SreqQuery_RealtimeInfo_t));
+        return;
+    }
+
+    Net_YkcMonitorPro_PreqReport_SreqQuery_RealtimeInfo_t *response = (Net_YkcMonitorPro_PreqReport_SreqQuery_RealtimeInfo_t*)data;
+    if(ykc_monitor_pile_number_invalid(response->body.pile_number, response->head.type)){
+        LOG_W("ykc monitor request server info pile number error(%s)", response->body.pile_number);
+        return;
+    }
+    /** 响应 */
+    if(response->body.option == 0x02){
+        switch(response->body.info_type){
+        case NETYKCM_DEV_RUNNING_DATA_LIQUID_FAULT:
+            ykc_monitor_net_event_send(NET_YKC_MONITOR_USER_EVENT_HANDLE_SERVER, NET_YKC_MONITOR_EVENT_TYPE_RESPONSE, 0x00, NET_YKC_MONITOR_USER_SRES_EVENT_LFAULT_RES);
+            break;
+        default:
+            break;
+        }
+    }
+#endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
+}
+
 #endif /* NET_PACK_USING_YKC_MONITOR */
 
 int32_t ykc_monitor_message_recv_init(void)
@@ -1961,6 +1999,7 @@ int32_t ykc_monitor_message_recv_init(void)
     ykc_monitor_service_callback_register(NETYKC_MONITOR_SREQCMD_QUERY_SET_CONFIG_INFO,      ykc_monitor_callback_request_query_set_config_info);
     ykc_monitor_service_callback_register(NETYKC_MONITOR_PREQ_SRESCMD_MFAULT_INFO,           ykc_monitor_callback_response_module_fault_info);
     ykc_monitor_service_callback_register(NETYKC_MONITOR_PREQ_SRESCMD_REQUEST_SERVER_INFO,   ykc_monitor_callback_response_request_server_info);
+    ykc_monitor_service_callback_register(NETYKC_MONITOR_PREQ_SREQCMD_RUNNING_REALTIME_INFO, ykc_monitor_callback_response_realtime_running_info);
 #endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
 #endif /* #ifdef NET_YKC_MONITOR_AS_MONITOR */
 

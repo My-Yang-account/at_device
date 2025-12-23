@@ -4534,17 +4534,15 @@ static void SerialScreen_BtnSystemFuncJudge(u32 *ret)
     u32 result = 0;
     u8 way = LcdData.setData.AllocWay;
     u8 type = LcdData.setData.DevType;
-    u8 liquid = LcdData.setData.LiquidType;
-    u8 liquidcnt = LcdData.setData.LiquidCnt;
 
     if(type >= SYSTEM_FUNCTION_SIZE){        /* 设备类型默认双枪一体 */
         type = SYSTEM_FUNCTION_AVERAGE_DOUBLE;
         result |= (1 <<SSCREEN_DEVICE_TYPE_POSITION);
     }
 
-    if(liquid >= CP_LIQUID_DEVTYPE_SIZE)
+    if(LcdData.setData.LiquidType >= CP_LIQUID_DEVTYPE_SIZE)
     {
-        liquid = CP_LIQUID_DEVTYPE_YTND;
+        LcdData.setData.LiquidType = CP_LIQUID_DEVTYPE_YTND;
     }
 
     if(way >= POWER_ALLOCATION_WAY_SIZE){
@@ -4572,7 +4570,7 @@ static void SerialScreen_BtnSystemFuncJudge(u32 *ret)
         break;
     }
 #ifdef SCREEN_USING_DOUBLE_GUN
-    switch(liquid)
+    switch(LcdData.setData.LiquidType)
     {
     case CP_LIQUID_DEVTYPE_YTND:
         thaisenLiquid_set_LiquidDev(thaisenLiquidDev_YTND);
@@ -4591,13 +4589,13 @@ static void SerialScreen_BtnSystemFuncJudge(u32 *ret)
         LcdData.setData.LiquidType = CP_LIQUID_DEVTYPE_YTND;
         break;
     }
-    if(liquidcnt >= CP_LIQUID_DEVCNT_MAX)
+    if(LcdData.setData.LiquidCnt > CP_LIQUID_DEVCNT_MAX)
     {
-        liquidcnt = 0;
+        LcdData.setData.LiquidCnt = 0;
     }
 
-    thaisenSetLiquidNum(liquidcnt);
-    if(liquidcnt){
+    thaisenSetLiquidNum(LcdData.setData.LiquidCnt);
+    if(LcdData.setData.LiquidCnt){
         thaisenSetSysFaultCheckBit(thaisenFaultLiquidCooling, 0);
         thaisenSetSysFaultCheckBit(thaisenFaultLiquidCooling, 1);
     }
