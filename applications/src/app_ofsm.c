@@ -7516,7 +7516,12 @@ void ofsm_thread_entry(void *parameter)
 #endif /* APP_USING_FB_DETECT */
 
         singlegun_max_curr = (*((uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_MAX_LIMIT_CURRENT, 0)))) *100 / APP_SYSTEM_GUNNO_SIZE;
-        singlegun_max_curr = singlegun_max_curr > APP_MCURRENT_SINGLEGUN_PARACHARGE ? APP_MCURRENT_SINGLEGUN_PARACHARGE : singlegun_max_curr;
+        if(thaisen_is_liquid_offline(thread_gunno)){
+            singlegun_max_curr = singlegun_max_curr > APP_MCURRENT_SINGLEGUN_PARACHARGE ? APP_MCURRENT_SINGLEGUN_PARACHARGE : singlegun_max_curr;
+        }else{
+            singlegun_max_curr = singlegun_max_curr > APP_MCURRENT_SINGLEGUN_LIQUID ? APP_MCURRENT_SINGLEGUN_LIQUID : singlegun_max_curr;
+        }
+
         thaisenModuleSetMaxCurrSingleGun(singlegun_max_curr);
 
         if(s_ofsm_info[thread_gunno].base.state.current == APP_OFSM_STATE_CHARGING){         /** 进入充电时才可设置BMS是否禁止充电 */

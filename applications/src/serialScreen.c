@@ -9887,6 +9887,28 @@ void SerialScreen_BtnLiquidSet(u8 port)
 #endif /* SCREEN_USING_DOUBLE_GUN */
 }
 
+u8 SerialScreenLiquidIsOffline(u8 port)
+{
+#ifdef SCREEN_USING_DOUBLE_GUN
+    if(port >= LCD_GUN_NUM)
+        return 1;
+    if(thaisenGetLiquidNum() >= LCD_GUN_NUM){
+        if(thaisenGetLiquidPara(port)->offlineflag)
+            return 1;
+        else
+            return 0;
+    }else if(thaisenGetLiquidNum()){
+        if(thaisenGetLiquidPara(0)->offlineflag)
+            return 1;
+        else
+            return 0;
+    }
+    return 1;
+#else
+    return 0;
+#endif /* SCREEN_USING_DOUBLE_GUN */
+}
+
 void SerialScreen_BtnAux24VSetA()
 {
     SerialScreen_BtnAux24VSet(LCD_GUN_1);

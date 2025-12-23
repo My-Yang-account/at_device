@@ -2012,6 +2012,16 @@ void thaisen_close_charge_module(uint8_t gunno)
     thaisenSetModuleDebugDisableOutput(gunno);
 }
 
+/**************************************************************************
+ * 函数名      thaisen_is_liquid_offline
+ * 功能         判断液冷是否已离线
+ * 参数          gunno     枪号
+ * 返回          1：是      0：否
+ *************************************************************************/
+uint8_t thaisen_is_liquid_offline(uint8_t gunno)
+{
+    return SerialScreenLiquidIsOffline(gunno);
+}
 
 #ifdef APP_INCLUDE_BATVOLT_DETECT_QRCODE
 /**************************************************************************

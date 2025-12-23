@@ -262,13 +262,13 @@
 #define SYSTEM_FUNCTION_DYNAMIC_SWITCH            4         /* 动态切换 */
 #define SYSTEM_FUNCTION_SIZE                      5         /* 系统功能 */
 
-#define CP_LIQUID_DEVTYPE_YTND                    0             /* 英特尼迪 */
-#define CP_LIQUID_DEVTYPE_HL                      1             /* 毫厘 */
-#define CP_LIQUID_DEVTYPE_IMMERSIONJGD            2
-#define CP_LIQUID_DEVTYPE_TPS                     3
+#define CP_LIQUID_DEVTYPE_YTND                    0         /* 英特尼迪 */
+#define CP_LIQUID_DEVTYPE_HL                      1         /* 毫厘 */
+#define CP_LIQUID_DEVTYPE_IMMERSIONJGD            2         /* 京工电 */
+#define CP_LIQUID_DEVTYPE_TPS                     3         /* 特倍斯 */
 #define CP_LIQUID_DEVTYPE_SIZE                    4
 
-#define CP_LIQUID_DEVCNT_MAX                      2             /* 最大液冷设备数量 */
+#define CP_LIQUID_DEVCNT_MAX                      2         /* 最大液冷设备数量 */
 
 #define CONFIG_CARD_BLOCK_SN_DEFAULT              9           /* 卡号所在块号：默认 */
 #define CONFIG_CARD_BLOCK_SN_MIN                  0           /* 卡号所在块号：最小值 */

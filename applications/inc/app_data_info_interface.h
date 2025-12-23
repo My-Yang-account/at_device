@@ -911,6 +911,11 @@ void thaisen_open_charge_module(uint8_t gunno, uint32_t voltage, uint32_t curren
 **/
 void thaisen_close_charge_module(uint8_t gunno);
 
+/**
+*  判断液冷是否已离线
+**/
+uint8_t thaisen_is_liquid_offline(uint8_t gunno);
+
 #ifdef APP_INCLUDE_BATVOLT_DETECT_QRCODE
 #define THAISEN_BATVOLT_DETECT_SN_LEN                       40
 /**

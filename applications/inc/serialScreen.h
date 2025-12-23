@@ -275,6 +275,8 @@ void SerialScreen_IsSupportBMSSeveralFrameSet(void);
 u8 SerialScreen_GetChargeWay(void);
 void SerialScreen_SetChargeWay(u8 way);
 
+u8 SerialScreenLiquidIsOffline(u8 port);
+
 extern struct SerialScreenObj SerialScreen;		
 
 extern struct LCD_DATA_FIFO_TYPE * serialScreen_ObjectAi_Init(void);
