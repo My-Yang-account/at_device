@@ -376,6 +376,7 @@
 #define CHARGEPILE_OUTPUT_OVERCURR_MIN            1         /*充电桩输出过流最小值(0.01A) */
 
 #ifdef APP_USING_DOUBLEGUN
+#define CHARGEPILE_CC1_VOLT_MAX                   30000     /* CC1 电压最大值(0.001V) */
 #define CHARGEPILE_CC12V_MAX_DEF                  13000     /* CC1 12V默认上限(0.001V, 包含边界值) */
 #define CHARGEPILE_CC12V_MIN_DEF                  11000     /* CC1 12V默认下限(0.001V, 包含边界值) */
 #define CHARGEPILE_CC12V_S                        12000     /* CC1 12V标准(0.001V) */
@@ -388,6 +389,7 @@
 #define CHARGEPILE_CC4V_MIN_DEF                   1000      /* CC1 4V默认下限(0.001V, 包含边界值) */
 #define CHARGEPILE_CC4V_S                         4000      /* CC1 4V标准(0.001V) */
 #else
+#define CHARGEPILE_CC1_VOLT_MAX                   30000     /* CC1 电压最大值(0.001V) */
 #define CHARGEPILE_CC12V_MAX_DEF                  13000     /* CC1 12V默认上限(0.001V, 包含边界值) */
 #define CHARGEPILE_CC12V_MIN_DEF                  8000      /* CC1 12V默认下限(0.001V, 包含边界值) */
 #define CHARGEPILE_CC12V_S                        12000     /* CC1 12V标准(0.001V) */
