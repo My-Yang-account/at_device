@@ -8353,7 +8353,7 @@ static void ykc_monitor_liquid_fault_check(void)
         memset(&s_ykcm_liquid_f_info, 0x00, sizeof(s_ykcm_liquid_f_info));
         return;
     }
-#if 0
+
     /************************************ 在此等待服务器响应 ************************************/
     if(s_ykcm_liquid_f_info.info.wait_response == NET_ENUM_TRUE){
         if(s_ykcm_liquid_f_info.wait_response_time < (0xFF - 0x01)){
@@ -8375,10 +8375,6 @@ static void ykc_monitor_liquid_fault_check(void)
     }else{
         s_ykcm_liquid_f_info.wait_response_time = 0x00;
     }
-#else
-    s_ykcm_liquid_f_info.info.wait_response = NET_ENUM_FALSE;
-    s_ykcm_liquid_f_info.wait_response_time = 0x00;
-#endif
 
     /************************************ 上锁超过一定时间不解锁时，强制解锁 ************************************/
     if(s_ykcm_liquid_f_info.info.is_lock == NET_ENUM_TRUE){
