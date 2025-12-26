@@ -1328,6 +1328,19 @@ uint32_t thaisen_get_ammeterPower(uint8_t gunNum);
 uint32_t thaisen_get_ammeterEnergy(uint8_t gunNum);
 
 /* 功能说明:
+ *          thaisen_get_ammeterReverseEnergy:获取电表反向总计电量
+ *                  分辨率:0.001
+ *                  单位:kW.h
+ * 输入参数:
+ *                  gunNum:充电枪号，填0
+ * 返回参数:
+ *          电量值
+ * 调用方法:
+ *          实时调用
+ */
+uint32_t thaisen_get_ammeterReverseEnergy(uint8_t gunNum);
+
+/* 功能说明:
  *          thaisen_set_ammnterModel:设置电表型号
  * 输入参数:
  *                  model:型号
