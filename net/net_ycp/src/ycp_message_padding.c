@@ -1314,7 +1314,18 @@ void ycp_chargepile_request_padding_state_data(uint8_t gunno, uint8_t is_init)
         if(ycp_get_message_send_state(gunno, NET_YCP_PREQ_EVENT_REPORT_STATE_DATA) == NET_YCP_SEND_STATE_COMPLETE){
             if((base->state.current == APP_OFSM_STATE_CHARGING) || (base->state.current == APP_OFSM_STATE_STARTING)){
                 struct thaisenBMS_Charger_struct *bms = (struct thaisenBMS_Charger_struct*)(base->bms_data);
+                int32_t symbol_value = 0x00;
 
+                symbol_value = base->current_a /10;
+#ifdef APP_INCLUDE_V2G
+                if(base->gun_running_mode == APP_GUN_RUNNING_MODE_V2G){
+                    if(symbol_value < 0x00)
+                        symbol_value = 0x00 - symbol_value;
+                }else{
+                    if(symbol_value < 0x00)
+                        symbol_value = 0x00;
+                }
+#endif /* APP_INCLUDE_V2G */
                 if(s_ycp_flag_info[gunno].chargedata_mode_last == 0x01){
                     uint8_t valid_len = sizeof(g_ycp_preq_report_state_data[gunno].body.serial_number);
                     valid_len = valid_len > sizeof(base->transaction_number) ? sizeof(base->transaction_number) : valid_len;
@@ -1322,7 +1333,7 @@ void ycp_chargepile_request_padding_state_data(uint8_t gunno, uint8_t is_init)
                     memcpy(g_ycp_preq_report_state_data[gunno].body.serial_number, base->transaction_number, valid_len);
                 }
                 g_ycp_preq_report_state_data[gunno].body.output_voltage = base->voltage_a /10;
-                g_ycp_preq_report_state_data[gunno].body.output_current = base->current_a /10;
+                g_ycp_preq_report_state_data[gunno].body.output_current = symbol_value;
                 g_ycp_preq_report_state_data[gunno].body.gun_temperature = 0x00;
                 if(base->state.current == APP_OFSM_STATE_CHARGING){
                     if(base->gunline_temperature[0] > base->gunline_temperature[1]){
@@ -1738,9 +1749,20 @@ void ycp_chargepile_request_padding_bmscommand_chargerout(uint8_t gunno, uint8_t
         if(ycp_get_message_send_state(gunno, NET_YCP_PREQ_EVENT_CHARGER_OUTPUT_BMS_REQUIRE) == NET_YCP_SEND_STATE_COMPLETE){
             System_BaseData *base = (System_BaseData*)(s_ycp_handle->get_base_data(gunno));
             struct thaisenBMS_Charger_struct *bms = (struct thaisenBMS_Charger_struct*)(base->bms_data);
+            int32_t symbol_value = 0x00;
 
+            symbol_value = (base->current_a /10);
+#ifdef APP_INCLUDE_V2G
+            if(base->gun_running_mode == APP_GUN_RUNNING_MODE_V2G){
+                if(symbol_value < 0x00)
+                    symbol_value = 0x00 - symbol_value;
+            }else{
+                if(symbol_value < 0x00)
+                    symbol_value = 0x00;
+            }
+#endif /* APP_INCLUDE_V2G */
             g_ycp_preq_bmscommand_chargerout[gunno].body.pile_output_volt = (base->voltage_a /10);
-            g_ycp_preq_bmscommand_chargerout[gunno].body.pile_output_curr = (base->current_a /10);
+            g_ycp_preq_bmscommand_chargerout[gunno].body.pile_output_curr = symbol_value;
             g_ycp_preq_bmscommand_chargerout[gunno].body.charge_time = base->charge_time;
 
             if(base->charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){

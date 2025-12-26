@@ -909,6 +909,7 @@ typedef struct{
         uint16_t pile_output_volt;                       /* 电桩电压输出值 */
         uint16_t pile_output_curr;                       /* 电桩电流输出值 */
         uint16_t charge_time;                            /* 累计充电时间 */
+        uint32_t pile_output_curr_expand;                /* 桩输出电流扩展字段(-2000偏移) */
     }body;
     uint16_t check_sum;                          /* 校验码 */
 }Net_YkcMonitorPro_PReq_BmsCommand_ChargerOut_t;

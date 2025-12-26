@@ -604,15 +604,15 @@ typedef struct{
     int32_t system_temperature;       /* 系统温度(精度：0.1) */
     int32_t gunline_temperature[2];   /* 枪线正负极温度(精度：0.1) */
     uint32_t voltage_a;               /* 电压A相(精度：0.01) */
-    uint32_t current_a;               /* 电流A相(精度：0.01) */
+    int32_t current_a;               /* 电流A相(精度：0.01) */
     uint32_t power_a;                 /* 功率A相(精度：1) */
     uint32_t elect_a;                 /* 电量A相(精度：0.001) */
     uint32_t voltage_b;               /* 电压B相 */
-    uint32_t current_b;               /* 电流B相 */
+    int32_t current_b;               /* 电流B相 */
     uint32_t power_b;                 /* 功率B相 */
     uint32_t elect_b;                 /* 电量B相 */
     uint32_t voltage_c;               /* 电压C相 */
-    uint32_t current_c;               /* 电流C相 */
+    int32_t current_c;               /* 电流C相 */
     uint32_t power_c;                 /* 功率C相 */
     uint32_t elect_c;                 /* 电量C相 */
     uint32_t fees_total;              /* 总费用(精度：0.0001) */

@@ -2376,10 +2376,22 @@ void sgcc_chargepile_request_padding_state_data(uint8_t gunno, uint8_t is_init)
 
     if(base->state.current == APP_OFSM_STATE_CHARGING){
         if(sgcc_get_message_send_state(gunno, NET_SGCC_PREQ_EVENT_REPORT_STATE_DATA_CHARGING) == NET_SGCC_SEND_STATE_COMPLETE){
+            int32_t symbol_value = 0x00;
+
+            symbol_value = base->current_a;
+#ifdef APP_INCLUDE_V2G
+            if(base->gun_running_mode == APP_GUN_RUNNING_MODE_V2G){
+                if(symbol_value < 0x00)
+                    symbol_value = 0x00 - symbol_value;
+            }else{
+                if(symbol_value < 0x00)
+                    symbol_value = 0x00;
+            }
+#endif /* APP_INCLUDE_V2G */
 #ifdef NET_SGCC_PRO_USING_DC
             struct thaisenBMS_Charger_struct *bms = (struct thaisenBMS_Charger_struct*)(base->bms_data);
             evs_property_dc_works[gunno].dcVol = base->voltage_a /10;
-            evs_property_dc_works[gunno].dcCur = base->current_a;
+            evs_property_dc_works[gunno].dcCur = symbol_value;
             evs_property_dc_works[gunno].realPower = base->power_a /100;
             evs_property_dc_works[gunno].chgTime = base->charge_time /60;
             evs_property_dc_works[gunno].remainT = bms->BCS.SurplChgTime;
@@ -2406,7 +2418,7 @@ void sgcc_chargepile_request_padding_state_data(uint8_t gunno, uint8_t is_init)
             evs_property_dc_works[gunno].valleyElect = app_billingrule_get_rate_type_elect(gunno, APP_RATE_TYPE_VALLEY);
 #else
             evs_property_ac_works[gunno].acVolA = base->voltage_a /10;
-            evs_property_ac_works[gunno].acCurA = base->current_a /10;
+            evs_property_ac_works[gunno].acCurA = symbol_value /10;
             evs_property_ac_works[gunno].acVolB = base->voltage_b /10;
             evs_property_ac_works[gunno].acCurB = base->current_b /10;
             evs_property_ac_works[gunno].acVolC = base->voltage_c /10;
@@ -2612,6 +2624,18 @@ void sgcc_chargepile_request_padding_monitor_property(uint8_t gunno)
     if(sgcc_get_message_send_state(gunno, NET_SGCC_PREQ_EVENT_REPORT_MONITOR_PROPERTY) == NET_SGCC_SEND_STATE_COMPLETE){
         uint32_t option = (NET_SYSTEM_DATA_OPTION_PLAT_SGCC |NET_SYSTEM_DATA_OPTION_DATA_CONTENT);
         uint8_t *data = NULL, valid_len = 0x00, signal = 0x00;
+        int32_t symbol_value = 0x00;
+
+        symbol_value = base->current_a;
+#ifdef APP_INCLUDE_V2G
+        if(base->gun_running_mode == APP_GUN_RUNNING_MODE_V2G){
+            if(symbol_value < 0x00)
+                symbol_value = 0x00 - symbol_value;
+        }else{
+            if(symbol_value < 0x00)
+                symbol_value = 0x00;
+        }
+#endif /* APP_INCLUDE_V2G */
 #ifdef NET_SGCC_PRO_USING_DC
         valid_len = strlen((char*)(app_billingrule_get_elect_model_sn(gunno)));
         valid_len = valid_len > EVS_MAX_MODEL_ID_LEN ? EVS_MAX_MODEL_ID_LEN : valid_len;
@@ -2643,7 +2667,7 @@ void sgcc_chargepile_request_padding_monitor_property(uint8_t gunno)
         }
 
         evs_property_dcPiles.acVolA = base->voltage_a /10;
-        evs_property_dcPiles.acCurA = base->current_a /10;
+        evs_property_dcPiles.acCurA = symbol_value /10;
         evs_property_dcPiles.acVolB = base->voltage_b /10;
         evs_property_dcPiles.acCurB = base->current_b /10;
         evs_property_dcPiles.acVolC = base->voltage_c /10;
@@ -2683,7 +2707,7 @@ void sgcc_chargepile_request_padding_monitor_property(uint8_t gunno)
         }
 
         evs_property_acPiles.acVolA = base->voltage_a /10;
-        evs_property_acPiles.acCurA = base->current_a /10;
+        evs_property_acPiles.acCurA = symbol_value /10;
         evs_property_acPiles.acVolB = base->voltage_b /10;
         evs_property_acPiles.acCurB = base->current_b /10;
         evs_property_acPiles.acVolC = base->voltage_c /10;

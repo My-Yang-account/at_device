@@ -3523,18 +3523,30 @@ static void SerialScreen_RealTime_InfoGet(void)
     }
 
     for(u8 gunno = 0; gunno < LCD_GUN_NUM; gunno++){
+        int32_t ammeter_current = 0;
         struct ammeter_data *ammeter = thaisen_get_ammeter_data(gunno);
 
         LcdData.setData.g_cc1Vol[gunno] = thaisen_get_cc1_voltage(gunno) *10;
         LcdData.setData.g_portTemp[gunno] = thaisen_get_gun_temp(gunno);
         LcdData.setData.g_meterVol[gunno] = ammeter->voltage;
-        LcdData.setData.g_meterCur[gunno] = ammeter->current;
+
+        ammeter_current = ammeter->current;
+#ifdef SCREEN_USING_V2G
+        if(LcdData.runData.GunRunMode[gunno] == THAISEN_GUN_RUNING_MODE_V2G){
+            if(ammeter_current < 0)
+                ammeter_current = 0 - ammeter_current;
+        }else{
+            if(ammeter_current < 0)
+                ammeter_current = 0;
+        }
+#endif /* SCREEN_USING_V2G */
+        LcdData.setData.g_meterCur[gunno] = ammeter_current;
         if(thaisenGetModuleOutputVoltage(gunno) < 100){
             LcdData.setData.g_chargeVol[gunno] = 0;
         }else{
             LcdData.setData.g_chargeVol[gunno] = thaisenGetModuleOutputVoltage(gunno);
         }
-        LcdData.setData.g_chargeCur[gunno] = ammeter->current;
+        LcdData.setData.g_chargeCur[gunno] = ammeter_current;
         LcdData.setData.MeterElect[gunno] = ammeter->elect;
 #if 0
         if(thaisen_get_InsultInfo(gunno) == thaisenInsultAnomaly){

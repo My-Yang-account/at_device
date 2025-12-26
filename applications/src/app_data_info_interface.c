@@ -667,11 +667,22 @@ struct charge_data *thaisen_app_get_charge_info(uint8_t gunno) // OK
         return &s_data_of_charging;
     }
 
+    int32_t symbol_value = 0;
     struct ofsm_info *ofsm_temp = get_ofsm_info(gunno);
     struct thaisenBMS_Charger_struct* bms_data = mw_get_bms_data(gunno);
 
+    symbol_value = ofsm_temp->base.current_a;
+#ifdef APP_INCLUDE_V2G
+    if(ofsm_temp->base.gun_running_mode == APP_GUN_RUNNING_MODE_V2G){
+        if(symbol_value < 0x00)
+            symbol_value = 0x00 - symbol_value;
+    }else{
+        if(symbol_value < 0x00)
+            symbol_value = 0x00;
+    }
+#endif /* APP_INCLUDE_V2G */
     s_data_of_charging.charge_voltage = ofsm_temp->base.voltage_a;
-    s_data_of_charging.charge_current = ofsm_temp->base.current_a;
+    s_data_of_charging.charge_current = symbol_value;
     s_data_of_charging.charge_power = ofsm_temp->base.power_a;
     s_data_of_charging.charge_elect = ofsm_temp->base.elect_a;
     s_data_of_charging.charge_total_fee = ofsm_temp->base.fees_total;
@@ -690,7 +701,17 @@ struct charge_data *thaisen_app_get_charge_info(uint8_t gunno) // OK
 
     memcpy(s_data_of_charging.trade_number, ofsm_temp->base.transaction_number, sizeof(s_data_of_charging.trade_number));
     if((ofsm_temp->base.charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL) && (ofsm_temp->base.main_gunno != gunno)){
-        s_data_of_charging.charge_current = ofsm_temp->base.current_a;
+        symbol_value = ofsm_temp->base.current_a;
+#ifdef APP_INCLUDE_V2G
+        if(ofsm_temp->base.gun_running_mode == APP_GUN_RUNNING_MODE_V2G){
+            if(symbol_value < 0x00)
+                symbol_value = 0x00 - symbol_value;
+        }else{
+            if(symbol_value < 0x00)
+                symbol_value = 0x00;
+        }
+#endif /* APP_INCLUDE_V2G */
+        s_data_of_charging.charge_current = symbol_value;
         s_data_of_charging.charge_power = ofsm_temp->base.power_a;
         s_data_of_charging.charge_elect = ofsm_temp->base.elect_a;
         s_data_of_charging.charge_total_fee = ofsm_temp->base.fees_total;
@@ -1365,11 +1386,18 @@ struct ammeter_data *thaisen_get_ammeter_data(uint8_t gunno)
         memset(&s_ammeter_data, 0x00, sizeof(s_ammeter_data));
         return &s_ammeter_data;
     }
-
     s_ammeter_data.voltage = (mw_get_meter_ua(gunno) /10);
     s_ammeter_data.current = (mw_get_meter_ia(gunno) /1000);
     s_ammeter_data.power = mw_get_meter_pa(gunno);
+#ifdef APP_INCLUDE_V2G
+    if(thaisen_get_gun_running_mode(gunno) == THAISEN_GUN_RUNING_MODE_V2G){
+        s_ammeter_data.elect = mw_get_meter_reserve_total_wh(gunno);
+    }else{
+        s_ammeter_data.elect = mw_get_meter_total_wh(gunno);
+    }
+#else
     s_ammeter_data.elect = mw_get_meter_total_wh(gunno);
+#endif /* APP_INCLUDE_V2G */
 
     return &s_ammeter_data;
 }

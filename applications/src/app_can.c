@@ -12,6 +12,7 @@
 #include "app_hci.h"
 #include "app_ofsm.h"
 #include "app_osupport.h"
+#include "app_data_info_interface.h"
 #include "rtthread.h"
 #include "thaisen7102Public.h"
 #include "thaisenBMS.h"
@@ -82,6 +83,7 @@ static int8_t ks_padding_charge_info(uint8_t* data, uint8_t len, uint8_t gunno)
         return -0x01;
     }
     if(data && len >= 0x08){
+        int32_t symbol_value = 0;
         uint32_t value = 0;
         struct ofsm_info *ofsm = get_ofsm_info(gunno);
         memset(data, 0x00, len);
@@ -104,7 +106,17 @@ static int8_t ks_padding_charge_info(uint8_t* data, uint8_t len, uint8_t gunno)
             value /= 10;
             memcpy(&data[0x02], &value, 0x02);
 
-            value = ofsm->base.current_a;
+            symbol_value = ofsm->base.current_a;
+#ifdef APP_INCLUDE_V2G
+            if(ofsm->base.gun_running_mode == APP_GUN_RUNNING_MODE_V2G){
+                if(symbol_value < 0x00)
+                    symbol_value = 0x00 - symbol_value;
+            }else{
+                if(symbol_value < 0x00)
+                    symbol_value = 0x00;
+            }
+#endif /* APP_INCLUDE_V2G */
+            value = symbol_value;
             value /= 10;
             memcpy(&data[0x04], &value, 0x02);
 

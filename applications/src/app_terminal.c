@@ -272,9 +272,20 @@ static void terminal_ems_send_charger_status(void)                              
         struct ofsm_info *ofsm = get_ofsm_info(gunno);
         struct thaisenBMS_Charger_struct *bms = (struct thaisenBMS_Charger_struct*)(ofsm->base.bms_data);
         uint32_t para0 = 0x00, para1 = 0x00;
+        int32_t symbol_value = 0x00;
 
+        symbol_value = ofsm->base.current_a /10;
+#ifdef APP_INCLUDE_V2G
+        if(thaisen_get_gun_running_mode(gunno) == APP_GUN_RUNNING_MODE_V2G){
+            if(symbol_value < 0x00)
+                symbol_value = 0x00 - symbol_value;
+        }else{
+            if(symbol_value < 0x00)
+                symbol_value = 0x00;
+        }
+#endif /* APP_INCLUDE_V2G */
         if(ofsm->base.state.current == APP_OFSM_STATE_CHARGING){                                            //充电状态赋值充电数据
-            para0 = ofsm->base.current_a /10;
+            para0 = symbol_value;
             para1 = ofsm->base.voltage_a /10;
             s_ems_frame_request.gun_data[gunno].volt = HTONS(para1);
             s_ems_frame_request.gun_data[gunno].curr = HTONS(para0);
@@ -294,7 +305,15 @@ static void terminal_ems_send_charger_status(void)                              
             memset(&s_ems_frame_request.bms_data[gunno], 0x00, sizeof(s_ems_frame_request.bms_data[gunno]));//非充电状态数据置0
         }
 
+#ifdef APP_INCLUDE_V2G
+        if(thaisen_get_gun_running_mode(gunno) == APP_GUN_RUNNING_MODE_V2G){
+            para0 = mw_get_meter_reserve_total_wh(gunno) /10;
+        }else{
+            para0 = mw_get_meter_total_wh(gunno) /10;
+        }
+#else
         para0 = mw_get_meter_total_wh(gunno) /10;
+#endif /* APP_INCLUDE_V2G */
         s_ems_frame_request.elect_total[gunno] = HTONL(para0);
 
         switch(ofsm->base.state.current){                        //赋值充电状态给要发送的数据
@@ -325,9 +344,20 @@ static void terminal_ems_send_charger_status(void)                              
     struct thaisenBMS_Charger_struct *bms = (struct thaisenBMS_Charger_struct*)(ofsm->base.bms_data);
     uint32_t para0 = 0x00, para1 = 0x00;
     uint32_t elect_total = ofsm->base.elect_a /10;
+    int32_t symbol_value = 0x00;
 
+    symbol_value = ofsm->base.current_a /10;
+#ifdef APP_INCLUDE_V2G
+    if(thaisen_get_gun_running_mode(gunno) == APP_GUN_RUNNING_MODE_V2G){
+        if(symbol_value < 0x00)
+            symbol_value = 0x00 - symbol_value;
+    }else{
+        if(symbol_value < 0x00)
+            symbol_value = 0x00;
+    }
+#endif /* APP_INCLUDE_V2G */
     if(ofsm->base.state.current == APP_OFSM_STATE_CHARGING){                                            //充电状态赋值充电数据
-        para0 = ofsm->base.current_a /10;
+        para0 = symbol_value;
         para1 = ofsm->base.voltage_a /10;
         s_ems_frame_request.gun_data[APP_SYSTEM_GUNNOA].volt =HTONS(para1);
         s_ems_frame_request.gun_data[APP_SYSTEM_GUNNOA].curr = HTONS(para0);
@@ -346,8 +376,15 @@ static void terminal_ems_send_charger_status(void)                              
         memset(&s_ems_frame_request.gun_data[APP_SYSTEM_GUNNOA], 0x00, sizeof(s_ems_frame_request.gun_data[APP_SYSTEM_GUNNOA]));//非充电状态数据置0
         memset(&s_ems_frame_request.bms_data[APP_SYSTEM_GUNNOA], 0x00, sizeof(s_ems_frame_request.bms_data[APP_SYSTEM_GUNNOA]));//非充电状态数据置0
     }
-
+#ifdef APP_INCLUDE_V2G
+    if(thaisen_get_gun_running_mode(gunno) == APP_GUN_RUNNING_MODE_V2G){
+        para0 = mw_get_meter_reserve_total_wh(APP_SYSTEM_GUNNOA) /10;
+    }else{
+        para0 = mw_get_meter_total_wh(APP_SYSTEM_GUNNOA) /10;
+    }
+#else
     para0 = mw_get_meter_total_wh(APP_SYSTEM_GUNNOA) /10;
+#endif /* APP_INCLUDE_V2G */
     s_ems_frame_request.elect_total[APP_SYSTEM_GUNNOA] = HTONL(para0);
 
     switch(ofsm->base.state.current){

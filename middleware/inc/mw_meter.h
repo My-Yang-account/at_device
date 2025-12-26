@@ -38,6 +38,7 @@ uint32_t mw_get_meter_qc(uint8_t gunno);
 uint32_t mw_get_meter_q(uint8_t gunno);
 
 uint32_t mw_get_meter_total_wh(uint8_t gunno);
+uint32_t mw_get_meter_reserve_total_wh(uint8_t gunno);
 
 #ifdef __cplusplus
 }
