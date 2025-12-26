@@ -6153,7 +6153,7 @@ static int32_t ykc_monitor_config_info_process_function_config_info(uint8_t opti
  * **********************************************/
 static int32_t ykc_monitor_config_info_process_offline_billing_info(uint8_t option, void *data, uint16_t dlen, void *buf, uint16_t blen)
 {
-#ifdef APP_USING_OFFLINE_BILLING
+#if (defined(APP_INCLUDE_V2G) || defined(APP_USING_OFFLINE_BILLING))
     if((buf == NULL) || (blen < sizeof(struct ykcm_offline_billing))){
         LOG_E("ykcm input buf invalid with offline billing info|%d,%d", blen, sizeof(struct ykcm_offline_billing));
         return (NETYKCM_CONFIG_RES_SYS_ITEM_ASSERT_BASE + 0x00);
@@ -6236,7 +6236,7 @@ static int32_t ykc_monitor_config_info_process_offline_billing_info(uint8_t opti
     return 0x00;
 #else
     return (NETYKCM_CONFIG_RES_SYS_ITEM_ASSERT_BASE + 0x04);
-#endif /* APP_USING_OFFLINE_BILLING */
+#endif /* (defined(APP_INCLUDE_V2G) || defined(APP_USING_OFFLINE_BILLING)) */
 }
 
 /************************************* 7103/7101 *********************************************/

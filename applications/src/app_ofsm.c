@@ -317,7 +317,16 @@ int32_t ofsm_get_current_period_time_hm(uint8_t period, uint8_t *buf, uint8_t bl
  ***********************************************************/
 uint32_t ofsm_get_period_price(uint8_t gunno, uint8_t period)
 {
+#ifdef APP_INCLUDE_V2G
+    if(gunno >= APP_SYSTEM_GUNNO_SIZE){   /* 枪号不对 */
+        return 0x00;
+    }
+    if(thaisen_get_gun_running_mode(gunno) != THAISEN_GUN_RUNING_MODE_V2G){
+        gunno = app_billingrule_query_rule_update_gunno();
+    }
+#else
     gunno = app_billingrule_query_rule_update_gunno();
+#endif /* APP_INCLUDE_V2G */
 
     if(gunno >= APP_SYSTEM_GUNNO_SIZE){   /* 枪号不对 */
         return 0x00;
@@ -330,7 +339,11 @@ uint32_t ofsm_get_period_price(uint8_t gunno, uint8_t period)
             app_billingrule_get_period_service_price(gunno, period) + \
             app_billingrule_get_period_delay_price(gunno, period);
 
-    if(s_ofsm_info[gunno].base.run_mode == APP_RUN_MODE_OFFLINE_BILLING){
+#ifdef APP_INCLUDE_V2G
+    if((s_ofsm_info[gunno].base.run_mode == APP_RUN_MODE_OFFLINE_BILLING) || (thaisen_get_gun_running_mode(gunno) == THAISEN_GUN_RUNING_MODE_V2G)){
+#else
+    if((s_ofsm_info[gunno].base.run_mode == APP_RUN_MODE_OFFLINE_BILLING)){
+#endif /* APP_INCLUDE_V2G */
 #if 0
         uint32_t current_time = s_timestamp_base, tick = rt_tick_get();
         if(s_tick_base > tick){
@@ -7335,7 +7348,7 @@ static void ofsm_finishing_fun(uint8_t gunno)
             if(s_ofsm_info[gunno].base.run_mode == APP_RUN_MODE_OFFLINE_BILLING){
                 app_card_event_recv(APP_CARD_EVENT_CHARGE_STOP, 0x00, gunno, NULL, APP_THA_ENUM_TRUE);
             }
-#endif /* #ifdef APP_USING_OFFLINE_BILLING */
+#endif /* APP_USING_OFFLINE_BILLING */
 #if 0
             /** 启动前向屏幕对时 */
             s_request_screen_time_step = 1;

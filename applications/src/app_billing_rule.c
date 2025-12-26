@@ -74,14 +74,24 @@ void app_billingrule_info_init(void)
 /*******************************************************
  * 函数名               app_billingrule_is_offbilling_mode
  * 功能                  判断当前运行模式是否是离线计费模式
- * 参数
+ * 参数                   gunno    枪号
  * 返回                   1：是   0：否
  ******************************************************/
-static uint8_t app_billingrule_is_offbilling_mode(void)
+static uint8_t app_billingrule_is_offbilling_mode(uint8_t gunno)
 {
-    if(get_ofsm_info(0x00)->base.run_mode == APP_RUN_MODE_OFFLINE_BILLING){
+    if(gunno >= APP_SYSTEM_GUNNO_SIZE){
+        return 0x00;
+    }
+    struct ofsm_info *ofsm = get_ofsm_info(gunno);
+#ifdef APP_INCLUDE_V2G
+    if((ofsm->base.run_mode == APP_RUN_MODE_OFFLINE_BILLING) || (ofsm->base.gun_running_mode == APP_GUN_RUNNING_MODE_V2G)){
         return 0x01;
     }
+#else
+    if(ofsm->base.run_mode == APP_RUN_MODE_OFFLINE_BILLING){
+        return 0x01;
+    }
+#endif /* APP_INCLUDE_V2G */
     return 0x00;
 }
 
@@ -808,7 +818,7 @@ void app_billing_info_calculate(uint32_t current_time, uint32_t current_elect, u
         return;
     }
 
-    if(app_billingrule_is_offbilling_mode()){
+    if(app_billingrule_is_offbilling_mode(gunno)){
         is_offbilling_mode = 0x01;     /** 离线计费模式 */
     }
 
