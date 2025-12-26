@@ -1083,4 +1083,38 @@ void thaisenModuleSetMSetupCurrOffset(uint8_t gunNum, int16_t Offset);
  */
 int16_t thaisenModuleGetMSetupCurrOffset(uint8_t gunNum);
 
+/*************************************************** BMS协议类型 ****************************************************/
+typedef enum
+{
+    THAISEN_MODULE_BMS_PROTYPE_27930_2015,                   /* BMS协议类型：国标27930 2015 */
+    THAISEN_MODULE_BMS_PROTYPE_33021_NB_T,                   /* BMS协议类型：能标33021 2024 */
+    THAISEN_MODULE_BMS_PROTYPE_SIZE,                         /* BMS协议类型 */
+}thaisenModule_BMSProType_t;
+
+/* 功能说明:
+ *          thaisenModuleSetBMSProtoclType: 设置BMS协议类型
+ *
+ * 输入参数:           gunNum      枪号
+ *          type         BMS协议类型@thaisenModule_BMSProType_t
+ *
+ * 返回参数:
+ *
+ * 调用方法:
+ *          可实时调用
+ */
+void thaisenModuleSetBMSProtoclType(uint8_t gunNum, thaisenModule_BMSProType_t type);
+
+/* 功能说明:
+ *          thaisenModuleGetBMSProtoclType: 获取BMS协议类型
+ *
+ * 输入参数:   gunNum    枪号
+ *
+ *
+ * 返回参数:    BMS协议类型@thaisenModule_BMSProType_t
+ *
+ * 调用方法:
+ *          可实时调用
+ */
+thaisenModule_BMSProType_t thaisenModuleGetBMSProtoclType(uint8_t gunNum);
+
 #endif /* APPLICATIONS_THAISENCHARGMODULELIB_H_ */
