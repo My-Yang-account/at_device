@@ -276,7 +276,7 @@ static void terminal_ems_send_charger_status(void)                              
 
         symbol_value = ofsm->base.current_a /10;
 #ifdef APP_INCLUDE_V2G
-        if(thaisen_get_gun_running_mode(gunno) == APP_GUN_RUNNING_MODE_V2G){
+        if(thaisen_get_gun_running_mode(gunno) == THAISEN_GUN_RUNING_MODE_V2G){
             if(symbol_value < 0x00)
                 symbol_value = 0x00 - symbol_value;
         }else{
@@ -306,7 +306,7 @@ static void terminal_ems_send_charger_status(void)                              
         }
 
 #ifdef APP_INCLUDE_V2G
-        if(thaisen_get_gun_running_mode(gunno) == APP_GUN_RUNNING_MODE_V2G){
+        if(thaisen_get_gun_running_mode(gunno) == THAISEN_GUN_RUNING_MODE_V2G){
             para0 = mw_get_meter_reserve_total_wh(gunno) /10;
         }else{
             para0 = mw_get_meter_total_wh(gunno) /10;
@@ -348,7 +348,7 @@ static void terminal_ems_send_charger_status(void)                              
 
     symbol_value = ofsm->base.current_a /10;
 #ifdef APP_INCLUDE_V2G
-    if(thaisen_get_gun_running_mode(gunno) == APP_GUN_RUNNING_MODE_V2G){
+    if(thaisen_get_gun_running_mode(gunno) == THAISEN_GUN_RUNING_MODE_V2G){
         if(symbol_value < 0x00)
             symbol_value = 0x00 - symbol_value;
     }else{
@@ -377,7 +377,7 @@ static void terminal_ems_send_charger_status(void)                              
         memset(&s_ems_frame_request.bms_data[APP_SYSTEM_GUNNOA], 0x00, sizeof(s_ems_frame_request.bms_data[APP_SYSTEM_GUNNOA]));//非充电状态数据置0
     }
 #ifdef APP_INCLUDE_V2G
-    if(thaisen_get_gun_running_mode(gunno) == APP_GUN_RUNNING_MODE_V2G){
+    if(thaisen_get_gun_running_mode(gunno) == THAISEN_GUN_RUNING_MODE_V2G){
         para0 = mw_get_meter_reserve_total_wh(APP_SYSTEM_GUNNOA) /10;
     }else{
         para0 = mw_get_meter_total_wh(APP_SYSTEM_GUNNOA) /10;

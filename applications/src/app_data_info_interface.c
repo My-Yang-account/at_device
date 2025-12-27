@@ -1901,7 +1901,7 @@ void thaisen_selfcheck_debug_info(tha_debug_chinese_en item, uint8_t language, u
  * 函数名      thaisen_get_current_charge_mode
  * 功能          获取当前充电模式
  * 参数          gunno    枪号
- * 返回           @enum thaisen_charge_mode(不启用模式选择时返回 THAISEN_MODE_SIZE)
+ * 返回           @enum thaisen_charge_mode(不启用模式选择时返回 THAISEN_CHARGE_MODE_SIZE)
  *******************************************/
 enum thaisen_charge_mode thaisen_get_current_charge_mode(uint8_t gunno)
 {
@@ -2151,6 +2151,28 @@ thaisen_gun_run_mode_t thaisen_get_gun_running_mode(uint8_t gunno)
 void thaisen_reset_gun_running_mode(uint8_t gunno)
 {
     SerialScreen_Screen_ResetGunRunMode(gunno);
+}
+
+/********************************************
+ * 函数名      thaisen_get_current_v2g_mode
+ * 功能          获取当前V2G模式
+ * 参数          gunno    枪号
+ * 返回           @enum thaisen_v2g_mode(不启用模式选择时返回 THAISEN_V2G_MODE_SIZE)
+ *******************************************/
+enum thaisen_v2g_mode thaisen_get_current_v2g_mode(uint8_t gunno)
+{
+    return SerialScreen_Screen_GetCurrentV2GMode(gunno);
+}
+
+/********************************************
+ * 函数名      thaisen_get_charge_mode_parameter
+ * 功能          获取充电模式选择参数
+ * 参数          gunno     枪号
+ * 返回          模式选择参数
+ *******************************************/
+uint32_t thaisen_get_v2g_mode_parameter(uint8_t gunno)
+{
+    return SerialScreen_Screen_GetV2GParameter(gunno);
 }
 
 #endif /* APP_INCLUDE_V2G */

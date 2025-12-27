@@ -227,6 +227,7 @@ enum charge_strategy_enum{
     APP_CHARGE_STRATEGY_RESERVATION,                   /* 充电策略：预约 */
     APP_CHARGE_STRATEGY_FULL,                          /* 充电策略：充满 */
     APP_CHARGE_STRATEGY_SOC,                           /* 充电策略：按SOC */
+    APP_CHARGE_STRATEGY_SIZE,                          /* 充电策略： */
 };
 
 /** 调功率策略 */

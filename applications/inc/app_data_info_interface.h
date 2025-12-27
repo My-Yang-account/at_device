@@ -947,6 +947,16 @@ thaisen_gun_run_mode_t thaisen_get_gun_running_mode(uint8_t gunno);
 **/
 void thaisen_reset_gun_running_mode(uint8_t gunno);
 
+/**
+*  获取当前V2G模式
+**/
+enum thaisen_v2g_mode thaisen_get_current_v2g_mode(uint8_t gunno);
+
+/**
+*  获取充电模式选择参数
+**/
+uint32_t thaisen_get_v2g_mode_parameter(uint8_t gunno);
+
 #endif /* APP_INCLUDE_V2G */
 
 #endif /* APPLICATIONS_INC_APP_DATA_INFO_INTERFACE_H_ */

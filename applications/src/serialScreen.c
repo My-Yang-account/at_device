@@ -1521,13 +1521,20 @@ u32 SerialScreen_Screen_GetV2GParameter(u8 port)
             return 0;
 
         if(LcdData.setData.V2G_CurrentMode[port][THAISEN_V2G_MODE_AUTO]){
-            return LcdData.setData.DisCharge_AsOf_SOC;
+            u8 DisCharge_AsOf_SOC = *(u8 *)(UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_DISCHARGE_AS_OF_SOC, 0));
+
+            DisCharge_AsOf_SOC = SerialScreen_GetPara_ValidValue(DisCharge_AsOf_SOC,  \
+                    (PROTECT_DISCHARGE_AS_OF_SOC_DEFAULT + PROTECT_DISCHARGE_AS_OF_SOC_OFFSET), (PROTECT_DISCHARGE_AS_OF_SOC_MIN + PROTECT_DISCHARGE_AS_OF_SOC_OFFSET), \
+                    (PROTECT_DISCHARGE_AS_OF_SOC_MAX + PROTECT_DISCHARGE_AS_OF_SOC_OFFSET));
+            DisCharge_AsOf_SOC -= PROTECT_DISCHARGE_AS_OF_SOC_OFFSET;
+            return DisCharge_AsOf_SOC;
         }
         return LcdData.setData.V2G_CurrentModePara[port];
     }
     return 0;
 }
 #endif /* SCREEN_USING_V2G */
+
 
 static enum thaisen_mode SerialScreen_Screen_ConvertMode(u8 port)
 {
