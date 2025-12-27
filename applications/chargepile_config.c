@@ -2757,6 +2757,8 @@ int32_t chargepile_check_config(void)
         if((s_chargepile_config_info.function_enable.v2g_mode[mode] >= CP_V2G_MODE_SIZE) || (s_chargepile_config_info.function_enable.v2g_mode[mode] < CP_V2G_MODE_LIMIT_MONEY)){
             s_chargepile_config_info.function_enable.v2g_mode[mode] = CP_V2G_MODE_NULL;     /* V2G模式默认空 */
         }
+        /* 目前V2G模式都是单次有效的 */
+        s_chargepile_config_info.function_enable.v2g_mode[mode] = CP_V2G_MODE_NULL;     /* V2G模式默认空 */
 #else
         s_chargepile_config_info.function_enable.v2g_mode[mode] = CP_V2G_MODE_NULL;     /* V2G模式默空 */
 #endif /* CP_USING_V2G */
