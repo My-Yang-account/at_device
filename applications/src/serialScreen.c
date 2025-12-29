@@ -8287,8 +8287,8 @@ static void SerialScreen_BtnModuleStateClear(void)
 
 void SerialScreen_EnterMonitor(void)
 {
-    LcdData.debugIOflg = TRUE;
-    thaisen_set_debug_mode(1);
+//    LcdData.debugIOflg = TRUE;
+//    thaisen_set_debug_mode(1);
 }
 
 void SerialScreen_BtnModuleStateA(void)
@@ -9512,12 +9512,9 @@ void SerialScreen_QuitDebugIO(void)
 {
     thaisen_set_debug_mode(0);
 
-    if(LcdData.debugIOflg == FALSE){
-        return;
-    }
-    LcdData.debugIOflg = FALSE;
     for(u8 gunno = 0; gunno < LCD_GUN_NUM; gunno++){
         if((LcdData.gun[gunno].workState == SysMainStatus_StartReady) || (LcdData.gun[gunno].workState == SysMainStatus_Chrging)){
+            LcdData.debugIOflg = FALSE;
             return;
         }
     }
@@ -9561,6 +9558,13 @@ void SerialScreen_QuitDebugIO(void)
 	        LcdData.setData.s_dcRelay[port]  = LcdData.setData.g_dcRelay[port];
 	    }
 	}
+    SerialScreen_BtnModuleStopA();
+    SerialScreen_BtnModuleStopB();
+
+    if(LcdData.debugIOflg == FALSE){
+        return;
+    }
+    LcdData.debugIOflg = FALSE;
 
     thaisenElectUnlockA_Directly();
     LcdData.setData.g_elElock[LCD_GUN_1]= REALAY_OFF;
@@ -9588,9 +9592,6 @@ void SerialScreen_QuitDebugIO(void)
 
     LcdData.setData.selfCheck_icon = FALSE;
     LcdData.setData.selfCheck_lable = TRUE;
-
-	SerialScreen_BtnModuleStopA();
-	SerialScreen_BtnModuleStopB();
 }
 
 void SerialScreen_GetIOStatus(int port)
