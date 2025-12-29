@@ -2155,7 +2155,7 @@ void ykc_monitor_chargepile_request_padding_bmscommand_chargerout(uint8_t gunno,
             }else{
                 g_ykc_monitor_preq_bmscommand_chargerout[gunno].body.pile_output_curr = (4000  - symbol_value);
             }
-            g_ykc_monitor_preq_bmscommand_chargerout[gunno].body.pile_output_curr_expand = (20000 - symbol_value);
+            g_ykc_monitor_preq_bmscommand_chargerout[gunno].body.pile_output_curr_expand = (20000 - (base->current_a /10));
 
             g_ykc_monitor_preq_bmscommand_chargerout[gunno].body.charge_time = base->charge_time /60;
 

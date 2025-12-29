@@ -66,7 +66,16 @@ int32_t mw_get_meter_ia(uint8_t gunno)
     }
 #endif /* AMMETER_DATA_DEBUG */
     if(gunno < APP_SYSTEM_GUNNO_SIZE){
+#ifdef APP_INCLUDE_V2G
         return thaisen_get_ammeterCurrent(gunno);
+#else
+        int32_t current = thaisen_get_ammeterCurrent(gunno);
+
+        if(current < 0x00){
+            current = 0x00;
+        }
+        return current;
+#endif /* APP_INCLUDE_V2G */
     }
     return 0;
 }
@@ -140,9 +149,11 @@ uint32_t mw_get_meter_total_wh(uint8_t gunno)
 
 uint32_t mw_get_meter_reserve_total_wh(uint8_t gunno)
 {
+#ifdef APP_INCLUDE_V2G
     if(gunno < APP_SYSTEM_GUNNO_SIZE){
         return thaisen_get_ammeterReverseEnergy(gunno);
     }
+#endif /* APP_INCLUDE_V2G */
     return 0;
 }
 
