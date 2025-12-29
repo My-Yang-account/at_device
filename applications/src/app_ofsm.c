@@ -6238,14 +6238,14 @@ static void ofsm_charging_fun(uint8_t gunno)
 
                 /****************************************** 充电模式 ******************************************/
                 if(s_ofsm_info[gunno].base.gun_running_mode == APP_GUN_RUNNING_MODE_CHARGE){
-                    if((bms_info->BCS.SOC >= _strategy_para) && (_strategy_para != 100)){
+                    if((s_ofsm_info[gunno].base.current_soc >= _strategy_para) && (_strategy_para != 100)){
                         reach_target = APP_THA_ENUM_TRUE;
                     }
                 }
 #ifdef APP_INCLUDE_V2G
                 /****************************************** 放电模式 ******************************************/
                 else if(s_ofsm_info[gunno].base.gun_running_mode == APP_GUN_RUNNING_MODE_V2G){
-                    if(bms_info->BCS.SOC <= _strategy_para){
+                    if(s_ofsm_info[gunno].base.current_soc <= _strategy_para){
                         reach_target = APP_THA_ENUM_TRUE;
                     }
                 }
@@ -6256,7 +6256,7 @@ static void ofsm_charging_fun(uint8_t gunno)
                     s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_FALSE;
 
                     is_stop_charge_authorization = true;
-                    LOG_D("gunno(%d) charge finish deal to reach target SOC(%d, %d)\n", gunno, bms_info->BCS.SOC, _strategy_para);
+                    LOG_D("gunno(%d) charge finish deal to reach target SOC(%d, %d)\n", gunno, s_ofsm_info[gunno].base.current_soc, _strategy_para);
                 }
             }
         }
@@ -6307,7 +6307,7 @@ static void ofsm_charging_fun(uint8_t gunno)
 
     if(((s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD) && (s_ofsm_info[gunno].base.main_gunno == gunno)) ||
             (s_ofsm_info[gunno].base.charge_way != APP_CHARGE_WAY_PARACHARGE_CLOUD)){
-        if(bms_info->BCS.SOC >= *(sys_read_config_item_content(CONFIG_ITEM_SOC_STOP, 0))){
+        if(s_ofsm_info[gunno].base.current_soc >= *(sys_read_config_item_content(CONFIG_ITEM_SOC_STOP, 0))){
 //            if(*(sys_read_config_item_content(CONFIG_ITEM_SOC_STOP, 0)) < 100)
             {
                 if(is_stop_charge_authorization == false){
