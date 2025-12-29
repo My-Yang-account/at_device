@@ -8287,7 +8287,7 @@ static void SerialScreen_BtnModuleStateClear(void)
 
 void SerialScreen_EnterMonitor(void)
 {
-//    LcdData.debugIOflg = TRUE;
+    LcdData.debugIOflg = TRUE;
 //    thaisen_set_debug_mode(1);
 }
 
@@ -9512,9 +9512,12 @@ void SerialScreen_QuitDebugIO(void)
 {
     thaisen_set_debug_mode(0);
 
+    if(LcdData.debugIOflg == FALSE){
+        return;
+    }
+    LcdData.debugIOflg = FALSE;
     for(u8 gunno = 0; gunno < LCD_GUN_NUM; gunno++){
         if((LcdData.gun[gunno].workState == SysMainStatus_StartReady) || (LcdData.gun[gunno].workState == SysMainStatus_Chrging)){
-            LcdData.debugIOflg = FALSE;
             return;
         }
     }
@@ -9558,13 +9561,6 @@ void SerialScreen_QuitDebugIO(void)
 	        LcdData.setData.s_dcRelay[port]  = LcdData.setData.g_dcRelay[port];
 	    }
 	}
-    SerialScreen_BtnModuleStopA();
-    SerialScreen_BtnModuleStopB();
-
-    if(LcdData.debugIOflg == FALSE){
-        return;
-    }
-    LcdData.debugIOflg = FALSE;
 
     thaisenElectUnlockA_Directly();
     LcdData.setData.g_elElock[LCD_GUN_1]= REALAY_OFF;
@@ -9592,6 +9588,9 @@ void SerialScreen_QuitDebugIO(void)
 
     LcdData.setData.selfCheck_icon = FALSE;
     LcdData.setData.selfCheck_lable = TRUE;
+
+    SerialScreen_BtnModuleStopA();
+    SerialScreen_BtnModuleStopB();
 }
 
 void SerialScreen_GetIOStatus(int port)
@@ -9601,6 +9600,9 @@ void SerialScreen_GetIOStatus(int port)
 		return ;
 
     if(thaisenGetModuleDebugEnableOutput(port))
+        return;
+
+    if(thaisen_get_debug_mode() == thaisen_debug_mode_enter)
         return;
 
     if(port == 0)
@@ -9885,6 +9887,12 @@ void SerialScreen_BtnAuxSet(u8 port)
 
 }
 
+void SerialScreen_EnterLiquid(void)
+{
+//    LcdData.debugIOflg = TRUE;
+//    thaisen_set_debug_mode(1);
+}
+
 extern void SerialScreen_BtnLiquidSet(u8 port);
 void SerialScreen_BtnLiquidSetA()
 {
@@ -9899,11 +9907,9 @@ void SerialScreen_BtnLiquidSetB()
 void SerialScreen_BtnLiquidSet(u8 port)
 {
 #ifdef SCREEN_USING_DOUBLE_GUN
-    sSCREEN_EVENT_DEBUGMSG("##########BtnLiquid%dSet = %d###########\r\n",port,LcdData.setData.s_liquid[port]);
     LcdData.setData.s_liquid[port]= !LcdData.setData.s_liquid[port];
     if(LcdData.setData.s_liquid[port] != TRUE)
     {
-        rt_kprintf("22-%d-%d--\r\n",LcdData.setData.s_liquid[port],port);
         if(port == LCD_GUN_1)
             thaisenSetLiquidStop(LCD_GUN_1);
         else if(port == LCD_GUN_2)
@@ -9911,13 +9917,11 @@ void SerialScreen_BtnLiquidSet(u8 port)
     }
     else
     {
-       rt_kprintf("11-%d-%d--\r\n",LcdData.setData.s_liquid[port],port);
     if(port == LCD_GUN_1)
         thaisenSetLiquidStart(LCD_GUN_1);
     else if(port == LCD_GUN_2)
         thaisenSetLiquidStart(LCD_GUN_2);
     }
-    sSCREEN_EVENT_DEBUGMSG("Btnliquid%dSet = %d\r\n",port,LcdData.setData.s_liquid[port]);
 #endif /* SCREEN_USING_DOUBLE_GUN */
 }
 
@@ -15999,7 +16003,7 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
 
     /** 37.出厂调试-A枪监控信息 [page:45] */
 #ifdef SCREEN_USING_DOUBLE_GUN
-    SerialScreen_ItemSetUp(LCD_PAGE_MENU_MONITOR, NULL, "liquid cool", LCD_BtnType, 0x0001, 0x1008, page_type, LCD_PAGE_LIQUID_COOLINGA, (void *)SerialScreen_GetIOStatusA);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_MONITOR, NULL, "liquid cool", LCD_BtnType, 0x0001, 0x1008, page_type, LCD_PAGE_LIQUID_COOLINGA, (void *)SerialScreen_EnterLiquid);
 #endif /* SCREEN_USING_DOUBLE_GUN */
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_MONITOR, NULL, "b gun", LCD_BtnType, 0x0026, 0x1000, page_type, LCD_PAGE_MENU_MONITOR_B, (void *)NULL);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_MONITOR, NULL, "in out", LCD_BtnType, 0x0023, 0x1000, page_type, LCD_PAGE_MENU_INOUT, (void *)SerialScreen_GetIOStatusA);
@@ -16023,7 +16027,7 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
 
     /** 38.出厂调试-B枪监控信息 [page:46] */
 #ifdef SCREEN_USING_DOUBLE_GUN
-    SerialScreen_ItemSetUp(LCD_PAGE_MENU_MONITOR_B, NULL, "liquid cool", LCD_BtnType, 0x0001, 0x1008, page_type, LCD_PAGE_LIQUID_COOLINGA, (void *)SerialScreen_GetIOStatusA);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_MONITOR_B, NULL, "liquid cool", LCD_BtnType, 0x0001, 0x1008, page_type, LCD_PAGE_LIQUID_COOLINGA, (void *)SerialScreen_EnterLiquid);
 #endif /* SCREEN_USING_DOUBLE_GUN */
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_MONITOR_B, NULL, "a gun", LCD_BtnType, 0x0026, 0x1000, page_type, LCD_PAGE_MENU_MONITOR, (void *)NULL);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_MONITOR_B, NULL, "in out", LCD_BtnType, 0x0023, 0x1000, page_type, LCD_PAGE_MENU_INOUT_B, (void *)SerialScreen_GetIOStatusB);
@@ -16047,7 +16051,7 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
 
     /** 39.出厂调试-A枪输入输出 [page:47] */
 #ifdef SCREEN_USING_DOUBLE_GUN
-    SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT, NULL, "liquid cool", LCD_BtnType, 0x0001, 0x1008, page_type, LCD_PAGE_LIQUID_COOLINGA, (void *)SerialScreen_GetIOStatusA);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT, NULL, "liquid cool", LCD_BtnType, 0x0001, 0x1008, page_type, LCD_PAGE_LIQUID_COOLINGA, (void *)SerialScreen_EnterLiquid);
 #endif /* SCREEN_USING_DOUBLE_GUN */
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT, NULL, "AC set", LCD_BtnType, 0x003E, 0x1000, page_type, LCD_PAGE_MENU_INOUT, (void *)SerialScreen_BtnAcSet);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT, NULL, "DCA set", LCD_BtnType, 0x003F, 0x1000, page_type, LCD_PAGE_MENU_INOUT, (void *)SerialScreen_BtnDcSetA);
@@ -16101,7 +16105,7 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
 
     /** 40.出厂调试-B枪输入输出 [page:48] */
 #ifdef SCREEN_USING_DOUBLE_GUN
-    SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT_B, NULL, "liquid cool", LCD_BtnType, 0x0001, 0x1008, page_type, LCD_PAGE_LIQUID_COOLINGA, (void *)SerialScreen_GetIOStatusA);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT_B, NULL, "liquid cool", LCD_BtnType, 0x0001, 0x1008, page_type, LCD_PAGE_LIQUID_COOLINGA, (void *)SerialScreen_EnterLiquid);
 #endif /* SCREEN_USING_DOUBLE_GUN */
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT_B, NULL, "AC set", LCD_BtnType, 0x0045, 0x1000, page_type, LCD_PAGE_MENU_INOUT_B, (void *)SerialScreen_BtnAcSet);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT_B, NULL, "DCB set", LCD_BtnType, 0x0046, 0x1000, page_type, LCD_PAGE_MENU_INOUT_B, (void *)SerialScreen_BtnDcSetB);
@@ -16149,7 +16153,7 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
 
     /** 41.出厂调试-A枪模块信息 [page:49] */
 #ifdef SCREEN_USING_DOUBLE_GUN
-    SerialScreen_ItemSetUp(LCD_PAGE_MENU_STATE_MODULE, NULL, "liquid cool", LCD_BtnType, 0x0001, 0x1008, page_type, LCD_PAGE_LIQUID_COOLINGA, (void *)SerialScreen_GetIOStatusA);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_STATE_MODULE, NULL, "liquid cool", LCD_BtnType, 0x0001, 0x1008, page_type, LCD_PAGE_LIQUID_COOLINGA, (void *)SerialScreen_EnterLiquid);
 #endif /* SCREEN_USING_DOUBLE_GUN */
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_STATE_MODULE, NULL, "b gun", LCD_BtnType, 0x0026, 0x1000, page_type, LCD_PAGE_MENU_STATE_MODULE_B, (void *)SerialScreen_BtnModuleStateB);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_STATE_MODULE, NULL, "monitor info", LCD_BtnType, 0x0022, 0x1000, page_type, LCD_PAGE_MENU_MONITOR, (void *)SerialScreen_EnterMonitor);
@@ -16179,7 +16183,7 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
 
     /** 42.出厂调试-B枪模块信息 [page:50] */
 #ifdef SCREEN_USING_DOUBLE_GUN
-    SerialScreen_ItemSetUp(LCD_PAGE_MENU_STATE_MODULE_B, NULL, "liquid cool", LCD_BtnType, 0x0001, 0x1008, page_type, LCD_PAGE_LIQUID_COOLINGA, (void *)SerialScreen_GetIOStatusA);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_STATE_MODULE_B, NULL, "liquid cool", LCD_BtnType, 0x0001, 0x1008, page_type, LCD_PAGE_LIQUID_COOLINGA, (void *)SerialScreen_EnterLiquid);
 #endif /* SCREEN_USING_DOUBLE_GUN */
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_STATE_MODULE_B, NULL, "a gun", LCD_BtnType, 0x0026, 0x1000, page_type, LCD_PAGE_MENU_STATE_MODULE, (void *)SerialScreen_BtnModuleStateA);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_STATE_MODULE_B, NULL, "monitor info", LCD_BtnType, 0x0022, 0x1000, page_type, LCD_PAGE_MENU_MONITOR_B, (void *)SerialScreen_EnterMonitor);
@@ -16312,7 +16316,7 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_LIQUID_COOLINGA, NULL, "Icon LiquidA", LCD_IconType, LCD_10sReflash, 0x53AE, pu8_type, sizeof(LcdData.setData.s_liquid[LCD_GUN_1]), (void *)&LcdData.setData.s_liquid[LCD_GUN_1]);
     SerialScreen_ItemSetUp(LCD_PAGE_LIQUID_COOLINGA, NULL, "liquidA set", LCD_BtnType, 0x0002, 0x1008, page_type, LCD_PAGE_LIQUID_COOLINGA, (void *)SerialScreen_BtnLiquidSetA);
     SerialScreen_ItemSetUp(LCD_PAGE_LIQUID_COOLINGA, NULL, "modeule state", LCD_BtnType, 0x0024, 0x1000, page_type, LCD_PAGE_MENU_STATE_MODULE, (void *)SerialScreen_BtnModuleStateA);
-    SerialScreen_ItemSetUp(LCD_PAGE_LIQUID_COOLINGA, NULL, "b gun", LCD_BtnType, 0x0026, 0x1000, page_type, LCD_PAGE_LIQUID_COOLINGB, (void *)SerialScreen_GetIOStatusB);
+    SerialScreen_ItemSetUp(LCD_PAGE_LIQUID_COOLINGA, NULL, "b gun", LCD_BtnType, 0x0026, 0x1000, page_type, LCD_PAGE_LIQUID_COOLINGB, (void *)SerialScreen_EnterLiquid);
     SerialScreen_ItemSetUp(LCD_PAGE_LIQUID_COOLINGA, NULL, "monitor info", LCD_BtnType, 0x0022, 0x1000, page_type, LCD_PAGE_MENU_MONITOR, (void *)NULL);
     SerialScreen_ItemSetUp(LCD_PAGE_LIQUID_COOLINGA, NULL, "in out", LCD_BtnType, 0x0023, 0x1000, page_type, LCD_PAGE_MENU_INOUT, (void *)SerialScreen_GetIOStatusA);
     SerialScreen_ItemSetUp(LCD_PAGE_LIQUID_COOLINGA, NULL, "cd up", LCD_BtnType, 0x0050, 0x1000, page_type, LCD_PAGE_ROOT_MAIN, (void *)SerialScreen_QuitDebugIO);
