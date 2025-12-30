@@ -4130,7 +4130,7 @@ static void ofsm_starting_fun(uint8_t gunno)
                 /** 当前运行模式为在线模式 */
                 else if(s_ofsm_info[gunno].base.run_mode == APP_RUN_MODE_4G_ETH){
                     /** 计费规则必须有效 */
-                    if(1/*(app_billingrule_is_valid(gunno) == NET_ENUM_TRUE)*/){
+                    if((app_billingrule_is_valid(gunno) == NET_ENUM_TRUE)){
                         using_vin_authentication = APP_THA_ENUM_TRUE;
                     }else{
                         /** 防止上报鉴权后短暂断网或关闭VIN码充电功能，导致判断出错 */
@@ -6102,10 +6102,9 @@ static void ofsm_charging_fun(uint8_t gunno)
                 }
                 if(thaisen_get_current_charge_mode(gunno) == THAISEN_CHARGE_MODE_LIMIT_TIMING){
                     if((_strategy_para == 0x00) || (_strategy_para > thaisen_get_charge_mode_parameter(gunno))){
-                        _strategy_para = thaisen_get_charge_mode_parameter(gunno);
+                        _strategy_para = thaisen_get_charge_mode_parameter(gunno) *60;
                     }
                 }
-                _strategy_para *= 60;
             }
             /** 按电量模式 */
             else if((s_ofsm_info[gunno].base.charge_strategy == APP_CHARGE_STRATEGY_ELECT) || (thaisen_get_current_charge_mode(gunno) == THAISEN_CHARGE_MODE_LIMIT_ELECT)){
@@ -6127,10 +6126,9 @@ static void ofsm_charging_fun(uint8_t gunno)
                 }
                 if(thaisen_get_current_charge_mode(gunno) == THAISEN_CHARGE_MODE_LIMIT_MONEY){
                     if((_strategy_para == 0x00) || (_strategy_para > thaisen_get_charge_mode_parameter(gunno))){
-                        _strategy_para = thaisen_get_charge_mode_parameter(gunno);
+                        _strategy_para = thaisen_get_charge_mode_parameter(gunno) *100;
                     }
                 }
-                _strategy_para *= 100;
             }
             /** 按SOC模式 */
             else if(s_ofsm_info[gunno].base.charge_strategy == APP_CHARGE_STRATEGY_SOC){
