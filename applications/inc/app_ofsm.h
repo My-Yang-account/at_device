@@ -45,6 +45,10 @@ extern "C" {
 #define APP_USING_NO_BMS                               /* 使用无BMS版本(强制启动模块充电(需要在离线计费模式下)) */
 #endif /* CP_USING_NO_BMS */
 
+#ifdef CP_USING_LV_MODULE_BMS
+#define APP_USING_LV_MODULE_BMS                        /* 使用带BMS的低压模块版本(强制启动模块充电(需要在离线计费模式下)) */
+#endif /* CP_USING_LV_MODULE_BMS */
+
 #ifdef CP_USING_LV_MODULE
 #define APP_USING_LV_MODULE                            /* 使用低压模块版本 */
 #endif /* CP_USING_LV_MODULE */
@@ -119,28 +123,32 @@ extern "C" {
 #define APP_AMMETER_ENCRY_STEP_METER_READING 0x03                /* 获取电表加密数据步骤：发抄表指令 */
 #endif /* APP_INCLUDE_YKC17_PROTOCOL */
 
+#if ((defined(APP_USING_NO_BMS) || defined(APP_USING_LV_MODULE_BMS)) && defined(APP_USING_OFFLINE_BILLING))
+#define APP_FORCE_BOOT_PRECHARGE_SAMPLING_STEADY_TIME            5000            /* 预充时等待采样稳定时间(ms) */
+#define APP_FORCE_BOOT_BOOT_TIMEOUT                              50000           /* 启动超时时间(ms) */
+
+#define APP_FORCE_BOOT_PRECHARGE_SAMPLING_VOLTAGE_MIN            100             /* 预充时采样电压最小值(0.1V) */
+#define APP_FORCE_BOOT_PRECHARGE_VOLTAGE_THRESHOLD               50              /* 预充时电池电压和模块电压比较阈值(0.1V) */
+
+#define APP_FORCE_BOOT_PRECHARGE_CURRENT                         200             /* 预充时设定电流(0.01A) */
+
+#define APP_FORCE_BOOT_MODULE_CLOSE_VOLTAGE_MAX                  600             /* 模块认为是已关闭时的电压阈值最大值(0.1V) */
+#define APP_FORCE_BOOT_CLOSE_MODULE_WAIT_TIME_MAX                2000            /* 关闭模块最大等待时长(ms) */
+#endif /* ((defined(APP_USING_NO_BMS) || defined(APP_USING_LV_MODULE_BMS)) && defined(APP_USING_OFFLINE_BILLING)) */
+
 #if (defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING))
-#define APP_NO_BMS_PRECHARGE_SAMPLING_STEADY_TIME                5000            /* 预充时等待采样稳定时间(ms) */
-#define APP_NO_BMS_BOOT_TIMEOUT                                  50000           /* 启动超时时间(ms) */
-#define APP_NO_BMS_RISE_CURRENT_PERIOD                           1000            /* 电流爬升时间间隔(ms) */
 #define APP_NO_BMS_STAGE_1_CHARGE_TIME_MAX_64V125AH              3600            /* 64V125AH型电池第一阶段最大充电时长(s) */
 #define APP_NO_BMS_STAGE_1_CHARGE_TIME_MAX_51_2V125AH            3600            /* 51_2V125AH型电池第一阶段最大充电时长(s) */
 #define APP_NO_BMS_FULL_CONTINUOUS_TIME_MAX                      20000           /* 满充最大持续时长(ms) */
 #define APP_NO_BMS_STAGE_CROSSING_CONTINUOUS_TIME_MAX            5000            /* 阶段跨越最大持续时长(ms) */
-#define APP_NO_BMS_CLOSE_MODULE_WAIT_TIME_MAX                    2000            /* 关闭模块最大等待时长(ms) */
 
-#define APP_NO_BMS_PRECHARGE_SAMPLING_VOLTAGE_MIN                100             /* 预充时采样电压最小值(0.1V) */
-#define APP_NO_BMS_PRECHARGE_VOLTAGE_THRESHOLD                   50              /* 预充时电池电压和模块电压比较阈值(0.1V) */
 #define APP_NO_BMS_STAGE_1_REQUEST_VOLTAGE_64V125AH              724             /* 64V125AH型电池第一阶段请求电压(0.1V) */
 #define APP_NO_BMS_STAGE_2_REQUEST_VOLTAGE_64V125AH              720             /* 64V125AH型电池第二阶段请求电压(0.1V) */
 #define APP_NO_BMS_STAGE_1_REQUEST_VOLTAGE_51_2V125AH            563             /* 51_2V125AH型电池第一阶段请求电压(0.1V) */
 #define APP_NO_BMS_STAGE_2_REQUEST_VOLTAGE_51_2V125AH            576             /* 51_2V125AH型电池第二阶段请求电压(0.1V) */
 #define APP_NO_BMS_STAGE_1_TO_STAGE_2_VOLTAGE_64V125AH           704             /* 64V125AH型电池从阶段1到阶段2的电压阈值(0.1V) */
 #define APP_NO_BMS_STAGE_1_TO_STAGE_2_VOLTAGE_51_2V125AH         563             /* 51_2V125AH型电池从阶段1到阶段2的电压阈值(0.1V) */
-#define APP_NO_BMS_MODULE_CLOSE_VOLTAGE_MAX                      600             /* 模块认为是已关闭时的电压阈值最大值(0.1V) */
 
-#define APP_NO_BMS_PRECHARGE_CURRENT                             200             /* 预充时设定电流(0.01A) */
-#define APP_NO_BMS_RISE_CURRENT_STEP                             1000            /* 电流爬升步进(0.01A) */
 #define APP_NO_BMS_STAGE_1_REQUEST_CURRENT_64V125AH              8000            /* 64V125AH型电池第一阶段请求电流(0.01A) */
 #define APP_NO_BMS_STAGE_2_REQUEST_CURRENT_64V125AH              6000            /* 64V125AH型电池第二阶段请求电流(0.01A) */
 #define APP_NO_BMS_STAGE_1_REQUEST_CURRENT_51_2V125AH            8000            /* 51_2V125AH型电池第一阶段请求电流(0.01A) */
@@ -659,12 +667,13 @@ typedef struct{
 #endif /* APP_INCLUDE_SGCC_PROTOCOL */
     uint8_t main_gunno;              /* 并充主枪枪号 */
     uint8_t charge_way;              /* 充电方式 */
+#if ((defined(APP_USING_NO_BMS) || defined(APP_USING_LV_MODULE_BMS)) && defined(APP_USING_OFFLINE_BILLING))
+    uint32_t parameter_steady_tick;  /* 参数稳定时基 */
+#endif /* ((defined(APP_USING_NO_BMS) || defined(APP_USING_LV_MODULE_BMS)) && defined(APP_USING_OFFLINE_BILLING)) */
+
 #if (defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING))
     uint8_t battery_type;            /* 电池类型 */
     uint8_t bat_charge_stage;        /* 电池充电阶段 */
-    uint16_t setup_current;          /* 设置的电流 */
-    uint32_t parameter_steady_tick;  /* 参数稳定时基 */
-    uint32_t current_rise_tick;      /* 电流爬升时基 */
 #endif /* defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING) */
     uint8_t run_mode;                /* 运行模式：0：4G、以太网联网，1：离线计费，2：离线模式，3.即插即充 */
     void *bms_data;                  /* BMS 数据 */

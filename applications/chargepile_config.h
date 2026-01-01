@@ -145,11 +145,12 @@
 
 #define CP_USING_OFFLINE_BILLING                        /* 包含离线计费 */
 //#define CP_USING_NO_BMS                                 /* 使用无BMS版本 */
+//#define CP_USING_LV_MODULE_BMS                          /* 使用带BMS的低压模块版本 */
 //#define CP_USING_LV_MODULE                              /* 使用低压模块版本 */
-//#define CP_USING_METER_ELECT_DETECT_STRATEGY            /* 使用电表电量检测策略 */
+#define CP_USING_METER_ELECT_DETECT_STRATEGY            /* 使用电表电量检测策略 */
 //#define CP_USING_BAT_VOLT_DETECT_STRATEGY               /* 使用电池电压检测策略 */
-//#define CP_USING_CHARGE_CURR_DETECT_STRATEGY            /* 使用充电电流检测策略 */
-//#define CP_USING_FB_DETECT                              /* 使用反馈实时检测 */
+#define CP_USING_CHARGE_CURR_DETECT_STRATEGY            /* 使用充电电流检测策略 */
+#define CP_USING_FB_DETECT                              /* 使用反馈实时检测 */
 //#define CP_INCLUDE_BATVOLT_DETECT_QRCODE                /* 包含电池电压报告检测二维码 */
 //#define CP_USING_V2G                                    /* 使用V2G */
 

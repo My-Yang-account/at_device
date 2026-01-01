@@ -33,11 +33,11 @@
 #define APP_THREAD_MONITOR_DEBUG
 #define APP_THREAD_ENTRY_PERIOD         15000   /** 线程不正常超过一定时长(ms)，容忍次数加1(这个时间需要参考看门狗复位时间) */
 
-#ifdef USING_TCU_CAN
+#if (defined(USING_TCU_CAN) && (!defined(CP_USING_LV_MODULE_BMS)))
 #define APP_CAN_THREAD                  2       /* 监控 CAN 线程 */
 #else
 #define APP_CAN_THREAD                  0       /* 监控 CAN 线程 */
-#endif /* USING_TCU_CAN */
+#endif /* (defined(USING_TCU_CAN) && (!defined(CP_USING_LV_MODULE_BMS))) */
 
 #ifdef CP_CONFIG_USING_DUPU
 #define APP_DUPU_THREAD                 2       /* 监控 杜普 线程 */
@@ -45,7 +45,13 @@
 #define APP_DUPU_THREAD                 0       /* 监控 杜普 线程 */
 #endif /* CP_CONFIG_USING_DUPU */
 
-#define APP_APPLICATION_THREAD_MAX      (20 + APP_CAN_THREAD + APP_DUPU_THREAD)      /** 应用线程数量 */
+#ifdef CP_USING_LV_MODULE_BMS
+#define APP_BMS_LV_THREAD               1       /* 监控 带BMS的低压模块 线程 */
+#else
+#define APP_BMS_LV_THREAD               0       /* 监控 带BMS的低压模块 线程 */
+#endif /* CP_USING_LV_MODULE_BMS */
+
+#define APP_APPLICATION_THREAD_MAX      (20 + APP_CAN_THREAD + APP_DUPU_THREAD + APP_BMS_LV_THREAD)      /** 应用线程数量 */
 
 #pragma pack(1)
 
@@ -96,13 +102,18 @@ APP_DEF_SRAM1 static struct rt_thread terminal_req_thread;
 APP_DEF_SRAM0 static rt_uint8_t terminal_req_thread_stack[1024];
 #endif /* CP_CONFIG_USING_DUPU */
 
-#ifdef USING_TCU_CAN
+#if (defined(USING_TCU_CAN) && (!defined(CP_USING_LV_MODULE_BMS)))
 APP_DEF_SRAM1 static struct rt_thread tcan_send_thread;
 APP_DEF_SRAM0 static rt_uint8_t tcan_send_thread_stack[1024];
 
 APP_DEF_SRAM1 static struct rt_thread tcan_recv_thread;
 APP_DEF_SRAM0 static rt_uint8_t tcan_recv_thread_stack[1024];
-#endif /* USING_TCU_CAN */
+#endif /* (defined(USING_TCU_CAN) && (!defined(CP_USING_LV_MODULE_BMS))) */
+
+#ifdef CP_USING_LV_MODULE_BMS
+APP_DEF_SRAM1 static struct rt_thread bms_lv_send_thread;
+APP_DEF_SRAM0 static rt_uint8_t bms_lv_send_thread_stack[1024];
+#endif /* CP_USING_LV_MODULE_BMS */
 
 APP_DEF_SRAM2 static uint8_t s_system_reset_set = 0x00;
 
@@ -518,7 +529,7 @@ void app_init(void)
         app_thread_monitor_add(&osupport_thread, name, strlen((char*)name), APP_THREAD_MONITOR_OPT_NAME);
     }
 
-#ifdef USING_TCU_CAN
+#if (defined(USING_TCU_CAN) && (!defined(CP_USING_LV_MODULE_BMS)))
     result = rt_thread_init(&tcan_send_thread, "tcans",
             app_tcan_send_thread_entry, RT_NULL, &tcan_send_thread_stack, sizeof(tcan_send_thread_stack), 16, 10);
     if (RT_EOK == result) {
@@ -542,7 +553,21 @@ void app_init(void)
         memcpy(name, "tcanr", strlen("tcanr"));
         app_thread_monitor_add(&tcan_recv_thread, name, strlen((char*)name), APP_THREAD_MONITOR_OPT_NAME);
     }
-#endif /* USING_TCU_CAN */
+#endif /* (defined(USING_TCU_CAN) && (!defined(CP_USING_LV_MODULE_BMS))) */
+
+#ifdef CP_USING_LV_MODULE_BMS
+    result = rt_thread_init(&bms_lv_send_thread, "bl_can",
+            app_bms_lv_can_thread_entry, RT_NULL, &bms_lv_send_thread_stack, sizeof(bms_lv_send_thread_stack), 16, 10);
+    if (RT_EOK == result) {
+        rt_thread_startup(&bms_lv_send_thread);
+
+        app_thread_monitor_add(&bms_lv_send_thread, &entry, sizeof(entry), APP_THREAD_MONITOR_OPT_ENTRY);
+
+        memset(name, 0x00, sizeof(name));
+        memcpy(name, "bl_can", strlen("bl_can"));
+        app_thread_monitor_add(&bms_lv_send_thread, name, strlen((char*)name), APP_THREAD_MONITOR_OPT_NAME);
+    }
+#endif /* CP_USING_LV_MODULE_BMS */
 
     app_card_init();
 }

@@ -214,34 +214,6 @@ static uint8_t ofsm_is_belong_one_car(uint8_t gunno)
 #endif
 
 /*************************************
- * 函数名       ofsm_bsm_a_can_cb
- * 功能           BMS A can 接收回调
- * 参数           msg   报文数据
- * 返回
- ************************************/
-static void ofsm_bsm_a_can_cb(can_msg_buf *msg)
-{
-    if(msg->CANID == APP_PARACHARGE_IDENTIFY_CAN_ID){
-        s_ofsm_info[APP_SYSTEM_GUNNOA].base.flag.recved_paracharge_identify_id = APP_THA_ENUM_TRUE;
-    }
-}
-
-/*************************************
- * 函数名       ofsm_bsm_b_can_cb
- * 功能           BMS B can 接收回调
- * 参数           msg   报文数据
- * 返回
- ************************************/
-static void ofsm_bsm_b_can_cb(can_msg_buf *msg)
-{
-#ifdef APP_USING_DOUBLEGUN
-    if(msg->CANID == APP_PARACHARGE_IDENTIFY_CAN_ID){
-        s_ofsm_info[APP_SYSTEM_GUNNOB].base.flag.recved_paracharge_identify_id = APP_THA_ENUM_TRUE;
-    }
-#endif /* APP_USING_DOUBLEGUN */
-}
-
-/*************************************
  * 函数名       ofsm_get_current_period
  * 功能           获取当前时段号
  * 参数
@@ -1693,9 +1665,9 @@ static void ofsm_start_info_padding_public(uint8_t gunno)
     }
 #endif /* (defined (APP_INCLUDE_SGCC_PROTOCOL)) */
 
-#if (defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING))
+#if ((defined(APP_USING_NO_BMS) || defined(APP_USING_LV_MODULE_BMS)) && defined(APP_USING_OFFLINE_BILLING))
     s_ofsm_info[gunno].base.parameter_steady_tick = rt_tick_get();
-#endif /* defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING) */
+#endif /* ((defined(APP_USING_NO_BMS) || defined(APP_USING_LV_MODULE_BMS)) && defined(APP_USING_OFFLINE_BILLING)) */
 
     s_thaisen_transaction[gunno].start_period_number = s_ofsm_info[gunno].base.start_period;
     s_thaisen_transaction[gunno].period_count = s_ofsm_info[gunno].base.period_num;
@@ -1807,9 +1779,9 @@ static void ofsm_start_info_padding_ob_reservation_public(uint8_t gunno)
     s_thaisen_transaction[gunno].ammeter_start = s_ofsm_info[gunno].base.start_elect;
     s_thaisen_transaction[gunno].ammeter_stop = s_thaisen_transaction[gunno].ammeter_start;
 
-#if (defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING))
+#if ((defined(APP_USING_NO_BMS) || defined(APP_USING_LV_MODULE_BMS)) && defined(APP_USING_OFFLINE_BILLING))
     s_ofsm_info[gunno].base.parameter_steady_tick = rt_tick_get();
-#endif /* defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING) */
+#endif /* ((defined(APP_USING_NO_BMS) || defined(APP_USING_LV_MODULE_BMS)) && defined(APP_USING_OFFLINE_BILLING)) */
 
     s_thaisen_transaction[gunno].start_period_number = s_ofsm_info[gunno].base.start_period;
     s_thaisen_transaction[gunno].period_count = s_ofsm_info[gunno].base.period_num;
@@ -1933,11 +1905,11 @@ static uint8_t ofsm_swip_card_judge(uint8_t gunno)
                     s_ofsm_info[gunno].base.account_ballance_after = app_card_query_ballance(gunno);
 
                     s_ofsm_info[gunno].base.charge_strategy = APP_CHARGE_STRATEGY_MONEY;
-#if (defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING))
+#if ((defined(APP_USING_NO_BMS) || defined(APP_USING_LV_MODULE_BMS)) && defined(APP_USING_OFFLINE_BILLING))
                     s_ofsm_info[gunno].base.charge_strategy_para = s_ofsm_info[gunno].base.account_ballance_before *10;
 #else
                     s_ofsm_info[gunno].base.charge_strategy_para = s_ofsm_info[gunno].base.account_ballance_before *100;
-#endif /* defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING) */
+#endif /* ((defined(APP_USING_NO_BMS) || defined(APP_USING_LV_MODULE_BMS)) && defined(APP_USING_OFFLINE_BILLING)) */
                 }
             }else{
                 LOG_D("gunno(%d) swip card start after reservation in offline billing mode", gunno);
@@ -3156,9 +3128,9 @@ static void ofsm_starting_fun(uint8_t gunno)
         return;
     }
 
-#if (defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING))
+#if ((defined(APP_USING_NO_BMS) || defined(APP_USING_LV_MODULE_BMS)) && defined(APP_USING_OFFLINE_BILLING))
     bool is_stop_charge_authorization = false;
-#endif /* defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING) */
+#endif /* ((defined(APP_USING_NO_BMS) || defined(APP_USING_LV_MODULE_BMS)) && defined(APP_USING_OFFLINE_BILLING)) */
     uint8_t vin_authentication_complete = APP_THA_ENUM_FALSE, using_vin_authentication = APP_THA_ENUM_FALSE;
     enum system_stop_way stop_way = APP_SYSTEM_STOP_WAY_SIZE;
     enum charge_state_t charge_state = mw_get_charge_state(gunno);
@@ -3476,9 +3448,9 @@ static void ofsm_starting_fun(uint8_t gunno)
             s_ofsm_info[gunno].base.system_fault = APP_SYS_FAULT_NO_ERROR;
             s_ofsm_info[gunno].base.charge_fault = APP_CHARGE_FAULT_NO_ERROR;
             s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
-#if (defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING))
+#if ((defined(APP_USING_NO_BMS) || defined(APP_USING_LV_MODULE_BMS)) && defined(APP_USING_OFFLINE_BILLING))
             s_ofsm_info[gunno].base.parameter_steady_tick = rt_tick_get();
-#endif /* (defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING)) */
+#endif /* ((defined(APP_USING_NO_BMS) || defined(APP_USING_LV_MODULE_BMS)) && defined(APP_USING_OFFLINE_BILLING)) */
 
 #ifdef APP_INCLUDE_YKC17_PROTOCOL
             thaisen_ammeter_encry_scmd(gunno, THAISEN_AMMETER_ENCRY_TYPE_STOP);
@@ -3563,44 +3535,44 @@ static void ofsm_starting_fun(uint8_t gunno)
                 s_ofsm_info[gunno].base.flag.is_starting = APP_THA_ENUM_TRUE;
                 /* 开始充电 */
                 if((s_ofsm_info[gunno].base.charge_way != APP_CHARGE_WAY_PARACHARGE_LOCAL) || (s_ofsm_info[gunno].base.charge_way != APP_CHARGE_WAY_PARACHARGE_CLOUD)){
-#if (defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING))
+#if ((defined(APP_USING_NO_BMS) || defined(APP_USING_LV_MODULE_BMS)) && defined(APP_USING_OFFLINE_BILLING))
                     s_ofsm_info[gunno].base.parameter_steady_tick = rt_tick_get();
 #else
                     mw_charge_start_cmd(gunno);
-#endif /* defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING) */
+#endif /* ((defined(APP_USING_NO_BMS) || defined(APP_USING_LV_MODULE_BMS)) && defined(APP_USING_OFFLINE_BILLING)) */
                 }else{
                     if(s_ofsm_info[gunno].base.main_gunno == gunno){
-#if (defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING))
+#if ((defined(APP_USING_NO_BMS) || defined(APP_USING_LV_MODULE_BMS)) && defined(APP_USING_OFFLINE_BILLING))
                         s_ofsm_info[gunno].base.parameter_steady_tick = rt_tick_get();
 #else
                         mw_charge_start_cmd(gunno);
-#endif /* defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING) */
+#endif /* ((defined(APP_USING_NO_BMS) || defined(APP_USING_LV_MODULE_BMS)) && defined(APP_USING_OFFLINE_BILLING)) */
                     }
                 }
             }
         }
     }
-#if (defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING))
+#if ((defined(APP_USING_NO_BMS) || defined(APP_USING_LV_MODULE_BMS)) && defined(APP_USING_OFFLINE_BILLING))
     else{
         s_ofsm_info[gunno].base.parameter_steady_tick = rt_tick_get();
     }
-#endif /* defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING) */
+#endif /* ((defined(APP_USING_NO_BMS) || defined(APP_USING_LV_MODULE_BMS)) && defined(APP_USING_OFFLINE_BILLING)) */
 
     /** 无BMS版本 */
-#if (defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING))
+#if ((defined(APP_USING_NO_BMS) || defined(APP_USING_LV_MODULE_BMS)) && defined(APP_USING_OFFLINE_BILLING))
     /** 等待采样稳定 */
-    if((rt_tick_get() - s_ofsm_info[gunno].base.parameter_steady_tick) > APP_NO_BMS_PRECHARGE_SAMPLING_STEADY_TIME){
+    if((rt_tick_get() - s_ofsm_info[gunno].base.parameter_steady_tick) > APP_FORCE_BOOT_PRECHARGE_SAMPLING_STEADY_TIME){
         int32_t sampling_voltage = mw_get_sampling_voltage(gunno), module_voltage = thaisen_get_module_voltage(gunno);
         /** 启动模块 */
-        thaisen_open_charge_module(gunno, sampling_voltage, APP_NO_BMS_PRECHARGE_CURRENT);
+        thaisen_open_charge_module(gunno, sampling_voltage, APP_FORCE_BOOT_PRECHARGE_CURRENT);
         /** 电压判定符合 */
-        if(abs((sampling_voltage - module_voltage) < APP_NO_BMS_PRECHARGE_VOLTAGE_THRESHOLD) && (sampling_voltage >APP_NO_BMS_PRECHARGE_SAMPLING_VOLTAGE_MIN)){
+        if(abs((sampling_voltage - module_voltage) < APP_FORCE_BOOT_PRECHARGE_VOLTAGE_THRESHOLD) && (sampling_voltage >APP_FORCE_BOOT_PRECHARGE_SAMPLING_VOLTAGE_MIN)){
             mw_enable_dcrelay(gunno);    /** 闭合继电器 */
             charge_state = APP_CHARGE_STATE_CHARGING;
         }
     }
     /** 启动超时 */
-    if((rt_tick_get() - s_ofsm_info[gunno].base.parameter_steady_tick) > APP_NO_BMS_BOOT_TIMEOUT){
+    if((rt_tick_get() - s_ofsm_info[gunno].base.parameter_steady_tick) > APP_FORCE_BOOT_BOOT_TIMEOUT){
         if(charge_state != APP_CHARGE_STATE_CHARGING){
             thaisen_close_charge_module(gunno);
             s_thaisen_transaction[gunno].stop_reason = APP_SYSTEM_STOP_WAY_READY_VOLT;
@@ -3703,7 +3675,7 @@ static void ofsm_starting_fun(uint8_t gunno)
         app_nsal_event_occurded(gunno);
         return;
     }
-#endif /* defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING) */
+#endif /* ((defined(APP_USING_NO_BMS) || defined(APP_USING_LV_MODULE_BMS)) && defined(APP_USING_OFFLINE_BILLING)) */
 
     /******************************[屏幕停止]******************************/
     /******************************[屏幕停止]******************************/
@@ -3714,9 +3686,9 @@ static void ofsm_starting_fun(uint8_t gunno)
         s_ofsm_info[gunno].base.system_fault = system_fault;
         s_ofsm_info[gunno].base.charge_fault = charge_fault;
         s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
-#if (defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING))
+#if ((defined(APP_USING_NO_BMS) || defined(APP_USING_LV_MODULE_BMS)) && defined(APP_USING_OFFLINE_BILLING))
         s_ofsm_info[gunno].base.parameter_steady_tick = rt_tick_get();
-#endif /* (defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING)) */
+#endif /* ((defined(APP_USING_NO_BMS) || defined(APP_USING_LV_MODULE_BMS)) && defined(APP_USING_OFFLINE_BILLING)) */
 
 #ifdef APP_INCLUDE_YKC17_PROTOCOL
         thaisen_ammeter_encry_scmd(gunno, THAISEN_AMMETER_ENCRY_TYPE_STOP);
@@ -3815,9 +3787,9 @@ static void ofsm_starting_fun(uint8_t gunno)
                 s_ofsm_info[gunno].base.system_fault = system_fault;
                 s_ofsm_info[gunno].base.charge_fault = charge_fault;
                 s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
-#if (defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING))
+#if ((defined(APP_USING_NO_BMS) || defined(APP_USING_LV_MODULE_BMS)) && defined(APP_USING_OFFLINE_BILLING))
                 s_ofsm_info[gunno].base.parameter_steady_tick = rt_tick_get();
-#endif /* (defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING)) */
+#endif /* ((defined(APP_USING_NO_BMS) || defined(APP_USING_LV_MODULE_BMS)) && defined(APP_USING_OFFLINE_BILLING)) */
 
 #ifdef APP_INCLUDE_YKC17_PROTOCOL
                 thaisen_ammeter_encry_scmd(gunno, THAISEN_AMMETER_ENCRY_TYPE_STOP);
@@ -3939,9 +3911,9 @@ static void ofsm_starting_fun(uint8_t gunno)
                 s_ofsm_info[gunno].base.system_fault = system_fault;
                 s_ofsm_info[gunno].base.charge_fault = charge_fault;
                 s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
-#if (defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING))
+#if ((defined(APP_USING_NO_BMS) || defined(APP_USING_LV_MODULE_BMS)) && defined(APP_USING_OFFLINE_BILLING))
                 s_ofsm_info[gunno].base.parameter_steady_tick = rt_tick_get();
-#endif /* (defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING)) */
+#endif /* ((defined(APP_USING_NO_BMS) || defined(APP_USING_LV_MODULE_BMS)) && defined(APP_USING_OFFLINE_BILLING)) */
 
 #ifdef APP_INCLUDE_YKC17_PROTOCOL
                 thaisen_ammeter_encry_scmd(gunno, THAISEN_AMMETER_ENCRY_TYPE_STOP);
@@ -4245,9 +4217,9 @@ static void ofsm_starting_fun(uint8_t gunno)
                 s_ofsm_info[gunno].base.system_fault = system_fault;
                 s_ofsm_info[gunno].base.charge_fault = charge_fault;
                 s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
-#if (defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING))
+#if ((defined(APP_USING_NO_BMS) || defined(APP_USING_LV_MODULE_BMS)) && defined(APP_USING_OFFLINE_BILLING))
                 s_ofsm_info[gunno].base.parameter_steady_tick = rt_tick_get();
-#endif /* (defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING)) */
+#endif /* ((defined(APP_USING_NO_BMS) || defined(APP_USING_LV_MODULE_BMS)) && defined(APP_USING_OFFLINE_BILLING)) */
 
 #ifdef APP_INCLUDE_YKC17_PROTOCOL
                 thaisen_ammeter_encry_scmd(gunno, THAISEN_AMMETER_ENCRY_TYPE_STOP);
@@ -4328,11 +4300,12 @@ static void ofsm_starting_fun(uint8_t gunno)
             }
 
             app_nsal_padding_charge_data(gunno);
-#if (defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING))
+#if ((defined(APP_USING_NO_BMS) || defined(APP_USING_LV_MODULE_BMS)) && defined(APP_USING_OFFLINE_BILLING))
             s_ofsm_info[gunno].base.parameter_steady_tick = rt_tick_get();
+#endif /* ((defined(APP_USING_NO_BMS) || defined(APP_USING_LV_MODULE_BMS)) && defined(APP_USING_OFFLINE_BILLING)) */
+
+#if (defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING))
             s_ofsm_info[gunno].base.bat_charge_stage = APP_BATTERY_CHARGE_STAGE_1;
-            s_ofsm_info[gunno].base.setup_current = APP_NO_BMS_RISE_CURRENT_STEP;
-            s_ofsm_info[gunno].base.current_rise_tick = rt_tick_get();
 #endif /* defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING) */
 
             s_ofsm_info[gunno].base.flag.start_result = APP_THA_ENUM_TRUE;
@@ -4404,9 +4377,9 @@ static void ofsm_starting_fun(uint8_t gunno)
             s_ofsm_info[gunno].base.system_fault = system_fault;
             s_ofsm_info[gunno].base.charge_fault = charge_fault;
             s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
-#if (defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING))
+#if ((defined(APP_USING_NO_BMS) || defined(APP_USING_LV_MODULE_BMS)) && defined(APP_USING_OFFLINE_BILLING))
             s_ofsm_info[gunno].base.parameter_steady_tick = rt_tick_get();
-#endif /* (defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING)) */
+#endif /* ((defined(APP_USING_NO_BMS) || defined(APP_USING_LV_MODULE_BMS)) && defined(APP_USING_OFFLINE_BILLING)) */
 
 #ifdef APP_INCLUDE_YKC17_PROTOCOL
             thaisen_ammeter_encry_scmd(gunno, THAISEN_AMMETER_ENCRY_TYPE_STOP);
@@ -4514,9 +4487,9 @@ static void ofsm_starting_fun(uint8_t gunno)
             s_ofsm_info[gunno].state = APP_OFSM_STATE_STOPING;
 
             s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
-#if (defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING))
+#if ((defined(APP_USING_NO_BMS) || defined(APP_USING_LV_MODULE_BMS)) && defined(APP_USING_OFFLINE_BILLING))
             s_ofsm_info[gunno].base.parameter_steady_tick = rt_tick_get();
-#endif /* (defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING)) */
+#endif /* ((defined(APP_USING_NO_BMS) || defined(APP_USING_LV_MODULE_BMS)) && defined(APP_USING_OFFLINE_BILLING)) */
 
 #ifdef APP_INCLUDE_YKC17_PROTOCOL
             thaisen_ammeter_encry_scmd(gunno, THAISEN_AMMETER_ENCRY_TYPE_STOP);
@@ -4789,21 +4762,16 @@ static void ofsm_charging_fun(uint8_t gunno)
 #endif /* APP_USING_CHARGE_CURR_DETECT_STRATEGY */
 	
     /** 无BMS版本 */
-#if (defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING))
+#if ((defined(APP_USING_NO_BMS) || defined(APP_USING_LV_MODULE_BMS)) && defined(APP_USING_OFFLINE_BILLING))
+    /****************************************** 这是无BMS版本 ******************************************/
+#ifdef  APP_USING_NO_BMS
     switch(s_ofsm_info[gunno].base.bat_charge_stage){
     case APP_BATTERY_CHARGE_STAGE_1:
     {
         int32_t sampling_voltage = thaisen_get_module_voltage(gunno);
         if(s_ofsm_info[gunno].base.battery_type == APP_BATTERY_TYPE_64V125AH){
-            if((rt_tick_get() - s_ofsm_info[gunno].base.current_rise_tick) > APP_NO_BMS_RISE_CURRENT_PERIOD){
-                s_ofsm_info[gunno].base.current_rise_tick = rt_tick_get();
-                s_ofsm_info[gunno].base.setup_current += APP_NO_BMS_RISE_CURRENT_STEP;
-            }
-            if(s_ofsm_info[gunno].base.setup_current > APP_NO_BMS_STAGE_1_REQUEST_CURRENT_64V125AH){
-                s_ofsm_info[gunno].base.setup_current = APP_NO_BMS_STAGE_1_REQUEST_CURRENT_64V125AH;
-            }
             /** 启动模块 */
-            thaisen_open_charge_module(gunno, APP_NO_BMS_STAGE_1_REQUEST_VOLTAGE_64V125AH, s_ofsm_info[gunno].base.setup_current);
+            thaisen_open_charge_module(gunno, APP_NO_BMS_STAGE_1_REQUEST_VOLTAGE_64V125AH, APP_NO_BMS_STAGE_1_REQUEST_CURRENT_64V125AH);
             bms_info->BCL.BMSneedVolt = APP_NO_BMS_STAGE_1_REQUEST_VOLTAGE_64V125AH;
             bms_info->BCL.BMSneedCurlt = (APP_NO_BMS_STAGE_1_REQUEST_CURRENT_64V125AH /10);
             if(sampling_voltage < APP_NO_BMS_STAGE_1_TO_STAGE_2_VOLTAGE_64V125AH){
@@ -4814,15 +4782,8 @@ static void ofsm_charging_fun(uint8_t gunno)
                 s_ofsm_info[gunno].base.bat_charge_stage = APP_BATTERY_CHARGE_STAGE_2;
             }
         }else{
-            if((rt_tick_get() - s_ofsm_info[gunno].base.current_rise_tick) > APP_NO_BMS_RISE_CURRENT_PERIOD){
-                s_ofsm_info[gunno].base.current_rise_tick = rt_tick_get();
-                s_ofsm_info[gunno].base.setup_current += APP_NO_BMS_RISE_CURRENT_STEP;
-            }
-            if(s_ofsm_info[gunno].base.setup_current > APP_NO_BMS_STAGE_1_REQUEST_CURRENT_51_2V125AH){
-                s_ofsm_info[gunno].base.setup_current = APP_NO_BMS_STAGE_1_REQUEST_CURRENT_51_2V125AH;
-            }
             /** 启动模块 */
-            thaisen_open_charge_module(gunno, APP_NO_BMS_STAGE_1_REQUEST_VOLTAGE_51_2V125AH, s_ofsm_info[gunno].base.setup_current);
+            thaisen_open_charge_module(gunno, APP_NO_BMS_STAGE_1_REQUEST_VOLTAGE_51_2V125AH, APP_NO_BMS_STAGE_1_REQUEST_CURRENT_51_2V125AH);
             bms_info->BCL.BMSneedVolt = APP_NO_BMS_STAGE_1_REQUEST_VOLTAGE_51_2V125AH;
             bms_info->BCL.BMSneedCurlt = (APP_NO_BMS_STAGE_1_REQUEST_CURRENT_51_2V125AH /10);
             if(sampling_voltage < APP_NO_BMS_STAGE_1_TO_STAGE_2_VOLTAGE_51_2V125AH){
@@ -4839,18 +4800,16 @@ static void ofsm_charging_fun(uint8_t gunno)
     {
         int32_t sampling_current = (mw_get_meter_ia(gunno) /1000);
         if(s_ofsm_info[gunno].base.battery_type == APP_BATTERY_TYPE_64V125AH){
-            s_ofsm_info[gunno].base.setup_current = APP_NO_BMS_STAGE_2_REQUEST_CURRENT_64V125AH;    /** 第二阶段相较于第一阶段电流是下降的，无需再阶梯爬升 */
             /** 启动模块 */
-            thaisen_open_charge_module(gunno, APP_NO_BMS_STAGE_2_REQUEST_VOLTAGE_64V125AH, s_ofsm_info[gunno].base.setup_current);
+            thaisen_open_charge_module(gunno, APP_NO_BMS_STAGE_2_REQUEST_VOLTAGE_64V125AH, APP_NO_BMS_STAGE_2_REQUEST_CURRENT_64V125AH);
             bms_info->BCL.BMSneedVolt = APP_NO_BMS_STAGE_2_REQUEST_VOLTAGE_64V125AH;
             bms_info->BCL.BMSneedCurlt = (APP_NO_BMS_STAGE_2_REQUEST_CURRENT_64V125AH /10);
             if(sampling_current > APP_NO_BMS_FULL_CURRENT_64V125AH){
                 s_ofsm_info[gunno].base.parameter_steady_tick = rt_tick_get();
             }
         }else{
-            s_ofsm_info[gunno].base.setup_current = APP_NO_BMS_STAGE_2_REQUEST_CURRENT_51_2V125AH;  /** 第二阶段相较于第一阶段电流是下降的，无需再阶梯爬升 */
             /** 启动模块 */
-            thaisen_open_charge_module(gunno, APP_NO_BMS_STAGE_2_REQUEST_VOLTAGE_51_2V125AH, s_ofsm_info[gunno].base.setup_current);
+            thaisen_open_charge_module(gunno, APP_NO_BMS_STAGE_2_REQUEST_VOLTAGE_51_2V125AH, APP_NO_BMS_STAGE_2_REQUEST_CURRENT_51_2V125AH);
             bms_info->BCL.BMSneedVolt = APP_NO_BMS_STAGE_2_REQUEST_VOLTAGE_51_2V125AH;
             bms_info->BCL.BMSneedCurlt = (APP_NO_BMS_STAGE_2_REQUEST_CURRENT_51_2V125AH /10);
             if(sampling_current > APP_NO_BMS_FULL_CURRENT_51_2V125AH){
@@ -4873,6 +4832,16 @@ static void ofsm_charging_fun(uint8_t gunno)
         s_ofsm_info[gunno].base.bat_charge_stage = APP_BATTERY_CHARGE_STAGE_1;
         break;
     }
+    /****************************************** 这是带BMS版本 ******************************************/
+#elif defined(APP_USING_LV_MODULE_BMS)
+    {
+        uint16_t target_current = app_bms_lv_get_target_curr(gunno), target_voltage = app_bms_lv_get_target_volt(gunno);
+        /** 启动模块 */
+        thaisen_open_charge_module(gunno, target_voltage, (target_current /10));
+        bms_info->BCL.BMSneedVolt = (target_voltage /10);
+        bms_info->BCL.BMSneedCurlt = (target_current /10);
+    }
+#endif /* APP_USING_NO_BMS */
     /** 故障检测 */
     if((system_fault != APP_SYS_FAULT_NO_ERROR) && (system_fault != APP_SYS_FAULT_CARD_READER) && (system_fault != APP_SYS_FAULT_DOOR)){
         thaisen_close_charge_module(gunno);
@@ -4885,7 +4854,7 @@ static void ofsm_charging_fun(uint8_t gunno)
     }
 
     charge_state = APP_CHARGE_STATE_CHARGING;
-#endif /* defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING) */
+#endif /* ((defined(APP_USING_NO_BMS) || defined(APP_USING_LV_MODULE_BMS)) && defined(APP_USING_OFFLINE_BILLING)) */
 
 
     /************************************************************************************************************/
@@ -5186,7 +5155,7 @@ static void ofsm_charging_fun(uint8_t gunno)
         }
     }
 
-#if (defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING))
+#if ((defined(APP_USING_NO_BMS) || defined(APP_USING_LV_MODULE_BMS)) && defined(APP_USING_OFFLINE_BILLING))
     if(s_ofsm_info[gunno].base.account_ballance_before > (s_ofsm_info[gunno].base.elect_a /10)){
         s_ofsm_info[gunno].base.account_ballance_after = s_ofsm_info[gunno].base.account_ballance_before - (s_ofsm_info[gunno].base.elect_a /10);
     }
@@ -5194,7 +5163,7 @@ static void ofsm_charging_fun(uint8_t gunno)
     if(s_ofsm_info[gunno].base.account_ballance_before > (s_ofsm_info[gunno].base.fees_total /100)){
         s_ofsm_info[gunno].base.account_ballance_after = s_ofsm_info[gunno].base.account_ballance_before - (s_ofsm_info[gunno].base.fees_total /100);
     }
-#endif /* defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING) */
+#endif /* ((defined(APP_USING_NO_BMS) || defined(APP_USING_LV_MODULE_BMS)) && defined(APP_USING_OFFLINE_BILLING)) */
     s_ofsm_info[gunno].base.elect_a = app_billingrule_get_elcet_total(gunno);
     if(s_ofsm_info[gunno].base.elect_a > APP_CHARGE_ELECT_MAX){
         s_ofsm_info[gunno].base.elect_a = APP_CHARGE_ELECT_MAX;
@@ -5731,9 +5700,9 @@ static void ofsm_charging_fun(uint8_t gunno)
             s_ofsm_info[gunno].base.charge_fault = charge_fault;
             s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_FALSE;
             s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
-#if (defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING))
+#if ((defined(APP_USING_NO_BMS) || defined(APP_USING_LV_MODULE_BMS)) && defined(APP_USING_OFFLINE_BILLING))
             s_ofsm_info[gunno].base.parameter_steady_tick = rt_tick_get();
-#endif /* (defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING)) */
+#endif /* ((defined(APP_USING_NO_BMS) || defined(APP_USING_LV_MODULE_BMS)) && defined(APP_USING_OFFLINE_BILLING)) */
 
 #ifdef APP_INCLUDE_YKC17_PROTOCOL
             thaisen_ammeter_encry_scmd(gunno, THAISEN_AMMETER_ENCRY_TYPE_STOP);
@@ -5841,9 +5810,9 @@ static void ofsm_charging_fun(uint8_t gunno)
             s_ofsm_info[gunno].base.system_fault = system_fault;
             s_ofsm_info[gunno].base.charge_fault = charge_fault;
             s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
-#if (defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING))
+#if ((defined(APP_USING_NO_BMS) || defined(APP_USING_LV_MODULE_BMS)) && defined(APP_USING_OFFLINE_BILLING))
             s_ofsm_info[gunno].base.parameter_steady_tick = rt_tick_get();
-#endif /* (defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING)) */
+#endif /* ((defined(APP_USING_NO_BMS) || defined(APP_USING_LV_MODULE_BMS)) && defined(APP_USING_OFFLINE_BILLING)) */
 
 #ifdef APP_INCLUDE_YKC17_PROTOCOL
             thaisen_ammeter_encry_scmd(gunno, THAISEN_AMMETER_ENCRY_TYPE_STOP);
@@ -6197,27 +6166,27 @@ static void ofsm_charging_fun(uint8_t gunno)
             }
         }
         if(_charge_strategy == APP_CHARGE_STRATEGY_MONEY){
-#if (defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING))
+#if ((defined(APP_USING_NO_BMS) || defined(APP_USING_LV_MODULE_BMS)) && defined(APP_USING_OFFLINE_BILLING))
             uint32_t _money = s_ofsm_info[gunno].base.elect_a;
 #else
             uint32_t _money = s_ofsm_info[gunno].base.fees_total;
-#endif /* defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING) */
+#endif /* ((defined(APP_USING_NO_BMS) || defined(APP_USING_LV_MODULE_BMS)) && defined(APP_USING_OFFLINE_BILLING)) */
             if(s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
                 uint8_t another_gun = APP_SYSTEM_GUNNOA;
                 if(gunno == APP_SYSTEM_GUNNOA){
                     another_gun = APP_SYSTEM_GUNNOA + 0x01;
                 }
-#if (defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING))
+#if ((defined(APP_USING_NO_BMS) || defined(APP_USING_LV_MODULE_BMS)) && defined(APP_USING_OFFLINE_BILLING))
                 _money += s_ofsm_info[another_gun].base.elect_a;
 #else
                 _money += s_ofsm_info[another_gun].base.fees_total;
-#endif /* defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING) */
+#endif /* ((defined(APP_USING_NO_BMS) || defined(APP_USING_LV_MODULE_BMS)) && defined(APP_USING_OFFLINE_BILLING)) */
             }
-#if (defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING))
-            if((_money + 1000) > strategy_para){
+#if ((defined(APP_USING_NO_BMS) || defined(APP_USING_LV_MODULE_BMS)) && defined(APP_USING_OFFLINE_BILLING))
+            if((_money + 1000) > _strategy_para){
 #else
             if((_money + 10000) > _strategy_para){
-#endif /* defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING) */
+#endif /* ((defined(APP_USING_NO_BMS) || defined(APP_USING_LV_MODULE_BMS)) && defined(APP_USING_OFFLINE_BILLING)) */
                 if(((s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD) && (s_ofsm_info[gunno].base.main_gunno == gunno)) ||
                         (s_ofsm_info[gunno].base.charge_way != APP_CHARGE_WAY_PARACHARGE_CLOUD)){
                     s_thaisen_transaction[gunno].stop_reason = APP_SYSTEM_STOP_WAY_NO_BALLANCE;
@@ -6442,9 +6411,9 @@ static void ofsm_charging_fun(uint8_t gunno)
             s_thaisen_transaction[gunno].stop_reason = s_thaisen_transaction[deputy_gunno].stop_reason;
             s_ofsm_info[gunno].base.reason_code = s_ofsm_info[deputy_gunno].base.reason_code;
             s_ofsm_info[gunno].base.flag.is_fault_stop = s_ofsm_info[deputy_gunno].base.flag.is_fault_stop;
-#if (defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING))
+#if ((defined(APP_USING_NO_BMS) || defined(APP_USING_LV_MODULE_BMS)) && defined(APP_USING_OFFLINE_BILLING))
             s_ofsm_info[gunno].base.parameter_steady_tick = rt_tick_get();
-#endif /* (defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING)) */
+#endif /* ((defined(APP_USING_NO_BMS) || defined(APP_USING_LV_MODULE_BMS)) && defined(APP_USING_OFFLINE_BILLING)) */
 
             /* 对时后时间要修改 */
             if(mw_get_time_sync_flag(gunno)){
@@ -6487,10 +6456,10 @@ static void ofsm_charging_fun(uint8_t gunno)
         thaisen_ammeter_encry_scmd(gunno, THAISEN_AMMETER_ENCRY_TYPE_STOP);
 #endif /* APP_INCLUDE_YKC17_PROTOCOL */
 
-#if (defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING))
+#if ((defined(APP_USING_NO_BMS) || defined(APP_USING_LV_MODULE_BMS)) && defined(APP_USING_OFFLINE_BILLING))
 #else
         mw_charge_stop_cmd(gunno);
-#endif /* defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING) */
+#endif /* ((defined(APP_USING_NO_BMS) || defined(APP_USING_LV_MODULE_BMS)) && defined(APP_USING_OFFLINE_BILLING)) */
 
         s_thaisen_transaction[gunno].order_info.is_charging = APP_THA_ENUM_FALSE;
         s_thaisen_transaction[gunno].order_info.waiting_charge = APP_THA_ENUM_FALSE;
@@ -6498,9 +6467,9 @@ static void ofsm_charging_fun(uint8_t gunno)
         s_ofsm_info[gunno].base.system_fault = APP_SYS_FAULT_NO_ERROR;
         s_ofsm_info[gunno].base.charge_fault = APP_CHARGE_FAULT_NO_ERROR;
         s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
-#if (defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING))
+#if ((defined(APP_USING_NO_BMS) || defined(APP_USING_LV_MODULE_BMS)) && defined(APP_USING_OFFLINE_BILLING))
         s_ofsm_info[gunno].base.parameter_steady_tick = rt_tick_get();
-#endif /* (defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING)) */
+#endif /* ((defined(APP_USING_NO_BMS) || defined(APP_USING_LV_MODULE_BMS)) && defined(APP_USING_OFFLINE_BILLING)) */
 
         if((s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL) && (gunno == s_ofsm_info[gunno].base.main_gunno)){
             uint8_t deputy_gunno = APP_SYSTEM_GUNNOA;
@@ -6564,9 +6533,9 @@ static void ofsm_stoping_fun(uint8_t gunno)
     uint32_t meter_reading_tick = 0x00;
 #endif /* APP_INCLUDE_YKC17_PROTOCOL */
 
-#if (defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING))
+#if ((defined(APP_USING_NO_BMS) || defined(APP_USING_LV_MODULE_BMS)) && defined(APP_USING_OFFLINE_BILLING))
     bool module_is_close = APP_THA_ENUM_FALSE;   /* 模块已关闭 */
-#endif /* defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING) */
+#endif /* ((defined(APP_USING_NO_BMS) || defined(APP_USING_LV_MODULE_BMS)) && defined(APP_USING_OFFLINE_BILLING)) */
 
     s_ofsm_info[gunno].base.flag.is_ob_authenticated = APP_THA_ENUM_FALSE;
 
@@ -6579,14 +6548,14 @@ static void ofsm_stoping_fun(uint8_t gunno)
         LOG_I("gunno(%d) stop state (%dV | S%d)...", gunno, mw_get_cc1_value(s_ofsm_info[gunno].base.cc1_state), charge_state);
     }
 
-#if (defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING))
+#if ((defined(APP_USING_NO_BMS) || defined(APP_USING_LV_MODULE_BMS)) && defined(APP_USING_OFFLINE_BILLING))
     thaisen_close_charge_module(gunno);
-    if((thaisen_get_module_voltage(gunno) < APP_NO_BMS_MODULE_CLOSE_VOLTAGE_MAX) || ((rt_tick_get() - s_ofsm_info[gunno].base.parameter_steady_tick) > APP_NO_BMS_CLOSE_MODULE_WAIT_TIME_MAX)){
+    if((thaisen_get_module_voltage(gunno) < APP_FORCE_BOOT_MODULE_CLOSE_VOLTAGE_MAX) || ((rt_tick_get() - s_ofsm_info[gunno].base.parameter_steady_tick) > APP_FORCE_BOOT_CLOSE_MODULE_WAIT_TIME_MAX)){
         /* 断开继电器 */
         mw_disable_dcrelay(gunno);
         module_is_close = APP_THA_ENUM_TRUE;
     }
-#endif /* defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING) */
+#endif /* ((defined(APP_USING_NO_BMS) || defined(APP_USING_LV_MODULE_BMS)) && defined(APP_USING_OFFLINE_BILLING)) */
 
     if(s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL){
         if((gunno != s_ofsm_info[gunno].base.main_gunno) && (s_ofsm_info[gunno].state != s_ofsm_info[s_ofsm_info[gunno].base.main_gunno].state)){
@@ -6640,11 +6609,11 @@ static void ofsm_stoping_fun(uint8_t gunno)
         break;
     }
 
-#if (defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING))
+#if ((defined(APP_USING_NO_BMS) || defined(APP_USING_LV_MODULE_BMS)) && defined(APP_USING_OFFLINE_BILLING))
     if(is_stop_complete && module_is_close)
 #else
     if(is_stop_complete)
-#endif /* defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING) */
+#endif /* ((defined(APP_USING_NO_BMS) || defined(APP_USING_LV_MODULE_BMS)) && defined(APP_USING_OFFLINE_BILLING)) */
     {
         switch (charge_state){
         case APP_CHARGE_STATE_IDLE:
@@ -6829,7 +6798,7 @@ static void ofsm_stoping_fun(uint8_t gunno)
             s_ofsm_info[gunno].base.fees_total = 0x00;
             s_ofsm_info[gunno].base.service_fees_total = 0x00;
             s_ofsm_info[gunno].base.elect_fees_total = 0x00;
-#if (defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING))
+#if ((defined(APP_USING_NO_BMS) || defined(APP_USING_LV_MODULE_BMS)) && defined(APP_USING_OFFLINE_BILLING))
             if(s_ofsm_info[gunno].base.account_ballance_before > (s_ofsm_info[gunno].base.elect_a /10)){
                 s_ofsm_info[gunno].base.account_ballance_after = s_ofsm_info[gunno].base.account_ballance_before - s_ofsm_info[gunno].base.elect_a /10;
             }
@@ -6837,7 +6806,7 @@ static void ofsm_stoping_fun(uint8_t gunno)
             if(s_ofsm_info[gunno].base.account_ballance_before > (s_ofsm_info[gunno].base.fees_total /100)){
                 s_ofsm_info[gunno].base.account_ballance_after = s_ofsm_info[gunno].base.account_ballance_before - s_ofsm_info[gunno].base.fees_total /100;
             }
-#endif /* defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING) */
+#endif /* ((defined(APP_USING_NO_BMS) || defined(APP_USING_LV_MODULE_BMS)) && defined(APP_USING_OFFLINE_BILLING)) */
             s_thaisen_transaction[gunno].ammeter_stop = s_ofsm_info[gunno].base.current_elect;
             s_thaisen_transaction[gunno].total_elect = s_ofsm_info[gunno].base.elect_a;
             s_thaisen_transaction[gunno].total_loss_elect = 0x00;
@@ -6929,7 +6898,7 @@ static void ofsm_stoping_fun(uint8_t gunno)
                         s_ofsm_info[gunno].base.elect_fees_total = APP_SPEND_AMOUNT_MAX;
                     }
                 }
-#if (defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING))
+#if ((defined(APP_USING_NO_BMS) || defined(APP_USING_LV_MODULE_BMS)) && defined(APP_USING_OFFLINE_BILLING))
                 if(s_ofsm_info[gunno].base.account_ballance_before > (s_ofsm_info[gunno].base.fees_total /10)){
                     s_ofsm_info[gunno].base.account_ballance_after = s_ofsm_info[gunno].base.elect_a - (s_ofsm_info[gunno].base.elect_a /10);
                 }
@@ -6937,7 +6906,7 @@ static void ofsm_stoping_fun(uint8_t gunno)
                 if(s_ofsm_info[gunno].base.account_ballance_before > (s_ofsm_info[gunno].base.fees_total /100)){
                     s_ofsm_info[gunno].base.account_ballance_after = s_ofsm_info[gunno].base.account_ballance_before - (s_ofsm_info[gunno].base.fees_total /100);
                 }
-#endif /* defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING) */
+#endif /* ((defined(APP_USING_NO_BMS) || defined(APP_USING_LV_MODULE_BMS)) && defined(APP_USING_OFFLINE_BILLING)) */
                 s_thaisen_transaction[gunno].ammeter_start = s_ofsm_info[gunno].base.start_elect;
                 s_thaisen_transaction[gunno].ammeter_stop = s_ofsm_info[gunno].base.current_elect;
                 s_thaisen_transaction[gunno].total_elect = s_ofsm_info[gunno].base.elect_a;
@@ -7828,10 +7797,6 @@ void ofsm_thread_entry(void *parameter)
     thaisenChargeGunInfo info;
 
     extern int32_t app_thread_monitor_process(void *thread, void *para, uint32_t plen, uint32_t option);
-
-    /** CAN 报文接收回调注册 */
-    thaisen_user_can_cb_register(THAISEN_BMS_A_CAN_ENUM, ofsm_bsm_a_can_cb);
-    thaisen_user_can_cb_register(THAISEN_BMS_B_CAN_ENUM, ofsm_bsm_b_can_cb);
 
     memset(&info, 0x00, sizeof(thaisenChargeGunInfo));
     if(thread_gunno >= APP_SYSTEM_GUNNO_SIZE){
