@@ -16,51 +16,21 @@
 #include "mw_led.h"
 #include "mw_cc1.h"
 
-/************************** 灯语0 未插枪蓝灯,  插枪绿灯常亮,  充电绿灯常亮,  枪故障红灯 **************************/
+/************************** 灯语0 原公版灯语 **************************/
 
-static void app_led_language_0(uint8_t gunno, uint32_t *time_base, uint32_t *_time)
+static void app_led_language_0(uint8_t gunno)
 {
-    if((time_base == NULL) || (_time == NULL)){
-        return;
-    }
-    uint32_t tick = rt_tick_get();
     struct ofsm_info *ofsm = get_ofsm_info(gunno);
 
-    if(tick < time_base[gunno]){
-        time_base[gunno] = tick;
-    }
-    _time[gunno] = tick - time_base[gunno];
-
     switch(ofsm->base.state.current){
-    case APP_OFSM_STATE_IDLEING:
-        mw_led_off_single(RED_LED, gunno);
-        if(mw_get_cc1(gunno) == CC1_4V){
-            mw_led_on_single(GREEN_LED, gunno);
-        }else{
-            mw_led_off_single(GREEN_LED, gunno);
-        }
-        break;
-    case APP_OFSM_STATE_READYING:
-    case APP_OFSM_STATE_STARTING:
     case APP_OFSM_STATE_CHARGING:
-        mw_led_on_single(GREEN_LED, gunno);
-        mw_led_off_single(RED_LED, gunno);
-        break;
-    case APP_OFSM_STATE_STOPING:
-    case APP_OFSM_STATE_FINISHING:
-        mw_led_off_single(RED_LED, gunno);
-        if(mw_get_cc1(gunno) == CC1_4V){
-            mw_led_on_single(GREEN_LED, gunno);
-        }else{
-            mw_led_off_single(GREEN_LED, gunno);
-        }
+        mw_led_on_only(GREEN_LED, gunno);
         break;
     case APP_OFSM_STATE_FAULTING:
-        mw_led_off_single(GREEN_LED, gunno);
-        mw_led_on_single(RED_LED, gunno);
+        mw_led_on_only(RED_LED, gunno);
         break;
     default:
-        mw_led_on_single(BLUE_LED, gunno);
+        mw_led_on_only(BLUE_LED, gunno);
         break;
     }
 }
@@ -195,21 +165,51 @@ static void app_led_language_2(uint8_t gunno, uint32_t *time_base, uint32_t *_ti
     }
 }
 
-/************************** 灯语3 原公版灯语 **************************/
+/************************** 灯语3 未插枪蓝灯,  插枪绿灯常亮,  充电绿灯常亮,  枪故障红灯 **************************/
 
-static void app_led_language_3(uint8_t gunno)
+static void app_led_language_3(uint8_t gunno, uint32_t *time_base, uint32_t *_time)
 {
+    if((time_base == NULL) || (_time == NULL)){
+        return;
+    }
+    uint32_t tick = rt_tick_get();
     struct ofsm_info *ofsm = get_ofsm_info(gunno);
 
+    if(tick < time_base[gunno]){
+        time_base[gunno] = tick;
+    }
+    _time[gunno] = tick - time_base[gunno];
+
     switch(ofsm->base.state.current){
+    case APP_OFSM_STATE_IDLEING:
+        mw_led_off_single(RED_LED, gunno);
+        if(mw_get_cc1(gunno) == CC1_4V){
+            mw_led_on_single(GREEN_LED, gunno);
+        }else{
+            mw_led_off_single(GREEN_LED, gunno);
+        }
+        break;
+    case APP_OFSM_STATE_READYING:
+    case APP_OFSM_STATE_STARTING:
     case APP_OFSM_STATE_CHARGING:
-        mw_led_on_only(GREEN_LED, gunno);
+        mw_led_on_single(GREEN_LED, gunno);
+        mw_led_off_single(RED_LED, gunno);
+        break;
+    case APP_OFSM_STATE_STOPING:
+    case APP_OFSM_STATE_FINISHING:
+        mw_led_off_single(RED_LED, gunno);
+        if(mw_get_cc1(gunno) == CC1_4V){
+            mw_led_on_single(GREEN_LED, gunno);
+        }else{
+            mw_led_off_single(GREEN_LED, gunno);
+        }
         break;
     case APP_OFSM_STATE_FAULTING:
-        mw_led_on_only(RED_LED, gunno);
+        mw_led_off_single(GREEN_LED, gunno);
+        mw_led_on_single(RED_LED, gunno);
         break;
     default:
-        mw_led_on_only(BLUE_LED, gunno);
+        mw_led_on_single(BLUE_LED, gunno);
         break;
     }
 }
@@ -281,7 +281,7 @@ void app_led_thread_entry(void *parameter)
         for(gunno = 0; gunno < APP_SYSTEM_GUNNO_SIZE; gunno++){
             switch(led_language){
             case CP_LED_LANGUAGE_0:
-                app_led_language_0(gunno, time_base, _time);
+                app_led_language_0(gunno);
                 break;
             case CP_LED_LANGUAGE_1:
                 app_led_language_1(gunno, time_base, _time);
@@ -290,13 +290,13 @@ void app_led_thread_entry(void *parameter)
                 app_led_language_2(gunno, time_base, _time);
                 break;
             case CP_LED_LANGUAGE_3:
-                app_led_language_3(gunno);
+                app_led_language_3(gunno, time_base, _time);
                 break;
             case CP_LED_LANGUAGE_4:
                 app_led_language_4(gunno);
                 break;
             default:
-                app_led_language_0(gunno, time_base, _time);
+                app_led_language_0(gunno);
                 break;
             }
         }
