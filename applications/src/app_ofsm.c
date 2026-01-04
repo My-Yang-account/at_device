@@ -1514,6 +1514,16 @@ static void ofsm_start_info_padding_public(uint8_t gunno)
                 s_ofsm_info[gunno].base.start_elect = (mw_get_meter_total_wh(gunno) + mw_get_meter_total_wh(deputy_gunno));
 #endif /* APP_INCLUDE_V2G */
             }
+            s_ofsm_info[deputy_gunno].base.start_soc = 0x00;
+            s_ofsm_info[deputy_gunno].base.current_soc = 0x00;
+            s_ofsm_info[deputy_gunno].base.voltage_a = 0x00;
+            s_ofsm_info[deputy_gunno].base.current_a = 0x00;
+            s_ofsm_info[deputy_gunno].base.power_a = 0x00;
+            s_ofsm_info[deputy_gunno].base.elect_a = 0x00;
+            s_ofsm_info[deputy_gunno].base.fees_total = 0x00;
+            s_ofsm_info[deputy_gunno].base.elect_fees_total = 0x00;
+            s_ofsm_info[deputy_gunno].base.service_fees_total = 0x00;
+
             s_thaisen_transaction[gunno].charge_way = APP_CHARGE_WAY_PARACHARGE_LOCAL;
 
             app_nsal_create_local_transaction_number(deputy_gunno, &(s_ofsm_info[deputy_gunno].base.transaction_number),  \
@@ -3423,6 +3433,13 @@ static void ofsm_starting_fun(uint8_t gunno)
             #endif /* APP_INCLUDE_SGCC_PROTOCOL */
                         s_ofsm_info[deputy_gunno].base.start_soc = 0x00;
                         s_ofsm_info[deputy_gunno].base.current_soc = 0x00;
+                        s_ofsm_info[deputy_gunno].base.voltage_a = 0x00;
+                        s_ofsm_info[deputy_gunno].base.current_a = 0x00;
+                        s_ofsm_info[deputy_gunno].base.power_a = 0x00;
+                        s_ofsm_info[deputy_gunno].base.elect_a = 0x00;
+                        s_ofsm_info[deputy_gunno].base.fees_total = 0x00;
+                        s_ofsm_info[deputy_gunno].base.elect_fees_total = 0x00;
+                        s_ofsm_info[deputy_gunno].base.service_fees_total = 0x00;
                         app_nsal_init_charge_data(deputy_gunno);
                         /** 此处不再次保存订单，由时间同步修正是统一再次保存，目前程序，启动时都会校时一次，如果不校时则需要在此处保存一次 */
                         mw_storage_record_designate_index_updated(&s_thaisen_transaction[gunno], sizeof(s_thaisen_transaction[gunno]), USER_DATA_TYPE_STORAGE,  \
