@@ -550,7 +550,6 @@ typedef struct{
         uint32_t is_charge_complete : 1;                     /* 是否充电完成标志 */
         uint32_t vin_authorization_success : 1;              /* 是否VIN鉴权成功标志 */
         uint32_t vin_is_authorized : 1;                      /* 已进行VIN鉴权上报 */
-        uint32_t card_authorization : 1;                     /* 是否进行刷卡鉴权标志 */
         uint32_t is_fault_stop : 1;                          /* 是否故障停充标志 */
         uint32_t connect_state : 2;                          /* 枪连接状态 */
         uint32_t is_pay_by_card : 1;                         /* 卡结算标志 */
@@ -574,6 +573,8 @@ typedef struct{
         uint32_t is_reser_timeout_started : 1;               /* 是否本地预约已超时启动(用于超过预约时间10分钟内启动检测) */
         uint32_t is_meter_elect_error : 1;                   /* 是否检测出电表电量有错 */
         uint32_t is_ob_authenticated : 1;                    /* 离线计费模式下已进行预约鉴权(ob:offline billing) */
+        uint32_t is_oncard_authenticating : 1;               /* 在线模式下刷卡鉴权正在进行(oncard:online card) */
+        uint32_t is_oncard_reservated : 1;                   /* 在线模式下已进行在线卡预约鉴权(oncard:online card) */
         uint32_t is_boot_timeout : 1;                        /* 是启动超时而停充 */
     }flag;
 
@@ -713,8 +714,8 @@ typedef struct{
     uint8_t acrelay_resume_time;     /* 交流接触器故障恢复时基 */
     uint8_t acrelay_check_time;      /* 交流接触器状态检测时基 */
 #endif /* APP_USING_FB_DETECT */
-    /** 电子锁、继电器状态检验 */
-    uint8_t deputygun_dcrelay_action_time;   /* 并充副枪直流继电器闭合判断时基 */
+    /** 预约状态在线卡鉴权时基 */
+    uint8_t oncard_authen_time;      /* 预约状态在线卡鉴权时基 */
 
     uint8_t gun_running_mode;        /* 枪运行模式 */
 }System_BaseData;

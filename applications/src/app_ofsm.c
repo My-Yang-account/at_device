@@ -1934,8 +1934,12 @@ static uint8_t ofsm_swip_card_judge(uint8_t gunno)
 
         if(sys_card_uid_whitelists_query(rfidr_query_uuid(), uid_len) >= 0x00){
             if((*(sys_read_config_item_content(CONFIG_ITEM_SUPORT_OFFLINE_CARD, 0))) == APP_THA_ENUM_TRUE){
-                app_rfidr_send_mail(APP_BUZZON_STATE_OK);
-                LOG_D("gunno(%d) start charge by local whitelist card uid", gunno);
+                if(s_ofsm_info[gunno].base.flag.is_oncard_reservated == APP_THA_ENUM_FALSE){
+                    app_rfidr_send_mail(APP_BUZZON_STATE_OK);
+                    LOG_D("gunno(%d) start charge by local whitelist card uid", gunno);
+                }else {
+                    return APP_THA_ENUM_FALSE;
+                }
             }else{
                 need_authorize_online = APP_THA_ENUM_TRUE;
             }
@@ -1943,18 +1947,42 @@ static uint8_t ofsm_swip_card_judge(uint8_t gunno)
             need_authorize_online = APP_THA_ENUM_TRUE;
         }
 
-        uid_len = uid_len > sizeof(s_ofsm_info[gunno].base.card_uid) ? sizeof(s_ofsm_info[gunno].base.card_uid) : uid_len;
-        memset(s_ofsm_info[gunno].base.card_uid, 0x00, sizeof(s_ofsm_info[gunno].base.card_uid));
-        memcpy(s_ofsm_info[gunno].base.card_uid, rfidr_query_uuid(), uid_len);
+        /** 只有第一次刷在线卡或刷了白名单里的在线卡时需要保存刷卡信息 */
+        if(s_ofsm_info[gunno].base.flag.is_oncard_reservated == APP_THA_ENUM_FALSE){
+            uid_len = uid_len > sizeof(s_ofsm_info[gunno].base.card_uid) ? sizeof(s_ofsm_info[gunno].base.card_uid) : uid_len;
+            memset(s_ofsm_info[gunno].base.card_uid, 0x00, sizeof(s_ofsm_info[gunno].base.card_uid));
+            memcpy(s_ofsm_info[gunno].base.card_uid, rfidr_query_uuid(), uid_len);
 
-        memset(s_ofsm_info[gunno].base.card_number, 0x00, sizeof(s_ofsm_info[gunno].base.card_number));
+            memset(s_ofsm_info[gunno].base.card_number, 0x00, sizeof(s_ofsm_info[gunno].base.card_number));
 
-        s_ofsm_info[gunno].base.card_uid_len = uid_len;
-        s_ofsm_info[gunno].base.flag.card_info_is_uid = APP_THA_ENUM_TRUE;
-        s_ofsm_info[gunno].base.flag.is_local_charging = APP_THA_ENUM_TRUE;
+            s_ofsm_info[gunno].base.card_uid_len = uid_len;
+            s_ofsm_info[gunno].base.flag.card_info_is_uid = APP_THA_ENUM_TRUE;
+            s_ofsm_info[gunno].base.flag.is_local_charging = APP_THA_ENUM_TRUE;
+            /** 此卡在白名单中未找到，需要上报平台鉴权 */
+            if(need_authorize_online == APP_THA_ENUM_TRUE){
+                /*********************************** 这是在线模式下的预约状态，刷在线卡进行鉴权 ***********************************/
+                if((thaisen_get_current_charge_mode(gunno) == THAISEN_CHARGE_MODE_LIMIT_RESERVATION) && \
+                        (s_ofsm_info[gunno].base.run_mode == APP_RUN_MODE_4G_ETH) && \
+                        (s_ofsm_info[gunno].base.net_state == APP_NET_STATE_AUTH_SECCESS)){
+                    s_ofsm_info[gunno].base.flag.is_oncard_reservated = APP_THA_ENUM_TRUE;
+                    need_authorize_online = APP_THA_ENUM_FALSE;
+                    app_rfidr_send_mail(APP_BUZZON_STATE_OK);
+                }
+            }
+        }
+        /** 这是在线模式预约下刷了在线卡鉴权后再次同一张卡刷卡，此时直接按正常的流程走 */
+        else {
+            uid_len = uid_len > sizeof(s_ofsm_info[gunno].base.card_uid) ? sizeof(s_ofsm_info[gunno].base.card_uid) : uid_len;
+            /** 此在线卡不是鉴权时的在线卡，非法，退出 */
+            if(memcmp(s_ofsm_info[gunno].base.card_uid, rfidr_query_uuid(), uid_len) != 0x00){
+                return APP_THA_ENUM_FALSE;
+            }
+            /** 到此处，刷的一定是非白名单内的在线卡 */
+            s_ofsm_info[gunno].base.flag.is_oncard_reservated = APP_THA_ENUM_FALSE;
+        }
 
         /** 白名单卡；不需要平台鉴权 */
-        if(need_authorize_online == APP_THA_ENUM_FALSE){
+        if((need_authorize_online == APP_THA_ENUM_FALSE) && (s_ofsm_info[gunno].base.flag.is_oncard_reservated == APP_THA_ENUM_FALSE)){
             ofsm_start_info_padding_offline_card(gunno);
             return APP_THA_ENUM_TRUE;
         }
@@ -2047,7 +2075,6 @@ static uint8_t ofsm_swip_card_judge(uint8_t gunno)
             LOG_W("gunno(%d) swip card authorize fail", gunno);
             return APP_THA_ENUM_FALSE;
         }
-        s_ofsm_info[gunno].base.flag.card_authorization = APP_THA_ENUM_TRUE;
     }
 
     return APP_THA_ENUM_FALSE;
@@ -2150,16 +2177,18 @@ static void ofsm_idleing_fun(uint8_t gunno)
     s_ofsm_info[gunno].base.flag.is_charge_complete = APP_THA_ENUM_FALSE;
     s_ofsm_info[gunno].base.flag.is_local_charging = APP_THA_ENUM_FALSE;
     s_ofsm_info[gunno].base.flag.vin_authorization_success = APP_THA_ENUM_FALSE;
-    s_ofsm_info[gunno].base.flag.card_authorization = APP_THA_ENUM_FALSE;
     s_ofsm_info[gunno].base.flag.start_result = APP_THA_ENUM_FALSE;
     s_ofsm_info[gunno].base.flag.is_deputygun_stop = APP_THA_ENUM_FALSE;
     s_ofsm_info[gunno].base.flag.is_ob_authenticated = APP_THA_ENUM_FALSE;
+    s_ofsm_info[gunno].base.flag.is_oncard_reservated = APP_THA_ENUM_FALSE;
+    s_ofsm_info[gunno].base.flag.is_oncard_authenticating = APP_THA_ENUM_FALSE;
 
     memset(s_ofsm_info[gunno].base.card_uid, 0x00, sizeof(s_ofsm_info[gunno].base.card_uid));
     memset(s_ofsm_info[gunno].base.card_number, 0x00, sizeof(s_ofsm_info[gunno].base.card_number));
 
     s_ofsm_info[gunno].base.main_gunno = 0x00;
     s_ofsm_info[gunno].base.charge_way = APP_CHARGE_WAY_NONE;
+    s_ofsm_info[gunno].base.oncard_authen_time = 0x00;
 
     if((s_ofsm_info[gunno].base.device_state == APP_DEVICE_STATE_OVERHAUL) ||
             (s_ofsm_info[gunno].base.device_state == APP_DEVICE_STATE_FREEZE)){
@@ -2315,6 +2344,13 @@ static void ofsm_readying_fun(uint8_t gunno)
             s_ofsm_info[gunno].state = APP_OFSM_STATE_FAULTING;
 
             s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
+            /** 状态发生变化时鉴权失败 */
+            if(s_ofsm_info[gunno].base.flag.is_oncard_authenticating == APP_THA_ENUM_TRUE){
+                s_ofsm_info[gunno].base.oncard_authen_time = 0x00;
+                s_ofsm_info[gunno].base.flag.is_oncard_authenticating = APP_THA_ENUM_FALSE;
+                s_ofsm_info[gunno].base.flag.is_oncard_reservated = APP_THA_ENUM_FALSE;
+                app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
+            }
             app_nsal_state_charged(gunno);
             return;
         }
@@ -2325,6 +2361,13 @@ static void ofsm_readying_fun(uint8_t gunno)
         s_ofsm_info[gunno].state = APP_OFSM_STATE_FAULTING;
 
         s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
+        /** 状态发生变化时鉴权失败 */
+        if(s_ofsm_info[gunno].base.flag.is_oncard_authenticating == APP_THA_ENUM_TRUE){
+            s_ofsm_info[gunno].base.oncard_authen_time = 0x00;
+            s_ofsm_info[gunno].base.flag.is_oncard_authenticating = APP_THA_ENUM_FALSE;
+            s_ofsm_info[gunno].base.flag.is_oncard_reservated = APP_THA_ENUM_FALSE;
+            app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
+        }
         app_nsal_state_charged(gunno);
         return;
     }
@@ -2354,6 +2397,13 @@ static void ofsm_readying_fun(uint8_t gunno)
                 s_ofsm_info[gunno].state = s_ofsm_info[s_ofsm_info[gunno].base.main_gunno].state;
 
                 s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
+                /** 状态发生变化时鉴权失败 */
+                if(s_ofsm_info[gunno].base.flag.is_oncard_authenticating == APP_THA_ENUM_TRUE){
+                    s_ofsm_info[gunno].base.oncard_authen_time = 0x00;
+                    s_ofsm_info[gunno].base.flag.is_oncard_authenticating = APP_THA_ENUM_FALSE;
+                    s_ofsm_info[gunno].base.flag.is_oncard_reservated = APP_THA_ENUM_FALSE;
+                    app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
+                }
                 s_ofsm_info[gunno].base.flag.is_starting = APP_THA_ENUM_FALSE;
                 s_ofsm_info[gunno].base.flag.permit_judge_complete = APP_THA_ENUM_FALSE;
                 s_ofsm_info[gunno].base.flag.start_result = APP_THA_ENUM_FALSE;
@@ -2394,6 +2444,13 @@ static void ofsm_readying_fun(uint8_t gunno)
             s_ofsm_info[gunno].base.flag.connect_state = APP_CONNECT_STATE_DISCONNECT;
         }
         s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
+        /** 状态发生变化时鉴权失败 */
+        if(s_ofsm_info[gunno].base.flag.is_oncard_authenticating == APP_THA_ENUM_TRUE){
+            s_ofsm_info[gunno].base.oncard_authen_time = 0x00;
+            s_ofsm_info[gunno].base.flag.is_oncard_authenticating = APP_THA_ENUM_FALSE;
+            s_ofsm_info[gunno].base.flag.is_oncard_reservated = APP_THA_ENUM_FALSE;
+            app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
+        }
 #ifdef APP_INCLUDE_V2G
         thaisen_reset_gun_running_mode(gunno);
 #endif /* APP_INCLUDE_V2G */
@@ -2414,6 +2471,13 @@ static void ofsm_readying_fun(uint8_t gunno)
                 s_ofsm_info[gunno].base.flag.connect_state = APP_CONNECT_STATE_DISCONNECT;
             }
             s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
+            /** 状态发生变化时鉴权失败 */
+            if(s_ofsm_info[gunno].base.flag.is_oncard_authenticating == APP_THA_ENUM_TRUE){
+                s_ofsm_info[gunno].base.oncard_authen_time = 0x00;
+                s_ofsm_info[gunno].base.flag.is_oncard_authenticating = APP_THA_ENUM_FALSE;
+                s_ofsm_info[gunno].base.flag.is_oncard_reservated = APP_THA_ENUM_FALSE;
+                app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
+            }
 #ifdef APP_INCLUDE_V2G
             thaisen_reset_gun_running_mode(gunno);
 #endif /* APP_INCLUDE_V2G */
@@ -2432,7 +2496,15 @@ static void ofsm_readying_fun(uint8_t gunno)
         }
 #endif /* APP_USING_OFFLINE_BILLING */
 
-        if(s_ofsm_info[gunno].base.run_mode == APP_RUN_MODE_PLUG_AND_PLAY){
+        if((s_ofsm_info[gunno].base.run_mode == APP_RUN_MODE_4G_ETH) && (s_ofsm_info[gunno].base.flag.is_oncard_authenticating == APP_THA_ENUM_TRUE)){
+            /** 等待鉴权响应最大时长5s */
+            if(++s_ofsm_info[gunno].base.oncard_authen_time > (5000 /APP_SYSTEM_RUN_TIME_PERIOD)){
+                s_ofsm_info[gunno].base.oncard_authen_time = 0x00;
+                s_ofsm_info[gunno].base.flag.is_oncard_authenticating = APP_THA_ENUM_FALSE;
+                s_ofsm_info[gunno].base.flag.is_oncard_reservated = APP_THA_ENUM_FALSE;
+                app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
+            }
+        }else if(s_ofsm_info[gunno].base.run_mode == APP_RUN_MODE_PLUG_AND_PLAY){
             LOG_D("gunno(%d) start charge by plug and play", gunno);
             ofsm_start_info_padding_plug_and_play(gunno);
             is_charging_authorization = true;
@@ -2485,13 +2557,18 @@ static void ofsm_readying_fun(uint8_t gunno)
             is_charging_authorization = true;
 
             app_rfidr_send_mail(APP_BUZZON_STATE_OK);
+            s_ofsm_info[gunno].base.oncard_authen_time = 0x00;
+            s_ofsm_info[gunno].base.flag.is_oncard_authenticating = APP_THA_ENUM_FALSE;
+            s_ofsm_info[gunno].base.flag.is_oncard_reservated = APP_THA_ENUM_FALSE;
 
         }else if(app_nsal_is_card_authorize_fail(gunno)){
             app_nsal_clear_remote_card_authorize(gunno);
             LOG_W("gunno(%d) swip card authorize response fail", gunno);
-            s_ofsm_info[gunno].base.flag.card_authorization = APP_THA_ENUM_FALSE;
 
             app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
+            s_ofsm_info[gunno].base.oncard_authen_time = 0x00;
+            s_ofsm_info[gunno].base.flag.is_oncard_authenticating = APP_THA_ENUM_FALSE;
+            s_ofsm_info[gunno].base.flag.is_oncard_reservated = APP_THA_ENUM_FALSE;
 
         }else if(app_get_hci_event(gunno, HCI_EVENT_SCREEN_START, APP_THA_ENUM_TRUE)){
             LOG_D("gunno(%d) start charge by screen", gunno);
@@ -2534,9 +2611,12 @@ static void ofsm_readying_fun(uint8_t gunno)
                 }
                 /** 当前运行模式为在线模式 */
                 else if(s_ofsm_info[gunno].base.run_mode == APP_RUN_MODE_4G_ETH){
-                    /************************************ 未开启VIN码启动功能  *************************************/
+                    /************************************ 已开启VIN码启动功能  *************************************/
                     if(*(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_SUPORT_VIN, 0x00)) == APP_THA_ENUM_TRUE){
                         continue_reservation = APP_THA_ENUM_TRUE;   /** 在线模式需要开启VIN码启动功能才能进入预约状态 */
+                    }else if((s_ofsm_info[gunno].base.flag.is_oncard_reservated == APP_THA_ENUM_TRUE) && \
+                            (s_ofsm_info[gunno].base.flag.is_oncard_authenticating == APP_THA_ENUM_FALSE)){
+                        continue_reservation = APP_THA_ENUM_TRUE;   /** 在线模式刷在线卡要先进入预约状态 */
                     }
                 }
                 if(continue_reservation == APP_THA_ENUM_TRUE){
@@ -2590,6 +2670,13 @@ static void ofsm_readying_fun(uint8_t gunno)
                 LOG_D("gunno(%d)[%d, %d] reservation|%d:%d", gunno, app_nsal_is_set_reservation(gunno), thaisen_get_current_charge_mode(gunno), \
                         s_ofsm_info[gunno].base.reservation_time_remain, continue_reservation);
                 app_nsal_clear_set_reservation(gunno);
+                /** 状态发生变化时鉴权失败 */
+                if(s_ofsm_info[gunno].base.flag.is_oncard_authenticating == APP_THA_ENUM_TRUE){
+                    s_ofsm_info[gunno].base.oncard_authen_time = 0x00;
+                    s_ofsm_info[gunno].base.flag.is_oncard_authenticating = APP_THA_ENUM_FALSE;
+                    s_ofsm_info[gunno].base.flag.is_oncard_reservated = APP_THA_ENUM_FALSE;
+                    app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
+                }
                 s_ofsm_info[gunno].base.flag.is_reservation = APP_THA_ENUM_TRUE;
 
                 s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_RESERVATION];
@@ -2609,11 +2696,25 @@ static void ofsm_readying_fun(uint8_t gunno)
 
             /** 当前运行模式不是离线计费模式 */
             if(s_ofsm_info[gunno].base.run_mode != APP_RUN_MODE_OFFLINE_BILLING){
+                /** 状态发生变化时鉴权失败 */
+                if(s_ofsm_info[gunno].base.flag.is_oncard_authenticating == APP_THA_ENUM_TRUE){
+                    s_ofsm_info[gunno].base.oncard_authen_time = 0x00;
+                    s_ofsm_info[gunno].base.flag.is_oncard_authenticating = APP_THA_ENUM_FALSE;
+                    s_ofsm_info[gunno].base.flag.is_oncard_reservated = APP_THA_ENUM_FALSE;
+                    app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
+                }
                 s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_STARTING];
                 s_ofsm_info[gunno].state = APP_OFSM_STATE_STARTING;
             }
             /** 启动方式不是离线卡 */
             else if(s_ofsm_info[gunno].base.start_type != APP_CHARGE_START_WAY_OFFLINE_CARD){
+                /** 状态发生变化时鉴权失败 */
+                if(s_ofsm_info[gunno].base.flag.is_oncard_authenticating == APP_THA_ENUM_TRUE){
+                    s_ofsm_info[gunno].base.oncard_authen_time = 0x00;
+                    s_ofsm_info[gunno].base.flag.is_oncard_authenticating = APP_THA_ENUM_FALSE;
+                    s_ofsm_info[gunno].base.flag.is_oncard_reservated = APP_THA_ENUM_FALSE;
+                    app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
+                }
                 s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_STARTING];
                 s_ofsm_info[gunno].state = APP_OFSM_STATE_STARTING;
             }
@@ -2634,10 +2735,24 @@ static void ofsm_readying_fun(uint8_t gunno)
                 }
                 /** 当前时间条件不允许预约，此次鉴权就直接启动 */
                 else{
+                    /** 状态发生变化时鉴权失败 */
+                    if(s_ofsm_info[gunno].base.flag.is_oncard_authenticating == APP_THA_ENUM_TRUE){
+                        s_ofsm_info[gunno].base.oncard_authen_time = 0x00;
+                        s_ofsm_info[gunno].base.flag.is_oncard_authenticating = APP_THA_ENUM_FALSE;
+                        s_ofsm_info[gunno].base.flag.is_oncard_reservated = APP_THA_ENUM_FALSE;
+                        app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
+                    }
                     s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_STARTING];
                     s_ofsm_info[gunno].state = APP_OFSM_STATE_STARTING;
                 }
             }else{
+                /** 状态发生变化时鉴权失败 */
+                if(s_ofsm_info[gunno].base.flag.is_oncard_authenticating == APP_THA_ENUM_TRUE){
+                    s_ofsm_info[gunno].base.oncard_authen_time = 0x00;
+                    s_ofsm_info[gunno].base.flag.is_oncard_authenticating = APP_THA_ENUM_FALSE;
+                    s_ofsm_info[gunno].base.flag.is_oncard_reservated = APP_THA_ENUM_FALSE;
+                    app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
+                }
                 s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_STARTING];
                 s_ofsm_info[gunno].state = APP_OFSM_STATE_STARTING;
             }
@@ -2822,35 +2937,30 @@ static void ofsm_reservation_fun(uint8_t gunno)
     if(s_ofsm_info[gunno].base.reservation_time_remain == 0x00){
         LOG_D("gunno(%d) reach reservation time, start charge0\n", gunno);
         thaisen_clear_reservation_mode_flag(gunno);
-        /** 当前运行模式不是离线计费模式 */
-        if(s_ofsm_info[gunno].base.run_mode != APP_RUN_MODE_OFFLINE_BILLING){
-            ofsm_start_info_padding_reservation(gunno);
-        }
-        /** 启动方式不是离线卡 */
-        else if(s_ofsm_info[gunno].base.start_type != APP_CHARGE_START_WAY_OFFLINE_CARD){
-            ofsm_start_info_padding_reservation(gunno);
-        }
-        /** 到此处时的条件满足：1. 当前运行模式为离线计费模式   2. 启动方式为离线卡  3.该枪当前模式是预约模式 */
-        /** 订单已创建 */
-        else if(thaisen_get_current_charge_mode(gunno) == THAISEN_CHARGE_MODE_LIMIT_RESERVATION){
-            LOG_D("gunno(%d) reach reservation time in offline billing mode(reach0)", gunno);
-        }else{
-            ofsm_start_info_padding_reservation(gunno);
-        }
-        /** 是预约超时启动 */
-        s_ofsm_info[gunno].base.flag.is_reser_timeout_started = APP_THA_ENUM_TRUE;
-        is_charging_authorization = true;
-    }
-    /** 预约时间大于当前时间且相差1分钟以内 */
-    else if((s_ofsm_info[gunno].base.reservation_time_base + s_ofsm_info[gunno].base.reservation_time_remain) <= (s_ofsm_info[gunno].base.current_time + 60)){ /** 时间精确到分钟 */
-        time_t t_base = time(NULL);
-        uint32_t reservation_time_sec = thaisen_get_charge_mode_parameter(gunno);
-        struct tm tmp;
+        /** 这是在线模式下刷在线卡的预约启动，到达预约时间后要进行刷卡鉴权 */
+        if((s_ofsm_info[gunno].base.run_mode == APP_RUN_MODE_4G_ETH) && (s_ofsm_info[gunno].base.flag.is_oncard_reservated == APP_THA_ENUM_TRUE)){
+            /** 向平台发送在线卡鉴权指令 */
+            if(app_nsal_card_authorize(gunno) < 0x00){
+                /** 鉴权失败，返回空闲 */
+                app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
 
-        localtime_r(&t_base, &tmp);
-        if(tmp.tm_min == ((reservation_time_sec %3600) /60)){
-            LOG_D("gunno(%d) reach reservation time, start charge1\n", gunno);
-            thaisen_clear_reservation_mode_flag(gunno);
+                s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_IDLEING];
+                s_ofsm_info[gunno].state = APP_OFSM_STATE_IDLEING;
+                LOG_W("gunno(%d) swip card authorize fail(reservation)", gunno);
+            }
+            /** 鉴权指令发送成功，返回准备状态等待鉴权结果 */
+            else{
+                s_ofsm_info[gunno].base.flag.is_oncard_authenticating = APP_THA_ENUM_TRUE;
+                s_ofsm_info[gunno].base.oncard_authen_time = 0x00;
+
+                s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_READYING];
+                s_ofsm_info[gunno].state = APP_OFSM_STATE_READYING;
+            }
+            /** 是预约超时启动 */
+            s_ofsm_info[gunno].base.flag.is_reser_timeout_started = APP_THA_ENUM_TRUE;
+
+            return;
+        }else{
             /** 当前运行模式不是离线计费模式 */
             if(s_ofsm_info[gunno].base.run_mode != APP_RUN_MODE_OFFLINE_BILLING){
                 ofsm_start_info_padding_reservation(gunno);
@@ -2862,7 +2972,117 @@ static void ofsm_reservation_fun(uint8_t gunno)
             /** 到此处时的条件满足：1. 当前运行模式为离线计费模式   2. 启动方式为离线卡  3.该枪当前模式是预约模式 */
             /** 订单已创建 */
             else if(thaisen_get_current_charge_mode(gunno) == THAISEN_CHARGE_MODE_LIMIT_RESERVATION){
-                LOG_D("gunno(%d) reach reservation time in offline billing mode(reach1)", gunno);
+                LOG_D("gunno(%d) reach reservation time in offline billing mode(reach0)", gunno);
+            }else{
+                ofsm_start_info_padding_reservation(gunno);
+            }
+            /** 是预约超时启动 */
+            s_ofsm_info[gunno].base.flag.is_reser_timeout_started = APP_THA_ENUM_TRUE;
+            is_charging_authorization = true;
+        }
+    }
+    /** 预约时间大于当前时间且相差1分钟以内 */
+    else if((s_ofsm_info[gunno].base.reservation_time_base + s_ofsm_info[gunno].base.reservation_time_remain) <= (s_ofsm_info[gunno].base.current_time + 60)){ /** 时间精确到分钟 */
+        time_t t_base = time(NULL);
+        uint32_t reservation_time_sec = thaisen_get_charge_mode_parameter(gunno);
+        struct tm tmp;
+
+        localtime_r(&t_base, &tmp);
+        if(tmp.tm_min == ((reservation_time_sec %3600) /60)){
+            LOG_D("gunno(%d) reach reservation time, start charge1\n", gunno);
+            thaisen_clear_reservation_mode_flag(gunno);
+            /** 这是在线模式下刷在线卡的预约启动，到达预约时间后要进行刷卡鉴权 */
+            if((s_ofsm_info[gunno].base.run_mode == APP_RUN_MODE_4G_ETH) && (s_ofsm_info[gunno].base.flag.is_oncard_reservated == APP_THA_ENUM_TRUE)){
+                /** 向平台发送在线卡鉴权指令 */
+                if(app_nsal_card_authorize(gunno) < 0x00){
+                    /** 鉴权失败，返回空闲 */
+                    app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
+
+                    s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_IDLEING];
+                    s_ofsm_info[gunno].state = APP_OFSM_STATE_IDLEING;
+                    LOG_W("gunno(%d) swip card authorize fail(reservation)", gunno);
+                }
+                /** 鉴权指令发送成功，返回准备状态等待鉴权结果 */
+                else{
+                    s_ofsm_info[gunno].base.flag.is_oncard_authenticating = APP_THA_ENUM_TRUE;
+                    s_ofsm_info[gunno].base.oncard_authen_time = 0x00;
+
+                    s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_READYING];
+                    s_ofsm_info[gunno].state = APP_OFSM_STATE_READYING;
+                }
+                if(s_ofsm_info[gunno].base.reservation_time_remain == 0x00){
+                    s_ofsm_info[gunno].base.flag.is_reser_timeout_started = APP_THA_ENUM_TRUE;
+                }else{
+                    s_ofsm_info[gunno].base.flag.is_reser_normal_started = APP_THA_ENUM_TRUE;
+                }
+
+                return;
+            }else{
+                /** 当前运行模式不是离线计费模式 */
+                if(s_ofsm_info[gunno].base.run_mode != APP_RUN_MODE_OFFLINE_BILLING){
+                    ofsm_start_info_padding_reservation(gunno);
+                }
+                /** 启动方式不是离线卡 */
+                else if(s_ofsm_info[gunno].base.start_type != APP_CHARGE_START_WAY_OFFLINE_CARD){
+                    ofsm_start_info_padding_reservation(gunno);
+                }
+                /** 到此处时的条件满足：1. 当前运行模式为离线计费模式   2. 启动方式为离线卡  3.该枪当前模式是预约模式 */
+                /** 订单已创建 */
+                else if(thaisen_get_current_charge_mode(gunno) == THAISEN_CHARGE_MODE_LIMIT_RESERVATION){
+                    LOG_D("gunno(%d) reach reservation time in offline billing mode(reach1)", gunno);
+                }else{
+                    ofsm_start_info_padding_reservation(gunno);
+                }
+                if(s_ofsm_info[gunno].base.reservation_time_remain == 0x00){
+                    s_ofsm_info[gunno].base.flag.is_reser_timeout_started = APP_THA_ENUM_TRUE;
+                }else{
+                    s_ofsm_info[gunno].base.flag.is_reser_normal_started = APP_THA_ENUM_TRUE;
+                }
+                is_charging_authorization = true;
+            }
+        }
+    }else if((s_ofsm_info[gunno].base.reservation_time_base + s_ofsm_info[gunno].base.reservation_time_remain) <= s_ofsm_info[gunno].base.current_time){
+        LOG_D("gunno(%d) reach reservation time, start charge2\n", gunno);
+        thaisen_clear_reservation_mode_flag(gunno);
+        /** 这是在线模式下刷在线卡的预约启动，到达预约时间后要进行刷卡鉴权 */
+        if((s_ofsm_info[gunno].base.run_mode == APP_RUN_MODE_4G_ETH) && (s_ofsm_info[gunno].base.flag.is_oncard_reservated == APP_THA_ENUM_TRUE)){
+            /** 向平台发送在线卡鉴权指令 */
+            if(app_nsal_card_authorize(gunno) < 0x00){
+                /** 鉴权失败，返回空闲 */
+                app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
+
+                s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_IDLEING];
+                s_ofsm_info[gunno].state = APP_OFSM_STATE_IDLEING;
+                LOG_W("gunno(%d) swip card authorize fail(reservation)", gunno);
+            }
+            /** 鉴权指令发送成功，返回准备状态等待鉴权结果 */
+            else{
+                s_ofsm_info[gunno].base.flag.is_oncard_authenticating = APP_THA_ENUM_TRUE;
+                s_ofsm_info[gunno].base.oncard_authen_time = 0x00;
+
+                s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_READYING];
+                s_ofsm_info[gunno].state = APP_OFSM_STATE_READYING;
+            }
+            if(s_ofsm_info[gunno].base.reservation_time_remain == 0x00){
+                s_ofsm_info[gunno].base.flag.is_reser_timeout_started = APP_THA_ENUM_TRUE;
+            }else{
+                s_ofsm_info[gunno].base.flag.is_reser_normal_started = APP_THA_ENUM_TRUE;
+            }
+
+            return;
+        }else{
+            /** 当前运行模式不是离线计费模式 */
+            if(s_ofsm_info[gunno].base.run_mode != APP_RUN_MODE_OFFLINE_BILLING){
+                ofsm_start_info_padding_reservation(gunno);
+            }
+            /** 启动方式不是离线卡 */
+            else if(s_ofsm_info[gunno].base.start_type != APP_CHARGE_START_WAY_OFFLINE_CARD){
+                ofsm_start_info_padding_reservation(gunno);
+            }
+            /** 到此处时的条件满足：1. 当前运行模式为离线计费模式   2. 启动方式为离线卡  3.该枪当前模式是预约模式 */
+            /** 订单已创建 */
+            else if(thaisen_get_current_charge_mode(gunno) == THAISEN_CHARGE_MODE_LIMIT_RESERVATION){
+                LOG_D("gunno(%d) reach reservation time in offline billing mode(reach2)", gunno);
             }else{
                 ofsm_start_info_padding_reservation(gunno);
             }
@@ -2873,30 +3093,6 @@ static void ofsm_reservation_fun(uint8_t gunno)
             }
             is_charging_authorization = true;
         }
-    }else if((s_ofsm_info[gunno].base.reservation_time_base + s_ofsm_info[gunno].base.reservation_time_remain) <= s_ofsm_info[gunno].base.current_time){
-        LOG_D("gunno(%d) reach reservation time, start charge2\n", gunno);
-        thaisen_clear_reservation_mode_flag(gunno);
-        /** 当前运行模式不是离线计费模式 */
-        if(s_ofsm_info[gunno].base.run_mode != APP_RUN_MODE_OFFLINE_BILLING){
-            ofsm_start_info_padding_reservation(gunno);
-        }
-        /** 启动方式不是离线卡 */
-        else if(s_ofsm_info[gunno].base.start_type != APP_CHARGE_START_WAY_OFFLINE_CARD){
-            ofsm_start_info_padding_reservation(gunno);
-        }
-        /** 到此处时的条件满足：1. 当前运行模式为离线计费模式   2. 启动方式为离线卡  3.该枪当前模式是预约模式 */
-        /** 订单已创建 */
-        else if(thaisen_get_current_charge_mode(gunno) == THAISEN_CHARGE_MODE_LIMIT_RESERVATION){
-            LOG_D("gunno(%d) reach reservation time in offline billing mode(reach2)", gunno);
-        }else{
-            ofsm_start_info_padding_reservation(gunno);
-        }
-        if(s_ofsm_info[gunno].base.reservation_time_remain == 0x00){
-            s_ofsm_info[gunno].base.flag.is_reser_timeout_started = APP_THA_ENUM_TRUE;
-        }else{
-            s_ofsm_info[gunno].base.flag.is_reser_normal_started = APP_THA_ENUM_TRUE;
-        }
-        is_charging_authorization = true;
     }
     /********* 预约期间(预约时间未到)其他方式启动 **********/
     switch(mw_get_cc1(gunno)) {
@@ -2998,6 +3194,9 @@ static void ofsm_reservation_fun(uint8_t gunno)
 
         }else if(rfidr_query_swipe_state(gunno)){
             rfidr_clear_swipe_state(gunno);
+            /** 预约状态下刷卡有两种情况
+             * 1.已刷在线卡进行了预约的情况下再次刷同一张在线卡
+             * 2.在线模式下开启了VIN码启动，进入了预约，此时刷卡进行充电(离线卡、在线卡) */
             if(s_ofsm_info[gunno].base.run_mode != APP_RUN_MODE_OFFLINE_BILLING){
                 if(thaisen_is_not_allow_swip_card()){
                     LOG_D("gunno(%d) current page is not allow swip card charge", gunno);
@@ -3023,7 +3222,6 @@ static void ofsm_reservation_fun(uint8_t gunno)
         }else if(app_nsal_is_card_authorize_fail(gunno)){
             app_nsal_clear_remote_card_authorize(gunno);
             LOG_W("gunno(%d) swip card authorize response fail", gunno);
-            s_ofsm_info[gunno].base.flag.card_authorization = APP_THA_ENUM_FALSE;
 
             app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
 
@@ -3147,11 +3345,15 @@ static void ofsm_starting_fun(uint8_t gunno)
     s_ofsm_info[gunno].base.flag.is_pay_complete = APP_THA_ENUM_FALSE;
     s_ofsm_info[gunno].base.flag.bms_require_decrease = APP_THA_ENUM_FALSE;
     s_ofsm_info[gunno].base.flag.is_ob_authenticated = APP_THA_ENUM_FALSE;
+    s_ofsm_info[gunno].base.flag.is_oncard_reservated = APP_THA_ENUM_FALSE;
+    s_ofsm_info[gunno].base.flag.is_oncard_authenticating = APP_THA_ENUM_FALSE;
     s_compare_module_bcl_count[gunno] = rt_tick_get();
     s_compare_ccs_module_count[gunno] = rt_tick_get();
     s_tiny_current_count[gunno] = rt_tick_get();
     s_bms_require_curr_last[gunno] = 0x00;
     s_bms_reqcurr_changed_count[gunno] = 0x00;
+
+    s_ofsm_info[gunno].base.oncard_authen_time = 0x00;
 
     /*******************************************************************************
      ********************************  并充自动识别    ***********************************
@@ -4609,6 +4811,10 @@ static void ofsm_charging_fun(uint8_t gunno)
                 s_ofsm_info[gunno].base.current_a, s_ofsm_info[gunno].base.power_a, s_ofsm_info[gunno].base.charge_time);
     }
     s_ofsm_info[gunno].base.flag.is_ob_authenticated = APP_THA_ENUM_FALSE;
+    s_ofsm_info[gunno].base.flag.is_oncard_reservated = APP_THA_ENUM_FALSE;
+    s_ofsm_info[gunno].base.flag.is_oncard_authenticating = APP_THA_ENUM_FALSE;
+
+    s_ofsm_info[gunno].base.oncard_authen_time = 0x00;
 
 #ifdef APP_USING_CHARGE_CURR_DETECT_STRATEGY
     /** 电流检验 */
@@ -6538,6 +6744,10 @@ static void ofsm_stoping_fun(uint8_t gunno)
 #endif /* ((defined(APP_USING_NO_BMS) || defined(APP_USING_LV_MODULE_BMS)) && defined(APP_USING_OFFLINE_BILLING)) */
 
     s_ofsm_info[gunno].base.flag.is_ob_authenticated = APP_THA_ENUM_FALSE;
+    s_ofsm_info[gunno].base.flag.is_oncard_reservated = APP_THA_ENUM_FALSE;
+    s_ofsm_info[gunno].base.flag.is_oncard_authenticating = APP_THA_ENUM_FALSE;
+
+    s_ofsm_info[gunno].base.oncard_authen_time = 0x00;
 
     if(s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
         charge_state = mw_get_charge_state(s_ofsm_info[gunno].base.main_gunno);
@@ -7083,6 +7293,10 @@ static void ofsm_finishing_fun(uint8_t gunno)
     s_ofsm_info[gunno].base.flag.is_deputygun_stop = APP_THA_ENUM_FALSE;
     s_ofsm_info[gunno].base.flag.is_local_reservation = APP_THA_ENUM_TRUE;
     s_ofsm_info[gunno].base.flag.is_ob_authenticated = APP_THA_ENUM_FALSE;
+    s_ofsm_info[gunno].base.flag.is_oncard_reservated = APP_THA_ENUM_FALSE;
+    s_ofsm_info[gunno].base.flag.is_oncard_authenticating = APP_THA_ENUM_FALSE;
+
+    s_ofsm_info[gunno].base.oncard_authen_time = 0x00;
 
     if((s_ofsm_info[gunno].base.device_state == APP_DEVICE_STATE_OVERHAUL) ||
             (s_ofsm_info[gunno].base.device_state == APP_DEVICE_STATE_FREEZE)){
@@ -7365,7 +7579,6 @@ static void ofsm_finishing_fun(uint8_t gunno)
         }else if(app_nsal_is_card_authorize_fail(gunno)){
             app_nsal_clear_remote_card_authorize(gunno);
             LOG_W("gunno(%d) swip card authorize response fail", gunno);
-            s_ofsm_info[gunno].base.flag.card_authorization = APP_THA_ENUM_FALSE;
 
             app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
 
@@ -7482,6 +7695,10 @@ static void ofsm_faulting_fun(uint8_t gunno)
 
     s_ofsm_info[gunno].base.flag.is_deputygun_stop = APP_THA_ENUM_FALSE;
     s_ofsm_info[gunno].base.flag.is_ob_authenticated = APP_THA_ENUM_FALSE;
+    s_ofsm_info[gunno].base.flag.is_oncard_reservated = APP_THA_ENUM_FALSE;
+    s_ofsm_info[gunno].base.flag.is_oncard_authenticating = APP_THA_ENUM_FALSE;
+
+    s_ofsm_info[gunno].base.oncard_authen_time = 0x00;
 
     if(++s_debug_count[gunno] > (3000 + 500 *gunno) / 100){
         s_debug_count[gunno] = 0;
@@ -7663,7 +7880,6 @@ static void ofsm_faulting_fun(uint8_t gunno)
                 }else if(app_nsal_is_card_authorize_fail(gunno)){
                     app_nsal_clear_remote_card_authorize(gunno);
                     LOG_W("gunno(%d) swip card authorize response fail", gunno);
-                    s_ofsm_info[gunno].base.flag.card_authorization = APP_THA_ENUM_FALSE;
 
                     app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
 
@@ -7844,8 +8060,8 @@ void ofsm_thread_entry(void *parameter)
         s_ofsm_info[thread_gunno].base.ota_state = app_nsal_get_ota_state();
 
         app_thread_monitor_process(rt_thread_self(), NULL, 0x00, 0x00);
-        /** 离线计费模式下预约需要刷卡鉴权，因此可以不需要超过预约时间10分钟内只能预约一次的限制 */
-        if(s_ofsm_info[thread_gunno].base.run_mode == APP_RUN_MODE_OFFLINE_BILLING){
+        /** 离线计费模式、在线模式下预约需要刷卡鉴权，因此可以不需要超过预约时间10分钟内只能预约一次的限制 */
+        if((s_ofsm_info[thread_gunno].base.run_mode == APP_RUN_MODE_OFFLINE_BILLING) || (s_ofsm_info[thread_gunno].base.run_mode == APP_RUN_MODE_4G_ETH)){
             s_ofsm_info[thread_gunno].base.flag.is_reser_normal_started = APP_THA_ENUM_FALSE;
             s_ofsm_info[thread_gunno].base.flag.is_reser_timeout_started = APP_THA_ENUM_FALSE;
         }
