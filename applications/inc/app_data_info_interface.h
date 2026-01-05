@@ -26,6 +26,8 @@
 #include "mw_storage.h"
 #include "mw_charge_control.h"
 
+//#define THAISEN_INCLUDE_NEW_MSG                                            /* 使用扩展故障字段 */
+
 /** 此枚举需要与 Trigger_Page 数组的下标对应 */
 enum thaisen_trig_event{
     THAISEN_TRIG_EVENT_CARD_LOCKED,                               /** 屏幕外部触发事件：卡被锁 */
@@ -88,6 +90,11 @@ typedef struct{
     uint8_t dev_function;                                         /** 本机功能(0：单枪终端，1：均充双枪，2：双枪终端，3：整流柜，4：动态切换) */
     uint8_t allocate_way;                                         /** 分配方式(0：均充, 1：先到先得, 2：功率优先) */
     uint16_t terminal_addr[2];                                    /** 终端地址(两把枪：A枪在前) */
+#ifdef THAISEN_INCLUDE_NEW_MSG
+    /** 20251229 msg_ver = 0x01 */
+    uint8_t liquid_type;                                          /** 液冷类型(0：英特尼迪， 1：毫厘， 2：特倍斯， 3：京工电) */
+    uint8_t liquid_num;                                           /** 液冷数量 */
+#endif /* THAISEN_INCLUDE_NEW_MSG */
 }thaisen_cfg_info_system;
 /** 参数配置页面:屏幕-设置-系统设置-桩信息 */
 typedef struct{
@@ -109,6 +116,17 @@ typedef struct{
     uint8_t domain[256];                                          /** 域名 */
     uint16_t port;                                                /** 端口 */
     uint8_t net_mode;                                             /** 网络模式(0：4G，1：以太网，2：离线) */
+#ifdef THAISEN_INCLUDE_NEW_MSG
+    /** 20251229 msg_ver = 0x01 */
+    uint8_t sub_server_1[48];                                     /** 子服务器1 IP地址/域名(ASCII) */
+    uint16_t sub_port_1;                                          /** 子服务器1端口 */
+    uint8_t sub_server_2[48];                                     /** 子服务器2 IP地址/域名(ASCII) */
+    uint16_t sub_port_2;                                          /** 子服务器2端口 */
+    uint8_t sub_server_3[48];                                     /** 子服务器3 IP地址/域名(ASCII) */
+    uint16_t sub_port_3;                                          /** 子服务器3端口 */
+    uint8_t login_user_name[48];                                  /** 登录用户名(ASCII) */
+    uint8_t login_passwaord[48];                                  /** 登录密码(ASCII) */
+#endif /* THAISEN_INCLUDE_NEW_MSG */
 }thaisen_cfg_info_server;
 /** 参数配置页面:屏幕-设置-系统设置-电表 */
 typedef struct{
@@ -116,6 +134,11 @@ typedef struct{
     uint8_t ammeter_model;                                        /** 电表协议(0：瑞银，1：雅达，2：科达瑞，3：英利达，4：安科瑞，5：科为，6：预留) */
     uint8_t baudrate;                                             /** 波特率 */
     uint8_t check_way;                                            /** 校验位(0:偶校验, 1:奇校验, 2:无校验) */
+#ifdef THAISEN_INCLUDE_NEW_MSG
+    /** 20251229 msg_ver = 0x01 */
+    uint32_t ammeter_forward_elect[0x02];                         /** 电表正向总电量(0.001KW.h) */
+    uint32_t ammeter_reverse_elect[0x02];                         /** 电表反向总电量(0.001KW.h) */
+#endif /* THAISEN_INCLUDE_NEW_MSG */
 }thaisen_cfg_info_ammeter;
 /** 参数配置页面:屏幕-设置-系统设置-模块信息 */
 typedef struct{
@@ -160,6 +183,10 @@ typedef struct{
     uint32_t in_overvolt;                                         /** 输入过压值(0.01V) */
     uint16_t in_undervolt;                                        /** 输入欠压值(0.01V) */
     uint32_t out_overcurr;                                        /** 输出过流值(0.01A) */
+#ifdef THAISEN_INCLUDE_NEW_MSG
+    /** 20251229 msg_ver = 0x01 */
+    uint8_t discharge_asof_soc;                                   /** 放电截至SOC(单位：/1%) */
+#endif /* THAISEN_INCLUDE_NEW_MSG */
 }thaisen_cfg_info_protect;
 /** 参数配置页面:屏幕-设置-出厂设置-功能配置 */
 typedef struct{
@@ -178,6 +205,10 @@ typedef struct{
     /** 新增：2025/06/08 */
     uint16_t mode_select : 1;                                     /** 模式选择(1：启用，0：禁用) */
     uint16_t offline_card : 1;                                    /** 离线卡(1：启用，0：禁用) */
+#ifdef THAISEN_INCLUDE_NEW_MSG
+    /** 20251229 msg_ver = 0x01 */
+    uint16_t v2g_mode : 1;                                        /** V2G模式(1：启用，0：禁用) */
+#endif /* THAISEN_INCLUDE_NEW_MSG */
 }thaisen_cfg_info_function;
 /** 参数配置页面:屏幕-设置-出厂设置-离线计费 */
 struct _time_info{
@@ -219,7 +250,15 @@ typedef struct{
 
 /** 模式选择页面：屏幕-选择枪-V2G模式 */
 typedef struct{
-    uint8_t mode;                                /** 当前模式 */
+    uint8_t mode;                                                 /** 当前模式 */
+#ifdef THAISEN_INCLUDE_NEW_MSG
+    /** 20251229 msg_ver = 0x01 */
+    uint32_t mode_parameter;                                      /** 模式参数 ：
+                                                                                                                                                                                     对于模式0：单位：0.01元
+                                                                                                                                                                                     对于模式1：单位：0.001度
+                                                                                                                                                                                     对于模式2：单位：1min
+                                                                                                                                                                                     对于模式3：无用，默认填0 */
+#endif /* THAISEN_INCLUDE_NEW_MSG */
 }thaisen_mode_select_v2g;
 
 /** 参数配置页面:屏幕-设置-出厂设置-其它配置 */

@@ -429,6 +429,7 @@
 #define CP_MODE_LIMIT_RESERVATION                 4         /* 当前充电模式：预约 */
 #define CP_MODE_SIZE                              5         /* 当前充电模式：*/
 
+#define CP_V2G_MODE_OFFSET                        0x55      /* 当前放电模式偏移 */
 #define CP_V2G_MODE_LIMIT_MONEY                   0x55      /* 当前放电模式：限制金额 */
 #define CP_V2G_MODE_LIMIT_ELECT                   0x56      /* 当前放电模式：限制电量 */
 #define CP_V2G_MODE_LIMIT_TIMING                  0x57      /* 当前放电模式：限制时间 */

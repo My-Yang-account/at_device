@@ -1699,6 +1699,10 @@ static s32 SerialScreen_ConfigExecute_System(u8 port, void *data, void *sub_data
      = config->terminal_addr[0];
      = config->terminal_addr[1];
 #endif
+#ifdef THAISEN_INCLUDE_NEW_MSG
+     LcdData.setData.LiquidType = config->liquid_type;
+     LcdData.setData.LiquidCnt = config->liquid_num;
+#endif /* THAISEN_INCLUDE_NEW_MSG */
      /** 系统信息有效性判断 */
     SerialScreen_BtnSystemFuncJudge(&ret);
     if(ret != 0){
@@ -2035,6 +2039,9 @@ static s32 SerialScreen_ConfigExecute_Protect(u8 port, void *data, void *sub_dat
     LcdData.setData.Input_OverVolt = config->in_overvolt *10;
     LcdData.setData.Input_UnderVolt = config->in_undervolt *10;
     LcdData.setData.Onput_OverCurr = config->out_overcurr *10;
+#ifdef SCREEN_USING_V2G
+    LcdData.setData.DisCharge_AsOf_SOC = config->discharge_asof_soc;
+#endif /* SCREEN_USING_V2G */
     /** 保护信息有效性判断 */
     SerialScreen_BtnProtectInfoJudge(&ret);
     if(ret != 0){
@@ -2075,9 +2082,8 @@ static s32 SerialScreen_ConfigExecute_Function(u8 port, void *data, void *sub_da
     LcdData.setData.Icon_SupModeSelect = config->mode_select;
     LcdData.setData.Icon_SupOffCard = config->offline_card;
 #ifdef SCREEN_USING_V2G
-//    LcdData.setData.Icon_SupV2G = config->v2g;
+    LcdData.setData.Icon_SupV2G = config->v2g_mode;
 #endif /* SCREEN_USING_V2G */
-
     /** 功能配置信息有效性判断 */
     SerialScreen_IsSupportInfoJudge(&ret);
     if(ret != 0){
@@ -2288,11 +2294,93 @@ static s32 SerialScreen_ConfigExecute_NormalMode(u8 port, void *data, void *sub_
  *******************************************************************/
 static s32 SerialScreen_ConfigExecute_V2GMode(u8 port, void *data, void *sub_data, void *sub_sub_data)
 {
-#define SSCREEN_V2G_MODE_INVALID_MODE     0         /* 模式选择-V2G模式 无效模式错误码*/
+#define SSCREEN_V2G_MODE_INVALID_MODE     0         /* 模式选择-正常模式 无效模式错误码*/
+#define SSCREEN_V2G_MODE_INVALID_PARA     1         /* 模式选择-正常模式 无效参数错误码*/
+#define SSCREEN_V2G_MODE_FORBID_STATE     2         /* 模式选择-正常模式 禁止修改状态错误码*/
 
+#ifdef SCREEN_USING_V2G
     thaisen_mode_select_v2g *config = (thaisen_mode_select_v2g*)data;
+#if 0
+    switch(thaisen_app_get_ofsm_charge_state(port)){
+    case APP_OFSM_STATE_RESERVATION:
+        /* 弹出提示：预约中不可修改策略 */
+        if((LcdData.setData.CurrentMode[LCD_GUN_NUM][THAISEN_V2G_MODE_LIMIT_RESERVATION] == TRUE) &&  (config->mode == THAISEN_V2G_MODE_LIMIT_RESERVATION)){
+            if(config->mode_parameter != (LcdData.setData.MSLimitReservationHour[LCD_GUN_NUM] *3600 + LcdData.setData.MSLimitReservationMin[LCD_GUN_NUM] *60)){
+                return (SSCREEN_V2G_MODE_FORBID_STATE + THAISEN_CONFIG_FAIL_OFFSET);
+            }
+        }
+        break;
+    default:
+        break;
+    }
+#endif
+#ifdef SCREEN_USING_V2G
+#if 0
+    /** 已进行预约放电，不可修改充电模式 */
+    if(SerialScreen_Screen_GetCurrentV2GMode(port) == THAISEN_V2G_MODE_LIMIT_RESERVATION){
+        return (SSCREEN_V2G_MODE_INVALID_PARA + SSCREEN_NORMAL_MODE_FORBID_STATE);
+    }
+#endif
+#endif /* SCREEN_USING_V2G */
+    switch(config->mode){
+    case THAISEN_V2G_MODE_AUTO:
+        break;
+    case THAISEN_V2G_MODE_LIMIT_MONEY:
+        if((config->mode_parameter > CP_V2G_MODE_PARA_MONEY_MAX) || (config->mode_parameter < CP_V2G_MODE_PARA_MONEY_MIN)){
+            return (SSCREEN_V2G_MODE_INVALID_PARA + THAISEN_CONFIG_FAIL_OFFSET);
+        }
+        LcdData.setData.V2G_MSLimitMoney[LCD_GUN_NUM] = config->mode_parameter;
+        LcdData.setData.V2G_MSLimitElect[LCD_GUN_NUM] = 0x00;
+        LcdData.setData.V2G_MSLimitTiming[LCD_GUN_NUM] = 0x00;
+//        LcdData.setData.V2G_MSLimitReservationHour[LCD_GUN_NUM] = 0x00;
+//        LcdData.setData.V2G_MSLimitReservationMin[LCD_GUN_NUM] = 0x00;
+        break;
+    case THAISEN_V2G_MODE_LIMIT_ELECT:
+        if((config->mode_parameter > CP_V2G_MODE_PARA_ELECT_MAX) || (config->mode_parameter < CP_V2G_MODE_PARA_ELECT_MIN)){
+            return (SSCREEN_V2G_MODE_INVALID_PARA + THAISEN_CONFIG_FAIL_OFFSET);
+        }
+        LcdData.setData.V2G_MSLimitMoney[LCD_GUN_NUM] = 0x00;
+        LcdData.setData.V2G_MSLimitElect[LCD_GUN_NUM] = config->mode_parameter;
+        LcdData.setData.V2G_MSLimitTiming[LCD_GUN_NUM] = 0x00;
+//        LcdData.setData.V2G_MSLimitReservationHour[LCD_GUN_NUM] = 0x00;
+//        LcdData.setData.V2G_MSLimitReservationMin[LCD_GUN_NUM] = 0x00;
+        break;
+    case THAISEN_V2G_MODE_LIMIT_TIMING:
+        if((config->mode_parameter > CP_V2G_MODE_PARA_TIMING_MAX) || (config->mode_parameter < CP_V2G_MODE_PARA_TIMING_MIN)){
+            return (SSCREEN_V2G_MODE_INVALID_PARA + THAISEN_CONFIG_FAIL_OFFSET);
+        }
+        LcdData.setData.V2G_MSLimitMoney[LCD_GUN_NUM] = 0x00;
+        LcdData.setData.V2G_MSLimitElect[LCD_GUN_NUM] = 0x00;
+        LcdData.setData.V2G_MSLimitTiming[LCD_GUN_NUM] = config->mode_parameter;
+//        LcdData.setData.V2G_MSLimitReservationHour[LCD_GUN_NUM] = 0x00;
+//        LcdData.setData.V2G_MSLimitReservationMin[LCD_GUN_NUM] = 0x00;
+        break;
+#if 0
+    case THAISEN_CHARGE_MODE_LIMIT_RESERVATION:
+        if((config->mode_parameter > CP_MODE_PARA_RESERVATION_MAX) || (config->mode_parameter < CP_MODE_PARA_RESERVATION_MIN)){
+            return (SSCREEN_NORMAL_MODE_INVALID_PARA + THAISEN_CONFIG_FAIL_OFFSET);
+        }
+        LcdData.setData.V2G_MSLimitMoney[LCD_GUN_NUM] = 0x00;
+        LcdData.setData.V2G_MSLimitElect[LCD_GUN_NUM] = 0x00;
+        LcdData.setData.V2G_MSLimitTiming[LCD_GUN_NUM] = 0x00;
+        LcdData.setData.V2G_MSLimitReservationHour[LCD_GUN_NUM] = config->mode_parameter /3600;
+        LcdData.setData.V2G_MSLimitReservationMin[LCD_GUN_NUM] = (config->mode_parameter %3600) /60;
+        break;
+#endif
+    default:
+        return (SSCREEN_V2G_MODE_INVALID_MODE + THAISEN_CONFIG_FAIL_OFFSET);
+    }
+    memset(LcdData.setData.V2G_CurrentMode[LCD_GUN_NUM], 0x00, sizeof(LcdData.setData.V2G_CurrentMode[LCD_GUN_NUM]));
+    LcdData.setData.V2G_CurrentMode[LCD_GUN_NUM][config->mode] = TRUE;
 
+    LcdAssistantData.SeveralGunFlag[LCD_GUN_1].DataIsVerify = TRUE;
+    extern void SerialScreen_BtnV2GInfoStorage(int port);
+    SerialScreen_BtnV2GInfoStorage(port);
+
+    return LcdAssistantData.Flag.IsConfigFail;
+#else
     return (SSCREEN_V2G_MODE_INVALID_MODE + THAISEN_CONFIG_FAIL_OFFSET);
+#endif /* SCREEN_USING_V2G */
 }
 
 /*******************************************************************
@@ -4559,6 +4647,8 @@ static void SerialScreen_BtnSystemFuncJudge(u32 *ret)
 //@ thaisen_cfg_info_system
 #define SSCREEN_ALLOCATE_WAY_POSITION                    0    /* 分配方式在结构体 thaisen_cfg_info_system 中的成员次序(从0开始)  */
 #define SSCREEN_DEVICE_TYPE_POSITION                     1    /* 设备类型在结构体 thaisen_cfg_info_system 中的成员次序(从0开始)  */
+#define SSCREEN_LIQUID_TYPE_POSITION                     4    /* 液冷类型在结构体 thaisen_cfg_info_system 中的成员次序(从0开始)  */
+#define SSCREEN_LIQUID_NUM_POSITION                      5    /* 液冷数量在结构体 thaisen_cfg_info_system 中的成员次序(从0开始)  */
 
     u32 result = 0;
     u8 way = LcdData.setData.AllocWay;
@@ -4569,8 +4659,8 @@ static void SerialScreen_BtnSystemFuncJudge(u32 *ret)
         result |= (1 <<SSCREEN_DEVICE_TYPE_POSITION);
     }
 
-    if(LcdData.setData.LiquidType >= CP_LIQUID_DEVTYPE_SIZE)
-    {
+    if(LcdData.setData.LiquidType >= CP_LIQUID_DEVTYPE_SIZE){
+        result |= (1 <<SSCREEN_LIQUID_TYPE_POSITION);
         LcdData.setData.LiquidType = CP_LIQUID_DEVTYPE_YTND;
     }
 
@@ -4618,8 +4708,8 @@ static void SerialScreen_BtnSystemFuncJudge(u32 *ret)
         LcdData.setData.LiquidType = CP_LIQUID_DEVTYPE_YTND;
         break;
     }
-    if(LcdData.setData.LiquidCnt > CP_LIQUID_DEVCNT_MAX)
-    {
+    if(LcdData.setData.LiquidCnt > CP_LIQUID_DEVCNT_MAX){
+        result |= (1 <<SSCREEN_LIQUID_NUM_POSITION);
         LcdData.setData.LiquidCnt = 0;
     }
 
@@ -4902,6 +4992,7 @@ void SerialScreen_BtnProtectInfoSet(void)
 #ifdef SCREEN_USING_V2G
     LcdData.setData.DisCharge_AsOf_SOC += PROTECT_DISCHARGE_AS_OF_SOC_OFFSET;
     UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_DISCHARGE_AS_OF_SOC, &LcdData.setData.DisCharge_AsOf_SOC, sizeof(LcdData.setData.DisCharge_AsOf_SOC));
+    LcdData.setData.DisCharge_AsOf_SOC -= PROTECT_DISCHARGE_AS_OF_SOC_OFFSET;
 #endif /* SCREEN_USING_V2G */
 
     LcdAssistantData.Flag.IsConfigFail = TRUE;

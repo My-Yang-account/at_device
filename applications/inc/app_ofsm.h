@@ -631,6 +631,8 @@ typedef struct{
     uint32_t start_elect;             /* 起始电量(精度：0.001) */
     uint32_t current_elect;           /* 当前电量(精度：0.001) */
     uint32_t ammeter_elect;           /* 电表电量(精度：0.001) */
+    uint32_t ammeter_forward_elect;   /* 电表正向总电量(0.001KW.h) */
+    uint32_t ammeter_reverse_elect;   /* 电表反向总电量(0.001KW.h) */
     uint32_t charge_elect_last;       /* 上一次计算所充电量(精度：0.001) */
     uint32_t current_time;            /* 当前时间(时间戳) */
     uint32_t start_time;              /* 充电开始时间(时间戳) */
