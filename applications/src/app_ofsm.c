@@ -8103,7 +8103,8 @@ void ofsm_thread_entry(void *parameter)
 
         app_thread_monitor_process(rt_thread_self(), NULL, 0x00, 0x00);
         /** 离线计费模式、在线模式下预约需要刷卡鉴权，因此可以不需要超过预约时间10分钟内只能预约一次的限制 */
-        if((s_ofsm_info[thread_gunno].base.run_mode == APP_RUN_MODE_OFFLINE_BILLING) || (s_ofsm_info[thread_gunno].base.run_mode == APP_RUN_MODE_4G_ETH)){
+        if((s_ofsm_info[thread_gunno].base.run_mode == APP_RUN_MODE_OFFLINE_BILLING) || \
+                ((s_ofsm_info[thread_gunno].base.run_mode == APP_RUN_MODE_4G_ETH) && (*(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_SUPORT_VIN, 0x00)) != APP_THA_ENUM_TRUE))){
             s_ofsm_info[thread_gunno].base.flag.is_reser_normal_started = APP_THA_ENUM_FALSE;
             s_ofsm_info[thread_gunno].base.flag.is_reser_timeout_started = APP_THA_ENUM_FALSE;
         }
