@@ -2508,11 +2508,15 @@ static void ofsm_readying_fun(uint8_t gunno)
 
         if((s_ofsm_info[gunno].base.run_mode == APP_RUN_MODE_4G_ETH) && (s_ofsm_info[gunno].base.flag.is_oncard_authenticating == APP_THA_ENUM_TRUE)){
             /** 等待鉴权响应最大时长5s */
-            if(++s_ofsm_info[gunno].base.oncard_authen_time > (5000 /APP_SYSTEM_RUN_TIME_PERIOD)){
+            if(++s_ofsm_info[gunno].base.oncard_authen_time > (6000 /APP_SYSTEM_RUN_TIME_PERIOD)){
                 s_ofsm_info[gunno].base.oncard_authen_time = 0x00;
                 s_ofsm_info[gunno].base.flag.is_oncard_authenticating = APP_THA_ENUM_FALSE;
                 s_ofsm_info[gunno].base.flag.is_oncard_reservated = APP_THA_ENUM_FALSE;
                 app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
+            }else if(app_nsal_is_card_authorize_success(gunno) || app_nsal_is_card_authorize_fail(gunno)){
+                s_ofsm_info[gunno].base.oncard_authen_time = 0x00;
+                s_ofsm_info[gunno].base.flag.is_oncard_authenticating = APP_THA_ENUM_FALSE;
+                s_ofsm_info[gunno].base.flag.is_oncard_reservated = APP_THA_ENUM_FALSE;
             }
         }else if(s_ofsm_info[gunno].base.run_mode == APP_RUN_MODE_PLUG_AND_PLAY){
             LOG_D("gunno(%d) start charge by plug and play", gunno);
@@ -2713,6 +2717,9 @@ static void ofsm_readying_fun(uint8_t gunno)
                     s_ofsm_info[gunno].base.flag.is_oncard_reservated = APP_THA_ENUM_FALSE;
                     app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
                 }
+#if (defined(APP_USING_LV_MODULE_BMS) && defined(APP_USING_OFFLINE_BILLING))
+                mw_enable_auxiliary_power(gunno);
+#endif /* (defined(APP_USING_LV_MODULE_BMS) && defined(APP_USING_OFFLINE_BILLING)) */
                 s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_STARTING];
                 s_ofsm_info[gunno].state = APP_OFSM_STATE_STARTING;
             }
@@ -2725,6 +2732,9 @@ static void ofsm_readying_fun(uint8_t gunno)
                     s_ofsm_info[gunno].base.flag.is_oncard_reservated = APP_THA_ENUM_FALSE;
                     app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
                 }
+#if (defined(APP_USING_LV_MODULE_BMS) && defined(APP_USING_OFFLINE_BILLING))
+                mw_enable_auxiliary_power(gunno);
+#endif /* (defined(APP_USING_LV_MODULE_BMS) && defined(APP_USING_OFFLINE_BILLING)) */
                 s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_STARTING];
                 s_ofsm_info[gunno].state = APP_OFSM_STATE_STARTING;
             }
@@ -2752,6 +2762,9 @@ static void ofsm_readying_fun(uint8_t gunno)
                         s_ofsm_info[gunno].base.flag.is_oncard_reservated = APP_THA_ENUM_FALSE;
                         app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
                     }
+#if (defined(APP_USING_LV_MODULE_BMS) && defined(APP_USING_OFFLINE_BILLING))
+                    mw_enable_auxiliary_power(gunno);
+#endif /* (defined(APP_USING_LV_MODULE_BMS) && defined(APP_USING_OFFLINE_BILLING)) */
                     s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_STARTING];
                     s_ofsm_info[gunno].state = APP_OFSM_STATE_STARTING;
                 }
@@ -2763,6 +2776,9 @@ static void ofsm_readying_fun(uint8_t gunno)
                     s_ofsm_info[gunno].base.flag.is_oncard_reservated = APP_THA_ENUM_FALSE;
                     app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
                 }
+#if (defined(APP_USING_LV_MODULE_BMS) && defined(APP_USING_OFFLINE_BILLING))
+                mw_enable_auxiliary_power(gunno);
+#endif /* (defined(APP_USING_LV_MODULE_BMS) && defined(APP_USING_OFFLINE_BILLING)) */
                 s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_STARTING];
                 s_ofsm_info[gunno].state = APP_OFSM_STATE_STARTING;
             }
@@ -3287,6 +3303,9 @@ static void ofsm_reservation_fun(uint8_t gunno)
                     s_ofsm_info[gunno].base.flag.is_reser_normal_started = APP_THA_ENUM_FALSE;
                 }
             }
+#if (defined(APP_USING_LV_MODULE_BMS) && defined(APP_USING_OFFLINE_BILLING))
+            mw_enable_auxiliary_power(gunno);
+#endif /* (defined(APP_USING_LV_MODULE_BMS) && defined(APP_USING_OFFLINE_BILLING)) */
             s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_STARTING];
             s_ofsm_info[gunno].state = APP_OFSM_STATE_STARTING;
         }
@@ -3788,6 +3807,7 @@ static void ofsm_starting_fun(uint8_t gunno)
         if(abs((sampling_voltage - module_voltage) < APP_FORCE_BOOT_PRECHARGE_VOLTAGE_THRESHOLD) && (sampling_voltage >APP_FORCE_BOOT_PRECHARGE_SAMPLING_VOLTAGE_MIN)){
             mw_enable_dcrelay(gunno);    /** 闭合继电器 */
             charge_state = APP_CHARGE_STATE_CHARGING;
+            app_bms_lv_start_charge(gunno);
         }
     }
     /** 启动超时 */
@@ -6781,6 +6801,7 @@ static void ofsm_stoping_fun(uint8_t gunno)
         /* 断开继电器 */
         mw_disable_dcrelay(gunno);
         module_is_close = APP_THA_ENUM_TRUE;
+        mw_disable_auxiliary_power(gunno);
     }
 #endif /* ((defined(APP_USING_NO_BMS) || defined(APP_USING_LV_MODULE_BMS)) && defined(APP_USING_OFFLINE_BILLING)) */
 
@@ -7642,7 +7663,9 @@ static void ofsm_finishing_fun(uint8_t gunno)
             thaisen_reset_gun_running_mode(gunno);   /** V2G放电是单次充电有效，二次启动是要复位枪运行模式 */
 #endif /* APP_INCLUDE_V2G */
             ofsm_start_info_padding_public(gunno);
-
+#if (defined(APP_USING_LV_MODULE_BMS) && defined(APP_USING_OFFLINE_BILLING))
+            mw_enable_auxiliary_power(gunno);
+#endif /* (defined(APP_USING_LV_MODULE_BMS) && defined(APP_USING_OFFLINE_BILLING)) */
             s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_STARTING];
             s_ofsm_info[gunno].state = APP_OFSM_STATE_STARTING;
         }
@@ -7929,7 +7952,9 @@ static void ofsm_faulting_fun(uint8_t gunno)
                     thaisen_request_screen_time();
 #endif
                     ofsm_start_info_padding_public(gunno);
-
+#if (defined(APP_USING_LV_MODULE_BMS) && defined(APP_USING_OFFLINE_BILLING))
+                    mw_enable_auxiliary_power(gunno);
+#endif /* (defined(APP_USING_LV_MODULE_BMS) && defined(APP_USING_OFFLINE_BILLING)) */
                     s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_STARTING];
                     s_ofsm_info[gunno].state = APP_OFSM_STATE_STARTING;
                 }
