@@ -51,19 +51,37 @@ struct thaisenBMS_Charger_struct* mw_get_bms_data(uint8_t gunno)
     return NULL;
 }
 
-void mw_open_auxiliary_power(void)
+void mw_enable_auxiliary_power(uint8_t gunno)
 {
-    thaisenAux_Enable();
+    if(gunno < APP_SYSTEM_GUNNO_SIZE){
+        if(gunno == APP_SYSTEM_GUNNOA){
+            thaisen_auxPower_on_A();
+        }else{
+            thaisen_auxPower_on_B();
+        }
+    }
 }
 
-void mw_close_auxiliary_power(void)
+void mw_disable_auxiliary_power(uint8_t gunno)
 {
-    thaisenAux_Disable();
+    if(gunno < APP_SYSTEM_GUNNO_SIZE){
+        if(gunno == APP_SYSTEM_GUNNOA){
+            thaisen_auxPower_off_A();
+        }else{
+            thaisen_auxPower_off_B();
+        }
+    }
 }
 
-enum aux_state_t mw_get_auxiliary_power_state(void)
+enum aux_state_t mw_get_auxiliary_power_state(uint8_t gunno)
 {
-    return (enum aux_state_t)thaisenGetAuxStatus();
+    if(gunno < APP_SYSTEM_GUNNO_SIZE){
+        if(gunno == APP_SYSTEM_GUNNOA){
+            thaisenGetAux_A_Status();
+        }else{
+            thaisenGetAux_B_Status();
+        }
+    }
 }
 
 #if 0

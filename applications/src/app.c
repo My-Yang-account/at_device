@@ -33,11 +33,11 @@
 #define APP_THREAD_MONITOR_DEBUG
 #define APP_THREAD_ENTRY_PERIOD         15000   /** 线程不正常超过一定时长(ms)，容忍次数加1(这个时间需要参考看门狗复位时间) */
 
-#if (defined(USING_TCU_CAN) && (!defined(CP_USING_LV_MODULE_BMS)))
+#ifdef USING_TCU_CAN
 #define APP_CAN_THREAD                  2       /* 监控 CAN 线程 */
 #else
 #define APP_CAN_THREAD                  0       /* 监控 CAN 线程 */
-#endif /* (defined(USING_TCU_CAN) && (!defined(CP_USING_LV_MODULE_BMS))) */
+#endif /* USING_TCU_CAN */
 
 #ifdef CP_CONFIG_USING_DUPU
 #define APP_DUPU_THREAD                 2       /* 监控 杜普 线程 */
@@ -102,13 +102,13 @@ APP_DEF_SRAM1 static struct rt_thread terminal_req_thread;
 APP_DEF_SRAM0 static rt_uint8_t terminal_req_thread_stack[1024];
 #endif /* CP_CONFIG_USING_DUPU */
 
-#if (defined(USING_TCU_CAN) && (!defined(CP_USING_LV_MODULE_BMS)))
+#ifdef USING_TCU_CAN
 APP_DEF_SRAM1 static struct rt_thread tcan_send_thread;
 APP_DEF_SRAM0 static rt_uint8_t tcan_send_thread_stack[1024];
 
 APP_DEF_SRAM1 static struct rt_thread tcan_recv_thread;
 APP_DEF_SRAM0 static rt_uint8_t tcan_recv_thread_stack[1024];
-#endif /* (defined(USING_TCU_CAN) && (!defined(CP_USING_LV_MODULE_BMS))) */
+#endif /* USING_TCU_CAN */
 
 #ifdef CP_USING_LV_MODULE_BMS
 APP_DEF_SRAM1 static struct rt_thread bms_lv_send_thread;
@@ -529,7 +529,7 @@ void app_init(void)
         app_thread_monitor_add(&osupport_thread, name, strlen((char*)name), APP_THREAD_MONITOR_OPT_NAME);
     }
 
-#if (defined(USING_TCU_CAN) && (!defined(CP_USING_LV_MODULE_BMS)))
+#ifdef USING_TCU_CAN
     result = rt_thread_init(&tcan_send_thread, "tcans",
             app_tcan_send_thread_entry, RT_NULL, &tcan_send_thread_stack, sizeof(tcan_send_thread_stack), 16, 10);
     if (RT_EOK == result) {
@@ -553,7 +553,7 @@ void app_init(void)
         memcpy(name, "tcanr", strlen("tcanr"));
         app_thread_monitor_add(&tcan_recv_thread, name, strlen((char*)name), APP_THREAD_MONITOR_OPT_NAME);
     }
-#endif /* (defined(USING_TCU_CAN) && (!defined(CP_USING_LV_MODULE_BMS))) */
+#endif /* USING_TCU_CAN */
 
 #ifdef CP_USING_LV_MODULE_BMS
     result = rt_thread_init(&bms_lv_send_thread, "bl_can",

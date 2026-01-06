@@ -18,8 +18,8 @@ extern "C" {
 #include "thaisenChargLib.h"
 
 enum aux_state_t{
-    AUXILIARY_POWER_STATE_CLOSE,
-    AUXILIARY_POWER_STATE_OPEN,
+    AUXILIARY_POWER_STATE_ENABLE,
+    AUXILIARY_POWER_STATE_DISABLE,
 };
 
 /** 充电状态 */
@@ -52,9 +52,9 @@ enum charge_state_t mw_get_charge_state(uint8_t gunno);
 
 struct thaisenBMS_Charger_struct* mw_get_bms_data(uint8_t gunno);
 
-void mw_open_auxiliary_power(void);
-void mw_close_auxiliary_power(void);
-enum aux_state_t mw_get_auxiliary_power_state(void);
+void mw_enable_auxiliary_power(uint8_t gunno);
+void mw_disable_auxiliary_power(uint8_t gunno);
+enum aux_state_t mw_get_auxiliary_power_state(uint8_t gunno);
 
 uint8_t mw_get_charge_library_state(uint8_t gunno);
 int16_t mw_get_bcp_voltage(uint8_t gunno);
