@@ -49,6 +49,7 @@ static void app_led_language_1(uint8_t gunno, uint32_t *time_base, uint32_t *_ti
         time_base[gunno] = tick;
     }
     _time[gunno] = tick - time_base[gunno];
+    mw_led_on_single(BLUE_LED, gunno);
 
     switch(ofsm->base.state.current){
     case APP_OFSM_STATE_IDLEING:
@@ -111,6 +112,7 @@ static void app_led_language_2(uint8_t gunno, uint32_t *time_base, uint32_t *_ti
         time_base[gunno] = tick;
     }
     _time[gunno] = tick - time_base[gunno];
+    mw_led_on_single(BLUE_LED, gunno);
 
     switch(ofsm->base.state.current){
     case APP_OFSM_STATE_IDLEING:
@@ -179,6 +181,8 @@ static void app_led_language_3(uint8_t gunno, uint32_t *time_base, uint32_t *_ti
         time_base[gunno] = tick;
     }
     _time[gunno] = tick - time_base[gunno];
+
+    mw_led_on_single(BLUE_LED, gunno);
 
     switch(ofsm->base.state.current){
     case APP_OFSM_STATE_IDLEING:
