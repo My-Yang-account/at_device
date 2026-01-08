@@ -6301,51 +6301,80 @@ static void ofsm_charging_fun(uint8_t gunno)
 
     }
     if(is_stop_charge_authorization == false){
-        uint8_t _charge_strategy = APP_CHARGE_STRATEGY_SIZE;
-        uint32_t _strategy_para = 0x00;
+        uint8_t main_charge_strategy = APP_CHARGE_STRATEGY_SIZE, sub_charge_strategy = APP_CHARGE_STRATEGY_SIZE;
+        uint32_t main_strategy_para = 0x00, sub_strategy_para = 0x00;
 
         /****************************************** 充电模式 ******************************************/
         if(s_ofsm_info[gunno].base.gun_running_mode == APP_GUN_RUNNING_MODE_CHARGE){
             /** 定时模式 */
             if((s_ofsm_info[gunno].base.charge_strategy == APP_CHARGE_STRATEGY_TIME) || (thaisen_get_current_charge_mode(gunno) == THAISEN_CHARGE_MODE_LIMIT_TIMING)){
-                _charge_strategy = APP_CHARGE_STRATEGY_TIME;
+                main_charge_strategy = APP_CHARGE_STRATEGY_TIME;
                 if(s_ofsm_info[gunno].base.charge_strategy == APP_CHARGE_STRATEGY_TIME){
-                    _strategy_para = s_ofsm_info[gunno].base.charge_strategy_para;
+                    main_strategy_para = s_ofsm_info[gunno].base.charge_strategy_para;
                 }
                 if(thaisen_get_current_charge_mode(gunno) == THAISEN_CHARGE_MODE_LIMIT_TIMING){
-                    if((_strategy_para == 0x00) || (_strategy_para > thaisen_get_charge_mode_parameter(gunno))){
-                        _strategy_para = thaisen_get_charge_mode_parameter(gunno) *60;
+                    if((main_strategy_para == 0x00) || (main_strategy_para > thaisen_get_charge_mode_parameter(gunno))){
+                        main_strategy_para = thaisen_get_charge_mode_parameter(gunno) *60;
                     }
                 }
             }
             /** 按电量模式 */
-            else if((s_ofsm_info[gunno].base.charge_strategy == APP_CHARGE_STRATEGY_ELECT) || (thaisen_get_current_charge_mode(gunno) == THAISEN_CHARGE_MODE_LIMIT_ELECT)){
-                _charge_strategy = APP_CHARGE_STRATEGY_ELECT;
-                if(s_ofsm_info[gunno].base.charge_strategy == APP_CHARGE_STRATEGY_ELECT){
-                    _strategy_para = s_ofsm_info[gunno].base.charge_strategy_para;
-                }
-                if(thaisen_get_current_charge_mode(gunno) == THAISEN_CHARGE_MODE_LIMIT_ELECT){
-                    if((_strategy_para == 0x00) || (_strategy_para > thaisen_get_charge_mode_parameter(gunno))){
-                        _strategy_para = thaisen_get_charge_mode_parameter(gunno);
+            if((s_ofsm_info[gunno].base.charge_strategy == APP_CHARGE_STRATEGY_ELECT) || (thaisen_get_current_charge_mode(gunno) == THAISEN_CHARGE_MODE_LIMIT_ELECT)){
+                if(main_charge_strategy == APP_CHARGE_STRATEGY_SIZE){
+                    main_charge_strategy = APP_CHARGE_STRATEGY_ELECT;
+                    if(s_ofsm_info[gunno].base.charge_strategy == APP_CHARGE_STRATEGY_ELECT){
+                        main_strategy_para = s_ofsm_info[gunno].base.charge_strategy_para;
+                    }
+                    if(thaisen_get_current_charge_mode(gunno) == THAISEN_CHARGE_MODE_LIMIT_ELECT){
+                        if((main_strategy_para == 0x00) || (main_strategy_para > thaisen_get_charge_mode_parameter(gunno))){
+                            main_strategy_para = thaisen_get_charge_mode_parameter(gunno);
+                        }
+                    }
+                }else if(sub_charge_strategy == APP_CHARGE_STRATEGY_SIZE){
+                    sub_charge_strategy = APP_CHARGE_STRATEGY_ELECT;
+                    if(s_ofsm_info[gunno].base.charge_strategy == APP_CHARGE_STRATEGY_ELECT){
+                        sub_strategy_para = s_ofsm_info[gunno].base.charge_strategy_para;
+                    }
+                    if(thaisen_get_current_charge_mode(gunno) == THAISEN_CHARGE_MODE_LIMIT_ELECT){
+                        if((sub_strategy_para == 0x00) || (sub_strategy_para > thaisen_get_charge_mode_parameter(gunno))){
+                            sub_strategy_para = thaisen_get_charge_mode_parameter(gunno);
+                        }
                     }
                 }
             }
             /** 按金额模式 */
-            else if((s_ofsm_info[gunno].base.charge_strategy == APP_CHARGE_STRATEGY_MONEY) || (thaisen_get_current_charge_mode(gunno) == THAISEN_CHARGE_MODE_LIMIT_MONEY)){
-                _charge_strategy = APP_CHARGE_STRATEGY_MONEY;
-                if(s_ofsm_info[gunno].base.charge_strategy == APP_CHARGE_STRATEGY_MONEY){
-                    _strategy_para = s_ofsm_info[gunno].base.charge_strategy_para;
-                }
-                if(thaisen_get_current_charge_mode(gunno) == THAISEN_CHARGE_MODE_LIMIT_MONEY){
-                    if((_strategy_para == 0x00) || (_strategy_para > thaisen_get_charge_mode_parameter(gunno))){
-                        _strategy_para = thaisen_get_charge_mode_parameter(gunno) *100;
+            if((s_ofsm_info[gunno].base.charge_strategy == APP_CHARGE_STRATEGY_MONEY) || (thaisen_get_current_charge_mode(gunno) == THAISEN_CHARGE_MODE_LIMIT_MONEY)){
+                if(main_charge_strategy == APP_CHARGE_STRATEGY_SIZE){
+                    main_charge_strategy = APP_CHARGE_STRATEGY_MONEY;
+                    if(s_ofsm_info[gunno].base.charge_strategy == APP_CHARGE_STRATEGY_MONEY){
+                        main_strategy_para = s_ofsm_info[gunno].base.charge_strategy_para;
+                    }
+                    if(thaisen_get_current_charge_mode(gunno) == THAISEN_CHARGE_MODE_LIMIT_MONEY){
+                        if((main_strategy_para == 0x00) || (main_strategy_para > thaisen_get_charge_mode_parameter(gunno))){
+                            main_strategy_para = thaisen_get_charge_mode_parameter(gunno) *100;
+                        }
+                    }
+                }else if(sub_charge_strategy == APP_CHARGE_STRATEGY_SIZE){
+                    sub_charge_strategy = APP_CHARGE_STRATEGY_MONEY;
+                    if(s_ofsm_info[gunno].base.charge_strategy == APP_CHARGE_STRATEGY_MONEY){
+                        sub_strategy_para = s_ofsm_info[gunno].base.charge_strategy_para;
+                    }
+                    if(thaisen_get_current_charge_mode(gunno) == THAISEN_CHARGE_MODE_LIMIT_MONEY){
+                        if((sub_strategy_para == 0x00) || (sub_strategy_para > thaisen_get_charge_mode_parameter(gunno))){
+                            sub_strategy_para = thaisen_get_charge_mode_parameter(gunno) *100;
+                        }
                     }
                 }
             }
             /** 按SOC模式 */
-            else if(s_ofsm_info[gunno].base.charge_strategy == APP_CHARGE_STRATEGY_SOC){
-                _charge_strategy = APP_CHARGE_STRATEGY_SOC;
-                _strategy_para = thaisen_get_charge_mode_parameter(gunno);
+            if(s_ofsm_info[gunno].base.charge_strategy == APP_CHARGE_STRATEGY_SOC){
+                if(main_charge_strategy == APP_CHARGE_STRATEGY_SIZE){
+                    main_charge_strategy = APP_CHARGE_STRATEGY_SOC;
+                    main_strategy_para = thaisen_get_charge_mode_parameter(gunno);
+                }else if(sub_charge_strategy == APP_CHARGE_STRATEGY_SIZE){
+                    sub_charge_strategy = APP_CHARGE_STRATEGY_SOC;
+                    sub_strategy_para = thaisen_get_charge_mode_parameter(gunno);
+                }
             }
         }
 #ifdef APP_INCLUDE_V2G
@@ -6353,28 +6382,58 @@ static void ofsm_charging_fun(uint8_t gunno)
         else if(s_ofsm_info[gunno].base.gun_running_mode == APP_GUN_RUNNING_MODE_V2G){
             /** 定时模式 */
             if(thaisen_get_current_v2g_mode(gunno) == THAISEN_V2G_MODE_LIMIT_TIMING){
-                _charge_strategy = APP_CHARGE_STRATEGY_TIME;
-                _strategy_para = thaisen_get_v2g_mode_parameter(gunno) *60;
+                if(main_charge_strategy == APP_CHARGE_STRATEGY_SIZE){
+                    main_charge_strategy = APP_CHARGE_STRATEGY_TIME;
+                    main_strategy_para = thaisen_get_v2g_mode_parameter(gunno) *60;
+                }else if(sub_charge_strategy == APP_CHARGE_STRATEGY_SIZE){
+                    sub_charge_strategy = APP_CHARGE_STRATEGY_TIME;
+                    sub_strategy_para = thaisen_get_v2g_mode_parameter(gunno) *60;
+                }
             }
             /** 按电量模式 */
-            else if(thaisen_get_current_v2g_mode(gunno) == THAISEN_V2G_MODE_LIMIT_ELECT){
-                _charge_strategy = APP_CHARGE_STRATEGY_ELECT;
-                _strategy_para = thaisen_get_v2g_mode_parameter(gunno);
+            if(thaisen_get_current_v2g_mode(gunno) == THAISEN_V2G_MODE_LIMIT_ELECT){
+                if(main_charge_strategy == APP_CHARGE_STRATEGY_SIZE){
+                    main_charge_strategy = APP_CHARGE_STRATEGY_ELECT;
+                    main_strategy_para = thaisen_get_v2g_mode_parameter(gunno);
+                }else if(sub_charge_strategy == APP_CHARGE_STRATEGY_SIZE){
+                    sub_charge_strategy = APP_CHARGE_STRATEGY_ELECT;
+                    sub_strategy_para = thaisen_get_v2g_mode_parameter(gunno);
+                }
             }
             /** 按金额模式 */
-            else if(thaisen_get_current_v2g_mode(gunno) == THAISEN_V2G_MODE_LIMIT_MONEY){
-                _charge_strategy = APP_CHARGE_STRATEGY_MONEY;
-                _strategy_para = thaisen_get_v2g_mode_parameter(gunno) *100;
+            if(thaisen_get_current_v2g_mode(gunno) == THAISEN_V2G_MODE_LIMIT_MONEY){
+                if(main_charge_strategy == APP_CHARGE_STRATEGY_SIZE){
+                    main_charge_strategy = APP_CHARGE_STRATEGY_MONEY;
+                    main_strategy_para = thaisen_get_v2g_mode_parameter(gunno) *100;
+                }else if(sub_charge_strategy == APP_CHARGE_STRATEGY_SIZE){
+                    sub_charge_strategy = APP_CHARGE_STRATEGY_MONEY;
+                    sub_strategy_para = thaisen_get_v2g_mode_parameter(gunno) *100;
+                }
             }
             /** 按SOC模式 */
             else if(thaisen_get_current_v2g_mode(gunno) == THAISEN_V2G_MODE_AUTO){
-                _charge_strategy = APP_CHARGE_STRATEGY_SOC;
-                _strategy_para = thaisen_get_v2g_mode_parameter(gunno);
+                if(main_charge_strategy == APP_CHARGE_STRATEGY_SIZE){
+                    main_charge_strategy = APP_CHARGE_STRATEGY_SOC;
+                    main_strategy_para = thaisen_get_v2g_mode_parameter(gunno);
+                }else if(sub_charge_strategy == APP_CHARGE_STRATEGY_SIZE){
+                    sub_charge_strategy = APP_CHARGE_STRATEGY_SOC;
+                    sub_strategy_para = thaisen_get_v2g_mode_parameter(gunno);
+                }
             }
         }
 #endif /* APP_INCLUDE_V2G */
-        if(_charge_strategy == APP_CHARGE_STRATEGY_TIME){
-            if(s_ofsm_info[gunno].base.charge_time >= _strategy_para){
+        if((main_charge_strategy == APP_CHARGE_STRATEGY_TIME) || (sub_charge_strategy == APP_CHARGE_STRATEGY_TIME)){
+            uint32_t _fin_para = 0x00;
+            if(main_charge_strategy == sub_charge_strategy){
+                _fin_para = main_charge_strategy;
+                _fin_para = _fin_para > sub_charge_strategy ? sub_charge_strategy : _fin_para;
+            }else if(main_charge_strategy == APP_CHARGE_STRATEGY_TIME){
+                _fin_para = main_strategy_para;
+            }else {
+                _fin_para = sub_strategy_para;
+            }
+
+            if(s_ofsm_info[gunno].base.charge_time >= _fin_para){
                 if(((s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD) && (s_ofsm_info[gunno].base.main_gunno == gunno)) ||
                         (s_ofsm_info[gunno].base.charge_way != APP_CHARGE_WAY_PARACHARGE_CLOUD)){
                     s_thaisen_transaction[gunno].stop_reason = APP_SYSTEM_STOP_WAY_REACH_TIME;
@@ -6386,8 +6445,17 @@ static void ofsm_charging_fun(uint8_t gunno)
                 }
             }
         }
-        if(_charge_strategy == APP_CHARGE_STRATEGY_ELECT){
+        if((main_charge_strategy == APP_CHARGE_STRATEGY_ELECT) || (sub_charge_strategy == APP_CHARGE_STRATEGY_ELECT)){
             uint32_t _elect = s_ofsm_info[gunno].base.elect_a;
+            uint32_t _fin_para = 0x00;
+            if(main_charge_strategy == sub_charge_strategy){
+                _fin_para = main_charge_strategy;
+                _fin_para = _fin_para > sub_charge_strategy ? sub_charge_strategy : _fin_para;
+            }else if(main_charge_strategy == APP_CHARGE_STRATEGY_ELECT){
+                _fin_para = main_strategy_para;
+            }else {
+                _fin_para = sub_strategy_para;
+            }
 
             if(s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
                 uint8_t another_gun = APP_SYSTEM_GUNNOA;
@@ -6396,7 +6464,7 @@ static void ofsm_charging_fun(uint8_t gunno)
                 }
                 _elect += s_ofsm_info[another_gun].base.elect_a;
             }
-            if(_elect >= _strategy_para){
+            if(_elect >= _fin_para){
                 if(((s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD) && (s_ofsm_info[gunno].base.main_gunno == gunno)) ||
                         (s_ofsm_info[gunno].base.charge_way != APP_CHARGE_WAY_PARACHARGE_CLOUD)){
                     s_thaisen_transaction[gunno].stop_reason = APP_SYSTEM_STOP_WAY_REACH_ELECT;
@@ -6404,16 +6472,26 @@ static void ofsm_charging_fun(uint8_t gunno)
                     s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_FALSE;
 
                     is_stop_charge_authorization = true;
-                    LOG_D("gunno(%d) charge finish deal to reach target elect(%d, %d)\n", gunno, _elect, _strategy_para);
+                    LOG_D("gunno(%d) charge finish deal to reach target elect(%d, %d)\n", gunno, _elect, _fin_para);
                 }
             }
         }
-        if(_charge_strategy == APP_CHARGE_STRATEGY_MONEY){
+        if((main_charge_strategy == APP_CHARGE_STRATEGY_MONEY) || (sub_charge_strategy == APP_CHARGE_STRATEGY_MONEY)){
 #if ((defined(APP_USING_NO_BMS) || defined(APP_USING_LV_MODULE_BMS)) && defined(APP_USING_OFFLINE_BILLING))
             uint32_t _money = s_ofsm_info[gunno].base.elect_a;
 #else
             uint32_t _money = s_ofsm_info[gunno].base.fees_total;
 #endif /* ((defined(APP_USING_NO_BMS) || defined(APP_USING_LV_MODULE_BMS)) && defined(APP_USING_OFFLINE_BILLING)) */
+            uint32_t _fin_para = 0x00;
+            if(main_charge_strategy == sub_charge_strategy){
+                _fin_para = main_charge_strategy;
+                _fin_para = _fin_para > sub_charge_strategy ? sub_charge_strategy : _fin_para;
+            }else if(main_charge_strategy == APP_CHARGE_STRATEGY_MONEY){
+                _fin_para = main_strategy_para;
+            }else {
+                _fin_para = sub_strategy_para;
+            }
+
             if(s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
                 uint8_t another_gun = APP_SYSTEM_GUNNOA;
                 if(gunno == APP_SYSTEM_GUNNOA){
@@ -6428,7 +6506,7 @@ static void ofsm_charging_fun(uint8_t gunno)
 #if ((defined(APP_USING_NO_BMS) || defined(APP_USING_LV_MODULE_BMS)) && defined(APP_USING_OFFLINE_BILLING))
             if((_money + 1000) > _strategy_para){
 #else
-            if((_money + 10000) > _strategy_para){
+            if((_money + 10000) > _fin_para){
 #endif /* ((defined(APP_USING_NO_BMS) || defined(APP_USING_LV_MODULE_BMS)) && defined(APP_USING_OFFLINE_BILLING)) */
                 if(((s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD) && (s_ofsm_info[gunno].base.main_gunno == gunno)) ||
                         (s_ofsm_info[gunno].base.charge_way != APP_CHARGE_WAY_PARACHARGE_CLOUD)){
@@ -6437,25 +6515,34 @@ static void ofsm_charging_fun(uint8_t gunno)
                     s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_FALSE;
 
                     is_stop_charge_authorization = true;
-                    LOG_D("gunno(%d) charge finish deal to reach target money(%d, %d)\n", gunno, _strategy_para, _money);
+                    LOG_D("gunno(%d) charge finish deal to reach target money(%d, %d)\n", gunno, _fin_para, _money);
                 }
             }
         }
-        if(_charge_strategy == APP_CHARGE_STRATEGY_SOC){
+        if((main_charge_strategy == APP_CHARGE_STRATEGY_SOC) || (sub_charge_strategy == APP_CHARGE_STRATEGY_SOC)){
             if(((s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD) && (s_ofsm_info[gunno].base.main_gunno == gunno)) ||
                     (s_ofsm_info[gunno].base.charge_way != APP_CHARGE_WAY_PARACHARGE_CLOUD)){
                 uint8_t reach_target = APP_THA_ENUM_FALSE;
+                uint32_t _fin_para = 0x00;
+                if(main_charge_strategy == sub_charge_strategy){
+                    _fin_para = main_charge_strategy;
+                    _fin_para = _fin_para > sub_charge_strategy ? sub_charge_strategy : _fin_para;
+                }else if(main_charge_strategy == APP_CHARGE_STRATEGY_SOC){
+                    _fin_para = main_strategy_para;
+                }else {
+                    _fin_para = sub_strategy_para;
+                }
 
                 /****************************************** 充电模式 ******************************************/
                 if(s_ofsm_info[gunno].base.gun_running_mode == APP_GUN_RUNNING_MODE_CHARGE){
-                    if((s_ofsm_info[gunno].base.current_soc >= _strategy_para) && (_strategy_para != 100)){
+                    if((s_ofsm_info[gunno].base.current_soc >= _fin_para) && (_fin_para != 100)){
                         reach_target = APP_THA_ENUM_TRUE;
                     }
                 }
 #ifdef APP_INCLUDE_V2G
                 /****************************************** 放电模式 ******************************************/
                 else if(s_ofsm_info[gunno].base.gun_running_mode == APP_GUN_RUNNING_MODE_V2G){
-                    if(s_ofsm_info[gunno].base.current_soc <= _strategy_para){
+                    if(s_ofsm_info[gunno].base.current_soc <= _fin_para){
                         reach_target = APP_THA_ENUM_TRUE;
                     }
                 }
@@ -6466,7 +6553,7 @@ static void ofsm_charging_fun(uint8_t gunno)
                     s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_FALSE;
 
                     is_stop_charge_authorization = true;
-                    LOG_D("gunno(%d) charge finish deal to reach target SOC(%d, %d)\n", gunno, s_ofsm_info[gunno].base.current_soc, _strategy_para);
+                    LOG_D("gunno(%d) charge finish deal to reach target SOC(%d, %d)\n", gunno, s_ofsm_info[gunno].base.current_soc, _fin_para);
                 }
             }
         }
