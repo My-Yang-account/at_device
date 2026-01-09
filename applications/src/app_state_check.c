@@ -1066,7 +1066,7 @@ int32_t app_state_check_init(void)
         s_state_device[i].pararealy_2_neg_status = THAISEN_DEVICE_OPT_RELEASE;
         s_state_device[i].pararealy_2_pos_status = THAISEN_DEVICE_OPT_RELEASE;
     }
-
+    s_module_inpower_enable = 0x00;
     memset(s_state_check, 0x00, sizeof(s_state_check));
     /** 创建线程 */
     if(rt_thread_init(&scheck_thread, "scheck", state_check_thread_entry, NULL, &scheck_thread_stack, sizeof(scheck_thread_stack), 13, 10) != RT_EOK){
