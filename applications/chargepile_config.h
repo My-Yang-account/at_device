@@ -309,24 +309,24 @@
 #define GUNVOLT_LIMIT_VALUE_MAX                   600 *100  /* 枪头电压最大值 */
 
 #define MODULE_RATED_OUTVOLT_DEF                  750       /* 模块额定输出电压默认值值 */
-#define MODULE_RATED_OUTVOLT_MAX                  1200      /* 模块额定输出电压最大值 */
-#define MODULE_RATED_OUTVOLT_MIN                  500       /* 模块额定输出电压最小值 */
+#define MODULE_RATED_OUTVOLT_MAX                  2000      /* 模块额定输出电压最大值 */
+#define MODULE_RATED_OUTVOLT_MIN                  1         /* 模块额定输出电压最小值 */
 
 #define CHARGEPILE_MAX_OUTVOLT_DEF                750       /* 桩最大输出电压默认值值 */
-#define CHARGEPILE_MAX_OUTVOLT_MAX                1200      /* 桩最大输出电压最大值 */
-#define CHARGEPILE_MAX_OUTVOLT_MIN                500       /* 桩最大输出电压最小值 */
+#define CHARGEPILE_MAX_OUTVOLT_MAX                2000      /* 桩最大输出电压最大值 */
+#define CHARGEPILE_MAX_OUTVOLT_MIN                1         /* 桩最大输出电压最小值 */
 
 #define CHARGEPILE_MIN_OUTVOLT_DEF                200       /* 桩最小输出电压默认值值 */
-#define CHARGEPILE_MIN_OUTVOLT_MAX                300       /* 桩最小输出电压最大值 */
-#define CHARGEPILE_MIN_OUTVOLT_MIN                30       /* 桩最小输出电压最小值 */
+#define CHARGEPILE_MIN_OUTVOLT_MAX                1000      /* 桩最小输出电压最大值 */
+#define CHARGEPILE_MIN_OUTVOLT_MIN                1         /* 桩最小输出电压最小值 */
 
 #define MODULE_RATED_LIMIT_CURR_DEF               30        /* 模块额定限电流默认值值 */
 #define MODULE_RATED_LIMIT_CURR_MAX               150       /* 模块额定限电流最大值 */
-#define MODULE_RATED_LIMIT_CURR_MIN               10        /* 模块额定限电流最小值 */
+#define MODULE_RATED_LIMIT_CURR_MIN               1         /* 模块额定限电流最小值 */
 
 #define MODULE_MAX_LIMIT_CURR_DEF                 500       /* 模块最大限电流默认值值 */
 #define MODULE_MAX_LIMIT_CURR_MAX                 1500      /* 模块最大限电流最大值 */
-#define MODULE_MAX_LIMIT_CURR_MIN                 10        /* 模块最大限电流最小值 */
+#define MODULE_MAX_LIMIT_CURR_MIN                 1         /* 模块最大限电流最小值 */
 
 #define MODULE_MIN_LIMIT_CURR_DEF                 2         /* 模块最小限电流默认值(要和模块库的兼容) */
 #define MODULE_MIN_LIMIT_CURR_MAX                 10        /* 模块最小限电流最大值(要和模块库的兼容) */
