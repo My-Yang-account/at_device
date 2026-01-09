@@ -6313,7 +6313,7 @@ static void ofsm_charging_fun(uint8_t gunno)
                     main_strategy_para = s_ofsm_info[gunno].base.charge_strategy_para;
                 }
                 if(thaisen_get_current_charge_mode(gunno) == THAISEN_CHARGE_MODE_LIMIT_TIMING){
-                    if((main_strategy_para == 0x00) || (main_strategy_para > thaisen_get_charge_mode_parameter(gunno))){
+                    if((main_strategy_para == 0x00) || (main_strategy_para > (thaisen_get_charge_mode_parameter(gunno) *60))){
                         main_strategy_para = thaisen_get_charge_mode_parameter(gunno) *60;
                     }
                 }
@@ -6350,7 +6350,7 @@ static void ofsm_charging_fun(uint8_t gunno)
                         main_strategy_para = s_ofsm_info[gunno].base.charge_strategy_para;
                     }
                     if(thaisen_get_current_charge_mode(gunno) == THAISEN_CHARGE_MODE_LIMIT_MONEY){
-                        if((main_strategy_para == 0x00) || (main_strategy_para > thaisen_get_charge_mode_parameter(gunno))){
+                        if((main_strategy_para == 0x00) || (main_strategy_para > (thaisen_get_charge_mode_parameter(gunno) *100))){
                             main_strategy_para = thaisen_get_charge_mode_parameter(gunno) *100;
                         }
                     }
@@ -6360,7 +6360,7 @@ static void ofsm_charging_fun(uint8_t gunno)
                         sub_strategy_para = s_ofsm_info[gunno].base.charge_strategy_para;
                     }
                     if(thaisen_get_current_charge_mode(gunno) == THAISEN_CHARGE_MODE_LIMIT_MONEY){
-                        if((sub_strategy_para == 0x00) || (sub_strategy_para > thaisen_get_charge_mode_parameter(gunno))){
+                        if((sub_strategy_para == 0x00) || (sub_strategy_para > (thaisen_get_charge_mode_parameter(gunno) *100))){
                             sub_strategy_para = thaisen_get_charge_mode_parameter(gunno) *100;
                         }
                     }
@@ -6441,7 +6441,7 @@ static void ofsm_charging_fun(uint8_t gunno)
                     s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_FALSE;
 
                     is_stop_charge_authorization = true;
-                    LOG_D("gunno(%d) charge finish deal to reach target time(%d, %d)\n", gunno, s_ofsm_info[gunno].base.charge_time, _strategy_para);
+                    LOG_D("gunno(%d) charge finish deal to reach target time(%d, %d)\n", gunno, s_ofsm_info[gunno].base.charge_time, _fin_para);
                 }
             }
         }
