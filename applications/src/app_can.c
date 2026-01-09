@@ -33,6 +33,7 @@
 #endif /* USING_TCU_CAN */
 
 #ifdef CP_USING_LV_MODULE_BMS
+#define APP_LV_MODULE_BMS_MSG_ID_0x309         0x309            /* 0x309报文ID */
 #define APP_LV_MODULE_BMS_MSG_ID_0x3F1         0x3F1            /* 0x3F1报文ID */
 #define APP_LV_MODULE_BMS_MSG_ID_0x3F3         0x3F3            /* 0x3F3报文ID */
 
@@ -575,6 +576,9 @@ uint8_t app_charge_mode_is_changed(void)
 }
 
 /********************************************************** 带BMS 的低压模块 **********************************************************/
+#ifdef CP_USING_LV_MODULE_BMS
+static void app_bms_lv_msg_process(uint8_t gunno, can_msg_buf *msg);
+#endif /* CP_USING_LV_MODULE_BMS */
 /*************************************
  * 函数名       app_bsm_a_can_cb
  * 功能           BMS A can 接收回调
@@ -588,6 +592,9 @@ static void app_bsm_a_can_cb(can_msg_buf *msg)
         struct ofsm_info *ofsm = get_ofsm_info(APP_SYSTEM_GUNNOA);
         ofsm->base.flag.recved_paracharge_identify_id = APP_THA_ENUM_TRUE;
     }
+#ifdef CP_USING_LV_MODULE_BMS
+    app_bms_lv_msg_process(APP_SYSTEM_GUNNOA, msg);
+#endif /* CP_USING_LV_MODULE_BMS */
 }
 
 /*************************************
@@ -604,13 +611,16 @@ static void app_bsm_b_can_cb(can_msg_buf *msg)
         struct ofsm_info *ofsm = get_ofsm_info(APP_SYSTEM_GUNNOB);
         ofsm->base.flag.recved_paracharge_identify_id = APP_THA_ENUM_TRUE;
     }
+#ifdef CP_USING_LV_MODULE_BMS
+    app_bms_lv_msg_process(APP_SYSTEM_GUNNOB, msg);
+#endif /* CP_USING_LV_MODULE_BMS */
 #endif /* APP_USING_DOUBLEGUN */
 }
 
 #ifdef CP_USING_LV_MODULE_BMS
 /*************************************************
  * 函数名           app_bms_lv_is_fault_occured
- * 供能               判断故障是否发生
+ * 功能               判断故障是否发生
  * 参数              f        故障集体
  *         code     故障码
  * 返回              1：是      0：否
@@ -626,8 +636,39 @@ static uint8_t app_bms_lv_check_sum(const uint8_t *data, uint8_t dlen)
 }
 
 /*************************************************
+ * 函数名           app_bms_lv_msg_process
+ * 功能               接收报文处理
+ * 参数              gunno        枪号
+ *         msg          报文信息
+ * 返回
+ ************************************************/
+static void app_bms_lv_msg_process(uint8_t gunno, can_msg_buf *msg)
+{
+    if((gunno >= APP_SYSTEM_GUNNO_SIZE) || (msg == NULL)){
+        return;
+    }
+#if 0
+    /** 数据校验 */
+    if(msg->data[0x07] != app_bms_lv_check_sum((const uint8_t*)(msg->data), (sizeof(msg->data) - 0x01))){
+        return;
+    }
+#endif
+    /** BMS报文 */
+    if(msg->CANID == APP_LV_MODULE_BMS_MSG_ID_0x309){
+        /** 电池充电指令 */
+        s_bms_app_info[gunno].cmd = (msg->data[0x00] &0x03);
+        /** 目标充电电流 */
+        s_bms_app_info[gunno].target_curr = (msg->data[0x02] |(msg->data[0x03] <<0x08));
+        /** 目标充电电压 */
+        s_bms_app_info[gunno].target_volt = (msg->data[0x04] |(msg->data[0x05] <<0x08));
+        /** 循环计数 */
+        s_bms_app_info[gunno].counter = (msg->data[0x06] &0x0F);
+    }
+}
+
+/*************************************************
  * 函数名           app_bms_lv_is_fault_occured
- * 供能               判断故障是否发生
+ * 功能               判断故障是否发生
  * 参数              f        故障集体
  *         code     故障码
  * 返回              1：是      0：否
@@ -645,7 +686,7 @@ static uint8_t app_bms_lv_is_fault_occured(uint32_t *f, uint8_t code)
 }
 /*************************************************
  * 函数名           app_bms_lv_msg_0x0F1_padding
- * 供能               填充0x3F1报文
+ * 功能               填充0x3F1报文
  * 参数              gunno    枪号
  *         msg      指向报文体
  * 返回
@@ -661,7 +702,6 @@ static void app_bms_lv_msg_0x0F1_padding(uint8_t gunno, can_msg_buf *msg)
 
     msg->CANID = APP_LV_MODULE_BMS_MSG_ID_0x3F1;
     msg->length = APP_LV_MODULE_BMS_MSG_LEN_0x3F1;
-    msg->IDE = APP_LV_MODULE_BMS_MSG_TYPE_0x3F1;
     /****************************** 工作模式 ******************************/
     switch(ofsm->state){
     case APP_OFSM_STATE_WAIT_NET:
@@ -738,41 +778,10 @@ static void app_bms_lv_msg_0x0F1_padding(uint8_t gunno, can_msg_buf *msg)
     /** 校验和 */
     msg_0x3F1->check = app_bms_lv_check_sum((const uint8_t*)msg_0x3F1, (sizeof(charger_app_0x3F1) - 0x01));
 }
-#if 0
-typedef struct{
-    uint32_t work_mode : 2;                                     /** 工作模式  sbit:0 */
-    uint32_t f_rank : 2;                                        /** 故障等级  sbit:2 */
-    uint32_t f_hardware : 1;                                    /** 硬件故障  sbit:4 */
-    uint32_t f_ot : 1;                                          /** 桩过温故障  sbit:5 */
-    uint32_t f_reverse : 1;                                     /** 电池反接故障  sbit:6 */
-    uint32_t f_communicate : 1;                                 /** 通讯故障  sbit:7 */
-    uint32_t reserve0 : 8;                                      /** 预留  sbit:8 */
-    uint32_t out_current : 16;                                  /** 实际输出电流(0.01A)  sbit:16 */
-    uint32_t out_voltage : 16;                                  /** 实际输出电压(0.01V)  sbit:32 */
-    uint32_t elock_state : 1;                                   /** 电子锁状态  sbit:40 */
-    uint32_t clinker_state : 2;                                 /** 充电连接器状态  sbit:41 */
-    uint32_t f_in_uv : 1;                                       /** 输入欠压故障  sbit:43 */
-    uint32_t f_in_ov : 1;                                       /** 输入过压故障  sbit:44 */
-    uint32_t f_busbar_uv : 1;                                   /** 直流母线欠压故障  sbit:45 */
-    uint32_t f_busbar_ov : 1;                                   /** 直流母线过压故障  sbit:46 */
-    uint32_t f_busbar_oc : 1;                                   /** 直流母线过流故障  sbit:47 */
-    uint32_t f_out_shorts : 1;                                  /** 输出短路故障  sbit:48 */
-    uint32_t f_boot_timeout : 1;                                /** 启动超时  sbit:49 */
-    uint32_t f_fan : 1;                                         /** 风扇故障  sbit:50 */
-    uint32_t counter : 4;                                       /** 循环计数  sbit:51 */
-    uint32_t reserve1 : 1;                                      /** 预留1  sbit:55 */
-    uint32_t check : 8;                                         /** 校验和  sbit:56 */
-}charger_app_0x3F1;
 
-#define APP_LV_MODULE_BMS_MSG_ID_0x3F1         0x3F1            /* 0x3F1报文ID */
-#define APP_LV_MODULE_BMS_MSG_ID_0x3F3         0x3F3            /* 0x3F3报文ID */
-
-#define APP_LV_MODULE_BMS_MSG_LEN_0x3F1        0x08             /* 0x3F1报文数据长度(B) */
-#define APP_LV_MODULE_BMS_MSG_LEN_0x3F3        0x08             /* 0x3F3报文数据长度(B) */
-#endif
 /*************************************************
  * 函数名           app_bms_lv_msg_0x0F3_padding
- * 供能               填充0x3F3报文
+ * 功能               填充0x3F3报文
  * 参数              gunno    枪号
  *         msg      指向报文体
  * 返回
@@ -784,10 +793,10 @@ static void app_bms_lv_msg_0x0F3_padding(uint8_t gunno, can_msg_buf *msg)
     }
     struct ofsm_info *ofsm = get_ofsm_info(gunno);
     charger_app_0x3F3 *msg_0x3F3 = (charger_app_0x3F3*)(msg->data);
+    uint32_t *f_pool = thaisenGetSysFault(gunno);
 
     msg->CANID = APP_LV_MODULE_BMS_MSG_ID_0x3F3;
     msg->length = APP_LV_MODULE_BMS_MSG_LEN_0x3F3;
-    msg->IDE = APP_LV_MODULE_BMS_MSG_TYPE_0x3F3;
     memset(msg->data, 0x00, sizeof(msg->data));
     /** 充电请求  */
     switch(ofsm->state){
@@ -824,40 +833,79 @@ static void app_bms_lv_msg_0x0F3_padding(uint8_t gunno, can_msg_buf *msg)
         msg_0x3F3->request_cmd = APP_CHARGER_LV_CMD_FAULTING;
         break;
     }
+    /** 急停故障 */
+    msg_0x3F3->f_emergency = APP_THA_ENUM_FALSE;
+    if(app_bms_lv_is_fault_occured(f_pool, thaisenFaultScram)){
+        msg_0x3F3->f_emergency = APP_THA_ENUM_TRUE;
+    }
+    /** 防雷器故障 */
+    msg_0x3F3->f_protect_lighting = APP_THA_ENUM_FALSE;
+    if(app_bms_lv_is_fault_occured(f_pool, thaisenFaultMainCabinet_LightProtect)){
+        msg_0x3F3->f_protect_lighting = APP_THA_ENUM_TRUE;
+    }
+    /** 绝缘外侧电压异常 */
+    msg_0x3F3->f_gun_volt = APP_THA_ENUM_FALSE;
+    /** 泄放故障 */
+    msg_0x3F3->f_relief = APP_THA_ENUM_FALSE;
+    /** 电子锁故障 */
+    msg_0x3F3->f_elock = APP_THA_ENUM_FALSE;
+    /** 交流输入缺相 */
+    msg_0x3F3->f_ac_miss_phase = APP_THA_ENUM_FALSE;
+    /** 绝缘故障 */
+    msg_0x3F3->f_insulation = APP_THA_ENUM_FALSE;
+    /** 控制导引故障 */
+    msg_0x3F3->f_guidance = APP_THA_ENUM_FALSE;
+    /** BMS需求电流过高 */
+    msg_0x3F3->f_need_oc = APP_THA_ENUM_FALSE;
+    /** 充电模块故障 */
+    msg_0x3F3->f_module = APP_THA_ENUM_FALSE;
+    if(app_bms_lv_is_fault_occured(f_pool, thaisenChargModule)){
+        msg_0x3F3->f_module = APP_THA_ENUM_TRUE;
+    }
+    /** 充电枪过温故障 */
+    msg_0x3F3->f_gun_ot = APP_THA_ENUM_FALSE;
+    if(app_bms_lv_is_fault_occured(f_pool, thaisenFaultOverTemp)){
+        msg_0x3F3->f_gun_ot = APP_THA_ENUM_TRUE;
+    }
+    /** BMS需求电压过高 */
+    msg_0x3F3->f_need_ov = APP_THA_ENUM_FALSE;
+    /** 直流接触器故障 */
+    msg_0x3F3->f_dcrelay = APP_THA_ENUM_FALSE;
+    if(app_bms_lv_is_fault_occured(f_pool, thaisenRelay)){
+        msg_0x3F3->f_dcrelay = APP_THA_ENUM_TRUE;
+    }
+    /** 软起外侧电压异常 */
+    msg_0x3F3->f_precharge_volt = APP_THA_ENUM_FALSE;
+    /** 辅组电源故障 */
+    msg_0x3F3->f_auxpower = APP_THA_ENUM_FALSE;
+    if(app_bms_lv_is_fault_occured(f_pool, thaisenAuxPower)){
+        msg_0x3F3->f_auxpower = APP_THA_ENUM_TRUE;
+    }
+    /** 交流断路器故障 */
+    msg_0x3F3->f_breaker = APP_THA_ENUM_FALSE;
+    if(app_bms_lv_is_fault_occured(f_pool, thaisenFaultCircuitBreaker)){
+        msg_0x3F3->f_breaker = APP_THA_ENUM_TRUE;
+    }
+    /** 门禁故障 */
+    msg_0x3F3->f_gate = APP_THA_ENUM_FALSE;
+    if(app_bms_lv_is_fault_occured(f_pool, thaisenDoor)){
+        msg_0x3F3->f_gate = APP_THA_ENUM_TRUE;
+    }
+    /** 掉电故障 */
+    msg_0x3F3->f_poweroff = APP_THA_ENUM_FALSE;
+    /** 交流接触器故障 */
+    msg_0x3F3->f_acrelay = APP_THA_ENUM_FALSE;
+    if(app_bms_lv_is_fault_occured(f_pool, thaisenRelayAc)){
+        msg_0x3F3->f_acrelay = APP_THA_ENUM_TRUE;
+    }
+    msg_0x3F3->reserve0 = 0x00;
+    msg_0x3F3->reserve1 = 0x00;
+    msg_0x3F3->reserve2 = 0x00;
     /** 循环计数  */
     msg_0x3F3->counter++;
     /** 校验和 */
     msg_0x3F3->check = app_bms_lv_check_sum((const uint8_t*)msg_0x3F3, (sizeof(charger_app_0x3F3) - 0x01));
 }
-#if 0
-typedef struct{
-    uint32_t request_cmd : 3;                                   /** 充电请求  sbit:0 */
-    uint32_t f_emergency : 1;                                   /** 急停故障  sbit:3 */
-    uint32_t f_protect_lighting : 1;                            /** 防雷器故障  sbit:4 */
-    uint32_t f_gun_volt : 1;                                    /** 枪头电压故障(绝缘前外侧电压)  sbit:5 */
-    uint32_t f_relief : 1;                                      /** 泄放故障  sbit:6 */
-    uint32_t f_elock : 1;                                       /** 电子锁故障  sbit:7 */
-    uint32_t f_ac_miss_phase : 1;                               /** 交流输入缺相  sbit:8 */
-    uint32_t f_insulation : 1;                                  /** 绝缘故障  sbit:9 */
-    uint32_t f_guidance : 1;                                    /** 控制导引故障  sbit:10 */
-    uint32_t f_need_oc : 1;                                     /** 需求电流过高  sbit:11 */
-    uint32_t f_module : 1;                                      /** 充电模块故障  sbit:12 */
-    uint32_t f_gun_ot : 1;                                      /** 枪头过温故障  sbit:13 */
-    uint32_t f_need_ov : 1;                                     /** BMS需求电压过高  sbit:14 */
-    uint32_t f_dcrelay : 1;                                     /** 直流接触器故障  sbit:15 */
-    uint32_t f_precharge_volt : 1;                              /** 软启前外侧电压异常  sbit:16 */
-    uint32_t f_auxpower : 1;                                    /** 辅助电源故障  sbit:17 */
-    uint32_t f_breaker : 1;                                     /** 交流断路器故障  sbit:18 */
-    uint32_t f_poweroff : 1;                                    /** 掉电故障  sbit:19 */
-    uint32_t f_gate : 1;                                        /** 门禁故障  sbit:20 */
-    uint32_t f_acrelay : 1;                                     /** 交流接触器故障  sbit:21 */
-    uint32_t reserve0 : 2;                                      /** 预留0  sbit:22 */
-    uint32_t reserve1 : 24;                                     /** 预留1  sbit:24 */
-    uint32_t counter : 4;                                       /** 循环计数器  sbit:48 */
-    uint32_t reserve2 : 4;                                      /** 预留2  sbit:48 */
-    uint32_t check : 8;                                         /** 校验和  sbit:56 */
-}charger_app_0x3F3;
-#endif
 
 void app_bms_lv_can_thread_entry(void *parameter)
 {
@@ -947,7 +995,7 @@ void app_bms_lv_can_thread_entry(void *parameter)
 
 /*************************************************
  * 函数名           app_bms_lv_get_target_volt
- * 供能               获取充电目标电压
+ * 功能               获取充电目标电压
  * 参数              gunno    枪号
  * 返回              充电目标电压(0.01V)
  ************************************************/
@@ -961,7 +1009,7 @@ uint16_t app_bms_lv_get_target_volt(uint8_t gunno)
 
 /*************************************************
  * 函数名           app_bms_lv_get_target_curr
- * 供能               获取充电目标电流
+ * 功能               获取充电目标电流
  * 参数              gunno    枪号
  * 返回              充电目标电压(0.01A)
  ************************************************/
@@ -975,7 +1023,7 @@ uint16_t app_bms_lv_get_target_curr(uint8_t gunno)
 
 /*************************************************
  * 函数名           app_bms_lv_get_cmd
- * 供能               获取充电指令
+ * 功能               获取充电指令
  * 参数              gunno    枪号
  * 返回              充电指令@bms_lv_cmd
  ************************************************/
@@ -989,7 +1037,7 @@ uint8_t app_bms_lv_get_cmd(uint8_t gunno)
 
 /*************************************************
  * 函数名           app_bms_lv_is_offline
- * 供能               判断BMS是否已离线
+ * 功能               判断BMS是否已离线
  * 参数              gunno    枪号
  * 返回              1：是    0：否
  ************************************************/
@@ -1003,7 +1051,7 @@ uint8_t app_bms_lv_is_offline(uint8_t gunno)
 
 /*************************************************
  * 函数名           app_bms_lv_start_charge
- * 供能               开始充电
+ * 功能               开始充电
  * 参数              gunno    枪号
  * 返回
  ************************************************/
@@ -1017,7 +1065,7 @@ void app_bms_lv_start_charge(uint8_t gunno)
 
 /*************************************************
  * 函数名           app_bms_lv_stop_charge
- * 供能               停止充电
+ * 功能               停止充电
  * 参数              gunno    枪号
  * 返回
  ************************************************/
@@ -1027,6 +1075,20 @@ void app_bms_lv_stop_charge(uint8_t gunno)
         return;
     }
     s_app_lv_bms_info.flag[gunno].is_starting = APP_THA_ENUM_FALSE;
+}
+
+/*************************************************
+ * 函数名           app_bms_lv_get_start_state
+ * 功能               获取启动状态
+ * 参数              gunno    枪号
+ * 返回              1：已启动      0：未启动
+ ************************************************/
+uint8_t app_bms_lv_get_start_state(uint8_t gunno)
+{
+    if(gunno >= APP_SYSTEM_GUNNO_SIZE){
+        return 0x00;
+    }
+    return s_app_lv_bms_info.flag[gunno].is_starting;
 }
 
 #endif /* CP_USING_LV_MODULE_BMS */
