@@ -3801,14 +3801,34 @@ static void ofsm_starting_fun(uint8_t gunno)
     /** 等待采样稳定 */
     if((rt_tick_get() - s_ofsm_info[gunno].base.parameter_steady_tick) > APP_FORCE_BOOT_PRECHARGE_SAMPLING_STEADY_TIME){
         int32_t sampling_voltage = mw_get_sampling_voltage(gunno), module_voltage = thaisen_get_module_voltage(gunno);
+#ifdef APP_USING_LV_MODULE_BMS
+        sampling_voltage = (app_bms_lv_get_target_volt(gunno) /10);
+        if(sampling_voltage > (*(uint16_t*)sys_read_config_item_content(CONFIG_ITEM_RATED_OUTPUT_VOLTAGE, 0x00) *10)){
+            sampling_voltage = (*(uint16_t*)sys_read_config_item_content(CONFIG_ITEM_RATED_OUTPUT_VOLTAGE, 0x00) *10);
+        }
+#endif /* APP_USING_LV_MODULE_BMS */
         /** 启动模块 */
         thaisen_open_charge_module(gunno, sampling_voltage, APP_FORCE_BOOT_PRECHARGE_CURRENT);
         /** 电压判定符合 */
         if(abs((sampling_voltage - module_voltage) < APP_FORCE_BOOT_PRECHARGE_VOLTAGE_THRESHOLD) && (sampling_voltage >APP_FORCE_BOOT_PRECHARGE_SAMPLING_VOLTAGE_MIN)){
             mw_enable_dcrelay(gunno);    /** 闭合继电器 */
+#ifndef APP_USING_LV_MODULE_BMS
             charge_state = APP_CHARGE_STATE_CHARGING;
+#else
             app_bms_lv_start_charge(gunno);
+#endif /* APP_USING_LV_MODULE_BMS */
         }
+#ifdef APP_USING_LV_MODULE_BMS
+        /** 已发启动指令 */
+        if(app_bms_lv_get_start_state(gunno)){
+            /** 判断BMS状态是否允许充电 */
+            if((app_bms_lv_get_cmd(gunno) == APP_BMSLV_CMD_SLOW_CHARGING) || (app_bms_lv_get_cmd(gunno) == APP_BMSLV_CMD_FAST_CHARGING)){
+                charge_state = APP_CHARGE_STATE_CHARGING;
+            }
+        }
+        /** BMS故障 */
+        if(app_bms_lv_get_cmd(gunno) == APP_BMSLV_CMD_CHARGING_FAULT);
+#endif /* APP_USING_LV_MODULE_BMS */
     }
     /** 启动超时 */
     if((rt_tick_get() - s_ofsm_info[gunno].base.parameter_steady_tick) > APP_FORCE_BOOT_BOOT_TIMEOUT){
@@ -5078,10 +5098,35 @@ static void ofsm_charging_fun(uint8_t gunno)
     /****************************************** 这是带BMS版本 ******************************************/
 #elif defined(APP_USING_LV_MODULE_BMS)
     {
-        uint16_t target_current = app_bms_lv_get_target_curr(gunno), target_voltage = app_bms_lv_get_target_volt(gunno);
+        uint8_t lv_another_gun = APP_SYSTEM_GUNNOA;
+        uint16_t target_current = app_bms_lv_get_target_curr(gunno), target_voltage = (app_bms_lv_get_target_volt(gunno) /10);
+        /** 电压限制 */
+        if(target_voltage > (*(uint16_t*)sys_read_config_item_content(CONFIG_ITEM_RATED_OUTPUT_VOLTAGE, 0x00) *10)){
+            target_voltage = (*(uint16_t*)sys_read_config_item_content(CONFIG_ITEM_RATED_OUTPUT_VOLTAGE, 0x00) *10);
+        }
+        /** 电流限制 */
+#ifdef APP_USING_DOUBLEGUN
+        /** 双枪 */
+        if(lv_another_gun == gunno){
+            lv_another_gun++;
+        }
+        /** 另一把枪也在充电，总电流均分 */
+        if((s_ofsm_info[lv_another_gun].state >= APP_OFSM_STATE_STARTING) && (s_ofsm_info[lv_another_gun].state <= APP_OFSM_STATE_CHARGING)){
+            if(target_current > ((*(uint16_t*)sys_read_config_item_content(CONFIG_ITEM_MAX_LIMIT_CURRENT, 0x00) *100) /APP_SYSTEM_GUNNO_SIZE)){
+                target_current = ((*(uint16_t*)sys_read_config_item_content(CONFIG_ITEM_MAX_LIMIT_CURRENT, 0x00) *100) /APP_SYSTEM_GUNNO_SIZE);
+            }
+        }
+        /** 单枪 */
+        else
+#endif /* APP_USING_DOUBLEGUN */
+        {
+            if(target_current > (*(uint16_t*)sys_read_config_item_content(CONFIG_ITEM_MAX_LIMIT_CURRENT, 0x00) *100)){
+                target_current = (*(uint16_t*)sys_read_config_item_content(CONFIG_ITEM_MAX_LIMIT_CURRENT, 0x00) *100);
+            }
+        }
         /** 启动模块 */
-        thaisen_open_charge_module(gunno, target_voltage, (target_current /10));
-        bms_info->BCL.BMSneedVolt = (target_voltage /10);
+        thaisen_open_charge_module(gunno, target_voltage, target_current);
+        bms_info->BCL.BMSneedVolt = target_voltage;
         bms_info->BCL.BMSneedCurlt = (target_current /10);
     }
 #endif /* APP_USING_NO_BMS */
@@ -6504,7 +6549,7 @@ static void ofsm_charging_fun(uint8_t gunno)
 #endif /* ((defined(APP_USING_NO_BMS) || defined(APP_USING_LV_MODULE_BMS)) && defined(APP_USING_OFFLINE_BILLING)) */
             }
 #if ((defined(APP_USING_NO_BMS) || defined(APP_USING_LV_MODULE_BMS)) && defined(APP_USING_OFFLINE_BILLING))
-            if((_money + 1000) > _strategy_para){
+            if((_money + 1000) > _fin_para){
 #else
             if((_money + 10000) > _fin_para){
 #endif /* ((defined(APP_USING_NO_BMS) || defined(APP_USING_LV_MODULE_BMS)) && defined(APP_USING_OFFLINE_BILLING)) */
@@ -6889,6 +6934,12 @@ static void ofsm_stoping_fun(uint8_t gunno)
         mw_disable_dcrelay(gunno);
         module_is_close = APP_THA_ENUM_TRUE;
         mw_disable_auxiliary_power(gunno);
+
+        s_ofsm_info[gunno].base.voltage_a = 0x00;
+        s_ofsm_info[gunno].base.current_a = 0x00;
+    }else{
+        s_ofsm_info[gunno].base.voltage_a = mw_get_meter_ua(gunno);
+        s_ofsm_info[gunno].base.current_a = (mw_get_meter_ia(gunno) /100);
     }
 #endif /* ((defined(APP_USING_NO_BMS) || defined(APP_USING_LV_MODULE_BMS)) && defined(APP_USING_OFFLINE_BILLING)) */
 
@@ -7413,6 +7464,10 @@ static void ofsm_finishing_fun(uint8_t gunno)
         s_debug_count[gunno] = 0;
         LOG_I("gunno(%d) finish state (%dV, S%d)...", gunno, mw_get_cc1_value(s_ofsm_info[gunno].base.cc1_state), charge_state);
     }
+#if (defined(APP_USING_LV_MODULE_BMS) && defined(APP_USING_OFFLINE_BILLING))
+    s_ofsm_info[gunno].base.voltage_a = 0x00;
+    s_ofsm_info[gunno].base.current_a = 0x00;
+#endif /* (defined(APP_USING_LV_MODULE_BMS) && defined(APP_USING_OFFLINE_BILLING)) */
 
     s_ofsm_info[gunno].base.flag.is_charge_complete = APP_THA_ENUM_TRUE;
     s_ofsm_info[gunno].base.flag.is_deputygun_stop = APP_THA_ENUM_FALSE;

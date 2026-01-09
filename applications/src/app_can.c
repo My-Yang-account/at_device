@@ -658,9 +658,9 @@ static void app_bms_lv_msg_process(uint8_t gunno, can_msg_buf *msg)
         /** 电池充电指令 */
         s_bms_app_info[gunno].cmd = (msg->data[0x00] &0x03);
         /** 目标充电电流 */
-        s_bms_app_info[gunno].target_curr = (msg->data[0x02] |(msg->data[0x03] <<0x08));
+        s_bms_app_info[gunno].target_curr = (msg->data[0x02] |(msg->data[0x01] <<0x08));
         /** 目标充电电压 */
-        s_bms_app_info[gunno].target_volt = (msg->data[0x04] |(msg->data[0x05] <<0x08));
+        s_bms_app_info[gunno].target_volt = (msg->data[0x04] |(msg->data[0x03] <<0x08));
         /** 循环计数 */
         s_bms_app_info[gunno].counter = (msg->data[0x06] &0x0F);
     }
@@ -812,7 +812,8 @@ static void app_bms_lv_msg_0x0F3_padding(uint8_t gunno, can_msg_buf *msg)
         if(s_app_lv_bms_info.flag[gunno].is_starting == APP_THA_ENUM_TRUE){
             msg_0x3F3->request_cmd = APP_CHARGER_LV_CMD_END_SELFCHECK;
         }else{
-            msg_0x3F3->request_cmd = APP_CHARGER_LV_CMD_SELFCHECK;
+//            msg_0x3F3->request_cmd = APP_CHARGER_LV_CMD_SELFCHECK;
+            msg_0x3F3->request_cmd = APP_CHARGER_LV_CMD_END_SELFCHECK;
         }
         break;
     case APP_OFSM_STATE_CHARGING:
