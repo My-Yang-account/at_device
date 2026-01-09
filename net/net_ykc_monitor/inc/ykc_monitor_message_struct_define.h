@@ -602,6 +602,10 @@ typedef struct{
         uint8_t net_link_type;                   /* 网络连接类型 */
         uint8_t sim_number[NET_YKC_MONITOR_SIM_BCD_LENGTH_DEFAULT];         /* SIM 卡卡号 */
         uint8_t operators;                       /* 运营商 */
+#ifdef NET_YKC_MONITOR_INCLUDE_NEW_MSG
+        uint8_t is_0xdb_new_msg;                 /* 是否是0xDB新报文  1：是   0：否 */
+        uint8_t db_msg_ver;                      /* 0xDB报文  版本(从0开始) */
+#endif /* NET_YKC_MONITOR_INCLUDE_NEW_MSG */
     }body;
     uint16_t check_sum;                          /* 校验码 */
 }Net_YkcMonitorPro_PReq_LogIn_t;

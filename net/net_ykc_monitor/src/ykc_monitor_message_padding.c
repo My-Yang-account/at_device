@@ -1604,6 +1604,10 @@ void ykc_monitor_message_field_init(uint8_t gun)
     g_ykc_monitor_preq_login.body.software_ver[2] = base->soft_ver_sub + '0';
     g_ykc_monitor_preq_login.body.software_ver[3] = '.';
     sprintf((char *)&g_ykc_monitor_preq_login.body.software_ver[3 + 1], "%c", (base->soft_ver_revise + 'A'));
+#ifdef NET_YKC_MONITOR_INCLUDE_NEW_MSG
+    g_ykc_monitor_preq_login.body.is_0xdb_new_msg = NET_ENUM_TRUE;
+    g_ykc_monitor_preq_login.body.db_msg_ver = YKC_MONITOR_CONFIG_INFO_MSG_VER;
+#endif /* NET_YKC_MONITOR_INCLUDE_NEW_MSG */
 
     g_ykc_monitor_preq_login.body.net_link_type = NET_YKC_MONITOR_NET_LINK_TYPE_SIM;
 
@@ -7501,13 +7505,37 @@ int8_t ykc_monitor_config_info_process(void *data, uint16_t dlen, void *buf, uin
              rbuf_len = (blen - sizeof(Net_YkcMonitorPro_Pres_QuerySet_ConfigInfo_t));
     Net_YkcMonitorPro_Sreq_QuerySet_ConfigInfo_t *request = (Net_YkcMonitorPro_Sreq_QuerySet_ConfigInfo_t*)data;
     Net_YkcMonitorPro_Pres_QuerySet_ConfigInfo_t *response = (Net_YkcMonitorPro_Pres_QuerySet_ConfigInfo_t*)buf;
+    struct ykcm_response_result *result = NULL;
 
-    if((request->body.info.option >= NETYKCM_CONFIG_INFO_OPTION_SIZE) || (request->body.info.option < 0x00) || \
-            (request->body.info.new_msg == NET_ENUM_FALSE) || (request->body.msg_ver < YKC_MONITOR_CONFIG_INFO_MSG_VER)){
-        LOG_E("ykcm config info process option error|%d", request->body.info.option);
-        return -0x01;
-    }
     memcpy(response, request, sizeof(Net_YkcMonitorPro_Pres_QuerySet_ConfigInfo_t));
+    response->body.info.new_msg = NET_ENUM_TRUE;
+    response->body.msg_ver = YKC_MONITOR_CONFIG_INFO_MSG_VER;
+
+    if((request->body.info.option >= NETYKCM_CONFIG_INFO_OPTION_SIZE) || (request->body.info.option < 0x00)){
+        LOG_E("ykcm config info process option error|%d", request->body.info.option);
+
+        result = (struct ykcm_response_result*)((uint8_t*)&response->body.msg_ver + 0x01);
+        result->result = 0x01;
+        result->fail_reason = (NETYKCM_CONFIG_RES_SYS_ASSERT_BASE + 0x00);
+        out_len += sizeof(struct ykcm_response_result);
+        if(olen){
+            *(uint16_t*)olen = out_len;
+        }
+        return 0x00;
+    }
+    if((request->body.info.option == NETYKCM_CONFIG_INFO_OPTION_SET) && \
+            ((request->body.info.new_msg == NET_ENUM_FALSE) || (request->body.msg_ver != YKC_MONITOR_CONFIG_INFO_MSG_VER))){
+        LOG_E("ykcm config info process version error|%d", request->body.info.new_msg, request->body.msg_ver);
+
+        result = (struct ykcm_response_result*)((uint8_t*)&response->body.msg_ver + 0x01);
+        result->result = 0x01;
+        result->fail_reason = (NETYKCM_CONFIG_RES_SYS_ASSERT_BASE + 0x01);
+        out_len += sizeof(struct ykcm_response_result);
+        if(olen){
+            *(uint16_t*)olen = out_len;
+        }
+        return 0x00;
+    }
 
     switch(request->body.info_type){
     case NETYKCM_CONFIG_INFO_TYPE_SYSTEM:
@@ -7668,16 +7696,18 @@ int8_t ykc_monitor_config_info_process(void *data, uint16_t dlen, void *buf, uin
         }
         break;
     default:
+    {
         LOG_D("ykcm config info query set --- info type error(%d)", request->body.info_type);
-        if(request->body.info.option == NETYKCM_CONFIG_INFO_OPTION_SET){
-            struct ykcm_response_result *result = (struct ykcm_response_result*)((uint8_t*)&response->body.msg_ver + 0x01);
+        result = (struct ykcm_response_result*)((uint8_t*)&response->body.msg_ver + 0x01);
 
-            result->result = 0x01;
-            result->fail_reason = (NETYKCM_CONFIG_RES_SYS_ASSERT_BASE + 0x00);
-            out_len += sizeof(struct ykcm_response_result);
-            return 0x00;
+        result->result = 0x01;
+        result->fail_reason = (NETYKCM_CONFIG_RES_SYS_ASSERT_BASE + 0x02);
+        out_len += sizeof(struct ykcm_response_result);
+        if(olen){
+            *(uint16_t*)olen = out_len;
         }
-        return -0x01;
+        return 0x00;
+    }
     }
 
     if(request->body.info.option == NETYKCM_CONFIG_INFO_OPTION_SET){
