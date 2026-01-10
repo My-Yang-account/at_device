@@ -34,6 +34,7 @@
 
 #ifdef CP_USING_LV_MODULE_BMS
 #define APP_LV_MODULE_BMS_MSG_ID_0x309         0x309            /* 0x309报文ID */
+#define APP_LV_MODULE_BMS_MSG_ID_0x307         0x307            /* 0x307报文ID */
 #define APP_LV_MODULE_BMS_MSG_ID_0x3F1         0x3F1            /* 0x3F1报文ID */
 #define APP_LV_MODULE_BMS_MSG_ID_0x3F3         0x3F3            /* 0x3F3报文ID */
 
@@ -68,6 +69,7 @@ struct can_info{
 #ifdef CP_USING_LV_MODULE_BMS
 typedef struct{
     uint8_t cmd;                                                /** 电池充电指令 */
+    uint8_t soc;                                                /** 电池SOC */
     uint8_t counter;                                            /** 计数值 */
     uint16_t target_curr;                                       /** 充电目标电流(0.01A) */
     uint16_t target_volt;                                       /** 充电目标电压(0.01V) */
@@ -663,6 +665,9 @@ static void app_bms_lv_msg_process(uint8_t gunno, can_msg_buf *msg)
         s_bms_app_info[gunno].target_volt = (msg->data[0x04] |(msg->data[0x03] <<0x08));
         /** 循环计数 */
         s_bms_app_info[gunno].counter = (msg->data[0x06] &0x0F);
+    }else if(msg->CANID == APP_LV_MODULE_BMS_MSG_ID_0x307){
+        /** 电池SOC */
+        s_bms_app_info[gunno].soc = msg->data[0x00];
     }
 }
 
@@ -702,6 +707,9 @@ static void app_bms_lv_msg_0x0F1_padding(uint8_t gunno, can_msg_buf *msg)
 
     msg->CANID = APP_LV_MODULE_BMS_MSG_ID_0x3F1;
     msg->length = APP_LV_MODULE_BMS_MSG_LEN_0x3F1;
+
+    /** 同步电池SOC */
+    ofsm->base.current_soc = s_bms_app_info[gunno].soc;
     /****************************** 工作模式 ******************************/
     switch(ofsm->state){
     case APP_OFSM_STATE_WAIT_NET:

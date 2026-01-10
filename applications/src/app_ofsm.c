@@ -3827,7 +3827,18 @@ static void ofsm_starting_fun(uint8_t gunno)
             }
         }
         /** BMS故障 */
-        if(app_bms_lv_get_cmd(gunno) == APP_BMSLV_CMD_CHARGING_FAULT);
+        if(app_bms_lv_get_cmd(gunno) == APP_BMSLV_CMD_CHARGING_FAULT){
+            /** 报BSM停充 */
+            if(charge_state != APP_CHARGE_STATE_CHARGING){
+                thaisen_close_charge_module(gunno);
+                s_thaisen_transaction[gunno].stop_reason = APP_SYSTEM_STOP_WAY_BSM;
+                s_ofsm_info[gunno].base.reason_code = s_thaisen_transaction[gunno].stop_reason;
+                s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_FALSE;
+
+                is_stop_charge_authorization = true;
+                LOG_D("gunno(%d) charge finish deal to LV BMS fault(%d)\n", gunno, s_thaisen_transaction[gunno].stop_reason);
+            }
+        }
 #endif /* APP_USING_LV_MODULE_BMS */
     }
     /** 启动超时 */
@@ -3841,7 +3852,6 @@ static void ofsm_starting_fun(uint8_t gunno)
             is_stop_charge_authorization = true;
             LOG_D("gunno(%d) charge finish deal to no BMS boot timeout(%d)\n", gunno, s_thaisen_transaction[gunno].stop_reason);
         }
-
     }
     /** 故障检测 */
     if((system_fault != APP_SYS_FAULT_NO_ERROR) && (system_fault != APP_SYS_FAULT_CARD_READER) && (system_fault != APP_SYS_FAULT_DOOR)){
@@ -5126,8 +5136,22 @@ static void ofsm_charging_fun(uint8_t gunno)
         }
         /** 启动模块 */
         thaisen_open_charge_module(gunno, target_voltage, target_current);
-        bms_info->BCL.BMSneedVolt = target_voltage;
-        bms_info->BCL.BMSneedCurlt = (target_current /10);
+        bms_info->BCL.BMSneedVolt = (app_bms_lv_get_target_volt(gunno) /10);
+        bms_info->BCL.BMSneedCurlt = (app_bms_lv_get_target_curr(gunno) /10);
+
+        /** BMS故障 */
+        if(app_bms_lv_get_cmd(gunno) == APP_BMSLV_CMD_CHARGING_FAULT){
+            /** 报BSM停充 */
+            if(charge_state != APP_CHARGE_STATE_CHARGING){
+                thaisen_close_charge_module(gunno);
+                s_thaisen_transaction[gunno].stop_reason = APP_SYSTEM_STOP_WAY_BSM;
+                s_ofsm_info[gunno].base.reason_code = s_thaisen_transaction[gunno].stop_reason;
+                s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_FALSE;
+
+                is_stop_charge_authorization = true;
+                LOG_D("gunno(%d) charge finish deal to LV BMS fault(%d)\n", gunno, s_thaisen_transaction[gunno].stop_reason);
+            }
+        }
     }
 #endif /* APP_USING_NO_BMS */
     /** 故障检测 */
@@ -8461,8 +8485,11 @@ void ofsm_thread_entry(void *parameter)
         }else{
             singlegun_max_curr = singlegun_max_curr > APP_MCURRENT_SINGLEGUN_LIQUID ? APP_MCURRENT_SINGLEGUN_LIQUID : singlegun_max_curr;
         }
-
+#if (defined(APP_USING_LV_MODULE_BMS) && defined(APP_USING_OFFLINE_BILLING))
+        thaisenModuleSetMaxCurrSingleGun((*((uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_MAX_LIMIT_CURRENT, 0)))) *100);
+#else
         thaisenModuleSetMaxCurrSingleGun(singlegun_max_curr);
+#endif /* (defined(APP_USING_LV_MODULE_BMS) && defined(APP_USING_OFFLINE_BILLING)) */
 
         if(s_ofsm_info[thread_gunno].base.state.current == APP_OFSM_STATE_CHARGING){         /** 进入充电时才可设置BMS是否禁止充电 */
             if((s_ofsm_info[thread_gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL) ||  \
