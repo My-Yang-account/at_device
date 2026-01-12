@@ -3800,7 +3800,7 @@ static void ofsm_starting_fun(uint8_t gunno)
 #if ((defined(APP_USING_NO_BMS) || defined(APP_USING_LV_MODULE_BMS)) && defined(APP_USING_OFFLINE_BILLING))
     /** 等待采样稳定 */
     if((rt_tick_get() - s_ofsm_info[gunno].base.parameter_steady_tick) > APP_FORCE_BOOT_PRECHARGE_SAMPLING_STEADY_TIME){
-        int32_t sampling_voltage = mw_get_sampling_voltage(gunno), module_voltage = thaisen_get_module_voltage(gunno);
+        int32_t sampling_voltage = mw_get_sampling_voltage(gunno), module_voltage = thaisen_get_module_voltage(gunno), volt_diff = 0x00;
 #ifdef APP_USING_LV_MODULE_BMS
         sampling_voltage = (app_bms_lv_get_target_volt(gunno) /10);
         if(sampling_voltage > (*(uint16_t*)sys_read_config_item_content(CONFIG_ITEM_RATED_OUTPUT_VOLTAGE, 0x00) *10)){
@@ -3810,7 +3810,12 @@ static void ofsm_starting_fun(uint8_t gunno)
         /** 启动模块 */
         thaisen_open_charge_module(gunno, sampling_voltage, APP_FORCE_BOOT_PRECHARGE_CURRENT);
         /** 电压判定符合 */
-        if(abs((sampling_voltage - module_voltage) < APP_FORCE_BOOT_PRECHARGE_VOLTAGE_THRESHOLD) && (sampling_voltage >APP_FORCE_BOOT_PRECHARGE_SAMPLING_VOLTAGE_MIN)){
+        if(sampling_voltage > module_voltage){
+            volt_diff = (sampling_voltage - module_voltage);
+        }else{
+            volt_diff = (module_voltage - sampling_voltage);
+        }
+        if((volt_diff < APP_FORCE_BOOT_PRECHARGE_VOLTAGE_THRESHOLD) && (sampling_voltage >APP_FORCE_BOOT_PRECHARGE_SAMPLING_VOLTAGE_MIN)){
             mw_enable_dcrelay(gunno);    /** 闭合继电器 */
 #ifndef APP_USING_LV_MODULE_BMS
             charge_state = APP_CHARGE_STATE_CHARGING;
@@ -4905,7 +4910,8 @@ static void ofsm_charging_fun(uint8_t gunno)
         s_ofsm_info[gunno].base.total_period_time++;
     }
     if(s_ofsm_info[gunno].base.current_check_time >= APP_CURRENT_DETECT_PERIOD){
-        int32_t _ammeter_current = (mw_get_meter_ia(gunno) /1000);
+        int32_t _ammeter_current = (mw_get_meter_ia(gunno) /1000), _module_current = thaisen_get_module_curr(gunno);
+        int32_t _ammeter_current_diff = 0x00, _module_current_diff = 0x00;
 #ifdef APP_INCLUDE_V2G
         if(s_ofsm_info[gunno].base.gun_running_mode == APP_GUN_RUNNING_MODE_V2G){
             if(_ammeter_current < 0x00)
@@ -4915,9 +4921,21 @@ static void ofsm_charging_fun(uint8_t gunno)
                 _ammeter_current = 0x00;
         }
 #endif /* APP_INCLUDE_V2G */
+        /** 模块电流差值 */
+        if(s_ofsm_info[gunno].base.module_curr_last > _module_current){
+            _module_current_diff = (s_ofsm_info[gunno].base.module_curr_last - _module_current);
+        }else{
+            _module_current_diff = (_module_current - s_ofsm_info[gunno].base.module_curr_last);
+        }
+        /** 电表电流差值 */
+        if(s_ofsm_info[gunno].base.meter_curr_last > _ammeter_current){
+            _ammeter_current_diff = (s_ofsm_info[gunno].base.meter_curr_last - _ammeter_current);
+        }else{
+            _ammeter_current_diff = (_ammeter_current - s_ofsm_info[gunno].base.meter_curr_last);
+        }
+
         s_ofsm_info[gunno].base.current_check_time = 0x00;
-        if((abs(s_ofsm_info[gunno].base.module_curr_last - thaisen_get_module_curr(gunno)) <= APP_CURRENT_STEADY_DIFF) && \
-                (abs(s_ofsm_info[gunno].base.meter_curr_last - _ammeter_current) <= APP_CURRENT_STEADY_DIFF)){
+        if((_module_current_diff <= APP_CURRENT_STEADY_DIFF) && (_ammeter_current_diff <= APP_CURRENT_STEADY_DIFF)){
             s_ofsm_info[gunno].base.meter_curr_steady_count++;
             s_ofsm_info[gunno].base.module_curr_steady_count++;
             /** 只检测前5分钟 */
@@ -4931,7 +4949,13 @@ static void ofsm_charging_fun(uint8_t gunno)
                 s_ofsm_info[gunno].base.module_curr_steady_count = 0x00;
             }
             if((s_ofsm_info[gunno].base.meter_curr_steady_count > APP_CURRENT_STEADY_COUNT) && (s_ofsm_info[gunno].base.module_curr_steady_count > APP_CURRENT_STEADY_COUNT)){
-                if(abs(s_ofsm_info[gunno].base.module_curr_last - s_ofsm_info[gunno].base.meter_curr_last) > APP_CURRENT_COMPARE_DIFF){
+                /** 电流差值 */
+                if(s_ofsm_info[gunno].base.module_curr_last > s_ofsm_info[gunno].base.meter_curr_last){
+                    _module_current_diff = (s_ofsm_info[gunno].base.module_curr_last - s_ofsm_info[gunno].base.meter_curr_last);
+                }else{
+                    _module_current_diff = (s_ofsm_info[gunno].base.meter_curr_last - s_ofsm_info[gunno].base.module_curr_last);
+                }
+                if(_module_current_diff > APP_CURRENT_COMPARE_DIFF){
                     uint8_t is_deputy_abnormal = APP_THA_ENUM_FALSE;    /** 是副枪异常停止 */
 
                     /******************************************** 电流异常 ********************************************/
@@ -5042,7 +5066,7 @@ static void ofsm_charging_fun(uint8_t gunno)
             s_ofsm_info[gunno].base.meter_curr_steady_count = 0x00;
             s_ofsm_info[gunno].base.module_curr_steady_count = 0x00;
         }
-        s_ofsm_info[gunno].base.module_curr_last = thaisen_get_module_curr(gunno);
+        s_ofsm_info[gunno].base.module_curr_last = _module_current;
         s_ofsm_info[gunno].base.meter_curr_last = _ammeter_current;
     }
 #endif /* APP_USING_CHARGE_CURR_DETECT_STRATEGY */
@@ -5581,7 +5605,14 @@ static void ofsm_charging_fun(uint8_t gunno)
         s_ofsm_info[gunno].base.bvolt_check_time++;
     }
     if(s_ofsm_info[gunno].base.bvolt_check_time <= APP_BATTERY_VOLTAGE_DETECT_PERIOD){
-        if(abs(s_ofsm_info[gunno].base.bvolt_init - thaisen_get_module_volt(gunno)) > APP_BATTERY_VOLTAGE_FLOAT_VALUE){
+        int32_t _module_volt = thaisen_get_module_volt(gunno), _volt_diff = 0x00;
+        /** 电压差值 */
+        if(s_ofsm_info[gunno].base.bvolt_init > _module_volt){
+            _volt_diff = (s_ofsm_info[gunno].base.bvolt_init - _module_volt);
+        }else{
+            _volt_diff = (_module_volt - s_ofsm_info[gunno].base.bvolt_init);
+        }
+        if(_volt_diff > APP_BATTERY_VOLTAGE_FLOAT_VALUE){
             if(s_ofsm_info[gunno].base.bvolt_err_i < 255){   /** 超过变量所能表示的最大值后会回到0 */
                 s_ofsm_info[gunno].base.bvolt_err_i++;
             }
