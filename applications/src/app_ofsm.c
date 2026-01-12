@@ -3828,6 +3828,19 @@ static void ofsm_starting_fun(uint8_t gunno)
         }
         /** BMS故障 */
         if(app_bms_lv_get_cmd(gunno) == APP_BMSLV_CMD_CHARGING_FAULT){
+            /** 报BSM禁止充电停充 */
+            if(charge_state != APP_CHARGE_STATE_CHARGING){
+                thaisen_close_charge_module(gunno);
+                s_thaisen_transaction[gunno].stop_reason = APP_SYSTEM_STOP_WAY_BSM_FORBID;
+                s_ofsm_info[gunno].base.reason_code = s_thaisen_transaction[gunno].stop_reason;
+                s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_FALSE;
+
+                is_stop_charge_authorization = true;
+                LOG_D("gunno(%d) charge finish deal to LV BMS forbid(%d)\n", gunno, s_thaisen_transaction[gunno].stop_reason);
+            }
+        }
+        /** BMS离线 */
+        if(app_bms_lv_is_offline(gunno)){
             /** 报BSM停充 */
             if(charge_state != APP_CHARGE_STATE_CHARGING){
                 thaisen_close_charge_module(gunno);
@@ -3836,7 +3849,7 @@ static void ofsm_starting_fun(uint8_t gunno)
                 s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_FALSE;
 
                 is_stop_charge_authorization = true;
-                LOG_D("gunno(%d) charge finish deal to LV BMS fault(%d)\n", gunno, s_thaisen_transaction[gunno].stop_reason);
+                LOG_D("gunno(%d) charge finish deal to LV BMS offline(%d)\n", gunno, s_thaisen_transaction[gunno].stop_reason);
             }
         }
 #endif /* APP_USING_LV_MODULE_BMS */
@@ -5144,12 +5157,25 @@ static void ofsm_charging_fun(uint8_t gunno)
             /** 报BSM停充 */
             if(charge_state != APP_CHARGE_STATE_CHARGING){
                 thaisen_close_charge_module(gunno);
+                s_thaisen_transaction[gunno].stop_reason = APP_SYSTEM_STOP_WAY_BSM_FORBID;
+                s_ofsm_info[gunno].base.reason_code = s_thaisen_transaction[gunno].stop_reason;
+                s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_FALSE;
+
+                is_stop_charge_authorization = true;
+                LOG_D("gunno(%d) charge finish deal to LV BMS forbid(%d)\n", gunno, s_thaisen_transaction[gunno].stop_reason);
+            }
+        }
+        /** BMS离线 */
+        if(app_bms_lv_is_offline(gunno)){
+            /** 报BSM停充 */
+            if(charge_state != APP_CHARGE_STATE_CHARGING){
+                thaisen_close_charge_module(gunno);
                 s_thaisen_transaction[gunno].stop_reason = APP_SYSTEM_STOP_WAY_BSM;
                 s_ofsm_info[gunno].base.reason_code = s_thaisen_transaction[gunno].stop_reason;
                 s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_FALSE;
 
                 is_stop_charge_authorization = true;
-                LOG_D("gunno(%d) charge finish deal to LV BMS fault(%d)\n", gunno, s_thaisen_transaction[gunno].stop_reason);
+                LOG_D("gunno(%d) charge finish deal to LV BMS offline(%d)\n", gunno, s_thaisen_transaction[gunno].stop_reason);
             }
         }
     }
@@ -8305,9 +8331,20 @@ void ofsm_thread_entry(void *parameter)
 #ifdef APP_USING_FB_DETECT
         if(s_ofsm_info[thread_gunno].base.state.current != APP_OFSM_STATE_FAULTING){
             /** 电子锁、继电器状态检验 */
+#if ((defined(APP_USING_NO_BMS) || defined(APP_USING_LV_MODULE_BMS)) && defined(APP_USING_OFFLINE_BILLING))
+            switch(s_ofsm_info[thread_gunno].state){
+#else
             switch(mw_get_charge_library_state(thread_gunno)){
+#endif /* ((defined(APP_USING_NO_BMS) || defined(APP_USING_LV_MODULE_BMS)) && defined(APP_USING_OFFLINE_BILLING)) */
+
+#if ((defined(APP_USING_NO_BMS) || defined(APP_USING_LV_MODULE_BMS)) && defined(APP_USING_OFFLINE_BILLING))
+            case APP_OFSM_STATE_WAIT_NET:
+            case APP_OFSM_STATE_IDLEING:
+            case APP_OFSM_STATE_READYING:
+#else
             case APP_CHARGE_CTRL_IDLE:
             case APP_CHARGE_CTRL_AUA_POWER:
+#endif /* ((defined(APP_USING_NO_BMS) || defined(APP_USING_LV_MODULE_BMS)) && defined(APP_USING_OFFLINE_BILLING)) */
                 if(thaisen_is_debug() == APP_THA_ENUM_FALSE){
                     if(s_ofsm_info[thread_gunno].base.elock_check_time < (0xFF - 0x01)){
                         s_ofsm_info[thread_gunno].base.elock_check_time++;
@@ -8369,7 +8406,15 @@ void ofsm_thread_entry(void *parameter)
                     s_ofsm_info[thread_gunno].base.acrelay_check_time = 0x00;
                 }
                 break;
+#if ((defined(APP_USING_NO_BMS) || defined(APP_USING_LV_MODULE_BMS)) && defined(APP_USING_OFFLINE_BILLING))
+            case APP_OFSM_STATE_CHARGING:
+#else
             case APP_CHARGE_CTRL_CCS:
+#endif /* ((defined(APP_USING_NO_BMS) || defined(APP_USING_LV_MODULE_BMS)) && defined(APP_USING_OFFLINE_BILLING)) */
+
+#if ((defined(APP_USING_NO_BMS) || defined(APP_USING_LV_MODULE_BMS)) && defined(APP_USING_OFFLINE_BILLING))
+
+#else
                 if(s_ofsm_info[thread_gunno].base.elock_check_time < (0xFF - 0x01)){
                     s_ofsm_info[thread_gunno].base.elock_check_time++;
                 }
@@ -8385,6 +8430,7 @@ void ofsm_thread_entry(void *parameter)
                         s_ofsm_info[thread_gunno].base.elock_check_time = 0x00;
                     }
                 }
+#endif /* ((defined(APP_USING_NO_BMS) || defined(APP_USING_LV_MODULE_BMS)) && defined(APP_USING_OFFLINE_BILLING)) */
 
                 if(s_ofsm_info[thread_gunno].base.dcrealy_check_time < (0xFF - 0x01)){
                     s_ofsm_info[thread_gunno].base.dcrealy_check_time++;

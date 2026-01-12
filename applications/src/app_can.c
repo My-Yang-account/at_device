@@ -134,7 +134,7 @@ typedef struct{
         uint8_t is_starting : 1;                                /** 已请求充电 */
         uint8_t reserve : 6;                                    /** 预留 */
     }flag[APP_SYSTEM_GUNNO_SIZE];
-    uint8_t offline_count;                                      /** BMS离线技术 */
+    uint16_t offline_count[APP_SYSTEM_GUNNO_SIZE];              /** BMS离线计数 */
 }app_lv_bms_info;
 #endif /* CP_USING_LV_MODULE_BMS */
 
@@ -665,9 +665,15 @@ static void app_bms_lv_msg_process(uint8_t gunno, can_msg_buf *msg)
         s_bms_app_info[gunno].target_volt = (msg->data[0x04] |(msg->data[0x03] <<0x08));
         /** 循环计数 */
         s_bms_app_info[gunno].counter = (msg->data[0x06] &0x0F);
+
+        s_app_lv_bms_info.flag[gunno].is_offline = APP_THA_ENUM_FALSE;
+        s_app_lv_bms_info.offline_count[gunno] = 0x00;
     }else if(msg->CANID == APP_LV_MODULE_BMS_MSG_ID_0x307){
         /** 电池SOC */
         s_bms_app_info[gunno].soc = msg->data[0x00];
+
+        s_app_lv_bms_info.flag[gunno].is_offline = APP_THA_ENUM_FALSE;
+        s_app_lv_bms_info.offline_count[gunno] = 0x00;
     }
 }
 
@@ -966,6 +972,16 @@ void app_bms_lv_can_thread_entry(void *parameter)
         }
 
         for(gunno = 0x00; gunno < APP_SYSTEM_GUNNO_SIZE; gunno++){
+            /** BMS离线检测 */
+            if(s_app_lv_bms_info.flag[gunno].is_offline == APP_THA_ENUM_FALSE){
+                if(s_app_lv_bms_info.offline_count[gunno] < (0xFFFF - 0x01)){
+                    s_app_lv_bms_info.offline_count[gunno]++;
+                }
+                /** BMS 离线检测时间大概5s = (5000 /10) */
+                if(s_app_lv_bms_info.offline_count[gunno] > 500){
+                    s_app_lv_bms_info.flag[gunno].is_offline = APP_THA_ENUM_TRUE;
+                }
+            }
             /**************** 定期发送 0x3F1 报文 ****************/
             if(msg_send_tick[gunno][BMS_APP_MSG_INDEX_0X3F1] > tick_temp){
                 msg_send_tick[gunno][BMS_APP_MSG_INDEX_0X3F1] = tick_temp;
@@ -1116,7 +1132,7 @@ void app_app_can_info_init(void)
     for(uint8_t i = 0x00; i < APP_SYSTEM_GUNNO_SIZE; i++){
         memset(&s_bms_app_info[i], 0x00, sizeof(s_bms_app_info[i]));
         s_bms_app_info[i].cmd = APP_BMSLV_CMD_SIZE;
-        s_app_lv_bms_info.flag[i].is_offline = APP_THA_ENUM_TRUE;
+        s_app_lv_bms_info.flag[i].is_offline = APP_THA_ENUM_FALSE;
     }
 #endif /* CP_USING_LV_MODULE_BMS */
     /** CAN 报文接收回调注册 */
