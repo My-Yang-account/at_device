@@ -2160,7 +2160,11 @@ void ykc_monitor_chargepile_request_padding_bmscommand_chargerout(uint8_t gunno,
             }else{
                 g_ykc_monitor_preq_bmscommand_chargerout[gunno].body.pile_output_curr = (4000  - symbol_value);
             }
-            g_ykc_monitor_preq_bmscommand_chargerout[gunno].body.pile_output_curr_expand = (20000 - (base->current_a /10));
+            if((base->current_a /10) < 20000){
+                g_ykc_monitor_preq_bmscommand_chargerout[gunno].body.pile_output_curr_expand = (20000 - (base->current_a /10));
+            }else {
+                g_ykc_monitor_preq_bmscommand_chargerout[gunno].body.pile_output_curr_expand = 20000;
+            }
 
             g_ykc_monitor_preq_bmscommand_chargerout[gunno].body.charge_time = base->charge_time /60;
 
@@ -8503,7 +8507,7 @@ int8_t ykc_monitor_message_padding_request_bms_message(uint8_t gunno, uint8_t *b
     thaisenBSMDetailed_t bsm = thaisenGetBSMDetailed(gunno);
     thaisenBSTDetailed_t bst = thaisenGetBSTDetailed(gunno);
 
-    memset(message, 0x00, sizeof(ilen));
+    memset(message, 0x00, ilen);
     /** 固定10个段 */
     running_data->segment_num = 0x0A;
     /********************************** 宇通CFC报文 **********************************/
