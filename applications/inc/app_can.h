@@ -89,6 +89,22 @@ uint8_t app_charge_mode_is_changed(void);
 void app_bms_lv_can_thread_entry(void *parameter);
 
 /*************************************************
+ * 函数名           app_bms_lv_get_svolt_max
+ * 功能               获取电池最高单体电压
+ * 参数              gunno    枪号
+ * 返回              电池最高单体电压(0.01V)
+ ************************************************/
+uint16_t app_bms_lv_get_svolt_max(uint8_t gunno);
+
+/*************************************************
+ * 函数名           app_bms_lv_get_temp_max
+ * 功能               获取电池最高温度
+ * 参数              gunno    枪号
+ * 返回              电池最高温度(0.1度)
+ ************************************************/
+int8_t app_bms_lv_get_temp_max(uint8_t gunno);
+
+/*************************************************
  * 函数名           app_bms_lv_get_target_volt
  * 功能               获取充电目标电压
  * 参数              gunno    枪号

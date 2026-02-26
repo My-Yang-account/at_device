@@ -26,7 +26,7 @@ enum elec_lock_state_t
 
 
 enum elec_lock_state_t mw_get_elec_lock_state(void);
-enum elec_lock_ops_t mw_operate_elec_lock(enum elec_lock_state_t ops_state);
+enum elec_lock_ops_t mw_operate_elec_lock(unsigned char gunno, enum elec_lock_state_t ops_state);
 
 
 #endif /* MIDDLEWARE_INC_MW_ELEC_LOCK_H_ */

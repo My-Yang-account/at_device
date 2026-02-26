@@ -1056,6 +1056,41 @@ void thaisenModuleSetParaGunVoltDetectEn(uint8_t gunNum, uint8_t state);
  */
 uint8_t thaisenModuleGetParaGunVoltDetectEn(uint8_t gunNum);
 
+/*************************************************** 模块工作模式 ****************************************************/
+typedef enum
+{
+    THAISEN_MODULE_WORKMODE_RECTIFICATION,                   /* 模块工作模式：整流 */
+    THAISEN_MODULE_WORKMODE_ON_CONTRAVARIANT,                /* 模块工作模式：并网逆变 */
+    THAISEN_MODULE_WORKMODE_OFF_CONTRAVARIANT,               /* 模块工作模式：离网逆变 */
+    THAISEN_MODULE_WORKMODE_SIZE,                            /* 模块工作模式 */
+}thaisenModuleWorkMode_t;
+
+/* 功能说明:
+ *          thaisenModuleSetWorkMode: 设置模块工作模式
+ *
+ * 输入参数:  gunNum      枪号
+ *          mode       模式@thaisenModuleWorkMode_t
+ *
+ * 返回参数:
+ *
+ * 调用方法:
+ *          可实时调用
+ */
+void thaisenModuleSetWorkMode(uint8_t gunNum, thaisenModuleWorkMode_t mode);
+
+/* 功能说明:
+ *          thaisenModuleGetWorkMode: 获取模块工作模式
+ *
+ * 输入参数:   gunNum    枪号
+ *
+ *
+ * 返回参数:   模块工作模式@thaisenModuleWorkMode_t
+ *
+ * 调用方法:
+ *          可实时调用
+ */
+thaisenModuleWorkMode_t thaisenModuleGetWorkMode(uint8_t gunNum);
+
 /*************************************************** 模块设置电流偏移 ****************************************************/
 /* 功能说明:
  *          thaisenModuleSetMSetupCurrOffset: 设置模块设置电流偏移

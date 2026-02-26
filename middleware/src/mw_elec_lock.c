@@ -16,12 +16,16 @@ enum elec_lock_state_t mw_get_elec_lock_state(void)
     return (enum elec_lock_state_t)thaisenGetElectLockFeedbackSta();
 }
 
-enum elec_lock_ops_t mw_operate_elec_lock(enum elec_lock_state_t ops_state)
+enum elec_lock_ops_t mw_operate_elec_lock(unsigned char gunno, enum elec_lock_state_t ops_state)
 {
-    if(ops_state == ELEC_LOCK_STATE_UNLOCK)
-    {
-        return (enum elec_lock_ops_t)thaisenElectUnlock();
+    if(gunno == 0x00){
+        if(ops_state == ELEC_LOCK_STATE_UNLOCK)
+            return (enum elec_lock_ops_t)thaisenElectUnlock();
+        return (enum elec_lock_ops_t)thaisenElectLock();
+    }else{
+        if(ops_state == ELEC_LOCK_STATE_UNLOCK)
+            return (enum elec_lock_ops_t)thaisenElectUnlockB();
+        return (enum elec_lock_ops_t)thaisenElectLockB();
     }
-    return (enum elec_lock_ops_t)thaisenElectLock();
 }
 

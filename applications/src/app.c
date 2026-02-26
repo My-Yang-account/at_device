@@ -112,7 +112,7 @@ APP_DEF_SRAM0 static rt_uint8_t tcan_recv_thread_stack[1024];
 
 #ifdef CP_USING_LV_MODULE_BMS
 APP_DEF_SRAM1 static struct rt_thread bms_lv_send_thread;
-APP_DEF_SRAM0 static rt_uint8_t bms_lv_send_thread_stack[1024];
+APP_DEF_SRAM0 static rt_uint8_t bms_lv_send_thread_stack[2048];
 #endif /* CP_USING_LV_MODULE_BMS */
 
 APP_DEF_SRAM2 static uint8_t s_system_reset_set = 0x00;
@@ -555,6 +555,7 @@ void app_init(void)
     }
 #endif /* USING_TCU_CAN */
 
+extern void app_bms_lv_can_thread_entry(void *parameter);
 #ifdef CP_USING_LV_MODULE_BMS
     result = rt_thread_init(&bms_lv_send_thread, "bl_can",
             app_bms_lv_can_thread_entry, RT_NULL, &bms_lv_send_thread_stack, sizeof(bms_lv_send_thread_stack), 16, 10);

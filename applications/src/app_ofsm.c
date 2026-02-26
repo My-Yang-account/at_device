@@ -37,6 +37,7 @@
 #include "mw_time.h"
 #include "mw_module_control.h"
 #include "mw_can_control.h"
+#include "mw_elec_lock.h"
 
 
 #define DBG_TAG "app.ofsm"
@@ -3775,6 +3776,9 @@ static void ofsm_starting_fun(uint8_t gunno)
                 if((s_ofsm_info[gunno].base.charge_way != APP_CHARGE_WAY_PARACHARGE_LOCAL) || (s_ofsm_info[gunno].base.charge_way != APP_CHARGE_WAY_PARACHARGE_CLOUD)){
 #if ((defined(APP_USING_NO_BMS) || defined(APP_USING_LV_MODULE_BMS)) && defined(APP_USING_OFFLINE_BILLING))
                     s_ofsm_info[gunno].base.parameter_steady_tick = rt_tick_get();
+#ifdef APP_USING_LV_MODULE_BMS
+                    mw_operate_elec_lock(gunno, ELEC_LOCK_STATE_LOCK);
+#endif /* APP_USING_LV_MODULE_BMS */
 #else
                     mw_charge_start_cmd(gunno);
 #endif /* ((defined(APP_USING_NO_BMS) || defined(APP_USING_LV_MODULE_BMS)) && defined(APP_USING_OFFLINE_BILLING)) */
@@ -3782,6 +3786,9 @@ static void ofsm_starting_fun(uint8_t gunno)
                     if(s_ofsm_info[gunno].base.main_gunno == gunno){
 #if ((defined(APP_USING_NO_BMS) || defined(APP_USING_LV_MODULE_BMS)) && defined(APP_USING_OFFLINE_BILLING))
                         s_ofsm_info[gunno].base.parameter_steady_tick = rt_tick_get();
+#ifdef APP_USING_LV_MODULE_BMS
+                        mw_operate_elec_lock(gunno, ELEC_LOCK_STATE_LOCK);
+#endif /* APP_USING_LV_MODULE_BMS */
 #else
                         mw_charge_start_cmd(gunno);
 #endif /* ((defined(APP_USING_NO_BMS) || defined(APP_USING_LV_MODULE_BMS)) && defined(APP_USING_OFFLINE_BILLING)) */
@@ -6730,17 +6737,42 @@ static void ofsm_charging_fun(uint8_t gunno)
 
     if(((s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD) && (s_ofsm_info[gunno].base.main_gunno == gunno)) ||
             (s_ofsm_info[gunno].base.charge_way != APP_CHARGE_WAY_PARACHARGE_CLOUD)){
+        uint8_t reach_target = APP_THA_ENUM_FALSE;
+#ifdef APP_INCLUDE_V2G
+        /****************************************** 放电模式 ******************************************/
+        if(s_ofsm_info[gunno].base.gun_running_mode == APP_GUN_RUNNING_MODE_V2G){
+            uint8_t _asof_soc = *(sys_read_config_item_content(CONFIG_ITEM_DISCHARGE_AS_OF_SOC, 0));
+
+            if(_asof_soc >= PROTECT_DISCHARGE_AS_OF_SOC_OFFSET){
+                _asof_soc -= PROTECT_DISCHARGE_AS_OF_SOC_OFFSET;
+            }else{
+                _asof_soc = PROTECT_DISCHARGE_AS_OF_SOC_DEFAULT;
+            }
+            if(s_ofsm_info[gunno].base.current_soc <= _asof_soc){
+                reach_target = APP_THA_ENUM_TRUE;
+            }
+        }else{
+            if(s_ofsm_info[gunno].base.current_soc >= *(sys_read_config_item_content(CONFIG_ITEM_SOC_STOP, 0))){
+//                if(*(sys_read_config_item_content(CONFIG_ITEM_SOC_STOP, 0)) < 100)
+                reach_target = APP_THA_ENUM_TRUE;
+            }
+        }
+#else
         if(s_ofsm_info[gunno].base.current_soc >= *(sys_read_config_item_content(CONFIG_ITEM_SOC_STOP, 0))){
 //            if(*(sys_read_config_item_content(CONFIG_ITEM_SOC_STOP, 0)) < 100)
-            {
-                if(is_stop_charge_authorization == false){
-                    s_thaisen_transaction[gunno].stop_reason = APP_SYSTEM_STOP_WAY_SOC_LIMIT;
-                    s_ofsm_info[gunno].base.reason_code = s_thaisen_transaction[gunno].stop_reason;
-                    s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_FALSE;
+            reach_target = APP_THA_ENUM_TRUE;
+        }
+#endif /* APP_INCLUDE_V2G */
+        if(reach_target){
+            if(is_stop_charge_authorization == false){
+                s_thaisen_transaction[gunno].stop_reason = APP_SYSTEM_STOP_WAY_SOC_LIMIT;
+                s_ofsm_info[gunno].base.reason_code = s_thaisen_transaction[gunno].stop_reason;
+                s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_FALSE;
 
-                    is_stop_charge_authorization = true;
-                    LOG_D("gunno(%d) charge finish deal to reach soc protect value(%d)\n", gunno, *(sys_read_config_item_content(CONFIG_ITEM_SOC_STOP, 0)));
-                }
+                is_stop_charge_authorization = true;
+                LOG_D("gunno(%d) charge finish deal to reach soc protect value(%d, %d)\n", gunno, \
+                        *(sys_read_config_item_content(CONFIG_ITEM_SOC_STOP, 0)), \
+                        *(sys_read_config_item_content(CONFIG_ITEM_DISCHARGE_AS_OF_SOC, 0)));
             }
         }
     }
@@ -7015,6 +7047,9 @@ static void ofsm_stoping_fun(uint8_t gunno)
         mw_disable_dcrelay(gunno);
         module_is_close = APP_THA_ENUM_TRUE;
         mw_disable_auxiliary_power(gunno);
+#ifdef APP_USING_LV_MODULE_BMS
+        mw_operate_elec_lock(gunno, ELEC_LOCK_STATE_UNLOCK);
+#endif /* APP_USING_LV_MODULE_BMS */
 
         s_ofsm_info[gunno].base.voltage_a = 0x00;
         s_ofsm_info[gunno].base.current_a = 0x00;
@@ -8276,7 +8311,9 @@ void ofsm_thread_entry(void *parameter)
     uint8_t thread_gunno = *((uint8_t*)parameter);
     enum temp_check result = TCHECK_RESULT_NORMAL;
     thaisenChargeGunInfo info;
-
+#ifdef APP_INCLUDE_V2G
+    thaisenSuperCurrProtocol * _curr_protocol = NULL;
+#endif /* APP_INCLUDE_V2G */
     extern int32_t app_thread_monitor_process(void *thread, void *para, uint32_t plen, uint32_t option);
 
     memset(&info, 0x00, sizeof(thaisenChargeGunInfo));
@@ -8580,6 +8617,29 @@ void ofsm_thread_entry(void *parameter)
                 thaisenModuleSetBMSAllowCharge(thaisen_get_charging_pause_activate(thread_gunno), thread_gunno);
             }
         }
+#ifdef APP_INCLUDE_V2G
+        _curr_protocol = thaisenGetSuperCurrProtocolInfo(thread_gunno);
+        switch(_curr_protocol->BMSProtocolType){
+        case thaisen_BMSProtocol_27930_Charge:
+            thaisenModuleSetBMSProtoclType(thread_gunno, THAISEN_MODULE_BMS_PROTYPE_27930_2015);
+            break;
+        case thaisen_BMSProtocol_27930_DisCharge:
+            thaisenModuleSetBMSProtoclType(thread_gunno, THAISEN_MODULE_BMS_PROTYPE_27930_2015);
+            break;
+        case thaisen_BMSProtocol_33021_NB_T_DisCharge:
+            thaisenModuleSetBMSProtoclType(thread_gunno, THAISEN_MODULE_BMS_PROTYPE_33021_NB_T);
+            break;
+        default:
+            thaisenModuleSetBMSProtoclType(thread_gunno, THAISEN_MODULE_BMS_PROTYPE_27930_2015);
+            break;
+        }
+
+        if(s_ofsm_info[thread_gunno].base.gun_running_mode == APP_GUN_RUNNING_MODE_V2G){
+            thaisenModuleSetWorkMode(thread_gunno, THAISEN_MODULE_WORKMODE_ON_CONTRAVARIANT);
+        }else{
+            thaisenModuleSetWorkMode(thread_gunno, THAISEN_MODULE_WORKMODE_RECTIFICATION);
+        }
+#endif /* APP_INCLUDE_V2G */
 
         if(thaisen_get_screen_timesync_flag()){
             struct tm t = { 0 };

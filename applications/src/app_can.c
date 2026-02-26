@@ -35,6 +35,9 @@
 #ifdef CP_USING_LV_MODULE_BMS
 #define APP_LV_MODULE_BMS_MSG_ID_0x309         0x309            /* 0x309报文ID */
 #define APP_LV_MODULE_BMS_MSG_ID_0x307         0x307            /* 0x307报文ID */
+#define APP_LV_MODULE_BMS_MSG_ID_0x206         0x206            /* 0x206报文ID */
+#define APP_LV_MODULE_BMS_MSG_ID_0x306         0x306            /* 0x303报文ID */
+
 #define APP_LV_MODULE_BMS_MSG_ID_0x3F1         0x3F1            /* 0x3F1报文ID */
 #define APP_LV_MODULE_BMS_MSG_ID_0x3F3         0x3F3            /* 0x3F3报文ID */
 
@@ -70,6 +73,8 @@ struct can_info{
 typedef struct{
     uint8_t cmd;                                                /** 电池充电指令 */
     uint8_t soc;                                                /** 电池SOC */
+    uint16_t svolt_max;                                         /** 最高单体电压(0.001V) */
+    int8_t temp_max;                                            /** 电池最高温度(1度) */
     uint8_t counter;                                            /** 计数值 */
     uint16_t target_curr;                                       /** 充电目标电流(0.01A) */
     uint16_t target_volt;                                       /** 充电目标电压(0.01V) */
@@ -674,6 +679,24 @@ static void app_bms_lv_msg_process(uint8_t gunno, can_msg_buf *msg)
 
         s_app_lv_bms_info.flag[gunno].is_offline = APP_THA_ENUM_FALSE;
         s_app_lv_bms_info.offline_count[gunno] = 0x00;
+    }else if(msg->CANID == APP_LV_MODULE_BMS_MSG_ID_0x206){
+        struct thaisenBMS_Charger_struct* bms_data = mw_get_bms_data(gunno);
+        /** 最高单体电压 */
+        s_bms_app_info[gunno].svolt_max = msg->data[0x01];
+        s_bms_app_info[gunno].svolt_max <<=0x08;
+        s_bms_app_info[gunno].svolt_max |= msg->data[0x02];
+        bms_data->BCS.CellHigVolt = (s_bms_app_info[gunno].svolt_max /10);
+
+        s_app_lv_bms_info.flag[gunno].is_offline = APP_THA_ENUM_FALSE;
+        s_app_lv_bms_info.offline_count[gunno] = 0x00;
+    }else if(msg->CANID == APP_LV_MODULE_BMS_MSG_ID_0x306){
+        struct thaisenBMS_Charger_struct* bms_data = mw_get_bms_data(gunno);
+        /** 最高温度 */
+        s_bms_app_info[gunno].temp_max = (msg->data[0x01] - 40);  /** -40偏移 */
+        bms_data->BSM.HigTemp = s_bms_app_info[gunno].temp_max;
+
+        s_app_lv_bms_info.flag[gunno].is_offline = APP_THA_ENUM_FALSE;
+        s_app_lv_bms_info.offline_count[gunno] = 0x00;
     }
 }
 
@@ -710,6 +733,7 @@ static void app_bms_lv_msg_0x0F1_padding(uint8_t gunno, can_msg_buf *msg)
     struct ofsm_info *ofsm = get_ofsm_info(gunno);
     charger_app_0x3F1 *msg_0x3F1 = (charger_app_0x3F1*)(msg->data);
     uint32_t *f_pool = thaisenGetSysFault(gunno);
+    int32_t _data = 0x00;
 
     msg->CANID = APP_LV_MODULE_BMS_MSG_ID_0x3F1;
     msg->length = APP_LV_MODULE_BMS_MSG_LEN_0x3F1;
@@ -773,9 +797,15 @@ static void app_bms_lv_msg_0x0F1_padding(uint8_t gunno, can_msg_buf *msg)
     /** 风扇故障 */
     msg_0x3F1->f_fan = APP_THA_ENUM_FALSE;
     /** 实际输出电流 */
-    msg_0x3F1->out_current = ofsm->base.current_a;
+    _data = ofsm->base.current_a;
+    msg_0x3F1->out_current = (uint8_t)(_data &0xFF);
+    msg_0x3F1->out_current <<=0x08;
+    msg_0x3F1->out_current |= (uint8_t)((_data &0xFF00) >>0x08);
     /** 实际输出电压 */
-    msg_0x3F1->out_voltage = ofsm->base.voltage_a;
+    _data = ofsm->base.voltage_a;
+    msg_0x3F1->out_voltage = (uint8_t)(_data &0xFF);
+    msg_0x3F1->out_voltage <<=0x08;
+    msg_0x3F1->out_voltage |= (uint8_t)((_data &0xFF00) >>0x08);
     /** 电子锁状态 */
     msg_0x3F1->elock_state = APP_CHARGER_LV_ELOCK_UNLOCK;
     if(thaisenElectLock_StateQuery(gunno) != thaisen_elock_break){
@@ -934,6 +964,7 @@ void app_bms_lv_can_thread_entry(void *parameter)
 #define BMS_APP_MSG_INDEX_0X3F3            1                /** 需要发送的报文下标 */
 
     uint8_t gunno = 0x00;
+    struct ofsm_info *ofsm = NULL;
     can_msg_buf msg[APP_SYSTEM_GUNNO_SIZE][BMS_APP_MSG_NUM];
     uint32_t msg_send_tick[APP_SYSTEM_GUNNO_SIZE][BMS_APP_MSG_NUM], tick_temp;
 
@@ -972,6 +1003,7 @@ void app_bms_lv_can_thread_entry(void *parameter)
         }
 
         for(gunno = 0x00; gunno < APP_SYSTEM_GUNNO_SIZE; gunno++){
+            ofsm = get_ofsm_info(gunno);
             /** BMS离线检测 */
             if(s_app_lv_bms_info.flag[gunno].is_offline == APP_THA_ENUM_FALSE){
                 if(s_app_lv_bms_info.offline_count[gunno] < (0xFFFF - 0x01)){
@@ -990,11 +1022,14 @@ void app_bms_lv_can_thread_entry(void *parameter)
                 msg_send_tick[gunno][BMS_APP_MSG_INDEX_0X3F1] = tick_temp;
                 /** 报文填充 */
                 app_bms_lv_msg_0x0F1_padding(gunno, &msg[gunno][BMS_APP_MSG_INDEX_0X3F1]);
-                /** 发送报文 */
-                if(gunno == APP_SYSTEM_GUNNOA){
-                    thaisen_bmsA_can_send(&msg[gunno][BMS_APP_MSG_INDEX_0X3F1]);
-                }else{
-                    thaisen_bmsB_can_send(&msg[gunno][BMS_APP_MSG_INDEX_0X3F1]);
+                /** 启动、充电、完成时发送 */
+                if((ofsm->state >= APP_OFSM_STATE_STARTING) && (ofsm->state <= APP_OFSM_STATE_STOPING)){
+                    /** 发送报文 */
+                    if(gunno == APP_SYSTEM_GUNNOA){
+                        thaisen_bmsA_can_send(&msg[gunno][BMS_APP_MSG_INDEX_0X3F1]);
+                    }else{
+                        thaisen_bmsB_can_send(&msg[gunno][BMS_APP_MSG_INDEX_0X3F1]);
+                    }
                 }
             }
             /**************** 定期发送 0x3F3 报文 ****************/
@@ -1005,17 +1040,48 @@ void app_bms_lv_can_thread_entry(void *parameter)
                 msg_send_tick[gunno][BMS_APP_MSG_INDEX_0X3F3] = tick_temp;
                 /** 报文填充 */
                 app_bms_lv_msg_0x0F3_padding(gunno, &msg[gunno][BMS_APP_MSG_INDEX_0X3F3]);
-                /** 发送报文 */
-                if(gunno == APP_SYSTEM_GUNNOA){
-                    thaisen_bmsA_can_send(&msg[gunno][BMS_APP_MSG_INDEX_0X3F3]);
-                }else{
-                    thaisen_bmsB_can_send(&msg[gunno][BMS_APP_MSG_INDEX_0X3F3]);
+                /** 启动、充电、完成时发送 */
+                if((ofsm->state >= APP_OFSM_STATE_STARTING) && (ofsm->state <= APP_OFSM_STATE_STOPING)){
+                    /** 发送报文 */
+                    if(gunno == APP_SYSTEM_GUNNOA){
+                        thaisen_bmsA_can_send(&msg[gunno][BMS_APP_MSG_INDEX_0X3F3]);
+                    }else{
+                        thaisen_bmsB_can_send(&msg[gunno][BMS_APP_MSG_INDEX_0X3F3]);
+                    }
                 }
             }
         }
         rt_thread_mdelay(10);
     }
 
+}
+
+/*************************************************
+ * 函数名           app_bms_lv_get_svolt_max
+ * 功能               获取电池最高单体电压
+ * 参数              gunno    枪号
+ * 返回              电池最高单体电压(0.01V)
+ ************************************************/
+uint16_t app_bms_lv_get_svolt_max(uint8_t gunno)
+{
+    if(gunno >= APP_SYSTEM_GUNNO_SIZE){
+        return 0x00;
+    }
+    return s_bms_app_info[gunno].svolt_max;
+}
+
+/*************************************************
+ * 函数名           app_bms_lv_get_temp_max
+ * 功能               获取电池最高温度
+ * 参数              gunno    枪号
+ * 返回              电池最高温度(0.1度)
+ ************************************************/
+int8_t app_bms_lv_get_temp_max(uint8_t gunno)
+{
+    if(gunno >= APP_SYSTEM_GUNNO_SIZE){
+        return 0x00;
+    }
+    return s_bms_app_info[gunno].temp_max;
 }
 
 /*************************************************
