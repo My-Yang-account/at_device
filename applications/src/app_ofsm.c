@@ -3854,7 +3854,7 @@ static void ofsm_starting_fun(uint8_t gunno)
         /** BMS离线 */
         if(app_bms_lv_is_offline(gunno)){
             /** 报BSM停充 */
-            if(charge_state != APP_CHARGE_STATE_CHARGING){
+            if((charge_state != APP_CHARGE_STATE_CHARGING) && (is_stop_charge_authorization == false)){
                 thaisen_close_charge_module(gunno);
                 s_thaisen_transaction[gunno].stop_reason = APP_SYSTEM_STOP_WAY_BSM;
                 s_ofsm_info[gunno].base.reason_code = s_thaisen_transaction[gunno].stop_reason;
@@ -5199,7 +5199,7 @@ static void ofsm_charging_fun(uint8_t gunno)
         /** BMS离线 */
         if(app_bms_lv_is_offline(gunno)){
             /** 报BSM停充 */
-            if(charge_state != APP_CHARGE_STATE_CHARGING){
+            if((charge_state != APP_CHARGE_STATE_CHARGING) && (is_stop_charge_authorization == false)){
                 thaisen_close_charge_module(gunno);
                 s_thaisen_transaction[gunno].stop_reason = APP_SYSTEM_STOP_WAY_BSM;
                 s_ofsm_info[gunno].base.reason_code = s_thaisen_transaction[gunno].stop_reason;

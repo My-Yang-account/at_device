@@ -259,6 +259,10 @@ uint16_t mw_system_stop_way_convert(uint16_t stopway)
         }else if(stopway == APP_SYSTEM_STOP_WAY_NULL){
             return (APP_ORIGIN_NONE_SYSFAULT_STOPWAY_MAX + 0x01);
         }
+        /** 不是直接从mw_get_system_stop_way获取的 */
+        else if((stopway >= (APP_NONE_SYSFAULT_STOPWAY_OFFSET + APP_ORIGIN_NONE_SYSFAULT_STOPWAY_MAX)) && (stopway < APP_SYSTEM_STOP_WAY_SIZE)){
+            return stopway;
+        }
     }
 
     /** 自定义故障码 */
