@@ -398,6 +398,7 @@ static void app_out_oc_check(uint8_t gunno)
     if(gunno >= APP_SYSTEM_GUNNO_SIZE){
         return;
     }
+
     uint32_t config_oc_value = app_get_config_out_oc_value(gunno);
     uint32_t out_curr_value = app_get_out_curr_value(gunno);
     struct ofsm_info *ofsm = get_ofsm_info(gunno);
@@ -1263,3 +1264,57 @@ void app_state_device_status_changed(uint8_t device, void *parameter, uint8_t pl
 #endif /* APP_INCLUDE_MONITOR_PLATFORM */
     }
 }
+
+#ifdef APP_INCLUDE_V2G
+/********************************************************** 充电库获取系统数据回调 **********************************************************/
+/********************************************************** 充电库获取系统数据回调 **********************************************************/
+/****************************************************************************
+ * 函数名       app_state_system_data
+ * 功能           获取系统数据
+ * 参数           port     枪号
+ *       name       系统数据名@thaisenChargSystemData_t
+ *       parameter  辅组参数
+ *       pLen       辅组参数长度
+ * 返回           系统数据值
+ ***************************************************************************/
+int app_state_system_data(uint8_t port, uint8_t name, void *parameter, uint8_t pLen)
+{
+    if(port >= APP_SYSTEM_GUNNO_SIZE){
+        return 0x00;
+    }
+    struct ofsm_info *_ofsm = get_ofsm_info(port);
+
+    switch(name){
+    case ThaChargSysData_DischargVoltMax:
+        return (*(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_RATED_OUTPUT_VOLTAGE, 0x00)) *10);
+        break;
+    case ThaChargSysData_DischargVoltMin:
+        return (*(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_MIN_OUTPUT_VOLTAGE, 0x00)) *10);
+        break;
+    case ThaChargSysData_DischargCurrMax:
+        return (*(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_MAX_LIMIT_CURRENT, 0x00)) *10 /2);
+        break;
+    case ThaChargSysData_ParallelDischargCurrMax:
+        return (*(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_MAX_LIMIT_CURRENT, 0x00)) *10);
+        break;
+    case ThaChargSysData_DischargCurrMin:
+        return (*(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_MIN_LIMIT_CURRENT, 0x00)) *10);
+        break;
+    case ThaChargSysData_DischargSOCMax:
+        return 0x64;
+        break;
+    case ThaChargSysData_DischargSOCMin:
+        return *(sys_read_config_item_content(CONFIG_ITEM_DISCHARGE_AS_OF_SOC, 0x00));
+        break;
+    case ThaChargSysData_WorkTime:
+        return _ofsm->base.charge_time;
+        break;
+    case ThaChargSysData_TransmitElect:
+        return _ofsm->base.elect_a;
+        break;
+    default:
+        break;
+    }
+    return 0x00;
+}
+#endif /* APP_INCLUDE_V2G */

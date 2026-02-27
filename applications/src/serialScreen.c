@@ -3684,16 +3684,16 @@ static void SerialScreen_RealTime_InfoGet(void)
             LcdData.setData.samplingVolt[gunno] = (LcdData.setData.moduleVolt[gunno] + 500);
         }
 #ifdef SCREEN_USING_DOUBLE_GUN
-            thaisenLiquidSt* liquidSystem[LCD_GUN_NUM];
-            liquidSystem[gunno] = thaisenGetLiquidPara(gunno);
-            LcdData.setData.g_flow_rate[gunno] = (liquidSystem[gunno]->flow_rate / 10);                               //??????
-            LcdData.setData.g_systemstress[gunno] = liquidSystem[gunno]->systemstress;                                //?????
-            LcdData.setData.g_liquidtemperature[gunno] = (liquidSystem[gunno]->liquidtemperatur / 10) - 500;          //??????
-            LcdData.setData.g_supplytemperature[gunno] = (liquidSystem[gunno]->supplytemperature / 10) - 500;         //??????
-            LcdData.setData.g_circulationspeed[gunno] = liquidSystem[gunno]->circulationspeed;                        //????????
-            LcdData.setData.g_fanspeed[gunno] = liquidSystem[gunno]->fanspeed;                                        //??????
-            LcdData.setData.g_fansduty[gunno] = liquidSystem[gunno]->duty;
-            SerialScreen_Liquid_FaultGet(gunno);
+        thaisenLiquidSt* liquidSystem[LCD_GUN_NUM];
+        liquidSystem[gunno] = thaisenGetLiquidPara(gunno);
+        LcdData.setData.g_flow_rate[gunno] = (liquidSystem[gunno]->flow_rate / 10);                               //??????
+        LcdData.setData.g_systemstress[gunno] = liquidSystem[gunno]->systemstress;                                //?????
+        LcdData.setData.g_liquidtemperature[gunno] = (liquidSystem[gunno]->liquidtemperatur / 10) - 500;          //??????
+        LcdData.setData.g_supplytemperature[gunno] = (liquidSystem[gunno]->supplytemperature / 10) - 500;         //??????
+        LcdData.setData.g_circulationspeed[gunno] = liquidSystem[gunno]->circulationspeed;                        //????????
+        LcdData.setData.g_fanspeed[gunno] = liquidSystem[gunno]->fanspeed;                                        //??????
+        LcdData.setData.g_fansduty[gunno] = liquidSystem[gunno]->duty;
+        SerialScreen_Liquid_FaultGet(gunno);
 #endif /* SCREEN_USING_DOUBLE_GUN */
     }
 }
@@ -3706,22 +3706,64 @@ u8 SerialScreen_GetChargeWay(void)
         return APP_CHARGE_WAY_SINGLEGUN;
 }
 
-void SerialScreen_SetChargeWay(u8 way)
+void SerialScreen_SetChargeWay(u8 port, u8 way)
 {
+    if(port >= LCD_GUN_NUM){
+        return;
+    }
+    /********************************************* 充电方式未选择，默认单枪充放电 *********************************************/
     if(way <= APP_CHARGE_WAY_NONE){
-        thaisen_set_charg_mode(thaisenSingleChargeMode);
+#ifdef SCREEN_USING_V2G
+        /** 当前枪运行模式为V2G */
+        if(LcdData.runData.GunRunMode[port] == THAISEN_GUN_RUNING_MODE_V2G)
+            thaisen_set_charg_mode(thaisenSingleDisChargeMode);
+        else
+#endif /* SCREEN_USING_V2G */
+        {
+            thaisen_set_charg_mode(thaisenSingleChargeMode);
+        }
         thaisenModuleSetChargeWay(thaisenModuleChargeWay_singleGun);
         LcdAssistantData.Flag.ParaChargeSelect = FALSE;
-    }else if(way == APP_CHARGE_WAY_SINGLEGUN){
-        thaisen_set_charg_mode(thaisenSingleChargeMode);
+    }
+    /********************************************* 充电方式选择单枪充放电 *********************************************/
+    else if(way == APP_CHARGE_WAY_SINGLEGUN){
+#ifdef SCREEN_USING_V2G
+        /** 当前枪运行模式为V2G */
+        if(LcdData.runData.GunRunMode[port] == THAISEN_GUN_RUNING_MODE_V2G)
+            thaisen_set_charg_mode(thaisenSingleDisChargeMode);
+        else
+#endif /* SCREEN_USING_V2G */
+        {
+            thaisen_set_charg_mode(thaisenSingleChargeMode);
+        }
         thaisenModuleSetChargeWay(thaisenModuleChargeWay_singleGun);
         LcdAssistantData.Flag.ParaChargeSelect = FALSE;
-    }else if((way == APP_CHARGE_WAY_PARACHARGE_LOCAL) || (way == APP_CHARGE_WAY_PARACHARGE_CLOUD)){
-        thaisen_set_charg_mode(thaisenParallelCharging);
+    }
+    /********************************************* 充电方式选择双枪充放电 *********************************************/
+    else if((way == APP_CHARGE_WAY_PARACHARGE_LOCAL) || (way == APP_CHARGE_WAY_PARACHARGE_CLOUD)){
+#ifdef SCREEN_USING_V2G
+        /** 当前枪运行模式为V2G */
+        if(LcdData.runData.GunRunMode[port] == THAISEN_GUN_RUNING_MODE_V2G)
+            thaisen_set_charg_mode(thaisenParallelDisCharging);
+        else
+#endif /* SCREEN_USING_V2G */
+        {
+            thaisen_set_charg_mode(thaisenParallelCharging);
+        }
         thaisenModuleSetChargeWay(thaisenModuleChargeWay_parallelCharge);
         LcdAssistantData.Flag.ParaChargeSelect = TRUE;
-    }else{
-        thaisen_set_charg_mode(thaisenSingleChargeMode);
+    }
+    /********************************************* 充电方式未知，默认单枪充放电 *********************************************/
+    else{
+#ifdef SCREEN_USING_V2G
+        /** 当前枪运行模式为V2G */
+        if(LcdData.runData.GunRunMode[port] == THAISEN_GUN_RUNING_MODE_V2G)
+            thaisen_set_charg_mode(thaisenSingleDisChargeMode);
+        else
+#endif /* SCREEN_USING_V2G */
+        {
+            thaisen_set_charg_mode(thaisenSingleChargeMode);
+        }
         thaisenModuleSetChargeWay(thaisenModuleChargeWay_singleGun);
         LcdAssistantData.Flag.ParaChargeSelect = FALSE;
     }
@@ -15774,7 +15816,7 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
 #endif
     SerialScreen_ItemSetUp(LCD_PAGE_DISCHARGE_MODE, NULL, "Limit Timing", LCD_InputType, 0, 0x6D76, pu32_type, sizeof(LcdData.setData.V2G_MSLimitTiming[LCD_GUN_NUM]), (void *)&LcdData.setData.V2G_MSLimitTiming[LCD_GUN_NUM]);
 
-    SerialScreen_ItemSetUp(LCD_PAGE_DISCHARGE_MODE, NULL, "subok", LCD_ModeSelectBack, 0x0014, 0x1000, page_type, LCD_PAGE_A_SELECT, (void *)SerialScreen_BtnV2GInfoStorage);
+    SerialScreen_ItemSetUp(LCD_PAGE_DISCHARGE_MODE, NULL, "subok", LCD_BtnType, 0x0014, 0x1000, page_type, LCD_PAGE_A_SELECT, (void *)SerialScreen_BtnV2GInfoStorage);
 #endif /* SCREEN_USING_V2G */
     SerialScreen_ItemSetUp(LCD_PAGE_DISCHARGE_MODE, NULL, "back", LCD_ModeSelectBack, 0x0002, 0x1000, page_type, LCD_PAGE_A_SELECT, (void *)SerialScreen_BtnModeSelectBack);
     SerialScreen_ItemSetUp(LCD_PAGE_DISCHARGE_MODE, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
@@ -16009,7 +16051,7 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
 #ifdef SCREEN_USING_V2G
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_MODE_SELECT, NULL, "discharge", LCD_BtnType, 0x006C, 0x1003, page_type, LCD_PAGE_DISCHARGE_MODE, (void *)SerialScreen_DisChargeInfoGet);
 #endif /* SCREEN_USING_V2G */
-    SerialScreen_ItemSetUp(LCD_PAGE_MENU_MODE_SELECT, NULL, "subok", LCD_ModeSelectBack, 0x0014, 0x1000, page_type, LCD_PAGE_A_SELECT, (void *)SerialScreen_BtnModeInfoStorage);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_MODE_SELECT, NULL, "subok", LCD_BtnType, 0x0014, 0x1000, page_type, LCD_PAGE_A_SELECT, (void *)SerialScreen_BtnModeInfoStorage);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_MODE_SELECT, NULL, "back", LCD_ModeSelectBack, 0x0002, 0x1000, page_type, LCD_PAGE_A_SELECT, (void *)SerialScreen_BtnModeSelectBack);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_MODE_SELECT, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
 

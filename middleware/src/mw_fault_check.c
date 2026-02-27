@@ -48,6 +48,17 @@ static uint16_t mw_convert_to_system_stopway(uint8_t gunno, thaisenChargeCtlStop
             }else{
                 return APP_SYSTEM_STOP_WAY_STARTING_BCS_TIMEOUT;
             }
+#ifdef APP_INCLUDE_V2G
+        case THAISEN_COMMUTIMEOUT_BCPP:
+            return APP_SYSTEM_STOP_WAY_BCPP_TIMEOUT;
+        case THAISEN_COMMUTIMEOUT_BCSP:
+            /** CCS 报文已发送，说明已经进入了充电状态 */
+            if(sended.CCS){
+                return APP_SYSTEM_STOP_WAY_CHARGEING_BCSP_TIMEOUT;
+            }else{
+                return APP_SYSTEM_STOP_WAY_STARTING_BCSP_TIMEOUT;
+            }
+#endif /* APP_INCLUDE_V2G */
         default:
             break;
         }
@@ -77,6 +88,17 @@ static uint16_t mw_convert_to_system_stopway(uint8_t gunno, thaisenChargeCtlStop
             }else{
                 return APP_SYSTEM_STOP_WAY_STARTING_BCS_TIMEOUT;
             }
+#ifdef APP_INCLUDE_V2G
+        case THAISEN_WAITING_MSG_BCPP:
+            return APP_SYSTEM_STOP_WAY_BCPP_TIMEOUT;
+        case THAISEN_WAITING_MSG_BCSP:
+            /** CCS 报文已发送，说明已经进入了充电状态 */
+            if(sended.CCS){
+                return APP_SYSTEM_STOP_WAY_CHARGEING_BCSP_TIMEOUT;
+            }else{
+                return APP_SYSTEM_STOP_WAY_STARTING_BCSP_TIMEOUT;
+            }
+#endif /* APP_INCLUDE_V2G */
         default:
             break;
         }
@@ -287,6 +309,17 @@ uint16_t mw_query_bms_communicate_fault(uint8_t gunno)
         }else{
             return APP_SYSTEM_STOP_WAY_STARTING_BCS_TIMEOUT;
         }
+#ifdef APP_INCLUDE_V2G
+    case THAISEN_COMMUTIMEOUT_BCPP:
+        return APP_SYSTEM_STOP_WAY_BCPP_TIMEOUT;
+    case THAISEN_COMMUTIMEOUT_BCSP:
+        /** CCS 报文已发送，说明已经进入了充电状态 */
+        if(sended.CCS){
+            return APP_SYSTEM_STOP_WAY_CHARGEING_BCSP_TIMEOUT;
+        }else{
+            return APP_SYSTEM_STOP_WAY_STARTING_BCSP_TIMEOUT;
+        }
+#endif /* APP_INCLUDE_V2G */
     default:
         break;
     }

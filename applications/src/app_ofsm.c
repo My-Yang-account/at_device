@@ -1568,7 +1568,7 @@ static void ofsm_start_info_padding_public(uint8_t gunno)
 #endif /* APP_INCLUDE_V2G */
     }
 
-    thaisen_set_charge_way(s_ofsm_info[gunno].base.charge_way);
+    thaisen_set_charge_way(gunno, s_ofsm_info[gunno].base.charge_way);
 
     s_ofsm_info[gunno].base.flag.is_boot_timeout = APP_THA_ENUM_FALSE;
     s_ofsm_info[gunno].base.flag.is_starting = APP_THA_ENUM_FALSE;
@@ -3428,7 +3428,7 @@ static void ofsm_starting_fun(uint8_t gunno)
 #else
                         s_ofsm_info[gunno].base.start_elect = (mw_get_meter_total_wh(gunno) + mw_get_meter_total_wh(deputy_gunno));
 #endif /* APP_INCLUDE_V2G */
-                        thaisen_set_charge_way(s_ofsm_info[gunno].base.charge_way);
+                        thaisen_set_charge_way(gunno, s_ofsm_info[gunno].base.charge_way);
 
                         s_thaisen_transaction[gunno].charge_way = APP_CHARGE_WAY_PARACHARGE_LOCAL;
                         s_thaisen_transaction[gunno].ammeter_start = s_ofsm_info[gunno].base.start_elect;
@@ -8633,12 +8633,26 @@ void ofsm_thread_entry(void *parameter)
             thaisenModuleSetBMSProtoclType(thread_gunno, THAISEN_MODULE_BMS_PROTYPE_27930_2015);
             break;
         }
-
+        /** 工作模式 */
         if(s_ofsm_info[thread_gunno].base.gun_running_mode == APP_GUN_RUNNING_MODE_V2G){
             thaisenModuleSetWorkMode(thread_gunno, THAISEN_MODULE_WORKMODE_ON_CONTRAVARIANT);
         }else{
             thaisenModuleSetWorkMode(thread_gunno, THAISEN_MODULE_WORKMODE_RECTIFICATION);
         }
+#if 0
+        /** 电表反向数读取使能 */
+        switch(thaisen_get_gun_running_mode(thread_gunno)){
+        case THAISEN_GUN_RUNING_MODE_V2G:
+            thaisen_AmmeterSetReadReverse(thread_gunno, APP_THA_ENUM_TRUE);
+            break;
+        default:
+            thaisen_AmmeterSetReadReverse(thread_gunno, APP_THA_ENUM_FALSE);
+            break;
+        }
+#endif
+        thaisen_AmmeterSetReadReverse(thread_gunno, APP_THA_ENUM_TRUE);
+#else
+        thaisen_AmmeterSetReadReverse(thread_gunno, APP_THA_ENUM_FALSE);
 #endif /* APP_INCLUDE_V2G */
 
         if(thaisen_get_screen_timesync_flag()){

@@ -183,6 +183,10 @@ enum system_stop_way{
     APP_SYSTEM_STOP_WAY_OFFLINE_CHARGE_TIME,    /* 系统停充原因：达到离线可充电最长时间 */
     APP_SYSTEM_STOP_WAY_START_TIMEOUT,          /* 系统停充原因：启动超时 */
     APP_SYSTEM_STOP_WAY_MASTER_DEV_OFFLINE,     /* 系统停充原因：主设备离线 */
+    /** 新增：20260226 */
+    APP_SYSTEM_STOP_WAY_BCPP_TIMEOUT,           /* 接收BCPP超时(V2G) */
+    APP_SYSTEM_STOP_WAY_STARTING_BCSP_TIMEOUT,  /* 启动中接收BCSP超时(V2G) */
+    APP_SYSTEM_STOP_WAY_CHARGEING_BCSP_TIMEOUT, /* 充电中接收BCSP超时(V2G) */
 
     APP_SYSTEM_STOP_WAY_LIGHTPROTECT = thaisen_chargeCtl_stopWay_LightProtect + APP_SYSFAULT_STOPWAY_OFFSET,        /* 防雷器 */
     APP_SYSTEM_STOP_WAY_GUNSITE = thaisen_chargeCtl_stopWay_GunSite + APP_SYSFAULT_STOPWAY_OFFSET,                  /* 枪座 */

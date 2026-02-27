@@ -308,3 +308,20 @@ uint8_t mw_charglib_get_function_enable(uint8_t port, app_funcenable_t function)
     }
     return 0x00;
 }
+
+#ifdef APP_INCLUDE_V2G
+/*****************************************************
+* 函数名        mw_charglib_register_get_sysdata_cb
+* 功能            注册获取系统数据回调函数
+* 参数            cb       回调函数句柄
+* 返回
+ ****************************************************/
+void mw_charglib_register_get_sysdata_cb(void *cb)
+{
+    thaisenChargCtrlHandle_t *_handle = (thaisenChargCtrlHandle_t*)(thaisenChargGetCtrlHandle());
+
+    if(_handle->CBConfig){
+        _handle->CBConfig(_handle, THACHARGE_CB_INDEX_GET_SYSDATA, cb);
+    }
+}
+#endif /* APP_INCLUDE_V2G */

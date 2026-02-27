@@ -337,6 +337,10 @@ enum charge_way{
     APP_CHARGE_WAY_SINGLEGUN,              /** 充电方式：单枪 */
     APP_CHARGE_WAY_PARACHARGE_LOCAL,       /** 充电方式：并充(本地选择:最终只上报一把枪的交易) */
     APP_CHARGE_WAY_PARACHARGE_CLOUD,       /** 充电方式：并充(云端选择:最终需上报两把枪的交易) */
+#ifdef APP_INCLUDE_V2G
+    APP_CHARGE_WAY_SINGLEGUN_DISCHARGE,    /** 充电方式：单枪放电 */
+    APP_CHARGE_WAY_PARA_DISCHARGE_LOCAL,   /** 充电方式：双枪放电(本地选择:最终只上报一把枪的交易) */
+#endif /* APP_INCLUDE_V2G */
 };
 
 enum{

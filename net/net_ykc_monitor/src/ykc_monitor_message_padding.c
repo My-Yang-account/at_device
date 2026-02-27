@@ -29,9 +29,16 @@
 
 #define YKC_MONITOR_FIXED_CMD_MSG_VER                     0x00                  /* 固定类型指令报文版本 */
 #define YKC_MONITOR_CONFIG_INFO_MSG_VER                   0x00                  /* 配置信息指令报文版本 */
+#define YKC_MONITOR_0XD7_MSG_VER                          0x01                  /* 0xD7指令报文版本 */
 
 #define YKC_MONITOR_DYNAMIC_CMD_MSG_VER                   0x00                  /* 动态类型指令报文版本 */
 #define YKC_MONITOR_DYNAMIC_CMD_SINGLE_NUM                0x06                  /* 单次操作动态类型指令最大个数，超过的不执行，也不报错 */
+
+#ifdef APP_INCLUDE_V2G
+#define YKC_MONITOR_V2G_0XD7_MSG_VER_MIN                  0x02                  /* 0xD7指令报文版本 */
+#else
+#define YKC_MONITOR_V2G_0XD7_MSG_VER_MIN                  0x00                  /* 0xD7指令报文版本 */
+#endif /* APP_INCLUDE_V2G */
 
 /** 接收BMS报文 */
 #define YKC_MONITOR_RECVED_MSG_BHM                       (0x01 <<0x00)          /* 是否接收到了BHM报文 */
@@ -46,6 +53,12 @@
 #define YKC_MONITOR_RECVED_MSG_BSM                       (0x01 <<0x09)          /* 是否接收到了BSM报文 */
 #define YKC_MONITOR_RECVED_MSG_BST                       (0x01 <<0x0A)          /* 是否接收到了BST报文 */
 #define YKC_MONITOR_RECVED_MSG_BSD                       (0x01 <<0x0B)          /* 是否接收到了BSD报文 */
+#ifdef APP_INCLUDE_V2G
+#define YKC_MONITOR_RECVED_MSG_BDC                       (0x01 <<0x0C)          /* 是否接收到了BDC报文 */
+#define YKC_MONITOR_RECVED_MSG_BCPP                      (0x01 <<0x0D)          /* 是否接收到了BCPP报文 */
+#define YKC_MONITOR_RECVED_MSG_BCSP                      (0x01 <<0x0E)          /* 是否接收到了BCSP报文 */
+#endif /* APP_INCLUDE_V2G */
+
 /** 发送充电机报文报文 */
 #define YKC_MONITOR_SENDED_MSG_CHM                       (0x01 <<0x00)          /* 是否发送了CHM报文 */
 #define YKC_MONITOR_SENDED_MSG_CRM                       (0x01 <<0x01)          /* 是否发送了CRM报文 */
@@ -59,6 +72,12 @@
 #define YKC_MONITOR_SENDED_MSG_CEM                       (0x01 <<0x09)          /* 是否发送了CEM报文 */
 #define YKC_MONITOR_SENDED_MSG_CST                       (0x01 <<0x0A)          /* 是否发送了CST报文 */
 #define YKC_MONITOR_SENDED_MSG_CSD                       (0x01 <<0x0B)          /* 是否发送了CSD报文 */
+#ifdef APP_INCLUDE_V2G
+#define YKC_MONITOR_SENDED_MSG_CSDP                      (0x01 <<0x0C)          /* 是否发送了CSDP报文 */
+#define YKC_MONITOR_SENDED_MSG_CDC                       (0x01 <<0x0D)          /* 是否发送了CDC报文 */
+#define YKC_MONITOR_SENDED_MSG_CMLP                      (0x01 <<0x0E)          /* 是否发送了CMLP报文 */
+#define YKC_MONITOR_SENDED_MSG_CCD                       (0x01 <<0x0F)          /* 是否发送了CCD报文 */
+#endif /* APP_INCLUDE_V2G */
 
 #define YKC_MONITOR_BUF_PUBLIC_LENGTH                     0xFF                  /* 充电数据公用缓存长度  */
 #define YKC_MONITOR_MODULE_GROUP_MAX                      0x04                  /* 最大模块组数  */
@@ -4642,6 +4661,20 @@ int8_t ykc_monitor_padding_starting_info(uint8_t gunno)
     if(msg_recved.BFC){
         s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].recved_message |= YKC_MONITOR_RECVED_MSG_BFC;
     }
+#ifdef APP_INCLUDE_V2G
+    /** BDC */
+    if(msg_recved.BDC){
+        s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].recved_message |= YKC_MONITOR_RECVED_MSG_BDC;
+    }
+    /** BCPP */
+    if(msg_recved.BCPP){
+        s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].recved_message |= YKC_MONITOR_RECVED_MSG_BCPP;
+    }
+    /** BCSP */
+    if(msg_recved.BCSP){
+        s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].recved_message |= YKC_MONITOR_RECVED_MSG_BCSP;
+    }
+#endif /* APP_INCLUDE_V2G */
 
     /********************************************** 报文发送 **********************************************/
     s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].sended_message = 0x00;
@@ -4693,6 +4726,24 @@ int8_t ykc_monitor_padding_starting_info(uint8_t gunno)
     if(msg_sended.CEM){
         s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].sended_message |= YKC_MONITOR_SENDED_MSG_CEM;
     }
+#ifdef APP_INCLUDE_V2G
+    /** CDC */
+    if(msg_sended.CDC){
+        s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].sended_message |= YKC_MONITOR_SENDED_MSG_CDC;
+    }
+    /** CMLP */
+    if(msg_sended.CMLP){
+        s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].sended_message |= YKC_MONITOR_SENDED_MSG_CMLP;
+    }
+    /** CCD */
+    if(msg_sended.CCD){
+        s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].sended_message |= YKC_MONITOR_SENDED_MSG_CCD;
+    }
+    /** CSDP */
+    if(msg_sended.CSDP){
+        s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].sended_message |= YKC_MONITOR_SENDED_MSG_CSDP;
+    }
+#endif /* APP_INCLUDE_V2G */
 
     s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].max_alllow_voltage.symbol = 0x00;
     s_ykc_monitor_starting_info[gunno].info[s_ykc_monitor_starting_info[gunno].count].max_alllow_voltage.data = bms->BHM.MaxAllowVol;
@@ -4734,7 +4785,11 @@ int8_t ykc_monitor_message_padding_starting_info(uint8_t gunno, uint8_t *buf, ui
     memset(message, 0x00, data_len);
     memcpy(message->body.pile_number, g_ykc_monitor_preq_login.body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
     message->body.timestamp = s_ykc_monitor_starting_info[gunno].timestamp;
-    message->body.info.msg_version = 0x01;
+    message->body.info.msg_version = YKC_MONITOR_0XD7_MSG_VER;
+    if(message->body.info.msg_version < YKC_MONITOR_V2G_0XD7_MSG_VER_MIN){
+        message->body.info.msg_version = YKC_MONITOR_V2G_0XD7_MSG_VER_MIN;
+    }
+
     message->body.info.info_type = NET_YKC_MONITOR_PROCESS_INFO_TYPE_STARTING;
     message->body.gunno = (gunno + 0x01);
     if(s_ykc_monitor_starting_info[gunno].count > NET_YKC_MONITOR_STARTING_INFO_MAX){
@@ -4871,6 +4926,20 @@ int8_t ykc_monitor_padding_charging_info(uint8_t gunno)
     if(msg_recved.BFC){
         s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].recved_message |= YKC_MONITOR_RECVED_MSG_BFC;
     }
+#ifdef APP_INCLUDE_V2G
+    /** BDC */
+    if(msg_recved.BDC){
+        s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].recved_message |= YKC_MONITOR_RECVED_MSG_BDC;
+    }
+    /** BCPP */
+    if(msg_recved.BCPP){
+        s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].recved_message |= YKC_MONITOR_RECVED_MSG_BCPP;
+    }
+    /** BCSP */
+    if(msg_recved.BCSP){
+        s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].recved_message |= YKC_MONITOR_RECVED_MSG_BCSP;
+    }
+#endif /* APP_INCLUDE_V2G */
 
     /********************************************** 报文发送 **********************************************/
     s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].sended_message = 0x00;
@@ -4922,6 +4991,24 @@ int8_t ykc_monitor_padding_charging_info(uint8_t gunno)
     if(msg_sended.CEM){
         s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].sended_message |= YKC_MONITOR_SENDED_MSG_CEM;
     }
+#ifdef APP_INCLUDE_V2G
+    /** CDC */
+    if(msg_sended.CDC){
+        s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].sended_message |= YKC_MONITOR_SENDED_MSG_CDC;
+    }
+    /** CMLP */
+    if(msg_sended.CMLP){
+        s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].sended_message |= YKC_MONITOR_SENDED_MSG_CMLP;
+    }
+    /** CCD */
+    if(msg_sended.CCD){
+        s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].sended_message |= YKC_MONITOR_SENDED_MSG_CCD;
+    }
+    /** CSDP */
+    if(msg_sended.CSDP){
+        s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].sended_message |= YKC_MONITOR_SENDED_MSG_CSDP;
+    }
+#endif /* APP_INCLUDE_V2G */
 
     s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].require_voltage.symbol = 0x00;
     s_ykc_monitor_charging_info[gunno].info[s_ykc_monitor_charging_info[gunno].count].require_voltage.data = bms->BCL.BMSneedVolt;
@@ -4981,7 +5068,10 @@ int8_t ykc_monitor_message_padding_charging_info(uint8_t gunno, uint8_t *buf, ui
     memset(message, 0x00, data_len);
     memcpy(message->body.pile_number, g_ykc_monitor_preq_login.body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
     message->body.timestamp = s_ykc_monitor_charging_info[gunno].timestamp;
-    message->body.info.msg_version = 0x01;
+    message->body.info.msg_version = YKC_MONITOR_0XD7_MSG_VER;
+    if(message->body.info.msg_version < YKC_MONITOR_V2G_0XD7_MSG_VER_MIN){
+        message->body.info.msg_version = YKC_MONITOR_V2G_0XD7_MSG_VER_MIN;
+    }
     message->body.info.info_type = NET_YKC_MONITOR_PROCESS_INFO_TYPE_CHARGING;
     message->body.gunno = (gunno + 0x01);
     if(s_ykc_monitor_charging_info[gunno].count > NET_YKC_MONITOR_CHARGING_INFO_MAX){
@@ -5042,7 +5132,10 @@ int8_t ykc_monitor_message_padding_charge_finish_info(uint8_t gunno, uint8_t *bu
     memset(message, 0x00, data_len);
     memcpy(message->body.pile_number, g_ykc_monitor_preq_login.body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
     message->body.timestamp = base->current_time;
-    message->body.info.msg_version = 0x01;
+    message->body.info.msg_version = YKC_MONITOR_0XD7_MSG_VER;
+    if(message->body.info.msg_version < YKC_MONITOR_V2G_0XD7_MSG_VER_MIN){
+        message->body.info.msg_version = YKC_MONITOR_V2G_0XD7_MSG_VER_MIN;
+    }
     message->body.info.info_type = NET_YKC_MONITOR_PROCESS_INFO_TYPE_FINISH;
     message->body.gunno = (gunno + 0x01);
     message->body.group_num = NET_YKC_MONITOR_FINISH_INFO_MAX;
@@ -5086,6 +5179,12 @@ int8_t ykc_monitor_message_padding_charge_finish_info(uint8_t gunno, uint8_t *bu
     if(msg_sended.CSD){
         info->sended_message |= (YKC_MONITOR_SENDED_MSG_CSD >>YKC_MONITOR_SENDED_MSG_OFFSET);
     }
+#ifdef APP_INCLUDE_V2G
+    /** CSDP */
+    if(msg_sended.CSDP){
+        info->sended_message |= (YKC_MONITOR_SENDED_MSG_CSDP >>YKC_MONITOR_SENDED_MSG_OFFSET);
+    }
+#endif /* APP_INCLUDE_V2G */
 
     info->bsm.msingle_bat_sn = bms->BSM.HigVoltCellNum;
     info->bsm.max_bat_temp = bms->BSM.HigTemp;
@@ -8718,6 +8817,10 @@ int8_t ykc_monitor_message_padding_request_bms_message(uint8_t gunno, uint8_t *b
     segment += head_len;
     ((struct other_data*)segment)->protocol_type = info->ProtocolType;
     ((struct other_data*)segment)->current_offset = info->CurrOffset;
+#ifdef APP_INCLUDE_V2G
+    ((struct other_data*)segment)->bms_protocol = info->BMSProtocolType;
+    total += 0x01;
+#endif /* APP_INCLUDE_V2G */
 
     message->body.info_type = NETYKCM_DEV_RUNNING_DATA_BMS_MESSAGE;
     message->body.option = 0x01;        /** 数据上报 */

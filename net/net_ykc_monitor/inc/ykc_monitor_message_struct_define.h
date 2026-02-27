@@ -2546,6 +2546,14 @@ enum currprotocol{
     NETYKCM_SUPER_CURR_PROTOCOL_FAST,                          /** 超级电流协议：FAST */
     NETYKCM_SUPER_CURR_PROTOCOL_SIZE,                          /** 超级电流协议 */
 };
+/****** BMS 协议类型 ******/
+enum bmsprotocol{
+    NETYKCM_BMS_PROTOCOL_NONE,                                 /** BMS 协议类型：无 */
+    NETYKCM_BMS_PROTOCOL_27930_CHARGE,                         /** BMS 协议类型：27930充电 */
+    NETYKCM_BMS_PROTOCOL_27930_DISCHARGE,                      /** BMS 协议类型：27930放电 */
+    NETYKCM_BMS_PROTOCOL_33021_NB_T_DISCHARGE,                 /** BMS 协议类型：能标-NB/T-33021 放电 */
+    NETYKCM_BMS_PROTOCOL_SIZE,                                 /** BMS 协议类型 */
+};
 
 /** 宇通CFC报文 */
 struct yt_cfc{
@@ -2697,6 +2705,8 @@ struct bsd{
 struct other_data{
     uint8_t protocol_type;                                     /** 超级(大)电流协议类型@enum currprotocol */
     uint16_t current_offset;                                   /** 电流偏移(0.1A) */
+    /** 新增：20260226 */
+    uint8_t bms_protocol;                                      /** BMS协议类型@enum bmsprotocol */
 };
 
 /******************************** 液冷故障信息数据段 ********************************/

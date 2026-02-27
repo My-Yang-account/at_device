@@ -3,6 +3,7 @@
 
 #include "thaisen7102Public.h"
 
+#define THAISEN_CHARGELIB_INCLUDE_V2G    // 包含V2G //
 
 
 
@@ -235,6 +236,38 @@ struct thaisenBEMstruct
 
     uint8_t  CSDOVtime        :2; //接收CSD_A超时      00:正常   01:超时  01:不可信状态
     uint8_t                   :6;
+
+    uint16_t  rev_info;
+};
+
+struct thaisenBEMstructV2G
+{
+    uint8_t  CRM00OVtime      :2; //接收CRM_A 00超时   00:正常   01:超时  01:不可信状态
+    uint8_t  CRMAAOVtime      :2; //接收CRM_A AA超时   00:正常   01:超时  01:不可信状态
+    uint8_t                   :4;
+
+    uint8_t  CTSCMLOVtime     :2; //接收CTS_A.CML_A超时  00:正常   01:超时  01:不可信状态
+    uint8_t  CROOVtime        :2; //接收CRO_A超时      00:正常   01:超时  01:不可信状态
+    uint8_t                   :4;
+
+    uint8_t  CCSOVtime        :2; //接收CCS_A超时      00:正常   01:超时  01:不可信状态
+    uint8_t  CSTOVtime        :2; //接收CST_A超时      00:正常   01:超时  01:不可信状态
+    uint8_t                   :4;
+
+    uint8_t  CSDOVtime        :2; //接收CSD_A超时      00:正常   01:超时  01:不可信状态
+    uint8_t                   :6;
+
+    uint8_t  AuxDisOVtime     :2; //接收充（放）电机 A+、 A-断开超时      00:正常   01:超时  01:不可信状态
+    uint8_t  CMLPOVtime       :2; //接收充（放）电机最大输出能力扩展超时      00:正常   01:超时  01:不可信状态
+    uint8_t  CCDOVtime        :2; //接收充（放）电机充（放）电方向请求报文超时      00:正常   01:超时  01:不可信状态
+    uint8_t  CSDPOVtime       :2; //接收充（放）电机统计数据扩展超时超时      00:正常   01:超时  01:不可信状态
+
+    uint8_t  ParaNoMatch      :2; //车辆充电参数不匹配      00:正常   01:异常  其它:不可信状态
+    uint8_t  Reserve1          :6;
+
+    uint8_t  Reserve2;
+    uint8_t  Reserve3;
+
     uint16_t  rev_info;
 };
 
@@ -254,6 +287,35 @@ struct thaisenCEMstruct
 
     uint8_t  BSDOVtime        :2; //接收BSD_A超时     00:正常   01:超时  01:不可信状态
     uint8_t                   :6;
+};
+
+struct thaisenCEMstructV2G
+{
+    uint8_t  BRMOVtime        :2; //接收BRM超时     00:正常   01:超时  01:不可信状态
+    uint8_t                   :6;
+    uint8_t  BCPOVtime        :2; //接收BCP超时     00:正常   01:超时  01:不可信状态
+    uint8_t  BROOVtime        :2; //接收BRO_A超时     00:正常   01:超时  01:不可信状态
+    uint8_t                   :4;
+
+    uint8_t  BCSOVtime        :2; //接收BCS超时     00:正常   01:超时  01:不可信状态
+    uint8_t  BCLOVtime        :2; //接收BCL_A超时     00:正常   01:超时  01:不可信状态
+    uint8_t  BSTOVtime        :2; //接收BST_A超时     00:正常   01:超时  01:不可信状态
+    uint8_t                   :2;
+
+    uint8_t  BSDOVtime        :2; //接收BSD_A超时     00:正常   01:超时  01:不可信状态
+    uint8_t                   :6;
+
+    uint8_t  BDCOVtime        :2; //接收车辆功能兼容性报文超时     00:正常   01:超时  01:不可信状态
+    uint8_t  BCPPOVtime       :2; //接收电池充电参数扩展报文超时     00:正常   01:超时  01:不可信状态
+    uint8_t                   :4;
+
+    uint8_t  InsultRes        :2; //充电机绝缘检测结果    00:正常   01:异常  其它:不可信状态
+    uint8_t  RelayAdh         :2; //充电机接触器粘连检测结果     00:正常   01:异常  其它:不可信状态
+    uint8_t  BatVoltSta       :2; //充电机检测电池电压状态     00:正常   01:异常  其它:不可信状态
+    uint8_t  SoftBoot         :2; //充电机软启动     00:正常   01:异常  其它:不可信状态
+
+    uint8_t  Reserve1;
+    uint8_t  Reserve2;
 };
 
 struct thaisenCFCstruct
@@ -292,6 +354,63 @@ struct thaisenBFCstruct
     uint16_t rev_info;
 };
 
+/********************** V2G 报文 **********************/
+struct thaisenCDCstruct
+{
+    uint8_t ver[3];               //版本号
+};
+
+struct thaisenBDCstruct
+{
+    uint8_t  CarDiscern[17];      //车辆识别信息 17byte
+    uint8_t SOC;                  //动力电池电荷状态   0.1%/bit
+    uint16_t BatRateCap;          //动力电池额定容量       0.1AH/bit
+    uint16_t BatRateKW;           //动力电池额定总能量 0.1KW/bit
+    uint16_t V2GLoopedCount;      //参与 V2G 的循环次数/次， 0.1 次/位， 0 次偏移量
+    uint16_t RemainV2GLoopedCount;//剩余 V2G 的循环次数/次， 0.1 次/位， 0 次偏移量
+    uint16_t RemainMileage;       //剩余续航里程/公里， 0.1 公里/位， 0 公里偏移量
+    uint16_t  rev_info;
+};
+
+struct thaisenBCPPstruct
+{
+    int16_t  AlowCurlt;           //最高允许放电电流   0.1 A/位， -400A 偏移量；数据范围： 0~400A
+    uint16_t BatAlowLowVolt;      //最低允许放电总电压 0.1 V/位， 0 V 偏移量
+    uint16_t CellAlowLowVolt;     //最低允许单体电池电压   0 V 偏移量；数据范围： 0~24 V
+    uint8_t BatAlowLowSOC;        //最低允许动力蓄电池荷电状态   1%/位， 0%偏移量；数据范围： 0~100%
+    uint16_t rev_info;
+};
+
+struct thaisenCMLPstruct
+{
+    uint16_t  DisChagHigOutVolt;  //最高放电电压（V）   0.1 V /位， 0 V 偏移量
+    uint16_t  DisChagLowOutVolt;  //最低放电电压（V）   0.1 V /位， 0 V 偏移量
+    uint16_t  DisChagHigOutCurlt; //最大放电电流（A）   0.1 A/位， -400A 偏移量；数据范围：0~400A
+    uint16_t  DisChagLowOutCurlt; //最小放电电流（A）   0.1 A/位， -400A 偏移量；数据范围： 0~400A
+};
+
+struct thaisenCCDstruct
+{
+    uint8_t  Direction;           //充电机充放电方向（<0x00 >： =充电 ; <0x01 >： =放电
+    uint8_t  AlowHigSOC;          //本次调度最高允许 SOC 值   1%/位， 0%偏移量；数据范围： 0~100%
+    uint8_t  AlowLowSOC;          //本次调度最低允许 SOC 值   1%/位， 0%偏移量；数据范围： 0~100%
+};
+
+struct thaisenBCSPstruct
+{
+    uint16_t  SurplDisChgTime;    //估算剩余放电时间(当车辆以实际电流为准进行测算的剩余时间超过 600 min 时，按 600 min 发送。数据
+                                  //             分辨率： 1 min/位， 0 min 偏移量；数据范围： 0~600 min。处于充电状态时，缺省值为FF)
+    uint16_t  ChargVolt;          //剩余续航里程/公里， 0.1 公里/位， 0 公里偏移量
+    uint32_t  Reserve;            //预留
+    uint16_t  rev_info;
+};
+
+struct thaisenCSDPstruct
+{
+    uint16_t TotalDisChgTime;     //累计放电时间  1 min/位， 0 min 偏移量；数据范围： 0~600 min；缺省值为 FF
+    uint16_t OutputKWh;           //放电电量    0.1 kWh/位， 0 kWh 偏移量；数据范围： 0~1000 kWh；缺省值为FF
+    uint8_t  DisChgNum[4];        //充（放）电机编号， 1/位， 1 偏移量，数据范围： 0～0xFFFFFFFF
+};
 
 
 struct thaisenBMS_Charger_struct
@@ -319,8 +438,23 @@ struct thaisenBMS_Charger_struct
     struct thaisenCEMstruct CEM;       /* 充电机错误报文 */
     struct thaisenCFCstruct CFC;
     struct thaisenBFCstruct BFC;
-    uint32_t overTick[2];
+#ifdef THAISEN_CHARGELIB_INCLUDE_V2G
+    struct thaisenBEMstructV2G BEM_V2G;
+    struct thaisenCEMstructV2G CEM_V2G;
+    struct thaisenCDCstruct CDC;
+    struct thaisenBDCstruct BDC;
+    struct thaisenBCPPstruct BCPP;
+    struct thaisenCMLPstruct CMLP;
+    struct thaisenCCDstruct CCD;
+    struct thaisenBCSPstruct BCSP;
+    struct thaisenCSDPstruct CSDP;
+    uint32_t overTick[5];
     uint8_t commonCnt;
+#else
+    uint32_t overTick[4];
+    uint8_t commonCnt;
+#endif /* THAISEN_CHARGELIB_INCLUDE_V2G */
+
 };
 
 
@@ -347,6 +481,17 @@ struct thaisenBMS_ChargerID_struct
     can_msg_buf CSD_ID;
     can_msg_buf BEM_ID;
     can_msg_buf CEM_ID;
+    can_msg_buf CFC_ID;
+    can_msg_buf BFC_ID;
+#ifdef THAISEN_CHARGELIB_INCLUDE_V2G
+    can_msg_buf CDC_ID;
+    can_msg_buf BDC_ID;
+    can_msg_buf BCPP_ID;
+    can_msg_buf CMLP_ID;
+    can_msg_buf CCD_ID;
+    can_msg_buf BCSP_ID;
+    can_msg_buf CSDP_ID;
+#endif /* THAISEN_CHARGELIB_INCLUDE_V2G */
 };
 
 #endif

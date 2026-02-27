@@ -684,7 +684,7 @@ enum charge_way thaisen_get_charge_way(void);
 /**
  * 设置充电方式
  **/
-void thaisen_set_charge_way(uint8_t way);
+void thaisen_set_charge_way(uint8_t gunno, uint8_t way);
 /**
  * 根据指定枪号获取其并充主枪枪号
  **/

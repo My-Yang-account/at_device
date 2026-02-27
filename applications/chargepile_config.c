@@ -323,7 +323,7 @@ SYS_DEF_SRAM1 static uint32_t s_system_power_max = 0x00;
 SYS_DEF_SRAM1 static struct module_info s_module_info;
 
 /** 初始化排列必须要按照  enum config_name 枚举一致并按顺序连续排列*/
-APP_DEF_SRAM2 static struct config_item s_config_item_set[CONFIG_ITEM_SIZE] =
+CFG_DEF_SRAM2 static struct config_item s_config_item_set[CONFIG_ITEM_SIZE] =
 {
 #ifndef SYS_DESIGNATE_REGION
         {CONFIG_ITEM_PILE_NUMBER,                                                             /* 配置项：桩号 */

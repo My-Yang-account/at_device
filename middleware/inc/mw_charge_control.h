@@ -95,6 +95,14 @@ void mw_charglib_set_function_enable(uint8_t port, app_funcenable_t function, ui
  ****************************************************/
 uint8_t mw_charglib_get_function_enable(uint8_t port, app_funcenable_t function);
 
+/*****************************************************
+* 函数名        mw_charglib_register_get_sysdata_cb
+* 功能            注册获取系统数据回调函数
+* 参数            cb       回调函数句柄
+* 返回
+ ****************************************************/
+void mw_charglib_register_get_sysdata_cb(void *cb);
+
 #ifdef __cplusplus
 }
 #endif

@@ -273,7 +273,7 @@ void SerialScreen_IsSupportBayProtocolSet(void);
 void SerialScreen_IsSupportProtocolGB_TSet(void);
 void SerialScreen_IsSupportBMSSeveralFrameSet(void);
 u8 SerialScreen_GetChargeWay(void);
-void SerialScreen_SetChargeWay(u8 way);
+void SerialScreen_SetChargeWay(u8 port, u8 way);
 
 u8 SerialScreenLiquidIsOffline(u8 port);
 

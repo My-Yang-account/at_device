@@ -6,7 +6,7 @@
 
 /*******************************************************************************/
  
- 
+
 /*****************************系统初始化*****************************************/
 /* 功能说明:
  *          thaisenChargInit:充电信息初始化及系统初始化
@@ -165,6 +165,7 @@ typedef struct
         uint8_t  Reserve : 4;            //预留
     }data;
     uint8_t Recved;                      //报文已接收到
+
 }thaisenBSTDetailed_t;
 
 /* 功能说明:
@@ -279,6 +280,9 @@ typedef enum
     THAISEN_COMMUTIMEOUT_BRO_AA,
     THAISEN_COMMUTIMEOUT_BCL,
     THAISEN_COMMUTIMEOUT_BCS,
+    /** 新增：20260226 */
+    THAISEN_COMMUTIMEOUT_BCPP,
+    THAISEN_COMMUTIMEOUT_BCSP,
     THAISEN_COMMUTIMEOUT_SIZE,
 }thaisenCommuTimeoutEnum;
 
@@ -303,6 +307,9 @@ typedef enum
     THAISEN_WAITING_MSG_BRO_AA,
     THAISEN_WAITING_MSG_BCL,
     THAISEN_WAITING_MSG_BCS,
+    /** 新增：20260226 */
+    THAISEN_WAITING_MSG_BCPP,
+    THAISEN_WAITING_MSG_BCSP,
     THAISEN_WAITING_MSG_SIZE,
 }thaisenWaitingMsgEnum;
 
@@ -332,7 +339,10 @@ typedef struct
     uint16_t BSD : 1;                           // 报文接收：BSD
     uint16_t BEM : 1;                           // 报文接收：BEM
     uint16_t BFC : 1;                           // 报文接收：BFC
-    uint16_t Reserve : 4;
+    uint16_t BDC : 1;                           // 报文接收：BDC
+    uint16_t BCPP : 1;                          // 报文接收：BCPP
+    uint16_t BCSP : 1;                          // 报文接收：BCSP
+    uint16_t Reserve : 1;
 }thaisenMsgRecved_t;
 
 /* 功能说明:
@@ -361,7 +371,10 @@ typedef struct
     uint16_t CST : 1;                           // 报文发送：CST
     uint16_t CSD : 1;                           // 报文发送：CSD
     uint16_t CEM : 1;                           // 报文发送：CEM
-    uint16_t Reserve : 4;
+    uint16_t CDC : 1;                           // 报文发送：CDC
+    uint16_t CMLP : 1;                          // 报文发送：CMLP
+    uint16_t CCD : 1;                           // 报文发送：CCD
+    uint16_t CSDP : 1;                          // 报文发送：CSDP
 }thaisenMsgSended_t;
 
 /* 功能说明:
@@ -381,8 +394,18 @@ typedef enum
     thaisen_superCurrProtocol_None,             //超级电流协议：无
     thaisen_superCurrProtocol_YuTong,           //超级电流协议：宇通CFC
     thaisen_superCurrProtocol_Fast,             //超级电流协议：FAST
+    thaisen_superCurrProtocol_BayArea,          //超级电流协议：湾区
     thaisen_superCurrProtocol_Size,             //超级电流协议
 }thaisenSuperCurrProtocolEnum;
+
+typedef enum
+{
+    thaisen_BMSProtocol_None,                   //BMS协议类型：无
+    thaisen_BMSProtocol_27930_Charge,           //BMS协议类型：27930充电
+    thaisen_BMSProtocol_27930_DisCharge,        //BMS协议类型：27930放电
+    thaisen_BMSProtocol_33021_NB_T_DisCharge,   //BMS协议类型：能标-NB/T-33021 放电
+    thaisen_BMSProtocol_Size,                   //BMS协议类型
+}thaisenBMSProtocolEnum;
 
 /************************* 宇通 CFC/BFC 协议 *************************/
 typedef struct
@@ -467,6 +490,8 @@ typedef struct
         uint8_t IsLockedBRM : 1;               //已锁定BRM报文
         uint8_t reserve : 2;                   //预留
     }bit;
+    /** 新增：20260226 */
+    uint8_t BMSProtocolType;                   //BMS协议类型@thaisenBMSProtocolEnum
 }thaisenSuperCurrProtocol;
 
 /* 功能说明:
@@ -727,8 +752,10 @@ uint32_t thaisen_get_SysOutCurrMax(void);
 /************************充电模式选择*********************************************/
 typedef enum thaisenChargModeEnum
 {
-  thaisenParallelCharging,
-  thaisenSingleChargeMode,
+  thaisenParallelCharging,         /** 双枪充电 */
+  thaisenSingleChargeMode,         /** 单枪充电 */
+  thaisenParallelDisCharging,      /** 双枪放电 */
+  thaisenSingleDisChargeMode,      /** 单枪放电 */
 }thaisenChargModeEn;
 
 
@@ -766,6 +793,42 @@ typedef enum
     thaisenChargFunctionExecute_Size,                     /** 功能执行 */
 }thaisenChargFunctionExecute_t;
 
+/************************系统数据*********************************************/
+typedef enum
+{
+    ThaChargSysData_DischargVoltMax,                      /** 系统数据：最大放电电压(0.1V, 0-6553) */
+    ThaChargSysData_DischargVoltMin,                      /** 系统数据：最小放电电压(0.1V, 0-6553) */
+    ThaChargSysData_DischargCurrMax,                      /** 系统数据：最大放电电流(0.1A, 0-6553) */
+    ThaChargSysData_ParallelDischargCurrMax,              /** 系统数据：并充最大放电电流(0.1A, 0-6553) */
+    ThaChargSysData_DischargCurrMin,                      /** 系统数据：最小放电电流(0.1A, 0-6553) */
+    ThaChargSysData_DischargSOCMax,                       /** 系统数据：最高放电SOC(1%) */
+    ThaChargSysData_DischargSOCMin,                       /** 系统数据：最低放电SOC(1%) */
+    ThaChargSysData_WorkTime,                             /** 系统数据：工作时间(S) */
+    ThaChargSysData_TransmitElect,                        /** 系统数据：传输电量(0.001KW.h) */
+    ThaChargSysData_Size,                                 /** 功系统数据 */
+}thaisenChargSystemData_t;
+
+
+
+/** 功能配置项 */
+typedef enum
+{
+    /****************************************************************************
+         * 函数名       GetSystemData
+         * 功能           获取系统数据
+         * 参数           gunNum     枪号
+      *       Name       系统数据名@thaisenChargSystemData_t
+      *       Parameter  辅组参数
+      *       PLen       辅组参数长度
+         * 返回           系统数据值
+   * int (*GetSystemData)(uint8_t gunNum, uint8_t Name, void *Parameter, uint8_t PLen)
+     ***************************************************************************/
+    THACHARGE_CB_INDEX_GET_SYSDATA,                      /** 配置项：获取系统数据 */
+
+    THACHARGE_CB_INDEX_SIZE,                             /** 配置项 */
+}ThaCharge_CbIndex;
+
+
 #pragma pack(1)
 typedef struct
 {
@@ -794,6 +857,15 @@ typedef struct
      * 返回          1：执行成功    0：执行失败
      ***************************************************************************/
     uint8_t (*FunctionExecute)(uint8_t gunNum, uint8_t function);
+    /*************************************************************
+              * 函数名           CBConfig
+              * 功能               控制函数配置((外部调用进行充电库功能函数配置)
+              * 参数               handle     配置句柄@thaisenChargCtrlHandle_t
+     *         index      配置下标@ThaCharge_CbIndex
+     *         cb         控制
+              * 返回               >=0：成功        <0：失败
+     ************************************************************/
+    int (*CBConfig)(void *handle, uint8_t index, void *cb);
 }thaisenChargCtrlHandle_t;
 #pragma pack()
 
@@ -804,6 +876,5 @@ typedef struct
  * 返回           控制句柄
  *********************************************************************************/
 thaisenChargCtrlHandle_t *thaisenChargGetCtrlHandle(void);
-
 
 #endif

@@ -1474,11 +1474,12 @@ enum charge_way thaisen_get_charge_way(void)
 /********************************************
  * 函数名      thaisen_get_charge_way
  * 功能         获取充电方式
+ * 参数         gunno   枪号
 * 返回           充电方式
  *******************************************/
-void thaisen_set_charge_way(uint8_t way)
+void thaisen_set_charge_way(uint8_t gunno, uint8_t way)
 {
-    SerialScreen_SetChargeWay(way);
+    SerialScreen_SetChargeWay(gunno, way);
 }
 
 /********************************************
