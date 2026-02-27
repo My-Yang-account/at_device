@@ -13255,7 +13255,8 @@ void SerialScreen_PageReset(int GunIdx)
 				break;
             case LCD_PAGE_A_ACOUNT:
             case LCD_PAGE_B_ACOUNT:
-                if(LcdData.gun[GunIdx].workState == SysMainStatus_PlugIn){
+//                if(LcdData.gun[GunIdx].workState == SysMainStatus_PlugIn)
+                {
                     LcdData.CurrentPage = LCD_PAGE_STANDBY;
                 }
                 break;
