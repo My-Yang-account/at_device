@@ -1473,6 +1473,29 @@ void thaisen_set_ammeterBaudrate(thaisenBaudrateEnum baudrate);
  */
 thaisenBaudrateEnum thaisen_get_ammeterBaudrate(void);
 
+/* 功能说明:
+ *          thaisen_AmmeterSetReadReverse:设置读取反向数据使能
+ * 输入参数:
+ *          gunNum     枪号
+ *          Statue    使能状态：1：使能  0：不使能
+ * 返回参数:
+ *
+ * 调用方法:
+ *          实时调用
+ */
+void thaisen_AmmeterSetReadReverse(uint8_t gunNum, uint8_t Statue);
+
+/* 功能说明:
+ *          thaisen_AmmeterGetReadReverse:获取是否需要读取反向数据使能状态
+ * 输入参数:
+ *          gunNum       枪号
+ * 返回参数:
+ *                          使能状态：1：使能  0：不使能
+ * 调用方法:
+ *          实时调用
+ */
+uint8_t thaisen_AmmeterGetReadReverse(uint8_t gunNum);
+
 /*****************************************************************************************************/
 
 /*********************************FLASH***************************************************************/
