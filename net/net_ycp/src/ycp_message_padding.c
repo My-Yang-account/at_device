@@ -691,8 +691,8 @@ void ycp_request_padding_heartbeat(void)
 
     for(uint8_t gunno = 0x00; gunno < NET_SYSTEM_GUN_NUMBER; gunno++){
         base = (System_BaseData*)(s_ycp_handle->get_base_data(gunno));
-        temperature = temperature > base->gunline_temperature[0x00] ? temperature : base->gunline_temperature[0x00];
-        temperature = temperature > base->gunline_temperature[0x01] ? temperature : base->gunline_temperature[0x01];
+        temperature = temperature > base->gunline_process_temp[0x00] ? temperature : base->gunline_process_temp[0x00];
+        temperature = temperature > base->gunline_process_temp[0x01] ? temperature : base->gunline_process_temp[0x01];
     }
     (void)(s_ycp_handle->get_system_data(NET_SYSTEM_DATA_NAME_SIGNAL_STRENGTH, &signal, sizeof(signal), NET_SYSTEM_DATA_OPTION_TARGET_PLAT));
     g_ycp_preq_heartbeat.body.signal_value = signal;
@@ -1336,10 +1336,10 @@ void ycp_chargepile_request_padding_state_data(uint8_t gunno, uint8_t is_init)
                 g_ycp_preq_report_state_data[gunno].body.output_current = symbol_value;
                 g_ycp_preq_report_state_data[gunno].body.gun_temperature = 0x00;
                 if(base->state.current == APP_OFSM_STATE_CHARGING){
-                    if(base->gunline_temperature[0] > base->gunline_temperature[1]){
-                        g_ycp_preq_report_state_data[gunno].body.gun_temperature = (base->gunline_temperature[0] /10 + 0x00);
+                    if(base->gunline_process_temp[0] > base->gunline_process_temp[1]){
+                        g_ycp_preq_report_state_data[gunno].body.gun_temperature = (base->gunline_process_temp[0] /10 + 0x00);
                     }else{
-                        g_ycp_preq_report_state_data[gunno].body.gun_temperature = (base->gunline_temperature[1] /10 + 0x00);
+                        g_ycp_preq_report_state_data[gunno].body.gun_temperature = (base->gunline_process_temp[1] /10 + 0x00);
                     }
                 }
                 g_ycp_preq_report_state_data[gunno].body.soc = base->current_soc *10;

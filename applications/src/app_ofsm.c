@@ -48,6 +48,8 @@
 #define TARGET_PLATFORM_INDEX                     0x00  /* 目标平台下标 */
 #define MONITOR_PLATFORM_INDEX                    0x01  /* 监控平台下标 */
 
+#define APP_TEMP_HARDWARE_FAULT_VALUE             2000  /* 温度检测器件故障时的温度值(0.1°) */
+
 typedef void (* ofsm_fun_p)(uint8_t gunno);
 
 APP_DEF_SRAM1 static ofsm_fun_p s_ofsm_fun_list[APP_SYSTEM_GUNNO_SIZE][APP_OFSM_STATE_SIZE];
@@ -8962,6 +8964,24 @@ void ofsm_thread_entry(void *parameter)
         s_ofsm_info[thread_gunno].base.current_time = mw_get_current_timestamp();
         s_ofsm_info[thread_gunno].base.gunline_temperature[0x00] = mw_get_temp_dcp(thread_gunno); /* 正极实时获取温度值 */
         s_ofsm_info[thread_gunno].base.gunline_temperature[0x01] = mw_get_temp_dcn(thread_gunno); /* 负极实时获取温度值 */
+        /** 开启了温度检测 */
+        if((*(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INEN_TEMPPRO, 0))) == APP_THA_ENUM_TRUE){
+            s_ofsm_info[thread_gunno].base.gunline_process_temp[0x00] = s_ofsm_info[thread_gunno].base.gunline_temperature[0x00];
+            s_ofsm_info[thread_gunno].base.gunline_process_temp[0x01] = s_ofsm_info[thread_gunno].base.gunline_temperature[0x01];
+        }else{
+            /** 温度检测硬件异常 */
+            if(s_ofsm_info[thread_gunno].base.gunline_temperature[0x00] >= APP_TEMP_HARDWARE_FAULT_VALUE){
+                s_ofsm_info[thread_gunno].base.gunline_process_temp[0x00] = 500;     /** 未开启过温检测时默认50° */
+            }else{
+                s_ofsm_info[thread_gunno].base.gunline_process_temp[0x00] = s_ofsm_info[thread_gunno].base.gunline_temperature[0x00];
+            }
+
+            if(s_ofsm_info[thread_gunno].base.gunline_temperature[0x01] >= APP_TEMP_HARDWARE_FAULT_VALUE){
+                s_ofsm_info[thread_gunno].base.gunline_process_temp[0x01] = 500;     /** 未开启过温检测时默认50° */
+            }else{
+                s_ofsm_info[thread_gunno].base.gunline_process_temp[0x01] = s_ofsm_info[thread_gunno].base.gunline_temperature[0x01];
+            }
+        }
 
         if(s_ofsm_fun != NULL) {
             (*(s_ofsm_fun[thread_gunno]))(thread_gunno);

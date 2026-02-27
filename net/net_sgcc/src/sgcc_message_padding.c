@@ -4037,20 +4037,20 @@ static void sgcc_data_realtime_process(uint8_t gunno)
 
     if(sgcc_get_message_send_state(gunno, NET_SGCC_PREQ_EVENT_REPORT_STATE_DATA_NONCHARGING) == NET_SGCC_SEND_STATE_COMPLETE){
 #ifdef NET_SGCC_PRO_USING_DC
-        evs_property_dc_nonWorks[gunno].conTemp1 = (base->gunline_temperature[0x00] + 500);
-        evs_property_dc_nonWorks[gunno].conTemp2 = (base->gunline_temperature[0x01] + 500);
+        evs_property_dc_nonWorks[gunno].conTemp1 = (base->gunline_process_temp[0x00] + 500);
+        evs_property_dc_nonWorks[gunno].conTemp2 = (base->gunline_process_temp[0x01] + 500);
 #else
         evs_property_ac_nonWorks[gunno].gunNo = gunno + 0x01;
-        evs_property_ac_nonWorks[gunno].gunTemp = (base->gunline_temperature[0x00] + 500);
+        evs_property_ac_nonWorks[gunno].gunTemp = (base->gunline_process_temp[0x00] + 500);
 #endif /* #ifdef NET_SGCC_PRO_USING_DC */
     }
 
     if(sgcc_get_message_send_state(gunno, NET_SGCC_PREQ_EVENT_REPORT_STATE_DATA_CHARGING) == NET_SGCC_SEND_STATE_COMPLETE){
 #ifdef NET_SGCC_PRO_USING_DC
-        evs_property_dc_works[gunno].conTemp1 = (base->gunline_temperature[0x00] + 500);
-        evs_property_dc_works[gunno].conTemp2 = (base->gunline_temperature[0x01] + 500);
+        evs_property_dc_works[gunno].conTemp1 = (base->gunline_process_temp[0x00] + 500);
+        evs_property_dc_works[gunno].conTemp2 = (base->gunline_process_temp[0x01] + 500);
 #else
-        evs_property_ac_works[gunno].gunTemp = (base->gunline_temperature[0x00] + 500);
+        evs_property_ac_works[gunno].gunTemp = (base->gunline_process_temp[0x00] + 500);
 #endif /* NET_SGCC_PRO_USING_DC */
     }
 

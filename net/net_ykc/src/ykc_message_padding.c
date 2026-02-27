@@ -1531,10 +1531,10 @@ void ykc_chargepile_request_padding_realtime_data(uint8_t gunno, uint8_t is_init
                     ykc_net_event_send(NET_YKC_EVENT_HANDLE_CHARGEPILE, NET_YKC_EVENT_TYPE_REQUEST, gunno, NET_YKC_PREQ_EVENT_REPORT_REALTIME_DATA);
                 }
                 g_ykc_preq_report_realtime_data[gunno].body.output_current = symbol_value;
-                if(base->gunline_temperature[0] > base->gunline_temperature[1]){
-                    g_ykc_preq_report_realtime_data[gunno].body.gun_temperature = (base->gunline_temperature[0] /10 + 50);
+                if(base->gunline_process_temp[0] > base->gunline_process_temp[1]){
+                    g_ykc_preq_report_realtime_data[gunno].body.gun_temperature = (base->gunline_process_temp[0] /10 + 50);
                 }else{
-                    g_ykc_preq_report_realtime_data[gunno].body.gun_temperature = (base->gunline_temperature[1] /10 + 50);
+                    g_ykc_preq_report_realtime_data[gunno].body.gun_temperature = (base->gunline_process_temp[1] /10 + 50);
                 }
                 g_ykc_preq_report_realtime_data[gunno].body.soc = base->current_soc;
                 g_ykc_preq_report_realtime_data[gunno].body.battery_group_temp_max = (bms->BSM.HigTemp + 50);

@@ -1291,9 +1291,9 @@ void tha_chargepile_request_padding_gun_realtime_temp(uint8_t gunno)
 
     s_tha_base = (System_BaseData*)(s_tha_handle->get_base_data(gunno));
 
-    g_tha_preq_report_gun_realtemp[gunno].body.real_temp = s_tha_base->gunline_temperature[1];
-    if(s_tha_base->gunline_temperature[0] > s_tha_base->gunline_temperature[1]){
-        g_tha_preq_report_gun_realtemp[gunno].body.real_temp = s_tha_base->gunline_temperature[0];
+    g_tha_preq_report_gun_realtemp[gunno].body.real_temp = s_tha_base->gunline_process_temp[1];
+    if(s_tha_base->gunline_process_temp[0] > s_tha_base->gunline_process_temp[1]){
+        g_tha_preq_report_gun_realtemp[gunno].body.real_temp = s_tha_base->gunline_process_temp[0];
     }
     tha_net_event_send(NET_THA_EVENT_HANDLE_CHARGEPILE, NET_THA_EVENT_TYPE_REQUEST, gunno, NET_THA_PREQ_EVENT_GUN_REALTEMP);
 }

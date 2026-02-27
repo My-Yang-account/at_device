@@ -617,6 +617,7 @@ typedef struct{
 
     int32_t system_temperature;       /* 系统温度(精度：0.1) */
     int32_t gunline_temperature[2];   /* 枪线正负极温度(精度：0.1) */
+    int16_t gunline_process_temp[2];  /* 枪线正负极温度(经过处理的值)(精度：0.1) */
     uint32_t voltage_a;               /* 电压A相(精度：0.01) */
     int32_t current_a;               /* 电流A相(精度：0.01) */
     uint32_t power_a;                 /* 功率A相(精度：1) */
