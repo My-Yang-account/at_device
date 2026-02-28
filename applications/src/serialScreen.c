@@ -246,6 +246,8 @@ SERIALSCREEN_DEF_SRAM2 u8 SerialScreenRxbuf[sSCREEN_RX_CMD_MAX_LEN+sSCREEN_RX_CM
 
 #define CONFIG_ITEM_MODULE_GROUP_NUM_(X) 
 
+#define LCD_RATE_INFO_GROUP_MAX 12//一页费率显示组数
+
 typedef enum SerialScreenReflashTimer
 {
 	LCD_NoReflash=0,
@@ -339,6 +341,7 @@ enum LCD_DISPLAY_PAGE_TYPE{
     LCD_PAGE_V2G_BATTERY = 33,      //V2G电池
     LCD_PAGE_V2G_ACOUNT = 34,       //V2G结算
 #endif /* SCREEN_USING_V2G */
+    LCD_PAGE_RATE_INFO = 35,//费率信息
 	LCD_PAGE_SYS_UPDATE = 37,		//远程升级
 	LCD_PAGE_SYS_INFO = 38,			//系统信息
 	LCD_PAGE_ROOT_MAIN = 39,		//ROOT用户
@@ -464,6 +467,14 @@ struct Period_Time{
     u8 rate_number;                                   /** 费率号 */
 };
 #endif /* (defined(SCREEN_USING_V2G) || defined(SCREEN_USING_OFFLINE_BILLING)) */
+
+struct Rate_Info_t{
+    u8 period_index[0x02];
+    u8 period_start[0x06];                                       /** 起始时间 */
+    u8 period_end[0x06];                                         /** 结束时间 */
+    u8 period_elec_rate[0x08];                                   /** 时段电价 */
+    u8 period_ser_rate[0x08];                                    /** 时段服务费 */
+};
 
 #pragma pack()
 
@@ -1054,6 +1065,13 @@ struct LCD_DISPLAY_VALUE_TYPE{
 #else
     struct LCD_DISPLAY_GUN_VALUE_TYPE gun[LCD_GUN_NUM];
 #endif /* SCREEN_USING_V2G */
+
+    /***********************Rate Info***************************/
+    u8 Rate_page_index; // 费率当前页索引
+    u8 Rate_period_index_current; // 当前时段索引
+    u8 Rate_page_index_max; // 费率页面数最大值
+    u8 Rate_page_period_index_first[0x08]; // 每一页时段第一条对应时段
+    struct Rate_Info_t rate_info[LCD_RATE_INFO_GROUP_MAX];
 }LCD_DISPLAY_VALUE_TYPE_t;
 
 #if 0
@@ -1435,6 +1453,8 @@ static void MakeString(char* buff, u8 slen, u32 value, u32 ratio)
 
     nob_diff = Get_Data_Value_Nob(_diff);
     nob_diff = nob_diff > nob_ratio ? nob_ratio : nob_diff;
+
+    rt_kprintf("MakeString _int:[%d] _diff:[%d]  nob_ratio:[%d] nob_diff:[%d]\r\n",_int, _diff, nob_ratio, nob_diff);
 
     nob_int = Get_Data_Value_Nob(_int);
     if(nob_int > slen){
@@ -11319,6 +11339,14 @@ void SerialScreen_BtnBillClear(int port)
     }
 }
 
+void SerialScreen_BtnRateClear()
+{
+
+    for(int i = 0; i < LCD_RATE_INFO_GROUP_MAX; i++)
+    {
+        memset(&LcdData.rate_info[i], ' ', sizeof(LcdData.rate_info[i]));
+    }
+}
 void SerialScreen_BtnBillGet(int port)
 {
 #define ACTUAL_TRADE_LEN  0x10         /* 实际流水号长度 */
@@ -15185,6 +15213,333 @@ void SerialScreen_SysInfoGet(void)
 	SerialScreen_BtnServerGet();
 	SerialScreen_BtnChgInfoGet(LCD_GUN_1);	
 }
+
+void SerialScreen_RateInfoGet(void)
+{
+    SerialScreen_NeedPageReset(LCD_GUN_1);
+    memset(LcdData.rate_info, 0, sizeof(LcdData.rate_info));
+    uint8_t index_seq = 0x00, remain_len = 0x00, used_len = 0x00;
+    uint8_t period_time_info[0x04];
+    uint32_t period_elec_rate, period_ser_rate;
+    uint8_t rate_end_flag = 0x00;
+
+    LcdData.Rate_page_index = 0x00;
+    LcdData.Rate_period_index_current = 0x00;
+    uint8_t gunno = app_billingrule_query_rule_update_gunno();
+
+    for(u8 index=0x00; index<12; index++){
+        if(index == 0x00){
+            LcdData.Rate_page_period_index_first[LcdData.Rate_page_index] = LcdData.Rate_period_index_current; //向下翻页需记录第一条时段索引，以便向上翻页，重新根据该值刷新数据，首页为0
+        }
+        /** 序列号 **/
+        index_seq = LcdData.Rate_page_index*LCD_RATE_INFO_GROUP_MAX + index + 0x01;
+        if(index_seq>=10){
+            sprintf((char*)LcdData.rate_info[index].period_index, "%c%c", index_seq/10 + '0', index_seq%10 + '0');
+        }else {
+            sprintf((char*)LcdData.rate_info[index].period_index, "%c%c", '0', index_seq%10 + '0');
+        }
+        used_len = strlen((char*)LcdData.rate_info[index].period_index);
+        remain_len = sizeof(LcdData.rate_info[index].period_index) - used_len; /* 未使用字节填充空格字符 */
+
+        if(remain_len){
+            memset(((char*)LcdData.rate_info[index].period_index + used_len), ' ', remain_len);
+        }
+
+        /** 通过时段序号获取对应时段开始结束时间 **/
+        ofsm_get_current_period_time_hm(LcdData.Rate_period_index_current + 0x01, period_time_info, sizeof(period_time_info));
+
+        /** 开始时间 **/
+        sprintf(((char*)LcdData.rate_info[index].period_start), "%02d:%02d", period_time_info[0x00], period_time_info[0x01]);
+        used_len = strlen((char*)LcdData.rate_info[index].period_start);
+        remain_len = sizeof(LcdData.rate_info[index].period_start) - used_len; /* 未使用字节填充空格字符 */
+
+        if(remain_len){
+            memset(((char*)LcdData.rate_info[index].period_start + used_len), ' ', remain_len);
+        }
+
+        // 先填充开始时间，结束时间根据电价是否一致，是否合并费率
+        period_elec_rate = app_billingrule_get_period_elect_price(gunno, LcdData.Rate_period_index_current);
+        period_ser_rate = app_billingrule_get_period_service_price(gunno, LcdData.Rate_period_index_current);
+
+        while(LcdData.Rate_period_index_current + 0x01 < APP_BILLING_RULE_PERIOD_MAX){
+            LcdData.Rate_period_index_current++;
+            if((period_elec_rate == app_billingrule_get_period_elect_price(gunno, LcdData.Rate_period_index_current)) && (period_ser_rate == app_billingrule_get_period_service_price(gunno, LcdData.Rate_period_index_current))){
+                ofsm_get_current_period_time_hm(LcdData.Rate_period_index_current + 0x01, period_time_info, sizeof(period_time_info)); //电价相等，更新结束时间。
+            }else {
+                break;
+            }
+        }
+
+        /** 结束时间 **/
+        if(period_time_info[0x02] == 0x00 && period_time_info[0x03] == 0x00){ //结束小时为00 且结束分钟为00，已到达计费结尾，此时记录末尾信息
+            //更新结束时间
+            rate_end_flag = 0x01;
+            sprintf(((char*)LcdData.rate_info[index].period_end), "%02d:%02d", 24, 00);
+        }else {
+            sprintf(((char*)LcdData.rate_info[index].period_end), "%02d:%02d", period_time_info[0x02], period_time_info[0x03]);
+        }
+        used_len = strlen((char*)LcdData.rate_info[index].period_end);
+        remain_len = sizeof(LcdData.rate_info[index].period_end) - used_len; /* 未使用字节填充空格字符 */
+
+        if(remain_len){
+            memset(((char*)LcdData.rate_info[index].period_end + used_len), ' ', remain_len);
+        }
+
+        /** 电价 **/
+        MakeString(((char*)LcdData.rate_info[index].period_elec_rate), sizeof(LcdData.rate_info[index].period_elec_rate), period_elec_rate, 10000);
+        used_len = strlen((char*)LcdData.rate_info[index].period_elec_rate);
+        remain_len = sizeof(LcdData.rate_info[index].period_elec_rate) - used_len; /* 未使用字节填充空格字符 */
+
+        if(remain_len){
+            memset(((char*)LcdData.rate_info[index].period_elec_rate + used_len), ' ', remain_len);
+        }
+
+        /** 服务费价 **/
+        MakeString(((char*)LcdData.rate_info[index].period_ser_rate), sizeof(LcdData.rate_info[index].period_ser_rate), period_ser_rate, 10000);
+        used_len = strlen((char*)LcdData.rate_info[index].period_ser_rate);
+        remain_len = sizeof(LcdData.rate_info[index].period_ser_rate) - used_len; /* 未使用字节填充空格字符 */
+
+        if(remain_len){
+            memset(((char*)LcdData.rate_info[index].period_ser_rate + used_len), ' ', remain_len);
+        }
+
+
+        if(rate_end_flag){
+            LcdData.Rate_page_index_max = LcdData.Rate_page_index;
+            break;
+        }
+        if(index == 11){
+            LcdData.Rate_page_index_max = LcdData.Rate_page_index + 0x01; // 允许跳转下一页
+        }
+
+
+
+    }
+}
+
+void SerialScreen_BtnRateUp()
+{
+    if(LcdData.Rate_page_index <= 0x00){
+        return;
+    }
+
+    LcdData.Rate_page_index--;
+
+    SerialScreen_BtnRateClear();
+
+    memset(LcdData.rate_info, 0, sizeof(LcdData.rate_info));
+    uint8_t index_seq = 0x00, remain_len = 0x00, used_len = 0x00;
+    uint8_t period_time_info[0x04];
+    uint32_t period_elec_rate, period_ser_rate;
+    uint8_t rate_end_flag = 0x00;
+    uint8_t gunno = app_billingrule_query_rule_update_gunno();
+
+    LcdData.Rate_period_index_current = LcdData.Rate_page_period_index_first[LcdData.Rate_page_index]; //向上翻页需根据记录的当前页第一条索引刷新
+
+    for(u8 index=0x00; index<12; index++){
+
+        /** 序列号 **/
+        index_seq = LcdData.Rate_page_index*LCD_RATE_INFO_GROUP_MAX + index + 0x01;
+        if(index_seq>=10){
+            sprintf((char*)LcdData.rate_info[index].period_index, "%c%c", index_seq/10 + '0', index_seq%10 + '0');
+        }else {
+            sprintf((char*)LcdData.rate_info[index].period_index, "%c%c", '0', index_seq%10 + '0');
+        }
+        used_len = strlen((char*)LcdData.rate_info[index].period_index);
+        remain_len = sizeof(LcdData.rate_info[index].period_index) - used_len; /* 未使用字节填充空格字符 */
+
+        if(remain_len){
+            memset(((char*)LcdData.rate_info[index].period_index + used_len), ' ', remain_len);
+        }
+
+        /** 通过时段序号获取对应时段开始结束时间 **/
+        ofsm_get_current_period_time_hm(LcdData.Rate_period_index_current + 0x01, period_time_info, sizeof(period_time_info));
+
+        /** 开始时间 **/
+        sprintf(((char*)LcdData.rate_info[index].period_start), "%02d:%02d", period_time_info[0x00], period_time_info[0x01]);
+        used_len = strlen((char*)LcdData.rate_info[index].period_start);
+        remain_len = sizeof(LcdData.rate_info[index].period_start) - used_len; /* 未使用字节填充空格字符 */
+
+        if(remain_len){
+            memset(((char*)LcdData.rate_info[index].period_start + used_len), ' ', remain_len);
+        }
+        // 先填充开始时间，结束时间根据电价是否一致，是否合并费率
+        period_elec_rate = app_billingrule_get_period_elect_price(gunno, LcdData.Rate_period_index_current);
+        period_ser_rate = app_billingrule_get_period_service_price(gunno, LcdData.Rate_period_index_current);
+
+        while(LcdData.Rate_period_index_current + 0x01 < APP_BILLING_RULE_PERIOD_MAX){
+            LcdData.Rate_period_index_current++;
+            if((period_elec_rate == app_billingrule_get_period_elect_price(gunno, LcdData.Rate_period_index_current)) && (period_ser_rate == app_billingrule_get_period_service_price(gunno, LcdData.Rate_period_index_current))){
+                ofsm_get_current_period_time_hm(LcdData.Rate_period_index_current + 0x01, period_time_info, sizeof(period_time_info)); //电价相等，更新结束时间。
+            }else {
+                break;
+            }
+        }
+
+        /** 结束时间 **/
+        if(period_time_info[0x02] == 0x00 && period_time_info[0x03] == 0x00){ //结束小时为00 且结束分钟为00，已到达计费结尾，此时记录末尾信息
+            //更新结束时间
+            rate_end_flag = 0x01;
+            sprintf(((char*)LcdData.rate_info[index].period_end), "%02d:%02d", 24, 00);
+        }else {
+            sprintf(((char*)LcdData.rate_info[index].period_end), "%02d:%02d", period_time_info[0x02], period_time_info[0x03]);
+        }
+        used_len = strlen((char*)LcdData.rate_info[index].period_end);
+        remain_len = sizeof(LcdData.rate_info[index].period_end) - used_len; /* 未使用字节填充空格字符 */
+
+        if(remain_len){
+            memset(((char*)LcdData.rate_info[index].period_end + used_len), ' ', remain_len);
+        }
+
+        /** 电价 **/
+        MakeString(((char*)LcdData.rate_info[index].period_elec_rate), sizeof(LcdData.rate_info[index].period_elec_rate), period_elec_rate, 10000);
+        used_len = strlen((char*)LcdData.rate_info[index].period_elec_rate);
+        remain_len = sizeof(LcdData.rate_info[index].period_elec_rate) - used_len; /* 未使用字节填充空格字符 */
+
+        if(remain_len){
+            memset(((char*)LcdData.rate_info[index].period_elec_rate + used_len), ' ', remain_len);
+        }
+
+        /** 服务费价 **/
+        MakeString(((char*)LcdData.rate_info[index].period_ser_rate), sizeof(LcdData.rate_info[index].period_ser_rate), period_ser_rate, 10000);
+        used_len = strlen((char*)LcdData.rate_info[index].period_ser_rate);
+        remain_len = sizeof(LcdData.rate_info[index].period_ser_rate) - used_len; /* 未使用字节填充空格字符 */
+
+        if(remain_len){
+            memset(((char*)LcdData.rate_info[index].period_ser_rate + used_len), ' ', remain_len);
+        }
+
+
+
+        if(rate_end_flag){
+            LcdData.Rate_page_index_max = LcdData.Rate_page_index;
+            break;
+        }
+        if(index == 11){
+            LcdData.Rate_page_index_max = LcdData.Rate_page_index + 0x01; // 允许跳转下一页
+        }
+
+
+
+    }
+    SerialScreen_PageNeedRefresh(0x00);
+}
+
+
+void SerialScreen_BtnRateDown()
+{
+    if(LcdData.Rate_page_index >= LcdData.Rate_page_index_max){//t
+        return;
+    }
+
+    LcdData.Rate_page_index++;
+
+    SerialScreen_BtnRateClear();
+
+    memset(LcdData.rate_info, 0, sizeof(LcdData.rate_info));
+    uint8_t index_seq = 0x00, remain_len = 0x00, used_len = 0x00;
+    uint8_t period_time_info[0x04];
+    uint32_t period_elec_rate, period_ser_rate;
+    uint8_t rate_end_flag = 0x00;
+    uint8_t gunno = app_billingrule_query_rule_update_gunno();
+
+    for(u8 index=0x00; index<12; index++){
+        if(index == 0x00){
+            LcdData.Rate_page_period_index_first[LcdData.Rate_page_index] = LcdData.Rate_period_index_current; //向下翻页需记录当前页第一条时段索引，以便向上翻页，重新根据该值刷新数据
+        }
+        /** 序列号 **/
+        index_seq = LcdData.Rate_page_index*LCD_RATE_INFO_GROUP_MAX + index + 0x01;
+        if(index_seq>=10){
+            sprintf((char*)LcdData.rate_info[index].period_index, "%c%c", index_seq/10 + '0', index_seq%10 + '0');
+        }else {
+            sprintf((char*)LcdData.rate_info[index].period_index, "%c%c", '0', index_seq%10 + '0');
+        }
+        used_len = strlen((char*)LcdData.rate_info[index].period_index);
+        remain_len = sizeof(LcdData.rate_info[index].period_index) - used_len; /* 未使用字节填充空格字符 */
+
+        if(remain_len){
+            memset(((char*)LcdData.rate_info[index].period_index + used_len), ' ', remain_len);
+        }
+
+        /** 通过时段序号获取对应时段开始结束时间 **/
+        ofsm_get_current_period_time_hm(LcdData.Rate_period_index_current + 0x01, period_time_info, sizeof(period_time_info));
+
+        /** 开始时间 **/
+        sprintf(((char*)LcdData.rate_info[index].period_start), "%02d:%02d", period_time_info[0x00], period_time_info[0x01]);
+        used_len = strlen((char*)LcdData.rate_info[index].period_start);
+        remain_len = sizeof(LcdData.rate_info[index].period_start) - used_len; /* 未使用字节填充空格字符 */
+
+        if(remain_len){
+            memset(((char*)LcdData.rate_info[index].period_start + used_len), ' ', remain_len);
+        }
+        // 先填充开始时间，结束时间根据电价是否一致，是否合并费率
+        period_elec_rate = app_billingrule_get_period_elect_price(gunno, LcdData.Rate_period_index_current);
+        period_ser_rate = app_billingrule_get_period_service_price(gunno, LcdData.Rate_period_index_current);
+
+        while(LcdData.Rate_period_index_current + 0x01 < APP_BILLING_RULE_PERIOD_MAX){
+            LcdData.Rate_period_index_current++;
+            if((period_elec_rate == app_billingrule_get_period_elect_price(gunno, LcdData.Rate_period_index_current)) && (period_ser_rate == app_billingrule_get_period_service_price(gunno, LcdData.Rate_period_index_current))){
+                ofsm_get_current_period_time_hm(LcdData.Rate_period_index_current + 0x01, period_time_info, sizeof(period_time_info)); //电价相等，更新结束时间。
+            }else {
+                break;
+            }
+        }
+
+        /** 结束时间 **/
+        if(period_time_info[0x02] == 0x00 && period_time_info[0x03] == 0x00){ //结束小时为00 且结束分钟为00，已到达计费结尾，此时记录末尾信息
+            //更新结束时间
+            rate_end_flag = 0x01;
+            sprintf(((char*)LcdData.rate_info[index].period_end), "%02d:%02d", 24, 00);
+        }else {
+            sprintf(((char*)LcdData.rate_info[index].period_end), "%02d:%02d", period_time_info[0x02], period_time_info[0x03]);
+        }
+        used_len = strlen((char*)LcdData.rate_info[index].period_end);
+        remain_len = sizeof(LcdData.rate_info[index].period_end) - used_len; /* 未使用字节填充空格字符 */
+
+        if(remain_len){
+            memset(((char*)LcdData.rate_info[index].period_end + used_len), ' ', remain_len);
+        }
+
+        /** 电价 **/
+        MakeString(((char*)LcdData.rate_info[index].period_elec_rate), sizeof(LcdData.rate_info[index].period_elec_rate), period_elec_rate, 10000);
+        used_len = strlen((char*)LcdData.rate_info[index].period_elec_rate);
+        remain_len = sizeof(LcdData.rate_info[index].period_elec_rate) - used_len; /* 未使用字节填充空格字符 */
+
+        if(remain_len){
+            memset(((char*)LcdData.rate_info[index].period_elec_rate + used_len), ' ', remain_len);
+        }
+
+        /** 服务费价 **/
+        MakeString(((char*)LcdData.rate_info[index].period_ser_rate), sizeof(LcdData.rate_info[index].period_ser_rate), period_ser_rate, 10000);
+        used_len = strlen((char*)LcdData.rate_info[index].period_ser_rate);
+        remain_len = sizeof(LcdData.rate_info[index].period_ser_rate) - used_len; /* 未使用字节填充空格字符 */
+
+        if(remain_len){
+            memset(((char*)LcdData.rate_info[index].period_ser_rate + used_len), ' ', remain_len);
+        }
+
+
+        if(rate_end_flag){
+            LcdData.Rate_page_index_max = LcdData.Rate_page_index;
+            break;
+        }
+        if(index == 11){
+            LcdData.Rate_page_index_max = LcdData.Rate_page_index + 0x01; // 允许跳转下一页
+        }
+
+
+
+    }
+    SerialScreen_PageNeedRefresh(0x00);
+}
+
+
+#ifdef SCREEN_USING_STANDBY_PAGE
+void SerialScreen_SwitchToFirstPage()
+{
+    LcdAssistantData.Flag.IsBackToIdlePage = FALSE;
+}
+#endif /* SCREEN_USING_STANDBY_PAGE */
 
 
 int SerialScreen_DataToStr(u8 valtype,u16 maxlen,void *valaddr,u8 *tag)
@@ -19329,6 +19684,9 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_STANDBY, NULL, "Time UsedB", LCD_DataType, LCD_1sReflash, 0x240E, pu32_type, sizeof(LcdData.gun[LCD_GUN_2].ChrgeTime), (void *)&LcdData.gun[LCD_GUN_2].ChrgeTime);
     SerialScreen_ItemSetUp(LCD_PAGE_STANDBY, NULL, "EnergyB", LCD_DataType, LCD_1sReflash, 0x2410, pu32_type, sizeof(LcdData.gun[LCD_GUN_2].engery), (void *)&LcdData.gun[LCD_GUN_2].engery);
 #endif /* SCREEN_USING_QBJ */
+
+    SerialScreen_ItemSetUp(LCD_PAGE_STANDBY, NULL, "rate Info", LCD_BtnType, 0x0076, 0x1009, page_type, LCD_PAGE_RATE_INFO, (void *)SerialScreen_RateInfoGet);
+
     SerialScreen_ItemSetUp(LCD_PAGE_STANDBY, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
 
     /** 2.A枪选择 [page:02]*/
@@ -19846,6 +20204,25 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_V2G_ACOUNT, NULL, "help number", LCD_TextType, LCD_NoReflash, 0x11A0, pstr_type, sizeof(LcdData.setData.Help_Number), (void *)LcdData.setData.Help_Number);
     SerialScreen_ItemSetUp(LCD_PAGE_V2G_ACOUNT, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
 #endif /* SCREEN_USING_V2G */
+
+    /** 50.计费信息 [page:35] */
+    SerialScreen_ItemSetUp(LCD_PAGE_RATE_INFO, NULL, "rate-0", LCD_TextType, LCD_NoReflash, 0x1900, pstr_type, sizeof(LcdData.rate_info[0]), (void *)&(LcdData.rate_info[0]));
+    SerialScreen_ItemSetUp(LCD_PAGE_RATE_INFO, NULL, "rate-1", LCD_TextType, LCD_NoReflash, 0x1910, pstr_type, sizeof(LcdData.rate_info[1]), (void *)&(LcdData.rate_info[1]));
+    SerialScreen_ItemSetUp(LCD_PAGE_RATE_INFO, NULL, "rate-2", LCD_TextType, LCD_NoReflash, 0x1920, pstr_type, sizeof(LcdData.rate_info[2]), (void *)&(LcdData.rate_info[2]));
+    SerialScreen_ItemSetUp(LCD_PAGE_RATE_INFO, NULL, "rate-3", LCD_TextType, LCD_NoReflash, 0x1930, pstr_type, sizeof(LcdData.rate_info[3]), (void *)&(LcdData.rate_info[3]));
+    SerialScreen_ItemSetUp(LCD_PAGE_RATE_INFO, NULL, "rate-4", LCD_TextType, LCD_NoReflash, 0x1940, pstr_type, sizeof(LcdData.rate_info[4]), (void *)&(LcdData.rate_info[4]));
+    SerialScreen_ItemSetUp(LCD_PAGE_RATE_INFO, NULL, "rate-5", LCD_TextType, LCD_NoReflash, 0x1950, pstr_type, sizeof(LcdData.rate_info[5]), (void *)&(LcdData.rate_info[5]));
+    SerialScreen_ItemSetUp(LCD_PAGE_RATE_INFO, NULL, "rate-6", LCD_TextType, LCD_NoReflash, 0x1960, pstr_type, sizeof(LcdData.rate_info[6]), (void *)&(LcdData.rate_info[6]));
+    SerialScreen_ItemSetUp(LCD_PAGE_RATE_INFO, NULL, "rate-7", LCD_TextType, LCD_NoReflash, 0x1970, pstr_type, sizeof(LcdData.rate_info[7]), (void *)&(LcdData.rate_info[7]));
+    SerialScreen_ItemSetUp(LCD_PAGE_RATE_INFO, NULL, "rate-8", LCD_TextType, LCD_NoReflash, 0x1980, pstr_type, sizeof(LcdData.rate_info[8]), (void *)&(LcdData.rate_info[8]));
+    SerialScreen_ItemSetUp(LCD_PAGE_RATE_INFO, NULL, "rate-9", LCD_TextType, LCD_NoReflash, 0x1990, pstr_type, sizeof(LcdData.rate_info[9]), (void *)&(LcdData.rate_info[9]));
+    SerialScreen_ItemSetUp(LCD_PAGE_RATE_INFO, NULL, "rate-10", LCD_TextType, LCD_NoReflash, 0x19A0, pstr_type, sizeof(LcdData.rate_info[10]), (void *)&(LcdData.rate_info[10]));
+    SerialScreen_ItemSetUp(LCD_PAGE_RATE_INFO, NULL, "rate-11", LCD_TextType, LCD_NoReflash, 0x19B0, pstr_type, sizeof(LcdData.rate_info[11]), (void *)&(LcdData.rate_info[11]));
+
+    SerialScreen_ItemSetUp(LCD_PAGE_RATE_INFO, NULL, "up", LCD_TrigType, 0x0009, 0x1003, page_type, LCD_GUN_2, (void *)SerialScreen_BtnRateUp);
+    SerialScreen_ItemSetUp(LCD_PAGE_RATE_INFO, NULL, "down", LCD_TrigType, 0x000E, 0x1004, page_type, LCD_GUN_2, (void *)SerialScreen_BtnRateDown);
+    SerialScreen_ItemSetUp(LCD_PAGE_RATE_INFO, NULL, "back", LCD_BtnType, 0x0002, 0x1000, page_type, LCD_PAGE_NONE, (void *)NULL);  //OK
+
 
     /** 29.远程升级 [page:37] */
     SerialScreen_ItemSetUp(LCD_PAGE_SYS_UPDATE, NULL, "Progress value", LCD_InputType, 0, 0x1800, pu16_type, sizeof(LcdData.setData.ota_progress), (void *)&LcdData.setData.ota_progress);
