@@ -71,6 +71,8 @@
 	  libChargCtl(LV module[not clear fault])  ---->                 低压模块版本(故障恢复并拔枪后不清除交流接触器、直流继电器、电子锁故障[由上层的器件反馈实时检测策略清除])
 	  libChargCtl(no sampling[not clear fault])  ---->               无绝缘采样版本(故障恢复并拔枪后不清除交流接触器、直流继电器、电子锁故障[由上层的器件反馈实时检测策略清除])
 	  libChargCtl(YUTONG[not clear fault])  ---->                    正常版本(故障恢复并拔枪后不清除交流接触器、直流继电器、电子锁故障[由上层的器件反馈实时检测策略清除])
+	  libChargCtl(V2G)  ---->                                        V2G放电版本
+	  libChargCtl(BayArea)  ---->                                    支持湾区协议版本
 	  模块库：
 	  libChargModule_7102(eliminate_module) ----->                   插枪快速剔除故障或离线模块版本
 	  libChargModule_7102(KeShiDa) ----->                            模块协议使用科士达版本
@@ -83,12 +85,16 @@
 	  libChargModule_7102(lock and liquid) ----->                    有锁模快功能和液冷功能版本(目前7104B云星在用)
 	  libChargModule_7102(no lock have liquid) ----->                没有锁模快功能但有液冷功能版本(目前预留给7104B云星用)
 	  libChargModule_7102(no lock and liquid) ----->                 没有锁模快功也没有液冷功能版本(目前给7104B中科全速用)
+	  libChargModule_7102(DisCharge) ----->                          使用放电功能
 	  双枪驱动库：
 	  libDrive_GD32427_7102(external rtc) ----->                     新硬件版本(7103F使用)
 	  libDrive_GD32427_7102(internal rtc) ----->                     旧硬件版本(7103D使用)
+	  libDrive_GD32427_7102(CAN_S_500K) ----->                       原生CAN为标准帧500K波特率版本(恒泰易通低压)
+	  libDrive_GD32427_7102(Matrix) ----->                           包含矩阵继电器控制版本(环矩使用)
 	  单枪驱动库：
 	  libDrive_GD32427_DC_Single(normal)  ----->                     正常版本
 	  libDrive_GD32427_DC_Single(NTC)  -------->                     枪头温度采样使用NTC版本
+	  libDrive_GD32427_DC_Single(CAN_S500K)  ----->                  原生CAN为标准帧500K波特率版本(恒泰易通低压)
 	  
 
 
