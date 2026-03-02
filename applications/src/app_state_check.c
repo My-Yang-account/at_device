@@ -893,6 +893,51 @@ static void state_check_lighting_lamp(void)
     }
 }
 
+#ifdef APP_USING_LV_MODULE_BMS
+/*****************************************************
+ * 函数名              app_mctrl_fan_control
+ * 功能                 风机控制
+ * 参数
+ * 返回
+ ****************************************************/
+static void app_fan_control(void)
+{
+#define APP_MCTRL_CLOSE_FAN_DELAY_TIME     (2 *60 *1000 /APP_STATE_CHECK_PERIOD)          /** 关闭风机延时时间(ms) */
+
+    static uint8_t i = 0x00;
+    static uint32_t tick = 0x00, work_time = APP_MCTRL_CLOSE_FAN_DELAY_TIME;
+    static struct ofsm_info *ofsm = NULL;
+
+    if(tick < (0xFFFFFFFF - 0x01))
+        tick++;
+
+    for(i = 0x00; i < APP_SYSTEM_GUNNO_SIZE; i++){
+        ofsm = get_ofsm_info(i);
+        if((ofsm->base.state.current == APP_OFSM_STATE_STARTING) || (ofsm->base.state.current == APP_OFSM_STATE_CHARGING)){
+            break;
+        }
+    }
+    /** 有枪在充电 */
+    if(i < APP_SYSTEM_GUNNO_SIZE){
+        /** 控制风机启动 */
+        thaisen_fan_B_on();
+        tick = 0x00;
+    }
+    /** 所有枪都空闲 */
+    else{
+        work_time = *((unsigned short*)sys_read_config_item_content(CONFIG_ITEM_FAN_WORK_TIME, 0x00));
+        if((work_time < CHARGEPILE_FAN_WORK_TIME_MIN) || (work_time > CHARGEPILE_FAN_WORK_TIME_MAX)){
+            work_time = CHARGEPILE_FAN_WORK_TIME_DEF;
+        }
+        if(tick > (work_time *1000 /APP_STATE_CHECK_PERIOD)){
+            if(thaisen_is_debug() == 0x00){
+                thaisen_fan_B_off();
+            }
+        }
+    }
+}
+#endif /* APP_USING_LV_MODULE_BMS */
+
 static void state_check_thread_entry(void *parameter)
 {
     extern int32_t app_thread_monitor_process(void *thread, void *para, uint32_t plen, uint32_t option);
@@ -906,6 +951,9 @@ static void state_check_thread_entry(void *parameter)
             app_out_oc_check(gunno);
         }
         state_check_lighting_lamp();
+#ifdef APP_USING_LV_MODULE_BMS
+        app_fan_control();
+#endif /* APP_USING_LV_MODULE_BMS */
 
         rt_thread_mdelay(APP_STATE_CHECK_PERIOD);
     }
