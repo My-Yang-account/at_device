@@ -825,6 +825,7 @@ struct LCD_DISPLAY_SETDATA_TYPE{
     u32 V2G_MSLimitTiming[LCD_GUN_NUM + 1];                      //V2G模式选择：定时(单位：1min)
     u8 V2G_CurrentMode[LCD_GUN_NUM + 1][THAISEN_V2G_MODE_SIZE + 1];  //V2G模式选择：当前模式
     u32 V2G_CurrentModePara[LCD_GUN_NUM + 1];                    //V2G当前模式参数
+    u8 DisChargeWay[LCD_GUN_NUM + 1];                            //放电方式
 #endif /* SCREEN_USING_V2G */
     u32 CurrentModePara[LCD_GUN_NUM + 1];                        //当前模式参数：
     u8 CurrentModeInfo[LCD_GUN_NUM][32];                         //当前模式显示信息：
@@ -1125,6 +1126,15 @@ enum REALAY_STATE{
     REALAY_CLOSE,	//继电器闭合
     
 };
+
+#ifdef SCREEN_USING_V2G
+enum DISCHARGE_WAY{
+    SS_DISCHARGE_WAY_NULL = 0,               /** 放电方式：空 */
+    SS_DISCHARGE_WAY_ON_CONTRAVARIANT = 1,   /** 放电方式：并网 */
+    SS_DISCHARGE_WAY_OFF_CONTRAVARIANT = 2,  /** 放电方式：离网 */
+    SS_DISCHARGE_WAY_SIZE,                   /** 放电方式 */
+};
+#endif /* SCREEN_USING_V2G */
 
 #ifdef SCREEN_USING_OFFLINE_BILLING
 SERIALSCREEN_DEF_SRAM2 static struct LCD_TRIGGER_PAGE Trigger_Page[SERIALSCREEN_TRIGGER_PAGE_MAX] =
@@ -1634,6 +1644,19 @@ static void SerialScreen_Screen_ResetModeInfoDef(u8 port)
     }
 }
 
+u8 SerialScreen_Screen_GetGunDisChargeWay(u8 port)
+{
+#ifdef SCREEN_USING_V2G
+    if(port >= LCD_GUN_NUM)
+        return THAISEN_GUN_DISCHARGE_WAY_NULL;
+    if(LcdData.setData.sup_V2G != TRUE)
+        return THAISEN_GUN_DISCHARGE_WAY_NULL;
+    return LcdData.setData.DisChargeWay[port];
+#else
+    return 0;
+#endif /* SCREEN_USING_V2G */
+}
+
 u8 SerialScreen_Screen_GetGunRunMode(u8 port)
 {
 #ifdef SCREEN_USING_V2G
@@ -1675,6 +1698,8 @@ void SerialScreen_Screen_ResetGunRunMode(u8 port)
             UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_V2G_MODE_PARAMETER_B, (u8*)&parameter, sizeof(parameter));
         }
     }
+    LcdData.setData.DisChargeWay[port] = SS_DISCHARGE_WAY_OFF_CONTRAVARIANT;
+    LcdData.setData.DisChargeWay[LCD_GUN_NUM] = SS_DISCHARGE_WAY_OFF_CONTRAVARIANT;
 #endif /* SCREEN_USING_V2G */
 }
 
@@ -7889,6 +7914,8 @@ void SerialScreen_BtnV2GInfoGet(u8 port)
     LcdData.setData.V2G_MSLimitTiming[port] = LcdData.setData.V2G_MSLimitTiming[LCD_GUN_NUM];
     LcdData.setData.V2G_CurrentModePara[port] = LcdData.setData.V2G_CurrentModePara[LCD_GUN_NUM];
     memcpy(LcdData.setData.V2G_CurrentMode[port], LcdData.setData.V2G_CurrentMode[LCD_GUN_NUM], sizeof(LcdData.setData.V2G_CurrentMode[port]));
+
+    LcdData.setData.DisChargeWay[LCD_GUN_NUM] = LcdData.setData.DisChargeWay[port];
 }
 #endif /* SCREEN_USING_V2G */
 
@@ -11519,6 +11546,36 @@ void SerialScreen_BtnV2GLimitReservationSet(void)
 #endif /* SCREEN_USING_V2G */
 }
 
+void SerialScreen_BtnV2G_On_ContravariantSet(int port)
+{
+#ifdef SCREEN_USING_V2G
+    if(port >= LCD_GUN_NUM)
+        return;
+    /** 开启了V2G功能 */
+    if(LcdData.setData.sup_V2G == TRUE){
+        LcdData.setData.DisChargeWay[port] = SS_DISCHARGE_WAY_ON_CONTRAVARIANT;
+    }else{
+        LcdData.setData.DisChargeWay[port] = SS_DISCHARGE_WAY_NULL;
+    }
+    LcdData.setData.DisChargeWay[LCD_GUN_NUM] = LcdData.setData.DisChargeWay[port];
+#endif /* SCREEN_USING_V2G */
+}
+
+void SerialScreen_BtnV2G_Off_ContravariantSet(int port)
+{
+#ifdef SCREEN_USING_V2G
+    if(port >= LCD_GUN_NUM)
+        return;
+    /** 开启了V2G功能 */
+    if(LcdData.setData.sup_V2G == TRUE){
+        LcdData.setData.DisChargeWay[port] = SS_DISCHARGE_WAY_OFF_CONTRAVARIANT;
+    }else{
+        LcdData.setData.DisChargeWay[port] = SS_DISCHARGE_WAY_NULL;
+    }
+    LcdData.setData.DisChargeWay[LCD_GUN_NUM] = LcdData.setData.DisChargeWay[port];
+#endif /* SCREEN_USING_V2G */
+}
+
 //NET--读取INT16
 u16 NetReadBigU16(u8* buf)
 {
@@ -12507,6 +12564,10 @@ struct LCD_DATA_FIFO_TYPE *SerialScreen_Init(struct SerialScreenObj *cmd)
     if(LcdData.setData.sup_Local_stop > TRUE)         /* 本地停止默认不启用 */
         LcdData.setData.sup_Local_stop = FALSE;
 
+#ifdef SCREEN_USING_V2G
+    if(LcdData.setData.sup_V2G > TRUE)           /* V2G默认不启用 */
+        LcdData.setData.sup_V2G = FALSE;
+#endif /* SCREEN_USING_V2G */
 
     if(LcdData.setData.sup_VIN > TRUE)           /* VIN启动默认不启用 */
         LcdData.setData.sup_VIN = FALSE;
@@ -12817,6 +12878,13 @@ struct LCD_DATA_FIFO_TYPE *SerialScreen_Init(struct SerialScreenObj *cmd)
 	    }
 	}
 
+#ifdef SCREEN_USING_V2G
+    LcdData.setData.Icon_SupV2G = FALSE;
+    if(LcdData.setData.sup_V2G){
+        LcdData.setData.Icon_SupV2G = TRUE;
+    }
+#endif /* SCREEN_USING_V2G */
+
     LcdData.setData.Icon_BatVoltDetect = FALSE;
     if(LcdData.setData.sup_BatVoltDetect){
         LcdData.setData.Icon_BatVoltDetect = TRUE;
@@ -12962,6 +13030,16 @@ struct LCD_DATA_FIFO_TYPE *SerialScreen_Init(struct SerialScreenObj *cmd)
             (PROTECT_DISCHARGE_AS_OF_SOC_DEFAULT + PROTECT_DISCHARGE_AS_OF_SOC_OFFSET), (PROTECT_DISCHARGE_AS_OF_SOC_MIN + PROTECT_DISCHARGE_AS_OF_SOC_OFFSET), \
             (PROTECT_DISCHARGE_AS_OF_SOC_MAX + PROTECT_DISCHARGE_AS_OF_SOC_OFFSET));
     LcdData.setData.DisCharge_AsOf_SOC -= PROTECT_DISCHARGE_AS_OF_SOC_OFFSET;
+    /** 开启了V2G功能 */
+    if(LcdData.setData.sup_V2G == TRUE){
+        for(u8 i = 0; i <= LCD_GUN_NUM; i++){
+            LcdData.setData.DisChargeWay[i] = SS_DISCHARGE_WAY_OFF_CONTRAVARIANT;
+        }
+    }else{
+        for(u8 i = 0; i <= LCD_GUN_NUM; i++){
+            LcdData.setData.DisChargeWay[i] = SS_DISCHARGE_WAY_NULL;
+        }
+    }
 #endif /* SCREEN_USING_V2G */
 
     if(LcdData.setData.NetType >= CP_NETTYPE_SIZE){
@@ -15802,12 +15880,15 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_DISCHARGE_MODE, NULL, "Mode Elect", LCD_BtnType, 0x0073, 0x1009, page_type, LCD_PAGE_DISCHARGE_MODE, (void *)SerialScreen_BtnV2GLimitElectSet);
     SerialScreen_ItemSetUp(LCD_PAGE_DISCHARGE_MODE, NULL, "Mode Auto", LCD_BtnType, 0x0075, 0x1009, page_type, LCD_PAGE_DISCHARGE_MODE, (void *)SerialScreen_BtnV2GChargeAutoSet);
     SerialScreen_ItemSetUp(LCD_PAGE_DISCHARGE_MODE, NULL, "Mode Timing", LCD_BtnType, 0x0074, 0x1009, page_type, LCD_PAGE_DISCHARGE_MODE, (void *)SerialScreen_BtnV2GLimitTimingSet);
+    SerialScreen_ItemSetUp(LCD_PAGE_DISCHARGE_MODE, NULL, "OnContravariant", LCD_BtnType, 0x0089, 0x1009, page_type, LCD_PAGE_DISCHARGE_MODE, (void *)SerialScreen_BtnV2G_On_ContravariantSet);
+    SerialScreen_ItemSetUp(LCD_PAGE_DISCHARGE_MODE, NULL, "OffContravariant", LCD_BtnType, 0x008A, 0x1009, page_type, LCD_PAGE_DISCHARGE_MODE, (void *)SerialScreen_BtnV2G_Off_ContravariantSet);
 
     SerialScreen_ItemSetUp(LCD_PAGE_DISCHARGE_MODE, NULL, "Icon warn", LCD_IconType, LCD_10sReflash, 0x65C4, pu8_type, sizeof(LcdData.setData.Modewarning), (void *)&LcdData.setData.Modewarning);
     SerialScreen_ItemSetUp(LCD_PAGE_DISCHARGE_MODE, NULL, "Icon Mode Money", LCD_IconType, LCD_10sReflash, 0x6D66, pu8_type, sizeof(LcdData.setData.V2G_CurrentMode[LCD_GUN_NUM][THAISEN_V2G_MODE_LIMIT_MONEY]), (void *)&LcdData.setData.V2G_CurrentMode[LCD_GUN_NUM][THAISEN_V2G_MODE_LIMIT_MONEY]);
     SerialScreen_ItemSetUp(LCD_PAGE_DISCHARGE_MODE, NULL, "Icon Mode Elect", LCD_IconType, LCD_10sReflash, 0x6D68, pu8_type, sizeof(LcdData.setData.V2G_CurrentMode[LCD_GUN_NUM][THAISEN_V2G_MODE_LIMIT_ELECT]), (void *)&LcdData.setData.V2G_CurrentMode[LCD_GUN_NUM][THAISEN_V2G_MODE_LIMIT_ELECT]);
     SerialScreen_ItemSetUp(LCD_PAGE_DISCHARGE_MODE, NULL, "Icon Mode Auto", LCD_IconType, LCD_10sReflash, 0x6D6C, pu8_type, sizeof(LcdData.setData.V2G_CurrentMode[LCD_GUN_NUM][THAISEN_V2G_MODE_AUTO]), (void *)&LcdData.setData.V2G_CurrentMode[LCD_GUN_NUM][THAISEN_V2G_MODE_AUTO]);
     SerialScreen_ItemSetUp(LCD_PAGE_DISCHARGE_MODE, NULL, "Icon Mode Timing", LCD_IconType, LCD_10sReflash, 0x6D6A, pu8_type, sizeof(LcdData.setData.V2G_CurrentMode[LCD_GUN_NUM][THAISEN_V2G_MODE_LIMIT_TIMING]), (void *)&LcdData.setData.V2G_CurrentMode[LCD_GUN_NUM][THAISEN_V2G_MODE_LIMIT_TIMING]);
+    SerialScreen_ItemSetUp(LCD_PAGE_DISCHARGE_MODE, NULL, "Icon DisChargeWay", LCD_IconType, LCD_10sReflash, 0x6D8E, pu8_type, sizeof(LcdData.setData.DisChargeWay[LCD_GUN_NUM]), (void *)&LcdData.setData.DisChargeWay[LCD_GUN_NUM]);
 
     SerialScreen_ItemSetUp(LCD_PAGE_DISCHARGE_MODE, NULL, "Limit Money", LCD_InputType, 0, 0x6D6E, pu32_type, sizeof(LcdData.setData.V2G_MSLimitMoney[LCD_GUN_NUM]), (void *)&LcdData.setData.V2G_MSLimitMoney[LCD_GUN_NUM]);
     SerialScreen_ItemSetUp(LCD_PAGE_DISCHARGE_MODE, NULL, "Limit Elect", LCD_InputType, 0, 0x6D72, pu32_type, sizeof(LcdData.setData.V2G_MSLimitElect[LCD_GUN_NUM]), (void *)&LcdData.setData.V2G_MSLimitElect[LCD_GUN_NUM]);

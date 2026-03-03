@@ -976,6 +976,18 @@ typedef enum{
     THAISEN_GUN_RUNING_MODE_SIZE,              /** 枪运行模式 */
 }thaisen_gun_run_mode_t;
 
+typedef enum{
+    THAISEN_GUN_DISCHARGE_WAY_NULL,              /** 枪放电方式：空 */
+    THAISEN_GUN_DISCHARGE_WAY_ON_CONTRAVARIANT,  /** 枪放电方式：并网 */
+    THAISEN_GUN_DISCHARGE_WAY_OFF_CONTRAVARIANT, /** 枪放电方式：离网 */
+    THAISEN_GUN_DISCHARGE_WAY_SIZE,              /** 枪放电方式 */
+}thaisen_gun_dischargeway_t;
+
+/**
+*  获取枪放电方式(@thaisen_gun_dischargeway_t(默认离网放电))
+**/
+thaisen_gun_dischargeway_t thaisen_get_gun_discharge_way(uint8_t gunno);
+
 /**
 *  获取枪运行模式(@thaisen_gun_run_mode_t(默认充电模式))
 **/

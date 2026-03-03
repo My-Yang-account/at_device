@@ -2128,6 +2128,19 @@ void thaisen_get_batvolt_detect_qrcode(uint8_t gunno, uint8_t *buf, uint8_t blen
 
 #ifdef APP_INCLUDE_V2G
 /**************************************************************************
+ * 函数名      thaisen_get_gun_discharge_way
+ * 功能         获取枪放电方式
+ * 参数          gunno        枪号
+ * 返回          枪运行模式@thaisen_gun_dischargeway_t(默认充电模式)
+ *************************************************************************/
+thaisen_gun_dischargeway_t thaisen_get_gun_discharge_way(uint8_t gunno)
+{
+    thaisen_gun_dischargeway_t way = SerialScreen_Screen_GetGunDisChargeWay(gunno);
+
+    return way;
+}
+
+/**************************************************************************
  * 函数名      thaisen_get_gun_running_mode
  * 功能         获取枪运行模式
  * 参数          gunno        枪号

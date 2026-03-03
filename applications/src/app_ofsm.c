@@ -2466,6 +2466,18 @@ static void ofsm_readying_fun(uint8_t gunno)
         }
 #ifdef APP_INCLUDE_V2G
         thaisen_reset_gun_running_mode(gunno);
+        s_ofsm_info[gunno].base.gun_running_mode = thaisen_get_gun_running_mode(gunno);     /** 枪运行模式 */
+        switch(s_ofsm_info[gunno].base.gun_running_mode){
+        case THAISEN_GUN_RUNING_MODE_CHARGE:
+            s_ofsm_info[gunno].base.gun_running_mode = APP_GUN_RUNNING_MODE_CHARGE;
+            break;
+        case THAISEN_GUN_RUNING_MODE_V2G:
+            s_ofsm_info[gunno].base.gun_running_mode = APP_GUN_RUNNING_MODE_V2G;
+            break;
+        default:
+            s_ofsm_info[gunno].base.gun_running_mode = APP_GUN_RUNNING_MODE_CHARGE;
+            break;
+        }
 #endif /* APP_INCLUDE_V2G */
         app_nsal_state_charged(gunno);
         app_nsal_event_occurded(gunno);
@@ -2493,6 +2505,18 @@ static void ofsm_readying_fun(uint8_t gunno)
             }
 #ifdef APP_INCLUDE_V2G
             thaisen_reset_gun_running_mode(gunno);
+            s_ofsm_info[gunno].base.gun_running_mode = thaisen_get_gun_running_mode(gunno);     /** 枪运行模式 */
+            switch(s_ofsm_info[gunno].base.gun_running_mode){
+            case THAISEN_GUN_RUNING_MODE_CHARGE:
+                s_ofsm_info[gunno].base.gun_running_mode = APP_GUN_RUNNING_MODE_CHARGE;
+                break;
+            case THAISEN_GUN_RUNING_MODE_V2G:
+                s_ofsm_info[gunno].base.gun_running_mode = APP_GUN_RUNNING_MODE_V2G;
+                break;
+            default:
+                s_ofsm_info[gunno].base.gun_running_mode = APP_GUN_RUNNING_MODE_CHARGE;
+                break;
+            }
 #endif /* APP_INCLUDE_V2G */
             app_nsal_state_charged(gunno);
             app_nsal_event_occurded(gunno);
@@ -2871,6 +2895,18 @@ static void ofsm_reservation_fun(uint8_t gunno)
                     s_ofsm_info[gunno].state = APP_OFSM_STATE_IDLEING;
 #ifdef APP_INCLUDE_V2G
                     thaisen_reset_gun_running_mode(gunno);
+                    s_ofsm_info[gunno].base.gun_running_mode = thaisen_get_gun_running_mode(gunno);     /** 枪运行模式 */
+                    switch(s_ofsm_info[gunno].base.gun_running_mode){
+                    case THAISEN_GUN_RUNING_MODE_CHARGE:
+                        s_ofsm_info[gunno].base.gun_running_mode = APP_GUN_RUNNING_MODE_CHARGE;
+                        break;
+                    case THAISEN_GUN_RUNING_MODE_V2G:
+                        s_ofsm_info[gunno].base.gun_running_mode = APP_GUN_RUNNING_MODE_V2G;
+                        break;
+                    default:
+                        s_ofsm_info[gunno].base.gun_running_mode = APP_GUN_RUNNING_MODE_CHARGE;
+                        break;
+                    }
 #endif /* APP_INCLUDE_V2G */
                     LOG_D("gunno(%d) current reservation time error ", gunno);
                     return;
@@ -2940,6 +2976,18 @@ static void ofsm_reservation_fun(uint8_t gunno)
             s_ofsm_info[gunno].state = APP_OFSM_STATE_IDLEING;
 #ifdef APP_INCLUDE_V2G
             thaisen_reset_gun_running_mode(gunno);
+            s_ofsm_info[gunno].base.gun_running_mode = thaisen_get_gun_running_mode(gunno);     /** 枪运行模式 */
+            switch(s_ofsm_info[gunno].base.gun_running_mode){
+            case THAISEN_GUN_RUNING_MODE_CHARGE:
+                s_ofsm_info[gunno].base.gun_running_mode = APP_GUN_RUNNING_MODE_CHARGE;
+                break;
+            case THAISEN_GUN_RUNING_MODE_V2G:
+                s_ofsm_info[gunno].base.gun_running_mode = APP_GUN_RUNNING_MODE_V2G;
+                break;
+            default:
+                s_ofsm_info[gunno].base.gun_running_mode = APP_GUN_RUNNING_MODE_CHARGE;
+                break;
+            }
 #endif /* APP_INCLUDE_V2G */
             LOG_D("gunno(%d) net cancel reservation", gunno);
             return;
@@ -2956,6 +3004,18 @@ static void ofsm_reservation_fun(uint8_t gunno)
             s_ofsm_info[gunno].base.flag.is_reser_normal_started = APP_THA_ENUM_FALSE;
 #ifdef APP_INCLUDE_V2G
             thaisen_reset_gun_running_mode(gunno);
+            s_ofsm_info[gunno].base.gun_running_mode = thaisen_get_gun_running_mode(gunno);     /** 枪运行模式 */
+            switch(s_ofsm_info[gunno].base.gun_running_mode){
+            case THAISEN_GUN_RUNING_MODE_CHARGE:
+                s_ofsm_info[gunno].base.gun_running_mode = APP_GUN_RUNNING_MODE_CHARGE;
+                break;
+            case THAISEN_GUN_RUNING_MODE_V2G:
+                s_ofsm_info[gunno].base.gun_running_mode = APP_GUN_RUNNING_MODE_V2G;
+                break;
+            default:
+                s_ofsm_info[gunno].base.gun_running_mode = APP_GUN_RUNNING_MODE_CHARGE;
+                break;
+            }
 #endif /* APP_INCLUDE_V2G */
             LOG_D("gunno(%d) local cancel reservation", gunno);
             return;
@@ -3144,6 +3204,18 @@ static void ofsm_reservation_fun(uint8_t gunno)
             s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
 #ifdef APP_INCLUDE_V2G
             thaisen_reset_gun_running_mode(gunno);
+            s_ofsm_info[gunno].base.gun_running_mode = thaisen_get_gun_running_mode(gunno);     /** 枪运行模式 */
+            switch(s_ofsm_info[gunno].base.gun_running_mode){
+            case THAISEN_GUN_RUNING_MODE_CHARGE:
+                s_ofsm_info[gunno].base.gun_running_mode = APP_GUN_RUNNING_MODE_CHARGE;
+                break;
+            case THAISEN_GUN_RUNING_MODE_V2G:
+                s_ofsm_info[gunno].base.gun_running_mode = APP_GUN_RUNNING_MODE_V2G;
+                break;
+            default:
+                s_ofsm_info[gunno].base.gun_running_mode = APP_GUN_RUNNING_MODE_CHARGE;
+                break;
+            }
 #endif /* APP_INCLUDE_V2G */
             app_nsal_state_charged(gunno);
             app_nsal_event_occurded(gunno);
@@ -3171,6 +3243,18 @@ static void ofsm_reservation_fun(uint8_t gunno)
             s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
 #ifdef APP_INCLUDE_V2G
             thaisen_reset_gun_running_mode(gunno);
+            s_ofsm_info[gunno].base.gun_running_mode = thaisen_get_gun_running_mode(gunno);     /** 枪运行模式 */
+            switch(s_ofsm_info[gunno].base.gun_running_mode){
+            case THAISEN_GUN_RUNING_MODE_CHARGE:
+                s_ofsm_info[gunno].base.gun_running_mode = APP_GUN_RUNNING_MODE_CHARGE;
+                break;
+            case THAISEN_GUN_RUNING_MODE_V2G:
+                s_ofsm_info[gunno].base.gun_running_mode = APP_GUN_RUNNING_MODE_V2G;
+                break;
+            default:
+                s_ofsm_info[gunno].base.gun_running_mode = APP_GUN_RUNNING_MODE_CHARGE;
+                break;
+            }
 #endif /* APP_INCLUDE_V2G */
             app_nsal_state_charged(gunno);
             app_nsal_event_occurded(gunno);
@@ -7705,6 +7789,18 @@ static void ofsm_finishing_fun(uint8_t gunno)
         s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
 #ifdef APP_INCLUDE_V2G
         thaisen_reset_gun_running_mode(gunno);
+        s_ofsm_info[gunno].base.gun_running_mode = thaisen_get_gun_running_mode(gunno);     /** 枪运行模式 */
+        switch(s_ofsm_info[gunno].base.gun_running_mode){
+        case THAISEN_GUN_RUNING_MODE_CHARGE:
+            s_ofsm_info[gunno].base.gun_running_mode = APP_GUN_RUNNING_MODE_CHARGE;
+            break;
+        case THAISEN_GUN_RUNING_MODE_V2G:
+            s_ofsm_info[gunno].base.gun_running_mode = APP_GUN_RUNNING_MODE_V2G;
+            break;
+        default:
+            s_ofsm_info[gunno].base.gun_running_mode = APP_GUN_RUNNING_MODE_CHARGE;
+            break;
+        }
 #endif /* APP_INCLUDE_V2G */
         app_nsal_state_charged(gunno);
         app_nsal_event_occurded(gunno);
@@ -7734,6 +7830,18 @@ static void ofsm_finishing_fun(uint8_t gunno)
             s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
 #ifdef APP_INCLUDE_V2G
             thaisen_reset_gun_running_mode(gunno);
+            s_ofsm_info[gunno].base.gun_running_mode = thaisen_get_gun_running_mode(gunno);     /** 枪运行模式 */
+            switch(s_ofsm_info[gunno].base.gun_running_mode){
+            case THAISEN_GUN_RUNING_MODE_CHARGE:
+                s_ofsm_info[gunno].base.gun_running_mode = APP_GUN_RUNNING_MODE_CHARGE;
+                break;
+            case THAISEN_GUN_RUNING_MODE_V2G:
+                s_ofsm_info[gunno].base.gun_running_mode = APP_GUN_RUNNING_MODE_V2G;
+                break;
+            default:
+                s_ofsm_info[gunno].base.gun_running_mode = APP_GUN_RUNNING_MODE_CHARGE;
+                break;
+            }
 #endif /* APP_INCLUDE_V2G */
             app_nsal_state_charged(gunno);
             app_nsal_event_occurded(gunno);
@@ -7921,6 +8029,18 @@ static void ofsm_finishing_fun(uint8_t gunno)
 #endif
 #ifdef APP_INCLUDE_V2G
             thaisen_reset_gun_running_mode(gunno);   /** V2G放电是单次充电有效，二次启动是要复位枪运行模式 */
+            s_ofsm_info[gunno].base.gun_running_mode = thaisen_get_gun_running_mode(gunno);     /** 枪运行模式 */
+            switch(s_ofsm_info[gunno].base.gun_running_mode){
+            case THAISEN_GUN_RUNING_MODE_CHARGE:
+                s_ofsm_info[gunno].base.gun_running_mode = APP_GUN_RUNNING_MODE_CHARGE;
+                break;
+            case THAISEN_GUN_RUNING_MODE_V2G:
+                s_ofsm_info[gunno].base.gun_running_mode = APP_GUN_RUNNING_MODE_V2G;
+                break;
+            default:
+                s_ofsm_info[gunno].base.gun_running_mode = APP_GUN_RUNNING_MODE_CHARGE;
+                break;
+            }
 #endif /* APP_INCLUDE_V2G */
             ofsm_start_info_padding_public(gunno);
 #if (defined(APP_USING_LV_MODULE_BMS) && defined(APP_USING_OFFLINE_BILLING))
@@ -8071,6 +8191,18 @@ static void ofsm_faulting_fun(uint8_t gunno)
             s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
 #ifdef APP_INCLUDE_V2G
             thaisen_reset_gun_running_mode(gunno);
+            s_ofsm_info[gunno].base.gun_running_mode = thaisen_get_gun_running_mode(gunno);     /** 枪运行模式 */
+            switch(s_ofsm_info[gunno].base.gun_running_mode){
+            case THAISEN_GUN_RUNING_MODE_CHARGE:
+                s_ofsm_info[gunno].base.gun_running_mode = APP_GUN_RUNNING_MODE_CHARGE;
+                break;
+            case THAISEN_GUN_RUNING_MODE_V2G:
+                s_ofsm_info[gunno].base.gun_running_mode = APP_GUN_RUNNING_MODE_V2G;
+                break;
+            default:
+                s_ofsm_info[gunno].base.gun_running_mode = APP_GUN_RUNNING_MODE_CHARGE;
+                break;
+            }
 #endif /* APP_INCLUDE_V2G */
         }
 
@@ -8637,7 +8769,11 @@ void ofsm_thread_entry(void *parameter)
         }
         /** 工作模式 */
         if(s_ofsm_info[thread_gunno].base.gun_running_mode == APP_GUN_RUNNING_MODE_V2G){
-            thaisenModuleSetWorkMode(thread_gunno, THAISEN_MODULE_WORKMODE_ON_CONTRAVARIANT);
+            if(thaisen_get_gun_discharge_way(thread_gunno) == THAISEN_GUN_DISCHARGE_WAY_ON_CONTRAVARIANT){
+                thaisenModuleSetWorkMode(thread_gunno, THAISEN_MODULE_WORKMODE_ON_CONTRAVARIANT);
+            }else{
+                thaisenModuleSetWorkMode(thread_gunno, THAISEN_MODULE_WORKMODE_OFF_CONTRAVARIANT);
+            }
         }else{
             thaisenModuleSetWorkMode(thread_gunno, THAISEN_MODULE_WORKMODE_RECTIFICATION);
         }
