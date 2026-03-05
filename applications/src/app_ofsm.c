@@ -7257,10 +7257,11 @@ static void ofsm_stoping_fun(uint8_t gunno)
             stop_way = mw_get_system_stop_way(gunno);
             /** 停充原因是设备发送指令让充电机停止 */
             if((stop_way == APP_SYSTEM_STOP_WAY_PASSIVE) || (stop_way == APP_SYSTEM_STOP_WAY_NULL)){
-                stop_way = APP_SYSTEM_STOP_WAY_COMMINICATION;
                 /** 启动方式是VIN码，这表明是VIN鉴权期间响应超时导致  */
-                if(s_ofsm_info[gunno].base.start_type == APP_CHARGE_START_WAY_VIN){
+                if((s_ofsm_info[gunno].base.start_type == APP_CHARGE_START_WAY_VIN) && (s_ofsm_info[gunno].base.flag.vin_is_authorized == APP_THA_ENUM_TRUE)){
                     stop_way = APP_SYSTEM_STOP_WAY_AUTHEN_FAIL;
+                }else{
+                    stop_way = mw_query_bms_communicate_fault(gunno);
                 }
             }
             s_thaisen_transaction[gunno].stop_reason = stop_way;
