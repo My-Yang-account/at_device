@@ -8223,6 +8223,44 @@ int8_t ykc_monitor_dev_control_changed_info_padding(uint8_t gunno, uint8_t *buf,
         case THAISEN_DEVICE_ENUM_LIQUID:
             segment[i].device = NETYKCM_DEVICE_ENUM_LIQUID;
             break;
+#ifdef APP_USING_CYCLE_MATRIX
+        case THAISEN_DEVICE_ENUM_MATRIX_RELAY_1_1_POS:
+            segment[i].device = NETYKCM_DEVICE_ENUM_MATRIX_RELAY_1_1_POS;
+            break;
+        case THAISEN_DEVICE_ENUM_MATRIX_RELAY_1_1_NEG:
+            segment[i].device = NETYKCM_DEVICE_ENUM_MATRIX_RELAY_1_1_NEG;
+            break;
+        case THAISEN_DEVICE_ENUM_MATRIX_RELAY_1_2_POS:
+            segment[i].device = NETYKCM_DEVICE_ENUM_MATRIX_RELAY_1_2_POS;
+            break;
+        case THAISEN_DEVICE_ENUM_MATRIX_RELAY_1_2_NEG:
+            segment[i].device = NETYKCM_DEVICE_ENUM_MATRIX_RELAY_1_2_NEG;
+            break;
+        case THAISEN_DEVICE_ENUM_MATRIX_RELAY_1_3_POS:
+            segment[i].device = NETYKCM_DEVICE_ENUM_MATRIX_RELAY_1_3_POS;
+            break;
+        case THAISEN_DEVICE_ENUM_MATRIX_RELAY_1_3_NEG:
+            segment[i].device = NETYKCM_DEVICE_ENUM_MATRIX_RELAY_1_3_NEG;
+            break;
+        case THAISEN_DEVICE_ENUM_MATRIX_RELAY_2_1_POS:
+            segment[i].device = NETYKCM_DEVICE_ENUM_MATRIX_RELAY_2_1_POS;
+            break;
+        case THAISEN_DEVICE_ENUM_MATRIX_RELAY_2_1_NEG:
+            segment[i].device = NETYKCM_DEVICE_ENUM_MATRIX_RELAY_2_1_NEG;
+            break;
+        case THAISEN_DEVICE_ENUM_MATRIX_RELAY_2_2_POS:
+            segment[i].device = NETYKCM_DEVICE_ENUM_MATRIX_RELAY_2_2_POS;
+            break;
+        case THAISEN_DEVICE_ENUM_MATRIX_RELAY_2_2_NEG:
+            segment[i].device = NETYKCM_DEVICE_ENUM_MATRIX_RELAY_2_2_NEG;
+            break;
+        case THAISEN_DEVICE_ENUM_MATRIX_RELAY_3_1_POS:
+            segment[i].device = NETYKCM_DEVICE_ENUM_MATRIX_RELAY_3_1_POS;
+            break;
+        case THAISEN_DEVICE_ENUM_MATRIX_RELAY_3_1_NEG:
+            segment[i].device = NETYKCM_DEVICE_ENUM_MATRIX_RELAY_3_1_NEG;
+            break;
+#endif /* APP_USING_CYCLE_MATRIX */
         default:
             break;
         }

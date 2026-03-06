@@ -4,7 +4,8 @@
 文件：app_ofsm.h  ------------>        APP_USING_DOUBLEGUN           是否使用双枪(打开即启用双枪)
 文件：app.h  ----------------->        USING_DOUBLE_GUN              是否使用双枪(打开即启用双枪)
 文件：app.h  ----------------->        USING_THREAD_MONITOR          是否使用线程监控(默认都打开)
-文件：app.h  ----------------->        USING_TCU_CAN                 是否使用TCU CAN(打开即启用，只有双枪版本才可以打开)
+文件：app.h  ----------------->        USING_TCU_CAN                 是否使用TCU CAN(打开即启用，只有双枪版本才可以打开，与CP_USING_CYCLE_MATRIX互斥)
+文件：app.h  ----------------->        CP_USING_CYCLE_MATRIX         是否使用环矩部分(打开即启用，与USING_TCU_CAN互斥)
 文件：chargepile_config.h  --->        [默认配置]                    看默认配置部分
       /* IP配置 */
       CP_DOMAIN_USING_NJ   --->                                      IP域名默认使用能佳(能佳版本打开)
@@ -31,6 +32,8 @@
 	  CP_USING_BAT_VOLT_DETECT_STRATEGY   --->                       使用电池电压检测策略(默认打开打开)
 	  CP_USING_CHARGE_CURR_DETECT_STRATEGY   --->                    使用充电电流检测策略(默认打开打开)
 	  CP_USING_FB_DETECT   --->                                      使用器件反馈实时检测策略(默认打开打开[目前只有电子锁、直流见电器、交流接触器检测])
+	  CP_USING_V2G   --->                                            使用V2G(包含放电)
+	  CP_USING_CYCLE_MATRIX   --->                                   使用环矩/半矩版本
 
 文件：rfid_dev hardware.c  ------------->                            射频读卡器串口打开方式(双枪版本使用DMA，单枪版本使用中断[INT])
 文件：eth_ch395_config.h   -----> NET_ETHERNET_USING_DOUBLEGUN_DEV   用于管理以太网操作管脚，单、双枪版本管脚不一样(打开即使用双枪版本)
@@ -73,6 +76,7 @@
 	  libChargCtl(YUTONG[not clear fault])  ---->                    正常版本(故障恢复并拔枪后不清除交流接触器、直流继电器、电子锁故障[由上层的器件反馈实时检测策略清除])
 	  libChargCtl(V2G)  ---->                                        V2G放电版本
 	  libChargCtl(BayArea)  ---->                                    支持湾区协议版本
+	  libChargCtl(no acrelay)  ---->                                 不控制交流接触器(用于环矩/半矩)
 	  模块库：
 	  libChargModule_7102(eliminate_module) ----->                   插枪快速剔除故障或离线模块版本
 	  libChargModule_7102(KeShiDa) ----->                            模块协议使用科士达版本
@@ -86,6 +90,7 @@
 	  libChargModule_7102(no lock have liquid) ----->                没有锁模快功能但有液冷功能版本(目前预留给7104B云星用)
 	  libChargModule_7102(no lock and liquid) ----->                 没有锁模快功也没有液冷功能版本(目前给7104B中科全速用)
 	  libChargModule_7102(DisCharge) ----->                          使用放电功能
+	  libChargModule_7102(Matrix) ----->                             环矩/半矩使用
 	  双枪驱动库：
 	  libDrive_GD32427_7102(external rtc) ----->                     新硬件版本(7103F使用)
 	  libDrive_GD32427_7102(internal rtc) ----->                     旧硬件版本(7103D使用)
@@ -95,7 +100,5 @@
 	  libDrive_GD32427_DC_Single(normal)  ----->                     正常版本
 	  libDrive_GD32427_DC_Single(NTC)  -------->                     枪头温度采样使用NTC版本
 	  libDrive_GD32427_DC_Single(CAN_S500K)  ----->                  原生CAN为标准帧500K波特率版本(恒泰易通低压)
-	  
-
 
 	  

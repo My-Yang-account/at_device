@@ -123,6 +123,10 @@
 #define SCREEN_USING_V2G                 /* 使用V2G */
 #endif /* CP_USING_V2G */
 
+#ifdef CP_USING_CYCLE_MATRIX
+#define SCREEN_USING_CYCLE_MATRIX        /* 使用环矩 */
+#endif /* CP_USING_CYCLE_MATRIX */
+
 #ifdef USING_DOUBLE_GUN
 #define SCREEN_USING_DOUBLE_GUN          /* 使用双枪 */
 #endif /* USING_DOUBLE_GUN */
@@ -266,6 +270,9 @@ enum LCD_DISPLAY_ITEM_TYPE{
 	LCD_QRCodeType,
 	LCD_InputType,
 	LCD_inputPwdType,	//密码
+#ifdef SCREEN_USING_CYCLE_MATRIX
+    LCD_PlainTextType,
+#endif /* SCREEN_USING_CYCLE_MATRIX */
 	LCD_BtnType,	//切换界面
 	LCD_TrigType,	//触发，刷新界面
 	LCD_BtnAType,	//A枪，切换界面
@@ -340,8 +347,10 @@ enum LCD_DISPLAY_PAGE_TYPE{
 	LCD_PAGE_MENU_INOUT_B = 48,	//输入输出
 	LCD_PAGE_MENU_STATE_MODULE = 49,//模块状态
 	LCD_PAGE_MENU_STATE_MODULE_B = 50,//模块状态
-	LCD_PAGE_MENU_CONTROL_MODULE = 51,//模块控制
-	LCD_PAGE_MENU_CONTROL_MODULE_B = 52,//模块控制
+#ifdef SCREEN_USING_CYCLE_MATRIX
+    LCD_PAGE_MODULE_MATRIX = 52,      //模块矩阵排布型调试
+    LCD_PAGE_RELAY_MATRIX = 53,       //继电器矩阵排布型调试
+#endif /* SCREEN_USING_CYCLE_MATRIX */
 	LCD_PAGE_MENU_SYS = 54,	//系统
 
 #ifdef SCREEN_USING_OFFLINE_BILLING
@@ -379,6 +388,9 @@ struct LCD_ASSISTANT_DATA{
         u16 IsCountDownFinish : 1;       //启动倒计时已结束
         u16 IsConfigFail : 1;            //配置保存失败
         u16 NeedReboot : 1;              //需要重启
+#ifdef SCREEN_USING_CYCLE_MATRIX
+        u16 ModuleMatrixCtrFromlAll : 1; //模块矩阵排布调试：通过所有组操作
+#endif /* SCREEN_USING_CYCLE_MATRIX */
     }Flag;
 
     struct{
@@ -397,6 +409,9 @@ struct LCD_ASSISTANT_DATA{
     u8 OccupyGunNum;                     //处于占用但未充电的枪数量
     u8 DeviceType;                       //设备类型
     u8 RefrenshPeriod;                   //实时数据更新周期
+#ifdef SCREEN_USING_CYCLE_MATRIX
+    u8 PublicOpsGun;                     //当前公共页操作枪
+#endif /* SCREEN_USING_CYCLE_MATRIX */
 };
 
 #ifdef SCREEN_USING_OFFLINE_BILLING
@@ -543,6 +558,8 @@ struct LCD_DISPLAY_SETDATA_TYPE{
 	u16 svrPort; 						//服务器端口[0][APPCFG_NO_LIMIT,0,APPCFG_NO_LIMIT]
 //	u8 YuMing[256]; 
 
+    u16 TeminaladdrA;                       //A枪地址
+    u16 TeminaladdrB;                       //B枪地址
     u16 LiquidType;                         //液冷型号
     u8 LiquidCnt;                           //液冷数量
     u16 AllocWay;                           //分配方式
@@ -953,6 +970,58 @@ struct LCD_DISPLAY_VALUE_TYPE{
     u8 ModuleStateString[16][30];  // 模块状态
     u8 ModuleFaultInfoShow[LCD_GUN_NUM][2][30];
 
+#ifdef SCREEN_USING_CYCLE_MATRIX
+    u8 ModuleMatrixCtrlAll;             //模块矩阵排布调试：所有组控制
+    u8 ModuleMatrixCtrlG1;              //模块矩阵排布调试：组1控制
+    u8 ModuleMatrixCtrlG2;              //模块矩阵排布调试：组2控制
+    u8 ModuleMatrixCtrlG3;              //模块矩阵排布调试：组3控制
+    u8 ModuleMatrixCtrlG4;              //模块矩阵排布调试：组4控制
+
+    u32 ModuleMatrixSetVoltALL;         //模块矩阵排布调试：所有组启动电压(0.1V)
+    u32 ModuleMatrixSetCurrALL;         //模块矩阵排布调试：所有组启动电流(0.1A)
+    u32 ModuleMatrixSetVoltG1;          //模块矩阵排布调试：组1启动电压(0.1V)
+    u32 ModuleMatrixSetCurrG1;          //模块矩阵排布调试：组1启动电流(0.1A)
+    u32 ModuleMatrixSetVoltG2;          //模块矩阵排布调试：组2启动电压(0.1V)
+    u32 ModuleMatrixSetCurrG2;          //模块矩阵排布调试：组2启动电流(0.1A)
+    u32 ModuleMatrixSetVoltG3;          //模块矩阵排布调试：组3启动电压(0.1V)
+    u32 ModuleMatrixSetCurrG3;          //模块矩阵排布调试：组3启动电流(0.1A)
+    u32 ModuleMatrixSetVoltG4;          //模块矩阵排布调试：组4启动电压(0.1V)
+    u32 ModuleMatrixSetCurrG4;          //模块矩阵排布调试：组4启动电流(0.1A)
+
+    u32 ModuleMatrixOutVoltG1;          //模块矩阵排布调试：组1输出电压(0.1V)
+    u32 ModuleMatrixOutCurrG1;          //模块矩阵排布调试：组1输出电流(0.1A)
+    u32 ModuleMatrixOutVoltG2;          //模块矩阵排布调试：组2输出电压(0.1V)
+    u32 ModuleMatrixOutCurrG2;          //模块矩阵排布调试：组2输出电流(0.1A)
+    u32 ModuleMatrixOutVoltG3;          //模块矩阵排布调试：组3输出电压(0.1V)
+    u32 ModuleMatrixOutCurrG3;          //模块矩阵排布调试：组3输出电流(0.1A)
+    u32 ModuleMatrixOutVoltG4;          //模块矩阵排布调试：组4输出电压(0.1V)
+    u32 ModuleMatrixOutCurrG4;          //模块矩阵排布调试：组4输出电流(0.1A)
+    /***********************matrix relay***************************/
+    u8 MatrixRelayPolarity;             //继电器矩阵调试极性
+
+    u8 MatrixRelay_KP1_1[3];            //继电器矩阵调试 KP1-1
+    u8 MatrixRelay_KP1_2[3];            //继电器矩阵调试 KP1-2
+    u8 MatrixRelay_KP1_3[3];            //继电器矩阵调试 KP1-3
+    u8 MatrixRelay_KP2_1[3];            //继电器矩阵调试 KP2-1
+    u8 MatrixRelay_KP2_2[3];            //继电器矩阵调试 KP2-2
+    u8 MatrixRelay_KP2_3[3];            //继电器矩阵调试 KP2-3
+    u8 MatrixRelay_KP3_1[3];            //继电器矩阵调试 KP3-1
+    u8 MatrixRelay_KP3_2[3];            //继电器矩阵调试 KP3-2
+    u8 MatrixRelay_KP3_3[3];            //继电器矩阵调试 KP3-3
+
+    u32 FB_MatrixRelay_KP1_1;           //继电器矩阵 KP1-1 反馈
+    u32 FB_MatrixRelay_KP1_2;           //继电器矩阵 KP1-2 反馈
+    u32 FB_MatrixRelay_KP1_3;           //继电器矩阵 KP1-3 反馈
+    u32 FB_MatrixRelay_KP2_1;           //继电器矩阵 KP2-1 反馈
+    u32 FB_MatrixRelay_KP2_2;           //继电器矩阵 KP2-2 反馈
+    u32 FB_MatrixRelay_KP2_3;           //继电器矩阵 KP2-3 反馈
+    u32 FB_MatrixRelay_KP3_1;           //继电器矩阵 KP3-1 反馈
+    u32 FB_MatrixRelay_KP3_2;           //继电器矩阵 KP3-2 反馈
+    u32 FB_MatrixRelay_KP3_3;           //继电器矩阵 KP3-3 反馈
+
+    u8 MatrixRelay_All[3];              //继电器矩阵调试：所有
+#endif /* SCREEN_USING_CYCLE_MATRIX */
+
 	struct LCD_DISPLAY_RUNDATA_TYPE runData;
 	struct LCD_DISPLAY_SETDATA_TYPE setData;
 #ifdef SCREEN_USING_V2G
@@ -1167,8 +1236,15 @@ static void SerialScreen_BtnModuleStateClear(void);
 static void SerialScreen_BtnModuleStateShow(int port);
 void SerialScreen_SendIco(struct SerialScreenObj *cmd,u16 addr, u16 par);
 void SerialScreen_JumpPage(struct SerialScreenObj *cmd,u8 page);
+void SerialScreen_SendSeveralIco(struct SerialScreenObj *cmd,u16 addr, u16 *buf, u8 count);
+void SerialScreen_SendTxt(struct SerialScreenObj *cmd,u16 addr, u8 *buf, u8 len);
+void SerialScreen_SendData(struct SerialScreenObj *cmd, u16 addr, u32 value);
 
+#ifdef SCREEN_USING_CYCLE_MATRIX
+static void SerialScreen_BtnSystemFuncJudge(u32 *ret, uint8_t IsLocalModify);
+#else
 static void SerialScreen_BtnSystemFuncJudge(u32 *ret);
+#endif /* SCREEN_USING_CYCLE_MATRIX */
 static void SerialScreen_BtnMeterNoInfoJudge(u32 *ret);
 static void SerialScreen_BtnModuleInfoJudge(u32 *ret);
 static void SerialScreen_BtnProtectInfoJudge(u32 *ret);
@@ -1720,16 +1796,19 @@ static s32 SerialScreen_ConfigExecute_System(u8 port, void *data, void *sub_data
     LcdData.setData.AllocWay = config->allocate_way;
     LcdData.setData.DevType = config->dev_function;
     /** 终端地址需要终端程序赋值 */
-#if 0
-     = config->terminal_addr[0];
-     = config->terminal_addr[1];
-#endif
+    LcdData.setData.TeminaladdrA = config->terminal_addr[0];
+    LcdData.setData.TeminaladdrB = config->terminal_addr[1];
+
 #ifdef THAISEN_INCLUDE_NEW_MSG
      LcdData.setData.LiquidType = config->liquid_type;
      LcdData.setData.LiquidCnt = config->liquid_num;
 #endif /* THAISEN_INCLUDE_NEW_MSG */
      /** 系统信息有效性判断 */
+#ifdef SCREEN_USING_CYCLE_MATRIX
+     SerialScreen_BtnSystemFuncJudge(&ret, FALSE);
+#else
     SerialScreen_BtnSystemFuncJudge(&ret);
+#endif /* SCREEN_USING_CYCLE_MATRIX */
     if(ret != 0){
         for(u8 i = 0; i < 32; i++){
             if(ret &(1 <<i))   return (i + THAISEN_CONFIG_FAIL_OFFSET);
@@ -3585,7 +3664,9 @@ static void SerialScreen_TriggerEvent_Process(void)
 static void SerialScreen_RealTime_InfoGet(void)
 {
     u8 buf[4];
-
+#ifdef SCREEN_USING_CYCLE_MATRIX
+    u8 _dev_type = 0;
+#endif /* SCREEN_USING_CYCLE_MATRIX */
     if(++LcdAssistantData.RefrenshPeriod > 1000 /100){   //线程运行时基10ms， 每1s更新一次数据
         u8 valid_len = sizeof(LcdData.setData.Help_Number), *data = NULL, compare_len = 0, i = 0;
         struct card_data_info *card = NULL;
@@ -3721,6 +3802,23 @@ static void SerialScreen_RealTime_InfoGet(void)
         SerialScreen_Liquid_FaultGet(gunno);
 #endif /* SCREEN_USING_DOUBLE_GUN */
     }
+#ifdef SCREEN_USING_CYCLE_MATRIX
+    /** 只有子母机(环矩)、子母机(半矩)需要模块矩阵信息 */
+    _dev_type = thaisenGetChargGunRunType();
+    if((_dev_type == thaisenDeviceType_Matrix_Cycle) || (_dev_type == thaisenDeviceType_Matrix_Half)){
+        LcdData.ModuleMatrixOutVoltG1 = app_module_get_module_group_voltage(0);
+        LcdData.ModuleMatrixOutCurrG1 = app_module_get_module_group_current(0) /10;
+
+        LcdData.ModuleMatrixOutVoltG2 = app_module_get_module_group_voltage(1);
+        LcdData.ModuleMatrixOutCurrG2 = app_module_get_module_group_current(1) /10;
+
+        LcdData.ModuleMatrixOutVoltG3 = app_module_get_module_group_voltage(2);
+        LcdData.ModuleMatrixOutCurrG3 = app_module_get_module_group_current(2) /10;
+
+        LcdData.ModuleMatrixOutVoltG4 = app_module_get_module_group_voltage(3);
+        LcdData.ModuleMatrixOutCurrG4 = app_module_get_module_group_current(3) /10;
+    }
+#endif/* SCREEN_USING_CYCLE_MATRIX */
 }
 
 u8 SerialScreen_GetChargeWay(void)
@@ -3869,7 +3967,6 @@ void SerialScreen_StartChargeB(void)
 
 void SerialScreen_VinStartCharge(int port)
 {
-    sSCREEN_EVENT_DEBUGMSG("##########Port[%d] Vin Start Charge###########\r\n",port);
 	if(TRUE == LcdData.setData.sup_VIN)
     	thaisen_app_set_vin_start_charge(port);
 	else ;
@@ -3877,7 +3974,6 @@ void SerialScreen_VinStartCharge(int port)
 
 void SerialScreen_VinStartChargeA(void)
 {
-    sSCREEN_EVENT_DEBUGMSG("##########Port[LCD_GUN_1] Vin Start Charge###########\r\n");
     if(TRUE == LcdData.setData.sup_VIN){
          LcdAssistantData.SeveralGunFlag[LCD_GUN_1].IsVinStart = TRUE;
     	thaisen_app_set_vin_start_charge(LCD_GUN_1);
@@ -3887,7 +3983,6 @@ void SerialScreen_VinStartChargeA(void)
 
 void SerialScreen_VinStartChargeB(void)
 {
-    sSCREEN_EVENT_DEBUGMSG("##########Port[LCD_GUN_2] Vin Start Charge###########\r\n");
     if(TRUE == LcdData.setData.sup_VIN){
         LcdAssistantData.SeveralGunFlag[LCD_GUN_2].IsVinStart = TRUE;
         thaisen_app_set_vin_start_charge(LCD_GUN_2);
@@ -3926,7 +4021,6 @@ void SerialScreen_BtnChgInfoGet(int port)
     u8 *qrcode_pre = NULL;
     u8 para_len = 0, *data = NULL;
 
-	sSCREEN_EVENT_DEBUGMSG("##########ChgInfo###########\r\n");
 	mem_set(LcdData.setData.pileID, 0, sizeof(LcdData.setData.pileID));
 	mem_set(LcdData.setData.Help_Number, 0, sizeof(LcdData.setData.Help_Number));
 	mem_set(LcdData.setData.ErWeiCodePre, 0, sizeof(LcdData.setData.ErWeiCodePre));
@@ -3953,8 +4047,6 @@ void SerialScreen_BtnChgInfoGet(int port)
     if(para_len && qrcode_pre){
         str_ncpy((char *)(LcdData.setData.ErWeiCodePre), qrcode_pre, para_len);
     }
-
-	sSCREEN_EVENT_DEBUGMSG("##########pileID=%s helpnum:%s  qrcodefrex:%s###########\r\n",(char *)(LcdData.setData.pileID),(char *)(LcdData.setData.Help_Number),(char *)(LcdData.setData.ErWeiCodePre));
 }
 
 void SerialScreen_BtnChgInfoSet(int port)
@@ -4337,6 +4429,10 @@ void SerialScreen_BtnVinListGet(void)
 
 void SerialScreen_BtnModuleGet(void)
 {
+#ifdef SCREEN_USING_CYCLE_MATRIX
+    extern void app_module_set_module_current_min(unsigned short current);
+    extern void app_module_set_module_current_max(unsigned int current);
+#endif /* SCREEN_USING_CYCLE_MATRIX */
 	u8 i = 0;
 	u8 ModuleModel = 0, ModuleGroup = 0, ModuleNumberSingle = 0;
 	u16 Rated_Output_Voltage = 0;
@@ -4423,6 +4519,9 @@ void SerialScreen_BtnModuleGet(void)
         LcdData.setData.DebugCmdPara_MCMax = LcdData.setData.DebugCmdPara_MCMaxTemp;
 
         thaisenSetModuleOutCurrMax(LcdData.setData.SModule_OutCurrentMax *100);
+#ifdef SCREEN_USING_CYCLE_MATRIX
+        app_module_set_module_current_max(LcdData.setData.SModule_OutCurrentMax *100);
+#endif /* SCREEN_USING_CYCLE_MATRIX */
     }
     /** 已修改模块最小输出电流 */
     if(LcdData.setData.Min_Limit_Current_Temp != LcdData.setData.Min_Limit_Current){
@@ -4442,8 +4541,14 @@ void SerialScreen_BtnModuleGet(void)
 
         if(LcdData.setData.Min_Limit_Current == 0){
             thaisenSetModuleOutCurrMin(50);
+#ifdef SCREEN_USING_CYCLE_MATRIX
+            app_module_set_module_current_min(50);
+#endif /* SCREEN_USING_CYCLE_MATRIX */
         }else{
             thaisenSetModuleOutCurrMin(LcdData.setData.Min_Limit_Current *100);
+#ifdef SCREEN_USING_CYCLE_MATRIX
+            app_module_set_module_current_min(LcdData.setData.Min_Limit_Current *100);
+#endif /* SCREEN_USING_CYCLE_MATRIX */
         }
     }
 
@@ -4592,6 +4697,10 @@ static void SerialScreen_BtnModuleInfoJudge(u32 *ret)
 
 void SerialScreen_BtnModuleSet(void)
 {
+#ifdef SCREEN_USING_CYCLE_MATRIX
+    extern void app_module_set_module_current_min(unsigned short current);
+    extern void app_module_set_module_current_max(unsigned int current);
+#endif /* SCREEN_USING_CYCLE_MATRIX */
     u32 power = 0;
     u8 data = LcdData.setData.RmType;
 
@@ -4629,6 +4738,9 @@ void SerialScreen_BtnModuleSet(void)
         LcdData.setData.DebugCmdPara_MCMax = LcdData.setData.DebugCmdPara_MCMaxTemp;
 
         thaisenSetModuleOutCurrMax(LcdData.setData.SModule_OutCurrentMax *100);
+#ifdef SCREEN_USING_CYCLE_MATRIX
+        app_module_set_module_current_max(LcdData.setData.SModule_OutCurrentMax *100);
+#endif /* SCREEN_USING_CYCLE_MATRIX */
     }
     /** 已修改模块最小输出电流 */
     if(LcdData.setData.Min_Limit_Current_Temp != LcdData.setData.Min_Limit_Current){
@@ -4648,8 +4760,14 @@ void SerialScreen_BtnModuleSet(void)
 
         if(LcdData.setData.Min_Limit_Current == 0){
             thaisenSetModuleOutCurrMin(50);
+#ifdef SCREEN_USING_CYCLE_MATRIX
+            app_module_set_module_current_min(50);
+#endif /* SCREEN_USING_CYCLE_MATRIX */
         }else{
             thaisenSetModuleOutCurrMin(LcdData.setData.Min_Limit_Current *100);
+#ifdef SCREEN_USING_CYCLE_MATRIX
+            app_module_set_module_current_min(LcdData.setData.Min_Limit_Current *100);
+#endif /* SCREEN_USING_CYCLE_MATRIX */
         }
     }
 
@@ -4711,7 +4829,11 @@ void SerialScreen_BtnModuleSet(void)
     sSCREEN_EVENT_DEBUGMSG("ModuleGroupNum=%d  RmType =%d\r\n",LcdData.setData.ModuleGroupNum,LcdData.setData.RmType);
 }
 
+#ifdef SCREEN_USING_CYCLE_MATRIX
+static void SerialScreen_BtnSystemFuncJudge(u32 *ret, uint8_t IsLocalModify)
+#else
 static void SerialScreen_BtnSystemFuncJudge(u32 *ret)
+#endif /* SCREEN_USING_CYCLE_MATRIX */
 {
 //@ thaisen_cfg_info_system
 #define SSCREEN_ALLOCATE_WAY_POSITION                    0    /* 分配方式在结构体 thaisen_cfg_info_system 中的成员次序(从0开始)  */
@@ -4720,6 +4842,49 @@ static void SerialScreen_BtnSystemFuncJudge(u32 *ret)
 #define SSCREEN_LIQUID_NUM_POSITION                      5    /* 液冷数量在结构体 thaisen_cfg_info_system 中的成员次序(从0开始)  */
 
     u32 result = 0;
+#ifdef SCREEN_USING_CYCLE_MATRIX
+    if(LcdData.setData.DevType >= SYSTEM_FUNCTION_SIZE){        /* 子母机(环矩) */
+        LcdData.setData.DevType = SYSTEM_FUNCTION_MS_MACHINE_CYCLE;
+        result |= (1 <<SSCREEN_DEVICE_TYPE_POSITION);
+    }
+    if(LcdData.setData.LiquidType >= CP_LIQUID_DEVTYPE_SIZE){
+        LcdData.setData.LiquidType = CP_LIQUID_DEVTYPE_YTND;
+        result |= (1 <<SSCREEN_LIQUID_TYPE_POSITION);
+    }
+    if(LcdData.setData.AllocWay >= POWER_ALLOCATION_WAY_SIZE){
+        LcdData.setData.AllocWay = POWER_ALLOCATION_WAY_SEQ_PRIORITY;
+#if 0
+        result |= (1 <<SSCREEN_ALLOCATE_WAY_POSITION);
+#endif
+    }
+
+    if((IsLocalModify == TRUE) || ((IsLocalModify == FALSE) && ((result &(1 <<SSCREEN_DEVICE_TYPE_POSITION)) == 0))){
+        switch(LcdData.setData.DevType){
+        case SYSTEM_FUNCTION_AVERAGE_DOUBLE:
+            thaisenSetChargGunRunType(thaisenDeviceType_doubleGun);
+            break;
+        case SYSTEM_FUNCTION_DYNAMIC_SWITCH:
+            thaisenSetChargGunRunType(thaisenDeviceType_average);
+            break;
+        case SYSTEM_FUNCTION_DOUBLE_WHOLE:
+            thaisenSetChargGunRunType(thaisenDeviceType_doubleGun);
+            break;
+        case SYSTEM_FUNCTION_MS_MACHINE_CYCLE:
+            thaisenSetChargGunRunType(thaisenDeviceType_Matrix_Cycle);
+            break;
+        case SYSTEM_FUNCTION_MS_MACHINE_HALF:
+            thaisenSetChargGunRunType(thaisenDeviceType_Matrix_Half);
+            break;
+        case SYSTEM_FUNCTION_WHOLE_CYCLE:
+            thaisenSetChargGunRunType(thaisenDeviceType_Whole_Cycle);
+            break;
+        default:
+            LcdData.setData.DevType = SYSTEM_FUNCTION_MS_MACHINE_CYCLE;
+            thaisenSetChargGunRunType(thaisenDeviceType_Matrix_Cycle);
+            break;
+        }
+    }
+#else
     u8 way = LcdData.setData.AllocWay;
     u8 type = LcdData.setData.DevType;
 
@@ -4757,40 +4922,54 @@ static void SerialScreen_BtnSystemFuncJudge(u32 *ret)
         thaisenSetChargGunRunType(thaisenDeviceType_doubleGun);
         break;
     }
+#endif /* SCREEN_USING_CYCLE_MATRIX */
+
 #ifdef SCREEN_USING_DOUBLE_GUN
-    switch(LcdData.setData.LiquidType)
+#ifdef SCREEN_USING_CYCLE_MATRIX
+    if((IsLocalModify == TRUE) || ((IsLocalModify == FALSE) && ((result &(1 <<SSCREEN_LIQUID_TYPE_POSITION)) == 0)))
+#endif /* SCREEN_USING_CYCLE_MATRIX */
     {
-    case CP_LIQUID_DEVTYPE_YTND:
-        thaisenLiquid_set_LiquidDev(thaisenLiquidDev_YTND);
-        break;
-    case CP_LIQUID_DEVTYPE_HL:
-        thaisenLiquid_set_LiquidDev(thaisenLiquidDev_HL);
-        break;
-    case CP_LIQUID_DEVTYPE_IMMERSIONJGD:
-        thaisenLiquid_set_LiquidDev(thaisenLiquidDev_ImmersionJGD);
-        break;
-    case CP_LIQUID_DEVTYPE_TPS:
-        thaisenLiquid_set_LiquidDev(thaisenLiquidDev_TPS);
-        break;
-    default:
-        thaisenLiquid_set_LiquidDev(thaisenLiquidDev_YTND);
-        LcdData.setData.LiquidType = CP_LIQUID_DEVTYPE_YTND;
-        break;
+        switch(LcdData.setData.LiquidType)
+        {
+        case CP_LIQUID_DEVTYPE_YTND:
+            thaisenLiquid_set_LiquidDev(thaisenLiquidDev_YTND);
+            break;
+        case CP_LIQUID_DEVTYPE_HL:
+            thaisenLiquid_set_LiquidDev(thaisenLiquidDev_HL);
+            break;
+        case CP_LIQUID_DEVTYPE_IMMERSIONJGD:
+            thaisenLiquid_set_LiquidDev(thaisenLiquidDev_ImmersionJGD);
+            break;
+        case CP_LIQUID_DEVTYPE_TPS:
+            thaisenLiquid_set_LiquidDev(thaisenLiquidDev_TPS);
+            break;
+        default:
+            thaisenLiquid_set_LiquidDev(thaisenLiquidDev_YTND);
+            LcdData.setData.LiquidType = CP_LIQUID_DEVTYPE_YTND;
+            break;
+        }
     }
+
     if(LcdData.setData.LiquidCnt > CP_LIQUID_DEVCNT_MAX){
         result |= (1 <<SSCREEN_LIQUID_NUM_POSITION);
         LcdData.setData.LiquidCnt = 0;
     }
 
-    thaisenSetLiquidNum(LcdData.setData.LiquidCnt);
-    if(LcdData.setData.LiquidCnt){
-        thaisenSetSysFaultCheckBit(thaisenFaultLiquidCooling, 0);
-        thaisenSetSysFaultCheckBit(thaisenFaultLiquidCooling, 1);
+#ifdef SCREEN_USING_CYCLE_MATRIX
+    if((IsLocalModify == TRUE) || ((IsLocalModify == FALSE) && ((result &(1 <<SSCREEN_LIQUID_NUM_POSITION)) == 0)))
+#endif /* SCREEN_USING_CYCLE_MATRIX */
+    {
+        thaisenSetLiquidNum(LcdData.setData.LiquidCnt);
+        if(LcdData.setData.LiquidCnt){
+            thaisenSetSysFaultCheckBit(thaisenFaultLiquidCooling, 0);
+            thaisenSetSysFaultCheckBit(thaisenFaultLiquidCooling, 1);
+        }
+        else{
+            thaisenClearSysFaultCheckBit(thaisenFaultLiquidCooling, 0);
+            thaisenClearSysFaultCheckBit(thaisenFaultLiquidCooling, 1);
+        }
     }
-    else{
-        thaisenClearSysFaultCheckBit(thaisenFaultLiquidCooling, 0);
-        thaisenClearSysFaultCheckBit(thaisenFaultLiquidCooling, 1);
-    }
+
 #endif /* SCREEN_USING_DOUBLE_GUN */
     if(ret){
         *ret = result;
@@ -4803,10 +4982,17 @@ static void SerialScreen_BtnSystemFuncJudge(u32 *ret)
 void SerialScreen_BtnSystemFuncSet(void)
 {
     u8 para = 0;
+#ifdef SCREEN_USING_CYCLE_MATRIX
+    u8 buf[36];
+#endif /* SCREEN_USING_CYCLE_MATRIX */
     SerialScreen_JumpPage(&SerialScreen, LCD_PAGE_STORAGE_WAITING);
 
     if(LcdAssistantData.SeveralGunFlag[LCD_GUN_1].DataIsVerify == FALSE){
+#ifdef SCREEN_USING_CYCLE_MATRIX
+        SerialScreen_BtnSystemFuncJudge(NULL, TRUE);
+#else
         SerialScreen_BtnSystemFuncJudge(NULL);
+#endif /* SCREEN_USING_CYCLE_MATRIX */
     }
     LcdAssistantData.SeveralGunFlag[LCD_GUN_1].DataIsVerify = FALSE;
 
@@ -4821,6 +5007,8 @@ void SerialScreen_BtnSystemFuncSet(void)
     para = LcdData.setData.DevType;
     UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_DEVICE_TYPE, &para, sizeof(para));
     UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_LIQUID_CNT, &LcdData.setData.LiquidCnt, sizeof(LcdData.setData.LiquidCnt));
+    UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_TEMINAL_ADDRA, &LcdData.setData.TeminaladdrA, sizeof(LcdData.setData.TeminaladdrA));
+    UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_TEMINAL_ADDRB, &LcdData.setData.TeminaladdrB, sizeof(LcdData.setData.TeminaladdrB));
 
     LcdAssistantData.Flag.IsConfigFail = TRUE;
     if(UI_STORAGE_CFG_DATA >= 0){
@@ -4830,7 +5018,80 @@ void SerialScreen_BtnSystemFuncSet(void)
             LcdData.CurrentPage = LcdData.CurrentPageBack;
         }
     }
+#ifdef SCREEN_USING_CYCLE_MATRIX
+    if(thaisenGetChargGunRunType() == thaisenDeviceType_Matrix_Cycle){
+        memset(LcdData.MatrixRelay_KP1_1, 0x00, sizeof(LcdData.MatrixRelay_KP1_1));
+        memset(LcdData.MatrixRelay_KP2_1, 0x00, sizeof(LcdData.MatrixRelay_KP2_1));
+        memset(LcdData.MatrixRelay_KP3_1, 0x00, sizeof(LcdData.MatrixRelay_KP3_1));
+        memset(LcdData.MatrixRelay_KP2_2, 0x00, sizeof(LcdData.MatrixRelay_KP2_2));
 
+        memset(LcdData.MatrixRelay_KP1_2, 0x02, sizeof(LcdData.MatrixRelay_KP1_2)); /** 2为空白：隐藏 */
+        memset(LcdData.MatrixRelay_KP1_3, 0x02, sizeof(LcdData.MatrixRelay_KP1_3)); /** 2为空白：隐藏 */
+        memset(LcdData.MatrixRelay_KP2_3, 0x02, sizeof(LcdData.MatrixRelay_KP2_3)); /** 2为空白：隐藏 */
+        memset(LcdData.MatrixRelay_KP3_2, 0x02, sizeof(LcdData.MatrixRelay_KP3_3)); /** 2为空白：隐藏 */
+        memset(LcdData.MatrixRelay_KP3_3, 0x02, sizeof(LcdData.MatrixRelay_KP3_3)); /** 2为空白：隐藏 */
+
+        LcdData.FB_MatrixRelay_KP1_2 = 0;
+        LcdData.FB_MatrixRelay_KP1_3 = 0;
+        LcdData.FB_MatrixRelay_KP2_3 = 0;
+        LcdData.FB_MatrixRelay_KP3_2 = 0;
+        LcdData.FB_MatrixRelay_KP3_3 = 0;
+
+        memset(&(LcdData.FB_MatrixRelay_KP1_1), '0', 2);
+        memset(&(LcdData.FB_MatrixRelay_KP2_1), '0', 2);
+        memset(&(LcdData.FB_MatrixRelay_KP3_1), '0', 2);
+        memset(&(LcdData.FB_MatrixRelay_KP2_2), '0', 2);
+
+    }else if(thaisenGetChargGunRunType() == thaisenDeviceType_Matrix_Half){
+        memset(LcdData.MatrixRelay_KP1_1, 0x00, sizeof(LcdData.MatrixRelay_KP1_1));
+        memset(LcdData.MatrixRelay_KP1_2, 0x00, sizeof(LcdData.MatrixRelay_KP1_2));
+        memset(LcdData.MatrixRelay_KP1_3, 0x00, sizeof(LcdData.MatrixRelay_KP1_3));
+        memset(LcdData.MatrixRelay_KP2_2, 0x00, sizeof(LcdData.MatrixRelay_KP2_2));
+        memset(LcdData.MatrixRelay_KP2_3, 0x00, sizeof(LcdData.MatrixRelay_KP2_3));
+        memset(LcdData.MatrixRelay_KP3_3, 0x00, sizeof(LcdData.MatrixRelay_KP3_3));
+
+        memset(LcdData.MatrixRelay_KP2_1, 0x02, sizeof(LcdData.MatrixRelay_KP2_1)); /** 2为空白：隐藏 */
+        memset(LcdData.MatrixRelay_KP3_1, 0x02, sizeof(LcdData.MatrixRelay_KP3_1)); /** 2为空白：隐藏 */
+        memset(LcdData.MatrixRelay_KP3_2, 0x02, sizeof(LcdData.MatrixRelay_KP3_3)); /** 2为空白：隐藏 */
+
+        LcdData.FB_MatrixRelay_KP2_1 = 0;
+        LcdData.FB_MatrixRelay_KP3_1 = 0;
+        LcdData.FB_MatrixRelay_KP3_2 = 0;
+
+        memset(&(LcdData.FB_MatrixRelay_KP1_1), '0', 2);
+        memset(&(LcdData.FB_MatrixRelay_KP1_2), '0', 2);
+        memset(&(LcdData.FB_MatrixRelay_KP1_3), '0', 2);
+        memset(&(LcdData.FB_MatrixRelay_KP2_2), '0', 2);
+        memset(&(LcdData.FB_MatrixRelay_KP2_3), '0', 2);
+        memset(&(LcdData.FB_MatrixRelay_KP3_3), '0', 2);
+    }
+    /** 提前隐藏或显示 */
+    memset(buf, 0, sizeof(buf));
+    buf[0] = LcdData.MatrixRelay_KP1_1[0];  /** 两个字节一个icon */
+    buf[2] = LcdData.MatrixRelay_KP2_1[0];
+    buf[4] = LcdData.MatrixRelay_KP3_1[0];
+    buf[6] = LcdData.MatrixRelay_KP1_2[0];
+    buf[8] = LcdData.MatrixRelay_KP2_2[0];
+    buf[10] = LcdData.MatrixRelay_KP3_2[0];
+    buf[12] = LcdData.MatrixRelay_KP1_3[0];
+    buf[14] = LcdData.MatrixRelay_KP2_3[0];
+    buf[16] = LcdData.MatrixRelay_KP3_3[0];
+    SerialScreen_SendSeveralIco(&SerialScreen, 0x1C04, (u16*)buf, 9);
+    thaisen_app_system_delay(20);
+
+    memset(buf, 0, sizeof(buf));
+    memcpy((buf + 0), &(LcdData.FB_MatrixRelay_KP1_1), sizeof(LcdData.FB_MatrixRelay_KP1_1));  /** 4个字节一个文本 */
+    memcpy((buf + 4), &(LcdData.FB_MatrixRelay_KP2_1), sizeof(LcdData.FB_MatrixRelay_KP2_1));  /** 4个字节一个文本 */
+    memcpy((buf + 8), &(LcdData.FB_MatrixRelay_KP3_1), sizeof(LcdData.FB_MatrixRelay_KP3_1));  /** 4个字节一个文本 */
+    memcpy((buf + 12), &(LcdData.FB_MatrixRelay_KP1_2), sizeof(LcdData.FB_MatrixRelay_KP1_2));  /** 4个字节一个文本 */
+    memcpy((buf + 16), &(LcdData.FB_MatrixRelay_KP2_2), sizeof(LcdData.FB_MatrixRelay_KP2_2));  /** 4个字节一个文本 */
+    memcpy((buf + 20), &(LcdData.FB_MatrixRelay_KP3_2), sizeof(LcdData.FB_MatrixRelay_KP3_2));  /** 4个字节一个文本 */
+    memcpy((buf + 24), &(LcdData.FB_MatrixRelay_KP1_3), sizeof(LcdData.FB_MatrixRelay_KP1_3));  /** 4个字节一个文本 */
+    memcpy((buf + 28), &(LcdData.FB_MatrixRelay_KP2_3), sizeof(LcdData.FB_MatrixRelay_KP2_3));  /** 4个字节一个文本 */
+    memcpy((buf + 32), &(LcdData.FB_MatrixRelay_KP3_3), sizeof(LcdData.FB_MatrixRelay_KP3_3));  /** 4个字节一个文本 */
+    SerialScreen_SendTxt(&SerialScreen,0x1C50, buf, sizeof(buf));
+    thaisen_app_system_delay(20);
+#endif /* SCREEN_USING_CYCLE_MATRIX */
 //    thaisenSetAllocateStrategy(LcdData.setData.AllocWay);
     rt_kprintf("current power allocation way(%d) device type(%d)\n", LcdData.setData.AllocWay, LcdData.setData.DevType);
 }
@@ -5630,6 +5891,10 @@ static void SerialScreen_CmdDebugInfoJudge(u32 *ret)
 
 void SerialScreen_CmdDebugInfoSet(void)
 {
+#ifdef SCREEN_USING_CYCLE_MATRIX
+    extern void app_module_set_module_current_min(unsigned short current);
+    extern void app_module_set_module_current_max(unsigned int current);
+#endif /* SCREEN_USING_CYCLE_MATRIX */
     u8 is_changed = 0;
 
     if(LcdAssistantData.SeveralGunFlag[LCD_GUN_1].DataIsVerify == FALSE){
@@ -5644,7 +5909,9 @@ void SerialScreen_CmdDebugInfoSet(void)
 
         LcdData.setData.DebugCmdPara_MCMin = LcdData.setData.DebugCmdPara_MCMinTemp;
         thaisenSetModuleOutCurrMin(LcdData.setData.DebugCmdPara_MCMin);
-
+#ifdef SCREEN_USING_CYCLE_MATRIX
+        app_module_set_module_current_min(LcdData.setData.DebugCmdPara_MCMin);
+#endif /* SCREEN_USING_CYCLE_MATRIX */
         data = SerialScreen_GetPara_ValidValue(data, MODULE_MIN_LIMIT_CURR_DEF, MODULE_MIN_LIMIT_CURR_MIN, MODULE_MIN_LIMIT_CURR_MAX);
         LcdData.setData.Min_Limit_Current = (LcdData.setData.DebugCmdPara_MCMinTemp /100);
         LcdData.setData.Min_Limit_Current_Temp = LcdData.setData.Min_Limit_Current;
@@ -5659,6 +5926,9 @@ void SerialScreen_CmdDebugInfoSet(void)
 
         LcdData.setData.DebugCmdPara_MCMax = LcdData.setData.DebugCmdPara_MCMaxTemp;
         thaisenSetModuleOutCurrMax(LcdData.setData.DebugCmdPara_MCMax);
+#ifdef SCREEN_USING_CYCLE_MATRIX
+        app_module_set_module_current_max(LcdData.setData.DebugCmdPara_MCMax);
+#endif /* SCREEN_USING_CYCLE_MATRIX */
 
         data = SerialScreen_GetPara_ValidValue(data, MODULE_SMODULE_MAX_CURR_DEF, MODULE_SMODULE_MAX_CURR_MIN, MODULE_SMODULE_MAX_CURR_MAX);
         LcdData.setData.SModule_OutCurrentMax = (LcdData.setData.DebugCmdPara_MCMaxTemp /100);
@@ -7232,6 +7502,9 @@ void SerialScreen_IsSupportSetFlash(void)
 
 void SerialScreen_SetInputInfo(void)
 {
+#ifdef SCREEN_USING_CYCLE_MATRIX
+    extern void app_module_relay_check_enable(unsigned char relay_port, unsigned char state);
+#endif /* SCREEN_USING_CYCLE_MATRIX */
 	if(FALSE == LcdData.setData.supin_scram){
         for(u8 i = 0; i < LCD_GUN_NUM; i++){
             thaisenClearSysFaultCheckBit(thaisenFaultScram, i);
@@ -7277,6 +7550,14 @@ void SerialScreen_SetInputInfo(void)
             thaisenClearSysFaultCheckBit(thaisenRelay, i);
             thaisenClearSysFaultCheckBit(thaisenRelayParallel, i);
         }
+#ifdef SCREEN_USING_CYCLE_MATRIX
+        app_module_relay_check_enable(THAISEN_MATRIX_RELAY_KPN1_1, 0);
+        app_module_relay_check_enable(THAISEN_MATRIX_RELAY_KPN1_2, 0);
+        app_module_relay_check_enable(THAISEN_MATRIX_RELAY_KPN1_3, 0);
+        app_module_relay_check_enable(THAISEN_MATRIX_RELAY_KPN2_1, 0);
+        app_module_relay_check_enable(THAISEN_MATRIX_RELAY_KPN2_2, 0);
+        app_module_relay_check_enable(THAISEN_MATRIX_RELAY_KPN3_1, 0);
+#endif /* SCREEN_USING_CYCLE_MATRIX */
     }else{
         for(u8 i = 0; i < LCD_GUN_NUM; i++){
             thaisenSetSysFaultCheckBit(thaisenRelay, i);
@@ -7284,6 +7565,14 @@ void SerialScreen_SetInputInfo(void)
                 thaisenSetSysFaultCheckBit(thaisenRelayParallel, i);
             }
         }
+#ifdef SCREEN_USING_CYCLE_MATRIX
+        app_module_relay_check_enable(THAISEN_MATRIX_RELAY_KPN1_1, 1);
+        app_module_relay_check_enable(THAISEN_MATRIX_RELAY_KPN1_2, 1);
+        app_module_relay_check_enable(THAISEN_MATRIX_RELAY_KPN1_3, 1);
+        app_module_relay_check_enable(THAISEN_MATRIX_RELAY_KPN2_1, 1);
+        app_module_relay_check_enable(THAISEN_MATRIX_RELAY_KPN2_2, 1);
+        app_module_relay_check_enable(THAISEN_MATRIX_RELAY_KPN3_1, 1);
+#endif /* SCREEN_USING_CYCLE_MATRIX */
     }
 
 	if(FALSE == LcdData.setData.supin_elock){
@@ -8309,13 +8598,1342 @@ enum system_stop_way SerialScreen_DataGetstopReson(int port)
 	mem_set(LcdData.gun[port].code_stopResaon, 0,sizeof(LcdData.gun[port].code_stopResaon));
 	if(stopReason != APP_SYSTEM_STOP_WAY_SIZE)
 	{
-        sprintf((s8 *)LcdData.gun[port].code_stopResaon,"%04d",stopReason);		
+        sprintf((s8 *)LcdData.gun[port].code_stopResaon,"%04d",stopReason);
 	}
 	else
 	{
 		LcdData.gun[port].code_stopResaon[0] = 0x20;
 	}
 	thaisen_app_get_charge_stopway_chinese(stopReason, 0, LcdData.gun[port].code_stopResaon_Chinese, sizeof(LcdData.gun[port].code_stopResaon_Chinese));
+}
+
+#ifdef SCREEN_USING_CYCLE_MATRIX
+void SerialScreen_SendData(struct SerialScreenObj *cmd, u16 addr, u32 value);
+#endif /* SCREEN_USING_CYCLE_MATRIX */
+/********************************* 屏幕上矩阵继电器控制布局  *********************************/
+/**
+ *      ---------      ---------      ---------
+ *      |KPN_1_1|      |KPN_2_1|      |KPN_3_1|
+ *      ---------      ---------      ---------
+ *      ---------      ---------      ---------
+ *      |KPN_1_2|      |KPN_2_2|      |KPN_3_2|
+ *      ---------      ---------      ---------
+ *      ---------      ---------      ---------
+ *      |KPN_1_3|      |KPN_2_3|      |KPN_3_3|
+ *      ---------      ---------      ---------
+ *
+ * 只有子母机(环矩)、子母机(半矩)需要继电器矩阵
+ * 其中：
+ * 1.子母机(环矩)排布以及使用的继电器：
+ *      ---------        ---------       ---------
+ *      |KPN_1_1|(母联1)      |KPN_2_1|(母联2)      |KPN_3_1|(母联3)
+ *      ---------        ---------       ---------
+ *                     ---------
+ *                     |KPN_2_2|(母联4)
+ *                     ---------
+ * 2.子母机(半矩)排布以及使用的继电器：
+ *      ---------
+ *      |KPN_1_1|(母联1)
+ *      ---------
+ *      ---------       ---------
+ *      |KPN_1_2|(母联2)      |KPN_2_2|(母联1)
+ *      ---------       ---------
+ *      ---------       ---------        ---------
+ *      |KPN_1_3|(母联3)      |KPN_2_3|(母联1)      |KPN_3_3|(母联1)
+ *      ---------       ---------        ---------
+ */
+
+/*****************************************************
+ * 函数名     SerialScreen_MatrixRelay_KP1_1_Ctrl
+ * 功能         矩阵KN1-1继电器调试
+ * 参数
+ * 返回
+ ****************************************************/
+void SerialScreen_MatrixRelay_KP1_1_Ctrl(void)
+{
+#ifdef SCREEN_USING_CYCLE_MATRIX
+    u8 _dev_type = 0;
+
+    _dev_type = thaisenGetChargGunRunType();
+    if((_dev_type != thaisenDeviceType_Matrix_Cycle) && (_dev_type != thaisenDeviceType_Matrix_Half)){
+        memset(LcdData.MatrixRelay_KP1_1, 2, sizeof(LcdData.MatrixRelay_KP1_1)); /** 2为空白：隐藏 */
+        return;
+    }
+    if(LcdData.MatrixRelayPolarity == 0){
+        LcdData.MatrixRelay_KP1_1[0] = !LcdData.MatrixRelay_KP1_1[0];
+        LcdData.MatrixRelay_KP1_1[2] = LcdData.MatrixRelay_KP1_1[0];
+        /** 目前是正负极一起控制 */
+        LcdData.MatrixRelay_KP1_1[1] = LcdData.MatrixRelay_KP1_1[0];
+        if(LcdData.MatrixRelay_KP1_1[0]){
+            thaisenMatrixRelay_on_Debug(THAISEN_MATRIX_RELAY_KPN1_1);
+        }else{
+            thaisenMatrixRelay_off_Debug(THAISEN_MATRIX_RELAY_KPN1_1);
+        }
+    }else{
+        LcdData.MatrixRelay_KP1_1[1] = !LcdData.MatrixRelay_KP1_1[1];
+        LcdData.MatrixRelay_KP1_1[2] = LcdData.MatrixRelay_KP1_1[1];
+        /** 目前是正负极一起控制 */
+        LcdData.MatrixRelay_KP1_1[0] = LcdData.MatrixRelay_KP1_1[1];
+        if(LcdData.MatrixRelay_KP1_1[1]){
+            thaisenMatrixRelay_on_Debug(THAISEN_MATRIX_RELAY_KPN1_1);
+        }else{
+            thaisenMatrixRelay_off_Debug(THAISEN_MATRIX_RELAY_KPN1_1);
+        }
+    }
+    SerialScreen_SendIco(&SerialScreen, 0x1C04, LcdData.MatrixRelay_KP1_1[2]);
+#endif /* SCREEN_USING_CYCLE_MATRIX */
+}
+
+/*****************************************************
+ * 函数名     SerialScreen_MatrixRelay_KP1_2_Ctrl
+ * 功能         矩阵KN1-2继电器调试
+ * 参数
+ * 返回
+ ****************************************************/
+void SerialScreen_MatrixRelay_KP1_2_Ctrl(void)
+{
+#ifdef SCREEN_USING_CYCLE_MATRIX
+    u8 _dev_type = 0;
+
+    _dev_type = thaisenGetChargGunRunType();
+    if(_dev_type != thaisenDeviceType_Matrix_Half){
+        memset(LcdData.MatrixRelay_KP1_2, 2, sizeof(LcdData.MatrixRelay_KP1_2)); /** 2为空白：隐藏 */
+        return;
+    }
+    if(LcdData.MatrixRelayPolarity == 0){
+        LcdData.MatrixRelay_KP1_2[0] = !LcdData.MatrixRelay_KP1_2[0];
+        LcdData.MatrixRelay_KP1_2[2] = LcdData.MatrixRelay_KP1_2[0];
+        /** 目前是正负极一起控制 */
+        LcdData.MatrixRelay_KP1_2[1] = LcdData.MatrixRelay_KP1_2[0];
+        if(LcdData.MatrixRelay_KP1_2[0]){
+            thaisenMatrixRelay_on_Debug(THAISEN_MATRIX_RELAY_KPN1_2);
+        }else{
+            thaisenMatrixRelay_off_Debug(THAISEN_MATRIX_RELAY_KPN1_2);
+        }
+    }else{
+        LcdData.MatrixRelay_KP1_2[1] = !LcdData.MatrixRelay_KP1_2[1];
+        LcdData.MatrixRelay_KP1_2[2] = LcdData.MatrixRelay_KP1_2[1];
+        /** 目前是正负极一起控制 */
+        LcdData.MatrixRelay_KP1_2[0] = LcdData.MatrixRelay_KP1_2[1];
+        if(LcdData.MatrixRelay_KP1_2[1]){
+            thaisenMatrixRelay_on_Debug(THAISEN_MATRIX_RELAY_KPN1_2);
+        }else{
+            thaisenMatrixRelay_off_Debug(THAISEN_MATRIX_RELAY_KPN1_2);
+        }
+    }
+    SerialScreen_SendIco(&SerialScreen, 0x1C07, LcdData.MatrixRelay_KP1_2[2]);
+#endif /* SCREEN_USING_CYCLE_MATRIX */
+}
+
+/*****************************************************
+ * 函数名     SerialScreen_MatrixRelay_KP1_3_Ctrl
+ * 功能         矩阵KN1-3继电器调试
+ * 参数
+ * 返回
+ ****************************************************/
+void SerialScreen_MatrixRelay_KP1_3_Ctrl(void)
+{
+#ifdef SCREEN_USING_CYCLE_MATRIX
+    u8 _dev_type = 0;
+
+    _dev_type = thaisenGetChargGunRunType();
+    if(_dev_type != thaisenDeviceType_Matrix_Half){
+        memset(LcdData.MatrixRelay_KP1_3, 2, sizeof(LcdData.MatrixRelay_KP1_3)); /** 2为空白：隐藏 */
+        return;
+    }
+    if(LcdData.MatrixRelayPolarity == 0){
+        LcdData.MatrixRelay_KP1_3[0] = !LcdData.MatrixRelay_KP1_3[0];
+        LcdData.MatrixRelay_KP1_3[2] = LcdData.MatrixRelay_KP1_3[0];
+        /** 目前是正负极一起控制 */
+        LcdData.MatrixRelay_KP1_3[1] = LcdData.MatrixRelay_KP1_3[0];
+        if(LcdData.MatrixRelay_KP1_3[0]){
+            thaisenMatrixRelay_on_Debug(THAISEN_MATRIX_RELAY_KPN1_3);
+        }else{
+            thaisenMatrixRelay_off_Debug(THAISEN_MATRIX_RELAY_KPN1_3);
+        }
+    }else{
+        LcdData.MatrixRelay_KP1_3[1] = !LcdData.MatrixRelay_KP1_3[1];
+        LcdData.MatrixRelay_KP1_3[2] = LcdData.MatrixRelay_KP1_3[1];
+        /** 目前是正负极一起控制 */
+        LcdData.MatrixRelay_KP1_3[0] = LcdData.MatrixRelay_KP1_3[1];
+        if(LcdData.MatrixRelay_KP1_3[1]){
+            thaisenMatrixRelay_on_Debug(THAISEN_MATRIX_RELAY_KPN1_3);
+        }else{
+            thaisenMatrixRelay_off_Debug(THAISEN_MATRIX_RELAY_KPN1_3);
+        }
+    }
+    SerialScreen_SendIco(&SerialScreen, 0x1C0A, LcdData.MatrixRelay_KP1_3[2]);
+#endif /* SCREEN_USING_CYCLE_MATRIX */
+}
+
+/*****************************************************
+ * 函数名     SerialScreen_MatrixRelay_KP2_1_Ctrl
+ * 功能         矩阵KN2-1继电器调试
+ * 参数
+ * 返回
+ ****************************************************/
+void SerialScreen_MatrixRelay_KP2_1_Ctrl(void)
+{
+#ifdef SCREEN_USING_CYCLE_MATRIX
+    u8 _dev_type = 0;
+
+    _dev_type = thaisenGetChargGunRunType();
+    if(_dev_type != thaisenDeviceType_Matrix_Cycle){
+        memset(LcdData.MatrixRelay_KP2_1, 2, sizeof(LcdData.MatrixRelay_KP2_1)); /** 2为空白：隐藏 */
+        return;
+    }
+    if(LcdData.MatrixRelayPolarity == 0){
+        LcdData.MatrixRelay_KP2_1[0] = !LcdData.MatrixRelay_KP2_1[0];
+        LcdData.MatrixRelay_KP2_1[2] = LcdData.MatrixRelay_KP2_1[0];
+        /** 目前是正负极一起控制 */
+        LcdData.MatrixRelay_KP2_1[1] = LcdData.MatrixRelay_KP2_1[0];
+        if(LcdData.MatrixRelay_KP2_1[0]){
+            thaisenMatrixRelay_on_Debug(THAISEN_MATRIX_RELAY_KPN1_2);
+        }else{
+            thaisenMatrixRelay_off_Debug(THAISEN_MATRIX_RELAY_KPN1_2);
+        }
+    }else{
+        LcdData.MatrixRelay_KP2_1[1] = !LcdData.MatrixRelay_KP2_1[1];
+        LcdData.MatrixRelay_KP2_1[2] = LcdData.MatrixRelay_KP2_1[1];
+        /** 目前是正负极一起控制 */
+        LcdData.MatrixRelay_KP2_1[0] = LcdData.MatrixRelay_KP2_1[1];
+        if(LcdData.MatrixRelay_KP2_1[1]){
+            thaisenMatrixRelay_on_Debug(THAISEN_MATRIX_RELAY_KPN1_2);
+        }else{
+            thaisenMatrixRelay_off_Debug(THAISEN_MATRIX_RELAY_KPN1_2);
+        }
+    }
+    SerialScreen_SendIco(&SerialScreen, 0x1C05, LcdData.MatrixRelay_KP2_1[2]);
+#endif /* SCREEN_USING_CYCLE_MATRIX */
+}
+
+/*****************************************************
+ * 函数名     SerialScreen_MatrixRelay_KP2_2_Ctrl
+ * 功能         矩阵KN2-2继电器调试
+ * 参数
+ * 返回
+ ****************************************************/
+void SerialScreen_MatrixRelay_KP2_2_Ctrl(void)
+{
+#ifdef SCREEN_USING_CYCLE_MATRIX
+    u8 _dev_type = 0;
+
+    _dev_type = thaisenGetChargGunRunType();
+    if((_dev_type != thaisenDeviceType_Matrix_Cycle) && (_dev_type != thaisenDeviceType_Matrix_Half)){
+        memset(LcdData.MatrixRelay_KP2_2, 2, sizeof(LcdData.MatrixRelay_KP2_2)); /** 2为空白：隐藏 */
+        return;
+    }
+    if(LcdData.MatrixRelayPolarity == 0){
+        LcdData.MatrixRelay_KP2_2[0] = !LcdData.MatrixRelay_KP2_2[0];
+        LcdData.MatrixRelay_KP2_2[2] = LcdData.MatrixRelay_KP2_2[0];
+        /** 目前是正负极一起控制 */
+        LcdData.MatrixRelay_KP2_2[1] = LcdData.MatrixRelay_KP2_2[0];
+        if(LcdData.MatrixRelay_KP2_2[0]){
+            thaisenMatrixRelay_on_Debug(THAISEN_MATRIX_RELAY_KPN2_1);
+        }else{
+            thaisenMatrixRelay_off_Debug(THAISEN_MATRIX_RELAY_KPN2_1);
+        }
+    }else{
+        LcdData.MatrixRelay_KP2_2[1] = !LcdData.MatrixRelay_KP2_2[1];
+        LcdData.MatrixRelay_KP2_2[2] = LcdData.MatrixRelay_KP2_2[1];
+        /** 目前是正负极一起控制 */
+        LcdData.MatrixRelay_KP2_2[0] = LcdData.MatrixRelay_KP2_2[1];
+        if(LcdData.MatrixRelay_KP2_2[1]){
+            thaisenMatrixRelay_on_Debug(THAISEN_MATRIX_RELAY_KPN2_1);
+        }else{
+            thaisenMatrixRelay_off_Debug(THAISEN_MATRIX_RELAY_KPN2_1);
+        }
+    }
+    SerialScreen_SendIco(&SerialScreen, 0x1C08, LcdData.MatrixRelay_KP2_2[2]);
+#endif /* SCREEN_USING_CYCLE_MATRIX */
+}
+
+/*****************************************************
+ * 函数名     SerialScreen_MatrixRelay_KP2_3_Ctrl
+ * 功能         矩阵KN2-3继电器调试
+ * 参数
+ * 返回
+ ****************************************************/
+void SerialScreen_MatrixRelay_KP2_3_Ctrl(void)
+{
+#ifdef SCREEN_USING_CYCLE_MATRIX
+    u8 _dev_type = 0;
+
+    _dev_type = thaisenGetChargGunRunType();
+    if(_dev_type != thaisenDeviceType_Matrix_Half){
+        memset(LcdData.MatrixRelay_KP2_3, 2, sizeof(LcdData.MatrixRelay_KP2_3)); /** 2为空白：隐藏 */
+        return;
+    }
+    if(LcdData.MatrixRelayPolarity == 0){
+        LcdData.MatrixRelay_KP2_3[0] = !LcdData.MatrixRelay_KP2_3[0];
+        LcdData.MatrixRelay_KP2_3[2] = LcdData.MatrixRelay_KP2_3[0];
+        /** 目前是正负极一起控制 */
+        LcdData.MatrixRelay_KP2_3[1] = LcdData.MatrixRelay_KP2_3[0];
+        if(LcdData.MatrixRelay_KP2_3[0]){
+            thaisenMatrixRelay_on_Debug(THAISEN_MATRIX_RELAY_KPN2_2);
+        }else{
+            thaisenMatrixRelay_off_Debug(THAISEN_MATRIX_RELAY_KPN2_2);
+        }
+    }else{
+        LcdData.MatrixRelay_KP2_3[1] = !LcdData.MatrixRelay_KP2_3[1];
+        LcdData.MatrixRelay_KP2_3[2] = LcdData.MatrixRelay_KP2_3[1];
+        /** 目前是正负极一起控制 */
+        LcdData.MatrixRelay_KP2_3[0] = LcdData.MatrixRelay_KP2_3[1];
+        if(LcdData.MatrixRelay_KP2_3[1]){
+            thaisenMatrixRelay_on_Debug(THAISEN_MATRIX_RELAY_KPN2_2);
+        }else{
+            thaisenMatrixRelay_off_Debug(THAISEN_MATRIX_RELAY_KPN2_2);
+        }
+    }
+    SerialScreen_SendIco(&SerialScreen, 0x1C0B, LcdData.MatrixRelay_KP2_3[2]);
+#endif /* SCREEN_USING_CYCLE_MATRIX */
+}
+
+/*****************************************************
+ * 函数名     SerialScreen_MatrixRelay_KP3_1_Ctrl
+ * 功能         矩阵KN3-1继电器调试
+ * 参数
+ * 返回
+ ****************************************************/
+void SerialScreen_MatrixRelay_KP3_1_Ctrl(void)
+{
+#ifdef SCREEN_USING_CYCLE_MATRIX
+    u8 _dev_type = 0;
+
+    _dev_type = thaisenGetChargGunRunType();
+    if(_dev_type != thaisenDeviceType_Matrix_Cycle){
+        memset(LcdData.MatrixRelay_KP3_1, 2, sizeof(LcdData.MatrixRelay_KP3_1)); /** 2为空白：隐藏 */
+        return;
+    }
+    if(LcdData.MatrixRelayPolarity == 0){
+        LcdData.MatrixRelay_KP3_1[0] = !LcdData.MatrixRelay_KP3_1[0];
+        LcdData.MatrixRelay_KP3_1[2] = LcdData.MatrixRelay_KP3_1[0];
+        /** 目前是正负极一起控制 */
+        LcdData.MatrixRelay_KP3_1[1] = LcdData.MatrixRelay_KP3_1[0];
+        if(LcdData.MatrixRelay_KP3_1[0]){
+            thaisenMatrixRelay_on_Debug(THAISEN_MATRIX_RELAY_KPN1_3);
+        }else{
+            thaisenMatrixRelay_off_Debug(THAISEN_MATRIX_RELAY_KPN1_3);
+        }
+    }else{
+        LcdData.MatrixRelay_KP3_1[1] = !LcdData.MatrixRelay_KP3_1[1];
+        LcdData.MatrixRelay_KP3_1[2] = LcdData.MatrixRelay_KP3_1[1];
+        /** 目前是正负极一起控制 */
+        LcdData.MatrixRelay_KP3_1[0] = LcdData.MatrixRelay_KP3_1[1];
+        if(LcdData.MatrixRelay_KP3_1[1]){
+            thaisenMatrixRelay_on_Debug(THAISEN_MATRIX_RELAY_KPN1_3);
+        }else{
+            thaisenMatrixRelay_off_Debug(THAISEN_MATRIX_RELAY_KPN1_3);
+        }
+    }
+    SerialScreen_SendIco(&SerialScreen, 0x1C06, LcdData.MatrixRelay_KP3_1[2]);
+#endif /* SCREEN_USING_CYCLE_MATRIX */
+}
+
+/*****************************************************
+ * 函数名     SerialScreen_MatrixRelay_KP3_2_Ctrl
+ * 功能         矩阵KN3-2继电器调试
+ * 参数
+ * 返回
+ ****************************************************/
+void SerialScreen_MatrixRelay_KP3_2_Ctrl(void)
+{
+#ifdef SCREEN_USING_CYCLE_MATRIX
+    /** 这个继电器目前是预留 */
+    memset(LcdData.MatrixRelay_KP3_2, 2, sizeof(LcdData.MatrixRelay_KP3_2)); /** 2为空白：隐藏 */
+    return;
+
+    if(LcdData.MatrixRelayPolarity == 0){
+        LcdData.MatrixRelay_KP3_2[0] = !LcdData.MatrixRelay_KP3_2[0];
+        LcdData.MatrixRelay_KP3_2[2] = LcdData.MatrixRelay_KP3_2[0];
+        /** 目前是正负极一起控制 */
+        LcdData.MatrixRelay_KP3_2[1] = LcdData.MatrixRelay_KP3_2[0];
+        if(LcdData.MatrixRelay_KP3_2[0]){
+            thaisenMatrixRelay_on_Debug(THAISEN_MATRIX_RELAY_SIZE);
+        }else{
+            thaisenMatrixRelay_off_Debug(THAISEN_MATRIX_RELAY_SIZE);
+        }
+    }else{
+        LcdData.MatrixRelay_KP3_2[1] = !LcdData.MatrixRelay_KP3_2[1];
+        LcdData.MatrixRelay_KP3_2[2] = LcdData.MatrixRelay_KP3_2[1];
+        /** 目前是正负极一起控制 */
+        LcdData.MatrixRelay_KP3_2[0] = LcdData.MatrixRelay_KP3_2[1];
+        if(LcdData.MatrixRelay_KP3_2[1]){
+            thaisenMatrixRelay_on_Debug(THAISEN_MATRIX_RELAY_SIZE);
+        }else{
+            thaisenMatrixRelay_off_Debug(THAISEN_MATRIX_RELAY_SIZE);
+        }
+    }
+    SerialScreen_SendIco(&SerialScreen, 0x1C09, LcdData.MatrixRelay_KP3_2[2]);
+#endif /* SCREEN_USING_CYCLE_MATRIX */
+}
+
+/*****************************************************
+ * 函数名     SerialScreen_MatrixRelay_KP3_3_Ctrl
+ * 功能         矩阵KN3-3继电器调试
+ * 参数
+ * 返回
+ ****************************************************/
+void SerialScreen_MatrixRelay_KP3_3_Ctrl(void)
+{
+#ifdef SCREEN_USING_CYCLE_MATRIX
+    u8 _dev_type = 0;
+
+    _dev_type = thaisenGetChargGunRunType();
+    if(_dev_type != thaisenDeviceType_Matrix_Half){
+        memset(LcdData.MatrixRelay_KP3_3, 2, sizeof(LcdData.MatrixRelay_KP3_3)); /** 2为空白：隐藏 */
+        return;
+    }
+    if(LcdData.MatrixRelayPolarity == 0){
+        LcdData.MatrixRelay_KP3_3[0] = !LcdData.MatrixRelay_KP3_3[0];
+        LcdData.MatrixRelay_KP3_3[2] = LcdData.MatrixRelay_KP3_3[0];
+        /** 目前是正负极一起控制 */
+        LcdData.MatrixRelay_KP3_3[1] = LcdData.MatrixRelay_KP3_3[0];
+        if(LcdData.MatrixRelay_KP3_3[0]){
+            thaisenMatrixRelay_on_Debug(THAISEN_MATRIX_RELAY_KPN3_1);
+        }else{
+            thaisenMatrixRelay_off_Debug(THAISEN_MATRIX_RELAY_KPN3_1);
+        }
+    }else{
+        LcdData.MatrixRelay_KP3_3[1] = !LcdData.MatrixRelay_KP3_3[1];
+        LcdData.MatrixRelay_KP3_3[2] = LcdData.MatrixRelay_KP3_3[1];
+        /** 目前是正负极一起控制 */
+        LcdData.MatrixRelay_KP3_3[0] = LcdData.MatrixRelay_KP3_3[1];
+        if(LcdData.MatrixRelay_KP3_3[1]){
+            thaisenMatrixRelay_on_Debug(THAISEN_MATRIX_RELAY_KPN3_1);
+        }else{
+            thaisenMatrixRelay_off_Debug(THAISEN_MATRIX_RELAY_KPN3_1);
+        }
+    }
+    SerialScreen_SendIco(&SerialScreen, 0x1C0C, LcdData.MatrixRelay_KP3_3[2]);
+#endif /* SCREEN_USING_CYCLE_MATRIX */
+}
+
+
+/*****************************************************
+ * 函数名     SerialScreen_MatrixRelayCtrl_All
+ * 功能         所有矩阵继电器调试
+ * 参数
+ * 返回
+ ****************************************************/
+void SerialScreen_MatrixRelayCtrl_All(void)
+{
+#ifdef SCREEN_USING_CYCLE_MATRIX
+    u8 fb_state = 0, temp[2], _dev_type = 0;
+
+    _dev_type = thaisenGetChargGunRunType();
+
+    if(LcdData.MatrixRelayPolarity){
+        LcdData.MatrixRelay_All[0] = !LcdData.MatrixRelay_All[0];
+        LcdData.MatrixRelay_All[2] = LcdData.MatrixRelay_All[0];
+        LcdData.MatrixRelay_All[1] = LcdData.MatrixRelay_All[0];
+
+        LcdData.MatrixRelay_KP1_1[2] = LcdData.MatrixRelay_KP1_1[0];
+        LcdData.MatrixRelay_KP1_2[2] = LcdData.MatrixRelay_KP1_2[0];
+        LcdData.MatrixRelay_KP1_3[2] = LcdData.MatrixRelay_KP1_3[0];
+        LcdData.MatrixRelay_KP2_1[2] = LcdData.MatrixRelay_KP2_1[0];
+        LcdData.MatrixRelay_KP2_2[2] = LcdData.MatrixRelay_KP2_2[0];
+        LcdData.MatrixRelay_KP2_3[2] = LcdData.MatrixRelay_KP2_3[0];
+        LcdData.MatrixRelay_KP3_1[2] = LcdData.MatrixRelay_KP3_1[0];
+        LcdData.MatrixRelay_KP3_2[2] = LcdData.MatrixRelay_KP3_2[0];
+        LcdData.MatrixRelay_KP3_3[2] = LcdData.MatrixRelay_KP3_3[0];
+    }else{
+        LcdData.MatrixRelay_All[1] = !LcdData.MatrixRelay_All[1];
+        LcdData.MatrixRelay_All[2] = LcdData.MatrixRelay_All[1];
+        LcdData.MatrixRelay_All[0] = LcdData.MatrixRelay_All[1];
+
+        LcdData.MatrixRelay_KP1_1[2] = LcdData.MatrixRelay_KP1_1[1];
+        LcdData.MatrixRelay_KP1_2[2] = LcdData.MatrixRelay_KP1_2[1];
+        LcdData.MatrixRelay_KP1_3[2] = LcdData.MatrixRelay_KP1_3[1];
+        LcdData.MatrixRelay_KP2_1[2] = LcdData.MatrixRelay_KP2_1[1];
+        LcdData.MatrixRelay_KP2_2[2] = LcdData.MatrixRelay_KP2_2[1];
+        LcdData.MatrixRelay_KP2_3[2] = LcdData.MatrixRelay_KP2_3[1];
+        LcdData.MatrixRelay_KP3_1[2] = LcdData.MatrixRelay_KP3_1[1];
+        LcdData.MatrixRelay_KP3_2[2] = LcdData.MatrixRelay_KP3_2[1];
+        LcdData.MatrixRelay_KP3_3[2] = LcdData.MatrixRelay_KP3_3[1];
+    }
+
+    if(LcdData.MatrixRelay_All[2]){
+        if((LcdData.MatrixRelay_KP1_1[0] == 1) && \
+                (LcdData.MatrixRelay_KP1_2[0] == 1) && \
+                (LcdData.MatrixRelay_KP1_3[0] == 1) && \
+                (LcdData.MatrixRelay_KP2_1[0] == 1) && \
+                (LcdData.MatrixRelay_KP2_2[0] == 1) && \
+                (LcdData.MatrixRelay_KP2_3[0] == 1) && \
+                (LcdData.MatrixRelay_KP3_1[0] == 1) && \
+                (LcdData.MatrixRelay_KP3_2[0] == 1) && \
+                (LcdData.MatrixRelay_KP3_3[0] == 1)){
+            return;
+        }
+
+        SerialScreen_SendIco(&SerialScreen, 0x1C02, 0x01);
+        thaisen_app_system_delay(20);
+        if(LcdData.MatrixRelay_KP1_1[2] == 0){
+            if((_dev_type == thaisenDeviceType_Matrix_Cycle) || (_dev_type == thaisenDeviceType_Matrix_Half)){
+                /****************** 执行控制 ******************/
+                SerialScreen_SendIco(&SerialScreen, 0x1C04, 0x01);
+                thaisenMatrixRelay_on_Debug(THAISEN_MATRIX_RELAY_KPN1_1);
+                /****************** 读取反馈 ******************/
+                thaisen_app_system_delay(100);
+                fb_state = thaisenMatrixRelay_FB(THAISEN_MATRIX_RELAY_KPN1_1);
+                temp[0] = ((!fb_state) &0x01) + '0';
+                temp[1] = temp[0];
+                SerialScreen_SendTxt(&SerialScreen, 0x1C50, temp, sizeof(temp));
+                /** 延迟一定时间再操作下一组继电器 */
+                thaisen_app_system_delay(900);
+            }
+        }
+
+        if(LcdData.MatrixRelay_KP1_2[2] == 0){
+            if(_dev_type == thaisenDeviceType_Matrix_Half){
+                /****************** 执行控制 ******************/
+                SerialScreen_SendIco(&SerialScreen, 0x1C07, 0x01);
+                thaisenMatrixRelay_on_Debug(THAISEN_MATRIX_RELAY_KPN1_2);
+                /****************** 读取反馈 ******************/
+                thaisen_app_system_delay(100);
+                fb_state = thaisenMatrixRelay_FB(THAISEN_MATRIX_RELAY_KPN1_2);
+                temp[0] = ((!fb_state) &0x01) + '0';
+                temp[1] = temp[0];
+                SerialScreen_SendTxt(&SerialScreen, 0x1C56, temp, sizeof(temp));
+                /** 延迟一定时间再操作下一组继电器 */
+                thaisen_app_system_delay(900);
+            }
+        }
+
+        if(LcdData.MatrixRelay_KP1_3[2] == 0){
+            if(_dev_type == thaisenDeviceType_Matrix_Half){
+                /****************** 执行控制 ******************/
+                SerialScreen_SendIco(&SerialScreen, 0x1C0A, 0x01);
+                thaisenMatrixRelay_on_Debug(THAISEN_MATRIX_RELAY_KPN1_3);
+                /****************** 读取反馈 ******************/
+                thaisen_app_system_delay(100);
+                fb_state = thaisenMatrixRelay_FB(THAISEN_MATRIX_RELAY_KPN1_3);
+                temp[0] = ((!fb_state) &0x01) + '0';
+                temp[1] = temp[0];
+                SerialScreen_SendTxt(&SerialScreen, 0x1C5C, temp, sizeof(temp));
+                /** 延迟一定时间再操作下一组继电器 */
+                thaisen_app_system_delay(900);
+            }
+        }
+
+        if(LcdData.MatrixRelay_KP2_1[2] == 0){
+            if(_dev_type == thaisenDeviceType_Matrix_Cycle){
+                /****************** 执行控制 ******************/
+                SerialScreen_SendIco(&SerialScreen, 0x1C05, 0x01);
+                thaisenMatrixRelay_on_Debug(THAISEN_MATRIX_RELAY_KPN1_2);
+                /****************** 读取反馈 ******************/
+                thaisen_app_system_delay(100);
+                fb_state = thaisenMatrixRelay_FB(THAISEN_MATRIX_RELAY_KPN1_2);
+                temp[0] = ((!fb_state) &0x01) + '0';
+                temp[1] = temp[0];
+                SerialScreen_SendTxt(&SerialScreen, 0x1C52, temp, sizeof(temp));
+                /** 延迟一定时间再操作下一组继电器 */
+                thaisen_app_system_delay(900);
+            }
+        }
+
+        if(LcdData.MatrixRelay_KP2_2[2] == 0){
+            if((_dev_type == thaisenDeviceType_Matrix_Cycle) || (_dev_type == thaisenDeviceType_Matrix_Half)){
+                /****************** 执行控制 ******************/
+                SerialScreen_SendIco(&SerialScreen, 0x1C08, 0x01);
+                thaisenMatrixRelay_on_Debug(THAISEN_MATRIX_RELAY_KPN2_1);
+                /****************** 读取反馈 ******************/
+                thaisen_app_system_delay(100);
+                fb_state = thaisenMatrixRelay_FB(THAISEN_MATRIX_RELAY_KPN2_1);
+                temp[0] = ((!fb_state) &0x01) + '0';
+                temp[1] = temp[0];
+                SerialScreen_SendTxt(&SerialScreen, 0x1C58, temp, sizeof(temp));
+                /** 延迟一定时间再操作下一组继电器 */
+                thaisen_app_system_delay(900);
+            }
+        }
+
+        if(LcdData.MatrixRelay_KP2_3[2] == 0){
+            if(_dev_type == thaisenDeviceType_Matrix_Half){
+                /****************** 执行控制 ******************/
+                SerialScreen_SendIco(&SerialScreen, 0x1C0B, 0x01);
+                thaisenMatrixRelay_on_Debug(THAISEN_MATRIX_RELAY_KPN2_2);
+                /****************** 读取反馈 ******************/
+                thaisen_app_system_delay(100);
+                fb_state = thaisenMatrixRelay_FB(THAISEN_MATRIX_RELAY_KPN2_2);
+                temp[0] = ((!fb_state) &0x01) + '0';
+                temp[1] = temp[0];
+                SerialScreen_SendTxt(&SerialScreen, 0x1C5E, temp, sizeof(temp));
+                /** 延迟一定时间再操作下一组继电器 */
+                thaisen_app_system_delay(900);
+            }
+        }
+
+        if(LcdData.MatrixRelay_KP3_1[2] == 0){
+            if(_dev_type == thaisenDeviceType_Matrix_Cycle){
+                /****************** 执行控制 ******************/
+                SerialScreen_SendIco(&SerialScreen, 0x1C06, 0x01);
+                thaisenMatrixRelay_on_Debug(THAISEN_MATRIX_RELAY_KPN1_3);
+                /****************** 读取反馈 ******************/
+                thaisen_app_system_delay(100);
+                fb_state = thaisenMatrixRelay_FB(THAISEN_MATRIX_RELAY_KPN1_3);
+                temp[0] = ((!fb_state) &0x01) + '0';
+                temp[1] = temp[0];
+                SerialScreen_SendTxt(&SerialScreen, 0x1C54, temp, sizeof(temp));
+                /** 延迟一定时间再操作下一组继电器 */
+                thaisen_app_system_delay(900);
+            }
+        }
+
+        if(LcdData.MatrixRelay_KP3_2[2] == 0){
+#if 0
+            if(_dev_type == thaisenDeviceType_Matrix_Half){
+                /****************** 执行控制 ******************/
+                SerialScreen_SendIco(&SerialScreen, 0x1C09, 0x01);
+                thaisenMatrixRelay_on_Debug(THAISEN_MATRIX_RELAY_KPN3_2);
+                /****************** 读取反馈 ******************/
+                thaisen_app_system_delay(100);
+                fb_state = thaisenMatrixRelay_FB(THAISEN_MATRIX_RELAY_KPN3_2);
+                temp[0] = ((!fb_state) &0x01) + '0';
+                temp[1] = temp[0];
+                SerialScreen_SendTxt(&SerialScreen, 0x1C5A, temp, sizeof(temp));
+                /** 延迟一定时间再操作下一组继电器 */
+                thaisen_app_system_delay(900);
+            }
+#endif
+        }
+
+        if(LcdData.MatrixRelay_KP3_3[2] == 0){
+            if(_dev_type == thaisenDeviceType_Matrix_Half){
+                /****************** 执行控制 ******************/
+                SerialScreen_SendIco(&SerialScreen, 0x1C0C, 0x01);
+                thaisenMatrixRelay_on_Debug(THAISEN_MATRIX_RELAY_KPN3_1);
+                /****************** 读取反馈 ******************/
+                thaisen_app_system_delay(100);
+                fb_state = thaisenMatrixRelay_FB(THAISEN_MATRIX_RELAY_KPN3_1);
+                temp[0] = ((!fb_state) &0x01) + '0';
+                temp[1] = temp[0];
+                SerialScreen_SendTxt(&SerialScreen, 0x1C60, temp, sizeof(temp));
+            }
+        }
+    }else{
+        if((LcdData.MatrixRelay_KP1_1[0] == 1) && \
+                (LcdData.MatrixRelay_KP1_2[0] == 1) && \
+                (LcdData.MatrixRelay_KP1_3[0] == 1) && \
+                (LcdData.MatrixRelay_KP2_1[0] == 1) && \
+                (LcdData.MatrixRelay_KP2_2[0] == 1) && \
+                (LcdData.MatrixRelay_KP2_3[0] == 1) && \
+                (LcdData.MatrixRelay_KP3_1[0] == 1) && \
+                (LcdData.MatrixRelay_KP3_2[0] == 1) && \
+                (LcdData.MatrixRelay_KP3_3[0] == 1)){
+            return;
+        }
+
+        SerialScreen_SendIco(&SerialScreen, 0x1C02, 0x00);
+        /****************** 执行控制 ******************/
+        thaisen_app_system_delay(20);
+
+        if(LcdData.MatrixRelay_KP1_1[2] == 1){
+            if((_dev_type == thaisenDeviceType_Matrix_Cycle) || (_dev_type == thaisenDeviceType_Matrix_Half)){
+                SerialScreen_SendIco(&SerialScreen, 0x1C04, 0x00);
+                thaisenMatrixRelay_off_Debug(THAISEN_MATRIX_RELAY_KPN1_1);
+                /****************** 读取反馈 ******************/
+                thaisen_app_system_delay(100);
+                fb_state = thaisenMatrixRelay_FB(THAISEN_MATRIX_RELAY_KPN1_1);
+                temp[0] = ((!fb_state) &0x01) + '0';
+                temp[1] = temp[0];
+                SerialScreen_SendTxt(&SerialScreen, 0x1C50, temp, sizeof(temp));
+                /** 延迟一定时间再操作下一组继电器 */
+                thaisen_app_system_delay(900);
+            }
+        }
+
+        if(LcdData.MatrixRelay_KP1_2[2] == 1){
+            if(_dev_type == thaisenDeviceType_Matrix_Half){
+                /****************** 执行控制 ******************/
+                SerialScreen_SendIco(&SerialScreen, 0x1C07, 0x00);
+                thaisenMatrixRelay_off_Debug(THAISEN_MATRIX_RELAY_KPN1_2);
+                /****************** 读取反馈 ******************/
+                thaisen_app_system_delay(100);
+                fb_state = thaisenMatrixRelay_FB(THAISEN_MATRIX_RELAY_KPN1_2);
+                temp[0] = ((!fb_state) &0x01) + '0';
+                temp[1] = temp[0];
+                SerialScreen_SendTxt(&SerialScreen, 0x1C56, temp, sizeof(temp));
+                /** 延迟一定时间再操作下一组继电器 */
+                thaisen_app_system_delay(900);
+            }
+        }
+
+        if(LcdData.MatrixRelay_KP1_3[2] == 1){
+            if(_dev_type == thaisenDeviceType_Matrix_Half){
+                /****************** 执行控制 ******************/
+                SerialScreen_SendIco(&SerialScreen, 0x1C0A, 0x00);
+                thaisenMatrixRelay_off_Debug(THAISEN_MATRIX_RELAY_KPN1_3);
+                /****************** 读取反馈 ******************/
+                thaisen_app_system_delay(100);
+                fb_state = thaisenMatrixRelay_FB(THAISEN_MATRIX_RELAY_KPN1_3);
+                temp[0] = ((!fb_state) &0x01) + '0';
+                temp[1] = temp[0];
+                SerialScreen_SendTxt(&SerialScreen, 0x1C5C, temp, sizeof(temp));
+                /** 延迟一定时间再操作下一组继电器 */
+                thaisen_app_system_delay(900);
+            }
+        }
+
+        if(LcdData.MatrixRelay_KP2_1[2] == 1){
+            if(_dev_type == thaisenDeviceType_Matrix_Cycle){
+                /****************** 执行控制 ******************/
+                SerialScreen_SendIco(&SerialScreen, 0x1C05, 0x00);
+                thaisenMatrixRelay_off_Debug(THAISEN_MATRIX_RELAY_KPN1_2);
+                /****************** 读取反馈 ******************/
+                thaisen_app_system_delay(100);
+                fb_state = thaisenMatrixRelay_FB(THAISEN_MATRIX_RELAY_KPN1_2);
+                temp[0] = ((!fb_state) &0x01) + '0';
+                temp[1] = temp[0];
+                SerialScreen_SendTxt(&SerialScreen, 0x1C52, temp, sizeof(temp));
+                /** 延迟一定时间再操作下一组继电器 */
+                thaisen_app_system_delay(900);
+            }
+        }
+
+        if(LcdData.MatrixRelay_KP2_2[2] == 1){
+            if((_dev_type == thaisenDeviceType_Matrix_Cycle) || (_dev_type == thaisenDeviceType_Matrix_Half)){
+                /****************** 执行控制 ******************/
+                SerialScreen_SendIco(&SerialScreen, 0x1C08, 0x00);
+                thaisenMatrixRelay_off_Debug(THAISEN_MATRIX_RELAY_KPN2_1);
+                /****************** 读取反馈 ******************/
+                thaisen_app_system_delay(100);
+                fb_state = thaisenMatrixRelay_FB(THAISEN_MATRIX_RELAY_KPN2_1);
+                temp[0] = ((!fb_state) &0x01) + '0';
+                temp[1] = temp[0];
+                SerialScreen_SendTxt(&SerialScreen, 0x1C58, temp, sizeof(temp));
+                /** 延迟一定时间再操作下一组继电器 */
+                thaisen_app_system_delay(900);
+            }
+        }
+
+        if(LcdData.MatrixRelay_KP2_3[2] == 1){
+            if(_dev_type == thaisenDeviceType_Matrix_Half){
+                /****************** 执行控制 ******************/
+                SerialScreen_SendIco(&SerialScreen, 0x1C0B, 0x00);
+                thaisenMatrixRelay_off_Debug(THAISEN_MATRIX_RELAY_KPN2_2);
+                /****************** 读取反馈 ******************/
+                thaisen_app_system_delay(100);
+                fb_state = thaisenMatrixRelay_FB(THAISEN_MATRIX_RELAY_KPN2_2);
+                temp[0] = ((!fb_state) &0x01) + '0';
+                temp[1] = temp[0];
+                SerialScreen_SendTxt(&SerialScreen, 0x1C5E, temp, sizeof(temp));
+                /** 延迟一定时间再操作下一组继电器 */
+                thaisen_app_system_delay(900);
+            }
+        }
+
+        if(LcdData.MatrixRelay_KP3_1[2] == 1){
+            if(_dev_type == thaisenDeviceType_Matrix_Cycle){
+                /****************** 执行控制 ******************/
+                SerialScreen_SendIco(&SerialScreen, 0x1C06, 0x00);
+                thaisenMatrixRelay_off_Debug(THAISEN_MATRIX_RELAY_KPN1_3);
+                /****************** 读取反馈 ******************/
+                thaisen_app_system_delay(100);
+                fb_state = thaisenMatrixRelay_FB(THAISEN_MATRIX_RELAY_KPN1_3);
+                temp[0] = ((!fb_state) &0x01) + '0';
+                temp[1] = temp[0];
+                SerialScreen_SendTxt(&SerialScreen, 0x1C54, temp, sizeof(temp));
+                /** 延迟一定时间再操作下一组继电器 */
+                thaisen_app_system_delay(900);
+            }
+        }
+
+        if(LcdData.MatrixRelay_KP3_2[2] == 1){
+#if 0
+            if(_dev_type == thaisenDeviceType_Matrix_Half){
+                /****************** 执行控制 ******************/
+                SerialScreen_SendIco(&SerialScreen, 0x1C09, 0x00);
+                thaisenMatrixRelay_off_Debug(THAISEN_MATRIX_RELAY_KPN3_2);
+                /****************** 读取反馈 ******************/
+                thaisen_app_system_delay(100);
+                fb_state = thaisenMatrixRelay_FB(THAISEN_MATRIX_RELAY_KPN3_2);
+                temp[0] = ((!fb_state) &0x01) + '0';
+                temp[1] = temp[0];
+                SerialScreen_SendTxt(&SerialScreen, 0x1C5A, temp, sizeof(temp));
+                /** 延迟一定时间再操作下一组继电器 */
+                thaisen_app_system_delay(900);
+            }
+#endif
+        }
+
+        if(LcdData.MatrixRelay_KP3_3[2] == 1){
+            if(_dev_type == thaisenDeviceType_Matrix_Half){
+                /****************** 执行控制 ******************/
+                SerialScreen_SendIco(&SerialScreen, 0x1C0C, 0x00);
+                thaisenMatrixRelay_off_Debug(THAISEN_MATRIX_RELAY_KPN3_1);
+                /****************** 读取反馈 ******************/
+                thaisen_app_system_delay(100);
+                fb_state = thaisenMatrixRelay_FB(THAISEN_MATRIX_RELAY_KPN3_1);
+                temp[0] = ((!fb_state) &0x01) + '0';
+                temp[1] = temp[0];
+                SerialScreen_SendTxt(&SerialScreen, 0x1C60, temp, sizeof(temp));
+            }
+        }
+    }
+
+    if(LcdData.MatrixRelay_All[2]){
+        /** 目前是正负极一起控制 */
+        if(_dev_type == thaisenDeviceType_Matrix_Cycle){
+            memset(LcdData.MatrixRelay_KP1_1, 0x01, sizeof(LcdData.MatrixRelay_KP1_1));
+            memset(LcdData.MatrixRelay_KP2_1, 0x01, sizeof(LcdData.MatrixRelay_KP2_1));
+            memset(LcdData.MatrixRelay_KP3_1, 0x01, sizeof(LcdData.MatrixRelay_KP3_1));
+            memset(LcdData.MatrixRelay_KP2_2, 0x01, sizeof(LcdData.MatrixRelay_KP2_2));
+
+            memset(LcdData.MatrixRelay_KP1_2, 0x02, sizeof(LcdData.MatrixRelay_KP1_2)); /** 2为空白：隐藏 */
+            memset(LcdData.MatrixRelay_KP1_3, 0x02, sizeof(LcdData.MatrixRelay_KP1_3)); /** 2为空白：隐藏 */
+            memset(LcdData.MatrixRelay_KP2_3, 0x02, sizeof(LcdData.MatrixRelay_KP2_3)); /** 2为空白：隐藏 */
+            memset(LcdData.MatrixRelay_KP3_2, 0x02, sizeof(LcdData.MatrixRelay_KP3_3)); /** 2为空白：隐藏 */
+            memset(LcdData.MatrixRelay_KP3_3, 0x02, sizeof(LcdData.MatrixRelay_KP3_3)); /** 2为空白：隐藏 */
+
+        }else if(_dev_type == thaisenDeviceType_Matrix_Half){
+            memset(LcdData.MatrixRelay_KP1_1, 0x01, sizeof(LcdData.MatrixRelay_KP1_1));
+            memset(LcdData.MatrixRelay_KP1_2, 0x01, sizeof(LcdData.MatrixRelay_KP1_2));
+            memset(LcdData.MatrixRelay_KP1_3, 0x01, sizeof(LcdData.MatrixRelay_KP1_3));
+            memset(LcdData.MatrixRelay_KP2_2, 0x01, sizeof(LcdData.MatrixRelay_KP2_2));
+            memset(LcdData.MatrixRelay_KP2_3, 0x01, sizeof(LcdData.MatrixRelay_KP2_3));
+            memset(LcdData.MatrixRelay_KP3_3, 0x01, sizeof(LcdData.MatrixRelay_KP3_3));
+
+            memset(LcdData.MatrixRelay_KP2_1, 0x02, sizeof(LcdData.MatrixRelay_KP2_1)); /** 2为空白：隐藏 */
+            memset(LcdData.MatrixRelay_KP3_1, 0x02, sizeof(LcdData.MatrixRelay_KP3_1)); /** 2为空白：隐藏 */
+            memset(LcdData.MatrixRelay_KP3_2, 0x02, sizeof(LcdData.MatrixRelay_KP3_3)); /** 2为空白：隐藏 */
+        }
+    }else{
+        /** 目前是正负极一起控制 */
+        if(_dev_type == thaisenDeviceType_Matrix_Cycle){
+            memset(LcdData.MatrixRelay_KP1_1, 0x00, sizeof(LcdData.MatrixRelay_KP1_1));
+            memset(LcdData.MatrixRelay_KP2_1, 0x00, sizeof(LcdData.MatrixRelay_KP2_1));
+            memset(LcdData.MatrixRelay_KP3_1, 0x00, sizeof(LcdData.MatrixRelay_KP3_1));
+            memset(LcdData.MatrixRelay_KP2_2, 0x00, sizeof(LcdData.MatrixRelay_KP2_2));
+
+            memset(LcdData.MatrixRelay_KP1_2, 0x02, sizeof(LcdData.MatrixRelay_KP1_2)); /** 2为空白：隐藏 */
+            memset(LcdData.MatrixRelay_KP1_3, 0x02, sizeof(LcdData.MatrixRelay_KP1_3)); /** 2为空白：隐藏 */
+            memset(LcdData.MatrixRelay_KP2_3, 0x02, sizeof(LcdData.MatrixRelay_KP2_3)); /** 2为空白：隐藏 */
+            memset(LcdData.MatrixRelay_KP3_2, 0x02, sizeof(LcdData.MatrixRelay_KP3_3)); /** 2为空白：隐藏 */
+            memset(LcdData.MatrixRelay_KP3_3, 0x02, sizeof(LcdData.MatrixRelay_KP3_3)); /** 2为空白：隐藏 */
+        }else{
+            memset(LcdData.MatrixRelay_KP1_1, 0x00, sizeof(LcdData.MatrixRelay_KP1_1));
+            memset(LcdData.MatrixRelay_KP1_2, 0x00, sizeof(LcdData.MatrixRelay_KP1_2));
+            memset(LcdData.MatrixRelay_KP1_3, 0x00, sizeof(LcdData.MatrixRelay_KP1_3));
+            memset(LcdData.MatrixRelay_KP2_2, 0x00, sizeof(LcdData.MatrixRelay_KP2_2));
+            memset(LcdData.MatrixRelay_KP2_3, 0x00, sizeof(LcdData.MatrixRelay_KP2_3));
+            memset(LcdData.MatrixRelay_KP3_3, 0x00, sizeof(LcdData.MatrixRelay_KP3_3));
+
+            memset(LcdData.MatrixRelay_KP2_1, 0x02, sizeof(LcdData.MatrixRelay_KP2_1)); /** 2为空白：隐藏 */
+            memset(LcdData.MatrixRelay_KP3_1, 0x02, sizeof(LcdData.MatrixRelay_KP3_1)); /** 2为空白：隐藏 */
+            memset(LcdData.MatrixRelay_KP3_2, 0x02, sizeof(LcdData.MatrixRelay_KP3_3)); /** 2为空白：隐藏 */
+        }
+    }
+#endif /* SCREEN_USING_CYCLE_MATRIX */
+}
+
+void SerialScreen_EnterMatrixRelay(void)
+{
+#ifdef SCREEN_USING_CYCLE_MATRIX
+    u8 data_buf[2], _dev_type = 0;
+
+    if(LcdData.debugIOflg == TRUE){
+        return;
+    }
+    _dev_type = thaisenGetChargGunRunType();
+    memset(data_buf, '0', sizeof(data_buf));
+    /** 默认正极 */
+    LcdData.MatrixRelayPolarity = 0;
+    memset(LcdData.MatrixRelay_All, 0x00, sizeof(LcdData.MatrixRelay_All));
+    memset(LcdData.MatrixRelay_KP1_1, 0x00, sizeof(LcdData.MatrixRelay_KP1_1));
+    memset(LcdData.MatrixRelay_KP1_2, 0x00, sizeof(LcdData.MatrixRelay_KP1_2));
+    memset(LcdData.MatrixRelay_KP1_3, 0x00, sizeof(LcdData.MatrixRelay_KP1_3));
+    memset(LcdData.MatrixRelay_KP2_1, 0x00, sizeof(LcdData.MatrixRelay_KP2_1));
+    memset(LcdData.MatrixRelay_KP2_2, 0x00, sizeof(LcdData.MatrixRelay_KP2_2));
+    memset(LcdData.MatrixRelay_KP2_3, 0x00, sizeof(LcdData.MatrixRelay_KP2_3));
+    memset(LcdData.MatrixRelay_KP3_1, 0x00, sizeof(LcdData.MatrixRelay_KP3_1));
+    memset(LcdData.MatrixRelay_KP3_2, 0x00, sizeof(LcdData.MatrixRelay_KP3_2));
+    memset(LcdData.MatrixRelay_KP3_3, 0x00, sizeof(LcdData.MatrixRelay_KP3_3));
+    LcdData.FB_MatrixRelay_KP1_1 = 0;
+    LcdData.FB_MatrixRelay_KP1_2 = 0;
+    LcdData.FB_MatrixRelay_KP1_3 = 0;
+    LcdData.FB_MatrixRelay_KP2_1 = 0;
+    LcdData.FB_MatrixRelay_KP2_2 = 0;
+    LcdData.FB_MatrixRelay_KP2_3 = 0;
+    LcdData.FB_MatrixRelay_KP3_1 = 0;
+    LcdData.FB_MatrixRelay_KP3_2 = 0;
+    LcdData.FB_MatrixRelay_KP3_3 = 0;
+
+    memset(LcdData.MatrixRelay_KP3_3, 2, sizeof(LcdData.MatrixRelay_KP3_3)); /** 2为空白：隐藏 */
+
+    if(_dev_type == thaisenDeviceType_Matrix_Cycle){
+        memset(LcdData.MatrixRelay_KP1_2, 0x02, sizeof(LcdData.MatrixRelay_KP1_2)); /** 2为空白：隐藏 */
+        memset(LcdData.MatrixRelay_KP1_3, 0x02, sizeof(LcdData.MatrixRelay_KP1_3)); /** 2为空白：隐藏 */
+        memset(LcdData.MatrixRelay_KP2_3, 0x02, sizeof(LcdData.MatrixRelay_KP2_3)); /** 2为空白：隐藏 */
+        memset(LcdData.MatrixRelay_KP3_2, 0x02, sizeof(LcdData.MatrixRelay_KP3_3)); /** 2为空白：隐藏 */
+        memset(LcdData.MatrixRelay_KP3_3, 0x02, sizeof(LcdData.MatrixRelay_KP3_3)); /** 2为空白：隐藏 */
+
+        memset(&(LcdData.FB_MatrixRelay_KP1_1), '0', 2);
+        memset(&(LcdData.FB_MatrixRelay_KP2_1), '0', 2);
+        memset(&(LcdData.FB_MatrixRelay_KP3_1), '0', 2);
+        memset(&(LcdData.FB_MatrixRelay_KP2_2), '0', 2);
+    }else{
+        memset(LcdData.MatrixRelay_KP2_1, 0x02, sizeof(LcdData.MatrixRelay_KP2_1)); /** 2为空白：隐藏 */
+        memset(LcdData.MatrixRelay_KP3_1, 0x02, sizeof(LcdData.MatrixRelay_KP3_1)); /** 2为空白：隐藏 */
+        memset(LcdData.MatrixRelay_KP3_2, 0x02, sizeof(LcdData.MatrixRelay_KP3_3)); /** 2为空白：隐藏 */
+
+        memset(&(LcdData.FB_MatrixRelay_KP1_1), '0', 2);
+        memset(&(LcdData.FB_MatrixRelay_KP1_2), '0', 2);
+        memset(&(LcdData.FB_MatrixRelay_KP1_3), '0', 2);
+        memset(&(LcdData.FB_MatrixRelay_KP2_2), '0', 2);
+        memset(&(LcdData.FB_MatrixRelay_KP2_3), '0', 2);
+        memset(&(LcdData.FB_MatrixRelay_KP3_3), '0', 2);
+    }
+
+    /** 复位继电器 */
+    SerialScreen_SendIco(&SerialScreen, 0x1C02, 0x00);
+    thaisen_app_system_delay(20);
+    if((_dev_type == thaisenDeviceType_Matrix_Cycle) || (_dev_type == thaisenDeviceType_Matrix_Half)){
+        SerialScreen_SendIco(&SerialScreen, 0x1C04, 0x00);
+        thaisenMatrixRelay_off_Debug(THAISEN_MATRIX_RELAY_KPN1_1);
+        thaisen_app_system_delay(50);
+    }
+    if(_dev_type == thaisenDeviceType_Matrix_Half){
+        SerialScreen_SendIco(&SerialScreen, 0x1C07, 0x00);
+        thaisenMatrixRelay_off_Debug(THAISEN_MATRIX_RELAY_KPN1_2);
+        thaisen_app_system_delay(50);
+    }
+    if(_dev_type == thaisenDeviceType_Matrix_Half){
+        SerialScreen_SendIco(&SerialScreen, 0x1C0A, 0x00);
+        thaisenMatrixRelay_off_Debug(THAISEN_MATRIX_RELAY_KPN1_3);
+        thaisen_app_system_delay(50);
+    }
+    if(_dev_type == thaisenDeviceType_Matrix_Cycle){
+        SerialScreen_SendIco(&SerialScreen, 0x1C05, 0x00);
+        thaisenMatrixRelay_off_Debug(THAISEN_MATRIX_RELAY_KPN1_2);
+        thaisen_app_system_delay(50);
+    }
+    if((_dev_type == thaisenDeviceType_Matrix_Cycle) || (_dev_type == thaisenDeviceType_Matrix_Half)){
+        SerialScreen_SendIco(&SerialScreen, 0x1C08, 0x00);
+        thaisenMatrixRelay_off_Debug(THAISEN_MATRIX_RELAY_KPN2_1);
+        thaisen_app_system_delay(50);
+    }
+    if(_dev_type == thaisenDeviceType_Matrix_Half){
+        SerialScreen_SendIco(&SerialScreen, 0x1C0B, 0x00);
+        thaisenMatrixRelay_off_Debug(THAISEN_MATRIX_RELAY_KPN2_2);
+        thaisen_app_system_delay(50);
+    }
+
+    if(_dev_type == thaisenDeviceType_Matrix_Cycle){
+        SerialScreen_SendIco(&SerialScreen, 0x1C06, 0x00);
+        thaisenMatrixRelay_off_Debug(THAISEN_MATRIX_RELAY_KPN1_3);
+        thaisen_app_system_delay(50);
+    }
+#if 0
+    if(_dev_type == thaisenDeviceType_Matrix_Half){
+        SerialScreen_SendIco(&SerialScreen, 0x1C09, 0x00);
+        thaisenMatrixRelay_off_Debug(THAISEN_MATRIX_RELAY_KPN3_2);
+        thaisen_app_system_delay(50);
+    }
+#endif
+    if(_dev_type == thaisenDeviceType_Matrix_Half){
+        SerialScreen_SendIco(&SerialScreen, 0x1C0C, 0x00);
+        thaisenMatrixRelay_off_Debug(THAISEN_MATRIX_RELAY_KPN3_1);
+        thaisen_app_system_delay(50);
+    }
+
+
+    if((_dev_type == thaisenDeviceType_Matrix_Cycle) || (_dev_type == thaisenDeviceType_Matrix_Half)){
+        SerialScreen_SendTxt(&SerialScreen, 0x1C50, &data_buf, 2);
+        thaisen_app_system_delay(20);
+    }
+    if(_dev_type == thaisenDeviceType_Matrix_Cycle){
+        SerialScreen_SendTxt(&SerialScreen, 0x1C56, &data_buf, 2);
+        thaisen_app_system_delay(20);
+    }
+    if(_dev_type == thaisenDeviceType_Matrix_Cycle){
+        SerialScreen_SendTxt(&SerialScreen, 0x1C5C, &data_buf, 2);
+        thaisen_app_system_delay(20);
+    }
+    if(_dev_type == thaisenDeviceType_Matrix_Half){
+        SerialScreen_SendTxt(&SerialScreen, 0x1C52, &data_buf, 2);
+        thaisen_app_system_delay(20);
+    }
+    if((_dev_type == thaisenDeviceType_Matrix_Cycle) || (_dev_type == thaisenDeviceType_Matrix_Half)){
+        SerialScreen_SendTxt(&SerialScreen, 0x1C58, &data_buf, 2);
+        thaisen_app_system_delay(20);
+    }
+#if 0
+    SerialScreen_SendTxt(&SerialScreen, 0x1C5E, &data_buf, 2);
+    thaisen_app_system_delay(20);
+#endif
+    if(_dev_type == thaisenDeviceType_Matrix_Half){
+        SerialScreen_SendTxt(&SerialScreen, 0x1C54, &data_buf, 2);
+        thaisen_app_system_delay(20);
+    }
+    if(_dev_type == thaisenDeviceType_Matrix_Half){
+        SerialScreen_SendTxt(&SerialScreen, 0x1C5A, &data_buf, 2);
+        thaisen_app_system_delay(20);
+    }
+    if(_dev_type == thaisenDeviceType_Matrix_Half){
+        SerialScreen_SendTxt(&SerialScreen, 0x1C60, &data_buf, 2);
+        thaisen_app_system_delay(20);
+    }
+#endif /* SCREEN_USING_CYCLE_MATRIX */
+}
+
+void SerialScreen_MatrixRelay_SelectPolarity(void)
+{
+#ifdef SCREEN_USING_CYCLE_MATRIX
+    if(LcdData.MatrixRelayPolarity){
+        LcdData.MatrixRelayPolarity = 0;
+
+        LcdData.MatrixRelay_KP1_1[2] = LcdData.MatrixRelay_KP1_1[0];
+        LcdData.MatrixRelay_KP1_2[2] = LcdData.MatrixRelay_KP1_2[0];
+        LcdData.MatrixRelay_KP1_3[2] = LcdData.MatrixRelay_KP1_3[0];
+        LcdData.MatrixRelay_KP2_1[2] = LcdData.MatrixRelay_KP2_1[0];
+        LcdData.MatrixRelay_KP2_2[2] = LcdData.MatrixRelay_KP2_2[0];
+        LcdData.MatrixRelay_KP2_3[2] = LcdData.MatrixRelay_KP2_3[0];
+        LcdData.MatrixRelay_KP3_1[2] = LcdData.MatrixRelay_KP3_1[0];
+        LcdData.MatrixRelay_KP3_2[2] = LcdData.MatrixRelay_KP3_2[0];
+        LcdData.MatrixRelay_KP3_3[2] = LcdData.MatrixRelay_KP3_3[0];
+    }else{
+        LcdData.MatrixRelayPolarity = 1;
+
+        LcdData.MatrixRelay_KP1_1[2] = LcdData.MatrixRelay_KP1_1[1];
+        LcdData.MatrixRelay_KP1_2[2] = LcdData.MatrixRelay_KP1_2[1];
+        LcdData.MatrixRelay_KP1_3[2] = LcdData.MatrixRelay_KP1_3[1];
+        LcdData.MatrixRelay_KP2_1[2] = LcdData.MatrixRelay_KP2_1[1];
+        LcdData.MatrixRelay_KP2_2[2] = LcdData.MatrixRelay_KP2_2[1];
+        LcdData.MatrixRelay_KP2_3[2] = LcdData.MatrixRelay_KP2_3[1];
+        LcdData.MatrixRelay_KP3_1[2] = LcdData.MatrixRelay_KP3_1[1];
+        LcdData.MatrixRelay_KP3_2[2] = LcdData.MatrixRelay_KP3_2[1];
+        LcdData.MatrixRelay_KP3_3[2] = LcdData.MatrixRelay_KP3_3[1];
+    }
+#endif /* SCREEN_USING_CYCLE_MATRIX */
+}
+
+/*****************************************************
+ * 函数名     SerialScreen_DebugModuleMatrixCtrlEnter
+ * 功能         进入模块矩阵调试页面
+ * 参数         port    枪号
+ * 返回
+ ****************************************************/
+void SerialScreen_DebugModuleMatrixCtrlEnter(int port)
+{
+#ifdef SCREEN_USING_CYCLE_MATRIX
+    if(port >= LCD_GUN_NUM)
+        return;
+    u8 _dev_type = 0;
+    /** 只有子母机(环矩)、子母机(半矩)需要模块矩阵信息 */
+    _dev_type = thaisenGetChargGunRunType();
+    if((_dev_type == thaisenDeviceType_Matrix_Cycle) || (_dev_type == thaisenDeviceType_Matrix_Half)){
+        LcdAssistantData.PublicOpsGun = port;
+    }
+#endif /* SCREEN_USING_CYCLE_MATRIX */
+}
+
+/*****************************************************
+ * 函数名     SerialScreen_DebugModuleMatrixParaReset
+ * 功能         模块矩阵调试页面参数复位
+ * 参数         port    枪号
+ * 返回
+ ****************************************************/
+void SerialScreen_DebugModuleMatrixParaReset(void)
+{
+#ifdef SCREEN_USING_CYCLE_MATRIX
+    LcdData.ModuleMatrixSetVoltALL = CONFIG_MATRIX_DEBUG_SET_VOLTAGE_ALL_DEF;
+    LcdData.ModuleMatrixSetCurrALL = CONFIG_MATRIX_DEBUG_SET_CURRENT_ALL_DEF;
+    SerialScreen_SendData(&SerialScreen, 0x1B10, LcdData.ModuleMatrixSetVoltALL);
+    thaisen_app_system_delay(30);
+    SerialScreen_SendData(&SerialScreen, 0x1B12, LcdData.ModuleMatrixSetCurrALL);
+
+    LcdData.ModuleMatrixSetVoltG1 = CONFIG_MATRIX_DEBUG_SET_VOLTAGE_G1_DEF;
+    LcdData.ModuleMatrixSetCurrG1 = CONFIG_MATRIX_DEBUG_SET_CURRENT_G1_DEF;
+    thaisen_app_system_delay(30);
+    SerialScreen_SendData(&SerialScreen, 0x1B15, LcdData.ModuleMatrixSetVoltG1);
+    thaisen_app_system_delay(30);
+    SerialScreen_SendData(&SerialScreen, 0x1B17, LcdData.ModuleMatrixSetCurrG1);
+
+    LcdData.ModuleMatrixSetVoltG2 = CONFIG_MATRIX_DEBUG_SET_VOLTAGE_G2_DEF;
+    LcdData.ModuleMatrixSetCurrG2 = CONFIG_MATRIX_DEBUG_SET_CURRENT_G2_DEF;
+    thaisen_app_system_delay(30);
+    SerialScreen_SendData(&SerialScreen, 0x1B1E, LcdData.ModuleMatrixSetVoltG2);
+    thaisen_app_system_delay(30);
+    SerialScreen_SendData(&SerialScreen, 0x1B20, LcdData.ModuleMatrixSetCurrG2);
+
+    LcdData.ModuleMatrixSetVoltG3 = CONFIG_MATRIX_DEBUG_SET_VOLTAGE_G3_DEF;
+    LcdData.ModuleMatrixSetCurrG3 = CONFIG_MATRIX_DEBUG_SET_CURRENT_G3_DEF;
+    thaisen_app_system_delay(30);
+    SerialScreen_SendData(&SerialScreen, 0x1B27, LcdData.ModuleMatrixSetVoltG3);
+    thaisen_app_system_delay(30);
+    SerialScreen_SendData(&SerialScreen, 0x1B29, LcdData.ModuleMatrixSetCurrG3);
+
+    LcdData.ModuleMatrixSetVoltG4 = CONFIG_MATRIX_DEBUG_SET_VOLTAGE_G4_DEF;
+    LcdData.ModuleMatrixSetCurrG4 = CONFIG_MATRIX_DEBUG_SET_CURRENT_G4_DEF;
+    thaisen_app_system_delay(30);
+    SerialScreen_SendData(&SerialScreen, 0x1B30, LcdData.ModuleMatrixSetVoltG4);
+    thaisen_app_system_delay(30);
+    SerialScreen_SendData(&SerialScreen, 0x1B32, LcdData.ModuleMatrixSetCurrG4);
+#endif /* SCREEN_USING_CYCLE_MATRIX */
+}
+
+/*****************************************************
+ * 函数名     SerialScreen_DebugModuleMatrixCtrlG1
+ * 功能         模块矩阵调试页面组1模块调试
+ * 参数
+ * 返回
+ ****************************************************/
+void SerialScreen_DebugModuleMatrixCtrlG1(void)
+{
+#ifdef SCREEN_USING_CYCLE_MATRIX
+    int app_module_debug_start(unsigned char gunno, unsigned short voltage, unsigned short current);
+    int app_module_debug_stop(unsigned char gunno);
+
+    if(LcdAssistantData.Flag.ModuleMatrixCtrFromlAll){
+        LcdData.ModuleMatrixCtrlG1 = LcdData.ModuleMatrixCtrlAll;
+        LcdData.ModuleMatrixSetVoltG1 = LcdData.ModuleMatrixSetVoltALL;
+        LcdData.ModuleMatrixSetCurrG1 = LcdData.ModuleMatrixSetCurrALL;
+
+        if(LcdData.ModuleMatrixCtrlG1){
+            SerialScreen_SendData(&SerialScreen, 0x1B15, LcdData.ModuleMatrixSetVoltG1);
+            thaisen_app_system_delay(30);
+            SerialScreen_SendData(&SerialScreen, 0x1B17, LcdData.ModuleMatrixSetCurrG1);
+            thaisen_app_system_delay(30);
+        }
+        SerialScreen_SendIco(&SerialScreen, 0x1B19, LcdData.ModuleMatrixCtrlG1);
+
+        if(LcdData.ModuleMatrixCtrlAll){
+            app_module_debug_start(0, LcdData.ModuleMatrixSetVoltALL, LcdData.ModuleMatrixSetCurrALL);
+        }else{
+            app_module_debug_stop(0);
+        }
+    }else{
+        LcdData.ModuleMatrixCtrlG1 = !LcdData.ModuleMatrixCtrlG1;
+
+        if(LcdData.ModuleMatrixCtrlG1){
+            SerialScreen_SendData(&SerialScreen, 0x1B15, LcdData.ModuleMatrixSetVoltG1);
+            thaisen_app_system_delay(30);
+            SerialScreen_SendData(&SerialScreen, 0x1B17, LcdData.ModuleMatrixSetCurrG1);
+            thaisen_app_system_delay(30);
+        }
+        SerialScreen_SendIco(&SerialScreen, 0x1B19, LcdData.ModuleMatrixCtrlG1);
+
+        if(LcdData.ModuleMatrixCtrlG1){
+            LcdData.ModuleMatrixSetVoltG1 = SerialScreen_GetPara_ValidValue(LcdData.ModuleMatrixSetVoltG1,
+                    CONFIG_MATRIX_DEBUG_SET_VOLTAGE_G1_DEF, CONFIG_MATRIX_DEBUG_SET_VOLTAGE_G1_MIN, CONFIG_MATRIX_DEBUG_SET_VOLTAGE_G1_MAX);
+            LcdData.ModuleMatrixSetCurrG1 = SerialScreen_GetPara_ValidValue(LcdData.ModuleMatrixSetCurrG1,
+                    CONFIG_MATRIX_DEBUG_SET_CURRENT_G1_DEF, CONFIG_MATRIX_DEBUG_SET_CURRENT_G1_MIN, CONFIG_MATRIX_DEBUG_SET_CURRENT_G1_MAX);
+
+            app_module_debug_start(0, LcdData.ModuleMatrixSetVoltG1, LcdData.ModuleMatrixSetCurrG1);
+        }else{
+            app_module_debug_stop(0);
+        }
+    }
+#endif /* SCREEN_USING_CYCLE_MATRIX */
+}
+
+/*****************************************************
+ * 函数名     SerialScreen_DebugModuleMatrixCtrlG2
+ * 功能         模块矩阵调试页面组2模块调试
+ * 参数
+ * 返回
+ ****************************************************/
+void SerialScreen_DebugModuleMatrixCtrlG2(void)
+{
+#ifdef SCREEN_USING_CYCLE_MATRIX
+    int app_module_debug_start(unsigned char gunno, unsigned short voltage, unsigned short current);
+    int app_module_debug_stop(unsigned char gunno);
+
+    if(LcdAssistantData.Flag.ModuleMatrixCtrFromlAll){
+        LcdData.ModuleMatrixCtrlG2 = LcdData.ModuleMatrixCtrlAll;
+        LcdData.ModuleMatrixSetVoltG2 = LcdData.ModuleMatrixSetVoltALL;
+        LcdData.ModuleMatrixSetCurrG2 = LcdData.ModuleMatrixSetCurrALL;
+
+        if(LcdData.ModuleMatrixCtrlG2){
+            SerialScreen_SendData(&SerialScreen, 0x1B1E, LcdData.ModuleMatrixSetVoltG2);
+            thaisen_app_system_delay(30);
+            SerialScreen_SendData(&SerialScreen, 0x1B20, LcdData.ModuleMatrixSetCurrG2);
+            thaisen_app_system_delay(30);
+        }
+        SerialScreen_SendIco(&SerialScreen, 0x1B22, LcdData.ModuleMatrixCtrlG2);
+
+        if(LcdData.ModuleMatrixCtrlAll){
+            app_module_debug_start(1, LcdData.ModuleMatrixSetVoltALL, LcdData.ModuleMatrixSetCurrALL);
+        }else{
+            app_module_debug_stop(1);
+        }
+    }else{
+        LcdData.ModuleMatrixCtrlG2 = !LcdData.ModuleMatrixCtrlG2;
+
+        if(LcdData.ModuleMatrixCtrlG2){
+            SerialScreen_SendData(&SerialScreen, 0x1B1E, LcdData.ModuleMatrixSetVoltG2);
+            thaisen_app_system_delay(30);
+            SerialScreen_SendData(&SerialScreen, 0x1B20, LcdData.ModuleMatrixSetCurrG2);
+            thaisen_app_system_delay(30);
+        }
+        SerialScreen_SendIco(&SerialScreen, 0x1B22, LcdData.ModuleMatrixCtrlG2);
+
+        if(LcdData.ModuleMatrixCtrlG2){
+            LcdData.ModuleMatrixSetVoltG2 = SerialScreen_GetPara_ValidValue(LcdData.ModuleMatrixSetVoltG2,
+                    CONFIG_MATRIX_DEBUG_SET_VOLTAGE_G2_DEF, CONFIG_MATRIX_DEBUG_SET_VOLTAGE_G2_MIN, CONFIG_MATRIX_DEBUG_SET_VOLTAGE_G2_MAX);
+            LcdData.ModuleMatrixSetCurrG2 = SerialScreen_GetPara_ValidValue(LcdData.ModuleMatrixSetCurrG2,
+                    CONFIG_MATRIX_DEBUG_SET_CURRENT_G2_DEF, CONFIG_MATRIX_DEBUG_SET_CURRENT_G2_MIN, CONFIG_MATRIX_DEBUG_SET_CURRENT_G2_MAX);
+
+            app_module_debug_start(1, LcdData.ModuleMatrixSetVoltG2, LcdData.ModuleMatrixSetCurrG2);
+        }else{
+            app_module_debug_stop(1);
+        }
+    }
+#endif /* SCREEN_USING_CYCLE_MATRIX */
+}
+
+/*****************************************************
+ * 函数名     SerialScreen_DebugModuleMatrixCtrlG3
+ * 功能         模块矩阵调试页面组3模块调试
+ * 参数
+ * 返回
+ ****************************************************/
+void SerialScreen_DebugModuleMatrixCtrlG3(void)
+{
+#ifdef SCREEN_USING_CYCLE_MATRIX
+    int app_module_debug_start(unsigned char gunno, unsigned short voltage, unsigned short current);
+    int app_module_debug_stop(unsigned char gunno);
+
+    if(LcdAssistantData.Flag.ModuleMatrixCtrFromlAll){
+        LcdData.ModuleMatrixCtrlG3 = LcdData.ModuleMatrixCtrlAll;
+        LcdData.ModuleMatrixSetVoltG3 = LcdData.ModuleMatrixSetVoltALL;
+        LcdData.ModuleMatrixSetCurrG3 = LcdData.ModuleMatrixSetCurrALL;
+
+        if(LcdData.ModuleMatrixCtrlG3){
+            SerialScreen_SendData(&SerialScreen, 0x1B27, LcdData.ModuleMatrixSetVoltG3);
+            thaisen_app_system_delay(30);
+            SerialScreen_SendData(&SerialScreen, 0x1B29, LcdData.ModuleMatrixSetCurrG3);
+            thaisen_app_system_delay(30);
+        }
+        SerialScreen_SendIco(&SerialScreen, 0x1B2B, LcdData.ModuleMatrixCtrlG3);
+
+        if(LcdData.ModuleMatrixCtrlAll){
+            app_module_debug_start(2, LcdData.ModuleMatrixSetVoltALL, LcdData.ModuleMatrixSetCurrALL);
+        }else{
+            app_module_debug_stop(2);
+        }
+    }else{
+        LcdData.ModuleMatrixCtrlG3 = !LcdData.ModuleMatrixCtrlG3;
+
+        if(LcdData.ModuleMatrixCtrlG3){
+            SerialScreen_SendData(&SerialScreen, 0x1B27, LcdData.ModuleMatrixSetVoltG3);
+            thaisen_app_system_delay(30);
+            SerialScreen_SendData(&SerialScreen, 0x1B29, LcdData.ModuleMatrixSetCurrG3);
+            thaisen_app_system_delay(30);
+        }
+        SerialScreen_SendIco(&SerialScreen, 0x1B2B, LcdData.ModuleMatrixCtrlG3);
+
+        if(LcdData.ModuleMatrixCtrlG3){
+            LcdData.ModuleMatrixSetVoltG3 = SerialScreen_GetPara_ValidValue(LcdData.ModuleMatrixSetVoltG3,
+                    CONFIG_MATRIX_DEBUG_SET_VOLTAGE_G3_DEF, CONFIG_MATRIX_DEBUG_SET_VOLTAGE_G3_MIN, CONFIG_MATRIX_DEBUG_SET_VOLTAGE_G3_MAX);
+            LcdData.ModuleMatrixSetCurrG3 = SerialScreen_GetPara_ValidValue(LcdData.ModuleMatrixSetCurrG3,
+                    CONFIG_MATRIX_DEBUG_SET_CURRENT_G3_DEF, CONFIG_MATRIX_DEBUG_SET_CURRENT_G3_MIN, CONFIG_MATRIX_DEBUG_SET_CURRENT_G3_MAX);
+
+            app_module_debug_start(2, LcdData.ModuleMatrixSetVoltG3, LcdData.ModuleMatrixSetCurrG3);
+        }else{
+            app_module_debug_stop(2);
+        }
+    }
+#endif /* SCREEN_USING_CYCLE_MATRIX */
+}
+
+/*****************************************************
+ * 函数名     SerialScreen_DebugModuleMatrixCtrlG4
+ * 功能         模块矩阵调试页面组4模块调试
+ * 参数
+ * 返回
+ ****************************************************/
+void SerialScreen_DebugModuleMatrixCtrlG4(void)
+{
+#ifdef SCREEN_USING_CYCLE_MATRIX
+    int app_module_debug_start(unsigned char gunno, unsigned short voltage, unsigned short current);
+    int app_module_debug_stop(unsigned char gunno);
+
+    if(LcdAssistantData.Flag.ModuleMatrixCtrFromlAll){
+        LcdData.ModuleMatrixCtrlG4 = LcdData.ModuleMatrixCtrlAll;
+        LcdData.ModuleMatrixSetVoltG4 = LcdData.ModuleMatrixSetVoltALL;
+        LcdData.ModuleMatrixSetCurrG4 = LcdData.ModuleMatrixSetCurrALL;
+
+        if(LcdData.ModuleMatrixCtrlG4){
+            SerialScreen_SendData(&SerialScreen, 0x1B30, LcdData.ModuleMatrixSetVoltG4);
+            thaisen_app_system_delay(30);
+            SerialScreen_SendData(&SerialScreen, 0x1B32, LcdData.ModuleMatrixSetCurrG4);
+            thaisen_app_system_delay(30);
+        }
+        SerialScreen_SendIco(&SerialScreen, 0x1B34, LcdData.ModuleMatrixCtrlG4);
+
+        if(LcdData.ModuleMatrixCtrlAll){
+            app_module_debug_start(3, LcdData.ModuleMatrixSetVoltALL, LcdData.ModuleMatrixSetCurrALL);
+        }else{
+            app_module_debug_stop(3);
+        }
+    }else{
+        LcdData.ModuleMatrixCtrlG4 = !LcdData.ModuleMatrixCtrlG4;
+
+        if(LcdData.ModuleMatrixCtrlG4){
+            SerialScreen_SendData(&SerialScreen, 0x1B30, LcdData.ModuleMatrixSetVoltG4);
+            thaisen_app_system_delay(30);
+            SerialScreen_SendData(&SerialScreen, 0x1B32, LcdData.ModuleMatrixSetCurrG4);
+            thaisen_app_system_delay(30);
+        }
+        SerialScreen_SendIco(&SerialScreen, 0x1B34, LcdData.ModuleMatrixCtrlG4);
+
+        if(LcdData.ModuleMatrixCtrlG4){
+            LcdData.ModuleMatrixSetVoltG4 = SerialScreen_GetPara_ValidValue(LcdData.ModuleMatrixSetVoltG4,
+                    CONFIG_MATRIX_DEBUG_SET_VOLTAGE_G4_DEF, CONFIG_MATRIX_DEBUG_SET_VOLTAGE_G4_MIN, CONFIG_MATRIX_DEBUG_SET_VOLTAGE_G4_MAX);
+            LcdData.ModuleMatrixSetCurrG4 = SerialScreen_GetPara_ValidValue(LcdData.ModuleMatrixSetCurrG4,
+                    CONFIG_MATRIX_DEBUG_SET_CURRENT_G4_DEF, CONFIG_MATRIX_DEBUG_SET_CURRENT_G4_MIN, CONFIG_MATRIX_DEBUG_SET_CURRENT_G4_MAX);
+
+            app_module_debug_start(3, LcdData.ModuleMatrixSetVoltG4, LcdData.ModuleMatrixSetCurrG4);
+        }else{
+            app_module_debug_stop(3);
+        }
+    }
+#endif /* SCREEN_USING_CYCLE_MATRIX */
+}
+
+/*****************************************************
+ * 函数名     SerialScreen_DebugModuleMatrixCtrlAll
+ * 功能         模块矩阵调试页面所有模块调试
+ * 参数
+ * 返回
+ ****************************************************/
+void SerialScreen_DebugModuleMatrixCtrlAll(void)
+{
+#ifdef SCREEN_USING_CYCLE_MATRIX
+    LcdData.ModuleMatrixCtrlAll = !LcdData.ModuleMatrixCtrlAll;
+    LcdData.ModuleMatrixSetVoltALL = SerialScreen_GetPara_ValidValue(LcdData.ModuleMatrixSetVoltALL,
+            CONFIG_MATRIX_DEBUG_SET_VOLTAGE_ALL_DEF, CONFIG_MATRIX_DEBUG_SET_VOLTAGE_ALL_MIN, CONFIG_MATRIX_DEBUG_SET_VOLTAGE_ALL_MAX);
+    LcdData.ModuleMatrixSetCurrALL = SerialScreen_GetPara_ValidValue(LcdData.ModuleMatrixSetCurrALL,
+            CONFIG_MATRIX_DEBUG_SET_CURRENT_ALL_DEF, CONFIG_MATRIX_DEBUG_SET_CURRENT_ALL_MIN, CONFIG_MATRIX_DEBUG_SET_CURRENT_ALL_MAX);
+
+    if(LcdData.ModuleMatrixCtrlAll){
+        SerialScreen_SendData(&SerialScreen, 0x1B10, LcdData.ModuleMatrixSetVoltALL);
+        thaisen_app_system_delay(30);
+        SerialScreen_SendData(&SerialScreen, 0x1B12, LcdData.ModuleMatrixSetCurrALL);
+        thaisen_app_system_delay(30);
+    }
+    SerialScreen_SendIco(&SerialScreen, 0x1B14, LcdData.ModuleMatrixCtrlAll);
+
+    LcdAssistantData.Flag.ModuleMatrixCtrFromlAll = 1;
+
+    SerialScreen_DebugModuleMatrixCtrlG1();
+    if(LcdData.ModuleMatrixCtrlAll){
+        thaisen_app_system_delay(1000);
+    }
+    SerialScreen_DebugModuleMatrixCtrlG2();
+    if(LcdData.ModuleMatrixCtrlAll){
+        thaisen_app_system_delay(1000);
+    }
+    SerialScreen_DebugModuleMatrixCtrlG3();
+    if(LcdData.ModuleMatrixCtrlAll){
+        thaisen_app_system_delay(1000);
+    }
+    SerialScreen_DebugModuleMatrixCtrlG4();
+
+    LcdAssistantData.Flag.ModuleMatrixCtrFromlAll = 0;
+#endif /* SCREEN_USING_CYCLE_MATRIX */
 }
 
 void SerialScreen_BtnModuleStartA(void)
@@ -9672,57 +11290,110 @@ void SerialScreen_GetIOStatusB(void)
 
 void SerialScreen_QuitDebugIO(void)
 {
+#ifdef SCREEN_USING_CYCLE_MATRIX
+    extern unsigned char app_module_is_debug_started(unsigned char gunno);
+    u8 data_buf[4], _dev_type = 0;
+
+    _dev_type = thaisenGetChargGunRunType();
+    memset(data_buf, '0', sizeof(data_buf));
+#endif /* SCREEN_USING_CYCLE_MATRIX */
     thaisen_set_debug_mode(0);
 
     if(LcdData.debugIOflg == FALSE){
         return;
     }
     LcdData.debugIOflg = FALSE;
-    for(u8 gunno = 0; gunno < LCD_GUN_NUM; gunno++){
-        if((LcdData.gun[gunno].workState == SysMainStatus_StartReady) || (LcdData.gun[gunno].workState == SysMainStatus_Chrging)){
+
+#ifdef SCREEN_USING_CYCLE_MATRIX
+    /**************************************** 有枪在充电时不复位器件 ****************************************/
+    /** 包含模块矩阵部分 */
+    if((_dev_type == thaisenDeviceType_Matrix_Cycle) || (_dev_type == thaisenDeviceType_Matrix_Half)){
+        /** 矩阵内有枪在充电 */
+        if(thaisen_get_pileCharging()){
             return;
         }
-    }
-	/************* 没有强制启动 *************/
-	for(u8 port = 0; port < LCD_GUN_NUM; port++){
-	    if(thaisenGetModuleDebugEnableOutput(port) == 0)
-	    {
-	        if(thaisenGetChargGunRunType() == thaisenDeviceType_average){
-	            if(port == LCD_GUN_1){
-	                thaisenParallelRelay_1_Disable_Debug();
-	                LcdData.setData.g_paraRely0 = REALAY_OFF;
-	                LcdData.setData.s_paraRely0 = LcdData.setData.g_paraRely0;
-	            }else{
-	                thaisenParallelRelay_3_Disable_Debug();
-	                LcdData.setData.g_paraRely2 = REALAY_OFF;
-	                LcdData.setData.s_paraRely2 = LcdData.setData.g_paraRely2;
-	            }
-	            thaisenParallelRelay_2_Disable_Debug();
-	            LcdData.setData.g_paraRely1 = REALAY_OFF;
-	            LcdData.setData.s_paraRely1 = LcdData.setData.g_paraRely1;
-	        }else{
-	            thaisenParallelRelay_1_Disable_Debug();
-	            LcdData.setData.g_paraRely0 = REALAY_OFF;
-	            LcdData.setData.s_paraRely0 = LcdData.setData.g_paraRely0;
-
-	            thaisenParallelRelay_2_Disable_Debug();
-	            LcdData.setData.g_paraRely1 = REALAY_OFF;
-	            LcdData.setData.s_paraRely1 = LcdData.setData.g_paraRely1;
-
-	            thaisenParallelRelay_3_Disable_Debug();
-	            LcdData.setData.g_paraRely2 = REALAY_OFF;
-	            LcdData.setData.s_paraRely2 = LcdData.setData.g_paraRely2;
-	        }
-
-            if(port == LCD_GUN_1){
-                thaisenDcRelay_A_Disable_Debug();
-            }else{
-                thaisenDcRelay_B_Disable_Debug();
+    }else
+#endif /* SCREEN_USING_CYCLE_MATRIX */
+    {
+        for(u8 gunno = 0; gunno < LCD_GUN_NUM; gunno++){
+            if((LcdData.gun[gunno].workState == SysMainStatus_StartReady) || (LcdData.gun[gunno].workState == SysMainStatus_Chrging)){
+                return;
             }
-	        LcdData.setData.g_dcRelay[port] = REALAY_OFF;
-	        LcdData.setData.s_dcRelay[port]  = LcdData.setData.g_dcRelay[port];
-	    }
-	}
+        }
+    }
+
+#ifdef SCREEN_USING_CYCLE_MATRIX
+    /**************************************** 判断是否有模块强制控制操作 ****************************************/
+    /** 包含模块矩阵部分 */
+    if((_dev_type == thaisenDeviceType_Matrix_Cycle) || (_dev_type == thaisenDeviceType_Matrix_Half)){
+        for(u8 port = 0; port < LCD_GUN_NUM; port++){
+            if((app_module_is_debug_started(port) == 0) && (thaisenGetModuleDebugEnableOutput(port) == 0))
+            {
+                thaisenParallelRelay_1_Disable_Debug();
+                LcdData.setData.g_paraRely0 = REALAY_OFF;
+                LcdData.setData.s_paraRely0 = LcdData.setData.g_paraRely0;
+
+                thaisenParallelRelay_2_Disable_Debug();
+                LcdData.setData.g_paraRely1 = REALAY_OFF;
+                LcdData.setData.s_paraRely1 = LcdData.setData.g_paraRely1;
+
+                thaisenParallelRelay_3_Disable_Debug();
+                LcdData.setData.g_paraRely2 = REALAY_OFF;
+                LcdData.setData.s_paraRely2 = LcdData.setData.g_paraRely2;
+
+                if(port == LCD_GUN_1){
+                    thaisenDcRelay_A_Disable_Debug();
+                }else{
+                    thaisenDcRelay_B_Disable_Debug();
+                }
+                LcdData.setData.g_dcRelay[port] = REALAY_OFF;
+                LcdData.setData.s_dcRelay[port]  = LcdData.setData.g_dcRelay[port];
+            }
+        }
+    }else
+#endif /* SCREEN_USING_CYCLE_MATRIX */
+    {
+        /************* 没有强制启动 *************/
+        for(u8 port = 0; port < LCD_GUN_NUM; port++){
+            if(thaisenGetModuleDebugEnableOutput(port) == 0)
+            {
+                if(thaisenGetChargGunRunType() == thaisenDeviceType_average){
+                    if(port == LCD_GUN_1){
+                        thaisenParallelRelay_1_Disable_Debug();
+                        LcdData.setData.g_paraRely0 = REALAY_OFF;
+                        LcdData.setData.s_paraRely0 = LcdData.setData.g_paraRely0;
+                    }else{
+                        thaisenParallelRelay_3_Disable_Debug();
+                        LcdData.setData.g_paraRely2 = REALAY_OFF;
+                        LcdData.setData.s_paraRely2 = LcdData.setData.g_paraRely2;
+                    }
+                    thaisenParallelRelay_2_Disable_Debug();
+                    LcdData.setData.g_paraRely1 = REALAY_OFF;
+                    LcdData.setData.s_paraRely1 = LcdData.setData.g_paraRely1;
+                }else{
+                    thaisenParallelRelay_1_Disable_Debug();
+                    LcdData.setData.g_paraRely0 = REALAY_OFF;
+                    LcdData.setData.s_paraRely0 = LcdData.setData.g_paraRely0;
+
+                    thaisenParallelRelay_2_Disable_Debug();
+                    LcdData.setData.g_paraRely1 = REALAY_OFF;
+                    LcdData.setData.s_paraRely1 = LcdData.setData.g_paraRely1;
+
+                    thaisenParallelRelay_3_Disable_Debug();
+                    LcdData.setData.g_paraRely2 = REALAY_OFF;
+                    LcdData.setData.s_paraRely2 = LcdData.setData.g_paraRely2;
+                }
+
+                if(port == LCD_GUN_1){
+                    thaisenDcRelay_A_Disable_Debug();
+                }else{
+                    thaisenDcRelay_B_Disable_Debug();
+                }
+                LcdData.setData.g_dcRelay[port] = REALAY_OFF;
+                LcdData.setData.s_dcRelay[port]  = LcdData.setData.g_dcRelay[port];
+            }
+        }
+    }
 
     thaisenElectUnlockA_Directly();
     LcdData.setData.g_elElock[LCD_GUN_1]= REALAY_OFF;
@@ -9751,6 +11422,199 @@ void SerialScreen_QuitDebugIO(void)
     LcdData.setData.selfCheck_icon = FALSE;
     LcdData.setData.selfCheck_lable = TRUE;
 
+#ifdef SCREEN_USING_CYCLE_MATRIX
+    /********************************** 包含模块矩阵/矩阵继电器部分 ***********************************/
+    if((_dev_type == thaisenDeviceType_Matrix_Cycle) || (_dev_type == thaisenDeviceType_Matrix_Half)){
+        /******************************************************** 矩阵继电器部分 ********************************************************/
+        SerialScreen_SendIco(&SerialScreen, 0x1C02, 0x00);
+        thaisen_app_system_delay(20);
+
+        if(LcdData.MatrixRelay_KP1_1[2] == TRUE){
+            if((_dev_type == thaisenDeviceType_Matrix_Cycle) || (_dev_type == thaisenDeviceType_Matrix_Half)){
+                rt_thread_mdelay(500);
+                thaisenMatrixRelay_off_Debug(THAISEN_MATRIX_RELAY_KPN1_1);
+
+                SerialScreen_SendIco(&SerialScreen, 0x1C04, 0x00);
+                thaisen_app_system_delay(20);
+                SerialScreen_SendTxt(&SerialScreen, 0x1C50, data_buf, 2);
+                thaisen_app_system_delay(20);
+            }
+        }
+        if(LcdData.MatrixRelay_KP1_2[2] == TRUE){
+            if(_dev_type == thaisenDeviceType_Matrix_Half){
+                rt_thread_mdelay(500);
+                thaisenMatrixRelay_off_Debug(THAISEN_MATRIX_RELAY_KPN1_2);
+
+                SerialScreen_SendIco(&SerialScreen, 0x1C07, 0x00);
+                thaisen_app_system_delay(20);
+                SerialScreen_SendTxt(&SerialScreen, 0x1C56, data_buf, 2);
+                thaisen_app_system_delay(20);
+            }
+        }
+        if(LcdData.MatrixRelay_KP1_3[2] == TRUE){
+            if(_dev_type == thaisenDeviceType_Matrix_Half){
+                rt_thread_mdelay(500);
+                thaisenMatrixRelay_off_Debug(THAISEN_MATRIX_RELAY_KPN1_3);
+
+                SerialScreen_SendIco(&SerialScreen, 0x1C0A, 0x00);
+                thaisen_app_system_delay(20);
+                SerialScreen_SendTxt(&SerialScreen, 0x1C5C, data_buf, 2);
+                thaisen_app_system_delay(20);
+            }
+        }
+        if(LcdData.MatrixRelay_KP2_1[2] == TRUE){
+            if(_dev_type == thaisenDeviceType_Matrix_Cycle){
+                rt_thread_mdelay(500);
+                thaisenMatrixRelay_off_Debug(THAISEN_MATRIX_RELAY_KPN1_2);
+
+                SerialScreen_SendIco(&SerialScreen, 0x1C05, 0x00);
+                thaisen_app_system_delay(20);
+                SerialScreen_SendTxt(&SerialScreen, 0x1C52, data_buf, 2);
+                thaisen_app_system_delay(20);
+            }
+        }
+        if(LcdData.MatrixRelay_KP2_2[2] == TRUE){
+            if((_dev_type == thaisenDeviceType_Matrix_Cycle) || (_dev_type == thaisenDeviceType_Matrix_Half)){
+                rt_thread_mdelay(500);
+                thaisenMatrixRelay_off_Debug(THAISEN_MATRIX_RELAY_KPN2_1);
+                SerialScreen_SendIco(&SerialScreen, 0x1C08, 0x00);
+                thaisen_app_system_delay(20);
+                SerialScreen_SendTxt(&SerialScreen, 0x1C58, data_buf, 2);
+                thaisen_app_system_delay(20);
+            }
+        }
+        if(LcdData.MatrixRelay_KP2_3[2] == TRUE){
+            if(_dev_type == thaisenDeviceType_Matrix_Half){
+                rt_thread_mdelay(500);
+                thaisenMatrixRelay_off_Debug(THAISEN_MATRIX_RELAY_KPN2_2);
+
+                SerialScreen_SendIco(&SerialScreen, 0x1C0B, 0x00);
+                thaisen_app_system_delay(20);
+                SerialScreen_SendTxt(&SerialScreen, 0x1C5E, data_buf, 2);
+                thaisen_app_system_delay(20);
+            }
+        }
+        if(LcdData.MatrixRelay_KP3_1[2] == TRUE){
+            if(_dev_type == thaisenDeviceType_Matrix_Cycle){
+                rt_thread_mdelay(500);
+                thaisenMatrixRelay_off_Debug(THAISEN_MATRIX_RELAY_KPN1_3);
+
+                SerialScreen_SendIco(&SerialScreen, 0x1C06, 0x00);
+                thaisen_app_system_delay(20);
+                SerialScreen_SendTxt(&SerialScreen, 0x1C54, data_buf, 2);
+                thaisen_app_system_delay(20);
+            }
+        }
+        if(LcdData.MatrixRelay_KP3_2[2] == TRUE){
+#if 0
+            if(_dev_type == thaisenDeviceType_Matrix_Half){
+                rt_thread_mdelay(500);
+                thaisenMatrixRelay_off_Debug(THAISEN_MATRIX_RELAY_KPN3_2);
+
+                SerialScreen_SendIco(&SerialScreen, 0x1C09, 0x00);
+                thaisen_app_system_delay(20);
+                SerialScreen_SendTxt(&SerialScreen, 0x1C5A, data_buf, 2);
+                thaisen_app_system_delay(20);
+            }
+#endif
+        }
+        if(LcdData.MatrixRelay_KP3_3[2] == TRUE){
+            if(_dev_type == thaisenDeviceType_Matrix_Half){
+                rt_thread_mdelay(500);
+                thaisenMatrixRelay_off_Debug(THAISEN_MATRIX_RELAY_KPN3_1);
+
+                SerialScreen_SendIco(&SerialScreen, 0x1C0C, 0x00);
+                thaisen_app_system_delay(20);
+                SerialScreen_SendTxt(&SerialScreen, 0x1C60, data_buf, 2);
+                thaisen_app_system_delay(20);
+            }
+        }
+
+        /** 默认正极 */
+        LcdData.MatrixRelayPolarity = 0;
+        memset(LcdData.MatrixRelay_All, 0x00, sizeof(LcdData.MatrixRelay_All));
+        memset(LcdData.MatrixRelay_KP1_1, 0x00, sizeof(LcdData.MatrixRelay_KP1_1));
+        memset(LcdData.MatrixRelay_KP1_2, 0x00, sizeof(LcdData.MatrixRelay_KP1_2));
+        memset(LcdData.MatrixRelay_KP1_3, 0x00, sizeof(LcdData.MatrixRelay_KP1_3));
+        memset(LcdData.MatrixRelay_KP2_1, 0x00, sizeof(LcdData.MatrixRelay_KP2_1));
+        memset(LcdData.MatrixRelay_KP2_2, 0x00, sizeof(LcdData.MatrixRelay_KP2_2));
+        memset(LcdData.MatrixRelay_KP2_3, 0x00, sizeof(LcdData.MatrixRelay_KP2_3));
+        memset(LcdData.MatrixRelay_KP3_1, 0x00, sizeof(LcdData.MatrixRelay_KP3_1));
+        memset(LcdData.MatrixRelay_KP3_2, 0x00, sizeof(LcdData.MatrixRelay_KP3_2));
+        memset(LcdData.MatrixRelay_KP3_3, 0x00, sizeof(LcdData.MatrixRelay_KP3_3));
+        LcdData.FB_MatrixRelay_KP1_1 = 0;
+        LcdData.FB_MatrixRelay_KP1_2 = 0;
+        LcdData.FB_MatrixRelay_KP1_3 = 0;
+        LcdData.FB_MatrixRelay_KP2_1 = 0;
+        LcdData.FB_MatrixRelay_KP2_2 = 0;
+        LcdData.FB_MatrixRelay_KP2_3 = 0;
+        LcdData.FB_MatrixRelay_KP3_1 = 0;
+        LcdData.FB_MatrixRelay_KP3_2 = 0;
+        LcdData.FB_MatrixRelay_KP3_3 = 0;
+
+        if(_dev_type == thaisenDeviceType_Matrix_Cycle){
+            memset(LcdData.MatrixRelay_KP1_2, 0x02, sizeof(LcdData.MatrixRelay_KP1_2)); /** 2为空白：隐藏 */
+            memset(LcdData.MatrixRelay_KP1_3, 0x02, sizeof(LcdData.MatrixRelay_KP1_3)); /** 2为空白：隐藏 */
+            memset(LcdData.MatrixRelay_KP2_3, 0x02, sizeof(LcdData.MatrixRelay_KP2_3)); /** 2为空白：隐藏 */
+            memset(LcdData.MatrixRelay_KP3_2, 0x02, sizeof(LcdData.MatrixRelay_KP3_3)); /** 2为空白：隐藏 */
+            memset(LcdData.MatrixRelay_KP3_3, 0x02, sizeof(LcdData.MatrixRelay_KP3_3)); /** 2为空白：隐藏 */
+
+            memset(&(LcdData.FB_MatrixRelay_KP1_1), '0', 2);
+            memset(&(LcdData.FB_MatrixRelay_KP2_1), '0', 2);
+            memset(&(LcdData.FB_MatrixRelay_KP3_1), '0', 2);
+            memset(&(LcdData.FB_MatrixRelay_KP2_2), '0', 2);
+        }else{
+            memset(LcdData.MatrixRelay_KP2_1, 0x02, sizeof(LcdData.MatrixRelay_KP2_1)); /** 2为空白：隐藏 */
+            memset(LcdData.MatrixRelay_KP3_1, 0x02, sizeof(LcdData.MatrixRelay_KP3_1)); /** 2为空白：隐藏 */
+            memset(LcdData.MatrixRelay_KP3_2, 0x02, sizeof(LcdData.MatrixRelay_KP3_3)); /** 2为空白：隐藏 */
+
+            memset(&(LcdData.FB_MatrixRelay_KP1_1), '0', 2);
+            memset(&(LcdData.FB_MatrixRelay_KP1_2), '0', 2);
+            memset(&(LcdData.FB_MatrixRelay_KP1_3), '0', 2);
+            memset(&(LcdData.FB_MatrixRelay_KP2_2), '0', 2);
+            memset(&(LcdData.FB_MatrixRelay_KP2_3), '0', 2);
+            memset(&(LcdData.FB_MatrixRelay_KP3_3), '0', 2);
+        }
+
+        /******************************************************** 模块矩阵部分 ********************************************************/
+        for(u8 port = 0; port < LcdData.setData.ModuleGroupNum; port++){
+            if(app_module_is_debug_started(port))
+            {
+                int app_module_debug_stop(unsigned char gunno);
+                app_module_debug_stop(port);
+            }
+        }
+        if(LcdData.ModuleMatrixCtrlAll){
+            thaisen_app_system_delay(20);
+            SerialScreen_SendIco(&SerialScreen, 0x1B14, 0x00);
+        }
+        if(LcdData.ModuleMatrixCtrlG1){
+            thaisen_app_system_delay(20);
+            SerialScreen_SendIco(&SerialScreen, 0x1B19, 0x00);
+        }
+        if(LcdData.ModuleMatrixCtrlG2){
+            thaisen_app_system_delay(20);
+            SerialScreen_SendIco(&SerialScreen, 0x1B22, 0x00);
+        }
+        if(LcdData.ModuleMatrixCtrlG3){
+            thaisen_app_system_delay(20);
+            SerialScreen_SendIco(&SerialScreen, 0x1B2B, 0x00);
+        }
+        if(LcdData.ModuleMatrixCtrlG4){
+            thaisen_app_system_delay(20);
+            SerialScreen_SendIco(&SerialScreen, 0x1B34, 0x00);
+        }
+
+        LcdData.ModuleMatrixCtrlAll = 0;
+        LcdData.ModuleMatrixCtrlG1 = 0;
+        LcdData.ModuleMatrixCtrlG2 = 0;
+        LcdData.ModuleMatrixCtrlG3 = 0;
+        LcdData.ModuleMatrixCtrlG4 = 0;
+
+        SerialScreen_BtnModuleStopA();
+        SerialScreen_BtnModuleStopB();
+    }
+#endif /* SCREEN_USING_CYCLE_MATRIX */
     SerialScreen_BtnModuleStopA();
     SerialScreen_BtnModuleStopB();
 }
@@ -10278,7 +12142,13 @@ void SerialScreen_BtnSelfCheckSet(void)
 
     u16 txtaddr[2] = {0x6715, 0x6735};
     u8 fb[2], ret = SCREEN_RET_SUCCESS, index = 0, indexmax = 0, language = THA_DEBUG_LANGUAGE_CHINESE;
+#ifdef SCREEN_USING_CYCLE_MATRIX
+    u8 _dev_type = 0;
+#endif /* SCREEN_USING_CYCLE_MATRIX */
 
+#ifdef SCREEN_USING_CYCLE_MATRIX
+    _dev_type = thaisenGetChargGunRunType();
+#endif /* SCREEN_USING_CYCLE_MATRIX */
     indexmax = sizeof(LcdData.setData.selfCheck_Info) /sizeof(LcdData.setData.selfCheck_Info[0]);
     memset(LcdData.setData.selfCheck_Info, 0x00, sizeof(LcdData.setData.selfCheck_Info));
 
@@ -10931,6 +12801,654 @@ void SerialScreen_BtnSelfCheckSet(void)
     }
     rt_thread_mdelay(SCREEN_TEST_ITEM_INTERVAL);      /** 等待一定时长再进行下一个自检项 */
 #endif /* SCREEN_USING_DOUBLE_GUN */
+
+#ifdef SCREEN_USING_CYCLE_MATRIX
+
+    if((_dev_type == thaisenDeviceType_Matrix_Cycle) || (_dev_type == thaisenDeviceType_Matrix_Half)){
+        u8 fb_state;
+        /*************************************************** 矩阵继电器KPN_1-1 ***************************************************/
+        ret = SCREEN_RET_SUCCESS;
+        memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
+        thaisenMatrixRelay_on_Debug(THAISEN_MATRIX_RELAY_KPN1_1);  /** 闭合 */
+//        SerialScreen_SendIco(&SerialScreen, 0x4174, TRUE);
+        rt_thread_mdelay(SCREEN_WAIT_FB_TIME);      /** 等待状态 */
+
+        fb_state = thaisenMatrixRelay_FB(THAISEN_MATRIX_RELAY_KPN1_1);
+        fb[0] = ((!fb_state) &0x01) + '0';
+        fb[1] = fb[0];
+        if(fb[0] != TRUE || fb[1] != TRUE){
+            ret = SCREEN_RET_FAIL;
+            thaisen_selfcheck_debug_info(THA_DEBUG_ITEM_MRELAY_K1_1_A_ON, language, 0, LcdData.setData.selfCheck_Info[index], sizeof(LcdData.setData.selfCheck_Info[index]));
+        }else{
+            thaisen_selfcheck_debug_info(THA_DEBUG_ITEM_MRELAY_K1_1_A_ON, language, 1, LcdData.setData.selfCheck_Info[index], sizeof(LcdData.setData.selfCheck_Info[index]));
+        }
+//        /** 信息显示 */
+//        fb[0] += '0';
+//        fb[1] += '0';
+//        SerialScreen_SendTxt(&SerialScreen, 0x4166, fb, sizeof(fb));
+//        rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
+
+        for(u8 i = 0; i < indexmax; i++){
+            SerialScreen_SendTxt(&SerialScreen, txtaddr[i], LcdData.setData.selfCheck_Info[i], sizeof(LcdData.setData.selfCheck_Info[i]));
+            if((i + 1) < indexmax)
+                rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
+        }
+        if(++index >= indexmax){
+            for(u8 i = 0; (i + 1) < indexmax; i++){
+                memcpy(LcdData.setData.selfCheck_Info[i], LcdData.setData.selfCheck_Info[i + 1], sizeof(LcdData.setData.selfCheck_Info[i]));
+            }
+            index = indexmax - 1;
+        }
+        if(ret == SCREEN_RET_FAIL){
+            if(thaisenGetSysFaultCheckEnBit(thaisenRelay, LCD_GUN_1)){
+                goto Check_end;
+            }
+        }
+        rt_thread_mdelay(SCREEN_TEST_ITEM_INTERVAL);      /** 等待一定时长再进行下一个自检项 */
+
+        ret = SCREEN_RET_SUCCESS;
+        memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
+        thaisenMatrixRelay_off_Debug(THAISEN_MATRIX_RELAY_KPN1_1);         /** 断开 */
+//        SerialScreen_SendIco(&SerialScreen, 0x4174, FALSE);
+        rt_thread_mdelay(SCREEN_WAIT_FB_TIME);              /** 等待状态 */
+
+        fb_state = thaisenMatrixRelay_FB(THAISEN_MATRIX_RELAY_KPN1_1);
+        fb[0] = ((!fb_state) &0x01) + '0';
+        fb[1] = fb[0];
+        if(fb[0] != FALSE || fb[1] != FALSE){
+            ret = SCREEN_RET_FAIL;
+            thaisen_selfcheck_debug_info(THA_DEBUG_ITEM_MRELAY_K1_1_A_OFF, language, 0, LcdData.setData.selfCheck_Info[index], sizeof(LcdData.setData.selfCheck_Info[index]));
+        }else{
+            thaisen_selfcheck_debug_info(THA_DEBUG_ITEM_MRELAY_K1_1_A_OFF, language, 1, LcdData.setData.selfCheck_Info[index], sizeof(LcdData.setData.selfCheck_Info[index]));
+        }
+//        /** 信息显示 */
+//        fb[0] += '0';
+//        fb[1] += '0';
+//        SerialScreen_SendTxt(&SerialScreen, 0x4166, fb, sizeof(fb));
+//        rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
+
+        for(u8 i = 0; i < indexmax; i++){
+            SerialScreen_SendTxt(&SerialScreen, txtaddr[i], LcdData.setData.selfCheck_Info[i], sizeof(LcdData.setData.selfCheck_Info[i]));
+            if((i + 1) < indexmax)
+                rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
+        }
+        if(++index >= indexmax){
+            for(u8 i = 0; (i + 1) < indexmax; i++){
+                memcpy(LcdData.setData.selfCheck_Info[i], LcdData.setData.selfCheck_Info[i + 1], sizeof(LcdData.setData.selfCheck_Info[i]));
+            }
+            index = indexmax - 1;
+        }
+        if(ret == SCREEN_RET_FAIL){
+            if(thaisenGetSysFaultCheckEnBit(thaisenRelay, LCD_GUN_1)){
+                goto Check_end;
+            }
+        }
+        rt_thread_mdelay(SCREEN_TEST_ITEM_INTERVAL);      /** 等待一定时长再进行下一个自检项 */
+
+
+        if(_dev_type == thaisenDeviceType_Matrix_Half){
+            /*************************************************** 矩阵继电器KPN_1-2 ***************************************************/
+            ret = SCREEN_RET_SUCCESS;
+            memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
+            thaisenMatrixRelay_on_Debug(THAISEN_MATRIX_RELAY_KPN1_2);  /** 闭合 */
+    //        SerialScreen_SendIco(&SerialScreen, 0x4174, TRUE);
+            rt_thread_mdelay(SCREEN_WAIT_FB_TIME);      /** 等待状态 */
+
+            fb_state = thaisenMatrixRelay_FB(THAISEN_MATRIX_RELAY_KPN1_2);
+            fb[0] = ((!fb_state) &0x01) + '0';
+            fb[1] = fb[0];
+            if(fb[0] != TRUE || fb[1] != TRUE){
+                ret = SCREEN_RET_FAIL;
+                thaisen_selfcheck_debug_info(THA_DEBUG_ITEM_MRELAY_K1_2_A_ON, language, 0, LcdData.setData.selfCheck_Info[index], sizeof(LcdData.setData.selfCheck_Info[index]));
+            }else{
+                thaisen_selfcheck_debug_info(THA_DEBUG_ITEM_MRELAY_K1_2_A_ON, language, 1, LcdData.setData.selfCheck_Info[index], sizeof(LcdData.setData.selfCheck_Info[index]));
+            }
+    //        /** 信息显示 */
+    //        fb[0] += '0';
+    //        fb[1] += '0';
+    //        SerialScreen_SendTxt(&SerialScreen, 0x4166, fb, sizeof(fb));
+    //        rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
+
+            for(u8 i = 0; i < indexmax; i++){
+                SerialScreen_SendTxt(&SerialScreen, txtaddr[i], LcdData.setData.selfCheck_Info[i], sizeof(LcdData.setData.selfCheck_Info[i]));
+                if((i + 1) < indexmax)
+                    rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
+            }
+            if(++index >= indexmax){
+                for(u8 i = 0; (i + 1) < indexmax; i++){
+                    memcpy(LcdData.setData.selfCheck_Info[i], LcdData.setData.selfCheck_Info[i + 1], sizeof(LcdData.setData.selfCheck_Info[i]));
+                }
+                index = indexmax - 1;
+            }
+            if(ret == SCREEN_RET_FAIL){
+                if(thaisenGetSysFaultCheckEnBit(thaisenRelay, LCD_GUN_1)){
+                    goto Check_end;
+                }
+            }
+            rt_thread_mdelay(SCREEN_TEST_ITEM_INTERVAL);      /** 等待一定时长再进行下一个自检项 */
+
+            ret = SCREEN_RET_SUCCESS;
+            memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
+            thaisenMatrixRelay_off_Debug(THAISEN_MATRIX_RELAY_KPN1_2);         /** 断开 */
+    //        SerialScreen_SendIco(&SerialScreen, 0x4174, FALSE);
+            rt_thread_mdelay(SCREEN_WAIT_FB_TIME);              /** 等待状态 */
+
+            fb_state = thaisenMatrixRelay_FB(THAISEN_MATRIX_RELAY_KPN1_2);
+            fb[0] = ((!fb_state) &0x01) + '0';
+            fb[1] = fb[0];
+            if(fb[0] != FALSE || fb[1] != FALSE){
+                ret = SCREEN_RET_FAIL;
+                thaisen_selfcheck_debug_info(THA_DEBUG_ITEM_MRELAY_K1_2_A_OFF, language, 0, LcdData.setData.selfCheck_Info[index], sizeof(LcdData.setData.selfCheck_Info[index]));
+            }else{
+                thaisen_selfcheck_debug_info(THA_DEBUG_ITEM_MRELAY_K1_2_A_OFF, language, 1, LcdData.setData.selfCheck_Info[index], sizeof(LcdData.setData.selfCheck_Info[index]));
+            }
+    //        /** 信息显示 */
+    //        fb[0] += '0';
+    //        fb[1] += '0';
+    //        SerialScreen_SendTxt(&SerialScreen, 0x4166, fb, sizeof(fb));
+    //        rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
+
+            for(u8 i = 0; i < indexmax; i++){
+                SerialScreen_SendTxt(&SerialScreen, txtaddr[i], LcdData.setData.selfCheck_Info[i], sizeof(LcdData.setData.selfCheck_Info[i]));
+                if((i + 1) < indexmax)
+                    rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
+            }
+            if(++index >= indexmax){
+                for(u8 i = 0; (i + 1) < indexmax; i++){
+                    memcpy(LcdData.setData.selfCheck_Info[i], LcdData.setData.selfCheck_Info[i + 1], sizeof(LcdData.setData.selfCheck_Info[i]));
+                }
+                index = indexmax - 1;
+            }
+            if(ret == SCREEN_RET_FAIL){
+                if(thaisenGetSysFaultCheckEnBit(thaisenRelay, LCD_GUN_1)){
+                    goto Check_end;
+                }
+            }
+            rt_thread_mdelay(SCREEN_TEST_ITEM_INTERVAL);      /** 等待一定时长再进行下一个自检项 */
+
+            /*************************************************** 矩阵继电器KPN_1-3 ***************************************************/
+            ret = SCREEN_RET_SUCCESS;
+            memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
+            thaisenMatrixRelay_on_Debug(THAISEN_MATRIX_RELAY_KPN1_3);  /** 闭合 */
+    //        SerialScreen_SendIco(&SerialScreen, 0x4174, TRUE);
+            rt_thread_mdelay(SCREEN_WAIT_FB_TIME);      /** 等待状态 */
+
+            fb_state = thaisenMatrixRelay_FB(THAISEN_MATRIX_RELAY_KPN1_3);
+            fb[0] = ((!fb_state) &0x01) + '0';
+            fb[1] = fb[0];
+            if(fb[0] != TRUE || fb[1] != TRUE){
+                ret = SCREEN_RET_FAIL;
+                thaisen_selfcheck_debug_info(THA_DEBUG_ITEM_MRELAY_K1_3_A_ON, language, 0, LcdData.setData.selfCheck_Info[index], sizeof(LcdData.setData.selfCheck_Info[index]));
+            }else{
+                thaisen_selfcheck_debug_info(THA_DEBUG_ITEM_MRELAY_K1_3_A_ON, language, 1, LcdData.setData.selfCheck_Info[index], sizeof(LcdData.setData.selfCheck_Info[index]));
+            }
+    //        /** 信息显示 */
+    //        fb[0] += '0';
+    //        fb[1] += '0';
+    //        SerialScreen_SendTxt(&SerialScreen, 0x4166, fb, sizeof(fb));
+    //        rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
+
+            for(u8 i = 0; i < indexmax; i++){
+                SerialScreen_SendTxt(&SerialScreen, txtaddr[i], LcdData.setData.selfCheck_Info[i], sizeof(LcdData.setData.selfCheck_Info[i]));
+                if((i + 1) < indexmax)
+                    rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
+            }
+            if(++index >= indexmax){
+                for(u8 i = 0; (i + 1) < indexmax; i++){
+                    memcpy(LcdData.setData.selfCheck_Info[i], LcdData.setData.selfCheck_Info[i + 1], sizeof(LcdData.setData.selfCheck_Info[i]));
+                }
+                index = indexmax - 1;
+            }
+            if(ret == SCREEN_RET_FAIL){
+                if(thaisenGetSysFaultCheckEnBit(thaisenRelay, LCD_GUN_1)){
+                    goto Check_end;
+                }
+            }
+            rt_thread_mdelay(SCREEN_TEST_ITEM_INTERVAL);      /** 等待一定时长再进行下一个自检项 */
+
+            ret = SCREEN_RET_SUCCESS;
+            memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
+            thaisenMatrixRelay_off_Debug(THAISEN_MATRIX_RELAY_KPN1_3);        /** 断开 */
+    //        SerialScreen_SendIco(&SerialScreen, 0x4174, FALSE);
+            rt_thread_mdelay(SCREEN_WAIT_FB_TIME);              /** 等待状态 */
+
+            fb_state = thaisenMatrixRelay_FB(THAISEN_MATRIX_RELAY_KPN1_3);
+            fb[0] = ((!fb_state) &0x01) + '0';
+            fb[1] = fb[0];
+            if(fb[0] != FALSE || fb[1] != FALSE){
+                ret = SCREEN_RET_FAIL;
+                thaisen_selfcheck_debug_info(THA_DEBUG_ITEM_MRELAY_K1_3_A_OFF, language, 0, LcdData.setData.selfCheck_Info[index], sizeof(LcdData.setData.selfCheck_Info[index]));
+            }else{
+                thaisen_selfcheck_debug_info(THA_DEBUG_ITEM_MRELAY_K1_3_A_OFF, language, 1, LcdData.setData.selfCheck_Info[index], sizeof(LcdData.setData.selfCheck_Info[index]));
+            }
+    //        /** 信息显示 */
+    //        fb[0] += '0';
+    //        fb[1] += '0';
+    //        SerialScreen_SendTxt(&SerialScreen, 0x4166, fb, sizeof(fb));
+    //        rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
+
+            for(u8 i = 0; i < indexmax; i++){
+                SerialScreen_SendTxt(&SerialScreen, txtaddr[i], LcdData.setData.selfCheck_Info[i], sizeof(LcdData.setData.selfCheck_Info[i]));
+                if((i + 1) < indexmax)
+                    rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
+            }
+            if(++index >= indexmax){
+                for(u8 i = 0; (i + 1) < indexmax; i++){
+                    memcpy(LcdData.setData.selfCheck_Info[i], LcdData.setData.selfCheck_Info[i + 1], sizeof(LcdData.setData.selfCheck_Info[i]));
+                }
+                index = indexmax - 1;
+            }
+            if(ret == SCREEN_RET_FAIL){
+                if(thaisenGetSysFaultCheckEnBit(thaisenRelay, LCD_GUN_1)){
+                    goto Check_end;
+                }
+            }
+            rt_thread_mdelay(SCREEN_TEST_ITEM_INTERVAL);      /** 等待一定时长再进行下一个自检项 */
+        }
+
+        if(_dev_type == thaisenDeviceType_Matrix_Cycle){
+            /*************************************************** 矩阵继电器KPN_2-1 ***************************************************/
+            ret = SCREEN_RET_SUCCESS;
+            memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
+            thaisenMatrixRelay_on_Debug(THAISEN_MATRIX_RELAY_KPN1_2);  /** 闭合 */
+    //        SerialScreen_SendIco(&SerialScreen, 0x4174, TRUE);
+            rt_thread_mdelay(SCREEN_WAIT_FB_TIME);      /** 等待状态 */
+
+            fb_state = thaisenMatrixRelay_FB(THAISEN_MATRIX_RELAY_KPN1_2);
+            fb[0] = ((!fb_state) &0x01) + '0';
+            fb[1] = fb[0];
+            if(fb[0] != TRUE || fb[1] != TRUE){
+                ret = SCREEN_RET_FAIL;
+                thaisen_selfcheck_debug_info(THA_DEBUG_ITEM_MRELAY_K1_2_A_ON, language, 0, LcdData.setData.selfCheck_Info[index], sizeof(LcdData.setData.selfCheck_Info[index]));
+            }else{
+                thaisen_selfcheck_debug_info(THA_DEBUG_ITEM_MRELAY_K1_2_A_ON, language, 1, LcdData.setData.selfCheck_Info[index], sizeof(LcdData.setData.selfCheck_Info[index]));
+            }
+    //        /** 信息显示 */
+    //        fb[0] += '0';
+    //        fb[1] += '0';
+    //        SerialScreen_SendTxt(&SerialScreen, 0x4166, fb, sizeof(fb));
+    //        rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
+
+            for(u8 i = 0; i < indexmax; i++){
+                SerialScreen_SendTxt(&SerialScreen, txtaddr[i], LcdData.setData.selfCheck_Info[i], sizeof(LcdData.setData.selfCheck_Info[i]));
+                if((i + 1) < indexmax)
+                    rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
+            }
+            if(++index >= indexmax){
+                for(u8 i = 0; (i + 1) < indexmax; i++){
+                    memcpy(LcdData.setData.selfCheck_Info[i], LcdData.setData.selfCheck_Info[i + 1], sizeof(LcdData.setData.selfCheck_Info[i]));
+                }
+                index = indexmax - 1;
+            }
+            if(ret == SCREEN_RET_FAIL){
+                if(thaisenGetSysFaultCheckEnBit(thaisenRelay, LCD_GUN_1)){
+                    goto Check_end;
+                }
+            }
+            rt_thread_mdelay(SCREEN_TEST_ITEM_INTERVAL);      /** 等待一定时长再进行下一个自检项 */
+
+            ret = SCREEN_RET_SUCCESS;
+            memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
+            thaisenMatrixRelay_off_Debug(THAISEN_MATRIX_RELAY_KPN1_2);        /** 断开 */
+    //        SerialScreen_SendIco(&SerialScreen, 0x4174, FALSE);
+            rt_thread_mdelay(SCREEN_WAIT_FB_TIME);              /** 等待状态 */
+
+            fb_state = thaisenMatrixRelay_FB(THAISEN_MATRIX_RELAY_KPN1_2);
+            fb[0] = ((!fb_state) &0x01) + '0';
+            fb[1] = fb[0];
+            if(fb[0] != FALSE || fb[1] != FALSE){
+                ret = SCREEN_RET_FAIL;
+                thaisen_selfcheck_debug_info(THA_DEBUG_ITEM_MRELAY_K1_2_A_OFF, language, 0, LcdData.setData.selfCheck_Info[index], sizeof(LcdData.setData.selfCheck_Info[index]));
+            }else{
+                thaisen_selfcheck_debug_info(THA_DEBUG_ITEM_MRELAY_K1_2_A_OFF, language, 1, LcdData.setData.selfCheck_Info[index], sizeof(LcdData.setData.selfCheck_Info[index]));
+            }
+    //        /** 信息显示 */
+    //        fb[0] += '0';
+    //        fb[1] += '0';
+    //        SerialScreen_SendTxt(&SerialScreen, 0x4166, fb, sizeof(fb));
+    //        rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
+
+            for(u8 i = 0; i < indexmax; i++){
+                SerialScreen_SendTxt(&SerialScreen, txtaddr[i], LcdData.setData.selfCheck_Info[i], sizeof(LcdData.setData.selfCheck_Info[i]));
+                if((i + 1) < indexmax)
+                    rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
+            }
+            if(++index >= indexmax){
+                for(u8 i = 0; (i + 1) < indexmax; i++){
+                    memcpy(LcdData.setData.selfCheck_Info[i], LcdData.setData.selfCheck_Info[i + 1], sizeof(LcdData.setData.selfCheck_Info[i]));
+                }
+                index = indexmax - 1;
+            }
+            if(ret == SCREEN_RET_FAIL){
+                if(thaisenGetSysFaultCheckEnBit(thaisenRelay, LCD_GUN_1)){
+                    goto Check_end;
+                }
+            }
+            rt_thread_mdelay(SCREEN_TEST_ITEM_INTERVAL);      /** 等待一定时长再进行下一个自检项 */
+        }
+
+        /*************************************************** 矩阵继电器KPN_2-2 ***************************************************/
+        ret = SCREEN_RET_SUCCESS;
+        memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
+        thaisenMatrixRelay_on_Debug(THAISEN_MATRIX_RELAY_KPN2_1);        /** 闭合 */
+        rt_thread_mdelay(SCREEN_WAIT_FB_TIME);      /** 等待状态 */
+        fb_state = thaisenMatrixRelay_FB(THAISEN_MATRIX_RELAY_KPN2_1);
+//        SerialScreen_SendIco(&SerialScreen, 0x4174, TRUE);
+        fb[0] = ((!fb_state) &0x01) + '0';
+        fb[1] = fb[0];
+        if(fb[0] != TRUE || fb[1] != TRUE){
+            ret = SCREEN_RET_FAIL;
+            thaisen_selfcheck_debug_info(THA_DEBUG_ITEM_MRELAY_K2_1_A_ON, language, 0, LcdData.setData.selfCheck_Info[index], sizeof(LcdData.setData.selfCheck_Info[index]));
+        }else{
+            thaisen_selfcheck_debug_info(THA_DEBUG_ITEM_MRELAY_K2_1_A_ON, language, 1, LcdData.setData.selfCheck_Info[index], sizeof(LcdData.setData.selfCheck_Info[index]));
+        }
+//        /** 信息显示 */
+//        fb[0] += '0';
+//        fb[1] += '0';
+//        SerialScreen_SendTxt(&SerialScreen, 0x4166, fb, sizeof(fb));
+//        rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
+
+        for(u8 i = 0; i < indexmax; i++){
+            SerialScreen_SendTxt(&SerialScreen, txtaddr[i], LcdData.setData.selfCheck_Info[i], sizeof(LcdData.setData.selfCheck_Info[i]));
+            if((i + 1) < indexmax)
+                rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
+        }
+        if(++index >= indexmax){
+            for(u8 i = 0; (i + 1) < indexmax; i++){
+                memcpy(LcdData.setData.selfCheck_Info[i], LcdData.setData.selfCheck_Info[i + 1], sizeof(LcdData.setData.selfCheck_Info[i]));
+            }
+            index = indexmax - 1;
+        }
+        if(ret == SCREEN_RET_FAIL){
+            if(thaisenGetSysFaultCheckEnBit(thaisenRelay, LCD_GUN_1)){
+                goto Check_end;
+            }
+        }
+        rt_thread_mdelay(SCREEN_TEST_ITEM_INTERVAL);      /** 等待一定时长再进行下一个自检项 */
+
+        ret = SCREEN_RET_SUCCESS;
+        memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
+        thaisenMatrixRelay_off_Debug(THAISEN_MATRIX_RELAY_KPN2_1);        /** 断开 */
+        rt_thread_mdelay(SCREEN_WAIT_FB_TIME);              /** 等待状态 */
+        fb_state = thaisenMatrixRelay_FB(THAISEN_MATRIX_RELAY_KPN2_1);
+//        SerialScreen_SendIco(&SerialScreen, 0x4174, FALSE);
+
+        fb[0] = ((!fb_state) &0x01) + '0';
+        fb[1] = fb[0];
+        if(fb[0] != FALSE || fb[1] != FALSE){
+            ret = SCREEN_RET_FAIL;
+            thaisen_selfcheck_debug_info(THA_DEBUG_ITEM_MRELAY_K2_1_A_OFF, language, 0, LcdData.setData.selfCheck_Info[index], sizeof(LcdData.setData.selfCheck_Info[index]));
+        }else{
+            thaisen_selfcheck_debug_info(THA_DEBUG_ITEM_MRELAY_K2_1_A_OFF, language, 1, LcdData.setData.selfCheck_Info[index], sizeof(LcdData.setData.selfCheck_Info[index]));
+        }
+//        /** 信息显示 */
+//        fb[0] += '0';
+//        fb[1] += '0';
+//        SerialScreen_SendTxt(&SerialScreen, 0x4166, fb, sizeof(fb));
+//        rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
+
+        for(u8 i = 0; i < indexmax; i++){
+            SerialScreen_SendTxt(&SerialScreen, txtaddr[i], LcdData.setData.selfCheck_Info[i], sizeof(LcdData.setData.selfCheck_Info[i]));
+            if((i + 1) < indexmax)
+                rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
+        }
+        if(++index >= indexmax){
+            for(u8 i = 0; (i + 1) < indexmax; i++){
+                memcpy(LcdData.setData.selfCheck_Info[i], LcdData.setData.selfCheck_Info[i + 1], sizeof(LcdData.setData.selfCheck_Info[i]));
+            }
+            index = indexmax - 1;
+        }
+        if(ret == SCREEN_RET_FAIL){
+            if(thaisenGetSysFaultCheckEnBit(thaisenRelay, LCD_GUN_1)){
+                goto Check_end;
+            }
+        }
+        rt_thread_mdelay(SCREEN_TEST_ITEM_INTERVAL);      /** 等待一定时长再进行下一个自检项 */
+
+        if(_dev_type == thaisenDeviceType_Matrix_Half){
+            /*************************************************** 矩阵继电器KPN_2-3 ***************************************************/
+            ret = SCREEN_RET_SUCCESS;
+            memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
+            thaisenMatrixRelay_on_Debug(THAISEN_MATRIX_RELAY_KPN2_2);  /** 闭合 */
+    //        SerialScreen_SendIco(&SerialScreen, 0x4174, TRUE);
+            rt_thread_mdelay(SCREEN_WAIT_FB_TIME);      /** 等待状态 */
+
+            fb_state = thaisenMatrixRelay_FB(THAISEN_MATRIX_RELAY_KPN2_2);
+            fb[0] = ((!fb_state) &0x01) + '0';
+            fb[1] = fb[0];
+            if(fb[0] != TRUE || fb[1] != TRUE){
+                ret = SCREEN_RET_FAIL;
+                thaisen_selfcheck_debug_info(THA_DEBUG_ITEM_MRELAY_K2_3_A_ON, language, 0, LcdData.setData.selfCheck_Info[index], sizeof(LcdData.setData.selfCheck_Info[index]));
+            }else{
+                thaisen_selfcheck_debug_info(THA_DEBUG_ITEM_MRELAY_K2_3_A_ON, language, 1, LcdData.setData.selfCheck_Info[index], sizeof(LcdData.setData.selfCheck_Info[index]));
+            }
+    //        /** 信息显示 */
+    //        fb[0] += '0';
+    //        fb[1] += '0';
+    //        SerialScreen_SendTxt(&SerialScreen, 0x4166, fb, sizeof(fb));
+    //        rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
+
+            for(u8 i = 0; i < indexmax; i++){
+                SerialScreen_SendTxt(&SerialScreen, txtaddr[i], LcdData.setData.selfCheck_Info[i], sizeof(LcdData.setData.selfCheck_Info[i]));
+                if((i + 1) < indexmax)
+                    rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
+            }
+            if(++index >= indexmax){
+                for(u8 i = 0; (i + 1) < indexmax; i++){
+                    memcpy(LcdData.setData.selfCheck_Info[i], LcdData.setData.selfCheck_Info[i + 1], sizeof(LcdData.setData.selfCheck_Info[i]));
+                }
+                index = indexmax - 1;
+            }
+            if(ret == SCREEN_RET_FAIL){
+                if(thaisenGetSysFaultCheckEnBit(thaisenRelay, LCD_GUN_1)){
+                    goto Check_end;
+                }
+            }
+            rt_thread_mdelay(SCREEN_TEST_ITEM_INTERVAL);      /** 等待一定时长再进行下一个自检项 */
+
+            ret = SCREEN_RET_SUCCESS;
+            memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
+            thaisenMatrixRelay_off_Debug(THAISEN_MATRIX_RELAY_KPN2_2);        /** 断开 */
+    //        SerialScreen_SendIco(&SerialScreen, 0x4174, FALSE);
+            rt_thread_mdelay(SCREEN_WAIT_FB_TIME);              /** 等待状态 */
+
+            fb_state = thaisenMatrixRelay_FB(THAISEN_MATRIX_RELAY_KPN2_2);
+            fb[0] = ((!fb_state) &0x01) + '0';
+            fb[1] = fb[0];
+            if(fb[0] != FALSE || fb[1] != FALSE){
+                ret = SCREEN_RET_FAIL;
+                thaisen_selfcheck_debug_info(THA_DEBUG_ITEM_MRELAY_K2_3_A_OFF, language, 0, LcdData.setData.selfCheck_Info[index], sizeof(LcdData.setData.selfCheck_Info[index]));
+            }else{
+                thaisen_selfcheck_debug_info(THA_DEBUG_ITEM_MRELAY_K2_3_A_OFF, language, 1, LcdData.setData.selfCheck_Info[index], sizeof(LcdData.setData.selfCheck_Info[index]));
+            }
+    //        /** 信息显示 */
+    //        fb[0] += '0';
+    //        fb[1] += '0';
+    //        SerialScreen_SendTxt(&SerialScreen, 0x4166, fb, sizeof(fb));
+    //        rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
+
+            for(u8 i = 0; i < indexmax; i++){
+                SerialScreen_SendTxt(&SerialScreen, txtaddr[i], LcdData.setData.selfCheck_Info[i], sizeof(LcdData.setData.selfCheck_Info[i]));
+                if((i + 1) < indexmax)
+                    rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
+            }
+            if(++index >= indexmax){
+                for(u8 i = 0; (i + 1) < indexmax; i++){
+                    memcpy(LcdData.setData.selfCheck_Info[i], LcdData.setData.selfCheck_Info[i + 1], sizeof(LcdData.setData.selfCheck_Info[i]));
+                }
+                index = indexmax - 1;
+            }
+            if(ret == SCREEN_RET_FAIL){
+                if(thaisenGetSysFaultCheckEnBit(thaisenRelay, LCD_GUN_1)){
+                    goto Check_end;
+                }
+            }
+            rt_thread_mdelay(SCREEN_TEST_ITEM_INTERVAL);      /** 等待一定时长再进行下一个自检项 */
+        }
+
+        if(_dev_type == thaisenDeviceType_Matrix_Cycle){
+            /*************************************************** 矩阵继电器KPN_3-1 ***************************************************/
+            ret = SCREEN_RET_SUCCESS;
+            memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
+            thaisenMatrixRelay_on_Debug(THAISEN_MATRIX_RELAY_KPN1_3);  /** 闭合 */
+    //        SerialScreen_SendIco(&SerialScreen, 0x4174, TRUE);
+            rt_thread_mdelay(SCREEN_WAIT_FB_TIME);      /** 等待状态 */
+
+            fb_state = thaisenMatrixRelay_FB(THAISEN_MATRIX_RELAY_KPN1_3);
+            fb[0] = ((!fb_state) &0x01) + '0';
+            fb[1] = fb[0];
+            if(fb[0] != TRUE || fb[1] != TRUE){
+                ret = SCREEN_RET_FAIL;
+                thaisen_selfcheck_debug_info(THA_DEBUG_ITEM_MRELAY_K1_3_A_ON, language, 0, LcdData.setData.selfCheck_Info[index], sizeof(LcdData.setData.selfCheck_Info[index]));
+            }else{
+                thaisen_selfcheck_debug_info(THA_DEBUG_ITEM_MRELAY_K1_3_A_ON, language, 1, LcdData.setData.selfCheck_Info[index], sizeof(LcdData.setData.selfCheck_Info[index]));
+            }
+    //        /** 信息显示 */
+    //        fb[0] += '0';
+    //        fb[1] += '0';
+    //        SerialScreen_SendTxt(&SerialScreen, 0x4166, fb, sizeof(fb));
+    //        rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
+
+            for(u8 i = 0; i < indexmax; i++){
+                SerialScreen_SendTxt(&SerialScreen, txtaddr[i], LcdData.setData.selfCheck_Info[i], sizeof(LcdData.setData.selfCheck_Info[i]));
+                if((i + 1) < indexmax)
+                    rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
+            }
+            if(++index >= indexmax){
+                for(u8 i = 0; (i + 1) < indexmax; i++){
+                    memcpy(LcdData.setData.selfCheck_Info[i], LcdData.setData.selfCheck_Info[i + 1], sizeof(LcdData.setData.selfCheck_Info[i]));
+                }
+                index = indexmax - 1;
+            }
+            if(ret == SCREEN_RET_FAIL){
+                if(thaisenGetSysFaultCheckEnBit(thaisenRelay, LCD_GUN_1)){
+                    goto Check_end;
+                }
+            }
+            rt_thread_mdelay(SCREEN_TEST_ITEM_INTERVAL);      /** 等待一定时长再进行下一个自检项 */
+
+            ret = SCREEN_RET_SUCCESS;
+            memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
+            thaisenMatrixRelay_off_Debug(THAISEN_MATRIX_RELAY_KPN1_3);        /** 断开 */
+    //        SerialScreen_SendIco(&SerialScreen, 0x4174, FALSE);
+            rt_thread_mdelay(SCREEN_WAIT_FB_TIME);              /** 等待状态 */
+
+            fb_state = thaisenMatrixRelay_FB(THAISEN_MATRIX_RELAY_KPN1_3);
+            fb[0] = ((!fb_state) &0x01) + '0';
+            fb[1] = fb[0];
+            if(fb[0] != FALSE || fb[1] != FALSE){
+                ret = SCREEN_RET_FAIL;
+                thaisen_selfcheck_debug_info(THA_DEBUG_ITEM_MRELAY_K1_3_A_OFF, language, 0, LcdData.setData.selfCheck_Info[index], sizeof(LcdData.setData.selfCheck_Info[index]));
+            }else{
+                thaisen_selfcheck_debug_info(THA_DEBUG_ITEM_MRELAY_K1_3_A_OFF, language, 1, LcdData.setData.selfCheck_Info[index], sizeof(LcdData.setData.selfCheck_Info[index]));
+            }
+    //        /** 信息显示 */
+    //        fb[0] += '0';
+    //        fb[1] += '0';
+    //        SerialScreen_SendTxt(&SerialScreen, 0x4166, fb, sizeof(fb));
+    //        rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
+
+            for(u8 i = 0; i < indexmax; i++){
+                SerialScreen_SendTxt(&SerialScreen, txtaddr[i], LcdData.setData.selfCheck_Info[i], sizeof(LcdData.setData.selfCheck_Info[i]));
+                if((i + 1) < indexmax)
+                    rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
+            }
+            if(++index >= indexmax){
+                for(u8 i = 0; (i + 1) < indexmax; i++){
+                    memcpy(LcdData.setData.selfCheck_Info[i], LcdData.setData.selfCheck_Info[i + 1], sizeof(LcdData.setData.selfCheck_Info[i]));
+                }
+                index = indexmax - 1;
+            }
+            if(ret == SCREEN_RET_FAIL){
+                if(thaisenGetSysFaultCheckEnBit(thaisenRelay, LCD_GUN_1)){
+                    goto Check_end;
+                }
+            }
+            rt_thread_mdelay(SCREEN_TEST_ITEM_INTERVAL);      /** 等待一定时长再进行下一个自检项 */
+        }
+
+        if(_dev_type == thaisenDeviceType_Matrix_Half){
+            /*************************************************** 矩阵继电器KPN_3-3 ***************************************************/
+            ret = SCREEN_RET_SUCCESS;
+            memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
+            thaisenMatrixRelay_on_Debug(THAISEN_MATRIX_RELAY_KPN3_1);  /** 闭合 */
+    //        SerialScreen_SendIco(&SerialScreen, 0x4174, TRUE);
+            rt_thread_mdelay(SCREEN_WAIT_FB_TIME);      /** 等待状态 */
+
+            fb_state = thaisenMatrixRelay_FB(THAISEN_MATRIX_RELAY_KPN3_1);
+            fb[0] = ((!fb_state) &0x01) + '0';
+            fb[1] = fb[0];
+            if(fb[0] != TRUE || fb[1] != TRUE){
+                ret = SCREEN_RET_FAIL;
+                thaisen_selfcheck_debug_info(THA_DEBUG_ITEM_MRELAY_K3_3_A_ON, language, 0, LcdData.setData.selfCheck_Info[index], sizeof(LcdData.setData.selfCheck_Info[index]));
+            }else{
+                thaisen_selfcheck_debug_info(THA_DEBUG_ITEM_MRELAY_K3_3_A_ON, language, 1, LcdData.setData.selfCheck_Info[index], sizeof(LcdData.setData.selfCheck_Info[index]));
+            }
+    //        /** 信息显示 */
+    //        fb[0] += '0';
+    //        fb[1] += '0';
+    //        SerialScreen_SendTxt(&SerialScreen, 0x4166, fb, sizeof(fb));
+    //        rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
+
+            for(u8 i = 0; i < indexmax; i++){
+                SerialScreen_SendTxt(&SerialScreen, txtaddr[i], LcdData.setData.selfCheck_Info[i], sizeof(LcdData.setData.selfCheck_Info[i]));
+                if((i + 1) < indexmax)
+                    rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
+            }
+            if(++index >= indexmax){
+                for(u8 i = 0; (i + 1) < indexmax; i++){
+                    memcpy(LcdData.setData.selfCheck_Info[i], LcdData.setData.selfCheck_Info[i + 1], sizeof(LcdData.setData.selfCheck_Info[i]));
+                }
+                index = indexmax - 1;
+            }
+            if(ret == SCREEN_RET_FAIL){
+                if(thaisenGetSysFaultCheckEnBit(thaisenRelay, LCD_GUN_1)){
+                    goto Check_end;
+                }
+            }
+            rt_thread_mdelay(SCREEN_TEST_ITEM_INTERVAL);      /** 等待一定时长再进行下一个自检项 */
+
+            ret = SCREEN_RET_SUCCESS;
+            memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
+            thaisenMatrixRelay_off_Debug(THAISEN_MATRIX_RELAY_KPN3_1);        /** 断开 */
+    //        SerialScreen_SendIco(&SerialScreen, 0x4174, FALSE);
+            rt_thread_mdelay(SCREEN_WAIT_FB_TIME);              /** 等待状态 */
+
+            fb_state = thaisenMatrixRelay_FB(THAISEN_MATRIX_RELAY_KPN3_1);
+            fb[0] = ((!fb_state) &0x01) + '0';
+            fb[1] = fb[0];
+            if(fb[0] != FALSE || fb[1] != FALSE){
+                ret = SCREEN_RET_FAIL;
+                thaisen_selfcheck_debug_info(THA_DEBUG_ITEM_MRELAY_K3_3_A_OFF, language, 0, LcdData.setData.selfCheck_Info[index], sizeof(LcdData.setData.selfCheck_Info[index]));
+            }else{
+                thaisen_selfcheck_debug_info(THA_DEBUG_ITEM_MRELAY_K3_3_A_OFF, language, 1, LcdData.setData.selfCheck_Info[index], sizeof(LcdData.setData.selfCheck_Info[index]));
+            }
+    //        /** 信息显示 */
+    //        fb[0] += '0';
+    //        fb[1] += '0';
+    //        SerialScreen_SendTxt(&SerialScreen, 0x4166, fb, sizeof(fb));
+    //        rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
+
+            for(u8 i = 0; i < indexmax; i++){
+                SerialScreen_SendTxt(&SerialScreen, txtaddr[i], LcdData.setData.selfCheck_Info[i], sizeof(LcdData.setData.selfCheck_Info[i]));
+                if((i + 1) < indexmax)
+                    rt_thread_mdelay(SCREEN_INFO_SEND_INTERVAL);
+            }
+            if(++index >= indexmax){
+                for(u8 i = 0; (i + 1) < indexmax; i++){
+                    memcpy(LcdData.setData.selfCheck_Info[i], LcdData.setData.selfCheck_Info[i + 1], sizeof(LcdData.setData.selfCheck_Info[i]));
+                }
+                index = indexmax - 1;
+            }
+            if(ret == SCREEN_RET_FAIL){
+                if(thaisenGetSysFaultCheckEnBit(thaisenRelay, LCD_GUN_1)){
+                    goto Check_end;
+                }
+            }
+            rt_thread_mdelay(SCREEN_TEST_ITEM_INTERVAL);      /** 等待一定时长再进行下一个自检项 */
+        }
+    }
+#endif /* SCREEN_USING_CYCLE_MATRIX */
 
     /*************************************************** A枪电子锁A ***************************************************/
     ret = SCREEN_RET_SUCCESS;
@@ -12064,6 +14582,24 @@ void SerialScreen_SendIco(struct SerialScreenObj *cmd,u16 addr, u16 par)
     cmd->SendData(cmd, LcdTxData.buf, LcdTxData.len);
 }
 
+void SerialScreen_SendSeveralIco(struct SerialScreenObj *cmd,u16 addr, u16 *buf, u8 count)
+{
+#ifdef SCREEN_USING_CYCLE_MATRIX
+    LcdTxData.buf[0] = DWIN_FRAM_HEAD1;
+    LcdTxData.buf[1] = DWIN_FRAM_HEAD2;
+    LcdTxData.buf[2] = 2 *count + 3;
+    LcdTxData.buf[3] = 0x82;
+    LcdTxData.buf[4] = (u8)(addr >> 8);
+    LcdTxData.buf[5] = (u8)addr;
+    for(u8 i = 0, j = 0; i < count; i++, j += 2){
+        LcdTxData.buf[6 + j] = (u8)(buf[i] >> 8);
+        LcdTxData.buf[6 + j + 1] = (u8)buf[i];
+    }
+    LcdTxData.len = 6 + 2 *count;
+
+    cmd->SendData( cmd, LcdTxData.buf, LcdTxData.len);
+#endif /* SCREEN_USING_CYCLE_MATRIX */
+}
 
 void SerialScreen_SendTxt(struct SerialScreenObj *cmd,u16 addr, u8 *buf, u8 len)
 {    
@@ -12452,6 +14988,8 @@ struct LCD_DATA_FIFO_TYPE *SerialScreen_Init(struct SerialScreenObj *cmd)
     LcdData.setData.sup_usecard =*((u8*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_CARD, 0));
     LcdData.setData.AllocWay = *((u8*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_ALLOCATION_WAY, 0));
     LcdData.setData.DevType = *((u8*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_DEVICE_TYPE, 0));
+    LcdData.setData.TeminaladdrA = *((u16*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_TEMINAL_ADDRA, 0));
+    LcdData.setData.TeminaladdrB =*((u16*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_TEMINAL_ADDRB, 0));
     LcdData.setData.NetType = *((u8*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_NET_TYPE, 0));
     LcdData.setData.LiquidType = *(u8 *)(UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_LIQUID_DEV, 0));
     LcdData.setData.LiquidCnt = *(u8 *)(UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_LIQUID_CNT, 0));
@@ -12957,7 +15495,37 @@ struct LCD_DATA_FIFO_TYPE *SerialScreen_Init(struct SerialScreenObj *cmd)
 	LcdData.setData.SerialScreen_PassWordShow = FALSE;
 	LcdData.setData.manufacturer = 1;//NULL
 
-	if(LcdData.setData.DevType >= SYSTEM_FUNCTION_SIZE){        /* 设备类型默认双枪一体 */
+#ifdef SCREEN_USING_CYCLE_MATRIX
+    if(LcdData.setData.DevType >= SYSTEM_FUNCTION_SIZE){        /* 设备类型默认子母机(环矩) */
+        LcdData.setData.DevType = SYSTEM_FUNCTION_MS_MACHINE_CYCLE;
+    }
+
+    switch(LcdData.setData.DevType){
+    case SYSTEM_FUNCTION_AVERAGE_DOUBLE:
+        thaisenSetChargGunRunType(thaisenDeviceType_doubleGun);
+        break;
+    case SYSTEM_FUNCTION_DYNAMIC_SWITCH:
+        thaisenSetChargGunRunType(thaisenDeviceType_average);
+        break;
+    case SYSTEM_FUNCTION_DOUBLE_WHOLE:
+        thaisenSetChargGunRunType(thaisenDeviceType_doubleGun);
+        break;
+    case SYSTEM_FUNCTION_MS_MACHINE_CYCLE:
+        thaisenSetChargGunRunType(thaisenDeviceType_Matrix_Cycle);
+        break;
+    case SYSTEM_FUNCTION_MS_MACHINE_HALF:
+        thaisenSetChargGunRunType(thaisenDeviceType_Matrix_Half);
+        break;
+    case SYSTEM_FUNCTION_WHOLE_CYCLE:
+        thaisenSetChargGunRunType(thaisenDeviceType_Whole_Cycle);
+        break;
+    default:
+        LcdData.setData.DevType = SYSTEM_FUNCTION_MS_MACHINE_CYCLE;
+        thaisenSetChargGunRunType(thaisenDeviceType_Matrix_Cycle);
+        break;
+    }
+#else
+        if(LcdData.setData.DevType >= SYSTEM_FUNCTION_SIZE){        /* 设备类型默认双枪一体 */
         LcdData.setData.DevType = SYSTEM_FUNCTION_AVERAGE_DOUBLE;
     }
     LcdAssistantData.DeviceType = LcdData.setData.DevType;
@@ -12972,6 +15540,8 @@ struct LCD_DATA_FIFO_TYPE *SerialScreen_Init(struct SerialScreenObj *cmd)
         thaisenSetChargGunRunType(thaisenDeviceType_doubleGun);
         break;
     }
+#endif /* SCREEN_USING_CYCLE_MATRIX */
+
     /** 卡号所在块默认块 CONFIG_CARD_BLOCK_SN_DEFAULT */
     if((LcdData.setData.Card_BlockSn < CONFIG_CARD_BLOCK_SN_MIN) || (LcdData.setData.Card_BlockSn > CONFIG_CARD_BLOCK_SN_MAX)){
         LcdData.setData.Card_BlockSn = CONFIG_CARD_BLOCK_SN_DEFAULT;
@@ -13800,7 +16370,23 @@ void SerialScreen_GetKeyProcess(struct SerialScreenObj *cmd)
             }
         }
     }
-
+#ifdef SCREEN_USING_CYCLE_MATRIX
+    if((LcdData.CurrentPage == LCD_PAGE_MENU_MONITOR) || (LcdData.CurrentPage == LCD_PAGE_MENU_MONITOR_B) || \
+            (LcdData.CurrentPage == LCD_PAGE_MENU_INOUT) || (LcdData.CurrentPage == LCD_PAGE_MENU_INOUT_B) || \
+            (LcdData.CurrentPage == LCD_PAGE_MENU_STATE_MODULE) || (LcdData.CurrentPage == LCD_PAGE_MENU_STATE_MODULE_B) || \
+            (LcdData.CurrentPage == LCD_PAGE_LIQUID_COOLINGA) || (LcdData.CurrentPage == LCD_PAGE_LIQUID_COOLINGB) || \
+            (LcdData.CurrentPage == LCD_PAGE_MODULE_MATRIX)){
+        /** 在这些页面下点击了矩阵状态 */
+        if((keyreg == 0x1009) && (keyval == 0x0088)){
+            u8 _dev_type = 0;
+            /** 只有子母机(环矩)、子母机(半矩)需要继电器矩阵信息 */
+            _dev_type = thaisenGetChargGunRunType();
+            if((_dev_type != thaisenDeviceType_Matrix_Cycle) && (_dev_type != thaisenDeviceType_Matrix_Half)){
+                return;
+            }
+        }
+    }
+#endif /* SCREEN_USING_CYCLE_MATRIX */
     /** 屏幕密码显示控制 */
     if(LcdData.setData.SerialScreen_PassWordShow){
 //        if(((keyreg == 0x1000) && (keyval == 0x1E)) ||         \
@@ -13942,7 +16528,12 @@ void SerialScreen_GetKeyProcess(struct SerialScreenObj *cmd)
 						            LcdData.CurrentPage == LCD_PAGE_MENU_MONITOR_B ||
 						            LcdData.CurrentPage == LCD_PAGE_MENU_PROTECT ||
 						            LcdData.CurrentPage == LCD_PAGE_MENU_MODE_SELECT ||
+#ifdef SCREEN_USING_CYCLE_MATRIX
+                                    LcdData.CurrentPage == LCD_PAGE_OTHER_CONFIG ||
+                                    LcdData.CurrentPage == LCD_PAGE_MODULE_MATRIX){
+#else
 						            LcdData.CurrentPage == LCD_PAGE_OTHER_CONFIG){
+#endif /* SCREEN_USING_CYCLE_MATRIX */
 						        SerialScreen_CombineData(pPageIndex->item[i].valtype,pPageIndex->item[i].valaddr,LcdData.KeyInput,4,(1 <<0));
 						    }
 #if (defined(SCREEN_USING_V2G) || defined(SCREEN_USING_OFFLINE_BILLING))
@@ -14219,6 +16810,67 @@ void SerialScreen_GetKeyProcess(struct SerialScreenObj *cmd)
                               }
                           }
 #endif /* SCREEN_USING_V2G */
+#ifdef SCREEN_USING_CYCLE_MATRIX
+                        /** 模块矩阵调试页 */
+                        else if(LcdData.CurrentPage == LCD_PAGE_MODULE_MATRIX){
+                            /**************** 未选定页面 *************/
+                            if(page_selected == 0){
+                                /*************** 点击返回 ***************/
+                                if((keyreg == 0x1000) && (keyval == 0x0050)){
+                                    if(LcdAssistantData.PublicOpsGun >= LCD_GUN_NUM)
+                                        LcdAssistantData.PublicOpsGun = LCD_GUN_1;
+                                    LcdData.CurrentPage = (LCD_PAGE_MENU_MONITOR + LcdAssistantData.PublicOpsGun);
+                                    SerialScreen_EnterMonitor();
+                                }
+                                /*************** 点击输入输出 ***************/
+                                else if((keyreg == 0x1000) && (keyval == 0x0023)){
+                                    if(LcdAssistantData.PublicOpsGun >= LCD_GUN_NUM)
+                                        LcdAssistantData.PublicOpsGun = LCD_GUN_1;
+                                    LcdData.CurrentPage = (LCD_PAGE_MENU_INOUT + LcdAssistantData.PublicOpsGun);
+                                    SerialScreen_GetIOStatus(LcdAssistantData.PublicOpsGun);
+                                }
+                                /*************** 点击模块状态 ***************/
+                                else if((keyreg == 0x1000) && (keyval == 0x0024)){
+                                    if(LcdAssistantData.PublicOpsGun >= LCD_GUN_NUM)
+                                        LcdAssistantData.PublicOpsGun = LCD_GUN_1;
+                                    LcdData.CurrentPage = (LCD_PAGE_MENU_STATE_MODULE + LcdAssistantData.PublicOpsGun);
+                                    SerialScreen_BtnModuleStateShow(LcdAssistantData.PublicOpsGun);
+                                }
+                                /*************** 点击液冷状态 ***************/
+                                else if((keyreg == 0x1008) && (keyval == 0x0001)){
+                                    if(LcdAssistantData.PublicOpsGun >= LCD_GUN_NUM)
+                                        LcdAssistantData.PublicOpsGun = LCD_GUN_1;
+                                    LcdData.CurrentPage = (LCD_PAGE_LIQUID_COOLINGA + LcdAssistantData.PublicOpsGun);
+                                    SerialScreen_EnterLiquid();
+                                }
+                                /*************** 点击矩阵状态 ***************/
+                                else if((keyreg == 0x1009) && (keyval == 0x0088)){
+                                    if(LcdAssistantData.PublicOpsGun >= LCD_GUN_NUM)
+                                        LcdAssistantData.PublicOpsGun = LCD_GUN_1;
+                                    LcdData.CurrentPage = (LCD_PAGE_RELAY_MATRIX + LcdAssistantData.PublicOpsGun);
+                                }
+                            }
+                        }
+                        /** 监控调试页 */
+                        else if((LcdData.CurrentPage == LCD_PAGE_MENU_MONITOR) || (LcdData.CurrentPage == LCD_PAGE_MENU_MONITOR_B)){
+                            /**************** 未选定页面 *************/
+                            if(page_selected == 0){
+                                /** 在监控页面点击了按组启动模块 */
+                                if((keyreg == 0x1009) && (keyval == 0x0087)){
+                                    u8 _dev_type = 0;
+                                    /** 只有子母机(环矩)、子母机(半矩)需要模块矩阵信息 */
+                                    _dev_type = thaisenGetChargGunRunType();
+                                    if((_dev_type == thaisenDeviceType_Matrix_Cycle) || (_dev_type == thaisenDeviceType_Matrix_Half)){
+                                        LcdData.CurrentPage = pPageIndex->item[i].vallen;
+                                        page_selected = 1;
+                                    }
+                                }else{
+                                    LcdData.CurrentPage = pPageIndex->item[i].vallen;
+                                    page_selected = 1;
+                                }
+                            }
+                        }
+#endif /* SCREEN_USING_CYCLE_MATRIX */
                          else{
                              if(page_selected == 0){
                                  LcdData.CurrentPage = pPageIndex->item[i].vallen;
@@ -14334,7 +16986,12 @@ void SerialScreen_CurrentPageItem(struct SerialScreenObj *cmd,struct LCD_DISPLAY
                                     LcdData.CurrentPage == LCD_PAGE_MENU_PROTECT ||
                                     LcdData.CurrentPage == LCD_PAGE_SYS_UPDATE ||
                                     LcdData.CurrentPage == LCD_PAGE_MENU_MODE_SELECT ||
+#ifdef SCREEN_USING_CYCLE_MATRIX
+                                    LcdData.CurrentPage == LCD_PAGE_OTHER_CONFIG ||
+                                    LcdData.CurrentPage == LCD_PAGE_MODULE_MATRIX){
+#else
                                     LcdData.CurrentPage == LCD_PAGE_OTHER_CONFIG){
+#endif /* SCREEN_USING_CYCLE_MATRIX */
                                 u32 data = SerialScreen_GetData_WithType(pPageIndex->item[index].valtype, pPageIndex->item[index].valaddr);
                                 SerialScreen_SendData(cmd, pPageIndex->item[index].regaddr, data);
                             }
@@ -14382,6 +17039,20 @@ void SerialScreen_CurrentPageItem(struct SerialScreenObj *cmd,struct LCD_DISPLAY
 					}
 				}
 				break;
+#ifdef SCREEN_USING_CYCLE_MATRIX
+	        case LCD_PlainTextType:
+	            if(state)
+	            {
+	                if(pPageIndex->item[index].reflash==0)
+	                    break;
+	            }
+	            if(pPageIndex->item[index].valaddr != NULL)
+	            {
+	                SerialScreen_SendTxt(cmd,pPageIndex->item[index].regaddr, (u8 *)(pPageIndex->item[index].valaddr),pPageIndex->item[index].vallen);;
+	                return TRUE;
+	            }
+	            break;
+#endif /* SCREEN_USING_CYCLE_MATRIX */
 			default:
 				break;
 		}
@@ -14749,6 +17420,9 @@ int SerialScreen_DataProcess()
 
 	if(TRUE == LcdData.debugIOflg)
 	{
+#ifdef SCREEN_USING_CYCLE_MATRIX
+        u8 fb_state = 0, temp[2];
+#endif /* SCREEN_USING_CYCLE_MATRIX */
 		LcdData.setData.g_door = !thaisenGetDoorStatus();
 		LcdData.setData.g_emergency = !thaisenGetScramStatus();
 		LcdData.setData.g_elElock[LCD_GUN_1] = !thaisenGetElectLockStaA();
@@ -14776,6 +17450,92 @@ int SerialScreen_DataProcess()
         LcdData.setData.g_flood = !(thaisenGetGeneralInPortSta(thaisenGeneralInPortFlooding));
         LcdData.setData.g_smoke = !(thaisenGetGeneralInPortSta(thaisenGeneralInPortSmoke));
 #endif /* SCREEN_USING_DOUBLE_GUN */
+
+#ifdef SCREEN_USING_CYCLE_MATRIX
+        /** 目前是正负极一起控制 */
+        if(thaisenGetChargGunRunType() == thaisenDeviceType_Matrix_Cycle){
+            memset(LcdData.MatrixRelay_KP1_2, 0x02, sizeof(LcdData.MatrixRelay_KP1_2)); /** 2为空白：隐藏 */
+            memset(LcdData.MatrixRelay_KP1_3, 0x02, sizeof(LcdData.MatrixRelay_KP1_3)); /** 2为空白：隐藏 */
+            memset(LcdData.MatrixRelay_KP2_3, 0x02, sizeof(LcdData.MatrixRelay_KP2_3)); /** 2为空白：隐藏 */
+            memset(LcdData.MatrixRelay_KP3_2, 0x02, sizeof(LcdData.MatrixRelay_KP3_3)); /** 2为空白：隐藏 */
+            memset(LcdData.MatrixRelay_KP3_3, 0x02, sizeof(LcdData.MatrixRelay_KP3_3)); /** 2为空白：隐藏 */
+
+            fb_state = thaisenMatrixRelay_FB(THAISEN_MATRIX_RELAY_KPN1_1);
+            temp[0] = ((!fb_state) &0x01) + '0';
+            temp[1] = temp[0];
+            LcdData.FB_MatrixRelay_KP1_1 = 0;
+            memcpy(&(LcdData.FB_MatrixRelay_KP1_1), temp, sizeof(temp));
+
+            fb_state = thaisenMatrixRelay_FB(THAISEN_MATRIX_RELAY_KPN1_2);
+            temp[0] = ((!fb_state) &0x01) + '0';
+            temp[1] = temp[0];
+            LcdData.FB_MatrixRelay_KP2_1 = 0;
+            memcpy(&(LcdData.FB_MatrixRelay_KP2_1), temp, sizeof(temp));
+
+            fb_state = thaisenMatrixRelay_FB(THAISEN_MATRIX_RELAY_KPN1_3);
+            temp[0] = ((!fb_state) &0x01) + '0';
+            temp[1] = temp[0];
+            LcdData.FB_MatrixRelay_KP3_1 = 0;
+            memcpy(&(LcdData.FB_MatrixRelay_KP3_1), temp, sizeof(temp));
+
+            fb_state = thaisenMatrixRelay_FB(THAISEN_MATRIX_RELAY_KPN2_1);
+            temp[0] = ((!fb_state) &0x01) + '0';
+            temp[1] = temp[0];
+            LcdData.FB_MatrixRelay_KP2_2 = 0;
+            memcpy(&(LcdData.FB_MatrixRelay_KP2_2), temp, sizeof(temp));
+
+            LcdData.FB_MatrixRelay_KP1_2 = 0;
+            LcdData.FB_MatrixRelay_KP1_3 = 0;
+            LcdData.FB_MatrixRelay_KP2_3 = 0;
+            LcdData.FB_MatrixRelay_KP3_2 = 0;
+            LcdData.FB_MatrixRelay_KP3_3 = 0;
+
+        }else if(thaisenGetChargGunRunType() == thaisenDeviceType_Matrix_Half){
+            memset(LcdData.MatrixRelay_KP2_1, 0x02, sizeof(LcdData.MatrixRelay_KP2_1)); /** 2为空白：隐藏 */
+            memset(LcdData.MatrixRelay_KP3_1, 0x02, sizeof(LcdData.MatrixRelay_KP3_1)); /** 2为空白：隐藏 */
+            memset(LcdData.MatrixRelay_KP3_2, 0x02, sizeof(LcdData.MatrixRelay_KP3_3)); /** 2为空白：隐藏 */
+
+            fb_state = thaisenMatrixRelay_FB(THAISEN_MATRIX_RELAY_KPN1_1);
+            temp[0] = ((!fb_state) &0x01) + '0';
+            temp[1] = temp[0];
+            LcdData.FB_MatrixRelay_KP1_1 = 0;
+            memcpy(&(LcdData.FB_MatrixRelay_KP1_1), temp, sizeof(temp));
+
+            fb_state = thaisenMatrixRelay_FB(THAISEN_MATRIX_RELAY_KPN1_2);
+            temp[0] = ((!fb_state) &0x01) + '0';
+            temp[1] = temp[0];
+            LcdData.FB_MatrixRelay_KP1_2 = 0;
+            memcpy(&(LcdData.FB_MatrixRelay_KP1_2), temp, sizeof(temp));
+
+            fb_state = thaisenMatrixRelay_FB(THAISEN_MATRIX_RELAY_KPN1_3);
+            temp[0] = ((!fb_state) &0x01) + '0';
+            temp[1] = temp[0];
+            LcdData.FB_MatrixRelay_KP1_3 = 0;
+            memcpy(&(LcdData.FB_MatrixRelay_KP1_3), temp, sizeof(temp));
+
+            fb_state = thaisenMatrixRelay_FB(THAISEN_MATRIX_RELAY_KPN2_1);
+            temp[0] = ((!fb_state) &0x01) + '0';
+            temp[1] = temp[0];
+            LcdData.FB_MatrixRelay_KP2_2 = 0;
+            memcpy(&(LcdData.FB_MatrixRelay_KP2_2), temp, sizeof(temp));
+
+            fb_state = thaisenMatrixRelay_FB(THAISEN_MATRIX_RELAY_KPN2_2);
+            temp[0] = ((!fb_state) &0x01) + '0';
+            temp[1] = temp[0];
+            LcdData.FB_MatrixRelay_KP2_3 = 0;
+            memcpy(&(LcdData.FB_MatrixRelay_KP2_3), temp, sizeof(temp));
+
+            fb_state = thaisenMatrixRelay_FB(THAISEN_MATRIX_RELAY_KPN3_1);
+            temp[0] = ((!fb_state) &0x01) + '0';
+            temp[1] = temp[0];
+            LcdData.FB_MatrixRelay_KP3_3 = 0;
+            memcpy(&(LcdData.FB_MatrixRelay_KP3_3), temp, sizeof(temp));
+
+            LcdData.FB_MatrixRelay_KP2_1 = 0;
+            LcdData.FB_MatrixRelay_KP3_1 = 0;
+            LcdData.FB_MatrixRelay_KP3_2 = 0;
+        }
+#endif /* SCREEN_USING_CYCLE_MATRIX */
 	}
 	
     LcdData.runData.netstate = thaisen_app_get_net_state();
@@ -16225,6 +18985,10 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_MONITOR, NULL, "b gun", LCD_BtnType, 0x0026, 0x1000, page_type, LCD_PAGE_MENU_MONITOR_B, (void *)NULL);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_MONITOR, NULL, "in out", LCD_BtnType, 0x0023, 0x1000, page_type, LCD_PAGE_MENU_INOUT, (void *)SerialScreen_GetIOStatusA);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_MONITOR, NULL, "modeule state", LCD_BtnType, 0x0024, 0x1000, page_type, LCD_PAGE_MENU_STATE_MODULE, (void *)SerialScreen_BtnModuleStateA);
+#ifdef SCREEN_USING_CYCLE_MATRIX
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_MONITOR, NULL, "modeule matrix", LCD_BtnType, 0x0087, 0x1009, page_type, LCD_PAGE_MODULE_MATRIX, (void *)SerialScreen_DebugModuleMatrixCtrlEnter);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_MONITOR, NULL, "relay matrix", LCD_BtnType, 0x0088, 0x1009, page_type, LCD_PAGE_RELAY_MATRIX, (void *)NULL);
+#endif /* SCREEN_USING_CYCLE_MATRIX */
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_MONITOR, NULL, "charge vol", LCD_DataType, LCD_1sReflash, 0x4150, pu32_type, sizeof(LcdData.setData.g_chargeVol[LCD_GUN_1]), (void *)&LcdData.setData.g_chargeVol[LCD_GUN_1]);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_MONITOR, NULL, "charge cur", LCD_DataType, LCD_1sReflash, 0x4152, pu32_type, sizeof(LcdData.setData.g_chargeCur[LCD_GUN_1]), (void *)&LcdData.setData.g_chargeCur[LCD_GUN_1]);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_MONITOR, NULL, "meter vol", LCD_DataType, LCD_1sReflash, 0x4158, pu32_type, sizeof(LcdData.setData.g_meterVol[LCD_GUN_1]), (void *)&LcdData.setData.g_meterVol[LCD_GUN_1]);
@@ -16249,6 +19013,10 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_MONITOR_B, NULL, "a gun", LCD_BtnType, 0x0026, 0x1000, page_type, LCD_PAGE_MENU_MONITOR, (void *)NULL);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_MONITOR_B, NULL, "in out", LCD_BtnType, 0x0023, 0x1000, page_type, LCD_PAGE_MENU_INOUT_B, (void *)SerialScreen_GetIOStatusB);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_MONITOR_B, NULL, "modeule state", LCD_BtnType, 0x0024, 0x1000, page_type, LCD_PAGE_MENU_STATE_MODULE_B, (void *)SerialScreen_BtnModuleStateB);
+#ifdef SCREEN_USING_CYCLE_MATRIX
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_MONITOR_B, NULL, "modeule matrix", LCD_BtnType, 0x0087, 0x1009, page_type, LCD_PAGE_MODULE_MATRIX, (void *)SerialScreen_DebugModuleMatrixCtrlEnter);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_MONITOR_B, NULL, "relay matrix", LCD_BtnType, 0x0088, 0x1009, page_type, LCD_PAGE_RELAY_MATRIX, (void *)NULL);
+#endif /* SCREEN_USING_CYCLE_MATRIX */
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_MONITOR_B, NULL, "charge vol", LCD_DataType, LCD_1sReflash, 0x5150, pu32_type, sizeof(LcdData.setData.g_chargeVol[LCD_GUN_2]), (void *)&LcdData.setData.g_chargeVol[LCD_GUN_2]);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_MONITOR_B, NULL, "charge cur", LCD_DataType, LCD_1sReflash, 0x5152, pu32_type, sizeof(LcdData.setData.g_chargeCur[LCD_GUN_2]), (void *)&LcdData.setData.g_chargeCur[LCD_GUN_2]);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_MONITOR_B, NULL, "meter vol", LCD_DataType, LCD_1sReflash, 0x5158, pu32_type, sizeof(LcdData.setData.g_meterVol[LCD_GUN_2]), (void *)&LcdData.setData.g_meterVol[LCD_GUN_2]);
@@ -16284,7 +19052,9 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT, NULL, "b gun", LCD_BtnType, 0x0026, 0x1000, page_type, LCD_PAGE_MENU_INOUT_B, (void *)SerialScreen_GetIOStatusB);
 
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT, NULL, "monitor info", LCD_BtnType, 0x0022, 0x1000, page_type, LCD_PAGE_MENU_MONITOR, (void *)SerialScreen_EnterMonitor);
-
+#ifdef SCREEN_USING_CYCLE_MATRIX
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT, NULL, "relay matrix", LCD_BtnType, 0x0088, 0x1009, page_type, LCD_PAGE_RELAY_MATRIX, (void *)NULL);
+#endif /* SCREEN_USING_CYCLE_MATRIX */
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT, NULL, "Relay AC", LCD_TextType, LCD_1sReflash, 0x4164, pu32_type, sizeof(LcdData.setData.g_acRely), (void *)&LcdData.setData.g_acRely);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT, NULL, "Relay A", LCD_TextType, LCD_1sReflash, 0x4166, pu8_nH_type, 1, (void *)&LcdData.setData.g_dcRelay[LCD_GUN_1]);
 
@@ -16335,6 +19105,9 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT_B, NULL, "aux24v set", LCD_BtnType, 0x0061, 0x1003, page_type, LCD_PAGE_MENU_INOUT_B, (void *)SerialScreen_BtnAux24VSetB);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT_B, NULL, "a gun", LCD_BtnType, 0x0026, 0x1000, page_type, LCD_PAGE_MENU_INOUT, (void *)SerialScreen_GetIOStatusA);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT_B, NULL, "monitor info", LCD_BtnType, 0x0022, 0x1000, page_type, LCD_PAGE_MENU_MONITOR_B, (void *)SerialScreen_EnterMonitor);
+#ifdef SCREEN_USING_CYCLE_MATRIX
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT_B, NULL, "relay matrix", LCD_BtnType, 0x0088, 0x1009, page_type, LCD_PAGE_RELAY_MATRIX, (void *)NULL);
+#endif /* SCREEN_USING_CYCLE_MATRIX */
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT_B, NULL, "Relay AC", LCD_TextType, LCD_1sReflash, 0x5164, pu32_type, sizeof(LcdData.setData.g_acRely), (void *)&LcdData.setData.g_acRely);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT_B, NULL, "Relay B", LCD_TextType, LCD_1sReflash, 0x5166, pu8_nH_type, 1, (void *)&LcdData.setData.g_dcRelay[LCD_GUN_2]);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_INOUT_B, NULL, "Relay Parallel1", LCD_TextType, LCD_1sReflash, 0x5168, pu8_nH_type, 1, (void *)&LcdData.setData.g_paraRely0);
@@ -16376,6 +19149,9 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_STATE_MODULE, NULL, "monitor info", LCD_BtnType, 0x0022, 0x1000, page_type, LCD_PAGE_MENU_MONITOR, (void *)SerialScreen_EnterMonitor);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_STATE_MODULE, NULL, "in out", LCD_BtnType, 0x0023, 0x1000, page_type, LCD_PAGE_MENU_INOUT, (void *)SerialScreen_GetIOStatusA);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_STATE_MODULE, NULL, "cd up", LCD_BtnType, 0x0050, 0x1000, page_type, LCD_PAGE_ROOT_MAIN, (void *)SerialScreen_QuitDebugIO);
+#ifdef SCREEN_USING_CYCLE_MATRIX
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_STATE_MODULE, NULL, "relay matrix", LCD_BtnType, 0x0088, 0x1009, page_type, LCD_PAGE_RELAY_MATRIX, (void *)NULL);
+#endif /* SCREEN_USING_CYCLE_MATRIX */
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_STATE_MODULE, NULL, "Home", LCD_BtnHomeType, 0x0002, 0x1000, page_type, LCD_PAGE_NONE, (void *)SerialScreen_QuitDebugIO);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_STATE_MODULE, NULL, "modulestate", LCD_TextType, LCD_NoReflash, 0x5200, pstr_type, sizeof(LcdData.ModuleStateString[0]), (void *)LcdData.ModuleStateString[0]);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_STATE_MODULE, NULL, "modulestate", LCD_TextType, LCD_NoReflash, 0x5210, pstr_type, sizeof(LcdData.ModuleStateString[1]), (void *)LcdData.ModuleStateString[1]);
@@ -16406,6 +19182,9 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_STATE_MODULE_B, NULL, "monitor info", LCD_BtnType, 0x0022, 0x1000, page_type, LCD_PAGE_MENU_MONITOR_B, (void *)SerialScreen_EnterMonitor);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_STATE_MODULE_B, NULL, "in out", LCD_BtnType, 0x0023, 0x1000, page_type, LCD_PAGE_MENU_INOUT_B, (void *)SerialScreen_GetIOStatusB);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_STATE_MODULE_B, NULL, "cd up", LCD_BtnType, 0x0050, 0x1000, page_type, LCD_PAGE_ROOT_MAIN, (void *)SerialScreen_QuitDebugIO);
+#ifdef SCREEN_USING_CYCLE_MATRIX
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_STATE_MODULE_B, NULL, "relay matrix", LCD_BtnType, 0x0088, 0x1009, page_type, LCD_PAGE_RELAY_MATRIX, (void *)NULL);
+#endif /* SCREEN_USING_CYCLE_MATRIX */
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_STATE_MODULE_B, NULL, "Home", LCD_BtnHomeType, 0x0002, 0x1000, page_type, LCD_PAGE_NONE, (void *)SerialScreen_QuitDebugIO);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_STATE_MODULE_B, NULL, "modulestate", LCD_TextType, LCD_NoReflash, 0x5200, pstr_type, sizeof(LcdData.ModuleStateString[0]), (void *)LcdData.ModuleStateString[0]);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_STATE_MODULE_B, NULL, "modulestate", LCD_TextType, LCD_NoReflash, 0x5210, pstr_type, sizeof(LcdData.ModuleStateString[1]), (void *)LcdData.ModuleStateString[1]);
@@ -16427,6 +19206,93 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_STATE_MODULE_B, NULL, "moduleFault", LCD_TextType, LCD_NoReflash, 0x6B01, pstr_type, sizeof(LcdData.ModuleFaultInfoShow[LCD_GUN_2][0]), (void *)LcdData.ModuleFaultInfoShow[LCD_GUN_2][0]);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_STATE_MODULE_B, NULL, "moduleFault", LCD_TextType, LCD_NoReflash, 0x6B21, pstr_type, sizeof(LcdData.ModuleFaultInfoShow[LCD_GUN_2][1]), (void *)LcdData.ModuleFaultInfoShow[LCD_GUN_2][1]);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_STATE_MODULE_B, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
+
+#ifdef SCREEN_USING_CYCLE_MATRIX
+    /** 45.出厂调试-模块矩阵调试 [page:45] 22 item */  //OK
+    SerialScreen_ItemSetUp(LCD_PAGE_MODULE_MATRIX, NULL, "in out", LCD_BtnType, 0x0023, 0x1000, page_type, LCD_PAGE_MENU_INOUT, (void *)NULL);
+    SerialScreen_ItemSetUp(LCD_PAGE_MODULE_MATRIX, NULL, "modeule state", LCD_BtnType, 0x0024, 0x1000, page_type, LCD_PAGE_MENU_STATE_MODULE, (void *)NULL);
+    SerialScreen_ItemSetUp(LCD_PAGE_MODULE_MATRIX, NULL, "liquid", LCD_BtnType, 0x0001, 0x1008, page_type, LCD_PAGE_LIQUID_COOLINGA, (void *)SerialScreen_EnterLiquid);
+#ifdef SCREEN_USING_CYCLE_MATRIX
+    SerialScreen_ItemSetUp(LCD_PAGE_MODULE_MATRIX, NULL, "matrix relay", LCD_BtnType, 0x0088, 0x1009, page_type, LCD_PAGE_RELAY_MATRIX, (void *)NULL);
+#endif /* SCREEN_USING_CYCLE_MATRIX */
+    SerialScreen_ItemSetUp(LCD_PAGE_MODULE_MATRIX, NULL, "back", LCD_BtnType, 0x0050, 0x1000, page_type, LCD_PAGE_MENU_MONITOR, (void *)NULL);
+    SerialScreen_ItemSetUp(LCD_PAGE_MODULE_MATRIX, NULL, "Home", LCD_BtnHomeType, 0x0002, 0x1000, page_type, LCD_PAGE_NONE, (void *)SerialScreen_QuitDebugIO);
+
+    SerialScreen_ItemSetUp(LCD_PAGE_MODULE_MATRIX, NULL, "CtrlAll_icon", LCD_IconType, LCD_10sReflash, 0x1B14, pu8_type, sizeof(LcdData.ModuleMatrixCtrlAll), (void *)&LcdData.ModuleMatrixCtrlAll);
+    SerialScreen_ItemSetUp(LCD_PAGE_MODULE_MATRIX, NULL, "CtrlG1_icon", LCD_IconType, LCD_10sReflash, 0x1B19, pu8_type, sizeof(LcdData.ModuleMatrixCtrlG1), (void *)&LcdData.ModuleMatrixCtrlG1);
+    SerialScreen_ItemSetUp(LCD_PAGE_MODULE_MATRIX, NULL, "CtrlG2_icon", LCD_IconType, LCD_10sReflash, 0x1B22, pu8_type, sizeof(LcdData.ModuleMatrixCtrlG2), (void *)&LcdData.ModuleMatrixCtrlG2);
+    SerialScreen_ItemSetUp(LCD_PAGE_MODULE_MATRIX, NULL, "CtrlG3_icon", LCD_IconType, LCD_10sReflash, 0x1B2B, pu8_type, sizeof(LcdData.ModuleMatrixCtrlG3), (void *)&LcdData.ModuleMatrixCtrlG3);
+    SerialScreen_ItemSetUp(LCD_PAGE_MODULE_MATRIX, NULL, "CtrlG4_icon", LCD_IconType, LCD_10sReflash, 0x1B34, pu8_type, sizeof(LcdData.ModuleMatrixCtrlG4), (void *)&LcdData.ModuleMatrixCtrlG4);
+
+    SerialScreen_ItemSetUp(LCD_PAGE_MODULE_MATRIX, NULL, "CtrlAll", LCD_BtnType, 0x0077, 0x1009, page_type, LCD_PAGE_MODULE_MATRIX, (void *)SerialScreen_DebugModuleMatrixCtrlAll);
+    SerialScreen_ItemSetUp(LCD_PAGE_MODULE_MATRIX, NULL, "CtrlG1", LCD_BtnType, 0x0078, 0x1009, page_type, LCD_PAGE_MODULE_MATRIX, (void *)SerialScreen_DebugModuleMatrixCtrlG1);
+    SerialScreen_ItemSetUp(LCD_PAGE_MODULE_MATRIX, NULL, "CtrlG2", LCD_BtnType, 0x0079, 0x1009, page_type, LCD_PAGE_MODULE_MATRIX, (void *)SerialScreen_DebugModuleMatrixCtrlG2);
+    SerialScreen_ItemSetUp(LCD_PAGE_MODULE_MATRIX, NULL, "CtrlG3", LCD_BtnType, 0x007A, 0x1009, page_type, LCD_PAGE_MODULE_MATRIX, (void *)SerialScreen_DebugModuleMatrixCtrlG3);
+    SerialScreen_ItemSetUp(LCD_PAGE_MODULE_MATRIX, NULL, "CtrlG4", LCD_BtnType, 0x007B, 0x1009, page_type, LCD_PAGE_MODULE_MATRIX, (void *)SerialScreen_DebugModuleMatrixCtrlG4);
+    SerialScreen_ItemSetUp(LCD_PAGE_MODULE_MATRIX, NULL, "CtrlReset", LCD_BtnType, 0x007C, 0x1009, page_type, LCD_PAGE_MODULE_MATRIX, (void *)SerialScreen_DebugModuleMatrixParaReset);
+
+    SerialScreen_ItemSetUp(LCD_PAGE_MODULE_MATRIX, NULL, "SetVoltAll", LCD_InputType, 0, 0x1B10, pu32_type, sizeof(LcdData.ModuleMatrixSetVoltALL), (void *)&LcdData.ModuleMatrixSetVoltALL);
+    SerialScreen_ItemSetUp(LCD_PAGE_MODULE_MATRIX, NULL, "SetCurrAll", LCD_InputType, 0, 0x1B12, pu32_type, sizeof(LcdData.ModuleMatrixSetCurrALL), (void *)&LcdData.ModuleMatrixSetCurrALL);
+    SerialScreen_ItemSetUp(LCD_PAGE_MODULE_MATRIX, NULL, "SetVoltG1", LCD_InputType, 0, 0x1B15, pu32_type, sizeof(LcdData.ModuleMatrixSetVoltG1), (void *)&LcdData.ModuleMatrixSetVoltG1);
+    SerialScreen_ItemSetUp(LCD_PAGE_MODULE_MATRIX, NULL, "SetCurrG1", LCD_InputType, 0, 0x1B17, pu32_type, sizeof(LcdData.ModuleMatrixSetCurrG1), (void *)&LcdData.ModuleMatrixSetCurrG1);
+    SerialScreen_ItemSetUp(LCD_PAGE_MODULE_MATRIX, NULL, "SetVoltG2", LCD_InputType, 0, 0x1B1E, pu32_type, sizeof(LcdData.ModuleMatrixSetVoltG2), (void *)&LcdData.ModuleMatrixSetVoltG2);
+    SerialScreen_ItemSetUp(LCD_PAGE_MODULE_MATRIX, NULL, "SetCurrG2", LCD_InputType, 0, 0x1B20, pu32_type, sizeof(LcdData.ModuleMatrixSetCurrG2), (void *)&LcdData.ModuleMatrixSetCurrG2);
+    SerialScreen_ItemSetUp(LCD_PAGE_MODULE_MATRIX, NULL, "SetVoltG3", LCD_InputType, 0, 0x1B27, pu32_type, sizeof(LcdData.ModuleMatrixSetVoltG3), (void *)&LcdData.ModuleMatrixSetVoltG3);
+    SerialScreen_ItemSetUp(LCD_PAGE_MODULE_MATRIX, NULL, "SetCurrG3", LCD_InputType, 0, 0x1B29, pu32_type, sizeof(LcdData.ModuleMatrixSetCurrG3), (void *)&LcdData.ModuleMatrixSetCurrG3);
+    SerialScreen_ItemSetUp(LCD_PAGE_MODULE_MATRIX, NULL, "SetVoltG4", LCD_InputType, 0, 0x1B30, pu32_type, sizeof(LcdData.ModuleMatrixSetVoltG4), (void *)&LcdData.ModuleMatrixSetVoltG4);
+    SerialScreen_ItemSetUp(LCD_PAGE_MODULE_MATRIX, NULL, "SetCurrG4", LCD_InputType, 0, 0x1B32, pu32_type, sizeof(LcdData.ModuleMatrixSetCurrG4), (void *)&LcdData.ModuleMatrixSetCurrG4);
+
+    SerialScreen_ItemSetUp(LCD_PAGE_MODULE_MATRIX, NULL, "OutVoltG1", LCD_DataType, LCD_1sReflash, 0x1B1A, pu32_type, sizeof(LcdData.ModuleMatrixOutVoltG1), (void *)&LcdData.ModuleMatrixOutVoltG1);
+    SerialScreen_ItemSetUp(LCD_PAGE_MODULE_MATRIX, NULL, "OutCurrG1", LCD_DataType, LCD_1sReflash, 0x1B1C, pu32_type, sizeof(LcdData.ModuleMatrixOutCurrG1), (void *)&LcdData.ModuleMatrixOutCurrG1);
+    SerialScreen_ItemSetUp(LCD_PAGE_MODULE_MATRIX, NULL, "OutVoltG2", LCD_DataType, LCD_1sReflash, 0x1B23, pu32_type, sizeof(LcdData.ModuleMatrixOutVoltG2), (void *)&LcdData.ModuleMatrixOutVoltG2);
+    SerialScreen_ItemSetUp(LCD_PAGE_MODULE_MATRIX, NULL, "OutCurrG2", LCD_DataType, LCD_1sReflash, 0x1B25, pu32_type, sizeof(LcdData.ModuleMatrixOutCurrG2), (void *)&LcdData.ModuleMatrixOutCurrG2);
+    SerialScreen_ItemSetUp(LCD_PAGE_MODULE_MATRIX, NULL, "OutVoltG3", LCD_DataType, LCD_1sReflash, 0x1B2C, pu32_type, sizeof(LcdData.ModuleMatrixOutVoltG3), (void *)&LcdData.ModuleMatrixOutVoltG3);
+    SerialScreen_ItemSetUp(LCD_PAGE_MODULE_MATRIX, NULL, "OutCurrG3", LCD_DataType, LCD_1sReflash, 0x1B2E, pu32_type, sizeof(LcdData.ModuleMatrixOutCurrG3), (void *)&LcdData.ModuleMatrixOutCurrG3);
+    SerialScreen_ItemSetUp(LCD_PAGE_MODULE_MATRIX, NULL, "OutVoltG4", LCD_DataType, LCD_1sReflash, 0x1B35, pu32_type, sizeof(LcdData.ModuleMatrixOutVoltG4), (void *)&LcdData.ModuleMatrixOutVoltG4);
+    SerialScreen_ItemSetUp(LCD_PAGE_MODULE_MATRIX, NULL, "OutCurrG4", LCD_DataType, LCD_1sReflash, 0x1B37, pu32_type, sizeof(LcdData.ModuleMatrixOutCurrG4), (void *)&LcdData.ModuleMatrixOutCurrG4);
+
+    /** 33.出厂调试-继电器矩阵调试 [page:28] 37 item */  //OK
+    SerialScreen_ItemSetUp(LCD_PAGE_RELAY_MATRIX, NULL, "select Polarity", LCD_BtnType, 0x0026, 0x1000, page_type, LCD_PAGE_RELAY_MATRIX, (void *)SerialScreen_MatrixRelay_SelectPolarity);
+    SerialScreen_ItemSetUp(LCD_PAGE_RELAY_MATRIX, NULL, "select Polarity", LCD_IconType, LCD_10sReflash, 0x1C00, pu8_type, sizeof(LcdData.MatrixRelayPolarity), (void *)&LcdData.MatrixRelayPolarity);
+    SerialScreen_ItemSetUp(LCD_PAGE_RELAY_MATRIX, NULL, "in out", LCD_BtnType, 0x0023, 0x1000, page_type, LCD_PAGE_MENU_INOUT, (void *)SerialScreen_GetIOStatusA);
+    SerialScreen_ItemSetUp(LCD_PAGE_RELAY_MATRIX, NULL, "modeule state", LCD_BtnType, 0x0024, 0x1000, page_type, LCD_PAGE_MENU_STATE_MODULE, (void *)SerialScreen_BtnModuleStateA);
+    SerialScreen_ItemSetUp(LCD_PAGE_RELAY_MATRIX, NULL, "liquid", LCD_BtnType, 0x0001, 0x1008, page_type, LCD_PAGE_LIQUID_COOLINGA, (void *)SerialScreen_EnterLiquid);
+    SerialScreen_ItemSetUp(LCD_PAGE_RELAY_MATRIX, NULL, "monitor info", LCD_BtnType, 0x0022, 0x1000, page_type, LCD_PAGE_MENU_MONITOR, (void *)SerialScreen_EnterMonitor);
+
+    SerialScreen_ItemSetUp(LCD_PAGE_RELAY_MATRIX, NULL, "MatrixRelay_KP1_1", LCD_BtnType, 0x007E, 0x1009, page_type, LCD_PAGE_RELAY_MATRIX, (void *)SerialScreen_MatrixRelay_KP1_1_Ctrl);
+    SerialScreen_ItemSetUp(LCD_PAGE_RELAY_MATRIX, NULL, "MatrixRelay_KP1_2", LCD_BtnType, 0x0081, 0x1009, page_type, LCD_PAGE_RELAY_MATRIX, (void *)SerialScreen_MatrixRelay_KP1_2_Ctrl);
+    SerialScreen_ItemSetUp(LCD_PAGE_RELAY_MATRIX, NULL, "MatrixRelay_KP1_3", LCD_BtnType, 0x0084, 0x1009, page_type, LCD_PAGE_RELAY_MATRIX, (void *)SerialScreen_MatrixRelay_KP1_3_Ctrl);
+    SerialScreen_ItemSetUp(LCD_PAGE_RELAY_MATRIX, NULL, "MatrixRelay_KP2_1", LCD_BtnType, 0x007F, 0x1009, page_type, LCD_PAGE_RELAY_MATRIX, (void *)SerialScreen_MatrixRelay_KP2_1_Ctrl);
+    SerialScreen_ItemSetUp(LCD_PAGE_RELAY_MATRIX, NULL, "MatrixRelay_KP2_2", LCD_BtnType, 0x0082, 0x1009, page_type, LCD_PAGE_RELAY_MATRIX, (void *)SerialScreen_MatrixRelay_KP2_2_Ctrl);
+    SerialScreen_ItemSetUp(LCD_PAGE_RELAY_MATRIX, NULL, "MatrixRelay_KP2_3", LCD_BtnType, 0x0085, 0x1009, page_type, LCD_PAGE_RELAY_MATRIX, (void *)SerialScreen_MatrixRelay_KP2_3_Ctrl);
+    SerialScreen_ItemSetUp(LCD_PAGE_RELAY_MATRIX, NULL, "MatrixRelay_KP3_1", LCD_BtnType, 0x0080, 0x1009, page_type, LCD_PAGE_RELAY_MATRIX, (void *)SerialScreen_MatrixRelay_KP3_1_Ctrl);
+    SerialScreen_ItemSetUp(LCD_PAGE_RELAY_MATRIX, NULL, "MatrixRelay_KP3_2", LCD_BtnType, 0x0083, 0x1009, page_type, LCD_PAGE_RELAY_MATRIX, (void *)SerialScreen_MatrixRelay_KP3_2_Ctrl);
+    SerialScreen_ItemSetUp(LCD_PAGE_RELAY_MATRIX, NULL, "MatrixRelay_KP3_3", LCD_BtnType, 0x0086, 0x1009, page_type, LCD_PAGE_RELAY_MATRIX, (void *)SerialScreen_MatrixRelay_KP3_3_Ctrl);
+    SerialScreen_ItemSetUp(LCD_PAGE_RELAY_MATRIX, NULL, "MatrixRelay_All", LCD_BtnType, 0x007D, 0x1009, page_type, LCD_PAGE_RELAY_MATRIX, (void *)SerialScreen_MatrixRelayCtrl_All);
+
+    SerialScreen_ItemSetUp(LCD_PAGE_RELAY_MATRIX, NULL, "Relay_KP1_1", LCD_IconType, LCD_10sReflash, 0x1C04, pu8_type, sizeof(LcdData.MatrixRelay_KP1_1[2]), (void *)&LcdData.MatrixRelay_KP1_1[2]);
+    SerialScreen_ItemSetUp(LCD_PAGE_RELAY_MATRIX, NULL, "Relay_KP1_2", LCD_IconType, LCD_10sReflash, 0x1C07, pu8_type, sizeof(LcdData.MatrixRelay_KP1_2[2]), (void *)&LcdData.MatrixRelay_KP1_2[2]);
+    SerialScreen_ItemSetUp(LCD_PAGE_RELAY_MATRIX, NULL, "Relay_KP1_3", LCD_IconType, LCD_10sReflash, 0x1C0A, pu8_type, sizeof(LcdData.MatrixRelay_KP1_3[2]), (void *)&LcdData.MatrixRelay_KP1_3[2]);
+    SerialScreen_ItemSetUp(LCD_PAGE_RELAY_MATRIX, NULL, "Relay_KP2_1", LCD_IconType, LCD_10sReflash, 0x1C05, pu8_type, sizeof(LcdData.MatrixRelay_KP2_1[2]), (void *)&LcdData.MatrixRelay_KP2_1[2]);
+    SerialScreen_ItemSetUp(LCD_PAGE_RELAY_MATRIX, NULL, "Relay_KP2_2", LCD_IconType, LCD_10sReflash, 0x1C08, pu8_type, sizeof(LcdData.MatrixRelay_KP2_2[2]), (void *)&LcdData.MatrixRelay_KP2_2[2]);
+    SerialScreen_ItemSetUp(LCD_PAGE_RELAY_MATRIX, NULL, "Relay_KP2_3", LCD_IconType, LCD_10sReflash, 0x1C0B, pu8_type, sizeof(LcdData.MatrixRelay_KP2_3[2]), (void *)&LcdData.MatrixRelay_KP2_3[2]);
+    SerialScreen_ItemSetUp(LCD_PAGE_RELAY_MATRIX, NULL, "Relay_KP3_1", LCD_IconType, LCD_10sReflash, 0x1C06, pu8_type, sizeof(LcdData.MatrixRelay_KP3_1[2]), (void *)&LcdData.MatrixRelay_KP3_1[2]);
+    SerialScreen_ItemSetUp(LCD_PAGE_RELAY_MATRIX, NULL, "Relay_KP3_2", LCD_IconType, LCD_10sReflash, 0x1C09, pu8_type, sizeof(LcdData.MatrixRelay_KP3_2[2]), (void *)&LcdData.MatrixRelay_KP3_2[2]);
+    SerialScreen_ItemSetUp(LCD_PAGE_RELAY_MATRIX, NULL, "Relay_KP3_3", LCD_IconType, LCD_10sReflash, 0x1C0C, pu8_type, sizeof(LcdData.MatrixRelay_KP3_3[2]), (void *)&LcdData.MatrixRelay_KP3_3[2]);
+    SerialScreen_ItemSetUp(LCD_PAGE_RELAY_MATRIX, NULL, "Relay_All", LCD_IconType, LCD_10sReflash, 0x1C02, pu8_type, sizeof(LcdData.MatrixRelay_All[2]), (void *)&LcdData.MatrixRelay_All[2]);
+
+    SerialScreen_ItemSetUp(LCD_PAGE_RELAY_MATRIX, NULL, "FB_Relay_KP1_1", LCD_PlainTextType, LCD_1sReflash, 0x1C50, pu8_nH_type, 2, (void *)&LcdData.FB_MatrixRelay_KP1_1);
+    SerialScreen_ItemSetUp(LCD_PAGE_RELAY_MATRIX, NULL, "FB_Relay_KP1_2", LCD_PlainTextType, LCD_1sReflash, 0x1C56, pu8_nH_type, 2, (void *)&LcdData.FB_MatrixRelay_KP1_2);
+    SerialScreen_ItemSetUp(LCD_PAGE_RELAY_MATRIX, NULL, "FB_Relay_KP2_1", LCD_PlainTextType, LCD_1sReflash, 0x1C52, pu8_nH_type, 2, (void *)&LcdData.FB_MatrixRelay_KP2_1);
+    SerialScreen_ItemSetUp(LCD_PAGE_RELAY_MATRIX, NULL, "FB_Relay_KP2_2", LCD_PlainTextType, LCD_1sReflash, 0x1C58, pu8_nH_type, 2, (void *)&LcdData.FB_MatrixRelay_KP2_2);
+    SerialScreen_ItemSetUp(LCD_PAGE_RELAY_MATRIX, NULL, "FB_Relay_KP2_3", LCD_PlainTextType, LCD_1sReflash, 0x1C5E, pu8_nH_type, 2, (void *)&LcdData.FB_MatrixRelay_KP2_3);
+    SerialScreen_ItemSetUp(LCD_PAGE_RELAY_MATRIX, NULL, "FB_Relay_KP3_1", LCD_PlainTextType, LCD_1sReflash, 0x1C54, pu8_nH_type, 2, (void *)&LcdData.FB_MatrixRelay_KP3_1);
+    SerialScreen_ItemSetUp(LCD_PAGE_RELAY_MATRIX, NULL, "FB_Relay_KP3_2", LCD_PlainTextType, LCD_1sReflash, 0x1C5A, pu8_nH_type, 2, (void *)&LcdData.FB_MatrixRelay_KP3_2);
+    SerialScreen_ItemSetUp(LCD_PAGE_RELAY_MATRIX, NULL, "FB_Relay_KP3_3", LCD_PlainTextType, LCD_1sReflash, 0x1C60, pu8_nH_type, 2, (void *)&LcdData.FB_MatrixRelay_KP3_3);
+
+    SerialScreen_ItemSetUp(LCD_PAGE_RELAY_MATRIX, NULL, "back", LCD_BtnType, 0x0050, 0x1000, page_type, LCD_PAGE_ROOT_MAIN, (void *)SerialScreen_QuitDebugIO);
+    SerialScreen_ItemSetUp(LCD_PAGE_RELAY_MATRIX, NULL, "Home", LCD_BtnHomeType, 0x0002, 0x1000, page_type, LCD_PAGE_NONE, (void *)SerialScreen_QuitDebugIO);
+#endif /* SCREEN_USING_CYCLE_MATRIX */
 
     /** 43.系统信息-系统 [page:54] */
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_SYS, NULL, "clear info", LCD_BtnType, 0x001d, 0x1000, page_type, LCD_PAGE_ROOT_MAIN, (void *)SerialScreen_BtnClearAll);
@@ -16455,6 +19321,9 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
 	SerialScreen_ItemSetUp(LCD_PAGE_MENU_SYS, NULL, "Reboot", LCD_BtnType, 0x0002, 0x1005, page_type, LCD_PAGE_MENU_SYS, (void *)SerialScreen_ScreenSet_Reboot_Flag);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_SYS, NULL, "Liquid Type", LCD_InputType, 0, 0x6503, menu_type, sizeof(LcdData.setData.LiquidType), (void *)&LcdData.setData.LiquidType);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_SYS, NULL, "Liquid Cnt", LCD_InputType, 0, 0x53AF, menu_type, sizeof(LcdData.setData.LiquidCnt), (void *)&LcdData.setData.LiquidCnt);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_SYS, NULL, "teminaladdrB", LCD_InputType, 0, 0x2124, pu16_type, sizeof(LcdData.setData.TeminaladdrB), (void *)&LcdData.setData.TeminaladdrB);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_SYS, NULL, "teminaladdrA", LCD_InputType, 0, 0x2104, pu16_type, sizeof(LcdData.setData.TeminaladdrA), (void *)&LcdData.setData.TeminaladdrA);
+
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_SYS, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
 
 #if (defined(SCREEN_USING_V2G) || defined(SCREEN_USING_OFFLINE_BILLING))
@@ -16536,6 +19405,9 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_LIQUID_COOLINGA, NULL, "b gun", LCD_BtnType, 0x0026, 0x1000, page_type, LCD_PAGE_LIQUID_COOLINGB, (void *)SerialScreen_EnterLiquid);
     SerialScreen_ItemSetUp(LCD_PAGE_LIQUID_COOLINGA, NULL, "monitor info", LCD_BtnType, 0x0022, 0x1000, page_type, LCD_PAGE_MENU_MONITOR, (void *)NULL);
     SerialScreen_ItemSetUp(LCD_PAGE_LIQUID_COOLINGA, NULL, "in out", LCD_BtnType, 0x0023, 0x1000, page_type, LCD_PAGE_MENU_INOUT, (void *)SerialScreen_GetIOStatusA);
+#ifdef SCREEN_USING_CYCLE_MATRIX
+    SerialScreen_ItemSetUp(LCD_PAGE_LIQUID_COOLINGA, NULL, "relay matrix", LCD_BtnType, 0x0088, 0x1009, page_type, LCD_PAGE_RELAY_MATRIX, (void *)NULL);
+#endif /* SCREEN_USING_CYCLE_MATRIX */
     SerialScreen_ItemSetUp(LCD_PAGE_LIQUID_COOLINGA, NULL, "cd up", LCD_BtnType, 0x0050, 0x1000, page_type, LCD_PAGE_ROOT_MAIN, (void *)SerialScreen_QuitDebugIO);
     SerialScreen_ItemSetUp(LCD_PAGE_LIQUID_COOLINGA, NULL, "Home", LCD_BtnHomeType, 0x0002, 0x1000, page_type, LCD_PAGE_NONE, (void *)SerialScreen_QuitDebugIO);
     SerialScreen_ItemSetUp(LCD_PAGE_LIQUID_COOLINGA, NULL, "system traffic", LCD_DataType, LCD_1sReflash, 0x5344, pu32_type, sizeof(LcdData.setData.g_flow_rate[LCD_GUN_1]), (void *)&LcdData.setData.g_flow_rate[LCD_GUN_1]);
@@ -16562,6 +19434,9 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_LIQUID_COOLINGB, NULL, "a gun", LCD_BtnType, 0x0026, 0x1000, page_type, LCD_PAGE_LIQUID_COOLINGA, (void *)SerialScreen_GetIOStatusA);
     SerialScreen_ItemSetUp(LCD_PAGE_LIQUID_COOLINGB, NULL, "monitor info", LCD_BtnType, 0x0022, 0x1000, page_type, LCD_PAGE_MENU_MONITOR, (void *)NULL);
     SerialScreen_ItemSetUp(LCD_PAGE_LIQUID_COOLINGB, NULL, "in out", LCD_BtnType, 0x0023, 0x1000, page_type, LCD_PAGE_MENU_INOUT, (void *)SerialScreen_GetIOStatusA);
+#ifdef SCREEN_USING_CYCLE_MATRIX
+    SerialScreen_ItemSetUp(LCD_PAGE_LIQUID_COOLINGB, NULL, "relay matrix", LCD_BtnType, 0x0088, 0x1009, page_type, LCD_PAGE_RELAY_MATRIX, (void *)NULL);
+#endif /* SCREEN_USING_CYCLE_MATRIX */
     SerialScreen_ItemSetUp(LCD_PAGE_LIQUID_COOLINGB, NULL, "cd up", LCD_BtnType, 0x0050, 0x1000, page_type, LCD_PAGE_ROOT_MAIN, (void *)SerialScreen_QuitDebugIO);
     SerialScreen_ItemSetUp(LCD_PAGE_LIQUID_COOLINGB, NULL, "Home", LCD_BtnHomeType, 0x0002, 0x1000, page_type, LCD_PAGE_NONE, (void *)SerialScreen_QuitDebugIO);
     SerialScreen_ItemSetUp(LCD_PAGE_LIQUID_COOLINGB, NULL, "system traffic", LCD_DataType, LCD_1sReflash, 0x5382, pu32_type, sizeof(LcdData.setData.g_flow_rate[LCD_GUN_2]), (void *)&LcdData.setData.g_flow_rate[LCD_GUN_2]);

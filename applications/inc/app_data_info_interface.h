@@ -569,6 +569,10 @@ uint32_t thaisen_app_get_current_timestamp(void);
  **/
 uint32_t thaisen_app_get_system_tick(void);
 /**
+ * 系统延时(1ms)
+ **/
+void thaisen_app_system_delay(uint32_t ms);
+/**
  * 设置屏幕启动充电指令
  **/
 void thaisen_app_set_screen_start_charge(uint8_t gunno);
@@ -831,6 +835,26 @@ typedef enum{
   THA_DEBUG_ITEM_FAN_OFF_B,                         /** 一键自检项信息：B枪风扇断开 */
   THA_DEBUG_ITEM_DCRELAY_A_ON,                      /** 一键自检项信息：A枪直流继电器闭合 */
   THA_DEBUG_ITEM_DCRELAY_A_OFF,                     /** 一键自检项信息：A枪直流继电器断开 */
+#ifdef APP_USING_CYCLE_MATRIX
+  THA_DEBUG_ITEM_MRELAY_K1_1_A_ON,                  /** 一键自检项信息：矩阵继电器KPN_1-1闭合 */
+  THA_DEBUG_ITEM_MRELAY_K1_1_A_OFF,                 /** 一键自检项信息：矩阵继电器KPN_1-1断开 */
+  THA_DEBUG_ITEM_MRELAY_K1_2_A_ON,                  /** 一键自检项信息：矩阵继电器KPN_1-2闭合 */
+  THA_DEBUG_ITEM_MRELAY_K1_2_A_OFF,                 /** 一键自检项信息：矩阵继电器KPN_1-2断开 */
+  THA_DEBUG_ITEM_MRELAY_K1_3_A_ON,                  /** 一键自检项信息：矩阵继电器KPN_1-3闭合 */
+  THA_DEBUG_ITEM_MRELAY_K1_3_A_OFF,                 /** 一键自检项信息：矩阵继电器KPN_1-3断开 */
+  THA_DEBUG_ITEM_MRELAY_K2_1_A_ON,                  /** 一键自检项信息：矩阵继电器KPN_2-1闭合 */
+  THA_DEBUG_ITEM_MRELAY_K2_1_A_OFF,                 /** 一键自检项信息：矩阵继电器KPN_2-1断开 */
+  THA_DEBUG_ITEM_MRELAY_K2_2_A_ON,                  /** 一键自检项信息：矩阵继电器KPN_2-2闭合 */
+  THA_DEBUG_ITEM_MRELAY_K2_2_A_OFF,                 /** 一键自检项信息：矩阵继电器KPN_2-2断开 */
+  THA_DEBUG_ITEM_MRELAY_K2_3_A_ON,                  /** 一键自检项信息：矩阵继电器KPN_2-3闭合 */
+  THA_DEBUG_ITEM_MRELAY_K2_3_A_OFF,                 /** 一键自检项信息：矩阵继电器KPN_2-3断开 */
+  THA_DEBUG_ITEM_MRELAY_K3_1_A_ON,                  /** 一键自检项信息：矩阵继电器KPN_3-1闭合 */
+  THA_DEBUG_ITEM_MRELAY_K3_1_A_OFF,                 /** 一键自检项信息：矩阵继电器KPN_3-1断开 */
+  THA_DEBUG_ITEM_MRELAY_K3_2_A_ON,                  /** 一键自检项信息：矩阵继电器KPN_3-2闭合 */
+  THA_DEBUG_ITEM_MRELAY_K3_2_A_OFF,                 /** 一键自检项信息：矩阵继电器KPN_3-2断开 */
+  THA_DEBUG_ITEM_MRELAY_K3_3_A_ON,                  /** 一键自检项信息：矩阵继电器KPN_3-3闭合 */
+  THA_DEBUG_ITEM_MRELAY_K3_3_A_OFF,                 /** 一键自检项信息：矩阵继电器KPN_3-3断开 */
+#endif /* APP_USING_CYCLE_MATRIX */
   THA_DEBUG_ITEM_DCRELAY_B_ON,                      /** 一键自检项信息：B枪直流继电器闭合 */
   THA_DEBUG_ITEM_DCRELAY_B_OFF,                     /** 一键自检项信息：B枪直流继电器断开 */
   THA_DEBUG_ITEM_ELOCK_A_ON,                        /** 一键自检项信息：A枪电子锁上锁 */

@@ -152,6 +152,7 @@
 #define CP_USING_FB_DETECT                              /* 使用反馈实时检测 */
 //#define CP_INCLUDE_BATVOLT_DETECT_QRCODE                /* 包含电池电压报告检测二维码 */
 //#define CP_USING_V2G                                    /* 使用V2G */
+//#define CP_USING_CYCLE_MATRIX                             /* 使用环矩部分 */
 
 /** 域名默认 */
 /**------------------------------------------------------------*/
@@ -240,6 +241,14 @@
 
 
 /* module config */
+#define MODULE_MODEL_YFY                          0           /* 模块型号：英飞源 */
+#define MODULE_MODEL_GW                           1           /* 模块型号：国网 */
+#define MODULE_MODEL_WL                           2           /* 模块型号：永联 */
+#define MODULE_MODEL_YY                           3           /* 模块型号：优优 */
+#define MODULE_MODEL_YN                           4           /* 模块型号：易能  */
+#define MODULE_MODEL_RESERVE0                     5           /* 模块型号：预留0 */
+#define MODULE_MODEL_RESERVE1                     6           /* 模块型号：预留1 */
+
 #define MODULE_MODEL_DEFAULT                      2           /* 默认模块型号：永联 */
 #define MODULE_MODEL_NUMBER                       5           /* 当前系统支持的模块型号数量 */
 #define MODULE_GROUP_NUMBER_DEFAULT               4           /* 默认模块组数：4组 */
@@ -255,12 +264,21 @@
 #define CONFIG_LP_CONSUMPTION_MODULE_NULL         0           /* 低功耗模块：无 */
 #define CONFIG_LP_CONSUMPTION_MODULE_YN           1           /* 低功耗模块：易能 */
 #define CONFIG_LP_CONSUMPTION_MODULE_SIZE         2           /* 低功耗模块 */
+
 #define SYSTEM_FUNCTION_SINGLE_TERMINAL           0         /* 单枪超充 */
 #define SYSTEM_FUNCTION_AVERAGE_DOUBLE            1         /* 均充双枪 */
 #define SYSTEM_FUNCTION_DOUBLE_WHOLE              2         /* 双枪终端 */
 #define SYSTEM_FUNCTION_RECTIFIER_CABINET         3         /* 单枪快充 */
 #define SYSTEM_FUNCTION_DYNAMIC_SWITCH            4         /* 动态切换 */
+#ifdef CP_USING_CYCLE_MATRIX
+#define SYSTEM_FUNCTION_MS_MACHINE_CYCLE          5         /* 设备类型(本机功能)：子母机(环矩) */
+#define SYSTEM_FUNCTION_MS_MACHINE_HALF           6         /* 设备类型(本机功能)：子母机(半矩) */
+#define SYSTEM_FUNCTION_WHOLE_CYCLE               7         /* 设备类型(本机功能)：一体机(环矩) */
+#define SYSTEM_FUNCTION_SIZE                      8         /* 设备类型(本机功能) */
+#else
 #define SYSTEM_FUNCTION_SIZE                      5         /* 系统功能 */
+#endif /* CP_USING_CYCLE_MATRIX */
+
 
 #define CP_LIQUID_DEVTYPE_YTND                    0         /* 英特尼迪 */
 #define CP_LIQUID_DEVTYPE_HL                      1         /* 毫厘 */
@@ -354,6 +372,48 @@
 #define COMPULSION_SET_CURRENT_DEF                0         /* 强制启动设定电流默认值 */
 #define COMPULSION_SET_CURRENT_MAX                4000      /* 强制启动设定电流最大值 */
 #define COMPULSION_SET_CURRENT_MIN                0         /* 强制启动设定电流最小值 */
+
+#ifdef CP_USING_CYCLE_MATRIX
+#define CONFIG_MATRIX_DEBUG_SET_VOLTAGE_ALL_DEF   5000      /* 模块矩阵排布调试：设定所有组电压默认值 */
+#define CONFIG_MATRIX_DEBUG_SET_VOLTAGE_ALL_MAX   12000     /* 模块矩阵排布调试：设定所有组电压最大值 */
+#define CONFIG_MATRIX_DEBUG_SET_VOLTAGE_ALL_MIN   10        /* 模块矩阵排布调试：设定所有组电压最小值 */
+
+#define CONFIG_MATRIX_DEBUG_SET_CURRENT_ALL_DEF   0         /* 模块矩阵排布调试：设定所有组电流默认值 */
+#define CONFIG_MATRIX_DEBUG_SET_CURRENT_ALL_MAX   15000     /* 模块矩阵排布调试：设定所有组电流最大值 */
+#define CONFIG_MATRIX_DEBUG_SET_CURRENT_ALL_MIN   0         /* 模块矩阵排布调试：设定所有组电流最小值 */
+
+#define CONFIG_MATRIX_DEBUG_SET_VOLTAGE_G1_DEF    3000      /* 模块矩阵排布调试：设定组1电压默认值 */
+#define CONFIG_MATRIX_DEBUG_SET_VOLTAGE_G1_MAX    12000     /* 模块矩阵排布调试：设定组1电压最大值 */
+#define CONFIG_MATRIX_DEBUG_SET_VOLTAGE_G1_MIN    1         /* 模块矩阵排布调试：设定组1电压最小值 */
+
+#define CONFIG_MATRIX_DEBUG_SET_CURRENT_G1_DEF    0         /* 模块矩阵排布调试：设定组1电流默认值 */
+#define CONFIG_MATRIX_DEBUG_SET_CURRENT_G1_MAX    15000     /* 模块矩阵排布调试：设定组1电流最大值 */
+#define CONFIG_MATRIX_DEBUG_SET_CURRENT_G1_MIN    0         /* 模块矩阵排布调试：设定组1电流最小值 */
+
+#define CONFIG_MATRIX_DEBUG_SET_VOLTAGE_G2_DEF    3500      /* 模块矩阵排布调试：设定组2电压默认值 */
+#define CONFIG_MATRIX_DEBUG_SET_VOLTAGE_G2_MAX    12000     /* 模块矩阵排布调试：设定组2电压最大值 */
+#define CONFIG_MATRIX_DEBUG_SET_VOLTAGE_G2_MIN    1         /* 模块矩阵排布调试：设定组2电压最小值 */
+
+#define CONFIG_MATRIX_DEBUG_SET_CURRENT_G2_DEF    0         /* 模块矩阵排布调试：设定组2电流默认值 */
+#define CONFIG_MATRIX_DEBUG_SET_CURRENT_G2_MAX    15000     /* 模块矩阵排布调试：设定组2电流最大值 */
+#define CONFIG_MATRIX_DEBUG_SET_CURRENT_G2_MIN    0         /* 模块矩阵排布调试：设定组2电流最小值 */
+
+#define CONFIG_MATRIX_DEBUG_SET_VOLTAGE_G3_DEF    4000      /* 模块矩阵排布调试：设定组3电压默认值 */
+#define CONFIG_MATRIX_DEBUG_SET_VOLTAGE_G3_MAX    12000     /* 模块矩阵排布调试：设定组3电压最大值 */
+#define CONFIG_MATRIX_DEBUG_SET_VOLTAGE_G3_MIN    1         /* 模块矩阵排布调试：设定组3电压最小值 */
+
+#define CONFIG_MATRIX_DEBUG_SET_CURRENT_G3_DEF    0         /* 模块矩阵排布调试：设定组3电流默认值 */
+#define CONFIG_MATRIX_DEBUG_SET_CURRENT_G3_MAX    15000     /* 模块矩阵排布调试：设定组3电流最大值 */
+#define CONFIG_MATRIX_DEBUG_SET_CURRENT_G3_MIN    0         /* 模块矩阵排布调试：设定组3电流最小值 */
+
+#define CONFIG_MATRIX_DEBUG_SET_VOLTAGE_G4_DEF    4500      /* 模块矩阵排布调试：设定组4电压默认值 */
+#define CONFIG_MATRIX_DEBUG_SET_VOLTAGE_G4_MAX    12000     /* 模块矩阵排布调试：设定组4电压最大值 */
+#define CONFIG_MATRIX_DEBUG_SET_VOLTAGE_G4_MIN    1         /* 模块矩阵排布调试：设定组4电压最小值 */
+
+#define CONFIG_MATRIX_DEBUG_SET_CURRENT_G4_DEF    0         /* 模块矩阵排布调试：设定组4电流默认值 */
+#define CONFIG_MATRIX_DEBUG_SET_CURRENT_G4_MAX    15000     /* 模块矩阵排布调试：设定组4电流最大值 */
+#define CONFIG_MATRIX_DEBUG_SET_CURRENT_G4_MIN    0         /* 模块矩阵排布调试：设定组4电流最小值 */
+#endif /* CP_USING_CYCLE_MATRIX */
 
 #define CHARGEPILE_INPUT_OVERVOLT_DEF             55000     /* 充电桩输入过压默认值(0.01V) */
 #define CHARGEPILE_INPUT_OVERVOLT_MAX             100000    /* 充电桩输入过压最大值(0.01V) */

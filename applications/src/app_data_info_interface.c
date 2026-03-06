@@ -1132,6 +1132,17 @@ uint32_t thaisen_app_get_system_tick(void)
 }
 
 /********************************************
+ * 函数名      thaisen_app_system_delay
+ * 功能          系统延时
+ * 参数          ms   延时时间(ms)
+ * 返回
+ *******************************************/
+void thaisen_app_system_delay(uint32_t ms)
+{
+    rt_thread_mdelay(ms);
+}
+
+/********************************************
  * 函数名      set_screen_start_charge
  * 功能          设置屏幕启动充电指令
  * 参数          gunno     枪号

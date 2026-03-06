@@ -640,6 +640,111 @@ uint8_t thaisenDcRelay_StateQuery(uint8_t gunNum, thaisenRelayEn sta);
  */
 thaisenRelayEn thaisenAcRelay_StateQuery(void);
 
+/************************************************** 环矩半矩继电器 **************************************************/
+typedef enum
+{
+    THAISEN_MATRIX_RELAY_KPN1_1,                    /** 矩阵(环矩)继电器KPN1-1 */
+    THAISEN_MATRIX_RELAY_KPN1_2,                    /** 矩阵(环矩)继电器KPN1-2 */
+    THAISEN_MATRIX_RELAY_KPN1_3,                    /** 矩阵(环矩)继电器KPN1-3 */
+    THAISEN_MATRIX_RELAY_KPN2_1,                    /** 矩阵(环矩)继电器KPN2-1 */
+    THAISEN_MATRIX_RELAY_KPN2_2,                    /** 矩阵(环矩)继电器KPN2-2 */
+    THAISEN_MATRIX_RELAY_KPN3_1,                    /** 矩阵(环矩)继电器KPN3-1 */
+    THAISEN_MATRIX_RELAY_SIZE,                      /** 矩阵(环矩)继电器 */
+}thaisenMatrixRelay_t;
+
+/* 功能说明:
+ *          thaisenSetMatrixRelay_Status:设置矩阵继电器动作反馈状态
+ * 输入参数:
+ *          relay         继电器
+ *          status     动作反馈状态(IO口电平状态-0：低电平  1：高电平)
+ * 返回参数:
+ *
+ * 调用方法:
+ *          实时调用
+ */
+void thaisenSetMatrixRelay_Status(thaisenMatrixRelay_t relay, uint8_t status);
+
+/* 功能说明:
+ *          thaisenGetMatrixRelay_Status:获取矩阵继电器动作反馈状态
+ * 输入参数:
+ *           relay         继电器
+ * 返回参数:  动作反馈状态(IO口电平状态-0：低电平  1：高电平)
+ *
+ * 调用方法:
+ *          实时调用
+ */
+uint8_t thaisenGetMatrixRelay_Status(thaisenMatrixRelay_t relay);
+
+/************************************************** 环矩半矩继电器控制 **************************************************/
+/* 功能说明:
+ *          thaisenMatrixRelay_on:闭合矩阵继电器
+ * 输入参数:
+ *          relay         继电器
+ * 返回参数:  @thaisenRelayUEn
+ *
+ * 调用方法:
+ *          实时调用
+ */
+thaisenRelayUEn thaisenMatrixRelay_on(thaisenMatrixRelay_t relay);
+
+/* 功能说明:
+ *          thaisenMatrixRelay_off:断开矩阵继电器
+ * 输入参数:
+ *          relay         继电器
+ * 返回参数:  @thaisenRelayUEn
+ *
+ * 调用方法:
+ *          实时调用
+ */
+thaisenRelayUEn thaisenMatrixRelay_off(thaisenMatrixRelay_t relay);
+
+/* 功能说明:
+ *          thaisenMatrixRelay_on_Only:闭合矩阵继电器(仅控制)
+ * 输入参数:
+ *          relay         继电器
+ * 返回参数:  @thaisenRelayUEn
+ *
+ * 调用方法:
+ *          实时调用
+ */
+thaisenRelayUEn thaisenMatrixRelay_on_Only(thaisenMatrixRelay_t relay);
+
+/* 功能说明:
+ *          thaisenMatrixRelay_off_Only:断开矩阵继电器(仅控制)
+ * 输入参数:
+ *          relay         继电器
+ * 返回参数:  @thaisenRelayUEn
+ *
+ * 调用方法:
+ *          实时调用
+ */
+thaisenRelayUEn thaisenMatrixRelay_off_Only(thaisenMatrixRelay_t relay);
+
+
+/* 功能说明:
+ *          thaisenMatrixRelay_FB:获取矩阵继电器反馈状态
+ * 输入参数:
+ *          relay         继电器
+ * 返回参数:  @thaisenRelayEn
+ *
+ * 调用方法:
+ *          实时调用
+ */
+
+
+thaisenRelayEn thaisenMatrixRelay_FB(thaisenMatrixRelay_t relay);
+
+/* 功能说明:
+ *          thaisenMatrixRelay_FB_Only:获取矩阵继电器反馈状态(仅IO电平)
+ * 输入参数:
+ *          relay         继电器
+ * 返回参数:  (1：高电平     0：低电平)
+ *
+ * 调用方法:
+ *          实时调用
+ */
+uint8_t thaisenMatrixRelay_FB_Only(thaisenMatrixRelay_t relay);
+
 /******************************************* 以下是调试函数 *******************************************/
 /************* 直流继电器 *************/
 void thaisenDcRelay_A_Enable_Debug(void);
@@ -662,6 +767,10 @@ void thaisenParallelRelay_3_Disable_Debug(void);
 void thaisenAcRelay_Enable_Debug(void);
 void thaisenAcRelay_Disable_Debug(void);
 
+/**************** 矩阵继电器 ****************/
+void thaisenMatrixRelay_on_Debug(thaisenMatrixRelay_t relay);
+void thaisenMatrixRelay_off_Debug(thaisenMatrixRelay_t relay);
+
 /*****************************************************************************************************/
 
 /*************************************器件状态变化******************************************************/
@@ -681,6 +790,18 @@ typedef enum
     THAISEN_DEVICE_ENUM_ELOCK,                            /** 器件枚举：电子锁 */
     THAISEN_DEVICE_ENUM_FAN,                              /** 器件枚举：风扇 */
     THAISEN_DEVICE_ENUM_LIQUID,                           /** 器件枚举：液冷 */
+    THAISEN_DEVICE_ENUM_MATRIX_RELAY_1_1_POS,             /** 器件枚举：正极矩阵继电器KP1-1 */
+    THAISEN_DEVICE_ENUM_MATRIX_RELAY_1_1_NEG,             /** 器件枚举：负极矩阵继电器KP1-1 */
+    THAISEN_DEVICE_ENUM_MATRIX_RELAY_1_2_POS,             /** 器件枚举：正极矩阵继电器KP1-2 */
+    THAISEN_DEVICE_ENUM_MATRIX_RELAY_1_2_NEG,             /** 器件枚举：负极矩阵继电器KP1-2 */
+    THAISEN_DEVICE_ENUM_MATRIX_RELAY_1_3_POS,             /** 器件枚举：正极矩阵继电器KP1-3 */
+    THAISEN_DEVICE_ENUM_MATRIX_RELAY_1_3_NEG,             /** 器件枚举：负极矩阵继电器KP1-3 */
+    THAISEN_DEVICE_ENUM_MATRIX_RELAY_2_1_POS,             /** 器件枚举：正极矩阵继电器KP2-1 */
+    THAISEN_DEVICE_ENUM_MATRIX_RELAY_2_1_NEG,             /** 器件枚举：负极矩阵继电器KP2-1 */
+    THAISEN_DEVICE_ENUM_MATRIX_RELAY_2_2_POS,             /** 器件枚举：正极矩阵继电器KP2-2 */
+    THAISEN_DEVICE_ENUM_MATRIX_RELAY_2_2_NEG,             /** 器件枚举：负极矩阵继电器KP2-2 */
+    THAISEN_DEVICE_ENUM_MATRIX_RELAY_3_1_POS,             /** 器件枚举：正极矩阵继电器KP3-1 */
+    THAISEN_DEVICE_ENUM_MATRIX_RELAY_3_1_NEG,             /** 器件枚举：负极矩阵继电器KP3-1 */
     THAISEN_DEVICE_ENUM_SIZE,                             /** 器件枚举 */
 }thaisenDeviceEnum;
 
@@ -3200,6 +3321,9 @@ typedef enum
     thaisenDeviceType_singleGun,           /* 单枪终端 */
     thaisenDeviceType_average,             /* 动态切换 */
     thaisenDeviceType_Rectifier_cabinet,   /* 整流柜 */
+    thaisenDeviceType_Matrix_Cycle,        /* 子母机(环矩) */
+    thaisenDeviceType_Matrix_Half,         /* 子母机(半矩) */
+    thaisenDeviceType_Whole_Cycle,         /* 一体机(环矩) */
     thaisenDeviceType_size,
 }thaisenDeviceType;
 

@@ -16,7 +16,7 @@
 #include "thaisenBMS.h"
 #include "app_ofsm.h"
 
-#ifdef USING_TCU_CAN
+#if (defined(USING_TCU_CAN) && (!defined(CP_USING_CYCLE_MATRIX)))
 
 #define APP_KS_CHARGER_CTRL_CMD_CAN_ID  0x2B02F                 /* 科式充电机控制帧CANID */
 
@@ -30,7 +30,7 @@
 
 #define APP_TCU_CAN_MQ_SIZE             10                      /* CAN报文接收个数 */
 
-#endif /* USING_TCU_CAN */
+#endif /* (defined(USING_TCU_CAN) && (!defined(CP_USING_CYCLE_MATRIX))) */
 
 #ifdef CP_USING_LV_MODULE_BMS
 #define APP_LV_MODULE_BMS_MSG_ID_0x309         0x309            /* 0x309报文ID */
@@ -50,7 +50,7 @@
 
 #pragma pack(1)
 
-#ifdef USING_TCU_CAN
+#if (defined(USING_TCU_CAN) && (!defined(CP_USING_CYCLE_MATRIX)))
 struct can_data{
     uint32_t can_id;
     uint8_t data[8];
@@ -67,7 +67,7 @@ struct can_info{
         uint8_t reserve : 2;                                    /** 预留 */
     }flag;
 };
-#endif /* USING_TCU_CAN */
+#endif /* (defined(USING_TCU_CAN) && (!defined(CP_USING_CYCLE_MATRIX))) */
 
 #ifdef CP_USING_LV_MODULE_BMS
 typedef struct{
@@ -150,26 +150,16 @@ APP_DEF_SRAM1 static bms_app_info s_bms_app_info[APP_SYSTEM_GUNNO_SIZE];
 APP_DEF_SRAM1 static app_lv_bms_info s_app_lv_bms_info;
 #endif /* CP_USING_LV_MODULE_BMS */
 
-#ifdef USING_TCU_CAN
+#if (defined(USING_TCU_CAN) && (!defined(CP_USING_CYCLE_MATRIX)))
 APP_DEF_SRAM1 struct can_info s_can_info;
 APP_DEF_SRAM1 static struct can_data s_can_data[APP_TCU_CAN_MQ_SIZE];
 APP_DEF_SRAM1 static struct rt_messagequeue s_tcu_can_mq;
-#endif /* USING_TCU_CAN */
+#endif /* (defined(USING_TCU_CAN) && (!defined(CP_USING_CYCLE_MATRIX))) */
 
-#ifdef USING_TCU_CAN
+#if (defined(USING_TCU_CAN) && (!defined(CP_USING_CYCLE_MATRIX)))
 /** CAN 数据接收回调 */
-void thaisen_can_tcu_isrCallback(void)
-{
-    struct can_data data;
-    can_msg_buf can_receive_message;
-    can_receive_message = thaisen_get_tcu_dat();
 
-    data.can_id = can_receive_message.CANID;
-    memcpy(data.data, can_receive_message.data, sizeof(can_receive_message.data));
-    if(s_can_info.flag.mq_is_init){
-        rt_mq_send(&s_tcu_can_mq, &data, sizeof(data));
-    }
-}
+
 
 /******************************************************************************
  * 函数名          ks_padding_charge_info
@@ -546,7 +536,7 @@ void app_tcan_recv_thread_entry(void *parameter)
     }
 }
 
-#endif /* USING_TCU_CAN */
+#endif /* (defined(USING_TCU_CAN) && (!defined(CP_USING_CYCLE_MATRIX))) */
 
 /*******************************************
  * 函数名                app_is_using_maintenance_mode
@@ -556,11 +546,11 @@ void app_tcan_recv_thread_entry(void *parameter)
  ******************************************/
 uint8_t app_is_using_maintenance_mode(void)
 {
-#ifdef USING_TCU_CAN
+#if (defined(USING_TCU_CAN) && (!defined(CP_USING_CYCLE_MATRIX)))
     return s_can_info.flag.maintenance_enable_last;
 #else
     return 0x00;
-#endif /* USING_TCU_CAN */
+#endif /* (defined(USING_TCU_CAN) && (!defined(CP_USING_CYCLE_MATRIX))) */
 }
 
 /*******************************************
@@ -571,7 +561,7 @@ uint8_t app_is_using_maintenance_mode(void)
  ******************************************/
 uint8_t app_charge_mode_is_changed(void)
 {
-#ifdef USING_TCU_CAN
+#if (defined(USING_TCU_CAN) && (!defined(CP_USING_CYCLE_MATRIX)))
     if(s_can_info.flag.maintenance_enable != s_can_info.flag.maintenance_enable_last){
         s_can_info.flag.maintenance_enable_last = s_can_info.flag.maintenance_enable;
         return 0x01;
@@ -579,7 +569,7 @@ uint8_t app_charge_mode_is_changed(void)
     return 0x00;
 #else
     return 0x00;
-#endif /* USING_TCU_CAN */
+#endif /* (defined(USING_TCU_CAN) && (!defined(CP_USING_CYCLE_MATRIX))) */
 }
 
 /********************************************************** 带BMS 的低压模块 **********************************************************/
@@ -1188,10 +1178,10 @@ uint8_t app_bms_lv_get_start_state(uint8_t gunno)
 #ifdef APP_DESIGNATE_REGION
 void app_app_can_info_init(void)
 {
-#ifdef USING_TCU_CAN
+#if (defined(USING_TCU_CAN) && (!defined(CP_USING_CYCLE_MATRIX)))
     memset(&s_can_info, 0x00, sizeof(s_can_info));
     memset(s_can_data, 0x00, sizeof(s_can_data));
-#endif /* USING_TCU_CAN */
+#endif /* (defined(USING_TCU_CAN) && (!defined(CP_USING_CYCLE_MATRIX))) */
 
 #ifdef CP_USING_LV_MODULE_BMS
     memset(&s_app_lv_bms_info, 0x00, sizeof(s_app_lv_bms_info));

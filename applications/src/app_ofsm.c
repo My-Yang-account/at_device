@@ -3637,8 +3637,15 @@ static void ofsm_starting_fun(uint8_t gunno)
                     s_ofsm_info[gunno].base.flag.permit_judge_complete = APP_THA_ENUM_TRUE;
                     s_ofsm_info[gunno].charge_timeout = rt_tick_get();
                 }
+#ifdef APP_USING_CYCLE_MATRIX
+                mw_module_is_starting(gunno);
+#endif /* #ifdef APP_USING_CYCLE_MATRIX */
             }
+#ifdef APP_USING_CYCLE_MATRIX
+            if((s_ofsm_info[gunno].base.flag.permit_judge_complete == APP_THA_ENUM_TRUE) && (s_ofsm_info[gunno].base.flag.is_starting == APP_THA_ENUM_FALSE)){
+#else
             if(s_ofsm_info[gunno].base.flag.permit_judge_complete == APP_THA_ENUM_TRUE){
+#endif /* #ifdef APP_USING_CYCLE_MATRIX */
                 if(mw_module_get_permit_charge_state(gunno) != APP_MODULE_ALLOW_CHARGE){
                     s_ofsm_info[gunno].base.system_fault = APP_SYS_FAULT_NO_ERROR;
                     s_ofsm_info[gunno].base.charge_fault = APP_CHARGE_FAULT_NO_ERROR;
@@ -3657,6 +3664,9 @@ static void ofsm_starting_fun(uint8_t gunno)
                     for(uint8_t i = 0x00; i < APP_SYSTEM_GUNNO_SIZE; i++){
                         s_ofsm_info[i].base.flag.is_deputygun_stop = APP_THA_ENUM_TRUE;
                     }
+#ifdef APP_USING_CYCLE_MATRIX
+                    mw_module_starting_finish(gunno);
+#endif /* APP_USING_CYCLE_MATRIX */
                     LOG_D("deputy gunno is fault in parallel charge mode(%d, %d)", gunno, system_fault);
                 }
             }
@@ -3763,9 +3773,15 @@ static void ofsm_starting_fun(uint8_t gunno)
             s_ofsm_info[gunno].base.flag.permit_judge_complete = APP_THA_ENUM_TRUE;
             s_ofsm_info[gunno].charge_timeout = rt_tick_get();
         }
+#ifdef APP_USING_CYCLE_MATRIX
+        mw_module_is_starting(gunno);
+#endif /* #ifdef APP_USING_CYCLE_MATRIX */
     }
-
+#ifdef APP_USING_CYCLE_MATRIX
+    if((s_ofsm_info[gunno].base.flag.permit_judge_complete == APP_THA_ENUM_TRUE) && (s_ofsm_info[gunno].base.flag.is_starting == APP_THA_ENUM_FALSE)){
+#else
     if(s_ofsm_info[gunno].base.flag.permit_judge_complete == APP_THA_ENUM_TRUE){
+#endif /* #ifdef APP_USING_CYCLE_MATRIX */
         if(mw_module_get_permit_charge_state(gunno) != APP_MODULE_ALLOW_CHARGE){
             s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_STOPING];
             s_ofsm_info[gunno].state = APP_OFSM_STATE_STOPING;
@@ -3851,7 +3867,9 @@ static void ofsm_starting_fun(uint8_t gunno)
                     s_ofsm_info[gunno].base.reason_code, s_ofsm_info[gunno].base.reason_code);
 
             app_charge_fault_occur(gunno, s_ofsm_info[gunno].base.reason_code, (*mw_get_charge_fault_set(gunno)));
-
+#ifdef APP_USING_CYCLE_MATRIX
+            mw_module_starting_finish(gunno);
+#endif /* APP_USING_CYCLE_MATRIX */
             app_nsal_state_charged(gunno);
             app_nsal_event_occurded(gunno);
             return;

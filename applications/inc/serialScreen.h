@@ -280,6 +280,10 @@ void SerialScreen_SetChargeWay(u8 port, u8 way);
 
 u8 SerialScreenLiquidIsOffline(u8 port);
 
+/**************************** 模块矩阵调试 ****************************/
+void SerialScreen_DebugModuleMatrixCtrlEnter(int port);
+void SerialScreen_DebugModuleMatrixParaReset(void);
+
 extern struct SerialScreenObj SerialScreen;		
 
 extern struct LCD_DATA_FIFO_TYPE * serialScreen_ObjectAi_Init(void);

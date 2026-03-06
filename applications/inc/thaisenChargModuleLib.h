@@ -449,6 +449,18 @@ uint16_t thaisenGetModuleSetupVolt(uint8_t gunNum);
 uint16_t thaisenGetModuleSetupCurr(uint8_t gunNum);
 
 /* 功能说明:
+ *          thaisenModuleGetHignestVolt:获取获取此枪的模块的最高输出电压
+ *
+ * 输入参数:
+ *          gunNum:枪号
+ * 返回参数:      此枪的模块的最高输出电压(0.1V)
+ *
+ * 调用方法:
+ *          可实时调用
+ */
+uint32_t thaisenModuleGetHignestVolt(uint8_t gunNum);
+
+/* 功能说明:
  *          thaisenSetModuleDebugEnableOutput:模块调试部分:启动使能(模块强制启动)
  *
  * 输入参数:
@@ -741,7 +753,7 @@ uint8_t thaisenModuleGetBMSAllowCharge(uint8_t gunNum);
  *          thaisenModuleSetMaxCurrSingleGun: 设置单枪最大充电电流(0.01)
  *
  * 输入参数:
- *          curr  单枪最大充电电流
+ *          curr  单枪最大充电电流(0.01)
  * 返回参数:
  *
  * 调用方法:
@@ -755,7 +767,7 @@ void thaisenModuleSetMaxCurrSingleGun(uint32_t curr);
  * 输入参数:
  *
  * 返回参数:
- *                    单枪最大充电电流
+ *                    单枪最大充电电流(0.01)
  * 调用方法:
  *          可实时调用
  */
@@ -915,6 +927,7 @@ void thaisenModule_SetInPowerType(uint8_t type);
  */
 uint8_t thaisenModule_GetInPowerType(void);
 
+
 typedef enum
 {
     THAISEN_MODULE_FAULT_OUT_OV,                          /* 故障：输出过压 */
@@ -1031,7 +1044,7 @@ uint16_t thaisenGetModuleOutCurrMin(void);
 
 /*************************************************** 并充枪电压检测闭合 ****************************************************/
 /* 功能说明:
- *          thaisenModuleSetParaGunVoltDetectEn: 设置模块最小输出电流
+ *          thaisenModuleSetParaGunVoltDetectEn: 设置并充枪电压检测使能状态
  *
  * 输入参数:          gunNum      枪号
  *         state       使能状态(1:使能  0:不使能)
@@ -1044,7 +1057,7 @@ uint16_t thaisenGetModuleOutCurrMin(void);
 void thaisenModuleSetParaGunVoltDetectEn(uint8_t gunNum, uint8_t state);
 
 /* 功能说明:
- *          thaisenModuleGetParaGunVoltDetectEn: 获取模块最大输出电流
+ *          thaisenModuleGetParaGunVoltDetectEn: 获取并充枪电压检测使能状态
  *
  * 输入参数:       gunNum    枪号
  *
@@ -1151,5 +1164,213 @@ void thaisenModuleSetBMSProtoclType(uint8_t gunNum, thaisenModule_BMSProType_t t
  *          可实时调用
  */
 thaisenModule_BMSProType_t thaisenModuleGetBMSProtoclType(uint8_t gunNum);
+
+/*************************************************** 环矩/半矩部分 ***************************************************/
+/***************************[子母机配置项]*********************************/
+enum
+{
+    thaisen_masterSlaveCom_devType_Master,
+    thaisen_masterSlaveCom_devType_Slave,
+};
+
+typedef struct
+{
+    uint8_t devType;//本机类型
+    uint8_t gunAddr[2];//本机地址，1~(0为无效值)
+}thaisen_masterSlaveCom_init_t;
+
+/**
+ * @brief 初始化子母机通信部分
+ * @param initInfo
+ */
+void thaisenMasterSlave_Init(thaisen_masterSlaveCom_init_t initInfo);
+
+/***************************[模块分配配置项]**********************************/
+typedef enum
+{
+    ModuleAllo_share,  /** 均分 */
+    ModuleAllo_fcfs,   /** 先到先得 */
+    ModuleAllo_hpf,    /** 功率优先 */
+}ModuleAlloMethod_e;
+
+/* 矩阵类型 */
+typedef enum
+{
+    thaisen_moduleallo_matrixtype_halfmatrix,       /* 半矩阵 */
+    thaisen_moduleallo_matrixtype_fullmatrix,       /* 全矩阵 */
+    thaisen_moduleallo_matrixtype_ringmatrix,       /* 环矩阵 */
+    thaisen_moduleallo_matrixtype_none,             /* 无 */
+}thaisen_moduleallo_matrixtype;
+
+typedef enum
+{
+    server_disable = 0,
+    server_enable,
+    server_waiting,
+}thaisen_ccu_pcuserversta;
+
+#pragma pack(1)
+typedef struct
+{
+    ModuleAlloMethod_e allomethod;//分配策略
+    uint32_t module_preserpower;//模块额定功率1w
+    uint8_t module_groupcnt;//模块组数
+    uint8_t module_cntforgroup[4];//MAXGROUPCNT
+    uint8_t module_mincurr;//模块最小电流，精度1A
+    uint16_t module_maxcurr;//模块最大电流。精度0.01A
+    uint16_t module_minvolt;//模块最小电压0.1V
+    uint8_t module_addroffset;//模块地址偏移：默认设置0x20，英飞源模块不支持0x20，使用0x60
+    uint8_t guncnt;//枪数量
+    thaisen_moduleallo_matrixtype matrix_type;//矩阵类型
+    uint8_t devType;
+    /**
+     * @note 设置接触器状态
+     * @param 接触器编号
+     * @param 接触器PN - 0：DC+ 1：DC-
+     * @param 状态FML_relaystaType
+     */
+    void (*setrelaysta)(uint8_t, uint8_t, uint8_t);
+    /**
+     * @note 获取矩阵接触器状态
+     * @param 接触器编号
+     * @param 接触器PN - 0：DC+ 1：DC-
+     * @return 接触器状态FML_relaystaType
+     */
+    uint8_t (*getrelaysta)(uint8_t, uint8_t);
+    /**
+     * @note 获取直流输出接触器状态(仅闭合/断开)
+     * @param 枪号(1~)
+     * @param 接触器PN - 0：DC+ 1：DC-
+     * @return 直流接触器状态:断开(relayopen)/闭合(relayclose)
+     */
+    uint8_t (*getdcrelaysta)(uint8_t, uint8_t);
+    /**
+     * @note 接触器状态变化回调
+     * @param 接触器编号
+     * @param 接触器PN - 0：DC+ 1：DC-
+     * @param 接触器状态
+     */
+    void (*stachangefb)(uint8_t, uint8_t, uint8_t);
+    /**
+     * @note 设置枪故障
+     * @param 枪号(1~)
+     * @param 接触器编号(1~)
+     */
+    void (*gunfaultset)(uint8_t, uint8_t);
+    /**
+     * @note 清除枪故障
+     * @param 枪号(1~)
+     * @param 接触器编号(1~)
+     */
+    void (*gunfaultclean)(uint8_t, uint8_t);
+
+    /**
+     * @brief NetLogSend:上报监控信息填报后回调(单次调用，不会反复调用)
+     * @param 指向存储监控信息的缓存(下层缓存长度为50字节)
+     * @param 此次报文长度
+     */
+    void (*NetLogSend)(uint8_t const* const, uint8_t);
+}powerctrl_init_t;
+#pragma pack()
+
+/**
+ * @note 初始化函数
+ * @param base_info
+ */
+void thaisen_base_init(powerctrl_init_t base_info);
+void thaisen_base_deInit(void);
+
+/**
+ * @brief 请求充电时调用
+ * @param gunNum 1~
+ */
+void thaisen_moduleallo_chargeReq(uint8_t gunNum);
+
+/**
+ * @brief 请求充电超时调用
+ * @param gunNum
+ */
+void thaisen_moduleallo_chargeReqFinish(uint8_t gunNum);
+
+/**
+ * @brief thaisen_get_gun_serversta:获取枪允许充电状态
+ * @param gunnum(1~)
+ * @return
+ */
+thaisen_ccu_pcuserversta thaisen_get_gun_serversta(uint8_t gunnum);
+
+/**
+ * @note 设置模块故障检测标志，设为1后若模块状态为离线或故障则会踢出分配队列
+ * @note 设置要求：上层认为可以进行模块分配的时候置1，仅置1后调用thaisen_gun_set_chargeinfo会分配模块并调度
+ * @note        置1后模块状态仍在offline/err的模块组会被踢出分配队列
+ * @note        置0后不会再将offline/err的模块组踢出分配队列，且模块分配函数不会分配模块并进行模块调度
+ * @note        置0时会判断此时有被分配模块的枪，全部取消模块调度(模块关机、矩阵接触器断开)
+ * @param sat
+ */
+void thaisen_module_set_ModuleSchedulingEnable(void);
+void thaisen_module_set_ModuleSchedulingDisable(void);
+uint8_t thaisen_module_get_ModuleScheduling(void);
+
+/**
+ * @note 模块为易能模块时，初次上电需要进行配置时调用
+ */
+void thaisen_guowang_set_moduletype_ensd(void);
+
+/***************[以下函数供模块调试使用，充电流程通过设置枪功率分配的模块不需要调用以下函数 - Start]*****************/
+
+/**
+ * @brief 模块DEBUG使能(需先设置模块控制参数后再调用)
+ * @param groupnum
+ */
+void thaisen_guowang_moduledebug_enable(uint8_t groupnum);
+
+/**
+ * @brief 模块DEBUG失能
+ * @param groupnum
+ */
+void thaisen_guowang_moduledebug_disable(uint8_t groupnum);
+
+/**
+ * @note 设置模块控制参数
+ * @param groupnum
+ * @param cmd
+ * @param volt
+ * @param curr
+ * @param batvolt
+ */
+void thaisen_guowang_set_controlparam(uint8_t groupnum, uint8_t cmd, uint16_t volt, uint16_t curr, uint16_t batvolt);
+
+/***************[以上函数供模块调试使用，充电流程通过设置枪功率分配的模块不需要调用以下函数  - End]*****************/
+
+/**
+ * @note 设置接触器反馈使能
+ * @param relaynum 接触器编号(1~)
+ * @param 接触器PN - 0：DC+ 1：DC-
+ * @param sta - 0:失能    1:使能
+ */
+void thaisen_relay_set_feedbackenbale(uint8_t relaynum, uint8_t pn, uint8_t sta);
+
+/**
+ * @note 设置接触器反馈取反
+ * @param relaynum 接触器编号(1~)
+ * @param 接触器PN - 0：DC+ 1：DC-
+ * @param sta - 0：不取反       1:取反
+ */
+void thaisen_relay_set_feedbackinvert(uint8_t relaynum, uint8_t pn, uint8_t sta);
+
+/**
+ * @note 设置单个模块的最小输出电流
+ * @param curr 电流值(1A)
+ */
+void thaisen_set_module_mincurr(uint32_t curr);
+
+/**
+ * @note 设置单个模块的最大输出电流
+ * @param curr 电流值(0.01A)
+ */
+void thaisen_set_module_maxcurr(uint32_t curr);
+
+/*********************************************************************************************************************/
+/*********************************************************************************************************************/
 
 #endif /* APPLICATIONS_THAISENCHARGMODULELIB_H_ */

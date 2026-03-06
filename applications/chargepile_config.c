@@ -2028,6 +2028,11 @@ static void chargepile_config_data_reset(void)
     s_chargepile_config_info.config_info.ammeter_baudrate = CP_AMMETER_BAUDRATE_9600;
     s_chargepile_config_info.config_info.card_block_sn = CONFIG_CARD_BLOCK_SN_DEFAULT;
     s_chargepile_config_info.config_info.led_language = CP_LED_LANGUAGE_0;
+#ifdef CP_USING_CYCLE_MATRIX
+    s_chargepile_config_info.config_info.system_function = SYSTEM_FUNCTION_MS_MACHINE_CYCLE;
+#else
+    s_chargepile_config_info.config_info.system_function = SYSTEM_FUNCTION_AVERAGE_DOUBLE;
+#endif /* CP_USING_CYCLE_MATRIX */
 
     s_chargepile_config_info.function_enable.local_charge = 0x00;
     s_chargepile_config_info.function_enable.local_stop = 0x00;
@@ -2535,10 +2540,18 @@ int32_t chargepile_check_config(void)
     if(s_chargepile_config_info.network.nettype >= CP_NETTYPE_SIZE){         /* 联网方式默认4G */
         s_chargepile_config_info.network.nettype = CP_NETTYPE_4G;
     }
+#ifdef CP_USING_CYCLE_MATRIX
+    /** 设备类型默认环矩 */
+    if(s_chargepile_config_info.config_info.system_function >= SYSTEM_FUNCTION_SIZE){
+        s_chargepile_config_info.config_info.system_function = SYSTEM_FUNCTION_MS_MACHINE_CYCLE;
+    }
+#else
     /** 设备类型默认均充双枪(注：这是普通双枪版本做法，其它版本需要根据实际来) */
     if(s_chargepile_config_info.config_info.system_function != SYSTEM_FUNCTION_DYNAMIC_SWITCH){
         s_chargepile_config_info.config_info.system_function = SYSTEM_FUNCTION_AVERAGE_DOUBLE;
     }
+#endif /* CP_USING_CYCLE_MATRIX */
+
     if(s_chargepile_config_info.config_info.liquid_dev >= CP_LIQUID_DEVTYPE_SIZE)
     {
         s_chargepile_config_info.config_info.liquid_dev = CP_LIQUID_DEVTYPE_YTND;

@@ -64,10 +64,10 @@ typedef enum{
 }charger_lv_clinker_state;
 #endif /* CP_USING_LV_MODULE_BMS */
 
-#ifdef USING_TCU_CAN
+#if (defined(USING_TCU_CAN) && (!defined(CP_USING_CYCLE_MATRIX)))
 void app_tcan_send_thread_entry(void *parameter);
 void app_tcan_recv_thread_entry(void *parameter);
-#endif /* USING_TCU_CAN */
+#endif /* (defined(USING_TCU_CAN) && (!defined(CP_USING_CYCLE_MATRIX))) */
 
 /*******************************************
  * 函数名                app_is_using_maintenance_mode

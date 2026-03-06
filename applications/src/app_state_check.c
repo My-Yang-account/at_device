@@ -69,6 +69,14 @@ typedef struct{
     uint8_t elock_status;                      /** 器件状态：电子锁 */
     uint8_t fan_status;                        /** 器件状态：风扇 */
     uint8_t liquid_status;                     /** 器件状态：液冷 */
+#ifdef APP_USING_CYCLE_MATRIX
+    uint8_t matrix_realy_1_1_status;           /** 器件状态：矩阵继电器KP1-1 */
+    uint8_t matrix_realy_1_2_status;           /** 器件状态：矩阵继电器KP1-2 */
+    uint8_t matrix_realy_1_3_status;           /** 器件状态：矩阵继电器KP1-3 */
+    uint8_t matrix_realy_2_1_status;           /** 器件状态：矩阵继电器KP2-1 */
+    uint8_t matrix_realy_2_2_status;           /** 器件状态：矩阵继电器KP2-2 */
+    uint8_t matrix_realy_3_1_status;           /** 器件状态：矩阵继电器KP3-1 */
+#endif /* APP_USING_CYCLE_MATRIX */
 }state_device_t;
 
 #pragma pack()
@@ -554,7 +562,13 @@ static void app_acrelay_control(void)
 #define CTRL_STEP_RELEASE_JUDGE          2             /** 控制步骤：继电器释放条件判断 */
 #define CTRL_STEP_RELEASE                3             /** 控制步骤：继电器释放 */
 #define CTRL_STEP_NULL                   4             /** 控制步骤：空 */
+#ifdef APP_USING_CYCLE_MATRIX
+    extern unsigned char thaisen_get_needAcPowerOn(void);
+#endif /* APP_USING_CYCLE_MATRIX */
 
+#ifdef APP_USING_CYCLE_MATRIX
+    static uint8_t need_acrelay = 0x00;
+#endif /* APP_USING_CYCLE_MATRIX */
     static uint8_t ctrl_step = CTRL_STEP_ACTION_JUDGE, is_charging = 0x00, is_plugin = 0x00, is_switching = 0x00;
     static uint8_t guidance_current[APP_SYSTEM_GUNNO_SIZE], guidance_last[APP_SYSTEM_GUNNO_SIZE];
     /** 超时检测判断 */
@@ -565,7 +579,11 @@ static void app_acrelay_control(void)
 
     is_charging = 0x00;
     is_plugin = 0x00;
-
+#ifdef APP_USING_CYCLE_MATRIX
+    if(thaisen_get_needAcPowerOn()){
+        need_acrelay = 0x01;
+    }
+#endif /* APP_USING_CYCLE_MATRIX */
     /** 判断是否有枪在充电或插枪 */
     for(uint8_t i = 0x00; i < APP_SYSTEM_GUNNO_SIZE; i++){
         ofsm = get_ofsm_info(i);
@@ -579,6 +597,33 @@ static void app_acrelay_control(void)
             guidance_current[i] = APP_CONNECT_STATE_DISCONNECT;
         }
     }
+#ifdef APP_USING_CYCLE_MATRIX
+    /** 子机插枪或充电 */
+    if(need_acrelay){
+        switch(ctrl_step){
+        /** 当前正在执行闭合操作 */
+        case CTRL_STEP_ACTION:
+            judge_timing = 0x00;
+            need_acrelay = 0x00;
+            break;
+        /** 当前交流接触器已闭合，等待指定时间断开；此时复位定时时基 */
+        case CTRL_STEP_RELEASE_JUDGE:
+            judge_timing = 0x00;
+            need_acrelay = 0x00;
+            break;
+        /** 当前正在执行断开操作，等待断开完成后会进入NULL状态，NULL状态会强制状态变为ACTION */
+        case CTRL_STEP_RELEASE:
+
+            break;
+        default:
+            if(app_is_all_module_closed()){
+                ctrl_step = CTRL_STEP_ACTION;
+                need_acrelay = 0x00;
+            }
+            break;
+        }
+    }
+#endif /* APP_USING_CYCLE_MATRIX */
 
     switch(ctrl_step){
     /******************************** 继电器动作条件判断 ********************************/
@@ -962,11 +1007,24 @@ static void state_check_thread_entry(void *parameter)
 static void control_check_thread_entry(void *parameter)
 {
     extern int32_t app_thread_monitor_process(void *thread, void *para, uint32_t plen, uint32_t option);
+#ifdef APP_USING_CYCLE_MATRIX
+    extern void app_module_schedule_judge(void);
+    extern void app_module_input_power_control(void);
+    extern void app_module_loop(void);
+
+#endif /* APP_USING_CYCLE_MATRIX */
 
     while(1){
         app_thread_monitor_process(rt_thread_self(), NULL, 0x00, 0x00);
 
+#ifdef APP_USING_CYCLE_MATRIX
+        app_module_input_power_control();
+#endif /* APP_USING_CYCLE_MATRIX */
         app_module_inpower_judge();
+#ifdef APP_USING_CYCLE_MATRIX
+        app_module_schedule_judge();
+        app_module_loop();
+#endif /* APP_USING_CYCLE_MATRIX */
         /** 这是低功耗模块 */
         if(*(sys_read_config_item_content(CONFIG_ITEM_LP_MODULE, 0x00)) == CONFIG_LP_CONSUMPTION_MODULE_YN){
             thaisenSetACRelayType(THADRV_ACRELAY_TYPE_MAGNETIC);
@@ -1114,6 +1172,14 @@ int32_t app_state_check_init(void)
         s_state_device[i].pararealy_1_pos_status = THAISEN_DEVICE_OPT_RELEASE;
         s_state_device[i].pararealy_2_neg_status = THAISEN_DEVICE_OPT_RELEASE;
         s_state_device[i].pararealy_2_pos_status = THAISEN_DEVICE_OPT_RELEASE;
+#ifdef APP_USING_CYCLE_MATRIX
+        s_state_device[i].matrix_realy_1_1_status = THAISEN_DEVICE_OPT_RELEASE;
+        s_state_device[i].matrix_realy_1_2_status = THAISEN_DEVICE_OPT_RELEASE;
+        s_state_device[i].matrix_realy_1_3_status = THAISEN_DEVICE_OPT_RELEASE;
+        s_state_device[i].matrix_realy_2_1_status = THAISEN_DEVICE_OPT_RELEASE;
+        s_state_device[i].matrix_realy_2_2_status = THAISEN_DEVICE_OPT_RELEASE;
+        s_state_device[i].matrix_realy_3_1_status = THAISEN_DEVICE_OPT_RELEASE;
+#endif /* APP_USING_CYCLE_MATRIX */
     }
     s_module_inpower_enable = 0x00;
     memset(s_state_check, 0x00, sizeof(s_state_check));
@@ -1295,6 +1361,56 @@ void app_state_device_status_changed(uint8_t device, void *parameter, uint8_t pl
             is_changed = 0x01;
         }
         break;
+#ifdef APP_USING_CYCLE_MATRIX
+            case THAISEN_DEVICE_ENUM_MATRIX_RELAY_1_1_POS:
+    case THAISEN_DEVICE_ENUM_MATRIX_RELAY_1_1_NEG:
+        if(s_state_device[port].matrix_realy_1_1_status != p->opt){
+            rt_kprintf("device matrix_realy_1_1 status changed(%d, %d, %d)\n", port, p->opt, p->result);
+            s_state_device[port].matrix_realy_1_1_status = p->opt;
+            is_changed = 0x01;
+        }
+        break;
+    case THAISEN_DEVICE_ENUM_MATRIX_RELAY_1_2_POS:
+    case THAISEN_DEVICE_ENUM_MATRIX_RELAY_1_2_NEG:
+        if(s_state_device[port].matrix_realy_1_2_status != p->opt){
+            rt_kprintf("device matrix_realy_1_2 status changed(%d, %d, %d)\n", port, p->opt, p->result);
+            s_state_device[port].matrix_realy_1_2_status = p->opt;
+            is_changed = 0x01;
+        }
+        break;
+    case THAISEN_DEVICE_ENUM_MATRIX_RELAY_1_3_POS:
+    case THAISEN_DEVICE_ENUM_MATRIX_RELAY_1_3_NEG:
+        if(s_state_device[port].matrix_realy_1_3_status != p->opt){
+            rt_kprintf("device matrix_realy_1_3 status changed(%d, %d, %d)\n", port, p->opt, p->result);
+            s_state_device[port].matrix_realy_1_3_status = p->opt;
+            is_changed = 0x01;
+        }
+        break;
+    case THAISEN_DEVICE_ENUM_MATRIX_RELAY_2_1_POS:
+    case THAISEN_DEVICE_ENUM_MATRIX_RELAY_2_1_NEG:
+        if(s_state_device[port].matrix_realy_2_1_status != p->opt){
+            rt_kprintf("device matrix_realy_2_1 status changed(%d, %d, %d)\n", port, p->opt, p->result);
+            s_state_device[port].matrix_realy_2_1_status = p->opt;
+            is_changed = 0x01;
+        }
+        break;
+    case THAISEN_DEVICE_ENUM_MATRIX_RELAY_2_2_POS:
+    case THAISEN_DEVICE_ENUM_MATRIX_RELAY_2_2_NEG:
+        if(s_state_device[port].matrix_realy_2_2_status != p->opt){
+            rt_kprintf("device matrix_realy_2_2 status changed(%d, %d, %d)\n", port, p->opt, p->result);
+            s_state_device[port].matrix_realy_2_2_status = p->opt;
+            is_changed = 0x01;
+        }
+        break;
+    case THAISEN_DEVICE_ENUM_MATRIX_RELAY_3_1_POS:
+    case THAISEN_DEVICE_ENUM_MATRIX_RELAY_3_1_NEG:
+        if(s_state_device[port].matrix_realy_3_1_status != p->opt){
+            rt_kprintf("device matrix_realy_3_1 status changed(%d, %d, %d)\n", port, p->opt, p->result);
+            s_state_device[port].matrix_realy_3_1_status = p->opt;
+            is_changed = 0x01;
+        }
+        break;
+#endif /* APP_USING_CYCLE_MATRIX */
     default:
         break;
     }

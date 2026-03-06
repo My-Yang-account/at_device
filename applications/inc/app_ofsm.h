@@ -77,6 +77,10 @@ extern "C" {
 #define APP_INCLUDE_V2G                                /* 包含V2G */
 #endif /* CP_USING_V2G */
 
+#ifdef CP_USING_CYCLE_MATRIX
+#define APP_USING_CYCLE_MATRIX                         /* 包含环矩部分 */
+#endif /* CP_USING_CYCLE_MATRIX */
+
 #define APP_USING_DOUBLEGUN                            /* 使用双枪 */
 
 #define APP_MAINTENTANCE_MODE_CURR_MAX       200       /* 保养模式最大电流20A(0.1) */

@@ -22,5 +22,6 @@ void mw_module_set_permit_charge_state(uint8_t state, uint8_t gunno);
 uint8_t mw_module_get_permit_charge_state(uint8_t gunno);
 
 uint8_t mw_module_is_starting(uint8_t gunno);
+void mw_module_starting_finish(uint8_t gunno);
 
 #endif /* MIDDLEWARE_INC_MW_MODULE_CONTROL_H_ */
