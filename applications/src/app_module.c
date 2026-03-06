@@ -971,6 +971,9 @@ int app_module_ctrl_init(void)
 
     for(unsigned char i = 0x00; i < mctrl_base_info->module_groupcnt; i++){
         mctrl_base_info->module_cntforgroup[i] = *(unsigned char*)(sys_read_config_item_content((CONFIG_ITEM_MODULE_NUM_GROUP_1 + i), 0x00));
+        if(mctrl_base_info->module_cntforgroup[i] > MODULE_NUMBER_SINGLE_MAX){
+            mctrl_base_info->module_cntforgroup[i] = MODULE_NUMBER_SINGLE_MAX;
+        }
         MCTRL_DEBUG("module control matrix num single grp:%d, %d\n", i, mctrl_base_info->module_cntforgroup[i]);
     }
 
