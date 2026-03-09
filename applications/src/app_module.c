@@ -506,9 +506,12 @@ void app_module_loop(void)
                 s_module_ctrl_assistant_info[gunno].flag.is_debug_stoped = 0x00;
                 if(gunno == APP_SYSTEM_GUNNOA){
                     thaisenDcRelay_A_Disable_Debug();
-                }else{
+                }
+#ifdef APP_USING_DOUBLEGUN
+                else if(gunno == APP_SYSTEM_GUNNOB){
                     thaisenDcRelay_B_Disable_Debug();
                 }
+#endif /* APP_USING_DOUBLEGUN */
             }
         }
     }
@@ -526,8 +529,15 @@ void app_module_loop(void)
 int app_module_debug_start(unsigned char gunno, unsigned short voltage, unsigned short current)
 {
 #ifdef CP_USING_CYCLE_MATRIX
-    if(gunno >= APP_SYSTEM_GUNNO_SIZE){
-        return -0x01;
+    if((s_module_ctrl_info.type != SYSTEM_FUNCTION_MS_MACHINE_CYCLE) && (s_module_ctrl_info.type != SYSTEM_FUNCTION_MS_MACHINE_HALF)){
+        if(gunno >= APP_SYSTEM_GUNNO_SIZE){
+            return -0x01;
+        }
+    }else{
+        /** 环矩/半矩设备：模块都在母机，最多4把枪(需要考虑双枪改造时的情况) */
+        if(gunno >= 0x04){
+            return -0x01;
+        }
     }
 
     unsigned short battery_volt = 0x00;
@@ -589,9 +599,12 @@ int app_module_debug_start(unsigned char gunno, unsigned short voltage, unsigned
 
     if(gunno == APP_SYSTEM_GUNNOA){
         thaisenDcRelay_A_Enable_Debug();
-    }else{
+    }
+#ifdef APP_USING_DOUBLEGUN
+    else if(gunno == APP_SYSTEM_GUNNOB){
         thaisenDcRelay_B_Enable_Debug();
     }
+#endif /* APP_USING_DOUBLEGUN */
 #endif /* CP_USING_CYCLE_MATRIX */
     return 0x00;
 }
@@ -605,8 +618,15 @@ int app_module_debug_start(unsigned char gunno, unsigned short voltage, unsigned
 int app_module_debug_stop(unsigned char gunno)
 {
 #ifdef CP_USING_CYCLE_MATRIX
-    if(gunno >= APP_SYSTEM_GUNNO_SIZE){
-        return -0x01;
+    if((s_module_ctrl_info.type != SYSTEM_FUNCTION_MS_MACHINE_CYCLE) && (s_module_ctrl_info.type != SYSTEM_FUNCTION_MS_MACHINE_HALF)){
+        if(gunno >= APP_SYSTEM_GUNNO_SIZE){
+            return -0x01;
+        }
+    }else{
+        /** 环矩/半矩设备：模块都在母机，最多4把枪(需要考虑双枪改造时的情况) */
+        if(gunno >= 0x04){
+            return -0x01;
+        }
     }
     thaisen_guowang_moduledebug_disable((gunno + 0x01));
     s_module_ctrl_assistant_info[gunno].flag.is_debug_stoped = 0x01;
