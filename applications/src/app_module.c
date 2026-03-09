@@ -663,8 +663,15 @@ unsigned char app_module_is_debug_started(unsigned char gunno)
 unsigned int app_module_get_module_group_voltage(unsigned char group)
 {
 #ifdef CP_USING_CYCLE_MATRIX
-    if(group >= APP_SYSTEM_GUNNO_SIZE){
-        return 0x00;
+    if((s_module_ctrl_info.type != SYSTEM_FUNCTION_MS_MACHINE_CYCLE) && (s_module_ctrl_info.type != SYSTEM_FUNCTION_MS_MACHINE_HALF)){
+        if(group >= APP_SYSTEM_GUNNO_SIZE){
+            return -0x01;
+        }
+    }else{
+        /** 环矩/半矩设备：模块都在母机，最多4把枪(需要考虑双枪改造时的情况) */
+        if(group >= 0x04){
+            return -0x01;
+        }
     }
     extern uint16_t thaisen_guowang_get_groupvolt(uint8_t groupnum);
 
@@ -683,8 +690,15 @@ unsigned int app_module_get_module_group_voltage(unsigned char group)
 unsigned int app_module_get_module_group_current(unsigned char group)
 {
 #ifdef CP_USING_CYCLE_MATRIX
-    if(group >= APP_SYSTEM_GUNNO_SIZE){
-        return 0x00;
+    if((s_module_ctrl_info.type != SYSTEM_FUNCTION_MS_MACHINE_CYCLE) && (s_module_ctrl_info.type != SYSTEM_FUNCTION_MS_MACHINE_HALF)){
+        if(group >= APP_SYSTEM_GUNNO_SIZE){
+            return -0x01;
+        }
+    }else{
+        /** 环矩/半矩设备：模块都在母机，最多4把枪(需要考虑双枪改造时的情况) */
+        if(group >= 0x04){
+            return -0x01;
+        }
     }
     extern uint16_t thaisen_guowang_get_groupcurr(uint8_t groupnum);
 
