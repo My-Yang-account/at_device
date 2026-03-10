@@ -56,6 +56,8 @@ extern "C" {
 //#define APP_SOFT_MODULE_USING_EN_NTCU_7103F_ZG                  /* 软件型号使用欧标无TCU7103F-470ZG(芯片型号) */
 //#define APP_SOFT_MODULE_USING_GB_SGUN_HOST_7103F_H7             /* 软件型号使用国标多枪主板7103F-470H7(芯片型号) */
 //#define APP_SOFT_MODULE_USING_GB_SGUN_SLAVE_7103F_VG            /* 软件型号使用国标多枪从板7103F-470VG(芯片型号) */
+//#define APP_SOFT_MODULE_USING_GB_MASTERSLAVEDEV_7103F_VG        /* 软件型号使用国标子母机7103F-470ZG(芯片型号) */
+//#define APP_SOFT_MODULE_USING_GB_MASTERSLAVEDEV_7103F_VG_SWT    /* 软件型号使用国标子母机7103F-470ZG(芯片型号)-赛维特定制屏 */
 
 #if defined(APP_SOFT_MODULE_USING_GB_WHOLE_7103F_ZG)
 #define SOFTWARE_MODULE                                         "7103-V31"          /* 软件型号 */
@@ -75,6 +77,10 @@ extern "C" {
 #define SOFTWARE_MODULE                                         "7103-VC1"          /* 软件型号 */
 #elif defined(APP_SOFT_MODULE_USING_GB_SGUN_SLAVE_7103F_VG)
 #define SOFTWARE_MODULE                                         "7103-VC2"          /* 软件型号 */
+#elif defined(APP_SOFT_MODULE_USING_GB_MASTERSLAVEDEV_7103F_VG)
+#define SOFTWARE_MODULE                                         "7103-V52"          /* 软件型号 */
+#elif defined(APP_SOFT_MODULE_USING_GB_MASTERSLAVEDEV_7103F_VG_SWT)
+#define SOFTWARE_MODULE                                         "7103-V53"          /* 软件型号 */
 #else
 #define SOFTWARE_MODULE                                         "7103-V30"          /* 软件型号 */
 #endif /* APP_SOFT_MODULE_USING_GB_WHOLE_7103F_ZG */
