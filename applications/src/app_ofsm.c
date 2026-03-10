@@ -3735,6 +3735,9 @@ static void ofsm_starting_fun(uint8_t gunno)
 
                         LOG_D("gunno(%d) charge finish deal main gun stop in parallel charge mode\n", gunno);
                     }
+#ifdef APP_USING_CYCLE_MATRIX
+                    mw_module_starting_finish(gunno);
+#endif /* APP_USING_CYCLE_MATRIX */
                 }
 
                 app_billing_info_init(s_ofsm_info[gunno].base.start_elect, gunno);
@@ -4167,6 +4170,9 @@ static void ofsm_starting_fun(uint8_t gunno)
 
         app_nsal_state_charged(gunno);
         app_nsal_event_occurded(gunno);
+#ifdef APP_USING_CYCLE_MATRIX
+        mw_module_starting_finish(gunno);
+#endif /* APP_USING_CYCLE_MATRIX */
         return;
     }
 
@@ -4269,6 +4275,9 @@ static void ofsm_starting_fun(uint8_t gunno)
 
                 app_nsal_state_charged(gunno);
                 app_nsal_event_occurded(gunno);
+#ifdef APP_USING_CYCLE_MATRIX
+                mw_module_starting_finish(gunno);
+#endif /* APP_USING_CYCLE_MATRIX */
                 return;
             }
         }
@@ -4399,6 +4408,9 @@ static void ofsm_starting_fun(uint8_t gunno)
 
                 app_nsal_state_charged(gunno);
                 app_nsal_event_occurded(gunno);
+#ifdef APP_USING_CYCLE_MATRIX
+                mw_module_starting_finish(gunno);
+#endif /* APP_USING_CYCLE_MATRIX */
                 return;
             }
         }
@@ -4694,6 +4706,9 @@ static void ofsm_starting_fun(uint8_t gunno)
 
                 app_nsal_state_charged(gunno);
                 app_nsal_event_occurded(gunno);
+#ifdef APP_USING_CYCLE_MATRIX
+                mw_module_starting_finish(gunno);
+#endif /* APP_USING_CYCLE_MATRIX */
                 return;
             }
 
@@ -4866,6 +4881,9 @@ static void ofsm_starting_fun(uint8_t gunno)
 
             app_nsal_state_charged(gunno);
             app_nsal_event_occurded(gunno);
+#ifdef APP_USING_CYCLE_MATRIX
+            mw_module_starting_finish(gunno);
+#endif /* APP_USING_CYCLE_MATRIX */
         }
         return;
     }
@@ -4942,7 +4960,9 @@ static void ofsm_starting_fun(uint8_t gunno)
 
             app_nsal_state_charged(gunno);
             app_nsal_event_occurded(gunno);
-
+#ifdef APP_USING_CYCLE_MATRIX
+            mw_module_starting_finish(gunno);
+#endif /* APP_USING_CYCLE_MATRIX */
             LOG_D("gunno(%d) charge finish deal deputy gun fault stop in parallel charge mode\n", gunno);
             return;
         }
