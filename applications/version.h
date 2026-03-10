@@ -85,9 +85,15 @@ extern "C" {
 #define SOFTWARE_MODULE                                         "7103-V30"          /* 软件型号 */
 #endif /* APP_SOFT_MODULE_USING_GB_WHOLE_7103F_ZG */
 
+#ifndef CP_USING_CYCLE_MATRIX
 #define SOFTWARE_VERSION       2L
 #define SOFTWARE_SUBVERSION    2
 #define SOFTWARE_REVISION      6L  /* 01 */
+#else
+#define SOFTWARE_VERSION       1L
+#define SOFTWARE_SUBVERSION    0
+#define SOFTWARE_REVISION      0L  /* 01 */
+#endif
 
 #else
 
