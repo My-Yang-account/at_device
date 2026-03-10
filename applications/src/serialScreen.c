@@ -9212,15 +9212,15 @@ void SerialScreen_MatrixRelayCtrl_All(void)
             }
         }
     }else{
-        if((LcdData.MatrixRelay_KP1_1[0] == 1) && \
-                (LcdData.MatrixRelay_KP1_2[0] == 1) && \
-                (LcdData.MatrixRelay_KP1_3[0] == 1) && \
-                (LcdData.MatrixRelay_KP2_1[0] == 1) && \
-                (LcdData.MatrixRelay_KP2_2[0] == 1) && \
-                (LcdData.MatrixRelay_KP2_3[0] == 1) && \
-                (LcdData.MatrixRelay_KP3_1[0] == 1) && \
-                (LcdData.MatrixRelay_KP3_2[0] == 1) && \
-                (LcdData.MatrixRelay_KP3_3[0] == 1)){
+        if((LcdData.MatrixRelay_KP1_1[0] == 0) && \
+                (LcdData.MatrixRelay_KP1_2[0] == 0) && \
+                (LcdData.MatrixRelay_KP1_3[0] == 0) && \
+                (LcdData.MatrixRelay_KP2_1[0] == 0) && \
+                (LcdData.MatrixRelay_KP2_2[0] == 0) && \
+                (LcdData.MatrixRelay_KP2_3[0] == 0) && \
+                (LcdData.MatrixRelay_KP3_1[0] == 0) && \
+                (LcdData.MatrixRelay_KP3_2[0] == 0) && \
+                (LcdData.MatrixRelay_KP3_3[0] == 0)){
             return;
         }
 
