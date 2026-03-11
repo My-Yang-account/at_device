@@ -115,7 +115,7 @@ extern "C" {
 
 #define SOFTWARE_VERSION       1L
 #define SOFTWARE_SUBVERSION    8L
-#define SOFTWARE_REVISION      8L  /* 01 */
+#define SOFTWARE_REVISION      8L  /* 02 */
 
 #endif /* APP_USING_DOUBLEGUN */
 
