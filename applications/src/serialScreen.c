@@ -11304,24 +11304,11 @@ void SerialScreen_QuitDebugIO(void)
     }
     LcdData.debugIOflg = FALSE;
 
-#ifdef SCREEN_USING_CYCLE_MATRIX
-    /**************************************** 有枪在充电时不复位器件 ****************************************/
-    /** 包含模块矩阵部分 */
-    if((_dev_type == thaisenDeviceType_Matrix_Cycle) || (_dev_type == thaisenDeviceType_Matrix_Half)){
-        /** 矩阵内有枪在充电 */
-        if(thaisen_get_pileCharging()){
+    for(u8 gunno = 0; gunno < LCD_GUN_NUM; gunno++){
+        if((LcdData.gun[gunno].workState == SysMainStatus_StartReady) || (LcdData.gun[gunno].workState == SysMainStatus_Chrging)){
             return;
         }
-    }else
-#endif /* SCREEN_USING_CYCLE_MATRIX */
-    {
-        for(u8 gunno = 0; gunno < LCD_GUN_NUM; gunno++){
-            if((LcdData.gun[gunno].workState == SysMainStatus_StartReady) || (LcdData.gun[gunno].workState == SysMainStatus_Chrging)){
-                return;
-            }
-        }
     }
-
 #ifdef SCREEN_USING_CYCLE_MATRIX
     /**************************************** 判断是否有模块强制控制操作 ****************************************/
     /** 包含模块矩阵部分 */
@@ -11425,6 +11412,10 @@ void SerialScreen_QuitDebugIO(void)
 #ifdef SCREEN_USING_CYCLE_MATRIX
     /********************************** 包含模块矩阵/矩阵继电器部分 ***********************************/
     if((_dev_type == thaisenDeviceType_Matrix_Cycle) || (_dev_type == thaisenDeviceType_Matrix_Half)){
+        /** 矩阵内有枪在充电 */
+        if(thaisen_get_pileCharging()){
+            return;
+        }
         /******************************************************** 矩阵继电器部分 ********************************************************/
         SerialScreen_SendIco(&SerialScreen, 0x1C02, 0x00);
         thaisen_app_system_delay(20);
