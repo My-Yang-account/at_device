@@ -8681,6 +8681,27 @@ void SerialScreen_MatrixRelay_KP1_1_Ctrl(void)
         }
     }
     SerialScreen_SendIco(&SerialScreen, 0x1C04, LcdData.MatrixRelay_KP1_1[2]);
+    /** 如果全部继电器已开启，则将全部控制按钮设置为开启；如果全部继电器已关闭，则将全部控制按钮设置为关闭  */
+    /** 设备是环矩 */
+    if(_dev_type == thaisenDeviceType_Matrix_Cycle){
+        if((LcdData.MatrixRelay_KP1_1[2] == TRUE) && (LcdData.MatrixRelay_KP2_1[2] == TRUE) && (LcdData.MatrixRelay_KP3_1[2] == TRUE) && \
+                (LcdData.MatrixRelay_KP2_2[2] == TRUE) ){
+            memset(LcdData.MatrixRelay_All, TRUE, sizeof(LcdData.MatrixRelay_All));
+        }else if((LcdData.MatrixRelay_KP1_1[2] == FALSE) && (LcdData.MatrixRelay_KP2_1[2] == FALSE) && (LcdData.MatrixRelay_KP3_1[2] == FALSE) && \
+                (LcdData.MatrixRelay_KP2_2[2] == FALSE)){
+            memset(LcdData.MatrixRelay_All, FALSE, sizeof(LcdData.MatrixRelay_All));
+        }
+    }
+    /** 设备为半矩 */
+    else{
+        if((LcdData.MatrixRelay_KP1_1[2] == TRUE) && (LcdData.MatrixRelay_KP1_2[2] == TRUE) && (LcdData.MatrixRelay_KP1_3[2] == TRUE) && \
+                (LcdData.MatrixRelay_KP2_2[2] == TRUE) && (LcdData.MatrixRelay_KP2_3[2] == TRUE) && (LcdData.MatrixRelay_KP3_3[2] == TRUE)){
+            memset(LcdData.MatrixRelay_All, TRUE, sizeof(LcdData.MatrixRelay_All));
+        }else if((LcdData.MatrixRelay_KP1_1[2] == FALSE) && (LcdData.MatrixRelay_KP1_2[2] == FALSE) && (LcdData.MatrixRelay_KP1_3[2] == FALSE) && \
+                (LcdData.MatrixRelay_KP2_2[2] == FALSE) && (LcdData.MatrixRelay_KP2_3[2] == FALSE) && (LcdData.MatrixRelay_KP3_3[2] == FALSE)){
+            memset(LcdData.MatrixRelay_All, FALSE, sizeof(LcdData.MatrixRelay_All));
+        }
+    }
 #endif /* SCREEN_USING_CYCLE_MATRIX */
 }
 
@@ -8722,6 +8743,27 @@ void SerialScreen_MatrixRelay_KP1_2_Ctrl(void)
         }
     }
     SerialScreen_SendIco(&SerialScreen, 0x1C07, LcdData.MatrixRelay_KP1_2[2]);
+    /** 如果全部继电器已开启，则将全部控制按钮设置为开启；如果全部继电器已关闭，则将全部控制按钮设置为关闭  */
+    /** 设备是环矩 */
+    if(_dev_type == thaisenDeviceType_Matrix_Cycle){
+        if((LcdData.MatrixRelay_KP1_1[2] == TRUE) && (LcdData.MatrixRelay_KP2_1[2] == TRUE) && (LcdData.MatrixRelay_KP3_1[2] == TRUE) && \
+                (LcdData.MatrixRelay_KP2_2[2] == TRUE) ){
+            memset(LcdData.MatrixRelay_All, TRUE, sizeof(LcdData.MatrixRelay_All));
+        }else if((LcdData.MatrixRelay_KP1_1[2] == FALSE) && (LcdData.MatrixRelay_KP2_1[2] == FALSE) && (LcdData.MatrixRelay_KP3_1[2] == FALSE) && \
+                (LcdData.MatrixRelay_KP2_2[2] == FALSE)){
+            memset(LcdData.MatrixRelay_All, FALSE, sizeof(LcdData.MatrixRelay_All));
+        }
+    }
+    /** 设备为半矩 */
+    else{
+        if((LcdData.MatrixRelay_KP1_1[2] == TRUE) && (LcdData.MatrixRelay_KP1_2[2] == TRUE) && (LcdData.MatrixRelay_KP1_3[2] == TRUE) && \
+                (LcdData.MatrixRelay_KP2_2[2] == TRUE) && (LcdData.MatrixRelay_KP2_3[2] == TRUE) && (LcdData.MatrixRelay_KP3_3[2] == TRUE)){
+            memset(LcdData.MatrixRelay_All, TRUE, sizeof(LcdData.MatrixRelay_All));
+        }else if((LcdData.MatrixRelay_KP1_1[2] == FALSE) && (LcdData.MatrixRelay_KP1_2[2] == FALSE) && (LcdData.MatrixRelay_KP1_3[2] == FALSE) && \
+                (LcdData.MatrixRelay_KP2_2[2] == FALSE) && (LcdData.MatrixRelay_KP2_3[2] == FALSE) && (LcdData.MatrixRelay_KP3_3[2] == FALSE)){
+            memset(LcdData.MatrixRelay_All, FALSE, sizeof(LcdData.MatrixRelay_All));
+        }
+    }
 #endif /* SCREEN_USING_CYCLE_MATRIX */
 }
 
@@ -8763,6 +8805,27 @@ void SerialScreen_MatrixRelay_KP1_3_Ctrl(void)
         }
     }
     SerialScreen_SendIco(&SerialScreen, 0x1C0A, LcdData.MatrixRelay_KP1_3[2]);
+    /** 如果全部继电器已开启，则将全部控制按钮设置为开启；如果全部继电器已关闭，则将全部控制按钮设置为关闭  */
+    /** 设备是环矩 */
+    if(_dev_type == thaisenDeviceType_Matrix_Cycle){
+        if((LcdData.MatrixRelay_KP1_1[2] == TRUE) && (LcdData.MatrixRelay_KP2_1[2] == TRUE) && (LcdData.MatrixRelay_KP3_1[2] == TRUE) && \
+                (LcdData.MatrixRelay_KP2_2[2] == TRUE) ){
+            memset(LcdData.MatrixRelay_All, TRUE, sizeof(LcdData.MatrixRelay_All));
+        }else if((LcdData.MatrixRelay_KP1_1[2] == FALSE) && (LcdData.MatrixRelay_KP2_1[2] == FALSE) && (LcdData.MatrixRelay_KP3_1[2] == FALSE) && \
+                (LcdData.MatrixRelay_KP2_2[2] == FALSE)){
+            memset(LcdData.MatrixRelay_All, FALSE, sizeof(LcdData.MatrixRelay_All));
+        }
+    }
+    /** 设备为半矩 */
+    else{
+        if((LcdData.MatrixRelay_KP1_1[2] == TRUE) && (LcdData.MatrixRelay_KP1_2[2] == TRUE) && (LcdData.MatrixRelay_KP1_3[2] == TRUE) && \
+                (LcdData.MatrixRelay_KP2_2[2] == TRUE) && (LcdData.MatrixRelay_KP2_3[2] == TRUE) && (LcdData.MatrixRelay_KP3_3[2] == TRUE)){
+            memset(LcdData.MatrixRelay_All, TRUE, sizeof(LcdData.MatrixRelay_All));
+        }else if((LcdData.MatrixRelay_KP1_1[2] == FALSE) && (LcdData.MatrixRelay_KP1_2[2] == FALSE) && (LcdData.MatrixRelay_KP1_3[2] == FALSE) && \
+                (LcdData.MatrixRelay_KP2_2[2] == FALSE) && (LcdData.MatrixRelay_KP2_3[2] == FALSE) && (LcdData.MatrixRelay_KP3_3[2] == FALSE)){
+            memset(LcdData.MatrixRelay_All, FALSE, sizeof(LcdData.MatrixRelay_All));
+        }
+    }
 #endif /* SCREEN_USING_CYCLE_MATRIX */
 }
 
@@ -8804,6 +8867,27 @@ void SerialScreen_MatrixRelay_KP2_1_Ctrl(void)
         }
     }
     SerialScreen_SendIco(&SerialScreen, 0x1C05, LcdData.MatrixRelay_KP2_1[2]);
+    /** 如果全部继电器已开启，则将全部控制按钮设置为开启；如果全部继电器已关闭，则将全部控制按钮设置为关闭  */
+    /** 设备是环矩 */
+    if(_dev_type == thaisenDeviceType_Matrix_Cycle){
+        if((LcdData.MatrixRelay_KP1_1[2] == TRUE) && (LcdData.MatrixRelay_KP2_1[2] == TRUE) && (LcdData.MatrixRelay_KP3_1[2] == TRUE) && \
+                (LcdData.MatrixRelay_KP2_2[2] == TRUE) ){
+            memset(LcdData.MatrixRelay_All, TRUE, sizeof(LcdData.MatrixRelay_All));
+        }else if((LcdData.MatrixRelay_KP1_1[2] == FALSE) && (LcdData.MatrixRelay_KP2_1[2] == FALSE) && (LcdData.MatrixRelay_KP3_1[2] == FALSE) && \
+                (LcdData.MatrixRelay_KP2_2[2] == FALSE)){
+            memset(LcdData.MatrixRelay_All, FALSE, sizeof(LcdData.MatrixRelay_All));
+        }
+    }
+    /** 设备为半矩 */
+    else{
+        if((LcdData.MatrixRelay_KP1_1[2] == TRUE) && (LcdData.MatrixRelay_KP1_2[2] == TRUE) && (LcdData.MatrixRelay_KP1_3[2] == TRUE) && \
+                (LcdData.MatrixRelay_KP2_2[2] == TRUE) && (LcdData.MatrixRelay_KP2_3[2] == TRUE) && (LcdData.MatrixRelay_KP3_3[2] == TRUE)){
+            memset(LcdData.MatrixRelay_All, TRUE, sizeof(LcdData.MatrixRelay_All));
+        }else if((LcdData.MatrixRelay_KP1_1[2] == FALSE) && (LcdData.MatrixRelay_KP1_2[2] == FALSE) && (LcdData.MatrixRelay_KP1_3[2] == FALSE) && \
+                (LcdData.MatrixRelay_KP2_2[2] == FALSE) && (LcdData.MatrixRelay_KP2_3[2] == FALSE) && (LcdData.MatrixRelay_KP3_3[2] == FALSE)){
+            memset(LcdData.MatrixRelay_All, FALSE, sizeof(LcdData.MatrixRelay_All));
+        }
+    }
 #endif /* SCREEN_USING_CYCLE_MATRIX */
 }
 
@@ -8845,6 +8929,27 @@ void SerialScreen_MatrixRelay_KP2_2_Ctrl(void)
         }
     }
     SerialScreen_SendIco(&SerialScreen, 0x1C08, LcdData.MatrixRelay_KP2_2[2]);
+    /** 如果全部继电器已开启，则将全部控制按钮设置为开启；如果全部继电器已关闭，则将全部控制按钮设置为关闭  */
+    /** 设备是环矩 */
+    if(_dev_type == thaisenDeviceType_Matrix_Cycle){
+        if((LcdData.MatrixRelay_KP1_1[2] == TRUE) && (LcdData.MatrixRelay_KP2_1[2] == TRUE) && (LcdData.MatrixRelay_KP3_1[2] == TRUE) && \
+                (LcdData.MatrixRelay_KP2_2[2] == TRUE) ){
+            memset(LcdData.MatrixRelay_All, TRUE, sizeof(LcdData.MatrixRelay_All));
+        }else if((LcdData.MatrixRelay_KP1_1[2] == FALSE) && (LcdData.MatrixRelay_KP2_1[2] == FALSE) && (LcdData.MatrixRelay_KP3_1[2] == FALSE) && \
+                (LcdData.MatrixRelay_KP2_2[2] == FALSE)){
+            memset(LcdData.MatrixRelay_All, FALSE, sizeof(LcdData.MatrixRelay_All));
+        }
+    }
+    /** 设备为半矩 */
+    else{
+        if((LcdData.MatrixRelay_KP1_1[2] == TRUE) && (LcdData.MatrixRelay_KP1_2[2] == TRUE) && (LcdData.MatrixRelay_KP1_3[2] == TRUE) && \
+                (LcdData.MatrixRelay_KP2_2[2] == TRUE) && (LcdData.MatrixRelay_KP2_3[2] == TRUE) && (LcdData.MatrixRelay_KP3_3[2] == TRUE)){
+            memset(LcdData.MatrixRelay_All, TRUE, sizeof(LcdData.MatrixRelay_All));
+        }else if((LcdData.MatrixRelay_KP1_1[2] == FALSE) && (LcdData.MatrixRelay_KP1_2[2] == FALSE) && (LcdData.MatrixRelay_KP1_3[2] == FALSE) && \
+                (LcdData.MatrixRelay_KP2_2[2] == FALSE) && (LcdData.MatrixRelay_KP2_3[2] == FALSE) && (LcdData.MatrixRelay_KP3_3[2] == FALSE)){
+            memset(LcdData.MatrixRelay_All, FALSE, sizeof(LcdData.MatrixRelay_All));
+        }
+    }
 #endif /* SCREEN_USING_CYCLE_MATRIX */
 }
 
@@ -8886,6 +8991,27 @@ void SerialScreen_MatrixRelay_KP2_3_Ctrl(void)
         }
     }
     SerialScreen_SendIco(&SerialScreen, 0x1C0B, LcdData.MatrixRelay_KP2_3[2]);
+    /** 如果全部继电器已开启，则将全部控制按钮设置为开启；如果全部继电器已关闭，则将全部控制按钮设置为关闭  */
+    /** 设备是环矩 */
+    if(_dev_type == thaisenDeviceType_Matrix_Cycle){
+        if((LcdData.MatrixRelay_KP1_1[2] == TRUE) && (LcdData.MatrixRelay_KP2_1[2] == TRUE) && (LcdData.MatrixRelay_KP3_1[2] == TRUE) && \
+                (LcdData.MatrixRelay_KP2_2[2] == TRUE) ){
+            memset(LcdData.MatrixRelay_All, TRUE, sizeof(LcdData.MatrixRelay_All));
+        }else if((LcdData.MatrixRelay_KP1_1[2] == FALSE) && (LcdData.MatrixRelay_KP2_1[2] == FALSE) && (LcdData.MatrixRelay_KP3_1[2] == FALSE) && \
+                (LcdData.MatrixRelay_KP2_2[2] == FALSE)){
+            memset(LcdData.MatrixRelay_All, FALSE, sizeof(LcdData.MatrixRelay_All));
+        }
+    }
+    /** 设备为半矩 */
+    else{
+        if((LcdData.MatrixRelay_KP1_1[2] == TRUE) && (LcdData.MatrixRelay_KP1_2[2] == TRUE) && (LcdData.MatrixRelay_KP1_3[2] == TRUE) && \
+                (LcdData.MatrixRelay_KP2_2[2] == TRUE) && (LcdData.MatrixRelay_KP2_3[2] == TRUE) && (LcdData.MatrixRelay_KP3_3[2] == TRUE)){
+            memset(LcdData.MatrixRelay_All, TRUE, sizeof(LcdData.MatrixRelay_All));
+        }else if((LcdData.MatrixRelay_KP1_1[2] == FALSE) && (LcdData.MatrixRelay_KP1_2[2] == FALSE) && (LcdData.MatrixRelay_KP1_3[2] == FALSE) && \
+                (LcdData.MatrixRelay_KP2_2[2] == FALSE) && (LcdData.MatrixRelay_KP2_3[2] == FALSE) && (LcdData.MatrixRelay_KP3_3[2] == FALSE)){
+            memset(LcdData.MatrixRelay_All, FALSE, sizeof(LcdData.MatrixRelay_All));
+        }
+    }
 #endif /* SCREEN_USING_CYCLE_MATRIX */
 }
 
@@ -8927,6 +9053,27 @@ void SerialScreen_MatrixRelay_KP3_1_Ctrl(void)
         }
     }
     SerialScreen_SendIco(&SerialScreen, 0x1C06, LcdData.MatrixRelay_KP3_1[2]);
+    /** 如果全部继电器已开启，则将全部控制按钮设置为开启；如果全部继电器已关闭，则将全部控制按钮设置为关闭  */
+    /** 设备是环矩 */
+    if(_dev_type == thaisenDeviceType_Matrix_Cycle){
+        if((LcdData.MatrixRelay_KP1_1[2] == TRUE) && (LcdData.MatrixRelay_KP2_1[2] == TRUE) && (LcdData.MatrixRelay_KP3_1[2] == TRUE) && \
+                (LcdData.MatrixRelay_KP2_2[2] == TRUE) ){
+            memset(LcdData.MatrixRelay_All, TRUE, sizeof(LcdData.MatrixRelay_All));
+        }else if((LcdData.MatrixRelay_KP1_1[2] == FALSE) && (LcdData.MatrixRelay_KP2_1[2] == FALSE) && (LcdData.MatrixRelay_KP3_1[2] == FALSE) && \
+                (LcdData.MatrixRelay_KP2_2[2] == FALSE)){
+            memset(LcdData.MatrixRelay_All, FALSE, sizeof(LcdData.MatrixRelay_All));
+        }
+    }
+    /** 设备为半矩 */
+    else{
+        if((LcdData.MatrixRelay_KP1_1[2] == TRUE) && (LcdData.MatrixRelay_KP1_2[2] == TRUE) && (LcdData.MatrixRelay_KP1_3[2] == TRUE) && \
+                (LcdData.MatrixRelay_KP2_2[2] == TRUE) && (LcdData.MatrixRelay_KP2_3[2] == TRUE) && (LcdData.MatrixRelay_KP3_3[2] == TRUE)){
+            memset(LcdData.MatrixRelay_All, TRUE, sizeof(LcdData.MatrixRelay_All));
+        }else if((LcdData.MatrixRelay_KP1_1[2] == FALSE) && (LcdData.MatrixRelay_KP1_2[2] == FALSE) && (LcdData.MatrixRelay_KP1_3[2] == FALSE) && \
+                (LcdData.MatrixRelay_KP2_2[2] == FALSE) && (LcdData.MatrixRelay_KP2_3[2] == FALSE) && (LcdData.MatrixRelay_KP3_3[2] == FALSE)){
+            memset(LcdData.MatrixRelay_All, FALSE, sizeof(LcdData.MatrixRelay_All));
+        }
+    }
 #endif /* SCREEN_USING_CYCLE_MATRIX */
 }
 
@@ -8939,6 +9086,9 @@ void SerialScreen_MatrixRelay_KP3_1_Ctrl(void)
 void SerialScreen_MatrixRelay_KP3_2_Ctrl(void)
 {
 #ifdef SCREEN_USING_CYCLE_MATRIX
+    u8 _dev_type = 0;
+
+    _dev_type = thaisenGetChargGunRunType();
     /** 这个继电器目前是预留 */
     memset(LcdData.MatrixRelay_KP3_2, 2, sizeof(LcdData.MatrixRelay_KP3_2)); /** 2为空白：隐藏 */
     return;
@@ -8965,6 +9115,27 @@ void SerialScreen_MatrixRelay_KP3_2_Ctrl(void)
         }
     }
     SerialScreen_SendIco(&SerialScreen, 0x1C09, LcdData.MatrixRelay_KP3_2[2]);
+    /** 如果全部继电器已开启，则将全部控制按钮设置为开启；如果全部继电器已关闭，则将全部控制按钮设置为关闭  */
+    /** 设备是环矩 */
+    if(_dev_type == thaisenDeviceType_Matrix_Cycle){
+        if((LcdData.MatrixRelay_KP1_1[2] == TRUE) && (LcdData.MatrixRelay_KP2_1[2] == TRUE) && (LcdData.MatrixRelay_KP3_1[2] == TRUE) && \
+                (LcdData.MatrixRelay_KP2_2[2] == TRUE) ){
+            memset(LcdData.MatrixRelay_All, TRUE, sizeof(LcdData.MatrixRelay_All));
+        }else if((LcdData.MatrixRelay_KP1_1[2] == FALSE) && (LcdData.MatrixRelay_KP2_1[2] == FALSE) && (LcdData.MatrixRelay_KP3_1[2] == FALSE) && \
+                (LcdData.MatrixRelay_KP2_2[2] == FALSE)){
+            memset(LcdData.MatrixRelay_All, FALSE, sizeof(LcdData.MatrixRelay_All));
+        }
+    }
+    /** 设备为半矩 */
+    else{
+        if((LcdData.MatrixRelay_KP1_1[2] == TRUE) && (LcdData.MatrixRelay_KP1_2[2] == TRUE) && (LcdData.MatrixRelay_KP1_3[2] == TRUE) && \
+                (LcdData.MatrixRelay_KP2_2[2] == TRUE) && (LcdData.MatrixRelay_KP2_3[2] == TRUE) && (LcdData.MatrixRelay_KP3_3[2] == TRUE)){
+            memset(LcdData.MatrixRelay_All, TRUE, sizeof(LcdData.MatrixRelay_All));
+        }else if((LcdData.MatrixRelay_KP1_1[2] == FALSE) && (LcdData.MatrixRelay_KP1_2[2] == FALSE) && (LcdData.MatrixRelay_KP1_3[2] == FALSE) && \
+                (LcdData.MatrixRelay_KP2_2[2] == FALSE) && (LcdData.MatrixRelay_KP2_3[2] == FALSE) && (LcdData.MatrixRelay_KP3_3[2] == FALSE)){
+            memset(LcdData.MatrixRelay_All, FALSE, sizeof(LcdData.MatrixRelay_All));
+        }
+    }
 #endif /* SCREEN_USING_CYCLE_MATRIX */
 }
 
@@ -9006,6 +9177,27 @@ void SerialScreen_MatrixRelay_KP3_3_Ctrl(void)
         }
     }
     SerialScreen_SendIco(&SerialScreen, 0x1C0C, LcdData.MatrixRelay_KP3_3[2]);
+    /** 如果全部继电器已开启，则将全部控制按钮设置为开启；如果全部继电器已关闭，则将全部控制按钮设置为关闭  */
+    /** 设备是环矩 */
+    if(_dev_type == thaisenDeviceType_Matrix_Cycle){
+        if((LcdData.MatrixRelay_KP1_1[2] == TRUE) && (LcdData.MatrixRelay_KP2_1[2] == TRUE) && (LcdData.MatrixRelay_KP3_1[2] == TRUE) && \
+                (LcdData.MatrixRelay_KP2_2[2] == TRUE) ){
+            memset(LcdData.MatrixRelay_All, TRUE, sizeof(LcdData.MatrixRelay_All));
+        }else if((LcdData.MatrixRelay_KP1_1[2] == FALSE) && (LcdData.MatrixRelay_KP2_1[2] == FALSE) && (LcdData.MatrixRelay_KP3_1[2] == FALSE) && \
+                (LcdData.MatrixRelay_KP2_2[2] == FALSE)){
+            memset(LcdData.MatrixRelay_All, FALSE, sizeof(LcdData.MatrixRelay_All));
+        }
+    }
+    /** 设备为半矩 */
+    else{
+        if((LcdData.MatrixRelay_KP1_1[2] == TRUE) && (LcdData.MatrixRelay_KP1_2[2] == TRUE) && (LcdData.MatrixRelay_KP1_3[2] == TRUE) && \
+                (LcdData.MatrixRelay_KP2_2[2] == TRUE) && (LcdData.MatrixRelay_KP2_3[2] == TRUE) && (LcdData.MatrixRelay_KP3_3[2] == TRUE)){
+            memset(LcdData.MatrixRelay_All, TRUE, sizeof(LcdData.MatrixRelay_All));
+        }else if((LcdData.MatrixRelay_KP1_1[2] == FALSE) && (LcdData.MatrixRelay_KP1_2[2] == FALSE) && (LcdData.MatrixRelay_KP1_3[2] == FALSE) && \
+                (LcdData.MatrixRelay_KP2_2[2] == FALSE) && (LcdData.MatrixRelay_KP2_3[2] == FALSE) && (LcdData.MatrixRelay_KP3_3[2] == FALSE)){
+            memset(LcdData.MatrixRelay_All, FALSE, sizeof(LcdData.MatrixRelay_All));
+        }
+    }
 #endif /* SCREEN_USING_CYCLE_MATRIX */
 }
 
@@ -19303,6 +19495,7 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
 
     SerialScreen_ItemSetUp(LCD_PAGE_RELAY_MATRIX, NULL, "FB_Relay_KP1_1", LCD_PlainTextType, LCD_1sReflash, 0x1C50, pu8_nH_type, 2, (void *)&LcdData.FB_MatrixRelay_KP1_1);
     SerialScreen_ItemSetUp(LCD_PAGE_RELAY_MATRIX, NULL, "FB_Relay_KP1_2", LCD_PlainTextType, LCD_1sReflash, 0x1C56, pu8_nH_type, 2, (void *)&LcdData.FB_MatrixRelay_KP1_2);
+    SerialScreen_ItemSetUp(LCD_PAGE_RELAY_MATRIX, NULL, "FB_Relay_KP1_3", LCD_PlainTextType, LCD_1sReflash, 0x1C5C, pu8_nH_type, 2, (void *)&LcdData.FB_MatrixRelay_KP1_3);
     SerialScreen_ItemSetUp(LCD_PAGE_RELAY_MATRIX, NULL, "FB_Relay_KP2_1", LCD_PlainTextType, LCD_1sReflash, 0x1C52, pu8_nH_type, 2, (void *)&LcdData.FB_MatrixRelay_KP2_1);
     SerialScreen_ItemSetUp(LCD_PAGE_RELAY_MATRIX, NULL, "FB_Relay_KP2_2", LCD_PlainTextType, LCD_1sReflash, 0x1C58, pu8_nH_type, 2, (void *)&LcdData.FB_MatrixRelay_KP2_2);
     SerialScreen_ItemSetUp(LCD_PAGE_RELAY_MATRIX, NULL, "FB_Relay_KP2_3", LCD_PlainTextType, LCD_1sReflash, 0x1C5E, pu8_nH_type, 2, (void *)&LcdData.FB_MatrixRelay_KP2_3);
