@@ -10,6 +10,7 @@
 #include "app_data_info_interface.h"
 #include "app_rfid_reader.h"
 #include "app_card.h"
+#include "app_can.h"
 #include "serialScreen.h"
 #include "chargepile_config.h"
 #include "mw_temp.h"
@@ -722,7 +723,11 @@ struct charge_data *thaisen_app_get_charge_info(uint8_t gunno) // OK
     s_data_of_charging.charge_stop_time = ofsm_temp->base.stop_time;
     s_data_of_charging.charge_time = ofsm_temp->base.charge_time;
     s_data_of_charging.remain_charge_time = bms_data->BCS.SurplChgTime;
+#ifdef APP_USING_LV_MODULE_BMS
+    s_data_of_charging.current_soc = app_bms_lv_get_show_soc(gunno);
+#else
     s_data_of_charging.current_soc = ofsm_temp->base.current_soc;
+#endif /* APP_USING_LV_MODULE_BMS */
     s_data_of_charging.start_soc = (ofsm_temp->base.start_soc /10);
 
     return &s_data_of_charging;

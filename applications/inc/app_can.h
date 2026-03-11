@@ -89,6 +89,14 @@ uint8_t app_charge_mode_is_changed(void);
 void app_bms_lv_can_thread_entry(void *parameter);
 
 /*************************************************
+ * 函数名           app_bms_lv_get_show_soc
+ * 功能               获取表显SOC
+ * 参数              gunno    枪号
+ * 返回              表显SOC值
+ ************************************************/
+uint8_t app_bms_lv_get_show_soc(uint8_t gunno);
+
+/*************************************************
  * 函数名           app_bms_lv_get_svolt_max
  * 功能               获取电池最高单体电压
  * 参数              gunno    枪号

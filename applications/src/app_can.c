@@ -35,6 +35,7 @@
 #ifdef CP_USING_LV_MODULE_BMS
 #define APP_LV_MODULE_BMS_MSG_ID_0x309         0x309            /* 0x309报文ID */
 #define APP_LV_MODULE_BMS_MSG_ID_0x307         0x307            /* 0x307报文ID */
+#define APP_LV_MODULE_BMS_MSG_ID_0x2C1         0x2C1            /* 0x2C1报文ID */
 #define APP_LV_MODULE_BMS_MSG_ID_0x206         0x206            /* 0x206报文ID */
 #define APP_LV_MODULE_BMS_MSG_ID_0x306         0x306            /* 0x303报文ID */
 
@@ -78,6 +79,7 @@ typedef struct{
     uint8_t counter;                                            /** 计数值 */
     uint16_t target_curr;                                       /** 充电目标电流(0.01A) */
     uint16_t target_volt;                                       /** 充电目标电压(0.01V) */
+    uint8_t show_soc;                                           /** 表显SOC */
 }bms_app_info;
 
 typedef struct{
@@ -687,6 +689,12 @@ static void app_bms_lv_msg_process(uint8_t gunno, can_msg_buf *msg)
 
         s_app_lv_bms_info.flag[gunno].is_offline = APP_THA_ENUM_FALSE;
         s_app_lv_bms_info.offline_count[gunno] = 0x00;
+    }else if(msg->CANID == APP_LV_MODULE_BMS_MSG_ID_0x2C1){
+        /** 表显SOC */
+        s_bms_app_info[gunno].show_soc = msg->data[0x00];
+
+        s_app_lv_bms_info.flag[gunno].is_offline = APP_THA_ENUM_FALSE;
+        s_app_lv_bms_info.offline_count[gunno] = 0x00;
     }
 }
 
@@ -1044,6 +1052,20 @@ void app_bms_lv_can_thread_entry(void *parameter)
         rt_thread_mdelay(10);
     }
 
+}
+
+/*************************************************
+ * 函数名           app_bms_lv_get_show_soc
+ * 功能               获取表显SOC
+ * 参数              gunno    枪号
+ * 返回              表显SOC值
+ ************************************************/
+uint8_t app_bms_lv_get_show_soc(uint8_t gunno)
+{
+    if(gunno >= APP_SYSTEM_GUNNO_SIZE){
+        return 0x00;
+    }
+    return s_bms_app_info[gunno].show_soc;
 }
 
 /*************************************************
