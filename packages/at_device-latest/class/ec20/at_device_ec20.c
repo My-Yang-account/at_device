@@ -1387,8 +1387,10 @@ static int ec20_init(struct at_device *device)
     /* initialize ec20 pin configuration */
     if (ec20->power_pin != -1 && ec20->power_status_pin != -1)
     {
+#ifdef USING_DOUBLE_GUN
         rt_pin_mode(ec20->power_pin, PIN_MODE_OUTPUT);
         rt_pin_mode(ec20->power_status_pin, PIN_MODE_INPUT);
+#endif /* USING_DOUBLE_GUN */
     }
 
     /* initialize ec20 device network */
