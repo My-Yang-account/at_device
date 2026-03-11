@@ -61,3 +61,20 @@ uint8_t mw_get_cc1_value(enum cc1_state_t cc1_enum)
     }
     return cc1_value;
 }
+
+enum cc1_state_t mw_get_cc1_directly(uint8_t gunno)
+{
+    enum cc1_state_t current_state;
+    if(gunno < APP_SYSTEM_GUNNO_SIZE){
+        if(gunno == APP_SYSTEM_GUNNOA){
+            current_state = thaisen_get_CC1_status();
+            return current_state;
+        }else{
+#ifdef APP_USING_DOUBLEGUN
+            current_state = thaisen_get_CC1_statusB();
+            return current_state;
+#endif /* APP_USING_DOUBLEGUN */
+        }
+    }
+    return CC1_0V;
+}

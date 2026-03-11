@@ -20,9 +20,19 @@
 
 static void app_led_language_0(uint8_t gunno)
 {
+    uint8_t _state = APP_OFSM_STATE_IDLEING;
     struct ofsm_info *ofsm = get_ofsm_info(gunno);
 
-    switch(ofsm->base.state.current){
+    _state = ofsm->base.state.current;
+    /** 协议一致性测试 */
+    if((*(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_SUPORT_PROTOCOL_GB_T, 0x00))) == CONFIG_ENABLE_ENUM){
+        /** CC1检测错误 */
+        if(mw_get_cc1_directly(gunno) == CC1_0V){
+            _state = APP_OFSM_STATE_FAULTING;
+        }
+    }
+
+    switch(_state){
     case APP_OFSM_STATE_CHARGING:
         mw_led_on_only(GREEN_LED, gunno);
         break;
@@ -42,8 +52,18 @@ static void app_led_language_1(uint8_t gunno, uint32_t *time_base, uint32_t *_ti
     if((time_base == NULL) || (_time == NULL)){
         return;
     }
+    uint8_t _state = APP_OFSM_STATE_IDLEING;
     uint32_t tick = rt_tick_get();
     struct ofsm_info *ofsm = get_ofsm_info(gunno);
+
+    _state = ofsm->base.state.current;
+    /** 协议一致性测试 */
+    if((*(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_SUPORT_PROTOCOL_GB_T, 0x00))) == CONFIG_ENABLE_ENUM){
+        /** CC1检测错误 */
+        if(mw_get_cc1_directly(gunno) == CC1_0V){
+            _state = APP_OFSM_STATE_FAULTING;
+        }
+    }
 
     if(tick < time_base[gunno]){
         time_base[gunno] = tick;
@@ -51,7 +71,7 @@ static void app_led_language_1(uint8_t gunno, uint32_t *time_base, uint32_t *_ti
     _time[gunno] = tick - time_base[gunno];
     mw_led_on_single(BLUE_LED, gunno);
 
-    switch(ofsm->base.state.current){
+    switch(_state){
     case APP_OFSM_STATE_IDLEING:
         mw_led_off_single(RED_LED, gunno);
         if(mw_get_cc1(gunno) == CC1_4V){
@@ -105,8 +125,18 @@ static void app_led_language_2(uint8_t gunno, uint32_t *time_base, uint32_t *_ti
     if((time_base == NULL) || (_time == NULL)){
         return;
     }
+    uint8_t _state = APP_OFSM_STATE_IDLEING;
     uint32_t tick = rt_tick_get();
     struct ofsm_info *ofsm = get_ofsm_info(gunno);
+
+    _state = ofsm->base.state.current;
+    /** 协议一致性测试 */
+    if((*(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_SUPORT_PROTOCOL_GB_T, 0x00))) == CONFIG_ENABLE_ENUM){
+        /** CC1检测错误 */
+        if(mw_get_cc1_directly(gunno) == CC1_0V){
+            _state = APP_OFSM_STATE_FAULTING;
+        }
+    }
 
     if(tick < time_base[gunno]){
         time_base[gunno] = tick;
@@ -114,7 +144,7 @@ static void app_led_language_2(uint8_t gunno, uint32_t *time_base, uint32_t *_ti
     _time[gunno] = tick - time_base[gunno];
     mw_led_on_single(BLUE_LED, gunno);
 
-    switch(ofsm->base.state.current){
+    switch(_state){
     case APP_OFSM_STATE_IDLEING:
         mw_led_off_single(RED_LED, gunno);
         if(mw_get_cc1(gunno) == CC1_4V){
@@ -174,8 +204,18 @@ static void app_led_language_3(uint8_t gunno, uint32_t *time_base, uint32_t *_ti
     if((time_base == NULL) || (_time == NULL)){
         return;
     }
+    uint8_t _state = APP_OFSM_STATE_IDLEING;
     uint32_t tick = rt_tick_get();
     struct ofsm_info *ofsm = get_ofsm_info(gunno);
+
+    _state = ofsm->base.state.current;
+    /** 协议一致性测试 */
+    if((*(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_SUPORT_PROTOCOL_GB_T, 0x00))) == CONFIG_ENABLE_ENUM){
+        /** CC1检测错误 */
+        if(mw_get_cc1_directly(gunno) == CC1_0V){
+            _state = APP_OFSM_STATE_FAULTING;
+        }
+    }
 
     if(tick < time_base[gunno]){
         time_base[gunno] = tick;
@@ -184,7 +224,7 @@ static void app_led_language_3(uint8_t gunno, uint32_t *time_base, uint32_t *_ti
 
     mw_led_on_single(BLUE_LED, gunno);
 
-    switch(ofsm->base.state.current){
+    switch(_state){
     case APP_OFSM_STATE_IDLEING:
         mw_led_off_single(RED_LED, gunno);
         if(mw_get_cc1(gunno) == CC1_4V){
@@ -222,9 +262,19 @@ static void app_led_language_3(uint8_t gunno, uint32_t *time_base, uint32_t *_ti
 
 static void app_led_language_4(uint8_t gunno)
 {
+    uint8_t _state = APP_OFSM_STATE_IDLEING;
     struct ofsm_info *ofsm = get_ofsm_info(gunno);
 
-    switch(ofsm->base.state.current){
+    _state = ofsm->base.state.current;
+    /** 协议一致性测试 */
+    if((*(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_SUPORT_PROTOCOL_GB_T, 0x00))) == CONFIG_ENABLE_ENUM){
+        /** CC1检测错误 */
+        if(mw_get_cc1_directly(gunno) == CC1_0V){
+            _state = APP_OFSM_STATE_FAULTING;
+        }
+    }
+
+    switch(_state){
     case APP_OFSM_STATE_CHARGING:
         mw_led_on_only(GREEN_LED, gunno);
         break;

@@ -8960,7 +8960,13 @@ void ofsm_thread_entry(void *parameter)
             info.state = THAISEN_GUNSTATE_FAULTING;
             break;
         }
-
+        /** 协议一致性测试 */
+        if((*(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_SUPORT_PROTOCOL_GB_T, 0x00))) == CONFIG_ENABLE_ENUM){
+            /** CC1检测错误 */
+            if(mw_get_cc1_directly(thread_gunno) == CC1_0V){
+                info.state = THAISEN_GUNSTATE_FAULTING;
+            }
+        }
         info.gunTemp = s_ofsm_info[thread_gunno].base.gunline_temperature[0x00];
         info.gunLineTemp = s_ofsm_info[thread_gunno].base.gunline_temperature[0x00];
         if(s_ofsm_info[thread_gunno].base.gunline_temperature[0x01] > s_ofsm_info[thread_gunno].base.gunline_temperature[0x00]){

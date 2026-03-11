@@ -23,5 +23,6 @@ enum cc1_state_t{
 
 enum cc1_state_t mw_get_cc1(uint8_t gunno);
 uint8_t mw_get_cc1_value(enum cc1_state_t cc1_enum);
+enum cc1_state_t mw_get_cc1_directly(uint8_t gunno);
 
 #endif /* MIDDLEWARE_INC_MW_CC1_H_ */
