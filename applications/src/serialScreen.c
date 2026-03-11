@@ -9687,10 +9687,11 @@ void SerialScreen_DebugModuleMatrixCtrlG1(void)
 
     if(LcdAssistantData.Flag.ModuleMatrixCtrFromlAll){
         LcdData.ModuleMatrixCtrlG1 = LcdData.ModuleMatrixCtrlAll;
-        LcdData.ModuleMatrixSetVoltG1 = LcdData.ModuleMatrixSetVoltALL;
-        LcdData.ModuleMatrixSetCurrG1 = LcdData.ModuleMatrixSetCurrALL;
 
         if(LcdData.ModuleMatrixCtrlG1){
+            LcdData.ModuleMatrixSetVoltG1 = LcdData.ModuleMatrixSetVoltALL;
+            LcdData.ModuleMatrixSetCurrG1 = LcdData.ModuleMatrixSetCurrALL;
+
             SerialScreen_SendData(&SerialScreen, 0x1B15, LcdData.ModuleMatrixSetVoltG1);
             thaisen_app_system_delay(30);
             SerialScreen_SendData(&SerialScreen, 0x1B17, LcdData.ModuleMatrixSetCurrG1);
@@ -9698,7 +9699,7 @@ void SerialScreen_DebugModuleMatrixCtrlG1(void)
         }
         SerialScreen_SendIco(&SerialScreen, 0x1B19, LcdData.ModuleMatrixCtrlG1);
 
-        if(LcdData.ModuleMatrixCtrlAll){
+        if(LcdData.ModuleMatrixCtrlG1){
             app_module_debug_start(0, LcdData.ModuleMatrixSetVoltALL, LcdData.ModuleMatrixSetCurrALL);
         }else{
             app_module_debug_stop(0);
@@ -9725,6 +9726,12 @@ void SerialScreen_DebugModuleMatrixCtrlG1(void)
             app_module_debug_stop(0);
         }
     }
+    /** 如果全部组已开启，则将全部控制按钮设置为开启；如果全部组已关闭，则将全部控制按钮设置为关闭  */
+    if((LcdData.ModuleMatrixCtrlG1 == TRUE) && (LcdData.ModuleMatrixCtrlG2 == TRUE) && (LcdData.ModuleMatrixCtrlG3 == TRUE) && (LcdData.ModuleMatrixCtrlG4 == TRUE)){
+        LcdData.ModuleMatrixCtrlAll = TRUE;
+    }else if((LcdData.ModuleMatrixCtrlG1 == FALSE) && (LcdData.ModuleMatrixCtrlG2 == FALSE) && (LcdData.ModuleMatrixCtrlG3 == FALSE) && (LcdData.ModuleMatrixCtrlG4 == FALSE)){
+        LcdData.ModuleMatrixCtrlAll = FALSE;
+    }
 #endif /* SCREEN_USING_CYCLE_MATRIX */
 }
 
@@ -9742,10 +9749,11 @@ void SerialScreen_DebugModuleMatrixCtrlG2(void)
 
     if(LcdAssistantData.Flag.ModuleMatrixCtrFromlAll){
         LcdData.ModuleMatrixCtrlG2 = LcdData.ModuleMatrixCtrlAll;
-        LcdData.ModuleMatrixSetVoltG2 = LcdData.ModuleMatrixSetVoltALL;
-        LcdData.ModuleMatrixSetCurrG2 = LcdData.ModuleMatrixSetCurrALL;
 
         if(LcdData.ModuleMatrixCtrlG2){
+            LcdData.ModuleMatrixSetVoltG2 = LcdData.ModuleMatrixSetVoltALL;
+            LcdData.ModuleMatrixSetCurrG2 = LcdData.ModuleMatrixSetCurrALL;
+
             SerialScreen_SendData(&SerialScreen, 0x1B1E, LcdData.ModuleMatrixSetVoltG2);
             thaisen_app_system_delay(30);
             SerialScreen_SendData(&SerialScreen, 0x1B20, LcdData.ModuleMatrixSetCurrG2);
@@ -9753,7 +9761,7 @@ void SerialScreen_DebugModuleMatrixCtrlG2(void)
         }
         SerialScreen_SendIco(&SerialScreen, 0x1B22, LcdData.ModuleMatrixCtrlG2);
 
-        if(LcdData.ModuleMatrixCtrlAll){
+        if(LcdData.ModuleMatrixCtrlG2){
             app_module_debug_start(1, LcdData.ModuleMatrixSetVoltALL, LcdData.ModuleMatrixSetCurrALL);
         }else{
             app_module_debug_stop(1);
@@ -9780,6 +9788,12 @@ void SerialScreen_DebugModuleMatrixCtrlG2(void)
             app_module_debug_stop(1);
         }
     }
+    /** 如果全部组已开启，则将全部控制按钮设置为开启；如果全部组已关闭，则将全部控制按钮设置为关闭  */
+    if((LcdData.ModuleMatrixCtrlG1 == TRUE) && (LcdData.ModuleMatrixCtrlG2 == TRUE) && (LcdData.ModuleMatrixCtrlG3 == TRUE) && (LcdData.ModuleMatrixCtrlG4 == TRUE)){
+        LcdData.ModuleMatrixCtrlAll = TRUE;
+    }else if((LcdData.ModuleMatrixCtrlG1 == FALSE) && (LcdData.ModuleMatrixCtrlG2 == FALSE) && (LcdData.ModuleMatrixCtrlG3 == FALSE) && (LcdData.ModuleMatrixCtrlG4 == FALSE)){
+        LcdData.ModuleMatrixCtrlAll = FALSE;
+    }
 #endif /* SCREEN_USING_CYCLE_MATRIX */
 }
 
@@ -9797,10 +9811,11 @@ void SerialScreen_DebugModuleMatrixCtrlG3(void)
 
     if(LcdAssistantData.Flag.ModuleMatrixCtrFromlAll){
         LcdData.ModuleMatrixCtrlG3 = LcdData.ModuleMatrixCtrlAll;
-        LcdData.ModuleMatrixSetVoltG3 = LcdData.ModuleMatrixSetVoltALL;
-        LcdData.ModuleMatrixSetCurrG3 = LcdData.ModuleMatrixSetCurrALL;
 
         if(LcdData.ModuleMatrixCtrlG3){
+            LcdData.ModuleMatrixSetVoltG3 = LcdData.ModuleMatrixSetVoltALL;
+            LcdData.ModuleMatrixSetCurrG3 = LcdData.ModuleMatrixSetCurrALL;
+
             SerialScreen_SendData(&SerialScreen, 0x1B27, LcdData.ModuleMatrixSetVoltG3);
             thaisen_app_system_delay(30);
             SerialScreen_SendData(&SerialScreen, 0x1B29, LcdData.ModuleMatrixSetCurrG3);
@@ -9808,7 +9823,7 @@ void SerialScreen_DebugModuleMatrixCtrlG3(void)
         }
         SerialScreen_SendIco(&SerialScreen, 0x1B2B, LcdData.ModuleMatrixCtrlG3);
 
-        if(LcdData.ModuleMatrixCtrlAll){
+        if(LcdData.ModuleMatrixCtrlG3){
             app_module_debug_start(2, LcdData.ModuleMatrixSetVoltALL, LcdData.ModuleMatrixSetCurrALL);
         }else{
             app_module_debug_stop(2);
@@ -9835,6 +9850,12 @@ void SerialScreen_DebugModuleMatrixCtrlG3(void)
             app_module_debug_stop(2);
         }
     }
+    /** 如果全部组已开启，则将全部控制按钮设置为开启；如果全部组已关闭，则将全部控制按钮设置为关闭  */
+    if((LcdData.ModuleMatrixCtrlG1 == TRUE) && (LcdData.ModuleMatrixCtrlG2 == TRUE) && (LcdData.ModuleMatrixCtrlG3 == TRUE) && (LcdData.ModuleMatrixCtrlG4 == TRUE)){
+        LcdData.ModuleMatrixCtrlAll = TRUE;
+    }else if((LcdData.ModuleMatrixCtrlG1 == FALSE) && (LcdData.ModuleMatrixCtrlG2 == FALSE) && (LcdData.ModuleMatrixCtrlG3 == FALSE) && (LcdData.ModuleMatrixCtrlG4 == FALSE)){
+        LcdData.ModuleMatrixCtrlAll = FALSE;
+    }
 #endif /* SCREEN_USING_CYCLE_MATRIX */
 }
 
@@ -9852,10 +9873,11 @@ void SerialScreen_DebugModuleMatrixCtrlG4(void)
 
     if(LcdAssistantData.Flag.ModuleMatrixCtrFromlAll){
         LcdData.ModuleMatrixCtrlG4 = LcdData.ModuleMatrixCtrlAll;
-        LcdData.ModuleMatrixSetVoltG4 = LcdData.ModuleMatrixSetVoltALL;
-        LcdData.ModuleMatrixSetCurrG4 = LcdData.ModuleMatrixSetCurrALL;
 
         if(LcdData.ModuleMatrixCtrlG4){
+            LcdData.ModuleMatrixSetVoltG4 = LcdData.ModuleMatrixSetVoltALL;
+            LcdData.ModuleMatrixSetCurrG4 = LcdData.ModuleMatrixSetCurrALL;
+
             SerialScreen_SendData(&SerialScreen, 0x1B30, LcdData.ModuleMatrixSetVoltG4);
             thaisen_app_system_delay(30);
             SerialScreen_SendData(&SerialScreen, 0x1B32, LcdData.ModuleMatrixSetCurrG4);
@@ -9863,7 +9885,7 @@ void SerialScreen_DebugModuleMatrixCtrlG4(void)
         }
         SerialScreen_SendIco(&SerialScreen, 0x1B34, LcdData.ModuleMatrixCtrlG4);
 
-        if(LcdData.ModuleMatrixCtrlAll){
+        if(LcdData.ModuleMatrixCtrlG4){
             app_module_debug_start(3, LcdData.ModuleMatrixSetVoltALL, LcdData.ModuleMatrixSetCurrALL);
         }else{
             app_module_debug_stop(3);
@@ -9890,6 +9912,12 @@ void SerialScreen_DebugModuleMatrixCtrlG4(void)
             app_module_debug_stop(3);
         }
     }
+    /** 如果全部组已开启，则将全部控制按钮设置为开启；如果全部组已关闭，则将全部控制按钮设置为关闭  */
+    if((LcdData.ModuleMatrixCtrlG1 == TRUE) && (LcdData.ModuleMatrixCtrlG2 == TRUE) && (LcdData.ModuleMatrixCtrlG3 == TRUE) && (LcdData.ModuleMatrixCtrlG4 == TRUE)){
+        LcdData.ModuleMatrixCtrlAll = TRUE;
+    }else if((LcdData.ModuleMatrixCtrlG1 == FALSE) && (LcdData.ModuleMatrixCtrlG2 == FALSE) && (LcdData.ModuleMatrixCtrlG3 == FALSE) && (LcdData.ModuleMatrixCtrlG4 == FALSE)){
+        LcdData.ModuleMatrixCtrlAll = FALSE;
+    }
 #endif /* SCREEN_USING_CYCLE_MATRIX */
 }
 
@@ -9903,12 +9931,13 @@ void SerialScreen_DebugModuleMatrixCtrlAll(void)
 {
 #ifdef SCREEN_USING_CYCLE_MATRIX
     LcdData.ModuleMatrixCtrlAll = !LcdData.ModuleMatrixCtrlAll;
-    LcdData.ModuleMatrixSetVoltALL = SerialScreen_GetPara_ValidValue(LcdData.ModuleMatrixSetVoltALL,
-            CONFIG_MATRIX_DEBUG_SET_VOLTAGE_ALL_DEF, CONFIG_MATRIX_DEBUG_SET_VOLTAGE_ALL_MIN, CONFIG_MATRIX_DEBUG_SET_VOLTAGE_ALL_MAX);
-    LcdData.ModuleMatrixSetCurrALL = SerialScreen_GetPara_ValidValue(LcdData.ModuleMatrixSetCurrALL,
-            CONFIG_MATRIX_DEBUG_SET_CURRENT_ALL_DEF, CONFIG_MATRIX_DEBUG_SET_CURRENT_ALL_MIN, CONFIG_MATRIX_DEBUG_SET_CURRENT_ALL_MAX);
 
     if(LcdData.ModuleMatrixCtrlAll){
+        LcdData.ModuleMatrixSetVoltALL = SerialScreen_GetPara_ValidValue(LcdData.ModuleMatrixSetVoltALL,
+                CONFIG_MATRIX_DEBUG_SET_VOLTAGE_ALL_DEF, CONFIG_MATRIX_DEBUG_SET_VOLTAGE_ALL_MIN, CONFIG_MATRIX_DEBUG_SET_VOLTAGE_ALL_MAX);
+        LcdData.ModuleMatrixSetCurrALL = SerialScreen_GetPara_ValidValue(LcdData.ModuleMatrixSetCurrALL,
+                CONFIG_MATRIX_DEBUG_SET_CURRENT_ALL_DEF, CONFIG_MATRIX_DEBUG_SET_CURRENT_ALL_MIN, CONFIG_MATRIX_DEBUG_SET_CURRENT_ALL_MAX);
+
         SerialScreen_SendData(&SerialScreen, 0x1B10, LcdData.ModuleMatrixSetVoltALL);
         thaisen_app_system_delay(30);
         SerialScreen_SendData(&SerialScreen, 0x1B12, LcdData.ModuleMatrixSetCurrALL);
