@@ -43,7 +43,9 @@ extern "C" {
                                          [2.1.B(2.1.1 双枪枪)  实验测试 2025/10/13]
                                          [1.8.1(1.8.B 单枪) 飞宇- 广州-车会发标准帧报文，程序接收全部按扩展帧来，导致误判；处理：CAN帧正常接收，但是只处理扩展帧 2025/11/17]
                                          [2.2.E(2.2.4 双枪枪)  恒泰易通低压双枪 2026/02/10]
-                                         [2.2.F(2.2.5 双枪枪)  湾区大电流协议测试 2026/02/28] */
+                                         [2.2.F(2.2.5 双枪枪)  湾区大电流协议测试 2026/02/28]
+                                         [1.8.G(1.8.6 单枪)  恒泰易通低压 2026/01/17]
+                                         [1.8.H(1.8.7 单枪)  恒泰易通低压 2026/01/22] */
 
 #ifdef APP_USING_DOUBLEGUN
 
@@ -113,7 +115,7 @@ extern "C" {
 
 #define SOFTWARE_VERSION       1L
 #define SOFTWARE_SUBVERSION    8L
-#define SOFTWARE_REVISION      5L  /* 01 */
+#define SOFTWARE_REVISION      8L  /* 01 */
 
 #endif /* APP_USING_DOUBLEGUN */
 
