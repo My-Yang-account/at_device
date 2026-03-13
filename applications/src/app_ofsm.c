@@ -2424,6 +2424,8 @@ static void ofsm_readying_fun(uint8_t gunno)
                 s_ofsm_info[gunno].base.flag.paracharge_is_identified = APP_THA_ENUM_TRUE;
                 s_ofsm_info[gunno].base.flag.recved_paracharge_identify_id = APP_THA_ENUM_FALSE;
 
+                s_ofsm_info[gunno].charge_timeout = rt_tick_get();
+
                 rfidr_clear_swipe_state(gunno);
                 app_get_hci_event(gunno, HCI_EVENT_SCREEN_START, APP_THA_ENUM_TRUE);
                 app_get_hci_event(gunno, HCI_EVENT_VIN_START, APP_THA_ENUM_TRUE);
