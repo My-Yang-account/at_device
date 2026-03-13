@@ -95,7 +95,7 @@ struct assistant{
 #pragma pack()
 
 static module_ctrl_info_t s_module_ctrl_info;
-static struct assistant s_module_ctrl_assistant_info[APP_SYSTEM_GUNNO_SIZE];
+static struct assistant s_module_ctrl_assistant_info[4];
 #endif /* CP_USING_CYCLE_MATRIX */
 
 /***************************************************** 辅组函数 *****************************************************/
@@ -644,8 +644,15 @@ int app_module_debug_stop(unsigned char gunno)
 unsigned char app_module_is_debug_started(unsigned char gunno)
 {
 #ifdef CP_USING_CYCLE_MATRIX
-    if(gunno >= APP_SYSTEM_GUNNO_SIZE){
-        return 0x00;
+    if((s_module_ctrl_info.type != SYSTEM_FUNCTION_MS_MACHINE_CYCLE) && (s_module_ctrl_info.type != SYSTEM_FUNCTION_MS_MACHINE_HALF)){
+        if(gunno >= APP_SYSTEM_GUNNO_SIZE){
+            return -0x01;
+        }
+    }else{
+        /** 环矩/半矩设备：模块都在母机，最多4把枪(需要考虑双枪改造时的情况) */
+        if(gunno >= 0x04){
+            return -0x01;
+        }
     }
     if(s_module_ctrl_assistant_info[gunno].flag.is_debug_started){
         return 0x01;
@@ -920,10 +927,7 @@ int app_module_ctrl_init(void)
     thaisen_masterSlaveCom_init_t ms_init;
     powerctrl_init_t *mctrl_base_info = NULL;
 
-    for(unsigned char i = 0x00; i < APP_SYSTEM_GUNNO_SIZE; i++){
-        s_module_ctrl_assistant_info[i].flag.is_debug_started = 0x00;
-        s_module_ctrl_assistant_info[i].flag.is_debug_stoped = 0x00;
-    }
+    memset(s_module_ctrl_assistant_info, 0x00, sizeof(s_module_ctrl_assistant_info));
     memset(&s_module_ctrl_info, 0x00, sizeof(s_module_ctrl_info));
     /** 设备地址 */
     config_data = *(unsigned short*)(sys_read_config_item_content(CONFIG_ITEM_TEMINAL_ADDRA, 0x00));

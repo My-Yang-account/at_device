@@ -369,7 +369,7 @@
 #define COMPULSION_SET_VOLTAGE_MAX                1500      /* 强制启动设定电压最大值 */
 #define COMPULSION_SET_VOLTAGE_MIN                1         /* 强制启动设定电压最小值 */
 
-#define COMPULSION_SET_CURRENT_DEF                0         /* 强制启动设定电流默认值 */
+#define COMPULSION_SET_CURRENT_DEF                10        /* 强制启动设定电流默认值 */
 #define COMPULSION_SET_CURRENT_MAX                4000      /* 强制启动设定电流最大值 */
 #define COMPULSION_SET_CURRENT_MIN                0         /* 强制启动设定电流最小值 */
 

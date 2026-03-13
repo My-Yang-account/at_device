@@ -10191,6 +10191,9 @@ void SerialScreen_BtnModuleStartA(void)
     LcdData.setData.s_moduleCur[LCD_GUN_1] = SerialScreen_GetPara_ValidValue(LcdData.setData.s_moduleCur[LCD_GUN_1],
             COMPULSION_SET_CURRENT_DEF, COMPULSION_SET_CURRENT_MIN, (LcdData.setData.Max_Limit_Current *10));
 #endif
+    if(LcdData.setData.s_moduleCur[LCD_GUN_1] == 0){
+        LcdData.setData.s_moduleCur[LCD_GUN_1] = COMPULSION_SET_CURRENT_DEF;
+    }
     thaisenSetModuleSetupVolt(LcdData.setData.s_moduleVol[LCD_GUN_1] *10, LCD_GUN_1);
     thaisenSetModuleSetupCurr(LcdData.setData.s_moduleCur[LCD_GUN_1] *10, LCD_GUN_1);
     thaisenSetModuleDebugEnableOutput(LCD_GUN_1);
@@ -10232,6 +10235,9 @@ void SerialScreen_BtnModuleStartB(void)
     LcdData.setData.s_moduleCur[LCD_GUN_2] = SerialScreen_GetPara_ValidValue(LcdData.setData.s_moduleCur[LCD_GUN_2],
             COMPULSION_SET_CURRENT_DEF, COMPULSION_SET_CURRENT_MIN, (LcdData.setData.Max_Limit_Current *10));
 #endif
+    if(LcdData.setData.s_moduleCur[LCD_GUN_2] == 0){
+        LcdData.setData.s_moduleCur[LCD_GUN_2] = COMPULSION_SET_CURRENT_DEF;
+    }
     thaisenSetModuleSetupVolt(LcdData.setData.s_moduleVol[LCD_GUN_2] *10, LCD_GUN_2);
     thaisenSetModuleSetupCurr(LcdData.setData.s_moduleCur[LCD_GUN_2] *10, LCD_GUN_2);
     thaisenSetModuleDebugEnableOutput(LCD_GUN_2);
