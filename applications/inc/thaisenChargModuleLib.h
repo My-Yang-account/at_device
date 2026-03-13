@@ -1370,6 +1370,18 @@ void thaisen_set_module_mincurr(uint32_t curr);
  */
 void thaisen_set_module_maxcurr(uint32_t curr);
 
+/**
+ * @brief 设置模块额定功率
+ * @param power (1W)
+ */
+void thaisen_chargemain_set_ModulePreserPower(uint32_t power);
+
+/**
+ * @brief 获取模块额定功率
+ * @return (1W)
+ */
+uint32_t thaisen_chargemain_get_ModulePresetPower(void);
+
 /*********************************************************************************************************************/
 /*********************************************************************************************************************/
 
