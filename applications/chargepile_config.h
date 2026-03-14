@@ -878,6 +878,7 @@ uint8_t* sys_read_config_item_content(enum config_name name, uint8_t is_user_con
 uint8_t sys_get_single_group_module_num(uint8_t group);
 int16_t sys_get_power_percent(void);
 uint32_t sys_percent_convert_to_power(uint16_t percent);
+uint32_t sys_get_single_module_power(void);
 uint32_t sys_query_system_max_power(void);
 uint8_t sys_get_module_model(void);
 uint8_t sys_get_module_group_num(void);

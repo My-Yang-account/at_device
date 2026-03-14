@@ -295,6 +295,23 @@ void app_module_set_module_current_max(unsigned int current)
 }
 
 /*****************************************
+ * 函数名             app_module_set_single_module_power
+ * 功能                设置单个模块功率(1W)
+ * 参数                power     单个模块功率值
+ * 返回
+ ****************************************/
+void app_module_set_single_module_power(unsigned int power)
+{
+#ifdef CP_USING_CYCLE_MATRIX
+    /** 非半矩和环矩类型 */
+    if((s_module_ctrl_info.type == SYSTEM_FUNCTION_MS_MACHINE_CYCLE) || (s_module_ctrl_info.type == SYSTEM_FUNCTION_MS_MACHINE_HALF)){
+        thaisen_chargemain_set_ModulePreserPower(power);
+        MCTRL_DEBUG("set single module power:%dW\n", power);
+    }
+#endif /* CP_USING_CYCLE_MATRIX */
+}
+
+/*****************************************
  * 函数名             app_module_schedule_judge
  * 功能                模块调度启用判断
  * 参数                current     电流值
@@ -997,6 +1014,7 @@ int app_module_ctrl_init(void)
     mctrl_base_info->module_preserpower = *(unsigned short*)(sys_read_config_item_content(CONFIG_ITEM_RATED_OUTPUT_VOLTAGE, 0x00));
     config_data = *(unsigned short*)(sys_read_config_item_content(CONFIG_ITEM_RATED_LIMIT_CURRENT, 0x00));
     mctrl_base_info->module_preserpower *= config_data;
+    mctrl_base_info->module_preserpower = mctrl_base_info->module_preserpower *sys_get_power_percent() /1000;
     MCTRL_DEBUG("module control rated power:%d\n", mctrl_base_info->module_preserpower);
 
     /** 模块组数，组内模块数 */

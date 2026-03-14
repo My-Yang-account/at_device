@@ -4822,6 +4822,15 @@ void SerialScreen_BtnModuleSet(void)
 
     LcdAssistantData.Flag.IsSetPowerPercent = TRUE;
 
+#ifdef SCREEN_USING_CYCLE_MATRIX
+    extern void app_module_set_single_module_power(unsigned int power);
+    /** 获取单个模块的功率 : 1W */
+    power = sys_get_single_module_power();
+    /** 给下层设置当前单个模块的功率值(_single_module_power : 1W) */
+    power = power *thaisen_get_power_percent() /1000;
+    app_module_set_single_module_power(power);
+#endif /* SCREEN_USING_CYCLE_MATRIX */
+
     rt_kprintf("thaisenSetModuleMaxVolt|%d    thaisenSetModuleMinVolt|%d\n", LcdData.setData.Rated_Output_Voltage, LcdData.setData.Min_Output_Voltage);
     rt_kprintf("thaisenSetModuleMaxCurr|%d    thaisenSetModuleMinCurr|%d\n", LcdData.setData.Rated_Limit_Current, LcdData.setData.Min_Limit_Current);
     rt_kprintf("thaisenSetModuleMaxChargVolt|%d    thaisenSetModuleMaxChargCurr|%d\n", LcdData.setData.Max_Output_Voltage, LcdData.setData.Max_Limit_Current);
@@ -5336,6 +5345,15 @@ void SerialScreen_BtnProtectInfoSet(void)
 
     LcdAssistantData.Flag.IsSetPowerPercent = TRUE;
     LcdAssistantData.Flag.IsSetELossProportion = TRUE;
+
+#ifdef SCREEN_USING_CYCLE_MATRIX
+    extern void app_module_set_single_module_power(unsigned int power);
+    /** 获取单个模块的功率 : 1W */
+    power = sys_get_single_module_power();
+    /** 给下层设置当前单个模块的功率值(_single_module_power : 1W) */
+    power = power *LcdData.setData.PowerPercent /1000;
+    app_module_set_single_module_power(power);
+#endif /* SCREEN_USING_CYCLE_MATRIX */
 
     rt_kprintf("GunVolt_LimitValue Limit|%d   PowerPercent|%d  ElossProprotion|%d\n", LcdData.setData.GunVolt_LimitValue, LcdData.setData.PowerPercent, LcdData.setData.ElossProprotion);
     rt_kprintf("Stop_SOC|%d    OverTemp_Warnning|%d\n", LcdData.setData.Stop_SOC, LcdData.setData.OverTemp_Warnning);

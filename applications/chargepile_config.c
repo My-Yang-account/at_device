@@ -3429,6 +3429,15 @@ uint32_t sys_percent_convert_to_power(uint16_t percent)
     return (s_system_power_max *percent /1000);
 }
 
+/** 获取单个模块的功率(W) */
+uint32_t sys_get_single_module_power(void)
+{
+    uint32_t _power = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_RATED_OUTPUT_VOLTAGE, 0x00));
+
+    _power *= (*(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_RATED_LIMIT_CURRENT, 0x00)));
+    return _power;
+}
+
 uint32_t sys_query_system_max_power(void)
 {
     return s_system_power_max;   /** 系统最大功率(W) */

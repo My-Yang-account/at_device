@@ -29,6 +29,7 @@
 #include "app_rfid_reader.h"
 #include "app_terminal.h"
 #include "app_can.h"
+#include "app_module.h"
 
 #include "mw_cc1.h"
 #include "mw_charge_control.h"
@@ -1001,6 +1002,10 @@ void chargepile_power_adjust(void)
         s_power_on = 1;
         /** 如果是服务器下发了设置桩工作参数报文则需要回复 */
         if(server_adjust_power){
+#ifdef APP_USING_CYCLE_MATRIX
+            uint32_t _single_module_power = 0x00;
+            uint16_t _sys_power_percent = 0x00;
+#endif /* APP_USING_CYCLE_MATRIX */
             if(set_gunno < APP_SYSTEM_GUNNO_SIZE){
                 if(s_ofsm_info[set_gunno].base.power_strategy == APP_POWER_STRATEGY_SET_LIMIT){
                     uint32_t issue_power = app_nsal_get_setup_power(set_gunno);
@@ -1012,6 +1017,19 @@ void chargepile_power_adjust(void)
 
                 app_nsal_report_set_power_result(set_gunno, 0x01, 0x00);
             }
+#ifdef APP_USING_CYCLE_MATRIX
+            /** 更新当前系统总功率 */
+            sys_percent_convert_to_power(0x00);
+            /** 计算当前功率百分比(s_system_power_output : 0.1W, sys_query_system_max_power() : 1W,  _sys_power_percent : 1000%) */
+            _sys_power_percent = s_system_power_output *100 /sys_query_system_max_power();
+            if(_sys_power_percent > 1000){
+                _sys_power_percent = 1000;
+            }
+            /** 给下层设置当前单个模块的功率值(_single_module_power : 1W) */
+            _single_module_power = sys_get_single_module_power();
+            _single_module_power = _single_module_power *_sys_power_percent /1000;
+            app_module_set_single_module_power(_single_module_power);
+#endif /* APP_USING_CYCLE_MATRIX */
         }
         server_adjust_power = false;
         s_power_adjust_delay = 0;

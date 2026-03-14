@@ -78,6 +78,14 @@ void app_module_set_module_current_min(unsigned short current);
 void app_module_set_module_current_max(unsigned int current);
 
 /*****************************************
+ * 函数名             app_module_set_single_module_power
+ * 功能                设置单个模块功率(1W)
+ * 参数                power     单个模块功率值
+ * 返回
+ ****************************************/
+void app_module_set_single_module_power(unsigned int power);
+
+/*****************************************
  * 函数名             app_module_schedule_judge
  * 功能                模块调度启用判断
  * 参数                current     电流值
