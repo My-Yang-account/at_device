@@ -58,6 +58,8 @@
  *       3          5          6
  */
 
+#define MCTRL_CYCLE_MATRIX_MODULE_NUM              4               /** 半矩/环矩模块组数 */
+
 #define MCTRL_RELEASE_RELAY_VOLTAGE_MAX            600             /** 满足断开继电器条件的最大电压(0.1V) */
 #define MCTRL_RELEASE_RELAY_CURRENT_MAX            200             /** 满足断开继电器条件的最大电流(0.01A) */
 
@@ -95,7 +97,7 @@ struct assistant{
 #pragma pack()
 
 static module_ctrl_info_t s_module_ctrl_info;
-static struct assistant s_module_ctrl_assistant_info[4];
+static struct assistant s_module_ctrl_assistant_info[MCTRL_CYCLE_MATRIX_MODULE_NUM];
 #endif /* CP_USING_CYCLE_MATRIX */
 
 /***************************************************** 辅组函数 *****************************************************/
@@ -310,6 +312,111 @@ void app_module_set_single_module_power(unsigned int power)
     }
 #endif /* CP_USING_CYCLE_MATRIX */
 }
+
+/*****************************************
+ * 函数名             app_module_get_setup_voltage
+ * 功能                按组获取给模块设置的电压(0.1V)
+ * 参数                group     组号
+ * 返回                给模块设置的电压(0.1V)
+ ****************************************/
+unsigned int app_module_get_setup_voltage(unsigned char group)
+{
+#ifdef CP_USING_CYCLE_MATRIX
+    extern uint16_t thaisen_guowang_get_groupctrlvolt(uint8_t groupnum);
+    if((s_module_ctrl_info.type != SYSTEM_FUNCTION_MS_MACHINE_CYCLE) && (s_module_ctrl_info.type != SYSTEM_FUNCTION_MS_MACHINE_HALF)){
+        if(group >= APP_SYSTEM_GUNNO_SIZE){
+            return 0x00;
+        }
+    }else{
+        /** 环矩/半矩设备：模块都在母机，最多MCTRL_CYCLE_MATRIX_MODULE_NUM把枪(需要考虑双枪改造时的情况) */
+        if(group >= MCTRL_CYCLE_MATRIX_MODULE_NUM){
+            return 0x00;
+        }
+    }
+    return thaisen_guowang_get_groupctrlvolt((group + 0x01));
+#endif /* CP_USING_CYCLE_MATRIX */
+}
+
+/*****************************************
+ * 函数名             app_module_get_setup_current
+ * 功能                按组获取给模块设置的电流(0.01A)
+ * 参数                group     组号
+ * 返回                给模块设置的电流(0.01A)
+ ****************************************/
+unsigned int app_module_get_setup_current(unsigned char group)
+{
+#ifdef CP_USING_CYCLE_MATRIX
+    extern uint16_t thaisen_guowang_get_groupctrlcurr(uint8_t groupnum);
+    if((s_module_ctrl_info.type != SYSTEM_FUNCTION_MS_MACHINE_CYCLE) && (s_module_ctrl_info.type != SYSTEM_FUNCTION_MS_MACHINE_HALF)){
+        if(group >= APP_SYSTEM_GUNNO_SIZE){
+            return 0x00;
+        }
+    }else{
+        /** 环矩/半矩设备：模块都在母机，最多MCTRL_CYCLE_MATRIX_MODULE_NUM把枪(需要考虑双枪改造时的情况) */
+        if(group >= MCTRL_CYCLE_MATRIX_MODULE_NUM){
+            return 0x00;
+        }
+    }
+    return thaisen_guowang_get_groupctrlcurr((group + 0x01));
+#endif /* CP_USING_CYCLE_MATRIX */
+}
+
+/*****************************************
+ * 函数名             app_module_get_setup_current
+ * 功能                按组获取给模块设置的电流(0.01A)
+ * 参数                group     组号
+ * 返回                给模块设置的电流(0.01A)
+ ****************************************/
+unsigned char app_module_is_open(unsigned char group)
+{
+#ifdef CP_USING_CYCLE_MATRIX
+    extern uint8_t thaisen_guowang_get_groupctrlcmd(uint8_t groupnum);
+    if((s_module_ctrl_info.type != SYSTEM_FUNCTION_MS_MACHINE_CYCLE) && (s_module_ctrl_info.type != SYSTEM_FUNCTION_MS_MACHINE_HALF)){
+        if(group >= APP_SYSTEM_GUNNO_SIZE){
+            return 0x00;
+        }
+    }else{
+        /** 环矩/半矩设备：模块都在母机，最多MCTRL_CYCLE_MATRIX_MODULE_NUM把枪(需要考虑双枪改造时的情况) */
+        if(group >= MCTRL_CYCLE_MATRIX_MODULE_NUM){
+            return 0x00;
+        }
+    }
+    if(thaisen_guowang_get_groupctrlcmd(group + 0x01)){
+        return 0x01;
+    }
+    return 0x00;
+#endif /* CP_USING_CYCLE_MATRIX */
+}
+
+/*****************************************
+ * 函数名             app_module_belong_gun
+ * 功能                获取模块组归属枪
+ * 参数               group      模块组组号(从0开始)
+ * 返回                归属枪号(从1开始)
+ ****************************************/
+unsigned char app_module_belong_gun(unsigned char group)
+{
+    unsigned char belong_gun = 0xFF;            /** 归属枪(从1开始) */
+#ifdef CP_USING_CYCLE_MATRIX
+    extern uint8_t th_moduleallo_GetMgroupAimGun(uint8_t Mgroupnum);
+    if((s_module_ctrl_info.type != SYSTEM_FUNCTION_MS_MACHINE_CYCLE) && (s_module_ctrl_info.type != SYSTEM_FUNCTION_MS_MACHINE_HALF)){
+        if(group >= APP_SYSTEM_GUNNO_SIZE){
+            return belong_gun;
+        }
+    }else{
+        /** 环矩/半矩设备：模块都在母机，最多MCTRL_CYCLE_MATRIX_MODULE_NUM把枪(需要考虑双枪改造时的情况) */
+        if(group >= MCTRL_CYCLE_MATRIX_MODULE_NUM){
+            return belong_gun;
+        }
+    }
+    belong_gun = th_moduleallo_GetMgroupAimGun((group + 0x01));
+    if(belong_gun == 0x00){
+        belong_gun = 0xFF;
+    }
+#endif /* CP_USING_CYCLE_MATRIX */
+    return belong_gun;
+}
+
 
 /*****************************************
  * 函数名             app_module_schedule_judge
@@ -551,8 +658,8 @@ int app_module_debug_start(unsigned char gunno, unsigned short voltage, unsigned
             return -0x01;
         }
     }else{
-        /** 环矩/半矩设备：模块都在母机，最多4把枪(需要考虑双枪改造时的情况) */
-        if(gunno >= 0x04){
+        /** 环矩/半矩设备：模块都在母机，最多MCTRL_CYCLE_MATRIX_MODULE_NUM把枪(需要考虑双枪改造时的情况) */
+        if(gunno >= MCTRL_CYCLE_MATRIX_MODULE_NUM){
             return -0x01;
         }
     }
@@ -640,8 +747,8 @@ int app_module_debug_stop(unsigned char gunno)
             return -0x01;
         }
     }else{
-        /** 环矩/半矩设备：模块都在母机，最多4把枪(需要考虑双枪改造时的情况) */
-        if(gunno >= 0x04){
+        /** 环矩/半矩设备：模块都在母机，最多MCTRL_CYCLE_MATRIX_MODULE_NUM把枪(需要考虑双枪改造时的情况) */
+        if(gunno >= MCTRL_CYCLE_MATRIX_MODULE_NUM){
             return -0x01;
         }
     }
@@ -666,8 +773,8 @@ unsigned char app_module_is_debug_started(unsigned char gunno)
             return -0x01;
         }
     }else{
-        /** 环矩/半矩设备：模块都在母机，最多4把枪(需要考虑双枪改造时的情况) */
-        if(gunno >= 0x04){
+        /** 环矩/半矩设备：模块都在母机，最多MCTRL_CYCLE_MATRIX_MODULE_NUM把枪(需要考虑双枪改造时的情况) */
+        if(gunno >= MCTRL_CYCLE_MATRIX_MODULE_NUM){
             return -0x01;
         }
     }
@@ -692,8 +799,8 @@ unsigned int app_module_get_module_group_voltage(unsigned char group)
             return -0x01;
         }
     }else{
-        /** 环矩/半矩设备：模块都在母机，最多4把枪(需要考虑双枪改造时的情况) */
-        if(group >= 0x04){
+        /** 环矩/半矩设备：模块都在母机，最多MCTRL_CYCLE_MATRIX_MODULE_NUM把枪(需要考虑双枪改造时的情况) */
+        if(group >= MCTRL_CYCLE_MATRIX_MODULE_NUM){
             return -0x01;
         }
     }
@@ -719,8 +826,8 @@ unsigned int app_module_get_module_group_current(unsigned char group)
             return -0x01;
         }
     }else{
-        /** 环矩/半矩设备：模块都在母机，最多4把枪(需要考虑双枪改造时的情况) */
-        if(group >= 0x04){
+        /** 环矩/半矩设备：模块都在母机，最多MCTRL_CYCLE_MATRIX_MODULE_NUM把枪(需要考虑双枪改造时的情况) */
+        if(group >= MCTRL_CYCLE_MATRIX_MODULE_NUM){
             return -0x01;
         }
     }

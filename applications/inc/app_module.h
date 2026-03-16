@@ -86,6 +86,38 @@ void app_module_set_module_current_max(unsigned int current);
 void app_module_set_single_module_power(unsigned int power);
 
 /*****************************************
+ * 函数名             app_module_get_setup_voltage
+ * 功能                按组获取给模块设置的电压(0.1V)
+ * 参数                group     组号
+ * 返回                给模块设置的电压(0.1V)
+ ****************************************/
+unsigned int app_module_get_setup_voltage(unsigned char group);
+
+/*****************************************
+ * 函数名             app_module_get_setup_current
+ * 功能                按组获取给模块设置的电流(0.01A)
+ * 参数                group     组号
+ * 返回                给模块设置的电流(0.01A)
+ ****************************************/
+unsigned int app_module_get_setup_current(unsigned char group);
+
+/*****************************************
+ * 函数名             app_module_get_setup_current
+ * 功能                按组获取给模块设置的电流(0.01A)
+ * 参数                group     组号
+ * 返回                给模块设置的电流(0.01A)
+ ****************************************/
+unsigned char app_module_is_open(unsigned char group);
+
+/*****************************************
+ * 函数名             app_module_belong_gun
+ * 功能                获取模块组归属枪
+ * 参数               group      模块组组号(从0开始)
+ * 返回                归属枪号(从1开始)
+ ****************************************/
+unsigned char app_module_belong_gun(unsigned char group);
+
+/*****************************************
  * 函数名             app_module_schedule_judge
  * 功能                模块调度启用判断
  * 参数                current     电流值

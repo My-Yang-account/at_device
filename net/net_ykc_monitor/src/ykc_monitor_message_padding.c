@@ -138,6 +138,9 @@ typedef struct{
     uint32_t timestamp;                           /* 采样时间 */
     uint8_t count;                                /* 已采样数 */
     uint8_t is_locked;                            /*  */
+#ifdef APP_USING_CYCLE_MATRIX
+    uint8_t belong_gun[YKC_MONITOR_MODULE_GROUP_MAX];  /* 归属枪(从1开始) */
+#endif /* APP_USING_CYCLE_MATRIX */
     struct voltcurr_pair pair[YKC_MONITOR_MODULE_GROUP_MAX][NET_YKC_MONITOR_SETVOLTCURR_PAIR_MAX]; /* 连续采14次，1.5秒采一次(目前按4组模块计算) */
 }ykc_monitor_setvoltcurr;
 /** 启动过程中的信息 */
@@ -4441,7 +4444,28 @@ int8_t ykc_monitor_padding_setvoltcurr_data(void)
     if(s_ykc_monitor_setvoltcurr.count >= NET_YKC_MONITOR_SETVOLTCURR_PAIR_MAX){
         return -0x01;
     }
+#ifdef APP_USING_CYCLE_MATRIX
+    extern unsigned int app_module_get_setup_voltage(unsigned char gunno);
+    extern unsigned int app_module_get_setup_current(unsigned char gunno);
+    extern unsigned int app_module_is_open(unsigned char gunno);
+    extern unsigned char app_module_belong_gun(unsigned char group);
 
+    if(s_ykc_monitor_setvoltcurr.count == 0x00){
+        System_BaseData *base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(0x00));
+        s_ykc_monitor_setvoltcurr.timestamp = base->current_time;
+        for(uint8_t group = 0x00; group < YKC_MONITOR_MODULE_GROUP_MAX; group++){
+            s_ykc_monitor_setvoltcurr.belong_gun[group] = app_module_belong_gun(group);
+        }
+    }
+    for(uint8_t group = 0x00; group < YKC_MONITOR_MODULE_GROUP_MAX; group++){
+        s_ykc_monitor_setvoltcurr.pair[group][s_ykc_monitor_setvoltcurr.count].voltage = app_module_get_setup_voltage(group);
+        s_ykc_monitor_setvoltcurr.pair[group][s_ykc_monitor_setvoltcurr.count].current = app_module_get_setup_current(group);
+        s_ykc_monitor_setvoltcurr.pair[group][s_ykc_monitor_setvoltcurr.count].is_open = 0x00;
+        if(app_module_is_open(group)){
+            s_ykc_monitor_setvoltcurr.pair[group][s_ykc_monitor_setvoltcurr.count].is_open = 0x01;
+        }
+    }
+#else
     extern uint8_t thaisenGetModuleGroupOpenState(uint8_t groupNum);
     extern uint32_t thaisenGetModuleSetVoltage(uint8_t groupNum);
     extern uint32_t thaisenGetModuleSetCurrent(uint8_t groupNum);
@@ -4459,6 +4483,7 @@ int8_t ykc_monitor_padding_setvoltcurr_data(void)
             s_ykc_monitor_setvoltcurr.pair[group][s_ykc_monitor_setvoltcurr.count].is_open = 0x01;
         }
     }
+#endif /* APP_USING_CYCLE_MATRIX */
     s_ykc_monitor_setvoltcurr.count++;
 
     return 0x00;
@@ -4490,6 +4515,9 @@ int8_t ykc_monitor_message_padding_setvoltcurr(uint8_t gunno, uint8_t *buf, uint
     struct voltcurr_pair *pair = (struct voltcurr_pair*)(buf + sizeof(Net_YkcMonitorPro_Preq_Pres_SetVoltCurr_t) - NET_YKC_MONITOR_PROTOCOL_CHECK_REGION_SIZE);
     Net_YkcMonitorPro_Preq_Pres_SetVoltCurr_t *message = (Net_YkcMonitorPro_Preq_Pres_SetVoltCurr_t*)buf;
     uint8_t group_num = *(sys_read_config_item_content(CONFIG_ITEM_MODULE_GROUP_NUM, 0x00));
+#ifdef APP_USING_CYCLE_MATRIX
+    uint8_t *data_section = (buf + sizeof(Net_YkcMonitorPro_Preq_Pres_SetVoltCurr_t) - NET_YKC_MONITOR_PROTOCOL_CHECK_REGION_SIZE);
+#endif /* APP_USING_CYCLE_MATRIX */
 
     if(group_num > YKC_MONITOR_MODULE_GROUP_MAX){
         group_num = YKC_MONITOR_MODULE_GROUP_MAX;
@@ -4499,6 +4527,30 @@ int8_t ykc_monitor_message_padding_setvoltcurr(uint8_t gunno, uint8_t *buf, uint
     message->body.timestamp = s_ykc_monitor_setvoltcurr.timestamp;
     message->body.group_num = group_num;
 
+#ifdef APP_USING_CYCLE_MATRIX
+    group_num = YKC_MONITOR_MODULE_GROUP_MAX;
+    message->body.group_num = group_num;
+
+    for(uint8_t group = 0x00; group < message->body.group_num; group++){
+        /** 填充模块组归属枪号 */
+        *data_section = s_ykc_monitor_setvoltcurr.belong_gun[group];
+        data_section++;
+        pair = (struct voltcurr_pair*)data_section;
+
+        for(uint8_t count = 0x00; count < NET_YKC_MONITOR_SETVOLTCURR_PAIR_MAX; count++){
+            pair[count] = s_ykc_monitor_setvoltcurr.pair[group][count];
+        }
+        data_section += (sizeof(struct voltcurr_pair) *NET_YKC_MONITOR_SETVOLTCURR_PAIR_MAX);
+    }
+
+    memset(s_ykc_monitor_setvoltcurr.belong_gun, 0x00, sizeof(s_ykc_monitor_setvoltcurr.belong_gun));
+    memset(s_ykc_monitor_setvoltcurr.pair, 0x00, sizeof(s_ykc_monitor_setvoltcurr.pair));
+    s_ykc_monitor_setvoltcurr.count = 0x00;
+
+    if(olen){
+        *olen = (sizeof(Net_YkcMonitorPro_Preq_Pres_SetVoltCurr_t) + message->body.group_num *sizeof(struct voltcurr_pair) *NET_YKC_MONITOR_SETVOLTCURR_PAIR_MAX + message->body.group_num);
+    }
+#else
     for(uint8_t group = 0x00; group < message->body.group_num; group++){
         for(uint8_t count = 0x00; count < NET_YKC_MONITOR_SETVOLTCURR_PAIR_MAX; count++){
             pair[count] = s_ykc_monitor_setvoltcurr.pair[group][count];
@@ -4512,6 +4564,7 @@ int8_t ykc_monitor_message_padding_setvoltcurr(uint8_t gunno, uint8_t *buf, uint
     if(olen){
         *olen = (sizeof(Net_YkcMonitorPro_Preq_Pres_SetVoltCurr_t) + message->body.group_num *sizeof(struct voltcurr_pair) *NET_YKC_MONITOR_SETVOLTCURR_PAIR_MAX);
     }
+#endif /* APP_USING_CYCLE_MATRIX */
 
     return 0x00;
 }
