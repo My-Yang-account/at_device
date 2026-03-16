@@ -305,7 +305,7 @@ void app_module_set_module_current_max(unsigned int current)
 void app_module_set_single_module_power(unsigned int power)
 {
 #ifdef CP_USING_CYCLE_MATRIX
-    /** 非半矩和环矩类型 */
+    /** 半矩和环矩类型 */
     if((s_module_ctrl_info.type == SYSTEM_FUNCTION_MS_MACHINE_CYCLE) || (s_module_ctrl_info.type == SYSTEM_FUNCTION_MS_MACHINE_HALF)){
         thaisen_chargemain_set_ModulePreserPower(power);
         MCTRL_DEBUG("set single module power:%dW\n", power);
@@ -770,12 +770,12 @@ unsigned char app_module_is_debug_started(unsigned char gunno)
 #ifdef CP_USING_CYCLE_MATRIX
     if((s_module_ctrl_info.type != SYSTEM_FUNCTION_MS_MACHINE_CYCLE) && (s_module_ctrl_info.type != SYSTEM_FUNCTION_MS_MACHINE_HALF)){
         if(gunno >= APP_SYSTEM_GUNNO_SIZE){
-            return -0x01;
+            return 0x00;
         }
     }else{
         /** 环矩/半矩设备：模块都在母机，最多MCTRL_CYCLE_MATRIX_MODULE_NUM把枪(需要考虑双枪改造时的情况) */
         if(gunno >= MCTRL_CYCLE_MATRIX_MODULE_NUM){
-            return -0x01;
+            return 0x00;
         }
     }
     if(s_module_ctrl_assistant_info[gunno].flag.is_debug_started){
