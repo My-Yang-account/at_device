@@ -94,7 +94,7 @@ extern "C" {
 #else
 #define SOFTWARE_VERSION       1L
 #define SOFTWARE_SUBVERSION    0
-#define SOFTWARE_REVISION      0L  /* 01 */
+#define SOFTWARE_REVISION      1L  /* 02 */
 #endif
 
 #else
