@@ -1075,7 +1075,7 @@ int app_module_ctrl_init(void)
         break;
     case SYSTEM_FUNCTION_MS_MACHINE_HALF:
         s_module_ctrl_info.type = SYSTEM_FUNCTION_MS_MACHINE_HALF;
-        mctrl_base_info->matrix_type = thaisen_moduleallo_matrixtype_ringmatrix;
+        mctrl_base_info->matrix_type = thaisen_moduleallo_matrixtype_halfmatrix;
         break;
     case SYSTEM_FUNCTION_DOUBLE_WHOLE:
         s_module_ctrl_info.type = SYSTEM_FUNCTION_DOUBLE_WHOLE;
