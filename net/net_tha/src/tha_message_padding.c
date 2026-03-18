@@ -650,7 +650,7 @@ int8_t tha_message_pro_unlock_charge_request(uint8_t gunno, void *data, uint8_t 
     switch(s_tha_base->state.current){
     case APP_OFSM_STATE_READYING:
     case APP_OFSM_STATE_FINISHING:
-    case APP_OFSM_STATE_FAULTING:
+
         valid_len = sizeof(s_tha_base->user_number);
         valid_len = valid_len > sizeof(request->body.user_id) ? sizeof(request->body.user_id) : valid_len;
         memcpy(s_tha_base->user_number, &(request->body.user_id), valid_len);

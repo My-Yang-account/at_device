@@ -928,7 +928,6 @@ int8_t ykc_message_pro_remote_start_charge_request(uint8_t gunno, void *data, ui
     case APP_OFSM_STATE_READYING:
     case APP_OFSM_STATE_RESERVATION:
     case APP_OFSM_STATE_FINISHING:
-    case APP_OFSM_STATE_FAULTING:
         valid_len = sizeof(request->body.logic_card_number);
         valid_len = valid_len > sizeof(base->card_number) ? sizeof(base->card_number) : valid_len;
         memset(base->card_number, 0x00, sizeof(base->card_number));
@@ -1268,7 +1267,6 @@ int8_t ykc_message_pro_remote_start_merge_charge_request(uint8_t gunno, void *da
         break;
     case APP_OFSM_STATE_READYING:
     case APP_OFSM_STATE_FINISHING:
-    case APP_OFSM_STATE_FAULTING:
         valid_len = sizeof(request->body.logic_card_number);
         valid_len = valid_len > sizeof(base->card_number) ? sizeof(base->card_number) : valid_len;
         memset(&(base->card_number), 0x00, sizeof(base->card_number));

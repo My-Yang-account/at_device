@@ -927,7 +927,7 @@ int16_t ycp_message_pro_remote_start_charge_request(uint8_t gunno, void *data, u
     case APP_OFSM_STATE_READYING:
     case APP_OFSM_STATE_RESERVATION:
     case APP_OFSM_STATE_FINISHING:
-    case APP_OFSM_STATE_FAULTING:
+
         memset(base->card_number, 0x00, sizeof(base->card_number));
         memset(base->card_uid, 0x00, sizeof(base->card_uid));
         memset(base->user_number, 0x00, sizeof(base->user_number));
