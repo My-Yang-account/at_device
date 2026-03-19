@@ -11560,6 +11560,7 @@ void SerialScreen_QuitDebugIO(void)
             return;
         }
     }
+
 #ifdef SCREEN_USING_CYCLE_MATRIX
     /**************************************** 判断是否有模块强制控制操作 ****************************************/
     /** 包含模块矩阵部分 */
@@ -11567,18 +11568,6 @@ void SerialScreen_QuitDebugIO(void)
         for(u8 port = 0; port < LCD_GUN_NUM; port++){
             if((app_module_is_debug_started(port) == 0) && (thaisenGetModuleDebugEnableOutput(port) == 0))
             {
-                thaisenParallelRelay_1_Disable_Debug();
-                LcdData.setData.g_paraRely0 = REALAY_OFF;
-                LcdData.setData.s_paraRely0 = LcdData.setData.g_paraRely0;
-
-                thaisenParallelRelay_2_Disable_Debug();
-                LcdData.setData.g_paraRely1 = REALAY_OFF;
-                LcdData.setData.s_paraRely1 = LcdData.setData.g_paraRely1;
-
-                thaisenParallelRelay_3_Disable_Debug();
-                LcdData.setData.g_paraRely2 = REALAY_OFF;
-                LcdData.setData.s_paraRely2 = LcdData.setData.g_paraRely2;
-
                 if(port == LCD_GUN_1){
                     thaisenDcRelay_A_Disable_Debug();
                 }else{
@@ -16603,7 +16592,12 @@ void SerialScreen_GetKeyProcess(struct SerialScreenObj *cmd)
     if((LcdData.CurrentPage == LCD_PAGE_MENU_MONITOR) ||
             (LcdData.CurrentPage == LCD_PAGE_MENU_MONITOR_B) ||
             (LcdData.CurrentPage == LCD_PAGE_MENU_STATE_MODULE) ||
-            (LcdData.CurrentPage == LCD_PAGE_MENU_STATE_MODULE_B)){
+            (LcdData.CurrentPage == LCD_PAGE_MENU_STATE_MODULE_B)
+#ifdef SCREEN_USING_CYCLE_MATRIX
+            || (LcdData.CurrentPage == LCD_PAGE_MODULE_MATRIX) || \
+            (LcdData.CurrentPage == LCD_PAGE_RELAY_MATRIX)
+#endif /* SCREEN_USING_CYCLE_MATRIX */
+            ){
         if(((keyreg == 0x1000) && (keyval == 0x23)) || ((keyreg == 0x1008) && (keyval == 0x0001))){
             for(u8 gunno = 0; gunno < LCD_GUN_NUM; gunno++){
                 if((LcdData.gun[gunno].workState == SysMainStatus_StartReady) || (LcdData.gun[gunno].workState == SysMainStatus_Chrging)){
@@ -16624,6 +16618,22 @@ void SerialScreen_GetKeyProcess(struct SerialScreenObj *cmd)
             /** 只有子母机(环矩)、子母机(半矩)需要继电器矩阵信息 */
             _dev_type = thaisenGetChargGunRunType();
             if((_dev_type != thaisenDeviceType_Matrix_Cycle) && (_dev_type != thaisenDeviceType_Matrix_Half)){
+                return;
+            }
+            /** 启动或充电中不可进入矩阵状态 */
+            else {
+                if(thaisen_get_pileCharging()){
+                    return;
+                }
+            }
+        }
+    }
+    /** 在模块矩阵页面时，启动或充电中不能点击任何控制模块的控件 */
+    if(LcdData.CurrentPage == LCD_PAGE_MODULE_MATRIX){
+        if(((keyreg == 0x1009) && (keyval == 0x0077)) || ((keyreg == 0x1009) && (keyval == 0x0078)) || \
+                ((keyreg == 0x1009) && (keyval == 0x0079)) || ((keyreg == 0x1009) && (keyval == 0x007A)) || \
+                ((keyreg == 0x1009) && (keyval == 0x007B)) || ((keyreg == 0x1009) && (keyval == 0x007C))){
+            if(thaisen_get_pileCharging()){
                 return;
             }
         }
