@@ -397,6 +397,9 @@ struct LCD_ASSISTANT_DATA{
 #ifdef SCREEN_USING_CYCLE_MATRIX
         u16 ModuleMatrixCtrFromlAll : 1; //模块矩阵排布调试：通过所有组操作
 #endif /* SCREEN_USING_CYCLE_MATRIX */
+        u16 IsSuperManager : 1;          //这是超级管理员权限
+        u16 IsLocalCLearInfo : 1;        //这是本地清除信息的操作
+        u16 IsServerConfig : 1;          //配置是由由平台下发
     }Flag;
 
     struct{
@@ -605,6 +608,8 @@ struct LCD_DISPLAY_SETDATA_TYPE{
 	u8 supin_gate;							//门禁输入启用
 	u8 supin_ac;							//交流输入接触器启用
 	u8 supin_dc;							//直流输入接触器启用
+    u8 supin_parallel;                      //母联输入接触器启用
+    u8 supin_matrix;                        //矩阵输入接触器启用
 	u8 supin_fan;							//风扇输入启用
 	u8 supin_elock;							//电子输入锁启用
     u8 supin_temp_pro;                      //温度保护启用
@@ -621,6 +626,8 @@ struct LCD_DISPLAY_SETDATA_TYPE{
 	u8 neg_gate;							//门禁输入取反
 	u8 neg_ac;								//交流接触器输入取反
 	u8 neg_dc;								//直流接触器输入取反
+    u8 neg_parallel;                        //母联接触器输入取反
+    u8 neg_matrix;                          //矩阵接触器输入取反
 	u8 neg_fan;								//风扇输入取反
 	u8 neg_elcok;							//电子锁输入取反
     u8 neg_protectlight;                    //防雷器输入取反
@@ -706,6 +713,8 @@ struct LCD_DISPLAY_SETDATA_TYPE{
     u8 Icon_SupBayProtocol;                 //湾区协议支持icon
     u8 Icon_SupProtocolGB_T;                //国标协议(27930)支持icon
     u8 Icon_SupSeveralFrame;                //BMS多帧支持icon
+    u8 Icon_SupinParallel;                  //母联继电器输入检测支持icon
+    u8 Icon_SupinMatrix;                    //矩阵继电器输入检测支持icon
 #ifdef SCREEN_USING_V2G
     u8 Icon_SupV2G;                         //V2G支持icon
 #endif /* SCREEN_USING_V2G */
@@ -718,6 +727,8 @@ struct LCD_DISPLAY_SETDATA_TYPE{
     u8 Icon_NegPour;                        //倾倒输入取反icon
     u8 Icon_NegLiquid;                      //液冷输入取反icon
     u8 Icon_NegFuse;                        //熔断器输入取反icon
+    u8 Icon_NegParallel;                    //母联继电器输入取反支持icon
+    u8 Icon_NegMatrix;                      //矩阵继电器输入取反支持icon
     /***********************protect info***************************/
 	u32 Input_OverVolt;                     // 输入过压
     u32 Input_UnderVolt;                    // 输入欠压
@@ -2530,6 +2541,8 @@ static s32 SerialScreen_ConfigExecute_Input_7103_7101(u8 port, void *data, void 
 {
     thaisen_cfg_info_input_7103_7101 *config = (thaisen_cfg_info_input_7103_7101*)data;
 
+    LcdAssistantData.Flag.IsServerConfig = TRUE;
+
     LcdData.setData.supin_scram = FALSE;
     if(config->scram.enable){
         LcdData.setData.supin_scram = TRUE;
@@ -2661,7 +2674,48 @@ static s32 SerialScreen_ConfigExecute_Input_7103_7101(u8 port, void *data, void 
         LcdData.setData.Icon_NegCircuitBreaker = TRUE;
     }
 
+#ifdef THAISEN_INCLUDE_NEW_MSG
+    /** 母联继电器输入检测未配置 */
+    if(config->parallel_relay.enable <= TRUE){
+        LcdData.setData.Icon_SupinParallel = FALSE;
+        if(config->parallel_relay.enable){
+            LcdData.setData.Icon_SupinParallel = TRUE;
+        }
+    }else{
+        LcdAssistantData.Flag.IsServerConfig = FALSE;
+    }
+    /** 母联继电器输入取反未配置 */
+    if(config->parallel_relay.reversal <= TRUE){
+        LcdData.setData.Icon_NegParallel = FALSE;
+        if(config->parallel_relay.reversal){
+            LcdData.setData.Icon_NegParallel = TRUE;
+        }
+    }else{
+        LcdAssistantData.Flag.IsServerConfig = FALSE;
+    }
+
+    /** 母联继电器输入取反未配置 */
+    if(config->matrix_relay.enable <= TRUE){
+        LcdData.setData.Icon_SupinMatrix = FALSE;
+        if(config->matrix_relay.enable){
+            LcdData.setData.Icon_SupinMatrix = TRUE;
+        }
+    }else{
+        LcdAssistantData.Flag.IsServerConfig = FALSE;
+    }
+    /** 矩阵继电器输入取反未配置 */
+    if(config->matrix_relay.reversal <= TRUE){
+        LcdData.setData.Icon_NegMatrix = FALSE;
+        if(config->matrix_relay.reversal){
+            LcdData.setData.Icon_NegMatrix = TRUE;
+        }
+    }else{
+        LcdAssistantData.Flag.IsServerConfig = FALSE;
+    }
+#endif /* THAISEN_INCLUDE_NEW_MSG */
+
     SerialScreen_InputSetFlash();
+    LcdAssistantData.Flag.IsServerConfig = FALSE;
 
     return LcdAssistantData.Flag.IsConfigFail;
 }
@@ -7499,20 +7553,35 @@ void SerialScreen_IsSupportSetFlash(void)
         thaisenSetYouYouSlienceMode(TRUE);
     }
 
-    if(LcdData.setData.sup_parallelrelay == FALSE){
-        thaisenModuleSetParallelEnable(thaisenFunction_disable);
+    /** 母联继电器输入检测、取反已配置 */
+    if(sys_config_valid_judge(CONFIG_ITEM_INEN_PARALLEL_RELAY, &(LcdData.setData.supin_parallel), sizeof(LcdData.setData.supin_parallel))){
+        if(LcdData.setData.sup_parallelrelay == FALSE){
+            thaisenModuleSetParallelEnable(thaisenFunction_disable);
+        }else{
+            thaisenModuleSetParallelEnable(thaisenFunction_enable);
+        }
         for(u8 i = 0; i < LCD_GUN_NUM; i++){
             thaisenClearSysFaultCheckBit(thaisenRelayParallel, i);
-        }
-    }else{
-        thaisenModuleSetParallelEnable(thaisenFunction_enable);
-        if(TRUE == LcdData.setData.supin_dc){
-            for(u8 i = 0; i < LCD_GUN_NUM; i++){
+            if(LcdData.setData.supin_parallel == TRUE){
                 thaisenSetSysFaultCheckBit(thaisenRelayParallel, i);
             }
         }
+        /** 此处按需配置母联继电器的取反设置 */
+    }else{
+        if(LcdData.setData.sup_parallelrelay == FALSE){
+            thaisenModuleSetParallelEnable(thaisenFunction_disable);
+            for(u8 i = 0; i < LCD_GUN_NUM; i++){
+                thaisenClearSysFaultCheckBit(thaisenRelayParallel, i);
+            }
+        }else{
+            thaisenModuleSetParallelEnable(thaisenFunction_enable);
+            if(TRUE == LcdData.setData.supin_dc){
+                for(u8 i = 0; i < LCD_GUN_NUM; i++){
+                    thaisenSetSysFaultCheckBit(thaisenRelayParallel, i);
+                }
+            }
+        }
     }
-
     LcdAssistantData.Flag.IsEnableParaCharge = LcdData.setData.sup_parallelchg;
     LcdAssistantData.Flag.IsEnableAuxPower24V = LcdData.setData.sup_auxp_24V;
 
@@ -7529,6 +7598,9 @@ void SerialScreen_SetInputInfo(void)
 #ifdef SCREEN_USING_CYCLE_MATRIX
     extern void app_module_relay_check_enable(unsigned char relay_port, unsigned char state);
 #endif /* SCREEN_USING_CYCLE_MATRIX */
+    u8 matrix_in_enable = FALSE, parallel_in_enable = FALSE;
+    u8 matrix_reversal_enable = FALSE, parallel_reversal_enable = FALSE;
+
 	if(FALSE == LcdData.setData.supin_scram){
         for(u8 i = 0; i < LCD_GUN_NUM; i++){
             thaisenClearSysFaultCheckBit(thaisenFaultScram, i);
@@ -7569,34 +7641,114 @@ void SerialScreen_SetInputInfo(void)
             thaisenSetSysFaultCheckBit(thaisenRelayAc, i);
         }
     }
+
     if(FALSE == LcdData.setData.supin_dc){
         for(u8 i = 0; i < LCD_GUN_NUM; i++){
             thaisenClearSysFaultCheckBit(thaisenRelay, i);
-            thaisenClearSysFaultCheckBit(thaisenRelayParallel, i);
         }
-#ifdef SCREEN_USING_CYCLE_MATRIX
-        app_module_relay_check_enable(THAISEN_MATRIX_RELAY_KPN1_1, 0);
-        app_module_relay_check_enable(THAISEN_MATRIX_RELAY_KPN1_2, 0);
-        app_module_relay_check_enable(THAISEN_MATRIX_RELAY_KPN1_3, 0);
-        app_module_relay_check_enable(THAISEN_MATRIX_RELAY_KPN2_1, 0);
-        app_module_relay_check_enable(THAISEN_MATRIX_RELAY_KPN2_2, 0);
-        app_module_relay_check_enable(THAISEN_MATRIX_RELAY_KPN3_1, 0);
-#endif /* SCREEN_USING_CYCLE_MATRIX */
+        parallel_in_enable = FALSE;
+        matrix_in_enable = FALSE;
+        /** 母联继电器输入检测已配置 */
+        if(sys_config_valid_judge(CONFIG_ITEM_INEN_PARALLEL_RELAY, &(LcdData.setData.supin_parallel), sizeof(LcdData.setData.supin_parallel))){
+            if(LcdData.setData.supin_parallel == TRUE){
+                parallel_in_enable = TRUE;
+            }
+        }
+        /** 母联继电器输入取反已配置 */
+        if(sys_config_valid_judge(CONFIG_ITEM_INNEG_PARALLEL_RELAY, &(LcdData.setData.neg_parallel), sizeof(LcdData.setData.neg_parallel))){
+            if(LcdData.setData.neg_parallel == TRUE){
+                parallel_reversal_enable = TRUE;
+            }
+        }
+        /** 矩阵继电器输入检测已配置 */
+        if(sys_config_valid_judge(CONFIG_ITEM_INEN_MATRIX_RELAY, &(LcdData.setData.supin_matrix), sizeof(LcdData.setData.supin_matrix))){
+            if(LcdData.setData.supin_matrix == TRUE){
+                matrix_in_enable = TRUE;
+            }
+        }
     }else{
         for(u8 i = 0; i < LCD_GUN_NUM; i++){
             thaisenSetSysFaultCheckBit(thaisenRelay, i);
             if(LcdData.setData.sup_parallelrelay == TRUE){
-                thaisenSetSysFaultCheckBit(thaisenRelayParallel, i);
+                parallel_in_enable = TRUE;
             }
         }
+        matrix_in_enable = TRUE;
+        /** 母联继电器输入检测已配置 */
+        if(sys_config_valid_judge(CONFIG_ITEM_INEN_PARALLEL_RELAY, &(LcdData.setData.supin_parallel), sizeof(LcdData.setData.supin_parallel))){
+            parallel_in_enable = TRUE;
+            if(LcdData.setData.supin_parallel == FALSE){
+                parallel_in_enable = FALSE;
+            }
+        }
+        /** 母联继电器输入取反已配置 */
+        if(sys_config_valid_judge(CONFIG_ITEM_INNEG_PARALLEL_RELAY, &(LcdData.setData.neg_parallel), sizeof(LcdData.setData.neg_parallel))){
+            parallel_reversal_enable = TRUE;
+            if(LcdData.setData.neg_parallel == FALSE){
+                parallel_reversal_enable = FALSE;
+            }
+        }
+        /** 矩阵继电器输入检测已配置 */
+        if(sys_config_valid_judge(CONFIG_ITEM_INEN_MATRIX_RELAY, &(LcdData.setData.supin_matrix), sizeof(LcdData.setData.supin_matrix))){
+            if(LcdData.setData.supin_matrix == FALSE){
+                matrix_in_enable = FALSE;
+            }
+        }
+    }
+
+    /** 矩阵继电器输入取反已配置 */
+    if(sys_config_valid_judge(CONFIG_ITEM_INNEG_MATRIX_RELAY, &(LcdData.setData.neg_matrix), sizeof(LcdData.setData.neg_matrix))){
+        if(LcdData.setData.neg_matrix == TRUE){
+            matrix_reversal_enable = TRUE;
+        }
+    }
+
+    if(matrix_in_enable == TRUE){
 #ifdef SCREEN_USING_CYCLE_MATRIX
-        app_module_relay_check_enable(THAISEN_MATRIX_RELAY_KPN1_1, 1);
-        app_module_relay_check_enable(THAISEN_MATRIX_RELAY_KPN1_2, 1);
-        app_module_relay_check_enable(THAISEN_MATRIX_RELAY_KPN1_3, 1);
-        app_module_relay_check_enable(THAISEN_MATRIX_RELAY_KPN2_1, 1);
-        app_module_relay_check_enable(THAISEN_MATRIX_RELAY_KPN2_2, 1);
-        app_module_relay_check_enable(THAISEN_MATRIX_RELAY_KPN3_1, 1);
+        app_module_relay_check_enable(THAISEN_MATRIX_RELAY_KPN1_1, TRUE);
+        app_module_relay_check_enable(THAISEN_MATRIX_RELAY_KPN1_2, TRUE);
+        app_module_relay_check_enable(THAISEN_MATRIX_RELAY_KPN1_3, TRUE);
+        app_module_relay_check_enable(THAISEN_MATRIX_RELAY_KPN2_1, TRUE);
+        app_module_relay_check_enable(THAISEN_MATRIX_RELAY_KPN2_2, TRUE);
+        app_module_relay_check_enable(THAISEN_MATRIX_RELAY_KPN3_1, TRUE);
 #endif /* SCREEN_USING_CYCLE_MATRIX */
+    }else{
+#ifdef SCREEN_USING_CYCLE_MATRIX
+        app_module_relay_check_enable(THAISEN_MATRIX_RELAY_KPN1_1, FALSE);
+        app_module_relay_check_enable(THAISEN_MATRIX_RELAY_KPN1_2, FALSE);
+        app_module_relay_check_enable(THAISEN_MATRIX_RELAY_KPN1_3, FALSE);
+        app_module_relay_check_enable(THAISEN_MATRIX_RELAY_KPN2_1, FALSE);
+        app_module_relay_check_enable(THAISEN_MATRIX_RELAY_KPN2_2, FALSE);
+        app_module_relay_check_enable(THAISEN_MATRIX_RELAY_KPN3_1, FALSE);
+#endif /* SCREEN_USING_CYCLE_MATRIX */
+    }
+
+    if(matrix_reversal_enable == TRUE){
+#ifdef SCREEN_USING_CYCLE_MATRIX
+        app_module_relay_fb_reversal(THAISEN_MATRIX_RELAY_KPN1_1, TRUE);
+        app_module_relay_fb_reversal(THAISEN_MATRIX_RELAY_KPN1_2, TRUE);
+        app_module_relay_fb_reversal(THAISEN_MATRIX_RELAY_KPN1_3, TRUE);
+        app_module_relay_fb_reversal(THAISEN_MATRIX_RELAY_KPN2_1, TRUE);
+        app_module_relay_fb_reversal(THAISEN_MATRIX_RELAY_KPN2_2, TRUE);
+        app_module_relay_fb_reversal(THAISEN_MATRIX_RELAY_KPN3_1, TRUE);
+#endif /* SCREEN_USING_CYCLE_MATRIX */
+    }else{
+#ifdef SCREEN_USING_CYCLE_MATRIX
+        app_module_relay_fb_reversal(THAISEN_MATRIX_RELAY_KPN1_1, FALSE);
+        app_module_relay_fb_reversal(THAISEN_MATRIX_RELAY_KPN1_2, FALSE);
+        app_module_relay_fb_reversal(THAISEN_MATRIX_RELAY_KPN1_3, FALSE);
+        app_module_relay_fb_reversal(THAISEN_MATRIX_RELAY_KPN2_1, FALSE);
+        app_module_relay_fb_reversal(THAISEN_MATRIX_RELAY_KPN2_2, FALSE);
+        app_module_relay_fb_reversal(THAISEN_MATRIX_RELAY_KPN3_1, FALSE);
+#endif /* SCREEN_USING_CYCLE_MATRIX */
+    }
+
+    for(u8 i = 0; i < LCD_GUN_NUM; i++){
+        thaisenClearSysFaultCheckBit(thaisenRelayParallel, i);
+        if(parallel_in_enable == TRUE){
+            thaisenSetSysFaultCheckBit(thaisenRelayParallel, i);
+        }
+        /** 此处按需配置母联继电器的输入取反设置 */
     }
 
 	if(FALSE == LcdData.setData.supin_elock){
@@ -7751,11 +7903,6 @@ void SerialScreen_SetInputInfo(void)
 
 void SerialScreen_InputSetFlash(void)
 {
-	sSCREEN_EVENT_DEBUGMSG("set Flash supin_scram[%d] neg_scram[%d] supin_gate[%d] neg_gate[%d] supin_ac[%d]\r\n neg_ac[%d] supin_dc[%d] neg_dc[%d] supin_fan[%d] neg_fan[%d] supin_elock[%d] neg_elcok[%d]\r\n",
-		LcdData.setData.supin_scram,LcdData.setData.neg_scram,\
-		LcdData.setData.supin_gate,LcdData.setData.neg_gate,LcdData.setData.supin_ac,LcdData.setData.neg_ac,LcdData.setData.supin_dc,LcdData.setData.neg_dc,\
-		LcdData.setData.supin_fan,LcdData.setData.neg_fan,LcdData.setData.supin_elock,LcdData.setData.neg_elcok);
-
 	LcdData.setData.supin_protectlight = LcdData.setData.Icon_SupProtectLight;
 	LcdData.setData.neg_protectlight = LcdData.setData.Icon_NegProtectLight;
 
@@ -7780,6 +7927,14 @@ void SerialScreen_InputSetFlash(void)
 //    LcdData.setData.supin_fuse = LcdData.setData.Icon_SupFuse;
 //    LcdData.setData.neg_fuse = LcdData.setData.Icon_NegFuse;
 
+    /** 目前只有平台可以修改 母联继电器和矩阵继电器的输入检测使能和输入取反(20260323) */
+    if(LcdAssistantData.Flag.IsServerConfig == TRUE){
+        LcdData.setData.supin_parallel = LcdData.setData.Icon_SupinParallel;
+        LcdData.setData.neg_parallel = LcdData.setData.Icon_NegParallel;
+
+        LcdData.setData.supin_matrix = LcdData.setData.Icon_SupinMatrix;
+        LcdData.setData.neg_matrix = LcdData.setData.Icon_NegMatrix;
+    }
     SerialScreen_JumpPage(&SerialScreen, LCD_PAGE_STORAGE_WAITING);
 
 	UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_INEN_SCRAM, (u8 *)&(LcdData.setData.supin_scram), sizeof(LcdData.setData.supin_scram));
@@ -7795,7 +7950,14 @@ void SerialScreen_InputSetFlash(void)
 	UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_INEN_ELOCK, (u8 *)&(LcdData.setData.supin_elock), sizeof(LcdData.setData.supin_elock));
 	UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_INNEG_ELOCK, (u8 *)&(LcdData.setData.neg_elcok), sizeof(LcdData.setData.neg_elcok));
     UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_INEN_TEMPPRO, (u8 *)&(LcdData.setData.supin_temp_pro), sizeof(LcdData.setData.supin_temp_pro));
-
+    if(LcdAssistantData.Flag.IsServerConfig == TRUE){
+        /** 母联输入检测功能暂不配置(目前仅平台可修改，本地不能直接修改，本地按原来逻辑 20260323) */
+        UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_INEN_PARALLEL_RELAY, (u8 *)&(LcdData.setData.supin_parallel), sizeof(LcdData.setData.supin_parallel));
+        UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_INNEG_PARALLEL_RELAY, (u8 *)&(LcdData.setData.neg_parallel), sizeof(LcdData.setData.neg_parallel));
+        /** 矩阵继电器输入检测功能暂不配置(目前仅平台可修改，本地不能直接修改，本地按原来逻辑 20260323) */
+        UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_INEN_MATRIX_RELAY, (u8 *)&(LcdData.setData.supin_matrix), sizeof(LcdData.setData.supin_matrix));
+        UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_INNEG_MATRIX_RELAY, (u8 *)&(LcdData.setData.neg_matrix), sizeof(LcdData.setData.neg_matrix));
+    }
     UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_INEN_PROTECT_LIGHT, (u8 *)&(LcdData.setData.supin_protectlight), sizeof(LcdData.setData.supin_protectlight));
     UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_INNEG_PROTECT_LIGHT, (u8 *)&(LcdData.setData.neg_protectlight), sizeof(LcdData.setData.neg_protectlight));
     UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_INEN_GUNSITE, (u8 *)&(LcdData.setData.supin_gunsite), sizeof(LcdData.setData.supin_gunsite));
@@ -8528,6 +8690,54 @@ void SerialScreen_InputInfoGet(void)
 //        function_enable = FALSE;          /* 熔断器故障默认不取反 */
 //    LcdData.setData.neg_fuse = function_enable;
 //    LcdData.setData.Icon_NegFuse = function_enable;
+
+    function_enable = *(u8 *)(UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_INEN_PARALLEL_RELAY, 0));
+    /** 母联继电器输入检测已配置 */
+    if(sys_config_valid_judge(CONFIG_ITEM_INEN_PARALLEL_RELAY, &function_enable, sizeof(function_enable))){
+        if(function_enable > TRUE)
+            function_enable = TRUE;          /* 母联继电器故障检测默认开启 */
+        LcdData.setData.supin_parallel = function_enable;
+        LcdData.setData.Icon_SupinParallel = function_enable;
+    }else{
+        LcdData.setData.supin_parallel = 0xFF;
+        LcdData.setData.Icon_SupinParallel = 0xFF;
+    }
+
+    function_enable = *(u8 *)(UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_INNEG_PARALLEL_RELAY, 0));
+    /** 母联继电器输入取反已配置 */
+    if(sys_config_valid_judge(CONFIG_ITEM_INNEG_PARALLEL_RELAY, &function_enable, sizeof(function_enable))){
+        if(function_enable > TRUE)
+            function_enable = FALSE;          /* 母联继电器故障默认不取反 */
+        LcdData.setData.neg_parallel = function_enable;
+        LcdData.setData.Icon_NegParallel = function_enable;
+    }else{
+        LcdData.setData.neg_parallel = 0xFF;
+        LcdData.setData.Icon_NegParallel = 0xFF;
+    }
+
+    function_enable = *(u8 *)(UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_INEN_MATRIX_RELAY, 0));
+    /** 矩阵继电器输入检测已配置 */
+    if(sys_config_valid_judge(CONFIG_ITEM_INEN_MATRIX_RELAY, &function_enable, sizeof(function_enable))){
+        if(function_enable > TRUE)
+            function_enable = TRUE;          /* 母联继电器故障检测默认开启 */
+        LcdData.setData.supin_matrix = function_enable;
+        LcdData.setData.Icon_SupinMatrix = function_enable;
+    }else{
+        LcdData.setData.supin_matrix = 0xFF;
+        LcdData.setData.Icon_SupinMatrix = 0xFF;
+    }
+
+    function_enable = *(u8 *)(UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_INNEG_MATRIX_RELAY, 0));
+    /** 矩阵继电器输入取反已配置 */
+    if(sys_config_valid_judge(CONFIG_ITEM_INNEG_MATRIX_RELAY, &function_enable, sizeof(function_enable))){
+        if(function_enable > TRUE)
+            function_enable = FALSE;          /* 母联继电器故障默认不取反 */
+        LcdData.setData.neg_matrix = function_enable;
+        LcdData.setData.Icon_NegMatrix = function_enable;
+    }else{
+        LcdData.setData.neg_matrix = 0xFF;
+        LcdData.setData.Icon_NegMatrix = 0xFF;
+    }
 }
 
 void SerialScreen_DisChargeInfoGet(void)
@@ -11521,6 +11731,19 @@ s32 SerialScreen_BtnClearAll(void)
 	    if(val[i] < 0)
 	        ret = FALSE;
 	}
+	/** 超级管理员权限 并且是屏幕点击的(平台操作的不予此操作) */
+	if((ret == TRUE) && (LcdAssistantData.Flag.IsSuperManager == TRUE) && (LcdAssistantData.Flag.IsLocalCLearInfo == TRUE))
+	{
+	    if(sys_config_info_clear_eflash() < 0)
+	        ret = FALSE;
+	    if(ret == TRUE)
+	    {
+	        if(sys_config_info_clear_iflash() < 0)
+	            ret = FALSE;
+	    }
+	}
+	LcdAssistantData.Flag.IsLocalCLearInfo = FALSE;
+
 	return ret;
 }
 
@@ -16705,6 +16928,7 @@ void SerialScreen_GetKeyProcess(struct SerialScreenObj *cmd)
                         if((str_ncmp(LcdData.KeyInput, LcdData.setData.UserPasswd, strlen(LcdData.setData.UserPasswd))==0)
                                 ||((str_ncmp((u8 *)pPageIndex->item[i].valaddr, LcdData.KeyInput, pPageIndex->item[i].reflash)==0)&&(str_len(LcdData.KeyInput)>5))){
                             is_pw_correct = 1;
+                            LcdAssistantData.Flag.IsSuperManager = FALSE;
                         }
                     }
 
@@ -16722,6 +16946,7 @@ void SerialScreen_GetKeyProcess(struct SerialScreenObj *cmd)
                         sprintf((char*)super_pw, "%02d%02d", (_tm.tm_mday + _tm.tm_hour), (_tm.tm_mon + 1 + _tm.tm_hour));
                         if(str_ncmp(LcdData.KeyInput, super_pw, 4)==0){
                             is_pw_correct = 1;
+                            LcdAssistantData.Flag.IsSuperManager = TRUE;
                         }
                     }
 
@@ -17123,6 +17348,16 @@ void SerialScreen_GetKeyProcess(struct SerialScreenObj *cmd)
                             }
                         }
 #endif /* SCREEN_USING_CYCLE_MATRIX */
+                        else if(LcdData.CurrentPage == LCD_PAGE_MENU_SYS){
+                            /** 点击了清除信息 */
+                            if((keyreg == 0x1000) && (keyval == 0x001D)){
+                                LcdAssistantData.Flag.IsLocalCLearInfo = TRUE;
+                            }
+                            if(page_selected == 0){
+                                LcdData.CurrentPage = pPageIndex->item[i].vallen;
+                                page_selected = 1;
+                            }
+                        }
                          else{
                              if(page_selected == 0){
                                  LcdData.CurrentPage = pPageIndex->item[i].vallen;
@@ -17147,21 +17382,16 @@ void SerialScreen_GetKeyProcess(struct SerialScreenObj *cmd)
                                  dofun_void pdofun = (dofun_void)pPageIndex->item[i].valaddr;
                                  (*pdofun)(LcdData.gunIndex);
                              }
-                             sSCREEN_DEBUGPROMSG("LCD_BtnType CurrentPage=%d\r\n",LcdData.CurrentPage);
                          }
-
                          if(LcdAssistantData.SeveralGunFlag[LcdData.gunIndex].IsPWStartAuthen == TRUE){
                              LcdData.CurrentPage = LCD_PAGE_ADMIN_PASWD;
                          }
-
-						 sSCREEN_DEBUGPROMSG("pPageIndex->item[i].vallen = %d\r\n",pPageIndex->item[i].vallen);
 						 SerialScreen_PageReset(LcdData.gunIndex);
 						 //
 						 if(LcdData.CurrentPage == LcdData.CurrentPageBack)
 						 {
 						 	SerialScreen_PageNeedRefresh(LcdData.gunIndex);
 						 }
-						 sSCREEN_DEBUGPROMSG("==============next page[%d]=%d\r\n",LcdData.gunIndex,LcdData.CurrentPage );
 					}
 					break;
 				}

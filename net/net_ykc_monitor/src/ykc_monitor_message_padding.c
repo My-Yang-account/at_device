@@ -28,7 +28,12 @@
 #ifdef NET_YKC_MONITOR_AS_MONITOR
 
 #define YKC_MONITOR_FIXED_CMD_MSG_VER                     0x00                  /* 固定类型指令报文版本 */
+
+#ifdef NET_YKC_MONITOR_INCLUDE_NEW_MSG
+#define YKC_MONITOR_CONFIG_INFO_MSG_VER                   0x02                  /* 配置信息指令报文版本 */
+#else
 #define YKC_MONITOR_CONFIG_INFO_MSG_VER                   0x00                  /* 配置信息指令报文版本 */
+#endif /* NET_YKC_MONITOR_INCLUDE_NEW_MSG */
 #define YKC_MONITOR_0XD7_MSG_VER                          0x01                  /* 0xD7指令报文版本 */
 
 #define YKC_MONITOR_DYNAMIC_CMD_MSG_VER                   0x00                  /* 动态类型指令报文版本 */
@@ -6540,6 +6545,13 @@ static int32_t ykc_monitor_config_info_process_input_7103_7101_info(uint8_t opti
 
         response->circuit_breaker.enable = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INEN_CIRCUIT_BREAKER, 0x00));
         response->circuit_breaker.reversal = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INNEG_CIRCUIT_BREAKER, 0x00));
+#ifdef NET_YKC_MONITOR_INCLUDE_NEW_MSG
+        response->parallel_relay.enable = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INEN_PARALLEL_RELAY, 0x00));
+        response->parallel_relay.reversal = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INNEG_PARALLEL_RELAY, 0x00));
+
+        response->matrix_relay.enable = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INEN_MATRIX_RELAY, 0x00));
+        response->matrix_relay.reversal = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INNEG_MATRIX_RELAY, 0x00));
+#endif /* NET_YKC_MONITOR_INCLUDE_NEW_MSG */
     }
     /** 配置信息设置 */
     else{

@@ -237,8 +237,10 @@ struct _function_enable{
     uint8_t v2g_mode[2];           /* 已选择的V2G模式 */
     uint8_t melect_strategy;       /* 电表电量检测策略 */
     uint8_t batvolt_strategy;      /* 电池电压检测策略 */
-    uint8_t charge_curr_strategy;    /* 充电电流检测策略 */
-    uint8_t reserve[65];
+    uint8_t charge_curr_strategy;  /* 充电电流检测策略 */
+    uint8_t matrix_relay_in;       /* 矩阵继电器 */
+    uint8_t parallel_relay_in;     /* 母联继电器 */
+    uint8_t reserve[63];
 };
 
 struct _state_reversal{
@@ -246,7 +248,7 @@ struct _state_reversal{
     uint8_t gate;                  /* 状态取反：门禁 */
     uint8_t acrelay;               /* 状态取反：交流继电器 */
     uint8_t dcrelay;               /* 状态取反：直流继电器 */
-    uint8_t parallel_relay;        /* 状态取反：直流继电器 */
+    uint8_t reserve0;              /* 状态取反：预留(原母联继电器) */
     uint8_t fan;                   /* 状态取反：风扇 */
     uint8_t elock;                 /* 状态取反：电子锁反馈 */
     uint8_t protectlight;          /* 防雷器 */
@@ -257,7 +259,9 @@ struct _state_reversal{
     uint8_t pour;                  /* 倾倒 */
     uint8_t liquid;                /* 液冷 */
     uint8_t fuse;                  /* 熔断器 */
-    uint8_t reserve[56];
+    uint8_t matrix_relay;          /* 矩阵继电器 */
+    uint8_t parallel_relay;        /* 状态取反：母联继电器 */
+    uint8_t reserve[54];
 };
 
 struct _target_plat{
@@ -711,6 +715,16 @@ CFG_DEF_SRAM2 static struct config_item s_config_item_set[CONFIG_ITEM_SIZE] =
         (uint8_t*)&s_chargepile_config_info.function_enable.dcrelay_in,
         NULL},
 
+        {CONFIG_ITEM_INEN_PARALLEL_RELAY,                                          /* 配置项: 母联继电器输入*/
+        (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.parallel_relay_in)),
+        (uint8_t*)&s_chargepile_config_info.function_enable.parallel_relay_in,
+        NULL},
+
+        {CONFIG_ITEM_INEN_MATRIX_RELAY,                                          /* 配置项: 矩阵继电器输入*/
+        (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.matrix_relay_in)),
+        (uint8_t*)&s_chargepile_config_info.function_enable.matrix_relay_in,
+        NULL},
+
         {CONFIG_ITEM_INEN_FAN,                                              /* 配置项: 风扇输入*/
         (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.fan_in)),
         (uint8_t*)&s_chargepile_config_info.function_enable.fan_in,
@@ -784,6 +798,16 @@ CFG_DEF_SRAM2 static struct config_item s_config_item_set[CONFIG_ITEM_SIZE] =
         {CONFIG_ITEM_INNEG_DCRELAY,                                         /* 配置项: 直流继电器输入取反*/
         (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.state_reversal.dcrelay)),
         (uint8_t*)&s_chargepile_config_info.state_reversal.dcrelay,
+        NULL},
+
+        {CONFIG_ITEM_INNEG_PARALLEL_RELAY,                                         /* 配置项: 母联继电器输入取反*/
+        (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.state_reversal.parallel_relay)),
+        (uint8_t*)&s_chargepile_config_info.state_reversal.parallel_relay,
+        NULL},
+
+        {CONFIG_ITEM_INNEG_MATRIX_RELAY,                                         /* 配置项: 矩阵继电器输入取反*/
+        (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.state_reversal.matrix_relay)),
+        (uint8_t*)&s_chargepile_config_info.state_reversal.matrix_relay,
         NULL},
 
         {CONFIG_ITEM_INNEG_FAN,                                         /* 配置项: 风扇输入取反*/
@@ -1306,6 +1330,12 @@ void sys_chargeplie_config_info_init(void)
     /** 直流继电器反馈使能 */
     sys_config_item_init(CONFIG_ITEM_INEN_DCRELAY, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.dcrelay_in)), \
             (uint8_t*)&s_chargepile_config_info.function_enable.dcrelay_in, NULL);
+    /** 母联继电器反馈使能 */
+    sys_config_item_init(CONFIG_ITEM_INEN_PARALLEL_RELAY, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.parallel_relay_in)), \
+            (uint8_t*)&s_chargepile_config_info.function_enable.parallel_relay_in, NULL);
+    /** 矩阵继电器反馈使能 */
+    sys_config_item_init(CONFIG_ITEM_INEN_MATRIX_RELAY, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.matrix_relay_in)), \
+            (uint8_t*)&s_chargepile_config_info.function_enable.matrix_relay_in, NULL);
     /** 风扇反馈使能 */
     sys_config_item_init(CONFIG_ITEM_INEN_FAN, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.fan_in)), \
             (uint8_t*)&s_chargepile_config_info.function_enable.fan_in, NULL);
@@ -1351,6 +1381,12 @@ void sys_chargeplie_config_info_init(void)
     /** 直流继电器反馈取反 */
     sys_config_item_init(CONFIG_ITEM_INNEG_DCRELAY, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.state_reversal.dcrelay)), \
             (uint8_t*)&s_chargepile_config_info.state_reversal.dcrelay, NULL);
+    /** 母联继电器反馈取反 */
+    sys_config_item_init(CONFIG_ITEM_INNEG_PARALLEL_RELAY, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.state_reversal.parallel_relay)), \
+            (uint8_t*)&s_chargepile_config_info.state_reversal.parallel_relay, NULL);
+    /** 矩阵继电器反馈取反 */
+    sys_config_item_init(CONFIG_ITEM_INNEG_MATRIX_RELAY, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.state_reversal.matrix_relay)), \
+            (uint8_t*)&s_chargepile_config_info.state_reversal.matrix_relay, NULL);
     /** 风扇反馈取反 */
     sys_config_item_init(CONFIG_ITEM_INNEG_FAN, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.state_reversal.fan)), \
             (uint8_t*)&s_chargepile_config_info.state_reversal.fan, NULL);
@@ -2056,6 +2092,8 @@ static void chargepile_config_data_reset(void)
     s_chargepile_config_info.function_enable.temp_protect = 0x01;
     s_chargepile_config_info.function_enable.rfid_card_reader = 0x00;
     s_chargepile_config_info.function_enable.parallel_relay = 0x00;
+//    s_chargepile_config_info.function_enable.parallel_relay_in = 0x00;  //母联输入检测功能暂不默认(目前仅平台可修改，本地不能直接修改，本地按原来逻辑 20260323)
+//    s_chargepile_config_info.function_enable.matrix_relay_in = 0x00;    //矩阵继电器输入检测功能暂不默认(目前仅平台可修改，本地不能直接修改，本地按原来逻辑 20260323)
     s_chargepile_config_info.function_enable.module_slience = 0x00;
     s_chargepile_config_info.function_enable.password_start = 0x00;
     s_chargepile_config_info.function_enable.offline_billing = 0x00;
@@ -2088,7 +2126,8 @@ static void chargepile_config_data_reset(void)
     s_chargepile_config_info.state_reversal.gate = 0x00;
     s_chargepile_config_info.state_reversal.acrelay = 0x00;
     s_chargepile_config_info.state_reversal.dcrelay = 0x00;
-    s_chargepile_config_info.state_reversal.parallel_relay = 0x00;
+//    s_chargepile_config_info.state_reversal.parallel_relay = 0x00;  //母联输入取反功能暂不默认(目前仅平台可修改，本地不能直接修改，本地按原来逻辑 20260323)
+//    s_chargepile_config_info.state_reversal.matrix_relay = 0x00;    //矩阵继电器输入取反功能暂不默认(目前仅平台可修改，本地不能直接修改，本地按原来逻辑 20260323)
     s_chargepile_config_info.state_reversal.fan = 0x00;
     s_chargepile_config_info.state_reversal.elock = 0x00;
     s_chargepile_config_info.state_reversal.protectlight = 0x00;
@@ -2728,6 +2767,14 @@ int32_t chargepile_check_config(void)
     if(s_chargepile_config_info.function_enable.parallel_relay > 0x01){    /* 并联默认启用 */
         s_chargepile_config_info.function_enable.parallel_relay = 0x01;
     }
+//    母联输入检测功能暂不默认(目前仅平台可修改，本地不能直接修改，本地按原来逻辑 20260323)
+//    if(s_chargepile_config_info.function_enable.parallel_relay_in > 0x01){    /* 母联输入检测默认启用 */
+//        s_chargepile_config_info.function_enable.parallel_relay_in = 0x01;
+//    }
+//    矩阵继电器输入检测功能暂不默认(目前仅平台可修改，本地不能直接修改，本地按原来逻辑 20260323)
+//    if(s_chargepile_config_info.function_enable.matrix_relay_in > 0x01){    /* 矩阵继电器输入检测默认启用 */
+//        s_chargepile_config_info.function_enable.matrix_relay_in = 0x01;
+//    }
     if(s_chargepile_config_info.function_enable.auxpower_24V > 0x01){   /* 24V辅源默认关闭 */
         s_chargepile_config_info.function_enable.auxpower_24V = 0x00;
     }
@@ -2869,9 +2916,14 @@ int32_t chargepile_check_config(void)
     if(s_chargepile_config_info.state_reversal.dcrelay > 0x01){   /* 直流继电器默认不取反 */
         s_chargepile_config_info.state_reversal.dcrelay = 0x00;
     }
-    if(s_chargepile_config_info.state_reversal.parallel_relay > 0x01){   /* 并联继电器默认不取反 */
-        s_chargepile_config_info.state_reversal.parallel_relay = 0x00;
-    }
+//    母联输入取反功能暂不默认(目前仅平台可修改，本地不能直接修改，本地按原来逻辑 20260323)
+//    if(s_chargepile_config_info.state_reversal.parallel_relay > 0x01){   /* 并联继电器默认不取反 */
+//        s_chargepile_config_info.state_reversal.parallel_relay = 0x00;
+//    }
+//    矩阵继电器输入取反功能暂不默认(目前仅平台可修改，本地不能直接修改，本地按原来逻辑 20260323)
+//    if(s_chargepile_config_info.state_reversal.matrix_relay > 0x01){   /* 矩阵继电器默认不取反 */
+//        s_chargepile_config_info.state_reversal.matrix_relay = 0x00;
+//    }
     if(s_chargepile_config_info.state_reversal.fan > 0x01){   /* 风扇默认不取反 */
         s_chargepile_config_info.state_reversal.fan = 0x00;
     }
@@ -4340,3 +4392,64 @@ int32_t sys_cc1_range_valid(uint16_t cc12_max, uint16_t cc12_min, uint16_t cc6_m
 #endif
     return valid;
 }
+
+/**********************************************[配置清除相关]********************************************************/
+/**********************************************[配置清除相关]********************************************************/
+/*********************************************************
+ * 函数名        sys_config_info_clear_iflash
+ * 功能            清除内部FLASH的配置信息
+ * 参数
+ * 返回           >=0：成功      <0：失败
+ ********************************************************/
+int32_t sys_config_info_clear_iflash(void)
+{
+    return mw_iflash_erase_sector(SYSTEM_CONFIG_INFO_ADDR_IF, sizeof(s_chargepile_config_info), 0x00);
+}
+
+/*********************************************************
+ * 函数名        sys_config_info_clear_eflash
+ * 功能            清除外部FLASH的配置信息
+ * 参数
+ * 返回           1：成功      0：失败
+ ********************************************************/
+int32_t sys_config_info_clear_eflash(void)
+{
+    if(mw_norflash_erase(SYSTEM_CONFIG_INIT_FLAG_ADDRESS, sizeof(s_chargepile_config_info)) < 0x00){
+        return -0x01;
+    }
+    return mw_norflash_erase(SYSTEM_CONFIG_MAIN_ADDRESS, sizeof(s_chargepile_config_info));
+}
+
+
+/**********************************************[配置是否有效判断]********************************************************/
+/**********************************************[配置是否有效判断]********************************************************/
+/*********************************************************
+ * 函数名        sys_config_valid_judge
+ * 功能            用于判断指定配置项数据是否有效
+ * 参数
+ * 返回           0：无效      1：有效
+ ********************************************************/
+int32_t sys_config_valid_judge(uint8_t name, void *_config, uint16_t len)
+{
+    int32_t ret = 0x01;
+
+    switch(name){
+    case CONFIG_ITEM_INEN_PARALLEL_RELAY:
+    case CONFIG_ITEM_INEN_MATRIX_RELAY:
+    case CONFIG_ITEM_INNEG_PARALLEL_RELAY:
+    case CONFIG_ITEM_INNEG_MATRIX_RELAY:
+        if(_config == NULL){
+            ret = 0x00;
+        }else{
+            if(*((uint8_t*)_config) > 0x01){
+                ret = 0x00;
+            }
+        }
+        break;
+    default:
+        ret = 0x00;
+        break;
+    }
+    return ret;
+}
+

@@ -338,6 +338,10 @@ typedef struct{
     struct _input_pair_7103_7101 fuse;                            /** 熔断器 */
     struct _input_pair_7103_7101 liquid;                          /** 液冷 */
     struct _input_pair_7103_7101 circuit_breaker;                 /** 断路器 */
+#ifdef THAISEN_INCLUDE_NEW_MSG
+    struct _input_pair_7103_7101 parallel_relay;                  /** 母联继电器 */
+    struct _input_pair_7103_7101 matrix_relay;                    /** 矩阵继电器 */
+#endif /* THAISEN_INCLUDE_NEW_MSG */
 }thaisen_cfg_info_input_7103_7101;
 
 /************************************* 7104 *********************************************/

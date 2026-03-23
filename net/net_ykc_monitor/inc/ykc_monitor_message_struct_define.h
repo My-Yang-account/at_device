@@ -2151,6 +2151,11 @@ struct ykcm_input_info_7103_7101{
     struct ykcm_input_pair_7103_7101 fuse;       /* 熔断器 */
     struct ykcm_input_pair_7103_7101 liquid;     /* 液冷 */
     struct ykcm_input_pair_7103_7101 circuit_breaker; /* 断路器 */
+#ifdef NET_YKC_MONITOR_INCLUDE_NEW_MSG
+    /** 20260320 msg_ver = 0x02 */
+    struct ykcm_input_pair_7103_7101 parallel_relay;    /* 母联继电器 */
+    struct ykcm_input_pair_7103_7101 matrix_relay;      /* 矩阵继电器 */
+#endif /* NET_YKC_MONITOR_INCLUDE_NEW_MSG */
 };
 /************************************* 7104 *********************************************/
 /** 输入信息 */

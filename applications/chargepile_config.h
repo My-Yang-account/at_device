@@ -744,6 +744,8 @@ enum config_name{
     CONFIG_ITEM_INEN_GATE,
     CONFIG_ITEM_INEN_ACRELAY,
     CONFIG_ITEM_INEN_DCRELAY,
+    CONFIG_ITEM_INEN_PARALLEL_RELAY,
+    CONFIG_ITEM_INEN_MATRIX_RELAY,
     CONFIG_ITEM_INEN_FAN,
     CONFIG_ITEM_INEN_ELOCK,
     CONFIG_ITEM_INEN_TEMPPRO,
@@ -760,6 +762,8 @@ enum config_name{
     CONFIG_ITEM_INNEG_GATE,
     CONFIG_ITEM_INNEG_ACRELAY,
     CONFIG_ITEM_INNEG_DCRELAY,
+    CONFIG_ITEM_INNEG_PARALLEL_RELAY,
+    CONFIG_ITEM_INNEG_MATRIX_RELAY,
     CONFIG_ITEM_INNEG_FAN,
     CONFIG_ITEM_INNEG_ELOCK,
     CONFIG_ITEM_INNEG_PROTECT_LIGHT,
@@ -922,5 +926,33 @@ int32_t sys_lighting_lamp_time_valid(uint8_t shour, uint8_t ehour, uint8_t smin,
 /**********************************************[CC1相关 CC1]********************************************************/
 /**********************************************[CC1相关 CC1]********************************************************/
 int32_t sys_cc1_range_valid(uint16_t cc12_max, uint16_t cc12_min, uint16_t cc6_max, uint16_t cc6_min, uint16_t cc4_max, uint16_t cc4_min);
+
+/**********************************************[配置清除相关]********************************************************/
+/**********************************************[配置清除相关]********************************************************/
+/*********************************************************
+ * 函数名        sys_config_info_clear_iflash
+ * 功能            清除内部FLASH的配置信息
+ * 参数
+ * 返回           1：成功      0：失败
+ ********************************************************/
+int32_t sys_config_info_clear_iflash(void);
+
+/*********************************************************
+ * 函数名        sys_config_info_clear_eflash
+ * 功能            清除外部FLASH的配置信息
+ * 参数
+ * 返回           1：成功      0：失败
+ ********************************************************/
+int32_t sys_config_info_clear_eflash(void);
+
+/**********************************************[配置是否有效判断]********************************************************/
+/**********************************************[配置是否有效判断]********************************************************/
+/*********************************************************
+ * 函数名        sys_config_valid_judge
+ * 功能            用于判断指定配置项数据是否有效
+ * 参数
+ * 返回           0：无效      1：有效
+ ********************************************************/
+int32_t sys_config_valid_judge(uint8_t name, void *_config, uint16_t len);
 
 #endif /* APPLICATIONS_CHARGEPILE_CONFIG_H_ */
