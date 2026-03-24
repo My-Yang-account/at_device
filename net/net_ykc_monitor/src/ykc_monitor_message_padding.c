@@ -1632,6 +1632,20 @@ void ykc_monitor_message_field_init(uint8_t gun)
 #ifdef NET_YKC_MONITOR_INCLUDE_NEW_MSG
     g_ykc_monitor_preq_login.body.is_0xdb_new_msg = NET_ENUM_TRUE;
     g_ykc_monitor_preq_login.body.db_msg_ver = YKC_MONITOR_CONFIG_INFO_MSG_VER;
+
+    pile_number = (uint8_t*)(s_ykc_monitor_handle->get_system_data(NET_SYSTEM_DATA_NAME_DEVICE_ID, NULL, 0x00, option));
+    valid_len = strlen((char*)pile_number);
+    used_len = 0x00;
+    memset(g_ykc_monitor_preq_login.body.device_id, 0x00, sizeof(g_ykc_monitor_preq_login.body.device_id));
+    for(uint8_t i = 0x00; i < valid_len; i++){
+        if(pile_number[valid_len - 0x01 - i] != ' '){
+            g_ykc_monitor_preq_login.body.device_id[NET_YKC_MONITOR_DEVICE_ID_LENGTH_DEFAULT - 0x01 - used_len] = pile_number[valid_len - 0x01 - i];
+            used_len++;
+        }
+        if((used_len + 0x01) > NET_YKC_MONITOR_DEVICE_ID_LENGTH_DEFAULT){
+            break;
+        }
+    }
 #endif /* NET_YKC_MONITOR_INCLUDE_NEW_MSG */
 
     g_ykc_monitor_preq_login.body.net_link_type = NET_YKC_MONITOR_NET_LINK_TYPE_SIM;

@@ -469,6 +469,12 @@ static uint8_t* app_nget_system_data(uint8_t name, void *vector, uint32_t vlen, 
         }
     }
         break;
+    case NET_SYSTEM_DATA_NAME_DEVICE_ID:
+    {
+        extern  uint8_t *__thaisen_get_test_number(void);
+        return __thaisen_get_test_number();
+    }
+        break;
     default:
         break;
     }

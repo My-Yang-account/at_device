@@ -89,6 +89,9 @@
 #define NET_YKC_MONITOR_LIQUID_F_INFO_MAX                              0x05        /* 液冷故障信息的最大个数 */
 
 #define NET_YKC_MONITOR_SCREEN_PW_LENGTH_DEFAULT                       0x0F        /* 默认屏幕密码长度 */
+#ifdef NET_YKC_MONITOR_INCLUDE_NEW_MSG
+#define NET_YKC_MONITOR_DEVICE_ID_LENGTH_DEFAULT                       0x0C        /* 默认设备ID长度 */
+#endif /* NET_YKC_MONITOR_INCLUDE_NEW_MSG */
 
 #ifdef NET_YKC_MONITOR_FAULT_USING_EXTEND
 #define NET_YKC_MONITOR_FAULT_SET_NUM                                  0x02        /* 扩展故障集数量 */
@@ -605,6 +608,7 @@ typedef struct{
 #ifdef NET_YKC_MONITOR_INCLUDE_NEW_MSG
         uint8_t is_0xdb_new_msg;                 /* 是否是0xDB新报文  1：是   0：否 */
         uint8_t db_msg_ver;                      /* 0xDB报文  版本(从0开始) */
+        uint8_t device_id[NET_YKC_MONITOR_DEVICE_ID_LENGTH_DEFAULT];  /* 设备ID */
 #endif /* NET_YKC_MONITOR_INCLUDE_NEW_MSG */
     }body;
     uint16_t check_sum;                          /* 校验码 */

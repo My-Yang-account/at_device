@@ -158,9 +158,10 @@
 #define NET_SYSTEM_DATA_NAME_ENABLE_DOUBLEGUN_CHARGE   0x29        /* 系统数据名：双枪并充功能 */
 #define NET_SYSTEM_DATA_NAME_ENABLE_CHARGE_OFFLINE     0x2A        /* 系统数据名：离线充电功能 */
 #define NET_SYSTEM_DATA_NAME_ENABLE_AUX_DETECT         0x2B        /* 系统数据名：12/24V辅助电源选择功能开关 */
-#define NET_SYSTEM_DATA_NAME__GUN_VOLTAGE_RANGE         0x2C       /* 系统数据名：外侧电压大于阀值 */
+#define NET_SYSTEM_DATA_NAME__GUN_VOLTAGE_RANGE        0x2C        /* 系统数据名：外侧电压大于阀值 */
 //////////////////////////////////////
-#define NET_SYSTEM_DATA_NAME_SIZE                      0x2D
+#define NET_SYSTEM_DATA_NAME_DEVICE_ID                 0x2D        /* 系统数据名： 设备ID*/
+#define NET_SYSTEM_DATA_NAME_SIZE                      0x2E
 
 /** operator name */
 #define NET_OPERATOR_NAME_CHINA_MOBILE                 0x00    /* 运营商名称：中国移动*/
@@ -234,27 +235,27 @@
 
 /** net parameter config */
 enum para_config{
-    NET_PARA_CONFIG_INDEX_FLASH_ERASE = 1,             /* 参数配置下标：flash擦除函数 */
-    NET_PARA_CONFIG_INDEX_FLASH_READ = 2,              /* 参数配置下标：flash读取函数 */
-    NET_PARA_CONFIG_INDEX_FLASH_WRITE = 3,             /* 参数配置下标：flash写函数 */
-    NET_PARA_CONFIG_INDEX_FLASH_WRITE_DIRECTLY = 4,    /* 参数配置下标：flash不带擦除的写函数 */
-    NET_PARA_CONFIG_INDEX_DATA_UPDATA = 5,             /* 参数配置下标：数据更新 */
-    NET_PARA_CONFIG_INDEX_TIME_SYNC = 6,               /* 参数配置下标：时间同步 */
-    NET_PARA_CONFIG_INDEX_GET_SYSTEM_DATA = 7,         /* 参数配置下标：获取系统数据 */
-    NET_PARA_CONFIG_INDEX_SET_SYSTEM_DATA = 8,         /* 参数配置下标：设置系统数据 */
-    NET_PARA_CONFIG_INDEX_SET_CARD_VIN = 9,            /* 参数配置下标：设置卡、VIN白名单 */
-    NET_PARA_CONFIG_INDEX_QUERY_CARD_VIN = 10,         /* 参数配置下标：查询卡、VIN白名单 */
-    NET_PARA_CONFIG_INDEX_DELETE_CARD_VIN = 11,        /* 参数配置下标：删除卡、VIN白名单 */
-    NET_PARA_CONFIG_INDEX_CRC16_8005 = 12,             /* 参数配置下标：CRC16 校验 */
-    NET_PARA_CONFIG_INDEX_CRC32_UPDATE = 13,           /* 参数配置下标：CRC32 校验 */
-    NET_PARA_CONFIG_INDEX_GET_BASE_DATA = 14,          /* 参数配置下标：设置基本数据 */
-    NET_PARA_CONFIG_INDEX_SYSTEM_DATA_STORAGE = 15,    /* 参数配置下标：系统数据存储 */
-    NET_PARA_CONFIG_INDEX_SYSTEM_CONTROL = 16,         /* 参数配置下标：系统控制 */
-    NET_PARA_CONFIG_INDEX_QUERY_SYSTEM_RECORD = 17,    /* 参数配置下标：查询系统数据 */
-    NET_PARA_CONFIG_INDEX_NDEV_OPERATE = 18,           /* 参数配置下标：网络设备操作 */
-    NET_PARA_CONFIG_INDEX_THREAD_INIT = 19,            /* 参数配置下标：线程初始化 */
-    NET_PARA_CONFIG_INDEX_THREAD_RUNNING = 20,         /* 参数配置下标：线程运行 */
-    NET_PARA_CONFIG_INDEX_SIZE = 21,
+    NET_PARA_CONFIG_INDEX_FLASH_ERASE = 1,             /* 参数配置下标：flash擦除函数 */    //!< NET_PARA_CONFIG_INDEX_FLASH_ERASE
+    NET_PARA_CONFIG_INDEX_FLASH_READ = 2,              /* 参数配置下标：flash读取函数 */    //!< NET_PARA_CONFIG_INDEX_FLASH_READ
+    NET_PARA_CONFIG_INDEX_FLASH_WRITE = 3,             /* 参数配置下标：flash写函数 */     //!< NET_PARA_CONFIG_INDEX_FLASH_WRITE
+    NET_PARA_CONFIG_INDEX_FLASH_WRITE_DIRECTLY = 4,    /* 参数配置下标：flash不带擦除的写函数 *///!< NET_PARA_CONFIG_INDEX_FLASH_WRITE_DIRECTLY
+    NET_PARA_CONFIG_INDEX_DATA_UPDATA = 5,             /* 参数配置下标：数据更新 */         //!< NET_PARA_CONFIG_INDEX_DATA_UPDATA
+    NET_PARA_CONFIG_INDEX_TIME_SYNC = 6,               /* 参数配置下标：时间同步 */         //!< NET_PARA_CONFIG_INDEX_TIME_SYNC
+    NET_PARA_CONFIG_INDEX_GET_SYSTEM_DATA = 7,         /* 参数配置下标：获取系统数据 */       //!< NET_PARA_CONFIG_INDEX_GET_SYSTEM_DATA
+    NET_PARA_CONFIG_INDEX_SET_SYSTEM_DATA = 8,         /* 参数配置下标：设置系统数据 */       //!< NET_PARA_CONFIG_INDEX_SET_SYSTEM_DATA
+    NET_PARA_CONFIG_INDEX_SET_CARD_VIN = 9,            /* 参数配置下标：设置卡、VIN白名单 */   //!< NET_PARA_CONFIG_INDEX_SET_CARD_VIN
+    NET_PARA_CONFIG_INDEX_QUERY_CARD_VIN = 10,         /* 参数配置下标：查询卡、VIN白名单 */   //!< NET_PARA_CONFIG_INDEX_QUERY_CARD_VIN
+    NET_PARA_CONFIG_INDEX_DELETE_CARD_VIN = 11,        /* 参数配置下标：删除卡、VIN白名单 */   //!< NET_PARA_CONFIG_INDEX_DELETE_CARD_VIN
+    NET_PARA_CONFIG_INDEX_CRC16_8005 = 12,             /* 参数配置下标：CRC16 校验 */     //!< NET_PARA_CONFIG_INDEX_CRC16_8005
+    NET_PARA_CONFIG_INDEX_CRC32_UPDATE = 13,           /* 参数配置下标：CRC32 校验 */     //!< NET_PARA_CONFIG_INDEX_CRC32_UPDATE
+    NET_PARA_CONFIG_INDEX_GET_BASE_DATA = 14,          /* 参数配置下标：设置基本数据 */       //!< NET_PARA_CONFIG_INDEX_GET_BASE_DATA
+    NET_PARA_CONFIG_INDEX_SYSTEM_DATA_STORAGE = 15,    /* 参数配置下标：系统数据存储 */       //!< NET_PARA_CONFIG_INDEX_SYSTEM_DATA_STORAGE
+    NET_PARA_CONFIG_INDEX_SYSTEM_CONTROL = 16,         /* 参数配置下标：系统控制 */         //!< NET_PARA_CONFIG_INDEX_SYSTEM_CONTROL
+    NET_PARA_CONFIG_INDEX_QUERY_SYSTEM_RECORD = 17,    /* 参数配置下标：查询系统数据 */       //!< NET_PARA_CONFIG_INDEX_QUERY_SYSTEM_RECORD
+    NET_PARA_CONFIG_INDEX_NDEV_OPERATE = 18,           /* 参数配置下标：网络设备操作 */       //!< NET_PARA_CONFIG_INDEX_NDEV_OPERATE
+    NET_PARA_CONFIG_INDEX_THREAD_INIT = 19,            /* 参数配置下标：线程初始化 */        //!< NET_PARA_CONFIG_INDEX_THREAD_INIT
+    NET_PARA_CONFIG_INDEX_THREAD_RUNNING = 20,         /* 参数配置下标：线程运行 */         //!< NET_PARA_CONFIG_INDEX_THREAD_RUNNING
+    NET_PARA_CONFIG_INDEX_SIZE = 21,                                             //!< NET_PARA_CONFIG_INDEX_SIZE
 };
 
 #define NET_MY_ASSERT(para, index)                             \
