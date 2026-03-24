@@ -5635,11 +5635,6 @@ int8_t ykc_monitor_message_pro_function_switch(void *data, uint8_t len)
             return -0x05;
         }
     }
-    if(fswitch->body.eliminate_module == 0x01){
-        LOG_D("ykc monitor issue enable eliminate module function");
-    }else if(fswitch->body.eliminate_module == 0x00){
-        LOG_D("ykc monitor issue disable eliminate module function");
-    }
 
     return 0x00;
 }
@@ -6390,6 +6385,12 @@ static int32_t ykc_monitor_config_info_process_function_config_info(uint8_t opti
         response->offline_card = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_SUPORT_OFFLINE_CARD, 0x00));
 #ifdef NET_YKC_MONITOR_INCLUDE_NEW_MSG
         _config = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_SUPORT_V2G, 0x00));
+        if(_config == CONFIG_ENABLE_ENUM){
+            response->v2g_mode = NET_ENUM_TRUE;
+        }else{
+            response->v2g_mode = NET_ENUM_FALSE;
+        }
+        _config = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INEN_ELIMINATE_MODULE, 0x00));
         if(_config == CONFIG_ENABLE_ENUM){
             response->v2g_mode = NET_ENUM_TRUE;
         }else{

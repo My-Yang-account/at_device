@@ -1755,7 +1755,7 @@ typedef struct{
         uint8_t lock_module;                     /* 锁模块(1：上锁，0：解锁， 0xFF：无效) */
         uint8_t clear_record;                    /* 清除记录(1：清除， 其他：无效) */
         uint8_t ac_report_mode;                  /* 交流监控上报模式 */
-        uint8_t eliminate_module;                /* 剔除模块 */
+        uint8_t reserve3;                        /* 剔除模块 */
         uint8_t reserve4;                        /* 预留 */
     }body;
     uint16_t check_sum;                          /* 校验码 */
@@ -2018,6 +2018,8 @@ struct ykcm_function_config{
 #ifdef NET_YKC_MONITOR_INCLUDE_NEW_MSG
     /** 20251229 msg_ver = 0x01 */
     uint16_t v2g_mode : 1;                       /* V2G模式(1：启用，0：禁用) */
+    /** 20260324 msg_ver = 0x02 */
+    uint16_t eliminate_module : 1;               /* 剔除模块(1：启用，0：禁用) */
 #endif /* NET_YKC_MONITOR_INCLUDE_NEW_MSG */
 };
 /** 离线计费 */

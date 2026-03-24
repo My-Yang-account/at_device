@@ -672,6 +672,7 @@ struct LCD_DISPLAY_SETDATA_TYPE{
 #ifdef SCREEN_USING_V2G
     u8 sup_V2G;                             //V2G支持
 #endif /* SCREEN_USING_V2G */
+    u8 Sup_EliminateModule;                 //是否支持剔除模块
 	u8 fan_type;							//风扇类型
 	u8 fan_frequency;						//风扇频率
 	u8 FanCtrlPulse;						//风扇占空比
@@ -718,6 +719,7 @@ struct LCD_DISPLAY_SETDATA_TYPE{
 #ifdef SCREEN_USING_V2G
     u8 Icon_SupV2G;                         //V2G支持icon
 #endif /* SCREEN_USING_V2G */
+    u8 Icon_SupEliminateModule;             //剔除模块支持icon
     /***********************neg icon***************************/
     u8 Icon_NegProtectLight;                //防雷器输入取反icon
     u8 Icon_NegGunSite;                     //枪座输入取反icon
@@ -2320,9 +2322,12 @@ static s32 SerialScreen_ConfigExecute_Function(u8 port, void *data, void *sub_da
     LcdData.setData.Icon_SupPWStart = config->password_start;
     LcdData.setData.Icon_SupModeSelect = config->mode_select;
     LcdData.setData.Icon_SupOffCard = config->offline_card;
+#ifdef THAISEN_INCLUDE_NEW_MSG
 #ifdef SCREEN_USING_V2G
     LcdData.setData.Icon_SupV2G = config->v2g_mode;
 #endif /* SCREEN_USING_V2G */
+    LcdData.setData.Icon_SupEliminateModule = config->eliminate_module;
+#endif /* THAISEN_INCLUDE_NEW_MSG */
     /** 功能配置信息有效性判断 */
     SerialScreen_IsSupportInfoJudge(&ret);
     if(ret != 0){
@@ -2331,7 +2336,9 @@ static s32 SerialScreen_ConfigExecute_Function(u8 port, void *data, void *sub_da
         }
     }
     LcdAssistantData.SeveralGunFlag[LCD_GUN_1].DataIsVerify = TRUE;
+    LcdAssistantData.Flag.IsServerConfig = TRUE;
     SerialScreen_IsSupportSetFlash();
+    LcdAssistantData.Flag.IsServerConfig = FALSE;
 
     return LcdAssistantData.Flag.IsConfigFail;
 }
@@ -7668,6 +7675,9 @@ static void SerialScreen_IsSupportInfoJudge(u32 *ret)
 #ifdef SCREEN_USING_V2G
     LcdData.setData.sup_V2G = LcdData.setData.Icon_SupV2G;
 #endif /* SCREEN_USING_V2G */
+    if(LcdAssistantData.Flag.IsServerConfig == TRUE){
+        LcdData.setData.Sup_EliminateModule = LcdData.setData.Icon_SupEliminateModule;
+    }
 
     if(ret){
         *ret = result;
@@ -7711,6 +7721,10 @@ void SerialScreen_IsSupportSetFlash(void)
     }
     UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_V2G, (u8 *)&config_item, sizeof(config_item));
 #endif /* SCREEN_USING_V2G */
+    /** 目前剔除模块配置仅能平台修改，屏幕未加控件无法修改 20260324 */
+    if(LcdAssistantData.Flag.IsServerConfig == TRUE){
+        UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_INEN_ELIMINATE_MODULE, (u8 *)&LcdData.setData.Sup_EliminateModule, sizeof(LcdData.setData.Sup_EliminateModule));
+    }
     for(u8 i = 0; i < sizeof(LcdData.setData.UserPasswdShow); i++){
         if((LcdData.setData.UserPasswdShow[i] < 0x20) ||  \
                 (LcdData.setData.UserPasswdShow[i] > 0x7E) ||  \
@@ -7790,6 +7804,12 @@ void SerialScreen_IsSupportSetFlash(void)
 
     if(LcdAssistantData.Flag.NeedReboot == TRUE){
         SerialScreen_ScreenSet_Reboot_Flag();
+    }
+    /** 剔除模块配置 */
+    if(LcdData.setData.Sup_EliminateModule){
+        rt_kprintf("server issue enable eliminate module function\n");
+    }else{
+        rt_kprintf("server issue disable eliminate module function\n");
     }
 }
 
@@ -8889,6 +8909,10 @@ void SerialScreen_IsSupportGet(void)
         LcdData.setData.sup_V2G = TRUE;
 #endif /* SCREEN_USING_V2G */
 
+    LcdData.setData.Sup_EliminateModule = FALSE;
+    if(CONFIG_ENABLE_ENUM == *(u8 *)(UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_INEN_ELIMINATE_MODULE, 0)))  /* 剔除模块配置默认关闭 */
+        LcdData.setData.Sup_EliminateModule = TRUE;
+
     LcdData.setData.Icon_SuplocalStop = FALSE;
     if(LcdData.setData.sup_Local_stop){
         LcdData.setData.Icon_SuplocalStop = TRUE;
@@ -8927,6 +8951,13 @@ void SerialScreen_IsSupportGet(void)
         LcdData.setData.Icon_SupV2G = TRUE;
     }
 #endif /* SCREEN_USING_V2G */
+
+    /** 剔除模块配置 */
+    if(LcdData.setData.Sup_EliminateModule){
+        rt_kprintf("server issue enable eliminate module function\n");
+    }else{
+        rt_kprintf("server issue disable eliminate module function\n");
+    }
     if(LcdData.setData.sup_insulation == FALSE){
         function_disable = 1;
     }else{

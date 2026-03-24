@@ -208,6 +208,8 @@ typedef struct{
 #ifdef THAISEN_INCLUDE_NEW_MSG
     /** 20251229 msg_ver = 0x01 */
     uint16_t v2g_mode : 1;                                        /** V2G模式(1：启用，0：禁用) */
+    /** 20260324 msg_ver = 0x02 */
+    uint16_t eliminate_module : 1;                                /** 剔除模块(1：启用，0：禁用) */
 #endif /* THAISEN_INCLUDE_NEW_MSG */
 }thaisen_cfg_info_function;
 /** 参数配置页面:屏幕-设置-出厂设置-离线计费 */
