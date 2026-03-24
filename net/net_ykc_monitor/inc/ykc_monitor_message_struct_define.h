@@ -1890,7 +1890,7 @@ typedef struct{
 /** 系统信息 */
 /** 信息设置响应结果：0：成功  1：保存失败   2及以上但小于 NETYKCM_CONFIG_RES_SYS_ASSERT_BASE 表示某一配置项配置失败,按配置项次序升序排列(例：2：本机功能配置失败；3：分配方式配置失败；4：A枪终端地址配置失败；5：B枪终端地址配置失败) */
 struct ykcm_sys_info{
-    uint8_t dev_function;                        /* 本机功能(0：单枪超充，1：均充双枪，2：双枪终端，3：单枪快充，4：动态切换) */
+    uint8_t dev_function;                        /* 本机功能(0：单枪超充，1：均充双枪，2：双枪终端，3：单枪快充，4：动态切换，5：普通四枪，6：群充四枪，7：子母机(环矩)，8：子母机(半矩)，9：一体机(环矩)) */
     uint8_t allocate_way;                        /* 分配方式(0：均充, 1：先到先得, 2：功率优先) */
     uint16_t terminal_addr[2];                   /* 终端地址(两把枪：A枪在前) */
 #ifdef NET_YKC_MONITOR_INCLUDE_NEW_MSG

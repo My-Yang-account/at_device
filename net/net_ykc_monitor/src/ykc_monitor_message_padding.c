@@ -5784,6 +5784,9 @@ static int32_t ykc_monitor_config_info_process_sys_info(uint8_t option, void *da
 
         response->allocate_way = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_ALLOCATION_WAY, 0x00));
         response->dev_function = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_DEVICE_TYPE, 0x00));
+        if(response->dev_function > SYSTEM_FUNCTION_DYNAMIC_SWITCH){
+            response->dev_function += 0x02; /** 一机四枪占用 5：普通四枪，6：群充四枪 */
+        }
         response->terminal_addr[0x00] = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_TEMINAL_ADDRA, 0x00));
         response->terminal_addr[0x01] = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_TEMINAL_ADDRB, 0x00));
 #ifdef NET_YKC_MONITOR_INCLUDE_NEW_MSG
@@ -5804,6 +5807,10 @@ static int32_t ykc_monitor_config_info_process_sys_info(uint8_t option, void *da
         }
         if(ykc_monitor_is_config_data_valid(&info->dev_function, sizeof(info->dev_function), 0x00) == NET_ENUM_FALSE){
             info->dev_function = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_DEVICE_TYPE, 0x00));
+        }else{
+            if(info->dev_function > SYSTEM_FUNCTION_DYNAMIC_SWITCH){
+                info->dev_function -= 0x02; /** 一机四枪占用 5：普通四枪，6：群充四枪 */
+            }
         }
         if(ykc_monitor_is_config_data_valid(&info->terminal_addr[0x00], sizeof(info->terminal_addr[0x00]), 0x00) == NET_ENUM_FALSE){
             info->terminal_addr[0x00] = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_TEMINAL_ADDRA, 0x00));
