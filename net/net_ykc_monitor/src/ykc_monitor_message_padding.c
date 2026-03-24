@@ -5635,6 +5635,11 @@ int8_t ykc_monitor_message_pro_function_switch(void *data, uint8_t len)
             return -0x05;
         }
     }
+    if(fswitch->body.eliminate_module == 0x01){
+        LOG_D("ykc monitor issue enable eliminate module function");
+    }else if(fswitch->body.eliminate_module == 0x00){
+        LOG_D("ykc monitor issue disable eliminate module function");
+    }
 
     return 0x00;
 }

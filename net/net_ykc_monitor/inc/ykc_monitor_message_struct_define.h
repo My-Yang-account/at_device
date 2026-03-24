@@ -1754,8 +1754,8 @@ typedef struct{
         uint8_t tplat_log;                       /* 目标平台数据(1：开启， 0：关闭， 0xFF：无效) */
         uint8_t lock_module;                     /* 锁模块(1：上锁，0：解锁， 0xFF：无效) */
         uint8_t clear_record;                    /* 清除记录(1：清除， 其他：无效) */
-        uint8_t reserve2;                        /* 预留 */
-        uint8_t reserve3;                        /* 预留 */
+        uint8_t ac_report_mode;                  /* 交流监控上报模式 */
+        uint8_t eliminate_module;                /* 剔除模块 */
         uint8_t reserve4;                        /* 预留 */
     }body;
     uint16_t check_sum;                          /* 校验码 */
