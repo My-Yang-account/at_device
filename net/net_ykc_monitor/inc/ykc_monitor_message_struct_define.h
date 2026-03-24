@@ -508,6 +508,8 @@ enum ykc_monitor_cmd{
 
     NETYKC_MONITOR_PREQ_SRESCMD_REQUEST_SERVER_INFO = 0xE1,          /* 指令：向服务器请求信息或服务器响应请求 */
 
+    NETYKC_MONITOR_PREQCMD_REPORT_INFO = 0xE5,                       /* 指令：上报信息请求 */
+
     NETYKC_MONITOR_PREQ_SREQCMD_RUNNING_REALTIME_INFO = 0xF9,        /* 指令：服务器查询、设备上报设备运行实时信息帧 */
 
 #endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
@@ -2313,7 +2315,30 @@ typedef struct{
     uint16_t check_sum;                          /* 校验码 */
 }Net_YkcMonitorPro_Preq_RequestServerInfo_t;
 
+/** 0xE5 设备主动上报报文信息帧 */
+/******* 模块分配信息 *******/
+/** 分配信息组 */
+struct ykcm_alloc_info_group{
+    uint8_t ilen;                                /* 信息数据长度 */
+    /** 以下是信息数据 */
+};
 
+struct ykcm_alloc_info{
+    uint8_t group_num;                           /* 信息组数 */
+    /** struct ykcm_alloc_info_group group[n] */
+};
+
+typedef struct{
+    Net_YkcMonitorPro_Head_t head;
+    struct{
+        uint8_t pile_number[NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT];  /* 桩号*/
+        uint8_t gunno;                           /* 枪号(有效枪号 1-0xFE, 0xFF 代表整机) */
+        uint8_t info_type;                       /* 信息类型0：模块分配信息 */
+        uint8_t msg_version;                     /* 报文版本(初始版本为0) */
+        /* 信息数据 */
+    }body;
+    uint16_t check_sum;                          /* 校验码 */
+}Net_YkcMonitorPro_PreqReportInfo_t;
 
 /******************************************** 0xF9 服务器查询、设备上报设备运行实时信息帧 0xF9 *********************************************/
 /** 器件枚举 */

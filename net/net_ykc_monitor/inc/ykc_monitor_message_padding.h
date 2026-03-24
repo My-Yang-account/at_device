@@ -171,6 +171,12 @@ void ykc_monitor_clear_dev_control_changed_sending(uint8_t gunno);
  ******************************************************/
 void ykc_monitor_clear_disconnect_reason(void);
 
+/****************************************************
+ * 函数名            ykc_monitor_clear_mallocate_sending
+ * 功能               清除模块分配日志数据正在发送标志
+ ***************************************************/
+void ykc_monitor_clear_mallocate_sending(void);
+
 /*************************************************
  * 函数名      ykc_monitor_message_padding_liquid_fault_info
  * 功能         组包：填充液冷故障信息
@@ -180,6 +186,18 @@ void ykc_monitor_clear_disconnect_reason(void);
  * 返回         >=0：成功       <0：失败
  * **********************************************/
 int8_t ykc_monitor_message_padding_liquid_fault_info(uint8_t *buf, uint16_t ilen, uint16_t *olen);
+
+/*************************************************
+ * 函数名      ykc_monitor_mallocate_info_padding
+ * 功能          组包：填充模块分配日志信息
+ * **********************************************/
+int8_t ykc_monitor_mallocate_info_padding(uint8_t *buf, uint16_t ilen, uint16_t *olen);
+
+/*************************************************
+ * 函数名      ykc_monitor_module_allocate_log_callback
+ * 功能         模块分配日志信息变化回调
+ * **********************************************/
+void ykc_monitor_module_allocate_log_callback(uint8_t *log, uint8_t log_len);
 
 #endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
 

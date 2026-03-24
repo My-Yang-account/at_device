@@ -845,14 +845,14 @@ unsigned int app_module_get_module_group_current(unsigned char group)
 /*****************************************************
  * 函数名              app_module_allocate_log
  * 功能                 模块分配日志回调
- * 参数                 relay_sn      继电器编号
- *            type          继电器类型@mctrl_relay_type_t
- *            state         状态
+ * 参数                 log      日志数据
+ *           log_len  日志数据长度
  * 返回
  ****************************************************/
 static void app_module_allocate_log(unsigned char const* const log, unsigned char log_len)
 {
-
+    extern void ykc_monitor_module_allocate_log_callback(uint8_t *log, uint8_t log_len);
+    ykc_monitor_module_allocate_log_callback((unsigned char*)log, log_len);
 }
 
 /*****************************************************

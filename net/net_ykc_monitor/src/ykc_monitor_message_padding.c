@@ -250,6 +250,16 @@ typedef struct{
     uint8_t wait_response_time;                   /* 等待服务器响应时间 */
 }ykcm_liquid_f_info_t;
 
+#ifdef APP_USING_CYCLE_MATRIX
+/** 模块分配日志信息 */
+typedef struct{
+    uint8_t log[2][50];                           /* 日志数据 */
+    uint8_t log_len[2];                           /* 日志数据长度 */
+    uint8_t count;                                /* 记录的数量 */
+    uint8_t is_sending;                           /* 数据正在发送 */
+}ykc_monitor_mallocate_info;
+#endif /* APP_USING_CYCLE_MATRIX */
+
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
 
 #pragma pack()
@@ -287,6 +297,9 @@ NET_DEF_SRAM2 static ykcm_module_disconnect_t s_ykc_monitor_gsm_registered;     
 NET_DEF_SRAM2 static ykcm_module_disconnect_t s_ykc_monitor_gprs_registered;                   /** 注册GPRS网络(以太网网络层：判断DHCP是否启动、获取IP信息、查询MAC地址) */
 
 NET_DEF_SRAM2 static ykcm_liquid_f_info_t s_ykcm_liquid_f_info;                                /** 液冷故障信息 */
+#ifdef APP_USING_CYCLE_MATRIX
+NET_DEF_SRAM2 static ykc_monitor_mallocate_info s_ykc_monitor_mallocate_info;
+#endif /* APP_USING_CYCLE_MATRIX */
 
 static uint16_t ykc_monitor_chargepile_stop_reason_converted(void *handle, uint16_t bit, uint8_t stop_in_starting);
 static uint8_t ykc_monitor_chargepile_transaction_identity_converted(uint8_t identity);
@@ -3835,6 +3848,16 @@ static void ykc_monitor_realtime_process_thread_entry(void *parameter)
                 s_ykc_monitor_device_status_changed[gunno].delay_count = 0x00;
             }
         }
+#ifdef APP_USING_CYCLE_MATRIX
+        /** 模块分配信息 */
+        if(s_ykc_monitor_mallocate_info.is_sending == 0x00){
+            if(s_ykc_monitor_mallocate_info.count){
+                s_ykc_monitor_mallocate_info.is_sending = 0x01;
+                ykc_monitor_net_event_send(NET_YKC_MONITOR_EXTERNAL_EHANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST,  \
+                        0x00, NET_YKC_MONITOR_EXTERNAL_PREQ_EVENT_MODULE_ALLOCATE);
+            }
+        }
+#endif /* APP_USING_CYCLE_MATRIX */
 #endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
 #endif /* NET_DESIGNATE_REGION */
 
@@ -3866,6 +3889,18 @@ void ykc_monitor_clear_dev_control_changed_sending(uint8_t gunno)
     }
     s_ykc_monitor_device_control_changed[gunno].is_sending = NET_ENUM_FALSE;
 }
+
+/****************************************************
+ * 函数名            ykc_monitor_clear_mallocate_sending
+ * 功能               清除模块分配日志数据正在发送标志
+ ***************************************************/
+void ykc_monitor_clear_mallocate_sending(void)
+{
+#ifdef APP_USING_CYCLE_MATRIX
+    s_ykc_monitor_mallocate_info.is_sending = 0x00;
+#endif /* APP_USING_CYCLE_MATRIX */
+}
+
 
 /*******************************************************
  * 函数名               ykc_monitor_clear_disconnect_reason
@@ -3905,6 +3940,9 @@ int32_t ykc_monitor_realtime_process_init(void)
         memset(&s_ykc_monitor_charging_info[gunno], 0x00, sizeof(s_ykc_monitor_charging_info[gunno]));
         memset(&s_ykc_monitor_mfault_info, 0x00, sizeof(s_ykc_monitor_mfault_info));
         memset(&s_ykc_monitor_lock_module, 0x00, sizeof(s_ykc_monitor_lock_module));
+#ifdef APP_USING_CYCLE_MATRIX
+        memset(&s_ykc_monitor_mallocate_info, 0x00, sizeof(s_ykc_monitor_mallocate_info));
+#endif /* APP_USING_CYCLE_MATRIX */
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
     }
 
@@ -9136,6 +9174,95 @@ int8_t ykc_monitor_message_padding_liquid_fault_info(uint8_t *buf, uint16_t ilen
     }
 
     return 0x00;
+}
+
+/*************************************************
+ * 函数名      ykc_monitor_mallocate_info_padding
+ * 功能          组包：填充模块分配日志信息
+ * **********************************************/
+int8_t ykc_monitor_mallocate_info_padding(uint8_t *buf, uint16_t ilen, uint16_t *olen)
+{
+#ifdef APP_USING_CYCLE_MATRIX
+    uint16_t total = (sizeof(Net_YkcMonitorPro_PreqReportInfo_t) + 0x01);
+    uint8_t valid_len = (sizeof(s_ykc_monitor_mallocate_info.log_len) /sizeof(s_ykc_monitor_mallocate_info.log_len[0x00]));
+
+    if(buf == NULL){
+        return -0x01;
+    }
+    if(ilen < (total + valid_len + (valid_len *sizeof(s_ykc_monitor_mallocate_info.log[0x00])))){
+        return -0x02;
+    }
+
+    Net_YkcMonitorPro_PreqReportInfo_t *message = (Net_YkcMonitorPro_PreqReportInfo_t*)buf;
+    struct ykcm_alloc_info *alloc_info = NULL;
+    uint8_t *info_group = NULL;
+
+    memset(message, 0x00, ilen);
+    alloc_info = (struct ykcm_alloc_info*)(buf + sizeof(Net_YkcMonitorPro_PreqReportInfo_t) - NET_YKC_MONITOR_PROTOCOL_CHECK_REGION_SIZE);
+    info_group = (&(alloc_info->group_num) + 0x01);
+
+    rt_enter_critical();
+
+    if(s_ykc_monitor_mallocate_info.count == 0x00){
+        rt_exit_critical();
+        return -0x03;
+    }
+    if(s_ykc_monitor_mallocate_info.count > valid_len){
+        s_ykc_monitor_mallocate_info.count = valid_len;
+    }
+    message->body.gunno = 0xFF;
+    message->body.info_type = 0x00;
+    message->body.msg_version = 0x00;
+    alloc_info->group_num = s_ykc_monitor_mallocate_info.count;
+
+    for(uint8_t i = 0x00; i < alloc_info->group_num; i++){
+        info_group[0x00] = s_ykc_monitor_mallocate_info.log_len[i];
+        if(info_group[0x00] > sizeof(s_ykc_monitor_mallocate_info.log[0x00])){
+            info_group[0x00] = sizeof(s_ykc_monitor_mallocate_info.log[0x00]);
+        }
+        memcpy((info_group + 0x01), s_ykc_monitor_mallocate_info.log[i], info_group[0x00]);
+
+        total += (info_group[0x00] + 0x01);
+        info_group += (info_group[0x00] + 0x01);
+    }
+    s_ykc_monitor_mallocate_info.count = 0x00;
+
+    rt_exit_critical();
+
+    memcpy(message->body.pile_number, g_ykc_monitor_preq_login.body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
+
+    if(olen){
+        *olen = total;
+    }
+
+    return 0x00;
+#else
+    return -0x01;
+#endif /* APP_USING_CYCLE_MATRIX */
+}
+
+/*************************************************
+ * 函数名      ykc_monitor_module_allocate_log_callback
+ * 功能         模块分配日志信息变化回调
+ * **********************************************/
+void ykc_monitor_module_allocate_log_callback(uint8_t *log, uint8_t log_len)
+{
+#ifdef APP_USING_CYCLE_MATRIX
+    if(s_ykc_monitor_mallocate_info.count >= (sizeof(s_ykc_monitor_mallocate_info.log_len) /sizeof(s_ykc_monitor_mallocate_info.log_len[0x00]))){
+        return;
+    }
+    if((log == NULL) || (log_len == 0x00)){
+        return;
+    }
+    if(log_len > sizeof(s_ykc_monitor_mallocate_info.log[0x00])){
+        log_len = sizeof(s_ykc_monitor_mallocate_info.log[0x00]);
+    }
+
+    s_ykc_monitor_mallocate_info.log_len[s_ykc_monitor_mallocate_info.count] = log_len;
+    memset(&s_ykc_monitor_mallocate_info.log[s_ykc_monitor_mallocate_info.count], 0x00, sizeof(s_ykc_monitor_mallocate_info.log[0x00]));
+    memcpy(s_ykc_monitor_mallocate_info.log[s_ykc_monitor_mallocate_info.count], log, log_len);
+    s_ykc_monitor_mallocate_info.count++;
+#endif /* APP_USING_CYCLE_MATRIX */
 }
 
 #endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */

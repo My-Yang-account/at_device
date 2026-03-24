@@ -145,6 +145,7 @@
 #define NET_YKC_MONITOR_EXTERNAL_PREQ_EVENT_DISCONNECT_REASON        12   /* 充电桩监控外部触发请求事件：断网原因 */
 #define NET_YKC_MONITOR_EXTERNAL_PREQ_EVENT_BMS_MESSAGE              13   /* 充电桩监控外部触发请求事件：上报BMS报文 */
 #define NET_YKC_MONITOR_EXTERNAL_PREQ_EVENT_LIQUID_FAULT             14   /* 充电桩监控外部触发请求事件：上报液冷故障信息 */
+#define NET_YKC_MONITOR_EXTERNAL_PREQ_EVENT_MODULE_ALLOCATE          15   /* 充电桩监控外部触发请求事件：上报模块分配信息 */
 
 /** chargepile user request event */
 #define NET_YKC_MONITOR_USER_PREQ_EVENT_REPORT_MODULE_INFO           0    /* 充电桩监控请求事件：上报模块信息 */
@@ -166,8 +167,9 @@
 #define NET_YKC_MONITOR_USER_PREQ_EVENT_REPORT_DISCONNECT_REASON     16   /* 充电桩监控请求事件：上报断网原因请求 */
 #define NET_YKC_MONITOR_USER_PREQ_EVENT_REPORT_BMS_MESSAGE           17   /* 充电桩监控请求事件：上报BMS报文请求 */
 #define NET_YKC_MONITOR_USER_PREQ_EVENT_REPORT_LIQUID_FAULT          18   /* 充电桩监控请求事件：上报液冷故障信息请求 */
+#define NET_YKC_MONITOR_USER_PREQ_EVENT_MODULE_ALLOCATE_LOG          19   /* 充电桩监控请求事件：模块分配日志上报 */
 
-#define NET_YKC_MONITOR_USER_PREQ_EVENT_REPORT_DEV_INFO_ASYNCHRONOUSLY  19    /* 充电桩监控请求事件：上报设备信息异步(用于填充数据) */
+#define NET_YKC_MONITOR_USER_PREQ_EVENT_REPORT_DEV_INFO_ASYNCHRONOUSLY  20    /* 充电桩监控请求事件：上报设备信息异步(用于填充数据) */
 
 /** chargepile user response event */
 #define NET_YKC_MONITOR_USER_PRES_EVENT_QUERY_MODULE_INFO            0    /* 充电桩监控响应事件：查询模块信息 */
