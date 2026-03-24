@@ -143,7 +143,10 @@ struct _config_para{
 
     uint16_t gun1_curr_offset;                                        /* 枪1电流偏移(0.01A) */
     uint16_t gun2_curr_offset;                                        /* 枪2电流偏移(0.01A) */
-    uint8_t reserve1[256 - 43];                                       /* 预留 */
+
+    uint16_t charge_mode_validity[2];                                 /* 充电模式有效性(AB枪，从低字节开始，从A枪开始，从自动充满模式开始，每2个bit一个模式---0：单次有效   1：永久有效) */
+    uint16_t v2g_mode_validity[2];                                    /* V2G模式有效性(AB枪，从低字节开始，从A枪开始，从自动充满模式开始，每2个bit一个模式---0：单次有效   1：永久有效) */
+    uint8_t reserve1[256 - 51];                                       /* 预留 */
 };
 
 struct _config_info{
@@ -1222,6 +1225,12 @@ void sys_chargeplie_config_info_init(void)
     /** 枪2 电流偏移值 */
     sys_config_item_init(CONFIG_ITEM_GUN2_CURR_OFFSET, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.gun2_curr_offset)), \
             (uint8_t*)&s_chargepile_config_info.config_para.gun2_curr_offset, NULL);
+    /** 充电模式有效期 */
+    sys_config_item_init(CONFIG_ITEM_CHARGE_MODE_VALIDITY, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.charge_mode_validity)), \
+            (uint8_t*)&s_chargepile_config_info.config_para.charge_mode_validity, NULL);
+    /** V2G模式有效期 */
+    sys_config_item_init(CONFIG_ITEM_V2G_MODE_VALIDITY, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.v2g_mode_validity)), \
+            (uint8_t*)&s_chargepile_config_info.config_para.v2g_mode_validity, NULL);
     /** 启用BSM功能 */
     sys_config_item_init(CONFIG_ITEM_SUPORT_BSM, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.bsm)), \
             (uint8_t*)&s_chargepile_config_info.function_enable.bsm, NULL);
@@ -2034,6 +2043,9 @@ static void chargepile_config_data_reset(void)
     s_chargepile_config_info.config_para.gun1_curr_offset = CP_CURRENT_OFFSET_DEF;
     s_chargepile_config_info.config_para.gun2_curr_offset = CP_CURRENT_OFFSET_DEF;
 
+    memset(s_chargepile_config_info.config_para.charge_mode_validity, 0xFF, sizeof(s_chargepile_config_info.config_para.charge_mode_validity));
+    memset(s_chargepile_config_info.config_para.v2g_mode_validity, 0xFF, sizeof(s_chargepile_config_info.config_para.v2g_mode_validity));
+
     s_chargepile_config_info.config_info.prefix_length = 0x00;
     memset(s_chargepile_config_info.config_info.qrcode_prefix, '\0', sizeof(s_chargepile_config_info.config_info.qrcode_prefix));
     s_chargepile_config_info.config_info.qrcode_prefix[0x00] = CP_SET_QRCODE_FORMAT_PREFIX;
@@ -2806,23 +2818,197 @@ int32_t chargepile_check_config(void)
         s_chargepile_config_info.function_enable.mode_select = 0x00;
     }
     for(uint8_t mode = 0x00; mode < sizeof(s_chargepile_config_info.function_enable.current_mode); mode++){
-        if((s_chargepile_config_info.function_enable.current_mode[mode] >= CP_MODE_SIZE) || \
-                ((s_chargepile_config_info.function_enable.current_mode[mode] != CP_MODE_CHARGE_FULL) && \
-                        (s_chargepile_config_info.function_enable.current_mode[mode] != CP_MODE_LIMIT_RESERVATION))){    /* 当前模式默认充满 */
+        uint16_t _validity = 0xFFFF;
+        /** 需要兼容之前没有模式有效性的情况 */
+        /** 默认自动充满 */
+        if(s_chargepile_config_info.function_enable.current_mode[mode] >= CP_MODE_SIZE){
             s_chargepile_config_info.function_enable.current_mode[mode] = CP_MODE_CHARGE_FULL;
+        }
+        /** 之前限额充电模式是单次有效 */
+        /** 有效性功能未配置，默认单次有效 */
+        _validity = s_chargepile_config_info.config_para.charge_mode_validity[mode] &(0x03 <<(0x02 *CP_MODE_LIMIT_MONEY));
+        _validity >>= (0x02 *CP_MODE_LIMIT_MONEY);
+        if(_validity > 0x01){
+            s_chargepile_config_info.config_para.charge_mode_validity[mode] &= (~(0x03 <<(0x02 *CP_MODE_LIMIT_MONEY)));
+        }
+        /** 之前限量充电模式是单次有效 */
+        /** 有效性功能未配置，默认单次有效 */
+        _validity = s_chargepile_config_info.config_para.charge_mode_validity[mode] &(0x03 <<(0x02 *CP_MODE_LIMIT_ELECT));
+        _validity >>= (0x02 *CP_MODE_LIMIT_ELECT);
+        if(_validity > 0x01){
+            s_chargepile_config_info.config_para.charge_mode_validity[mode] &= (~(0x03 <<(0x02 *CP_MODE_LIMIT_ELECT)));
+        }
+        /** 之前定时充电模式是单次有效 */
+        /** 有效性功能未配置，默认单次有效 */
+        _validity = s_chargepile_config_info.config_para.charge_mode_validity[mode] &(0x03 <<(0x02 *CP_MODE_LIMIT_TIMING));
+        _validity >>= (0x02 *CP_MODE_LIMIT_TIMING);
+        if(_validity > 0x01){
+            s_chargepile_config_info.config_para.charge_mode_validity[mode] &= (~(0x03 <<(0x02 *CP_MODE_LIMIT_TIMING)));
+        }
+        /** 之前预约充电模式是永久有效 */
+        /** 有效性功能未配置，默认永久有效 */
+        _validity = s_chargepile_config_info.config_para.charge_mode_validity[mode] &(0x03 <<(0x02 *CP_MODE_LIMIT_RESERVATION));
+        _validity >>= (0x02 *CP_MODE_LIMIT_RESERVATION);
+        if(_validity > 0x01){
+            s_chargepile_config_info.config_para.charge_mode_validity[mode] &= (~(0x03 <<(0x02 *CP_MODE_LIMIT_RESERVATION)));
+            s_chargepile_config_info.config_para.charge_mode_validity[mode] |= (0x01 <<(0x02 *CP_MODE_LIMIT_RESERVATION));
+        }
+        /** 之前自动充满充电模式是永久有效 */
+        /** 有效性功能未配置，默认永久有效 */
+        _validity = s_chargepile_config_info.config_para.charge_mode_validity[mode] &(0x03 <<(0x02 *CP_MODE_CHARGE_FULL));
+        _validity >>= (0x02 *CP_MODE_CHARGE_FULL);
+        if(_validity > 0x01){
+            s_chargepile_config_info.config_para.charge_mode_validity[mode] &= (~(0x03 <<(0x02 *CP_MODE_CHARGE_FULL)));
+            s_chargepile_config_info.config_para.charge_mode_validity[mode] |= (0x01 <<(0x02 *CP_MODE_CHARGE_FULL));
+        }
+
+        /** 获取指定模式的有效性配置 */
+        _validity = s_chargepile_config_info.config_para.charge_mode_validity[mode] &(0x03 <<(0x02 *s_chargepile_config_info.function_enable.current_mode[mode]));
+        _validity >>= (0x02 *s_chargepile_config_info.function_enable.current_mode[mode]);
+
+        switch(s_chargepile_config_info.function_enable.current_mode[mode]){
+        case CP_MODE_LIMIT_MONEY:
+            /** 之前限额充电模式是单次有效 */
+            /** 有效性功能未配置或配置了单次有效，默认单次有效 */
+            if(_validity != 0x01){
+                s_chargepile_config_info.config_para.charge_mode_validity[mode] &= (~(0x03 <<(0x02 *CP_MODE_LIMIT_MONEY)));
+                /** 自动充满充电模式是永久有效 */
+                s_chargepile_config_info.config_para.charge_mode_validity[mode] |= (0x01 <<(0x02 *CP_MODE_CHARGE_FULL));
+                s_chargepile_config_info.function_enable.current_mode[mode] = CP_MODE_CHARGE_FULL;
+            }
+            break;
+        case CP_MODE_LIMIT_ELECT:
+            /** 之前限量充电模式是单次有效 */
+            /** 有效性功能未配置或配置了单次有效，默认单次有效 */
+            if(_validity != 0x01){
+                s_chargepile_config_info.config_para.charge_mode_validity[mode] &= (~(0x03 <<(0x02 *CP_MODE_LIMIT_ELECT)));
+                /** 自动充满充电模式是永久有效 */
+                s_chargepile_config_info.config_para.charge_mode_validity[mode] |= (0x01 <<(0x02 *CP_MODE_CHARGE_FULL));
+                s_chargepile_config_info.function_enable.current_mode[mode] = CP_MODE_CHARGE_FULL;
+            }
+            break;
+        case CP_MODE_LIMIT_TIMING:
+            /** 之前定时充电模式是单次有效 */
+            /** 有效性功能未配置或配置了单次有效，默认单次有效 */
+            if(_validity != 0x01){
+                s_chargepile_config_info.config_para.charge_mode_validity[mode] &= (~(0x03 <<(0x02 *CP_MODE_LIMIT_TIMING)));
+                /** 自动充满充电模式是永久有效 */
+                s_chargepile_config_info.config_para.charge_mode_validity[mode] |= (0x01 <<(0x02 *CP_MODE_CHARGE_FULL));
+                s_chargepile_config_info.function_enable.current_mode[mode] = CP_MODE_CHARGE_FULL;
+            }
+            break;
+        case CP_MODE_LIMIT_RESERVATION:
+            /** 之前预约充电模式是永久有效 */
+            /** 有效性功能已配置了单次有效 */
+            if(_validity == 0x00){
+                s_chargepile_config_info.config_para.charge_mode_validity[mode] &= (~(0x03 <<(0x02 *CP_MODE_LIMIT_RESERVATION)));
+                /** 自动充满充电模式是永久有效 */
+                s_chargepile_config_info.config_para.charge_mode_validity[mode] |= (0x01 <<(0x02 *CP_MODE_CHARGE_FULL));
+                s_chargepile_config_info.function_enable.current_mode[mode] = CP_MODE_CHARGE_FULL;
+            }
+            /** 其它情况默认永久有效 */
+            else{
+                s_chargepile_config_info.config_para.charge_mode_validity[mode] |= (0x01 <<(0x02 *CP_MODE_LIMIT_RESERVATION));
+            }
+            break;
+        default:
+            s_chargepile_config_info.function_enable.current_mode[mode] = CP_MODE_CHARGE_FULL;
+            /** 之前自动充满充电模式是永久有效 */
+            s_chargepile_config_info.config_para.charge_mode_validity[mode] |= (0x01 <<(0x02 *CP_MODE_CHARGE_FULL));
+            break;
         }
     }
     for(uint8_t mode = 0x00; mode < sizeof(s_chargepile_config_info.function_enable.v2g_mode); mode++){
 #ifdef CP_USING_V2G
+        uint16_t _validity = 0xFFFF;
+        /** 需要兼容之前没有模式有效性的情况 */
+        /** 默认空 */
         if((s_chargepile_config_info.function_enable.v2g_mode[mode] >= CP_V2G_MODE_SIZE) || (s_chargepile_config_info.function_enable.v2g_mode[mode] < CP_V2G_MODE_LIMIT_MONEY)){
             s_chargepile_config_info.function_enable.v2g_mode[mode] = CP_V2G_MODE_NULL;     /* V2G模式默认空 */
         }
-        /* 目前V2G模式都是单次有效的 */
-        s_chargepile_config_info.function_enable.v2g_mode[mode] = CP_V2G_MODE_NULL;     /* V2G模式默认空 */
+        /** 之前限额放电模式是单次有效 */
+        /** 有效性功能未配置或配置了单次有效或有已配置的永久性的非满充的充电模式，默认为空 */
+        _validity = s_chargepile_config_info.config_para.v2g_mode_validity[mode] &(0x03 <<(0x02 *(CP_V2G_MODE_LIMIT_MONEY - CP_V2G_MODE_OFFSET)));
+        _validity >>= (0x02 *(CP_V2G_MODE_LIMIT_MONEY - CP_V2G_MODE_OFFSET));
+        if(_validity > 0x01){
+            s_chargepile_config_info.config_para.v2g_mode_validity[mode] &= (~(0x03 <<(0x02 *(CP_V2G_MODE_LIMIT_MONEY - CP_V2G_MODE_OFFSET))));
+        }
+        /** 之前限量充电模式是单次有效 */
+        /** 有效性功能未配置或配置了单次有效或有已配置的永久性的非满充的充电模式，默认为空 */
+        _validity = s_chargepile_config_info.config_para.v2g_mode_validity[mode] &(0x03 <<(0x02 *(CP_V2G_MODE_LIMIT_ELECT - CP_V2G_MODE_OFFSET)));
+        _validity >>= (0x02 *(CP_V2G_MODE_LIMIT_ELECT - CP_V2G_MODE_OFFSET));
+        if(_validity > 0x01){
+            s_chargepile_config_info.config_para.v2g_mode_validity[mode] &= (~(0x03 <<(0x02 *(CP_V2G_MODE_LIMIT_ELECT - CP_V2G_MODE_OFFSET))));
+        }
+        /** 之前定时充电模式是单次有效 */
+        /** 有效性功能未配置或配置了单次有效或有已配置的永久性的非满充的充电模式，默认为空 */
+        _validity = s_chargepile_config_info.config_para.v2g_mode_validity[mode] &(0x03 <<(0x02 *(CP_V2G_MODE_LIMIT_TIMING - CP_V2G_MODE_OFFSET)));
+        _validity >>= (0x02 *(CP_V2G_MODE_LIMIT_TIMING - CP_V2G_MODE_OFFSET));
+        if(_validity > 0x01){
+            s_chargepile_config_info.config_para.v2g_mode_validity[mode] &= (~(0x03 <<(0x02 *(CP_V2G_MODE_LIMIT_TIMING - CP_V2G_MODE_OFFSET))));
+        }
+        /** 之前预约充电模式是永久有效 */
+        /** 有效性功能未配置或配置了单次有效或有已配置的永久性的非满充的充电模式，默认为空 */
+        _validity = s_chargepile_config_info.config_para.v2g_mode_validity[mode] &(0x03 <<(0x02 *(CP_V2G_MODE_AUTO - CP_V2G_MODE_OFFSET)));
+        _validity >>= (0x02 *(CP_V2G_MODE_AUTO - CP_V2G_MODE_OFFSET));
+        if(_validity > 0x01){
+            s_chargepile_config_info.config_para.v2g_mode_validity[mode] &= (~(0x03 <<(0x02 *(CP_V2G_MODE_AUTO - CP_V2G_MODE_OFFSET))));
+        }
+
+
+        if(s_chargepile_config_info.function_enable.v2g_mode[mode] != CP_V2G_MODE_NULL){
+            /** 获取指定模式的有效性配置 */
+            _validity = s_chargepile_config_info.config_para.v2g_mode_validity[mode] &(0x03 <<(0x02 *(s_chargepile_config_info.function_enable.v2g_mode[mode] - CP_V2G_MODE_OFFSET)));
+            _validity >>= (0x02 *s_chargepile_config_info.function_enable.v2g_mode[mode]);
+        }
+
+        switch(s_chargepile_config_info.function_enable.v2g_mode[mode]){
+        case CP_V2G_MODE_LIMIT_MONEY:
+            /** 之前限额放电模式是单次有效 */
+            /** 有效性功能未配置或配置了单次有效或有已配置的永久性的非满充的充电模式，默认为空 */
+            if((_validity != 0x01) || (s_chargepile_config_info.function_enable.current_mode[mode] != CP_MODE_CHARGE_FULL)){
+                s_chargepile_config_info.config_para.v2g_mode_validity[mode] &= (~(0x03 <<(0x02 *(CP_V2G_MODE_LIMIT_MONEY - CP_V2G_MODE_OFFSET))));
+                /** V2G模式默认为空 */
+                s_chargepile_config_info.function_enable.v2g_mode[mode] = CP_V2G_MODE_NULL;
+            }
+            break;
+        case CP_V2G_MODE_LIMIT_ELECT:
+            /** 之前限量充电模式是单次有效 */
+            /** 有效性功能未配置或配置了单次有效或有已配置的永久性的非满充的充电模式，默认为空 */
+            if((_validity != 0x01) || (s_chargepile_config_info.function_enable.current_mode[mode] != CP_MODE_CHARGE_FULL)){
+                s_chargepile_config_info.config_para.v2g_mode_validity[mode] &= (~(0x03 <<(0x02 *(CP_V2G_MODE_LIMIT_ELECT - CP_V2G_MODE_OFFSET))));
+                /** V2G模式默认为空 */
+                s_chargepile_config_info.function_enable.v2g_mode[mode] = CP_V2G_MODE_NULL;
+            }
+            break;
+        case CP_V2G_MODE_LIMIT_TIMING:
+            /** 之前定时充电模式是单次有效 */
+            /** 有效性功能未配置或配置了单次有效或有已配置的永久性的非满充的充电模式，默认为空 */
+            if((_validity != 0x01) || (s_chargepile_config_info.function_enable.current_mode[mode] != CP_MODE_CHARGE_FULL)){
+                s_chargepile_config_info.config_para.v2g_mode_validity[mode] &= (~(0x03 <<(0x02 *(CP_V2G_MODE_LIMIT_TIMING - CP_V2G_MODE_OFFSET))));
+                /** V2G模式默认为空 */
+                s_chargepile_config_info.function_enable.v2g_mode[mode] = CP_V2G_MODE_NULL;
+            }
+            break;
+        case CP_V2G_MODE_AUTO:
+            /** 之前预约充电模式是永久有效 */
+            /** 有效性功能未配置或配置了单次有效或有已配置的永久性的非满充的充电模式，默认为空 */
+            if((_validity != 0x01) || (s_chargepile_config_info.function_enable.current_mode[mode] != CP_MODE_CHARGE_FULL)){
+                s_chargepile_config_info.config_para.v2g_mode_validity[mode] &= (~(0x03 <<(0x02 *(CP_V2G_MODE_AUTO - CP_V2G_MODE_OFFSET))));
+                /** V2G模式默认为空 */
+                s_chargepile_config_info.function_enable.v2g_mode[mode] = CP_V2G_MODE_NULL;
+            }
+            break;
+        default:
+            /** V2G模式默认为空 */
+            s_chargepile_config_info.function_enable.v2g_mode[mode] = CP_V2G_MODE_NULL;
+            break;
+        }
 #else
         s_chargepile_config_info.function_enable.v2g_mode[mode] = CP_V2G_MODE_NULL;     /* V2G模式默空 */
-#endif /* CP_USING_V2G */
         s_chargepile_config_info.config_para.v2g_mode_parameter[mode] = 0x00;           /* 上电参数默认为0 */
+        s_chargepile_config_info.config_para.v2g_mode_validity[mode] = 0x00;
+#endif /* CP_USING_V2G */
     }
 
     if(s_chargepile_config_info.function_enable.acrelay_out > 0x01){       /* 交流接触器输出启用默认关闭 */
@@ -4426,7 +4612,9 @@ int32_t sys_config_info_clear_eflash(void)
 /*********************************************************
  * 函数名        sys_config_valid_judge
  * 功能            用于判断指定配置项数据是否有效
- * 参数
+ * 参数           name      配置名@enum config_name
+ *        _config   配置数据
+ *        len       配置数据长度
  * 返回           0：无效      1：有效
  ********************************************************/
 int32_t sys_config_valid_judge(uint8_t name, void *_config, uint16_t len)
@@ -4452,4 +4640,79 @@ int32_t sys_config_valid_judge(uint8_t name, void *_config, uint16_t len)
     }
     return ret;
 }
+
+/*********************************************************
+ * 函数名        sys_mode_validity_combine
+ * 功能            模式有效性组合
+ * 参数           name   模式名enum config_name
+ *        mode   模式
+ *        validity  有效性
+ * 返回           组合值
+ ********************************************************/
+uint16_t sys_mode_validity_combine(uint8_t name, uint8_t mode, uint8_t validity)
+{
+    uint16_t value = 0x00;
+    /** 目前只有充电模式和V2G模式 */
+    if((name != CONFIG_ITEM_CHARGE_MODE_VALIDITY) && (name != CONFIG_ITEM_V2G_MODE_VALIDITY)){
+        return 0x00;
+    }
+    /** 充电模式 */
+    else if(name == CONFIG_ITEM_CHARGE_MODE_VALIDITY){
+        if(mode >= CP_MODE_SIZE){
+            return 0x00;
+        }
+        validity &= 0x03;
+        value |= (uint16_t)(validity <<(0x02 *mode));
+    }
+    /** V2G模式 */
+    else{
+        if((mode >= CP_V2G_MODE_SIZE) || (mode < CP_V2G_MODE_LIMIT_MONEY)){
+            return 0x00;
+        }
+        validity &= 0x03;
+        value |= (validity <<(0x02 *(mode - CP_V2G_MODE_OFFSET)));
+    }
+    return value;
+}
+
+/*********************************************************
+ * 函数名        sys_mode_validity_divide
+ * 功能            模式有效性分解
+ * 参数           name   模式名enum config_name
+ *        mode   模式
+ *        port   枪口号
+ * 返回           分解后的模式有效性真实值
+ ********************************************************/
+uint8_t sys_mode_validity_divide(uint8_t name, uint8_t mode, uint8_t port)
+{
+    uint16_t value = 0x00;
+    /** 目前只有充电模式和V2G模式 */
+    if((name != CONFIG_ITEM_CHARGE_MODE_VALIDITY) && (name != CONFIG_ITEM_V2G_MODE_VALIDITY)){
+        return 0x00;
+    }
+    /** 充电模式 */
+    else if(name == CONFIG_ITEM_CHARGE_MODE_VALIDITY){
+        if(mode >= CP_MODE_SIZE){
+            return 0x00;
+        }
+        if(port >= (sizeof(s_chargepile_config_info.config_para.charge_mode_validity) /sizeof(s_chargepile_config_info.config_para.charge_mode_validity[0x00]))){
+            return 0x00;
+        }
+        value = s_chargepile_config_info.config_para.charge_mode_validity[port] &(0x03 <<(0x02 *mode));
+        value >>= (0x02 *mode);
+    }
+    /** V2G模式 */
+    else{
+        if((mode >= CP_V2G_MODE_SIZE) || (mode < CP_V2G_MODE_LIMIT_MONEY)){
+            return 0x00;
+        }
+        if(port >= (sizeof(s_chargepile_config_info.config_para.v2g_mode_validity) /sizeof(s_chargepile_config_info.config_para.charge_mode_validity[0x00]))){
+            return 0x00;
+        }
+        value = s_chargepile_config_info.config_para.v2g_mode_validity[port] &(0x03 <<(0x02 *(mode - CP_V2G_MODE_OFFSET)));
+        value >>= (0x02 *mode);
+    }
+    return (uint8_t)(value &0x03);
+}
+
 

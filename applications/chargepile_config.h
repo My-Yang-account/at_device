@@ -702,7 +702,8 @@ enum config_name{
 
     CONFIG_ITEM_GUN1_CURR_OFFSET,
     CONFIG_ITEM_GUN2_CURR_OFFSET,
-
+    CONFIG_ITEM_CHARGE_MODE_VALIDITY,
+    CONFIG_ITEM_V2G_MODE_VALIDITY,
     CONFIG_ITEM_SUPORT_BSM,
     CONFIG_ITEM_SUPORT_BCS,
     CONFIG_ITEM_SUPORT_AUXPOWER24V,
@@ -950,9 +951,31 @@ int32_t sys_config_info_clear_eflash(void);
 /*********************************************************
  * 函数名        sys_config_valid_judge
  * 功能            用于判断指定配置项数据是否有效
- * 参数
+ * 参数           name      配置名@enum config_name
+ *        _config   配置数据
+ *        len       配置数据长度
  * 返回           0：无效      1：有效
  ********************************************************/
 int32_t sys_config_valid_judge(uint8_t name, void *_config, uint16_t len);
+
+/*********************************************************
+ * 函数名        sys_mode_validity_combine
+ * 功能            模式有效性组合
+ * 参数           name   模式名enum config_name
+ *        mode   模式
+ *        validity  有效性
+ * 返回           组合值
+ ********************************************************/
+uint16_t sys_mode_validity_combine(uint8_t name, uint8_t mode, uint8_t validity);
+
+/*********************************************************
+ * 函数名        sys_mode_validity_divide
+ * 功能            模式有效性分解
+ * 参数           name   模式名enum config_name
+ *        mode   模式
+ *        port   枪口号
+ * 返回           分解后的模式有效性真实值
+ ********************************************************/
+uint8_t sys_mode_validity_divide(uint8_t name, uint8_t mode, uint8_t port);
 
 #endif /* APPLICATIONS_CHARGEPILE_CONFIG_H_ */

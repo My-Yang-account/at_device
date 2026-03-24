@@ -246,6 +246,10 @@ typedef struct{
                                                                                                                                                                                       对于模式2：单位：0.001度
                                                                                                                                                                                       对于模式3：单位：1s
                                                                                                                                                                                       对于模式4：单位：1s(当天启动时间秒数：例 预约 13：56 充电，则为：13 *60 *60 + 56 *60)*/
+#ifdef THAISEN_INCLUDE_NEW_MSG
+    /** 20260323 msg_ver = 0x02 */
+    uint16_t validity_period;                                     /** 有效期, 每2bit一个模式 0：单次有效  1：永久有效 */
+#endif /* THAISEN_INCLUDE_NEW_MSG */
 }thaisen_mode_select_normal;
 
 /** 模式选择页面：屏幕-选择枪-V2G模式 */
@@ -258,6 +262,8 @@ typedef struct{
                                                                                                                                                                                      对于模式1：单位：0.001度
                                                                                                                                                                                      对于模式2：单位：1min
                                                                                                                                                                                      对于模式3：无用，默认填0 */
+    /** 20260323 msg_ver = 0x02 */
+    uint16_t validity_period;                                     /** 有效期 , 每2bit一个模式0：单次有效  1：永久有效 */
 #endif /* THAISEN_INCLUDE_NEW_MSG */
 }thaisen_mode_select_v2g;
 

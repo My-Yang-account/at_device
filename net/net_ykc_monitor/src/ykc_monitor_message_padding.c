@@ -7037,15 +7037,26 @@ static int32_t ykc_monitor_config_info_mode_select_normal(uint8_t option, uint8_
     /** 配置信息查询 */
     if(option == NETYKCM_CONFIG_INFO_OPTION_QUERY){
         struct ykcm_mode_select_normal *response = (struct ykcm_mode_select_normal*)buf;
+#ifdef NET_YKC_MONITOR_INCLUDE_NEW_MSG
+        uint16_t *_config = NULL;
+#endif /* NET_YKC_MONITOR_INCLUDE_NEW_MSG */
 
         memset(response, 0x00, sizeof(struct ykcm_mode_select_normal));
 
         if(gunno == 0x01){
             response->mode = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_CURRENT_MODE_A, 0x00));
             response->mode_parameter = *(uint32_t*)(sys_read_config_item_content(CONFIG_ITEM_MODE_PARAMETER_A, 0x00));
+#ifdef NET_YKC_MONITOR_INCLUDE_NEW_MSG
+            _config = (uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_CHARGE_MODE_VALIDITY, 0x00));
+            response->validity_period = _config[gunno - 0x01];
+#endif /* NET_YKC_MONITOR_INCLUDE_NEW_MSG */
         }else if(gunno == 0x02){
             response->mode = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_CURRENT_MODE_B, 0x00));
             response->mode_parameter = *(uint32_t*)(sys_read_config_item_content(CONFIG_ITEM_MODE_PARAMETER_B, 0x00));
+#ifdef NET_YKC_MONITOR_INCLUDE_NEW_MSG
+            _config = (uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_CHARGE_MODE_VALIDITY, 0x00));
+            response->validity_period = _config[gunno - 0x01];
+#endif /* NET_YKC_MONITOR_INCLUDE_NEW_MSG */
         }else{
             LOG_W("ykcm config query mode select normal error(%d)", gunno);
             return (NETYKCM_CONFIG_RES_SYS_ITEM_ASSERT_BASE + 0x01);
@@ -7105,6 +7116,7 @@ static int32_t ykc_monitor_config_info_mode_select_v2g(uint8_t option, uint8_t g
             LOG_W("ykcm config query mode select v2g error(%d)", gunno);
             return (NETYKCM_CONFIG_RES_SYS_ITEM_ASSERT_BASE + 0x01);
         }
+        uint16_t *_config = NULL;
 #endif /* NET_YKC_MONITOR_INCLUDE_NEW_MSG */
         struct ykcm_mode_select_v2g *response = (struct ykcm_mode_select_v2g*)buf;
 
@@ -7126,6 +7138,8 @@ static int32_t ykc_monitor_config_info_mode_select_v2g(uint8_t option, uint8_t g
         }else{
             response->mode -= CP_V2G_MODE_OFFSET;
         }
+        _config = (uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_V2G_MODE_VALIDITY, 0x00));
+        response->validity_period = _config[gunno - 0x01];
 #endif /* NET_YKC_MONITOR_INCLUDE_NEW_MSG */
     }
     /** 配置信息设置 */
