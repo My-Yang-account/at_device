@@ -1271,6 +1271,19 @@ typedef struct
      */
     void (*NetLogSend)(uint8_t const* const, uint8_t);
 }powerctrl_init_t;
+
+typedef struct
+{
+    uint8_t step;
+    uint32_t sysTick;
+}stepTransRecord;
+
+typedef struct
+{
+    uint8_t aimGunNum;//目标枪号
+    uint8_t ofsmStepCnt;//跳转次数
+    stepTransRecord *buf;//用于保存状态机跳转信息
+}moduleStepInfo_t;
 #pragma pack()
 
 /**
@@ -1381,6 +1394,42 @@ void thaisen_chargemain_set_ModulePreserPower(uint32_t power);
  * @return (1W)
  */
 uint32_t thaisen_chargemain_get_ModulePresetPower(void);
+
+/**
+ * @brief 获取模块状态跳转信息
+ * @param moduleNum 1~
+ * @return
+ */
+moduleStepInfo_t thaisen_get_moduleStepInfo(uint8_t moduleNum);
+
+/**
+ * @brief 清除部分模块状态跳转信息
+ * @param moduleNum 1~
+ * @param stepCnt
+ * @return 0 - 成功
+ */
+uint8_t thaisen_clean_moduleStepInfo(uint8_t moduleNum, uint8_t stepCnt);
+
+/**
+ * @brief 获取模块输出电流
+ * @param moduleNum 1~
+ * @return 0.01A
+ */
+uint16_t thaisen_module_getDcOutputCurr(uint8_t moduleNum);
+
+/**
+ * @brief 获取模块输出电压
+ * @param moduleNum 1~
+ * @return 0.1V
+ */
+uint16_t thaisen_module_getDcOutputVolt(uint8_t moduleNum);
+
+/**
+ * @brief 获取模块当前组号(模块上报)
+ * @param moduleNum 1~
+ * @return
+ */
+uint8_t thaisen_module_getModuleGroupNum(uint8_t moduleNum);
 
 /*********************************************************************************************************************/
 /*********************************************************************************************************************/
