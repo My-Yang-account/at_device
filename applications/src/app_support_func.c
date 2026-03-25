@@ -2064,6 +2064,42 @@ void app_cmd_debug_result_info(uint8_t gunno, uint8_t language, uint8_t cmd, uin
             }
         }
         break;
+    case THAISEN_DEBUG_CMD_ISSUE_TEL:
+        if(para && (plen >= 0x01)){
+            uint8_t function = *(uint8_t*)para;
+            const char *e_str[2] = {"Close", "Open"};
+            const char *c_str[2] = {"关闭", "开启"};
+
+            function = function > 0x01 ? 0x00 : function;
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= (strlen("Issue>GBT_ELock:") + 0x06))
+                    return;
+                sprintf((char*)buf, "%s%s", "Issue>GBT_ELock:", e_str[function]);
+            }else{
+                if(ilen <= (strlen("下发>测试：电子锁检测：") + 0x06))
+                    return;
+                sprintf((char*)buf, "%s%s", "下发>测试：电子锁检测：", c_str[function]);
+            }
+        }
+        break;
+    case THAISEN_DEBUG_CMD_ISSUE_TOC:
+        if(para && (plen >= 0x01)){
+            uint8_t function = *(uint8_t*)para;
+            const char *e_str[2] = {"Close", "Open"};
+            const char *c_str[2] = {"关闭", "开启"};
+
+            function = function > 0x01 ? 0x00 : function;
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= (strlen("Issue>GBT_OC:") + 0x06))
+                    return;
+                sprintf((char*)buf, "%s%s", "Issue>GBT_OC:", e_str[function]);
+            }else{
+                if(ilen <= (strlen("下发>测试：过流检测：") + 0x06))
+                    return;
+                sprintf((char*)buf, "%s%s", "下发>测试：过流检测：", c_str[function]);
+            }
+        }
+        break;
     case THAISEN_DEBUG_CMD_READ_MODULE_CURR_MAX:
         if(para && (plen >= 0x04)){
             uint32_t curr = *(uint32_t*)para;
@@ -2288,6 +2324,42 @@ void app_cmd_debug_result_info(uint8_t gunno, uint8_t language, uint8_t cmd, uin
                     offset = 0x00 - offset;
                     sprintf((char*)buf, "%s%lu %s%lu.%lu%lu%c", "读取>枪", (uint32_t)(gunno + 0x01), "设置电流偏移：-", (offset /100), ((offset /10) %10), (offset %10), 'A');
                 }
+            }
+        }
+        break;
+    case THAISEN_DEBUG_CMD_READ_TEL:
+        if(para && (plen >= 0x01)){
+            uint8_t function = *(uint8_t*)para;
+            const char *e_str[2] = {"Close", "Open"};
+            const char *c_str[2] = {"关闭", "开启"};
+
+            function = function > 0x01 ? 0x01 : function;
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= (strlen("Read>GBT_ELock:") + 0x06))
+                    return;
+                sprintf((char*)buf, "%s%s", "Read>GBT_ELock:", e_str[function]);
+            }else{
+                if(ilen <= (strlen("读取>测试：电子锁检测：") + 0x06))
+                    return;
+                sprintf((char*)buf, "%s%s", "读取>测试：电子锁检测：", c_str[function]);
+            }
+        }
+        break;
+    case THAISEN_DEBUG_CMD_READ_TOC:
+        if(para && (plen >= 0x01)){
+            uint8_t function = *(uint8_t*)para;
+            const char *e_str[2] = {"Close", "Open"};
+            const char *c_str[2] = {"关闭", "开启"};
+
+            function = function > 0x01 ? 0x01 : function;
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= (strlen("Read>GBT_OC:") + 0x06))
+                    return;
+                sprintf((char*)buf, "%s%s", "Read>GBT_OC:", e_str[function]);
+            }else{
+                if(ilen <= (strlen("读取>测试：过流检测：") + 0x06))
+                    return;
+                sprintf((char*)buf, "%s%s", "读取>测试：过流检测：", c_str[function]);
             }
         }
         break;

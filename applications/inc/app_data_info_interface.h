@@ -805,6 +805,8 @@ enum thaisen_debug_cmd{
     THAISEN_DEBUG_CMD_ISSUE_BATVOLT_STRATEGY,                    /** 调试指令码：下发电池电压检测策略 */
     THAISEN_DEBUG_CMD_ISSUE_CURR_STRATEGY,                       /** 调试指令码：下发充电电流检测策略 */
     THAISEN_DEBUG_CMD_ISSUE_SETUP_CURR_OFFSET,                   /** 调试指令码：下发设置电流偏移(0.01A) */
+    THAISEN_DEBUG_CMD_ISSUE_TEL,                                 /** 调试指令码：下发协议、互操作测试：电子锁测试功能 */
+    THAISEN_DEBUG_CMD_ISSUE_TOC,                                 /** 调试指令码：下发协议、互操作测试：过流测试功能 */
 
     THAISEN_DEBUG_CMD_READ_MODULE_CURR_MAX,                      /** 调试指令码：读取模块最大输出电流 */
     THAISEN_DEBUG_CMD_READ_MODULE_CURR_MIN,                      /** 调试指令码：读取模块最小输出电流 */
@@ -819,6 +821,8 @@ enum thaisen_debug_cmd{
     THAISEN_DEBUG_CMD_READ_BATVOLT_STRATEGY,                     /** 调试指令码：读取 电池电压检测策略 */
     THAISEN_DEBUG_CMD_READ_CURR_STRATEGY,                        /** 调试指令码：读取 充电电流检测策略 */
     THAISEN_DEBUG_CMD_READ_SETUP_CURR_OFFSET,                    /** 调试指令码：读取设置电流偏移(0.01A) */
+    THAISEN_DEBUG_CMD_READ_TEL,                                  /** 调试指令码：读取协议、互操作测试：电子锁测试功能 */
+    THAISEN_DEBUG_CMD_READ_TOC,                                  /** 调试指令码：读取协议、互操作测试：过流测试功能 */
 
     THAISEN_DEBUG_CMD_SIZE,                                      /** 调试指令码 */
 };

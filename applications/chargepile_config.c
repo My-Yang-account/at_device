@@ -244,7 +244,9 @@ struct _function_enable{
     uint8_t matrix_relay_in;       /* 矩阵继电器 */
     uint8_t parallel_relay_in;     /* 母联继电器 */
     uint8_t eliminate_module;      /* 剔除模块 */
-    uint8_t reserve[62];
+    uint8_t gbt_elock;             /* GB-T 电子锁测试 */
+    uint8_t gbt_oc;                /* GB-T 过流测试 */
+    uint8_t reserve[60];
 };
 
 struct _state_reversal{
@@ -574,6 +576,21 @@ CFG_DEF_SRAM2 static struct config_item s_config_item_set[CONFIG_ITEM_SIZE] =
         (uint8_t*)&s_chargepile_config_info.function_enable.charge_curr_strategy,
         NULL},
 
+        {CONFIG_ITEM_INEN_ELIMINATE_MODULE,                                                /* 配置项: 剔除模块使能 */
+        (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.eliminate_module)),
+        (uint8_t*)&s_chargepile_config_info.function_enable.eliminate_module,
+        NULL},
+
+        {CONFIG_ITEM_INEN_GBT_ELOCK,                                                /* 配置项: 测试：电子锁 */
+        (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.gbt_elock)),
+        (uint8_t*)&s_chargepile_config_info.function_enable.gbt_elock,
+        NULL},
+
+        {CONFIG_ITEM_INEN_GBT_OC,                                                   /* 配置项: 测试过流 */
+        (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.gbt_oc)),
+        (uint8_t*)&s_chargepile_config_info.function_enable.gbt_oc,
+        NULL},
+
         {CONFIG_ITEM_INPUT_OVERVOL,                                                     /* 配置项：输入过压 */
         (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.input_overvol)),
         (uint8_t*)&s_chargepile_config_info.config_para.input_overvol,
@@ -782,11 +799,6 @@ CFG_DEF_SRAM2 static struct config_item s_config_item_set[CONFIG_ITEM_SIZE] =
         {CONFIG_ITEM_INEN_FUSE,                                                      /* 配置项: 熔断器检测使能 */
         (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.fuse_in)),
         (uint8_t*)&s_chargepile_config_info.function_enable.fuse_in,
-        NULL},
-
-        {CONFIG_ITEM_INEN_ELIMINATE_MODULE,                                                /* 配置项: 剔除模块使能 */
-        (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.eliminate_module)),
-        (uint8_t*)&s_chargepile_config_info.function_enable.eliminate_module,
         NULL},
 
         {CONFIG_ITEM_INNEG_SCRAM,                                           /* 配置项: 急停输入取反*/
@@ -1258,6 +1270,15 @@ void sys_chargeplie_config_info_init(void)
     /** 启用充电电流检测策略功能 */
     sys_config_item_init(CONFIG_ITEM_SUPORT_CHARGE_CURR_STRATEGY, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.charge_curr_strategy)), \
             (uint8_t*)&s_chargepile_config_info.function_enable.charge_curr_strategy, NULL);
+    /** 剔除模块使能 */
+    sys_config_item_init(CONFIG_ITEM_SUPORT_ELIMINATE_MODULE, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.eliminate_module)), \
+            (uint8_t*)&s_chargepile_config_info.function_enable.eliminate_module, NULL);
+    /** 测试：电子锁 */
+    sys_config_item_init(CONFIG_ITEM_SUPORT_GBT_ELOCK, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.gbt_elock)), \
+            (uint8_t*)&s_chargepile_config_info.function_enable.gbt_elock, NULL);
+    /** 测试：过流 */
+    sys_config_item_init(CONFIG_ITEM_SUPORT_GBT_OC, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.gbt_oc)), \
+            (uint8_t*)&s_chargepile_config_info.function_enable.gbt_oc, NULL);
     /** 输入过压值 */
     sys_config_item_init(CONFIG_ITEM_INPUT_OVERVOL, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.input_overvol)), \
             (uint8_t*)&s_chargepile_config_info.config_para.input_overvol, NULL);
@@ -1384,9 +1405,6 @@ void sys_chargeplie_config_info_init(void)
     /** 熔断器检测使能 */
     sys_config_item_init(CONFIG_ITEM_INEN_FUSE, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.fuse_in)), \
             (uint8_t*)&s_chargepile_config_info.function_enable.fuse_in, NULL);
-    /** 剔除模块使能 */
-    sys_config_item_init(CONFIG_ITEM_INEN_ELIMINATE_MODULE, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.eliminate_module)), \
-            (uint8_t*)&s_chargepile_config_info.function_enable.eliminate_module, NULL);
     /** 急停反馈取反 */
     sys_config_item_init(CONFIG_ITEM_INNEG_SCRAM, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.state_reversal.emergency_stop)), \
             (uint8_t*)&s_chargepile_config_info.state_reversal.emergency_stop, NULL);
@@ -2140,6 +2158,8 @@ static void chargepile_config_data_reset(void)
     s_chargepile_config_info.function_enable.melect_strategy = CONFIG_ENABLE_ENUM;
     s_chargepile_config_info.function_enable.charge_curr_strategy = CONFIG_ENABLE_ENUM;
     s_chargepile_config_info.function_enable.eliminate_module = CONFIG_DISABLE_ENUM;
+    s_chargepile_config_info.function_enable.gbt_elock = CONFIG_DISABLE_ENUM;
+    s_chargepile_config_info.function_enable.gbt_oc = CONFIG_DISABLE_ENUM;
 
     memset(s_chargepile_config_info.function_enable.current_mode, 0x00, sizeof(s_chargepile_config_info.function_enable.current_mode));
     memset(s_chargepile_config_info.function_enable.v2g_mode, 0x00, sizeof(s_chargepile_config_info.function_enable.v2g_mode));
@@ -3102,6 +3122,14 @@ int32_t chargepile_check_config(void)
     if((s_chargepile_config_info.function_enable.eliminate_module != CONFIG_ENABLE_ENUM) && \
             (s_chargepile_config_info.function_enable.eliminate_module != CONFIG_DISABLE_ENUM)){          /* 剔除模块功能默认关闭 */
         s_chargepile_config_info.function_enable.eliminate_module = CONFIG_DISABLE_ENUM;
+    }
+    if((s_chargepile_config_info.function_enable.gbt_elock != CONFIG_ENABLE_ENUM) && \
+            (s_chargepile_config_info.function_enable.gbt_elock != CONFIG_DISABLE_ENUM)){          /* 测试：电子锁检测功能默认关闭 */
+        s_chargepile_config_info.function_enable.gbt_elock = CONFIG_DISABLE_ENUM;
+    }
+    if((s_chargepile_config_info.function_enable.gbt_oc != CONFIG_ENABLE_ENUM) && \
+            (s_chargepile_config_info.function_enable.gbt_oc != CONFIG_DISABLE_ENUM)){          /* 测试：过流检测功能默认关闭 */
+        s_chargepile_config_info.function_enable.gbt_oc = CONFIG_DISABLE_ENUM;
     }
 
     if(s_chargepile_config_info.state_reversal.emergency_stop > 0x01){   /* 急停默认不取反 */
