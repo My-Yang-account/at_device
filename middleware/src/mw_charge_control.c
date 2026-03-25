@@ -262,6 +262,12 @@ void mw_charglib_set_function_enable(uint8_t port, app_funcenable_t function, ui
     case APP_FUNCTION_BMS_SEVERAL_FRAME:
         handle->SetupFunctionEnable(port, thaisenChargFunctionEnable_BMSSFrame, state);
         break;
+    case APP_FUNCTION_GBT_EL:
+        handle->SetupFunctionEnable(port, thaisenChargFunctionEnable_GBT_EL, state);
+        break;
+    case APP_FUNCTION_GBT_OC:
+        handle->SetupFunctionEnable(port, thaisenChargFunctionEnable_GBT_OC, state);
+        break;
     default:
         break;
     }
@@ -303,13 +309,18 @@ uint8_t mw_charglib_get_function_enable(uint8_t port, app_funcenable_t function)
     case APP_FUNCTION_BMS_SEVERAL_FRAME:
         return handle->QueryFunctionEnable(port, thaisenChargFunctionEnable_BMSSFrame);
         break;
+    case APP_FUNCTION_GBT_EL:
+        return handle->QueryFunctionEnable(port, thaisenChargFunctionEnable_GBT_EL);
+        break;
+    case APP_FUNCTION_GBT_OC:
+        return handle->QueryFunctionEnable(port, thaisenChargFunctionEnable_GBT_OC);
+        break;
     default:
         break;
     }
     return 0x00;
 }
 
-#ifdef APP_INCLUDE_V2G
 /*****************************************************
 * 函数名        mw_charglib_register_get_sysdata_cb
 * 功能            注册获取系统数据回调函数
@@ -324,4 +335,3 @@ void mw_charglib_register_get_sysdata_cb(void *cb)
         _handle->CBConfig(_handle, THACHARGE_CB_INDEX_GET_SYSDATA, cb);
     }
 }
-#endif /* APP_INCLUDE_V2G */

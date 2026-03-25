@@ -49,10 +49,9 @@ int main(void)
     extern int32_t app_nfunc_config_init(void);
     extern void app_state_guidance_changed(thaisenGuidanceInfo_t info, uint8_t flag, uint8_t port);
     extern void app_state_device_status_changed(uint8_t device, void *parameter, uint8_t plen, uint8_t port);
-#ifdef APP_INCLUDE_V2G
     extern int app_state_system_data(uint8_t port, uint8_t name, void *parameter, uint8_t pLen);
     extern void mw_charglib_register_get_sysdata_cb(void *cb);
-#endif /* APP_INCLUDE_V2G */
+
     extern void app_system_delay(uint32_t ms);
 
     LOG_I("current program version: V%d.%d.%c\n", SOFTWARE_VERSION, SOFTWARE_SUBVERSION, (SOFTWARE_REVISION + 'A'));
@@ -132,9 +131,7 @@ int main(void)
 
     thaisen_GuidanceChangedCallback_Register(app_state_guidance_changed);
     thaisenDeviceChangedCallbackRegister(app_state_device_status_changed);
-#ifdef APP_INCLUDE_V2G
-    mw_charglib_register_get_sysdata_cb(app_state_system_data);
-#endif /* APP_INCLUDE_V2G */
+
     prepose_init();
 
     extern int ec20_device_register(void);
@@ -149,6 +146,7 @@ int main(void)
 #ifndef APP_USING_LV_MODULE_BMS
     /** 带BMS的低压模块版本不使用充电库(要控制风扇) */
     thaisenChargInit();
+    mw_charglib_register_get_sysdata_cb(app_state_system_data);
 #endif /* APP_USING_LV_MODULE_BMS */
 
 	thaisen_chargModule_Init(thaisen_get_charg_status, mw_get_bms_data(0), mw_get_bms_data(1),(struct thasienModuleSetStruct *)sys_get_module_config_info());

@@ -8564,8 +8564,24 @@ void ofsm_thread_entry(void *parameter)
         /** 协议一致性测试 */
         if((*(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_SUPORT_PROTOCOL_GB_T, 0x00))) == CONFIG_ENABLE_ENUM){
             thaisenDrvSetProtocolTestEnable(1);
+            /************************************ 充电功能配置  ************************************/
+            /** 国标测试：电子锁测试 */
+            if((*(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_SUPORT_GBT_ELOCK, 0x00))) == CONFIG_ENABLE_ENUM){
+                mw_charglib_set_function_enable(thread_gunno, APP_FUNCTION_GBT_EL, APP_THA_ENUM_TRUE);
+            }else{
+                mw_charglib_set_function_enable(thread_gunno, APP_FUNCTION_GBT_EL, APP_THA_ENUM_FALSE);
+            }
+            /************************************ 充电功能配置  ************************************/
+            /** 国标测试：过流测试 */
+            if((*(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_SUPORT_GBT_OC, 0x00))) == CONFIG_ENABLE_ENUM){
+                mw_charglib_set_function_enable(thread_gunno, APP_FUNCTION_GBT_OC, APP_THA_ENUM_TRUE);
+            }else{
+                mw_charglib_set_function_enable(thread_gunno, APP_FUNCTION_GBT_OC, APP_THA_ENUM_FALSE);
+            }
         }else{
             thaisenDrvSetProtocolTestEnable(0);
+            mw_charglib_set_function_enable(thread_gunno, APP_FUNCTION_GBT_EL, APP_THA_ENUM_FALSE);
+            mw_charglib_set_function_enable(thread_gunno, APP_FUNCTION_GBT_OC, APP_THA_ENUM_FALSE);
         }
 
         switch (s_ofsm_info[thread_gunno].base.ota_state) {

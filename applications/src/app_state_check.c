@@ -406,6 +406,13 @@ static void app_out_oc_check(uint8_t gunno)
     if(gunno >= APP_SYSTEM_GUNNO_SIZE){
         return;
     }
+    /** 协议一致性测试 */
+    if((*(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_SUPORT_PROTOCOL_GB_T, 0x00))) == CONFIG_ENABLE_ENUM){
+        /** 国标测试：过流测试 */
+        if((*(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_SUPORT_GBT_OC, 0x00))) == CONFIG_ENABLE_ENUM){
+            return;
+        }
+    }
 
     uint32_t config_oc_value = app_get_config_out_oc_value(gunno);
     uint32_t out_curr_value = app_get_out_curr_value(gunno);
@@ -1429,7 +1436,6 @@ void app_state_device_status_changed(uint8_t device, void *parameter, uint8_t pl
     }
 }
 
-#ifdef APP_INCLUDE_V2G
 /********************************************************** 充电库获取系统数据回调 **********************************************************/
 /********************************************************** 充电库获取系统数据回调 **********************************************************/
 /****************************************************************************
@@ -1476,9 +1482,11 @@ int app_state_system_data(uint8_t port, uint8_t name, void *parameter, uint8_t p
     case ThaChargSysData_TransmitElect:
         return _ofsm->base.elect_a;
         break;
+    case ThaChargSysData_GBT_OCTime:
+        return 120;
+        break;
     default:
         break;
     }
     return 0x00;
 }
-#endif /* APP_INCLUDE_V2G */
