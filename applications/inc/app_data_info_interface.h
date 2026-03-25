@@ -206,6 +206,8 @@ typedef struct{
     uint16_t mode_select : 1;                                     /** 模式选择(1：启用，0：禁用) */
     uint16_t offline_card : 1;                                    /** 离线卡(1：启用，0：禁用) */
 #ifdef THAISEN_INCLUDE_NEW_MSG
+    /** 20260324 msg_ver = 0x02 */
+    uint16_t several_gun : 1;                                     /** 多枪并充(1：启用，0：禁用) */
     /** 20251229 msg_ver = 0x01 */
     uint16_t v2g_mode : 1;                                        /** V2G模式(1：启用，0：禁用) */
     /** 20260324 msg_ver = 0x02 */

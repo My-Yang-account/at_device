@@ -2332,15 +2332,19 @@ static s32 SerialScreen_ConfigExecute_Function(u8 port, void *data, void *sub_da
 #endif /* SCREEN_USING_V2G */
     LcdData.setData.Icon_SupEliminateModule = config->eliminate_module;
 #endif /* THAISEN_INCLUDE_NEW_MSG */
+
+    LcdAssistantData.Flag.IsServerConfig = TRUE;
     /** 功能配置信息有效性判断 */
     SerialScreen_IsSupportInfoJudge(&ret);
     if(ret != 0){
         for(u8 i = 0; i < 32; i++){
-            if(ret &(1 <<i))   return (i + THAISEN_CONFIG_FAIL_OFFSET);
+            if(ret &(1 <<i)){
+                LcdAssistantData.Flag.IsServerConfig = FALSE;
+                return (i + THAISEN_CONFIG_FAIL_OFFSET);
+            }
         }
     }
     LcdAssistantData.SeveralGunFlag[LCD_GUN_1].DataIsVerify = TRUE;
-    LcdAssistantData.Flag.IsServerConfig = TRUE;
     SerialScreen_IsSupportSetFlash();
     LcdAssistantData.Flag.IsServerConfig = FALSE;
 
@@ -7848,7 +7852,11 @@ void SerialScreen_IsSupportSetFlash(void)
 #endif /* SCREEN_USING_V2G */
     /** 目前剔除模块配置仅能平台修改，屏幕未加控件无法修改 20260324 */
     if(LcdAssistantData.Flag.IsServerConfig == TRUE){
-        UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_ELIMINATE_MODULE, (u8 *)&LcdData.setData.Sup_EliminateModule, sizeof(LcdData.setData.Sup_EliminateModule));
+        config_item = CONFIG_DISABLE_ENUM;
+        if(LcdData.setData.Sup_EliminateModule == TRUE){
+            config_item = CONFIG_ENABLE_ENUM;
+        }
+        UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_ELIMINATE_MODULE, (u8 *)&config_item, sizeof(config_item));
     }
     for(u8 i = 0; i < sizeof(LcdData.setData.UserPasswdShow); i++){
         if((LcdData.setData.UserPasswdShow[i] < 0x20) ||  \

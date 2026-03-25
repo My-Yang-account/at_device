@@ -6453,6 +6453,7 @@ static int32_t ykc_monitor_config_info_process_function_config_info(uint8_t opti
         response->mode_select = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_SUPORT_MODE_SELECT, 0x00));
         response->offline_card = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_SUPORT_OFFLINE_CARD, 0x00));
 #ifdef NET_YKC_MONITOR_INCLUDE_NEW_MSG
+        response->several_gun = NET_ENUM_FALSE;
         _config = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_SUPORT_V2G, 0x00));
         if(_config == CONFIG_ENABLE_ENUM){
             response->v2g_mode = NET_ENUM_TRUE;
@@ -6461,9 +6462,9 @@ static int32_t ykc_monitor_config_info_process_function_config_info(uint8_t opti
         }
         _config = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_SUPORT_ELIMINATE_MODULE, 0x00));
         if(_config == CONFIG_ENABLE_ENUM){
-            response->v2g_mode = NET_ENUM_TRUE;
+            response->eliminate_module = NET_ENUM_TRUE;
         }else{
-            response->v2g_mode = NET_ENUM_FALSE;
+            response->eliminate_module = NET_ENUM_FALSE;
         }
 #endif /* NET_YKC_MONITOR_INCLUDE_NEW_MSG */
     }
