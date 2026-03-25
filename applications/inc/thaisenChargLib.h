@@ -784,6 +784,8 @@ typedef enum
     thaisenChargFunctionEnable_BatVolt,                   /** 功能使能：预充电池电压检测 */
     thaisenChargFunctionEnable_BCLTimeout,                /** 功能使能：BCL报文超时检测 */
     thaisenChargFunctionEnable_BMSSFrame,                 /** 功能使能：BMS多帧支持 */
+    thaisenChargFunctionEnable_GBT_EL,                    /** 功能使能：国标测试：电子锁测试 */
+    thaisenChargFunctionEnable_GBT_OC,                    /** 功能使能：国标测试：过流测试 */
     thaisenChargFunctionEnable_Size,                      /** 功能使能 */
 }thaisenChargFunctionEnable_t;
 
@@ -805,6 +807,7 @@ typedef enum
     ThaChargSysData_DischargSOCMin,                       /** 系统数据：最低放电SOC(1%) */
     ThaChargSysData_WorkTime,                             /** 系统数据：工作时间(S) */
     ThaChargSysData_TransmitElect,                        /** 系统数据：传输电量(0.001KW.h) */
+    ThaChargSysData_GBT_OCTime,                           /** 系统数据：协议测试、互操作模式下的过流检测时长(ms) */
     ThaChargSysData_Size,                                 /** 功系统数据 */
 }thaisenChargSystemData_t;
 
