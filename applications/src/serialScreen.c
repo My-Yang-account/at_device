@@ -2489,10 +2489,10 @@ static s32 SerialScreen_ConfigExecute_NormalMode(u8 port, void *data, void *sub_
     case THAISEN_CHARGE_MODE_FULL:
 #ifdef THAISEN_INCLUDE_NEW_MSG
         _validity_region = sys_mode_validity_combine(CONFIG_ITEM_CHARGE_MODE_VALIDITY, CP_MODE_CHARGE_FULL, 0x03);
-        if(((config->validity_period &_validity_region) >>CP_MODE_CHARGE_FULL) > TRUE){
+        if(((config->validity_period &_validity_region) >>(0x02 *CP_MODE_CHARGE_FULL)) > TRUE){
             return (SSCREEN_NORMAL_MODE_INVALID_VALIDITY + THAISEN_CONFIG_FAIL_OFFSET);
         }
-        LcdData.setData.ChargeModeValidity[LCD_GUN_NUM][THAISEN_CHARGE_MODE_FULL] = ((config->validity_period &_validity_region) >>CP_MODE_CHARGE_FULL);
+        LcdData.setData.ChargeModeValidity[LCD_GUN_NUM][THAISEN_CHARGE_MODE_FULL] = ((config->validity_period &_validity_region) >>(0x02 *CP_MODE_CHARGE_FULL));
 #endif /* THAISEN_INCLUDE_NEW_MSG */
         break;
     case THAISEN_CHARGE_MODE_LIMIT_MONEY:
@@ -2501,10 +2501,10 @@ static s32 SerialScreen_ConfigExecute_NormalMode(u8 port, void *data, void *sub_
         }
 #ifdef THAISEN_INCLUDE_NEW_MSG
         _validity_region = sys_mode_validity_combine(CONFIG_ITEM_CHARGE_MODE_VALIDITY, CP_MODE_LIMIT_MONEY, 0x03);
-        if(((config->validity_period &_validity_region) >>CP_MODE_LIMIT_MONEY) > TRUE){
+        if(((config->validity_period &_validity_region) >>(0x02 *CP_MODE_LIMIT_MONEY)) > TRUE){
             return (SSCREEN_NORMAL_MODE_INVALID_VALIDITY + THAISEN_CONFIG_FAIL_OFFSET);
         }
-        LcdData.setData.ChargeModeValidity[LCD_GUN_NUM][THAISEN_CHARGE_MODE_LIMIT_MONEY] = ((config->validity_period &_validity_region) >>CP_MODE_LIMIT_MONEY);
+        LcdData.setData.ChargeModeValidity[LCD_GUN_NUM][THAISEN_CHARGE_MODE_LIMIT_MONEY] = ((config->validity_period &_validity_region) >>(0x02 *CP_MODE_LIMIT_MONEY));
 #endif /* THAISEN_INCLUDE_NEW_MSG */
         LcdData.setData.MSLimitMoney[LCD_GUN_NUM] = config->mode_parameter;
         LcdData.setData.MSLimitElect[LCD_GUN_NUM] = 0x00;
@@ -2518,10 +2518,10 @@ static s32 SerialScreen_ConfigExecute_NormalMode(u8 port, void *data, void *sub_
         }
 #ifdef THAISEN_INCLUDE_NEW_MSG
         _validity_region = sys_mode_validity_combine(CONFIG_ITEM_CHARGE_MODE_VALIDITY, CP_MODE_LIMIT_ELECT, 0x03);
-        if(((config->validity_period &_validity_region) >>CP_MODE_LIMIT_ELECT) > TRUE){
+        if(((config->validity_period &_validity_region) >>(0x02 *CP_MODE_LIMIT_ELECT)) > TRUE){
             return (SSCREEN_NORMAL_MODE_INVALID_VALIDITY + THAISEN_CONFIG_FAIL_OFFSET);
         }
-        LcdData.setData.ChargeModeValidity[LCD_GUN_NUM][THAISEN_CHARGE_MODE_LIMIT_ELECT] = ((config->validity_period &_validity_region) >>CP_MODE_LIMIT_ELECT);
+        LcdData.setData.ChargeModeValidity[LCD_GUN_NUM][THAISEN_CHARGE_MODE_LIMIT_ELECT] = ((config->validity_period &_validity_region) >>(0x02 *CP_MODE_LIMIT_ELECT));
 #endif /* THAISEN_INCLUDE_NEW_MSG */
         LcdData.setData.MSLimitMoney[LCD_GUN_NUM] = 0x00;
         LcdData.setData.MSLimitElect[LCD_GUN_NUM] = config->mode_parameter;
@@ -2535,10 +2535,10 @@ static s32 SerialScreen_ConfigExecute_NormalMode(u8 port, void *data, void *sub_
         }
 #ifdef THAISEN_INCLUDE_NEW_MSG
         _validity_region = sys_mode_validity_combine(CONFIG_ITEM_CHARGE_MODE_VALIDITY, CP_MODE_LIMIT_TIMING, 0x03);
-        if(((config->validity_period &_validity_region) >>CP_MODE_LIMIT_TIMING) > TRUE){
+        if(((config->validity_period &_validity_region) >>(0x02 *CP_MODE_LIMIT_TIMING)) > TRUE){
             return (SSCREEN_NORMAL_MODE_INVALID_VALIDITY + THAISEN_CONFIG_FAIL_OFFSET);
         }
-        LcdData.setData.ChargeModeValidity[LCD_GUN_NUM][THAISEN_CHARGE_MODE_LIMIT_TIMING] = ((config->validity_period &_validity_region) >>CP_MODE_LIMIT_TIMING);
+        LcdData.setData.ChargeModeValidity[LCD_GUN_NUM][THAISEN_CHARGE_MODE_LIMIT_TIMING] = ((config->validity_period &_validity_region) >>(0x02 *CP_MODE_LIMIT_TIMING));
 #endif /* THAISEN_INCLUDE_NEW_MSG */
         LcdData.setData.MSLimitMoney[LCD_GUN_NUM] = 0x00;
         LcdData.setData.MSLimitElect[LCD_GUN_NUM] = 0x00;
@@ -2552,10 +2552,10 @@ static s32 SerialScreen_ConfigExecute_NormalMode(u8 port, void *data, void *sub_
         }
 #ifdef THAISEN_INCLUDE_NEW_MSG
         _validity_region = sys_mode_validity_combine(CONFIG_ITEM_CHARGE_MODE_VALIDITY, CP_MODE_LIMIT_RESERVATION, 0x03);
-        if(((config->validity_period &_validity_region) >>CP_MODE_LIMIT_RESERVATION) > TRUE){
+        if(((config->validity_period &_validity_region) >>(0x02 *CP_MODE_LIMIT_RESERVATION)) > TRUE){
             return (SSCREEN_NORMAL_MODE_INVALID_VALIDITY + THAISEN_CONFIG_FAIL_OFFSET);
         }
-        LcdData.setData.ChargeModeValidity[LCD_GUN_NUM][THAISEN_CHARGE_MODE_LIMIT_RESERVATION] = ((config->validity_period &_validity_region) >>CP_MODE_LIMIT_RESERVATION);
+        LcdData.setData.ChargeModeValidity[LCD_GUN_NUM][THAISEN_CHARGE_MODE_LIMIT_RESERVATION] = ((config->validity_period &_validity_region) >>(0x02 *CP_MODE_LIMIT_RESERVATION));
 #endif /* THAISEN_INCLUDE_NEW_MSG */
         LcdData.setData.MSLimitMoney[LCD_GUN_NUM] = 0x00;
         LcdData.setData.MSLimitElect[LCD_GUN_NUM] = 0x00;
@@ -2623,10 +2623,10 @@ static s32 SerialScreen_ConfigExecute_V2GMode(u8 port, void *data, void *sub_dat
     case THAISEN_V2G_MODE_AUTO:
 #ifdef THAISEN_INCLUDE_NEW_MSG
         _validity_region = sys_mode_validity_combine(CONFIG_ITEM_V2G_MODE_VALIDITY, CP_V2G_MODE_AUTO, 0x03);
-        if(((config->validity_period &_validity_region) >>(CP_V2G_MODE_AUTO - CP_V2G_MODE_OFFSET)) > TRUE){
+        if(((config->validity_period &_validity_region) >>(0x02 *(CP_V2G_MODE_AUTO - CP_V2G_MODE_OFFSET))) > TRUE){
             return (SSCREEN_V2G_MODE_INVALID_VALIDITY + THAISEN_CONFIG_FAIL_OFFSET);
         }
-        LcdData.setData.V2GModeValidity[LCD_GUN_NUM][THAISEN_V2G_MODE_AUTO] = ((config->validity_period &_validity_region) >>(CP_V2G_MODE_AUTO - CP_V2G_MODE_OFFSET));
+        LcdData.setData.V2GModeValidity[LCD_GUN_NUM][THAISEN_V2G_MODE_AUTO] = ((config->validity_period &_validity_region) >>(0x02 *(CP_V2G_MODE_AUTO - CP_V2G_MODE_OFFSET)));
 #endif /* THAISEN_INCLUDE_NEW_MSG */
         break;
     case THAISEN_V2G_MODE_LIMIT_MONEY:
@@ -2635,10 +2635,10 @@ static s32 SerialScreen_ConfigExecute_V2GMode(u8 port, void *data, void *sub_dat
         }
 #ifdef THAISEN_INCLUDE_NEW_MSG
         _validity_region = sys_mode_validity_combine(CONFIG_ITEM_V2G_MODE_VALIDITY, CP_V2G_MODE_LIMIT_MONEY, 0x03);
-        if(((config->validity_period &_validity_region) >>(CP_V2G_MODE_LIMIT_MONEY - CP_V2G_MODE_OFFSET)) > TRUE){
+        if(((config->validity_period &_validity_region) >>(0x02 *(CP_V2G_MODE_LIMIT_MONEY - CP_V2G_MODE_OFFSET))) > TRUE){
             return (SSCREEN_V2G_MODE_INVALID_VALIDITY + THAISEN_CONFIG_FAIL_OFFSET);
         }
-        LcdData.setData.V2GModeValidity[LCD_GUN_NUM][THAISEN_V2G_MODE_LIMIT_MONEY] = ((config->validity_period &_validity_region) >>(CP_V2G_MODE_LIMIT_MONEY - CP_V2G_MODE_OFFSET));
+        LcdData.setData.V2GModeValidity[LCD_GUN_NUM][THAISEN_V2G_MODE_LIMIT_MONEY] = ((config->validity_period &_validity_region) >>(0x02 *(CP_V2G_MODE_LIMIT_MONEY - CP_V2G_MODE_OFFSET)));
 #endif /* THAISEN_INCLUDE_NEW_MSG */
         LcdData.setData.V2G_MSLimitMoney[LCD_GUN_NUM] = config->mode_parameter;
         LcdData.setData.V2G_MSLimitElect[LCD_GUN_NUM] = 0x00;
@@ -2652,10 +2652,10 @@ static s32 SerialScreen_ConfigExecute_V2GMode(u8 port, void *data, void *sub_dat
         }
 #ifdef THAISEN_INCLUDE_NEW_MSG
         _validity_region = sys_mode_validity_combine(CONFIG_ITEM_V2G_MODE_VALIDITY, CP_V2G_MODE_LIMIT_ELECT, 0x03);
-        if(((config->validity_period &_validity_region) >>(CP_V2G_MODE_LIMIT_ELECT - CP_V2G_MODE_OFFSET)) > TRUE){
+        if(((config->validity_period &_validity_region) >>(0x02 *(CP_V2G_MODE_LIMIT_ELECT - CP_V2G_MODE_OFFSET))) > TRUE){
             return (SSCREEN_V2G_MODE_INVALID_VALIDITY + THAISEN_CONFIG_FAIL_OFFSET);
         }
-        LcdData.setData.V2GModeValidity[LCD_GUN_NUM][THAISEN_V2G_MODE_LIMIT_ELECT] = ((config->validity_period &_validity_region) >>(CP_V2G_MODE_LIMIT_ELECT - CP_V2G_MODE_OFFSET));
+        LcdData.setData.V2GModeValidity[LCD_GUN_NUM][THAISEN_V2G_MODE_LIMIT_ELECT] = ((config->validity_period &_validity_region) >>(0x02 *(CP_V2G_MODE_LIMIT_ELECT - CP_V2G_MODE_OFFSET)));
 #endif /* THAISEN_INCLUDE_NEW_MSG */
         LcdData.setData.V2G_MSLimitMoney[LCD_GUN_NUM] = 0x00;
         LcdData.setData.V2G_MSLimitElect[LCD_GUN_NUM] = config->mode_parameter;
@@ -2669,10 +2669,10 @@ static s32 SerialScreen_ConfigExecute_V2GMode(u8 port, void *data, void *sub_dat
         }
 #ifdef THAISEN_INCLUDE_NEW_MSG
         _validity_region = sys_mode_validity_combine(CONFIG_ITEM_V2G_MODE_VALIDITY, CP_V2G_MODE_LIMIT_TIMING, 0x03);
-        if(((config->validity_period &_validity_region) >>(CP_V2G_MODE_LIMIT_TIMING - CP_V2G_MODE_OFFSET)) > TRUE){
+        if(((config->validity_period &_validity_region) >>(0x02 *(CP_V2G_MODE_LIMIT_TIMING - CP_V2G_MODE_OFFSET))) > TRUE){
             return (SSCREEN_V2G_MODE_INVALID_VALIDITY + THAISEN_CONFIG_FAIL_OFFSET);
         }
-        LcdData.setData.V2GModeValidity[LCD_GUN_NUM][THAISEN_V2G_MODE_LIMIT_TIMING] = ((config->validity_period &_validity_region) >>(CP_V2G_MODE_LIMIT_TIMING - CP_V2G_MODE_OFFSET));
+        LcdData.setData.V2GModeValidity[LCD_GUN_NUM][THAISEN_V2G_MODE_LIMIT_TIMING] = ((config->validity_period &_validity_region) >>(0x02 *(CP_V2G_MODE_LIMIT_TIMING - CP_V2G_MODE_OFFSET)));
 #endif /* THAISEN_INCLUDE_NEW_MSG */
         LcdData.setData.V2G_MSLimitMoney[LCD_GUN_NUM] = 0x00;
         LcdData.setData.V2G_MSLimitElect[LCD_GUN_NUM] = 0x00;
@@ -2687,10 +2687,10 @@ static s32 SerialScreen_ConfigExecute_V2GMode(u8 port, void *data, void *sub_dat
         }
 #ifdef THAISEN_INCLUDE_NEW_MSG
         _validity_region = sys_mode_validity_combine(CONFIG_ITEM_V2G_MODE_VALIDITY, CP_V2G_MODE_LIMIT_TIMING, 0x03);
-        if(((config->validity_period &_validity_region) >>(CP_V2G_MODE_LIMIT_TIMING - CP_V2G_MODE_OFFSET)) > TRUE){
+        if(((config->validity_period &_validity_region) >>(0x02 *(CP_V2G_MODE_LIMIT_TIMING - CP_V2G_MODE_OFFSET))) > TRUE){
             return (SSCREEN_V2G_MODE_INVALID_VALIDITY + THAISEN_CONFIG_FAIL_OFFSET);
         }
-        LcdData.setData.V2GModeValidity[LCD_GUN_NUM][THAISEN_CHARGE_MODE_LIMIT_RESERVATION] = ((config->validity_period &_validity_region) >>(CP_V2G_MODE_LIMIT_TIMING - CP_V2G_MODE_OFFSET));
+        LcdData.setData.V2GModeValidity[LCD_GUN_NUM][THAISEN_CHARGE_MODE_LIMIT_RESERVATION] = ((config->validity_period &_validity_region) >>(0x02 *(CP_V2G_MODE_LIMIT_TIMING - CP_V2G_MODE_OFFSET)));
 #endif /* THAISEN_INCLUDE_NEW_MSG */
         LcdData.setData.V2G_MSLimitMoney[LCD_GUN_NUM] = 0x00;
         LcdData.setData.V2G_MSLimitElect[LCD_GUN_NUM] = 0x00;
