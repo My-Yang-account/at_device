@@ -2001,6 +2001,18 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
                 rt_thread_mdelay(250);
 #endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
             }
+            /***** [上报模块状态信息] *****/
+            if(ykc_monitor_net_event_receive(NET_YKC_MONITOR_USER_EVENT_HANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, gunno,
+                    (NET_YKC_MONITOR_EVENT_OPTION_OR |NET_YKC_MONITOR_EVENT_OPTION_CLEAR), NET_YKC_MONITOR_USER_PREQ_EVENT_MODULE_STATE, NULL) > 0){
+#ifdef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL
+                Net_YkcMonitorPro_Preq_ModuleState_t *mstate = (Net_YkcMonitorPro_Preq_ModuleState_t*)(s_ykc_monitor_response_buff.general_transmit_buff);
+                mstate->head.sequence = s_ykc_monitor_message_serial_number[gunno]++;
+                ykc_monitor_message_send_port(NETYKC_MONITOR_PREQ_MODULE_STATE_INFO, s_ykc_monitor_socket_info.fd, s_ykc_monitor_response_buff.general_transmit_buff,
+                        s_ykc_monitor_response_buff.length, NULL);
+                ykc_monitor_response_buff_release_sem();
+                rt_thread_mdelay(250);
+#endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
+            }
         }
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
         rt_thread_mdelay(100);
@@ -3161,6 +3173,17 @@ static void net_ykc_monitor_server_message_pro_entry(void *parameter)
                 ykc_monitor_net_event_send(NET_YKC_MONITOR_USER_EVENT_HANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, 0x00, NET_YKC_MONITOR_USER_PREQ_EVENT_MODULE_ALLOCATE_LOG);
             }else{
                 ykc_monitor_clear_mallocate_sending();
+                ykc_monitor_response_buff_release_sem();
+            }
+        }
+        /** 模块状态信息填充 */
+        if(ykc_monitor_net_event_receive(NET_YKC_MONITOR_EXTERNAL_EHANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, 0x00,
+                (NET_YKC_MONITOR_EVENT_OPTION_OR |NET_YKC_MONITOR_EVENT_OPTION_CLEAR), NET_YKC_MONITOR_EXTERNAL_PREQ_EVENT_MODULE_STATE, NULL) > 0){
+            response = ykc_monitor_get_response_buff(RT_WAITING_FOREVER);
+            result = ykc_monitor_mstate_info_padding(response->general_transmit_buff, NET_YKC_MONITOR_GENERA_RESPONSE_BUFF_LENGTH, &(response->length));
+            if(result >= 0x00){
+                ykc_monitor_net_event_send(NET_YKC_MONITOR_USER_EVENT_HANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST, 0x00, NET_YKC_MONITOR_USER_PREQ_EVENT_MODULE_STATE);
+            }else{
                 ykc_monitor_response_buff_release_sem();
             }
         }

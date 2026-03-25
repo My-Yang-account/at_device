@@ -199,6 +199,12 @@ int8_t ykc_monitor_mallocate_info_padding(uint8_t *buf, uint16_t ilen, uint16_t 
  * **********************************************/
 void ykc_monitor_module_allocate_log_callback(uint8_t *log, uint8_t log_len);
 
+/*************************************************
+ * 函数名      ykc_monitor_mstate_info_padding
+ * 功能          组包：填充模块状态信息
+ * **********************************************/
+int8_t ykc_monitor_mstate_info_padding(uint8_t *buf, uint16_t ilen, uint16_t *olen);
+
 #endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
 
 /******************************** 以下是外部调用触发 *******************************/

@@ -497,7 +497,9 @@ enum ykc_monitor_cmd{
 
     NETYKC_MONITOR_SREQCMD_QUERY_SET_VOLTCURR = 0xCC,                /* 指令：运营平台查询给模块设置的电压、电流 */
     NETYKC_MONITOR_PRES_PREQCMD_QUERY_SET_VOLTCURR = 0xCD,           /* 指令：上报(响应)给模块设置的电压、电流 */
-
+#ifdef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL
+    NETYKC_MONITOR_PREQ_MODULE_STATE_INFO = 0xD5,                    /* 指令：上报模块状态信息帧 */
+#endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
     NETYKC_MONITOR_PREQCMD_REPORT_STARTING_INFO = 0xD7,              /* 指令：上报过程中信息 */
     NETYKC_MONITOR_SREQCMD_MODIFY_PILE_INFO = 0xD8,                  /* 指令：修改桩信息 */
 #ifdef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL
@@ -1791,6 +1793,34 @@ typedef struct{
     }body;
     uint16_t check_sum;                          /* 校验码 */
 }Net_YkcMonitorPro_Preq_Pres_SetVoltCurr_t;
+
+/** 0xD5 模块状态信息帧 */
+/** 模块状态组 */
+struct ykcm_mstate_group{
+    struct{
+        uint8_t run_state : 2;                   /* 运行状态 */
+        uint8_t reserve : 2;                     /* 预留 */
+        uint8_t ctrl : 4;                        /* 控制信息 */
+    }status;
+    uint16_t fault;                              /* 故障信息 */
+    uint8_t grp_sn;                              /* 组号 */
+    uint16_t request_voltage;                    /* 设置的电压(0.1V) */
+    uint16_t request_current;                    /* 设置的电流(0.01A) */
+    uint16_t out_voltage;                        /* 设置的电压(0.1V) */
+    uint16_t out_current;                        /* 设置的电流(0.01A) */
+};
+
+typedef struct{
+    Net_YkcMonitorPro_Head_t head;
+    struct{
+        uint8_t pile_number[NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT];  /* 桩号*/
+        uint8_t group_num;                                               /* 模块组数 */
+#if 0
+        struct ykcm_mstate_group pair[n];                                /* 模块状态信息 */
+#endif
+    }body;
+    uint16_t check_sum;                          /* 校验码 */
+}Net_YkcMonitorPro_Preq_ModuleState_t;
 
 struct value{
     uint16_t symbol : 1;                         /* 数据的符号(0：正值，1：负值) */

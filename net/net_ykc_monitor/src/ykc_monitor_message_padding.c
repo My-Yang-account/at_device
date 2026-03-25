@@ -100,6 +100,11 @@
 #define YKC_MONITOR_REALTIME_DATA_INTERVAL_CHARGING       0x0F                  /* 充电中实时数据上报间隔  */
 #define YKC_MONITOR_REALTIME_DATA_INTERVAL_IDLE           0x05 *60              /* 空闲实时数据上报间隔  */
 
+#ifdef APP_USING_CYCLE_MATRIX
+#define YKC_MONITOR_MODULE_STATE_INTERVAL_CHARGING        (30000)               /* 充电中模块状态上报间隔(ms) */
+#define YKC_MONITOR_MODULE_STATE_INTERVAL_IDLE            (600000)              /* 空闲模块状态上报间隔(ms) */
+#endif /* APP_USING_CYCLE_MATRIX */
+
 #ifdef NET_YKC_MONITOR_FAULT_USING_EXTEND
 #define YKC_MONITOR_DEVICE_FAULT_LOCK_DEVICE              (0x01 <<25)           /* 实时故障：锁桩(这个要和 ykc_monitor_fault_analyse.c  YKC_MONITOR_REALTIME_FAULT_LOCK_DEVICE 一样) */
 #endif /* NET_YKC_MONITOR_FAULT_USING_EXTEND */
@@ -258,6 +263,12 @@ typedef struct{
     uint8_t count;                                /* 记录的数量 */
     uint8_t is_sending;                           /* 数据正在发送 */
 }ykc_monitor_mallocate_info;
+
+/** 充电过程中的信息 */
+typedef struct{
+    uint32_t base_tick;                           /* 时间时基 */
+    uint8_t is_locked;                            /* 数据锁 */
+}ykc_monitor_module_state;
 #endif /* APP_USING_CYCLE_MATRIX */
 
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
@@ -299,6 +310,7 @@ NET_DEF_SRAM2 static ykcm_module_disconnect_t s_ykc_monitor_gprs_registered;    
 NET_DEF_SRAM2 static ykcm_liquid_f_info_t s_ykcm_liquid_f_info;                                /** 液冷故障信息 */
 #ifdef APP_USING_CYCLE_MATRIX
 NET_DEF_SRAM2 static ykc_monitor_mallocate_info s_ykc_monitor_mallocate_info;
+NET_DEF_SRAM2 static ykc_monitor_module_state s_ykc_monitor_module_state;
 #endif /* APP_USING_CYCLE_MATRIX */
 
 static uint16_t ykc_monitor_chargepile_stop_reason_converted(void *handle, uint16_t bit, uint8_t stop_in_starting);
@@ -1651,7 +1663,9 @@ void ykc_monitor_message_field_init(uint8_t gun)
     used_len = 0x00;
     memset(g_ykc_monitor_preq_login.body.device_id, 0x00, sizeof(g_ykc_monitor_preq_login.body.device_id));
     for(uint8_t i = 0x00; i < valid_len; i++){
-        if(pile_number[valid_len - 0x01 - i] != ' '){
+        if(((pile_number[valid_len - 0x01 - i] >= '0') && (pile_number[valid_len - 0x01 - i] <= '9')) || \
+                ((pile_number[valid_len - 0x01 - i] >= 'a') && (pile_number[valid_len - 0x01 - i] <= 'z')) || \
+                ((pile_number[valid_len - 0x01 - i] >= 'A') && (pile_number[valid_len - 0x01 - i] <= 'Z'))){
             g_ykc_monitor_preq_login.body.device_id[NET_YKC_MONITOR_DEVICE_ID_LENGTH_DEFAULT - 0x01 - used_len] = pile_number[valid_len - 0x01 - i];
             used_len++;
         }
@@ -3857,6 +3871,22 @@ static void ykc_monitor_realtime_process_thread_entry(void *parameter)
                         0x00, NET_YKC_MONITOR_EXTERNAL_PREQ_EVENT_MODULE_ALLOCATE);
             }
         }
+        /*********************************** 模块状态 ************************************/
+        /*********************************** 模块状态 ************************************/
+        /** 母机上报 */
+        if((thaisenGetChargGunRunType() == thaisenDeviceType_Matrix_Cycle) || (thaisenGetChargGunRunType() == thaisenDeviceType_Matrix_Half)){
+            /** 有枪在充电 */
+            uint32_t _tick = rt_tick_get(), interval = YKC_MONITOR_MODULE_STATE_INTERVAL_IDLE;
+
+            if(thaisen_get_pileCharging()){
+                interval = YKC_MONITOR_MODULE_STATE_INTERVAL_CHARGING;
+            }
+            if((_tick - s_ykc_monitor_module_state.base_tick) > interval){
+                s_ykc_monitor_charging_info[gunno].base_tick = _tick;
+                ykc_monitor_net_event_send(NET_YKC_MONITOR_EXTERNAL_EHANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST,  \
+                        0x00, NET_YKC_MONITOR_EXTERNAL_PREQ_EVENT_MODULE_STATE);
+            }
+        }
 #endif /* APP_USING_CYCLE_MATRIX */
 #endif /* NET_YKC_MONITOR_USING_EXTEND_PROTOCOL */
 #endif /* NET_DESIGNATE_REGION */
@@ -3942,6 +3972,7 @@ int32_t ykc_monitor_realtime_process_init(void)
         memset(&s_ykc_monitor_lock_module, 0x00, sizeof(s_ykc_monitor_lock_module));
 #ifdef APP_USING_CYCLE_MATRIX
         memset(&s_ykc_monitor_mallocate_info, 0x00, sizeof(s_ykc_monitor_mallocate_info));
+        memset(&s_ykc_monitor_module_state, 0x00, sizeof(s_ykc_monitor_module_state));
 #endif /* APP_USING_CYCLE_MATRIX */
 #endif /* NET_YKC_MONITOR_AS_MONITOR */
     }
@@ -6428,7 +6459,7 @@ static int32_t ykc_monitor_config_info_process_function_config_info(uint8_t opti
         }else{
             response->v2g_mode = NET_ENUM_FALSE;
         }
-        _config = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INEN_ELIMINATE_MODULE, 0x00));
+        _config = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_SUPORT_ELIMINATE_MODULE, 0x00));
         if(_config == CONFIG_ENABLE_ENUM){
             response->v2g_mode = NET_ENUM_TRUE;
         }else{
@@ -9262,6 +9293,71 @@ void ykc_monitor_module_allocate_log_callback(uint8_t *log, uint8_t log_len)
     memset(&s_ykc_monitor_mallocate_info.log[s_ykc_monitor_mallocate_info.count], 0x00, sizeof(s_ykc_monitor_mallocate_info.log[0x00]));
     memcpy(s_ykc_monitor_mallocate_info.log[s_ykc_monitor_mallocate_info.count], log, log_len);
     s_ykc_monitor_mallocate_info.count++;
+#endif /* APP_USING_CYCLE_MATRIX */
+}
+
+/*************************************************
+ * 函数名      ykc_monitor_mstate_info_padding
+ * 功能          组包：填充模块状态信息
+ * **********************************************/
+int8_t ykc_monitor_mstate_info_padding(uint8_t *buf, uint16_t ilen, uint16_t *olen)
+{
+#ifdef APP_USING_CYCLE_MATRIX
+    uint16_t total = (sizeof(Net_YkcMonitorPro_PreqReportInfo_t) + 0x01);
+    uint8_t valid_len = (sizeof(s_ykc_monitor_mallocate_info.log_len) /sizeof(s_ykc_monitor_mallocate_info.log_len[0x00]));
+
+    if(buf == NULL){
+        return -0x01;
+    }
+    if(ilen < (total + valid_len + (valid_len *sizeof(s_ykc_monitor_mallocate_info.log[0x00])))){
+        return -0x02;
+    }
+
+    Net_YkcMonitorPro_PreqReportInfo_t *message = (Net_YkcMonitorPro_PreqReportInfo_t*)buf;
+    struct ykcm_alloc_info *alloc_info = NULL;
+    uint8_t *info_group = NULL;
+
+    memset(message, 0x00, ilen);
+    alloc_info = (struct ykcm_alloc_info*)(buf + sizeof(Net_YkcMonitorPro_PreqReportInfo_t) - NET_YKC_MONITOR_PROTOCOL_CHECK_REGION_SIZE);
+    info_group = (&(alloc_info->group_num) + 0x01);
+
+    rt_enter_critical();
+
+    if(s_ykc_monitor_mallocate_info.count == 0x00){
+        rt_exit_critical();
+        return -0x03;
+    }
+    if(s_ykc_monitor_mallocate_info.count > valid_len){
+        s_ykc_monitor_mallocate_info.count = valid_len;
+    }
+    message->body.gunno = 0xFF;
+    message->body.info_type = 0x00;
+    message->body.msg_version = 0x00;
+    alloc_info->group_num = s_ykc_monitor_mallocate_info.count;
+
+    for(uint8_t i = 0x00; i < alloc_info->group_num; i++){
+        info_group[0x00] = s_ykc_monitor_mallocate_info.log_len[i];
+        if(info_group[0x00] > sizeof(s_ykc_monitor_mallocate_info.log[0x00])){
+            info_group[0x00] = sizeof(s_ykc_monitor_mallocate_info.log[0x00]);
+        }
+        memcpy((info_group + 0x01), s_ykc_monitor_mallocate_info.log[i], info_group[0x00]);
+
+        total += (info_group[0x00] + 0x01);
+        info_group += (info_group[0x00] + 0x01);
+    }
+    s_ykc_monitor_mallocate_info.count = 0x00;
+
+    rt_exit_critical();
+
+    memcpy(message->body.pile_number, g_ykc_monitor_preq_login.body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
+
+    if(olen){
+        *olen = total;
+    }
+
+    return 0x00;
+#else
+    return -0x01;
 #endif /* APP_USING_CYCLE_MATRIX */
 }
 
