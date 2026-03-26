@@ -3882,7 +3882,7 @@ static void ykc_monitor_realtime_process_thread_entry(void *parameter)
                 interval = YKC_MONITOR_MODULE_STATE_INTERVAL_CHARGING;
             }
             if((_tick - s_ykc_monitor_module_state.base_tick) > interval){
-                s_ykc_monitor_charging_info[gunno].base_tick = _tick;
+                s_ykc_monitor_module_state.base_tick = _tick;
                 ykc_monitor_net_event_send(NET_YKC_MONITOR_EXTERNAL_EHANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_REQUEST,  \
                         0x00, NET_YKC_MONITOR_EXTERNAL_PREQ_EVENT_MODULE_STATE);
             }
@@ -9261,8 +9261,6 @@ int8_t ykc_monitor_mallocate_info_padding(uint8_t *buf, uint16_t ilen, uint16_t 
 
     rt_exit_critical();
 
-    memcpy(message->body.pile_number, g_ykc_monitor_preq_login.body.pile_number, NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT);
-
     if(olen){
         *olen = total;
     }
@@ -9304,49 +9302,89 @@ void ykc_monitor_module_allocate_log_callback(uint8_t *log, uint8_t log_len)
 int8_t ykc_monitor_mstate_info_padding(uint8_t *buf, uint16_t ilen, uint16_t *olen)
 {
 #ifdef APP_USING_CYCLE_MATRIX
-    uint16_t total = (sizeof(Net_YkcMonitorPro_PreqReportInfo_t) + 0x01);
-    uint8_t valid_len = (sizeof(s_ykc_monitor_mallocate_info.log_len) /sizeof(s_ykc_monitor_mallocate_info.log_len[0x00]));
+    uint16_t total = sizeof(Net_YkcMonitorPro_Preq_ModuleState_t);
 
     if(buf == NULL){
         return -0x01;
     }
-    if(ilen < (total + valid_len + (valid_len *sizeof(s_ykc_monitor_mallocate_info.log[0x00])))){
+    if(ilen < total){
         return -0x02;
     }
-
-    Net_YkcMonitorPro_PreqReportInfo_t *message = (Net_YkcMonitorPro_PreqReportInfo_t*)buf;
-    struct ykcm_alloc_info *alloc_info = NULL;
-    uint8_t *info_group = NULL;
-
-    memset(message, 0x00, ilen);
-    alloc_info = (struct ykcm_alloc_info*)(buf + sizeof(Net_YkcMonitorPro_PreqReportInfo_t) - NET_YKC_MONITOR_PROTOCOL_CHECK_REGION_SIZE);
-    info_group = (&(alloc_info->group_num) + 0x01);
-
-    rt_enter_critical();
-
-    if(s_ykc_monitor_mallocate_info.count == 0x00){
-        rt_exit_critical();
+    /** 母机上报 */
+    if((thaisenGetChargGunRunType() != thaisenDeviceType_Matrix_Cycle) && (thaisenGetChargGunRunType() != thaisenDeviceType_Matrix_Half)){
         return -0x03;
     }
-    if(s_ykc_monitor_mallocate_info.count > valid_len){
-        s_ykc_monitor_mallocate_info.count = valid_len;
-    }
-    message->body.gunno = 0xFF;
-    message->body.info_type = 0x00;
-    message->body.msg_version = 0x00;
-    alloc_info->group_num = s_ykc_monitor_mallocate_info.count;
 
-    for(uint8_t i = 0x00; i < alloc_info->group_num; i++){
-        info_group[0x00] = s_ykc_monitor_mallocate_info.log_len[i];
-        if(info_group[0x00] > sizeof(s_ykc_monitor_mallocate_info.log[0x00])){
-            info_group[0x00] = sizeof(s_ykc_monitor_mallocate_info.log[0x00]);
+    Net_YkcMonitorPro_Preq_ModuleState_t *message = (Net_YkcMonitorPro_Preq_ModuleState_t*)buf;
+    moduleStepInfo_t module_sub_info;
+    uint16_t base_info_len = sizeof(struct ykcm_module_status) + sizeof(struct ykcm_module_fault) + sizeof(struct ykcm_mout_info) + sizeof(struct ykcm_mstep_info);
+    uint16_t sub_info_len = sizeof(struct ykcm_mstep_record);
+    uint8_t *info_ptr = NULL, mgroup = 0x00, module_num = 0x00;
+
+    memset(message, 0x00, ilen);
+    info_ptr = (uint8_t*)(buf + sizeof(Net_YkcMonitorPro_Preq_ModuleState_t) - NET_YKC_MONITOR_PROTOCOL_CHECK_REGION_SIZE);
+
+    mgroup = *(sys_read_config_item_content(CONFIG_ITEM_MODULE_GROUP_NUM, 0x00));
+    if(mgroup > MODULE_GROUP_NUMBER_MAX){
+        mgroup = MODULE_GROUP_NUMBER_MAX;
+    }
+    /** 计算总模块数 */
+    message->body.module_num = 0x00;
+    for(uint8_t i = 0x00; i < mgroup; i++){
+        module_num = *(sys_read_config_item_content((CONFIG_ITEM_MODULE_NUM_GROUP_1 + i), 0x00));
+        if(module_num > MODULE_NUMBER_SINGLE_MAX){
+            module_num = MODULE_NUMBER_SINGLE_MAX;
         }
-        memcpy((info_group + 0x01), s_ykc_monitor_mallocate_info.log[i], info_group[0x00]);
-
-        total += (info_group[0x00] + 0x01);
-        info_group += (info_group[0x00] + 0x01);
+        message->body.module_num += module_num;
     }
-    s_ykc_monitor_mallocate_info.count = 0x00;
+    /** 报文最大长度判断 */
+    if((uint32_t)(total + (base_info_len *message->body.module_num)) > ilen){
+        return -0x04;
+    }
+    total += (base_info_len *message->body.module_num);
+
+    rt_enter_critical();
+    /** 开始填充模块基本数据信息 */
+    for(uint8_t i = 0x00; i < message->body.module_num; i++){
+        /** 填充模块状态信息 */
+        ((struct ykcm_module_status*)info_ptr)->online_state = thaisen_module_getModuleWorkSta(i + 0x01);
+        ((struct ykcm_module_status*)info_ptr)->ctrl = thaisen_guowang_get_groupctrlcmd(i + 0x01);
+        /** 填充模块故障信息(其它报文(0xDF)，此处不填) */
+        info_ptr += sizeof(struct ykcm_module_status);
+        /** 填充模块输出信息 */
+        info_ptr += sizeof(struct ykcm_module_fault);
+        ((struct ykcm_mout_info*)info_ptr)->belong_group = thaisen_module_getModuleGroupNum(i + 0x01);
+        ((struct ykcm_mout_info*)info_ptr)->out_voltage = thaisen_module_getDcOutputVolt(i + 0x01);
+        ((struct ykcm_mout_info*)info_ptr)->out_current = thaisen_module_getDcOutputCurr(i + 0x01);
+        if(((struct ykcm_mout_info*)info_ptr)->belong_group > 0x00){
+            ((struct ykcm_mout_info*)info_ptr)->request_voltage = thaisen_guowang_get_groupctrlvolt(((struct ykcm_mout_info*)info_ptr)->belong_group);
+            ((struct ykcm_mout_info*)info_ptr)->request_current = thaisen_guowang_get_groupctrlcurr(((struct ykcm_mout_info*)info_ptr)->belong_group);
+        }
+
+        info_ptr += sizeof(struct ykcm_mout_info);
+    }
+    /** 开始填充模块子数据信息 */
+    for(uint8_t i = 0x00; i < message->body.module_num; i++){
+        module_sub_info = thaisen_get_moduleStepInfo(i + 0x01);
+        /** 报文最大长度判断 */
+        if((uint32_t)(total + (sub_info_len *module_sub_info.ofsmStepCnt)) > ilen){
+            rt_exit_critical();
+            return -0x04;
+        }
+        total += (sub_info_len *module_sub_info.ofsmStepCnt);
+
+        ((struct ykcm_mstep_info*)info_ptr)->target_gunno = module_sub_info.aimGunNum;
+        ((struct ykcm_mstep_info*)info_ptr)->ofsm_step_count = module_sub_info.ofsmStepCnt;
+
+        info_ptr += sizeof(struct ykcm_mstep_info);
+        for(uint8_t j = 0x00; j < module_sub_info.ofsmStepCnt; j++){
+            ((struct ykcm_mstep_record*)info_ptr)->step = module_sub_info.buf[j].step;
+            ((struct ykcm_mstep_record*)info_ptr)->system_tick = module_sub_info.buf[j].sysTick;
+            info_ptr += sub_info_len;
+        }
+        /** 清除数据 */
+        thaisen_clean_moduleStepInfo((i + 0x01), module_sub_info.ofsmStepCnt);
+    }
 
     rt_exit_critical();
 
@@ -9355,7 +9393,6 @@ int8_t ykc_monitor_mstate_info_padding(uint8_t *buf, uint16_t ilen, uint16_t *ol
     if(olen){
         *olen = total;
     }
-
     return 0x00;
 #else
     return -0x01;

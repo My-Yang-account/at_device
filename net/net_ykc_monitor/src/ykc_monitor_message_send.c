@@ -639,8 +639,10 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
 #ifdef NET_YKC_MONITOR_AS_MONITOR
 #ifdef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL
     /** 正式 */
-    char *host = "monitor.thaisen.cn";
-    uint16_t port = 9003;
+    //    char *host = "monitor.thaisen.cn";
+    //    uint16_t port = 9003;
+        char *host = "139.198.163.108";
+        uint16_t port = 9103;
 #else
     /** 正式 */
     char *host = "device.thaisen.cn";

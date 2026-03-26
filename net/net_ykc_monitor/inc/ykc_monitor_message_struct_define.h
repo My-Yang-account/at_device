@@ -1795,28 +1795,64 @@ typedef struct{
 }Net_YkcMonitorPro_Preq_Pres_SetVoltCurr_t;
 
 /** 0xD5 模块状态信息帧 */
-/** 模块状态组 */
-struct ykcm_mstate_group{
-    struct{
-        uint8_t run_state : 2;                   /* 运行状态 */
-        uint8_t reserve : 2;                     /* 预留 */
-        uint8_t ctrl : 4;                        /* 控制信息 */
-    }status;
-    uint16_t fault;                              /* 故障信息 */
-    uint8_t grp_sn;                              /* 组号 */
-    uint16_t request_voltage;                    /* 设置的电压(0.1V) */
-    uint16_t request_current;                    /* 设置的电流(0.01A) */
-    uint16_t out_voltage;                        /* 设置的电压(0.1V) */
-    uint16_t out_current;                        /* 设置的电流(0.01A) */
+/** 模块状态信息 */
+struct ykcm_module_status{
+    uint8_t online_state : 2;                /* 在线状态 */
+    uint8_t warnning : 1;                    /* 告警 */
+    uint8_t fault : 1;                       /* 故障 */
+    uint8_t ctrl : 4;                        /* 控制信息 */
+};
+/** 模块故障信息 */
+struct ykcm_module_fault{
+    uint16_t otherfault : 1;                 /* 其它故障 */
+    uint16_t ventfault : 1;                  /* 泄放故障 */
+    uint16_t fansfault : 1;                  /* 风扇故障 */
+    uint16_t dcshort : 1;                    /* 直流接触器故障 */
+    uint16_t overtemp : 1;                   /* 过温故障 */
+    uint16_t outputundervolt : 1;            /* 输出欠压故障 */
+    uint16_t outputovervolt : 1;             /* 输出过压故障 */
+    uint16_t inputfault : 1;                 /* 交流输入故障 */
+    uint16_t reserve : 8;                    /* 预留 */
+};
+/** 模块输出信息 */
+struct ykcm_mout_info{
+    uint8_t belong_group;                    /* 模块所属组号 */
+    uint16_t request_voltage;                /* 设置的电压(0.1V) */
+    uint16_t request_current;                /* 设置的电流(0.01A) */
+    uint16_t out_voltage;                    /* 设置的电压(0.1V) */
+    uint16_t out_current;                    /* 设置的电流(0.01A) */
+};
+/** 模块步骤记录 */
+struct ykcm_mstep_record{
+    uint8_t step;
+    uint32_t system_tick;
+};
+/** 模块步骤信息 */
+struct ykcm_mstep_info{
+    uint8_t target_gunno;                    /* 目标枪号 */
+    uint8_t ofsm_step_count;                 /* 跳转次数 */
+#if 0
+    struct ykcm_mstep_record record[n];      /* 用于保存状态机跳转信息 */
+#endif
 };
 
 typedef struct{
     Net_YkcMonitorPro_Head_t head;
     struct{
         uint8_t pile_number[NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT];  /* 桩号*/
-        uint8_t group_num;                                               /* 模块组数 */
+        uint8_t module_num;                                              /* 模块数 */
 #if 0
-        struct ykcm_mstate_group pair[n];                                /* 模块状态信息 */
+        (n 个)
+        {
+            struct ykcm_module_status status[n];
+            struct ykcm_module_fault fault[n];
+            struct ykcm_mout_info out_info[n];
+        }
+
+        (n 个)
+        {
+            struct ykcm_mstep_info step_info[n];                         /* 模块状态信息 */
+        }
 #endif
     }body;
     uint16_t check_sum;                          /* 校验码 */
@@ -2363,7 +2399,6 @@ struct ykcm_alloc_info{
 typedef struct{
     Net_YkcMonitorPro_Head_t head;
     struct{
-        uint8_t pile_number[NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT];  /* 桩号*/
         uint8_t gunno;                           /* 枪号(有效枪号 1-0xFE, 0xFF 代表整机) */
         uint8_t info_type;                       /* 信息类型0：模块分配信息 */
         uint8_t msg_version;                     /* 报文版本(初始版本为0) */
