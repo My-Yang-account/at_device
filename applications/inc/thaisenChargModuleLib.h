@@ -845,6 +845,31 @@ void thaisenSetEnableModuleOperateState(uint8_t state);
  */
 uint8_t thaisenGetEnableModuleOperateState(void);
 
+/*************************************************** 剔除故障模块功能 ****************************************************/
+/* 功能说明:
+ *          thaisenModuleSetEliminateModuleState: 设置剔除模块功能使能状态
+ *
+ * 输入参数:   state      状态   0：不使能      1：使能
+ *
+ * 返回参数:
+ *
+ * 调用方法:
+ *          可实时调用
+ */
+void thaisenModuleSetEliminateModuleState(uint8_t state);
+
+/* 功能说明:
+ *          thaisenModuleGetEliminateModuleState: 获取剔除模块功能使能状态
+ *
+ * 输入参数:
+ *
+ * 返回参数:  状态   0：不使能      1：使能
+ *
+ * 调用方法:
+ *          可实时调用
+ */
+uint8_t thaisenModuleGetEliminateModuleState(void);
+
 /* 功能说明:
  *          thaisenSetIncludeAcRelayState: 设置是否包含交流接触器状态
  *

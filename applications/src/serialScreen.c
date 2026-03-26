@@ -6451,8 +6451,8 @@ void SerialScreen_CmdDebugInfoSet(void)
     if(LcdData.setData.DebugCmdPara_GBT_ELock != LcdData.setData.DebugCmdPara_GBT_ELockTemp){
         u8 data = CONFIG_ENABLE_ENUM;
 
-        if(LcdData.setData.DebugCmdPara_GBT_ELock > TRUE)
-            LcdData.setData.DebugCmdPara_GBT_ELock = FALSE;
+        if(LcdData.setData.DebugCmdPara_GBT_ELockTemp > TRUE)
+            LcdData.setData.DebugCmdPara_GBT_ELockTemp = FALSE;
         LcdData.setData.DebugCmdPara_GBT_ELock = LcdData.setData.DebugCmdPara_GBT_ELockTemp;
         if(LcdData.setData.DebugCmdPara_GBT_ELock == FALSE)
             data = CONFIG_DISABLE_ENUM;
@@ -6464,8 +6464,8 @@ void SerialScreen_CmdDebugInfoSet(void)
     if(LcdData.setData.DebugCmdPara_GBT_OC != LcdData.setData.DebugCmdPara_GBT_OCTemp){
         u8 data = CONFIG_ENABLE_ENUM;
 
-        if(LcdData.setData.DebugCmdPara_GBT_OC > TRUE)
-            LcdData.setData.DebugCmdPara_GBT_OC = FALSE;
+        if(LcdData.setData.DebugCmdPara_GBT_OCTemp > TRUE)
+            LcdData.setData.DebugCmdPara_GBT_OCTemp = FALSE;
         LcdData.setData.DebugCmdPara_GBT_OC = LcdData.setData.DebugCmdPara_GBT_OCTemp;
         if(LcdData.setData.DebugCmdPara_GBT_OC == FALSE)
             data = CONFIG_DISABLE_ENUM;
@@ -7960,9 +7960,9 @@ void SerialScreen_IsSupportSetFlash(void)
     }
     /** 剔除模块配置 */
     if(LcdData.setData.Sup_EliminateModule){
-        rt_kprintf("server issue enable eliminate module function\n");
+        thaisenModuleSetEliminateModuleState(TRUE);
     }else{
-        rt_kprintf("server issue disable eliminate module function\n");
+        thaisenModuleSetEliminateModuleState(FALSE);
     }
 }
 
@@ -9105,12 +9105,6 @@ void SerialScreen_IsSupportGet(void)
     }
 #endif /* SCREEN_USING_V2G */
 
-    /** 剔除模块配置 */
-    if(LcdData.setData.Sup_EliminateModule){
-        rt_kprintf("server issue enable eliminate module function\n");
-    }else{
-        rt_kprintf("server issue disable eliminate module function\n");
-    }
     if(LcdData.setData.sup_insulation == FALSE){
         function_disable = 1;
     }else{
@@ -9124,8 +9118,12 @@ void SerialScreen_IsSupportGet(void)
     }else{
         thaisenSetYouYouSlienceMode(1);
     }
-
-	sSCREEN_EVENT_DEBUGMSG("Get sup_Local=%d sup_VIN=%d\r\n",LcdData.setData.sup_Local,LcdData.setData.sup_VIN );
+    /** 剔除模块配置 */
+    if(LcdData.setData.Sup_EliminateModule){
+        thaisenModuleSetEliminateModuleState(TRUE);
+    }else{
+        thaisenModuleSetEliminateModuleState(FALSE);
+    }
 }
 
 void SerialScreen_InputInfoGet(void)
