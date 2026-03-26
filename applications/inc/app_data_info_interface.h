@@ -957,6 +957,11 @@ uint8_t thaisen_is_set_reservation_mode(uint8_t gunno);
 void thaisen_clear_reservation_mode_flag(uint8_t gunno);
 
 /**
+ *  复位充电模式信息
+ **/
+void thaisen_reset_charge_mode_info(uint8_t gunno);
+
+/**
  * 获取离线计费卡信息
  **/
 struct offline_billing_card_info{

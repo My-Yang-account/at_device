@@ -253,6 +253,7 @@ enum thaisen_charge_mode SerialScreen_Screen_GetCurrentChargeMode(u8 port);
 u32 SerialScreen_Screen_GetChargeModeParameter(u8 port);
 u8 SerialScreen_Screen_IsSetReservationMode(u8 port);
 void SerialScreen_Screen_ClearReservationModeFlag(u8 port);
+void SerialScreen_Screen_ResetModeInfoDef(u8 port);
 /********************************输出信息*******************************************/
 void SerialScreen_AcIsSupportOutSet(void);
 void SerialScreen_ElockIsSupportOutSet(void);

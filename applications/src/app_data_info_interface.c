@@ -1975,6 +1975,17 @@ void thaisen_clear_reservation_mode_flag(uint8_t gunno)
 }
 
 /**************************************************************************
+ * 函数名      thaisen_reset_charge_mode_info
+ * 功能         复位充电模式信息
+ * 参数          gunno     枪号
+ * 返回
+ *************************************************************************/
+void thaisen_reset_charge_mode_info(uint8_t gunno)
+{
+    SerialScreen_Screen_ResetModeInfoDef(gunno);
+}
+
+/**************************************************************************
  * 函数名      thaisen_get_offline_billing_card_info
  * 功能         获取离线计费卡信息
  * 参数          gunno     枪号

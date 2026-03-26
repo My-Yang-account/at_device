@@ -1755,7 +1755,7 @@ static uint8_t SerialScreen_Screen_ConvertChargeMode(u8 mode)
     return CP_MODE_SIZE;
 }
 
-static void SerialScreen_Screen_ResetModeInfoDef(u8 port)
+void SerialScreen_Screen_ResetModeInfoDef(u8 port)
 {
     if(port >= LCD_GUN_NUM)
         return ;
@@ -18654,7 +18654,10 @@ int SerialScreen_DataProcess()
                 LcdAssistantData.SeveralGunFlag[i].IsVinStart = FALSE;
 
 				LcdData.gun[i].workState = SysMainStatus_StandBy;
-		        SerialScreen_Screen_ResetModeInfoDef(i);
+				/** 预约充电模式信息单独控制 */
+				if(LcdData.setData.CurrentMode[i][THAISEN_CHARGE_MODE_LIMIT_RESERVATION] != TRUE){
+	                SerialScreen_Screen_ResetModeInfoDef(i);
+				}
                 /** 密码鉴权期间不允许清除鉴权标志 */
                 if((LcdData.CurrentPage != LCD_PAGE_ADMIN_PASWD) && (LcdData.CurrentPage != LCD_PAGE_PASWD_ERR)){
                     LcdAssistantData.SeveralGunFlag[i].IsPWStartAuthen = FALSE;
@@ -18705,14 +18708,20 @@ int SerialScreen_DataProcess()
                 LcdAssistantData.SeveralGunFlag[i].IsPWStartAuthen = FALSE;
                 LcdAssistantData.SeveralGunFlag[i].IsLocalStart = FALSE;
                 LcdAssistantData.SeveralGunFlag[i].IsStarting = FALSE;
-                SerialScreen_Screen_ResetModeInfoDef(i);
+                /** 预约充电模式信息单独控制 */
+                if(LcdData.setData.CurrentMode[i][THAISEN_CHARGE_MODE_LIMIT_RESERVATION] != TRUE){
+                    SerialScreen_Screen_ResetModeInfoDef(i);
+                }
 				break;	
 			case APP_OFSM_STATE_FINISHING:
 				LcdData.gun[i].workState = SysMainStatus_Account;
 		        LcdAssistantData.SeveralGunFlag[i].IsPWStartAuthen = FALSE;
 	            LcdAssistantData.SeveralGunFlag[i].IsLocalStart = FALSE;
                 LcdAssistantData.SeveralGunFlag[i].IsStarting = FALSE;
-                SerialScreen_Screen_ResetModeInfoDef(i);
+                /** 预约充电模式信息单独控制 */
+                if(LcdData.setData.CurrentMode[i][THAISEN_CHARGE_MODE_LIMIT_RESERVATION] != TRUE){
+                    SerialScreen_Screen_ResetModeInfoDef(i);
+                }
 				break;
 			case APP_OFSM_STATE_FAULTING:
 				LcdData.gun[i].workState = SysMainStatus_Err;

@@ -2560,10 +2560,12 @@ static void ofsm_readying_fun(uint8_t gunno)
                 s_ofsm_info[gunno].base.flag.is_oncard_authenticating = APP_THA_ENUM_FALSE;
                 s_ofsm_info[gunno].base.flag.is_oncard_reservated = APP_THA_ENUM_FALSE;
                 app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
+                thaisen_reset_charge_mode_info(gunno);
             }else if(app_nsal_is_card_authorize_success(gunno) || app_nsal_is_card_authorize_fail(gunno)){
                 s_ofsm_info[gunno].base.oncard_authen_time = 0x00;
                 s_ofsm_info[gunno].base.flag.is_oncard_authenticating = APP_THA_ENUM_FALSE;
                 s_ofsm_info[gunno].base.flag.is_oncard_reservated = APP_THA_ENUM_FALSE;
+                thaisen_reset_charge_mode_info(gunno);
             }
         }else if(s_ofsm_info[gunno].base.run_mode == APP_RUN_MODE_PLUG_AND_PLAY){
             LOG_D("gunno(%d) start charge by plug and play", gunno);
@@ -2613,6 +2615,9 @@ static void ofsm_readying_fun(uint8_t gunno)
         }else if(app_nsal_is_card_authorize_success(gunno)){
             app_nsal_clear_remote_card_authorize(gunno);
 
+            if(s_ofsm_info[gunno].base.flag.is_oncard_authenticating == APP_THA_ENUM_TRUE){
+                thaisen_reset_charge_mode_info(gunno);
+            }
             LOG_D("gunno(%d) start charge by online card", gunno);
             ofsm_start_info_padding_online_card(gunno);
             is_charging_authorization = true;
@@ -2624,6 +2629,10 @@ static void ofsm_readying_fun(uint8_t gunno)
 
         }else if(app_nsal_is_card_authorize_fail(gunno)){
             app_nsal_clear_remote_card_authorize(gunno);
+
+            if(s_ofsm_info[gunno].base.flag.is_oncard_authenticating == APP_THA_ENUM_TRUE){
+                thaisen_reset_charge_mode_info(gunno);
+            }
             LOG_W("gunno(%d) swip card authorize response fail", gunno);
 
             app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
@@ -2701,6 +2710,8 @@ static void ofsm_readying_fun(uint8_t gunno)
                             }
                             if(s_ofsm_info[gunno].base.flag.is_reser_normal_started == APP_THA_ENUM_FALSE){
                                 continue_reservation = APP_THA_ENUM_TRUE;
+                            }else{
+                                thaisen_reset_charge_mode_info(gunno);
                             }
                             s_ofsm_info[gunno].base.flag.is_reser_normal_started = APP_THA_ENUM_TRUE;   /** 如果能正常预约到启动，就说明已经进行过一次充电 */
                             s_ofsm_info[gunno].base.reservation_strategy = (APP_RESERVATE_STRATEGY_PULLGUN_CANCEL |APP_RESERVATE_STRATEGY_FAULT_CANCEL |APP_RESERVATE_STRATEGY_START_DIRECTLY);
@@ -2710,6 +2721,8 @@ static void ofsm_readying_fun(uint8_t gunno)
                             if((s_ofsm_info[gunno].base.flag.is_reser_normal_started == APP_THA_ENUM_FALSE) && \
                                     (s_ofsm_info[gunno].base.flag.is_reser_timeout_started == APP_THA_ENUM_FALSE)){
                                 continue_reservation = APP_THA_ENUM_TRUE;
+                            }else{
+                                thaisen_reset_charge_mode_info(gunno);
                             }
                             s_ofsm_info[gunno].base.reservation_time_remain = 0x00;
                             s_ofsm_info[gunno].base.flag.is_reser_timeout_started = APP_THA_ENUM_TRUE;
@@ -3413,6 +3426,9 @@ static void ofsm_reservation_fun(uint8_t gunno)
 #if (defined(APP_USING_LV_MODULE_BMS) && defined(APP_USING_OFFLINE_BILLING))
             mw_enable_auxiliary_power(gunno);
 #endif /* (defined(APP_USING_LV_MODULE_BMS) && defined(APP_USING_OFFLINE_BILLING)) */
+            if(s_ofsm_info[gunno].base.start_type == APP_CHARGE_START_WAY_RESERVATION){
+                thaisen_reset_charge_mode_info(gunno);
+            }
             s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_STARTING];
             s_ofsm_info[gunno].state = APP_OFSM_STATE_STARTING;
         }
