@@ -1353,6 +1353,28 @@ void thaisen_guowang_moduledebug_disable(uint8_t groupnum);
  */
 void thaisen_guowang_set_controlparam(uint8_t groupnum, uint8_t cmd, uint16_t volt, uint16_t curr, uint16_t batvolt);
 
+/**
+ * @brief 获取模块组控制字
+ * @param groupnum 1~
+ * @return 0x01 - 快速开机，0x02 - 关机，0x03 - 软启，0x04 - ，0x05 - 调参，0x06 - 关机
+ */
+uint8_t thaisen_guowang_get_groupctrlcmd(uint8_t groupnum);
+
+/**
+ * @brief 获取模块组控制电压
+ * @param groupnum 1~
+ * @return 0.1V
+ */
+uint16_t thaisen_guowang_get_groupctrlvolt(uint8_t groupnum);
+
+/**
+ * @brief 获取模块组控制电流
+ * @param groupnum 1~
+ * @return 0.01A
+ */
+uint16_t thaisen_guowang_get_groupctrlcurr(uint8_t groupnum);
+
+
 /***************[以上函数供模块调试使用，充电流程通过设置枪功率分配的模块不需要调用以下函数  - End]*****************/
 
 /**
@@ -1430,6 +1452,14 @@ uint16_t thaisen_module_getDcOutputVolt(uint8_t moduleNum);
  * @return
  */
 uint8_t thaisen_module_getModuleGroupNum(uint8_t moduleNum);
+
+/**
+ * @brief 获取模块工作状态
+ * @param moduleNum 1~
+ * @return 0 - 离线；1 - 在线；2 - 运行；3 - 故障
+ */
+uint8_t thaisen_module_getModuleWorkSta(uint8_t moduleNum);
+
 
 /*********************************************************************************************************************/
 /*********************************************************************************************************************/
