@@ -1660,6 +1660,7 @@ void ykc_monitor_message_field_init(uint8_t gun)
 
     pile_number = (uint8_t*)(s_ykc_monitor_handle->get_system_data(NET_SYSTEM_DATA_NAME_DEVICE_ID, NULL, 0x00, option));
     valid_len = strlen((char*)pile_number);
+    valid_len = valid_len > 128 ? 128 : valid_len;   /** 目前设备ID最大长度：128 */
     used_len = 0x00;
     memset(g_ykc_monitor_preq_login.body.device_id, 0x00, sizeof(g_ykc_monitor_preq_login.body.device_id));
     for(uint8_t i = 0x00; i < valid_len; i++){

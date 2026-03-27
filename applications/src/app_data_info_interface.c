@@ -1871,6 +1871,17 @@ uint16_t thaisen_get_gbt_oc_detect_time(void)
 }
 
 /********************************************
+ * 函数名      thaisen_is_auxpower_changed
+ * 功能         判断辅源是否已选择
+ * 参数         gunno      枪号
+ * 返回          1:已选    0:未选
+ *******************************************/
+uint8_t thaisen_is_auxpower_changed(uint8_t gunno)
+{
+    return SerialScreen_Screen_IsAuxpowerChanged(gunno);
+}
+
+/********************************************
  * 函数名      thaisen_get_cmd_debug_result_info
  * 功能          获取指令调试结果信息
  * 参数         gunno        枪号

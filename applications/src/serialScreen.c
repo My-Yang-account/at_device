@@ -416,6 +416,7 @@ struct LCD_ASSISTANT_DATA{
         u16 IsSetReservation : 1;        //已设置预约
         u16 IsLocalStart : 1;            //是本地启动
         u16 IsStarting : 1;              //已启动
+        u16 auxpowerChanged : 1;         //辅源已选择
     }SeveralGunFlag[LCD_GUN_NUM];
 
     u8 OccupyGunNum;                     //处于占用但未充电的枪数量
@@ -1587,6 +1588,14 @@ u8 SerialScreen_Screen_IsCouDownFin_Flag(u8 port)
 u16 SerialScreen_Screen_GetGBTOCTime(void)
 {
     return LcdData.setData.DebugCmdPara_GBT_OCTime;
+}
+
+/* 辅源已选择 */
+u8 SerialScreen_Screen_IsAuxpowerChanged(u8 port)
+{
+    if(port >= LCD_GUN_NUM)
+        return FALSE;
+    return LcdAssistantData.SeveralGunFlag[port].auxpowerChanged;
 }
 
 enum thaisen_charge_mode SerialScreen_Screen_GetCurrentChargeMode(u8 port)
@@ -13138,9 +13147,11 @@ void SerialScreen_AuxsetA()
             if(LcdData.setData.s_selectaux[LCD_GUN_1] == (ICON_AUXPOWER_12V + 2 *LCD_GUN_1)){
                 LcdData.setData.s_selectaux[LCD_GUN_1] = (ICON_AUXPOWER_24V + 2 *LCD_GUN_1);
                 thaisenSetAuxPowerTypeA(thaisen_auxPowerType_24V);
+                LcdAssistantData.SeveralGunFlag[LCD_GUN_1].auxpowerChanged = TRUE;
             }else{
                 LcdData.setData.s_selectaux[LCD_GUN_1] = (ICON_AUXPOWER_12V + 2 *LCD_GUN_1);
                 thaisenSetAuxPowerTypeA(thaisen_auxPowerType_12V);
+                LcdAssistantData.SeveralGunFlag[LCD_GUN_1].auxpowerChanged = TRUE;
             }
         }
     }
@@ -13153,9 +13164,11 @@ void SerialScreen_AuxsetB()
             if(LcdData.setData.s_selectaux[LCD_GUN_2] == (ICON_AUXPOWER_12V + 2 *LCD_GUN_2)){
                 LcdData.setData.s_selectaux[LCD_GUN_2] = (ICON_AUXPOWER_24V + 2 *LCD_GUN_2);
                 thaisenSetAuxPowerTypeB(thaisen_auxPowerType_24V);
+                LcdAssistantData.SeveralGunFlag[LCD_GUN_2].auxpowerChanged = TRUE;
             }else{
                 LcdData.setData.s_selectaux[LCD_GUN_2] = (ICON_AUXPOWER_12V + 2 *LCD_GUN_2);
                 thaisenSetAuxPowerTypeB(thaisen_auxPowerType_12V);
+                LcdAssistantData.SeveralGunFlag[LCD_GUN_2].auxpowerChanged = TRUE;
             }
         }
     }
@@ -13171,6 +13184,7 @@ void SerialScreen_AuxsetA_New()
                 LcdData.setData.s_selectaux[LCD_GUN_1] = (ICON_AUXPOWER_12V + 2 *LCD_GUN_1);
                 thaisenSetAuxPowerTypeA(thaisen_auxPowerType_12V);
                 LcdAssistantData.SeveralGunFlag[LCD_GUN_1].Aux24VNotice = FALSE;
+                LcdAssistantData.SeveralGunFlag[LCD_GUN_1].auxpowerChanged = TRUE;
             }
         }
     }
@@ -13186,6 +13200,7 @@ void SerialScreen_AuxsetB_New()
                 LcdData.setData.s_selectaux[LCD_GUN_2] = (ICON_AUXPOWER_12V + 2 *LCD_GUN_2);
                 thaisenSetAuxPowerTypeB(thaisen_auxPowerType_12V);
                 LcdAssistantData.SeveralGunFlag[LCD_GUN_2].Aux24VNotice = FALSE;
+                LcdAssistantData.SeveralGunFlag[LCD_GUN_2].auxpowerChanged = TRUE;
             }
         }
     }
@@ -13197,6 +13212,7 @@ void SerialScreen_AuxSelectVerifyA(void)
         if(LcdAssistantData.SeveralGunFlag[LCD_GUN_1].Aux24VNotice == TRUE){
             LcdData.setData.s_selectaux[LCD_GUN_1] = (ICON_AUXPOWER_24V + 2 *LCD_GUN_1);
             thaisenSetAuxPowerTypeA(thaisen_auxPowerType_24V);
+            LcdAssistantData.SeveralGunFlag[LCD_GUN_1].auxpowerChanged = TRUE;
         }
     }
     LcdAssistantData.SeveralGunFlag[LCD_GUN_1].Aux24VNotice = FALSE;
@@ -13208,6 +13224,7 @@ void SerialScreen_AuxSelectVerifyB(void)
         if(LcdAssistantData.SeveralGunFlag[LCD_GUN_2].Aux24VNotice == TRUE){
             LcdData.setData.s_selectaux[LCD_GUN_2] = (ICON_AUXPOWER_24V + 2 *LCD_GUN_2);
             thaisenSetAuxPowerTypeB(thaisen_auxPowerType_24V);
+            LcdAssistantData.SeveralGunFlag[LCD_GUN_2].auxpowerChanged = TRUE;
         }
     }
     LcdAssistantData.SeveralGunFlag[LCD_GUN_2].Aux24VNotice = FALSE;
@@ -18693,6 +18710,7 @@ int SerialScreen_DataProcess()
                     LcdAssistantData.SeveralGunFlag[i].IsLocalStart = FALSE;
                 }
                 LcdAssistantData.SeveralGunFlag[i].IsStarting = FALSE;
+                LcdAssistantData.SeveralGunFlag[i].auxpowerChanged = FALSE;
 				break;
 			case APP_OFSM_STATE_READYING:
 			case APP_OFSM_STATE_RESERVATION:
@@ -18721,6 +18739,7 @@ int SerialScreen_DataProcess()
                 LcdTriggerEvent[i].Flag.IsPayed = FALSE;
 #endif /* SCREEN_USING_OFFLINE_BILLING */
                 LcdAssistantData.SeveralGunFlag[i].IsStarting = FALSE;
+                LcdAssistantData.SeveralGunFlag[i].auxpowerChanged = FALSE;
 				break;	
 			case APP_OFSM_STATE_CHARGING:
                 if(thaisen_is_stoped_charge(i)){
@@ -18737,6 +18756,7 @@ int SerialScreen_DataProcess()
                 LcdAssistantData.SeveralGunFlag[i].IsPWStartAuthen = FALSE;
                 LcdAssistantData.SeveralGunFlag[i].IsLocalStart = FALSE;
                 LcdAssistantData.SeveralGunFlag[i].IsStarting = FALSE;
+                LcdAssistantData.SeveralGunFlag[i].auxpowerChanged = FALSE;
                 /** 预约充电模式信息单独控制 */
                 if(LcdData.setData.CurrentMode[i][THAISEN_CHARGE_MODE_LIMIT_RESERVATION] != TRUE){
                     SerialScreen_Screen_ResetModeInfoDef(i);

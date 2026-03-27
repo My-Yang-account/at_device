@@ -796,6 +796,11 @@ uint8_t thaisen_is_debug(void);
 uint16_t thaisen_get_gbt_oc_detect_time(void);
 
 /**
+ * 判断辅源是否已选择
+ **/
+uint8_t thaisen_is_auxpower_changed(uint8_t gunno);
+
+/**
  * 调试指令码
  */
 enum thaisen_debug_cmd{

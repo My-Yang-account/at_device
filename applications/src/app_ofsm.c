@@ -2305,6 +2305,9 @@ static void ofsm_idleing_fun(uint8_t gunno)
             app_nsal_state_charged(gunno);
             app_nsal_event_occurded(gunno);
             s_ofsm_info[gunno].base.battery_type = APP_BATTERY_TYPE_64V125AH;
+            if(s_ofsm_info[gunno].base.run_mode == APP_RUN_MODE_PLUG_AND_PLAY){
+                s_ofsm_info[gunno].base.plugplay_wait_time = 0x00;
+            }
         }
 #endif /* defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING) */
         break;
@@ -2319,6 +2322,9 @@ static void ofsm_idleing_fun(uint8_t gunno)
 #if (defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING))
         s_ofsm_info[gunno].base.battery_type = APP_BATTERY_TYPE_51_2V125AH;
 #endif /* defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING) */
+        if(s_ofsm_info[gunno].base.run_mode == APP_RUN_MODE_PLUG_AND_PLAY){
+            s_ofsm_info[gunno].base.plugplay_wait_time = 0x00;
+        }
         break;
     default:
         break;
@@ -2568,10 +2574,24 @@ static void ofsm_readying_fun(uint8_t gunno)
                 thaisen_reset_charge_mode_info(gunno);
             }
         }else if(s_ofsm_info[gunno].base.run_mode == APP_RUN_MODE_PLUG_AND_PLAY){
-            LOG_D("gunno(%d) start charge by plug and play", gunno);
-            ofsm_start_info_padding_plug_and_play(gunno);
-            is_charging_authorization = true;
-
+            uint8_t _start = APP_THA_ENUM_FALSE;
+            /** 支持24V辅源 */
+            if((*(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_SUPORT_AUXPOWER24V, 0x00))) == APP_THA_ENUM_TRUE){
+                /** 最长等待5s进行辅源选择 */
+                if(++s_ofsm_info[gunno].base.plugplay_wait_time >= (5000 /APP_SYSTEM_RUN_TIME_PERIOD)){
+                    _start = APP_THA_ENUM_TRUE;
+                }else if(thaisen_is_auxpower_changed(gunno)){
+                    _start = APP_THA_ENUM_TRUE;
+                    rt_thread_mdelay(1000);   /** 等待屏幕显示清楚选择 */
+                }
+            }else{
+                _start = APP_THA_ENUM_TRUE;
+            }
+            if(_start){
+                LOG_D("gunno(%d) start charge by plug and play", gunno);
+                ofsm_start_info_padding_plug_and_play(gunno);
+                is_charging_authorization = true;
+            }
         }else if(app_nsal_is_remote_start(gunno)){
             app_nsal_clear_remote_start(gunno);
             if(s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){

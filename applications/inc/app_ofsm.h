@@ -729,6 +729,7 @@ typedef struct{
     uint8_t oncard_authen_time;      /* 预约状态在线卡鉴权时基 */
 
     uint8_t gun_running_mode;        /* 枪运行模式 */
+    uint8_t plugplay_wait_time;      /* 即插即充插枪延迟启动计时时基 */
 }System_BaseData;
 
 struct ofsm_info {
