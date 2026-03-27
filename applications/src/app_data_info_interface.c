@@ -1861,6 +1861,16 @@ uint8_t thaisen_is_debug(void)
 }
 
 /********************************************
+ * 函数名      thaisen_get_gbt_oc_detect_time
+ * 功能         获取 协议测试、互操作：过流测试时的判定时长(ms)
+ * 返回          判定时长(ms)
+ *******************************************/
+uint16_t thaisen_get_gbt_oc_detect_time(void)
+{
+    return SerialScreen_Screen_GetGBTOCTime();
+}
+
+/********************************************
  * 函数名      thaisen_get_cmd_debug_result_info
  * 功能          获取指令调试结果信息
  * 参数         gunno        枪号

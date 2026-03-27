@@ -244,6 +244,7 @@ u8 SerialScreen_ScreenGet_Is_FirstPage(void);
 void SerialScreen_ScreenSet_CouDownFin_Flag(u8 sta);
 u8 SerialScreen_Screen_IsCouDownFin_Flag(u8 port);
 u8 SerialScreen_Screen_IsBebug(void);
+u16 SerialScreen_Screen_GetGBTOCTime(void);
 u8 SerialScreen_Screen_GetGunDisChargeWay(u8 port);
 u8 SerialScreen_Screen_GetGunRunMode(u8 port);
 void SerialScreen_Screen_ResetGunRunMode(u8 port);

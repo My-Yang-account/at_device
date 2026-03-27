@@ -791,6 +791,11 @@ struct card_data_info *thaisen_get_card_info(uint8_t gunno);
 uint8_t thaisen_is_debug(void);
 
 /**
+ * 获取 协议测试、互操作：过流测试时的判定时长(ms)
+ **/
+uint16_t thaisen_get_gbt_oc_detect_time(void);
+
+/**
  * 调试指令码
  */
 enum thaisen_debug_cmd{
@@ -809,6 +814,7 @@ enum thaisen_debug_cmd{
     THAISEN_DEBUG_CMD_ISSUE_SETUP_CURR_OFFSET,                   /** 调试指令码：下发设置电流偏移(0.01A) */
     THAISEN_DEBUG_CMD_ISSUE_TEL,                                 /** 调试指令码：下发协议、互操作测试：电子锁测试功能 */
     THAISEN_DEBUG_CMD_ISSUE_TOC,                                 /** 调试指令码：下发协议、互操作测试：过流测试功能 */
+    THAISEN_DEBUG_CMD_ISSUE_TOCDT,                               /** 调试指令码：下发协议、互操作测试：过流测试判定时长 */
 
     THAISEN_DEBUG_CMD_READ_MODULE_CURR_MAX,                      /** 调试指令码：读取模块最大输出电流 */
     THAISEN_DEBUG_CMD_READ_MODULE_CURR_MIN,                      /** 调试指令码：读取模块最小输出电流 */
@@ -825,6 +831,7 @@ enum thaisen_debug_cmd{
     THAISEN_DEBUG_CMD_READ_SETUP_CURR_OFFSET,                    /** 调试指令码：读取设置电流偏移(0.01A) */
     THAISEN_DEBUG_CMD_READ_TEL,                                  /** 调试指令码：读取协议、互操作测试：电子锁测试功能 */
     THAISEN_DEBUG_CMD_READ_TOC,                                  /** 调试指令码：读取协议、互操作测试：过流测试功能 */
+    THAISEN_DEBUG_CMD_READ_TOCDT,                                /** 调试指令码：读取协议、互操作测试：过流测试判定时长 */
 
     THAISEN_DEBUG_CMD_SIZE,                                      /** 调试指令码 */
 };

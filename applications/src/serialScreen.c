@@ -900,6 +900,7 @@ struct LCD_DISPLAY_SETDATA_TYPE{
     u16 DebugCmdPara_Gun2_CurrOffset;                            //指令调试参数：枪2电流设置偏移(0.01A)
     u8 DebugCmdPara_GBT_ELock;                                   //指令调试参数：协议、互操作：电子锁检测功能
     u8 DebugCmdPara_GBT_OC;                                      //指令调试参数：协议、互操作：过流检测功能
+    u16 DebugCmdPara_GBT_OCTime;                                 //指令调试参数：协议、互操作：过流检测判定时长(ms)
     /** 参数中间值 */
     u32 DebugCmdPara_MCMaxTemp;                                  //指令调试参数：模块最大输出电流中间值
     u32 DebugCmdPara_MCMinTemp;                                  //指令调试参数：模块最小输出电流中间值
@@ -917,6 +918,7 @@ struct LCD_DISPLAY_SETDATA_TYPE{
     u16 DebugCmdPara_Gun2_CurrOffsetTemp;                        //指令调试参数：枪2电流设置偏移中间值(0.01A)
     u8 DebugCmdPara_GBT_ELockTemp;                               //指令调试参数：协议、互操作：电子锁检测功能中间值
     u8 DebugCmdPara_GBT_OCTemp;                                  //指令调试参数：协议、互操作：过流检测功能中间值
+    u16 DebugCmdPara_GBT_OCTimeTemp;                             //指令调试参数：协议、互操作：过流检测判定时长(ms)中间值
     /*********************** fan ***************************/
     u32 FanWorkTime;                                             //停充后风扇工作时间(s)
     /*********************** 照明灯 ***************************/
@@ -1579,6 +1581,12 @@ u8 SerialScreen_Screen_IsCouDownFin_Flag(u8 port)
         return TRUE;
     else
         return FALSE;
+}
+
+/* 协议、互操作测试：过流测试检测时长(ms) */
+u16 SerialScreen_Screen_GetGBTOCTime(void)
+{
+    return LcdData.setData.DebugCmdPara_GBT_OCTime;
 }
 
 enum thaisen_charge_mode SerialScreen_Screen_GetCurrentChargeMode(u8 port)
@@ -6558,6 +6566,7 @@ void SerialScreen_CmdDebugInfoSet(void)
 //            }
         }
     }
+    LcdData.setData.DebugCmdPara_GBT_OCTime = LcdData.setData.DebugCmdPara_GBT_OCTimeTemp;
 }
 
 void SerialScreen_CmdDebugInfoGet(void)
@@ -6822,6 +6831,7 @@ void SerialScreen_CmdDebugInfoGet(void)
     LcdData.setData.DebugCmdPara_Gun2_CurrOffsetTemp = LcdData.setData.DebugCmdPara_Gun2_CurrOffset;
     LcdData.setData.DebugCmdPara_GBT_ELockTemp = LcdData.setData.DebugCmdPara_GBT_ELock;
     LcdData.setData.DebugCmdPara_GBT_OCTemp = LcdData.setData.DebugCmdPara_GBT_OC;
+    LcdData.setData.DebugCmdPara_GBT_OCTimeTemp = LcdData.setData.DebugCmdPara_GBT_OCTime;
 }
 
 void SerialScreen_CmdDebugIssue(void)
@@ -7173,6 +7183,18 @@ void SerialScreen_CmdDebugIssue(void)
                 LcdData.setData.DebugCmdPara_GBT_OCTemp = para;
             }
         }
+        /** 指令下发：协议、互操作测试：过流测试判定时间 */
+        else if((memcmp(CmdStr, "TOCDT", strlen("TOCDT")) == 0) && (strlen(CmdStr) == strlen("TOCDT")))
+        {
+            if((used_len < blen) && ParaStr){
+                uint16_t para = (uint16_t)(atol(ParaStr));
+
+                thaisen_get_cmd_debug_result_info(LCD_GUN_1, THA_DEBUG_LANGUAGE_CHINESE, THAISEN_DEBUG_CMD_ISSUE_TOCDT, (u8*)&para, sizeof(para), \
+                        (LcdData.setData.DebugResult + used_len), (blen - used_len));
+                /** 保存指令参数 */
+                LcdData.setData.DebugCmdPara_GBT_OCTimeTemp = para;
+            }
+        }
 
         used_len = strlen((char*)LcdData.setData.DebugResult);
         if(used_len >= blen)
@@ -7343,7 +7365,7 @@ void SerialScreen_CmdDebugRead(void)
             }
         }
         /** 指令读取：电表电量检测策略 */
-        else if(strstr((const char*)CmdStr, "ME_ST"))
+        else if((strstr((const char*)CmdStr, "ME_ST")) && (strlen(CmdStr) == strlen("ME_ST")))
         {
             uint8_t number = LcdData.setData.DebugCmdPara_MElectStrategyTemp;
             if(used_len < blen){
@@ -7352,7 +7374,7 @@ void SerialScreen_CmdDebugRead(void)
             }
         }
         /** 指令读取：电池电压检测策略 */
-        else if(strstr((const char*)CmdStr, "BV_ST"))
+        else if((strstr((const char*)CmdStr, "BV_ST")) && (strlen(CmdStr) == strlen("BV_ST")))
         {
             uint8_t number = LcdData.setData.DebugCmdPara_BatVoltStrategyTemp;
             if(used_len < blen){
@@ -7361,7 +7383,7 @@ void SerialScreen_CmdDebugRead(void)
             }
         }
         /** 指令读取：充电电流检测策略 */
-        else if(strstr((const char*)CmdStr, "CC_ST"))
+        else if((strstr((const char*)CmdStr, "CC_ST")) && (strlen(CmdStr) == strlen("CC_ST")))
         {
             uint8_t number = LcdData.setData.DebugCmdPara_CurrStrategyTemp;
             if(used_len < blen){
@@ -7370,7 +7392,7 @@ void SerialScreen_CmdDebugRead(void)
             }
         }
         /** 指令读取：枪1设置电流偏移(0.01A) */
-        else if(strstr((const char*)CmdStr, "SCO_1"))
+        else if((strstr((const char*)CmdStr, "SCO_1")) && (strlen(CmdStr) == strlen("SCO_1")))
         {
             uint16_t Offset = LcdData.setData.DebugCmdPara_Gun1_CurrOffsetTemp;
             if(used_len < blen){
@@ -7379,7 +7401,7 @@ void SerialScreen_CmdDebugRead(void)
             }
         }
         /** 指令读取：枪2设置电流偏移(0.01A) */
-        else if(strstr((const char*)CmdStr, "SCO_2"))
+        else if((strstr((const char*)CmdStr, "SCO_2")) && (strlen(CmdStr) == strlen("SCO_2")))
         {
             uint16_t Offset = LcdData.setData.DebugCmdPara_Gun2_CurrOffsetTemp;
             if(used_len < blen){
@@ -7388,20 +7410,29 @@ void SerialScreen_CmdDebugRead(void)
             }
         }
         /** 指令读取：协议、互操作测试：电子锁测试功能 */
-        else if(strstr((const char*)CmdStr, "TEL"))
+        else if((strstr((const char*)CmdStr, "TEL")) && (strlen(CmdStr) == strlen("TEL")))
         {
-            uint8_t number = LcdData.setData.DebugCmdPara_GBT_ELockTemp;
+            uint8_t function = LcdData.setData.DebugCmdPara_GBT_ELockTemp;
             if(used_len < blen){
-                thaisen_get_cmd_debug_result_info(LCD_GUN_1, THA_DEBUG_LANGUAGE_CHINESE, THAISEN_DEBUG_CMD_READ_TEL, (u8*)&number, sizeof(number), \
+                thaisen_get_cmd_debug_result_info(LCD_GUN_1, THA_DEBUG_LANGUAGE_CHINESE, THAISEN_DEBUG_CMD_READ_TEL, (u8*)&function, sizeof(function), \
                         (LcdData.setData.DebugResult + used_len), (blen - used_len));
             }
         }
         /** 指令读取：协议、互操作测试：过流测试功能 */
-        else if(strstr((const char*)CmdStr, "TOC"))
+        else if((strstr((const char*)CmdStr, "TOC")) && (strlen(CmdStr) == strlen("TOC")))
         {
-            uint8_t number = LcdData.setData.DebugCmdPara_GBT_OCTemp;
+            uint8_t function = LcdData.setData.DebugCmdPara_GBT_OCTemp;
             if(used_len < blen){
-                thaisen_get_cmd_debug_result_info(LCD_GUN_1, THA_DEBUG_LANGUAGE_CHINESE, THAISEN_DEBUG_CMD_READ_TOC, (u8*)&number, sizeof(number), \
+                thaisen_get_cmd_debug_result_info(LCD_GUN_1, THA_DEBUG_LANGUAGE_CHINESE, THAISEN_DEBUG_CMD_READ_TOC, (u8*)&function, sizeof(function), \
+                        (LcdData.setData.DebugResult + used_len), (blen - used_len));
+            }
+        }
+        /** 指令读取：协议、互操作测试：过流测试判定时长 */
+        else if((strstr((const char*)CmdStr, "TOCDT")) && (strlen(CmdStr) == strlen("TOCDT")))
+        {
+            uint16_t time = LcdData.setData.DebugCmdPara_GBT_OCTimeTemp;
+            if(used_len < blen){
+                thaisen_get_cmd_debug_result_info(LCD_GUN_1, THA_DEBUG_LANGUAGE_CHINESE, THAISEN_DEBUG_CMD_READ_TOCDT, (u8*)&time, sizeof(time), \
                         (LcdData.setData.DebugResult + used_len), (blen - used_len));
             }
         }
@@ -21035,6 +21066,9 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
 
     memset(SerialScreenRxbuf, 0x00, sizeof(SerialScreenRxbuf));
 #endif /* SERIALSCREEN_DESIGNATE_REGION */
+
+    LcdData.setData.DebugCmdPara_GBT_OCTimeTemp = 120;
+    LcdData.setData.DebugCmdPara_GBT_OCTime = 120;
 
     for(u8 i = 0; i < LCD_GUN_NUM; i++)
         LcdAssistantData.SeveralGunFlag[i].IsPowerOn = 0;

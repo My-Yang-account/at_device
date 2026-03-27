@@ -2100,6 +2100,20 @@ void app_cmd_debug_result_info(uint8_t gunno, uint8_t language, uint8_t cmd, uin
             }
         }
         break;
+    case THAISEN_DEBUG_CMD_ISSUE_TOCDT:
+        if(para && (plen >= 0x02)){
+            uint16_t value = *(uint16_t*)para;
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= (strlen("Issue>Test OCDT:") + (uint32_t)(log10((double)value) + 0x01)))
+                    return;
+                sprintf((char*)buf, "%s%lu", "Issue>Test OCDT:", value);
+            }else{
+                if(ilen <= (strlen("下发>过流测试检测时长：") + (uint32_t)(log10((double)value) + 0x01)))
+                    return;
+                sprintf((char*)buf, "%s%lu", "下发>过流测试检测时长:", value);
+            }
+        }
+        break;
     case THAISEN_DEBUG_CMD_READ_MODULE_CURR_MAX:
         if(para && (plen >= 0x04)){
             uint32_t curr = *(uint32_t*)para;
@@ -2360,6 +2374,20 @@ void app_cmd_debug_result_info(uint8_t gunno, uint8_t language, uint8_t cmd, uin
                 if(ilen <= (strlen("读取>测试：过流检测：") + 0x06))
                     return;
                 sprintf((char*)buf, "%s%s", "读取>测试：过流检测：", c_str[function]);
+            }
+        }
+        break;
+    case THAISEN_DEBUG_CMD_READ_TOCDT:
+        if(para && (plen >= 0x02)){
+            uint16_t value = *(uint16_t*)para;
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= (strlen("Read>Test OCDT:") + (uint32_t)(log10((double)value) + 0x01)))
+                    return;
+                sprintf((char*)buf, "%s%lu", "Read>Test OCDT:", value);
+            }else{
+                if(ilen <= (strlen("读取>过流测试检测时长：") + (uint32_t)(log10((double)value) + 0x01)))
+                    return;
+                sprintf((char*)buf, "%s%lu", "读取>过流测试检测时长：", value);
             }
         }
         break;

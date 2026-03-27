@@ -1483,7 +1483,10 @@ int app_state_system_data(uint8_t port, uint8_t name, void *parameter, uint8_t p
         return _ofsm->base.elect_a;
         break;
     case ThaChargSysData_GBT_OCTime:
-        return 120;
+    {
+        extern uint16_t thaisen_get_gbt_oc_detect_time(void);
+        return thaisen_get_gbt_oc_detect_time();
+    }
         break;
     default:
         break;
