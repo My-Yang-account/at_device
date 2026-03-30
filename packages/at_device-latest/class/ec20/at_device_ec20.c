@@ -1001,7 +1001,7 @@ static void ec20_init_thread_entry(void *parameter)
             continue;
         }
 
-        if((net_query_netdev_type() &NET_NETDEV_TYPE_4G) == 0){
+        if(((net_query_netdev_type() &NET_NETDEV_TYPE_4G) == 0) || (*(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_NET_TYPE, 0x00)) == CP_NETTYPE_ETH)){
             LOG_W("net device selected is not 4G, quit");
             rt_thread_mdelay(3000);
             continue;
@@ -1011,13 +1011,14 @@ static void ec20_init_thread_entry(void *parameter)
             rt_thread_mdelay(3000);
             continue;
         }
-        if(*(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_NET_TYPE, 0x00)) == CP_NETTYPE_OFFLINE){
-            LOG_W("device current mode is offline, quit");
+        if((*(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_SUPORT_PLUGCHARGE, 0x00))) && \
+                (*(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_NET_TYPE, 0x00)) == CP_NETTYPE_OFFLINE)){
+            LOG_W("device current mode is plug and play, quit");
             rt_thread_mdelay(3000);
             continue;
         }
-        if(*(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_SUPORT_PLUGCHARGE, 0x00))){
-            LOG_W("device current mode is plug and play, quit");
+        if(*(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_NET_TYPE, 0x00)) == CP_NETTYPE_OFFLINE){
+            LOG_W("device current mode is offline, quit");
             rt_thread_mdelay(3000);
             continue;
         }

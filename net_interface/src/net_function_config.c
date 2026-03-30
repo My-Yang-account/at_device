@@ -891,7 +891,7 @@ int32_t app_nfunc_config_init(void)
     handle->para_config(0x00, NET_PARA_CONFIG_INDEX_THREAD_INIT,           app_nthread_init_hook, handle);
     handle->para_config(0x00, NET_PARA_CONFIG_INDEX_THREAD_RUNNING,        app_nthread_running, handle);
 
-    if((offline_billing == 0x01) || (plug_and_play == 0x01)){
+    if((offline_billing == 0x01) || ((plug_and_play == 0x01) && (nettype == CP_NETTYPE_OFFLINE))){
         return -0x01;
     }
 

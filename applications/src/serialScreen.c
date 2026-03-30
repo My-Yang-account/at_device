@@ -19040,7 +19040,7 @@ int SerialScreen_DataProcess()
 	
     LcdData.runData.netstate = thaisen_app_get_net_state();
     if((LcdData.setData.sup_offbilling == TRUE) ||
-            (LcdData.setData.Sup_PlugAndPlay == TRUE) ||
+            ((LcdData.setData.Sup_PlugAndPlay == TRUE) && (LcdData.setData.NetType == CP_NETTYPE_OFFLINE)) ||
             (LcdData.setData.NetType == CP_NETTYPE_OFFLINE)){
         LcdData.runData.netstate = 0x05;   //离线计费不显示网络图标
     }
