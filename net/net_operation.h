@@ -269,6 +269,7 @@ enum net_event{
     NET_OPERATION_EVENT_STOP_CHARGE,                    /* 停止充电事件 */
     NET_OPERATION_EVENT_START_UPDATE,                   /* 启动升级事件 */
     NET_OPERATION_EVENT_REBOOT,                         /* 系统重启事件 */
+    NET_OPERATION_EVENT_COMPULSORY_REBOOT,              /* 系统强制重启事件 */
     NET_OPERATION_EVENT_TIME_SYNC,                      /* 时间同步事件 */
     NET_OPERATION_EVENT_UPDATE_BILLING_RULE,            /* 更新计费规则事件 */
     NET_OPERATION_EVENT_SET_CHARGE_POWER,               /* 设置充电功率事件 */

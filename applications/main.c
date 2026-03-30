@@ -233,11 +233,12 @@ int main(void)
         }
 
         extern uint8_t app_nsal_is_remote_reset(void);
+        extern uint8_t app_nsal_is_remote_compulsory_reset(void);
         extern uint8_t thaisen_query_screen_reboot(void);
         extern void thaisen_clear_screen_reboot(void);
         extern void thaisen_set_screen_reboot(void);
         extern uint8_t app_system_monitor_need_reset(void);
-        if(app_nsal_is_remote_reset() || thaisen_query_screen_reboot() || app_system_monitor_need_reset()){
+        if(app_nsal_is_remote_reset() || app_nsal_is_remote_compulsory_reset() || thaisen_query_screen_reboot() || app_system_monitor_need_reset()){
             uint8_t gunno = 0x00;
             for(gunno = 0x00; gunno < APP_SYSTEM_GUNNO_SIZE; gunno++){
                 if(get_ofsm_info(gunno)->state != APP_OFSM_STATE_IDLEING){
@@ -245,7 +246,7 @@ int main(void)
                 }
             }
             /** 屏幕重启生效前已确认所有枪都空闲 */
-            if((gunno == APP_SYSTEM_GUNNO_SIZE) || thaisen_query_screen_reboot()){
+            if((gunno == APP_SYSTEM_GUNNO_SIZE) || thaisen_query_screen_reboot() || app_nsal_is_remote_compulsory_reset()){
                 LOG_D("remote reset system");
                 /** 在此处需要保存重启信息 */
                 extern uint8_t app_thread_monitor_occur_error(void);

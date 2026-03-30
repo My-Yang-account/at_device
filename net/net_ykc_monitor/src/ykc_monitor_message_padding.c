@@ -1409,6 +1409,10 @@ int8_t ykc_monitor_message_pro_remote_reset_request(void *data, uint8_t len)
     }else if(request->body.control_cmd == 0x02){
         return 0x01;
     }
+    /** 强制重启(不管业务状态) */
+    else if(request->body.control_cmd == 0xAA){
+        return 0x01;
+    }
 
     if(gunno == NET_SYSTEM_GUN_NUMBER){
         return 0x01;

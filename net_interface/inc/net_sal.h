@@ -164,6 +164,17 @@ void app_nsal_clear_remote_card_authorize(uint8_t gunno);
 void app_nsal_clear_remote_vin_authorize(uint8_t gunno);
 uint8_t app_nsal_is_remote_reset(void);
 void app_nsal_clear_remote_reset(void);
+/*******************************************
+ * 函数名    app_nsal_is_remote_compulsory_reset
+ * 功能        检测是否有远程强制重启事件
+ *****************************************/
+uint8_t app_nsal_is_remote_compulsory_reset(void);
+
+/*******************************************
+ * 函数名    app_nsal_clear_remote_compulsory_reset
+ * 功能        清除远程强制重启事件
+ *****************************************/
+void app_nsal_clear_remote_compulsory_reset(void);
 
 void app_nsal_time_sync_revise(uint8_t gunno);
 void app_nsal_init_charge_data(uint8_t gunno);

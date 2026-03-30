@@ -639,10 +639,8 @@ static void net_ykc_monitor_message_send_thread_entry(void *parameter)
 #ifdef NET_YKC_MONITOR_AS_MONITOR
 #ifdef NET_YKC_MONITOR_USING_EXTEND_PROTOCOL
     /** 正式 */
-    //    char *host = "monitor.thaisen.cn";
-    //    uint16_t port = 9003;
-        char *host = "139.198.163.108";
-        uint16_t port = 9103;
+    char *host = "monitor.thaisen.cn";
+    uint16_t port = 9003;
 #else
     /** 正式 */
     char *host = "device.thaisen.cn";
@@ -2391,7 +2389,12 @@ static void net_ykc_monitor_server_message_pro_entry(void *parameter)
                         response = ykc_monitor_get_response_buff(RT_WAITING_FOREVER);
                         result = ykc_monitor_response_padding_remote_reboot(response->general_transmit_buff, NET_YKC_MONITOR_GENERA_RESPONSE_BUFF_LENGTH, &(response->length));
                         if(result >= 0x00){
-                            net_operation_set_event(0x00, NET_OPERATION_EVENT_REBOOT);
+                            /** 强制重启(不管业务状态) */
+                            if(g_ykc_monitor_sreq_remote_reboot.body.control_cmd == 0xAA){
+                                net_operation_set_event(0x00, NET_OPERATION_EVENT_COMPULSORY_REBOOT);
+                            }else{
+                                net_operation_set_event(0x00, NET_OPERATION_EVENT_REBOOT);
+                            }
                             ((Net_YkcMonitorPro_PRes_RemoteReboot_t*)response->general_transmit_buff)->body.result = res;
                             ykc_monitor_net_event_send(NET_YKC_MONITOR_EVENT_HANDLE_CHARGEPILE, NET_YKC_MONITOR_EVENT_TYPE_RESPONSE, gunno, NET_YKC_MONITOR_PRES_EVENT_REMOTE_REBOOT);
                         }else{
