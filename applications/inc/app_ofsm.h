@@ -730,6 +730,7 @@ typedef struct{
 
     uint8_t gun_running_mode;        /* 枪运行模式 */
     uint8_t plugplay_wait_time;      /* 即插即充插枪延迟启动计时时基 */
+    uint8_t wait_finish_time;        /* 等待充电完成计时时基 */
 }System_BaseData;
 
 struct ofsm_info {

@@ -2220,6 +2220,7 @@ static void ofsm_idleing_fun(uint8_t gunno)
     s_ofsm_info[gunno].base.main_gunno = 0x00;
     s_ofsm_info[gunno].base.charge_way = APP_CHARGE_WAY_NONE;
     s_ofsm_info[gunno].base.oncard_authen_time = 0x00;
+    s_ofsm_info[gunno].base.wait_finish_time = 0x00;
 
     if((s_ofsm_info[gunno].base.device_state == APP_DEVICE_STATE_OVERHAUL) ||
             (s_ofsm_info[gunno].base.device_state == APP_DEVICE_STATE_FREEZE)){
@@ -2369,6 +2370,7 @@ static void ofsm_readying_fun(uint8_t gunno)
 
     s_ofsm_info[gunno].base.flag.is_deputygun_stop = APP_THA_ENUM_FALSE;
     s_ofsm_info[gunno].base.flag.is_local_reservation = APP_THA_ENUM_TRUE;
+    s_ofsm_info[gunno].base.wait_finish_time = 0x00;
 
     if((s_ofsm_info[gunno].base.device_state == APP_DEVICE_STATE_OVERHAUL) ||
             (s_ofsm_info[gunno].base.device_state == APP_DEVICE_STATE_FREEZE)){
@@ -2449,6 +2451,7 @@ static void ofsm_readying_fun(uint8_t gunno)
                 s_ofsm_info[gunno].base.flag.recved_paracharge_identify_id = APP_THA_ENUM_FALSE;
 
                 s_ofsm_info[gunno].charge_timeout = rt_tick_get();
+                s_ofsm_info[gunno].base.wait_finish_time = 0x00;
 
                 rfidr_clear_swipe_state(gunno);
                 app_get_hci_event(gunno, HCI_EVENT_SCREEN_START, APP_THA_ENUM_TRUE);
@@ -3738,6 +3741,7 @@ static void ofsm_starting_fun(uint8_t gunno)
                 s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][s_ofsm_info[s_ofsm_info[gunno].base.main_gunno].state];
                 s_ofsm_info[gunno].state = s_ofsm_info[s_ofsm_info[gunno].base.main_gunno].state;
 
+                s_ofsm_info[gunno].base.wait_finish_time = 0x00;
                 s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
 
                 /* 对时后时间要修改 */
@@ -3845,6 +3849,7 @@ static void ofsm_starting_fun(uint8_t gunno)
             s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_STOPING];
             s_ofsm_info[gunno].state = APP_OFSM_STATE_STOPING;
 
+            s_ofsm_info[gunno].base.wait_finish_time = 0x00;
             s_ofsm_info[gunno].base.system_fault = APP_SYS_FAULT_NO_ERROR;
             s_ofsm_info[gunno].base.charge_fault = APP_CHARGE_FAULT_NO_ERROR;
             s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
@@ -4056,6 +4061,7 @@ static void ofsm_starting_fun(uint8_t gunno)
         s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_STOPING];
         s_ofsm_info[gunno].state = APP_OFSM_STATE_STOPING;
 
+        s_ofsm_info[gunno].base.wait_finish_time = 0x00;
         s_ofsm_info[gunno].base.system_fault = system_fault;
         s_ofsm_info[gunno].base.charge_fault = charge_fault;
         s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
@@ -4140,6 +4146,7 @@ static void ofsm_starting_fun(uint8_t gunno)
         s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_STOPING];
         s_ofsm_info[gunno].state = APP_OFSM_STATE_STOPING;
 
+        s_ofsm_info[gunno].base.wait_finish_time = 0x00;
         s_ofsm_info[gunno].base.system_fault = system_fault;
         s_ofsm_info[gunno].base.charge_fault = charge_fault;
         s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
@@ -4244,6 +4251,7 @@ static void ofsm_starting_fun(uint8_t gunno)
                 s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_STOPING];
                 s_ofsm_info[gunno].state = APP_OFSM_STATE_STOPING;
 
+                s_ofsm_info[gunno].base.wait_finish_time = 0x00;
                 s_ofsm_info[gunno].base.system_fault = system_fault;
                 s_ofsm_info[gunno].base.charge_fault = charge_fault;
                 s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
@@ -4360,7 +4368,7 @@ static void ofsm_starting_fun(uint8_t gunno)
                     }
                 }
                 /** 注：启动超时时间计算如此：
-                                             *  屏幕上的倒计时时长为90s，但是计时用的是线程定时，有一定误差，实际测试屏幕的90s大概为实际的145s(2分24s48)，为了使业务状态跳转与屏幕倒计时一致，实际倒计时时间必须大于145s，但不能相差过大，故定150s = 90s + ((100 *600) /1000)s
+                 *  屏幕上的倒计时时长为90s，但是计时用的是线程定时，有一定误差，实际测试屏幕的90s大概为实际的145s(2分24s48)，为了使业务状态跳转与屏幕倒计时一致，实际倒计时时间必须大于145s，但不能相差过大，故定150s = 90s + ((100 *600) /1000)s
                  */
                 /** 防止状态异常，上层已停止但下层还在充电 */
                 mw_charge_stop_cmd(gunno);
@@ -4370,6 +4378,7 @@ static void ofsm_starting_fun(uint8_t gunno)
                 s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_STOPING];
                 s_ofsm_info[gunno].state = APP_OFSM_STATE_STOPING;
 
+                s_ofsm_info[gunno].base.wait_finish_time = 0x00;
                 s_ofsm_info[gunno].base.flag.is_boot_timeout = APP_THA_ENUM_TRUE;
                 s_ofsm_info[gunno].base.system_fault = system_fault;
                 s_ofsm_info[gunno].base.charge_fault = charge_fault;
@@ -4680,6 +4689,7 @@ static void ofsm_starting_fun(uint8_t gunno)
 
                 mw_charge_stop_cmd(gunno);
 
+                s_ofsm_info[gunno].base.wait_finish_time = 0x00;
                 s_ofsm_info[gunno].base.system_fault = system_fault;
                 s_ofsm_info[gunno].base.charge_fault = charge_fault;
                 s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
@@ -4843,6 +4853,7 @@ static void ofsm_starting_fun(uint8_t gunno)
             s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_STOPING];
             s_ofsm_info[gunno].state = APP_OFSM_STATE_STOPING;
 
+            s_ofsm_info[gunno].base.wait_finish_time = 0x00;
             s_ofsm_info[gunno].base.system_fault = system_fault;
             s_ofsm_info[gunno].base.charge_fault = charge_fault;
             s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
@@ -4958,6 +4969,7 @@ static void ofsm_starting_fun(uint8_t gunno)
             s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_STOPING];
             s_ofsm_info[gunno].state = APP_OFSM_STATE_STOPING;
 
+            s_ofsm_info[gunno].base.wait_finish_time = 0x00;
             s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
 #if ((defined(APP_USING_NO_BMS) || defined(APP_USING_LV_MODULE_BMS)) && defined(APP_USING_OFFLINE_BILLING))
             s_ofsm_info[gunno].base.parameter_steady_tick = rt_tick_get();
@@ -5174,6 +5186,7 @@ static void ofsm_charging_fun(uint8_t gunno)
                         s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_STOPING];
                         s_ofsm_info[gunno].state = APP_OFSM_STATE_STOPING;
 
+                        s_ofsm_info[gunno].base.wait_finish_time = 0x00;
                         s_ofsm_info[gunno].base.system_fault = system_fault;
                         s_ofsm_info[gunno].base.charge_fault = APP_SYSTEM_STOP_WAY_CURRENT_ABNORMAL;
                         s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_TRUE;
@@ -5443,6 +5456,7 @@ static void ofsm_charging_fun(uint8_t gunno)
                 s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][s_ofsm_info[s_ofsm_info[gunno].base.main_gunno].state];
                 s_ofsm_info[gunno].state = s_ofsm_info[s_ofsm_info[gunno].base.main_gunno].state;
 
+                s_ofsm_info[gunno].base.wait_finish_time = 0x00;
                 s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
 
                 /* 对时后时间要修改 */
@@ -5508,6 +5522,7 @@ static void ofsm_charging_fun(uint8_t gunno)
                 s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][s_ofsm_info[s_ofsm_info[gunno].base.main_gunno].state];
                 s_ofsm_info[gunno].state = s_ofsm_info[s_ofsm_info[gunno].base.main_gunno].state;
 
+                s_ofsm_info[gunno].base.wait_finish_time = 0x00;
                 s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
 
                 /* 对时后时间要修改 */
@@ -5829,6 +5844,7 @@ static void ofsm_charging_fun(uint8_t gunno)
         s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_STOPING];
         s_ofsm_info[gunno].state = APP_OFSM_STATE_STOPING;
 
+        s_ofsm_info[gunno].base.wait_finish_time = 0x00;
         s_ofsm_info[gunno].base.system_fault = system_fault;
         s_ofsm_info[gunno].base.charge_fault = APP_SYSTEM_STOP_WAY_BATTERY_VOLT;
         s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_TRUE;
@@ -6069,6 +6085,7 @@ static void ofsm_charging_fun(uint8_t gunno)
         s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_STOPING];
         s_ofsm_info[gunno].state = APP_OFSM_STATE_STOPING;
 
+        s_ofsm_info[gunno].base.wait_finish_time = 0x00;
         s_ofsm_info[gunno].base.system_fault = system_fault;
         s_ofsm_info[gunno].base.charge_fault = APP_SYSTEM_STOP_WAY_AMMETER;
         s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_TRUE;
@@ -6252,6 +6269,7 @@ static void ofsm_charging_fun(uint8_t gunno)
             s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_STOPING];
             s_ofsm_info[gunno].state = APP_OFSM_STATE_STOPING;
 
+            s_ofsm_info[gunno].base.wait_finish_time = 0x00;
             s_ofsm_info[gunno].base.system_fault = system_fault;
             s_ofsm_info[gunno].base.charge_fault = charge_fault;
             s_ofsm_info[gunno].base.flag.is_fault_stop = APP_THA_ENUM_FALSE;
@@ -6363,6 +6381,7 @@ static void ofsm_charging_fun(uint8_t gunno)
             s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_STOPING];
             s_ofsm_info[gunno].state = APP_OFSM_STATE_STOPING;
 
+            s_ofsm_info[gunno].base.wait_finish_time = 0x00;
             s_ofsm_info[gunno].base.system_fault = system_fault;
             s_ofsm_info[gunno].base.charge_fault = charge_fault;
             s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
@@ -7062,6 +7081,7 @@ static void ofsm_charging_fun(uint8_t gunno)
             s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_STOPING];
             s_ofsm_info[gunno].state = APP_OFSM_STATE_STOPING;
 
+            s_ofsm_info[gunno].base.wait_finish_time = 0x00;
             s_ofsm_info[gunno].base.state.current = s_ofsm_info[gunno].state;
 
 #ifdef APP_INCLUDE_YKC17_PROTOCOL
@@ -7120,6 +7140,7 @@ static void ofsm_charging_fun(uint8_t gunno)
         s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_STOPING];
         s_ofsm_info[gunno].state = APP_OFSM_STATE_STOPING;
 
+        s_ofsm_info[gunno].base.wait_finish_time = 0x00;
 #ifdef APP_INCLUDE_YKC17_PROTOCOL
         thaisen_ammeter_encry_scmd(gunno, THAISEN_AMMETER_ENCRY_TYPE_STOP);
 #endif /* APP_INCLUDE_YKC17_PROTOCOL */
@@ -7214,6 +7235,9 @@ static void ofsm_stoping_fun(uint8_t gunno)
     if(s_ofsm_info[gunno].base.charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD){
         charge_state = mw_get_charge_state(s_ofsm_info[gunno].base.main_gunno);
     }
+    if(s_ofsm_info[gunno].base.wait_finish_time < (0xFF - 0x01)){
+        s_ofsm_info[gunno].base.wait_finish_time++;
+    }
 
     if (++s_debug_count[gunno] > (1000 + 500 *gunno) / 100) {
         s_debug_count[gunno] = 0;
@@ -7244,6 +7268,7 @@ static void ofsm_stoping_fun(uint8_t gunno)
             if(s_ofsm_info[s_ofsm_info[gunno].base.main_gunno].state < APP_OFSM_STATE_SIZE){
                 s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][s_ofsm_info[s_ofsm_info[gunno].base.main_gunno].state];
 
+                s_ofsm_info[gunno].base.wait_finish_time = 0x00;
                 s_ofsm_info[gunno].state = s_ofsm_info[s_ofsm_info[gunno].base.main_gunno].state;
 
                 s_ofsm_info[gunno].base.charge_way = APP_CHARGE_WAY_NONE;
@@ -7290,7 +7315,10 @@ static void ofsm_stoping_fun(uint8_t gunno)
     default:
         break;
     }
-
+    /** 如果15s内充电机还没有交互完成数据则强制认为已完成，防止状态不对 */
+    if(s_ofsm_info[gunno].base.wait_finish_time > (15000 /APP_SYSTEM_RUN_TIME_PERIOD)){
+        is_stop_complete = APP_THA_ENUM_TRUE;
+    }
 #if ((defined(APP_USING_NO_BMS) || defined(APP_USING_LV_MODULE_BMS)) && defined(APP_USING_OFFLINE_BILLING))
     if(is_stop_complete && module_is_close)
 #else
@@ -7307,7 +7335,10 @@ static void ofsm_stoping_fun(uint8_t gunno)
         case APP_CHARGE_STATE_SIZE:
             break;
         default:
-            return;  /* 要等待充电结束相关报文交互完成 */
+            /** 如果15s内充电机还没有交互完成数据则强制认为已完成，防止状态不对 */
+            if(s_ofsm_info[gunno].base.wait_finish_time <= (15000 /APP_SYSTEM_RUN_TIME_PERIOD)){
+                return;  /* 要等待充电结束相关报文交互完成 */
+            }
         }
 
         struct thaisenBMS_Charger_struct *bms = mw_get_bms_data(gunno);
@@ -7715,6 +7746,7 @@ static void ofsm_stoping_fun(uint8_t gunno)
 
         app_nsal_state_charged(gunno);
 
+        s_ofsm_info[gunno].base.wait_finish_time = 0x00;
         s_ofsm_info[gunno].base.main_gunno = 0x00;
         s_ofsm_info[gunno].base.charge_way = APP_CHARGE_WAY_NONE;    /** 复位充电模式 */
         app_nsal_clear_offlinecharge_limit(gunno);
@@ -7774,6 +7806,9 @@ static void ofsm_finishing_fun(uint8_t gunno)
     s_ofsm_info[gunno].base.flag.is_oncard_authenticating = APP_THA_ENUM_FALSE;
 
     s_ofsm_info[gunno].base.oncard_authen_time = 0x00;
+    if(s_ofsm_info[gunno].base.wait_finish_time < (0xFF - 0x01)){
+        s_ofsm_info[gunno].base.wait_finish_time++;
+    }
 
     if((s_ofsm_info[gunno].base.device_state == APP_DEVICE_STATE_OVERHAUL) ||
             (s_ofsm_info[gunno].base.device_state == APP_DEVICE_STATE_FREEZE)){
@@ -7867,7 +7902,8 @@ static void ofsm_finishing_fun(uint8_t gunno)
 #endif /* defined(APP_USING_NO_BMS) && defined(APP_USING_OFFLINE_BILLING) */
     case CC1_0V:
     {
-        if(charge_state != APP_CHARGE_STATE_IDLE){
+        /** 如果15s内充电机还没有交互完成数据则强制认为已完成，防止状态不对 */
+        if((charge_state != APP_CHARGE_STATE_IDLE) && (s_ofsm_info[gunno].base.wait_finish_time <= (15000 /APP_SYSTEM_RUN_TIME_PERIOD))){
             break;                               /* 充电结束必须等待充电状态为空闲时才可响应拔枪动作，已与充电控制同步 */
         }
         s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_IDLEING];
@@ -7908,7 +7944,8 @@ static void ofsm_finishing_fun(uint8_t gunno)
     case CC1_4V:
         if(((s_ofsm_info[gunno].base.cc1_state == CC1_6V) && (s_ofsm_info[gunno].base.battery_type != APP_BATTERY_TYPE_64V125AH)) ||\
                 ((s_ofsm_info[gunno].base.cc1_state == CC1_4V) && (s_ofsm_info[gunno].base.battery_type != APP_BATTERY_TYPE_51_2V125AH))){
-            if(charge_state != APP_CHARGE_STATE_IDLE){
+            /** 如果15s内充电机还没有交互完成数据则强制认为已完成，防止状态不对 */
+            if((charge_state != APP_CHARGE_STATE_IDLE) && (s_ofsm_info[gunno].base.wait_finish_time <= (15000 /APP_SYSTEM_RUN_TIME_PERIOD))){
                 break;                               /* 充电结束必须等待充电状态为空闲时才可响应拔枪动作，已与充电控制同步 */
             }
             s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_IDLEING];
@@ -7966,7 +8003,8 @@ static void ofsm_finishing_fun(uint8_t gunno)
             break;          /* 故障停必须要拔枪 */
         }
 #endif
-        if(charge_state != APP_CHARGE_STATE_IDLE){
+        /** 如果15s内充电机还没有交互完成数据则强制认为已完成，防止状态不对 */
+        if((charge_state != APP_CHARGE_STATE_IDLE) && (s_ofsm_info[gunno].base.wait_finish_time <= (15000 /APP_SYSTEM_RUN_TIME_PERIOD))){
             break;                               /* 充电结束必须等待充电状态为空闲时才可响应拔枪动作，已与充电控制同步 */
         }
 
