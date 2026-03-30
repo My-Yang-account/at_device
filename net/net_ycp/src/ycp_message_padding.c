@@ -2689,7 +2689,7 @@ static uint16_t ycp_chargepile_stop_reason_converted(void *handle, uint16_t reas
         break;
     /* 达到SOC 限定值 */
     case APP_SYSTEM_STOP_WAY_SOC_LIMIT:
-        _reason = NETYCP_CC_REASON07_RESERVE;
+        _reason = NETYCP_CC_REASON02_CHARGE_FULL;
         break;
     /* VIN 码鉴权失败 */
     case APP_SYSTEM_STOP_WAY_AUTHEN_FAIL:

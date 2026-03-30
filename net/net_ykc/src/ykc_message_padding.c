@@ -2934,7 +2934,7 @@ static uint16_t ykc_chargepile_stop_reason_converted(void *handle, uint16_t reas
         break;
     /* 达到SOC 限定值 */
     case APP_SYSTEM_STOP_WAY_SOC_LIMIT:
-        _reason = NETYKC_CC_REASON46_RESERVE;
+        _reason = NETYKC_CC_REASON41_CHARGE_FULL;
         break;
     /* VIN 码鉴权失败 */
     case APP_SYSTEM_STOP_WAY_AUTHEN_FAIL:

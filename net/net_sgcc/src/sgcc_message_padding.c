@@ -3848,7 +3848,7 @@ static uint16_t sgcc_chargepile_stop_reason_converted(void *handle, uint16_t rea
         break;
     /* 达到SOC 限定值 */
     case APP_SYSTEM_STOP_WAY_SOC_LIMIT:
-        _reason = NETSGCC_GS_REASON1007_TARGET_SOC;
+        _reason = NETSGCC_GS_REASON1000_CHARGE_FULL;
         break;
     /* 主机柜禁止充电 */
     case APP_SYSTEM_STOP_WAY_MAIN_CABINET_FORBID:
