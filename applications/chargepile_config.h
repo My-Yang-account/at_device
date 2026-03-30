@@ -493,7 +493,7 @@
 #define CP_V2G_MODE_LIMIT_ELECT                   0x56      /* 当前放电模式：限制电量 */
 #define CP_V2G_MODE_LIMIT_TIMING                  0x57      /* 当前放电模式：限制时间 */
 #define CP_V2G_MODE_AUTO                          0x58      /* 当前放电模式：自动(根据设置的放电截至SOC来) */
-#define CP_V2G_MODE_SIZE                          0x58      /* 当前放电模式：*/
+#define CP_V2G_MODE_SIZE                          0x59      /* 当前放电模式：*/
 #define CP_V2G_MODE_NULL                          0xFF      /* 当前放电模式：空*/
 
 #define CP_MODE_PARA_MONEY_DEF                    10000     /* 充电模式金额参数默认值(单位：0.01元)*/

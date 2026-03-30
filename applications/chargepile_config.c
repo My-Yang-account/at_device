@@ -4708,7 +4708,7 @@ uint16_t sys_mode_validity_combine(uint8_t name, uint8_t mode, uint8_t validity)
     }
     /** V2G模式 */
     else{
-        if((mode > CP_V2G_MODE_SIZE) || (mode < CP_V2G_MODE_LIMIT_MONEY)){
+        if((mode >= CP_V2G_MODE_SIZE) || (mode < CP_V2G_MODE_LIMIT_MONEY)){
             return 0x00;
         }
         validity &= 0x03;
@@ -4745,7 +4745,7 @@ uint8_t sys_mode_validity_divide(uint8_t name, uint8_t mode, uint8_t port)
     }
     /** V2G模式 */
     else{
-        if((mode > CP_V2G_MODE_SIZE) || (mode < CP_V2G_MODE_LIMIT_MONEY)){
+        if((mode >= CP_V2G_MODE_SIZE) || (mode < CP_V2G_MODE_LIMIT_MONEY)){
             return 0x00;
         }
         if(port >= (sizeof(s_chargepile_config_info.config_para.v2g_mode_validity) /sizeof(s_chargepile_config_info.config_para.charge_mode_validity[0x00]))){

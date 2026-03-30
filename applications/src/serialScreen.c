@@ -7998,12 +7998,14 @@ void SerialScreen_IsSupportSetFlash(void)
     if(LcdAssistantData.Flag.NeedReboot == TRUE){
         SerialScreen_ScreenSet_Reboot_Flag();
     }
+#ifndef SCREEN_USING_CYCLE_MATRIX
     /** 剔除模块配置 */
     if(LcdData.setData.Sup_EliminateModule){
         thaisenModuleSetEliminateModuleState(TRUE);
     }else{
         thaisenModuleSetEliminateModuleState(FALSE);
     }
+#endif /* SCREEN_USING_CYCLE_MATRIX */
 }
 
 void SerialScreen_SetInputInfo(void)
@@ -9158,12 +9160,14 @@ void SerialScreen_IsSupportGet(void)
     }else{
         thaisenSetYouYouSlienceMode(1);
     }
+#ifndef SCREEN_USING_CYCLE_MATRIX
     /** 剔除模块配置 */
     if(LcdData.setData.Sup_EliminateModule){
         thaisenModuleSetEliminateModuleState(TRUE);
     }else{
         thaisenModuleSetEliminateModuleState(FALSE);
     }
+#endif /* SCREEN_USING_CYCLE_MATRIX */
 }
 
 void SerialScreen_InputInfoGet(void)
