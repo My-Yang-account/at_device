@@ -3312,6 +3312,50 @@ thaisenSensorOutIn_State thaisen_LiquidCooling_B_FB(void);
  */
 void thaisen_pwm_fan_duty(uint16_t duty);
 
+/* 功能说明:
+ *        thaisenSetTim1Period:设置定时器1周期
+ * 输入参数:
+ *        period:   周期(HZ)
+ * 返回参数:
+ *          无
+ * 调用方法:
+ *             可实时调用
+ */
+void thaisenSetTim1Period(unsigned int period);
+
+/* 功能说明:
+ *        thaisenGetTim1Period:获取定时器1周期
+ * 输入参数:
+ *
+ * 返回参数:
+ *                         定时器1周期(HZ)
+ * 调用方法:
+ *             可实时调用
+ */
+unsigned int thaisenGetTim1Period(void);
+
+/* 功能说明:
+ *        thaisenSetTim1Prescaler:设置定时器1时钟预分频
+ * 输入参数:
+ *        prescaler:   预分频数值
+ * 返回参数:
+ *          无
+ * 调用方法:
+ *             可实时调用
+ */
+void thaisenSetTim1Prescaler(unsigned int prescaler);
+
+/* 功能说明:
+ *        thaisenGetTim1Prescaler:获取定时器1时钟预分频
+ * 输入参数:
+ *
+ * 返回参数:
+ *                         定时器1时钟预分频 值
+ * 调用方法:
+ *             可实时调用
+ */
+unsigned int thaisenGetTim1Prescaler(void);
+
 /**********************************************************************************/
 /*****************************充电枪模式*******************************************/
 
