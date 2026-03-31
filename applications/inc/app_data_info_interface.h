@@ -442,7 +442,11 @@ struct qrcode_info *thaisen_app_get_gunno_qrcode(uint8_t gunno);
 /**
  * 获取设备枪号名
  **/
-void thaisen_get_device_sn(char *src, uint8_t length, uint8_t gunno);
+void thaisen_get_device_id(char *src, uint8_t length, uint8_t gunno);
+/**
+ * 获取设备序列号
+ **/
+void thaisen_get_device_sn(char *src, uint8_t length);
 
 /**
  * 获取枪连接状态

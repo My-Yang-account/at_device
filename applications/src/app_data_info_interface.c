@@ -499,12 +499,12 @@ uint8_t *thaisen_app_get_qrcode_prefix(uint8_t *length)
 }
 
 /********************************************
- * 函数名      thaisen_get_device_sn
+ * 函数名      thaisen_get_device_id
  * 功能          获取设备编号
  * 参数         gunno      枪号
  * 返回         二维码信息(枪号不对则返回 全0)
  *******************************************/
-void thaisen_get_device_sn(char *src, uint8_t length, uint8_t gunno)
+void thaisen_get_device_id(char *src, uint8_t length, uint8_t gunno)
 {
     memset(src, '\0', length);
     if(gunno >= APP_SYSTEM_GUNNO_SIZE){
@@ -521,6 +521,45 @@ void thaisen_get_device_sn(char *src, uint8_t length, uint8_t gunno)
         sprintf((src + strlen((const char*)src)), "0%d", (gunno + 1));
     }else{
         return;
+    }
+}
+
+/********************************************
+ * 函数名      thaisen_get_device_sn
+ * 功能          获取设备序列号
+ * 参数         src      用于保存序列号的缓存
+ *     length    缓存长度
+ * 返回
+ *******************************************/
+void thaisen_get_device_sn(char *src, uint8_t length)
+{
+#define DEVICE_SN_LEN_MAX    12      /** 设备序列号最大长度 */
+    extern  uint8_t *__thaisen_get_test_number(void);
+    uint8_t *sn = NULL, valid_len = 0x00, used_len = 0x00;
+
+    if(src == NULL){
+        return;
+    }
+    memset(src, '\0', length);
+    if(length > DEVICE_SN_LEN_MAX){
+        length = DEVICE_SN_LEN_MAX;
+    }
+    sn = __thaisen_get_test_number();
+    if(sn){
+        valid_len = strlen((char*)sn);
+        valid_len = valid_len > 128 ? 128 : valid_len;   /** 目前设备序列号最大长度：128 */
+        used_len = 0x00;
+        for(uint8_t i = 0x00; i < valid_len; i++){
+            if(((sn[valid_len - 0x01 - i] >= '0') && (sn[valid_len - 0x01 - i] <= '9')) || \
+                    ((sn[valid_len - 0x01 - i] >= 'a') && (sn[valid_len - 0x01 - i] <= 'z')) || \
+                    ((sn[valid_len - 0x01 - i] >= 'A') && (sn[valid_len - 0x01 - i] <= 'Z'))){
+                src[length - 0x01 - used_len] = sn[valid_len - 0x01 - i];
+                used_len++;
+            }
+            if((used_len + 0x01) > length){
+                break;
+            }
+        }
     }
 }
 

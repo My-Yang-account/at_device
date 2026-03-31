@@ -543,6 +543,7 @@ struct LCD_DISPLAY_DATE_TYPE{
 struct LCD_DISPLAY_SETDATA_TYPE{
 //	u8 chgcode[LCD_GUN_NUM][30];			//设备编码
 	u8 pileID[20];							//设备地址
+    u8 SerialNumber[20];                    //设备序列号
 	u8 MeterAddr[LCD_GUN_NUM][13];
     u16 MeterModel;
     u16 MeterCheckWay;
@@ -4063,7 +4064,7 @@ static void SerialScreen_RealTime_InfoGet(void)
 
         for(int i = 0; i< LCD_GUN_NUM; i++)
         {
-            thaisen_get_device_sn((char*)LcdData.runData.chgcode[i], sizeof(LcdData.runData.chgcode[i]), i);
+            thaisen_get_device_id((char*)LcdData.runData.chgcode[i], sizeof(LcdData.runData.chgcode[i]), i);
 
             card = thaisen_get_card_info(i);
 
@@ -16519,9 +16520,10 @@ struct LCD_DATA_FIFO_TYPE *SerialScreen_Init(struct SerialScreenObj *cmd)
 
     for(int i=0;i<LCD_GUN_NUM;i++)
     {
-        thaisen_get_device_sn((char*)LcdData.runData.chgcode[i], sizeof(LcdData.runData.chgcode[i]), i);
+        thaisen_get_device_id((char*)LcdData.runData.chgcode[i], sizeof(LcdData.runData.chgcode[i]), i);
         LcdData.pPageIndex[i] = &LCD_ALL_PAGE_TAB[0];
     }
+    thaisen_get_device_sn((char*)LcdData.setData.SerialNumber, (sizeof(LcdData.setData.SerialNumber) - 2));
 
     len = *(UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_SCREEN_PASSWORD, 1));
     data = UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_SCREEN_PASSWORD, 0);
@@ -20406,6 +20408,7 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_SYS_INFO, NULL, "Latitude", LCD_DataType, LCD_NoReflash, 0x4004, pu32_type, sizeof(LcdData.setData.Latitude), (void *)&LcdData.setData.Latitude);
     SerialScreen_ItemSetUp(LCD_PAGE_SYS_INFO, NULL, "Server IP", LCD_TextType, LCD_NoReflash, 0x1320, pstr_type, sizeof(LcdData.setData.svrIp), (void *)LcdData.setData.svrIp);
     SerialScreen_ItemSetUp(LCD_PAGE_SYS_INFO, NULL, "pileID", LCD_TextType, LCD_NoReflash, 0x1310, pstr_type, sizeof(LcdData.setData.pileID), (void *)LcdData.setData.pileID);
+    SerialScreen_ItemSetUp(LCD_PAGE_SYS_INFO, NULL, "SerialNumber", LCD_TextType, LCD_NoReflash, 0x1E00, pstr_type, sizeof(LcdData.setData.SerialNumber), (void *)LcdData.setData.SerialNumber);
     SerialScreen_ItemSetUp(LCD_PAGE_SYS_INFO, NULL, "ver_software", LCD_TextType, LCD_NoReflash, 0x1300, pstr_type, sizeof(LcdData.setData.App_SoftWareVersion), (void *)(void *)&LcdData.setData.App_SoftWareVersion[0]);
     SerialScreen_ItemSetUp(LCD_PAGE_SYS_INFO, NULL, "Sim Card", LCD_TextType, LCD_NoReflash, 0x4008, pstr_type, sizeof(LcdData.setData.SIM_card), (void *)&LcdData.setData.SIM_card[0]);
     SerialScreen_ItemSetUp(LCD_PAGE_SYS_INFO, NULL, "Sim Strength", LCD_DataType, LCD_NoReflash, 0x4200, pu32_type, sizeof(LcdData.setData.SIM_Strength), (void *)&LcdData.setData.SIM_Strength);
