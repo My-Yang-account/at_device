@@ -528,6 +528,16 @@
 #define CP_V2G_MODE_PARA_RESERVATION_MAX          (24 *3600) /* 放电模式预约参最大值(单位：1S[是当天启动时间的秒数])*/
 #define CP_V2G_MODE_PARA_RESERVATION_MIN          0         /* 放电模式预约参数最小值(单位：1S[是当天启动时间的秒数])*/
 
+/* fan pwm period */
+#define CP_FAN_PWM_PERIOD_DEFAULT                 10000     /* 风机调速周期默认值(Hz) */
+#define CP_FAN_PWM_PERIOD_MIN                     1         /* 风机调速周期最小值(Hz) */
+#define CP_FAN_PWM_PERIOD_MAX                     1000000   /* 风机调速周期最大值(Hz) */
+
+/* fan pwm timer prescaler */
+#define CP_FAN_PWM_TIMER_PRESCALER_DEFAULT        48        /* 风机调速定时器分频值 */
+#define CP_FAN_PWM_TIMER_PRESCALER_MIN            1         /* 风机调速定时器分频值 */
+#define CP_FAN_PWM_TIMER_PRESCALER_MAX            0xFFFF    /* 风机调速定时器分频值 */
+
 /* current offset */
 #define CP_CURRENT_OFFSET_DEF                     0         /* 电流偏移默认值(0.01A) */
 #define CP_CURRENT_OFFSET_MAX                     10000     /* 电流偏移最大值(0.01A) */
@@ -704,6 +714,9 @@ enum config_name{
     CONFIG_ITEM_GUN2_CURR_OFFSET,
     CONFIG_ITEM_CHARGE_MODE_VALIDITY,
     CONFIG_ITEM_V2G_MODE_VALIDITY,
+    CONFIG_ITEM_FAN_PWM_PERIOD,
+    CONFIG_ITEM_FAN_TIMER_PRESCALER,
+
     CONFIG_ITEM_SUPORT_BSM,
     CONFIG_ITEM_SUPORT_BCS,
     CONFIG_ITEM_SUPORT_AUXPOWER24V,

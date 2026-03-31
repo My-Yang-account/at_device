@@ -134,6 +134,12 @@ int main(void)
 
     prepose_init();
 
+#ifdef APP_USING_DOUBLEGUN
+    thaisenSetTim1Period(*(uint32_t*)(sys_read_config_item_content(CONFIG_ITEM_FAN_PWM_PERIOD, 0x00)));
+    thaisenSetTim1Prescaler(*(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_FAN_TIMER_PRESCALER, 0x00)));
+    MX_TIM1_Init();
+    thaisen_pwm_fan_init();
+#endif /* APP_USING_DOUBLEGUN */
     extern int ec20_device_register(void);
     ec20_device_register();
 

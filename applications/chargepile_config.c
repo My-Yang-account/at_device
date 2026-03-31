@@ -146,7 +146,9 @@ struct _config_para{
 
     uint16_t charge_mode_validity[2];                                 /* 充电模式有效性(AB枪，从低字节开始，从A枪开始，从自动充满模式开始，每2个bit一个模式---0：单次有效   1：永久有效) */
     uint16_t v2g_mode_validity[2];                                    /* V2G模式有效性(AB枪，从低字节开始，从A枪开始，从自动充满模式开始，每2个bit一个模式---0：单次有效   1：永久有效) */
-    uint8_t reserve1[256 - 51];                                       /* 预留 */
+    uint32_t fan_pwm_period;                                          /* 风机调速周期 */
+    uint16_t fan_timer_prescaler;                                     /* 风机调速定时器时钟分频 */
+    uint8_t reserve1[256 - 57];                                       /* 预留 */
 };
 
 struct _config_info{
@@ -1249,6 +1251,12 @@ void sys_chargeplie_config_info_init(void)
     /** V2G模式有效期 */
     sys_config_item_init(CONFIG_ITEM_V2G_MODE_VALIDITY, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.v2g_mode_validity)), \
             (uint8_t*)&s_chargepile_config_info.config_para.v2g_mode_validity, NULL);
+    /** 风机调速周期 */
+    sys_config_item_init(CONFIG_ITEM_FAN_PWM_PERIOD, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.fan_pwm_period)), \
+            (uint8_t*)&s_chargepile_config_info.config_para.fan_pwm_period, NULL);
+    /** 风机调速定时器时钟分频 */
+    sys_config_item_init(CONFIG_ITEM_FAN_TIMER_PRESCALER, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.fan_timer_prescaler)), \
+            (uint8_t*)&s_chargepile_config_info.config_para.fan_timer_prescaler, NULL);
     /** 启用BSM功能 */
     sys_config_item_init(CONFIG_ITEM_SUPORT_BSM, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.bsm)), \
             (uint8_t*)&s_chargepile_config_info.function_enable.bsm, NULL);
@@ -2072,6 +2080,9 @@ static void chargepile_config_data_reset(void)
 
     memset(s_chargepile_config_info.config_para.charge_mode_validity, 0xFF, sizeof(s_chargepile_config_info.config_para.charge_mode_validity));
     memset(s_chargepile_config_info.config_para.v2g_mode_validity, 0xFF, sizeof(s_chargepile_config_info.config_para.v2g_mode_validity));
+
+    s_chargepile_config_info.config_para.fan_pwm_period = CP_FAN_PWM_PERIOD_DEFAULT;
+    s_chargepile_config_info.config_para.fan_timer_prescaler = CP_FAN_PWM_TIMER_PRESCALER_DEFAULT;
 
     s_chargepile_config_info.config_info.prefix_length = 0x00;
     memset(s_chargepile_config_info.config_info.qrcode_prefix, '\0', sizeof(s_chargepile_config_info.config_info.qrcode_prefix));
@@ -3410,6 +3421,16 @@ int32_t chargepile_check_config(void)
                 (s_chargepile_config_info.config_para.gun2_curr_offset > CP_CURRENT_OFFSET_MAX)){
             s_chargepile_config_info.config_para.gun2_curr_offset = CP_CURRENT_OFFSET_DEF;
         }
+    }
+    /** 风机调速周期 */
+    if((s_chargepile_config_info.config_para.fan_pwm_period < CP_FAN_PWM_PERIOD_MIN) || \
+            (s_chargepile_config_info.config_para.fan_pwm_period > CP_FAN_PWM_PERIOD_MAX)){
+        s_chargepile_config_info.config_para.fan_pwm_period = CP_FAN_PWM_PERIOD_DEFAULT;
+    }
+    /** 风机调速定时器时钟分频 */
+    if((s_chargepile_config_info.config_para.fan_timer_prescaler < CP_FAN_PWM_TIMER_PRESCALER_MIN) || \
+            (s_chargepile_config_info.config_para.fan_timer_prescaler >= CP_FAN_PWM_TIMER_PRESCALER_MAX)){
+        s_chargepile_config_info.config_para.fan_timer_prescaler = CP_FAN_PWM_TIMER_PRESCALER_DEFAULT;
     }
 
 

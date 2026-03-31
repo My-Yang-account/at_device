@@ -2114,6 +2114,34 @@ void app_cmd_debug_result_info(uint8_t gunno, uint8_t language, uint8_t cmd, uin
             }
         }
         break;
+    case THAISEN_DEBUG_CMD_ISSUE_FPP:
+        if(para && (plen >= 0x04)){
+            uint32_t value = *(uint32_t*)para;
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= (strlen("Issue>FPWMPeriod:") + (uint32_t)(log10((double)value) + 0x01) + 0x02))
+                    return;
+                sprintf((char*)buf, "%s%lu%s", "Issue>FPWMPeriod:", value, "Hz");
+            }else{
+                if(ilen <= (strlen("下发>风扇调速周期：") + (uint32_t)(log10((double)value) + 0x01) + 0x02))
+                    return;
+                sprintf((char*)buf, "%s%lu%s", "下发>风扇调速周期:", value, "Hz");
+            }
+        }
+        break;
+    case THAISEN_DEBUG_CMD_ISSUE_FPTP:
+        if(para && (plen >= 0x02)){
+            uint16_t value = *(uint16_t*)para;
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= (strlen("Issue>FPWMTimPres:") + (uint32_t)(log10((double)value) + 0x01)))
+                    return;
+                sprintf((char*)buf, "%s%lu", "Issue>FPWMTimPres:", value);
+            }else{
+                if(ilen <= (strlen("下发>风扇调速定时分频：") + (uint32_t)(log10((double)value) + 0x01)))
+                    return;
+                sprintf((char*)buf, "%s%lu", "下发>风扇调速定时分频:", value);
+            }
+        }
+        break;
     case THAISEN_DEBUG_CMD_READ_MODULE_CURR_MAX:
         if(para && (plen >= 0x04)){
             uint32_t curr = *(uint32_t*)para;
@@ -2388,6 +2416,34 @@ void app_cmd_debug_result_info(uint8_t gunno, uint8_t language, uint8_t cmd, uin
                 if(ilen <= (strlen("读取>过流测试检测时长：") + (uint32_t)(log10((double)value) + 0x01)))
                     return;
                 sprintf((char*)buf, "%s%lu", "读取>过流测试检测时长：", value);
+            }
+        }
+        break;
+    case THAISEN_DEBUG_CMD_READ_FPP:
+        if(para && (plen >= 0x04)){
+            uint32_t value = *(uint32_t*)para;
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= (strlen("Read>FPWMPeriod:") + (uint32_t)(log10((double)value) + 0x01) + 0x02))
+                    return;
+                sprintf((char*)buf, "%s%lu%s", "Read>FPWMPeriod:", value, "Hz");
+            }else{
+                if(ilen <= (strlen("读取>风机调速周期：") + (uint32_t)(log10((double)value) + 0x01) + 0x02))
+                    return;
+                sprintf((char*)buf, "%s%lu%s", "读取>风机调速周期：", value, "Hz");
+            }
+        }
+        break;
+    case THAISEN_DEBUG_CMD_READ_FPTP:
+        if(para && (plen >= 0x02)){
+            uint16_t value = *(uint16_t*)para;
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= (strlen("Read>FPWMTimPres:") + (uint32_t)(log10((double)value) + 0x01)))
+                    return;
+                sprintf((char*)buf, "%s%lu", "Read>FPWMTimPres:", value);
+            }else{
+                if(ilen <= (strlen("读取>风机调速定时分频：") + (uint32_t)(log10((double)value) + 0x01)))
+                    return;
+                sprintf((char*)buf, "%s%lu", "读取>风机调速定时分频：", value);
             }
         }
         break;

@@ -902,6 +902,8 @@ struct LCD_DISPLAY_SETDATA_TYPE{
     u8 DebugCmdPara_GBT_ELock;                                   //指令调试参数：协议、互操作：电子锁检测功能
     u8 DebugCmdPara_GBT_OC;                                      //指令调试参数：协议、互操作：过流检测功能
     u16 DebugCmdPara_GBT_OCTime;                                 //指令调试参数：协议、互操作：过流检测判定时长(ms)
+    u32 DebugCmdPara_FanPWMPeriod;                               //指令调试参数：风机调速周期(Hz)
+    u16 DebugCmdPara_FanPWMTimerPrescaler;                       //指令调试参数：风机调速定时器时钟分频
     /** 参数中间值 */
     u32 DebugCmdPara_MCMaxTemp;                                  //指令调试参数：模块最大输出电流中间值
     u32 DebugCmdPara_MCMinTemp;                                  //指令调试参数：模块最小输出电流中间值
@@ -920,6 +922,8 @@ struct LCD_DISPLAY_SETDATA_TYPE{
     u8 DebugCmdPara_GBT_ELockTemp;                               //指令调试参数：协议、互操作：电子锁检测功能中间值
     u8 DebugCmdPara_GBT_OCTemp;                                  //指令调试参数：协议、互操作：过流检测功能中间值
     u16 DebugCmdPara_GBT_OCTimeTemp;                             //指令调试参数：协议、互操作：过流检测判定时长(ms)中间值
+    u32 DebugCmdPara_FanPWMPeriodTemp;                           //指令调试参数：风机调速周期(Hz)中间值
+    u16 DebugCmdPara_FanPWMTimerPrescalerTemp;                   //指令调试参数：风机调速定时器时钟分频中间值
     /*********************** fan ***************************/
     u32 FanWorkTime;                                             //停充后风扇工作时间(s)
     /*********************** 照明灯 ***************************/
@@ -3485,6 +3489,24 @@ static s32 SerialScreen_ConfigExecute_DynamicCmdDebugModify(u8 port, void *data,
             needIssue = 1;
             memcpy(LcdData.setData.DebugCmd, "TOC", strlen("TOC"));
         }
+        /** 风机调速周期 */
+        else if((memcmp(config_segment[i].cmd, "FPP", strlen("FPP")) == 0) && (strlen((char*)config_segment[i].cmd) == strlen("FPP"))){
+            if(strlen((char*)config_segment[i].parameter) == 0x00){
+                /** 参数非法，配置失败 */
+                return (i + THAISEN_CONFIG_FAIL_OFFSET);
+            }
+            needIssue = 1;
+            memcpy(LcdData.setData.DebugCmd, "FPP", strlen("FPP"));
+        }
+        /** 风机调速定时器时钟分频 */
+        else if((memcmp(config_segment[i].cmd, "FPTP", strlen("FPTP")) == 0) && (strlen((char*)config_segment[i].cmd) == strlen("FPTP"))){
+            if(strlen((char*)config_segment[i].parameter) == 0x00){
+                /** 参数非法，配置失败 */
+                return (i + THAISEN_CONFIG_FAIL_OFFSET);
+            }
+            needIssue = 1;
+            memcpy(LcdData.setData.DebugCmd, "FPTP", strlen("FPTP"));
+        }
         else{
             /** 没有这个指令，配置失败 */
             return (i + THAISEN_CONFIG_FAIL_OFFSET);
@@ -3693,6 +3715,18 @@ static s32 SerialScreen_ConfigExecute_DynamicCmdDebugRead(u8 port, void *data, v
         /** 协议、互操作测试：过流测试功能 */
         else if((memcmp(read_segment[i].cmd, "TOC", strlen("TOC")) == 0) && (strlen((char*)read_segment[i].cmd) == strlen("TOC"))){
             sprintf((char*)config_segment[i].parameter, "%u", LcdData.setData.DebugCmdPara_GBT_OC);
+            config_segment[i].parameter_len = strlen((char*)config_segment[i].parameter);
+        }
+        /** 风机调速周期 */
+        else if((memcmp(read_segment[i].cmd, "FPP", strlen("FPP")) == 0) && (strlen((char*)read_segment[i].cmd) == strlen("FPP"))){
+            parameter = LcdData.setData.DebugCmdPara_FanPWMPeriod;
+            sprintf((char*)config_segment[i].parameter, "%d%s",parameter, "Hz");
+            config_segment[i].parameter_len = strlen((char*)config_segment[i].parameter);
+        }
+        /** 风机调速定时器时钟分频 */
+        else if((memcmp(read_segment[i].cmd, "FPTP", strlen("FPTP")) == 0) && (strlen((char*)read_segment[i].cmd) == strlen("FPTP"))){
+            parameter = LcdData.setData.DebugCmdPara_FanPWMTimerPrescaler;
+            sprintf((char*)config_segment[i].parameter, "%d", parameter);
             config_segment[i].parameter_len = strlen((char*)config_segment[i].parameter);
         }
 
@@ -6490,6 +6524,26 @@ void SerialScreen_CmdDebugInfoSet(void)
         UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_GBT_OC, &data, sizeof(data));
         is_changed = 1;
     }
+    /*************************** 风机调速周期 ***************************/
+    if(LcdData.setData.DebugCmdPara_FanPWMPeriod != LcdData.setData.DebugCmdPara_FanPWMPeriodTemp){
+        if((LcdData.setData.DebugCmdPara_FanPWMPeriodTemp < CP_FAN_PWM_PERIOD_MIN) || \
+                (LcdData.setData.DebugCmdPara_FanPWMPeriodTemp > CP_FAN_PWM_PERIOD_MAX)){
+            LcdData.setData.DebugCmdPara_FanPWMPeriodTemp = CP_FAN_PWM_PERIOD_DEFAULT;
+        }
+        LcdData.setData.DebugCmdPara_FanPWMPeriod = LcdData.setData.DebugCmdPara_FanPWMPeriodTemp;
+        UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_FAN_PWM_PERIOD, &LcdData.setData.DebugCmdPara_FanPWMPeriod, sizeof(LcdData.setData.DebugCmdPara_FanPWMPeriod));
+        is_changed = 1;
+    }
+    /*************************** 风机调速定时器时钟分频 ***************************/
+    if(LcdData.setData.DebugCmdPara_FanPWMTimerPrescaler != LcdData.setData.DebugCmdPara_FanPWMTimerPrescalerTemp){
+        if((LcdData.setData.DebugCmdPara_FanPWMTimerPrescalerTemp < CP_FAN_PWM_TIMER_PRESCALER_MIN) || \
+                (LcdData.setData.DebugCmdPara_FanPWMTimerPrescalerTemp >= CP_FAN_PWM_TIMER_PRESCALER_MAX)){
+            LcdData.setData.DebugCmdPara_FanPWMTimerPrescalerTemp = CP_FAN_PWM_TIMER_PRESCALER_DEFAULT;
+        }
+        LcdData.setData.DebugCmdPara_FanPWMTimerPrescaler = LcdData.setData.DebugCmdPara_FanPWMTimerPrescalerTemp;
+        UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_FAN_TIMER_PRESCALER, &LcdData.setData.DebugCmdPara_FanPWMTimerPrescaler, sizeof(LcdData.setData.DebugCmdPara_FanPWMTimerPrescaler));
+        is_changed = 1;
+    }
 
     if(LcdData.setData.Icon_BatVoltDetect != LcdData.setData.sup_BatVoltDetect){
         is_changed = 1;
@@ -6760,6 +6814,19 @@ void SerialScreen_CmdDebugInfoGet(void)
         LcdData.setData.DebugCmdPara_GBT_OC = FALSE;
     }
 
+    /* 风机调速周期(Hz) */
+    LcdData.setData.DebugCmdPara_FanPWMPeriod = *((u32*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_FAN_PWM_PERIOD, 0));
+    if((LcdData.setData.DebugCmdPara_FanPWMPeriod < CP_FAN_PWM_PERIOD_MIN) || \
+            (LcdData.setData.DebugCmdPara_FanPWMPeriod > CP_FAN_PWM_PERIOD_MAX)){
+        LcdData.setData.DebugCmdPara_FanPWMPeriod = CP_FAN_PWM_PERIOD_DEFAULT;
+    }
+    /* 风机调速定时器时钟分频 */
+    LcdData.setData.DebugCmdPara_FanPWMTimerPrescaler = *((u16*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_FAN_TIMER_PRESCALER, 0));
+    if((LcdData.setData.DebugCmdPara_FanPWMTimerPrescaler < CP_FAN_PWM_TIMER_PRESCALER_MIN) || \
+            (LcdData.setData.DebugCmdPara_FanPWMTimerPrescaler >= CP_FAN_PWM_TIMER_PRESCALER_MAX)){
+        LcdData.setData.DebugCmdPara_FanPWMTimerPrescaler = CP_FAN_PWM_TIMER_PRESCALER_DEFAULT;
+    }
+
     LcdData.setData.Icon_BatVoltDetect = FALSE;
     if(LcdData.setData.sup_BatVoltDetect){
         LcdData.setData.Icon_BatVoltDetect = TRUE;
@@ -6841,6 +6908,8 @@ void SerialScreen_CmdDebugInfoGet(void)
     LcdData.setData.DebugCmdPara_GBT_ELockTemp = LcdData.setData.DebugCmdPara_GBT_ELock;
     LcdData.setData.DebugCmdPara_GBT_OCTemp = LcdData.setData.DebugCmdPara_GBT_OC;
     LcdData.setData.DebugCmdPara_GBT_OCTimeTemp = LcdData.setData.DebugCmdPara_GBT_OCTime;
+    LcdData.setData.DebugCmdPara_FanPWMPeriodTemp = LcdData.setData.DebugCmdPara_FanPWMPeriod;
+    LcdData.setData.DebugCmdPara_FanPWMTimerPrescalerTemp = LcdData.setData.DebugCmdPara_FanPWMTimerPrescaler;
 }
 
 void SerialScreen_CmdDebugIssue(void)
@@ -7204,6 +7273,30 @@ void SerialScreen_CmdDebugIssue(void)
                 LcdData.setData.DebugCmdPara_GBT_OCTimeTemp = para;
             }
         }
+        /** 指令下发：风机调速周期(Hz) */
+        else if((memcmp(CmdStr, "FPP", strlen("FPP")) == 0) && (strlen(CmdStr) == strlen("FPP")))
+        {
+            if((used_len < blen) && ParaStr){
+                u32 para = atol(ParaStr);
+
+                thaisen_get_cmd_debug_result_info(LCD_GUN_1, THA_DEBUG_LANGUAGE_CHINESE, THAISEN_DEBUG_CMD_ISSUE_FPP, (u8*)&para, sizeof(para), \
+                        (LcdData.setData.DebugResult + used_len), (blen - used_len));
+                /** 保存指令参数 */
+                LcdData.setData.DebugCmdPara_FanPWMPeriodTemp = para;
+            }
+        }
+        /** 指令下发：风机调速定时器时钟分频 */
+        else if((memcmp(CmdStr, "FPTP", strlen("FPTP")) == 0) && (strlen(CmdStr) == strlen("FPTP")))
+        {
+            if((used_len < blen) && ParaStr){
+                u16 para = atol(ParaStr);
+
+                thaisen_get_cmd_debug_result_info(LCD_GUN_1, THA_DEBUG_LANGUAGE_CHINESE, THAISEN_DEBUG_CMD_ISSUE_FPTP, (u8*)&para, sizeof(para), \
+                        (LcdData.setData.DebugResult + used_len), (blen - used_len));
+                /** 保存指令参数 */
+                LcdData.setData.DebugCmdPara_FanPWMTimerPrescalerTemp = para;
+            }
+        }
 
         used_len = strlen((char*)LcdData.setData.DebugResult);
         if(used_len >= blen)
@@ -7442,6 +7535,24 @@ void SerialScreen_CmdDebugRead(void)
             uint16_t time = LcdData.setData.DebugCmdPara_GBT_OCTimeTemp;
             if(used_len < blen){
                 thaisen_get_cmd_debug_result_info(LCD_GUN_1, THA_DEBUG_LANGUAGE_CHINESE, THAISEN_DEBUG_CMD_READ_TOCDT, (u8*)&time, sizeof(time), \
+                        (LcdData.setData.DebugResult + used_len), (blen - used_len));
+            }
+        }
+        /** 指令读取：风机调速周期(Hz) */
+        else if((memcmp(CmdStr, "FPP", strlen("FPP")) == 0) && (strlen(CmdStr) == strlen("FPP")))
+        {
+            if(used_len < blen){
+                u32 para = LcdData.setData.DebugCmdPara_FanPWMPeriodTemp;
+                thaisen_get_cmd_debug_result_info(LCD_GUN_1, THA_DEBUG_LANGUAGE_CHINESE, THAISEN_DEBUG_CMD_READ_FPP, (u8*)&para, sizeof(para), \
+                        (LcdData.setData.DebugResult + used_len), (blen - used_len));
+            }
+        }
+        /** 指令读取：风机调速定时器时钟分频 */
+        else if((memcmp(CmdStr, "FPTP", strlen("FPTP")) == 0) && (strlen(CmdStr) == strlen("FPTP")))
+        {
+            if(used_len < blen){
+                u16 para = LcdData.setData.DebugCmdPara_FanPWMTimerPrescalerTemp;
+                thaisen_get_cmd_debug_result_info(LCD_GUN_1, THA_DEBUG_LANGUAGE_CHINESE, THAISEN_DEBUG_CMD_READ_FPTP, (u8*)&para, sizeof(para), \
                         (LcdData.setData.DebugResult + used_len), (blen - used_len));
             }
         }

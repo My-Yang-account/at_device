@@ -820,6 +820,8 @@ enum thaisen_debug_cmd{
     THAISEN_DEBUG_CMD_ISSUE_TEL,                                 /** 调试指令码：下发协议、互操作测试：电子锁测试功能 */
     THAISEN_DEBUG_CMD_ISSUE_TOC,                                 /** 调试指令码：下发协议、互操作测试：过流测试功能 */
     THAISEN_DEBUG_CMD_ISSUE_TOCDT,                               /** 调试指令码：下发协议、互操作测试：过流测试判定时长 */
+    THAISEN_DEBUG_CMD_ISSUE_FPP,                                 /** 调试指令码：下发风机调速周期(Hz) */
+    THAISEN_DEBUG_CMD_ISSUE_FPTP,                                /** 调试指令码：下发风机调速定时器时钟分频 */
 
     THAISEN_DEBUG_CMD_READ_MODULE_CURR_MAX,                      /** 调试指令码：读取模块最大输出电流 */
     THAISEN_DEBUG_CMD_READ_MODULE_CURR_MIN,                      /** 调试指令码：读取模块最小输出电流 */
@@ -837,6 +839,8 @@ enum thaisen_debug_cmd{
     THAISEN_DEBUG_CMD_READ_TEL,                                  /** 调试指令码：读取协议、互操作测试：电子锁测试功能 */
     THAISEN_DEBUG_CMD_READ_TOC,                                  /** 调试指令码：读取协议、互操作测试：过流测试功能 */
     THAISEN_DEBUG_CMD_READ_TOCDT,                                /** 调试指令码：读取协议、互操作测试：过流测试判定时长 */
+    THAISEN_DEBUG_CMD_READ_FPP,                                  /** 调试指令码：读取下发风机调速周期(Hz) */
+    THAISEN_DEBUG_CMD_READ_FPTP,                                 /** 调试指令码：读取风机调速定时器时钟分频 */
 
     THAISEN_DEBUG_CMD_SIZE,                                      /** 调试指令码 */
 };
