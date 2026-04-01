@@ -2148,6 +2148,7 @@ static void ofsm_info_init_fun(uint8_t gunno)
     for(uint8_t count = 0; count < group; count++){
         s_ofsm_info[gunno].base.system_power_max += (sys_get_single_group_module_num(count) *single_module_power);
     }
+    thaisen_Set_PilePowerTotal(s_ofsm_info[gunno].base.system_power_max *10);
     LOG_D("gunno(%d) system_power_max(%d) get_single_group_module_num(%d)(%d)\n\n", gunno, s_ofsm_info[gunno].base.system_power_max, \
             sys_get_single_group_module_num(gunno), single_module_power);
 

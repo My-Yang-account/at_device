@@ -5222,6 +5222,7 @@ void SerialScreen_BtnModuleSet(void)
     app_module_set_single_module_power(power);
 #endif /* SCREEN_USING_CYCLE_MATRIX */
 
+    thaisen_Set_PilePowerTotal(sys_query_system_max_power() *10);
     rt_kprintf("thaisenSetModuleMaxVolt|%d    thaisenSetModuleMinVolt|%d\n", LcdData.setData.Rated_Output_Voltage, LcdData.setData.Min_Output_Voltage);
     rt_kprintf("thaisenSetModuleMaxCurr|%d    thaisenSetModuleMinCurr|%d\n", LcdData.setData.Rated_Limit_Current, LcdData.setData.Min_Limit_Current);
     rt_kprintf("thaisenSetModuleMaxChargVolt|%d    thaisenSetModuleMaxChargCurr|%d\n", LcdData.setData.Max_Output_Voltage, LcdData.setData.Max_Limit_Current);
