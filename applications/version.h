@@ -59,7 +59,7 @@ extern "C" {
 //#define APP_SOFT_MODULE_USING_GB_SGUN_HOST_7103F_H7             /* 软件型号使用国标多枪主板7103F-470H7(芯片型号) */
 //#define APP_SOFT_MODULE_USING_GB_SGUN_SLAVE_7103F_VG            /* 软件型号使用国标多枪从板7103F-470VG(芯片型号) */
 //#define APP_SOFT_MODULE_USING_GB_MASTERSLAVEDEV_7103F_VG        /* 软件型号使用国标子母机7103F-470ZG(芯片型号) */
-//#define APP_SOFT_MODULE_USING_GB_MASTERSLAVEDEV_7103F_VG_SWT    /* 软件型号使用国标子母机7103F-470ZG(芯片型号)-赛维特定制屏 */
+//#define APP_SOFT_MODULE_USING_GB_MASTERSLAVEDEV_7143_VG_SWT     /* 软件型号使用国标子母机7143-470ZG(芯片型号)-赛维特 */
 
 #if defined(APP_SOFT_MODULE_USING_GB_WHOLE_7103F_ZG)
 #define SOFTWARE_MODULE                                         "7103-V31"          /* 软件型号 */
@@ -81,21 +81,30 @@ extern "C" {
 #define SOFTWARE_MODULE                                         "7103-VC2"          /* 软件型号 */
 #elif defined(APP_SOFT_MODULE_USING_GB_MASTERSLAVEDEV_7103F_VG)
 #define SOFTWARE_MODULE                                         "7103-V52"          /* 软件型号 */
-#elif defined(APP_SOFT_MODULE_USING_GB_MASTERSLAVEDEV_7103F_VG_SWT)
-#define SOFTWARE_MODULE                                         "7103-V53"          /* 软件型号 */
+#elif defined(APP_SOFT_MODULE_USING_GB_MASTERSLAVEDEV_7143_VG_SWT)
+#define SOFTWARE_MODULE                                         "7143-VE0"          /* 软件型号 */
 #else
 #define SOFTWARE_MODULE                                         "7103-V30"          /* 软件型号 */
 #endif /* APP_SOFT_MODULE_USING_GB_WHOLE_7103F_ZG */
 
-#ifndef CP_USING_CYCLE_MATRIX
-#define SOFTWARE_VERSION       2L
-#define SOFTWARE_SUBVERSION    2
-#define SOFTWARE_REVISION      6L  /* 01 */
+/** 这是环矩/半矩版本 */
+#ifdef CP_USING_CYCLE_MATRIX
+/** 国标7103F子母机 */
+#ifdef APP_SOFT_MODULE_USING_GB_MASTERSLAVEDEV_7103F_VG
+#define SOFTWARE_VERSION       1L
+#define SOFTWARE_SUBVERSION    0
+#define SOFTWARE_REVISION      1L  /* 04 */
+/** 国标7143子母机 */
 #else
 #define SOFTWARE_VERSION       1L
 #define SOFTWARE_SUBVERSION    0
-#define SOFTWARE_REVISION      1L  /* 03 */
+#define SOFTWARE_REVISION      1L  /* 04 */
 #endif
+#else /* CP_USING_CYCLE_MATRIX */
+#define SOFTWARE_VERSION       2L
+#define SOFTWARE_SUBVERSION    2
+#define SOFTWARE_REVISION      8L  /* 01 */
+#endif /* CP_USING_CYCLE_MATRIX */
 
 #else
 
