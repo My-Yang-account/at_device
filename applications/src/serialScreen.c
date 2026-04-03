@@ -16619,6 +16619,9 @@ struct LCD_DATA_FIFO_TYPE *SerialScreen_Init(struct SerialScreenObj *cmd)
     LcdData.setData.DebugCmdPara_GBT_ELock = *((u8*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_GBT_ELOCK, 0));
     LcdData.setData.DebugCmdPara_GBT_OC = *((u8*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_GBT_OC, 0));
 
+    LcdData.setData.DebugCmdPara_FanPWMPeriod = *((u32*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_FAN_PWM_PERIOD, 0));
+    LcdData.setData.DebugCmdPara_FanPWMTimerPrescaler = *((u16*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_FAN_TIMER_PRESCALER, 0));
+
     memset(LcdData.setData.UserPasswdShow, '\0', sizeof(LcdData.setData.UserPasswdShow));
     memcpy(LcdData.setData.UserPasswdShow, data, sizeof(LcdData.setData.UserPasswdShow));
     if(len == 0){
@@ -16859,7 +16862,16 @@ struct LCD_DATA_FIFO_TYPE *SerialScreen_Init(struct SerialScreenObj *cmd)
     }else{
         LcdData.setData.DebugCmdPara_GBT_OC = FALSE;
     }
-
+    /* 风机调速周期(Hz) */
+    if((LcdData.setData.DebugCmdPara_FanPWMPeriod < CP_FAN_PWM_PERIOD_MIN) || \
+            (LcdData.setData.DebugCmdPara_FanPWMPeriod > CP_FAN_PWM_PERIOD_MAX)){
+        LcdData.setData.DebugCmdPara_FanPWMPeriod = CP_FAN_PWM_PERIOD_DEFAULT;
+    }
+    /* 风机调速定时器时钟分频 */
+    if((LcdData.setData.DebugCmdPara_FanPWMTimerPrescaler < CP_FAN_PWM_TIMER_PRESCALER_MIN) || \
+            (LcdData.setData.DebugCmdPara_FanPWMTimerPrescaler >= CP_FAN_PWM_TIMER_PRESCALER_MAX)){
+        LcdData.setData.DebugCmdPara_FanPWMTimerPrescaler = CP_FAN_PWM_TIMER_PRESCALER_DEFAULT;
+    }
     LcdData.setData.DebugCmdPara_MElectStrategyTemp = LcdData.setData.DebugCmdPara_MElectStrategy;
     LcdData.setData.DebugCmdPara_BatVoltStrategyTemp = LcdData.setData.DebugCmdPara_BatVoltStrategy;
     LcdData.setData.DebugCmdPara_CurrStrategyTemp = LcdData.setData.DebugCmdPara_CurrStrategy;
@@ -16869,6 +16881,9 @@ struct LCD_DATA_FIFO_TYPE *SerialScreen_Init(struct SerialScreenObj *cmd)
 
     LcdData.setData.DebugCmdPara_GBT_ELockTemp = LcdData.setData.DebugCmdPara_GBT_ELock;
     LcdData.setData.DebugCmdPara_GBT_OCTemp = LcdData.setData.DebugCmdPara_GBT_OC;
+
+    LcdData.setData.DebugCmdPara_FanPWMPeriodTemp = LcdData.setData.DebugCmdPara_FanPWMPeriod;
+    LcdData.setData.DebugCmdPara_FanPWMTimerPrescalerTemp = LcdData.setData.DebugCmdPara_FanPWMTimerPrescaler;
 
     for(int i = 0; i < LCD_GUN_NUM; i++)
     {
@@ -19494,11 +19509,11 @@ int SerialScreen_DataProcess()
 			//sSCREEN_EVENT_DEBUGMSG(" chgStatus[%d]= %02x\r\n",i,thaisen_get_charg_status(i));
 
             if(LcdData.gun[i].workStateLast != LcdData.gun[i].workState){
-                if(LcdData.setData.Sup_PlugAndPlay == FALSE){
-                    if(LcdData.gun[i].workState == SysMainStatus_PlugIn){
-                        LcdData.Homeflg = 0;
-                        if(i == LCD_GUN_1){
-                            if(LcdData.gun[LCD_GUN_2].workState != SysMainStatus_StartReady){
+                if(!((LcdData.setData.Sup_PlugAndPlay == TRUE) && (LcdData.setData.sup_auxp_24V == FALSE))){
+	                if(LcdData.gun[i].workState == SysMainStatus_PlugIn){
+	                    LcdData.Homeflg = 0;
+	                    if(i == LCD_GUN_1){
+	                        if(LcdData.gun[LCD_GUN_2].workState != SysMainStatus_StartReady){
                                 LcdData.CurrentPage = LCD_PAGE_A_SELECT;
                                 LcdData.gunIndex = LCD_GUN_1;
 #ifdef SCREEN_USING_OFFLINE_BILLING
