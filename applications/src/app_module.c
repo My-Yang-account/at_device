@@ -609,6 +609,45 @@ void app_module_input_power_control(void)
 #endif /* CP_USING_CYCLE_MATRIX */
 }
 
+/*****************************************************
+ * 函数名              app_mctrl_fan_control
+ * 功能                 风机控制
+ * 参数
+ * 返回
+ ****************************************************/
+void app_module_fan_control(void)
+{
+#ifdef CP_USING_CYCLE_MATRIX
+#define MCTRL_THREAD_RUNNING_TICK          100                                               /* 外部调用时基(ms) */
+#define APP_MCTRL_CLOSE_FAN_DELAY_TIME     (2 *60 *1000 /MCTRL_THREAD_RUNNING_TICK)          /** 关闭风机延时时间(ms) */
+
+    static unsigned int tick = 0x00, work_time = APP_MCTRL_CLOSE_FAN_DELAY_TIME;
+
+    if(tick < (0xFFFFFFFF - 0x01))
+        tick++;
+    /** 矩阵内有枪在充电 */
+    if(thaisen_get_pileCharging()){
+        /** 控制风机启动 */
+        if(thaisen_is_debug() == 0x00){
+            thaisen_fan_B_on();
+        }
+        tick = 0x00;
+    }
+    /** 所有枪都空闲 */
+    else{
+        work_time = *((unsigned short*)sys_read_config_item_content(CONFIG_ITEM_FAN_WORK_TIME, 0x00));
+        if((work_time < CHARGEPILE_FAN_WORK_TIME_MIN) || (work_time > CHARGEPILE_FAN_WORK_TIME_MAX)){
+            work_time = CHARGEPILE_FAN_WORK_TIME_DEF;
+        }
+        if(tick > (work_time *1000 /MCTRL_THREAD_RUNNING_TICK)){
+            if(thaisen_is_debug() == 0x00){
+                thaisen_fan_B_off();
+            }
+        }
+    }
+#endif /* CP_USING_CYCLE_MATRIX */
+}
+
 /*****************************************
  * 函数名             app_module_loop
  * 功能                模块控制部分实时运行

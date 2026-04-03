@@ -1017,6 +1017,7 @@ static void control_check_thread_entry(void *parameter)
 #ifdef APP_USING_CYCLE_MATRIX
     extern void app_module_schedule_judge(void);
     extern void app_module_input_power_control(void);
+    extern void app_module_input_power_control(void);
     extern void app_module_loop(void);
 
 #endif /* APP_USING_CYCLE_MATRIX */
@@ -1026,6 +1027,7 @@ static void control_check_thread_entry(void *parameter)
 
 #ifdef APP_USING_CYCLE_MATRIX
         app_module_input_power_control();
+        app_module_fan_control();
 #endif /* APP_USING_CYCLE_MATRIX */
         app_module_inpower_judge();
 #ifdef APP_USING_CYCLE_MATRIX
