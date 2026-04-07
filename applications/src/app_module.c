@@ -96,6 +96,7 @@ struct assistant{
 
 #pragma pack()
 
+static powerctrl_init_t s_module_ctrl_base_info;
 static module_ctrl_info_t s_module_ctrl_info;
 static struct assistant s_module_ctrl_assistant_info[MCTRL_CYCLE_MATRIX_MODULE_NUM];
 #endif /* CP_USING_CYCLE_MATRIX */
@@ -275,7 +276,11 @@ void app_module_set_module_current_min(unsigned short current)
     if((s_module_ctrl_info.type != SYSTEM_FUNCTION_MS_MACHINE_CYCLE) && (s_module_ctrl_info.type != SYSTEM_FUNCTION_MS_MACHINE_HALF)){
         return;
     }
+    /** 单个模块最小电流 */
+    s_module_ctrl_base_info.module_mincurr = current /100;
     thaisen_set_module_mincurr(current /100);
+
+    MCTRL_DEBUG("module control module_mincurr:%d\n", s_module_ctrl_base_info.module_mincurr);
 #endif /* CP_USING_CYCLE_MATRIX */
 }
 
@@ -292,7 +297,46 @@ void app_module_set_module_current_max(unsigned int current)
     if((s_module_ctrl_info.type != SYSTEM_FUNCTION_MS_MACHINE_CYCLE) && (s_module_ctrl_info.type != SYSTEM_FUNCTION_MS_MACHINE_HALF)){
         return;
     }
+    /** 单个模块最大电流 */
+    s_module_ctrl_base_info.module_maxcurr = current;
     thaisen_set_module_maxcurr(current);
+    MCTRL_DEBUG("module control module_maxcurr:%d\n", s_module_ctrl_base_info.module_maxcurr);
+#endif /* CP_USING_CYCLE_MATRIX */
+}
+
+/*****************************************
+ * 函数名             app_module_set_power_allocate_way
+ * 功能                设置功率分配方式
+ * 参数                way     功率分配方式
+ * 返回
+ ****************************************/
+void app_module_set_power_allocate_way(unsigned char way)
+{
+#ifdef CP_USING_CYCLE_MATRIX
+    /** 非半矩和环矩类型不报矩阵继电器故障 */
+    if((s_module_ctrl_info.type != SYSTEM_FUNCTION_MS_MACHINE_CYCLE) && (s_module_ctrl_info.type != SYSTEM_FUNCTION_MS_MACHINE_HALF)){
+        return;
+    }
+    /** 矩阵内有枪在充电, 不允许修改 */
+    if(thaisen_get_pileCharging()){
+        return;
+    }
+    /** 分配方式 */
+    switch(way){
+    case POWER_ALLOCATION_WAY_AVERAGE:
+        s_module_ctrl_base_info.allomethod = ModuleAllo_share;
+        break;
+    case POWER_ALLOCATION_WAY_SEQ_PRIORITY:
+        s_module_ctrl_base_info.allomethod = ModuleAllo_fcfs;
+        break;
+    case POWER_ALLOCATION_WAY_POWER_PRIORITY:
+        s_module_ctrl_base_info.allomethod = ModuleAllo_hpf;
+        break;
+    default:
+        return;         /** 这是运行中修改的，如果不对，直接退出不修改 */
+    }
+//    thaisen_base_init(s_module_ctrl_base_info);
+    MCTRL_DEBUG("module control allocate way:%d\n", s_module_ctrl_base_info.allomethod);
 #endif /* CP_USING_CYCLE_MATRIX */
 }
 
@@ -307,6 +351,8 @@ void app_module_set_single_module_power(unsigned int power)
 #ifdef CP_USING_CYCLE_MATRIX
     /** 半矩和环矩类型 */
     if((s_module_ctrl_info.type == SYSTEM_FUNCTION_MS_MACHINE_CYCLE) || (s_module_ctrl_info.type == SYSTEM_FUNCTION_MS_MACHINE_HALF)){
+        /** 模块额定功率 */
+        s_module_ctrl_base_info.module_preserpower = power;
         thaisen_chargemain_set_ModulePreserPower(power);
         MCTRL_DEBUG("set single module power:%dW\n", power);
     }
@@ -1088,7 +1134,6 @@ int app_module_ctrl_init(void)
 #ifdef CP_USING_CYCLE_MATRIX
     unsigned int config_data = 0x00;
     thaisen_masterSlaveCom_init_t ms_init;
-    powerctrl_init_t *mctrl_base_info = NULL;
 
     memset(s_module_ctrl_assistant_info, 0x00, sizeof(s_module_ctrl_assistant_info));
     memset(&s_module_ctrl_info, 0x00, sizeof(s_module_ctrl_info));
@@ -1099,33 +1144,27 @@ int app_module_ctrl_init(void)
     ms_init.gunAddr[0x01] = (unsigned char)config_data;
     MCTRL_DEBUG("module control  device address:%X, %X\n", ms_init.gunAddr[0x00], ms_init.gunAddr[0x01]);
 
-    /** 动态分配内存 */
-    mctrl_base_info = (powerctrl_init_t*)rt_malloc(sizeof(powerctrl_init_t));
-    if(mctrl_base_info == NULL){
-        return -0x01;
-    }
-
     /** 矩阵类型/子母机配置 */
     config_data = *(unsigned char*)(sys_read_config_item_content(CONFIG_ITEM_DEVICE_TYPE, 0x00));
     switch(config_data){
     case SYSTEM_FUNCTION_MS_MACHINE_CYCLE:
         s_module_ctrl_info.type = SYSTEM_FUNCTION_MS_MACHINE_CYCLE;
-        mctrl_base_info->matrix_type = thaisen_moduleallo_matrixtype_ringmatrix;
+        s_module_ctrl_base_info.matrix_type = thaisen_moduleallo_matrixtype_ringmatrix;
         break;
     case SYSTEM_FUNCTION_MS_MACHINE_HALF:
         s_module_ctrl_info.type = SYSTEM_FUNCTION_MS_MACHINE_HALF;
-        mctrl_base_info->matrix_type = thaisen_moduleallo_matrixtype_halfmatrix;
+        s_module_ctrl_base_info.matrix_type = thaisen_moduleallo_matrixtype_halfmatrix;
         break;
     case SYSTEM_FUNCTION_DOUBLE_WHOLE:
         s_module_ctrl_info.type = SYSTEM_FUNCTION_DOUBLE_WHOLE;
-        mctrl_base_info->matrix_type = thaisen_moduleallo_matrixtype_none;
+        s_module_ctrl_base_info.matrix_type = thaisen_moduleallo_matrixtype_none;
         break;
     default:
         s_module_ctrl_info.type = SYSTEM_FUNCTION_MS_MACHINE_CYCLE;
-        mctrl_base_info->matrix_type = thaisen_moduleallo_matrixtype_ringmatrix;         /** 默认矩阵排布 */
+        s_module_ctrl_base_info.matrix_type = thaisen_moduleallo_matrixtype_ringmatrix;         /** 默认矩阵排布 */
         break;
     }
-    MCTRL_DEBUG("module control  matrix_type:%d\n", mctrl_base_info->matrix_type);
+    MCTRL_DEBUG("module control  matrix_type:%d\n", s_module_ctrl_base_info.matrix_type);
 #if 0
     /** 设备类型非半矩和环矩是不需要进行以下初始化 */
     if((s_module_ctrl_info.type != SYSTEM_FUNCTION_MS_MACHINE_CYCLE) && (s_module_ctrl_info.type != SYSTEM_FUNCTION_MS_MACHINE_HALF)){
@@ -1133,7 +1172,6 @@ int app_module_ctrl_init(void)
         thaisenMasterSlave_Init(ms_init);
         thaisen_base_deInit();
 
-        rt_free(mctrl_base_info);
         MCTRL_DEBUG("module control device type is slave\n");
         return 0x00;
     }
@@ -1142,90 +1180,88 @@ int app_module_ctrl_init(void)
     config_data = *(unsigned char*)(sys_read_config_item_content(CONFIG_ITEM_ALLOCATION_WAY, 0x00));
     switch(config_data){
     case POWER_ALLOCATION_WAY_AVERAGE:
-        mctrl_base_info->allomethod = ModuleAllo_share;
+        s_module_ctrl_base_info.allomethod = ModuleAllo_share;
         break;
     case POWER_ALLOCATION_WAY_SEQ_PRIORITY:
-        mctrl_base_info->allomethod = ModuleAllo_fcfs;
+        s_module_ctrl_base_info.allomethod = ModuleAllo_fcfs;
         break;
     case POWER_ALLOCATION_WAY_POWER_PRIORITY:
-        mctrl_base_info->allomethod = ModuleAllo_hpf;
+        s_module_ctrl_base_info.allomethod = ModuleAllo_hpf;
         break;
     default:
-        mctrl_base_info->allomethod = ModuleAllo_fcfs;         /** 默认先到先得 */
+        s_module_ctrl_base_info.allomethod = ModuleAllo_fcfs;         /** 默认先到先得 */
         break;
     }
-    MCTRL_DEBUG("module control allocate way:%d\n", mctrl_base_info->allomethod);
+    MCTRL_DEBUG("module control allocate way:%d\n", s_module_ctrl_base_info.allomethod);
 
     /** 模块额定功率 */
-    mctrl_base_info->module_preserpower = *(unsigned short*)(sys_read_config_item_content(CONFIG_ITEM_RATED_OUTPUT_VOLTAGE, 0x00));
+    s_module_ctrl_base_info.module_preserpower = *(unsigned short*)(sys_read_config_item_content(CONFIG_ITEM_RATED_OUTPUT_VOLTAGE, 0x00));
     config_data = *(unsigned short*)(sys_read_config_item_content(CONFIG_ITEM_RATED_LIMIT_CURRENT, 0x00));
-    mctrl_base_info->module_preserpower *= config_data;
-    mctrl_base_info->module_preserpower = mctrl_base_info->module_preserpower *sys_get_power_percent() /1000;
-    MCTRL_DEBUG("module control rated power:%d\n", mctrl_base_info->module_preserpower);
+    s_module_ctrl_base_info.module_preserpower *= config_data;
+    s_module_ctrl_base_info.module_preserpower = s_module_ctrl_base_info.module_preserpower *sys_get_power_percent() /1000;
+    MCTRL_DEBUG("module control rated power:%d\n", s_module_ctrl_base_info.module_preserpower);
 
     /** 模块组数，组内模块数 */
-    memset(mctrl_base_info->module_cntforgroup, 0x00, sizeof(mctrl_base_info->module_cntforgroup));
-    mctrl_base_info->module_groupcnt = *(unsigned char*)(sys_read_config_item_content(CONFIG_ITEM_MODULE_GROUP_NUM, 0x00));
-    if(mctrl_base_info->module_groupcnt > MODULE_GROUP_NUMBER_MAX){
-        mctrl_base_info->module_groupcnt = MODULE_GROUP_NUMBER_MAX;
+    memset(s_module_ctrl_base_info.module_cntforgroup, 0x00, sizeof(s_module_ctrl_base_info.module_cntforgroup));
+    s_module_ctrl_base_info.module_groupcnt = *(unsigned char*)(sys_read_config_item_content(CONFIG_ITEM_MODULE_GROUP_NUM, 0x00));
+    if(s_module_ctrl_base_info.module_groupcnt > MODULE_GROUP_NUMBER_MAX){
+        s_module_ctrl_base_info.module_groupcnt = MODULE_GROUP_NUMBER_MAX;
     }
-    MCTRL_DEBUG("module control module_group number:%d\n", mctrl_base_info->module_groupcnt);
+    MCTRL_DEBUG("module control module_group number:%d\n", s_module_ctrl_base_info.module_groupcnt);
 
-    for(unsigned char i = 0x00; i < mctrl_base_info->module_groupcnt; i++){
-        mctrl_base_info->module_cntforgroup[i] = *(unsigned char*)(sys_read_config_item_content((CONFIG_ITEM_MODULE_NUM_GROUP_1 + i), 0x00));
-        if(mctrl_base_info->module_cntforgroup[i] > MODULE_NUMBER_SINGLE_MAX){
-            mctrl_base_info->module_cntforgroup[i] = MODULE_NUMBER_SINGLE_MAX;
+    for(unsigned char i = 0x00; i < s_module_ctrl_base_info.module_groupcnt; i++){
+        s_module_ctrl_base_info.module_cntforgroup[i] = *(unsigned char*)(sys_read_config_item_content((CONFIG_ITEM_MODULE_NUM_GROUP_1 + i), 0x00));
+        if(s_module_ctrl_base_info.module_cntforgroup[i] > MODULE_NUMBER_SINGLE_MAX){
+            s_module_ctrl_base_info.module_cntforgroup[i] = MODULE_NUMBER_SINGLE_MAX;
         }
-        MCTRL_DEBUG("module control matrix num single grp:%d, %d\n", i, mctrl_base_info->module_cntforgroup[i]);
+        MCTRL_DEBUG("module control matrix num single grp:%d, %d\n", i, s_module_ctrl_base_info.module_cntforgroup[i]);
     }
 
     /** 单个模块最大电流 */
-    mctrl_base_info->module_maxcurr = *(unsigned short*)(sys_read_config_item_content(CONFIG_ITEM_SMODULE_OUTCURR_MAX, 0x00)) *100;
-    MCTRL_DEBUG("module control module_maxcurr:%d\n", mctrl_base_info->module_maxcurr);
+    s_module_ctrl_base_info.module_maxcurr = *(unsigned short*)(sys_read_config_item_content(CONFIG_ITEM_SMODULE_OUTCURR_MAX, 0x00)) *100;
+    MCTRL_DEBUG("module control module_maxcurr:%d\n", s_module_ctrl_base_info.module_maxcurr);
     /** 单个模块最小电流 */
-    mctrl_base_info->module_mincurr = *(unsigned short*)(sys_read_config_item_content(CONFIG_ITEM_MIN_LIMIT_CURRENT, 0x00));
-    MCTRL_DEBUG("module control module_mincurr:%d\n", mctrl_base_info->module_mincurr);
+    s_module_ctrl_base_info.module_mincurr = *(unsigned short*)(sys_read_config_item_content(CONFIG_ITEM_MIN_LIMIT_CURRENT, 0x00));
+    MCTRL_DEBUG("module control module_mincurr:%d\n", s_module_ctrl_base_info.module_mincurr);
     /** 单个模块最小电压 */
-    mctrl_base_info->module_minvolt = *(unsigned short*)(sys_read_config_item_content(CONFIG_ITEM_MIN_OUTPUT_VOLTAGE, 0x00)) *10;
-    MCTRL_DEBUG("module control module_minvolt:%d\n", mctrl_base_info->module_minvolt);
+    s_module_ctrl_base_info.module_minvolt = *(unsigned short*)(sys_read_config_item_content(CONFIG_ITEM_MIN_OUTPUT_VOLTAGE, 0x00)) *10;
+    MCTRL_DEBUG("module control module_minvolt:%d\n", s_module_ctrl_base_info.module_minvolt);
 
     /** 动态分组地址偏移 */
     config_data = *(unsigned char*)(sys_read_config_item_content(CONFIG_ITEM_MODULE_MODEL, 0x00));
     switch(config_data){
     case MODULE_MODEL_YFY:
-        mctrl_base_info->module_addroffset = 0x60;   /** 英飞源动态分组默认地址偏移 */
+        s_module_ctrl_base_info.module_addroffset = 0x60;   /** 英飞源动态分组默认地址偏移 */
         break;
     default:
-        mctrl_base_info->module_addroffset = 0x20;   /** 动态分组默认地址偏移 */
+        s_module_ctrl_base_info.module_addroffset = 0x20;   /** 动态分组默认地址偏移 */
         break;
     }
-    MCTRL_DEBUG("module control module address offset:0x%02X\n", mctrl_base_info->module_addroffset);
+    MCTRL_DEBUG("module control module address offset:0x%02X\n", s_module_ctrl_base_info.module_addroffset);
     /** 枪数量 */
-    mctrl_base_info->guncnt = mctrl_base_info->module_groupcnt;
+    s_module_ctrl_base_info.guncnt = s_module_ctrl_base_info.module_groupcnt;
 
     /** 回调函数注册 */
-    mctrl_base_info->setrelaysta = app_module_relay_contrl;             /** 继电器控制 */
-    mctrl_base_info->getrelaysta = app_module_query_relay_state;        /** 继电器状态查询 */
-    mctrl_base_info->stachangefb = app_module_relay_state_changed;      /** 继电器状态变化回调 */
-    mctrl_base_info->getdcrelaysta = app_module_query_dcrelay_state;    /** 查询直流继电器状态 */
-    mctrl_base_info->gunfaultset = app_module_relay_state_faulting;     /** 设置枪继电器故障 */
-    mctrl_base_info->gunfaultclean = app_module_relay_state_resum;      /** 清除枪继电器故障 */
-    mctrl_base_info->NetLogSend = app_module_allocate_log;       /** 模块分配日志回调 */
+    s_module_ctrl_base_info.setrelaysta = app_module_relay_contrl;             /** 继电器控制 */
+    s_module_ctrl_base_info.getrelaysta = app_module_query_relay_state;        /** 继电器状态查询 */
+    s_module_ctrl_base_info.stachangefb = app_module_relay_state_changed;      /** 继电器状态变化回调 */
+    s_module_ctrl_base_info.getdcrelaysta = app_module_query_dcrelay_state;    /** 查询直流继电器状态 */
+    s_module_ctrl_base_info.gunfaultset = app_module_relay_state_faulting;     /** 设置枪继电器故障 */
+    s_module_ctrl_base_info.gunfaultclean = app_module_relay_state_resum;      /** 清除枪继电器故障 */
+    s_module_ctrl_base_info.NetLogSend = app_module_allocate_log;              /** 模块分配日志回调 */
 
     /** 底层初始化 */
     ms_init.devType = thaisen_masterSlaveCom_devType_Master;
-    mctrl_base_info->devType = thaisen_masterSlaveCom_devType_Master;
+    s_module_ctrl_base_info.devType = thaisen_masterSlaveCom_devType_Master;
     if((s_module_ctrl_info.type != SYSTEM_FUNCTION_MS_MACHINE_CYCLE) && (s_module_ctrl_info.type != SYSTEM_FUNCTION_MS_MACHINE_HALF)){
         ms_init.devType = thaisen_masterSlaveCom_devType_Slave;
-        mctrl_base_info->devType = thaisen_masterSlaveCom_devType_Slave;
+        s_module_ctrl_base_info.devType = thaisen_masterSlaveCom_devType_Slave;
     }
 
-    thaisen_base_init(*mctrl_base_info);
+    thaisen_base_init(s_module_ctrl_base_info);
     thaisenMasterSlave_Init(ms_init);
 
     MCTRL_DEBUG("module control device type is master\n");
-
-    rt_free(mctrl_base_info);
 #endif /* CP_USING_CYCLE_MATRIX */
     return 0x00;
 }

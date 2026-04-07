@@ -5276,11 +5276,8 @@ static void SerialScreen_BtnSystemFuncJudge(u32 *ret)
     }
     if(LcdData.setData.AllocWay >= POWER_ALLOCATION_WAY_SIZE){
         LcdData.setData.AllocWay = POWER_ALLOCATION_WAY_SEQ_PRIORITY;
-#if 0
         result |= (1 <<SSCREEN_ALLOCATE_WAY_POSITION);
-#endif
     }
-
     if((IsLocalModify == TRUE) || ((IsLocalModify == FALSE) && ((result &(1 <<SSCREEN_DEVICE_TYPE_POSITION)) == 0))){
         switch(LcdData.setData.DevType){
         case SYSTEM_FUNCTION_AVERAGE_DOUBLE:
@@ -5308,7 +5305,6 @@ static void SerialScreen_BtnSystemFuncJudge(u32 *ret)
         }
     }
 #else
-    u8 way = LcdData.setData.AllocWay;
     u8 type = LcdData.setData.DevType;
 
     if(type >= SYSTEM_FUNCTION_SIZE){        /* 设备类型默认双枪一体 */
@@ -5321,8 +5317,8 @@ static void SerialScreen_BtnSystemFuncJudge(u32 *ret)
         LcdData.setData.LiquidType = CP_LIQUID_DEVTYPE_YTND;
     }
 
-    if(way >= POWER_ALLOCATION_WAY_SIZE){
-        way = POWER_ALLOCATION_WAY_SEQ_PRIORITY;
+    if(LcdData.setData.AllocWay >= POWER_ALLOCATION_WAY_SIZE){
+        LcdData.setData.AllocWay = POWER_ALLOCATION_WAY_AVERAGE;
 #if 0
         result |= (1 <<SSCREEN_ALLOCATE_WAY_POSITION);
 #endif
@@ -5404,6 +5400,7 @@ static void SerialScreen_BtnSystemFuncJudge(u32 *ret)
 
 void SerialScreen_BtnSystemFuncSet(void)
 {
+    extern void app_module_set_power_allocate_way(unsigned char way);
     u8 para = 0;
 #ifdef SCREEN_USING_CYCLE_MATRIX
     u8 buf[36];
@@ -5421,10 +5418,10 @@ void SerialScreen_BtnSystemFuncSet(void)
 
     /* 此处要设置功率分配方式 */
 //    thaisenSetAllocateStrategy(LcdData.setData.AllocWay);
-//    LcdData.setData.AllocWay = POWER_ALLOCATION_WAY_AVERAGE;
-//    LcdData.setData.AllocWay = way;
-//
-//    UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_ALLOCATION_WAY, &way, sizeof(way));
+    app_module_set_power_allocate_way(LcdData.setData.AllocWay);
+    para = LcdData.setData.AllocWay;
+
+    UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_ALLOCATION_WAY, &para, sizeof(para));
     para = LcdData.setData.LiquidType;
     UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_LIQUID_DEV, &para, sizeof(para));
     para = LcdData.setData.DevType;
@@ -5515,8 +5512,6 @@ void SerialScreen_BtnSystemFuncSet(void)
     SerialScreen_SendTxt(&SerialScreen,0x1C50, buf, sizeof(buf));
     thaisen_app_system_delay(20);
 #endif /* SCREEN_USING_CYCLE_MATRIX */
-//    thaisenSetAllocateStrategy(LcdData.setData.AllocWay);
-    rt_kprintf("current power allocation way(%d) device type(%d)\n", LcdData.setData.AllocWay, LcdData.setData.DevType);
 }
 
 void SerialScreen_BtnProtectInfoGet(void)
@@ -16540,6 +16535,7 @@ struct LCD_DATA_FIFO_TYPE *SerialScreen_Init(struct SerialScreenObj *cmd)
 #define SERIALSCREEN_AMMETER_BAUD_38400      3      //电表波特率：38400
 #define SERIALSCREEN_AMMETER_BAUD_115200     4      //电表波特率：115200
 
+    extern void app_module_set_power_allocate_way(unsigned char way);
     u32 _tick = 0;
     u8 len = 0, count = 0, *data, entry = 0, baud = 0;
 	memset(&LcdRxData,0,sizeof(LcdRxData));
@@ -16953,12 +16949,18 @@ struct LCD_DATA_FIFO_TYPE *SerialScreen_Init(struct SerialScreenObj *cmd)
     memcpy(LcdData.setData.DebugCmdPara_CC4V_MaxTemp, LcdData.setData.DebugCmdPara_CC4V_Max, sizeof(LcdData.setData.DebugCmdPara_CC4V_Max));
     memcpy(LcdData.setData.DebugCmdPara_CC4V_MinTemp, LcdData.setData.DebugCmdPara_CC4V_Min, sizeof(LcdData.setData.DebugCmdPara_CC4V_Min));
 
+#ifdef SCREEN_USING_CYCLE_MATRIX
     if(LcdData.setData.AllocWay >= POWER_ALLOCATION_WAY_SIZE){        /* 功率分配默认使用先到先得 */
         LcdData.setData.AllocWay = POWER_ALLOCATION_WAY_SEQ_PRIORITY;
     }
-    LcdData.setData.AllocWay = POWER_ALLOCATION_WAY_AVERAGE;
+    app_module_set_power_allocate_way(LcdData.setData.AllocWay);
+#else
+    if(LcdData.setData.AllocWay >= POWER_ALLOCATION_WAY_SIZE){        /* 功率分配默认使用先到先得 */
+        LcdData.setData.AllocWay = POWER_ALLOCATION_WAY_AVERAGE;
+    }
     /* 此处要设置功率分配方式 */
 //    thaisenSetAllocateStrategy(LcdData.setData.AllocWay);
+#endif /* SCREEN_USING_CYCLE_MATRIX */
 
     if(LcdData.setData.MeterModel > thaisenAmmeterModel_Other)
         LcdData.setData.MeterModel = thaisenAmmeterModel_RuiYin;

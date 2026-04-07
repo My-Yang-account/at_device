@@ -78,6 +78,14 @@ void app_module_set_module_current_min(unsigned short current);
 void app_module_set_module_current_max(unsigned int current);
 
 /*****************************************
+ * 函数名             app_module_set_power_allocate_way
+ * 功能                设置功率分配方式
+ * 参数                way     功率分配方式
+ * 返回
+ ****************************************/
+void app_module_set_power_allocate_way(unsigned char way);
+
+/*****************************************
  * 函数名             app_module_set_single_module_power
  * 功能                设置单个模块功率(1W)
  * 参数                power     单个模块功率值
