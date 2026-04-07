@@ -2797,6 +2797,24 @@ static s32 SerialScreen_ConfigExecute_OtherConfig(u8 port, void *data, void *sub
  *******************************************************************/
 static s32 SerialScreen_ConfigExecute_Input_7103_7101(u8 port, void *data, void *sub_data, void *sub_sub_data)  //OK
 {
+#define SSCREEN_INPUT_7103_7010_SCRAM             0         /* 7103/7101输入信息-急停配置错误码*/
+#define SSCREEN_INPUT_7103_7010_DOOR              1         /* 7103/7101输入信息-门禁*/
+#define SSCREEN_INPUT_7103_7010_ACRELAY           2         /* 7103/7101输入信息-交流接触器*/
+#define SSCREEN_INPUT_7103_7010_DCRELAY           3         /* 7103/7101输入信息-直流继电器*/
+#define SSCREEN_INPUT_7103_7010_FAN               4         /* 7103/7101输入信息-风扇*/
+#define SSCREEN_INPUT_7103_7010_ELOCK             5         /* 7103/7101输入信息-电子锁*/
+#define SSCREEN_INPUT_7103_7010_TEMP_PROTECT      6         /* 7103/7101输入信息-温度保护*/
+#define SSCREEN_INPUT_7103_7010_POUR              7         /* 7103/7101输入信息-倾倒*/
+#define SSCREEN_INPUT_7103_7010_LIGHT_PROTECT     8         /* 7103/7101输入信息-防雷*/
+#define SSCREEN_INPUT_7103_7010_FLOOD             9         /* 7103/7101输入信息-水浸*/
+#define SSCREEN_INPUT_7103_7010_SMOKE             10        /* 7103/7101输入信息-烟感*/
+#define SSCREEN_INPUT_7103_7010_GUNSITE           11        /* 7103/7101输入信息-枪座*/
+#define SSCREEN_INPUT_7103_7010_FUSE              12        /* 7103/7101输入信息-熔断器*/
+#define SSCREEN_INPUT_7103_7010_LIQUID            13        /* 7103/7101输入信息-液冷*/
+#define SSCREEN_INPUT_7103_7010_BREAKER           14        /* 7103/7101输入信息-断路器*/
+#define SSCREEN_INPUT_7103_7010_PARALLEL_RELAY    15        /* 7103/7101输入信息-母联继电器*/
+#define SSCREEN_INPUT_7103_7010_MATRIX_RELAY      16        /* 7103/7101输入信息-矩阵继电器*/
+
     thaisen_cfg_info_input_7103_7101 *config = (thaisen_cfg_info_input_7103_7101*)data;
 
     LcdAssistantData.Flag.IsServerConfig = TRUE;
@@ -2941,6 +2959,7 @@ static s32 SerialScreen_ConfigExecute_Input_7103_7101(u8 port, void *data, void 
         }
     }else{
         LcdAssistantData.Flag.IsServerConfig = FALSE;
+        return (SSCREEN_INPUT_7103_7010_PARALLEL_RELAY + THAISEN_CONFIG_FAIL_OFFSET);
     }
     /** 母联继电器输入取反未配置 */
     if(config->parallel_relay.reversal <= TRUE){
@@ -2950,9 +2969,10 @@ static s32 SerialScreen_ConfigExecute_Input_7103_7101(u8 port, void *data, void 
         }
     }else{
         LcdAssistantData.Flag.IsServerConfig = FALSE;
+        return (SSCREEN_INPUT_7103_7010_PARALLEL_RELAY + THAISEN_CONFIG_FAIL_OFFSET);
     }
 
-    /** 母联继电器输入取反未配置 */
+    /** 矩阵继电器输入取反未配置 */
     if(config->matrix_relay.enable <= TRUE){
         LcdData.setData.Icon_SupinMatrix = FALSE;
         if(config->matrix_relay.enable){
@@ -2960,6 +2980,7 @@ static s32 SerialScreen_ConfigExecute_Input_7103_7101(u8 port, void *data, void 
         }
     }else{
         LcdAssistantData.Flag.IsServerConfig = FALSE;
+        return (SSCREEN_INPUT_7103_7010_MATRIX_RELAY + THAISEN_CONFIG_FAIL_OFFSET);
     }
     /** 矩阵继电器输入取反未配置 */
     if(config->matrix_relay.reversal <= TRUE){
@@ -2969,6 +2990,7 @@ static s32 SerialScreen_ConfigExecute_Input_7103_7101(u8 port, void *data, void 
         }
     }else{
         LcdAssistantData.Flag.IsServerConfig = FALSE;
+        return (SSCREEN_INPUT_7103_7010_MATRIX_RELAY + THAISEN_CONFIG_FAIL_OFFSET);
     }
 #endif /* THAISEN_INCLUDE_NEW_MSG */
 
@@ -11331,12 +11353,16 @@ static void SerialScreen_BtnModuleStateShow(int port)
 
     SerialScreen_BtnModuleStateClear();
 
-    u8 length = 0, group_max = 0, base = 0;
+    u8 length = 0, group_max = 0, base = 0, _dev_type = thaisenGetChargGunRunType();
     u16 warnning = 0;
     thaisenModuleFaultInfoStruct * fault = NULL;
     thaisenModuleVoltCurrStruct * voltcurr = NULL;
 
-    if(thaisenGetChargGunRunType() == thaisenDeviceType_average){
+#ifdef SCREEN_USING_CYCLE_MATRIX
+    if((_dev_type == thaisenDeviceType_average) || (_dev_type == thaisenDeviceType_Matrix_Cycle) || (_dev_type == thaisenDeviceType_Matrix_Half)){
+#else
+    if(_dev_type == thaisenDeviceType_average){
+#endif /* SCREEN_USING_CYCLE_MATRIX */
         extern void *sys_get_module_config_info(void);
         group_max = ((struct thasienModuleSetStruct *)(sys_get_module_config_info()))->moduleGroupNum;
         memset(LcdData.ModuleFaultInfoShow, 0, sizeof(LcdData.ModuleFaultInfoShow));
@@ -11346,7 +11372,11 @@ static void SerialScreen_BtnModuleStateShow(int port)
     }
 
     for(u8 group = 0; group < group_max; group++){
-        if(thaisenGetChargGunRunType() == thaisenDeviceType_average){
+#ifdef SCREEN_USING_CYCLE_MATRIX
+        if((_dev_type == thaisenDeviceType_average) || (_dev_type == thaisenDeviceType_Matrix_Cycle) || (_dev_type == thaisenDeviceType_Matrix_Half)){
+#else
+        if(_dev_type == thaisenDeviceType_average){
+#endif /* SCREEN_USING_CYCLE_MATRIX */
             voltcurr = thaisenGetModuleVoltCurrInfo(&length, group);
             fault = thaisenGetModuleFaultInfo(&length, group);
         }else{
@@ -11399,7 +11429,11 @@ static void SerialScreen_BtnModuleStateShow(int port)
                 }
             }
 
-            if(thaisenGetChargGunRunType() == thaisenDeviceType_average){
+#ifdef SCREEN_USING_CYCLE_MATRIX
+            if((_dev_type == thaisenDeviceType_average) || (_dev_type == thaisenDeviceType_Matrix_Cycle) || (_dev_type == thaisenDeviceType_Matrix_Half)){
+#else
+            if(_dev_type == thaisenDeviceType_average){
+#endif /* SCREEN_USING_CYCLE_MATRIX */
                 u8 i, j;
                 for(i = 0; i < (sizeof(LcdData.ModuleFaultInfoShow) /sizeof(LcdData.ModuleFaultInfoShow[port])); i++){
                     for(j = 0; j < (sizeof(LcdData.ModuleFaultInfoShow[port]) /sizeof(LcdData.ModuleFaultInfoShow[port][0])); j++){
