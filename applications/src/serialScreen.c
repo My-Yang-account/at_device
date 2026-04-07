@@ -242,7 +242,7 @@ SERIALSCREEN_DEF_SRAM2 u8 SerialScreenRxbuf[sSCREEN_RX_CMD_MAX_LEN+sSCREEN_RX_CM
 #endif /* SCREEN_USING_V2G */
 #endif /* SCREEN_USING_OFFLINE_BILLING */
 
-#define SERIALSCREEN_CONFIG_PAGE_MAX   (45 + SCREEN_OFFLINE_BILLING_PAGE_NUM + SCREEN_V2G_PAGE_NUM + SCREEN_CYCLE_MATRIX_PAGE_NUM)  // 屏幕页面总数
+#define SERIALSCREEN_CONFIG_PAGE_MAX   (46 + SCREEN_OFFLINE_BILLING_PAGE_NUM + SCREEN_V2G_PAGE_NUM + SCREEN_CYCLE_MATRIX_PAGE_NUM)  // 屏幕页面总数
 
 #define CONFIG_ITEM_MODULE_GROUP_NUM_(X) 
 
@@ -20506,11 +20506,9 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_RATE_INFO, NULL, "rate-9", LCD_TextType, LCD_NoReflash, 0x1990, pstr_type, sizeof(LcdData.rate_info[9]), (void *)&(LcdData.rate_info[9]));
     SerialScreen_ItemSetUp(LCD_PAGE_RATE_INFO, NULL, "rate-10", LCD_TextType, LCD_NoReflash, 0x19A0, pstr_type, sizeof(LcdData.rate_info[10]), (void *)&(LcdData.rate_info[10]));
     SerialScreen_ItemSetUp(LCD_PAGE_RATE_INFO, NULL, "rate-11", LCD_TextType, LCD_NoReflash, 0x19B0, pstr_type, sizeof(LcdData.rate_info[11]), (void *)&(LcdData.rate_info[11]));
-
     SerialScreen_ItemSetUp(LCD_PAGE_RATE_INFO, NULL, "up", LCD_TrigType, 0x0009, 0x1003, page_type, LCD_GUN_2, (void *)SerialScreen_BtnRateUp);
     SerialScreen_ItemSetUp(LCD_PAGE_RATE_INFO, NULL, "down", LCD_TrigType, 0x000E, 0x1004, page_type, LCD_GUN_2, (void *)SerialScreen_BtnRateDown);
     SerialScreen_ItemSetUp(LCD_PAGE_RATE_INFO, NULL, "back", LCD_BtnType, 0x0002, 0x1000, page_type, LCD_PAGE_NONE, (void *)NULL);  //OK
-
 
     /** 29.远程升级 [page:37] */
     SerialScreen_ItemSetUp(LCD_PAGE_SYS_UPDATE, NULL, "Progress value", LCD_InputType, 0, 0x1800, pu16_type, sizeof(LcdData.setData.ota_progress), (void *)&LcdData.setData.ota_progress);
