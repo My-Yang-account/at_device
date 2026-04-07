@@ -2198,6 +2198,7 @@ static void ofsm_idleing_fun(uint8_t gunno)
     if(gunno >= APP_SYSTEM_GUNNO_SIZE){   /* 枪号不对 */
         return;
     }
+    uint8_t need_clear_card_info = APP_THA_ENUM_TRUE;
     enum charge_state_t charge_state = mw_get_charge_state(gunno);
 
     if(++s_debug_count[gunno] > (5000 + 500 *gunno) / 100) {
@@ -2212,11 +2213,27 @@ static void ofsm_idleing_fun(uint8_t gunno)
     s_ofsm_info[gunno].base.flag.start_result = APP_THA_ENUM_FALSE;
     s_ofsm_info[gunno].base.flag.is_deputygun_stop = APP_THA_ENUM_FALSE;
     s_ofsm_info[gunno].base.flag.is_ob_authenticated = APP_THA_ENUM_FALSE;
-    s_ofsm_info[gunno].base.flag.is_oncard_reservated = APP_THA_ENUM_FALSE;
     s_ofsm_info[gunno].base.flag.is_oncard_authenticating = APP_THA_ENUM_FALSE;
 
-    memset(s_ofsm_info[gunno].base.card_uid, 0x00, sizeof(s_ofsm_info[gunno].base.card_uid));
-    memset(s_ofsm_info[gunno].base.card_number, 0x00, sizeof(s_ofsm_info[gunno].base.card_number));
+    if(thaisen_get_current_charge_mode(gunno) == THAISEN_CHARGE_MODE_LIMIT_RESERVATION){
+        /** 当前运行模式为离线计费模式 */
+        if(s_ofsm_info[gunno].base.run_mode == APP_RUN_MODE_OFFLINE_BILLING){
+            /** 离线计费模式进行预约需要刷卡鉴权，此时订单已创建 */
+            if(s_ofsm_info[gunno].base.flag.is_ob_authenticated == APP_THA_ENUM_TRUE){
+                need_clear_card_info = APP_THA_ENUM_FALSE;
+            }
+        }
+        /** 当前运行模式为在线模式 */
+        else if(s_ofsm_info[gunno].base.run_mode == APP_RUN_MODE_4G_ETH){
+            if((s_ofsm_info[gunno].base.flag.is_oncard_reservated == APP_THA_ENUM_TRUE) || (s_ofsm_info[gunno].base.flag.is_oncard_authenticating == APP_THA_ENUM_TRUE)){
+                need_clear_card_info = APP_THA_ENUM_FALSE;
+            }
+        }
+    }
+    if(need_clear_card_info){
+        memset(s_ofsm_info[gunno].base.card_uid, 0x00, sizeof(s_ofsm_info[gunno].base.card_uid));
+        memset(s_ofsm_info[gunno].base.card_number, 0x00, sizeof(s_ofsm_info[gunno].base.card_number));
+    }
 
     s_ofsm_info[gunno].base.main_gunno = 0x00;
     s_ofsm_info[gunno].base.charge_way = APP_CHARGE_WAY_NONE;
@@ -2388,7 +2405,6 @@ static void ofsm_readying_fun(uint8_t gunno)
             if(s_ofsm_info[gunno].base.flag.is_oncard_authenticating == APP_THA_ENUM_TRUE){
                 s_ofsm_info[gunno].base.oncard_authen_time = 0x00;
                 s_ofsm_info[gunno].base.flag.is_oncard_authenticating = APP_THA_ENUM_FALSE;
-                s_ofsm_info[gunno].base.flag.is_oncard_reservated = APP_THA_ENUM_FALSE;
                 app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
             }
             app_nsal_state_charged(gunno);
@@ -2405,7 +2421,6 @@ static void ofsm_readying_fun(uint8_t gunno)
         if(s_ofsm_info[gunno].base.flag.is_oncard_authenticating == APP_THA_ENUM_TRUE){
             s_ofsm_info[gunno].base.oncard_authen_time = 0x00;
             s_ofsm_info[gunno].base.flag.is_oncard_authenticating = APP_THA_ENUM_FALSE;
-            s_ofsm_info[gunno].base.flag.is_oncard_reservated = APP_THA_ENUM_FALSE;
             app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
         }
         app_nsal_state_charged(gunno);
@@ -2491,7 +2506,6 @@ static void ofsm_readying_fun(uint8_t gunno)
         if(s_ofsm_info[gunno].base.flag.is_oncard_authenticating == APP_THA_ENUM_TRUE){
             s_ofsm_info[gunno].base.oncard_authen_time = 0x00;
             s_ofsm_info[gunno].base.flag.is_oncard_authenticating = APP_THA_ENUM_FALSE;
-            s_ofsm_info[gunno].base.flag.is_oncard_reservated = APP_THA_ENUM_FALSE;
             app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
         }
 #ifdef APP_INCLUDE_V2G
@@ -2530,7 +2544,6 @@ static void ofsm_readying_fun(uint8_t gunno)
             if(s_ofsm_info[gunno].base.flag.is_oncard_authenticating == APP_THA_ENUM_TRUE){
                 s_ofsm_info[gunno].base.oncard_authen_time = 0x00;
                 s_ofsm_info[gunno].base.flag.is_oncard_authenticating = APP_THA_ENUM_FALSE;
-                s_ofsm_info[gunno].base.flag.is_oncard_reservated = APP_THA_ENUM_FALSE;
                 app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
             }
 #ifdef APP_INCLUDE_V2G
@@ -2761,6 +2774,13 @@ static void ofsm_readying_fun(uint8_t gunno)
                         }
                     }
                 }
+            }else{
+                /** 当前运行模式为在线模式 */
+                if(s_ofsm_info[gunno].base.run_mode == APP_RUN_MODE_4G_ETH){
+                    s_ofsm_info[gunno].base.oncard_authen_time = 0x00;
+                    s_ofsm_info[gunno].base.flag.is_oncard_authenticating = APP_THA_ENUM_FALSE;
+                    s_ofsm_info[gunno].base.flag.is_oncard_reservated = APP_THA_ENUM_FALSE;
+                }
             }
             s_ofsm_info[gunno].base.reservation_time_remain = s_ofsm_info[gunno].base.reservation_time_remain > 0 ? s_ofsm_info[gunno].base.reservation_time_remain : 0;
 
@@ -2772,7 +2792,6 @@ static void ofsm_readying_fun(uint8_t gunno)
                 if(s_ofsm_info[gunno].base.flag.is_oncard_authenticating == APP_THA_ENUM_TRUE){
                     s_ofsm_info[gunno].base.oncard_authen_time = 0x00;
                     s_ofsm_info[gunno].base.flag.is_oncard_authenticating = APP_THA_ENUM_FALSE;
-                    s_ofsm_info[gunno].base.flag.is_oncard_reservated = APP_THA_ENUM_FALSE;
                     app_rfidr_send_mail(APP_BUZZON_STATE_FAILED);
                 }
                 s_ofsm_info[gunno].base.flag.is_reservation = APP_THA_ENUM_TRUE;
@@ -8249,7 +8268,6 @@ static void ofsm_faulting_fun(uint8_t gunno)
 
     s_ofsm_info[gunno].base.flag.is_deputygun_stop = APP_THA_ENUM_FALSE;
     s_ofsm_info[gunno].base.flag.is_ob_authenticated = APP_THA_ENUM_FALSE;
-    s_ofsm_info[gunno].base.flag.is_oncard_reservated = APP_THA_ENUM_FALSE;
     s_ofsm_info[gunno].base.flag.is_oncard_authenticating = APP_THA_ENUM_FALSE;
 
     s_ofsm_info[gunno].base.oncard_authen_time = 0x00;
