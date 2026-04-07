@@ -2212,7 +2212,6 @@ static void ofsm_idleing_fun(uint8_t gunno)
     s_ofsm_info[gunno].base.flag.vin_authorization_success = APP_THA_ENUM_FALSE;
     s_ofsm_info[gunno].base.flag.start_result = APP_THA_ENUM_FALSE;
     s_ofsm_info[gunno].base.flag.is_deputygun_stop = APP_THA_ENUM_FALSE;
-    s_ofsm_info[gunno].base.flag.is_ob_authenticated = APP_THA_ENUM_FALSE;
     s_ofsm_info[gunno].base.flag.is_oncard_authenticating = APP_THA_ENUM_FALSE;
 
     if(thaisen_get_current_charge_mode(gunno) == THAISEN_CHARGE_MODE_LIMIT_RESERVATION){
@@ -8267,7 +8266,6 @@ static void ofsm_faulting_fun(uint8_t gunno)
     enum system_fault_t system_fault = app_get_highest_priority_system_fault(gunno);
 
     s_ofsm_info[gunno].base.flag.is_deputygun_stop = APP_THA_ENUM_FALSE;
-    s_ofsm_info[gunno].base.flag.is_ob_authenticated = APP_THA_ENUM_FALSE;
     s_ofsm_info[gunno].base.flag.is_oncard_authenticating = APP_THA_ENUM_FALSE;
 
     s_ofsm_info[gunno].base.oncard_authen_time = 0x00;
