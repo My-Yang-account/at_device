@@ -2780,6 +2780,9 @@ int32_t chargepile_check_config(void)
             (s_chargepile_config_info.config_para.discharge_as_of_soc > (PROTECT_DISCHARGE_AS_OF_SOC_MAX + PROTECT_DISCHARGE_AS_OF_SOC_OFFSET))){
         s_chargepile_config_info.config_para.discharge_as_of_soc = (PROTECT_DISCHARGE_AS_OF_SOC_DEFAULT + PROTECT_DISCHARGE_AS_OF_SOC_OFFSET);
     }
+    if((s_chargepile_config_info.config_info.gunvolt_limit < GUNVOLT_LIMIT_VALUE_MIN) || (s_chargepile_config_info.config_info.gunvolt_limit > GUNVOLT_LIMIT_VALUE_MAX)){
+        s_chargepile_config_info.config_info.gunvolt_limit = GUNVOLT_LIMIT_VALUE_MIN;
+    }
 
     if(s_chargepile_config_info.function_enable.emergency_stop > 0x01){    /* 急停故障检测默认开启 */
         s_chargepile_config_info.function_enable.emergency_stop = 0x01;
