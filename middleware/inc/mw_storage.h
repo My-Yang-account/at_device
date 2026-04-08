@@ -82,6 +82,17 @@ int32_t mw_storage_record_designate_index_updated(const void *data, uint32_t dat
 int32_t mw_storage_record_get_designate_index_record(uint8_t *buf, uint32_t data_len, uint8_t region, int32_t index);
 
 /**
+ * @brief 获取指定下标记录信息(不校验数据是否正确)
+ * @param buf
+ * @param data_len
+ * @param verify_mask
+* @param region
+ * @param index
+ * @return < 0: 失败，== 0：成功
+ */
+int32_t mw_storage_record_get_designate_index_record_only(uint8_t *buf, uint32_t data_len, uint8_t region, int32_t index);
+
+/**
  * @brief 获取指定区域总记录数
  * @param region 区域
  * @return < 0: 失败，== 0：成功

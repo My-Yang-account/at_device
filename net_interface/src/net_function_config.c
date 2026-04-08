@@ -757,7 +757,7 @@ static int32_t app_nquery_system_record(net_record_info_t *info)
         if(index < 0x00){
             return -0x04;
         }
-        return mw_storage_record_get_designate_index_record((uint8_t*)(info->buf), info->len, region, index);
+        return mw_storage_record_get_designate_index_record_only((uint8_t*)(info->buf), info->len, region, index);
         break;
     case NET_SYSTEM_RECORD_OPTION_FAULT:
         if(info->buf == NULL){
@@ -771,7 +771,7 @@ static int32_t app_nquery_system_record(net_record_info_t *info)
         if(index < 0x00){
             return -0x04;
         }
-        return mw_storage_record_get_designate_index_record((uint8_t*)(info->buf), info->len, region, index);
+        return mw_storage_record_get_designate_index_record_only((uint8_t*)(info->buf), info->len, region, index);
         break;
     case NET_SYSTEM_RECORD_OPTION_CNUM:
         region = RECORD_REGION_CHARGE_RECORDA;

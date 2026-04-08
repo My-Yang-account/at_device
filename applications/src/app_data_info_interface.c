@@ -1025,7 +1025,7 @@ int32_t thaisen_app_clear_region_record_info(enum record_region region)
  ************************************************/
 int32_t thaisen_app_get_index_charge_record(thaisen_transaction_t* bill_buff, uint8_t index, enum record_region region)
 {
-    return mw_storage_record_get_designate_index_record((uint8_t*)bill_buff, sizeof(thaisen_transaction_t), (enum notfs_subregion)region, index);
+    return mw_storage_record_get_designate_index_record_only((uint8_t*)bill_buff, sizeof(thaisen_transaction_t), (enum notfs_subregion)region, index);
 }
 
 ///////////////////////////////////////////////////////////////////////// 故障记录
@@ -1070,7 +1070,7 @@ int32_t thaisen_app_get_index_charge_record(thaisen_transaction_t* bill_buff, ui
  ************************************************/
 int32_t thaisen_app_get_index_fault_record(struct error_info *error_buff, uint8_t index, enum record_region region)
 {
-    return mw_storage_record_get_designate_index_record((uint8_t*)error_buff, sizeof(struct error_info), (enum notfs_subregion)region, index);
+    return mw_storage_record_get_designate_index_record_only((uint8_t*)error_buff, sizeof(struct error_info), (enum notfs_subregion)region, index);
 }
 
 

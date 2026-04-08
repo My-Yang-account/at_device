@@ -158,6 +158,25 @@ int32_t mw_storage_record_get_designate_index_record(uint8_t *buf, uint32_t data
 }
 
 /**************************************************************************
+ * 函数名           mw_storage_record_get_designate_index_record_only
+ * 功能              获取指定存储区内指定下标的记录数据(不校验数据是否正确)
+ * 参数             buf         存放数据的缓存
+ *         data_len    缓存长度
+ *         region      记录存储区
+ *         index       下标
+ * 返回              >=0：成功     <0：失败
+ *************************************************************************/
+int32_t mw_storage_record_get_designate_index_record_only(uint8_t *buf, uint32_t data_len, uint8_t region, int32_t index)
+{
+    if ((NULL == buf) || (0 == data_len)) {
+        return STORAGE_ERR_INVALID_DATA;
+    }
+    notfs_get_subregion_designate_index_record_data((enum notfs_subregion)region, buf, data_len, index);
+
+    return STORAGE_ERR_NONE;
+}
+
+/**************************************************************************
  * 函数名           mw_storage_record_get_record_total_num
  * 功能              查询指定存储区内记录的总数
  * 参数               region       记录存储区
