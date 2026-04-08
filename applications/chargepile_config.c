@@ -3003,7 +3003,7 @@ int32_t chargepile_check_config(void)
         if(s_chargepile_config_info.function_enable.v2g_mode[mode] != CP_V2G_MODE_NULL){
             /** 获取指定模式的有效性配置 */
             _validity = s_chargepile_config_info.config_para.v2g_mode_validity[mode] &(0x03 <<(0x02 *(s_chargepile_config_info.function_enable.v2g_mode[mode] - CP_V2G_MODE_OFFSET)));
-            _validity >>= (0x02 *s_chargepile_config_info.function_enable.v2g_mode[mode]);
+            _validity >>= (0x02 *(s_chargepile_config_info.function_enable.v2g_mode[mode] - CP_V2G_MODE_OFFSET));
         }
 
         switch(s_chargepile_config_info.function_enable.v2g_mode[mode]){
@@ -3663,6 +3663,24 @@ int32_t chargepile_check_config(void)
         case CP_MODE_CHARGE_FULL:
             s_chargepile_config_info.config_para.mode_parameter[i] = 0x00;
             break;
+        case CP_MODE_LIMIT_MONEY:
+            if((s_chargepile_config_info.config_para.mode_parameter[i] > CP_MODE_PARA_MONEY_MAX) || \
+                    (s_chargepile_config_info.config_para.mode_parameter[i] < CP_MODE_PARA_MONEY_MIN)){
+                s_chargepile_config_info.config_para.mode_parameter[i] = CP_MODE_PARA_MONEY_DEF;
+            }
+            break;
+        case CP_MODE_LIMIT_ELECT:
+            if((s_chargepile_config_info.config_para.mode_parameter[i] > CP_MODE_PARA_ELECT_MAX) || \
+                    (s_chargepile_config_info.config_para.mode_parameter[i] < CP_MODE_PARA_ELECT_MIN)){
+                s_chargepile_config_info.config_para.mode_parameter[i] = CP_MODE_PARA_ELECT_DEF;
+            }
+            break;
+        case CP_MODE_LIMIT_TIMING:
+            if((s_chargepile_config_info.config_para.mode_parameter[i] > CP_MODE_PARA_TIMING_MAX) || \
+                    (s_chargepile_config_info.config_para.mode_parameter[i] < CP_MODE_PARA_TIMING_MIN)){
+                s_chargepile_config_info.config_para.mode_parameter[i] = CP_MODE_PARA_TIMING_DEF;
+            }
+            break;
         case CP_MODE_LIMIT_RESERVATION:
             if((s_chargepile_config_info.config_para.mode_parameter[i] > CP_MODE_PARA_RESERVATION_MAX) || \
                     (s_chargepile_config_info.config_para.mode_parameter[i] < CP_MODE_PARA_RESERVATION_MIN)){
@@ -3670,13 +3688,45 @@ int32_t chargepile_check_config(void)
             }
             break;
         default:
-            s_chargepile_config_info.function_enable.current_mode[i] = CP_MODE_CHARGE_FULL;
-            s_chargepile_config_info.config_para.mode_parameter[i] = 0x00;
+            break;
+        }
+    }
+#ifdef CP_USING_V2G
+    /*************************************************** v2g模式 *****************************************************/
+    /*************************************************** v2g模式 *****************************************************/
+    for(uint8_t i = 0x00; i < sizeof(s_chargepile_config_info.function_enable.v2g_mode); i++){
+        switch(s_chargepile_config_info.function_enable.v2g_mode[i]){
+        case CP_V2G_MODE_LIMIT_MONEY:
+            if((s_chargepile_config_info.config_para.v2g_mode_parameter[i] > CP_V2G_MODE_PARA_MONEY_MAX) || \
+                    (s_chargepile_config_info.config_para.v2g_mode_parameter[i] < CP_V2G_MODE_PARA_MONEY_MIN)){
+                s_chargepile_config_info.config_para.v2g_mode_parameter[i] = CP_V2G_MODE_PARA_MONEY_DEF;
+            }
+            break;
+        case CP_V2G_MODE_LIMIT_ELECT:
+            if((s_chargepile_config_info.config_para.v2g_mode_parameter[i] > CP_V2G_MODE_PARA_ELECT_MAX) || \
+                    (s_chargepile_config_info.config_para.v2g_mode_parameter[i] < CP_V2G_MODE_PARA_ELECT_MIN)){
+                s_chargepile_config_info.config_para.v2g_mode_parameter[i] = CP_V2G_MODE_PARA_ELECT_DEF;
+            }
+            break;
+        case CP_V2G_MODE_LIMIT_TIMING:
+            if((s_chargepile_config_info.config_para.v2g_mode_parameter[i] > CP_V2G_MODE_PARA_TIMING_MAX) || \
+                    (s_chargepile_config_info.config_para.v2g_mode_parameter[i] < CP_V2G_MODE_PARA_TIMING_MIN)){
+                s_chargepile_config_info.config_para.v2g_mode_parameter[i] = CP_V2G_MODE_PARA_TIMING_DEF;
+            }
+            break;
+        case CP_V2G_MODE_AUTO:
+            if((s_chargepile_config_info.config_para.v2g_mode_parameter[i] > PROTECT_DISCHARGE_AS_OF_SOC_MAX) || \
+                    (s_chargepile_config_info.config_para.v2g_mode_parameter[i] < PROTECT_DISCHARGE_AS_OF_SOC_MIN)){
+                s_chargepile_config_info.config_para.v2g_mode_parameter[i] = PROTECT_DISCHARGE_AS_OF_SOC_DEFAULT;
+            }
+            break;
+        default:
             break;
         }
     }
     /********************************************************************************************************/
     /********************************************************************************************************/
+#endif /* CP_USING_V2G */
     return 0;
 }
 
@@ -4776,7 +4826,7 @@ uint8_t sys_mode_validity_divide(uint8_t name, uint8_t mode, uint8_t port)
             return 0x00;
         }
         value = s_chargepile_config_info.config_para.v2g_mode_validity[port] &(0x03 <<(0x02 *(mode - CP_V2G_MODE_OFFSET)));
-        value >>= (0x02 *mode);
+        value >>= (0x02 *(mode - CP_V2G_MODE_OFFSET));
     }
     return (uint8_t)(value &0x03);
 }

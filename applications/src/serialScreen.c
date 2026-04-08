@@ -1737,6 +1737,62 @@ static enum thaisen_mode SerialScreen_Screen_ConvertMode(u8 port)
     return THAISEN_MODE_SIZE;
 }
 
+/** 枪运行模式判断 */
+void SerialScreen_Screen_GunModeJudge(u8 port)
+{
+    if(port >= LCD_GUN_NUM)
+        return;
+#ifdef SCREEN_USING_V2G
+    /** 开启了V2G功能 */
+    if(LcdData.setData.sup_V2G == TRUE){
+        u8 _charge_mode = THAISEN_CHARGE_MODE_SIZE, _v2g_mode = THAISEN_V2G_MODE_SIZE;
+
+        /** 遍历充电模式信息 */
+        for(int mode = 0; mode < THAISEN_CHARGE_MODE_SIZE; mode++){
+            if(LcdData.setData.CurrentMode[port][mode] == TRUE){
+                _charge_mode = mode;
+                break;
+            }
+        }
+        /** 遍历V2G模式信息 */
+        for(int mode = 0; mode < THAISEN_V2G_MODE_SIZE; mode++){
+            if(LcdData.setData.V2G_CurrentMode[port][mode] == TRUE){
+                _v2g_mode = mode;
+                break;
+            }
+        }
+        /** 判断枪的运行模式(充电模式优先) */
+        /** 充电、放电模式都未选择，默认充电模式 */
+        if((_charge_mode == THAISEN_CHARGE_MODE_SIZE) && (_v2g_mode == THAISEN_V2G_MODE_SIZE)){
+            LcdData.runData.GunRunMode[port] = THAISEN_GUN_RUNING_MODE_CHARGE;
+        }
+        /** 选择了充电模式 */
+        else if((_charge_mode != THAISEN_CHARGE_MODE_SIZE) && (_v2g_mode == THAISEN_V2G_MODE_SIZE)){
+            LcdData.runData.GunRunMode[port] = THAISEN_GUN_RUNING_MODE_CHARGE;
+        }
+        /** 选择了放电模式 */
+        else if((_charge_mode == THAISEN_CHARGE_MODE_SIZE) && (_v2g_mode != THAISEN_V2G_MODE_SIZE)){
+            LcdData.runData.GunRunMode[port] = THAISEN_GUN_RUNING_MODE_V2G;
+        }
+        /** 充电、放电模式都选了，检擦有效性 */
+        else{
+            /** 充电模式永久有效且不是自动充满或者V2G模式是单次的，默认使用充电模式 */
+            if(((LcdData.setData.ChargeModeValidity[port][_charge_mode] == TRUE) && (_charge_mode != THAISEN_CHARGE_MODE_FULL)) || \
+                    (LcdData.setData.V2GModeValidity[port][_v2g_mode] != TRUE)){
+                LcdData.runData.GunRunMode[port] = THAISEN_GUN_RUNING_MODE_CHARGE;
+            }else{
+                /** 来到这里说明V2G模式是永久有效的，充电模式不是永久有效或者是自动充满 */
+                LcdData.runData.GunRunMode[port] = THAISEN_GUN_RUNING_MODE_V2G;
+            }
+        }
+    }
+    else
+#endif /* SCREEN_USING_V2G */
+    {
+        LcdData.runData.GunRunMode[port] = THAISEN_GUN_RUNING_MODE_CHARGE;
+    }
+}
+
 u8 SerialScreen_Screen_IsSetReservationMode(u8 port)
 {
     if(LcdData.setData.sup_mode_select == TRUE){
@@ -2624,8 +2680,8 @@ static s32 SerialScreen_ConfigExecute_V2GMode(u8 port, void *data, void *sub_dat
 {
 #define SSCREEN_V2G_MODE_INVALID_MODE     0         /* 模式选择-V2G模式 无效模式错误码*/
 #define SSCREEN_V2G_MODE_INVALID_PARA     1         /* 模式选择-V2G模式 无效参数错误码*/
-#define SSCREEN_V2G_MODE_FORBID_STATE     2         /* 模式选择-V2G模式 禁止修改状态错误码*/
-#define SSCREEN_V2G_MODE_INVALID_VALIDITY 3         /* 模式选择-V2G模式 无效的模式有效期*/
+#define SSCREEN_V2G_MODE_INVALID_VALIDITY 2         /* 模式选择-V2G模式 无效的模式有效期*/
+#define SSCREEN_V2G_MODE_FORBID_STATE     200       /* 模式选择-V2G模式 禁止修改状态错误码*/
 
 #ifdef SCREEN_USING_V2G
     u16 _validity_region = 0;
@@ -2648,10 +2704,15 @@ static s32 SerialScreen_ConfigExecute_V2GMode(u8 port, void *data, void *sub_dat
 #if 0
     /** 已进行预约放电，不可修改充电模式 */
     if(SerialScreen_Screen_GetCurrentV2GMode(port) == THAISEN_V2G_MODE_LIMIT_RESERVATION){
-        return (SSCREEN_V2G_MODE_INVALID_PARA + SSCREEN_NORMAL_MODE_FORBID_STATE);
+        return (SSCREEN_V2G_MODE_FORBID_STATE + THAISEN_CONFIG_FAIL_OFFSET);
     }
 #endif
 #endif /* SCREEN_USING_V2G */
+    /** V2G模式未开启，不允许修改 */
+    if(LcdData.setData.sup_V2G != TRUE){
+        return (SSCREEN_V2G_MODE_FORBID_STATE + THAISEN_CONFIG_FAIL_OFFSET);
+    }
+
     switch(config->mode){
     case THAISEN_V2G_MODE_AUTO:
         _validity_region = sys_mode_validity_combine(CONFIG_ITEM_V2G_MODE_VALIDITY, CP_V2G_MODE_AUTO, 0x03);
@@ -2742,7 +2803,7 @@ static s32 SerialScreen_ConfigExecute_V2GMode(u8 port, void *data, void *sub_dat
 
     return LcdAssistantData.Flag.IsConfigFail;
 #else
-    return (SSCREEN_V2G_MODE_INVALID_MODE + THAISEN_CONFIG_FAIL_OFFSET);
+    return (SSCREEN_V2G_MODE_FORBID_STATE + THAISEN_CONFIG_FAIL_OFFSET);
 #endif /* SCREEN_USING_V2G */
 }
 
@@ -8037,6 +8098,10 @@ void SerialScreen_IsSupportSetFlash(void)
         config_item = CONFIG_ENABLE_ENUM;
     }
     UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_V2G, (u8 *)&config_item, sizeof(config_item));
+    /** 模式信息已修改，重新判断枪运行模式 */
+    for(u8 i = 0; i < LCD_GUN_NUM; i++){
+        SerialScreen_Screen_GunModeJudge(i);
+    }
 #endif /* SCREEN_USING_V2G */
     /** 目前剔除模块配置仅能平台修改，屏幕未加控件无法修改 20260324 */
     if(LcdAssistantData.Flag.IsServerConfig == TRUE){
@@ -8591,6 +8656,9 @@ void SerialScreen_BtnModeInfoStorage(int port)
         }
 #ifdef SCREEN_USING_V2G
         LcdData.runData.GunRunMode[port] = THAISEN_GUN_RUNING_MODE_CHARGE;   /** 当前枪模式为充电 */
+        if(LcdData.setData.ChargeModeValidity[port][THAISEN_CHARGE_MODE_LIMIT_MONEY] == TRUE){
+            longTermValid = TRUE;
+        }
 #endif /* SCREEN_USING_V2G */
     }else if(LcdData.setData.CurrentMode[LCD_GUN_NUM][THAISEN_CHARGE_MODE_LIMIT_ELECT]){
         mode = THAISEN_CHARGE_MODE_LIMIT_ELECT;
@@ -8608,6 +8676,9 @@ void SerialScreen_BtnModeInfoStorage(int port)
         }
 #ifdef SCREEN_USING_V2G
         LcdData.runData.GunRunMode[port] = THAISEN_GUN_RUNING_MODE_CHARGE;   /** 当前枪模式为充电 */
+        if(LcdData.setData.ChargeModeValidity[port][THAISEN_CHARGE_MODE_LIMIT_ELECT] == TRUE){
+            longTermValid = TRUE;
+        }
 #endif /* SCREEN_USING_V2G */
     }else if(LcdData.setData.CurrentMode[LCD_GUN_NUM][THAISEN_CHARGE_MODE_LIMIT_TIMING]){
         mode = THAISEN_CHARGE_MODE_LIMIT_TIMING;
@@ -8625,6 +8696,9 @@ void SerialScreen_BtnModeInfoStorage(int port)
         }
 #ifdef SCREEN_USING_V2G
         LcdData.runData.GunRunMode[port] = THAISEN_GUN_RUNING_MODE_CHARGE;   /** 当前枪模式为充电 */
+        if(LcdData.setData.ChargeModeValidity[port][THAISEN_CHARGE_MODE_LIMIT_TIMING] == TRUE){
+            longTermValid = TRUE;
+        }
 #endif /* SCREEN_USING_V2G */
     }else if(LcdData.setData.CurrentMode[LCD_GUN_NUM][THAISEN_CHARGE_MODE_LIMIT_RESERVATION]){
         mode = THAISEN_CHARGE_MODE_LIMIT_RESERVATION;
@@ -8646,7 +8720,9 @@ void SerialScreen_BtnModeInfoStorage(int port)
         LcdAssistantData.SeveralGunFlag[port].IsSetReservation = TRUE;
 #ifdef SCREEN_USING_V2G
         LcdData.runData.GunRunMode[port] = THAISEN_GUN_RUNING_MODE_CHARGE;   /** 当前枪模式为充电 */
-        longTermValid = TRUE;
+        if(LcdData.setData.ChargeModeValidity[port][THAISEN_CHARGE_MODE_LIMIT_RESERVATION] == TRUE){
+            longTermValid = TRUE;
+        }
 #endif /* SCREEN_USING_V2G */
     }else{
         /** 目前模式配置仅能平台修改，屏幕未加控件无法修改 20260324 */
@@ -8658,7 +8734,6 @@ void SerialScreen_BtnModeInfoStorage(int port)
             LcdData.setData.ChargeModeValidity[port][THAISEN_CHARGE_MODE_FULL] = LcdData.setData.ChargeModeValidity[LCD_GUN_NUM][THAISEN_CHARGE_MODE_FULL];
 #ifdef SCREEN_USING_V2G
             LcdData.runData.GunRunMode[port] = THAISEN_GUN_RUNING_MODE_CHARGE;   /** 当前枪模式为充电 */
-            longTermValid = TRUE;
 #endif /* SCREEN_USING_V2G */
         }
     }
@@ -8903,6 +8978,9 @@ void SerialScreen_BtnV2GInfoStorage(int port)
             }
             LcdData.setData.V2GModeValidity[port][THAISEN_V2G_MODE_LIMIT_MONEY] = LcdData.setData.V2GModeValidity[LCD_GUN_NUM][THAISEN_V2G_MODE_LIMIT_MONEY];
         }
+        if(LcdData.setData.V2GModeValidity[port][THAISEN_V2G_MODE_LIMIT_MONEY] == TRUE){
+            longTermValid = TRUE;
+        }
     }else if(LcdData.setData.V2G_CurrentMode[LCD_GUN_NUM][THAISEN_V2G_MODE_LIMIT_ELECT]){
         mode = CP_V2G_MODE_LIMIT_ELECT;
         if((LcdData.setData.V2G_MSLimitElect[LCD_GUN_NUM] > CP_V2G_MODE_PARA_ELECT_MAX) || (LcdData.setData.V2G_MSLimitElect[LCD_GUN_NUM] < CP_V2G_MODE_PARA_ELECT_MIN)){
@@ -8917,6 +8995,9 @@ void SerialScreen_BtnV2GInfoStorage(int port)
                 LcdData.setData.V2GModeValidity[LCD_GUN_NUM][THAISEN_V2G_MODE_LIMIT_ELECT] = FALSE;
             }
             LcdData.setData.V2GModeValidity[port][THAISEN_V2G_MODE_LIMIT_ELECT] = LcdData.setData.V2GModeValidity[LCD_GUN_NUM][THAISEN_V2G_MODE_LIMIT_ELECT];
+        }
+        if(LcdData.setData.V2GModeValidity[port][THAISEN_V2G_MODE_LIMIT_ELECT] == TRUE){
+            longTermValid = TRUE;
         }
     }else if(LcdData.setData.V2G_CurrentMode[LCD_GUN_NUM][THAISEN_V2G_MODE_LIMIT_TIMING]){
         mode = CP_V2G_MODE_LIMIT_TIMING;
@@ -8933,6 +9014,9 @@ void SerialScreen_BtnV2GInfoStorage(int port)
             }
             LcdData.setData.V2GModeValidity[port][THAISEN_V2G_MODE_LIMIT_TIMING] = LcdData.setData.V2GModeValidity[LCD_GUN_NUM][THAISEN_V2G_MODE_LIMIT_TIMING];
         }
+        if(LcdData.setData.V2GModeValidity[port][THAISEN_V2G_MODE_LIMIT_TIMING] == TRUE){
+            longTermValid = TRUE;
+        }
     }else if(LcdData.setData.V2G_CurrentMode[LCD_GUN_NUM][THAISEN_V2G_MODE_AUTO]){
         mode = CP_V2G_MODE_AUTO;
         LcdData.setData.V2G_CurrentModePara[port] = 0x00;
@@ -8944,6 +9028,9 @@ void SerialScreen_BtnV2GInfoStorage(int port)
                 LcdData.setData.V2GModeValidity[LCD_GUN_NUM][THAISEN_V2G_MODE_AUTO] = FALSE;
             }
             LcdData.setData.V2GModeValidity[port][THAISEN_V2G_MODE_AUTO] = LcdData.setData.V2GModeValidity[LCD_GUN_NUM][THAISEN_V2G_MODE_AUTO];
+        }
+        if(LcdData.setData.V2GModeValidity[port][THAISEN_V2G_MODE_AUTO] == TRUE){
+            longTermValid = TRUE;
         }
     }
 #if 0
@@ -9211,6 +9298,8 @@ void SerialScreen_IsSupportGet(void)
     LcdData.setData.sup_V2G = FALSE;
     if(CONFIG_ENABLE_ENUM == *(u8 *)(UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_V2G, 0)))  /* V2G配置默认关闭 */
         LcdData.setData.sup_V2G = TRUE;
+#else
+    LcdData.setData.sup_V2G = FALSE;
 #endif /* SCREEN_USING_V2G */
 
     LcdData.setData.Sup_EliminateModule = FALSE;
@@ -9253,6 +9342,10 @@ void SerialScreen_IsSupportGet(void)
     LcdData.setData.Icon_SupV2G = FALSE;
     if(LcdData.setData.sup_V2G){
         LcdData.setData.Icon_SupV2G = TRUE;
+    }
+    /** 模式信息已修改，重新判断枪运行模式 */
+    for(u8 i = 0; i < LCD_GUN_NUM; i++){
+        SerialScreen_Screen_GunModeJudge(i);
     }
 #endif /* SCREEN_USING_V2G */
 
@@ -16507,9 +16600,6 @@ struct LCD_DATA_FIFO_TYPE *SerialScreen_Init(struct SerialScreenObj *cmd)
 #ifdef SCREEN_USING_V2G
     LcdData.runData.LastChargeGun = LcdData.gunIndex;
     LcdData.runData.CurrentChargeGun = LcdData.gunIndex;
-    for(int i = 0; i < LCD_GUN_NUM; i++){
-        LcdData.runData.GunRunMode[i] = THAISEN_GUN_RUNING_MODE_CHARGE;
-    }
 #endif /* SCREEN_USING_V2G */
 	LcdData.menuflg = 0;
 	LcdData.runData.netstate = thaisen_app_get_net_state(); //
@@ -16581,6 +16671,8 @@ struct LCD_DATA_FIFO_TYPE *SerialScreen_Init(struct SerialScreenObj *cmd)
 #ifdef SCREEN_USING_V2G
     LcdData.setData.sup_V2G = *((u8*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_V2G, 0));
     LcdData.setData.DisCharge_AsOf_SOC = *((u8*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_DISCHARGE_AS_OF_SOC, 0));
+#else
+    LcdData.setData.sup_V2G = FALSE;
 #endif /* SCREEN_USING_V2G */
     LcdData.setData.DebugCmdPara_LedLanguage = *((u8*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_LED_LANGUAGE, 0));
 
@@ -17220,6 +17312,11 @@ struct LCD_DATA_FIFO_TYPE *SerialScreen_Init(struct SerialScreenObj *cmd)
         }
     }
 #endif /* SCREEN_USING_V2G */
+
+    /** 判断当前枪运行模式 */
+    for(int i = 0; i < LCD_GUN_NUM; i++){
+        SerialScreen_Screen_GunModeJudge(i);
+    }
 
     if(LcdData.setData.NetType >= CP_NETTYPE_SIZE){
         LcdData.setData.NetType = CP_NETTYPE_4G;
