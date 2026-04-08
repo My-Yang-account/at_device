@@ -20019,6 +20019,7 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_A_START, NULL, "batVolt", LCD_DataType, LCD_1sReflash, 0x1716, pu32_type, sizeof(LcdData.setData.batteryVolt[LCD_GUN_1]), (void *)&LcdData.setData.batteryVolt[LCD_GUN_1]);
     SerialScreen_ItemSetUp(LCD_PAGE_A_START, NULL, "maxVolt", LCD_DataType, LCD_1sReflash, 0x1718, pu32_type, sizeof(LcdData.setData.maxChargeVolt[LCD_GUN_1]), (void *)&LcdData.setData.maxChargeVolt[LCD_GUN_1]);
     SerialScreen_ItemSetUp(LCD_PAGE_A_START, NULL, "DevID", LCD_TextType, LCD_1sReflash, 0x1015, pstr_type, (sizeof(LcdData.runData.DevId) - 2), (void *)&LcdData.runData.DevId);
+    SerialScreen_ItemSetUp(LCD_PAGE_A_START, NULL, "Icon Saux", LCD_IconType, LCD_10sReflash, 0x4630, pu8_type, sizeof(LcdData.setData.s_selectaux[LCD_GUN_1]), (void *)&LcdData.setData.s_selectaux[LCD_GUN_1]);
     SerialScreen_ItemSetUp(LCD_PAGE_A_START, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
 
     /** 5.B枪启动 [page:05] */
@@ -20029,6 +20030,7 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_B_START, NULL, "batVolt", LCD_DataType, LCD_1sReflash, 0x1720, pu32_type, sizeof(LcdData.setData.batteryVolt[LCD_GUN_2]), (void *)&LcdData.setData.batteryVolt[LCD_GUN_2]);
     SerialScreen_ItemSetUp(LCD_PAGE_B_START, NULL, "maxVolt", LCD_DataType, LCD_1sReflash, 0x1722, pu32_type, sizeof(LcdData.setData.maxChargeVolt[LCD_GUN_2]), (void *)&LcdData.setData.maxChargeVolt[LCD_GUN_2]);
     SerialScreen_ItemSetUp(LCD_PAGE_B_START, NULL, "DevID", LCD_TextType, LCD_1sReflash, 0x1015, pstr_type, (sizeof(LcdData.runData.DevId) - 2), (void *)&LcdData.runData.DevId);
+    SerialScreen_ItemSetUp(LCD_PAGE_B_START, NULL, "Icon Saux", LCD_IconType, LCD_10sReflash, 0x4632, pu8_type, sizeof(LcdData.setData.s_selectaux[LCD_GUN_2]), (void *)&LcdData.setData.s_selectaux[LCD_GUN_2]);
     SerialScreen_ItemSetUp(LCD_PAGE_B_START, NULL, "", 0, 0, 0, 0, 0, (void *)NULL);
 
     /** 6.A枪充电信息 [page:06] */
