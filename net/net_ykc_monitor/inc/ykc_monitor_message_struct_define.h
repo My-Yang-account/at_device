@@ -14,7 +14,6 @@
 
 #ifdef NET_PACK_USING_YKC_MONITOR
 
-//#define NET_YKC_MONITOR_INCLUDE_NEW_MSG                                            /* 使用扩展故障字段 */
 #define NET_YKC_MONITOR_FAULT_USING_EXTEND                                         /* 使用扩展故障字段 */
 #define NET_YKC_MONITOR_USING_EXTEND_PROTOCOL                                      /* 使用监控扩展协议 */
 
@@ -89,9 +88,7 @@
 #define NET_YKC_MONITOR_LIQUID_F_INFO_MAX                              0x05        /* 液冷故障信息的最大个数 */
 
 #define NET_YKC_MONITOR_SCREEN_PW_LENGTH_DEFAULT                       0x0F        /* 默认屏幕密码长度 */
-#ifdef NET_YKC_MONITOR_INCLUDE_NEW_MSG
 #define NET_YKC_MONITOR_DEVICE_ID_LENGTH_DEFAULT                       0x0C        /* 默认设备ID长度 */
-#endif /* NET_YKC_MONITOR_INCLUDE_NEW_MSG */
 
 #ifdef NET_YKC_MONITOR_FAULT_USING_EXTEND
 #define NET_YKC_MONITOR_FAULT_SET_NUM                                  0x02        /* 扩展故障集数量 */
@@ -609,11 +606,9 @@ typedef struct{
         uint8_t net_link_type;                   /* 网络连接类型 */
         uint8_t sim_number[NET_YKC_MONITOR_SIM_BCD_LENGTH_DEFAULT];         /* SIM 卡卡号 */
         uint8_t operators;                       /* 运营商 */
-#ifdef NET_YKC_MONITOR_INCLUDE_NEW_MSG
         uint8_t is_0xdb_new_msg;                 /* 是否是0xDB新报文  1：是   0：否 */
         uint8_t db_msg_ver;                      /* 0xDB报文  版本(从0开始) */
         uint8_t device_id[NET_YKC_MONITOR_DEVICE_ID_LENGTH_DEFAULT];  /* 设备ID */
-#endif /* NET_YKC_MONITOR_INCLUDE_NEW_MSG */
     }body;
     uint16_t check_sum;                          /* 校验码 */
 }Net_YkcMonitorPro_PReq_LogIn_t;
@@ -1961,11 +1956,9 @@ struct ykcm_sys_info{
     uint8_t dev_function;                        /* 本机功能(0：单枪超充，1：均充双枪，2：双枪终端，3：单枪快充，4：动态切换，5：普通四枪，6：群充四枪，7：子母机(环矩)，8：子母机(半矩)，9：一体机(环矩)) */
     uint8_t allocate_way;                        /* 分配方式(0：均充, 1：先到先得, 2：功率优先) */
     uint16_t terminal_addr[2];                   /* 终端地址(两把枪：A枪在前) */
-#ifdef NET_YKC_MONITOR_INCLUDE_NEW_MSG
     /** 20251229 msg_ver = 0x01 */
     uint8_t liquid_type;                         /* 液冷类型(0：英特尼迪， 1：毫厘， 2：特倍斯， 3：京工电) */
     uint8_t liquid_num;                          /* 液冷数量 */
-#endif /* NET_YKC_MONITOR_INCLUDE_NEW_MSG */
 };
 /** 桩信息 */
 /** 信息设置响应结果：0：成功  1：保存失败   2及以上表示某一配置项配置失败,按配置项次序升序排列(类似系统信息的响应) */
@@ -1990,7 +1983,6 @@ struct ykcm_server_info{
     uint8_t domain[256];                         /* 域名 */
     uint16_t port;                               /* 端口 */
     uint8_t net_mode;                            /* 网络模式(0：4G，1：以太网，2：离线) */
-#ifdef NET_YKC_MONITOR_INCLUDE_NEW_MSG
     /** 20251229 msg_ver = 0x01 */
     uint8_t sub_server_1[48];                    /* 子服务器1 IP地址/域名(ASCII) */
     uint16_t sub_port_1;                         /* 子服务器1端口 */
@@ -2000,7 +1992,6 @@ struct ykcm_server_info{
     uint16_t sub_port_3;                         /* 子服务器3端口 */
     uint8_t login_user_name[48];                 /* 登录用户名(ASCII) */
     uint8_t login_passwaord[48];                 /* 登录密码(ASCII) */
-#endif /* NET_YKC_MONITOR_INCLUDE_NEW_MSG */
 };
 /** 电表信息 */
 /** 信息设置响应结果：0：成功  1：保存失败   2及以上表示某一配置项配置失败,按配置项次序升序排列(类似系统信息的响应) */
@@ -2009,11 +2000,9 @@ struct ykcm_ammeter_info{
     uint8_t ammeter_model;                       /* 电表协议(0：瑞银，1：雅达，2：科达瑞，3：英利达，4：安科瑞，5：科为，6：预留) */
     uint8_t baudrate;                            /* 波特率(0：9600，1：2400，2：4800，3：38400，4：115200) */
     uint8_t check_way;                           /* 校验位(0:偶校验, 1:奇校验, 2:无校验) */
-#ifdef NET_YKC_MONITOR_INCLUDE_NEW_MSG
     /** 20251229 msg_ver = 0x01 */
     uint32_t ammeter_forward_elect[NET_YKC_MONITOR_AMMETER_ADDR_COUNT_MAX];   /* 电表正向总电量(0.001KW.h) */
     uint32_t ammeter_reverse_elect[NET_YKC_MONITOR_AMMETER_ADDR_COUNT_MAX];   /* 电表反向总电量(0.001KW.h) */
-#endif /* NET_YKC_MONITOR_INCLUDE_NEW_MSG */
 };
 
 /** 模块信息 */
@@ -2060,10 +2049,8 @@ struct ykcm_protect_info{
     uint32_t in_overvolt;                        /* 输入过压值(0.01V) */
     uint16_t in_undervolt;                       /* 输入欠压值(0.01V) */
     uint32_t out_overcurr;                       /* 输出过流值(0.01A) */
-#ifdef NET_YKC_MONITOR_INCLUDE_NEW_MSG
     /** 20251229 msg_ver = 0x01 */
     uint8_t discharge_asof_soc;                  /* 放电截至SOC(单位：/1%) */
-#endif /* NET_YKC_MONITOR_INCLUDE_NEW_MSG */
 };
 /** 功能配置 */
 /** 信息设置响应结果：0：成功  1：保存失败   2及以上表示某一配置项配置失败,按配置项次序升序排列(类似系统信息的响应) */
@@ -2083,14 +2070,12 @@ struct ykcm_function_config{
     /** 新增：2025/06/08 */
     uint16_t mode_select : 1;                    /* 模式选择(1：启用，0：禁用) */
     uint16_t offline_card : 1;                   /* 离线卡(1：启用，0：禁用) */
-#ifdef NET_YKC_MONITOR_INCLUDE_NEW_MSG
     /** 20260324 msg_ver = 0x02 */
     uint16_t several_gun : 1;                    /* 多枪并充(1：启用，0：禁用) */
     /** 20251229 msg_ver = 0x01 */
     uint16_t v2g_mode : 1;                       /* V2G模式(1：启用，0：禁用) */
     /** 20260324 msg_ver = 0x02 */
     uint16_t eliminate_module : 1;               /* 剔除模块(1：启用，0：禁用) */
-#endif /* NET_YKC_MONITOR_INCLUDE_NEW_MSG */
 };
 /** 离线计费 */
 /** 信息设置响应结果：0：成功  1：保存失败   2及以上表示某一配置项配置失败,按配置项次序升序排列(2：在充电，3：时间段格式错误，4：时间段不连续，5：时间段重复) */
@@ -2112,17 +2097,14 @@ struct ykcm_mode_select_normal{
                                                                                                                                        对于模式2：单位：0.001度
                                                                                                                                        对于模式3：单位：1min
                                                                                                                                        对于模式4：单位：1s(当天启动时间秒数：例 预约 13：56 充电，则为：13 *60 *60 + 56 *60)*/
-#ifdef NET_YKC_MONITOR_INCLUDE_NEW_MSG
     /** 20260323 msg_ver = 0x02 */
     uint16_t validity_period;                     /* 有效期 , 每2bit一个模式0：单次有效  1：永久有效 */
-#endif /* NET_YKC_MONITOR_INCLUDE_NEW_MSG */
 };
 
 /** 模式选择：V2G模式 */
 /** 信息设置响应结果：0：成功  1：保存失败   2及以上表示某一配置项配置失败,按配置项次序升序排列(类似系统信息的响应) */
 struct ykcm_mode_select_v2g{
     uint8_t mode;                                /* 当前模式： 0：限制金额，1：限制电量，2：限制时间，3：自动(按截至SOC来) */
-#ifdef NET_YKC_MONITOR_INCLUDE_NEW_MSG
     /** 20251229 msg_ver = 0x01 */
     uint32_t mode_parameter;                     /* 模式参数 ：
                                                                                                                                        对于模式0：单位：0.01元
@@ -2131,7 +2113,6 @@ struct ykcm_mode_select_v2g{
                                                                                                                                        对于模式3：无用，默认填0 */
     /** 20260323 msg_ver = 0x02 */
     uint16_t validity_period;                     /* 有效期, 每2bit一个模式 0：单次有效  1：永久有效 */
-#endif /* NET_YKC_MONITOR_INCLUDE_NEW_MSG */
 };
 
 struct ykcm_offline_billing{
@@ -2233,11 +2214,9 @@ struct ykcm_input_info_7103_7101{
     struct ykcm_input_pair_7103_7101 fuse;       /* 熔断器 */
     struct ykcm_input_pair_7103_7101 liquid;     /* 液冷 */
     struct ykcm_input_pair_7103_7101 circuit_breaker; /* 断路器 */
-#ifdef NET_YKC_MONITOR_INCLUDE_NEW_MSG
     /** 20260320 msg_ver = 0x02 */
     struct ykcm_input_pair_7103_7101 parallel_relay;    /* 母联继电器 */
     struct ykcm_input_pair_7103_7101 matrix_relay;      /* 矩阵继电器 */
-#endif /* NET_YKC_MONITOR_INCLUDE_NEW_MSG */
 };
 /************************************* 7104 *********************************************/
 /** 输入信息 */
@@ -2310,15 +2289,11 @@ typedef struct{
         uint8_t pile_number[NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT];  /* 桩号*/
         uint8_t gunno;                           /* 枪号(从1开始，0xFF表示所有枪) */
         uint8_t info_type;                       /* 查询或修改信息的类型(enum ykcm_config_info_type) */
-#ifndef NET_YKC_MONITOR_INCLUDE_NEW_MSG
-        uint8_t option;                          /* 查询：0或修改：1或响应结果2(enum ykcm_config_info_option) */
-#else
         struct{
             uint8_t option : 7;                  /* 查询：0或修改：1或响应结果2(enum ykcm_config_info_option) */
             uint8_t new_msg : 1;                 /* 是否是新报文(1：是，0：否) */
         }info;
         uint8_t msg_ver;                         /* 报文版本(初始版本为0) */
-#endif /* NET_YKC_MONITOR_INCLUDE_NEW_MSG */
         /* 如果是修改则会带有修改的数据 */
     }body;
     uint16_t check_sum;                          /* 校验码 */
@@ -2331,15 +2306,11 @@ typedef struct{
         uint8_t pile_number[NET_YKC_MONITOR_CHARGEPILE_LENGTH_DEFAULT];  /* 桩号*/
         uint8_t gunno;                           /* 枪号(从1开始，0xFF表示所有枪), 和查询或修改的一样 */
         uint8_t info_type;                       /* 查询或修改信息的类型, 和查询或修改的一样 */
-#ifndef NET_YKC_MONITOR_INCLUDE_NEW_MSG
-        uint8_t option;                          /* 查询：0或修改：1或响应结果2, 和查询或修改的一样 */
-#else
         struct{
             uint8_t option : 7;                  /* 查询：0或修改：1或响应结果2, 和查询或修改的一样 */
             uint8_t new_msg : 1;                 /* 是否是新报文(1：是，0：否) */
         }info;
         uint8_t msg_ver;                         /* 报文版本(初始版本为0) */
-#endif /* NET_YKC_MONITOR_INCLUDE_NEW_MSG */
         /* 配置数据 */
     }body;
     uint16_t check_sum;                          /* 校验码 */

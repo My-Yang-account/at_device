@@ -29,11 +29,7 @@
 
 #define YKC_MONITOR_FIXED_CMD_MSG_VER                     0x00                  /* 固定类型指令报文版本 */
 
-#ifdef NET_YKC_MONITOR_INCLUDE_NEW_MSG
 #define YKC_MONITOR_CONFIG_INFO_MSG_VER                   0x02                  /* 配置信息指令报文版本 */
-#else
-#define YKC_MONITOR_CONFIG_INFO_MSG_VER                   0x00                  /* 配置信息指令报文版本 */
-#endif /* NET_YKC_MONITOR_INCLUDE_NEW_MSG */
 #define YKC_MONITOR_0XD7_MSG_VER                          0x01                  /* 0xD7指令报文版本 */
 
 #define YKC_MONITOR_DYNAMIC_CMD_MSG_VER                   0x00                  /* 动态类型指令报文版本 */
@@ -1658,7 +1654,7 @@ void ykc_monitor_message_field_init(uint8_t gun)
     g_ykc_monitor_preq_login.body.software_ver[2] = base->soft_ver_sub + '0';
     g_ykc_monitor_preq_login.body.software_ver[3] = '.';
     sprintf((char *)&g_ykc_monitor_preq_login.body.software_ver[3 + 1], "%c", (base->soft_ver_revise + 'A'));
-#ifdef NET_YKC_MONITOR_INCLUDE_NEW_MSG
+
     g_ykc_monitor_preq_login.body.is_0xdb_new_msg = NET_ENUM_TRUE;
     g_ykc_monitor_preq_login.body.db_msg_ver = YKC_MONITOR_CONFIG_INFO_MSG_VER;
 
@@ -1678,7 +1674,6 @@ void ykc_monitor_message_field_init(uint8_t gun)
             break;
         }
     }
-#endif /* NET_YKC_MONITOR_INCLUDE_NEW_MSG */
 
     g_ykc_monitor_preq_login.body.net_link_type = NET_YKC_MONITOR_NET_LINK_TYPE_SIM;
 
@@ -5858,10 +5853,9 @@ static int32_t ykc_monitor_config_info_process_sys_info(uint8_t option, void *da
         }
         response->terminal_addr[0x00] = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_TEMINAL_ADDRA, 0x00));
         response->terminal_addr[0x01] = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_TEMINAL_ADDRB, 0x00));
-#ifdef NET_YKC_MONITOR_INCLUDE_NEW_MSG
+
         response->liquid_type = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_LIQUID_DEV, 0x00));
         response->liquid_num = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_LIQUID_CNT, 0x00));
-#endif /* NET_YKC_MONITOR_INCLUDE_NEW_MSG */
     }
     /** 配置信息设置 */
     else{
@@ -5887,14 +5881,12 @@ static int32_t ykc_monitor_config_info_process_sys_info(uint8_t option, void *da
         if(ykc_monitor_is_config_data_valid(&info->terminal_addr[0x01], sizeof(info->terminal_addr[0x01]), 0x00) == NET_ENUM_FALSE){
             info->terminal_addr[0x01] = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_TEMINAL_ADDRB, 0x00));
         }
-#ifdef NET_YKC_MONITOR_INCLUDE_NEW_MSG
         if(ykc_monitor_is_config_data_valid(&info->liquid_type, sizeof(info->liquid_type), 0x00) == NET_ENUM_FALSE){
             info->liquid_type = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_LIQUID_DEV, 0x00));
         }
         if(ykc_monitor_is_config_data_valid(&info->liquid_num, sizeof(info->liquid_num), 0x00) == NET_ENUM_FALSE){
             info->liquid_num = *(uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_LIQUID_CNT, 0x00));
         }
-#endif /* NET_YKC_MONITOR_INCLUDE_NEW_MSG */
         return ykc_monitor_config_execute(0x00, THAISEN_CONFIG_PAGE_SYSTEM_INFO, data, NULL, NULL);
     }
 
@@ -6097,13 +6089,11 @@ static int32_t ykc_monitor_config_info_process_ammeter_info(uint8_t option, void
         response->baudrate = *(uint32_t*)(sys_read_config_item_content(CONFIG_ITEM_METER_BAUDRATE, 0x00));
         response->check_way = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_METER_CHECK_WAY, 0x00));
         response->ammeter_model = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_METER_MODEL, 0x00));
-#ifdef NET_YKC_MONITOR_INCLUDE_NEW_MSG
         for(uint8_t i = 0x00; i < NET_YKC_MONITOR_AMMETER_ADDR_COUNT_MAX; i++){
             base = (System_BaseData*)(s_ykc_monitor_handle->get_base_data(i));
             response->ammeter_forward_elect[i] = base->ammeter_forward_elect;
             response->ammeter_reverse_elect[i] = base->ammeter_reverse_elect;
         }
-#endif /* NET_YKC_MONITOR_INCLUDE_NEW_MSG */
     }
     /** 配置信息设置 */
     else{
@@ -6331,14 +6321,12 @@ static int32_t ykc_monitor_config_info_process_protect_info(uint8_t option, void
         response->in_overvolt = (*(uint32_t*)(sys_read_config_item_content(CONFIG_ITEM_INPUT_OVERVOL, 0x00)) /10);
         response->in_undervolt = (*(uint32_t*)(sys_read_config_item_content(CONFIG_ITEM_INPUT_UNDERVOL, 0x00)) /10);
         response->out_overcurr = (*(uint32_t*)(sys_read_config_item_content(CONFIG_ITEM_OUTPUT_OVERCUR, 0x00)) /10);
-#ifdef NET_YKC_MONITOR_INCLUDE_NEW_MSG
         response->discharge_asof_soc = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_DISCHARGE_AS_OF_SOC, 0x00));
         if(response->discharge_asof_soc > PROTECT_DISCHARGE_AS_OF_SOC_OFFSET){
             response->discharge_asof_soc -= PROTECT_DISCHARGE_AS_OF_SOC_OFFSET;
         }else{
             response->discharge_asof_soc = 0x00;
         }
-#endif /* NET_YKC_MONITOR_INCLUDE_NEW_MSG */
     }
     /** 配置信息设置 */
     else{
@@ -6405,7 +6393,6 @@ static int32_t ykc_monitor_config_info_process_protect_info(uint8_t option, void
         if(ykc_monitor_is_config_data_valid(&info->out_overcurr, sizeof(info->out_overcurr), 0x00) == NET_ENUM_FALSE){
             info->out_overcurr = *(uint32_t*)(sys_read_config_item_content(CONFIG_ITEM_OUTPUT_OVERCUR, 0x00));
         }
-#ifdef NET_YKC_MONITOR_INCLUDE_NEW_MSG
         if(ykc_monitor_is_config_data_valid(&info->discharge_asof_soc, sizeof(info->discharge_asof_soc), 0x00) == NET_ENUM_FALSE){
             info->discharge_asof_soc = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_DISCHARGE_AS_OF_SOC, 0x00));
             if(info->discharge_asof_soc > PROTECT_DISCHARGE_AS_OF_SOC_OFFSET){
@@ -6414,7 +6401,6 @@ static int32_t ykc_monitor_config_info_process_protect_info(uint8_t option, void
                 info->discharge_asof_soc = 0x00;
             }
         }
-#endif /* NET_YKC_MONITOR_INCLUDE_NEW_MSG */
         return ykc_monitor_config_execute(0x00, THAISEN_CONFIG_PAGE_PROTECT_INFO, data, NULL, NULL);
     }
 
@@ -6457,7 +6443,6 @@ static int32_t ykc_monitor_config_info_process_function_config_info(uint8_t opti
         response->password_start = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_SUPORT_PASSWORD_START, 0x00));
         response->mode_select = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_SUPORT_MODE_SELECT, 0x00));
         response->offline_card = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_SUPORT_OFFLINE_CARD, 0x00));
-#ifdef NET_YKC_MONITOR_INCLUDE_NEW_MSG
         response->several_gun = NET_ENUM_FALSE;
         _config = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_SUPORT_V2G, 0x00));
         if(_config == CONFIG_ENABLE_ENUM){
@@ -6471,7 +6456,6 @@ static int32_t ykc_monitor_config_info_process_function_config_info(uint8_t opti
         }else{
             response->eliminate_module = NET_ENUM_FALSE;
         }
-#endif /* NET_YKC_MONITOR_INCLUDE_NEW_MSG */
     }
     /** 配置信息设置 */
     else{
@@ -6647,13 +6631,12 @@ static int32_t ykc_monitor_config_info_process_input_7103_7101_info(uint8_t opti
 
         response->circuit_breaker.enable = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INEN_CIRCUIT_BREAKER, 0x00));
         response->circuit_breaker.reversal = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INNEG_CIRCUIT_BREAKER, 0x00));
-#ifdef NET_YKC_MONITOR_INCLUDE_NEW_MSG
+
         response->parallel_relay.enable = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INEN_PARALLEL_RELAY, 0x00));
         response->parallel_relay.reversal = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INNEG_PARALLEL_RELAY, 0x00));
 
         response->matrix_relay.enable = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INEN_MATRIX_RELAY, 0x00));
         response->matrix_relay.reversal = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_INNEG_MATRIX_RELAY, 0x00));
-#endif /* NET_YKC_MONITOR_INCLUDE_NEW_MSG */
     }
     /** 配置信息设置 */
     else{
@@ -7139,26 +7122,20 @@ static int32_t ykc_monitor_config_info_mode_select_normal(uint8_t option, uint8_
     /** 配置信息查询 */
     if(option == NETYKCM_CONFIG_INFO_OPTION_QUERY){
         struct ykcm_mode_select_normal *response = (struct ykcm_mode_select_normal*)buf;
-#ifdef NET_YKC_MONITOR_INCLUDE_NEW_MSG
         uint16_t *_config = NULL;
-#endif /* NET_YKC_MONITOR_INCLUDE_NEW_MSG */
 
         memset(response, 0x00, sizeof(struct ykcm_mode_select_normal));
 
         if(gunno == 0x01){
             response->mode = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_CURRENT_MODE_A, 0x00));
             response->mode_parameter = *(uint32_t*)(sys_read_config_item_content(CONFIG_ITEM_MODE_PARAMETER_A, 0x00));
-#ifdef NET_YKC_MONITOR_INCLUDE_NEW_MSG
             _config = (uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_CHARGE_MODE_VALIDITY, 0x00));
             response->validity_period = _config[gunno - 0x01];
-#endif /* NET_YKC_MONITOR_INCLUDE_NEW_MSG */
         }else if(gunno == 0x02){
             response->mode = *(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_CURRENT_MODE_B, 0x00));
             response->mode_parameter = *(uint32_t*)(sys_read_config_item_content(CONFIG_ITEM_MODE_PARAMETER_B, 0x00));
-#ifdef NET_YKC_MONITOR_INCLUDE_NEW_MSG
             _config = (uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_CHARGE_MODE_VALIDITY, 0x00));
             response->validity_period = _config[gunno - 0x01];
-#endif /* NET_YKC_MONITOR_INCLUDE_NEW_MSG */
         }else{
             LOG_W("ykcm config query mode select normal error(%d)", gunno);
             return (NETYKCM_CONFIG_RES_SYS_ITEM_ASSERT_BASE + 0x01);
@@ -7213,26 +7190,14 @@ static int32_t ykc_monitor_config_info_mode_select_v2g(uint8_t option, uint8_t g
     }
     /** 配置信息查询 */
     if(option == NETYKCM_CONFIG_INFO_OPTION_QUERY){
-#ifdef NET_YKC_MONITOR_INCLUDE_NEW_MSG
         if((gunno > APP_SYSTEM_GUNNO_SIZE) || (gunno <= 0x00)){
             LOG_W("ykcm config query mode select v2g error(%d)", gunno);
             return (NETYKCM_CONFIG_RES_SYS_ITEM_ASSERT_BASE + 0x01);
         }
         uint16_t *_config = NULL;
-#endif /* NET_YKC_MONITOR_INCLUDE_NEW_MSG */
         struct ykcm_mode_select_v2g *response = (struct ykcm_mode_select_v2g*)buf;
 
         memset(response, 0x00, sizeof(struct ykcm_mode_select_v2g));
-#ifndef NET_YKC_MONITOR_INCLUDE_NEW_MSG
-        if(gunno == 0x01){
-            response->mode = 0x00;
-        }else if(gunno == 0x02){
-            response->mode = 0x00;
-        }else{
-            LOG_W("ykcm config query mode select v2g error(%d)", gunno);
-            return (NETYKCM_CONFIG_RES_SYS_ITEM_ASSERT_BASE + 0x01);
-        }
-#else
         response->mode_parameter = *(uint32_t*)(sys_read_config_item_content((CONFIG_ITEM_V2G_MODE_PARAMETER_A + (gunno - 0x01)), 0x00));
         response->mode = *(uint8_t*)(sys_read_config_item_content((CONFIG_ITEM_CURRENT_V2G_MODE_A + (gunno - 0x01)), 0x00));
         if((response->mode >= CP_V2G_MODE_SIZE) || (response->mode < CP_V2G_MODE_LIMIT_MONEY)){
@@ -7242,7 +7207,6 @@ static int32_t ykc_monitor_config_info_mode_select_v2g(uint8_t option, uint8_t g
         }
         _config = (uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_V2G_MODE_VALIDITY, 0x00));
         response->validity_period = _config[gunno - 0x01];
-#endif /* NET_YKC_MONITOR_INCLUDE_NEW_MSG */
     }
     /** 配置信息设置 */
     else{
@@ -7250,29 +7214,12 @@ static int32_t ykc_monitor_config_info_mode_select_v2g(uint8_t option, uint8_t g
             LOG_E("ykcm input data invalid with mode select v2g|%d,%d", dlen, sizeof(struct ykcm_mode_select_v2g));
             return (NETYKCM_CONFIG_RES_SYS_ITEM_ASSERT_BASE + 0x02);
         }
-#ifdef NET_YKC_MONITOR_INCLUDE_NEW_MSG
         if((gunno > APP_SYSTEM_GUNNO_SIZE) || (gunno <= 0x00)){
             LOG_W("ykcm config set mode select v2g error(%d)", gunno);
             return (NETYKCM_CONFIG_RES_SYS_ITEM_ASSERT_BASE + 0x03);
         }
-#endif /* NET_YKC_MONITOR_INCLUDE_NEW_MSG */
         struct ykcm_mode_select_v2g *info = (struct ykcm_mode_select_v2g*)data;
-#ifndef NET_YKC_MONITOR_INCLUDE_NEW_MSG
-        if(gunno == 0x01){
-            if(ykc_monitor_is_config_data_valid(&info->mode, sizeof(info->mode), 0x00) == NET_ENUM_FALSE){
-                info->mode = 0x00;
-            }
-        }else if(gunno == 0x02){
-            if(ykc_monitor_is_config_data_valid(&info->mode, sizeof(info->mode), 0x00) == NET_ENUM_FALSE){
-                info->mode = 0x00;
-            }
-        }else{
-            LOG_W("ykcm config set mode select v2g error(%d)", gunno);
-            return (NETYKCM_CONFIG_RES_SYS_ITEM_ASSERT_BASE + 0x03);
-        }
 
-//        return ykc_monitor_config_execute((gunno - 0x01), THAISEN_CONFIG_PAGE_MODE_SELECT_V2G, data, NULL, NULL);
-#else
         if(ykc_monitor_is_config_data_valid(&info->mode, sizeof(info->mode), 0x00) == NET_ENUM_FALSE){
             info->mode = *(uint8_t*)(sys_read_config_item_content((CONFIG_ITEM_CURRENT_V2G_MODE_A + (gunno - 0x01)), 0x00));
         }
@@ -7281,7 +7228,6 @@ static int32_t ykc_monitor_config_info_mode_select_v2g(uint8_t option, uint8_t g
         }
 
         return ykc_monitor_config_execute((gunno - 0x01), THAISEN_CONFIG_PAGE_MODE_SELECT_V2G, data, NULL, NULL);
-#endif /* NET_YKC_MONITOR_INCLUDE_NEW_MSG */
     }
 
     return 0x00;
@@ -7552,222 +7498,6 @@ static int32_t ykc_monitor_config_info_dynamic_cmd(uint8_t option, uint8_t gunno
  * 函数名      ykc_monitor_config_info_process
  * 功能          处理服务器下发的配置信息修改、查询请求
  * **********************************************/
-#ifndef NET_YKC_MONITOR_INCLUDE_NEW_MSG
-int8_t ykc_monitor_config_info_process(void *data, uint16_t dlen, void *buf, uint16_t blen, uint16_t *olen)
-{
-    if((data == NULL) || (dlen < sizeof(Net_YkcMonitorPro_Sreq_QuerySet_ConfigInfo_t))){
-        LOG_E("ykcm input data error with config_info_process|%d |%d, %d",  \
-                data, dlen, sizeof(Net_YkcMonitorPro_Sreq_QuerySet_ConfigInfo_t));
-        return -0x01;
-    }
-    if((buf == NULL) || (blen < sizeof(Net_YkcMonitorPro_Pres_QuerySet_ConfigInfo_t))){
-        LOG_E("ykcm input buff error with config_info_process|%d |%d, %d",  \
-                buf, blen, sizeof(Net_YkcMonitorPro_Pres_QuerySet_ConfigInfo_t));
-        return -0x01;
-    }
-
-    int32_t ret = 0x00;
-    uint16_t out_len = sizeof(Net_YkcMonitorPro_Pres_QuerySet_ConfigInfo_t),
-             cdata_len = (dlen - sizeof(Net_YkcMonitorPro_Sreq_QuerySet_ConfigInfo_t)),
-             rbuf_len = (blen - sizeof(Net_YkcMonitorPro_Pres_QuerySet_ConfigInfo_t));
-    Net_YkcMonitorPro_Sreq_QuerySet_ConfigInfo_t *request = (Net_YkcMonitorPro_Sreq_QuerySet_ConfigInfo_t*)data;
-    Net_YkcMonitorPro_Pres_QuerySet_ConfigInfo_t *response = (Net_YkcMonitorPro_Pres_QuerySet_ConfigInfo_t*)buf;
-
-    if((request->body.option >= NETYKCM_CONFIG_INFO_OPTION_SIZE) || (request->body.option < 0x00)){
-        LOG_E("ykcm config info process option error|%d", request->body.option);
-        return -0x01;
-    }
-    memcpy(response, request, sizeof(Net_YkcMonitorPro_Pres_QuerySet_ConfigInfo_t));
-
-    switch(request->body.info_type){
-    case NETYKCM_CONFIG_INFO_TYPE_SYSTEM:
-        LOG_D("ykcm config info query set --- system info(%d)", request->body.option);
-        ret = ykc_monitor_config_info_process_sys_info(request->body.option, ((uint8_t*)&request->body.option + 0x01), \
-                cdata_len, ((uint8_t*)&response->body.option + 0x01), rbuf_len);
-        if(request->body.option == NETYKCM_CONFIG_INFO_OPTION_QUERY){
-            out_len += sizeof(struct ykcm_sys_info);
-        }
-        break;
-    case NETYKCM_CONFIG_INFO_TYPE_PILE:
-        LOG_D("ykcm config info query set --- pile info(%d)", request->body.option);
-        ret = ykc_monitor_config_info_process_pile_info(request->body.option, ((uint8_t*)&request->body.option + 0x01), \
-                cdata_len, ((uint8_t*)&response->body.option + 0x01), rbuf_len);
-        if(request->body.option == NETYKCM_CONFIG_INFO_OPTION_QUERY){
-            out_len += sizeof(struct ykcm_pile_info);
-        }
-        break;
-    case NETYKCM_CONFIG_INFO_TYPE_SERVER:
-        LOG_D("ykcm config info query set --- server info(%d)", request->body.option);
-        ret = ykc_monitor_config_info_process_server_info(request->body.option, ((uint8_t*)&request->body.option + 0x01), \
-                cdata_len, ((uint8_t*)&response->body.option + 0x01), rbuf_len);
-        if(request->body.option == NETYKCM_CONFIG_INFO_OPTION_QUERY){
-            out_len += sizeof(struct ykcm_server_info);
-        }
-        break;
-    case NETYKCM_CONFIG_INFO_TYPE_AMMETER:
-        LOG_D("ykcm config info query set --- ammeter info(%d)", request->body.option);
-        ret = ykc_monitor_config_info_process_ammeter_info(request->body.option, ((uint8_t*)&request->body.option + 0x01), \
-                cdata_len, ((uint8_t*)&response->body.option + 0x01), rbuf_len);
-        if(request->body.option == NETYKCM_CONFIG_INFO_OPTION_QUERY){
-            out_len += sizeof(struct ykcm_ammeter_info);
-        }
-        break;
-    case NETYKCM_CONFIG_INFO_TYPE_MODULE:
-        LOG_D("ykcm config info query set --- module info(%d)", request->body.option);
-        ret = ykc_monitor_config_info_process_module_info(request->body.option, ((uint8_t*)&request->body.option + 0x01), \
-                cdata_len, ((uint8_t*)&response->body.option + 0x01), rbuf_len);
-        if(request->body.option == NETYKCM_CONFIG_INFO_OPTION_QUERY){
-            out_len += sizeof(struct ykcm_module_info);
-        }
-        break;
-    case NETYKCM_CONFIG_INFO_TYPE_VIN:
-        LOG_D("ykcm config info query set --- vin info(%d)", request->body.option);
-        ret = ykc_monitor_config_info_process_vin_info(request->body.option, ((uint8_t*)&request->body.option + 0x01), \
-                cdata_len, ((uint8_t*)&response->body.option + 0x01), rbuf_len);
-        if(request->body.option == NETYKCM_CONFIG_INFO_OPTION_QUERY){
-            out_len += sizeof(struct ykcm_vin_info);
-        }
-        break;
-    case NETYKCM_CONFIG_INFO_TYPE_PROTECT_INFO:
-        LOG_D("ykcm config info query set --- protect info(%d)", request->body.option);
-        ret = ykc_monitor_config_info_process_protect_info(request->body.option, ((uint8_t*)&request->body.option + 0x01), \
-                cdata_len, ((uint8_t*)&response->body.option + 0x01), rbuf_len);
-        if(request->body.option == NETYKCM_CONFIG_INFO_OPTION_QUERY){
-            out_len += sizeof(struct ykcm_protect_info);
-        }
-        break;
-    case NETYKCM_CONFIG_INFO_TYPE_FUNCTION_CONFIG:
-        LOG_D("ykcm config info query set --- function config info(%d)", request->body.option);
-        ret = ykc_monitor_config_info_process_function_config_info(request->body.option, ((uint8_t*)&request->body.option + 0x01), \
-                cdata_len, ((uint8_t*)&response->body.option + 0x01), rbuf_len);
-        if(request->body.option == NETYKCM_CONFIG_INFO_OPTION_QUERY){
-            out_len += sizeof(struct ykcm_function_config);
-        }
-        break;
-    case NETYKCM_CONFIG_INFO_TYPE_OFFLINE_BILLING:
-        LOG_D("ykcm config info query set --- offline billing info(%d)", request->body.option);
-        ret = ykc_monitor_config_info_process_offline_billing_info(request->body.option, ((uint8_t*)&request->body.option + 0x01), \
-                cdata_len, ((uint8_t*)&response->body.option + 0x01), rbuf_len);
-        if(request->body.option == NETYKCM_CONFIG_INFO_OPTION_QUERY){
-            out_len += sizeof(struct ykcm_offline_billing);
-        }
-        break;
-    case NETYKCM_CONFIG_INFO_TYPE_INPUT_7103_7101:
-        LOG_D("ykcm config info query set --- input 7103/7101 info(%d)", request->body.option);
-        ret = ykc_monitor_config_info_process_input_7103_7101_info(request->body.option, ((uint8_t*)&request->body.option + 0x01), \
-                cdata_len, ((uint8_t*)&response->body.option + 0x01), rbuf_len);
-        if(request->body.option == NETYKCM_CONFIG_INFO_OPTION_QUERY){
-            out_len += sizeof(struct ykcm_input_info_7103_7101);
-        }
-        break;
-    case NETYKCM_CONFIG_INFO_TYPE_PUBLIC_INPUT_7104:
-        LOG_D("ykcm config info query set --- public input 7104 info(%d)", request->body.option);
-        ret = ykc_monitor_config_info_process_public_input_7104_info(request->body.option, ((uint8_t*)&request->body.option + 0x01), \
-                cdata_len, ((uint8_t*)&response->body.option + 0x01), rbuf_len);
-        if(request->body.option == NETYKCM_CONFIG_INFO_OPTION_QUERY){
-            out_len += sizeof(struct ykcm_public_input_info_7104);
-        }
-        break;
-    case NETYKCM_CONFIG_INFO_TYPE_GUN_INPUT_7104:
-        LOG_D("ykcm config info query set --- gun input 7104 info(%d)", request->body.option);
-        ret = ykc_monitor_config_info_process_gun_input_7104_info(request->body.option, request->body.gunno,
-                ((uint8_t*)&request->body.option + 0x01), cdata_len, ((uint8_t*)&response->body.option + 0x01), rbuf_len);
-        if(request->body.option == NETYKCM_CONFIG_INFO_OPTION_QUERY){
-            out_len += sizeof(struct ykcm_gun_input_info_7104);
-        }
-        break;
-    case NETYKCM_CONFIG_INFO_TYPE_PUBLIC_OUTPUT_7104:
-        LOG_D("ykcm config info query set --- public output 7104 info(%d)", request->body.option);
-        ret = ykc_monitor_config_info_process_public_output_7104_info(request->body.option, ((uint8_t*)&request->body.option + 0x01), \
-                cdata_len, ((uint8_t*)&response->body.option + 0x01), rbuf_len);
-        if(request->body.option == NETYKCM_CONFIG_INFO_OPTION_QUERY){
-            out_len += sizeof(struct ykcm_public_output_info_7104);
-        }
-        break;
-    case NETYKCM_CONFIG_INFO_TYPE_GUN_OUTPUT_7104:
-        LOG_D("ykcm config info query set --- gun output 7104 info(%d)", request->body.option);
-        ret = ykc_monitor_config_info_process_gun_output_7104_info(request->body.option, request->body.gunno, \
-                ((uint8_t*)&request->body.option + 0x01), cdata_len, ((uint8_t*)&response->body.option + 0x01), rbuf_len);
-        if(request->body.option == NETYKCM_CONFIG_INFO_OPTION_QUERY){
-            out_len += sizeof(struct ykcm_gun_output_info_7104);
-        }
-        break;
-    case NETYKCM_CONFIG_INFO_MODE_SELECT_NORMAL:
-        LOG_D("ykcm config info query set --- mode select normal info(%d)", request->body.option);
-        ret = ykc_monitor_config_info_mode_select_normal(request->body.option, request->body.gunno, \
-                ((uint8_t*)&request->body.option + 0x01), cdata_len, ((uint8_t*)&response->body.option + 0x01), rbuf_len);
-        if(request->body.option == NETYKCM_CONFIG_INFO_OPTION_QUERY){
-            out_len += sizeof(struct ykcm_mode_select_normal);
-        }
-        break;
-    case NETYKCM_CONFIG_INFO_MODE_SELECT_V2G:
-        LOG_D("ykcm config info query set --- mode select V2G info(%d)", request->body.option);
-        ret = ykc_monitor_config_info_mode_select_v2g(request->body.option, request->body.gunno, \
-                ((uint8_t*)&request->body.option + 0x01), cdata_len, ((uint8_t*)&response->body.option + 0x01), rbuf_len);
-        if(request->body.option == NETYKCM_CONFIG_INFO_OPTION_QUERY){
-            out_len += sizeof(struct ykcm_mode_select_v2g);
-        }
-        break;
-    case NETYKCM_CONFIG_INFO_OTHER_CONFIG:
-        LOG_D("ykcm config info query set --- other info(%d)", request->body.option);
-        ret = ykc_monitor_config_info_other(request->body.option, request->body.gunno, \
-                ((uint8_t*)&request->body.option + 0x01), cdata_len, ((uint8_t*)&response->body.option + 0x01), rbuf_len);
-        if(request->body.option == NETYKCM_CONFIG_INFO_OPTION_QUERY){
-            out_len += sizeof(struct ykcm_other_config);
-        }
-        break;
-    case NETYKCM_CONFIG_INFO_DYNAMIC_CMD_INFO:
-        LOG_D("ykcm config info query set --- dynamic cmd info(%d)", request->body.option);
-        ret = ykc_monitor_config_info_dynamic_cmd(request->body.option, request->body.gunno, \
-                ((uint8_t*)&request->body.option + 0x01), cdata_len, ((uint8_t*)&response->body.option + 0x01), rbuf_len);
-        if(request->body.option == NETYKCM_CONFIG_INFO_OPTION_QUERY){
-            /** 获取报文数据部分长度 */
-            struct ykcm_dynamic_cmd_modify *info = (struct ykcm_dynamic_cmd_modify*)((uint8_t*)&response->body.option + 0x01);
-            if(info->cmd_num > YKC_MONITOR_DYNAMIC_CMD_SINGLE_NUM){
-                info->cmd_num = YKC_MONITOR_DYNAMIC_CMD_SINGLE_NUM;
-            }
-            out_len += (sizeof(struct ykcm_dynamic_cmd_modify) + (info->cmd_num *sizeof(struct cmd_modify_segment)));
-        }
-        break;
-    case NETYKCM_CONFIG_INFO_FIXED_CMD_INFO:
-        LOG_D("ykcm config info query set --- fixed cmd info(%d)", request->body.option);
-        ret = ykc_monitor_config_info_fixed_cmd(request->body.option, request->body.gunno, \
-                ((uint8_t*)&request->body.option + 0x01), cdata_len, ((uint8_t*)&response->body.option + 0x01), rbuf_len);
-        if(request->body.option == NETYKCM_CONFIG_INFO_OPTION_QUERY){
-            out_len += sizeof(struct ykcm_fixed_cmd_info);
-        }
-        break;
-    default:
-        LOG_D("ykcm config info query set --- info type error(%d)", request->body.info_type);
-        if(request->body.option == NETYKCM_CONFIG_INFO_OPTION_SET){
-            struct ykcm_response_result *result = (struct ykcm_response_result*)((uint8_t*)&response->body.option + 0x01);
-
-            result->result = 0x01;
-            result->fail_reason = (NETYKCM_CONFIG_RES_SYS_ASSERT_BASE + 0x00);
-            out_len += sizeof(struct ykcm_response_result);
-            return 0x00;
-        }
-        return -0x01;
-    }
-
-    if(request->body.option == NETYKCM_CONFIG_INFO_OPTION_SET){
-        struct ykcm_response_result *result = (struct ykcm_response_result*)((uint8_t*)&response->body.option + 0x01);
-
-        result->result = NETYKCM_CONFIG_RES_SUCCESS;
-        result->fail_reason = NETYKCM_CONFIG_RES_SUCCESS;
-        if(ret != NETYKCM_CONFIG_RES_SUCCESS){
-            result->result = 0x01;
-            result->fail_reason = ret;
-        }
-        out_len += sizeof(struct ykcm_response_result);
-    }
-
-    if(olen){
-        *(uint16_t*)olen = out_len;
-    }
-    return 0x00;
-}
-#else
 int8_t ykc_monitor_config_info_process(void *data, uint16_t dlen, void *buf, uint16_t blen, uint16_t *olen)
 {
     if((data == NULL) || (dlen < sizeof(Net_YkcMonitorPro_Sreq_QuerySet_ConfigInfo_t))){
@@ -8009,7 +7739,6 @@ int8_t ykc_monitor_config_info_process(void *data, uint16_t dlen, void *buf, uin
     }
     return 0x00;
 }
-#endif /* NET_YKC_MONITOR_INCLUDE_NEW_MSG */
 
 /*************************************************
  * 函数名      ykc_monitor_module_fault_check
