@@ -2034,7 +2034,7 @@ void app_cmd_debug_result_info(uint8_t gunno, uint8_t language, uint8_t cmd, uin
         }
         break;
     case THAISEN_DEBUG_CMD_ISSUE_SETUP_CURR_OFFSET:
-        if(para && (plen >= 0x02)){
+        if(para && (plen >= 0x04)){
             int32_t offset = 0x00;
 
             if(*(uint16_t*)para >= CP_CURRENT_OFFSET_SEPARATE){
@@ -2139,6 +2139,39 @@ void app_cmd_debug_result_info(uint8_t gunno, uint8_t language, uint8_t cmd, uin
                 if(ilen <= (strlen("下发>风扇调速定时分频：") + (uint32_t)(log10((double)value) + 0x01)))
                     return;
                 sprintf((char*)buf, "%s%lu", "下发>风扇调速定时分频:", value);
+            }
+        }
+        break;
+    case THAISEN_DEBUG_CMD_ISSUE_OPCS:
+        if(para && (plen >= 0x01)){
+            uint8_t function = *(uint8_t*)para;
+            const char *e_str[2] = {"Close", "Open"};
+            const char *c_str[2] = {"关闭", "开启"};
+
+            function = function > 0x01 ? 0x00 : function;
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= (strlen("Issue>OutPeakCurrSW:") + 0x06))
+                    return;
+                sprintf((char*)buf, "%s%s", "Issue>OutPeakCurrSW:", e_str[function]);
+            }else{
+                if(ilen <= (strlen("下发>输出峰值电流功能：") + 0x06))
+                    return;
+                sprintf((char*)buf, "%s%s", "下发>输出峰值电流功能：", c_str[function]);
+            }
+        }
+        break;
+    case THAISEN_DEBUG_CMD_ISSUE_OPCV:
+        if(para && (plen >= 0x04)){
+            uint32_t value = *(uint32_t*)para;
+
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= (strlen("Issue>OutPeakCurrVal:") + (uint32_t)(log10((double)value) + 0x01) + 0x02 + 0x01))
+                    return;
+                sprintf((char*)buf, "%s%lu.%lu%lu%c", "Issue>OutPeakCurrVal:", (value /100), ((value /10) %10), (value %10), 'A');
+            }else{
+                if(ilen <= (strlen("下发>输出峰值电流值：") + (uint32_t)(log10((double)value) + 0x01) + 0x02 + 0x01))
+                    return;
+                sprintf((char*)buf, "%s%lu.%lu%lu%c", "下发>输出峰值电流值:", (value /100), ((value /10) %10), (value %10), 'A');
             }
         }
         break;
@@ -2444,6 +2477,39 @@ void app_cmd_debug_result_info(uint8_t gunno, uint8_t language, uint8_t cmd, uin
                 if(ilen <= (strlen("读取>风机调速定时分频：") + (uint32_t)(log10((double)value) + 0x01)))
                     return;
                 sprintf((char*)buf, "%s%lu", "读取>风机调速定时分频：", value);
+            }
+        }
+        break;
+    case THAISEN_DEBUG_CMD_READ_OPCS:
+        if(para && (plen >= 0x01)){
+            uint8_t function = *(uint8_t*)para;
+            const char *e_str[2] = {"Close", "Open"};
+            const char *c_str[2] = {"关闭", "开启"};
+
+            function = function > 0x01 ? 0x01 : function;
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= (strlen("Read>OutPeakCurrSW:") + 0x06))
+                    return;
+                sprintf((char*)buf, "%s%s", "Read>OutPeakCurrSW:", e_str[function]);
+            }else{
+                if(ilen <= (strlen("读取>输出峰值电流功能：") + 0x06))
+                    return;
+                sprintf((char*)buf, "%s%s", "读取>输出峰值电流功能：", c_str[function]);
+            }
+        }
+        break;
+    case THAISEN_DEBUG_CMD_READ_OPCV:
+        if(para && (plen >= 0x04)){
+            uint32_t value = *(uint32_t*)para;
+
+            if(language == THA_DEBUG_LANGUAGE_ENGLISH){
+                if(ilen <= (strlen("Read>OutPeakCurrSW:") + (uint32_t)(log10((double)value) + 0x01) + 0x02 + 0x01))
+                    return;
+                sprintf((char*)buf, "%s%lu.%lu%lu%c", "Read>OutPeakCurrSW:", (value /100), ((value /10) %10), (value %10), 'A');
+            }else{
+                if(ilen <= (strlen("读取>输出峰值电流值：") + (uint32_t)(log10((double)value) + 0x01) + 0x02 + 0x01))
+                    return;
+                sprintf((char*)buf, "%s%lu.%lu%lu%c", "读取>输出峰值电流值", (value /100), ((value /10) %10), (value %10), 'A');
             }
         }
         break;

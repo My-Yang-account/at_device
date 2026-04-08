@@ -906,6 +906,8 @@ struct LCD_DISPLAY_SETDATA_TYPE{
     u16 DebugCmdPara_GBT_OCTime;                                 //指令调试参数：协议、互操作：过流检测判定时长(ms)
     u32 DebugCmdPara_FanPWMPeriod;                               //指令调试参数：风机调速周期(Hz)
     u16 DebugCmdPara_FanPWMTimerPrescaler;                       //指令调试参数：风机调速定时器时钟分频
+    u8 DebugCmdPara_OutPeakCurrSW;                               //指令调试参数：输出峰值电流功能
+    u32 DebugCmdPara_OutPeakCurrVal;                             //指令调试参数：输出峰值电流值(0.01A)
     /** 参数中间值 */
     u32 DebugCmdPara_MCMaxTemp;                                  //指令调试参数：模块最大输出电流中间值
     u32 DebugCmdPara_MCMinTemp;                                  //指令调试参数：模块最小输出电流中间值
@@ -926,6 +928,8 @@ struct LCD_DISPLAY_SETDATA_TYPE{
     u16 DebugCmdPara_GBT_OCTimeTemp;                             //指令调试参数：协议、互操作：过流检测判定时长(ms)中间值
     u32 DebugCmdPara_FanPWMPeriodTemp;                           //指令调试参数：风机调速周期(Hz)中间值
     u16 DebugCmdPara_FanPWMTimerPrescalerTemp;                   //指令调试参数：风机调速定时器时钟分频中间值
+    u8 DebugCmdPara_OutPeakCurrSWTemp;                           //指令调试参数：输出峰值电流功能中间值
+    u32 DebugCmdPara_OutPeakCurrValTemp;                         //指令调试参数：输出峰值电流值中间值(0.01A)
     /*********************** fan ***************************/
     u32 FanWorkTime;                                             //停充后风扇工作时间(s)
     /*********************** 照明灯 ***************************/
@@ -3574,6 +3578,24 @@ static s32 SerialScreen_ConfigExecute_DynamicCmdDebugModify(u8 port, void *data,
             needIssue = 1;
             memcpy(LcdData.setData.DebugCmd, "FPTP", strlen("FPTP"));
         }
+        /** 输出峰值电流功能 */
+        else if((memcmp(config_segment[i].cmd, "OPCS", strlen("OPCS")) == 0) && (strlen((char*)config_segment[i].cmd) == strlen("OPCS"))){
+            if(strlen((char*)config_segment[i].parameter) == 0x00){
+                /** 参数非法，配置失败 */
+                return (i + THAISEN_CONFIG_FAIL_OFFSET);
+            }
+            needIssue = 1;
+            memcpy(LcdData.setData.DebugCmd, "OPCS", strlen("OPCS"));
+        }
+        /** 输出峰值电流值(0.01A) */
+        else if((memcmp(config_segment[i].cmd, "OPCV", strlen("OPCV")) == 0) && (strlen((char*)config_segment[i].cmd) == strlen("OPCV"))){
+            if(strlen((char*)config_segment[i].parameter) == 0x00){
+                /** 参数非法，配置失败 */
+                return (i + THAISEN_CONFIG_FAIL_OFFSET);
+            }
+            needIssue = 1;
+            memcpy(LcdData.setData.DebugCmd, "OPCV", strlen("OPCV"));
+        }
         else{
             /** 没有这个指令，配置失败 */
             return (i + THAISEN_CONFIG_FAIL_OFFSET);
@@ -3794,6 +3816,17 @@ static s32 SerialScreen_ConfigExecute_DynamicCmdDebugRead(u8 port, void *data, v
         else if((memcmp(read_segment[i].cmd, "FPTP", strlen("FPTP")) == 0) && (strlen((char*)read_segment[i].cmd) == strlen("FPTP"))){
             parameter = LcdData.setData.DebugCmdPara_FanPWMTimerPrescaler;
             sprintf((char*)config_segment[i].parameter, "%d", parameter);
+            config_segment[i].parameter_len = strlen((char*)config_segment[i].parameter);
+        }
+        /** 输出峰值电流功能 */
+        else if((memcmp(read_segment[i].cmd, "OPCS", strlen("OPCS")) == 0) && (strlen((char*)read_segment[i].cmd) == strlen("OPCS"))){
+            sprintf((char*)config_segment[i].parameter, "%u", LcdData.setData.DebugCmdPara_OutPeakCurrSW);
+            config_segment[i].parameter_len = strlen((char*)config_segment[i].parameter);
+        }
+        /** 输出峰值电流值(0.01A) */
+        else if((memcmp(read_segment[i].cmd, "OPCV", strlen("OPCV")) == 0) && (strlen((char*)read_segment[i].cmd) == strlen("OPCV"))){
+            parameter = LcdData.setData.DebugCmdPara_OutPeakCurrVal;
+            sprintf((char*)config_segment[i].parameter, "-%d.%d%d%c", (parameter /100), ((parameter /10) %10), (parameter %10), 'A');
             config_segment[i].parameter_len = strlen((char*)config_segment[i].parameter);
         }
 
@@ -6622,6 +6655,30 @@ void SerialScreen_CmdDebugInfoSet(void)
         UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_FAN_TIMER_PRESCALER, &LcdData.setData.DebugCmdPara_FanPWMTimerPrescaler, sizeof(LcdData.setData.DebugCmdPara_FanPWMTimerPrescaler));
         is_changed = 1;
     }
+    /*************************** 输出峰值电流功能 ***************************/
+    if(LcdData.setData.DebugCmdPara_OutPeakCurrSW != LcdData.setData.DebugCmdPara_OutPeakCurrSWTemp){
+        u8 data = CONFIG_ENABLE_ENUM;
+
+        if(LcdData.setData.DebugCmdPara_OutPeakCurrSWTemp > TRUE)
+            LcdData.setData.DebugCmdPara_OutPeakCurrSWTemp = FALSE;
+        LcdData.setData.DebugCmdPara_OutPeakCurrSW = LcdData.setData.DebugCmdPara_OutPeakCurrSWTemp;
+        if(LcdData.setData.DebugCmdPara_OutPeakCurrSW == FALSE)
+            data = CONFIG_DISABLE_ENUM;
+
+        UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_PEAK_CURRENT_OUT, &data, sizeof(data));
+        is_changed = 1;
+    }
+    /*************************** 输出峰值电流值(0.01A) ***************************/
+    if(LcdData.setData.DebugCmdPara_OutPeakCurrVal != LcdData.setData.DebugCmdPara_OutPeakCurrValTemp){
+        if((LcdData.setData.DebugCmdPara_OutPeakCurrValTemp < CP_PEAK_CURRENT_MIN) || \
+                (LcdData.setData.DebugCmdPara_OutPeakCurrValTemp > CP_PEAK_CURRENT_MAX)){
+            LcdData.setData.DebugCmdPara_OutPeakCurrValTemp = CP_PEAK_CURRENT_DEFAULT;
+        }
+        LcdData.setData.DebugCmdPara_OutPeakCurrVal = LcdData.setData.DebugCmdPara_OutPeakCurrValTemp;
+
+        UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_OUT_PEAK_CURRENT, &(LcdData.setData.DebugCmdPara_OutPeakCurrVal), sizeof(LcdData.setData.DebugCmdPara_OutPeakCurrVal));
+        is_changed = 1;
+    }
 
     if(LcdData.setData.Icon_BatVoltDetect != LcdData.setData.sup_BatVoltDetect){
         is_changed = 1;
@@ -6905,6 +6962,22 @@ void SerialScreen_CmdDebugInfoGet(void)
         LcdData.setData.DebugCmdPara_FanPWMTimerPrescaler = CP_FAN_PWM_TIMER_PRESCALER_DEFAULT;
     }
 
+    /* 输出峰值电流功能默认关闭 */
+    data = *((u8*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_PEAK_CURRENT_OUT, 0));
+    if(data == CONFIG_ENABLE_ENUM){
+        LcdData.setData.DebugCmdPara_OutPeakCurrSW = TRUE;
+    }else if(data == CONFIG_DISABLE_ENUM){
+        LcdData.setData.DebugCmdPara_OutPeakCurrSW = FALSE;
+    }else{
+        LcdData.setData.DebugCmdPara_OutPeakCurrSW = FALSE;
+    }
+    /* 输出峰值电流值(0.01A) */
+    LcdData.setData.DebugCmdPara_OutPeakCurrVal = *((u32*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_OUT_PEAK_CURRENT, 0));
+    if((LcdData.setData.DebugCmdPara_OutPeakCurrVal < CP_PEAK_CURRENT_MIN) || \
+            (LcdData.setData.DebugCmdPara_OutPeakCurrVal > CP_PEAK_CURRENT_MAX)){
+        LcdData.setData.DebugCmdPara_OutPeakCurrVal = CP_PEAK_CURRENT_DEFAULT;
+    }
+
     LcdData.setData.Icon_BatVoltDetect = FALSE;
     if(LcdData.setData.sup_BatVoltDetect){
         LcdData.setData.Icon_BatVoltDetect = TRUE;
@@ -6988,6 +7061,8 @@ void SerialScreen_CmdDebugInfoGet(void)
     LcdData.setData.DebugCmdPara_GBT_OCTimeTemp = LcdData.setData.DebugCmdPara_GBT_OCTime;
     LcdData.setData.DebugCmdPara_FanPWMPeriodTemp = LcdData.setData.DebugCmdPara_FanPWMPeriod;
     LcdData.setData.DebugCmdPara_FanPWMTimerPrescalerTemp = LcdData.setData.DebugCmdPara_FanPWMTimerPrescaler;
+    LcdData.setData.DebugCmdPara_OutPeakCurrSWTemp = LcdData.setData.DebugCmdPara_OutPeakCurrSW;
+    LcdData.setData.DebugCmdPara_OutPeakCurrValTemp = LcdData.setData.DebugCmdPara_OutPeakCurrVal;
 }
 
 void SerialScreen_CmdDebugIssue(void)
@@ -7375,6 +7450,32 @@ void SerialScreen_CmdDebugIssue(void)
                 LcdData.setData.DebugCmdPara_FanPWMTimerPrescalerTemp = para;
             }
         }
+        /** 指令下发：输出峰值电流功能 */
+        else if((memcmp(CmdStr, "OPCS", strlen("OPCS")) == 0) && (strlen(CmdStr) == strlen("OPCS")))
+        {
+            if((used_len < blen) && ParaStr){
+                uint8_t para = (uint8_t)(atol(ParaStr));
+
+                if((para != TRUE) && (para != FALSE))
+                    para = FALSE;
+                thaisen_get_cmd_debug_result_info(LCD_GUN_1, THA_DEBUG_LANGUAGE_CHINESE, THAISEN_DEBUG_CMD_ISSUE_OPCS, (u8*)&para, sizeof(para), \
+                        (LcdData.setData.DebugResult + used_len), (blen - used_len));
+                /** 保存指令参数 */
+                LcdData.setData.DebugCmdPara_OutPeakCurrSWTemp = para;
+            }
+        }
+        /** 指令下发：输出峰值电流值(0.01A) */
+        else if((memcmp(CmdStr, "OPCV", strlen("OPCV")) == 0) && (strlen(CmdStr) == strlen("OPCV")))
+        {
+            if((used_len < blen) && ParaStr){
+                u32 para = atol(ParaStr);
+
+                thaisen_get_cmd_debug_result_info(LCD_GUN_1, THA_DEBUG_LANGUAGE_CHINESE, THAISEN_DEBUG_CMD_ISSUE_OPCV, (u8*)&para, sizeof(para), \
+                        (LcdData.setData.DebugResult + used_len), (blen - used_len));
+                /** 保存指令参数 */
+                LcdData.setData.DebugCmdPara_OutPeakCurrValTemp = para;
+            }
+        }
 
         used_len = strlen((char*)LcdData.setData.DebugResult);
         if(used_len >= blen)
@@ -7631,6 +7732,24 @@ void SerialScreen_CmdDebugRead(void)
             if(used_len < blen){
                 u16 para = LcdData.setData.DebugCmdPara_FanPWMTimerPrescalerTemp;
                 thaisen_get_cmd_debug_result_info(LCD_GUN_1, THA_DEBUG_LANGUAGE_CHINESE, THAISEN_DEBUG_CMD_READ_FPTP, (u8*)&para, sizeof(para), \
+                        (LcdData.setData.DebugResult + used_len), (blen - used_len));
+            }
+        }
+        /** 指令读取：输出峰值电流功能 */
+        else if((strstr((const char*)CmdStr, "OPCS")) && (strlen(CmdStr) == strlen("OPCS")))
+        {
+            uint8_t function = LcdData.setData.DebugCmdPara_OutPeakCurrSWTemp;
+            if(used_len < blen){
+                thaisen_get_cmd_debug_result_info(LCD_GUN_1, THA_DEBUG_LANGUAGE_CHINESE, THAISEN_DEBUG_CMD_READ_OPCS, (u8*)&function, sizeof(function), \
+                        (LcdData.setData.DebugResult + used_len), (blen - used_len));
+            }
+        }
+        /** 指令读取：输出峰值电流值(0.01A) */
+        else if((memcmp(CmdStr, "OPCV", strlen("OPCV")) == 0) && (strlen(CmdStr) == strlen("OPCV")))
+        {
+            if(used_len < blen){
+                u32 para = LcdData.setData.DebugCmdPara_OutPeakCurrValTemp;
+                thaisen_get_cmd_debug_result_info(LCD_GUN_1, THA_DEBUG_LANGUAGE_CHINESE, THAISEN_DEBUG_CMD_READ_OPCV, (u8*)&para, sizeof(para), \
                         (LcdData.setData.DebugResult + used_len), (blen - used_len));
             }
         }
@@ -16703,9 +16822,11 @@ struct LCD_DATA_FIFO_TYPE *SerialScreen_Init(struct SerialScreenObj *cmd)
 
     LcdData.setData.DebugCmdPara_GBT_ELock = *((u8*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_GBT_ELOCK, 0));
     LcdData.setData.DebugCmdPara_GBT_OC = *((u8*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_GBT_OC, 0));
+    LcdData.setData.DebugCmdPara_OutPeakCurrSW = *((u8*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_PEAK_CURRENT_OUT, 0));
 
     LcdData.setData.DebugCmdPara_FanPWMPeriod = *((u32*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_FAN_PWM_PERIOD, 0));
     LcdData.setData.DebugCmdPara_FanPWMTimerPrescaler = *((u16*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_FAN_TIMER_PRESCALER, 0));
+    LcdData.setData.DebugCmdPara_OutPeakCurrVal = *((u32*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_OUT_PEAK_CURRENT, 0));
 
     memset(LcdData.setData.UserPasswdShow, '\0', sizeof(LcdData.setData.UserPasswdShow));
     memcpy(LcdData.setData.UserPasswdShow, data, sizeof(LcdData.setData.UserPasswdShow));
@@ -16957,6 +17078,21 @@ struct LCD_DATA_FIFO_TYPE *SerialScreen_Init(struct SerialScreenObj *cmd)
             (LcdData.setData.DebugCmdPara_FanPWMTimerPrescaler >= CP_FAN_PWM_TIMER_PRESCALER_MAX)){
         LcdData.setData.DebugCmdPara_FanPWMTimerPrescaler = CP_FAN_PWM_TIMER_PRESCALER_DEFAULT;
     }
+
+    /* 输出峰值电流功能默认关闭 */
+    if(LcdData.setData.DebugCmdPara_OutPeakCurrSW == CONFIG_ENABLE_ENUM){
+        LcdData.setData.DebugCmdPara_OutPeakCurrSW = TRUE;
+    }else if(LcdData.setData.DebugCmdPara_OutPeakCurrSW == CONFIG_DISABLE_ENUM){
+        LcdData.setData.DebugCmdPara_OutPeakCurrSW = FALSE;
+    }else{
+        LcdData.setData.DebugCmdPara_OutPeakCurrSW = FALSE;
+    }
+    /* 输出峰值电流值(0.01A) */
+    if((LcdData.setData.DebugCmdPara_OutPeakCurrVal < CP_PEAK_CURRENT_MIN) || \
+            (LcdData.setData.DebugCmdPara_OutPeakCurrVal >= CP_PEAK_CURRENT_MAX)){
+        LcdData.setData.DebugCmdPara_OutPeakCurrVal = CP_PEAK_CURRENT_DEFAULT;
+    }
+
     LcdData.setData.DebugCmdPara_MElectStrategyTemp = LcdData.setData.DebugCmdPara_MElectStrategy;
     LcdData.setData.DebugCmdPara_BatVoltStrategyTemp = LcdData.setData.DebugCmdPara_BatVoltStrategy;
     LcdData.setData.DebugCmdPara_CurrStrategyTemp = LcdData.setData.DebugCmdPara_CurrStrategy;
@@ -16969,6 +17105,9 @@ struct LCD_DATA_FIFO_TYPE *SerialScreen_Init(struct SerialScreenObj *cmd)
 
     LcdData.setData.DebugCmdPara_FanPWMPeriodTemp = LcdData.setData.DebugCmdPara_FanPWMPeriod;
     LcdData.setData.DebugCmdPara_FanPWMTimerPrescalerTemp = LcdData.setData.DebugCmdPara_FanPWMTimerPrescaler;
+
+    LcdData.setData.DebugCmdPara_OutPeakCurrSWTemp = LcdData.setData.DebugCmdPara_OutPeakCurrSW;
+    LcdData.setData.DebugCmdPara_OutPeakCurrValTemp = LcdData.setData.DebugCmdPara_OutPeakCurrVal;
 
     for(int i = 0; i < LCD_GUN_NUM; i++)
     {

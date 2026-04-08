@@ -148,7 +148,8 @@ struct _config_para{
     uint16_t v2g_mode_validity[2];                                    /* V2G模式有效性(AB枪，从低字节开始，从A枪开始，从自动充满模式开始，每2个bit一个模式---0：单次有效   1：永久有效) */
     uint32_t fan_pwm_period;                                          /* 风机调速周期 */
     uint16_t fan_timer_prescaler;                                     /* 风机调速定时器时钟分频 */
-    uint8_t reserve1[256 - 57];                                       /* 预留 */
+    uint32_t peak_current;                                            /* 峰值电流(0.01A) */
+    uint8_t reserve1[195];                                            /* 预留 */
 };
 
 struct _config_info{
@@ -248,7 +249,8 @@ struct _function_enable{
     uint8_t eliminate_module;      /* 剔除模块 */
     uint8_t gbt_elock;             /* GB-T 电子锁测试 */
     uint8_t gbt_oc;                /* GB-T 过流测试 */
-    uint8_t reserve[60];
+    uint8_t peak_current_output;   /* 峰值电流输出 */
+    uint8_t reserve[59];
 };
 
 struct _state_reversal{
@@ -591,6 +593,11 @@ CFG_DEF_SRAM2 static struct config_item s_config_item_set[CONFIG_ITEM_SIZE] =
         {CONFIG_ITEM_INEN_GBT_OC,                                                   /* 配置项: 测试过流 */
         (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.gbt_oc)),
         (uint8_t*)&s_chargepile_config_info.function_enable.gbt_oc,
+        NULL},
+
+        {CONFIG_ITEM_SUPORT_PEAK_CURRENT_OUT,                                           /* 配置项: 峰值电流输出 */
+        (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.peak_current_output)),
+        (uint8_t*)&s_chargepile_config_info.function_enable.peak_current_output,
         NULL},
 
         {CONFIG_ITEM_INPUT_OVERVOL,                                                     /* 配置项：输入过压 */
@@ -1257,6 +1264,9 @@ void sys_chargeplie_config_info_init(void)
     /** 风机调速定时器时钟分频 */
     sys_config_item_init(CONFIG_ITEM_FAN_TIMER_PRESCALER, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.fan_timer_prescaler)), \
             (uint8_t*)&s_chargepile_config_info.config_para.fan_timer_prescaler, NULL);
+    /** 输出峰值电流值(0.01A) */
+    sys_config_item_init(CONFIG_ITEM_OUT_PEAK_CURRENT, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.peak_current)), \
+            (uint8_t*)&s_chargepile_config_info.config_para.peak_current, NULL);
     /** 启用BSM功能 */
     sys_config_item_init(CONFIG_ITEM_SUPORT_BSM, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.bsm)), \
             (uint8_t*)&s_chargepile_config_info.function_enable.bsm, NULL);
@@ -1287,6 +1297,9 @@ void sys_chargeplie_config_info_init(void)
     /** 测试：过流 */
     sys_config_item_init(CONFIG_ITEM_SUPORT_GBT_OC, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.gbt_oc)), \
             (uint8_t*)&s_chargepile_config_info.function_enable.gbt_oc, NULL);
+    /** 测试：峰值电流输出 */
+    sys_config_item_init(CONFIG_ITEM_SUPORT_PEAK_CURRENT_OUT, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.function_enable.peak_current_output)), \
+            (uint8_t*)&s_chargepile_config_info.function_enable.peak_current_output, NULL);
     /** 输入过压值 */
     sys_config_item_init(CONFIG_ITEM_INPUT_OVERVOL, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_para.input_overvol)), \
             (uint8_t*)&s_chargepile_config_info.config_para.input_overvol, NULL);
@@ -2083,6 +2096,7 @@ static void chargepile_config_data_reset(void)
 
     s_chargepile_config_info.config_para.fan_pwm_period = CP_FAN_PWM_PERIOD_DEFAULT;
     s_chargepile_config_info.config_para.fan_timer_prescaler = CP_FAN_PWM_TIMER_PRESCALER_DEFAULT;
+    s_chargepile_config_info.config_para.peak_current = CP_PEAK_CURRENT_DEFAULT;
 
     s_chargepile_config_info.config_info.prefix_length = 0x00;
     memset(s_chargepile_config_info.config_info.qrcode_prefix, '\0', sizeof(s_chargepile_config_info.config_info.qrcode_prefix));
@@ -2171,6 +2185,7 @@ static void chargepile_config_data_reset(void)
     s_chargepile_config_info.function_enable.eliminate_module = CONFIG_DISABLE_ENUM;
     s_chargepile_config_info.function_enable.gbt_elock = CONFIG_DISABLE_ENUM;
     s_chargepile_config_info.function_enable.gbt_oc = CONFIG_DISABLE_ENUM;
+    s_chargepile_config_info.function_enable.peak_current_output = CONFIG_DISABLE_ENUM;
 
     memset(s_chargepile_config_info.function_enable.current_mode, 0x00, sizeof(s_chargepile_config_info.function_enable.current_mode));
     memset(s_chargepile_config_info.function_enable.v2g_mode, 0x00, sizeof(s_chargepile_config_info.function_enable.v2g_mode));
@@ -3145,6 +3160,10 @@ int32_t chargepile_check_config(void)
             (s_chargepile_config_info.function_enable.gbt_oc != CONFIG_DISABLE_ENUM)){          /* 测试：过流检测功能默认关闭 */
         s_chargepile_config_info.function_enable.gbt_oc = CONFIG_DISABLE_ENUM;
     }
+    if((s_chargepile_config_info.function_enable.peak_current_output != CONFIG_ENABLE_ENUM) && \
+            (s_chargepile_config_info.function_enable.peak_current_output != CONFIG_DISABLE_ENUM)){   /* 输出峰值电流功能默认关闭 */
+        s_chargepile_config_info.function_enable.peak_current_output = CONFIG_DISABLE_ENUM;
+    }
 
     if(s_chargepile_config_info.state_reversal.emergency_stop > 0x01){   /* 急停默认不取反 */
         s_chargepile_config_info.state_reversal.emergency_stop = 0x00;
@@ -3435,7 +3454,11 @@ int32_t chargepile_check_config(void)
             (s_chargepile_config_info.config_para.fan_timer_prescaler >= CP_FAN_PWM_TIMER_PRESCALER_MAX)){
         s_chargepile_config_info.config_para.fan_timer_prescaler = CP_FAN_PWM_TIMER_PRESCALER_DEFAULT;
     }
-
+    /** 输出峰值电流值(0.01A) */
+    if((s_chargepile_config_info.config_para.peak_current < CP_PEAK_CURRENT_MIN) || \
+            (s_chargepile_config_info.config_para.peak_current >= CP_PEAK_CURRENT_MAX)){
+        s_chargepile_config_info.config_para.peak_current = CP_PEAK_CURRENT_DEFAULT;
+    }
 
 #if (defined(CP_USING_V2G) || defined(CP_USING_OFFLINE_BILLING))
     /***************************************************[离线计费部分]*****************************************************/

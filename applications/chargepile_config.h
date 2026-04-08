@@ -538,6 +538,11 @@
 #define CP_FAN_PWM_TIMER_PRESCALER_MIN            1         /* 风机调速定时器分频值 */
 #define CP_FAN_PWM_TIMER_PRESCALER_MAX            0xFFFF    /* 风机调速定时器分频值 */
 
+/* output current peak */
+#define CP_PEAK_CURRENT_DEFAULT                   40000     /* 峰值电流默认值(0.01A) */
+#define CP_PEAK_CURRENT_MIN                       100       /* 峰值电流最小值(0.01A) */
+#define CP_PEAK_CURRENT_MAX                       0xFFFFF   /* 峰值电流最大值(0.01A) */
+
 /* current offset */
 #define CP_CURRENT_OFFSET_DEF                     0         /* 电流偏移默认值(0.01A) */
 #define CP_CURRENT_OFFSET_MAX                     10000     /* 电流偏移最大值(0.01A) */
@@ -716,6 +721,7 @@ enum config_name{
     CONFIG_ITEM_V2G_MODE_VALIDITY,
     CONFIG_ITEM_FAN_PWM_PERIOD,
     CONFIG_ITEM_FAN_TIMER_PRESCALER,
+    CONFIG_ITEM_OUT_PEAK_CURRENT,
 
     CONFIG_ITEM_SUPORT_BSM,
     CONFIG_ITEM_SUPORT_BCS,
@@ -728,6 +734,7 @@ enum config_name{
     CONFIG_ITEM_SUPORT_ELIMINATE_MODULE,
     CONFIG_ITEM_SUPORT_GBT_ELOCK,
     CONFIG_ITEM_SUPORT_GBT_OC,
+    CONFIG_ITEM_SUPORT_PEAK_CURRENT_OUT,
 
     CONFIG_ITEM_INPUT_OVERVOL,
     CONFIG_ITEM_INPUT_UNDERVOL,
