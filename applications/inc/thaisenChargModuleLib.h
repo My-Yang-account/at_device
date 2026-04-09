@@ -1510,6 +1510,19 @@ uint8_t thaisen_module_getModuleGroupNum(uint8_t moduleNum);
  */
 uint8_t thaisen_module_getModuleWorkSta(uint8_t moduleNum);
 
+/**
+ * @brief 设置枪最大电流
+ * @param gunNum 1~2
+ * @param maxCurr 0.01A
+ */
+void thaisen_set_gun_maxCurr(uint8_t gunNum, uint32_t maxCurr);
+
+/**
+ * @brief 获取枪最大电流
+ * @param gunNum 1~2
+ * @return 0.01A
+ */
+uint32_t thaisen_get_gun_maxCurr(uint8_t gunNum);
 
 /*********************************************************************************************************************/
 /*********************************************************************************************************************/
