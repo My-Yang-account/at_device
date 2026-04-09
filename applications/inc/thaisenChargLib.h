@@ -749,6 +749,31 @@ void thaisen_set_SysOutCurrMax(uint32_t curr);
 uint32_t thaisen_get_SysOutCurrMax(void);
 
 /*****************************************************************************/
+/************************枪峰值输出电流信息*********************************************/
+/* 功能说明:
+ *          thaisen_set_GunPeakOutCurr:设置枪峰值输出电流
+ * 输入参数:
+ *          curr:枪峰值输出电流(0.01A)
+ *          gunNum:枪号
+ * 返回参数:
+ *          无
+ * 调用方法:
+ *
+ */
+void thaisen_set_GunPeakOutCurr(uint32_t curr, uint8_t gunNum);
+
+/* 功能说明:
+ *          thaisen_get_GunPeakOutCurr:获取枪峰值输出电流
+ * 输入参数:
+ *          gunNum   枪号
+ * 返回参数:
+ *          枪峰值输出电流(0.01A)
+ * 调用方法:
+ *
+ */
+uint32_t thaisen_get_GunPeakOutCurr(uint8_t gunNum);
+
+/*****************************************************************************/
 /************************充电模式选择*********************************************/
 typedef enum thaisenChargModeEnum
 {
