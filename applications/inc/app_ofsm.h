@@ -81,6 +81,10 @@ extern "C" {
 #define APP_USING_CYCLE_MATRIX                         /* 包含环矩部分 */
 #endif /* CP_USING_CYCLE_MATRIX */
 
+#ifdef CP_USING_PEAK_OUT_STRATEGY
+#define APP_USING_PEAK_OUT_STRATEGY                    /* 使用峰值电流输出策略 */
+#endif /* CP_USING_PEAK_OUT_STRATEGY */
+
 #define APP_USING_DOUBLEGUN                            /* 使用双枪 */
 
 #define APP_MAINTENTANCE_MODE_CURR_MAX       200       /* 保养模式最大电流20A(0.1) */
@@ -199,6 +203,13 @@ extern "C" {
 #ifdef APP_USING_FB_DETECT
 #define APP_ELOCK_RELAY_CHECK_TIME                      (10000 /APP_SYSTEM_RUN_TIME_PERIOD)    /* 电子锁、继电器检测故障时间(ms) */
 #endif /* APP_USING_FB_DETECT */
+
+#ifdef APP_USING_PEAK_OUT_STRATEGY
+#define APP_PEAK_OUT_DIFF_CURR_POINT                    500                                          /* 峰值电流输出执行等级 -电流差值点(0.1A) */
+
+#define APP_PEAK_OUT_EXECUTE_TIME_SHORT                 (139 *1000 /APP_SYSTEM_RUN_TIME_PERIOD)    /* 峰值电流输出执行时间(ms)(短时间)(大概5min, 实测：1384) */
+#define APP_PEAK_OUT_EXECUTE_TIME_LONG                  (217 *1000 /APP_SYSTEM_RUN_TIME_PERIOD)    /* 峰值电流输出执行时间(ms)(长时间)(大概8min, 实测：2162) */
+#endif /* APP_USING_PEAK_OUT_STRATEGY */
 
 enum buzzon_state {
     APP_BUZZON_STATE_NULL = 0,
@@ -584,6 +595,10 @@ typedef struct{
         uint32_t is_oncard_authenticating : 1;               /* 在线模式下刷卡鉴权正在进行(oncard:online card) */
         uint32_t is_oncard_reservated : 1;                   /* 在线模式下已进行在线卡预约鉴权(oncard:online card) */
         uint32_t is_boot_timeout : 1;                        /* 是启动超时而停充 */
+#ifdef APP_USING_PEAK_OUT_STRATEGY
+        uint32_t peak_out_executed : 1;                      /* 峰值输出策略已执行 */
+        uint32_t peak_out_need_execute : 1;                  /* 峰值输出策略需要执行 */
+#endif /* APP_USING_PEAK_OUT_STRATEGY */
     }flag;
 
     uint8_t cc1_state;                /* CC1 状态 */
@@ -731,6 +746,11 @@ typedef struct{
     uint8_t gun_running_mode;        /* 枪运行模式 */
     uint8_t plugplay_wait_time;      /* 即插即充插枪延迟启动计时时基 */
     uint8_t wait_finish_time;        /* 等待充电完成计时时基 */
+    uint32_t singlegun_max_curr;     /* 单枪最大电流(0.01A，物理特性) */
+#ifdef APP_USING_PEAK_OUT_STRATEGY
+    uint16_t out_realcurr_max;       /* 实时最大输出电流(0.01A) */
+    uint16_t peak_out_time;          /* 峰值策略执行时间 */
+#endif /* APP_USING_PEAK_OUT_STRATEGY */
 }System_BaseData;
 
 struct ofsm_info {

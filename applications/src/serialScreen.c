@@ -1791,10 +1791,10 @@ void SerialScreen_Screen_GunModeJudge(u8 port)
         }
     }
     else
-#endif /* SCREEN_USING_V2G */
     {
         LcdData.runData.GunRunMode[port] = THAISEN_GUN_RUNING_MODE_CHARGE;
     }
+#endif /* SCREEN_USING_V2G */
 }
 
 u8 SerialScreen_Screen_IsSetReservationMode(u8 port)
@@ -5058,13 +5058,6 @@ void SerialScreen_BtnModuleGet(void)
     thaisenSetModuleMaxChargCurr(LcdData.setData.Max_Limit_Current *10);
 
     thaisen_set_SysOutCurrMax(LcdData.setData.Max_Limit_Current *100);
-#ifdef SCREEN_USING_DOUBLE_GUN
-    thaisenSetModuleMaxChargCurrGroup(0, LcdData.setData.Max_Limit_Current *10 /2);
-    thaisenSetModuleMaxChargCurrGroup(1, LcdData.setData.Max_Limit_Current *10 /2);
-#else
-    thaisenSetModuleMaxChargCurrGroup(0, LcdData.setData.Max_Limit_Current *10);
-    thaisenSetModuleMaxChargCurrGroup(1, 0);
-#endif
 
     rt_kprintf("thaisenSetModuleMaxVolt|%d    thaisenSetModuleMinVolt|%d\n", LcdData.setData.Rated_Output_Voltage, LcdData.setData.Min_Output_Voltage);
     rt_kprintf("thaisenSetModuleMaxCurr|%d    thaisenSetModuleMinCurr|%d\n", LcdData.setData.Rated_Limit_Current, LcdData.setData.Min_Limit_Current);
@@ -5301,13 +5294,6 @@ void SerialScreen_BtnModuleSet(void)
     thaisenSetModuleMaxChargCurr(LcdData.setData.Max_Limit_Current *10);
 
     thaisen_set_SysOutCurrMax(LcdData.setData.Max_Limit_Current *100);
-#ifdef SCREEN_USING_DOUBLE_GUN
-    thaisenSetModuleMaxChargCurrGroup(0, LcdData.setData.Max_Limit_Current *10 /2);
-    thaisenSetModuleMaxChargCurrGroup(1, LcdData.setData.Max_Limit_Current *10 /2);
-#else
-    thaisenSetModuleMaxChargCurrGroup(0, LcdData.setData.Max_Limit_Current *10);
-    thaisenSetModuleMaxChargCurrGroup(1, 0);
-#endif
 
     LcdAssistantData.Flag.IsSetPowerPercent = TRUE;
 
@@ -6667,6 +6653,17 @@ void SerialScreen_CmdDebugInfoSet(void)
 
         UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_PEAK_CURRENT_OUT, &data, sizeof(data));
         is_changed = 1;
+        if(LcdData.setData.DebugCmdPara_OutPeakCurrSW != TRUE){
+            for(u8 i = 0; i < LCD_GUN_NUM; i++){
+                thaisen_set_GunPeakOutCurr(0, i);
+            }
+        }else{
+            if(LcdData.setData.DebugCmdPara_OutPeakCurrVal == LcdData.setData.DebugCmdPara_OutPeakCurrValTemp){
+                for(u8 i = 0; i < LCD_GUN_NUM; i++){
+                    thaisen_set_GunPeakOutCurr(LcdData.setData.DebugCmdPara_OutPeakCurrVal, i);
+                }
+            }
+        }
     }
     /*************************** 输出峰值电流值(0.01A) ***************************/
     if(LcdData.setData.DebugCmdPara_OutPeakCurrVal != LcdData.setData.DebugCmdPara_OutPeakCurrValTemp){
@@ -6678,6 +6675,11 @@ void SerialScreen_CmdDebugInfoSet(void)
 
         UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_OUT_PEAK_CURRENT, &(LcdData.setData.DebugCmdPara_OutPeakCurrVal), sizeof(LcdData.setData.DebugCmdPara_OutPeakCurrVal));
         is_changed = 1;
+        if(LcdData.setData.DebugCmdPara_OutPeakCurrSW == TRUE){
+            for(u8 i = 0; i < LCD_GUN_NUM; i++){
+                thaisen_set_GunPeakOutCurr(LcdData.setData.DebugCmdPara_OutPeakCurrVal, i);
+            }
+        }
     }
 
     if(LcdData.setData.Icon_BatVoltDetect != LcdData.setData.sup_BatVoltDetect){
@@ -9417,8 +9419,6 @@ void SerialScreen_IsSupportGet(void)
     LcdData.setData.sup_V2G = FALSE;
     if(CONFIG_ENABLE_ENUM == *(u8 *)(UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_V2G, 0)))  /* V2G配置默认关闭 */
         LcdData.setData.sup_V2G = TRUE;
-#else
-    LcdData.setData.sup_V2G = FALSE;
 #endif /* SCREEN_USING_V2G */
 
     LcdData.setData.Sup_EliminateModule = FALSE;
@@ -16790,8 +16790,6 @@ struct LCD_DATA_FIFO_TYPE *SerialScreen_Init(struct SerialScreenObj *cmd)
 #ifdef SCREEN_USING_V2G
     LcdData.setData.sup_V2G = *((u8*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_SUPORT_V2G, 0));
     LcdData.setData.DisCharge_AsOf_SOC = *((u8*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_DISCHARGE_AS_OF_SOC, 0));
-#else
-    LcdData.setData.sup_V2G = FALSE;
 #endif /* SCREEN_USING_V2G */
     LcdData.setData.DebugCmdPara_LedLanguage = *((u8*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_LED_LANGUAGE, 0));
 
@@ -17143,6 +17141,16 @@ struct LCD_DATA_FIFO_TYPE *SerialScreen_Init(struct SerialScreenObj *cmd)
     memcpy(LcdData.setData.DebugCmdPara_CC4V_MaxTemp, LcdData.setData.DebugCmdPara_CC4V_Max, sizeof(LcdData.setData.DebugCmdPara_CC4V_Max));
     memcpy(LcdData.setData.DebugCmdPara_CC4V_MinTemp, LcdData.setData.DebugCmdPara_CC4V_Min, sizeof(LcdData.setData.DebugCmdPara_CC4V_Min));
 
+    if(LcdData.setData.DebugCmdPara_OutPeakCurrSW != TRUE){
+        for(u8 i = 0; i < LCD_GUN_NUM; i++){
+            thaisen_set_GunPeakOutCurr(0, i);
+        }
+    }else{
+        for(u8 i = 0; i < LCD_GUN_NUM; i++){
+            thaisen_set_GunPeakOutCurr(LcdData.setData.DebugCmdPara_OutPeakCurrVal, i);
+        }
+    }
+
 #ifdef SCREEN_USING_CYCLE_MATRIX
     if(LcdData.setData.AllocWay >= POWER_ALLOCATION_WAY_SIZE){        /* 功率分配默认使用先到先得 */
         LcdData.setData.AllocWay = POWER_ALLOCATION_WAY_SEQ_PRIORITY;
@@ -17433,6 +17441,9 @@ struct LCD_DATA_FIFO_TYPE *SerialScreen_Init(struct SerialScreenObj *cmd)
         thaisenSetModuleMaxChargCurrGroup(0, LcdData.setData.Max_Limit_Current *10 /2);
         thaisenSetModuleMaxChargCurrGroup(1, LcdData.setData.Max_Limit_Current *10 /2);
     }
+#else
+    thaisenSetModuleMaxChargCurrGroup(0, LcdData.setData.Max_Limit_Current *10);
+    thaisenSetModuleMaxChargCurrGroup(1, 0);
 #endif /* SCREEN_USING_DOUBLE_GUN */
 
 #ifdef SCREEN_USING_V2G

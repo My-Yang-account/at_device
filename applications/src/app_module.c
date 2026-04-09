@@ -335,7 +335,7 @@ void app_module_set_power_allocate_way(unsigned char way)
     default:
         return;         /** 这是运行中修改的，如果不对，直接退出不修改 */
     }
-//    thaisen_base_init(s_module_ctrl_base_info);
+    thaisen_base_init(s_module_ctrl_base_info);
     MCTRL_DEBUG("module control allocate way:%d\n", s_module_ctrl_base_info.allomethod);
 #endif /* CP_USING_CYCLE_MATRIX */
 }
@@ -1172,6 +1172,9 @@ int app_module_ctrl_init(void)
         thaisenMasterSlave_Init(ms_init);
         thaisen_base_deInit();
 
+        for(unsigned char i = 0x00; i < APP_SYSTEM_GUNNO_SIZE; i++){
+            thaisen_set_gun_maxCurr((i + 0x01), 2500);
+        }
         MCTRL_DEBUG("module control device type is slave\n");
         return 0x00;
     }
@@ -1261,6 +1264,9 @@ int app_module_ctrl_init(void)
     thaisen_base_init(s_module_ctrl_base_info);
     thaisenMasterSlave_Init(ms_init);
 
+    for(unsigned char i = 0x00; i < APP_SYSTEM_GUNNO_SIZE; i++){
+        thaisen_set_gun_maxCurr((i + 0x01), 2500);
+    }
     MCTRL_DEBUG("module control device type is master\n");
 #endif /* CP_USING_CYCLE_MATRIX */
     return 0x00;

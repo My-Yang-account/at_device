@@ -153,6 +153,7 @@
 //#define CP_INCLUDE_BATVOLT_DETECT_QRCODE                /* 包含电池电压报告检测二维码 */
 //#define CP_USING_V2G                                    /* 使用V2G */
 //#define CP_USING_CYCLE_MATRIX                             /* 使用环矩部分 */
+//#define CP_USING_PEAK_OUT_STRATEGY                      /* 使用峰值电流输出策略 */
 
 /** 域名默认 */
 /**------------------------------------------------------------*/
@@ -539,8 +540,8 @@
 #define CP_FAN_PWM_TIMER_PRESCALER_MAX            0xFFFF    /* 风机调速定时器分频值 */
 
 /* output current peak */
-#define CP_PEAK_CURRENT_DEFAULT                   40000     /* 峰值电流默认值(0.01A) */
-#define CP_PEAK_CURRENT_MIN                       100       /* 峰值电流最小值(0.01A) */
+#define CP_PEAK_CURRENT_DEFAULT                   0         /* 峰值电流默认值(0.01A) */
+#define CP_PEAK_CURRENT_MIN                       0         /* 峰值电流最小值(0.01A) */
 #define CP_PEAK_CURRENT_MAX                       0xFFFFF   /* 峰值电流最大值(0.01A) */
 
 /* current offset */

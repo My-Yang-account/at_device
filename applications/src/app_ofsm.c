@@ -336,6 +336,117 @@ uint32_t ofsm_get_period_price(uint8_t gunno, uint8_t period)
     return price;
 }
 
+#ifdef APP_USING_PEAK_OUT_STRATEGY
+/************************************************************
+ * 函数名       ofsm_peak_output_process
+ * 功能           峰值电流输出处理
+ * 参数           gunno      枪号
+ * 返回
+ ***********************************************************/
+static void ofsm_peak_output_process(uint8_t gunno)
+{
+    extern uint8_t thaisenModuleGetStatus(uint8_t gunNum);
+    if(gunno >= APP_SYSTEM_GUNNO_SIZE){
+        return;
+    }
+    uint8_t another_gunno = APP_SYSTEM_GUNNOA, is_parallel_charge = APP_THA_ENUM_FALSE, _dev_type = 0x00;
+    struct ofsm_info *_ofsm = get_ofsm_info(gunno);
+    struct thaisenBMS_Charger_struct* bms_info = NULL;
+
+#ifdef APP_INCLUDE_V2G
+    if((_ofsm->base.charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL) || (_ofsm->base.charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD) || \
+            (_ofsm->base.charge_way == APP_CHARGE_WAY_PARA_DISCHARGE_LOCAL))
+#else
+    if((_ofsm->base.charge_way == APP_CHARGE_WAY_PARACHARGE_LOCAL) || (_ofsm->base.charge_way == APP_CHARGE_WAY_PARACHARGE_CLOUD))
+#endif /* APP_INCLUDE_V2G */
+    {
+        /** 并充、放电只由主枪执行 */
+        if(_ofsm->base.main_gunno != gunno){
+            return;
+        }
+        if(another_gunno == gunno){
+            another_gunno++;
+        }
+        is_parallel_charge = APP_THA_ENUM_TRUE;
+    }
+
+    if((_ofsm->base.flag.peak_out_executed == APP_THA_ENUM_FALSE) && (_ofsm->state == APP_OFSM_STATE_CHARGING)){
+        uint32_t _gun_curr_max_phy = 0x00;      /** 枪的物理最大输出 */
+        uint32_t _gun_peak_curr = 0x00;         /** 设置的枪峰值电流 */
+        uint16_t _gun_curr_max_cal = 0x00;      /** 枪的计算最大输出 */
+        uint32_t _execute_time = APP_PEAK_OUT_EXECUTE_TIME_SHORT;
+        /** 这是并充或并联 */
+        if(is_parallel_charge || (thaisenModuleGetStatus(another_gunno) == thaisenModuleStateChargParallel)){
+            for(uint8_t i = 0x00; i < APP_SYSTEM_GUNNO_SIZE; i++){
+                _ofsm = get_ofsm_info(i);
+                _gun_curr_max_cal += _ofsm->base.out_realcurr_max *10;
+            }
+            _ofsm = get_ofsm_info(gunno);
+            _gun_curr_max_phy = _ofsm->base.singlegun_max_curr;
+            _gun_peak_curr = (*(uint32_t*)(sys_read_config_item_content(CONFIG_ITEM_OUT_PEAK_CURRENT, 0x00)));
+        }
+        /** 这是单枪充 */
+        else{
+            _gun_curr_max_cal = _ofsm->base.out_realcurr_max *10;
+            _gun_curr_max_phy = _ofsm->base.singlegun_max_curr;
+            _gun_peak_curr = (*(uint32_t*)(sys_read_config_item_content(CONFIG_ITEM_OUT_PEAK_CURRENT, 0x00)));
+        }
+
+        if(_gun_peak_curr > _gun_curr_max_cal){
+            _gun_peak_curr = _gun_curr_max_cal;
+        }
+        bms_info = (struct thaisenBMS_Charger_struct*)(_ofsm->base.bms_data);
+        if(bms_info->BCL.BMSneedCurlt < (_gun_curr_max_phy /10 + APP_PEAK_OUT_DIFF_CURR_POINT)){
+            _execute_time = APP_PEAK_OUT_EXECUTE_TIME_LONG;
+        }
+        /** 只有设置的峰值电流值大于枪的物理输出电流值时才执行 */
+        if((_gun_peak_curr > _gun_curr_max_phy) && (bms_info->BCL.BMSneedCurlt > (_gun_curr_max_phy /10))){
+            if(_ofsm->base.peak_out_time < (0xFFFF - 0x01)){
+                _ofsm->base.peak_out_time++;
+            }
+            /** 峰值电流输出只是短暂执行 */
+            _ofsm->base.flag.peak_out_need_execute = APP_THA_ENUM_TRUE;
+            if(_ofsm->base.peak_out_time > _execute_time){
+                _ofsm->base.flag.peak_out_need_execute = APP_THA_ENUM_FALSE;
+                _ofsm->base.flag.peak_out_executed = APP_THA_ENUM_TRUE;
+                _ofsm->base.peak_out_time = APP_PEAK_OUT_EXECUTE_TIME_LONG;
+                if(is_parallel_charge || (thaisenModuleGetStatus(another_gunno) == thaisenModuleStateChargParallel)){
+                    _ofsm = get_ofsm_info(another_gunno);
+                    _ofsm->base.flag.peak_out_need_execute = APP_THA_ENUM_FALSE;
+                    _ofsm->base.flag.peak_out_executed = APP_THA_ENUM_TRUE;
+                    _ofsm->base.peak_out_time = APP_PEAK_OUT_EXECUTE_TIME_LONG;
+
+                    _ofsm = get_ofsm_info(gunno);
+                }
+            }else{
+                _dev_type = thaisenGetChargGunRunType();
+#ifdef APP_USING_CYCLE_MATRIX
+                if((_dev_type == thaisenDeviceType_Matrix_Cycle) || (_dev_type == thaisenDeviceType_Matrix_Half)){
+                    /** 修改单枪最大电流为设置的峰值输出电流 */
+                    thaisen_set_gun_maxCurr((gunno + 0x01), _gun_peak_curr);
+                    if(is_parallel_charge || (thaisenModuleGetStatus(another_gunno) == thaisenModuleStateChargParallel)){
+                        thaisen_set_gun_maxCurr((another_gunno + 0x01), _gun_peak_curr);
+                    }
+                }
+                else
+#endif /* APP_USING_CYCLE_MATRIX */
+                {
+                    /** 修改单枪最大电流为设置的峰值输出电流 */
+                    thaisenModuleSetMaxCurrSingleGun(_gun_peak_curr, gunno);
+                    if(is_parallel_charge || (thaisenModuleGetStatus(another_gunno) == thaisenModuleStateChargParallel)){
+                        thaisenModuleSetMaxCurrSingleGun(_gun_peak_curr, another_gunno);
+                    }
+                }
+            }
+        }else{
+            _ofsm->base.flag.peak_out_need_execute = APP_THA_ENUM_FALSE;
+        }
+    }else{
+        _ofsm->base.flag.peak_out_need_execute = APP_THA_ENUM_FALSE;
+    }
+}
+#endif /* APP_USING_PEAK_OUT_STRATEGY */
+
 /************************************************************
  * 函数名       transaction_record_query_report
  * 功能           查询指定枪号订单并上报
@@ -992,6 +1103,10 @@ void chargepile_power_adjust(void)
                         s_ofsm_info[gunno].base.gun_set_curr = APP_MAINTENTANCE_MODE_CURR_MAX;
                     }
                 }
+#ifdef APP_USING_PEAK_OUT_STRATEGY
+                s_ofsm_info[gunno].base.out_realcurr_max = s_ofsm_info[gunno].base.gun_set_curr;
+#endif /* APP_USING_PEAK_OUT_STRATEGY */
+                /** 此步操作用于限制不能大于整机输出电流(可能存在系统最大功率(由模块额定电压电流计算)所能输出的电流比整机的大) */
                 if(s_ofsm_info[gunno].base.gun_set_curr > ((*((uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_MAX_LIMIT_CURRENT, 0)))) *10 *sys_get_single_group_module_num(gunno) /module_tnum)){
                     s_ofsm_info[gunno].base.gun_set_curr = ((*((uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_MAX_LIMIT_CURRENT, 0)))) *10 *sys_get_single_group_module_num(gunno) /module_tnum);
                 }
@@ -3796,6 +3911,46 @@ static void ofsm_starting_fun(uint8_t gunno)
 
                     s_ofsm_info[gunno].timing_tick = rt_tick_get();
                     s_ofsm_info[gunno].base.offline_tick = rt_tick_get();
+#ifdef APP_USING_METER_ELECT_DETECT_STRATEGY
+                    /** 电表电量检验 */
+                    s_ofsm_info[gunno].base.melect_check_time = 0x00;           /** 用于功率积分计算 */
+#ifdef APP_INCLUDE_V2G
+                    if(s_ofsm_info[gunno].base.gun_running_mode == APP_GUN_RUNNING_MODE_V2G){
+                        s_ofsm_info[gunno].base.melect_last = mw_get_meter_reserve_total_wh(gunno);  /** 上一次电量值 */
+                    }else{
+                        s_ofsm_info[gunno].base.melect_last = mw_get_meter_total_wh(gunno);  /** 上一次电量值 */
+                    }
+#else
+                    s_ofsm_info[gunno].base.melect_last = mw_get_meter_total_wh(gunno);  /** 上一次电量值 */
+#endif /* APP_INCLUDE_V2G */
+                    s_ofsm_info[gunno].base.melect_check_stage = APP_MELECT_DETECT_CURR_RANGE_0;  /** 检测阶段 */
+                    s_ofsm_info[gunno].base.melect_err_count = 0x00;                     /** 电量错误检测次数 */
+                    s_ofsm_info[gunno].base.flag.is_meter_elect_error = APP_THA_ENUM_FALSE; /** 是否检测出电表电量有错 */
+#endif /* APP_USING_METER_ELECT_DETECT_STRATEGY */
+
+#ifdef APP_USING_BAT_VOLT_DETECT_STRATEGY
+                    /** 电池电压检验 */
+                    s_ofsm_info[gunno].base.bvolt_check_time = 0x00;            /** 电池电压检测时基 */
+                    s_ofsm_info[gunno].base.bvolt_err_count = 0x00;                      /** 电池电压错误计数 */
+                    s_ofsm_info[gunno].base.bvolt_err_i = 0x00;
+                    s_ofsm_info[gunno].base.bvolt_init = ((struct thaisenBMS_Charger_struct*)(s_ofsm_info[gunno].base.bms_data))->BCP.BatVolt;
+#endif /* APP_USING_BAT_VOLT_DETECT_STRATEGY */
+
+#ifdef APP_USING_CHARGE_CURR_DETECT_STRATEGY
+                    /** 电流检验 */
+                    s_ofsm_info[gunno].base.total_period_time = 0x00;
+                    s_ofsm_info[gunno].base.current_check_time = 0x00;
+                    s_ofsm_info[gunno].base.meter_curr_last = 0x00;
+                    s_ofsm_info[gunno].base.module_curr_last = 0x00;
+                    s_ofsm_info[gunno].base.meter_curr_steady_count = 0x00;
+                    s_ofsm_info[gunno].base.module_curr_steady_count = 0x00;
+#endif /* APP_USING_CHARGE_CURR_DETECT_STRATEGY */
+
+#ifdef APP_USING_PEAK_OUT_STRATEGY
+                    s_ofsm_info[gunno].base.flag.peak_out_executed = APP_THA_ENUM_FALSE;
+                    s_ofsm_info[gunno].base.flag.peak_out_need_execute = APP_THA_ENUM_FALSE;
+                    s_ofsm_info[gunno].base.peak_out_time = 0x00;
+#endif /* APP_USING_PEAK_OUT_STRATEGY */
                 }else{
                     /** 如果不是副枪故障导致的停机，则副枪需要获取主枪的信息 */
                     if(s_ofsm_info[gunno].base.flag.is_deputygun_stop != APP_THA_ENUM_TRUE){
@@ -4848,6 +5003,13 @@ static void ofsm_starting_fun(uint8_t gunno)
             s_ofsm_info[gunno].base.meter_curr_steady_count = 0x00;
             s_ofsm_info[gunno].base.module_curr_steady_count = 0x00;
 #endif /* APP_USING_CHARGE_CURR_DETECT_STRATEGY */
+
+#ifdef APP_USING_PEAK_OUT_STRATEGY
+            s_ofsm_info[gunno].base.flag.peak_out_executed = APP_THA_ENUM_FALSE;
+            s_ofsm_info[gunno].base.flag.peak_out_need_execute = APP_THA_ENUM_FALSE;
+            s_ofsm_info[gunno].base.peak_out_time = 0x00;
+#endif /* APP_USING_PEAK_OUT_STRATEGY */
+
             s_ofsm_fun[gunno] = s_ofsm_fun_list[gunno][APP_OFSM_STATE_CHARGING];
             s_ofsm_info[gunno].state = APP_OFSM_STATE_CHARGING;
 
@@ -8641,7 +8803,6 @@ void ofsm_thread_entry(void *parameter)
 #endif /* APP_INCLUDE_YKC17_PROTOCOL */
 
     while(1){
-        uint32_t singlegun_max_curr = 0x00;
         uint16_t singlegun_curr = s_ofsm_info[thread_gunno].base.gun_set_curr;
         s_ofsm_info[thread_gunno].base.ota_state = app_nsal_get_ota_state();
 
@@ -8674,6 +8835,19 @@ void ofsm_thread_entry(void *parameter)
             mw_charglib_set_function_enable(thread_gunno, APP_FUNCTION_GBT_EL, APP_THA_ENUM_FALSE);
             mw_charglib_set_function_enable(thread_gunno, APP_FUNCTION_GBT_OC, APP_THA_ENUM_FALSE);
         }
+#ifdef APP_USING_PEAK_OUT_STRATEGY
+        /************************************ 峰值电流执行  ************************************/
+        /** 峰值电流功能开关 */
+        if((*(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_SUPORT_PEAK_CURRENT_OUT, 0x00))) == CONFIG_DISABLE_ENUM){
+            s_ofsm_info[thread_gunno].base.flag.peak_out_executed = APP_THA_ENUM_TRUE;
+            s_ofsm_info[thread_gunno].base.flag.peak_out_need_execute = APP_THA_ENUM_FALSE;
+        }else{
+            /** 中途开启 */
+            if(s_ofsm_info[thread_gunno].base.peak_out_time < APP_PEAK_OUT_EXECUTE_TIME_LONG){
+                s_ofsm_info[thread_gunno].base.flag.peak_out_executed = APP_THA_ENUM_FALSE;
+            }
+        }
+#endif /* APP_USING_PEAK_OUT_STRATEGY */
 
         switch (s_ofsm_info[thread_gunno].base.ota_state) {
         case APP_OTA_STATE_NULL:
@@ -8893,16 +9067,39 @@ void ofsm_thread_entry(void *parameter)
         }
 #endif /* APP_USING_FB_DETECT */
 
-        singlegun_max_curr = (*((uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_MAX_LIMIT_CURRENT, 0)))) *100 / APP_SYSTEM_GUNNO_SIZE;
+        s_ofsm_info[thread_gunno].base.singlegun_max_curr = (*((uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_MAX_LIMIT_CURRENT, 0)))) *100 / APP_SYSTEM_GUNNO_SIZE;
         if(thaisen_is_liquid_offline(thread_gunno)){
-            singlegun_max_curr = singlegun_max_curr > APP_MCURRENT_SINGLEGUN_PARACHARGE ? APP_MCURRENT_SINGLEGUN_PARACHARGE : singlegun_max_curr;
+            s_ofsm_info[thread_gunno].base.singlegun_max_curr = s_ofsm_info[thread_gunno].base.singlegun_max_curr > APP_MCURRENT_SINGLEGUN_PARACHARGE ? APP_MCURRENT_SINGLEGUN_PARACHARGE : s_ofsm_info[thread_gunno].base.singlegun_max_curr;
         }else{
-            singlegun_max_curr = singlegun_max_curr > APP_MCURRENT_SINGLEGUN_LIQUID ? APP_MCURRENT_SINGLEGUN_LIQUID : singlegun_max_curr;
+            s_ofsm_info[thread_gunno].base.singlegun_max_curr = s_ofsm_info[thread_gunno].base.singlegun_max_curr > APP_MCURRENT_SINGLEGUN_LIQUID ? APP_MCURRENT_SINGLEGUN_LIQUID : s_ofsm_info[thread_gunno].base.singlegun_max_curr;
         }
 #if (defined(APP_USING_LV_MODULE_BMS) && defined(APP_USING_OFFLINE_BILLING))
-        thaisenModuleSetMaxCurrSingleGun((*((uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_MAX_LIMIT_CURRENT, 0)))) *100);
-#else
-        thaisenModuleSetMaxCurrSingleGun(singlegun_max_curr);
+        /** 使用峰值电流输出功能 */
+#ifdef APP_USING_PEAK_OUT_STRATEGY
+        if((s_ofsm_info[thread_gunno].base.peak_out_executed == APP_THA_ENUM_TRUE) || (s_ofsm_info[thread_gunno].base.flag.peak_out_need_execute == APP_THA_ENUM_FALSE) || \
+                (s_ofsm_info[thread_gunno].state != APP_OFSM_STATE_CHARGING))
+#endif /* APP_USING_PEAK_OUT_STRATEGY */
+        {
+            thaisenModuleSetMaxCurrSingleGun((*((uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_MAX_LIMIT_CURRENT, 0)))) *100, thread_gunno);
+            /** 包含半矩/环矩部分 */
+#ifdef APP_USING_CYCLE_MATRIX
+            thaisen_set_gun_maxCurr((thread_gunno + 0x01), (*((uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_MAX_LIMIT_CURRENT, 0)))) *100);
+#endif /* APP_USING_CYCLE_MATRIX */
+        }
+        s_ofsm_info[thread_gunno].base.singlegun_max_curr = (*((uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_MAX_LIMIT_CURRENT, 0)))) *100;
+#else /* (defined(APP_USING_LV_MODULE_BMS) && defined(APP_USING_OFFLINE_BILLING)) */
+        /** 使用峰值电流输出功能 */
+#ifdef APP_USING_PEAK_OUT_STRATEGY
+        if((s_ofsm_info[thread_gunno].base.flag.peak_out_executed == APP_THA_ENUM_TRUE) || (s_ofsm_info[thread_gunno].base.flag.peak_out_need_execute == APP_THA_ENUM_FALSE) || \
+                (s_ofsm_info[thread_gunno].state != APP_OFSM_STATE_CHARGING))
+#endif /* APP_USING_PEAK_OUT_STRATEGY */
+        {
+            thaisenModuleSetMaxCurrSingleGun(s_ofsm_info[thread_gunno].base.singlegun_max_curr, thread_gunno);
+            /** 包含半矩/环矩部分 */
+#ifdef APP_USING_CYCLE_MATRIX
+            thaisen_set_gun_maxCurr((thread_gunno + 0x01), s_ofsm_info[thread_gunno].base.singlegun_max_curr);
+#endif /* APP_USING_CYCLE_MATRIX */
+        }
 #endif /* (defined(APP_USING_LV_MODULE_BMS) && defined(APP_USING_OFFLINE_BILLING)) */
 
         if(s_ofsm_info[thread_gunno].base.state.current == APP_OFSM_STATE_CHARGING){         /** 进入充电时才可设置BMS是否禁止充电 */
@@ -9151,6 +9348,12 @@ void ofsm_thread_entry(void *parameter)
                 s_ofsm_info[thread_gunno].base.flag.is_curr_decreased = 0;
                 s_gun_charging_curr[thread_gunno] = 0;
                 thaisenClearSysFaultLib(thaisenFaultOverTemp, thread_gunno);
+#ifdef APP_USING_PEAK_OUT_STRATEGY
+                /** 峰值电流策略执行依赖于温度检测，不开启温度检测功能的，不执行此功能  */
+                s_ofsm_info[thread_gunno].base.flag.peak_out_executed = APP_THA_ENUM_TRUE;
+                s_ofsm_info[thread_gunno].base.flag.peak_out_need_execute = APP_THA_ENUM_FALSE;
+                s_ofsm_info[thread_gunno].base.peak_out_time = (APP_PEAK_OUT_EXECUTE_TIME_LONG + 0x01);
+#endif /* APP_USING_PEAK_OUT_STRATEGY */
             }else{
                 switch(result){
                 case TCHECK_RESULT_WARNNING:
@@ -9180,6 +9383,12 @@ void ofsm_thread_entry(void *parameter)
 #endif /* APP_INCLUDE_V2G */
                         s_gun_charging_curr[thread_gunno] = _ammeter_current;
                     }
+#ifdef APP_USING_PEAK_OUT_STRATEGY
+                    /** 开启了温度检测并且温度达到过温限流水平，此时停止峰值电流策略执行  */
+                    s_ofsm_info[thread_gunno].base.flag.peak_out_executed = APP_THA_ENUM_TRUE;
+                    s_ofsm_info[thread_gunno].base.flag.peak_out_need_execute = APP_THA_ENUM_FALSE;
+                    s_ofsm_info[thread_gunno].base.peak_out_time = (APP_PEAK_OUT_EXECUTE_TIME_LONG + 0x01);
+#endif /* APP_USING_PEAK_OUT_STRATEGY */
                     thaisenClearSysFaultLib(thaisenFaultOverTemp, thread_gunno);
                     break;
                 case TCHECK_RESULT_OVERTEMP_2:
@@ -9290,6 +9499,10 @@ void ofsm_thread_entry(void *parameter)
                 s_ofsm_info[thread_gunno].base.gunline_process_temp[0x01] = s_ofsm_info[thread_gunno].base.gunline_temperature[0x01];
             }
         }
+
+#ifdef APP_USING_PEAK_OUT_STRATEGY
+        ofsm_peak_output_process(thread_gunno);
+#endif /* APP_USING_PEAK_OUT_STRATEGY */
 
         if(s_ofsm_fun != NULL) {
             (*(s_ofsm_fun[thread_gunno]))(thread_gunno);
