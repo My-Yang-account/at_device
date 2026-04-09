@@ -95,6 +95,31 @@ typedef uint16_t (*thaisenModuleGetStatusFun_p)(uint8_t);
 
 void thaisen_chargModule_Init(thaisenModuleGetStatusFun_p getStaFun,struct thaisenBMS_Charger_struct *chargerA,struct thaisenBMS_Charger_struct *chargerB,struct thasienModuleSetStruct *moduleS );
 
+enum thaisenModuleStateEnum
+{
+    thaisenModuleStateIdle,
+    thaisenModuleStateChargInsult,
+    thaisenModuleStateChargCRO,
+    thaisenModuleStateChargCCS,
+    thaisenModuleStateChargStop,
+    thaisenModuleStateChargParallel,
+    thaisenModuleStateChargParallelDischarg,
+    thaisenModuleStateFault,
+    thaisenModuleStateMiddle,
+    thaisenModuleStateAll,
+};
+/* 功能说明:
+ *          thaisenModuleGetStatus:获取模块部分运行状态
+ *
+ * 输入参数:  gunNum   枪号
+ *
+ * 返回参数:
+ *          模块部分运行状态@enum thaisenModuleStateEnum
+ * 调用方法:
+ *          可实时调用
+ */
+uint8_t thaisenModuleGetStatus(uint8_t gunNum);
+
 /* 功能说明:
  *          thaisenSetModuleMaxVolt:设置模块最高输出电压
  *
@@ -759,7 +784,7 @@ uint8_t thaisenModuleGetBMSAllowCharge(uint8_t gunNum);
  * 调用方法:
  *          可实时调用
  */
-void thaisenModuleSetMaxCurrSingleGun(uint32_t curr);
+void thaisenModuleSetMaxCurrSingleGun(uint32_t curr, uint8_t gunNum);
 
 /* 功能说明:
  *          thaisenModuleGetMaxCurrSingleGun: 获取单枪最大充电电流(0.01)
@@ -771,7 +796,7 @@ void thaisenModuleSetMaxCurrSingleGun(uint32_t curr);
  * 调用方法:
  *          可实时调用
  */
-uint32_t thaisenModuleGetMaxCurrSingleGun(void);
+uint32_t thaisenModuleGetMaxCurrSingleGun(uint8_t gunNum);
 
 /* 功能说明:
  *          thaisenSetEnableModuleState: 设置使能模块状态
