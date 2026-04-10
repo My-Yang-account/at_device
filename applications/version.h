@@ -93,7 +93,7 @@ extern "C" {
 #ifdef APP_SOFT_MODULE_USING_GB_MASTERSLAVEDEV_7103F_VG
 #define SOFTWARE_VERSION       1L
 #define SOFTWARE_SUBVERSION    0
-#define SOFTWARE_REVISION      1L  /* 04 */
+#define SOFTWARE_REVISION      4L  /* 01 */
 /** 国标7143子母机 */
 #else
 #define SOFTWARE_VERSION       1L
