@@ -2079,24 +2079,28 @@ static s32 SerialScreen_ConfigExecute_Pile(u8 port, void *data, void *sub_data, 
 
     u32 ret = 0;
     u16 valid_len = 0;
-    u8 config_item = 0;
+    u8 config_item = 0, *_cmd = NULL;
     thaisen_cfg_info_pile *config = (thaisen_cfg_info_pile*)data;
 
     /** 获取桩信息 */
     SerialScreen_BtnChgInfoGet(port);
-    /** >2 是因为前两个字节是设置格式、生成格式，一定有 */
-    if((valid_len = strlen((char*)config->qrcode_prefix)) > 2){
-        valid_len = valid_len > (sizeof(LcdData.setData.ErWeiCodePre) - 1) ? (sizeof(LcdData.setData.ErWeiCodePre) - 1) : valid_len;
-        memset(LcdData.setData.ErWeiCodePre, 0, sizeof(LcdData.setData.ErWeiCodePre));
-        memcpy(LcdData.setData.ErWeiCodePre, config->qrcode_prefix, valid_len);
-    }
+
+    _cmd = sys_read_config_item_content(CONFIG_ITEM_LOGIN_USER_NAME, 0);
+    if(memcmp(_cmd, "closeQR", strlen("closeQR")) != 0x00){
+        /** >2 是因为前两个字节是设置格式、生成格式，一定有 */
+        if((valid_len = strlen((char*)config->qrcode_prefix)) > 2){
+            valid_len = valid_len > (sizeof(LcdData.setData.ErWeiCodePre) - 1) ? (sizeof(LcdData.setData.ErWeiCodePre) - 1) : valid_len;
+            memset(LcdData.setData.ErWeiCodePre, 0, sizeof(LcdData.setData.ErWeiCodePre));
+            memcpy(LcdData.setData.ErWeiCodePre, config->qrcode_prefix, valid_len);
+        }
 #if 0
-    if((valid_len = strlen((char*)config->qrcode_suffix)) > 2){
-        valid_len = valid_len > (sizeof(LcdData.setData.ErWeiCodePre) - 1) ? (sizeof(LcdData.setData.ErWeiCodePre) - 1) : valid_len;
-        memset(LcdData.setData.ErWeiCodePre, 0, sizeof(LcdData.setData.ErWeiCodePre));
-        memcpy(LcdData.setData.ErWeiCodePre, config->qrcode_prefix, valid_len);
-    }
+        if((valid_len = strlen((char*)config->qrcode_suffix)) > 2){
+            valid_len = valid_len > (sizeof(LcdData.setData.ErWeiCodePre) - 1) ? (sizeof(LcdData.setData.ErWeiCodePre) - 1) : valid_len;
+            memset(LcdData.setData.ErWeiCodePre, 0, sizeof(LcdData.setData.ErWeiCodePre));
+            memcpy(LcdData.setData.ErWeiCodePre, config->qrcode_prefix, valid_len);
+        }
 #endif
+    }
     /** 屏幕密码有效性判断 */
     if((valid_len = strlen((char*)config->screen_password)) > 0){
         u8 i = 0, len = 0;

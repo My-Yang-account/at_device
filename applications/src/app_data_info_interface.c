@@ -132,7 +132,7 @@ struct qrcode_info *thaisen_app_get_gunno_qrcode(uint8_t gunno) // OK
 #else
 #define QRCODE_FEFAULT    "http://www.ykccn.com/MPAGE/index.html?pNum="          /* 云快充默认二维码前缀 */
 #endif
-    uint8_t i, *p = NULL, qrcode_len = 0, storage_len = (*(sys_read_config_item_content(CONFIG_ITEM_QRCODE_PRE, 1))),
+    uint8_t i, *p = NULL, qrcode_len = 0, storage_len = (*(sys_read_config_item_content(CONFIG_ITEM_QRCODE_PRE, 1))), *_cmd = NULL,
             set_type = CP_SET_QRCODE_FORMAT_PREFIX, generate_type = CP_GENERATE_QRCODE_FORMAT_PREFIX_DEVICE_SN_PORT;
 
     memset(&s_qrcode, 0x00, sizeof(s_qrcode));
@@ -178,6 +178,82 @@ struct qrcode_info *thaisen_app_get_gunno_qrcode(uint8_t gunno) // OK
         }
         qrcode_len = i;
         s_qrcode.qrcode_len = qrcode_len;
+
+        /** 此处根据指令特殊处理：屏幕：设置->系统设置->服务器信息->用户名(小桔) 处输入了字符串："closeQR" 表示要手动输入组合
+         * 输入示例格式如下：
+         * hlht://#code#-#1/2N#.MABYP8137/
+         * 替换组合规则如下：
+         * #code#替换为桩号,#1/2N#：#1N#替换为枪号1，#2N#替换为枪号01
+         *  */
+        _cmd = sys_read_config_item_content(CONFIG_ITEM_LOGIN_USER_NAME, 0);
+        if(memcmp(_cmd, "closeQR", strlen("closeQR")) == 0x00){
+            char *_ptr = NULL;
+            uint8_t _len = 0x00, _pile_offset = 0x00, _gun_offset = 0x00, _format = 0x00;
+
+            /******************************* 查找桩号处 *******************************/
+            _ptr = strstr((const char*)s_qrcode.qrcode, "#code#");
+            /** 输入格式错误，退出 */
+            if(_ptr == NULL){
+                return &s_qrcode;
+            }
+            /** 获取偏移 */
+            _pile_offset = ((uint32_t)_ptr - (uint32_t)s_qrcode.qrcode);
+            _ptr = (char*)(sys_read_config_item_content(CONFIG_ITEM_PILE_NUMBER, 0));
+            _len = strlen((char*)_ptr);
+            /** 长度超出范围 */
+            if((_pile_offset + _len) > sizeof(s_qrcode.qrcode)){
+                return &s_qrcode;
+            }
+            /** 替换桩号 */
+            memset(s_qrcode.qrcode, 0x00, sizeof(s_qrcode.qrcode));
+            memcpy(s_qrcode.qrcode, (p + 0x02), _pile_offset);
+            memcpy((s_qrcode.qrcode + _pile_offset), _ptr, _len);
+            s_qrcode.qrcode_len = strlen((char*)s_qrcode.qrcode);
+            /******************************* 查找枪号处 *******************************/
+            /** 枪号格式是 1 2 ...("#code#" 长度为6) */
+            _ptr = strstr((const char*)(p + 0x02 + _pile_offset + 0x06), "#1N#");
+            if(_ptr){
+                _format = 0x01;
+            }
+            /** 枪号格式是 01 02 ...("#code#" 长度为6) */
+            if(_format == 0x00){
+                _ptr = strstr((const char*)(p + 0x02 + _pile_offset + 0x06), "#2N#");
+                if(_ptr){
+                    _format = 0x02;
+                }
+            }
+            /** 输入格式不对 */
+            if(_format == 0x00){
+                return &s_qrcode;
+            }
+            /** 获取偏移("#code#" 长度为6) */
+            _gun_offset = ((uint32_t)_ptr - (uint32_t)(p + 0x02));
+            if(_gun_offset < (_pile_offset + 0x06)){
+                return &s_qrcode;
+            }
+            /** 长度超出范围(枪号长度最大值 2) */
+            if(((_gun_offset + 0x02) + (_gun_offset - ((_pile_offset + _len)))) > sizeof(s_qrcode.qrcode)){
+                return &s_qrcode;
+            }
+            /** 获取桩号与枪号之间的部分("#code#" 长度为6) */
+            memcpy((s_qrcode.qrcode + s_qrcode.qrcode_len), (p + 0x02 + _pile_offset + 0x06), (_gun_offset - ((_pile_offset + 0x06))));
+            s_qrcode.qrcode_len = strlen((char*)s_qrcode.qrcode);
+            /** 替换枪号 */
+            if(_format == 0x01){
+                sprintf((char*)(s_qrcode.qrcode + s_qrcode.qrcode_len), "%d", (gunno + 0x01));
+                _len = 0x01;
+            }else{
+                sprintf((char*)(s_qrcode.qrcode + s_qrcode.qrcode_len), "%c%d", '0', (gunno + 0x01));
+                _len = 0x02;
+            }
+            s_qrcode.qrcode_len = strlen((char*)s_qrcode.qrcode);
+            /** 获取尾缀("#1N#" 长度为4) */
+            if((_gun_offset + 0x04) < storage_len){
+                memcpy((s_qrcode.qrcode + s_qrcode.qrcode_len), (p + 0x02 + _gun_offset + 0x04), (storage_len - ((_gun_offset + 0x04))));
+                s_qrcode.qrcode_len = strlen((char*)s_qrcode.qrcode);
+            }
+            return &s_qrcode;
+        }
 #endif /* CP_QRCODE_CONFIG_USING_SGCC */
     }
 
