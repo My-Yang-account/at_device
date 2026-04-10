@@ -579,6 +579,8 @@ struct LCD_DISPLAY_SETDATA_TYPE{
 #endif
 	u8 svrIp[20];					//服务器IP[0][APPCFG_NO_LIMIT,0,APPCFG_NO_LIMIT]
 	u16 svrPort; 						//服务器端口[0][APPCFG_NO_LIMIT,0,APPCFG_NO_LIMIT]
+    u8 login_user_name[20];                     //登录用户名
+    u8 login_user_password[20];                 //登录密码
 //	u8 YuMing[256]; 
 
     u16 TeminaladdrA;                       //A枪地址
@@ -4855,9 +4857,16 @@ void SerialScreen_BtnServerGet(void)
 	sSCREEN_EVENT_DEBUGMSG("##########ServerInfo###########\r\n");
 	mem_set(LcdData.setData.svrIp, 0, sizeof(LcdData.setData.svrIp));
 	mem_set(LcdData.setData.svrPort,0,sizeof(LcdData.setData.svrPort));
+    mem_set(LcdData.setData.login_user_name, 0, sizeof(LcdData.setData.login_user_name));
+    mem_set(LcdData.setData.login_user_password,0,sizeof(LcdData.setData.login_user_password));
+
 	str_ncpy((char *)(LcdData.setData.svrIp), (char *)(UI_READ_SINGLE_CFG_STR(CONFIG_ITEM_IP_DOMAIN, 0)), \
 	         sizeof(LcdData.setData.svrIp));
 	LcdData.setData.svrPort=*((u16*) UI_READ_SINGLE_CFG_DATA(CONFIG_ITEM_PORT, 0));
+    str_ncpy((char *)(LcdData.setData.login_user_name), (char *)(UI_READ_SINGLE_CFG_STR(CONFIG_ITEM_LOGIN_USER_NAME, 0)), \
+             sizeof(LcdData.setData.login_user_name));
+    str_ncpy((char *)(LcdData.setData.login_user_password), (char *)(UI_READ_SINGLE_CFG_STR(CONFIG_ITEM_LOGIN_USER_PASSWORD, 0)), \
+             sizeof(LcdData.setData.login_user_password));
 	sSCREEN_EVENT_DEBUGMSG("##########serverip=%s port=%d###########\r\n",(char *)(LcdData.setData.svrIp),LcdData.setData.svrPort);
 }
 
@@ -4875,6 +4884,8 @@ void SerialScreen_BtnServerSet(void)
 	UI_SYNC_SINGLE_CFG_STR(CONFIG_ITEM_IP_DOMAIN, LcdData.setData.svrIp, str_len(LcdData.setData.svrIp));
 	UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_PORT, (u16 *)&(LcdData.setData.svrPort), sizeof(LcdData.setData.svrPort));
     UI_SYNC_SINGLE_CFG_DATA(CONFIG_ITEM_NET_TYPE, &(nettype), sizeof(nettype));
+    UI_SYNC_SINGLE_CFG_STR(CONFIG_ITEM_LOGIN_USER_NAME, LcdData.setData.login_user_name, str_len(LcdData.setData.login_user_name));
+    UI_SYNC_SINGLE_CFG_STR(CONFIG_ITEM_LOGIN_USER_PASSWORD, LcdData.setData.login_user_password, str_len(LcdData.setData.login_user_password));
 
     LcdAssistantData.Flag.IsConfigFail = TRUE;
     if(UI_STORAGE_CFG_DATA >= 0){
@@ -20474,6 +20485,8 @@ struct LCD_DATA_FIFO_TYPE *serialScreen_ObjectAi_Init(void)
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_2, NULL, "COM_1", LCD_BtnType, 0x000A, 0x1000, page_type, LCD_PAGE_MENU_COM_1, (void *)SerialScreen_BtnChgInfoGet);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_2, NULL, "Server IP", LCD_InputType, 0, 0x1320, pstr_type, sizeof(LcdData.setData.svrIp), (void *)LcdData.setData.svrIp);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_2, NULL, "Server port", LCD_InputType, 0, 0x133B, pu16_type, sizeof(LcdData.setData.svrPort), (void *)&LcdData.setData.svrPort);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_2, NULL, "Server login_username", LCD_InputType, 0, 0x6BA0, pstr_type, sizeof(LcdData.setData.login_user_name), (void *)LcdData.setData.login_user_name);
+    SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_2, NULL, "Server login_userpassowrd", LCD_InputType, 0, 0x6BC0, pstr_type, sizeof(LcdData.setData.login_user_password), (void *)LcdData.setData.login_user_password);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_2, NULL, "COM_3", LCD_BtnType, 0x000C, 0x1000, page_type, LCD_PAGE_MENU_COM_3, (void *)SerialScreen_BtnMeterNoInfoGet);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_2, NULL, "COM_4", LCD_BtnType, 0x000D, 0x1000, page_type, LCD_PAGE_MENU_COM_4, (void *)SerialScreen_BtnModuleGet);
     SerialScreen_ItemSetUp(LCD_PAGE_MENU_COM_2, NULL, "COM_5", LCD_BtnType, 0x000E, 0x1000, page_type, LCD_PAGE_MENU_COM_5, (void *)SerialScreen_BtnErrGetA);

@@ -1041,6 +1041,16 @@ CFG_DEF_SRAM2 static struct config_item s_config_item_set[CONFIG_ITEM_SIZE] =
         (uint8_t*)&s_chargepile_config_info.config_info.teminal_addrB,
         NULL},
 
+        {CONFIG_ITEM_LOGIN_USER_NAME,                                                        /* 登录用户名 */
+        (1 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_info.user_name)),
+        (uint8_t*)&s_chargepile_config_info.config_info.user_name,
+        NULL},
+
+        {CONFIG_ITEM_LOGIN_USER_PASSWORD,                                                     /* 登录密码*/
+        (1 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_info.user_password)),
+        (uint8_t*)&s_chargepile_config_info.config_info.user_password,
+        NULL},
+
 
 #if (defined(CP_USING_V2G) || defined(CP_USING_OFFLINE_BILLING))
         {CONFIG_ITEM_BILLING_RULE,                                                              /* 计费规则数据：为倒数第三项 */
@@ -1564,6 +1574,12 @@ void sys_chargeplie_config_info_init(void)
     /** B枪终端地址 */
     sys_config_item_init(CONFIG_ITEM_TEMINAL_ADDRB, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_info.teminal_addrB)), \
             (uint8_t*)&s_chargepile_config_info.config_info.teminal_addrB, NULL);
+    /** 登录用户名 */
+    sys_config_item_init(CONFIG_ITEM_LOGIN_USER_NAME, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_info.user_name)), \
+            (uint8_t*)&s_chargepile_config_info.config_info.user_name, NULL);
+    /** 登录密码 */
+    sys_config_item_init(CONFIG_ITEM_LOGIN_USER_PASSWORD, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_info.user_password)), \
+            (uint8_t*)&s_chargepile_config_info.config_info.user_password, NULL);
     /** 液冷设备类型 */
     sys_config_item_init(CONFIG_ITEM_LIQUID_DEV, (0 <<(32 - 4))| (sizeof(s_chargepile_config_info.config_info.liquid_dev)), \
             (uint8_t*)&s_chargepile_config_info.config_info.liquid_dev, NULL);
@@ -2045,6 +2061,8 @@ static void chargepile_config_data_reset(void)
     memset(s_chargepile_config_info.pile_info.help_number, '\0', sizeof(s_chargepile_config_info.pile_info.help_number));
     memset(s_chargepile_config_info.pile_info.user_identity, '\0', sizeof(s_chargepile_config_info.pile_info.user_identity));
     memset(s_chargepile_config_info.config_info.register_code, '\0', sizeof(s_chargepile_config_info.config_info.register_code));
+    memset(s_chargepile_config_info.config_info.user_name, '\0', sizeof(s_chargepile_config_info.config_info.user_name));
+    memset(s_chargepile_config_info.config_info.user_password, '\0', sizeof(s_chargepile_config_info.config_info.user_password));
 
     s_chargepile_config_info.config_para.gun1_cc1_12_max = CHARGEPILE_CC12V_MAX_DEF;
     s_chargepile_config_info.config_para.gun1_cc1_12_min = CHARGEPILE_CC12V_MIN_DEF;
@@ -3357,6 +3375,33 @@ int32_t chargepile_check_config(void)
         valid_len = sizeof(s_chargepile_config_info.config_info.register_code);
         valid_len = valid_len > strlen((char*)CP_QRCODE_PARA_VENDOR_CODE) ? strlen((char*)CP_QRCODE_PARA_VENDOR_CODE) : valid_len;
         memcpy(&s_chargepile_config_info.config_info.register_code, CP_QRCODE_PARA_VENDOR_CODE, valid_len);
+#endif
+    }
+
+    /******************************************* 登录用户名 *******************************************/
+    valid_len = sizeof(s_chargepile_config_info.config_info.user_name);
+    valid_len = valid_len > strlen((char*)s_chargepile_config_info.config_info.user_name) ? \
+            strlen((char*)s_chargepile_config_info.config_info.user_name) : valid_len;
+
+    if(sys_string_contain_ctrl_char((const char*)&s_chargepile_config_info.config_info.user_name, valid_len)){
+        memset(s_chargepile_config_info.config_info.user_name, 0x00, sizeof(s_chargepile_config_info.config_info.user_name));
+#if 0
+        valid_len = sizeof(s_chargepile_config_info.config_info.user_name);
+        valid_len = valid_len > strlen((char*)CP_QRCODE_PARA_VENDOR_CODE) ? strlen((char*)CP_QRCODE_PARA_VENDOR_CODE) : valid_len;
+        memcpy(&s_chargepile_config_info.config_info.user_name, CP_QRCODE_PARA_VENDOR_CODE, valid_len);
+#endif
+    }
+    /******************************************* 登录密码 *******************************************/
+    valid_len = sizeof(s_chargepile_config_info.config_info.user_password);
+    valid_len = valid_len > strlen((char*)s_chargepile_config_info.config_info.user_password) ? \
+            strlen((char*)s_chargepile_config_info.config_info.user_password) : valid_len;
+
+    if(sys_string_contain_ctrl_char((const char*)&s_chargepile_config_info.config_info.user_password, valid_len)){
+        memset(s_chargepile_config_info.config_info.user_password, 0x00, sizeof(s_chargepile_config_info.config_info.user_password));
+#if 0
+        valid_len = sizeof(s_chargepile_config_info.config_info.user_password);
+        valid_len = valid_len > strlen((char*)CP_QRCODE_PARA_VENDOR_CODE) ? strlen((char*)CP_QRCODE_PARA_VENDOR_CODE) : valid_len;
+        memcpy(&s_chargepile_config_info.config_info.user_password, CP_QRCODE_PARA_VENDOR_CODE, valid_len);
 #endif
     }
 
