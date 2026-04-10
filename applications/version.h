@@ -76,9 +76,9 @@ extern "C" {
 #elif defined(APP_SOFT_MODULE_USING_EN_NTCU_7103F_ZG)
 #define SOFTWARE_MODULE                                         "7103-VA1"          /* 软件型号 */
 #elif defined(APP_SOFT_MODULE_USING_GB_SGUN_HOST_7103F_H7)
-#define SOFTWARE_MODULE                                         "7103-VC1"          /* 软件型号 */
+#define SOFTWARE_MODULE                                         "7118-VC1"          /* 软件型号 */
 #elif defined(APP_SOFT_MODULE_USING_GB_SGUN_SLAVE_7103F_VG)
-#define SOFTWARE_MODULE                                         "7103-VC2"          /* 软件型号 */
+#define SOFTWARE_MODULE                                         "7118-VC2"          /* 软件型号 */
 #elif defined(APP_SOFT_MODULE_USING_GB_MASTERSLAVEDEV_7103F_VG)
 #define SOFTWARE_MODULE                                         "7103-V52"          /* 软件型号 */
 #elif defined(APP_SOFT_MODULE_USING_GB_MASTERSLAVEDEV_7143_VG_SWT)
@@ -103,7 +103,7 @@ extern "C" {
 #else /* CP_USING_CYCLE_MATRIX */
 #define SOFTWARE_VERSION       2L
 #define SOFTWARE_SUBVERSION    2
-#define SOFTWARE_REVISION      8L  /* 01 */
+#define SOFTWARE_REVISION      9L  /* 01 */
 #endif /* CP_USING_CYCLE_MATRIX */
 
 #else
