@@ -103,7 +103,7 @@ extern "C" {
 #else /* CP_USING_CYCLE_MATRIX */
 #define SOFTWARE_VERSION       2L
 #define SOFTWARE_SUBVERSION    2
-#define SOFTWARE_REVISION      9L  /* 01 */
+#define SOFTWARE_REVISION      9L  /* 02 */
 #endif /* CP_USING_CYCLE_MATRIX */
 
 #else
