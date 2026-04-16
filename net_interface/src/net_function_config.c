@@ -576,7 +576,7 @@ static int32_t app_nset_system_data(uint8_t name, uint8_t *data, uint16_t len, u
     case NET_SYSTEM_DATA_NAME_QRCODE:
     {
         uint8_t *_cmd = sys_read_config_item_content(CONFIG_ITEM_LOGIN_USER_NAME, 0);
-        if(memcmp(_cmd, "closeQR", strlen("closeQR")) != 0x00){
+        if((memcmp(_cmd, "closeQR", strlen("closeQR")) != 0x00) || (option & NET_SYSTEM_DATA_OPTION_PLAT_YKC_MONITOR)){
             if(sys_sync_config_item_content(CONFIG_ITEM_QRCODE_PRE, data, len) < 0x00){
                 return -0x01;
             }
