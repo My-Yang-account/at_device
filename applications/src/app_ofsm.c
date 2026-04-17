@@ -364,12 +364,11 @@ static void ofsm_peak_output_process(uint8_t gunno)
         if(_ofsm->base.main_gunno != gunno){
             return;
         }
-        if(another_gunno == gunno){
-            another_gunno++;
-        }
         is_parallel_charge = APP_THA_ENUM_TRUE;
     }
-
+    if(another_gunno == gunno){
+        another_gunno++;
+    }
     if((_ofsm->base.flag.peak_out_executed == APP_THA_ENUM_FALSE) && (_ofsm->state == APP_OFSM_STATE_CHARGING)){
         uint32_t _gun_curr_max_phy = 0x00;      /** 枪的物理最大输出 */
         uint32_t _gun_peak_curr = 0x00;         /** 设置的枪峰值电流 */
@@ -391,7 +390,6 @@ static void ofsm_peak_output_process(uint8_t gunno)
             _gun_curr_max_phy = _ofsm->base.singlegun_max_curr;
             _gun_peak_curr = (*(uint32_t*)(sys_read_config_item_content(CONFIG_ITEM_OUT_PEAK_CURRENT, 0x00)));
         }
-
         if(_gun_peak_curr > _gun_curr_max_cal){
             _gun_peak_curr = _gun_curr_max_cal;
         }
@@ -419,8 +417,15 @@ static void ofsm_peak_output_process(uint8_t gunno)
                     _ofsm = get_ofsm_info(gunno);
                 }
             }else{
-                _dev_type = thaisenGetChargGunRunType();
+                /** 并充或并联时，副枪也要执行相应的峰值电流输出策略 */
+                if(is_parallel_charge || (thaisenModuleGetStatus(another_gunno) == thaisenModuleStateChargParallel)){
+                    _ofsm = get_ofsm_info(another_gunno);
+                    _ofsm->base.flag.peak_out_need_execute = APP_THA_ENUM_TRUE;
+                    _ofsm->base.flag.peak_out_executed = APP_THA_ENUM_FALSE;
+                    _ofsm->base.peak_out_time = 0x00;
+                }
 #ifdef APP_USING_CYCLE_MATRIX
+                _dev_type = thaisenGetChargGunRunType();
                 if((_dev_type == thaisenDeviceType_Matrix_Cycle) || (_dev_type == thaisenDeviceType_Matrix_Half)){
                     /** 修改单枪最大电流为设置的峰值输出电流 */
                     thaisen_set_gun_maxCurr((gunno + 0x01), _gun_peak_curr);
@@ -438,10 +443,10 @@ static void ofsm_peak_output_process(uint8_t gunno)
                     }
                 }
             }
-        }else{
+        }else if(thaisenModuleGetStatus(gunno) != thaisenModuleStateChargParallel){
             _ofsm->base.flag.peak_out_need_execute = APP_THA_ENUM_FALSE;
         }
-    }else{
+    }else if(thaisenModuleGetStatus(gunno) != thaisenModuleStateChargParallel){
         _ofsm->base.flag.peak_out_need_execute = APP_THA_ENUM_FALSE;
     }
 }
@@ -9076,8 +9081,8 @@ void ofsm_thread_entry(void *parameter)
 #if (defined(APP_USING_LV_MODULE_BMS) && defined(APP_USING_OFFLINE_BILLING))
         /** 使用峰值电流输出功能 */
 #ifdef APP_USING_PEAK_OUT_STRATEGY
-        if((s_ofsm_info[thread_gunno].base.peak_out_executed == APP_THA_ENUM_TRUE) || (s_ofsm_info[thread_gunno].base.flag.peak_out_need_execute == APP_THA_ENUM_FALSE) || \
-                (s_ofsm_info[thread_gunno].state != APP_OFSM_STATE_CHARGING))
+        if((s_ofsm_info[thread_gunno].base.flag.peak_out_executed == APP_THA_ENUM_TRUE) || (s_ofsm_info[thread_gunno].base.flag.peak_out_need_execute == APP_THA_ENUM_FALSE) || \
+                ((s_ofsm_info[thread_gunno].state != APP_OFSM_STATE_CHARGING) && (thaisenModuleGetStatus(thread_gunno) != thaisenModuleStateChargParallel)))
 #endif /* APP_USING_PEAK_OUT_STRATEGY */
         {
             thaisenModuleSetMaxCurrSingleGun((*((uint16_t*)(sys_read_config_item_content(CONFIG_ITEM_MAX_LIMIT_CURRENT, 0)))) *100, thread_gunno);
@@ -9091,7 +9096,7 @@ void ofsm_thread_entry(void *parameter)
         /** 使用峰值电流输出功能 */
 #ifdef APP_USING_PEAK_OUT_STRATEGY
         if((s_ofsm_info[thread_gunno].base.flag.peak_out_executed == APP_THA_ENUM_TRUE) || (s_ofsm_info[thread_gunno].base.flag.peak_out_need_execute == APP_THA_ENUM_FALSE) || \
-                (s_ofsm_info[thread_gunno].state != APP_OFSM_STATE_CHARGING))
+                ((s_ofsm_info[thread_gunno].state != APP_OFSM_STATE_CHARGING) && (thaisenModuleGetStatus(thread_gunno) != thaisenModuleStateChargParallel)))
 #endif /* APP_USING_PEAK_OUT_STRATEGY */
         {
             thaisenModuleSetMaxCurrSingleGun(s_ofsm_info[thread_gunno].base.singlegun_max_curr, thread_gunno);
