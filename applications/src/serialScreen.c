@@ -1848,6 +1848,9 @@ void SerialScreen_Screen_ResetModeInfoDef(u8 port)
     if(LcdData.runData.GunRunMode[port] != THAISEN_GUN_RUNING_MODE_CHARGE)
         return ;
 #endif /* SCREEN_USING_V2G */
+    if(LcdData.setData.sup_mode_select != TRUE){
+        return ;
+    }
     u8 used_mode = SerialScreen_Screen_GetCurrentChargeMode(port), config_mode = 0;
 
     config_mode = SerialScreen_Screen_ConvertChargeMode(used_mode);
