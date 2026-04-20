@@ -263,13 +263,14 @@
 #define POWER_ALLOCATION_WAY_SIZE                 3           /* 功率分配方式 */
 
 #define CONFIG_LP_CONSUMPTION_MODULE_NULL         0           /* 低功耗模块：无 */
-#define CONFIG_LP_CONSUMPTION_MODULE_YN           1           /* 低功耗模块：易能 */
-#define CONFIG_LP_CONSUMPTION_MODULE_SIZE         2           /* 低功耗模块 */
+#define CONFIG_LP_CONSUMPTION_MODULE_PLUSE        1           /* 低功耗模块：易能 */
+#define CONFIG_LP_CONSUMPTION_MODULE_DLEVEL       2           /* 低功耗模块：电平 */
+#define CONFIG_LP_CONSUMPTION_MODULE_SIZE         3           /* 低功耗模块 */
 
 #define SYSTEM_FUNCTION_SINGLE_TERMINAL           0         /* 单枪超充 */
 #define SYSTEM_FUNCTION_AVERAGE_DOUBLE            1         /* 均充双枪 */
 #define SYSTEM_FUNCTION_DOUBLE_WHOLE              2         /* 双枪终端 */
-#define SYSTEM_FUNCTION_RECTIFIER_CABINET         3         /* 单枪快充 */
+#define SYSTEM_FUNCTION_SINGLE_FAST               3         /* 单枪快充 */
 #define SYSTEM_FUNCTION_DYNAMIC_SWITCH            4         /* 动态切换 */
 #ifdef CP_USING_CYCLE_MATRIX
 #define SYSTEM_FUNCTION_MS_MACHINE_CYCLE          5         /* 设备类型(本机功能)：子母机(环矩) */

@@ -11385,7 +11385,7 @@ void SerialScreen_BtnModuleStartA(void)
 
    SerialScreen_SendIco(&SerialScreen, 0x4172, TRUE);
 #ifdef SCREEN_USING_DOUBLE_GUN
-    if(LcdData.setData.LPModule == CONFIG_LP_CONSUMPTION_MODULE_YN){
+    if((LcdData.setData.LPModule == CONFIG_LP_CONSUMPTION_MODULE_PLUSE) || (LcdData.setData.LPModule == CONFIG_LP_CONSUMPTION_MODULE_DLEVEL)){
         extern void app_acrelay_action_magnetic(void);
         app_acrelay_action_magnetic();
     }else{
@@ -11429,7 +11429,7 @@ void SerialScreen_BtnModuleStartB(void)
 
     SerialScreen_SendIco(&SerialScreen, 0x4172, TRUE);
 #ifdef SCREEN_USING_DOUBLE_GUN
-    if(LcdData.setData.LPModule == CONFIG_LP_CONSUMPTION_MODULE_YN){
+    if((LcdData.setData.LPModule == CONFIG_LP_CONSUMPTION_MODULE_PLUSE) || (LcdData.setData.LPModule == CONFIG_LP_CONSUMPTION_MODULE_DLEVEL)){
         extern void app_acrelay_action_magnetic(void);
         app_acrelay_action_magnetic();
     }else{
@@ -13106,7 +13106,7 @@ void SerialScreen_GetIOStatus(int port)
         LcdData.setData.s_paraRely2 = LcdData.setData.g_paraRely2;
 
 #ifdef SCREEN_USING_DOUBLE_GUN
-        if(LcdData.setData.LPModule == CONFIG_LP_CONSUMPTION_MODULE_YN){
+        if((LcdData.setData.LPModule == CONFIG_LP_CONSUMPTION_MODULE_PLUSE) || (LcdData.setData.LPModule == CONFIG_LP_CONSUMPTION_MODULE_DLEVEL)){
 //            extern void app_acrelay_release_magnetic(void);
 //            app_acrelay_release_magnetic();
         }else{
@@ -13170,7 +13170,7 @@ void SerialScreen_BtnAcSet(void)
 
 	if(LcdData.setData.s_acRely != TRUE){
 #ifdef SCREEN_USING_DOUBLE_GUN
-        if(LcdData.setData.LPModule == CONFIG_LP_CONSUMPTION_MODULE_YN){
+	    if((LcdData.setData.LPModule == CONFIG_LP_CONSUMPTION_MODULE_PLUSE) || (LcdData.setData.LPModule == CONFIG_LP_CONSUMPTION_MODULE_DLEVEL)){
             extern void app_acrelay_release_magnetic(void);
             app_acrelay_release_magnetic();
         }else{
@@ -13181,7 +13181,7 @@ void SerialScreen_BtnAcSet(void)
 #endif /* SCREEN_USING_DOUBLE_GUN */
 	}else{
 #ifdef SCREEN_USING_DOUBLE_GUN
-	    if(LcdData.setData.LPModule == CONFIG_LP_CONSUMPTION_MODULE_YN){
+	    if((LcdData.setData.LPModule == CONFIG_LP_CONSUMPTION_MODULE_PLUSE) || (LcdData.setData.LPModule == CONFIG_LP_CONSUMPTION_MODULE_DLEVEL)){
 	        extern void app_acrelay_action_magnetic(void);
 	        app_acrelay_action_magnetic();
 	    }else{
@@ -13625,7 +13625,7 @@ void SerialScreen_BtnSelfCheckSet(void)
     memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
     SerialScreen_SendIco(&SerialScreen, 0x4172, TRUE);
 #ifdef SCREEN_USING_DOUBLE_GUN
-    if(LcdData.setData.LPModule == CONFIG_LP_CONSUMPTION_MODULE_YN){
+    if((LcdData.setData.LPModule == CONFIG_LP_CONSUMPTION_MODULE_PLUSE) || (LcdData.setData.LPModule == CONFIG_LP_CONSUMPTION_MODULE_DLEVEL)){
         extern void app_acrelay_action_magnetic(void);
         app_acrelay_action_magnetic();
     }else{
@@ -13669,7 +13669,7 @@ void SerialScreen_BtnSelfCheckSet(void)
     ret = SCREEN_RET_SUCCESS;
     memset(LcdData.setData.selfCheck_Info[index], 0x00, sizeof(LcdData.setData.selfCheck_Info[index]));
 #ifdef SCREEN_USING_DOUBLE_GUN
-    if(LcdData.setData.LPModule == CONFIG_LP_CONSUMPTION_MODULE_YN){
+    if((LcdData.setData.LPModule == CONFIG_LP_CONSUMPTION_MODULE_PLUSE) || (LcdData.setData.LPModule == CONFIG_LP_CONSUMPTION_MODULE_DLEVEL)){
         extern void app_acrelay_release_magnetic(void);
         app_acrelay_release_magnetic();
     }else{

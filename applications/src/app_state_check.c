@@ -478,7 +478,7 @@ static void app_out_oc_check(uint8_t gunno)
  *******************************************/
 static void app_module_inpower_judge(void)
 {
-    uint8_t inpower_connected = 0x00;
+    uint8_t inpower_connected = 0x00, module_type = 0x00;
     /*****************************************************************************************************************
            * 分以下三种情况：
      * 1.开启交流接触器反馈检测：按按反馈判断是否闭合
@@ -499,7 +499,8 @@ static void app_module_inpower_judge(void)
         /** 这是取反了 */
         if(*(sys_read_config_item_content(CONFIG_ITEM_INNEG_ACRELAY, 0x00))){
             /** 这是低功耗模块 */
-            if(*(sys_read_config_item_content(CONFIG_ITEM_LP_MODULE, 0x00)) == CONFIG_LP_CONSUMPTION_MODULE_YN){
+            module_type = *(sys_read_config_item_content(CONFIG_ITEM_LP_MODULE, 0x00));
+            if((module_type == CONFIG_LP_CONSUMPTION_MODULE_PLUSE) || (module_type == CONFIG_LP_CONSUMPTION_MODULE_DLEVEL)){
                 if(s_module_inpower_enable){
                     inpower_connected = 0x01;
                 }
@@ -1021,6 +1022,7 @@ static void control_check_thread_entry(void *parameter)
     extern void app_module_loop(void);
 
 #endif /* APP_USING_CYCLE_MATRIX */
+    uint8_t module_type = 0x00;
 
     while(1){
         app_thread_monitor_process(rt_thread_self(), NULL, 0x00, 0x00);
@@ -1035,7 +1037,8 @@ static void control_check_thread_entry(void *parameter)
         app_module_loop();
 #endif /* APP_USING_CYCLE_MATRIX */
         /** 这是低功耗模块 */
-        if(*(sys_read_config_item_content(CONFIG_ITEM_LP_MODULE, 0x00)) == CONFIG_LP_CONSUMPTION_MODULE_YN){
+        module_type = *(sys_read_config_item_content(CONFIG_ITEM_LP_MODULE, 0x00));
+        if((module_type == CONFIG_LP_CONSUMPTION_MODULE_PLUSE) || (module_type == CONFIG_LP_CONSUMPTION_MODULE_DLEVEL)){
             thaisenSetACRelayType(THADRV_ACRELAY_TYPE_MAGNETIC);
             app_acrelay_control();
         }else{
@@ -1116,9 +1119,11 @@ uint8_t app_acrelay_action_magnetic(void)
         if(thaisen_relay_AC_PositivePlus_Magnetic(1) != thaisen_Relay_ok){
             return 0x00;
         }
-        rt_thread_mdelay(2000);
-        if(thaisen_relay_AC_PositivePlus_Magnetic(0) != thaisen_Relay_ok){
-            return 0x00;
+        if(*(sys_read_config_item_content(CONFIG_ITEM_LP_MODULE, 0x00)) != CONFIG_LP_CONSUMPTION_MODULE_DLEVEL){
+            rt_thread_mdelay(2000);
+            if(thaisen_relay_AC_PositivePlus_Magnetic(0) != thaisen_Relay_ok){
+                return 0x00;
+            }
         }
         s_module_inpower_enable = 0x01;
         return 0x01;
@@ -1146,9 +1151,11 @@ uint8_t app_acrelay_release_magnetic(void)
         if(thaisen_relay_AC_NegtivePlus_Magnetic(1) != thaisen_Relay_ok){
             return 0x00;
         }
-        rt_thread_mdelay(2000);
-        if(thaisen_relay_AC_NegtivePlus_Magnetic(0) != thaisen_Relay_ok){
-            return 0x00;
+        if(*(sys_read_config_item_content(CONFIG_ITEM_LP_MODULE, 0x00)) != CONFIG_LP_CONSUMPTION_MODULE_DLEVEL){
+            rt_thread_mdelay(2000);
+            if(thaisen_relay_AC_NegtivePlus_Magnetic(0) != thaisen_Relay_ok){
+                return 0x00;
+            }
         }
         s_module_inpower_enable = 0x00;
         return 0x01;
