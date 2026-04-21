@@ -4744,18 +4744,18 @@ int32_t sys_cc1_range_valid(uint16_t cc12_max, uint16_t cc12_min, uint16_t cc6_m
     }
 #else
     /** CC1 12V 判断 */
-    if((cc12_max <= cc12_min) || (cc12_max > CHARGEPILE_CC1_VOLT_MAX)){
+    if((cc12_max <= cc12_min) || (cc12_max > CHARGEPILE_CC1_VOLT_MAX) || (cc12_min <= CHARGEPILE_CC1_VOLT_MIN)){
         valid = 0x00;
     }
     /** CC1 6V 判断 */
     if(valid){
-        if((cc6_max <= cc6_min) || (cc6_max > cc12_min) || (cc6_max > CHARGEPILE_CC1_VOLT_MAX)){
+        if((cc6_max <= cc6_min) || (cc6_max > cc12_min) || (cc6_max > CHARGEPILE_CC1_VOLT_MAX) || (cc6_min <= CHARGEPILE_CC1_VOLT_MIN)){
             valid = 0x00;
         }
     }
     /** CC1 4V 判断 */
     if(valid){
-        if((cc4_max <= cc4_min) || (cc4_max > cc6_min) || (cc4_max > CHARGEPILE_CC1_VOLT_MAX)){
+        if((cc4_max <= cc4_min) || (cc4_max > cc6_min) || (cc4_max > CHARGEPILE_CC1_VOLT_MAX) || (cc4_min <= CHARGEPILE_CC1_VOLT_MIN)){
             valid = 0x00;
         }
     }
