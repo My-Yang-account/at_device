@@ -1023,6 +1023,14 @@ static void control_check_thread_entry(void *parameter)
 
 #endif /* APP_USING_CYCLE_MATRIX */
     uint8_t module_type = 0x00;
+    /** 初次判断 */
+    app_module_inpower_judge();
+    /** 这是低功耗模块 */
+    module_type = *(sys_read_config_item_content(CONFIG_ITEM_LP_MODULE, 0x00));
+    if((module_type == CONFIG_LP_CONSUMPTION_MODULE_PLUSE) || (module_type == CONFIG_LP_CONSUMPTION_MODULE_DLEVEL)){
+        thaisenSetACRelayType(THADRV_ACRELAY_TYPE_MAGNETIC);
+        app_acrelay_release_magnetic();
+    }
 
     while(1){
         app_thread_monitor_process(rt_thread_self(), NULL, 0x00, 0x00);
