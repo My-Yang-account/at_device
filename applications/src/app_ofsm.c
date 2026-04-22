@@ -338,6 +338,38 @@ uint32_t ofsm_get_period_price(uint8_t gunno, uint8_t period)
 
 #ifdef APP_USING_PEAK_OUT_STRATEGY
 /************************************************************
+ * 函数名       ofsm_get_gun_allocate_current
+ * 功能           获取分配给枪的最大输出电流
+ * 参数           gunno      枪号
+ *      dev_type   设备类型
+ * 返回           分配给枪的最大输出电流(0.01A)
+ ***********************************************************/
+static uint32_t ofsm_get_gun_allocate_current(uint8_t gunno, uint8_t dev_type)
+{
+    if(gunno >= APP_SYSTEM_GUNNO_SIZE){
+        return 0x00;
+    }
+    /** 这是群充终端 */
+    if((dev_type == SYSTEM_FUNCTION_DOUBLE_WHOLE) || (dev_type == SYSTEM_FUNCTION_SINGLE_TERMINAL) || \
+            (dev_type == SYSTEM_FUNCTION_SINGLE_FAST)){
+        /** 这里需要对比实际发给每个模块的电压电流，参考环矩/半矩的处理 */
+        return thaisenModuleGetGunAllocateCurrent(gunno);
+    }
+    /** 这是动态双枪 */
+    else if(dev_type == SYSTEM_FUNCTION_DYNAMIC_SWITCH){
+        return thaisenModuleGetGunAllocateCurrent(gunno);
+    }
+    /** 这是环矩/半矩 */
+#ifdef APP_USING_CYCLE_MATRIX
+    else if((dev_type == SYSTEM_FUNCTION_MS_MACHINE_CYCLE) || (dev_type == SYSTEM_FUNCTION_MS_MACHINE_HALF) || \
+            (dev_type == SYSTEM_FUNCTION_WHOLE_CYCLE)){
+        return app_module_gun_allocate_current(gunno);
+    }
+#endif /* APP_USING_CYCLE_MATRIX */
+    return 0x00;
+}
+
+/************************************************************
  * 函数名       ofsm_peak_output_process
  * 功能           峰值电流输出处理
  * 参数           gunno      枪号
@@ -349,7 +381,7 @@ static void ofsm_peak_output_process(uint8_t gunno)
     if(gunno >= APP_SYSTEM_GUNNO_SIZE){
         return;
     }
-    uint8_t another_gunno = APP_SYSTEM_GUNNOA, is_parallel_charge = APP_THA_ENUM_FALSE, _dev_type = 0x00;
+    uint8_t another_gunno = APP_SYSTEM_GUNNOA, is_parallel_charge = APP_THA_ENUM_FALSE, _dev_type = 0x00, allocate_satisfy = APP_THA_ENUM_TRUE;
     struct ofsm_info *_ofsm = get_ofsm_info(gunno);
     struct thaisenBMS_Charger_struct* bms_info = NULL;
 
@@ -369,26 +401,45 @@ static void ofsm_peak_output_process(uint8_t gunno)
     if(another_gunno == gunno){
         another_gunno++;
     }
+    _dev_type = (*(uint8_t*)(sys_read_config_item_content(CONFIG_ITEM_DEVICE_TYPE, 0x00)));
+
     if((_ofsm->base.flag.peak_out_executed == APP_THA_ENUM_FALSE) && (_ofsm->state == APP_OFSM_STATE_CHARGING)){
         uint32_t _gun_curr_max_phy = 0x00;      /** 枪的物理最大输出 */
         uint32_t _gun_peak_curr = 0x00;         /** 设置的枪峰值电流 */
         uint16_t _gun_curr_max_cal = 0x00;      /** 枪的计算最大输出 */
         uint32_t _execute_time = APP_PEAK_OUT_EXECUTE_TIME_SHORT;
-        /** 这是并充或并联 */
-        if(is_parallel_charge || (thaisenModuleGetStatus(another_gunno) == thaisenModuleStateChargParallel)){
-            for(uint8_t i = 0x00; i < APP_SYSTEM_GUNNO_SIZE; i++){
-                _ofsm = get_ofsm_info(i);
-                _gun_curr_max_cal += _ofsm->base.out_realcurr_max *10;
-            }
-            _ofsm = get_ofsm_info(gunno);
-            _gun_curr_max_phy = _ofsm->base.singlegun_max_curr;
-            _gun_peak_curr = (*(uint32_t*)(sys_read_config_item_content(CONFIG_ITEM_OUT_PEAK_CURRENT, 0x00)));
+
+        _gun_curr_max_phy = _ofsm->base.singlegun_max_curr;
+        _gun_peak_curr = (*(uint32_t*)(sys_read_config_item_content(CONFIG_ITEM_OUT_PEAK_CURRENT, 0x00)));
+        /** 这是群充终端 */
+        if((_dev_type == SYSTEM_FUNCTION_SINGLE_TERMINAL) || (_dev_type == SYSTEM_FUNCTION_DOUBLE_WHOLE) || \
+                (_dev_type == SYSTEM_FUNCTION_SINGLE_FAST)){
+            _gun_curr_max_cal = thaisenModuleGetGunAllocateCurrent(gunno);
         }
-        /** 这是单枪充 */
+        /** 这是动态双枪 */
+        else if(_dev_type == SYSTEM_FUNCTION_DYNAMIC_SWITCH){
+            _gun_curr_max_cal = thaisenModuleGetGunAllocateCurrent(gunno);
+        }
+        /** 这是环矩/半矩 */
+#ifdef APP_USING_CYCLE_MATRIX
+        else if((_dev_type == SYSTEM_FUNCTION_MS_MACHINE_CYCLE) || (_dev_type == SYSTEM_FUNCTION_MS_MACHINE_HALF) || \
+                (_dev_type == SYSTEM_FUNCTION_WHOLE_CYCLE)){
+            _gun_curr_max_cal = thaisenModuleGetGunAllocateCurrent(gunno);
+        }
+#endif /* APP_USING_CYCLE_MATRIX */
+        /** 这是均充 */
         else{
-            _gun_curr_max_cal = _ofsm->base.out_realcurr_max *10;
-            _gun_curr_max_phy = _ofsm->base.singlegun_max_curr;
-            _gun_peak_curr = (*(uint32_t*)(sys_read_config_item_content(CONFIG_ITEM_OUT_PEAK_CURRENT, 0x00)));
+            if(is_parallel_charge || (thaisenModuleGetStatus(another_gunno) == thaisenModuleStateChargParallel)){
+                for(uint8_t i = 0x00; i < APP_SYSTEM_GUNNO_SIZE; i++){
+                    _ofsm = get_ofsm_info(i);
+                    _gun_curr_max_cal += _ofsm->base.out_realcurr_max *10;
+                }
+                _ofsm = get_ofsm_info(gunno);
+            }
+            /** 这是单枪充 */
+            else{
+                _gun_curr_max_cal = _ofsm->base.out_realcurr_max *10;
+            }
         }
         if(_gun_peak_curr > _gun_curr_max_cal){
             _gun_peak_curr = _gun_curr_max_cal;
@@ -399,7 +450,27 @@ static void ofsm_peak_output_process(uint8_t gunno)
         }
         /** 只有设置的峰值电流值大于枪的物理输出电流值时才执行 */
         if((_gun_peak_curr > _gun_curr_max_phy) && (bms_info->BCL.BMSneedCurlt > (_gun_curr_max_phy /10))){
-            if(_ofsm->base.peak_out_time < (0xFFFF - 0x01)){
+            /** 这是群充终端 */
+            if((_dev_type == SYSTEM_FUNCTION_SINGLE_TERMINAL) || (_dev_type == SYSTEM_FUNCTION_DOUBLE_WHOLE) || \
+                    (_dev_type == SYSTEM_FUNCTION_SINGLE_FAST)){
+                if(ofsm_get_gun_allocate_current(gunno, _dev_type) < _gun_curr_max_phy){
+                    allocate_satisfy = APP_THA_ENUM_FALSE;
+                }
+            }
+            /** 这是动态双枪 */
+            else if(_dev_type == SYSTEM_FUNCTION_DYNAMIC_SWITCH){
+
+            }
+            /** 这是环矩/半矩 */
+#ifdef APP_USING_CYCLE_MATRIX
+            else if((_dev_type == SYSTEM_FUNCTION_MS_MACHINE_CYCLE) || (_dev_type == SYSTEM_FUNCTION_MS_MACHINE_HALF) || \
+                    (_dev_type == SYSTEM_FUNCTION_WHOLE_CYCLE)){
+                if(ofsm_get_gun_allocate_current(gunno, _dev_type) < _gun_curr_max_phy){
+                    allocate_satisfy = APP_THA_ENUM_FALSE;
+                }
+            }
+#endif /* APP_USING_CYCLE_MATRIX */
+            if((_ofsm->base.peak_out_time < (0xFFFF - 0x01)) && (allocate_satisfy == APP_THA_ENUM_TRUE)){
                 _ofsm->base.peak_out_time++;
             }
             /** 峰值电流输出只是短暂执行 */
@@ -425,16 +496,16 @@ static void ofsm_peak_output_process(uint8_t gunno)
                     _ofsm->base.peak_out_time = 0x00;
                 }
 #ifdef APP_USING_CYCLE_MATRIX
-                _dev_type = thaisenGetChargGunRunType();
-                if((_dev_type == thaisenDeviceType_Matrix_Cycle) || (_dev_type == thaisenDeviceType_Matrix_Half)){
+                if((_dev_type == SYSTEM_FUNCTION_MS_MACHINE_CYCLE) || (_dev_type == SYSTEM_FUNCTION_MS_MACHINE_HALF) || \
+                        (_dev_type == SYSTEM_FUNCTION_WHOLE_CYCLE)){
                     /** 修改单枪最大电流为设置的峰值输出电流 */
                     thaisen_set_gun_maxCurr((gunno + 0x01), _gun_peak_curr);
                     if(is_parallel_charge || (thaisenModuleGetStatus(another_gunno) == thaisenModuleStateChargParallel)){
                         thaisen_set_gun_maxCurr((another_gunno + 0x01), _gun_peak_curr);
                     }
                 }
-                else
 #endif /* APP_USING_CYCLE_MATRIX */
+                else
                 {
                     /** 修改单枪最大电流为设置的峰值输出电流 */
                     thaisenModuleSetMaxCurrSingleGun(_gun_peak_curr, gunno);

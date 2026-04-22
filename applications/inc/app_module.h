@@ -126,6 +126,14 @@ unsigned char app_module_is_open(unsigned char group);
 unsigned char app_module_belong_gun(unsigned char group);
 
 /*****************************************
+ * 函数名             app_module_gun_allocate_current
+ * 功能                获取给枪分配的电流
+ * 参数               gunno      枪号(从0开始)
+ * 返回                给枪分配的电流(0.01A)
+ ****************************************/
+unsigned int app_module_gun_allocate_current(unsigned char gunno);
+
+/*****************************************
  * 函数名             app_module_schedule_judge
  * 功能                模块调度启用判断
  * 参数                current     电流值

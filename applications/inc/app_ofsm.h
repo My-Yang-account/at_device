@@ -207,8 +207,8 @@ extern "C" {
 #ifdef APP_USING_PEAK_OUT_STRATEGY
 #define APP_PEAK_OUT_DIFF_CURR_POINT                    500                                          /* 峰值电流输出执行等级 -电流差值点(0.1A) */
 
-#define APP_PEAK_OUT_EXECUTE_TIME_SHORT                 (139 *1000 /APP_SYSTEM_RUN_TIME_PERIOD)    /* 峰值电流输出执行时间(ms)(短时间)(大概5min, 实测：1384) */
-#define APP_PEAK_OUT_EXECUTE_TIME_LONG                  (217 *1000 /APP_SYSTEM_RUN_TIME_PERIOD)    /* 峰值电流输出执行时间(ms)(长时间)(大概8min, 实测：2162) */
+#define APP_PEAK_OUT_EXECUTE_TIME_SHORT                 (270 *1000 /APP_SYSTEM_RUN_TIME_PERIOD)    /* 峰值电流输出执行时间(ms)(短时间)(大概5min, 实测：1384) */
+#define APP_PEAK_OUT_EXECUTE_TIME_LONG                  (450 *1000 /APP_SYSTEM_RUN_TIME_PERIOD)    /* 峰值电流输出执行时间(ms)(长时间)(大概8min, 实测：2162) */
 #endif /* APP_USING_PEAK_OUT_STRATEGY */
 
 enum buzzon_state {

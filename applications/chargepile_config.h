@@ -263,13 +263,14 @@
 #define POWER_ALLOCATION_WAY_SIZE                 3           /* 功率分配方式 */
 
 #define CONFIG_LP_CONSUMPTION_MODULE_NULL         0           /* 低功耗模块：无 */
-#define CONFIG_LP_CONSUMPTION_MODULE_YN           1           /* 低功耗模块：易能 */
-#define CONFIG_LP_CONSUMPTION_MODULE_SIZE         2           /* 低功耗模块 */
+#define CONFIG_LP_CONSUMPTION_MODULE_PLUSE        1           /* 低功耗模块：易能 */
+#define CONFIG_LP_CONSUMPTION_MODULE_DLEVEL       2           /* 低功耗模块：电平 */
+#define CONFIG_LP_CONSUMPTION_MODULE_SIZE         3           /* 低功耗模块 */
 
 #define SYSTEM_FUNCTION_SINGLE_TERMINAL           0         /* 单枪超充 */
 #define SYSTEM_FUNCTION_AVERAGE_DOUBLE            1         /* 均充双枪 */
 #define SYSTEM_FUNCTION_DOUBLE_WHOLE              2         /* 双枪终端 */
-#define SYSTEM_FUNCTION_RECTIFIER_CABINET         3         /* 单枪快充 */
+#define SYSTEM_FUNCTION_SINGLE_FAST               3         /* 单枪快充 */
 #define SYSTEM_FUNCTION_DYNAMIC_SWITCH            4         /* 动态切换 */
 #ifdef CP_USING_CYCLE_MATRIX
 #define SYSTEM_FUNCTION_MS_MACHINE_CYCLE          5         /* 设备类型(本机功能)：子母机(环矩) */
@@ -438,6 +439,8 @@
 
 #ifdef APP_USING_DOUBLEGUN
 #define CHARGEPILE_CC1_VOLT_MAX                   30000     /* CC1 电压最大值(0.001V) */
+#define CHARGEPILE_CC1_VOLT_MIN                   200       /* CC1 电压最小值(0.001V) */
+
 #define CHARGEPILE_CC12V_MAX_DEF                  13000     /* CC1 12V默认上限(0.001V, 包含边界值) */
 #define CHARGEPILE_CC12V_MIN_DEF                  11000     /* CC1 12V默认下限(0.001V, 包含边界值) */
 #define CHARGEPILE_CC12V_S                        12000     /* CC1 12V标准(0.001V) */
@@ -451,6 +454,8 @@
 #define CHARGEPILE_CC4V_S                         4000      /* CC1 4V标准(0.001V) */
 #else
 #define CHARGEPILE_CC1_VOLT_MAX                   30000     /* CC1 电压最大值(0.001V) */
+#define CHARGEPILE_CC1_VOLT_MIN                   200       /* CC1 电压最小值(0.001V) */
+
 #define CHARGEPILE_CC12V_MAX_DEF                  13000     /* CC1 12V默认上限(0.001V, 包含边界值) */
 #define CHARGEPILE_CC12V_MIN_DEF                  8000      /* CC1 12V默认下限(0.001V, 包含边界值) */
 #define CHARGEPILE_CC12V_S                        12000     /* CC1 12V标准(0.001V) */

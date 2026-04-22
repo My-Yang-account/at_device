@@ -463,6 +463,32 @@ unsigned char app_module_belong_gun(unsigned char group)
     return belong_gun;
 }
 
+/*****************************************
+ * 函数名             app_module_gun_allocate_current
+ * 功能                获取给枪分配的电流
+ * 参数               gunno      枪号(从0开始)
+ * 返回                给枪分配的电流(0.01A)
+ ****************************************/
+unsigned int app_module_gun_allocate_current(unsigned char gunno)
+{
+    unsigned int _current = 0x00;
+#ifdef CP_USING_CYCLE_MATRIX
+    unsigned char belong_gun = 0xFF;
+    extern uint8_t th_moduleallo_GetMgroupAimGun(uint8_t Mgroupnum);
+    extern uint16_t thaisen_guowang_get_groupctrlcurr(uint8_t groupnum);
+    if(gunno >= APP_SYSTEM_GUNNO_SIZE){
+        return _current;
+    }
+    for(unsigned char group = 0x00; group < 4; group++){
+        belong_gun = th_moduleallo_GetMgroupAimGun((group + 0x01));
+        if(belong_gun == (gunno + 0x01)){
+            _current += thaisen_guowang_get_groupctrlcurr((group + 0x01));
+        }
+    }
+#endif /* CP_USING_CYCLE_MATRIX */
+    return _current;
+}
+
 
 /*****************************************
  * 函数名             app_module_schedule_judge
@@ -528,7 +554,7 @@ void app_module_input_power_control(void)
     static unsigned char step = APP_MCTRL_STEP_IDLE, connect_state_last[APP_SYSTEM_GUNNO_SIZE], count = 0x00;
     static unsigned int timing = 0x00;
     static struct ofsm_info *ofsm = NULL;
-    unsigned char need_inpower = 0x00;
+    unsigned char need_inpower = 0x00, module_type = 0x00;
 
     need_inpower = thaisen_get_needAcPowerOn();
     if(thaisen_is_debug()){
@@ -536,7 +562,8 @@ void app_module_input_power_control(void)
         timing = 0x00;
         return;
     }
-    if(*(sys_read_config_item_content(CONFIG_ITEM_LP_MODULE, 0x00)) == CONFIG_LP_CONSUMPTION_MODULE_YN){
+    module_type = *(sys_read_config_item_content(CONFIG_ITEM_LP_MODULE, 0x00));
+    if((module_type == CONFIG_LP_CONSUMPTION_MODULE_PLUSE) || (module_type == CONFIG_LP_CONSUMPTION_MODULE_DLEVEL)){
         return;   /** 是磁保持的交流接触器 */
     }
 

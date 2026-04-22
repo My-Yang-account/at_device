@@ -1181,6 +1181,19 @@ void thaisenModuleSetMSetupCurrOffset(uint8_t gunNum, int16_t Offset);
  */
 int16_t thaisenModuleGetMSetupCurrOffset(uint8_t gunNum);
 
+/* 功能说明:
+ *          thaisenModuleGetGunAllocateCurrent: 获取充电中枪所能分配到的最大电流(非充电情况下默认为单枪最大电流)
+ *
+ * 输入参数:   gunNum    枪号
+ *
+ *
+ * 返回参数:   充电中枪所能分配到的最大电流(0.01A)
+ *
+ * 调用方法:
+ *          可实时调用
+ */
+uint32_t thaisenModuleGetGunAllocateCurrent(uint8_t gunNum);
+
 /*************************************************** BMS协议类型 ****************************************************/
 typedef enum
 {
